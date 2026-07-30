@@ -1,0 +1,122 @@
+diff --git a/_meta/tools/eval/retrieval_eval/search.py b/_meta/tools/eval/retrieval_eval/search.py
+index 4323d02..06a96f1 100644
+--- a/_meta/tools/eval/retrieval_eval/search.py
++++ b/_meta/tools/eval/retrieval_eval/search.py
+@@ -5,8 +5,8 @@ import json
+ import subprocess
+ from pathlib import Path
+ 
+-VAULT_ROOT = Path(__file__).resolve().parents[3]
+-BRAIN_BIN = VAULT_ROOT / "tools" / "braincli" / ".venv" / "bin" / "brain"
++VAULT_ROOT = Path(__file__).resolve().parents[4]
++BRAIN_BIN = VAULT_ROOT / "_meta" / "tools" / "braincli" / ".venv" / "bin" / "brain"
+ 
+ 
+ def brain_search(query: str, k: int, timeout: float = 15.0) -> list[dict]:
+diff --git a/_meta/tools/eval/tests/test_queries.py b/_meta/tools/eval/tests/test_queries.py
+index f022eab..c1d9186 100644
+--- a/_meta/tools/eval/tests/test_queries.py
++++ b/_meta/tools/eval/tests/test_queries.py
+@@ -4,7 +4,7 @@ from pathlib import Path
+ 
+ import yaml
+ 
+-VAULT_ROOT = Path(__file__).resolve().parents[3]
++VAULT_ROOT = Path(__file__).resolve().parents[4]
+ QUERIES_FILE = Path(__file__).resolve().parents[1] / "queries.yaml"
+ 
+ 
+diff --git a/_meta/tools/gardener/gardener/config.py b/_meta/tools/gardener/gardener/config.py
+index de2ec7f..9189da7 100644
+--- a/_meta/tools/gardener/gardener/config.py
++++ b/_meta/tools/gardener/gardener/config.py
+@@ -28,7 +28,7 @@ VISION_MODEL = "qwen3-vl:8b"   # local image description; skipped when not pulle
+ MAX_VISION_BYTES = 12 * 1024**2  # bigger images are left to a human
+ 
+ # Hard exclusions: never read, never embed, never write anything below these.
+-EXCLUDE_DIRS = {"90-secrets", ".obsidian", "templates", ".git", "tools"}
++EXCLUDE_DIRS = {"90-secrets", ".obsidian", ".git", "_meta"}
+ # Managed / generated top-level files: never part of the linking corpus.
+ EXCLUDE_FILES = {"HOT.md", "INDEX.md", "CRITICAL-FACTS.md", "review-queue.md",
+                  "OPEN-QUESTIONS.md", "LOG.md"}
+@@ -55,7 +55,7 @@ DROP_DIR = "00-sources/drop"
+ # Written by the B4 read-tracking hook; may not exist. Vault-relative.
+ HEAT_LOG = "_meta/tools/state/read-heat.log"
+ TRANSCRIPT_DIR = Path.home() / ".claude" / "projects"
+-MINED_DIR = "00-sources"
++MINED_DIR = "00-sources/mined"
+ 
+ MAX_NEW_LINKS_PER_NOTE = 5
+ NEIGHBOR_TOP_K = 5
+diff --git a/_meta/tools/gardener/tests/conftest.py b/_meta/tools/gardener/tests/conftest.py
+index bb3db3b..54445de 100644
+--- a/_meta/tools/gardener/tests/conftest.py
++++ b/_meta/tools/gardener/tests/conftest.py
+@@ -25,8 +25,8 @@ def tmp_vault(tmp_path: Path) -> Path:
+     make_note(v, "_meta/templates/note.md", "Template", "{{title}}")
+     (v / ".obsidian").mkdir()
+     (v / ".obsidian" / "graph.md").write_text("obsidian internals")
+-    (v / "tools").mkdir()
+-    (v / "tools" / "helper.md").write_text("tool docs")
++    (v / "_meta" / "tools").mkdir(parents=True)
++    (v / "_meta" / "tools" / "helper.md").write_text("tool docs")
+     make_note(v, "00-sources/gardener-report-2026-01-01.md", "old report", "generated")
+     return v
+ 
+diff --git a/_meta/tools/gardener/tests/test_sidecar.py b/_meta/tools/gardener/tests/test_sidecar.py
+index de3a02f..af6f125 100644
+--- a/_meta/tools/gardener/tests/test_sidecar.py
++++ b/_meta/tools/gardener/tests/test_sidecar.py
+@@ -64,7 +64,7 @@ def test_brainignore_comments_and_blank_lines_skipped():
+ def test_candidate_walk_skips_excluded_dirs_and_md_files(tmp_vault):
+     write_asset(tmp_vault, "10-global/photo.png")
+     write_asset(tmp_vault, "90-secrets/leak.bin")
+-    write_asset(tmp_vault, "tools/helper.bin")
++    write_asset(tmp_vault, "_meta/tools/helper.bin")
+     write_asset(tmp_vault, ".obsidian/cache.bin")
+     write_asset(tmp_vault, "10-global/.DS_Store")
+     write_asset(tmp_vault, config.DROP_DIR + "/raw.pdf")
+@@ -72,7 +72,7 @@ def test_candidate_walk_skips_excluded_dirs_and_md_files(tmp_vault):
+     rels = {p.relative_to(tmp_vault).as_posix() for p in candidates}
+     assert "10-global/photo.png" in rels
+     assert "90-secrets/leak.bin" not in rels
+-    assert "tools/helper.bin" not in rels
++    assert "_meta/tools/helper.bin" not in rels
+     assert ".obsidian/cache.bin" not in rels
+     assert "10-global/.DS_Store" not in rels
+     assert not any(r.startswith(config.DROP_DIR) for r in rels)
+diff --git a/_meta/tools/gardener/tests/test_vault.py b/_meta/tools/gardener/tests/test_vault.py
+index a75c2f6..6f29f5d 100644
+--- a/_meta/tools/gardener/tests/test_vault.py
++++ b/_meta/tools/gardener/tests/test_vault.py
+@@ -11,7 +11,7 @@ def test_load_notes_excludes_protected_paths(tmp_vault):
+     assert "10-global/alpha.md" in rels
+     assert "20-projects/demo/gamma.md" in rels
+     assert not any(r.startswith("90-secrets") for r in rels)
+-    assert not any(r.startswith((".obsidian", "templates", "tools")) for r in rels)
++    assert not any(r.startswith((".obsidian", "_meta")) for r in rels)
+     assert not any("gardener-report" in r for r in rels)
+ 
+ 
+@@ -28,7 +28,7 @@ def test_is_excluded_rules():
+     assert is_excluded(Path("20-projects/demo/MOC.md"))
+     # macOS is case-insensitive: exclusion rules must be too
+     assert is_excluded(Path("90-Secrets/x.md"))
+-    assert is_excluded(Path("Templates/note.md"))
++    assert is_excluded(Path("_Meta/templates/note.md"))
+     assert is_excluded(Path("hot.md"))
+ 
+ 
+diff --git a/_meta/tools/ingest/ingest.py b/_meta/tools/ingest/ingest.py
+index d6eab38..ce364c8 100644
+--- a/_meta/tools/ingest/ingest.py
++++ b/_meta/tools/ingest/ingest.py
+@@ -16,7 +16,7 @@ import re
+ import subprocess
+ import sys
+ 
+-VAULT = pathlib.Path(__file__).resolve().parents[2]
++VAULT = pathlib.Path(__file__).resolve().parents[3]
+ INBOX = VAULT / "00-sources"
+ 
+ VIDEO_HOSTS = ("youtube.com", "youtu.be", "vimeo.com")

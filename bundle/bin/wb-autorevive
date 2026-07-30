@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# wb-autorevive — automatically bring a dead workbench claude pane back.
+#
+# Called by the tmux `pane-died` hook. Turns a jetsam/OOM-killed pane from a
+# silent, un-interactable "frozen" pane into a self-healing one: it respawns +
+# resumes the Claude session with no keypress.
+#
+# Two guards keep this safe instead of harmful:
+#   • MEMORY GUARD — if free memory is low (e.g. a big local model is loaded, or
+#     an OOM is still in progress), do NOT respawn. Restarting heavy panes into
+#     memory pressure just feeds the fire and risks a respawn storm. The pane is
+#     left dead; the user revives it manually (prefix + R) once memory is healthy.
+#   • CRASH-LOOP THROTTLE — if this pane was already auto-revived within the last
+#     THROTTLE_S seconds, stop. Prevents an endless respawn loop when Claude
+#     itself exits immediately (bad flag, corrupt session, etc.).
+#
+# On any skip the reason is logged and shown in the pane; nothing is hidden.
+set -euo pipefail
+
+pane="${1:?pane id}"
+LOG=~/.local/state/wb-autorevive.log
+STATE=~/.local/state/wb-autorevive
+mkdir -p "$STATE" "$(dirname "$LOG")"
+
+MIN_FREE_PCT=20   # skip auto-revive below this much free memory
+THROTTLE_S=90     # min seconds between auto-revives of the same pane
+
+log() { printf '%s [%s] %s\n' "$(date '+%F %T')" "$pane" "$1" >>"$LOG"; }
+
+# Only handle claude panes that have a revive source.
+cmd=$(tmux show-options -pqv -t "$pane" @wb_cmd 2>/dev/null || true)
+[[ -z "$cmd" ]] && cmd=$(tmux display-message -p -t "$pane" '#{pane_start_command}' 2>/dev/null || true)
+[[ "$cmd" == *claude* ]] || { log "not a claude pane, skip"; exit 0; }
+
+# Crash-loop throttle (per pane).
+key="${STATE}/${pane//[^A-Za-z0-9]/_}"
+now=$(date +%s)
+if [[ -f "$key" ]]; then
+  last=$(cat "$key" 2>/dev/null || echo 0)
+  if (( now - last < THROTTLE_S )); then
+    log "throttled (revived $((now - last))s ago < ${THROTTLE_S}s), leaving dead"
+    tmux display-message -t "$pane" "wb-autorevive: throttled — revive manually with prefix+R"
+    exit 0
+  fi
+fi
+
+# Small jitter so a mass death (all panes at once) doesn't respawn in lockstep.
+sleep "0.$((RANDOM % 30 + 5))"
+
+# Memory guard. macOS: memory_pressure prints "System-wide memory free percentage: N%".
+# Linux has no memory_pressure at all — without the /proc/meminfo branch `free` stays
+# EMPTY there, the guard never fires and a respawn storm into an OOM is exactly what
+# this script exists to prevent. Both branches, same meaning: free RAM in percent.
+free=""
+if [[ -r /proc/meminfo ]]; then
+  free=$(awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{if(t>0) printf "%d", a*100/t}' /proc/meminfo)
+elif command -v memory_pressure >/dev/null 2>&1; then
+  free=$(memory_pressure 2>/dev/null | awk -F'[ %]+' '/free percentage/{print $(NF-1)}')
+fi
+if [[ -n "$free" ]] && (( free < MIN_FREE_PCT )); then
+  log "memory low (${free}% free < ${MIN_FREE_PCT}%), leaving dead for manual revive"
+  tmux display-message -t "$pane" "wb-autorevive: memory low (${free}%) — revive manually (prefix+R) when clear"
+  exit 0
+fi
+
+echo "$now" >"$key"
+log "reviving (${free:-?}% free)"
+# $HOME instead of a hardcoded $HOME: the same script has to run on peer
+# ($HOME) once both machines share one script set. Same target, same behaviour.
+exec "$HOME/.local/bin/wb-revive" "$pane"

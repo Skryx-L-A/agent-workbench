@@ -1,0 +1,113 @@
+#!/bin/bash
+# wb-harness-run — start a REGISTERED harness inside its tmux pane (SPEC-V3 C).
+#
+#   wb-harness-run --model <id> --role worker|orchestrator
+#                  [--effort <e>] [--dir <d>] [--name <n>]
+#
+# This is the shim that pi-worker/wb-code put into a pane instead of building a
+# command themselves: it asks `wb-state models resolve` for the start line (the
+# ONLY place that builds one), turns the secret PLACEHOLDERS into real values in
+# its OWN process environment, and execs. It is re-executable, which is what
+# @wb_cmd (wb-revive / the pane-died hook) needs.
+#
+# Why the detour instead of exporting the key before `tmux split-window`: a value
+# passed through a tmux option, an -e flag or any argv ends up in the process
+# list. Here the key exists only in the environment of the process that needs it —
+# never in argv, never in a tmux option, never in a file we write, never logged.
+# The lookup order is the contract from SPEC-V3 A.1 and matches wb-state's
+# presence check one for one: Keychain -> ~/.secrets-sync/api-keys/<provider>
+# (mode 600 enforced) -> environment variable. Change one, change both.
+set -uo pipefail
+
+MODEL=""; ROLE="worker"; EFFORT=""; DIR=""; NAME=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --model)  MODEL="${2:?model id}"; shift 2 ;;
+    --role)   ROLE="${2:?worker|orchestrator}"; shift 2 ;;
+    --effort) EFFORT="${2:?effort}"; shift 2 ;;
+    --dir)    DIR="${2:?dir}"; shift 2 ;;
+    --name)   NAME="${2:?name}"; shift 2 ;;
+    *) echo "wb-harness-run: unbekannte Option '$1'" >&2; exit 1 ;;
+  esac
+done
+[ -n "$MODEL" ] || { echo "wb-harness-run: --model fehlt" >&2; exit 1; }
+
+ARGS=(models resolve "$MODEL" --role "$ROLE")
+[ -n "$EFFORT" ] && ARGS+=(--effort "$EFFORT")
+[ -n "$DIR" ] && ARGS+=(--dir "$DIR")
+[ -n "$NAME" ] && ARGS+=(--name "$NAME")
+RESOLVED="$("$HOME/.local/bin/wb-state" "${ARGS[@]}")" || {
+  echo "wb-harness-run: Start abgebrochen — siehe Fehler oben." >&2
+  exit 1
+}
+
+# One secret placeholder chain -> the value, or empty. Prints nothing but the
+# value itself, and only into the caller's variable.
+secret_value() {
+  local spec svc path mode var val
+  for spec in "$@"; do
+    case "$spec" in
+      @keychain:*)
+        svc="${spec#@keychain:}"
+        if command -v security >/dev/null 2>&1; then
+          val="$(security find-generic-password -s "$svc" -w 2>/dev/null || true)"
+          [ -n "$val" ] && { printf '%s' "$val"; return 0; }
+        fi ;;
+      @file:*)
+        path="${spec#@file:}"
+        if [ -e "$path" ]; then
+          mode="$(stat -f %Lp "$path" 2>/dev/null || stat -c %a "$path" 2>/dev/null || echo 777)"
+          case "$mode" in
+            600|400) ;;
+            *) echo "wb-harness-run: FEHLER — $path hat Mode $mode, verlangt 600. Key nicht gelesen." >&2
+               return 1 ;;
+          esac
+          val="$(head -1 "$path" | tr -d '\r\n')"
+          [ -n "$val" ] && { printf '%s' "$val"; return 0; }
+        fi ;;
+      @env:*)
+        var="${spec#@env:}"
+        val="$(printenv "$var" 2>/dev/null || true)"
+        [ -n "$val" ] && { printf '%s' "$val"; return 0; }
+        ;;
+    esac
+  done
+  return 1
+}
+
+CMD=""
+while IFS=$'\t' read -r key rest; do
+  case "$key" in
+    cmd) CMD="$rest" ;;
+    env)
+      VAR="${rest%%$'\t'*}"; VALSPEC="${rest#*$'\t'}"
+      case "$VALSPEC" in
+        @keychain:*|@file:*|@env:*)
+          # split the chain on tabs and walk it in order
+          IFS=$'\t' read -r -a CHAIN <<<"$VALSPEC"
+          if SECRET="$(secret_value "${CHAIN[@]}")" && [ -n "$SECRET" ]; then
+            # A failing export must not fall through (no `set -e` here): an invalid
+            # variable name would otherwise start the CLI WITHOUT its key, and the
+            # auth error would only turn up inside the pane.
+            export "$VAR=$SECRET" || {
+              echo "wb-harness-run: FEHLER — '$VAR' ist kein gueltiger Variablenname; kein Start." >&2
+              exit 1; }
+            unset SECRET
+          else
+            echo "wb-harness-run: FEHLER — kein Key hinterlegt fuer \$$VAR; kein Start ohne Auth." >&2
+            exit 1
+          fi ;;
+        *) export "$VAR=$VALSPEC" || {
+             echo "wb-harness-run: FEHLER — '$VAR' ist kein gueltiger Variablenname; kein Start." >&2
+             exit 1; } ;;
+      esac ;;
+  esac
+done <<<"$RESOLVED"
+
+[ -n "$CMD" ] || { echo "wb-harness-run: resolve lieferte kein Startkommando." >&2; exit 1; }
+
+# Every workbench pane needs the workbench tools on PATH, otherwise the agent in it
+# cannot call wb-*/claude-worker/pi-worker — same reason wb-code does it for pi.
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH"
+
+eval "$CMD"

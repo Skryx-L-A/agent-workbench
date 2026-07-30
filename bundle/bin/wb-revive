@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Revive a dead (or live) workbench claude pane, resuming its conversation.
+#
+# A pane SIGKILLed by jetsam/OOM stays as a dead pane (remain-on-exit on). We
+# respawn it with --continue injected so the same model/role/flags come back AND
+# the previous session resumes.
+#
+# Command source, in order of preference:
+#   1. @wb_cmd — the clean, re-executable command stored at spawn time by the
+#      workbench launchers. THIS is authoritative.
+#   2. #{pane_start_command} — tmux's *escaped display* form. Fallback only, for
+#      panes created before @wb_cmd existed. NOTE: this form does not round-trip
+#      cleanly for commands containing "$(cat ...)" and nested quotes — feeding it
+#      back to respawn-pane double-wraps the quoting and the respawn exits 1. That
+#      historical bug is exactly why @wb_cmd is now preferred.
+#
+# Bound to: prefix + R   |   also called by wb-autorevive (pane-died hook)
+set -euo pipefail
+
+pane="${1:-${TMUX_PANE:?no pane}}"
+
+cmd=$(tmux show-options -pqv -t "$pane" @wb_cmd 2>/dev/null || true)
+[[ -z "$cmd" ]] && cmd=$(tmux display-message -p -t "$pane" '#{pane_start_command}')
+
+if [[ -z "$cmd" || "$cmd" != *claude* ]]; then
+  tmux display-message -t "$pane" "wb-revive: not a claude pane, nothing to do"
+  exit 0
+fi
+
+# Inject --continue right after the claude binary (first match only), unless the
+# command already carries a resume/continue flag.
+if [[ "$cmd" == *"--continue"* || "$cmd" == *"--resume"* ]]; then
+  newcmd="$cmd"
+else
+  newcmd="${cmd/claude /claude --continue }"
+fi
+
+tmux respawn-pane -k -t "$pane" "$newcmd"
+# Re-assert the CLEAN @wb_cmd so the next revive still has a good source
+# (respawn-pane overwrites pane_start_command with the --continue variant).
+tmux set -p -t "$pane" @wb_cmd "$cmd"
+# Ein Respawn passiert nach Absturz oder tmux-Neustart — genau dann fehlt das
+# dauerhafte `workers`-Fenster, weil es beim Sessionstart angelegt wird und einen
+# Serverneustart nicht ueberlebt. Ohne es hat die Session nur EIN Fenster, und der
+# Worker-Tab zeigt zwangslaeufig den Orchestrator (gemessen 2026-07-29).
+sess="$(tmux display -p -t "$pane" '#{session_name}' 2>/dev/null || true)"
+[ -n "$sess" ] && [ -x "$HOME/.local/bin/wb-workers-window" ] \
+  && "$HOME/.local/bin/wb-workers-window" "$sess" >/dev/null 2>&1 || true
+
+tmux display-message -t "$pane" "wb-revive: respawned + resumed"

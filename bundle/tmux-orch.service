@@ -1,0 +1,27 @@
+# tmux-orch.service — user-systemd unit that keeps the 'wb-orch' tmux session
+# boot-persistent on a Linux peer machine (e.g. the second workbench box).
+#
+# Install (on the Linux machine, as the normal user):
+#   mkdir -p ~/.config/systemd/user
+#   cp tmux-orch.service ~/.config/systemd/user/
+#   loginctl enable-linger "$USER"          # survive logout / start at boot
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now tmux-orch.service
+#
+# Then the "orchestrator" VSCode terminal profile just does
+# `ssh -t <peer> tmux new -A -s wb-orch` and always finds a live session.
+
+[Unit]
+Description=Persistent tmux session 'wb-orch' for Claude orchestrator sessions
+After=default.target
+
+[Service]
+Type=forking
+# -A: attach if exists, else create; keeps the session alive across reconnects.
+ExecStart=/usr/bin/tmux new-session -d -s wb-orch -n orch
+ExecStop=/usr/bin/tmux kill-session -t wb-orch
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

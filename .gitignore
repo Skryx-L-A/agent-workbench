@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+*.pyc
+node_modules/
+
+# Plugin-Marktplaetze sind eigene git-Repos; sie werden zur Laufzeit geklont,
+# nicht mitgeliefert (im Klon waeren sie sonst leere Verzeichnisse).
+bundle/dot-claude/plugins/marketplaces/
+

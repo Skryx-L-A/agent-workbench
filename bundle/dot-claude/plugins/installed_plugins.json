@@ -1,0 +1,65 @@
+{
+  "version": 2,
+  "plugins": {
+    "caveman@caveman": [
+      {
+        "scope": "user",
+        "installPath": "$HOME/.claude/plugins/cache/caveman/caveman/0d95a81d35a9",
+        "version": "0d95a81d35a9",
+        "installedAt": "1970-01-01T00:00:00.000Z",
+        "lastUpdated": "1970-01-01T00:00:00.000Z",
+        "gitCommitSha": "0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0"
+      }
+    ],
+    "project-kit@project-kit": [
+      {
+        "scope": "user",
+        "installPath": "$HOME/.claude/plugins/cache/project-kit/project-kit/0.5.1",
+        "version": "0.5.1",
+        "installedAt": "1970-01-01T00:00:00.000Z",
+        "lastUpdated": "1970-01-01T00:00:00.000Z",
+        "gitCommitSha": "a15a817858180f23a5169707e1ed00b36c3c9904"
+      }
+    ],
+    "frontend-design@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "$HOME/.claude/plugins/cache/claude-plugins-official/frontend-design/unknown",
+        "version": "unknown",
+        "installedAt": "1970-01-01T00:00:00.000Z",
+        "lastUpdated": "1970-01-01T00:00:00.000Z",
+        "gitCommitSha": "f9cb226d81172f53a1787cc3ba90dc9ab51aa169"
+      }
+    ],
+    "code-review@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "$HOME/.claude/plugins/cache/claude-plugins-official/code-review/unknown",
+        "version": "unknown",
+        "installedAt": "1970-01-01T00:00:00.000Z",
+        "lastUpdated": "1970-01-01T00:00:00.000Z",
+        "gitCommitSha": "f9cb226d81172f53a1787cc3ba90dc9ab51aa169"
+      }
+    ],
+    "code-simplifier@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "$HOME/.claude/plugins/cache/claude-plugins-official/code-simplifier/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "1970-01-01T00:00:00.000Z",
+        "lastUpdated": "1970-01-01T00:00:00.000Z",
+        "gitCommitSha": "a5c7fb5d86a4cd34c4f47819658654c3d8f08dda"
+      }
+    ],
+    "playwright@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "$HOME/.claude/plugins/cache/claude-plugins-official/playwright/unknown",
+        "version": "unknown",
+        "installedAt": "1970-01-01T00:00:00.000Z",
+        "lastUpdated": "1970-01-01T00:00:00.000Z",
+        "gitCommitSha": "f9cb226d81172f53a1787cc3ba90dc9ab51aa169"
+      }
+    ]
+  }
+}

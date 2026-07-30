@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Beendet alle 30 Minuten MCP-Helferprozesse, deren Claude-Session nicht mehr lebt.
+  Ein sauber beendeter Client raeumt seine stdio-Server selbst ab; ein Absturz, ein
+  jetsam-Kill oder ein hart geschlossener Pane nicht — dann bleiben 100-200 MB je
+  Waise stehen. `mcp-shared reap` beendet ausschliesslich Prozesse ohne lebenden
+  Claude-Vorfahren und immer ueber die konkrete PID.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>de.__USER__.mcp-reaper</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__HOME__/.local/bin/mcp-shared</string>
+    <string>reap</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>1800</integer>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StandardOutPath</key>
+  <string>__HOME__/.local/state/mcp-shared/reaper.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/.local/state/mcp-shared/reaper.log</string>
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

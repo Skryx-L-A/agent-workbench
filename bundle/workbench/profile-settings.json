@@ -1,0 +1,51 @@
+{
+  "workbench.startupEditor": "none",
+  "workbench.tips.enabled": false,
+  "workbench.welcomePage.walkthroughs.openOnInstall": false,
+  "workbench.editor.empty.hint": "hidden",
+  "workbench.panel.defaultLocation": "bottom",
+  "terminal.integrated.defaultLocation": "view",
+  "telemetry.telemetryLevel": "off",
+  "update.showReleaseNotes": false,
+  "window.title": "Claude Workbench — ${rootName}",
+  "explorer.compactFolders": false,
+  "security.workspace.trust.enabled": false,
+  "chat.commandCenter.enabled": false,
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
+  "chat.agent.enabled": false,
+  "chat.disableAIFeatures": true,
+  "workbench.panel.opensMaximized": "always",
+  "terminal.integrated.enablePersistentSessions": false,
+  "terminal.integrated.profiles.osx": {
+    "peer — orchestrator": {
+      "path": "/usr/bin/ssh",
+      "args": [
+        "-t",
+        "peer",
+        "tmux new -A -s wb-orch"
+      ],
+      "icon": "rocket",
+      "color": "terminal.ansiGreen"
+    },
+    "peer — control": {
+      "path": "/usr/bin/ssh",
+      "args": [
+        "-t",
+        "peer",
+        "tmux new -A -s main"
+      ],
+      "icon": "terminal",
+      "color": "terminal.ansiCyan"
+    },
+    "peer — new session": {
+      "path": "/usr/bin/ssh",
+      "args": [
+        "-t",
+        "peer",
+        "$HOME/.local/bin/peer-code"
+      ],
+      "icon": "folder-opened",
+      "color": "terminal.ansiMagenta"
+    }
+  }
+}

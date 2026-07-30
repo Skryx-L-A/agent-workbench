@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# orch-launch <name> <model> <dir> <task...>
+# Launch a Claude orchestrator into the dedicated 'wb-orch' tmux session and
+# arrange the workbench grid (orchestrator big on top, workers as columns below).
+# Workers the orchestrator spawns split into the same window; the tmux hooks
+# re-grid automatically. Run from the control shell ('main') so the command is visible.
+set -euo pipefail
+T=/usr/bin/tmux
+NAME="${1:?name}"
+$T has-session -t wb-orch 2>/dev/null || $T new-session -d -s wb-orch -n orch
+pane=$($T list-panes -t wb-orch -F '#{pane_id}' | head -1)
+env TMUX_PANE="$pane" "$HOME/.local/bin/claude-worker" "$@"
+# mark the orchestrator pane so wb-grid keeps it as the big top pane
+op=$($T list-panes -t wb-orch -F '#{pane_id} #{@wb_worker}' | awk -v n="$NAME" '$2==n{print $1; exit}')
+[ -n "$op" ] && $T set -p -t "$op" @wb_role orchestrator
+# prune leftover base bash shells (no role) so only orchestrator + workers remain
+for p in $($T list-panes -t wb-orch -F '#{pane_id}|#{@wb_role}|#{pane_current_command}' | awk -F'|' '$2=="" && $3=="bash"{print $1}'); do
+  $T kill-pane -t "$p" 2>/dev/null || true
+done
+$T run-shell -b "$HOME/.local/bin/wb-grid $($T display -p -t wb-orch '#{window_id}')" 2>/dev/null || true

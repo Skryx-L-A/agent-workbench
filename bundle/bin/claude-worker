@@ -1,0 +1,73 @@
+#!/bin/bash
+# claude-worker <name> <haiku45|sonnet5|opus5|opus48|fable5>[:effort] <dir> <task...>
+# Permanent Claude chat agent pane (pi-worker mechanics). Model is REQUIRED.
+#
+# Routing (freigegeben 2026-07-25) — pick by TOTAL expected work:
+#   haiku45:low    mechanical (rename, config tweak, format, one obvious fix; 200K ctx only)
+#   sonnet5:high   short, well-specified coding, few files
+#   sonnet5:xhigh  larger but clear spec (cross-file refactor, test suite, doc sweep)
+#   opus5:xhigh    long/multi-step, debugging, design decisions, ambiguity
+#   opus5:high     independent reviewer pass
+#   opus48:xhigh   second opinion / A-B against known-good 4.8 behaviour
+#   fable5:medium  customer-facing VISUAL deliverables only (landing page, customer
+#                  presentation, visual asset that goes to a client). Both conditions at
+#                  once: customer-facing AND visual. Anything else with fable needs
+#                  the user's explicit word. Effort cap stays medium. (2026-07-25)
+# Effort cap is xhigh everywhere (never `max`). Legacy aliases haiku|sonnet|opus|fable
+# still work; `opus` stays pinned to 4.8 — write `opus5` for Opus 5.
+#
+# V3: any model REGISTERED in ~/.claude/workbench/models.json can be typed here too
+# (`claude-worker w1 gpt-5-codex <dir> <task>`), whatever harness it runs on. The
+# routing table above is generated from that registry: `wb-state models table`.
+#
+#   claude-worker --on <mac|peer> <name> <model>[:effort] <dir> <task...>
+# runs the worker on the OTHER machine and mirrors it into the local grid; it is
+# called SSH-<name> everywhere (pane, state file, result dir on the target).
+# Result: `wb-result SSH-<name>`. Without --on nothing changes.
+#
+# maxWorkers (SPEC-V2 A) is enforced in pi-worker, not duplicated here: this script
+# never creates a pane itself, it only ever execs onward (below, or into
+# wb-ssh-worker just above) — so pi-worker's check already covers every path that
+# actually spawns something, on whichever machine that turns out to be.
+if [ "${1:-}" = "--on" ]; then
+  ONMACHINE="${2:?Maschine (mac|peer)}"; shift 2
+  case "$(uname -s)" in Darwin) SELF=mac ;; *) SELF=peer ;; esac
+  [ "$ONMACHINE" = "$SELF" ] && { echo "claude-worker: --on gilt nur fuer eine ANDERE Maschine — '$ONMACHINE' ist diese hier. Ohne --on starten." >&2; exit 1; }
+  exec "$HOME/.local/bin/wb-ssh-worker" "$ONMACHINE" claude "$@"
+fi
+
+NAME="${1:?name}"; MODEL="${2:?model (haiku45|sonnet5|opus5|opus48|fable5[:effort]|default)}"; DIR="${3:?dir}"
+
+# defaultWorkerMachine (SPEC-V2 A): applies ONLY when no machine was given explicitly
+# (no --on — handled above and already returned) AND the name is not already an SSH
+# mirror (an explicit SSH-<name> already says exactly where the work happens). "local"
+# (the default) means today's behaviour: fall through to pi-worker unchanged.
+case "$NAME" in
+  SSH-*) ;;
+  *)
+    DEFMACH=$("$HOME/.local/bin/wb-state" settings get defaultWorkerMachine 2>/dev/null)
+    case "$DEFMACH" in mac|peer) ;; *) DEFMACH=local ;; esac
+    if [ "$DEFMACH" != local ]; then
+      case "$(uname -s)" in Darwin) SELF=mac ;; *) SELF=peer ;; esac
+      # Already on the configured default machine: nothing to redirect.
+      [ "$DEFMACH" = "$SELF" ] || exec "$HOME/.local/bin/wb-ssh-worker" "$DEFMACH" claude "$@"
+    fi
+    ;;
+esac
+
+# `default` takes workerModel/workerEffort from the settings menu (resolved in
+# pi-worker, which owns the model table); it must NOT be prefixed with claude-.
+case "$MODEL" in
+  default|-) exec "$HOME/.local/bin/pi-worker" "$NAME" default "$DIR" "${@:4}" ;;
+esac
+# V3 (SPEC-V3 A.3): a REGISTRY model is typed exactly as it is registered
+# (`claude-worker w1 gpt-5-codex …`) and must NOT be prefixed either — `claude-`
+# in front of it would produce an id nobody knows. So only the built-in aliases
+# get the prefix; everything else goes through untouched and pi-worker decides in
+# order: alias -> registry -> installed Ollama id -> error.
+BASE="${MODEL%%:*}"
+case "$BASE" in
+  haiku45|sonnet5|opus5|opus48|fable5|haiku|sonnet|opus|fable)
+    exec "$HOME/.local/bin/pi-worker" "$NAME" "claude-$MODEL" "$DIR" "${@:4}" ;;
+esac
+exec "$HOME/.local/bin/pi-worker" "$NAME" "$MODEL" "$DIR" "${@:4}"

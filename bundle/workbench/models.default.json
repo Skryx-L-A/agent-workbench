@@ -1,0 +1,1084 @@
+{
+  "version": 1,
+  "_comment": [
+    "Claude Workbench V3 — Modell-/Harness-Registry (SPEC-V3-MODELS.md Abschnitt A).",
+    "Installiert nach ~/.claude/workbench/models.json. Fehlt die Datei oder ist sie kaputt,",
+    "gelten die eingebauten Adapter (claude, pi) aus dem Code und alles verhaelt sich wie vor V3.",
+    "Kein Key steht je in dieser Datei — Keychain (Mac) / ~/.secrets-sync/api-keys/<provider> (peer).",
+    "Unbekannte Schluessel ueberleben jeden Schreibvorgang (read-modify-write)."
+  ],
+  "providers": [
+    {
+      "id": "claude-subscription",
+      "label": "Claude Code (Abo-Login)",
+      "kind": "subscription",
+      "notes": "Kein API-Key: Claude Code authentifiziert sich ueber den Login. Provider der eingebauten claude-Modelle."
+    },
+    {
+      "id": "ollama",
+      "label": "Ollama (lokal)",
+      "kind": "local",
+      "baseUrl": "http://127.0.0.1:11434",
+      "notes": "Lokal, kein Key. NB auf peer ist 127.0.0.1:11434 ein SSH-Tunnel zum Mac (SPEC-V2 F)."
+    },
+    {
+      "id": "llamacpp",
+      "label": "llama.cpp (llama-server, lokal)",
+      "kind": "local",
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "notes": "Lokal, kein Key. Fuer GGUF-Modelle, die Ollama nicht in der gewuenschten Quantisierung faehrt."
+    },
+    {
+      "id": "openai",
+      "label": "OpenAI",
+      "kind": "cloud",
+      "baseUrl": "https://api.openai.com/v1",
+      "apiKeyEnv": "OPENAI_API_KEY",
+      "keychainService": "wb-openai",
+      "discover": {
+        "source": "http-json",
+        "url": "https://api.openai.com/v1/models",
+        "jsonPath": "data[].id",
+        "auth": {
+          "header": "Authorization",
+          "value": "Bearer {key}",
+          "required": true
+        },
+        "cacheHours": 24,
+        "maxModels": 1000
+      },
+      "runners": [
+        "aider",
+        "opencode"
+      ],
+      "defaultRunner": "aider",
+      "notes": "Katalog-Abruf (SPEC-V3-MODELS discover Vertrag Teil 2, 2026-07-29): OpenAI-kompatible Modell-Liste. Ohne hinterlegten Key passiert hier gar nichts (discover.auth.required=true) — weder Netzzugriff noch Registrierung."
+    },
+    {
+      "id": "google",
+      "label": "Google (Gemini API)",
+      "kind": "cloud",
+      "baseUrl": "https://generativelanguage.googleapis.com",
+      "apiKeyEnv": "GEMINI_API_KEY",
+      "keychainService": "wb-google",
+      "discover": {
+        "source": "http-json",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "jsonPath": "models[].name",
+        "auth": {
+          "header": "x-goog-api-key",
+          "value": "{key}",
+          "required": true
+        },
+        "cacheHours": 24,
+        "maxModels": 1000
+      },
+      "runners": [
+        "aider",
+        "opencode"
+      ],
+      "defaultRunner": "aider",
+      "notes": "Katalog-Abruf: Gemini-Modell-Liste. x-goog-api-key ist die von Google dokumentierte Header-Alternative zum ?key=-Query-Parameter -- das discover-Schema kennt nur Header-Auth. Ohne Key: nichts."
+    },
+    {
+      "id": "openrouter",
+      "label": "OpenRouter",
+      "kind": "cloud",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "apiKeyEnv": "OPENROUTER_API_KEY",
+      "keychainService": "wb-openrouter",
+      "discover": {
+        "source": "http-json",
+        "url": "https://openrouter.ai/api/v1/models",
+        "jsonPath": "data[].id",
+        "auth": {
+          "header": "Authorization",
+          "value": "Bearer {key}",
+          "required": false
+        },
+        "priceFields": {
+          "in": "pricing.prompt",
+          "out": "pricing.completion"
+        },
+        "cacheHours": 24,
+        "maxModels": 1000
+      },
+      "balance": {
+        "url": "https://openrouter.ai/api/v1/credits",
+        "jsonPath": "data.total_credits",
+        "minusJsonPath": "data.total_usage",
+        "freeWhenEmpty": true,
+        "notes": "Guthaben = total_credits minus total_usage. /api/v1/key liefert stattdessen limit_remaining, das bei jedem Konto ohne Ausgabenlimit null ist und sich damit nicht von 'nicht lesbar' unterscheiden laesst (gemessen 2026-07-29)."
+      },
+      "runners": [
+        "aider",
+        "opencode"
+      ],
+      "defaultRunner": "aider",
+      "notes": "Katalog ist OEFFENTLICH (auth.required=false, gemessen 2026-07-29: 367 Eintraege ohne Key, davon 17 kostenlos) -- er wird deshalb IMMER geholt und im Suchfeld angezeigt, aber ohne Key nichts registriert (Vertrag 1)."
+    },
+    {
+      "id": "deepseek",
+      "label": "DeepSeek",
+      "kind": "cloud",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "apiKeyEnv": "DEEPSEEK_API_KEY",
+      "keychainService": "wb-deepseek",
+      "discover": {
+        "source": "http-json",
+        "url": "https://api.deepseek.com/v1/models",
+        "jsonPath": "data[].id",
+        "auth": {
+          "header": "Authorization",
+          "value": "Bearer {key}",
+          "required": true
+        },
+        "cacheHours": 24,
+        "maxModels": 1000
+      },
+      "runners": [
+        "aider",
+        "opencode"
+      ],
+      "defaultRunner": "aider",
+      "notes": "Katalog-Abruf (SPEC-V3-MODELS discover Vertrag Teil 2, 2026-07-29): OpenAI-kompatible Modell-Liste. Ohne hinterlegten Key passiert hier gar nichts (discover.auth.required=true) — weder Netzzugriff noch Registrierung."
+    },
+    {
+      "id": "groq",
+      "label": "Groq",
+      "kind": "cloud",
+      "baseUrl": "https://api.groq.com/openai/v1",
+      "apiKeyEnv": "GROQ_API_KEY",
+      "keychainService": "wb-groq",
+      "discover": {
+        "source": "http-json",
+        "url": "https://api.groq.com/openai/v1/models",
+        "jsonPath": "data[].id",
+        "auth": {
+          "header": "Authorization",
+          "value": "Bearer {key}",
+          "required": true
+        },
+        "cacheHours": 24,
+        "maxModels": 1000
+      },
+      "runners": [
+        "aider",
+        "opencode"
+      ],
+      "defaultRunner": "aider",
+      "notes": "Katalog-Abruf (SPEC-V3-MODELS discover Vertrag Teil 2, 2026-07-29): OpenAI-kompatible Modell-Liste. Ohne hinterlegten Key passiert hier gar nichts (discover.auth.required=true) — weder Netzzugriff noch Registrierung."
+    },
+    {
+      "id": "mistral",
+      "label": "Mistral",
+      "kind": "cloud",
+      "baseUrl": "https://api.mistral.ai/v1",
+      "apiKeyEnv": "MISTRAL_API_KEY",
+      "keychainService": "wb-mistral",
+      "discover": {
+        "source": "http-json",
+        "url": "https://api.mistral.ai/v1/models",
+        "jsonPath": "data[].id",
+        "auth": {
+          "header": "Authorization",
+          "value": "Bearer {key}",
+          "required": true
+        },
+        "cacheHours": 24,
+        "maxModels": 1000
+      },
+      "runners": [
+        "aider",
+        "opencode"
+      ],
+      "defaultRunner": "aider",
+      "notes": "Katalog-Abruf (SPEC-V3-MODELS discover Vertrag Teil 2, 2026-07-29): OpenAI-kompatible Modell-Liste. Ohne hinterlegten Key passiert hier gar nichts (discover.auth.required=true) — weder Netzzugriff noch Registrierung."
+    },
+    {
+      "id": "xai",
+      "label": "xAI (Grok)",
+      "kind": "cloud",
+      "baseUrl": "https://api.x.ai/v1",
+      "apiKeyEnv": "XAI_API_KEY",
+      "keychainService": "wb-xai",
+      "discover": {
+        "source": "http-json",
+        "url": "https://api.x.ai/v1/models",
+        "jsonPath": "data[].id",
+        "auth": {
+          "header": "Authorization",
+          "value": "Bearer {key}",
+          "required": true
+        },
+        "cacheHours": 24,
+        "maxModels": 1000
+      },
+      "runners": [
+        "aider",
+        "opencode"
+      ],
+      "defaultRunner": "aider",
+      "notes": "Katalog-Abruf (SPEC-V3-MODELS discover Vertrag Teil 2, 2026-07-29): OpenAI-kompatible Modell-Liste. Ohne hinterlegten Key passiert hier gar nichts (discover.auth.required=true) — weder Netzzugriff noch Registrierung."
+    },
+    {
+      "id": "anthropic-api",
+      "label": "Anthropic API (pay-per-token)",
+      "kind": "cloud",
+      "baseUrl": "https://api.anthropic.com/v1",
+      "apiKeyEnv": "ANTHROPIC_API_KEY",
+      "keychainService": "wb-anthropic-api",
+      "notes": "NICHT der Weg der eingebauten claude-Worker — die laufen ueber das Abo (claude-subscription). Katalog-Abruf: die echte Anthropic-API verlangt zusaetzlich einen Header 'anthropic-version' -- das discover-Schema kennt nur EINEN Auth-Header, dieser zweite fehlt hier (bekannte Luecke, siehe Ergebnis-Notiz). Ohne Key: nichts.",
+      "discover": {
+        "source": "http-json",
+        "url": "https://api.anthropic.com/v1/models",
+        "jsonPath": "data[].id",
+        "auth": {
+          "header": "x-api-key",
+          "value": "{key}",
+          "required": true
+        },
+        "cacheHours": 24,
+        "maxModels": 1000
+      },
+      "runners": [
+        "aider",
+        "opencode"
+      ],
+      "defaultRunner": "aider"
+    },
+    {
+      "id": "antigravity",
+      "label": "Google Antigravity (Abo/Login)",
+      "kind": "subscription",
+      "apiKeyEnv": null,
+      "keychainService": null
+    },
+    {
+      "id": "chatgpt",
+      "label": "OpenAI ChatGPT (Abo/Login)",
+      "kind": "subscription",
+      "apiKeyEnv": null,
+      "keychainService": null
+    },
+    {
+      "id": "opencode-zen",
+      "label": "opencode Zen (Login)",
+      "kind": "subscription",
+      "apiKeyEnv": null,
+      "keychainService": null,
+      "notes": "Login-Zugang von opencode selbst, kein eigener API-Key — darueber laufen die opencode/...-Modelle aus 'opencode models' (SPEC-V3-MODELS discover, Vertrag 2026-07-29)."
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "claude",
+      "label": "Claude Code",
+      "builtin": true,
+      "command": "~/.local/bin/claude",
+      "args": [
+        "--model",
+        "{model}"
+      ],
+      "cwdMode": "cd",
+      "effort": {
+        "style": "arg",
+        "args": [
+          "--effort",
+          "{effort}"
+        ],
+        "map": {
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "xhigh"
+        }
+      },
+      "systemPrompt": {
+        "style": "flag-content",
+        "flag": "--append-system-prompt",
+        "worker": "~/.claude/roles/agent.md",
+        "orchestrator": "~/.claude/roles/orchestrator.md"
+      },
+      "autonomy": {
+        "args": [
+          "--dangerously-skip-permissions"
+        ]
+      },
+      "readyPattern": "❯|░|●",
+      "promptPattern": "^❯",
+      "compactCommand": "/compact",
+      "contextPattern": null,
+      "instructionFiles": [
+        "~/.claude/CLAUDE.md",
+        "<project>/CLAUDE.md"
+      ],
+      "supportsPaste": true,
+      "altScreen": true,
+      "probe": "produktiv gemessen (Ready-Muster seit V1 im Einsatz)",
+      "notes": "Eingebaut: pi-worker/wb-code haben fuer die Aliase haiku45|sonnet5|opus5|opus48|fable5 ihren eigenen schnellen Pfad. contextPattern bleibt null, weil context-guard Claude-Panes nativ misst (Transcript + Statuszeile), nicht ueber ein Registry-Muster.",
+      "promptIgnore": "^❯ Press up to edit queued messages"
+    },
+    {
+      "id": "pi",
+      "label": "pi (lokale Modelle)",
+      "builtin": true,
+      "command": "pi",
+      "args": [
+        "--provider",
+        "ollama",
+        "--model",
+        "{model}",
+        "--session-dir",
+        "{sessionDir}"
+      ],
+      "cwdMode": "cd",
+      "env": {
+        "OLLAMA_HOST": "http://127.0.0.1:11434"
+      },
+      "effort": {
+        "style": "arg",
+        "args": [
+          "--thinking",
+          "{effort}"
+        ],
+        "map": {
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "xhigh"
+        }
+      },
+      "systemPrompt": {
+        "style": "flag-path",
+        "flag": "--append-system-prompt",
+        "worker": "~/.pi/agent/WORKER.md",
+        "orchestrator": "~/.pi/agent/ORCHESTRATOR.md"
+      },
+      "autonomy": {
+        "args": []
+      },
+      "resume": {
+        "args": [
+          "--continue"
+        ],
+        "probe": "session-dir"
+      },
+      "sessionDir": "~/.pi-workers/sessions/{name}",
+      "readyPattern": "❯|░|●",
+      "promptPattern": "^❯",
+      "compactCommand": null,
+      "contextPattern": null,
+      "effortInSpawnSpelling": false,
+      "instructionFiles": [
+        "~/.pi/agent/RULES.md"
+      ],
+      "supportsPaste": true,
+      "altScreen": false,
+      "probe": "produktiv gemessen (Ready-Muster seit V1 im Einsatz)",
+      "notes": "Eingebaut: die Aliase qwen|ornith|ornith9 nehmen in pi-worker den schnellen Pfad. compactCommand null — pi kompaktiert nicht auf Kommando, der Guard fordert stattdessen eine Uebergabe an.",
+      "promptIgnore": "^❯ Press up to edit queued messages",
+      "discover": {
+        "source": "ollama",
+        "provider": "ollama",
+        "supportsEffort": true,
+        "notes": "Wunsch des Nutzers: 'die lokalen Modelle, die installiert sind' fuer pi. Ref = roher Name aus 'ollama list', identisch zur Kurzform der kuratierten ornith-Eintraege (SPEC-V3-MODELS discover, Vertrag 2026-07-29)."
+      }
+    },
+    {
+      "id": "codex",
+      "label": "OpenAI Codex CLI",
+      "command": "codex",
+      "args": [
+        "--model",
+        "{model}",
+        "--search"
+      ],
+      "cwdMode": "cd",
+      "env": null,
+      "effort": {
+        "style": "arg",
+        "args": [
+          "-c",
+          "model_reasoning_effort={effort}"
+        ],
+        "map": {
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "high"
+        }
+      },
+      "systemPrompt": {
+        "style": "file",
+        "path": "~/.codex/AGENTS.md"
+      },
+      "autonomy": {
+        "args": [
+          "--dangerously-bypass-approvals-and-sandbox"
+        ]
+      },
+      "resume": {
+        "args": [
+          "resume",
+          "--last"
+        ],
+        "probe": "session-dir"
+      },
+      "sessionDir": "~/.codex/sessions",
+      "readyPattern": "^›",
+      "probe": "gemessen 2026-07-28 mit codex-cli 0.145.0 nach Anmeldung (der Nutzer): Eingabezeile beginnt mit dem Zeichen › (U+203A). Keine Kontextanzeige in der Statuszeile gefunden — contextPattern bleibt leer, der Guard behandelt den Kontext dieses Harness als UNBEKANNT.",
+      "compactCommand": "/compact",
+      "contextPattern": "CTX[^0-9]*([0-9]{1,3})[[:space:]]*%",
+      "instructionFiles": [
+        "~/.codex/AGENTS.md",
+        "<project>/AGENTS.md"
+      ],
+      "supportsPaste": true,
+      "altScreen": true,
+      "notes": "Erste Welle. /compact und die CTX-Anzeige stammen aus Issues des offiziellen Repos, nicht aus der Doku (mittlere Konfidenz). Anbietergebunden: eigene Base-URL ist NICHT belegt.",
+      "promptPattern": "^›",
+      "promptIgnore": "^› Run /review",
+      "discover": {
+        "source": "file-json",
+        "file": "~/.codex/models_cache.json",
+        "jsonPath": "models[].slug",
+        "filter": {
+          "field": "visibility",
+          "equals": "list"
+        },
+        "provider": "chatgpt",
+        "notes": "Liest die vom Codex-CLI selbst gepflegte Modell-Liste (Abo-Login, wie codex-gpt5). Gemessen 2026-07-29: 4 Eintraege (gpt-5.6-terra, gpt-5.6-luna, gpt-5.5, gpt-5.4-mini)."
+      }
+    },
+    {
+      "id": "aider",
+      "label": "aider-chat",
+      "command": "aider",
+      "args": [
+        "--model",
+        "{model}"
+      ],
+      "cwdMode": "cd",
+      "env": {
+        "OLLAMA_API_BASE": "{baseUrl:ollama}",
+        "BROWSER": "/usr/bin/true"
+      },
+      "effort": {
+        "style": "arg",
+        "args": [
+          "--reasoning-effort",
+          "{effort}"
+        ],
+        "map": {
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "high"
+        }
+      },
+      "systemPrompt": {
+        "style": "none"
+      },
+      "autonomy": {
+        "args": [
+          "--yes-always",
+          "--no-show-release-notes",
+          "--no-browser"
+        ]
+      },
+      "resume": {
+        "args": [
+          "--restore-chat-history"
+        ],
+        "probe": "always"
+      },
+      "readyPattern": "^>",
+      "promptPattern": "^>",
+      "probe": "gemessen 2026-07-28 mit aider 0.86.2 + ollama/ornith:9b: Eingabezeile ^> nach 5s (wb-harness-probe, eigener Socket)",
+      "compactCommand": null,
+      "contextPattern": null,
+      "instructionFiles": [],
+      "supportsPaste": true,
+      "altScreen": false,
+      "notes": "Erste Welle: einziger Zeilen-REPL ohne Alternate-Screen, damit die robusteste capture-pane-Erkennung. Kein System-Prompt-Mechanismus belegt (style 'none') — Rolle muesste per --read CONVENTIONS.md kommen. compactCommand null: aider fasst die Historie automatisch ueber --weak-model zusammen. Zwingend --no-show-release-notes und --no-browser plus BROWSER=/usr/bin/true: mit --yes-always beantwortet aider seine Erstsart-Frage 'Release-Notes oeffnen?' selbst mit JA und reisst ein Browserfenster auf (passiert am 2026-07-28 in Sitzung des Nutzers). Autonomie-Flags duerfen nie eine sichtbare Aktion ausloesen. promptPattern ^> aus derselben Messung (2026-07-28): die Eingabezeile ist dasselbe Zeichen, an dem auch die Bereitschaft erkannt wird.",
+      "discover": {
+        "source": "ollama",
+        "provider": "ollama",
+        "refTemplate": "ollama/{name}",
+        "supportsEffort": true,
+        "notes": "Gleiche Quelle wie pi (ollama list), aber ref in LiteLLM-Schreibweise (ollama/<name>) wie die kuratierten aider-ornith-Eintraege (SPEC-V3-MODELS discover, Vertrag 2026-07-29)."
+      }
+    },
+    {
+      "id": "opencode",
+      "label": "opencode",
+      "command": "opencode",
+      "args": [
+        "--model",
+        "{model}"
+      ],
+      "cwdMode": "cd",
+      "effort": {
+        "style": "none",
+        "args": [],
+        "map": {}
+      },
+      "systemPrompt": {
+        "style": "file",
+        "path": "~/.config/opencode/AGENTS.md"
+      },
+      "autonomy": {
+        "args": [
+          "--auto"
+        ]
+      },
+      "resume": {
+        "args": [
+          "--continue"
+        ],
+        "probe": "always"
+      },
+      "readyPattern": "Ask anything",
+      "probe": "gemessen 2026-07-28 mit opencode 1.18.9: Eingabezeile ist der Platzhalter \"Ask anything\" in einer Box-TUI. ACHTUNG: ohne konfigurierten Provider startet die TUI, aber kein Modell antwortet — opencode verlangt /connect bzw. einen Provider-Eintrag in opencode.json.",
+      "compactCommand": "/compact",
+      "contextPattern": null,
+      "instructionFiles": [
+        "~/.config/opencode/AGENTS.md",
+        "<project>/AGENTS.md"
+      ],
+      "supportsPaste": true,
+      "altScreen": true,
+      "notes": "Erste Welle: 75+ Provider, /compact plus Auto-Kompaktierung bestaetigt. Thinking-Budget nur ueber die Konfiguration, kein CLI-Flag — deshalb effort style 'none'.",
+      "discover": {
+        "source": "command-lines",
+        "command": [
+          "opencode",
+          "models"
+        ],
+        "provider": "opencode-zen",
+        "providerByPrefix": [
+          [
+            "ollama/",
+            "ollama"
+          ]
+        ],
+        "notes": "opencode models listet Provider-praefixierte Referenzen (ollama/... lokal, opencode/... ueber den Zen-Login). Gemessen 2026-07-29: 9 Eintraege. supportsEffort folgt effort.style=none, also keine Effort-Felder in den erzeugten Eintraegen."
+      }
+    },
+    {
+      "id": "agy",
+      "label": "Antigravity CLI (Google)",
+      "command": "agy",
+      "args": [
+        "--model",
+        "{model}"
+      ],
+      "cwdMode": "cd",
+      "effort": {
+        "style": "arg",
+        "args": [
+          "--effort",
+          "{effort}"
+        ],
+        "map": {
+          "low": "low",
+          "medium": "medium",
+          "high": "high",
+          "xhigh": "high"
+        }
+      },
+      "systemPrompt": {
+        "style": "none"
+      },
+      "autonomy": {
+        "args": [
+          "--dangerously-skip-permissions"
+        ]
+      },
+      "resume": {
+        "args": [
+          "--continue"
+        ]
+      },
+      "readyPattern": "^>",
+      "compactCommand": null,
+      "contextPattern": null,
+      "probe": "gemessen 2026-07-28 mit agy 1.1.8 nach Erstinstallation und Zustimmung durch den Nutzer: Eingabezeile beginnt mit >. Statuszeile zeigt Konto, Modell und Arbeitsverzeichnis, aber KEINE Kontextauslastung — contextPattern bleibt leer.",
+      "instructionFiles": [
+        "~/.antigravity/AGENTS.md"
+      ],
+      "supportsPaste": true,
+      "notes": "Loest die Gemini CLI ab: Google hat sie zum 2026-06-18 fuer Einzelnutzer abgekuendigt (offizielle Doku antigravity.google/docs/cli). In Go geschrieben, Flags fast deckungsgleich mit Claude Code (--model, --effort low|medium|high, --dangerously-skip-permissions, --continue, --print). Anmeldung liegt im macOS-Schluesselbund und wird mit der Antigravity-App geteilt — wer dort angemeldet ist, ist es hier auch (stiller Login). Ueber SSH gibt es einen Geraetecode-Fluss. Kein --append-system-prompt: die Rolle muss ueber die Instruktionsdatei kommen.",
+      "promptPattern": "^>",
+      "discover": {
+        "source": "command-lines",
+        "command": [
+          "agy",
+          "models"
+        ],
+        "provider": "antigravity",
+        "notes": "agy models listet die ueber das Antigravity-Abo verfuegbaren Modelle. Gemessen 2026-07-29: 11 Eintraege. supportsEffort false, weil der Modellname die Reasoning-Stufe schon traegt (gemini-3.6-flash-high|medium|low) — ein zusaetzliches --effort waere eine zweite, widersprechende Angabe.",
+        "supportsEffort": false
+      }
+    }
+  ],
+  "models": [
+    {
+      "id": "claude-opus-5",
+      "label": "Claude Opus 5",
+      "alias": "opus5",
+      "harness": "claude",
+      "provider": "claude-subscription",
+      "modelRef": "claude-opus-5",
+      "roles": [
+        "worker",
+        "orchestrator"
+      ],
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "maxEffort": "xhigh",
+      "defaultEffort": "xhigh",
+      "machines": [
+        "mac",
+        "peer"
+      ],
+      "workerClass": [
+        {
+          "class": "reasoning",
+          "effort": "xhigh",
+          "goodFor": "Lang/mehrstufig, Debugging, Design-Entscheidungen, Ambiguitaet."
+        },
+        {
+          "class": "review",
+          "effort": "high",
+          "goodFor": "Unabhaengiger Reviewer-Pass ueber fremde Arbeit."
+        }
+      ],
+      "goodFor": "Lang/mehrstufig, Debugging, Design-Entscheidungen, Ambiguitaet.",
+      "notFor": "Mechanische Kleinarbeit — dafuer zu teuer.",
+      "enabled": true
+    },
+    {
+      "id": "claude-sonnet-5",
+      "label": "Claude Sonnet 5",
+      "alias": "sonnet5",
+      "harness": "claude",
+      "provider": "claude-subscription",
+      "modelRef": "claude-sonnet-5",
+      "roles": [
+        "worker",
+        "orchestrator"
+      ],
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "maxEffort": "xhigh",
+      "defaultEffort": "high",
+      "machines": [
+        "mac",
+        "peer"
+      ],
+      "workerClass": [
+        {
+          "class": "coding-kurz",
+          "effort": "high",
+          "goodFor": "Kurze, gut spezifizierte Coding-Tasks, wenige Dateien."
+        },
+        {
+          "class": "coding-lang",
+          "effort": "xhigh",
+          "goodFor": "Groesser, aber Spez klar: Cross-File-Refactor, Testsuite, Doku-Sweep."
+        }
+      ],
+      "goodFor": "Kurz bis mittel, gut spezifiziert; Cross-File-Refactor, Testsuite, Doku-Sweep.",
+      "notFor": "Offene Design-Entscheidungen.",
+      "enabled": true
+    },
+    {
+      "id": "claude-haiku-4-5",
+      "label": "Claude Haiku 4.5",
+      "alias": "haiku45",
+      "harness": "claude",
+      "provider": "claude-subscription",
+      "modelRef": "claude-haiku-4-5",
+      "roles": [
+        "worker"
+      ],
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "maxEffort": "high",
+      "defaultEffort": "low",
+      "contextWindow": 200000,
+      "machines": [
+        "mac",
+        "peer"
+      ],
+      "workerClass": [
+        {
+          "class": "mechanisch",
+          "effort": "low",
+          "goodFor": "Rename, Config-Tweak, Format, ein offensichtlicher Fix (nur 200K Kontext)."
+        }
+      ],
+      "goodFor": "Rename, Config-Tweak, Format, ein offensichtlicher Fix.",
+      "notFor": "Alles mit Ambiguitaet; nur 200K Kontext.",
+      "enabled": true
+    },
+    {
+      "id": "claude-opus-4-8",
+      "label": "Claude Opus 4.8",
+      "alias": "opus48",
+      "harness": "claude",
+      "provider": "claude-subscription",
+      "modelRef": "claude-opus-4-8",
+      "roles": [
+        "worker",
+        "orchestrator"
+      ],
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "maxEffort": "xhigh",
+      "defaultEffort": "xhigh",
+      "machines": [
+        "mac",
+        "peer"
+      ],
+      "workerClass": [
+        {
+          "class": "zweitmeinung",
+          "effort": "xhigh",
+          "goodFor": "Zweitmeinung / A-B gegen bekanntes 4.8-Verhalten."
+        }
+      ],
+      "goodFor": "Zweitmeinung / A-B gegen bekanntes 4.8-Verhalten.",
+      "notFor": "Standardarbeit, fuer die Opus 5 da ist.",
+      "enabled": true
+    },
+    {
+      "id": "claude-fable-5",
+      "label": "Claude Fable 5",
+      "alias": "fable5",
+      "harness": "claude",
+      "provider": "claude-subscription",
+      "modelRef": "claude-fable-5",
+      "roles": [
+        "worker"
+      ],
+      "efforts": [
+        "low",
+        "medium"
+      ],
+      "maxEffort": "medium",
+      "defaultEffort": "medium",
+      "machines": [
+        "mac",
+        "peer"
+      ],
+      "workerClass": [
+        {
+          "class": "visuell",
+          "effort": "medium",
+          "goodFor": "Kundengerichtete VISUELLE Deliverables (Landing-Page, Kundenpraesentation)."
+        }
+      ],
+      "goodFor": "Kundengerichtete VISUELLE Deliverables (Landing-Page, Kundenpraesentation).",
+      "notFor": "Standard-Coding, Internes, Visuelles fuer den Nutzer selbst (Fable-Sperre 2026-07-12/25).",
+      "enabled": true
+    },
+    {
+      "id": "ornith-35b",
+      "label": "Ornith 1.0 35B (lokal)",
+      "alias": "ornith",
+      "harness": "pi",
+      "provider": "ollama",
+      "modelRef": "ornith:35b",
+      "roles": [
+        "worker",
+        "orchestrator"
+      ],
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "maxEffort": "xhigh",
+      "defaultEffort": "medium",
+      "contextWindow": 131072,
+      "machines": [
+        "mac",
+        "peer"
+      ],
+      "workerClass": [
+        {
+          "class": "bulk",
+          "effort": "medium",
+          "goodFor": "Token-freier Default-Coder; Bulk, Inventur, DSGVO, Overnight."
+        }
+      ],
+      "goodFor": "Token-freier Default-Coder, 128K Kontext: Bulk, Inventur, DSGVO-kritische Arbeit und Overnight-Laeufe. Daten verlassen die Maschine nie.",
+      "notFor": "Latenzkritisches — laeuft langsamer als jede Cloud-Spur.",
+      "enabled": true,
+      "supportsEffort": true,
+      "notes": "pi reicht --thinking an ornith weiter, deshalb supportsEffort=true trotz lokalem Provider."
+    },
+    {
+      "id": "ornith-9b",
+      "label": "Ornith 1.0 9B (lokal)",
+      "alias": "ornith9",
+      "harness": "pi",
+      "provider": "ollama",
+      "modelRef": "ornith:9b",
+      "roles": [
+        "worker"
+      ],
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "maxEffort": "high",
+      "defaultEffort": "low",
+      "contextWindow": 131072,
+      "machines": [
+        "mac",
+        "peer"
+      ],
+      "workerClass": [
+        {
+          "class": "bulk",
+          "effort": "low",
+          "goodFor": "Mechanischer Bulk, token-frei, laeuft neben einem grossen Modell."
+        }
+      ],
+      "goodFor": "Mechanischer Bulk, token-frei, laeuft neben einem grossen Modell im Speicher.",
+      "notFor": "Mehrstufige Aufgaben mit Ambiguitaet.",
+      "enabled": true,
+      "supportsEffort": true,
+      "notes": "pi reicht --thinking an ornith weiter, deshalb supportsEffort=true trotz lokalem Provider."
+    },
+    {
+      "id": "gpt-5-codex",
+      "label": "GPT-5 Codex",
+      "harness": "codex",
+      "provider": "openai",
+      "modelRef": "gpt-5-codex",
+      "roles": [
+        "worker",
+        "orchestrator"
+      ],
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "maxEffort": "high",
+      "defaultEffort": "medium",
+      "machines": [
+        "mac",
+        "peer"
+      ],
+      "workerClass": [
+        {
+          "class": "coding-lang",
+          "effort": "high",
+          "goodFor": "Lange Coding-Tasks mit klarer Spez; Terminal-Automatisierung."
+        }
+      ],
+      "goodFor": "Lange Coding-Tasks mit klarer Spez; Terminal-Automatisierung.",
+      "notFor": "Design-Entscheidungen mit viel Ambiguitaet.",
+      "enabled": false,
+      "notes": "modelRef ungeprueft — vor dem ersten Start gegen 'codex --help' / die Modellliste pruefen."
+    },
+    {
+      "id": "aider-ornith-35b",
+      "label": "aider + Ornith 35B (lokal)",
+      "harness": "aider",
+      "provider": "ollama",
+      "modelRef": "ollama/ornith:35b",
+      "roles": [
+        "worker"
+      ],
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "maxEffort": "high",
+      "defaultEffort": "medium",
+      "machines": [
+        "mac",
+        "peer"
+      ],
+      "workerClass": [
+        "mechanisch",
+        "coding-kurz"
+      ],
+      "goodFor": "Mechanische Mehrdatei-Edits mit Git-Integration, token-frei ueber Ollama: Umbenennungen, Formatierung, wiederkehrende Muster ueber viele Dateien. Zeilen-REPL statt Vollbild-TUI, deshalb die robusteste Pane-Erkennung.",
+      "notFor": "Recherche (kann kein Web), und alles, was Werkzeuge ausser Datei-Edits braucht.",
+      "enabled": true,
+      "notes": "modelRef in LiteLLM-Schreibweise (ollama/<id>), ungeprueft."
+    },
+    {
+      "id": "opencode-gpt-5",
+      "label": "opencode + GPT-5",
+      "harness": "opencode",
+      "provider": "openai",
+      "modelRef": "openai/gpt-5",
+      "roles": [
+        "worker"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "maxEffort": "medium",
+      "defaultEffort": "medium",
+      "machines": [
+        "mac",
+        "peer"
+      ],
+      "workerClass": [
+        "coding-kurz"
+      ],
+      "goodFor": "Cloud-Spur mit freier Providerwahl (75+ Anbieter) — nuetzlich, wenn ein bestimmtes Fremdmodell gebraucht wird, das sonst nirgends haengt.",
+      "notFor": "Ohne hinterlegten Key startet es nicht; Ready-Muster gemessen, Provider noetig.",
+      "enabled": true,
+      "notes": "modelRef in opencode-Schreibweise (provider/model), ungeprueft."
+    },
+    {
+      "id": "aider-ornith-9b",
+      "label": "aider + Ornith 9B (lokal)",
+      "harness": "aider",
+      "provider": "ollama",
+      "modelRef": "ollama/ornith:9b",
+      "roles": [
+        "worker"
+      ],
+      "efforts": [
+        "low",
+        "medium"
+      ],
+      "maxEffort": "medium",
+      "defaultEffort": "low",
+      "machines": [
+        "mac",
+        "peer"
+      ],
+      "workerClass": [
+        "mechanisch",
+        "bulk"
+      ],
+      "goodFor": "Kleine mechanische Edits, laedt in Sekunden statt Minuten und passt neben ein grosses Modell in den Speicher. Token-frei, Daten bleiben auf der Maschine.",
+      "notFor": "Alles, was Urteilsvermoegen braucht.",
+      "enabled": true,
+      "notes": "modelRef in LiteLLM-Schreibweise (ollama/<id>). Das kleine Modell laedt sofort — deshalb der Kandidat fuer wb-harness-probe."
+    },
+    {
+      "id": "opencode-ornith-9b",
+      "label": "opencode + Ornith 9B (lokal)",
+      "harness": "opencode",
+      "provider": "ollama",
+      "modelRef": "ollama/ornith:9b",
+      "roles": [
+        "worker"
+      ],
+      "workerClass": [
+        "mechanisch"
+      ],
+      "defaultEffort": "medium",
+      "supportsEffort": false,
+      "dataStaysLocal": true,
+      "goodFor": "Lokale Spur mit freier Providerwahl und Auto-Kompaktierung fuer lange Sitzungen; braucht einen konfigurierten Provider (~/.config/opencode/opencode.json).",
+      "enabled": true,
+      "notFor": "Recherche im Web; und ohne Provider-Konfiguration startet nur die TUI."
+    },
+    {
+      "id": "agy-gemini-pro",
+      "label": "Antigravity + Gemini 3.1 Pro",
+      "harness": "agy",
+      "provider": "antigravity",
+      "modelRef": "gemini-3.1-pro-high",
+      "roles": [
+        "worker",
+        "orchestrator"
+      ],
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "maxEffort": "high",
+      "defaultEffort": "high",
+      "workerClass": [
+        "reasoning",
+        "recherche"
+      ],
+      "goodFor": "Recherche und lange Analysen: bringt search_web und read_url_content von Haus aus mit, dazu eigene Subagenten. Erste Wahl, wenn im Web gesucht oder eine Seite ausgelesen werden soll, und fuer lange Ketten mit grossem Kontext.",
+      "enabled": true,
+      "notFor": "Alles, was den Rechner nicht verlassen darf — laeuft ueber Googles Cloud. Kein Rollen-Prompt-Flag, die Regeln kommen nur ueber die Instruktionsdatei."
+    },
+    {
+      "id": "agy-flash",
+      "label": "Antigravity + Gemini 3.6 Flash",
+      "harness": "agy",
+      "provider": "antigravity",
+      "modelRef": "gemini-3.6-flash-medium",
+      "roles": [
+        "worker"
+      ],
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "maxEffort": "high",
+      "defaultEffort": "medium",
+      "workerClass": [
+        "bulk",
+        "recherche"
+      ],
+      "goodFor": "Schnelle, billige Spur ueber das Antigravity-Abo: viele kleine Abfragen, Web-Recherche in Breite, Seiten auslesen, Vorsortieren von Material.",
+      "enabled": true,
+      "notFor": "Tiefe Analysen und heikle Entscheidungen — dafuer die Pro-Variante oder Claude."
+    },
+    {
+      "id": "codex-gpt5",
+      "label": "Codex + GPT-5.6 (Abo)",
+      "harness": "codex",
+      "provider": "chatgpt",
+      "modelRef": "gpt-5.6-terra",
+      "roles": [
+        "worker",
+        "orchestrator"
+      ],
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "maxEffort": "high",
+      "defaultEffort": "medium",
+      "workerClass": [
+        "coding-lang"
+      ],
+      "goodFor": "Lange Coding-Tasks mit klarer Spez und Terminal-Automatisierung; Websuche ist mit --search aktiviert. Zweite Frontier-Spur, wenn Claudes Kontingent knapp ist.",
+      "enabled": true,
+      "notFor": "Aufgaben ohne klare Spez — dann lieber Claude Opus. Keine lokale Datenhaltung."
+    }
+  ]
+}

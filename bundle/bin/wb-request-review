@@ -1,0 +1,48 @@
+#!/bin/bash
+# wb-request-review — one-shot review of the worker-request experiment (2026-08-08).
+#
+# the user's constraint: the MEASUREMENT itself must not cost tokens. So everything
+# up to here is plain shell (`wb-request harvest` sums token usage out of the child
+# transcripts), and exactly ONE short Claude session interprets the numbers and
+# mails the verdict. After a successful run the launchd job disables itself, so this
+# never fires a second time unnoticed.
+set -uo pipefail
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+STATE="$HOME/.local/state"; mkdir -p "$STATE"
+LOG="$HOME/.pi-workers/requests/log.tsv"
+DONE_MARK="$STATE/wb-request-review.done"
+OUT="$STATE/wb-request-review-$(date +%Y%m%d).md"
+LABEL=agent-workbench.wb-request-review
+
+[ -e "$DONE_MARK" ] && { echo "wb-request-review: schon gelaufen ($(cat "$DONE_MARK")) — nichts zu tun."; exit 0; }
+
+if [ ! -s "$LOG" ]; then
+  printf 'Keine Antragsdaten: %s fehlt oder ist leer. Die Worker-Antrags-Mechanik wurde in den zwei Wochen nicht benutzt — damit ist die Frage "lohnt es sich" nicht beantwortbar, nur "es wurde nicht gebraucht".\n' "$LOG" > "$OUT"
+  wb-mail you@example.com "Worker-Antraege: keine Daten in 2 Wochen" "$OUT" || true
+  date -u +%Y-%m-%dT%H:%M:%SZ > "$DONE_MARK"
+  launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+  exit 0
+fi
+
+# Token-Summen nachziehen — reine Rechnung aus den Transcripts, kein Modellaufruf.
+wb-request harvest >> "$STATE/wb-request-harvest.log" 2>&1 || true
+
+PROMPT="Lies $HOME/.pi-workers/requests/log.tsv (Tab-getrennt, Spalten: ts, parent, parent_model, child_name, child_model, est, decision, child_session_id, actual_in, actual_out).
+
+Aufgabe: entscheide anhand der ECHTEN Zahlen, ob die Worker-Antrags-Mechanik sich lohnt. Preise pro Million Tokens (in/out): claude-opus-5 5/25, claude-opus-4-8 5/25, claude-sonnet-5 3/15, claude-haiku-4-5 1/5, lokale pi-Modelle 0/0.
+
+Rechne je genehmigtem Antrag: (a) was das Kind tatsaechlich gekostet hat, (b) was dieselbe Arbeit beim Modell des Eltern-Workers gekostet haette (gleiche Tokenmengen, dessen Preise), (c) Differenz = Ersparnis. Ziehe pauschal 0,12 USD Overhead pro Antrag ab (Spezifikation, Entscheidung, Prompt-Vorlauf, Ergebnis lesen). Nenne Summe, Median und die Faelle mit NEGATIVER Ersparnis. Nenne auch, wie viele Antraege abgelehnt wurden und woran sie scheiterten, falls die decision-Spalte das zeigt.
+
+Schreibe das Ergebnis nach $OUT: maximal 15 Zeilen, Ergebnis zuerst, eine klare Empfehlung (beibehalten / Groessengate anheben / abschaffen) mit Begruendung aus den Zahlen. Wenn zu wenige Daten fuer eine Aussage vorliegen, sage das statt zu raten.
+
+Danach die Mail senden: 'wb-mail lignore' nicht verwenden, sondern exakt:
+  wb-mail you@example.com \"Worker-Antraege: Auswertung nach 2 Wochen\" $OUT
+Wenn dieser Befehl mit Exit 3 abbricht (kein Sendeweg konfiguriert), lege stattdessen einen Gmail-Entwurf an den Empfaenger you@example.com mit demselben Text an und schreibe in die letzte Zeile von $OUT, dass es ein Entwurf ist und warum."
+
+claude -p "$PROMPT" --model claude-sonnet-5 --effort high --dangerously-skip-permissions >> "$STATE/wb-request-review-run.log" 2>&1
+rc=$?
+
+date -u +%Y-%m-%dT%H:%M:%SZ > "$DONE_MARK"
+launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+echo "wb-request-review: fertig (claude exit $rc), Bericht: $OUT"

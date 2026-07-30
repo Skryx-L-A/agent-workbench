@@ -1,0 +1,204 @@
+#!/bin/bash
+# wb-harness-probe — measure a harness's READY pattern in a throwaway pane.
+#
+#   wb-harness-probe <harness-id> [<model-id>] [--seconds <n>] [--real-home]
+#
+# No CLI documents which glyph means "ready for input" (SPEC-V3 H) — and a task
+# pasted into a still-booting TUI disappears without a trace, which has happened
+# twice. So an adapter without a MEASURED readyPattern is not startable, and this
+# is the tool that measures it: it starts the harness, records the rendered screen
+# for up to 60s, proposes an ANCHORED pattern and prints the command that records it.
+#
+# It never touches the live workbench:
+#   * own tmux server   (tmux -L wbprobe)   — never the session der Nutzer is in
+#   * own HOME          (mktemp -d)         — never the real configuration
+#   * `unset TMUX TMUX_PANE` right at the top: a helper that inherits $TMUX talks
+#     to the LIVE server no matter which socket this script uses ($TMUX beats
+#     TMUX_TMPDIR, measured 2026-07-25).
+#   * cleanup kills only its OWN session name and its OWN socket — never a pattern
+#     like "wb-", which has already killed the user's live client twice.
+unset TMUX TMUX_PANE
+set -uo pipefail
+
+SOCK=wbprobe
+SECONDS_MAX=60
+REAL_HOME=""
+HID=""; MID=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --seconds) SECONDS_MAX="${2:?n}"; shift 2 ;;
+    --real-home) REAL_HOME=1; shift ;;
+    -*) echo "wb-harness-probe: unbekannte Option '$1'" >&2; exit 1 ;;
+    *) if [ -z "$HID" ]; then HID="$1"; else MID="$1"; fi; shift ;;
+  esac
+done
+[ -n "$HID" ] || { echo "wb-harness-probe: <harness-id> fehlt (z.B. codex, gemini, aider, opencode)." >&2; exit 1; }
+
+HJSON="$($HOME/.local/bin/wb-state harness get "$HID")" || exit 1
+BIN="$(printf '%s' "$HJSON" | /usr/bin/python3 -c 'import json,sys,os;print(os.path.expanduser(json.load(sys.stdin).get("command") or ""))')"
+if ! command -v "$BIN" >/dev/null 2>&1 && [ ! -x "$BIN" ]; then
+  echo "FEHLER: Binary '$BIN' fuer Harness '$HID' ist nicht installiert — nichts gemessen." >&2
+  echo "  Installation ist NICHT Aufgabe dieses Werkzeugs; erst installieren, dann erneut probieren." >&2
+  exit 1
+fi
+
+# Without a model the harness has nothing to start with: take the first registered
+# model of this harness, else say so instead of guessing a model reference.
+if [ -z "$MID" ]; then
+  MID="$($HOME/.local/bin/wb-state models list --harness "$HID" --all | head -1)"
+  [ -n "$MID" ] || { echo "FEHLER: kein Modell fuer Harness '$HID' registriert — Modell-id mitgeben: wb-harness-probe $HID <model-id>" >&2; exit 1; }
+  echo "wb-harness-probe: kein Modell angegeben, nehme '$MID'."
+fi
+
+# Normalfall: eigenes HOME, damit die Messung die echte Konfiguration nicht sieht
+# und nicht veraendert. --real-home ist der dokumentierte Ausweg fuer CLIs, deren
+# ERSTSTART-Dialoge (Ordner-Vertrauen, Tastenkuerzel, Anmeldung) im HOME liegen:
+# gemini und codex zeigen im leeren HOME eine Kette von Abfragen statt ihrer
+# Eingabezeile, das Muster ist dort schlicht nicht messbar. Mit --real-home wird
+# NUR GELESEN, was schon da ist — das Arbeitsverzeichnis bleibt ein Wegwerfordner.
+if [ -n "$REAL_HOME" ]; then
+  PHOME="$HOME"
+  PDIR="$(mktemp -d "${TMPDIR:-/tmp}/wb-harness-probe.XXXXXX")/work"; mkdir -p "$PDIR"
+  echo "wb-harness-probe: WARNUNG — messe mit dem ECHTEN HOME ($HOME). Der CLI sieht damit"
+  echo "  Deine Anmeldung und Deine Einstellungen; er kann sie auch aendern. Nur benutzen,"
+  echo "  wenn die Erststart-Dialoge anders nicht zu ueberspringen sind." >&2
+else
+  PHOME="$(mktemp -d "${TMPDIR:-/tmp}/wb-harness-probe.XXXXXX")"
+  PDIR="$PHOME/work"; mkdir -p "$PDIR"
+fi
+SESS="probe-$HID-$$"
+
+cleanup() {
+  tmux -L "$SOCK" kill-session -t "=$SESS" 2>/dev/null || true
+  # own socket, own server: killing it can never reach the live one.
+  tmux -L "$SOCK" kill-server 2>/dev/null || true
+  # Mit --real-home ist PHOME das echte HOME — das wird NIE geloescht.
+  if [ -n "$REAL_HOME" ]; then rm -rf "${PDIR%/work}"; else rm -rf "$PHOME"; fi
+  if tmux -L "$SOCK" ls >/dev/null 2>&1; then
+    echo "WARNUNG: tmux-Server auf Socket '$SOCK' laeuft noch — selbst pruefen: tmux -L $SOCK ls" >&2
+  fi
+}
+trap cleanup EXIT INT TERM
+
+# The start line comes from `wb-state models resolve` like every other spawn —
+# with --probe, the only mode that lifts the ready/key gates this tool exists to
+# fill in. Building a second, probe-only command line here would be exactly the
+# duplicate that drifts.
+RESOLVED="$($HOME/.local/bin/wb-state models resolve "$MID" --role worker --dir "$PDIR" --name probe --probe)" || exit 1
+CMD=""; PRE=""
+while IFS=$'\t' read -r key rest; do
+  case "$key" in
+    cmd) CMD="$rest" ;;
+    env)
+      VAR="${rest%%$'\t'*}"; VAL="${rest#*$'\t'}"
+      case "$VAL" in
+        @keychain:*|@file:*|@env:*) ;;   # no secrets in a probe, on purpose
+        *) PRE="$PRE export $(printf %q "$VAR")=$(printf %q "$VAL") &&" ;;
+      esac ;;
+  esac
+done <<<"$RESOLVED"
+[ -n "$CMD" ] || { echo "FEHLER: resolve lieferte kein Startkommando." >&2; exit 1; }
+
+echo "wb-harness-probe: $HID / $MID"
+echo "  Socket: tmux -L $SOCK   HOME: $PHOME   Dauer: bis ${SECONDS_MAX}s"
+echo "  Startzeile: $CMD"
+echo
+
+# The command runs in a SUBSHELL and the pane sleeps afterwards. Without that, a
+# harness that exits at once (binary not on the pane's PATH, missing login) takes
+# the whole session with it before remain-on-exit can be set — the probe then shows
+# an empty screen instead of the error that explains it (measured).
+# PATH is handed in explicitly: `bash -l` runs path_helper, which rebuilds PATH from
+# the system defaults and would drop a harness installed under ~/.local/bin.
+# BROWSER wird IMMER neutralisiert, egal welcher Harness gemessen wird (Vorfall
+# 2026-07-28): aider beantwortet mit seinem Autonomie-Flag `--yes-always` seine
+# eigene Erststart-Frage "Release-Notes oeffnen?" mit JA und riss mitten in
+# Sitzung des Nutzers ein Browserfenster auf. Eine MESSUNG darf nie eine sichtbare
+# Aktion ausloesen — und welcher fremde CLI beim ersten Start ein Fenster oeffnet,
+# weiss man vorher nicht. Deshalb hier zentral, nicht je Preset.
+PANECMD="export HOME=$(printf %q "$PHOME") && export PATH=$(printf %q "$PATH") && export BROWSER=/usr/bin/true && $PRE ( $CMD ) ; rc=\$?; printf '\n[probe: Prozess beendet, RC=%s]\n' \"\$rc\"; sleep 600"
+tmux -L "$SOCK" new-session -d -s "$SESS" -x 200 -y 50 "bash -lc $(printf %q "$PANECMD")" \
+  || { echo "FEHLER: Probe-Pane konnte nicht gestartet werden." >&2; exit 1; }
+# capture-pane needs a PANE target: '=<session>' is a SESSION target and fails with
+# "can't find pane" (the same trap pi-worker documents for split-window/display).
+PANE="$(tmux -L "$SOCK" list-panes -t "=$SESS" -F '#{pane_id}' 2>/dev/null | head -1)"
+[ -n "$PANE" ] || { echo "FEHLER: Probe-Pane nicht auffindbar." >&2; exit 1; }
+
+# ONE analyzer for the loop and for the report — the loop asks "ready yet?", the
+# report needs the pattern; two copies of that judgement would drift apart.
+# Reads a capture on stdin, prints the proposed readyPattern and exits 0, else 1.
+#
+# Two rules the aider 0.86.2 measurement of 2026-07-28 forced:
+#   * Frame/box characters (U+2500..U+257F: ─ │ ┌ ┐ └ ┘ ├ ┤ ━ ┃ …) are NEVER a
+#     prompt. They are drawn long before the CLI takes input, so a pattern built
+#     from them fires while the model is still loading.
+#   * The proposal is ANCHORED to the start of the last non-empty line (`^>`), not
+#     a set of characters that may appear anywhere on screen.
+ANALYZE='
+import re, sys
+PROMPT = "❯>›»▶$#%◆●"
+lines = [l.rstrip() for l in sys.stdin.read().splitlines()]
+lines = [l for l in lines if l.strip()]
+if not lines:
+    sys.exit(1)
+last = lines[-1]
+t = last.lstrip()
+ch = t[0]
+if 0x2500 <= ord(ch) <= 0x257F or ch not in PROMPT:
+    sys.exit(1)
+# A prompt carries the cursor and (almost) nothing else — a sentence that happens
+# to start with ">" is not an input line.
+if len(t) > 2 and t[1] not in " \t":
+    sys.exit(1)
+lead = last[:len(last) - len(t)]
+print("^" + re.escape(lead) + re.escape(ch))
+'
+analyze() { printf '%s\n' "$1" | /usr/bin/python3 -c "$ANALYZE" 2>/dev/null; }
+
+# Sample once a second up to the deadline. Stopping early needs BOTH conditions: the
+# screen has been stable for three samples AND the last non-empty line looks like an
+# input line. "Stable" alone is not "ready" — aider 0.86.2 sat perfectly still for
+# seconds while its local model was loading and only showed its `>` after about a
+# minute. That is also why the default window is 60s.
+CAP=""; PREV=""; STABLE=0; PATTERN=""; FOUND_AT=""
+for i in $(seq 1 "$SECONDS_MAX"); do
+  sleep 1
+  # NEVER with -e: SGR codes break every simple pattern match (SPEC-V3 H).
+  CAP="$(tmux -L "$SOCK" capture-pane -p -t "$PANE" 2>/dev/null || true)"
+  if [ -n "$(printf '%s' "$CAP" | tr -d '[:space:]')" ] && [ "$CAP" = "$PREV" ]; then
+    STABLE=$((STABLE + 1))
+  else
+    STABLE=0
+  fi
+  PREV="$CAP"
+  [ "$STABLE" -ge 3 ] || continue
+  PATTERN="$(analyze "$CAP")"
+  if [ -n "$PATTERN" ]; then
+    FOUND_AT="$i"
+    echo "wb-harness-probe: Eingabezeile nach ${i}s (Bildschirm seit 3s stabil)."
+    break
+  fi
+done
+
+echo "── letzte Bildschirmzeilen (Fenster ${SECONDS_MAX}s) ─────────────────────────"
+printf '%s\n' "$CAP" | tail -12
+echo "──────────────────────────────────────────────────────────────────────────────"
+echo
+if [ -n "$PATTERN" ]; then
+  echo "VORSCHLAG readyPattern: $PATTERN"
+  echo "  (verankert auf die letzte nicht-leere Zeile, gefunden nach ${FOUND_AT}s — am"
+  echo "   Auszug oben gegenpruefen, ob das wirklich die EINGABEZEILE ist.)"
+else
+  echo "KEIN VORSCHLAG: in ${SECONDS_MAX}s ist keine Eingabezeile erschienen."
+  echo "  Moegliche Gruende: das Modell laedt noch (laenger messen: --seconds 120), der CLI"
+  echo "  zeigt einen Login-/Onboarding-Screen (HOME war ein leeres Verzeichnis), oder sein"
+  echo "  Prompt-Zeichen steht nicht in der Kandidatenliste — dann von Hand am Auszug oben"
+  echo "  bestimmen. Rahmen-/Boxzeichen scheiden immer aus, die stehen schon beim Booten da."
+fi
+
+echo
+echo "Eintragen (erst wenn du das Muster am Auszug bestaetigt hast):"
+echo "  wb-state models set --kind harness $HID readyPattern '\"<muster>\"'"
+echo "  wb-state models set --kind harness $HID probe '\"gemessen $(date +%F)\"'"
+echo
+echo "Aufraeumen laeuft automatisch (Pane, Socket '$SOCK', HOME $PHOME)."

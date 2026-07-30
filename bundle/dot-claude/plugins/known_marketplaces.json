@@ -1,0 +1,26 @@
+{
+  "claude-plugins-official": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    },
+    "installLocation": "$HOME/.claude/plugins/marketplaces/claude-plugins-official",
+    "lastUpdated": "1970-01-01T00:00:00.000Z"
+  },
+  "caveman": {
+    "source": {
+      "source": "github",
+      "repo": "JuliusBrussee/caveman"
+    },
+    "installLocation": "$HOME/.claude/plugins/marketplaces/caveman",
+    "lastUpdated": "1970-01-01T00:00:00.000Z"
+  },
+  "project-kit": {
+    "source": {
+      "source": "github",
+      "repo": "<your-github-user>/project-kit"
+    },
+    "installLocation": "$HOME/.claude/plugins/marketplaces/project-kit",
+    "lastUpdated": "1970-01-01T00:00:00.000Z"
+  }
+}

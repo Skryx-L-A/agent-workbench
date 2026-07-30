@@ -1,0 +1,12 @@
+[project]
+name = "brain4-migrate"
+version = "0.1.0"
+description = "Brain 4.0 vault re-layout: plan / apply / rewrite / verify"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

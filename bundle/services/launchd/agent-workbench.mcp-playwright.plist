@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  EINE geteilte playwright-MCP-Instanz fuer alle Claude-Sessions.
+  Vorher startete jede Session ihr eigenes `npx @playwright/mcp` (npm-Wrapper +
+  node): 51 Prozesse, 3.0 GB (gemessen 2026-07-28).
+  --headless und --isolated sind Absicht: ein geteilter Server darf kein sichtbares
+  Browserfenster aufreissen (Fokus-Regel) und kein Profil zwischen Sessions
+  vermischen. Nur 127.0.0.1.
+  Bedienung: mcp-shared status|restart|reap
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>de.__USER__.mcp-playwright</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/npx</string>
+    <string>@playwright/mcp@latest</string>
+    <string>--port</string>
+    <string>8767</string>
+    <string>--host</string>
+    <string>127.0.0.1</string>
+    <string>--headless</string>
+    <string>--isolated</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:__HOME__/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>StandardOutPath</key>
+  <string>__HOME__/.local/state/mcp-shared/playwright.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/.local/state/mcp-shared/playwright.log</string>
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

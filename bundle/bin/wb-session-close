@@ -1,0 +1,73 @@
+#!/bin/bash
+# wb-session-close <session> [...] — eine ganze Workbench-Session bewusst schliessen.
+#
+# Warum es das gibt: `bash-guard-kill-pattern` blockt rohe `tmux kill-session`-Aufrufe,
+# weil ein zu breites Kill-Muster schon zweimal LIVE-Client des Nutzers beendet hat
+# ([[incident-2026-07-25-killmuster-beendete-live-client]]). Der dort genannte Umweg
+# („eigener Test-Socket") gilt fuer TESTS — er hilft nicht, wenn eine echte, alte
+# Session absichtlich weg soll. Genau dafuer ist dieses Werkzeug: die Sicherheit
+# steckt in den Pruefungen, nicht in einem Flag, das jeder setzen kann.
+#
+# Es verweigert den Dienst, wenn
+#   * ein CLIENT an der Session haengt (dann schaut gerade jemand hin),
+#   * ein WORKER-Pane laeuft (dann ist Arbeit in Flug),
+#   * es die eigene Session ist (man saegt nicht den Ast, auf dem man sitzt).
+# `--force` hebt NUR die Client-Pruefung auf und verlangt eine zusaetzliche Bestaetigung
+# ueber WB_SESSION_CLOSE_CONFIRM=<sessionname>.
+#
+# Vor dem Schliessen wird immer notiert, wie die Session wiederherzustellen ist
+# (Verzeichnis + Startkommando) — Ziel ist ein aufgeraeumter Rechner, kein Datenverlust.
+set -uo pipefail
+
+FORCE=""
+[ "${1:-}" = "--force" ] && { FORCE=1; shift; }
+[ $# -gt 0 ] || { echo "usage: wb-session-close [--force] <session> [<session>...]" >&2; exit 1; }
+
+SNAPDIR="$HOME/.local/trash-snapshots/$(date +%Y%m%d)-geschlossene-sessions"
+mkdir -p "$SNAPDIR"
+REC="$SNAPDIR/sessions.md"
+
+own_session() { tmux display -p '#{session_name}' 2>/dev/null; }
+OWN="$(own_session || true)"
+
+rc=0
+for S in "$@"; do
+  # '=' verankert den Namen: wb-foo-1a2b ist ein PRAEFIX von wb-foo-1a2b-9f2a.
+  if ! tmux has-session -t "=$S" 2>/dev/null; then
+    echo "wb-session-close: '$S' gibt es nicht." >&2; rc=1; continue
+  fi
+  if [ -n "$OWN" ] && { [ "$S" = "$OWN" ] || [ "$S" = "${OWN}-view" ]; }; then
+    echo "wb-session-close: '$S' ist die EIGENE Session — verweigert." >&2; rc=1; continue
+  fi
+  workers="$(tmux list-panes -s -t "=$S" -F '#{@wb_role}:#{pane_dead}' 2>/dev/null | awk -F: '$1=="worker" && $2=="0"' | wc -l | tr -d ' ')"
+  if [ "${workers:-0}" -gt 0 ]; then
+    echo "wb-session-close: '$S' hat $workers laufende Worker — verweigert. Erst 'wb-close <name>'." >&2; rc=1; continue
+  fi
+  attached="$(tmux display -p -t "=$S" '#{session_attached}' 2>/dev/null || echo 0)"
+  if [ "${attached:-0}" -gt 0 ] && [ -z "$FORCE" ]; then
+    echo "wb-session-close: an '$S' haengt ein Client — verweigert (jemand sieht gerade hin)." >&2
+    echo "  Bewusst trotzdem: WB_SESSION_CLOSE_CONFIRM=$S wb-session-close --force $S" >&2
+    rc=1; continue
+  fi
+  if [ "${attached:-0}" -gt 0 ] && [ "${WB_SESSION_CLOSE_CONFIRM:-}" != "$S" ]; then
+    echo "wb-session-close: '$S' ist angehaengt; --force verlangt zusaetzlich WB_SESSION_CLOSE_CONFIRM=$S." >&2
+    rc=1; continue
+  fi
+
+  {
+    echo "## $S   (geschlossen $(date '+%F %T'))"
+    tmux list-panes -s -t "=$S" -F '  pane=#{pane_id} rolle=#{@wb_role} pfad=#{pane_current_path}' 2>/dev/null
+    d="$(tmux display -p -t "=$S" '#{pane_current_path}' 2>/dev/null)"
+    [ -n "$d" ] && echo "  wiederherstellen: wb-code $d"
+    echo
+  } >> "$REC"
+
+  if tmux kill-session -t "=$S" 2>/dev/null; then
+    echo "geschlossen: $S"
+  else
+    echo "wb-session-close: '$S' liess sich nicht schliessen." >&2; rc=1
+  fi
+done
+
+echo "Notiert in: $REC"
+exit $rc

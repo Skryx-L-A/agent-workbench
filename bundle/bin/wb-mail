@@ -1,0 +1,19 @@
+#!/bin/bash
+# wb-mail — send a short mail from an unattended job.
+#
+#   wb-mail <to> <subject> <bodyfile>
+#
+# Uses msmtp when it is configured (~/.msmtprc), because macOS' own sendmail is
+# not set up to relay to the internet — mail handed to it would queue forever.
+# Without msmtp this exits 3 and says so, so a caller can fall back (e.g. a Gmail
+# draft via the connector) instead of believing a mail was sent.
+set -uo pipefail
+TO="${1:?to}"; SUBJ="${2:?subject}"; BODY="${3:?bodyfile}"
+[ -s "$BODY" ] || { echo "wb-mail: Body-Datei fehlt oder ist leer: $BODY" >&2; exit 1; }
+MSMTP="$(command -v msmtp || true)"
+if [ -z "$MSMTP" ] || [ ! -f "$HOME/.msmtprc" ]; then
+  echo "wb-mail: kein konfigurierter Sendeweg (msmtp fehlt oder ~/.msmtprc nicht vorhanden) — nichts gesendet." >&2
+  exit 3
+fi
+{ printf 'To: %s\nSubject: %s\nContent-Type: text/plain; charset=UTF-8\n\n' "$TO" "$SUBJ"; cat "$BODY"; } \
+  | "$MSMTP" --read-recipients && echo "wb-mail: gesendet an $TO"

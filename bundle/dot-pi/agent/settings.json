@@ -1,0 +1,6 @@
+{
+  "lastChangelogVersion": "0.80.6",
+  "theme": "dark",
+  "defaultProvider": "ollama",
+  "defaultModel": "ornith:35b"
+}

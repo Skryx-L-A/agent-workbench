@@ -1,0 +1,338 @@
+#!/bin/bash
+# wb-grid — arrange the current window into the predefined workbench grid:
+#   ┌────────┬──────────────────────────────┐
+#   │DATEIEN │  ORCHESTRATOR (top, 55%)     │
+#   │ (28)   ├─────────┬─────────┬──────────┤
+#   │        │ agent   │ agent   │ agent ...│  (equal columns, bottom)
+#   └────────┴─────────┴─────────┴──────────┘
+# Idempotent; never touches the sidebar's position/width. Safe to call from hooks.
+#
+# V2 (SPEC-V2 section C): the grid above is the `workerLayout: "split"` case (V1,
+# default). With `workerLayout: "window"` the orchestrator keeps its window alone
+# and ALL worker panes live together in the window named `workers`, evenly tiled.
+# Switching the setting at runtime MOVES panes (break-pane/join-pane) on the next
+# run — a running worker is never killed, and remain-on-exit/@wb_role/@wb_worker
+# stay untouched because the pane itself survives the move.
+# target: explicit pane id (from hook/arg), else current context
+REF="${1:-${TMUX_PANE:-}}"
+TT=""; [ -n "$REF" ] && TT="-t $REF"
+
+# Lock lives per INSTANCE (round-4 point A, refined round 5 point 1): an instance is
+# ONE WORKBENCH -- one orchestrator tmux SESSION -- not one tmux SERVER (Reviewer-
+# Befund 1, round 5). The server-only slug from round 4 fixed the isolated-test-socket
+# case but left two REAL workbenches on the SAME default socket blocking each other's
+# grid runs for up to the 10s staleness window, exactly the case the SPEC line names.
+# One combined display call gets both socket path (still needed so a test socket never
+# collides with a real one) and session name; SLUG folds in both, under $HOME.
+read -r SOCKP S < <(tmux display -p $TT '#{socket_path} #{session_name}' 2>/dev/null)
+[ -n "$SOCKP" ] || SOCKP="unknown-$$"
+SLUG="$(printf '%s|%s' "$SOCKP" "$S" | tr -c 'a-zA-Z0-9' '-')"
+LOCKDIR="$HOME/.local/state/wb-grid"
+mkdir -p "$LOCKDIR" 2>/dev/null || true
+LOCK="$LOCKDIR/$SLUG.lock"
+# portable mtime: GNU stat (Linux) and BSD stat (macOS) disagree on the flag —
+# without this the 10s lock takeover silently stops working on Linux.
+mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
+if ! mkdir "$LOCK" 2>/dev/null; then
+  # self-healing: a lock older than 10s is a leftover from a killed run
+  age=$(( $(date +%s) - $(mtime "$LOCK") ))
+  [ "$age" -lt 10 ] && exit 0
+  rm -rf "$LOCK"; mkdir "$LOCK" 2>/dev/null || exit 0
+fi
+trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+
+# only ever act inside workbench sessions ($S already fetched above)
+case "$S" in wb-*) ;; *) exit 0 ;; esac
+
+# wb-grid mostly runs from tmux hooks as `run-shell -b` (~/.tmux.conf,
+# after-split-window/pane-exited) -- MEASURED on an isolated socket (2026-07-25,
+# round 3): a `run-shell -b` invocation's stderr reaches nowhere. Not `show-messages`
+# (that log only ever records the run-shell COMMAND line, never its output), no
+# status-line message, no popup -- a warning printed only to stderr there is
+# invisible to a human, full stop. `tmux display-message` is the one channel a
+# background run-shell invocation can still reach (needs a client attached to the
+# target session; with none, it goes nowhere too, same as any status-line message).
+notify() {   # message -> stderr (kept, useful for a manual/foreground run) + status line
+    echo "$1" >&2
+    tmux display-message -t "=$S" "$1" 2>/dev/null || true
+}
+
+# move_pane_to_workers <pane> -- force <pane> (currently sitting alone in
+# _wbhold) into this session's `workers` window, creating it if needed.
+# Updates the outer $wwin. A plain join-pane defaults to a 50/50 vertical
+# split every time, which halves the window's remaining rows on each call —
+# on a short window that ran out of room and failed silently before ever
+# reaching `select-layout tiled` (Befund B06, 2026-07-28: 6 of 8 workers
+# routed here, 1 never made it and sat unseen in _wbhold). Retiling BEFORE
+# retrying gives tmux an even grid instead of another halving, and a forced
+# 1-line join is the last resort so a pane is stacked in rather than dropped.
+# Returns 1 only when the pane could not be relocated at all.
+move_pane_to_workers() {
+  local p="$1" tgt ok=1
+  if [ -z "$wwin" ]; then
+    if tmux break-pane -d -s "$p" -n workers -t "=$S:" 2>/dev/null; then
+      wwin=$(tmux display -p -t "$p" '#{window_id}' 2>/dev/null)
+      # global automatic-rename is on; the window must keep the contract name.
+      tmux set-option -w -t "$wwin" automatic-rename off 2>/dev/null
+      ok=0
+    fi
+  else
+    tgt=$(tmux list-panes -t "$wwin" -F '#{pane_id} #{pane_active}' 2>/dev/null | awk '$2==1{print $1; exit}')
+    [ -n "$tgt" ] || tgt=$(tmux list-panes -t "$wwin" -F '#{pane_id}' 2>/dev/null | head -1)
+    if [ -n "$tgt" ] && tmux join-pane -d -s "$p" -t "$tgt" 2>/dev/null; then
+      ok=0
+    else
+      tmux select-layout -t "$wwin" tiled >/dev/null 2>&1
+      tgt=$(tmux list-panes -t "$wwin" -F '#{pane_id} #{pane_active}' 2>/dev/null | awk '$2==1{print $1; exit}')
+      [ -n "$tgt" ] || tgt=$(tmux list-panes -t "$wwin" -F '#{pane_id}' 2>/dev/null | head -1)
+      if [ -n "$tgt" ] && tmux join-pane -d -s "$p" -t "$tgt" 2>/dev/null; then
+        ok=0
+      elif [ -n "$tgt" ] && tmux join-pane -d -l 1 -s "$p" -t "$tgt" 2>/dev/null; then
+        ok=0
+      fi
+    fi
+  fi
+  [ "$ok" -eq 0 ] || return 1
+  tmux set -p -t "$p" @wb_overflow narrow 2>/dev/null || true
+  tmux select-layout -t "$wwin" tiled >/dev/null 2>&1
+  return 0
+}
+
+LAYOUT=$("$HOME/.local/bin/wb-state" settings get workerLayout 2>/dev/null || true)
+[ -n "$LAYOUT" ] || LAYOUT=split
+
+# minWorkerPaneWidth (SPEC-V2 A): floor for a worker column, replacing the old hardcoded 10.
+# 10 was an arbitrary "don't pass a non-positive width to resize-pane" guard, not a readable
+# width — a guard was blind for 38 minutes because 4 workers on 51 columns cut the status line
+# before the context bar. 60 is the new default floor; anything below 20 is not a floor worth
+# having and falls back to it.
+MINW=$("$HOME/.local/bin/wb-state" settings get minWorkerPaneWidth 2>/dev/null || true)
+case "$MINW" in ''|*[!0-9]*) MINW=60 ;; *) [ "$MINW" -ge 20 ] || MINW=60 ;; esac
+
+# Layout "window" without a `workers` window puts the session group back into the
+# one-window state that kills a whole workbench: the tab's view session shares its
+# only window with the orchestrator, and killing that window takes both sessions and
+# the server (measured 2026-07-25). tmux removes the window as soon as its LAST worker
+# pane closes, so the danger returns every time the last worker is closed — which is
+# how this was found. wb-workers-window is idempotent and cheap; running it here, on
+# the pane-exited hook path, restores the placeholder by itself.
+if [ "$LAYOUT" = "window" ] && [ -x "$HOME/.local/bin/wb-workers-window" ]; then
+  "$HOME/.local/bin/wb-workers-window" "$S" >/dev/null 2>&1 || true
+fi
+
+# Session-wide inventory. (list-panes -a + exact filter: `-s -t '=name'` would
+# prefix-match.)  Fields: pane|role|window_id|window_name
+panes=$(tmux list-panes -a -F '#{session_name}|#{pane_id}|#{@wb_role}|#{window_id}|#{window_name}' 2>/dev/null \
+  | awk -F'|' -v s="$S" '$1==s {print $2"|"$3"|"$4"|"$5}')
+sidebar=$(echo "$panes" | awk -F'|' '$2=="sidebar"{print $1; exit}')
+orch=$(echo "$panes" | awk -F'|' '$2=="orchestrator"{print $1; exit}')
+orchwin=$(echo "$panes" | awk -F'|' '$2=="orchestrator"{print $3; exit}')
+wwin=$(echo "$panes" | awk -F'|' '$4=="workers"{print $3; exit}')
+# orchestrator fallback: first non-sidebar pane outside the workers window
+if [ -z "$orch" ]; then
+  orch=$(echo "$panes" | awk -F'|' '$2!="sidebar" && $4!="workers"{print $1; exit}')
+  orchwin=$(echo "$panes" | awk -F'|' -v o="$orch" '$1==o{print $3; exit}')
+fi
+[ -z "$orch" ] && exit 0
+
+# The worker row: everything in the orchestrator window and in the workers window
+# that is neither the orchestrator nor the sidebar. Panes in OTHER windows are
+# none of our business. The placeholder of an empty workers window (see
+# wb-workers-window) is not a worker either — it must never be tiled or moved.
+rest=$(echo "$panes" | awk -F'|' -v o="$orch" -v ow="$orchwin" -v ww="$wwin" \
+  '($3==ow || ($3==ww && ww!="")) && $2!="sidebar" && $2!="placeholder" && $1!=o {print $1}')
+placeholder=$(echo "$panes" | awk -F'|' '$2=="placeholder"{print $1; exit}')
+K=$(echo "$rest" | grep -c . || true)
+
+if [ "$LAYOUT" = "window" ]; then
+  # 1. every worker pane that is not in the workers window moves there.
+  #    break-pane creates that window on the first mover, join-pane fills it.
+  for p in $rest; do
+    pw=$(echo "$panes" | awk -F'|' -v p="$p" '$1==p{print $3; exit}')
+    [ "$pw" = "$wwin" ] && continue
+    if [ -z "$wwin" ]; then
+      # -t is MANDATORY: without it break-pane links the new window into the
+      # CALLER's current session, not the source pane's — that silently drags
+      # workers into a foreign workbench. '=' anchors the name (wb-foo-1a2b3c is
+      # a prefix of wb-foo-1a2b3c-9f2a1c).
+      tmux break-pane -d -s "$p" -n workers -t "=$S:" 2>/dev/null || continue
+      wwin=$(tmux display -p -t "$p" '#{window_id}')
+      # global automatic-rename is on; the window must keep the contract name.
+      tmux set-option -w -t "$wwin" automatic-rename off 2>/dev/null
+    else
+      tgt=$(tmux list-panes -t "$wwin" -F '#{pane_id} #{pane_active}' | awk '$2==1{print $1; exit}')
+      tmux join-pane -d -s "$p" -t "$tgt" 2>/dev/null || true
+    fi
+  done
+  # 2. the placeholder steps aside as soon as a real worker is in the window —
+  #    but only then: killing the last pane would close the window and put the
+  #    session group back into its one-window danger.
+  if [ -n "$placeholder" ] && [ "$K" -gt 0 ]; then
+    tmux kill-pane -t "$placeholder" 2>/dev/null || true
+  fi
+
+  # 3. sidebar pinned left, workers evenly tiled in their own window
+  [ -n "$sidebar" ] && tmux resize-pane -t "$sidebar" -x 28
+  [ -n "$wwin" ] && tmux select-layout -t "$wwin" tiled >/dev/null 2>&1
+
+  # minWorkerPaneWidth applies here too (Reviewer-Befund 2): `select-layout tiled`
+  # picks its own grid and can hand out columns far narrower than the split-layout
+  # row ever would — the width check lived only in the split branch below, so a
+  # too-narrow "window" layout warned nobody. `tiled` distributes space unevenly
+  # across a grid (more rows than columns once the pane count grows), so the
+  # NARROWEST actual worker pane is measured after the fact rather than computed
+  # from a row_w/count division like the split branch does.
+  if [ -n "$wwin" ]; then
+    narrowest=""
+    for wp in $(tmux list-panes -t "$wwin" -F '#{pane_id} #{@wb_role}' 2>/dev/null | awk '$2=="worker"{print $1}'); do
+      w=$(tmux display -p -t "$wp" '#{pane_width}' 2>/dev/null) || continue
+      if [ -z "$narrowest" ] || [ "$w" -lt "$narrowest" ]; then narrowest=$w; fi
+    done
+    wcount=$(tmux list-panes -t "$wwin" -F '#{@wb_role}' 2>/dev/null | grep -cx worker || true)
+    if [ -n "$narrowest" ] && [ "$narrowest" -lt "$MINW" ]; then
+      notify "wb-grid: WARNUNG — $wcount Worker im Fenster 'workers' ergeben mindestens einen Pane mit ${narrowest} Spalten, unter minWorkerPaneWidth=${MINW}. Statuszeile/Kontext-Balken koennen abschneiden und den Guard blind machen: Fenster verbreitern oder Worker schliessen."
+    fi
+  fi
+else
+  # 0. layout "split" has no worker tab, so the workers window (and with it the
+  #    placeholder that only exists for that tab) is not needed. Killing the last
+  #    pane closes the window — which is exactly right here.
+  if [ -n "$placeholder" ]; then
+    tmux kill-pane -t "$placeholder" 2>/dev/null || true
+  fi
+
+  # 1. detach all non-orchestrator agent panes into a hidden holding window
+  #    (this also pulls them back out of a workers window after a layout switch)
+  if [ "$K" -gt 0 ]; then
+    # -t keeps the holding window inside THIS session (see the note above).
+    for p in $rest; do tmux break-pane -d -s "$p" -n "_wbhold" -t "=$S:" 2>/dev/null; done
+  fi
+
+  # 2. sidebar pinned left
+  [ -n "$sidebar" ] && tmux resize-pane -t "$sidebar" -x 28
+
+  # 3. rebuild bottom row: first pane splits the orchestrator (45% height), then
+  #    up to `cols` more join as columns — cols is how many minWorkerPaneWidth-wide
+  #    columns the row actually has room for, computed BEFORE any join-pane call.
+  #    Anything past that is OVERFLOW and is never handed to join-pane at all:
+  #    that call is exactly what used to fail ("no space for a new pane") and
+  #    strand a LIVE worker pane in the throwaway _wbhold window — a name nothing
+  #    shows the user, reaped only once EMPTY, so a stuck pane sat there forever,
+  #    working, unseen (Befund B06, 2026-07-28: 2 of 8 workers in a 120-column
+  #    window). Overflow panes move instead into the same NAMED `workers` window
+  #    the `workerLayout: window` setting already uses — the one name the
+  #    sidebar/worker-tab tooling and the user both already know to look at —
+  #    tiled into a real 2D grid there instead of one over-narrow row. The
+  #    MINW check still runs on that window too, so a too-small overflow grid is
+  #    reported, never silently accepted as "fixed".
+  if [ "$K" -gt 0 ]; then
+    row_w=$(tmux display -p -t "$orch" '#{pane_width}' 2>/dev/null || echo 0)
+    cols=$(( row_w / MINW )); [ "$cols" -ge 1 ] || cols=1
+
+    row=""; overflow=""; i=0
+    for p in $rest; do
+      i=$((i+1))
+      if [ "$i" -le "$cols" ]; then row="$row $p"; else overflow="$overflow $p"; fi
+    done
+
+    prev=""; joined=""
+    for p in $row; do
+      if [ -z "$prev" ]; then
+        err=$(tmux join-pane -d -v -l '45%' -s "$p" -t "$orch" 2>&1)
+      else
+        err=$(tmux join-pane -d -h -s "$p" -t "$prev" 2>&1)
+      fi
+      if [ $? -ne 0 ]; then
+        # Defensive only — cols is derived from the same width tmux enforces, so
+        # this should not fire. If it ever does (race, tmux quirk), the pane must
+        # still not go silent: treat it exactly like overflow, not like _wbhold.
+        echo "wb-grid: WARNUNG — join-pane fuer $p fehlgeschlagen (${err:-unbekannt}); geht ins Fenster 'workers'." >&2
+        overflow="$overflow $p"
+        continue
+      fi
+      joined="$joined $p"
+      prev="$p"
+    done
+    JK=$(echo $joined | wc -w | tr -d ' ')
+    if [ "$JK" -gt 0 ]; then
+      each=$(( row_w / JK ))
+      if [ "$each" -lt "$MINW" ]; then
+        # Only reachable when the row is too narrow for even ONE MINW-wide column
+        # (cols was floored to the 1 minimum below zero). WARN, do not clamp: an
+        # even split is the fairest arrangement in a row that is genuinely too
+        # narrow; the human gets told, and the fix is a wider window.
+        notify "wb-grid: WARNUNG — $JK Worker auf $row_w Spalten ergeben ${each} Spalten/Worker, unter minWorkerPaneWidth=${MINW}. Statuszeile/Kontext-Balken koennen abschneiden und den Guard blind machen: Fenster verbreitern oder Worker schliessen."
+      fi
+      # never a non-positive width — that was the only job of the old hardcoded 10
+      [ "$each" -lt 10 ] && each=10
+      # two passes — tmux shifts neighbours on each resize, second pass settles it
+      for pass in 1 2; do
+        i=0
+        for p in $joined; do
+          i=$((i+1)); [ "$i" -lt "$JK" ] && tmux resize-pane -t "$p" -x "$each"
+        done
+      done
+    fi
+
+    OV=$(echo "$overflow" | grep -c . || true)
+    if [ "$OV" -gt 0 ]; then
+      # wwin may point at a window step 0 just emptied (the placeholder was its
+      # only pane, killing it closed the window) — re-read live rather than trust
+      # the session-wide scan from before this run's own changes.
+      wwin=$(tmux list-windows -t "=$S" -F '#{window_id} #{window_name}' 2>/dev/null \
+               | awk '$2=="workers"{print $1; exit}')
+      # move_pane_to_workers itself retiles/retries on a full window; failures
+      # here are not fatal on the spot — the mandatory sweep below is what
+      # decides whether a pane is genuinely stuck and gets reported.
+      for p in $overflow; do
+        move_pane_to_workers "$p" || true
+      done
+      if [ -n "$wwin" ]; then
+        ovph=$(tmux list-panes -t "$wwin" -F '#{pane_id} #{@wb_role}' 2>/dev/null | awk '$2=="placeholder"{print $1; exit}')
+        [ -n "$ovph" ] && tmux kill-pane -t "$ovph" 2>/dev/null
+        tmux select-layout -t "$wwin" tiled >/dev/null 2>&1
+        narrowest=""
+        for wp in $(tmux list-panes -t "$wwin" -F '#{pane_id} #{@wb_role}' 2>/dev/null | awk '$2=="worker"{print $1}'); do
+          w=$(tmux display -p -t "$wp" '#{pane_width}' 2>/dev/null) || continue
+          if [ -z "$narrowest" ] || [ "$w" -lt "$narrowest" ]; then narrowest=$w; fi
+        done
+        wcount=$(tmux list-panes -t "$wwin" -F '#{@wb_role}' 2>/dev/null | grep -cx worker || true)
+        if [ -n "$narrowest" ] && [ "$narrowest" -lt "$MINW" ]; then
+          notify "wb-grid: WARNUNG — $wcount Worker im Fenster 'workers' ergeben mindestens einen Pane mit ${narrowest} Spalten, unter minWorkerPaneWidth=${MINW}. Statuszeile/Kontext-Balken koennen abschneiden und den Guard blind machen: Fenster verbreitern oder Worker schliessen."
+        fi
+      fi
+    fi
+  fi
+  [ -n "$sidebar" ] && tmux resize-pane -t "$sidebar" -x 28
+fi
+# Mandatory sweep — the one invariant this script guarantees unconditionally:
+# _wbhold may never hold a LIVE worker pane once a run ends, no matter which
+# path above put it there or why a join-pane inside that path failed. Re-read
+# live rather than trust `wwin`/`rest` from before this run's own moves; `-a`
+# is scoped to THIS session's window name only (a `_wbhold` in a FOREIGN
+# session is that session's own wb-grid run, never ours to touch — kill-window
+# on it would take a live worker of session B with it, reproduced once).
+wwin=$(tmux list-windows -t "=$S" -F '#{window_id} #{window_name}' 2>/dev/null \
+         | awk '$2=="workers"{print $1; exit}')
+STUCK=""
+for p in $(tmux list-panes -a -F '#{session_name} #{window_name} #{pane_id}' 2>/dev/null \
+             | awk -v s="$S" '$1==s && $2=="_wbhold"{print $3}'); do
+  move_pane_to_workers "$p" || STUCK="$STUCK $p"
+done
+
+# Clean up EMPTY holding windows left behind by the sweep above (every pane it
+# could relocate is gone from _wbhold now; a still-non-empty one below holds
+# only the genuinely-stuck panes reported next, which must not be killed).
+for w in $(tmux list-windows -t "=$S" -F '#{window_id} #{window_name} #{window_panes}' 2>/dev/null \
+             | awk '$2=="_wbhold" && $3==0{print $1}'); do
+  tmux kill-window -t "$w" 2>/dev/null
+done
+if [ -n "$STUCK" ]; then
+  {
+    echo "wb-grid: FEHLER — diese Worker-Panes passen nicht mehr ins Fenster 'workers' und liegen im Fenster _wbhold:$STUCK"
+    echo "         Sie LAUFEN weiter, sind aber unsichtbar. Ansehen: tmux select-window -t '=$S:_wbhold'"
+    echo "         Zurueckholen: Fenster vergroessern oder Worker schliessen (wb-close), dann wb-grid erneut."
+  } >&2
+  exit 1
+fi
+exit 0

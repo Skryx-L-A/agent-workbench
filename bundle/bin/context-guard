@@ -1,0 +1,544 @@
+#!/usr/bin/env bash
+# Watches the context load of the orchestrator and every worker, and acts BEFORE anything is lost.
+#
+#   context-guard <orchestrator-pane> <worker-pane:name> [worker-pane:name ...]
+#   context-guard --auto <orchestrator-pane>     (workers taken from the pane's own tmux
+#                                                 session at every poll, so panes spawned
+#                                                 later are watched without a restart)
+#   context-guard --stop [<pane-id|session-name>]   stops the guard of that WORKBENCH
+#                                                    (current session if no target given)
+#   context-guard --stop --all                      stops every wb-* guard on this tmux server
+#
+# Why this exists: a full context window does not fail loudly. The agent just gets quietly worse --
+# it forgets invariants, re-derives solved bugs, contradicts its own measurements. der Nutzer had to
+# point it out three times, which is three times too many. So nobody is asked to remember: this does.
+#
+# What it does, per poll:
+#   * WORKER >= WARN_PCT  -> tells it to write a full handoff into a project file, then /compact.
+#     Only once per worker per compaction cycle (it re-arms after the load drops).
+#   * ORCHESTRATOR >= ORCH_PCT -> tells IT to update SESSION-STATE.md and the vault note NOW,
+#     before the harness compacts it. The brain is the backstop a summary cannot shrink.
+#   * ORCHESTRATOR + sentinel file -> compacts IMMEDIATELY, whatever the load. The orchestrator
+#     signals "my knowledge is saved" by running `touch $PROJECT/.wb-knowledge-saved` (the warning
+#     text tells it to). The guard polls for that file, types /compact as soon as the pane is idle,
+#     then the resume prompt, then deletes the sentinel so the cycle re-arms. This is the whole
+#     point: waiting for a higher load after the knowledge is already saved wastes context.
+#   * ORCHESTRATOR >= ORCH_COMPACT_PCT -> the same compaction WITHOUT a sentinel: the emergency
+#     brake for an orchestrator that never signals. The orchestrator has no tool to compact itself;
+#     the guard is its hands.
+#     Only ever while the pane is IDLE -- a keystroke mid-turn or mid-compaction would wreck it.
+#   * Never types into a pane that is mid-compaction, and never into one that is mid-turn.
+#
+# Reading the load, MEASURED on the real panes (2026-07-25), three sources in this order:
+#   1. EXACT figures from the status line: "▓▓▓▓░░░░░░ 485k/1.0M" -> 48%. Primary source, and the
+#      reason a 75% threshold is meaningful at all.
+#   2. The ten-block bar alone (▓ = filled) -> 10% steps, for panes too narrow for the figures.
+#      On this source 75 is NOT representable, so the threshold rounds DOWN to 70: the warning
+#      comes one step EARLIER, never later -- more lead time is the intent.
+#   3. The pane's transcript (~/.claude/projects/<slug>/<session>.jsonl), for panes so narrow that
+#      the status line is cut before the bar. Measured: at 51 columns with a long project path the
+#      line ended at "… claude-workbench m…" -- no bar, no figures, and a bar-only guard then
+#      NEVER warns. Silent blindness is the failure this whole tool exists to prevent.
+#   Nothing readable at all: the pane is announced as BLIND once, on stdout, and skipped -- never
+#   silently ignored.
+set -uo pipefail
+
+# STOP_FILE/lock live per INSTANCE (round-4 point A, refined round 5 point 1). An
+# instance is ONE WORKBENCH -- one orchestrator tmux SESSION -- not one tmux SERVER
+# (Reviewer-Befund 1, round 5): the server-only slug from round 4 fixed the isolated-
+# test-socket case, but two REAL `wb-code` sessions on the SAME default socket still
+# had the identical slug and could stop/block each other, exactly the case the SPEC
+# line names. The slug therefore folds in BOTH the socket path (`#{socket_path}`,
+# still needed so an isolated test socket never collides with a real one) AND the
+# orchestrator's SESSION NAME, stored under $HOME.
+STATE_BASE="$HOME/.local/state/wb-context-guard"
+mkdir -p "$STATE_BASE" 2>/dev/null || true
+
+# Accepts a pane id (%N), a bare session name, or nothing (ambient current
+# session/socket). `display -p -t "=<session>"` is measured EMPTY on some tmux
+# versions (same gotcha pi-worker/wb-ssh-worker already work around), so a session
+# name is never used directly as a display target -- normalised to its active pane
+# via list-panes first.
+socket_slug() {   # [pane-id|session-name] -> combined slug, or "unknown-$$" if unreachable
+    local t="${1:-}" pane sp sess
+    if [ -z "$t" ]; then
+        sp=$(tmux display -p '#{socket_path}' 2>/dev/null)
+        sess=$(tmux display -p '#{session_name}' 2>/dev/null)
+    else
+        case "$t" in
+            %*) pane="$t" ;;
+            *)  pane=$(tmux list-panes -t "=$t" -F '#{pane_id} #{pane_active}' 2>/dev/null | awk '$2==1{print $1; exit}') ;;
+        esac
+        [ -n "$pane" ] || { echo "unknown-$$"; return; }
+        sp=$(tmux display -p -t "$pane" '#{socket_path}' 2>/dev/null)
+        sess=$(tmux display -p -t "$pane" '#{session_name}' 2>/dev/null)
+    fi
+    [ -n "$sp" ] || { echo "unknown-$$"; return; }
+    printf '%s|%s' "$sp" "$sess" | tr -c 'a-zA-Z0-9' '-'
+}
+
+if [[ "${1:-}" == "--stop" ]]; then
+    shift
+    if [[ "${1:-}" == "--all" ]]; then
+        # Every wb-* session reachable on the AMBIENT tmux server -- there is no
+        # registry of "guards that exist" (the stop mechanism is purely passive:
+        # each guard polls its own file), so this is the closest thing to "all" that
+        # does not require guessing. A guard on a DIFFERENT socket is unreachable
+        # from here by construction, same as a single-target --stop.
+        sessions=$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep '^wb-')
+        if [ -z "$sessions" ]; then
+            echo "context-guard: kein tmux erreichbar oder keine wb-* Session — nichts zu stoppen." >&2
+            exit 1
+        fi
+        n=0
+        while IFS= read -r sess; do
+            [ -n "$sess" ] || continue
+            slug=$(socket_slug "$sess")
+            case "$slug" in unknown-*) continue ;; esac
+            touch "$STATE_BASE/$slug.stop"
+            n=$((n+1))
+        done <<<"$sessions"
+        echo "context-guard: stop requested fuer $n Workbench-Session(en)"
+        exit 0
+    fi
+    TARGETARG="${1:-}"
+    slug="$(socket_slug "$TARGETARG")"
+    case "$slug" in
+        unknown-*)
+            echo "context-guard: kein tmux erreichbar${TARGETARG:+ oder Ziel '$TARGETARG' nicht gefunden} — Ziel-Instanz nicht bestimmbar, kein --stop moeglich." >&2
+            exit 1 ;;
+    esac
+    STOP_FILE="$STATE_BASE/$slug.stop"
+    touch "$STOP_FILE"
+    echo "context-guard: stop requested ($STOP_FILE)"
+    exit 0
+fi
+
+AUTO=0
+[[ "${1:-}" == "--auto" ]] && { AUTO=1; shift; }
+ORCH="${1:?usage: context-guard [--auto] <orch-pane> <pane:name>...}"; shift
+# Refuses to start rather than silently falling back to "unknown-$$" (Reviewer-Befund
+# 6): a guard started that way is per-process-unique and can NEVER be reached by a
+# later --stop again -- and without a reachable tmux there is nothing to watch anyway.
+GUARD_SLUG="$(socket_slug "$ORCH")"
+case "$GUARD_SLUG" in
+    unknown-*)
+        echo "context-guard: tmux-Socket/Session von Pane '$ORCH' nicht bestimmbar — ohne erreichbares tmux gibt es nichts zu bewachen, Start abgebrochen." >&2
+        exit 1 ;;
+esac
+STOP_FILE="$STATE_BASE/$GUARD_SLUG.stop"
+# Thresholds are exact when the status line shows the figures. Only in bar-fallback mode does the
+# ten-block resolution apply -- there a threshold is rounded DOWN to the next reachable step
+# (see ORCH_WARN_EFF below), so it fires earlier rather than never.
+#
+# guardWorkerWarnPct/guardOrchWarnPct (SPEC-V2 A) replace the old hardcoded WARN_PCT/ORCH_PCT.
+# Precedence: an ENV var set by the caller wins, but ONLY when it validates -- otherwise it
+# falls through to the settings file, then the built-in default; same numbers the constants
+# used to carry, so an unconfigured workbench behaves exactly as before. Nothing here ever
+# aborts the guard: a garbage settings value OR a garbage ENV value both fall back rather
+# than being trusted blindly (Reviewer-Befund 5 -- `WARN_PCT=abc` used to hit `(( ))` under
+# `set -u` and kill the poll loop mid-run).
+#
+# validate_pct forces base 10 explicitly: bash's `(( ))` treats a leading zero as octal, so
+# a literal "08" would abort with "value too great for base" before ever reaching the range
+# check (Reviewer-Befund 8) -- `10#$val` reads it as decimal every time, valid or not.
+validate_pct() {   # value -> prints it (normalised, no leading zeros) if 1..99, else fails
+    local val="$1" n
+    [[ "$val" =~ ^[0-9]+$ ]] || return 1
+    n=$((10#$val))
+    (( n >= 1 && n <= 99 )) || return 1
+    echo "$n"
+}
+pct_setting() {   # key default -> validated 1..99 integer from settings, or the default
+    local key="$1" def="$2" val
+    val=$("$HOME/.local/bin/wb-state" settings get "$key" 2>/dev/null)
+    validate_pct "$val" 2>/dev/null || echo "$def"
+}
+# `"${WARN_PCT:-}"` reads an inherited ENV var without tripping `set -u`, and treats an
+# UNSET or EMPTY var identically -- `WARN_PCT=` (the exact form the old SPEC line implied
+# would win) is not a real value and correctly falls through to the settings file, same as
+# not setting it at all.
+resolve_pct() {   # env-value settings-key default -> validated 1..99 integer
+    local envval="$1" v
+    v=$(validate_pct "$envval" 2>/dev/null) && { echo "$v"; return; }
+    pct_setting "$2" "$3"
+}
+WARN_PCT=$(resolve_pct "${WARN_PCT:-}" guardWorkerWarnPct 80)   # a worker gets told to hand off + compact at this load
+ORCH_PCT=$(resolve_pct "${ORCH_PCT:-}" guardOrchWarnPct 75)     # the orchestrator gets told to write brain + state at this load
+# ... and at this load the guard compacts the orchestrator ITSELF even without a sentinel.
+# Floor is guardOrchWarnPct (Reviewer-Befund 1, hoch): the old hardcoded 80 meant a
+# guardOrchWarnPct above 80 (valid up to 99) hit the emergency brake BEFORE the warning
+# ever fired -- the orchestrator got compacted having never been asked to save its
+# knowledge, exactly the loss this tool exists to prevent. Self-compaction must never
+# happen before the warning; ORCH_PCT is therefore a hard lower bound, never the other
+# way round (80 still wins whenever ORCH_PCT is at or below it, unaffected).
+ORCH_COMPACT_PCT=80
+(( ORCH_PCT > ORCH_COMPACT_PCT )) && ORCH_COMPACT_PCT=$ORCH_PCT
+# minWorkerPaneWidth (SPEC-V2 A): only READ here, to name it in the BLIND announcement --
+# wb-grid is the one that enforces it. Same validate-or-default pattern as the percentages,
+# same explicit base-10 fix (Befund 8).
+MINW=$("$HOME/.local/bin/wb-state" settings get minWorkerPaneWidth 2>/dev/null)
+if [[ "$MINW" =~ ^[0-9]+$ ]] && (( 10#$MINW >= 20 )); then
+    MINW=$((10#$MINW))
+else
+    MINW=60
+fi
+# Re-arm gap (Reviewer-Befund 9, niedrig): a pane counts as "recovered" once its load
+# drops this many points below the warn threshold. Flat -20 is today's number and MUST
+# NOT change for it -- both real defaults (75, 80) keep it exactly, unaffected. Only a
+# threshold <= 20 (valid down to 1) made "pct < threshold - 20" permanently false, since a
+# percentage can never be negative -- once warned/compacted, that pane could never be
+# re-armed again in the same guard run. Below that point the gap switches to a proportion
+# of the threshold instead of a flat count, so a reachable re-arm point exists again.
+rearm_gap() {   # threshold -> points below it that count as "recovered"
+    local t="$1" g
+    (( t - 20 >= 1 )) && { echo 20; return; }
+    g=$(( t / 4 )); (( g < 1 )) && g=1
+    echo "$g"
+}
+WORKER_REARM_GAP=$(rearm_gap "$WARN_PCT")
+ORCH_REARM_GAP=$(rearm_gap "$ORCH_PCT")
+POLL="${POLL:-60}"
+COMPACT_SETTLE="${COMPACT_SETTLE:-120}"   # hands off this long right after typing /compact
+# BUSY detection decides whether it is safe to type at all, so it errs towards "busy".
+# 'esc to interrupt' alone was NOT enough: on 2026-07-25 the guard typed /compact into a
+# pane that was mid-turn and only showed its spinner line ("✽ Flibbertigibbeting… (18m ·
+# ↓ 67.5k tokens)") plus "Running 3 shell commands…". Every one of those is a turn in
+# progress. A false BUSY only postpones an action by one poll; a false IDLE corrupts a turn.
+BUSY_RE='esc to interrupt|Compacting|Summariz|tokens\)|↓ [0-9]|Running [0-9]+ (shell|tool)|^[[:space:]]*[✢✳✶✻✽·][[:space:]]+[A-Za-z].*…'
+PROJECT="${PROJECT:-$PWD}"   # HANDOFF-<name>.md and .wb-knowledge-saved live here
+SENTINEL="$PROJECT/.wb-knowledge-saved"   # orchestrator writes it when its knowledge is safe
+GUARD_START=$(date +%s)                   # only a sentinel written after this counts (see below)
+mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }  # Linux || macOS
+# (POLL and COMPACT_SETTLE are overridable so the guard can be verified in minutes instead of
+# hours; the defaults are the production values.)
+
+rm -f "$STOP_FILE"
+
+tonum() {     # "109k" -> 109000 | "1.0M" -> 1000000 | "654" -> 654
+    local v="$1" n u
+    n="${v%[kKmM]}"; u="${v#"$n"}"
+    case "$u" in
+        k|K) awk -v n="$n" 'BEGIN{printf "%d", n*1000}' ;;
+        m|M) awk -v n="$n" 'BEGIN{printf "%d", n*1000000}' ;;
+        *)   awk -v n="$n" 'BEGIN{printf "%d", n}' ;;
+    esac
+}
+
+# LAST-RESORT source: the pane's own transcript, for panes whose status line is truncated before
+# both the figures and the bar (measured at 51 columns with a long project path). It does not care
+# about pane width -- but it is only used when the pane can be mapped to ONE session file without
+# guessing (see below), because a wrong number here is worse than none.
+transcript_load() {   # pane -> "<percent> transcript" or nothing
+    local pid cwd
+    pid=$(tmux display -p -t "$1" '#{pane_pid}' 2>/dev/null) || return
+    cwd=$(tmux display -p -t "$1" '#{pane_current_path}' 2>/dev/null) || return
+    [[ -n "$pid" && -n "$cwd" ]] || return
+    /usr/bin/python3 - "$pid" "$cwd" "$HOME/.claude/projects" <<'PY'
+import json, os, glob, subprocess, sys
+pane_pid, cwd, projects = sys.argv[1], sys.argv[2], sys.argv[3]
+
+def cmdline(pid):
+    try:
+        return subprocess.run(["ps", "-o", "command=", "-p", str(pid)],
+                              capture_output=True, text=True, timeout=5).stdout.strip()
+    except Exception:
+        return ""
+
+def children(pid):
+    try:
+        out = subprocess.run(["pgrep", "-P", str(pid)],
+                             capture_output=True, text=True, timeout=5).stdout.split()
+        return [int(x) for x in out]
+    except Exception:
+        return []
+
+# the claude process of this pane: usually the pane process itself (exec), else a child
+cl, queue, seen = "", [int(pane_pid)], set()
+while queue:
+    p = queue.pop(0)
+    if p in seen:
+        continue
+    seen.add(p)
+    c = cmdline(p)
+    if "claude" in c and "--model" in c:
+        cl = c
+        break
+    queue.extend(children(p))
+if not cl:
+    sys.exit(0)
+
+args = cl.split()
+def opt(name):
+    return args[args.index(name) + 1] if name in args and args.index(name) + 1 < len(args) else ""
+model, sid = opt("--model"), opt("--resume")
+
+proj = os.path.join(projects, cwd.replace("/", "-"))
+path = ""
+if sid and os.path.exists(os.path.join(proj, sid + ".jsonl")):
+    path = os.path.join(proj, sid + ".jsonl")           # --resume names the file exactly
+else:
+    # No --resume: only safe when the folder holds exactly ONE session. Measured 2026-07-25:
+    # four live workers shared one project folder, all files had the same mtime, and
+    # "newest mtime" picked the ORCHESTRATOR's transcript (12% instead of the pane's 26%).
+    # A wrong LOW number is worse than no number -- it silently suppresses the warning. So
+    # when the mapping is ambiguous we report nothing and the caller announces blindness.
+    cands = glob.glob(os.path.join(proj, "*.jsonl"))
+    if len(cands) == 1:
+        path = cands[0]
+if not path:
+    sys.exit(0)
+
+# read from the END -- these files reach tens of megabytes
+try:
+    size = os.path.getsize(path)
+    with open(path, "rb") as fh:
+        fh.seek(max(0, size - 400000))
+        chunk = fh.read().decode("utf-8", "replace")
+except Exception:
+    sys.exit(0)
+lines = chunk.split("\n")[1:] if size > 400000 else chunk.split("\n")
+
+used = None
+for line in reversed(lines):
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        rec = json.loads(line)
+    except Exception:
+        continue
+    u = (rec.get("message") or {}).get("usage") or rec.get("usage")
+    if isinstance(u, dict) and (u.get("input_tokens") or u.get("cache_read_input_tokens")):
+        used = ((u.get("input_tokens") or 0) + (u.get("cache_read_input_tokens") or 0)
+                + (u.get("cache_creation_input_tokens") or 0))
+        break
+if used is None:
+    sys.exit(0)
+
+ctx = 200000 if "haiku" in model else 1000000
+print("%d transcript" % (used * 100 // ctx))
+PY
+}
+
+read_load() { # pane -> "<percent> <exact|bar|transcript|none>"; -1 when nothing is readable
+    local cap tail5 pair num den bar filled t
+    cap=$(tmux capture-pane -p -t "$1" 2>/dev/null) || cap=""
+    # BOTH readings come from the status line, so both search the SAME bottom window. Searching
+    # the whole pane for a bar finds STALE ones that scrolled up (measured: an old bar from
+    # further up read 80% while the live status line said 76%, and that triggered a compaction
+    # that should not have happened). A stale value is worse than no value.
+    tail5=$(printf '%s\n' "$cap" | tail -5)
+    # 1) exact figures, e.g. "109k/1.0M". Only the last lines are searched: that is where the
+    #    status line lives, and arbitrary output above must not be mistaken for it.
+    pair=$(printf '%s\n' "$tail5" \
+           | grep -oE '[0-9]+(\.[0-9]+)?[kKmM]?/[0-9]+(\.[0-9]+)?[kKmM]' | tail -1)
+    if [[ -n "$pair" ]]; then
+        num=$(tonum "${pair%%/*}"); den=$(tonum "${pair##*/}")
+        if [[ -n "$den" ]] && (( den > 0 )); then echo "$(( num * 100 / den )) exact"; return; fi
+    fi
+    # 2) ten-block bar, 10% resolution (pane too narrow for the figures)
+    bar=$(printf '%s\n' "$tail5" | grep -oE '[▓░]{6,12}' | tail -1)
+    if [[ -n "$bar" ]]; then
+        filled=${bar//░/}
+        echo "$(( ${#filled} * 10 )) bar"
+        return
+    fi
+    # 3) last resort: the transcript (pane so narrow that the status line is cut before the bar)
+    t=$(transcript_load "$1")
+    [[ -n "$t" ]] && { echo "$t"; return; }
+    echo "-1 none"
+}
+
+announce_blind() {   # say it ONCE per pane instead of silently never warning
+    local pane="$1" label="$2" is_worker="${3:-0}" msg tpath
+    [[ "$blind" == *" $pane"* ]] && return
+    msg="$(date +%H:%M) $label ($pane): BLIND — weder Transcript noch Statuszeile lesbar; dieser Pane wird NICHT ueberwacht. Vermutlich schmaler als minWorkerPaneWidth=${MINW} Spalten — mit wb-grid gegenpruefen."
+    # SPEC-V2 B: for a worker (never the orchestrator, whose own transcript_load() above
+    # already tried this pane's OWN process/cwd mapping and failed for a different
+    # reason) name the RECORDED transcript file. pi-worker's background watcher stores
+    # the worker's claudeSessionId once its conversation starts, which sidesteps exactly
+    # the ambiguity that defeats transcript_load()'s own guess (several live sessions in
+    # one folder) — the state file already knows which one is this worker's. This is a
+    # POINTER only: no token count, no load percentage is computed from it here — that
+    # would be its own feature, not this one.
+    if [ "$is_worker" = "1" ]; then
+        tpath=$("$HOME/.local/bin/wb-state" worker-transcript "$label" 2>/dev/null)
+        [ -n "$tpath" ] && msg="$msg Transkript: $tpath"
+    fi
+    echo "$msg"
+    blind="$blind $pane"
+}
+
+nudge() {     # never interrupt a turn or a compaction (for /compact + orchestrator actions)
+    local pane="$1" msg="$2"
+    tmux capture-pane -p -t "$pane" 2>/dev/null | grep -v '^[[:space:]]*$' | tail -10 | grep -qE "$BUSY_RE" && return 1
+    tmux send-keys -t "$pane" "$msg" 2>/dev/null
+    sleep 1
+    tmux send-keys -t "$pane" Enter 2>/dev/null
+    return 0
+}
+
+# Queue a message even when the pane is BUSY. Claude Code queues keystrokes typed mid-turn and
+# processes them after the current step ("Press up to edit queued messages"), so a handoff REQUEST
+# lands even for a worker that is continuously working. This closes the blind spot that let a worker
+# run to 99% context: the idle-only nudge() never fired because the worker was never idle. Safe only
+# for a plain message (it queues); NEVER for /compact (a queued "/compact" runs as a chat message,
+# not the command).
+nudge_queue() {
+    local pane="$1" msg="$2"
+    tmux send-keys -t "$pane" "$msg" 2>/dev/null
+    sleep 1
+    tmux send-keys -t "$pane" Enter 2>/dev/null
+    return 0
+}
+
+warned=""    # "pane1 pane2" -- panes already told this cycle
+compacted="" # orchestrator panes already compacted this cycle
+blind=""     # panes we cannot read at all -- announced once, never silently ignored
+
+# Compact the orchestrator and hand the job straight back. Used by BOTH triggers (sentinel and
+# the load-based emergency brake) so the follow-up is identical either way: a compacted
+# orchestrator without a prompt has an empty window and no task and simply stalls -- the exact
+# failure the human should never be the one to notice.
+compact_orchestrator() {   # $1 = reason (log only) -> 0 typed / 1 pane was busy
+    local reason="$1"
+    nudge "$ORCH" "/compact Behalte: SESSION-STATE.md im Projekt ist der Live-Zustand (Ziele, gemessener Stand, geloeste Kernbugs, Prozessregeln, laufende Worker mit Pane-IDs, naechste Schritte) — sie ueberlebt die Kompaktierung und wird danach ZUERST gelesen. Ebenso GOALS.md (verbindliche Ziele), QUALITY.md (Pruefkatalog, Abnahme am Auge), PERF-STATE.md (alle gemessenen Sackgassen — nicht wiederholen). Worker-Status NIE am Pane-Text ablesen, sondern auf die Ergebnisdatei warten." || return 1
+    echo "$(date +%H:%M) orchestrator ($ORCH) -> /compact typed ($reason)"
+    compacted="$compacted $ORCH"
+    sleep "$COMPACT_SETTLE"                # hands off while it compacts
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+        tmux capture-pane -p -t "$ORCH" 2>/dev/null | grep -v '^[[:space:]]*$' | tail -10 | grep -qE "$BUSY_RE" || break
+        sleep 30
+    done
+    nudge "$ORCH" "WEITERARBEITEN (automatisch nach der Kompaktierung, kein Nutzer-Input noetig). Lies ZUERST SESSION-STATE.md im Projekt — dort steht der Live-Zustand und der naechste Schritt. Dazu, falls vorhanden: GOALS.md (verbindliche Ziele), QUALITY.md (Pruefkatalog), PERF-STATE.md (gemessene Sackgassen — nicht wiederholen) und die Vault-Notiz im Projekt-Branch. Pruefe dann die Worker-Ergebnisse (~/.pi-workers/results/<name>/latest.md), verifiziere sie SELBST und arbeite autonom weiter — warte NICHT auf den Nutzer."
+    rm -f "$SENTINEL"                      # cycle is armed again for the next rise
+    warned="${warned/ $ORCH/}"
+    echo "$(date +%H:%M) orchestrator ($ORCH) -> resumed (Sentinel entfernt)"
+    return 0
+}
+
+if (( AUTO )); then
+    echo "context-guard: orchestrator=$ORCH workers=auto (session of $ORCH, re-read every poll)"
+else
+    echo "context-guard: orchestrator=$ORCH workers=$* (worker warn ${WARN_PCT}%, orch ${ORCH_PCT}%)"
+fi
+
+while true; do
+    [[ -f "$STOP_FILE" ]] && { echo "context-guard: stopped"; exit 0; }
+
+    # --auto: take the worker list from the orchestrator's own session at every poll, tagged by
+    # @wb_worker (pi-worker/wb-ssh-worker set it). A guard started at session start has no workers
+    # yet, and one started by hand goes stale the moment a worker is added or closed -- that stale
+    # list is how a worker ends up unwatched, which is the exact failure this tool exists for.
+    if (( AUTO )); then
+        sess="$(tmux display -p -t "$ORCH" '#{session_name}' 2>/dev/null || true)"
+        if [[ -n "$sess" ]]; then
+            set -- $(tmux list-panes -s -t "=$sess" -F '#{pane_id}:#{@wb_worker}' 2>/dev/null \
+                       | awk -F: '$2!=""{print}')
+        else
+            set --
+        fi
+    fi
+
+    # --- workers
+    for entry in "$@"; do
+        pane="${entry%%:*}"; name="${entry##*:}"
+        tmux list-panes -a -F '#{pane_id}' | grep -qx "$pane" || continue
+        read -r pct src <<<"$(read_load "$pane")"
+        if (( pct < 0 )); then announce_blind "$pane" "$name" 1; continue; fi
+        blind="${blind/ $pane/}"
+
+        if (( pct < WARN_PCT - WORKER_REARM_GAP )); then
+            warned="${warned/ $pane/}"          # load dropped: re-arm for the next cycle
+            compacted="${compacted/ $pane/}"
+            continue
+        fi
+
+        # Step 1 -- ask for the handoff. A worker CANNOT compact itself: /compact is a slash command
+        # typed into the input box, and the agent inside the pane has no hands for that. It will
+        # cheerfully announce "Jetzt /compact" and then sit there forever. So we only ask for the
+        # handoff here, and do the compaction ourselves in step 2.
+        if (( pct >= WARN_PCT )) && [[ "$warned" != *" $pane"* ]]; then
+            if nudge_queue "$pane" "KONTEXT-WARNUNG (automatisch): Du stehst bei ~${pct}% Kontext. Ein voller Worker scheitert nicht — er wird STILL SCHLECHTER (vergisst Invarianten, wiederholt geloeste Fehler, widerspricht seinen eigenen Messungen). Schreibe JETZT eine VOLLSTAENDIGE UEBERGABE nach HANDOFF-${name}.md im Projektverzeichnis: Auftrag, Architektur, Vertraege/Invarianten, alle Fallstricke und NULL-RESULTATE (die sind das wertvollste Wissen — sie verhindern, dass jemand deine Sackgassen erneut durchmisst), offene Punkte, naechster konkreter Schritt. Danach NUR kurz melden, was du persistiert hast, und STEHENBLEIBEN. Tippe KEIN /compact — das kannst du nicht selbst, ich mache es fuer dich, sobald deine Uebergabe steht."; then
+                echo "$(date +%H:%M) $name ($pane) at ${pct}% -> handoff requested"
+                warned="$warned $pane"
+            fi
+            continue
+        fi
+
+        # Step 2 -- handoff written and the pane has gone quiet: compact it, then hand the task back.
+        # Without the resume prompt a compacted worker has a fresh window and no job, and stalls in
+        # silence -- which is exactly the failure the human should never be the one to notice.
+        if [[ "$warned" == *" $pane"* ]] && [[ "$compacted" != *" $pane"* ]]; then
+            tmux capture-pane -p -t "$pane" 2>/dev/null | grep -v '^[[:space:]]*$' | tail -10 | grep -qE "$BUSY_RE" && continue
+            [[ -f "$PROJECT/HANDOFF-${name}.md" ]] || continue   # no handoff yet -- let it finish
+            if nudge "$pane" "/compact"; then
+                echo "$(date +%H:%M) $name ($pane) -> /compact typed (handoff persisted)"
+                compacted="$compacted $pane"
+                sleep 90
+                for _ in 1 2 3 4 5 6 7 8 9 10; do
+                    tmux capture-pane -p -t "$pane" 2>/dev/null | grep -v '^[[:space:]]*$' | tail -10 | grep -qE "$BUSY_RE" || break
+                    sleep 30
+                done
+                nudge "$pane" "WEITERARBEITEN (automatisch nach deiner Kompaktierung, kein Nutzer-Input noetig). Lies ZUERST HANDOFF-${name}.md — das ist deine eigene Uebergabe, dort steht dein Auftrag und der naechste Schritt. Dazu GOALS.md (verbindliche Ziele), SESSION-STATE.md (Live-Zustand), QUALITY.md (Pruefkatalog, Abnahme am AUGE) und PERF-STATE.md (gemessene Sackgassen — nicht wiederholen). Dann arbeite selbstaendig weiter und melde wie gewohnt ins Result-File."
+                echo "$(date +%H:%M) $name ($pane) -> resumed"
+            fi
+        fi
+    done
+
+    # --- orchestrator
+    if tmux list-panes -a -F '#{pane_id}' | grep -qx "$ORCH"; then
+        read -r pct src <<<"$(read_load "$ORCH")"
+        # On the bar fallback a 75 threshold is unreachable (ten blocks = 10% steps), so it rounds
+        # DOWN to 70: earlier, never later. With the transcript or the exact figures 75 IS 75.
+        if [[ "$src" == "bar" ]]; then ORCH_WARN_EFF=$(( ORCH_PCT / 10 * 10 )); else ORCH_WARN_EFF=$ORCH_PCT; fi
+
+        # The sentinel outranks everything, INCLUDING an unreadable load: once the orchestrator
+        # says "my knowledge is saved", waiting for a higher load only wastes context.
+        # The sentinel is a signal for THIS guard's cycle, never a standing order. A file
+        # left over from an earlier session (or from a crashed one) used to compact a
+        # brand-new orchestrator at 26% load within one poll — measured on 2026-07-25,
+        # der Nutzer caught the typed /compact himself. So only a sentinel written AFTER this
+        # guard started counts; an older one is removed with a visible line.
+        if [[ -f "$SENTINEL" ]] && (( $(mtime "$SENTINEL") < GUARD_START )); then
+            echo "$(date +%H:%M) orchestrator ($ORCH): ALTER Sentinel ($(date -r "$SENTINEL" +%H:%M) < Guard-Start) — ignoriert und entfernt, KEINE Kompaktierung."
+            rm -f "$SENTINEL"
+        fi
+        if [[ -f "$SENTINEL" ]] && [[ "$compacted" != *" $ORCH"* ]]; then
+            compact_orchestrator "Sentinel $SENTINEL"
+        elif (( pct < 0 )); then
+            announce_blind "$ORCH" "orchestrator"
+        else
+            blind="${blind/ $ORCH/}"
+            if (( pct < ORCH_PCT - ORCH_REARM_GAP )); then
+                warned="${warned/ $ORCH/}"
+                compacted="${compacted/ $ORCH/}"
+            # Warn-before-compact is an ORDER invariant, not just a threshold floor
+            # (Reviewer-Befund 1, round 2): ORCH_COMPACT_PCT >= ORCH_PCT only keeps the
+            # brake from firing BELOW the warn threshold -- at guardOrchWarnPct > 80 both
+            # thresholds land on the SAME number, and the brake used to sit in the elif
+            # chain BEFORE the warn check, so it fired first at that shared value and the
+            # orchestrator got compacted having never been asked to save its knowledge.
+            # The warn branch is therefore checked FIRST, unconditionally, as long as this
+            # pane has not been warned yet this cycle; the brake below can only ever fire
+            # once "warned" already holds $ORCH. the user's call over the reviewer's
+            # ORCH_PCT+1 floor: a floor makes the brake unreachable at guardOrchWarnPct=99,
+            # an order swap does not, and pushing compaction one extra poll later (at most
+            # one POLL interval) is an accepted cost, not a bug.
+            elif (( pct >= ORCH_WARN_EFF )) && [[ "$warned" != *" $ORCH"* ]]; then
+                if nudge "$ORCH" "KONTEXT-WARNUNG (automatisch): Dein eigener Kontext liegt bei ~${pct}%. BEVOR der Harness dich komprimiert, sichere das Wissen — eine Zusammenfassung verliert genau die Details, die niemand als wichtig markiert hat: (1) SESSION-STATE.md im Projekt aktualisieren (Ziele, gemessener Stand, geloeste Kernbugs, Prozessregeln, laufende Worker mit Pane-IDs, naechste Schritte). (2) Vault-Notiz im Projekt-Branch aktualisieren und committen (~/Knowledge). (3) Kontext ALLER Worker pruefen und die ueber 80% zu Uebergabe + /compact schicken. (4) WENN das erledigt ist, sofort 'touch ${SENTINEL}' ausfuehren — daran erkenne ich, dass Dein Wissen gesichert ist, und kompaktiere Dich SOFORT (statt auf 80% zu warten); danach bekommst Du automatisch einen Weiterarbeiten-Prompt. Bis dahin normal weiterarbeiten."; then
+                    echo "$(date +%H:%M) orchestrator ($ORCH) at ${pct}% (${src}) -> brain+state update requested, warte auf $SENTINEL"
+                    warned="$warned $ORCH"
+                fi
+            elif (( pct >= ORCH_COMPACT_PCT )) && [[ "$compacted" != *" $ORCH"* ]]; then
+                # Emergency brake: only reachable once this pane is already in "warned"
+                # (the warn branch above re-checks and skips once that's true), so the
+                # knowledge-save request always went out first, this cycle or an earlier one.
+                compact_orchestrator "Notbremse ${pct}%"
+            fi
+        fi
+    fi
+
+    sleep "$POLL"
+done

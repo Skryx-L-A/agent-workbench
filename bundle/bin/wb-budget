@@ -1,0 +1,177 @@
+#!/bin/bash
+# wb-budget — fortlaufendes Bild des Token-/Limit-Verbrauchs: 5h/Woche, Trend, Hochrechnung.
+#
+# WARUM: "spaet in einer schweren Woche" (Team-Groesse ans Restbudget anpassen) ist bisher
+#   Bauchgefuehl, keine Zahl. Dieses Tool macht daraus eine Zahl — aber NUR aus Quellen, die
+#   tatsaechlich vorliegen.
+#
+# DATENLAGE (wichtig, ehrlich):
+#   Das Statusline-Skript (~/.claude/statusline-command.sh) bekommt bei jedem Render eine JSON
+#   auf stdin, die u.a. rate_limits.five_hour/seven_day.used_percentage enthaelt (% vom
+#   Anthropic-Plan-Limit). Diese JSON ist TRANSIENT — die Harness erzeugt sie live pro Render
+#   und schreibt sie nirgends persistent weg. Ein eigenstaendiges Skript wie dieses hat KEINEN
+#   Zugriff darauf, ausser sie wird ihm explizit zugefuehrt (siehe --ingest unten). Ohne
+#   Aenderung an statusline-command.sh (nicht mein Auftrag, nicht angefasst) gibt es dafuer
+#   keine automatische Quelle — das wird unten als "nicht verfuegbar" ausgewiesen, nicht erfunden.
+#
+#   Was WIRKLICH lokal und persistent vorliegt: die Session-Transkripte unter
+#   ~/.claude/projects/**/*.jsonl. Jede assistant-Nachricht traegt echte Token-Zahlen
+#   (message.usage: input_tokens/output_tokens/cache_creation_input_tokens/
+#   cache_read_input_tokens) mit Zeitstempel. Darauf baut der Haupt-Report (5h/Woche/Trend/
+#   Hochrechnung) auf — Rohzahlen, kein Dollarbetrag (Preistabellen veralten, hier nicht erfunden).
+#
+# BENUTZUNG:
+#   wb-budget                zeigt Token-Report (5h/7d/Trend/Hochrechnung) + Plan-Limit-Log-Stand
+#   wb-budget --ingest        liest EINE Statusline-JSON von stdin, loggt rate_limits falls vorhanden
+#                              (Aufruf z.B.: <statusline-json erzeugen> | wb-budget --ingest)
+#
+# Log fuer die Plan-Limit-Prozente (nur befuellt, wenn --ingest tatsaechlich benutzt wird):
+#   ~/.local/state/wb-budget/limits.jsonl
+
+set -u
+
+JQ=$(command -v jq || echo /opt/homebrew/bin/jq)
+STATE_DIR="$HOME/.local/state/wb-budget"
+LIMITS_LOG="$STATE_DIR/limits.jsonl"
+mkdir -p "$STATE_DIR"
+
+if [ ! -x "$JQ" ] && ! command -v jq >/dev/null 2>&1; then
+  echo "wb-budget: jq nicht gefunden — Report nicht moeglich." >&2
+  exit 0
+fi
+
+# --- --ingest: eine Statusline-JSON von stdin entgegennehmen, rate_limits loggen. ---
+if [ "${1:-}" = "--ingest" ]; then
+  input=$(cat)
+  has_limits=$(echo "$input" | "$JQ" -r 'if .rate_limits then "yes" else "no" end' 2>/dev/null)
+  if [ "$has_limits" != "yes" ]; then
+    echo "wb-budget: kein .rate_limits im Input gefunden — nichts geloggt."
+    exit 1
+  fi
+  echo "$input" | "$JQ" -c '{
+    ts: (now | todate),
+    five_hour_pct: .rate_limits.five_hour.used_percentage,
+    seven_day_pct: .rate_limits.seven_day.used_percentage,
+    resets_at: .rate_limits.five_hour.resets_at
+  }' >> "$LIMITS_LOG"
+  echo "wb-budget: Datenpunkt geloggt nach $LIMITS_LOG"
+  exit 0
+fi
+
+echo "wb-budget — Token-Verbrauch aus lokalen Session-Transkripten"
+echo
+
+# --- Transkripte einsammeln (nur letzte 8 Tage relevant fuer 5h/7d-Report, Performance). ---
+FILES=()
+while IFS= read -r f; do FILES+=("$f"); done < <(find "$HOME/.claude/projects" -name "*.jsonl" -mtime -8 2>/dev/null)
+if [ "${#FILES[@]}" -eq 0 ]; then
+  echo "keine Transkripte der letzten 8 Tage gefunden unter ~/.claude/projects — nichts zu zeigen."
+else
+  # Erst zaehlen, wie viele assistant-Nachrichten ueberhaupt Usage-Daten tragen (Referenzwert),
+  # DANN extrahieren. Zeilen ohne verwertbaren Zeitstempel werden per select() sauber
+  # uebersprungen (nie ein fromdateiso8601 auf null/kaputtem String — das wuerde einen
+  # jq-Laufzeitfehler auf stderr schreiben, den die alte Fassung mit "2>/dev/null" wortlos
+  # verschluckt hat). Skip-Anzahl wird unten sichtbar gemacht, nicht mehr stillschweigend
+  # weggelassen.
+  TOTAL_USAGE=$(cat "${FILES[@]}" 2>/dev/null | "$JQ" -c 'select(.type == "assistant" and .message.usage != null)' 2>/dev/null | wc -l | tr -d ' ')
+
+  EXTRACTED=$(cat "${FILES[@]}" 2>/dev/null | "$JQ" -c '
+      select(.type == "assistant" and .message.usage != null and .timestamp != null) |
+      (.timestamp | sub("\\.[0-9]+Z$"; "Z") | (try fromdateiso8601 catch null)) as $ts |
+      select($ts != null) |
+      {
+        ts: $ts,
+        input: (.message.usage.input_tokens // 0),
+        output: (.message.usage.output_tokens // 0),
+        cache_write: (.message.usage.cache_creation_input_tokens // 0),
+        cache_read: (.message.usage.cache_read_input_tokens // 0)
+      }
+    ')
+  VALID_COUNT=$(printf '%s\n' "$EXTRACTED" | grep -c . || true)
+  SKIPPED=$((TOTAL_USAGE - VALID_COUNT))
+
+  # cache_read (Cache-TREFFER) faellt bewusst NICHT in die Tages-/Hochrechnungssumme: es ist der
+  # mit Abstand billigste Posten und dominiert die Summe um Groessenordnungen (real gemessen:
+  # an einem Tag 609 von 629 Mio Tokens in 5h waren cache_read) — eine Summe, die dadurch
+  # dominiert wird, misst im Wesentlichen Cache-Treffer statt Team-/Verbrauchsgroesse. cache_read
+  # wird separat ausgewiesen (Transparenz), nie in "total"/Hochrechnung mitgezaehlt.
+  REPORT=$(printf '%s\n' "$EXTRACTED" | "$JQ" -s '
+      (now) as $now
+      | ($now - 5*3600) as $t5
+      | ($now - 7*86400) as $t7
+      | def win(f): map(select(.ts >= f)) | {
+          messages: length,
+          input: (map(.input) | add // 0),
+          output: (map(.output) | add // 0),
+          cache_write: (map(.cache_write) | add // 0),
+          cache_read: (map(.cache_read) | add // 0)
+        };
+      {
+        five_hour: win($t5),
+        seven_day: win($t7),
+        by_day: (
+          map(select(.ts >= $t7))
+          | group_by(.ts / 86400 | floor)
+          | map({
+              day: (.[0].ts | floor | gmtime | strftime("%Y-%m-%d")),
+              total: (map(.input + .output + .cache_write) | add),
+              cache_read: (map(.cache_read) | add)
+            })
+          | sort_by(.day)
+        ),
+        today: (
+          map(select(.ts >= ($now - ($now % 86400))))
+          | { total: (map(.input + .output + .cache_write) | add // 0),
+              cache_read: (map(.cache_read) | add // 0) }
+        ),
+        hours_today: (($now % 86400) / 3600)
+      }
+    ')
+
+  if [ "$SKIPPED" -gt 0 ]; then
+    echo "Hinweis: $SKIPPED von $TOTAL_USAGE Nachrichten ohne verwertbaren Zeitstempel uebersprungen (nicht in den Zahlen unten)." >&2
+  fi
+
+  echo "== letzte 5 Stunden =="
+  echo "$REPORT" | "$JQ" -r '.five_hour |
+    "  Nachrichten: \(.messages)   input: \(.input)   output: \(.output)   cache_write: \(.cache_write)   cache_read: \(.cache_read)  (cache_read separat, nicht in Trend/Hochrechnung)"'
+
+  echo
+  echo "== letzte 7 Tage =="
+  echo "$REPORT" | "$JQ" -r '.seven_day |
+    "  Nachrichten: \(.messages)   input: \(.input)   output: \(.output)   cache_write: \(.cache_write)   cache_read: \(.cache_read)  (cache_read separat, nicht in Trend/Hochrechnung)"'
+
+  echo
+  echo "== Trend, Tokens/Tag (input+output+cache_write, OHNE cache_read, UTC-Tagesgrenzen) =="
+  echo "$REPORT" | "$JQ" -r '.by_day[] | "  \(.day): \(.total)   (cache_read: \(.cache_read))"'
+
+  echo
+  HOURS_TODAY=$(echo "$REPORT" | "$JQ" -r '.hours_today')
+  TODAY_TOTAL=$(echo "$REPORT" | "$JQ" -r '.today.total')
+  TODAY_CACHE_READ=$(echo "$REPORT" | "$JQ" -r '.today.cache_read')
+  echo "== Hochrechnung (heute, UTC) =="
+  if awk "BEGIN{exit !($HOURS_TODAY < 0.25)}"; then
+    echo "  zu frueh am UTC-Tag (${HOURS_TODAY}h) fuer eine sinnvolle Hochrechnung."
+  else
+    PROJECTED=$(awk "BEGIN{printf \"%.0f\", $TODAY_TOTAL / $HOURS_TODAY * 24}")
+    echo "  bisher heute: $TODAY_TOTAL Tokens (input+output+cache_write) in ${HOURS_TODAY}h ->"
+    echo "  Hochrechnung auf 24h: ~$PROJECTED Tokens"
+    echo "  (lineare Fortschreibung, cache_read AUSGESCHLOSSEN, keine Kenntnis eines Limits;"
+    echo "   zum Vergleich, nicht mitgezaehlt: $TODAY_CACHE_READ cache_read heute)"
+  fi
+fi
+
+# --- Plan-Limit-Prozente (nur vorhanden, wenn --ingest je benutzt wurde). ---
+echo
+echo "== Plan-Limit (% vom Anthropic-Limit) =="
+if [ -s "$LIMITS_LOG" ]; then
+  LAST=$("$JQ" -c -s '.[-1]' < "$LIMITS_LOG")
+  COUNT=$(wc -l < "$LIMITS_LOG" | tr -d ' ')
+  echo "  $COUNT geloggte Datenpunkt(e). Letzter:"
+  echo "$LAST" | "$JQ" -r '"    Stand \(.ts): 5h=\(.five_hour_pct)%  7d=\(.seven_day_pct)%  Reset=\(.resets_at)"'
+else
+  echo "  nicht verfuegbar — kein Log vorhanden. Die %-Werte existieren nur transient in der"
+  echo "  Statusline-JSON einer laufenden Session; ohne Aenderung an statusline-command.sh gibt"
+  echo "  es dafuer keine automatische Quelle. Manuell nachtragbar per 'wb-budget --ingest' mit"
+  echo "  einer JSON dieser Form auf stdin."
+fi

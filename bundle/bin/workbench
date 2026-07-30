@@ -1,0 +1,27 @@
+#!/bin/bash
+# workbench — open the agent workbench: one tmux window with a Claude Code
+# orchestrator. Teammates and pi-workers appear as further panes sharing the
+# grid. (File sidebar removed 2026-07-11 — the VSCode workbench covers that.)
+#
+# Usage: workbench [project-dir]   (default: current dir)
+# Mouse: right-click = menu | click [+ Menu] in status bar | drag borders to resize
+set -euo pipefail
+DIR="${1:-$PWD}"
+SESSION="wb-$(basename "$DIR" | tr -cd 'a-zA-Z0-9-')"
+
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+  exec tmux attach -t "$SESSION"
+fi
+
+# Orchestrator model policy: Fable 5 @ effort medium; Opus 4.8 as availability
+# fallback (then raise to xhigh yourself via /effort — statusline shows the model).
+CLAUDE_CMD='$HOME/.local/bin/claude --model claude-fable-5 --effort medium --fallback-model claude-opus-4-8 --teammate-mode tmux --append-system-prompt "$(cat $HOME/.claude/roles/orchestrator.md)"'
+tmux new-session -d -s "$SESSION" -c "$DIR" "$CLAUDE_CMD"
+orch=$(tmux list-panes -t "$SESSION" -F '#{pane_id}' | head -1)
+tmux set -p -t "$orch" @wb_role orchestrator
+# Clean, re-executable command for wb-revive / wb-autorevive (pane-died hook).
+tmux set -p -t "$orch" @wb_cmd "$CLAUDE_CMD"
+tmux set -p -t "$orch" remain-on-exit on
+tmux select-pane -t "$orch" -T ORCHESTRATOR
+tmux select-pane -t "$orch"
+exec tmux attach -t "$SESSION"

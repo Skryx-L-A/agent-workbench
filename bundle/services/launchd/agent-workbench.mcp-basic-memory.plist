@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  EINE geteilte basic-memory-MCP-Instanz fuer alle Claude-Sessions.
+  Vorher startete jede Session ihren eigenen stdio-Server: 21 Prozesse, 3.7 GB
+  (gemessen 2026-07-28). Mit HTTP-Transport reden alle Sessions mit diesem einen
+  Prozess. Nur 127.0.0.1, damit nichts von aussen erreichbar ist.
+  Bedienung: mcp-shared status|restart|reap
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>de.__USER__.mcp-basic-memory</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__HOME__/.local/bin/basic-memory</string>
+    <string>mcp</string>
+    <string>--transport</string>
+    <string>streamable-http</string>
+    <string>--host</string>
+    <string>127.0.0.1</string>
+    <string>--port</string>
+    <string>8766</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__HOME__/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>StandardOutPath</key>
+  <string>__HOME__/.local/state/mcp-shared/basic-memory.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/.local/state/mcp-shared/basic-memory.log</string>
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

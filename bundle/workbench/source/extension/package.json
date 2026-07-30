@@ -1,0 +1,141 @@
+{
+  "name": "claude-workbench",
+  "displayName": "Claude Workbench",
+  "description": "Startseite, Worker-Status und Orchestrator-Anbindung für Claude Code",
+  "version": "0.1.0",
+  "publisher": "alice",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "extensionKind": [
+    "ui"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "claude-workbench.start",
+        "title": "Startseite öffnen",
+        "category": "Claude Workbench"
+      },
+      {
+        "command": "claude-workbench.newSession",
+        "title": "Neue Session",
+        "category": "Claude Workbench"
+      },
+      {
+        "command": "claude-workbench.settings",
+        "title": "Einstellungen",
+        "category": "Claude Workbench",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "claude-workbench.openWorkerTab",
+        "title": "Worker-Tab öffnen",
+        "category": "Claude Workbench"
+      },
+      {
+        "command": "claude-workbench.refreshWorkers",
+        "title": "Worker aktualisieren",
+        "category": "Claude Workbench",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "claude-workbench.focusWorker",
+        "title": "Worker-Pane fokussieren",
+        "category": "Claude Workbench"
+      },
+      {
+        "command": "claude-workbench.sendPathToOrchestrator",
+        "title": "An Orchestrator senden",
+        "category": "Claude Workbench"
+      },
+      {
+        "command": "claude-workbench.sendSelectionToOrchestrator",
+        "title": "Auswahl an Orchestrator senden",
+        "category": "Claude Workbench"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claude-workbench",
+          "title": "Claude Workbench",
+          "icon": "media/activity-bar.svg"
+        }
+      ]
+    },
+    "views": {
+      "claude-workbench": [
+        {
+          "id": "claude-workbench.workers",
+          "name": "Worker",
+          "contextualTitle": "Claude Workbench"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "claude-workbench.workers",
+        "contents": "Kein Projektordner geöffnet.\n[Startseite öffnen](command:claude-workbench.start)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "claude-workbench.refreshWorkers",
+          "when": "view == claude-workbench.workers",
+          "group": "navigation"
+        },
+        {
+          "command": "claude-workbench.settings",
+          "when": "view == claude-workbench.workers",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "claude-workbench.sendPathToOrchestrator",
+          "group": "7_modification"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "claude-workbench.sendSelectionToOrchestrator",
+          "when": "editorHasSelection",
+          "group": "7_modification"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "claude-workbench.focusWorker",
+          "when": "false"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.ts",
+    "check": "npm run typecheck && npm run test && npm run build",
+    "package": "npm run check && vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/codicons": "^0.0.36",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  }
+}
