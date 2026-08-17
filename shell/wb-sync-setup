@@ -106,8 +106,8 @@ FILES=(
   ".local/bin/wb-harness-config"
   ".local/bin/crushrc.default" ".local/bin/kimi-config.default.toml"
   # NICHT hier: wb-shot (macOS `screencapture` plus Swift-Helfer, im Skript selbst als
-  # MAC-ONLY vermerkt), wb-mail (haengt am macOS-Schluesselbund und an ~/.msmtprc),
-  # wb-request-review (einmaliger launchd-Job dieser Maschine, 2026-08-08),
+  # MAC-ONLY vermerkt), <ein eigenes Mailwerkzeug> (macOS-spezifischer Versandweg),
+  # <ein eigenes Mailwerkzeug> (einmaliger launchd-Job dieser Maschine, 2026-08-08),
   # wb-shot-remote (ruft von HIER aus peer — auf peer selbst sinnlos) und peer-connect
   # (ruft von HIER aus peer, `ssh peer`/`mosh peer` fest verdrahtet — auf peer gestartet
   # waere das ein Selbstaufruf). peer-shot steht bewusst auf KEINER Seite dieser Liste:

@@ -1,10 +1,17 @@
 # Installing the workbench
 
-Roughly twenty minutes, most of it `npm ci`. Every step is repeatable: running it twice does the
+Roughly fifteen minutes, most of it `npm ci`. Every step is repeatable: running it twice does the
 same thing as running it once.
 
 If you would rather not do it by hand, hand this file to a coding agent and tell it to work
 through the steps. That is the intended path, and the last section says what to check afterwards.
+
+This repository holds the workbench and its tools. The rules, skills, hooks, `CLAUDE.md` and
+`settings.json` templates and the knowledge base are in
+**[agent-setup](https://github.com/Skryx-L-A/agent-setup)**; if you want those too,
+install this first and then follow the instructions there. `<your-github-user>` stands for the
+account this repository is hosted under — the tool that extracts it from a working machine removes
+account names everywhere and cannot tell a public URL from a private path.
 
 ## 0. What has to be there first
 
@@ -20,13 +27,13 @@ Node has to be version 22 or newer — `node -v` says which one you have. On Deb
 Node is often older; use [nodesource](https://github.com/nodesource/distributions) or `nvm` then.
 
 You also need at least one agent CLI, or there is nothing to orchestrate. Claude Code is what the
-role prompts and hooks were written against; Codex, aider, opencode and a local Ollama model all
-work through the same registry.
+role prompts were written against; Codex, aider, opencode and a local Ollama model all work
+through the same registry.
 
 ## 1. Get the repository
 
 ```bash
-git clone https://github.com/<your-github-user>/agent-workbench.git ~/agent-workbench
+git clone https://github.com/Skryx-L-A/agent-workbench.git ~/agent-workbench
 cd ~/agent-workbench
 ```
 
@@ -70,31 +77,25 @@ Make sure `~/.local/bin` is on your `PATH`. In `~/.zshrc` or `~/.bashrc`:
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-## 4. Install the agent configuration
+## 4. Install the role prompts
 
 ```bash
 mkdir -p ~/.claude/workbench
-cp -a claude/roles claude/regeln claude/skills claude/hooks claude/commands ~/.claude/
+cp -a claude/roles ~/.claude/
 cp    claude/statusline-command.sh ~/.claude/
-chmod +x ~/.claude/hooks/*.sh ~/.claude/hooks/*.py ~/.claude/statusline-command.sh
+chmod +x ~/.claude/statusline-command.sh
 ```
 
-The execute bit matters. A hook without it does not fail loudly — it fails silently, and you find
-out weeks later that nothing was ever blocked.
+The two prompts are what a session loads to know whether it leads or works. A lead session reads
+`orchestrator.md`, a worker pane reads `agent.md`, and the tools pass the right one when they
+spawn a pane.
 
-Then the two files that are yours to fill in:
-
-```bash
-cp claude/CLAUDE.md.template     ~/.claude/CLAUDE.md
-cp claude/settings.json.template ~/.claude/settings.json
-```
-
-`CLAUDE.md` is the contract every agent reads. The template is a scaffold: it has the sections and
-says what belongs in each, and the placeholders in angle brackets are yours to replace. Read it
-once from top to bottom before you start — a rule you did not mean is worse than a missing one.
-
-`settings.json` wires the hooks to the events they run on. It is copied as it is used, so the
-paths in it are `$HOME`-relative; if you keep your setup somewhere else, adjust them there.
+There is no `CLAUDE.md` and no `settings.json` in this repository. The workbench does not need
+either to run, and both are shipped as templates in
+**[agent-setup](https://github.com/Skryx-L-A/agent-setup)** because they carry the
+working agreements rather than the machinery. Until you have them, your agents run with
+whatever configuration you already had, and the hooks that would block a bad command are simply
+not installed.
 
 ## 5. Install the model registry
 
@@ -114,38 +115,15 @@ Check what came out:
 wb-state models table
 ```
 
-## 6. The knowledge base, if you want one
-
-The workbench runs without it. If you do want one:
-
-```bash
-cp -a knowledge ~/Knowledge
-cd ~/Knowledge
-git init
-cp IDENTITY.md.example IDENTITY.md    # fill in, never commit
-```
-
-The tooling under `_meta/tools/` is Python and uses [uv](https://docs.astral.sh/uv/):
-
-```bash
-cd ~/Knowledge/_meta/tools/braincli && uv sync
-cd ~/Knowledge/_meta/tools/gardener && uv sync
-```
-
-Both build their index on first run; nothing is shipped pre-built. The gardener talks to a local
-Ollama for embeddings and for its judging passes, so `ollama serve` has to be running and a model
-pulled before its first run.
-
-`beispiele/notiz.md` shows what a finished note looks like, written to `_meta/templates/note.md`.
-
-## 7. Check that it worked
+## 6. Check that it worked
 
 ```bash
 wb-doctor
 ```
 
-It prints one line per check and exits non-zero if something is wrong. Then start one worker and
-watch it arrive:
+It prints one line per check and exits non-zero if something is wrong. Checks that belong to the
+parts not shipped here — hooks, rules, the knowledge base — report as missing, which is correct
+for this repository on its own. Then start one worker and watch it arrive:
 
 ```bash
 tmux new -s work
@@ -162,18 +140,23 @@ A guessed pattern produces workers that receive nothing and never say so.
 | Path | What |
 |---|---|
 | `~/.local/bin/` | the command-line tools |
-| `~/.claude/` | roles, rules, skills, hooks, `CLAUDE.md`, `settings.json` |
+| `~/.claude/roles/` | the two role prompts |
 | `~/.claude/workbench/models.json` | the model registry |
-| `~/Knowledge/` | the knowledge base, if you installed it |
 | `~/.config/agent-workbench/` | the workbench window's own state |
 
 ## If you have a second machine
 
-`wb-sync-setup`, `wb-ssh-worker`, `peer-shot` and `wb-shot-remote` expect a second host reachable
-over SSH with the same layout. The hostnames in them are placeholders — open each one and put your
-own in before you rely on it. Without a second host they simply do nothing, and nothing else in
-the workbench depends on them.
+`wb-sync-setup`, `wb-ssh-worker` and `wb-shot-remote` expect a second host reachable over SSH with
+the same layout. The hostnames in them are placeholders — open each one and put your own in before
+you rely on it. Without a second host they simply do nothing, and nothing else in the workbench
+depends on them.
 
-The launchd property lists in `shell/` (macOS) and the unit files in `shell/systemd/` (Linux) are
-templates for the optional background jobs: the nightly test run, the session sweep, the local
-model proxy. Each one carries paths that have to be yours before it is loaded.
+The launchd property list in `shell/` belongs to one optional background job, the local model
+proxy. It is a real file rather than a template and carries a literal `$HOME`, which launchd does
+not expand — substitute it before you load it.
+
+Sending mail is deliberately not here. The tools that did it named the account and the place their
+credentials live, as values in the file rather than as a description, so neither is shipped. The
+rule that governs sending survives in the role prompts: an agent drafts, a person releases. Any
+file that names a tool this repository does not carry says so in a note at its end, added while
+the repository was built.

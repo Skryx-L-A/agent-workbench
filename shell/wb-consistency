@@ -1388,6 +1388,7 @@ def check6_settings_switches(cfg, base):
 #     fuer jede Datendatei gleich und ist keine Regel ueber eine bestimmte.
 
 NICHT_INSTALLIERT_RE = re.compile(r"NICHT[ _-]INSTALLIERT\s*:\s*(\S.*)")
+NICHT_VERSIONIERT_RE = re.compile(r"NICHT[ _-]VERSIONIERT\s*:\s*(\S.*)")
 
 
 def _installationsziel(rel, c7):
@@ -1590,6 +1591,105 @@ def _sorte_c(c7, findings):
                         "haben je einen Vergleichstest." % bez))
 
 
+# --------------------------------------------------------------------------
+# Sorte D -- installiert, aber nirgends im Repo (2026-08-17)
+# --------------------------------------------------------------------------
+# Anlass: 20 eigene Werkzeuge liefen monate- bis wochenlang aus ~/.local/bin,
+# ohne dass irgendein Test das je bemerkte -- Sorte A prueft nur Dateien, die
+# im Repo bereits STEHEN; ein Werkzeug, das nie aufgenommen wurde, faellt
+# durch kein Raster. Dieselbe Blindheit wie beim Veroeffentlichungs-Tor, das
+# 18 Tage lang nichts fand, weil es nur prueft, was ihm schon bekannt ist.
+#
+# Sorte D dreht Sorte A um: Ausgangspunkt ist der INSTALLATIONSORT, nicht das
+# Repo. Die schwierige Frage ist nicht "fehlt eine Datei", sondern "gehoert
+# diese Datei ueberhaupt hierher" -- unter ~/.local/bin liegen zusammen mit
+# den eigenen Werkzeugen ueber hundert von Paketmanagern verwaltete Programme
+# (uv, pipx, npm, cargo, Homebrew, der Claude-Code-Eigeninstaller, ...), und
+# die duerfen nicht als vermisste eigene Werkzeuge gemeldet werden.
+#
+# Die Trennung haengt an ZWEI messbaren Merkmalen, keiner Namensliste:
+#   1. _ist_paketverwaltet -- der REALE Pfad (nach Symlinks aufgeloest) liegt
+#      unter einem der konfigurierten Paketmanager-Verzeichnisse. uv/pipx/npm
+#      legen Symlinks dorthin, Homebrew verlinkt in den Cellar, der
+#      Claude-Code-Installer haelt seine eigenen Versionen unter
+#      ~/.local/share/claude. Eine Handvoll ORTE altert nicht wie eine Liste
+#      von NAMEN -- neue Paketmanager kommen selten hinzu, neue eigene
+#      Werkzeuge fast woechentlich.
+#   2. _ist_skript -- traegt eine Shebang-Zeile. Jedes der bisher geborgenen
+#      eigenen Werkzeuge ist ein von Hand geschriebenes Bash/Python/sh-Skript;
+#      ein kompiliertes Binary OHNE erkennbaren Paketmanager-Pfad (etwa ein
+#      `go install` direkt nach ~/.local/bin, gemessen an `agy`) faellt damit
+#      bewusst NICHT unter 'eigen' -- ohne Shebang ist die Herkunft nicht
+#      entscheidbar, und ein falscher Fund waere schlimmer als ein
+#      ausgelassener.
+# Beides zusammen ist notwendig: ohne (1) meldet die Pruefung jedes per uv/
+# pipx als Skript-Shim installierte Fremdprogramm; ohne (2) auch jedes
+# fremde Binary, das direkt (ohne Symlink) in ~/.local/bin landet.
+#
+# Wie bei Sorte A traegt eine bewusste Ausnahme ihre Begruendung an der
+# DATEI selbst ('NICHT VERSIONIERT: <warum>' in den ersten 40 Zeilen), nicht
+# in einer Ausnahmeliste hier.
+
+
+def _ist_paketverwaltet(pfad, fremd_verzeichnisse):
+    # Beide Seiten realpath()en, nicht nur pfad: macOS verlinkt /tmp und /var
+    # selbst auf /private/... -- ohne das aufzuloesen vergleicht der Praefix-
+    # Test einen aufgeloesten Pfad gegen einen unaufgeloesten und verfehlt jeden
+    # Treffer, dessen Heimatverzeichnis (oder ein Testverzeichnis) hinter so
+    # einem System-Symlink liegt.
+    real = os.path.realpath(pfad)
+    for d in fremd_verzeichnisse:
+        d_real = os.path.realpath(d)
+        if real == d_real or real.startswith(d_real.rstrip("/") + "/"):
+            return True
+    return False
+
+
+def _ist_skript(pfad):
+    try:
+        with open(pfad, "rb") as f:
+            kopf = f.read(4096)
+    except OSError:
+        return False
+    return b"\x00" not in kopf and kopf[:2] == b"#!"
+
+
+def _sorte_d(c7, findings, base):
+    d = c7.get("fremd_pruefung")
+    if not d:
+        return
+    ziel = d.get("ziel")
+    if not ziel or not os.path.isdir(ziel):
+        return
+    fremd_verzeichnisse = d.get("paketmanager_verzeichnisse", [])
+    repo_praefixe = [p for p, z in ((e[0], e[1]) for e in c7["install_map"]) if z == ziel]
+    bekannt = set()
+    for prefix in repo_praefixe:
+        wurzel = os.path.join(c7["repo_dir"], prefix)
+        if os.path.isdir(wurzel):
+            bekannt.update(os.listdir(wurzel))
+    for name in sorted(os.listdir(ziel)):
+        pfad = os.path.join(ziel, name)
+        if name in bekannt or not os.path.isfile(pfad):
+            continue
+        if any(ex in pfad for ex in c7.get("exclude_substrings", ())):
+            continue
+        if _ist_paketverwaltet(pfad, fremd_verzeichnisse):
+            continue
+        if not _ist_skript(pfad):
+            continue
+        kopf = "\n".join(read_lines(pfad)[:40])
+        if NICHT_VERSIONIERT_RE.search(kopf):
+            continue
+        findings.append(Finding(
+            "EIGEN-NICHT-IM-REPO", os.path.relpath(pfad, base), 1,
+            "liegt unter %s, aber nirgends im Repo" % ziel,
+            "Skript mit Shebang, keine Spur zu einem Paketmanager -- vermutlich von "
+            "Hand gebaut und nie aufgenommen. Entweder ins Repo aufnehmen, oder falls "
+            "es bewusst nur lokal bleiben soll, in den ersten 40 Zeilen selbst "
+            "vermerken: 'NICHT VERSIONIERT: <Begruendung>'.", severity="error"))
+
+
 def check7_kopien(cfg, base):
     c7 = cfg.get("check7_kopien")
     if not c7:
@@ -1602,6 +1702,7 @@ def check7_kopien(cfg, base):
     _sorte_a(c7, findings)
     _sorte_b(c7, findings)
     _sorte_c(c7, findings)
+    _sorte_d(c7, findings, base)
     return findings
 
 
