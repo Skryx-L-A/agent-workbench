@@ -104,7 +104,6 @@
       "mac": [
         "wb-shot",
         "wb-shot-remote",
-        "wb-mail",
         "mcp-shared",
         "basic-memory",
         "bild",
@@ -113,7 +112,6 @@
         "llama-bench",
         "screencapture",
         "open",
-        "wb-request-review",
         "grug-server",
         "wb-modell-proxy",
         "cliclick"
@@ -359,7 +357,31 @@
       "[Zz]weite Stelle",
       "[Bb]eide Stellen"
     ],
-    "identifier_pattern": "\\b([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\\b"
+    "identifier_pattern": "\\b([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\\b",
+    "fremd_pruefung": {
+      "_comment": "Sorte D, die Umkehrung von Sorte A: ein installiertes Werkzeug ohne Gegenstueck im Repo. paketmanager_verzeichnisse ist eine Liste von ORTEN, keine Liste von NAMEN -- Paketmanager kommen selten hinzu, eigene Werkzeuge fast woechentlich. Was hier NICHT steht, wird per Shebang-Merkmal erkannt (siehe _ist_skript im Quelltext), nicht ueber eine gepflegte Registrierung einzelner Programme.",
+      "ziel": "{BASE}/.local/bin",
+      "paketmanager_verzeichnisse": [
+        "{BASE}/.local/share/uv/tools",
+        "{BASE}/.local/pipx/venvs",
+        "{BASE}/.local/share/pipx",
+        "{BASE}/.npm-global",
+        "{BASE}/.cargo/bin",
+        "{BASE}/go/bin",
+        "{BASE}/.rbenv",
+        "{BASE}/.nvm",
+        "{BASE}/.local/share/claude",
+        "{BASE}/Library/Python",
+        "{BASE}/.gem",
+        "/opt/homebrew",
+        "/usr/local",
+        "/Applications",
+        "/System",
+        "/usr/bin",
+        "/usr/sbin",
+        "/bin"
+      ]
+    }
   },
   "check8_test_socket": {
     "test_globs": [

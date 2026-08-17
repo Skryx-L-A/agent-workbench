@@ -61,7 +61,7 @@ export const LAUNCHD_LABELS: readonly string[] = [
   'agent-workbench.mcp-playwright',
   'agent-workbench.mcp-reaper',
   'agent-workbench.limit-survivor',
-  'agent-workbench.wb-request-review',
+  'agent-workbench.<ein eigenes Mailwerkzeug>',
 ];
 
 /** `launchctl list` prints `PID  LastExitStatus  Label`, one per line, '-' for "not running"/"n/a". */

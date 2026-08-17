@@ -220,7 +220,7 @@ Regeldatei; lies sie VOR der Handlung, nicht danach:
 - Memory 48 GB: ein großes lokales Modell zur Zeit (`ollama ps`, `ollama stop` vor Bild-/Video-Jobs).
   Pushes/PRs/Publishing: DEINE Entscheidung, nach Verifikation — Worker pushen nie.
 - Werkzeuge (`wb-code`, `claude-worker`, `pi-worker`, `context-guard`, `wb-revive`,
-  `wb-shot`, `wb-mail`, `wb-session-close`, `mcp-shared`) und der `limit-survivor`-Job:
+  `wb-shot`, `<ein eigenes Mailwerkzeug>`, `wb-session-close`, `mcp-shared`) und der `limit-survivor`-Job:
   voller Satz mit Befehlen in `regeln/werkzeuge.md`. Alles zu Peer-Rechner, Cross-Machine,
   `run-on`, der Konfliktregel und der Sichtbarkeit entfernter Worker:
   `regeln/maschinen.md`. Pane-Verfahren und Worker-Namen: `regeln/worker-panes.md`.
@@ -245,3 +245,9 @@ Leere. Bei einer inhaltlichen Änderung BEIDE Stellen pflegen.
   Fehlermeldungen und zitierte Ausgaben, auch mitten in einem knappen Chat-Absatz. Im Zweifel
   entscheidet, wo der Text gelesen wird: im Terminal knapp, in einer Datei oder von einem
   Menschen außerhalb über `texte-schreiben`.
+
+<!-- vom Bauvorgang angefuegt -->
+> Hinweis: Dieser Text nennt Werkzeuge, die in diesem Klon nicht liegen: `limit-survivor`.
+> Sie gehoeren zum Setup der Maschine, aus der dieser Baum stammt; hier fehlen
+> sie mit Absicht. Wer sie braucht, schreibt sich seine eigenen.
+> *Named here, not shipped here.*
