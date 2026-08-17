@@ -1,6 +1,7 @@
 """Central configuration and hard safety rules for the gardener."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 DEFAULT_VAULT = Path.home() / "Knowledge"
@@ -147,12 +148,40 @@ PHASES = ("embed", "linking", "consolidate", "maintain", "ingest", "sidecar",
 # is keyed on the FULL git identity, never on the mail alone: per 40-people the
 # account mail is shared between both people and no proof of identity. An author
 # missing here leaves the project's owner empty, which is the intended outcome.
-PERSON_BY_GIT_AUTHOR = {
-    "<your-github-user> <<your-github-user>@users.noreply.github.com>": "person-1",
-    "<your-github-user> <277002241+<your-github-user>@users.noreply.github.com>": "person-1",
-    "<your-github-user> <you@example.com>": "person-1",
-    "ein a colleague a colleague the user <ein a colleague.the user@a colleague.net>": "person-2",
-}
+#
+# The map lives in an EXTERNAL file this module may never ship and may not find
+# (absent is not an error - "nobody configured"). Same rule as
+# SECRET_EXTRA_PATTERNS_FILE, and for the same reason: a table of real names,
+# mail addresses and account ids is person data, and person data does not
+# belong in a file that gets published.
+#
+# The occasion was 17.08.2026. A public repo was built from this tree, and the
+# anonymiser that ran over it replaced the surnames but left a numeric GitHub
+# id standing - the `<id>+<account>@users.noreply.github.com` form, which
+# resolves over the public API back to the very account the line was meant to
+# hide. Patching the anonymiser would have fixed that one line. Moving the
+# table out fixes the whole class: there is no identity in the source any more,
+# neither as a name nor as a number. (The id itself is deliberately not written
+# down here - a report never repeats the value it is about.)
+#
+# JSON: {"authors": {"<Name> <mail>": "<40-people slug>", ...}}
+PERSON_BY_GIT_AUTHOR_FILE = (Path.home() / ".config" / "gardener"
+                             / "person-by-git-author.json")
+
+
+def _load_person_by_git_author() -> dict[str, str]:
+    try:
+        data = json.loads(PERSON_BY_GIT_AUTHOR_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}          # absent or unreadable - "nobody configured"
+    authors = data.get("authors") if isinstance(data, dict) else None
+    if not isinstance(authors, dict):
+        return {}
+    return {k: v for k, v in authors.items()
+            if isinstance(k, str) and isinstance(v, str)}
+
+
+PERSON_BY_GIT_AUTHOR = _load_person_by_git_author()
 # Share of a branch's notes one person must have created to count as its owner.
 OWNER_MIN_SHARE = 2 / 3
 
