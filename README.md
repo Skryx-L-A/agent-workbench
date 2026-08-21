@@ -18,7 +18,7 @@ local worker lane runs entirely on your own hardware.
 It carries the program and the tools it needs to run. The wider setup that grew around it — the
 agent rules, the skills, the hooks that block mistakes at the point where they would happen, the
 knowledge base and its harvesting pipeline — lives in a second public repository,
-**[agent-setup](https://github.com/Skryx-L-A/agent-setup)**. Both are built from the same private
+**[agent-setup](https://github.com/<your-github-user>/agent-setup)**. Both are built from the same private
 source tree by the same script, so they never drift apart.
 
 Take this one if you want the window and the worker machinery and intend to bring your own agent
@@ -62,7 +62,7 @@ None of this is missing by accident, and none of it is needed to start the progr
 - **The knowledge base skeleton** and the tooling that indexes and searches it.
 - **Worked examples** of a project rule file, a note, and an `AGENTS.md`.
 
-All of it is in **[agent-setup](https://github.com/Skryx-L-A/agent-setup)**. Without the hooks and
+All of it is in **[agent-setup](https://github.com/<your-github-user>/agent-setup)**. Without the hooks and
 the settings that wire them up,
 the workbench runs and the guards do not exist — worth knowing before you rely on them.
 
