@@ -87,8 +87,17 @@ _MODELL = re.compile(r"claude-[a-z0-9.-]{3,100}\Z")
 _VERSION = 1
 
 
+_UNSET = object()  # Sentinel: Parameter nicht gesetzt
+
+
 class TraegerFehler(Exception):
     """Abgelehnte Traegerkonfiguration oder -operation."""
+
+
+# Werkzeugliste des Pruefzuges (tickets2): keine Schreibwerkzeuge, Lesen und Bash fuer `git show|diff|log`
+# und den Dienstweg (`ticket.review_result`). Die git-Verwaltung des geprüften Worktrees ist dazu nur
+# lesend eingebunden, also auch ein `git commit` unmöglich.
+PRUEF_WERKZEUGE = ("Read", "Grep", "Glob", "Bash")
 
 
 def _private_dir(path: Path, label: str) -> Path:
@@ -541,9 +550,13 @@ class WeltTraeger:
         return folder / "agents_rpc_client.py"
 
     def _zugumgebung(self, agent_id: str, workspace: Path, run_dir: Path, rpc: Path,
-                     skills: bool) -> list[tuple[str, str]]:
-        """Umgebung nach docs/AGENTS-SPERREN.md plus Zugordner, RPC-Client und Hausliste."""
-        env = ask.profil_umgebung(self.root, agent_id, worktree=workspace, tmp=run_dir)
+                     skills: bool, worktree: Any = _UNSET) -> list[tuple[str, str]]:
+        """Umgebung nach docs/AGENTS-SPERREN.md plus Zugordner, RPC-Client und Hausliste.
+
+        ``worktree`` setzt den Worktree-Pfad fuer die Profil-Sperre (`WB_AGENT_WORKTREE`) ab; ``None``
+        lautet "nicht gesetzt" (Pruefzug: der geprüfte Worktree ist kein Schreib- und Lesewurzel)."""
+        env = ask.profil_umgebung(self.root, agent_id, worktree=workspace if worktree is _UNSET else worktree,
+                                  tmp=run_dir)
         if skills:
             env.update(ask.skills_umgebung(self.root, agent_id))
         env.update({"WB_AGENT_ZUG": str(run_dir), "WB_RPC_CLIENT": str(rpc),
@@ -672,6 +685,18 @@ class WeltTraeger:
                 delivery = Delivery(delivery_id, world_id, agent_id, "ticket", due,
                                     _inhalt("ticket", ticket_id=data["ticket_id"], postfach_id=postfach_id))
                 items[delivery_id] = Posten(delivery, "ticket", ticket_id=data["ticket_id"], postfach_id=postfach_id)
+            elif data.get("kind") == "ticket-review":
+                # Ein Pruefungsposten (tickets2): derselbe Ticketordner, aber ein Zug ohne Schreibwerkzeuge.
+                delivery = Delivery(delivery_id, world_id, agent_id, "ticket", due,
+                                    _inhalt("pruefung", ticket_id=data["ticket_id"], postfach_id=postfach_id))
+                items[delivery_id] = Posten(delivery, "pruefung", ticket_id=data["ticket_id"],
+                                            postfach_id=postfach_id)
+            elif data.get("kind") == "zyklus-schluss":
+                # Zyklusschluss (tickets3): Zahlen und der Auftrag zum Retro-Eintrag, ohne Antwortpflicht.
+                delivery = Delivery(delivery_id, world_id, agent_id, "fresh_message", due,
+                                    _inhalt("zyklus-schluss", nachricht_id=postfach_id))
+                items[delivery_id] = Posten(delivery, "zyklus-schluss", nachricht_id=postfach_id,
+                                            postfach_id=postfach_id)
             elif data.get("kind") in NACHRICHT_ARTEN and data.get("sender") != agent_id:
                 # Antworten und Ticketergebnisse werden gelesen, verlangen aber keine Gegenantwort;
                 # sonst weckten sich zwei Agenten bis zur Kettengrenze gegenseitig.
@@ -706,11 +731,25 @@ class WeltTraeger:
             except ValueError:
                 continue
             art = content.get("art")
-            if art in {"fortsetzen", "aufwachen", "nachricht", "rueckmeldung", "antwort", "antrag", "gedaechtnis"}:
+            if art in {"fortsetzen", "aufwachen", "nachricht", "rueckmeldung", "antwort", "antrag",
+                       "gedaechtnis", "pruefung", "zyklus-schluss"}:
                 items[delivery.delivery_id] = Posten(delivery, art, ticket_id=content.get("ticket_id"),
                                                      nachricht_id=content.get("nachricht_id"),
                                                      frage_id=content.get("frage_id"), grund=content.get("grund"))
         ordered = sorted(items.values(), key=lambda item: (item.delivery.due_at, item.delivery.delivery_id))
+        ticket_positions = [index for index, item in enumerate(ordered) if item.art == "ticket"]
+        if ticket_positions:
+            try:
+                order = {item["id"]: index for index, item in enumerate(ad.ready_tickets(self.root))}
+            except (ad.AgentsError, OSError):
+                order = {}
+            if order:
+                tickets = [ordered[index] for index in ticket_positions]
+                total = max(len(order), len(ticket_positions))
+                tickets.sort(key=lambda item: (
+                    order.get(item.ticket_id, total), str(item.ticket_id or "")))
+                for position, item in zip(ticket_positions, tickets):
+                    ordered[position] = item
         vorn = self._gedaechtnis_posten(world_id, agent_id)
         if vorn is None:
             return [item for item in ordered if item.art != "gedaechtnis"]
@@ -747,6 +786,10 @@ class WeltTraeger:
 
     def _marker(self, art: str, ticket_id: Optional[str] = None, nachricht_id: Optional[str] = None,
                 frage_id: Optional[str] = None, agent_id: Optional[str] = None) -> str:
+        if art == "pruefung" and ticket_id:
+            # Eine Pruefung gilt je Revision: das Marker hängt an result_revision, nicht am Zugfortschritt.
+            ticket = ad.read_ticket(self.root, ticket_id)
+            return "pruefung:%s:%d" % (ticket_id, int(ticket.get("result_revision") or 0))
         if ticket_id:
             ticket = ad.read_ticket(self.root, ticket_id)
             return "%s:%d" % (ticket_id, int(ticket.get("result_revision") or 0))
@@ -760,10 +803,28 @@ class WeltTraeger:
 
     # Ein Durchgang ---------------------------------------------------------------
     def einmal(self) -> dict[str, Any]:
-        summary: dict[str, Any] = {"gestartet": [], "beendet": [], "aktiv": [], "wartend": [], "ungeklaert": []}
+        summary: dict[str, Any] = {"gestartet": [], "beendet": [], "aktiv": [], "wartend": [],
+                                   "ungeklaert": [], "uebergangen": [], "geweckt": [], "grenzen": [],
+                                   "zyklus": None}
         world = ad.read_world(self.root)
         world_id = world["id"]
+        try:
+            summary["geweckt"] = ad.wake_parked_tickets(self.root, self._now())
+        except (ad.AgentsError, OSError):
+            summary["geweckt"] = []
         self._laeufe_pruefen(world_id, summary)
+        try:
+            # Zyklusschluss (Satz 46) vor der Grenzpruefung: der neue Zyklus traegt frische Grenzen.
+            summary["zyklus"] = ad.cycle_schluss(self.root, self._now())
+        except (ad.AgentsError, OSError):
+            summary["zyklus"] = None
+        try:
+            # Fristpruefung und Rundenzaehler (Saetze 6 und 31): gehobene Grenzen heben auf "braucht dich".
+            laufend = {entry["ticket_id"] for entry in self._zuege_lesen()["runs"].values()
+                       if entry.get("outcome") is None and entry.get("ticket_id")}
+            summary["grenzen"] = ad.enforce_ticket_limits(self.root, self._now(), laufend)
+        except (ad.AgentsError, OSError):
+            summary["grenzen"] = []
         self._zugaenge_aufraeumen()
         busy = {entry["agent"] for entry in self._zuege_lesen()["runs"].values() if entry.get("outcome") is None}
         runs = self.runs()
@@ -775,6 +836,20 @@ class WeltTraeger:
                 if self._zustellung(world, agent, posten, runs, summary, freigabe_cache):
                     break
         return summary
+
+    def _ticket_verzoegert(self, ticket_id: str) -> Optional[str]:
+        """Grund, warum ein Ticketposten uebergangen wird; die Pausenfaelle bleiben dem Weckervertrag ueber."""
+        try:
+            order = ad.ready_tickets(self.root)
+        except (ad.AgentsError, OSError):
+            return None
+        entry = next((item for item in order if item.get("id") == ticket_id), None)
+        if entry is None or entry.get("ready"):
+            return None
+        reason = entry.get("reason") or "?"
+        if reason in {"welt pausiert", "agent pausiert"}:
+            return None
+        return reason
 
     def _zustellung(self, world: dict[str, Any], agent: dict[str, Any], posten: Posten, runs: RunController,
                     summary: dict[str, Any], freigabe_cache: dict[str, Startfreigabe]) -> bool:
@@ -822,6 +897,11 @@ class WeltTraeger:
         if active is not None and active.observed_state in {"unclear", "unknown"}:
             summary["wartend"].append(dict(info, reason="ungeklaerter_lauf", run=active.run_id))
             return True
+        if posten.art == "ticket" and posten.ticket_id:
+            verzoegert = self._ticket_verzoegert(posten.ticket_id)
+            if verzoegert:
+                summary["uebergangen"].append(dict(info, ticket=posten.ticket_id, grund=verzoegert))
+                return False
         model = None
         wahl = None
         if posten.art != "aufwachen":
@@ -1015,7 +1095,10 @@ class WeltTraeger:
 
     def _quittierbar(self, posten: Posten, outcome: Optional[str]) -> bool:
         """Postfachnachrichten bleiben offen, solange ihre Bearbeitung noch aussteht."""
-        if posten.art in {"nachricht", "rueckmeldung", "antrag"}:
+        if posten.art in {"nachricht", "rueckmeldung", "antrag", "zyklus-schluss"}:
+            return outcome in {"erfolg", "bereits_erledigt"}
+        if posten.art == "pruefung":
+            # Ein unterbrochener oder fehlgeschlagener Pruefzug bleibt zustellbar; erst die Notiz quittiert.
             return outcome in {"erfolg", "bereits_erledigt"}
         return posten.art == "ticket"
 
@@ -1030,7 +1113,9 @@ class WeltTraeger:
     def _ohne_lauf_quittieren(self, agent_id: str, posten: Posten, claim_id: str, marker: str, outcome: str) -> None:
         self.wecker.resolve(posten.delivery.delivery_id, claim_id, run_id="kein-lauf", progress_marker=marker,
                             outcome=outcome)
-        if self._quittierbar(posten, outcome) or posten.art == "ticket":
+        if self._quittierbar(posten, outcome) or posten.art in {"ticket", "pruefung"}:
+            # Ticket- und Pruefposten, die ohne Zug veraltet sind, werden quittiert; die Datenlage
+            # entscheidet neu (Abnahme, Ruckgabe, fortgesetzte Pruefung mit neuer Zustellung).
             self._quittieren(agent_id, posten.postfach_id)
         if posten.art in {"nachricht", "rueckmeldung", "antrag"} and outcome == "bereits_erledigt" and posten.nachricht_id:
             self._quittieren(agent_id, posten.nachricht_id)
@@ -1079,6 +1164,17 @@ class WeltTraeger:
                 "Goal: %s" % ticket["goal"],
                 "Done when: %s" % ticket["done_criterion"],
             ]
+            punkte = ticket.get("done_items") or []
+            if punkte:
+                lines.append("Done list (the result waits until every point is ticked, exactly in this order):")
+                lines += ["  [%s] %s" % ("x" if item.get("done") else " ", item.get("text")) for item in punkte]
+            dod = [item for item in (world.get("definition_of_done") or []) if isinstance(item, str) and item.strip()]
+            if dod:
+                lines.append("Definition of Done dieser Welt (the approver checks it at the end):")
+                lines += ["- %s" % item for item in dod]
+            hinweise = self._ticket_hinweise(ticket, posten, resume)
+            if hinweise:
+                lines += hinweise
             if "ergebnis-schreiben" in skill:
                 # Ein Skill ersetzt die Erklaerung im Prompt (Plan Abschnitt 14).
                 lines += [
@@ -1095,6 +1191,23 @@ class WeltTraeger:
                     "<<<", "printf '%%s' '%s' | /usr/bin/python3 %s ticket.result" % (payload, rpc), ">>>",
                     "Then reply with a one-line summary.",
                 ]
+            if "zwischenstand-schreiben" in skill:
+                lines += [
+                    "Every turn on this ticket ends with a history entry. If the result is not due yet (work "
+                    "continues, or you are waiting on something), leave a progress note with your skill "
+                    "zwischenstand-schreiben (instructions in %s/SKILL.md):" % skill["zwischenstand-schreiben"]["pfad"],
+                    "<<<", "%s/scripts/zwischenstand-schreiben.py --ticket %s --text \"PROGRESS\"" % (
+                        skill["zwischenstand-schreiben"]["pfad"], ticket["id"]), ">>>",
+                ]
+            else:
+                note_payload = json.dumps({"ticket_id": ticket["id"], "text": "PROGRESS"})
+                lines += [
+                    "Every turn on this ticket ends with a history entry. If the result is not due yet (work "
+                    "continues, or you are waiting on something), leave a progress note before ending the turn by "
+                    "running the command between the markers with the Bash tool, replacing PROGRESS with a short "
+                    "plain-text note without quotes or backslashes:",
+                    "<<<", "printf '%%s' '%s' | /usr/bin/python3 %s ticket.note" % (note_payload, rpc), ">>>",
+                ]
         elif nachricht is not None and posten.art == "antrag" and posten.frage_id:
             antrag = ad.read_question(self.root, posten.frage_id)
             payload = json.dumps({"request_id": antrag["id"], "accept": True, "note": "NOTE"})
@@ -1106,6 +1219,13 @@ class WeltTraeger:
                 "without quotes or backslashes:",
                 "<<<", "printf '%%s' '%s' | /usr/bin/python3 %s agent.decide" % (payload, rpc), ">>>",
                 "The team leader is informed automatically. Then reply with a one-line summary.",
+            ]
+        elif nachricht is not None and posten.art == "zyklus-schluss":
+            lines += [
+                "The cycle of this world has closed. The carrier reports:",
+                "---", str(nachricht.get("text")), "---",
+                "Write your retrospective as the learning step at the end of this turn: what stuck, what changes "
+                "(one short sentence, kind lehre). No answer in the channel is required. Reply with a one-line summary.",
             ]
         elif nachricht is not None and posten.art == "rueckmeldung":
             lines += [
@@ -1170,6 +1290,180 @@ class WeltTraeger:
             lines.append("End the turn with your learning step as described in your instructions: write "
                          "%s/%s (art nichts if you learned nothing)." % (run_dir, ask.LEARN_FILE))
         return "\n".join(lines)
+
+    def _pruef_prompt(self, world: dict[str, Any], agent: dict[str, Any], ticket: Optional[dict[str, Any]],
+                      run_dir: Path, rpc: Path, baum: Optional[aw.Arbeitsbaum],
+                      baum_fehler: Optional[str], skills: list[dict[str, Any]]) -> str:
+        """Prompt des Pruefzuges (Plan Saetze 25, 26): Ergebnis, Commit, Fertig-Liste, DoD, Diff lesen,
+        nichts schreiben, Pruefnotiz genau einmal per RPC `ticket.review_result`."""
+        skill = {item["name"]: item for item in skills or []}
+        lines = [
+            'You are the agent "%s" (%s) in the Werkbench world "%s" acting as the reviewer of one ticket.' % (
+                agent["id"], agent["stage"], world["name"]),
+            "Work only inside the review workspace; write nothing anywhere.",
+        ]
+        review = (ticket or {}).get("review") or {}
+        if ticket is not None:
+            lines += [
+                "Ticket %s: %s" % (ticket["id"], ticket["title"]),
+                "Goal: %s" % ticket["goal"],
+                "Done when: %s" % ticket["done_criterion"],
+            ]
+            punkte = ticket.get("done_items") or []
+            if punkte:
+                lines.append("Done list:")
+                lines += ["  [%s] %s" % ("x" if item.get("done") else " ", item.get("text")) for item in punkte]
+            dod = [item for item in (world.get("definition_of_done") or []) if isinstance(item, str) and item.strip()]
+            if dod:
+                lines.append("Definition of Done dieser Welt (the approver checks it):")
+                lines += ["- %s" % item for item in dod]
+            result = ticket.get("result") or {}
+            lines += ["Result under review (revision %s):" % review.get("revision"),
+                      "---", str(result.get("text") or "(kein Ergebnistext)"), "---"]
+            commit = result.get("commit")
+            if baum is not None:
+                lines.append("The change lives in the worktree of the assignee at `%s` (branch %s); this turn's "
+                             "git is pointed at that revision (GIT_DIR), so plain `git show %s` reads the diff "
+                             "from your workspace. Only git show, git diff and git log are allowed."
+                             % (baum.pfad, baum.zweig, commit or "<commit aus dem Ergebnis>"))
+                if commit:
+                    lines.append("Reviewed commit: %s" % commit)
+            elif baum_fehler:
+                lines.append("The worktree of the assignee is not available in this turn (%s); review the result "
+                             "text against the goal." % baum_fehler)
+            elif commit:
+                lines.append("Reviewed commit: %s (not bound as a worktree in this turn); review the result text "
+                             "and the described change against the goal." % commit)
+            else:
+                lines.append("No commit was named; review the result text against the goal and the done list.")
+        payload = json.dumps({"ticket_id": ticket["id"], "text": "NOTE", "verdict": "VERDICT"})
+        lines += [
+            "Your review must not change anything: your tool list has no write tools, and the git metadata of the "
+            "reviewed worktree is read-only. Do not commit, do not rebase, do not edit files.",
+            "Check the change against the goal, the done list and the Definition of Done of the world.",
+            "Submit your review note exactly once by running the command between the markers with the Bash tool, "
+            "replacing NOTE with your short plain-text review without quotes or backslashes and VERDICT with "
+            "`bestanden` (passes) or `maengel` (defects found):",
+            "<<<", "printf '%%s' '%s' | /usr/bin/python3 %s ticket.review_result" % (payload, rpc), ">>>",
+            "Then reply with a one-line summary.",
+        ]
+        if any(item.get("name") == LERNSKRIPT and item.get("datei") for item in skills):
+            lernen = next(item for item in skills if item.get("name") == LERNSKRIPT and item.get("datei"))
+            lines += ["End the turn with your learning step: run your stored script %s exactly once, replacing "
+                      "LESSON and REASON:" % LERNSKRIPT,
+                      "<<<", "python3 %s --art lehre --text \"LESSON\" --grund \"REASON\"" % lernen["datei"], ">>>"]
+        else:
+            lines.append("End the turn with your learning step as described in your instructions: write "
+                         "%s/%s (art nichts if you learned nothing)." % (run_dir, ask.LEARN_FILE))
+        return "\n".join(lines)
+
+    def _ticket_hinweise(self, ticket: dict[str, Any], posten: Posten, resume: bool) -> list[str]:
+        """Was seit dem letzten Zug am Ticket geschah (Plan AGENTS-TICKETS-PLAN Satz 14), hoechstens 6000 Zeichen."""
+        blocks: list[str] = []
+        verlauf = self._ticket_verlauf(ticket["id"])
+        rueckgabe = None
+        for entry in reversed(verlauf):
+            if entry.get("event") == "abgenommen":
+                break
+            if entry.get("event") == "zurueckgegeben":
+                actor = entry.get("actor") or {}
+                note = entry.get("note")
+                if note:
+                    rueckgabe = "Returned by %s: %s" % (actor.get("id") or "?", note)
+                break
+        if rueckgabe:
+            blocks.append(rueckgabe)
+        review = ticket.get("review") or {}
+        if review.get("note"):
+            blocks.append("Review note by %s (%s):\n%s" % (review.get("reviewer") or "?",
+                                                           review.get("verdict") or "?", review["note"]))
+        if (resume or posten.art == "fortsetzen") and isinstance(ticket.get("result"), dict) \
+                and str(ticket["result"].get("text") or "").strip():
+            blocks.append("Stored result from the previous revision:\n%s" % ticket["result"]["text"])
+        zwischen = [entry for entry in verlauf if entry.get("event") == "zwischenstand"]
+        letzter = self._letzter_zwischenstand_aus(verlauf)
+        if letzter:
+            block = "Last progress note:\n%s" % letzter
+            if len(zwischen) > 1:
+                block += "\n(%d ältere Zwischenstände im Verlauf)" % (len(zwischen) - 1)
+            blocks.append(block)
+        for zeile in self._limits_zeilen(ticket.get("limits") or {}):
+            blocks.append(zeile)
+        abhaengigkeiten = []
+        for dep in ticket.get("dependencies") or []:
+            try:
+                stand = ad.read_ticket(self.root, dep).get("state")
+            except (ad.AgentsError, OSError):
+                stand = "unbekannt"
+            abhaengigkeiten.append("Depends on %s (%s)" % (dep, stand))
+        if abhaengigkeiten:
+            blocks.append("\n".join(abhaengigkeiten))
+        meldungen = self._ticket_nachrichten(ticket["id"], verlauf)
+        zeilen = ["From %s at %s: %s" % (m.get("sender") or "?", m.get("time") or "?",
+                                         str(m.get("text") or "").replace("\n", " ")) for m in meldungen]
+        ausgelassen = 0
+        hinweis = None
+        while zeilen:
+            parts = blocks + ([hinweis] if hinweis else []) + zeilen
+            if len("\n".join(parts)) <= 6000:
+                break
+            zeilen.pop(0)
+            ausgelassen += 1
+            hinweis = "(%d ältere Nachrichten ausgelassen)" % ausgelassen
+        if hinweis:
+            blocks.append(hinweis)
+        blocks.extend(zeilen)
+        text = "\n".join(blocks)
+        if len(text) > 6000:
+            text = text[:6000]
+        return text.split("\n")
+
+    def _ticket_verlauf(self, ticket_id: str) -> list[dict[str, Any]]:
+        try:
+            return ad._read_jsonl(ad._ticket_path(self.root, ticket_id) / "verlauf.jsonl", "Ticketverlauf")
+        except (ad.AgentsError, OSError):
+            return []
+
+    def _letzter_zwischenstand_aus(self, verlauf: list[dict[str, Any]]) -> Optional[str]:
+        for entry in reversed(verlauf):
+            if entry.get("event") != "zwischenstand":
+                continue
+            text = entry.get("text")
+            if isinstance(text, str) and text.strip():
+                return text.strip()
+            rest = {key: value for key, value in entry.items()
+                    if key not in {"id", "time", "event", "actor"}}
+            return json.dumps(rest, ensure_ascii=False, sort_keys=True) if rest else None
+        return None
+
+    def _ticket_nachrichten(self, ticket_id: str,
+                            verlauf: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+        verlauf = self._ticket_verlauf(ticket_id) if verlauf is None else verlauf
+        letzter_zug = next((entry.get("time") for entry in reversed(verlauf)
+                            if entry.get("event") == "zug"), None)
+        try:
+            meldungen = [m for m in ad.read_messages(self.root) if m.get("ticket") == ticket_id]
+        except (ad.AgentsError, OSError):
+            return []
+        if letzter_zug:
+            meldungen = [m for m in meldungen if str(m.get("time") or "") >= letzter_zug]
+        return meldungen
+
+    def _limits_zeilen(self, limits: dict[str, Any]) -> list[str]:
+        zeilen: list[str] = []
+        for key in sorted(limits, key=str):
+            value = limits[key]
+            if key == "rueckweg":
+                continue
+            if key == "frist":
+                zeilen.append("Limit Frist: %s" % value)
+            elif key == "runden":
+                zeilen.append("Limit Rundenzahl: höchstens %s" % value)
+            elif key == "daten" and value in (True, "maschine"):
+                zeilen.append("Daten bleiben auf der Maschine")
+            else:
+                zeilen.append("Limit %s: %s" % (key, value))
+        return zeilen
 
     def _anweisung(self, world: dict[str, Any], agent: dict[str, Any], run_dir: Path,
                    verzeichnis: Optional[dict[str, Any]], skills_fehler: Optional[str],
@@ -1417,6 +1711,7 @@ class WeltTraeger:
                  model: str, marker: str, wahl: Optional[dict[str, Any]] = None) -> Optional[str]:
         agent_id = agent["id"]
         ticket = nachricht = frage = None
+        pruefung = posten.art == "pruefung"
         if posten.art in {"ticket", "fortsetzen"} and posten.ticket_id:
             ticket = ad.read_ticket(self.root, posten.ticket_id)
             open_states = {"offen", "zurückgegeben"} if posten.art == "ticket" else set()
@@ -1430,6 +1725,13 @@ class WeltTraeger:
                 except ad.AgentsError:
                     self._ohne_lauf_quittieren(agent_id, posten, claim_id, marker, "uebernahme_abgewiesen")
                     return None
+        elif pruefung and posten.ticket_id:
+            # Ein Pruefzug beansprucht nichts: das Ticket bleibt in der Hand des Bearbeiters.
+            ticket = ad.read_ticket(self.root, posten.ticket_id)
+            review = ticket.get("review") or {}
+            if ticket.get("state") != "in Prüfung" or review.get("reviewer") != agent_id:
+                self._ohne_lauf_quittieren(agent_id, posten, claim_id, marker, "pruefung_nicht_aktiv")
+                return None
         elif posten.nachricht_id:
             path = ad._agent_dir(self.root, agent_id) / "postfach" / (posten.nachricht_id + ".json")
             nachricht = ad._read_json(path) if path.is_file() else None
@@ -1454,11 +1756,29 @@ class WeltTraeger:
         workspace, agent_state = self.arbeitsorte(agent_id)
         # Mit git-Projekt ist der eigene Worktree (im privaten Arbeitsordner) das Arbeitsverzeichnis des Zuges.
         baum, baum_fehler = self.arbeitsbaum(agent_id, workspace)
+        # Der Pruefzug (tickets2) liest die Revision des Bearbeiters ueber GIT_DIR: sein Arbeitsverzeichnis
+        # bleibt sein eigener privater Ordner, die git-Verwaltung des geprüften Worktrees ist nur lesend
+        # eingebunden (kein commit, kein rebase), und die Profil-Sperre kennt den geprüften Worktree nicht
+        # als Schreib- oder Lesewurzel.
+        baum_pruefung, pruef_gitdir = None, None
+        if pruefung:
+            baum, baum_fehler = None, None
+            bearbeiter = ticket.get("assignee") if ticket is not None else None
+            if isinstance(bearbeiter, str) and ad.ID_RE.fullmatch(bearbeiter or ""):
+                arbeit_bearbeiter, _zustand_bearbeiter = self.arbeitsorte(bearbeiter)
+                baum_pruefung, baum_fehler = self.arbeitsbaum(bearbeiter, arbeit_bearbeiter)
+                if baum_pruefung is not None:
+                    pruef_gitdir = aw.verwaltung(baum_pruefung.gitdir, baum_pruefung.pfad)
         cwd = baum.pfad if baum is not None else workspace
         # Der Zugordner traegt die Laufkennung: der Lernschritt ist je Zug eindeutig.
         run_dir = agent_state / run_id
         config_dir = run_dir / "claude-config"
-        session_key = posten.ticket_id or (GEDAECHTNIS_SITZUNG if posten.art == "gedaechtnis" else NACHRICHTEN_SITZUNG)
+        if pruefung and posten.ticket_id:
+            # Frischer Pruefkontext: je Revision eine eigene Sitzung, Fortsetzung nur nach Absturz derselben Revision.
+            revision = int((ticket or {}).get("result_revision") or 0)
+            session_key = "pruefung:%s:%d" % (posten.ticket_id, revision)
+        else:
+            session_key = posten.ticket_id or (GEDAECHTNIS_SITZUNG if posten.art == "gedaechtnis" else NACHRICHTEN_SITZUNG)
         session = (self._zuege_lesen()["sessions"].get(agent_id) or {}).get(session_key) or {}
         harness = self.harness(agent)
         # Claude setzt aus einer gesicherten Uebergabe fort, Pi ueber dieselbe Sitzungskennung im Sitzungsordner.
@@ -1478,8 +1798,11 @@ class WeltTraeger:
                                         "modell": (agent.get("model_profile") or {}).get("model"), "harness": harness,
                                         "fallback": False, "grund": None},
                  "config_dir": str(config_dir), "run_dir": str(run_dir), "workspace": str(cwd),
-                 "worktree": str(baum.pfad) if baum is not None else None, "worktree_fehler": baum_fehler,
+                 "worktree": str(baum_pruefung.pfad) if baum_pruefung is not None else (
+                     str(baum.pfad) if baum is not None else None),
+                 "worktree_fehler": baum_fehler,
                  "marker_before": marker,
+                 "verlauf_before": len(self._ticket_verlauf(posten.ticket_id)) if posten.ticket_id else 0,
                  "revision_before": int((ticket or {}).get("result_revision") or 0), "started_at": self._now(),
                  "outcome": None}
         with self._zuege() as state:
@@ -1504,8 +1827,9 @@ class WeltTraeger:
             turn_dir = _private_dir(self.orte.turns / run_id, "Zugordner des Laufs")
             rpc = self._rpc_bereitstellen(run_dir)
             zugang, zugang_fehler = None, None
-            if harness == "claude" and self.konfig.sperren:
+            if harness == "claude" and self.konfig.sperren and not pruefung:
                 # Zugaenge nur mit Profil-Sperre: ohne sie gaebe es keine Grenze zwischen Agent und Schluessel.
+                # Ein Pruefzug bekommt keine Zugaenge und kein Netz.
                 try:
                     zugang = az.bereitstellen(self.root, turn_dir, werkzeuge=self.orte.runtime)
                 except (ad.AgentsError, OSError, ValueError, subprocess.SubprocessError) as exc:
@@ -1516,9 +1840,12 @@ class WeltTraeger:
             anweisung = turn_dir / "ANWEISUNG.md"
             atomar_schreiben.schreiben(anweisung, self._anweisung(world, agent, run_dir, verzeichnis, skills_fehler,
                                                                   zugang, zugang_fehler, projekt=projekt,
-                                                                  projekt_arbeit=projekt_arbeit, baum=baum,
-                                                                  baum_fehler=baum_fehler, arbeitsordner=workspace,
-                                                                  brain_im_zug=harness == "claude" and self.konfig.sperren),
+                                                                  projekt_arbeit=None if pruefung else projekt_arbeit,
+                                                                  baum=None if pruefung else baum,
+                                                                  baum_fehler=None if pruefung else baum_fehler,
+                                                                  arbeitsordner=workspace,
+                                                                  brain_im_zug=harness == "claude" and self.konfig.sperren
+                                                                  and not pruefung),
                                        modus=0o600, dauerhaft=True)
             agent_dir = ad._agent_dir(self.root, agent_id)
             libraries = [Path(str((verzeichnis or {}).get(key) or "")) for key in ("bibliothek", "skript_bibliothek")]
@@ -1530,16 +1857,19 @@ class WeltTraeger:
                 (zugang.weltdatei,) if zugang is not None else ()) + ((projekt,) if projekt is not None else ()) + (
                 self._freigaben_lesepfad())
             # Mit Worktree ist er Arbeitsverzeichnis und Schreibpfad des Laufs; der private Arbeitsordner darum
-            # bleibt beschreibbar. Das Projekt-Repo bindet der Launcher ueber git_einbindung.
-            write_paths = ((projekt_arbeit,) if projekt_arbeit is not None else ()) + (
-                (workspace,) if baum is not None else ())
+            # bleibt beschreibbar. Das Projekt-Repo bindet der Launcher ueber git_einbindung. Ein Pruefzug
+            # schreibt nirgends: keine Schreibpfade, die git-Verwaltung des geprüften Worktrees nur lesend.
+            write_paths = () if pruefung else (
+                ((projekt_arbeit,) if projekt_arbeit is not None else ()) + ((workspace,) if baum is not None else ()))
             # Brain (16.09.2026): Vault nur lesbar, Geheimordner verdeckt; nur mit Profil-Sperre (sie sperrt beide
             # Geheimordner auch fuer Werkzeuge) und nur fuer den Claude-Harness mit Huelle und Einstellungen.
-            brain = ab.einbindung(self._brain_vault()) if harness == "claude" and self.konfig.sperren else None
+            brain = None if pruefung else (
+                ab.einbindung(self._brain_vault()) if harness == "claude" and self.konfig.sperren else None)
             if brain is not None:
                 read_paths += brain["lese_pfade"]
             env = self._zugumgebung(agent_id, workspace, run_dir, rpc, verzeichnis is not None)
-            prompt = self._prompt(world, agent, posten, resume, ticket, nachricht, frage, run_dir, skills)
+            prompt = self._pruef_prompt(world, agent, ticket, run_dir, rpc, baum_pruefung, baum_fehler, skills) \
+                if pruefung else self._prompt(world, agent, posten, resume, ticket, nachricht, frage, run_dir, skills)
             if harness == "pi":
                 effort, stufe = None, {"harness": "pi", "angefragt": (agent.get("model_profile") or {}).get("effort")}
                 spec = self.konfig.pi["modelle"][str((agent.get("model_profile") or {}).get("model"))] or {}
@@ -1561,10 +1891,18 @@ class WeltTraeger:
                 settings = None
                 if self.konfig.sperren:
                     settings = turn_dir / "settings.json"
-                    git = baum.git_umgebung(agent_id) if baum is not None else None
+                    if pruefung:
+                        # Kein Git-Umfeld des Pruefers; GIT_DIR liest die geprüfte Revision, deren
+                        # git-Verwaltung ist nur lesend eingebunden (unten).
+                        git = {"GIT_DIR": str(pruef_gitdir)} if pruef_gitdir is not None else None
+                    else:
+                        git = baum.git_umgebung(agent_id) if baum is not None else None
                     atomar_schreiben.schreiben(settings, json.dumps(self._sperr_einstellungen(zugang, git, brain),
                                                                     indent=2) + "\n", modus=0o600, dauerhaft=True)
                 tools = tuple(t for t in agent.get("tools") or [] if t in ALLOWED_TOOLS) or self.konfig.tools
+                if pruefung:
+                    # Der Pruefzug bekommt die Schreibwerkzeuge nie angeboten (harte Werkzeugliste des Harness).
+                    tools = tuple(t for t in PRUEF_WERKZEUGE if t in ALLOWED_TOOLS)
                 zug = ClaudeZug(self.konfig.claude_binary, model, prompt, session_id, str(config_dir), resume, tools,
                                 extra_env=tuple(env), effort=effort, append_system_prompt_file=str(anweisung),
                                 settings_file=str(settings) if settings else None)
@@ -1574,10 +1912,16 @@ class WeltTraeger:
                                                                                              and harness == "claude"),
                                               "zugaenge": list(zugang.namen) if zugang is not None else [],
                                               "zugaenge_fehler": zugang_fehler})
+            einbindung = None
+            if pruefung and baum_pruefung is not None:
+                # Nur lesend: ohne Schreibanteil kann git im geprüften Repo nichts schreiben.
+                einbindung = dict(baum_pruefung.einbindung(), schreiben=[])
+            elif baum is not None:
+                einbindung = baum.einbindung()
             lauf = self._zug_fabrik(self, agent_id=agent_id, run_id=run_id, zug=zug, workspace=cwd,
                                     agent_state=agent_state, extra_read_paths=read_paths, netz=zugang is not None,
                                     extra_write_paths=write_paths,
-                                    **({"git_einbindung": baum.einbindung()} if baum is not None else {}),
+                                    **({"git_einbindung": einbindung} if einbindung is not None else {}),
                                     **({"verdeckt": brain["verdeckt"], "brain_vault": brain["vault"]}
                                        if brain is not None else {}))
             self.laeufe[run_id] = lauf
@@ -1668,7 +2012,13 @@ class WeltTraeger:
             belegt = self._antwort_belegt(agent_id, entry["nachricht_id"])
         elif art == "antrag":
             belegt = self._antrag_belegt(entry.get("frage_id"))
-        elif art in {"antwort", "rueckmeldung"}:
+        elif art == "pruefung":
+            # Beleg des Pruefzuges ist die abgegebenen Pruefnotiz desselben Pruefers zu derselben Revision.
+            review = (ticket or {}).get("review") or {}
+            belegt = ((ticket or {}).get("state") == "zur Abnahme"
+                      and review.get("reviewer") == agent_id and review.get("revision") == int(entry["revision_before"])
+                      and bool(str(review.get("note") or "").strip()))
+        elif art in {"antwort", "rueckmeldung", "zyklus-schluss"}:
             belegt = True
         elif art == "gedaechtnis":
             # Beleg des Kuerzungszuges ist ein angewendeter archiv-Lernschritt; der Lernschritt ist je Zug idempotent.
@@ -1785,6 +2135,9 @@ class WeltTraeger:
         content = None
         if art in {"ticket", "fortsetzen"} and entry.get("ticket_id"):
             content = lambda grund: _inhalt("fortsetzen", ticket_id=entry["ticket_id"], grund=grund)  # noqa: E731
+        elif art == "pruefung" and entry.get("ticket_id"):
+            # Eine unterbrochene oder ohne Notiz beendete Pruefung wird dem Pruefer erneut zugestellt.
+            content = lambda grund: _inhalt("pruefung", ticket_id=entry["ticket_id"], grund=grund)  # noqa: E731
         elif art in {"nachricht", "rueckmeldung"}:
             content = lambda grund: _inhalt(art, nachricht_id=entry["nachricht_id"], grund=grund)  # noqa: E731
         elif art == "antrag":
@@ -1794,6 +2147,8 @@ class WeltTraeger:
             content = lambda grund: _inhalt("antwort", frage_id=entry["frage_id"], grund=grund)  # noqa: E731
         elif art == "gedaechtnis":
             content = lambda grund: _inhalt("gedaechtnis", grund=grund)  # noqa: E731
+        elif art == "zyklus-schluss":
+            content = lambda grund: _inhalt("zyklus-schluss", nachricht_id=entry["nachricht_id"], grund=grund)  # noqa: E731
         if outcome in SCHLAF_URTEILE and content is not None:
             freigabe = self._freigabe_nach_abweisung(outcome, befund, limit)
             bis = freigabe.naechster_start or (self._now() + RECHECK_S)
@@ -1831,10 +2186,23 @@ class WeltTraeger:
                         postfach_id=entry.get("postfach_id"))
         if self._quittierbar(posten, outcome):
             self._quittieren(agent_id, entry.get("postfach_id"))
+        if art == "pruefung" and outcome not in {"erfolg", "bereits_erledigt"}:
+            # Die Anfrage wird konsumiert; die neue Zustellung (Schlafwecker oder Recovery) traegt den
+            # naechsten Versuch, damit kein veralteter Pruefposten liegen bleibt.
+            self._quittieren(agent_id, entry.get("postfach_id"))
         if art in {"nachricht", "rueckmeldung", "antrag"} and outcome == "erfolg":
             self._quittieren(agent_id, entry["nachricht_id"])
         if entry.get("ticket_id"):
             ad.record_run_outcome(self.root, entry["ticket_id"], run_id, outcome, detail)
+            # Satz 16: ein Ticket-Zug endet mit einem Verlaufseintrag. Bleibt alles aus, schreibt der
+            # Träger selbst den Zwischenstand mit dem Zugausgang; ein berichtender Zug bleibt unberührt.
+            if art in {"ticket", "fortsetzen", "pruefung"}:
+                try:
+                    if not ad.ticket_turn_reported(self.root, entry["ticket_id"],
+                                                   int(entry.get("verlauf_before") or 0), agent_id):
+                        ad.carrier_turn_note(self.root, entry["ticket_id"], run_id, outcome)
+                except (ad.AgentsError, OSError, ValueError):
+                    pass  # der Bericht hängt nicht am Urteil; der Trägergrund bleibt im nächsten Durchgang sichtbar
         return follow
 
     def _freigabe_nach_abweisung(self, outcome: str, befund: Any, limit: Optional[dict[str, Any]]) -> Startfreigabe:
@@ -2123,10 +2491,12 @@ def _iso(zeit: Any) -> Optional[str]:
 
 
 def _zug_art(entry: dict[str, Any]) -> str:
-    """Die Art eines Zuges fuer die Oberflaeche: ``recovery``, ``ticket``, ``frage`` oder ``nachricht``."""
+    """Die Art eines Zuges fuer die Oberflaeche: ``recovery``, ``ticket``, ``pruefung``, ``frage`` oder ``nachricht``."""
     if entry.get("cause") == "recovery":
         return "recovery"
     art = entry.get("art")
+    if art == "pruefung":
+        return "pruefung"
     if art in {"ticket", "fortsetzen"} or (entry.get("ticket_id") and art not in {"nachricht", "rueckmeldung", "antrag", "antwort"}):
         return "ticket"
     if art == "antwort":
