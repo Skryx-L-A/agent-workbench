@@ -1493,7 +1493,10 @@ def _finish_ticket(root: Path, ticket_id: str, assignee: str, actor: dict[str, A
     # ticket sent by a member of the team, and _reviewer_actor only lets that leader decide.
     if ticket.get("state") == "zur Abnahme" and (actor.get("kind") == "external"
                                                  or actor.get("role") in ("hauptagent", "teamleiter")):
-        ticket = ad.approve_ticket(root, ticket_id, actor["id"], None, note, True)
+        # Ein Skill-Vorschlag hat keine Code-Abnahme: die Pruefung ist die Pruefkarte selbst;
+        # die Definition of Done der Welt gilt hier als bestaetigt, sonst scheitert jede Welt
+        # mit DoD an "Definition of Done nicht bestaetigt" (Befund tickets4).
+        ticket = ad.approve_ticket(root, ticket_id, actor["id"], None, note, True, dod_checked=True)
     return ticket
 
 
@@ -2097,10 +2100,15 @@ def measure_turn(data: bytes | str, harness: str = "claude") -> Optional[dict[st
 
 
 def ticket_kind(ticket: dict[str, Any] | None = None, item_kind: str | None = None) -> str:
-    """Kind a measurement is filed under: the ticket's ``art`` (field or limits), else ``ticket``;
-    for turns without a ticket the delivery kind (``nachricht``, ``rueckmeldung``, ``antwort``)."""
+    """Kind a measurement is filed under: the ticket's `kind` field (tickets3), else its
+    ``limits.art``, else ``ticket``; for turns without a ticket the delivery kind
+    (``nachricht``, ``rueckmeldung``, ``antwort``).  Review turns stay under ``pruefung``
+    no matter which kind the reviewed ticket carries."""
+    if item_kind == "pruefung":
+        return "pruefung"
     if ticket:
-        raw = ticket.get("art") or (ticket.get("limits") or {}).get("art") or "ticket"
+        raw = ticket.get("kind") if ticket.get("kind") in ad.TICKET_KINDS else \
+            (ticket.get("limits") or {}).get("art") or "ticket"
     else:
         raw = item_kind or "sonstiges"
     value = re.sub(r"[^a-z0-9-]+", "-", str(raw).lower()).strip("-")[:64]

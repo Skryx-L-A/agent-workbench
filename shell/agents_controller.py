@@ -59,6 +59,43 @@ _FIELD_TYPES: dict[str, dict[str, tuple[str, bool]]] = {
         "ticket_id": ("str", True), "text": ("str", True),
         "commit": ("str", False),
     },
+    # Zwischenstand, Fertig-Liste und Pruefung (tickets2): der gebundene Agent handelt.
+    "ticket.note": {"ticket_id": ("str", True), "text": ("str", True)},
+    "ticket.check": {"ticket_id": ("str", True), "index": ("int", True), "done": ("bool", False)},
+    "ticket.review": {"ticket_id": ("str", True), "reviewer_id": ("str", True)},
+    "ticket.review_result": {
+        "ticket_id": ("str", True), "text": ("str", True), "verdict": ("str", True),
+    },
+    # Abnahme durch eine Bindung der Rolle hauptagent oder teamleiter; die DoD-Bestätigung reicht der
+    # Controller an approve_ticket durch (Fehlertext "Definition of Done nicht bestätigt").
+    "ticket.approve": {
+        "ticket_id": ("str", True), "accept": ("bool", False), "note": ("str", False),
+        "reason_code": ("str", False), "dod_checked": ("bool", False),
+    },
+    # Parken, Flag, Verwerfen, Umadressieren und Triage (tickets1): der gebundene Agent ist Absender.
+    "ticket.park": {
+        "ticket_id": ("str", True), "reason": ("str", True),
+        "until": ("str", False), "waiting_for": ("str", False),
+    },
+    "ticket.flag": {"ticket_id": ("str", True), "question_id": ("str", True), "reason": ("str", True)},
+    "ticket.discard": {
+        "ticket_id": ("str", True), "reason_code": ("str", True), "note": ("str", False),
+        "duplicate_of": ("str", False),
+    },
+    "ticket.reassign": {
+        "ticket_id": ("str", True), "recipients": ("str_list", True), "team": ("str", False),
+        "reason": ("str", True),
+    },
+    "ticket.triage": {
+        "ticket_id": ("str", True), "recipients": ("str_list", False), "team": ("str", False),
+        "priority": ("str_or_int", False), "kind": ("str", False),
+    },
+    # Backlog-Reihenfolge und Grenzen (tickets3): beide sind Bindungen des Hauptagenten vorbehalten,
+    # die Datenschicht prueft die Rolle (der Mensch geht ueber die CLI).
+    "ticket.reorder": {"ticket_ids": ("str_list", True)},
+    "ticket.limits": {
+        "ticket_id": ("str", True), "frist": ("str", False), "runden": ("int", False),
+    },
     "message.reply": {
         "delivery_id": ("str", True), "text": ("str", True), "message_id": ("str", True),
         "mark": ("str", False),
@@ -142,6 +179,8 @@ def _type_matches(value: Any, kind: str) -> bool:
         return isinstance(value, dict)
     if kind == "int":
         return isinstance(value, int) and not isinstance(value, bool)
+    if kind == "str_or_int":
+        return isinstance(value, (str, int)) and not isinstance(value, bool)
     raise ControllerError("Unbekannter Payloadtyp")
 
 
@@ -423,6 +462,45 @@ class AgentController:
             return ad.write_result(root, payload["ticket_id"], binding.agent_id,
                                    payload["text"], payload.get("commit"),
                                    binding.agent_id, binding.role)
+        if operation == "ticket.note":
+            return ad.note_ticket(root, payload["ticket_id"], binding.agent_id, payload["text"],
+                                  binding.agent_id, binding.role)
+        if operation == "ticket.check":
+            return ad.check_done_item(root, payload["ticket_id"], binding.agent_id, payload["index"],
+                                      payload.get("done", True), binding.agent_id, binding.role)
+        if operation == "ticket.review":
+            return ad.review_ticket(root, payload["ticket_id"], payload["reviewer_id"],
+                                    binding.agent_id, binding.role)
+        if operation == "ticket.review_result":
+            return ad.review_result(root, payload["ticket_id"], binding.agent_id, payload["text"],
+                                    payload["verdict"], binding.agent_id, binding.role)
+        if operation == "ticket.approve":
+            return ad.approve_ticket(root, payload["ticket_id"], binding.agent_id, binding.role,
+                                     payload.get("note"), payload.get("accept", True),
+                                     payload.get("reason_code"), payload.get("dod_checked", False))
+        if operation == "ticket.park":
+            return ad.park_ticket(root, payload["ticket_id"], binding.agent_id, payload["reason"],
+                                  until=payload.get("until"), waiting_for=payload.get("waiting_for"),
+                                  sender=binding.agent_id, claimed_role=binding.role)
+        if operation == "ticket.flag":
+            return ad.flag_ticket(root, payload["ticket_id"], payload["question_id"], payload["reason"],
+                                  sender=binding.agent_id, claimed_role=binding.role)
+        if operation == "ticket.discard":
+            return ad.discard_ticket(root, payload["ticket_id"], payload["reason_code"],
+                                     note=payload.get("note"), duplicate_of=payload.get("duplicate_of"),
+                                     sender=binding.agent_id, claimed_role=binding.role)
+        if operation == "ticket.reassign":
+            return ad.reassign_ticket(root, payload["ticket_id"], payload["recipients"], payload.get("team"),
+                                      payload["reason"], binding.agent_id, binding.role)
+        if operation == "ticket.triage":
+            return ad.triage_accept(root, payload["ticket_id"], payload.get("recipients") or [],
+                                    payload.get("team"), payload.get("priority"), payload.get("kind"),
+                                    binding.agent_id, binding.role)
+        if operation == "ticket.reorder":
+            return ad.reorder_triage(root, payload["ticket_ids"], binding.agent_id, binding.role)
+        if operation == "ticket.limits":
+            return ad.set_ticket_limits(root, payload["ticket_id"], payload.get("frist"),
+                                        payload.get("runden"), binding.agent_id, binding.role)
         if operation == "message.reply":
             return ad.reply_to_delivery(root, binding.agent_id, payload["delivery_id"], payload["text"],
                                         payload["message_id"], payload.get("mark"))

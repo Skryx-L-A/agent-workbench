@@ -121,8 +121,47 @@
 
 .wv-tickets, .wv-formular { flex: 1 1 auto; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
 .wv-ticket { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 8px 10px; border-radius: 10px; background: var(--erhoben); }
-.wv-ticket-oben { display: flex; align-items: center; gap: 6px; }
+.wv-ticket-oben { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .wv-detail { display: flex; flex-direction: column; gap: 10px; max-width: 860px; }
+
+/* --- tickets4: Abzeichen, Ampel, Board, Fertig-Liste, Vorschau der Bereitschaft ----- */
+.wv-abzeichen {
+  font-size: 10.5px; font-weight: 500; color: var(--gedaempft);
+  padding: 0 5px; border-radius: 8px; background: var(--fenster); white-space: nowrap;
+}
+.wv-abzeichen.hervor { color: var(--akzent-text); background: var(--akzent-matt); font-weight: 600; }
+.wv-ampel { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; color: var(--gedaempft); white-space: nowrap; }
+.wv-ampel.rot { color: var(--zustand-tot); }
+.wv-ticket-standzeile { overflow-wrap: anywhere; }
+.wv-ticket-ordnen { position: relative; }
+.wv-ordnen { gap: 4px; margin-top: 2px; }
+.wv-ordnen-knopf { padding: 0 8px; border-radius: 6px; }
+
+.wv-board { display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+.wv-board-kopf, .wv-board-spalten { display: grid; grid-template-columns: repeat(8, minmax(150px, 1fr)); gap: 8px; }
+.wv-board-spaltenkopf { display: flex; flex-direction: column; gap: 1px; }
+.wv-board-spaltenname { display: flex; align-items: center; gap: 5px; font-weight: 600; }
+.wv-board-spaltenname .wv-leise { font-variant-numeric: tabular-nums; }
+.wv-board-wip { font-size: 10.5px; color: var(--gedaempft); font-variant-numeric: tabular-nums; }
+.wv-board-wip.rot { color: var(--zustand-tot); font-weight: 600; }
+.wv-board-spur { display: flex; flex-direction: column; gap: 6px; }
+.wv-board-spurname { font-weight: 600; }
+.wv-board-spalte { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.wv-board-kachel {
+  display: flex; flex-direction: column; gap: 3px; text-align: left;
+  padding: 7px 8px; border-radius: 8px; background: var(--erhoben);
+}
+.wv-board-marken { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.wv-fertigpunkt { display: flex; align-items: baseline; gap: 6px; }
+.wv-fertigpunkt.erledigt span:not(.wv-haken) { text-decoration: line-through; color: var(--gedaempft); }
+.wv-haken { flex: 0 0 auto; }
+.wv-punkte { display: flex; flex-direction: column; gap: 5px; }
+.wv-dor { display: flex; align-items: center; gap: 6px; }
+.wv-dod, .wv-dod-punkt { text-align: left; }
+.wv-wip { font-variant-numeric: tabular-nums; }
+.wv-wip.rot { color: var(--zustand-tot); font-weight: 600; }
+.wv-messzeile { font-variant-numeric: tabular-nums; }
 .wv-karte { display: flex; flex-direction: column; gap: 7px; padding: 10px 12px; border-radius: 10px; background: var(--erhoben); }
 .wv-karte-titel { font-weight: 600; color: var(--gedaempft); font-size: 11.5px; }
 .wv-wert { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px; }

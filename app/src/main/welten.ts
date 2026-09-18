@@ -131,15 +131,41 @@ export interface RohAgent {
   memory?: RohText & { sha256?: string }; instructions?: RohText;
   history?: { entries?: unknown[]; total?: number };
 }
-export interface RohEreignis { id?: string; time?: string; event?: string; actor?: { id?: string }; note?: string | null; reason?: string; assignee?: string; commit?: string | null }
+export interface RohEreignis {
+  id?: string; time?: string; event?: string; actor?: { id?: string }; note?: string | null; reason?: string;
+  assignee?: string; commit?: string | null;
+  /** tickets1 bis tickets3 legen je Ereignis eigene Felder ab (agents_data.py, `_ticket_event`). */
+  grund?: string; text?: string; code?: string; verdict?: string; pruefer?: string; frage?: string;
+  an?: string[]; team?: string | null; until?: string | null; waiting_for?: string | null;
+  duplicate_of?: string | null; duplikat?: string; abhaengigkeit?: string; folgeticket?: string;
+  frist?: string | null; runden?: number | null; von?: string; zu?: string; position?: number;
+}
 export interface RohTicket {
   id: string; title?: string; goal?: string; done_criterion?: string; limits?: Record<string, unknown>;
   dependencies?: string[]; recipients?: string[]; team?: string | null; sender?: string; state?: string;
   assignee?: string | null; claimed_at?: string | null;
   result?: { text?: string; commit?: string | null; agent?: string; written_at?: string } | null;
-  approval?: { agent?: string; time?: string; note?: string | null } | null;
+  approval?: { agent?: string; time?: string; note?: string | null; reason_code?: string | null } | null;
   created_at?: string; updated_at?: string;
   history?: { events?: RohEreignis[]; total?: number };
+  // --- tickets1 bis tickets3 (docs/AGENTS-DATEN.md): Art, Ordnung, Hierarchie, Blockaden, Pruefung ---
+  kind?: string; priority?: number; priority_text?: string;
+  parent?: string | null; origin?: string | null; duplicate_of?: string | null;
+  order?: number; cycle?: string | null; result_revision?: number;
+  done_items?: { text?: string; done?: boolean; by?: string | null; at?: string | null }[];
+  parked?: { reason?: string; until?: string | null; waiting_for?: string | null; by?: string; at?: string } | null;
+  flag?: { question?: string | null; reason?: string; by?: string; at?: string; vorher?: string | null } | null;
+  discard?: { code?: string; note?: string | null; by?: string; at?: string; duplicate_of?: string | null } | null;
+  review?: { reviewer?: string; revision?: number; requested_by?: string; at?: string; note?: string | null; verdict?: string | null } | null;
+  /** Vom Snapshot gerechnet (`_snapshot_tickets`): Ampel, Messung, Kinderzaehler. */
+  deadline_state?: string | null; lead_time_s?: number; age_s?: number; turns?: number;
+  children_total?: number; children_approved?: number;
+}
+/** Der Zyklus der Welt in `world.json` (`cycles`) und ein abgeschlossener aus `zyklen.jsonl`. */
+export interface RohZyklen { enabled?: boolean; length_days?: number; current?: { id?: string; start?: string; end?: string; goal?: string | null } | null }
+export interface RohZyklus {
+  id?: string; start?: string; ende?: string; ziel?: string | null; abgeschlossen_at?: string;
+  angelegt?: number; abgenommen?: number; uebertragen?: number; verworfen?: number; carried_over?: number;
 }
 export interface RohNachricht { id: string; kind?: string; sender?: string; recipient?: string | null; recipients?: string[]; humans?: string[]; mark?: string | null; subject?: string; ticket?: string | null; text?: string; time?: string }
 export interface RohZustellung extends RohNachricht { delivery_id?: string; acknowledged?: boolean }
@@ -155,10 +181,16 @@ export interface RohFrage {
 export interface RohAnsicht {
   path: string; consistent?: boolean; read_at?: string;
   world: { id?: string; name?: string; kind?: string; state?: string; created_at?: string; updated_at?: string;
-    pause?: { changed_at?: string; reason?: string | null }; stop?: { changed_at?: string; reason?: string | null } };
+    pause?: { changed_at?: string; reason?: string | null }; stop?: { changed_at?: string; reason?: string | null };
+    /** tickets2/tickets3: Definition of Done der Welt, ihr Zyklus und ihre WIP-Grenze. */
+    definition_of_done?: unknown; cycles?: RohZyklen; wip_limit?: number };
   agents?: RohAgent[]; tickets?: RohTicket[]; channel?: RohNachricht[]; channel_total?: number;
   direct_chats?: { id: string; participants?: string[]; messages?: RohNachricht[]; total?: number }[];
   questions?: RohFrage[]; humans?: Record<string, RohMensch>; errors?: { section?: string; text?: string }[];
+  /** tickets3: die getrennten Weltzaehler, die weiche WIP-Grenze und die abgeschlossenen Zyklen. */
+  tickets_braucht_dich?: number; tickets_triage?: number; tickets_laufen?: number; tickets_offen?: number;
+  wip?: { laufend?: number; grenze?: number };
+  zyklen?: RohZyklus[];
   /** Zugaenge der Welt (`zugaenge.json`): nur Name und Art, nie Ziel oder Schluesselpfad. */
   zugaenge?: { name?: string; art?: string }[];
   /** Auftrag agentsform (Feld vom Worker agentrechte): die Modelle, die der Traeger dieser Welt fahren kann. */
@@ -186,11 +218,31 @@ export interface WeltTicket {
   absender: string; bearbeiter: string | null; angelegt: string; geaendert: string; grenzen: Record<string, unknown>;
   abhaengig: string[]; wartet_auf: string[];
   ergebnis: { text: string; commit: string | null; von: string; zeit: string } | null;
-  abnahme: { von: string; zeit: string; bemerkung: string | null } | null;
+  abnahme: { von: string; zeit: string; bemerkung: string | null; grund: string | null } | null;
   verlauf: { zeit: string; ereignis: string; von: string; text: string }[];
   /** `limits.art` (z. B. `skill-vorschlag`), sonst leer. */
   art: string;
   skill_vorschlag: WeltSkillVorschlag | null;
+  // --- tickets1 bis tickets3: was die Ansicht nach Plan Satz 35 bis 39 zeigt ---
+  /** Ticketart (`vorhaben`, `story`, `task`, `subtask`, `auftrag`, `fehler`, `recherche`, `pruefung`, `skill-vorschlag`). */
+  kind: string;
+  /** 0 sofort, 1 hoch, 2 normal, 3 später -- mit dem Bedeutungstext des Kerns. */
+  prioritaet: number; prioritaet_text: string;
+  /** `grau`, `gelb`, `rot` aus `deadline_state`; leer ohne Frist. */
+  ampel: string;
+  eltern: string | null; herkunft: string | null; duplikat_von: string | null;
+  /** Backlog-Reihenfolge in der Triage (Satz 44); null ausserhalb der Triage. */
+  ordnung: number | null;
+  zyklus: string | null;
+  fertig_punkte: { text: string; erledigt: boolean; von: string | null; zeit: string | null }[];
+  kinder_gesamt: number; kinder_abgenommen: number;
+  /** Messung je Ticket (Satz 50), in Sekunden beziehungsweise Zügen. */
+  durchlaufzeit_s: number; alter_s: number; zuege: number;
+  /** Weckbedingung bei `wartet`, Grund bei `braucht dich`, Grundcode bei `verworfen`, Prüfer bei `in Prüfung`. */
+  geparkt: { grund: string; bis: string | null; auf: string | null } | null;
+  flagge: { grund: string; frage: string | null; vorher: string | null } | null;
+  verworfen: { code: string; bemerkung: string | null; duplikat_von: string | null } | null;
+  pruefung: { pruefer: string; revision: number; angefordert_von: string; notiz: string | null; urteil: string | null } | null;
 }
 export interface WeltFrage {
   id: string; text: string; optionen: string[]; empfehlung: string | null; ticket: string | null; stand: string;
@@ -262,11 +314,23 @@ export interface WeltAntrag {
   entscheidung: string | null; bemerkung: string | null;
 }
 export interface WeltDirektchat { id: string; teilnehmer: string[]; nachrichten: WeltNachricht[]; gesamt: number }
+/** Ein abgeschlossener Zyklus mit seinen Zahlen (`zyklen.jsonl`). */
+export interface WeltZyklus {
+  id: string; start: string; ende: string; ziel: string; abgeschlossen: string;
+  angelegt: number; abgenommen: number; uebertragen: number; verworfen: number;
+}
 export interface Welt {
   pfad: string; projekt: string | null; art: 'global' | 'projekt'; id: string; name: string;
   stand: string; stand_seit: string; stand_grund: string | null; konsistent: boolean; gelesen: string;
   fehler: string[];
-  zaehler: { brauchen_dich: number; laufen: number; tickets_offen: number };
+  /** `triage` zaehlt das Backlog getrennt (Plan Satz 35); die uebrigen wie bisher. */
+  zaehler: { brauchen_dich: number; laufen: number; tickets_offen: number; triage: number };
+  /** Weiche WIP-Grenze der Welt (Satz 48): laufende und geparkte Tickets gegen die Grenze. */
+  wip: { laufend: number; grenze: number };
+  /** Zyklus der Welt (Satz 46): eingeschaltet, Länge, der laufende und die abgeschlossenen. */
+  zyklus: { an: boolean; tage: number; jetzt: { id: string; start: string; ende: string; ziel: string } | null; historie: WeltZyklus[] };
+  /** Definition of Done der Welt (Satz 49), wie sie im Profil steht. */
+  dod: string[];
   hauptagent: string | null; teams: WeltTeam[]; ohne_team: string[]; liste: string[];
   agenten: WeltAgent[]; tickets: WeltTicket[]; kanal: WeltNachricht[]; kanal_gesamt: number;
   direktchats: WeltDirektchat[]; fragen: WeltFrage[]; antraege: WeltAntrag[];
@@ -481,23 +545,73 @@ export function agentZustand(agent: RohAgent, weltStand: string, tickets: RohTic
   return { zustand: 'schlaeft', text: 'schläft', ticket: null };
 }
 
+/**
+ * WAS EIN VERLAUFSEINTRAG SAGT. Jedes Ereignis legt eigene Felder ab (`_ticket_event`);
+ * die Ansicht braucht einen Satz. Die Reihenfolge nennt zuerst das, was ein Mensch sucht.
+ */
+export function ereignisText(e: RohEreignis): string {
+  const teile: string[] = [];
+  const dazu = (x: string | null | undefined): void => { if (x) teile.push(x); };
+  dazu(e.note ?? '');
+  dazu(e.reason);
+  dazu(e.grund);
+  dazu(e.text);
+  if (e.code) dazu(`Grund ${e.code}`);
+  if (e.verdict) dazu(`Urteil ${e.verdict}`);
+  if (e.pruefer) dazu(`Prüfer ${e.pruefer}`);
+  if (e.assignee) dazu(`an ${e.assignee}`);
+  if (e.an?.length) dazu(`an ${e.an.join(', ')}`);
+  if (e.team) dazu(`Team ${e.team}`);
+  if (e.until) dazu(`bis ${e.until}`);
+  if (e.waiting_for) dazu(`auf ${e.waiting_for}`);
+  if (e.duplicate_of) dazu(`Duplikat von ${e.duplicate_of}`);
+  if (e.duplikat) dazu(`Duplikat ${e.duplikat}`);
+  if (e.abhaengigkeit) dazu(`Abhängigkeit ${e.abhaengigkeit}`);
+  if (e.folgeticket) dazu(`Folgeticket ${e.folgeticket}`);
+  if (e.frage) dazu(`Frage ${e.frage}`);
+  if (e.frist) dazu(`Frist ${e.frist}`);
+  if (typeof e.runden === 'number') dazu(`Runden ${e.runden}`);
+  if (e.von && e.zu) dazu(`${e.von} nach ${e.zu}`);
+  if (e.commit) dazu(`Commit ${e.commit}`);
+  return teile.join(' · ');
+}
+
+/** Eine Ganzzahl aus der Rohform; alles andere (auch `true`) heisst „fehlt". */
+const ganz = (v: unknown, sonst = 0): number => (typeof v === 'number' && Number.isInteger(v) ? v : sonst);
+
 /** Ein Ticket als Zeile der Ansicht; `wartet_auf` nennt Abhaengigkeiten, die noch nicht abgenommen sind. */
 export function ticketAus(t: RohTicket, alle: RohTicket[]): WeltTicket {
   const stand = new Map(alle.map((x) => [x.id, s(x.state)]));
   const deps = t.dependencies ?? [];
+  const geparkt = t.parked && typeof t.parked === 'object' && (t.parked.reason || t.parked.until || t.parked.waiting_for) ? t.parked : null;
+  const flagge = t.flag && typeof t.flag === 'object' && (t.flag.reason || t.flag.question) ? t.flag : null;
+  const weg = t.discard && typeof t.discard === 'object' && t.discard.code ? t.discard : null;
+  const pruef = t.review && typeof t.review === 'object' && t.review.reviewer ? t.review : null;
   return {
     id: t.id, titel: s(t.title) || t.id, ziel: s(t.goal), fertig: s(t.done_criterion), stand: s(t.state),
     adressaten: [...(t.recipients ?? [])], team: t.team ?? null, absender: s(t.sender), bearbeiter: t.assignee ?? null,
     angelegt: s(t.created_at), geaendert: s(t.updated_at), grenzen: t.limits ?? {}, abhaengig: [...deps],
     wartet_auf: deps.filter((d) => stand.get(d) !== 'abgenommen'),
     ergebnis: t.result ? { text: s(t.result.text), commit: t.result.commit ?? null, von: s(t.result.agent), zeit: s(t.result.written_at) } : null,
-    abnahme: t.approval ? { von: s(t.approval.agent), zeit: s(t.approval.time), bemerkung: t.approval.note ?? null } : null,
+    abnahme: t.approval ? { von: s(t.approval.agent), zeit: s(t.approval.time), bemerkung: t.approval.note ?? null, grund: t.approval.reason_code ?? null } : null,
     verlauf: (t.history?.events ?? []).map((e) => ({
-      zeit: s(e.time), ereignis: s(e.event), von: s(e.actor?.id),
-      text: s(e.note) || s(e.reason) || (e.assignee ? `an ${e.assignee}` : '') || (e.commit ? `Commit ${e.commit}` : ''),
+      zeit: s(e.time), ereignis: s(e.event), von: s(e.actor?.id), text: ereignisText(e),
     })),
     art: s((t.limits ?? {}).art),
     skill_vorschlag: null,
+    kind: s(t.kind) || 'auftrag',
+    prioritaet: ganz(t.priority, 2), prioritaet_text: s(t.priority_text),
+    ampel: s(t.deadline_state),
+    eltern: t.parent ?? null, herkunft: t.origin ?? null, duplikat_von: t.duplicate_of ?? null,
+    ordnung: typeof t.order === 'number' && Number.isInteger(t.order) ? t.order : null,
+    zyklus: t.cycle ?? null,
+    fertig_punkte: (t.done_items ?? []).map((p) => ({ text: s(p.text), erledigt: p.done === true, von: p.by ?? null, zeit: p.at ?? null })),
+    kinder_gesamt: ganz(t.children_total), kinder_abgenommen: ganz(t.children_approved),
+    durchlaufzeit_s: ganz(t.lead_time_s), alter_s: ganz(t.age_s), zuege: ganz(t.turns),
+    geparkt: geparkt ? { grund: s(geparkt.reason), bis: geparkt.until ?? null, auf: geparkt.waiting_for ?? null } : null,
+    flagge: flagge ? { grund: s(flagge.reason), frage: flagge.question ?? null, vorher: flagge.vorher ?? null } : null,
+    verworfen: weg ? { code: s(weg.code), bemerkung: weg.note ?? null, duplikat_von: weg.duplicate_of ?? null } : null,
+    pruefung: pruef ? { pruefer: s(pruef.reviewer), revision: ganz(pruef.revision), angefordert_von: s(pruef.requested_by), notiz: pruef.note ?? null, urteil: pruef.verdict ?? null } : null,
   };
 }
 
@@ -657,6 +771,22 @@ export function teamsBilden(agenten: WeltAgent[]): { teams: WeltTeam[]; ohneTeam
   return { teams, ohneTeam };
 }
 
+/** Der Zyklus der Welt (Satz 46): was `cycles` in `world.json` sagt und was `zyklen.jsonl` fuehrt. */
+export function zyklusAus(cycles: RohZyklen | undefined, zyklen: RohZyklus[] | undefined): Welt['zyklus'] {
+  const jetzt = cycles?.current && cycles.current.id
+    ? { id: s(cycles.current.id), start: s(cycles.current.start), ende: s(cycles.current.end), ziel: s(cycles.current.goal) }
+    : null;
+  return {
+    an: cycles?.enabled === true,
+    tage: ganz(cycles?.length_days, 7),
+    jetzt,
+    historie: (zyklen ?? []).filter((x) => s(x.id)).map((x) => ({
+      id: s(x.id), start: s(x.start), ende: s(x.ende), ziel: s(x.ziel), abgeschlossen: s(x.abgeschlossen_at),
+      angelegt: ganz(x.angelegt), abgenommen: ganz(x.abgenommen), uebertragen: ganz(x.uebertragen), verworfen: ganz(x.verworfen),
+    })),
+  };
+}
+
 /** Eine ganze Welt aus ihrer Ansicht. */
 export function weltAus(roh: RohAnsicht, fund: RohFund, grenze = 500): Welt {
   const w = roh.world ?? {};
@@ -726,7 +856,14 @@ export function weltAus(roh: RohAnsicht, fund: RohFund, grenze = 500): Welt {
       brauchen_dich: fragen.filter((f) => f.stand === 'offen').length + rohTickets.filter((t) => t.state === 'braucht dich').length + markiertOffen.length,
       laufen: agenten.filter((a) => a.zustand === 'arbeitet').length,
       tickets_offen: rohTickets.filter((t) => !ENDSTAENDE.has(s(t.state))).length,
+      triage: roh.tickets_triage ?? rohTickets.filter((t) => t.state === 'triage').length,
     },
+    wip: {
+      laufend: roh.wip?.laufend ?? rohTickets.filter((t) => t.state === 'läuft' || t.state === 'wartet').length,
+      grenze: roh.wip?.grenze ?? 0,
+    },
+    zyklus: zyklusAus(w.cycles, roh.zyklen),
+    dod: Array.isArray(w.definition_of_done) ? w.definition_of_done.map(String).filter(Boolean) : [],
     hauptagent: agenten.find((a) => a.stufe === 'hauptagent')?.id ?? null,
     teams, ohne_team: ohneTeam, liste: listeOrdnen(agenten),
     agenten, tickets, kanal, kanal_gesamt: roh.channel_total ?? kanal.length, direktchats, fragen, antraege,
@@ -747,7 +884,8 @@ export function weltMitFehler(fund: RohFund, text: string): Welt {
   return {
     pfad: fund.path, projekt: fund.project, art: fund.kind === 'global' ? 'global' : 'projekt',
     id: fund.id ?? fund.path, name: fund.name ?? basename(fund.project ?? fund.path), stand: fund.state ?? '', stand_seit: '', stand_grund: null,
-    konsistent: false, gelesen: '', fehler: [text], zaehler: { brauchen_dich: 0, laufen: 0, tickets_offen: 0 },
+    konsistent: false, gelesen: '', fehler: [text], zaehler: { brauchen_dich: 0, laufen: 0, tickets_offen: 0, triage: 0 },
+    wip: { laufend: 0, grenze: 0 }, zyklus: { an: false, tage: 7, jetzt: null, historie: [] }, dod: [],
     hauptagent: null, teams: [], ohne_team: [], liste: [], agenten: [], tickets: [], kanal: [], kanal_gesamt: 0, direktchats: [], fragen: [], antraege: [], skill_verlauf: [], skills_fehler: '',
     zugaenge: [],
     mensch: { postfach_offen: 0, markiert_offen: [], gelesen: {} }, ungelesen: {},
@@ -860,7 +998,54 @@ export function fundSchluessel(f: RohFund): string {
 }
 
 /** Nach welchen Handlungen der Traeger geweckt wird: sie legen eine Zustellung an oder geben wartende frei. */
-export const WECKEN: ReadonlySet<string> = new Set(['senden', 'antworten', 'ticket', 'zurueckgeben', 'fortsetzen']);
+export const WECKEN: ReadonlySet<string> = new Set(['senden', 'antworten', 'ticket', 'zurueckgeben', 'fortsetzen',
+  'ticket_annehmen', 'ticket_umadressieren', 'ticket_pruefen']);
+
+/** Die Grundcodes des Kerns (`DISCARD_REASONS` in agents_data.py), in der Reihenfolge des Plans (Satz 40). */
+export const DISCARD_GRUENDE = ['duplikat', 'anderswo-erledigt', 'nicht-mehr-noetig', 'nicht-reproduzierbar', 'abgelehnt'];
+/** Die Ticketarten des Kerns (`TICKET_KINDS`), in der Reihenfolge der Hierarchie. */
+export const TICKET_ARTEN = ['vorhaben', 'story', 'task', 'subtask', 'auftrag', 'fehler', 'recherche', 'pruefung'];
+const teamName = (t: string): string => `Team ${t.charAt(0).toUpperCase()}${t.slice(1)}`;
+
+/**
+ * Die gemeinsamen Ticketfelder aus einer Handlung: Art, Priorität, Fertig-Punkte, Eltern,
+ * Herkunft, Abhängigkeiten und Grenzen. `ohneGrenzen` gilt beim Annehmen aus der Triage,
+ * wo der Kern nur Adressat, Priorität, Art, Eltern und Fertig-Liste kennt.
+ */
+export function ticketFelder(daten: Record<string, unknown>, opt: { ohneGrenzen?: boolean } = {}): { args: string[] } | { fehler: string } {
+  const args: string[] = [];
+  const art = s(daten.art).trim();
+  if (art) {
+    if (!TICKET_ARTEN.includes(art)) return { fehler: `Art muss ${TICKET_ARTEN.join(', ')} sein.` };
+    args.push(`--art=${art}`);
+  }
+  if (daten.prioritaet !== undefined && daten.prioritaet !== null && daten.prioritaet !== '') {
+    const p = Number(daten.prioritaet);
+    if (!Number.isInteger(p) || p < 0 || p > 3) return { fehler: 'Priorität ist 0, 1, 2 oder 3.' };
+    args.push(`--prioritaet=${p}`);
+  }
+  for (const punkt of Array.isArray(daten.fertig_punkte) ? daten.fertig_punkte.map(String) : []) {
+    const text = punkt.trim();
+    if (text) args.push(`--fertig-punkt=${text}`);
+  }
+  const eltern = s(daten.eltern).trim();
+  if (eltern) args.push(`--eltern=${eltern}`);
+  if (opt.ohneGrenzen) return { args };
+  const herkunft = s(daten.herkunft).trim();
+  if (herkunft) args.push(`--entdeckt-bei=${herkunft}`);
+  for (const dep of Array.isArray(daten.abhaengig) ? daten.abhaengig.map(String) : []) {
+    const id = dep.trim();
+    if (id) args.push(`--abhaengig-von=${id}`);
+  }
+  const frist = s(daten.frist).trim();
+  if (frist) args.push(`--frist=${frist}`);
+  if (daten.runden !== undefined && daten.runden !== null && daten.runden !== '') {
+    const r = Number(daten.runden);
+    if (!Number.isInteger(r) || r < 1) return { fehler: 'Die Rundenzahl ist eine ganze Zahl ab 1.' };
+    args.push(`--runden=${r}`);
+  }
+  return { args };
+}
 
 /** Die Antwort von `agents_weltauftrag.py wecken` als Satz fuer die Meldung; ohne Traeger nichts. */
 export function weckSatz(r: { wecken?: unknown; wecken_fehler?: unknown }): string {
@@ -986,7 +1171,11 @@ export function promptModelle(welt: WeltModell[] | null, registry: ModellZeile[]
 /** Ein Befehl `welt:<handlung> <JSON-Objekt>`. */
 export const WELT_HANDLUNGEN = ['senden', 'antworten', 'zuruecknehmen', 'pausieren', 'fortsetzen', 'stoppen', 'ticket',
   'zurueckgeben', 'profil', 'gedaechtnis', 'gelesen', 'quittieren', 'vorschlag', 'gespraech', 'entwurf', 'anlegen',
-  'skill_abnehmen', 'skill_ablehnen', 'neu', 'umziehen', 'maschinen', 'gewaehlt', 'rechte', 'vergessen'] as const;
+  'skill_abnehmen', 'skill_ablehnen', 'neu', 'umziehen', 'maschinen', 'gewaehlt', 'rechte', 'vergessen',
+  // tickets4: die Handlungen des Menschen am Ticket und an der Welt (Plan Saetze 37 bis 39, 46, 48, 49)
+  // Abnehmen fehlt mit Absicht: der Mensch nimmt nicht ab (Hausregel vom 11.09.2026, Plan Satz 27).
+  'ticket_verwerfen', 'ticket_annehmen', 'ticket_umadressieren', 'ticket_grenzen', 'ticket_pruefen',
+  'backlog', 'zyklus', 'dod', 'wip'] as const;
 export type WeltHandlung = (typeof WELT_HANDLUNGEN)[number];
 
 export function weltBefehlLesen(befehl: string): { handlung: WeltHandlung; daten: Record<string, unknown> } | { fehler: string } {
@@ -1850,16 +2039,157 @@ export class WeltenQuelle {
         const ziel = s(daten.ziel).trim();
         const fertig = s(daten.fertig).trim();
         if (!titel || !ziel || !fertig) return antwort(false, 'Titel, Ziel und „fertig heißt“ sind Pflicht.');
-        const an = Array.isArray(daten.an) && daten.an.length ? daten.an.map(String) : welt.hauptagent ? [welt.hauptagent] : [];
+        // Satz 39: ohne Adressat entscheidet der Hauptagent -- das Ticket geht in die Triage,
+        // der Kern adressiert es dorthin. Deshalb hier KEIN Ersatzadressat mehr.
+        const an = Array.isArray(daten.an) ? daten.an.map(String).filter(Boolean) : [];
         const team = an.find((a) => a.startsWith('team:'))?.slice(5) ?? '';
         const einzeln = an.filter((a) => !a.startsWith('team:'));
         if (team && !welt.teams.some((t) => t.name === team)) return antwort(false, `Kein Team „${team}“ in ${welt.name}.`);
         const fremd = einzeln.find((a) => !welt.agenten.some((x) => x.id === a));
         if (fremd) return antwort(false, `Kein Agent „${fremd}“ in ${welt.name}.`);
-        if (!team && !einzeln.length) return antwort(false, 'Das Ticket braucht einen Adressaten.');
+        if (!team && !einzeln.length && !welt.hauptagent) {
+          return antwort(false, `${welt.name} hat keinen Hauptagenten; ohne ihn braucht ein Ticket einen Adressaten.`);
+        }
         const args = ['ticket', 'neu', ort, `--titel=${titel}`, `--ziel=${ziel}`, `--fertig=${fertig}`, ...einzeln.map((a) => `--an=${a}`), `--absender=${absender}`, '--json'];
         if (team) args.push(`--team=${team}`);
-        return ausgefuehrt(args, `Ticket „${titel}“ angelegt.`);
+        const f = ticketFelder(daten);
+        if ('fehler' in f) return antwort(false, f.fehler);
+        args.push(...f.args);
+        const wohin = team || einzeln.length ? '' : ' Ohne Adressat steht es in der Triage.';
+        return ausgefuehrt(args, `Ticket „${titel}“ angelegt.${wohin}`);
+      }
+
+      // --- tickets4: die Handlungen des Menschen am Ticket (Plan Saetze 37 bis 40) ---------
+
+      case 'ticket_verwerfen': {
+        const ticket = welt.tickets.find((x) => x.id === s(daten.ticket));
+        if (!ticket) return antwort(false, `Kein Ticket „${s(daten.ticket)}“ in ${welt.name}.`);
+        if (ticket.stand === 'abgenommen') return antwort(false, `„${ticket.titel}“ ist abgenommen; ein abgenommenes Ticket wird nicht verworfen.`);
+        const grund = s(daten.grund).trim();
+        if (!DISCARD_GRUENDE.includes(grund)) return antwort(false, `Verwerfen braucht einen Grund aus ${DISCARD_GRUENDE.join(', ')}.`);
+        const duplikat = s(daten.duplikat_von).trim();
+        if (grund === 'duplikat' && !duplikat) return antwort(false, 'Grund „duplikat“ braucht das Ticket, von dem es ein Duplikat ist.');
+        if (duplikat && !welt.tickets.some((x) => x.id === duplikat)) return antwort(false, `Kein Ticket „${duplikat}“ in ${welt.name}.`);
+        if (!bestaetigt) {
+          return antwort(false, 'Rückfrage', {
+            rueckfrage: `„${ticket.titel}“ verwerfen (${grund})?`,
+            warnungen: ['Ein verworfenes Ticket erfüllt keine Abhängigkeit; abhängige Tickets bleiben offen mit Vermerk im Verlauf.'],
+          });
+        }
+        const args = ['ticket', 'verwerfen', ort, ticket.id, `--grund=${grund}`, `--absender=${absender}`, '--json'];
+        const bemerkung = s(daten.bemerkung).trim();
+        if (bemerkung) args.push(`--bemerkung=${bemerkung}`);
+        if (duplikat) args.push(`--duplikat-von=${duplikat}`);
+        return ausgefuehrt(args, `„${ticket.titel}“ ist verworfen (${grund}).`);
+      }
+
+      case 'ticket_annehmen': {
+        const ticket = welt.tickets.find((x) => x.id === s(daten.ticket));
+        if (!ticket) return antwort(false, `Kein Ticket „${s(daten.ticket)}“ in ${welt.name}.`);
+        if (ticket.stand !== 'triage') return antwort(false, `„${ticket.titel}“ steht auf ${ticket.stand}; angenommen wird nur aus der Triage.`);
+        const an = Array.isArray(daten.an) ? daten.an.map(String).filter(Boolean) : [];
+        const team = an.find((a) => a.startsWith('team:'))?.slice(5) ?? '';
+        const einzeln = an.filter((a) => !a.startsWith('team:'));
+        if (team && !welt.teams.some((t) => t.name === team)) return antwort(false, `Kein Team „${team}“ in ${welt.name}.`);
+        const fremd = einzeln.find((a) => !welt.agenten.some((x) => x.id === a));
+        if (fremd) return antwort(false, `Kein Agent „${fremd}“ in ${welt.name}.`);
+        if (!team && !einzeln.length) return antwort(false, 'Annehmen braucht einen Adressaten oder ein Team.');
+        const args = ['ticket', 'annehmen', ort, ticket.id, ...einzeln.map((a) => `--an=${a}`), `--absender=${absender}`, '--json'];
+        if (team) args.push(`--team=${team}`);
+        const f = ticketFelder(daten, { ohneGrenzen: true });
+        if ('fehler' in f) return antwort(false, f.fehler);
+        args.push(...f.args);
+        const wer = team ? teamName(team) : einzeln.map((a) => welt.agenten.find((x) => x.id === a)?.name ?? a).join(', ');
+        return ausgefuehrt(args, `„${ticket.titel}“ ist angenommen und geht an ${wer}.`);
+      }
+
+      case 'ticket_umadressieren': {
+        const ticket = welt.tickets.find((x) => x.id === s(daten.ticket));
+        if (!ticket) return antwort(false, `Kein Ticket „${s(daten.ticket)}“ in ${welt.name}.`);
+        const an = Array.isArray(daten.an) ? daten.an.map(String).filter(Boolean) : [];
+        const team = an.find((a) => a.startsWith('team:'))?.slice(5) ?? '';
+        const einzeln = an.filter((a) => !a.startsWith('team:'));
+        if (team && !welt.teams.some((t) => t.name === team)) return antwort(false, `Kein Team „${team}“ in ${welt.name}.`);
+        const fremd = einzeln.find((a) => !welt.agenten.some((x) => x.id === a));
+        if (fremd) return antwort(false, `Kein Agent „${fremd}“ in ${welt.name}.`);
+        if (!team && !einzeln.length) return antwort(false, 'Umadressieren braucht neue Adressaten oder ein Team.');
+        const grund = s(daten.grund).trim();
+        if (!grund) return antwort(false, 'Umadressieren braucht einen Grund.');
+        const args = ['ticket', 'umadressieren', ort, ticket.id, ...einzeln.map((a) => `--an=${a}`), `--grund=${grund}`, `--absender=${absender}`, '--json'];
+        if (team) args.push(`--team=${team}`);
+        const wer = team ? teamName(team) : einzeln.map((a) => welt.agenten.find((x) => x.id === a)?.name ?? a).join(', ');
+        return ausgefuehrt(args, `„${ticket.titel}“ geht jetzt an ${wer}.`, einzeln);
+      }
+
+      case 'ticket_grenzen': {
+        const ticket = welt.tickets.find((x) => x.id === s(daten.ticket));
+        if (!ticket) return antwort(false, `Kein Ticket „${s(daten.ticket)}“ in ${welt.name}.`);
+        const frist = s(daten.frist).trim();
+        const runden = daten.runden === '' || daten.runden === undefined || daten.runden === null ? null : Number(daten.runden);
+        if (!frist && runden === null) return antwort(false, 'Grenzen brauchen eine Frist oder eine Rundenzahl.');
+        if (runden !== null && (!Number.isInteger(runden) || runden < 1)) return antwort(false, 'Die Rundenzahl ist eine ganze Zahl ab 1.');
+        const args = ['ticket', 'grenzen', ort, ticket.id, `--absender=${absender}`, '--json'];
+        if (frist) args.push(`--frist=${frist}`);
+        if (runden !== null) args.push(`--runden=${runden}`);
+        return ausgefuehrt(args, `Grenzen von „${ticket.titel}“ gesetzt.`);
+      }
+
+      case 'ticket_pruefen': {
+        const ticket = welt.tickets.find((x) => x.id === s(daten.ticket));
+        if (!ticket) return antwort(false, `Kein Ticket „${s(daten.ticket)}“ in ${welt.name}.`);
+        if (ticket.stand !== 'zur Abnahme') return antwort(false, `„${ticket.titel}“ steht auf ${ticket.stand}; ein Prüfer wird nur aus „zur Abnahme“ gesetzt.`);
+        const pruefer = s(daten.pruefer).trim();
+        const agent2 = welt.agenten.find((a) => a.id === pruefer);
+        if (!agent2) return antwort(false, `Kein Agent „${pruefer}“ in ${welt.name}.`);
+        if (pruefer === ticket.bearbeiter) return antwort(false, `${agent2.name} hat das Ticket bearbeitet und prüft sich nicht selbst.`);
+        return ausgefuehrt(['ticket', 'pruefen', ort, ticket.id, `--pruefer=${pruefer}`, `--absender=${absender}`, '--json'],
+          `${agent2.name} prüft „${ticket.titel}“.`, [pruefer]);
+      }
+
+      case 'backlog': {
+        const reihe = Array.isArray(daten.ordnen) ? daten.ordnen.map(String).filter(Boolean) : [];
+        if (!reihe.length) return antwort(false, 'Die neue Reihenfolge nennt kein Ticket.');
+        const fremd = reihe.find((id) => !welt.tickets.some((t) => t.id === id && t.stand === 'triage'));
+        if (fremd) return antwort(false, `„${fremd}“ steht nicht in der Triage von ${welt.name}.`);
+        return ausgefuehrt(['ticket', 'backlog', ort, ...reihe.map((id) => `--ordnen=${id}`), `--absender=${absender}`, '--json'],
+          'Die Reihenfolge der Triage ist gesetzt.');
+      }
+
+      // --- tickets4: Zyklus, Definition of Done und WIP-Grenze der Welt (Saetze 46, 48, 49) ---
+
+      case 'zyklus': {
+        const aktion = s(daten.aktion).trim() || 'zeigen';
+        if (!['einschalten', 'ausschalten', 'zeigen'].includes(aktion)) return antwort(false, 'Zyklus: einschalten, ausschalten oder zeigen.');
+        const args = ['welt', 'zyklus', ort, aktion, `--absender=${absender}`, '--json'];
+        if (aktion === 'einschalten') {
+          const tage = daten.tage === '' || daten.tage === undefined || daten.tage === null ? null : Number(daten.tage);
+          if (tage !== null && (!Number.isInteger(tage) || tage < 1)) return antwort(false, 'Die Zykluslänge ist eine ganze Zahl ab 1 Tag.');
+          if (tage !== null) args.push(`--tage=${tage}`);
+          const ziel = s(daten.ziel).trim();
+          if (ziel) args.push(`--ziel=${ziel}`);
+        }
+        const erfolg = aktion === 'einschalten' ? `Der Zyklus von ${welt.name} läuft.`
+          : aktion === 'ausschalten' ? `Der Zyklus von ${welt.name} ist aus; der letzte bleibt sichtbar.` : '';
+        return ausgefuehrt(args, erfolg);
+      }
+
+      case 'dod': {
+        const punkte = Array.isArray(daten.punkte) ? daten.punkte.map(String).map((p) => p.trim()).filter(Boolean) : [];
+        const args = ['welt', 'dod', ort, 'setzen', ...punkte.map((p) => `--punkt=${p}`), `--absender=${absender}`, '--json'];
+        return ausgefuehrt(args, punkte.length
+          ? `Definition of Done von ${welt.name}: ${punkte.length} ${punkte.length === 1 ? 'Punkt' : 'Punkte'}.`
+          : `Definition of Done von ${welt.name} geleert.`);
+      }
+
+      case 'wip': {
+        const leeren = daten.limit === '' || daten.limit === undefined || daten.limit === null;
+        const limit = leeren ? null : Number(daten.limit);
+        if (limit !== null && (!Number.isInteger(limit) || limit < 1)) return antwort(false, 'Die WIP-Grenze ist eine ganze Zahl ab 1.');
+        const args = ['welt', 'wip', ort, `--absender=${absender}`, '--json'];
+        if (limit !== null) args.push(`--limit=${limit}`);
+        return ausgefuehrt(args, limit === null
+          ? `${welt.name} rechnet die WIP-Grenze wieder aus den aktiven Agenten.`
+          : `Die WIP-Grenze von ${welt.name} steht auf ${limit}.`);
       }
 
       case 'zurueckgeben': {

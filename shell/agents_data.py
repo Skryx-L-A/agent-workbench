@@ -35,8 +35,34 @@ except ImportError:  # pragma: no cover - useful when called from another cwd
 SCHEMA_VERSION = 1
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 STAGES = ("hauptagent", "teamleiter", "mitglied")
-TICKET_STATES = ("offen", "läuft", "wartet", "braucht dich", "zur Abnahme",
-                 "abgenommen", "zurückgegeben", "verworfen", "unterbrochen")
+TICKET_STATES = ("triage", "offen", "läuft", "wartet", "braucht dich", "zur Abnahme",
+                 "in Prüfung", "abgenommen", "zurückgegeben", "verworfen", "unterbrochen")
+REVIEW_VERDICTS = ("bestanden", "maengel")
+# A transition the assignee (or, from a review turn, the reviewer) may perform itself; the
+# carrier counts them as a report at the end of a turn (plan sentence 16).
+ASSIGNEE_TRANSITIONS = ("geparkt", "verworfen", "umadressiert")
+DISCARD_REASONS = ("duplikat", "anderswo-erledigt", "nicht-mehr-noetig",
+                   "nicht-reproduzierbar", "abgelehnt")
+APPROVE_REASONS = ("erledigt", "teilweise")
+# Art und Prioritaet je Ticket (tickets3, Plan AGENTS-TICKETS-PLAN Saetze 3 und 5, AGIL
+# Abschnitt 2 und 3): kind wird bei der Anlage geprueft, priority ist 0 bis 3 mit
+# Bedeutungstext. Bestehende Tickets ohne Feld gelten als task und normal.
+TICKET_KINDS = ("vorhaben", "story", "task", "subtask", "auftrag", "fehler",
+                "recherche", "pruefung", "skill-vorschlag")
+DEFAULT_KIND = "auftrag"  # Bestand und Anlage ohne Angabe: kein Fertig-Listen-Zwang (Definition of Ready gilt fuer story, task, subtask)
+PRIORITY_STUFEN = (0, 1, 2, 3)
+DEFAULT_PRIORITY = 2
+PRIORITY_TEXTS = {0: "sofort (Betrieb steht, Daten in Gefahr)", 1: "hoch",
+                  2: "normal (Vorgabe)", 3: "spaeter"}
+# Vorgabe-Grenze, wenn ein Ticket weder Frist noch Rundenzahl erhaelt (Entscheidung
+# tickets3, der Nutzer entscheidet endgueltig in Abschnitt 8 des Planes).
+DEFAULT_ROUNDS = 6
+# Hierarchie (Saetze 4, 17, 29, 43): erlaubte Eltern-Kind-Ketten, hoechstens drei Ebenen.
+PARENT_EDGES = {("vorhaben", "story"), ("story", "task"), ("task", "subtask")}
+HIERARCHY_DEPTH = 3
+# Zyklus und WIP je Welt (Saetze 46 und 48).
+CYCLE_DEFAULT_DAYS = 7
+ZYKLEN_DATEI = "zyklen.jsonl"
 WORLD_STATES = ("läuft", "pausiert", "gestoppt")
 AGENT_STATES = ("aktiv", "pausiert", "gestoppt", "archiviert")
 HUMAN_ACTORS = {"mensch", "person-1", "companion", "orchestrator", "cli-operator"}
@@ -447,6 +473,21 @@ def answer_question(root: Path, question_id: str, answer: str,
                                "source": "cli-argument", "answered_at": now()}
         question["updated_at"] = question["answer"]["answered_at"]
         _write_json(_question_dir(root, question_id) / "question.json", question)
+        for other in list_tickets(root):
+            flag = other.get("flag") or {}
+            if not isinstance(flag, dict) or flag.get("question") != question_id \
+                    or other.get("state") != "braucht dich":
+                continue
+            ts = now()
+            delivery_id = derived_id("ticket-flag", other["id"], question_id)
+            target = [other["assignee"]] if other.get("assignee") else list(other.get("recipients") or [])
+            other.update({"state": "offen", "updated_at": ts, "return_to": target,
+                          "return_to_delivery": delivery_id, "return_delivery_id": delivery_id,
+                          "return_delivery_time": ts, "delivery_sender": actor["id"]})
+            other.pop("flag", None)
+            _write_json(_ticket_path(root, other["id"]) / "ticket.json", other)
+            _ticket_event(root, other, "beantwortet", actor, frage=question_id)
+            _deliver_ticket(root, other, actor)
         return question
 
 
@@ -497,7 +538,9 @@ def create_world(root: Path, name: str | None = None, main_name: str = "hauptage
     world = {
         "schema_version": SCHEMA_VERSION, "id": world_id, "name": name or root.name,
         "path": str(root), "kind": "global" if global_world else "project",
+        "hauptagent": main_name if with_main_agent else None,
         "created_at": timestamp, "updated_at": timestamp, "state": "läuft",
+        "definition_of_done": [],
         "pause": {"state": "läuft", "changed_at": timestamp, "reason": None},
         "stop": {"state": "läuft", "changed_at": timestamp, "reason": None},
         "governance": {"identity_verified": False, "mutation_gate": "external-adapter-required"},
@@ -590,6 +633,10 @@ def create_agent(root: Path, agent_id: str, stage: str, team: str | None,
             else:
                 (stage_path / "AGENTS.md").write_text(instructions, encoding="utf-8")
             os.replace(stage_path, path)
+            if stage == "hauptagent" and world.get("hauptagent") != agent_id:
+                world["hauptagent"] = agent_id
+                world["updated_at"] = now()
+                _write_json(world_file(root), world)
             return profile
         except BaseException:
             shutil.rmtree(stage_path, ignore_errors=True)
@@ -678,33 +725,209 @@ def _ticket_event(root: Path, ticket: dict[str, Any], event: str, actor: dict[st
     _append_jsonl(_ticket_path(root, ticket["id"]) / "verlauf.jsonl", data)
 
 
+def _done_item_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
+        raise AgentsError("Fertig-Punkte muessen nichtleere Texte sein")
+    return list(dict.fromkeys(item.strip() for item in value))
+
+
+def _ticket_done_items(ticket: dict[str, Any]) -> list[dict[str, Any]]:
+    items = ticket.get("done_items")
+    return [item for item in items if isinstance(item, dict) and isinstance(item.get("text"), str)] \
+        if isinstance(items, list) else []
+
+
+def _open_done_items(ticket: dict[str, Any]) -> list[str]:
+    return [item["text"] for item in _ticket_done_items(ticket) if not item.get("done")]
+
+
+def _ticket_kind_feld(ticket: dict[str, Any]) -> str:
+    """Art des Tickets: das Feld `kind`, sonst auftrag (Bestand ohne Feld, Plan Satz 3; die Definition of Ready verlangt die Fertig-Liste nur fuer story, task, subtask)."""
+    kind = ticket.get("kind")
+    return kind if kind in TICKET_KINDS else DEFAULT_KIND
+
+
+def _ticket_kind_wert(value: Any) -> str:
+    if value is None:
+        return DEFAULT_KIND
+    if not isinstance(value, str) or value not in TICKET_KINDS:
+        raise AgentsError("Art muss %s sein" % ", ".join(TICKET_KINDS))
+    return value
+
+
+def _ticket_priority_wert(value: Any) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or value not in PRIORITY_STUFEN:
+        raise AgentsError("Prioritaet muss 0 (sofort), 1 (hoch), 2 (normal) oder 3 (spaeter) sein")
+    return value
+
+
+def _ticket_limits_wert(limits: dict[str, Any] | None) -> dict[str, Any]:
+    """Grenzen bei der Anlage: Frist als ISO-Zeit, Rundenzahl als ganze Zahl ab 1 (Plan Satz 6)."""
+    limits = dict(limits or {})
+    frist = limits.get("frist")
+    if frist is not None:
+        try:
+            _epoch_of(frist)
+        except (ValueError, TypeError, OSError) as exc:
+            raise AgentsError("Grenze frist braucht eine ISO-Zeit (z. B. 2026-09-18T09:00:00Z)") from exc
+    runden = limits.get("runden")
+    if runden is not None and (isinstance(runden, bool) or not isinstance(runden, int) or runden < 1):
+        raise AgentsError("Grenze runden braucht eine ganze Zahl ab 1")
+    return limits
+
+
+def _deadline_state(ticket: dict[str, Any], now_epoch: float | None = None) -> str | None:
+    """Ampel der Frist: rot abgelaufen, gelb weniger als ein Tag, sonst grau (Plan Satz 31)."""
+    frist = (ticket.get("limits") or {}).get("frist")
+    if not frist:
+        return None
+    try:
+        ende = _epoch_of(frist)
+    except (ValueError, TypeError, OSError):
+        return None
+    if now_epoch is None:
+        now_epoch = time.time()
+    if now_epoch >= ende:
+        return "rot"
+    if ende - now_epoch < 86400:
+        return "gelb"
+    return "grau"
+
+
+def _definition_of_ready_grund(kind: str, punkte: list[str] | None, limits: dict[str, Any] | None,
+                               recipients, team, title: str = "t", goal: str = "z",
+                               done: str = "f") -> str | None:
+    """Definition of Ready (Plan Satz 45): Grund, warum ein Ticket nicht zugestellt wird.
+
+    Fuer `vorhaben` gelten nur Titel, Ziel und Fertig-Kriterium; fuer story, task und subtask
+    gehoert eine abhakbare Fertig-Liste dazu, fuer alle uebrigen Arten Frist oder Rundenzahl.
+    """
+    if not str(title).strip() or not str(goal).strip() or not str(done).strip():
+        return "fehlender Auftrag (Titel, Ziel oder Fertig-Kriterium)"
+    if kind == "vorhaben":
+        return None
+    if kind in ("story", "task", "subtask") and not (punkte or []):
+        return "fehlende Fertig-Liste"
+    grenzen = limits or {}
+    if not grenzen.get("frist") and not grenzen.get("runden"):
+        return "fehlende Grenzen (keine Frist, keine Rundenzahl)"
+    if not recipients and not team:
+        return "fehlende Adressaten"
+    return None
+
+
+def _ticket_parent_pruefen(root: Path, ticket_id: str, parent_id: str, kind: str) -> dict[str, Any]:
+    """Hierarchieregeln (Plan Saetze 4, 17, 29, 43): Eltern existiert, ist nicht verworfen oder
+    abgenommen, die Kette ist erlaubt, hoechstens drei Ebenen und kein Zyklus."""
+    valid_id(parent_id, "Elternkennung")
+    if parent_id == ticket_id:
+        raise AgentsError("Ein Ticket ist nicht sein eigenes Eltern")
+    try:
+        parent = read_ticket(root, parent_id)
+    except AgentsError as exc:
+        raise AgentsError("Eltern %s existiert nicht" % parent_id) from exc
+    if parent.get("state") in ("verworfen", "abgenommen"):
+        raise AgentsError("Eltern %s ist %s; es traegt keine Kinder mehr" % (parent_id, parent.get("state")))
+    eltern_kind = _ticket_kind_feld(parent)
+    if (eltern_kind, kind) not in PARENT_EDGES:
+        raise AgentsError("Kette %s > %s ist nicht erlaubt (vorhaben > story > task > subtask)" % (
+            eltern_kind, kind))
+    tiefe, current, kette = 1, parent, {parent_id}
+    while current.get("parent"):
+        eltern_id = current.get("parent")
+        if eltern_id == ticket_id or eltern_id in kette:
+            raise AgentsError("Ticket-Hierarchie bildet einen Zyklus")
+        kette.add(eltern_id)
+        tiefe += 1
+        if tiefe > HIERARCHY_DEPTH:
+            raise AgentsError("Ticket-Hierarchie ist hoechstens drei Ebenen tief")
+        try:
+            current = read_ticket(root, eltern_id)
+        except AgentsError as exc:
+            raise AgentsError("Eltern %s existiert nicht" % eltern_id) from exc
+    return parent
+
+
+def _naechste_triage_ordnung(tickets: list[dict[str, Any]]) -> int:
+    """Reihenfolge fuer ein neues Triage-Ticket: ans Ende (Plan Satz 44)."""
+    orders = [t.get("order") for t in tickets if t.get("state") == "triage"
+              and isinstance(t.get("order"), int) and not isinstance(t.get("order"), bool)]
+    return (max(orders) + 1) if orders else 1
+
+
 def create_ticket(root: Path, title: str, goal: str, done: str,
                   recipients: list[str], sender: str | None, claimed_role: str | None,
                   team: str | None = None, limits: dict[str, Any] | None = None,
                   dependencies: list[str] | None = None,
-                  ticket_id: str | None = None) -> dict[str, Any]:
+                  ticket_id: str | None = None,
+                  done_items: list[str] | None = None,
+                  kind: str | None = None, priority: int | None = None,
+                  parent: str | None = None, origin: str | None = None) -> dict[str, Any]:
     if not title.strip() or not goal.strip() or not done.strip():
         raise AgentsError("Titel, Ziel und Fertig-Kriterium sind Pflicht")
-    if not recipients and not team:
-        raise AgentsError("Ticket braucht Adressat oder Team")
+    punkte = _done_item_list(done_items)
+    art = _ticket_kind_wert(kind)
+    _ticket_priority_wert(priority)
+    limits = _ticket_limits_wert(limits)
+    # Vorgabe-Grenze (tickets3): ohne Frist und ohne Rundenzahl sechs Zuege, Vorhaben ohne Grenze.
+    if "frist" not in limits and "runden" not in limits and art != "vorhaben":
+        limits["runden"] = DEFAULT_ROUNDS
+    triage = not recipients and not team
     with transaction(root):
         world = read_world(root)
         actor = _actor(root, sender, claimed_role)
-        for recipient in recipients:
-            read_agent(root, recipient)
-        if team and not valid_id(team, "Team"):
-            raise AgentsError("Team ungueltig")
+        if triage:
+            haupt = world.get("hauptagent")
+            if not haupt or not isinstance(haupt, str) or not ID_RE.fullmatch(haupt):
+                raise AgentsError("Ticket braucht Adressat oder Team")
+            try:
+                haupt_agent = read_agent(root, haupt)
+            except AgentsError as exc:
+                raise AgentsError("Ticket braucht Adressat oder Team") from exc
+            if haupt_agent.get("stage") != "hauptagent":
+                raise AgentsError("Ticket braucht Adressat oder Team")
+            recipients = [haupt]
+            team = None
+        else:
+            for recipient in recipients:
+                read_agent(root, recipient)
+            if team and not valid_id(team, "Team"):
+                raise AgentsError("Team ungueltig")
         deps = list(dependencies or [])
         for dep in deps:
             read_ticket(root, dep)
+        eltern = herkunft = None
+        if parent is not None:
+            eltern = _ticket_parent_pruefen(root, ticket_id or "t-neu", parent, art)
+        if origin is not None:
+            valid_id(origin, "Herkunftskennung")
+            if origin == ticket_id:
+                raise AgentsError("Ein Ticket ist nicht seine eigene Herkunft")
+            herkunft = read_ticket(root, origin)
         ticket_id = valid_id(ticket_id, "Ticketkennung") if ticket_id else new_id("t")
+        if parent is not None:
+            # Erst mit der endgueltigen Kennung pruefen (Zyklus und Selbstbezug).
+            eltern = _ticket_parent_pruefen(root, ticket_id, parent, art)
+        if origin is not None:
+            herkunft = read_ticket(root, origin)
+        priority_wert = priority if priority is not None else \
+            ((eltern or {}).get("priority") if eltern is not None else DEFAULT_PRIORITY)
         existing_path = _ticket_path(root, ticket_id)
         if existing_path.exists():
             existing = read_ticket(root, ticket_id)
             same = (existing.get("title"), existing.get("goal"), existing.get("done_criterion"),
                     existing.get("recipients"), existing.get("team"), existing.get("dependencies"),
-                    existing.get("limits")) == \
-                   (title, goal, done, recipients, team, deps, limits or {})
+                    existing.get("limits"), [item["text"] for item in existing.get("done_items") or []],
+                    existing.get("kind"), existing.get("priority"), existing.get("parent"),
+                    existing.get("origin")) == \
+                   (title, goal, done, recipients, team, deps, limits, punkte,
+                    art, priority_wert, parent, origin)
             if same:
                 return existing
             raise AgentsError("Ticketkennung existiert bereits mit anderem Inhalt")
@@ -712,12 +935,31 @@ def create_ticket(root: Path, title: str, goal: str, done: str,
         ts = now()
         ticket = {
             "schema_version": SCHEMA_VERSION, "id": ticket_id, "world": world["id"],
-            "title": title, "goal": goal, "done_criterion": done, "limits": limits or {},
+            "title": title, "goal": goal, "done_criterion": done, "limits": limits,
             "dependencies": deps, "recipients": list(recipients), "team": team,
-            "sender": sender or "cli-operator", "sender_verified": False, "state": "offen",
+            "sender": sender or "cli-operator", "sender_verified": False,
+            "state": "triage" if triage else "offen",
             "assignee": None, "claimed_at": None, "result": None, "approval": None,
+            "done_items": [{"text": text, "done": False, "by": None, "at": None} for text in punkte],
             "created_at": ts, "updated_at": ts,
+            "kind": art,
+            "priority": priority_wert,
         }
+        if parent is not None:
+            ticket["parent"] = parent
+        if origin is not None:
+            ticket["origin"] = origin
+        if eltern is not None and eltern.get("cycle"):
+            # Kinder erben Prioritaet und Zyklus des Eltern (Plan Saetze 42 und 43).
+            ticket["cycle"] = eltern["cycle"]
+        if triage:
+            ticket["order"] = _naechste_triage_ordnung(list_tickets(root))
+        elif not ticket.get("cycle"):
+            # Tickets im Zyklus stehen offen adressiert oder in triage mit Zyklusvermerk (AGIL
+            # Abschnitt 4): ein direkt adressiertes Ticket bekommt den aktuellen Zyklus der Welt.
+            zyklen = world.get("cycles") or {}
+            if zyklen.get("enabled"):
+                ticket["cycle"] = (zyklen.get("current") or {}).get("id")
         path = _ticket_path(root, ticket_id)
         stage_path = path.parent / (".%s.creating-%s" % (ticket_id, uuid.uuid4().hex))
         try:
@@ -726,7 +968,10 @@ def create_ticket(root: Path, title: str, goal: str, done: str,
             _write_json(stage_path / "ergebnis.json", {})
             _append_jsonl(stage_path / "verlauf.jsonl", {"id": new_id("ev"), "time": ts, "event": "erstellt", "actor": actor})
             os.replace(stage_path, path)
-            _deliver_ticket(root, ticket, actor)
+            if not triage:
+                _deliver_ticket(root, ticket, actor)
+            if herkunft is not None:
+                _ticket_event(root, herkunft, "folgeticket", actor, folgeticket=ticket_id)
             return ticket
         except BaseException:
             shutil.rmtree(stage_path, ignore_errors=True)
@@ -778,6 +1023,8 @@ def claim_ticket(root: Path, ticket_id: str, agent_id: str,
             raise AgentsError("Ticket ist bereits %s" % ticket["state"])
         for dependency_id in ticket.get("dependencies") or []:
             dependency = read_ticket(root, dependency_id)
+            if dependency.get("state") == "verworfen":
+                raise AgentsError("Abhaengigkeit %s ist verworfen" % dependency_id)
             if dependency.get("state") != "abgenommen":
                 raise AgentsError("Abhaengigkeit %s ist noch nicht abgenommen" % dependency_id)
         for other in list_tickets(root):
@@ -813,6 +1060,9 @@ def write_result(root: Path, ticket_id: str, agent_id: str, text: str,
             raise AgentsError("Ticket wartet bereits auf Abnahme")
         if ticket["state"] != "läuft":
             raise AgentsError("Ticket ist %s; Ergebnis nicht mehr schreibbar" % ticket["state"])
+        offen = _open_done_items(ticket)
+        if offen:
+            raise AgentsError("Fertig-Liste hat offene Punkte: %s" % "; ".join(offen))
         result = {"schema_version": SCHEMA_VERSION, "ticket": ticket_id, "agent": agent_id,
                   "text": text, "commit": commit, "written_at": now(), "sender_verified": False}
         revision = int(ticket.get("result_revision") or 0) + 1
@@ -821,6 +1071,7 @@ def write_result(root: Path, ticket_id: str, agent_id: str, text: str,
         ticket.update({"state": "zur Abnahme", "result": result,
                        "result_message_id": result_message_id, "result_revision": revision,
                        "updated_at": now()})
+        ticket.pop("review", None)  # eine neue Revision wird neu geprüft
         # The ticket is authoritative.  If the process dies before the separate
         # result file or notification is written, the next transaction repairs both.
         _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
@@ -834,36 +1085,54 @@ def write_result(root: Path, ticket_id: str, agent_id: str, text: str,
         return ticket
 
 
+def _require_approver(root: Path, actor: dict[str, Any], ticket: dict[str, Any]) -> None:
+    """Die Abnahme- und Pruefungsregel: Hauptagent oder Teamleiter des Teams (Plan Satz 27)."""
+    if actor.get("kind") == "agent" and actor.get("role") == "teamleiter":
+        agent = read_agent(root, actor["id"])
+        # Also an own ticket from a member of the leader's team, e.g. a skill
+        # proposal addressed to the leader (docs/AGENTS-SKILLS.md, Abnahmeweg).
+        sender_id = ticket.get("sender")
+        sender = None
+        if sender_id and sender_id not in HUMAN_ACTORS and ID_RE.match(str(sender_id)):
+            try:
+                sender = read_agent(root, sender_id)
+            except AgentsError:
+                sender = None
+        own_member_ticket = (ticket.get("assignee") == actor["id"] and sender is not None
+                             and sender.get("stage") == "mitglied" and sender.get("team") == agent.get("team"))
+        if ticket.get("team") != agent.get("team") and not own_member_ticket:
+            raise AgentsError("Teamleiter darf nur Tickets seines Teams oder selbst bearbeitete Tickets von "
+                              "Mitgliedern seines Teams abnehmen")
+    if actor.get("kind") == "agent" and actor.get("role") == "mitglied":
+        raise AgentsError("Mitglied darf Tickets nicht abnehmen")
+
+
 def approve_ticket(root: Path, ticket_id: str, approver: str | None,
-                   claimed_role: str | None, note: str | None, accept: bool = True) -> dict[str, Any]:
+                   claimed_role: str | None, note: str | None, accept: bool = True,
+                   reason_code: str | None = None, dod_checked: bool = False) -> dict[str, Any]:
     with transaction(root):
         actor = _require_actor(root, approver, claimed_role, ("hauptagent", "teamleiter"))
         ticket = read_ticket(root, ticket_id)
         if ticket["state"] not in ("zur Abnahme", "zurückgegeben"):
             raise AgentsError("Ticket ist %s; keine Abnahme moeglich" % ticket["state"])
-        if actor.get("kind") == "agent" and actor.get("role") == "teamleiter":
-            agent = read_agent(root, actor["id"])
-            # Also an own ticket from a member of the leader's team, e.g. a skill
-            # proposal addressed to the leader (docs/AGENTS-SKILLS.md, Abnahmeweg).
-            sender_id = ticket.get("sender")
-            sender = None
-            if sender_id and sender_id not in HUMAN_ACTORS and ID_RE.match(str(sender_id)):
-                try:
-                    sender = read_agent(root, sender_id)
-                except AgentsError:
-                    sender = None
-            own_member_ticket = (ticket.get("assignee") == actor["id"] and sender is not None
-                                 and sender.get("stage") == "mitglied" and sender.get("team") == agent.get("team"))
-            if ticket.get("team") != agent.get("team") and not own_member_ticket:
-                raise AgentsError("Teamleiter darf nur Tickets seines Teams oder selbst bearbeitete Tickets von Mitgliedern seines Teams abnehmen")
-        if actor.get("kind") == "agent" and actor.get("role") == "mitglied":
-            raise AgentsError("Mitglied darf Tickets nicht abnehmen")
+        if accept:
+            code = reason_code if reason_code is not None else "erledigt"
+            if code not in APPROVE_REASONS:
+                raise AgentsError("Abnahmegrund muss %s sein" % " oder ".join(APPROVE_REASONS))
+            if code == "teilweise" and (note is None or not str(note).strip()):
+                raise AgentsError("Abnahme mit Grund teilweise braucht eine Bemerkung")
+            if _world_dod(read_world(root)) and not dod_checked:
+                raise AgentsError("Definition of Done nicht bestätigt")
+        _require_approver(root, actor, ticket)
         if not accept and ticket["state"] == "zurückgegeben":
             approval = ticket.get("approval") or {}
             if approval.get("agent") == actor.get("id") and approval.get("note") == note:
                 return ticket  # idempotent retry after a lost response
         ticket["state"] = "abgenommen" if accept else "zurückgegeben"
-        ticket["approval"] = {"agent": actor["id"], "verified": False, "time": now(), "note": note}
+        approval = {"agent": actor["id"], "verified": False, "time": now(), "note": note}
+        if accept:
+            approval["reason_code"] = code
+        ticket["approval"] = approval
         ticket["updated_at"] = now()
         if not accept:
             ticket.pop("return_to", None)
@@ -874,9 +1143,16 @@ def approve_ticket(root: Path, ticket_id: str, approver: str | None,
             ticket["return_delivery_time"] = ticket["updated_at"]
             ticket["delivery_sender"] = actor["id"]
         _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
-        _ticket_event(root, ticket, "abgenommen" if accept else "zurueckgegeben", actor, note=note)
+        _ticket_event(root, ticket, "abgenommen" if accept else "zurueckgegeben", actor, note=note,
+                      grund=code if accept else None)
         if not accept:
             _deliver_ticket(root, ticket, actor)
+        else:
+            _deliver_freed_locked(root, actor["id"])
+            _eltern_kinder_fertig(root, ticket, actor)
+            _melde_vorhaben(root, ticket)
+    if accept:
+        wake_parked_tickets(root)
     # Outside the lock: an orchestrator that created the ticket gets the result in its session
     # inbox. A dead session never undoes the approval (deliver_to_session_inbox records it).
     if accept and ((ticket.get("limits") or {}).get("rueckweg") or {}).get("art") == SESSION_RETURN_KIND:
@@ -905,7 +1181,7 @@ def list_tickets(root: Path) -> list[dict[str, Any]]:
 
 def _interrupt_agent_tickets(root: Path, agent_id: str, reason: str) -> None:
     for ticket in list_tickets(root):
-        if ticket.get("assignee") != agent_id or ticket.get("state") not in ("läuft", "zur Abnahme"):
+        if ticket.get("assignee") != agent_id or ticket.get("state") not in ("läuft", "zur Abnahme", "in Prüfung"):
             continue
         ticket["state"] = "unterbrochen"
         ticket["updated_at"] = now()
@@ -915,7 +1191,7 @@ def _interrupt_agent_tickets(root: Path, agent_id: str, reason: str) -> None:
 
 def _interrupt_all_tickets(root: Path, reason: str) -> None:
     for ticket in list_tickets(root):
-        if ticket.get("state") in ("läuft", "zur Abnahme"):
+        if ticket.get("state") in ("läuft", "zur Abnahme", "in Prüfung"):
             ticket["state"] = "unterbrochen"
             ticket["updated_at"] = now()
             _write_json(_ticket_path(root, ticket["id"]) / "ticket.json", ticket)
@@ -1183,14 +1459,20 @@ def _recover_pending(root: Path) -> None:
             result_path = _ticket_path(root, ticket["id"]) / "ergebnis.json"
             if not result_path.exists() or _read_json(result_path) != result:
                 _write_json(result_path, result)
-            sender = ticket.get("sender") or "hauptagent"
-            _deliver_message(root, result.get("agent", ticket.get("assignee")), sender,
-                             "ticket-ergebnis", "Ergebnis zu %s" % ticket["id"], ticket["id"],
-                             result.get("text", ""), ticket.get("result_message_id") or derived_id("result", ticket["id"]))
+            if result.get("agent") == "system":
+                # Ein Eltern auf "zur Abnahme" (Kinder fertig) bekommt die Kinderzustellung
+                # nachgetragen, keine Ergebnisnachricht an den Absender.
+                _deliver_ticket(root, ticket, {"id": "system", "verified": False})
+            else:
+                sender = ticket.get("sender") or "hauptagent"
+                _deliver_message(root, result.get("agent", ticket.get("assignee")), sender,
+                                 "ticket-ergebnis", "Ergebnis zu %s" % ticket["id"], ticket["id"],
+                                 result.get("text", ""), ticket.get("result_message_id") or derived_id("result", ticket["id"]))
         elif ticket.get("state") == "läuft":
             result_path = _ticket_path(root, ticket["id"]) / "ergebnis.json"
             if result_path.exists() and _read_json(result_path) != {}:
                 _write_json(result_path, {})
+    _deliver_freed_locked(root, "system")
     # Channel messages are durable records whose per-agent postboxes are
     # projections.  Rebuild any projection left behind by a crash.
     for message in read_messages(root):
@@ -1245,12 +1527,32 @@ def reopen_interrupted_ticket(root: Path, ticket_id: str, sender: str | None,
             raise AgentsError("Welt ist %s; Ticket bleibt unterbrochen" % world["state"])
         actor = _require_actor(root, sender, claimed_role, ("hauptagent", "teamleiter"))
         ticket = read_ticket(root, ticket_id)
-        if ticket["state"] in ("offen", "zur Abnahme") and ticket.get("resume_revision"):
+        if ticket["state"] in ("offen", "zur Abnahme", "in Prüfung") and ticket.get("resume_revision"):
             return ticket  # idempotent retry after a lost response
         if ticket["state"] != "unterbrochen":
             raise AgentsError("Ticket ist %s; nur unterbrochene Tickets werden fortgesetzt" % ticket["state"])
         revision = int(ticket.get("resume_revision") or 0) + 1
         ts = now()
+        review = ticket.get("review")
+        if ticket.get("state") == "unterbrochen" and isinstance(review, dict) and review.get("reviewer"):
+            # Eine unterbrochene Pruefung wird dem Pruefer neu zugestellt (Plan Satz 34).
+            ticket.update({"state": "in Prüfung", "resume_revision": revision, "updated_at": ts})
+            _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
+            delivery_id = derived_id("ticket-review", ticket_id, review.get("revision"), revision)
+            reviewer = valid_id(review["reviewer"], "Prueferkennung")
+            path = _delivery_path(root, reviewer, delivery_id)
+            payload = {"delivery_id": delivery_id, "kind": "ticket-review", "ticket_id": ticket_id,
+                       "time": ts, "sender": review.get("requested_by") or actor["id"],
+                       "acknowledged": False, "recipient": reviewer}
+            if path.exists():
+                stored = _read_json(path)
+                if any(stored.get(key) != payload[key] for key in payload if key != "acknowledged"):
+                    raise AgentsError("Pruefungszustellung existiert bereits mit anderem Inhalt")
+            else:
+                _write_json(path, payload)
+            _ticket_event(root, ticket, "fortgesetzt", actor, revision=revision, restored="in Prüfung",
+                          pruefer=reviewer, zustellung=delivery_id)
+            return ticket
         if ticket.get("result"):
             ticket.update({"state": "zur Abnahme", "resume_revision": revision, "updated_at": ts})
             _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
@@ -1276,6 +1578,1198 @@ def record_run_outcome(root: Path, ticket_id: str, run_id: str, outcome: str,
         _ticket_event(root, ticket, "zug", {"id": "traeger", "verified": False, "source": "controller"},
                       run_id=run_id, outcome=outcome, detail=detail[:500])
         return ticket
+
+
+# ---------------------------------------------------------------------------
+# Warten, Fragen, Verwerfen, Umadressieren und Triage (Plan AGENTS-TICKETS-PLAN
+# Abschnitt 5, Saetze 19 bis 24 und 39 bis 41).  Jeder Uebergang laeuft unter
+# dem Welt-Lock, ist bei Wiederholung mit gleichen Argumenten idempotent und
+# traegt ein Ereignis in den Ticketverlauf.
+# ---------------------------------------------------------------------------
+
+def _epoch_of(value: Any) -> float:
+    text = str(value).strip()
+    stamp = _dt.datetime.fromisoformat(text[:-1] + "+00:00" if text.endswith("Z") else text)
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=_dt.timezone.utc)
+    return stamp.timestamp()
+
+
+def _ticket_delivery_recipients(root: Path, ticket: dict[str, Any]) -> tuple[list[str], str]:
+    delivery_id = ticket.get("return_delivery_id") or derived_id("ticket", ticket["id"])
+    if ticket.get("return_to") and ticket.get("return_to_delivery") == delivery_id:
+        return list(ticket["return_to"]), delivery_id
+    recipients = list(ticket.get("recipients") or [])
+    if ticket.get("team"):
+        recipients.extend(a["id"] for a in list_agents(root) if a.get("team") == ticket["team"])
+    return recipients, delivery_id
+
+
+def _ticket_has_open_delivery(root: Path, ticket: dict[str, Any]) -> bool:
+    recipients, delivery_id = _ticket_delivery_recipients(root, ticket)
+    for recipient in sorted(set(recipients)):
+        path = _delivery_path(root, recipient, delivery_id)
+        if path.exists() and not _read_json(path).get("acknowledged"):
+            return True
+    return False
+
+
+def _ticket_event_exists(root: Path, ticket_id: str, event: str, **match: Any) -> bool:
+    for entry in _read_jsonl(_ticket_path(root, ticket_id) / "verlauf.jsonl", "Ticketverlauf"):
+        if entry.get("event") == event and all(entry.get(key) == value for key, value in match.items()):
+            return True
+    return False
+
+
+def _acknowledge_ticket_deliveries(root: Path, ticket: dict[str, Any], actor_id: str) -> None:
+    recipients, delivery_id = _ticket_delivery_recipients(root, ticket)
+    for recipient in sorted(set(recipients)):
+        path = _delivery_path(root, recipient, delivery_id)
+        if not path.exists():
+            continue
+        data = _read_json(path)
+        if data.get("acknowledged"):
+            continue
+        data["acknowledged"] = True
+        data["acknowledged_at"] = now()
+        data["acknowledged_by"] = actor_id
+        _write_json(path, data)
+
+
+def _deliver_freed_locked(root: Path, sender: str = "system") -> None:
+    approved = [item for item in list_tickets(root) if item.get("state") == "abgenommen"]
+    if not approved:
+        return
+    for ticket in list_tickets(root):
+        if ticket.get("state") not in ("offen", "zurückgegeben"):
+            continue
+        deps = list(ticket.get("dependencies") or [])
+        if not deps or not any(item["id"] in deps for item in approved):
+            continue
+        states = {item["id"]: item for item in approved}
+        for dep in deps:
+            if dep in states:
+                continue
+            try:
+                if read_ticket(root, dep).get("state") != "abgenommen":
+                    break
+            except AgentsError:
+                break
+        else:
+            approval = next(item for item in approved if item["id"] in deps)
+            approval_time = (approval.get("approval") or {}).get("time") or approval.get("updated_at")
+            delivery_id = derived_id("ticket-free", ticket["id"], approval["id"], approval_time)
+            if _ticket_event_exists(root, ticket["id"], "frei", zustellung=delivery_id):
+                continue
+            if _ticket_has_open_delivery(root, ticket):
+                continue
+            recipients, _ = _ticket_delivery_recipients(root, ticket)
+            ts = now()
+            ticket.update({"return_to": sorted(set(recipients)), "return_to_delivery": delivery_id,
+                           "return_delivery_id": delivery_id, "return_delivery_time": ts,
+                           "delivery_sender": sender, "updated_at": ts})
+            _write_json(_ticket_path(root, ticket["id"]) / "ticket.json", ticket)
+            _deliver_ticket(root, ticket, {"id": sender, "verified": False})
+            _ticket_event(root, ticket, "frei", {"id": sender, "verified": False},
+                          abnahme=approval["id"], zustellung=delivery_id)
+
+
+def _wake_parked_locked(root: Path, now_epoch: float) -> list[str]:
+    woke: list[str] = []
+    for ticket in list_tickets(root):
+        parked = ticket.get("parked")
+        if not isinstance(parked, dict) or not parked:
+            continue
+        due = False
+        until = parked.get("until")
+        if until is not None:
+            try:
+                due = _epoch_of(until) <= now_epoch
+            except (ValueError, TypeError, OSError):
+                due = False
+        waiting_for = parked.get("waiting_for")
+        grund = None
+        if waiting_for is not None and not due:
+            try:
+                target = read_ticket(root, waiting_for)
+            except AgentsError:
+                target = None
+            state = (target or {}).get("state")
+            if state == "abgenommen":
+                due = True
+            elif state == "verworfen":
+                # Ein verworfen entblocktes Warteticket weckt ebenfalls; das Ereignis nennt den Grund.
+                due, grund = True, "warteticket %s verworfen" % waiting_for
+        if not due:
+            continue
+        ts = now()
+        ticket.pop("parked", None)
+        ticket["updated_at"] = ts
+        if ticket.get("state") == "triage":
+            _write_json(_ticket_path(root, ticket["id"]) / "ticket.json", ticket)
+            _ticket_event(root, ticket, "geweckt", {"id": "system", "verified": False},
+                          until=until, waiting_for=waiting_for, grund=grund)
+            woke.append(ticket["id"])
+            continue
+        revision = int(ticket.get("wake_revision") or 0) + 1
+        delivery_id = derived_id("ticket-wake", ticket["id"], revision)
+        target = [ticket["assignee"]] if ticket.get("assignee") else list(ticket.get("recipients") or [])
+        ticket.update({"state": "offen", "wake_revision": revision, "return_to": target,
+                       "return_to_delivery": delivery_id, "return_delivery_id": delivery_id,
+                       "return_delivery_time": ts, "delivery_sender": "system"})
+        _write_json(_ticket_path(root, ticket["id"]) / "ticket.json", ticket)
+        _deliver_ticket(root, ticket, {"id": "system", "verified": False})
+        _ticket_event(root, ticket, "geweckt", {"id": "system", "verified": False},
+                      until=until, waiting_for=waiting_for, grund=grund)
+        woke.append(ticket["id"])
+    return woke
+
+
+def wake_parked_tickets(root: Path, now: float | None = None) -> list[str]:
+    """Open every parked ticket whose wake time passed or whose ticket was approved.
+
+    Called by the carrier in each pass and by `approve_ticket` after an
+    approval; a triage ticket parked by the main agent returns to `triage`,
+    every other parked ticket opens with a fresh delivery to its assignee.
+    """
+    with transaction(root):
+        return _wake_parked_locked(root, time.time() if now is None else float(now))
+
+
+def park_ticket(root: Path, ticket_id: str, agent_id: str, reason: str, until: str | None = None,
+                waiting_for: str | None = None, sender: str | None = None,
+                claimed_role: str | None = None) -> dict[str, Any]:
+    """Park a running ticket with a reason and exactly one wake condition.
+
+    Only the assignee parks, and only from `läuft`; the main agent may defer a
+    triage ticket, which stays in `triage` with its `parked` fields.  A parked
+    ticket keeps its assignee but frees the agent's one running slot.
+    """
+    valid_id(ticket_id, "Ticketkennung")
+    if not isinstance(reason, str) or not reason.strip():
+        raise AgentsError("Parken braucht einen Grund")
+    if (until is None) == (waiting_for is None):
+        raise AgentsError("Genau eines von --bis (Zeitpunkt) oder --auf (Ticketkennung) ist Pflicht")
+    if waiting_for is not None:
+        valid_id(waiting_for, "Ticketkennung")
+    if until is not None:
+        try:
+            _epoch_of(until)
+        except (ValueError, TypeError, OSError) as exc:
+            raise AgentsError("--bis braucht eine ISO-Zeit (z. B. 2026-09-18T09:00:00Z)") from exc
+    with transaction(root):
+        actor = _actor(root, sender or agent_id, claimed_role)
+        ticket = read_ticket(root, ticket_id)
+        parked = ticket.get("parked") or {}
+        if isinstance(parked, dict) and parked and parked.get("reason") == reason \
+                and parked.get("until") == until and parked.get("waiting_for") == waiting_for:
+            return ticket
+        if waiting_for is not None:
+            target = read_ticket(root, waiting_for)
+            if waiting_for == ticket_id:
+                raise AgentsError("Ticket-Abhaengigkeit bildet einen Zyklus")
+            _ticket_dependencies_cycle(root, ticket_id, list(ticket.get("dependencies") or []) + [waiting_for])
+            if isinstance(target.get("parked"), dict) and target["parked"].get("waiting_for") == ticket_id:
+                raise AgentsError("Ticket-Abhaengigkeit bildet einen Zyklus")
+        ts = now()
+        parked = {"reason": reason, "until": until, "waiting_for": waiting_for,
+                  "by": actor["id"], "at": ts}
+        if ticket.get("state") == "triage":
+            if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
+                raise AgentsError("Zurueckstellen aus der Triage darf nur der Hauptagent der Welt")
+            ticket.update({"parked": parked, "updated_at": ts})
+            _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
+            _ticket_event(root, ticket, "geparkt", actor, reason=reason, until=until, waiting_for=waiting_for)
+            return ticket
+        if ticket.get("state") != "läuft":
+            raise AgentsError("Ticket ist %s; nur ein laufendes Ticket wird geparkt" % ticket["state"])
+        if actor.get("kind") == "external" or actor.get("id") != agent_id \
+                or ticket.get("assignee") != agent_id:
+            raise AgentsError("Nur der Bearbeiter darf das Ticket parken")
+        ticket.update({"state": "wartet", "parked": parked, "updated_at": ts})
+        _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
+        _ticket_event(root, ticket, "geparkt", actor, reason=reason, until=until, waiting_for=waiting_for)
+        return ticket
+
+
+def flag_ticket(root: Path, ticket_id: str, question_id: str, reason: str,
+                sender: str | None = None, claimed_role: str | None = None) -> dict[str, Any]:
+    """Mark a ticket as waiting on an open question; only the main agent (or the human) flags.
+
+    The question must exist and be open.  Answering it reopens the ticket with
+    a delivery to its assignee (event `beantwortet`).
+    """
+    valid_id(ticket_id, "Ticketkennung")
+    valid_id(question_id, "Fragenkennung")
+    if not isinstance(reason, str) or not reason.strip():
+        raise AgentsError("Braucht-dich braucht einen Grund")
+    with transaction(root):
+        actor = _actor(root, sender, claimed_role)
+        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
+            raise AgentsError("Braucht-dich setzt nur der Hauptagent der Welt")
+        question = read_question(root, question_id)
+        if question.get("state") != "offen":
+            raise AgentsError("Frage %s ist %s; nur eine offene Frage wird vermerkt" % (
+                question_id, question.get("state")))
+        ticket = read_ticket(root, ticket_id)
+        flag = ticket.get("flag") or {}
+        if isinstance(flag, dict) and flag and flag.get("question") == question_id \
+                and flag.get("reason") == reason:
+            return ticket
+        if flag:
+            raise AgentsError("Ticket haengt bereits an Frage %s" % flag.get("question"))
+        if ticket.get("state") not in ("läuft", "wartet"):
+            raise AgentsError("Ticket ist %s; braucht-dich nur aus läuft oder wartet" % ticket["state"])
+        ts = now()
+        ticket.pop("parked", None)
+        ticket.update({"state": "braucht dich", "updated_at": ts,
+                       "flag": {"question": question_id, "reason": reason, "by": actor["id"], "at": ts}})
+        _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
+        _ticket_event(root, ticket, "braucht-dich", actor, frage=question_id, grund=reason)
+        return ticket
+
+
+def discard_ticket(root: Path, ticket_id: str, reason_code: str, note: str | None = None,
+                   sender: str | None = None, claimed_role: str | None = None,
+                   duplicate_of: str | None = None) -> dict[str, Any]:
+    """Discard a ticket with a reason from the fixed catalog; never from `abgenommen`.
+
+    The sender of the ticket, the main agent or the human discards.  A duplicate
+    names the existing original, which gets a `duplikat-gemeldet` event.
+    Dependent tickets stay open with an `abhaengigkeit-verworfen` event; a
+    discarded dependency never fulfils `claim_ticket` or readiness.
+    """
+    valid_id(ticket_id, "Ticketkennung")
+    if reason_code not in DISCARD_REASONS:
+        raise AgentsError("Verwerfungsgrund muss %s sein" % ", ".join(DISCARD_REASONS))
+    if note is not None and not isinstance(note, str):
+        raise AgentsError("Bemerkung muss ein Text sein")
+    if duplicate_of is not None:
+        valid_id(duplicate_of, "Ticketkennung")
+    with transaction(root):
+        actor = _actor(root, sender, claimed_role)
+        ticket = read_ticket(root, ticket_id)
+        discard = ticket.get("discard") or {}
+        same = (isinstance(discard, dict) and discard.get("code") == reason_code
+                and discard.get("note") == note and discard.get("duplicate_of") == duplicate_of)
+        if ticket.get("state") == "verworfen":
+            if same:
+                return ticket
+            raise AgentsError("Ticket ist bereits verworfen")
+        if ticket.get("state") == "abgenommen":
+            raise AgentsError("Ticket ist abgenommen; es wird nicht verworfen")
+        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent" \
+                and actor["id"] != ticket.get("sender"):
+            raise AgentsError("Verwerfen darf der Absender des Tickets oder der Hauptagent")
+        if reason_code == "duplikat":
+            if not duplicate_of:
+                raise AgentsError("Grund duplikat braucht ein --duplikat-von")
+            if duplicate_of == ticket_id:
+                raise AgentsError("Ein Ticket ist kein Duplikat von sich selbst")
+            original = read_ticket(root, duplicate_of)
+        ts = now()
+        _acknowledge_ticket_deliveries(root, ticket, actor["id"])
+        ticket.update({"state": "verworfen", "updated_at": ts,
+                       "discard": {"code": reason_code, "note": note, "by": actor["id"], "at": ts,
+                                   "duplicate_of": duplicate_of}})
+        if reason_code == "duplikat":
+            ticket["duplicate_of"] = duplicate_of
+        _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
+        _ticket_event(root, ticket, "verworfen", actor, code=reason_code, note=note, duplicate_of=duplicate_of)
+        if reason_code == "duplikat":
+            _ticket_event(root, original, "duplikat-gemeldet", actor, duplikat=ticket_id)
+        for other in list_tickets(root):
+            if other["id"] == ticket_id or other.get("state") == "verworfen":
+                continue
+            if ticket_id in (other.get("dependencies") or []):
+                _ticket_event(root, other, "abhaengigkeit-verworfen", actor, abhaengigkeit=ticket_id)
+        return ticket
+
+
+def reassign_ticket(root: Path, ticket_id: str, recipients: list[str], team: str | None = None,
+                    reason: str | None = None, sender: str | None = None,
+                    claimed_role: str | None = None) -> dict[str, Any]:
+    """Address a ticket anew with a reason; the old delivery is acknowledged, the new one goes out.
+
+    Allowed while no assignee runs, or by the assignee from `läuft` (then the
+    ticket opens again without an assignee).
+    """
+    valid_id(ticket_id, "Ticketkennung")
+    recipients = list(recipients or [])
+    if not recipients and not team:
+        raise AgentsError("Umadressieren braucht neue Adressaten oder ein Team")
+    if not isinstance(reason, str) or not reason.strip():
+        raise AgentsError("Umadressieren braucht einen Grund")
+    if team is not None:
+        valid_id(team, "Team")
+    with transaction(root):
+        actor = _actor(root, sender, claimed_role)
+        ticket = read_ticket(root, ticket_id)
+        previous = ticket.get("reassign") or {}
+        if isinstance(previous, dict) and previous.get("recipients") == recipients \
+                and previous.get("team") == team and previous.get("reason") == reason:
+            return ticket
+        state = ticket.get("state")
+        bearbeiter_haengt = state in ("läuft", "wartet", "braucht dich")
+        if actor.get("kind") == "agent":
+            if state == "läuft" and actor["id"] != ticket.get("assignee"):
+                raise AgentsError("Ticket ist %s; umadressieren darf der Bearbeiter selbst" % state)
+            if state in ("wartet", "braucht dich") and actor["id"] not in \
+                    (ticket.get("assignee"), ticket.get("sender")) and actor.get("role") != "hauptagent":
+                raise AgentsError("Ticket ist %s; umadressieren darf der Bearbeiter, der Absender oder "
+                                  "der Hauptagent" % state)
+            if not bearbeiter_haengt and actor.get("role") != "hauptagent" and actor["id"] != ticket.get("sender"):
+                raise AgentsError("Umadressieren darf der Absender des Tickets oder der Hauptagent")
+        for recipient in recipients:
+            read_agent(root, recipient)
+        ts = now()
+        revision = int(ticket.get("reassign_revision") or 0) + 1
+        delivery_id = derived_id("ticket-reassign", ticket_id, revision)
+        _acknowledge_ticket_deliveries(root, ticket, actor["id"])
+        ticket.update({"recipients": recipients, "team": team, "updated_at": ts,
+                       "reassign_revision": revision, "return_delivery_id": delivery_id,
+                       "return_delivery_time": ts, "delivery_sender": actor["id"],
+                       "reassign": {"recipients": recipients, "team": team, "reason": reason,
+                                    "by": actor["id"], "at": ts}})
+        ticket.pop("return_to", None)
+        ticket.pop("return_to_delivery", None)
+        if state == "läuft":
+            # Der Bearbeiter gibt ab: das Ticket oeffnet neu ohne Bearbeiter.
+            ticket.update({"state": "offen", "assignee": None, "claimed_at": None})
+        elif state in ("wartet", "braucht dich"):
+            # Der Stand bleibt (Weckbedingung oder Frage kennen die neuen Adressaten); sie
+            # werden sofort informiert, und beim Wecken oder Antworten geht die Zustellung
+            # an die neuen Adressaten (tickets2).
+            ticket.update({"assignee": None, "claimed_at": None})
+        _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
+        _ticket_event(root, ticket, "umadressiert", actor, grund=reason, an=recipients, team=team,
+                      aus_lauf=state == "läuft")
+        _deliver_ticket(root, ticket, actor)
+        return ticket
+
+
+def triage_accept(root: Path, ticket_id: str, recipients: list[str] | None = None,
+                  team: str | None = None, priority: Any = None, kind: Any = None,
+                  sender: str | None = None, claimed_role: str | None = None,
+                  done_items: list[str] | None = None, parent: str | None = None) -> dict[str, Any]:
+    """Address a triage ticket anew; only the main agent (or the human) decides.
+
+    `priority`, `kind` and `parent` are the tickets3 fields: kind is checked
+    against the catalog, priority against 0 to 3, the parent against the
+    hierarchy rules.  The Definition of Ready (plan sentence 45) refuses the
+    acceptance with the same reason `ready_tickets` reports.  `done_items` is
+    part of the creation flow and may only be set while the ticket is still in
+    triage without a list of its own.
+    """
+    valid_id(ticket_id, "Ticketkennung")
+    recipients = list(recipients or [])
+    if not recipients and not team:
+        raise AgentsError("Annehmen braucht Adressaten oder ein Team")
+    if priority is not None and (isinstance(priority, bool) or not isinstance(priority, (str, int, float))):
+        raise AgentsError("Prioritaet muss ein Text oder eine Zahl sein")
+    if priority is not None:
+        _ticket_priority_wert(priority)
+    art = _ticket_kind_wert(kind)
+    punkte = _done_item_list(done_items)
+    with transaction(root):
+        actor = _actor(root, sender, claimed_role)
+        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
+            raise AgentsError("Triage entscheidet nur der Hauptagent der Welt")
+        ticket = read_ticket(root, ticket_id)
+        previous = ticket.get("triage") or {}
+        if isinstance(previous, dict) and previous.get("recipients") == recipients \
+                and previous.get("team") == team and previous.get("priority") == priority \
+                and previous.get("kind") == kind and previous.get("parent") == parent \
+                and ticket.get("state") == "offen" \
+                and (not punkte or [item["text"] for item in ticket.get("done_items") or []] == punkte):
+            return ticket
+        if ticket.get("state") != "triage":
+            raise AgentsError("Ticket ist %s; nur ein Triage-Ticket wird angenommen" % ticket.get("state"))
+        if ticket.get("parked"):
+            raise AgentsError("Ticket ist zurueckgestellt; es wird erst geweckt")
+        if punkte and _ticket_done_items(ticket):
+            raise AgentsError("Fertig-Liste ist bereits gesetzt und bleibt unveraenderlich")
+        wirksame_art = art if kind is not None else _ticket_kind_feld(ticket)
+        liste = punkte or [item["text"] for item in _ticket_done_items(ticket)]
+        grund = _definition_of_ready_grund(wirksame_art, liste, ticket.get("limits"), recipients, team,
+                                           ticket.get("title"), ticket.get("goal"), ticket.get("done_criterion"))
+        if grund:
+            raise AgentsError("Nicht bereit: %s" % grund)
+        eltern = None
+        if parent is not None:
+            eltern = _ticket_parent_pruefen(root, ticket_id, parent, wirksame_art)
+        for recipient in recipients:
+            read_agent(root, recipient)
+        ts = now()
+        delivery_id = derived_id("ticket-triage", ticket_id)
+        zyklen = (read_world(root).get("cycles") or {})
+        aktueller = (zyklen.get("current") or {}).get("id") if zyklen.get("enabled") else None
+        ticket.update({"state": "offen", "recipients": recipients, "team": team, "updated_at": ts,
+                       "return_delivery_id": delivery_id, "return_delivery_time": ts,
+                       "delivery_sender": actor["id"],
+                       "triage": {"recipients": recipients, "team": team, "priority": priority,
+                                  "kind": kind, "parent": parent, "by": actor["id"], "at": ts}})
+        ticket.pop("return_to", None)
+        ticket.pop("return_to_delivery", None)
+        ticket.pop("order", None)  # angenommen: die Triage-Reihenfolge hat ausgedient
+        if priority is not None:
+            ticket["priority"] = priority
+        ticket["kind"] = wirksame_art
+        if parent is not None:
+            ticket["parent"] = parent
+        if eltern is not None and eltern.get("cycle"):
+            ticket["cycle"] = eltern["cycle"]
+        elif aktueller and not ticket.get("cycle"):
+            # Der Zyklus des Tickets ist der aktuelle der Welt (Plan Satz 46); das geerbte bleibt.
+            ticket["cycle"] = aktueller
+        if punkte:
+            ticket["done_items"] = [{"text": text, "done": False, "by": None, "at": None} for text in punkte]
+        _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
+        _ticket_event(root, ticket, "angenommen", actor, an=recipients, team=team,
+                      prioritaet=priority, art=kind, eltern=parent)
+        _deliver_ticket(root, ticket, actor)
+        return ticket
+
+
+# ---------------------------------------------------------------------------
+# Zwischenstand, Fertig-Liste und Pruefer (tickets2, Plan AGENTS-TICKETS-PLAN
+# Abschnitt 5 Saetze 2, 15, 16, 25, 26 und AGENTS-TICKETS-AGIL Abschnitt 6).
+# ---------------------------------------------------------------------------
+
+NOTE_LIMIT = 2000
+
+
+def note_ticket(root: Path, ticket_id: str, agent_id: str, text: str,
+                sender: str | None = None, claimed_role: str | None = None) -> dict[str, Any]:
+    """Append a progress note of the assignee to the ticket history (plan sentences 15, 16).
+
+    Only the assignee notes, and only from `läuft` or `wartet`; the state never
+    changes and the note may be written any number of times.  The text is
+    capped at 2000 characters.
+    """
+    valid_id(ticket_id, "Ticketkennung")
+    if not isinstance(text, str) or not text.strip():
+        raise AgentsError("Zwischenstand fehlt")
+    if len(text) > NOTE_LIMIT:
+        raise AgentsError("Zwischenstand ist laenger als %d Zeichen" % NOTE_LIMIT)
+    with transaction(root):
+        actor = _actor(root, sender or agent_id, claimed_role)
+        if actor.get("kind") != "agent" or actor["id"] != agent_id:
+            raise AgentsError("Zwischenstand schreibt nur der Bearbeiter selbst")
+        ticket = read_ticket(root, ticket_id)
+        if ticket.get("assignee") != agent_id:
+            raise AgentsError("Nur der Bearbeiter darf einen Zwischenstand schreiben")
+        if ticket["state"] not in ("läuft", "wartet"):
+            raise AgentsError("Ticket ist %s; Zwischenstand nur aus läuft oder wartet" % ticket["state"])
+        _ticket_event(root, ticket, "zwischenstand", actor, text=text)
+        return read_ticket(root, ticket_id)
+
+
+def check_done_item(root: Path, ticket_id: str, agent_id: str, index: int, done: bool = True,
+                    sender: str | None = None, claimed_role: str | None = None) -> dict[str, Any]:
+    """Tick (or untick) one item of the done list; idempotent, only the assignee from `läuft`.
+
+    The list itself is immutable after creation; only the `done` mark moves.
+    """
+    valid_id(ticket_id, "Ticketkennung")
+    if not isinstance(index, int) or isinstance(index, bool):
+        raise AgentsError("Nummer muss eine Zahl sein")
+    if not isinstance(done, bool):
+        raise AgentsError("Haken muss true oder false sein")
+    with transaction(root):
+        actor = _actor(root, sender or agent_id, claimed_role)
+        if actor.get("kind") != "agent" or actor["id"] != agent_id:
+            raise AgentsError("Haken setzt nur der Bearbeiter selbst")
+        ticket = read_ticket(root, ticket_id)
+        if ticket.get("assignee") != agent_id:
+            raise AgentsError("Nur der Bearbeiter setzt den Haken")
+        if ticket["state"] != "läuft":
+            raise AgentsError("Ticket ist %s; Haken nur aus läuft" % ticket["state"])
+        items = _ticket_done_items(ticket)
+        if not items or index < 1 or index > len(items):
+            raise AgentsError("Fertig-Punkt %d existiert nicht (1 bis %d)" % (index, len(items)))
+        item = items[index - 1]
+        if bool(item.get("done")) == done:
+            return ticket
+        ts = now()
+        item.update({"done": done, "by": agent_id, "at": ts})
+        ticket["done_items"] = items
+        ticket["updated_at"] = ts
+        _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
+        _ticket_event(root, ticket, "fertig-zurueck" if not done else "fertig-gehaekt", actor,
+                      punkt=item["text"], nr=index)
+        return ticket
+
+
+def review_ticket(root: Path, ticket_id: str, reviewer_id: str,
+                  sender: str | None = None, claimed_role: str | None = None) -> dict[str, Any]:
+    """Move a ticket from `zur Abnahme` into `in Prüfung` with a named reviewer (plan sentence 25).
+
+    Only the approver (main agent or team leader of the team) requests the
+    review, exactly once per result revision.  The reviewer must be an active
+    agent other than the assignee.  The reviewer is delivered a `pruefung`
+    post with the review note still missing.
+    """
+    valid_id(ticket_id, "Ticketkennung")
+    valid_id(reviewer_id, "Prueferkennung")
+    with transaction(root):
+        actor = _require_actor(root, sender, claimed_role, ("hauptagent", "teamleiter"))
+        ticket = read_ticket(root, ticket_id)
+        revision = int(ticket.get("result_revision") or 0)
+        review = ticket.get("review")
+        if isinstance(review, dict) and review.get("revision") == revision \
+                and ticket["state"] == "in Prüfung" and review.get("reviewer") == reviewer_id \
+                and review.get("requested_by") == actor["id"] and review.get("note") is None:
+            return ticket  # idempotent retry after a lost response
+        if ticket["state"] != "zur Abnahme":
+            raise AgentsError("Ticket ist %s; Pruefung nur aus zur Abnahme" % ticket["state"])
+        if isinstance(review, dict) and review.get("revision") == revision:
+            raise AgentsError("Revision %d wurde bereits geprueft" % revision)
+        reviewer = read_agent(root, reviewer_id)
+        if reviewer.get("state") != "aktiv":
+            raise AgentsError("Pruefer ist %s; nur ein aktiver Agent prueft" % reviewer.get("state"))
+        if reviewer_id == ticket.get("assignee"):
+            raise AgentsError("Der Bearbeiter prueft sich nicht selbst")
+        _require_approver(root, actor, ticket)
+        ts = now()
+        ticket.update({"state": "in Prüfung", "updated_at": ts,
+                       "review": {"reviewer": reviewer_id, "revision": revision,
+                                  "requested_by": actor["id"], "at": ts, "note": None}})
+        _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
+        _ticket_event(root, ticket, "pruefung-angefordert", actor, pruefer=reviewer_id, revision=revision)
+        delivery_id = derived_id("ticket-review", ticket_id, revision)
+        for recipient in sorted({reviewer_id}):
+            path = _delivery_path(root, recipient, delivery_id)
+            payload = {"delivery_id": delivery_id, "kind": "ticket-review", "ticket_id": ticket_id,
+                       "time": ts, "sender": actor["id"], "acknowledged": False, "recipient": reviewer_id}
+            if path.exists():
+                stored = _read_json(path)
+                if any(stored.get(key) != payload[key] for key in payload if key != "acknowledged"):
+                    raise AgentsError("Pruefungszustellung existiert bereits mit anderem Inhalt")
+            else:
+                _write_json(path, payload)
+        return ticket
+
+
+def review_result(root: Path, ticket_id: str, reviewer_id: str, text: str, verdict: str,
+                  sender: str | None = None, claimed_role: str | None = None) -> dict[str, Any]:
+    """Submit the review note exactly once (plan sentence 26).
+
+    Only the registered reviewer, only from `in Prüfung`; the verdict is
+    `bestanden` or `maengel`.  The ticket returns to `zur Abnahme` and the
+    approver who requested the review gets the note (`ticket-reviewed-…`).
+    """
+    valid_id(ticket_id, "Ticketkennung")
+    if not isinstance(text, str) or not text.strip():
+        raise AgentsError("Pruefnotiz fehlt")
+    if len(text) > NOTE_LIMIT:
+        raise AgentsError("Pruefnotiz ist laenger als %d Zeichen" % NOTE_LIMIT)
+    if verdict not in REVIEW_VERDICTS:
+        raise AgentsError("Prüfurteil muss %s sein" % " oder ".join(REVIEW_VERDICTS))
+    with transaction(root):
+        actor = _actor(root, sender or reviewer_id, claimed_role)
+        if actor.get("kind") != "agent" or actor["id"] != reviewer_id:
+            raise AgentsError("Pruefnotiz schreibt nur der eingetragene Pruefer")
+        ticket = read_ticket(root, ticket_id)
+        review = ticket.get("review") or {}
+        revision = int(ticket.get("result_revision") or 0)
+        if ticket["state"] == "zur Abnahme" and isinstance(review, dict) \
+                and review.get("revision") == revision and review.get("reviewer") == reviewer_id \
+                and review.get("note") == text and review.get("verdict") == verdict:
+            return ticket  # idempotent retry after a lost response
+        if ticket["state"] != "in Prüfung":
+            raise AgentsError("Ticket ist %s; Pruefnotiz nur aus in Prüfung" % ticket["state"])
+        if review.get("reviewer") != reviewer_id or review.get("revision") != revision:
+            raise AgentsError("Pruefer ist nicht fuer diese Revision eingetragen")
+        ts = now()
+        review.update({"note": text, "verdict": verdict, "at": ts})
+        ticket.update({"state": "zur Abnahme", "updated_at": ts, "review": review})
+        _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
+        _ticket_event(root, ticket, "pruefnotiz", actor, text=text, verdict=verdict, revision=revision)
+        requested_by = review.get("requested_by")
+        if requested_by:
+            # Antwort-Betreff: der Träger verlangt keine Gegenantwort auf die Prüfnotiz.
+            _deliver_message(root, reviewer_id, requested_by, "kanal", "Antwort", ticket_id,
+                             "Prüfnotiz zu %s (%s): %s" % (ticket_id, verdict, text),
+                             derived_id("ticket-reviewed", ticket_id, revision))
+        return ticket
+
+
+def ready_tickets(root: Path) -> list[dict[str, Any]]:
+    """Every ticket with `ready` and, if not ready, the reason why it is not.
+
+    Ready means: state `offen` or `zurückgegeben`, the Definition of Ready is
+    met (plan sentence 45), every dependency approved, at least one active
+    addressee without a running ticket, the world running and the world's WIP
+    limit not reached (sentence 48).  Triage tickets sort by their backlog
+    `order` (sentence 44), the rest by `priority` ascending (missing counts as
+    normal), then `created_at`, then id.
+    """
+    root = world_path(str(root))
+    world = read_world(root)
+    agents = {a["id"]: a for a in list_agents(root)}
+    tickets = list_tickets(root)
+    by_id = {t["id"]: t for t in tickets}
+    running = {t.get("assignee") for t in tickets if t.get("state") == "läuft"}
+    result = []
+    for ticket in tickets:
+        blocker = _ticket_blocker(root, ticket, world, agents, by_id, running)
+        entry = dict(ticket)
+        entry["ready"] = blocker is None
+        entry["reason"] = blocker
+        result.append(entry)
+
+    def sort_key(entry: dict[str, Any]) -> tuple[Any, ...]:
+        if entry.get("state") == "triage":
+            order = entry.get("order")
+            num = order if isinstance(order, int) and not isinstance(order, bool) else 10 ** 9
+            return (0, 0, num, str(entry.get("created_at") or ""), entry["id"])
+        priority = entry.get("priority")
+        if isinstance(priority, bool):
+            bucket, value = 2, 0
+        elif isinstance(priority, (int, float)):
+            bucket, value = 0, priority
+        elif isinstance(priority, str) and priority.strip():
+            bucket, value = 1, 0
+        else:
+            bucket, value = 0, DEFAULT_PRIORITY  # Bestand ohne Feld gilt als normal
+        return (1, bucket, value, str(entry.get("created_at") or ""), entry["id"])
+    return sorted(result, key=sort_key)
+
+
+def _ticket_blocker(root: Path, ticket: dict[str, Any], world: dict[str, Any],
+                    agents: dict[str, dict[str, Any]], by_id: dict[str, dict[str, Any]],
+                    running: set[str | None]) -> str | None:
+    state = ticket.get("state")
+    parked = ticket.get("parked") or {}
+    if isinstance(parked, dict) and parked:
+        if parked.get("until"):
+            return "geparkt bis %s" % parked["until"]
+        return "wartet auf Ticket %s" % parked.get("waiting_for")
+    if state == "triage":
+        return "triage"
+    if state == "läuft":
+        return "besetzt: Agent bearbeitet %s" % ticket["id"]
+    if state not in ("offen", "zurückgegeben"):
+        return {"wartet": "geparkt", "braucht dich": "wartet auf Antwort",
+                "zur Abnahme": "wartet auf Abnahme", "in Prüfung": "in Prüfung",
+                "abgenommen": "abgenommen", "unterbrochen": "unterbrochen",
+                "verworfen": "verworfen"}.get(state, str(state))
+    for dep in ticket.get("dependencies") or []:
+        dependency = by_id.get(dep)
+        if dependency is None:
+            return "abhaengigkeit %s ist unbekannt" % dep
+        if dependency.get("state") == "verworfen":
+            return "abhaengigkeit %s verworfen" % dep
+        if dependency.get("state") != "abgenommen":
+            return "abhaengigkeit %s ist %s" % (dep, dependency.get("state"))
+    if world.get("state") != "läuft":
+        return "welt pausiert"
+    recipients = list(ticket.get("recipients") or [])
+    if ticket.get("team"):
+        recipients.extend(a["id"] for a in agents.values() if a.get("team") == ticket["team"])
+    active = [agents[r] for r in sorted(set(recipients)) if r in agents and agents[r].get("state") == "aktiv"]
+    if not active:
+        return "agent pausiert"
+    free = [a for a in active if a["id"] not in running]
+    if not free:
+        busy = sorted(t["id"] for t in by_id.values()
+                      if t.get("state") == "läuft" and t.get("assignee") in {a["id"] for a in active})
+        return "agent bearbeitet %s" % (busy[0] if busy else "ein anderes Ticket")
+    # Definition of Ready (Plan Satz 45): sie blockt, wenn alles andere freisteht, denn ein
+    # Ticket ohne Fertig-Liste oder Grenzen wird nicht zugestellt.
+    grund = _definition_of_ready_grund(_ticket_kind_feld(ticket),
+                                       [item["text"] for item in _ticket_done_items(ticket)],
+                                       ticket.get("limits"), ticket.get("recipients"), ticket.get("team"),
+                                       ticket.get("title"), ticket.get("goal"), ticket.get("done_criterion"))
+    if grund:
+        return grund
+    # Weiche WIP-Grenze der Welt (Plan Satz 48): laufende und geparkte Tickets der Welt zaehlen.
+    limit = _wip_limit(world, agents)
+    wip = sum(1 for other in by_id.values() if other.get("state") in ("läuft", "wartet"))
+    if wip >= limit:
+        return "wip-grenze (%d von %d laufen)" % (wip, limit)
+    return None
+
+
+def _wip_limit(world: dict[str, Any], agents: dict[str, dict[str, Any]]) -> int:
+    """Weiche WIP-Grenze der Welt (Plan Satz 48): gesetzt oder aktive Agenten plus ein Viertel."""
+    limit = world.get("wip_limit")
+    if isinstance(limit, int) and not isinstance(limit, bool) and limit >= 1:
+        return limit
+    aktiv = sum(1 for a in agents.values() if a.get("state") == "aktiv")
+    return aktiv + (aktiv + 3) // 4  # plus ein Viertel, aufgerundet
+
+
+def children(root: Path, ticket_id: str) -> list[dict[str, Any]]:
+    """The children of one ticket in the hierarchy (plan sentences 4 and 36)."""
+    root = world_path(str(root))
+    read_ticket(root, ticket_id)
+    return sorted((t for t in list_tickets(root) if t.get("parent") == ticket_id),
+                  key=lambda t: (str(t.get("created_at") or ""), t["id"]))
+
+
+def reorder_triage(root: Path, ticket_ids: list[str], sender: str | None = None,
+                   claimed_role: str | None = None) -> list[dict[str, Any]]:
+    """Set the backlog order of the triage tickets (plan sentence 44); only the main
+    agent or the human decides.  Named tickets come first in the given sequence, the
+    unnamed triage tickets keep their relative order behind them."""
+    ids: list[str] = []
+    for item in ticket_ids or []:
+        ids.append(valid_id(item, "Ticketkennung"))
+    if len(set(ids)) != len(ids):
+        raise AgentsError("Reihenfolge nennt eine Kennung doppelt")
+    with transaction(root):
+        actor = _actor(root, sender, claimed_role)
+        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
+            raise AgentsError("Die Triage ordnet nur der Hauptagent der Welt oder der Mensch")
+        triage = {t["id"]: t for t in list_tickets(root) if t.get("state") == "triage"}
+        unknown = [i for i in ids if i not in triage]
+        if unknown:
+            raise AgentsError("Kein Triage-Ticket: %s" % ", ".join(unknown))
+
+        def alt(item: dict[str, Any]) -> tuple[Any, str, str]:
+            order = item.get("order")
+            num = order if isinstance(order, int) and not isinstance(order, bool) else 10 ** 9
+            return (num, str(item.get("created_at") or ""), item["id"])
+        rest = sorted((t for i, t in triage.items() if i not in set(ids)), key=alt)
+        for position, tid in enumerate(ids + [t["id"] for t in rest], start=1):
+            ticket = triage[tid]
+            if ticket.get("order") == position:
+                continue
+            ticket["order"] = position
+            ticket["updated_at"] = now()
+            _write_json(_ticket_path(root, tid) / "ticket.json", ticket)
+            _ticket_event(root, ticket, "geordnet", actor, position=position)
+        return [triage[tid] for tid in ids] + list(rest)
+
+
+# ---------------------------------------------------------------------------
+# Grenzen, Zyklus, WIP und Hierarchie-Folgen (tickets3, Plan AGENTS-TICKETS-PLAN
+# Saetze 6, 29, 31, 43, 46, 48 und 51, AGENTS-TICKETS-AGIL Abschnitt 4 und 8).
+# ---------------------------------------------------------------------------
+
+def set_ticket_limits(root: Path, ticket_id: str, frist: str | None = None,
+                      runden: int | None = None, sender: str | None = None,
+                      claimed_role: str | None = None) -> dict[str, Any]:
+    """Frist und Rundenzahl aendern (Plan Satz 31); nur der Hauptagent oder der Mensch.
+
+    Ein Ticket, das der Träger wegen seiner Grenzen auf `braucht dich` gehoben hat,
+    kehrt auf den vorherigen Stand zurück und wird dem Bearbeiter wieder zugestellt
+    (Ereignis `grenzen-geaendert`).
+    """
+    valid_id(ticket_id, "Ticketkennung")
+    if frist is None and runden is None:
+        raise AgentsError("grenzen braucht --frist oder --runden")
+    if frist is not None:
+        try:
+            _epoch_of(frist)
+        except (ValueError, TypeError, OSError) as exc:
+            raise AgentsError("--frist braucht eine ISO-Zeit (z. B. 2026-09-18T09:00:00Z)") from exc
+    if runden is not None and (isinstance(runden, bool) or not isinstance(runden, int) or runden < 1):
+        raise AgentsError("--runden braucht eine ganze Zahl ab 1")
+    with transaction(root):
+        actor = _actor(root, sender, claimed_role)
+        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
+            raise AgentsError("Grenzen aendert nur der Hauptagent der Welt oder der Mensch")
+        ticket = read_ticket(root, ticket_id)
+        limits = dict(ticket.get("limits") or {})
+        if frist is not None:
+            limits["frist"] = frist
+        if runden is not None:
+            limits["runden"] = runden
+        flag = ticket.get("flag") or {}
+        gehoben = isinstance(flag, dict) and flag.get("question") is None and flag.get("vorher")
+        if ticket.get("limits") == limits and not gehoben:
+            return ticket
+        ts = now()
+        ticket["limits"] = limits
+        if gehoben:
+            vorher = flag.get("vorher")
+            ticket.pop("flag", None)
+            # Ein geparktes Ticket kehrt offen zurück, seine Weckbedingung ist weg; sonst der alte Stand.
+            ticket["state"] = vorher if vorher in ("offen", "zurückgegeben", "läuft") else "offen"
+            ziel = [ticket["assignee"]] if ticket.get("assignee") else list(ticket.get("recipients") or [])
+            delivery_id = derived_id("ticket-grenzen", ticket_id)
+            ticket.update({"return_to": ziel, "return_to_delivery": delivery_id,
+                           "return_delivery_id": delivery_id, "return_delivery_time": ts,
+                           "delivery_sender": actor["id"]})
+        ticket["updated_at"] = ts
+        _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
+        _ticket_event(root, ticket, "grenzen-geaendert", actor, frist=frist, runden=runden,
+                      zurueck_auf=ticket["state"])
+        if gehoben:
+            _deliver_ticket(root, ticket, actor)
+        return ticket
+
+
+def enforce_ticket_limits(root: Path, now_epoch: float | None = None,
+                          busy_ticket_ids: frozenset[str] | set[str] = frozenset()) -> list[str]:
+    """Fristpruefung und Rundenzaehler (Plan Saetze 6 und 31); kehrt mit den Kennungen zurück.
+
+    Ein Ticket, dessen Rundenzahl erreicht oder dessen Frist abgelaufen ist, wird
+    `braucht dich` mit Grund, Feld `flag` ohne Frage und Merker des vorherigen
+    Standes.  Gilt auch für geparkte und offene Tickets; nicht für tickets, die
+    gerade laufen (deren Zug darf enden) und nicht für Triage, Abnahme oder Prüfung.
+    Kein automatischer Zug danach; der Hauptagent löst es mit `set_ticket_limits`.
+    """
+    if now_epoch is None:
+        now_epoch = time.time()
+    escalated: list[str] = []
+    with transaction(root):
+        for ticket in list_tickets(root):
+            state = ticket.get("state")
+            if state not in ("offen", "zurückgegeben", "läuft", "wartet"):
+                continue
+            if ticket["id"] in busy_ticket_ids:
+                continue
+            limits = ticket.get("limits") or {}
+            grund = None
+            runden = limits.get("runden")
+            if isinstance(runden, int) and not isinstance(runden, bool) and runden >= 1:
+                zuege = sum(1 for entry in _read_jsonl(_ticket_path(root, ticket["id"]) / "verlauf.jsonl",
+                                                       "Ticketverlauf") if entry.get("event") == "zug")
+                if zuege >= runden:
+                    grund = "Rundenzahl %d erreicht" % runden
+            if grund is None:
+                frist = limits.get("frist")
+                if frist:
+                    try:
+                        abgelaufen = _epoch_of(frist) <= now_epoch
+                    except (ValueError, TypeError, OSError):
+                        abgelaufen = False
+                    if abgelaufen:
+                        grund = "Frist %s abgelaufen" % frist
+            if grund is None:
+                continue
+            ts = now()
+            ticket.pop("parked", None)
+            ticket.update({"state": "braucht dich", "updated_at": ts,
+                           "flag": {"question": None, "reason": grund, "by": "system", "at": ts,
+                                    "vorher": state}})
+            _write_json(_ticket_path(root, ticket["id"]) / "ticket.json", ticket)
+            _ticket_event(root, ticket, "braucht-dich", {"id": "traeger", "verified": False},
+                          grund=grund, vorher=state, frage=None)
+            escalated.append(ticket["id"])
+    return escalated
+
+
+def _zyklen_lesen(root: Path) -> list[dict[str, Any]]:
+    path = root / ZYKLEN_DATEI
+    if path.is_symlink() or not path.exists():
+        return []
+    return _read_jsonl(path, "Zyklendatei")
+
+
+def set_cycle(root: Path, enabled: bool, tage: int | None = None, ziel: str | None = None,
+              sender: str | None = None, claimed_role: str | None = None) -> dict[str, Any]:
+    """Zyklus der Welt einschalten oder ausschalten (Plan Satz 46); nur der Hauptagent
+    oder der Mensch.  Vorgabe ist eine Woche; das Ziel steht je Zyklus."""
+    if not isinstance(enabled, bool):
+        raise AgentsError("einschalten oder ausschalten")
+    with transaction(root):
+        actor = _actor(root, sender, claimed_role)
+        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
+            raise AgentsError("Den Zyklus setzt nur der Hauptagent der Welt oder der Mensch")
+        world = read_world(root)
+        cycles = dict(world.get("cycles") or {})
+        if not enabled:
+            if not cycles.get("enabled"):
+                return world
+            # Der letzte Zyklus bleibt sichtbar (Nummerierung geht weiter), eingeschaltet ist aus.
+            cycles["enabled"] = False
+            world["cycles"] = cycles
+            _write_json(world_file(root), world)
+            _world_event(root, "zyklus-ausgeschaltet", actor, zyklus=(cycles.get("current") or {}).get("id"))
+            return world
+        if tage is not None and (isinstance(tage, bool) or not isinstance(tage, int) or tage < 1):
+            raise AgentsError("--tage braucht eine ganze Zahl ab 1")
+        laenge = tage or int(cycles.get("length_days") or CYCLE_DEFAULT_DAYS)
+        belegt = {str(entry.get("id")) for entry in _zyklen_lesen(root)}
+        if isinstance(cycles.get("current"), dict) and cycles["current"].get("id"):
+            belegt.add(str(cycles["current"]["id"]))
+        nummer = 1
+        while "zyklus-%d" % nummer in belegt:
+            nummer += 1
+        start = now()
+        ende = _dt.datetime.fromtimestamp(_epoch_of(start) + laenge * 86400, _dt.timezone.utc) \
+            .isoformat().replace("+00:00", "Z")
+        cycles.update({"enabled": True, "length_days": laenge,
+                       "current": {"id": "zyklus-%d" % nummer, "start": start, "end": ende, "goal": ziel}})
+        world["cycles"] = cycles
+        _write_json(world_file(root), world)
+        _world_event(root, "zyklus-eingeschaltet", actor, zyklus=cycles["current"]["id"],
+                     tage=laenge, ziel=ziel)
+        return world
+
+
+def read_cycle(root: Path) -> dict[str, Any]:
+    """Zyklusstand der Welt zum Zeigen (Plan Satz 46)."""
+    world = read_world(world_path(str(root)))
+    zyklen = _zyklen_alle(root)
+    return {"enabled": bool((world.get("cycles") or {}).get("enabled")),
+            "current": (world.get("cycles") or {}).get("current"),
+            "length_days": (world.get("cycles") or {}).get("length_days") or CYCLE_DEFAULT_DAYS,
+            "abgeschlossen": zyklen}
+
+
+def set_wip_limit(root: Path, limit: int | None = None, sender: str | None = None,
+                  claimed_role: str | None = None) -> dict[str, Any]:
+    """Weiche WIP-Grenze der Welt setzen oder leeren (Plan Satz 48); nur der Hauptagent
+    oder der Mensch.  Ohne Grenze gilt: aktive Agenten plus ein Viertel, aufgerundet."""
+    with transaction(root):
+        actor = _actor(root, sender, claimed_role)
+        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
+            raise AgentsError("Die WIP-Grenze setzt nur der Hauptagent der Welt oder der Mensch")
+        world = read_world(root)
+        if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit < 1):
+            raise AgentsError("--limit braucht eine ganze Zahl ab 1")
+        vorher = world.get("wip_limit")
+        if limit is None:
+            world.pop("wip_limit", None)
+        else:
+            world["wip_limit"] = limit
+        if vorher == world.get("wip_limit"):
+            return world
+        _write_json(world_file(root), world)
+        _world_event(root, "wip-grenze-gesetzt", actor, limit=world.get("wip_limit"))
+        return world
+
+
+def _zyklen_alle(root: Path) -> list[dict[str, Any]]:
+    try:
+        return _zyklen_lesen(root)
+    except (AgentsError, OSError, ValueError):
+        return []
+
+
+def cycle_schluss(root: Path, now_epoch: float | None = None) -> dict[str, Any] | None:
+    """Zyklusschluss (Plan Satz 46): liegt `now` hinter dem Zyklusende, werden alle nicht
+    abgenommenen Tickets des Zyklus in den neuen übertragen (Ereignis `uebertragen`,
+    Zähler `carried_over`), der alte Zyklus in `zyklen.jsonl` mit Zahlen abgeschlossen,
+    und der Hauptagent bekommt eine Zustellung `zyklus-schluss` mit den Zahlen und der
+    Anweisung, einen Retro-Eintrag ins Gedächtnis zu schreiben.  Welten ohne Zyklus
+    bleiben unverändert; kein Ticket wird still geschlossen."""
+    if now_epoch is None:
+        now_epoch = time.time()
+    with transaction(root):
+        world = read_world(root)
+        cycles = world.get("cycles") or {}
+        if not cycles.get("enabled"):
+            return None
+        current = cycles.get("current") or {}
+        try:
+            ende = _epoch_of(current.get("end"))
+        except (ValueError, TypeError, OSError):
+            return None
+        if now_epoch <= ende:
+            return None
+        alter = current.get("id")
+        tickets = list_tickets(root)
+        im_zyklus = [t for t in tickets if t.get("cycle") == alter]
+        fertig = [t for t in im_zyklus if t.get("state") == "abgenommen"]
+        verworfen = [t for t in im_zyklus if t.get("state") == "verworfen"]
+        uebertrag = [t for t in im_zyklus if t.get("state") not in ("abgenommen", "verworfen")]
+        laenge = int(cycles.get("length_days") or CYCLE_DEFAULT_DAYS)
+        belegt = {str(entry.get("id")) for entry in _zyklen_lesen(root)}
+        if alter:
+            belegt.add(str(alter))
+        nummer = 1
+        while "zyklus-%d" % nummer in belegt:
+            nummer += 1
+        ts = now()
+        start = _dt.datetime.fromtimestamp(now_epoch, _dt.timezone.utc).isoformat().replace("+00:00", "Z")
+        ende_neu = _dt.datetime.fromtimestamp(now_epoch + laenge * 86400, _dt.timezone.utc) \
+            .isoformat().replace("+00:00", "Z")
+        neu = {"id": "zyklus-%d" % nummer, "start": start, "end": ende_neu, "goal": None}
+        system = {"id": "system", "verified": False}
+        kennungen: list[str] = []
+        for ticket in sorted(uebertrag, key=lambda t: t["id"]):
+            ticket["cycle"] = neu["id"]
+            ticket["updated_at"] = ts
+            _write_json(_ticket_path(root, ticket["id"]) / "ticket.json", ticket)
+            _ticket_event(root, ticket, "uebertragen", system, von=alter, zu=neu["id"])
+            kennungen.append(ticket["id"])
+        eintrag = {"id": alter, "start": current.get("start"), "ende": current.get("end"),
+                   "ziel": current.get("goal"), "abgeschlossen_at": ts,
+                   "angelegt": len(im_zyklus), "abgenommen": len(fertig),
+                   "uebertragen": len(uebertrag), "verworfen": len(verworfen),
+                   "carried_over": len(uebertrag)}
+        abgeschlossen = _zyklen_lesen(root)
+        if not abgeschlossen or abgeschlossen[-1].get("id") != alter:
+            _append_jsonl(root / ZYKLEN_DATEI, eintrag)
+        cycles["current"] = neu
+        world["cycles"] = cycles
+        _write_json(world_file(root), world)
+        _world_event(root, "zyklus-abgeschlossen", system, zyklus=alter, uebertragen=len(uebertrag),
+                     abgenommen=len(fertig), verworfen=len(verworfen))
+        haupt = world.get("hauptagent")
+        text = ("Zyklus %s ist abgeschlossen: %d Tickets angelegt, %d abgenommen, %d übertragen, "
+                "%d verworfen. Übertragen: %s. Schreibe einen Retro-Eintrag ins Gedächtnis "
+                "(Lernschritt: was hängen blieb, was sich ändert)." % (
+                    alter, len(im_zyklus), len(fertig), len(uebertrag), len(verworfen),
+                    ", ".join(kennungen) or "keine"))
+        if haupt and isinstance(haupt, str) and ID_RE.fullmatch(haupt):
+            delivery_id = derived_id("zyklus-schluss", alter)
+            try:
+                ordner = _agent_dir(root, haupt) / "postfach"
+                ordner.mkdir(parents=True, exist_ok=True)
+                ziel = ordner / (delivery_id + ".json")
+                if not ziel.exists():
+                    _write_json(ziel, {"delivery_id": delivery_id, "kind": "zyklus-schluss",
+                                       "ticket_id": None, "time": ts, "sender": "system",
+                                       "text": text, "recipient": haupt, "acknowledged": False})
+            except OSError:
+                pass
+        return {"zyklus": alter, "neu": neu["id"], "uebertragen": kennungen,
+                "zahlen": {key: eintrag[key] for key in ("angelegt", "abgenommen", "uebertragen",
+                                                         "verworfen", "carried_over")},
+                "zustellung": delivery_id if haupt else None}
+
+
+def _eltern_kinder_fertig(root: Path, kind_ticket: dict[str, Any], actor: dict[str, Any]) -> None:
+    """Eltern auf `zur Abnahme`, sobald das letzte Kind abgenommen ist (Plan Saetze 29 und 51).
+
+    Verworfene Kinder zählen nicht als offen; ein Eltern mit nur verworfenen Kindern geht
+    nicht automatisch weiter.  Idempotent: ein Eltern auf `zur Abnahme` oder `abgenommen`
+    bleibt, wie es ist."""
+    eltern_id = kind_ticket.get("parent")
+    if not eltern_id:
+        return
+    try:
+        eltern = read_ticket(root, eltern_id)
+    except AgentsError:
+        return
+    if eltern.get("state") not in ("offen", "zurückgegeben", "triage"):
+        return
+    kinder = [t for t in list_tickets(root) if t.get("parent") == eltern_id]
+    offen = [t for t in kinder if t.get("state") != "verworfen"]
+    if not offen or any(t.get("state") != "abgenommen" for t in offen):
+        return
+    ts = now()
+    kennungen = ", ".join(sorted(t["id"] for t in offen))
+    delivery_id = derived_id("ticket-kinder", eltern_id)
+    eltern.update({"state": "zur Abnahme", "updated_at": ts,
+                   "result": {"schema_version": SCHEMA_VERSION, "ticket": eltern_id, "agent": "system",
+                              "text": "Alle Kinder abgenommen: %s" % kennungen, "commit": None,
+                              "written_at": ts, "sender_verified": False},
+                   "return_delivery_id": delivery_id, "return_delivery_time": ts,
+                   "delivery_sender": "system"})
+    _write_json(_ticket_path(root, eltern_id) / "ticket.json", eltern)
+    _write_json(_ticket_path(root, eltern_id) / "ergebnis.json", eltern["result"])
+    _ticket_event(root, eltern, "kinder-fertig", {"id": "system", "verified": False},
+                  kinder=sorted(t["id"] for t in offen), durch=kind_ticket["id"])
+    _deliver_ticket(root, eltern, {"id": "system", "verified": False})
+
+
+def _melde_vorhaben(root: Path, ticket: dict[str, Any]) -> None:
+    """Ein abgenommenes Vorhaben meldet dem Menschen der Welt ein markiertes Ergebnis
+    (Plan Satz 51, wie Ergebnisse von Menschen-Tickets)."""
+    if _ticket_kind_feld(ticket) != "vorhaben":
+        return
+    approval = ticket.get("approval") or {}
+    result = ticket.get("result") or {}
+    bemerkung = ", Bemerkung %s" % approval["note"] if approval.get("note") else ""
+    text = "Vorhaben %s „%s“ abgenommen%s: %s" % (ticket["id"], ticket.get("title") or "",
+                                                  bemerkung, result.get("text") or "(kein Ergebnistext)")
+    message_id = derived_id("vorhaben-ergebnis", ticket["id"], int(ticket.get("result_revision") or 0))
+    if _channel_has_message(root, message_id):
+        return
+    _deliver_message(root, approval.get("agent") or "system", WORLD_HUMAN, "ticket-ergebnis",
+                     "Ergebnis zu %s" % ticket["id"], ticket["id"], text, message_id,
+                     [WORLD_HUMAN], "ergebnis")
+
+
+# ---------------------------------------------------------------------------
+# Definition of Done der Welt (tickets2, AGENTS-TICKETS-AGIL Abschnitt 6, Satz 49).
+# Setzen und Aendern nur durch den Menschen oder den Hauptagenten; jedes Mal ein
+# Ereignis im Weltverlauf. Die DoD ist Text und Pruefauftrag fuer den Abnehmenden:
+# sie kann keine Hausregel absenken (docs/AGENTS-DATEN.md).
+# ---------------------------------------------------------------------------
+
+WORLD_VERLAUF = "verlauf.jsonl"
+
+
+def _world_event(root: Path, event: str, actor: dict[str, Any], **extra: Any) -> None:
+    data = {"id": new_id("ev"), "time": now(), "event": event, "actor": actor}
+    data.update(extra)
+    _append_jsonl(root / WORLD_VERLAUF, data)
+
+
+def read_world_history(root: Path) -> list[dict[str, Any]]:
+    """The world's own event log (DoD changes); empty without one."""
+    return _read_jsonl(world_path(str(root)) / WORLD_VERLAUF, "Weltverlauf")
+
+
+def _world_dod(world: dict[str, Any]) -> list[str]:
+    value = world.get("definition_of_done")
+    return [item for item in value if isinstance(item, str) and item.strip()] if isinstance(value, list) else []
+
+
+def set_definition_of_done(root: Path, punkte: Any, sender: str | None = None,
+                           claimed_role: str | None = None) -> dict[str, Any]:
+    """Replace the world's Definition of Done (list of texts); empty removes it.
+
+    Only the human (external actor) or the world's main agent writes it.  An
+    unchanged list returns the world without an event.
+    """
+    if punkte is None:
+        punkte = []
+    if isinstance(punkte, str):
+        punkte = [punkte]
+    if not isinstance(punkte, list) or any(not isinstance(item, str) or not item.strip() for item in punkte):
+        raise AgentsError("Definition of Done muss eine Liste nichtleerer Texte sein")
+    punkte = list(dict.fromkeys(item.strip() for item in punkte))
+    with transaction(root):
+        actor = _actor(root, sender or WORLD_HUMAN, claimed_role)
+        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
+            raise AgentsError("Definition of Done setzt nur der Mensch oder der Hauptagent")
+        world = read_world(root)
+        if _world_dod(world) == punkte:
+            return world
+        world["definition_of_done"] = punkte
+        world["updated_at"] = now()
+        _write_json(world_file(root), world)
+        _world_event(root, "dod-gesetzt", actor, punkte=punkte)
+        return world
+
+
+# ---------------------------------------------------------------------------
+# Zugende des Traegers (tickets2, Plan Satz 16): ein Ticket-Zug endet mit einem
+# Bericht.  Die Pruefung liest nur den Verlauf; der Traeger ergaenzt fehlende
+# Berichte als Träger-Zwischenstand.
+# ---------------------------------------------------------------------------
+
+TURN_REPORT_EVENTS = ("zwischenstand", "ergebnis", "pruefnotiz")
+
+
+def ticket_turn_reported(root: Path, ticket_id: str, previous_entries: int,
+                         agent_id: str | None = None) -> bool:
+    """True, wenn nach `previous_entries` (Verlaufseintraege beim Zugbeginn) ein Bericht oder ein
+    Uebergang des Bearbeiters im Verlauf steht.  Der Index statt der Zeit: Verlaufszeiten sind auf
+    Sekunden abgeschnitten, ein Zug kann innerhalb derselben Sekunde enden."""
+    try:
+        assignee = read_ticket(root, ticket_id).get("assignee")
+        entries = _read_jsonl(_ticket_path(root, ticket_id) / "verlauf.jsonl", "Ticketverlauf")
+    except AgentsError:
+        return True  # ein weggeräumtes Ticket braucht keinen Bericht
+    for entry in entries[max(0, previous_entries):]:
+        if entry.get("event") in TURN_REPORT_EVENTS:
+            return True
+        if entry.get("event") in ASSIGNEE_TRANSITIONS and (entry.get("actor") or {}).get("id") == \
+                (agent_id or assignee):
+            return True
+    return False
+
+
+def carrier_turn_note(root: Path, ticket_id: str, run_id: str, outcome: str) -> dict[str, Any]:
+    """The carrier's own progress note for a ticket turn that reported nothing (plan sentence 16)."""
+    with transaction(root):
+        ticket = read_ticket(root, ticket_id)
+        if not _ticket_event_exists(root, ticket_id, "zwischenstand", zug=run_id):
+            _ticket_event(root, ticket, "zwischenstand", {"id": "traeger", "verified": False, "source": "controller"},
+                          text="Zug ohne Bericht (Träger)", zug=run_id, ausgang=outcome)
+        return read_ticket(root, ticket_id)
 
 
 # ---------------------------------------------------------------------------
@@ -2282,6 +3776,7 @@ def _snapshot_agents(root: Path, limit: int, text_limit: int) -> list[dict[str, 
 
 def _snapshot_tickets(root: Path, limit: int) -> list[dict[str, Any]]:
     result = []
+    tickets = []
     for item in _visible_dirs(root / "tickets", "Ticketordner"):
         ticket = _read_optional_json(item / "ticket.json", "Ticketdatei")
         if ticket is None:
@@ -2289,6 +3784,33 @@ def _snapshot_tickets(root: Path, limit: int) -> list[dict[str, Any]]:
         events = _read_jsonl(item / "verlauf.jsonl", "Ticketverlauf")
         ticket = dict(ticket)
         ticket["history"] = {"events": events[-limit:], "total": len(events)}
+        tickets.append((ticket, events))
+    stich = time.time()
+    kinder_gesamt: dict[str, int] = {}
+    kinder_fertig: dict[str, int] = {}
+    for ticket, _events in tickets:
+        parent = ticket.get("parent")
+        if parent:
+            kinder_gesamt[parent] = kinder_gesamt.get(parent, 0) + \
+                (0 if ticket.get("state") == "verworfen" else 1)
+            if ticket.get("state") == "abgenommen":
+                kinder_fertig[parent] = kinder_fertig.get(parent, 0) + 1
+    for ticket, events in tickets:
+        # Messung je Ticket (Plan Satz 50): Durchlaufzeit, Zuege und Alter; dazu die Ampel
+        # der Frist und der Kinderzaehler fuer "n von m abgenommen" (Saetze 31 und 36).
+        angelegt = _epoch_of(ticket.get("created_at")) if ticket.get("created_at") else None
+        abnahme = ((ticket.get("approval") or {}).get("time")) if ticket.get("state") == "abgenommen" else None
+        bis = _epoch_of(abnahme) if abnahme else stich
+        if angelegt is not None:
+            ticket["lead_time_s"] = max(0, int(bis - angelegt))
+            ticket["age_s"] = max(0, int(stich - angelegt))
+        ticket["turns"] = sum(1 for entry in events if entry.get("event") == "zug")
+        ticket["deadline_state"] = _deadline_state(ticket, stich)
+        # Satz 5: die Ansicht zeigt die Stufe mit Bedeutungstext.
+        stufe = ticket.get("priority")
+        ticket["priority_text"] = PRIORITY_TEXTS.get(stufe if stufe in PRIORITY_TEXTS else DEFAULT_PRIORITY)
+        ticket["children_total"] = kinder_gesamt.get(ticket["id"], 0)
+        ticket["children_approved"] = kinder_fertig.get(ticket["id"], 0)
         result.append(ticket)
     return result
 
@@ -2363,10 +3885,33 @@ def world_snapshot(root: Path, limit: int = SNAPSHOT_LIMIT, text_limit: int = SN
         questions = section("questions", lambda: _snapshot_questions(root), [])
         humans = section("humans", lambda: _snapshot_humans(root, limit), {})
         zugaenge = section("zugaenge", lambda: _snapshot_zugaenge(root), [])
+        zyklen = section("zyklen", lambda: _zyklen_alle(root), [])
+        # Die Ansicht bekommt Triage-Tickets in der Backlog-Reihenfolge (Plan Satz 44); die
+        # uebrigen Tickets bleiben in ihrer Ordnung (stabile Sortierung).
+        tickets.sort(key=lambda t: (0 if t.get("state") == "triage" else 1,
+                                    t.get("order") if t.get("state") == "triage"
+                                    and isinstance(t.get("order"), int)
+                                    and not isinstance(t.get("order"), bool) else 0))
+    counters = {"braucht_dich": 0, "triage": 0, "laufen": 0, "offen": 0}
+    for ticket in tickets:
+        state = ticket.get("state")
+        if state == "braucht dich":
+            counters["braucht_dich"] += 1
+        elif state == "triage":
+            counters["triage"] += 1
+        elif state == "läuft":
+            counters["laufen"] += 1
+        if state in ("offen", "zurückgegeben", "wartet"):
+            counters["offen"] += 1
+    wip = sum(1 for ticket in tickets if ticket.get("state") in ("läuft", "wartet"))
     result = {"schema_version": SCHEMA_VERSION, "path": str(root), "consistent": consistent,
               "read_at": now(), "world": world, "agents": agents, "tickets": tickets,
+              "tickets_braucht_dich": counters["braucht_dich"], "tickets_triage": counters["triage"],
+              "tickets_laufen": counters["laufen"], "tickets_offen": counters["offen"],
+              "wip": {"laufend": wip, "grenze": _wip_limit(world, {a["id"]: a for a in agents})},
               "channel": channel[-limit:], "channel_total": len(channel),
               "direct_chats": chats, "questions": questions, "humans": humans, "zugaenge": zugaenge,
+              "zyklen": zyklen,
               "maschine_vorgabe": world_machine_default(root), "errors": errors}
     # The models this world's carrier can run (agents_modellwahl); without traeger.json the field is absent
     # and the interface keeps its fixed list.
@@ -2517,6 +4062,75 @@ def _json_or_text(args: argparse.Namespace, data: Any, label: str = "") -> None:
         print(data)
 
 
+def ticket_text(root: Path, ticket_id: str) -> str:
+    """Readable ticket view: assignment, done list, result, review, approval and the
+    progress notes in chronological order (`wb-ticket zeigen` ohne --json)."""
+    root = world_path(str(root))
+    ticket = read_ticket(root, ticket_id)
+    stich = time.time()
+    lines = ["Ticket %s: %s" % (ticket_id, ticket.get("title") or ""),
+             "Auftrag/Ziel: %s" % (ticket.get("goal") or ""),
+             "Fertig wenn: %s" % (ticket.get("done_criterion") or ""),
+             "Stand: %s%s" % (ticket.get("state"),
+                              ", Bearbeiter %s" % ticket["assignee"] if ticket.get("assignee") else ""),
+             "Adressat: %s" % (", ".join(ticket.get("recipients") or [])
+                               or "Team %s" % ticket["team"] if ticket.get("team") else "-")]
+    lines.append("Art: %s, Prioritaet: %s (%s)" % (
+        _ticket_kind_feld(ticket), ticket.get("priority") if ticket.get("priority") is not None else DEFAULT_PRIORITY,
+        PRIORITY_TEXTS.get(ticket.get("priority"), PRIORITY_TEXTS[DEFAULT_PRIORITY])))
+    if ticket.get("parent"):
+        lines.append("Eltern: %s" % ticket["parent"])
+    if ticket.get("origin"):
+        lines.append("Entdeckt bei: %s" % ticket["origin"])
+    if ticket.get("cycle"):
+        lines.append("Zyklus: %s" % ticket["cycle"])
+    kinder = children(root, ticket_id)
+    if kinder:
+        offen = [k for k in kinder if k.get("state") != "verworfen"]
+        fertig = [k for k in offen if k.get("state") == "abgenommen"]
+        lines.append("Kinder (%d von %d abgenommen): %s" % (len(fertig), len(offen),
+                                                            ", ".join(k["id"] for k in kinder)))
+    ampel = _deadline_state(ticket, stich)
+    grenzen = ticket.get("limits") or {}
+    if grenzen:
+        teile = []
+        if grenzen.get("frist"):
+            teile.append("Frist %s (%s)" % (grenzen["frist"], ampel or "keine Ampel"))
+        if grenzen.get("runden"):
+            teile.append("hoechstens %s Zuege" % grenzen["runden"])
+        if grenzen.get("daten"):
+            teile.append("Daten bleiben auf der Maschine")
+        lines.append("Grenzen: %s" % "; ".join(teile))
+    items = _ticket_done_items(ticket)
+    if items:
+        lines.append("Fertig-Liste:")
+        lines += ["  [%s] %s" % ("x" if item.get("done") else " ", item["text"]) for item in items]
+    review = ticket.get("review") or {}
+    if review.get("note"):
+        lines.append("Prüfnotiz von %s (%s): %s" % (review.get("reviewer"), review.get("verdict") or "?",
+                                                    review.get("note")))
+    elif review.get("reviewer"):
+        lines.append("In Prüfung bei %s (Revision %s)" % (review["reviewer"], review.get("revision")))
+    result = ticket.get("result") or {}
+    if result.get("text"):
+        lines.append("Ergebnis (Revision %s%s): %s" % (ticket.get("result_revision"),
+                                                       ", Commit %s" % result["commit"] if result.get("commit") else "",
+                                                       result["text"]))
+    approval = ticket.get("approval") or {}
+    if approval.get("time"):
+        lines.append("Abnahme durch %s%s: %s" % (approval.get("agent"),
+                                                 ", Bemerkung %s" % approval["note"] if approval.get("note") else "",
+                                                 approval.get("reason_code") or approval.get("kind") or ""))
+    zwischen = [entry for entry in _read_jsonl(_ticket_path(root, ticket_id) / "verlauf.jsonl", "Ticketverlauf")
+                if entry.get("event") == "zwischenstand"]
+    lines.append("Zwischenstände (%d):" % len(zwischen))
+    for entry in zwischen:
+        actor = (entry.get("actor") or {}).get("id") or "?"
+        lines.append("  %s [%s]: %s" % (entry.get("time"), actor,
+                                        str(entry.get("text") or "").replace("\n", " ")))
+    return "\n".join(lines)
+
+
 def _world_arg(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("world", help="Weltordner")
 
@@ -2534,6 +4148,9 @@ def parser_for(kind: str) -> argparse.ArgumentParser:
         p = sub.add_parser("finden"); p.add_argument("--wurzel", action="append", default=[]); p.add_argument("--projekt", action="append", default=[]); p.add_argument("--global", dest="global_dir"); p.add_argument("--ohne-global", action="store_true"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("ansicht"); p.add_argument("world"); p.add_argument("--grenze", type=int, default=SNAPSHOT_LIMIT); p.add_argument("--json", action="store_true")
         p = sub.add_parser("gelesen"); p.add_argument("world"); p.add_argument("--gespraech", required=True); p.add_argument("--zeit", required=True); p.add_argument("--nachricht", required=True); p.add_argument("--mensch", default=WORLD_HUMAN); p.add_argument("--absender", default=WORLD_HUMAN); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("dod"); p.add_argument("world"); p.add_argument("aktion", choices=("setzen", "zeigen")); p.add_argument("--punkt", action="append", default=[]); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("zyklus"); p.add_argument("world"); p.add_argument("aktion", choices=("einschalten", "ausschalten", "zeigen")); p.add_argument("--tage", type=int, help="Zykluslaenge in Tagen (Vorgabe 7)"); p.add_argument("--ziel", help="Ziel des ersten Zyklus"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("wip"); p.add_argument("world"); p.add_argument("--limit", type=int, help="weiche WIP-Grenze setzen; ohne Angabe zeigen"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         for name, state in (("liste", None), ("zeigen", None), ("pause", "pausiert"), ("start", "läuft"), ("stop", "gestoppt")):
             p = sub.add_parser(name); p.add_argument("world"); p.add_argument("--grund"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         try:
@@ -2572,13 +4189,27 @@ def parser_for(kind: str) -> argparse.ArgumentParser:
         p.add_argument("--bemerkung"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         return parser
     if kind == "ticket":
-        p = sub.add_parser("neu"); p.add_argument("world"); p.add_argument("--id"); p.add_argument("--titel", required=True); p.add_argument("--ziel", required=True); p.add_argument("--fertig", required=True); p.add_argument("--an", action="append", default=[]); p.add_argument("--team"); p.add_argument("--grenzen", default="{}"); p.add_argument("--abhaengig-von", action="append", default=[]); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("neu"); p.add_argument("world"); p.add_argument("--id"); p.add_argument("--titel", required=True); p.add_argument("--ziel", required=True); p.add_argument("--fertig", required=True); p.add_argument("--an", action="append", default=[]); p.add_argument("--team"); p.add_argument("--grenzen", default="{}"); p.add_argument("--frist", help="ISO-Zeit der Frist (limits.frist)"); p.add_argument("--runden", type=int, help="hoechste Zugzahl (limits.runden)"); p.add_argument("--abhaengig-von", action="append", default=[]); p.add_argument("--fertig-punkt", action="append", default=[]); p.add_argument("--art", choices=TICKET_KINDS); p.add_argument("--prioritaet", type=int, choices=PRIORITY_STUFEN); p.add_argument("--eltern", help="Kennung des Eltern-Tickets"); p.add_argument("--entdeckt-bei", help="Kennung der Herkunft (origin)"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("liste"); p.add_argument("world"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("zeigen"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("uebernehmen"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--agent", required=True); p.add_argument("--absender"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("ergebnis"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--agent", required=True); p.add_argument("--text", required=True); p.add_argument("--commit"); p.add_argument("--absender"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("zwischenstand"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--agent", required=True); p.add_argument("--text", required=True); p.add_argument("--absender"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("haken"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--agent", required=True); p.add_argument("nr", type=int); p.add_argument("--zurueck", action="store_true"); p.add_argument("--absender"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         for name, accept in (("abnehmen", True), ("zurueckgeben", False)):
-            p = sub.add_parser(name); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--absender", required=True); p.add_argument("--rolle"); p.add_argument("--bemerkung"); p.add_argument("--json", action="store_true")
+            p = sub.add_parser(name); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--absender", required=True); p.add_argument("--rolle"); p.add_argument("--bemerkung"); p.add_argument("--grund", choices=APPROVE_REASONS)
+            if accept: p.add_argument("--dod-geprueft", action="store_true")
+            p.add_argument("--json", action="store_true")
+        p = sub.add_parser("pruefen"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--absender", required=True); p.add_argument("--pruefer", required=True); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("pruefnotiz"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--agent", required=True); p.add_argument("--text", required=True); p.add_argument("--verdict", required=True, choices=REVIEW_VERDICTS); p.add_argument("--absender"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("parken"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--agent", required=True); p.add_argument("--grund", required=True); g = p.add_mutually_exclusive_group(required=True); g.add_argument("--bis"); g.add_argument("--auf"); p.add_argument("--absender"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("braucht-dich"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--frage", required=True); p.add_argument("--grund", required=True); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("verwerfen"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--grund", required=True, choices=DISCARD_REASONS); p.add_argument("--bemerkung"); p.add_argument("--duplikat-von"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("umadressieren"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--an", action="append", default=[]); p.add_argument("--team"); p.add_argument("--grund", required=True); p.add_argument("--absender", required=True); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("annehmen"); p.add_argument("world"); p.add_argument("ticket"); g = p.add_mutually_exclusive_group(required=True); g.add_argument("--an", action="append"); g.add_argument("--team"); p.add_argument("--prioritaet"); p.add_argument("--art", choices=TICKET_KINDS); p.add_argument("--eltern"); p.add_argument("--fertig-punkt", action="append", default=[]); p.add_argument("--absender", required=True); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("backlog"); p.add_argument("world"); p.add_argument("--ordnen", action="append", default=[], help="Triage-Tickets neu ordnen (oben zuerst)"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("grenzen"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--frist"); p.add_argument("--runden", type=int); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("bereit"); p.add_argument("world"); p.add_argument("--json", action="store_true")
         return parser
     p = sub.add_parser("senden"); p.add_argument("world"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--an", action="append", required=True); p.add_argument("--text", required=True); p.add_argument("--ticket"); p.add_argument("--id"); p.add_argument("--rolle"); p.add_argument("--direkt", action="store_true"); p.add_argument("--markierung", choices=MESSAGE_MARKS); p.add_argument("--json", action="store_true")
     p = sub.add_parser("lesen"); p.add_argument("world"); p.add_argument("--agent"); p.add_argument("--chat"); p.add_argument("--json", action="store_true")
@@ -2614,10 +4245,58 @@ def run(kind: str, argv: list[str]) -> int:
             elif args.command == "ansicht":
                 data = world_snapshot(Path(args.world), args.grenze)
                 if args.json: _json_or_text(args, data)
-                else: print("%s: %d Agenten, %d Tickets, %d Kanalnachrichten, %d Fragen" % (data["world"].get("name"), len(data["agents"]), len(data["tickets"]), data["channel_total"], len(data["questions"])))
+                else: print("%s: %d Agenten, %d Tickets (offen %d, läuft %d, braucht dich %d, triage %d), %d Kanalnachrichten, %d Fragen" % (
+                    data["world"].get("name"), len(data["agents"]), len(data["tickets"]), data["tickets_offen"],
+                    data["tickets_laufen"], data["tickets_braucht_dich"], data["tickets_triage"],
+                    data["channel_total"], len(data["questions"])))
             elif args.command == "gelesen":
                 data = mark_read(Path(args.world), args.gespraech, args.zeit, args.nachricht, args.mensch, args.absender, args.rolle)
                 _json_or_text(args, data, args.gespraech)
+            elif args.command == "dod":
+                if args.aktion == "setzen":
+                    data = set_definition_of_done(Path(args.world), args.punkt, args.absender, args.rolle)
+                    _json_or_text(args, data.get("definition_of_done") or [],
+                                  "; ".join(data.get("definition_of_done") or []) or "leer")
+                else:
+                    data = read_world(Path(args.world)).get("definition_of_done") or []
+                    if args.json: _json_or_text(args, data)
+                    else:
+                        for punkt in data: print("- %s" % punkt)
+                        if not data: print("(keine Definition of Done)")
+            elif args.command == "zyklus":
+                if args.aktion == "zeigen":
+                    data = read_cycle(Path(args.world))
+                    if args.json: _json_or_text(args, data)
+                    else:
+                        aktueller = data["current"]
+                        print("Zyklen %s, Laenge %d Tage" % ("an" if data["enabled"] else "aus", data["length_days"]))
+                        if aktueller:
+                            print("Aktueller Zyklus %s: %s bis %s%s" % (
+                                aktueller.get("id"), aktueller.get("start"), aktueller.get("end"),
+                                ", Ziel: %s" % aktueller["goal"] if aktueller.get("goal") else ""))
+                        for eintrag in data["abgeschlossen"]:
+                            print("Abgeschlossen %s: angelegt %d, abgenommen %d, übertragen %d, verworfen %d" % (
+                                eintrag.get("id"), eintrag.get("angelegt", 0), eintrag.get("abgenommen", 0),
+                                eintrag.get("uebertragen", 0), eintrag.get("verworfen", 0)))
+                elif args.aktion == "einschalten":
+                    world = set_cycle(Path(args.world), True, args.tage, args.ziel, args.absender, args.rolle)
+                    aktueller = (world.get("cycles") or {}).get("current") or {}
+                    _json_or_text(args, world, "Zyklus %s eingeschaltet (%d Tage)" % (
+                        aktueller.get("id"), (world.get("cycles") or {}).get("length_days")))
+                else:
+                    world = set_cycle(Path(args.world), False, None, None, args.absender, args.rolle)
+                    _json_or_text(args, world, "Zyklen ausgeschaltet")
+            elif args.command == "wip":
+                if args.limit is not None:
+                    world = set_wip_limit(Path(args.world), args.limit, args.absender, args.rolle)
+                else:
+                    world = read_world(Path(args.world))
+                grenze = world.get("wip_limit")
+                if args.json:
+                    _json_or_text(args, {"wip_limit": grenze})
+                else:
+                    print("WIP-Grenze: %s" % (grenze if grenze is not None else
+                                              "aktive Agenten plus ein Viertel (Vorgabe)"))
             elif args.command == "neu": data = create_world(Path(args.world), args.name, args.hauptagent, args.beschreibung, args.modell, args.denkweise, args.fallback, args.fallback_denkweise, args.maschine, args.global_world, not args.without_main); _json_or_text(args, data, data["world"]["id"])
             elif args.command == "liste": _json_or_text(args, [read_world(Path(args.world))] if (Path(args.world) / "world.json").exists() else [])
             elif args.command == "zeigen": _json_or_text(args, read_world(Path(args.world)))
@@ -2679,16 +4358,85 @@ def run(kind: str, argv: list[str]) -> int:
             if args.command == "neu":
                 try: limits = json.loads(args.grenzen)
                 except json.JSONDecodeError as exc: raise AgentsError("--grenzen braucht JSON") from exc
-                data = create_ticket(Path(args.world), args.titel, args.ziel, args.fertig, args.an, args.absender, args.rolle, args.team, limits, args.abhaengig_von, args.id); _json_or_text(args, data, data["id"])
+                if not isinstance(limits, dict): raise AgentsError("--grenzen braucht ein JSON-Objekt")
+                limits = dict(limits)
+                if args.frist is not None: limits["frist"] = args.frist
+                if args.runden is not None: limits["runden"] = args.runden
+                data = create_ticket(Path(args.world), args.titel, args.ziel, args.fertig, args.an, args.absender,
+                                     args.rolle, args.team, limits, args.abhaengig_von, args.id,
+                                     args.fertig_punkt, args.art, args.prioritaet, args.eltern,
+                                     args.entdeckt_bei)
+                _json_or_text(args, data, data["id"])
             elif args.command == "liste": _json_or_text(args, list_tickets(Path(args.world)))
-            elif args.command == "zeigen": _json_or_text(args, read_ticket(Path(args.world), args.ticket))
+            elif args.command == "zeigen":
+                if args.json: _json_or_text(args, read_ticket(Path(args.world), args.ticket))
+                else: print(ticket_text(Path(args.world), args.ticket))
             elif args.command == "uebernehmen": _json_or_text(args, claim_ticket(Path(args.world), args.ticket, args.agent, args.absender, args.rolle))
             elif args.command == "ergebnis": _json_or_text(args, write_result(Path(args.world), args.ticket, args.agent, args.text, args.commit, args.absender, args.rolle))
+            elif args.command == "zwischenstand":
+                _json_or_text(args, note_ticket(Path(args.world), args.ticket, args.agent, args.text,
+                                                args.absender or args.agent, args.rolle))
+            elif args.command == "haken":
+                _json_or_text(args, check_done_item(Path(args.world), args.ticket, args.agent, args.nr,
+                                                    not args.zurueck, args.absender or args.agent, args.rolle))
+            elif args.command == "pruefen":
+                _json_or_text(args, review_ticket(Path(args.world), args.ticket, args.pruefer,
+                                                  args.absender, args.rolle))
+            elif args.command == "pruefnotiz":
+                _json_or_text(args, review_result(Path(args.world), args.ticket, args.agent, args.text,
+                                                  args.verdict, args.absender or args.agent, args.rolle))
             elif args.command == "zurueckgeben" and args.absender in HUMAN_ACTORS and (
                     read_ticket(Path(args.world), args.ticket).get("state") == "abgenommen"
                     or (read_ticket(Path(args.world), args.ticket).get("approval") or {}).get("kind") == "rueckgabe-mensch"):
                 _json_or_text(args, return_ticket(Path(args.world), args.ticket, args.bemerkung or "", args.absender, args.rolle))
-            else: _json_or_text(args, approve_ticket(Path(args.world), args.ticket, args.absender, args.rolle, args.bemerkung, args.command == "abnehmen"))
+            elif args.command == "parken":
+                _json_or_text(args, park_ticket(Path(args.world), args.ticket, args.agent, args.grund,
+                                                args.bis, args.auf, args.absender or args.agent, args.rolle))
+            elif args.command == "braucht-dich":
+                _json_or_text(args, flag_ticket(Path(args.world), args.ticket, args.frage, args.grund,
+                                                args.absender, args.rolle))
+            elif args.command == "verwerfen":
+                _json_or_text(args, discard_ticket(Path(args.world), args.ticket, args.grund, args.bemerkung,
+                                                   args.absender, args.rolle, args.duplikat_von))
+            elif args.command == "umadressieren":
+                _json_or_text(args, reassign_ticket(Path(args.world), args.ticket, args.an, args.team,
+                                                    args.grund, args.absender, args.rolle))
+            elif args.command == "annehmen":
+                prioritaet = args.prioritaet
+                if prioritaet is not None and re.fullmatch(r"-?\d+", str(prioritaet)):
+                    prioritaet = int(prioritaet)
+                _json_or_text(args, triage_accept(Path(args.world), args.ticket, args.an, args.team,
+                                                  prioritaet, args.art, args.absender, args.rolle,
+                                                  args.fertig_punkt, args.eltern))
+            elif args.command == "backlog":
+                if args.ordnen:
+                    data = reorder_triage(Path(args.world), args.ordnen, args.absender, args.rolle)
+                else:
+                    data = [item for item in ready_tickets(Path(args.world)) if item.get("state") == "triage"]
+                if args.json:
+                    _json_or_text(args, data)
+                else:
+                    for item in data:
+                        grund = _definition_of_ready_grund(
+                            _ticket_kind_feld(item), [i["text"] for i in _ticket_done_items(item)],
+                            item.get("limits"), item.get("recipients"), item.get("team"),
+                            item.get("title"), item.get("goal"), item.get("done_criterion"))
+                        print("%s (Platz %s)%s %s" % (
+                            item["id"], item.get("order") or "?",
+                            " nicht bereit: %s" % grund if grund else "", item.get("title") or ""))
+            elif args.command == "grenzen":
+                _json_or_text(args, set_ticket_limits(Path(args.world), args.ticket, args.frist,
+                                                      args.runden, args.absender, args.rolle))
+            elif args.command == "bereit":
+                data = ready_tickets(Path(args.world))
+                if args.json:
+                    _json_or_text(args, data)
+                else:
+                    for item in data:
+                        print("%s %s" % (item["id"], "bereit" if item["ready"] else "nicht bereit: %s" % item["reason"]))
+            else: _json_or_text(args, approve_ticket(Path(args.world), args.ticket, args.absender, args.rolle,
+                                                     args.bemerkung, args.command == "abnehmen", args.grund,
+                                                     getattr(args, "dod_geprueft", False)))
         else:
             if args.command == "senden" and args.markierung:
                 _json_or_text(args, send_marked_message(Path(args.world), args.absender, args.an, args.text, args.markierung, args.ticket, args.id, args.rolle, args.direkt))

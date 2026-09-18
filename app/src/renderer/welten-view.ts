@@ -60,7 +60,15 @@ const WEB = ['WebFetch', 'WebSearch'];
 const WERKZEUGE_VORGABE = ['Read', 'Grep', 'Glob', 'Bash', 'Write', 'Edit'];
 const FIGUR_ARTEN = ['roboter', 'tier', 'linse'];
 const FIGUR_FARBEN = ['entwicklung', 'recherche', 'pruefung', 'gestaltung'];
-const STAENDE = ['offen', 'läuft', 'wartet', 'braucht dich', 'zur Abnahme', 'abgenommen', 'zurückgegeben', 'unterbrochen', 'verworfen'];
+const STAENDE = ['triage', 'offen', 'läuft', 'wartet', 'braucht dich', 'zur Abnahme', 'in Prüfung', 'abgenommen', 'zurückgegeben', 'unterbrochen', 'verworfen'];
+/** Die Spalten des Boards in Bearbeitungsrichtung (Plan Satz 47, AGIL Abschnitt 5). */
+const BOARD_SPALTEN = ['triage', 'offen', 'läuft', 'wartet', 'braucht dich', 'zur Abnahme', 'in Prüfung', 'abgenommen'];
+/** Welche Staende eine Board-Spalte fasst: `zurückgegeben` liegt in `offen`. */
+const boardStaende = (spalte: string): string[] => (spalte === 'offen' ? ['offen', 'zurückgegeben'] : [spalte]);
+/** Die Ticketarten des Kerns fuer Formular und Annahme (Plan Satz 3, AGIL Abschnitt 2). */
+const TICKET_ARTEN = ['vorhaben', 'story', 'task', 'subtask', 'auftrag', 'fehler', 'recherche', 'pruefung'];
+/** Die Grundcodes des Verwerfens (Plan Satz 40). */
+const VERWERF_GRUENDE = ['duplikat', 'anderswo-erledigt', 'nicht-mehr-noetig', 'nicht-reproduzierbar', 'abgelehnt'];
 
 interface Entwurf {
   id: string; stufe: string; team: string; spezialgebiet: string; modell: string; denkstufe: string; fallback: string;
@@ -91,6 +99,27 @@ let figurenEl: HTMLDivElement | null = null;
 let sichtbarAn = false;
 let gemeldetSichtbar: boolean | null = null;
 
+/** Die Felder des Ticketformulars (Plan Sätze 1 bis 7, 42 bis 45). */
+interface TicketEntwurf {
+  titel: string; ziel: string; fertig: string; an: string;
+  kind: string; prioritaet: number; punkte: string[];
+  eltern: string; abhaengig: string; frist: string; runden: string;
+}
+const ticketEntwurfLeer = (an = ''): TicketEntwurf => ({
+  titel: '', ziel: '', fertig: '', an, kind: 'auftrag', prioritaet: 2, punkte: [], eltern: '', abhaengig: '', frist: '', runden: '',
+});
+/**
+ * Die Handlungen, die der Kern dem Menschen am Ticket erlaubt (docs/AGENTS-DATEN.md).
+ * Abnehmen gehoert NICHT dazu: der Mensch nimmt nicht ab (Hausregel vom 11.09.2026,
+ * Plan Satz 27); er kann ein abgenommenes Ticket zurueckgeben.
+ */
+type TicketHandlung = 'verwerfen' | 'annehmen' | 'umadressieren' | 'grenzen' | 'pruefer';
+interface TicketHandlungEntwurf {
+  ticket: string; handlung: TicketHandlung;
+  grund: string; bemerkung: string; duplikat: string; an: string; pruefer: string;
+  kind: string; prioritaet: number; punkte: string[]; frist: string; runden: string;
+}
+
 const z = {
   weltPfad: '' as string,
   auswahl: KANAL as string,
@@ -114,7 +143,14 @@ const z = {
   anlegen: null as Anlegen | null,
   skillOffen: new Set<string>(),
   skillAblehnen: '' as string, skillGrund: '',
-  neuesTicket: null as null | { titel: string; ziel: string; fertig: string; an: string },
+  /** Das Formular für ein neues Ticket (Auftrag tickets4 C). */
+  neuesTicket: null as null | TicketEntwurf,
+  /** Liste oder Board (Plan Satz 47). */
+  ticketAnsicht: 'liste' as 'liste' | 'board',
+  /** Die offene Handlung im Ticketdetail (Auftrag tickets4 B); nur eine zur Zeit. */
+  ticketHandlung: null as null | TicketHandlungEntwurf,
+  /** Zyklus, Definition of Done und WIP-Grenze der Welt in Bearbeitung (Auftrag tickets4 D). */
+  weltRegeln: null as null | { welt: string; tage: string; ziel: string; dod: string[]; wip: string },
   laufend: new Set<string>(),
   figuren: false,
   /** Auftrag agentsux Nr. 1: die Wege zu einer neuen Welt in der Leiste und der Ordner als Text. */
@@ -373,13 +409,55 @@ function zustandPunkt(zu: string): string {
   return zu === 'braucht_dich' ? 'will' : zu === 'arbeitet' ? 'laeuft' : zu === 'hat_ergebnis' ? 'fertig' : zu === 'pausiert' || zu === 'gestoppt' ? 'aus' : 'ruhig';
 }
 function ticketPunkt(stand: string): string {
-  return stand === 'braucht dich' || stand === 'zur Abnahme' ? 'will' : stand === 'läuft' ? 'laeuft' : stand === 'abgenommen' ? 'fertig' : stand === 'verworfen' || stand === 'unterbrochen' ? 'aus' : 'ruhig';
+  return stand === 'braucht dich' || stand === 'zur Abnahme' || stand === 'in Prüfung' ? 'will' : stand === 'läuft' ? 'laeuft' : stand === 'abgenommen' ? 'fertig' : stand === 'verworfen' || stand === 'unterbrochen' ? 'aus' : 'ruhig';
 }
 function zaehlerText(w: Welt): string {
+  // Plan Satz 35: „braucht dich", Triage, laufende und offene Tickets getrennt.
   const b = w.zaehler.brauchen_dich; const l = w.zaehler.laufen; const o = w.zaehler.tickets_offen;
   return [t(b === 1 ? 'welten.zaehler.brauchtEins' : 'welten.zaehler.brauchenViele', { n: b }),
+    t('welten.zaehler.triage', { n: w.zaehler.triage }),
     t(l === 1 ? 'welten.zaehler.laeuftEins' : 'welten.zaehler.laufenViele', { n: l }),
     t(o === 1 ? 'welten.zaehler.ticketEins' : 'welten.zaehler.ticketsViele', { n: o })].join(' · ');
+}
+
+// --- tickets4: die Worte des Ticketsystems (Plan Saetze 3, 5, 31, 40, 43, 50) --------------
+
+function kindWort(k: string): string { return wort('kind', k); }
+function kindErklaerung(k: string): string { return wort('kinderklaerung', k); }
+function prioritaetWort(p: number): string { return t(`welten.prioritaet.p${p >= 0 && p <= 3 ? p : 2}`); }
+function prioritaetText(p: number): string { return t(`welten.prioritaetText.p${p >= 0 && p <= 3 ? p : 2}`); }
+/** 0 und 1 stehen hervorgehoben (Auftrag tickets4 A). */
+const prioritaetHervor = (p: number): boolean => p <= 1;
+function ampelWort(a: string): string { return a ? wort('ampel', a) : ''; }
+function ampelPunkt(a: string): string { return a === 'rot' ? 'will' : a === 'gelb' ? 'fertig' : 'ruhig'; }
+function verwerfGrundWort(g: string): string { return wort('verwerfgrund', g); }
+function abnahmeGrundWort(g: string): string { return wort('abnahmegrund', g); }
+function urteilWort(u: string): string { return wort('urteil', u); }
+/** Eine Dauer in Sekunden als Wort (Plan Satz 50). */
+function dauerWort(s: number): string {
+  if (s < 60) return t('welten.dauer.sekunden', { n: s });
+  if (s < 3600) return t('welten.dauer.minuten', { n: Math.floor(s / 60) });
+  if (s < 86_400) return t('welten.dauer.stunden', { n: Math.floor(s / 3600) });
+  const tage = Math.floor(s / 86_400);
+  return t(tage === 1 ? 'welten.dauer.tagEins' : 'welten.dauer.tageViele', { n: tage });
+}
+/** „3 von 4", rot bei Überschreitung (Plan Satz 48). */
+function wipText(w: Welt): { text: string; rot: boolean } {
+  return { text: t('welten.wip.zaehler', { n: w.wip.laufend, m: w.wip.grenze }), rot: w.wip.grenze > 0 && w.wip.laufend > w.wip.grenze };
+}
+/**
+ * DIE DEFINITION OF READY ALS VORSCHAU (Plan Satz 45, Auftrag tickets4 C). Dieselbe
+ * Reihenfolge wie `_definition_of_ready_grund` in shell/agents_data.py; sie warnt, sie
+ * blockt nicht. Leer heisst: das Ticket wird zugestellt.
+ */
+export function bereitschaftText(e: { kind: string; punkte: number; frist: string; runden: string; an: string; titel: string; ziel: string; fertig: string }): string {
+  const leer = (s: string): boolean => !s.trim();
+  if (leer(e.titel) || leer(e.ziel) || leer(e.fertig)) return t('welten.dor.auftrag');
+  if (e.kind === 'vorhaben') return '';
+  if (['story', 'task', 'subtask'].includes(e.kind) && e.punkte === 0) return t('welten.dor.liste');
+  if (leer(e.frist) && leer(e.runden)) return t('welten.dor.grenzen');
+  if (!e.an) return t('welten.dor.adressat');
+  return '';
 }
 function anzeigename(w: Welt, id: string): string {
   if (id === 'mensch' || id === 'alice') return t('welten.name.du');
@@ -1050,6 +1128,7 @@ async function handeln(w: string, arg: string, echt: boolean): Promise<void> {
       if (!rf) return;
       const r = await ausfuehren(rf.handlung, rf.daten, echt, true);
       // Nach einem Umzug heisst die Welt `<maschine>:<ablage>`; gewaehlt wird sie, sobald sie in der Nutzlast steht.
+      if (r.ok && rf.handlung.startsWith('ticket_')) z.ticketHandlung = null;
       if (rf.handlung === 'umziehen' && r.ok && r.pfad) { z.weltPfad = r.pfad; z.weltWunsch = r.pfad; z.auswahl = KANAL; zeichnen(); }
       return;
     }
@@ -1057,16 +1136,115 @@ async function handeln(w: string, arg: string, echt: boolean): Promise<void> {
     case 'abbrechen': z.rueckfrage = null; break;
     case 'quittieren': await ausfuehren('quittieren', { welt: wl.pfad, zustellung: arg }, echt); return;
     case 'ticketfilter': z.ticketFilter = arg; break;
-    case 'ticket': z.ticketAuswahl = arg; z.reiter = 'tickets'; break;
-    case 'ticket-neu': z.neuesTicket = { titel: '', ziel: '', fertig: '', an: a?.id ?? '' }; break;
+    case 'ticketansicht': z.ticketAnsicht = arg === 'board' ? 'board' : 'liste'; break;
+    case 'ticket': z.ticketAuswahl = arg; z.reiter = 'tickets'; z.ticketHandlung = null; break;
+    case 'ticket-neu': z.neuesTicket = ticketEntwurfLeer(a?.id ?? ''); break;
     case 'ticket-neu-zu': z.neuesTicket = null; break;
+    case 'ticket-punkt-plus': if (z.neuesTicket) z.neuesTicket.punkte = [...z.neuesTicket.punkte, '']; break;
+    case 'ticket-punkt-weg': if (z.neuesTicket) z.neuesTicket.punkte = z.neuesTicket.punkte.filter((_, i) => i !== Number(arg)); break;
     case 'ticket-anlegen': {
       const nt = z.neuesTicket;
       if (!nt) return;
-      const r = await ausfuehren('ticket', { welt: wl.pfad, titel: nt.titel, ziel: nt.ziel, fertig: nt.fertig, an: nt.an ? [nt.an] : [] }, echt);
+      const r = await ausfuehren('ticket', {
+        welt: wl.pfad, titel: nt.titel, ziel: nt.ziel, fertig: nt.fertig, an: nt.an ? [nt.an] : [],
+        art: nt.kind, prioritaet: nt.prioritaet, fertig_punkte: nt.punkte.filter((p) => p.trim()),
+        eltern: nt.eltern, abhaengig: nt.abhaengig ? [nt.abhaengig] : [], frist: nt.frist, runden: nt.runden,
+      }, echt);
       if (r.ok) z.neuesTicket = null;
       break;
     }
+
+    // --- tickets4: die Handlungen des Menschen am Ticket, das Backlog, die Weltregeln ------
+    case 'handlung': {
+      const [h, id] = arg.split('|');
+      const tk = wl.tickets.find((x) => x.id === id);
+      if (!tk) return;
+      z.reiter = 'tickets';
+      z.ticketAuswahl = tk.id;
+      z.rueckgabe = '';
+      z.ticketHandlung = {
+        ticket: tk.id, handlung: h as TicketHandlung,
+        grund: h === 'verwerfen' ? 'nicht-mehr-noetig' : '',
+        bemerkung: '', duplikat: '',
+        an: h === 'annehmen' ? (wl.hauptagent ?? '') : h === 'umadressieren' ? (tk.bearbeiter ?? tk.adressaten[0] ?? '') : '',
+        pruefer: h === 'pruefer' ? (wl.agenten.find((x) => x.id !== tk.bearbeiter && x.stand === 'aktiv')?.id ?? '') : '',
+        kind: tk.kind, prioritaet: tk.prioritaet, punkte: [],
+        frist: h === 'grenzen' ? String(tk.grenzen.frist ?? '') : '', runden: h === 'grenzen' ? String(tk.grenzen.runden ?? '') : '',
+      };
+      break;
+    }
+    case 'handlung-zu': z.ticketHandlung = null; break;
+    case 'handlung-punkt-plus': if (z.ticketHandlung) z.ticketHandlung.punkte = [...z.ticketHandlung.punkte, '']; break;
+    case 'handlung-punkt-weg': if (z.ticketHandlung) z.ticketHandlung.punkte = z.ticketHandlung.punkte.filter((_, i) => i !== Number(arg)); break;
+    case 'handlung-ausfuehren': {
+      const e = z.ticketHandlung;
+      if (!e || !handlungBereit(e)) return;
+      const punkte = e.punkte.map((p) => p.trim()).filter(Boolean);
+      const daten: Record<string, unknown> = { welt: wl.pfad, ticket: e.ticket };
+      let handlung = '';
+      switch (e.handlung) {
+        case 'verwerfen':
+          handlung = 'ticket_verwerfen';
+          Object.assign(daten, { grund: e.grund, bemerkung: e.bemerkung, duplikat_von: e.duplikat });
+          break;
+        case 'annehmen':
+          handlung = 'ticket_annehmen';
+          Object.assign(daten, { an: [e.an], art: e.kind, prioritaet: e.prioritaet, fertig_punkte: punkte });
+          break;
+        case 'umadressieren':
+          handlung = 'ticket_umadressieren';
+          Object.assign(daten, { an: [e.an], grund: e.grund });
+          break;
+        case 'grenzen':
+          handlung = 'ticket_grenzen';
+          Object.assign(daten, { frist: e.frist, runden: e.runden });
+          break;
+        case 'pruefer':
+          handlung = 'ticket_pruefen';
+          Object.assign(daten, { pruefer: e.pruefer });
+          break;
+        default: return;
+      }
+      const r = await ausfuehren(handlung, daten, echt);
+      if (r.ok) z.ticketHandlung = null;
+      break;
+    }
+    case 'backlog-hoch':
+    case 'backlog-runter': {
+      const reihe = backlogVon(wl).map((x) => x.id);
+      const jetzt = reihe.indexOf(arg);
+      if (jetzt < 0) return;
+      const ziel = Math.max(0, Math.min(reihe.length - 1, jetzt + (w === 'backlog-hoch' ? -1 : 1)));
+      if (ziel === jetzt) return;
+      reihe.splice(jetzt, 1);
+      reihe.splice(ziel, 0, arg);
+      await ausfuehren('backlog', { welt: wl.pfad, ordnen: reihe }, echt);
+      return;
+    }
+    case 'regeln-bearbeiten':
+      z.weltRegeln = { welt: wl.pfad, tage: String(wl.zyklus.tage || 7), ziel: wl.zyklus.jetzt?.ziel ?? '', dod: [...wl.dod], wip: wl.wip.grenze > 0 ? String(wl.wip.grenze) : '' };
+      break;
+    case 'regeln-zu': z.weltRegeln = null; break;
+    case 'dod-punkt-plus': if (z.weltRegeln) z.weltRegeln.dod = [...z.weltRegeln.dod, '']; break;
+    case 'dod-punkt-weg': if (z.weltRegeln) z.weltRegeln.dod = z.weltRegeln.dod.filter((_, i) => i !== Number(arg)); break;
+    case 'dod-sichern': {
+      const r2 = z.weltRegeln;
+      if (!r2) return;
+      await ausfuehren('dod', { welt: wl.pfad, punkte: r2.dod.map((p) => p.trim()).filter(Boolean) }, echt);
+      return;
+    }
+    case 'wip-setzen': {
+      const r2 = z.weltRegeln;
+      if (!r2) return;
+      await ausfuehren('wip', { welt: wl.pfad, limit: r2.wip }, echt);
+      return;
+    }
+    case 'zyklus-ein': {
+      const r2 = z.weltRegeln;
+      await ausfuehren('zyklus', { welt: wl.pfad, aktion: 'einschalten', tage: r2?.tage ?? '', ziel: r2?.ziel ?? '' }, echt);
+      return;
+    }
+    case 'zyklus-aus': await ausfuehren('zyklus', { welt: wl.pfad, aktion: 'ausschalten' }, echt); return;
     case 'rueckgabe': z.rueckgabe = arg; z.rueckgabeText = ''; break;
     case 'rueckgabe-zu': z.rueckgabe = ''; break;
     case 'zurueckgeben': {
@@ -1179,7 +1357,40 @@ function eingabe(schluessel: string, wert: string): void {
     case 'weltneu': z.weltNeuOrdner = wert; return;
     case 'gespraech': void handeln('gespraech', wert, true); return;
     case 'ticketfilter': void handeln('ticketfilter', wert, true); return;
-    case 'ticket': if (z.neuesTicket) (z.neuesTicket as Record<string, string>)[name] = wert; return;
+    case 'ticket': {
+      const nt = z.neuesTicket;
+      if (!nt) return;
+      const [, feldname, nr] = schluessel.split(':');
+      if (feldname === 'punkt') { const i = Number(nr); if (nt.punkte[i] !== undefined) nt.punkte[i] = wert; zeichnen(); return; }
+      if (feldname === 'prioritaet') { nt.prioritaet = Number(wert) || 0; zeichnen(); return; }
+      if (feldname === 'art') { nt.kind = wert; zeichnen(); return; }
+      const karte: Record<string, keyof TicketEntwurf> = { titel: 'titel', ziel: 'ziel', fertig: 'fertig', an: 'an', eltern: 'eltern', abhaengig: 'abhaengig', frist: 'frist', runden: 'runden' };
+      const feldZiel = karte[feldname ?? ''];
+      if (feldZiel) (nt as unknown as Record<string, string>)[feldZiel] = wert;
+      // Die Vorschau der Definition of Ready haengt an jedem dieser Felder.
+      zeichnen();
+      return;
+    }
+    case 'handlung': {
+      const e = z.ticketHandlung;
+      if (!e) return;
+      const [, feldname, nr] = schluessel.split(':');
+      if (feldname === 'punkt') { const i = Number(nr); if (e.punkte[i] !== undefined) e.punkte[i] = wert; return; }
+      if (feldname === 'prioritaet') { e.prioritaet = Number(wert) || 0; zeichnen(); return; }
+      if (['grund', 'bemerkung', 'duplikat', 'an', 'pruefer', 'frist', 'runden'].includes(feldname ?? '')) {
+        (e as unknown as Record<string, string>)[feldname ?? ''] = wert;
+      } else if (feldname === 'art') { e.kind = wert; }
+      zeichnen();
+      return;
+    }
+    case 'regel': {
+      const r = z.weltRegeln;
+      if (!r) return;
+      const [, feldname, nr] = schluessel.split(':');
+      if (feldname === 'dod') { const i = Number(nr); if (r.dod[i] !== undefined) r.dod[i] = wert; return; }
+      if (feldname === 'tage' || feldname === 'ziel' || feldname === 'wip') (r as unknown as Record<string, string>)[feldname] = wert;
+      return;
+    }
     case 'profil': if (z.profil) (z.profil as Record<string, string>)[name] = wert; return;
     case 'rechte': if (z.rechte && name === 'bash') z.rechte.bash = wert; return;
     case 'gedaechtnis': if (z.gedaechtnis) z.gedaechtnis.text = wert; return;
@@ -1496,7 +1707,219 @@ function ticketsFuer(w: Welt, a: WeltAgent | undefined): WeltTicket[] {
   let liste = a ? w.tickets.filter((t) => a.tickets.includes(t.id)) : [...w.tickets];
   if (z.ticketFilter === 'offen') liste = liste.filter((t) => t.stand !== 'abgenommen' && t.stand !== 'verworfen');
   else if (z.ticketFilter !== 'alle') liste = liste.filter((t) => t.stand === z.ticketFilter);
+  // Die Triage ist das geordnete Backlog (Plan Satz 44) und steht in ihrer Reihenfolge.
+  if (z.ticketFilter === 'triage') return backlogFolge(liste);
   return liste.sort((x, y) => (x.geaendert < y.geaendert ? 1 : -1));
+}
+
+/** Die Triage in Backlog-Reihenfolge: `ordnung` aufsteigend, ohne Feld ans Ende. */
+export function backlogFolge(liste: WeltTicket[]): WeltTicket[] {
+  return [...liste].sort((a, b) => {
+    const x = a.ordnung ?? Number.MAX_SAFE_INTEGER; const y = b.ordnung ?? Number.MAX_SAFE_INTEGER;
+    if (x !== y) return x - y;
+    if (a.angelegt !== b.angelegt) return a.angelegt < b.angelegt ? -1 : 1;
+    return a.id < b.id ? -1 : 1;
+  });
+}
+const backlogVon = (w: Welt): WeltTicket[] => backlogFolge(w.tickets.filter((x) => x.stand === 'triage'));
+
+/**
+ * DAS BOARD (Plan Satz 47): je Vorhaben eine Swimlane, Tickets ohne Vorhaben in „Ohne
+ * Vorhaben". Ein Ticket gehoert zu dem Vorhaben an der Wurzel seiner Elternkette.
+ */
+export function boardSpuren(w: Welt, tickets: WeltTicket[]): { id: string; titel: string; spalten: { name: string; tickets: WeltTicket[] }[] }[] {
+  const nachId = new Map(w.tickets.map((x) => [x.id, x]));
+  const vorhabenVon = (x: WeltTicket): WeltTicket | null => {
+    if (x.kind === 'vorhaben') return x;
+    let jetzt = x;
+    for (let tiefe = 0; tiefe < 5 && jetzt.eltern; tiefe += 1) {
+      const naechst = nachId.get(jetzt.eltern);
+      if (!naechst) return null;
+      if (naechst.kind === 'vorhaben') return naechst;
+      jetzt = naechst;
+    }
+    return null;
+  };
+  const folge: string[] = [];
+  const gruppen = new Map<string, WeltTicket[]>();
+  for (const x of tickets) {
+    const s = vorhabenVon(x)?.id ?? '';
+    if (!gruppen.has(s)) { gruppen.set(s, []); folge.push(s); }
+    gruppen.get(s)?.push(x);
+  }
+  const reihe = [...folge.filter((s) => s), ...(gruppen.has('') ? [''] : [])];
+  return reihe.map((s) => ({
+    id: s || 'ohne-vorhaben',
+    titel: s ? (nachId.get(s)?.titel ?? s) : t('welten.board.ohneVorhaben'),
+    spalten: BOARD_SPALTEN.map((name) => {
+      const drin = (gruppen.get(s) ?? []).filter((x) => boardStaende(name).includes(x.stand));
+      return { name, tickets: name === 'triage' ? backlogFolge(drin) : drin.sort((a, b) => (a.prioritaet !== b.prioritaet ? a.prioritaet - b.prioritaet : (a.id < b.id ? -1 : 1))) };
+    }),
+  }));
+}
+
+/** Ein Abzeichen an der Ticketkarte: Art, Priorität, Zyklus. */
+function abzeichen(text: string, hilfe = '', hervor = false): HTMLSpanElement {
+  const s = el('span', `wv-abzeichen${hervor ? ' hervor' : ''}`, text);
+  if (hilfe) s.title = hilfe;
+  return s;
+}
+/** Die Frist-Ampel: Punkt und Wort (Plan Satz 31). */
+function ampel(stand: string, frist: string): HTMLSpanElement | null {
+  if (!stand) return null;
+  const s = el('span', `wv-ampel ${stand}`);
+  s.append(punkt(ampelPunkt(stand)), el('span', undefined, ampelWort(stand)));
+  s.title = frist ? `${ampelWort(stand)}: ${uhrzeit(frist)}` : ampelWort(stand);
+  return s;
+}
+
+/** Zeile zwei der Karte: an wen, von wem, wie alt, Kinderzähler. */
+function ticketZeile(w: Welt, x: WeltTicket): string {
+  const an = x.adressaten.map((id) => anzeigename(w, id)).join(', ') || (x.team ? teamText(x.team) : '–');
+  return [t('welten.ticket.an', { namen: an }), t('welten.ticket.von', { name: anzeigename(w, x.absender) }), alter(x.geaendert),
+    ...(x.wartet_auf.length ? [t('welten.ticket.wartetAuf', { liste: x.wartet_auf.join(', ') })] : []),
+    ...(x.kinder_gesamt ? [t('welten.ticket.kinder', { n: x.kinder_abgenommen, m: x.kinder_gesamt })] : [])].join(' · ');
+}
+
+/** Zeile drei: was der Stand erklären muss (Auftrag tickets4 A). Leer, wenn nichts zu sagen ist. */
+export function ticketStandzeile(w: Welt, x: WeltTicket): string {
+  const teile: string[] = [];
+  const titelVon = (id: string): string => w.tickets.find((y) => y.id === id)?.titel ?? id;
+  if (x.stand === 'wartet' && x.geparkt) {
+    const weck = x.geparkt.bis ? t('welten.ticket.wecktBis', { zeit: uhrzeit(x.geparkt.bis) })
+      : x.geparkt.auf ? t('welten.ticket.wecktAuf', { titel: titelVon(x.geparkt.auf) }) : t('welten.ticket.wecktOhne');
+    teile.push(x.geparkt.grund ? `${weck}: ${x.geparkt.grund}` : weck);
+  }
+  if (x.stand === 'braucht dich' && x.flagge) teile.push(t('welten.ticket.brauchtGrund', { grund: x.flagge.grund || t('welten.ticket.ohneGrund') }));
+  if (x.stand === 'verworfen' && x.verworfen) {
+    teile.push(t('welten.ticket.verworfenGrund', { grund: verwerfGrundWort(x.verworfen.code) })
+      + (x.verworfen.duplikat_von ? ` (${titelVon(x.verworfen.duplikat_von)})` : ''));
+  } else if (x.duplikat_von) {
+    teile.push(t('welten.ticket.duplikatVon', { titel: titelVon(x.duplikat_von) }));
+  }
+  if (x.stand === 'in Prüfung' && x.pruefung) teile.push(t('welten.ticket.prueft', { name: anzeigename(w, x.pruefung.pruefer) }));
+  if (x.eltern) teile.push(t('welten.ticket.gehoertZu', { titel: titelVon(x.eltern), id: x.eltern }));
+  return teile.join(' · ');
+}
+
+function ticketKarte(w: Welt, x: WeltTicket, ziehbar: boolean): HTMLElement {
+  const b = el('button', 'wv-ticket');
+  b.dataset.w = 'ticket'; b.dataset.arg = x.id; b.dataset.id = x.id;
+  const oben = el('div', 'wv-ticket-oben');
+  oben.append(punkt(ticketPunkt(x.stand)), el('span', 'wv-name', x.titel), el('span', 'wv-leise', ` · ${wort('stand', x.stand)}`),
+    abzeichen(kindWort(x.kind), kindErklaerung(x.kind)),
+    abzeichen(prioritaetWort(x.prioritaet), x.prioritaet_text || prioritaetText(x.prioritaet), prioritaetHervor(x.prioritaet)));
+  const a = ampel(x.ampel, String(x.grenzen.frist ?? ''));
+  if (a) oben.appendChild(a);
+  // Ein abgelehnter Vorschlag schliesst sein Ticket ebenfalls als „abgenommen“; erst der
+  // Stand des Vorschlags sagt, wie entschieden wurde.
+  if (x.art === 'skill-vorschlag') oben.appendChild(el('span', 'wv-stufe', x.skill_vorschlag ? `${t('welten.vorschlag.titel')} · ${wort('vorschlag', x.skill_vorschlag.stand)}` : t('welten.vorschlag.titel')));
+  b.append(oben, el('div', 'wv-leise wv-ticket-zeile', ticketZeile(w, x)));
+  const zusatz = ticketStandzeile(w, x);
+  if (zusatz) b.appendChild(el('div', 'wv-leise wv-ticket-standzeile', zusatz));
+  if (ziehbar) {
+    // Plan Satz 44 in der Electron-Fassung: die Reihenfolge geht mit den Pfeiltasten.
+    b.classList.add('wv-ticket-ordnen');
+    b.dataset.ordnen = x.id;
+    const knoepfe = el('div', 'wv-zeile-knoepfe wv-ordnen');
+    knoepfe.append(knopf('↑', 'backlog-hoch', x.id, 'knopf-rand wv-ordnen-knopf'), knopf('↓', 'backlog-runter', x.id, 'knopf-rand wv-ordnen-knopf'));
+    b.appendChild(knoepfe);
+    b.title = t('welten.backlog.ziehen');
+  }
+  return b;
+}
+
+function boardZeichnen(w: Welt, tickets: WeltTicket[]): HTMLElement {
+  const box = el('div', 'wv-board');
+  const kopf = el('div', 'wv-board-kopf');
+  for (const spalte of BOARD_SPALTEN) {
+    const anzahl = tickets.filter((x) => boardStaende(spalte).includes(x.stand)).length;
+    const k = el('div', 'wv-board-spaltenkopf');
+    k.dataset.spalte = spalte;
+    k.dataset.anzahl = String(anzahl);
+    const zeile = el('div', 'wv-board-spaltenname');
+    zeile.append(punkt(ticketPunkt(spalte)), el('span', undefined, wort('stand', spalte)), el('span', 'wv-leise', String(anzahl)));
+    k.appendChild(zeile);
+    if (spalte === 'läuft') {
+      const wi = wipText(w);
+      const e = el('div', `wv-board-wip${wi.rot ? ' rot' : ''}`, wi.text);
+      e.title = t('welten.wip.hilfe');
+      k.appendChild(e);
+    }
+    kopf.appendChild(k);
+  }
+  box.appendChild(kopf);
+  const spuren = boardSpuren(w, tickets);
+  if (!spuren.length) box.appendChild(el('div', 'wv-leer wv-leise', t('welten.tickets.keine')));
+  for (const spur of spuren) {
+    const s = el('div', 'wv-board-spur');
+    s.dataset.spur = spur.id;
+    s.appendChild(el('div', 'wv-board-spurname', spur.titel));
+    const spalten = el('div', 'wv-board-spalten');
+    for (const sp of spur.spalten) {
+      const c = el('div', 'wv-board-spalte');
+      c.dataset.spalte = sp.name;
+      for (const x of sp.tickets) {
+        const k = el('button', 'wv-board-kachel');
+        k.dataset.w = 'ticket'; k.dataset.arg = x.id; k.dataset.id = x.id;
+        k.appendChild(el('div', 'wv-name', x.titel));
+        const marken = el('div', 'wv-board-marken');
+        marken.append(abzeichen(kindWort(x.kind), kindErklaerung(x.kind)),
+          abzeichen(prioritaetWort(x.prioritaet), x.prioritaet_text || prioritaetText(x.prioritaet), prioritaetHervor(x.prioritaet)));
+        const a = ampel(x.ampel, String(x.grenzen.frist ?? ''));
+        if (a) marken.appendChild(a);
+        k.appendChild(marken);
+        k.appendChild(el('div', 'wv-leise', x.bearbeiter ? anzeigename(w, x.bearbeiter) : (x.adressaten[0] ? anzeigename(w, x.adressaten[0]) : t('welten.ticket.ohneAdressat'))));
+        c.appendChild(k);
+      }
+      if (!sp.tickets.length) c.appendChild(el('div', 'wv-leise', '–'));
+      spalten.appendChild(c);
+    }
+    s.appendChild(spalten);
+    box.appendChild(s);
+  }
+  return box;
+}
+
+function ticketFormular(w: Welt, e: TicketEntwurf): HTMLElement {
+  const f = el('div', 'wv-karte wv-ticketformular');
+  f.append(el('div', 'wv-karte-titel', t('welten.tickets.neuIn', { welt: w.name })),
+    feld('input', 'ticket:titel', e.titel, t('welten.tickets.titel')),
+    feld('textarea', 'ticket:ziel', e.ziel, t('welten.tickets.ziel')),
+    feld('textarea', 'ticket:fertig', e.fertig, t('welten.tickets.fertig')));
+  // Fertig-Punkte: hinzufuegen und entfernen (Plan Satz 2).
+  const punkte = el('div', 'wv-punkte');
+  punkte.appendChild(el('div', 'wv-leise', t('welten.tickets.punkte')));
+  e.punkte.forEach((p, i) => {
+    const zeile = el('div', 'wv-zeile-knoepfe');
+    zeile.append(feld('input', `ticket:punkt:${i}`, p, t('welten.tickets.punkt')), knopf('−', 'ticket-punkt-weg', String(i)));
+    punkte.appendChild(zeile);
+  });
+  punkte.appendChild(knopf(t('welten.tickets.punktPlus'), 'ticket-punkt-plus'));
+  f.appendChild(punkte);
+  f.append(auswahlFeld('ticket:art', e.kind, TICKET_ARTEN.map((k): [string, string] => [k, kindWort(k)])),
+    el('div', 'wv-leise wv-ticket-arterklaerung', kindErklaerung(e.kind)),
+    auswahlFeld('ticket:prioritaet', String(e.prioritaet), [0, 1, 2, 3].map((p): [string, string] => [String(p), `${prioritaetWort(p)} – ${prioritaetText(p)}`])),
+    auswahlFeld('ticket:an', e.an, [['', t('welten.tickets.hauptagentEntscheidet')], ...w.teams.map((x): [string, string] => [`team:${x.name}`, teamText(x.name)]), ...w.liste.map((id): [string, string] => [id, anzeigename(w, id)])]));
+  const elternArt = e.kind === 'story' ? 'vorhaben' : e.kind === 'task' ? 'story' : e.kind === 'subtask' ? 'task' : '';
+  const elternWahl = elternArt ? w.tickets.filter((x) => x.kind === elternArt && x.stand !== 'verworfen' && x.stand !== 'abgenommen') : [];
+  if (elternWahl.length) {
+    f.appendChild(auswahlFeld('ticket:eltern', e.eltern, [['', t('welten.tickets.ohneEltern')], ...elternWahl.map((x): [string, string] => [x.id, x.titel])]));
+  }
+  f.append(auswahlFeld('ticket:abhaengig', e.abhaengig, [['', t('welten.tickets.ohneAbhaengigkeit')], ...w.tickets.filter((x) => x.stand !== 'verworfen').map((x): [string, string] => [x.id, x.titel])]),
+    feld('input', 'ticket:frist', e.frist, t('welten.tickets.frist')),
+    feld('input', 'ticket:runden', e.runden, t('welten.tickets.runden')));
+  // Vorschau der Definition of Ready: sie warnt, sie blockt nicht (Plan Satz 45).
+  const grund = bereitschaftText({ kind: e.kind, punkte: e.punkte.filter((p) => p.trim()).length, frist: e.frist, runden: e.runden, an: e.an, titel: e.titel, ziel: e.ziel, fertig: e.fertig });
+  const vorschau = el('div', 'wv-dor');
+  vorschau.dataset.bereit = grund ? 'nein' : 'ja';
+  vorschau.append(punkt(grund ? 'will' : 'laeuft'), el('span', undefined, grund ? t('welten.dor.nicht', { grund }) : t('welten.dor.ja')));
+  f.appendChild(vorschau);
+  f.appendChild(el('div', 'wv-leise', t('welten.dor.hinweis')));
+  const k = el('div', 'wv-zeile-knoepfe rechts');
+  k.append(knopf(t('welten.knopf.abbrechen'), 'ticket-neu-zu'), knopf(t('welten.knopf.anlegen'), 'ticket-anlegen', '', 'knopf-voll'));
+  f.appendChild(k);
+  return f;
 }
 
 function ticketsZeichnen(w: Welt, a: WeltAgent | undefined): HTMLElement {
@@ -1504,33 +1927,15 @@ function ticketsZeichnen(w: Welt, a: WeltAgent | undefined): HTMLElement {
   const gewaehlt = z.ticketAuswahl ? w.tickets.find((x) => x.id === z.ticketAuswahl) : undefined;
   if (gewaehlt) { box.appendChild(ticketDetail(w, gewaehlt)); return box; }
   const kopf = el('div', 'wv-zeile-knoepfe');
-  kopf.append(auswahlFeld('ticketfilter', z.ticketFilter, [['offen', t('welten.tickets.filterOffen')], ['alle', t('welten.tickets.filterAlle')], ...STAENDE.map((s): [string, string] => [s, wort('stand', s)])]), knopf(t('welten.tickets.neu'), 'ticket-neu'));
+  kopf.append(auswahlFeld('ticketfilter', z.ticketFilter, [['offen', t('welten.tickets.filterOffen')], ['alle', t('welten.tickets.filterAlle')], ...STAENDE.map((s): [string, string] => [s, wort('stand', s)])]),
+    segment('ticketansicht', z.ticketAnsicht, [['liste', t('welten.tickets.liste')], ['board', t('welten.tickets.board')]]),
+    knopf(t('welten.tickets.neu'), 'ticket-neu'));
   box.appendChild(kopf);
-  if (z.neuesTicket) {
-    const f = el('div', 'wv-karte');
-    f.append(el('div', 'wv-karte-titel', t('welten.tickets.neuIn', { welt: w.name })), feld('input', 'ticket:titel', z.neuesTicket.titel, t('welten.tickets.titel')),
-      feld('textarea', 'ticket:ziel', z.neuesTicket.ziel, t('welten.tickets.ziel')), feld('textarea', 'ticket:fertig', z.neuesTicket.fertig, t('welten.tickets.fertig')),
-      auswahlFeld('ticket:an', z.neuesTicket.an, [['', t('welten.tickets.hauptagentEntscheidet')], ...w.teams.map((x): [string, string] => [`team:${x.name}`, teamText(x.name)]), ...w.liste.map((id): [string, string] => [id, anzeigename(w, id)])]));
-    const k = el('div', 'wv-zeile-knoepfe rechts');
-    k.append(knopf(t('welten.knopf.abbrechen'), 'ticket-neu-zu'), knopf(t('welten.knopf.anlegen'), 'ticket-anlegen', '', 'knopf-voll'));
-    f.appendChild(k);
-    box.appendChild(f);
-  }
+  if (z.neuesTicket) box.appendChild(ticketFormular(w, z.neuesTicket));
   const liste = ticketsFuer(w, a);
+  if (z.ticketAnsicht === 'board') { box.appendChild(boardZeichnen(w, liste)); return box; }
   if (!liste.length) box.appendChild(el('div', 'wv-leer wv-leise', t('welten.tickets.keine')));
-  for (const x of liste) {
-    const b = el('button', 'wv-ticket');
-    b.dataset.w = 'ticket'; b.dataset.arg = x.id; b.dataset.id = x.id;
-    const oben = el('div', 'wv-ticket-oben');
-    oben.append(punkt(ticketPunkt(x.stand)), el('span', 'wv-name', x.titel), el('span', 'wv-leise', ` · ${wort('stand', x.stand)}`));
-    // Ein abgelehnter Vorschlag schliesst sein Ticket ebenfalls als „abgenommen“; erst der
-    // Stand des Vorschlags sagt, wie entschieden wurde.
-    if (x.art === 'skill-vorschlag') oben.appendChild(el('span', 'wv-stufe', x.skill_vorschlag ? `${t('welten.vorschlag.titel')} · ${wort('vorschlag', x.skill_vorschlag.stand)}` : t('welten.vorschlag.titel')));
-    const an = x.adressaten.map((id) => anzeigename(w, id)).join(', ') || (x.team ? teamText(x.team) : '–');
-    b.append(oben, el('div', 'wv-leise', [t('welten.ticket.an', { namen: an }), t('welten.ticket.von', { name: anzeigename(w, x.absender) }), alter(x.geaendert),
-      ...(x.wartet_auf.length ? [t('welten.ticket.wartetAuf', { liste: x.wartet_auf.join(', ') })] : [])].join(' · ')));
-    box.appendChild(b);
-  }
+  for (const x of liste) box.appendChild(ticketKarte(w, x, z.ticketFilter === 'triage'));
   return box;
 }
 
@@ -1580,13 +1985,59 @@ function ticketDetail(w: Welt, tk: WeltTicket): HTMLElement {
     }
     box.appendChild(k);
   }
-  box.appendChild(karte(t('welten.detail.auftrag'),
+  const titelVon = (id: string): string => w.tickets.find((y) => y.id === id)?.titel ?? id;
+  const kinder = w.tickets.filter((x) => x.eltern === tk.id).sort((a, b) => (a.angelegt < b.angelegt ? -1 : 1));
+  const auftrag = karte(t('welten.detail.auftrag'),
     wert(t('welten.tickets.ziel'), v ? (tk.ziel.split('\n\n')[0] ?? tk.ziel) : tk.ziel), wert(t('welten.tickets.fertig'), tk.fertig),
     wert(t('welten.detail.adressiertAn'), [...tk.adressaten.map((id) => anzeigename(w, id)), ...(tk.team ? [teamText(tk.team)] : [])].join(', ')),
-    tk.bearbeiter ? wert(t('welten.detail.bearbeiter'), anzeigename(w, tk.bearbeiter)) : null, wert(t('welten.detail.absender'), anzeigename(w, tk.absender)), wert(t('welten.detail.angelegt'), uhrzeit(tk.angelegt))));
+    tk.bearbeiter ? wert(t('welten.detail.bearbeiter'), anzeigename(w, tk.bearbeiter)) : null, wert(t('welten.detail.absender'), anzeigename(w, tk.absender)), wert(t('welten.detail.angelegt'), uhrzeit(tk.angelegt)),
+    tk.abhaengig.length ? wert(t('welten.detail.haengtAb'), tk.abhaengig.map((id) => `${anfuehrung(`„${titelVon(id)}“`)} (${w.tickets.find((y) => y.id === id)?.stand ?? '?'})`).join(', ')) : null,
+    Object.keys(tk.grenzen).length ? wert(t('welten.detail.grenzen'), Object.entries(tk.grenzen).sort().map(([k2, v2]) => `${k2}: ${String(v2)}`).join(', ')) : null,
+    tk.eltern ? wert(t('welten.detail.eltern'), anfuehrung(`„${titelVon(tk.eltern)}“`)) : null,
+    tk.herkunft ? wert(t('welten.detail.herkunft'), anfuehrung(`„${titelVon(tk.herkunft)}“`)) : null);
+  if (kinder.length) {
+    auftrag.appendChild(wert(t('welten.detail.kinder'), t('welten.ticket.kinder', { n: tk.kinder_abgenommen, m: tk.kinder_gesamt })));
+    const liste2 = el('div', 'wv-liste');
+    for (const k2 of kinder) {
+      const b = knopf(`${anfuehrung(`„${k2.titel}“`)} (${wort('stand', k2.stand)})`, 'ticket', k2.id, 'wv-verweis');
+      liste2.appendChild(b);
+    }
+    auftrag.appendChild(liste2);
+  }
+  box.appendChild(auftrag);
+  // Fertig-Liste mit Haken (Plan Satz 2); abgehakt wird vom Bearbeiter, hier nur gezeigt.
+  if (tk.fertig_punkte.length) {
+    const erledigt = tk.fertig_punkte.filter((p) => p.erledigt).length;
+    const k = karte(t('welten.detail.fertigListe', { n: erledigt, m: tk.fertig_punkte.length }));
+    for (const p of tk.fertig_punkte) {
+      const zeile = el('div', `wv-fertigpunkt${p.erledigt ? ' erledigt' : ''}`);
+      zeile.append(el('span', 'wv-haken', p.erledigt ? '☑' : '☐'), el('span', undefined, p.text));
+      if (p.erledigt && p.von) zeile.appendChild(el('span', 'wv-leise', ` · ${anzeigename(w, p.von)}`));
+      k.appendChild(zeile);
+    }
+    k.appendChild(el('div', 'wv-leise', t('welten.detail.fertigListeHinweis')));
+    box.appendChild(k);
+  }
+  const zwischen = tk.verlauf.filter((e) => e.ereignis === 'zwischenstand');
+  if (zwischen.length) {
+    const k = karte(t('welten.detail.zwischenstaende'));
+    for (const e of zwischen) {
+      k.append(el('div', 'wv-leise', `${anzeigename(w, e.von)} · ${uhrzeit(e.zeit)}`), el('div', 'wv-ntext', e.text));
+    }
+    box.appendChild(k);
+  }
   if (tk.ergebnis) box.appendChild(karte(t('welten.detail.ergebnis'), el('div', 'wv-ntext', tk.ergebnis.text), el('div', 'wv-leise', `${anzeigename(w, tk.ergebnis.von)} · ${uhrzeit(tk.ergebnis.zeit)}${tk.ergebnis.commit ? ` · Commit ${tk.ergebnis.commit}` : ''}`)));
+  if (tk.pruefung) {
+    box.appendChild(karte(t('welten.detail.pruefung'),
+      wert(t('welten.detail.pruefer'), anzeigename(w, tk.pruefung.pruefer)),
+      wert(t('welten.detail.angefordertVon'), anzeigename(w, tk.pruefung.angefordert_von)),
+      tk.pruefung.urteil ? wert(t('welten.detail.urteil'), urteilWort(tk.pruefung.urteil)) : null,
+      el('div', tk.pruefung.notiz ? 'wv-ntext' : 'wv-leise', tk.pruefung.notiz ?? t('welten.detail.pruefnotizFehlt'))));
+  }
   if (tk.abnahme) {
-    const k = karte(t(tk.stand === 'zurückgegeben' ? 'welten.detail.zurueckgegeben' : 'welten.detail.abnahme'), el('div', undefined, `${anzeigename(w, tk.abnahme.von)} · ${uhrzeit(tk.abnahme.zeit)}`), tk.abnahme.bemerkung ? el('div', 'wv-leise', tk.abnahme.bemerkung) : null);
+    const k = karte(t(tk.stand === 'zurückgegeben' ? 'welten.detail.zurueckgegeben' : 'welten.detail.abnahme'),
+      el('div', undefined, `${anzeigename(w, tk.abnahme.von)} · ${uhrzeit(tk.abnahme.zeit)}${tk.abnahme.grund ? ` · ${abnahmeGrundWort(tk.abnahme.grund)}` : ''}`),
+      tk.abnahme.bemerkung ? el('div', 'wv-leise', tk.abnahme.bemerkung) : null);
     if (tk.stand === 'abgenommen') {
       if (z.rueckgabe === tk.id) {
         const f = el('div', 'wv-zeile-knoepfe');
@@ -1598,10 +2049,203 @@ function ticketDetail(w: Welt, tk: WeltTicket): HTMLElement {
     }
     box.appendChild(k);
   }
+  if (tk.verworfen) {
+    box.appendChild(karte(t('welten.detail.verworfen'),
+      wert(t('welten.detail.grund'), verwerfGrundWort(tk.verworfen.code)),
+      tk.verworfen.bemerkung ? wert(t('welten.detail.bemerkung'), tk.verworfen.bemerkung) : null,
+      tk.verworfen.duplikat_von ? wert(t('welten.detail.duplikatVon'), anfuehrung(`„${titelVon(tk.verworfen.duplikat_von)}“`)) : null));
+  }
+  box.appendChild(handlungenZeichnen(w, tk));
+  box.appendChild(karte(t('welten.detail.messung'),
+    el('div', 'wv-messzeile', [t('welten.messung.durchlauf', { wert: dauerWort(tk.durchlaufzeit_s) }),
+      t(tk.zuege === 1 ? 'welten.messung.zugEins' : 'welten.messung.zuegeViele', { n: tk.zuege }),
+      t('welten.messung.alter', { wert: dauerWort(tk.alter_s) })].join(' · ')),
+    tk.zyklus ? wert(t('welten.detail.zyklus'), tk.zyklus) : null));
   const verlauf = el('div', 'wv-liste');
   for (const e of tk.verlauf) verlauf.appendChild(el('div', 'wv-leise', `${uhrzeit(e.zeit)} · ${anzeigename(w, e.von)}: ${wort('ereignis', e.ereignis)}${e.text ? ` – ${e.text}` : ''}`));
   box.appendChild(karte(t('welten.detail.verlauf'), verlauf));
   return box;
+}
+
+/**
+ * WELCHE HANDLUNGEN DER KERN DEM MENSCHEN ERLAUBT (docs/AGENTS-DATEN.md, Plan Sätze 22,
+ * 23, 25, 27, 31, 39). Was er nicht erlaubt, bietet die Ansicht nicht an: Parken,
+ * Zwischenstand, Haken und Prüfnotiz gehören dem Bearbeiter beziehungsweise dem Prüfer.
+ */
+export function moeglicheHandlungen(tk: WeltTicket): TicketHandlung[] {
+  const raus: TicketHandlung[] = [];
+  if (tk.stand === 'triage') raus.push('annehmen');
+  if (tk.stand !== 'abgenommen') raus.push('verwerfen');
+  raus.push('umadressieren');
+  if (tk.stand !== 'abgenommen' && tk.stand !== 'verworfen') raus.push('grenzen');
+  // Kein `abnehmen`: der Mensch nimmt nicht ab (Plan Satz 27).
+  if (tk.stand === 'zur Abnahme') raus.push('pruefer');
+  return raus;
+}
+
+/** Ob die offene Handlung ausgefuehrt werden darf (dieselben Regeln wie am Mac). */
+function handlungBereit(e: TicketHandlungEntwurf): boolean {
+  switch (e.handlung) {
+    case 'verwerfen': return e.grund !== 'duplikat' || !!e.duplikat;
+    case 'annehmen': return !!e.an;
+    case 'umadressieren': return !!e.an && !!e.grund.trim();
+    case 'grenzen': return !!e.frist || !!e.runden;
+    case 'pruefer': return !!e.pruefer;
+    default: return false;
+  }
+}
+
+function handlungenZeichnen(w: Welt, tk: WeltTicket): HTMLElement {
+  const offen = z.ticketHandlung && z.ticketHandlung.ticket === tk.id ? z.ticketHandlung : null;
+  if (!offen) {
+    const k = karte(t('welten.handlung.titel'));
+    const zeile = el('div', 'wv-zeile-knoepfe');
+    for (const h of moeglicheHandlungen(tk)) zeile.appendChild(knopf(t(`welten.handlung.${h}`), 'handlung', `${h}|${tk.id}`));
+    k.append(zeile, el('div', 'wv-leise', t('welten.handlung.hinweis')));
+    return k;
+  }
+  const k = karte(t(`welten.handlung.${offen.handlung}`));
+  k.dataset.handlung = offen.handlung;
+  const adressat = (): HTMLElement => auswahlFeld('handlung:an', offen.an,
+    [['', t('welten.handlung.bitteWaehlen')], ...w.teams.map((x): [string, string] => [`team:${x.name}`, teamText(x.name)]), ...w.liste.map((id): [string, string] => [id, anzeigename(w, id)])]);
+  switch (offen.handlung) {
+    case 'verwerfen':
+      k.append(auswahlFeld('handlung:grund', offen.grund, VERWERF_GRUENDE.map((g): [string, string] => [g, verwerfGrundWort(g)])),
+        feld('input', 'handlung:bemerkung', offen.bemerkung, t('welten.handlung.bemerkungFrei')));
+      if (offen.grund === 'duplikat') {
+        k.appendChild(auswahlFeld('handlung:duplikat', offen.duplikat,
+          [['', t('welten.handlung.bitteWaehlen')], ...w.tickets.filter((x) => x.id !== tk.id).map((x): [string, string] => [x.id, x.titel])]));
+      }
+      break;
+    case 'annehmen':
+      k.append(adressat(), auswahlFeld('handlung:art', offen.kind, TICKET_ARTEN.map((a): [string, string] => [a, kindWort(a)])),
+        auswahlFeld('handlung:prioritaet', String(offen.prioritaet), [0, 1, 2, 3].map((p): [string, string] => [String(p), `${prioritaetWort(p)} – ${prioritaetText(p)}`])));
+      offen.punkte.forEach((p, i) => {
+        const zeile = el('div', 'wv-zeile-knoepfe');
+        zeile.append(feld('input', `handlung:punkt:${i}`, p, t('welten.tickets.punkt')), knopf('−', 'handlung-punkt-weg', String(i)));
+        k.appendChild(zeile);
+      });
+      k.appendChild(knopf(t('welten.tickets.punktPlus'), 'handlung-punkt-plus'));
+      break;
+    case 'umadressieren':
+      k.append(adressat(), feld('input', 'handlung:grund', offen.grund, t('welten.handlung.grund')));
+      break;
+    case 'grenzen':
+      k.append(feld('input', 'handlung:frist', offen.frist, t('welten.tickets.frist')), feld('input', 'handlung:runden', offen.runden, t('welten.tickets.runden')));
+      break;
+    case 'pruefer':
+      k.append(auswahlFeld('handlung:pruefer', offen.pruefer,
+        [['', t('welten.handlung.bitteWaehlen')], ...w.agenten.filter((a) => a.id !== tk.bearbeiter && a.stand === 'aktiv').map((a): [string, string] => [a.id, a.name])]),
+        el('div', 'wv-leise', t('welten.handlung.prueferHinweis')));
+      break;
+    default: break;
+  }
+  const knoepfe = el('div', 'wv-zeile-knoepfe rechts');
+  knoepfe.append(knopf(t('welten.knopf.abbrechen'), 'handlung-zu'),
+    knopf(t(`welten.handlung.${offen.handlung}Knopf`), 'handlung-ausfuehren', '', 'knopf-voll', !handlungBereit(offen)));
+  k.appendChild(knoepfe);
+  return k;
+}
+
+/**
+ * Ein Vorhaben mit Fortschritt (Plan Sätze 42 und 51): „3 von 5 Stories abgenommen".
+ * Ein abgeschlossenes steht markiert und zuletzt.
+ */
+export function vorhabenStand(w: Welt): { id: string; titel: string; stand: string; abgenommen: number; gesamt: number; fertig: boolean }[] {
+  return w.tickets.filter((x) => x.kind === 'vorhaben').map((v) => {
+    const stories = w.tickets.filter((x) => x.eltern === v.id && x.stand !== 'verworfen');
+    return { id: v.id, titel: v.titel, stand: v.stand, abgenommen: stories.filter((x) => x.stand === 'abgenommen').length, gesamt: stories.length, fertig: v.stand === 'abgenommen' };
+  }).sort((a, b) => (a.fertig !== b.fertig ? Number(a.fertig) - Number(b.fertig) : (a.id < b.id ? -1 : 1)));
+}
+
+/** Karten „Braucht dich", „Triage" und „Vorhaben" für den Weltinspektor (Auftrag tickets4 E). */
+function weltUeberblick(w: Welt): HTMLElement[] {
+  const raus: HTMLElement[] = [];
+  const braucht = w.tickets.filter((x) => x.stand === 'braucht dich');
+  if (braucht.length) {
+    const k = karte(t('welten.uebersicht.brauchtDich'));
+    for (const x of braucht) {
+      const b = knopf(`${anfuehrung(`„${x.titel}“`)} – ${x.flagge?.grund || t('welten.ticket.ohneGrund')}`, 'ticket', x.id, 'wv-verweis');
+      b.dataset.brauchtDich = x.id;
+      k.appendChild(b);
+    }
+    raus.push(k);
+  }
+  const backlog = backlogVon(w);
+  if (backlog.length) {
+    const k = karte(t('welten.uebersicht.triage'));
+    backlog.slice(0, 5).forEach((x, i) => {
+      const b = knopf(`${i + 1}. ${x.titel} · ${kindWort(x.kind)}`, 'ticket', x.id, 'wv-verweis');
+      b.dataset.triage = x.id;
+      k.appendChild(b);
+    });
+    if (backlog.length > 5) k.appendChild(el('div', 'wv-leise', t('welten.uebersicht.triageMehr', { n: backlog.length - 5 })));
+    raus.push(k);
+  }
+  const vorhaben = vorhabenStand(w);
+  if (vorhaben.length) {
+    const k = karte(t('welten.uebersicht.vorhaben'));
+    for (const v of vorhaben) {
+      const b = knopf(`${v.titel} · ${t('welten.uebersicht.stories', { n: v.abgenommen, m: v.gesamt })}${v.fertig ? ` · ${t('welten.uebersicht.abgeschlossen')}` : ''}`, 'ticket', v.id, `wv-verweis${v.fertig ? ' wv-fertig' : ''}`);
+      b.dataset.vorhaben = v.id;
+      k.appendChild(b);
+    }
+    raus.push(k);
+  }
+  return raus;
+}
+
+/** Zyklus, Definition of Done und WIP-Grenze der Welt (Auftrag tickets4 D). */
+function weltRegelKarten(w: Welt): HTMLElement[] {
+  const r = z.weltRegeln && z.weltRegeln.welt === w.pfad ? z.weltRegeln : null;
+  const zyklus = karte(t('welten.zyklus.titel'));
+  if (w.zyklus.jetzt && w.zyklus.an) {
+    zyklus.append(wert(t('welten.zyklus.laeuft'), `${w.zyklus.jetzt.id} · ${uhrzeit(w.zyklus.jetzt.start)} – ${uhrzeit(w.zyklus.jetzt.ende)}`));
+    if (w.zyklus.jetzt.ziel) zyklus.appendChild(wert(t('welten.zyklus.ziel'), w.zyklus.jetzt.ziel));
+  } else if (w.zyklus.jetzt) {
+    zyklus.appendChild(wert(t('welten.zyklus.aus'), w.zyklus.jetzt.id));
+  } else {
+    zyklus.appendChild(el('div', 'wv-leise', t('welten.zyklus.ohne')));
+  }
+  zyklus.appendChild(wert(t('welten.zyklus.laenge'), t(w.zyklus.tage === 1 ? 'welten.zyklus.tagEins' : 'welten.zyklus.tageViele', { n: w.zyklus.tage })));
+  if (r) {
+    zyklus.append(feld('input', 'regel:tage', r.tage, t('welten.zyklus.tageFeld')), feld('input', 'regel:ziel', r.ziel, t('welten.zyklus.zielFeld')));
+    const k = el('div', 'wv-zeile-knoepfe');
+    k.appendChild(knopf(t(w.zyklus.an ? 'welten.zyklus.neu' : 'welten.zyklus.ein'), 'zyklus-ein'));
+    if (w.zyklus.an) k.appendChild(knopf(t('welten.zyklus.ausschalten'), 'zyklus-aus'));
+    zyklus.appendChild(k);
+  } else {
+    zyklus.appendChild(knopf(t('welten.knopf.bearbeiten'), 'regeln-bearbeiten'));
+  }
+  for (const h of [...w.zyklus.historie].reverse()) {
+    const e = el('div', 'wv-leise wv-zyklus-historie', t('welten.zyklus.historie', { id: h.id, a: h.angelegt, b: h.abgenommen, c: h.uebertragen }));
+    e.dataset.zyklus = h.id;
+    zyklus.appendChild(e);
+  }
+  const dod = karte(t('welten.dod.titel'));
+  if (r) {
+    r.dod.forEach((p, i) => {
+      const zeile = el('div', 'wv-zeile-knoepfe');
+      zeile.append(feld('input', `regel:dod:${i}`, p, t('welten.dod.punkt')), knopf('−', 'dod-punkt-weg', String(i)));
+      dod.appendChild(zeile);
+    });
+    const k = el('div', 'wv-zeile-knoepfe');
+    k.append(knopf(t('welten.dod.punktPlus'), 'dod-punkt-plus'), knopf(t('welten.knopf.sichern'), 'dod-sichern', '', 'knopf-voll'));
+    dod.appendChild(k);
+  } else if (!w.dod.length) {
+    dod.appendChild(el('div', 'wv-leise', t('welten.dod.keine')));
+  } else {
+    for (const p of w.dod) dod.appendChild(el('div', 'wv-dod-punkt', `✓ ${p}`));
+  }
+  const wi = wipText(w);
+  const wip = karte(t('welten.wip.titel'));
+  const zeile = el('div', `wv-wip${wi.rot ? ' rot' : ''}`, `${wi.text} – ${t(wi.rot ? 'welten.wip.ueber' : 'welten.wip.text')}`);
+  wip.appendChild(zeile);
+  if (r) {
+    wip.append(feld('input', 'regel:wip', r.wip, t('welten.wip.feld')), knopf(t('welten.wip.setzen'), 'wip-setzen'));
+    wip.appendChild(knopf(t('welten.knopf.abbrechen'), 'regeln-zu'));
+  }
+  return [zyklus, dod, wip];
 }
 
 function inspektorZeichnen(w: Welt): HTMLElement {
@@ -1614,7 +2258,11 @@ function inspektorZeichnen(w: Welt): HTMLElement {
     inhalt.append(el('div', 'wv-titel', w.name), karte(t('welten.welt.titel'), wert(t('welten.welt.art'), t(w.art === 'global' ? 'welten.global' : 'welten.welt.projekt')), wert(t('welten.welt.ablage'), w.fern ? `${w.maschine}:${w.ablage}` : kurzerPfad(w.pfad), true),
       wert(t('welten.welt.stand'), `${wort('stand', w.stand)}${w.stand_grund ? `, ${w.stand_grund}` : ''}`), wert(t('welten.stufe.hauptagent'), w.hauptagent ? anzeigename(w, w.hauptagent) : t('welten.wort.keiner')),
       wert(t('welten.leiste.agenten'), t(w.teams.length === 1 ? 'welten.welt.agentenTeamEins' : 'welten.welt.agentenTeamsViele', { n: w.agenten.length, m: w.teams.length })),
-      wert(t('welten.reiter.tickets'), t('welten.welt.ticketsOffen', { n: w.tickets.length, m: w.zaehler.tickets_offen })), wert(t('welten.welt.fragen'), t('welten.welt.fragenOffen', { n: w.fragen.filter((f) => f.stand === 'offen').length, m: w.fragen.length }))));
+      wert(t('welten.reiter.tickets'), t('welten.welt.ticketsTriage', { n: w.tickets.length, m: w.zaehler.tickets_offen, k: w.zaehler.triage })), wert(t('welten.welt.fragen'), t('welten.welt.fragenOffen', { n: w.fragen.filter((f) => f.stand === 'offen').length, m: w.fragen.length }))));
+    // tickets4: was dich braucht, das Backlog und die Vorhaben (Auftrag E); die
+    // Electron-Fassung hat keine eigene Uebersichtsseite, also stehen sie hier.
+    inhalt.append(...weltUeberblick(w));
+    inhalt.append(...weltRegelKarten(w));
     if (w.maschine) {
       const mk = karte(t('welten.maschine.titel'),
         wert(t('welten.maschine.titel'), w.fern ? maschineWort(w.maschine) : t('welten.maschine.diese', { maschine: maschineWort(w.maschine) })),
@@ -2271,6 +2919,46 @@ export function weltenUiState(): Record<string, unknown> {
     meldung: z.meldung ?? {}, rueckfrage: z.rueckfrage ? { handlung: z.rueckfrage.handlung, text: z.rueckfrage.text, warnungen: z.rueckfrage.warnungen } : {},
     tickets: [...(blatt?.querySelectorAll<HTMLElement>('.wv-ticket') ?? [])].map((x) => x.dataset.id ?? ''),
     ticketDetail: blatt?.querySelector<HTMLElement>('.wv-detail')?.dataset.ticket ?? '',
+    // tickets4: Karte, Board, Detailhandlungen, Formular und die Regeln der Welt.
+    ticketAnsicht: z.ticketAnsicht,
+    ticketKarten: [...(blatt?.querySelectorAll<HTMLElement>('.wv-ticket') ?? [])].map((x) => ({
+      id: x.dataset.id ?? '',
+      abzeichen: [...x.querySelectorAll('.wv-abzeichen')].map((y) => (y.textContent ?? '').trim()),
+      ampel: x.querySelector<HTMLElement>('.wv-ampel')?.className.replace('wv-ampel ', '') ?? '',
+      zeile: (x.querySelector('.wv-ticket-zeile')?.textContent ?? '').trim(),
+      standzeile: (x.querySelector('.wv-ticket-standzeile')?.textContent ?? '').trim(),
+      ordnen: !!x.dataset.ordnen,
+    })),
+    board: {
+      spalten: [...(blatt?.querySelectorAll<HTMLElement>('.wv-board-spaltenkopf') ?? [])].map((x) => x.dataset.spalte ?? ''),
+      spaltenZahl: Object.fromEntries([...(blatt?.querySelectorAll<HTMLElement>('.wv-board-spaltenkopf') ?? [])].map((x) => [x.dataset.spalte ?? '', Number(x.dataset.anzahl ?? '0')])),
+      wip: text('.wv-board-wip'),
+      wipRot: !!blatt?.querySelector('.wv-board-wip.rot'),
+      spuren: [...(blatt?.querySelectorAll<HTMLElement>('.wv-board-spur') ?? [])].map((x) => ({
+        id: x.dataset.spur ?? '',
+        titel: (x.querySelector('.wv-board-spurname')?.textContent ?? '').trim(),
+        spalten: [...x.querySelectorAll<HTMLElement>('.wv-board-spalte')].map((c) => ({
+          name: c.dataset.spalte ?? '', tickets: [...c.querySelectorAll<HTMLElement>('.wv-board-kachel')].map((k) => k.dataset.id ?? ''),
+        })),
+      })),
+    },
+    ticketHandlung: z.ticketHandlung ? {
+      ticket: z.ticketHandlung.ticket, handlung: z.ticketHandlung.handlung, grund: z.ticketHandlung.grund,
+      bemerkung: z.ticketHandlung.bemerkung, duplikat: z.ticketHandlung.duplikat, an: z.ticketHandlung.an,
+      pruefer: z.ticketHandlung.pruefer, art: z.ticketHandlung.kind, prioritaet: z.ticketHandlung.prioritaet,
+      punkte: z.ticketHandlung.punkte, frist: z.ticketHandlung.frist, runden: z.ticketHandlung.runden,
+    } : null,
+    handlungen: [...(blatt?.querySelectorAll<HTMLButtonElement>('[data-w="handlung"]') ?? [])].map((b) => (b.dataset.arg ?? '').split('|')[0] ?? ''),
+    ticketFormular: z.neuesTicket ? { ...z.neuesTicket, bereitschaft: text('.wv-dor'), bereit: blatt?.querySelector<HTMLElement>('.wv-dor')?.dataset.bereit ?? '' } : null,
+    weltRegeln: z.weltRegeln,
+    zyklus: { an: w?.zyklus.an ?? false, jetzt: w?.zyklus.jetzt?.id ?? '', ziel: w?.zyklus.jetzt?.ziel ?? '', historie: [...(blatt?.querySelectorAll<HTMLElement>('.wv-zyklus-historie') ?? [])].map((x) => x.dataset.zyklus ?? '') },
+    dod: w?.dod ?? [],
+    wip: { text: text('.wv-wip'), rot: !!blatt?.querySelector('.wv-wip.rot') },
+    uebersicht: {
+      brauchtDich: [...(blatt?.querySelectorAll<HTMLElement>('[data-braucht-dich]') ?? [])].map((x) => x.dataset.brauchtDich ?? ''),
+      triage: [...(blatt?.querySelectorAll<HTMLElement>('[data-triage]') ?? [])].map((x) => x.dataset.triage ?? ''),
+      vorhaben: [...(blatt?.querySelectorAll<HTMLElement>('[data-vorhaben]') ?? [])].map((x) => ({ id: x.dataset.vorhaben ?? '', text: (x.textContent ?? '').trim() })),
+    },
     diffZeilen: blatt?.querySelectorAll('.wv-diff span').length ?? 0,
     skillKnoepfe: [...(blatt?.querySelectorAll<HTMLButtonElement>('.wv-detail [data-w^="skill-"]') ?? [])].map((b) => b.dataset.w ?? ''),
     inspektorKopf: text('.wv-ikopf'),
