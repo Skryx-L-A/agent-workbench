@@ -29,6 +29,7 @@
 .wv-kopf-rechts { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
 /* `.knopf-schlicht` ist sonst ein 28 px breiter Symbolknopf; hier traegt er ein Wort. */
 .wv-kopf-rechts .knopf-schlicht { width: auto; padding: 0 9px; }
+.wv-pause-zusatz { font-size: 12px; white-space: nowrap; }
 .wv-zaehler { color: var(--gedaempft); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .wv-pause.aus { opacity: 0.45; }
 
@@ -137,20 +138,47 @@
 .wv-ordnen { gap: 4px; margin-top: 2px; }
 .wv-ordnen-knopf { padding: 0 8px; border-radius: 6px; }
 
-.wv-board { display: flex; flex-direction: column; gap: 12px; overflow: auto; }
-.wv-board-kopf, .wv-board-spalten { display: grid; grid-template-columns: repeat(8, minmax(150px, 1fr)); gap: 8px; }
-.wv-board-spaltenkopf { display: flex; flex-direction: column; gap: 1px; }
-.wv-board-spaltenname { display: flex; align-items: center; gap: 5px; font-weight: 600; }
-.wv-board-spaltenname .wv-leise { font-variant-numeric: tabular-nums; }
+/* Das Board rollt NICHT waagerecht (Auftrag ticketboard): die Spalten teilen sich die
+   Breite, leere klappen zu einem schmalen Streifen zusammen, und reicht der Platz auch
+   dann nicht, stehen die Staende als Reiter uebereinander. Die Breiten je Spalte setzt
+   die Ansicht in `--wv-board-spalten`; ohne Messung gilt der Rueckfall. */
+.wv-board { display: flex; flex-direction: column; gap: 12px; }
+.wv-board-kopf, .wv-board-spalten {
+  display: grid; grid-template-columns: var(--wv-board-spalten, repeat(8, minmax(140px, 1fr)));
+  gap: 8px; align-items: start;
+}
+.wv-board-spaltenkopf { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.wv-board-spaltenname { display: flex; align-items: center; gap: 5px; font-weight: 600; min-width: 0; }
+.wv-board-spaltenname > span:not(.wv-leise) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wv-board-spaltenname .wv-leise { font-variant-numeric: tabular-nums; flex: 0 0 auto; }
 .wv-board-wip { font-size: 10.5px; color: var(--gedaempft); font-variant-numeric: tabular-nums; }
 .wv-board-wip.rot { color: var(--zustand-tot); font-weight: 600; }
+/* Die leere Spalte als Streifen: Zaehler oben, Titel senkrecht, ein Klick klappt sie auf. */
+.wv-board-spaltenkopf.schmal {
+  align-items: center; gap: 4px; padding: 6px 2px; border-radius: 10px;
+  background: var(--erhoben); color: var(--gedaempft);
+}
+.wv-board-schmalzahl { font-size: 11px; font-variant-numeric: tabular-nums; }
+.wv-board-schmalname {
+  writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11px; font-weight: 600;
+  max-height: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Die gestapelte Ansicht: die Staende als umbrechende Reiter, darunter ein Stand. */
+.wv-board.gestapelt .wv-board-kopf { display: flex; flex-wrap: wrap; gap: 4px; }
+.wv-board.gestapelt .wv-board-spalten { display: flex; flex-direction: column; gap: 6px; }
+.wv-board-spaltenkopf.reiter {
+  flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: 6px;
+  padding: 4px 9px; border-radius: 10px; background: var(--erhoben); text-align: left;
+}
+.wv-board-spaltenkopf.reiter.gewaehlt { background: var(--akzent-matt); color: var(--akzent-text); }
 .wv-board-spur { display: flex; flex-direction: column; gap: 6px; }
 .wv-board-spurname { font-weight: 600; }
 .wv-board-spalte { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .wv-board-kachel {
   display: flex; flex-direction: column; gap: 3px; text-align: left;
-  padding: 7px 8px; border-radius: 8px; background: var(--erhoben);
+  padding: 7px 8px; border-radius: 8px; background: var(--erhoben); min-width: 0;
 }
+.wv-board-kachel .wv-name { overflow-wrap: anywhere; }
 .wv-board-marken { display: flex; flex-wrap: wrap; gap: 4px; }
 
 .wv-fertigpunkt { display: flex; align-items: baseline; gap: 6px; }

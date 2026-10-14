@@ -5,24 +5,41 @@ The module deliberately contains no process, tmux, network, or harness code.
 It stores one world per project (or a standalone global-world directory), and
 offers the small transaction API used by wb-welt, wb-agent, wb-ticket and
 wb-kanal.  ``--absender`` and ``--rolle`` are caller supplied metadata only;
-they are never treated as proof of identity.  A future governance adapter can
-reject the same mutation before calling this module.
+they are never treated as proof of identity. Governance mutations by agents
+require the context that ``AgentController`` sets only after its current-run,
+world and stored-role checks; a separate CLI process cannot inherit it.
+This is process provenance, not an unforgeable same-UID credential: code already
+executing in this Python process can instantiate ``AgentController`` with its
+own current-run predicate. Accordingly, ``verified: true`` means
+controller-verified within the same-UID trust boundary, not independently
+attested by the data module.
+
+Host boundary: a process running under the same UID can read the mobile HMAC
+key and can replace user-owned executables.  This module narrows that boundary
+with fixed paths, modes, HMACs, one-time request IDs, a sanitized probe
+environment and agent-marker rejection, but code at the same UID is not an
+independent trust domain.
 """
 
 from __future__ import annotations
 
 import argparse
+import contextvars
 import datetime as _dt
 import fcntl
 import hashlib
+import hmac
 import json
 import os
+import pwd
 import re
 import shutil
+import stat
+import subprocess
 import sys
 import time
 import uuid
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -66,6 +83,21 @@ ZYKLEN_DATEI = "zyklen.jsonl"
 WORLD_STATES = ("läuft", "pausiert", "gestoppt")
 AGENT_STATES = ("aktiv", "pausiert", "gestoppt", "archiviert")
 HUMAN_ACTORS = {"mensch", "person-1", "companion", "orchestrator", "cli-operator"}
+# The first three names are controlled by a human-facing surface.  They stay
+# reserved for agents, but unlike before their spelling is not evidence.
+MEASURED_HUMAN_ACTORS = {"mensch", "person-1", "companion"}
+# These are unverified CLI surface names, never people and never a source of
+# governance authority.  They may create and report through the local CLI;
+# governance mutations use a run-bound controller identity or a measured human.
+ORCHESTRATOR_ACTORS = {"orchestrator", "cli-operator"}
+# Test suites use this non-human origin for disposable worlds, agents and
+# tickets.  It is deliberately recognized only by the three creation paths;
+# `_actor` never accepts it for an ordinary or governance mutation.
+TEST_SETUP_ACTOR = "aufbau"
+TEST_SETUP_PROOF_ENV = "WB_TEST_AUFBAU_BELEG"
+TEST_SETUP_PROOF_MIN_BYTES = 32
+RESERVED_ACTORS = HUMAN_ACTORS | {TEST_SETUP_ACTOR}
+NON_AGENT_CHANNEL_ACTORS = HUMAN_ACTORS | {TEST_SETUP_ACTOR}
 # The one human of a world who can be addressed: messages to this identity land
 # in `menschen/<id>/postfach/` and never wake anybody.
 WORLD_HUMAN = "mensch"
@@ -73,6 +105,27 @@ MESSAGE_MARKS = ("frage", "ergebnis")
 PROFILE_FIELDS = ("model", "effort", "fallback_model", "fallback_effort", "machine", "specialty")
 MEMORY_WRITE_LIMIT = 1024 * 1024
 READ_KEY_RE = re.compile(r"^(kanal|einzel:[A-Za-z0-9][A-Za-z0-9._-]{0,63}|direkt:[A-Za-z0-9][A-Za-z0-9._-]{0,63})$")
+# `--herkunft-beleg=wb-mensch` is deliberately only a selector for the live,
+# fixed-path measurement.  It never carries a caller-provided positive result.
+_HERKUNFTSBELEG = contextvars.ContextVar("herkunftsbeleg", default=None)
+# A mobile proof is populated only while `approve_ticket` validates the
+# already-consumed app hand-off.  `_actor` cannot turn an arbitrary `mobil:`
+# selector into a human before this structural binding happened.
+_MOBILE_APPROVAL_PROOF = contextvars.ContextVar("mobile_approval_proof", default=None)
+# Set only by ``AgentController`` after its current-run, world and stored-role
+# checks succeeded. A sender spelling from a host CLI never populates this
+# context and therefore cannot authorize a governance mutation.
+_CONTROLLER_ACTOR_BINDING = contextvars.ContextVar("controller_actor_binding", default=None)
+MOBILE_APPROVAL_ACTION = "ticket-abnehmen"
+MOBILE_BELEG_MAX_BYTES = 64 * 1024
+MOBILE_BELEG_MAX_AGE_SECONDS = 120
+MOBILE_BELEG_FUTURE_TOLERANCE_SECONDS = 5
+MOBILE_BELEG_FIELDS = ("aktion", "welt", "ticket", "grund", "bemerkung", "dod_geprueft",
+                       "request_id", "ausgestellt_um")
+MOBILE_BELEG_ALL_FIELDS = frozenset((*MOBILE_BELEG_FIELDS, "quittung"))
+MOBILE_BELEG_USED_FILE = "belege-verbraucht.jsonl"
+HUMAN_PROBE_PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+HUMAN_PROBE_TMPDIR = "/tmp"
 
 
 class AgentsError(Exception):
@@ -271,7 +324,7 @@ def _slug(text: str, prefix: str) -> str:
 
 def _model(model: str | None, effort: str | None, fallback: str | None,
            fallback_effort: str | None) -> dict[str, Any]:
-    primary = model or "opus5:xhigh"
+    primary = model or "opus:medium"
     fb = fallback
     if "fable" in primary.lower() or (fb and "fable" in fb.lower()):
         raise AgentsError("Fable ist fuer Agents verboten, auch als Fallback")
@@ -279,6 +332,9 @@ def _model(model: str | None, effort: str | None, fallback: str | None,
         effort = primary.rsplit(":", 1)[1] if ":" in primary else "medium"
     if fb and not fallback_effort:
         fallback_effort = fb.rsplit(":", 1)[1] if ":" in fb else "medium"
+    for profil, stufe in ((primary, effort), (fb, fallback_effort)):
+        if profil and profil.startswith("haiku:") and stufe == "low":
+            raise AgentsError("Haiku-Familienprofile erlauben nur medium, high oder xhigh")
     if effort not in {"low", "medium", "high", "xhigh"}:
         raise AgentsError("Denkstufe muss low, medium, high oder xhigh sein")
     if fb and fallback_effort not in {"low", "medium", "high", "xhigh"}:
@@ -294,27 +350,399 @@ def _model(model: str | None, effort: str | None, fallback: str | None,
     }
 
 
+def _real_home() -> Path | None:
+    """Return the account home without trusting the caller's ``HOME``."""
+    try:
+        return Path(pwd.getpwuid(os.getuid()).pw_dir)
+    except (KeyError, OSError):
+        return None
+
+
+def _mobile_beleg_dir() -> Path | None:
+    real_home = _real_home()
+    return real_home / ".claude" / "workbench" / "mobile" / "belege" if real_home else None
+
+
+def _secure_mobile_file(directory_fd: int, name: str, label: str, *, minimum: int = 1,
+                        maximum: int | None = None) -> bytes:
+    """Read one same-UID 0600 regular file without following a final symlink."""
+    try:
+        before = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+    except OSError as exc:
+        if label == "Mobilbeleg-Schluessel":
+            raise AgentsError("Mobilbeleg-Schluessel fehlt") from exc
+        raise AgentsError("Mobilbeleg ist nicht lesbar") from exc
+    if stat.S_ISLNK(before.st_mode):
+        raise AgentsError("%s darf kein Symlink sein" % label)
+    if not stat.S_ISREG(before.st_mode):
+        raise AgentsError("%s muss eine regulaere Datei sein" % label)
+    if before.st_uid != os.getuid():
+        raise AgentsError("%s gehoert nicht dem aufrufenden Benutzer" % label)
+    if stat.S_IMODE(before.st_mode) != 0o600:
+        raise AgentsError("%s muss Modus 0600 haben" % label)
+    if before.st_size < minimum or (maximum is not None and before.st_size > maximum):
+        if label == "Mobilbeleg-Schluessel":
+            raise AgentsError("Mobilbeleg-Schluessel braucht mindestens 32 Bytes")
+        raise AgentsError("Mobilbeleg hat eine ungueltige Groesse")
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(name, flags, dir_fd=directory_fd)
+    except OSError as exc:
+        if label == "Mobilbeleg-Schluessel":
+            raise AgentsError("Mobilbeleg-Schluessel ist nicht lesbar") from exc
+        raise AgentsError("Mobilbeleg ist nicht lesbar") from exc
+    try:
+        opened = os.fstat(descriptor)
+        if (opened.st_dev, opened.st_ino) != (before.st_dev, before.st_ino):
+            raise AgentsError("%s wurde waehrend der Pruefung ausgetauscht" % label)
+        chunks, remaining = [], opened.st_size
+        while remaining:
+            chunk = os.read(descriptor, remaining)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        raw = b"".join(chunks)
+    finally:
+        os.close(descriptor)
+    if len(raw) != opened.st_size:
+        raise AgentsError("%s ist nicht vollstaendig lesbar" % label)
+    return raw
+
+
+def _trusted_wb_mensch_paths() -> tuple[Path, ...]:
+    """Both homes must agree when a caller redirected ``HOME`` for a test."""
+    real_home = _real_home()
+    if real_home is None:
+        return ()
+    real = real_home / ".local" / "bin" / "wb-mensch"
+    caller_home = Path(os.environ.get("HOME") or str(real_home))
+    caller = caller_home / ".local" / "bin" / "wb-mensch"
+    return (real,) if caller == real else (caller, real)
+
+
+def _human_probe_env() -> dict[str, str]:
+    """Return the complete allowlisted environment for a human verifier.
+
+    M2's two claims may cross this boundary because ``wb-mensch`` validates
+    both against its actual ancestry.  No loader, shell-startup or search-path
+    variable is inherited.
+    """
+    real_home = _real_home()
+    caller_home = Path(os.environ.get("HOME") or str(real_home or ""))
+    env = {"HOME": str(caller_home), "PATH": HUMAN_PROBE_PATH, "TMPDIR": HUMAN_PROBE_TMPDIR}
+    app_pid = os.environ.get("WB_APP_PID", "")
+    if os.environ.get("WB_MENSCH_QUELLE") == "oberflaeche" and app_pid.isdigit():
+        env.update(WB_MENSCH_QUELLE="oberflaeche", WB_APP_PID=app_pid)
+    return env
+
+
+def _measured_human() -> tuple[bool, str]:
+    """Ask the fixed human probe; any missing or disagreeing probe denies.
+
+    The user database determines the decisive path.  A redirected HOME remains
+    useful for isolated tests, but it has to agree with the installed probe and
+    cannot replace it (the same trust shape as fix 265431f0).
+    """
+    marker = next((name for name in os.environ if name == "CLAUDECODE"
+                   or name.startswith("CLAUDE_CODE_") or name == "PI_AGENT"
+                   or name.startswith("WB_AGENT")), None)
+    if marker is not None:
+        return False, "Agenten-Marker %s ist im aufrufenden Prozess gesetzt" % marker
+    selector = _HERKUNFTSBELEG.get()
+    if isinstance(selector, str) and selector.startswith("mobil:"):
+        proof = _MOBILE_APPROVAL_PROOF.get()
+        if proof is None:
+            return False, "mobil:PFAD gilt nur fuer eine gebundene Ticket-Abnahme"
+        return True, "mobil-kern: quittierte Ticket-Abnahme (%s)" % proof["request_id"]
+    if selector not in (None, "wb-mensch"):
+        return False, "unbekanntes Herkunftsbeleg-Format '%s'" % selector
+    paths = _trusted_wb_mensch_paths()
+    if not paths:
+        return False, "das echte Heimatverzeichnis ist nicht bestimmbar"
+    for path in paths:
+        if not path.is_file() or not os.access(path, os.X_OK):
+            return False, "wb-mensch am festen Pfad %s fehlt" % path
+        try:
+            probe = subprocess.run([str(path), "beleg"], text=True, capture_output=True,
+                                   timeout=3, check=False, env=_human_probe_env())
+        except (OSError, subprocess.SubprocessError) as exc:
+            return False, "wb-mensch am festen Pfad %s ist nicht messbar (%s)" % (path, type(exc).__name__)
+        lines = probe.stdout.splitlines()
+        if len(lines) != 1 or "\t" not in lines[0]:
+            return False, "wb-mensch am festen Pfad %s liefert keinen gueltigen Beleg" % path
+        art, grund = lines[0].split("\t", 1)
+        if art != "mensch" or not grund.strip():
+            return False, "wb-mensch am festen Pfad %s lehnt ab: %s" % (path, grund.strip() or art)
+    return True, "wb-mensch (M1/M2) am festen Pfad"
+
+
+def _mobile_approval_beleg(root: Path, ticket_id: str, reason_code: str | None,
+                           note: str | None, dod_checked: bool,
+                           accept: bool) -> dict[str, str] | None:
+    """Verify the mobile core's HMAC-authenticated hand-off without consuming it."""
+    selector = _HERKUNFTSBELEG.get()
+    if not isinstance(selector, str) or not selector.startswith("mobil:"):
+        return None
+    if not accept:
+        raise AgentsError("Mobilbeleg gilt nur fuer `wb-ticket abnehmen`")
+    raw_path = selector[len("mobil:"):]
+    if not raw_path:
+        raise AgentsError("Mobilbeleg braucht einen absoluten Pfad nach `mobil:`")
+    path = Path(raw_path)
+    if not path.is_absolute():
+        raise AgentsError("Mobilbeleg braucht einen absoluten Pfad nach `mobil:`")
+    beleg_dir = _mobile_beleg_dir()
+    if beleg_dir is None:
+        raise AgentsError("Mobilbeleg-Verzeichnis ist nicht bestimmbar")
+    beleg_dir = Path(os.path.abspath(beleg_dir))
+    path = Path(os.path.abspath(path))
+    if path.parent != beleg_dir or Path(os.path.realpath(path.parent)) != Path(os.path.realpath(beleg_dir)):
+        raise AgentsError("Mobilbeleg liegt nicht im festen Belegverzeichnis")
+    if path.is_symlink():
+        raise AgentsError("Mobilbeleg darf kein Symlink sein")
+    if beleg_dir.is_symlink():
+        raise AgentsError("Mobilbeleg-Verzeichnis darf kein Symlink sein")
+    directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        directory_fd = os.open(str(beleg_dir), directory_flags)
+    except OSError as exc:
+        raise AgentsError("Mobilbeleg-Verzeichnis fehlt oder ist nicht lesbar") from exc
+    try:
+        directory_info = os.fstat(directory_fd)
+        if not stat.S_ISDIR(directory_info.st_mode):
+            raise AgentsError("Mobilbeleg-Verzeichnis ist kein Verzeichnis")
+        if directory_info.st_uid != os.getuid():
+            raise AgentsError("Mobilbeleg-Verzeichnis gehoert nicht dem aufrufenden Benutzer")
+        if stat.S_IMODE(directory_info.st_mode) != 0o700:
+            raise AgentsError("Mobilbeleg-Verzeichnis muss Modus 0700 haben")
+        raw = _secure_mobile_file(directory_fd, path.name, "Mobilbeleg", maximum=MOBILE_BELEG_MAX_BYTES)
+        key = _secure_mobile_file(directory_fd, ".schluessel", "Mobilbeleg-Schluessel", minimum=32)
+    finally:
+        os.close(directory_fd)
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise AgentsError("Mobilbeleg ist kein gueltiges JSON") from exc
+    if not isinstance(data, dict):
+        raise AgentsError("Mobilbeleg muss ein JSON-Objekt sein")
+    missing = [field for field in MOBILE_BELEG_ALL_FIELDS if field not in data]
+    if missing:
+        raise AgentsError("Mobilbeleg hat Pflichtfeld(er) nicht: %s" % ", ".join(sorted(missing)))
+    unknown = sorted(set(data) - MOBILE_BELEG_ALL_FIELDS)
+    if unknown:
+        raise AgentsError("Mobilbeleg hat unbekannte Felder: %s" % ", ".join(unknown))
+    text_fields = ("aktion", "welt", "ticket", "grund", "bemerkung", "request_id", "ausgestellt_um", "quittung")
+    if any(not isinstance(data[field], str) for field in text_fields) or not isinstance(data["dod_geprueft"], bool):
+        raise AgentsError("Mobilbeleg hat ein Feld mit falschem Typ")
+    if "|" in data["bemerkung"]:
+        raise AgentsError("Mobilbeleg-Bemerkung darf kein Trennzeichen | enthalten")
+    if not ID_RE.fullmatch(data["request_id"]):
+        raise AgentsError("Mobilbeleg hat keine gueltige request_id")
+    if not re.fullmatch(r"[0-9a-f]{64}", data["quittung"]):
+        raise AgentsError("Mobilbeleg hat eine ungueltige Quittung")
+    canonical_values = [data[field] if field != "dod_geprueft"
+                        else ("true" if data[field] else "false") for field in MOBILE_BELEG_FIELDS]
+    canonical = "|".join(canonical_values).encode("utf-8")
+    expected_receipt = hmac.new(key, canonical, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(data["quittung"], expected_receipt):
+        raise AgentsError("Mobilbeleg hat eine ungueltige Quittung")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z", data["ausgestellt_um"]):
+        raise AgentsError("Mobilbeleg hat keinen gueltigen UTC-Zeitstempel")
+    try:
+        issued = _dt.datetime.fromisoformat(data["ausgestellt_um"][:-1] + "+00:00")
+    except ValueError as exc:
+        raise AgentsError("Mobilbeleg hat keinen gueltigen UTC-Zeitstempel") from exc
+    age = (_dt.datetime.now(_dt.timezone.utc) - issued).total_seconds()
+    if age < -MOBILE_BELEG_FUTURE_TOLERANCE_SECONDS:
+        raise AgentsError("Mobilbeleg liegt mehr als 5 Sekunden in der Zukunft")
+    if age > MOBILE_BELEG_MAX_AGE_SECONDS:
+        raise AgentsError("Mobilbeleg ist aelter als 120 Sekunden")
+    if data["aktion"] != MOBILE_APPROVAL_ACTION:
+        raise AgentsError("Mobilbeleg bindet keine Ticket-Abnahme")
+    if not isinstance(data["welt"], str):
+        raise AgentsError("Mobilbeleg hat keine gueltige Welt")
+    try:
+        bound_world = world_path(data["welt"])
+    except AgentsError as exc:
+        raise AgentsError("Mobilbeleg hat keine gueltige Welt") from exc
+    if bound_world != world_path(str(root)):
+        raise AgentsError("Mobilbeleg bindet eine andere Welt")
+    if not isinstance(data["ticket"], str) or data["ticket"] != ticket_id:
+        raise AgentsError("Mobilbeleg bindet ein anderes Ticket")
+    if not isinstance(data["grund"], str) or data["grund"] != reason_code:
+        raise AgentsError("Mobilbeleg bindet einen anderen Abnahmegrund")
+    expected_note = note if note is not None else ""
+    if not isinstance(data["bemerkung"], str) or data["bemerkung"] != expected_note:
+        raise AgentsError("Mobilbeleg bindet eine andere Bemerkung")
+    if not isinstance(data["dod_geprueft"], bool) or data["dod_geprueft"] is not dod_checked:
+        raise AgentsError("Mobilbeleg bindet eine andere DoD-Bestaetigung")
+    used = _read_jsonl(world_path(str(root)) / MOBILE_BELEG_USED_FILE, "Verbrauchte Mobilbelege")
+    if any(entry.get("request_id") == data["request_id"] for entry in used):
+        raise AgentsError("Mobilbeleg-request_id wurde bereits verbraucht")
+    return {"art": "mobil-kern", "request_id": data["request_id"],
+            "ausgestellt_um": data["ausgestellt_um"]}
+
+
+def _consume_mobile_approval_beleg(root: Path, proof: dict[str, str]) -> None:
+    """Consume a verified proof while the caller holds the world transaction."""
+    used_path = world_path(str(root)) / MOBILE_BELEG_USED_FILE
+    used = _read_jsonl(used_path, "Verbrauchte Mobilbelege")
+    if any(entry.get("request_id") == proof["request_id"] for entry in used):
+        raise AgentsError("Mobilbeleg-request_id wurde bereits verbraucht")
+    _append_jsonl(used_path, {"request_id": proof["request_id"],
+                              "ausgestellt_um": proof["ausgestellt_um"], "verbraucht_um": now()})
+
+
 def _actor(root: Path, sender: str | None, claimed_role: str | None = None) -> dict[str, Any]:
-    """Return an explicitly untrusted governance identity description."""
-    sender = sender or "cli-operator"
+    """Return a measured human, an unprivileged CLI surface, or a stored agent."""
+    sender = sender or WORLD_HUMAN
     result: dict[str, Any] = {
         "id": sender,
         "claimed_role": claimed_role,
         "verified": False,
         "source": "cli-argument",
     }
-    if sender in HUMAN_ACTORS:
+    if sender in MEASURED_HUMAN_ACTORS:
+        measured, reason = _measured_human()
+        if not measured:
+            raise AgentsError("Herkunftsbeleg fuer Menschenname '%s' abgelehnt: %s" % (sender, reason))
         result["kind"] = "external"
+        result["verified"] = True
+        result["source"] = "mobil-kern" if isinstance(_HERKUNFTSBELEG.get(), str) \
+            and _HERKUNFTSBELEG.get().startswith("mobil:") else "wb-mensch"
+        result["proof"] = reason
+        mobile_proof = _MOBILE_APPROVAL_PROOF.get()
+        if result["source"] == "mobil-kern" and mobile_proof is not None:
+            result["herkunft"] = {"art": mobile_proof["art"], "request_id": mobile_proof["request_id"]}
         return result
+    if sender in ORCHESTRATOR_ACTORS:
+        if claimed_role and claimed_role != "hauptagent":
+            raise AgentsError("CLI-Oberflaechen handeln nur als Hauptagent; --rolle beweist keine Identitaet")
+        result.update({"kind": "agent", "role": "hauptagent", "verified": False,
+                       "source": "cli-operator-limited"})
+        return result
+    if sender == TEST_SETUP_ACTOR:
+        # The setup proof only covers creation (_creation_actor); say so instead of "unknown".
+        raise AgentsError("Absender 'aufbau' gilt nur fuer die Anlage (Test-Herkunft), nicht fuer diese Aktion")
     try:
         agent = read_agent(root, sender)
     except AgentsError:
         raise AgentsError("Absender '%s' unbekannt; --rolle beweist keine Identitaet" % sender)
     result["kind"] = "agent"
     result["role"] = agent["stage"]
+    created_by = agent.get("created_by") or {}
+    if created_by.get("id") == TEST_SETUP_ACTOR or created_by.get("source") == "test-aufbau" \
+            or created_by.get("origin") == TEST_SETUP_ACTOR:
+        result["setup_origin"] = True
     if claimed_role and claimed_role != agent["stage"]:
         raise AgentsError("Angegebene Rolle passt nicht zum gespeicherten Profil; CLI-Rolle ist kein Beleg")
     return result
+
+
+def _test_setup_proof() -> tuple[bool, str]:
+    """Verify the runner-owned proof for CLI-only disposable setup.
+
+    The proof is useful only with the literal sender ``aufbau`` and only in
+    creation functions.  A suite creates it with unpredictable bytes inside
+    its private HOME.  The returned actor remains limited to creation even
+    after this filesystem check succeeds.
+    """
+    raw_path = os.environ.get(TEST_SETUP_PROOF_ENV)
+    raw_home = os.environ.get("HOME")
+    if not raw_path or not raw_home:
+        return False, "%s oder HOME fehlt" % TEST_SETUP_PROOF_ENV
+    path = Path(raw_path)
+    home = Path(raw_home)
+    if not path.is_absolute() or not home.is_absolute():
+        return False, "Aufbau-Beleg und HOME muessen absolute Pfade sein"
+    try:
+        home_real = Path(os.path.realpath(home))
+        path_real = Path(os.path.realpath(path))
+        if path.is_symlink() or path_real == home_real or home_real not in path_real.parents:
+            return False, "Aufbau-Beleg muss symlinkfrei unter dem Prozess-HOME liegen"
+        home_info = home_real.stat()
+        if not stat.S_ISDIR(home_info.st_mode) or home_info.st_uid != os.getuid() \
+                or stat.S_IMODE(home_info.st_mode) != 0o700:
+            return False, "Prozess-HOME fuer Aufbau muss dem Benutzer gehoeren und Modus 0700 haben"
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(str(path), flags)
+        try:
+            info = os.fstat(descriptor)
+            if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid():
+                return False, "Aufbau-Beleg muss eine eigene regulaere Datei sein"
+            if stat.S_IMODE(info.st_mode) != 0o600:
+                return False, "Aufbau-Beleg muss Modus 0600 haben"
+            if info.st_size < TEST_SETUP_PROOF_MIN_BYTES or info.st_size > 4096:
+                return False, "Aufbau-Beleg hat keine gueltige Laenge"
+            content = os.read(descriptor, 4097)
+        finally:
+            os.close(descriptor)
+    except OSError as exc:
+        return False, "Aufbau-Beleg ist nicht sicher lesbar (%s)" % type(exc).__name__
+    if len(content) != info.st_size:
+        return False, "Aufbau-Beleg ist nicht vollstaendig lesbar"
+    return True, "privater Test-Aufbaubeleg"
+
+
+def _creation_actor(root: Path, sender: str | None, claimed_role: str | None = None,
+                    allowed: Iterable[str] | None = None) -> dict[str, Any]:
+    """Resolve an actor for creation, including the test-only setup origin."""
+    if sender == TEST_SETUP_ACTOR:
+        if claimed_role is not None:
+            raise AgentsError("Aufbau-Herkunft hat keine Agentenrolle")
+        valid, reason = _test_setup_proof()
+        if not valid:
+            raise AgentsError("Aufbau-Herkunftsbeleg abgelehnt: %s" % reason)
+        return {"id": TEST_SETUP_ACTOR, "kind": "external", "verified": False,
+                "source": "test-aufbau", "proof": reason}
+    actor = _actor(root, sender, claimed_role)
+    if allowed is not None and actor.get("kind") != "external" \
+            and actor.get("role") not in set(allowed):
+        raise AgentsError("Agent '%s' darf diese Mutation nicht ausfuehren" % actor["id"])
+    return actor
+
+
+def _actor_provenance(actor: dict[str, Any]) -> dict[str, Any]:
+    """Persist the stable, non-secret part of an actor's creation proof."""
+    provenance = {key: actor.get(key) for key in ("id", "kind", "verified", "source")}
+    if actor.get("id") == TEST_SETUP_ACTOR or actor.get("source") == "test-aufbau" \
+            or actor.get("setup_origin"):
+        provenance["origin"] = TEST_SETUP_ACTOR
+    return provenance
+
+
+def _setup_created_agent(root: Path, actor: dict[str, Any]) -> bool:
+    if actor.get("kind") != "agent" or actor.get("id") in ORCHESTRATOR_ACTORS:
+        return False
+    created_by = read_agent(root, actor["id"]).get("created_by") or {}
+    return created_by.get("id") == TEST_SETUP_ACTOR or created_by.get("source") == "test-aufbau" \
+        or created_by.get("origin") == TEST_SETUP_ACTOR
+
+
+@contextmanager
+def _controller_actor_binding(root: Path, agent_id: str, role: str, run_id: str):
+    """Bind governance calls in one authenticated controller dispatch."""
+    binding = {
+        "world": str(world_path(str(root))),
+        "agent": valid_id(agent_id, "Agentenkennung"),
+        "role": role,
+        "run": run_id,
+    }
+    token = _CONTROLLER_ACTOR_BINDING.set(binding)
+    try:
+        yield
+    finally:
+        _CONTROLLER_ACTOR_BINDING.reset(token)
+
+
+def _controller_binding_matches(root: Path, actor: dict[str, Any]) -> bool:
+    binding = _CONTROLLER_ACTOR_BINDING.get()
+    return isinstance(binding, dict) \
+        and binding.get("world") == str(world_path(str(root))) \
+        and binding.get("agent") == actor.get("id") \
+        and binding.get("role") == actor.get("role") \
+        and isinstance(binding.get("run"), str) and bool(binding["run"])
 
 
 def _require_actor(root: Path, sender: str | None, claimed_role: str | None,
@@ -327,11 +755,26 @@ def _require_actor(root: Path, sender: str | None, claimed_role: str | None,
     return actor
 
 
+def _require_governance_actor(root: Path, sender: str | None, claimed_role: str | None,
+                              allowed: Iterable[str]) -> dict[str, Any]:
+    actor = _require_actor(root, sender, claimed_role, allowed)
+    if actor.get("kind") == "external":
+        return actor
+    if _setup_created_agent(root, actor):
+        raise AgentsError("Aufbau-Herkunft von Agent '%s' ist nicht governance-befugt" % actor["id"])
+    if not _controller_binding_matches(root, actor):
+        raise AgentsError("Governance-Mutation fuer Agent '%s' hat keinen passenden "
+                          "run-gebundenen Controller-Beleg; --absender/--rolle sind kein Beweis"
+                          % actor["id"])
+    binding = _CONTROLLER_ACTOR_BINDING.get()
+    return dict(actor, verified=True, source="agent-controller", run_id=binding["run"])
+
+
 def _require_external_operator(root: Path, sender: str | None,
                                claimed_role: str | None) -> dict[str, Any]:
     actor = _actor(root, sender, claimed_role)
     if actor.get("kind") != "external":
-        raise AgentsError("Nur ein externer Entwicklungsakteur darf Fragen beantworten oder zuruecknehmen")
+        raise AgentsError("Nur ein gemessener Mensch darf Fragen beantworten oder zuruecknehmen")
     return actor
 
 
@@ -419,7 +862,7 @@ def ask_question(root: Path, text: str, options: list[str] | None = None,
     if question_id is not None:
         valid_id(question_id, "Fragenkennung")
     with transaction(root):
-        actor = _actor(root, sender, claimed_role)
+        actor = _require_governance_actor(root, sender, claimed_role, ("hauptagent",))
         if actor.get("kind") != "agent" or actor.get("role") != "hauptagent":
             raise AgentsError("Nur der Hauptagent darf Fragen stellen")
         world = read_world(root)
@@ -461,6 +904,8 @@ def answer_question(root: Path, question_id: str, answer: str,
     with transaction(root):
         actor = _require_external_operator(root, sender, claimed_role)
         question = read_question(root, question_id)
+        if question.get("kind") == RIGHTS_REQUEST_KIND:
+            raise AgentsError("%s ist ein Rechteantrag; entscheiden mit wb-agent rechte-antrag-entscheiden" % question_id)
         if question.get("state") == "beantwortet":
             if question.get("answer", {}).get("text") == answer:
                 return question
@@ -499,6 +944,8 @@ def withdraw_question(root: Path, question_id: str, reason: str | None = None,
     with transaction(root):
         actor = _require_external_operator(root, sender, claimed_role)
         question = read_question(root, question_id)
+        if question.get("kind") == RIGHTS_REQUEST_KIND:
+            raise AgentsError("%s ist ein Rechteantrag; zurueckziehen kann ihn nur der Antragsteller" % question_id)
         if question.get("state") in ("zurückgenommen", "zurueckgenommen"):
             withdrawal = question.get("withdrawal") or {}
             if withdrawal.get("reason") == reason:
@@ -519,13 +966,15 @@ def create_world(root: Path, name: str | None = None, main_name: str = "hauptage
                  description: str = "Hauptagent der Welt", model: str | None = None,
                  effort: str | None = None, fallback: str | None = None,
                  fallback_effort: str | None = None, machine: str = "lokal",
-                 global_world: bool = False, with_main_agent: bool = True) -> dict[str, Any]:
+                 global_world: bool = False, with_main_agent: bool = True,
+                 sender: str | None = None, claimed_role: str | None = None) -> dict[str, Any]:
     """Create a world; without `with_main_agent` it starts empty and the main agent follows later.
 
     The empty form is the path of the surfaces (welten.ts `welt:neu`): the human then creates
     the main agent in the creation menu, by hand or as a model proposal.
     """
     root = world_path(str(root))
+    actor = _creation_actor(root, sender, claimed_role, ("hauptagent",))
     if root.exists():
         if (root / "world.json").exists():
             raise AgentsError("Welt existiert bereits: %s" % root)
@@ -544,6 +993,7 @@ def create_world(root: Path, name: str | None = None, main_name: str = "hauptage
         "pause": {"state": "läuft", "changed_at": timestamp, "reason": None},
         "stop": {"state": "läuft", "changed_at": timestamp, "reason": None},
         "governance": {"identity_verified": False, "mutation_gate": "external-adapter-required"},
+        "created_by": _actor_provenance(actor),
     }
     try:
         _world_dirs(stage)
@@ -551,8 +1001,10 @@ def create_world(root: Path, name: str | None = None, main_name: str = "hauptage
         main = None
         if with_main_agent:
             main = create_agent(stage, main_name, "hauptagent", None, description, None, None,
-                                model or "opus5:xhigh", effort, fallback,
+                                model or "opus:medium", effort, fallback,
                                 fallback_effort, machine, "cli-operator", None, bootstrap=True)
+            main["created_by"] = _actor_provenance(actor)
+            _write_json(_agent_dir(stage, main_name) / "agent.json", main)
         os.replace(stage, root)
         return {"world": world, "hauptagent": main}
     except BaseException:
@@ -568,7 +1020,7 @@ def create_agent(root: Path, agent_id: str, stage: str, team: str | None,
                  bootstrap: bool = False) -> dict[str, Any]:
     root = world_path(str(root))
     valid_id(agent_id, "Agentenkennung")
-    if agent_id in HUMAN_ACTORS:
+    if agent_id in RESERVED_ACTORS:
         raise AgentsError("Agentenkennung '%s' ist fuer Menschen und Entwicklungsakteure reserviert" % agent_id)
     if stage not in STAGES:
         raise AgentsError("Stufe ungueltig (hauptagent, teamleiter, mitglied)")
@@ -578,8 +1030,8 @@ def create_agent(root: Path, agent_id: str, stage: str, team: str | None,
         world = read_world(root)
         if world["state"] != "läuft":
             raise AgentsError("Welt ist %s; kein neuer Agent wird angelegt" % world["state"])
-        if not bootstrap:
-            _require_actor(root, sender, claimed_role, ("hauptagent", "teamleiter"))
+        actor = None if bootstrap else _creation_actor(
+            root, sender, claimed_role, ("hauptagent", "teamleiter"))
         if any(a["stage"] == "hauptagent" for a in list_agents(root)) and stage == "hauptagent":
             raise AgentsError("Welt darf genau einen Hauptagenten haben")
         if stage == "hauptagent" and team:
@@ -587,7 +1039,6 @@ def create_agent(root: Path, agent_id: str, stage: str, team: str | None,
         path = _agent_dir(root, agent_id)
         if path.exists() or path.is_symlink():
             raise AgentsError("Agent existiert bereits: %s" % agent_id)
-        actor = None if bootstrap else _actor(root, sender, claimed_role)
         if actor and actor.get("kind") == "agent" and actor.get("role") == "teamleiter":
             raise AgentsError("Teamleiter beantragt Agenten beim Hauptagenten")
         if stage == "teamleiter" and not team:
@@ -602,6 +1053,8 @@ def create_agent(root: Path, agent_id: str, stage: str, team: str | None,
             "model_profile": _model(model, effort, fallback, fallback_effort),
             "governance": {"identity_verified": False, "source": "cli-argument"},
         }
+        if actor is not None:
+            profile["created_by"] = _actor_provenance(actor)
         if not tools:
             # Without tools the profile gets the defaults of its stage, so a turn can work at all.
             profile.update(tools=list(DEFAULT_TOOLS[stage]), bash=list(DEFAULT_BASH))
@@ -648,7 +1101,7 @@ def set_agent_state(root: Path, agent_id: str, state: str, reason: str | None,
     if state not in ("aktiv", "pausiert", "gestoppt"):
         raise AgentsError("Agentenstand ungueltig")
     with transaction(root):
-        actor = _require_actor(root, sender, claimed_role, ("hauptagent", "teamleiter"))
+        actor = _require_governance_actor(root, sender, claimed_role, ("hauptagent", "teamleiter"))
         agent = read_agent(root, agent_id)
         if actor.get("kind") == "agent" and actor.get("role") == "teamleiter":
             owner = read_agent(root, actor["id"])
@@ -671,7 +1124,7 @@ def set_world_state(root: Path, state: str, reason: str | None,
     if state not in WORLD_STATES:
         raise AgentsError("Weltstand ungueltig")
     with transaction(root):
-        _require_actor(root, sender, claimed_role, ("hauptagent",))
+        _require_governance_actor(root, sender, claimed_role, ("hauptagent",))
         world = read_world(root)
         ts = now()
         world["state"] = state
@@ -800,26 +1253,36 @@ def _deadline_state(ticket: dict[str, Any], now_epoch: float | None = None) -> s
     return "grau"
 
 
-def _definition_of_ready_grund(kind: str, punkte: list[str] | None, limits: dict[str, Any] | None,
+def _definition_of_ready_fehlt(kind: str, punkte: list[str] | None, limits: dict[str, Any] | None,
                                recipients, team, title: str = "t", goal: str = "z",
-                               done: str = "f") -> str | None:
-    """Definition of Ready (Plan Satz 45): Grund, warum ein Ticket nicht zugestellt wird.
+                               done: str = "f") -> list[dict[str, str]]:
+    """Definition of Ready (Plan Satz 45): jeder fehlende Punkt in der Reihenfolge der Pruefung.
 
     Fuer `vorhaben` gelten nur Titel, Ziel und Fertig-Kriterium; fuer story, task und subtask
     gehoert eine abhakbare Fertig-Liste dazu, fuer alle uebrigen Arten Frist oder Rundenzahl.
+    Jeder Punkt traegt eine feste Kennung, damit ein Formular ihn seinem Feld zuordnen kann.
     """
-    if not str(title).strip() or not str(goal).strip() or not str(done).strip():
-        return "fehlender Auftrag (Titel, Ziel oder Fertig-Kriterium)"
+    fehlt: list[dict[str, str]] = []
+    if not str(title or "").strip() or not str(goal or "").strip() or not str(done or "").strip():
+        fehlt.append({"punkt": "auftrag", "text": "fehlender Auftrag (Titel, Ziel oder Fertig-Kriterium)"})
     if kind == "vorhaben":
-        return None
+        return fehlt
     if kind in ("story", "task", "subtask") and not (punkte or []):
-        return "fehlende Fertig-Liste"
+        fehlt.append({"punkt": "fertig-liste", "text": "fehlende Fertig-Liste"})
     grenzen = limits or {}
     if not grenzen.get("frist") and not grenzen.get("runden"):
-        return "fehlende Grenzen (keine Frist, keine Rundenzahl)"
+        fehlt.append({"punkt": "grenzen", "text": "fehlende Grenzen (keine Frist, keine Rundenzahl)"})
     if not recipients and not team:
-        return "fehlende Adressaten"
-    return None
+        fehlt.append({"punkt": "adressaten", "text": "fehlende Adressaten"})
+    return fehlt
+
+
+def _definition_of_ready_grund(kind: str, punkte: list[str] | None, limits: dict[str, Any] | None,
+                               recipients, team, title: str = "t", goal: str = "z",
+                               done: str = "f") -> str | None:
+    """Der erste fehlende Punkt der Definition of Ready als Grund, sonst None."""
+    fehlt = _definition_of_ready_fehlt(kind, punkte, limits, recipients, team, title, goal, done)
+    return fehlt[0]["text"] if fehlt else None
 
 
 def _ticket_parent_pruefen(root: Path, ticket_id: str, parent_id: str, kind: str) -> dict[str, Any]:
@@ -868,7 +1331,8 @@ def create_ticket(root: Path, title: str, goal: str, done: str,
                   ticket_id: str | None = None,
                   done_items: list[str] | None = None,
                   kind: str | None = None, priority: int | None = None,
-                  parent: str | None = None, origin: str | None = None) -> dict[str, Any]:
+                  parent: str | None = None, origin: str | None = None,
+                  in_transaction: bool = False) -> dict[str, Any]:
     if not title.strip() or not goal.strip() or not done.strip():
         raise AgentsError("Titel, Ziel und Fertig-Kriterium sind Pflicht")
     punkte = _done_item_list(done_items)
@@ -879,9 +1343,11 @@ def create_ticket(root: Path, title: str, goal: str, done: str,
     if "frist" not in limits and "runden" not in limits and art != "vorhaben":
         limits["runden"] = DEFAULT_ROUNDS
     triage = not recipients and not team
-    with transaction(root):
+    # `in_transaction` ist fuer den Aufrufer, der die Weltsperre schon haelt (das Rest-Ticket
+    # der Abnahme): flock ist nicht wiedereintrittsfaehig, ein zweites `transaction` haengt.
+    with (nullcontext() if in_transaction else transaction(root)):
         world = read_world(root)
-        actor = _actor(root, sender, claimed_role)
+        actor = _creation_actor(root, sender, claimed_role)
         if triage:
             haupt = world.get("hauptagent")
             if not haupt or not isinstance(haupt, str) or not ID_RE.fullmatch(haupt):
@@ -1087,6 +1553,12 @@ def write_result(root: Path, ticket_id: str, agent_id: str, text: str,
 
 def _require_approver(root: Path, actor: dict[str, Any], ticket: dict[str, Any]) -> None:
     """Die Abnahme- und Pruefungsregel: Hauptagent oder Teamleiter des Teams (Plan Satz 27)."""
+    if _setup_created_agent(root, actor):
+        raise AgentsError("Aufbau-Herkunft von Agent '%s' ist nicht abnahmebefugt" % actor["id"])
+    if actor.get("id") in ORCHESTRATOR_ACTORS and (
+            ticket.get("assignee") in ORCHESTRATOR_ACTORS
+            or ticket.get("sender") in ORCHESTRATOR_ACTORS):
+        raise AgentsError("Orchestrator '%s' darf eigene Arbeit nicht abnehmen" % actor["id"])
     if actor.get("kind") == "agent" and actor.get("role") == "teamleiter":
         agent = read_agent(root, actor["id"])
         # Also an own ticket from a member of the leader's team, e.g. a skill
@@ -1107,29 +1579,122 @@ def _require_approver(root: Path, actor: dict[str, Any], ticket: dict[str, Any])
         raise AgentsError("Mitglied darf Tickets nicht abnehmen")
 
 
+def _rest_ticket_name(root: Path, ticket_id: str) -> str:
+    """Kennung des Rest-Tickets: sprechend am abgenommenen Ticket, sonst die naechste freie."""
+    belegt = {t["id"] for t in list_tickets(root)}
+    for kandidat in ["%s-rest" % ticket_id] + ["%s-rest-%d" % (ticket_id, nr) for nr in range(2, 100)]:
+        if ID_RE.fullmatch(kandidat) and kandidat not in belegt:
+            return kandidat
+    return new_id("t")
+
+
+def _rest_ticket_anlegen(root: Path, ticket: dict[str, Any], rest_id: str, note: str | None,
+                         sender: str | None, claimed_role: str | None,
+                         in_transaction: bool = False) -> dict[str, Any]:
+    """Der Rest einer Abnahme `teilweise` als neues Ticket (Plan Satz 40).
+
+    Es uebernimmt Art, Eltern, Prioritaet und Adressat des abgenommenen Tickets, die offenen
+    Punkte seiner Fertig-Liste und die Bemerkung des Abnehmenden; `origin` zeigt auf das
+    abgenommene Ticket. Die feste Kennung aus der Abnahme macht den Weg idempotent: ein
+    zweiter Aufruf findet das Rest-Ticket und legt kein zweites an.
+    """
+    try:
+        return read_ticket(root, rest_id)
+    except AgentsError:
+        pass
+    art = _ticket_kind_feld(ticket)
+    bemerkung = " ".join(str(note or "").split())
+    punkte = _open_done_items(ticket)
+    if not punkte and art in ("story", "task", "subtask") and bemerkung:
+        # Die Definition of Ready verlangt fuer diese Arten eine Fertig-Liste; steht kein Punkt
+        # mehr offen, ist die Bemerkung des Abnehmenden der eine offene Punkt.
+        punkte = [bemerkung]
+    eltern = ticket.get("parent")
+    if eltern is not None:
+        try:
+            _ticket_parent_pruefen(root, rest_id, eltern, art)
+        except AgentsError:
+            eltern = None  # Das Eltern traegt keine Kinder mehr; der Rest steht fuer sich.
+    ziel = ticket.get("goal") or ""
+    ziel = "%s\n\nRest aus der Abnahme von %s: %s" % (ziel, ticket["id"], bemerkung) if ziel \
+        else "Rest aus der Abnahme von %s: %s" % (ticket["id"], bemerkung)
+    rest = create_ticket(root, "Rest von %s: %s" % (ticket["id"], ticket.get("title") or ticket["id"]),
+                         ziel, ticket.get("done_criterion") or "Rest aus der Abnahme von %s" % ticket["id"],
+                         list(ticket.get("recipients") or []), sender, claimed_role,
+                         team=ticket.get("team"), ticket_id=rest_id, done_items=punkte,
+                         kind=ticket.get("kind"), priority=ticket.get("priority"), parent=eltern,
+                         origin=ticket["id"], in_transaction=in_transaction)
+    with (nullcontext() if in_transaction else transaction(root)):
+        _ticket_event(root, rest, "rest-aus-abnahme", _actor(root, sender, claimed_role),
+                      herkunft=ticket["id"], bemerkung=bemerkung)
+    return rest
+
+
+def _abnahme_wiederholung(root: Path, ticket_id: str, approver: str | None, claimed_role: str | None,
+                          note: str | None, code: str) -> tuple[dict[str, Any], str | None] | None:
+    """Dieselbe Abnahme ein zweites Mal (verlorene Antwort): Ticket und Kennung des Rests.
+
+    Sonst None; dann laeuft die gewoehnliche Abnahme und meldet den Stand des Tickets.
+    """
+    with transaction(root):
+        actor = _require_governance_actor(root, approver, claimed_role, ("hauptagent", "teamleiter"))
+        ticket = read_ticket(root, ticket_id)
+        if ticket.get("state") != "abgenommen":
+            return None
+        frueher = ticket.get("approval") or {}
+        if (frueher.get("agent") != actor["id"] or frueher.get("note") != note
+                or (frueher.get("reason_code") or "erledigt") != code):
+            return None
+        return ticket, frueher.get("rest")
+
+
 def approve_ticket(root: Path, ticket_id: str, approver: str | None,
                    claimed_role: str | None, note: str | None, accept: bool = True,
                    reason_code: str | None = None, dod_checked: bool = False) -> dict[str, Any]:
+    code = (reason_code if reason_code is not None else "erledigt") if accept else None
+    mobile_proof = _mobile_approval_beleg(root, ticket_id, code, note, dod_checked, accept)
+    proof_token = _MOBILE_APPROVAL_PROOF.set(mobile_proof)
+    try:
+        return _approve_ticket(root, ticket_id, approver, claimed_role, note, accept, reason_code, dod_checked, code)
+    finally:
+        _MOBILE_APPROVAL_PROOF.reset(proof_token)
+
+
+def _approve_ticket(root: Path, ticket_id: str, approver: str | None,
+                    claimed_role: str | None, note: str | None, accept: bool,
+                    reason_code: str | None, dod_checked: bool, code: str | None) -> dict[str, Any]:
+    if accept and code not in APPROVE_REASONS:
+        raise AgentsError("Abnahmegrund muss %s sein" % " oder ".join(APPROVE_REASONS))
+    if accept:
+        # Wiederholung nach verlorener Antwort: kein zweites Rest-Ticket, aber ein Rest, der
+        # zwischen Abnahme und Anlage verloren ging, wird nachgeholt.
+        wiederholung = _abnahme_wiederholung(root, ticket_id, approver, claimed_role, note, code)
+        if wiederholung is not None:
+            ticket, rest_id = wiederholung
+            if rest_id:
+                _rest_ticket_anlegen(root, ticket, rest_id, note, approver, claimed_role)
+            return ticket
     with transaction(root):
-        actor = _require_actor(root, approver, claimed_role, ("hauptagent", "teamleiter"))
+        actor = _require_governance_actor(root, approver, claimed_role, ("hauptagent", "teamleiter"))
         ticket = read_ticket(root, ticket_id)
         if ticket["state"] not in ("zur Abnahme", "zurückgegeben"):
             raise AgentsError("Ticket ist %s; keine Abnahme moeglich" % ticket["state"])
         if accept:
-            code = reason_code if reason_code is not None else "erledigt"
-            if code not in APPROVE_REASONS:
-                raise AgentsError("Abnahmegrund muss %s sein" % " oder ".join(APPROVE_REASONS))
             if code == "teilweise" and (note is None or not str(note).strip()):
                 raise AgentsError("Abnahme mit Grund teilweise braucht eine Bemerkung")
             if _world_dod(read_world(root)) and not dod_checked:
                 raise AgentsError("Definition of Done nicht bestätigt")
         _require_approver(root, actor, ticket)
+        if mobile_proof := _MOBILE_APPROVAL_PROOF.get():
+            _consume_mobile_approval_beleg(root, mobile_proof)
         if not accept and ticket["state"] == "zurückgegeben":
             approval = ticket.get("approval") or {}
             if approval.get("agent") == actor.get("id") and approval.get("note") == note:
                 return ticket  # idempotent retry after a lost response
         ticket["state"] = "abgenommen" if accept else "zurückgegeben"
-        approval = {"agent": actor["id"], "verified": False, "time": now(), "note": note}
+        approval = {"agent": actor["id"], "verified": bool(actor.get("verified")), "time": now(), "note": note}
+        if actor.get("herkunft"):
+            approval["herkunft"] = dict(actor["herkunft"])
         if accept:
             approval["reason_code"] = code
         ticket["approval"] = approval
@@ -1142,9 +1707,17 @@ def approve_ticket(root: Path, ticket_id: str, approver: str | None,
             ticket["return_delivery_id"] = derived_id("ticket-return", ticket_id, revision)
             ticket["return_delivery_time"] = ticket["updated_at"]
             ticket["delivery_sender"] = actor["id"]
+        if accept and code == "teilweise":
+            # Der Rest wird ein eigenes Ticket, bevor die Eltern nachgezaehlt werden; die
+            # Kennung steht in der Abnahme, damit ein zweiter Aufruf denselben Rest findet.
+            approval["rest"] = _rest_ticket_name(root, ticket_id)
         _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
+        # Die Revision ordnet das Urteil der Ergebnisfassung zu, die es betrifft (Jev-Zuordnung).
         _ticket_event(root, ticket, "abgenommen" if accept else "zurueckgegeben", actor, note=note,
-                      grund=code if accept else None)
+                      grund=code if accept else None, result_revision=int(ticket.get("result_revision") or 0))
+        if approval.get("rest"):
+            _rest_ticket_anlegen(root, ticket, approval["rest"], note, approver, claimed_role,
+                                 in_transaction=True)
         if not accept:
             _deliver_ticket(root, ticket, actor)
         else:
@@ -1252,7 +1825,7 @@ def _deliver_message(root: Path, sender: str, recipient: str, kind: str,
     elif recipient == "alle":
         recipients = [a["id"] for a in list_agents(root)]
         recipient_field = "alle"
-    elif recipient in HUMAN_ACTORS:
+    elif recipient in NON_AGENT_CHANNEL_ACTORS:
         # Humans and the companion have no agent postbox in this data layer;
         # the durable channel entry is still retained for their UI.
         recipients = []
@@ -1269,6 +1842,29 @@ def _deliver_message(root: Path, sender: str, recipient: str, kind: str,
         message["humans"] = humans
     if mark:
         message["mark"] = mark
+    existing = None
+    if _channel_has_message(root, message_id):
+        existing = next(item for item in read_messages(root) if item.get("id") == message_id)
+        if any(existing.get(key) != message.get(key) for key in message if key != "time"):
+            raise AgentsError("Nachrichtenkennung existiert bereits mit anderem Inhalt")
+        message = existing
+    else:
+        # A crash can leave postbox projections before the channel append.
+        # Keep their original timestamp when the same message is retried.
+        projected_time = None
+        paths = [_human_delivery_path(root, human, message_id) for human in humans]
+        paths.extend(_delivery_path(root, target, message_id) for target in recipients)
+        for path in paths:
+            _reject_symlink(path, "Postfachdatei")
+            if path.exists():
+                stored_time = _read_json(path).get("time")
+                if not isinstance(stored_time, str) or not stored_time:
+                    raise AgentsError("Kanalzustellung hat keinen Zeitstempel")
+                if projected_time is not None and stored_time != projected_time:
+                    raise AgentsError("Kanalzustellungen haben verschiedene Zeitstempel")
+                projected_time = stored_time
+        if projected_time is not None:
+            message["time"] = projected_time
     for human in humans:
         _ensure_human_delivery(root, human, message)
     for target in recipients:
@@ -1282,11 +1878,7 @@ def _deliver_message(root: Path, sender: str, recipient: str, kind: str,
                 raise AgentsError("Zustellungskennung existiert bereits mit anderem Inhalt")
         else:
             _write_json(path, dict(message, recipient=target, delivery_id=message_id, acknowledged=False))
-    if _channel_has_message(root, message_id):
-        existing = next(item for item in read_messages(root) if item.get("id") == message_id)
-        if any(existing.get(key) != message.get(key) for key in message if key != "time"):
-            raise AgentsError("Nachrichtenkennung existiert bereits mit anderem Inhalt")
-    else:
+    if existing is None:
         _append_jsonl(root / "kanal.jsonl", message)
     return message
 
@@ -1525,7 +2117,7 @@ def reopen_interrupted_ticket(root: Path, ticket_id: str, sender: str | None,
         world = read_world(root)
         if world["state"] != "läuft":
             raise AgentsError("Welt ist %s; Ticket bleibt unterbrochen" % world["state"])
-        actor = _require_actor(root, sender, claimed_role, ("hauptagent", "teamleiter"))
+        actor = _require_governance_actor(root, sender, claimed_role, ("hauptagent", "teamleiter"))
         ticket = read_ticket(root, ticket_id)
         if ticket["state"] in ("offen", "zur Abnahme", "in Prüfung") and ticket.get("resume_revision"):
             return ticket  # idempotent retry after a lost response
@@ -1775,6 +2367,7 @@ def park_ticket(root: Path, ticket_id: str, agent_id: str, reason: str, until: s
         parked = {"reason": reason, "until": until, "waiting_for": waiting_for,
                   "by": actor["id"], "at": ts}
         if ticket.get("state") == "triage":
+            actor = _require_governance_actor(root, sender or agent_id, claimed_role, ("hauptagent",))
             if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
                 raise AgentsError("Zurueckstellen aus der Triage darf nur der Hauptagent der Welt")
             ticket.update({"parked": parked, "updated_at": ts})
@@ -1804,9 +2397,7 @@ def flag_ticket(root: Path, ticket_id: str, question_id: str, reason: str,
     if not isinstance(reason, str) or not reason.strip():
         raise AgentsError("Braucht-dich braucht einen Grund")
     with transaction(root):
-        actor = _actor(root, sender, claimed_role)
-        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
-            raise AgentsError("Braucht-dich setzt nur der Hauptagent der Welt")
+        actor = _require_governance_actor(root, sender, claimed_role, ("hauptagent",))
         question = read_question(root, question_id)
         if question.get("state") != "offen":
             raise AgentsError("Frage %s ist %s; nur eine offene Frage wird vermerkt" % (
@@ -1847,7 +2438,7 @@ def discard_ticket(root: Path, ticket_id: str, reason_code: str, note: str | Non
     if duplicate_of is not None:
         valid_id(duplicate_of, "Ticketkennung")
     with transaction(root):
-        actor = _actor(root, sender, claimed_role)
+        actor = _require_governance_actor(root, sender, claimed_role, STAGES)
         ticket = read_ticket(root, ticket_id)
         discard = ticket.get("discard") or {}
         same = (isinstance(discard, dict) and discard.get("code") == reason_code
@@ -1903,7 +2494,7 @@ def reassign_ticket(root: Path, ticket_id: str, recipients: list[str], team: str
     if team is not None:
         valid_id(team, "Team")
     with transaction(root):
-        actor = _actor(root, sender, claimed_role)
+        actor = _require_governance_actor(root, sender, claimed_role, STAGES)
         ticket = read_ticket(root, ticket_id)
         previous = ticket.get("reassign") or {}
         if isinstance(previous, dict) and previous.get("recipients") == recipients \
@@ -1972,9 +2563,7 @@ def triage_accept(root: Path, ticket_id: str, recipients: list[str] | None = Non
     art = _ticket_kind_wert(kind)
     punkte = _done_item_list(done_items)
     with transaction(root):
-        actor = _actor(root, sender, claimed_role)
-        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
-            raise AgentsError("Triage entscheidet nur der Hauptagent der Welt")
+        actor = _require_governance_actor(root, sender, claimed_role, ("hauptagent",))
         ticket = read_ticket(root, ticket_id)
         previous = ticket.get("triage") or {}
         if isinstance(previous, dict) and previous.get("recipients") == recipients \
@@ -2113,7 +2702,7 @@ def review_ticket(root: Path, ticket_id: str, reviewer_id: str,
     valid_id(ticket_id, "Ticketkennung")
     valid_id(reviewer_id, "Prueferkennung")
     with transaction(root):
-        actor = _require_actor(root, sender, claimed_role, ("hauptagent", "teamleiter"))
+        actor = _require_governance_actor(root, sender, claimed_role, ("hauptagent", "teamleiter"))
         ticket = read_ticket(root, ticket_id)
         revision = int(ticket.get("result_revision") or 0)
         review = ticket.get("review")
@@ -2237,6 +2826,109 @@ def ready_tickets(root: Path) -> list[dict[str, Any]]:
     return sorted(result, key=sort_key)
 
 
+# Die Felder eines Entwurfs: die Namen des Anlageformulars (`wb-ticket neu`) und daneben die
+# Feldnamen eines gespeicherten Tickets, damit die Oberflaeche beide Formen schicken kann.
+DRAFT_FELDER = {
+    "title": ("titel", "title"),
+    "goal": ("ziel", "goal"),
+    "done_criterion": ("fertig", "done", "done_criterion"),
+    "recipients": ("an", "recipients"),
+    "team": ("team",),
+    "kind": ("art", "kind"),
+    "priority": ("prioritaet", "priority"),
+    "limits": ("grenzen", "limits"),
+    "done_items": ("fertig-punkt", "fertig-punkte", "fertig_punkte", "done_items"),
+    "dependencies": ("abhaengig-von", "abhaengig_von", "dependencies"),
+}
+
+
+def _entwurf_normalisieren(draft: dict[str, Any]) -> dict[str, Any]:
+    """Aus den Formularfeldern die Felder eines Tickets machen; prueft die Werte wie die Anlage."""
+    if not isinstance(draft, dict):
+        raise AgentsError("Entwurf braucht ein JSON-Objekt")
+    werte: dict[str, Any] = {}
+    for feld, namen in DRAFT_FELDER.items():
+        for name in namen:
+            if draft.get(name) is not None:
+                werte[feld] = draft[name]
+                break
+    grenzen = werte.get("limits") or {}
+    if not isinstance(grenzen, dict):
+        raise AgentsError("Grenzen brauchen ein JSON-Objekt")
+    grenzen = dict(grenzen)
+    for name in ("frist", "runden"):
+        if draft.get(name) is not None:
+            grenzen[name] = draft[name]
+    grenzen = _ticket_limits_wert(grenzen)
+    art = _ticket_kind_wert(werte.get("kind"))
+    prioritaet = werte.get("priority")
+    if prioritaet is not None:
+        _ticket_priority_wert(prioritaet)
+    empfaenger = werte.get("recipients") or []
+    if isinstance(empfaenger, str):
+        empfaenger = [empfaenger]
+    if not isinstance(empfaenger, list) or any(not isinstance(a, str) or not a.strip() for a in empfaenger):
+        raise AgentsError("Adressaten brauchen eine Liste aus Kennungen")
+    empfaenger = [valid_id(a.strip(), "Adressat") for a in empfaenger]
+    team = werte.get("team")
+    if team is not None and not isinstance(team, str):
+        raise AgentsError("Team ungueltig")
+    team = valid_id(team.strip(), "Team") if team and team.strip() else None
+    punkte = werte.get("done_items")
+    if isinstance(punkte, list):
+        punkte = [item.get("text") if isinstance(item, dict) else item for item in punkte]
+    punkte = _done_item_list(punkte)
+    abhaengig = werte.get("dependencies") or []
+    if isinstance(abhaengig, str):
+        abhaengig = [abhaengig]
+    if not isinstance(abhaengig, list) or any(not isinstance(d, str) or not d.strip() for d in abhaengig):
+        raise AgentsError("Abhaengigkeiten brauchen eine Liste aus Ticketkennungen")
+    abhaengig = [valid_id(d.strip(), "Ticketkennung") for d in abhaengig]
+    # Die Vorgabe-Grenze der Anlage zaehlt mit (create_ticket): ohne Frist und Rundenzahl sechs
+    # Zuege, ein Vorhaben ohne Grenze. Sonst meldet die Vorschau eine Luecke, die es nicht gibt.
+    if "frist" not in grenzen and "runden" not in grenzen and art != "vorhaben":
+        grenzen["runden"] = DEFAULT_ROUNDS
+    return {"title": str(werte.get("title") or ""), "goal": str(werte.get("goal") or ""),
+            "done_criterion": str(werte.get("done_criterion") or ""),
+            "recipients": empfaenger, "team": team, "kind": art, "priority": prioritaet,
+            "limits": grenzen, "done_items": punkte, "dependencies": abhaengig}
+
+
+def ready_draft(root: Path, draft: dict[str, Any]) -> dict[str, Any]:
+    """Bereitschaft eines Entwurfs, bevor das Ticket angelegt ist; schreibt nichts (Plan Satz 45).
+
+    Dieselbe Definition of Ready, die `ready_tickets` an einem gespeicherten Ticket fuehrt, nur
+    auf den Feldern des Anlageformulars. Dazu die Punkte, die `ready_tickets` erst nach der
+    Anlage sehen wuerde: Adressat und Team gibt es in dieser Welt und sind aktiv, die
+    Abhaengigkeiten sind abgenommen. Stand der Welt und WIP-Grenze bleiben aussen vor, denn sie
+    gehoeren der Welt und nicht dem Entwurf.
+    """
+    root = world_path(str(root))
+    entwurf = _entwurf_normalisieren(draft)
+    fehlt = _definition_of_ready_fehlt(entwurf["kind"], entwurf["done_items"], entwurf["limits"],
+                                       entwurf["recipients"], entwurf["team"], entwurf["title"],
+                                       entwurf["goal"], entwurf["done_criterion"])
+    agents = {a["id"]: a for a in list_agents(root)}
+    for empfaenger in entwurf["recipients"]:
+        agent = agents.get(empfaenger)
+        if agent is None:
+            fehlt.append({"punkt": "adressaten", "text": "Adressat %s gibt es in dieser Welt nicht" % empfaenger})
+        elif agent.get("state") != "aktiv":
+            fehlt.append({"punkt": "adressaten", "text": "Adressat %s ist %s" % (empfaenger, agent.get("state"))})
+    if entwurf["team"] and not any(a.get("team") == entwurf["team"] for a in agents.values()):
+        fehlt.append({"punkt": "adressaten", "text": "Team %s hat keine Agenten" % entwurf["team"]})
+    tickets = {t["id"]: t for t in list_tickets(root)}
+    for dep in entwurf["dependencies"]:
+        abhaengigkeit = tickets.get(dep)
+        if abhaengigkeit is None:
+            fehlt.append({"punkt": "abhaengigkeiten", "text": "abhaengigkeit %s ist unbekannt" % dep})
+        elif abhaengigkeit.get("state") != "abgenommen":
+            fehlt.append({"punkt": "abhaengigkeiten",
+                          "text": "abhaengigkeit %s ist %s" % (dep, abhaengigkeit.get("state"))})
+    return {"bereit": not fehlt, "grund": fehlt[0]["text"] if fehlt else None,
+            "fehlt": fehlt, "entwurf": entwurf}
+
+
 def _ticket_blocker(root: Path, ticket: dict[str, Any], world: dict[str, Any],
                     agents: dict[str, dict[str, Any]], by_id: dict[str, dict[str, Any]],
                     running: set[str | None]) -> str | None:
@@ -2320,9 +3012,7 @@ def reorder_triage(root: Path, ticket_ids: list[str], sender: str | None = None,
     if len(set(ids)) != len(ids):
         raise AgentsError("Reihenfolge nennt eine Kennung doppelt")
     with transaction(root):
-        actor = _actor(root, sender, claimed_role)
-        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
-            raise AgentsError("Die Triage ordnet nur der Hauptagent der Welt oder der Mensch")
+        actor = _require_governance_actor(root, sender, claimed_role, ("hauptagent",))
         triage = {t["id"]: t for t in list_tickets(root) if t.get("state") == "triage"}
         unknown = [i for i in ids if i not in triage]
         if unknown:
@@ -2369,9 +3059,7 @@ def set_ticket_limits(root: Path, ticket_id: str, frist: str | None = None,
     if runden is not None and (isinstance(runden, bool) or not isinstance(runden, int) or runden < 1):
         raise AgentsError("--runden braucht eine ganze Zahl ab 1")
     with transaction(root):
-        actor = _actor(root, sender, claimed_role)
-        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
-            raise AgentsError("Grenzen aendert nur der Hauptagent der Welt oder der Mensch")
+        actor = _require_governance_actor(root, sender, claimed_role, ("hauptagent",))
         ticket = read_ticket(root, ticket_id)
         limits = dict(ticket.get("limits") or {})
         if frist is not None:
@@ -2468,9 +3156,7 @@ def set_cycle(root: Path, enabled: bool, tage: int | None = None, ziel: str | No
     if not isinstance(enabled, bool):
         raise AgentsError("einschalten oder ausschalten")
     with transaction(root):
-        actor = _actor(root, sender, claimed_role)
-        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
-            raise AgentsError("Den Zyklus setzt nur der Hauptagent der Welt oder der Mensch")
+        actor = _require_governance_actor(root, sender, claimed_role, ("hauptagent",))
         world = read_world(root)
         cycles = dict(world.get("cycles") or {})
         if not enabled:
@@ -2518,9 +3204,7 @@ def set_wip_limit(root: Path, limit: int | None = None, sender: str | None = Non
     """Weiche WIP-Grenze der Welt setzen oder leeren (Plan Satz 48); nur der Hauptagent
     oder der Mensch.  Ohne Grenze gilt: aktive Agenten plus ein Viertel, aufgerundet."""
     with transaction(root):
-        actor = _actor(root, sender, claimed_role)
-        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
-            raise AgentsError("Die WIP-Grenze setzt nur der Hauptagent der Welt oder der Mensch")
+        actor = _require_governance_actor(root, sender, claimed_role, ("hauptagent",))
         world = read_world(root)
         if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit < 1):
             raise AgentsError("--limit braucht eine ganze Zahl ab 1")
@@ -2721,9 +3405,7 @@ def set_definition_of_done(root: Path, punkte: Any, sender: str | None = None,
         raise AgentsError("Definition of Done muss eine Liste nichtleerer Texte sein")
     punkte = list(dict.fromkeys(item.strip() for item in punkte))
     with transaction(root):
-        actor = _actor(root, sender or WORLD_HUMAN, claimed_role)
-        if actor.get("kind") == "agent" and actor.get("role") != "hauptagent":
-            raise AgentsError("Definition of Done setzt nur der Mensch oder der Hauptagent")
+        actor = _require_governance_actor(root, sender or WORLD_HUMAN, claimed_role, ("hauptagent",))
         world = read_world(root)
         if _world_dod(world) == punkte:
             return world
@@ -2780,6 +3462,9 @@ def carrier_turn_note(root: Path, ticket_id: str, run_id: str, outcome: str) -> 
 
 def _require_human(root: Path, sender: str | None, claimed_role: str | None, what: str) -> dict[str, Any]:
     actor = _actor(root, sender or WORLD_HUMAN, claimed_role)
+    if actor.get("id") in ORCHESTRATOR_ACTORS:
+        raise AgentsError("Governance-Mutation fuer '%s' ist ueber die CLI gesperrt; "
+                          "nur run-gebundener Controller oder gemessener Mensch" % actor["id"])
     if actor.get("kind") != "external":
         raise AgentsError("%s darf nur der Mensch; ein Agent aendert das nicht selbst" % what)
     return actor
@@ -2811,7 +3496,8 @@ def return_ticket(root: Path, ticket_id: str, note: str, sender: str | None = No
             "return_to": target, "return_to_delivery": delivery_id,
         })
         _write_json(_ticket_path(root, ticket_id) / "ticket.json", ticket)
-        _ticket_event(root, ticket, "zurueckgegeben", actor, note=note, by="mensch", to=target)
+        _ticket_event(root, ticket, "zurueckgegeben", actor, note=note, by="mensch", to=target,
+                      result_revision=int(ticket.get("result_revision") or 0))
         _deliver_ticket(root, ticket, actor)
         return ticket
 
@@ -3089,7 +3775,7 @@ def validate_agent_draft(draft: dict[str, Any], for_agent: bool = False,
     if not isinstance(agent_id, str):
         raise AgentsError("Entwurf braucht eine Agentenkennung")
     valid_id(agent_id, "Agentenkennung")
-    if agent_id in HUMAN_ACTORS:
+    if agent_id in RESERVED_ACTORS:
         raise AgentsError("Agentenkennung '%s' ist fuer Menschen und Entwicklungsakteure reserviert" % agent_id)
     stage = draft.get("stage") or "mitglied"
     if stage not in STAGES:
@@ -3320,9 +4006,15 @@ def create_agent_from_draft(root: Path, draft: dict[str, Any], sender: str | Non
     create, team leaders file a request instead (`request_agent`).
     """
     root = world_path(str(root))
-    actor = _actor(root, sender, claimed_role)
-    normalized = validate_agent_draft(draft, for_agent=actor.get("kind") == "agent",
-                                      machine_default=world_machine_default(root))
+    actor = _creation_actor(root, sender, claimed_role)
+    # The two CLI-surface identities have no governance authority, but creation
+    # is their deliberately retained capability (the empty-world menu needs to
+    # create its first main agent).  Only stored agents get the stricter draft
+    # ceiling that prevents them from creating a new main-agent principal.
+    normalized = validate_agent_draft(
+        draft,
+        for_agent=actor.get("kind") == "agent" and actor.get("id") not in ORCHESTRATOR_ACTORS,
+        machine_default=world_machine_default(root))
     if request_id is not None:
         valid_id(request_id, "Antragskennung")
         try:
@@ -3343,7 +4035,7 @@ def create_agent_from_draft(root: Path, draft: dict[str, Any], sender: str | Non
             "bash": normalized["bash"], "context_limit": normalized["context_limit"],
             "template": normalized["template"], "request": request_id,
             "instructions_source": "entwurf" if normalized["instructions"] else "vorlage",
-            "created_by": {"id": actor["id"], "kind": actor.get("kind"), "verified": False},
+            "created_by": _actor_provenance(actor),
         })
         path = _agent_dir(root, normalized["id"])
         _write_json(path / "agent.json", agent)
@@ -3367,7 +4059,7 @@ def request_agent(root: Path, draft: dict[str, Any], sender: str | None = None,
     if request_id is not None:
         valid_id(request_id, "Antragskennung")
     with transaction(root):
-        actor = _actor(root, sender, claimed_role)
+        actor = _require_governance_actor(root, sender, claimed_role, ("teamleiter",))
         if actor.get("kind") != "agent" or actor.get("role") != "teamleiter":
             raise AgentsError("Antraege auf neue Agenten stellen Teamleiter")
         own_team = read_agent(root, actor["id"]).get("team")
@@ -3427,7 +4119,7 @@ def decide_agent_request(root: Path, request_id: str, accept: bool, note: str | 
         raise AgentsError("Bemerkung muss ein Text sein")
     decision = "anlegen" if accept else "ablehnen"
     with transaction(root):
-        actor = _require_actor(root, sender, claimed_role, ("hauptagent",))
+        actor = _require_governance_actor(root, sender, claimed_role, ("hauptagent",))
         question = read_question(root, request_id)
         if question.get("kind") != AGENT_REQUEST_KIND:
             raise AgentsError("%s ist kein Antrag auf einen Agenten" % request_id)
@@ -3491,17 +4183,8 @@ def _check_rights_against_accesses(root: Path, tools: list[str], extra_bash: lis
                 pattern, ", ".join(ssh_names)))
 
 
-def set_agent_rights(root: Path, agent_id: str, changes: dict[str, Any], sender: str | None = None,
-                     claimed_role: str | None = None) -> dict[str, Any]:
-    """Set tools, Bash patterns, skills or web access of an agent (der Nutzer, 16.09.2026).
-
-    Allowed for the human and for the world's main agent on every other agent of the world; team
-    leaders and members ask the main agent.  `tools` replaces the tool list (Bash always stays),
-    `bash` replaces the own patterns on top of `DEFAULT_BASH`, `skills` replaces the skill list,
-    `web` true or false adds or removes WebFetch and WebSearch.  Nothing goes beyond the world's
-    accesses.  A running turn keeps its rights; the next turn reads agent.json anew.
-    """
-    root = world_path(str(root))
+def _check_rights_fields(changes: Any) -> None:
+    """The shape of a rights change before any world is read: known fields, `web` a boolean."""
     if not isinstance(changes, dict) or not changes:
         raise AgentsError("Keine Rechteaenderung angegeben")
     unknown = sorted(set(changes) - set(RIGHTS_FIELDS))
@@ -3509,75 +4192,384 @@ def set_agent_rights(root: Path, agent_id: str, changes: dict[str, Any], sender:
         raise AgentsError("Rechtefeld unbekannt: %s (erlaubt: %s)" % (", ".join(unknown), ", ".join(RIGHTS_FIELDS)))
     if "web" in changes and not isinstance(changes["web"], bool):
         raise AgentsError("web muss true oder false sein")
+
+
+def _plan_rights(root: Path, agent: dict[str, Any], changes: dict[str, Any]) -> dict[str, Any]:
+    """The rights an agent would have after `changes`, checked but not written.
+
+    Tool names, the house list of blocked programs, skill names and the world's accesses are
+    checked here; `set_agent_rights` writes the result and `request_rights` only uses it as a dry run.
+    `diff` is empty when the change has no effect.
+    """
+    old_tools = list(agent.get("tools") or [])
+    old_bash = list(agent.get("bash") or [])
+    old_skills = list(agent.get("skills") or [])
+    tools = _tool_names(changes["tools"]) if "tools" in changes else list(old_tools)
+    if changes.get("web") is True:
+        tools += [tool for tool in WEB_TOOLS if tool not in tools]
+    elif changes.get("web") is False:
+        tools = [tool for tool in tools if tool not in WEB_TOOLS]
+    foreign = [tool for tool in tools if tool not in AGENT_TOOLS]
+    if foreign:
+        raise AgentsError("Werkzeug nicht erlaubt: %s (erlaubt: %s)" % (", ".join(foreign), ", ".join(AGENT_TOOLS)))
+    if "Bash" not in tools:
+        tools.append("Bash")  # the service path (see validate_agent_draft)
+    defaults = list(DEFAULT_BASH)
+    if "bash" in changes:
+        extra = [pattern for pattern in (" ".join(item.split()) for item in _text_list(changes["bash"], "Bash-Muster"))
+                 if pattern not in defaults]
+    else:
+        extra = [pattern for pattern in old_bash if pattern not in defaults]
+    bash = list(dict.fromkeys(extra + defaults))
+    module, blocked = _house_rules()
+    for entry in tools + bash:
+        if module.nicht_lateinischer_name(entry):
+            raise AgentsError("Eintrag '%s' beginnt mit einem nicht lateinischen Zeichen" % entry)
+        reason = module.gesperrt_verstoss(entry, blocked)
+        if reason:
+            raise AgentsError("Eintrag '%s' ist gesperrt: %s" % (entry, reason))
+    skills = _name_list(changes["skills"], "Skills") if "skills" in changes else list(old_skills)
+    for skill in skills:
+        if not re.match(r"^[a-z0-9][a-z0-9:._-]{0,79}$", skill):
+            raise AgentsError("Skillname ungueltig: %s" % skill)
+    # Only what the change adds must fit the accesses: an older profile is not rejected for rights it has.
+    added_tools = [tool for tool in tools if tool not in old_tools]
+    added_bash = [pattern for pattern in extra if pattern not in old_bash]
+    _check_rights_against_accesses(root, added_tools, added_bash)
+    diff: dict[str, list[Any]] = {}
+    for key, old, new in (("tools", old_tools, tools), ("bash", old_bash, bash), ("skills", old_skills, skills)):
+        if old != new:
+            diff[key] = [old, new]
+    return {"tools": tools, "bash": bash, "skills": skills, "diff": diff}
+
+
+def set_agent_rights(root: Path, agent_id: str, changes: dict[str, Any], sender: str | None = None,
+                     claimed_role: str | None = None, antrag: str | None = None) -> dict[str, Any]:
+    """Set tools, Bash patterns, skills or web access of an agent (der Nutzer, 16.09.2026).
+
+    Allowed for the human and for the world's main agent on every other agent of the world; team
+    leaders and members ask the main agent.  `tools` replaces the tool list (Bash always stays),
+    `bash` replaces the own patterns on top of `DEFAULT_BASH`, `skills` replaces the skill list,
+    `web` true or false adds or removes WebFetch and WebSearch.  Nothing goes beyond the world's
+    accesses.  A running turn keeps its rights; the next turn reads agent.json anew.
+    `antrag` names the message in which the agent asked for the change; it must exist in the world and
+    come from that agent, and the history entry then names it.  A rights request (`kind: rechte-antrag`)
+    is not accepted here: it is granted only through `decide_rights_request`, which applies its stored changes.
+    """
+    root = world_path(str(root))
+    _check_rights_fields(changes)
     with transaction(root):
-        actor = _actor(root, sender or WORLD_HUMAN, claimed_role)
-        if actor.get("kind") == "agent":
-            if actor.get("role") != "hauptagent":
-                raise AgentsError("Rechte vergibt der Hauptagent; %s beantragt sie bei ihm" % _STAGE_WORDS.get(
-                    actor.get("role"), actor.get("role")))
-            if actor["id"] == agent_id:
-                raise AgentsError("Der Hauptagent aendert seine eigenen Rechte nicht; das tut der Mensch")
-        agent = read_agent(root, agent_id)
-        old_tools = list(agent.get("tools") or [])
-        old_bash = list(agent.get("bash") or [])
-        old_skills = list(agent.get("skills") or [])
-        tools = _tool_names(changes["tools"]) if "tools" in changes else list(old_tools)
-        if changes.get("web") is True:
-            tools += [tool for tool in WEB_TOOLS if tool not in tools]
-        elif changes.get("web") is False:
-            tools = [tool for tool in tools if tool not in WEB_TOOLS]
-        foreign = [tool for tool in tools if tool not in AGENT_TOOLS]
-        if foreign:
-            raise AgentsError("Werkzeug nicht erlaubt: %s (erlaubt: %s)" % (", ".join(foreign), ", ".join(AGENT_TOOLS)))
-        if "Bash" not in tools:
-            tools.append("Bash")  # the service path (see validate_agent_draft)
-        defaults = list(DEFAULT_BASH)
-        if "bash" in changes:
-            extra = [pattern for pattern in (" ".join(item.split()) for item in _text_list(changes["bash"], "Bash-Muster"))
-                     if pattern not in defaults]
-        else:
-            extra = [pattern for pattern in old_bash if pattern not in defaults]
-        bash = list(dict.fromkeys(extra + defaults))
-        module, blocked = _house_rules()
-        for entry in tools + bash:
-            if module.nicht_lateinischer_name(entry):
-                raise AgentsError("Eintrag '%s' beginnt mit einem nicht lateinischen Zeichen" % entry)
-            reason = module.gesperrt_verstoss(entry, blocked)
-            if reason:
-                raise AgentsError("Eintrag '%s' ist gesperrt: %s" % (entry, reason))
-        skills = _name_list(changes["skills"], "Skills") if "skills" in changes else list(old_skills)
-        for skill in skills:
-            if not re.match(r"^[a-z0-9][a-z0-9:._-]{0,79}$", skill):
-                raise AgentsError("Skillname ungueltig: %s" % skill)
-        # Only what the change adds must fit the accesses: an older profile is not rejected for rights it has.
-        added_tools = [tool for tool in tools if tool not in old_tools]
-        added_bash = [pattern for pattern in extra if pattern not in old_bash]
-        _check_rights_against_accesses(root, added_tools, added_bash)
-        diff: dict[str, list[Any]] = {}
-        for key, old, new in (("tools", old_tools, tools), ("bash", old_bash, bash), ("skills", old_skills, skills)):
-            if old != new:
-                diff[key] = [old, new]
-        if not diff:
-            return agent
-        ts = now()
-        agent.update({"tools": tools, "bash": bash, "skills": skills, "rights_updated_at": ts,
-                      "rights_revision": int(agent.get("rights_revision") or 0) + 1})
-        path = _agent_dir(root, agent_id)
-        _write_json(path / "agent.json", agent)
-        # The instruction file ends with the limits of the profile; rewrite that block so both agree.
-        instructions = path / "AGENTS.md"
-        if instructions.is_file() and not instructions.is_symlink():
-            limits = {"tools": tools, "bash": bash, "skills": skills, "context_limit": agent.get("context_limit") or ""}
-            try:
-                accesses = world_access_names(root)
-            except AgentsError:
-                accesses = []
-            _write_text(instructions, _with_profile_limits(instructions.read_text(encoding="utf-8"), limits, accesses))
+        actor = _require_governance_actor(root, sender or WORLD_HUMAN, claimed_role, ("hauptagent",))
+        return _apply_rights_locked(root, actor, agent_id, changes, antrag)
+
+
+def _apply_rights_locked(root: Path, actor: dict[str, Any], agent_id: str, changes: dict[str, Any],
+                         antrag: str | None, rights_request: str | None = None) -> dict[str, Any]:
+    """The body of `set_agent_rights` for a checked actor; the caller holds `transaction(root)`.
+
+    `transaction` is a flock on a newly opened file and not reentrant, so nothing in here opens one.
+    `antrag` is checked as a message of the agent; `rights_request` is a rights request the caller
+    (`decide_rights_request`) has already checked under the same lock.
+    """
+    if actor.get("kind") == "agent":
+        if actor.get("role") != "hauptagent":
+            raise AgentsError("Rechte vergibt der Hauptagent; %s beantragt sie bei ihm" % _STAGE_WORDS.get(
+                actor.get("role"), actor.get("role")))
+        if actor["id"] == agent_id:
+            raise AgentsError("Der Hauptagent aendert seine eigenen Rechte nicht; das tut der Mensch")
+    agent = read_agent(root, agent_id)
+    if antrag is not None:
+        antrag = _rights_request(root, antrag, agent_id)
+    antrag = rights_request or antrag
+    plan = _plan_rights(root, agent, changes)
+    tools, bash, skills, diff = plan["tools"], plan["bash"], plan["skills"], plan["diff"]
+    if not diff:
+        # Ohne Wirkung wird der Versuch vermerkt, aber kein Antrag: ein mitgegebener antrag ist geprueft, nicht gebucht.
         _append_history(root, agent_id, {
-            "id": new_id("h"), "time": ts, "event": "rechte", "actor": actor, "changes": diff,
-            "note": "Rechte gelten ab dem nächsten Zug; ein laufender Zug behält seine",
+            "id": new_id("h"), "time": now(), "event": "rechte", "actor": actor, "changes": {}, "ohne_wirkung": True,
+            "note": "Rechte unverändert; nichts geändert",
         })
         return agent
+    ts = now()
+    agent.update({"tools": tools, "bash": bash, "skills": skills, "rights_updated_at": ts,
+                  "rights_revision": int(agent.get("rights_revision") or 0) + 1})
+    path = _agent_dir(root, agent_id)
+    _write_json(path / "agent.json", agent)
+    # The instruction file ends with the limits of the profile; rewrite that block so both agree.
+    instructions = path / "AGENTS.md"
+    if instructions.is_file() and not instructions.is_symlink():
+        limits = {"tools": tools, "bash": bash, "skills": skills, "context_limit": agent.get("context_limit") or ""}
+        try:
+            accesses = world_access_names(root)
+        except AgentsError:
+            accesses = []
+        _write_text(instructions, _with_profile_limits(instructions.read_text(encoding="utf-8"), limits, accesses))
+    entry = {
+        "id": new_id("h"), "time": ts, "event": "rechte", "actor": actor, "changes": diff,
+        "note": "Rechte gelten ab dem nächsten Zug; ein laufender Zug behält seine",
+    }
+    if antrag is not None:
+        entry["antrag"] = antrag
+    _append_history(root, agent_id, entry)
+    return agent
+
+
+def _rights_request(root: Path, message_id: str, agent_id: str) -> str:
+    """Check that a rights request is a message of the world by the agent whose rights change.
+
+    A rights request (`kind: rechte-antrag`) is refused: only `decide_rights_request` books one, with
+    exactly its stored changes and only while it is open (review F2, 14.10.2026).
+    """
+    message_id = valid_id(message_id, "Antragskennung")
+    question_path = _question_dir(root, message_id) / "question.json"
+    if question_path.is_file() and not question_path.is_symlink():
+        question = read_question(root, message_id)
+        if question.get("kind") == RIGHTS_REQUEST_KIND:
+            raise AgentsError("%s ist ein Rechteantrag; er wird nur mit rechte-antrag-entscheiden freigegeben"
+                              % message_id)
+    messages = read_messages(root) + [
+        message
+        for chat in sorted((root / "direktchats").glob("*")) if chat.is_dir() and not chat.is_symlink()
+        for message in read_messages(root, direct_chat=chat.name)
+    ]
+    message = next((item for item in messages if item.get("id") == message_id), None)
+    if message is None:
+        raise AgentsError("Antrag %s ist in dieser Welt nicht vorhanden" % message_id)
+    if message.get("sender") != agent_id:
+        raise AgentsError("Antrag %s stammt nicht von %s, sondern von %s" % (message_id, agent_id, message.get("sender")))
+    return message_id
+
+
+RIGHTS_REQUEST_KIND = "rechte-antrag"
+# An open rights request nobody decided runs out after this many days (contract 13.10.2026): it stays
+# `offen` in its file, is no longer decidable and the carrier no longer delivers it.
+RIGHTS_REQUEST_DAYS = 7
+RIGHTS_REQUEST_REASON_LIMIT = 2000
+
+
+def _parse_time(value: Any) -> _dt.datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = _dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=_dt.timezone.utc)
+
+
+def rights_request_expired(question: dict[str, Any], at: str | None = None) -> bool:
+    """True for an open rights request whose `laeuft_ab` lies in the past (or is unreadable)."""
+    if question.get("kind") != RIGHTS_REQUEST_KIND or question.get("state") != "offen":
+        return False
+    deadline = _parse_time(question.get("laeuft_ab"))
+    moment = _parse_time(at or now())
+    return deadline is None or moment is None or deadline <= moment
+
+
+def _normalize_rights_changes(changes: dict[str, Any]) -> dict[str, Any]:
+    """The stored form of a rights change: the same lists `set_agent_rights` would read."""
+    normalized: dict[str, Any] = {}
+    if "tools" in changes:
+        normalized["tools"] = _tool_names(changes["tools"])
+    if "bash" in changes:
+        normalized["bash"] = list(dict.fromkeys(" ".join(item.split())
+                                                for item in _text_list(changes["bash"], "Bash-Muster")))
+    if "skills" in changes:
+        normalized["skills"] = _name_list(changes["skills"], "Skills")
+    if "web" in changes:
+        normalized["web"] = changes["web"]
+    return normalized
+
+
+def _rights_change_text(diff: dict[str, list[Any]]) -> str:
+    """A short description of a rights change for the request text: what is added and what is removed."""
+    words = {"tools": "Werkzeuge", "bash": "Bash-Muster", "skills": "Skills"}
+    parts = []
+    for key in ("tools", "bash", "skills"):
+        if key not in diff:
+            continue
+        old, new = diff[key]
+        added = [item for item in new if item not in old]
+        removed = [item for item in old if item not in new]
+        bits = (["+ %s" % ", ".join(added)] if added else []) + (["- %s" % ", ".join(removed)] if removed else [])
+        parts.append("%s %s" % (words[key], "; ".join(bits) or "neu geordnet"))
+    return "; ".join(parts)
+
+
+def _rights_request_event(root: Path, agent_id: str, request_id: str, stand: str, actor: dict[str, Any],
+                          note: str | None) -> None:
+    _append_history(root, agent_id, {
+        "id": new_id("h"), "time": now(), "event": "rechte-antrag", "antrag": request_id, "stand": stand,
+        "actor": actor, "note": note,
+    })
+
+
+def _read_rights_request(root: Path, request_id: str) -> dict[str, Any]:
+    question = read_question(root, request_id)
+    if question.get("kind") != RIGHTS_REQUEST_KIND:
+        raise AgentsError("%s ist kein Rechteantrag" % request_id)
+    return question
+
+
+def request_rights(root: Path, changes: dict[str, Any], grund: str, sender: str | None = None,
+                   claimed_role: str | None = None, request_id: str | None = None) -> dict[str, Any]:
+    """An agent asks for a change of its OWN rights (der Nutzer, 13.10.2026: „Eigener Typ jetzt“).
+
+    There is no parameter for another agent: the request always concerns the sender.  The change is
+    checked like `set_agent_rights` (tool names, house list, skills, the world's accesses) without
+    writing anything; a change without effect is refused.  The request goes to the main agent, a request
+    of the main agent to the human.  It is an open question of `kind: rechte-antrag` and a direct
+    message; nothing changes until `decide_rights_request`.
+    """
+    root = world_path(str(root))
+    _check_rights_fields(changes)
+    if not isinstance(grund, str) or not grund.strip():
+        raise AgentsError("Grund fehlt: ein Rechteantrag braucht eine Begruendung")
+    grund = grund.strip()
+    if len(grund) > RIGHTS_REQUEST_REASON_LIMIT:
+        raise AgentsError("Grund ist zu lang (hoechstens %d Zeichen)" % RIGHTS_REQUEST_REASON_LIMIT)
+    if request_id is not None:
+        valid_id(request_id, "Antragskennung")
+    with transaction(root):
+        actor = _require_governance_actor(root, sender, claimed_role, STAGES)
+        if actor.get("kind") != "agent" or actor["id"] in ORCHESTRATOR_ACTORS:
+            raise AgentsError("Rechteantraege stellen Agenten der Welt fuer ihre eigenen Rechte")
+        agent = read_agent(root, actor["id"])
+        normalized = _normalize_rights_changes(changes)
+        question = None
+        if request_id is not None:
+            path = _question_dir(root, request_id)
+            if path.exists() or path.is_symlink():
+                question = read_question(root, request_id)
+                if question.get("kind") != RIGHTS_REQUEST_KIND or question.get("agent") != actor["id"] \
+                        or question.get("changes") != normalized or question.get("grund") != grund:
+                    raise AgentsError("Antragskennung existiert bereits mit anderem Inhalt")
+        if question is None:
+            plan = _plan_rights(root, agent, normalized)
+            if not plan["diff"]:
+                raise AgentsError("Antrag ohne Wirkung: die Rechte von %s sind bereits so" % actor["id"])
+            if actor.get("role") == "hauptagent":
+                target = WORLD_HUMAN
+            else:
+                target = next((a["id"] for a in list_agents(root) if a.get("stage") == "hauptagent"), None)
+                if target is None:
+                    raise AgentsError("Welt hat keinen Hauptagenten, der den Antrag entscheidet")
+            world = read_world(root)
+            if world["state"] != "läuft":
+                raise AgentsError("Welt ist %s; kein Antrag wird gestellt" % world["state"])
+            request_id = request_id or new_id("rantrag")
+            path = _question_dir(root, request_id)
+            text = "Rechteantrag von %s: %s. Grund: %s" % (actor["id"], _rights_change_text(plan["diff"]), grund)
+            timestamp = now()
+            created = _parse_time(timestamp) or _dt.datetime.now(_dt.timezone.utc)
+            expires = (created + _dt.timedelta(days=RIGHTS_REQUEST_DAYS)).isoformat().replace("+00:00", "Z")
+            question = {
+                "schema_version": SCHEMA_VERSION, "id": request_id, "world": world["id"],
+                "kind": RIGHTS_REQUEST_KIND, "text": text, "options": ["freigeben", "ablehnen"],
+                "recommendation": None, "ticket": None, "state": "offen", "answer": None, "withdrawal": None,
+                "sender": actor["id"], "sender_verified": False, "to": target, "agent": actor["id"],
+                "changes": normalized,
+                "vorher": {key: list(agent.get(key) or []) for key in ("tools", "bash", "skills")},
+                "grund": grund, "created_at": timestamp, "updated_at": timestamp, "laeuft_ab": expires,
+            }
+            stage_path = path.parent / (".%s.creating-%s" % (request_id, uuid.uuid4().hex))
+            try:
+                stage_path.mkdir(parents=True)
+                _write_json(stage_path / "question.json", question)
+                os.replace(stage_path, path)
+            except BaseException:
+                shutil.rmtree(stage_path, ignore_errors=True)
+                raise
+            _rights_request_event(root, actor["id"], request_id, "gestellt", actor, None)
+    # Also on a repeated call: a run that stopped before this line delivers now (review F3, 14.10.2026).
+    # A repeated call after a decision, withdrawal or expiry delivers nothing (review R2, 14.10.2026).
+    if question["state"] != "offen" or rights_request_expired(question):
+        return question
+    target, request_id = question["to"], question["id"]
+    hint = "entscheiden mit wb-agent rechte-antrag-entscheiden" if target == WORLD_HUMAN else \
+        "entscheiden mit agent.rechte_entscheiden"
+    # The human is reached through the world's postbox (unmarked: a rights request is no question).
+    send_message(root, actor["id"], [target], "%s (Rechteantrag %s; %s)" % (question["text"], request_id, hint),
+                 None, derived_id("rechte-antrag", request_id), actor.get("role"), direct=True)
+    return question
+
+
+def decide_rights_request(root: Path, request_id: str, accept: bool, note: str | None = None,
+                          sender: str | None = None, claimed_role: str | None = None) -> dict[str, Any]:
+    """The main agent or the human grants or declines a rights request; nobody decides an own request.
+
+    A request of the main agent is decided only by the human, team leaders never decide.  Granting
+    applies exactly the changes stored when the request was made, with `antrag=<id>` in the history;
+    if that fails, the request stays open and the error goes to the caller.  Checking the request,
+    setting the rights and marking the request run under ONE lock, so a concurrent decision,
+    withdrawal or expiry cannot leave a declined request with rights in effect (review F1, 14.10.2026).
+    A repeated identical decision only delivers the reply again (idempotent through its derived ID).
+    """
+    root = world_path(str(root))
+    valid_id(request_id, "Antragskennung")
+    if not isinstance(accept, bool):
+        raise AgentsError("Entscheidung muss freigeben oder ablehnen sein")
+    if note is not None and (not isinstance(note, str) or not note.strip()):
+        raise AgentsError("Bemerkung muss ein Text sein")
+    decision = "freigegeben" if accept else "abgelehnt"
+    with transaction(root):
+        actor = _require_governance_actor(root, sender or WORLD_HUMAN, claimed_role, ("hauptagent",))
+        question = _read_rights_request(root, request_id)
+        if actor.get("kind") == "agent":
+            if actor.get("role") != "hauptagent":
+                raise AgentsError("Rechteantraege entscheidet der Hauptagent oder der Mensch")
+            if actor["id"] in (question.get("agent"), question.get("sender")):
+                raise AgentsError("Niemand entscheidet seinen eigenen Rechteantrag; das tut der Mensch")
+            if question.get("to") != actor["id"]:
+                raise AgentsError("Rechteantrag %s richtet sich an %s" % (request_id, question.get("to")))
+        if question.get("state") == "beantwortet":
+            if (question.get("answer") or {}).get("text") != decision:
+                raise AgentsError("Rechteantrag ist bereits anders entschieden")
+        elif question.get("state") != "offen":
+            raise AgentsError("Rechteantrag ist %s" % question.get("state"))
+        elif rights_request_expired(question):
+            raise AgentsError("Rechteantrag %s ist abgelaufen (%s)" % (request_id, question.get("laeuft_ab")))
+        else:
+            agent_id = question["agent"]
+            if accept:
+                _apply_rights_locked(root, actor, agent_id, question["changes"], None, rights_request=request_id)
+            question["state"] = "beantwortet"
+            question["answer"] = {"text": decision, "note": note, "sender": actor["id"], "role": actor.get("role"),
+                                  "verified": bool(actor.get("verified")), "source": actor.get("source"),
+                                  "answered_at": now()}
+            question["updated_at"] = question["answer"]["answered_at"]
+            _write_json(_question_dir(root, request_id) / "question.json", question)
+            _rights_request_event(root, agent_id, request_id, decision, actor, note)
+    # The reply is built from the stored answer, so a repeated call delivers the same message once.
+    answer = question["answer"]
+    reply = "Rechteantrag %s: %s%s" % (request_id, answer["text"], " – %s" % answer["note"] if answer.get("note") else "")
+    send_message(root, answer["sender"], [question["sender"]], reply, None,
+                 derived_id("rechte-antrag-entschieden", request_id), answer.get("role"), direct=True)
+    return question
+
+
+def withdraw_rights_request(root: Path, request_id: str, note: str | None = None, sender: str | None = None,
+                            claimed_role: str | None = None) -> dict[str, Any]:
+    """Only the agent that made a rights request withdraws it; afterwards nobody can decide it."""
+    root = world_path(str(root))
+    valid_id(request_id, "Antragskennung")
+    if note is not None and (not isinstance(note, str) or not note.strip()):
+        raise AgentsError("Bemerkung muss ein Text sein")
+    with transaction(root):
+        actor = _require_governance_actor(root, sender, claimed_role, STAGES)
+        question = _read_rights_request(root, request_id)
+        if actor.get("kind") != "agent" or actor["id"] != question.get("sender"):
+            raise AgentsError("Einen Rechteantrag zieht nur der Antragsteller %s zurueck" % question.get("sender"))
+        if question.get("state") == "zurueckgezogen":
+            return question
+        if question.get("state") != "offen":
+            raise AgentsError("Rechteantrag ist %s" % question.get("state"))
+        ts = now()
+        question.update({"state": "zurueckgezogen", "updated_at": ts,
+                         "withdrawal": {"sender": actor["id"], "at": ts, "note": note}})
+        _write_json(_question_dir(root, request_id) / "question.json", question)
+        _rights_request_event(root, question["agent"], request_id, "zurueckgezogen", actor, note)
+        return question
 
 
 def rights_summary(agent: dict[str, Any]) -> str:
@@ -4062,6 +5054,85 @@ def _json_or_text(args: argparse.Namespace, data: Any, label: str = "") -> None:
         print(data)
 
 
+def pause_hinweis(root: Path, agent_id: str | None = None) -> str:
+    """Auftrag pausetext (10.10.2026): die Pause friert einen laufenden Zug nicht ein (agents_claude_lauf.py,
+    ``ClaudeZugLauncher``: das Zugende ist der Checkpoint). Er arbeitet zu Ende, danach startet keiner mehr;
+    sofort haelt nur ``wb-welt stop``/``wb-agent stop``. Der Satz dazu, wenn laut ``agents_traeger.py status --nur-zug`` ein Zug laeuft --
+    fuer die Welt jeder Agent, fuer einen Agenten nur er. Leer ohne Traeger, ohne Zug oder wenn der Status scheitert.
+    """
+    konfig = root / "traeger.json"
+    if not konfig.is_file():
+        return ""
+    try:
+        done = subprocess.run([sys.executable, str(Path(__file__).resolve().parent / "agents_traeger.py"), "status",
+                               "--konfig", str(konfig), "--nur-zug"],
+                              text=True, capture_output=True, stdin=subprocess.DEVNULL, timeout=10)
+        stand = json.loads(done.stdout).get("agenten") if done.returncode == 0 else None
+    except (OSError, subprocess.TimeoutExpired, ValueError, AttributeError):
+        return ""
+    if not isinstance(stand, dict):
+        return ""
+    namen = [agent.get("name") or agent["id"] for agent in list_agents(root)
+             if (agent_id is None or agent["id"] == agent_id)
+             and isinstance(stand.get(agent["id"]), dict) and stand[agent["id"]].get("laeuft") is True]
+    if not namen:
+        return ""
+    if agent_id is not None:
+        wer = "Der laufende Zug arbeitet noch zu Ende und kann"
+    elif len(namen) == 1:
+        wer = "Der laufende Zug von %s arbeitet noch zu Ende und kann" % namen[0]
+    else:
+        wer = "Die laufenden Züge von %s und %s arbeiten noch zu Ende und können" % (", ".join(namen[:-1]), namen[-1])
+    stopp = "wb-agent stop" if agent_id is not None else "wb-welt stop"
+    return "%s dabei Ergebnisse schreiben. Danach startet kein neuer Zug. Sofort anhalten lässt sich nur mit %s." % (wer, stopp)
+
+
+def _pause_ausgeben(args: argparse.Namespace, data: Any, root: Path, agent_id: str | None) -> None:
+    """Wie `_json_or_text`; im Text nach einer Pause der Satz ueber den laufenden Zug (JSON bleibt unveraendert)."""
+    _json_or_text(args, data)
+    if args.command == "pause" and not getattr(args, "json", False):
+        hinweis = pause_hinweis(root, agent_id)
+        if hinweis:
+            print(hinweis)
+
+
+def _entwurf_aus_argumenten(args: argparse.Namespace) -> dict[str, Any]:
+    """Der Entwurf fuer `wb-ticket bereit --entwurf`: erst das JSON, dann die Optionen darueber."""
+    entwurf: dict[str, Any] = {}
+    quelle = None
+    if args.entwurf_datei:
+        quelle = sys.stdin.read() if args.entwurf_datei == "-" \
+            else Path(args.entwurf_datei).read_text(encoding="utf-8")
+    elif args.entwurf_json:
+        quelle = args.entwurf_json
+    if quelle is not None:
+        try:
+            entwurf = json.loads(quelle)
+        except json.JSONDecodeError as exc:
+            raise AgentsError("Entwurf braucht JSON") from exc
+        if not isinstance(entwurf, dict):
+            raise AgentsError("Entwurf braucht ein JSON-Objekt")
+        entwurf = dict(entwurf)
+    if args.grenzen:
+        try:
+            grenzen = json.loads(args.grenzen)
+        except json.JSONDecodeError as exc:
+            raise AgentsError("--grenzen braucht JSON") from exc
+        if not isinstance(grenzen, dict):
+            raise AgentsError("--grenzen braucht ein JSON-Objekt")
+        entwurf["grenzen"] = grenzen
+    for name, wert in (("titel", args.titel), ("ziel", args.ziel), ("fertig", args.fertig),
+                       ("team", args.team), ("art", args.art), ("prioritaet", args.prioritaet),
+                       ("frist", args.frist), ("runden", args.runden)):
+        if wert is not None:
+            entwurf[name] = wert
+    for name, wert in (("an", args.an), ("fertig-punkt", args.fertig_punkt),
+                       ("abhaengig-von", args.abhaengig_von)):
+        if wert:
+            entwurf[name] = list(wert)
+    return entwurf
+
+
 def ticket_text(root: Path, ticket_id: str) -> str:
     """Readable ticket view: assignment, done list, result, review, approval and the
     progress notes in chronological order (`wb-ticket zeigen` ohne --json)."""
@@ -4073,8 +5144,10 @@ def ticket_text(root: Path, ticket_id: str) -> str:
              "Fertig wenn: %s" % (ticket.get("done_criterion") or ""),
              "Stand: %s%s" % (ticket.get("state"),
                               ", Bearbeiter %s" % ticket["assignee"] if ticket.get("assignee") else ""),
+             # Klammern: ohne sie entschied das Team ueber die ganze Zeile, und ein Ticket
+             # ohne Team zeigte "-", obwohl es Adressaten hatte.
              "Adressat: %s" % (", ".join(ticket.get("recipients") or [])
-                               or "Team %s" % ticket["team"] if ticket.get("team") else "-")]
+                               or ("Team %s" % ticket["team"] if ticket.get("team") else "-"))]
     lines.append("Art: %s, Prioritaet: %s (%s)" % (
         _ticket_kind_feld(ticket), ticket.get("priority") if ticket.get("priority") is not None else DEFAULT_PRIORITY,
         PRIORITY_TEXTS.get(ticket.get("priority"), PRIORITY_TEXTS[DEFAULT_PRIORITY])))
@@ -4139,11 +5212,11 @@ def parser_for(kind: str) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="wb-" + kind)
     sub = parser.add_subparsers(dest="command", required=True)
     if kind == "welt":
-        p = sub.add_parser("neu"); p.add_argument("world"); p.add_argument("--name"); p.add_argument("--hauptagent", default="hauptagent"); p.add_argument("--beschreibung", default="Hauptagent der Welt"); p.add_argument("--modell"); p.add_argument("--denkweise", choices=("low", "medium", "high", "xhigh")); p.add_argument("--fallback"); p.add_argument("--fallback-denkweise"); p.add_argument("--maschine", default="lokal"); p.add_argument("--global", dest="global_world", action="store_true"); p.add_argument("--ohne-hauptagent", dest="without_main", action="store_true"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("neu"); p.add_argument("world"); p.add_argument("--name"); p.add_argument("--hauptagent", default="hauptagent"); p.add_argument("--beschreibung", default="Hauptagent der Welt"); p.add_argument("--modell"); p.add_argument("--denkweise", choices=("low", "medium", "high", "xhigh")); p.add_argument("--fallback"); p.add_argument("--fallback-denkweise"); p.add_argument("--maschine", default="lokal"); p.add_argument("--global", dest="global_world", action="store_true"); p.add_argument("--ohne-hauptagent", dest="without_main", action="store_true"); p.add_argument("--absender"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("frage"); p.add_argument("world"); p.add_argument("--id"); p.add_argument("--text", required=True); p.add_argument("--option", action="append", default=[]); p.add_argument("--empfehlung"); p.add_argument("--ticket"); p.add_argument("--absender", required=True); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("fragen"); p.add_argument("world"); p.add_argument("--json", action="store_true")
-        p = sub.add_parser("antwort"); p.add_argument("world"); p.add_argument("question"); p.add_argument("--text", required=True); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
-        p = sub.add_parser("ruecknahme"); p.add_argument("world"); p.add_argument("question"); p.add_argument("--grund"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("antwort"); p.add_argument("world"); p.add_argument("question"); p.add_argument("--text", required=True); p.add_argument("--absender", default=WORLD_HUMAN); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("ruecknahme"); p.add_argument("world"); p.add_argument("question"); p.add_argument("--grund"); p.add_argument("--absender", default=WORLD_HUMAN); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         # Read-only views for the user interface; they never write.
         p = sub.add_parser("finden"); p.add_argument("--wurzel", action="append", default=[]); p.add_argument("--projekt", action="append", default=[]); p.add_argument("--global", dest="global_dir"); p.add_argument("--ohne-global", action="store_true"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("ansicht"); p.add_argument("world"); p.add_argument("--grenze", type=int, default=SNAPSHOT_LIMIT); p.add_argument("--json", action="store_true")
@@ -4179,7 +5252,7 @@ def parser_for(kind: str) -> argparse.ArgumentParser:
             if name != "liste": p.add_argument("agent")
             p.add_argument("--grund"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("profil"); p.add_argument("world"); p.add_argument("agent"); p.add_argument("--modell"); p.add_argument("--denkweise"); p.add_argument("--fallback"); p.add_argument("--fallback-denkweise"); p.add_argument("--maschine"); p.add_argument("--beschreibung"); p.add_argument("--absender", default=WORLD_HUMAN); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
-        p = sub.add_parser("rechte"); p.add_argument("world"); p.add_argument("agent"); p.add_argument("--werkzeuge", help="Liste mit Komma, z. B. Read,Grep,Write"); g = p.add_mutually_exclusive_group(); g.add_argument("--bash", action="append", help="eigenes Muster zusaetzlich zum Dienstweg, wiederholbar"); g.add_argument("--ohne-bash", action="store_true", help="nur die Dienstwegmuster"); p.add_argument("--skills", help="Liste mit Komma; leer entfernt alle"); g = p.add_mutually_exclusive_group(); g.add_argument("--web", dest="web", action="store_const", const=True); g.add_argument("--ohne-web", dest="web", action="store_const", const=False); p.add_argument("--absender", default=WORLD_HUMAN); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("rechte"); p.add_argument("world"); p.add_argument("agent"); p.add_argument("--werkzeuge", help="Liste mit Komma, z. B. Read,Grep,Write"); g = p.add_mutually_exclusive_group(); g.add_argument("--bash", action="append", help="eigenes Muster zusaetzlich zum Dienstweg, wiederholbar"); g.add_argument("--ohne-bash", action="store_true", help="nur die Dienstwegmuster"); p.add_argument("--skills", help="Liste mit Komma; leer entfernt alle"); g = p.add_mutually_exclusive_group(); g.add_argument("--web", dest="web", action="store_const", const=True); g.add_argument("--ohne-web", dest="web", action="store_const", const=False); p.add_argument("--absender", default=WORLD_HUMAN); p.add_argument("--rolle"); p.add_argument("--antrag", help="Nachrichten-ID, mit der der Agent die Rechte erbat; Rechteantraege entscheidet rechte-antrag-entscheiden"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("gedaechtnis"); p.add_argument("world"); p.add_argument("agent"); g = p.add_mutually_exclusive_group(required=True); g.add_argument("--text"); g.add_argument("--datei"); p.add_argument("--erwartet"); p.add_argument("--absender", default=WORLD_HUMAN); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("vorlagen"); p.add_argument("--ordner"); p.add_argument("--json", action="store_true")
         for name in ("entwurf", "anlegen", "antrag"):
@@ -4187,6 +5260,10 @@ def parser_for(kind: str) -> argparse.ArgumentParser:
             p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--id"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("antrag-entscheiden"); p.add_argument("world"); p.add_argument("antrag"); g = p.add_mutually_exclusive_group(required=True); g.add_argument("--annehmen", action="store_true"); g.add_argument("--ablehnen", action="store_true")
         p.add_argument("--bemerkung"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("rechte-antrag", help="eigene Rechte beim Hauptagenten (als Hauptagent beim Menschen) beantragen"); p.add_argument("world"); p.add_argument("--werkzeuge", help="Liste mit Komma, z. B. Read,Grep,Write"); g = p.add_mutually_exclusive_group(); g.add_argument("--bash", action="append", help="eigenes Muster zusaetzlich zum Dienstweg, wiederholbar"); g.add_argument("--ohne-bash", action="store_true", help="nur die Dienstwegmuster"); p.add_argument("--skills", help="Liste mit Komma; leer entfernt alle"); g = p.add_mutually_exclusive_group(); g.add_argument("--web", dest="web", action="store_const", const=True); g.add_argument("--ohne-web", dest="web", action="store_const", const=False); p.add_argument("--grund", required=True, help="Begruendung, hoechstens %d Zeichen" % RIGHTS_REQUEST_REASON_LIMIT); p.add_argument("--id", help="Antragskennung fuer eine wiederholbare Anfrage"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("rechte-antrag-entscheiden", help="Rechteantrag freigeben oder ablehnen (Hauptagent oder Mensch)"); p.add_argument("world"); p.add_argument("antrag"); g = p.add_mutually_exclusive_group(required=True); g.add_argument("--freigeben", action="store_true"); g.add_argument("--ablehnen", action="store_true")
+        p.add_argument("--bemerkung"); p.add_argument("--absender", default=WORLD_HUMAN); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("rechte-antrag-zurueckziehen", help="eigenen offenen Rechteantrag zurueckziehen"); p.add_argument("world"); p.add_argument("antrag"); p.add_argument("--bemerkung"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         return parser
     if kind == "ticket":
         p = sub.add_parser("neu"); p.add_argument("world"); p.add_argument("--id"); p.add_argument("--titel", required=True); p.add_argument("--ziel", required=True); p.add_argument("--fertig", required=True); p.add_argument("--an", action="append", default=[]); p.add_argument("--team"); p.add_argument("--grenzen", default="{}"); p.add_argument("--frist", help="ISO-Zeit der Frist (limits.frist)"); p.add_argument("--runden", type=int, help="hoechste Zugzahl (limits.runden)"); p.add_argument("--abhaengig-von", action="append", default=[]); p.add_argument("--fertig-punkt", action="append", default=[]); p.add_argument("--art", choices=TICKET_KINDS); p.add_argument("--prioritaet", type=int, choices=PRIORITY_STUFEN); p.add_argument("--eltern", help="Kennung des Eltern-Tickets"); p.add_argument("--entdeckt-bei", help="Kennung der Herkunft (origin)"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
@@ -4197,19 +5274,22 @@ def parser_for(kind: str) -> argparse.ArgumentParser:
         p = sub.add_parser("zwischenstand"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--agent", required=True); p.add_argument("--text", required=True); p.add_argument("--absender"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("haken"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--agent", required=True); p.add_argument("nr", type=int); p.add_argument("--zurueck", action="store_true"); p.add_argument("--absender"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         for name, accept in (("abnehmen", True), ("zurueckgeben", False)):
-            p = sub.add_parser(name); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--absender", required=True); p.add_argument("--rolle"); p.add_argument("--bemerkung"); p.add_argument("--grund", choices=APPROVE_REASONS)
+            p = sub.add_parser(name); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--absender", required=True); p.add_argument("--rolle"); p.add_argument("--herkunft-beleg", metavar="wb-mensch|mobil:PFAD", help="'wb-mensch' misst live; 'mobil:PFAD' bindet den bereits geprueften App-Umschlag strukturell"); p.add_argument("--bemerkung"); p.add_argument("--grund", choices=APPROVE_REASONS)
             if accept: p.add_argument("--dod-geprueft", action="store_true")
             p.add_argument("--json", action="store_true")
         p = sub.add_parser("pruefen"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--absender", required=True); p.add_argument("--pruefer", required=True); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("pruefnotiz"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--agent", required=True); p.add_argument("--text", required=True); p.add_argument("--verdict", required=True, choices=REVIEW_VERDICTS); p.add_argument("--absender"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("parken"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--agent", required=True); p.add_argument("--grund", required=True); g = p.add_mutually_exclusive_group(required=True); g.add_argument("--bis"); g.add_argument("--auf"); p.add_argument("--absender"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("braucht-dich"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--frage", required=True); p.add_argument("--grund", required=True); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
-        p = sub.add_parser("verwerfen"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--grund", required=True, choices=DISCARD_REASONS); p.add_argument("--bemerkung"); p.add_argument("--duplikat-von"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p = sub.add_parser("verwerfen"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--absender", default=WORLD_HUMAN); p.add_argument("--grund", required=True, choices=DISCARD_REASONS); p.add_argument("--bemerkung"); p.add_argument("--duplikat-von"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("umadressieren"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--an", action="append", default=[]); p.add_argument("--team"); p.add_argument("--grund", required=True); p.add_argument("--absender", required=True); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("annehmen"); p.add_argument("world"); p.add_argument("ticket"); g = p.add_mutually_exclusive_group(required=True); g.add_argument("--an", action="append"); g.add_argument("--team"); p.add_argument("--prioritaet"); p.add_argument("--art", choices=TICKET_KINDS); p.add_argument("--eltern"); p.add_argument("--fertig-punkt", action="append", default=[]); p.add_argument("--absender", required=True); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("backlog"); p.add_argument("world"); p.add_argument("--ordnen", action="append", default=[], help="Triage-Tickets neu ordnen (oben zuerst)"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("grenzen"); p.add_argument("world"); p.add_argument("ticket"); p.add_argument("--frist"); p.add_argument("--runden", type=int); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
-        p = sub.add_parser("bereit"); p.add_argument("world"); p.add_argument("--json", action="store_true")
+        # Bereitschaft: ohne Option fuer die Tickets der Welt, mit --entwurf fuer einen Entwurf, bevor
+        # das Ticket angelegt ist. Der Entwurf kommt aus den Optionen, aus --entwurf-json oder aus
+        # --entwurf-datei; die Optionen gelten ueber dem JSON. Exit 0 bereit, 1 nicht bereit, 2 Aufruffehler.
+        p = sub.add_parser("bereit"); p.add_argument("world"); p.add_argument("--entwurf", action="store_true"); p.add_argument("--entwurf-json"); p.add_argument("--entwurf-datei", help="JSON-Datei, '-' liest von der Standardeingabe"); p.add_argument("--titel"); p.add_argument("--ziel"); p.add_argument("--fertig"); p.add_argument("--an", action="append", default=[]); p.add_argument("--team"); p.add_argument("--art", choices=TICKET_KINDS); p.add_argument("--prioritaet", type=int, choices=PRIORITY_STUFEN); p.add_argument("--frist"); p.add_argument("--runden", type=int); p.add_argument("--grenzen"); p.add_argument("--fertig-punkt", action="append", default=[]); p.add_argument("--abhaengig-von", action="append", default=[]); p.add_argument("--json", action="store_true")
         return parser
     p = sub.add_parser("senden"); p.add_argument("world"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--an", action="append", required=True); p.add_argument("--text", required=True); p.add_argument("--ticket"); p.add_argument("--id"); p.add_argument("--rolle"); p.add_argument("--direkt", action="store_true"); p.add_argument("--markierung", choices=MESSAGE_MARKS); p.add_argument("--json", action="store_true")
     p = sub.add_parser("lesen"); p.add_argument("world"); p.add_argument("--agent"); p.add_argument("--chat"); p.add_argument("--json", action="store_true")
@@ -4219,6 +5299,15 @@ def parser_for(kind: str) -> argparse.ArgumentParser:
 
 def run(kind: str, argv: list[str]) -> int:
     args = parser_for(kind).parse_args(argv)
+    # These two subcommands have historically defaulted to ``cli-operator``.
+    # They are human-only authority changes; keep the shorthand useful for a
+    # terminal/UI user, but turn it into a measured human request rather than
+    # treating the spelling as authority.
+    if kind == "welt" and args.command in {"freigabe", "zugang"} \
+            and getattr(args, "absender", None) == "cli-operator":
+        args.absender = WORLD_HUMAN
+    proof = getattr(args, "herkunft_beleg", None)
+    proof_token = _HERKUNFTSBELEG.set(proof)
     try:
         if kind == "welt":
             if args.command == "frage":
@@ -4297,7 +5386,7 @@ def run(kind: str, argv: list[str]) -> int:
                 else:
                     print("WIP-Grenze: %s" % (grenze if grenze is not None else
                                               "aktive Agenten plus ein Viertel (Vorgabe)"))
-            elif args.command == "neu": data = create_world(Path(args.world), args.name, args.hauptagent, args.beschreibung, args.modell, args.denkweise, args.fallback, args.fallback_denkweise, args.maschine, args.global_world, not args.without_main); _json_or_text(args, data, data["world"]["id"])
+            elif args.command == "neu": data = create_world(Path(args.world), args.name, args.hauptagent, args.beschreibung, args.modell, args.denkweise, args.fallback, args.fallback_denkweise, args.maschine, args.global_world, not args.without_main, args.absender, args.rolle); _json_or_text(args, data, data["world"]["id"])
             elif args.command == "liste": _json_or_text(args, [read_world(Path(args.world))] if (Path(args.world) / "world.json").exists() else [])
             elif args.command == "zeigen": _json_or_text(args, read_world(Path(args.world)))
             elif args.command == "freigabe":
@@ -4315,7 +5404,7 @@ def run(kind: str, argv: list[str]) -> int:
                 if args.json or args.aktion != "liste": _json_or_text(args, data, data.get("name", "") if isinstance(data, dict) else "")
                 else:
                     for entry in data: print("%s (%s) -> %s" % (entry["name"], entry["art"], entry["ziel"]))
-            else: _json_or_text(args, set_world_state(Path(args.world), {"pause": "pausiert", "start": "läuft", "stop": "gestoppt"}[args.command], args.grund, args.absender, args.rolle))
+            else: _pause_ausgeben(args, set_world_state(Path(args.world), {"pause": "pausiert", "start": "läuft", "stop": "gestoppt"}[args.command], args.grund, args.absender, args.rolle), Path(args.world), None)
         elif kind == "agent":
             if args.command == "neu": data = create_agent(Path(args.world), args.name, args.stufe, args.team, args.beschreibung, args.figur, args.werkzeug, args.modell, args.denkweise, args.fallback, args.fallback_denkweise, args.maschine or world_machine_default(world_path(args.world)), args.absender, args.rolle, args.skill); _json_or_text(args, data, data["id"])
             elif args.command == "liste": _json_or_text(args, list_agents(Path(args.world)))
@@ -4333,7 +5422,7 @@ def run(kind: str, argv: list[str]) -> int:
                 if args.ohne_bash: changes["bash"] = []
                 if args.skills is not None: changes["skills"] = args.skills if args.skills.strip() else []
                 if args.web is not None: changes["web"] = args.web
-                data = set_agent_rights(Path(args.world), args.agent, changes, args.absender, args.rolle)
+                data = set_agent_rights(Path(args.world), args.agent, changes, args.absender, args.rolle, antrag=args.antrag)
                 if args.json: _json_or_text(args, data)
                 else: print("%s: %s" % (data["id"], rights_summary(data)))
             elif args.command == "gedaechtnis":
@@ -4353,7 +5442,22 @@ def run(kind: str, argv: list[str]) -> int:
             elif args.command == "antrag-entscheiden":
                 data = decide_agent_request(Path(args.world), args.antrag, args.annehmen, args.bemerkung, args.absender, args.rolle)
                 _json_or_text(args, data, data["id"])
-            else: _json_or_text(args, set_agent_state(Path(args.world), args.agent, {"pause": "pausiert", "start": "aktiv", "stop": "gestoppt"}[args.command], args.grund, args.absender, args.rolle))
+            elif args.command == "rechte-antrag":
+                changes = {}
+                if args.werkzeuge is not None: changes["tools"] = args.werkzeuge
+                if args.bash is not None: changes["bash"] = args.bash
+                if args.ohne_bash: changes["bash"] = []
+                if args.skills is not None: changes["skills"] = args.skills if args.skills.strip() else []
+                if args.web is not None: changes["web"] = args.web
+                data = request_rights(Path(args.world), changes, args.grund, args.absender, args.rolle, args.id)
+                _json_or_text(args, data, data["id"])
+            elif args.command == "rechte-antrag-entscheiden":
+                data = decide_rights_request(Path(args.world), args.antrag, args.freigeben, args.bemerkung, args.absender, args.rolle)
+                _json_or_text(args, data, data["id"])
+            elif args.command == "rechte-antrag-zurueckziehen":
+                data = withdraw_rights_request(Path(args.world), args.antrag, args.bemerkung, args.absender, args.rolle)
+                _json_or_text(args, data, data["id"])
+            else: _pause_ausgeben(args, set_agent_state(Path(args.world), args.agent, {"pause": "pausiert", "start": "aktiv", "stop": "gestoppt"}[args.command], args.grund, args.absender, args.rolle), Path(args.world), args.agent)
         elif kind == "ticket":
             if args.command == "neu":
                 try: limits = json.loads(args.grenzen)
@@ -4385,7 +5489,7 @@ def run(kind: str, argv: list[str]) -> int:
             elif args.command == "pruefnotiz":
                 _json_or_text(args, review_result(Path(args.world), args.ticket, args.agent, args.text,
                                                   args.verdict, args.absender or args.agent, args.rolle))
-            elif args.command == "zurueckgeben" and args.absender in HUMAN_ACTORS and (
+            elif args.command == "zurueckgeben" and args.absender in MEASURED_HUMAN_ACTORS and (
                     read_ticket(Path(args.world), args.ticket).get("state") == "abgenommen"
                     or (read_ticket(Path(args.world), args.ticket).get("approval") or {}).get("kind") == "rueckgabe-mensch"):
                 _json_or_text(args, return_ticket(Path(args.world), args.ticket, args.bemerkung or "", args.absender, args.rolle))
@@ -4428,6 +5532,20 @@ def run(kind: str, argv: list[str]) -> int:
                 _json_or_text(args, set_ticket_limits(Path(args.world), args.ticket, args.frist,
                                                       args.runden, args.absender, args.rolle))
             elif args.command == "bereit":
+                felder = [args.titel, args.ziel, args.fertig, args.team, args.art, args.prioritaet,
+                          args.frist, args.runden, args.grenzen]
+                gesetzt = any(wert is not None for wert in felder) or bool(
+                    args.an or args.fertig_punkt or args.abhaengig_von)
+                if args.entwurf or args.entwurf_json or args.entwurf_datei:
+                    data = ready_draft(Path(args.world), _entwurf_aus_argumenten(args))
+                    if args.json:
+                        _json_or_text(args, data)
+                    else:
+                        print("bereit" if data["bereit"] else "nicht bereit: %s"
+                              % "; ".join(punkt["text"] for punkt in data["fehlt"]))
+                    return 0 if data["bereit"] else 1
+                if gesetzt:
+                    raise AgentsError("Die Felder eines Entwurfs gelten nur mit --entwurf")
                 data = ready_tickets(Path(args.world))
                 if args.json:
                     _json_or_text(args, data)
@@ -4446,6 +5564,8 @@ def run(kind: str, argv: list[str]) -> int:
         return 0
     except (AgentsError, OSError, ValueError) as exc:
         return cli_error(exc)
+    finally:
+        _HERKUNFTSBELEG.reset(proof_token)
 
 
 # ---------------------------------------------------------------------------

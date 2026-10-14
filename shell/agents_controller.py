@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import select
 import socket
+import sys
 import struct
 import threading
 import time
@@ -24,6 +26,8 @@ import agents_data as ad
 MAX_FRAME = 64 * 1024
 DEFAULT_IO_TIMEOUT = 1.0
 DEFAULT_SESSION_TIMEOUT = 300.0
+# Frist, die `close` dem Dienstfaden zum Aufraeumen laesst; laeuft sie ab, sagt close es laut.
+DEFAULT_CLOSE_TIMEOUT = 5.0
 
 
 class ControllerError(Exception):
@@ -105,8 +109,13 @@ _FIELD_TYPES: dict[str, dict[str, tuple[str, bool]]] = {
     "agent.decide": {"request_id": ("str", True), "accept": ("bool", True), "note": ("str", False)},
     "agent.rechte": {
         "agent_id": ("str", True), "tools": ("str_list", False), "bash": ("str_list", False),
-        "skills": ("str_list", False), "web": ("bool", False),
+        "skills": ("str_list", False), "web": ("bool", False), "antrag": ("str", False),
     },
+    # Rechteantrag (der Nutzer, 13.10.2026): nur fuer die eigenen Rechte, es gibt kein Zielfeld; entschieden
+    # wird ohne changes, die Freigabe wendet die beim Stellen gespeicherten an.
+    "agent.rechte_antrag": {"changes": ("object", True), "grund": ("str", True), "request_id": ("str", False)},
+    "agent.rechte_entscheiden": {"request_id": ("str", True), "accept": ("bool", True), "note": ("str", False)},
+    "agent.rechte_zurueckziehen": {"request_id": ("str", True), "note": ("str", False)},
     "question.ask": {
         "text": ("str", True), "question_id": ("str", True),
         "options": ("str_list", False), "recommendation": ("str", False),
@@ -353,6 +362,34 @@ class _Session:
     server_socket: socket.socket
     client: AgentClient
     thread: threading.Thread
+    weck_lesen: socket.socket
+    weck_schreiben: socket.socket
+
+    def wecken(self) -> None:
+        """Ein Byte ins Weck-Paar: der Dienstfaden kommt sofort aus dem Warten."""
+        try:
+            self.weck_schreiben.send(b"x")
+        except OSError:
+            pass
+
+    def schliessen(self, mit_faden: bool) -> None:
+        """Die Deskriptoren der Sitzung schliessen.
+
+        `mit_faden` nur, wenn der Dienstfaden wirklich zu Ende ist: sonst zoege man ihm die
+        Dateinummer unter dem Warten weg, und die Nummer waere sofort neu vergeben.
+        """
+        socken = [self.weck_schreiben]
+        if mit_faden:
+            socken += [self.server_socket, self.weck_lesen]
+        for sock in socken:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
+                sock.close()
+            except OSError:
+                pass
 
 
 class AgentController:
@@ -395,26 +432,36 @@ class AgentController:
         server_socket, client_socket = socket.socketpair()
         server_socket.set_inheritable(False)
         client_socket.set_inheritable(False)
+        # Weck-Paar der Sitzung: `close` schreibt hier hinein, statt dem wartenden Dienstfaden
+        # den Serversocket wegzuschliessen.
+        weck_lesen, weck_schreiben = socket.socketpair()
+        weck_lesen.set_inheritable(False)
+        weck_schreiben.set_inheritable(False)
         client = AgentClient(client_socket, self._timeout)
         deadline = time.monotonic() + self._session_timeout
-        thread = threading.Thread(target=self._serve, args=(server_socket, binding, deadline),
-                                  name="agents-controller", daemon=False)
-        session = _Session(server_socket, client, thread)
+        # daemon=True: ein vergessener Controller haelt den Interpreter nicht auf. Das saubere
+        # Ende bleibt `close`, das auf den Faden wartet; der Daemon ist nur das Netz darunter.
+        thread = threading.Thread(target=self._serve, args=(server_socket, weck_lesen, binding, deadline),
+                                  name="agents-controller", daemon=True)
+        session = _Session(server_socket, client, thread, weck_lesen, weck_schreiben)
         with self._lock:
             if self._closed:
                 client.close()
-                server_socket.close()
+                session.schliessen(True)
                 raise ControllerError("Controller ist geschlossen")
             # A long-lived controller must not retain every completed connection.
             # Callers still own their AgentClient; only finished service records go.
+            beendet = [existing for existing in self._sessions if not existing.thread.is_alive()]
             self._sessions = [existing for existing in self._sessions if existing.thread.is_alive()]
+            for existing in beendet:
+                existing.schliessen(True)
             self._sessions.append(session)
             try:
                 thread.start()
             except RuntimeError as exc:
                 self._sessions.remove(session)
                 client.close()
-                server_socket.close()
+                session.schliessen(True)
                 raise ControllerError("Controllerdienst konnte nicht starten") from exc
         return client
 
@@ -438,6 +485,12 @@ class AgentController:
                   payload: dict[str, Any]) -> Any:
         self._authorize(binding)
         operation, payload = _validate_request({"op": operation, "payload": payload})
+        with ad._controller_actor_binding(binding.world_root, binding.agent_id,
+                                          binding.role, binding.run_id):
+            return self._dispatch_bound(binding, operation, payload)
+
+    def _dispatch_bound(self, binding: AgentBinding, operation: str,
+                        payload: dict[str, Any]) -> Any:
         root = binding.world_root
         if operation == "inbox.read":
             return _read_inbox(binding)
@@ -519,8 +572,25 @@ class AgentController:
         if operation == "agent.rechte":
             before = ad.read_agent(root, payload["agent_id"])
             changes = {key: payload[key] for key in ad.RIGHTS_FIELDS if key in payload}
-            agent = ad.set_agent_rights(root, payload["agent_id"], changes, binding.agent_id, binding.role)
+            agent = ad.set_agent_rights(root, payload["agent_id"], changes, binding.agent_id, binding.role,
+                                        antrag=payload.get("antrag"))
             return dict(agent, meldung=_report_rights(root, binding, before, agent))
+        if operation == "agent.rechte_antrag":
+            return ad.request_rights(root, payload["changes"], payload["grund"], binding.agent_id, binding.role,
+                                     payload.get("request_id"))
+        if operation == "agent.rechte_entscheiden":
+            # Nur die erste Freigabe ändert Rechte; eine Wiederholung meldet nichts (R1, Review 14.10.2026).
+            pending = ad.read_question(root, payload["request_id"]).get("state") == "offen"
+            question = ad.decide_rights_request(root, payload["request_id"], payload["accept"], payload.get("note"),
+                                                binding.agent_id, binding.role)
+            if payload["accept"] and pending:
+                # Vorher-Stand ist der beim Stellen gespeicherte, nicht ein Lesen außerhalb der Sperre.
+                question = dict(question, meldung=_report_rights(root, binding, question.get("vorher") or {},
+                                                                 ad.read_agent(root, question["agent"])))
+            return question
+        if operation == "agent.rechte_zurueckziehen":
+            return ad.withdraw_rights_request(root, payload["request_id"], payload.get("note"), binding.agent_id,
+                                              binding.role)
         if operation in ("freigabe.weitergeben", "freigabe.entziehen", "freigabe.liste", "mail.senden"):
             # Erst hier geladen: die RPC-Kopie im Zug traegt dieses Modul nicht.
             import agents_freigaben as af
@@ -561,10 +631,47 @@ class AgentController:
                                    payload.get("question_id"), binding.agent_id, binding.role)
         raise ControllerError("Operation nicht erlaubt")
 
-    def _serve(self, sock: socket.socket, binding: AgentBinding, session_deadline: float) -> None:
+    def _wartet_auf_anfrage(self, sock: socket.socket, weck: socket.socket,
+                            session_deadline: float) -> bool:
+        """Auf die naechste Anfrage warten; False heisst: Schluss mit dieser Sitzung.
+
+        Ein Dienstfaden, der bis zum Sitzungsende in einem einzigen `recv` steht, kommt beim
+        Schliessen nicht heraus: `close` schloss den Serversocket aus einem fremden Faden, und
+        das blockierte `poll` im Kern merkt davon nichts -- schlimmer noch, die Dateinummer wird
+        sofort neu vergeben (gemessen: die Pipe eines git-Unterprozesses), und der Faden wartet
+        bis zum Sitzungsende von 300 s.  Gemessen am 20./21.09.2026: `join` lief in sein
+        Zeitlimit, und der Prozess hing danach am Faden, bis der Runner mit 124 abbrach.
+        Darum wartet der Dienst auf zwei Dinge -- die Anfrage und das Weck-Paar der Sitzung --
+        und sieht zwischen den Schritten nach, ob der Controller geschlossen wurde.
+        """
+        while not self._closed:
+            rest = session_deadline - time.monotonic()
+            if rest <= 0:
+                return False
+            try:
+                # poll statt select: select kennt nur Deskriptoren unter FD_SETSIZE, und ein
+                # langlebiger Traeger haelt mehr offen.
+                waechter = select.poll()
+                waechter.register(sock, select.POLLIN)
+                waechter.register(weck, select.POLLIN)
+                ereignisse = waechter.poll(min(self._timeout, rest) * 1000)
+            except (OSError, ValueError):
+                return False
+            weck_nummer = weck.fileno()
+            for nummer, _ereignis in ereignisse:
+                if nummer == weck_nummer:
+                    return False
+            if ereignisse:
+                return True
+        return False
+
+    def _serve(self, sock: socket.socket, weck: socket.socket, binding: AgentBinding,
+               session_deadline: float) -> None:
         sock.settimeout(self._timeout)
         try:
             while True:
+                if not self._wartet_auf_anfrage(sock, weck, session_deadline):
+                    return
                 try:
                     request = _recv_frame(sock, session_deadline, self._timeout)
                     operation, payload = _validate_request(request)
@@ -586,22 +693,37 @@ class AgentController:
                     except ControllerError:
                         return
         finally:
-            try:
-                sock.close()
-            except OSError:
-                pass
+            for eigener in (sock, weck):
+                try:
+                    eigener.close()
+                except OSError:
+                    pass
 
-    def close(self) -> None:
+    def close(self, timeout: float = DEFAULT_CLOSE_TIMEOUT) -> None:
+        """Alle Sitzungen beenden und auf ihre Dienstfaeden warten; nie laenger als `timeout`.
+
+        Erst wecken und den Klienten schliessen, dann warten, und erst danach die Deskriptoren
+        des Fadens schliessen.  Ein Faden, der die Frist reisst, behaelt seine Deskriptoren
+        (sonst bekaeme er eine neu vergebene Nummer unter das Warten) und wird laut gemeldet;
+        als Daemon haelt er den Interpreter nicht auf.  `close` wirft dabei nicht, damit ein
+        Aufraeumpfad seine uebrigen Kanaele noch schliesst -- `join` bleibt die harte Probe.
+        """
         with self._lock:
             self._closed = True
             sessions = list(self._sessions)
         for session in sessions:
+            session.wecken()
             session.client.close()
-            try:
-                session.server_socket.shutdown(socket.SHUT_RDWR)
-            except OSError:
-                pass
-            session.server_socket.close()
+        ende = time.monotonic() + max(0.0, timeout)
+        for session in sessions:
+            session.thread.join(max(0.0, ende - time.monotonic()))
+        haengen = {id(session) for session in sessions if session.thread.is_alive()}
+        for session in sessions:
+            session.schliessen(id(session) not in haengen)
+        if haengen:
+            print("agents-controller: %d Dienstfaeden enden nicht binnen %.1f s; sie laufen als "
+                  "Daemon weiter und halten den Prozess nicht auf" % (len(haengen), timeout),
+                  file=sys.stderr)
 
     def join(self, timeout: float = 5.0) -> None:
         if timeout < 0:

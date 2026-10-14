@@ -8,10 +8,8 @@ through the steps. That is the intended path, and the last section says what to 
 
 This repository holds the workbench and its tools. The rules, skills, hooks, `CLAUDE.md` and
 `settings.json` templates and the knowledge base are in
-**[agent-setup](https://github.com/<your-github-user>/agent-setup)**; if you want those too,
-install this first and then follow the instructions there. `<your-github-user>` stands for the
-account this repository is hosted under — the tool that extracts it from a working machine removes
-account names everywhere and cannot tell a public URL from a private path.
+**[agent-setup](https://github.com/Skryx-L-A/agent-setup)**; if you want those too,
+install this first and then follow the instructions there.
 
 ## 0. What has to be there first
 
@@ -33,7 +31,7 @@ through the same registry.
 ## 1. Get the repository
 
 ```bash
-git clone https://github.com/<your-github-user>/agent-workbench.git ~/agent-workbench
+git clone https://github.com/Skryx-L-A/agent-workbench.git ~/agent-workbench
 cd ~/agent-workbench
 ```
 
@@ -92,7 +90,7 @@ spawn a pane.
 
 There is no `CLAUDE.md` and no `settings.json` in this repository. The workbench does not need
 either to run, and both are shipped as templates in
-**[agent-setup](https://github.com/<your-github-user>/agent-setup)** because they carry the
+**[agent-setup](https://github.com/Skryx-L-A/agent-setup)** because they carry the
 working agreements rather than the machinery. Until you have them, your agents run with
 whatever configuration you already had, and the hooks that would block a bad command are simply
 not installed.
@@ -151,9 +149,10 @@ the same layout. The hostnames in them are placeholders — open each one and pu
 you rely on it. Without a second host they simply do nothing, and nothing else in the workbench
 depends on them.
 
-The launchd property list in `shell/` belongs to one optional background job, the local model
-proxy. It is a real file rather than a template and carries a literal `$HOME`, which launchd does
-not expand — substitute it before you load it.
+The launchd property lists in `shell/` belong to optional background jobs: the local model proxy,
+the secret filter, the tool hub and the agents' carrier. They are real files rather than templates
+and carry a literal `$HOME`, which launchd does not expand — substitute it before you load one. The
+model proxy and the secret filter need Python 3.14 or newer.
 
 Sending mail is deliberately not here. The tools that did it named the account and the place their
 credentials live, as values in the file rather than as a description, so neither is shipped. The

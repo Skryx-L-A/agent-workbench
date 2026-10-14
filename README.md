@@ -20,8 +20,9 @@ terminal panes replay an invented session, and nothing in them belongs to a real
 
 - **Two tabs, one program.** *Code* is the orchestrator's place: sessions on the left, the lead
   pane or a grid of worker panes in the middle. *Agents* is where autonomous agents live: worlds
-  per project, a main agent, teams with leaders and members, tickets in six states, a channel,
-  direct chats, questions to you with an answer that lands where the agent reads it.
+  per project, a main agent, teams with leaders and members, tickets that only a person can
+  accept or discard, a channel, direct chats, questions to you with an answer that lands where
+  the agent reads it.
 - **Everything is a live view on tmux.** The window drives tmux over its control mode, so the
   same sessions are reachable from a terminal on the same machine or over SSH from another one.
 - **Not tied to one vendor.** Claude Code, Codex, aider, opencode and local models via Ollama are
@@ -30,26 +31,28 @@ terminal panes replay an invented session, and nothing in them belongs to a real
 - **Agents you create by talking.** A new agent starts from a form or from a conversation with a
   model that asks what the agent should do, in what tone, with which tools, and fills the profile
   and its instruction file as you go. Both ways end in the same draft; you check it and create it.
+- **You approve, the agents wait.** A ticket that asks for approval is approved or sent back
+  from the world view. Pausing a world lets a running turn finish and starts no new one; stop
+  halts at once, and the window says which of the two is in effect.
 - **Worlds on the machine that runs them.** A world can live on a second machine; the window reads
   and writes it over SSH, wakes the agents' carrier after every message, and says when the
   machine is out of reach. Moving a world there is one command.
 - **Guards instead of hope.** A context guard makes a worker write a handoff before its context
   runs out. A result protocol makes you wait on a file, not on what a pane looks like. Agents run
   with a tool list and a Bash pattern list from their profile, enforced by hooks, not by prompt.
+- **Agents on Claude Code or Codex.** A Codex agent's turn runs with the same profile limits and
+  tool policy as a Claude agent's, authenticated through the host's model proxy.
 
 ## The three repositories
 
 | Repository | What it is | Take it if |
 |---|---|---|
 | **agent-workbench** (this one) | The window, the core and the tools it needs to run | you want the workbench and bring your own agent configuration |
-| **[agent-workbench-mac](https://github.com/<your-github-user>/agent-workbench-mac)** | A native macOS shell (SwiftUI and AppKit) around the same core | you are on a Mac and prefer a real application over an Electron window |
-| **[agent-setup](https://github.com/<your-github-user>/agent-setup)** | The whole setup: rules, skills, hooks, roles, an empty knowledge vault, and the workbench | you want the setup as it is actually used |
+| **[agent-workbench-mac](https://github.com/Skryx-L-A/agent-workbench-mac)** | A native macOS shell (SwiftUI and AppKit) around the same core | you are on a Mac and prefer a real application over an Electron window |
+| **[agent-setup](https://github.com/Skryx-L-A/agent-setup)** | The whole setup: rules, skills, hooks, roles, an empty knowledge vault, and the workbench | you want the setup as it is actually used |
 
 All three are built from the same private source tree by the same script, so they do not drift
-apart. `<your-github-user>` stands for the account these repositories are hosted under. It is a
-placeholder on purpose: the tool that extracts this repository from a working machine removes
-account names everywhere, and it cannot tell the account in a public URL from the one on the
-machine. The address bar you cloned from shows which one it is.
+apart.
 
 ## What is in here
 
@@ -59,7 +62,7 @@ app/         the workbench itself — Electron main process, preload bridges, re
 extension/   16 modules the app imports rather than duplicates. They started life in a
              VS Code extension and still carry its directory name; there is exactly one copy
              of each, and this is it
-shell/       118 command-line tools: worker spawners, context guard, model registry,
+shell/       137 command-line tools: worker spawners, context guard, model registry,
              session management, budget and quota, the agents' data library and carrier,
              cross-machine helpers. Which of them ship here is worked out at build time — the
              tools the app itself calls, plus everything those call in turn — because a
@@ -86,7 +89,7 @@ None of this is missing by accident, and none of it is needed to start the progr
 - **Worked examples** of a project rule file, a note, and an `AGENTS.md`.
 - **The native Mac shell** — its own repository, see above.
 
-All of the first five are in **[agent-setup](https://github.com/<your-github-user>/agent-setup)**.
+All of the first five are in **[agent-setup](https://github.com/Skryx-L-A/agent-setup)**.
 Without the hooks and the settings that wire them up, the workbench runs and the guards do not
 exist — worth knowing before you rely on them.
 
@@ -106,8 +109,15 @@ exist — worth knowing before you rely on them.
 - **A result protocol.** Every worker writes its outcome to a file, and you wait on the file
   rather than on what the pane looks like. A spinner is not a status.
 - **A model registry.** Harnesses, providers and models are JSON. `wb-state models discover`
-  imports whatever your installed CLIs currently offer, so a model you just pulled shows up on
-  its own.
+  imports whatever your installed CLIs currently offer, probes each new model once, and enables
+  only the ones that answered.
+- **A secret filter between harness and model API.** `wb-geheimnis-filter` listens on
+  127.0.0.1, replaces secrets in outgoing requests with stable placeholders and puts the values
+  back into the replies. It needs Python 3.14 or newer and runs only once you load it.
+- **A board for scarce resources.** `wb-tafel` lets sessions take, queue for and release places
+  such as the GPU, memory or a full test run, so two heavy runs do not start on top of each other.
+- **Agent CLIs that stay current.** The window checks the installed harnesses every six hours
+  and updates them, by default; `harnessUpdateAuto` in the settings switches that off.
 
 ## Requirements
 
@@ -130,8 +140,8 @@ exist — worth knowing before you rely on them.
   `wb-shot-remote` and `wb-ssh-worker` assume a second host reachable over SSH, and
   `wb-modell-proxy` assumes a local model server on it. They are inert without one, and the
   hostnames in them are placeholders you have to fill in. The same goes for the launchd property
-  list in `shell/`: it carries a literal `$HOME`, which launchd does not expand, so substitute it
-  before you load it.
+  lists in `shell/`: they carry a literal `$HOME`, which launchd does not expand, so substitute it
+  before you load one.
 - **Sending mail is not here.** The tools that did it named the account and the place their
   credentials live, as values in the file rather than as a description, so neither is shipped.
   The rule that governs sending survives in the role prompts: an agent drafts, a person releases.
@@ -142,6 +152,10 @@ exist — worth knowing before you rely on them.
   a guessed pattern produces workers that receive nothing and never say so.
 - **Windows is untested.** The tools assume a POSIX shell and tmux; WSL2 is the path, and nobody
   has walked it end to end.
+- **The phone view is not ready to set up from here.** The core carries an opt-in mobile web
+  app (pairing by a code shown in the window, sessions, chats, ticket approval), off by default.
+  The operator path that puts HTTPS and Web Push in front of it is not part of this repository
+  yet, so leave `mobileServer` off.
 - **No telemetry, no phone-home, no bundled credentials.** There are no keys and no personal data
   in this repository. It is mechanics only.
 

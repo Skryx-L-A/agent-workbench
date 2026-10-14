@@ -30,7 +30,7 @@ import './welten-view.css';
 import { kurzerPfad } from './kurzpfad';
 import type { AufgabenNutzlast } from '../main/aufgaben';
 import type {
-  ChatEintrag, GespraechZug, Welt, WeltAgent, WeltMaschine, WeltNachricht, WeltSkills, WeltTicket, WeltenHandlungsErgebnis, WeltenNutzlast,
+  ChatEintrag, GespraechZug, Welt, WeltAgent, WeltMaschine, WeltNachricht, WeltRechteAntrag, WeltSkills, WeltTicket, WeltenHandlungsErgebnis, WeltenNutzlast,
 } from '../main/welten';
 import { figur, figurenArtenSetzen, figurenAufraeumen, figurenBewegungErzwingen, figurenStand, figurZustandVon, type Art } from './agentenfigur';
 import { figurenblattZeichnen, figurenblattZustand, initFigurenblatt } from './figurenblatt';
@@ -69,12 +69,14 @@ const boardStaende = (spalte: string): string[] => (spalte === 'offen' ? ['offen
 const TICKET_ARTEN = ['vorhaben', 'story', 'task', 'subtask', 'auftrag', 'fehler', 'recherche', 'pruefung'];
 /** Die Grundcodes des Verwerfens (Plan Satz 40). */
 const VERWERF_GRUENDE = ['duplikat', 'anderswo-erledigt', 'nicht-mehr-noetig', 'nicht-reproduzierbar', 'abgelehnt'];
+/** Die Gruende, die der Kern bei der Abnahme annimmt (`ABNAHME_GRUENDE` in welten.ts). */
+const ABNAHME_GRUENDE = ['erledigt', 'teilweise'];
 
 interface Entwurf {
   id: string; stufe: string; team: string; spezialgebiet: string; modell: string; denkstufe: string; fallback: string;
   fallbackDenkstufe: string; maschine: string; werkzeuge: string[]; bash: string; skills: string; kontextgrenze: string;
   figurArt: string; figurFarbe: string; anweisungen: string; vorlage: string;
-  /** Auftrag agentsform: Kennungen aus der Modellliste der Welt gehen woertlich hinaus (`sonnet5:high`, `haiku`). */
+  /** Auftrag agentsform: Kennungen aus der Modellliste der Welt gehen woertlich hinaus (`sonnet:high`, `haiku`). */
   modellGenau: boolean;
 }
 interface Anlegen {
@@ -110,14 +112,16 @@ const ticketEntwurfLeer = (an = ''): TicketEntwurf => ({
 });
 /**
  * Die Handlungen, die der Kern dem Menschen am Ticket erlaubt (docs/AGENTS-DATEN.md).
- * Abnehmen gehoert NICHT dazu: der Mensch nimmt nicht ab (Hausregel vom 11.09.2026,
- * Plan Satz 27); er kann ein abgenommenes Ticket zurueckgeben.
+ * Abnehmen gehoert seit Entscheidung des Nutzers vom 18.09.2026 dazu (bestaetigt 29.09.:
+ * fuer ihn freiwillig); der Kern nimmt sie nur von einem echten Klick an.
  */
-type TicketHandlung = 'verwerfen' | 'annehmen' | 'umadressieren' | 'grenzen' | 'pruefer';
+type TicketHandlung = 'verwerfen' | 'annehmen' | 'umadressieren' | 'grenzen' | 'pruefer' | 'abnehmen';
 interface TicketHandlungEntwurf {
   ticket: string; handlung: TicketHandlung;
   grund: string; bemerkung: string; duplikat: string; an: string; pruefer: string;
   kind: string; prioritaet: number; punkte: string[]; frist: string; runden: string;
+  /** Abnehmen: die Definition of Done der Welt ist bestaetigt (`dod_geprueft`). */
+  dodGeprueft: boolean;
 }
 
 const z = {
@@ -147,6 +151,14 @@ const z = {
   neuesTicket: null as null | TicketEntwurf,
   /** Liste oder Board (Plan Satz 47). */
   ticketAnsicht: 'liste' as 'liste' | 'board',
+  /** Auftrag ticketboard: die zuletzt gemessene Breite des Boards in Pixeln (0 = noch nicht gemessen). */
+  boardBreite: 0,
+  /** Der Stand, der in der gestapelten Ansicht offen liegt; leer heisst: der erste mit Tickets. */
+  boardSpalte: '',
+  /** Leere Spalten, die der Mensch von Hand aufgeklappt hat. */
+  boardOffen: new Set<string>(),
+  /** NUR FUER TESTS: eine vorgegebene Boardbreite (Haken `breite`); 0 heisst: gemessen wird. */
+  boardTestbreite: 0,
   /** Die offene Handlung im Ticketdetail (Auftrag tickets4 B); nur eine zur Zeit. */
   ticketHandlung: null as null | TicketHandlungEntwurf,
   /** Zyklus, Definition of Done und WIP-Grenze der Welt in Bearbeitung (Auftrag tickets4 D). */
@@ -166,6 +178,8 @@ const z = {
   rechte: null as null | { agent: string; werkzeuge: string[]; bash: string; skills: string[] },
   /** Im Gespraech: die Karte „Was der Agent darf" aufgeklappt. */
   gRechteOffen: false,
+  /** Vertrag rantrag: die getippte Bemerkung je Rechteantrag. */
+  rantragBemerkung: new Map<string, string>(),
 };
 /** Die Fernwelt, die der Kern zuletzt als gewaehlt kennt. */
 let gemeldetGewaehlt = '';
@@ -328,6 +342,21 @@ function agentPunkt(a: WeltAgent): string {
 /** Das Wort neben dem Punkt: das Lebenszeichen, sonst das Zustandswort. */
 function agentWort(a: WeltAgent, jetzt = Date.now()): string { return lebenWort(a, jetzt) ?? zustandWort(a.zustand); }
 
+/**
+ * Auftrag pausezaehler (10.10.2026): Die Zeile in der Seitenleiste sagt bei einem pausierten Agenten mit laufendem
+ * Zug beides -- „pausiert · laufender Zug endet noch“ --, nicht nur „arbeitet seit …“ wie der Kopf. Sonst das Wort
+ * neben dem Punkt wie ueberall.
+ */
+export function zeilenWort(a: Pick<WeltAgent, 'leben' | 'zustand' | 'zug'>, jetzt = Date.now()): string {
+  if (pauseZeile(a)) return `${zustandWort('pausiert')} · ${t('welten.pause.zugEndet')}`;
+  return lebenWort(a, jetzt) ?? zustandWort(a.zustand);
+}
+function pauseZeile(a: Pick<WeltAgent, 'zustand' | 'zug'>): boolean { return a.zustand === 'pausiert' && a.zug?.laeuft === true; }
+/** Nachtrag pausezaehler: eine schmale Leiste kuerzt die Zeile; der volle Text steht dann im title, sonst keiner. */
+function zeilenTitel(sp: HTMLElement, a: Pick<WeltAgent, 'zustand' | 'zug'>, text: string): void {
+  if (pauseZeile(a)) { if (sp.title !== text) sp.title = text; } else if (sp.hasAttribute('title')) sp.removeAttribute('title');
+}
+
 /** Der Ring um die Figur: `arbeitet` (bewegt), `wartet` (gepunktet, still), sonst keiner. */
 export function ringVon(a: Pick<WeltAgent, 'leben'>): '' | 'arbeitet' | 'wartet' {
   return a.leben?.stand === 'arbeitet' ? 'arbeitet' : a.leben?.stand === 'wartet' ? 'wartet' : '';
@@ -352,7 +381,7 @@ export function antwortText(a: Pick<WeltAgent, 'antwort' | 'name'>, jetzt = Date
 function antwortPunkt(art: string): string { return art === 'arbeitet' ? 'laeuft' : art === 'zugestellt' ? 'ruhig' : 'will'; }
 
 /** Ein Wort, dessen Text die Uhr jede Sekunde neu setzt (`uhrenStellen`). */
-function uhrWort(klasse: string, agent: string, form: 'leben' | 'antwort', text: string): HTMLSpanElement {
+function uhrWort(klasse: string, agent: string, form: 'leben' | 'zeile' | 'antwort', text: string): HTMLSpanElement {
   const sp = el('span', klasse, text);
   sp.dataset.uhr = form;
   sp.dataset.agent = agent;
@@ -368,9 +397,10 @@ function uhrenStellen(): void {
   for (const sp of blatt.querySelectorAll<HTMLElement>('[data-uhr]')) {
     const a = agentVon(w, sp.dataset.agent ?? '');
     if (!a) continue;
-    if (sp.dataset.uhr === 'leben') {
-      const neu = agentWort(a, jetzt);
+    if (sp.dataset.uhr === 'leben' || sp.dataset.uhr === 'zeile') {
+      const neu = sp.dataset.uhr === 'zeile' ? zeilenWort(a, jetzt) : agentWort(a, jetzt);
       if (sp.textContent !== neu) sp.textContent = neu;
+      if (sp.dataset.uhr === 'zeile') zeilenTitel(sp, a, neu);
     } else {
       const at = antwortText(a, jetzt);
       const zeile = sp.closest<HTMLElement>('.wv-antwortstand');
@@ -399,6 +429,14 @@ const ZUG_STIL = `
 @keyframes wv-zug-dreh { to { transform: rotate(360deg); } }
 #weltenblatt .wv-antwortstand { align-self: flex-end; margin-top: -6px; font-size: 11px; color: var(--gedaempft); display: flex; align-items: center; gap: 5px; }
 #weltenblatt .wv-antwortstand[data-art="nicht_gestartet"], #weltenblatt .wv-antwortstand[data-art="beendet"], #weltenblatt .wv-antwortstand[data-art="weg"] { color: var(--zustand-wartet); }
+#weltenblatt .wv-rantrag { display: flex; flex-direction: column; gap: 6px; padding: 9px 11px; border-radius: 9px; background: var(--fenster); }
+#weltenblatt .wv-rantrag.offen { box-shadow: inset 0 0 0 1.5px var(--zustand-wartet); }
+#weltenblatt .wv-rantrag-kopf { font-weight: 600; }
+#weltenblatt .wv-rantrag-aenderung { display: flex; flex-direction: column; gap: 2px; padding: 6px 9px; border-radius: 7px; background: var(--erhoben); }
+#weltenblatt .wv-rantrag-alt { color: var(--gedaempft); }
+#weltenblatt .wv-rantrag-plus { color: var(--zustand-laeuft); }
+#weltenblatt .wv-rantrag-minus { color: var(--zustand-tot); }
+#weltenblatt .wv-rantrag-hinweis { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px 11px; border-radius: 9px; background: var(--erhoben); box-shadow: inset 0 0 0 1.5px var(--zustand-wartet); }
 `;
 
 function stufeWort(s: string): string { return wort('stufe', s); }
@@ -607,6 +645,13 @@ async function ausfuehren(handlung: string, daten: Record<string, unknown>, echt
   z.laufend.delete(handlung);
   if (r.rueckfrage && !bestaetigt) {
     z.rueckfrage = { handlung, daten, text: r.rueckfrage, warnungen: r.warnungen ?? [], echt };
+  } else if (handlung === 'gelesen' && !r.ok) {
+    // Der Lesestand geht im Hintergrund mit (jede neue Nutzlast, jede Wahl), nie auf einen
+    // Klick des Menschen. Scheitert er -- Steuerkanal (cli-operator darf ihn nie setzen) oder
+    // ein Kern ohne M2 (Dev-Buendel, Worktree, Test seit dem strengen wb-mensch, 14.10.2026) --,
+    // ueberschrieb seine spaete Antwort die Meldung der Handlung, die der Mensch gerade sah.
+    // Die lokale Marke traegt die Anzeige weiter; der Grund geht ins Protokoll.
+    console.warn(`Lesestand nicht geteilt: ${r.meldung ?? ''}`);
   } else if (!(still && r.ok)) {
     z.meldung = { text: r.meldung ?? '', ok: !!r.ok };
   }
@@ -661,7 +706,7 @@ async function senden(w: Welt, echt: boolean): Promise<void> {
 }
 
 function entwurfLeer(): Entwurf {
-  return { id: '', stufe: 'mitglied', team: '', spezialgebiet: '', modell: 'sonnet5', denkstufe: 'high', fallback: '', fallbackDenkstufe: '', maschine: 'peer',
+  return { id: '', stufe: 'mitglied', team: '', spezialgebiet: '', modell: 'sonnet', denkstufe: 'high', fallback: '', fallbackDenkstufe: '', maschine: 'peer',
     werkzeuge: [...WERKZEUGE_VORGABE], bash: '', skills: '', kontextgrenze: '', figurArt: 'roboter', figurFarbe: 'entwicklung', anweisungen: '', vorlage: '', modellGenau: false };
 }
 const basis = (m: string): string => m.split(':')[0] ?? m;
@@ -722,7 +767,7 @@ function anlegenOeffnen(w: Welt, vorlage?: string, ansicht: Anlegen['ansicht'] =
     if (m) { e.modell = m.id; if (suffix(m.id)) e.denkstufe = suffix(m.id); }
   }
   z.anlegen = {
-    entwurf: e, beschreibung: '', modell: nutzlast?.entwurf_modelle[0] ?? 'sonnet5:high', neuesTeam: !w.teams.length, gesetzt: new Set(), pruefung: '', info: '',
+    entwurf: e, beschreibung: '', modell: nutzlast?.entwurf_modelle[0] ?? 'sonnet:high', neuesTeam: !w.teams.length, gesetzt: new Set(), pruefung: '', info: '',
     ansicht, verlauf: [], eingabe: '', gFelder: [], gFragen: [], gFertig: false, gInfo: '', sitzung: ++anlegenSitzung,
   };
   z.meldung = null;
@@ -1137,6 +1182,11 @@ async function handeln(w: string, arg: string, echt: boolean): Promise<void> {
     case 'quittieren': await ausfuehren('quittieren', { welt: wl.pfad, zustellung: arg }, echt); return;
     case 'ticketfilter': z.ticketFilter = arg; break;
     case 'ticketansicht': z.ticketAnsicht = arg === 'board' ? 'board' : 'liste'; break;
+    // Auftrag ticketboard: der Reiter der gestapelten Ansicht und der Klick auf einen schmalen Streifen.
+    case 'board-spalte': z.boardSpalte = arg; break;
+    // Der Streifen zeigt seinen Stand: als offene Spalte, wo der Platz reicht, sonst als
+    // gewaehlter Reiter der gestapelten Ansicht.
+    case 'board-auf': z.boardOffen.add(arg); z.boardSpalte = arg; break;
     case 'ticket': z.ticketAuswahl = arg; z.reiter = 'tickets'; z.ticketHandlung = null; break;
     case 'ticket-neu': z.neuesTicket = ticketEntwurfLeer(a?.id ?? ''); break;
     case 'ticket-neu-zu': z.neuesTicket = null; break;
@@ -1164,21 +1214,23 @@ async function handeln(w: string, arg: string, echt: boolean): Promise<void> {
       z.rueckgabe = '';
       z.ticketHandlung = {
         ticket: tk.id, handlung: h as TicketHandlung,
-        grund: h === 'verwerfen' ? 'nicht-mehr-noetig' : '',
+        grund: h === 'verwerfen' ? 'nicht-mehr-noetig' : h === 'abnehmen' ? 'erledigt' : '',
         bemerkung: '', duplikat: '',
         an: h === 'annehmen' ? (wl.hauptagent ?? '') : h === 'umadressieren' ? (tk.bearbeiter ?? tk.adressaten[0] ?? '') : '',
         pruefer: h === 'pruefer' ? (wl.agenten.find((x) => x.id !== tk.bearbeiter && x.stand === 'aktiv')?.id ?? '') : '',
         kind: tk.kind, prioritaet: tk.prioritaet, punkte: [],
         frist: h === 'grenzen' ? String(tk.grenzen.frist ?? '') : '', runden: h === 'grenzen' ? String(tk.grenzen.runden ?? '') : '',
+        dodGeprueft: false,
       };
       break;
     }
     case 'handlung-zu': z.ticketHandlung = null; break;
+    case 'handlung-dod': if (z.ticketHandlung) z.ticketHandlung.dodGeprueft = !z.ticketHandlung.dodGeprueft; break;
     case 'handlung-punkt-plus': if (z.ticketHandlung) z.ticketHandlung.punkte = [...z.ticketHandlung.punkte, '']; break;
     case 'handlung-punkt-weg': if (z.ticketHandlung) z.ticketHandlung.punkte = z.ticketHandlung.punkte.filter((_, i) => i !== Number(arg)); break;
     case 'handlung-ausfuehren': {
       const e = z.ticketHandlung;
-      if (!e || !handlungBereit(e)) return;
+      if (!e || !handlungBereit(e, wl)) return;
       const punkte = e.punkte.map((p) => p.trim()).filter(Boolean);
       const daten: Record<string, unknown> = { welt: wl.pfad, ticket: e.ticket };
       let handlung = '';
@@ -1202,6 +1254,10 @@ async function handeln(w: string, arg: string, echt: boolean): Promise<void> {
         case 'pruefer':
           handlung = 'ticket_pruefen';
           Object.assign(daten, { pruefer: e.pruefer });
+          break;
+        case 'abnehmen':
+          handlung = 'ticket_abnehmen';
+          Object.assign(daten, { grund: e.grund, bemerkung: e.bemerkung.trim(), dod_geprueft: e.dodGeprueft });
           break;
         default: return;
       }
@@ -1337,6 +1393,14 @@ async function handeln(w: string, arg: string, echt: boolean): Promise<void> {
       if (res.ok) z.rechte = null;
       break;
     }
+    case 'rantrag-freigeben':
+    case 'rantrag-ablehnen': {
+      // Vertrag rantrag: nur Kennung, Entscheidung und Bemerkung; die Aenderung ist die gespeicherte.
+      const bemerkung = (z.rantragBemerkung.get(arg) ?? '').trim();
+      const res = await ausfuehren('rechte_antrag_entscheiden', { welt: wl.pfad, id: arg, annehmen: w === 'rantrag-freigeben', ...(bemerkung ? { bemerkung } : {}) }, echt);
+      if (res.ok) z.rantragBemerkung.delete(arg);
+      break;
+    }
     default: return;
   }
   zeichnen();
@@ -1351,6 +1415,7 @@ function eingabe(schluessel: string, wert: string): void {
     case 'entwurf': z.entwuerfe.set(k, wert); return;
     case 'adressen': z.adressfeld = wert; return;
     case 'antwort': z.antworten.set(name, wert); return;
+    case 'rantrag': z.rantragBemerkung.set(name, wert); return;
     case 'rueckgabe': z.rueckgabeText = wert; return;
     case 'skillgrund': z.skillGrund = wert; return;
     case 'welt': void handeln('welt', wert, true); return;
@@ -1516,7 +1581,9 @@ function leisteZeichnen(w: Welt, n: WeltenNutzlast): HTMLElement {
     if (a.stufe !== 'mitglied') nameZeile.append(el('span', 'wv-stufe', a.stufe === 'hauptagent' ? stufeWort('hauptagent') : t('welten.stufe.leiterKurz')));
     if (mitTeam && a.team) nameZeile.append(el('span', 'wv-stufe', teamWort(a.team)));
     const unter = el('div', 'wv-unter');
-    unter.append(punkt(agentPunkt(a)), el('span', undefined, ' '), uhrWort('wv-leben', a.id, 'leben', agentWort(a)), el('span', undefined, ` · ${a.spezialgebiet}`));
+    const wortZeile = uhrWort('wv-leben', a.id, 'zeile', zeilenWort(a));
+    zeilenTitel(wortZeile, a, wortZeile.textContent ?? '');
+    unter.append(punkt(agentPunkt(a)), el('span', undefined, ' '), wortZeile, el('span', undefined, ` · ${a.spezialgebiet}`));
     tz.append(nameZeile, unter);
     b.appendChild(tz);
     const u = ungelesen(w, `einzel:${id}`);
@@ -1829,26 +1896,112 @@ function ticketKarte(w: Welt, x: WeltTicket, ziehbar: boolean): HTMLElement {
   return b;
 }
 
+// --- Das Board bei schmaler Mitte (Auftrag ticketboard) -----------------------------
+
+/** Die Breiten einer vollen und einer zusammengeklappten Spalte und der Abstand dazwischen. */
+const SPALTE_MIN = 140;
+const SPALTE_MAX = 300;
+const SPALTE_SCHMAL = 34;
+const SPALTE_ABSTAND = 8;
+
+/**
+ * WIE DAS BOARD IN DIE MITTE PASST (Auftrag ticketboard; Befund tickets4: acht Spalten
+ * rollten waagerecht aus dem Bild). Leere Spalten klappen zu einem schmalen Streifen mit
+ * Titel und Zaehler zusammen, die uebrigen teilen sich den Platz zwischen Mindest- und
+ * Hoechstbreite. Reicht er auch dann nicht, wechselt das Board in die gestapelte Ansicht:
+ * die Staende als Reiter mit Zaehler, darunter ein Stand ueber die ganze Breite. Waagerecht
+ * gerollt wird nie.
+ *
+ * `läuft` klappt nie zu, auch leer nicht: an ihrem Kopf haengt die WIP-Anzeige der Welt
+ * (Plan Satz 48).
+ */
+export function boardLage(verfuegbar: number, spalten: { name: string; anzahl: number; offen: boolean }[]):
+{ modus: 'spalten' | 'gestapelt'; breite: number; schmal: string[] } {
+  const zu = spalten.filter((s) => s.anzahl === 0 && !s.offen && s.name !== 'läuft').map((s) => s.name);
+  // Ein Board ganz ohne Tickets klappt nicht alles weg: dann stehen alle Spalten offen.
+  const schmal = spalten.every((s) => s.anzahl === 0) ? [] : zu;
+  const voll = spalten.length - schmal.length;
+  if (verfuegbar <= 0 || voll <= 0) return { modus: 'spalten', breite: SPALTE_MIN, schmal };
+  const rest = verfuegbar - Math.max(0, spalten.length - 1) * SPALTE_ABSTAND - schmal.length * SPALTE_SCHMAL;
+  if (rest < voll * SPALTE_MIN) return { modus: 'gestapelt', breite: 0, schmal: [] };
+  return { modus: 'spalten', breite: Math.min(SPALTE_MAX, Math.floor(rest / voll)), schmal };
+}
+
+/** Welcher Stand in der gestapelten Ansicht offen liegt: die Wahl, sonst der erste mit Tickets. */
+function boardStand(zahlen: Map<string, number>): string {
+  if (z.boardSpalte && BOARD_SPALTEN.includes(z.boardSpalte)) return z.boardSpalte;
+  return BOARD_SPALTEN.find((s) => (zahlen.get(s) ?? 0) > 0) ?? BOARD_SPALTEN[0];
+}
+
+/**
+ * Der Kopf einer Board-Spalte in seinen drei Gestalten: die offene Spalte (Punkt, Wort,
+ * Zaehler, an `läuft` die WIP-Grenze), der schmale Streifen einer leeren Spalte (Zaehler und
+ * senkrechter Titel, ein Klick klappt sie auf) und der Reiter der gestapelten Ansicht.
+ */
+function boardSpaltenkopf(w: Welt, spalte: string, anzahl: number, art: 'spalte' | 'schmal' | 'reiter', gewaehlt: boolean): HTMLElement {
+  const k = el(art === 'spalte' ? 'div' : 'button', `wv-board-spaltenkopf${art === 'spalte' ? '' : ` ${art}`}${gewaehlt ? ' gewaehlt' : ''}`);
+  k.dataset.spalte = spalte;
+  k.dataset.anzahl = String(anzahl);
+  if (art !== 'spalte') {
+    (k as HTMLButtonElement).type = 'button';
+    k.dataset.w = art === 'schmal' ? 'board-auf' : 'board-spalte';
+    k.dataset.arg = spalte;
+    k.setAttribute('aria-pressed', String(gewaehlt));
+    k.title = art === 'schmal' ? t('welten.board.spalteAuf', { stand: wort('stand', spalte) })
+      : t('welten.board.standZeigen', { stand: wort('stand', spalte) });
+  }
+  if (art === 'schmal') {
+    k.append(el('div', 'wv-board-schmalzahl', String(anzahl)), el('div', 'wv-board-schmalname', wort('stand', spalte)));
+    return k;
+  }
+  const zeile = el('div', 'wv-board-spaltenname');
+  zeile.append(punkt(ticketPunkt(spalte)), el('span', undefined, wort('stand', spalte)), el('span', 'wv-leise', String(anzahl)));
+  k.appendChild(zeile);
+  if (spalte === 'läuft') {
+    const wi = wipText(w);
+    const e = el('div', `wv-board-wip${wi.rot ? ' rot' : ''}`, wi.text);
+    e.title = t('welten.wip.hilfe');
+    k.appendChild(e);
+  }
+  return k;
+}
+
+/** Eine Kachel des Boards: Titel, Abzeichen, Ampel und wer daran sitzt. */
+function boardKachel(w: Welt, x: WeltTicket): HTMLElement {
+  const k = el('button', 'wv-board-kachel');
+  k.dataset.w = 'ticket'; k.dataset.arg = x.id; k.dataset.id = x.id;
+  k.appendChild(el('div', 'wv-name', x.titel));
+  const marken = el('div', 'wv-board-marken');
+  marken.append(abzeichen(kindWort(x.kind), kindErklaerung(x.kind)),
+    abzeichen(prioritaetWort(x.prioritaet), x.prioritaet_text || prioritaetText(x.prioritaet), prioritaetHervor(x.prioritaet)));
+  const a = ampel(x.ampel, String(x.grenzen.frist ?? ''));
+  if (a) marken.appendChild(a);
+  k.appendChild(marken);
+  k.appendChild(el('div', 'wv-leise', x.bearbeiter ? anzeigename(w, x.bearbeiter) : (x.adressaten[0] ? anzeigename(w, x.adressaten[0]) : t('welten.ticket.ohneAdressat'))));
+  return k;
+}
+
 function boardZeichnen(w: Welt, tickets: WeltTicket[]): HTMLElement {
-  const box = el('div', 'wv-board');
+  const zahlen = new Map(BOARD_SPALTEN.map((s) => [s, tickets.filter((x) => boardStaende(s).includes(x.stand)).length]));
+  const lage = boardLage(z.boardTestbreite || z.boardBreite,
+    BOARD_SPALTEN.map((name) => ({ name, anzahl: zahlen.get(name) ?? 0, offen: z.boardOffen.has(name) })));
+  const gestapelt = lage.modus === 'gestapelt';
+  const offen = gestapelt ? boardStand(zahlen) : '';
+  const box = el('div', `wv-board${gestapelt ? ' gestapelt' : ''}`);
+  box.dataset.modus = lage.modus;
+  // Die Testbreite steht auch im Bild: was die Ansicht entscheidet, zeigt sie auch so breit.
+  if (z.boardTestbreite) box.style.width = `${z.boardTestbreite}px`;
+  if (!gestapelt) {
+    box.style.setProperty('--wv-board-spalten',
+      BOARD_SPALTEN.map((s) => `${lage.schmal.includes(s) ? SPALTE_SCHMAL : lage.breite}px`).join(' '));
+  }
   const kopf = el('div', 'wv-board-kopf');
   for (const spalte of BOARD_SPALTEN) {
-    const anzahl = tickets.filter((x) => boardStaende(spalte).includes(x.stand)).length;
-    const k = el('div', 'wv-board-spaltenkopf');
-    k.dataset.spalte = spalte;
-    k.dataset.anzahl = String(anzahl);
-    const zeile = el('div', 'wv-board-spaltenname');
-    zeile.append(punkt(ticketPunkt(spalte)), el('span', undefined, wort('stand', spalte)), el('span', 'wv-leise', String(anzahl)));
-    k.appendChild(zeile);
-    if (spalte === 'läuft') {
-      const wi = wipText(w);
-      const e = el('div', `wv-board-wip${wi.rot ? ' rot' : ''}`, wi.text);
-      e.title = t('welten.wip.hilfe');
-      k.appendChild(e);
-    }
-    kopf.appendChild(k);
+    kopf.appendChild(boardSpaltenkopf(w, spalte, zahlen.get(spalte) ?? 0,
+      gestapelt ? 'reiter' : lage.schmal.includes(spalte) ? 'schmal' : 'spalte', gestapelt && spalte === offen));
   }
   box.appendChild(kopf);
+  if (gestapelt) box.appendChild(el('div', 'wv-leise wv-board-hinweis', t('welten.board.gestapelt')));
   const spuren = boardSpuren(w, tickets);
   if (!spuren.length) box.appendChild(el('div', 'wv-leer wv-leise', t('welten.tickets.keine')));
   for (const spur of spuren) {
@@ -1857,22 +2010,12 @@ function boardZeichnen(w: Welt, tickets: WeltTicket[]): HTMLElement {
     s.appendChild(el('div', 'wv-board-spurname', spur.titel));
     const spalten = el('div', 'wv-board-spalten');
     for (const sp of spur.spalten) {
-      const c = el('div', 'wv-board-spalte');
+      if (gestapelt && sp.name !== offen) continue;
+      const schmal = lage.schmal.includes(sp.name);
+      const c = el('div', `wv-board-spalte${schmal ? ' schmal' : ''}`);
       c.dataset.spalte = sp.name;
-      for (const x of sp.tickets) {
-        const k = el('button', 'wv-board-kachel');
-        k.dataset.w = 'ticket'; k.dataset.arg = x.id; k.dataset.id = x.id;
-        k.appendChild(el('div', 'wv-name', x.titel));
-        const marken = el('div', 'wv-board-marken');
-        marken.append(abzeichen(kindWort(x.kind), kindErklaerung(x.kind)),
-          abzeichen(prioritaetWort(x.prioritaet), x.prioritaet_text || prioritaetText(x.prioritaet), prioritaetHervor(x.prioritaet)));
-        const a = ampel(x.ampel, String(x.grenzen.frist ?? ''));
-        if (a) marken.appendChild(a);
-        k.appendChild(marken);
-        k.appendChild(el('div', 'wv-leise', x.bearbeiter ? anzeigename(w, x.bearbeiter) : (x.adressaten[0] ? anzeigename(w, x.adressaten[0]) : t('welten.ticket.ohneAdressat'))));
-        c.appendChild(k);
-      }
-      if (!sp.tickets.length) c.appendChild(el('div', 'wv-leise', '–'));
+      for (const x of sp.tickets) c.appendChild(boardKachel(w, x));
+      if (!sp.tickets.length && !schmal) c.appendChild(el('div', 'wv-leise', gestapelt ? t('welten.board.keineImStand') : '–'));
       spalten.appendChild(c);
     }
     s.appendChild(spalten);
@@ -1961,7 +2104,7 @@ function ticketDetail(w: Welt, tk: WeltTicket): HTMLElement {
   const v = tk.skill_vorschlag;
   if (v) {
     const k = karte(t('welten.vorschlag.titel'),
-      el('div', undefined, t('welten.vorschlag.zeile', { skill: v.skill, agent: anzeigename(w, v.agent), ziel: t(v.ziel === 'bibliothek' ? 'welten.vorschlag.zielBibliothek' : 'welten.vorschlag.zielWelt'), pruefer: anzeigename(w, v.pruefer), stand: wort('vorschlag', v.stand) })),
+      el('div', undefined, t('welten.vorschlag.zeile', { skill: v.skill, agent: anzeigename(w, v.agent), ziel: t(v.ziel === 'bibliothek' ? 'welten.vorschlag.zielBibliothek' : v.ziel === 'agent' ? 'welten.vorschlag.zielAgent' : 'welten.vorschlag.zielWelt'), pruefer: anzeigename(w, v.pruefer), stand: wort('vorschlag', v.stand) })),
       v.beschreibung ? el('div', 'wv-leise', v.beschreibung) : null,
       v.begruendung ? el('div', 'wv-leise', t('welten.vorschlag.begruendung', { text: v.begruendung })) : null,
       el('div', 'wv-leise wv-mono', t('welten.vorschlag.version', { version: v.version.slice(0, 12), basis: v.basis_version ? v.basis_version.slice(0, 12) : t('welten.vorschlag.neu') })));
@@ -2078,19 +2221,34 @@ export function moeglicheHandlungen(tk: WeltTicket): TicketHandlung[] {
   if (tk.stand !== 'abgenommen') raus.push('verwerfen');
   raus.push('umadressieren');
   if (tk.stand !== 'abgenommen' && tk.stand !== 'verworfen') raus.push('grenzen');
-  // Kein `abnehmen`: der Mensch nimmt nicht ab (Plan Satz 27).
   if (tk.stand === 'zur Abnahme') raus.push('pruefer');
+  // Abnehmen aus denselben zwei Staenden wie der Kern (`approve_ticket`); nur ein echter Klick zaehlt.
+  if (tk.stand === 'zur Abnahme' || tk.stand === 'zurückgegeben') raus.push('abnehmen');
   return raus;
 }
 
+/**
+ * Was der Abnahme noch fehlt, als Textschluessel; null = bereit. Dieselben Regeln wie im Kern
+ * und am Mac, dazu kein `|` in der Bemerkung (Trennzeichen des Mobilbelegs).
+ */
+export function abnahmeFehlt(e: Pick<TicketHandlungEntwurf, 'grund' | 'bemerkung' | 'dodGeprueft'>, dod: string[]): string | null {
+  const bemerkung = e.bemerkung.trim();
+  if (!ABNAHME_GRUENDE.includes(e.grund)) return 'welten.abnehmen.grundFehlt';
+  if (e.grund === 'teilweise' && !bemerkung) return 'welten.abnehmen.bemerkungPflicht';
+  if (bemerkung.includes('|')) return 'welten.abnehmen.trennzeichen';
+  if (dod.length && !e.dodGeprueft) return 'welten.abnehmen.dodFehlt';
+  return null;
+}
+
 /** Ob die offene Handlung ausgefuehrt werden darf (dieselben Regeln wie am Mac). */
-function handlungBereit(e: TicketHandlungEntwurf): boolean {
+function handlungBereit(e: TicketHandlungEntwurf, w: Welt): boolean {
   switch (e.handlung) {
     case 'verwerfen': return e.grund !== 'duplikat' || !!e.duplikat;
     case 'annehmen': return !!e.an;
     case 'umadressieren': return !!e.an && !!e.grund.trim();
     case 'grenzen': return !!e.frist || !!e.runden;
     case 'pruefer': return !!e.pruefer;
+    case 'abnehmen': return abnahmeFehlt(e, w.dod) === null;
     default: return false;
   }
 }
@@ -2138,11 +2296,37 @@ function handlungenZeichnen(w: Welt, tk: WeltTicket): HTMLElement {
         [['', t('welten.handlung.bitteWaehlen')], ...w.agenten.filter((a) => a.id !== tk.bearbeiter && a.stand === 'aktiv').map((a): [string, string] => [a.id, a.name])]),
         el('div', 'wv-leise', t('welten.handlung.prueferHinweis')));
       break;
+    case 'abnehmen': {
+      k.append(auswahlFeld('handlung:grund', offen.grund, ABNAHME_GRUENDE.map((g): [string, string] => [g, abnahmeGrundWort(g)])),
+        feld('input', 'handlung:bemerkung', offen.bemerkung, t(offen.grund === 'teilweise' ? 'welten.abnehmen.bemerkungOffen' : 'welten.handlung.bemerkungFrei')));
+      if (w.dod.length) {
+        const punkte = el('div', 'wv-punkte');
+        punkte.appendChild(el('div', 'wv-leise', t('welten.abnehmen.dodTitel')));
+        for (const p of w.dod) {
+          const zeile = el('div', 'wv-fertigpunkt');
+          zeile.append(el('span', 'wv-haken', offen.dodGeprueft ? '☑' : '☐'), el('span', undefined, p));
+          punkte.appendChild(zeile);
+        }
+        const haken = knopf(`${offen.dodGeprueft ? '☑' : '☐'} ${t('welten.abnehmen.dodGeprueft')}`, 'handlung-dod', '', 'knopf-rand');
+        haken.setAttribute('role', 'checkbox');
+        haken.setAttribute('aria-checked', String(offen.dodGeprueft));
+        const zeile = el('div', 'wv-zeile-knoepfe');
+        zeile.appendChild(haken);
+        punkte.appendChild(zeile);
+        k.appendChild(punkte);
+      }
+      k.appendChild(el('div', 'wv-leise', t('welten.abnehmen.endgueltig', { titel: tk.titel })));
+      const fehlt = abnahmeFehlt(offen, w.dod);
+      if (fehlt && (fehlt === 'welten.abnehmen.bemerkungPflicht' || fehlt === 'welten.abnehmen.trennzeichen')) {
+        k.appendChild(el('div', 'wv-warnung', t(fehlt)));
+      }
+      break;
+    }
     default: break;
   }
   const knoepfe = el('div', 'wv-zeile-knoepfe rechts');
   knoepfe.append(knopf(t('welten.knopf.abbrechen'), 'handlung-zu'),
-    knopf(t(`welten.handlung.${offen.handlung}Knopf`), 'handlung-ausfuehren', '', 'knopf-voll', !handlungBereit(offen)));
+    knopf(t(`welten.handlung.${offen.handlung}Knopf`), 'handlung-ausfuehren', '', 'knopf-voll', !handlungBereit(offen, w)));
   k.appendChild(knoepfe);
   return k;
 }
@@ -2248,6 +2432,121 @@ function weltRegelKarten(w: Welt): HTMLElement[] {
   return [zyklus, dod, wip];
 }
 
+// --- Rechteantraege (Vertrag rantrag, 13.10.2026) ----------------------------------
+
+/** Datum und Uhrzeit, auch heute mit Datum: „abgelaufen am …“ braucht den Tag. */
+function datumUhr(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return t('welten.zeit.datum', { tag: zweistellig(d.getDate()), monat: zweistellig(d.getMonth() + 1), uhr: `${zweistellig(d.getHours())}:${zweistellig(d.getMinutes())}` });
+}
+
+/** Offen und noch entscheidbar; die Uhr der Oberflaeche zaehlt mit, falls der Kern seit dem Ablauf nicht neu gelesen hat. */
+export function rantragOffen(x: Pick<WeltRechteAntrag, 'stand' | 'abgelaufen' | 'laeuft_ab'>, jetzt = Date.now()): boolean {
+  if (x.stand !== 'offen' || x.abgelaufen) return false;
+  const ab = Date.parse(x.laeuft_ab);
+  return Number.isFinite(ab) && ab > jetzt;
+}
+
+const gross = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+function rantragStand(x: WeltRechteAntrag): string {
+  if (x.stand === 'offen') return t(rantragOffen(x) ? 'welten.rantrag.stand.offen' : 'welten.rantrag.stand.abgelaufen');
+  if (x.stand === 'beantwortet' && x.entscheidung) return wort('rantrag.stand', x.entscheidung);
+  return wort('rantrag.stand', x.stand);
+}
+
+/**
+ * Je Feld der gespeicherten Aenderung eine Zeile „vorher → nachher“, darunter, was dazukommt und was wegfaellt.
+ * Nachher so, wie die Bibliothek es schreibt (`_plan_rights`): Bash ist immer dabei, `web` setzt WebFetch und
+ * WebSearch, die Dienstwegmuster (`fest`) gibt sie selbst dazu -- gezeigt werden deshalb nur die eigenen Muster.
+ */
+export function rantragAenderung(x: Pick<WeltRechteAntrag, 'changes' | 'vorher'>, fest: string[] = []): { feld: string; vorher: string; nachher: string; plus: string[]; minus: string[] }[] {
+  const zeilen: { feld: string; vorher: string; nachher: string; plus: string[]; minus: string[] }[] = [];
+  const liste = (l: string[]): string => (l.length ? l.join(', ') : t('welten.rantrag.keine'));
+  const zeile = (feld: string, alt: string[], neu: string[]): void => {
+    zeilen.push({ feld, vorher: liste(alt), nachher: liste(neu), plus: neu.filter((v) => !alt.includes(v)), minus: alt.filter((v) => !neu.includes(v)) });
+  };
+  const web = x.changes.web;
+  if (x.changes.tools || typeof web === 'boolean') {
+    const alt = x.vorher.tools ?? [];
+    let neu = [...(x.changes.tools ?? alt)];
+    if (web === true) neu.push(...WEB.filter((v) => !neu.includes(v)));
+    if (web === false) neu = neu.filter((v) => !WEB.includes(v));
+    if (!neu.includes('Bash')) neu.push('Bash');
+    if (x.changes.tools || neu.join() !== alt.join()) zeile(t('welten.rantrag.werkzeuge'), alt, neu);
+  }
+  if (x.changes.bash) zeile(t('welten.rantrag.bash'), eigeneMuster(x.vorher.bash ?? [], '', fest), eigeneMuster(x.changes.bash, '', fest));
+  if (x.changes.skills) zeile(t('welten.rantrag.skills'), x.vorher.skills ?? [], x.changes.skills);
+  if (typeof web === 'boolean') {
+    const alt = typeof x.vorher.web === 'boolean' ? x.vorher.web : (x.vorher.tools ?? []).some((v) => WEB.includes(v));
+    const an = (b: boolean): string => t(b ? 'welten.rantrag.webAn' : 'welten.rantrag.webAus');
+    zeilen.push({ feld: t('welten.rantrag.web'), vorher: an(alt), nachher: an(web), plus: [], minus: [] });
+  }
+  return zeilen;
+}
+
+function rantragZeichnen(w: Welt, x: WeltRechteAntrag): HTMLElement {
+  const offen = rantragOffen(x);
+  const box = el('div', `wv-rantrag${offen ? ' offen' : ''}${x.stand === 'offen' && !offen ? ' abgelaufen' : ''}`);
+  box.dataset.id = x.id;
+  box.appendChild(el('div', 'wv-rantrag-kopf', t('welten.rantrag.kopf', { name: anzeigename(w, x.agent), stand: rantragStand(x) })));
+  const aenderung = el('div', 'wv-rantrag-aenderung');
+  const stufe = agentVon(w, x.agent)?.stufe ?? 'mitglied';
+  for (const z2 of rantragAenderung(x, dienstweg(stufe))) {
+    const zeile = el('div');
+    zeile.append(el('span', 'wv-rantrag-feld', `${z2.feld}: `), el('span', 'wv-rantrag-alt', z2.vorher), document.createTextNode(' → '), el('span', 'wv-rantrag-neu', z2.nachher));
+    aenderung.appendChild(zeile);
+    if (z2.plus.length || z2.minus.length) {
+      const d = el('div', 'wv-leise');
+      if (z2.plus.length) d.appendChild(el('span', 'wv-rantrag-plus', `+ ${z2.plus.join(', ')}`));
+      if (z2.plus.length && z2.minus.length) d.appendChild(document.createTextNode('  '));
+      if (z2.minus.length) d.appendChild(el('span', 'wv-rantrag-minus', `− ${z2.minus.join(', ')}`));
+      aenderung.appendChild(d);
+    }
+  }
+  if (aenderung.childElementCount) box.appendChild(aenderung);
+  if (x.grund) box.appendChild(wert(t('welten.rantrag.grund'), x.grund));
+  if (offen) {
+    const anMensch = x.an === 'mensch';
+    box.appendChild(el('div', 'wv-leise', anMensch ? t('welten.rantrag.anDich')
+      : t('welten.rantrag.entscheidet', { name: x.an ? anzeigename(w, x.an) : t('welten.antrag.derHauptagent') })));
+    if (x.laeuft_ab) box.appendChild(el('div', 'wv-leise', t('welten.rantrag.laeuftAb', { zeit: datumUhr(x.laeuft_ab) })));
+    if (!w.rechteantrag_entscheidbar) {
+      box.appendChild(el('div', 'wv-warnung wv-rantrag-nurlesen', t('welten.rantrag.nurLesen')));
+    } else {
+      const aus = z.laufend.has('rechte_antrag_entscheiden');
+      const zeile = el('div', 'wv-zeile-knoepfe');
+      zeile.append(feld('input', `rantrag:${x.id}`, z.rantragBemerkung.get(x.id) ?? '', t('welten.rantrag.bemerkungFeld')),
+        knopf(t('welten.rantrag.freigeben'), 'rantrag-freigeben', x.id, anMensch ? 'knopf-voll' : 'knopf-rand', aus),
+        knopf(t('welten.rantrag.ablehnen'), 'rantrag-ablehnen', x.id, 'knopf-rand', aus));
+      box.append(zeile, el('div', 'wv-leise', t('welten.rantrag.gespeichert')));
+    }
+  } else if (x.stand === 'offen') {
+    box.appendChild(el('div', 'wv-warnung', t('welten.rantrag.abgelaufen', { zeit: datumUhr(x.laeuft_ab) })));
+  } else if (x.stand === 'zurueckgezogen') {
+    box.appendChild(el('div', 'wv-leise', t('welten.rantrag.zurueckgezogen', { name: anzeigename(w, x.entschieden_von ?? x.agent), zeit: datumUhr(x.entschieden_am) })));
+  } else {
+    const durchDich = x.entschieden_von === 'mensch' || x.entschieden_von === 'alice';
+    box.appendChild(el('div', 'wv-leise', t(durchDich ? 'welten.rantrag.entschiedenDu' : 'welten.rantrag.entschieden', {
+      entscheidung: gross(x.entscheidung ? wort('rantrag.stand', x.entscheidung) : t('welten.rantrag.stand.beantwortet')),
+      name: x.entschieden_von ? anzeigename(w, x.entschieden_von) : '–', zeit: datumUhr(x.entschieden_am),
+    })));
+  }
+  if (x.bemerkung && x.stand !== 'offen') box.appendChild(el('div', 'wv-leise', t('welten.rantrag.bemerkung', { text: x.bemerkung })));
+  return box;
+}
+
+/** Die Karte „Rechteanträge“ der Welt; null ohne Antraege. */
+function rantragKarte(w: Welt): HTMLElement | null {
+  if (!w.rechteantraege.length) return null;
+  const k = karte(t('welten.rantrag.titel'));
+  k.classList.add('wv-rantragkarte');
+  for (const x of w.rechteantraege) k.appendChild(rantragZeichnen(w, x));
+  return k;
+}
+
 function inspektorZeichnen(w: Welt): HTMLElement {
   const box = el('aside', 'wv-inspektor');
   if (z.anlegen) { box.appendChild(anlegenVorschau(z.anlegen)); return box; }
@@ -2290,6 +2589,8 @@ function inspektorZeichnen(w: Welt): HTMLElement {
       k.appendChild(el('div', 'wv-leise', t('welten.antrag.entscheidet', { name: w.hauptagent ? anzeigename(w, w.hauptagent) : t('welten.antrag.derHauptagent') })));
       inhalt.appendChild(k);
     }
+    const rk = rantragKarte(w);
+    if (rk) inhalt.appendChild(rk);
     if (w.skills_fehler) inhalt.appendChild(el('div', 'wv-warnung', w.skills_fehler));
     box.appendChild(inhalt);
     return box;
@@ -2302,7 +2603,7 @@ function inspektorZeichnen(w: Welt): HTMLElement {
   else if (z.blatt === 'protokoll') {
     const k = karte(t('welten.blatt.protokoll'), el('div', 'wv-leise', t('welten.protokoll.hinweis', { name: a.name })));
     const eintraege = [
-      ...(a.verlauf as { time?: string; event?: string; note?: string }[]).map((e) => ({ zeit: e.time ?? '', text: `${wort('ereignis', e.event ?? '')}${e.note ? ` – ${e.note}` : ''}` })),
+      ...(a.verlauf as { time?: string; event?: string; note?: string; stand?: string }[]).map((e) => ({ zeit: e.time ?? '', text: `${wort('ereignis', e.event ?? '')}${e.event === 'rechte-antrag' && e.stand ? ` ${wort('rantrag.stand', e.stand)}` : ''}${e.note ? ` – ${e.note}` : ''}` })),
       ...w.tickets.flatMap((x) => x.verlauf.filter((e) => e.von === a.id).map((e) => ({ zeit: e.zeit, text: `${t('welten.protokoll.ticketEintrag', { ereignis: wort('ereignis', e.ereignis), titel: x.titel })}${e.text ? ` – ${e.text}` : ''}` }))),
     ].sort((x, y) => (x.zeit < y.zeit ? 1 : -1));
     for (const e of eintraege) k.appendChild(el('div', undefined, `${uhrzeit(e.zeit)} · ${e.text}`));
@@ -2333,12 +2634,21 @@ function profilBlatt(w: Welt, a: WeltAgent, inhalt: HTMLElement): void {
   pt.append(el('div', 'wv-titel', a.name), el('div', 'wv-leise', `${stufeWort(a.stufe)}${a.team ? ` · ${teamText(a.team)}` : ''}`), zeile);
   kopf.append(agentFigur(a, 64), pt);
   inhalt.appendChild(kopf);
+  const offeneRechte = w.rechteantraege.filter((x) => x.agent === a.id && rantragOffen(x)).length;
+  if (offeneRechte) {
+    const h = el('div', 'wv-rantrag-hinweis');
+    h.append(el('div', undefined, t(offeneRechte === 1 ? 'welten.rantrag.agentHinweisEins' : 'welten.rantrag.agentHinweisViele', { name: a.name, n: offeneRechte })),
+      knopf(t('welten.rantrag.zeigen'), 'waehlen', KANAL, 'wv-verweis'));
+    inhalt.appendChild(h);
+  }
   const lk = lebenszeichenKarte(w, a);
   if (lk) inhalt.appendChild(lk);
   const betrieb = karte(t('welten.profil.betrieb'));
   const schalter = el('div', 'wv-zeile-knoepfe');
   const pausiert = a.stand === 'pausiert';
-  schalter.append(el('span', undefined, t('welten.profil.schalter')), segment('pause-agent', pausiert ? `an:${a.id}` : `aus:${a.id}`, [[`aus:${a.id}`, wort('stand', 'läuft')], [`an:${a.id}`, wort('stand', 'pausiert')]]));
+  const pauseAgent = segment('pause-agent', pausiert ? `an:${a.id}` : `aus:${a.id}`, [[`aus:${a.id}`, wort('stand', 'läuft')], [`an:${a.id}`, wort('stand', 'pausiert')]]);
+  pauseBeschriften(pauseAgent, w, a);
+  schalter.append(el('span', undefined, t('welten.profil.schalter')), pauseAgent, ...pauseZusatz(w, a));
   betrieb.appendChild(schalter);
   if (a.stand !== 'gestoppt') betrieb.appendChild(knopf(t('welten.profil.stoppen'), 'stoppen', a.id, 'knopf-rand gefahr'));
   betrieb.appendChild(el('div', 'wv-leise', t('welten.profil.postfach', { n: a.postfach_offen, m: a.postfach_gesamt })));
@@ -2491,7 +2801,7 @@ function anlegenZeichnen(w: Welt, a: Anlegen): HTMLElement {
   };
   const { optionen: modelle, gesperrt } = modellOptionen(w, n.modelle, [e.modell, e.fallback]);
   const vorschlagZeile = el('div', 'wv-zeile-knoepfe');
-  vorschlagZeile.append(auswahlFeld('anlegen:modell-vorschlag', a.modell, (n.entwurf_modelle.length ? n.entwurf_modelle : ['sonnet5:high']).map((x): [string, string] => [x, x])),
+  vorschlagZeile.append(auswahlFeld('anlegen:modell-vorschlag', a.modell, (n.entwurf_modelle.length ? n.entwurf_modelle : ['sonnet:high']).map((x): [string, string] => [x, x])),
     knopf(t(z.laufend.has('vorschlag') ? 'welten.anlegen.vorschlagLaeuft' : 'welten.anlegen.vorschlagErzeugen'), 'vorschlag', '', 'knopf-rand', z.laufend.has('vorschlag')));
   abschnitt(t('welten.anlegen.beschreibung'), a.info || t('welten.anlegen.beschreibungFuss'),
     feld('textarea', 'anlegen:beschreibung', a.beschreibung, t('welten.anlegen.beschreibungPlatzhalter')), vorschlagZeile,
@@ -2615,7 +2925,7 @@ function gespraechZeichnen(w: Welt, a: Anlegen): HTMLElement {
     box.appendChild(hinweis);
   }
   const eing = el('div', 'wv-eingabe');
-  const modelle = (nutzlast?.entwurf_modelle.length ? nutzlast.entwurf_modelle : ['sonnet5:high']).map((x): [string, string] => [x, x]);
+  const modelle = (nutzlast?.entwurf_modelle.length ? nutzlast.entwurf_modelle : ['sonnet:high']).map((x): [string, string] => [x, x]);
   const wahl = auswahlFeld('anlegen:modell-vorschlag', a.modell, modelle);
   wahl.setAttribute('aria-label', t('welten.anlegen.gespraechModell'));
   const f = feld('textarea', 'anlegen:gespraech-eingabe', a.eingabe, t(a.verlauf.length ? 'welten.anlegen.gespraechAntwortPlatzhalter' : 'welten.anlegen.gespraechPlatzhalter'));
@@ -2659,6 +2969,28 @@ function vorschauZeichnen(): void {
   figurenAufraeumen();
 }
 
+/**
+ * Auftrag pausetext (10.10.2026): Die Pause friert einen laufenden Zug nicht ein (shell/agents_claude_lauf.py,
+ * `ClaudeZugLauncher`); er arbeitet zu Ende, danach startet keiner mehr, sofort haelt nur „Stoppen". Wer laut
+ * `status --nur-zug` gerade einen Zug hat -- fuer die Welt jeder Agent, fuer einen Agenten nur er.
+ */
+function laufendeZuege(w: Welt, a: WeltAgent | null): number {
+  return (a ? [a] : w.agenten).filter((x) => x.zug?.laeuft === true).length;
+}
+/** Der Hinweis am Schalter; mit laufendem Zug auch, dass er noch zu Ende arbeitet. */
+function pauseBeschriften(s: HTMLElement, w: Welt, a: WeltAgent | null): void {
+  const basis = a ? t('welten.pause.tippAgent', { a: a.name }) : t('welten.pause.tipp');
+  s.title = laufendeZuege(w, a) ? `${basis} ${t('welten.pause.tippZug')}` : basis;
+}
+/** Hinter „pausiert", solange ein Zug noch laeuft: „laufender Zug endet noch"; sonst nichts. */
+function pauseZusatz(w: Welt, a: WeltAgent | null): HTMLElement[] {
+  const n = laufendeZuege(w, a);
+  if ((a ? a.stand : w.stand) !== 'pausiert' || !n) return [];
+  const x = el('span', 'wv-leise wv-pause-zusatz', n === 1 ? t('welten.pause.zugEndet') : t('welten.pause.zuegeEnden', { n }));
+  x.title = t('welten.pause.tippZug');
+  return [x];
+}
+
 function kopfZeichnen(w: Welt): HTMLElement {
   const kopf = el('header', 'wv-kopfleiste');
   const kt = el('div', 'wv-kopf-titel');
@@ -2670,12 +3002,13 @@ function kopfZeichnen(w: Welt): HTMLElement {
   const pause = segment('pause', w.stand === 'pausiert' ? 'an' : 'aus', [['aus', wort('stand', 'läuft')], ['an', wort('stand', 'pausiert')]]);
   pause.classList.add('wv-pause');
   if (w.stand === 'gestoppt') pause.classList.add('aus');
+  pauseBeschriften(pause, w, null);
   const insp = knopf(t('welten.kopf.inspektor'), 'inspektor', '', 'knopf-schlicht', z.figuren);
   insp.setAttribute('aria-pressed', String(z.inspektor));
   const fig = knopf(t(z.figuren ? 'agents.figuren.zurueck' : 'agents.figuren'), 'figuren', '', 'knopf-schlicht wv-figuren-knopf');
   fig.title = t('agents.figuren.tipp');
   fig.setAttribute('aria-pressed', String(z.figuren));
-  rechts.append(zaehler, pause, fig, insp);
+  rechts.append(zaehler, pause, ...pauseZusatz(w, null), fig, insp);
   kopf.append(kt, rechts);
   return kopf;
 }
@@ -2748,6 +3081,14 @@ function zeichnen(): void {
       f.focus();
       if (fokus.start !== null && 'setSelectionRange' in f) { try { f.setSelectionRange(fokus.start, fokus.ende ?? fokus.start); } catch { /* select */ } }
     }
+  }
+  // Auftrag ticketboard: erst das gezeichnete Board kennt seine Breite. Ist sie eine andere
+  // als die, mit der es gezeichnet wurde, zeichnet es ein zweites Mal -- die Breite haengt
+  // nicht am Modus (das Board fuellt seine Spalte in beiden), also endet das nach einem Zug.
+  const brett = blatt.querySelector<HTMLElement>('.wv-board');
+  if (brett && !z.boardTestbreite) {
+    const gemessen = Math.round(brett.clientWidth);
+    if (gemessen > 0 && gemessen !== z.boardBreite) { z.boardBreite = gemessen; zeichnen(); return; }
   }
   figurenAufraeumen();
 }
@@ -2846,7 +3187,9 @@ export function weltenAufgaben(p: unknown): void {
     gemerkte_projekte: roh.gemerkte_projekte ?? [], bash_vorgabe: roh.bash_vorgabe ?? {},
     // Ein Kern ohne die Felder von agentsform: die Welten tragen sie dann leer.
     welten: roh.welten.map((x) => ({ ...x, modelle: x.modelle ?? null, maschine_vorgabe: x.maschine_vorgabe ?? '', skill_katalog: x.skill_katalog ?? { welt: [], bibliothek: [] },
-      web_zugang: x.web_zugang ?? false, rechte_aenderbar: x.rechte_aenderbar ?? false })),
+      web_zugang: x.web_zugang ?? false, rechte_aenderbar: x.rechte_aenderbar ?? false,
+      // Vertrag rantrag: ein Kern ohne Rechteantraege zeigt keine Karte und nichts zum Entscheiden.
+      rechteantraege: x.rechteantraege ?? [], rechteantrag_entscheidbar: x.rechteantrag_entscheidbar ?? false })),
   };
   zeichnen();
   const w = welt();
@@ -2900,7 +3243,7 @@ export function weltenUiState(): Record<string, unknown> {
     zeilen: [...(blatt?.querySelectorAll<HTMLElement>('.wv-zeilen [data-id]') ?? [])].map((x) => ({
       id: x.dataset.id ?? '', text: (x.querySelector('.wv-name')?.textContent ?? x.textContent ?? '').trim(),
       ungelesen: Number(x.querySelector('.wv-zahl')?.textContent ?? 0), figur: x.querySelector<HTMLCanvasElement>('canvas.agentenfigur')?.dataset.gestalt ?? '',
-      leben: (x.querySelector('.wv-leben')?.textContent ?? '').trim(), ring: x.querySelector<HTMLElement>('.wv-figur')?.dataset.ring ?? '',
+      leben: (x.querySelector('.wv-leben')?.textContent ?? '').trim(), lebenTitel: x.querySelector('.wv-leben')?.getAttribute('title') ?? null, ring: x.querySelector<HTMLElement>('.wv-figur')?.dataset.ring ?? '',
       figurZustand: x.querySelector<HTMLCanvasElement>('canvas.agentenfigur')?.dataset.zustand ?? '',
     })),
     kopfLeben: { text: text('.wv-mkopf .wv-unter'), ring: blatt?.querySelector<HTMLElement>('.wv-mkopf .wv-figur')?.dataset.ring ?? '' },
@@ -2911,7 +3254,8 @@ export function weltenUiState(): Record<string, unknown> {
     lebenszeichen: text('.wv-lebenszeichen'),
     inspektorRing: blatt?.querySelector<HTMLElement>('.wv-profilkopf .wv-figur')?.dataset.ring ?? '',
     ruhig: !!blatt?.classList.contains('ruhig'),
-    kopf: text('.wv-mkopf .wv-titel'), zaehler: text('[data-zaehler]'), pause: text('.wv-pause .gewaehlt'),
+    kopf: text('.wv-mkopf .wv-titel'), zaehler: text('[data-zaehler]'), pause: text('.wv-pause .gewaehlt'), pauseZusatz: text('.wv-kopf-rechts .wv-pause-zusatz'),
+    pauseTipp: blatt?.querySelector<HTMLElement>('.wv-pause')?.title ?? '', agentPauseZusatz: text('.wv-zeile-knoepfe .wv-pause-zusatz'),
     chat: [...(blatt?.querySelectorAll<HTMLElement>('.wv-verlauf > [data-id]') ?? [])].map((x) => ({
       id: x.dataset.id ?? '', art: x.classList.contains('wv-frage') ? 'frage' : 'nachricht', text: (x.querySelector('.wv-ntext')?.textContent ?? '').trim(),
       marke: (x.querySelector('.wv-marke')?.textContent ?? '').trim(), quittieren: !!x.querySelector('[data-w="quittieren"]'),
@@ -2930,6 +3274,11 @@ export function weltenUiState(): Record<string, unknown> {
       ordnen: !!x.dataset.ordnen,
     })),
     board: {
+      // Auftrag ticketboard: `modus` sagt, ob Spalten oder Reiter stehen, `schmal` die
+      // zusammengeklappten Spalten, `gewaehlt` den Stand der gestapelten Ansicht.
+      modus: (blatt?.querySelector<HTMLElement>('.wv-board')?.dataset.modus) ?? '',
+      schmal: [...(blatt?.querySelectorAll<HTMLElement>('.wv-board-spaltenkopf.schmal') ?? [])].map((x) => x.dataset.spalte ?? ''),
+      gewaehlt: (blatt?.querySelector<HTMLElement>('.wv-board-spaltenkopf.gewaehlt')?.dataset.spalte) ?? '',
       spalten: [...(blatt?.querySelectorAll<HTMLElement>('.wv-board-spaltenkopf') ?? [])].map((x) => x.dataset.spalte ?? ''),
       spaltenZahl: Object.fromEntries([...(blatt?.querySelectorAll<HTMLElement>('.wv-board-spaltenkopf') ?? [])].map((x) => [x.dataset.spalte ?? '', Number(x.dataset.anzahl ?? '0')])),
       wip: text('.wv-board-wip'),
@@ -2947,6 +3296,8 @@ export function weltenUiState(): Record<string, unknown> {
       bemerkung: z.ticketHandlung.bemerkung, duplikat: z.ticketHandlung.duplikat, an: z.ticketHandlung.an,
       pruefer: z.ticketHandlung.pruefer, art: z.ticketHandlung.kind, prioritaet: z.ticketHandlung.prioritaet,
       punkte: z.ticketHandlung.punkte, frist: z.ticketHandlung.frist, runden: z.ticketHandlung.runden,
+      dodGeprueft: z.ticketHandlung.dodGeprueft,
+      fehlt: w && z.ticketHandlung.handlung === 'abnehmen' ? abnahmeFehlt(z.ticketHandlung, w.dod) : null,
     } : null,
     handlungen: [...(blatt?.querySelectorAll<HTMLButtonElement>('[data-w="handlung"]') ?? [])].map((b) => (b.dataset.arg ?? '').split('|')[0] ?? ''),
     ticketFormular: z.neuesTicket ? { ...z.neuesTicket, bereitschaft: text('.wv-dor'), bereit: blatt?.querySelector<HTMLElement>('.wv-dor')?.dataset.bereit ?? '' } : null,
@@ -3016,6 +3367,16 @@ export function weltenUiState(): Record<string, unknown> {
       return b ? { frage: b.dataset.frage ?? '', optionen: [...(blatt?.querySelectorAll<HTMLButtonElement>('.wv-frageband-antwort [data-w="antworten"]') ?? [])].map((x) => x.dataset.arg ?? '') } : null;
     })(),
     antraege: w?.antraege.map((x) => x.id) ?? [],
+    // Vertrag rantrag: die gezeichnete Karte je Antrag und der Hinweis am Agenten.
+    rechteantraege: [...(blatt?.querySelectorAll<HTMLElement>('.wv-rantragkarte .wv-rantrag') ?? [])].map((x) => ({
+      id: x.dataset.id ?? '', offen: x.classList.contains('offen'), abgelaufen: x.classList.contains('abgelaufen'), text: (x.textContent ?? '').trim(),
+      knoepfe: [...x.querySelectorAll<HTMLButtonElement>('[data-w]')].map((b) => `${b.dataset.w}:${b.dataset.arg ?? ''}${b.disabled ? ':aus' : ''}`),
+      nurLesen: !!x.querySelector('.wv-rantrag-nurlesen'),
+    })),
+    rechteantragHinweis: text('.wv-rantrag-hinweis'),
+    fragenIds: w?.fragen.map((f) => f.id) ?? [],
+    inspektorText: text('.wv-iinhalt'),
+    rechteantraegeDaten: w?.rechteantraege.map((x) => ({ id: x.id, stand: x.stand, abgelaufen: x.abgelaufen, an: x.an })) ?? [],
     knoepfe: [...(blatt?.querySelectorAll<HTMLButtonElement>('[data-w]') ?? [])].slice(0, 400).map((b) => `${b.dataset.w}:${b.dataset.arg ?? ''}${b.disabled ? ':aus' : ''}`),
   };
 }
@@ -3058,7 +3419,12 @@ export function initWeltenView(b: WeltenBruecke): void {
       void handeln('gespraech-senden', '', ev.isTrusted);
     }
   });
-  window.addEventListener('resize', () => { if (sichtbarAn) lageSetzen(); });
+  window.addEventListener('resize', () => {
+    if (!sichtbarAn) return;
+    lageSetzen();
+    // Auftrag ticketboard: ein schmaleres Fenster kann das Board auf Reiter umstellen.
+    if (z.reiter === 'tickets' && z.ticketAnsicht === 'board') zeichnen();
+  });
   document.addEventListener('visibilitychange', sichtbarkeitMelden);
   b.daten?.().then((p) => { if (p) weltenAufgaben(p); }).catch(() => undefined);
 
@@ -3094,6 +3460,13 @@ export function initWeltenView(b: WeltenBruecke): void {
       return tippe('welt', x.pfad);
     },
     laufend: () => ({ laufend: [...z.laufend] }),
+    /** NUR FUER TESTS (Vertrag rantrag): ein gezeichnetes Element in den sichtbaren Bereich rollen, fuer Belegbilder. */
+    zeige: (selektor) => {
+      const x = d.querySelector<HTMLElement>(selektor);
+      if (!x) throw new Error(`kein Element ${selektor}`);
+      x.scrollIntoView({ block: 'start' });
+      return weltenUiState();
+    },
     /** `an|aus` -- die Vorschau der Agentenfiguren ueber den Knopf im Kopf. */
     figuren: (wert) => ((wert !== 'aus') !== z.figuren ? druecke('figuren') : weltenUiState()),
     /** `reduziert`, `normal` oder `system` -- „Bewegung reduzieren" ohne Systemeinstellung. */
@@ -3105,6 +3478,12 @@ export function initWeltenView(b: WeltenBruecke): void {
     },
     /** Auftrag agentaktiv: die Uhr einmal stellen, als waere eine Sekunde vergangen (Suiten warten sonst 30 s). */
     uhr: () => { uhrenStellen(); return weltenUiState(); },
+    /** NUR FUER TESTS (Auftrag ticketboard): die Breite, die das Board fuer sich hat; `0` misst wieder. */
+    breite: (wert) => {
+      z.boardTestbreite = Math.max(0, Math.round(Number(wert) || 0));
+      zeichnen();
+      return weltenUiState();
+    },
     /** `hidden|visible` -- das Fenster verbirgt sich oder erscheint wieder, wie beim Wechsel des Space. */
     fenster: (wert) => {
       Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (wert === 'hidden' ? 'hidden' : 'visible') });

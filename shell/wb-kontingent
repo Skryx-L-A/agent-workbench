@@ -119,11 +119,14 @@ hat keinen Fensteranfang, an dem ein Anteil verstreichen koennte; ein
 2 Stunden altes Abo mit 0.558 von 25 USD meldete dauerhaft KNAPP.) Die Spur
 gilt als erschoepft, wenn irgendein Fenster 100 Prozent erreicht, und als
 knapp, wenn die letzte-24-Stunden-Summe ueber dem Tagesanteil liegt. KNAPP
-sperrt NICHT -- es erscheint in `--knapp` und als Warnung in `pruefen`; die
-Marke steht am Anfang des hinweis ("KNAPP: ..."), weil der Vertrag fuer neue
-Eintragsfelder gesperrt ist (test-kontingent.sh -- 1 erzwingt die Feldmenge).
-Gelesen wird nur dieser feste, vom Sammler geschriebene Anfang, nur fuer die
-Warnzeile -- niemals fuer eine Sperr-Entscheidung.
+erscheint in `--knapp` und sperrt seit 2026-10-07 in `pruefen` (Exit 7): die
+Vergaberegel (regeln/vergabe.md Rang 3, Stand 2026-09-18) sagt "alle drei
+Fenster unter dem Tagesanteil; bei knapp faellt die Spur aus", und `pruefen`
+meldete bis dahin trotzdem 0. KNAPP ist gemessen (Summe der letzten 24 Stunden
+gegen den Cap), kein Raten -- Grundregel 1 bleibt gewahrt. Die Marke steht am
+Anfang des hinweis ("KNAPP: ..."), weil der Vertrag fuer neue Eintragsfelder
+gesperrt ist (test-kontingent.sh -- 1 erzwingt die Feldmenge); gelesen wird nur
+dieser feste, vom Sammler geschriebene Anfang.
 Jeder Fehler (kein Key, kein Netz, 401, Timeout 10s, unbrauchbare Antwort)
 ergibt einen Eintrag ohne Urteil mit gesetztem hinweis -- nie einen Absturz,
 nie ein erfundenes 'frei'. Testhaken: `WB_CLINE_USAGE_URL` (API-Basis
@@ -152,6 +155,8 @@ Rueckgabewerte von `pruefen`:
   6  Harness auf dieser Maschine nicht installiert
   4  lokales Modell nicht in Ollama vorhanden
   5  nachweislich nicht angemeldet (Abo-Spur ohne gueltiges Zeugnis)
+  7  Spur KNAPP gemessen (letzte 24 Stunden ueber dem Tagesanteil eines Fensters) --
+     seit 2026-10-07, regeln/vergabe.md Rang 3: "bei knapp faellt die Spur aus"
   2  Aufruffehler (falsche Argumente)
 """
 import argparse
@@ -535,6 +540,24 @@ def _zahl_oder_none(wert):
     return wert if isinstance(wert, (int, float)) and not isinstance(wert, bool) else None
 
 
+def codex_fenster_tage(sekunden):
+    """Fensterlaenge in Tagen als Text ("7", "30"), None wenn unbrauchbar."""
+    if not isinstance(sekunden, (int, float)) or isinstance(sekunden, bool) or sekunden <= 0:
+        return None
+    tage = sekunden / 86400.0
+    return "%d" % round(tage) if abs(tage - round(tage)) < 1e-6 else "%.1f" % tage
+
+
+def codex_fenster_einheit(sekunden):
+    """Beschriftung des langen Codex-Fensters aus limit_window_seconds.
+    7 Tage heissen wie bisher "Wochenfenster", jede andere Laenge "Zeitfenster
+    (rollend, N Tage)"; ohne Laenge der alte Wochentext (Rueckfall nur dafuer)."""
+    tage = codex_fenster_tage(sekunden)
+    if tage is None or tage == "7":
+        return "Wochenfenster (rollend, 7 Tage)"
+    return "Zeitfenster (rollend, %s Tage)" % tage
+
+
 def codex_usage_anwenden(e, antwort):
     """Traegt die Endpunkt-Antwort in den (von sammle_codex schon gefuellten)
     Eintrag ein -- ueberschreibt nur, was der Endpunkt sicherer beantwortet
@@ -589,7 +612,7 @@ def codex_usage_anwenden(e, antwort):
             k["verbraucht"] = verbraucht
             k["grenze"] = 100
             k["rest"] = max(0, 100 - verbraucht)
-            k["einheit"] = "Wochenfenster (rollend, 7 Tage)"
+            k["einheit"] = codex_fenster_einheit(sekundaer.get("limit_window_seconds"))
             k["quelle"] = quelle
         if sekundaer.get("reset_at") is not None:
             k["faellt_zurueck_am"] = rueckfall_iso(sekundaer)
@@ -609,7 +632,8 @@ def codex_usage_anwenden(e, antwort):
             e["erschoepft"] = False
 
         e["hinweis"] = (e.get("hinweis") or "").rstrip() + \
-            " Kontingent-Endpunkt erreichbar: 7-Tage-Fenster %s%%, 5-Stunden-Fenster %s%% (Plan: %s)." % (
+            " Kontingent-Endpunkt erreichbar: %s-Tage-Fenster %s%%, 5-Stunden-Fenster %s%% (Plan: %s)." % (
+                codex_fenster_tage(sekundaer.get("limit_window_seconds")) or "7",
                 verbraucht if isinstance(verbraucht, (int, float)) else "?",
                 kurz_verbraucht if isinstance(kurz_verbraucht, (int, float)) else "?",
                 plan or "?")
@@ -1641,6 +1665,13 @@ def cmd_auffrischen(args):
     return 0
 
 
+def _kurz(wert):
+    # Anzeige: Zahlen auf zwei Nachkommastellen, ohne nachlaufende Nullen; alles andere wortgetreu.
+    if isinstance(wert, float):
+        return ("%.2f" % wert).rstrip("0").rstrip(".")
+    return str(wert)
+
+
 def _lesbar(iso_zeit):
     return iso_zeit[:16].replace("T", " ") if iso_zeit else "unbekannt"
 
@@ -1672,7 +1703,7 @@ def _zeile(hid, e, beob=None):
         # KNAPP-Marke (2026-09-16, cline-pass): eine Spur, deren letzte 24
         # Stunden ueber dem Tagesanteil liegen, ist NICHT 'frei' -- dieselbe
         # feste Marke, die --knapp und pruefen lesen. Reine Anzeige, sperrt nichts.
-        zustand = "knapp (nicht gesperrt)" \
+        zustand = "KNAPP (gesperrt)" \
             if (e.get("hinweis") or "").startswith("KNAPP:") else "frei"
     elif e.get("art") == "lokal":
         # 'unbekannt' waere hier irrefuehrend: erschoepfen kann sich eine lokale
@@ -1683,13 +1714,27 @@ def _zeile(hid, e, beob=None):
         zustand = "unbekannt"
     rest = ""
     if k.get("rest") is not None:
-        rest = "%s %s" % (k["rest"], k.get("einheit") or "")
+        # Befund 2026-10-07: die Spalte zeigte "99.99220864 Prozent des 7-Tage-Fensters"
+        # -- das ist der REST, gelesen wurde es als Verbrauch am Deckel. Deshalb benannt
+        # und mit dem Verbrauch daneben.
+        rest = "Rest %s %s" % (_kurz(k["rest"]), k.get("einheit") or "")
+        if k.get("verbraucht") is not None:
+            rest += ", verbraucht %s" % _kurz(k["verbraucht"])
     elif k.get("verbraucht") is not None:
         rest = "%s %s verbraucht" % (k["verbraucht"], k.get("einheit") or "")
     elif k.get("art") == "keins":
         rest = "kein Kontingent"
     return "%-15s %-9s %-14s %-27s %s" % (
-        hid, e.get("art") or "?", e.get("plan") or "-", zustand, rest)
+        hid, _anzeige_art(hid, e), e.get("plan") or "-", zustand, rest)
+
+
+def _anzeige_art(hid, e):
+    """Die ART-Spalte von 'zeigen'. Codex mit gemessenem Plan free ist ein kostenloses
+    Kontingent (Rang 2, wie 'spur'); das Feld 'art' im Stand bleibt die Registry-Art,
+    weil 'pruefen' daran die Anmeldepruefung haengt."""
+    if hid == "codex" and str(e.get("plan") or "").strip().lower() == "free":
+        return "kostenlos"
+    return e.get("art") or "?"
 
 
 def cmd_zeigen(args):
@@ -1738,6 +1783,10 @@ def cmd_zeigen(args):
     print("%-15s %-9s %-14s %-27s %s" % ("HARNESS", "ART", "PLAN", "ZUSTAND", "KONTINGENT"))
     for hid in sorted(z["harnesses"]):
         print(_zeile(hid, z["harnesses"][hid], beobachtung_wirksam(z, hid)))
+    if any(" unbekannt " in _zeile(hid, z["harnesses"][hid], beobachtung_wirksam(z, hid))
+           for hid in z["harnesses"]):
+        print("Hinweis: 'unbekannt' heisst nicht gemessen, nicht frei -- vor einer Vergabe "
+              "'wb-kontingent auffrischen' ausfuehren.")
     zz = (z.get("zaehler") or {}).get("openrouter-frei") or {}
     if zz.get("tag") == _heutiger_tag_utc():
         verbraucht = zz.get("verbraucht") or 0
@@ -1790,6 +1839,65 @@ def _provider_von_modell(kennung, harness_id):
                 and (m.get("modelRef") or "") == kennung:
             return m.get("provider") or None
     return None
+
+
+def _modell_eintrag(kennung, harness_id):
+    """Registry-Eintrag fuer Modell-ID oder modelRef, soweit eindeutig.
+
+    Der Spawn kennt je nach Startweg eine Registry-ID oder den rohen modelRef.
+    Die Einordnung einer Spur muss deshalb dieselbe Aufloesung benutzen wie
+    pruefen(), statt eine zweite Modellliste im Starter zu pflegen.
+    """
+    _, modelle, _ = registry()
+    for m in modelle:
+        if isinstance(m, dict) and m.get("id") == kennung:
+            return m
+    for m in modelle:
+        if isinstance(m, dict) and m.get("harness") == harness_id \
+                and (m.get("modelRef") or "") == kennung:
+            return m
+    return None
+
+
+def codex_plan_frei():
+    """True, wenn der zuletzt gemessene Codex-Plan "free" ist (nur lesen, kein Netz)."""
+    z = lies_zustand() or {}
+    e = (z.get("harnesses") or {}).get("codex")
+    return isinstance(e, dict) and str(e.get("plan") or "").strip().lower() == "free"
+
+
+def cmd_spur(args):
+    """Druckt ``spur<TAB>klasse`` fuer den Worker-Starter.
+
+    Kostenlose Spuren sind absichtlich gemeinsame Kontingente. Alles andere
+    bleibt eine Abo-Spur, ausser die Registry belegt ein lokales Modell.
+    """
+    harnesses, _, providers = registry()
+    m = _modell_eintrag(args.modell, args.harness) if args.modell else None
+    harness = (m or {}).get("harness") or args.harness
+    provider = (m or {}).get("provider") or ""
+    model_ref = (m or {}).get("modelRef") or args.modell or ""
+    h = next((x for x in harnesses if x.get("id") == harness), None)
+    art = (kblock(h).get("art") or "").lower()
+
+    if harness == "agy":
+        spur, klasse = "agy", "kostenlos"
+    elif harness == "codex" and codex_plan_frei():
+        # Codex Free ist ein kostenloses Kontingent (Rang 2, regeln/vergabe.md),
+        # kein Abo: der Plan kommt aus den gemessenen Daten, nicht aus der Registry.
+        spur, klasse = "codex", "kostenlos"
+    elif provider == "openrouter" and model_ref.endswith(":free"):
+        spur, klasse = "openrouter-frei", "kostenlos"
+    elif harness == "copilot-cloud" or provider == "github-copilot":
+        spur, klasse = "copilot-cloud", "kostenlos"
+    elif provider_kind(provider, providers) == "local" or art == "lokal":
+        spur, klasse = harness or provider or "lokal", "lokal"
+    else:
+        # Cline Pass haengt als Abo-Spur am Provider, alle anderen an ihrem
+        # Harness. Die Registry bleibt damit die einzige Zuordnungstabelle.
+        spur, klasse = (provider if provider == "cline-pass" else harness), "abo"
+    print("%s\t%s" % (spur or "unbekannt", klasse))
+    return 0
 
 
 def cmd_pruefen(args):
@@ -1868,7 +1976,7 @@ def cmd_pruefen(args):
     # dieser Spur, nicht am Harness. Allgemein ueber die Provider-Kennung:
     # fuehrt der Provider eine eigene Spur im Stand, wird deren Urteil ZUSAETZLICH
     # angewendet -- erschoepft sperrt wie eine erschoepfte Spur (Exit 3),
-    # KNAPP warnt und sperrt nicht. Der Harness-Eintrag selbst bleibt unberuehrt.
+    # KNAPP sperrt seit 2026-10-07 mit Exit 7. Der Harness-Eintrag selbst bleibt unberuehrt.
     if args.modell:
         provider_id = _provider_von_modell(args.modell, args.harness)
         spur = (z.get("harnesses") or {}).get(provider_id) if provider_id else None
@@ -1880,10 +1988,11 @@ def cmd_pruefen(args):
                      k.get("quelle") or "?"), file=sys.stderr)
             return 3
         if isinstance(spur, dict) and (spur.get("hinweis") or "").startswith("KNAPP:"):
-            print("wb-kontingent: WARNUNG -- Modell '%s' faehrt ueber die Spur '%s', deren "
-                  "letzte 24 Stunden ueber dem Tagesanteil liegen (knapp, nicht "
-                  "erschoepft): %s" % (args.modell, provider_id, spur["hinweis"]),
+            print("wb-kontingent: Modell '%s' faehrt ueber die Spur '%s', deren letzte 24 "
+                  "Stunden ueber dem Tagesanteil liegen (knapp) -- kein Start, die Spur faellt "
+                  "laut Vergaberegel aus: %s" % (args.modell, provider_id, spur["hinweis"]),
                   file=sys.stderr)
+            return 7
 
     if args.modell:
         ref = _finde_modell(args.modell, args.harness)
@@ -1900,14 +2009,15 @@ def cmd_pruefen(args):
             if frei is not None and frei < 4096:
                 print("wb-kontingent: WARNUNG -- nur %d MiB frei; ein grosses lokales Modell "
                       "verdraengt hier moeglicherweise ein anderes." % frei, file=sys.stderr)
-    # KNAPP-Warnung (2026-09-16, cline-pass): die letzte-24-Stunden-Summe ueber
-    # dem Tagesanteil, aber nicht erschoepft -- dieselbe feste Marke, die
-    # `--knapp` ausgibt. Warnung, kein Riegel: nur ein echter Nachweis
-    # (erschoepft oben) sperrt.
+    # KNAPP (2026-09-16 als Warnung, seit 2026-10-07 Sperre): die letzte-24-Stunden-
+    # Summe ueber dem Tagesanteil, aber nicht erschoepft -- dieselbe feste Marke, die
+    # `--knapp` ausgibt. Die Vergaberegel (regeln/vergabe.md Rang 3) laesst die Spur
+    # dann ausfallen; als blosse Warnung meldete `pruefen` Exit 0 und galt als frei.
     if (e.get("hinweis") or "").startswith("KNAPP:"):
-        print("wb-kontingent: WARNUNG -- Harness '%s' verbraucht in den letzten 24 Stunden "
-              "mehr als den Tagesanteil (knapp, nicht erschoepft): %s"
+        print("wb-kontingent: Harness '%s' verbraucht in den letzten 24 Stunden mehr als "
+              "den Tagesanteil (knapp) -- kein Start, die Spur faellt laut Vergaberegel aus: %s"
               % (args.harness, e["hinweis"]), file=sys.stderr)
+        return 7
     return 0
 
 
@@ -2078,7 +2188,9 @@ def freier_speicher_mib():
 
 def main():
     ap = argparse.ArgumentParser(prog="wb-kontingent", add_help=True,
-                                 description="Plan, nutzbare Modelle und Restkontingent je Harness.")
+                                 description=("Plan, nutzbare Modelle und Restkontingent je Harness. "
+                                              "'unbekannt' heisst nicht gemessen, nicht frei: vor einer "
+                                              "Vergabe 'wb-kontingent auffrischen' ausfuehren."))
     # Top-level statt Unterbefehl, weil der SessionStart-Hook genau diesen einen
     # Aufruf macht ('wb-kontingent --knapp') und keinen Unterbefehl parsen muss.
     ap.add_argument("--knapp", action="store_true",
@@ -2100,6 +2212,11 @@ def main():
     p.add_argument("harness")
     p.add_argument("modell", nargs="?")
     p.set_defaults(fn=cmd_pruefen)
+
+    p = sub.add_parser("spur", help="Registry-Spur fuer einen Worker bestimmen (intern: Spur<TAB>Klasse)")
+    p.add_argument("harness")
+    p.add_argument("modell", nargs="?")
+    p.set_defaults(fn=cmd_spur)
 
     p = sub.add_parser("pfad", help="Pfad der Zustandsdatei")
     p.set_defaults(fn=lambda a: (print(STATE_FILE), 0)[1])
