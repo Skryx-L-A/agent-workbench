@@ -62,7 +62,7 @@ app/         the workbench itself — Electron main process, preload bridges, re
 extension/   16 modules the app imports rather than duplicates. They started life in a
              VS Code extension and still carry its directory name; there is exactly one copy
              of each, and this is it
-shell/       137 command-line tools: worker spawners, context guard, model registry,
+shell/       140 command-line tools: worker spawners, context guard, model registry,
              session management, budget and quota, the agents' data library and carrier,
              cross-machine helpers. Which of them ship here is worked out at build time — the
              tools the app itself calls, plus everything those call in turn — because a
