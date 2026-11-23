@@ -1,8 +1,31 @@
-# Only the pinned GitHub Actions are kept current. There are no version update pull requests
-# for packages: dependencies change when the maintainer decides to change them.
+# Dependabot reads this file only on the default branch (main). The entries with target-branch
+# keep development current as well. Cargo updates exist only for development, which holds the
+# Rust workspace in rust/. A Dependabot pull request is taken over as a patch like any other.
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: development
+    schedule:
+      interval: monthly
+  - package-ecosystem: cargo
+    directory: /rust
+    target-branch: development
+    schedule:
+      interval: monthly
+    groups:
+      cargo:
+        patterns:
+          - "*"
+  - package-ecosystem: npm
+    directory: /app
+    schedule:
+      interval: monthly
+    groups:
+      npm:
+        patterns:
+          - "*"

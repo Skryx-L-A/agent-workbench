@@ -1,0 +1,35 @@
+name: Question
+description: A question that is about this repository and does not fit Discussions.
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Most questions are answered faster in Discussions (see SUPPORT.md). Use this form when the
+        question points at something in the repository that may need a change, such as unclear
+        documentation. Please remove secrets, access tokens and personal data from everything you
+        paste here.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What you want to know, and what you already tried or read.
+    validations:
+      required: true
+  - type: dropdown
+    id: branch
+    attributes:
+      label: Branch
+      options:
+        - main
+        - development
+        - not sure
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: The file, command or section the question is about, if any.
+    validations:
+      required: false

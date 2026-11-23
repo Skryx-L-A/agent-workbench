@@ -1,0 +1,95 @@
+# Checks that run without a live machine: syntax of every shell and Python script, ShellCheck at
+# error level, and the type check and build of the window in app/. The full test run needs tmux
+# sessions, harnesses and a second machine; it runs in the source tree before a state is published.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scripts:
+    name: shell and python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+      - name: Find scripts
+        run: |
+          export LC_ALL=C
+          : > shell-files
+          : > python-files
+          git ls-files -z | while IFS= read -r -d '' f; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              *.py) printf '%s\0' "$f" >> python-files; continue ;;
+              *.sh) printf '%s\0' "$f" >> shell-files; continue ;;
+            esac
+            first="$(head -n 1 -- "$f" 2>/dev/null | tr -d '\0')" || first=""
+            second="$(sed -n 2p -- "$f" 2>/dev/null | tr -d '\0')" || second=""
+            # A /bin/sh head that hands over to Python ("true" ''' on line 2) is a Python file.
+            case "$second" in
+              '"true" '"'''"*) printf '%s\0' "$f" >> python-files; continue ;;
+            esac
+            case "$first" in
+              '#!'*python*) printf '%s\0' "$f" >> python-files ;;
+              '#!'*bash*|'#!/bin/sh'*|'#!/usr/bin/env sh'*) printf '%s\0' "$f" >> shell-files ;;
+            esac
+          done
+          echo "shell scripts: $(tr -cd '\0' < shell-files | wc -c)"
+          echo "python scripts: $(tr -cd '\0' < python-files | wc -c)"
+      - name: Shell syntax (bash -n)
+        run: xargs -0 -r -n1 bash -n < shell-files
+      - name: ShellCheck (errors only)
+        run: |
+          shellcheck --version
+          xargs -0 -r shellcheck --severity=error --shell=bash < shell-files
+      - name: Python syntax
+        run: |
+          python3 - <<'PY'
+          import sys
+          names = [n for n in open("python-files", encoding="utf-8").read().split("\0") if n]
+          bad = 0
+          for name in names:
+              try:
+                  compile(open(name, "rb").read(), name, "exec")
+              except SyntaxError as e:
+                  bad += 1
+                  print(f"::error file={name},line={e.lineno or 1}::{e.msg}")
+          print(f"{len(names)} files, {bad} with a syntax error")
+          sys.exit(1 if bad else 0)
+          PY
+
+  app:
+    name: window (app/)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+      - name: Install (no install scripts, no Electron download)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Type check
+        run: npm run typecheck
+      - name: Build
+        run: npm run build

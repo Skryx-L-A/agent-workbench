@@ -21,6 +21,15 @@ body:
       description: The shortest sequence that shows the problem.
     validations:
       required: true
+  - type: dropdown
+    id: branch
+    attributes:
+      label: Branch
+      options:
+        - main
+        - development
+    validations:
+      required: true
   - type: input
     id: version
     attributes:

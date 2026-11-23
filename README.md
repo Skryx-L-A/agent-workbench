@@ -43,16 +43,30 @@ terminal panes replay an invented session, and nothing in them belongs to a real
 - **Agents on Claude Code or Codex.** A Codex agent's turn runs with the same profile limits and
   tool policy as a Claude agent's, authenticated through the host's model proxy.
 
-## The three repositories
+## Branches
 
-| Repository | What it is | Take it if |
-|---|---|---|
-| **agent-workbench** (this one) | The window, the core and the tools it needs to run | you want the workbench and bring your own agent configuration |
-| **[agent-workbench-mac](https://github.com/Skryx-L-A/agent-workbench-mac)** | A native macOS shell (SwiftUI and AppKit) around the same core | you are on a Mac and prefer a real application over an Electron window |
-| **[agent-setup](https://github.com/Skryx-L-A/agent-setup)** | The whole setup: rules, skills, hooks, roles, an empty knowledge vault, and the workbench | you want the setup as it is actually used |
+- `main` (this branch) is the tested workbench. It is updated only after the full test run of
+  the source tree has passed for exactly the state that is published.
+- `development` is the product being built: the Rust rebuild in `rust/` and what it needs to
+  build, test, run and package. It is updated after the Rust gates have passed. It is a work in
+  progress and not released for production use.
+- Both branches are licensed under the Business Source License 1.1, see [License](#license).
+  Pull requests go against `development`, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-All three are built from the same private source tree by the same script, so they do not drift
-apart.
+The earlier repositories [agent-workbench-mac](https://github.com/Skryx-L-A/agent-workbench-mac)
+and [agent-setup](https://github.com/Skryx-L-A/agent-setup) are no longer updated.
+
+## Zweige
+
+- `main` (dieser Zweig) ist die getestete Werkbank. Er wird nur aktualisiert, wenn der volle
+  Testlauf des Quellbaums für genau den veröffentlichten Stand bestanden hat.
+- `development` ist das entstehende Produkt: der Neubau in Rust unter `rust/` und was er zum
+  Bauen, Testen, Betreiben und Paketieren braucht. Er wird nach bestandenen Rust-Toren
+  aktualisiert. Er ist in Arbeit und nicht für den Betrieb freigegeben.
+- Beide Zweige stehen unter der Business Source License 1.1, siehe [License](#license).
+  Pull Requests gehen gegen `development`, siehe [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Die früheren Repositories agent-workbench-mac und agent-setup werden nicht mehr gepflegt.
 
 ## What is in here
 
@@ -166,16 +180,21 @@ the steps is a reasonable way to do it, and it is how the setup is meant to spre
 
 ## License
 
-Source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE).
+Source-available under the [Business Source License 1.1](LICENSE) with an additional use grant.
+Each version also becomes available under the Apache License 2.0 two years after it is first
+published.
 
-- **Free to use** for personal and other noncommercial purposes, for study and
-  research, by educational, public and nonprofit institutions, and by individuals
-  for their own work, including professional work as freelancer or employee.
-  Organizations may evaluate the software for 60 days. Details:
-  [ADDITIONAL-PERMISSIONS.md](ADDITIONAL-PERMISSIONS.md).
-- **Commercial license required** for use by an organization, such as rolling it
-  out to staff, operating it for others or building it into a product or service:
-  [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).
-- Versions up to the tag `last-agpl` remain available under AGPL-3.0-only.
-
-Contributions: see [CONTRIBUTING.md](CONTRIBUTING.md).
+- **Free to use for everyone**, including companies: at work, in production, within an
+  organization and for paid work you do with its help.
+- **Free to pass on to your customers**, also adapted to a customer and also for payment.
+  Setting it up, hosting, operating, supporting and teaching it for customers is free for
+  everyone, also for payment.
+- **Partner agreement required** only for offering it to more than one customer under your own
+  product name or built into a product under another name; without one, such an offering may not
+  be run or hosted, and its customers may not use it in production. Offers to more than one
+  customer carry the attribution that COMMERCIAL-LICENSE.md gives. Details: [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md),
+  German reading version of the license: [LICENSE-de.md](LICENSE-de.md).
+- Earlier versions keep their license: up to the tag `last-agpl` they
+  remain available under AGPL-3.0-only, up to the tag `last-polyform` under PolyForm
+  Noncommercial 1.0.0 with additional permissions.
+- Only the text in [LICENSE](LICENSE) is binding.
