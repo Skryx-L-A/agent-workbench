@@ -186,7 +186,7 @@ fn gehoert_root(eigentuemer: u32) {
     );
     assert!(
         matches!(eigentuemer, 0 | 65534),
-        "the files of /proc/<pid> belong to root, not to {eigentuemer}"
+        "the files of /proc/<pid> belong neither to root (0) nor to the unmapped root (65534)"
     );
 }
 

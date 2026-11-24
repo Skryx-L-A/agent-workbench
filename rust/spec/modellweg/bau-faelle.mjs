@@ -966,7 +966,9 @@ function baueKopf() {
   }
   if (ZL_TEXT.includes(MARKE)) abbruch('Marke in der Zielliste');
   const vorf = ziele.find((z) => z.name === 'vorfuehrung');
-  if (vorf.erwartet.ca_erlaubte_namen.length !== ZL_VORF.ziele.length || !vorf.erwartet.ca_erlaubte_namen.includes('exp.individual.githubcopilot.com') || !vorf.erwartet.ca_erlaubte_namen.includes('telemetry.individual.githubcopilot.com')) abbruch('CA-Namen ohne ungebundene Ziele (F3)');
+  // Die Namen sind eine Liste von Hosts: Vergleich je Eintrag auf Gleichheit, nie als Teil eines Textes
+  const vorfNamen = new Set(vorf.erwartet.ca_erlaubte_namen);
+  if (vorf.erwartet.ca_erlaubte_namen.length !== ZL_VORF.ziele.length || !['exp.individual.githubcopilot.com', 'telemetry.individual.githubcopilot.com'].every((h) => vorfNamen.has(h))) abbruch('CA-Namen ohne ungebundene Ziele (F3)');
 
   // Tunnel
   const con = (ziel, kopf = []) => `CONNECT ${ziel} HTTP/1.1\r\nHost: ${ziel}\r\n${kopf.map(([k, v]) => `${k}: ${v}\r\n`).join('')}\r\n`;

@@ -519,7 +519,10 @@ fn the_process_is_not_dumpable() {
     // Root, or 65534 where root is not mapped (inside the user namespace of the enclosure of the hand mutants); never the user.
     let ich = fs::metadata("/proc/self").expect("own entry").uid();
     assert_ne!(meta.uid(), ich, "the process is dumpable");
-    assert!(matches!(meta.uid(), 0 | 65534), "owner {}", meta.uid());
+    assert!(
+        matches!(meta.uid(), 0 | 65534),
+        "the owner is neither root (0) nor the unmapped root (65534)"
+    );
 }
 
 #[test]

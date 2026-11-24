@@ -10,8 +10,36 @@ from __future__ import annotations
 import http.client
 import json
 import os
+import re
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+# Name einer Sitzung: nur ASCII-Buchstaben, Ziffern, `-`, `.` und `_`, beginnt mit Buchstabe oder Ziffer (also nie `..` oder `/`).
+_SITZUNG = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
+# Content-Type, den der Weiterreicher an den Agenten zurueckgibt: nur aus dieser Liste, sonst application/json.
+_TYPEN = ("application/json", "text/event-stream")
+
+
+def zaehlpfad(wurzel, sitzung):
+    """Gibt den Pfad `<wurzel>/<sitzung>.modellweg.json` oder None. None, wenn der Name nicht passt, der normalisierte Pfad nicht
+    direkt in der Wurzel liegt oder an seiner Stelle oder der Stelle der Zwischendatei `.neu` ein Link steht."""
+    if not isinstance(sitzung, str) or not _SITZUNG.match(sitzung):
+        return None
+    wurzel = os.path.realpath(wurzel)
+    pfad = os.path.realpath(os.path.join(wurzel, sitzung + ".modellweg.json"))
+    if not pfad.startswith(wurzel + os.sep) or os.path.dirname(pfad) != wurzel:
+        return None
+    if os.path.islink(pfad) or os.path.islink(pfad + ".neu"):
+        return None
+    return pfad
+
+
+def antworttyp(wert):
+    """Gibt den Content-Type der Antwort aus der festen Liste `_TYPEN`; jeder andere Wert (auch einer mit CR/LF) wird application/json."""
+    for t in _TYPEN:
+        if wert == t:
+            return t
+    return "application/json"
 
 
 def starte(zaehlordner, marker, gateway_adresse, schluessel, bind=("127.0.0.1", 0), fehler=(), protokollordner=None,
@@ -49,6 +77,9 @@ def starte(zaehlordner, marker, gateway_adresse, schluessel, bind=("127.0.0.1", 
     erste = []
 
     def zaehle(sitzung, body):
+        pfad = zaehlpfad(zaehlordner, sitzung)
+        if pfad is None:
+            return  # kein erlaubter Name in der Wurzel: nicht zaehlen, nichts schreiben
         with lock:
             if not erste:
                 erste.append(sitzung)
@@ -58,8 +89,8 @@ def starte(zaehlordner, marker, gateway_adresse, schluessel, bind=("127.0.0.1", 
                 z["marker"][m] += body.count(m.encode("utf-8"))
             if "s5-zaehldatei-mit-text" in fehler and betriebsart == "openai-lokal" and sitzung == erste[0]:  # Mutationsprobe: die erste Sitzung mit Zaehlung traegt Text
                 z["text"] = body[:20].decode("utf-8", "replace")
-            pfad = os.path.join(zaehlordner, sitzung + ".modellweg.json")
-            with open(pfad + ".neu", "w", encoding="utf-8") as f:
+            fd = os.open(pfad + ".neu", os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0), 0o666)
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(z, f)
             os.replace(pfad + ".neu", pfad)
 
@@ -84,7 +115,7 @@ def starte(zaehlordner, marker, gateway_adresse, schluessel, bind=("127.0.0.1", 
                 self.end_headers()
                 self.wfile.write(b)
                 return
-            if sitzung and all(c.isalnum() or c in "-._" for c in sitzung):
+            if sitzung and zaehlpfad(zaehlordner, sitzung) is not None:
                 if betriebsart == "kopf-einsetzen" and "cloud-zaehlung-unbelegt" in fehler:
                     zaehle(sitzung, b"")  # Mutationsprobe: die Anfragen zaehlen (auch die Upgrade-Anfrage), aber kein Marker
                 else:
@@ -105,7 +136,7 @@ def starte(zaehlordner, marker, gateway_adresse, schluessel, bind=("127.0.0.1", 
             roh = r.read()
             c.close()
             self.send_response(r.status)
-            self.send_header("Content-Type", r.getheader("Content-Type", "application/json"))
+            self.send_header("Content-Type", antworttyp(r.getheader("Content-Type", "application/json")))
             self.send_header("Content-Length", str(len(roh)))
             self.end_headers()
             self.wfile.write(roh)

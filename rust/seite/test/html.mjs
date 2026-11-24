@@ -101,7 +101,8 @@ for (let c = 1; c <= 256; c++) {
 for (let fl = 1; fl < 128; fl++) for (const k of html([[0, 0, fl, 'x']])[0].klassen) klassen.add(k);
 for (const k of klassen) {
   pruefungen++;
-  assert.ok(new RegExp(`\\.${k.replace(/[-]/g, '\\-')} \\{`).test(cssText), `Klasse ${k} fehlt in raster.css`);
+  // Jedes Sonderzeichen eines regulaeren Ausdrucks maskieren, auch den Backslash
+  assert.ok(new RegExp(`\\.${k.replace(/[\\^$.*+?()[\]{}|\/-]/g, '\\$&')} \\{`).test(cssText), `Klasse ${k} fehlt in raster.css`);
 }
 
 console.log(`html: ${einzel} einzelne SGR-Nummern und Farben, ${TEXTE.length} Texte in je drei Stilen, ${klassen.size} Klassen in raster.css, ${pruefungen} Pruefungen, alles gleich`);
