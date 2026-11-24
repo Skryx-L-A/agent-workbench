@@ -166,7 +166,9 @@ gate_fmt() {
 
 gate_clippy() {
   need cargo || return
-  cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+  cargo clippy --workspace --all-targets --all-features --locked -- -D warnings || return
+  # The delivered build has no features: code behind `#[cfg(not(feature = ...))]` is linted only here.
+  cargo clippy --workspace --all-targets --locked -- -D warnings
 }
 
 # Crates whose program has seams of the test build (feature `pruefbau`); `tests/naht.rs` of each also runs without

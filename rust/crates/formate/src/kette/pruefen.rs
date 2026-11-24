@@ -1003,6 +1003,40 @@ mod tests {
     }
 
     #[test]
+    fn a_host_may_carry_digits_and_hyphens_inside_a_label() {
+        for gut in [
+            "api-2.beispiel.invalid",
+            "a1b.c-d.invalid",
+            "x9.beispiel.invalid",
+        ] {
+            let mut map = mw2();
+            map.insert("host".to_owned(), json!(gut));
+            assert!(modellweg_form(&map), "{gut}");
+        }
+        for falsch in [
+            "-a.beispiel.invalid",
+            "a-.beispiel.invalid",
+            "a_b.beispiel.invalid",
+        ] {
+            let mut map = mw2();
+            map.insert("host".to_owned(), json!(falsch));
+            assert!(!modellweg_form(&map), "{falsch}");
+        }
+    }
+
+    #[test]
+    fn a_token_count_stays_within_u32() {
+        for feld in ["token_ein", "token_aus"] {
+            let mut ok = mw1();
+            ok.insert(feld.to_owned(), json!(4_294_967_295_u64));
+            assert!(modellweg_form(&ok), "{feld} u32::MAX");
+            let mut zu_gross = mw1();
+            zu_gross.insert(feld.to_owned(), json!(4_294_967_296_u64));
+            assert!(!modellweg_form(&zu_gross), "{feld} u32::MAX + 1");
+        }
+    }
+
+    #[test]
     fn a_path_in_a_line_carries_no_query_and_no_encoding() {
         for gut in [
             "*",

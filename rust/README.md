@@ -21,7 +21,7 @@ All gates run through one script. Each gate has its own exit code.
 | Command | Checks | Red when |
 | --- | --- | --- |
 | `./gates.sh fmt` | `cargo fmt --all --check` | a file is not formatted |
-| `./gates.sh clippy` | `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings` | any lint warns |
+| `./gates.sh clippy` | `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`, then the same without `--all-features` (the delivered build) | any lint warns |
 | `./gates.sh test` | `cargo test --workspace --all-targets --all-features --locked --no-fail-fast` | a test fails |
 | `./gates.sh licenses` | `cargo deny check licenses bans sources`, then one CycloneDX SBOM per crate in `sbom/` | a licence is not allowed, a source is not crates.io, a crate is duplicated, or an SBOM is missing |
 | `./gates.sh notices` | every row of "Code taken from other projects" below: the notice file or file head exists, names the licence and the source file, and both are in `cargo package --list`; a file under `crates/*/src` with a foreign licence head must have a row; a crate with a bin target and a row builds its bins and runs each with `--licenses`: exit 0, and each notice file of its rows is in the output byte for byte | a notice is missing, names another licence, is not packaged, or foreign code has no row; a program exits non-zero on `--licenses` or its output lacks a notice |
