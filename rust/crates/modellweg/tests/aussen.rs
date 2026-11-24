@@ -762,6 +762,68 @@ fn a_socket_folder_that_is_a_link_ends_the_start_with_74() {
 }
 
 #[test]
+fn a_link_above_the_folder_of_the_socket_ends_the_start_with_74() {
+    let w = Wegwerf::neu("ueber");
+    let schluessel = w.schluessel(format!("{SCHLUESSEL}\n").as_bytes());
+    // `echt/unten` is the real folder of the socket, `lnk` a link to `echt`: in the socket path
+    // `…/lnk/unten/m.sock` the link stands above the folder of the socket (contract 8, step 7, part a).
+    let echt = w.pfad("echt");
+    let unten = echt.join("unten");
+    // Each folder gets its rights of its own: step 7 of another test sets the umask of the **whole** process to 0177
+    // for the length of its bind, and a folder made in that moment would have no `x` (measured 24.11.2026: the
+    // `create_dir_all` of this test ended with `EACCES` while another test was in step 7).
+    for d in [&echt, &unten] {
+        fs::create_dir(d).expect("folder");
+        fs::set_permissions(d, fs::Permissions::from_mode(0o700)).expect("chmod");
+    }
+    std::os::unix::fs::symlink(&echt, w.pfad("lnk")).expect("link");
+    let a = argv(
+        &w.pfad("lnk").join("unten").join("m.sock"),
+        "http://127.0.0.1:9/v1",
+        &schluessel,
+        &w.protokoll(),
+    );
+    let (exit, out, err) = lauf_bis_ende(&a);
+    assert_eq!(
+        (exit, out.as_slice(), err.as_slice()),
+        (
+            74,
+            &b""[..],
+            &b"mw.socket_belegt: Socket belegt oder nicht anlegbar\n"[..]
+        )
+    );
+    assert_eq!(fs::read_dir(&unten).expect("dir").count(), 0, "no socket");
+}
+
+#[test]
+fn a_socket_folder_other_users_may_write_into_ends_the_start_with_74() {
+    let w = Wegwerf::neu("offen");
+    let schluessel = w.schluessel(format!("{SCHLUESSEL}\n").as_bytes());
+    // The window between the bind and the check stays closed only while no other user may write into the folder
+    // (contract 8, step 7, part b), so a folder with a `w` for others ends the start before the bind.
+    let offen = w.pfad("o");
+    fs::create_dir(&offen).expect("folder");
+    fs::set_permissions(&offen, fs::Permissions::from_mode(0o777)).expect("chmod");
+    let socket = offen.join("m.sock");
+    let a = argv(
+        &socket,
+        "http://127.0.0.1:9/v1",
+        &schluessel,
+        &w.protokoll(),
+    );
+    let (exit, out, err) = lauf_bis_ende(&a);
+    assert_eq!(
+        (exit, out.as_slice(), err.as_slice()),
+        (
+            74,
+            &b""[..],
+            &b"mw.socket_belegt: Socket belegt oder nicht anlegbar\n"[..]
+        )
+    );
+    assert!(!socket.exists(), "nothing was bound");
+}
+
+#[test]
 fn the_key_is_in_no_argument_and_no_environment() {
     let l = Lauf::start("http://127.0.0.1:9/v1");
     let pid = l.p.pid();
@@ -843,12 +905,196 @@ fn the_end_of_the_parent_ends_the_model_path() {
         .trim()
         .parse()
         .expect("pid");
-    let ende = Instant::now() + FRIST;
-    while std::path::Path::new(&format!("/proc/{pid}")).exists() && !zombie(pid) {
-        assert!(Instant::now() < ende, "the model path outlived its parent");
-        std::thread::sleep(Duration::from_millis(10));
-    }
+    warte_ende(pid, "the model path outlived its parent");
     assert!(!socket.exists());
+}
+
+/// Waits at most [`FRIST`] for the end of `pid` and fails with `grund` if it stays. A process this test does not wait
+/// for becomes a zombie until its new parent reaps it, so a zombie counts as ended. A process that stayed is killed
+/// before the failure: a broken program or a mutant must leave no orphan behind (incident 21.11.2026, nine test
+/// children over seven hours).
+#[cfg(target_os = "linux")]
+fn warte_ende(pid: i32, grund: &str) {
+    let ende = Instant::now() + FRIST;
+    let mut geendet = false;
+    while !geendet {
+        geendet = !std::path::Path::new(&format!("/proc/{pid}")).exists() || zombie(pid);
+        if Instant::now() > ende {
+            break;
+        }
+        if !geendet {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+    if !geendet && let Some(p) = rustix::process::Pid::from_raw(pid) {
+        let _ = rustix::process::kill_process(p, rustix::process::Signal::KILL);
+    }
+    assert!(geendet, "{grund}");
+}
+
+/// Starts the program as the child of an `sh` that stays alive until this test kills it; gives back the helper and the
+/// PID of the program. With `ignoriert` the helper sets SIGTERM to `SIG_IGN` (`trap '' TERM`). Such a disposition
+/// survives `execve`, so the program inherits it like the orphans measured on 21.11.2026 (`SigIgn` 0x5000). `aus`
+/// becomes the standard output of both.
+#[cfg(target_os = "linux")]
+fn unter_hilfsprozess(
+    w: &Wegwerf,
+    a: &[OsString],
+    ignoriert: bool,
+    aus: std::process::Stdio,
+) -> (std::process::Child, i32) {
+    let pid_datei = w.pfad("kind.pid");
+    let _ = fs::remove_file(&pid_datei);
+    // the helper replaces itself by `sleep`, so the PID of the parent stays the one of the child started here
+    let skript = if ignoriert {
+        "trap '' TERM; \"$0\" \"$@\" & echo $! >\"$P\"; exec sleep 300"
+    } else {
+        "\"$0\" \"$@\" & echo $! >\"$P\"; exec sleep 300"
+    };
+    let mut helfer = std::process::Command::new("sh")
+        .arg("-c")
+        .arg(skript)
+        .arg(gemeinsam::programm())
+        .args(a)
+        .env_clear()
+        .env("P", &pid_datei)
+        .env("PATH", "/usr/bin:/bin")
+        .stdin(std::process::Stdio::null())
+        .stdout(aus)
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .expect("sh");
+    let ende = Instant::now() + FRIST;
+    // The helper goes to the caller with its pid, in one place at the end: every other way out of the loop ends it
+    // and takes its line first, so no test leaves an orphan behind.
+    let pid = loop {
+        if let Some(pid) = fs::read_to_string(&pid_datei)
+            .ok()
+            .and_then(|t| t.trim().parse::<i32>().ok())
+        {
+            break pid;
+        }
+        if Instant::now() >= ende {
+            let _ = helfer.kill();
+            let _ = helfer.wait();
+            panic!("the helper wrote no pid");
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    };
+    (helfer, pid)
+}
+
+/// Waits at most [`FRIST`] for `pfad` to exist.
+#[cfg(target_os = "linux")]
+fn warte_datei(pfad: &std::path::Path, grund: &str) {
+    let ende = Instant::now() + FRIST;
+    while !pfad.exists() {
+        assert!(Instant::now() < ende, "{grund}");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+}
+
+/// An inherited `SIG_IGN` for SIGTERM must not swallow the death signal of the parent (contract 8, section 3): the
+/// handlers of SIGTERM and SIGINT stand in step 1, before `PR_SET_PDEATHSIG`, and the thread of the end runs from
+/// there on. Here the program hangs in step 5 of a trial run on the lock of the anchor file, which this test holds, so
+/// its parent dies long before readiness. Without the handlers of step 1 the program lives on: the kernel discarded
+/// the signal (`SIG_IGN`), and the handler of signal-hook came only after step 7.
+#[cfg(target_os = "linux")]
+#[test]
+fn an_inherited_sig_ign_does_not_swallow_the_death_signal_before_readiness() {
+    for ignoriert in [true, false] {
+        let w = Wegwerf::neu("sigign");
+        let schluessel = w.schluessel(format!("{SCHLUESSEL}\n").as_bytes());
+        let protokoll = w.protokoll();
+        let zaehlordner = w.pfad("zaehlung");
+        fs::create_dir(&zaehlordner).expect("folder");
+        fs::set_permissions(&zaehlordner, fs::Permissions::from_mode(0o700)).expect("chmod");
+        let zaehldatei = zaehlordner.join("marker.json");
+        // the lock of the chain lies on the anchor file of the source; this test holds it, so step 5 waits for it
+        let anker = fs::File::options()
+            .read(true)
+            .append(true)
+            .create(true)
+            .open(protokoll.join("gateway.anker.jsonl"))
+            .expect("anchor");
+        anker.lock().expect("lock");
+        let mut a = argv(
+            &w.pfad("m.sock"),
+            "http://127.0.0.1:9/v1",
+            &schluessel,
+            &protokoll,
+        );
+        a.extend(
+            [
+                "--probelauf",
+                "--marker",
+                "MK-0",
+                "--marker-zaehlung",
+                zaehldatei.to_str().expect("utf8"),
+            ]
+            .iter()
+            .map(OsString::from),
+        );
+        let (mut helfer, pid) = unter_hilfsprozess(&w, &a, ignoriert, std::process::Stdio::null());
+        // step 5 writes the count file first and waits for the lock after it: from here on nothing becomes ready
+        warte_datei(&zaehldatei, "step 5 of the trial run was not reached");
+        assert!(
+            std::path::Path::new(&format!("/proc/{pid}")).exists() && !zombie(pid),
+            "ignoriert={ignoriert}: the program ended before its parent"
+        );
+        // SIGKILL: a SIGTERM would not reach a helper that ignores it
+        helfer.kill().expect("kill the helper");
+        helfer.wait().expect("wait for the helper");
+        warte_ende(
+            pid,
+            &format!("ignoriert={ignoriert}: the model path outlived its parent before readiness"),
+        );
+        drop(anker);
+    }
+}
+
+/// An end before readiness leaves no socket (contract 8, section 3): the program hangs in step 9 writing the ready
+/// line into a full pipe, with its socket from step 7 already there. Its parent dies, and the thread of the end
+/// deletes the socket of this process, which the bind remembered in the same step as it made it.
+#[cfg(target_os = "linux")]
+#[test]
+fn an_end_between_the_socket_and_the_ready_line_deletes_the_socket() {
+    let w = Wegwerf::neu("vorbereit");
+    let schluessel = w.schluessel(format!("{SCHLUESSEL}\n").as_bytes());
+    let socket = w.pfad("m.sock");
+    let a = argv(
+        &socket,
+        "http://127.0.0.1:9/v1",
+        &schluessel,
+        &w.protokoll(),
+    );
+    // a pipe filled to its capacity: the 16 bytes of the ready line block. The reading end stays open and unread here,
+    // so the write of the program waits instead of failing.
+    let (_lese, schreibe) = io::pipe().expect("pipe");
+    rustix::fs::fcntl_setfl(&schreibe, rustix::fs::OFlags::NONBLOCK).expect("non blocking");
+    let mut schreiber = schreibe;
+    let block = vec![b'x'; 4096];
+    let mut gefuellt = 0usize;
+    // the bound only keeps the loop finite; a full pipe answers with `WouldBlock` long before it
+    for _ in 0..1024 {
+        match schreiber.write(&block) {
+            Ok(n) => gefuellt += n,
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => break,
+            Err(e) => panic!("fill the pipe: {e}"),
+        }
+    }
+    assert!(gefuellt >= block.len(), "the pipe took {gefuellt} bytes");
+    // the flags belong to the open file description and the child inherits them: back to blocking before the start
+    rustix::fs::fcntl_setfl(&schreiber, rustix::fs::OFlags::empty()).expect("blocking again");
+    let (mut helfer, pid) = unter_hilfsprozess(&w, &a, true, std::process::Stdio::from(schreiber));
+    warte_datei(&socket, "step 7 did not bind the socket");
+    helfer.kill().expect("kill the helper");
+    helfer.wait().expect("wait for the helper");
+    warte_ende(pid, "the model path outlived its parent before readiness");
+    assert!(
+        !socket.exists(),
+        "the socket of this process stays after an end before readiness"
+    );
 }
 
 #[cfg(target_os = "linux")]

@@ -97,8 +97,12 @@ and writes nothing. `--install --target DIR` installs (DIR absolute; the real on
 (`aarch64-apple-darwin`, `x86_64-unknown-linux-gnu`) and stops before starting it on a mismatch; it runs the
 installer with `--no-modify-path`, builds the three tools with `cargo install --locked` in the pinned version,
 checks the result with `gates.sh tools`, and checks that nothing outside the folder changed. It needs no sudo
-and no other host than `static.rust-lang.org` and crates.io; a second run does nothing. To change a version,
-change it in `gates.sh`, in the script and in the table above together; a test of the workbench tree
+and no other host than `static.rust-lang.org` and crates.io; a second run does nothing. Two more things
+belong to the folder because `ansicht/bauen.sh` builds the browser view with them: the target
+`wasm32-unknown-unknown` of the pinned toolchain (`rustup target add`) and `wasm-bindgen-cli` in the version of
+`wasm-bindgen` in `Cargo.lock` (`cargo install --locked --root ~/.local/share/wb-rust-werkzeuge/wasm-bindgen-<version>`,
+so `bin/wasm-bindgen` lies where `bauen.sh` looks). `gates.sh tools` does not check these two; the script does. To change a version,
+change it in `gates.sh`, in the script and in the table above together (`wasm-bindgen-cli` follows `Cargo.lock`); a test of the workbench tree
 compares them.
 
 ## Code taken from other projects

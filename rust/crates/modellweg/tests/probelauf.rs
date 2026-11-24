@@ -185,7 +185,7 @@ fn startfolge_cases() {
         rechte(&protokoll, 0o700);
         let e = &fall["erwartet"];
         match (ergebnis, e["exit"].as_i64()) {
-            (Ok((bereit, _signale)), None) => {
+            (Ok(bereit), None) => {
                 assert!(w.pfad("m.sock").exists(), "{name}");
                 drop(bereit);
             }

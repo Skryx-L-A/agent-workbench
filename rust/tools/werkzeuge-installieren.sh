@@ -8,14 +8,18 @@
 #   rustup/    RUSTUP_HOME: the toolchain of ../rust-toolchain.toml (profile minimal, rustfmt, clippy)
 #   cargo/     CARGO_HOME: cargo, rustc and the other proxies in cargo/bin, the crates.io cache
 #   tools/     cargo-deny, cargo-cyclonedx and cargo-mutants (`cargo install --locked --root`), in tools/bin
+#   wasm-bindgen-<version>/  wasm-bindgen-cli (`cargo install --locked --root`), in wasm-bindgen-<version>/bin;
+#              <version> is the one of wasm-bindgen in ../Cargo.lock (rust/ansicht/bauen.sh looks for exactly this)
 #   download/  the rustup installer as downloaded and checked
+# The toolchain also gets the target wasm32-unknown-unknown (`rustup target add`), which rust/ansicht/bauen.sh needs.
 #
 # What the script does and does not do:
 #   - The rustup installer is never piped into a shell. It is downloaded to download/, its SHA-256 is compared
 #     with the value pinned below, and only then is it started. A wrong sum stops the script (exit 2) before the
 #     installer runs.
-#   - Sources: static.rust-lang.org (the installer and, through rustup, the toolchain) and crates.io (through
-#     cargo install). No other host.
+#   - Sources: static.rust-lang.org (the installer and, through rustup, the toolchain and the wasm32 target) and
+#     crates.io (through cargo install). No other host. Like the other tools, wasm-bindgen-cli is pinned by its
+#     version (taken from Cargo.lock) and `--locked`; the crates.io index checks the sums of its crates.
 #   - The installer runs with --no-modify-path: no shell profile is touched. The Homebrew Rust and any rustup of
 #     the user stay as they are; PATH of this script is the folder plus /usr/bin:/bin:/usr/sbin:/sbin.
 #   - No sudo; as root the script stops.
@@ -41,6 +45,7 @@ GATES="$RUST_DIR/gates.sh"
 TOOLCHAIN_FILE="$RUST_DIR/rust-toolchain.toml"
 
 # ---- pins (installer: published at the URL below; copies of the tool versions: gates.sh, README.md) ----
+WASM_TARGET="wasm32-unknown-unknown"
 RUSTUP_INIT_VERSION="1.29.3"
 RUSTUP_INIT_URL_BASE="https://static.rust-lang.org/rustup/archive"
 # Published next to each installer as <url>.sha256; taken from there on 2026-11-18 and, for the Linux one, also
@@ -104,6 +109,9 @@ esac
 CHANNEL="$(sed -n 's/^channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$TOOLCHAIN_FILE" 2>/dev/null | head -n 1)"
 [ -n "$CHANNEL" ] || die "no channel in $TOOLCHAIN_FILE"
 [ -f "$GATES" ] || die "$GATES not found"
+# The version of wasm-bindgen-cli is the one of the crate wasm-bindgen in Cargo.lock (same lookup as ansicht/bauen.sh).
+TOOL_WASMBINDGEN="$(sed -n '/^name = "wasm-bindgen"$/{n;s/^version = "\(.*\)"$/\1/p;}' "$RUST_DIR/Cargo.lock" 2>/dev/null | head -n 1)"
+[ -n "$TOOL_WASMBINDGEN" ] || die "no wasm-bindgen version in $RUST_DIR/Cargo.lock"
 
 URL_BASE="$RUSTUP_INIT_URL_BASE"
 CURL_PROTO="=https"
@@ -121,6 +129,20 @@ sha256_of() {
   fi
 }
 
+# The wasm32 target in the toolchain of the folder (checked in the folder, no rustup call).
+wasm_target_ok() {
+  local d
+  for d in "$TARGET/rustup/toolchains/$CHANNEL-"*/lib/rustlib/"$WASM_TARGET"/lib; do
+    [ -d "$d" ] && return 0
+  done
+  return 1
+}
+# wasm-bindgen-cli in the version of Cargo.lock, at the place where ansicht/bauen.sh looks for it.
+wasm_bindgen_ok() {
+  local wb="$TARGET/wasm-bindgen-$TOOL_WASMBINDGEN/bin/wasm-bindgen"
+  [ -x "$wb" ] && [ "$("$wb" --version 2>/dev/null)" = "wasm-bindgen $TOOL_WASMBINDGEN" ]
+}
+
 # Which items of the folder are ok? Asks gates.sh, the code that uses them later. Prints "toolchain deny ..." of
 # the items that are missing or of another version (nothing printed: complete).
 missing_items() {
@@ -129,6 +151,8 @@ missing_items() {
   for item in toolchain deny cyclonedx mutants; do
     if ! grep -qx "tools: $item ok" <<<"$out"; then miss="$miss $item"; fi
   done
+  wasm_target_ok || miss="$miss wasmziel"
+  wasm_bindgen_ok || miss="$miss wasmbindgen"
   printf '%s\n' "${miss# }"
 }
 
@@ -158,10 +182,10 @@ echo "werkzeuge-installieren: mode $MODE, target $TARGET, platform $TRIPLE"
 if [ -d "$TARGET" ]; then
   MISS="$(missing_items)"
 else
-  MISS="toolchain deny cyclonedx mutants"
+  MISS="toolchain deny cyclonedx mutants wasmziel wasmbindgen"
 fi
 if [ -z "$MISS" ]; then
-  echo "werkzeuge-installieren: toolchain $CHANNEL, cargo-deny $TOOL_DENY, cargo-cyclonedx $TOOL_CYCLONEDX and cargo-mutants $TOOL_MUTANTS are in place: nothing to do"
+  echo "werkzeuge-installieren: toolchain $CHANNEL, cargo-deny $TOOL_DENY, cargo-cyclonedx $TOOL_CYCLONEDX and cargo-mutants $TOOL_MUTANTS, target $WASM_TARGET and wasm-bindgen-cli $TOOL_WASMBINDGEN are in place: nothing to do"
   exit 0
 fi
 echo "werkzeuge-installieren: missing or of another version: $MISS"
@@ -174,6 +198,8 @@ for item in $MISS; do
     deny) echo "  would run: cargo install --locked --root $TARGET/tools cargo-deny --version =$TOOL_DENY" ;;
     cyclonedx) echo "  would run: cargo install --locked --root $TARGET/tools cargo-cyclonedx --version =$TOOL_CYCLONEDX" ;;
     mutants) echo "  would run: cargo install --locked --root $TARGET/tools cargo-mutants --version =$TOOL_MUTANTS" ;;
+    wasmziel) echo "  would run: RUSTUP_HOME=$TARGET/rustup CARGO_HOME=$TARGET/cargo rustup target add $WASM_TARGET --toolchain $CHANNEL" ;;
+    wasmbindgen) echo "  would run: cargo install --locked --root $TARGET/wasm-bindgen-$TOOL_WASMBINDGEN wasm-bindgen-cli --version =$TOOL_WASMBINDGEN" ;;
   esac
 done
 if [ "$MODE" = "dry" ]; then
@@ -218,6 +244,13 @@ fi
 
 for item in $MISS; do
   case "$item" in
+    wasmziel)
+      rustup target add "$WASM_TARGET" --toolchain "$CHANNEL" || die "rustup target add $WASM_TARGET failed"
+      continue ;;
+    wasmbindgen)
+      ( cd "$TARGET" && cargo install --locked --root "$TARGET/wasm-bindgen-$TOOL_WASMBINDGEN" --target-dir "$TARGET/build" wasm-bindgen-cli --version "=$TOOL_WASMBINDGEN" ) \
+        || die "cargo install wasm-bindgen-cli $TOOL_WASMBINDGEN failed"
+      continue ;;
     toolchain) die "the toolchain $CHANNEL is still missing after rustup-init (see gates.sh tools)" ;;
     deny) VER="$TOOL_DENY" ;;
     cyclonedx) VER="$TOOL_CYCLONEDX" ;;
@@ -245,8 +278,8 @@ fi
 for entry in "$TARGET"/* "$TARGET"/.[!.]*; do
   [ -e "$entry" ] || continue
   case "${entry##*/}" in
-    rustup | cargo | tools | download) ;;
+    rustup | cargo | tools | download | "wasm-bindgen-$TOOL_WASMBINDGEN") ;;
     *) die "unexpected entry in the tool folder: $entry" ;;
   esac
 done
-echo "werkzeuge-installieren: done: toolchain $CHANNEL, cargo-deny $TOOL_DENY, cargo-cyclonedx $TOOL_CYCLONEDX, cargo-mutants $TOOL_MUTANTS in $TARGET; nothing outside it changed"
+echo "werkzeuge-installieren: done: toolchain $CHANNEL, cargo-deny $TOOL_DENY, cargo-cyclonedx $TOOL_CYCLONEDX, cargo-mutants $TOOL_MUTANTS, target $WASM_TARGET, wasm-bindgen-cli $TOOL_WASMBINDGEN in $TARGET; nothing outside it changed"

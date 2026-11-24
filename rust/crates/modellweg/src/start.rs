@@ -5,7 +5,7 @@ use std::ffi::OsString;
 use std::io::Write;
 use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rustix::fs::Mode;
@@ -30,6 +30,60 @@ use crate::ziel::{self, Aufloeser, Fristen, NetzVerbinder};
 
 /// How long the end waits for the lines of running requests.
 const ENDE_FRIST: Duration = Duration::from_secs(5);
+
+/// What the end of this process needs: the socket of this process as soon as it exists and the service as soon as it
+/// serves. A process has one socket and one service, so the place is a static: the thread of the signals reaches it in
+/// every step of the start, without a hand-over through the steps. [`socket_binden_mit`] remembers the socket in the
+/// same step as it makes it, so there is no moment in which a socket lies there and the end does not know it.
+struct Ende {
+    socket: Mutex<Option<Arc<Eigene>>>,
+    dienst: Mutex<Option<Arc<dyn Server>>>,
+}
+
+/// The one place of this process.
+static ENDE: Ende = Ende {
+    socket: Mutex::new(None),
+    dienst: Mutex::new(None),
+};
+
+impl Ende {
+    /// Remembers the socket this process made; the end deletes it, before readiness too.
+    fn socket_merken(&self, socket: &Arc<Eigene>) {
+        *self.socket.lock().unwrap_or_else(PoisonError::into_inner) = Some(Arc::clone(socket));
+    }
+
+    /// Remembers the service; from here on the end tears running requests down first.
+    fn dienst_merken(&self, dienst: &Arc<dyn Server>) {
+        *self.dienst.lock().unwrap_or_else(PoisonError::into_inner) = Some(Arc::clone(dienst));
+    }
+
+    /// The end on SIGTERM or SIGINT (section 3): [`Ende::aufraeumen`], then exit 0. Before readiness there is no
+    /// service and maybe no socket; the exit code stays 0.
+    fn beenden(&self) -> ! {
+        self.aufraeumen();
+        std::process::exit(0)
+    }
+
+    /// The work of the end without the exit: tear every request down, wait for their lines, delete the socket of this
+    /// process. Each part only where there is one, so an end before readiness works the same way.
+    fn aufraeumen(&self) {
+        let dienst = self
+            .dienst
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        if let Some(d) = dienst {
+            d.betrieb().abreissen_alle();
+            let _ = d.betrieb().warte_leer(ENDE_FRIST);
+        }
+        let socket = self
+            .socket
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        loeschen_socket(socket.as_deref());
+    }
+}
 
 /// A failure before readiness: code, fixed reason and exit code of section 4.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,6 +120,8 @@ pub enum Startfehler {
     Intern,
     /// `mw.kernabbild`, exit 5 (step 1: `kernabbild::abschirmen` refuses; default of the Werkbank, 21.11.2026).
     Kernabbild,
+    /// `mw.eltern_weg`, exit 69 (step 1: the parent ended before the death signal was set, so no signal comes).
+    ElternWeg,
 }
 
 impl Startfehler {
@@ -89,6 +145,7 @@ impl Startfehler {
             Self::SocketBelegt => "mw.socket_belegt",
             Self::Intern => "mw.intern",
             Self::Kernabbild => "mw.kernabbild",
+            Self::ElternWeg => "mw.eltern_weg",
         }
     }
 
@@ -112,6 +169,7 @@ impl Startfehler {
             Self::SocketBelegt => "Socket belegt oder nicht anlegbar",
             Self::Intern => "interner Fehler",
             Self::Kernabbild => "Kernabbild nicht abschirmbar",
+            Self::ElternWeg => "Elternprozess beendet",
         }
     }
 
@@ -127,7 +185,7 @@ impl Startfehler {
             | Self::ZieleUngueltig
             | Self::CaNichtZugelassen
             | Self::CaUngueltig => 78,
-            Self::ZielUnaufloesbar => 69,
+            Self::ZielUnaufloesbar | Self::ElternWeg => 69,
             Self::SocketBelegt | Self::ZaehlungFehler | Self::ProtokollFehlt => 74,
             Self::Intern => 70,
             Self::Kernabbild => 5,
@@ -250,7 +308,8 @@ fn vorbereiten_eins(
         None
     };
     let verbinder = NetzVerbinder::neu(adressen, optionen.ziel.host.clone(), tls, fristen);
-    let (listener, eigener_socket) = socket_anlegen(&a.socket).ok_or(Startfehler::SocketBelegt)?;
+    let (listener, eigener_socket) =
+        socket_anlegen(&a.socket, eigene_uid).ok_or(Startfehler::SocketBelegt)?;
     let eigener_socket = Some(eigener_socket);
     let probelauf = zaehlung.is_some();
     let lage = Lage {
@@ -322,7 +381,8 @@ fn vorbereiten_zwei(
             fristen,
         ))));
     }
-    let (listener, eigener_socket) = socket_anlegen(&a.socket).ok_or(Startfehler::SocketBelegt)?;
+    let (listener, eigener_socket) =
+        socket_anlegen(&a.socket, eigene_uid).ok_or(Startfehler::SocketBelegt)?;
     let eigener_socket = Some(eigener_socket);
     let probelauf = zaehlung.is_some();
     let tunnel = crate::tunnel::Tunnel::neu(
@@ -346,31 +406,120 @@ fn vorbereiten_zwei(
     })
 }
 
-/// Step 7: opens the folder of the socket, binds with the umask 0177, then checks the socket. A folder that cannot be
-/// opened without following a link (also a link) ends the start before the bind. After the bind the code remembers the
-/// socket (kind, device, inode) relative to the open folder, in the same step as it checks the kind (a socket) and the
-/// rights (exactly 0600). If anything differs, the socket is deleted again, but only if the name still shows that
-/// inode, and the start ends. Whatever already lies at the path stays untouched.
-fn socket_anlegen(pfad: &Path) -> Option<(UnixListener, Arc<Eigene>)> {
-    os::mit_umask(|| socket_binden(pfad))
+/// Step 7, in this order: open the folder of the socket so that **no** part of the path is followed through a link,
+/// check that it is a folder of this user that no other user may write into, bind relative to that open folder with the
+/// umask 0177, then check the socket. Each of the three steps before the bind ends the start before the bind if it
+/// fails; there is no fallback that opens or binds. After the bind the code remembers the socket (kind, device, inode)
+/// relative to the open folder, in the same step as it checks the kind (a socket) and the rights (exactly 0600). If
+/// anything differs, the socket is deleted again, but only over the descriptor of the folder and only if the name still
+/// shows that inode, and the start ends. Whatever already lies at the path stays untouched.
+fn socket_anlegen(pfad: &Path, eigene_uid: u32) -> Option<(UnixListener, Arc<Eigene>)> {
+    os::mit_umask(|| socket_binden(pfad, eigene_uid))
 }
 
 /// [`socket_anlegen`] without the umask (it is a setting of the whole process, so the tests of this file call this).
-fn socket_binden(pfad: &Path) -> Option<(UnixListener, Arc<Eigene>)> {
-    socket_binden_mit(pfad, || {})
+fn socket_binden(pfad: &Path, eigene_uid: u32) -> Option<(UnixListener, Arc<Eigene>)> {
+    socket_binden_mit(pfad, eigene_uid, || {})
 }
 
 /// [`socket_binden`]; `zwischen` runs between the bind and the check (a seam for the tests, empty in the program).
-fn socket_binden_mit(pfad: &Path, zwischen: impl FnOnce()) -> Option<(UnixListener, Arc<Eigene>)> {
-    let (ordner, name) = Ordner::von(pfad).ok()?;
-    let listener = UnixListener::bind(pfad).ok()?;
+fn socket_binden_mit(
+    pfad: &Path,
+    eigene_uid: u32,
+    zwischen: impl FnOnce(),
+) -> Option<(UnixListener, Arc<Eigene>)> {
+    let (ordner, name) = Ordner::ohne_verweis(pfad).ok()?;
+    // Before the bind: only while no other user may write into this folder is the window between the bind and the
+    // check closed, because nobody else can put an entry under the name in between (section 7).
+    if !ordner.nur_eigen_schreibbar(eigene_uid) {
+        return None;
+    }
+    let listener = match bind_im_ordner(&ordner, &name) {
+        Bindung::Da(l) => l,
+        Bindung::Nichts => return None,
+        #[cfg(not(target_os = "linux"))]
+        Bindung::Aufraeumen => {
+            // The bind made the entry, but the step cannot be finished. The entry goes again, over the descriptor of
+            // the folder and only if the name still shows a socket with the rights of this bind.
+            if let Some(e) = Eigene::merken(ordner, name, rustix::fs::FileType::Socket)
+                && e.modus() == SOCKET_MODUS
+            {
+                e.entfernen();
+            }
+            return None;
+        }
+    };
     zwischen();
-    let eigene = Eigene::merken(ordner, name, rustix::fs::FileType::Socket)?;
+    let eigene = Arc::new(Eigene::merken(ordner, name, rustix::fs::FileType::Socket)?);
+    // in the same step as the remembering: from here on the end deletes this socket, also before readiness
+    ENDE.socket_merken(&eigene);
     if eigene.modus() != SOCKET_MODUS {
         eigene.entfernen();
         return None;
     }
-    Some((listener, Arc::new(eigene)))
+    Some((listener, eigene))
+}
+
+/// What a bind relative to the open folder left behind.
+enum Bindung {
+    /// Bound; the entry lies in the open folder.
+    Da(UnixListener),
+    /// Nothing was made.
+    Nichts,
+    /// The bind made the entry, but the step cannot be finished: the entry has to go again. Only the way over the
+    /// working folder can end here, so under Linux, which binds relative to the path of the descriptor, there is no
+    /// such outcome and no such variant.
+    #[cfg(not(target_os = "linux"))]
+    Aufraeumen,
+}
+
+/// Binds the socket `name` relative to the open folder, so that the kernel does not resolve the names above the socket
+/// a second time. Under Linux the path of the descriptor does it: `/proc/self/fd/<n>/<name>` reaches exactly the folder
+/// of that descriptor, whatever happens to the names above it in the meantime. Needs `/proc`; without it the bind fails
+/// and the start ends (fail closed). A name that does not fit into `sun_path` together with the prefix ends the start
+/// as well.
+#[cfg(target_os = "linux")]
+fn bind_im_ordner(ordner: &Ordner, name: &std::ffi::OsStr) -> Bindung {
+    use std::os::fd::AsRawFd;
+
+    let pfad = PathBuf::from(format!("/proc/self/fd/{}", ordner.fd().as_raw_fd())).join(name);
+    match UnixListener::bind(pfad) {
+        Ok(l) => Bindung::Da(l),
+        Err(_) => Bindung::Nichts,
+    }
+}
+
+/// The working folder belongs to the whole process, so only one bind of [`bind_im_ordner`] may hold it at a time. The
+/// lock makes the three calls of that bind one step: whoever waits here finds the working folder of the process as it
+/// was before (measured 23.11.2026: without the lock four tests that bind side by side fail, because one of them goes
+/// back into the folder of another one and that folder is removed in the meantime).
+#[cfg(not(target_os = "linux"))]
+static BIND_PLATZ: Mutex<()> = Mutex::new(());
+
+/// Binds the socket `name` relative to the open folder. macOS has neither `openat2` nor a path of a descriptor that
+/// leads into a folder (measured 23.11.2026: `/dev/fd/<n>/<name>` ends with `ENOTDIR`), and `bind` has no `…at` form.
+/// The working folder is therefore the only way to a bind without a path of names: `fchdir` to the descriptor, bind the
+/// bare name, `fchdir` back, the three of them under [`BIND_PLATZ`]. The restriction is named in the contract: the
+/// working folder of the whole process is this folder for the length of the bind, so no other thread may use a relative
+/// path in that moment (the umask of step 7 is a setting of the whole process in the same way). Cannot the code go
+/// back, it binds nothing and the start ends.
+#[cfg(not(target_os = "linux"))]
+fn bind_im_ordner(ordner: &Ordner, name: &std::ffi::OsStr) -> Bindung {
+    let _platz = BIND_PLATZ.lock().unwrap_or_else(PoisonError::into_inner);
+    let Ok(zurueck) = Ordner::hier() else {
+        return Bindung::Nichts;
+    };
+    if rustix::process::fchdir(ordner.fd()).is_err() {
+        return Bindung::Nichts;
+    }
+    let gebunden = UnixListener::bind(Path::new(name));
+    let zurueck_ok = rustix::process::fchdir(zurueck.fd()).is_ok();
+    match (gebunden, zurueck_ok) {
+        (Ok(l), true) => Bindung::Da(l),
+        // the entry is there, but the working folder of the process is not the old one any more: fail closed
+        (Ok(_), false) => Bindung::Aufraeumen,
+        (Err(_), _) => Bindung::Nichts,
+    }
 }
 
 /// The rights of the socket: exactly 0600 (the umask 0177 gives them).
@@ -387,8 +536,58 @@ pub fn jetzt_ms() -> i64 {
         .unwrap_or(i64::MIN)
 }
 
-/// Steps 2 to 9 after the shielding of step 1: [`vorbereiten`], the handlers of SIGTERM and SIGINT, the line of a
-/// trial run on stderr and the ready line on stdout. On a failure the stderr line is written and the exit code returned.
+/// Whether the parent changed between the two readings. `gemerkt` is the parent from the first line of [`haupt`],
+/// `jetzt` the one after the death signal was set. A parent that ended in between is gone for good: the kernel sent
+/// the death signal before the setting, so none ever comes, and the process must end at once (contract 8, section 3;
+/// the same rule as in the trampoline of contract 1).
+fn eltern_weg(gemerkt: Option<i32>, jetzt: Option<i32>) -> bool {
+    gemerkt != jetzt
+}
+
+/// Sets the death signal of step 1; `true` if the system took it.
+#[cfg(target_os = "linux")]
+fn todessignal_setzen() -> bool {
+    os::todessignal().is_ok()
+}
+
+/// Only Linux has the death signal; elsewhere there is nothing to set and the check of the parent alone stays.
+#[cfg(not(target_os = "linux"))]
+fn todessignal_setzen() -> bool {
+    true
+}
+
+/// Step 1, the binding to the parent: first the death signal, then the check of the parent against `gemerkt`.
+/// `setzen` sets the signal and `jetzt` reads the parent again (the seam of the tests: the race cannot be provoked
+/// from outside the process).
+///
+/// # Errors
+/// [`Startfehler::Intern`] when the system refuses the death signal, [`Startfehler::ElternWeg`] when the parent
+/// changed in between.
+fn binden_mit(
+    gemerkt: Option<i32>,
+    setzen: impl FnOnce() -> bool,
+    jetzt: impl FnOnce() -> Option<i32>,
+) -> Result<(), Startfehler> {
+    if !setzen() {
+        return Err(Startfehler::Intern);
+    }
+    if eltern_weg(gemerkt, jetzt()) {
+        return Err(Startfehler::ElternWeg);
+    }
+    Ok(())
+}
+
+/// [`binden_mit`] with the calls of the system.
+///
+/// # Errors
+/// As [`binden_mit`].
+fn binden(gemerkt: Option<i32>) -> Result<(), Startfehler> {
+    binden_mit(gemerkt, todessignal_setzen, os::eltern)
+}
+
+/// Steps 2 to 9 after step 1: [`vorbereiten`], the line of a trial run on stderr and the ready line on stdout. On a
+/// failure the stderr line is written and the exit code returned. The handlers of SIGTERM and SIGINT stand before
+/// this (step 1, [`haupt`]).
 ///
 /// # Errors
 /// The exit code of the first failing step.
@@ -400,14 +599,11 @@ pub fn starten(
     uhr: Uhr,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
-) -> Result<(Bereit, Signals), u8> {
+) -> Result<Bereit, u8> {
     let bereit =
         vorbereiten(args, eigene_uid, aufloeser, fristen, uhr).map_err(|f| fehler(stderr, f))?;
-    let Ok(signale) = Signals::new([signal_hook::consts::SIGTERM, signal_hook::consts::SIGINT])
-    else {
-        loeschen_socket(bereit.eigener_socket.as_deref());
-        return Err(fehler(stderr, Startfehler::Intern));
-    };
+    // before the two lines: from here on the end tears running requests down, whatever a signal interrupts
+    ENDE.dienst_merken(&bereit.dienst);
     if bereit.probelauf {
         let _ = stderr.write_all(PROBELAUF_ZEILE.as_bytes());
         let _ = stderr.flush();
@@ -420,7 +616,7 @@ pub fn starten(
         loeschen_socket(bereit.eigener_socket.as_deref());
         return Err(fehler(stderr, Startfehler::Intern));
     }
-    Ok((bereit, signale))
+    Ok(bereit)
 }
 
 /// Writes the stderr line of a failure and returns its exit code.
@@ -457,24 +653,46 @@ pub fn abschirmen(
     }
 }
 
-/// The program: checks its environment (stage 0, before anything else and before any file), shields itself, runs the
-/// steps, and serves until SIGTERM or SIGINT. Returns the exit code of a failure before readiness; after readiness the
-/// process ends in [`beenden`].
+/// The program: remembers its parent, checks its environment (stage 0, before anything else and before any file),
+/// shields itself, binds itself to its parent, runs the steps and serves until SIGTERM or SIGINT. Returns the exit code
+/// of a failure before readiness; after readiness the process ends in [`Ende::beenden`].
 pub fn haupt(args: &[OsString], stdout: &mut dyn Write, stderr: &mut dyn Write) -> u8 {
+    // the first line of the program (only the argv of `main` runs before it): the check after the death signal compares
+    // against this number, so it must be read before the parent can end
+    let eltern = os::eltern();
     if !umgebung_sicher(std::env::var_os) {
         return fehler(stderr, Startfehler::UmgebungUnsicher);
     }
     if let Err(exit) = abschirmen(kernabbild::abschirmen(), stderr) {
         return exit;
     }
-    #[cfg(target_os = "linux")]
-    if os::todessignal().is_err() {
-        return fehler(stderr, Startfehler::Intern);
-    }
     if let Some((erstes, rest)) = args.split_first()
         && erstes == "suche"
     {
+        if let Err(f) = binden(eltern) {
+            return fehler(stderr, f);
+        }
         return crate::suche::lauf(rest, os::eigene_uid(), crate::suche::PUFFER, stdout, stderr);
+    }
+    // The handlers stand before the death signal: a SIGTERM inherited as ignored (`SIG_IGN` survives `execve`; measured
+    // 21.11.2026 as `SigIgn` 0x5000) would swallow the signal of the parent's death, and `PR_SET_PDEATHSIG = SIGTERM`
+    // would do nothing until a handler stands. `Signals::new` of signal-hook sets one without `unsafe`.
+    let Ok(mut signale) = Signals::new([signal_hook::consts::SIGTERM, signal_hook::consts::SIGINT])
+    else {
+        return fehler(stderr, Startfehler::Intern);
+    };
+    if let Err(f) = binden(eltern) {
+        return fehler(stderr, f);
+    }
+    // the thread of the end runs before the first step: a signal before readiness ends the process too, and it deletes
+    // the socket of this process if there is one already
+    let waechter = std::thread::Builder::new().spawn(move || {
+        if signale.forever().next().is_some() {
+            ENDE.beenden();
+        }
+    });
+    if waechter.is_err() {
+        return fehler(stderr, Startfehler::Intern);
     }
     let gestartet = starten(
         args,
@@ -485,21 +703,10 @@ pub fn haupt(args: &[OsString], stdout: &mut dyn Write, stderr: &mut dyn Write) 
         stdout,
         stderr,
     );
-    let (bereit, mut signale) = match gestartet {
+    let bereit = match gestartet {
         Ok(b) => b,
         Err(exit) => return exit,
     };
-    let dienst = Arc::clone(&bereit.dienst);
-    let eigener_socket = bereit.eigener_socket.clone();
-    let waechter = std::thread::Builder::new().spawn(move || {
-        if signale.forever().next().is_some() {
-            beenden(dienst.as_ref(), eigener_socket.as_deref());
-        }
-    });
-    if waechter.is_err() {
-        loeschen_socket(bereit.eigener_socket.as_deref());
-        return fehler(stderr, Startfehler::Intern);
-    }
     dienen(&bereit)
 }
 
@@ -525,19 +732,13 @@ fn dienen(bereit: &Bereit) -> ! {
     }
 }
 
-/// The end: tear every request down, wait for their lines, delete the socket, exit 0.
-fn beenden(dienst: &dyn Server, socket: Option<&Eigene>) -> ! {
-    dienst.betrieb().abreissen_alle();
-    let _ = dienst.betrieb().warte_leer(ENDE_FRIST);
-    loeschen_socket(socket);
-    std::process::exit(0)
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
-        Startfehler, UMGEBUNG_UNSICHER, loeschen_socket, socket_binden_mit, umgebung_sicher,
+        Startfehler, UMGEBUNG_UNSICHER, binden_mit, eltern_weg, loeschen_socket, socket_binden_mit,
+        umgebung_sicher,
     };
+    use std::cell::Cell;
     use std::ffi::OsString;
     use std::fs;
     use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
@@ -566,25 +767,104 @@ mod tests {
     }
 
     #[test]
+    fn the_check_of_the_parent_sees_every_change_and_nothing_else() {
+        assert!(!eltern_weg(Some(4711), Some(4711)), "the same parent");
+        assert!(
+            eltern_weg(Some(4711), Some(1)),
+            "adopted by another process"
+        );
+        assert!(eltern_weg(Some(4711), None), "no parent any more");
+        assert!(eltern_weg(None, Some(1)), "a parent where there was none");
+        assert!(!eltern_weg(None, None), "no parent in both readings");
+    }
+
+    #[test]
+    fn the_line_of_the_parent_that_ended() {
+        let f = Startfehler::ElternWeg;
+        assert_eq!(f.zeile(), "mw.eltern_weg: Elternprozess beendet\n");
+        assert_eq!(f.exit(), 69);
+    }
+
+    #[test]
+    fn the_binding_sets_the_death_signal_first_and_then_checks_the_parent() {
+        // The order matters: between the two readings of the parent lies the setting, so a parent that ends before the
+        // setting is seen. The seam counts the calls in their order.
+        let folge: Cell<String> = Cell::new(String::new());
+        let merke = |zeichen: &str| {
+            let mut s = folge.take();
+            s.push_str(zeichen);
+            folge.set(s);
+        };
+        let r = binden_mit(
+            Some(4711),
+            || {
+                merke("s");
+                true
+            },
+            || {
+                merke("p");
+                Some(4711)
+            },
+        );
+        assert_eq!(r, Ok(()));
+        assert_eq!(folge.take(), "sp", "the signal is set before the check");
+        // The parent ended in between: the start ends at once, no signal will ever come.
+        assert_eq!(
+            binden_mit(Some(4711), || true, || Some(1)),
+            Err(Startfehler::ElternWeg)
+        );
+        assert_eq!(
+            binden_mit(Some(4711), || true, || None),
+            Err(Startfehler::ElternWeg)
+        );
+        // The system refuses the death signal: that stays an internal error (exit 70), as before.
+        assert_eq!(
+            binden_mit(Some(4711), || false, || Some(4711)),
+            Err(Startfehler::Intern)
+        );
+        // The check does not run when the setting failed (its failure is the first one).
+        let gelaufen = Cell::new(false);
+        let r = binden_mit(
+            Some(4711),
+            || false,
+            || {
+                gelaufen.set(true);
+                Some(1)
+            },
+        );
+        assert_eq!(r, Err(Startfehler::Intern));
+        assert!(!gelaufen.get(), "the check stays unrun");
+    }
+
+    #[test]
     fn the_line_of_stage_0() {
         let f = Startfehler::UmgebungUnsicher;
         assert_eq!(f.zeile(), "mw.umgebung_unsicher: Umgebung unsicher\n");
         assert_eq!(f.exit(), 78);
     }
 
-    /// A short folder of its own (a socket path is limited to about 100 bytes).
+    /// A short folder of its own (a socket path is limited to about 100 bytes). The base is resolved
+    /// (`canonicalize`): step 7 refuses a socket path with a link in any of its parts, and on macOS both `/tmp` and
+    /// `/var` are links.
     fn wegwerf(name: &str) -> PathBuf {
-        let pfad = std::env::temp_dir().join(format!("mw-st-{}-{name}", std::process::id()));
+        let basis = fs::canonicalize(std::env::temp_dir()).expect("the base of the tests");
+        let pfad = basis.join(format!("mw-st-{}-{name}", std::process::id()));
         let _ = fs::remove_dir_all(&pfad);
         fs::create_dir_all(&pfad).expect("folder");
+        fs::set_permissions(&pfad, fs::Permissions::from_mode(0o700)).expect("chmod");
         pfad
+    }
+
+    /// The user of this process, as step 7 gets it.
+    fn uid() -> u32 {
+        crate::os::eigene_uid()
     }
 
     /// Binds like the program, but gives the socket 0600 in the seam: the umask is a setting of the whole process and
     /// the tests run side by side, so they do not set it (the start of the program does, see `tests/aussen.rs`).
     fn binden(pfad: &std::path::Path) -> Option<(UnixListener, std::sync::Arc<super::Eigene>)> {
         let p = pfad.to_path_buf();
-        socket_binden_mit(pfad, move || {
+        socket_binden_mit(pfad, uid(), move || {
             let _ = fs::set_permissions(&p, fs::Permissions::from_mode(0o600));
         })
     }
@@ -665,18 +945,125 @@ mod tests {
     }
 
     #[test]
+    fn a_link_above_the_folder_of_the_socket_ends_the_start_before_the_bind() {
+        let ordner = wegwerf("ueber");
+        // `echt/unten` is the real folder of the socket and `lnk` a link to `echt`: in the socket path
+        // `…/lnk/unten/s` the link stands **above** the folder of the socket, not at its last part.
+        let echt = ordner.join("echt");
+        let unten = echt.join("unten");
+        fs::create_dir_all(&unten).expect("folders");
+        symlink(&echt, ordner.join("lnk")).expect("link");
+        let pfad = ordner.join("lnk").join("unten").join("s");
+        assert!(binden(&pfad).is_none(), "a link above the folder ends it");
+        assert_eq!(
+            fs::read_dir(&unten).expect("dir").count(),
+            0,
+            "nothing is bound in the folder the link leads to"
+        );
+        // The same folder without the link binds, so the test measures the link and nothing else.
+        let (_listener, eigene) = binden(&unten.join("s")).expect("socket");
+        assert!(eigene.entfernen());
+        let _ = fs::remove_dir_all(&ordner);
+    }
+
+    #[test]
+    fn a_folder_other_users_may_write_into_ends_the_start_before_the_bind() {
+        // The window between the bind and the check (contract 8, step 7) stays closed only while no other user may
+        // put an entry under the name. A folder with a `w` for group or others therefore ends the start **before** the
+        // bind, so no socket of this process is ever made in it.
+        for modus in [0o777, 0o770, 0o707, 0o722] {
+            let ordner = wegwerf("offen");
+            let pfad = ordner.join("s");
+            fs::set_permissions(&ordner, fs::Permissions::from_mode(modus)).expect("chmod");
+            assert!(binden(&pfad).is_none(), "{modus:o}");
+            assert!(
+                fs::symlink_metadata(&pfad).is_err(),
+                "{modus:o}: nothing was bound"
+            );
+            // The tight folder binds under the same path, so the test measures the rights and nothing else.
+            fs::set_permissions(&ordner, fs::Permissions::from_mode(0o750)).expect("chmod");
+            let (_listener, eigene) = binden(&pfad).expect("socket");
+            assert!(eigene.entfernen());
+            let _ = fs::remove_dir_all(&ordner);
+        }
+    }
+
+    #[test]
+    fn a_foreign_user_as_the_owner_of_the_folder_ends_the_start_before_the_bind() {
+        // The check is the pair of owner and rights; a folder of another user ends the start as well. Only the check
+        // can be measured without privileges: a uid that is not the one of this process. The seam gives the socket
+        // 0600 as everywhere else, so the owner is the only reason left for the end (without it the test would pass
+        // on the rights of the socket, measured 24.11.2026).
+        let ordner = wegwerf("fremder");
+        let pfad = ordner.join("s");
+        let p = pfad.clone();
+        let fremd = uid().wrapping_add(1);
+        let r = socket_binden_mit(&pfad, fremd, move || {
+            let _ = fs::set_permissions(&p, fs::Permissions::from_mode(0o600));
+        });
+        assert!(r.is_none());
+        assert!(fs::symlink_metadata(&pfad).is_err(), "nothing was bound");
+        // The same folder with the own user binds, so the test measures the owner and nothing else.
+        let (_listener, eigene) = binden(&pfad).expect("socket");
+        assert!(eigene.entfernen());
+        let _ = fs::remove_dir_all(&ordner);
+    }
+
+    #[test]
     fn rights_other_than_0600_delete_the_own_socket_and_end_the_start() {
         for modus in [0o666, 0o660, 0o700, 0o400, 0o4600] {
             let ordner = wegwerf("rechte");
             let pfad = ordner.join("s");
             let p = pfad.clone();
-            let r = socket_binden_mit(&pfad, move || {
+            let r = socket_binden_mit(&pfad, uid(), move || {
                 fs::set_permissions(&p, fs::Permissions::from_mode(modus)).expect("chmod");
             });
             assert!(r.is_none(), "{modus:o}");
             assert!(fs::symlink_metadata(&pfad).is_err(), "{modus:o}: deleted");
             let _ = fs::remove_dir_all(&ordner);
         }
+    }
+
+    #[test]
+    fn the_end_deletes_the_socket_it_knows_and_nothing_else() {
+        let ordner = wegwerf("ende");
+        let pfad = ordner.join("s");
+        let (_listener, eigene) = binden(&pfad).expect("socket");
+        // a place of its own, so the tests beside this one do not matter; the program has the static `ENDE`
+        let ende = super::Ende {
+            socket: std::sync::Mutex::new(None),
+            dienst: std::sync::Mutex::new(None),
+        };
+        // without a socket and without a service the end does nothing, and the entry stays
+        ende.aufraeumen();
+        assert!(pfad.exists(), "nothing is deleted without a socket");
+        ende.socket_merken(&eigene);
+        ende.aufraeumen();
+        assert!(!pfad.exists(), "the socket of the process is deleted");
+        // a second end finds the name gone and leaves whatever lies there now
+        fs::write(&pfad, "x").expect("write");
+        ende.aufraeumen();
+        assert_eq!(fs::read_to_string(&pfad).expect("read"), "x");
+        let _ = fs::remove_dir_all(&ordner);
+    }
+
+    #[test]
+    fn the_bind_remembers_the_socket_in_the_place_of_the_end() {
+        let ordner = wegwerf("platz");
+        let pfad = ordner.join("s");
+        let (_listener, _eigene) = binden(&pfad).expect("socket");
+        // The place is a static of the process, and the tests run side by side: another test may have put its own
+        // socket there in between. That it is never empty after a bind is enough here; that the end deletes exactly
+        // this socket is measured in `tests/aussen.rs`.
+        assert!(
+            super::ENDE
+                .socket
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .is_some(),
+            "the bind left the place of the end empty"
+        );
+        let _ = fs::remove_dir_all(&ordner);
     }
 
     #[test]
@@ -698,7 +1085,7 @@ mod tests {
             let aussen = ordner.join("a");
             fs::write(&aussen, "a").expect("write");
             let (p, a) = (pfad.clone(), aussen.clone());
-            let r = socket_binden_mit(&pfad, move || {
+            let r = socket_binden_mit(&pfad, uid(), move || {
                 fs::remove_file(&p).expect("remove");
                 match art {
                     "datei" => fs::write(&p, "fremd").expect("write"),
@@ -718,7 +1105,7 @@ mod tests {
         let ordner = wegwerf("tausch2");
         let pfad = ordner.join("s");
         let p = pfad.clone();
-        let r = socket_binden_mit(&pfad, move || {
+        let r = socket_binden_mit(&pfad, uid(), move || {
             fs::remove_file(&p).expect("remove");
             fs::write(&p, "fremd").expect("write");
             fs::set_permissions(&p, fs::Permissions::from_mode(0o666)).expect("chmod");

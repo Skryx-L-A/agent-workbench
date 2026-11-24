@@ -28,3 +28,10 @@ pub(crate) fn mit_umask<T>(f: impl FnOnce() -> T) -> T {
     rustix::process::umask(alt);
     ergebnis
 }
+
+/// The process id of the parent in this moment, or `None` where the process has no parent (a parent id of 0).
+/// The start remembers it in its first line and compares it again after the death signal (contract 8, section 3):
+/// a parent that died before the `prctl` sends no signal any more.
+pub(crate) fn eltern() -> Option<i32> {
+    rustix::process::getppid().map(|p| p.as_raw_nonzero().get())
+}

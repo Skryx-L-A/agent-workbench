@@ -32,14 +32,17 @@ pub const ZEIT: i64 = 1_795_186_800_000;
 /// Deadline of every wait in a test, so that a wrong program fails the test instead of hanging it.
 pub const FRIST: Duration = Duration::from_secs(10);
 
-/// A folder below /tmp (short, so a socket path fits into 107 bytes), removed when dropped.
+/// A folder below the resolved `/tmp` (short, so a socket path fits into 107 bytes), removed when dropped. The base is
+/// resolved (`canonicalize`), because step 7 of the contract refuses a socket path with a link in any of its parts and
+/// `/tmp` is a link on macOS.
 pub struct Wegwerf(PathBuf);
 
 impl Wegwerf {
     pub fn neu(name: &str) -> Self {
         static ZAEHLER: AtomicUsize = AtomicUsize::new(0);
         let nummer = ZAEHLER.fetch_add(1, Ordering::SeqCst);
-        let pfad = PathBuf::from(format!("/tmp/mw-{}-{nummer}-{name}", std::process::id()));
+        let basis = fs::canonicalize("/tmp").expect("the base of the tests");
+        let pfad = basis.join(format!("mw-{}-{nummer}-{name}", std::process::id()));
         let _ = fs::remove_dir_all(&pfad);
         fs::create_dir_all(&pfad).expect("create the test folder");
         fs::set_permissions(&pfad, fs::Permissions::from_mode(0o700)).expect("chmod");
