@@ -561,7 +561,29 @@ mod tests {
         let _c = UnixStream::connect(&pfad2).expect("connect");
         m.abfragen();
         assert!(m.verbunden && m.strom.is_some() && m.hoerer.is_none());
-        assert!(UnixStream::connect(&pfad2).is_err(), "no second connection");
+        // a second connection finds no listener. A test running at the same time can hold a copy of the listener between its `fork` and
+        // `exec` (the socket is CLOEXEC, the copy goes at `exec`); a connection that comes in then must end without being served, never wait.
+        if let Ok(mut zweite) = UnixStream::connect(&pfad2) {
+            match zweite.set_read_timeout(Some(std::time::Duration::from_secs(10))) {
+                Ok(()) => {}
+                Err(e) => assert!(
+                    cfg!(target_os = "macos") && e.raw_os_error() == Some(22),
+                    "timeout: {e}"
+                ),
+            }
+            let mut b = [0_u8; 1];
+            match Read::read(&mut zweite, &mut b) {
+                Ok(0) => {}
+                Err(e) => assert!(
+                    !matches!(
+                        e.kind(),
+                        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                    ),
+                    "no second connection: it waited ({e})"
+                ),
+                Ok(_) => panic!("no second connection: it was served"),
+            }
+        }
     }
     /// A real child (another process than this test) connects and holds its end: its connection counts, the one of this test (the
     /// same user, another pid) is closed first. Another uid than the one of the service is closed too.
