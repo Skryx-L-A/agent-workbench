@@ -80,6 +80,11 @@ impl Peerpruefung {
 /// and closed at once without a byte, and the connections that are open stay served.
 pub const MAX_VERBINDUNGEN: usize = 16;
 
+/// How long a connection may stay silent (clarification 13 of contract 4, decision of 24.11.2026): when no byte arrives for this
+/// long, the process closes the connection without an answer and without a log line, and its place is free. The time counts from
+/// the last received byte, also inside a line, and it does not run while the process works on an answer.
+pub const LEERLAUF: Duration = Duration::from_secs(10);
+
 /// Removes the socket of the process, if it has made one.
 fn socket_loeschen(pfad: &SocketPfad) {
     let eigener = pfad.lock().unwrap_or_else(PoisonError::into_inner).take();
@@ -407,11 +412,24 @@ fn probelauf_zeile(ordner: &Path, sitzung: &str, anzahl: usize) -> std::io::Resu
         .map_err(|fehler| std::io::Error::other(fehler.code()))
 }
 
-/// One connection: the answers come in the order of the requests; the end of the connection ends nothing else.
+/// One connection with the idle time of [`LEERLAUF`].
 fn verbindung(strom: UnixStream, sitzung: &Sitzung) {
+    verbindung_mit(strom, sitzung, LEERLAUF);
+}
+
+/// One connection: the answers come in the order of the requests; the end of the connection ends nothing else. `leerlauf` is
+/// the idle time (the seam of the tests): the read timeout counts per `read` from the last received byte, so a line sent in
+/// pieces keeps the connection alive, and it runs only while the process waits for a byte, never while it answers. A read
+/// that times out ends the loop like the end of the input: the connection is dropped, nothing is written or logged.
+fn verbindung_mit(strom: UnixStream, sitzung: &Sitzung, leerlauf: Duration) {
     // Before the first read and the first write: a peer that is not ours gets no byte, and the connection ends.
     if let Some(grund) = sitzung.peer.abweisen(&strom) {
         sitzung.abgewiesen(grund);
+        return;
+    }
+    // Fail closed: a connection without an idle time could hold its place for ever. The option is set on the socket, so the
+    // clone below shares it.
+    if strom.set_read_timeout(Some(leerlauf)).is_err() {
         return;
     }
     let Ok(lesestrom) = strom.try_clone() else {
@@ -578,6 +596,7 @@ mod tests {
     use super::*;
     use std::fs;
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    use std::time::Instant;
 
     fn ordner(name: &str) -> PathBuf {
         let ordner = PathBuf::from(format!("/tmp/rkl-{}-{name}", std::process::id()));
@@ -709,6 +728,134 @@ mod tests {
             alle.extend(text.lines().map(|z| serde_json::from_str(z).expect("JSON")));
         }
         alle
+    }
+
+    /// The idle time of the tests through the seam: short, but far above the pauses the tests make.
+    const KURZ: Duration = Duration::from_millis(400);
+
+    /// A connection of the tests in its own thread: the end of `verbindung_mit` and the client side.
+    fn leerlauf_verbindung(
+        sitzung: &Arc<Sitzung>,
+        frist: Duration,
+    ) -> (UnixStream, thread::JoinHandle<Instant>) {
+        let (server, client) = UnixStream::pair().expect("pair");
+        // Without the idle time a test must fail, not hang.
+        client
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .expect("timeout");
+        let sitzung = Arc::clone(sitzung);
+        let faden = thread::spawn(move || {
+            verbindung_mit(server, &sitzung, frist);
+            Instant::now()
+        });
+        (client, faden)
+    }
+
+    #[test]
+    fn the_idle_time_is_10_seconds() {
+        assert_eq!(LEERLAUF, Duration::from_secs(10));
+    }
+
+    #[test]
+    fn a_silent_connection_is_closed_after_the_idle_time_without_a_byte_and_without_a_log_line() {
+        use std::io::Read;
+        let ordner = ordner("leerlauf-stumm");
+        let sitzung = Arc::new(sitzung_fuer(&ordner, Peerpruefung::eigene()));
+        let (mut client, faden) = leerlauf_verbindung(&sitzung, KURZ);
+        let start = Instant::now();
+        let mut gelesen = Vec::new();
+        assert_eq!(client.read_to_end(&mut gelesen).ok(), Some(0), "the end");
+        let ende = faden.join().expect("thread");
+        assert!(gelesen.is_empty(), "no byte");
+        assert!(ende - start >= KURZ, "not before the idle time");
+        assert!(ende - start < KURZ * 5, "soon after the idle time");
+        assert!(zeilen(&ordner).is_empty(), "no log line");
+        let _ = fs::remove_dir_all(&ordner);
+    }
+
+    #[test]
+    fn a_connection_that_writes_its_line_before_the_idle_time_gets_the_answer_and_the_time_restarts()
+     {
+        use std::io::Read;
+        let ordner = ordner("leerlauf-antwort");
+        let sitzung = Arc::new(sitzung_fuer(&ordner, Peerpruefung::eigene()));
+        let (mut client, faden) = leerlauf_verbindung(&sitzung, KURZ);
+        thread::sleep(KURZ / 2);
+        client.write_all(PING.as_bytes()).expect("request");
+        let mut antwort = [0_u8; 32];
+        let n = client.read(&mut antwort).expect("answer");
+        let gesendet = Instant::now();
+        assert_eq!(&antwort[..n], b"{\"ok\":true}\n");
+        // Past the first idle time after the connect, before the second after the line: still open.
+        thread::sleep(KURZ * 3 / 4);
+        client.write_all(PING.as_bytes()).expect("second request");
+        let n = client.read(&mut antwort).expect("second answer");
+        assert_eq!(&antwort[..n], b"{\"ok\":true}\n");
+        let mut rest = Vec::new();
+        assert_eq!(client.read_to_end(&mut rest).ok(), Some(0));
+        let ende = faden.join().expect("thread");
+        assert!(rest.is_empty(), "no byte at the end");
+        assert!(
+            ende - gesendet >= KURZ,
+            "the time counted from the last line"
+        );
+        let _ = fs::remove_dir_all(&ordner);
+    }
+
+    #[test]
+    fn the_idle_time_counts_from_the_last_byte_also_inside_a_line() {
+        use std::io::Read;
+        let ordner = ordner("leerlauf-halbe-zeile");
+        let sitzung = Arc::new(sitzung_fuer(&ordner, Peerpruefung::eigene()));
+        let (mut client, faden) = leerlauf_verbindung(&sitzung, KURZ);
+        let start = Instant::now();
+        // Five pieces of a line, each a little over half the idle time apart: together far over the idle time.
+        for stueck in [&b"{\"op\""[..], b":", b"\"ping\"", b"}"] {
+            client.write_all(stueck).expect("piece");
+            thread::sleep(KURZ * 6 / 10);
+        }
+        assert!(
+            start.elapsed() > KURZ,
+            "the pieces took longer than the idle time"
+        );
+        client.write_all(b"\n").expect("end of the line");
+        let mut antwort = [0_u8; 32];
+        let n = client.read(&mut antwort).expect("answer");
+        assert_eq!(&antwort[..n], b"{\"ok\":true}\n");
+        // A half line followed by silence ends too, without an answer.
+        client.write_all(b"{\"op\":\"pi").expect("half line");
+        let mut rest = Vec::new();
+        assert_eq!(client.read_to_end(&mut rest).ok(), Some(0), "the end");
+        assert!(rest.is_empty(), "no byte for the half line");
+        faden.join().expect("thread");
+        assert!(zeilen(&ordner).is_empty(), "no log line");
+        let _ = fs::remove_dir_all(&ordner);
+    }
+
+    #[test]
+    fn the_idle_time_does_not_run_while_the_process_works_on_an_answer() {
+        use std::io::Read;
+        let ordner = ordner("leerlauf-arbeit");
+        let sitzung = Arc::new(sitzung_fuer(&ordner, Peerpruefung::eigene()));
+        // The answer waits for the server lock, which the test holds for longer than the idle time.
+        let sperre = sitzung.server();
+        let (mut client, faden) = leerlauf_verbindung(&sitzung, KURZ);
+        client.write_all(PING.as_bytes()).expect("request");
+        client
+            .write_all(b"{\"op\":\"search\",\"query\":\"x\"}\n")
+            .expect("search");
+        thread::sleep(KURZ * 2);
+        drop(sperre);
+        let mut antwort = Vec::new();
+        let mut puffer = [0_u8; 256];
+        while antwort.split(|b| *b == b'\n').count() < 3 {
+            let n = client.read(&mut puffer).expect("answers");
+            assert!(n > 0, "the connection is still open");
+            antwort.extend_from_slice(&puffer[..n]);
+        }
+        client.shutdown(std::net::Shutdown::Both).expect("end");
+        faden.join().expect("thread");
+        let _ = fs::remove_dir_all(&ordner);
     }
 
     #[test]

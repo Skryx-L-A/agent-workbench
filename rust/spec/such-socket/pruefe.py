@@ -45,6 +45,10 @@ Erweiterungen für die Fälle vom 23.11.2026, alles optional:
   Schritt {"line": t, "ohne_lf": true}: die Zeile ohne LF, dann Ende der Schreibseite (shutdown); die Antwort kommt danach.
   Schritt {"grenze": 16}: 16 Verbindungen mit je einem ping offen halten; die 17. wird ohne ein Byte geschlossen; die
                        erste antwortet weiter; nach dem Schließen einer ist wieder Platz (Klarstellung 13). Ohne Antwort.
+  Schritt {"leerlauf": 10}: Leerlauffrist von 10 s (Klarstellung 13, Entscheid vom 24.11.2026). Eine Verbindung bekommt ihren
+                       ping beantwortet (Positivkontrolle) und schweigt dann; eine zweite schweigt von Anfang an. Beide
+                       müssen nach der Frist, gezählt ab dem letzten Byte der Verbindung, ohne ein weiteres Byte enden.
+                       Danach nimmt der Prozess eine neue Verbindung an. Ohne Antwort.
 """
 from __future__ import annotations
 
@@ -530,6 +534,51 @@ def grenze_pruefen(sock_pfad: Path, n: int) -> None:
             v.close()
 
 
+def leerlauf_pruefen(sock_pfad: Path, frist: int) -> None:
+    """Klarstellung 13, Leerlauffrist: eine stumme Verbindung endet nach `frist` s ohne ein Byte, gezählt ab dem letzten
+    Byte (hier dem ping einer Verbindung, bei der anderen dem Verbindungsaufbau). Die Wartezeit ist der Kern des Schritts."""
+    def neu() -> socket.socket:
+        v = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        v.settimeout(frist + 5)
+        v.connect(str(sock_pfad))
+        return v
+
+    def bis_ende(v: socket.socket, seit: float, was: str) -> None:
+        try:
+            gelesen = v.recv(1)
+        except ConnectionResetError:
+            gelesen = b""
+        except socket.timeout:
+            raise Rot(f"Leerlauf: {was} blieb {frist + 5} s offen")
+        dauer = time.monotonic() - seit
+        if gelesen:
+            raise Rot(f"Leerlauf: {was} bekam ein Byte {gelesen!r}")
+        if dauer < frist - 0.5:
+            raise Rot(f"Leerlauf: {was} endete nach {dauer:.1f} s, vor der Frist von {frist} s")
+        if dauer > frist + 4:
+            raise Rot(f"Leerlauf: {was} endete erst nach {dauer:.1f} s, Frist {frist} s")
+
+    mit_ping, stumm = neu(), neu()
+    try:
+        # Positivkontrolle: Eine Verbindung, die vor der Frist ihre Zeile schreibt, bekommt die Antwort.
+        time.sleep(frist / 2)
+        ping_auf(mit_ping, 1)
+        # Gezählt ab der Antwort, nicht ab dem Verbindungsaufbau: Die Frist beginnt mit dem ping neu.
+        seit_ping = time.monotonic()
+        seit_stumm = seit_ping - frist / 2
+        bis_ende(stumm, seit_stumm, "die stumme Verbindung")
+        bis_ende(mit_ping, seit_ping, "die Verbindung nach ihrem ping")
+        # Die Plätze sind frei, der Prozess läuft weiter.
+        neue = neu()
+        try:
+            ping_auf(neue, 2)
+        finally:
+            neue.close()
+    finally:
+        mit_ping.close()
+        stumm.close()
+
+
 def nachher_fehlt_pruefen(root: Path, erw: dict) -> None:
     for rel in erw.get("nachher_fehlt", []):
         if os.path.lexists(root / rel):
@@ -625,6 +674,8 @@ def fall_laufen(prog: str, fall: dict, erw: dict) -> None:
                     rechte.append(root / rel)
             elif "grenze" in st:
                 grenze_pruefen(sock_pfad, st["grenze"])
+            elif "leerlauf" in st:
+                leerlauf_pruefen(sock_pfad, st["leerlauf"])
             elif "zeilen" in st:
                 if verbindung is None:
                     verbindung = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)

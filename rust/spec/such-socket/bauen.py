@@ -558,6 +558,9 @@ fall("x-zaehlung-dann-protokoll-gesperrt", "Klarstellung 5: Zählung gelingt, di
 # Verbindungen, Ende, Umgebung
 fall("v-siebzehnte-verbindung", "Klarstellung 13: die 17. gleichzeitige Verbindung wird ohne Byte geschlossen, danach ist "
      "wieder Platz", [{"grenze": 16}, {"request": {"op": "ping", "id": 1}, "antwort": {"ok": True, "id": 1}}])
+fall("x-leerlauf-schliesst", "Klarstellung 13: eine Verbindung ohne Byte wird nach 10 s ohne Antwort geschlossen, gezählt ab dem "
+     "letzten Byte; danach nimmt der Prozess eine neue Verbindung an",
+     [{"leerlauf": 10}, {"request": {"op": "ping", "id": 1}, "antwort": {"ok": True, "id": 1}}])
 fall("e-sigint", "SIGINT beendet den Prozess wie SIGTERM: Exit 0, Socket weg",
      [{"request": {"op": "ping", "id": 1}, "antwort": {"ok": True, "id": 1}}], ende_signal="SIGINT")
 fall("e-umgebung-ohne-wirkung", "Der Prozess liest keine Umgebungsvariable: Variablen für Route und Einbettung ändern "
@@ -670,7 +673,7 @@ def dateien_bauen() -> dict[Path, str]:
             elif "zeilen" in st:
                 steps.append({"zeilen": [{k: v for k, v in s.items() if k != "antwort"} for s in st["zeilen"]]})
                 antworten.extend(antwort_bauen(s) for s in st["zeilen"])
-            elif "grenze" in st:
+            elif "grenze" in st or "leerlauf" in st:
                 steps.append(st)
             elif "write" in st:
                 neu = {}

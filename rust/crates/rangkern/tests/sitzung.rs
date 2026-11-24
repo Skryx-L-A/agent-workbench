@@ -1647,3 +1647,85 @@ fn the_17th_connection_is_closed_without_a_byte_and_a_freed_place_is_free_again(
         std::thread::sleep(Duration::from_millis(50));
     }
 }
+
+/// The idle time of the process in seconds (clarification 13 of contract 4, decision of 24.11.2026).
+const LEERLAUF_S: u64 = 10;
+
+/// Waits for the end of a connection: the time until `read` gives `Ok(0)`, and the bytes read until then.
+fn bis_zum_ende(v: &mut Verbindung) -> (Duration, Vec<u8>) {
+    let start = Instant::now();
+    let mut gelesen = Vec::new();
+    assert_eq!(v.lesen.read_to_end(&mut gelesen).ok(), Some(0), "the end");
+    (start.elapsed(), gelesen)
+}
+
+#[test]
+fn a_silent_connection_is_closed_after_10_seconds_from_its_last_byte_and_an_earlier_line_is_answered()
+ {
+    let welt = Welt::new();
+    let lauf = welt.starten("cloud", &[]);
+    let mut v = lauf.verbinden();
+    // Positive control: a line well before the idle time gets its answer.
+    std::thread::sleep(Duration::from_secs(LEERLAUF_S / 2));
+    assert_eq!(
+        v.senden(&json!({"op": "ping", "id": 1})),
+        json!({"ok": true, "id": 1})
+    );
+    // The time counts from this line, not from the connect: 10 s after the connect the connection is still open.
+    std::thread::sleep(Duration::from_secs(LEERLAUF_S / 2 + 2));
+    assert_eq!(
+        v.senden(&json!({"op": "ping", "id": 2})),
+        json!({"ok": true, "id": 2})
+    );
+    // A half line, then silence: the end after the idle time from its last byte, without an answer.
+    v.schreiben.write_all(b"{\"op\":\"pi").expect("half a line");
+    let (dauer, gelesen) = bis_zum_ende(&mut v);
+    assert!(gelesen.is_empty(), "no byte for a silent connection");
+    assert!(
+        dauer >= Duration::from_secs(LEERLAUF_S - 1)
+            && dauer <= Duration::from_secs(LEERLAUF_S + 3),
+        "closed after {dauer:?}"
+    );
+    // The process goes on and writes no log line for it.
+    let mut neu = lauf.verbinden();
+    assert_eq!(neu.senden(&json!({"op": "ping"})), json!({"ok": true}));
+    assert!(
+        fs::read_dir(welt.pfad("protokoll"))
+            .expect("log folder")
+            .next()
+            .is_none(),
+        "no log line"
+    );
+}
+
+#[test]
+fn sixteen_silent_connections_block_the_17th_only_until_the_idle_time() {
+    let welt = Welt::new();
+    let lauf = welt.starten("cloud", &[]);
+    let start = Instant::now();
+    let mut stumme: Vec<Verbindung> = (0..16).map(|_| lauf.verbinden()).collect();
+    std::thread::sleep(Duration::from_millis(500));
+    // The places are taken: a 17th is closed at once, without a byte.
+    let (dauer, gelesen) = bis_zum_ende(&mut lauf.verbinden());
+    assert!(gelesen.is_empty(), "no byte for the 17th");
+    assert!(
+        dauer < Duration::from_secs(2),
+        "the 17th is closed at once, after {dauer:?}"
+    );
+    // The silent ones are closed after the idle time, each without a byte.
+    for v in &mut stumme {
+        let (_, gelesen) = bis_zum_ende(v);
+        assert!(gelesen.is_empty(), "no byte for a silent connection");
+    }
+    let seit = start.elapsed();
+    assert!(
+        seit >= Duration::from_secs(LEERLAUF_S) && seit <= Duration::from_secs(LEERLAUF_S + 4),
+        "all 16 closed after {seit:?}"
+    );
+    // The places are free: a new connection is served.
+    let mut neu = lauf.verbinden();
+    assert_eq!(
+        neu.senden(&json!({"op": "ping", "id": "n"})),
+        json!({"ok": true, "id": "n"})
+    );
+}

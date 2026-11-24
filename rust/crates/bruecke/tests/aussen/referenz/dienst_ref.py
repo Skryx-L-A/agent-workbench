@@ -1850,6 +1850,10 @@ class Dienst:
                 n += 1
         else:
             n = self.naechste + 1
+        # P25 and 15a (DI12 Punkt 15a, Mit der Rasternummer nach P25): with every raster number held the start is refused BEFORE the identifier loop,
+        # so that 15a removes an old target list only for a start that is handed out (whether a number is free does not depend on the identifier)
+        if self.rahmen_waehlen(self.naechste + 1, L.get("rahmen_max", NUMMER_MAX)) is None:
+            return self.ablehnen_start(c, "nummern_erschoepft")
         nmax = L.get("nummer_max", NUMMER_MAX)
         sd = L.get("sitzungen")
         if m("sitzungen_pruefung_fehlt"):
@@ -1905,6 +1909,10 @@ class Dienst:
                     da = True
                     if not m("eintrag_fehlt_ist_frei"):
                         break                           # the first entry that is there takes the number
+                # DI12 Punkt 15a (Nachtrag 23.11.2026): the own regular target list that ALONE takes the number is removed (through the descriptor of
+                # lauf.ziellisten), then the number is asked again; every other case keeps the number taken
+                if da and zl is not None and not m("eintrag_fehlt_ist_frei") and self.alte_zielliste_raeumen(zl, n, pfade):
+                    continue
                 # right: taken when any entry is there; the mutant: free as soon as one entry is missing
                 if (fehlt if m("eintrag_fehlt_ist_frei") else not da):
                     break
@@ -2012,6 +2020,39 @@ class Dienst:
         else:
             liste()
             antwort()
+
+    def alte_zielliste_raeumen(self, zl, n, pfade):
+        """DI12 Punkt 15a: True when the target list of `n` was removed. Conditions, all at once: every other entry of `n` is NotFound (lstat);
+        `zl` opens with O_DIRECTORY|O_NOFOLLOW and belongs to the own user (fstat); the list is a regular file of the own user (fstatat without
+        following a link). Removed with unlinkat through the descriptor. In every doubt nothing is removed."""
+        name = "s-%d.zielliste.json" % n
+        for art, pf in pfade:
+            if art == "zielliste":
+                continue
+            try:
+                os.lstat(pf)
+            except FileNotFoundError:
+                continue
+            except OSError:
+                return False
+            return False
+        eigen = os.geteuid()
+        try:
+            fd = os.open(zl, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        except OSError:
+            return False
+        try:
+            if os.fstat(fd).st_uid != eigen:
+                return False
+            st = os.stat(name, dir_fd=fd, follow_symlinks=False)
+            if not stat_mod.S_ISREG(st.st_mode) or st.st_uid != eigen:
+                return False
+            os.unlink(name, dir_fd=fd)
+            return True
+        except OSError:
+            return False
+        finally:
+            os.close(fd)
 
     def rahmen_waehlen(self, n, rmax):
         """P25 (DI12 Punkt 4, Abschnitt 19): the raster number of a new session s-<n>. Free is the number of an ended session that no
