@@ -1,0 +1,58 @@
+[package]
+name = "peerkanal"
+version = "0.1.0"
+description = "Local channel with a check of the other side (contract peerkanal, version 1): a named pipe under Windows whose server measures the SID, the AppContainer SID and the process of each client, and whose client checks the owner of the pipe instance before it sends a byte."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+# The runner of the outside cases (contract section "Fälle und Prüfer", `ort: windows`). It runs only in the Windows VM and is no
+# part of a shipped build. On every other target it is an empty program.
+[[example]]
+name = "peerkanal-aussen"
+path = "examples/aussen.rs"
+required-features = ["testnaht"]
+
+[features]
+# Test seams of the outside runner: a pause after `ConnectNamedPipe` (case n-pid-wiederverwendung-windows) and an extra ACE in the
+# DACL without an entry in the list (case n-container-ohne-eintrag-windows). Never on in a shipped build.
+testnaht = []
+
+# serde_json: the forms of the contract as JSON values (the settings of a caller, the event of a refusal and the peer). Already in
+# the graph in this version.
+[dependencies]
+serde_json = "1"
+
+# windows-sys 0.61.2 (MIT OR Apache-2.0, already in Cargo.lock): the Win32 calls of the module `sys`. The contract lists every function
+# it needs in this version. Windows only; the module `sys` is the only place with `unsafe` (decision E1 of the Windows build plan).
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "=0.61.2", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+    "Win32_System_JobObjects",
+    "Win32_System_Pipes",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+] }
+
+# The lints of the workspace, with one change: `unsafe_code` is `deny` instead of `forbid`, so that the module `sys` alone can allow it
+# (decision E1). Every other module stays without `unsafe`; `src/lib.rs` repeats the `deny`.
+[lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+unused_qualifications = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+dbg_macro = "warn"
+todo = "warn"
+unwrap_used = "warn"
+print_stdout = "warn"
+print_stderr = "warn"

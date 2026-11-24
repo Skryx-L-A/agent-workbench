@@ -319,8 +319,10 @@ fall("c-zugriffsmaske-windows", "Client im AppContainer öffnet mit der Maske de
      ["Server unter person mit Package-SID container_a", "zwei Clients in container_a"],
      ["Client 1 über verbinden (GENERIC_READ | FILE_WRITE_DATA)", "Client 2 roh mit GENERIC_READ | GENERIC_WRITE"],
      erw("verbinden", peer=peer_win(PERSON, None, pid="=server", start=None, programm=None),
-         gemessen=["Client 1 verbindet und schreibt", "Client 2 scheitert mit Fehler 5 (GENERIC_WRITE enthält FILE_CREATE_PIPE_INSTANCE)",
-                   "ohne das Label LW scheitert auch Client 1 mit Fehler 5 (Gegenprobe im Testaufbau)"]))
+         gemessen=["Client 1 verbindet und schreibt",
+                   "Client 2 öffnet ohne Fehler (gemessen 24.11.2026, Server unter Admin- und unter Standardkonto); "
+                   "die Maske der Bibliothek prüft ein Einheitstest, nicht dieser Fall",
+                   "ohne das Label LW schreibt Client 1 ebenso (gemessen 24.11.2026); das Label prüft ein Einheitstest"]))
 
 fall("n-haken-lehnt-ab", "der Haken des Aufrufers lehnt einen erlaubten Peer ab", "aussentest", ALLE, dict(KW, **KU),
      None, None, ["Server, dessen Liste den Client erlaubt; der Haken lehnt mit aufrufer:sitzung-fremd ab",

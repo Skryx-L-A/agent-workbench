@@ -19,7 +19,7 @@
  },
  "gemessen": [
   "Client 1 verbindet und schreibt",
-  "Client 2 scheitert mit Fehler 5 (GENERIC_WRITE enthält FILE_CREATE_PIPE_INSTANCE)",
-  "ohne das Label LW scheitert auch Client 1 mit Fehler 5 (Gegenprobe im Testaufbau)"
+  "Client 2 öffnet ohne Fehler (gemessen 24.11.2026, Server unter Admin- und unter Standardkonto); die Maske der Bibliothek prüft ein Einheitstest, nicht dieser Fall",
+  "ohne das Label LW schreibt Client 1 ebenso (gemessen 24.11.2026); das Label prüft ein Einheitstest"
  ]
 }
