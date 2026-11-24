@@ -17,7 +17,7 @@ alles Weitere liegt im Brain, und Agenten lesen das Brain mit.
   eigenen Bereich) oder ueber den Dienstweg ``suche``. Die Stichwortsuche hier braucht nur die
   Standardbibliothek und ist der Rueckfall, wenn das Werkzeug des Vaults nicht laeuft.
 
-``secrets/`` und ``.secrets-sync/`` sind fuer jede Operation gesperrt; die Suche uebergeht sie.
+``90-secrets/`` und ``.secrets-sync/`` sind fuer jede Operation gesperrt; die Suche uebergeht sie.
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
 import agents_data as ad  # noqa: E402
 
-GEHEIM = ("secrets", ".secrets-sync")
+GEHEIM = ("90-secrets", ".secrets-sync")
 AGENTEN_ORDNER = "agenten"
 LEHREN = "lehren"
 GLOBAL_ZWEIG = "10-global"

@@ -4,9 +4,9 @@
  * Installiert von `wb-inbox einrichten pi` nach ~/.pi/agent/extensions/wb-inbox.ts
  * (Quelle: shell/inbox/pi-wb-inbox.ts im Repo claude-workbench). Nicht von Hand aendern.
  *
- * Anlass (der Nutzer, 29.09.2026): "ich will nicht das bei der freigabe automatisch in den
- * pane getippt wird, das kann nachrichten von mir abschneiden oder ungewollt mitsenden"
- * und "der message weg muss für alle harrnesse funktionieren".
+ * Anlass (Regel vom 29.09.2026): Bei einer Freigabe wird nichts automatisch in den Pane
+ * getippt, denn das kann Nachrichten des Menschen abschneiden oder ungewollt mitsenden;
+ * und der Nachrichtenweg muss fuer alle Harnesses funktionieren.
  *
  * Das Protokoll ist die gemeinsame Datei-Inbox aus shell/wb-inbox (Abschnitt
  * "DATEI-INBOX"): Diese Erweiterung meldet ihren Prozess unter

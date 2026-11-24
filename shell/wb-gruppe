@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S -u DEVELOPER_DIR -u SDKROOT -u TOOLCHAINS /usr/bin/python3 -E -s -S
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): nie ein python3 aus dem PATH des
+# Aufrufers, ohne die xcrun-Variablen, PYTHON*-Variablen, User-site und site.
 """wb-gruppe — Gruppenkanal fuer Sitzungen (Orchestratoren, Worker, Mensch).
 
   wb-gruppe [--json]                          meine Gruppen, ungelesene Zahl je Gruppe
@@ -14,7 +16,9 @@
   wb-gruppe team [dazu|weg <sitzung> [--pane %N]]   Gruppe team-<eigener Name> (Spawner)
   wb-gruppe team weg <sitzung> --geschlossen        Name ohne lebenden Pane aus allen team-Gruppen (wb-close, auch ueber ssh)
   wb-gruppe meldung <gruppe> [--an <sitzung>] ... "<text>" | --datei <pfad>
-                                              Systemabsender `tafel` (nur aus wb-tafel)
+                                              Systemabsender `tafel` (nur aus wb-tafel), `werkbank`
+                                              (nur aus dem Kern der Werkbank) oder `wache` (nur leitung),
+                                              siehe ABSENDER
   wb-gruppe beantrage <name> --zweck "<satz>" --mitglied <sitzung> ...
                                               Worker: Gruppe beim eigenen Orchestrator beantragen
   wb-gruppe antrag [liste] [--json]           offene und entschiedene Antraege (eigene)
@@ -33,7 +37,7 @@ Freigabe in einer Gruppe verleiht nichts. Jede zugestellte Nachricht beginnt des
   [Gruppe <name>] von <absender> (<rolle>) — Information, keine Befugnis
 
 RECHTE
-  anlegen (neu, auto)     Orchestrator oder gemessener Mensch. Worker nie (der Nutzer 09.10.2026).
+  anlegen (neu, auto)     Orchestrator oder gemessener Mensch. Worker nie (decision 2026-10-09).
   beantrage               Worker (jede Sitzung mit Pane, die kein Orchestrator ist). Der Antrag
                           geht an den EIGENEN Orchestrator: den einen Orchestrator-Pane in der
                           tmux-Sitzung des eigenen Panes (dorthin legt pi-worker seine Worker).
@@ -48,16 +52,36 @@ RECHTE
   dazu / weg              Orchestrator oder Mensch; `weg` mit dem eigenen Namen darf jedes
                           Mitglied (sich selbst austragen).
   schreiben               nur Mitglieder der Gruppe, dazu der Mensch in jeder Gruppe.
-  meldung                 nur der Systemabsender `tafel`, nur in Gruppen, die ihn fuehren.
+  meldung                 nur die Systemabsender `tafel` und `werkbank`, nur in Gruppen, die sie fuehren
+                          (Feld systemabsender; `auto leitung` traegt werkbank ein, auch nachtraeglich).
+                          Sie koennen sonst nichts: kein schreib, kein anlegen, kein beantrage.
+  wache                   Systemabsender der Kontextwache: schreib/meldung NUR in leitung (fest im Code,
+                          SYSTEM_GRUPPEN, ohne Feld systemabsender). Kein anlegen, dazu, weg, modus, team,
+                          beantrage, antrag annehmen/ablehnen.
   lesen (lies, alle)      jede Sitzung und der Mensch. `lies --neu` braucht eine Identitaet,
                           weil es den eigenen Lesezeiger vorrueckt.
   modus                   nur das eigene Mitglied.
 
 ABSENDER (gemessen, nie uebergeben). Es gibt keine Option fuer den Absendernamen, und
 Umgebungsvariablen wie TMUX_PANE zaehlen nicht. Reihenfolge:
-  1. `tafel`: ein Ahne dieses Prozesses FUEHRT wb-tafel aus (argv[0] bzw. Skriptpfad hinter
-     einem Interpreter, nicht ein Pfad im Befehlstext), und zwar die Datei neben diesem
-     Werkzeug oder ~/.local/bin/wb-tafel (realpath verglichen).
+  1. `tafel`: der direkte Elternprozess dieses Prozesses FUEHRT wb-tafel aus, am Kernel gemessen:
+     dieselbe Python-Programmdatei wie wb-gruppe, Skriptpfad aus argv hinter dem Interpreter (nicht ein
+     Pfad im Befehlstext oder ps-Text), und zwar die Datei neben diesem Werkzeug oder
+     ~/.local/bin/wb-tafel (realpath verglichen).
+  1b. `werkbank` (Rolle system): der Kern der Werkbank als gepruefter Ahne, Sicherheitsnachweis siehe
+     aus_werkbank_kern. Voraussetzungen, alle zugleich: WB_KERN_ABSENDER=werkbank, WB_MENSCH_QUELLE=
+     oberflaeche, WB_APP_PID=<pid> und `wb-mensch beleg` sagt "mensch" mit dem Grund M2 fuer genau diese
+     PID. wb-mensch prueft am Kernel, dass die PID das Kern-Electron der echten Werkbank ist und in der
+     Ahnenreihe steht (Programmdatei, Inode, Argumente, Arbeitsordner, Signatur, Eltern-App). Eine
+     Variable allein, ein Pfad im Befehlstext oder ein Terminal (M1) reicht nicht. Ohne
+     WB_KERN_ABSENDER bleibt ein Aufruf aus dem Kern der Mensch.
+  1c. `wache` (Rolle system, task 17.11.2026): die Kontextwache meldet ueber wb-konto. Am Kernel
+     gemessen (Programmdatei und argv, nie ps-Text oder Variablen): der direkte Elternprozess ist das feste Python
+     (Programmdatei wie wb-gruppe selbst) mit -E -s und fuehrt ~/.local/bin/wb-konto aus; darueber stehen bis zur
+     Wache nur timeout an einem festen Pfad oder Prozesse der Wache; die Wache hat die Programmdatei /bin/bash und
+     argv [bash, -p, ~/.local/bin/context-guard, ...] ohne andere Schalter davor (task 18.11.2026); und
+     KEIN tmux-Pane steht irgendwo in der Ahnenreihe. Pfade aus der Heimat laut Benutzerdatenbank (Testnaht:
+     Test-HOME). Siehe aus_wache.
   2. `mensch`: `~/.local/bin/wb-mensch beleg` sagt mensch. Aufgerufen mit leerer
      Umgebung (env -i); nur WB_MENSCH_QUELLE=oberflaeche mit WB_APP_PID wird durchgereicht,
      weil wb-mensch beide gegen die echte Ahnenkette prueft (wie wb-rolle). Geerbte
@@ -138,8 +162,10 @@ EXITCODES
 
 SCHNITTSTELLEN FUER ANDERE WERKZEUGE
   Tafel (wb-tafel):   wb-gruppe meldung tafel [--an <sitzung>] "<text>"
-                      wirkt nur, wenn wb-tafel ein Ahne ist; Absender ist dann `tafel`.
+                      wirkt nur, wenn wb-tafel direkter Elternprozess ist; Absender ist dann `tafel`.
                       Die Gruppe legt `wb-gruppe auto tafel` an.
+  Kontextwache:       context-guard -> wb-konto -> wb-gruppe schreib leitung --art meldung "<text>"
+                      Absender ist dann `wache` (nur leitung).
   Spawner (pi-worker, nach dem Markieren des Panes, laeuft im Prozessbaum des
   Orchestrators):     wb-gruppe team dazu "$NAME" --pane "$pane" || true
   Schliessen (wb-close/Worker-Ende): wb-gruppe team weg "$NAME" || true
@@ -155,8 +181,10 @@ import glob
 import importlib.util
 import json
 import os
+import pwd
 import re
 import secrets
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -186,9 +214,16 @@ SPERRFRIST_S = 10.0
 ZUSTELLFRIST_S = 90
 MENSCH = "mensch"
 TAFEL = "tafel"
+WERKBANK = "werkbank"
+WACHE = "wache"
+RESERVIERT = (MENSCH, TAFEL, WERKBANK, WACHE)
+# Gruppen, in die ein Systemabsender ohne Feld systemabsender schreiben darf: die Wache nur in leitung (dorthin
+# gehen die Meldungen von wb-konto). Im Code festgelegt, nicht in Daten, die ein Aufrufer schreiben koennte.
+SYSTEM_GRUPPEN = {WACHE: ("leitung",)}
 PRUEF_PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 TMUX_SOCKET = os.environ.get("WB_TMUX_SOCKET", "") or ""
+TMUX_BIN = shutil.which("tmux") if os.environ.get("WB_TESTUMGEBUNG") == "1" else next((p for p in ("/opt/homebrew/bin/tmux", "/usr/local/bin/tmux", "/usr/bin/tmux", "/bin/tmux") if os.access(p, os.X_OK)), None)
 
 
 class Abbruch(Exception):
@@ -234,7 +269,8 @@ def geheimnis_scanner():
     global _SCANNER
     if _SCANNER is None:
         for kandidat in (os.path.join(HIER, "..", "hooks", "lib", "geheimnis_inhalt.py"),
-                         os.path.join(heim(), ".claude", "hooks", "lib", "geheimnis_inhalt.py")):
+                         os.path.join(_mensch_heim() or "/nonexistent", ".claude", "hooks", "lib",
+                                      "geheimnis_inhalt.py")):
             if not os.path.isfile(kandidat):
                 continue
             try:
@@ -271,7 +307,10 @@ def pruefe_geheimnis(text, was):
 # ── tmux und Prozesse ───────────────────────────────────────────────────────────
 
 def tmux(*args):
-    befehl = ["tmux"] + (["-L", TMUX_SOCKET] if TMUX_SOCKET else []) + list(args)
+    if not TMUX_BIN:
+        sys.stderr.write("wb-gruppe: kein tmux an einem festen Ort gefunden.\n")
+        return None
+    befehl = [TMUX_BIN] + (["-L", TMUX_SOCKET] if TMUX_SOCKET else []) + list(args)
     try:
         r = subprocess.run(befehl, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
@@ -282,7 +321,10 @@ def tmux(*args):
 def prozesstabelle():
     """{pid: (ppid, args)} aus einem einzigen ps-Aufruf."""
     try:
-        r = subprocess.run(["ps", "-A", "-o", "pid=", "-o", "ppid=", "-o", "args="],
+        # ps von einem festen Pfad (18.10.2026, Befund devdir-sicher N5): die Ahnenkette entscheidet
+        # ueber Absender und Mitgliedschaft. tmux-Auswahl (2026-10-19): live fest, im Testbett PATH.
+        ps_bin = next((k for k in ("/bin/ps", "/usr/bin/ps") if os.access(k, os.X_OK)), "/bin/ps")
+        r = subprocess.run([ps_bin, "-A", "-o", "pid=", "-o", "ppid=", "-o", "args="],
                            stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
         return {}
@@ -409,7 +451,9 @@ def rollen_modul():
         import importlib.util
         _ROLLEN = False
         for kandidat in (os.path.join(HIER, "..", "hooks", "lib", "rollen.py"),
-                         os.path.join(heim(), ".claude", "hooks", "lib", "rollen.py")):
+                         # Heimat laut Benutzerdatenbank, nie $HOME (18.10.2026): ein rollen.py
+                         # aus einem HOME des Aufrufers liefe hier als Code der Rollenpruefung.
+                         os.path.join(pwd.getpwuid(os.getuid()).pw_dir, ".claude", "hooks", "lib", "rollen.py")):
             if os.path.isfile(kandidat):
                 spec = importlib.util.spec_from_file_location("wb_gruppe_rollen", kandidat)
                 modul = importlib.util.module_from_spec(spec)
@@ -441,64 +485,211 @@ def ist_orchestrator_pane(pane):
 
 def tafel_pfade():
     pfade = set()
-    for kandidat in (os.path.join(HIER, "wb-tafel"), os.path.join(heim(), ".local", "bin", "wb-tafel")):
+    # 18.10.2026, Befund home-sicher OPEN 3: ein Test-HOME darf keine Tafel autorisieren.
+    try:
+        heim = pwd.getpwuid(os.getuid()).pw_dir
+    except (ImportError, KeyError):
+        heim = "/nonexistent"
+    for kandidat in (os.path.join(HIER, "wb-tafel"), os.path.join(heim, ".local", "bin", "wb-tafel")):
         if os.path.isfile(kandidat):
             pfade.add(os.path.realpath(kandidat))
     return pfade
 
 
-_INTERPRETER = re.compile(r"^(python[0-9.]*|bash|sh|zsh|dash|ksh)$", re.IGNORECASE)
+def aus_tafel(tabelle):
+    """Nur die echte Tafel sendet als `tafel`: wb-tafel muss direkter Elternprozess sein.
+    Ein Tafel-Lauf bekommt einen eigenen Zwischenprozess, damit er diese Kante nicht erbt.
+    Der Pfad muss zudem an einem der erlaubten Orte liegen.
+    Gemessen am KERNEL wie bei der Wache (task, 18.11.2026), nie am ps-Text: Programmdatei des
+    Elternprozesses gleich der eigenen Python-Programmdatei (wb-tafel und wb-gruppe haben dieselbe feste
+    Shebang-Zeile /usr/bin/python3 -E -s -S), argv in Interpreterform und der Skriptpfad darin (realpath) an einem
+    erlaubten Ort. `exec -a <tafelpfad> <programm>` oder ein Pfad nur im ps-Text zaehlt nicht. Die Rechte von tafel
+    bleiben, wie sie waren."""
+    erlaubt = tafel_pfade()
+    kette = ahnen(tabelle)
+    if not erlaubt or len(kette) < 2:
+        return False
+    programm = _python_skript(kette[1])
+    return bool(programm and programm in erlaubt)
 
 
-def ausgefuehrtes_programm(args):
-    """Der Pfad des Programms, das diese Befehlszeile AUSFUEHRT, sonst None: argv[0],
-    bei einem Interpreter (python3/bash/sh/...) das erste Nicht-Options-Argument, also der
-    Skriptpfad. Ein Interpreter mit -c oder -m fuehrt Text bzw. ein Modul aus, kein Skript:
-    ein Pfad im Befehlstext (`bash -c ': ~/.local/bin/wb-tafel; ...'`) zaehlt nicht.
-    Auch `env [VAR=x] interpreter skript` wird aufgeloest."""
-    teile = args.split()
-    while teile and (os.path.basename(teile[0]) == "env" or "=" in teile[0].split("/")[0]):
-        teile = teile[1:]
-        while teile and (teile[0].startswith("-") or ("=" in teile[0] and "/" not in teile[0].split("=")[0])):
-            teile = teile[1:]
-    if not teile:
+# ── Systemabsender wache (Kontextwache ueber wb-konto, task 17.11.2026) ────────────────────
+# Die Kontextwache laeuft abgeloest (setsid, ohne Pane in der Ahnenreihe) und meldet Kontowechsel ueber
+# `wb-konto` -> `wb-gruppe schreib leitung`. Gemessen wird am KERNEL, nicht an ps-Text und nie an einer Variable:
+# die ausgefuehrte Programmdatei jedes Prozesses (proc_pidpath bzw. /proc/<pid>/exe) und seine argv-Liste
+# (KERN_PROCARGS2 bzw. /proc/<pid>/cmdline). Die Umgebung fremder Prozesse ist unter macOS nicht lesbar
+# (gemessen 17.11.2026: 0 Variablen fuer die laufende Wache und die eigene Eltern-Shell); sie wird deshalb gar
+# nicht gelesen, auch nicht dort, wo es ginge -- kein Rueckfall der Form "pruefen, wenn lesbar, sonst durchlassen".
+
+
+def _fester_pfad(pfad):
+    """Realpfad einer festen Programmdatei, sonst None."""
+    return os.path.realpath(pfad) if os.path.isfile(pfad) else None
+
+
+# Feste Programmdateien der Kette (task, 18.11.2026). Die Wache laeuft als /bin/bash -p, ihr mit_frist nutzt
+# nur diese timeout-Pfade (Linux /usr/bin/timeout, macOS /opt/homebrew/bin/timeout aus coreutils), wb-konto laeuft
+# unter /usr/bin/python3 -E -s. Gleichheit gilt am Realpfad, so wie proc_pidpath bzw. /proc/<pid>/exe ihn liefern.
+BASH_FEST = "/bin/bash"
+TIMEOUT_FEST = ("/usr/bin/timeout", "/opt/homebrew/bin/timeout")
+KONTO_SCHALTER = "Es"
+_EIGENE_EXE = []
+
+
+def _eigene_exe():
+    """Programmdatei DIESES Prozesses am Kernel (der feste Interpreter aus der Shebang-Zeile), sonst None."""
+    if not _EIGENE_EXE:
+        _EIGENE_EXE.append(_kern_prozess(os.getpid())[0])
+    return _EIGENE_EXE[0]
+
+
+def _python_skript(pid, schalter=""):
+    """Realpfad des Skripts, das pid unter dem festen Python ausfuehrt, sonst None. Am Kernel, alles zugleich:
+    Programmdatei gleich der eigenen (also nicht ein python aus dem PATH), argv[0] ist ein Python (Interpreterform,
+    nicht `exec -a <skript>`), vor dem Skriptpfad nur Schalter ohne Wert und darunter jeder Buchstabe aus `schalter`,
+    der Skriptpfad ist absolut. Jeder Zweifel gibt None."""
+    exe, argv = _kern_prozess(pid)
+    eigen = _eigene_exe()
+    if not (exe and argv and eigen and exe == eigen and _PYTHON_EXE.match(os.path.basename(exe))
+            and _PYTHON_EXE.match(os.path.basename(argv[0]))):
         return None
-    programm = teile[0]
-    if not _INTERPRETER.match(os.path.basename(programm)):
-        return programm
-    # Vor dem Skriptpfad nur harmlose Schalter ohne Wert. Alles andere (-c, -m, -o <x>,
-    # --rcfile <datei>, ...) kann einen Text oder einen Wert vor den Pfad schieben, der dann
-    # wie ein Skript aussaehe (`bash --rcfile .../wb-tafel -c '...'`): kein Programm, fail-closed.
-    for token in teile[1:]:
+    gesehen = set()
+    for token in argv[1:]:
         if token.startswith("-"):
-            if re.fullmatch(r"-[xeuvBEsSIlfn]+", token):
-                continue
+            if not re.fullmatch(r"-[xeuvBEsSIlfn]+", token):
+                return None
+            gesehen.update(token[1:])
+            continue
+        if not token.startswith("/") or not set(schalter) <= gesehen:
             return None
-        return token
+        return os.path.realpath(token)
     return None
 
 
-def aus_tafel(tabelle):
-    """Ist wb-tafel ein Ahne? Nur gewertet, wenn der Ahne wb-tafel AUSFUEHRT (siehe
-    ausgefuehrtes_programm) und der realpath einer der erlaubten Orte ist: die Datei neben
-    diesem Werkzeug oder ~/.local/bin/wb-tafel. Der Pfad nur als Wort in einer Befehlszeile
-    genuegt nicht (gemessen: `bash -c ': .../wb-tafel; wb-gruppe meldung tafel ...'`)."""
-    erlaubt = tafel_pfade()
-    if not erlaubt:
-        return False
-    for pid in ahnen(tabelle)[1:]:
-        programm = ausgefuehrtes_programm(tabelle.get(pid, (0, ""))[1])
-        if programm and "/" in programm and os.path.realpath(programm) in erlaubt:
-            return True
-    return False
+def _installiert(name):
+    """Realpfad der INSTALLIERTEN Datei ~/.local/bin/<name> (Heimat laut Benutzerdatenbank; unter der Testnaht
+    WB_TESTUMGEBUNG=1 das Test-HOME, wie bei wb-mensch), sonst None."""
+    mheim = _mensch_heim()
+    pfad = os.path.join(mheim, ".local", "bin", name) if mheim else ""
+    return os.path.realpath(pfad) if pfad and os.path.isfile(pfad) else None
+
+
+def _kern_prozess(pid):
+    """(Programmdatei als Realpfad, argv-Liste) eines Prozesses, am Kernel gelesen; bei jedem Fehler (None, None)."""
+    try:
+        if sys.platform == "darwin":
+            import ctypes
+            import struct
+            libsystem = ctypes.CDLL("/usr/lib/libSystem.B.dylib", use_errno=True)
+            puffer = ctypes.create_string_buffer(4096)
+            if libsystem.proc_pidpath(ctypes.c_int(pid), puffer, ctypes.c_uint32(4096)) <= 0:
+                return None, None
+            exe = puffer.value.decode("utf-8", "surrogateescape")
+            mib = (ctypes.c_int * 3)(1, 49, pid)  # CTL_KERN, KERN_PROCARGS2
+            groesse = ctypes.c_size_t(0)
+            if libsystem.sysctl(mib, 3, None, ctypes.byref(groesse), None, 0) != 0 or groesse.value < 4:
+                return None, None
+            roh = ctypes.create_string_buffer(groesse.value)
+            if libsystem.sysctl(mib, 3, roh, ctypes.byref(groesse), None, 0) != 0:
+                return None, None
+            daten = roh.raw[:groesse.value]
+            argc = struct.unpack("i", daten[:4])[0]
+            _, _, rest = daten[4:].partition(b"\0")      # exec_path, dann Fuellnullen, dann argv
+            teile = rest.lstrip(b"\0").split(b"\0")
+            if argc < 1 or len(teile) < argc:
+                return None, None
+            argv = [t.decode("utf-8", "surrogateescape") for t in teile[:argc]]
+        elif sys.platform.startswith("linux"):
+            exe = os.readlink("/proc/%d/exe" % pid)
+            if exe.endswith(" (deleted)"):
+                return None, None
+            with open("/proc/%d/cmdline" % pid, "rb") as f:
+                roh = f.read()
+            argv = [t.decode("utf-8", "surrogateescape") for t in roh.split(b"\0")[:-1]]
+            if not argv:
+                return None, None
+        else:
+            return None, None
+    except (OSError, ValueError, AttributeError, ImportError):
+        return None, None
+    return os.path.realpath(exe), argv
+
+
+_PYTHON_EXE = re.compile(r"^python[0-9.]*$", re.IGNORECASE)
+
+
+def _ist_wache(exe, argv, wache):
+    """Fuehrt dieser Prozess die installierte Wache aus? Programmdatei /bin/bash (am Kernel, Realpfad), argv genau
+    [bash, -p, <absoluter Pfad der installierten Wache>, ...] -- nur -p vor dem Pfad (bash -c/-s/--rcfile oder -i
+    koennten sonst anderen Text ausfuehren; ohne -p haette bash BASH_ENV und geerbte Funktionen geladen,
+    task). Ein Name in argv allein reicht nicht."""
+    return bool(exe and argv and len(argv) >= 3 and exe == _fester_pfad(BASH_FEST) and argv[1] == "-p"
+                and argv[2].startswith("/") and os.path.realpath(argv[2]) == wache)
+
+
+def aus_wache(tabelle):
+    """Systemabsender `wache`: wb-gruppe wurde vom installierten wb-konto gestartet, und wb-konto von der
+    installierten Kontextwache. Gemessen, alle Bedingungen zugleich:
+      1. Der direkte Elternprozess fuehrt ~/.local/bin/wb-konto aus: dieselbe Python-Programmdatei wie dieser
+         Prozess, argv [python, ..., -E, -s, <absoluter Pfad>, ...] (siehe _python_skript), Pfad gleich der
+         installierten Datei (realpath).
+      2. Darueber nur Prozesse der Wache (siehe _ist_wache) oder ein Zeitbegrenzer an einem festen Pfad
+         (TIMEOUT_FEST: mit_frist der Wache), bis der erste Prozess der Wache erreicht ist. Alles andere bricht ab.
+      3. KEIN tmux-Pane irgendwo in der Ahnenreihe (strenger als "kein Pane naeher"): wer in einem Pane sitzt,
+         bleibt dieser Pane, auch wenn er die Wache von Hand startet.
+    Rueckgabe: (True, grund) oder (False, grund)."""
+    konto, wache = _installiert("wb-konto"), _installiert("context-guard")
+    kette = ahnen(tabelle)
+    if not konto or not wache:
+        return False, "wb-konto oder context-guard nicht installiert"
+    if len(kette) < 3:
+        return False, "Ahnenreihe zu kurz"
+    if _python_skript(kette[1], KONTO_SCHALTER) != konto:
+        return False, "Elternprozess ist nicht das installierte wb-konto unter /usr/bin/python3 -E -s"
+    zeitbegrenzer = {p for p in map(_fester_pfad, TIMEOUT_FEST) if p}
+    gefunden = None
+    for pid in kette[2:]:
+        exe, argv = _kern_prozess(pid)
+        if _ist_wache(exe, argv, wache):
+            gefunden = pid
+            break
+        if not exe or exe not in zeitbegrenzer:
+            return False, "zwischen wb-konto und Wache steht ein fremder Prozess (PID %d)" % pid
+    if gefunden is None:
+        return False, "keine installierte Wache in der Ahnenreihe"
+    liste = tmux("list-panes", "-a", "-F", PANE_FORMAT)
+    if liste is None:  # nicht messbar heisst nicht "kein Pane"
+        return False, "Panes nicht messbar (tmux)"
+    pane_pids = {p["pane_pid"] for p in map(pane_aus_zeile, liste.splitlines()) if p}
+    if pane_pids & set(kette):
+        return False, "Pane in der Ahnenreihe"
+    return True, "installierte Kontextwache (PID %d) ruft das installierte wb-konto (PID %d)" % (gefunden, kette[1])
+
+
+# Heimat fuer den Menschen-Nachweis (18.10.2026, Befund pathklasse-sicher OPEN 2): wb-mensch kommt
+# aus der Heimat laut Benutzerdatenbank und laeuft mit HOME=<diese Heimat>, nie aus $HOME. Ein
+# umgelenktes HOME mit eigener wb-mensch-Attrappe (exit 0) galt sonst als Mensch. Testnaht: nur
+# mit WB_TESTUMGEBUNG=1 gilt das HOME der Umgebung. GRENZE: wer beides setzt, umgeht das; die
+# getippte Form sperrt bash-guard (heim-umlenkung). Dieselbe Heimat gilt fuer jedes Programm und
+# Modul, das wb-gruppe startet oder laedt (wb-inbox, wb-tafel als Absender, geheimnis_inhalt.py);
+# heim() bleibt nur fuer Zustand und Daten.
+def _mensch_heim():
+    if os.environ.get("WB_TESTUMGEBUNG") == "1" and os.environ.get("HOME"):
+        return os.environ["HOME"]
+    try:
+        import pwd
+        return pwd.getpwuid(os.getuid()).pw_dir
+    except (ImportError, KeyError):
+        return ""
 
 
 def mensch_beleg():
     """(ist_mensch, grund) aus ~/.local/bin/wb-mensch beleg, mit leerer Umgebung."""
-    pfad = os.path.join(heim(), ".local", "bin", "wb-mensch")
-    if not os.access(pfad, os.X_OK):
+    mheim = _mensch_heim()
+    pfad = os.path.join(mheim, ".local", "bin", "wb-mensch") if mheim else ""
+    if not pfad or not os.access(pfad, os.X_OK):
         return False, "wb-mensch am festen Pfad nicht gefunden — ohne Messung kein Mensch"
-    umgebung = {"HOME": heim(), "TMPDIR": "/tmp", "PATH": PRUEF_PATH}
+    umgebung = {"HOME": mheim, "TMPDIR": "/tmp", "PATH": PRUEF_PATH}
     if os.environ.get("WB_MENSCH_QUELLE") == "oberflaeche" and os.environ.get("WB_APP_PID", "").isdigit():
         umgebung["WB_MENSCH_QUELLE"] = "oberflaeche"
         umgebung["WB_APP_PID"] = os.environ["WB_APP_PID"]
@@ -511,6 +702,33 @@ def mensch_beleg():
     return art == "mensch", grund.strip()
 
 
+# Variablen, die nur der Messung des Absenders dienen. Ein Systemabsender (werkbank, tafel) reicht sie
+# an KEIN Kind weiter (wb-inbox, tmux, rollen.py, ps): Eine Kernmeldung soll nirgends als Mensch gelten.
+# Gemessen 18.10.2026: wb-inbox gibt wb-mensch nur HOME/PATH/TMPDIR (ist_mensch), die Klasse waere heute
+# also auch ohne diese Bereinigung `hauptagent`; die Bereinigung haelt das fest, falls sich das aendert.
+IDENTITAETS_VARIABLEN = ("WB_MENSCH_QUELLE", "WB_APP_PID", "WB_KERN_ABSENDER")
+
+_KERN_BELEG = re.compile(r"\(WB_APP_PID=([0-9]+), M2\)\.?$")
+
+
+def aus_werkbank_kern(beleg_grund):
+    """Systemabsender `werkbank`: der Kern der Werkbank ist als geprueften Ahnen nachgewiesen UND hat
+    sich ausdruecklich als Kern gemeldet. Die Pruefung des Kerns macht wb-mensch (M2), am Kernel gemessen:
+    ausgefuehrtes Programm, Inode, Argumente, Arbeitsordner, Signatur und Eltern-App; WB_APP_PID ist nur
+    der Name des Kandidaten und muss in der Ahnenreihe stehen. Hier kommt dazu:
+      - WB_KERN_ABSENDER=werkbank muss gesetzt sein; ohne diese Wahl bleibt ein Aufruf aus dem Kern der
+        Mensch (Klick in der Oberflaeche) und wird nie zu `werkbank`;
+      - der Beleg muss M2 sein (nicht M1: ein Terminal mit der Variable macht niemanden zum Kern) und die
+        PID im Beleg muss die gesetzte WB_APP_PID sein.
+    Jeder Zweifel (kein Beleg, andere Art, andere PID, Variable fehlt) laesst nur den Menschen bzw. nichts uebrig."""
+    if os.environ.get("WB_KERN_ABSENDER") != WERKBANK:
+        return False
+    if os.environ.get("WB_MENSCH_QUELLE") != "oberflaeche":
+        return False
+    treffer = _KERN_BELEG.search(beleg_grund or "")
+    return bool(treffer) and treffer.group(1) == os.environ.get("WB_APP_PID", "")
+
+
 _ICH = None
 
 
@@ -520,10 +738,15 @@ def ich(pflicht=True):
     if _ICH is None:
         tabelle = prozesstabelle()
         if aus_tafel(tabelle):
-            _ICH = {"name": TAFEL, "rolle": "system", "grund": "wb-tafel ist Ahne dieses Aufrufs"}
+            _ICH = {"name": TAFEL, "rolle": "system", "grund": "wb-tafel ist direkter Elternprozess"}
+        elif (wache := aus_wache(tabelle))[0]:
+            _ICH = {"name": WACHE, "rolle": "system", "grund": wache[1]}
         else:
             mensch, grund = mensch_beleg()
-            if mensch:
+            if mensch and aus_werkbank_kern(grund):
+                _ICH = {"name": WERKBANK, "rolle": "system",
+                        "grund": "Kern der Werkbank als gepruefter Ahne (wb-mensch M2): " + grund}
+            elif mensch:
                 _ICH = {"name": MENSCH, "rolle": "mensch", "grund": "wb-mensch: " + grund}
             else:
                 kette = ahnen(tabelle)
@@ -544,6 +767,10 @@ def ich(pflicht=True):
                     _ICH = {"name": name, "rolle": rolle, "pane": p["pane"], "pane_pid": p["pane_pid"],
                             "name_quelle": name_quelle,
                             "grund": "Pane %s in der Ahnenreihe; %s" % (p["pane"], rgrund)}
+    if _ICH.get("rolle") == "system":
+        # Ab hier erben alle Kinder dieses Prozesses (os.environ) die Variablen nicht mehr.
+        for v in IDENTITAETS_VARIABLEN:
+            os.environ.pop(v, None)
     if pflicht and not _ICH.get("name"):
         raise Abbruch(EXIT_ABSENDER, "Absender nicht bestimmbar: %s." % _ICH["grund"])
     return _ICH
@@ -568,10 +795,10 @@ def mitglied_schluessel(daten, wer):
     if wer["rolle"] == "mensch":
         return MENSCH if MENSCH in mitglieder else None
     pane, pane_pid = wer.get("pane"), wer.get("pane_pid")
-    if not pane or wer["name"] == TAFEL:
-        return wer["name"] if wer.get("name") in mitglieder and wer["name"] not in (MENSCH, TAFEL) else None
+    if not pane or wer["rolle"] == "system":
+        return wer["name"] if wer.get("name") in mitglieder and wer["name"] not in RESERVIERT and wer["rolle"] != "system" else None
     for k in sorted(mitglieder):
-        if k in (MENSCH, TAFEL):
+        if k in RESERVIERT:
             continue
         if mitglieder[k].get("pane") == pane and mitglieder[k].get("pane_pid") == pane_pid:
             return k
@@ -583,10 +810,10 @@ def mitglied_schluessel(daten, wer):
 
     # Ein ausdruecklich vergebener Name (@wb_worker, Register) gilt; der Sitzungsname nur als Ersatz
     # entscheidet erst Regel 3 (ein Worker im Fenster des Orchestrators heisst sonst genauso).
-    if wer["name"] in mitglieder and wer["name"] not in (MENSCH, TAFEL) and not anderswo_gebunden(wer["name"]) \
+    if wer["name"] in mitglieder and wer["name"] not in RESERVIERT and not anderswo_gebunden(wer["name"]) \
             and wer.get("name_quelle") != "sitzung":
         return wer["name"]
-    frei = [k for k in sorted(mitglieder) if k not in (MENSCH, TAFEL) and not anderswo_gebunden(k)]
+    frei = [k for k in sorted(mitglieder) if k not in RESERVIERT and not anderswo_gebunden(k)]
     if frei:
         ziele = zielpanes(frei, daten)
         for k in frei:
@@ -924,13 +1151,13 @@ def zustellen(gruppe, n):
         eigene.setdefault(m.get("absender"), set()).add(m.get("id"))
     due = {}
     for name, info in sorted(gruppe["mitglieder"].items()):
-        if name in (n["absender"], MENSCH, TAFEL):
+        if name in (n["absender"],) + RESERVIERT:
             continue
         grund = faellig(name, info, n, eigene.get(name, set()))
         if grund:
             due[name] = grund
     gebunden = [k for k, i in sorted(gruppe["mitglieder"].items())
-                if i.get("pane") and k not in (MENSCH, TAFEL)]
+                if i.get("pane") and k not in RESERVIERT]
     if not due and not gebunden:
         return []
     erneuert, mehrdeutig = {}, {}
@@ -1182,7 +1409,8 @@ def nachliefern():
 
 def inbox_senden(pane, text):
     """Einziger Zustellweg: ~/.local/bin/wb-inbox sende <pane> <datei>. (ok, Beschreibung)."""
-    inbox = os.path.join(heim(), ".local", "bin", "wb-inbox")
+    # wb-inbox aus der Heimat laut Benutzerdatenbank, nie aus $HOME (18.10.2026, HOME-Klasse).
+    inbox = os.path.join(_mensch_heim() or "/nonexistent", ".local", "bin", "wb-inbox")
     fd, pfad = tempfile.mkstemp(prefix=".zustellung-", suffix=".txt", dir=zustand())
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as s:
@@ -1346,7 +1574,8 @@ def cmd_weg(argv):
     wer = ich()
     with Sperre():
         daten = gruppe_lesen(name)
-        selbst = wer["name"] == sitzung or mitglied_schluessel(daten, wer) == sitzung
+        # Ein Systemabsender ist kein Mitglied und traegt niemanden aus, auch keinen Namensvetter.
+        selbst = wer["rolle"] != "system" and (wer["name"] == sitzung or mitglied_schluessel(daten, wer) == sitzung)
         if not darf_verwalten(wer) and not selbst:
             raise Abbruch(EXIT_RECHT, "Andere austragen duerfen nur Orchestratoren und der Mensch; sich selbst jedes Mitglied.")
         if sitzung not in daten["mitglieder"]:
@@ -1380,11 +1609,15 @@ def nachricht_anlegen(name, wer, text, art, antwort_auf=None, an=(), recht=True)
     t = jetzt()
     daten = gruppe_lesen(name)
     schluessel = None
-    if recht and wer["name"] == TAFEL:
-        if TAFEL not in daten.get("systemabsender", []):
-            raise Abbruch(EXIT_RECHT, "Gruppe %s fuehrt den Systemabsender tafel nicht." % name)
+    if recht and wer["rolle"] == "system":
+        if wer["name"] in SYSTEM_GRUPPEN:
+            if name not in SYSTEM_GRUPPEN[wer["name"]]:
+                raise Abbruch(EXIT_RECHT, "Der Systemabsender %s schreibt nur in %s, nicht in %s." % (
+                    wer["name"], ", ".join(SYSTEM_GRUPPEN[wer["name"]]), name))
+        elif wer["name"] not in daten.get("systemabsender", []):
+            raise Abbruch(EXIT_RECHT, "Gruppe %s fuehrt den Systemabsender %s nicht." % (name, wer["name"]))
     else:
-        schluessel = mitglied_schluessel(daten, wer) if wer["name"] != TAFEL else None
+        schluessel = mitglied_schluessel(daten, wer) if wer["rolle"] != "system" else None
         if recht and schluessel is None and wer["rolle"] != "mensch":
             raise Abbruch(EXIT_RECHT, "Schreiben duerfen nur Mitglieder von %s (%s%s ist keins)." % (
                 name, wer["name"], (", " + wer["pane"]) if wer.get("pane") else ""))
@@ -1436,8 +1669,9 @@ def cmd_schreib(argv):
         raise Abbruch(EXIT_AUFRUF, "Art '%s' unbekannt (%s)." % (art, "|".join(ARTEN)))
     text = text_holen(pos, werte, 1)
     wer = ich()
-    if wer["name"] == TAFEL:
-        raise Abbruch(EXIT_RECHT, "Der Systemabsender tafel schreibt ueber `wb-gruppe meldung`.")
+    if wer["rolle"] == "system" and wer["name"] not in SYSTEM_GRUPPEN:
+        raise Abbruch(EXIT_RECHT, "Der Systemabsender %s schreibt ueber `wb-gruppe meldung`." % wer["name"])
+    # Die Wache kommt ueber wb-konto (`schreib leitung --art meldung`); das Gruppenrecht prueft nachricht_anlegen.
     return speichern_und_zustellen(name, wer, text, art, werte.get("--antwort-auf"))
 
 
@@ -1449,8 +1683,10 @@ def cmd_meldung(argv):
     text = text_holen(pos, werte, 1)
     an = [gueltige_sitzung(m) for m in werte.get("--an", [])]
     wer = ich()
-    if wer["name"] != TAFEL:
-        raise Abbruch(EXIT_RECHT, "`meldung` ist dem Systemabsender tafel vorbehalten (wb-tafel muss Ahne sein).")
+    if wer["rolle"] != "system":
+        raise Abbruch(EXIT_RECHT, "`meldung` ist den Systemabsendern tafel (wb-tafel muss direkter Elternprozess sein), werkbank "
+                                  "(Kern der Werkbank, WB_KERN_ABSENDER=werkbank) und wache (Kontextwache ueber wb-konto, "
+                                  "nur leitung) vorbehalten.")
     return speichern_und_zustellen(name, wer, text, "meldung", an=an)
 
 
@@ -1572,7 +1808,7 @@ def orchestrator_panes():
 
 
 AUTO = {
-    "leitung": ("Orchestratoren und Mensch: Absprachen der Leitung", "sofort", ()),
+    "leitung": ("Orchestratoren und Mensch: Absprachen der Leitung", "sofort", (WERKBANK,)),
     "tafel": ("Meldungen der Belegungstafel (eingetragen, dran, gemahnt, verfallen, ausgetragen)", "still", (TAFEL,)),
 }
 
@@ -1591,11 +1827,14 @@ def cmd_auto(argv):
         if not os.path.exists(os.path.join(gruppen_ordner(name), "gruppe.json")):
             neue_gruppe(name, zweck, wer, system=system)
         daten = gruppe_lesen(name)
+        # Eine bestehende Gruppe bekommt Systemabsender, die erst spaeter dazukamen (leitung: werkbank).
+        fehlend = [x for x in system if x not in daten.setdefault("systemabsender", [])]
+        daten["systemabsender"].extend(fehlend)
         neu, gebunden_neu = [], []
         lebende = {q["pane"]: q["pane_pid"] for q in panes()}
         # Ungebundene Mitglieder, deren Zustellziel schon ein Orchestrator-Pane ist, binden statt einen
-        # Doppelgaenger unter dem Sitzungsnamen anzulegen (14.10.: Firma-X und wb-PraktikumNebenStudium beide an %0).
-        ungebunden = [k for k, i in daten["mitglieder"].items() if not i.get("pane") and k not in (MENSCH, TAFEL)]
+        # Doppelgaenger unter dem Sitzungsnamen anzulegen (14.10.: zwei Sitzungsnamen beide an %0).
+        ungebunden = [k for k, i in daten["mitglieder"].items() if not i.get("pane") and k not in RESERVIERT]
         ziel_ungebunden = zielpanes(ungebunden, daten) if ungebunden else {}
         for m, p in orchs:
             belegt = [k for k, i in daten["mitglieder"].items()
@@ -1627,9 +1866,10 @@ def cmd_auto(argv):
         if name == "tafel" and wer["name"] in daten["mitglieder"] and wer["name"] != MENSCH:
             daten["mitglieder"][wer["name"]]["modus"] = modus
         gruppe_schreiben(daten)
-    print("Gruppe %s: %d Mitglieder%s%s." % (name, len(daten["mitglieder"]),
-                                            ("; neu: " + ", ".join(neu)) if neu else ", keine neuen",
-                                            ("; gebunden: " + ", ".join(gebunden_neu)) if gebunden_neu else ""))
+    print("Gruppe %s: %d Mitglieder%s%s%s." % (name, len(daten["mitglieder"]),
+                                              ("; neu: " + ", ".join(neu)) if neu else ", keine neuen",
+                                              ("; gebunden: " + ", ".join(gebunden_neu)) if gebunden_neu else "",
+                                              ("; Systemabsender neu: " + ", ".join(fehlend)) if fehlend else ""))
     return 0
 
 
@@ -1676,6 +1916,8 @@ def cmd_team(argv):
             raise Abbruch(EXIT_AUFRUF, "Aufruf: wb-gruppe team weg <sitzung> --geschlossen")
         return cmd_team_geschlossen(pos[1])
     wer = ich()
+    if wer["rolle"] == "system":
+        raise Abbruch(EXIT_RECHT, "Team-Gruppen fuehrt nur ein Orchestrator (%s ist ein Systemabsender)." % wer["name"])
     if pos[:1] == ["weg"] and len(pos) == 2 and wer["rolle"] != "orchestrator" and wer["name"] == pos[1]:
         # Der Worker traegt sich selbst aus allen team-Gruppen aus (Worker-Ende).
         with Sperre():
@@ -1722,7 +1964,7 @@ def cmd_team(argv):
     return 0
 
 
-# ── Antraege (der Nutzer 09.10.2026: Worker beantragen, ihr Orchestrator entscheidet) ──
+# ── Antraege (decision 2026-10-09: Worker beantragen, ihr Orchestrator entscheidet) ──
 
 ANTRAG_RE = re.compile(r"^a-[0-9]{14}-[0-9a-f]{6}$")
 ANTRAG_FRIST_S = 24 * 3600
@@ -1829,7 +2071,7 @@ def cmd_beantrage(argv):
     mitglieder = sorted(set(gueltige_sitzung(m) for m in werte.get("--mitglied", [])))
     pruefe_geheimnis(zweck, "Zweck")
     wer = ich()
-    if darf_verwalten(wer) or wer["name"] == TAFEL or not wer.get("pane"):
+    if darf_verwalten(wer) or wer["rolle"] == "system" or not wer.get("pane"):
         raise Abbruch(EXIT_RECHT, "beantrage ist fuer Worker; %s (%s) legt Gruppen direkt mit `neu` an." % (wer["name"], wer["rolle"]))
     orch = eigener_orchestrator(wer)
     if wer["name"] not in mitglieder:

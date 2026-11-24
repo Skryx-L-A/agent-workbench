@@ -345,7 +345,7 @@ stoppen() {
   local rest
   rest="$(pgrep -f "tmux -L $DEV_SOCKET" 2>/dev/null | head -3)"
   if [ -n "$rest" ]; then
-    warn "  Der Dev-tmux-Server laeuft noch (PID $rest) -- beende ihn direkt."
+    rot "  Der Dev-tmux-Server laeuft noch (PID $rest) -- beende ihn direkt."
     for p in $rest; do kill "$p" 2>/dev/null; done
   fi
 }
@@ -485,7 +485,7 @@ if [ "$FASSUNG" = mac ]; then
   [ "$INAKTIV" = 1 ] && info "wb-dev: --inaktiv gibt es in der Mac-Fassung nicht; sie startet gewoehnlich." >&2
   [ ${#EXTRA[@]} -gt 0 ] && info "wb-dev: die Angaben nach -- sind Electron-Argumente und werden von der Mac-Fassung nicht gelesen." >&2
   # Der Mac-Kern lauscht nicht auf $DEV_DATEN/awb-dev.sock: mac/bin/starten verwirft
-  # ein geerbtes AWB_CONTROL_SOCKET und setzt fest $LAUF/awb.sock (wz-mantel5, F1b).
+  # ein geerbtes AWB_CONTROL_SOCKET und setzt fest $LAUF/awb.sock (task, F1b).
   export AWB_CONTROL_SOCKET="$MAC_LAUF/awb.sock"
   if [ "$KOPFLOS" = 1 ]; then info "Starte die Mac-Fassung kopflos ..."; else info "Starte die Mac-Fassung ..."; fi
   if mac_starten "$KOPFLOS"; then

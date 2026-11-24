@@ -185,10 +185,7 @@ export interface RegistryCost {
  * eingebaute Koepfe) stand bis zum 21.08.2026 bewusst NUR als diese eine
  * Struktur hier -- ein neuer Sieger aenderte `bauart`/`modell`, sonst nichts.
  *
- * SEIT DEM 21.08.2026 SIND ES MEHRERE WEGE ZUR WAHL (alice: "ich will das
- * ich als zweite option qwen3.8 als orchestrator auch mit einem
- * multitokenprediction model starten kann anstatt mtplx, ich will mich
- * entscheiden koennen"). `wege` fuehrt sie, `wegVorgabe` nennt den Vorgabeweg,
+ * SEIT DEM 21.08.2026 SIND ES MEHRERE WEGE ZUR WAHL (alice). `wege` fuehrt sie, `wegVorgabe` nennt den Vorgabeweg,
  * und die Sitzungs-Einstellung `orchestratorVorhersageWeg` waehlt einen davon
  * aus. `bauart`/`modell`/`gewichteGb` auf oberster Ebene bleiben und tragen
  * WEITER den Vorgabeweg: jeder Leser, der `wege` nicht kennt, verhaelt sich

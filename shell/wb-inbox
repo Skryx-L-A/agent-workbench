@@ -1,7 +1,11 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S -u DEVELOPER_DIR -u SDKROOT -u TOOLCHAINS /usr/bin/python3 -E -s -S
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): nie ein python3 aus dem PATH des
+# Aufrufers, ohne die xcrun-Variablen, PYTHON*-Variablen, User-site und site.
 """wb-inbox — einen Auftrag an eine laufende Agenten-Sitzung JEDES Harness zustellen,
 ohne ihn in ihren Pane zu tippen.
 
+  -S <pfad> nennt den tmux-Server als Socketpfad, -L <name> als Namen; beides geht ueberall, wo
+  unten -L steht (Abschnitt WELCHER TMUX-SERVER).
   wb-inbox [-L <socket>] [--pid <n>] finde <pane-id>       Empfaenger zu diesem Pane
   wb-inbox [-L <socket>] [--pid <n>] [--absender <klasse>] sende <pane-id> <datei>
            [--tafel-halter <sessionId>:<klasse>]             Text zustellen
@@ -10,11 +14,22 @@ ohne ihn in ihren Pane zu tippen.
                                                              Wache-Regel, Exit 8 ohne nutzbaren Weg;
                                                              --nur-weckend: nur ueber einen Weg, der eine
                                                              untaetige Sitzung weckt
+  wb-inbox [-L <socket>] wache-notieren <pane-id> <guard-pid>
+                                                             nur aus `context-guard --ensure` in der
+                                                             Claude-Sitzung dieses Panes: notiert ihre
+                                                             sessionId und ihren gemessenen Modus fuer
+                                                             genau diese Wache (Abschnitt WACHE-NOTIZ)
   wb-inbox [-L <socket>] [--absender <klasse>] herkunft <pane-id>
                                                              gemessene Herkunft einer Sendung
                                                              an diesen Pane (sendet nichts):
                                                              auftrag|information TAB Klasse
                                                              TAB Absender-Pane TAB Starter-Pane
+                                                             Ist <pane-id> der Pane, unter dem
+                                                             dieser Aufruf selbst laeuft (Selbst-
+                                                             messung), Exit 3 statt eines Ergebnisses:
+                                                             das misst eine Sendung an sich selbst,
+                                                             nie die Herkunft einer EMPFANGENEN
+                                                             Nachricht. Die steht in deren Kopfzeile.
   wb-inbox [-L <socket>] absender-pane                       Pane, unter dem der Aufruf laeuft
                                                              (gemessen; Exit 1 ohne Pane)
   wb-inbox [-L <socket>] [--pid <n>] status <pane-id>        Zustand laut Register
@@ -148,6 +163,32 @@ unten hat nicht geschuetzt, weil sie gegen den falschen Server geprueft hat: auf
 DEM Server war die gefundene Sitzung wirklich ein Kind von `%0`. Eine
 Pane-Kennung ist ohne ihren Server keine Adresse.
 
+DIE KENNUNG GEHOERT ZUM SERVER (31.10.2026). Dieselbe Verwechslung noch einmal,
+ueber pi-worker: test-pi-worker-trust-dialog.sh lief ohne Testnaht auf eigenem Server, pi-worker
+legte den Pane dort an und gab nur die Nummer weiter. Das feste tmux dieses Werkzeugs fragte den
+echten Server nach %1, die Ahnenreihe passte dort, und zwei echte Sitzungen bekamen Testauftraege.
+Die Ahnenreihe beweist nur, dass die Sitzung auf DEM gefragten Server unter der Nummer laeuft. Darum:
+  * pi-worker misst den Socket des Panes (`#{socket_path}`) und nennt ihn bei jedem Aufruf
+    (WB_TMUX_SOCKET als Pfad, gleichwertig zu -S). Die Ahnenreihe gilt dann auf genau diesem Server.
+  * Ohne Testnaht endet ein Testserver (Name wbtest-*, wbk*) mit Exit 78, bevor ein Register
+    gelesen wird. Das gilt fuer den genannten und den umgebenden Server (TMUX).
+  * Ohne Testnaht und ohne genannten Server endet ein anderes tmux im PATH mit Exit 78 (der Aufrufer
+    spricht dann mit einem anderen Server als dieses Werkzeug).
+  * Ohne Testnaht, ohne genannten Server und ohne TMUX bleibt der Vorgabe-Server nur fuer einen
+    Aufrufer ausserhalb jedes Panes (launchd-Dienste wie wb-traeger, App, ssh). Wer dort unter
+    einem Pane laeuft und TMUX geleert hat, darf nur seinen eigenen Pane treffen; sonst Exit 78.
+GRENZE: ein Aufrufer ausserhalb jedes Panes, ohne Testnaht, ohne Schirm und ohne Namen landet weiter
+auf dem Vorgabe-Server. Ein solcher Aufruf ist vom Produktweg nicht zu unterscheiden; dafuer steht
+jede Zustellung im Vermerk (ZUSTELL-VERMERK) und die Suiten pruefen ihn am Ende.
+GRENZE: ein eigenes tmux im PATH (kein Testschirm) trifft die zweite Regel ebenfalls. pi-worker nennt
+den Server und ist davon frei; wer ohne Namen sendet, bekommt Exit 78 mit diesem Grund.
+
+ZUSTELL-VERMERK (31.10.2026). Jede erfolgreiche Sendung haengt eine Zeile an
+<heimat>/.local/state/wb-inbox-zustellungen.log (0600, ab 1 MiB nach .1): Zeit, Weg, Pane, Server,
+Empfaenger-PID und WB_SUITE_WACHE, nie der Text. Die Heimat ist dieselbe wie beim Sitzungsregister,
+unter der Testnaht also die Test-Heimat. Eine Suite erkennt ihre Kennung dort wieder (lib-testwerkzeuge.sh,
+zustell_wache_pruefen). Ein Fehler beim Vermerken haelt keine Zustellung auf.
+
 DER PID-RIEGEL (`--pid`). Das Sitzungsregister fuehrt JEDE lebende Sitzung der
 Maschine, unabhaengig vom tmux-Socket -- ein umgelenktes HOME trennt es, ein
 eigener tmux-Socket nicht. Wer auf Nummer sicher gehen will (ein Testlauf mit
@@ -231,7 +272,11 @@ TAFEL-MELDUNGEN OHNE HELD-DIALOG (11.10.2026, Auftrag tafel-meldung-ohne-dialog)
 Orchestrator in bypass hielt Claude Code jede an ("from an unidentified session"), sekundengleich
 mit `zugestellt stoerung` im Tafel-Verlauf. Fuer Sendungen mit wb-tafel als gemessenem Ahnen
 (die Datei neben diesem Werkzeug oder ~/.local/bin/wb-tafel, AUSGEFUEHRT, nicht als Wort im
-Befehlstext; dieselbe Pruefung wie in wb-gruppe) gilt deshalb auf dem Claude-Socket-Weg:
+Befehlstext; dieselbe Pruefung wie in wb-gruppe) gilt deshalb auf dem Claude-Socket-Weg
+(seit 22.10.2026 nur, wenn wb-tafel der direkte Elternprozess ist oder wb-gruppe direkt unter
+wb-tafel sendet; ein Lauf `wb-tafel nimm ... -- <lauf>` liegt hinter dem Zwischenprozess der
+Tafel und sendet als er selbst, sonst scheiterte pi-worker als Lauf am Erstauftrag, weil eine
+frische Claude-Sitzung, gemessen an 2.1.307, ihr Transcript erst mit der ersten Nachricht anlegt):
   * Gemessen wird auch der Modus des EMPFAENGERS (sein Transcript, wie beim Absender).
   * Ein Claude-Absender bezeugt seine Klasse nur, wenn sie der des Empfaengers gleicht.
   * Ohne Claude-Absender bezeugt `--tafel-halter <sessionId>:<klasse>` die Klasse nur, wenn der
@@ -245,8 +290,7 @@ Befehlstext; dieselbe Pruefung wie in wb-gruppe) gilt deshalb auf dem Claude-Soc
     oder Prompt als Kontext einspielt und nach zugestellt/ verschiebt. Den Weg nimmt `sende`
     nur, wenn der Hook in genau diesem Prozess der Sitzung schon lief (er schreibt bei jedem
     Lauf <inbox>/claude/<sessionId>/hook; juenger als der Prozessstart). Ohne belegten Hook
-    wird NICHT zugestellt: Exit 5, nichts gesendet (Nachtrag 1, der Nutzer 11.10.: "es soll niemand
-    den Pane versperren"); wb-tafel vermerkt es im Verlauf, die Gruppe tafel hat die Meldung.
+    wird NICHT zugestellt: Exit 5, nichts gesendet (Nachtrag 1, decision 10-11.); wb-tafel vermerkt es im Verlauf, die Gruppe tafel hat die Meldung.
 Nie bezeugt eine Tafel-Meldung mehr als den gemessenen Modus des Empfaengers; es gibt keine
 Variable dafuer. Andere Absender aendert das nicht. Ausgabe beginnt mit `weg=claude-socket` bzw.
 `weg=claude-datei`. pi und opencode (Datei-Inbox) und codex (`codex queue`) kennen keinen solchen
@@ -273,11 +317,22 @@ TMUX_PANE zaehlt nicht. Enthaelt der Text selbst eine solche Zeile, sagt eine zw
 dass nur die oberste gemessen ist. Die Datei-Inbox traegt zusaetzlich das Feld
 "herkunft": "auftrag" | "information". Ein Kopf von wb-gruppe bleibt unveraendert unter
 dieser Zeile. `herkunft <pane>` zeigt das Ergebnis, ohne zu senden.
+SELBSTMESSUNG (21.10.2026, Befund task): `herkunft <pane>` misst die Herkunft
+einer Sendung AN <pane> -- nicht die Herkunft einer bereits EMPFANGENEN Nachricht. Ruft ein
+Worker das fuer den eigenen Pane auf (`wb-inbox herkunft <eigener Pane>`), ist der gemessene
+Absender-Pane zwangslaeufig derselbe Pane: eine Sendung an sich selbst zaehlt nach der Regel
+oben (`von != pane`) nie als AUFTRAG, unabhaengig davon, wer den Worker wirklich gestartet hat.
+Das Ergebnis "information" bedeutete dort bisher faelschlich "kein Auftrag" statt "falsche
+Frage gestellt". Deshalb meldet `herkunft <pane>` in genau diesem Fall (aufrufender Pane
+gleich Ziel-Pane) Exit 3 mit einer eigenen Fehlermeldung statt einer Zeile "information ...".
+Die Herkunft einer empfangenen Nachricht steht bereits gemessen in deren Kopfzeile
+("[Herkunft laut wb-inbox, gemessen: ...]"); ein zweiter Aufruf von `herkunft` kann sie nicht
+nachtraeglich neu messen, weil der messbare Absender-Pane dann der eigene ist.
 GRENZE (wie bei wb-mensch): Code unter derselben Benutzerkennung kann die Pane-Option
 @wb_spawner umschreiben oder sich als Kind eines fremden Panes starten. Die Zeile schuetzt
 gegen behauptete Herkunft im Text, nicht gegen Code, der seine Herkunft verwischt.
 
-DIE WACHE (16.10.2026, Auftrag wz-guardinbox): context-guard stellt seine Text-Mahnungen
+DIE WACHE (16.10.2026, task): context-guard stellt seine Text-Mahnungen
 (KONTEXT-WARNUNG, Fertigmeldung, ...) ueber dieses Werkzeug zu statt sie zu tippen. Er hat keinen
 Claude-Ahnen und kann seinen Rechtemodus nicht bezeugen; an einen bypass-Empfaenger haelte Claude
 jede Mahnung mit einem Dialog an. Fuer Sendungen mit `--wache-mahnung` UND context-guard als gemessenem Ahnen
@@ -290,6 +345,35 @@ der eine untaetige Sitzung weckt: die Claude-Datei-Inbox zaehlt dann nicht, es e
 Wecken tun der bezeugte Claude-Socket, die Datei-Adapter von pi und opencode (sofort, wenn die
 Sitzung untaetig ist) und codex-queue (Kopf, Abschnitte DATEI-INBOX und CODEX). Andere Harnesses aendert
 das nicht.
+
+WACHE-NOTIZ (28.10.2026, task). Seit 27.10. tippt die Wache nicht mehr; ihre Weckrufe
+(Fertigmeldung, WORKER HAENGT, POST) an einen Claude-Orchestrator endeten mit Exit 8 und lagen ohne
+Wecken in der Datei-Inbox, weil die Wache keinen Claude-Ahnen hat. Die Regel ist dieselbe wie bei
+`--tafel-halter`: eine Meldung an die Sitzung, deren Modus beim Start gemessen wurde.
+  * NOTIEREN: `context-guard --ensure` ruft `wache-notieren <pane> <guard-pid>`. Es notiert nur, wenn
+    alles gemessen zutrifft: ein Ahne fuehrt context-guard mit `--ensure` AUS (Datei neben diesem
+    Werkzeug oder ~/.local/bin/context-guard, wie bei aus_wache); die naechste Claude-Ahnin dieses
+    Aufrufs (absender_sitzung: Register, pid und procStart) ist genau die Sitzung im Pane <pane>
+    (sitzung_zu_pane, Ahnenreihe); ihr Modus ist gemessen (bypass|prompting); <guard-pid> fuehrt binnen
+    3 s context-guard mit `--auto` und <pane> als letztem Argument aus. Die Notiz
+    <heim>/.local/state/wb-inbox/wache/<guard-pid>.json (Ordner 0700, Datei 0600, atomar) traegt
+    Wache-PID und -Startzeit, sessionId, pid und procStart der Sitzung und die Klasse. Ein Aufruf aus
+    einer anderen Sitzung (Worker, Mensch, Shell ohne Claude-Ahnin) notiert nichts.
+  * BEZEUGEN: Fuer `--wache-mahnung` mit context-guard als Ahnen, ohne Claude-Absender, bezeugt `sende`
+    die Klasse nur, wenn ein ausfuehrender context-guard-Ahne genau die Wache der Notiz ist (PID UND
+    Startzeit gleich), der Empfaenger genau die notierte Sitzung ist (sessionId, pid und procStart
+    gleich) und ihr JETZT gemessener Modus der notierten Klasse gleicht. Die Notiz wird nur gelesen,
+    wenn Ordner und Datei dem Benutzer gehoeren und fuer niemand sonst les- oder schreibbar sind
+    (kein Symlink).
+  * VERFALL: Ein anderer gemessener Modus beendet die Bezeugung, die Notiz wird geloescht (erst das
+    naechste `--ensure` aus der Sitzung notiert neu). Ebenso verfaellt sie mit dem Ende der Sitzung
+    (pid tot, procStart oder sessionId anders) und mit dem Ende der Wache (PID tot oder Startzeit
+    anders); `wache-notieren` raeumt solche Notizen mit ab.
+Eine Behauptung zaehlt nie: kein Argument und keine Variable nennt sessionId oder Modus, und
+`--tafel-halter` wirkt seit 28.10. nur fuer die Tafel (so stand es schon oben), nicht fuer die Wache.
+Ein fremder Prozess, auch ein zweiter context-guard, ist nicht die notierte Wache und wird nicht
+bezeugt. GRENZE wie bei HERKUNFT: Code unter derselben Benutzerkennung kann die Notiz selbst
+schreiben; er kann damit hoechstens der notierten Wache den eigenen Modus der Empfaengerin bezeugen.
 
 WAS DIESES WERKZEUG NICHT TUT: Es BEWEIST die Zustellung nicht. Der Socket
 antwortet nicht, und "geschrieben" heisst nie "gelesen". Der Beleg bleibt, wo er
@@ -307,11 +391,37 @@ import re
 import shutil
 import socket
 import sqlite3
+import stat
 import subprocess
 import sys
 import time
 
-SESSIONS = os.path.expanduser("~/.claude/sessions")
+# Heimat fuer den Menschen-Nachweis (18.10.2026, Befund pathklasse-sicher OPEN 2): wb-mensch kommt
+# aus der Heimat laut Benutzerdatenbank und laeuft mit HOME=<diese Heimat>, nie aus $HOME. Ein
+# umgelenktes HOME mit eigener wb-mensch-Attrappe (exit 0) galt sonst als Mensch. Testnaht: nur
+# mit WB_TESTUMGEBUNG=1 gilt das HOME der Umgebung. GRENZE: wer beides setzt, umgeht das; die
+# getippte Form sperrt bash-guard (heim-umlenkung).
+def _mensch_heim():
+    if os.environ.get("WB_TESTUMGEBUNG") == "1" and os.environ.get("HOME"):
+        return os.environ["HOME"]
+    try:
+        import pwd
+        return pwd.getpwuid(os.getuid()).pw_dir
+    except (ImportError, KeyError):
+        return ""
+
+
+# Sitzungsregister und Transcripts (19.10.2026, Befund pathklasse-sicher OPEN 3): Herkunft und Rechtemodus
+# eines Absenders kommen aus ~/.claude/sessions und ~/.claude/projects der Heimat laut Benutzerdatenbank,
+# nie aus $HOME; ein umgelenktes HOME mit gefaelschtem sessions/<pid>.json machte sonst jeden Aufrufer zu
+# einer Sitzung mit gewuenschtem Rechtemodus. Testnaht: nur mit WB_TESTUMGEBUNG=1 gilt das HOME der Umgebung.
+# Ohne Heimat zeigt der Pfad ins Leere (fail-closed: kein Register, kein Modus).
+def _claude_ordner(name):
+    heim = _mensch_heim()
+    return os.path.join(heim if heim else "/nonexistent-heim", ".claude", name)
+
+
+SESSIONS = _claude_ordner("sessions")
 
 # Die gemeinsame Datei-Inbox (Abschnitt DATEI-INBOX im Kopf).
 INBOX_DIR = os.environ.get("WB_INBOX_DIR", "") or os.path.expanduser("~/.claude/workbench/inbox")
@@ -351,9 +461,78 @@ EINGEBAUT = {
     "codex": {"weg": "codex-queue", "prozess": r"(^|/)codex( |$)"},
 }
 
-# Der tmux-Server, auf dem eine Pane-Kennung ueberhaupt etwas bedeutet. Leer =
-# der umgebende, also das bisherige Verhalten.
+# Der tmux-Server, auf dem eine Pane-Kennung ueberhaupt etwas bedeutet: ein Name (tmux -L) oder,
+# mit "/", ein Socketpfad (tmux -S). Leer = der umgebende, also das bisherige Verhalten.
 TMUX_SOCKET = os.environ.get("WB_TMUX_SOCKET", "") or ""
+
+
+def tmux_server_args():
+    """Die Argumente, die tmux auf den genannten Server richten (leer: der umgebende)."""
+    if not TMUX_SOCKET:
+        return []
+    return ["-S" if "/" in TMUX_SOCKET else "-L", TMUX_SOCKET]
+
+
+# FESTE PROGRAMME (18.10.2026, Befund devdir-sicher N5). Die Herkunft (Abschnitt HERKUNFT,
+# Traeger, Rechtemodus) misst dieses Werkzeug mit `ps` und `tmux`. Aus dem PATH des Aufrufers
+# genommen, beantwortete ein eigenes Programm die Frage, unter welchem Pane der Aufruf laeuft,
+# und machte eine Sendung zum AUFTRAG. Deshalb:
+#   * `ps` immer von einem festen Pfad (/bin/ps, sonst /usr/bin/ps; gilt fuer jede Stelle);
+#   * `tmux` fuer die Herkunft von einem festen Pfad (dieselbe Liste wie wb-decide). Ist das
+#     tmux im PATH ein ANDERES (der Schirm einer Testsuite oder ein untergeschobenes), misst die
+#     Herkunft nichts: INFORMATION, fail-closed, ohne einen Server zu fragen. Zustellen
+#     (Empfaenger, Pane-Text, Schlafmarke) nutzt live denselben festen Pfad; nur die Testnaht
+#     nimmt den tmux-Schirm aus dem PATH (2026-10-19, Sendeweg).
+# Der Interpreter steht fest in der Shebang-Zeile.
+# TESTNAHT: nur mit WB_TESTUMGEBUNG=1 gilt das tmux im PATH wie bisher.
+# GRENZE: wer WB_TESTUMGEBUNG=1 setzt UND den PATH umlenkt, umgeht das; die getippte Form sperrt
+# der Guard pfad-umlenkung, Code zur Laufzeit ist die GRENZE aus HERKUNFT. wb-mensch kommt weiter
+# aus $HOME (ist_mensch): "mensch" senkt nur auf INFORMATION und oeffnet den Pausenschalter,
+# nie einen AUFTRAG; die Suiten legen ihre Attrappe dort ab.
+TESTNAHT = os.environ.get("WB_TESTUMGEBUNG") == "1"
+PS_BIN = next((k for k in ("/bin/ps", "/usr/bin/ps") if os.access(k, os.X_OK)), "/bin/ps")
+TMUX_FEST = ("/opt/homebrew/bin/tmux", "/usr/local/bin/tmux", "/usr/bin/tmux", "/bin/tmux")
+TMUX_SEND_BIN = shutil.which("tmux") if TESTNAHT else next((k for k in TMUX_FEST if os.access(k, os.X_OK)), None)
+
+
+def tmux_herkunft():
+    """Das tmux, mit dem die Herkunft gemessen wird, oder None (nicht messbar)."""
+    im_pfad = shutil.which("tmux")
+    if TESTNAHT:
+        return im_pfad
+    fest = {os.path.realpath(k) for k in TMUX_FEST if os.access(k, os.X_OK)}
+    if im_pfad:
+        echt = os.path.realpath(im_pfad)
+        return echt if echt in fest else None
+    return next((k for k in TMUX_FEST if os.access(k, os.X_OK)), None)
+
+
+# Abschnitt DIE KENNUNG GEHOERT ZUM SERVER im Kopf. Dieselben Testnamen wie wb-decide und wb-autorevive.
+EXIT_NAHT_ABGELEHNT = 78
+TESTSERVER_PRAEFIXE = ("wbtest-", "wbk")
+
+
+def naht_ablehnung(pane):
+    """Der Grund, warum dieser Aufruf keinen Empfaenger suchen darf, oder '' (er darf)."""
+    if TESTNAHT:
+        return ""
+    genannt = TMUX_SOCKET
+    ziel = genannt or os.environ.get("TMUX", "").split(",", 1)[0]
+    if os.path.basename(ziel).startswith(TESTSERVER_PRAEFIXE):
+        return ("Der tmux-Server '%s' ist ein Testserver, aber WB_TESTUMGEBUNG=1 fehlt. Ohne die "
+                "Testnaht gilt das echte Sitzungsregister." % ziel)
+    if genannt:
+        return ""
+    if shutil.which("tmux") and tmux_herkunft() is None:
+        return ("Das tmux im PATH ist nicht das feste tmux, und kein Server ist genannt: Der Aufrufer "
+                "spricht mit einem anderen Server als dieses Werkzeug. %s gilt nur mit -S oder -L." % pane)
+    if not ziel:
+        von = absender_pane()
+        if von and von != pane:
+            return ("Der Aufruf laeuft unter Pane %s, hat aber TMUX geleert und nennt keinen Server. "
+                    "%s ist so nicht als Pane des eigenen Servers belegt." % (von, pane))
+    return ""
+
 
 # Nur diese PID gilt als gueltiger Empfaenger (0 = kein Riegel).
 NUR_PID = 0
@@ -369,7 +548,7 @@ ABSENDER = None
 def _prozess(pid):
     """(ppid, Befehlszeile) eines Prozesses, oder None, wenn ps ihn nicht kennt."""
     try:
-        r = subprocess.run(["ps", "-o", "ppid=", "-o", "command=", "-p", str(pid)],
+        r = subprocess.run([PS_BIN, "-o", "ppid=", "-o", "command=", "-p", str(pid)],
                            stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
         return None
@@ -420,11 +599,14 @@ def aus_traeger(vorrat):
 
 def ist_mensch():
     """`wb-mensch pruefen` entscheidet; fehlt es oder scheitert es, ist es kein Mensch."""
+    heim = _mensch_heim()
+    if not heim:
+        return False
     try:
-        pfad = os.path.join(os.environ.get("HOME", ""), ".local", "bin", "wb-mensch")
+        pfad = os.path.join(heim, ".local", "bin", "wb-mensch")
         r = subprocess.run([pfad, "pruefen"], stdin=subprocess.DEVNULL,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10,
-                           env={"HOME": os.environ.get("HOME", ""),
+                           env={"HOME": heim,
                                 "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
                                 "TMPDIR": "/tmp"})
     except (OSError, subprocess.SubprocessError):
@@ -475,10 +657,11 @@ def fehler(text):
     sys.stderr.write("wb-inbox: %s\n" % text)
 
 
-def tmux_feld(pane, feld):
-    befehl = ["tmux"]
-    if TMUX_SOCKET:
-        befehl += ["-L", TMUX_SOCKET]
+def tmux_feld(pane, feld, tmux_bin=None):
+    befehl = [tmux_bin or TMUX_SEND_BIN or ""]
+    if not befehl[0]:
+        return ""
+    befehl += tmux_server_args()
     befehl += ["display", "-p", "-t", pane, feld]
     try:
         r = subprocess.run(befehl, capture_output=True, text=True, timeout=5)
@@ -496,7 +679,7 @@ def ahnenreihe(pid, wurzel, tiefe=40):
         if q in (0, 1):
             return False
         try:
-            r = subprocess.run(["ps", "-o", "ppid=", "-p", str(q)],
+            r = subprocess.run([PS_BIN, "-o", "ppid=", "-p", str(q)],
                                capture_output=True, text=True, timeout=5)
             q = int(r.stdout.strip())
         except Exception:
@@ -550,7 +733,7 @@ def _prozessstart_utc(pid):
     (gemessen 10.10.2026: `LC_ALL=C TZ=UTC ps -o lstart=`), oder ''."""
     umg = dict(os.environ, LC_ALL="C", TZ="UTC")
     try:
-        r = subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], env=umg,
+        r = subprocess.run([PS_BIN, "-o", "lstart=", "-p", str(pid)], env=umg,
                            stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
         return ""
@@ -631,7 +814,7 @@ def sitzung_modus(d):
     cwd = d.get("cwd")
     if not isinstance(sid, str) or not re.fullmatch(r"[0-9A-Fa-f-]{8,64}", sid):
         return None
-    projekte = os.path.expanduser("~/.claude/projects")
+    projekte = _claude_ordner("projects")
     pfad = ""
     if isinstance(cwd, str) and cwd:
         p = os.path.join(projekte, re.sub(r"[^A-Za-z0-9]", "-", cwd), sid + ".jsonl")
@@ -654,10 +837,13 @@ HERKUNFT_MARKE = "Herkunft laut wb-inbox"
 def absender_pane():
     """Der Pane auf DEM tmux-Server des Empfaengers, unter dem dieser Aufruf laeuft: der
     naechste Ahne, der die pane_pid eines Panes ist. '' ohne Treffer (ein Prozess ausserhalb
-    jedes Panes dieses Servers). TMUX_PANE zaehlt nicht -- es ist eine Variable."""
-    befehl = ["tmux"]
-    if TMUX_SOCKET:
-        befehl += ["-L", TMUX_SOCKET]
+    jedes Panes dieses Servers). TMUX_PANE zaehlt nicht -- es ist eine Variable. Gemessen mit
+    dem festen tmux (FESTE PROGRAMME); ist keines messbar, ''."""
+    tm = tmux_herkunft()
+    if not tm:
+        return ""
+    befehl = [tm]
+    befehl += tmux_server_args()
     befehl += ["list-panes", "-a", "-F", "#{pane_pid} #{pane_id}"]
     try:
         r = subprocess.run(befehl, stdin=subprocess.DEVNULL, capture_output=True, text=True,
@@ -684,7 +870,8 @@ def herkunft(pane, vorrat):
     Keine Variable und keine Option des Aufrufers hebt das an; `--absender` setzt nur herab."""
     klasse = absender_klasse(vorrat)
     von = absender_pane()
-    spawner = tmux_feld(pane, "#{@wb_spawner}").strip()
+    tm = tmux_herkunft()
+    spawner = tmux_feld(pane, "#{@wb_spawner}", tm).strip() if tm else ""
     if not re.fullmatch(r"%[0-9]+", spawner):
         spawner = ""
     auftrag = bool(klasse == "hauptagent" and von and spawner and von == spawner and von != pane)
@@ -750,31 +937,39 @@ def _ausgefuehrtes_programm(args):
         return teile[0]
     for token in teile[1:]:
         if token.startswith("-"):
-            if re.fullmatch(r"-[xeuvBEsSIlfn]+", token):
+            if re.fullmatch(r"-[xeuvBEsSIlfnp]+", token):   # p: context-guard laeuft als /bin/bash -p (task)
                 continue
             return None
         return token
     return None
 
 
-def _ahne_fuehrt_aus(name):
-    """Ist `name` (wb-tafel, context-guard) ein Ahne, der dieses Programm AUSFUEHRT -- die Datei
-    neben diesem Werkzeug oder ~/.local/bin/<name> (realpath)? Gemessen an der Elternkette,
-    nie an einem Argument."""
+def _fuehrt_aus(befehl, name):
+    """Fuehrt diese Befehlszeile `name` AUS -- die Datei neben diesem Werkzeug oder
+    ~/.local/bin/<name> (realpath)? Nie an einem Argument gemessen."""
     erlaubt = set()
     for k in (os.path.join(HIER, name), os.path.expanduser("~/.local/bin/" + name)):
         if os.path.isfile(k):
             erlaubt.add(os.path.realpath(k))
-    for _pid, befehl in aufrufer_ahnen():
-        programm = _ausgefuehrtes_programm(befehl)
-        if programm and "/" in programm and os.path.realpath(programm) in erlaubt:
-            return True
-    return False
+    programm = _ausgefuehrtes_programm(befehl)
+    return bool(programm and "/" in programm and os.path.realpath(programm) in erlaubt)
+
+
+def _ahne_fuehrt_aus(name):
+    """Ist `name` (context-guard) ein Ahne, der dieses Programm AUSFUEHRT? Gemessen an der
+    Elternkette, nie an einem Argument."""
+    return any(_fuehrt_aus(befehl, name) for _pid, befehl in aufrufer_ahnen())
 
 
 def aus_tafel():
-    """Ist wb-tafel ein Ahne, der wb-tafel AUSFUEHRT? Siehe _ahne_fuehrt_aus."""
-    return _ahne_fuehrt_aus("wb-tafel")
+    """Sendet wb-tafel selbst? Nur als direkter Elternprozess oder ueber `wb-gruppe meldung tafel`
+    (wb-gruppe direkt unter wb-tafel, wie wb-gruppe es selbst verlangt). Ein Lauf `wb-tafel nimm
+    ... -- <lauf>` liegt hinter dem Zwischenprozess der Tafel und sendet als er selbst (Befund
+    task, 22.10.2026: pi-worker als Lauf scheiterte sonst an jedem Erstauftrag)."""
+    ahnen = aufrufer_ahnen()
+    if ahnen and _fuehrt_aus(ahnen[0][1], "wb-tafel"):
+        return True
+    return len(ahnen) >= 2 and _fuehrt_aus(ahnen[0][1], "wb-gruppe") and _fuehrt_aus(ahnen[1][1], "wb-tafel")
 
 
 def aus_wache():
@@ -790,10 +985,11 @@ def aus_wache():
 TAFEL_HALTER = None
 
 
-def tafel_bezeugung(d, klasse_absender):
-    """('modus', klasse) | ('datei', grund) fuer eine Tafel-Meldung an die Claude-Sitzung d.
-    Bezeugt wird hoechstens die gemessene Klasse des Empfaengers: von einem Claude-Absender nur
-    dessen eigene, gleiche Klasse; ohne Claude-Absender nur ueber einen passenden Halter-Modus.
+def tafel_bezeugung(d, klasse_absender, system="tafel"):
+    """('modus', klasse) | ('datei', grund) fuer eine Tafel- oder Wache-Meldung an die Claude-Sitzung
+    d. Bezeugt wird hoechstens die gemessene Klasse des Empfaengers: von einem Claude-Absender nur
+    dessen eigene, gleiche Klasse; ohne Claude-Absender fuer die Tafel nur ueber einen passenden
+    Halter-Modus, fuer die Wache nur ueber ihre Notiz (Abschnitt WACHE-NOTIZ).
     Sonst haelte Claude die Nachricht an -- dann die Claude-Datei-Inbox."""
     empf = sitzung_modus(d)
     if empf not in ("bypass", "prompting"):
@@ -802,12 +998,162 @@ def tafel_bezeugung(d, klasse_absender):
         if klasse_absender == empf:
             return "modus", empf
         return "datei", "Absender-Sitzung %s, Empfaenger %s" % (klasse_absender, empf)
+    if system == "wache":
+        return wache_bezeugung(d, empf)
     if TAFEL_HALTER:
         sid, _, klasse = TAFEL_HALTER.partition(":")
         if sid == d.get("sessionId") and klasse == empf:
             return "modus", empf
         return "datei", "Halter-Modus passt nicht zur Empfaenger-Sitzung"
     return "datei", "kein Claude-Absender und kein Halter-Modus"
+
+
+# ── Wache-Notiz (28.10.2026, Abschnitt WACHE-NOTIZ im Kopf) ─────────────────────────
+
+def _wache_ordner():
+    """<heim>/.local/state/wb-inbox/wache -- aus der Heimat laut Benutzerdatenbank wie das
+    Sitzungsregister, nie aus einer Variable des Aufrufers (Testnaht: WB_TESTUMGEBUNG=1)."""
+    heim = _mensch_heim()
+    return os.path.join(heim if heim else "/nonexistent-heim", ".local", "state", "wb-inbox", "wache")
+
+
+def _nur_meins(st, art):
+    """Gehoert dem Benutzer, ist von der Art `art` und fuer niemand sonst les- oder schreibbar?"""
+    return art(st.st_mode) and st.st_uid == os.getuid() and not (st.st_mode & 0o077)
+
+
+def _ist_wache_fuer(pid, pane):
+    """Fuehrt pid context-guard als laufende Wache von `pane` AUS (`--auto`, <pane> zuletzt)?"""
+    info = _prozess(pid)
+    if info is None or not _fuehrt_aus(info[1], "context-guard"):
+        return False
+    teile = info[1].split()
+    return "--auto" in teile and "--ensure" not in teile and "--stop" not in teile and teile[-1] == pane
+
+
+def _wache_notiz_lesen(pfad):
+    """Die Notiz als dict, nur wenn Datei und Ordner dem Benutzer allein gehoeren (kein Symlink)."""
+    try:
+        if not _nur_meins(os.lstat(os.path.dirname(pfad)), stat.S_ISDIR):
+            return None
+        fd = os.open(pfad, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:
+        return None
+    with os.fdopen(fd, "rb") as f:
+        if not _nur_meins(os.fstat(f.fileno()), stat.S_ISREG):
+            return None
+        try:
+            n = json.loads(f.read(65536).decode("utf-8"))
+        except Exception:
+            return None
+    return n if isinstance(n, dict) else None
+
+
+def _wache_notiz_weg(pfad):
+    try:
+        os.unlink(pfad)
+    except OSError:
+        pass
+
+
+def _wache_notiz_lebt(n, pid):
+    """Leben die notierte Wache (pid, Startzeit) und die notierte Sitzung (pid, procStart)?"""
+    if n.get("guard_pid") != pid or n.get("guard_start") != _prozessstart_utc(pid):
+        return False
+    spid = n.get("session_pid")
+    return isinstance(spid, int) and spid > 1 and lebt(spid) \
+        and n.get("session_start") == _prozessstart_utc(spid)
+
+
+def wache_bezeugung(d, empf):
+    """('modus', empf) | ('datei', grund): bezeugt nur, wenn ein ausfuehrender context-guard-Ahne
+    die notierte Wache ist, d die notierte Sitzung und ihr jetzt gemessener Modus der notierte."""
+    ordner = _wache_ordner()
+    for pid, befehl in aufrufer_ahnen():
+        if not _fuehrt_aus(befehl, "context-guard"):
+            continue
+        pfad = os.path.join(ordner, "%d.json" % pid)
+        n = _wache_notiz_lesen(pfad)
+        if n is None:
+            continue
+        if not _wache_notiz_lebt(n, pid):
+            _wache_notiz_weg(pfad)
+            return "datei", "Wache-Notiz verfallen (Wache oder Sitzung beendet)"
+        if n.get("session_pid") != d.get("pid"):
+            return "datei", "Wache-Notiz gilt einer anderen Sitzung"
+        if n.get("session_id") != d.get("sessionId"):
+            # Dieselbe pid, eine andere Sitzung (etwa /clear): die notierte ist beendet.
+            _wache_notiz_weg(pfad)
+            return "datei", "Wache-Notiz verfallen (andere sessionId im selben Prozess)"
+        if n.get("klasse") != empf:
+            _wache_notiz_weg(pfad)
+            return "datei", "Moduswechsel seit der Wache-Notiz (%s, jetzt %s): Bezeugung beendet" % (
+                n.get("klasse"), empf)
+        return "modus", empf
+    return "datei", "kein Claude-Absender und keine Wache-Notiz"
+
+
+def cmd_wache_notieren(pane, gpid):
+    """Notiert fuer die Wache gpid sessionId und gemessenen Modus der Claude-Sitzung in `pane` --
+    nur aus `context-guard --ensure` heraus, das in genau dieser Sitzung laeuft."""
+    if not re.fullmatch(r"%[0-9]+", pane):
+        fehler("wache-notieren: Pane '%s' ist keine Pane-ID." % pane)
+        return 2
+    if not any(_fuehrt_aus(b, "context-guard") and "--ensure" in b.split() for _p, b in aufrufer_ahnen()):
+        fehler("wache-notieren: nur aus 'context-guard --ensure' (kein solcher Ahne) -- nichts notiert.")
+        return 1
+    s = absender_sitzung()
+    if not s:
+        fehler("wache-notieren: keine Claude-Sitzung unter den Ahnen -- nichts notiert.")
+        return 1
+    d = sitzung_zu_pane(pane)
+    if not d or d.get("pid") != s.get("pid") or d.get("sessionId") != s.get("sessionId"):
+        fehler("wache-notieren: die aufrufende Claude-Sitzung ist nicht die Sitzung in %s -- nichts notiert." % pane)
+        return 1
+    klasse = sitzung_modus(s)
+    if klasse not in ("bypass", "prompting"):
+        fehler("wache-notieren: Rechtemodus der Sitzung nicht messbar -- nichts notiert.")
+        return 1
+    # Der Starter von --ensure fuehrt die Wache per exec aus; bis dahin ist sie noch python.
+    frist = time.time() + 3
+    while not _ist_wache_fuer(gpid, pane):
+        if time.time() > frist:
+            fehler("wache-notieren: PID %d ist keine laufende Wache von %s -- nichts notiert." % (gpid, pane))
+            return 1
+        time.sleep(0.05)
+    gstart = _prozessstart_utc(gpid)
+    ordner = _wache_ordner()
+    try:
+        os.makedirs(ordner, mode=0o700, exist_ok=True)
+        os.chmod(ordner, 0o700)
+        if not _nur_meins(os.lstat(ordner), stat.S_ISDIR):
+            raise OSError("Ordner gehoert nicht allein dem Benutzer")
+    except OSError as e:
+        fehler("wache-notieren: Ordner %s nicht nutzbar: %s" % (ordner, e))
+        return 1
+    # Verfallene Notizen anderer Wachen gleich mit abraeumen.
+    for alt in glob.glob(os.path.join(ordner, "*.json")):
+        name = os.path.basename(alt)[:-5]
+        n = _wache_notiz_lesen(alt)
+        if not name.isdigit() or n is None or not _wache_notiz_lebt(n, int(name)):
+            _wache_notiz_weg(alt)
+    notiz = {"version": 1, "guard_pid": gpid, "guard_start": gstart, "pane": pane,
+             "session_id": s["sessionId"], "session_pid": s["pid"],
+             "session_start": _prozessstart_utc(s["pid"]), "klasse": klasse, "zeit": jetzt_iso()}
+    ziel = os.path.join(ordner, "%d.json" % gpid)
+    tmp = os.path.join(ordner, ".%d.%d.tmp" % (gpid, os.getpid()))
+    try:
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(notiz))
+        os.rename(tmp, ziel)
+    except OSError as e:
+        _wache_notiz_weg(tmp)
+        fehler("wache-notieren: Schreiben fehlgeschlagen: %s" % e)
+        return 1
+    sys.stdout.write("wache-notiz: Wache %d bewacht Sitzung '%s' (pid %d) in %s, Modus %s: %s\n" % (
+        gpid, s.get("name", "?"), s["pid"], pane, klasse, ziel))
+    return 0
 
 
 def claude_ordner(sid):
@@ -866,8 +1212,16 @@ def claude_datei_senden(d, text, h, grund, absender="tafel"):
     return 0
 
 
-def sitzung_zu_pane(pane):
+def sitzung_zu_pane(pane, bevorzugt_pid=None):
     """Der Registereintrag der Claude-Sitzung in diesem Pane, oder None.
+
+    Haengen mehrere Claude-Register unter dem Pane (der Harness und seine Kindlaeufe
+    mit `claude -p`, die dieselbe Pane-Adresse erben), gewinnt der Eintrag mit
+    `bevorzugt_pid` -- das ist der oberste Harness-Prozess, den empfaenger() misst
+    (18.11.2026, Befund: die Zustellung traf je Kindlauf ein anderes Register und
+    brach mit "nicht der oberste Harness-Prozess" ab). Ohne Eintrag mit dieser PID
+    bleibt es beim ersten Treffer in PID-Reihenfolge; der Aufrufer bricht dann
+    laut ab, ein Kind-Register wird nie beliefert.
 
     Zwei Stufen: die Pane-Adresse im Register und die AHNENREIHE. Der Prozess
     muss wirklich unter diesem Pane auf diesem Server haengen.
@@ -913,12 +1267,16 @@ def sitzung_zu_pane(pane):
             continue
         kandidaten.append(d)
 
-    for d in kandidaten:
+    treffer = []
+    for d in sorted(kandidaten, key=lambda k: k["pid"]):
         if NUR_PID and d["pid"] != NUR_PID:
             continue
         if ahnenreihe(d["pid"], pane_pid):
+            treffer.append(d)
+    for d in treffer:
+        if bevorzugt_pid is not None and d["pid"] == bevorzugt_pid:
             return d
-    return None
+    return treffer[0] if treffer else None
 
 
 # ── Registry ────────────────────────────────────────────────────────────────
@@ -961,7 +1319,7 @@ def inbox_block(hid, harnesses=None):
 def prozesse_unter(pane_pid):
     """[(pid, befehlszeile)] aller Nachfahren von pane_pid, pane_pid eingeschlossen."""
     try:
-        r = subprocess.run(["ps", "-A", "-o", "pid=", "-o", "ppid=", "-o", "command="],
+        r = subprocess.run([PS_BIN, "-A", "-o", "pid=", "-o", "ppid=", "-o", "command="],
                            stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
         return []
@@ -1003,10 +1361,13 @@ def harness_prozess_im_pane(pane_pid, harnesses):
 # ── Datei-Inbox ─────────────────────────────────────────────────────────────
 
 
-def datei_empfaenger(pane, pane_pid):
+def datei_empfaenger(pane, pane_pid, bevorzugt_pid=None):
     """Die Anmeldung eines Adapters, dessen Prozess unter diesem Pane lebt, oder None.
-    Anmeldungen toter Prozesse werden dabei weggeraeumt, alle, nicht nur bis zum Treffer."""
+    Anmeldungen toter Prozesse werden dabei weggeraeumt, alle, nicht nur bis zum Treffer.
+    Unter mehreren Anmeldungen im Pane gewinnt die mit `bevorzugt_pid` (der oberste
+    Harness-Prozess); ohne sie der erste Treffer in Dateinamenreihenfolge."""
     gefunden = None
+    bevorzugt = None
     server_sock = tmux_feld(pane, "#{socket_path}")
     if not server_sock:
         return None
@@ -1029,14 +1390,17 @@ def datei_empfaenger(pane, pane_pid):
                 pass
             shutil.rmtree(os.path.join(INBOX_DIR, name), ignore_errors=True)
             continue
-        if gefunden or (NUR_PID and pid != NUR_PID):
+        if bevorzugt or (gefunden and bevorzugt_pid is None) or (NUR_PID and pid != NUR_PID):
             continue
         if d.get("pane") != pane or str(d.get("tmux") or "").split(",", 1)[0] != server_sock:
             continue
         if ahnenreihe(pid, pane_pid):
             d["_ordner"] = os.path.join(INBOX_DIR, name)
-            gefunden = d
-    return gefunden
+            if bevorzugt_pid is not None and pid == bevorzugt_pid:
+                bevorzugt = d
+            elif not gefunden:
+                gefunden = d
+    return bevorzugt or gefunden
 
 
 def datei_senden(d, text, klasse, h=None):
@@ -1087,7 +1451,7 @@ def datei_senden(d, text, klasse, h=None):
 def _umgebung_von(pid):
     """Die Umgebung eines eigenen Prozesses laut `ps eww` (nur KEY=wert-Woerter)."""
     try:
-        r = subprocess.run(["ps", "eww", "-o", "command=", "-p", str(pid)],
+        r = subprocess.run([PS_BIN, "eww", "-o", "command=", "-p", str(pid)],
                            stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
         return {}
@@ -1113,7 +1477,7 @@ def _cwd_von(pid):
 
 def _start_ms(pid):
     try:
-        r = subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], stdin=subprocess.DEVNULL,
+        r = subprocess.run([PS_BIN, "-o", "lstart=", "-p", str(pid)], stdin=subprocess.DEVNULL,
                            capture_output=True, text=True, timeout=5,
                            env=dict(os.environ, LC_ALL="C", LANG="C"))
         t = time.mktime(time.strptime(r.stdout.strip(), "%a %b %d %H:%M:%S %Y"))
@@ -1428,9 +1792,10 @@ CODEX_DIALOGE = (
 
 def pane_text(pane):
     """Der sichtbare Text des Panes, oder '' (kein tmux, Pane weg)."""
-    befehl = ["tmux"]
-    if TMUX_SOCKET:
-        befehl += ["-L", TMUX_SOCKET]
+    befehl = [TMUX_SEND_BIN or ""]
+    if not befehl[0]:
+        return ""
+    befehl += tmux_server_args()
     befehl += ["capture-pane", "-p", "-t", pane]
     try:
         r = subprocess.run(befehl, capture_output=True, text=True, timeout=5,
@@ -1595,6 +1960,13 @@ def cmd_codex_queue(pane, starten):
 # ── Empfaenger zu einem Pane ────────────────────────────────────────────────
 
 
+def gleicher_befehl(harnesses, a, b):
+    """True, wenn zwei Harness-IDs denselben Programmnamen starten (copilot, copilot-cloud)."""
+    def befehl(hid):
+        return os.path.basename(str((harnesses.get(hid) or {}).get("command") or ""))
+    return bool(befehl(a)) and befehl(a) == befehl(b)
+
+
 def empfaenger(pane):
     """Was unter diesem Pane Nachrichten annimmt, als Wörterbuch mit `weg`:
       claude-socket / datei / codex-queue -- zustellbar;
@@ -1614,11 +1986,15 @@ def empfaenger(pane):
     # session of a different harness; in that case fail closed.
     oberste_pid = prozess[1] if prozess else pane_pid
     if markierung and prozess_harness and markierung != prozess_harness:
-        return {"weg": "", "harness": markierung,
-                "grund": "Pane-Markierung '%s' und laufender Harness '%s' widersprechen sich. "
-                         "Empfaenger nicht belegbar." % (markierung, prozess_harness)}
+        # Zwei IDs mit demselben Befehl (copilot, copilot-cloud) sind eine Prozessart;
+        # dann entscheidet die Markierung, welche davon im Pane laeuft.
+        if not gleicher_befehl(harnesses, markierung, prozess_harness):
+            return {"weg": "", "harness": markierung,
+                    "grund": "Pane-Markierung '%s' und laufender Harness '%s' widersprechen sich. "
+                             "Empfaenger nicht belegbar." % (markierung, prozess_harness)}
+        prozess_harness = markierung
     beobachtet = prozess_harness or markierung
-    d = sitzung_zu_pane(pane)
+    d = sitzung_zu_pane(pane, oberste_pid)
     # Der Weg richtet sich nach dem OBERSTEN Harness des Panes (09.10.2026, Vorfall
     # llm-stabil: ein Codex-Worker hatte eine Claude-Sitzung unter sich, und die
     # Zustellung an Codex brach mit "Claude-Register-PID ... nicht der oberste
@@ -1643,7 +2019,7 @@ def empfaenger(pane):
         return {"weg": "claude-socket", "sitzung": d, "pid": d["pid"],
                 "adresse": d.get("messagingSocketPath", ""), "name": d.get("name", ""),
                 "status": d.get("status", ""), "id": d.get("sessionId", ""), "harness": "claude"}
-    r = datei_empfaenger(pane, pane_pid)
+    r = datei_empfaenger(pane, pane_pid, oberste_pid)
     if r:
         if r["pid"] != oberste_pid:
             return {"weg": "", "harness": beobachtet or str(r.get("harness", "")),
@@ -1690,6 +2066,13 @@ def empfaenger(pane):
 
 
 def _kein_empfaenger(pane):
+    # Wie der Spawner (pi-worker, codex_dialog_meldung): steht ein Trust-Dialog im Pane, nennt die
+    # Meldung ihn. Ohne Empfaenger ist die Harness-Kennung nicht gemessen; der Dialog-Befund stammt
+    # aus dem Pane-Text und wird nur genannt, nichts gesendet.
+    dialog = codex_dialog(pane)
+    if dialog:
+        fehler(codex_dialog_meldung(dialog, pane))
+        return
     fehler("keine lebende Claude-Sitzung und kein anderer Inbox-Empfaenger unter Pane %s "
            "(Register %s, Datei-Inbox %s%s%s)." % (
                pane, SESSIONS, INBOX_DIR,
@@ -1745,7 +2128,7 @@ def cmd_transcript(pane):
         sid = e.get("id")
         if not sid:
             return 1
-        treffer = glob.glob(os.path.expanduser("~/.claude/projects/*/%s.jsonl" % sid))
+        treffer = glob.glob(os.path.join(_claude_ordner("projects"), "*", "%s.jsonl" % sid))
         if not treffer:
             return 1
         sys.stdout.write("%s\n" % treffer[0])
@@ -1978,7 +2361,11 @@ def cmd_sende(pane, datei):
     if tmux_feld(pane, "#{@wb_schlaeft}").strip():
         schlaf = os.path.join(os.path.expanduser("~"), ".local", "bin", "wb-schlaf")
         umg = dict(os.environ)
-        if TMUX_SOCKET:
+        if "/" in TMUX_SOCKET:
+            # wb-schlaf kennt nur Namen. TMUX macht den Pfad zu seinem umgebenden Server.
+            umg["TMUX"] = "%s,0,0" % TMUX_SOCKET
+            umg.pop("WB_TMUX_SOCKET", None)
+        elif TMUX_SOCKET:
             umg["WB_TMUX_SOCKET"] = TMUX_SOCKET
         try:
             subprocess.run([schlaf, "wecken", pane, "--warten", "120"], env=umg,
@@ -1996,6 +2383,7 @@ def cmd_sende(pane, datei):
     if not e.get("weg"):
         _kein_weg(pane, e)
         return EXIT_KEIN_WEG
+    ZUSTELL_ZIEL.update(weg=e["weg"], pid=e.get("pid"))
     if e["weg"] != "claude-socket":
         try:
             text = open(datei, encoding="utf-8").read()
@@ -2038,7 +2426,7 @@ def cmd_sende(pane, datei):
     # Sitzung duerfen nie in einen Held-Dialog laufen, und sie kann ihren Modus nicht bezeugen.
     system = "tafel" if aus_tafel() else ("wache" if WACHE_MAHNUNG and aus_wache() else None)
     if system:
-        art, wert = tafel_bezeugung(d, klasse_modus)
+        art, wert = tafel_bezeugung(d, klasse_modus, system)
         if art == "modus" and UMSCHLAG not in text.lower():
             klasse_modus = wert
         else:
@@ -2049,8 +2437,7 @@ def cmd_sende(pane, datei):
                 return EXIT_KEIN_NUTZBARER_WEG
             if claude_hook_aktiv(d):
                 return claude_datei_senden(d, text, h, grund, system)
-            # Ohne dialogfreien Weg wird NICHT zugestellt (Nachtrag 1, der Nutzer 11.10.: "es soll
-            # niemand den Pane versperren"); die Tafel vermerkt es im Verlauf und in der Gruppe,
+            # Ohne dialogfreien Weg wird NICHT zugestellt (Nachtrag 1, decision 10-11.); die Tafel vermerkt es im Verlauf und in der Gruppe,
             # die Wache im Protokoll und in der Statuszeile des Menschen.
             fehler("%s-Meldung an %s NICHT zugestellt: kein dialogfreier Weg (%s; Einspiel-Hook in "
                    "dieser Sitzung nicht belegt). Claude haelte sie an." % (system.capitalize(), pane, grund))
@@ -2106,6 +2493,40 @@ def cmd_sende(pane, datei):
     return 0
 
 
+# Abschnitt ZUSTELL-VERMERK im Kopf. cmd_sende traegt ein, wohin die Sendung geht.
+ZUSTELL_ZIEL = {}
+VERMERK_GRENZE = 1024 * 1024
+
+
+def zustellung_vermerken(pane):
+    heim = _mensch_heim()
+    if not heim or not ZUSTELL_ZIEL:
+        return
+    pfad = os.path.join(heim, ".local", "state", "wb-inbox-zustellungen.log")
+    zeile = json.dumps({"zeit": jetzt_iso(), "weg": ZUSTELL_ZIEL.get("weg"), "pane": pane,
+                        "server": TMUX_SOCKET or os.environ.get("TMUX", "").split(",", 1)[0],
+                        "pid": ZUSTELL_ZIEL.get("pid"),
+                        "suite": os.environ.get("WB_SUITE_WACHE", "")}) + "\n"
+    try:
+        os.makedirs(os.path.dirname(pfad), mode=0o700, exist_ok=True)
+        if os.path.exists(pfad) and os.path.getsize(pfad) > VERMERK_GRENZE:
+            os.replace(pfad, pfad + ".1")
+        fd = os.open(pfad, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+        try:
+            os.write(fd, zeile.encode("utf-8"))
+        finally:
+            os.close(fd)
+    except OSError:
+        pass
+
+
+def sende_mit_vermerk(pane, datei):
+    rc = cmd_sende(pane, datei)
+    if rc in (0, 6):  # 6: codex hat gereiht, die Sendung ist unterwegs
+        zustellung_vermerken(pane)
+    return rc
+
+
 def main(argv):
     global TMUX_SOCKET, NUR_PID, ABSENDER
     global TAFEL_HALTER, NUR_WECKEND, WACHE_MAHNUNG
@@ -2115,7 +2536,7 @@ def main(argv):
         else:
             WACHE_MAHNUNG = True
         argv = argv[1:]
-    while argv and argv[0] in ("-L", "--socket", "--pid", "--absender"):
+    while argv and argv[0] in ("-L", "-S", "--socket", "--pid", "--absender"):
         if len(argv) < 2:
             fehler("nach %s fehlt der Wert." % argv[0])
             return 2
@@ -2129,6 +2550,9 @@ def main(argv):
                 fehler("--absender kennt '%s' nicht (erlaubt: %s)." % (argv[1], ", ".join(ABSENDER_KLASSEN)))
                 return 2
             ABSENDER = argv[1]
+        elif argv[0] == "-S" and not argv[1].startswith("/"):
+            fehler("-S erwartet einen absoluten Socketpfad, nicht '%s'." % argv[1])
+            return 2
         else:
             TMUX_SOCKET = argv[1]
         argv = argv[2:]
@@ -2136,6 +2560,12 @@ def main(argv):
         sys.stdout.write(__doc__)
         return 0
     befehl = argv[0]
+    if befehl in ("finde", "status", "transcript", "sende", "wache-notieren", "codex-queue",
+                  "dialog") and len(argv) >= 2:
+        grund = naht_ablehnung(argv[1])
+        if grund:
+            fehler("%s Nichts gesendet." % grund)
+            return EXIT_NAHT_ABGELEHNT
     if befehl == "finde" and len(argv) == 2:
         return cmd_finde(argv[1])
     if befehl == "status" and len(argv) == 2:
@@ -2149,9 +2579,14 @@ def main(argv):
             fehler("--tafel-halter erwartet <sessionId>:bypass|prompting, nicht '%s'." % argv[4])
             return 2
         TAFEL_HALTER = argv[4]
-        return cmd_sende(argv[1], argv[2])
+        return sende_mit_vermerk(argv[1], argv[2])
     if befehl == "sende" and len(argv) == 3:
-        return cmd_sende(argv[1], argv[2])
+        return sende_mit_vermerk(argv[1], argv[2])
+    if befehl == "wache-notieren" and len(argv) == 3:
+        if not argv[2].isdigit() or int(argv[2]) <= 1:
+            fehler("wache-notieren erwartet eine Wache-PID, nicht '%s'." % argv[2])
+            return 2
+        return cmd_wache_notieren(argv[1], int(argv[2]))
     if befehl == "codex-queue" and len(argv) in (2, 3) and argv[2:] in ([], ["--start"]):
         return cmd_codex_queue(argv[1], argv[2:] == ["--start"])
     if befehl == "dialog" and len(argv) == 2:
@@ -2168,6 +2603,11 @@ def main(argv):
         return 0
     if befehl == "herkunft" and len(argv) == 2:
         h = herkunft(argv[1], vorrat_bestimmen())
+        if h["pane"] and h["pane"] == argv[1]:
+            fehler("Selbstmessung: 'herkunft %s' misst eine Sendung an dich selbst, nicht die "
+                   "Herkunft eines empfangenen Auftrags; die Herkunft steht in der Kopfzeile der "
+                   "empfangenen Nachricht (\"%s\")." % (argv[1], HERKUNFT_MARKE))
+            return 3
         sys.stdout.write("%s\t%s\t%s\t%s\n" % ("auftrag" if h["auftrag"] else "information",
                                                 h["klasse"], h["pane"] or "-", h["spawner"] or "-"))
         return 0
@@ -2180,6 +2620,7 @@ def main(argv):
     fehler("Aufruf: wb-inbox finde|status|transcript|dialog <pane> "
            "| wb-inbox [--absender <klasse>] sende <pane> <textdatei> "
            "| wb-inbox [--absender <klasse>] herkunft <pane> | wb-inbox absender-pane "
+           "| wb-inbox wache-notieren <pane> <guard-pid> "
            "| wb-inbox einrichten <harness> [--home <dir>] | wb-inbox wege [--json] "
            "| wb-inbox pause an|aus|status [--base <dir>] [--vorrat <dir>] [--grund <text>] [--json]")
     return 2

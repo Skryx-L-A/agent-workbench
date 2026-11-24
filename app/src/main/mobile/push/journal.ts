@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { chmodSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { Notification, NotificationEventType, Source } from '../../../mobile-shared/vertrag';
+import type { Notification, NotificationEventType, Source, WeltAnliegenRef } from '../../../mobile-shared/vertrag';
 import type { WorkerFertigGrund } from './dringend';
 
 export interface NotificationRecord extends Notification {
@@ -10,6 +10,29 @@ export interface NotificationRecord extends Notification {
   readonly delivery: 'sent' | 'suppressed' | 'failed' | 'in_app';
   /** Nur bei `worker.done`: das Kuerzel der Regel aus dringend.ts, die entschieden hat. */
   readonly grund?: WorkerFertigGrund;
+  /** Nur bei `welt.braucht-dich`: Welt, Art, Kennung (nie der Inhalt). */
+  readonly welt?: WeltAnliegenRef;
+  /** Nur bei `welt.braucht-dich`: wann der Antrag bzw. die Frage erledigt war. */
+  readonly erledigt_at?: number;
+}
+
+/**
+ * Ein offener Antrag bzw. eine offene Frage einer Welt (`welt.braucht-dich`), fuer den schon gemeldet wurde.
+ * Steht er hier, meldet kein weiterer Durchgang ihn erneut; verschwindet er aus der Welt, ist er erledigt.
+ */
+export interface WeltOffenRecord {
+  readonly welt_id: string;
+  readonly art: 'rechteantrag' | 'frage';
+  readonly anliegen_id: string;
+  /** Die Kennung des Journaleintrags (stabil aus dem Schluessel gebildet). */
+  readonly event_id: string;
+  readonly seit: number;
+  /** Fehlgeschlagene Zustellungen; nach `WELT_VERSUCHE` gibt der Durchgang auf (die Meldung steht trotzdem im Journal). */
+  readonly versuche: number;
+  /** Die Zustellung an den Pushdienst gelang (oder es gibt keinen): kein weiterer Versuch. */
+  readonly fertig: boolean;
+  /** Nur fuer nicht-ferne Welten: der Pfad der Ablage, wie der Durchgang ihn sah; fehlt er spaeter, ist die Welt geloescht (F4). */
+  readonly ablage?: string;
 }
 
 /** Der Wartewunsch „Bescheid geben“ einer Sitzung: gilt bis `bis` oder bis zum ersten ausgeloesten Push. */
@@ -32,6 +55,8 @@ interface PersistedState {
   dedupe: Record<string, DedupeRecord>;
   /** Je globaler Sitzungskennung; fehlt in Dateien von vor dem 09.10.2026 (dann leer). */
   wartewuensche?: Record<string, WartewunschRecord>;
+  /** Je `<welt>/<art>/<id>`; fehlt in Dateien von vor dem 14.10.2026 (dann leer). */
+  welt_offen?: Record<string, WeltOffenRecord>;
 }
 
 const emptyState = (): PersistedState => ({ version: 1, subscriptions: [], notifications: [], dedupe: {} });
@@ -78,6 +103,15 @@ export class PushJournal {
     state.subscriptions = state.subscriptions.filter((subscription) => subscription.id !== id || subscription.device_id !== deviceId);
     if (before !== state.subscriptions.length) this.save(state);
     return before !== state.subscriptions.length;
+  }
+
+  /** Alle Abos eines Geraets entfernen (Widerruf); liefert die Zahl der entfernten. */
+  removeDeviceSubscriptions(deviceId: string): number {
+    const state = this.load();
+    const before = state.subscriptions.length;
+    state.subscriptions = state.subscriptions.filter((subscription) => subscription.device_id !== deviceId);
+    if (before !== state.subscriptions.length) this.save(state);
+    return before - state.subscriptions.length;
   }
 
   hasEvent(id: string): boolean {
@@ -128,6 +162,47 @@ export class PushJournal {
   wartewuensche(now = Date.now()): Record<string, number> {
     const rest = abgelaufeneEntfernen(this.load().wartewuensche ?? {}, now);
     return Object.fromEntries(Object.entries(rest).map(([id, eintrag]) => [id, eintrag.bis]));
+  }
+
+  /** Die offenen Antraege und Fragen der Welten, fuer die schon gemeldet wurde (`welt.braucht-dich`). */
+  weltOffen(): Readonly<Record<string, WeltOffenRecord>> {
+    return { ...(this.load().welt_offen ?? {}) };
+  }
+
+  /** Setzt (Eintrag) oder loescht (`null`) den Merkeintrag eines offenen Antrags bzw. einer offenen Frage. */
+  weltOffenSetzen(schluessel: string, eintrag: WeltOffenRecord | null): void {
+    const state = this.load();
+    const offen = { ...(state.welt_offen ?? {}) };
+    if (eintrag === null) delete offen[schluessel];
+    else offen[schluessel] = eintrag;
+    state.welt_offen = offen;
+    this.save(state);
+  }
+
+  /** Vermerkt am Journaleintrag, dass der Antrag bzw. die Frage erledigt ist; true, wenn sich etwas geaendert hat. */
+  erledigtVermerken(id: string, at: number): NotificationRecord | null {
+    const state = this.load();
+    const index = state.notifications.findIndex((item) => item.id === id);
+    if (index < 0 || state.notifications[index].erledigt_at !== undefined) return null;
+    const aktualisiert: NotificationRecord = { ...state.notifications[index], erledigt_at: at };
+    state.notifications[index] = aktualisiert;
+    this.save(state);
+    return aktualisiert;
+  }
+
+  /**
+   * Nimmt den Erledigt-Vermerk zurueck, weil dieselbe Kennung wieder offen erscheint
+   * (pushwelt-Review F3, 18.10.2026); der Record ohne `erledigt_at`, sonst null ohne Schreiben.
+   */
+  erledigtZuruecknehmen(id: string): NotificationRecord | null {
+    const state = this.load();
+    const index = state.notifications.findIndex((item) => item.id === id);
+    if (index < 0 || state.notifications[index].erledigt_at === undefined) return null;
+    const { erledigt_at: _entfernt, ...ohne } = state.notifications[index];
+    const aktualisiert: NotificationRecord = ohne;
+    state.notifications[index] = aktualisiert;
+    this.save(state);
+    return aktualisiert;
   }
 
   append(notification: NotificationRecord): void {
@@ -201,8 +276,22 @@ export function neutralNotificationText(type: NotificationEventType): string {
     'command.blocked': 'Eine Werkbankaktion wartet auf Entscheidung.',
     'session.lost': 'Eine Sitzung ist nicht mehr erreichbar.',
     'worker.stalled': 'Ein lokaler Worker steht still.',
+    'welt.braucht-dich': 'Eine Welt braucht dich.',
   };
   return texts[type];
+}
+
+/**
+ * Der Text einer Meldung: der Kurztext des Kerns, wenn er einen mitgibt, sonst der
+ * neutrale (26.10.2026, task). Auch ein mitgegebener Text bringt keinen Pfad
+ * auf den Sperrbildschirm (MOBILE-APP-SPEC.md:196): pfadartige Woerter werden zu „…“,
+ * und mehr als 160 Zeichen gehen nicht hinaus.
+ */
+export function notificationText(type: NotificationEventType, text?: string): string {
+  const roh = (text ?? '').replace(/\s+/g, ' ').trim();
+  if (!roh) return neutralNotificationText(type);
+  const ohne = roh.split(' ').map((w) => (/[/~]/.test(w) ? '…' : w)).join(' ');
+  return ohne.length <= 160 ? ohne : `${ohne.slice(0, 159).trimEnd()}…`;
 }
 
 /**

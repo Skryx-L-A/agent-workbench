@@ -47,6 +47,8 @@ import { createAgentsHandlers } from './adapters/agents';
 import type { AufgabenQuelleForMobile } from './adapters/agents';
 import { MobilePushService } from './push/service';
 import type { WorkerFertigFelder } from './push/dringend';
+import { weltAnliegenAus } from './push/welt';
+import type { WeltAusschnitt } from './push/welt';
 import { replikationBauen, replikZiele } from './replikation';
 import type { ReplikKonfig, Replikation } from './replikation';
 
@@ -247,10 +249,18 @@ export interface MobilDienst {
   freigabenGesehen(schluessel: readonly string[]): void;
   agentsGeaendert(): void;
   /**
+   * Takt des Kerns (aufgaben.ts, bei jeder Aenderung): die Welten mit ihren Fragen und Rechteantraegen. Ein Antrag oder eine
+   * Frage, die auf den Menschen wartet, loest genau einmal die Push-Art `welt.braucht-dich` aus; ein erledigter wird im Journal
+   * als erledigt vermerkt (push/welt.ts, MobilePushService.weltAnliegen).
+   */
+  weltenGesehen(welten: readonly WeltAusschnitt[]): void;
+  /**
    * Die fuenf Push-Ausloeser (Spezifikation 6), an die Kernwaechter gebunden.
    * `worker` nur bei `worker.done`: die gezaehlten Felder fuer push/dringend.ts.
+   * `text`: der Kurztext des Kerns statt des neutralen (bei `command.blocked` Rolle und
+   * Name, ohne Befehl und Pfad; journal.ts `notificationText` filtert Pfade trotzdem).
    */
-  melden(typ: NotificationEventType, zielId: string, zustand: string, worker?: WorkerFertigFelder): void;
+  melden(typ: NotificationEventType, zielId: string, zustand: string, worker?: WorkerFertigFelder, text?: string): void;
 }
 
 const INHALTSARTEN: Readonly<Record<string, string>> = {
@@ -586,6 +596,7 @@ export function mobilDienstBauen(konfig: MobilKonfig, quellen: MobilKernQuellen)
         machine: konfig.machine,
         stateDirectory: konfig.pushVerzeichnis,
         vapidKeyPath: konfig.vapidDatei,
+        geraetZulaessig: (id) => authenticator.geraetZulaessig(id),
         events: { publish: (typ, ids, quelle) => (server as MobileHttpServer).events.publish(typ, ids, quelle) },
       });
     } catch (fehler) {
@@ -593,6 +604,7 @@ export function mobilDienstBauen(konfig: MobilKonfig, quellen: MobilKernQuellen)
       protokoll(`Mobile Push aus: ${(fehler as Error).message}`);
       push = new MobilePushService({
         machine: konfig.machine, stateDirectory: konfig.pushVerzeichnis, vapidKeyPath: '',
+        geraetZulaessig: (id) => authenticator.geraetZulaessig(id),
         events: { publish: (typ, ids, quelle) => (server as MobileHttpServer).events.publish(typ, ids, quelle) },
       });
     }
@@ -677,8 +689,10 @@ export function mobilDienstBauen(konfig: MobilKonfig, quellen: MobilKernQuellen)
     },
     widerrufen(deviceId: string): boolean {
       const ok = authenticator.revokeDevice(deviceId);
+      // F1 (18.10.2026): ein widerrufenes Geraet behaelt kein Push-Abo, auch nicht bei einem Wiederholungsaufruf.
+      const abos = push?.geraetEntfernen(deviceId) ?? 0;
       if (ok) {
-        protokoll(`Mobilgeraet widerrufen: ${deviceId}`);
+        protokoll(`Mobilgeraet widerrufen: ${deviceId}${abos ? ` (${abos} Push-Abo${abos === 1 ? '' : 's'} entfernt)` : ''}`);
         // Sicherheitsrelevant: bis der Lauf geprueft ist, nimmt peer das Geraet noch an.
         replik?.ausloesen(`Widerruf ${deviceId}`);
       }
@@ -716,7 +730,12 @@ export function mobilDienstBauen(konfig: MobilKonfig, quellen: MobilKernQuellen)
     agentsGeaendert(): void {
       veroeffentlichen('agents.changed', []);
     },
-    melden(typ: NotificationEventType, zielId: string, zustand: string, worker?: WorkerFertigFelder): void {
+    weltenGesehen(welten: readonly WeltAusschnitt[]): void {
+      if (!server || !push) return;
+      push.weltAnliegen(weltAnliegenAus(welten))
+        .catch((fehler: unknown) => protokoll(`Mobile Meldung welt.braucht-dich nicht zugestellt: ${(fehler as Error).message}`));
+    },
+    melden(typ: NotificationEventType, zielId: string, zustand: string, worker?: WorkerFertigFelder, text?: string): void {
       if (!server || !push) return;
       // Die Event-ID kommt aus dem vorhandenen Ereignisstrom (Paket 8: „nicht aus Chatinhalt erzeugt").
       const sseTyp: SseEventType = typ === 'command.blocked' ? 'approval.changed' : 'session.changed';
@@ -724,6 +743,7 @@ export function mobilDienstBauen(konfig: MobilKonfig, quellen: MobilKernQuellen)
       void push.publish({
         event_id: ereignis.id, type: typ, authoritative_machine: konfig.machine, target_id: zielId, state_fingerprint: zustand,
         ...(typ === 'worker.done' && worker ? { worker } : {}),
+        ...(text ? { text } : {}),
       }).catch((fehler: unknown) => protokoll(`Mobile Meldung ${typ} nicht zugestellt: ${(fehler as Error).message}`));
     },
   };

@@ -64,9 +64,11 @@ slug() { printf '%s' "$1" | tr '/' '-'; }
 claude_slug() { printf '%s' "$1" | tr -c 'a-zA-Z0-9' '-'; }
 
 if [ -n "$KEY" ]; then
+  # Dieselbe Regel wie wb-code (Session-Key-Pruefung dort): der Schluessel wird Teil
+  # eines Dateinamens, darum weder leer noch mit Optionsanfang, kein '/' und kein '..'.
   case "$KEY" in
-    [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
-    *) echo "wb-session-delete: '$KEY' ist kein sessionKey (6 Hex-Zeichen)." >&2; exit 1 ;;
+    ''|-*|*[!A-Za-z0-9_-]*)
+      echo "wb-session-delete: '$KEY' ist kein sessionKey (erlaubt: Buchstaben, Ziffern, '-' und '_')." >&2; exit 1 ;;
   esac
   FILE="$STATEDIR/$(slug "$DIR")__$KEY.json"
 else
@@ -111,29 +113,37 @@ ANZEIGE="${ST_NAME:-$(basename "$DIR")}"
 # eine .jsonl unterhalb des Claude-Projektverzeichnisses. Alles andere ist ein
 # Fehler im Aufbau der Liste, kein Sonderfall — der Lauf bricht dann ab.
 pruefe_pfad() {
-  local p="$1" art="$2"
+  local p="$1" art="$2" eigen=""
   case "$p" in
     *..*) echo "wb-session-delete: Pfad enthaelt '..': $p" >&2; return 1 ;;
   esac
   case "$p" in
     "$VAULT"/*|"$VAULT") echo "wb-session-delete: Pfad liegt im Vault: $p" >&2; return 1 ;;
   esac
-  case "$p" in
-    "$DIR"/*|"$DIR") echo "wb-session-delete: Pfad liegt im Projektordner: $p" >&2; return 1 ;;
-  esac
+  # Art und Ort werden zuerst geprueft. Die eigene Zustandsdatei und das eigene
+  # Transkript (genau die Pfade, die dieser Lauf selbst ermittelt hat) sind vom
+  # Projektordner-Check ausgenommen: liegt der Lead in $HOME, liegen sie im
+  # Projektordner. Jeder andere Pfad darunter bleibt gesperrt.
   case "$art" in
     zustand)
       case "$p" in
         "$STATEDIR"/*.json) ;;
         *) echo "wb-session-delete: '$p' ist keine Zustandsdatei unterhalb von $STATEDIR" >&2; return 1 ;;
-      esac ;;
+      esac
+      [ "$p" = "$FILE" ] && eigen=1 ;;
     transkript)
       case "$p" in
         "$PROJDIR"/*/*.jsonl) ;;
         *) echo "wb-session-delete: '$p' ist kein Transkript unterhalb von $PROJDIR" >&2; return 1 ;;
-      esac ;;
+      esac
+      [ "$p" = "$T" ] && eigen=1 ;;
     *) echo "wb-session-delete: unbekannte Pfadart '$art'" >&2; return 1 ;;
   esac
+  if [ -z "$eigen" ]; then
+    case "$p" in
+      "$DIR"/*|"$DIR") echo "wb-session-delete: Pfad liegt im Projektordner: $p" >&2; return 1 ;;
+    esac
+  fi
   return 0
 }
 

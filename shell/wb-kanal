@@ -1,12 +1,16 @@
 #!/bin/sh
 set -eu
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): agents_data.py entscheidet ueber
+# Antraege, Rechte und Herkunft; ein python3 aus dem PATH des Aufrufers waere ein fremder
+# Entscheider. Ohne die xcrun-Variablen, ohne PYTHON*-Variablen und User-site.
+unset DEVELOPER_DIR SDKROOT TOOLCHAINS
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 # Eine Welt <host>:/pfad liegt verbindlich auf einer anderen Maschine: der ganze Befehl laeuft dort.
 for arg in "$@"; do
   case "$arg" in
     [a-z]*:/*)
-      if python3 "$SCRIPT_DIR/agents_fernweg.py" pruefen kanal "$@"; then
-        exec python3 "$SCRIPT_DIR/agents_fernweg.py" ausfuehren kanal "$@"
+      if /usr/bin/python3 -E -s "$SCRIPT_DIR/agents_fernweg.py" pruefen kanal "$@"; then
+        exec /usr/bin/python3 -E -s "$SCRIPT_DIR/agents_fernweg.py" ausfuehren kanal "$@"
       fi
       break ;;
   esac
@@ -14,10 +18,10 @@ done
 if [ "${1:-}" = "senden" ]; then
   # Nach erfolgreichem Schreiben den Traeger der Welt wecken, falls einer konfiguriert ist.
   status=0
-  python3 "$SCRIPT_DIR/agents_data.py" kanal "$@" || status=$?
+  /usr/bin/python3 -E -s "$SCRIPT_DIR/agents_data.py" kanal "$@" || status=$?
   if [ "$status" -eq 0 ]; then
-    python3 "$SCRIPT_DIR/agents_traeger_wecken.py" kanal "$@" || true
+    /usr/bin/python3 -E -s "$SCRIPT_DIR/agents_traeger_wecken.py" kanal "$@" || true
   fi
   exit "$status"
 fi
-exec python3 "$SCRIPT_DIR/agents_data.py" kanal "$@"
+exec /usr/bin/python3 -E -s "$SCRIPT_DIR/agents_data.py" kanal "$@"

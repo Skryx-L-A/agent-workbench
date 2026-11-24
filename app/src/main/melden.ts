@@ -69,12 +69,15 @@ export function melden(
   text: string,
   einstellungen: MeldungsEinstellungen,
   wege: Sendewege,
+  // Der Text fuer das Telefon, wenn er kuerzer sein muss als die Mitteilung am Rechner
+  // (26.10.2026, task: eine Freigabe nennt dort Rolle und Namen, keine Absicht).
+  handyText: string = text,
 ): void {
   if (!einstellungen.an) return;
   if (!einstellungen.ereignisse.has(ereignis)) return;
   if (einstellungen.wege.has('system')) wege.system(text);
   if (einstellungen.wege.has('ton')) wege.ton(einstellungen.tonDatei);
-  if (einstellungen.wege.has('handy') && einstellungen.handyUrl) wege.handy(einstellungen.handyUrl, text);
+  if (einstellungen.wege.has('handy') && einstellungen.handyUrl) wege.handy(einstellungen.handyUrl, handyText);
 }
 
 /**

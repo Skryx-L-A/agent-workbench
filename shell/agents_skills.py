@@ -10,7 +10,7 @@ Grenzen) and ``scripts/``.  Skills live on three levels:
 - library: ``agents/bibliothek/skills/<name>/`` in the Werkbank repository -- read-only
   for agents, changed only through a proposal accepted in the global world.
 
-Stored scripts (der Nutzer, 14.09.2026, 16:10) are a unit of their own: ``skripte/<name>/``
+Stored scripts (decision 2026-09-14) are a unit of their own: ``skripte/<name>/``
 holds exactly one executable file ``<name>`` or ``<name>.<ext>`` that starts with an
 instruction header in comments (name, zweck, aufruf, eingaben, ausgaben, grenzen) and
 optionally ``tests/``.  They live on the same three levels (``<welt>/agents/<id>/skripte``,
@@ -81,7 +81,7 @@ SECTION_TITLES = {"ausloeser": "Auslöser", "vorgehen": "Vorgehen", "grenzen": "
 TICKET_DIFF_LIMIT = 12000
 SHOW_TEXT_LIMIT = 64 * 1024
 LEARN_KINDS = ("lehre", "notiz", "archiv", "anweisung", "skill", "skript", "nichts")
-# Lernschritte ins Brain (der Nutzer, 16.09.2026): der Traeger schreibt sie ueber agents_brain, ausserhalb der
+# Lernschritte ins Brain (decision 2026-09-16): der Traeger schreibt sie ueber agents_brain, ausserhalb der
 # Welttransaktion, weil Commit und Abgleich im Vault dauern koennen.
 BRAIN_KINDS = ("notiz", "archiv")
 LEARN_FIELDS = ("schema_version", "art", "ziel", "text", "grund", "diff", "titel", "thema", "anhaengen", "zeilen", "neu")

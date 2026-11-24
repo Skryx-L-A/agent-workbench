@@ -4,6 +4,8 @@ import { MobileAuthError, MobileAuthenticator } from './auth';
 import { ALLOWED_SPECIAL_KEYS, MAX_MOBILE_KEY_SEQUENCE, MOBILE_API_PREFIX } from '../../../mobile-shared/vertrag';
 import type { SignedRequestEnvelope } from '../../../mobile-shared/vertrag';
 import { canonicalPath } from '../../../mobile-shared/kanonisch';
+import { RIGHTS_DECISION_NOTE_MAX } from '../../../mobile-shared/vertrag';
+import { aenderungSha256, RECHTEANTRAG_AKTION } from './rechteantrag-beleg';
 
 type PaneExpected = {
   aktion: 'mobil-senden' | 'mobil-taste';
@@ -23,7 +25,15 @@ type PaneExpected = {
  */
 type GuardExpected = { aktion: 'guard-freigabe'; schluessel: string };
 type AntragExpected = { aktion: 'antrag-entscheiden'; antrag: string; inhalt_sha256: string; entscheidung: 'approve' | 'reject' };
-type Expected = PaneExpected | GuardExpected | AntragExpected;
+/**
+ * Rechteantrag einer Welt (18.10.2026): gebunden an `POST /agents/actions` und einen Body
+ * `rights_request.decide` mit genau dieser Welt, dieser Antragskennung, dieser Entscheidung
+ * und der gespeicherten Aenderung (SHA-256 ihrer kanonischen JSON-Form). Der Kern nennt die
+ * Erwartung aus seinem frischen Stand; die Bemerkung gibt das Programm so zurueck, wie das
+ * Geraet sie unterschrieben hat.
+ */
+type RechteExpected = { aktion: typeof RECHTEANTRAG_AKTION; welt_id: string; antrag: string; changes_sha256: string; entscheidung: 'approve' | 'reject' };
+type Expected = PaneExpected | GuardExpected | AntragExpected | RechteExpected;
 
 type CliInput = {
   umschlag: SignedRequestEnvelope;
@@ -55,6 +65,13 @@ function parseInput(value: unknown): CliInput {
       || typeof expected.inhalt_sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(expected.inhalt_sha256)
       || (expected.entscheidung !== 'approve' && expected.entscheidung !== 'reject')) failure('bad_request');
     return { umschlag: value.umschlag as unknown as SignedRequestEnvelope, body_b64: value.body_b64, erwartet: expected as AntragExpected };
+  }
+  if (expected.aktion === RECHTEANTRAG_AKTION) {
+    if (!exactKeys(expected, ['aktion', 'antrag', 'changes_sha256', 'entscheidung', 'welt_id'])
+      || typeof expected.welt_id !== 'string' || !expected.welt_id || typeof expected.antrag !== 'string' || !expected.antrag
+      || typeof expected.changes_sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(expected.changes_sha256)
+      || (expected.entscheidung !== 'approve' && expected.entscheidung !== 'reject')) failure('bad_request');
+    return { umschlag: value.umschlag as unknown as SignedRequestEnvelope, body_b64: value.body_b64, erwartet: expected as RechteExpected };
   }
   if (!exactKeys(expected, ['aktion', 'maschine', 'pane', 'socket']) || (expected.aktion !== 'mobil-senden' && expected.aktion !== 'mobil-taste')
     || typeof expected.maschine !== 'string' || !expected.maschine || typeof expected.socket !== 'string' || !expected.socket
@@ -107,6 +124,38 @@ function bindDecision(envelope: SignedRequestEnvelope, body: Buffer, expected: G
   if (parsed.decision !== verlangt) failure('stale_target');
 }
 
+/** Steuerzeichen (C0, DEL, C1) und Zeilen-/Absatztrenner: eine Bemerkung bleibt eine Zeile. */
+const STEUERZEICHEN = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
+
+/** Bindet eine Rechteantrags-Entscheidung; liefert die unterschriebene Bemerkung oder null. */
+function bindRightsDecision(envelope: SignedRequestEnvelope, body: Buffer, expected: RechteExpected): { note: string | null } {
+  let gebunden = false;
+  try {
+    gebunden = typeof envelope.method === 'string' && envelope.method.toUpperCase() === 'POST'
+      && typeof envelope.path === 'string' && canonicalPath(envelope.path) === `${MOBILE_API_PREFIX}/agents/actions`
+      && Array.isArray(envelope.query) && envelope.query.length === 0;
+  } catch {
+    gebunden = false;
+  }
+  if (!gebunden) failure('stale_target');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body.toString('utf8'));
+  } catch {
+    failure('bad_request');
+  }
+  if (!isObject(parsed)) failure('bad_request');
+  const felder = ['changes', 'decision', 'rights_request_id', 'type', 'world_id'];
+  if (!exactKeys(parsed, 'note' in parsed ? [...felder.slice(0, 2), 'note', ...felder.slice(2)] : felder)
+    || parsed.type !== 'rights_request.decide' || !isObject(parsed.changes)) failure('bad_request');
+  const note = parsed.note;
+  if (note !== undefined && (typeof note !== 'string' || !note.trim() || [...note].length > RIGHTS_DECISION_NOTE_MAX
+    || STEUERZEICHEN.test(note))) failure('bad_request');
+  if (parsed.world_id !== expected.welt_id || parsed.rights_request_id !== expected.antrag
+    || parsed.decision !== expected.entscheidung || aenderungSha256(parsed.changes) !== expected.changes_sha256) failure('stale_target');
+  return { note: typeof note === 'string' ? note : null };
+}
+
 function bindBody(body: Buffer, expected: PaneExpected): { text_b64?: string; tasten?: string[] } {
   let parsed: unknown;
   try {
@@ -141,7 +190,7 @@ export function main(): number {
     const erwartet = input.erwartet;
     const output = erwartet.aktion === 'guard-freigabe' || erwartet.aktion === 'antrag-entscheiden'
       ? (bindDecision(input.umschlag, body, erwartet), {})
-      : bindBody(body, erwartet);
+      : erwartet.aktion === RECHTEANTRAG_AKTION ? bindRightsDecision(input.umschlag, body, erwartet) : bindBody(body, erwartet);
     const authenticator = new MobileAuthenticator();
     const request = authenticator.verifyAndReserve(input.umschlag, { audience: input.umschlag.audience, body });
     try {

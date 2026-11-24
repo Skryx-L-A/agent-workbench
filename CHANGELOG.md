@@ -29,8 +29,8 @@ sind Schnappschüsse eines privaten Quellbaums; ein Stand ist ein Commit auf `ma
 
 - Community files: contributing guide, code of conduct, security policy, support page, issue
   forms for bugs, features and questions, pull request template, and Discussions.
-- Continuous integration on every pull request, CodeQL analysis, and the OpenSSF Scorecard on
-  `main`. All actions are pinned to a full commit hash.
+- Continuous integration and CodeQL analysis on pushes and pull requests to `main`, and the
+  OpenSSF Scorecard on `main`. All actions are pinned to a full commit hash.
 
 ## Earlier states
 

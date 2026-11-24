@@ -1,0 +1,396 @@
+#!/usr/bin/env python3
+# wb-konfig -- Einstellungen der Werkbank aus werkbank.json (Ebenen, Sperren, Schema: wb_konfig.py).
+#
+#   wb-konfig get [--json] [--quelle] SCHLUESSEL   Wert auf stdout (Zeichenkette roh, Zahl, sonst JSON in einer Zeile)
+#                                                  --quelle: danach, durch einen Tabulator getrennt, die wirksame Ebene
+#                                                  (system|betreiber|nutzer|umgebung|vorgabe); bei Betreiberschluesseln
+#                                                  danach der Pfad der Datei dieser Ebene; mit --json ein Objekt
+#                                                  {"wert","quelle","gesperrt","untergrenze"} (bei Betreiberschluesseln
+#                                                  zusaetzlich "pfad")
+#   wb-konfig registry                             die Modellregistry fuer wb-state und das Tor: `Pfad<TAB>Ebene` (system|betreiber|
+#                                                  vorgabe|umgebung). Heimat: HOME des Aufrufers. Dieselbe Aufloesung wie
+#                                                  `get pfade.registry`: WB_MODELS_FILE zaehlt nur mit WB_TESTUMGEBUNG=1 und nie
+#                                                  gegen die Systemebene (Konfig.registry in wb_konfig.py)
+#   wb-konfig zeige                                Ebenen, Sperren und wirksame Werte mit Herkunft
+#   wb-konfig zeige --json [--praefix P]           dasselbe als ein JSON-Objekt fuer Kern und Konsole (K0): je Schemazeile
+#                                                  (mit --praefix nur Schluessel, die mit P beginnen) wert, quelle, gesperrt,
+#                                                  untergrenze, pfad (Betreiberschluessel), empfehlung, abweichung, fehler
+#                                                  und die Schemazeile; dazu ebenen, gesperrt und meldungen. Exit wie zeige
+#                                                  (2 bei ungueltiger Ebene, das Objekt steht trotzdem auf stdout).
+#                                                  Ist die Systemdatei ungueltig (art "ebene") oder hat sie verworfene
+#                                                  Zeilen (art "zeilen"): systemUngueltig {art, pfad, grund, zeilen,
+#                                                  streng, vorgabe, abbruch} (sonst null), je Zeile ersatz "streng" oder
+#                                                  "vorgabe" (quelle "streng" beim strengsten Wert), die Ebene system mit
+#                                                  grund (zustand "ungueltig" bzw. "gelesen"), die Meldung SYSTEMEBENE in
+#                                                  meldungen, Exit 2.
+#                                                  betriebsart: "einzelplatz" oder "mandant" wie
+#                                                  `wb-konfig betriebsart` (eine ungueltige Systemdatei ergibt mandant).
+#   wb-konfig schema [--json]                      die geprueften Zeilen aus einstellungen-schema.json und den gueltigen
+#                                                  Fragmenten in schema.d/ daneben (nach Dateiname); --json dazu, sobald
+#                                                  es ein Fragment gibt, fragmente [{datei, praefix, schluessel}] und
+#                                                  meldungen (verworfene Fragmente, auch auf stderr; Exit bleibt 0)
+#   wb-konfig setze [--json] --version V [--] SCHLUESSEL WERT-ALS-JSON
+#                                                  setzt einen Nutzerschluessel in der Nutzerdatei, nur wenn V die aktuelle
+#                                                  Version ist (zeige --json nennt sie je Zeile als "version"). Der einzige
+#                                                  Schreibweg (wb_konfig.setze); Vertrag im Kopf von wb_konfig.py.
+#                                                  Exit 0 gesetzt, 2 Nutzerdatei ungueltig, 3 Schema, 5 abgelehnt (Schluessel
+#                                                  unbekannt, kein Nutzerschluessel, Wert ungueltig), 6 Versionskonflikt,
+#                                                  7 Sperre belegt, 8 Schreibfehler, 64 falscher Aufruf.
+#
+# Exitcodes: 0 Wert, 2 Datei ungueltig (bei `get` nur fuer Betreiberschluessel; sonst wird die Ebene
+# mit Meldung auf stderr uebersprungen), 3 Schemadatei fehlt oder ist ungueltig, 4 Schluessel fehlt in
+# jeder Ebene, 64 falscher Aufruf. Meldungen (gesperrt, ungueltig) gehen auf stderr.
+#
+# Shell-Leser: V=$(wb-konfig get pfade.registry) || V=$HEUTIGER_WERT -- aber nur bei Exit 4; bei
+# Exit 2 und 3 abbrechen (sonst faellt die Sperre der Systemdatei still weg).
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import wb_konfig  # noqa: E402
+
+AUFRUF = 'Aufruf: wb-konfig get [--json] [--quelle] SCHLUESSEL | wb-konfig zeige | wb-konfig schema [--json]'    # byte-gleich zur frueheren Fassung (test-wb-konfig-zeige-json.sh Z6); registry steht im Kopf
+
+
+def ausgabe(w, als_json=False):
+    if not als_json and isinstance(w, str):
+        return w
+    if not als_json and isinstance(w, int) and not isinstance(w, bool):
+        return str(w)
+    return json.dumps(w, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+
+
+def melde(k):
+    for m in k.meldungen:
+        sys.stderr.write('wb-konfig: %s\n' % m)
+
+
+def lade():
+    """Konfig laden; bei ungueltiger Schemadatei (None, 3)."""
+    try:
+        return wb_konfig.lade(), 0
+    except wb_konfig.SchemaUngueltig as e:
+        sys.stderr.write('wb-konfig: Schemadatei ungueltig: %s\n' % e)
+        return None, 3
+
+
+def befehl_get(argv):
+    als_json = quelle = False
+    rest = []
+    for a in argv:
+        if a == '--json':
+            als_json = True
+        elif a == '--quelle':
+            quelle = True
+        else:
+            rest.append(a)
+    if len(rest) != 1 or rest[0].startswith('-') or not rest[0]:
+        sys.stderr.write(AUFRUF + '\n')
+        return 64
+    schluessel = rest[0]
+    k, rc = lade()
+    if k is None:
+        return rc
+    try:
+        w, schicht = k.wirksam(schluessel)
+    except wb_konfig.KonfigUngueltig as e:
+        for m in k.meldungen:
+            if m.startswith('SYSTEMEBENE'):      # laut auch beim Abbruch; die uebrigen Meldungen wie bisher nicht
+                sys.stderr.write('wb-konfig: %s\n' % m)
+        sys.stderr.write('wb-konfig: Datei ungueltig, Schluessel ist ein Betreiberschluessel: %s\n' % e)
+        return 2
+    melde(k)
+    if w is wb_konfig._FEHLT:
+        return 4
+    if schluessel.startswith('pfade.') and isinstance(w, str):
+        w = os.path.expanduser(w)
+    segs = wb_konfig.segmente(schluessel, k.schema)
+    ebene = schicht.name
+    # Betreiberschluessel: Pfad der Datei, aus der der Wert stammt (Nutzerebene: Heimat laut Benutzerdatenbank).
+    betreiber = k.klasse(segs) == 'betreiber'
+    if not quelle:
+        print(ausgabe(w, als_json))
+    elif als_json:
+        grenze = k.untergrenzen.get(schluessel)
+        objekt = {'wert': w, 'quelle': ebene, 'gesperrt': k.ist_gesperrt(segs),
+                  'untergrenze': {'wert': grenze[0], 'quelle': grenze[1]} if grenze else None}
+        if betreiber and schicht.pfad:
+            objekt['pfad'] = schicht.pfad
+        print(json.dumps(objekt, ensure_ascii=False, sort_keys=True, separators=(',', ':')))
+    else:
+        zeile = [ausgabe(w), ebene]
+        if betreiber and schicht.pfad:
+            zeile.append(schicht.pfad)
+        print('\t'.join(zeile))
+    return 0
+
+
+def befehl_registry(argv):
+    if argv:
+        sys.stderr.write(AUFRUF + '\n')
+        return 64
+    k, rc = lade()
+    if k is None:
+        return rc
+    heim = os.environ.get('HOME') or os.path.expanduser('~')
+    try:
+        pfad, ebene = k.registry(heim)
+    except wb_konfig.KonfigUngueltig as e:
+        sys.stderr.write('wb-konfig: Datei ungueltig, Schluessel ist ein Betreiberschluessel: %s\n' % e)
+        return 2
+    melde(k)
+    print('%s\t%s' % (pfad, ebene))
+    return 0
+
+
+def _blaetter(daten, karten, pfad=''):
+    """Dotted Schluessel -> Wert; Karten und Listen sind ein Blatt."""
+    for k in sorted(daten):
+        p = pfad + '.' + k if pfad else k
+        v = daten[k]
+        if isinstance(v, dict) and p not in karten:
+            yield from _blaetter(v, karten, p)
+        else:
+            yield p, v
+
+
+def befehl_zeige(argv):
+    if argv:
+        sys.stderr.write(AUFRUF + '\n')
+        return 64
+    k, rc = lade()
+    if k is None:
+        return rc
+    print('Ebenen (Reihenfolge der Nutzerschluessel, hoechste zuerst; Betreiberschluessel: system, betreiber, nutzer):')
+    for s in k.schichten:
+        if s.fehler:
+            zustand = 'UNGUELTIG: ' + s.fehler
+        elif s.hinweis:
+            zustand = s.hinweis
+        elif s.vorhanden:
+            zustand = 'gelesen' + ('; Zeilen verworfen: ' + ', '.join(s.verworfen) if s.verworfen else '')
+        else:
+            zustand = 'nicht vorhanden'
+        print('  %-10s %s [%s]' % (s.name, s.pfad or '(Umgebungsvariablen)', zustand))
+    print('  %-10s %s [gelesen]' % ('vorgabe', k.schema.pfad))
+    print('Gesperrt: %s' % (', '.join(k.gesperrt) if k.gesperrt else '(nichts)'))
+    schluessel = set()
+    for s in k._ebenen():
+        schluessel.update(p for p, _ in _blaetter(s.daten, k.schema.karten) if p != 'gesperrt')
+    for s in k._ebenen('betreiber'):
+        schluessel.update(p for p, _ in _blaetter(s.daten, k.schema.karten) if p != 'gesperrt')
+    print('Wirksame Werte:')
+    for p in sorted(schluessel):
+        w, quelle = k.quelle(p, pruefen=False)
+        # Ein Schluessel ohne Wert (etwa ein Betreiberschluessel ohne Vorgabe, der nur in der XDG-Nutzerdatei steht,
+        # die fuer ihn nicht zaehlt) brach hier mit TypeError ab (task, 27.10.2026). Er bleibt sichtbar.
+        if w is wb_konfig._FEHLT:
+            print('  %s = (nicht gesetzt)' % p)
+            continue
+        print('  %s = %s  (%s)' % (p, ausgabe(w, True), quelle))
+    melde(k)
+    return 2 if k.ungueltig() or k.system_ungueltig else 0
+
+
+def _gleich(zeile, a, b):
+    """Gleicher Wert; bei Mengentypen zaehlt die Menge, nicht die Reihenfolge."""
+    if zeile['typ'] in wb_konfig.MENGEN_TYPEN and isinstance(a, list) and isinstance(b, list):
+        return set(map(str, a)) == set(map(str, b))
+    return a == b
+
+
+def wirksame_zeile(k, name):
+    """Wirksamer Stand EINER Schemazeile als Objekt (zeige --json; spaeter export).
+    wert/quelle wie `get --quelle --json`; empfehlung ist das Feld `empfehlung`, sonst die Vorgabe;
+    abweichung: der wirksame Wert weicht davon ab (vermerkt, nicht verhindert), null ohne Empfehlung
+    oder Wert. Eine ungueltige Ebene, die ein Betreiberschluessel liest, gibt wert null und fehler."""
+    z = k.schema.zeilen[name]
+    segs = wb_konfig.segmente(name, k.schema)
+    empfehlung = z['empfehlung'] if z.get('empfehlung') is not None else z['vorgabe']
+    zeile = {'schluessel': name, 'wert': None, 'quelle': None, 'gesperrt': k.ist_gesperrt(segs),
+             'untergrenze': None, 'empfehlung': empfehlung, 'abweichung': None}
+    try:
+        w, schicht = k.wirksam(name)
+    except wb_konfig.KonfigUngueltig as e:
+        zeile['fehler'] = 'Datei ungueltig, Schluessel ist ein Betreiberschluessel: %s' % e
+        return zeile
+    grenze = k.untergrenzen.get(name)
+    if grenze:
+        zeile['untergrenze'] = {'wert': grenze[0], 'quelle': grenze[1]}
+    if w is wb_konfig._FEHLT:
+        return zeile
+    if empfehlung is not None:
+        zeile['abweichung'] = not _gleich(z, w, empfehlung)
+    if name.startswith('pfade.') and isinstance(w, str):
+        w = os.path.expanduser(w)
+    zeile['wert'], zeile['quelle'] = w, schicht.name
+    if k.klasse(segs) == 'betreiber' and schicht.pfad:
+        zeile['pfad'] = schicht.pfad
+    ersatz = k.system_ersatz.get(name)
+    if ersatz is not None:
+        zeile['ersatz'] = ersatz[0]
+    return zeile
+
+
+def _ebene_zustand(s):
+    if s.fehler:
+        return 'ungueltig', s.fehler
+    if s.hinweis:
+        return 'ausgelassen', s.hinweis
+    if s.verworfen:
+        return 'gelesen', 'Zeilen verworfen: ' + '; '.join('%s (%s)' % kv for kv in s.verworfen.items())
+    return ('gelesen', None) if s.vorhanden else ('nicht-vorhanden', None)
+
+
+def befehl_zeige_json(argv):
+    """zeige --json [--praefix P]: Ebenen, Sperren, Meldungen und je Schemazeile wirksame_zeile mit der Zeile."""
+    praefix = None
+    rest = list(argv)
+    rest.remove('--json')
+    if len(rest) == 2 and rest[0] == '--praefix' and rest[1] and not rest[1].startswith('-'):
+        praefix = rest[1]
+    elif rest or argv.count('--json') != 1:
+        sys.stderr.write('Aufruf: wb-konfig zeige --json [--praefix PRAEFIX]\n')
+        return 64
+    k, rc = lade()
+    if k is None:
+        return rc
+    ebenen = []
+    for s in k.schichten:
+        zustand, grund = _ebene_zustand(s)
+        ebenen.append({'name': s.name, 'pfad': s.pfad, 'zustand': zustand, 'grund': grund})
+    ebenen.append({'name': 'vorgabe', 'pfad': k.schema.pfad, 'zustand': 'gelesen', 'grund': None})
+    versionen = wb_konfig.nutzer_versionen(k)
+    zeilen = []
+    for name, z in k.schema.zeilen.items():
+        if praefix is not None and not name.startswith(praefix):
+            continue
+        zeile = wirksame_zeile(k, name)
+        zeile['schema'] = z
+        zeile['version'] = versionen.get(name)
+        zeile['schreibbar'] = wb_konfig.schreibbar(k, name)
+        zeilen.append(zeile)
+    # betriebsart (05.11.2026): die Konsole erkennt den Firmenmodus ohne Anmeldung (wb_konfig BETRIEBSART).
+    print(json.dumps({'ebenen': ebenen, 'gesperrt': list(k.gesperrt), 'meldungen': list(k.meldungen),
+                      'einstellungen': zeilen, 'systemUngueltig': k.system_ungueltig, 'betriebsart': k.betriebsart},
+                     ensure_ascii=False, sort_keys=True, separators=(',', ':')))
+    return 2 if k.ungueltig() or k.system_ungueltig else 0
+
+
+def befehl_schema(argv):
+    if argv not in ([], ['--json']):
+        sys.stderr.write(AUFRUF + '\n')
+        return 64
+    try:
+        schema = wb_konfig.lade_schema()
+    except wb_konfig.SchemaUngueltig as e:
+        sys.stderr.write('wb-konfig: Schemadatei ungueltig: %s\n' % e)
+        return 3
+    for m in schema.meldungen:
+        sys.stderr.write('wb-konfig: %s\n' % m)
+    if argv:
+        # Ohne Fragment und ohne Meldung byte-gleich zum Stand vor den Fragmenten (test-wb-konfig-zeige-json.sh Z6).
+        daten = dict(schema.daten, fragmente=schema.fragmente, meldungen=schema.meldungen) \
+            if schema.fragmente or schema.meldungen else schema.daten
+        print(json.dumps(daten, ensure_ascii=False, separators=(',', ':')))
+        return 0
+    print('%-36s %-9s %-13s %-12s %s' % ('Schluessel', 'Klasse', 'Typ', 'Richtung', 'Vorgabe'))
+    for name, z in schema.zeilen.items():
+        print('%-36s %-9s %-13s %-12s %s' % (name, z['klasse'], z['typ'], z.get('richtung', '-'),
+                                            ausgabe(z['vorgabe'], True)))
+    return 0
+
+
+SETZE_EXIT = {'unbekannt': 5, 'nicht_nutzer': 5, 'ungueltig': 5, 'datei_ungueltig': 2, 'konflikt': 6,
+              'sperre_belegt': 7, 'schreibfehler': 8}
+SETZE_AUFRUF = 'Aufruf: wb-konfig setze [--json] --version VERSION [--] SCHLUESSEL WERT-ALS-JSON'
+
+
+def befehl_setze(argv):
+    """setze: ein Nutzerschluessel, nur mit der aktuellen Version. Mit --json ein Objekt auf stdout, auch bei Ablehnung:
+    {"ok":true,"schluessel","version","geaendert","pfad","zeile"} oder {"ok":false,"fehler","meldung","version"}."""
+    als_json = False
+    version = None
+    rest = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == '--':
+            rest.extend(argv[i + 1:])
+            break
+        if a == '--json' and not als_json:
+            als_json = True
+        elif a == '--version' and version is None and i + 1 < len(argv):
+            version = argv[i + 1]
+            i += 1
+        elif a.startswith('--'):
+            rest = None
+            break
+        else:
+            rest.append(a)
+        i += 1
+    if rest is None or len(rest) != 2 or not version or not rest[0] or rest[0].startswith('-'):
+        sys.stderr.write(SETZE_AUFRUF + '\n')
+        return 64
+    schluessel, roh = rest
+
+    def antwort(objekt, rc):
+        if als_json:
+            print(json.dumps(objekt, ensure_ascii=False, sort_keys=True, separators=(',', ':')))
+        elif not objekt['ok']:
+            sys.stderr.write('wb-konfig: %s\n' % objekt['meldung'])
+        return rc
+
+    try:
+        wert = json.loads(roh)
+    except ValueError:
+        return antwort({'ok': False, 'fehler': 'ungueltig', 'meldung': 'der Wert ist kein JSON', 'version': None}, 5)
+    try:
+        ergebnis = wb_konfig.setze(schluessel, wert, version)
+    except wb_konfig.SchemaUngueltig as e:
+        sys.stderr.write('wb-konfig: Schemadatei ungueltig: %s\n' % e)
+        return 3
+    except wb_konfig.SetzeAbgelehnt as e:
+        return antwort({'ok': False, 'fehler': e.code, 'meldung': e.meldung, 'version': e.version}, SETZE_EXIT[e.code])
+    except Exception as e:      # kein Python-Absturz mit Text, der den Wert enthalten koennte: nur die Art des Fehlers
+        return antwort({'ok': False, 'fehler': 'schreibfehler', 'meldung': 'interner Fehler (%s)' % type(e).__name__,
+                        'version': None}, 8)
+    objekt = dict(ergebnis, ok=True)
+    k, rc = lade()
+    if k is not None:
+        zeile = wirksame_zeile(k, schluessel)
+        zeile['schema'] = k.schema.zeilen[schluessel]
+        zeile['version'] = wb_konfig.nutzer_versionen(k).get(schluessel)
+        zeile['schreibbar'] = wb_konfig.schreibbar(k, schluessel)
+        objekt['zeile'] = zeile
+    if not als_json:
+        print('%s gesetzt (%s)' % (schluessel, 'geaendert' if ergebnis['geaendert'] else 'unveraendert'))
+    return antwort(objekt, 0)
+
+
+def main(argv):
+    if not argv:
+        sys.stderr.write(AUFRUF + '\n')
+        return 64
+    if argv[0] == 'get':
+        return befehl_get(argv[1:])
+    if argv[0] == 'registry':
+        return befehl_registry(argv[1:])
+    if argv[0] == 'betriebsart':
+        print(wb_konfig.betriebsart())
+        return 0
+    if argv[0] == 'zeige' and '--json' in argv[1:]:
+        return befehl_zeige_json(argv[1:])
+    if argv[0] == 'zeige':
+        return befehl_zeige(argv[1:])
+    if argv[0] == 'schema':
+        return befehl_schema(argv[1:])
+    if argv[0] == 'setze':
+        return befehl_setze(argv[1:])
+    sys.stderr.write(AUFRUF + '\n')
+    return 64
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

@@ -1,0 +1,900 @@
+#!/usr/bin/env -S -u DEVELOPER_DIR -u SDKROOT -u TOOLCHAINS /usr/bin/python3 -I -S
+"""wb-datenklasse -- Datenklassen-Tor fuer jeden Startweg der Werkbank.
+
+  wb-datenklasse klasse [DIR]
+      eine Zeile KLASSE<TAB>KUNDEN<TAB>QUELLE, Exit 0. KUNDEN ist '-' ohne Kunde, sonst die
+      Kunden-IDs sortiert mit Komma. QUELLE ist die Markerdatei, die die Klasse bestimmt,
+      'vorgabe:<wert>' fuer die Untergrenze aus dem Schalter, 'projekte:<pfad>' fuer einen
+      Eintrag der Systemrichtlinie. Diese Ausgabe ist ein Vertrag (andere Werkzeuge lesen sie).
+      Steht der Schalter auf kein-start und hat das Projekt keinen Marker: keine Zeile, Exit 3.
+  wb-datenklasse klassen DIR [DIR ...]
+      dieselbe Regel wie `klasse` fuer viele Ordner in einem Prozess (Richtlinie und Schalter
+      einmal gelesen): je DIR, in derselben Reihenfolge, genau eine Zeile wie bei `klasse`, oder
+      '-<TAB>-<TAB>-', wenn die Klasse dieses Ordners nicht feststellbar ist (Marker unlesbar oder
+      ungueltig, kein Verzeichnis, Schalter kaputt, kein-start ohne Marker). Jeder DIR muss absolut
+      sein. Eine unlesbare Richtlinie endet ohne Zeilen mit Exit 2. Der Kern
+      liest damit die Klasse je Werkzeugteil (app/src/main/datenklasse-pfad.ts, Auftrag W4).
+  wb-datenklasse route MODELL [--harness H]
+      eine Zeile MODELL<TAB>KLASSE: die hoechste Klasse, die die Route des Modells tragen darf.
+      Diese Ausgabe bleibt bei zwei Spalten (Leser nehmen die letzte als Klasse).
+  wb-datenklasse route --registry KENNUNG
+      eine Zeile KENNUNG<TAB>KLASSE<TAB>REGEL (Vertrag Tor-Registry): die Route kommt aus dem Registry-Eintrag mit
+      genau dieser Kennung (kein Alias, keine modelRef), nie aus dem Namen. Anbieter und Host der baseUrl entscheiden:
+      Anbieter kind local mit Loopback-Host -> REGEL 'lokal:<route>'; ein Host im LAN nur mit einer host-Regel der
+      Systemrichtlinie oder (nur am Einzelplatz ohne Systemrichtlinie) einem Eintrag des Schalters
+      datenklasse.lanEndpunkte -> 'lan:<host>:<quelle>' (quelle system, betreiber oder nutzer; nie fuer einen Anbieter mit
+      kind cloud, auch nicht mit Adresse im LAN oder auf Loopback: er bleibt Cloud); Cloud-Anbieter und Abo
+      -> der Routenschluessel '<harness>/<anbieter>' (ohne
+      Harness '<anbieter>'); alles andere (Anbieter oder Adresse fehlt, Host nicht zuordenbar, LAN-Host ohne Nennung,
+      doppelte Kennung) -> 'unbekannt:<grund>' mit der Klasse eines unbekannten Modells. Jede Klasse ist hoechstens
+      die von `route KENNUNG` fuer denselben Eintrag. <route> ist der Routenschluessel. Exit 0 eingeordnet (auch streng),
+      2 falscher Aufruf, 4 Kennung nicht in der Registry, 5 Eintrag abgeschaltet, 3 jeder andere Fehler (Registry,
+      Richtlinie oder Leser unlesbar, Klassenregel fehlt): dann keine Zeile auf stdout. Die Zeile traegt nie eine
+      baseUrl oder einen Schluessel.
+  wb-datenklasse pruefe --model M [--dir D] [--harness H] [--quiet]
+  wb-datenklasse pruefe --model M --klasse K [--kunde ID ...] [--harness H] [--quiet]
+      Exit 0 = erlaubt, Exit 3 = abgelehnt, Grund auf stderr. Jeder andere Fehler
+      (Richtlinie unlesbar, Marker kaputt, Klasse unbekannt, falscher Aufruf) ist ebenfalls
+      Exit 3: das Tor schliesst, es endet nie still mit 0.
+      Mit --klasse nennt der Aufrufer Klasse und Kunden selbst (etwa eine Notiz ohne
+      Projektordner); das Tor liest dann keine Marker. --klasse und --dir schliessen sich aus.
+      Es gelten dieselben Regeln wie fuer einen Marker: --kunde hebt wie eine kunde:-Zeile
+      (kunde_hebt_auf_customer), der Schalter ist Untergrenze, jeder Kunde muss die Route
+      erlauben (kunde_erlaubt).
+
+  wb-datenklasse pruefe --registry KENNUNG --klasse K [--kunde ID ...] [--quiet]
+      Eine Einheit (Klasse und Kunden nennt der Aufrufer) gegen den Registry-Eintrag mit genau dieser Kennung (Vertrag
+      Pruefe-Registry). Die Route kommt aus DERSELBEN Einordnung wie bei `route --registry` (registry_einordnung; ein Eintrag
+      mit kind cloud wird nie gehoben, ein LAN-Host nur mit Nennung). Es gelten die Regeln von `pruefe --model M --klasse K`:
+      --kunde hebt wie eine kunde:-Zeile, der Schalter ist Untergrenze, jeder Kunde muss die Route erlauben (kunde_erlaubt,
+      mit Systemrichtlinie nur aus deren Datei), die Nutzerrichtlinie und die Betreiberebene verschaerfen nur, auch die
+      Harness-Sperren (Harness ist der des Eintrags). --registry schliesst --model, --dir und --harness aus.
+      Exit 0 erlaubt, 3 abgelehnt und jeder andere Fehler (nie still 0), 4 Kennung nicht in der Registry, 5 Eintrag
+      abgeschaltet, 2 falscher Aufruf. Der Grund steht auf stderr mit Kennung, Klasse, Kunden, Regel; nie eine baseUrl.
+  wb-datenklasse pruefe --registry KENNUNG --stapel [--quiet]
+      Dieselbe Pruefung fuer viele Einheiten in einem Prozess: Zeilen KLASSE<TAB>KUNDEN auf stdin (Kunden '-' oder mit Komma
+      getrennt, wie die Spalten von `klasse`), je Zeile eine Zeile `0` (erlaubt) oder `3` auf stdout. Route und Richtlinie
+      werden einmal gerechnet. Exit 0 nur, wenn jede Zeile 0 ist, sonst 3 (die Zeilen stehen trotzdem auf stdout); 2, 4, 5 und
+      jeder andere Fehler vor den Zeilen: keine Zeile. Keine Zeile auf stdin ist ein falscher Aufruf (Exit 2).
+
+Klassen: NONE < PUBLIC < INTERNAL < CONFIDENTIAL < CUSTOMER. NONE heisst: Route gar nicht erlaubt.
+
+Marker: eine Datei `.datenklasse`; das erste Wort ist die Klasse (PUBLIC bis CUSTOMER), jede
+Zeile `kunde: <ID>` nennt einen Kunden. Zeilen `kennzeichnung:` und `kennzeichnung-text:` sind
+erlaubt und spielen fuer das Tor keine Rolle.
+
+Ported from an operator overlay and hardened (Punkt 0d, 22.10.2026). Was anders ist:
+  T1  Der Nutzer ist die Kennung des Prozesses (geteuid -> Benutzerdatenbank). Es gibt kein
+      --nutzer und keine Umgebungsvariable dafuer.
+  T2  Die Richtlinie kommt nur aus einem geschuetzten Ort, nie aus einer Umgebungsvariablen.
+      Zuerst die Systemrichtlinie SYSTEM_ORDNER/datenklasse.json; sie gilt nur, wenn Datei und
+      Ordner SYSTEM_EIGENTUEMER (root) gehoeren und weder gruppen- noch weltschreibbar sind,
+      sonst gilt mit Warnung STRENGE_RICHTLINIE (Cloud hoechstens PUBLIC; decision 2026-10-23: ein
+      Rechtefehler des Admins hebt die Richtlinie nicht auf). Ohne Systemrichtlinie gilt
+      PRODUKT_RICHTLINIE (beide in wb_datenklasse_regel.py).
+      Danach darf ~/.config/agent-workbench/datenklasse.json (Heimat laut Benutzerdatenbank)
+      nur verschaerfen: niedrigere Routenklasse, weniger Kundenrouten,
+      mehr gesperrte Harnesses.
+  T3  Die Klasse ist das Maximum ueber ALLE Marker vom Verzeichnis bis zur Wurzel, ueber den
+      genannten und den aufgeloesten Pfad, und bei einem verknuepften Git-Worktree auch ueber
+      den gleichen Ort im Hauptbaum. Ein tieferer Marker kann nie senken. Kunden addieren
+      sich; ein Marker ersetzt keinen Kunden, und jeder Kunde muss die Route erlauben.
+      Ein Marker mit `kunde:` zaehlt mindestens als CUSTOMER; QUELLE heisst dann
+      `<marker>:kunde`.
+
+Schalter (Punkt 0w, Beschluesse E-02 und D-2). Die Vorgabe ohne Marker liest genau eine Stelle:
+vorgabe_klasse(), Schluessel datenklasse.unmarkiert (INTERNAL | CUSTOMER | kein-start). Die
+Kunden-Regel ebenso: kunde_hebt_auf_customer(), Schluessel datenklasse.kundeHebtAufCustomer.
+Beide kommen aus werkbank.json ueber den Leser wb_konfig.py, der neben dem Tor liegt und im
+Prozess geladen wird (nie ueber sys.path oder PYTHONPATH). Fehlt er oder seine Schemadatei,
+endet das Tor fail closed. Die Umgebung (WB_KONFIG, XDG_CONFIG_HOME) zaehlt nicht.
+Der Schalterwert ist eine UNTERGRENZE: ein Marker hebt die Klasse, senkt sie aber nie darunter.
+Ein Projekt darunter einzuordnen geht nur ueber die Liste `projekte` der Systemrichtlinie
+([{"pfad": "/abs/pfad", "klasse": "PUBLIC"}], Teilbaum gilt, der laengste passende Pfad gewinnt);
+eine Projektliste der Nutzerrichtlinie wird mit Warnung ignoriert. Bei kein-start gilt fuer ein
+Projekt mit Marker die Untergrenze UNTERGRENZE_KEIN_START (INTERNAL). Ein Feld vorgabeKlasse in
+einer Richtlinie gibt es nicht mehr: die Untergrenze steht an einer Stelle, im Schalter.
+
+Schalter datenklasse.lanEndpunkte (Betreiberebene, decision 2026-10-28): {"<host>": "<KLASSE>"}, Vorgabe {} (jeder LAN-Host bleibt
+streng). Nur `route --registry` liest ihn, ueber DENSELBEN Leser wie die anderen Schalter (Lage.lan_endpunkte, wb_konfig.py),
+und nur fuer einen Host im LAN. Am Einzelplatz ohne Systemrichtlinie nennt der Betreiber damit die Klasse des Hosts (REGEL
+'lan:<host>:betreiber'); die Klasse darf dort ueber `route KENNUNG` liegen, die Nutzerrichtlinie senkt weiterhin. Mit
+Systemrichtlinie (auch der strengen Ersatzrichtlinie) senkt der Eintrag nur: nie ueber die Klasse der host-Regel, nie fuer
+einen Host, den die Systemrichtlinie nicht nennt (er bleibt 'unbekannt:lan-host-ohne-nennung', hoechstens auf die Klasse des
+Eintrags gesenkt). Ein Eintrag mit anderer Host-Form (Muster, Grossbuchstaben, kein LAN-Host) oder unbekannter Klasse wird
+ignoriert und auf stderr gewarnt. Die Nutzerdatei werkbank.json setzt den Schluessel nie (ohneNutzerebene).
+
+Regelfeld host (W3, 23.10.2026): ein Muster (fnmatch) auf den Host der baseUrl des Anbieters,
+fuer 'ollama' der Host aus ollamaEndpoint, wenn gesetzt. Ein Modell ohne Adresse trifft keine
+Host-Regel. Ein Endpunkt ausserhalb dieser Maschine hebt sich ueber INTERNAL nur mit einer
+host-Regel der Systemrichtlinie: Eine Regel mit provider, aber ohne host hebt einen nicht
+lokalen Anbieter hoechstens auf INTERNAL (Warnung), denn der Anbietername steht in der
+Nutzerdatei models.json. Die Nutzerrichtlinie senkt weiterhin nur; eine Host-Regel dort hebt nichts.
+
+ollamaEndpoint: zeigt die Einstellung (dieselbe Datei und Pruefung wie wb-state ollama_baseurl)
+auf eine fremde Maschine, gilt der Anbieter 'ollama' als fern, also als Cloud-Route. Andere
+lokale Anbieter folgen der Einstellung nicht und bleiben lokal.
+
+Registry und Einstellungen liegen ohne Testnaht ausschliesslich unter der Heimat laut
+Benutzerdatenbank (.claude/workbench/models.json und settings.json), wie wb-state seit Punkt 0a.
+HOME, WB_MODELS_FILE und AWB_SETTINGS_FILE lenken sie nicht um: ein Aufrufer koennte sonst ein
+Cloud-Modell zu einem lokalen Anbieter machen. Nur mit WB_TESTUMGEBUNG=1 (die Testnaht von
+wb-state, nur fuer diese beiden Dateien) gelten die drei wie frueher.
+
+Klassenregel (23.10.2026, task): klasse, klassen, pruefe --dir und pruefe --klasse
+rechnen die Klasse nur noch im Modul wb_datenklasse_regel.py (klasse_fuer, Lage). Das Tor laedt es
+neben realpath seiner eigenen Datei, nie ueber sys.path; dasselbe Modul laedt die Entscheidungsstelle
+im Prozess. Fehlt es oder ist es unbrauchbar, endet das Tor fail closed (pruefe
+Exit 3, sonst Exit 2). Richtlinie, Untergrenze und Marker stehen nur dort; hier bleiben Registry,
+Route, Kunden- und Nutzerpruefung und die Testnaht der Umgebung (WB_TESTUMGEBUNG).
+
+Testnaht fuer Richtlinie und Heimat: keine Variable. Die Suite prueft Kopien, in denen nur die Konstanten SYSTEM_ORDNER,
+SYSTEM_EIGENTUEMER und NUTZER_HEIM umgeschrieben sind (shell/tests/test-wb-datenklasse.sh); das Tor
+reicht sie an R.Lage weiter. Neben jeder Kopie liegt das Modul wb_datenklasse_regel.py.
+"""
+import fnmatch
+import importlib.util
+import ipaddress
+import json
+import os
+import pwd
+import re
+import sys
+import urllib.parse
+
+REGEL_MODUL = "wb_datenklasse_regel.py"   # die Klassenregel, neben realpath dieses Tors
+# Testnaht: Tests schreiben diese drei Zeilen in einer Kopie um (keine Variable). None/leer heisst:
+# Systemordner und Eigentuemer laut Modul, Heimat laut Benutzerdatenbank.
+SYSTEM_ORDNER = None
+SYSTEM_EIGENTUEMER = None
+NUTZER_HEIM = ""   # leer: Heimat laut Benutzerdatenbank, nie $HOME
+
+# Kurznamen der Startwege, die nie durch die Registry gehen (wie pi-worker sie kennt).
+EINGEBAUTE_ALIASE = {"claude-*": "claude-subscription", "haiku*": "claude-subscription",
+                     "sonnet*": "claude-subscription", "opus*": "claude-subscription",
+                     "fable*": "claude-subscription"}
+LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+MAX_REGISTRY = 16 << 20   # Grenze fuer models.json (R-KL-DATEI): eine echte Registry misst rund 1 MiB
+OLLAMA_URL = re.compile(r"^https?://[^\s/]+(/[^\s]*)?$")   # wie wb-state _OLLAMA_URL_RE
+
+R = None      # das Modul wb_datenklasse_regel, geladen in main()
+LAGE = None   # R.Lage dieses Aufrufs: Richtlinie und Schalter hoechstens einmal gelesen
+
+
+class RegelFehlt(Exception):
+    """Das Modul der Klassenregel fehlt neben dem Tor oder ist unbrauchbar."""
+
+
+def warnung(text):
+    print("wb-datenklasse: WARNUNG: " + text, file=sys.stderr)
+
+
+def regel_laden():
+    """Laedt wb_datenklasse_regel.py neben realpath dieses Tors (nie ueber sys.path)."""
+    pfad = os.path.join(os.path.dirname(os.path.realpath(__file__)), REGEL_MODUL)
+    if not os.path.isfile(pfad):
+        raise RegelFehlt("Klassenregel fehlt neben dem Tor: %s" % pfad)
+    try:
+        spec = importlib.util.spec_from_file_location("wb_datenklasse_regel", pfad)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+    except BaseException as exc:   # auch SystemExit beim Laden: fail closed, nie Exit 0
+        raise RegelFehlt("Klassenregel unbrauchbar (%s: %s): %s" % (type(exc).__name__, exc, pfad))
+    return mod
+
+
+# ── Route eines Modells ───────────────────────────────────────────────────────
+
+_NAHT = []
+
+
+def naht_modul():
+    """shell/wb_naht_ziel.py neben diesem Werkzeug, sonst None: dann gilt die Testnaht nicht."""
+    if not _NAHT:
+        mod = None
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                "wb_naht_ziel", os.path.join(os.path.dirname(os.path.realpath(__file__)), "wb_naht_ziel.py"))
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+        except Exception:
+            mod = None
+        _NAHT.append(mod)
+    return _NAHT[0]
+
+
+def testnaht():
+    """Wie wb-state: nur die wirksame Testnaht erlaubt, Ort der Registry und der Einstellungen ueber die
+    Umgebung zu lenken: WB_TESTUMGEBUNG=1 UND die Schalterzeile des Moduls (Stufe 2c, R3). Ohne sie gilt allein die
+    Heimat laut Benutzerdatenbank (Lage.heimat()); HOME, WB_MODELS_FILE und AWB_SETTINGS_FILE zaehlen dann nicht."""
+    m = naht_modul() if os.environ.get("WB_TESTUMGEBUNG") == "1" else None
+    return bool(m and m.naht_aktiv())
+
+
+def registry():
+    """Dieselbe Registry, die der Startweg liest, ueber DIESELBE Aufloesung wie wb-state: Konfig.registry in
+    wb_konfig.py (`wb-konfig registry`). pfade.registry ist ein Betreiberschluessel ohne Nutzerebene: System, Betreiber,
+    Vorgabe unter der Heimat laut Benutzerdatenbank. Nur mit der Testnaht lenkt WB_MODELS_FILE um (nie gegen die
+    Systemebene), und die Heimat ist dann $HOME. Ein Pfad, den eine Datei oder die Naht benennt, muss lesbar sein.
+    Den Leser haelt die Lage dieses Aufrufs (R.Lage.konfig), dieselbe, die die Klassenregel liest."""
+    mod, k = LAGE.konfig()
+    naht = testnaht()
+    heim = (os.environ.get("HOME") or LAGE.heimat()) if naht else LAGE.heimat()
+    try:
+        pfad, ebene = k.registry(heim, os.environ.get("WB_MODELS_FILE") if naht else None)
+    except mod.KonfigUngueltig as exc:
+        raise R.Abgelehnt("werkbank.json ungueltig fuer pfade.registry: %s" % exc)
+    lenkung = ebene != "vorgabe"
+    if not os.path.exists(pfad) and not lenkung:
+        return {}
+    try:
+        data = json.loads(R.text_lesen(pfad, MAX_REGISTRY))   # REGEL R-KL-DATEI: keine FIFO, nichts ueber der Grenze
+    except (OSError, ValueError) as exc:
+        raise R.Abgelehnt("Registry unlesbar (%s): %s" % (exc, pfad))
+    if not isinstance(data, dict):
+        raise R.Abgelehnt("Registry ist kein Objekt: %s" % pfad)
+    return data
+
+
+def liste(x):
+    """models/providers der Registry als Liste von Objekten. Ein Feld, das weder Objekt noch Liste ist (etwa `models: 5`),
+    lehnt ab, statt mit einem Programmfehler zu enden: route --registry endet dann mit Exit 3, route MODELL wie bisher mit
+    Exit 2 (gueltige Registries lesen byte-gleich). Fehlt das Feld oder ist es leer, ist die Liste leer."""
+    if isinstance(x, dict):
+        return [dict(v, id=k) for k, v in x.items() if isinstance(v, dict)]
+    if x and not isinstance(x, (list, str)):
+        raise R.Abgelehnt("Registry: models und providers muessen ein Objekt oder eine Liste sein (gefunden: %s)"
+                          % type(x).__name__)
+    return [v for v in (x or []) if isinstance(v, dict)]
+
+
+def einstellung_ollama():
+    """ollamaEndpoint wie wb-state read_setting/ollama_baseurl: dieselbe Datei, leer oder
+    unsinnig heisst 'nicht gesetzt'."""
+    if testnaht():
+        pfad = os.environ.get("AWB_SETTINGS_FILE") or os.path.join(
+            os.path.expanduser("~"), ".claude", "workbench", "settings.json")
+    else:
+        pfad = os.path.join(LAGE.heimat(), ".claude", "workbench", "settings.json")
+    try:
+        text = R.text_lesen(pfad, R.MAX_RICHTLINIE)   # REGEL R-KL-DATEI
+    except (FileNotFoundError, NotADirectoryError):
+        return ""
+    except (OSError, ValueError) as exc:
+        # Da, aber nicht lesbar: Der Endpunkt ist unklar, und ein fremder Endpunkt waere keine lokale Route.
+        raise R.Abgelehnt("Einstellungen unlesbar (%s): %s" % (exc, pfad))
+    try:
+        cfg = json.loads(text)
+        roh = cfg.get("ollamaEndpoint", "") if isinstance(cfg, dict) else ""
+    except ValueError:
+        roh = ""
+    wert = roh.strip().rstrip("/") if isinstance(roh, str) else ""
+    return wert if wert and OLLAMA_URL.match(wert) else ""
+
+
+def anbieter_url(prov):
+    """Adresse, an die der Anbieter Daten schickt: baseUrl, fuer 'ollama' ollamaEndpoint."""
+    url = prov.get("baseUrl") if prov else ""
+    if prov and prov.get("id") == "ollama":
+        url = einstellung_ollama() or url
+    return url if isinstance(url, str) else ""
+
+
+def loopback_host(host):
+    """Nur eine echte IPv4-Adresse in 127.0.0.0/8 in kanonischer Form, ::1 und localhost. Ein Name wie 127.0.0.1.fremd.example
+    fragt das DNS und liegt sonstwo; 0177.0.0.1 oder 127.1 liest jede Bibliothek anders. Beides bleibt fern."""
+    if host in LOOPBACK:
+        return True
+    try:
+        ip = ipaddress.IPv4Address(host)
+    except ValueError:
+        return False
+    return ip.is_loopback and str(ip) == host
+
+
+def host_von(url):
+    try:
+        return (urllib.parse.urlsplit(url).hostname or "").lower()
+    except ValueError:
+        return ""
+
+
+def art_des_anbieters(prov):
+    if not prov:
+        return "unbekannt"
+    kind = prov.get("kind") or "unbekannt"
+    if kind != "local":
+        return kind
+    url = anbieter_url(prov)
+    if not url:
+        return "lokal"
+    host = host_von(url)
+    return "lokal" if loopback_host(host) else "fern"
+
+
+def modell(name, harness=None):
+    """-> dict(namen, provider, art, host, harness) aus der Registry, sonst aus den Kurznamen."""
+    reg = registry()
+    namen = [name]
+    if ":" in name:
+        namen.append(name.split(":", 1)[0])
+    treffer = None
+    for kand in namen:
+        for m in liste(reg.get("models")):
+            if kand in (m.get("id"), m.get("alias"), m.get("modelRef")):
+                treffer = m
+                break
+        if treffer:
+            break
+    provider = ""
+    if treffer:
+        namen += [treffer.get("id") or "", treffer.get("alias") or "", treffer.get("modelRef") or ""]
+        provider = treffer.get("provider") or ""
+    else:
+        for muster, prov in EINGEBAUTE_ALIASE.items():
+            if any(fnmatch.fnmatchcase(n, muster) for n in namen):
+                provider = prov
+                break
+    prov = next((p for p in liste(reg.get("providers")) if p.get("id") == provider), None)
+    art = art_des_anbieters(prov)
+    if not prov and provider == "claude-subscription":
+        art = "subscription"
+    harnesses = [h for h in (harness, (treffer or {}).get("harness")) if h]
+    return {"name": name, "namen": [n for n in namen if n], "provider": provider or "unbekannt",
+            "art": art, "host": host_von(anbieter_url(prov)), "harnesses": harnesses}
+
+
+def regel_passt(r, m):
+    def feld(f, werte):
+        return f not in r or any(fnmatch.fnmatchcase(w, r[f]) for w in werte)
+    host = "host" not in r or bool(m["host"]) and fnmatch.fnmatchcase(m["host"], r["host"].lower())
+    return (feld("modell", m["namen"]) and feld("provider", [m["provider"]])
+            and feld("art", [m["art"]]) and feld("harness", m["harnesses"] or [""]) and host)
+
+
+def erste_regel(routen, m):
+    return next((r for r in routen if regel_passt(r, m)), None)
+
+
+def regel_id(r):
+    """Routen-ID einer Regel der Richtlinie (None: keine Regel passt)."""
+    return "keine Regel" if r is None else r.get("id") or "ohne-id"
+
+
+def route(rl, m):
+    """-> (maxKlasse, Routen-ID). Die Nutzerrichtlinie kann nur senken."""
+    r = erste_regel(rl["basis"].get("routen", []), m)
+    if r is None:
+        return "NONE", regel_id(None)
+    k, rid = r["maxKlasse"], regel_id(r)
+    if ("provider" in r and "host" not in r and m["art"] != "lokal"
+            and R.ORDER.index(k) > R.ORDER.index("INTERNAL")):
+        LAGE.warnung("Route '%s' hebt '%s' nur bis INTERNAL: der Anbietername steht in der Nutzerdatei; "
+                "einen Endpunkt ausserhalb dieser Maschine hebt nur eine Regel mit host"
+                % (rid, m["name"]))
+        k = "INTERNAL"
+    n = erste_regel(rl["nutzer"].get("routen", []), m)
+    if n is not None and R.ORDER.index(n["maxKlasse"]) < R.ORDER.index(k):
+        k = n["maxKlasse"]
+    return k, rid
+
+
+# ── Kunden und Nutzer ─────────────────────────────────────────────────────────
+
+def kunde_erlaubt(rl, kid, rid):
+    """-> None (erlaubt) oder der Grund der Ablehnung."""
+    kv = rl["basis"].get("kunden", {}).get(kid)
+    if kid.startswith("_") or not isinstance(kv, dict):
+        return "Kunde '%s' ist in der Richtlinie unbekannt" % kid
+    if not any(fnmatch.fnmatchcase(rid, p) for p in kv.get("erlaubteRouten", [])):
+        return "Kunde '%s' erlaubt die Route '%s' nicht (%s)" % (
+            kid, rid, ", ".join(kv.get("erlaubteRouten", [])) or "keine Route freigegeben")
+    nk = rl["nutzer"].get("kunden", {}).get(kid)
+    if isinstance(nk, dict) and not any(fnmatch.fnmatchcase(rid, p)
+                                        for p in nk.get("erlaubteRouten", [])):
+        return "Kunde '%s': die Nutzerrichtlinie erlaubt die Route '%s' nicht" % (kid, rid)
+    return None
+
+
+def nutzer():
+    try:
+        return pwd.getpwuid(os.geteuid()).pw_name
+    except KeyError:
+        raise R.Abgelehnt("Kennung %d steht nicht in der Benutzerdatenbank" % os.geteuid())
+
+
+def gesperrte_harnesses(rl):
+    """-> (Profilname, Menge). Ohne Profile in der Richtlinie sperrt nichts."""
+    profile = rl["basis"].get("nutzerprofile", {})
+    zuordnung = rl["basis"].get("nutzerZuordnung", {})
+    gesperrt = set(rl["nutzer"].get("gesperrteHarnesses", []))
+    if not profile:
+        return None, gesperrt
+    name = nutzer()
+    pname = name if name in profile else zuordnung.get(name) or zuordnung.get("*")
+    if pname not in profile:
+        raise R.Abgelehnt("kein Nutzerprofil fuer '%s' (nutzerZuordnung)" % name)
+    return pname, gesperrt | set(profile[pname].get("gesperrteHarnesses", []))
+
+
+def verweigerungen(rl, m, info, erg=None):
+    """-> (Gruende, Klasse der Route). erg: die schon gerechnete Route (Klasse, Routen-ID), etwa aus einem Registry-Eintrag;
+    ohne sie rechnet route() sie aus dem Modell."""
+    out = []
+    k, rid = erg if erg else route(rl, m)
+    if R.ORDER.index(k) < R.ORDER.index(info["klasse"]):
+        out.append("DATENKLASSE: '%s' laeuft ueber die Route '%s' (hoechstens %s), %s %s (%s)."
+                   % (m["name"], rid, k, info.get("bezug", "das Projekt ist"), info["klasse"],
+                      info["quelle"] or "vorgabe"))
+        if rl["quelle"] == R.PRODUKT_QUELLE and m["art"] != "lokal":
+            out.append("DATENKLASSE: kein Firmenprofil (Systemrichtlinie %s fehlt); ohne Firmenprofil "
+                       "traegt eine Cloud-Route hoechstens PUBLIC." % R.RICHTLINIE_NAME)
+    for kid in info["kunden"]:
+        grund = kunde_erlaubt(rl, kid, rid)
+        if grund:
+            out.append("KUNDE: %s." % grund)
+    pname, gesperrt = gesperrte_harnesses(rl)
+    if gesperrt:
+        if not m["harnesses"]:
+            out.append("NUTZER: Harness unbekannt, das Profil '%s' sperrt Harnesses."
+                       % (pname or "Nutzerrichtlinie"))
+        for h in m["harnesses"]:
+            if h in gesperrt:
+                out.append("NUTZER: Profil '%s' sperrt den Harness '%s'."
+                           % (pname or "Nutzerrichtlinie", h))
+    return out, k
+
+
+# ── Befehle ───────────────────────────────────────────────────────────────────
+
+def optionen(argv, werte, schalter=(), listen=()):
+    vals = {k: None for k in werte}
+    vals.update({k: [] for k in listen})
+    fl = {f: False for f in schalter}
+    pos = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a.startswith("--") and a[2:] in vals:
+            if i + 1 >= len(argv):
+                raise R.Abgelehnt("%s braucht einen Wert" % a)
+            if a[2:] in listen:
+                vals[a[2:]].append(argv[i + 1])
+            else:
+                vals[a[2:]] = argv[i + 1]
+            i += 2
+            continue
+        if a.startswith("--") and a[2:] in fl:
+            fl[a[2:]] = True
+        elif a.startswith("-"):
+            raise R.Abgelehnt("unbekannte Option %s" % a)
+        else:
+            pos.append(a)
+        i += 1
+    return vals, fl, pos
+
+
+def klasse_oder_fehler(d):
+    """-> Ergebnis von R.klasse_fuer mit der Lage dieses Aufrufs."""
+    return R.klasse_fuer(d, lage=LAGE)
+
+
+def cmd_klasse(argv):
+    _, _, pos = optionen(argv, [])
+    if len(pos) > 1:
+        raise R.Abgelehnt("klasse [DIR]")
+    LAGE.richtlinie()
+    erg = klasse_oder_fehler(pos[0] if pos else None)
+    if "fehler" in erg:
+        print("wb-datenklasse: " + erg["fehler"], file=sys.stderr)
+        return 3 if erg["kennwort"] == "kein-start" else 2
+    print(R.zeile(erg))
+    return 0
+
+
+def cmd_klassen(argv):
+    if not argv or any(not os.path.isabs(d) for d in argv):
+        raise R.Abgelehnt("klassen DIR [DIR ...] (jeder DIR absolut)")
+    LAGE.richtlinie()
+    zeilen = []
+    for d in argv:
+        erg = klasse_oder_fehler(d)
+        if erg.get("kennwort") == "intern":
+            print("wb-datenklasse: " + erg["fehler"], file=sys.stderr)
+            return 2
+        zeilen.append("-\t-\t-" if "fehler" in erg else R.zeile(erg))
+    print("\n".join(zeilen))
+    return 0
+
+
+# ── route --registry: Route aus dem Registry-Eintrag (Vertrag Tor-Registry) ───────────────────────────────────
+KENNUNG_ZEICHEN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/+@-]*$")
+HOST_ZEICHEN = re.compile(r"^[a-z0-9._:-]+$")
+UNSICHER = re.compile(r"[^A-Za-z0-9._:+@/-]")
+CGNAT = ipaddress.ip_network("100.64.0.0/10")   # Tailnet-Adressen
+LAN_ENDUNGEN = (".local", ".lan", ".home.arpa", ".internal", ".ts.net")
+
+
+def lan_host(host):
+    """Sieht der Host nach dem eigenen Netz aus (privat, Tailnet, link-local, .local, ein Name ohne Punkt)?"""
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return host.endswith(LAN_ENDUNGEN) or "." not in host
+    return ip.is_private or ip.is_link_local or (ip.version == 4 and ip in CGNAT)
+
+
+def sauber(text):
+    return UNSICHER.sub("_", text)
+
+
+def niedrigere(a, b):
+    return a if R.ORDER.index(a) <= R.ORDER.index(b) else b
+
+
+def unbekanntes_modell(namen):
+    return {"name": "?", "namen": namen, "provider": "unbekannt", "art": "unbekannt", "host": "", "harnesses": []}
+
+
+def streng_route(rl, kennung):
+    """-> (Klasse, Routen-ID) eines unbekannten Modells: das Strengere aus `route` ohne Namen und `route <kennung>` ohne Eintrag."""
+    a, b = route(rl, unbekanntes_modell([])), route(rl, unbekanntes_modell([kennung]))
+    return b if R.ORDER.index(b[0]) < R.ORDER.index(a[0]) else a
+
+
+def streng_klasse(rl, kennung):
+    return streng_route(rl, kennung)[0]
+
+
+def registry_route(rl, reg, e):
+    """-> (Klasse, REGEL, Routen-ID) des Eintrags e. Jede Unsicherheit liefert 'unbekannt:<grund>' mit der Klasse eines
+    unbekannten Modells. Nie lockerer als `route <kennung>` fuer denselben Eintrag, dessen Klasse deckelt jedes Ergebnis.
+    Einzige Ausnahme: ein Host der Betreiberebene (datenklasse.lanEndpunkte) am Einzelplatz ohne Systemrichtlinie.
+    Die Routen-ID ist die der Regel, die die Klasse bestimmt (die Kunden-Regel `kunde_erlaubt` prueft sie)."""
+    k, regel, betreiber_hebt, rid = registry_route_roh(rl, reg, e)
+    if betreiber_hebt:
+        return k, regel, rid
+    k_kennung, rid_kennung = route(rl, modell(e["id"]))
+    if R.ORDER.index(k_kennung) < R.ORDER.index(k):
+        return k_kennung, regel, rid_kennung
+    return k, regel, rid
+
+
+def lan_host_ok(host):
+    """Kanonische Form eines Hosts im eigenen Netz (kleingeschrieben, ohne Muster), wie host_von() sie liefert."""
+    return bool(HOST_ZEICHEN.match(host)) and lan_host(host)
+
+
+def lan_klasse(rl, m, host, unbekannt):
+    """-> (Klasse, REGEL, betreiber_hebt, Routen-ID) fuer einen Endpunkt im eigenen Netz.
+    Die Betreiberebene (Schalter datenklasse.lanEndpunkte, Host -> Klasse) ordnet den Host am Einzelplatz OHNE
+    Systemrichtlinie ein (hebt); mit Systemrichtlinie nur noch verschaerfend: nie ueber der Klasse, die die host-Regel
+    der Systemrichtlinie nennt, und nie ein Host, den sie nicht nennt. Die Nutzerrichtlinie senkt in jedem Fall."""
+    betreiber = LAGE.lan_endpunkte(lan_host_ok).get(host)
+    r = erste_regel(rl["basis"].get("routen", []), m)
+    n = erste_regel(rl["nutzer"].get("routen", []), m)
+    if r is None or "host" not in r:
+        if betreiber is None or rl["system"]:
+            k, regel, hebt, rid = unbekannt("lan-host-ohne-nennung")
+            return (niedrigere(k, betreiber) if betreiber is not None else k), regel, hebt, rid
+        k = niedrigere(betreiber, n["maxKlasse"]) if n is not None else betreiber
+        senkt = n is not None and R.ORDER.index(n["maxKlasse"]) < R.ORDER.index(betreiber)
+        return k, "lan:%s:%s" % (host, "nutzer" if senkt else "betreiber"), True, regel_id(r)
+    k_echt, rid = route(rl, m)
+    senkt = n is not None and R.ORDER.index(n["maxKlasse"]) < R.ORDER.index(r["maxKlasse"])
+    if betreiber is not None and R.ORDER.index(betreiber) < R.ORDER.index(k_echt):
+        return betreiber, "lan:%s:betreiber" % host, False, rid
+    return k_echt, "lan:%s:%s" % (host, "nutzer" if senkt else "system"), False, rid
+
+
+def registry_route_roh(rl, reg, e):
+    """-> (Klasse, REGEL, betreiber_hebt, Routen-ID). betreiber_hebt: die Klasse darf ueber `route <kennung>` liegen (nur lan_klasse)."""
+    kennung = e["id"]
+    pid = e.get("provider")
+    harness = e.get("harness") if isinstance(e.get("harness"), str) and e.get("harness") else ""
+
+    def unbekannt(grund):
+        k, rid = streng_route(rl, kennung)
+        return k, "unbekannt:" + grund, False, rid
+
+    if doppelt_angelegt(reg, kennung):
+        return unbekannt("kennung-doppelt")
+    if not isinstance(pid, str) or not pid:
+        return unbekannt("anbieter-fehlt")
+    prov = next((p for p in liste(reg.get("providers")) if p.get("id") == pid), None)
+    schluessel = sauber((harness + "/" if harness else "") + pid)
+    m = {"name": kennung, "namen": [kennung, e.get("alias") or "", e.get("modelRef") or ""], "provider": pid,
+         "art": "unbekannt", "host": "", "harnesses": [harness] if harness else []}
+    m["namen"] = [n for n in m["namen"] if isinstance(n, str) and n]
+    if not prov and pid == "claude-subscription":   # eingebaut wie in modell(): kein Eintrag noetig
+        m["art"] = "subscription"
+        k, rid = route(rl, m)
+        return k, schluessel, False, rid
+    if not prov:
+        return unbekannt("anbieter-unregistriert")
+    kind = prov.get("kind")
+    if kind == "subscription":
+        m["art"] = "subscription"
+        k, rid = route(rl, m)
+        return k, schluessel, False, rid
+    if kind not in ("local", "cloud"):
+        return unbekannt("anbieter-art")
+    url = anbieter_url(prov).strip()
+    m["art"] = art_des_anbieters(prov)
+    if not url:
+        return unbekannt("keine-adresse")
+    host = host_von(url)
+    try:
+        schema = urllib.parse.urlsplit(url).scheme
+    except ValueError:
+        schema = ""
+    if schema not in ("http", "https") or not HOST_ZEICHEN.match(host):
+        return unbekannt("host-nicht-zuordenbar")
+    m["host"] = host
+    k_echt, rid_echt = route(rl, m)
+    if kind == "cloud" and (loopback_host(host) or lan_host(host)):
+        # Ein Cloud-Anbieter mit Adresse auf dieser Maschine oder im LAN ist ein Gateway oder Proxy zur Cloud (decision 2026-10-28):
+        # REGEL bleibt die Anbieterroute, und weder eine host-Regel der Systemrichtlinie noch datenklasse.lanEndpunkte hebt ihn.
+        # Die Klasse rechnet die Richtlinie, als gaebe es keine Adresse (ein Modell ohne Adresse trifft keine host-Regel);
+        # im LAN ist sie nie hoeher als bei einem LAN-Host ohne Nennung (Klasse eines unbekannten Modells).
+        k_anbieter, rid_anbieter = route(rl, dict(m, host=""))
+        if loopback_host(host):
+            return k_anbieter, schluessel, False, rid_anbieter
+        k_streng, rid_streng = streng_route(rl, kennung)
+        if R.ORDER.index(k_streng) < R.ORDER.index(k_anbieter):
+            return k_streng, schluessel, False, rid_streng
+        return k_anbieter, schluessel, False, rid_anbieter
+    if loopback_host(host):
+        return k_echt, "lokal:" + schluessel, False, rid_echt
+    if lan_host(host):
+        return lan_klasse(rl, m, host, unbekannt)
+    return k_echt, schluessel, False, rid_echt
+
+
+def doppelt_angelegt(reg, kennung):
+    return sum(1 for m in liste(reg.get("models")) if m.get("id") == kennung) > 1
+
+
+def registry_einordnung(kennung):
+    """Der gemeinsame Weg von `route --registry` und `pruefe --registry`: Richtlinie, Registry, Eintrag, Route. Die Route
+    wird genau einmal gerechnet (registry_route). -> (rc, rl, eintrag, Klasse, REGEL, Routen-ID). rc 0: eingeordnet; rc 4
+    (Kennung nicht in der Registry) oder 5 (abgeschaltet): Grund auf stderr, die uebrigen Werte sind None. Wirft R.Abgelehnt."""
+    rl = LAGE.richtlinie()
+    reg = registry()
+    treffer = [m for m in liste(reg.get("models")) if m.get("id") == kennung]
+    if not treffer:
+        print("wb-datenklasse: Kennung '%s' ist nicht in der Registry." % kennung, file=sys.stderr)
+        return 4, rl, None, None, None, None
+    if treffer[0].get("enabled") is False:
+        print("wb-datenklasse: Eintrag '%s' ist abgeschaltet (enabled=false)." % kennung, file=sys.stderr)
+        return 5, rl, None, None, None, None
+    k, regel, rid = registry_route(rl, reg, treffer[0])
+    return 0, rl, treffer[0], k, regel, rid
+
+
+def cmd_route_registry(argv):
+    try:
+        vals, _, pos = optionen(argv, ["registry"])
+        kennung = vals["registry"]
+        if pos or not kennung or not KENNUNG_ZEICHEN.match(kennung):
+            raise R.Abgelehnt("route --registry KENNUNG")
+    except R.Abgelehnt as exc:
+        print("wb-datenklasse: " + str(exc), file=sys.stderr)
+        return 2
+    try:
+        rc, _, _, k, regel, _ = registry_einordnung(kennung)
+    except R.Abgelehnt as exc:
+        print("wb-datenklasse: " + str(exc), file=sys.stderr)
+        return 3
+    if rc:
+        return rc
+    print("%s\t%s\t%s" % (kennung, k, regel))
+    return 0
+
+
+def cmd_route(argv):
+    if "--registry" in argv:
+        return cmd_route_registry(argv)
+    vals, _, pos = optionen(argv, ["harness"])
+    if len(pos) != 1:
+        raise R.Abgelehnt("route MODELL [--harness H]")
+    k, _ = route(LAGE.richtlinie(), modell(pos[0], vals["harness"]))
+    print("%s\t%s" % (pos[0], k))
+    return 0
+
+
+# ── pruefe --registry: eine Einheit gegen einen Registry-Eintrag (Vertrag Pruefe-Registry) ───────────────────────
+PRUEFE_WERT_OPTIONEN = ("model", "dir", "harness", "klasse", "kunde", "registry")
+PRUEFE_REGISTRY_AUFRUF = ("pruefe --registry KENNUNG --klasse K [--kunde ID ...] [--quiet] | "
+                          "pruefe --registry KENNUNG --stapel [--quiet] (Zeilen KLASSE<TAB>KUNDEN auf stdin)")
+
+
+def registry_aufruf(argv):
+    """Nennt der Aufruf --registry als Option (nicht als Wert einer anderen)? Dann gilt der Registry-Weg, sonst der bisherige;
+    so bleibt jeder Aufruf ohne die Option unveraendert."""
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--registry":
+            return True
+        i += 2 if argv[i].startswith("--") and argv[i][2:] in PRUEFE_WERT_OPTIONEN else 1
+    return False
+
+
+def einheit_text(kennung, klasse, kunden, regel=None):
+    """Kennung, Klasse, Kunden (und Regel) einer Einheit fuer den Grund auf stderr; nie eine baseUrl oder ein Schluessel."""
+    text = "Kennung %s, Klasse %s, Kunden %s" % (kennung, sauber(klasse), sauber(",".join(kunden)) or "-")
+    return text + (", Regel %s" % regel if regel else "")
+
+
+def einheit_pruefen(rl, m, erg, klasse, kunden):
+    """Eine Einheit (Klasse und Kunden nennt der Aufrufer) gegen die Route erg = (Klasse, Routen-ID) des Eintrags m, mit
+    den Regeln von `pruefe --model M --klasse K`: klasse_aus_aufruf (--kunde hebt wie eine kunde:-Zeile, der Schalter ist
+    Untergrenze), kunde_erlaubt je Kunde, die Sperren der Nutzerrichtlinie. -> (info, Gruende, Klasse der Route);
+    keine Gruende heisst erlaubt. Wirft R.Abgelehnt bei ungueltiger Klasse oder Kunden-ID und bei einem Fehler des Schalters."""
+    info = LAGE.klasse_aus_aufruf(klasse, kunden)
+    gruende, k = verweigerungen(rl, m, info, erg)
+    return info, gruende, k
+
+
+def stapel_zeilen():
+    """Die Zeilen von stdin (ohne den Zeilenumbruch am Ende). Wirft R.Abgelehnt, wenn stdin kein UTF-8 ist."""
+    try:
+        text = sys.stdin.buffer.read().decode("utf-8")
+    except (OSError, ValueError) as exc:
+        raise R.Abgelehnt("stdin nicht lesbar (%s)" % type(exc).__name__)
+    zeilen = text.split("\n")
+    if zeilen and zeilen[-1] == "":
+        zeilen.pop()
+    return zeilen
+
+
+def cmd_pruefe_registry(argv):
+    try:
+        vals, fl, pos = optionen(argv, ["registry", "model", "dir", "harness", "klasse"], ["quiet", "stapel"], ["kunde"])
+        kennung = vals["registry"]
+        if (pos or not kennung or not KENNUNG_ZEICHEN.match(kennung) or vals["model"] is not None
+                or vals["dir"] is not None or vals["harness"] is not None
+                or (fl["stapel"] and (vals["klasse"] is not None or vals["kunde"]))
+                or (not fl["stapel"] and vals["klasse"] is None)):
+            raise R.Abgelehnt(PRUEFE_REGISTRY_AUFRUF)
+        zeilen = stapel_zeilen() if fl["stapel"] else None
+        if zeilen is not None and not zeilen:
+            raise R.Abgelehnt("--stapel: keine Zeile auf stdin")
+    except R.Abgelehnt as exc:
+        print("wb-datenklasse: falscher Aufruf: " + str(exc), file=sys.stderr)
+        return 2
+    kunden = vals["kunde"]
+    klasse = vals["klasse"]
+    try:
+        rc, rl, eintrag, k, regel, rid = registry_einordnung(kennung)
+    except R.Abgelehnt as exc:
+        print("wb-datenklasse: " + str(exc), file=sys.stderr)
+        print("wb-datenklasse: Einheit abgelehnt: " + (einheit_text(kennung, klasse, kunden) if zeilen is None
+                                                      else "Kennung %s, Stapel" % kennung), file=sys.stderr)
+        return 3
+    if rc:
+        if zeilen is None:
+            print("wb-datenklasse: Einheit abgelehnt: " + einheit_text(kennung, klasse, kunden), file=sys.stderr)
+        return rc
+    harness = eintrag.get("harness") if isinstance(eintrag.get("harness"), str) else ""
+    m = {"name": kennung, "art": "lokal" if regel.startswith(("lokal:", "lan:")) else "fern",
+         "harnesses": [harness] if harness else []}
+    erg = (k, rid)
+
+    def urteil(klasse, kunden, stelle=""):
+        """-> True (erlaubt) oder False; die Gruende stehen auf stderr (stelle: Zeilenvorsatz im Stapel)."""
+        try:
+            info, gruende, bis = einheit_pruefen(rl, m, erg, klasse, kunden)
+        except R.Abgelehnt as exc:
+            print("wb-datenklasse: %s%s" % (stelle, exc), file=sys.stderr)
+            print("wb-datenklasse: %sEinheit abgelehnt: %s (Richtlinie: %s)"
+                  % (stelle, einheit_text(kennung, klasse, kunden, regel), rl["quelle"]), file=sys.stderr)
+            return False
+        if gruende:
+            for g in gruende:
+                print("wb-datenklasse: %s%s" % (stelle, g), file=sys.stderr)
+            print("wb-datenklasse: %sEinheit abgelehnt: %s (Richtlinie: %s)"
+                  % (stelle, einheit_text(kennung, info["klasse"], info["kunden"], regel), rl["quelle"]), file=sys.stderr)
+            return False
+        if not fl["quiet"] and not stelle:
+            print("erlaubt: %s (bis %s, Regel %s) fuer Datenklasse %s" % (kennung, bis, regel, info["klasse"]),
+                  file=sys.stderr)
+        return True
+
+    if zeilen is None:
+        return 0 if urteil(klasse, kunden) else 3
+    ergebnis, gemerkt = [], {}
+    for nr, zeile in enumerate(zeilen, 1):
+        spalten = zeile.split("\t")
+        if len(spalten) != 2:
+            print("wb-datenklasse: Zeile %d: erwartet KLASSE<TAB>KUNDEN (Kunden '-' oder mit Komma getrennt)" % nr,
+                  file=sys.stderr)
+            ergebnis.append(False)
+            continue
+        schluessel = (spalten[0], spalten[1])
+        if schluessel not in gemerkt:   # gleiche Paare: einmal rechnen, die Gruende stehen bei der ersten Zeile
+            gemerkt[schluessel] = urteil(spalten[0], [] if spalten[1] == "-" else spalten[1].split(","), "Zeile %d: " % nr)
+        ergebnis.append(gemerkt[schluessel])
+    print("\n".join("0" if ok else "3" for ok in ergebnis))
+    return 0 if all(ergebnis) else 3
+
+
+def cmd_pruefe(argv):
+    if registry_aufruf(argv):
+        return cmd_pruefe_registry(argv)
+    vals, fl, pos = optionen(argv, ["model", "dir", "harness", "klasse"], ["quiet"], ["kunde"])
+    if (not vals["model"] or pos or (vals["klasse"] is not None and vals["dir"] is not None)
+            or (vals["kunde"] and vals["klasse"] is None)):
+        raise R.Abgelehnt("pruefe --model M [--dir D | --klasse K [--kunde ID ...]] [--harness H] "
+                          "[--quiet]")
+    rl = LAGE.richtlinie()
+    if vals["klasse"] is not None:
+        info = LAGE.klasse_aus_aufruf(vals["klasse"], vals["kunde"])
+    else:
+        info = klasse_oder_fehler(vals["dir"])
+        if "fehler" in info:
+            print("wb-datenklasse: " + info["fehler"], file=sys.stderr)
+            return 3
+    m = modell(vals["model"], vals["harness"])
+    gruende, k = verweigerungen(rl, m, info)
+    if gruende:
+        for g in gruende:
+            print("wb-datenklasse: " + g, file=sys.stderr)
+        print("wb-datenklasse: Start abgelehnt (Richtlinie: %s)." % rl["quelle"], file=sys.stderr)
+        return 3
+    if not fl["quiet"]:
+        print("erlaubt: %s (bis %s) fuer %s %s" % (
+            m["name"], k, "Datenklasse" if "bezug" in info else "Projektklasse", info["klasse"]),
+              file=sys.stderr)
+    return 0
+
+
+def main(argv):
+    global R, LAGE
+    if not argv or argv[0] in ("-h", "--help", "help"):
+        print(__doc__.strip())
+        return 0
+    befehle = {"klasse": cmd_klasse, "klassen": cmd_klassen, "route": cmd_route,
+               "pruefe": cmd_pruefe}
+    befehl = befehle.get(argv[0])
+    try:
+        R = regel_laden()
+        LAGE = neue_lage()
+        if befehl is None:
+            raise R.Abgelehnt("unbekannter Befehl '%s' (%s)" % (argv[0], "|".join(befehle)))
+        return befehl(argv[1:])
+    except RegelFehlt as exc:
+        print("wb-datenklasse: " + str(exc), file=sys.stderr)
+    except BaseException as exc:   # fail closed: auch ein Programmfehler oder SystemExit aus einem Modul ist eine Ablehnung
+        if R is not None and isinstance(exc, R.Abgelehnt):
+            print("wb-datenklasse: " + str(exc), file=sys.stderr)
+            if isinstance(exc, R.KeinStart):
+                return 3
+        else:
+            print("wb-datenklasse: interner Fehler (%s: %s)" % (type(exc).__name__, exc),
+                  file=sys.stderr)
+    return 3 if argv[0] == "pruefe" or (argv[0] == "route" and "--registry" in argv) else 2
+
+
+def neue_lage():
+    """R.Lage mit der Testnaht dieses Tors (die drei umschreibbaren Konstanten oben)."""
+    return R.Lage(heim=NUTZER_HEIM or None, system_ordner=SYSTEM_ORDNER,
+                  system_eigentuemer=SYSTEM_EIGENTUEMER, warnung=warnung)
+
+
+def hauptbaum(d):
+    """Verweis fuer shell/wb_teilbaeume.py, das dieses Tor als Modul laedt und hauptbaum() ruft. Die
+    Funktion steht nur in der Klassenregel; hier liegt kein zweiter Weg zum Hauptbaum."""
+    return R.hauptbaum(d)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
+else:
+    # Als Modul geladen: die Klassenregel gleich mitladen, damit hauptbaum() wirkt. Fehlt sie, scheitert schon das
+    # Laden des Tors (wb_teilbaeume.py schliesst dann mit "Tor nicht ladbar", fail closed). Wer registry() ruft
+    # (test-registry-paritaet.sh), bekommt die Lage dieses Ladens und den Fehlertyp unter dem alten Namen.
+    R = regel_laden()
+    LAGE = neue_lage()
+    Abgelehnt = R.Abgelehnt

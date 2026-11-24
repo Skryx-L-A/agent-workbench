@@ -86,6 +86,7 @@ interface Session {
   claudeSessionId: string;
   /** Sie lief noch, als dieses Programm zuletzt hinsah, und ist jetzt weg (11.08.). */
   verloren?: boolean;
+  nachNeustart?: boolean;
   /** Fuer diesen Ordner laeuft gerade ein Start (21.08.). */
   startet?: boolean;
   /** Der letzte Start fuer diesen Ordner ist gescheitert (21.08.). */
@@ -116,6 +117,8 @@ interface ThemaPayload {
 }
 interface BudgetStand { ok: boolean; heuteTokens: number; heuteStunden: number; hochrechnung24h: number; text: string }
 interface Model {
+  /** Laufende Nummer aus main.ts; `flaecheMelden` meldet sie gezeichnet zurueck. */
+  nr?: number;
   sessions: Session[];
   all: number;
   ui: {
@@ -169,11 +172,20 @@ interface GuardBlockEintrag {
   cwd: string; ts: string; sessionId: string; sessionName: string; machine: string;
   workerName: string; unbekannterPane: boolean;
   wartet: boolean; muster: string; musterGrund: string; schluessel: string;
+  /** Wer fragt, und wofuer (freigabe-anzeige.ts); fehlt bei einem aelteren Kern. */
+  rolle?: FreigabeRolle; anzeigename?: string; absicht?: string;
 }
 interface AntragEintrag {
   path: string; ts: string; parent: string; parentModel: string;
   childName: string; childModel: string; childEffort: string; dir: string;
   files: string[]; task: string; doneCriterion: string; whySeparable: string; est: string;
+  rolle?: FreigabeRolle; anzeigename?: string; absicht?: string;
+}
+type FreigabeRolle = 'orchestrator' | 'worker' | 'unbekannt';
+
+/** „Worker wz-x“, „Orchestrator claude-workbench“ -- ohne Rolle (aelterer Kern) der bisherige Name. */
+function rollenName(rolle: FreigabeRolle | undefined, anzeigename: string | undefined, sonst: string): string {
+  return rolle && anzeigename ? `${t(`freigabe.rolle.${rolle}`)} ${anzeigename}` : sonst;
 }
 interface FreigabenNutzlast { requests: AntragEintrag[]; guardBlocks: GuardBlockEintrag[] }
 
@@ -367,11 +379,11 @@ function gemerkterModus(m: Model, id: string): Flaechenmodus {
  * Orchestrator auf der Buehne, oder hat die Sitzung gar keine Worker, hat er
  * nichts zu schalten -- und ein Streifen ohne Wirkung nimmt der Buehne 34
  * Bildpunkte weg, in einer Sitzung mehr als in der anderen. Genau das war zu
- * sehen: `Studium` mit dem Orchestrator auf der Flaeche hatte einen zweizeiligen
- * Kopf, `Workbench` im selben Zustand einen einzeiligen.
+ * sehen: eine Sitzung mit dem Orchestrator auf der Flaeche hatte einen zweizeiligen
+ * Kopf, eine andere im selben Zustand einen einzeiligen.
  *
  * GEMESSEN WIRD DIE BUEHNE, nicht die gemerkte Wahl. Die beiden liefen bis
- * heute auseinander: `Studium` hatte „Worker" gemerkt, gezeichnet war der
+ * heute auseinander: die erste Sitzung hatte „Worker" gemerkt, gezeichnet war der
  * Orchestrator. Was man SIEHT, entscheidet -- dieselbe Regel, nach der sich
  * schon der Umschalter richtet (`flaechenmodus`). Die gemerkte Wahl bleibt
  * unberuehrt; sie ist das, was der naechste Klick auf „Worker" wiederherstellt.
@@ -641,6 +653,7 @@ const ZUSATZ_AB = 200;
 function zusatzzeile(s: Session, m: Model): string {
   if (m.ui.sidebarWidth < ZUSATZ_AB) return '';
   const fremd = Boolean(s.machine) && s.machine !== m.machine;
+  if (s.nachNeustart) return t('sitzung.nachNeustartKurz');
   if (s.verloren) return t('sitzung.verlorenKurz');
   if (s.startFehler) {
     return fremd ? t('sitzung.startFehlerKurzFremd', { maschine: s.machine }) : t('sitzung.startFehlerKurz');
@@ -842,7 +855,7 @@ function kopfNameSetzen(projekt: string, sitzung: string): void {
 
 // --- Freigabeleiste ---------------------------------------------------------
 /**
- * WARUM DIE FREIGABEN OBEN STEHEN UND NICHT IM INSPEKTOR (alice am 03.09.:
+ * WARUM DIE FREIGABEN OBEN STEHEN UND NICHT IM INSPEKTOR (decision 09-03:
  * „Ich will immer sehen, wenn eine Freigabe angefordert wird."). Etwas, das
  * immer sichtbar sein soll, kann nicht in einer Leiste liegen, die man
  * zuklappen kann und die ohnehin nur eines von drei Blaettern zeigt. Die
@@ -857,9 +870,15 @@ function kopfNameSetzen(projekt: string, sitzung: string): void {
  */
 interface OffeneFreigabe {
   art: 'guard' | 'antrag';
+  /** Rolle und Anzeigename: „Worker wz-x“ (26.10.2026, task). */
   wer: string;
   wo: string;
+  /** Die Absicht in einem Satz -- in der Kurzansicht statt des Befehls. */
   worum: string;
+  /** Der genaue Befehl (nur guard), im Hilfeschildchen und im Blatt. */
+  befehl: string;
+  rolle: FreigabeRolle | '';
+  absicht: string;
   sessionId: string;
   pane: string;
   schluessel: string;
@@ -874,9 +893,12 @@ function offeneFreigaben(): OffeneFreigabe[] {
     if (!b.wartet) continue;
     raus.push({
       art: 'guard',
-      wer: b.workerName || b.pane,
+      wer: rollenName(b.rolle, b.anzeigename, b.workerName || b.pane),
       wo: `${b.sessionName || b.sessionId} · ${b.machine}`,
-      worum: b.command,
+      worum: b.absicht || b.command,
+      befehl: b.command,
+      rolle: b.rolle ?? '',
+      absicht: b.absicht ?? '',
       sessionId: b.sessionId,
       pane: b.pane,
       schluessel: b.schluessel,
@@ -886,12 +908,15 @@ function offeneFreigaben(): OffeneFreigabe[] {
   for (const r of freigabenStand.requests) {
     raus.push({
       art: 'antrag',
-      wer: r.parent,
+      wer: rollenName(r.rolle, r.anzeigename, r.parent),
+      befehl: '',
+      rolle: r.rolle ?? '',
+      absicht: r.absicht ?? '',
       // DER PROJEKTNAME, NICHT DER VOLLPFAD (05.09.2026, Electron-Befund 2).
       // Derselbe Pfad stand bis zu fuenfmal im Fenster; voll steht er noch in
       // der Sitzungskarte, hier reicht der Name des Ordners.
       wo: projektName(r.dir),
-      worum: t('freigabe.antragUeber', { name: r.childName, modell: r.childModel }),
+      worum: r.absicht || t('freigabe.antragUeber', { name: r.childName, modell: r.childModel }),
       sessionId: '',
       pane: '',
       schluessel: '',
@@ -958,7 +983,10 @@ function zeichneFreigaben(): void {
   leise.className = 'leise';
   leise.textContent = ` ${t('freigabe.wartetAufDich')} · ${f.worum}`;
   text.append(wer, leise);
-  text.title = `${f.wer} · ${f.wo}\n${f.worum}`;
+  // DIE KURZANSICHT NENNT DIE ABSICHT, DAS SCHILDCHEN DEN GENAUEN BEFEHL (26.10.2026,
+  // task; decision 10-25). Die Rolle steht vorne im fetten Namen (f.rolle).
+  wer.dataset.rolle = f.rolle;
+  text.title = `${f.wer} · ${f.wo}\n${f.absicht || f.worum}${f.befehl ? `\n${t('panel.freigaben.befehlTitel')}: ${f.befehl}` : ''}`;
   zeile.appendChild(text);
 
   const mehr = document.createElement('button');
@@ -1187,7 +1215,7 @@ function orchZeile(s: Session, m: Model): HTMLElement {
   el.title = [
     `${s.name} · ${s.machine} · ${s.dir}`,
     s.startFehler ? t('sitzung.startFehler') : '',
-    s.verloren ? t('sitzung.verloren') : '',
+    s.nachNeustart ? t('sitzung.nachNeustart') : (s.verloren ? t('sitzung.verloren') : ''),
   ].filter(Boolean).join('\n');
   el.addEventListener('click', () => window.awbBridge.bedienung('select', s.id));
   el.addEventListener('contextmenu', (e) => {
@@ -1285,7 +1313,8 @@ function wiederFrageKasten(s: Session): HTMLElement {
   ja.addEventListener('click', (e) => {
     e.stopPropagation();
     wiederFrage = '';
-    window.awbBridge.bedienung('revive', s.id);
+    // echt: nur ein wirklicher Klick (isTrusted) traegt den Menschen bis zur Menschenprobe im Hauptprozess.
+    window.awbBridge.bedienung('revive', { id: s.id, echt: e.isTrusted });
     if (modell) zeichneBaum(modell);
   });
   const nein = document.createElement('button');
@@ -1348,8 +1377,7 @@ function chatZeile(c: Chat, m: Model): HTMLElement {
 }
 
 /**
- * ZIEHEN IN ZWEI EBENEN (04.09.2026, alice: „ich will sitzungen in projekten
- * ziehen können und projekte unter sich").
+ * ZIEHEN IN ZWEI EBENEN (04.09.2026, alice).
  *
  * WAS VORHER KAPUTT WAR, UND ZWAR UNSICHTBAR. `ziehbar()` setzte die FLACHE
  * Reihenfolge ueber `bedienung('order', …)`, und `projekte()` gruppierte
@@ -1692,7 +1720,7 @@ function sitzungskarteZeichnen(m: Model): void {
   zeile(t('sitzungskarte.ordner'), s.dir, true);
 
   skKnoepfeEl.replaceChildren();
-  const knopf = (text: string, klasse: string, tun: () => void): void => {
+  const knopf = (text: string, klasse: string, tun: (ev: MouseEvent) => void): void => {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = klasse;
@@ -1703,8 +1731,8 @@ function sitzungskarteZeichnen(m: Model): void {
   // Fortsetzen gibt es nur an einer wirklich beendeten Sitzung -- an einer
   // laufenden gibt es nichts fortzusetzen.
   if (s.state === 'stopped' && !s.startet) {
-    knopf(t('sitzung.wiederherstellen.jetzt'), 'knopf-voll', () => {
-      window.awbBridge.bedienung('revive', s.id);
+    knopf(t('sitzung.wiederherstellen.jetzt'), 'knopf-voll', (ev) => {
+      window.awbBridge.bedienung('revive', { id: s.id, echt: ev.isTrusted });
       sitzungskarteZu();
     });
   }
@@ -1916,7 +1944,7 @@ function zeichneStreifen(m: Model): void {
 
 // --- Die Uebersicht ---------------------------------------------------------
 /**
- * „Man will ja auch mal nur die Worker-Tabs sehen" (alice am 03.09.). Je Tab
+ * „Man will ja auch mal nur die Worker-Tabs sehen" (decision 09-03). Je Tab
  * eine Karte mit den Workern darin -- Zustand, Name, Modell, Tokenstand und
  * eine Zeile, die sagt, woran der Worker gerade ist. Kein Terminalbild: bei
  * neun Panes sieht man dort neunmal denselben Begruessungstext und muss
@@ -2541,7 +2569,7 @@ window.awbBridge.onModel((m) => {
   // Die Breite beider Leisten kommt aus dem Modell -- hat sie sich geaendert,
   // ist die Flaeche daneben eine andere, und tmux muss die neue Zellenzahl
   // bekommen. Ein Fenster-`resize` gibt es dabei nicht.
-  flaecheMelden();
+  flaecheMelden(m.nr);
 });
 
 window.awbBridge.onFreigaben((roh) => {
@@ -2998,7 +3026,7 @@ window.__awb = {
         /**
          * WIEVIEL DER KOPF DER BUEHNE WEGNIMMT, in Bildpunkten: vom oberen
          * Rand der Inhaltskarte bis zur Oberkante der Buehne. Genau diese Zahl
-         * hat alice am 05.09. beanstandet -- sie war in der einen Sitzung
+         * hat decision 09-05 beanstandet -- sie war in der einen Sitzung
          * groesser als in der anderen. Gemessen wird der Abstand und nicht die
          * Summe zweier Hoehen: was dazwischen steht, zaehlt mit.
          */

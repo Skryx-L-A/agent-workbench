@@ -18,8 +18,10 @@
 # transcript. child_effort lives in the JSON, not in the log.
 #
 # Rules enforced here (rejection = clear German message + exit 2):
-#   • downward only — the requested model must be CHEAPER than the applicant's
-#     (pi < haiku45 < sonnet5 < opus5/opus48); fable5 can never be requested.
+#   • downward only — the requested model must not cost more than the applicant's own
+#     (USD per reference task from the registry, `wb-state models kosten`); where no price
+#     is known the Claude ladder decides: strictly cheaper (pi < haiku45 < sonnet5 <
+#     opus5/opus48). fable5 can never be requested.
 #   • --files, --done and --why are mandatory.
 #   • at most 2 open requests/children per applicant (open = no .decision yet, or an
 #     approved child whose pane is still alive).
@@ -280,12 +282,36 @@ case "${CMODEL}" in
     echo "wb-request: ABGELEHNT — fable5 ist nie beantragbar." >&2
     exit 2 ;;
 esac
-PR=$(rank "$PARENT_MODEL"); CR=$(rank "$CMODEL")
-if [ "$CR" -ge "$PR" ]; then
-  echo "wb-request: ABGELEHNT — nur abwaerts: '$CMODEL' ist nicht guenstiger als Dein eigenes Modell '$PARENT_MODEL'." >&2
-  echo "  Rangfolge: pi < haiku45 < sonnet5 < opus5/opus48. Waehle ein billigeres Modell oder mach es selbst." >&2
-  exit 2
-fi
+# Erst der Preis: USD je Bezugsaufgabe aus der Registry (wb-state models kosten). Ohne ihn hatte
+# jedes Nicht-Claude-Modell Rang 0, und ein Antragsteller ohne Claude-Modell (GPT, lokales Modell)
+# bekam fuer JEDES Kind ein Nein. Nur wenn der Preis nicht feststeht, entscheidet die Leiter.
+KOSTEN_URTEIL=$("$HOME/.local/bin/wb-state" models kosten --json "$PARENT_MODEL" "$CMODEL_RAW" 2>/dev/null | /usr/bin/python3 -I -c '
+import json, sys
+try:
+    p, c = json.load(sys.stdin)
+except Exception:
+    sys.exit()
+pu, cu = p.get("usd"), c.get("usd")
+if pu is not None and cu is not None:
+    t = "Kind %s USD, Dein Modell %s USD je Bezugsaufgabe" % (cu, pu)
+    print(("ja|" if cu <= pu else "nein|") + t)
+elif cu == 0 and p.get("id") and p.get("art") not in (None, "local"):
+    print("ja|Kind kostenlos (lokal), Dein Modell nicht (%s)" % p["art"])
+')
+case "$KOSTEN_URTEIL" in
+  ja\|*) ;;
+  nein\|*)
+    echo "wb-request: ABGELEHNT — nur abwaerts: '$CMODEL' ist teurer als Dein eigenes Modell '$PARENT_MODEL' (${KOSTEN_URTEIL#nein|})." >&2
+    echo "  Preisvergleich: wb-state models kosten <modell>... Waehle ein guenstigeres Modell oder mach es selbst." >&2
+    exit 2 ;;
+  *)
+    PR=$(rank "$PARENT_MODEL"); CR=$(rank "$CMODEL")
+    if [ "$CR" -ge "$PR" ]; then
+      echo "wb-request: ABGELEHNT — nur abwaerts: '$CMODEL' ist nicht guenstiger als Dein eigenes Modell '$PARENT_MODEL'." >&2
+      echo "  Kein Preis bekannt, es gilt die Leiter: pi < haiku45 < sonnet5 < opus5/opus48. Waehle ein billigeres Modell oder mach es selbst." >&2
+      exit 2
+    fi ;;
+esac
 
 # --- at most two open requests/children -------------------------------------
 open=0; openlist=""
@@ -375,3 +401,32 @@ PY
 echo "Antrag gestellt: $REQFILE"
 echo "Kind '$CHILD' ($CMODEL_RAW) in $DIR — Entscheidung trifft der Orchestrator (wb-decide)."
 echo "Du bist NICHT blockiert: arbeite weiter. Wird der Antrag genehmigt, startet der Orchestrator das Kind."
+
+# Der Antrag lag bisher nur in ~/.pi-workers/requests/; niemand sagte dem Orchestrator Bescheid, und
+# er entschied nie (Funktionstest 17.10.2026). Jetzt geht eine Meldung an den Pane, der diesen Worker
+# gestartet hat (@wb_spawner). wb-inbox misst dort die Herkunft: aus einem Worker-Pane ist sie
+# INFORMATION, nie ein Auftrag; entschieden wird weiter allein mit wb-decide.
+ORCH_PANE=""
+[ -n "${TMUX_PANE:-}" ] && ORCH_PANE=$(tmux display -p -t "$TMUX_PANE" '#{@wb_spawner}' 2>/dev/null || true)
+INBOX="$HOME/.local/bin/wb-inbox"
+if [ -n "$ORCH_PANE" ] && [ -x "$INBOX" ]; then
+  MELDUNG=$(mktemp "${TMPDIR:-/tmp}/wb-antrag.XXXXXX")
+  {
+    echo "[Worker-Antrag] $PARENT beantragt ein Kind — Information, Entscheidung bei Dir."
+    echo "Kind: $CHILD · Modell: $CMODEL_RAW · Verzeichnis: $DIR · Umfang: ${EST:-?}"
+    echo "Dateien: $FILES"
+    echo "Fertig wenn: $DONE"
+    echo "Warum abtrennbar: $WHY"
+    echo "Auftrag: $TASK"
+    echo
+    echo "Entscheiden: wb-decide $REQFILE approve|reject [grund]"
+  } > "$MELDUNG"
+  if "$INBOX" sende "$ORCH_PANE" "$MELDUNG" >/dev/null 2>&1; then
+    echo "Orchestrator benachrichtigt (Pane $ORCH_PANE)."
+  else
+    echo "Orchestrator-Pane $ORCH_PANE nicht erreichbar: nenne den Antrag ($REQFILE) in Deiner Ergebnisdatei."
+  fi
+  rm -f "$MELDUNG"
+else
+  echo "Kein Orchestrator-Pane bekannt: nenne den Antrag ($REQFILE) in Deiner Ergebnisdatei."
+fi

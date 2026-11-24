@@ -110,6 +110,12 @@ export class AttrappenQuelle implements MobileQuelle {
   private liveSchritt = 0;
   /** Nur fuer Tests: Lesezugriffe je Route und Sitzung, Schluessel `chat:<id>` oder `prompt:<id>`. */
   readonly abfragen: Record<string, number> = {};
+  /** Nur fuer Tests: jeder Body von `rights_request.decide`, als JSON-Text in Schluesselreihenfolge. */
+  readonly entscheidungen: string[] = [];
+  /** Nur fuer Tests: so antwortet die naechste Entscheidung statt mit Erfolg. */
+  private entscheidFehler: MobileApiErrorCode | null = null;
+  /** Nur fuer Tests: haelt jede Entscheidung an, bis `testEntscheidLoslassen` kommt. */
+  private entscheidHalt: { warten: Promise<void>; los: () => void } | null = null;
 
   constructor(private opt: AttrappenOptionen) {
     this.welt = erzeugen(Date.now(), opt.szenario);
@@ -440,6 +446,7 @@ export class AttrappenQuelle implements MobileQuelle {
 
   async agentAktion(a: AgentAction): Promise<ApiResponse<AgentActionData>> {
     await this.warte();
+    if (a.type === 'rights_request.decide') return this.rechteantragEntscheiden(a as RechteEntscheidung);
     const welten = ((this.welt.agents.welten as JsonObject).welten as JsonObject[]).map((w) => ({ ...w })) as Record<string, JsonValue>[];
     const iso = new Date().toISOString();
     const inWelt = (id: string) => welten.find((w) => w.id === id);
@@ -543,6 +550,101 @@ export class AttrappenQuelle implements MobileQuelle {
   testEreignis(type: SseEventType, ids: string[]): void {
     this.melden(type, ids[0] ? maschineVon(ids[0]) : 'mac', ids);
   }
+
+  /**
+   * `rights_request.decide` wie Server und Kern (`adapters/agents.ts`): feste
+   * Feldmenge, Welt dieser Maschine, Antrag offen und nicht abgelaufen, und
+   * `changes` gleich der gespeicherten Aenderung (kanonisch verglichen). Die
+   * Fehlermeldungen sind englisch wie die des Servers.
+   */
+  private async rechteantragEntscheiden(a: RechteEntscheidung): Promise<ApiResponse<AgentActionData>> {
+    this.entscheidungen.push(JSON.stringify(a));
+    if (this.entscheidHalt) await this.entscheidHalt.warten;
+    if (this.entscheidFehler) {
+      const code = this.entscheidFehler;
+      this.entscheidFehler = null;
+      return this.fehler(code, code === 'stale_target' ? 'rights request changed since it was shown'
+        : code === 'capability_unavailable' ? 'a verified mobile device with its signed envelope is required' : `rights decision failed: ${code}`);
+    }
+    const erlaubt = new Set(['type', 'world_id', 'rights_request_id', 'decision', 'changes', 'note']);
+    if (Object.keys(a).some((k) => !erlaubt.has(k)) || (a.decision !== 'approve' && a.decision !== 'reject')
+      || typeof a.changes !== 'object' || a.changes === null || Array.isArray(a.changes)) {
+      return this.fehler('bad_request', 'rights decision has unknown fields');
+    }
+    const welten = ((this.welt.agents.welten as JsonObject).welten as JsonObject[]).map((w) => ({ ...w }));
+    const w = welten.find((x) => x.id === a.world_id);
+    if (!w) return this.fehler('stale_target', 'world is no longer current');
+    if (w.fern === true) return this.fehler('capability_unavailable', 'rights requests of a world on another machine are decided there');
+    const r = ((w.rechteantraege ?? []) as JsonObject[]).find((x) => x.id === a.rights_request_id);
+    if (!r) return this.fehler('stale_target', 'rights request is unknown in this world');
+    if (r.stand !== 'offen' || r.abgelaufen === true) return this.fehler('stale_target', 'rights request is already decided or withdrawn');
+    if (kanonisch(a.changes) !== kanonisch(r.changes)) return this.fehler('stale_target', 'rights request changed since it was shown');
+    const ja = a.decision === 'approve';
+    w.rechteantraege = ((w.rechteantraege ?? []) as JsonObject[]).map((x) => x === r
+      ? { ...x, stand: 'beantwortet', entscheidung: ja ? 'freigegeben' : 'abgelehnt', entschieden_von: 'mensch', entschieden_am: new Date().toISOString() }
+      : x);
+    this.welt.agents = { ...this.welt.agents, welten: { ...(this.welt.agents.welten as JsonObject), welten } } as unknown as AgentsData;
+    this.melden('agents.changed', 'mac', []);
+    const name = String(((w.agenten ?? []) as JsonObject[]).find((x) => x.id === r.von)?.name ?? r.von);
+    return this.ok({ result: {
+      ok: true, handlung: 'welt:rechte_antrag_entscheiden', id: String(r.id),
+      meldung: ja ? `Rechteantrag von ${name} freigegeben; die Rechte gelten ab dem nächsten Zug.` : `Rechteantrag von ${name} abgelehnt.`,
+    } });
+  }
+
+  /** Nur fuer Tests: die naechste Entscheidung scheitert mit diesem Code (null: wieder Erfolg). */
+  testEntscheidFehler(code: MobileApiErrorCode | null): void {
+    this.entscheidFehler = code;
+  }
+
+  /** Nur fuer Tests: Entscheidungen anhalten, bis `testEntscheidLoslassen` sie weiterlaufen laesst. */
+  testEntscheidHalten(): void {
+    let los = (): void => {};
+    const warten = new Promise<void>((r) => { los = r; });
+    this.entscheidHalt = { warten, los };
+  }
+
+  testEntscheidLoslassen(): void {
+    this.entscheidHalt?.los();
+    this.entscheidHalt = null;
+  }
+
+  /** Nur fuer Tests: Felder einer Welt aendern (`fern`, `rechteantrag_entscheidbar`), gemeldet ueber `agents.changed`. */
+  testWelt(id: string, aenderung: JsonObject): void {
+    const welten = ((this.welt.agents.welten as JsonObject).welten as JsonObject[]).map((w) => w.id === id ? { ...w, ...aenderung } : w);
+    this.welt.agents = { ...this.welt.agents, welten: { ...(this.welt.agents.welten as JsonObject), welten } } as unknown as AgentsData;
+    this.melden('agents.changed', 'mac', []);
+  }
+
+  /**
+   * Einen Rechteantrag aendern, wie es am Mac geschieht (entscheiden,
+   * zurueckziehen, ablaufen); die App erfaehrt es wie vom Kern ueber `agents.changed`.
+   */
+  testRechteantrag(id: string, aenderung: JsonObject): void {
+    const welten = ((this.welt.agents.welten as JsonObject).welten as JsonObject[]).map((w) => ({
+      ...w, rechteantraege: ((w.rechteantraege ?? []) as JsonObject[]).map((r) => r.id === id ? { ...r, ...aenderung } : r),
+    }));
+    this.welt.agents = { ...this.welt.agents, welten: { ...(this.welt.agents.welten as JsonObject), welten } } as unknown as AgentsData;
+    this.melden('agents.changed', 'mac', []);
+  }
+
+  /** Ein Anliegen ist erledigt: der Dienst vermerkt `erledigt_at` am Journaleintrag und sagt `notification.changed` an. */
+  testMeldungErledigt(id: string, at = Date.now()): void {
+    this.welt.meldungen = this.welt.meldungen.map((n) => n.id === id ? { ...n, erledigt_at: at } : n);
+    this.melden('notification.changed', 'mac', [id]);
+  }
+}
+
+/** `rights_request.decide` aus dem Vertrag (mit `changes`, wie der Server es verlangt). */
+type RechteEntscheidung = Extract<AgentAction, { type: 'rights_request.decide' }>;
+
+/** Kanonisches JSON wie `aenderungSha256` des Servers: Schluessel sortiert. */
+function kanonisch(v: JsonValue | undefined): string {
+  if (Array.isArray(v)) return `[${v.map(kanonisch).join(',')}]`;
+  if (v !== null && typeof v === 'object') {
+    return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${kanonisch((v as JsonObject)[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(v ?? null);
 }
 
 /** Ein Team der Welt wie im Stand des Kerns; fehlt `teams`, aus dem Feld `team` der Agenten. */

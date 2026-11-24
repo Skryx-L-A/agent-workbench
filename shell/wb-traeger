@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S -u DEVELOPER_DIR -u SDKROOT -u TOOLCHAINS /usr/bin/python3 -E -s -S
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): nie ein python3 aus dem PATH des
+# Aufrufers, ohne die xcrun-Variablen, PYTHON*-Variablen, User-site und site.
 """wb-traeger — der Träger des Agents-Features: ein eigener schlanker Prozess
 je Maschine, der den Vorrat hält, Hauptagenten startet und überwacht, zu
 Weckzeiten weckt, die Sicherung ausführt und Limits verbucht (Bau-Schritt 2,
@@ -687,11 +689,13 @@ def im_fenster(punkt, fenster):
 
 
 def fenster_ende(punkt, fenster):
-    lokal = punkt.astimezone()
-    ziel = lokal.replace(hour=0, minute=0, second=0, microsecond=0) + datetime.timedelta(minutes=fenster[1])
-    if ziel <= lokal:
+    """Gerechnet in der Wanduhrzeit; den UTC-Versatz bekommt erst das Ziel, sonst
+    traegt das Ende ueber eine Zeitumstellung den Versatz von jetzt (25.10.2026)."""
+    wand = punkt.astimezone().replace(tzinfo=None)
+    ziel = wand.replace(hour=0, minute=0, second=0, microsecond=0) + datetime.timedelta(minutes=fenster[1])
+    if ziel <= wand:
         ziel += datetime.timedelta(days=1)
-    return ziel
+    return ziel.astimezone()
 
 
 def wirksame_weckzeit(ctx, a, weckzeit_iso):
@@ -1224,7 +1228,7 @@ def vertrauen_herstellen(ctx, projekt):
     """Vor jedem neuen Claude-Hauptagenten: ein Projekt, das noch nie eine
     Sitzung sah, bliebe sonst im Dialog „Quick safety check: Is this a project
     you created or one you trust?" stehen, und die Aufgabe stünde für immer auf
-    „läuft" (gemessen im Ende-zu-Ende-Lauf am 11.09. um 01:19). `wb-vertrauen`
+    „läuft" (gemessen im Ende-zu-Ende-Lauf am 11.09.). `wb-vertrauen`
     trägt ein, wenn der Nutzer den Hauptbaum oder einen Vorfahren unter $HOME
     schon vertraut hat, und endet immer mit 0; entschieden wird deshalb an
     seiner Meldung. None, wenn gestartet werden darf, sonst ein Tor-Urteil
@@ -1281,6 +1285,12 @@ def hauptagent_starten(ctx, a, model, effort, prompt):
              "exec $HOME/.local/bin/claude --model %s --effort %s -n %s"
              % (shlex.quote(ref), shlex.quote(effort), shlex.quote(id_))]
     teile += [shlex.quote(f) for f in permmode_flags(ctx)]
+    # crossSessionInbound accept wie bei wb-code (22.10.2026, task): Folgeprompts kommen
+    # ueber die Inbox, und ohne den Wert haelte diese bypass-Sitzung sie mit einem Dialog an.
+    # Der Wert steht an einer Stelle (wb-state CLAUDE_SETTINGS); ohne Antwort wie bisher.
+    rc, aus, _ = laufe(["wb-state", "models", "claude-settings", "orchestrator"], 10)
+    if rc == 0 and aus.strip().startswith("{"):
+        teile += ["--settings", shlex.quote(aus.strip())]
     teile += ['$FERN --append-system-prompt "$(cat $HOME/.claude/roles/orchestrator.md)"']
     innen = " ".join(teile)
     rc, _, fehl = laufe(tmux("new-session", "-d", "-s", session, "-c", projekt,

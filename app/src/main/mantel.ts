@@ -38,7 +38,7 @@
 // DER SOCKET ENTSTEHT NUR AUF VERLANGEN (AWB_MANTEL_SOCKET). Ohne die
 // Variable laeuft die Electron-Fassung unveraendert: kein Server, keine Datei.
 //
-// DER TOKEN IST KEIN MENSCHEN-NACHWEIS (13.10.2026, Auftrag wz-mantel). Er
+// DER TOKEN IST KEIN MENSCHEN-NACHWEIS (13.10.2026, task). Er
 // stand im Env jedes Agenten (ueber den tmux-Server), in `mantel.token` (0600,
 // also fuer jeden Prozess desselben Benutzers lesbar) und bleibt per `ps -E`
 // im Start-Env des Kerns sichtbar. Ein Agent mit Token konnte so
@@ -50,7 +50,7 @@
 // unten, `fremdErlaubt`), verliert zusaetzlich jede Menschen-Markierung
 // (`fremdeBedienungEntschaerfen`).
 //
-// EINE FREMDE VERBINDUNG TIPPT NICHT (14.10.2026, Auftrag wz-mantel2). Seit
+// EINE FREMDE VERBINDUNG TIPPT NICHT (14.10.2026, task). Seit
 // `mac/bin/starten` die App den Kern starten laesst, ist die App auf beiden
 // Startwegen Elternprozess des Kerns. Eine fremde Verbindung hat damit keinen
 // Bedienbedarf mehr, nur noch einen Beobachterbedarf (Suiten, die mitlesen).
@@ -99,7 +99,7 @@ export interface MantelAnschluss {
  * vererbt: mit dem Socket-Objekt in `stdio` verstummte die Leitung im Kern
  * (gemessen 13.10.). Jeder Fehler heisst `null`, und `null` ist nie die App.
  *
- * DER FD GEHT ALS fd 3, NICHT ALS stdin (14.10.2026, wz-mantel4). libuv
+ * DER FD GEHT ALS fd 3, NICHT ALS stdin (14.10.2026, task). libuv
  * schaltet im Kind jeden geerbten fd 0..2 auf BLOCKIEREND, und O_NONBLOCK
  * haengt an der geteilten Dateibeschreibung: als stdin vererbt wurde der
  * Socket damit auch im Kern blockierend. Las die Gegenseite nicht, blieb das
@@ -186,7 +186,7 @@ const FREMD_ABGELEHNT: ReadonlyArray<(kanal: string, args: unknown[]) => boolean
  * Prozess, schreibt eine Datei oder verstellt, was der Mensch sieht.
  * Wer hier einen Kanal ergaenzt, prueft das an seiner Registrierung in main.ts.
  *
- * ENGER SEIT 14.10.2026 (wz-mantel4, Review mantel2 F4). Herausgenommen:
+ * ENGER SEIT 14.10.2026. Herausgenommen:
  * - der Editor (`awb:editor-read-file`, `-list-files`, `-watch`): die App
  *   laesst dort jede Wurzel zu, es gibt also keine Wurzelgrenze, die man fuer
  *   Fremde uebernehmen koennte; ueber den Mantel liest ein Agent damit jede
@@ -200,7 +200,7 @@ const FREMD_ABGELEHNT: ReadonlyArray<(kanal: string, args: unknown[]) => boolean
  * Wer als Skript eine Sitzung anhaengen muss, nimmt den Steuerkanal
  * (`awb-ctl select`); der prueft seine Aufrufer selbst.
  *
- * ENGER SEIT 14.10.2026 (wz-mantel5, Entscheidung WorkbenchOrchestrator zu
+ * ENGER SEIT 14.10.2026 (task, Entscheidung WorkbenchOrchestrator zu
  * mantel4 OPEN 4): auch `ordner-liste` und `suche-lesen` sind fuer Fremde zu.
  * Beide lesen Verzeichnisse und Suchtreffer unter frei waehlbaren Pfaden, also
  * an den Pfad-Hooks eines Agenten vorbei. Gesendet werden sie nur von der App
@@ -297,7 +297,7 @@ export function socketVerwaist(pfad: string, fristMs = 300): Promise<boolean> {
 }
 
 /**
- * RUECKSTAU (14.10.2026, wz-mantel4): wie viel ungelesen beim Kern liegen
+ * RUECKSTAU (14.10.2026, task): wie viel ungelesen beim Kern liegen
  * darf, bevor er eine Verbindung trennt. `sock.write` blockiert nie (der
  * Socket ist nicht-blockierend, siehe `peerPid`), aber was die Gegenseite
  * nicht liest, sammelt Node ohne Grenze im Speicher des Kerns.

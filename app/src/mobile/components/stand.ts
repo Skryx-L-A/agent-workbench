@@ -203,6 +203,26 @@ export function kernAblehnung(data: AgentActionData): ApiError | null {
   return { code: 'bad_request', message: text || 'Der Kern hat die Handlung abgelehnt.', retryable: false };
 }
 
+/**
+ * Die noch sichtbare Systemmeldung eines erledigten Anliegens schliessen
+ * (Push-Art `welt.braucht-dich`). Der Service Worker zeigt jede Meldung mit
+ * dem Tag `event_id`, und das ist die `id` des Journaleintrags. Der Dienst
+ * schickt zum Zuruecknehmen keinen Push: iOS verlangt zu jedem Push eine
+ * sichtbare Meldung. Ohne Service Worker, ohne Berechtigung oder bei jedem
+ * anderen Fehler bleibt es still.
+ */
+export async function systemMeldungSchliessen(tag: string): Promise<void> {
+  try {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    const registrierung = await navigator.serviceWorker.ready;
+    if (typeof registrierung?.getNotifications !== 'function') return;
+    // Nur die eigene: falls ein Browser den Filter nicht beachtet, schliesst die App keine fremde Meldung.
+    for (const m of await registrierung.getNotifications({ tag })) if (m.tag === tag) m.close();
+  } catch {
+    // Nichts zu schliessen oder nicht erlaubt: die Meldung bleibt, die App laeuft weiter.
+  }
+}
+
 export class Stand {
   kopplung: KopplungsStand | null = null;
   bootstrap: BootstrapData | null = null;
@@ -232,6 +252,8 @@ export class Stand {
   private geplant = false;
   private abo: (() => void) | null = null;
   private gesehen = new Set<string>();
+  /** Journaleintraege mit `erledigt_at`, deren Systemmeldung schon geschlossen werden sollte. */
+  private abgeraeumt = new Set<string>();
   private runden = new Map<Ladeweg, number>();
   /** Die Rueckfragen der aktuellen Liste: je Sitzung hoechstens eine Anfrage. */
   private promptLaeufe = new Map<string, Promise<void>>();
@@ -472,6 +494,12 @@ export class Stand {
   private meldungenSetzen(d: NotificationsData, geantwortet?: readonly Teilherkunft[]): void {
     this.meldungen = teilErsetzen(this.meldungen, d.notifications, geantwortet, (n) => n.machine)
       .sort((l, r) => r.created_at - l.created_at);
+    // Beim Start und nach `notification.changed`: erledigte Anliegen raeumen ihre Systemmeldung ab, je Eintrag einmal.
+    for (const n of this.meldungen) {
+      if (typeof n.erledigt_at !== 'number' || this.abgeraeumt.has(n.id)) continue;
+      this.abgeraeumt.add(n.id);
+      void systemMeldungSchliessen(n.id);
+    }
   }
 
   /**

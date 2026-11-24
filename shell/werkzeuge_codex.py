@@ -14,9 +14,14 @@ gehoert der Werkbank, wenn Ereignis, Matcher und Befehl uebereinstimmen. Es werd
 Gruppen ANGEHAENGT (die Gruppenindizes der vorhandenen Hooks, auf die sich die trusted_hash-
 Eintraege in config.toml beziehen, bleiben gleich). Der Aufruf von `wb-chat-hook-install`
 bleibt, was er ist: er haengt seinen Chat-Hook mit anderem Befehl an und prueft den Befehl,
-nicht die Datei -- beide Seiten doppeln sich nie. Den trusted_hash bildet Codex selbst; seine
-Regel ist von aussen nicht gemessen, deshalb meldet `status` fehlende Vertrauenseintraege im
-Feld grund, statt sie zu raten.
+nicht die Datei -- beide Seiten doppeln sich nie. Den trusted_hash bildet die Werkbank selbst nach
+(trusted_hash, Quelltext codex 0.163.0, gemessen 12 von 12); er wird vor den Gruppen in
+config.toml geschrieben, nur fuer die eigenen Schluessel. Ein Abschnitt mit weiteren Feldern
+bricht den Hook ab. Fehlt der trusted_hash einer schon GLEICHEN eigenen Gruppe oder weicht er ab,
+traegt apply ihn nach; hooks.json bleibt dabei unberuehrt. Solange HOOKS_VERTRAUEN_GEMESSEN False ist, schreibt dieser Weg keine Gruppe:
+ein Hook bleibt OFFEN, und eigene Gruppen aus frueheren Laeufen (Statusdatei) gehen beim naechsten
+apply weg. Nur das Ende jeder Ereignisliste wird abgeschnitten, damit die Indizes fremder Gruppen
+(und ihre Vertrauenseintraege) gleich bleiben.
 
 PROMPTS: Weg "leer" (kein Prompt-Ordner im Codex-Binary belegt, S0 13.10.).
 
@@ -26,6 +31,7 @@ die Eintraege, die der Kern fuer Codex als OFFEN meldet), `anwenden` und `zustae
 (Markerblock, Snapshots, Statusdatei) kommen aus werkzeuge_kern.
 """
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -39,6 +45,19 @@ HUB_NAME = "werkbank"
 HUB_PORT = 8790
 HUB_TOKEN_VAR = "WB_HUB_TOKEN"
 PROMPTS_GRUND = "kein Prompt-Ordner im Codex-Binary belegt (S0, 13.10.)"
+# codex fuehrt einen Hook nur mit trusted_hash aus. Ein geschriebener Hook ohne Vertrauen loest nur
+# den Dialog "Hooks need review" aus und blockiert danach jede Zustellung. Die Bildungsregel ist
+# fuer codex 0.163.0 aus dem Quelltext belegt (Tag rust-v0.163.0, Commit 83086188; siehe trusted_hash)
+# und gegen die 12 Eintraege der Werkbank-Gruppen in ~/.codex/config.toml gemessen: 12 von 12
+# reproduziert (19.10.2026). Bei einer anderen codex-Version den Befund erst neu messen, dann den
+# Schalter pruefen.
+HOOKS_VERTRAUEN_GEMESSEN = True
+HOOKS_GRUND = ("Codex-Hooks bleiben aus bis der trusted_hash gemessen ist (Entscheidung 13.10.; "
+               "Bildungsregel des Hashes nicht belegt)")
+# Ereignisse, bei denen codex den Matcher in den Hash aufnimmt (codex-rs/hooks/src/events/common.rs:112-128).
+# Bei UserPromptSubmit, Stop und Interrupt ist der Matcher None und geht nicht in den Hash ein.
+CODEX_MATCHER_EREIGNISSE = {"PreToolUse", "PermissionRequest", "PostToolUse", "SessionStart", "SessionEnd",
+                            "SubagentStart", "SubagentStop", "PreCompact", "PostCompact"}
 
 
 def hub_url(q):
@@ -281,7 +300,7 @@ def _hooks_eintrag(name, e, ad, trust_datei, state):
                     orphan.append((ev, g.get("matcher")))
             continue
         h = gruppen[stelle[0]]["hooks"][stelle[1]]
-        stellen.append((ev, stelle[0], stelle[1]))
+        stellen.append((ev, stelle[0], stelle[1], trusted_hash(ev, matcher, befehl, frist)))
         gefunden.append([ev, matcher, befehl, h.get("timeout")])
         if h.get("type") != "command" or h.get("timeout") != frist:
             abweich.append((ev, matcher))
@@ -305,21 +324,115 @@ def _hooks_eintrag(name, e, ad, trust_datei, state):
     else:
         r["zustand"] = "GLEICH"
     if r["zustand"] in ("GLEICH", "VERALTET") and trust_datei and stellen:
-        vertrauen = _vertrauen_fehlt(r["datei"], stellen, trust_datei)
-        if vertrauen:
-            r["grund"] = ("trusted_hash fehlt in config.toml fuer %d Hook-Gruppe(n): Codex fuehrt sie nicht aus "
-                          "(Hash-Regel von aussen ungemessen)" % vertrauen)
+        fehlend = _vertrauen_fehlt(r["datei"], stellen, trust_datei)
+        if fehlend:
+            r["vertrauen"], r["trust"] = fehlend, trust_datei
+            r["grund"] = ("trusted_hash fehlt oder weicht ab in config.toml fuer %d Hook-Gruppe(n): Codex fuehrt sie "
+                          "nicht aus" % len(fehlend))
     return r
 
 
 def _vertrauen_fehlt(hooks_datei, stellen, trust_datei):
+    """Die eigenen Gruppen (ev, gi, hi, hash), deren trusted_hash in config.toml fehlt oder abweicht,
+    als [(schluessel, hash)]. Fehlt config.toml oder ist sie unlesbar, fehlen alle."""
     try:
-        with open(trust_datei, encoding="utf-8") as f:
-            conf = f.read()
-    except (OSError, UnicodeDecodeError):
-        return 0
-    return sum(1 for (ev, gi, hi) in stellen
-               if "%s:%s:%d:%d" % (hooks_datei, _ereignis_snake(ev), gi, hi) not in conf)
+        conf = _datei_lesen(trust_datei) or ""
+    except kern.ZielUnlesbar:
+        conf = None
+    fehlend = []
+    for (ev, gi, hi, hash_) in stellen:
+        schluessel = _trust_schluessel(hooks_datei, ev, gi, hi)
+        if conf is None or _trust_stand(conf, schluessel) != hash_:
+            fehlend.append((schluessel, hash_))
+    return fehlend
+
+
+# ---------------------------------------------------------------- trusted_hash
+
+def trusted_hash(ereignis, matcher, befehl, frist):
+    """Vertrauenshash einer Gruppe mit genau einem Befehl, so wie codex 0.163.0 ihn bildet
+    (rust-v0.163.0, Commit 83086188): hooks/src/engine/discovery.rs:777-793 (hook_hash),
+    config/src/fingerprint.rs:54-65 (version_for_toml: sortierte Schluessel, kompaktes JSON, SHA-256).
+    Eingegangen sind Ereignis, Matcher (nur fuer CODEX_MATCHER_EREIGNISSE), Befehl und Timeout
+    (unwrap_or(600).max(1)); der Pfad der hooks.json geht nicht ein. Der Befehl ist der rohe Text
+    ohne Umgebungseinsetzung. Die Werkbank setzt keine additionalContextLimit."""
+    ident = {"event_name": _ereignis_snake(ereignis),
+             "hooks": [{"type": "command", "command": befehl, "timeout": max(1, frist or 600), "async": False}]}
+    if matcher is not None and ereignis in CODEX_MATCHER_EREIGNISSE:
+        ident["matcher"] = matcher
+    text = json.dumps(ident, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _trust_schluessel(hooks_datei, ereignis, gi, hi):
+    """Schluessel `[hooks.state."<pfad>:<ereignis>:<gruppe>:<index>"]` (codex-rs/hooks/src/lib.rs:108-115)."""
+    return "%s:%s:%d:%d" % (hooks_datei, _ereignis_snake(ereignis), gi, hi)
+
+
+def _trust_kopf(schluessel):
+    return '[hooks.state."%s"]' % schluessel.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _trust_stand(text, schluessel):
+    """trusted_hash des Abschnitts zu <schluessel> in config.toml, sonst None (Abschnitt oder Feld fehlt)."""
+    zeilen = text.split("\n")
+    kopf = _trust_kopf(schluessel)
+    if kopf not in zeilen:
+        return None
+    for z in zeilen[zeilen.index(kopf) + 1:]:
+        if z.lstrip().startswith("["):
+            break
+        m = re.match(r'^\s*trusted_hash\s*=\s*"([^"]*)"\s*(#.*)?$', z)
+        if m:
+            return m.group(1)
+    return None
+
+
+def _trust_schreiben(pfad, eintraege, snapshots):
+    """Schreibt trusted_hash nur fuer die eigenen Schluessel in config.toml (`eintraege` = Schluessel ->
+    Hash). Ein vorhandener Abschnitt mit weiteren Feldern (etwa ein bewusstes Abschalten) wird nie
+    ueberschrieben: der Hook bricht ab, bevor etwas geschrieben wird. Der Rest der
+    Datei bleibt bytegleich. Vor dem Schreiben ein Snapshot, danach geparst; bei Fehler zurueck."""
+    text = _datei_lesen(pfad)
+    if text is not None:
+        try:
+            toml_pruefen(text)
+        except ValueError as ex:
+            raise kern.ZielUnlesbar("config.toml ist vor dem Vertrauen nicht pruefbar: %s" % ex)
+    zeilen = (text or "").split("\n")
+    for schluessel, hash_ in sorted(eintraege.items()):
+        kopf = _trust_kopf(schluessel)
+        neu_zeile = 'trusted_hash = "%s"' % hash_
+        try:
+            i = zeilen.index(kopf)
+        except ValueError:
+            if zeilen and zeilen[-1] != "":
+                zeilen.append("")
+            zeilen.extend([kopf, neu_zeile, ""])
+            continue
+        j = i + 1
+        while j < len(zeilen) and not zeilen[j].lstrip().startswith("["):
+            j += 1
+        inhalt = [k for k in range(i + 1, j) if zeilen[k].strip() and not zeilen[k].lstrip().startswith("#")]
+        if not inhalt:
+            zeilen.insert(i + 1, neu_zeile)
+        elif len(inhalt) == 1 and re.match(r'^trusted_hash\s*=\s*"[^"]*"\s*(#.*)?$', zeilen[inhalt[0]].strip()):
+            zeilen[inhalt[0]] = neu_zeile
+        else:
+            raise kern.ZielUnlesbar("config.toml: Abschnitt %s hat weitere Felder; Vertrauen wird nicht "
+                                    "von der Werkbank ueberschrieben" % schluessel)
+    neu = "\n".join(zeilen)
+    if neu == (text or ""):
+        return None
+    try:
+        toml_pruefen(neu)
+    except ValueError as ex:
+        raise kern.ZielUnlesbar("config.toml nach trusted_hash nicht pruefbar, unveraendert: %s" % ex)
+    snap = snapshots.sichern(HARNESS, pfad) if text is not None else None
+    modus = (os.stat(pfad).st_mode & 0o7777) if text is not None else 0o644
+    os.makedirs(os.path.dirname(pfad), exist_ok=True)
+    atomar_schreiben.schreiben(pfad, neu, modus=modus, newline="")
+    return snap
 
 
 # ---------------------------------------------------------------- bewerten (Kern erweitern)
@@ -348,7 +461,10 @@ def _bewerten(roh, q, reg, state, nur_harness=None, nur_art=None):
             continue
         if x["harness"] == HARNESS and x["art"] == "hooks" and hook_aktiv and x["zustand"] == "OFFEN" \
                 and not (q["hooks"][x["name"]].get("status")):
-            aus.append(_hooks_eintrag(x["name"], q["hooks"][x["name"]], hook_ad, trust_datei, state))
+            if HOOKS_VERTRAUEN_GEMESSEN:
+                aus.append(_hooks_eintrag(x["name"], q["hooks"][x["name"]], hook_ad, trust_datei, state))
+            else:
+                aus.append(_hooks_ohne_vertrauen(x["name"], q["hooks"][x["name"]], hook_ad, state))
             continue
         aus.append(x)
     if mcp_da:
@@ -379,21 +495,28 @@ def _mcp_schreiben(x, snapshots, state):
 def _hooks_schreiben(x, snapshots, state):
     text, daten = kern.ziel_lesen(x["ziel"])
     haken = daten.setdefault("hooks", {})
+    vertrauen = {}  # Schluessel -> trusted_hash, nur fuer die Gruppen, die diese Werkbank schreibt
     for (ev, matcher, befehl, frist) in x["specs"]:
         gruppen = haken.setdefault(ev, [])
         stelle = None
-        for g in gruppen:
+        for gi, g in enumerate(gruppen):
             hi = _gruppe_passt(g, matcher, befehl)
             if hi is not None:
-                stelle = g["hooks"][hi]
+                stelle = (gi, hi)
                 break
         if stelle is not None:
-            stelle["type"], stelle["timeout"] = "command", frist
-            continue
-        g = {"hooks": [{"type": "command", "command": befehl, "timeout": frist}]}
-        if matcher is not None:
-            g = dict([("matcher", matcher)] + list(g.items()))
-        gruppen.append(g)
+            gi, hi = stelle
+            gruppen[gi]["hooks"][hi]["type"], gruppen[gi]["hooks"][hi]["timeout"] = "command", frist
+        else:
+            g = {"hooks": [{"type": "command", "command": befehl, "timeout": frist}]}
+            if matcher is not None:
+                g = dict([("matcher", matcher)] + list(g.items()))
+            gruppen.append(g)
+            gi, hi = len(gruppen) - 1, 0
+        vertrauen[_trust_schluessel(x["datei"], ev, gi, hi)] = trusted_hash(ev, matcher, befehl, frist)
+    if HOOKS_VERTRAUEN_GEMESSEN:
+        # Zuerst das Vertrauen: schlaegt es fehl, bleibt hooks.json unveraendert (kein Hook ohne Vertrauen).
+        _trust_schreiben(os.path.join(os.path.dirname(x["datei"]), "config.toml"), vertrauen, snapshots)
     neu = kern.json_serialisieren(daten, text)
     snap = snapshots.sichern(HARNESS, x["datei"]) if text is not None else None
     os.makedirs(os.path.dirname(x["datei"]), exist_ok=True)
@@ -414,6 +537,64 @@ def _hooks_schreiben(x, snapshots, state):
         "ziel": x["ziel"], "sha": kern._wert_sha(sorted([list(s) for s in x["specs"]], key=str)),
         "zeit": datetime.datetime.now().isoformat(timespec="seconds")}
     return snap
+
+
+def _eigene_gruppe(g, matcher, befehl):
+    """Eine Gruppe, die die Werkbank selbst angelegt hat: genau dieser Befehl und sonst nichts."""
+    return _gruppe_passt(g, matcher, befehl) is not None and len(g.get("hooks") or []) == 1
+
+
+def _hooks_ohne_vertrauen(name, e, ad, state):
+    """Ohne gemessenen Vertrauensweg schreibt die Werkbank keinen Hook. Hat sie frueher Gruppen
+    geschrieben (Statusdatei), gehen die beim naechsten apply weg; sonst bleibt der Hook OFFEN."""
+    if state["eintraege"].get(kern.state_schluessel(HARNESS, "hooks", name)) is None:
+        return _basis(HARNESS, "hooks", name, ad["ziel"], "OFFEN", HOOKS_GRUND)
+    r = _basis(HARNESS, "hooks", name, ad["ziel"], "ENTFERNEN", HOOKS_GRUND)
+    r["_codex"], r["datei"] = "hooks-entfernen", kern.pfad_aufloesen(ad["ziel"])
+    r["specs"] = hook_specs(e)
+    return r
+
+
+def _hooks_entfernen(x, snapshots, state):
+    """Nimmt die eigenen Gruppen vom Ende jeder Ereignisliste. Eine fremde Gruppe am Ende stoppt das
+    Abschneiden, damit fremde Indizes gleich bleiben. Gibt (Snapshot, entfernt, geblieben) zurueck;
+    geblieben > 0 behaelt den Besitzvermerk, damit der naechste apply es erneut versucht."""
+    text, daten = kern.ziel_lesen(x["ziel"])
+    if text is None:
+        state["eintraege"].pop(kern.state_schluessel(HARNESS, "hooks", x["name"]), None)
+        return None, 0, 0
+    haken = daten.get("hooks") or {}
+    entfernt = 0
+    for ev in sorted({s[0] for s in x["specs"]}):
+        eigene = [(m, b) for (e2, m, b, frist) in x["specs"] if e2 == ev]
+        gruppen = haken.get(ev) or []
+        hier = 0
+        while gruppen and any(_eigene_gruppe(gruppen[-1], m, b) for (m, b) in eigene):
+            gruppen.pop()
+            hier += 1
+        entfernt += hier
+        if hier and not gruppen:
+            del haken[ev]   # wird die Liste durch das Entfernen leer, geht ihr Schluessel mit
+    geblieben = sum(1 for (ev, matcher, befehl, frist) in x["specs"]
+                    for g in (haken.get(ev) or []) if _eigene_gruppe(g, matcher, befehl))
+    snap = None
+    if entfernt:
+        neu = kern.json_serialisieren(daten, text)
+        snap = snapshots.sichern(HARNESS, x["datei"])
+        modus = os.stat(x["datei"]).st_mode & 0o7777
+        atomar_schreiben.schreiben(x["datei"], neu, modus=modus, newline="")
+        try:
+            with open(x["datei"], encoding="utf-8") as f:
+                ok = json.loads(f.read()) == daten
+        except ValueError:
+            ok = False
+        if not ok:
+            if snap:
+                atomar_schreiben.kopieren(snap, x["datei"])
+            raise kern.ZielUnlesbar("Ergebnis nicht pruefbar, zurueckgerollt")
+    if geblieben == 0:
+        state["eintraege"].pop(kern.state_schluessel(HARNESS, "hooks", x["name"]), None)
+    return snap, entfernt, geblieben
 
 
 def _anwenden(q, reg, nur_harness, nur_art, force, zeilen):
@@ -438,6 +619,31 @@ def _anwenden(q, reg, nur_harness, nur_art, force, zeilen):
             continue
         if z == "ABGEWICHEN" and x["art"] == "hooks" and x["grund"].startswith("Hook-Befehl"):
             zeilen.append("ABGEWICHEN  codex hooks.%s: %s; --force aendert das nicht" % (x["name"], x["grund"]))
+            continue
+        if z == "ENTFERNEN":
+            try:
+                snap, entfernt, geblieben = _hooks_entfernen(x, snapshots, state)
+            except kern.ZielUnlesbar as ex:
+                zeilen.append("ZIEL-UNLESBAR  codex %s: %s" % (x["ziel"], ex))
+                continue
+            if geblieben:
+                zeilen.append("OFFEN  codex hooks.%s: %d eigene Gruppe(n) bleiben, weil danach fremde Gruppen "
+                              "stehen; von Hand entfernen (%s)" % (x["name"], geblieben, HOOKS_GRUND))
+            else:
+                zeilen.append("ENTFERNT  codex hooks.%s: %d eigene Gruppe(n) aus %s%s" % (
+                    x["name"], entfernt, x["ziel"], " (Snapshot %s)" % snap if snap else ", nichts mehr zu entfernen"))
+            codex_n += 1
+            continue
+        if z == "GLEICH" and x.get("vertrauen"):
+            # Die Gruppen stehen in hooks.json; nur ihr trusted_hash fehlt oder weicht ab. Nur config.toml.
+            try:
+                snap = _trust_schreiben(x["trust"], dict(x["vertrauen"]), snapshots)
+            except kern.ZielUnlesbar as ex:
+                zeilen.append("ZIEL-UNLESBAR  codex %s: %s" % (x["trust"], ex))
+                continue
+            zeilen.append("GESCHRIEBEN  codex hooks.%s -> %s, trusted_hash fuer %d Gruppe(n)%s" % (
+                x["name"], x["trust"], len(x["vertrauen"]), " (Snapshot %s)" % snap if snap else " (neu angelegt)"))
+            codex_n += 1
             continue
         if z not in ("FEHLT", "VERALTET", "ABGEWICHEN"):
             continue

@@ -6,7 +6,7 @@
 // von show() haengt an der Befehlszeilen-Angabe --show, die ein Mensch selbst
 // tippt -- kein Ereignis, kein Steuerbefehl und kein Test erreicht ihn.
 import {
-  app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, shell, protocol, systemPreferences,
+  app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, powerMonitor, shell, protocol, systemPreferences,
 } from 'electron';
 import { execFile, spawn, spawnSync } from 'node:child_process';
 import { readFileSync, statSync, mkdirSync, openSync, closeSync, existsSync } from 'node:fs';
@@ -14,6 +14,7 @@ import { homedir, hostname, userInfo } from 'node:os';
 import { createHash } from 'node:crypto';
 import { join, relative, dirname, basename } from 'node:path';
 import { loadConfig, Config, mantelZugangEntnehmen } from './config';
+import { testProfilPfad } from './profilpfad';
 import { MantelKanal, socketVerwaist } from './mantel';
 import { fernAufruf, findetWerkzeug, pfadHerrichten } from './pfad';
 import { Ergebnis, ErgebnisWaechter } from './results';
@@ -38,6 +39,7 @@ import { fensterzustandLesen, fensterzustandVerfolgen, gemerktesBoundsGueltig } 
 import { LebensSpur } from './lebensspur';
 import { ABSTURZ_FERN_LOG_NAME, ABSTURZ_HOOK, AbsturzSpur, FernAbsturzSpur, absturzHookBefehl, absturzText } from './absturz';
 import { readRequests, readGuardBlocks, decideRequest, RequestEntry, GuardBlockEntry } from './freigaben';
+import { mitteilungsText, pushText, type FreigabeKopf } from './freigabe-anzeige';
 import {
   meldungsEinstellungen, melden, budgetProzent, NeuheitsFilter, SchwellenMelder, STANDARD_WEGE,
   meldenTesten, STANDARD_TEST_WEGE,
@@ -47,6 +49,7 @@ import {
   Einstellungsfenster, einstellungsDaten, wacheLesen, type EinstellungsDaten,
 } from './einstellungsfenster';
 import { kontextStufen, wbCodeKenntKontext, KONTEXT_PROBE_ARGS } from './kontext';
+import { maschinePruefen, antwortFuerOberflaeche } from './maschine-pruefen';
 import { DE as TEXTE_DE, EN as TEXTE_EN } from '../einstellungen/texte';
 import { DE as SITZ_TEXTE_DE, EN as SITZ_TEXTE_EN } from '../sitzung/texte';
 import { DE as ERST_TEXTE_DE, EN as ERST_TEXTE_EN } from '../erststart/texte';
@@ -94,6 +97,8 @@ import { themaPayload } from './thema';
 import type { Herkunftsbeleg } from './herkunft';
 // DIE MOBILE WERKBANK (Paket 10): ein Baustein, der die Pakete 2 bis 8 zusammensetzt;
 // hier stehen nur die Kernfunktionen, die er bekommt, und sein Lebenslauf.
+import { CLAUDE_MEASURED_VERSIONS } from './mobile/dialogs/claude';
+import { ClaudeMessstand, claudeVersionAusPfad, leitungMeldungSenden, ordnerBeobachten, wbGruppePfad } from './mobile/claude-messstand';
 import { claudeAufnahme, claudeEingabeRiegel, mobilDialogeRegistrieren, mobilDienstBauen, mobilTastenSenden, paneWriteUeber, type MobilDialogRouten, type MobilDienst, type MobilEingabeRiegel } from './mobile/kern';
 import { mobilAblehnung } from './mobile/adapters/chat';
 import { ergebnisDateiZaehlen } from './mobile/push/dringend';
@@ -110,7 +115,10 @@ import type { ClaudePaneSnapshot } from './mobile/dialogs/claude';
 import type { MobileDialogSession, OpenCodeDialogConnection } from './mobile/dialogs/opencode';
 import { schluesselSetzenFuerAnbieter, schluesselStatusAlle } from './schluesselbund';
 import { HarnessUpdateScheduler } from './harnessupdate';
+import { aussenAbsichten, aussenOeffnen, istTestinstanz, type AussenAbsicht } from './aussenoeffnen';
 import { startsperre } from './selbstpruefung';
+import { testfensterZaehmen } from './testfenster';
+import { jsWert } from './js-wert';
 
 // STARTSPERRE ZUERST (16.10.2026, selbstpruefung.ts): Der Desktop-Kern auf Linux
 // prueft seine Umgebung und endet bei Abweichung, bevor irgendetwas angelegt wird.
@@ -118,7 +126,7 @@ import { startsperre } from './selbstpruefung';
 startsperre(app, dialog, userInfo().homedir);
 
 // DER MANTEL-ZUGANG VERLAESST DIE UMGEBUNG ALS ERSTES (13.10.2026, Auftrag
-// wz-mantel; config.ts, `mantelZugangEntnehmen`): vor jedem Kindstart, auch vor
+// task; config.ts, `mantelZugangEntnehmen`): vor jedem Kindstart, auch vor
 // `pfadHerrichten` weiter unten, das schon eine Anmelde-Shell startet.
 const mantelZugang = mantelZugangEntnehmen(process.env);
 
@@ -181,6 +189,12 @@ const zeigen = process.argv.includes('--show');
 // Fehler, den eine Messung sonst nie zu sehen bekommt. Wer davor arbeitet,
 // soll deswegen nicht seinen Tastaturfokus verlieren.
 const zeigenInaktiv = process.argv.includes('--show-inaktiv');
+// IN EINER TESTUMGEBUNG NIMMT KEIN FENSTER FOKUS ODER SICHT, auch nicht mit `--show`/`--show-inaktiv`
+// oder nach `maximize()` (25.10.2026, Auftraege task und task). Unter
+// `WB_TESTUMGEBUNG=1` (run-all, Testheimat; ein Live-Start setzt sie nie) bleibt das Dock versteckt,
+// und jedes BrowserWindow steht unsichtbar und klickdurchlaessig, ohne Weg nach vorn; jeder Weg auf den
+// Bildschirm wartet auf 10 min ohne Eingabe und endet sonst mit Exit 77 (HID-Tor, testfenster.ts).
+const testumgebung = testfensterZaehmen(app, process.env, process.platform, () => powerMonitor.getSystemIdleTime());
 if (process.platform === 'darwin' && !zeigen && !zeigenInaktiv) app.dock?.hide();
 
 // Belegbilder in voller Aufloesung entstehen KOPFLOS: mit
@@ -197,6 +211,23 @@ if (process.platform === 'darwin' && !zeigen && !zeigenInaktiv) app.dock?.hide()
 protocol.registerSchemesAsPrivileged([
   { scheme: SEITEN_SCHEMA, privileges: { standard: true, secure: true } },
 ]);
+
+// DAS PROFIL EINES TEST-KERNS LIEGT IN DER TESTHEIMAT (24.10.2026, Begruendung in profilpfad.ts). Muss vor
+// dem Bereitsein stehen: danach haelt Electron das Profil schon offen. Gelingt das Umlenken nicht, startet
+// der Test-Kern nicht -- lieber kein Test als ein Test im Profil der Live-App.
+{
+  const testProfil = testProfilPfad(process.env);
+  if (testProfil) {
+    try {
+      mkdirSync(testProfil, { recursive: true, mode: 0o700 });
+      app.setPath('userData', testProfil);
+      process.stderr.write(`Testprofil: ${testProfil}\n`);
+    } catch (e) {
+      process.stderr.write(`Testprofil ${testProfil} nicht setzbar (${String(e)}) -- Start abgebrochen\n`);
+      app.exit(3);
+    }
+  }
+}
 
 // DER PATH, BEVOR IRGENDETWAS GESTARTET WIRD (07.08.). Aus dem Finder,
 // Spotlight, Launchpad oder Dock gestartet, erbt dieses Programm von launchd
@@ -242,6 +273,20 @@ const config: Config = loadConfig(process.argv.slice(1), process.env, mantelZuga
 // Erbe her und prueft, dass es nicht ankommt).
 delete process.env.WB_MENSCH_QUELLE;
 delete process.env.WB_APP_PID;
+// DER PANE, AUS DEM DER KERN GESTARTET WURDE, IST AUCH EIN ERBE (22.10.2026).
+// TMUX, TMUX_PANE und WB_SESSION sagen einem Werkzeug, in welchem Pane und in
+// welcher Sitzung es SITZT. Der Kern sitzt in keinem: er waehlt seinen Server
+// ueber `tmuxSocket` und nennt jedem Kind die Sitzung selbst, wo es eine braucht
+// (chatsitzung.ts). Mit dem Erbe galt die Sitzung des startenden Panes ueberall
+// als „die eigene": `wb-session-close` verweigerte sie, `wb-code` und die
+// Worker-Starter fanden darin ihren Bezugspunkt. Der Rest der Agenten-Umgebung
+// (CLAUDECODE, CLAUDE_CODE_*) bleibt stehen -- `wb-mensch` erkennt daran (A1)
+// einen Kern, der aus einer Agenten-Shell kommt; das Verwerfen wuerde diesen
+// Beleg verwischen. Darum gilt weiter: die Werkbank nie aus einer Agenten-Shell starten.
+// Suite: shell/tests/test-app-mensch-sitzungsstart.sh (Zusage 5).
+delete process.env.TMUX;
+delete process.env.TMUX_PANE;
+delete process.env.WB_SESSION;
 
 /**
  * DIE BRUECKE, ZWEIMAL ANGESCHLOSSEN (06.09.2026, Auftrag macplan).
@@ -322,9 +367,21 @@ function fenstersperre(): string | null {
  */
 const MANTEL_SENDER = { __awbMantel: true } as unknown as Electron.WebContents;
 
+/**
+ * Lebt das Fenster noch? `win` wird beim Schliessen nicht auf null gesetzt;
+ * das Objekt bleibt stehen, und schon der Zugriff auf `webContents` eines
+ * zerstoerten Fensters wirft „Object has been destroyed" (22.10.2026). Das
+ * Schliessen startet das asynchrone `shutdown()`, und ein Ereignis, das in
+ * dieser Zeit noch kommt (der Steuerkanal endet, tmux meldet Ausgabe), lief
+ * damit in den uncaughtException-Riegel: Exit 1 statt eines sauberen Endes.
+ */
+function fensterLebt(fenster: BrowserWindow | null | undefined): fenster is BrowserWindow {
+  return !!fenster && !fenster.isDestroyed() && !fenster.webContents.isDestroyed();
+}
+
 /** webContents.send an das Hauptfenster -- und an den Mantel, wenn einer haengt. */
 function anOberflaeche(kanal: string, nutzlast?: unknown): void {
-  win?.webContents.send(kanal, nutzlast);
+  if (fensterLebt(win)) win.webContents.send(kanal, nutzlast);
   mantel?.push(kanal, nutzlast);
 }
 
@@ -342,9 +399,10 @@ function anOberflaeche(kanal: string, nutzlast?: unknown): void {
  * eine Sekunde spaeter als vorher (test-app-seiten-auffrischung.sh, rot).
  */
 function anFenster(fenster: BrowserWindow | null | undefined, kanal: string, nutzlast?: unknown | (() => unknown)): void {
-  if (!fenster && !mantel) return;
+  const lebt = fensterLebt(fenster);
+  if (!lebt && !mantel) return;
   const daten = typeof nutzlast === 'function' ? (nutzlast as () => unknown)() : nutzlast;
-  fenster?.webContents.send(kanal, daten);
+  if (lebt) fenster.webContents.send(kanal, daten);
   mantel?.push(kanal, daten);
 }
 // KOPFLOS UNTER LINUX: DER BILDTAKT MUSS ERST GELOEST WERDEN.
@@ -374,7 +432,17 @@ const ui = new UiStore(config.stateDir);
 // Quelle dafuer, dass eine nach einem Absturz weggebrochene Sitzung nicht
 // aussieht wie eine, die jemand geschlossen hat. Der Grund steht in
 // lebensspur.ts.
-const lebensspur = new LebensSpur(config.stateDir);
+//
+// Ein sauberes Ende leert sie nicht mehr: ob nach einem Neustart des Rechners
+// Sitzungen zum Fortsetzen angeboten werden, entscheidet der Rechnerstart
+// (10.11., Kopf von lebensspur.ts, Punkt 1).
+const lebensspur = new LebensSpur(config.stateDir, {
+  hiesigeMaschine: config.machine,
+  protokoll: (zeile) => process.stderr.write(`${zeile}\n`),
+});
+// Der Satz „nach dem Neustart lassen sich n Sitzungen fortsetzen" faellt einmal
+// je Start, und nur wenn DIESER Start den Neustart erkannt hat.
+let neustartGemeldet = false;
 // WIE eine Sitzung endete (05.09., „nur bei Absturz"): der tmux-Hook schreibt
 // Status oder Signal jedes gestorbenen Panes hierher, der Takt liest es und
 // sagt einen Satz -- nur bei Status ungleich 0. Der Grund und die Messung der
@@ -490,7 +558,11 @@ const aufgabenQuelle = new AufgabenQuelle({
   aufNeu: (p, geaendert) => {
     anOberflaeche('awb:aufgaben', p);
     // Der Herzschlag und das erzwungene Senden sind keine Aenderung: ein Mobilgeraet holt sonst alle 30 s den ganzen Stand neu.
-    if (geaendert) mobil?.agentsGeaendert();
+    if (geaendert) {
+      mobil?.agentsGeaendert();
+      // Push „Welt braucht dich“: Rechteantrag oder Frage an den Menschen offen (mobile/push/welt.ts).
+      if (p.welten.geladen) mobil?.weltenGesehen(p.welten.welten);
+    }
   },
 });
 ipc.handle('awb:aufgaben-daten', () => aufgabenQuelle.aktuell());
@@ -1018,7 +1090,7 @@ const RENDERER_RUECKKEHR_MS = 5000;
  * Die Befehle, die ohne lebenden Renderer beantwortet werden -- Begruendung
  * je Eintrag am Eingang von `handle()`.
  */
-const STEUERBEFEHLE_OHNE_RENDERER = new Set(['ping', 'quit', 'reload']);
+const STEUERBEFEHLE_OHNE_RENDERER = new Set(['ping', 'quit', 'reload', 'aussen']);
 
 /** Wann der Renderer zuletzt nach einem Absturz neu geladen wurde. */
 let rendererNeustartAm = 0;
@@ -1141,6 +1213,22 @@ function modellLesen(): SessionInfo[] {
     verlorene: lebensspur.verlorene(),
   });
   tmuxBefundMelden({ ausfuehrbar: befund.tmuxAusfuehrbar, fehler: befund.tmuxFehler });
+  // „Nach Neustart fortsetzen" (10.11.): dieselben Zeilen wie `verloren` (sie
+  // bleiben sichtbar und tragen den Fortsetzen-Knopf), nur mit eigenem Merkmal
+  // fuer die Beschriftung. Gemerkt wird es erst, wenn die Zeile wirklich
+  // 'stopped' ist -- eine Sitzung, die wieder laeuft, traegt es nicht.
+  const nachNeustart = new Set(lebensspur.nachNeustart());
+  const angeboten = befund.sessions.filter((s) => s.verloren && nachNeustart.has(s.id));
+  for (const s of angeboten) s.nachNeustart = true;
+  if (lebensspur.neustartErkannt && !neustartGemeldet && angeboten.length) {
+    neustartGemeldet = true;
+    melden(
+      'sitzungTot',
+      `Nach dem Neustart des Rechners lassen sich ${angeboten.length} Sitzung(en) fortsetzen.`,
+      meldungsEinstellungen(config.settingsFile),
+      STANDARD_WEGE,
+    );
+  }
   // Was dieser Prozess ueber laufende und gescheiterte Starts weiss, gehoert an
   // die Liste, bevor irgendjemand sie filtert oder zeichnet.
   startzustand(befund.sessions);
@@ -2195,7 +2283,7 @@ function sessionAnlegen(
 /** Liest neu und schickt beides zusammen -- der Aufrufer entscheidet, wann. */
 function freigabenAktualisieren(): void {
   freigaben = {
-    requests: readRequests(config.requestsDir),
+    requests: readRequests(config.requestsDir, sessions),
     guardBlocks: readGuardBlocks(config.guardBlocksDir, sessions, config.tmuxSocket),
     // V17: der Verlauf, gruppiert -- welche Muster WIEDERHOLT anschlagen,
     // nicht nur der Momentanwert des laufenden Blocks (das ist guardBlocks).
@@ -2205,14 +2293,20 @@ function freigabenAktualisieren(): void {
   // Benachrichtigung 'freigabeWartet': beide Quellen zaehlen (Antrag UND
   // wartende Rueckfrage), ueber eigene Vorsilben getrennt, damit derselbe
   // Schluessel nie aus zwei verschiedenen Anlaessen kommen kann.
-  const wartendeSchluessel = [
-    ...freigaben.requests.map((r) => `antrag:${r.path}`),
-    ...freigaben.guardBlocks.filter((b) => b.wartet).map((b) => `rueckfrage:${b.schluessel || b.path}`),
-  ];
+  // WER FRAGT, UND WOFUER (26.10.2026, task): jede Meldung nennt Rolle und Namen,
+  // die Mitteilung am Rechner dazu die Absicht in einem Satz. Push und Handy-Webhook
+  // tragen nur Rolle und Namen (MOBILE-APP-SPEC.md:196: kein Befehl, kein Pfad auf dem
+  // Sperrbildschirm); die Absicht liest die App nach dem Entsperren aus GET /approvals.
+  const wartende = new Map<string, FreigabeKopf>([
+    ...freigaben.requests.map((r): [string, FreigabeKopf] => [`antrag:${r.path}`, r]),
+    ...freigaben.guardBlocks.filter((b) => b.wartet).map((b): [string, FreigabeKopf] => [`rueckfrage:${b.schluessel || b.path}`, b]),
+  ]);
+  const wartendeSchluessel = [...wartende.keys()];
   meldungFreigabe.neue(wartendeSchluessel).forEach((schluessel) => {
-    melden('freigabeWartet', 'Eine Freigabe wartet auf Entscheidung.', meldungsEinstellungen(config.settingsFile), STANDARD_WEGE);
+    const kopf = wartende.get(schluessel)!;
+    melden('freigabeWartet', mitteilungsText(kopf), meldungsEinstellungen(config.settingsFile), STANDARD_WEGE, pushText(kopf));
     // `command.blocked`: das Ziel ist ein Hash des Schluessels -- kein Pfad und kein Befehl verlaesst den Kern.
-    mobil?.melden('command.blocked', createHash('sha256').update(schluessel).digest('hex').slice(0, 24), schluessel);
+    mobil?.melden('command.blocked', createHash('sha256').update(schluessel).digest('hex').slice(0, 24), schluessel, undefined, pushText(kopf));
   });
   mobil?.freigabenGesehen(wartendeSchluessel);
 }
@@ -2284,7 +2378,7 @@ async function ordnerOeffnen(pfad: string): Promise<void> {
   if (isExcluded(pfad, config.excludeGlobs)) {
     throw new Error('Pfad ist ausgeschlossen');
   }
-  await shell.openPath(pfad);
+  await aussenOeffnen(shell, 'openPath', pfad);
 }
 
 /** Zuletzt gezeigte Aktivitaet, um 'aktivitaet-oeffnen' dagegen zu pruefen. */
@@ -2851,6 +2945,14 @@ function maschinenStand(sichtbar: SessionInfo[]): {
   });
 }
 
+/**
+ * Das wievielte Modell zuletzt ans Fenster ging, und bis zu welchem das Fenster
+ * gezeichnet und seine Flaeche danach vermessen hat (Meldung
+ * 'modell-gezeichnet'). `flaecheSetzen` wartet auf den Gleichstand.
+ */
+let modellNr = 0;
+let modellGezeichnet = 0;
+
 /** @param nurBeiAenderung Nur der Kern-Takt setzt es: dann geht das Modell nur hinaus, wenn es sich geaendert hat. */
 function modellSenden(nurBeiAenderung = false): void {
   const z = ui.get();
@@ -2905,10 +3007,10 @@ function modellSenden(nurBeiAenderung = false): void {
       worker: chatbuehne.workerVon(c.id, c.id === chatbuehne.gezeigter()),
     })),
     /**
-     * DIE REIHENFOLGE DER LEISTE -- EINE Liste fuer beide Sorten (Punkt 4,
-     * alice am 12.08.: „die session soll links nicht anders behandelt
-     * werden als die terminal sessions, das sortieren sollte nicht
-     * ansichtsabhaengig sein").
+     * DIE REIHENFOLGE DER LEISTE -- EINE Liste fuer beide Sorten (Regel vom
+     * 12.08.: Chat-Sitzungen werden in der Leiste nicht anders behandelt
+     * als Terminal-Sitzungen, und die Sortierung haengt nicht von der
+     * Ansicht ab).
      *
      * Bis heute standen die Chat-Sitzungen in einem eigenen Abschnitt unter den
      * Terminal-Sitzungen, mit einer eigenen Sortierung (`ausJson` sortiert nach
@@ -2966,7 +3068,8 @@ function modellSenden(nurBeiAenderung = false): void {
   } else {
     modellGesendet.merken(modell);
   }
-  anOberflaeche('awb:model', modell);
+  if (fensterLebt(win)) modellNr++;
+  anOberflaeche('awb:model', { ...modell, nr: modellNr });
 }
 
 // --- tmux ------------------------------------------------------------------
@@ -3259,7 +3362,7 @@ async function attachTmuxJetzt(sessionName: string, maschine = ''): Promise<void
     // eine frisch gestartete Sitzung steht dort in der Groesse, die sie beim
     // Anlegen bekommen hat, und hat die Flaeche dieses Programms noch nie
     // gesehen -- „der orchestrator tab ist vollkommen falsch formatiert"
-    // (alice, 06.08.). Ein zweites Zeichnen, und sie sitzt richtig.
+    // (decision 08-06). Ein zweites Zeichnen, und sie sitzt richtig.
     //
     // OHNE ZOOM (`false`). Zoom macht den Pane in tmux auch AKTIV, und beim
     // blossen Anhaengen hat niemand eine Ansicht gewaehlt -- der aktive Pane
@@ -3327,7 +3430,7 @@ function paneZeigen(paneId: string, zoomen = true, groesseSetzen = true): Promis
 
 /**
  * EINE ZEICHNUNG ZUR ZEIT, IN DER REIHENFOLGE DER ANFORDERUNGEN (14.10.2026,
- * GL#43: test-app-tab-zweifenster.sh nur unter Last rot).
+ * Gesamtlauf: test-app-tab-zweifenster.sh nur unter Last rot).
  *
  * DER BEFUND. Fall "7 Worker, ZWEI Fenster (6 + 1)": die Kacheln %1-%6 lagen
  * auf 480 px, ihre Terminals blieben 20 s lang auf 96 Spalten = 720 px -- der
@@ -3969,7 +4072,7 @@ async function fensterAufKachel(
   /**
    * ZEIGT DER TAB NUR EINEN TEIL DES FENSTERS, WIRD DAS FENSTER GROESSER.
    *
-   * DER BEFUND (alice, 19.08., Bildschirmfoto Fehler8.png): Der zweite
+   * DER BEFUND (decision 08-19, Bildschirmfoto Fehler8.png): Der zweite
    * Worker-Tab mit EINEM Worker darin zeichnete oben vier Zeilen und darunter
    * zwei Drittel Schwarz -- keine Fusszeile, kein Kontextbalken. Der Grund war
    * nicht die Kachel, sondern der Pane: sein Fenster trug Orchestrator und
@@ -4070,7 +4173,7 @@ function neueWorkerPanes(): string[] {
 }
 async function lageAbgleichen(): Promise<void> {
   if (!tmux || !gezeichneteLage.length) return;
-  // NACHZIEHEN STATT VERWERFEN (14.10.2026, GL#43): laeuft schon ein Abgleich,
+  // NACHZIEHEN STATT VERWERFEN (14.10.2026, Gesamtlauf): laeuft schon ein Abgleich,
   // hat er den Stand womoeglich VOR diesem Anlass gelesen -- verworfen waere
   // die Aenderung verloren. Also einmal nach hinten geschoben.
   if (gleichtAb) {
@@ -4082,7 +4185,7 @@ async function lageAbgleichen(): Promise<void> {
     return;
   }
   gleichtAb = true;
-  // IN DER ZEICHENKETTE (14.10.2026, GL#43, siehe `nacheinander`). Lief der
+  // IN DER ZEICHENKETTE (14.10.2026, Gesamtlauf, siehe `nacheinander`). Lief der
   // Abgleich MITTEN in einem show-tab, war `ansicht` schon die neue,
   // `gezeichneteLage` noch die alte -- gemessen mit einer Spur unter Last: der
   // Abgleich warf den von Anfang an fehlenden %99999 aus der Ansicht und
@@ -4255,6 +4358,24 @@ const FLAECHE_RUHE_MS = 40;
 const FLAECHE_RUHE_MAX_MS = 200;
 
 /**
+ * UND DIE RUHE ALLEIN REICHT NICHT (27.10.). Die Anordnung um die Buehne kommt
+ * aus dem Modell: ein Modell, das das Fenster noch nicht gezeichnet hat, aendert
+ * die Flaeche erst, NACHDEM die Ruhefrist abgelaufen sein kann. GEMESSEN auf T1
+ * mit test-app-fenster-umbruch-naht.sh: die Buehne meldete nach dem Anhaengen
+ * 142x28, noch in der Anordnung von vorher (994x500 Bildpunkte), und 73 ms
+ * spaeter 122x30 in der neuen (856x534). Ohne Last liegen die beiden Meldungen
+ * 40 ms auseinander, genau auf der Ruhefrist, und es ging meist gut; unter Last
+ * wurden es 24 von 24 Laeufen mit zwei Umbruechen und dem Salat im Puffer.
+ *
+ * Deshalb wartet der Umbruch zusaetzlich auf einen ZUSTAND: das Fenster hat
+ * das zuletzt gesendete Modell gezeichnet und danach vermessen
+ * ('modell-gezeichnet', gesendet NACH der Flaechenmeldung desselben Bildes).
+ * Kam dabei eine neue Flaeche, gilt sie und die Ruhe beginnt von vorn. Die
+ * Frist ist nur die Obergrenze, falls ein Fenster nie antwortet.
+ */
+const FLAECHE_MODELL_MAX_MS = 1000;
+
+/**
  * WOHER die geltende Flaeche kommt. Meldet sie die Buehne selbst, darf sie sie
  * auch nachfordern, wenn das Gezeichnete nicht dazu passt. Gibt sie ein Skript
  * ueber den Steuerkanal vor (`awb-ctl flaeche 100x30`), dann gilt genau diese
@@ -4315,6 +4436,11 @@ async function flaecheSetzen(cols: number, rows: number, vorgegeben = false): Pr
             flaechenWunsch = null;
             await new Promise((f) => setTimeout(f, FLAECHE_RUHE_MS));
           } while (flaechenWunsch && Date.now() < spaetestens);
+          const modellFrist = Date.now() + FLAECHE_MODELL_MAX_MS;
+          while (fensterLebt(win) && modellGezeichnet < modellNr && !flaechenWunsch && Date.now() < modellFrist) {
+            await new Promise((f) => setTimeout(f, 10));
+          }
+          if (flaechenWunsch) continue;
           flaechenWunsch = null;
           // Dieselbe Ansicht noch einmal zeichnen, jetzt in der neuen Flaeche.
           //
@@ -4328,7 +4454,7 @@ async function flaecheSetzen(cols: number, rows: number, vorgegeben = false): Pr
           // 'show-pane'), und der bleibt ueber jede Flaechenaenderung stehen.
           //
           // In der Kette und mit der Ansicht von DANN, wenn die Zeichnung dran
-          // ist (siehe `nacheinander`, GL#43).
+          // ist (siehe `nacheinander`, Gesamtlauf).
           await nacheinander(async () => {
             if (ansicht.art === 'tab') await tabZeigenJetzt(ansicht.panes);
             else if (streamPane) await paneZeigenJetzt(streamPane, false);
@@ -4434,6 +4560,10 @@ ipc.on('awb:bedienung', (_e, nachricht: { aktion: string; wert: unknown }) => {
         await flaecheSetzen(Number(f?.cols), Number(f?.rows));
         break;
       }
+      // Nach jedem gezeichneten Modell, NACH dessen Flaechenmeldung (flaecheMelden).
+      case 'modell-gezeichnet':
+        modellGezeichnet = Math.max(modellGezeichnet, Number(wert) || 0);
+        break;
       case 'sidebar-width':
         ui.set({ sidebarWidth: Math.max(48, Math.min(480, Number(wert) || 48)) });
         modellSenden();
@@ -4539,7 +4669,14 @@ ipc.on('awb:bedienung', (_e, nachricht: { aktion: string; wert: unknown }) => {
       }
       case 'revive':
         try {
-          sessionWiederherstellen(String(wert));
+          // `wert` ist die Kennung oder { id, echt } (25.10.2026): ohne `echt` lief jedes Fortsetzen aus
+          // dem Fenster ohne Menschen-Nachweis, und eine abgelehnte Speicherbuchung brach den Start ab.
+          // `echt` ist nur der Klick-Beleg; der Nachweis selbst bleibt die Menschenprobe in
+          // sessionWiederherstellen.
+          const w = (typeof wert === 'object' && wert !== null)
+            ? (wert as { id?: unknown; echt?: unknown })
+            : { id: wert, echt: false };
+          sessionWiederherstellen(String(w.id ?? ''), w.echt === true);
         } catch (e) {
           process.stderr.write(`revive abgelehnt: ${(e as Error).message}\n`);
         }
@@ -4672,7 +4809,7 @@ ipc.on('awb:bedienung', (_e, nachricht: { aktion: string; wert: unknown }) => {
           process.stderr.write(`ergebnis-oeffnen abgelehnt (unbekannter Pfad): ${pfad}\n`);
           break;
         }
-        await shell.openPath(pfad);
+        await aussenOeffnen(shell, 'openPath', pfad);
         break;
       }
       /**
@@ -4925,9 +5062,10 @@ ipc.handle('awb:chat-pfad-oeffnen', async (e, abs: string) => {
     }
     const o = oeffnungBestimmen(pfad);
     // Bilder, PDFs und alles Binaere gehen an das System -- hier, nicht im
-    // Renderer, der kein `shell` hat.
-    if (o.art === 'extern') await shell.openPath(pfad);
-    return { ok: true, value: o };
+    // Renderer, der kein `shell` hat. In einer Testinstanz geht nichts hinaus:
+    // `aussen` meldet nur die Absicht (aussenoeffnen.ts).
+    const aussen: AussenAbsicht | undefined = o.art === 'extern' ? await aussenOeffnen(shell, 'openPath', pfad) : undefined;
+    return { ok: true, value: aussen ? { ...o, aussen } : o };
   } catch (err) {
     return editorFehler(err);
   }
@@ -4979,35 +5117,6 @@ function einstellungenDatenJetzt(): unknown {
     },
     ui.get(),
   );
-}
-
-/**
- * Der Pruefknopf der Maschinen-Seite. Er tut GENAU EINEN Handgriff -- `ssh
- * <alias> true` mit Zeitlimit -- und sagt, ob er durchkam. Kein Netzzugriff
- * von selbst: dieser Weg entsteht nur, wenn jemand auf den Knopf drueckt.
- * BatchMode verhindert, dass eine Passwortfrage das Fenster stehen laesst,
- * denn eine Frage, die niemand sieht, ist ein Haenger.
- */
-function maschinePruefen(name: string): Promise<{ ok: boolean; ausgabe: string }> {
-  return new Promise((fertig) => {
-    const p = spawn('ssh', [
-      '-o', 'BatchMode=yes',
-      '-o', `ConnectTimeout=${Math.max(1, Math.round(config.remoteTimeoutMs / 1000))}`,
-      name, 'true',
-    ], { stdio: ['ignore', 'pipe', 'pipe'] });
-    let fehler = '';
-    p.stderr.on('data', (b: Buffer) => { fehler += b.toString(); });
-    const zeit = setTimeout(() => p.kill('SIGKILL'), config.remoteTimeoutMs + 2000);
-    p.on('error', (e) => {
-      clearTimeout(zeit);
-      fertig({ ok: false, ausgabe: String(e) });
-    });
-    p.on('close', (code) => {
-      clearTimeout(zeit);
-      const kurz = fehler.trim().split('\n').pop() ?? '';
-      fertig({ ok: code === 0, ausgabe: code === 0 ? 'erreichbar' : (kurz || `ssh endete mit ${code}`) });
-    });
-  });
 }
 
 ipc.handle('awb:ein-daten', () => einstellungenDatenJetzt());
@@ -5114,11 +5223,13 @@ ipc.handle('awb:ein-werkzeug', async (_e, nachricht: Record<string, unknown>, ec
 });
 
 ipc.handle('awb:ein-maschine-pruefen', async (_e, name: string) => {
+  // Die Oberflaeche bekommt nur Ok und Fall; den Satz dazu nimmt sie aus ihrer
+  // Texttabelle. Die rohe Ausgabe von ssh steht allein im Protokoll des Kerns.
   const ziel = String(name ?? '').trim();
-  if (!ziel) return { ok: false, ausgabe: 'kein Name' };
-  const r = await maschinePruefen(ziel);
-  process.stderr.write(`Maschine '${ziel}' geprueft: ok=${r.ok} ${r.ausgabe}\n`);
-  return r;
+  if (!ziel) return { ok: false, fall: 'sonst' };
+  const r = await maschinePruefen(ziel, config.remoteTimeoutMs);
+  process.stderr.write(`Maschine '${ziel}' geprueft: ok=${r.ok} fall=${r.fall} ${r.roh}\n`);
+  return antwortFuerOberflaeche(r);
 });
 
 ipc.handle('awb:ein-ui', (_e, key: string, value: unknown) => {
@@ -5404,8 +5515,8 @@ interface MenuePunkt {
   id: string;
   label: string;
   /**
-   * Immer true (alice, 06.08.: „ich will sie aber immer benutzen können,
-   * sie sollen immer verfügbar sein"). Das Feld bleibt, weil beide Wege es
+   * Immer true (Regel vom 06.08.: die Eintraege sind immer benutzbar und
+   * immer verfuegbar). Das Feld bleibt, weil beide Wege es
    * lesen und eine Pruefung es nachweisen koennen soll.
    */
   enabled: boolean;
@@ -5544,7 +5655,7 @@ async function chatMenuePunktAusfuehren(
   }
 
   if (punkt === 'ordner-zeigen') {
-    shell.showItemInFolder(c.ordner);
+    await aussenOeffnen(shell, 'showItemInFolder', c.ordner);
     process.stderr.write(`Chatmenue 'ordner-zeigen': ${c.ordner}\n`);
     return { ok: true, meldung: `Im Finder gezeigt: ${c.ordner}`, aufruf: '' };
   }
@@ -5688,7 +5799,7 @@ async function menuePunktAusfuehren(
       process.stderr.write(`Menue 'ordner-zeigen' fern (${s.machine}): ${s.dir}\n`);
       return { ok: false, meldung, aufruf: '' };
     }
-    shell.showItemInFolder(s.dir);
+    await aussenOeffnen(shell, 'showItemInFolder', s.dir);
     process.stderr.write(`Menue 'ordner-zeigen': ${s.dir}\n`);
     return { ok: true, meldung: `Im Finder gezeigt: ${s.dir}`, aufruf: '' };
   }
@@ -5736,9 +5847,11 @@ async function menuePunktAusfuehren(
   }
   if (punkt === 'fortsetzen') {
     // Derselbe Weg wie im Sitzungsfenster, damit es nicht zwei Fassungen von
-    // "fortsetzen" gibt.
+    // "fortsetzen" gibt. `echt` geht mit (25.10.2026): ohne es verlor das Fortsetzen aus dem Menue
+    // des Mac-Mantels den Menschen-Nachweis (in einer Sitzung: kein "als MENSCH" im Protokoll, Abbruch an
+    // der Speicherbuchung statt einer Warnung).
     try {
-      const r = sessionWiederherstellen(s.id);
+      const r = sessionWiederherstellen(s.id, echt);
       nachStartNachlesen();
       return { ok: true, meldung: r.conversationReason, aufruf: r.command };
     } catch (e) {
@@ -6383,7 +6496,13 @@ ipc.handle('awb:sitz-modell-wechsel', (_e, id: string, modell: string, effort: s
   if (zielEffort) args.push('--effort', zielEffort);
   if (config.tmuxSocket) args.push('--tmux-socket', config.tmuxSocket);
   if (version) args.push('--process-version', version);
-  const r = spawnSync(bin, args, { encoding: 'utf8', timeout: 20_000, killSignal: 'SIGKILL' });
+  // Den Menschen-Nachweis trägt nur ein echter Klick weiter (wie menschProbe/menschUmgebung oben;
+  // `echt` setzt die Oberfläche, mantel.ts MENSCHEN_STELLEN entfernt es bei fremden Verbindungen).
+  // wb-model-switch misst ihn mit `wb-mensch pruefen` an der Ahnenkette dieses Kerns.
+  const menschUmgebung = echt === true
+    ? { ...process.env, WB_MENSCH_QUELLE: 'oberflaeche', WB_APP_PID: String(process.pid) }
+    : process.env;
+  const r = spawnSync(bin, args, { encoding: 'utf8', timeout: 20_000, killSignal: 'SIGKILL', env: menschUmgebung });
   let antwort: { ok?: boolean; meldung?: string; command?: string } = {};
   try { antwort = JSON.parse(String(r.stdout ?? '').trim().split('\n').at(-1) ?? '{}') as typeof antwort; } catch { /* unten ehrliche Fehlermeldung */ }
   if (r.status !== 0 || antwort.ok !== true) {
@@ -6985,6 +7104,13 @@ async function handle(req: ControlRequest): Promise<unknown> {
   switch (req.cmd) {
     case 'ping':
       return { pong: true };
+
+    // Was der Kern nach draussen geben WOLLTE (openPath, showItemInFolder,
+    // openExternal). In einer Testinstanz geht nie etwas hinaus; die Suiten
+    // lesen hier, was sie ausgeloest haetten.
+    case 'aussen': {
+      return { testinstanz: istTestinstanz(), absichten: aussenAbsichten() };
+    }
 
     case 'state': {
       const text = await bufferText().catch(() => '');
@@ -7910,7 +8036,7 @@ async function handle(req: ControlRequest): Promise<unknown> {
       return { paneId, zuruecksetzen, zaehler: chatStandZaehler.get(paneId) ?? 0 };
     }
 
-    // Der Weg, den alice am 06.08. gegangen ist: Fenster verliert den
+    // Der Weg, den decision 08-06 gegangen ist: Fenster verliert den
     // Fokus, andere Anwendung, zurueck. Danach war das Hochrollen tot -- also
     // muss dieser Weg PRUEFBAR sein und nicht bloss plausibel. Beide Schichten
     // werden angefasst: das Fenster selbst und die Ereignisse, die eine
@@ -7918,11 +8044,14 @@ async function handle(req: ControlRequest): Promise<unknown> {
     case 'fokus': {
       if (!win) throw new Error(KEIN_RENDERER);
       const an = req.an !== false;
-      if (an) win.focus();
+      // In der Testumgebung nur die Ereignisse unten: ein natives `focus()`/`blur()` kann unter macOS
+      // das Fenster nach vorn holen und die App aktivieren (25.10.2026, task, testfenster.ts).
+      if (testumgebung) { /* kein nativer Fokuswechsel */ }
+      else if (an) win.focus();
       else win.blur();
       const art = an ? 'focus' : 'blur';
       const gemeldet = await win.webContents.executeJavaScript(
-        `(() => { window.dispatchEvent(new FocusEvent(${JSON.stringify(art)}));
+        `(() => { window.dispatchEvent(new FocusEvent(${jsWert(art)}));
           document.dispatchEvent(new Event('visibilitychange'));
           return { sichtbar: document.visibilityState, panes: document.querySelectorAll('.panekasten').length }; })()`,
       );
@@ -8224,7 +8353,7 @@ async function handle(req: ControlRequest): Promise<unknown> {
         case 'vollbild':
           // ECHTES Vollbild legt auf macOS IMMER einen eigenen Space an und
           // schaltet dorthin -- auch bei einem Fenster mit show:false
-          // (gemessen: es riss alice am 2026-08-09 und 2026-08-10 zweimal
+          // (gemessen: es riss decision 2026-08-09 und 2026-08-10 zweimal
           // mitten in der Arbeit den Bildschirm weg, ausgeloest von
           // test-app-groessensprung.sh). Dieser Zweig ist im ganzen Repo der
           // EINZIGE Aufrufer von 'vollbild' -- kein Produktivpfad haengt
@@ -8265,7 +8394,7 @@ async function handle(req: ControlRequest): Promise<unknown> {
       // Knopf, nicht die Nachricht dahinter -- sonst prueft man die Verdrahtung
       // nicht mit.
       const getroffen = (await win.webContents.executeJavaScript(
-        `(() => { const k = document.querySelector('.knopf[data-tot="${knopf}"]') || document.getElementById(${JSON.stringify(knopf)}); if (!k) return false; k.click(); return true; })()`,
+        `(() => { const k = document.querySelector(${jsWert(`.knopf[data-tot="${knopf}"]`)}) || document.getElementById(${jsWert(knopf)}); if (!k) return false; k.click(); return true; })()`,
       )) as boolean;
       if (!getroffen) throw new Error(`kein Knopf '${knopf}'`);
       return { knopf };
@@ -8377,8 +8506,8 @@ async function handle(req: ControlRequest): Promise<unknown> {
       if (!/^[a-z-]+$/.test(ziel)) throw new Error(`unzulaessiges Ziel: ${ziel}`);
       if (!win) throw new Error(KEIN_RENDERER);
       const getroffen = (await win.webContents.executeJavaScript(
-        `(() => { const el = document.querySelector('[data-tipp="${ziel}"]'); if (!el) return false;
-          el.value = ${JSON.stringify(text)}; el.dispatchEvent(new Event('input', {bubbles:true})); return true; })()`,
+        `(() => { const el = document.querySelector(${jsWert(`[data-tipp="${ziel}"]`)}); if (!el) return false;
+          el.value = ${jsWert(text)}; el.dispatchEvent(new Event('input', {bubbles:true})); return true; })()`,
       )) as boolean;
       if (!getroffen) throw new Error(`kein Eingabefeld '${ziel}'`);
       return { ziel };
@@ -8485,7 +8614,7 @@ async function handle(req: ControlRequest): Promise<unknown> {
       if (!pfad) throw new Error('Feld pfad fehlt');
       if (!win) throw new Error(KEIN_RENDERER);
       const getroffen = (await win.webContents.executeJavaScript(
-        `(() => { const h = window.__awbOrdner; return !!(h && h.auf(${JSON.stringify(pfad)})); })()`,
+        `(() => { const h = window.__awbOrdner; return !!(h && h.auf(${jsWert(pfad)})); })()`,
       )) as boolean;
       if (!getroffen) throw new Error(`keine Baumzeile fuer '${pfad}' -- steht sie ueberhaupt auf dem Schirm?`);
       return { pfad };
@@ -8964,6 +9093,27 @@ const mobilPaneWrite = paneWriteUeber(config.wbPaneWriteBin);
 /** Eine Protokollzeile des mobilen Kerns in den stderr des Kerns. */
 const mobilProtokoll = (zeile: string): void => { process.stderr.write(`Mobil: ${zeile}\n`); };
 
+/**
+ * Der Messstand der installierten Claude-Version (claude-messstand.ts): bei Start und bei jeder
+ * Aenderung am Versionsordner oder am Symlink eine Meldung an `leitung`, wenn die Version nicht
+ * in CLAUDE_MEASURED_VERSIONS steht. Nur der produktive Kern (Standard-Zustandsordner); ein
+ * Pruef- oder Entwicklungskern mit eigenem AWB_STATE_DIR meldet nie.
+ */
+const claudeMessstand = new ClaudeMessstand({
+  linkPfad: join(homedir(), '.local', 'bin', 'claude'),
+  versionenOrdner: join(homedir(), '.local', 'share', 'claude', 'versions'),
+  miseOrdner: process.platform === 'linux' ? join(homedir(), '.local', 'share', 'mise', 'installs', 'claude') : '',
+  merkdatei: join(dirname(config.settingsFile), 'claude-messstand.json'),
+  gruppenOrdner: join(process.env.WB_GRUPPE_DIR || join(homedir(), '.local', 'state', 'wb-gruppe'), 'gruppen', 'leitung'),
+  gemessen: CLAUDE_MEASURED_VERSIONS,
+  maschine: config.machine,
+  senden: leitungMeldungSenden({
+    bin: wbGruppePfad(homedir()), home: homedir(), pid: process.pid, tmuxSocket: config.tmuxSocket, protokoll: mobilProtokoll,
+  }),
+  beobachten: ordnerBeobachten(mobilProtokoll),
+  protokoll: mobilProtokoll,
+});
+
 /** Eine frische Aufnahme des sichtbaren Panes; ANSI bleibt drin, der Adapter raeumt es weg. */
 function mobilPaneText(pane: string): string {
   const r = spawnSync('tmux', [...(config.tmuxSocket ? ['-L', config.tmuxSocket] : []), 'capture-pane', '-p', '-t', pane], {
@@ -9009,8 +9159,8 @@ function mobilVersionMessen(pid: number): string {
   if (lsof.status !== 0) return '';
   const pfade = String(lsof.stdout ?? '').split('\n').filter((z) => z.startsWith('n/')).map((z) => z.slice(1));
   for (const pfad of pfade) {
-    const treffer = /\/versions\/(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)$/.exec(pfad);
-    if (treffer) return treffer[1];
+    const version = claudeVersionAusPfad(pfad);
+    if (version) return version;
   }
   const datei = pfade[0] ?? '';
   if (!datei || !mobilDateiAelterAlsProzess(datei, pid)) return '';
@@ -9237,9 +9387,13 @@ function mobilDienstErzeugen(): MobilDienst {
     },
     freigaben: {
       list: () => ({
-        requests: readRequests(config.requestsDir).map((q) => ({ path: q.path, inhaltSha256: q.inhaltSha256, parent: q.parent, childName: q.childName, task: q.task, ts: q.ts })),
+        requests: readRequests(config.requestsDir, sessions).map((q) => ({
+          path: q.path, inhaltSha256: q.inhaltSha256, parent: q.parent, childName: q.childName, task: q.task, ts: q.ts,
+          rolle: q.rolle, anzeigename: q.anzeigename, absicht: q.absicht, absichtQuelle: q.absichtQuelle,
+        })),
         guards: readGuardBlocks(config.guardBlocksDir, sessions, config.tmuxSocket).map((b) => ({
           path: b.path, schluessel: b.schluessel, workerName: b.workerName, reason: b.reason, musterGrund: b.musterGrund, ts: b.ts, wartet: b.wartet,
+          rolle: b.rolle, anzeigename: b.anzeigename, absicht: b.absicht, absichtQuelle: b.absichtQuelle, command: b.command, cwd: b.cwd,
           sessionId: b.sessionId ? (b.machine && b.machine !== config.machine ? `${b.machine}:${b.sessionId}` : `${config.machine}:${b.sessionId}`) : '',
         })),
       }),
@@ -9468,6 +9622,7 @@ async function shutdown(code: number): Promise<void> {
   gastBeenden();
   budgetPoller.stop();
   harnessUpdateScheduler.stop();
+  claudeMessstand.stop();
   aufgabenQuelle.stop();
   // Der mobile Server geht mit dem Kern (Spezifikation 2.1): offene SSE-Stroeme werden getrennt.
   if (mobil) {
@@ -9496,12 +9651,12 @@ async function shutdown(code: number): Promise<void> {
   dateiWaechter = null;
   editorWaechter?.close();
   editorWaechter = null;
-  // Die Lebensspur auch auf DIESEM Weg loeschen (11.08.). `zurueckstellen`
-  // haengt an before-quit/will-quit und faengt das Beenden ueber das Menue
-  // oder ein Signal; hier faellt das Schliessen des letzten Fensters an, denn
-  // `app.exit()` am Ende dieser Funktion meldet keinen Ausstieg mehr. Zweimal
-  // geloescht schadet nichts, einmal vergessen kostet die Unterscheidung
-  // zwischen Neustart und Absturz.
+  // Die Lebensspur auch auf DIESEM Weg als sauber beendet kennzeichnen (11.08.,
+  // seit 10.11. ohne zu leeren). `zurueckstellen` haengt an before-quit/will-quit
+  // und faengt das Beenden ueber das Menue oder ein Signal; hier faellt das
+  // Schliessen des letzten Fensters an, denn `app.exit()` am Ende dieser Funktion
+  // meldet keinen Ausstieg mehr. Zweimal geschrieben schadet nichts, einmal
+  // vergessen kostet die Unterscheidung zwischen Neustart und Absturz.
   try {
     lebensspur.sauberBeendet();
   } catch {
@@ -9985,7 +10140,7 @@ app.whenReady().then(async () => {
   if (config.mantelSocket) {
     try {
       const m = new MantelKanal(config.mantelSocket, config.mantelToken, {
-        // DIE APP IST DER ELTERNPROZESS (13.10.2026, Auftrag wz-mantel):
+        // DIE APP IST DER ELTERNPROZESS (13.10.2026, task):
         // Kernstart.swift startet die Electron-Binaerdatei direkt, also ist die
         // Peer-PID der echten App `process.ppid` (live gemessen: Werkbank 6268,
         // Kern 6286, ppid 6268). Seit 14.10. laesst auch `mac/bin/starten`
@@ -10211,9 +10366,11 @@ app.whenReady().then(async () => {
   // Danach liest der Scheduler das aktuelle Intervall erneut; die Sperrdatei
   // des Shell-Werkzeugs verhindert parallel laufende App-Instanzen.
   harnessUpdateScheduler.start();
+  if (config.stateDir === join(homedir(), '.config', 'agent-workbench')) void claudeMessstand.start();
 
   // Sichtbar startet das Fenster nur, wenn ein MENSCH es ausdruecklich
   // verlangt. Kein Automatismus fuehrt hierher.
+  // In der Testumgebung ist `show()` schon `showInactive()` an einem unsichtbaren Fenster (testfenster.ts).
   if (win && zeigen) win.show();
   else if (win && zeigenInaktiv) win.showInactive();
 
@@ -10269,13 +10426,14 @@ function zurueckstellen(): void {
   } catch {
     // Ein Fehler beim Zurueckstellen darf das Beenden nicht aufhalten.
   }
-  // UND DIE LEBENSSPUR LOESCHEN (11.08.). Wer ordentlich zumacht, hat kein
-  // Ende verpasst -- er hoert auf hinzusehen. Ohne diesen Schritt stuenden
-  // nach jedem gewoehnlichen Neustart des Rechners saemtliche Sitzungen als
-  // verloren in der linken Spalte, weil der Neustart den tmux-Server
-  // mitnimmt: genau die Menge, die A12 verbergen soll. Ein Absturz kommt an
-  // diese Stelle nicht, und das ist der ganze Unterschied. Die Kehrseite
-  // steht im Kopf von lebensspur.ts.
+  // UND DIE LEBENSSPUR ALS SAUBER BEENDET KENNZEICHNEN (11.08.; seit 10.11.
+  // bleibt die Liste stehen). Wer ordentlich zumacht, hat kein Ende verpasst --
+  // er hoert auf hinzusehen. Ob nach einem Neustart des Rechners Sitzungen
+  // angeboten werden, entscheidet der naechste Start am Rechnerstart; bei nur
+  // geschlossenem Fenster bleibt die Spur dort leer, und die Sitzungen stuenden
+  // sonst nicht als verloren in der linken Spalte -- genau die Menge, die A12
+  // verbergen soll. Ein Absturz kommt an diese Stelle nicht, und das ist der
+  // ganze Unterschied. Die Kehrseite steht im Kopf von lebensspur.ts.
   try {
     lebensspur.sauberBeendet();
   } catch {

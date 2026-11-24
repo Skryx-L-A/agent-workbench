@@ -231,9 +231,7 @@ group_attached() {
 
 # --- Der Modellserver einer geschlossenen Sitzung ----------------------------
 #
-# BEFUND 2026-08-21 (der Nutzer, woertlich): „Ich habe die Sitzung mit Pi und
-# Qwen 3.8 geschlossen ... aber das Modell belegt noch den Speicherplatz, also
-# es wird nicht entladen, wenn ich die Sitzung schliesse." Er musste den Server
+# BEFUND 2026-08-21 (der Nutzer) Er musste den Server
 # von Hand beenden. Die andere Haelfte funktionierte bereits: die Belegung
 # erkannte den Prozess von selbst als tot und nahm ihn aus der Vergabe. Was
 # fehlte, war das Beenden. Solange es fehlt, haelt jede geschlossene lokale

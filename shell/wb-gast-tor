@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S -u DEVELOPER_DIR -u SDKROOT -u TOOLCHAINS /usr/bin/python3 -E -s -S
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): nie ein python3 aus dem PATH des
+# Aufrufers, ohne die xcrun-Variablen, PYTHON*-Variablen, User-site und site.
 # wb-gast-tor — Zwangsbefehl fuer einen Gast-Schluessel im authorized_keys des Werkbank-Kontos.
 #
 #   authorized_keys (eine Zeile, Beispiel):
@@ -75,6 +77,17 @@ VERBOTENE_PROGRAMME = SHELLS | {
     'python3', 'ipython', 'perl', 'ruby', 'irb', 'lua', 'ssh', 'sudo', 'su', 'doas', 'tmux',
     'screen', 'yazi', 'ranger', 'mc', 'lf', 'nnn', 'htop', 'top', 'btop', 'git', 'gdb', 'watch',
 }
+# Versionsendung eines Programmnamens: `python3.12`, `perl5.38.0`, `emacs-29.1`, `bash5`.
+VERSIONSENDUNG_RE = re.compile(r'[-_.]?[0-9][0-9.]*$')
+
+
+def programm_verboten(programm):
+    """Name oder Name ohne Versionsendung steht auf der Sperrliste. `node22` und `pip3.12` bleiben
+    erlaubt, weil `node` und `pip` nicht auf der Liste stehen (der Agent selbst laeuft als `node`)."""
+    name = os.path.basename(programm).lower()
+    return name in VERBOTENE_PROGRAMME or VERSIONSENDUNG_RE.sub('', name) in VERBOTENE_PROGRAMME
+
+
 LEERE_TASTENTABELLE = 'wb-gast-leer'
 TRENNTASTE = 0x1d  # Ctrl-]
 
@@ -91,7 +104,8 @@ VORSCHAU_BREITE_MAX = 400
 VORSCHAU_PANES_MAX = 16
 # Alles unter 0x20 ausser Tabulator, dazu DEL und die C1-Steuerzeichen: nichts davon darf als
 # Terminalbefehl beim Gast ankommen (capture-pane ohne -e liefert ohnehin keine Farbfolgen).
-VORSCHAU_STEUERZEICHEN = re.compile('[\x00-\x08\x0a-\x1f\x7f-\x9f]')
+# Rohtext: die Bereiche stehen als Regex-Escapes, nicht als dekodierte Steuerzeichen (CodeQL py/overly-large-range).
+VORSCHAU_STEUERZEICHEN = re.compile(r'[\x00-\x08\x0a-\x1f\x7f-\x9f]')
 
 
 class Abgelehnt(Exception):
@@ -115,6 +129,20 @@ class Tor:
         self.push_praefix = f'refs/heads/{person}/'
 
     # ------------------------------------------------------------------ Protokoll
+    def log_oeffnen(self):
+        try:
+            os.makedirs(os.path.dirname(self.log_datei), mode=0o700, exist_ok=True)
+            return os.open(self.log_datei, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+        except OSError as e:
+            print(f'wb-gast-tor: Protokoll nicht schreibbar ({e}) -- Aufruf abgelehnt.', file=sys.stderr)
+            raise SystemExit(70)
+
+    def log_bereit(self):
+        """Vor der Aktion pruefen: `schreiben`, `neu` und `schliessen` protokollieren erst NACH
+        dem Tun -- ohne diese Pruefung waere der Text schon im Pane, die Sitzung schon da, wenn
+        das Protokoll sich als unschreibbar zeigt, und "Aufruf abgelehnt" wahrheitswidrig."""
+        os.close(self.log_oeffnen())
+
     def log(self, aktion, **felder):
         zeile = {
             'zeit': jetzt(), 'person': self.person, 'aktion': aktion,
@@ -122,18 +150,21 @@ class Tor:
         }
         zeile.update(felder)
         try:
-            os.makedirs(os.path.dirname(self.log_datei), mode=0o700, exist_ok=True)
-            fd = os.open(self.log_datei, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
-            with os.fdopen(fd, 'a', encoding='utf-8') as f:
+            with os.fdopen(self.log_oeffnen(), 'a', encoding='utf-8') as f:
                 f.write(json.dumps(zeile, ensure_ascii=False) + '\n')
         except OSError as e:
             print(f'wb-gast-tor: Protokoll nicht schreibbar ({e}) -- Aufruf abgelehnt.', file=sys.stderr)
             raise SystemExit(70)
 
     # ---------------------------------------------------------------------- tmux
-    def tmux(self, *args, eingabe=None, pruefen=True):
-        r = subprocess.run([self.tmux_bin, *args], input=eingabe, capture_output=True,
-                           env=self.env, timeout=10)
+    def tmux(self, *args, eingabe=None, pruefen=True, frist=10):
+        try:
+            r = subprocess.run([self.tmux_bin, *args], input=eingabe, capture_output=True,
+                               env=self.env, timeout=frist)
+        except subprocess.TimeoutExpired:
+            if pruefen:
+                raise Abgelehnt(f'tmux {args[0]} antwortet nicht')
+            return ''
         if pruefen and r.returncode != 0:
             raise Abgelehnt(f'tmux {args[0]} fehlgeschlagen: {r.stderr.decode(errors="replace").strip()}')
         return r.stdout.decode(errors='replace')
@@ -215,7 +246,7 @@ class Tor:
         programm, _, tot = roh.partition('\t')
         if tot == '1':
             return False, 'Der Pane ist beendet.'
-        if os.path.basename(programm).lower() in VERBOTENE_PROGRAMME:
+        if programm_verboten(programm):
             return False, f'Im Pane laeuft "{programm}" -- dorthin schreibt das Tor nicht.'
         return True, ''
 
@@ -233,8 +264,16 @@ class Tor:
                    if os.path.isfile(p) and os.access(p, os.X_OK)), None)
         if not pw:
             return False, 'wb-pane-write fehlt -- ob der Pane frei ist, laesst sich nicht pruefen.'
+        # Dieselbe tmux-Instanz wie beim Schreiben (22.10.2026, Gesamtlauf): wb-pane-write nimmt tmux
+        # seit w1-tmux nur vom festen Pfad und fragte ohne -L den STANDARD-Server -- dort ist
+        # %5 ein ganz anderer Pane als auf dem Server, in den dieses Tor schreibt. Der Server
+        # wird darum am eigenen tmux gemessen und als -L <name> mitgegeben; unklar = nicht frei.
+        sock = self.tmux('display-message', '-p', '-t', pane_id, '#{socket_path}', pruefen=False).strip()
+        if not sock:
+            return False, 'tmux-Server des Tors nicht bestimmbar -- ob der Pane frei ist, laesst sich nicht pruefen.'
         try:
-            r = subprocess.run([pw, 'frei', pane_id], capture_output=True, env=self.env, timeout=20)
+            r = subprocess.run([pw, '-L', os.path.basename(sock), 'frei', pane_id], capture_output=True,
+                               env=self.env, timeout=20)
         except Exception:
             return False, 'Pruefung, ob der Pane frei ist, ohne Antwort.'
         if r.returncode == 0:
@@ -365,11 +404,12 @@ class Tor:
                                        (a.effort, '--effort', EFFORT_RE), (a.name, '--name', ANZEIGENAME_RE)):
             if wert is None:
                 continue
-            if not muster.match(wert):
+            # fullmatch: `$` liesse einen Zeilenumbruch am Ende durch ("high\n").
+            if not muster.fullmatch(wert):
                 raise Abgelehnt(f'{schalter}: unzulaessiger Wert.')
             wb_args += [schalter, wert]
-        # sessionKey im Werkbank-Format (6 Hex-Zeichen, sonst verweigern wb-session-delete und
-        # die Oberflaeche die Sitzung); wem sie gehoert, sagen @wb_person und WB_PERSON.
+        # sessionKey im Werkbank-Format (6 Hex-Zeichen, wie die Oberflaeche ihn erzeugt);
+        # wem die Sitzung gehoert, sagen @wb_person und WB_PERSON.
         schluessel = secrets.token_hex(3)
         wb_args += ['--key', schluessel]
         if a.name is None:
@@ -463,9 +503,10 @@ class Tor:
             raise Abgelehnt('git-upload-pack <repo>')
         repo = self.repo_pfad(args[0])
         self.log('git-upload-pack', repo=repo)
+        # Kein GIT_PROTOCOL des Gastes: bei Protokoll v2 ignoriert upload-pack allowAnySHA1InWant und
+        # lieferte jedes Objekt des Repos, auch nicht erreichbare (gemessen, git 2.50.1). Ohne die
+        # Variable spricht es v0, dort greift der Schalter; der Client faellt selbst auf v0 zurueck.
         env = dict(self.env)
-        if os.environ.get('GIT_PROTOCOL'):
-            env['GIT_PROTOCOL'] = os.environ['GIT_PROTOCOL']
         os.execvpe('git', ['git', '-c', 'uploadpack.allowAnySHA1InWant=false', 'upload-pack', repo], env)
 
     def cmd_receive_pack(self, args):
@@ -483,7 +524,7 @@ class Tor:
         # core.hooksPath per -c: fuer diesen einen Aufruf gilt NUR der Gast-Hook, das Repo und
         # seine eigenen Hooks bleiben unveraendert.
         # updateInstead: ein ausdruecklicher Direkt-Push auf den ausgecheckten main (Push-Option
-        # `direkt`, der Nutzer 27.09.2026) aktualisiert den Arbeitsbaum nur, wenn dort nichts
+        # `direkt`, decision 2026-09-27) aktualisiert den Arbeitsbaum nur, wenn dort nichts
         # Ungesichertes liegt; sonst lehnt git ab. Ob main ueberhaupt erlaubt ist, entscheidet der Hook.
         os.execvpe('git', ['git', '-c', f'core.hooksPath={self.hook_dir}', '-c', 'receive.fsckObjects=true',
                            '-c', 'receive.denyCurrentBranch=updateInstead', '-c', 'receive.denyDeleteCurrent=refuse',
@@ -514,8 +555,9 @@ class Tor:
                 self.tmux('set-option', '-t', f'={sicht}:', opt, wert)
             self.tmux('select-window', '-t', f'={sicht}:{pane["fenster_id"]}', pruefen=False)
             self.log('anhaengen', sitzung=s['sitzung'], pane=pane['pane'])
-            ergebnis = Relay(self, sicht, pane['pane']).laufen()
-            self.log('getrennt', sitzung=s['sitzung'], pane=pane['pane'], grund=ergebnis)
+            relay = Relay(self, sicht, pane['pane'])
+            ergebnis = relay.laufen()
+            self.log('getrennt', sitzung=s['sitzung'], pane=pane['pane'], grund=ergebnis, client=relay.client_ende)
             print(f'\r\nwb-gast-tor: getrennt ({ergebnis}).\r')
         finally:
             self.tmux('kill-session', '-t', f'={sicht}', pruefen=False)
@@ -530,6 +572,8 @@ class Relay:
         self.sicht = sicht
         self.pane = pane_id
         self.letzte_pruefung = 0.0
+        self.abbau_abbruch = False
+        self.client_ende = ''
 
     def fenstergroesse(self, fd):
         try:
@@ -615,8 +659,12 @@ class Relay:
         except Abgelehnt as e:
             grund = str(e)
         finally:
-            signal.signal(signal.SIGHUP, signal.SIG_IGN)
-            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            # Im Abbau unterbricht ein Signal nichts mehr, verkuerzt ihn aber: der Client wird dann
+            # sofort hart beendet, statt auf sein Ende zu warten.
+            def abbau_abbruch(*_):
+                self.abbau_abbruch = True
+            signal.signal(signal.SIGHUP, abbau_abbruch)
+            signal.signal(signal.SIGTERM, abbau_abbruch)
             self.client_beenden(pid, master)
             termios.tcsetattr(0, termios.TCSADRAIN, alt)
         return grund
@@ -625,12 +673,19 @@ class Relay:
         """Die Sicht abbauen und den Client dabei weiterlesen: er schreibt beim Ende noch das
         Zuruecksetzen des Terminals (Alternativbild verlassen, Cursor zeigen). Liest keiner
         mit, bleibt er an einem vollen pty haengen."""
-        self.tor.tmux('detach-client', '-s', f'={self.sicht}', pruefen=False)
-        self.tor.tmux('kill-session', '-t', f'={self.sicht}', pruefen=False)
+        # Den Client mit seinem Namen trennen: `-s <sicht>` erreicht ihn nicht mehr, sobald er in eine
+        # andere Sitzung gewechselt ist ("Sicht verlassen"); er blieb dann dort haengen, bis die
+        # drei Sekunden um waren und er hart beendet wurde (gemessen 3,1 bis 3,9 s bei jedem Lauf).
+        name = self.client_name(pid)
+        if name:
+            self.tor.tmux('detach-client', '-t', name, pruefen=False, frist=3)
+        else:
+            self.tor.tmux('detach-client', '-s', f'={self.sicht}', pruefen=False, frist=3)
         frist = time.monotonic() + 3
-        while time.monotonic() < frist:
+        while not self.abbau_abbruch and time.monotonic() < frist:
             fertig, _ = os.waitpid(pid, os.WNOHANG)
             if fertig:
+                self.client_ende = 'getrennt'
                 break
             bereit, _, _ = select.select([master], [], [], 0.1)
             if bereit:
@@ -641,12 +696,25 @@ class Relay:
                 except OSError:
                     pass
         else:
+            self.client_ende = 'hart beendet'
+            self.tor.tmux('kill-session', '-t', f'={self.sicht}', pruefen=False, frist=3)
             try:
                 os.kill(pid, signal.SIGKILL)
                 os.waitpid(pid, 0)
             except OSError:
                 pass
+        # Die Sicht erst abbauen, wenn der Client weg ist: Trennen und Abbauen zugleich liess den
+        # tmux-Server (3.7c) gelegentlich abstuerzen.
+        self.tor.tmux('kill-session', '-t', f'={self.sicht}', pruefen=False, frist=3)
         os.close(master)
+
+    def client_name(self, pid):
+        roh = self.tor.tmux('list-clients', '-F', '#{client_pid}\t#{client_name}', pruefen=False, frist=3)
+        for zeile in roh.splitlines():
+            cpid, _, name = zeile.partition('\t')
+            if cpid == str(pid) and name:
+                return name
+        return ''
 
     def client_in_sicht(self, pid):
         """Zweite Sicherung zu detach-on-destroy: haengt unser Client an einer anderen
@@ -781,7 +849,7 @@ def _push_optionen():
 
 def pre_receive(person, log_datei):
     """Als pre-receive-Hook: Zweige <person>/* frei; main nur ausdruecklich (Push-Option
-    `direkt`, der Nutzer 27.09.2026), nur als Fast-Forward und nie loeschen."""
+    `direkt`, decision 2026-09-27), nur als Fast-Forward und nie loeschen."""
     praefix = f'refs/heads/{person}/'
     direkt = 'direkt' in _push_optionen()
     abgelehnt = []
@@ -843,7 +911,8 @@ def main():
     home = os.path.expanduser('~')
     wb_bin = a.wb_bin or os.path.join(home, '.local', 'bin')
     # Eine feste, schmale Umgebung fuer alles, was das Tor startet. Nichts aus der ssh-Sitzung
-    # wird durchgereicht ausser TERM (fuer die Anzeige) und GIT_PROTOCOL (fuer git).
+    # wird durchgereicht ausser TERM (fuer die Anzeige) und GIT_PROTOCOL fuer receive-pack (upload-pack
+    # verwirft es, siehe cmd_upload_pack).
     env = {
         'HOME': home, 'USER': os.environ.get('USER', ''), 'LOGNAME': os.environ.get('LOGNAME', ''),
         'PATH': f'{wb_bin}:{home}/.local/bin:/usr/local/bin:/usr/bin:/bin',
@@ -883,6 +952,8 @@ def main():
         print(f'wb-gast-tor: "{teile[0]}" ist hier nicht erlaubt. `hilfe` zeigt, was geht.', file=sys.stderr)
         return 64
     try:
+        if fn != tor.cmd_hilfe:
+            tor.log_bereit()
         return fn(teile[1:])
     except Abgelehnt as e:
         tor.log('abgelehnt', befehl=roh[:200], grund=str(e))

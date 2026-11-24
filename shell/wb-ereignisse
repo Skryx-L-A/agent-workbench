@@ -154,8 +154,8 @@ esac
 # je nach Augenblick zwei Dateisaetze. Siehe regeln/worker-panes.md.
 base_session_name() {   # <pane-id> -> Basis-Sessionname
     local pane="$1" sess grp
-    sess=$(tmux display -p -t "$pane" '#{session_name}' 2>/dev/null)
-    grp=$(tmux display -p -t "$pane" '#{session_group}' 2>/dev/null)
+    sess=$(tmux -u display -p -t "$pane" '#{session_name}' 2>/dev/null)
+    grp=$(tmux -u display -p -t "$pane" '#{session_group}' 2>/dev/null)
     printf '%s' "${grp:-$sess}"
 }
 
@@ -169,7 +169,7 @@ fi
 # fremde Werkbank spawnen lassen; dort wie hier gilt: lieber laut fehlschlagen
 # als raten.
 if [ -z "$SESS" ] && [ -n "${TMUX:-}" ]; then
-    eigen=$(tmux display -p '#{pane_id}' 2>/dev/null || true)
+    eigen=$(tmux -u display -p '#{pane_id}' 2>/dev/null || true)
     [ -n "$eigen" ] && SESS="$(base_session_name "$eigen")"
 fi
 if [ -z "$SESS" ]; then
@@ -182,7 +182,7 @@ fi
 # Der Slug traegt den SOCKETPFAD mit. Ein Test auf eigenem Socket bekommt damit
 # von selbst eigene Merker, auch wenn die Session zufaellig gleich heisst -- eine
 # Testklausel im Code braucht es dafuer nicht.
-sockpfad=$(tmux display -p '#{socket_path}' 2>/dev/null || true)
+sockpfad=$(tmux -u display -p '#{socket_path}' 2>/dev/null || true)
 SLUG="$(printf '%s|%s' "${sockpfad:-kein-socket}" "$SESS" | tr -c 'a-zA-Z0-9' '-')"
 STATE="$STATE_BASE/$SLUG"
 mkdir -p "$STATE/fertig" "$STATE/freigabe" "$STATE/still" "$STATE/weg" "$STATE/bewegung" 2>/dev/null
@@ -311,30 +311,50 @@ LEBT_NAMEN=""
 panes_lesen() {
     local name pane dead pid roh rc
     LEBT=""; TOT=""; LEBT_NAMEN=""
-    # Der awk-Filter wirft Panes OHNE @wb_worker heraus, und er tut es VOR dem
-    # `read`: bei `IFS=$'\t'` ist der Tabulator IFS-Weissraum, fuehrende leere
-    # Felder fallen also weg, und die Zeile eines Orchestrator-Panes rueckt um
-    # eins auf. Der "Worker" hiesse dann %10 und wuerde beim naechsten
-    # Fensterschluss als verschwundener Worker gemeldet -- genau so gemessen am
-    # 2026-08-07. awk (FS='\t') zaehlt leere Felder korrekt mit.
-    # Erst tmux, dann filtern, in zwei Schritten: so ist der Exit-Code wirklich
-    # der von tmux und nicht der von awk am Ende einer Pipe.
-    roh=$(tmux list-panes -s -t "=$SESS" \
-            -F '#{@wb_worker}	#{pane_id}	#{pane_dead}	#{pane_pid}' 2>/dev/null)
+    # Format: feste Felder zuerst, getrennt mit '|', der Worker-Name als REST am Ende, und `tmux -u`.
+    # Grund (gemessen 20.11.2026, tmux 3.8 am Mac, 3.7c auf peer): Laeuft der tmux-Client ohne UTF-8-
+    # Gebietsschema (LANG/LC_ALL leer oder POSIX und kein $TMUX, etwa ueber `ssh -n`, aus launchd oder
+    # unter `env -u TMUX`), gibt tmux ein Tab im -F-Format als '_' aus und jedes Nicht-ASCII-Zeichen
+    # ebenfalls. Mit dem alten Tab-Format war `dead` dann leer, jeder Worker landete in TOT, und
+    # pruefe_weg meldete lebende Worker als verschwunden. '|' bleibt erhalten. Der Name ist Freitext
+    # (er darf Umlaute und selbst '|' enthalten), deshalb steht er hinten und `read` gibt ihm den Rest;
+    # `-u` haelt den Umlaut exakt.
+    # Panes OHNE @wb_worker (leerer Name) werden uebersprungen. Das Feld steht hinten, damit kein
+    # fuehrendes leeres Feld bei `read` wegfaellt (gemessen 2026-08-07: die Zeile eines Orchestrator-
+    # Panes rueckte um eins auf, "Worker" hiess %10).
+    # Erst tmux, dann zerlegen, in zwei Schritten: so ist der Exit-Code wirklich der von tmux.
+    # Kein falsches "verschwunden": Eine leere Antwort (ein laufender Server hat immer einen Pane) oder
+    # eine Zeile, die nicht "%<n>|0/1|<zahl>|<name>" ist, heisst "tmux hat nicht geantwortet" (Rueckgabe 1,
+    # Zustand unklar), nie "kein Worker lebt" und nie "tot".
+    roh=$(tmux -u list-panes -s -t "=$SESS" \
+            -F '#{pane_id}|#{pane_dead}|#{pane_pid}|#{@wb_worker}' 2>/dev/null)
     rc=$?
     [ "$rc" = 0 ] || return 1
-    roh=$(printf '%s\n' "$roh" | awk -F'\t' '$1 != ""')
-    while IFS=$'\t' read -r name pane dead pid; do
+    [ -n "$roh" ] || return 1
+    local z_lebt="" z_tot="" namen="" zeile
+    while IFS= read -r zeile; do
+        case "$zeile" in
+            %[0-9]*"|"[01]"|"*"|"*) ;;
+            *) return 1 ;;
+        esac
+        IFS='|' read -r pane dead pid name <<EOF
+$zeile
+EOF
+        case "$pane" in %*[!0-9]*|%) return 1 ;; esac
+        # Ein toter Pane hat keine pane_pid (leeres Feld, gemessen); ein lebender braucht eine Zahl.
+        case "$pid" in *[!0-9]*) return 1 ;; esac
+        [ "$dead" = 1 ] || [ -n "$pid" ] || return 1
         [ -n "$name" ] || continue
         if [ "$dead" = "0" ]; then
-            LEBT="$LEBT$name	$pane	$pid"$'\n'
-            LEBT_NAMEN="$LEBT_NAMEN$name"$'\n'
+            z_lebt="$z_lebt$name	$pane	$pid"$'\n'
+            namen="$namen$name"$'\n'
         else
-            TOT="$TOT$name	$pane"$'\n'
+            z_tot="$z_tot$name	$pane"$'\n'
         fi
     done <<EOF
 $roh
 EOF
+    LEBT="$z_lebt"; TOT="$z_tot"; LEBT_NAMEN="$namen"
     return 0
 }
 

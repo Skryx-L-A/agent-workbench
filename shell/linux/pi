@@ -3,4 +3,6 @@
 # via systemd-SSH-Tunnel mac-ollama-tunnel.service (peer 127.0.0.1:11434 -> Mac 127.0.0.1:11434).
 # Mac-ollama bleibt Default (127.0.0.1), keine LAN-Exposition, Mac-lokal unberuehrt.
 export OLLAMA_HOST="${OLLAMA_HOST:-http://127.0.0.1:11434}"
+# $HOME statt eines festen Pfads (18.10.2026): hier stand $HOME/..., auf peer heisst das Konto <user>;
+# die installierte Kopie war von Hand angepasst und stand in keinem Abgleich.
 exec "$HOME/.nvm/versions/node/v24.17.0/bin/node" "$HOME/.nvm/versions/node/v24.17.0/lib/node_modules/@earendil-works/pi-coding-agent/dist/cli.js" "$@"

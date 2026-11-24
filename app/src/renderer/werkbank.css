@@ -60,7 +60,7 @@
      die Fuge ist der Griff, und es steht keine zusaetzliche Linie darin. */
   --fuge: 4px;
   --r-karte: 10px;
-  /* DIE SITZUNGSZEILE DER LINKEN LEISTE: 44 BILDPUNKTE (alice, 05.09.2026:
+  /* DIE SITZUNGSZEILE DER LINKEN LEISTE: 44 BILDPUNKTE (decision 2026-09-05:
      „44 px, wie gebaut"). Bis dahin stand hier 32 -- der Wert der einzeiligen
      Fassung --, waehrend jede Sitzungszeile im Fenster mit ihrer Zusatzzeile
      44 mass (gemessen ueber `awb-ctl ui`, gestalt.zeilenhoehe). Die Zahl steht
@@ -491,7 +491,7 @@ html[data-mac='ja'] #titelleiste { padding-left: var(--mac-knopfstreifen); }
   border-radius: 4px; color: var(--gedaempft);
 }
 .orch-zeile .wieder:hover { color: var(--schrift); background: var(--erhoben); }
-/* Eine Chat-Sitzung steht in DERSELBEN Liste (alice am 12.08.), sie traegt
+/* Eine Chat-Sitzung steht in DERSELBEN Liste (decision 08-12), sie traegt
    nur ihr Kennzeichen -- seit dem 04.09. als dasselbe 16-Punkt-Symbol wie jede
    andere Zeile, nur mit anderer Zeichnung. Laeuft sie, faerbt es sich. */
 .orch-zeile.chat.laeuft .zeilensymbol { color: var(--zustand-laeuft); }

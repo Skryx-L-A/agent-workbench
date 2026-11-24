@@ -257,7 +257,8 @@ declare global {
       setzen(key: string, value: unknown): Promise<{ ok: boolean; ausgabe: string; aufruf: string }>;
       werkzeug(nachricht: Record<string, unknown>, echt: boolean): Promise<{ ok: boolean; ausgabe: string; aufruf: string }>;
       ui(key: string, value: unknown): Promise<{ ok: boolean }>;
-      maschinePruefen(name: string): Promise<{ ok: boolean; ausgabe: string }>;
+      /** Nur Ok und Fall; der Satz kommt aus `satz.maschinePruefen.<fall>`, nie die Ausgabe von ssh. */
+      maschinePruefen(name: string): Promise<{ ok: boolean; fall: string }>;
       onDaten(fn: (d: Daten) => void): void;
       bereit(): void;
       /** Je Anbieter-ID: liegt ein Schluessel im Schluesselbund vor? Nie der Wert. */
@@ -536,10 +537,7 @@ function vorhersageAnzeige(modelle: ModellSicht[], modellId: string): string {
 }
 
 /**
- * DIE WAHL UNTER MEHREREN VORHERSAGE-WEGEN (2026-08-21). alice: "ich will
- * das ich als zweite option qwen3.8 als orchestrator auch mit einem
- * multitokenprediction model starten kann anstatt mtplx, ich will mich
- * entscheiden koennen."
+ * DIE WAHL UNTER MEHREREN VORHERSAGE-WEGEN (2026-08-21). alice
  *
  * WAS DAMIT WAEHLBAR WIRD UND WAS NICHT: waehlbar sind genau die Wege, die die
  * Registry fuer dieses Modell fuehrt -- kein Pfadfeld, keine freie Eingabe. Die
@@ -2014,6 +2012,12 @@ function seiteHarnesses(d: Daten): HTMLElement {
 
 // --- Seite 4: Maschinen -----------------------------------------------------
 
+/** Der Satz zu einem Pruefergebnis; ein unbekannter Fall faellt auf „sonst“. */
+const MASCHINEN_FAELLE = ['keineAntwort', 'name', 'anmeldung', 'hostschluessel', 'verweigert', 'keinSsh', 'sonst'];
+function maschinenSatz(fall: string): string {
+  return t(`satz.maschinePruefen.${MASCHINEN_FAELLE.includes(fall) ? fall : 'sonst'}`);
+}
+
 function seiteMaschinen(d: Daten): HTMLElement {
   const s = el('section', 'seite');
   s.dataset.seite = 'maschinen';
@@ -2061,13 +2065,24 @@ function seiteMaschinen(d: Daten): HTMLElement {
     const antwort = el('span', 'antwort', '');
     antwort.dataset.antwort = m;
     rechts.appendChild(antwort);
+    // DER GRUND STEHT UNTER DER ZEILE (05.11.2026). Rechts neben dem Knopf steht
+    // nur das kurze Wort; ein langer Grund dort drueckte Name und Beschreibung
+    // auf ein paar Zeichen Breite. Der Grund ist ein Satz aus der Texttabelle,
+    // nie die Ausgabe von ssh (app/src/main/maschine-pruefen.ts).
+    const pruefgrund = el('div', 'klartext pruefgrund', '');
+    pruefgrund.dataset.pruefgrund = m;
+    pruefgrund.hidden = true;
     rechts.appendChild(knopf(t('wort.pruefen'), () => {
       antwort.textContent = t('wort.frage');
       antwort.className = 'antwort';
+      pruefgrund.hidden = true;
       void window.awbEinstellungen.maschinePruefen(m).then((r) => {
-        antwort.textContent = r.ok ? t('wort.erreichbar') : t('wort.nichtErreichbar', { grund: r.ausgabe });
+        const satz = r.ok ? '' : maschinenSatz(r.fall);
+        antwort.textContent = r.ok ? t('wort.erreichbar') : t('wort.nichtErreichbar');
         antwort.className = r.ok ? 'antwort gut' : 'antwort schlecht';
-        melde(`ssh ${m}: ${r.ausgabe}`, r.ok ? 'gut' : 'fehler');
+        pruefgrund.textContent = satz;
+        pruefgrund.hidden = r.ok;
+        melde(r.ok ? `${m}: ${t('wort.erreichbar')}` : `${m}: ${satz}`, r.ok ? 'gut' : 'fehler');
       });
     }));
     rechts.appendChild(knopf(t('wort.entfernen'), () => {
@@ -2075,6 +2090,7 @@ function seiteMaschinen(d: Daten): HTMLElement {
     }, true));
     z.appendChild(rechts);
     liste.appendChild(z);
+    liste.appendChild(pruefgrund);
     // Wie viel eine ANDERE Maschine traegt, steht in IHRER Einstellungsdatei.
     // Eine zweite Zahl hier waere eine zweite Wahrheit, von der eine falsch
     // ist -- der Weg dorthin steht im Klartext daneben.

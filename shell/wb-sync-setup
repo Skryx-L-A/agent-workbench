@@ -10,6 +10,7 @@
 #   wb-sync-setup            zeigt, was auseinanderlaeuft (aendert NICHTS)
 #   wb-sync-setup --apply    kopiert die Unterschiede zur anderen Maschine
 #   wb-sync-setup --to peer  Ziel erzwingen (Default: die jeweils ANDERE Maschine)
+#   Exit 6: --apply abgewiesen, die Quelle ist nicht der ausgerollte main-Stand (QUELLSCHUTZ unten).
 #
 # WAS ABGEGLICHEN WIRD: Werkzeuge (~/.local/bin), Hooks, Regeldateien (~/.claude/regeln),
 # die Rollen (~/.claude/roles/orchestrator.md und agent.md) und ~/.claude/git-hooks.
@@ -34,7 +35,7 @@
 #   - `CLAUDE.md` und `AGENTS.md`: `CLAUDE.md` traegt oben die Maschinenbeschreibung
 #     ("Machine: MacBook Pro ..." bzw. "Machine: Peer-Rechner ..."); beide stehen in der Umstellung
 #     (AGENTS.md ist die kuenftige Regelquelle). Werden nur GEMELDET, nie kopiert.
-#   - `IDENTITY.md`, alles unter `secrets/`: per Definition maschinenlokal.
+#   - `IDENTITY.md`, alles unter `90-secrets/`: per Definition maschinenlokal.
 set -uo pipefail
 
 case "$(uname -s)" in Darwin) SELF=mac; OTHER=peer ;; *) SELF=peer; OTHER=mac ;; esac
@@ -150,6 +151,9 @@ FILES=(
   # fehlt sie drueben nicht mehr unbemerkt.
   ".local/bin/wb-werkzeuge" ".local/bin/werkzeuge_kern.py" ".local/bin/werkzeuge_claude.py"
   ".local/bin/werkzeuge_codex.py" ".local/bin/werkzeuge_familie.py" ".local/bin/werkzeuge_geheimnis.py"
+  # Der Geheimnisfilter, den der Dienst startet (agent-workbench.geheimnis-filter): ohne ihn auf der zweiten
+  # Maschine startet wb-code dort nicht (fail closed). Auf der Sync-Liste seit 24.10.2026.
+  ".local/bin/wb-geheimnis-filter" ".local/bin/geheimnis-routen.json"   # die Routentabelle liegt neben dem Filter, ohne sie startet er nicht (08.11.2026)
   ".local/bin/werkzeuge.default.json" ".local/bin/models.default.json"
   ".local/bin/wb-mcp-start" ".local/bin/wb-werkzeuge-abgleich"
   ".local/bin/wb-hub" ".local/bin/wb_hub_kern.py" ".local/bin/wb_hub_cli.py"
@@ -182,6 +186,7 @@ FILES=(
   ".claude/hooks/bash-guard-commit-trailer.sh" ".claude/hooks/media-cloud-guard.sh"
   ".claude/hooks/bash-guard-secrets.sh" ".claude/hooks/bash-guard-kill-pattern.sh"
   ".claude/hooks/bash-guard-live-config.sh" ".claude/hooks/push-gate-worker.sh"
+  ".claude/hooks/bash-guard-mailweg.sh"
   ".claude/hooks/media-cloud-domains.txt" ".claude/hooks/snapshot-guard-exempt.conf"
   # 2026-08-04: in settings.json (PreToolUse/SessionStart/SessionEnd/PreCompact/
   # ConfigChange) verdrahtet, standen aber nicht auf der Liste — auf peer liefen diese
@@ -221,6 +226,23 @@ FILES=(
   # ueberall gleich urteilen.
   ".claude/hooks/tests/test-guard-parity.sh" ".claude/hooks/tests/test-guard-parity2.sh"
   ".claude/hooks/tests/test-hooks.sh" ".claude/hooks/tests/test-new-guards.sh"
+  # Aufpasser von bash-guard.py: sichert denselben Hook auf beiden Maschinen (24.10.2026).
+  ".claude/hooks/tests/test-guard-aufpasser.sh"
+  # Absicht des Agenten im Freigabe-Marker (26.10.2026, task): derselbe Hook auf beiden Maschinen.
+  ".claude/hooks/tests/test-guard-beschreibung.sh"
+  # Pane-Schreiber-Regel 4 (task), Snapshot-Waechter (task), Mailweg (q-mail-guard), 10.11.2026:
+  # dieselben Hooks auf beiden Maschinen.
+  ".claude/hooks/tests/test-pane-schreiber.sh" ".claude/hooks/tests/test-pane-schreiber-kette.sh"
+  ".claude/hooks/tests/test-snapshot-raeumen-waechter.sh" ".claude/hooks/tests/test-mailweg.sh"
+  # tmux-Vorrang (task, 10.11.2026): Suite, Gegenprobe und Repro auf beiden Maschinen.
+  ".claude/hooks/tests/test-tmux-vorrang.sh" ".claude/hooks/tests/gegenprobe-tmux-vorrang.py"
+  ".claude/hooks/tests/hilfen/repro-tmux-vorrang.sh"
+  # Waechter umgebung-auszug (task, 15.11.2026) und sein Messwerkzeug wb-umgebungsmarken (14.11.2026):
+  # dieselbe Regel und dieselbe Messung auf beiden Maschinen.
+  ".claude/hooks/tests/test-umgebung-auszug.sh" ".local/bin/wb-umgebungsmarken"
+  # wb-konto (Z2b Zug 2, 16.11.2026): die Kontextwache ruft es auf beiden Maschinen (wechsel, budget, fortsetzen);
+  # ausserhalb des Mac wechselt es nicht, sondern meldet nur und merkt die Fortsetzung nach dem Reset vor.
+  ".local/bin/wb-konto"
   # Die Python-Fassung des Medien-Guards. Nur die .sh-Fassung stand hier, obwohl
   # test-guard-parity2.sh die beiden GEGENEINANDER prueft: auf peer fehlte die .py-Datei,
   # und der Vergleich verglich elf von fuenfzehn Faellen gegen "Datei nicht gefunden".
@@ -230,11 +252,21 @@ FILES=(
   # auf einer alten Fassung. Sie sind Quellen von `wb-instructions sync`, ohne
   # Maschinenangabe, also Kopie.
   ".claude/roles/orchestrator.md" ".claude/roles/agent.md"
+  # 2026-11-15 (Kern-Release-Sperre): der Kern sucht wb-konfig und wb-datenklasse an festen Pfaden auf Mac
+  # und peer (gardener/vault_konfig.py); fehlt wb-konfig, gilt dort Firmenbetrieb (braindienst/person_leseklasse.py).
+  # wb-konfig und wb-datenklasse importieren wb_konfig.py aus ihrem Ordner und lesen die Schemadatei daneben (Fragmente
+  # in schema.d, unten in DIRS); wb-datenklasse laedt die Klassenregel wb_datenklasse_regel.py neben sich. wb_naht_ziel.py
+  # entscheidet die Testnaht von wb_konfig.py; fehlt es, ignoriert wb_konfig.py die Naht-Variable und meldet das.
+  ".local/bin/wb-konfig" ".local/bin/wb_konfig.py" ".local/bin/einstellungen-schema.json"
+  ".local/bin/wb-datenklasse" ".local/bin/wb_datenklasse_regel.py" ".local/bin/wb_naht_ziel.py"
+  # wb_konfig.py laedt wb_identitaet.py neben sich (Stelle der Betreiberebene; fehlt es: keine Betreiberebene, fail
+  # closed); wb_werkbank_baum.py kommt mit demselben Release wortgleich aus development (16.11.2026).
+  ".local/bin/wb_identitaet.py" ".local/bin/wb_werkbank_baum.py"
 )
 # .claude/skills bewusst NICHT dabei: auf peer liegen die project-kit-Skills einzeln
 # unter ~/.claude/skills/ (47 Stueck), auf dem Mac kommen dieselben als Plugin. Zwei
 # Installationsformen, kein Rueckstand - ein Sync wuerde hier Chaos stiften statt Ordnung.
-DIRS=( ".claude/regeln" ".claude/hooks/lib" )
+DIRS=( ".claude/regeln" ".claude/hooks/lib" ".local/bin/schema.d" )  # schema.d: Schema-Fragmente neben einstellungen-schema.json (15.11.2026)
 # Verzeichnisse mit Dateien UND Symlinks (Art, Link-Ziel und +x zaehlen mit). Nur die
 # Eintraege der Quellseite werden verglichen; was es nur auf dem Ziel gibt, bleibt stehen.
 LINKDIRS=( ".claude/git-hooks" )
@@ -274,6 +306,68 @@ fi
 # zwei Optionen wie in context-guard/wb-result/wb-ssh-worker, hier einmal
 # gebuendelt statt an sieben Aufrufstellen einzeln vergessen zu koennen.
 ssh_other() { ssh -o ConnectTimeout=8 -o BatchMode=yes "$OTHER" "$@"; }
+
+# QUELLSCHUTZ (27.10.2026, task). Anlass: ein Diagnoseskript eines Workers fuhr `--apply` aus einem
+# Worktree ohne ssh-Schirm gegen das echte peer und legte dort Dateien an. Ein Verbot im Auftrag haelt nicht,
+# deshalb prueft das Werkzeug selbst, vor dem ersten ssh-Aufruf: --apply gegen eine echte Gegenmaschine nur,
+# wenn (a) WB_REPO der Hauptbaum ist und HEAD dort gleich refs/heads/main steht (aus diesem Stand wird live
+# ausgerollt; eine eigene Ausroll-Marke gibt es nicht), und (b) weder dieses Skript noch WB_REPO unter
+# <Heimat>/.pi-workers liegt (Heimat laut Benutzerdatenbank, nie $HOME). Sonst Exit 6, Grund in einer Zeile.
+# Ausnahmen: der ssh-Schirm der Suiten (ssh UND scp im PATH sind Skripte, keine Programme, UND die Testnaht
+# WB_TESTUMGEBUNG=1 ist gesetzt; eines allein genuegt nicht) und ein Testziel (T1/T2), dessen Heimat drueben die
+# root-eigene Testmarke ~/.wb-testumgebung traegt (Form wie shell/tests/testmaschine_marke.py; nur gelesen).
+# (c) seit 27.10. (task): zusaetzlich keine uncommittete Aenderung an einem ausgerollten Pfad, siehe unten.
+# GRENZE: ein Skript namens ssh im PATH, das selbst das echte ssh ruft, gilt unter der Testnaht als Schirm.
+QUELLSCHUTZ_EXIT=6
+ist_attrappe() { # $1 = Befehl -> 0, wenn er im PATH ein Skript (#!) ist und kein Programm
+  local p; p="$(command -v "$1" 2>/dev/null)" || return 1
+  case "$p" in /*) ;; *) return 1 ;; esac
+  [ "$(head -c 2 "$p" 2>/dev/null)" = '#!' ]
+}
+quellschutz_grund() { # -> leer: Quelle ist der ausgerollte main-Stand; sonst der Grund
+  local heim pi werkzeug repo p gd gcd kopf haupt
+  heim="$(/usr/bin/python3 -I -S -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir)' 2>/dev/null)"
+  [ -n "$heim" ] || { echo "Heimat laut Benutzerdatenbank nicht bestimmbar"; return; }
+  pi="$(realpath "$heim/.pi-workers" 2>/dev/null)" || pi="$heim/.pi-workers"
+  werkzeug="$(realpath "${BASH_SOURCE[0]}" 2>/dev/null)" || werkzeug="${BASH_SOURCE[0]}"
+  repo="$(realpath "$WB_REPO" 2>/dev/null)" || { echo "Quellbaum $WB_REPO fehlt"; return; }
+  for p in "$werkzeug" "$repo"; do
+    case "$p/" in "$pi"/*) echo "$p liegt unter $pi (Worker-Worktree)"; return ;; esac
+  done
+  gitq() { env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR -u GIT_INDEX_FILE git -C "$repo" "$@" 2>/dev/null; }
+  gd="$(gitq rev-parse --path-format=absolute --git-dir)"
+  gcd="$(gitq rev-parse --path-format=absolute --git-common-dir)"
+  [ -n "$gd" ] || { echo "Quellbaum $repo ist kein git-Baum"; return; }
+  [ "$gd" = "$gcd" ] || { echo "Quellbaum $repo ist ein git-Worktree, nicht der Hauptbaum"; return; }
+  kopf="$(gitq rev-parse -q --verify HEAD)"; haupt="$(gitq rev-parse -q --verify refs/heads/main)"
+  if [ -z "$kopf" ] || [ "$kopf" != "$haupt" ]; then
+    echo "HEAD ${kopf:0:12} in $repo ist nicht main (${haupt:0:12}), der ausgerollte Stand"; return
+  fi
+  sauberkeit_grund "$repo" "$werkzeug"
+}
+# (c) (27.10.2026, task): keine uncommittete Aenderung an einem Pfad, der ausgerollt wuerde -- die
+# Kopien unter $HOME stammen aus dem Ausrollen, REMOTE_ONLY kommt direkt aus dem Repo. Eine Pruefung, nicht
+# zwei: gefragt wird wb-ausrollen neben diesem Skript (--nur-sauberkeit, Installationskarte aus
+# wb-consistency). Fehlt es oder scheitert es, ist das ein Grund (fail closed).
+sauberkeit_grund() { # $1 = Quellbaum, $2 = realpath dieses Skripts
+  local pruef aus rc e rest auch=()
+  pruef="$(dirname "$2")/wb-ausrollen"
+  [ -f "$pruef" ] || { echo "Pruefwerkzeug $pruef fehlt, uncommittete Aenderungen nicht pruefbar"; return; }
+  for e in ${REMOTE_ONLY[@]+"${REMOTE_ONLY[@]}"}; do rest="${e#*|}"; auch+=(--auch "${rest%%|*}"); done
+  aus="$(env -u PYTHONPATH -u PYTHONHOME python3 "$pruef" --nur-sauberkeit --repo "$1" ${auch[@]+"${auch[@]}"} 2>&1)"
+  rc=$?
+  if [ "$rc" -ne 0 ]; then echo "Pruefung uncommitteter Aenderungen Exit $rc: $(printf '%s' "$aus" | tail -n 1)"
+  elif [ -n "$aus" ]; then printf '%s\n' "$aus" | head -n 1
+  fi
+}
+TESTMARKE_SKRIPT='m="$HOME/.wb-testumgebung"; [ -n "$(find "$m" -maxdepth 0 -type f -user 0 -links 1 ! -perm -g+w ! -perm -o+w 2>/dev/null)" ] && [ "$(head -n 1 "$m")" = "wb-testumgebung: Testheimat, Ausrollen dieses Stands erlaubt" ] && echo MARKE'
+if [ "$APPLY" = 1 ] && ! { [ "${WB_TESTUMGEBUNG:-}" = 1 ] && ist_attrappe ssh && ist_attrappe scp; }; then
+  grund="$(quellschutz_grund)"
+  if [ -n "$grund" ] && [ "$(ssh_other "$TESTMARKE_SKRIPT" 2>/dev/null)" != MARKE ]; then
+    echo "wb-sync-setup: ABGEWIESEN -- --apply nach $OTHER nur aus dem Hauptbaum auf main: $grund." >&2
+    exit "$QUELLSCHUTZ_EXIT"
+  fi
+fi
 
 hash_local()  { [ -f "$HOME/$1" ] && shasum -a 256 "$HOME/$1" 2>/dev/null | cut -d' ' -f1 || echo MISSING; }
 hash_remote() { ssh_other "test -f \$HOME/$1 && sha256sum \$HOME/$1 2>/dev/null | cut -d' ' -f1 || echo MISSING" 2>/dev/null; }
@@ -406,14 +500,14 @@ for f in "${REPORT_ONLY[@]}"; do
   fi
 done
 
-# Werkbank-Skills (skills.<name>.quelle in werkzeuge.default.json, Review wz-integ2 M1): auf dem
+# Werkbank-Skills (skills.<name>.quelle in werkzeuge.default.json, Review task M1): auf dem
 # Ziel muss ~/.claude/skills/<name> ein Link auf den Skill-Ordner neben der installierten Quelle
 # sein. Der Schreiber ist dort `wb-werkzeuge skills-anlegen` (dieselbe Logik wie wb-ausrollen hier);
 # eine fremde Fassung (auf peer lag eine lange) kommt dabei in dessen Snapshot und wird ersetzt
 # (Entscheidung WorkbenchOrchestrator 13.10.; nie ohne Snapshot, der Ersatz wird mit Snapshot-Pfad
 # gemeldet). Ein Ziel ohne diesen Befehl (alte Fassung) liefert nichts; nach dem Uebertragen der neuen
 # Fassung laeuft er unten trotzdem. Fehler und unerwartete Ausgabe (etwa ein Traceback) bleiben
-# sichtbar (Review wz-integ3, Fund 5): stderr wird mitgelesen, nur GLEICH-Zeilen entfallen.
+# sichtbar (Review task, Fund 5): stderr wird mitgelesen, nur GLEICH-Zeilen entfallen.
 skill_plan="$(ssh_other '[ ! -x "$HOME/.local/bin/wb-werkzeuge" ] || "$HOME/.local/bin/wb-werkzeuge" skills-anlegen --dry-run' 2>&1 \
   | grep -vE '^(GLEICH  |keine Werkbank-Skills)' || true)"
 skill_todo=0

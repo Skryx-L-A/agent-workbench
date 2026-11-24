@@ -44,6 +44,8 @@ esac
 LOG="${BRAIN_MAINTAIN_LOG:-$HOME/.local/state/brain-maintain.log}"
 mkdir -p "$(dirname "$LOG")"
 VAULT="${BRAIN_MAINTAIN_VAULT:-$HOME/Knowledge}"
+# Jeder brain-Aufruf nennt den Vault ausdruecklich (14.11.2026): mit dem Schreibschutz des Vaults
+# brauchen schreibende brain-Befehle `--vault`; `gardener run` stand bis dahin ohne.
 # Ebenfalls nur fuer Tests: gegen welche Fassung von `brain` gelaufen wird.
 BRAIN="${BRAIN_BIN:-$HOME/.local/bin/brain}"
 
@@ -70,11 +72,12 @@ esac
 
 if [ "${1:-}" = "--status" ]; then
   echo "== gardener =="
-  "$BRAIN" gardener status 2>&1 | head -4
+  "$BRAIN" --vault "$VAULT" gardener status 2>&1 | head -4
   echo
   echo "== extra-embed (Projekt-MOCs im semantischen Layer) =="
   db="$HOME/Knowledge/_meta/tools/braincli/state/extra-embeddings.db"
-  [ -f "$db" ] && stat -f '  DB zuletzt geschrieben: %Sm' -t '%Y-%m-%d %H:%M' "$db" \
+  # date -r <datei> kennen BSD und GNU gleich; `stat -f` ist unter GNU der Dateisystem-Status.
+  [ -f "$db" ] && echo "  DB zuletzt geschrieben: $(date -r "$db" '+%Y-%m-%d %H:%M')" \
                || echo "  DB nicht gefunden: $db"
   echo
   echo "== Widerspruchs-Warteschlange =="
@@ -98,12 +101,14 @@ fi
 {
   echo "===== brain-maintain $(date '+%Y-%m-%d %H:%M:%S') ====="
   echo "--- gardener ---"
-  "$BRAIN" gardener run 2>&1 | tail -20
+  "$BRAIN" --vault "$VAULT" gardener run 2>&1 | tail -20
   echo "--- extra-embed ---"
   # Eigener Entrypoint des braincli-Projekts; ohne ihn veralten die MOC-Embeddings still.
   BC="$HOME/Knowledge/_meta/tools/braincli"
   if command -v uv >/dev/null 2>&1 && [ -d "$BC" ]; then
-    uv run --project "$BC" brain-extra-embed 2>&1 | tail -10
+    # --vault wie bei jedem brain-Aufruf (Schreibschutz des Vaults, 14.11.2026); die Fassung ohne
+    # Argumentlesen ignoriert es, die Fassung mit Einstiege-Schutz braucht es (Test: test-brain-maintain-vault).
+    uv run --project "$BC" brain-extra-embed --vault "$VAULT" 2>&1 | tail -10
   else
     echo "uv oder $BC fehlt - extra-embed uebersprungen"
   fi

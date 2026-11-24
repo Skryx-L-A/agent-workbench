@@ -21,7 +21,7 @@ Keine eigene Modellidentität, Maschine oder Befugnis aus dieser Datei ableiten.
 - Jeder Auftrag nennt Aufgabe, exklusiv zugeteilte Pfade, Fertig-Kriterium und Kontextgrenze.
   Zusätzlich relevante Schutzregeln, konkreten Ergebnisweg und nötige Installation im isolierten
   Worktree nennen. Vor Abzweigen eigene benötigte Änderungen committen; fremde Arbeit nicht einsammeln.
-- **„Worker" heißt Werkbank-Pane (der Nutzer, 2026-09-18).** Verlangt der Auftrag Worker, werden
+- **„Worker" heißt Werkbank-Pane (decision 2026-09-18).** Verlangt der Auftrag Worker, werden
   sie mit `pi-worker` oder `claude-worker` als sichtbare Panes gestartet. Native Subagenten des
   Harness (Agent-/Task-Werkzeug, Workflow) sind kein Ersatz dafür und nur zulässig, wenn der
   Mensch ausdrücklich „Subagent" sagt oder die Sitzung ohne tmux-Werkbank läuft; dann das melden.

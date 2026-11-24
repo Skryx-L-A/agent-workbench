@@ -189,21 +189,36 @@ def is_harness(cmd):
     return executable_basename(cmd) in HARNESS_COMMANDS
 
 pane_roots = set()
+# Trenner ist '|', kein Tabulator: Ohne UTF-8-Gebietsschema des Clients (LANG/LC_ALL leer oder POSIX, etwa ueber
+# `ssh -n` oder aus launchd) gibt tmux ein Tab im -F-Format als '_' aus (gemessen 20.11.2026, tmux 3.8 am Mac und
+# 3.7c auf peer: "5000_0"). Dann blieb pane_roots leer, und `kill-orphans` hielt jeden Helfer unter einem Pane ohne
+# Harness-Vorfahren fuer verwaist. PID und pane_dead enthalten kein '|', und tmux ersetzt '|' nicht.
+# Kein fail-open: Eine unzerlegbare Zeile, eine leere Antwort eines laufenden Servers oder eine Frist setzen
+# pane_unklar, ebenso ein tmux, das fehlt oder mit einem anderen Fehler als "kein Server" endet. Dann gilt kein
+# ungebundener Helfer als verwaist, sondern als ungeklaert, und nichts wird beendet.
+pane_unklar = False
 try:
     panes = subprocess.run(
-        ['tmux', 'list-panes', '-a', '-F', '#{pane_pid}\t#{pane_dead}'],
-        capture_output=True, text=True, timeout=3,
+        ['tmux', 'list-panes', '-a', '-F', '#{pane_pid}|#{pane_dead}'],
+        # Frist ueberschreibbar fuer Tests (18.10.2026, Vorgabe 3 s unveraendert): unter der Last des
+        # Gesamtlaufs startete die tmux-Attrappe des Tests langsamer als 3 s, und gebundene Helfer
+        # galten faelschlich als Waisen.
+        capture_output=True, text=True, timeout=float(os.environ.get('MCP_SHARED_TMUX_FRIST_S', '3')),
     )
     if panes.returncode == 0:
         for line in panes.stdout.splitlines():
-            pid_text, _, dead = line.partition('\t')
+            pid_text, sep, dead = line.strip().partition('|')
+            if not (sep and pid_text.isdigit() and dead in ('0', '1')):
+                pane_unklar = True
+                continue
             if dead != '1':
-                try:
-                    pane_roots.add(int(pid_text))
-                except ValueError:
-                    pass
+                pane_roots.add(int(pid_text))
+        if not panes.stdout.strip():
+            pane_unklar = True
+    elif not any(t in panes.stderr for t in ('no server running', 'No such file or directory')):
+        pane_unklar = True     # nur "kein Server" heisst: keine Panes; jeder andere Fehler ist ungeklaert
 except (OSError, subprocess.TimeoutExpired):
-    pass
+    pane_unklar = True         # tmux fehlt im PATH (launchd) oder antwortet nicht: nicht messbar
 
 def owner(pid):
     seen = set()
@@ -240,10 +255,12 @@ for pid, (ppid, et, rss, cmd) in procs.items():
         rows.append((pid, 'shared', et, rss, cmd))
         continue
     o = owner(ppid)
-    rows.append((pid, 'owned' if o else 'orphan', et, rss, cmd))
+    rows.append((pid, 'owned' if o else ('unklar' if pane_unklar else 'orphan'), et, rss, cmd))
 
 mode = sys.argv[1] if len(sys.argv) > 1 else 'report'
 if mode == 'orphan-pids':
+    if pane_unklar:
+        print('mcp-shared: die tmux-Panes sind nicht lesbar; kein Helfer gilt als verwaist.', file=sys.stderr)
     print('\n'.join(str(r[0]) for r in rows if r[1] == 'orphan'))
 else:
     from collections import Counter
@@ -251,7 +268,8 @@ else:
     mb = lambda k: sum(r[3] for r in rows if r[1] == k) // 1024
     print(f"Helferprozesse: {c.get('shared',0)} geteilt · "
           f"{c.get('owned',0)} an lebende Sessions gebunden ({mb('owned')} MB) · "
-          f"{c.get('orphan',0)} verwaist ({mb('orphan')} MB)")
+          f"{c.get('orphan',0)} verwaist ({mb('orphan')} MB)"
+          + (f" · {c.get('unklar',0)} ungeklaert (tmux-Panes nicht lesbar)" if pane_unklar else ""))
     for pid, kind, et, rss, cmd in sorted(rows, key=lambda r: -r[3]):
         if kind == 'orphan':
             print(f"  verwaist  PID {pid:>6}  seit {et:>12}  {rss//1024:>4} MB  {cmd[:70]}")
@@ -316,6 +334,11 @@ cmd_ensure() {
   local label port frist=0
   label="$(_label_fuer "${1:-}")" || return 1
   port="$(_backendport_fuer "${1:-}")" || return 1
+  # Abgeschaltet (plist fehlt oder liegt als .disabled)? Dann nichts starten.
+  if [ ! -f "$HOME/Library/LaunchAgents/$label.plist" ]; then
+    echo "mcp-shared: $label ist abgeschaltet (keine $label.plist in ~/Library/LaunchAgents); ensure startet nichts." >&2
+    return 1
+  fi
   # Schon da? Dann nichts tun -- ensure muss mehrfach aufrufbar sein.
   if curl -s -o /dev/null --max-time 2 "http://127.0.0.1:$port/mcp" 2>/dev/null; then
     echo "mcp-shared: $label antwortet bereits auf $port."

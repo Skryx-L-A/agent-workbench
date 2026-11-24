@@ -18,9 +18,10 @@ import type {
 import type { MaschinenStand, StartOptionen } from '../components/quelle';
 import { teamsAusAgenten, type AgentKurz } from '../components/agents-daten';
 
-export type Szenario = 'standard' | 'alle' | 'offline' | 'ungekoppelt' | 'leer';
+export type Szenario = 'standard' | 'alle' | 'offline' | 'ungekoppelt' | 'leer' | 'freigaben';
 
-export const SZENARIEN: readonly Szenario[] = ['standard', 'alle', 'offline', 'ungekoppelt', 'leer'];
+/** `freigaben`: wie `standard`, dazu die Muster der Freigabekarte in `mac:demo` (`freigabeMuster`). */
+export const SZENARIEN: readonly Szenario[] = ['standard', 'alle', 'offline', 'ungekoppelt', 'leer', 'freigaben'];
 
 export const MAC_ORIGIN = 'https://mac.tailnet.example.ts.net';
 export const PEER_ORIGIN = 'https://peer.tailnet.example.ts.net';
@@ -105,6 +106,52 @@ function omarchyChat(jetzt: number): ChatMessage[] {
     ['human', 'Stell die Hyprland-Tastenbelegung für den zweiten Monitor um.', 70],
     ['agent', 'Erledigt. Die Belegung steht in `~/.config/hypr/bindings.conf`, Zeilen 40 bis 52.', 66],
   ]);
+}
+
+/** Der neutrale Satz des Kerns fuer einen Eintrag in einem Ordner ueber INTERNAL (E1, adapters/approvals.ts). */
+const GESPERRTE_FREIGABE = 'approval in a restricted folder';
+const MUSTER_ORDNER = '/home/beispiel/projekte/demo';
+
+/**
+ * Die Freigabekarte in allen Formen (26.10.2026): Absicht laut Harness,
+ * abgeleitet, unklar, ein alter Kern ohne die neuen Felder, ein gesperrter Eintrag (E1) und ein
+ * Antrag mit Kopf. Namen und Befehle sind erfunden.
+ */
+function freigabeMuster(jetzt: number): Approval[] {
+  const s = 'mac:demo' as const;
+  return [
+    {
+      id: 'g-harness', kind: 'guard', source: 'authoritative', session_id: s, created_at: jetzt - 9 * MIN,
+      summary: 'Worker kurs-import: Kursdaten der letzten Woche neu laden',
+      rolle: 'worker', anzeigename: 'kurs-import', absicht: 'Kursdaten der letzten Woche neu laden', absicht_quelle: 'harness',
+      befehl: 'python3 werkzeuge/kurse_laden.py --tage 7 --ziel daten/kurse', cwd: MUSTER_ORDNER,
+    },
+    {
+      id: 'g-abgeleitet', kind: 'guard', source: 'authoritative', session_id: s, created_at: jetzt - 8 * MIN,
+      summary: 'Worker gates-halbiert: Änderungen erzwungen pushen (git push)',
+      rolle: 'worker', anzeigename: 'gates-halbiert', absicht: 'Änderungen erzwungen pushen (git push)', absicht_quelle: 'abgeleitet',
+      befehl: 'git push --force-with-lease origin wb/gates-halbiert', cwd: MUSTER_ORDNER,
+    },
+    {
+      id: 'g-unklar', kind: 'guard', source: 'authoritative', session_id: s, created_at: jetzt - 7 * MIN,
+      summary: 'Orchestrator demo: Befehl ausführen (Bash: zeitreihe-pruefen)',
+      rolle: 'orchestrator', anzeigename: 'demo', absicht: 'Befehl ausführen (Bash: zeitreihe-pruefen)', absicht_quelle: 'unklar',
+      befehl: 'zeitreihe-pruefen $(cat liste.txt) | tee bericht.txt', cwd: MUSTER_ORDNER,
+    },
+    {
+      id: 'g-alt', kind: 'guard', source: 'authoritative', session_id: s, created_at: jetzt - 6 * MIN,
+      summary: 'gates-halbiert: rm -rf cache/backtest',
+    },
+    {
+      id: 'g-gesperrt', kind: 'guard', source: 'authoritative', session_id: s, created_at: jetzt - 5 * MIN,
+      summary: GESPERRTE_FREIGABE,
+    },
+    {
+      id: 'r-kopf', kind: 'request', source: 'authoritative', session_id: s, created_at: jetzt - 4 * MIN,
+      summary: 'Worker gates-halbiert: Neuen Worker gates-gegenprobe starten (claude-sonnet-5)',
+      rolle: 'worker', anzeigename: 'gates-halbiert', absicht: 'Neuen Worker gates-gegenprobe starten (claude-sonnet-5)', absicht_quelle: 'abgeleitet',
+    },
+  ];
 }
 
 export function erzeugen(jetzt: number, szenario: Szenario): AttrappenWelt {
@@ -207,12 +254,23 @@ export function erzeugen(jetzt: number, szenario: Szenario): AttrappenWelt {
       summary: 'mobil-http beantragt einen Teil-Worker „sse-reconnect“ (Claude Sonnet 5, Effort medium) für die Wiederverbindungstests.',
       created_at: jetzt - 20 * MIN,
     },
+    ...(szenario === 'freigaben' ? freigabeMuster(jetzt) : []),
   ];
 
   const meldungen: Notification[] = szenario === 'leer' ? [] : [
     { id: 'mac:e7:1042', type: 'worker.stalled', source: 'authoritative', machine: 'mac', target_id: 'mac:demo', created_at: jetzt - 4 * MIN, text: 'Ein Worker in demo rührt sich seit 10 Minuten nicht.' },
     { id: 'mac:e7:1039', type: 'command.blocked', source: 'authoritative', machine: 'mac', target_id: 'mac:werkbank', created_at: jetzt - 20 * MIN, text: 'Ein Worker-Antrag wartet auf Deine Entscheidung.' },
     { id: 'mac:e7:1038', type: 'worker.done', source: 'authoritative', machine: 'mac', target_id: 'mac:werkbank', created_at: jetzt - 19 * MIN, text: 'Worker mobil-auth ist fertig.' },
+    // Push-Art welt.braucht-dich: die `id` ist die `event_id` und damit der Tag der Systemmeldung.
+    {
+      id: 'welt-3f9a0c1b2d4e5f60718293a4', type: 'welt.braucht-dich', source: 'authoritative', machine: 'mac', target_id: 'RA-7', created_at: jetzt - 15 * MIN,
+      text: 'Welt „Werkbank“: Rechteantrag wartet auf dich.', welt: { welt_id: 'werkbank', welt_name: 'Werkbank', art: 'rechteantrag', anliegen_id: 'RA-7' },
+    },
+    {
+      id: 'welt-0c1d2e3f4a5b6c7d8e9f0a1b', type: 'welt.braucht-dich', source: 'authoritative', machine: 'mac', target_id: 'RA-4', created_at: jetzt - 26 * STD,
+      text: 'Welt „Werkbank“: Rechteantrag wartet auf dich.', welt: { welt_id: 'werkbank', welt_name: 'Werkbank', art: 'rechteantrag', anliegen_id: 'RA-4' },
+      erledigt_at: jetzt - 25 * STD,
+    },
     { id: 'mac:e7:1036', type: 'command.blocked', source: 'authoritative', machine: 'mac', target_id: 'mac:werkbank', created_at: jetzt - 21 * MIN, text: 'Ein Befehl wurde angehalten und wartet auf Freigabe.' },
     { id: 'peer:e3:311', type: 'session.lost', source: 'mirror', machine: 'peer', target_id: 'peer:backtest-nacht', created_at: jetzt - 47 * MIN, text: 'peer antwortet nicht mehr. Letzter Stand ist gespiegelt.' },
     { id: 'mac:e7:1001', type: 'worker.done', source: 'authoritative', machine: 'mac', target_id: 'mac:demo', created_at: jetzt - 20 * STD, text: 'Worker gates-baseline ist fertig.' },
@@ -225,7 +283,7 @@ export function erzeugen(jetzt: number, szenario: Szenario): AttrappenWelt {
     welten: {
       welten: [
         {
-          id: 'werkbank', name: 'Werkbank', maschine: 'mac', fern: false,
+          id: 'werkbank', name: 'Werkbank', maschine: 'mac', fern: false, rechteantrag_entscheidbar: true,
           verbindung: { ok: true, seit: null, text: '' },
           hauptagent: 'kern',
           // Die Welt hat eine Definition of Done; der Kern nimmt ohne ihre
@@ -318,6 +376,39 @@ export function erzeugen(jetzt: number, szenario: Szenario): AttrappenWelt {
               ticket: 'T-44', stand: 'offen', von: 'kern', gestellt: iso(28), antwort: null, ruecknahme: null,
             },
           ],
+          // Rechteantraege (`WeltRechteAntrag`): offene zuerst. Nur RA-7 wartet auf Dich;
+          // RA-6 geht an den Hauptagenten, RA-5 ist abgelaufen, RA-4 ist entschieden.
+          rechteantraege: [
+            {
+              id: 'RA-7', von: 'bo', an: 'mensch', agent: 'bo',
+              changes: { bash: ['npx playwright test *', 'node test/mobile/ui/e2e.test.mjs *'], web: true },
+              vorher: { tools: ['Read', 'Edit', 'Bash'], bash: ['npm test', 'npm run build'], skills: [], web: false },
+              grund: 'Für die WebKit-Tests zu T-43 brauche ich Playwright und die WebKit-Dokumentation im Netz.',
+              stand: 'offen', abgelaufen: false, laeuft_ab: iso(-7 * 24 * 60 + 15), zeit: iso(15),
+              entscheidung: null, bemerkung: null, entschieden_von: null, entschieden_am: null,
+            },
+            {
+              id: 'RA-6', von: 'ada', an: 'kern', agent: 'ada',
+              changes: { skills: ['design-critique'] }, vorher: { skills: ['texte-schreiben'] },
+              grund: 'Ich möchte die Composer-Ansicht vor der Abnahme selbst gegenlesen.',
+              stand: 'offen', abgelaufen: false, laeuft_ab: iso(-7 * 24 * 60 + 40), zeit: iso(40),
+              entscheidung: null, bemerkung: null, entschieden_von: null, entschieden_am: null,
+            },
+            {
+              id: 'RA-5', von: 'tjark', an: 'mensch', agent: 'tjark',
+              changes: { tools: ['WebFetch'] }, vorher: { tools: ['Read', 'Grep'] },
+              grund: 'Für die Prüfung von T-39 wollte ich die Spezifikation nachlesen.',
+              stand: 'offen', abgelaufen: true, laeuft_ab: iso(60), zeit: iso(7 * 24 * 60 + 60),
+              entscheidung: null, bemerkung: null, entschieden_von: null, entschieden_am: null,
+            },
+            {
+              id: 'RA-4', von: 'mira', an: 'mensch', agent: 'mira',
+              changes: { bash: ['git push *'] }, vorher: { bash: [] },
+              grund: 'Ich möchte die Figuren selbst ausliefern.',
+              stand: 'beantwortet', abgelaufen: false, laeuft_ab: iso(-6 * 24 * 60), zeit: iso(26 * 60),
+              entscheidung: 'abgelehnt', bemerkung: 'Ausliefern bleibt beim Hauptagenten.', entschieden_von: 'mensch', entschieden_am: iso(25 * 60),
+            },
+          ],
           kanal: [
             { id: 'c1', art: 'nachricht', von: 'kern', an: ['alle'], text: 'Paket 9 hat Vorrang. Ada übernimmt T-41, Bo schreibt die Tests.', zeit: iso(30), ticket: null, betreff: '', von_mensch: false, markierung: null, offen_fuer_mensch: false },
             { id: 'c2', art: 'nachricht', von: 'ada', an: ['kern'], text: 'T-41 angenommen. Ich melde mich mit dem ersten Stand.', zeit: iso(29), ticket: 'T-41', betreff: '', von_mensch: false, markierung: null, offen_fuer_mensch: false },
@@ -325,7 +416,7 @@ export function erzeugen(jetzt: number, szenario: Szenario): AttrappenWelt {
           ],
         },
         {
-          id: 'recherche', name: 'Recherche', maschine: 'peer', fern: true,
+          id: 'recherche', name: 'Recherche', maschine: 'peer', fern: true, rechteantrag_entscheidbar: false,
           verbindung: { ok: false, seit: iso(47), text: 'peer antwortet nicht' },
           hauptagent: 'lotse',
           zaehler: { brauchen_dich: 0, laufen: 0, tickets_offen: 2 },
@@ -354,6 +445,7 @@ export function erzeugen(jetzt: number, szenario: Szenario): AttrappenWelt {
             },
           ],
           fragen: [],
+          rechteantraege: [],
           kanal: [],
         },
       ],

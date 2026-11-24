@@ -13,7 +13,7 @@
       "{REPO}/extension/src/settings.ts"
     ],
     "exclude_substrings": [
-      "/secrets/"
+      "/90-secrets/"
     ],
     "extra_model_name_variants": {
       "opus5": [
@@ -59,7 +59,7 @@
       "{BASE}/Knowledge/**/*.md"
     ],
     "exclude_substrings": [
-      "/secrets/"
+      "/90-secrets/"
     ],
     "session_load_groups": [
       {
@@ -343,6 +343,81 @@
         "repo": "shell/linux/agent-workbench",
         "ziel": "{BASE}/.local/bin/agent-workbench",
         "grund": "Programmsymbol-Launcher auf Linux; startet das Kern-Electron mit env -i (Positivliste), die .desktop-Datei zeigt darauf"
+      },
+      {
+        "repo": "shell/linux/bm",
+        "ziel": "{BASE}/.local/bin/bm",
+        "grund": "Basic-Memory-CLI ueber den Vault (peer), nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/peer-code",
+        "ziel": "{BASE}/.local/bin/peer-code",
+        "grund": "startet eine Orchestrator-Sitzung auf peer in einem Ordner, nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/orch-bare",
+        "ziel": "{BASE}/.local/bin/orch-bare",
+        "grund": "Orchestrator-Start auf peer, nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/orch-launch",
+        "ziel": "{BASE}/.local/bin/orch-launch",
+        "grund": "Orchestrator-Start auf peer, nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/orch-ws6",
+        "ziel": "{BASE}/.local/bin/orch-ws6",
+        "grund": "Orchestrator-Start auf peer (Arbeitsflaeche 6), nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/pi",
+        "ziel": "{BASE}/.local/bin/pi",
+        "grund": "pi-Wrapper auf peer (nvm-unabhaengig), nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/voice-toggle",
+        "ziel": "{BASE}/.local/bin/voice-toggle",
+        "grund": "Sprachumschalter auf peer, nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/work",
+        "ziel": "{BASE}/.local/bin/work",
+        "grund": "haengt sich an eine bestehende tmux-Sitzung (peer), nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/ai-scout",
+        "ziel": "{BASE}/.local/bin/ai-scout",
+        "grund": "monatlicher Recherche-Agent auf peer, nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/check-ollama-kv-ssd",
+        "ziel": "{BASE}/.local/bin/check-ollama-kv-ssd",
+        "grund": "monatliche Pruefung auf KV-Auslagerung in Ollama (peer), nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/rerank",
+        "ziel": "{BASE}/.local/bin/rerank",
+        "grund": "lokales Cross-Encoder-Reranking fuer brain/RAG (peer), nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/stt",
+        "ziel": "{BASE}/.local/bin/stt",
+        "grund": "Sprache-zu-Text, CUDA-Port (peer), nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/tts",
+        "ziel": "{BASE}/.local/bin/tts",
+        "grund": "Text-zu-Sprache, CUDA-Port (peer), nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/_stt_gen.py",
+        "ziel": "{BASE}/.local/bin/_stt_gen.py",
+        "grund": "CUDA-Treiber hinter stt; auf peer heute ein Symlink in claude-setup/bundle/bin-linux mit gleichem Inhalt, nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
+      },
+      {
+        "repo": "shell/linux/_tts_gen.py",
+        "ziel": "{BASE}/.local/bin/_tts_gen.py",
+        "grund": "CUDA-Treiber hinter tts; auf peer heute ein Symlink in claude-setup/bundle/bin-linux mit gleichem Inhalt, nur unter shell/linux/; seit 18.10.2026 im Abgleich (vorher nie verglichen)"
       }
     ],
     "_comment_root_kopien": "Kopien, die einem anderen Konto gehoeren (root) und die weder wb-ausrollen noch ein Agent schreiben darf. wb-consistency meldet KOPIE-ROOT-VERALTET (error), wb-ausrollen nennt den sudo-Befehl und endet mit Exit 1; ausgefuehrt wird nichts. Fehlt das Ziel auf einer Maschine, ist das kein Befund. Anlass 14.10.2026 (fi-b): /usr/local/bin/wb-gast-tor auf peer stand seit 27.09. still.",
@@ -586,8 +661,24 @@
         ]
       }
     ],
-    "registry_ausnahmen": [],
-    "_comment_registry_ausnahmen": "Felder, die je Maschine verschieden sein DUERFEN -- heute leer, und das ist gemessen: bei allen 16 Abweichungen vom 2026-08-20 war jede echte Drift und keine einzige ein 'so soll es bleiben'. Drei Schreibweisen, von grob nach fein: 'contextPattern' (dieses Blatt ueberall), 'harnesses.contextPattern' (in dieser Liste), 'harnesses[claude].contextPattern' (nur in diesem Eintrag). Datenfeld statt Codewechsel: eine Ausnahme wird hier eingetragen, nicht in wb-consistency."
+    "registry_ausnahmen": [
+      "models[ornith-35b].enabled",
+      "models[ornith-35b].goodFor",
+      "models[aider-ornith-35b].enabled",
+      "models[anthropic-api-sonnet-5-5].enabled",
+      "models[anthropic-api-haiku-5-5].enabled",
+      "models[anthropic-api-opus-5-5].enabled"
+    ],
+    "_comment_registry_ausnahmen_gruende": "Seit 18.10.2026: Jede Ausnahme braucht hier ihren Grund, Schluessel = derselbe Eintrag wie in registry_ausnahmen. wb-ausrollen zeigt sie dann als BEWUSST ABWEICHEND (kein Exit 1); eine Ausnahme ohne Grund zaehlt in wb-ausrollen weiter als registry-abweichung. Die drei ornith-Felder gelten fuer alle Maschinen, weil registry_ausnahmen keine Maschine kennt; auf dem Mac stimmen sie heute mit der Vorlage ueberein.",
+    "registry_ausnahmen_gruende": {
+      "models[ornith-35b].enabled": "ornith:35b-256k wurde am 30.09.2026 nur auf dem Mac geloescht (Speicher), daher ist es in der Vorlage aus; auf peer liegt es weiter in Ollama (ollama list, 18.10.2026) und bleibt dort eingeschaltet. Lokale Eintraege gelten je Maschine (decision 2026-09-10, siehe wb-registry-sync).",
+      "models[ornith-35b].goodFor": "ornith:35b-256k wurde am 30.09.2026 nur auf dem Mac geloescht (Speicher), daher ist es in der Vorlage aus; auf peer liegt es weiter in Ollama (ollama list, 18.10.2026) und bleibt dort eingeschaltet. Lokale Eintraege gelten je Maschine (decision 2026-09-10, siehe wb-registry-sync).",
+      "models[aider-ornith-35b].enabled": "ornith:35b-256k wurde am 30.09.2026 nur auf dem Mac geloescht (Speicher), daher ist es in der Vorlage aus; auf peer liegt es weiter in Ollama (ollama list, 18.10.2026) und bleibt dort eingeschaltet. Lokale Eintraege gelten je Maschine (decision 2026-09-10, siehe wb-registry-sync).",
+      "models[anthropic-api-sonnet-5-5].enabled": "Die Vorlage fuehrt die drei Modelle des Anbieters anthropic-api ausgeschaltet; Ein Commit vom 11.11.2026 uebernahm sie so aus der damaligen lebenden Registry (nur Mac, aus bis zur Probe im echten Pane). Auf dem Mac sind sie heute an, weil seit dem 11.11.2026 das API-Guthaben dem Abo vorgezogen wird (regeln/vergabe.md Rang 3b). Eine neue Maschine bekommt sie nicht aus der Vorlage, sondern nur nach eigener Entscheidung; bewusste Abweichung, abgestimmt am 2026-11-21.",
+      "models[anthropic-api-haiku-5-5].enabled": "Die Vorlage fuehrt die drei Modelle des Anbieters anthropic-api ausgeschaltet; Ein Commit vom 11.11.2026 uebernahm sie so aus der damaligen lebenden Registry (nur Mac, aus bis zur Probe im echten Pane). Auf dem Mac sind sie heute an, weil seit dem 11.11.2026 das API-Guthaben dem Abo vorgezogen wird (regeln/vergabe.md Rang 3b). Eine neue Maschine bekommt sie nicht aus der Vorlage, sondern nur nach eigener Entscheidung; bewusste Abweichung, abgestimmt am 2026-11-21.",
+      "models[anthropic-api-opus-5-5].enabled": "Die Vorlage fuehrt die drei Modelle des Anbieters anthropic-api ausgeschaltet; Ein Commit vom 11.11.2026 uebernahm sie so aus der damaligen lebenden Registry (nur Mac, aus bis zur Probe im echten Pane). Auf dem Mac sind sie heute an, weil seit dem 11.11.2026 das API-Guthaben dem Abo vorgezogen wird (regeln/vergabe.md Rang 3b). Eine neue Maschine bekommt sie nicht aus der Vorlage, sondern nur nach eigener Entscheidung; bewusste Abweichung, abgestimmt am 2026-11-21."
+    },
+    "_comment_registry_ausnahmen": "Felder, die je Maschine verschieden sein DUERFEN -- bis 18.10.2026 leer (bei allen 16 Abweichungen vom 2026-08-20 war jede echte Drift); seit 18.10. drei ornith-Felder, seit 21.11. drei anthropic-api-Felder (enabled), Grund je in registry_ausnahmen_gruende. Drei Schreibweisen, von grob nach fein: 'contextPattern' (dieses Blatt ueberall), 'harnesses.contextPattern' (in dieser Liste), 'harnesses[claude].contextPattern' (nur in diesem Eintrag). Datenfeld statt Codewechsel: eine Ausnahme wird hier eingetragen, nicht in wb-consistency."
   },
   "check8_test_socket": {
     "test_globs": [
@@ -664,5 +755,18 @@
   "check15_werkzeuge": {
     "_comment": "Check 15 (2026-10-13): Befunde von wb-werkzeuge status --json (Quelle shell/werkzeuge.default.json, Schema werkzeuge/1) als Findings. Wie check9 ruft der Check das Werkzeug als EIGENEN Prozess auf; WB_WERKZEUGE_BIN ueberschreibt den Pfad fuer Tests. Ohne diesen Schluessel bleibt der Check still.",
     "skript": "{REPO}/shell/wb-werkzeuge"
+  },
+  "check16_testmarke": {
+    "_comment": "Check 16 (26.10.2026, task): eine gueltige Testmarke <Heimat>/.wb-testumgebung (testmaschine_marke.py) in einer ECHTEN Nutzerheimat ist ein Fehler, weil sie dort das HID-Tor abschaltet. Echte Heimat = {BASE} (der Nutzer, unter dem wb-consistency laeuft) und jedes Verzeichnis unter heimat_wurzeln, deren Kontoname nicht in testnutzer steht. Die Konfiguration kennt keine Kontenliste der Maschinen (nur machine_ids_by_os), darum ist testnutzer die Ausnahme-Liste: wbprodukt ist der Testnutzer auf T1 (T1-Lauf #7, 24.10.2026). Gueltig heisst wie in der Testnaht: regulaere Datei, genau ein Link, Eigentuemer eigentuemer_uid (0 = root), weder gruppen- noch weltschreibbar, erste Zeile = zeile. Eine vorhandene, aber ungueltige Marke meldet sich nur als Hinweis.",
+    "zeile": "wb-testumgebung: Testheimat, Ausrollen dieses Stands erlaubt",
+    "marke": ".wb-testumgebung",
+    "eigentuemer_uid": 0,
+    "heimat_wurzeln": [
+      "/Users",
+      "/home"
+    ],
+    "testnutzer": [
+      "wbprodukt"
+    ]
   }
 }

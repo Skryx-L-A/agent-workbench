@@ -129,6 +129,23 @@ function istFehler<T>(a: ApiResponse<T>): a is ApiFailure {
   return 'error' in a;
 }
 
+/**
+ * Die Meldungen beider Origins nach `id` zusammenfuehren, neueste zuerst. Gleiche `id` heisst
+ * dasselbe Ereignis (Spiegel); es gilt die erste Antwort -- ausser eine spaetere traegt
+ * `erledigt_at` und die erste nicht (Push-Art `welt.braucht-dich`): sonst zeigte eine
+ * gespiegelte Kopie ohne den Vermerk ein erledigtes Anliegen wieder als offen.
+ */
+export function meldungenMischen(antworten: readonly (readonly Notification[])[]): Notification[] {
+  const nachId = new Map<string, Notification>();
+  for (const liste of antworten) {
+    for (const n of liste) {
+      const alt = nachId.get(n.id);
+      if (!alt || (typeof alt.erledigt_at !== 'number' && typeof n.erledigt_at === 'number')) nachId.set(n.id, n);
+    }
+  }
+  return [...nachId.values()].sort((l, r) => r.created_at - l.created_at);
+}
+
 export class HttpQuelle implements MobileQuelle {
   readonly name = 'http';
   readonly client_build: string;
@@ -545,11 +562,9 @@ export class HttpQuelle implements MobileQuelle {
   }
 
   async meldungen(_cursor?: string, nachgereicht?: Nachreichen<NotificationsData>): Promise<ApiResponse<NotificationsData>> {
-    return this.gemischt<NotificationsData>('meldungen', '/notifications', (gut) => {
-      const nachId = new Map<string, Notification>();
-      for (const { a } of gut) for (const n of a.data.notifications) if (!nachId.has(n.id)) nachId.set(n.id, n);
-      return { notifications: [...nachId.values()].sort((l, r) => r.created_at - l.created_at), cursor: null };
-    }, nachgereicht);
+    return this.gemischt<NotificationsData>('meldungen', '/notifications', (gut) => ({
+      notifications: meldungenMischen(gut.map(({ a }) => a.data.notifications)), cursor: null,
+    }), nachgereicht);
   }
 
   // --- Schreiben ------------------------------------------------------------------

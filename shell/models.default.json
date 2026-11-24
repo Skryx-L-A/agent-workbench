@@ -84,7 +84,10 @@
     "codex-queue) ist ein regulaerer Ausdruck auf die Befehlszeile. probe {datum, beleg}.",
     "Es wird nie ersatzweise getippt: ohne Weg endet `sende` mit Exit 5 und nennt grund.",
     "initialPrompt 'positional' (codex): der erste Auftrag steht als letztes CLI-Argument;",
-    "wb-harness-run liest ihn einmal aus einer privaten Datei, bevor codex queue nutzbar ist."
+    "wb-harness-run liest ihn einmal aus einer privaten Datei, bevor codex queue nutzbar ist.",
+    "initialPrompt 'flag:<option>' (agy: 'flag:-i', belegt an agy --help, --prompt-interactive): der erste",
+    "Auftrag folgt der Option als ein Argument. Hat ein Harness weder Inbox-weg noch initialPrompt, startet",
+    "pi-worker ihn nicht mit Auftrag (seit 29.10.2026 wird in Agenten-Panes nie getippt)."
   ],
   "providers": [
     {
@@ -378,7 +381,12 @@
       "baseUrl": "https://api.anthropic.com/v1",
       "apiKeyEnv": "ANTHROPIC_API_KEY",
       "keychainService": "wb-anthropic-api",
-      "notes": "NICHT der Weg der eingebauten claude-Worker — die laufen ueber das Abo (claude-subscription). Katalog-Abruf: die echte Anthropic-API verlangt zusaetzlich einen Header 'anthropic-version' -- das discover-Schema kennt nur EINEN Auth-Header, dieser zweite fehlt hier (bekannte Luecke, siehe Ergebnis-Notiz). Ohne Key: nichts.",
+      "kontingent": {
+        "deckelEur": 100.0,
+        "warnungEur": 75.0,
+        "sperreEur": 95.0
+      },
+      "notes": "Werkbank-Deckel als EINSTELLUNG hier (providers[].kontingent: deckelEur, warnungEur, sperreEur), nicht fest im Code; die Werte oben sind eine Beispielvorgabe. Anpassen ohne Codeaenderung: wb-state models set --kind provider anthropic-api kontingent '{\"deckelEur\": ..., \"warnungEur\": ..., \"sperreEur\": ...}'. Verbrauch und Sperre: 'wb-kontingent pruefen anthropic-api'.",
       "discover": {
         "source": "http-json",
         "url": "https://api.anthropic.com/v1/models",
@@ -559,6 +567,9 @@
       "promptPattern": "^❯",
       "compactCommand": "/compact",
       "contextPattern": null,
+      "anbieterfehlerPattern": "^⏺ API Error: ",
+      "anbieterfehlerProbe": "gemessen 2026-11-02 mit claude 2.1.316 (interaktiv, eigener tmux, Attrappe): Zugende nach 502 zeigt '⏺ API Error: 502 Anbieter nicht erreichbar (...)' am Zeilenanfang, danach '✻ Brewed for 0s · done', Eingabezeile und Fusszeile; Verbindungsabbruch '⏺ API Error: Connection dropped (ECONNRESET)...'. Waehrend der Wiederholungen steht '✻ 502 ... · Retrying in 6s · attempt 6/10' mit 'esc to interrupt' (kein Zugende, kein Treffer). SPINNERMUSTER (anbieterfehlerSpinnerPattern, gemessen 2026-11-02 mit CLAUDE_CODE_RETRY_WATCHDOG=1, 90 s, Aufnahme alle 5 s, Attrappe 502 ohne Ende, Skript shell/tests/fixtures/netz-mess/spinner-probe.sh): beim Wiederholen steht ueber dem Eingaberahmen immer genau eine Zeile '<Spinnerzeichen> <Fehlertext> · Retrying in Ns · attempt N/300' (17 von 17 Aufnahmen nach dem Absenden der Anfrage, Zeichen ✻), N zaehlt herunter, die Zeile bleibt zwischen den Versuchen stehen; der Fehlertext steht NUR dort, kein '⏺ API Error:' im Verlauf. Das Muster verlangt Spinnerzeichen am Zeilenanfang und 'Retrying in Ns · attempt N/M' am Zeilenende. Fixture: panebilder/claude-2.1.316-dauerwiederholen-spinner.txt. Nur der Zeilenanfang '⏺ API Error: ' zaehlt; ein Zitat mitten im Satz, eine eingerueckte Folgezeile und '⎿'-Werkzeugausgabe treffen nicht. Fixtures: shell/tests/fixtures/panebilder/claude-2.1.316-*.",
+      "anbieterfehlerSpinnerPattern": "^[✢✳✶✻✽·] .* · Retrying in [0-9]+s · attempt [0-9]+/[0-9]+$",
       "session": {
         "via": "sessionFile",
         "ort": "~/.claude/projects/{cwdSlug}/{sessionId}.jsonl",
@@ -726,6 +737,8 @@
       "promptPattern": "^❯",
       "compactCommand": null,
       "contextPattern": null,
+      "anbieterfehlerPattern": null,
+      "anbieterfehlerProbe": "nicht gemessen: pi 1.5.0 nahm in der Attrappen-Probe (eigener tmux) die Eingabe nicht an (keine Anfrage), also kein Bildschirm des Fehlers. Im Druckmodus endet der Zug mit '502: {...}' ohne festen Anfang; ohne gemessenen Bildschirm kein Muster.",
       "session": {
         "via": "sessionFile",
         "ort": "~/.pi-workers/sessions/{name}/*.jsonl",
@@ -956,6 +969,8 @@
       "probe": "gemessen 2026-08-07 mit codex-cli 0.146.0 (Erstmessung 2026-07-28 mit 0.145.0): Eingabezeile beginnt mit dem Zeichen › (U+203A), readyPattern '^› [^0-9]' trifft sie und keinen der nummerierten Dialoge (Vertrauensfrage '› 1. Yes, continue', Modellabkuendigung '› 1. Try new model', Ratenlimit-Hinweis '› 1. Switch to gpt-5.6-luna'). KONTEXTANZEIGE: keine. Weder das Startbanner noch die Statuszeile im Leerlauf noch /status nennen die Kontextauslastung; /status zeigt allein das MONATSKONTINGENT ('Monthly limit: [░░░░] 0% left'). Ein Muster auf '% left' wuerde also das Kontingent als Kontext lesen — contextPattern bleibt deshalb leer, der Guard behandelt den Kontext dieses Harness als UNBEKANNT. Nicht messbar war die Anzeige waehrend eines laufenden Auftrags: das Kontingent des Kontos war am 2026-08-07 erschoepft ('You've hit your usage limit ... try again at Aug 27th, 2026'), ein Zug kam nicht zustande.",
       "compactCommand": "/compact",
       "contextPattern": null,
+      "anbieterfehlerPattern": "^■ (unexpected status 5[0-9][0-9]|stream disconnected before completion)",
+      "anbieterfehlerProbe": "gemessen 2026-11-02 mit codex 0.166.0 (interaktiv, eigener tmux, Attrappe): 502 gibt '■ unexpected status 502 Bad Gateway: ...', Verbindungsabbruch '■ stream disconnected before completion: error sending request', jeweils vor der leeren Eingabezeile '› Ask Codex to do anything'. Nur 502 und Abbruch gemessen, die uebrigen 5xx sind hergeleitet. Fixtures: shell/tests/fixtures/panebilder/codex-0.166.0-*. KEIN Spinnermuster (gemessen 2026-11-02, 90 s, Attrappe 502 mit 'retry-after: 50', Skript netz-mess/spinner-probe.sh): beim Warten zeigt codex nur '• Working (1m 00s • esc to interrupt)' und die Fusszeile, keinen Fehlertext und keine Zeile 'Reconnecting'; ohne retry-after endet das Wiederholen nach rund 25 s im Zugende (oben). Fixture: panebilder/codex-0.166.0-dauerwiederholen-working.txt.",
       "session": {
         "via": "sessionFile",
         "ort": "~/.codex/sessions/*/*/*/rollout-*.jsonl",
@@ -1004,7 +1019,7 @@
         "planQuelle": "datei:~/.codex/auth.json (tokens.id_token JWT-Payload, Feld 'https://api.openai.com/auth.chatgpt_plan_type', lokal dekodiert)",
         "modellQuelle": "datei:~/.codex/models_cache.json (models[].slug, gefiltert auf visibility=list) -- KEINE Tarif-Gating-Angabe enthalten, anders als bei Copilot",
         "nutzungQuelle": "datei:~/.codex/sessions/*/*/*/rollout-*.jsonl (payload.rate_limits, in der Praxis leer) + payload.task_complete.error.codex_error_info='usage_limit_exceeded' als Erschoepft-Signal; bildschirm:/status zeigt Monatsbalken",
-        "notiz": "'codex login status' ist als Angemeldet-Nachweis nachweislich unzuverlaessig (sagt auch bei totem Token 'Logged in'). Verlaesslich: exp-Feld im access_token-JWT selbst dekodieren. Konto war am 2026-08-10 13:03 UTC weiterhin erschoepft, Rueckfall 27.08.2026 23:59 (Zeitzone in der Meldung nicht benannt, wb-kontingent liest sie als Pacific -- die spaeteste Lesart)."
+        "notiz": "'codex login status' ist als Angemeldet-Nachweis nachweislich unzuverlaessig (sagt auch bei totem Token 'Logged in'). Verlaesslich: exp-Feld im access_token-JWT selbst dekodieren. Konto war am 2026-08-10 UTC weiterhin erschoepft, Rueckfall 27.08.2026 (Zeitzone in der Meldung nicht benannt, wb-kontingent liest sie als Pacific -- die spaeteste Lesart)."
       },
       "inbox": {
         "weg": "codex-queue",
@@ -1291,6 +1306,8 @@
       "probe": "gemessen 2026-08-08 mit opencode 1.18.14/1.18.15 auf eigenem Socket (Erstmessung 2026-07-28 mit 1.18.9). READY: die Fusszeile traegt den Hinweis 'tab agents  ctrl+p commands', und zwar in allen drei gemessenen Zustaenden — leere Eingabe, getippter Text, laufende Antwort. Sie erscheint im selben Abtastschritt wie die TUI selbst (Startablauf in 0,4-s-Schritten: bis 2,0 s leerer Bildschirm, bei 2,4 s alles zugleich), ist also nicht frueher da als die Eingabebereitschaft. VORHER stand hier der Platzhalter 'Ask anything': der verschwindet, sobald jemand tippt UND waehrend das Modell antwortet (gemessen ask=0 in beiden Faellen), taugt also nur fuer die leere Box. PROMPT: kein promptPattern, und das ist kein Versaeumnis. Die Eingabezeile ist eine Kastenzeile '┃  <text>'; dieselbe Form tragen die Nachrichten im Verlauf UND die Statuszeile '┃  Build auto · <Modell> <Provider>', die IMMER die unterste Kastenzeile ist. Die Pruefung in pi-worker nimmt aber 'grep -E <muster> | tail -1' — jedes Muster, das die Eingabezeile trifft, trifft auch die Statuszeile darunter, und die aendert sich nie. Ergebnis waere entweder 'haengt noch' bei jedem Auftrag (3x Enter, dann FEHLER) oder ein Muster, das nur die leere Box kennt und haengenden Text als abgeschickt meldet. Beides ist schlechter als die ehrliche Auskunft 'Submission NICHT verifizierbar'. Auch --mini hilft nicht: dort traegt die Eingabezeile ueberhaupt kein Zeichen, an dem sie zu erkennen waere.",
       "compactCommand": "/compact",
       "contextPattern": "[0-9.]+[KM][[:space:]]*\\(([0-9]{1,3})%\\)",
+      "anbieterfehlerPattern": null,
+      "anbieterfehlerProbe": "gemessen 2026-11-02 mit opencode 1.19.5: der Fehler steht als nackter Text der Anbieternachricht ('Anbieter nicht erreichbar (Attrappe)') im Gespraech und als Hinweis rechts oben, ohne festen Anfang wie 'API Error'; er laesst sich nicht von einer normalen Antwort unterscheiden, deshalb kein Muster. Fixture: shell/tests/fixtures/panebilder/opencode-1.19.5-anbieterfehler-502.txt.",
       "contextProbe": "gemessen 2026-08-06 mit opencode 1.18.14 (TUI-Anzeige) auf eigenem Socket: die Statuszeile unten rechts traegt '8.3K (4%)' neben dem Arbeitsverzeichnis. Die erste Gruppe faengt die 4.",
       "session": {
         "via": "http-sse",
@@ -1497,6 +1514,7 @@
     {
       "id": "agy",
       "label": "Antigravity CLI (Google)",
+      "initialPrompt": "flag:-i",
       "command": "agy",
       "modelSwitch": null,
       "args": [
@@ -1643,7 +1661,7 @@
           "weg": "datei",
           "ziel": "~/.antigravity/AGENTS.md",
           "gemessen": "2026-10-14/herleitung",
-          "beleg": "Herleitung, nicht gemessen (Quota erschoepft bis 15.10. 21:34): agy liest Regeln unter ~/.gemini/config/ (rules/, AGENTS.md, GEMINI.md); Leseort ~/.antigravity/AGENTS.md ungeprueft, Zelle bleibt OFFEN bis eine Probe ~/.gemini/config/AGENTS.md belegt"
+          "beleg": "Herleitung, nicht gemessen (Quota erschoepft bis 15.10.): agy liest Regeln unter ~/.gemini/config/ (rules/, AGENTS.md, GEMINI.md); Leseort ~/.antigravity/AGENTS.md ungeprueft, Zelle bleibt OFFEN bis eine Probe ~/.gemini/config/AGENTS.md belegt"
         }
       },
       "skillRoots": [
@@ -1949,7 +1967,7 @@
               "timeout": "{timeout}"
             },
             "gemessen": "2026-10-14/probe",
-            "beleg": "Probe 14.10. 03:27: crush run im Test-HOME mit Stub-Provider (openai-compat): nur PreToolUse feuerte (PostToolUse/UserPromptSubmit/Stop eingetragen, nicht gefeuert), Nutzlast {event, session_id, cwd, tool_name (nativ: bash), tool_input}; Matcher ist ein Go-Regex ('*' ist ungueltig und bricht den Start ab, leer = alle); Werkzeuge agent, bash, edit, multiedit, view, write, glob, grep, ls, fetch, download, lsp_*, todos. Antwortform: siehe e2e"
+            "beleg": "Probe 14.10.: crush run im Test-HOME mit Stub-Provider (openai-compat): nur PreToolUse feuerte (PostToolUse/UserPromptSubmit/Stop eingetragen, nicht gefeuert), Nutzlast {event, session_id, cwd, tool_name (nativ: bash), tool_input}; Matcher ist ein Go-Regex ('*' ist ungueltig und bricht den Start ab, leer = alle); Werkzeuge agent, bash, edit, multiedit, view, write, glob, grep, ls, fetch, download, lsp_*, todos. Antwortform: siehe e2e"
           }
         },
         "prompts": {
@@ -2147,7 +2165,7 @@
               ]
             },
             "gemessen": "2026-10-14/probe",
-            "beleg": "Probe 14.10. 03:13: qwen im Test-HOME mit Stub-Modell (fixtures/hook-bruecke/probe-lauf.sh), Hooks schreiben stdin mit: PreToolUse/PostToolUse/UserPromptSubmit/Stop/SessionStart in Claude-Form (session_id, transcript_path, cwd, hook_event_name, tool_name=Laufzeit-ID run_shell_command, tool_input, tool_response); angebotene Werkzeuge edit, glob, grep_search, notebook_edit, read_file, run_shell_command, skill, write_file. Doku: features/hooks.md:71-96, 514-516, 551-563"
+            "beleg": "Probe 14.10.: qwen im Test-HOME mit Stub-Modell (fixtures/hook-bruecke/probe-lauf.sh), Hooks schreiben stdin mit: PreToolUse/PostToolUse/UserPromptSubmit/Stop/SessionStart in Claude-Form (session_id, transcript_path, cwd, hook_event_name, tool_name=Laufzeit-ID run_shell_command, tool_input, tool_response); angebotene Werkzeuge edit, glob, grep_search, notebook_edit, read_file, run_shell_command, skill, write_file. Doku: features/hooks.md:71-96, 514-516, 551-563"
           }
         },
         "prompts": {
@@ -2539,7 +2557,7 @@
               "timeoutSec": "{timeout}"
             },
             "gemessen": "2026-10-14/probe",
-            "beleg": "Probe 14.10. 03:16: copilot -p im Test-HOME mit BYOK-Stub (copilot help providers: COPILOT_PROVIDER_BASE_URL, keine GitHub-Anmeldung). settings.json hooks mit Claude-Namen (PreToolUse, PostToolUse, UserPromptSubmit, Stop) feuern mit Claude-Nutzlast (hook_event_name, session_id, cwd, tool_name Bash, tool_input Objekt, transcript_path bei Stop); die camelCase-Namen (preToolUse ...) feuern daneben mit {sessionId, toolName bash, toolArgs als Objekt}. Eintrag {type, bash, timeoutSec}. Argumentnamen von create/edit unter Claude-Namen: siehe e2e-Probe"
+            "beleg": "Probe 14.10.: copilot -p im Test-HOME mit BYOK-Stub (copilot help providers: COPILOT_PROVIDER_BASE_URL, keine GitHub-Anmeldung). settings.json hooks mit Claude-Namen (PreToolUse, PostToolUse, UserPromptSubmit, Stop) feuern mit Claude-Nutzlast (hook_event_name, session_id, cwd, tool_name Bash, tool_input Objekt, transcript_path bei Stop); die camelCase-Namen (preToolUse ...) feuern daneben mit {sessionId, toolName bash, toolArgs als Objekt}. Eintrag {type, bash, timeoutSec}. Argumentnamen von create/edit unter Claude-Namen: siehe e2e-Probe"
           }
         },
         "prompts": {
@@ -3055,7 +3073,7 @@
             "datei": "#!/bin/bash\n# Werkbank-Hook-Bruecke (geschrieben von wb-werkzeuge apply, Quelle: werkzeuge.default.json)\nexec {befehl}\n",
             "dateiname": "{ereignis_nativ}",
             "gemessen": "2026-10-14/probe",
-            "beleg": "Probe 14.10. 03:27: clite (Cline CLI) im Test-HOME, Stub-Modell ueber die Responses-API, Hook-Dateien ~/.cline/hooks/<Ereignis>: PreToolUse {taskId, workspaceRoots, hookName tool_call, tool_call {id, name, input (Objekt)}, preToolUse {toolName, parameters (Werte als JSON-Text)}}, PostToolUse {hookName tool_result, tool_result {name, input, output}}, TaskStart (hookName agent_start); UserPromptSubmit feuerte bei einem Aufruf mit Prompt-Argument nicht; Werkzeuge run_commands {commands: [..]}, read_files, apply_patch, search_codebase, skills, fetch_web_content, ask_question, spawn_agent, team_*. Antwortform: siehe e2e"
+            "beleg": "Probe 14.10.: clite (Cline CLI) im Test-HOME, Stub-Modell ueber die Responses-API, Hook-Dateien ~/.cline/hooks/<Ereignis>: PreToolUse {taskId, workspaceRoots, hookName tool_call, tool_call {id, name, input (Objekt)}, preToolUse {toolName, parameters (Werte als JSON-Text)}}, PostToolUse {hookName tool_result, tool_result {name, input, output}}, TaskStart (hookName agent_start); UserPromptSubmit feuerte bei einem Aufruf mit Prompt-Argument nicht; Werkzeuge run_commands {commands: [..]}, read_files, apply_patch, search_codebase, skills, fetch_web_content, ask_question, spawn_agent, team_*. Antwortform: siehe e2e"
           }
         },
         "prompts": {
@@ -3271,7 +3289,7 @@
               ]
             },
             "gemessen": "2026-10-14/probe",
-            "beleg": "Probe 14.10. 03:22: openhands --headless im Test-HOME mit Stub-Modell, ~/.openhands/hooks.json: pre_tool_use/post_tool_use/user_prompt_submit/stop/session_start feuern mit {event_type, tool_name terminal, tool_input (action.model_dump: command, is_input, timeout, reset, kind), tool_response, message, session_id, working_dir, metadata}; angebotene Werkzeuge terminal, file_editor, task_tracker, task, finish, think, invoke_skill. Antwort: executor.py:235-270 (Exit 2 oder decision deny blockiert, additionalContext nur bei user_prompt_submit), openhands-sdk 1.21.0"
+            "beleg": "Probe 14.10.: openhands --headless im Test-HOME mit Stub-Modell, ~/.openhands/hooks.json: pre_tool_use/post_tool_use/user_prompt_submit/stop/session_start feuern mit {event_type, tool_name terminal, tool_input (action.model_dump: command, is_input, timeout, reset, kind), tool_response, message, session_id, working_dir, metadata}; angebotene Werkzeuge terminal, file_editor, task_tracker, task, finish, think, invoke_skill. Antwort: executor.py:235-270 (Exit 2 oder decision deny blockiert, additionalContext nur bei user_prompt_submit), openhands-sdk 1.21.0"
           },
           "pfad": ""
         },
@@ -3828,6 +3846,78 @@
       "notes": "ABGELOEST 2026-09-02: Fable 5 durch Fable 5.1 ersetzt (Anweisung des Nutzers, 'Fable 5 soll nicht mehr verwendet werden'). Der alte Alias fable5 ist mit dem Wechsel ENTFALLEN -- die Registry kennt keine Zweitaliase, nur fable51 loest auf (nachgemessen 2026-09-05: 'wb-state models resolve fable5' meldet 'nicht registriert'). FABLE-SPERRE und Effort-Deckel high gelten unveraendert. | "
     },
     {
+      "id": "anthropic-api-sonnet-5-5",
+      "label": "Anthropic API: Sonnet 5.5",
+      "harness": "claude",
+      "provider": "anthropic-api",
+      "modelRef": "claude-sonnet-5-5",
+      "roles": [
+        "worker",
+        "orchestrator"
+      ],
+      "workerClass": [
+        "coding-kurz",
+        "coding-lang",
+        "reasoning",
+        "review",
+        "mechanisch"
+      ],
+      "defaultEffort": "high",
+      "supportsEffort": true,
+      "dataStaysLocal": false,
+      "machines": [
+        "mac"
+      ],
+      "enabled": false,
+      "goodFor": "Anthropic-API-Guthaben geht dem Claude-Abo VOR, solange 'wb-kontingent pruefen anthropic-api' 0 gibt (regeln/vergabe.md Rang 3b; pi-worker lenkt einen Claude-Alias automatisch hierher um). Traegt alles, was Rang 3 (Claude-Abo) traegt: kurze gut spezifizierte Arbeit bis lang/mehrstufig je nach Effort.",
+      "notFor": "Mechanische Arbeit, solange lokal, kostenlose Kontingente oder Cline Pass Luft haben (die gehen zuerst). Vor jeder Vergabe: wb-kontingent pruefen anthropic-api."
+    },
+    {
+      "id": "anthropic-api-haiku-5-5",
+      "label": "Anthropic API: Haiku 5.5",
+      "harness": "claude",
+      "provider": "anthropic-api",
+      "modelRef": "claude-haiku-5-5",
+      "roles": [
+        "worker",
+        "orchestrator"
+      ],
+      "workerClass": [
+        "coding-kurz",
+        "mechanisch"
+      ],
+      "defaultEffort": "medium",
+      "supportsEffort": true,
+      "dataStaysLocal": false,
+      "machines": [
+        "mac"
+      ],
+      "enabled": false,
+      "goodFor": "Anthropic-API-Guthaben geht dem Claude-Abo VOR, solange 'wb-kontingent pruefen anthropic-api' 0 gibt (regeln/vergabe.md Rang 3b). Mechanische und kurze gut spezifizierte Arbeit.",
+      "notFor": "Lang/mehrstufig, Debugging, Architektur -- dafuer anthropic-api-sonnet-5-5. Vor jeder Vergabe: wb-kontingent pruefen anthropic-api."
+    },
+    {
+      "id": "anthropic-api-opus-5-5",
+      "label": "Anthropic API: Opus 5.5 (nur Sicherheitszuege)",
+      "harness": "claude",
+      "provider": "anthropic-api",
+      "modelRef": "claude-opus-5-5",
+      "roles": [
+        "worker",
+        "orchestrator"
+      ],
+      "workerClass": [],
+      "defaultEffort": "medium",
+      "supportsEffort": true,
+      "dataStaysLocal": false,
+      "machines": [
+        "mac"
+      ],
+      "enabled": false,
+      "goodFor": "NUR SICHERHEITSZUEGE (regeln/vergabe.md Rang 3b, decision 2026-11-11): Opus ueber das Anthropic-API-Guthaben, wenn ein Sicherheitsbefund dringend eine zweite, unabhaengige Spur neben dem Abo braucht. Kein workerClass-Eintrag -- taucht deshalb in keiner automatischen Routing-Zeile auf.",
+      "notFor": "Normale Arbeit jeder Art -- dafuer anthropic-api-sonnet-5-5 oder anthropic-api-haiku-5-5 (guenstiger, gleiche Spur) bzw. das Claude-Abo (Rang 3). Deckel: das Guthaben der Spur je Monat (Einstellung providers[].kontingent), geteilt mit sonnet/haiku auf derselben Spur -- wb-kontingent pruefen anthropic-api."
+    },
+    {
       "id": "ornith-35b",
       "label": "Ornith 1.0 35B (lokal)",
       "alias": "ornith",
@@ -3927,7 +4017,7 @@
         {
           "class": "coding-kurz",
           "effort": "high",
-          "goodFor": "ERSTE WAHL fuer kurze, klar umrissene Coding-Auftraege (der Nutzer, 2026-08-27: 'immer wenn moeglich Qwen3.8 lokal nehmen, wenn es fuer eine Aufgabe gut genug ist, und sonst erst auf ein Cloud-Modell zugreifen'). Einordnung: Artificial Analysis gibt dem Modell Intelligence-Index 52,0 gegenueber 63,1 fuer Claude Opus 5 und 57,5 fuer glm-5.3-flash -- fremde Messung, von uns nicht nachgemessen."
+          "goodFor": "ERSTE WAHL fuer kurze, klar umrissene Coding-Auftraege (Regel vom 2026-08-27: Qwen3.8 lokal hat Vorrang, wenn es fuer eine Aufgabe gut genug ist; erst sonst ein Cloud-Modell). Einordnung: Artificial Analysis gibt dem Modell Intelligence-Index 52,0 gegenueber 63,1 fuer Claude Opus 5 und 57,5 fuer glm-5.3-flash -- fremde Messung, von uns nicht nachgemessen."
         },
         {
           "class": "recherche",
@@ -3935,7 +4025,7 @@
           "goodFor": "Auslesen und Vorsortieren, wo die Daten die Maschine nicht verlassen sollen."
         }
       ],
-      "goodFor": "KONTEXT: Vorgabe 131072 (Empfehlung), 64K die Stufe darunter, 32K nur fuer Mini-Aufgaben; das volle Fenster 262144 ist erlaubt und gemessen lauffaehig (191.361 Token in 958 s) — `pi-worker --kontext 262144 <name> qwen38 ...`. EFFORT: immer die hoechste Stufe (xhigh), ohne ausdrueckliche Angabe setzt sie der Start selbst. VORGABE-EFFORT xhigh (der Nutzer 2026-09-20: 'die Regel fuer Qwen ist, dass Effort-Level immer auf dem hoechsten steht'). VORGABEWEG SEIT 2026-09-20 (Entscheidung des Nutzers nach eigener Messung): laeuft über Splash, nicht mehr über MLX. Gemessen auf dem M5 Pro, Netzbetrieb: kurze Aufgaben 33,1 -> 76,4 Tok/s, lange Eingabe 24,0 -> 63,1 Tok/s, vier Stroeme 38,6 -> 108,3 Tok/s gesamt, gecachter 12K-Kontext 0,22 s statt 54,6 s bis zum ersten Token. SIEHT: nimmt Bild UND Video auf (config.json fuehrt vision_config, image_token_id, video_token_id). Damit kann das lokale Modell etwas, das Claude Opus nicht kann -- bei visuellen Aufgaben also erst recht hier anfangen. VORGABE-MODELL für Worker (der Nutzer, 2026-08-27): erst pruefen, ob Qwen3.8 lokal für die Aufgabe reicht; ein Cloud-Modell kommt erst, wenn es das nicht tut. Token-frei, kein Kontingent, kein Datenabfluss -- der Punkt wiegt schwer, seit am 25.08. beim Vermessen freier Cloud-Modelle echte Projektdaten abgeflossen sind. Token-freier Default-Coder seit 2026-08-19 (Entscheidung des Nutzers, siehe GEMEINSAME-FAKTEN.md / Auftrag A-C 'lokales Modell als Orchestrator + waehlbares Kontextfenster'), Ersatz fuer geloeschte Mac-Coder grug und ornith:35b; Standardweg ist Splash. Dieselbe Bauform wie grug-27b-mlx-q4 (config.json: model_type qwen3_5, Qwen3_5ForConditionalGeneration, 4bit/group_size 64, 64 Lagen, full_attention_interval 4 -- 16 volle Attention-Lagen, num_key_value_heads 4, head_dim 256) -- also derselbe KV-Bedarf je Token (0,0625 MiB, angenommen aus der Architektur, nicht lastgetestet, siehe wb-belegung kv liste 'qwen38-27b-mlx-4bit'). 262144 Kontext-Token nativ (max_position_embeddings). Gewichte rund 16,05 GB (drei safetensors-Dateien). GEMESSEN am echten Gardener-Extraktionspfad (dieselben 15 Einheiten, vier gleichzeitige Buendel, 2026-08-15/16, Laeufe unter ~/Knowledge/_meta/messungen/strecken/modellvergleich/laeufe/2026-08-15-*.json, siehe gardener/dream/config.py Zeilen 388-414): mit Denkstufe 'low' (Gardeners gewaehlte Einstellung) 129 gefundene Aussagen bei 62,2 s/Einheit, 36,7 Tok/s, Ablehnungsquote des Zitattors nur 19,4 % (gegen 31,1 % bei grug); mit Denken aus 99 Aussagen bei 29,5 s/Einheit, 37,0 Tok/s, Ablehnungsquote 31,7 %. Rechengeschwindigkeit praktisch gleich wie grug (37 Tok/s) -- qwen3.8 findet WENIGER Aussagen, ist aber je gefundener Aussage deutlich belastbarer, und langsamer je Einheit, weil es mit Denkstufe 'low' mehr schreibt. Gardener wechselte deshalb am 16.08.2026 von grug auf qwen3.8 (mit reasoning_effort='low') als Extraktionsmodell.",
+      "goodFor": "KONTEXT: Vorgabe 131072 (Empfehlung), 64K die Stufe darunter, 32K nur fuer Mini-Aufgaben; das volle Fenster 262144 ist erlaubt und gemessen lauffaehig (191.361 Token in 958 s) — `pi-worker --kontext 262144 <name> qwen38 ...`. EFFORT: immer die hoechste Stufe (xhigh), ohne ausdrueckliche Angabe setzt sie der Start selbst. VORGABE-EFFORT xhigh (decision 2026-09-20: 'die Regel fuer Qwen ist, dass Effort-Level immer auf dem hoechsten steht'). VORGABEWEG SEIT 2026-09-20 (Entscheidung des Nutzers nach eigener Messung): laeuft über Splash, nicht mehr über MLX. Gemessen auf dem M5 Pro, Netzbetrieb: kurze Aufgaben 33,1 -> 76,4 Tok/s, lange Eingabe 24,0 -> 63,1 Tok/s, vier Stroeme 38,6 -> 108,3 Tok/s gesamt, gecachter 12K-Kontext 0,22 s statt 54,6 s bis zum ersten Token. SIEHT: nimmt Bild UND Video auf (config.json fuehrt vision_config, image_token_id, video_token_id). Damit kann das lokale Modell etwas, das Claude Opus nicht kann -- bei visuellen Aufgaben also erst recht hier anfangen. VORGABE-MODELL für Worker (decision 2026-08-27): erst pruefen, ob Qwen3.8 lokal für die Aufgabe reicht; ein Cloud-Modell kommt erst, wenn es das nicht tut. Token-frei, kein Kontingent, kein Datenabfluss -- der Punkt wiegt schwer, seit am 25.08. beim Vermessen freier Cloud-Modelle echte Projektdaten abgeflossen sind. Token-freier Default-Coder seit 2026-08-19 (Entscheidung des Nutzers, siehe GEMEINSAME-FAKTEN.md / Auftrag A-C 'lokales Modell als Orchestrator + waehlbares Kontextfenster'), Ersatz fuer geloeschte Mac-Coder grug und ornith:35b; Standardweg ist Splash. Dieselbe Bauform wie grug-27b-mlx-q4 (config.json: model_type qwen3_5, Qwen3_5ForConditionalGeneration, 4bit/group_size 64, 64 Lagen, full_attention_interval 4 -- 16 volle Attention-Lagen, num_key_value_heads 4, head_dim 256) -- also derselbe KV-Bedarf je Token (0,0625 MiB, angenommen aus der Architektur, nicht lastgetestet, siehe wb-belegung kv liste 'qwen38-27b-mlx-4bit'). 262144 Kontext-Token nativ (max_position_embeddings). Gewichte rund 16,05 GB (drei safetensors-Dateien). GEMESSEN am echten Gardener-Extraktionspfad (dieselben 15 Einheiten, vier gleichzeitige Buendel, 2026-08-15/16, Laeufe unter ~/Knowledge/_meta/messungen/strecken/modellvergleich/laeufe/2026-08-15-*.json, siehe gardener/dream/config.py Zeilen 388-414): mit Denkstufe 'low' (Gardeners gewaehlte Einstellung) 129 gefundene Aussagen bei 62,2 s/Einheit, 36,7 Tok/s, Ablehnungsquote des Zitattors nur 19,4 % (gegen 31,1 % bei grug); mit Denken aus 99 Aussagen bei 29,5 s/Einheit, 37,0 Tok/s, Ablehnungsquote 31,7 %. Rechengeschwindigkeit praktisch gleich wie grug (37 Tok/s) -- qwen3.8 findet WENIGER Aussagen, ist aber je gefundener Aussage deutlich belastbarer, und langsamer je Einheit, weil es mit Denkstufe 'low' mehr schreibt. Gardener wechselte deshalb am 16.08.2026 von grug auf qwen3.8 (mit reasoning_effort='low') als Extraktionsmodell.",
       "notFor": "Latenzkritisches -- laeuft langsamer als jede Cloud-Spur (Erwartung, nicht eigens gemessen). Braucht vor dem Start 20 GB freien Speicher (wb-mlx-server ensure prueft das) und laeuft nicht dauerhaft -- bewusst kein LaunchAgent, damit Bild-/Videoerzeugung denselben Speicher weiter bekommt. DENKSTUFEN-FALLE (GEMESSEN 2026-08-19, siehe gardener/dream/config.py Zeilen 415-420): ohne gesetzten reasoning_effort waehlt Qwen3.8s eigene Chat-Vorlage xhigh, und eine einzelne Anfrage kann dann ueber 28 Minuten statt rund einer Minute brauchen. pi gibt --thinking NICHT an den Server weiter (gemessen: der Anfragekoerper im DEBUG-Log von mlx_lm.server enthaelt kein chat_template_kwargs/reasoning_effort-Feld) -- wb-mlx-server setzt deshalb serverseitig chatTemplateArgs={\"reasoning_effort\":\"low\"} aus diesem Registry-Eintrag (--chat-template-args beim Start von mlx_lm.server), unabhaengig davon, was der Aufrufer schickt. Nicht fuer lange mehrstufige Arbeit mit Zweideutigkeit und nicht fuer Design-Deliverables; dort bleibt ein grosses Cloud-Modell die richtige Wahl. Und nie neben einem zweiten grossen Modell starten: 48 GB gemeinsamer Speicher, vorher check-resources.",
       "enabled": true,
       "supportsEffort": true,
@@ -3972,7 +4062,7 @@
         "bauart": "entwerfer",
         "modell": "$HOME/AI/mlx-models/qwen38-27b-mlx-4bit-mtp/mtp",
         "gewichteGb": 0.25,
-        "herkunft": "STAND 2026-08-31: DER VORGABEWEG IST 'mtp-kopf', NICHT MTPLX. Wer nur diesen Herkunftstext liest, landet beim falschen Motor -- genau das ist am 31.08.2026 einem Orchestrator passiert, weil hier bis dahin 'Vorgabe/Standardwahl bleibt MTPLX Speed 4bit' stand. Massgeblich ist 'wegVorgabe' (= mtp-kopf) und die Vergleichstabelle in regeln/orchestrierung.md: der reine 247-MB-Kopf als separater Entwerfer, gefahren von mlx_vlm.server mit --draft-kind mtp --draft-block-size 3, ueber echte Worker gemessen mit 19,1/20,3 Tok/s kalt/warm und 256/245 s Wanduhr. MTPLX hat die hoehere Rate (22,3/22,8), braucht aber rund doppelt so viele Token fuer dieselbe Aufgabe und ist in der Wanduhr langsamer (394/315 s), bei 19,83 statt 0,25 GB Zusatzgewicht. NEBENLAEUFIGKEIT, GEMESSEN 2026-09-01 und ANDERS ALS EINEN TAG ZUVOR NOTIERT: der MTP-Kopf traegt mehrere Stroeme, ABER NUR OHNE KV-QUANTISIERUNG. Mit --kv-bits enden zwei gleichzeitige Anfragen in HTTP 500 ('tuple' object has no attribute 'shape', speculative_verifier.py:1269), weil die gebuendelte Aufmerksamkeit in language.py:827 an 'hasattr(cache, bits)' aussteigt und der Rueckfall dahinter quantisierte Keys nicht kennt. Weder --quantized-kv-start noch getrennte Key/Value-Bits helfen -- die Pruefung haengt am TYP des Caches. OHNE --kv-bits laeuft es bis vier Stroeme. Gemessen ueber wb-mlx-server (300 Token je Strom, gleiche Laenge erzwungen): 1 Strom 25,0 Tok/s, 2 Stroeme 41,6 gesamt / 20,8 je Strom -- also +66 Prozent, und je Strom faellt es kaum. Direkt am Server, zweiter Messsatz: 1: 20,2  2: 32,1  3: 31,2  4: 30,8 gesamt. Der Gewinn sitzt bei ZWEI; darueber bleibt die Gesamtrate stehen, und ab drei ist die Buendelung ohne Vorhersage besser (51,5). REGEL (der Nutzer, 01.09.2026): bei EINEM Strom bleibt die Quantisierung an, bei MEHREREN faellt sie weg -- wb-mlx-server macht das selbst und bucht den doppelten KV-Bedarf (0,0625 statt 0,0332 MiB/Token). -- Historie ab hier: Endgueltiger Sieger, gemessen 2026-08-20 (Worker 'nebenlauf', alle vier Kandidaten fertig gemessen, ruhige Maschine, temperature 0): MTPLX Speed 4bit ueber den eigenstaendigen mtplx-Motor (--scheduler-mode serial) liefert 31,5 Tok/s kurz / 35,8 Tok/s warm bei 4737 Prompt-Token und haelt dabei den Hausgrundwert bei der Guete (48/50 auf pruef3, in 392 statt 718 Sekunden) -- schneller UND gleich gut. Schlaegt DSpark-DimInfer (15,3 kalt/30,3 warm), DFlash2 (12,5/29,5) und den Betrieb ganz ohne Vorhersage (11,1/17,2). Die 8-Bit-Guetefassung (Qwen3.8-27B-MTPLX-Optimized-Quality, $HOME/AI/mlx-models/Qwen3.8-27B-MTPLX-Optimized-Quality) bringt KEINE messbare Guete gegenueber der 4-Bit-Fassung (dieselben 48/50), dafuer 8,6 GiB mehr Speicher (30,2 statt 21,6 GiB) und deutlich weniger Tempo (23,0 statt 31,5 Tok/s kurz, 24,9 statt 35,8 Tok/s warm). Entscheidung des Nutzers (2026-08-20): sie bleibt trotzdem als zweite, ausdruecklich waehlbare Moeglichkeit erhalten -- Vorgabe/Standardwahl bleibt MTPLX Speed 4bit, wer stattdessen die Quality-Fassung will, setzt 'vorhersage.modell' auf den Optimized-Quality-Pfad und kennt dann den Preis. Buendelung UND Vorhersage gibt es fuer dieses Modell architekturbedingt nicht (mtp_batch scheitert nach sieben erfuellten Bedingungen an QwenRowOwnedRouterConfigError) -- wb-mlx-server klemmt --parallel deshalb fest auf 1 fuer diesen Motor, bei beiden Koerpern.",
+        "herkunft": "STAND 2026-08-31: DER VORGABEWEG IST 'mtp-kopf', NICHT MTPLX. Wer nur diesen Herkunftstext liest, landet beim falschen Motor -- genau das ist am 31.08.2026 einem Orchestrator passiert, weil hier bis dahin 'Vorgabe/Standardwahl bleibt MTPLX Speed 4bit' stand. Massgeblich ist 'wegVorgabe' (= mtp-kopf) und die Vergleichstabelle in regeln/orchestrierung.md: der reine 247-MB-Kopf als separater Entwerfer, gefahren von mlx_vlm.server mit --draft-kind mtp --draft-block-size 3, ueber echte Worker gemessen mit 19,1/20,3 Tok/s kalt/warm und 256/245 s Wanduhr. MTPLX hat die hoehere Rate (22,3/22,8), braucht aber rund doppelt so viele Token fuer dieselbe Aufgabe und ist in der Wanduhr langsamer (394/315 s), bei 19,83 statt 0,25 GB Zusatzgewicht. NEBENLAEUFIGKEIT, GEMESSEN 2026-09-01 und ANDERS ALS EINEN TAG ZUVOR NOTIERT: der MTP-Kopf traegt mehrere Stroeme, ABER NUR OHNE KV-QUANTISIERUNG. Mit --kv-bits enden zwei gleichzeitige Anfragen in HTTP 500 ('tuple' object has no attribute 'shape', speculative_verifier.py:1269), weil die gebuendelte Aufmerksamkeit in language.py:827 an 'hasattr(cache, bits)' aussteigt und der Rueckfall dahinter quantisierte Keys nicht kennt. Weder --quantized-kv-start noch getrennte Key/Value-Bits helfen -- die Pruefung haengt am TYP des Caches. OHNE --kv-bits laeuft es bis vier Stroeme. Gemessen ueber wb-mlx-server (300 Token je Strom, gleiche Laenge erzwungen): 1 Strom 25,0 Tok/s, 2 Stroeme 41,6 gesamt / 20,8 je Strom -- also +66 Prozent, und je Strom faellt es kaum. Direkt am Server, zweiter Messsatz: 1: 20,2  2: 32,1  3: 31,2  4: 30,8 gesamt. Der Gewinn sitzt bei ZWEI; darueber bleibt die Gesamtrate stehen, und ab drei ist die Buendelung ohne Vorhersage besser (51,5). REGEL (decision 2026-09-01): bei EINEM Strom bleibt die Quantisierung an, bei MEHREREN faellt sie weg -- wb-mlx-server macht das selbst und bucht den doppelten KV-Bedarf (0,0625 statt 0,0332 MiB/Token). -- Historie ab hier: Endgueltiger Sieger, gemessen 2026-08-20 (Worker 'nebenlauf', alle vier Kandidaten fertig gemessen, ruhige Maschine, temperature 0): MTPLX Speed 4bit ueber den eigenstaendigen mtplx-Motor (--scheduler-mode serial) liefert 31,5 Tok/s kurz / 35,8 Tok/s warm bei 4737 Prompt-Token und haelt dabei den Hausgrundwert bei der Guete (48/50 auf pruef3, in 392 statt 718 Sekunden) -- schneller UND gleich gut. Schlaegt DSpark-DimInfer (15,3 kalt/30,3 warm), DFlash2 (12,5/29,5) und den Betrieb ganz ohne Vorhersage (11,1/17,2). Die 8-Bit-Guetefassung (Qwen3.8-27B-MTPLX-Optimized-Quality, $HOME/AI/mlx-models/Qwen3.8-27B-MTPLX-Optimized-Quality) bringt KEINE messbare Guete gegenueber der 4-Bit-Fassung (dieselben 48/50), dafuer 8,6 GiB mehr Speicher (30,2 statt 21,6 GiB) und deutlich weniger Tempo (23,0 statt 31,5 Tok/s kurz, 24,9 statt 35,8 Tok/s warm). Entscheidung des Nutzers (2026-08-20): sie bleibt trotzdem als zweite, ausdruecklich waehlbare Moeglichkeit erhalten -- Vorgabe/Standardwahl bleibt MTPLX Speed 4bit, wer stattdessen die Quality-Fassung will, setzt 'vorhersage.modell' auf den Optimized-Quality-Pfad und kennt dann den Preis. Buendelung UND Vorhersage gibt es fuer dieses Modell architekturbedingt nicht (mtp_batch scheitert nach sieben erfuellten Bedingungen an QwenRowOwnedRouterConfigError) -- wb-mlx-server klemmt --parallel deshalb fest auf 1 fuer diesen Motor, bei beiden Koerpern.",
         "wegVorgabe": "mtp-kopf",
         "wege": [
           {
@@ -4012,7 +4102,7 @@
             "modell": "$HOME/AI/mlx-models/qwen38-27b-mlx-4bit-mtp/mtp",
             "gewichteGb": 0.25,
             "motor": null,
-            "herkunft": "VORGABEWEG seit 2026-08-27. Der reine MTP-Kopf aus den Qwen3.8-Gewichten (config.json: model_type qwen3_5_mtp, 247 MB) als SEPARATER Entwerfer zum gewoehnlichen Modellkoerper -- im Unterschied zum Weg 'mtplx', der einen eigenen 20-GB-Koerper mit eingebautem Kopf laedt. GEMESSEN ueber echte Worker (nicht am Server allein): 19,1 Tok/s kalt / 20,3 warm, Wanduhr 256 s kalt / 245 s warm -- der schnellste Weg zum fertigen Ergebnis bei 0,25 GB Zusatzgewicht. Die Vergleichstabelle aller vier Wege steht in regeln/orchestrierung.md. NEBENLAEUFIGKEIT, GEMESSEN 2026-09-01 und ANDERS ALS EINEN TAG ZUVOR NOTIERT: der MTP-Kopf traegt mehrere Stroeme, ABER NUR OHNE KV-QUANTISIERUNG. Mit --kv-bits enden zwei gleichzeitige Anfragen in HTTP 500 ('tuple' object has no attribute 'shape', speculative_verifier.py:1269), weil die gebuendelte Aufmerksamkeit in language.py:827 an 'hasattr(cache, bits)' aussteigt und der Rueckfall dahinter quantisierte Keys nicht kennt. Weder --quantized-kv-start noch getrennte Key/Value-Bits helfen -- die Pruefung haengt am TYP des Caches. OHNE --kv-bits laeuft es bis vier Stroeme. Gemessen ueber wb-mlx-server (300 Token je Strom, gleiche Laenge erzwungen): 1 Strom 25,0 Tok/s, 2 Stroeme 41,6 gesamt / 20,8 je Strom -- also +66 Prozent, und je Strom faellt es kaum. Direkt am Server, zweiter Messsatz: 1: 20,2  2: 32,1  3: 31,2  4: 30,8 gesamt. Der Gewinn sitzt bei ZWEI; darueber bleibt die Gesamtrate stehen, und ab drei ist die Buendelung ohne Vorhersage besser (51,5). REGEL (der Nutzer, 01.09.2026): bei EINEM Strom bleibt die Quantisierung an, bei MEHREREN faellt sie weg -- wb-mlx-server macht das selbst und bucht den doppelten KV-Bedarf (0,0625 statt 0,0332 MiB/Token). ",
+            "herkunft": "VORGABEWEG seit 2026-08-27. Der reine MTP-Kopf aus den Qwen3.8-Gewichten (config.json: model_type qwen3_5_mtp, 247 MB) als SEPARATER Entwerfer zum gewoehnlichen Modellkoerper -- im Unterschied zum Weg 'mtplx', der einen eigenen 20-GB-Koerper mit eingebautem Kopf laedt. GEMESSEN ueber echte Worker (nicht am Server allein): 19,1 Tok/s kalt / 20,3 warm, Wanduhr 256 s kalt / 245 s warm -- der schnellste Weg zum fertigen Ergebnis bei 0,25 GB Zusatzgewicht. Die Vergleichstabelle aller vier Wege steht in regeln/orchestrierung.md. NEBENLAEUFIGKEIT, GEMESSEN 2026-09-01 und ANDERS ALS EINEN TAG ZUVOR NOTIERT: der MTP-Kopf traegt mehrere Stroeme, ABER NUR OHNE KV-QUANTISIERUNG. Mit --kv-bits enden zwei gleichzeitige Anfragen in HTTP 500 ('tuple' object has no attribute 'shape', speculative_verifier.py:1269), weil die gebuendelte Aufmerksamkeit in language.py:827 an 'hasattr(cache, bits)' aussteigt und der Rueckfall dahinter quantisierte Keys nicht kennt. Weder --quantized-kv-start noch getrennte Key/Value-Bits helfen -- die Pruefung haengt am TYP des Caches. OHNE --kv-bits laeuft es bis vier Stroeme. Gemessen ueber wb-mlx-server (300 Token je Strom, gleiche Laenge erzwungen): 1 Strom 25,0 Tok/s, 2 Stroeme 41,6 gesamt / 20,8 je Strom -- also +66 Prozent, und je Strom faellt es kaum. Direkt am Server, zweiter Messsatz: 1: 20,2  2: 32,1  3: 31,2  4: 30,8 gesamt. Der Gewinn sitzt bei ZWEI; darueber bleibt die Gesamtrate stehen, und ab drei ist die Buendelung ohne Vorhersage besser (51,5). REGEL (decision 2026-09-01): bei EINEM Strom bleibt die Quantisierung an, bei MEHREREN faellt sie weg -- wb-mlx-server macht das selbst und bucht den doppelten KV-Bedarf (0,0625 statt 0,0332 MiB/Token). ",
             "draftKind": "mtp",
             "draftBlockSize": 3
           }
@@ -4034,7 +4124,7 @@
         {
           "class": "coding-kurz",
           "effort": "high",
-          "goodFor": "ERSTE WAHL fuer kurze, klar umrissene Coding-Auftraege (der Nutzer, 2026-08-27: 'immer wenn moeglich Qwen3.8 lokal nehmen, wenn es fuer eine Aufgabe gut genug ist, und sonst erst auf ein Cloud-Modell zugreifen'). Einordnung: Artificial Analysis gibt dem Modell Intelligence-Index 52,0 gegenueber 63,1 fuer Claude Opus 5 und 57,5 fuer glm-5.3-flash -- fremde Messung, von uns nicht nachgemessen."
+          "goodFor": "ERSTE WAHL fuer kurze, klar umrissene Coding-Auftraege (Regel vom 2026-08-27: Qwen3.8 lokal hat Vorrang, wenn es fuer eine Aufgabe gut genug ist; erst sonst ein Cloud-Modell). Einordnung: Artificial Analysis gibt dem Modell Intelligence-Index 52,0 gegenueber 63,1 fuer Claude Opus 5 und 57,5 fuer glm-5.3-flash -- fremde Messung, von uns nicht nachgemessen."
         },
         {
           "class": "recherche",
@@ -4042,7 +4132,7 @@
           "goodFor": "Auslesen und Vorsortieren, wo die Daten die Maschine nicht verlassen sollen."
         }
       ],
-      "goodFor": "RUECKFALLWEG seit 2026-09-20: gleicher Modellstand wie qwen38, aber über den alten MLX-Server (wb-mlx-server, Port 8081, Vorgabeweg mtp-kopf). Nur nehmen, wenn Splash ausfaellt oder ein Vergleich gemessen werden soll. SIEHT: nimmt Bild UND Video auf (config.json fuehrt vision_config, image_token_id, video_token_id). Damit kann das lokale Modell etwas, das Claude Opus nicht kann -- bei visuellen Aufgaben also erst recht hier anfangen. VORGABE-MODELL für Worker (der Nutzer, 2026-08-27): erst pruefen, ob Qwen3.8 lokal für die Aufgabe reicht; ein Cloud-Modell kommt erst, wenn es das nicht tut. Token-frei, kein Kontingent, kein Datenabfluss -- der Punkt wiegt schwer, seit am 25.08. beim Vermessen freier Cloud-Modelle echte Projektdaten abgeflossen sind. Token-freier Default-Coder seit 2026-08-19 (Entscheidung des Nutzers, siehe GEMEINSAME-FAKTEN.md / Auftrag A-C 'lokales Modell als Orchestrator + waehlbares Kontextfenster'), Ersatz fuer geloeschte Mac-Coder grug und ornith:35b; Standardweg ist Splash. Dieselbe Bauform wie grug-27b-mlx-q4 (config.json: model_type qwen3_5, Qwen3_5ForConditionalGeneration, 4bit/group_size 64, 64 Lagen, full_attention_interval 4 -- 16 volle Attention-Lagen, num_key_value_heads 4, head_dim 256) -- also derselbe KV-Bedarf je Token (0,0625 MiB, angenommen aus der Architektur, nicht lastgetestet, siehe wb-belegung kv liste 'qwen38-27b-mlx-4bit'). 262144 Kontext-Token nativ (max_position_embeddings). Gewichte rund 16,05 GB (drei safetensors-Dateien). GEMESSEN am echten Gardener-Extraktionspfad (dieselben 15 Einheiten, vier gleichzeitige Buendel, 2026-08-15/16, Laeufe unter ~/Knowledge/_meta/messungen/strecken/modellvergleich/laeufe/2026-08-15-*.json, siehe gardener/dream/config.py Zeilen 388-414): mit Denkstufe 'low' (Gardeners gewaehlte Einstellung) 129 gefundene Aussagen bei 62,2 s/Einheit, 36,7 Tok/s, Ablehnungsquote des Zitattors nur 19,4 % (gegen 31,1 % bei grug); mit Denken aus 99 Aussagen bei 29,5 s/Einheit, 37,0 Tok/s, Ablehnungsquote 31,7 %. Rechengeschwindigkeit praktisch gleich wie grug (37 Tok/s) -- qwen3.8 findet WENIGER Aussagen, ist aber je gefundener Aussage deutlich belastbarer, und langsamer je Einheit, weil es mit Denkstufe 'low' mehr schreibt. Gardener wechselte deshalb am 16.08.2026 von grug auf qwen3.8 (mit reasoning_effort='low') als Extraktionsmodell.",
+      "goodFor": "RUECKFALLWEG seit 2026-09-20: gleicher Modellstand wie qwen38, aber über den alten MLX-Server (wb-mlx-server, Port 8081, Vorgabeweg mtp-kopf). Nur nehmen, wenn Splash ausfaellt oder ein Vergleich gemessen werden soll. SIEHT: nimmt Bild UND Video auf (config.json fuehrt vision_config, image_token_id, video_token_id). Damit kann das lokale Modell etwas, das Claude Opus nicht kann -- bei visuellen Aufgaben also erst recht hier anfangen. VORGABE-MODELL für Worker (decision 2026-08-27): erst pruefen, ob Qwen3.8 lokal für die Aufgabe reicht; ein Cloud-Modell kommt erst, wenn es das nicht tut. Token-frei, kein Kontingent, kein Datenabfluss -- der Punkt wiegt schwer, seit am 25.08. beim Vermessen freier Cloud-Modelle echte Projektdaten abgeflossen sind. Token-freier Default-Coder seit 2026-08-19 (Entscheidung des Nutzers, siehe GEMEINSAME-FAKTEN.md / Auftrag A-C 'lokales Modell als Orchestrator + waehlbares Kontextfenster'), Ersatz fuer geloeschte Mac-Coder grug und ornith:35b; Standardweg ist Splash. Dieselbe Bauform wie grug-27b-mlx-q4 (config.json: model_type qwen3_5, Qwen3_5ForConditionalGeneration, 4bit/group_size 64, 64 Lagen, full_attention_interval 4 -- 16 volle Attention-Lagen, num_key_value_heads 4, head_dim 256) -- also derselbe KV-Bedarf je Token (0,0625 MiB, angenommen aus der Architektur, nicht lastgetestet, siehe wb-belegung kv liste 'qwen38-27b-mlx-4bit'). 262144 Kontext-Token nativ (max_position_embeddings). Gewichte rund 16,05 GB (drei safetensors-Dateien). GEMESSEN am echten Gardener-Extraktionspfad (dieselben 15 Einheiten, vier gleichzeitige Buendel, 2026-08-15/16, Laeufe unter ~/Knowledge/_meta/messungen/strecken/modellvergleich/laeufe/2026-08-15-*.json, siehe gardener/dream/config.py Zeilen 388-414): mit Denkstufe 'low' (Gardeners gewaehlte Einstellung) 129 gefundene Aussagen bei 62,2 s/Einheit, 36,7 Tok/s, Ablehnungsquote des Zitattors nur 19,4 % (gegen 31,1 % bei grug); mit Denken aus 99 Aussagen bei 29,5 s/Einheit, 37,0 Tok/s, Ablehnungsquote 31,7 %. Rechengeschwindigkeit praktisch gleich wie grug (37 Tok/s) -- qwen3.8 findet WENIGER Aussagen, ist aber je gefundener Aussage deutlich belastbarer, und langsamer je Einheit, weil es mit Denkstufe 'low' mehr schreibt. Gardener wechselte deshalb am 16.08.2026 von grug auf qwen3.8 (mit reasoning_effort='low') als Extraktionsmodell.",
       "notFor": "Latenzkritisches -- laeuft langsamer als jede Cloud-Spur (Erwartung, nicht eigens gemessen). Braucht vor dem Start 20 GB freien Speicher (wb-mlx-server ensure prueft das) und laeuft nicht dauerhaft -- bewusst kein LaunchAgent, damit Bild-/Videoerzeugung denselben Speicher weiter bekommt. DENKSTUFEN-FALLE (GEMESSEN 2026-08-19, siehe gardener/dream/config.py Zeilen 415-420): ohne gesetzten reasoning_effort waehlt Qwen3.8s eigene Chat-Vorlage xhigh, und eine einzelne Anfrage kann dann ueber 28 Minuten statt rund einer Minute brauchen. pi gibt --thinking NICHT an den Server weiter (gemessen: der Anfragekoerper im DEBUG-Log von mlx_lm.server enthaelt kein chat_template_kwargs/reasoning_effort-Feld) -- wb-mlx-server setzt deshalb serverseitig chatTemplateArgs={\"reasoning_effort\":\"low\"} aus diesem Registry-Eintrag (--chat-template-args beim Start von mlx_lm.server), unabhaengig davon, was der Aufrufer schickt. Nicht fuer lange mehrstufige Arbeit mit Zweideutigkeit und nicht fuer Design-Deliverables; dort bleibt ein grosses Cloud-Modell die richtige Wahl. Und nie neben einem zweiten grossen Modell starten: 48 GB gemeinsamer Speicher, vorher check-resources.",
       "enabled": true,
       "supportsEffort": true,
@@ -4088,6 +4178,28 @@
       "notes": "Serving getrennt von qwen38: wb-omlx-server ensure qwen38u startet omlx serve auf 8079 (Belegung + check-resources + Probeanfrage + 20-min-Leerlauf-Stopp wie wb-mlx-server, aber isoliert). pi-worker ruft es selbst (Provider omlx-lokal). MTP ist nativ im Modell und ueber ~/.omlx/model_settings.json immer an -- kein vorhersage-Block wie bei qwen38 noetig. model_alias in model_settings.json = der modelRef-Pfad, damit pi's --model aufloest. Getestet 2026-09-01, Testgeruest ~/AI/mlx-models/ablit-ab.",
       "enabled": true,
       "supportsEffort": true
+    },
+    {
+      "id": "gemma4-31b",
+      "label": "Gemma 4 31B (lokal, MLX 4bit QAT)",
+      "harness": "pi",
+      "provider": "mlx-lokal",
+      "modelRef": "mlx-community/gemma-4-31B-it-qat-4bit",
+      "roles": [
+        "worker"
+      ],
+      "maxEffort": "medium",
+      "defaultEffort": "medium",
+      "contextWindow": 262144,
+      "machines": [
+        "mac"
+      ],
+      "goodFor": "Noch nicht gemessen; Eintrag fuer die Speicherbuchung, bis das Modell gemessen ist.",
+      "enabled": false,
+      "disabledReason": "Noch nicht gemessen (29.10.2026): Gewichte und KV-Wert sind hergeleitet, nicht gemessen.",
+      "supportsEffort": false,
+      "gewichteGb": 26.84,
+      "notes": "gewichteGb 26,84 GiB = total_size 28.816.250.584 Byte aus model.safetensors.index.json (Hub-Cache, 29.10.2026), nicht nach dem Laden gemessen. KV-Bedarf im Register von wb-belegung unter 'gemma-4-31b-it-qat-4bit': 0,078125 MiB/Token plus 2400 MiB fest je Sequenz, aus der config.json hergeleitet und als angenommen gekennzeichnet."
     },
     {
       "id": "ornith-9b",
@@ -4150,7 +4262,7 @@
       "goodFor": "Lange Coding-Tasks mit klarer Spez; Terminal-Automatisierung.",
       "notFor": "Design-Entscheidungen mit viel Ambiguitaet.",
       "enabled": false,
-      "notes": "GESPERRT 2026-09-10 (der Nutzer, 22:40: 'ChatGPT Plus jetzt verfuegbar, du kannst codex worker benutzen, aber nur luna und terra worker erlaubt'): kein Worker-Modell, auch nicht als Fallback. Eintrag bleibt, damit die Erkennung ihn nicht als neu wieder freischaltet. Regel: regeln/orchestrierung.md, Abschnitt 'Codex-Worker ueber ChatGPT Plus'. modelRef ungeprueft — vor dem ersten Start gegen 'codex --help' / die Modellliste pruefen.",
+      "notes": "GESPERRT 2026-09-10 (Regel: nur ausgewaehlte Codex-Modelle sind als Worker erlaubt): kein Worker-Modell, auch nicht als Fallback. Eintrag bleibt, damit die Erkennung ihn nicht als neu wieder freischaltet. Regel: regeln/orchestrierung.md, Abschnitt zu Codex-Workern. modelRef ungeprueft — vor dem ersten Start gegen 'codex --help' / die Modellliste pruefen.",
       "updated": "2026-09-10T22:55:00Z"
     },
     {
@@ -4332,7 +4444,8 @@
       ],
       "goodFor": "Vorgabemodell, sobald ein Mensch OpenAI Codex CLI als Orchestrator waehlt; lange und anspruchsvolle GPT-Arbeit, Recherche-Synthese, visuelle Leitung, Bildarbeit und mehrstufiges Computer Use.",
       "notFor": "Kurze Routinearbeit, fuer die Spark, Luna oder Terra genuegen.",
-      "enabled": true,
+      "enabled": false,
+      "disabledReason": "Seit 2026-10-12 vom ChatGPT-Konto abgewiesen (gemessen: \"not supported when using Codex with a ChatGPT account\"); wieder einschalten erst nach bestandener Probe.",
       "notes": "Seit 2026-09-12 Codex-Orchestrator-Vorgabe, ohne Claude + Opus als allgemeinen Standard zu ersetzen.",
       "updated": "2026-09-12T00:00:00Z"
     },
@@ -4626,8 +4739,9 @@
       ],
       "goodFor": "Vorgabemodell, sobald ein Mensch OpenAI Codex CLI als Orchestrator waehlt; lange und anspruchsvolle GPT-Arbeit, Recherche-Synthese, visuelle Leitung, Bildarbeit und mehrstufiges Computer Use.",
       "notFor": "Kurze Routinearbeit, fuer die Spark, Luna oder Terra genuegen.",
-      "enabled": true,
-      "notes": "Nachfolger von codex-gpt-5-6-sol; ab Codex-CLI 0.156 verfügbar (geprüft 2026-09-23, Antwort ok). der Nutzer 2026-09-23: GPT-6 Sol und Luna statt 5.6 verwenden.",
+      "enabled": false,
+      "disabledReason": "Seit 2026-10-12 vom ChatGPT-Konto abgewiesen (gemessen: \"not supported when using Codex with a ChatGPT account\"); wieder einschalten erst nach bestandener Probe.",
+      "notes": "Nachfolger von codex-gpt-5-6-sol; ab Codex-CLI 0.156 verfügbar (geprüft 2026-09-23, Antwort ok). decision 2026-09-23: GPT-6 Sol und Luna statt 5.6 verwenden.",
       "updated": "2026-09-23T00:00:00Z",
       "nativeContextWindow": 1050000
     },
@@ -4690,7 +4804,8 @@
       ],
       "goodFor": "Vorgabemodell, sobald ein Mensch OpenAI Codex CLI als Orchestrator waehlt; lange und anspruchsvolle GPT-Arbeit, Recherche-Synthese, visuelle Leitung, Bildarbeit und mehrstufiges Computer Use.",
       "notFor": "Kurze Routinearbeit, fuer die Spark, Luna oder Terra genuegen.",
-      "enabled": true,
+      "enabled": false,
+      "disabledReason": "Seit 2026-10-12 vom ChatGPT-Konto abgewiesen (gemessen: \"not supported when using Codex with a ChatGPT account\"); wieder einschalten erst nach bestandener Probe.",
       "notes": "Seit 2026-10-10 (Vorab-Eintrag, WorkbenchOrchestrator): Nachfolger von codex-gpt-6-sol. Braucht codex-cli >= 0.162.1 (unter 0.157.1 fehlt das Modell im Katalog); am 10.10. mit einer Probe-Installation per codex exec -m gpt-6.1-sol geprueft (Antwort ok). Kontingent ueber wb-kontingent.",
       "updated": "2026-10-10T00:00:00Z",
       "nativeContextWindow": 1050000
@@ -4744,7 +4859,7 @@
       "goodFor": "Schnelle und volumenstarke Arbeit: kurze Coding-Auftraege, Extraktion, Recherche-Vorsortierung und klar beschriebene GPT-Bildauftraege. Nimmt Text und Bilder auf und kann Websuche, Dateisuche, Bildgenerierung, Code-Interpreter, Shell, Skills und Computer Use nutzen, sofern das jeweilige Werkzeug im Harness vorhanden ist.",
       "notFor": "Tiefe Ambiguitaet, schwierige visuelle Leitung, lange Architekturarbeit oder anspruchsvoller Computer-Use-Ablauf.",
       "enabled": true,
-      "notes": "Nachfolger von codex-gpt-5-6-luna; ab Codex-CLI 0.156 verfügbar (geprüft 2026-09-23, Antwort ok). der Nutzer 2026-09-23: GPT-6 Sol und Luna statt 5.6 verwenden.",
+      "notes": "Nachfolger von codex-gpt-5-6-luna; ab Codex-CLI 0.156 verfügbar (geprüft 2026-09-23, Antwort ok). decision 2026-09-23: GPT-6 Sol und Luna statt 5.6 verwenden.",
       "updated": "2026-09-23T00:00:00Z",
       "nativeContextWindow": 1050000
     },

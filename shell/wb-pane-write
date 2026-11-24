@@ -19,7 +19,7 @@
 # gehen an denselben Server, wer also einen fremden Server angibt, schreibt in dessen
 # eigene Panes und kommt an den hiesigen Orchestrator damit nicht heran.
 #
-# DIE REGEL (der Nutzer, 2026-08-06, woertlich): "ich will das niemand ausser mir und dem
+# DIE REGEL (decision 2026-08-06, woertlich): "ich will das niemand ausser mir und dem
 # kontext guard in den orchestrator chat promptet, alles andere soll funktionieren ohne
 # in den orchestrator chat prompten zu muessen".
 #
@@ -104,7 +104,7 @@ CMD="${1:-}"
 PANE="${2:-}"
 
 # ZEITSCHRANKE (2026-08-26): jeder tmux-Aufruf dieses Werkzeugs laeuft durch `timeout`.
-# Grund, gemessen: am 25.08. um 23:26:48 blieb ein `tmux send-keys` dieses Werkzeugs
+# Grund, gemessen: am 25.08.:48 blieb ein `tmux send-keys` dieses Werkzeugs
 # 3 h 42 min in poll() haengen, weil der tmux-Server auf genau diese eine Anfrage nie
 # antwortete (andere Anfragen liefen zur selben Zeit normal durch). Der Aufrufer war die
 # Kontextwache; ihre Poll-Schleife stand seitdem, und mit ihr die Beobachtung von fuenf
@@ -124,7 +124,7 @@ done
 
 mit_frist() {   # <sekunden> <programm> [args...] -- Rueckgabe 124 bei Ablauf, wie timeout(1)
     local sek="$1"; shift
-    local kind i=0 grenze
+    local kind i=0 grenze vorher
     if [ -n "$TIMEOUT_BIN" ]; then
         command "$TIMEOUT_BIN" -k 2 "$sek" "$@"
         return $?
@@ -134,8 +134,12 @@ mit_frist() {   # <sekunden> <programm> [args...] -- Rueckgabe 124 bei Ablauf, w
     # einem Skript ohne Jobsteuerung von sich aus /dev/null als Eingabe. Ohne diese
     # ausdrueckliche Umleitung kam der gepipete Text nie bei tmux an -- `load-buffer -`
     # legte einen leeren Puffer an und das spaetere `paste-buffer` meldete "no buffer".
+    set +u; vorher=$!; set -u   # $! ist ohne frueheren Hintergrundjob "unbound"
     "$@" <&0 &
     kind=$!
+    # Scheitert der fork ("fork: Resource temporarily unavailable"), bleibt $! leer oder alt, `kill -0` schlaegt fehl und
+    # `wait` meldet 0 bei leerer Ausgabe: ein Erfolg ohne Antwort (gemessen 21.11.2026, task). Das ist ein Fehlschlag.
+    { [ -n "$kind" ] && [ "$kind" != "$vorher" ]; } || return 125
     while kill -0 "$kind" 2>/dev/null; do
         if [ "$i" -ge "$grenze" ]; then
             kill -TERM "$kind" 2>/dev/null
@@ -156,15 +160,19 @@ mit_frist() {   # <sekunden> <programm> [args...] -- Rueckgabe 124 bei Ablauf, w
 # umleiten. `mobil_ausfuehren` setzt deshalb TM_FEST auf das erste ausfuehrbare tmux aus
 # einer festen Liste (dieselbe Reihenfolge wie der feste PATH des Pruefprogramms); ab
 # dann ruft jede tmux-Zeile dieses Prozesses genau diese Datei, und die Frist laeuft
-# ohne `timeout`/`sleep` aus dem PATH (mit_frist_fest). Die alten Unterbefehle behalten
-# ihren PATH-Aufruf unveraendert. Gibt es keines, ist die Antwort Nein.
+# ohne `timeout`/`sleep` aus dem PATH (mit_frist_fest). Der normale Zweig nutzt live ebenfalls
+# den festen Pfad; nur mit WB_TESTUMGEBUNG=1 gilt der PATH-Schirm (2026-10-19, tmux-Pfad).
+# Gibt es kein passendes Programm, ist die Antwort Nein.
 TM_FEST=""
 mit_frist_fest() {   # <sekunden> <programm> [args...] -- wie mit_frist, nur mit festen Hilfsprogrammen
-    local sek="$1" kind i=0 grenze
+    local sek="$1" kind i=0 grenze vorher
     shift
     grenze=$(( sek * 50 ))
+    set +u; vorher=$!; set -u   # $! ist ohne frueheren Hintergrundjob "unbound"
     "$@" <&0 &
     kind=$!
+    # Gescheiterter fork = Fehlschlag, nie "0 mit leerer Ausgabe" (siehe mit_frist; 21.11.2026).
+    { [ -n "$kind" ] && [ "$kind" != "$vorher" ]; } || return 125
     while kill -0 "$kind" 2>/dev/null; do
         if [ "$i" -ge "$grenze" ]; then
             kill -TERM "$kind" 2>/dev/null
@@ -180,17 +188,22 @@ mit_frist_fest() {   # <sekunden> <programm> [args...] -- wie mit_frist, nur mit
 }
 
 tm() {
-    local rc
-    if [ -n "$TM_FEST" ]; then
-        if [ -n "$SOCKET" ]; then
-            mit_frist_fest "$TM_TIMEOUT" "$TM_FEST" -L "$SOCKET" "$@"
-        else
-            mit_frist_fest "$TM_TIMEOUT" "$TM_FEST" "$@"
-        fi
-    elif [ -n "$SOCKET" ]; then
-        mit_frist "$TM_TIMEOUT" tmux -L "$SOCKET" "$@"
+    local rc tm_bin="$TM_FEST"
+    if [ -z "$tm_bin" ] && [ "${WB_TESTUMGEBUNG:-}" = 1 ]; then
+        tm_bin="$(command -v tmux 2>/dev/null || true)"
+    elif [ -z "$tm_bin" ]; then
+        for k in /opt/homebrew/bin/tmux /usr/local/bin/tmux /usr/bin/tmux /bin/tmux; do
+            if [ -x "$k" ]; then tm_bin="$k"; break; fi
+        done
+    fi
+    if [ -z "$tm_bin" ]; then
+        echo "wb-pane-write: kein tmux an einem festen Ort gefunden." >&2
+        return 127
+    fi
+    if [ -n "$SOCKET" ]; then
+        mit_frist_fest "$TM_TIMEOUT" "$tm_bin" -L "$SOCKET" "$@"
     else
-        mit_frist "$TM_TIMEOUT" tmux "$@"
+        mit_frist_fest "$TM_TIMEOUT" "$tm_bin" "$@"
     fi
     rc=$?
     if [ "$rc" = 124 ] || [ "$rc" = 137 ]; then
@@ -227,15 +240,29 @@ _WPW_HIER="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
 # ZUERST auf "" setzen, sonst (set -u): bleibt AWB_CTL echt UNGESETZT, weil kein
 # Kandidat greift, bricht jede spaetere bare Referenz (die Warnzeile unten,
 # `ctl()`) das ganze Skript mit "unbound variable" ab.
-AWB_CTL="${AWB_CTL:-}"
+# AWB_CTL und WB_AWB_CTL_BUNDLE gelten NUR unter WB_TESTUMGEBUNG=1 (24.10.2026):
+# sonst bestimmte der Aufrufer, wer die Rollenabfrage eines pty-Panes beantwortet
+# (`rolle_lesen`), und genau diese Behauptung glaubt das Werkzeug nicht.
+# Ebenso $HOME/.local/bin: HOME setzt der Aufrufer, im Betrieb waere das derselbe
+# Umweg. Die installierte Kopie liegt ohnehin in ~/.local/bin und findet awb-ctl
+# dort ueber "$_WPW_HIER/awb-ctl"; unter der Naht bleibt der Kandidat an seinem Platz.
+_AC_FEST="/Applications/Agent Workbench.app/Contents/Resources/app/bin/awb-ctl"
+_AC_HEIM=""
+if [ "${WB_TESTUMGEBUNG:-}" = 1 ]; then
+    AWB_CTL="${AWB_CTL:-}"
+    _AC_FEST="${WB_AWB_CTL_BUNDLE:-$_AC_FEST}"
+    _AC_HEIM="$HOME/.local/bin/awb-ctl"
+else
+    AWB_CTL=""
+fi
 if [ -z "$AWB_CTL" ] || [ ! -f "$AWB_CTL" ]; then
     for _ac in \
         "$(dirname "$_WPW_HIER")/app/bin/awb-ctl" \
         "$_WPW_HIER/awb-ctl" \
-        "$HOME/.local/bin/awb-ctl" \
-        "${WB_AWB_CTL_BUNDLE:-/Applications/Agent Workbench.app/Contents/Resources/app/bin/awb-ctl}"
+        "$_AC_HEIM" \
+        "$_AC_FEST"
     do
-        [ -f "$_ac" ] && { AWB_CTL="$_ac"; break; }
+        [ -n "$_ac" ] && [ -f "$_ac" ] && { AWB_CTL="$_ac"; break; }
     done
 fi
 
@@ -245,11 +272,15 @@ ist_pty_pane() { case "$1" in pty:*) return 0 ;; *) return 1 ;; esac; }
 # context-guard: es liegt auf dieser Maschine in /opt/homebrew/bin und nicht im
 # Grundsystem, und ein Aufrufer mit schlankem PATH bekaeme sonst eine stille
 # Ablehnung statt einer Zustellung.
-NODE_BIN="$(command -v node 2>/dev/null || true)"
+# Die festen Orte ZUERST, der PATH nur unter der Testnaht (24.10.2026): ein
+# `node` aus dem PATH des Aufrufers beantwortete sonst die Rollenabfrage.
+NODE_BIN=""
 for _nb in /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node; do
-    [ -n "$NODE_BIN" ] && break
-    [ -x "$_nb" ] && NODE_BIN="$_nb"
+    [ -x "$_nb" ] && { NODE_BIN="$_nb"; break; }
 done
+if [ -z "$NODE_BIN" ] && [ "${WB_TESTUMGEBUNG:-}" = 1 ]; then
+    NODE_BIN="$(command -v node 2>/dev/null || true)"
+fi
 
 # DAS FEHLEN WIRD LAUT (2026-09-04) -- hoechstens EINMAL je Aufruf dieses
 # Werkzeugs, nicht bei jedem der bis zu zwei ctl()-Aufrufe eines einzelnen
@@ -352,11 +383,14 @@ interpreter_kennungen() {
 # Datei kommt durch. Die Begruendung fuer die zwei argv-Stellen und fuer die Pruefung
 # des ausgefuehrten Programms steht im Kopf.
 guard_ist_ahne() {
-    local ziel interp pid rest argv0 argv1 pos prog progk k
+    local ziel interp pid rest argv0 argv1 argv2 pos prog progk k
     ziel=$(datei_kennung "$GUARD_PFAD") || return 1
     interp=$(interpreter_kennungen)
     while read -r pid rest; do
-        read -r argv0 argv1 _ <<<"$rest"
+        read -r argv0 argv1 argv2 _ <<<"$rest"
+        # Genau `-p` vor dem Guard-Pfad zaehlt wie kein Schalter (task, 18.11.2026): context-guard laeuft
+        # immer als `/bin/bash -p <context-guard>`. Jeder andere Schalter an dieser Stelle bleibt abgewiesen.
+        [ "${argv1:-}" = "-p" ] && argv1="${argv2:-}"
         pos=""
         if [ -n "${argv0:-}" ] && [ "$(datei_kennung "$argv0" 2>/dev/null)" = "$ziel" ]; then
             pos=0
@@ -445,16 +479,19 @@ ist_mensch() {
 # danach lief derselbe Schreibversuch durch). Der Pane gilt als Orchestrator, sobald EINE
 # der beiden Quellen das sagt, und weiter auch dann, wenn keine etwas sagt. Ein
 # gefaelschtes Register kann damit nur verschaerfen, nie oeffnen.
-ROLLEN_PY=""
-for kandidat in "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)/hooks/lib/rollen.py" \
-                "$HOME/.claude/hooks/lib/rollen.py"; do
-    [ -f "$kandidat" ] && { ROLLEN_PY="$kandidat"; break; }
-done
+# Der zweite Ort ist die Heimat laut Benutzerdatenbank, nie $HOME (18.10.2026, Auftrag
+# pathklasse-sicher): das installierte Werkzeug findet ../hooks/lib nicht, und ein rollen.py aus
+# einem HOME, das der Aufrufer waehlt, liefe hier als Code der Rollenabfrage.
+ROLLEN_PY="$(CDPATH= cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)/hooks/lib/rollen.py"
+if [ ! -f "$ROLLEN_PY" ]; then
+    ROLLEN_PY="$(/usr/bin/env -i /usr/bin/python3 -I -S -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir)' 2>/dev/null)/.claude/hooks/lib/rollen.py"
+    [ -f "$ROLLEN_PY" ] || ROLLEN_PY=""
+fi
 
 ROLLE=""
 ROLLE_QUELLE=""
 rolle_lesen() {
-    local r reg=""
+    local r reg="" heim_reg="" rdir_reg=""
     if ist_pty_pane "$PANE"; then
         # Die Werkbank haelt diesen Pane selbst, also weiss sie seine Rolle --
         # sie hat ihn gestartet. Antwortet sie nicht, ist das ein Zweifelsfall,
@@ -470,21 +507,34 @@ rolle_lesen() {
         return
     fi
     r=$(tm display -p -t "$PANE" '#{@wb_role}' 2>/dev/null) || r=""
-    if [ -n "$ROLLEN_PY" ] && [ -n "$TM_FEST" ]; then
+    # Die Heimat fuer den Registerlauf kommt aus der Benutzerdatenbank, nie aus dem HOME des
+    # Aufrufers (19.10.2026, pathklasse OPEN 3): ein gefaelschtes Register unter HOME oder
+    # AWB_ROLLEN_DIR machte sonst aus einem Pane ohne @wb_role einen Worker, und der Aufrufer
+    # haette das Register umlenken koennen. Nur die Testnaht WB_TESTUMGEBUNG=1 laesst HOME und
+    # AWB_ROLLEN_DIR des Aufrufers gelten, damit die Testsuiten ihr eigenes Register nehmen.
+    if [ -n "$ROLLEN_PY" ]; then
+        if [ "${WB_TESTUMGEBUNG:-}" = 1 ]; then
+            heim_reg="$HOME"; rdir_reg="${AWB_ROLLEN_DIR:-}"
+        else
+            heim_reg="$(/usr/bin/env -i /usr/bin/python3 -I -S -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir)' 2>/dev/null)"
+        fi
+    fi
+    if [ -n "$ROLLEN_PY" ] && [ -n "$heim_reg" ] && [ -n "$TM_FEST" ]; then
         # Mobil-Zweig: auch das Register fragt tmux -- dort nur das feste tmux, sonst
         # nichts aus dem PATH oder der Umgebung des Aufrufers (Serverwahl bleibt: -L,
         # TMUX, TMUX_TMPDIR).
-        reg=$(/usr/bin/env -i HOME="$HOME" PATH="${TM_FEST%/*}:/usr/bin:/bin" ${TMUX:+TMUX="$TMUX"} \
+        reg=$(/usr/bin/env -i HOME="$heim_reg" PATH="${TM_FEST%/*}:/usr/bin:/bin" ${TMUX:+TMUX="$TMUX"} \
                   ${TMUX_TMPDIR:+TMUX_TMPDIR="$TMUX_TMPDIR"} /usr/bin/python3 -I "$ROLLEN_PY" \
                   ${SOCKET:+-L "$SOCKET"} lesen "$PANE" 2>/dev/null \
               | awk -F'\t' '$1=="register"{print $2}')
-    elif [ -n "$ROLLEN_PY" ]; then
+    elif [ -n "$ROLLEN_PY" ] && [ -n "$heim_reg" ]; then
         # Auch hier ohne Xcode-Huelle (14.10.2026, Review handyguard2 N1): ein Register, das
         # "worker" sagt, oeffnet einen Pane ohne @wb_role, und /usr/bin/python3 folgt sonst
-        # DEVELOPER_DIR. Positivliste mit denselben Werten wie bisher: HOME, PATH (dieselbe
-        # Quelle wie `tm` in diesem Zweig), Serverwahl (TMUX, TMUX_TMPDIR) und AWB_ROLLEN_DIR.
-        reg=$(/usr/bin/env -i HOME="$HOME" PATH="$PATH" ${TMUX:+TMUX="$TMUX"} \
-                  ${TMUX_TMPDIR:+TMUX_TMPDIR="$TMUX_TMPDIR"} ${AWB_ROLLEN_DIR:+AWB_ROLLEN_DIR="$AWB_ROLLEN_DIR"} \
+        # DEVELOPER_DIR. Positivliste: HOME (die Heimat laut Benutzerdatenbank), PATH (dieselbe
+        # Quelle wie `tm` in diesem Zweig), Serverwahl (TMUX, TMUX_TMPDIR) und AWB_ROLLEN_DIR
+        # nur unter der Testnaht.
+        reg=$(/usr/bin/env -i HOME="$heim_reg" PATH="$PATH" ${TMUX:+TMUX="$TMUX"} \
+                  ${TMUX_TMPDIR:+TMUX_TMPDIR="$TMUX_TMPDIR"} ${rdir_reg:+AWB_ROLLEN_DIR="$rdir_reg"} \
                   /usr/bin/python3 -I -S "$ROLLEN_PY" ${SOCKET:+-L "$SOCKET"} lesen "$PANE" 2>/dev/null \
               | awk -F'\t' '$1=="register"{print $2}')
     fi
@@ -601,7 +651,7 @@ ablehnen() {
 #     Text und Tasten. Exit 0 = geschrieben, 77 = abgelehnt, 2 = Aufruf oder Eingabe
 #     unbrauchbar, 1 = bestaetigt, aber tmux hat das Schreiben nicht ausgefuehrt.
 MOBIL_STDIN_FRIST=10
-MOBIL_PRUEF_FRIST=15
+MOBIL_PRUEF_FRIST="${MOBIL_PRUEF_FRIST:-15}"
 MOBIL_ENTER_PAUSE=0.3
 
 # Eingabe -> Anfrage an das Pruefprogramm. Argumente: Aktion, Socketpfad, Pane.
@@ -813,8 +863,15 @@ mobil_ausfuehren() {   # <aktion> [rest-argv...] -- kehrt nie zurueck
     fi
 
     # 1. Ziel und Rolle -- BEVOR irgendetwas verbraucht wird.
-    tmuxantwort=$(tm display-message -p -t "$PANE" "#{pane_id}"$'\t'"#{socket_path}" 2>/dev/null) || tmuxantwort=""
-    IFS=$'\t' read -r pane_id sock_pfad <<<"$tmuxantwort"
+    # Trenner ist '|', kein Tabulator: Ohne UTF-8-Gebietsschema des Clients (LANG/LC_ALL leer oder POSIX, etwa ueber
+    # `ssh -n` oder aus launchd) gibt tmux ein Tab im -F-Format als '_' aus (gemessen 20.11.2026, tmux 3.8 am Mac und
+    # 3.7c auf peer). Dann war jede Mobil-Aktion "Pane gibt es nicht". Die Pane-Kennung steht vorn und enthaelt kein
+    # '|'; der Socketpfad ist der ganze Rest, auch mit '|'. Ohne '|' bleibt sock_pfad leer: dann gilt ABGELEHNT.
+    tmuxantwort=$(tm display-message -p -t "$PANE" '#{pane_id}|#{socket_path}' 2>/dev/null) || tmuxantwort=""
+    pane_id="" sock_pfad=""
+    case "$tmuxantwort" in
+        *'|'*) pane_id="${tmuxantwort%%|*}"; sock_pfad="${tmuxantwort#*|}" ;;
+    esac
     if [ "${pane_id:-}" != "$PANE" ] || [ -z "${sock_pfad:-}" ]; then
         echo "wb-pane-write: ABGELEHNT — $aktion: Pane $PANE gibt es auf dem gewaehlten tmux-Server nicht." >&2
         mobil_antwort 77 stale_target
@@ -879,7 +936,7 @@ mobil_ausfuehren() {   # <aktion> [rest-argv...] -- kehrt nie zurueck
     #     Pane endete mit 75 "Schirm nicht lesbar" statt 2 bzw. 77 stale_target.
     #     `mobil-taste` prueft nicht: es beantwortet Dialoge absichtlich.
     if [ "$aktion" = mobil-senden ]; then
-        grund=$(pane_frei_grund voll)
+        frei_grund_sicher voll; grund="$FREI_GRUND"
         if [ -n "$grund" ]; then
             echo "wb-pane-write: NICHT FREI — $aktion auf Pane $PANE: $grund. Nichts getippt." >&2
             case "$grund" in
@@ -962,6 +1019,13 @@ LEER = " \t "
 zeilen_ansi = roh.replace("\r", "").split("\n")
 zeilen = [ANSI.sub("", z).rstrip(LEER) for z in zeilen_ansi]
 
+# FAIL CLOSED (21.11.2026, task): "frei" ist eine ausdrueckliche Meldung, nie das Fehlen einer Ausgabe. Ein Python,
+# das nicht startete oder nicht zu Ende lief, hinterlaesst keine Zeile und gilt darum als nicht frei.
+FREI_ZEILE = "\x01FREI\x01"
+def frei_ende():
+    print(FREI_ZEILE)
+    sys.exit(0)
+
 def nein(grund):
     print(grund)
     sys.exit(0)
@@ -990,7 +1054,7 @@ if sitzungen and pane.startswith("%"):
 # 2. Schirm
 inhalt = [i for i, z in enumerate(zeilen) if z.strip(LEER)]
 if not inhalt:
-    sys.exit(0)            # leerer Schirm: kein Dialog, keine Eingabe (nicht lesbar prueft der Aufrufer)
+    frei_ende()            # leerer Schirm: kein Dialog, keine Eingabe (nicht lesbar prueft der Aufrufer)
 schwanz = [zeilen[i] for i in inhalt[-20:]]
 FUSS = re.compile(r"Enter to (select|confirm|submit)|Esc to (cancel|exit|go back)|Press enter to confirm"
                   r"|to navigate|Tab to amend", re.I)
@@ -1041,17 +1105,17 @@ for k, z in enumerate(schwanz):
         if c < einzug <= t + 2 and n.strip(LEER)[:1] not in "▀▄─━═╌╭╰│┃╻╹":
             nein("Dialog offen: Auswahlliste (" + z.strip(LEER)[:60] + ")")
 if modus != "voll":
-    sys.exit(0)
+    frei_ende()
 
 # 3. Eingabezeile: letzte Zeile, die mit dem Zeiger von Claude oder Codex beginnt
 EINGABE = re.compile(r"^[❯›](?:[  ]|$)")
 idx = [i for i, z in enumerate(zeilen) if EINGABE.match(z) and not OPTION.search(z)]
 if not idx:
-    sys.exit(0)
+    frei_ende()
 i = idx[-1]
 text = zeilen[i][1:].strip(LEER)
 if not text or text.startswith("Press up to edit queued messages"):
-    sys.exit(0)
+    frei_ende()
 # Gedimmter Text ist ein Platzhalter/Vorschlag, kein getippter Text.
 sichtbar, dim, pos, z = [], False, 0, zeilen_ansi[i]
 for m in re.finditer(r"\x1b\[([0-9;:]*)m|\x1b\[[0-9;?:]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b[@-Z\\-_]", z):
@@ -1069,7 +1133,7 @@ if not dim:
 rest = "".join(sichtbar).lstrip(LEER)
 rest = rest[1:] if rest[:1] in ("❯", "›") else rest
 if not rest.strip(LEER):
-    sys.exit(0)
+    frei_ende()
 nein("ungesendeter Text in der Eingabezeile: " + text[:60])
 PYEOF
 
@@ -1078,42 +1142,75 @@ frei_python() {   # <programmtext> [argv...]; stdin wird durchgereicht
 }
 
 # Grund, warum $PANE NICHT frei ist -- leer, wenn frei. <modus>: voll | dialog
+# Aufrufer nehmen `frei_grund_sicher`: dort heisst eine Substitution ohne Endmarke (fork gescheitert) nicht frei.
 pane_frei_grund() {
     local modus="$1" bild sitzung="" grund
     if ist_pty_pane "$PANE"; then
         bild=$(ctl pane-schirm "$PANE" 2>/dev/null) || { printf 'Schirm nicht lesbar (Steuerkanal)'; return 0; }
     else
-        if ! bild=$(tm capture-pane -p -e -t "$PANE" 2>/dev/null); then
+        # Die Endmarke `x` schuetzt die Zeilenumbrueche am Ende (`$(...)` schneidet sie ab): ein leerer 120x45-Pane liefert 45
+        # Umbrueche, ein gescheiterter Aufruf nichts.
+        if ! bild=$(tm capture-pane -p -e -t "$PANE" 2>/dev/null; rc=$?; printf x; exit "$rc"); then
             # Ein Pane, das es nicht gibt, ist kein unlesbarer Schirm: die Aufrufer sollen
             # weiter "Ziel weg" sehen (tippen/einfuegen/taste 1, mobil 77 stale_target).
             # Antwortet der Server gar nicht (Frist), bleibt es "nicht lesbar". tmux 3.7c
             # antwortet auf ein fehlendes Ziel mit Exit 0 und leerer Zeile (gemessen).
             local id rc
             id=$(tm display-message -p -t "$PANE" '#{pane_id}' 2>/dev/null); rc=$?
-            if [ -z "$id" ] && [ "$rc" -ne 124 ] && [ "$rc" -ne 137 ]; then
+            if [ -z "$id" ] && [ "$rc" -ne 124 ] && [ "$rc" -ne 125 ] && [ "$rc" -ne 137 ]; then
                 printf '%s' "$FREI_FEHLT"; return 0
             fi
             printf 'Schirm nicht lesbar (capture-pane)'; return 0
         fi
+        # Ein echtes `capture-pane -p` ist nie leer: jede Zeile des Panes endet mit einem Zeilenumbruch, auch ein leerer
+        # 120x45-Pane liefert 45 Zeilenumbrueche (gemessen 21.11.2026). Eine leere Antwort ist darum kein leerer Schirm, sondern ein
+        # Aufruf, der nichts geliefert hat (etwa weil der fork scheiterte): nicht frei.
+        bild="${bild%x}"
+        [ -n "$bild" ] || { printf 'Schirm nicht lesbar (leere Antwort)'; return 0; }
         # Alle Sessions der Gruppe des Panes (Basis und '-view'-Schwestern teilen die Panes).
+        # `tm -u`: Ohne UTF-8-Gebietsschema des Clients (LANG/LC_ALL leer oder POSIX, etwa ueber `ssh -n` oder aus
+        # launchd) gibt tmux ein Tab im -F-Format als '_' aus, Umlaute ebenso (gemessen 20.11.2026, tmux 3.8 am Mac
+        # und 3.7c auf peer). Dann passte kein Sitzungsname zum Register, und dessen "waiting" blieb ungesehen.
+        # Sitzungsnamen sind freier Text, jeder Trenner kann darin stehen; `-u` laesst Tab und Umlaute durch.
+        # Kein fail-open: Ohne lesbaren Sitzungsnamen ist der Pane nicht frei.
         local name gruppe eigene
-        eigene=$(tm display-message -p -t "$PANE" '#{session_name}	#{session_group}' 2>/dev/null) || eigene=""
+        eigene=$(tm -u display-message -p -t "$PANE" '#{session_name}	#{session_group}' 2>/dev/null) || eigene=""
+        if [ -z "${eigene%%	*}" ]; then
+            printf 'Sitzung des Panes nicht lesbar'; return 0
+        fi
         sitzung="${eigene%%	*}"
         gruppe="${eigene#*	}"; [ "$gruppe" = "$eigene" ] && gruppe=""
         if [ -n "$gruppe" ]; then
             while IFS='	' read -r name eigene; do
                 [ "$eigene" = "$gruppe" ] && sitzung="$sitzung $name"
-            done < <(tm list-sessions -F '#{session_name}	#{session_group}' 2>/dev/null)
+            done < <(tm -u list-sessions -F '#{session_name}	#{session_group}' 2>/dev/null)
         fi
     fi
     grund=$(printf '%s' "$bild" | frei_python "$FREI_PY" "$modus" "$sitzung" "$PANE" "$HOME" 2>/dev/null) \
         || grund="Pruefung fehlgeschlagen (python3)"
+    # Frei ist nur die ausdrueckliche Meldung von FREI_PY; keine Ausgabe heisst: das Programm lief nicht zu Ende.
+    case "$grund" in
+        $'\x01FREI\x01') grund="" ;;
+        '') grund="Pruefung ohne Ergebnis (python3)" ;;
+    esac
     printf '%s' "$grund"
+}
+
+# frei_grund_sicher <modus> -> FREI_GRUND (leer = ausdruecklich frei). Die Endmarke `x` beweist, dass pane_frei_grund bis zum
+# Ende lief: scheitert schon der fork der Substitution, ist die Ausgabe LEER, und leer hiesse sonst frei (gemessen 21.11.2026:
+# Prozesslimit knapp unter der Prozesszahl, offener Dialog, Exit 0).
+frei_grund_sicher() {
+    local roh
+    roh=$(pane_frei_grund "$1"; printf x) || roh=""
+    case "$roh" in
+        *x) FREI_GRUND="${roh%x}" ;;
+        *) FREI_GRUND="Pruefung nicht zu Ende gelaufen (Prozess liess sich nicht starten)" ;;
+    esac
 }
 
 frei_oder_abbrechen() {   # <modus> <aktion>
     local grund
-    grund=$(pane_frei_grund "$1")
+    frei_grund_sicher "$1"; grund="$FREI_GRUND"
     [ -z "$grund" ] && return 0
     case "$grund" in
         "$FREI_FEHLT"*)
@@ -1138,7 +1235,7 @@ esac
 # `frei` liest nur und braucht deshalb keine Herkunft. Exit 0 frei, 75 nicht frei
 # (Grund auf stdout). `--nur-dialog` prueft nur Dialog und Sitzungsregister.
 if [ "$CMD" = frei ]; then
-    _grund=$(pane_frei_grund "$FREI_MODUS")
+    frei_grund_sicher "$FREI_MODUS"; _grund="$FREI_GRUND"
     [ -z "$_grund" ] && exit 0
     printf '%s\n' "$_grund"
     exit "$NICHT_FREI"

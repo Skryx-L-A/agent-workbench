@@ -82,6 +82,11 @@
 .fg-zusatz { color: var(--gedaempft); font-size: 11px; margin-top: 2px; }
 
 .fg-grund { margin-top: 6px; white-space: pre-wrap; }
+/* Die Absicht (26.10.2026, task): die Zeile, nach der ein Mensch entscheidet --
+   deshalb in Schriftfarbe und etwas groesser als der Zusatz; die Herkunft gedaempft. */
+.fg-absicht { margin-top: 6px; color: var(--schrift); font-size: 13px; }
+.fg-absicht-her { color: var(--gedaempft); font-size: 11px; }
+.fg-befehl-titel { margin-top: 8px; color: var(--gedaempft); font-size: 11px; }
 .fg-befehl {
   margin-top: 6px; padding: 4px 6px; background: var(--grund); border-radius: 4px;
   color: var(--schrift); white-space: pre-wrap; word-break: break-all;

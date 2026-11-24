@@ -1,0 +1,3281 @@
+{
+  "version": 1,
+  "einstellungen": [
+    {
+      "schluessel": "pfade.registry",
+      "quelle": [
+        "project decision",
+        "decision 2026-10-23"
+      ],
+      "wirksamAb": "1e",
+      "klasse": "betreiber",
+      "ohneNutzerebene": true,
+      "umgebungNurNaht": true,
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": "~/.claude/workbench/models.json",
+      "rolle": "admin",
+      "seite": "pfade",
+      "titel": "Modellregistry",
+      "beschreibung": "Pfad der Modellregistry (models.json). Nur System- und Betreiberdatei setzen ihn; ein Wert in der Nutzerdatei wird gemeldet und ignoriert. WB_MODELS_FILE gilt nur unter der Testnaht (WB_TESTUMGEBUNG=1) und nie gegen die Systemebene."
+    },
+    {
+      "schluessel": "pfade.werkbankBaum",
+      "quelle": [
+        "decision 2026-10-25"
+      ],
+      "wirksamAb": "1e",
+      "klasse": "betreiber",
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "admin",
+      "seite": "pfade",
+      "titel": "Werkbank-Baum",
+      "beschreibung": "Ordner des Werkbank-Baums (app/ und shell/). Die Installation trägt ihn in die Nutzerdatei ein (wb-werkbank-baum setze); die Systemdatei geht vor. Ohne Wert gilt der Baum über dem Werkzeug, sonst ~/AI/claude-workbench. Nie aus der Umgebung."
+    },
+    {
+      "schluessel": "pfade.werkzeugQuelle",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "klasse": "betreiber",
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "nurSystemebene": "mandant",
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "seite": "pfade",
+      "titel": "Werkzeugquelle",
+      "beschreibung": "Pfad der zentralen Werkzeugquelle. Betreiberschlüssel (E3, 27.10.2026): nie aus der Nutzerebene setzbar; WB_WERKZEUGE_SRC lesen die Werkzeuge selbst als Testnaht, über wb_konfig wirkt die Umgebung für ihn nicht."
+    },
+    {
+      "schluessel": "pfade.anweisungsQuelle",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "klasse": "betreiber",
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "nurSystemebene": "mandant",
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "seite": "pfade",
+      "titel": "Anweisungsquelle",
+      "beschreibung": "Ordner mit den Quellen der Rollen und Regeln."
+    },
+    {
+      "schluessel": "pfade.overlay",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "klasse": "betreiber",
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "nurSystemebene": "mandant",
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "seite": "pfade",
+      "titel": "Overlay-Ordner",
+      "beschreibung": "Ordner mit Overlay-Fragmenten des Betreibers oder Nutzers."
+    },
+    {
+      "schluessel": "pfade.hooks",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "klasse": "betreiber",
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "nurSystemebene": "mandant",
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "seite": "pfade",
+      "titel": "Hook-Ordner",
+      "beschreibung": "Ordner der Hooks. Betreiberschlüssel (E3, 27.10.2026): wer ihn umbiegt, schaltet die Guards ab; nie aus der Nutzerebene setzbar."
+    },
+    {
+      "schluessel": "dod.richter",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "klasse": "nutzer",
+      "typ": "text",
+      "vorgabe": null,
+      "rolle": "nutzer",
+      "seite": "pfade",
+      "titel": "Richter der Fertigkeitsprobe",
+      "beschreibung": "Kennung des Modells, das die Definition of Done beurteilt (ein Eintrag der Registry). Ohne Wert nimmt wb-dod ein lokales Modell seiner Rangliste, aber nur über dessen Registry-Eintrag. Vor jedem Aufruf prüft das Datenklassen-Tor den Inhalt; lehnt es ab, urteilt kein Modell."
+    },
+    {
+      "schluessel": "geheimnisFilter.port",
+      "quelle": [
+        "project decision"
+      ],
+      "klasse": "betreiber",
+      "typ": "zahl",
+      "bereich": {
+        "min": 1,
+        "max": 65535,
+        "einheit": "Port"
+      },
+      "richtung": "keine",
+      "vorgabe": 8093,
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "wirksamAb": "1e",
+      "seite": "geheimnisfilter",
+      "titel": "Port des Geheimnisfilters",
+      "beschreibung": "Loopback-Port, auf dem der Geheimnisfilter lauscht."
+    },
+    {
+      "schluessel": "geheimnisFilter.routen",
+      "quelle": [
+        "project decision"
+      ],
+      "klasse": "betreiber",
+      "typ": "karte",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "wirksamAb": "1e",
+      "seite": "geheimnisfilter",
+      "titel": "Routen des Geheimnisfilters",
+      "beschreibung": "Zusätzliche Routen: Routenname auf Ziel-URL (http oder https)."
+    },
+    {
+      "schluessel": "geheimnisFilter.aufbrechen",
+      "quelle": [
+        "project decision"
+      ],
+      "klasse": "betreiber",
+      "typ": "karte",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "wirksamAb": "1e",
+      "seite": "geheimnisfilter",
+      "titel": "Aufzubrechende Hosts",
+      "beschreibung": "Hosts, deren TLS-Verkehr der Filter aufbricht: Hostname auf Routenname."
+    },
+    {
+      "schluessel": "geheimnisFilter.filterPfade",
+      "quelle": [
+        "project decision"
+      ],
+      "klasse": "betreiber",
+      "typ": "liste",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "wirksamAb": "1e",
+      "seite": "geheimnisfilter",
+      "titel": "Zusätzliche Filterpfade",
+      "beschreibung": "Reguläre Ausdrücke für Pfade, die der Filter zusätzlich zu den eingebauten prüft; die eingebauten bleiben immer gefiltert."
+    },
+    {
+      "schluessel": "geheimnisFilter.einsetzen",
+      "quelle": [
+        "decision 2026-11-01"
+      ],
+      "klasse": "betreiber",
+      "typ": "wahl",
+      "wahl": [
+        "nur-ziele",
+        "immer"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "immer",
+      "vorgabeJeProfil": {
+        "einzelplatz": "immer",
+        "mandant": "nur-ziele"
+      },
+      "risiko": {
+        "nur-ziele": "Der Filter setzt einen Platzhalter nur in einem Werkzeugaufruf ein, dessen Hosts alle in geheimnisFilter.ziele stehen.",
+        "immer": "Der Filter setzt jeden Platzhalter in jedem Werkzeugaufruf ein; ein Modell mit eingeschleusten Anweisungen kann den Wert an einen beliebigen Host schicken."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": "mandant",
+      "nurMensch": true,
+      "wirksamAb": "1e",
+      "seite": "geheimnisfilter",
+      "titel": "Wo der Geheimnisfilter Platzhalter einsetzt",
+      "beschreibung": "immer: wie bisher, jeder Platzhalter in jedem Werkzeugaufruf. nur-ziele: nur in einem Aufruf, in dem mindestens ein Host steht und jeder genannte Host in geheimnisFilter.ziele eingetragen ist; sonst bleibt der Platzhalter, das Werkzeug scheitert laut. Text an den Menschen behält immer den Platzhalter. Eine Variable im Befehl (etwa $HOST) gilt als fremder Host. Die Firmenaufstellung (mandant) hat nur-ziele als Vorgabe und lockert nur die Systemdatei auf immer; die private Werkbank hat immer. Eine Hürde gegen eingeschleuste Anweisungen, keine Abschottung: Ein eingetragener Host kann selbst weiterleiten, und Verschleierung im Befehl erkennt die Prüfung nicht. Harte Grenze ist der Egress am Server. Der Filter liest den Wert beim Start."
+    },
+    {
+      "schluessel": "aktualisieren.signatur",
+      "quelle": [
+        "decision 2026-11-07"
+      ],
+      "klasse": "betreiber",
+      "typ": "wahl",
+      "wahl": [
+        "developer-id",
+        "hash-genuegt"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "hash-genuegt",
+      "risiko": {
+        "developer-id": "Ein Paket ohne gültige Signatur mit Developer ID wird nie installiert, auch wenn der Hash stimmt; ad hoc signierte Pakete der Firma gehen dann nicht.",
+        "hash-genuegt": "Der Hash aus der Freigabe ist der einzige Vertrauensanker; wer die Freigabe fälscht, bringt ein ad hoc signiertes Paket auf den Rechner."
+      },
+      "rolle": "admin",
+      "nurSystemebene": "mandant",
+      "nurMensch": true,
+      "wirksamAb": "1e",
+      "seite": "allgemein",
+      "titel": "Signatur beim Aktualisieren",
+      "beschreibung": "Was wb-arbeitsplatz aktualisieren am Mac außer dem Hash verlangt. Der Hash aus --erwarte ist immer Pflicht, die Kennung des Pakets muss immer stimmen, und eine vorhandene Signatur mit Developer ID muss gültig sein. developer-id lehnt zusätzlich jedes Paket ohne gültige Signatur mit Developer ID ab; unter Linux hat ein Paket keine Signatur, dort lehnt developer-id jedes Paket ab. Der Wert kommt aus der Systemdatei."
+    },
+    {
+      "schluessel": "geheimnisFilter.ziele",
+      "quelle": [
+        "decision 2026-11-01"
+      ],
+      "klasse": "betreiber",
+      "typ": "liste",
+      "richtung": "streng-zuerst",
+      "vorgabe": [],
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": "mandant",
+      "nurMensch": true,
+      "wirksamAb": "1e",
+      "seite": "geheimnisfilter",
+      "titel": "Ziele für das Einsetzen von Platzhaltern",
+      "beschreibung": "Hosts, an die ein Werkzeugaufruf einen eingesetzten Wert schicken darf, wenn geheimnisFilter.einsetzen nur-ziele ist. Ein Eintrag ist ein Hostname (api.example.com), eine IP-Adresse oder *.example.com für alle Unterdomänen (nicht für example.com selbst); Schema, Port und Pfad werden ignoriert. Eine tiefere Ebene darf die Liste nur kürzen; in der Firmenaufstellung kommt sie aus der Systemdatei. Die leere Liste setzt nie ein."
+    },
+    {
+      "schluessel": "geschuetzteDienste",
+      "quelle": [
+        "project decision"
+      ],
+      "klasse": "betreiber",
+      "typ": "liste",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "wirksamAb": "1e",
+      "seite": "geheimnisfilter",
+      "titel": "Geschützte Dienste",
+      "beschreibung": "Dienste, die nur über den Geheimnisfilter erreichbar sein sollen."
+    },
+    {
+      "schluessel": "hooks.preSpawnDir",
+      "quelle": [
+        "project decision"
+      ],
+      "klasse": "betreiber",
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "wirksamAb": "1c",
+      "seite": "hooks",
+      "titel": "Ordner der Pre-Spawn-Hooks",
+      "beschreibung": "Ordner der Hooks, die vor jedem Start eines Agenten laufen; erst mit dem Startkern wirksam."
+    },
+    {
+      "schluessel": "gesperrt",
+      "klasse": "betreiber",
+      "typ": "liste",
+      "richtung": "keine",
+      "vorgabe": [],
+      "nurSystemebene": true,
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "seite": "allgemein",
+      "titel": "Gesperrte Schlüssel",
+      "beschreibung": "Schlüssel, die nur die Systemebene setzt; Werte aus Nutzer-, Betreiber- und Umgebungsebene werden gemeldet und ignoriert. Wirkt nur in der Systemdatei."
+    },
+    {
+      "schluessel": "datenklasse.unmarkiert",
+      "klasse": "betreiber",
+      "typ": "wahl",
+      "wahl": [
+        "kein-start",
+        "CUSTOMER",
+        "INTERNAL"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "INTERNAL",
+      "empfehlung": "kein-start",
+      "risiko": {
+        "kein-start": "Ein Projekt ohne Marker startet nicht; jedes neue Projekt braucht zuerst einen Marker.",
+        "CUSTOMER": "Ein Projekt ohne Marker gilt als Kundenprojekt; Cloud-Routen über dieser Klasse sind gesperrt.",
+        "INTERNAL": "Ein Projekt ohne Marker gilt als intern; es darf jede Route bis INTERNAL nutzen."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "0w",
+      "seite": "datenklassen",
+      "titel": "Klasse eines Projekts ohne Marker",
+      "beschreibung": "Welche Datenklasse ein Projekt ohne Marker .datenklasse bekommt."
+    },
+    {
+      "schluessel": "datenklasse.kundeHebtAufCustomer",
+      "klasse": "betreiber",
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": true,
+      "risiko": {
+        "true": "Ein Marker mit kunde: hebt die Klasse auf mindestens CUSTOMER.",
+        "false": "Ein Marker mit kunde: ändert die Klasse nicht; der Kunde muss die Route trotzdem erlauben."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "0w",
+      "seite": "datenklassen",
+      "titel": "Kundenmarker hebt auf CUSTOMER",
+      "beschreibung": "Ob ein Marker mit kunde: die Datenklasse des Projekts auf mindestens CUSTOMER hebt."
+    },
+    {
+      "schluessel": "datenklasse.lanEndpunkte",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "karte",
+      "richtung": "keine",
+      "vorgabe": {},
+      "ohneNutzerebene": true,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision",
+        "decision 2026-10-28"
+      ],
+      "wirksamAb": "lanendpunkte",
+      "seite": "datenklassen",
+      "titel": "Klasse von Endpunkten im eigenen Netz",
+      "beschreibung": "Host im eigenen Netz (IP-Adresse, .local, ein Name ohne Punkt) auf Datenklasse, etwa 192.168.1.51 auf CUSTOMER: die höchste Klasse, die Daten an dieses Modell-Ziel haben dürfen. Vorgabe leer: jeder LAN-Host bleibt streng (Klasse eines unbekannten Modells). Ohne Systemrichtlinie datenklasse.json hebt der Eintrag den Host auf die genannte Klasse; mit Systemrichtlinie senkt er nur, nennt also nie einen Host, den die Systemrichtlinie nicht nennt. Nur der Host in dieser Schreibweise (kleingeschrieben, ohne Muster) zählt; ein Eintrag mit unbekannter Klasse oder anderer Form wird gemeldet und ignoriert. Wer ihn liest: wb-datenklasse route --registry."
+    },
+    {
+      "schluessel": "raum.klasseOhneAngabe",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "PUBLIC",
+        "alles-erlaubt"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "alles-erlaubt",
+      "vorgabeJeProfil": {
+        "einzelplatz": "alles-erlaubt",
+        "mandant": "PUBLIC"
+      },
+      "risiko": {
+        "PUBLIC": "Ein Raum ohne Angabe sieht nur öffentliche Daten.",
+        "alles-erlaubt": "Ein Raum ohne Angabe sieht jede Klasse."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "8f",
+      "seite": "datenklassen",
+      "titel": "Raumklasse ohne Angabe",
+      "beschreibung": "Welche Klassen ein Raum ohne Angabe sehen darf; bewusste Ausnahme von fail closed."
+    },
+    {
+      "schluessel": "raum.klasseVorgabe",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "CUSTOMER",
+        "CONFIDENTIAL",
+        "INTERNAL",
+        "PUBLIC"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "CUSTOMER",
+      "risiko": {
+        "CUSTOMER": "Ein neuer Raum gilt als Kundendaten-Raum.",
+        "CONFIDENTIAL": "Ein neuer Raum gilt als vertraulich, nicht als Kundendaten-Raum.",
+        "INTERNAL": "Ein neuer Raum gilt als intern; vertrauliche Daten gehören dort nicht hinein.",
+        "PUBLIC": "Ein neuer Raum gilt als öffentlich; jede Schutzregel der höheren Klassen entfällt."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "9",
+      "seite": "raeume",
+      "titel": "Klasse neuer Räume",
+      "beschreibung": "Welche Datenklasse ein Raum ohne eigene Angabe bekommt. Ein Raum unter dieser Klasse gilt als Lockern und braucht vier Augen."
+    },
+    {
+      "schluessel": "raum.speicherGB",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 1,
+        "max": 4096,
+        "einheit": "GB"
+      },
+      "richtung": "keine",
+      "vorgabe": 2,
+      "rolle": "admin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "9",
+      "seite": "raeume",
+      "titel": "Speicher je Raum",
+      "beschreibung": "Vorgabe für die Grenze eines Raums, wenn der Raum keine eigene nennt."
+    },
+    {
+      "schluessel": "raum.cpuKerne",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 1,
+        "max": 256,
+        "einheit": "Kerne"
+      },
+      "richtung": "keine",
+      "vorgabe": 2,
+      "rolle": "admin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "9",
+      "seite": "raeume",
+      "titel": "Kerne je Raum",
+      "beschreibung": "Vorgabe für die Grenze eines Raums, wenn der Raum keine eigene nennt."
+    },
+    {
+      "schluessel": "raum.sitzungenMax",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 1,
+        "max": 100,
+        "einheit": "Sitzungen"
+      },
+      "richtung": "keine",
+      "vorgabe": 3,
+      "rolle": "admin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "9",
+      "seite": "raeume",
+      "titel": "Sitzungen je Raum",
+      "beschreibung": "Vorgabe für die Grenze eines Raums, wenn der Raum keine eigene nennt."
+    },
+    {
+      "schluessel": "freigabe.beleg.PUBLIC",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "mehrfachwahl",
+      "wahl": [
+        "klick",
+        "passkey",
+        "oidc-frisch",
+        "geraet"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": [
+        "klick",
+        "passkey",
+        "oidc-frisch",
+        "geraet"
+      ],
+      "risiko": {
+        "klick": "Ein Klick in einer angemeldeten Sitzung genügt; am Arbeitsrechner kann ein Agent derselben Kennung ihn wahrscheinlich selbst auslösen.",
+        "passkey": "Die Person bestätigt vorher mit einem Passkey mit Nutzerprüfung.",
+        "oidc-frisch": "Die Person meldet sich vorher neu am Firmen-IdP an.",
+        "geraet": "Die Person bestätigt auf einem gekoppelten Gerät; ohne Gerät wartet die Freigabe."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4d",
+      "seite": "freigaben",
+      "titel": "Beleg für eine Freigabe der Klasse PUBLIC",
+      "beschreibung": "Welche Belege eine Freigabe der Klasse PUBLIC entscheiden dürfen; mehrere Werte heißen, einer davon genügt. Die Stelle liest die Liste je Entscheidung."
+    },
+    {
+      "schluessel": "freigabe.beleg.INTERNAL",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "mehrfachwahl",
+      "wahl": [
+        "klick",
+        "passkey",
+        "oidc-frisch",
+        "geraet"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": [
+        "klick",
+        "passkey",
+        "oidc-frisch",
+        "geraet"
+      ],
+      "risiko": {
+        "klick": "Ein Klick in einer angemeldeten Sitzung genügt; am Arbeitsrechner kann ein Agent derselben Kennung ihn wahrscheinlich selbst auslösen.",
+        "passkey": "Die Person bestätigt vorher mit einem Passkey mit Nutzerprüfung.",
+        "oidc-frisch": "Die Person meldet sich vorher neu am Firmen-IdP an.",
+        "geraet": "Die Person bestätigt auf einem gekoppelten Gerät; ohne Gerät wartet die Freigabe."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4d",
+      "seite": "freigaben",
+      "titel": "Beleg für eine Freigabe der Klasse INTERNAL",
+      "beschreibung": "Welche Belege eine Freigabe der Klasse INTERNAL entscheiden dürfen; mehrere Werte heißen, einer davon genügt. Die Stelle liest die Liste je Entscheidung."
+    },
+    {
+      "schluessel": "freigabe.beleg.CONFIDENTIAL",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "mehrfachwahl",
+      "wahl": [
+        "klick",
+        "passkey",
+        "oidc-frisch",
+        "geraet"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": [
+        "klick",
+        "passkey",
+        "oidc-frisch",
+        "geraet"
+      ],
+      "risiko": {
+        "klick": "Ein Klick in einer angemeldeten Sitzung genügt; am Arbeitsrechner kann ein Agent derselben Kennung ihn wahrscheinlich selbst auslösen.",
+        "passkey": "Die Person bestätigt vorher mit einem Passkey mit Nutzerprüfung.",
+        "oidc-frisch": "Die Person meldet sich vorher neu am Firmen-IdP an.",
+        "geraet": "Die Person bestätigt auf einem gekoppelten Gerät; ohne Gerät wartet die Freigabe."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4d",
+      "seite": "freigaben",
+      "titel": "Beleg für eine Freigabe der Klasse CONFIDENTIAL",
+      "beschreibung": "Welche Belege eine Freigabe der Klasse CONFIDENTIAL entscheiden dürfen; mehrere Werte heißen, einer davon genügt. Die Stelle liest die Liste je Entscheidung.",
+      "empfehlung": [
+        "klick"
+      ]
+    },
+    {
+      "schluessel": "freigabe.beleg.CUSTOMER",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "mehrfachwahl",
+      "wahl": [
+        "klick",
+        "passkey",
+        "oidc-frisch",
+        "geraet"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": [
+        "klick",
+        "passkey",
+        "oidc-frisch",
+        "geraet"
+      ],
+      "risiko": {
+        "klick": "Ein Klick in einer angemeldeten Sitzung genügt; am Arbeitsrechner kann ein Agent derselben Kennung ihn wahrscheinlich selbst auslösen.",
+        "passkey": "Die Person bestätigt vorher mit einem Passkey mit Nutzerprüfung.",
+        "oidc-frisch": "Die Person meldet sich vorher neu am Firmen-IdP an.",
+        "geraet": "Die Person bestätigt auf einem gekoppelten Gerät; ohne Gerät wartet die Freigabe."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4d",
+      "seite": "freigaben",
+      "titel": "Beleg für eine Freigabe der Klasse CUSTOMER",
+      "beschreibung": "Welche Belege eine Freigabe der Klasse CUSTOMER entscheiden dürfen; mehrere Werte heißen, einer davon genügt. Die Stelle liest die Liste je Entscheidung.",
+      "empfehlung": [
+        "klick"
+      ]
+    },
+    {
+      "schluessel": "freigabe.browserEinzelplatz",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "nur-mit-passkey",
+        "klick"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "klick",
+      "risiko": {
+        "nur-mit-passkey": "Ein Browserklick am Mac zählt nur mit Passkey.",
+        "klick": "Ob ein Agent ohne Raum das Sitzungscookie lesen kann, ist nicht gemessen."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4d",
+      "seite": "freigaben",
+      "titel": "Browserklick am Mac ohne Raum",
+      "beschreibung": "Ob ein Browserklick am Mac ohne Raum allein zählt."
+    },
+    {
+      "schluessel": "freigabe.ablehnenOhneStufe",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "aus",
+        "an"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "an",
+      "risiko": {
+        "aus": "Auch Ablehnen braucht den Beleg, den die Klasse für eine Freigabe verlangt.",
+        "an": "Ablehnen geht ohne Passkey; wer die Sitzung hat, kann blockieren, aber nichts freigeben."
+      },
+      "rolle": "admin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4b",
+      "seite": "freigaben",
+      "titel": "Ablehnen ohne Stufenprüfung",
+      "beschreibung": "Ob Ablehnen ohne den Beleg geht, den die Klasse für eine Freigabe verlangt."
+    },
+    {
+      "schluessel": "sitzung.dauerStunden",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 1,
+        "max": 24,
+        "einheit": "h"
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 12,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4b",
+      "seite": "freigaben",
+      "titel": "Höchstdauer einer Browsersitzung",
+      "beschreibung": "So lange gilt eine angemeldete Browsersitzung höchstens."
+    },
+    {
+      "schluessel": "sitzung.leerlaufMinuten",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 5,
+        "max": 120,
+        "einheit": "min"
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 30,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4b",
+      "seite": "freigaben",
+      "titel": "Sitzung verfällt ohne Bedienung",
+      "beschreibung": "Nach so vielen Minuten ohne Bedienung ist die Browsersitzung abgelaufen."
+    },
+    {
+      "schluessel": "sitzung.lesefreigabeMinuten",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 1,
+        "max": 5,
+        "einheit": "min"
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 5,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-11"
+      ],
+      "wirksamAb": "4b",
+      "seite": "freigaben",
+      "titel": "Lesefreigabe der Konsole",
+      "beschreibung": "So viele Minuten gilt die Lesefreigabe, die ein Mensch mit einer frischen Bestätigung (Passkey, im Modus oidc eine frische Anmeldung am IdP) für seine Browsersitzung löst; ohne sie antworten die Wege, die Daten anderer Personen zeigen können (Personenliste und -anträge, Belege, Modellverbrauch, Schlüssellisten, Anträge, Räume, Rechtestufen, Quellrechte), mit 403; die Chat-Verläufe regelt `sitzung.portalLesefreigabeMinuten`. Die Freigabe gilt nur für diese Sitzung und endet mit ihr; Lesen verlängert sie nie. Mehr als 5 Minuten sind nicht möglich, der Wert lässt sich nur senken. Risiko: Ein längerer Wert verlängert das Fenster, in dem ein Programm im selben Konto mit einem kopierten Sitzungscookie diese Daten lesen kann, sobald der Mensch die Konsole geöffnet und bestätigt hat; ein kürzerer Wert verlangt öfter einen Fingertipp."
+    },
+    {
+      "schluessel": "sitzung.portalLesefreigabeMinuten",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 1,
+        "max": 60,
+        "einheit": "min"
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 30,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-11"
+      ],
+      "wirksamAb": "4b",
+      "seite": "freigaben",
+      "titel": "Lesefreigabe für Chat-Verläufe",
+      "beschreibung": "So viele Minuten gelten die eigenen Chat-Verläufe der Browsersitzung (jede Leseanfrage unter portal/, auch der Ereignisstrom), nachdem der Mensch die Lesefreigabe mit einer frischen Bestätigung gelöst hat. Die Frist läuft länger als die der übrigen Lesewege, weil ein Verlauf länger offen bleibt als eine Liste; sie gilt nur für diese Sitzung und endet mit ihr, Lesen verlängert sie nie, ein offener Strom endet mit ihr. Mehr als 60 Minuten sind nicht möglich, der Wert lässt sich nur senken. Risiko: Ein längerer Wert verlängert das Fenster, in dem ein Programm im selben Konto mit einem kopierten Sitzungscookie die Chat-Verläufe der Person lesen kann, sobald sie die Konsole geöffnet und bestätigt hat; ein kürzerer Wert verlangt öfter einen Fingertipp."
+    },
+    {
+      "schluessel": "mandant.vierAugen",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "an",
+        "aus"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "aus",
+      "vorgabeJeProfil": {
+        "einzelplatz": "aus",
+        "mandant": "an"
+      },
+      "risiko": {
+        "an": "Jede lockernde Änderung wartet auf einen zweiten Sicherheitsadmin.",
+        "aus": "Ein Sicherheitsadmin lockert allein."
+      },
+      "rolle": "mandanteneigentuemer",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "2a",
+      "seite": "freigaben",
+      "titel": "Vier-Augen-Pflicht für lockernde Änderungen",
+      "beschreibung": "Ob eine lockernde Änderung einen zweiten Sicherheitsadmin braucht."
+    },
+    {
+      "schluessel": "terminal.fernTippen",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "aus",
+        "mit-befugnis-und-biometrie"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "mit-befugnis-und-biometrie",
+      "risiko": {
+        "aus": "Niemand tippt aus der Ferne in ein Terminal.",
+        "mit-befugnis-und-biometrie": "Fern-Tippen geht mit eigener Befugnis und Biometrie am Gerät."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "5",
+      "seite": "freigaben",
+      "titel": "Fern-Tippen ins Terminal",
+      "beschreibung": "Ob ein Mensch aus der Ferne in ein Terminal tippen darf."
+    },
+    {
+      "schluessel": "gastgeraet.delegation",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "aus",
+        "8h-ohne-entscheidungen"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "8h-ohne-entscheidungen",
+      "risiko": {
+        "aus": "Ein Gastgerät bekommt keine Delegation.",
+        "8h-ohne-entscheidungen": "Ein Gastgerät bekommt 8 Stunden Zugang, entscheidet aber nichts."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4b",
+      "seite": "freigaben",
+      "titel": "Delegation an ein Gastgerät",
+      "beschreibung": "Ob ein Gastgerät befristeten Zugang ohne Entscheidungsrecht bekommt."
+    },
+    {
+      "schluessel": "portal.anmeldung",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "oidc-und-passkey",
+        "oidc",
+        "passkey-konto"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "passkey-konto",
+      "vorgabeJeProfil": {
+        "einzelplatz": "passkey-konto",
+        "mandant": "oidc-und-passkey"
+      },
+      "risiko": {
+        "oidc-und-passkey": "Anmeldung am Firmen-IdP und zusätzlich ein Passkey.",
+        "oidc": "Anmeldung nur am Firmen-IdP; es gilt dessen Schutz.",
+        "passkey-konto": "Eigenes Passkey-Konto am Portal, ohne fremden IdP."
+      },
+      "rolle": "mandanteneigentuemer",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4b",
+      "seite": "anmeldung",
+      "titel": "Anmeldung am Portal",
+      "beschreibung": "Wie sich ein Mensch am Portal anmeldet."
+    },
+    {
+      "schluessel": "portal.oidcAnlegen",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "bool",
+      "richtung": "true-lockert",
+      "vorgabe": false,
+      "risiko": {
+        "true": "Wer sich am Firmen-IdP anmeldet und noch nicht im Register steht, bekommt einen Eintrag ohne Rolle. Die Kennung ist der Teil seiner bestätigten E-Mail-Adresse vor dem @. Das gilt nur für Adressen aus den Domänen der Einstellung „E-Mail-Domänen für das Anlegen beim ersten Login“; ohne Domäne legt die Anmeldung niemanden an. Wer mit einer solchen Adresse im IdP steht, steht dann im Register.",
+        "false": "Nur Personen, die ein Admin angelegt hat, melden sich an."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4b",
+      "seite": "anmeldung",
+      "titel": "Personen beim ersten Login anlegen",
+      "beschreibung": "Ob eine unbekannte Person nach der Anmeldung am Firmen-IdP einen Registereintrag ohne Rolle bekommt."
+    },
+    {
+      "schluessel": "portal.oidcAnlegenMax",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 1,
+        "max": 100000
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 500,
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4b",
+      "seite": "anmeldung",
+      "titel": "Obergrenze für das Anlegen beim ersten Login",
+      "beschreibung": "Bei so vielen Personen vom Firmen-IdP ohne Rolle legt die Anmeldung niemanden mehr an. Eine vergebene Rolle gibt den Platz frei."
+    },
+    {
+      "schluessel": "portal.oidcAnlegenDomaenen",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "liste",
+      "richtung": "streng-zuerst",
+      "vorgabe": [],
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "decision 2026-11-05"
+      ],
+      "wirksamAb": "4b",
+      "seite": "anmeldung",
+      "titel": "E-Mail-Domänen für das Anlegen beim ersten Login",
+      "beschreibung": "Nur eine bestätigte Adresse aus einer dieser Domänen (etwa firma.example) legt beim ersten Login eine Person an; die Domäne gilt nur ganz, ohne Unterdomänen. Ohne Eintrag legt die Anmeldung niemanden an."
+    },
+    {
+      "schluessel": "gateway.laufBescheinigung",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": true,
+      "risiko": {
+        "true": "Die Modellroute des Gateways bedient im Firmenbetrieb nur Aufrufe mit einer gültigen Bescheinigung für den Lauf, zusätzlich zum Personenschlüssel oder zum Token des Firmen-IdP.",
+        "false": "Die Modellroute des Gateways bedient im Firmenbetrieb jeden Aufruf mit gültigem Personenschlüssel oder Token, auch von einem Lauf, den das Gateway nie bescheinigt hat. Wer den Schlüssel hat, ruft das Modell dann an der Stelle vorbei auf."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "decision 2026-11-11"
+      ],
+      "wirksamAb": "4b",
+      "seite": "anmeldung",
+      "titel": "Bescheinigung je Lauf an der Modellroute",
+      "beschreibung": "Ob die Modellroute des Gateways im Firmenbetrieb für jeden Aufruf die Bescheinigung für den Lauf verlangt (Kopfzeile X-AWB-Lauf), die das Gateway selbst ausstellt. Am Einzelplatz gilt die Pflicht nie. Abschalten kann nur die root-eigene Systemdatei."
+    },
+    {
+      "schluessel": "gateway.laufSchwachErlaubt",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "bool",
+      "richtung": "true-lockert",
+      "vorgabe": false,
+      "risiko": {
+        "true": "Die Modellroute des Gateways bedient im Firmenbetrieb auch Aufrufe mit einer schwachen Bescheinigung: Ein Nutzer kann sich mit seinem eigenen Schlüssel eine Bescheinigung holen und den Dienst am Arbeitsrechner umgehen. Die Zustandsseite warnt, solange das gilt.",
+        "false": "Die Modellroute des Gateways bedient im Firmenbetrieb nur Aufrufe mit einer starken Bescheinigung, die der Dienst am Arbeitsrechner bestätigt hat."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "decision 2026-11-11"
+      ],
+      "wirksamAb": "4b",
+      "seite": "anmeldung",
+      "titel": "Schwache Bescheinigung je Lauf zulassen",
+      "beschreibung": "Ob die Modellroute im Firmenbetrieb auch eine Bescheinigung mit dem Nachweis schwach annimmt. Das ist nötig, bis der Dienst am Arbeitsrechner den starken Nachweis liefert. Zulassen kann nur die root-eigene Systemdatei."
+    },
+    {
+      "schluessel": "scim.aktiv",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "bool",
+      "richtung": "true-lockert",
+      "vorgabe": false,
+      "risiko": {
+        "true": "Der Firmen-IdP darf über SCIM Personen ohne Rolle anlegen, ändern und sperren und Gruppen mit Mitgliedern führen, die er selbst angelegt hat. Eine Gruppe, die der IdP führt, kann Rechte bekommen, die ein Admin ihr gibt: Wer der IdP in sie aufnimmt, erbt sie. Rollen setzt der IdP nie. Je Gruppe nimmt er höchstens so viele neue Mitglieder je Stunde auf, wie die Einstellung „Neue Mitglieder je Gruppe und Stunde über SCIM“ erlaubt; der Rest wartet auf einen Admin.",
+        "false": "Der Firmen-IdP ändert nichts am Register; jede Anfrage über SCIM wird abgelehnt."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "decision 2026-11-07"
+      ],
+      "wirksamAb": "4b",
+      "seite": "anmeldung",
+      "titel": "SCIM-Abgleich mit dem Firmen-IdP",
+      "beschreibung": "Ob der Firmen-IdP Personen und Gruppen über SCIM abgleichen darf. Aus, solange kein Sicherheitsadmin es mit einem zweiten Admin einschaltet."
+    },
+    {
+      "schluessel": "scim.bremse.jeStunde",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 0,
+        "max": 100000
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 25,
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "decision 2026-11-07"
+      ],
+      "wirksamAb": "4b",
+      "seite": "anmeldung",
+      "titel": "Neue Mitglieder je Gruppe und Stunde über SCIM",
+      "beschreibung": "So viele neue Mitglieder nimmt eine Gruppe in einer gleitenden Stunde über SCIM auf. Was darüber hinausgeht, wird nicht gesetzt; die Sicherheitsadmins bekommen einen Antrag für den Rest. 0 heißt: jede Aufnahme ist ein Antrag."
+    },
+    {
+      "schluessel": "gateway.anfragenJeSitzung",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 60,
+        "max": 100000
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 600,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4b",
+      "seite": "anmeldung",
+      "titel": "Anfragen je Sitzung und Minute",
+      "beschreibung": "So viele Anfragen nimmt das Gateway je Browsersitzung in der Minute an; darüber antwortet es mit 429."
+    },
+    {
+      "schluessel": "gateway.anfragenJeQuelle",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 60,
+        "max": 1000000
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 3000,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4b",
+      "seite": "anmeldung",
+      "titel": "Anfragen je Quelladresse und Minute",
+      "beschreibung": "So viele Anfragen nimmt das Gateway je Quelladresse in der Minute an. Das zählt nur, wenn es TLS selbst beendet; hinter einem Proxy ist die Quelle der Proxy."
+    },
+    {
+      "schluessel": "gateway.maxVerbindungen",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 8,
+        "max": 65536
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 512,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "4b",
+      "seite": "anmeldung",
+      "titel": "Offene Verbindungen",
+      "beschreibung": "So viele Verbindungen hält das Gateway offen, jeder Ereignisstrom zählt als eine; darüber antwortet es mit 429."
+    },
+    {
+      "schluessel": "zugang.netz",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "nur-tailnet",
+        "firmennetz",
+        "relais-e2e"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "nur-tailnet",
+      "risiko": {
+        "nur-tailnet": "Nur Geräte im Tailnet erreichen die Werkbank.",
+        "firmennetz": "Geräte im Netz der Firma erreichen die Werkbank ohne Tailscale, über den Weg aus mobil.weg (eigenes TLS oder Reverse-Proxy). Wer das Netz erreicht, begrenzt die Firewall der IT.",
+        "relais-e2e": "Erreichbar über ein Relais mit Ende-zu-Ende-Verschlüsselung; erst wählbar, wenn gebaut."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "relais",
+      "seite": "anmeldung",
+      "titel": "Netzzugang",
+      "beschreibung": "Über welches Netz Geräte die Werkbank erreichen."
+    },
+    {
+      "schluessel": "endpunkt.anmeldung",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "mehrfachwahl",
+      "wahl": [
+        "schluessel-je-nutzer",
+        "oidc-token",
+        "nutzerkopf"
+      ],
+      "richtung": "streng-zuerst",
+      "aussperrend": true,
+      "vorgabe": [
+        "schluessel-je-nutzer"
+      ],
+      "vorgabeJeProfil": {
+        "einzelplatz": [
+          "schluessel-je-nutzer"
+        ],
+        "mandant": [
+          "oidc-token"
+        ]
+      },
+      "risiko": {
+        "schluessel-je-nutzer": "Jeder Nutzer meldet sich mit einem eigenen Schlüssel an.",
+        "oidc-token": "Clients melden sich mit einem Token des Firmen-IdP an.",
+        "nutzerkopf": "Der Admin von Open WebUI kann jeden Nutzer spielen; das widerspricht dem Grundsatz, den Server-Admin von den Inhalten auszuschließen."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "3a",
+      "seite": "anmeldung",
+      "titel": "Anmeldewege am Endpunkt",
+      "beschreibung": "Mit welchen Wegen sich Clients am Endpunkt anmelden dürfen."
+    },
+    {
+      "schluessel": "endpunkt.klassen.PUBLIC",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "aus",
+        "an"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "an",
+      "risiko": {
+        "aus": "Der Endpunkt bedient die Klasse PUBLIC nicht.",
+        "an": "Der Endpunkt bedient die Klasse PUBLIC auf den Routen, die das Richtlinien-Repo erlaubt."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "3a",
+      "seite": "anmeldung",
+      "titel": "Endpunkt für Klasse PUBLIC",
+      "beschreibung": "Ob der Endpunkt die Klasse PUBLIC bedient."
+    },
+    {
+      "schluessel": "endpunkt.klassen.INTERNAL",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "aus",
+        "an"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "an",
+      "risiko": {
+        "aus": "Der Endpunkt bedient die Klasse INTERNAL nicht.",
+        "an": "Der Endpunkt bedient die Klasse INTERNAL auf den Routen, die das Richtlinien-Repo erlaubt."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "3a",
+      "seite": "anmeldung",
+      "titel": "Endpunkt für Klasse INTERNAL",
+      "beschreibung": "Ob der Endpunkt die Klasse INTERNAL bedient."
+    },
+    {
+      "schluessel": "endpunkt.klassen.CONFIDENTIAL",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "aus",
+        "an"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "an",
+      "risiko": {
+        "aus": "Der Endpunkt bedient die Klasse CONFIDENTIAL nicht.",
+        "an": "Der Endpunkt bedient die Klasse CONFIDENTIAL auf den Routen, die das Richtlinien-Repo erlaubt."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "3a",
+      "seite": "anmeldung",
+      "titel": "Endpunkt für Klasse CONFIDENTIAL",
+      "beschreibung": "Ob der Endpunkt die Klasse CONFIDENTIAL bedient."
+    },
+    {
+      "schluessel": "endpunkt.klassen.CUSTOMER",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "aus",
+        "an"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "an",
+      "risiko": {
+        "aus": "Der Endpunkt bedient die Klasse CUSTOMER nicht.",
+        "an": "Der Endpunkt bedient die Klasse CUSTOMER auf den Routen, die das Richtlinien-Repo erlaubt."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "3a",
+      "seite": "anmeldung",
+      "titel": "Endpunkt für Klasse CUSTOMER",
+      "beschreibung": "Ob der Endpunkt die Klasse CUSTOMER bedient."
+    },
+    {
+      "schluessel": "endpunkt.wissen",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "bool",
+      "richtung": "true-lockert",
+      "vorgabe": false,
+      "risiko": {
+        "true": "Fremde Agenten fragen das Wissen der Firma mit einem persönlichen Schlüssel über das Gateway ab; jede Anfrage steht im Audit.",
+        "false": "Das Gateway beantwortet keine Wissensanfrage fremder Agenten."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": "mandant",
+      "quelle": [
+        "project decision",
+        "decision 2026-11-07"
+      ],
+      "wirksamAb": "L-04",
+      "seite": "anmeldung",
+      "titel": "Wissen für fremde Agenten",
+      "beschreibung": "Ob die Entscheidungsstelle Wissensanfragen fremder Agenten mit einem Wissensschlüssel erlaubt. Einschalten kann im Mandantenbetrieb nur die Systemdatei; die Betreiberebene schaltet nur ab."
+    },
+    {
+      "schluessel": "wissen.appKonto",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision",
+        "decision 2026-11-07"
+      ],
+      "wirksamAb": "L-04",
+      "seite": "wissen",
+      "titel": "Konto der Wissens-App",
+      "beschreibung": "Das Unix-Konto der Wissens-App. Nur dieses Konto spricht mit wissen.sock der Entscheidungsstelle und legt dort Wissensschlüssel an, listet und entzieht sie. Ohne Wert öffnet die Stelle wissen.sock nicht. Der Wert gilt nur aus der Systemdatei."
+    },
+    {
+      "schluessel": "wissen.appGruppe",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision",
+        "decision 2026-11-07"
+      ],
+      "wirksamAb": "L-04",
+      "seite": "wissen",
+      "titel": "Gruppe von wissen.sock",
+      "beschreibung": "Die Gruppe des Ordners /run/wb-wissen und des Sockets wissen.sock (_wbwissen). Weicht der Wert davon ab oder fehlt er, öffnet die Stelle wissen.sock nicht. Der Wert gilt nur aus der Systemdatei."
+    },
+    {
+      "schluessel": "spaces.klasseVorgabe",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "karte",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "8a",
+      "seite": "wissen",
+      "titel": "Klasse je Space",
+      "beschreibung": "Space-Name auf Datenklasse; ein Space ohne Eintrag gilt als INTERNAL."
+    },
+    {
+      "schluessel": "recall.cloudSperre",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "an",
+        "aus"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "an",
+      "risiko": {
+        "an": "Die Recall-Sperre für Cloud-Sitzungen ist eingeschaltet.",
+        "aus": "Die Recall-Sperre für Cloud-Sitzungen ist ausgeschaltet."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "8a",
+      "seite": "wissen",
+      "titel": "Recall-Sperre für Cloud",
+      "beschreibung": "Ob die Recall-Sperre für Cloud-Sitzungen gilt."
+    },
+    {
+      "schluessel": "vektorcache.teilen",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "klasse-und-kunde",
+        "klasse",
+        "global"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "klasse-und-kunde",
+      "risiko": {
+        "klasse-und-kunde": "Der Cache gilt nur innerhalb derselben Klasse und desselben Kunden.",
+        "klasse": "Der Cache gilt innerhalb einer Klasse, auch über Kunden hinweg.",
+        "global": "Ein Cache für alle Klassen und Kunden."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "8",
+      "seite": "wissen",
+      "titel": "Vektor-Cache teilen",
+      "beschreibung": "Wie weit ein Vektor-Cache geteilt wird."
+    },
+    {
+      "schluessel": "index.dienstkonto",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "nur-indexbau",
+        "aus"
+      ],
+      "richtung": "keine",
+      "vorgabe": "nur-indexbau",
+      "risiko": {
+        "nur-indexbau": "Das Dienstkonto darf nur den Index bauen.",
+        "aus": "Es gibt kein Dienstkonto für den Index."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "8",
+      "seite": "wissen",
+      "titel": "Dienstkonto für den Index",
+      "beschreibung": "Ob ein Dienstkonto den Index baut."
+    },
+    {
+      "schluessel": "umsortierer.warmhalten",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "aus",
+        "aktives-fenster",
+        "immer"
+      ],
+      "richtung": "keine",
+      "vorgabe": "aktives-fenster",
+      "risiko": {
+        "aus": "Der Umsortierer wird bei jedem Recall neu geladen.",
+        "aktives-fenster": "Warm bis 30 min nach dem letzten Recall; kostet solange den VRAM des Einbettungsmodells (Beispiel: rund 1,3 GiB) auf der Modellmaschine.",
+        "immer": "Belegt dauerhaft den VRAM des Einbettungsmodells (Beispiel: rund 1,3 GiB) auf der Modellmaschine."
+      },
+      "rolle": "admin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "8",
+      "seite": "wissen",
+      "titel": "Umsortierer warmhalten",
+      "beschreibung": "Wie lange der Umsortierer geladen bleibt; aktives-fenster heißt 30 min nach dem letzten Recall."
+    },
+    {
+      "schluessel": "mobil.origin",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "seite": "anmeldung",
+      "titel": "Adresse des Werkbank-Servers",
+      "beschreibung": "https-Origin, unter der dieser Rechner PWA und Browser-Oberfläche ausliefert; ersetzt mobileOrigin aus config.json. Der Hostname ist die RP-ID der Passkeys: Ein neuer Hostname macht jeden Passkey ungültig, und jede Person braucht eine neue Einladung."
+    },
+    {
+      "schluessel": "mobil.weg",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "tailnet",
+        "proxy",
+        "tls"
+      ],
+      "richtung": "keine",
+      "vorgabe": "tailnet",
+      "risiko": {
+        "tailnet": "Nur Geräte im Tailnet erreichen den Server; tailscale serve beendet TLS auf diesem Rechner.",
+        "proxy": "Ein Reverse-Proxy der eigenen IT beendet TLS und sieht die Inhalte. Er meldet niemanden an: Jede Person meldet sich trotzdem am Gateway an.",
+        "tls": "Das Gateway beendet TLS selbst mit dem Zertifikat der Firma; der Schlüssel liegt in wb-geheimnis, und kein Gerät dazwischen sieht die Inhalte."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "seite": "anmeldung",
+      "titel": "Weg zum Server",
+      "beschreibung": "Ob der Server über tailscale serve, hinter einem Reverse-Proxy der IT oder mit eigenem TLS im Gateway erreichbar ist."
+    },
+    {
+      "schluessel": "mobil.port",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 1024,
+        "max": 65535,
+        "einheit": "Port"
+      },
+      "richtung": "keine",
+      "vorgabe": 47321,
+      "rolle": "admin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "seite": "anmeldung",
+      "titel": "Loopback-Port des mobilen Servers",
+      "beschreibung": "Port auf 127.0.0.1, auf den tailscale serve oder der Proxy weiterleitet; ersetzt mobilePort."
+    },
+    {
+      "schluessel": "mobil.weitereOrigins",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "liste",
+      "richtung": "streng-zuerst",
+      "vorgabe": [],
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "seite": "anmeldung",
+      "titel": "Weitere Server-Adressen",
+      "beschreibung": "https-Origins weiterer Werkbank-Rechner, die dieselben Geräte annehmen; zusammen mit mobil.origin ersetzt das mobileOrigins."
+    },
+    {
+      "schluessel": "datenklasse.kundenteilbaeume",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "wahl",
+      "wahl": [
+        "ganz-customer",
+        "verdecken"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "verdecken",
+      "risiko": {
+        "ganz-customer": "Enthält das Projekt einer Welt einen Teilbaum höherer Klasse, läuft die ganze Welt in dieser Klasse: ab CUSTOMER nur lokale Modelle und Netzgrenze, auf macOS startet sie dann nicht.",
+        "verdecken": "Teilbäume höherer Klasse sind in der Welt leer, der Rest läuft in seiner Klasse. Der Ordnername bleibt sichtbar. Liegt der Teilbaum im Git-Repo des Projekts, startet die Welt nicht."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 10-22"
+      ],
+      "wirksamAb": "weltkunde",
+      "seite": "datenklassen",
+      "titel": "Teilbäume höherer Klasse in einer Welt",
+      "beschreibung": "Wie der Träger eine Welt behandelt, deren Projekt einen Teilbaum höherer Klasse enthält. Beim Verdecken bleibt der Ordnername sichtbar. Kundenordner neutral benennen (z. B. kunde-a), der Kunde steht nur im Marker .datenklasse. Wer auch den Ordnernamen schützen muss, wählt ganz-customer. Heute liest der Träger den Wert aus traeger.json; der Umzug nach wb_konfig ist Teil von E3."
+    },
+    {
+      "schluessel": "teilbaeume.suchwurzeln",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "liste",
+      "richtung": "keine",
+      "vorgabe": [
+        "~/AI",
+        "~/Knowledge",
+        "~/.pi-workers"
+      ],
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "decision 2026-10-24"
+      ],
+      "wirksamAb": "weltkunde",
+      "seite": "datenklassen",
+      "titel": "Suchwurzeln der Teilbaumsuche",
+      "beschreibung": "Ordner, in denen der Lead nach Teilbäumen höherer Klasse sucht, wenn er im Heimatordner startet. Nur das Firmenprofil (Systemebene) setzt sie; die Liste ersetzt die Vorgabe. Ein Wert in der Nutzer- oder Betreiberdatei wirkt nie und wird gewarnt. Höchstens 16 Einträge (~/ oder absolut); das Heim und jeder Ordner, der es umfasst, wird abgelehnt. Ist die Systemdatei ungültig, startet der Lead nicht, statt auf die Vorgabe zurückzufallen. Wer ihn liest: shell/wb_suchwurzeln.py."
+    },
+    {
+      "schluessel": "gitIdentitaet.name",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "text",
+      "richtung": "keine",
+      "rolle": "admin",
+      "quelle": [
+        "decision 10-23",
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "seite": "allgemein",
+      "vorgabe": null,
+      "titel": "Git-Name für Agenten-Commits",
+      "beschreibung": "Autor- und Committer-Name für Agenten-Commits. Der globale Git-Hook-Verteiler (prepare-commit-msg, pre-applypatch) erlaubt je Rolle genau zwei Paare aus Name und Adresse: die Identität aus der Git-Konfiguration (config.worktree, Repo-config, ~/.gitconfig bzw. XDG, Systemebene; ein dort fehlendes Feld aus diesem Wert ergänzt) oder genau gitIdentitaet.name/.email, auch per -c oder Umgebung. Jede andere Identität per -c, --author oder GIT_AUTHOR_*/GIT_COMMITTER_* bricht einen Agenten-Commit ab, ebenso ein gemischtes Paar aus beiden Quellen; ein Mensch sieht nur eine Warnung. GRENZE: Ein Agent kann git config user.email selbst in eine Konfigurationsdatei schreiben; das sieht der Hook nicht. Vorgabe ist das öffentliche GitHub-Handle des Betreibers dieser Installation; eine andere Installation trägt hier ihr eigenes Handle ein. Der Produktbau leert diese Vorgabe: im veröffentlichten Baum hat der Schlüssel keine, und eine Firma setzt ihren Wert in der Betreiber- oder Systemebene (INSTALL.md des veröffentlichten Baums, Abschnitt Commit identity of agents); bis dahin gilt nur die Identität aus den Git-Dateien."
+    },
+    {
+      "schluessel": "gitIdentitaet.email",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "text",
+      "richtung": "keine",
+      "rolle": "admin",
+      "quelle": [
+        "decision 10-23",
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "seite": "allgemein",
+      "vorgabe": null,
+      "titel": "Git-Adresse für Agenten-Commits",
+      "beschreibung": "Autor- und Committer-Adresse für Agenten-Commits (Vergleich ohne Groß-/Kleinschreibung). Zusammen mit gitIdentitaet.name ist sie neben der Identität aus der Git-Konfiguration das einzige erlaubte Paar, auch per -c oder Umgebung; jede andere Adresse per -c, --author, GIT_AUTHOR_*/GIT_COMMITTER_* oder EMAIL bricht einen Agenten-Commit ab. Fehlt wb_konfig.py, gilt im Hook fest die Vorgabe. GRENZE: Ein Agent kann git config user.email selbst in eine Konfigurationsdatei schreiben; das sieht der Hook nicht. Die Meldung des Hooks nennt nie eine Adresse. Vorgabe ist die öffentliche noreply-Adresse von GitHub, damit nie eine private Adresse in Commits landet. Eine andere Installation trägt hier ihre eigene noreply-Adresse ein. Der Produktbau leert diese Vorgabe: im veröffentlichten Baum hat der Schlüssel keine, und eine Firma setzt ihren Wert in der Betreiber- oder Systemebene (INSTALL.md des veröffentlichten Baums, Abschnitt Commit identity of agents); bis dahin gilt nur die Identität aus den Git-Dateien."
+    },
+    {
+      "schluessel": "tmuxSocket",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": "default",
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 10-23",
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "seite": "allgemein",
+      "titel": "tmux-Socket des Werkbank-Servers",
+      "beschreibung": "Bestimmt, welcher tmux-Server als echter Werkbank-Server gilt; die Testnaht schreibt nie auf ihn. Ein falscher Wert öffnet der Testnaht den echten Server oder sperrt Tests. Der Wert kommt nur aus der Systemebene (nurSystemebene); Betreiber- und Nutzerwerte werden ignoriert. Ohne Systemwert gilt für die Testnaht AUSGEROLLTER_SOCKET, sonst der Standardsocket."
+    },
+    {
+      "schluessel": "rechte.allesAmServer",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "true-lockert",
+      "vorgabe": false,
+      "risiko": {
+        "true": "Ein Agent oder Worker am Server darf auf der Stufe alles laufen: ohne Sandbox, mit allem, was die Kennung der Person darf. Die Stelle schützt dann nur noch durch ihre Fragen, nichts hindert den Prozess am Server selbst.",
+        "false": "Am Server gilt die Stufe alles nie. Eine Stufe alles im Rechteregister zählt dort als aus."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-02"
+      ],
+      "wirksamAb": "4b",
+      "seite": "agenten",
+      "titel": "Stufe alles am Server erlauben",
+      "beschreibung": "Ob ein Agent, Orchestrator oder Worker am Firmenserver auf der Stufe alles laufen darf. Vorgabe aus. Der Wert wirkt nur aus der root-eigenen Systemdatei; die Konsole setzt ihn nie. Am Arbeitsrechner gilt der Schalter nicht, dort entscheidet allein das Rechteregister."
+    },
+    {
+      "schluessel": "rechte.werkzeuge",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "liste",
+      "richtung": "streng-zuerst",
+      "vorgabe": [],
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-31",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "agenten",
+      "titel": "Werkzeuge draußen auf der Stufe werkzeuge",
+      "beschreibung": "Welche Werkzeuge draußen ein Agent auf den Stufen werkzeuge und dateien nutzen darf. Einträge: websuche (Websuche über den Ausgang oder das Suchwerkzeug des Harness), webabruf (Webabruf über den Ausgang oder das Abrufwerkzeug des Harness), mcp:<server> (ein MCP-Server über stdio, Name wie in der Harness-Konfiguration), tunnel:<host> (CONNECT-Tunnel zu einem Host, * und ? als Muster; zusätzlich muss die Klasse den Host in ausgang.<klasse>.tunnel nennen). Auf sandbox gilt kein Werkzeug, auf alles gilt die Liste nicht. Vorgabe leer. Nur die Systemdatei erweitert die Liste; Betreiber- und Nutzerdatei dürfen nur Einträge wegnehmen. Ein Eintrag in anderer Form macht die ganze Liste leer. Was ein Harness am Gate vorbei kann, steht in docs/AUSGANG.md."
+    },
+    {
+      "schluessel": "gate.zuerstBrain",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": false,
+      "risiko": {
+        "true": "Websuche, Webabruf und Dateisuche eines Coding-Agenten sind erst nach der ersten Frage an das Brain im selben Lauf möglich. Reine Code-Fragen brauchen dann einen Umweg über das Brain; das Gate erkennt nur die Werkzeuge und Befehle, die es sicher kennt.",
+        "false": "Das Gate lässt Suche und Abruf ohne vorherige Brain-Frage zu, wie bisher."
+      },
+      "rolle": "admin",
+      "quelle": [
+        "decision 2026-11-07",
+        "project decision"
+      ],
+      "wirksamAb": "l24",
+      "seite": "agenten",
+      "titel": "Zuerst das Brain fragen",
+      "beschreibung": "Ob ein Agent vor seiner ersten Websuche, seinem ersten Webabruf und seiner ersten Dateisuche (Grep, Glob, grep oder find in einer einfachen Bash-Zeile) das Brain fragen muss. Eine Brain-Frage ist ein Aufruf von mcp__brain__suche, lies, antworte oder grep oder die einzelne Bash-Zeile brain search <Frage>; das Gate merkt sie sich je Lauf. Vorgabe aus. Eine Person darf den Schalter für sich einschalten, aber nicht ausschalten, wenn die Firma ihn in der Systemdatei oder der Betreiberdatei eingeschaltet hat (Betreiber- und Nutzerebene verschärfen nur). Wirkt nur dort, wo das Gate läuft (Firmenrechner mit Stelle, nicht im Servermodus). Was das Gate nicht sicher erkennt, zählt nicht als Suche; die Grenzen stehen in docs/AUSGANG.md, Abschnitt Zuerst das Brain."
+    },
+    {
+      "schluessel": "ausgang.macos.grenze",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "ablehnen",
+      "wahl": [
+        "ablehnen",
+        "sandbox-exec"
+      ],
+      "empfehlung": "ablehnen",
+      "risiko": {
+        "ablehnen": "Eine Klasse mit Netzgrenze startet auf dem Mac nicht.",
+        "sandbox-exec": "Mach-Dienste bleiben erreichbar: Ein Prozess kann über launchd Programme außerhalb der Grenze starten lassen."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Netzgrenze auf macOS",
+      "beschreibung": "Ob ein Pane-Start auf macOS mit sandbox-exec hinter die Netzgrenze darf. Bei ablehnen startet eine Klasse mit ausgang.<klasse>.grenze = grenze auf dem Mac nicht."
+    },
+    {
+      "schluessel": "ausgang.canaryMuster",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": "mandant",
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": "WBC-[A-Za-z0-9]{12,}",
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Form der Köder",
+      "beschreibung": "Regulärer Ausdruck der reservierten Köder-Zeichenketten. Ein Treffer in einer Anfrage sperrt sie, auch ohne Index. Ein ungültiger Ausdruck lässt keinen Start zu. Im Mandantenmodus setzt ihn nur die Systemdatei."
+    },
+    {
+      "schluessel": "websuche.anbieter.url",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": "mandant",
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Suchmaschine hinter dem Ausgang",
+      "beschreibung": "URL einer Suchmaschine im SearXNG-JSON-Format mit dem Platzhalter {q}, etwa https://suche.firma.example/search?format=json&q={q}. Ohne Wert lehnt der Ausgang jede Suche ab. Empfehlung: eine eigene SearXNG-Instanz. Im Mandantenmodus setzt ihn nur die Systemdatei."
+    },
+    {
+      "schluessel": "websuche.hub.an",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": "mandant",
+      "typ": "bool",
+      "richtung": "true-lockert",
+      "vorgabe": false,
+      "risiko": {
+        "false": "Der Hub bietet keine Websuche an.",
+        "true": "Der Hub bietet das Werkzeug websuche-suche an; die Suchanfrage geht an die eingetragene Suchmaschine."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-07"
+      ],
+      "wirksamAb": "l31",
+      "seite": "datenklassen",
+      "titel": "Websuche im Werkzeug-Hub",
+      "beschreibung": "Ob der Werkzeug-Hub (wb-hub) das Werkzeug websuche-suche anbietet. Vorgabe aus: Das Werkzeug fehlt in tools/list, und keine Suchanfrage verlässt den Rechner. Ziel ist websuche.anbieter.url, die höchste Klasse einer Sitzung websuche.hub.hoechsteKlasse; websuche.<klasse>.modus aus sperrt die Klasse auch hier. Jede Suche schreibt eine Zeile in websuche-audit.jsonl, nie den Suchtext. Im Mandantenmodus setzt ihn nur die Systemdatei."
+    },
+    {
+      "schluessel": "websuche.hub.hoechsteKlasse",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": "mandant",
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "PUBLIC",
+      "wahl": [
+        "PUBLIC",
+        "INTERNAL",
+        "CONFIDENTIAL",
+        "CUSTOMER"
+      ],
+      "risiko": {
+        "PUBLIC": "Nur Sitzungen der Klasse PUBLIC sehen die Websuche.",
+        "INTERNAL": "Sitzungen bis INTERNAL sehen die Websuche.",
+        "CONFIDENTIAL": "Sitzungen bis CONFIDENTIAL sehen die Websuche.",
+        "CUSTOMER": "Jede Sitzung sieht die Websuche, auch eine mit Kundendaten und eine ohne bestimmbare Klasse."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-07"
+      ],
+      "wirksamAb": "l31",
+      "seite": "datenklassen",
+      "titel": "Höchste Klasse für die Websuche im Hub",
+      "beschreibung": "Die höchste Datenklasse einer Hub-Sitzung, die das Werkzeug websuche-suche sieht. Ohne vertraute Quelle für die Klasse gilt jede Sitzung als CUSTOMER; ein Ordner, den die Sitzung beim Anmelden nennt (?dir=), hebt die Klasse nur. Jeder Suchtext geht durch den Prüfer des Ausgangs; ohne ihn gibt es keine Websuche. Im Mandantenmodus setzt ihn nur die Systemdatei."
+    },
+    {
+      "schluessel": "ausgang.customer.grenze",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "grenze",
+      "wahl": [
+        "ablehnen",
+        "grenze",
+        "ohne-grenze"
+      ],
+      "risiko": {
+        "ablehnen": "Ein Pane-Start dieser Klasse startet nicht.",
+        "grenze": "Der Lauf erreicht das Netz nur über den Ausgang; Werkzeuge mit Sockets draußen gehen nicht.",
+        "ohne-grenze": "Ohne Grenze kann ein Agent am Ausgang vorbei ins Netz."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Netzgrenze für Pane-Starts (CUSTOMER)",
+      "beschreibung": "Ob ein Pane-Start der Klasse CUSTOMER hinter der Netzgrenze mit dem Ausgang läuft (grenze), nicht startet (ablehnen) oder ohne Grenze startet (ohne-grenze). Auf macOS gilt zusätzlich ausgang.macos.grenze."
+    },
+    {
+      "schluessel": "ausgang.customer.maxAnfrageBytes",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "richtung": "groesser-lockert",
+      "vorgabe": 256,
+      "bereich": {
+        "min": 64,
+        "max": 1048576,
+        "einheit": "Byte"
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Längste Anfrage (CUSTOMER)",
+      "beschreibung": "Höchstzahl Byte einer Anfrage (URL, Suchtext, Körper) der Klasse CUSTOMER."
+    },
+    {
+      "schluessel": "ausgang.customer.tunnel",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "liste",
+      "richtung": "streng-zuerst",
+      "vorgabe": [],
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Hosts mit Tunnel (CUSTOMER)",
+      "beschreibung": "Hosts, zu denen ein Lauf der Klasse CUSTOMER einen CONNECT-Tunnel öffnen darf (* und ? als Muster). Der Inhalt eines Tunnels bleibt ungeprüft. Leer: kein Tunnel."
+    },
+    {
+      "schluessel": "ausgang.customer.marker.canary",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": true,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Köder-Abgleich (CUSTOMER)",
+      "beschreibung": "Ob der Ausgang Anfragen auf Köder-Zeichenketten prüft (Klasse CUSTOMER)."
+    },
+    {
+      "schluessel": "ausgang.customer.marker.kundenNamen",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": true,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Kunden-IDs sperren (CUSTOMER)",
+      "beschreibung": "Ob der Ausgang Anfragen mit einer Kunden-ID sperrt (Klasse CUSTOMER)."
+    },
+    {
+      "schluessel": "ausgang.customer.marker.fingerabdruck",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": true,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Codezeilen sperren (CUSTOMER)",
+      "beschreibung": "Ob der Ausgang Anfragen mit eingefügten Codezeilen eines Kundenprojekts sperrt (Klasse CUSTOMER)."
+    },
+    {
+      "schluessel": "ausgang.customer.marker.schwelle",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "richtung": "groesser-lockert",
+      "vorgabe": 2,
+      "bereich": {
+        "min": 1,
+        "max": 10
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Treffer bis zur Sperre (CUSTOMER)",
+      "beschreibung": "Ab so vielen gemeinsamen Fingerabdrücken sperrt der Ausgang eine Anfrage der Klasse CUSTOMER."
+    },
+    {
+      "schluessel": "websuche.customer.modus",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "broker",
+      "wahl": [
+        "aus",
+        "broker"
+      ],
+      "risiko": {
+        "aus": "Keine Websuche.",
+        "broker": "Suche über den Ausgang mit Markerprüfung; Umformuliertes erkennt er nicht."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Websuche (CUSTOMER)",
+      "beschreibung": "Ob ein Lauf der Klasse CUSTOMER über den Ausgang suchen darf."
+    },
+    {
+      "schluessel": "abruf.customer.hosts",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "liste",
+      "richtung": "streng-zuerst",
+      "vorgabe": [
+        "*"
+      ],
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Erlaubte Hosts für Webabruf (CUSTOMER)",
+      "beschreibung": "Hosts, die ein Lauf der Klasse CUSTOMER über den Ausgang mit GET abrufen darf (* und ? als Muster). Leer schaltet den Abruf ab. Empfehlung für Firmen: die Doku- und Paket-Hosts des Betreibers statt *."
+    },
+    {
+      "schluessel": "abruf.customer.maxAntwortBytes",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "richtung": "groesser-lockert",
+      "vorgabe": 2000000,
+      "bereich": {
+        "min": 1024,
+        "max": 104857600,
+        "einheit": "Byte"
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Größte Antwort (CUSTOMER)",
+      "beschreibung": "Höchstzahl Byte einer Antwort auf einen Abruf der Klasse CUSTOMER."
+    },
+    {
+      "schluessel": "eingang.customer.nachEingang",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "nur-lesen",
+      "wahl": [
+        "nur-lesen",
+        "frei"
+      ],
+      "risiko": {
+        "nur-lesen": "Nach dem ersten Inhalt aus dem Netz ist kein Tunnel und kein Schreiben nach draußen mehr möglich.",
+        "frei": "Ein eingeschleuster Text aus dem Netz kann den Lauf zu einem Tunnel oder Upload bringen."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Nach Inhalt aus dem Netz nur noch lesen (CUSTOMER)",
+      "beschreibung": "Bei nur-lesen gibt es in einem Lauf der Klasse CUSTOMER nach dem ersten Inhalt aus dem Netz nur noch Suche und GET, keinen Tunnel und keine andere Methode."
+    },
+    {
+      "schluessel": "audit.customer.stufe",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "alles",
+      "wahl": [
+        "alles",
+        "verweigerungen"
+      ],
+      "risiko": {
+        "alles": "Jede Entscheidung steht im Protokoll, ohne Inhalt.",
+        "verweigerungen": "Erlaubte Abrufe und Suchen stehen nicht im Protokoll."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Protokoll des Ausgangs (CUSTOMER)",
+      "beschreibung": "Ob der Ausgang für die Klasse CUSTOMER jede Entscheidung oder nur Ablehnungen und Fehler protokolliert."
+    },
+    {
+      "schluessel": "ausgang.confidential.grenze",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "ohne-grenze",
+      "wahl": [
+        "ablehnen",
+        "grenze",
+        "ohne-grenze"
+      ],
+      "risiko": {
+        "ablehnen": "Ein Pane-Start dieser Klasse startet nicht.",
+        "grenze": "Der Lauf erreicht das Netz nur über den Ausgang; Werkzeuge mit Sockets draußen gehen nicht.",
+        "ohne-grenze": "Ohne Grenze kann ein Agent am Ausgang vorbei ins Netz."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Netzgrenze für Pane-Starts (CONFIDENTIAL)",
+      "beschreibung": "Ob ein Pane-Start der Klasse CONFIDENTIAL hinter der Netzgrenze mit dem Ausgang läuft (grenze), nicht startet (ablehnen) oder ohne Grenze startet (ohne-grenze). Auf macOS gilt zusätzlich ausgang.macos.grenze."
+    },
+    {
+      "schluessel": "ausgang.confidential.maxAnfrageBytes",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "richtung": "groesser-lockert",
+      "vorgabe": 65536,
+      "bereich": {
+        "min": 64,
+        "max": 1048576,
+        "einheit": "Byte"
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Längste Anfrage (CONFIDENTIAL)",
+      "beschreibung": "Höchstzahl Byte einer Anfrage (URL, Suchtext, Körper) der Klasse CONFIDENTIAL."
+    },
+    {
+      "schluessel": "ausgang.confidential.tunnel",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "liste",
+      "richtung": "streng-zuerst",
+      "vorgabe": [],
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Hosts mit Tunnel (CONFIDENTIAL)",
+      "beschreibung": "Hosts, zu denen ein Lauf der Klasse CONFIDENTIAL einen CONNECT-Tunnel öffnen darf (* und ? als Muster). Der Inhalt eines Tunnels bleibt ungeprüft. Leer: kein Tunnel."
+    },
+    {
+      "schluessel": "ausgang.confidential.marker.canary",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": true,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Köder-Abgleich (CONFIDENTIAL)",
+      "beschreibung": "Ob der Ausgang Anfragen auf Köder-Zeichenketten prüft (Klasse CONFIDENTIAL)."
+    },
+    {
+      "schluessel": "ausgang.confidential.marker.kundenNamen",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": false,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Kunden-IDs sperren (CONFIDENTIAL)",
+      "beschreibung": "Ob der Ausgang Anfragen mit einer Kunden-ID sperrt (Klasse CONFIDENTIAL)."
+    },
+    {
+      "schluessel": "ausgang.confidential.marker.fingerabdruck",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": false,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Codezeilen sperren (CONFIDENTIAL)",
+      "beschreibung": "Ob der Ausgang Anfragen mit eingefügten Codezeilen eines Kundenprojekts sperrt (Klasse CONFIDENTIAL)."
+    },
+    {
+      "schluessel": "ausgang.confidential.marker.schwelle",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "richtung": "groesser-lockert",
+      "vorgabe": 2,
+      "bereich": {
+        "min": 1,
+        "max": 10
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Treffer bis zur Sperre (CONFIDENTIAL)",
+      "beschreibung": "Ab so vielen gemeinsamen Fingerabdrücken sperrt der Ausgang eine Anfrage der Klasse CONFIDENTIAL."
+    },
+    {
+      "schluessel": "websuche.confidential.modus",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "broker",
+      "wahl": [
+        "aus",
+        "broker"
+      ],
+      "risiko": {
+        "aus": "Keine Websuche.",
+        "broker": "Suche über den Ausgang mit Markerprüfung; Umformuliertes erkennt er nicht."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Websuche (CONFIDENTIAL)",
+      "beschreibung": "Ob ein Lauf der Klasse CONFIDENTIAL über den Ausgang suchen darf."
+    },
+    {
+      "schluessel": "abruf.confidential.hosts",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "liste",
+      "richtung": "streng-zuerst",
+      "vorgabe": [
+        "*"
+      ],
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Erlaubte Hosts für Webabruf (CONFIDENTIAL)",
+      "beschreibung": "Hosts, die ein Lauf der Klasse CONFIDENTIAL über den Ausgang mit GET abrufen darf (* und ? als Muster). Leer schaltet den Abruf ab. Empfehlung für Firmen: die Doku- und Paket-Hosts des Betreibers statt *."
+    },
+    {
+      "schluessel": "abruf.confidential.maxAntwortBytes",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "richtung": "groesser-lockert",
+      "vorgabe": 5000000,
+      "bereich": {
+        "min": 1024,
+        "max": 104857600,
+        "einheit": "Byte"
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Größte Antwort (CONFIDENTIAL)",
+      "beschreibung": "Höchstzahl Byte einer Antwort auf einen Abruf der Klasse CONFIDENTIAL."
+    },
+    {
+      "schluessel": "eingang.confidential.nachEingang",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "nur-lesen",
+      "wahl": [
+        "nur-lesen",
+        "frei"
+      ],
+      "risiko": {
+        "nur-lesen": "Nach dem ersten Inhalt aus dem Netz ist kein Tunnel und kein Schreiben nach draußen mehr möglich.",
+        "frei": "Ein eingeschleuster Text aus dem Netz kann den Lauf zu einem Tunnel oder Upload bringen."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Nach Inhalt aus dem Netz nur noch lesen (CONFIDENTIAL)",
+      "beschreibung": "Bei nur-lesen gibt es in einem Lauf der Klasse CONFIDENTIAL nach dem ersten Inhalt aus dem Netz nur noch Suche und GET, keinen Tunnel und keine andere Methode."
+    },
+    {
+      "schluessel": "audit.confidential.stufe",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "alles",
+      "wahl": [
+        "alles",
+        "verweigerungen"
+      ],
+      "risiko": {
+        "alles": "Jede Entscheidung steht im Protokoll, ohne Inhalt.",
+        "verweigerungen": "Erlaubte Abrufe und Suchen stehen nicht im Protokoll."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Protokoll des Ausgangs (CONFIDENTIAL)",
+      "beschreibung": "Ob der Ausgang für die Klasse CONFIDENTIAL jede Entscheidung oder nur Ablehnungen und Fehler protokolliert."
+    },
+    {
+      "schluessel": "ausgang.internal.grenze",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "ohne-grenze",
+      "wahl": [
+        "ablehnen",
+        "grenze",
+        "ohne-grenze"
+      ],
+      "risiko": {
+        "ablehnen": "Ein Pane-Start dieser Klasse startet nicht.",
+        "grenze": "Der Lauf erreicht das Netz nur über den Ausgang; Werkzeuge mit Sockets draußen gehen nicht.",
+        "ohne-grenze": "Ohne Grenze kann ein Agent am Ausgang vorbei ins Netz."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Netzgrenze für Pane-Starts (INTERNAL)",
+      "beschreibung": "Ob ein Pane-Start der Klasse INTERNAL hinter der Netzgrenze mit dem Ausgang läuft (grenze), nicht startet (ablehnen) oder ohne Grenze startet (ohne-grenze). Auf macOS gilt zusätzlich ausgang.macos.grenze."
+    },
+    {
+      "schluessel": "ausgang.internal.maxAnfrageBytes",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "richtung": "groesser-lockert",
+      "vorgabe": 65536,
+      "bereich": {
+        "min": 64,
+        "max": 1048576,
+        "einheit": "Byte"
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Längste Anfrage (INTERNAL)",
+      "beschreibung": "Höchstzahl Byte einer Anfrage (URL, Suchtext, Körper) der Klasse INTERNAL."
+    },
+    {
+      "schluessel": "ausgang.internal.tunnel",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "liste",
+      "richtung": "streng-zuerst",
+      "vorgabe": [
+        "*"
+      ],
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Hosts mit Tunnel (INTERNAL)",
+      "beschreibung": "Hosts, zu denen ein Lauf der Klasse INTERNAL einen CONNECT-Tunnel öffnen darf (* und ? als Muster). Der Inhalt eines Tunnels bleibt ungeprüft. Leer: kein Tunnel."
+    },
+    {
+      "schluessel": "ausgang.internal.marker.canary",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": true,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Köder-Abgleich (INTERNAL)",
+      "beschreibung": "Ob der Ausgang Anfragen auf Köder-Zeichenketten prüft (Klasse INTERNAL)."
+    },
+    {
+      "schluessel": "ausgang.internal.marker.kundenNamen",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": false,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Kunden-IDs sperren (INTERNAL)",
+      "beschreibung": "Ob der Ausgang Anfragen mit einer Kunden-ID sperrt (Klasse INTERNAL)."
+    },
+    {
+      "schluessel": "ausgang.internal.marker.fingerabdruck",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": false,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Codezeilen sperren (INTERNAL)",
+      "beschreibung": "Ob der Ausgang Anfragen mit eingefügten Codezeilen eines Kundenprojekts sperrt (Klasse INTERNAL)."
+    },
+    {
+      "schluessel": "ausgang.internal.marker.schwelle",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "richtung": "groesser-lockert",
+      "vorgabe": 2,
+      "bereich": {
+        "min": 1,
+        "max": 10
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Treffer bis zur Sperre (INTERNAL)",
+      "beschreibung": "Ab so vielen gemeinsamen Fingerabdrücken sperrt der Ausgang eine Anfrage der Klasse INTERNAL."
+    },
+    {
+      "schluessel": "websuche.internal.modus",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "broker",
+      "wahl": [
+        "aus",
+        "broker"
+      ],
+      "risiko": {
+        "aus": "Keine Websuche.",
+        "broker": "Suche über den Ausgang mit Markerprüfung; Umformuliertes erkennt er nicht."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Websuche (INTERNAL)",
+      "beschreibung": "Ob ein Lauf der Klasse INTERNAL über den Ausgang suchen darf."
+    },
+    {
+      "schluessel": "abruf.internal.hosts",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "liste",
+      "richtung": "streng-zuerst",
+      "vorgabe": [
+        "*"
+      ],
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Erlaubte Hosts für Webabruf (INTERNAL)",
+      "beschreibung": "Hosts, die ein Lauf der Klasse INTERNAL über den Ausgang mit GET abrufen darf (* und ? als Muster). Leer schaltet den Abruf ab. Empfehlung für Firmen: die Doku- und Paket-Hosts des Betreibers statt *."
+    },
+    {
+      "schluessel": "abruf.internal.maxAntwortBytes",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "richtung": "groesser-lockert",
+      "vorgabe": 5000000,
+      "bereich": {
+        "min": 1024,
+        "max": 104857600,
+        "einheit": "Byte"
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Größte Antwort (INTERNAL)",
+      "beschreibung": "Höchstzahl Byte einer Antwort auf einen Abruf der Klasse INTERNAL."
+    },
+    {
+      "schluessel": "eingang.internal.nachEingang",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "frei",
+      "wahl": [
+        "nur-lesen",
+        "frei"
+      ],
+      "risiko": {
+        "nur-lesen": "Nach dem ersten Inhalt aus dem Netz ist kein Tunnel und kein Schreiben nach draußen mehr möglich.",
+        "frei": "Ein eingeschleuster Text aus dem Netz kann den Lauf zu einem Tunnel oder Upload bringen."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Nach Inhalt aus dem Netz nur noch lesen (INTERNAL)",
+      "beschreibung": "Bei nur-lesen gibt es in einem Lauf der Klasse INTERNAL nach dem ersten Inhalt aus dem Netz nur noch Suche und GET, keinen Tunnel und keine andere Methode."
+    },
+    {
+      "schluessel": "audit.internal.stufe",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "alles",
+      "wahl": [
+        "alles",
+        "verweigerungen"
+      ],
+      "risiko": {
+        "alles": "Jede Entscheidung steht im Protokoll, ohne Inhalt.",
+        "verweigerungen": "Erlaubte Abrufe und Suchen stehen nicht im Protokoll."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Protokoll des Ausgangs (INTERNAL)",
+      "beschreibung": "Ob der Ausgang für die Klasse INTERNAL jede Entscheidung oder nur Ablehnungen und Fehler protokolliert."
+    },
+    {
+      "schluessel": "ausgang.public.grenze",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "ohne-grenze",
+      "wahl": [
+        "ablehnen",
+        "grenze",
+        "ohne-grenze"
+      ],
+      "risiko": {
+        "ablehnen": "Ein Pane-Start dieser Klasse startet nicht.",
+        "grenze": "Der Lauf erreicht das Netz nur über den Ausgang; Werkzeuge mit Sockets draußen gehen nicht.",
+        "ohne-grenze": "Ohne Grenze kann ein Agent am Ausgang vorbei ins Netz."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Netzgrenze für Pane-Starts (PUBLIC)",
+      "beschreibung": "Ob ein Pane-Start der Klasse PUBLIC hinter der Netzgrenze mit dem Ausgang läuft (grenze), nicht startet (ablehnen) oder ohne Grenze startet (ohne-grenze). Auf macOS gilt zusätzlich ausgang.macos.grenze."
+    },
+    {
+      "schluessel": "ausgang.public.maxAnfrageBytes",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "richtung": "groesser-lockert",
+      "vorgabe": 65536,
+      "bereich": {
+        "min": 64,
+        "max": 1048576,
+        "einheit": "Byte"
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Längste Anfrage (PUBLIC)",
+      "beschreibung": "Höchstzahl Byte einer Anfrage (URL, Suchtext, Körper) der Klasse PUBLIC."
+    },
+    {
+      "schluessel": "ausgang.public.tunnel",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "liste",
+      "richtung": "streng-zuerst",
+      "vorgabe": [
+        "*"
+      ],
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Hosts mit Tunnel (PUBLIC)",
+      "beschreibung": "Hosts, zu denen ein Lauf der Klasse PUBLIC einen CONNECT-Tunnel öffnen darf (* und ? als Muster). Der Inhalt eines Tunnels bleibt ungeprüft. Leer: kein Tunnel."
+    },
+    {
+      "schluessel": "ausgang.public.marker.canary",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": true,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Köder-Abgleich (PUBLIC)",
+      "beschreibung": "Ob der Ausgang Anfragen auf Köder-Zeichenketten prüft (Klasse PUBLIC)."
+    },
+    {
+      "schluessel": "ausgang.public.marker.kundenNamen",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": false,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Kunden-IDs sperren (PUBLIC)",
+      "beschreibung": "Ob der Ausgang Anfragen mit einer Kunden-ID sperrt (Klasse PUBLIC)."
+    },
+    {
+      "schluessel": "ausgang.public.marker.fingerabdruck",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": false,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Codezeilen sperren (PUBLIC)",
+      "beschreibung": "Ob der Ausgang Anfragen mit eingefügten Codezeilen eines Kundenprojekts sperrt (Klasse PUBLIC)."
+    },
+    {
+      "schluessel": "ausgang.public.marker.schwelle",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "richtung": "groesser-lockert",
+      "vorgabe": 2,
+      "bereich": {
+        "min": 1,
+        "max": 10
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Treffer bis zur Sperre (PUBLIC)",
+      "beschreibung": "Ab so vielen gemeinsamen Fingerabdrücken sperrt der Ausgang eine Anfrage der Klasse PUBLIC."
+    },
+    {
+      "schluessel": "websuche.public.modus",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "broker",
+      "wahl": [
+        "aus",
+        "broker"
+      ],
+      "risiko": {
+        "aus": "Keine Websuche.",
+        "broker": "Suche über den Ausgang mit Markerprüfung; Umformuliertes erkennt er nicht."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Websuche (PUBLIC)",
+      "beschreibung": "Ob ein Lauf der Klasse PUBLIC über den Ausgang suchen darf."
+    },
+    {
+      "schluessel": "abruf.public.hosts",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "liste",
+      "richtung": "streng-zuerst",
+      "vorgabe": [
+        "*"
+      ],
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Erlaubte Hosts für Webabruf (PUBLIC)",
+      "beschreibung": "Hosts, die ein Lauf der Klasse PUBLIC über den Ausgang mit GET abrufen darf (* und ? als Muster). Leer schaltet den Abruf ab. Empfehlung für Firmen: die Doku- und Paket-Hosts des Betreibers statt *."
+    },
+    {
+      "schluessel": "abruf.public.maxAntwortBytes",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "richtung": "groesser-lockert",
+      "vorgabe": 5000000,
+      "bereich": {
+        "min": 1024,
+        "max": 104857600,
+        "einheit": "Byte"
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Größte Antwort (PUBLIC)",
+      "beschreibung": "Höchstzahl Byte einer Antwort auf einen Abruf der Klasse PUBLIC."
+    },
+    {
+      "schluessel": "eingang.public.nachEingang",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "frei",
+      "wahl": [
+        "nur-lesen",
+        "frei"
+      ],
+      "risiko": {
+        "nur-lesen": "Nach dem ersten Inhalt aus dem Netz ist kein Tunnel und kein Schreiben nach draußen mehr möglich.",
+        "frei": "Ein eingeschleuster Text aus dem Netz kann den Lauf zu einem Tunnel oder Upload bringen."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Nach Inhalt aus dem Netz nur noch lesen (PUBLIC)",
+      "beschreibung": "Bei nur-lesen gibt es in einem Lauf der Klasse PUBLIC nach dem ersten Inhalt aus dem Netz nur noch Suche und GET, keinen Tunnel und keine andere Methode."
+    },
+    {
+      "schluessel": "audit.public.stufe",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "richtung": "streng-zuerst",
+      "vorgabe": "alles",
+      "wahl": [
+        "alles",
+        "verweigerungen"
+      ],
+      "risiko": {
+        "alles": "Jede Entscheidung steht im Protokoll, ohne Inhalt.",
+        "verweigerungen": "Erlaubte Abrufe und Suchen stehen nicht im Protokoll."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-22",
+        "project decision"
+      ],
+      "wirksamAb": "r4",
+      "seite": "datenklassen",
+      "titel": "Protokoll des Ausgangs (PUBLIC)",
+      "beschreibung": "Ob der Ausgang für die Klasse PUBLIC jede Entscheidung oder nur Ablehnungen und Fehler protokolliert."
+    },
+    {
+      "schluessel": "audit.aufbewahrungTage",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 0,
+        "max": 36500,
+        "einheit": "Tage"
+      },
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-05",
+        "decision 2026-11-11",
+        "project decision"
+      ],
+      "wirksamAb": "firmenstand-1",
+      "seite": "allgemein",
+      "titel": "Aufbewahrung der Prüfprotokolle",
+      "beschreibung": "So viele Tage bleiben abgeschlossene Monatsabschnitte der Prüfprotokolle (Geheimnisse, Ausgang, Entscheidungsstelle) liegen. 0 heißt „unbegrenzt (nichts löschen)“. Ein Abschnitt fällt erst weg, wenn sein jüngster Eintrag älter ist; die laufende Datei bleibt immer. Es gibt keine Vorgabe: Die Firma wählt den Wert bei der Einrichtung, und die Entscheidungsstelle startet im Firmenbetrieb nicht ohne ihn (R-AUDIT-PFLICHT). Am Einzelplatz gilt ohne Wert 0. Nur die Systemdatei setzt den Wert; ein Wert in einer anderen Ebene wird gemeldet und ignoriert."
+    },
+    {
+      "schluessel": "audit.einsichtRegel",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "wahl": [
+        "niemand",
+        "rolle",
+        "rolle-vier-augen"
+      ],
+      "richtung": "keine",
+      "vorgabe": null,
+      "risiko": {
+        "niemand": "Niemand liest die Prüfprotokolle über die Konsole oder die Entscheidungsstelle, auch kein Admin; die Übersichten zeigen nur Zahlen ohne Personenbezug. Mitarbeitende sind vor jeder Einsicht in ihre Zeilen geschützt. Wer Zugriff auf den Server hat, kann die Dateien trotzdem lesen.",
+        "rolle": "Wer die Rolle protokoll_einsicht trägt, darf die Zeilen der Mitarbeitenden mit Personenbezug lesen, jedes Mal mit einem Zweck, und jede Einsicht steht selbst im Protokoll.",
+        "rolle-vier-augen": "Wie „rolle“, aber jede einzelne Einsicht braucht zusätzlich die Bestätigung einer zweiten Person; ohne sie wird nichts gezeigt."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-11",
+        "decision 2026-11-12"
+      ],
+      "wirksamAb": "firmenstand-1",
+      "seite": "allgemein",
+      "titel": "Einsicht in personenbezogene Protokollzeilen",
+      "beschreibung": "Wer die personenbezogenen Zeilen der Prüfprotokolle im Klartext sehen darf. niemand: keine Person. rolle: die Rolle protokoll_einsicht. rolle-vier-augen: die Rolle protokoll_einsicht, und jede Einsicht nur mit Bestätigung einer zweiten Person. Es gibt keine Vorgabe: Die Firma wählt den Wert bei der Einrichtung, und die Entscheidungsstelle startet im Firmenbetrieb nicht ohne ihn (R-AUDIT-PFLICHT). Gilt bis zur ausdrücklichen Bestätigung der Wahl in der Entscheidungsstelle (audit.wahl_bestaetigen) „niemand“; eine spätere Änderung gilt erst mit der Bestätigung durch zwei Personen (R-EINSICHT-WAHL). Die Zeilen der Arbeitsrechner bleiben am Arbeitsrechner; diese Einstellung gilt nur für Server und Gateway. Nur die Systemdatei setzt den Wert; ein Wert in einer anderen Ebene wird gemeldet und ignoriert."
+    },
+    {
+      "schluessel": "audit.einsicht_sichtbar_fuer_person",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "false-lockert",
+      "vorgabe": true,
+      "risiko": {
+        "true": "Jede Person kann sehen, dass und wann in ihre Protokollzeilen eingesehen wurde (nicht von wem und nicht warum).",
+        "false": "Mitarbeitende erfahren nicht, dass in ihre Protokollzeilen eingesehen wurde."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-12"
+      ],
+      "wirksamAb": "firmenstand-1",
+      "seite": "allgemein",
+      "titel": "Einsicht sichtbar für die betroffene Person",
+      "beschreibung": "Ob eine Person über die Op person.einsichten sieht, dass und wann in Protokollzeilen eingesehen wurde, die sie betreffen. Sie sieht weder die einsehende Person noch den Zweck. Nur die Systemdatei setzt den Wert."
+    },
+    {
+      "schluessel": "audit.einsichtAbfragenJeStunde",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 1,
+        "max": 600
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 30,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-12"
+      ],
+      "wirksamAb": "firmenstand-1",
+      "seite": "allgemein",
+      "titel": "Einsichten je Person und Stunde",
+      "beschreibung": "So viele Abfragen und Exporte der Protokolle darf eine Person in einer gleitenden Stunde stellen; jeder Versuch zählt. Größere Zeiträume gibt es nur als Export."
+    },
+    {
+      "schluessel": "stelle.konto",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 10-27",
+        "project decision"
+      ],
+      "wirksamAb": "2b+",
+      "seite": "allgemein",
+      "titel": "Konto der Entscheidungsstelle",
+      "beschreibung": "Kontoname, unter dem die Entscheidungsstelle läuft (Stufe 2b+). Der Stellen-Ordner ist dann <Heimat dieses Kontos>/.local/share/agent-workbench/stelle, für Dienst und Person gleich. Der Wert wirkt nur aus der root-eigenen Systemdatei; Werte aus Betreiber- und Nutzerebene und aus der Umgebung wirken nie. Ohne Wert gilt die Heimat des eigenen Kontos (Einzelplatz). Ein falscher Wert legt die Stelle still: Gibt es das Konto nicht, startet der Dienst nicht, und jede Frage an die Stelle wird abgelehnt. Anlegen von Konto und Systemdatei ist Sache des Installers."
+    },
+    {
+      "schluessel": "stelle.gruppe",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 10-27",
+        "project decision"
+      ],
+      "wirksamAb": "2b+",
+      "seite": "allgemein",
+      "titel": "Gruppe der Entscheidungsstelle",
+      "beschreibung": "Gruppe, über die Personen den Socket der Entscheidungsstelle erreichen, wenn Dienst und Person unter verschiedenen Kennungen laufen (Stufe 2b+). Der Dienst setzt selbst stelle.sock auf diese Gruppe mit 0660 und die Ordnerkette von der Heimat von stelle.konto bis zum Stellen-Ordner auf 0710; alles andere im Stellen-Ordner bleibt nur für die Dienstkennung. Der Wert wirkt nur aus der root-eigenen Systemdatei und nur zusammen mit einem gültigen stelle.konto; Werte aus Betreiber- und Nutzerebene und aus der Umgebung wirken nie. Ohne Wert gibt es keinen Gruppenweg (Einzelplatz). Ein falscher Wert legt die Stelle still: Gibt es die Gruppe nicht oder ist die Dienstkennung nicht Mitglied, startet der Dienst nicht. Wer Mitglied ist, erreicht die Stelle; Gruppe anlegen und Mitglieder eintragen ist Sache des Installers."
+    },
+    {
+      "schluessel": "sandbox.bwrapPfad",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": "/usr/bin/bwrap",
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "1e",
+      "seite": "allgemein",
+      "titel": "Pfad von bwrap (Linux)",
+      "beschreibung": "Fester Pfad der Sandbox bwrap für Welt-Züge und Lead-Umschlag; nie aus dem PATH. Das AppArmor-Profil von Ubuntu gilt nur für /usr/bin/bwrap: eine Kopie an anderem Ort scheitert mit 'Failed RTM_NEWADDR'. Ein anderer Wert wirkt nur aus der Betreiber- oder Systemebene; ein Nutzerwert bricht den Start mit Meldung ab. Zeigt der Pfad als Symlink woanders hin, startet nichts."
+    },
+    {
+      "schluessel": "geheimnisse.speicher",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": "geraet",
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "project decision"
+      ],
+      "wirksamAb": "e60",
+      "seite": "geheimnisfilter",
+      "titel": "Speicher der Geheimnisse",
+      "beschreibung": "Wo wb-geheimnis Geheimnisse (API-Schlüssel, Tokens, Passwörter) liest und schreibt: geraet (Schlüsselbund des Systems, Vorgabe für Arbeitsrechner und Einzelplatz), dienstdatei (Datei 0600 im Ordner 0700 einer Dienstkennung), systemd-creds (kopflose Linux-Dienste, liest nur $CREDENTIALS_DIRECTORY) oder server (benannt, noch nicht angebunden: Code 3). Der Wert kommt nur aus der Systemdatei; Betreiber- und Nutzerwerte werden ignoriert. Es gibt keinen Rückfall von server oder systemd-creds auf geraet, auch nicht bei ungültiger Systemdatei."
+    },
+    {
+      "schluessel": "modelle.personWaehlt",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "bool",
+      "richtung": "true-lockert",
+      "vorgabe": false,
+      "risiko": {
+        "true": "Eine Person waehlt selbst ein Modell; die Klassenpruefung bleibt.",
+        "false": "Jede Sitzung nutzt das Standardmodell."
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-02"
+      ],
+      "wirksamAb": "firmenstand-1",
+      "seite": "geheimnisfilter",
+      "titel": "Person waehlt das Modell",
+      "beschreibung": "Wirkt nur im Firmenmodus. Aus: Jede Sitzung nutzt das Standardmodell. An: Eine Person waehlt selbst, das Standardmodell ist die Vorgabe. Gesetzt mit sudo wb-arbeitsplatz modellwahl."
+    },
+    {
+      "schluessel": "standard.modell",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-02",
+        "project decision"
+      ],
+      "wirksamAb": "firmenstand-1",
+      "seite": "geheimnisfilter",
+      "titel": "Standardmodell der Firma",
+      "beschreibung": "Wirkt nur im Firmenmodus. Das Modell, mit dem eine neue Sitzung startet. Leer: Die Sitzung ist ein Terminal mit einem Hinweis. Gesetzt mit sudo wb-arbeitsplatz standardmodell."
+    },
+    {
+      "schluessel": "modelle.preise",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "typ": "karte",
+      "richtung": "keine",
+      "vorgabe": {},
+      "ohneNutzerebene": true,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-07"
+      ],
+      "wirksamAb": "l09",
+      "seite": "geheimnisfilter",
+      "titel": "Preise der Modelle",
+      "beschreibung": "Modellkennung auf zwei Zahlen: der Preis in US-Dollar je eine Million Tokens für Eingabe und Ausgabe, etwa \"0.15 0.60\". Das Gateway rechnet damit den Verbrauch jeder Person gegen ihre Monatsgrenze. Ein Modell ohne Eintrag zählt seine Tokens, aber 0 Dollar; ein zu niedriger Preis lässt eine Person also mehr verbrauchen, als ihre Grenze sagt. Ein Eintrag außer Form sperrt die Modellroute für jede Person mit Grenze."
+    },
+    {
+      "schluessel": "modelle.quellenSystem",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "karte",
+      "richtung": "streng-zuerst",
+      "vorgabe": {},
+      "eintrag": {
+        "zusatzfelder": {
+          "typ": "liste",
+          "richtung": "streng-zuerst"
+        },
+        "serverWerkzeuge": {
+          "typ": "liste",
+          "richtung": "streng-zuerst"
+        },
+        "fremdQuellen": {
+          "typ": "liste",
+          "richtung": "streng-zuerst"
+        },
+        "httpHost": {
+          "typ": "text",
+          "richtung": "fest",
+          "muster": "[a-z0-9][a-z0-9.:-]{0,251}"
+        }
+      },
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-11",
+        "decision 2026-11-12"
+      ],
+      "wirksamAb": "l09",
+      "seite": "geheimnisfilter",
+      "titel": "Zusatzfelder, Server-Werkzeuge, Fremdquellen und unverschlüsselter Weg je Modellquelle",
+      "beschreibung": "Je Modellquelle des Gateways (Name wie in gateway.json, modelle.quellen[].name; die Quelle der alten Form heißt standard) vier Lockerungen, alle nur aus der root-eigenen Systemdatei. zusatzfelder: Felder des Anfragekörpers, die der Client für diese Quelle zusätzlich zur festen Liste senden darf; ein Feld für Ziel, Umleitung oder Zugangsdaten (api_base, base_url, model_list, fallbacks, user_config, api_key und jede Form davon) gilt nie, auch hier nicht, und macht den Start des Gateways laut. serverWerkzeuge: Liste von Präfixen der Werkzeugtypen, die der Anbieter selbst ausführt, etwa web_search_ (Websuche), web_fetch_ (Seitenabruf), code_execution_, bash_code_execution_ und text_editor_code_execution_ (Codeausführung), mcp_ (MCP-Server), tool_search_ (Werkzeugsuche); ein Präfix hat Kleinbuchstaben, Ziffern und Unterstriche, mindestens vier Zeichen und endet mit einem Unterstrich, sonst gilt es nie und macht den Start des Gateways laut. Ohne den Eintrag lehnt die Messages-Route (Claude Code) jedes solche Werkzeug mit 400 ab, in tools wie in den Nachrichten; Werkzeuge, die der Client selbst ausführt (bash_, text_editor_, computer_, memory_ und eigene), gehen immer. Risiko: Ein erlaubtes Präfix lässt den Anbieter für diese Quelle fremde Adressen abrufen oder Code ausführen, an der Netzgrenze des Laufs vorbei. fremdQuellen: Liste aus \"url\" und \"file\"; sie erlaubt Blöcke image und document der Nachrichten, deren Quelle (source.type) eine Adresse (url, der Anbieter ruft sie ab) oder eine Datei beim Anbieter (file, Files-API) ist; ohne den Eintrag lehnt die Messages-Route sie mit 400 ab, auch innerhalb von tool_result und document, ebenso jeden unbekannten source.type; base64, text und content gehen immer; ein anderer Wert als url oder file gilt nie und macht den Start des Gateways laut. Risiko: Mit url ruft der Anbieter beliebige Adressen ab, und Daten können in der Adresse stehen, an der Netzgrenze des Laufs vorbei; mit file nimmt er Dateien, die beim Anbieter liegen. httpHost: der eine Host, zu dem das Gateway diese Quelle ohne Verschlüsselung (http) ansprechen darf; er muss in einem privaten Adressbereich liegen (10/8, 172.16/12, 192.168/16, fc00::/7, ein Name nur, wenn jede seiner Adressen dort liegt), sonst startet das Gateway nicht. Betreiber- und Nutzerebene dürfen nur Einträge wegnehmen. Ohne Eintrag gilt: keine Zusatzfelder, kein unverschlüsselter Weg außer Loopback."
+    },
+    {
+      "schluessel": "modelle.messagesKoerperMiB",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 2,
+        "max": 32,
+        "einheit": "MiB"
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 32,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-11"
+      ],
+      "wirksamAb": "l09",
+      "seite": "geheimnisfilter",
+      "titel": "Größe einer Anfrage an die Messages-Route",
+      "beschreibung": "So viele MiB darf der Körper einer Anfrage an die Messages-Route des Gateways (Claude Code) haben; darüber antwortet es mit 413. Claude Code sendet mit jeder Runde den ganzen Verlauf samt Dateien und Bildern, deshalb liegt die Vorgabe bei 32 MiB. Die Chat-Routen (OpenAI-Clients) bleiben fest bei 2 MiB. Mehr als 32 MiB sind nicht möglich, der Wert lässt sich nur senken, und nicht unter 2 MiB; ein Wert außerhalb oder ein unlesbarer gilt als 2 MiB. Risiko: Jede offene Anfrage hält ihren Körper im Speicher des Gateways; ein höherer Wert erlaubt größere Verläufe, ein niedrigerer spart Speicher und lässt lange Unterhaltungen früher mit 413 scheitern."
+    },
+    {
+      "schluessel": "standard.harness",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-02"
+      ],
+      "wirksamAb": "firmenstand-1",
+      "seite": "geheimnisfilter",
+      "titel": "Harness des Standardmodells",
+      "beschreibung": "Wirkt nur im Firmenmodus. Der Harness zum Standardmodell, gesetzt mit sudo wb-arbeitsplatz standardmodell."
+    },
+    {
+      "schluessel": "firmenserver.adresse",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "text",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-03"
+      ],
+      "wirksamAb": "firmenstand-1",
+      "seite": "anmeldung",
+      "titel": "Adresse des Firmenservers",
+      "beschreibung": "Wirkt nur im Firmenmodus am Arbeitsrechner. https-Origin des Firmenservers ohne Pfad, gleich mobil.origin dort. Ein Cloud-Modell der Firma geht nur über dessen Gateway unter <adresse>/gw/v1/modelle; den Schlüssel hält das Gateway. Gesetzt mit sudo wb-arbeitsplatz firmenserver."
+    },
+    {
+      "schluessel": "geheimnisse.setzer",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "wahl": [
+        "admin",
+        "person"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "person",
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-31",
+        "project decision"
+      ],
+      "wirksamAb": "firmenstand-1",
+      "seite": "geheimnisfilter",
+      "titel": "Wer Schlüssel setzt",
+      "beschreibung": "Wirkt nur im Firmenmodus. person: Eine Person setzt, ersetzt und entfernt Schlüssel selbst, mit Menschen-Nachweis. admin: Das darf nur root; für jede andere Kennung enden setze, entferne und rotiere mit Code 5."
+    },
+    {
+      "schluessel": "betriebsart",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "wahl",
+      "wahl": [
+        "mandant",
+        "einzelplatz"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "einzelplatz",
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-10-31",
+        "project decision"
+      ],
+      "wirksamAb": "firmenstand-1",
+      "seite": "geheimnisfilter",
+      "titel": "Betriebsart des Rechners",
+      "beschreibung": "mandant setzt die Firmenregeln in Kraft: Vier Pfade kommen nicht mehr aus der Nutzerdatei, der Rückfall auf Umgebungsvariablen für Geheimnisse ist aus, und wb-doctor meldet einen unverschlüsselten Speicher. wb-arbeitsplatz einrichten und admin.sh --firma schreiben den Wert. Der Schlüssel kann nur verschärfen: Eine ungültige Systemdatei ergibt mandant. Die Achse stelle.modus ist davon getrennt."
+    },
+    {
+      "schluessel": "kontextWache.weg",
+      "quelle": [
+        "decision 2026-10-27",
+        "project decision"
+      ],
+      "klasse": "betreiber",
+      "typ": "wahl",
+      "wahl": [
+        "uebergabe",
+        "auto",
+        "tippen"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "tippen",
+      "vorgabeJeProfil": {
+        "einzelplatz": "tippen",
+        "mandant": "auto"
+      },
+      "risiko": {
+        "uebergabe": "Die Wache tippt nie und kompaktiert nie; sie mahnt über die Inbox. Ein Agent muss seinen Stand selbst sichern, und niemand kompaktiert für ihn.",
+        "auto": "Die Wache tippt nie. Ein Harness mit belegter Schwelle kompaktiert selbst (der Starter setzt sie je Prozess), die Wache mahnt vorher über die Inbox. Ohne belegte Schwelle mahnt sie nur.",
+        "tippen": "Die Wache tippt /compact und den Anschlusstext in die Eingabezeile des Panes und drückt Enter. Ein offener Dialog oder halb getippter Text kann dabei eine Antwort verschlucken, die niemand gegeben hat."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": "mandant",
+      "nurMensch": true,
+      "wirksamAb": "firmenstand-1",
+      "seite": "allgemein",
+      "titel": "Wie die Kontextwache ein volles Fenster behandelt",
+      "beschreibung": "tippen: wie bisher, die Wache tippt /compact und den Anschluss in den Pane. auto: nie getippt; Harnesses mit belegter Schwelle kompaktieren selbst (der Starter setzt die Schwelle beim Start je Prozess, nie in einer Einstellungsdatei der Person), die Wache mahnt vorher über die Inbox mit Abstand zum Auslösepunkt; ohne belegte Schwelle mahnt sie nur und nennt das in Statuszeile und Mahnung. uebergabe: nie getippt, die Wache mahnt nur. In der Firmenaufstellung (mandant) gilt tippen nie, auch nicht, wenn eine Datei es sagt: Dort wird es als auto gelesen. Die private Werkbank hat tippen als Vorgabe. Die Wache liest den Wert bei jedem Poll, der Starter beim Start."
+    },
+    {
+      "schluessel": "maschine.geschuetzteDienste",
+      "quelle": [
+        "decision 2026-11-02"
+      ],
+      "wirksamAb": "1e",
+      "klasse": "betreiber",
+      "typ": "liste",
+      "richtung": "keine",
+      "vorgabe": null,
+      "rolle": "admin",
+      "seite": "geheimnisfilter",
+      "titel": "Geschützte Dienste",
+      "beschreibung": "systemd-Dienste dieses Rechners, die kein Werkzeug stoppt und neben denen nichts Schweres startet. Vorgabe leer."
+    },
+    {
+      "schluessel": "notfall.dauerMinuten",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 15,
+        "max": 120,
+        "einheit": "Minuten"
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 60,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-12"
+      ],
+      "wirksamAb": "firmenstand-1",
+      "seite": "allgemein",
+      "titel": "Dauer einer Notfallsitzung",
+      "beschreibung": "So viele Minuten dauert eine Notfallsitzung, die root am Server mit dem Notfallcode öffnet. Erlaubt sind 15 bis 120; ein Wert außerhalb gilt nicht, dann gilt die Vorgabe 60. Nur die Systemdatei setzt den Wert; ein Betreiberwert kann ihn nur verkürzen."
+    },
+    {
+      "schluessel": "notfall.versuche",
+      "klasse": "betreiber",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "typ": "zahl",
+      "bereich": {
+        "min": 3,
+        "max": 10,
+        "einheit": "Versuche"
+      },
+      "richtung": "groesser-lockert",
+      "vorgabe": 5,
+      "rolle": "sicherheitsadmin",
+      "quelle": [
+        "decision 2026-11-12"
+      ],
+      "wirksamAb": "firmenstand-1",
+      "seite": "allgemein",
+      "titel": "Fehlversuche beim Notfallcode",
+      "beschreibung": "So viele falsche Eingaben des Notfallcodes sind in 24 Stunden erlaubt; danach ist der Code 24 Stunden gesperrt, auch über einen Neustart der Stelle hinweg. Erlaubt sind 3 bis 10; ein Wert außerhalb gilt nicht, dann gilt die Vorgabe 5. Nur die Systemdatei setzt den Wert; ein Betreiberwert kann ihn nur senken."
+    }
+  ]
+}

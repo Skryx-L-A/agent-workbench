@@ -1,4 +1,4 @@
-import { createHash, createHmac, createPublicKey, randomBytes, timingSafeEqual, verify } from 'node:crypto';
+import { createHash, createHmac, createPublicKey, randomBytes, randomInt, timingSafeEqual, verify } from 'node:crypto';
 import { appendFileSync, chmodSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -27,7 +27,7 @@ const STATE_FILE = 'auth-state.json';
  * GRENZE: Wer den Freigabe-Schluessel lesen kann, kann signieren -- dieselbe Grenze wie bei
  * den Guard-Freigaben. Eine aeltere, gueltig signierte Fassung eines Eintrags (vor einem
  * Widerruf) laesst sich wieder einspielen; dagegen hilft nur der Widerruf durch Neukoppeln
- * mit neuem Schluessel und der Guard-Schutz des Ordners (wz-mobilguard).
+ * mit neuem Schluessel und der Guard-Schutz des Ordners (task).
  */
 const GERAET_SIGNATUR_KONTEXT = 'awb-mobile-device-v1';
 export const FREIGABE_SCHLUESSEL_NAME = '.freigabe-schluessel';
@@ -261,6 +261,13 @@ function randomId(bytes = 16): string {
   return randomBytes(bytes).toString('base64url');
 }
 
+// Sechsstelliger Paarungscode, gleichverteilt ueber 000000..999999: randomInt statt Modulo
+// (CodeQL js/biased-cryptographic-random). Die Zahl ist nur fuer Tests von aussen waehlbar.
+export function mobilePairingCode(zahl: number = randomInt(0, 1_000_000)): string {
+  if (!Number.isInteger(zahl) || zahl < 0 || zahl >= 1_000_000) throw new RangeError('pairing code number out of range');
+  return String(zahl).padStart(6, '0');
+}
+
 function exactText(value: string): Buffer {
   return Buffer.from(value, 'utf8');
 }
@@ -398,6 +405,19 @@ export class MobileAuthenticator {
       .map((device) => ({ device_id: device.device_id, device_name: device.device_name })), false);
   }
 
+  /**
+   * Ob ein Geraet Pushes bekommen darf (pushwelt-Review F1, 18.10.2026): gekoppelt, nicht
+   * widerrufen und mit gueltiger Signatur dieser Maschine -- dieselbe Pruefung wie bei jeder
+   * signierten Anfrage. Ohne Schluessel gilt kein Geraet.
+   */
+  geraetZulaessig(deviceId: string): boolean {
+    const geheim = this.geheim(false);
+    return this.withState((state) => {
+      const device = Object.prototype.hasOwnProperty.call(state.devices, deviceId) ? state.devices[deviceId] : undefined;
+      return !!device && device.status === 'active' && this.geraetGilt(device, geheim);
+    }, false);
+  }
+
   /** Eine angenommene Handlung ins Geraeteverlauf (F4); scheitert das Schreiben, gilt die Handlung trotzdem. */
   private verlaufAnhaengen(eintrag: Record<string, string | number>): void {
     const pfad = join(this.stateDirectory, GERAETE_VERLAUF);
@@ -414,7 +434,7 @@ export class MobileAuthenticator {
     const now = options.now ?? Date.now();
     const audience = this.canonicalAudienceOrThrow(options.audience);
     if (!options.operator_identity) throw new MobileAuthError('bad_request', 'operator identity is required');
-    const pairingCode = String(randomBytes(4).readUInt32BE(0) % 1_000_000).padStart(6, '0');
+    const pairingCode = mobilePairingCode();
     const pairing: PairingRecord = {
       pairing_id: randomId(),
       code_sha256: sha256(pairingCode),

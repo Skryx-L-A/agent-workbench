@@ -172,6 +172,25 @@ function statusFor(code: MobileApiErrorCode): number {
   return 400;
 }
 
+/**
+ * Form der Routen-Kennung je Art, aus dem Kern abgelesen: Sitzung `{maschine}:{kennung}` oder die blanke Kennung
+ * einer fernen Sitzung (main.ts mobilId), Antrag und Guard `request:`/`guard:` mit SHA-256-Hex (adapters/approvals.ts
+ * id()), Push-Abo SHA-256 base64url ohne Auffuellung (push/journal.ts subscriptionId()). Geprueft wird nach dem
+ * Dekodieren: `a%2Fb` kommt als `a/b` an, `%252F` als `%2F`, `%00` als Nullbyte, `%20` als Leerraum.
+ */
+const SITZUNGS_KENNUNG = /^(?:[\w.-]{1,255}:)?[\w-]{1,128}$/;
+const ANTRAGS_KENNUNG = /^request:[0-9a-f]{64}$/;
+const GUARD_KENNUNG = /^guard:[0-9a-f]{64}$/;
+const ABO_KENNUNG = /^[A-Za-z0-9_-]{43}$/;
+
+function kennungsMuster(route: string): RegExp | undefined {
+  if (route.includes('/sessions/:id/')) return SITZUNGS_KENNUNG;
+  if (route === 'POST /approvals/requests/:id/decision') return ANTRAGS_KENNUNG;
+  if (route === 'POST /approvals/guards/:id/decision') return GUARD_KENNUNG;
+  if (route === 'DELETE /push/subscription/:id') return ABO_KENNUNG;
+  return undefined;
+}
+
 function route(method: string, pathname: string): MatchedRoute | undefined {
   const exact: Record<string, RouteName | 'GET /events'> = {
     'POST /mobile/v1/pairings/complete': 'POST /pairings/complete',
@@ -308,15 +327,20 @@ const PANE_WRITE_ROUTES: ReadonlySet<RouteName | 'GET /events'> = new Set<RouteN
  * erteilen --mobilbeleg`) den Umschlag ueber `wb-mobil-pruefen` selbst beansprucht
  * (14.10.2026). Ein Antrag geht in beiden Richtungen an `wb-decide`; beim Guard nur das
  * Annehmen an `wb-freigabe` -- das Ablehnen bleibt im Kern und reserviert hier wie bisher.
+ * Ein Rechteantrag einer Welt (`rights_request.decide`) geht in beiden Richtungen ueber
+ * `wb-mobil-pruefen`, das der Kern vor der Entscheidung aufruft (welten.ts).
  * Der Body ist an dieser Stelle noch ungeprueft; er waehlt nur, WER verbraucht. Geprueft
  * wird in beiden Faellen vollstaendig, und das Werkzeug bindet die Entscheidung erneut.
  */
 function pruefstelleVerbraucht(route: string, rawBody: Buffer): boolean {
   if (route === 'POST /approvals/requests/:id/decision') return true;
-  if (route !== 'POST /approvals/guards/:id/decision') return false;
+  if (route !== 'POST /approvals/guards/:id/decision' && route !== 'POST /agents/actions') return false;
   try {
-    const body = JSON.parse(rawBody.toString('utf8')) as { decision?: unknown } | null;
-    return typeof body === 'object' && body !== null && body.decision === 'approve';
+    const body = JSON.parse(rawBody.toString('utf8')) as { decision?: unknown; type?: unknown } | null;
+    if (typeof body !== 'object' || body === null) return false;
+    // 18.10.2026: ein Rechteantrag in beiden Richtungen; `wb-mobil-pruefen` verbraucht im Kern.
+    if (route === 'POST /agents/actions') return body.type === 'rights_request.decide';
+    return body.decision === 'approve';
   } catch {
     return false;
   }
@@ -555,6 +579,14 @@ export function createMobileHttpServer(options: MobileHttpServerOptions): Mobile
       }
       envelope = parseEnvelope(request.headers[ENVELOPE_HEADER]);
       assertEnvelopeBindsRequest(envelope, request.method ?? '', target);
+      // Die Kennung in der Route wird erst nach der Signaturpruefung gegen ihre Form geprueft (S14): eine ungueltige
+      // Signatur bleibt 401; eine gueltig signierte Anfrage mit fremder Kennung antwortet 400, ohne Handler und ohne
+      // Pane-Frage. Die Pruefung reserviert nicht, der Umschlag bleibt unverbraucht.
+      const muster = kennungsMuster(matched.route);
+      if (muster && !muster.test(matched.params.id)) {
+        options.authenticator.verify(envelope, { audience, body: rawBody });
+        throw new HttpFailure(400, 'bad_request', safeMessage('bad_request'));
+      }
       const journal = journalPflichtig(request.method ?? '');
       // `paneWriteRoute` liest dafuer den frischen Sitzungsstand des Kerns
       // (`modellLesen()`), und das ist teuer. Vor dieser Auskunft steht deshalb

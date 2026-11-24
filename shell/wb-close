@@ -41,10 +41,16 @@
 #
 # Exit: 0 ok / nothing to do; 2 a target was refused; 1 usage/error.
 set -euo pipefail
-# tmux binary: never hardcode a machine-specific path — /usr/bin/tmux on Linux,
-# /opt/homebrew/bin/tmux on the Mac. $TMUX_BIN wins, else whatever is on PATH.
-T="${TMUX_BIN:-$(command -v tmux 2>/dev/null || true)}"
-[ -n "$T" ] || T=tmux
+# tmux source selection (2026-10-19): the test seam uses PATH; live calls use a fixed path.
+if [ "${WB_TESTUMGEBUNG:-}" = 1 ]; then
+  T="${TMUX_BIN:-$(command -v tmux 2>/dev/null || true)}"
+else
+  T=""
+  for k in /opt/homebrew/bin/tmux /usr/local/bin/tmux /usr/bin/tmux /bin/tmux; do
+    if [ -x "$k" ]; then T="$k"; break; fi
+  done
+fi
+[ -n "$T" ] || { echo "wb-close: kein tmux an einem festen Ort gefunden." >&2; exit 1; }
 SELF="${TMUX_PANE:-}"
 
 # Basis statt zurueckgemeldeter Name (2026-08-04, systematischer Befund am selben
@@ -247,6 +253,7 @@ gruppe_austragen(){   # worker-name
 # wurde, siehe Kopfkommentar.
 closed_count=0
 closed_workers=""
+OWN_CWD_PIDS=""   # von warn_waisen gefuellt: Waisen mit cwd im Worktree eines geschlossenen Workers
 
 capture_worker_context(){ # pane-id worker-name -> append pane, socket, worktree, process tree
   local pane="$1" worker="$2" socket path marker pane_path worktree_root expected root tree rows record
@@ -281,12 +288,37 @@ capture_worker_context(){ # pane-id worker-name -> append pane, socket, worktree
         for (i=1; i<=NR; i++) if (found[pid[i]]) { printf "%s%s", sep, pid[i]; sep="," }
       }')"
   fi
-  printf -v record '%s\t%s\t%s\t%s\t%s\n' "$pane" "$worker" "$socket" "$path" "$tree"
+  # Trenner '|' statt Tab: `read` fasst leere Tab-Felder zusammen (ein leerer Worktree-Pfad
+  # schob die Prozessliste in `path`, `tree` blieb leer; gemessen 19.10.2026).
+  printf -v record '%s|%s|%s|%s|%s\n' "$pane" "$worker" "$socket" "$path" "$tree"
   closed_workers="${closed_workers}${record}"
 }
 
-waise_gehoert_dazu(){ # pid detail -> 0 if a closed worker matches
-  local pid="$1" detail="$2" owner owner_worker owner_socket cwd cwd_real pane worker socket path tree
+# cwd-Zuordnung fuer ALLE Waisen in EINEM lsof-Aufruf. Frueher startete waise_gehoert_dazu
+# je Waise und je Aufruf ein eigenes `lsof` (rund 40 ms): bei 147 fremden Login-Shells und
+# zwei Aufrufen je Waise waren das 294 Aufrufe, rund 12 s Kernzeit (gemessen 19.10.2026).
+# Eingabe: die Ausgabe von `wb-waisen --lines` auf stdin. Ausgabe: die PIDs, deren cwd gleich
+# einem Worktree eines geschlossenen Workers ist, darunter liegt oder "(deleted)" traegt.
+eigene_cwd_pids(){
+  local paths pids
+  command -v lsof >/dev/null 2>&1 || return 0
+  paths="$(printf '%s\n' "$closed_workers" | awk -F'|' '$4 != "" {print $4}')"
+  [ -n "$paths" ] || return 0
+  pids="$(awk -F'|' '$6 == "waise" {print $1}' | paste -sd, -)"
+  [ -n "$pids" ] || return 0
+  lsof -a -p "$pids" -d cwd -Fn 2>/dev/null | awk -v paths="$paths" '
+    BEGIN { n = split(paths, P, "\n") }
+    /^p/ { pid = substr($0, 2) }
+    /^n/ { cwd = substr($0, 2)
+      for (i = 1; i <= n; i++) {
+        q = P[i]
+        if (q != "" && (cwd == q || cwd == q " (deleted)" || index(cwd, q "/") == 1)) { print pid; break }
+      }
+    }' || true   # lsof endet != 0, sobald eine PID fehlt; unter pipefail waere das ein Abbruch
+}
+
+waise_gehoert_dazu(){ # pid detail -> 0 if a closed worker matches (cwd: siehe OWN_CWD_PIDS)
+  local pid="$1" detail="$2" owner owner_worker owner_socket pane worker socket path tree
   owner="$(printf '%s\n' "$detail" | sed -n 's/.*zuletzt \(%[0-9][0-9]*\).*/\1/p')"
   owner_worker="$(printf '%s\n' "$detail" | sed -n "s/.*Worker '\([^']*\)'.*/\1/p")"
   if [ -n "$owner" ]; then
@@ -300,18 +332,15 @@ except Exception:
 PY
 )"
   fi
-  while IFS=$'\t' read -r pane worker socket path tree; do
+  while IFS='|' read -r pane worker socket path tree; do
     [ -n "$pane" ] || continue
     if [ "$owner" = "$pane" ] && [ -n "$owner_socket" ] && [ "$owner_socket" = "$socket" ] \
         && { [ -z "$worker" ] || [ "$worker" = "$owner_worker" ]; }; then return 0; fi
     case ",$tree," in *",$pid,"*) return 0 ;; esac
-    if [ -n "$path" ] && command -v lsof >/dev/null 2>&1; then
-      cwd="$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1)"
-      case "$cwd" in "$path"|"$path (deleted)"|"$path/"*) return 0 ;; esac
-      cwd_real="$(cd -P "$cwd" 2>/dev/null && pwd -P)"
-      case "$cwd_real/" in "$path/"*) return 0 ;; esac
-    fi
   done <<< "$closed_workers"
+  # cwd-Treffer: vorab gesammelt (eigene_cwd_pids). Ein kernel-cwd ist schon aufgeloest,
+  # darum entfaellt der frueher zweite Pruefschritt ueber `cd -P`.
+  case "$OWN_CWD_PIDS" in *$'\n'"$pid"$'\n'*) return 0 ;; esac
   return 1
 }
 
@@ -357,20 +386,25 @@ warn_waisen(){
   # rc==1 heisst "mindestens ein bestaetigter Waise".
   [ "$rc" -eq 1 ] || return 0
   echo
-  local fremde=0 eigene=0
+  local fremde=0 eigene=0 eigene_pids=""
   local tmp="$out" pid rss etime ports kategorie klasse detail cmd
+  # Jede Waise nur EINMAL klassifizieren (vorher zweimal: Zaehlen und Ausgeben).
+  OWN_CWD_PIDS=$'\n'"$(printf '%s\n' "$out" | eigene_cwd_pids)"$'\n'
   while IFS='|' read -r pid rss etime ports kategorie klasse detail cmd; do
     [ -n "$pid" ] || continue
     [ "$klasse" = "waise" ] || continue
-    if waise_gehoert_dazu "$pid" "$detail"; then eigene=$((eigene+1)); else fremde=$((fremde+1)); fi
+    if waise_gehoert_dazu "$pid" "$detail"; then
+      eigene=$((eigene+1)); eigene_pids="${eigene_pids}"$'\n'"${pid}"
+    else fremde=$((fremde+1)); fi
   done <<EOF
 $tmp
 EOF
+  eigene_pids="${eigene_pids}"$'\n'
   [ "$eigene" -gt 0 ] && echo "wb-close: HINWEIS — bestaetigte Waisen dieses geschlossenen Workers (Eigentuemer-Pane tot, nur gelesen, nichts beendet):"
   printf '%s\n' "$out" | while IFS='|' read -r pid rss etime ports kategorie klasse detail cmd; do
     [ -n "$pid" ] || continue
     [ "$klasse" = "waise" ] || continue
-    if ! waise_gehoert_dazu "$pid" "$detail"; then continue; fi
+    case "$eigene_pids" in *$'\n'"$pid"$'\n'*) : ;; *) continue ;; esac
     printf '  PID %-8s %s%s\n' "$pid" "$kategorie" "${ports:+ (Port $ports)}"
     printf '      %s\n' "$detail"
     printf '      Befehl:  %s\n' "$cmd"

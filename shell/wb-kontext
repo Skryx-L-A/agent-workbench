@@ -790,7 +790,7 @@ def pruefe_denken(denken):
 
 
 def parallel_vorgabe(res):
-    # KORRIGIERT (der Nutzer, 19.08.2026, nach dem ersten -- falschen -- Versuch
+    # KORRIGIERT (decision 2026-08-19, nach dem ersten -- falschen -- Versuch
     # dieses Befunds): decode-concurrency 4 ist eine KAPAZITAET des MLX-Servers,
     # keine automatische Belegung. Ein einzelner Worker bucht seine EIGENE
     # Sequenz (1x); vier Sequenzen entstehen nur, wenn wirklich vier Anfragen
@@ -1147,7 +1147,7 @@ def berechne(modell, parallel=None, denken=None, entwerfer_gewichte_gb=0.0,
                 "Braucht %s GiB (+ %s MiB Reserve), frei sind %s GiB — waehlbar, aber der "
                 "Start kann am Speicher scheitern."
                 % (zahl(bedarf_gib, 1), RESERVE_MIB, zahl(frei / MIB_JE_GIB, 1)))
-        # "plaetze": die Umkehrfrage zu 'parallel' (der Nutzer, 19.08.2026): bei
+        # "plaetze": die Umkehrfrage zu 'parallel' (decision 2026-08-19): bei
         # DIESER Stufe, wie viele Worker passen insgesamt gleichzeitig in den
         # gerade freien Speicher -- unabhaengig vom angefragten 'parallel'
         # oben. Fuer mlx-lokal fragt plaetze_wirklich() den echten Waechter

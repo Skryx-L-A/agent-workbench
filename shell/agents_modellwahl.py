@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Modelle, die der Traeger einer Welt fahren kann, und die Abo-Zuordnung fuer die Fallbackwahl.
 
-der Nutzer, 16.09.2026: „Fallback-Modell machen.“ und die Modellliste je Welt aus der
+decision 2026-09-16. und die Modellliste je Welt aus der
 Traegerkonfiguration statt einer festen Liste in der Oberflaeche. Das Modul liest nur JSON
 (``traeger.json`` der Welt und die Modellregistry) und importiert den Traeger nicht; so kann es
 die Weltansicht auf jeder Maschine liefern, auch ueber den ssh-Weg einer Fernwelt.

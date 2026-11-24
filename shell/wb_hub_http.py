@@ -63,23 +63,42 @@ def ziel_zerlegen(url):
     return teile.hostname, port, pfad
 
 
+def _treffer(zeile, rid):
+    """Antwortobjekt zur Anfrage rid aus einer Datenzeile, sonst None."""
+    try:
+        m = json.loads(zeile)
+    except ValueError:
+        return None
+    if isinstance(m, dict) and m.get("id") == rid and ("result" in m or "error" in m):
+        return m
+    return None
+
+
 def antwort_lesen(typ, text, rid):
-    """Antwort zur Anfrage rid aus einer JSON-Antwort oder aus einem SSE-Strom."""
-    inhalt = text.decode("utf-8", "replace")
-    if typ.lower().startswith("application/json"):
-        zeilen = [inhalt]
-    elif typ.lower().startswith("text/event-stream"):
-        zeilen = [z[len("data:"):].strip() for z in inhalt.splitlines() if z.startswith("data:")]
-    else:
+    """Antwort zur Anfrage rid aus einer JSON-Antwort. SSE liest sse_lesen."""
+    if not typ.lower().startswith("application/json"):
         raise BackendFehler("Antworttyp nicht unterstuetzt")
-    for z in zeilen:
-        try:
-            m = json.loads(z)
-        except ValueError:
-            continue
-        if isinstance(m, dict) and m.get("id") == rid and ("result" in m or "error" in m):
-            return m
-    raise BackendFehler("keine Antwort zur Anfrage")
+    m = _treffer(text.decode("utf-8", "replace"), rid)
+    if m is None:
+        raise BackendFehler("keine Antwort zur Anfrage")
+    return m
+
+
+def sse_lesen(r, rid):
+    """Antwort zur Anfrage rid aus einem SSE-Strom, Zeile fuer Zeile. Endet beim Treffer, sonst am Stromende.
+    Ein Strom ueber ANTWORT_GRENZE Bytes bricht mit BackendFehler ab, bevor mehr Speicher belegt wird."""
+    gelesen = 0
+    while True:
+        zeile = r.readline(ANTWORT_GRENZE + 1)
+        gelesen += len(zeile)
+        if gelesen > ANTWORT_GRENZE:
+            raise BackendFehler("Antwort zu gross")
+        if not zeile:
+            raise BackendFehler("keine Antwort zur Anfrage")
+        if zeile.startswith(b"data:"):
+            m = _treffer(zeile[len(b"data:"):].strip().decode("utf-8", "replace"), rid)
+            if m is not None:
+                return m
 
 
 class HttpBackend:
@@ -201,7 +220,8 @@ class HttpBackend:
 
     def _post(self, nachricht, zeit, sid=None, version=None, rid=None):
         """-> (HTTP-Status, Mcp-Session-Id der Antwort, Antwort zu rid oder None).
-        Verbindungsfehler und 5xx: VerbindungWeg; 404 zu einer Sitzung: SitzungWeg; Zeitablauf: Zeitgrenze."""
+        Verbindungsfehler und 5xx: VerbindungWeg; 404 zu einer Sitzung: SitzungWeg; Zeitablauf: Zeitgrenze.
+        Ein SSE-Strom mit Antwort zu rid wird Zeile fuer Zeile gelesen und nach dem Treffer verlassen."""
         kopf = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
         if sid:
             kopf["Mcp-Session-Id"] = sid
@@ -212,6 +232,8 @@ class HttpBackend:
             c.request("POST", self.pfad, body=json.dumps(nachricht).encode(), headers=kopf)
             r = c.getresponse()
             status, typ, neue = r.status, r.getheader("Content-Type") or "", r.getheader("Mcp-Session-Id")
+            if rid is not None and 200 <= status < 300 and typ.lower().startswith("text/event-stream"):
+                return status, neue, sse_lesen(r, rid)
             text = r.read(ANTWORT_GRENZE + 1)
         except TimeoutError:
             raise Zeitgrenze("Zeitgrenze %.0f s" % zeit)

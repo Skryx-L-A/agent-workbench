@@ -1,5 +1,9 @@
 #!/bin/sh
 # wb-skill -- Skills mit Skripten je Agent, Welt und Bibliothek (docs/AGENTS-SKILLS.md).
 set -eu
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): agents_data.py entscheidet ueber
+# Antraege, Rechte und Herkunft; ein python3 aus dem PATH des Aufrufers waere ein fremder
+# Entscheider. Ohne die xcrun-Variablen, ohne PYTHON*-Variablen und User-site.
+unset DEVELOPER_DIR SDKROOT TOOLCHAINS
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-exec python3 "$SCRIPT_DIR/agents_skills.py" "$@"
+exec /usr/bin/python3 -E -s "$SCRIPT_DIR/agents_skills.py" "$@"

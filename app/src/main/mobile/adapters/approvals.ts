@@ -4,8 +4,17 @@ import type { Approval, JsonValue, SignedRequestEnvelope } from '../../../mobile
 import { MobileAuthError, type AuthenticatedRequest } from '../auth/auth';
 import type { MobileRouteHandlers } from '../http/server';
 import { mobilBeleg, type Herkunftsbeleg } from '../../herkunft';
+import { freigabeKurztext, type AbsichtQuelle, type FreigabeRolle } from '../../freigabe-anzeige';
 
-export interface MobileRequestApproval {
+/** Wer fragt, und wofuer (freigabe-anzeige.ts); optional, damit eine Quelle ohne sie gueltig bleibt. */
+export interface MobileFreigabeKopf {
+  readonly rolle?: FreigabeRolle;
+  readonly anzeigename?: string;
+  readonly absicht?: string;
+  readonly absichtQuelle?: AbsichtQuelle;
+}
+
+export interface MobileRequestApproval extends MobileFreigabeKopf {
   readonly path: string;
   /** SHA-256 der Antragsbytes; die Kennung bindet Pfad UND Inhalt (Review 14.10.2026, F3). */
   readonly inhaltSha256: string;
@@ -15,7 +24,7 @@ export interface MobileRequestApproval {
   readonly ts: string;
 }
 
-export interface MobileGuardApproval {
+export interface MobileGuardApproval extends MobileFreigabeKopf {
   readonly path: string;
   readonly schluessel: string;
   readonly sessionId: string;
@@ -24,6 +33,9 @@ export interface MobileGuardApproval {
   readonly musterGrund: string;
   readonly ts: string;
   readonly wartet: boolean;
+  /** Der genaue Befehl, wortgleich (Detailansicht der App). */
+  readonly command?: string;
+  readonly cwd?: string;
 }
 
 /**
@@ -50,16 +62,33 @@ const requestId = (entry: MobileRequestApproval): string => id('request', `${ent
 const time = (value: string): number => Number.isFinite(Date.parse(value)) ? Date.parse(value) : 0;
 const stale = (message: string): never => { throw new MobileAuthError('stale_target', message); };
 
+/** Die Felder fuer die Kurzansicht der App; ohne Rolle und Absicht in der Quelle nichts davon. */
+function kopfFelder(entry: MobileFreigabeKopf): Pick<Approval, 'rolle' | 'anzeigename' | 'absicht' | 'absicht_quelle'> {
+  if (!entry.rolle || !entry.absicht) return {};
+  return { rolle: entry.rolle, anzeigename: entry.anzeigename ?? '', absicht: entry.absicht,
+    ...(entry.absichtQuelle ? { absicht_quelle: entry.absichtQuelle } : {}) };
+}
+
+function kurz(entry: MobileFreigabeKopf): string | null {
+  return entry.rolle && entry.absicht
+    ? freigabeKurztext({ rolle: entry.rolle, anzeigename: entry.anzeigename ?? '', absicht: entry.absicht })
+    : null;
+}
+
 function approvalForRequest(entry: MobileRequestApproval): Approval {
   return { id: requestId(entry), kind: 'request', source: 'authoritative', session_id: null,
-    summary: `${entry.parent} requested worker ${entry.childName}: ${entry.task}`, created_at: time(entry.ts) };
+    summary: kurz(entry) ?? `${entry.parent} requested worker ${entry.childName}: ${entry.task}`, created_at: time(entry.ts),
+    ...kopfFelder(entry) };
 }
 
 function approvalForGuard(entry: MobileGuardApproval): Approval {
   return { id: id('guard', entry.schluessel || entry.path), kind: 'guard', source: 'authoritative',
     session_id: /^[^:]+:.+$/.test(entry.sessionId) ? entry.sessionId as `${string}:${string}` : null,
-    summary: entry.musterGrund || entry.reason || `blocked command for ${entry.workerName}`,
-    created_at: time(entry.ts) };
+    summary: kurz(entry) ?? (entry.musterGrund || entry.reason || `blocked command for ${entry.workerName}`),
+    created_at: time(entry.ts),
+    ...kopfFelder(entry),
+    ...(entry.command !== undefined ? { befehl: entry.command } : {}),
+    ...(entry.cwd !== undefined ? { cwd: entry.cwd } : {}) };
 }
 
 /** The device origin with its verifiable proof (envelope + exact body bytes). */

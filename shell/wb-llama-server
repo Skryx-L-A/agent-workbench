@@ -284,7 +284,7 @@ gewichte_gb_ermitteln() {
     err "Groesse von '$pfad' nicht messbar — kein Start ohne eine Gewichtsangabe."
     return 1
   fi
-  awk -v b="$bytes" 'BEGIN { printf "%.2f", b/1073741824 }'
+  LC_ALL=C awk -v b="$bytes" 'BEGIN { printf "%.2f", b/1073741824 }'
 }
 
 # Prueft eine Datei gegen ihre Sollgroesse aus der Registry. Ohne Sollgroesse
@@ -676,12 +676,13 @@ cmd_ensure() {
   gewichte_ziel="$(gewichte_gb_ermitteln "$gguf" "$RES_GEWICHTE_GB")" || return 1
   gewichte_gesamt="$gewichte_ziel"
   zuschlag="$ZUSCHLAG_GRUND"
+  # LC_ALL=C an jedem awk: unter de_DE schrieb awk "11,50", und wb-belegung (type=float) lehnte ab (Gesamtlauf).
   if [ -n "$entwurf" ]; then
     local gewichte_entwurf
     gewichte_entwurf="$(gewichte_gb_ermitteln "$entwurf" "$RES_ENTWURF_GEWICHTE_GB")" || return 1
-    gewichte_gesamt="$(awk -v a="$gewichte_ziel" -v b="$gewichte_entwurf" 'BEGIN { printf "%.2f", a+b }')"
+    gewichte_gesamt="$(LC_ALL=C awk -v a="$gewichte_ziel" -v b="$gewichte_entwurf" 'BEGIN { printf "%.2f", a+b }')"
     local kv_mib="${RES_ENTWURF_KV_MIB:-0}"
-    zuschlag="$(awk -v z="$ZUSCHLAG_GRUND" -v k="$kv_mib" -v n="$NP" -v c="$kontext" \
+    zuschlag="$(LC_ALL=C awk -v z="$ZUSCHLAG_GRUND" -v k="$kv_mib" -v n="$NP" -v c="$kontext" \
       'BEGIN { printf "%.2f", z + (k*n*c)/1024 }')"
     err "Entwurfsmodell mitgebucht: $gewichte_entwurf GiB Gewichte, Zuschlag auf $zuschlag GiB erhoeht (zweiter KV-Cache)."
   fi

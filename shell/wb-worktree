@@ -14,9 +14,13 @@
 #
 #   wb-worktree ensure <worker> <dir>   Worktree anlegen/wiederverwenden; DRUCKT das
 #                                       Verzeichnis, in dem der Worker laufen soll.
-#                                       Faellt IMMER auf <dir> zurueck, wenn kein
-#                                       Worktree moeglich ist (kein git, kein Repo,
-#                                       abgeschaltet) — der Normalfall bricht nie.
+#                                       FAIL CLOSED (22.11.2026): laesst sich der
+#                                       Worktree nicht bestaetigen, Exit 2 und
+#                                       stdout leer; der Aufrufer startet dann
+#                                       keinen Worker. Nur wenn <dir> kein
+#                                       Arbeitsbaum eines Repos ist (kein .git in
+#                                       <dir> oder darueber), druckt es <dir>, mit
+#                                       Meldung nach stderr.
 #                                       Verlinkt dabei app/node_modules UND
 #                                       extension/node_modules auf den
 #                                       Hauptbaum, wenn der Hauptbaum eines hat und
@@ -29,20 +33,44 @@
 #                                       Electrons eigenes App-Buendel unter
 #                                       node_modules/electron/dist auspackte
 #                                       (2026-08-11).
+#   wb-worktree ensure <worker> <dir> --basis <ref>
+#                                       Wie oben, aber der NEUE Worktree/Zweig
+#                                       wb/<worker> entsteht auf <ref> statt auf
+#                                       dem HEAD von <dir> (27.10.2026). Hier
+#                                       gibt es KEINEN Rueckfall: fehlt <ref>,
+#                                       steht ein vorhandener Baum/Zweig auf
+#                                       anderer Basis oder ist kein Worktree
+#                                       moeglich, bricht ensure laut ab (Exit 2,
+#                                       nichts auf stdout, nichts angelegt).
 #   wb-worktree path <worker>           Pfad des Worktrees (leer + Exit 1, wenn keiner)
 #   wb-worktree check <worker>          Darf er weg? Exit 0 ja, 3 NEIN (Arbeit drin), 1 keiner da
 #   wb-worktree remove <worker> [--force]
 #                                       Aufraeumen. Ohne --force NIE, solange
 #                                       unbeachtete oder nicht uebernommene Arbeit drin
 #                                       steht. Mit --force zuerst Sicherungskopie nach
-#                                       ~/.local/trash-snapshots/, Zweig bleibt stehen.
+#                                       ~/.local/trash-snapshots/ (Bundle, Patch, tar;
+#                                       siehe snapshot_sichern), Zweig bleibt stehen.
 #   wb-worktree adopt <worker> [--commit]
 #                                       Arbeit in den Hauptbaum holen (Merge, siehe unten)
 #   wb-worktree diff <worker>           Was hat der Worker getan?
 #   wb-worktree list                    Alle Worktrees mit Zustand
+#   wb-worktree snapshots-raeumen [--loeschen] [--ort <dir>] [--repo <dir>]
+#                                       Snapshot-Regel (decision 2026-11-08): je
+#                                       direktem Unterordner von ~/.local/trash-snapshots
+#                                       eine Zeile "Name<TAB>LOESCHEN|BLEIBT<TAB>Grund".
+#                                       LOESCHEN nur bei ALTER (Namensdatum JJJJ-MM-TT oder
+#                                       JJJJMMTT mehr als 30 Tage vor heute, nie mtime; auch
+#                                       Einzeldateien) oder GEMERGT, nur Ordner (jeder Bundle-Kopf,
+#                                       ohne Bundle der head aus inhalt.txt, ist Vorfahr von
+#                                       main oder development in ~/AI/claude-workbench;
+#                                       aenderungen.patch leer; dateien.tar ohne Datei).
+#                                       Alles andere bleibt, mit Grund. Ohne --loeschen nur
+#                                       Bericht. --ort/--repo nur fuer Tests. Der Waechter
+#                                       laesst rm/mv dort nicht zu; dies ist der Weg.
 #
-# Abschaltbar: `wb-state settings set workerWorktrees false` — dann verhaelt sich
-# `ensure` wie frueher und gibt <dir> unveraendert zurueck. Vorgabe: an.
+# Abschaltbar: `wb-state settings set workerWorktrees false` — dann gibt `ensure`
+# fuer einen Ordner ohne Repo <dir> zurueck; in einem Repo endet es seit 22.11.2026
+# mit Exit 2 (kein Rueckfall auf den Hauptbaum). Vorgabe: an.
 #
 # EIN WORKTREE ROLLT SEINE ARBEIT NIE SELBST AUS (2026-08-22, Regel, nicht nur
 # Konvention). Zwei Worker-Worktrees, die unabhaengig voneinander nach
@@ -91,10 +119,15 @@
 set -uo pipefail
 
 ROOT="$HOME/.pi-workers/worktrees"
+# Testnaht (22.11.2026): WB_WORKTREE_ROOT ersetzt den Ordner der Worktrees, aber
+# NUR unter WB_TESTUMGEBUNG=1. Ohne diese Marke bleibt ROOT immer der echte Ort.
+if [ "${WB_TESTUMGEBUNG:-}" = 1 ] && [ -n "${WB_WORKTREE_ROOT:-}" ]; then
+  ROOT="$WB_WORKTREE_ROOT"
+fi
 METADIR="$ROOT/.meta"
 
 say()  { printf 'wb-worktree: %s\n' "$*" >&2; }
-usage(){ sed -n '2,79p' "$0" | sed 's/^# \{0,1\}//'; }
+usage(){ sed -n '2,100p' "$0" | sed 's/^# \{0,1\}//'; }
 
 # Derselbe Namensfilter wie in pi-worker (dort mit Begruendung: aus dem Namen
 # werden Pfade gebaut, '../evil' hat sein Ergebnisverzeichnis einmal aus
@@ -118,7 +151,8 @@ meta_file(){ printf '%s/%s' "$METADIR" "$1"; }
 meta_get() { # meta_get <worker> <schluessel>
   local f; f="$(meta_file "$1")"
   [ -f "$f" ] || return 1
-  sed -n "s/^$2=//p" "$f" | head -1
+  # Ohne Pipe: unter pipefail darf kein Leser vor dem Ende aussteigen (22.11.2026).
+  awk -v k="$2=" 'index($0,k)==1 && !d {print substr($0,length(k)+1); d=1}' "$f"
 }
 meta_write() { # meta_write <worker> <repo> <worktree> <branch> <base> <basecommit>
   mkdir -p "$METADIR" || return 1
@@ -136,14 +170,89 @@ EOF
 # Der HAUPTbaum des Repos, in dem <dir> liegt. `worktree list` nennt ihn immer
 # zuerst — das ist verlaesslicher als aus --git-common-dir zurueckzurechnen und
 # funktioniert auch, wenn <dir> selbst schon ein Worktree ist.
-main_worktree_of() { # main_worktree_of <dir>
-  git -C "$1" worktree list --porcelain 2>/dev/null \
-    | awk '/^worktree /{sub(/^worktree /,""); print; exit}'
+#
+# KEINE PIPE MIT FRUEHEM ENDE (Befund 22.11.2026): hier stand
+# `git worktree list --porcelain | awk '...{...; exit}'` unter `set -o pipefail`.
+# Bei 159 Eintraegen (23 246 Byte) stieg awk nach dem Treffer aus, git starb an
+# SIGPIPE, die Pipeline gab 141, und ensure fiel fuer einen vorhandenen,
+# angemeldeten Worktree auf den Hauptbaum zurueck. Deshalb erst die ganze Liste in
+# eine Variable (Exit von git wird geprueft), dann awk ohne exit ueber einen
+# Here-String.
+worktree_liste() { # worktree_liste <dir> -> Porcelain-Liste; Exit 1, wenn git sie nicht liefert
+  local l
+  l="$(git -C "$1" worktree list --porcelain 2>/dev/null)" || return 1
+  [ -n "$l" ] || return 1
+  printf '%s\n' "$l"
 }
 
-is_registered_worktree() { # is_registered_worktree <repo> <pfad>
-  git -C "$1" worktree list --porcelain 2>/dev/null \
-    | awk -v p="$2" '/^worktree /{sub(/^worktree /,""); if ($0==p) {found=1; exit}} END{exit !found}'
+main_worktree_of() { # main_worktree_of <dir> -> Hauptbaum; Exit 1, wenn nicht bestimmbar
+  local l m
+  l="$(worktree_liste "$1")" || return 1
+  m="$(awk '/^worktree / && !d {sub(/^worktree /,""); print; d=1}' <<<"$l")"
+  [ -n "$m" ] || return 1
+  printf '%s\n' "$m"
+}
+
+is_registered_worktree() { # is_registered_worktree <repo> <pfad> -> 0 angemeldet, 1 nicht, 2 Liste nicht lesbar
+  local l
+  l="$(worktree_liste "$1")" || return 2
+  awk -v p="$2" '/^worktree /{sub(/^worktree /,""); if ($0==p) found=1} END{exit !found}' <<<"$l"
+}
+
+phys_pfad() { # phys_pfad <dir> -> physischer Pfad (Verweise und '..' aufgeloest); Exit 1, wenn nicht lesbar
+  (CDPATH='' cd -P -- "$1" 2>/dev/null && pwd -P)
+}
+
+# kurzschluss_pruefen <name> <wtpath> <dir> — darf ensure <dir> ohne weiteren Weg
+# zurueckgeben? Exit 0 nur, wenn <dir> physisch in <wtpath> liegt und <wtpath> ein
+# angemeldeter Worktree ausser dem Hauptbaum ist. Sonst Exit 1, Grund in KS_GRUND.
+KS_GRUND=""
+kurzschluss_pruefen() {
+  local name="$1" wt="$2" dir="$3" wp dp haupt hp reg=0
+  KS_GRUND="unzulaessiger Worker-Name '$name'"
+  valid_name "$name" || return 1
+  KS_GRUND="'$wt' ist nicht lesbar"
+  wp="$(phys_pfad "$wt")" || return 1
+  KS_GRUND="'$dir' ist nicht lesbar"
+  dp="$(phys_pfad "$dir")" || return 1
+  case "$dp" in
+    "$wp"|"$wp"/*) ;;
+    *) KS_GRUND="'$dir' liegt physisch in $dp, nicht im Worktree $wp"; return 1 ;;
+  esac
+  KS_GRUND="git ist hier nicht installiert, '$wt' bleibt unbestaetigt"
+  command -v git >/dev/null 2>&1 || return 1
+  KS_GRUND="Hauptbaum von '$wt' nicht bestimmbar"
+  haupt="$(main_worktree_of "$wt")" || return 1
+  hp="$(phys_pfad "$haupt")" || return 1
+  KS_GRUND="'$wt' ist physisch der Hauptbaum $hp"
+  [ "$wp" != "$hp" ] || return 1
+  # git nennt den Pfad so, wie er beim Anlegen hiess; darum beide Schreibweisen.
+  is_registered_worktree "$haupt" "$wt" || reg=$?
+  if [ "$reg" -eq 1 ] && [ "$wp" != "$wt" ]; then
+    reg=0; is_registered_worktree "$haupt" "$wp" || reg=$?
+  fi
+  case "$reg" in
+    0) KS_GRUND=""; return 0 ;;
+    1) KS_GRUND="'$wt' ist kein angemeldeter Worktree von $haupt" ;;
+    *) KS_GRUND="Worktree-Liste von $haupt nicht lesbar — ob $wt angemeldet ist, bleibt unbestaetigt" ;;
+  esac
+  return 1
+}
+
+# liegt_in_git_spur <dir> — gibt es in <dir> oder einem Elternordner ein .git, oder
+# erkennt git dort ein Repo? Dann ist <dir> KEIN "Ordner ohne git", und ensure
+# darf nicht auf <dir> zurueckfallen, auch wenn git keinen Arbeitsbaum nennt.
+liegt_in_git_spur() {
+  local d
+  if command -v git >/dev/null 2>&1 && git -C "$1" rev-parse --git-dir >/dev/null 2>&1; then
+    return 0
+  fi
+  d="$(cd "$1" 2>/dev/null && pwd -P)" || return 0   # nicht lesbar: nicht bestaetigt, gilt als Repo
+  while :; do
+    [ -e "$d/.git" ] && return 0
+    [ "$d" = / ] && return 1
+    d="$(dirname "$d")"
+  done
 }
 
 # link_app_node_modules <repo> <worktree> — klont app/node_modules im neuen
@@ -245,42 +354,152 @@ link_app_node_modules() {
   fi
 }
 
+# basis_passt <worker> <repo> <base> <basecommit> <stand> — steht ein vorhandener
+# Baum oder Zweig (Spitze <stand>) auf der verlangten Basis? Erst der
+# Merkzettel: gleicher Zweigname oder gleicher Basiscommit. Ohne Merkzettel die
+# merge-base: die Basis muss im Stand enthalten sein. Bei Nein steht der Grund
+# in BP_GRUND. Zwei verschiedene Zweignamen gelten nie als gleich, auch wenn sie
+# gerade auf demselben Commit stehen.
+basis_passt() {
+  local name="$1" repo="$2" base="$3" basecommit="$4" stand="$5" mbase mcommit
+  BP_GRUND=""
+  if [ -f "$(meta_file "$name")" ]; then
+    mbase="$(meta_get "$name" base)"; mcommit="$(meta_get "$name" basecommit)"
+    [ -n "$mbase" ] && [ "$mbase" = "$base" ] && return 0
+    if [ -n "$mbase" ] && [ "$mbase" != HEAD ] \
+       && git -C "$repo" show-ref --verify --quiet "refs/heads/$mbase" \
+       && git -C "$repo" show-ref --verify --quiet "refs/heads/$base"; then
+      BP_GRUND="Merkzettel: Basis $mbase, verlangt $base"; return 1
+    fi
+    [ -n "$mcommit" ] && [ "$mcommit" = "$basecommit" ] && return 0
+    BP_GRUND="Merkzettel: Basis ${mbase:-?} @ ${mcommit:-?}, verlangt $base @ $basecommit"
+    return 1
+  fi
+  if [ -n "$stand" ] && git -C "$repo" merge-base --is-ancestor "$basecommit" "$stand" 2>/dev/null; then
+    return 0
+  fi
+  BP_GRUND="kein Merkzettel, und $base ($basecommit) ist im Stand ${stand:-?} nicht enthalten"
+  return 1
+}
+
 # --- ensure ----------------------------------------------------------------
-# Druckt IMMER genau ein Verzeichnis auf stdout — das, in dem der Worker laufen
-# soll. Jeder Grund, warum es kein Worktree wurde, geht als Hinweis nach stderr.
+# Druckt bei Exit 0 genau ein Verzeichnis auf stdout — das, in dem der Worker
+# laufen soll. Bei Exit ungleich 0 bleibt stdout leer; der Grund steht auf stderr.
 cmd_ensure() {
-  local name="${1:-}" dir="${2:-}"
+  # --basis <ref> (auch --basis=<ref>) darf an jeder Stelle stehen; alles andere
+  # bleibt positionell wie vor dem 27.10.2026.
+  local basis="" basis_gesetzt="" pos=() a
+  while [ $# -gt 0 ]; do
+    a="$1"; shift
+    case "$a" in
+      --basis)   [ $# -gt 0 ] && [ -n "$1" ] || { say "ABBRUCH: --basis braucht einen Ref."; return 2; }
+                 basis="$1"; basis_gesetzt=1; shift ;;
+      --basis=*) basis="${a#--basis=}"; basis_gesetzt=1
+                 [ -n "$basis" ] || { say "ABBRUCH: --basis braucht einen Ref."; return 2; } ;;
+      *)         pos+=("$a") ;;
+    esac
+  done
+  local name="${pos[0]:-}" dir="${pos[1]:-}"
   [ -n "$name" ] && [ -n "$dir" ] || { say "ensure braucht <worker> und <dir>."; return 1; }
 
-  # Alles, was schiefgehen kann, endet in diesem Rueckfall — der Worker laeuft
-  # dann wie vor dieser Funktion, im uebergebenen Verzeichnis.
-  fallback() { printf '%s\n' "$dir"; [ -n "${1:-}" ] && say "$1 — '$name' laeuft ohne Worktree in $dir."; return 0; }
+  # FAIL CLOSED (22.11.2026, Befund: ensure gab fuer einen vorhandenen,
+  # angemeldeten Worktree rc 0 und den Hauptbaum aus, und ein Worker startete
+  # dort). Kann ensure den Worktree nicht bestaetigen, endet es mit Exit 2 und
+  # leerem stdout; der Aufrufer startet dann keinen Worker. Bis dahin fiel jeder
+  # Fehler ohne --basis still auf <dir> zurueck.
+  abbruch() {
+    if [ -n "$basis_gesetzt" ]; then
+      say "ABBRUCH: ${1:-kein Worktree moeglich} — mit --basis '$basis' gibt es keinen Rueckfall auf $dir; nichts angelegt."
+    else
+      say "ABBRUCH: ${1:-kein Worktree moeglich} — '$name' bekommt keinen Worktree, und es gibt keinen Rueckfall auf $dir. Kein Worker starten."
+    fi
+    return 2
+  }
+  # Der EINZIGE verbliebene Rueckfall: <dir> ist kein Arbeitsbaum eines Repos (kein
+  # .git in <dir> oder darueber, git erkennt dort nichts). Dann gibt es keinen
+  # Hauptbaum, den ein Worker veraendern koennte. Nur ohne --basis, immer mit Meldung.
+  ohne_repo() {
+    if [ -n "$basis_gesetzt" ] || liegt_in_git_spur "$dir"; then
+      abbruch "$1"; return $?
+    fi
+    printf '%s\n' "$dir"
+    say "$1 — '$name' laeuft ohne Worktree in $dir."   # Wortlaut wie vor dem 22.11. (Gegenprobe)
+    return 0
+  }
 
   local wtpath="$ROOT/$name"
   # Schon DRIN: idempotent und still. Trifft zu, wenn claude-worker den Pfad
-  # bereits ersetzt hat und pi-worker gleich noch einmal fragt.
-  case "$dir" in
-    "$wtpath"|"$wtpath"/*) printf '%s\n' "$dir"; return 0 ;;
-  esac
+  # bereits ersetzt hat und pi-worker gleich noch einmal fragt. Mit --basis
+  # geht es weiter unten durch die Basispruefung des vorhandenen Baums.
+  #
+  # NUR NACH PHYSISCHER PRUEFUNG (Review 23.11.2026, B2): hier stand ein reiner
+  # Textvergleich. '$ROOT/w1/../../../<hauptbaum>' und ein Verweis im Worktree
+  # (app/node_modules -> Hauptbaum) lieferten damit rc 0 und den Hauptbaum.
+  # Jetzt muss <dir> physisch in $ROOT/<name> liegen, und $ROOT/<name> muss ein
+  # angemeldeter Worktree sein, der nicht selbst der Hauptbaum ist. Sonst Exit 2.
+  if [ -z "$basis_gesetzt" ]; then
+    case "$dir" in
+      "$wtpath"|"$wtpath"/*)
+        kurzschluss_pruefen "$name" "$wtpath" "$dir" || { abbruch "$KS_GRUND"; return $?; }
+        printf '%s\n' "$dir"; return 0 ;;
+    esac
+  fi
 
-  worktrees_enabled || { printf '%s\n' "$dir"; return 0; }   # abgeschaltet: still wie frueher
-  valid_name "$name" || { fallback "unzulaessiger Worker-Name '$name'"; return 0; }
-  [ -d "$dir" ] || { fallback "'$dir' ist kein Verzeichnis"; return 0; }
-  command -v git >/dev/null 2>&1 || { fallback "git ist hier nicht installiert"; return 0; }
+  valid_name "$name" || { abbruch "unzulaessiger Worker-Name '$name'"; return $?; }
+  [ -d "$dir" ] || { abbruch "'$dir' ist kein Verzeichnis"; return $?; }
+  if ! worktrees_enabled; then
+    # Abgeschaltet: ohne Repo wie frueher still <dir>; in einem Repo kein Rueckfall
+    # mehr auf den Hauptbaum (22.11.2026), auch nicht durch den Schalter.
+    ohne_repo "Worker-Worktrees sind abgeschaltet (workerWorktrees=false)"; return $?
+  fi
+  command -v git >/dev/null 2>&1 || { ohne_repo "git ist hier nicht installiert"; return $?; }
 
   local top repo
   top="$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)"
-  [ -n "$top" ] || { fallback "'$dir' liegt in keinem git-Arbeitsbaum"; return 0; }
-  repo="$(main_worktree_of "$dir")"
-  [ -n "$repo" ] || repo="$top"
-  git -C "$repo" rev-parse --verify --quiet HEAD >/dev/null 2>&1 \
-    || { fallback "'$repo' hat noch keinen Commit (Worktree braucht HEAD)"; return 0; }
+  [ -n "$top" ] || { ohne_repo "'$dir' liegt in keinem git-Arbeitsbaum"; return $?; }
+  repo="$(main_worktree_of "$dir")" \
+    || { abbruch "Hauptbaum von '$dir' nicht bestimmbar (git worktree list lieferte keine Liste)"; return $?; }
 
+  # Basis ist der HEAD des ANGEGEBENEN Verzeichnisses, nicht der des Hauptbaums:
+  # liegt <dir> in einem verknuepften Worktree auf anderem Zweig (a project-next auf
+  # next), startet der Worker auf dessen Stand. Gemessen 25.10.2026: der HEAD des
+  # Hauptbaums setzte einen Worker auf main statt next.
   local branch="wb/$name" base basecommit
-  base="$(git -C "$repo" symbolic-ref --quiet --short HEAD 2>/dev/null)"
-  basecommit="$(git -C "$repo" rev-parse HEAD 2>/dev/null)"
+  if [ -n "$basis_gesetzt" ]; then
+    # Ausdrueckliche Basis (27.10.2026): claude-worker und pi-worker bekommen den
+    # Hauptbaum (auf main) uebergeben, ein Worker fuer einen anderen Zweig musste
+    # danach von Hand umsetzen. Ein lokaler Zweig wird als Zweigname vermerkt,
+    # damit Rueckstand/Nachziehen unten gegen ihn laufen; jeder andere Ref
+    # (Tag, Commit, origin/x) wie ein losgeloester HEAD ueber seinen Commit.
+    basecommit="$(git -C "$dir" rev-parse --verify --quiet "$basis^{commit}" 2>/dev/null)"
+    if [ -z "$basecommit" ]; then
+      say "ABBRUCH: --basis '$basis' gibt es in $repo nicht (kein Commit) — '$name' wird nicht angelegt."
+      return 2
+    fi
+    base="$(git -C "$dir" rev-parse --symbolic-full-name "$basis" 2>/dev/null)"
+    case "$base" in
+      refs/heads/*) base="${base#refs/heads/}" ;;
+      *)            base="$basis" ;;
+    esac
+  else
+    git -C "$dir" rev-parse --verify --quiet HEAD >/dev/null 2>&1 \
+      || { abbruch "'$dir' hat noch keinen Commit (Worktree braucht HEAD)"; return $?; }
+    base="$(git -C "$dir" symbolic-ref --quiet --short HEAD 2>/dev/null)"
+    basecommit="$(git -C "$dir" rev-parse HEAD 2>/dev/null)"
+  fi
 
-  if is_registered_worktree "$repo" "$wtpath"; then
+  local reg=0
+  is_registered_worktree "$repo" "$wtpath" || reg=$?
+  if [ "$reg" -ge 2 ]; then
+    abbruch "Worktree-Liste von $repo nicht lesbar — ob $wtpath angemeldet ist, bleibt unbestaetigt"
+    return $?
+  fi
+  if [ "$reg" -eq 0 ]; then
+    if [ -n "$basis_gesetzt" ]; then
+      # Ein BESTEHENDER Baum wird nie still umgesetzt (Auftrag 27.10.2026).
+      basis_passt "$name" "$repo" "$base" "$basecommit" "$(git -C "$wtpath" rev-parse HEAD 2>/dev/null)" \
+        || { say "ABBRUCH: '$name' hat schon den Worktree $wtpath auf anderer Basis ($BP_GRUND) — mit --basis '$basis' wird er nicht umgesetzt. Anderen Worker-Namen waehlen oder den Baum erst pruefen und entfernen: wb-worktree check $name; wb-worktree remove $name"; return 2; }
+    fi
     # Wiederverwendung: derselbe Worker-Name = derselbe Pane = derselbe Baum.
     [ -f "$(meta_file "$name")" ] \
       || meta_write "$name" "$repo" "$wtpath" \
@@ -322,9 +541,15 @@ cmd_ensure() {
     fi
   elif [ -e "$wtpath" ]; then
     # Etwas liegt dort, aber git kennt es nicht. NICHTS anfassen, nichts loeschen.
-    fallback "$wtpath existiert, ist aber kein angemeldeter Worktree von $repo"
-    return 0
+    abbruch "$wtpath existiert, ist aber kein angemeldeter Worktree von $repo"
+    return $?
   else
+    if [ -n "$basis_gesetzt" ] && git -C "$repo" show-ref --verify --quiet "refs/heads/$branch"; then
+      # Der alte Zweig wuerde unten wiederverwendet -- auch er darf nicht still
+      # auf einer anderen Basis weiterleben (Falle wb-worktree-ensure-nimmt-alten-zweig).
+      basis_passt "$name" "$repo" "$base" "$basecommit" "$(git -C "$repo" rev-parse "refs/heads/$branch" 2>/dev/null)" \
+        || { say "ABBRUCH: Zweig $branch gibt es schon auf anderer Basis ($BP_GRUND) — mit --basis '$basis' wird er nicht umgesetzt. Anderen Worker-Namen waehlen oder den Zweig pruefen und loeschen."; return 2; }
+    fi
     mkdir -p "$ROOT" 2>/dev/null
     local out rc
     if git -C "$repo" show-ref --verify --quiet "refs/heads/$branch"; then
@@ -332,11 +557,19 @@ cmd_ensure() {
       # WIEDERVERWENDET, nie ueberschrieben: die alten Commits bleiben.
       out="$(git -C "$repo" worktree add "$wtpath" "$branch" 2>&1)"; rc=$?
     else
-      out="$(git -C "$repo" worktree add -b "$branch" "$wtpath" HEAD 2>&1)"; rc=$?
+      out="$(git -C "$repo" worktree add -b "$branch" "$wtpath" "$basecommit" 2>&1)"; rc=$?
+      # B7 (Review 23.11.2026, gemessen mit git 2.50.1): `worktree add -b` legt den
+      # Zweig vor dem Checkout an und laesst ihn beim Scheitern stehen. Der Zweig
+      # ist von DIESEM Lauf und zeigt auf basecommit; nur dann wird er entfernt
+      # (update-ref mit altem Wert, ein inzwischen bewegter Zweig bleibt).
+      if [ "$rc" -ne 0 ] && git -C "$repo" show-ref --verify --quiet "refs/heads/$branch"; then
+        git -C "$repo" update-ref -d "refs/heads/$branch" "$basecommit" 2>/dev/null \
+          || say "Hinweis: Zweig $branch blieb nach dem Fehlschlag stehen."
+      fi
     fi
     if [ "$rc" -ne 0 ]; then
-      fallback "git worktree add fehlgeschlagen: $(printf '%s' "$out" | tr '\n' ' ')"
-      return 0
+      abbruch "git worktree add fehlgeschlagen: $(printf '%s' "$out" | tr '\n' ' ')"
+      return $?
     fi
     meta_write "$name" "$repo" "$wtpath" "$branch" "${base:-HEAD}" "$basecommit"
     say "'$name': neu aus ${base:-$basecommit} erzeugt (Zweig $branch, Worktree $wtpath)."
@@ -345,7 +578,7 @@ cmd_ensure() {
     # eine Aenderung, die er nie zu sehen bekommt.
     local dirty
     dirty="$(git -C "$repo" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
-    [ "${dirty:-0}" -gt 0 ] && say "Hinweis: der Hauptbaum hat $dirty unbeachtete Aenderung(en) — der Worktree steht auf HEAD und enthaelt sie nicht."
+    [ "${dirty:-0}" -gt 0 ] && say "Hinweis: der Hauptbaum hat $dirty unbeachtete Aenderung(en) — der Worktree steht auf ${basis_gesetzt:+$base, nicht auf }HEAD und enthaelt sie nicht."
     # Ein frischer Worktree ist ein Checkout: was NICHT versioniert ist, gibt es
     # dort nicht. Ohne diesen Hinweis sucht ein Worker den Fehler in seinem Code,
     # waehrend in Wahrheit nur `node_modules` fehlt.
@@ -446,7 +679,7 @@ cmd_check() {
   n="$(unmerged_count "$MW_REPO" "$MW_BRANCH" "$MW_BASE" "$MW_BASECOMMIT")"
   if [ -n "$d" ]; then
     say "'$name' hat unbeachtete Aenderungen in $MW_WT:"
-    printf '%s\n' "$d" | head -20 >&2
+    head -20 <<<"$d" >&2
     [ "$(printf '%s\n' "$d" | wc -l | tr -d ' ')" -gt 20 ] && say "  … (gekuerzt)"
     return 3
   fi
@@ -465,6 +698,51 @@ cmd_path() {
 }
 
 # --- remove ----------------------------------------------------------------
+# snapshot_sichern <worktree> <ziel>: was --force wegwerfen wuerde, klein gesichert (05.11.2026: eine volle Kopie mit
+# node_modules, dist und .build kostete je ~830 MB und fuellte die Platte):
+#   zweig.bundle       git bundle der Commits ueber der Basis (basecommit), ohne Commits darueber das ganze HEAD
+#   aenderungen.patch  git diff --binary HEAD: geaenderte getrackte Dateien, gestaged oder nicht
+#   dateien.tar        die ungetrackten, nicht ignorierten Dateien, dazu einzelne ignorierte DATEIEN bis 10 MB, die nicht
+#                      in einem ignorierten Ordner liegen (Logs wie protokoll.log, 30.10.2026 naht3); ignorierte Ordner
+#                      (node_modules, dist, .build, __pycache__) nie
+#   inhalt.txt         Basis, HEAD, Zweig und die Zahl der Dateien im tar
+# 1 heisst: nichts ist sicher gesichert, der Aufrufer entfernt dann nichts.
+SNAP_EINZEL_MAX=$((10 * 1024 * 1024))
+snapshot_sichern() {
+  local wt="$1" ziel="$2" head basis liste n=0 f groesse
+  mkdir -p "$ziel" || return 1
+  head="$(git -C "$wt" rev-parse HEAD 2>/dev/null)" || return 1
+  basis="${MW_BASECOMMIT:-}"
+  if [ -n "$basis" ] && git -C "$wt" cat-file -e "$basis^{commit}" 2>/dev/null \
+     && [ "$(git -C "$wt" rev-list --count "$basis..HEAD" 2>/dev/null)" = 0 ]; then
+    : # keine Commits ueber der Basis: der Zweig traegt nichts Eigenes, inhalt.txt nennt HEAD
+  elif [ -n "$basis" ] && git -C "$wt" cat-file -e "$basis^{commit}" 2>/dev/null; then
+    git -C "$wt" bundle create "$ziel/zweig.bundle" HEAD "^$basis" >/dev/null 2>&1 || return 1
+  else
+    git -C "$wt" bundle create "$ziel/zweig.bundle" HEAD >/dev/null 2>&1 || return 1
+  fi
+  git -C "$wt" diff --binary HEAD > "$ziel/aenderungen.patch" 2>/dev/null || return 1
+  liste="$ziel/.dateien.liste"
+  : > "$liste" || return 1
+  git -C "$wt" ls-files -z --others --exclude-standard >> "$liste" 2>/dev/null || return 1
+  # ignorierte Eintraege: --directory fasst ganze ignorierte Ordner zu "ordner/" zusammen, die bleiben draussen
+  while IFS= read -r -d '' f; do
+    case "$f" in */) continue ;; esac
+    [ -f "$wt/$f" ] && [ ! -L "$wt/$f" ] || continue
+    groesse="$(wc -c < "$wt/$f" 2>/dev/null | tr -d ' ')"
+    [ "${groesse:-0}" -le "$SNAP_EINZEL_MAX" ] || continue
+    printf '%s\0' "$f" >> "$liste"
+  done < <(git -C "$wt" ls-files -z --others --ignored --exclude-standard --directory 2>/dev/null)
+  n="$(tr -cd '\0' < "$liste" | wc -c | tr -d ' ')"
+  if [ "$n" -gt 0 ]; then
+    tar -C "$wt" --null -T "$liste" -cf "$ziel/dateien.tar" 2>/dev/null || return 1
+  fi
+  rm -f "$liste"
+  printf 'worktree %s\nzweig %s\nbasis %s\nhead %s\ndateien_im_tar %s\n' \
+    "$wt" "${MW_BRANCH:-?}" "${basis:-?}" "$head" "$n" > "$ziel/inhalt.txt" || return 1
+  return 0
+}
+
 cmd_remove() {
   local name="" force=0 a
   for a in "$@"; do
@@ -483,16 +761,18 @@ cmd_remove() {
     say "BEHALTEN — $MW_WT wird NICHT entfernt, es steht Arbeit darin."
     say "  ansehen:    wb-worktree diff $name"
     say "  uebernehmen: wb-worktree adopt $name"
-    say "  wegwerfen:  wb-worktree remove $name --force   (legt vorher eine Kopie unter ~/.local/trash-snapshots/ an)"
+    say "  wegwerfen:  wb-worktree remove $name --force   (sichert vorher Bundle, Patch und Dateien unter ~/.local/trash-snapshots/)"
     return 3
   fi
 
-  if [ "$force" -eq 1 ] && [ "$rc" -eq 3 ] && [ -d "$MW_WT" ]; then
+  if [ "$force" -eq 1 ] && [ -d "$MW_WT" ]; then
     # Hausregel: vor dem Ueberschreiben/Loeschen nicht-trivialer Daten eine Kopie.
+    # Auch bei rc 0: cmd_check sieht keine ignorierten Dateien (Logs, Builds), und
+    # git entfernt sie mit (30.10.2026, naht3 ging ohne Kopie weg).
+    # Seit 05.11.2026 (Platte voll: je Kopie ~830 MB) keine volle Kopie mehr, sondern snapshot_sichern unten.
     local snap="$HOME/.local/trash-snapshots/$(date +%F)-worktree-$name"
-    mkdir -p "$snap" 2>/dev/null
-    if cp -R "$MW_WT" "$snap/" 2>/dev/null; then
-      say "Sicherungskopie: $snap/$(basename "$MW_WT")"
+    if snapshot_sichern "$MW_WT" "$snap"; then
+      say "Sicherungskopie: $snap (zweig.bundle, aenderungen.patch, dateien.tar)"
     else
       say "ABBRUCH — Sicherungskopie nach $snap ist fehlgeschlagen; es wird nichts entfernt."
       return 1
@@ -624,6 +904,195 @@ cmd_list() {
   done
 }
 
+# --- snapshots-raeumen -----------------------------------------------------
+# Regel (decision 2026-11-08, ~/.claude/CLAUDE.md): Snapshots gelten 30 Tage nach
+# Namensdatum; Snapshots nachweislich gemergter Staende werden sofort geloescht.
+# Der Snapshot-Waechter (hooks/lib/snapshot_classify.py) blockt jedes direkte
+# rm/mv dort und nennt diesen Weg. Im Zweifel bleibt ein Snapshot stehen.
+#
+# Format, das als GEMERGT erkannt wird: das von snapshot_sichern() (main, seit
+# 05.11.2026, "remove --force"): zweig.bundle (fehlt, wenn der Zweig keine Commits
+# ueber der Basis hatte), aenderungen.patch, dateien.tar (fehlt ohne Dateien) und
+# inhalt.txt mit der Zeile "head <sha>". Ohne Bundle nennt allein diese Zeile den
+# Kopf. Jeder andere Eintrag im Ordner (probezweige.bundle, refs.txt, eine volle
+# Worktree-Kopie, Handoff-Dateien) heisst: anderes Format, BLEIBT.
+
+# Namensdatum am Anfang: JJJJ-MM-TT oder kompakt JJJJMMTT (der Nutzer/decision 2026-11-09), danach
+# keine weitere Ziffer. Nur ein echtes Kalenderdatum zaehlt (snap_datum_gueltig).
+SNAP_DATUM_RE='^([0-9]{4})-([0-9]{2})-([0-9]{2})([^0-9]|$)'
+SNAP_KOMPAKT_RE='^([0-9]{4})([0-9]{2})([0-9]{2})([^0-9]|$)'
+
+# snap_datum_gueltig <jjjj> <mm> <tt>: echtes Kalenderdatum? Ohne Prozessstart.
+snap_datum_gueltig() {
+  local j=$((10#$1)) m=$((10#$2)) t=$((10#$3)) max
+  [ "$m" -ge 1 ] && [ "$m" -le 12 ] && [ "$t" -ge 1 ] || return 1
+  case "$m" in
+    1|3|5|7|8|10|12) max=31 ;;
+    4|6|9|11) max=30 ;;
+    2) if [ $((j % 4)) -eq 0 ] && { [ $((j % 100)) -ne 0 ] || [ $((j % 400)) -eq 0 ]; }; then max=29; else max=28; fi ;;
+  esac
+  [ "$t" -le "$max" ]
+}
+
+# snap_grenze: das Datum heute minus 30 Tage (JJJJ-MM-TT). Aelter als das = ALTER.
+snap_grenze() {
+  local heute
+  heute="$(date +%F)" || return 1
+  date -j -v-30d -f '%Y-%m-%d %H:%M' "$heute 12:00" +%F 2>/dev/null \
+    || date -d "$heute 12:00 30 days ago" +%F 2>/dev/null
+}
+
+# snap_vorfahr <sha>: 0 = Commit im Repo und Vorfahr von main oder development
+snap_vorfahr() {
+  local sha="$1" ref
+  git -C "$SNAP_REPO" cat-file -e "$sha^{commit}" 2>/dev/null || return 2
+  for ref in refs/heads/main refs/heads/development; do
+    git -C "$SNAP_REPO" rev-parse -q --verify "$ref^{commit}" >/dev/null 2>&1 || continue
+    git -C "$SNAP_REPO" merge-base --is-ancestor "$sha" "$ref" 2>/dev/null && return 0
+  done
+  return 1
+}
+
+# snap_einordnen <name>: setzt SNAP_ENT (LOESCHEN|BLEIBT) und SNAP_GRUND.
+# Rueckgabe 2 = unerwarteter Fehler (dann loescht der Aufrufer gar nichts).
+snap_einordnen() {
+  local name="$1" p="$SNAP_ORT/$1" e kopf koepfe n rc groesse liste
+  local -a eintraege
+  SNAP_ENT=BLEIBT; SNAP_GRUND=""
+  case "$name" in
+    ''|.|..|*/*) SNAP_GRUND="ungueltiger Name"; return 0 ;;
+  esac
+  if [[ "$name" == *[[:cntrl:]]* ]]; then SNAP_GRUND="Name mit Steuerzeichen"; return 0; fi
+  if [ -L "$p" ]; then SNAP_GRUND="Symlink, wird nie verfolgt"; return 0; fi
+  if [ ! -e "$p" ]; then SNAP_GRUND="verschwunden"; return 0; fi
+  if [ ! -d "$p" ] && [ ! -f "$p" ]; then SNAP_GRUND="weder Ordner noch Datei"; return 0; fi
+  if ! { [[ "$name" =~ $SNAP_DATUM_RE ]] || [[ "$name" =~ $SNAP_KOMPAKT_RE ]]; } \
+     || ! snap_datum_gueltig "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"; then
+    SNAP_GRUND="kein lesbares Namensdatum"; return 0
+  fi
+  local datum="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}-${BASH_REMATCH[3]}"
+  if [[ "$datum" < "$SNAP_GRENZE" ]]; then
+    SNAP_ENT=LOESCHEN; SNAP_GRUND="ALTER: Namensdatum $datum liegt mehr als 30 Tage zurueck (Grenze $SNAP_GRENZE)"
+    return 0
+  fi
+  # Einzeldateien fallen nur unter ALTER (decision 2026-11-09); GEMERGT gilt nur fuer Ordner.
+  if [ ! -d "$p" ]; then SNAP_GRUND="Datei, juenger als 30 Tage nach Namensdatum"; return 0; fi
+
+  # (b) GEMERGT. Erst das Format: nur die vier bekannten Eintraege, je regulaere Datei.
+  [ -r "$p" ] && [ -x "$p" ] || return 2
+  eintraege=("$p"/* "$p"/.[!.]* "$p"/..?*)
+  [ "${#eintraege[@]}" -gt 0 ] || { SNAP_GRUND="leerer Ordner, Format unbekannt"; return 0; }
+  for e in "${eintraege[@]}"; do
+    e="${e##*/}"
+    case "$e" in
+      zweig.bundle|aenderungen.patch|dateien.tar|inhalt.txt) ;;
+      *) SNAP_GRUND="anderes Format (Eintrag '$(printf '%q' "$e")')"; return 0 ;;
+    esac
+    if [ -L "$p/$e" ] || [ ! -f "$p/$e" ]; then SNAP_GRUND="$e ist keine regulaere Datei"; return 0; fi
+  done
+
+  if [ -f "$p/zweig.bundle" ]; then
+    koepfe="$(git -C "$SNAP_REPO" bundle list-heads "$p/zweig.bundle" 2>/dev/null)" \
+      || { SNAP_GRUND="zweig.bundle unlesbar"; return 0; }
+    koepfe="$(printf '%s\n' "$koepfe" | awk 'NF {print $1}' | sort -u)"
+    [ -n "$koepfe" ] || { SNAP_GRUND="zweig.bundle ohne Kopf"; return 0; }
+    kopf="Bundle-Kopf"
+  elif [ -f "$p/inhalt.txt" ]; then
+    koepfe="$(awk '$1 == "head" {print $2}' "$p/inhalt.txt" 2>/dev/null)" || return 2
+    n="$(printf '%s' "$koepfe" | grep -c . )"
+    [ "$n" = 1 ] || { SNAP_GRUND="ohne Bundle und ohne genau eine head-Zeile in inhalt.txt"; return 0; }
+    kopf="head aus inhalt.txt"
+  else
+    SNAP_GRUND="weder zweig.bundle noch inhalt.txt: Kopf nicht nachweisbar"; return 0
+  fi
+  while IFS= read -r e; do
+    [[ "$e" =~ ^[0-9a-f]{40}([0-9a-f]{24})?$ ]] || { SNAP_GRUND="$kopf '$e' ist keine Commit-ID"; return 0; }
+    rc=0; snap_vorfahr "$e" || rc=$?
+    case "$rc" in
+      0) ;;
+      2) SNAP_GRUND="$kopf ${e:0:9} im Repo unbekannt"; return 0 ;;
+      *) SNAP_GRUND="$kopf ${e:0:9} nicht in main oder development"; return 0 ;;
+    esac
+  done <<< "$koepfe"
+
+  if [ -f "$p/aenderungen.patch" ]; then
+    groesse="$(wc -c < "$p/aenderungen.patch" 2>/dev/null | tr -d ' ')" || return 2
+    [ "$groesse" = 0 ] || { SNAP_GRUND="aenderungen.patch hat $groesse Byte"; return 0; }
+  fi
+  if [ -f "$p/dateien.tar" ]; then
+    liste="$(tar -tf "$p/dateien.tar" 2>/dev/null)" || { SNAP_GRUND="dateien.tar unlesbar"; return 0; }
+    n="$(printf '%s\n' "$liste" | grep -v '/$' | grep -c .)"
+    [ "$n" = 0 ] || { SNAP_GRUND="dateien.tar enthaelt $n Datei(en)"; return 0; }
+  fi
+  SNAP_ENT=LOESCHEN
+  SNAP_GRUND="GEMERGT: $(printf '%s' "$koepfe" | cut -c1-9 | tr '\n' ' ')in main oder development, Patch leer, tar ohne Datei"
+  return 0
+}
+
+cmd_snapshots_raeumen() {
+  local loeschen=0
+  shopt -s nullglob
+  SNAP_ORT="$HOME/.local/trash-snapshots"
+  SNAP_REPO="$HOME/AI/claude-workbench"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --loeschen) loeschen=1 ;;
+      --ort)  [ $# -ge 2 ] || { say "--ort braucht ein Verzeichnis."; return 1; }; SNAP_ORT="$2"; shift ;;
+      --repo) [ $# -ge 2 ] || { say "--repo braucht ein Verzeichnis."; return 1; }; SNAP_REPO="$2"; shift ;;
+      *) say "unbekannte Option '$1'"; return 1 ;;
+    esac
+    shift
+  done
+  [ -d "$SNAP_ORT" ] && [ ! -L "$SNAP_ORT" ] || { say "kein Snapshot-Ort: $SNAP_ORT"; return 1; }
+  SNAP_ORT="$(cd -P -- "$SNAP_ORT" && pwd)" || { say "Ort nicht aufloesbar."; return 2; }
+  [ "$SNAP_ORT" != / ] || { say "Ort / wird nie geraeumt."; return 2; }
+  git -C "$SNAP_REPO" rev-parse --git-dir >/dev/null 2>&1 || { say "ABBRUCH — kein git-Repo: $SNAP_REPO; nichts geloescht."; return 2; }
+  SNAP_GRENZE="$(snap_grenze)"
+  [[ "$SNAP_GRENZE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { say "ABBRUCH — Datumsgrenze nicht berechenbar; nichts geloescht."; return 2; }
+
+  local name zeilen="" zu_loeschen=() n_l=0 n_b=0 shown pfad
+  local -a kinder
+  [ -r "$SNAP_ORT" ] && [ -x "$SNAP_ORT" ] || { say "ABBRUCH — $SNAP_ORT nicht lesbar; nichts geloescht."; return 2; }
+  kinder=("$SNAP_ORT"/* "$SNAP_ORT"/.[!.]* "$SNAP_ORT"/..?*)
+  for pfad in ${kinder[@]+"${kinder[@]}"}; do
+    name="${pfad##*/}"
+    snap_einordnen "$name" || { say "ABBRUCH — unerwarteter Fehler bei '$name'; nichts geloescht."; return 2; }
+    shown="$name"; [[ "$name" == *[[:cntrl:]]* ]] && shown="$(printf '%q' "$name")"
+    zeilen+="$(printf '%s\t%s\t%s' "$shown" "$SNAP_ENT" "$SNAP_GRUND")"$'\n'
+    if [ "$SNAP_ENT" = LOESCHEN ]; then zu_loeschen+=("$name"); n_l=$((n_l + 1)); else n_b=$((n_b + 1)); fi
+  done
+  printf '%s' "$zeilen"
+
+  if [ "$loeschen" -eq 0 ]; then
+    say "Trockenlauf: $n_l LOESCHEN, $n_b BLEIBT in $SNAP_ORT. Nichts geloescht (loeschen mit --loeschen)."
+    return 0
+  fi
+  local geloescht=0 ziel eltern
+  for name in ${zu_loeschen[@]+"${zu_loeschen[@]}"}; do
+    ziel="$SNAP_ORT/$name"
+    # Vor dem rm noch einmal: Name, kein Symlink, Elternordner aufgeloest = Ort, Einordnung unveraendert.
+    case "$name" in ''|.|..|*/*) say "uebersprungen (Name): $name"; continue ;; esac
+    [ -L "$ziel" ] && { say "uebersprungen (inzwischen Symlink): $name"; continue; }
+    if [ -d "$ziel" ]; then
+      eltern="$(cd -P -- "$ziel/.." 2>/dev/null && pwd)"
+    elif [ -f "$ziel" ]; then
+      eltern="$(cd -P -- "$(dirname -- "$ziel")" 2>/dev/null && pwd)"
+    else
+      say "uebersprungen (weder Ordner noch Datei): $name"; continue
+    fi
+    [ "$eltern" = "$SNAP_ORT" ] || { say "uebersprungen (nicht unter $SNAP_ORT): $name"; continue; }
+    snap_einordnen "$name" || { say "ABBRUCH bei '$name' (unerwarteter Fehler); $geloescht geloescht, Rest bleibt."; return 2; }
+    [ "$SNAP_ENT" = LOESCHEN ] || { say "uebersprungen (jetzt BLEIBT: $SNAP_GRUND): $name"; continue; }
+    if rm -rf -- "$ziel"; then
+      geloescht=$((geloescht + 1))
+    else
+      say "rm fehlgeschlagen: $name"
+    fi
+  done
+  say "geloescht: $geloescht von $n_l LOESCHEN-Zeilen; $n_b bleiben in $SNAP_ORT."
+  return 0
+}
+
 case "${1:-}" in
   ensure) shift; cmd_ensure "$@" ;;
   path)   shift; cmd_path   "$@" ;;
@@ -632,6 +1101,7 @@ case "${1:-}" in
   adopt)  shift; cmd_adopt  "$@" ;;
   diff)   shift; cmd_diff   "$@" ;;
   list)   shift; cmd_list   "$@" ;;
+  snapshots-raeumen) shift; cmd_snapshots_raeumen "$@" ;;
   ''|-h|--help|help) usage; exit 1 ;;
   *) say "unbekannter Unterbefehl '$1'"; usage; exit 1 ;;
 esac

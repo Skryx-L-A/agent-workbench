@@ -18,13 +18,39 @@ interface RequestEntry {
   path: string; ts: string; parent: string; parentModel: string;
   childName: string; childModel: string; childEffort: string; dir: string;
   files: string[]; task: string; doneCriterion: string; whySeparable: string; est: string;
+  rolle?: FreigabeRolle; anzeigename?: string; absicht?: string; absichtQuelle?: AbsichtQuelle;
 }
+/** Wer fragt, und wofuer (app/src/main/freigabe-anzeige.ts); fehlt bei einem aelteren Kern. */
+type FreigabeRolle = 'orchestrator' | 'worker' | 'unbekannt';
+type AbsichtQuelle = 'harness' | 'abgeleitet' | 'unklar';
 interface GuardBlockEntry {
   path: string; pane: string; guard: string; reason: string; command: string;
   cwd: string; ts: string; sessionId: string; sessionName: string; machine: string;
   workerName: string; unbekannterPane: boolean;
   /** Die mittlere Stufe: wartet auf eine einmalige Freigabe statt endgueltig abgelehnt zu sein. */
   wartet: boolean; muster: string; musterGrund: string; schluessel: string;
+  rolle?: FreigabeRolle; anzeigename?: string; absicht?: string; absichtQuelle?: AbsichtQuelle;
+}
+
+/** „Worker wz-x“ -- ohne Rolle (aelterer Kern) der bisherige Name. */
+function rollenName(rolle: FreigabeRolle | undefined, anzeigename: string | undefined, sonst: string): string {
+  return rolle && anzeigename ? `${t(`freigabe.rolle.${rolle}`)} ${anzeigename}` : sonst;
+}
+
+/**
+ * Die Absicht als Zeile ueber dem Befehl, mit ihrer Herkunft: „laut Agent“ (die
+ * Beschreibung des Harness) oder „abgeleitet aus dem Befehl“. Eine unklare Absicht
+ * („Befehl ausführen (Bash)“) traegt keinen Zusatz -- sie sagt es selbst.
+ */
+function absichtSetzen(ziel: HTMLElement, absicht: string | undefined, quelle: AbsichtQuelle | undefined): void {
+  if (!absicht) { ziel.remove(); return; }
+  ziel.textContent = absicht;
+  if (quelle === 'harness' || quelle === 'abgeleitet') {
+    const her = document.createElement('span');
+    her.className = 'fg-absicht-her';
+    her.textContent = ` · ${t(`panel.freigaben.absicht.${quelle}`)}`;
+    ziel.appendChild(her);
+  }
 }
 /** V17: der Verlauf ALLER Ablehnungen, gruppiert nach (guard, reason) -- sichtbar machen, welche Muster WIEDERHOLT anschlagen. */
 interface GuardLogGruppe {
@@ -269,15 +295,21 @@ export function initFreigabenView(): void {
         <span class="fg-wann">${seitHer(b.ts)}</span>
       </div>
       <div class="fg-zusatz"></div>
+      <div class="fg-absicht"></div>
       <div class="fg-muster"></div>
       <div class="fg-grund"></div>
+      <div class="fg-befehl-titel"></div>
       <div class="fg-befehl"></div>
       <div class="fg-verzeichnis"></div>
       <div class="fg-aktionen"></div>
       <div class="fg-ergebnis"></div>`;
+    // Rolle und Anzeigename vorne, die Absicht darunter, der genaue Befehl im Kasten
+    // (26.10.2026, task; decision 10-25).
     el.querySelector('.fg-wer')!.textContent = b.unbekannterPane
       ? t('panel.freigaben.ohneSitzung', { pane: b.pane })
-      : b.workerName;
+      : rollenName(b.rolle, b.anzeigename, b.workerName);
+    absichtSetzen(el.querySelector<HTMLDivElement>('.fg-absicht')!, b.absicht, b.absichtQuelle);
+    el.querySelector('.fg-befehl-titel')!.textContent = t('panel.freigaben.befehlTitel');
     el.querySelector('.fg-zusatz')!.textContent =
       [b.sessionName, b.machine, `Guard: ${b.guard}`].filter(Boolean).join(' · ');
     wannBinden(el.querySelector<HTMLSpanElement>('.fg-wann')!, Date.parse(b.ts));
@@ -407,6 +439,7 @@ export function initFreigabenView(): void {
         <span class="fg-wann">${seitHer(r.ts)}</span>
       </div>
       <div class="fg-zusatz"></div>
+      <div class="fg-absicht"></div>
       <div class="fg-feld"><b>Aufgabe:</b> <span></span></div>
       <div class="fg-feld"><b>Warum abtrennbar:</b> <span></span></div>
       <div class="fg-feld"><b>Fertig-Kriterium:</b> <span></span></div>
@@ -421,7 +454,9 @@ export function initFreigabenView(): void {
         <button type="button" class="fg-btn fg-btn-ab">${t('panel.freigaben.ablehnen')}</button>
       </div>
       <div class="fg-ergebnis"></div>`;
-    el.querySelector('.fg-wer')!.textContent = `${r.parent} → ${r.childName}`;
+    el.querySelector('.fg-wer')!.textContent = `${rollenName(r.rolle, r.anzeigename, r.parent)} → ${r.childName}`;
+    // Ohne Herkunftszusatz: ein Antrag hat keinen Befehl, aus dem abgeleitet wuerde.
+    absichtSetzen(el.querySelector<HTMLDivElement>('.fg-absicht')!, r.absicht, undefined);
     el.querySelector('.fg-zusatz')!.textContent = `${modell} · ${kurzerPfad(r.dir)}`;
     wannBinden(el.querySelector<HTMLSpanElement>('.fg-wann')!, Date.parse(r.ts));
     const felder = el.querySelectorAll('.fg-feld span');

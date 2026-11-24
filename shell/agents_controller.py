@@ -111,7 +111,7 @@ _FIELD_TYPES: dict[str, dict[str, tuple[str, bool]]] = {
         "agent_id": ("str", True), "tools": ("str_list", False), "bash": ("str_list", False),
         "skills": ("str_list", False), "web": ("bool", False), "antrag": ("str", False),
     },
-    # Rechteantrag (der Nutzer, 13.10.2026): nur fuer die eigenen Rechte, es gibt kein Zielfeld; entschieden
+    # Rechteantrag (decision 2026-10-13): nur fuer die eigenen Rechte, es gibt kein Zielfeld; entschieden
     # wird ohne changes, die Freigabe wendet die beim Stellen gespeicherten an.
     "agent.rechte_antrag": {"changes": ("object", True), "grund": ("str", True), "request_id": ("str", False)},
     "agent.rechte_entscheiden": {"request_id": ("str", True), "accept": ("bool", True), "note": ("str", False)},
@@ -121,7 +121,7 @@ _FIELD_TYPES: dict[str, dict[str, tuple[str, bool]]] = {
         "options": ("str_list", False), "recommendation": ("str", False),
         "ticket_id": ("str", False),
     },
-    # Freigaben der Welt (der Nutzer, 16.09.2026): der Hauptagent gibt eigene Freigaben an Agenten seiner Welt weiter.
+    # Freigaben der Welt (decision 2026-09-16): der Hauptagent gibt eigene Freigaben an Agenten seiner Welt weiter.
     "freigabe.weitergeben": {
         "agent_id": ("str", True), "art": ("str", True), "adressen": ("str_list", False), "ablauf": ("str", False),
     },
@@ -133,7 +133,7 @@ _FIELD_TYPES: dict[str, dict[str, tuple[str, bool]]] = {
         "text": ("str", True), "ticket_id": ("str", False), "in_reply_to": ("str", False),
         "references": ("str", False), "sendung_id": ("str", False),
     },
-    # Brain (der Nutzer, 16.09.2026; agents_brain): schreiben nur in den eigenen Bereich, lesen als Rueckweg.
+    # Brain (decision 2026-09-16; agents_brain): schreiben nur in den eigenen Bereich, lesen als Rueckweg.
     "brain.notiz": {
         "titel": ("str", True), "text": ("str", True), "thema": ("str", False),
         "anhaengen": ("bool", False), "bereich": ("str", False),

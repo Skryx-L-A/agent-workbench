@@ -13,18 +13,23 @@ import type { MobileDialogSession } from './opencode';
  * files under app/test/fixtures/mobile-dialogs/. Everything else fails closed:
  *   - AskUserQuestion, one single-select question, 2..4 options
  *   - AskUserQuestion, two single-select questions with 2 options each, answered
- *     one visible step at a time (each step is its own atomic key sequence)
+ *     one visible step at a time (each step is its own atomic key sequence); in 2.1.296, 2.1.300,
+ *     2.1.302, 2.1.303, 2.1.306, 2.1.307, 2.1.308, 2.1.309, 2.1.310, 2.1.311, 2.1.312, 2.1.314, 2.1.316, 2.1.317, 2.1.318, 2.1.319, 2.1.321, 2.1.322, 2.1.323, 2.1.325, 2.1.326, 2.1.327, 2.1.328 and 2.1.329 also 2 tabs with 2..4 options per tab, 3 tabs with 2 options each, 3 tabs with 3 or 4 options
+ *     each and 4 tabs with 2 options each (MEASURED_TAB_FORMS)
  *   - Bash and Edit permission dialogs with exactly Yes / <persistent> / No, and (measured
  *     2.1.296) Bash with Yes / <persistent> / Yes, and switch to auto mode / No
  * 2.1.296 was measured in the fullscreen renderer (`"tui": "fullscreen"`) and inline.
- * 2.1.299 and 2.1.300 were measured in the fullscreen renderer; every dialog drew as in 2.1.296.
+ * 2.1.299, 2.1.300, 2.1.302, 2.1.303, 2.1.306, 2.1.307, 2.1.308, 2.1.309, 2.1.310, 2.1.311, 2.1.312, 2.1.314, 2.1.316, 2.1.317, 2.1.318, 2.1.319, 2.1.321, 2.1.322, 2.1.323, 2.1.325, 2.1.326, 2.1.327, 2.1.328 and 2.1.329 were measured in the fullscreen renderer; every dialog drew as in 2.1.296.
+ * 2.1.314, 2.1.316, 2.1.317, 2.1.318, 2.1.319, 2.1.321, 2.1.322, 2.1.323, 2.1.325, 2.1.326, 2.1.327, 2.1.328 and 2.1.329 (each measured twice): a chat message sent while a question is open is taken as the answer
+ * (free text, not option 1). The kern refuses `POST /sessions/:id/messages` while any Claude dialog
+ * is open (kern.ts, `eingabeGesperrt`), so the phone route sends no such message.
  * Not offered although measurable: the free-text row "Type something.", "Chat about
  * this", multi-select, the middle permission option (it claims a persistent or
  * session-wide grant whose scope was not proven) and the auto-mode option (it changes
  * the permission mode of the whole session).
  */
 
-export const CLAUDE_MEASURED_VERSIONS = Object.freeze(['2.1.277', '2.1.278', '2.1.296', '2.1.299', '2.1.300'] as const);
+export const CLAUDE_MEASURED_VERSIONS = Object.freeze(['2.1.277', '2.1.278', '2.1.296', '2.1.299', '2.1.300', '2.1.302', '2.1.303', '2.1.306', '2.1.307', '2.1.308', '2.1.309', '2.1.310', '2.1.311', '2.1.312', '2.1.314', '2.1.316', '2.1.317', '2.1.318', '2.1.319', '2.1.321', '2.1.322', '2.1.323', '2.1.325', '2.1.326', '2.1.327', '2.1.328', '2.1.329'] as const);
 type ClaudeMeasuredVersion = (typeof CLAUDE_MEASURED_VERSIONS)[number];
 const ACCEPTED_VERSION_STRINGS = new Map<string, ClaudeMeasuredVersion>(
   CLAUDE_MEASURED_VERSIONS.flatMap((version) => [[version, version], [`${version} (Claude Code)`, version]]),
@@ -79,6 +84,8 @@ interface ParsedDialog {
   readonly text: string;
   readonly options: readonly ParsedOption[];
   readonly selectedIndex: number;
+  // Review page only: true when "Ready to submit your answers?" is missing (measured from 2.1.327 on).
+  readonly reviewWithoutPrompt?: boolean;
 }
 
 type Parsed =
@@ -102,6 +109,14 @@ const MEASURED_KEYS: Readonly<Record<string, Readonly<Record<string, readonly Cl
     abort: ['Escape'],
   },
   'ask_step:2': { choice_1: ['Enter'], choice_2: ['Down', 'Enter'], abort: ['Escape'] },
+  'ask_step:3': { choice_1: ['Enter'], choice_2: ['Down', 'Enter'], choice_3: ['Down', 'Down', 'Enter'], abort: ['Escape'] },
+  'ask_step:4': {
+    choice_1: ['Enter'],
+    choice_2: ['Down', 'Enter'],
+    choice_3: ['Down', 'Down', 'Enter'],
+    choice_4: ['Down', 'Down', 'Down', 'Enter'],
+    abort: ['Escape'],
+  },
   'ask_review:2': { submit: ['Enter'], cancel: ['Down', 'Enter'] },
   'permission_bash:3': { allow_once: ['Enter'], reject: ['Down', 'Down', 'Enter'], abort: ['Escape'] },
   'permission_bash:4': { allow_once: ['Enter'], reject: ['Down', 'Down', 'Down', 'Enter'], abort: ['Escape'] },
@@ -109,6 +124,29 @@ const MEASURED_KEYS: Readonly<Record<string, Readonly<Record<string, readonly Cl
 });
 
 export const CLAUDE_MEASURED_KEY_TABLE = MEASURED_KEYS;
+
+/**
+ * Measured tab forms of the stepwise dialog per version: `step:<tabs>x<options of the visible tab>`
+ * and `review:<tabs>`. 2x2 was measured with every listed version, the other forms with the
+ * `ask-multi-question-*` fixtures of the versions named here. Any other form fails closed.
+ */
+const MEASURED_TAB_FORMS: Readonly<Record<string, readonly ClaudeMeasuredVersion[]>> = Object.freeze({
+  'step:2x2': CLAUDE_MEASURED_VERSIONS,
+  'step:2x3': ['2.1.296', '2.1.300', '2.1.302', '2.1.303', '2.1.306', '2.1.307', '2.1.308', '2.1.309', '2.1.310', '2.1.311', '2.1.312', '2.1.314', '2.1.316', '2.1.317', '2.1.318', '2.1.319', '2.1.321', '2.1.322', '2.1.323', '2.1.325', '2.1.326', '2.1.327', '2.1.328', '2.1.329'],
+  'step:2x4': ['2.1.296', '2.1.300', '2.1.302', '2.1.303', '2.1.306', '2.1.307', '2.1.308', '2.1.309', '2.1.310', '2.1.311', '2.1.312', '2.1.314', '2.1.316', '2.1.317', '2.1.318', '2.1.319', '2.1.321', '2.1.322', '2.1.323', '2.1.325', '2.1.326', '2.1.327', '2.1.328', '2.1.329'],
+  'step:3x2': ['2.1.296', '2.1.300', '2.1.302', '2.1.303', '2.1.306', '2.1.307', '2.1.308', '2.1.309', '2.1.310', '2.1.311', '2.1.312', '2.1.314', '2.1.316', '2.1.317', '2.1.318', '2.1.319', '2.1.321', '2.1.322', '2.1.323', '2.1.325', '2.1.326', '2.1.327', '2.1.328', '2.1.329'],
+  'step:3x3': ['2.1.302', '2.1.303', '2.1.306', '2.1.307', '2.1.308', '2.1.309', '2.1.310', '2.1.311', '2.1.312', '2.1.314', '2.1.316', '2.1.317', '2.1.318', '2.1.319', '2.1.321', '2.1.322', '2.1.323', '2.1.325', '2.1.326', '2.1.327', '2.1.328', '2.1.329'],
+  'step:3x4': ['2.1.302', '2.1.303', '2.1.306', '2.1.307', '2.1.308', '2.1.309', '2.1.310', '2.1.311', '2.1.312', '2.1.314', '2.1.316', '2.1.317', '2.1.318', '2.1.319', '2.1.321', '2.1.322', '2.1.323', '2.1.325', '2.1.326', '2.1.327', '2.1.328', '2.1.329'],
+  'step:4x2': ['2.1.302', '2.1.303', '2.1.306', '2.1.307', '2.1.308', '2.1.309', '2.1.310', '2.1.311', '2.1.312', '2.1.314', '2.1.316', '2.1.317', '2.1.318', '2.1.319', '2.1.321', '2.1.322', '2.1.323', '2.1.325', '2.1.326', '2.1.327', '2.1.328', '2.1.329'],
+  'review:2': CLAUDE_MEASURED_VERSIONS,
+  'review:3': ['2.1.296', '2.1.300', '2.1.302', '2.1.303', '2.1.306', '2.1.307', '2.1.308', '2.1.309', '2.1.310', '2.1.311', '2.1.312', '2.1.314', '2.1.316', '2.1.317', '2.1.318', '2.1.319', '2.1.321', '2.1.322', '2.1.323', '2.1.325', '2.1.326', '2.1.327', '2.1.328', '2.1.329'],
+  'review:4': ['2.1.302', '2.1.303', '2.1.306', '2.1.307', '2.1.308', '2.1.309', '2.1.310', '2.1.311', '2.1.312', '2.1.314', '2.1.316', '2.1.317', '2.1.318', '2.1.319', '2.1.321', '2.1.322', '2.1.323', '2.1.325', '2.1.326', '2.1.327', '2.1.328', '2.1.329'],
+});
+
+export const CLAUDE_MEASURED_TAB_FORMS = MEASURED_TAB_FORMS;
+
+// Versions whose review page has no "Ready to submit your answers?" line (measured 18.11.2026); every other version has it.
+const REVIEW_WITHOUT_PROMPT_VERSIONS: readonly string[] = ['2.1.327', '2.1.328', '2.1.329'];
 
 function fail(code: 'bad_request' | 'stale_target' | 'capability_unavailable' | 'prompt_changed', message: string): never {
   throw new MobileAuthError(code, message);
@@ -272,17 +310,21 @@ function parseAskQuestion(lines: readonly string[], footerIndex: number): Parsed
 function parseAskReview(lines: readonly string[]): Parsed {
   const region = withoutBlank(lines);
   const count = region.length;
-  if (region[count - 1] !== '  2. Cancel' || region[count - 2] !== '❯ 1. Submit answers' || region[count - 3] !== 'Ready to submit your answers?') {
+  if (region[count - 1] !== '  2. Cancel' || region[count - 2] !== '❯ 1. Submit answers') {
     return unsupported('the review rows are not in the measured layout');
   }
-  const reviewIndex = region.lastIndexOf('Review your answers', count - 4);
+  // Until 2.1.326 a line "Ready to submit your answers?" stands between the answers and the two rows;
+  // 2.1.327, 2.1.328 and 2.1.329 print the answers directly above them. tableFor allows each version only its measured form.
+  const withoutPrompt = region[count - 3] !== 'Ready to submit your answers?';
+  const itemsEnd = withoutPrompt ? count - 2 : count - 3;
+  const reviewIndex = region.lastIndexOf('Review your answers', itemsEnd - 1);
   if (reviewIndex < 2) return unsupported('the review heading was not found');
   const bar = TAB_BAR.exec(region[reviewIndex - 1]);
   const tabs = bar ? tabsOf(bar[1]) : null;
   if (!tabs || tabs.length < 2 || tabs.some((tab) => !tab.startsWith('☒ '))) return unsupported('the review is not complete or not in the measured layout');
   if (!RULE.test(region[reviewIndex - 2])) return unsupported('the top rule of the review was not found');
   const items: string[] = [];
-  for (const line of region.slice(reviewIndex + 1, count - 3)) {
+  for (const line of region.slice(reviewIndex + 1, itemsEnd)) {
     if (/^ ● \S/.test(line)) items.push(line.trim());
     else if (items.length > 0 && /^ {3,}\S/.test(line)) items[items.length - 1] = `${items[items.length - 1]} ${line.trim()}`;
     else return unsupported('a review line is not in the measured layout');
@@ -301,6 +343,7 @@ function parseAskReview(lines: readonly string[]): Parsed {
       text,
       options: [{ index: 1, label: 'Submit answers' }, { index: 2, label: 'Cancel' }],
       selectedIndex: 1,
+      reviewWithoutPrompt: withoutPrompt,
     },
   };
 }
@@ -431,10 +474,19 @@ function optionIds(dialog: ParsedDialog): readonly { id: string; label: string; 
   }
 }
 
-function tableFor(dialog: ParsedDialog): Readonly<Record<string, readonly ClaudeDialogKey[]>> | null {
+function tabFormMeasured(form: string, version: ClaudeMeasuredVersion): boolean {
+  return (MEASURED_TAB_FORMS[form] ?? []).includes(version);
+}
+
+function tableFor(dialog: ParsedDialog, version: ClaudeMeasuredVersion): Readonly<Record<string, readonly ClaudeDialogKey[]>> | null {
   if (dialog.kind === 'ask_single') return MEASURED_KEYS[`ask_single:${dialog.options.length}`] ?? null;
-  if (dialog.kind === 'ask_step') return dialog.tabs.length === 2 ? MEASURED_KEYS[`ask_step:${dialog.options.length}`] ?? null : null;
-  if (dialog.kind === 'ask_review') return dialog.tabs.length === 2 ? MEASURED_KEYS['ask_review:2'] : null;
+  if (dialog.kind === 'ask_step') {
+    return tabFormMeasured(`step:${dialog.tabs.length}x${dialog.options.length}`, version) ? MEASURED_KEYS[`ask_step:${dialog.options.length}`] ?? null : null;
+  }
+  if (dialog.kind === 'ask_review') {
+    if ((dialog.reviewWithoutPrompt === true) !== REVIEW_WITHOUT_PROMPT_VERSIONS.includes(version)) return null;
+    return tabFormMeasured(`review:${dialog.tabs.length}`, version) ? MEASURED_KEYS['ask_review:2'] : null;
+  }
   return MEASURED_KEYS[`${dialog.kind}:${dialog.options.length}`] ?? null;
 }
 
@@ -483,7 +535,7 @@ async function currentPrompt(source: ClaudeDialogsForMobile, sessionId: string):
   const parsed = parseClaudeDialog(snapshot.text);
   if (parsed.state === 'none') return null;
   if (parsed.state === 'unsupported') throw new UnmeasuredClaudeDialog(`this Claude dialog is not measured: ${parsed.reason}`);
-  const keys = tableFor(parsed.dialog);
+  const keys = tableFor(parsed.dialog, version);
   if (!keys) throw new UnmeasuredClaudeDialog('this Claude dialog layout is not measured');
   const options = optionIds(parsed.dialog);
   if (!options.every((option) => keys[option.id] !== undefined)) throw new UnmeasuredClaudeDialog('this Claude dialog offers an option without a measured key sequence');

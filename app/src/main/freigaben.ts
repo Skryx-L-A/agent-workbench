@@ -23,6 +23,7 @@ import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { panesHinweisOderFrisch } from './sessions';
 import type { SessionInfo } from './sessions';
+import { absichtBestimmen, freigabeKurztext, type AbsichtQuelle, type FreigabeRolle } from './freigabe-anzeige';
 
 // V17 (Schritt 9, Guard-Verlauf) haengt unten an: eine eigene Datei
 // (`hooks/bash-guard.py` -> `append_block_log()`) neben dem Merker-Ordner
@@ -45,9 +46,28 @@ export interface RequestEntry {
   doneCriterion: string;
   whySeparable: string;
   est: string;
+  /** Wer bittet: Rolle und Name des Antragstellers, wie die Sitzungsliste ihn zeigt (freigabe-anzeige.ts). */
+  rolle: FreigabeRolle;
+  anzeigename: string;
+  /** Die Absicht in einem Satz: welcher Worker gestartet werden soll. */
+  absicht: string;
+  absichtQuelle: AbsichtQuelle;
+  /** „Worker wz-x: Neuen Worker wz-y starten (haiku45)“ -- die Kurzansicht in einer Zeile. */
+  kurztext: string;
 }
 
-export function readRequests(requestsDir: string): RequestEntry[] {
+/**
+ * Wer einen Antrag stellt (26.10.2026, task). `wb-request` ist das Werkzeug
+ * eines Workers; der Name steht in der Sitzungsliste als Worker-Name. Ein Antrag
+ * unter dem Namen einer Sitzung kommt von deren Orchestrator.
+ */
+function antragsteller(parent: string, sessions: SessionInfo[]): FreigabeRolle {
+  if (sessions.some((s) => s.workers.some((w) => w.name === parent))) return 'worker';
+  if (sessions.some((s) => s.name === parent)) return 'orchestrator';
+  return 'worker';
+}
+
+export function readRequests(requestsDir: string, sessions: SessionInfo[] = []): RequestEntry[] {
   if (!existsSync(requestsDir)) return [];
   let dateien: string[] = [];
   try {
@@ -64,7 +84,18 @@ export function readRequests(requestsDir: string): RequestEntry[] {
     try {
       const roh = readFileSync(pfad);
       const r = JSON.parse(roh.toString('utf8')) as Record<string, unknown>;
+      const parent = String(r.parent ?? '');
+      const kind = String(r.child_name ?? '');
+      const modell = String(r.child_model ?? '');
+      const kopf = {
+        rolle: antragsteller(parent, sessions),
+        anzeigename: parent,
+        absicht: `Neuen Worker ${kind} starten${modell ? ` (${modell})` : ''}`,
+        absichtQuelle: 'abgeleitet' as AbsichtQuelle,
+      };
       raus.push({
+        ...kopf,
+        kurztext: freigabeKurztext(kopf),
         path: pfad,
         inhaltSha256: createHash('sha256').update(roh).digest('hex'),
         ts: String(r.ts ?? ''),
@@ -208,6 +239,19 @@ export interface GuardBlockEntry {
   musterGrund: string;
   /** Bindung an Befehl+Pane+Verzeichnis -- benennt die Freigabedatei. */
   schluessel: string;
+  /**
+   * WER FRAGT, UND WOFUER (26.10.2026, task; freigabe-anzeige.ts). Rolle und
+   * Anzeigename kommen aus derselben Zuordnung wie `workerName` (Orchestrator-Pane:
+   * Name der Sitzung, Worker-Pane: Name des Workers); die Absicht aus der Beschreibung
+   * des Harness im Marker (`description`), sonst abgeleitet. `command` bleibt wortgleich.
+   */
+  rolle: FreigabeRolle;
+  anzeigename: string;
+  absicht: string;
+  absichtQuelle: AbsichtQuelle;
+  /** Das Werkzeug des Harness, das gefragt hat (der Bash-Guard: Bash). */
+  werkzeug: string;
+  kurztext: string;
 }
 
 /**
@@ -314,16 +358,23 @@ interface PaneZuordnung {
   sessionName: string;
   machine: string;
   worker: string;
+  rolle: FreigabeRolle;
+  /** Der Name, den die Werkbank zeigt: die Sitzung beim Orchestrator, der Worker sonst. */
+  anzeigename: string;
 }
 
 function lebendePanes(sessions: SessionInfo[]): Map<string, PaneZuordnung> {
   const karte = new Map<string, PaneZuordnung>();
   for (const s of sessions) {
     if (s.orchestratorPane) {
-      karte.set(s.orchestratorPane, { sessionId: s.id, sessionName: s.name, machine: s.machine, worker: 'Orchestrator' });
+      karte.set(s.orchestratorPane, {
+        sessionId: s.id, sessionName: s.name, machine: s.machine, worker: 'Orchestrator', rolle: 'orchestrator', anzeigename: s.name,
+      });
     }
     for (const w of s.workers) {
-      if (w.paneId) karte.set(w.paneId, { sessionId: s.id, sessionName: s.name, machine: s.machine, worker: w.name });
+      if (w.paneId) {
+        karte.set(w.paneId, { sessionId: s.id, sessionName: s.name, machine: s.machine, worker: w.name, rolle: 'worker', anzeigename: w.name });
+      }
     }
   }
   return karte;
@@ -375,12 +426,24 @@ export function readGuardBlocks(dir: string, sessions: SessionInfo[], tmuxSocket
       continue;
     }
     const treffer = panes.get(pane);
+    const command = String(inhalt.command ?? '');
+    const werkzeug = String(inhalt.werkzeug ?? inhalt.tool_name ?? '') || 'Bash';
+    const absicht = absichtBestimmen(typeof inhalt.description === 'string' ? inhalt.description : '', command, werkzeug);
+    const kopf = {
+      rolle: treffer?.rolle ?? ('unbekannt' as FreigabeRolle),
+      anzeigename: treffer?.anzeigename ?? `Pane ${pane}`,
+      absicht: absicht.text,
+      absichtQuelle: absicht.quelle,
+    };
     raus.push({
+      ...kopf,
+      werkzeug,
+      kurztext: freigabeKurztext(kopf),
       path: pfad,
       pane,
       guard: String(inhalt.guard ?? ''),
       reason: String(inhalt.reason ?? ''),
-      command: String(inhalt.command ?? ''),
+      command,
       cwd: String(inhalt.cwd ?? ''),
       ts: String(inhalt.ts ?? ''),
       sessionId: treffer?.sessionId ?? '',
@@ -424,7 +487,7 @@ export function readGuardLog(pfad: string, limitZeilen = 5000, jetztMs: number =
   } catch {
     return [];
   }
-  // NUR DER AKTUELLE MONAT (Entscheidung alice, 09.10.2026): aeltere Monate liegen als
+  // NUR DER AKTUELLE MONAT (Entscheidung decision 2026-10-09): aeltere Monate liegen als
   // guard-blocks.YYYY-MM.log.gz neben der Datei (hooks/lib/guard_log.py). Eine Datei, die
   // noch Eintraege eines aelteren Monats traegt (die Rotation geschieht beim naechsten
   // Schreiben), zeigt sie trotzdem nicht. Zeilen ohne lesbaren Zeitstempel bleiben.

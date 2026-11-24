@@ -27,10 +27,10 @@ NACHRICHT_WEG = {
 # Harnesses, deren Registry-Ziel als Leseort nicht belegt ist: OFFEN statt GLEICH/FEHLT.
 NICHT_BELEGT = {
     "agy": "Leseort ~/.antigravity/AGENTS.md nicht belegt; agy liest Regeln laut Doku unter ~/.gemini/config/ "
-           "(AGENTS.md, rules/, GEMINI.md; Herleitung, Quota erschoepft bis 15.10. 21:34, keine Probe), "
+           "(AGENTS.md, rules/, GEMINI.md; Herleitung, Quota erschoepft bis 15.10., keine Probe), "
            "nicht umgestellt ohne Beleg",
 }
-# Ziele, die kein Weg schreibt (Review wz-integ2, J; gleiche Liste in wb-instructions GESPERRTE_ZIELE).
+# Ziele, die kein Weg schreibt (Review task, J; gleiche Liste in wb-instructions GESPERRTE_ZIELE).
 GESPERRT = {"~/AGENTS.md": "~/AGENTS.md bleibt bewusst weg (25.09.: jeder Harness in ~ liest sie); jcode kennt "
                            "global nur diesen Ort (Binary 0.72.0) und bekommt den Text ueber AGENTS.md im Arbeitsverzeichnis"}
 NACHRICHT_OHNE = {
@@ -40,7 +40,7 @@ NACHRICHT_OHNE = {
 
 def _instructions_laden():
     """-> (Modul, None) oder (None, Grund). Ein Ladefehler ist laut (stderr und Grund im Befund),
-    nicht still: sonst stuenden alle Datei-Harnesses ohne Hinweis auf OFFEN (Review wz-integ2, I)."""
+    nicht still: sonst stuenden alle Datei-Harnesses ohne Hinweis auf OFFEN (Review task, I)."""
     pfad = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wb-instructions")
     if not os.path.isfile(pfad):
         return None, "wb-instructions fehlt neben %s" % os.path.basename(__file__)
@@ -76,7 +76,7 @@ def _takt_text(e):
     return "je Nachricht" if n == 1 else "jede %s. Nachricht je Sitzung" % n
 
 
-def _nachricht_grund(harness, e, ad=None):
+def _nachricht_grund(harness, e, ad=None, q=None, reg=None):
     if "nachricht" not in (e.get("anlaesse") or list(kern.ANLAESSE)) or not e.get("erinnerung"):
         return "Erinnerung je Nachricht: nicht verlangt"
     reg_weg = (ad or {}).get("erinnerung")
@@ -94,8 +94,49 @@ def _nachricht_grund(harness, e, ad=None):
         except (OSError, UnicodeDecodeError):
             da = False
         return "Erinnerung %s: %s %s" % (_takt_text(e), was, "installiert" if da else "fehlt (%s)" % ziel)
-    return "Erinnerung je Nachricht: keine (%s)" % NACHRICHT_OHNE.get(
-        harness, "kein Hook je Nachricht belegt; nur Volltext am Start und im Worker-Auftrag")
+    hook = _bruecken_hook(harness, q, reg)
+    if hook:
+        return "Erinnerung %s: Hook-Bruecke (hooks.%s, Zustand unter Art hooks)" % (_takt_text(e), hook)
+    return "Takt nicht möglich: %s; nur Volltext am Start und im Worker-Auftrag" % _ohne_takt_grund(harness, reg)
+
+
+def _bruecken_hook(harness, q, reg):
+    """Name des Quell-Hooks, der die Erinnerung (wb-anweisung) bei UserPromptSubmit ueber die Hook-Bruecke
+    dieses Harness einspielt, sonst None (hooks.anweisungen-erinnerung, task 18.10.)."""
+    if q is None or reg is None:
+        return None
+    m = kern.maschine()
+    for name, h in (q.get("hooks") or {}).items():
+        if not isinstance(h, dict) or h.get("status") or m not in h.get("maschinen", [m]):
+            continue
+        if "wb-anweisung" not in (h.get("befehl") or "") or \
+                not any(s.partition(":")[0] == "UserPromptSubmit" for s in h.get("ereignisse") or []):
+            continue
+        ziele = kern.harnesses_aufloesen(h.get("harnesses", []), "hooks", reg)
+        if harness in ziele:
+            return name
+        # dasselbe Programm mit derselben Datei (copilot-cloud wie copilot): der Eintrag dort gilt auch hier.
+        wie = next(((x.get("toolAdapter") or {}).get("hooks") or {} for x in reg.get("harnesses", [])
+                    if x.get("id") == harness), {}).get("wie")
+        if wie and wie in ziele:
+            return "%s ueber %s" % (name, wie)
+    return None
+
+
+def _ohne_takt_grund(harness, reg):
+    """Warum die Erinnerung diesen Harness nicht im Takt erreicht; aus der Registry-Zelle hooks."""
+    if harness in NACHRICHT_OHNE:
+        return NACHRICHT_OHNE[harness]
+    z = (kern.zelle(reg, harness, "hooks") if reg is not None else None) or {}
+    weg = z.get("weg") or z.get("format")
+    if weg in (None, "leer"):
+        return z.get("grund") or "kein Hook-Mechanismus belegt"
+    b = z.get("bruecke")
+    if not isinstance(b, dict):
+        return "Hook-Weg %s hat keine Bruecke fuer UserPromptSubmit (Adapter folgt)" % weg
+    if "UserPromptSubmit" not in (b.get("ereignisse") or {}):
+        return "die Hook-Bruecke traegt UserPromptSubmit nicht (%s)" % ", ".join(sorted(b.get("ereignisse") or {}))
+    return "kein Quell-Hook mit wb-anweisung fuer %s (hooks.anweisungen-erinnerung)" % harness
 
 
 def _bewerten(roh, q, reg, state, nur_harness=None, nur_art=None):
@@ -113,7 +154,7 @@ def _bewerten(roh, q, reg, state, nur_harness=None, nur_art=None):
             continue
         h = x["harness"]
         ad = adapter.get(h) or {}
-        nachricht = _nachricht_grund(h, e, ad)
+        nachricht = _nachricht_grund(h, e, ad, q, reg)
         start = "Volltext ueber den Rollenblock von wb-harness-run (Datei-Harnesses) und den Spawner-Auftrag"
         if "sitzungsstart" not in (e.get("anlaesse") or list(kern.ANLAESSE)):
             aus.append(dict(x, zustand="OFFEN", grund="kein Anlass sitzungsstart; " + nachricht))

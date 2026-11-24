@@ -26,6 +26,7 @@ import {
   harnessSessionSpec,
   kontextFenster,
   sessionLoadGemerkt,
+  SESSION_LOAD_FRISCH_OHNE_PANE_MS,
 } from './workerstate';
 import { Ergebnis, ergebnisStand } from './results';
 import { blockiertePanes } from './freigaben';
@@ -197,6 +198,12 @@ export interface SessionInfo {
    * vergisst, sperrt still den Knopf, den es hier gerade zu retten gilt.
    */
   verloren: boolean;
+  /**
+   * Nur zusammen mit `verloren`: die Sitzung wird angeboten, weil der Rechner
+   * neu gestartet wurde (lebensspur.ts, Punkt 1), nicht weil ihr Ende fehlt.
+   * Gesetzt vom Hauptprozess nach `leseSessions`; die Liste selbst fuehrt es nicht.
+   */
+  nachNeustart?: boolean;
   /**
    * FUER DIESEN ORDNER LAEUFT GERADE EIN START (21.08.). Gilt wie `verloren`
    * nur zusammen mit `state === 'stopped'` und aus demselben Grund als
@@ -559,7 +566,7 @@ export function parsePaneRows(raw: string): PaneRow[] {
 /**
  * WORKER-PANES, VON DENEN DIE ZUSTANDSDATEI NICHTS WEISS (19.08.).
  *
- * DER BEFUND (alice, 19.08.): „bei 3 workern ist die aufteilung des platzes
+ * DER BEFUND (decision 08-19): „bei 3 workern ist die aufteilung des platzes
  * noch nicht richtig, das untere rechte viertel ist frei." Im tmux-Fenster war
  * nichts leer -- es hatte VIER Panes, alle gefuellt. Einer davon war der
  * SPIEGEL einer Sitzung auf der anderen Maschine: `@wb_role worker`,
@@ -1020,7 +1027,8 @@ export function leseSessions(opt: SessionsOptions): SessionsBefund {
         const spec = harnessSessionSpec(wharness, opt.modelsFile);
         if (spec) {
           const fenster = kontextFenster(wmodel, opt.modelsFile);
-          const s = sessionLoadGemerkt(spec, wdir, fenster);
+          // Ohne lebenden Pane ist die Sitzungsdatei fertig geschrieben: selten nachlesen.
+          const s = sessionLoadGemerkt(spec, wdir, fenster, undefined, pane ? undefined : SESSION_LOAD_FRISCH_OHNE_PANE_MS);
           if (s.percent !== -1) {
             contextPercent = s.percent;
             contextTokens = s.tokens;

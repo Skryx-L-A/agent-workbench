@@ -96,7 +96,42 @@ if [ -n "$h5$d7" ]; then
   # seven_day_resets_at seit 2026-08-10: ohne ihn ist ein Wochen-Reset im Log nur
   # am Ruecksprung der Prozentzahl zu erraten, und mehrere Sessions schreiben den
   # Uebergang unterschiedlich - die Wochenkalibrierung war daran nicht belegbar.
-  line="{\"ts\":\"$ts\",\"session\":\"${sid}\",\"five_hour_pct\":${h5:-null},\"seven_day_pct\":${d7:-null},\"five_hour_resets_at\":\"${h5r}\",\"seven_day_resets_at\":\"${d7r}\"}"
+  # konto (task, 14.11.2026; vorher task): Das Konto ist aus
+  # dem Token nicht lesbar. Die Angabe kommt aus WB_CLAUDE_KONTO_AKTIV, das wb-harness-run
+  # bzw. der direkte pi-worker-Pfad dem claude-Kind mit dem Token setzt (diese Zeile ist
+  # ein Kind von claude und erbt die Umgebung). `wb-konto zuordnen` prueft sie gegen die
+  # seven_day_resets_at-Familie: passt sie, steht das Konto da; widerspricht sie,
+  # "widerspruch" (laut auf stderr, nicht geraten); ohne Angabe (Browser-Anmeldung) die
+  # Familie oder "unbekannt". Der frueher feste Rueckfall "gross" war falsch beschriftet.
+  # konto_quelle markiert die geprueften neuen Zeilen fuer wb-konto wahl.
+  # Fund K (17.11.2026): Nach /login nennt WB_CLAUDE_KONTO_AKTIV weiter das Startkonto. Mit --pid (Ahnen bis zum
+  # claude-Prozess) und --sitzung liest `zuordnen` dessen Marke; ist sie auf die gemessene Familie nachgezogen
+  # (Regel E oder von Hand), steht das gemessene Konto da statt "widerspruch".
+  KONTO=unbekannt
+  if [ -x "$HOME/.local/bin/wb-konto" ]; then
+    KONTO=$("$HOME/.local/bin/wb-konto" zuordnen --angabe "${WB_CLAUDE_KONTO_AKTIV:-}" \
+            --seven-day-resets-at "${d7r}" --sitzung "${sid}" --pid "${PPID}" 2>/dev/null) || KONTO=unbekannt
+    case "$KONTO" in gross|klein|widerspruch|unbekannt) ;; *) KONTO=unbekannt ;; esac
+    # Obergrenze je Konto: Starts ueber die Mac-Anmeldung wechselt niemand; hier steht nur
+    # die Warnung, sobald der eigene Messwert die Obergrenze des Kontos erreicht.
+    case "$KONTO" in gross|klein)
+      warn=$("$HOME/.local/bin/wb-konto" obergrenze --warnung "$KONTO" "${d7:-}" "${h5:-}" 2>/dev/null) || warn=""
+      [ -n "$warn" ] && out="$out$SEP${RED}${warn}${RST}" ;;
+    esac
+    # Ziel je Konto: Rest bis zur Zielmarke (Obergrenze der Woche, sonst 100 %) und Reset, aus
+    # `wb-konto ziel --kurz`. Ein Aufruf kostet rund 0,3 s; deshalb hoechstens alle 5 min neu, dazwischen aus der
+    # Ablage. Schlaegt der Aufruf fehl (aeltere Fassung ohne --kurz), bleibt die Anzeige leer statt falsch.
+    ZF="$LIMDIR/konto-ziel.txt"
+    if [ -z "$(find "$ZF" -mmin -5 2>/dev/null)" ]; then
+      mkdir -p "$LIMDIR" 2>/dev/null
+      zneu=$("$HOME/.local/bin/wb-konto" ziel --kurz 2>/dev/null) && [ -n "$zneu" ] &&
+        printf '%s\n' "$zneu" > "$ZF.$$.tmp" 2>/dev/null && mv -f "$ZF.$$.tmp" "$ZF" 2>/dev/null
+      rm -f "$ZF.$$.tmp" 2>/dev/null
+    fi
+    ziel=$(head -n 1 "$ZF" 2>/dev/null)
+    [ -n "$ziel" ] && out="$out$SEP${DIM}${ziel}${RST}"
+  fi
+  line="{\"ts\":\"$ts\",\"session\":\"${sid}\",\"five_hour_pct\":${h5:-null},\"seven_day_pct\":${d7:-null},\"five_hour_resets_at\":\"${h5r}\",\"seven_day_resets_at\":\"${d7r}\",\"konto\":\"${KONTO}\",\"konto_quelle\":\"statuszeile\"}"
   mkdir -p "$LIMDIR" 2>/dev/null
 
   # Exit 0 = die vorhandene Momentaufnahme ist neuer als diese Nutzlast, also behalten.

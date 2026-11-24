@@ -125,9 +125,15 @@ done
 # rollen.verzeichnis() das Register), TMUX und TMPDIR (nur Kandidaten fuer Sockets; jeder wird
 # an der uid geprueft). `ps` und `tmux` (in rollen.py) kommen aus dem festen PATH von py_rein,
 # nicht mehr aus dem PATH des Aufrufers.
+# ROLLEN.PY NUR AUS REPO ODER HEIMAT (18.10.2026, Auftrag pathklasse-sicher; devdir-sicher OPEN 3):
+# der zweite Ort war $HOME/.claude/hooks/lib. Das installierte Werkzeug in ~/.local/bin findet
+# den ersten (../hooks/lib) nicht und nahm damit ein Modul aus einem HOME, das der Aufrufer
+# waehlt; dessen Code lief im Python der Messung und konnte "orchestrator" ausgeben. Jetzt:
+# neben dem Skript im Repo, sonst die Heimat laut Benutzerdatenbank. Ebenso wb-mensch unten.
+# AWB_ROLLEN_DIR und HOME waehlen weiter nur das Register (kann nur verschaerfen).
 wb_herkunft() {
   py_rein - "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)/hooks/lib" \
-    "$HOME/.claude/hooks/lib" "${AWB_ROLLEN_DIR:-}" "${HOME:-}" "${TMUX:-}" "${TMPDIR-/tmp}" <<'PY'
+    "$WB_MOBIL_HEIM/.claude/hooks/lib" "${AWB_ROLLEN_DIR:-}" "${HOME:-}" "${TMUX:-}" "${TMPDIR-/tmp}" <<'PY'
 import json, os, pwd, re, socket, subprocess, sys
 
 LIBS = sys.argv[1:3]
@@ -391,7 +397,7 @@ elif [ "$ACTION" = approve ]; then
       exit 3 ;;
     *)
       MENSCH_BIN="$(dirname "${BASH_SOURCE[0]}")/wb-mensch"
-      [ -x "$MENSCH_BIN" ] || MENSCH_BIN="$HOME/.local/bin/wb-mensch"
+      [ -x "$MENSCH_BIN" ] || MENSCH_BIN="$WB_MOBIL_HEIM/.local/bin/wb-mensch"   # nie aus $HOME (18.10.2026)
       if ! { [ -x "$MENSCH_BIN" ] && "$MENSCH_BIN" pruefen </dev/null >/dev/null 2>&1; }; then
         echo "wb-decide: ABGELEHNT — Annehmen ohne gemessene Herkunft (${H_KLASSE:-unbestimmt}${H_WO:+ $H_WO}): weder ein Orchestrator-Pane noch ein Mensch (wb-mensch). Ablehnen geht ohne Nachweis. Nichts geschrieben." >&2
         exit 3
@@ -407,7 +413,7 @@ else
       fi ;;
     *)
       MENSCH_BIN="$(dirname "${BASH_SOURCE[0]}")/wb-mensch"
-      [ -x "$MENSCH_BIN" ] || MENSCH_BIN="$HOME/.local/bin/wb-mensch"
+      [ -x "$MENSCH_BIN" ] || MENSCH_BIN="$WB_MOBIL_HEIM/.local/bin/wb-mensch"   # nie aus $HOME (18.10.2026)
       if ! { [ -x "$MENSCH_BIN" ] && "$MENSCH_BIN" pruefen </dev/null >/dev/null 2>&1; }; then
         echo "wb-decide: ABGELEHNT — Ablehnen ohne gemessene Herkunft (${H_KLASSE:-unbestimmt}${H_WO:+ $H_WO}): weder ein Orchestrator-Pane noch ein Mensch (wb-mensch) noch der eigene Antrag eines Workers. Nichts geschrieben." >&2
         exit 3
@@ -481,6 +487,13 @@ echo "Genehmigt: $REQ"
 grundzeile
 [ -n "$R_FILES" ] && echo "Dateien laut Antrag: $R_FILES"
 echo
+# Jedes Argument in einfache Anfuehrungszeichen; ein ' im Wert wird zu '\''. Ohne Backslash ausserhalb
+# dieser Form: die Zeile liest sich als Text und ergibt fuer eine Shell dieselben Argumente.
+shq() {
+  local s="$1" ersatz="'\\''"   # bash 3.2 (macOS) setzt eine in "" stehende Ersetzung falsch ein
+  s="${s//"'"/$ersatz}"
+  printf "'%s'" "$s"
+}
 echo "Starten (der Orchestrator fuehrt das aus, nichts passiert automatisch):"
-printf '%s %s %s %s %s\n' "$TOOL" "$(printf %q "$R_CHILD_NAME")" "$(printf %q "$MODELARG")" \
-  "$(printf %q "$R_DIR")" "$(printf %q "$R_TASK")"
+printf '%s %s %s %s %s\n' "$TOOL" "$(shq "$R_CHILD_NAME")" "$(shq "$MODELARG")" \
+  "$(shq "$R_DIR")" "$(shq "$R_TASK")"

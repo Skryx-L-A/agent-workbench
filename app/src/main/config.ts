@@ -156,7 +156,7 @@ export interface Config {
    * nur verborgen (4c.2). Gehoert bewusst hierher und nicht in eine Konstante
    * im Code, damit die Liste sichtbar und pruefbar ist (~/.config/agent-
    * workbench/config.json). Glob-Syntax: `*` = ein Pfadstueck, `**` = beliebig
-   * viele. Die Vorgabe deckt `~/Knowledge/secrets/`, `~/.ssh/` und die
+   * viele. Die Vorgabe deckt `~/Knowledge/90-secrets/`, `~/.ssh/` und die
    * gaengigen Zugangsdaten-Dateimuster ab (dieselben wie in
    * hooks/bash-guard-secrets.sh, aus demselben Grund).
    */
@@ -309,7 +309,7 @@ function portAus(wert: unknown, vorgabe: number): number {
 
 /**
  * Den Zugang zum Mantel-Socket aus der Umgebung NEHMEN, nicht nur lesen
- * (13.10.2026, Auftrag wz-mantel). Stehen AWB_MANTEL_SOCKET/AWB_MANTEL_TOKEN
+ * (13.10.2026, task). Stehen AWB_MANTEL_SOCKET/AWB_MANTEL_TOKEN
  * weiter in `process.env`, erbt sie jedes Kind: der tmux-Server und damit
  * jede Agenten-Shell in jedem Pane (gemessen: beide Namen im Env des
  * tmux-Servers und einer Agenten-Shell). Kein Kind braucht sie -- die
@@ -378,7 +378,7 @@ export function loadConfig(
     excludeGlobs: (env.AWB_EXCLUDE_GLOBS?.split(',').map((s) => s.trim()).filter(Boolean))
       ?? file.excludeGlobs
       ?? [
-        '**/secrets', '**/secrets/**',
+        '**/90-secrets', '**/90-secrets/**',
         '**/.ssh', '**/.ssh/**',
         '**/.env', '**/.env.*',
         '**/id_rsa', '**/id_ed25519', '**/id_ecdsa',

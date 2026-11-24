@@ -84,11 +84,15 @@ SPLASH_ARBEITSSATZ_GIB=28.0
 # mal angefordertem Kontext. Grundsatz = geladen und untaetig (gemessen 19,6 GiB);
 # der KV-Wert je Token steht als gemessener Eintrag SPLASH_KV_SCHLUESSEL im
 # KV-Register von wb-belegung (`wb-belegung kv liste`), nicht hier.
-# Bis ein Messpunkt bei 262.144 Token die Steigung bestaetigt, bleibt der feste
-# Arbeitssatz oben die Vorgabe: SPLASH_BUCHUNG_NACH_KONTEXT=0.
+# Seit 29.10.2026 die Vorgabe (SPLASH_BUCHUNG_NACH_KONTEXT=1, der Nutzer: der Schutz
+# muss passen, wenn das Modell tatsaechlich laedt). Der feste Satz lehnte einen Start
+# mit 32.768 Token bei 24,8 GiB frei ab, obwohl die Rechnung 21,3 GiB ergibt. Die
+# Rechnung trifft den Messpunkt (162.698 Token: 27,9 GiB) und rechnet fuer 262.144
+# Token mit 33,0 GiB vorsichtiger als der feste Satz. Der feste Arbeitssatz oben bleibt
+# als Rueckfall: SPLASH_BUCHUNG_NACH_KONTEXT=0.
 SPLASH_GRUNDSATZ_GIB=19.6
 SPLASH_KV_SCHLUESSEL=qwen3.8-27b-splash
-SPLASH_BUCHUNG_NACH_KONTEXT=0
+SPLASH_BUCHUNG_NACH_KONTEXT=1
 # Die Argumente fuer `wb-belegung nimm|darf`, eines je Zeile. <kontext> ist die
 # Obergrenze, mit der der Server startet.
 splash_buchung_args() {  # <kontext> <modell-id>
@@ -104,12 +108,11 @@ splash_buchung_args() {  # <kontext> <modell-id>
 # fuer die eine Stelle, an der ein Schalter eine Schranke aufhebt. Begruendung
 # im Kopf von pi-worker ("WO das Pruefprogramm gesucht wird").
 wb_heimatverzeichnis() {
-  local h=""
-  if command -v dscl >/dev/null 2>&1; then
-    h="$(dscl . -read "/Users/$(id -un)" NFSHomeDirectory 2>/dev/null | awk '{print $2}')"
-  fi
-  [ -n "$h" ] || h="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)"
-  printf '%s' "${h:-$HOME}"
+  # Mit festem Interpreter unter `env -i`, nie mit dscl/id/getent aus dem PATH des Aufrufers
+  # (18.10.2026, Befund devdir-sicher N5): ein eigenes `dscl` vorn im PATH nannte sonst das
+  # umgelenkte HOME als Heimat, und die Schranke darunter fiel. Kein Rueckfall auf $HOME:
+  # scheitert die Abfrage, bleibt die Schranke (WB_HEIM leer).
+  /usr/bin/env -i /usr/bin/python3 -I -S -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir, end="")' 2>/dev/null
 }
 WB_HEIM="$(wb_heimatverzeichnis)"
 # M2 (Oberflaeche als Ahne) braucht WB_MENSCH_QUELLE und WB_APP_PID, und `env -i`
@@ -198,6 +201,16 @@ splash_lademodell() {  # <modelRef> <splashModel aus der Registry oder leer>
     *) printf '%s' "$1" ;;
   esac
 }
+lies_feld() {  # <id> <feld>: setzt LIES_WERT; scheitert wb-state, Meldung mit Exit-Code und stderr, Rueckgabe 1
+  local ef rc
+  ef="$(mktemp "${TMPDIR:-/tmp}/wb-splash-lies.XXXXXX")" || { err "Keine Temp-Datei fuer die Fehlerausgabe von wb-state."; return 1; }
+  LIES_WERT="$($HOME/.local/bin/wb-state models get "$1" --field "$2" 2>"$ef")"; rc=$?
+  if [ "$rc" -ne 0 ]; then
+    err "wb-state konnte das Feld '$2' von Modell '$1' nicht lesen (Exit $rc): $(head -c 300 "$ef" | tr '\n' ' ')"
+    rm -f "$ef"; LIES_WERT=""; return 1
+  fi
+  rm -f "$ef"
+}
 resolve() {
   local eingabe="$1"
   local id; id="$($HOME/.local/bin/wb-state models get "$eingabe" --field id 2>/dev/null)"
@@ -211,10 +224,14 @@ resolve() {
     return 1
   fi
   RES_ID="$id"
-  RES_REF="$($HOME/.local/bin/wb-state models get "$id" --field modelRef 2>/dev/null)"
-  RES_LADE="$(splash_lademodell "$RES_REF" "$($HOME/.local/bin/wb-state models get "$id" --field splashModel 2>/dev/null)")"
-  RES_GEW="$($HOME/.local/bin/wb-state models get "$id" --field gewichteGb 2>/dev/null)"
-  RES_CTX="$($HOME/.local/bin/wb-state models get "$id" --field contextWindow 2>/dev/null)"
+  # Scheitert wb-state, sagt die Meldung das (Exit-Code und stderr); "Exit 0, leerer Wert"
+  # ist ein anderer Fall und bleibt Sache der Pruefungen weiter unten.
+  local splash_modell
+  lies_feld "$id" modelRef || return 1;      RES_REF="$LIES_WERT"
+  lies_feld "$id" splashModel || return 1;   splash_modell="$LIES_WERT"
+  RES_LADE="$(splash_lademodell "$RES_REF" "$splash_modell")"
+  lies_feld "$id" gewichteGb || return 1;    RES_GEW="$LIES_WERT"
+  lies_feld "$id" contextWindow || return 1; RES_CTX="$LIES_WERT"
   # modelRef ist hier eine Hugging-Face-Kennung (owner/repo), KEIN Pfad: Splash
   # laedt und verwaltet das Paket selbst.
   case "$RES_REF" in
@@ -239,8 +256,11 @@ antwortet() {
 }
 
 served_ref() {  # welches Modell bedient der laufende Server
-  curl -s -m 4 "http://$HOSTB:$PORT/v1/models" 2>/dev/null \
-    | python3 -c 'import json,sys
+  # Erst die Antwort holen, dann auswerten: keine Leitung von curl in einen Interpreter
+  # (Scorecard PinnedDependencies, downloadThenRun). Python liest nur JSON, nie Code.
+  local antwort
+  antwort="$(curl -s -m 4 "http://$HOSTB:$PORT/v1/models" 2>/dev/null)"
+  printf '%s' "$antwort" | python3 -c 'import json,sys
 try:
     d=json.load(sys.stdin); print((d.get("data") or [{}])[0].get("id",""))
 except Exception: print("")' 2>/dev/null
@@ -397,7 +417,7 @@ except Exception: print("")' "$AKTUELL" 2>/dev/null)"
   err "freier Speicher vor dem Start: ${free_mib:-?} MiB (informativ)."
 
   # BELEGUNG: GEMESSENER ARBEITSSATZ ALS "GEWICHTE", KEIN KV JE STROM.
-  # Splash 1.3 (gemessen 10.10.2026, 18:47-19:00, Netzbetrieb, powermode 2, allein
+  # Splash 1.3 (gemessen 10.10.2026, Netzbetrieb, powermode 2, allein
   # auf der Maschine; Messgroesse wie am 20.09.: freier Speicher laut check-resources,
   # Arbeitssatz = frei vor dem Start minus Tiefstwert):
   #   * Anders als Splash 1.0 verdrahtet 1.3 die Gewichte beim Laden (wired
@@ -406,9 +426,10 @@ except Exception: print("")' "$AKTUELL" 2>/dev/null)"
   #   * Eine Anfrage mit 162.698 Token: 27,9 GiB. Der Satz waechst mit dem Cache
   #     (rund 0,05 MiB je Token) und bleibt nach den Anfragen stehen, bis Splash ihn
   #     nach --idle-release (Vorgabe 10 min) freigibt.
-  # Gebucht wird die gemessene Spitze, 28,0 GiB, mit --nur-gewichte. Fuer volle
-  # 262.144 Token waeren es hochgerechnet rund 33 GiB -- nicht gemessen und deshalb
-  # nicht gebucht. Die Buchung von 1.0 (14,6 GiB, laengenunabhaengig, 20.09.2026)
+  # Gebucht wird seit 29.10.2026 nach Kontext (siehe SPLASH_BUCHUNG_NACH_KONTEXT):
+  # 19,6 GiB plus 0,0524 MiB je Token der Obergrenze, fuer volle 262.144 Token also
+  # hochgerechnet 33,0 GiB. Der feste Satz von 28,0 GiB mit --nur-gewichte bleibt
+  # der Rueckfall. Die Buchung von 1.0 (14,6 GiB, laengenunabhaengig, 20.09.2026)
   # galt fuer das alte Paketformat.
   local nimm_out nimm_rc kennung="" BUCHUNG=()
   while IFS= read -r zeile; do BUCHUNG+=("$zeile"); done < <(splash_buchung_args "$kontext" "$RES_ID")
@@ -422,7 +443,7 @@ except Exception: print("")' "$AKTUELL" 2>/dev/null)"
   # Modell. Haelt ein MLX- oder oMLX-Server den Speicher, wird er gestoppt und
   # EINMAL neu gebucht -- sonst scheitert der Wechsel auf Splash an einem Motor,
   # den niemand mehr braucht.
-  if [ "$nimm_rc" -eq 1 ] && printf '%s' "$nimm_out" | grep -qiE 'wb-mlx-server|mlx|qwen38-27b|Port 808'; then
+  if [ "$nimm_rc" -eq 1 ] && grep -qiE 'wb-mlx-server|mlx|qwen38-27b|Port 808' <<<"$nimm_out"; then
     err "wb-splash-server: kein Platz, aber ein MLX-Server haelt den Speicher — stoppe ihn und buche neu."
     "$HOME/.local/bin/wb-mlx-server" stop >/dev/null 2>&1
     "$HOME/.local/bin/wb-omlx-server" stop >/dev/null 2>&1
@@ -439,6 +460,17 @@ except Exception: print("")' "$AKTUELL" 2>/dev/null)"
     # koennen; ein Mensch am Terminal darf es weiterhin.
     if [ "${WB_SPLASH_OHNE_BELEGUNG:-0}" = "1" ] && mensch_gemessen; then
       err "WARNUNG: wb-belegung scheiterte (Exit $nimm_rc) — WB_SPLASH_OHNE_BELEGUNG=1 von einem gemessenen Menschen, starte ohne Cross-Sitzungs-Sperre."
+      # Klartext fuer den Menschen im Pane (25.10.2026): was das Modell braucht, was frei ist, was folgt,
+      # und die Alternative. Die Zahlen stammen aus der NEIN-Zeile von wb-belegung ("28,0 GiB Spitze
+      # angefragt, nur 11,8 GiB verfuegbar"); fehlen sie, bleibt der Satz ohne Zahlen.
+      local brauch frei
+      brauch="$(printf '%s\n' "$nimm_out" | sed -n 's/.*NEIN — \([0-9][0-9,.]*\) GiB Spitze angefragt.*/\1/p' | head -1)"
+      frei="$(printf '%s\n' "$nimm_out" | sed -n 's/.*nur \([0-9][0-9,.]*\) GiB verfuegbar.*/\1/p' | head -1)"
+      if [ -n "$brauch" ] && [ -n "$frei" ]; then
+        err "WARNUNG: Das lokale Modell $RES_REF braucht rund $brauch GiB, frei sind nur $frei GiB. Der Mac wird stark auslagern und langsam werden. Alternative: fuer diese Sitzung ein Cloud-Modell waehlen."
+      else
+        err "WARNUNG: Das lokale Modell $RES_REF passt gerade nicht in den freien Speicher. Der Mac wird stark auslagern und langsam werden. Alternative: fuer diese Sitzung ein Cloud-Modell waehlen."
+      fi
     else
       if [ "${WB_SPLASH_OHNE_BELEGUNG:-0}" = "1" ]; then
         err "WB_SPLASH_OHNE_BELEGUNG ignoriert — der Schalter gilt nur fuer einen gemessenen Menschen, dieser Aufruf ist keiner."
@@ -491,7 +523,7 @@ except Exception: print("")' "$AKTUELL" 2>/dev/null)"
   probe="$(curl -s -m 120 "http://$HOSTB:$PORT/v1/chat/completions" \
     -H 'Content-Type: application/json' \
     -d "{\"model\":\"$RES_REF\",\"messages\":[{\"role\":\"user\",\"content\":\"Sag OK.\"}],\"max_tokens\":16,\"temperature\":0}" 2>/dev/null)"
-  if ! printf '%s' "$probe" | grep -q '"content"'; then
+  if ! grep -q '"content"' <<<"$probe"; then
     err "Probeanfrage an '$RES_REF' scheiterte — Antwort: $(printf '%s' "$probe" | head -c 200)"
     kill "$newpid" 2>/dev/null
     [ -n "$kennung" ] && "$WBB" gib "$kennung" --fremd >/dev/null 2>&1
@@ -541,8 +573,8 @@ splash_panes_leben() {
   command -v tmux >/dev/null 2>&1 || return 1
   # Ein schlafender Pane (wb-schlaf) haelt den Server nicht: schlafen alle, darf die
   # Leerlaufwache ihn stoppen; das Wecken faehrt ihn ueber den Modell-Proxy wieder hoch.
-  tmux list-panes -a -F '#{@wb_lokal_provider}|#{pane_dead}|#{@wb_schlaeft}' 2>/dev/null \
-    | grep -q '^splash-lokal|0|$'
+  _zw="$(tmux list-panes -a -F '#{@wb_lokal_provider}|#{pane_dead}|#{@wb_schlaeft}' 2>/dev/null)" \
+    && grep -q '^splash-lokal|0|$' <<<"$_zw"
 }
 
 idlewatch() {
@@ -717,7 +749,7 @@ cmd_probe() {
   if [ "$rc" -eq 0 ]; then
     probe="$(curl -s -m 120 "http://$HOSTB:$PROBE_PORT/v1/chat/completions" -H 'Content-Type: application/json' \
       -d "{\"model\":\"$RES_REF\",\"messages\":[{\"role\":\"user\",\"content\":\"Sag OK.\"}],\"max_tokens\":16,\"temperature\":0}" 2>/dev/null)"
-    printf '%s' "$probe" | grep -q '"content"' || rc=1
+    grep -q '"content"' <<<"$probe" || rc=1
   fi
   kill "$pid" 2>/dev/null
   for i in $(seq 1 30); do kill -0 "$pid" 2>/dev/null || break; sleep 1; done

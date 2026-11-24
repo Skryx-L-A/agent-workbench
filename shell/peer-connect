@@ -52,7 +52,15 @@ fi
 
 # tmux-Session anlegen, falls sie fehlt, dann anhaengen. `new-session -A` macht beides
 # in einem Schritt und haengt an eine bestehende an, statt eine zweite zu erzeugen.
-REMOTE="tmux new-session -A -s $(printf %q "$TARGET")"
+# Festes Kommando, bleibt eine Login-Shell (task, Nachtrag decision 2026-10-20):
+# ohne eins startet tmux AUF PEER-RECHNER eine Login-Shell ueber seinen eigenen impliziten
+# Vorgabe-Mechanismus, nicht deterministisch. peers /etc/profile.d setzt
+# CUDA_PATH/NVCC_CCBIN/PATH(/opt/cuda/bin) u.a. NUR fuer eine Login-Shell (gemessen) --
+# "-l" bleibt deshalb erhalten, dazu "-i" fuer die uebliche interaktive rc-Ladung.
+# `\$SHELL` bleibt hier unaufgeloest (Backslash) -- es wird erst auf peer expandiert,
+# wenn der entfernte Befehl laeuft, nicht schon hier mit dem SHELL dieses Macs.
+REMOTE="tmux new-session -A -s $(printf %q "$TARGET") exec \$SHELL -li"
+[ -n "${PEER_CONNECT_PRINT_REMOTE:-}" ] && { echo "$REMOTE"; exit 0; }
 
 case "$MODE" in
   mosh)

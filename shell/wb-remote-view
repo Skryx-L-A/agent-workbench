@@ -310,6 +310,10 @@ mit_frist() {
   local sek="$1"; shift
   local kind i=0 grenze
   if [ -n "$TIMEOUT_BIN" ]; then
+    # timeout(1) startet ein PROGRAMM; `command` ist ein Shell-Builtin und als Datei nur auf
+    # macOS da (/usr/bin/command). Unter Linux endete jeder Aufruf mit 127 (gemessen auf peer,
+    # 24.10.2026), und dieses Skript fand nie einen Worker. Funktionen sieht timeout ohnehin nicht.
+    [ "${1:-}" = command ] && shift
     command "$TIMEOUT_BIN" -k 2 "$sek" "$@"
     return $?
   fi
@@ -574,6 +578,9 @@ mit_frist() {   # mit_frist <sekunden> <programm> [args...] -- Rueckgabe 124 bei
   local sek="$1"; shift
   local kind i=0 grenze
   if [ -n "$TIMEOUT_BIN" ]; then
+    # `command` vorn faellt weg: timeout(1) startet ein Programm, und `command` gibt es als Datei
+    # nur auf macOS (Befund und Messung beim Fernskript oben).
+    [ "${1:-}" = command ] && shift
     command "$TIMEOUT_BIN" -k 2 "$sek" "$@"
     return $?
   fi

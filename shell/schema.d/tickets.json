@@ -1,0 +1,338 @@
+{
+  "version": 1,
+  "herkunft": "Ticketkern der Agents-Spur (shell/agents_data.py); Ort fuer alle Schluessel unter tickets.",
+  "einstellungen": [
+    {
+      "schluessel": "tickets.risikoAbnahme",
+      "klasse": "betreiber",
+      "typ": "wahl",
+      "wahl": [
+        "mensch",
+        "pruefer-oder-mensch"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "pruefer-oder-mensch",
+      "empfehlung": "pruefer-oder-mensch",
+      "risiko": {
+        "mensch": "Tickets mit Risiko an Schnittstelle, Datenaufbau oder Zugangsdaten nimmt nur ein Mensch ab; auch der Prüfer nicht.",
+        "pruefer-oder-mensch": "Tickets mit Risiko nimmt der Prüfer mit Prüfurteil zur aktuellen Fassung oder ein Mensch ab; Hauptagent und Teamleiter nicht."
+      },
+      "rolle": "admin",
+      "nurMensch": true,
+      "quelle": [
+        "project decision",
+        "decision 2026-10-27"
+      ],
+      "wirksamAb": "T-B",
+      "seite": "tickets",
+      "titel": "Abnahme von Tickets mit Risiko",
+      "beschreibung": "Wer ein Ticket mit Risikoklasse (schnittstelle, datenaufbau, zugangsdaten) abnehmen darf. Ohne Risikoklasse gilt die gewöhnliche Abnahme."
+    },
+    {
+      "schluessel": "tickets.austausch",
+      "klasse": "betreiber",
+      "typ": "wahl",
+      "wahl": [
+        "aus",
+        "an"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "aus",
+      "empfehlung": "aus",
+      "risiko": {
+        "aus": "Kein Adapter mit Netz läuft. Der CSV-Export folgt dem Schlüssel tickets.csv.",
+        "an": "Adapter dürfen mit den Fremdsystemen aus tickets.ziele Tickets abgleichen; Inhalte verlassen den Rechner."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision",
+        "decision 2026-10-27"
+      ],
+      "wirksamAb": "S7",
+      "seite": "tickets",
+      "titel": "Austausch mit Fremdsystemen",
+      "beschreibung": "Hauptschalter für jeden Adapter mit Netz (GitHub, GitLab, OpenProject, Jira, tk). Der CSV-Export ist davon ausgenommen. Anschalten kann nur die root-eigene Systemdatei: Daten nach außen zu schicken ist eine Grenze, die ein Agent unter der Nutzerkennung nicht aufheben darf."
+    },
+    {
+      "schluessel": "tickets.ziele",
+      "klasse": "betreiber",
+      "typ": "karte",
+      "richtung": "streng-zuerst",
+      "vorgabe": {},
+      "empfehlung": {},
+      "eintrag": {
+        "system": {
+          "typ": "wahl",
+          "wahl": [
+            "tk",
+            "github",
+            "gitlab",
+            "openproject",
+            "jira"
+          ],
+          "pflicht": true,
+          "richtung": "fest"
+        },
+        "url": {
+          "typ": "text",
+          "muster": "https?://[^\\s/@?#]+(/[^\\s?#]*)?",
+          "richtung": "fest"
+        },
+        "projekt": {
+          "typ": "text",
+          "richtung": "fest"
+        },
+        "maxKlasse": {
+          "typ": "wahl",
+          "wahl": [
+            "PUBLIC",
+            "INTERNAL",
+            "CONFIDENTIAL",
+            "CUSTOMER"
+          ],
+          "pflicht": true,
+          "richtung": "streng-zuerst"
+        },
+        "kunden": {
+          "typ": "liste",
+          "fehlt": "keine",
+          "richtung": "streng-zuerst"
+        },
+        "richtung": {
+          "typ": "wahl",
+          "wahl": [
+            "aus",
+            "ein",
+            "beide"
+          ],
+          "mengen": {
+            "aus": [
+              "aus"
+            ],
+            "ein": [
+              "ein"
+            ],
+            "beide": [
+              "aus",
+              "ein"
+            ]
+          },
+          "pflicht": true,
+          "richtung": "streng-zuerst"
+        },
+        "staende": {
+          "typ": "liste",
+          "fehlt": "alle",
+          "richtung": "streng-zuerst"
+        },
+        "konto": {
+          "typ": "text",
+          "muster": "schluesselbund:[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._@-]*",
+          "richtung": "fest"
+        }
+      },
+      "rolle": "sicherheitsadmin",
+      "nurMensch": true,
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision",
+        "decision 2026-10-27"
+      ],
+      "wirksamAb": "S7",
+      "seite": "tickets",
+      "titel": "Erlaubte Fremdsysteme",
+      "beschreibung": "Jedes erlaubte Ziel mit Namen (Buchstaben, Ziffern, _ und -): system, url, projekt, maxKlasse (höchste Datenklasse, die dorthin darf), kunden (Kunden, deren Tickets dorthin dürfen; fehlt = keiner), richtung (aus = nur nach außen, ein = nur herein, beide), staende (Werkbank-Stände, die das Ziel sieht; fehlt = alle) und konto. konto ist nur ein Verweis schluesselbund:<dienst>/<konto>, nie ein Zugangswert; ein Wert an dieser Stelle macht den Eintrag ungültig. Nutzer- und Betreiberdatei dürfen nur verschärfen: Ziele wegnehmen, maxKlasse senken, kunden, staende und richtung einschränken. Alles andere (neues Ziel, höhere maxKlasse, geänderte url, projekt, system oder konto) wird verworfen und gemeldet."
+    },
+    {
+      "schluessel": "tickets.importKlasse",
+      "klasse": "betreiber",
+      "typ": "wahl",
+      "wahl": [
+        "CUSTOMER",
+        "CONFIDENTIAL",
+        "INTERNAL",
+        "PUBLIC"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "CONFIDENTIAL",
+      "empfehlung": "CONFIDENTIAL",
+      "risiko": {
+        "CUSTOMER": "Importierte Tickets gelten als Kundendaten und bleiben auf lokalen Modellen.",
+        "CONFIDENTIAL": "Importierte Tickets gelten als vertraulich (Vorgabe für Unbekanntes, AV-37).",
+        "INTERNAL": "Importierte Tickets gelten als intern; Cloud-Routen bis INTERNAL dürfen sie lesen.",
+        "PUBLIC": "Importierte Tickets gelten als öffentlich; jede Route darf sie lesen."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision",
+        "decision 2026-10-27"
+      ],
+      "wirksamAb": "S7",
+      "seite": "tickets",
+      "titel": "Klasse importierter Tickets",
+      "beschreibung": "Datenklasse für ein importiertes Ticket, wenn das Ziel keine nennt. Je höher die Klasse, desto strenger: die Reihenfolge der Auswahl geht von streng nach locker, eine niedrigere Klasse lockert und kommt nur aus der Systemdatei."
+    },
+    {
+      "schluessel": "tickets.csv",
+      "klasse": "betreiber",
+      "typ": "wahl",
+      "wahl": [
+        "aus",
+        "export",
+        "beide"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "export",
+      "empfehlung": "export",
+      "risiko": {
+        "aus": "Kein Austausch über CSV-Dateien.",
+        "export": "Tickets lassen sich als CSV-Datei ausgeben; ein Import findet nicht statt.",
+        "beide": "Tickets lassen sich als CSV-Datei ausgeben und aus einer CSV-Datei einlesen."
+      },
+      "rolle": "admin",
+      "nurSystemebene": "mandant",
+      "quelle": [
+        "project decision",
+        "decision 2026-10-27"
+      ],
+      "wirksamAb": "S7",
+      "seite": "tickets",
+      "titel": "Austausch über CSV-Datei",
+      "beschreibung": "Export und Import über eine Datei, ohne Netz. Am Einzelplatz lockert die Betreiberebene mit wb-mensch, im Mandantenbetrieb nur die Systemdatei. Der Import setzt nie Stand, Abnahme, Prüfer, Frist oder Rundenzahl."
+    },
+    {
+      "schluessel": "tickets.csvMaxKlasse",
+      "klasse": "betreiber",
+      "typ": "wahl",
+      "wahl": [
+        "PUBLIC",
+        "INTERNAL",
+        "CONFIDENTIAL",
+        "CUSTOMER"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "INTERNAL",
+      "empfehlung": "INTERNAL",
+      "risiko": {
+        "PUBLIC": "Nur öffentliche Tickets gehen in einen CSV-Export.",
+        "INTERNAL": "Tickets bis INTERNAL gehen in einen CSV-Export.",
+        "CONFIDENTIAL": "Tickets bis CONFIDENTIAL gehen in einen CSV-Export.",
+        "CUSTOMER": "Auch Kundentickets gehen in einen CSV-Export."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": true,
+      "quelle": [
+        "project decision",
+        "decision 2026-10-27"
+      ],
+      "wirksamAb": "S7",
+      "seite": "tickets",
+      "titel": "Höchste Klasse im CSV-Export",
+      "beschreibung": "Ein Ticket über dieser Klasse bleibt aus dem CSV-Export draußen. Die Auswahl geht von der niedrigsten (streng) zur höchsten Klasse (locker); eine höhere Klasse lockert und kommt nur aus der Systemdatei."
+    },
+    {
+      "schluessel": "tickets.ki.hub",
+      "klasse": "betreiber",
+      "typ": "wahl",
+      "wahl": [
+        "aus",
+        "lesen",
+        "melden"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "melden",
+      "empfehlung": "melden",
+      "risiko": {
+        "aus": "Das Hub-Backend tickets bietet keine Werkzeuge an.",
+        "lesen": "Sitzungen mit MCP dürfen Tickets suchen und lesen.",
+        "melden": "Sitzungen mit MCP dürfen lesen, Tickets in triage anlegen und kommentieren; führen dürfen sie nie."
+      },
+      "rolle": "admin",
+      "nurMensch": true,
+      "nurSystemebene": "mandant",
+      "quelle": [
+        "project decision",
+        "decision 2026-10-27"
+      ],
+      "wirksamAb": "S6",
+      "seite": "tickets",
+      "titel": "KI-Zugang über den Hub",
+      "beschreibung": "Welche Werkzeuge das Hub-Backend tickets jeder Harness-Sitzung gibt. Einen Wert fuehren gibt es bewusst nicht: Führung läuft nur über den Controller-Beleg."
+    },
+    {
+      "schluessel": "tickets.ki.schreibFreigabe",
+      "klasse": "betreiber",
+      "typ": "wahl",
+      "wahl": [
+        "je-aufruf",
+        "nie"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "nie",
+      "empfehlung": "nie",
+      "risiko": {
+        "je-aufruf": "Anlegen und Kommentieren über den Hub verlangt je Aufruf eine Freigabe im UI (AV-38).",
+        "nie": "Anlegen und Kommentieren über den Hub braucht keine Freigabe."
+      },
+      "rolle": "sicherheitsadmin",
+      "nurSystemebene": "mandant",
+      "quelle": [
+        "project decision",
+        "decision 2026-10-27"
+      ],
+      "wirksamAb": "S6",
+      "seite": "tickets",
+      "titel": "Freigabe für Schreibzugriffe der KI",
+      "beschreibung": "Streng ist je-aufruf: jeder Schreibzugriff einer Hub-Sitzung wartet auf einen Menschen. nie heißt, es ist keine Freigabe nötig. Am Einzelplatz lockert die Betreiberebene mit wb-mensch."
+    },
+    {
+      "schluessel": "tickets.abgleich.minuten",
+      "klasse": "betreiber",
+      "typ": "zahl",
+      "bereich": {
+        "min": 1,
+        "max": 1440,
+        "einheit": "Minuten"
+      },
+      "richtung": "kleiner-lockert",
+      "vorgabe": 15,
+      "empfehlung": 15,
+      "rolle": "admin",
+      "quelle": [
+        "project decision",
+        "decision 2026-10-27"
+      ],
+      "wirksamAb": "S7",
+      "seite": "tickets",
+      "titel": "Abstand des Abgleichs",
+      "beschreibung": "Zeitplan des Abgleichs je Ziel in Minuten; Ereignisse lösen zusätzlich aus. Der Wert der Betreiberebene ist der kürzeste erlaubte Abstand: ein kürzerer Wert in einer tieferen Ebene (häufiger abfragen) lockert und wird verworfen."
+    },
+    {
+      "schluessel": "tickets.abgleich.trockenErst",
+      "klasse": "betreiber",
+      "typ": "wahl",
+      "wahl": [
+        "ja",
+        "nein"
+      ],
+      "richtung": "streng-zuerst",
+      "vorgabe": "ja",
+      "empfehlung": "ja",
+      "risiko": {
+        "ja": "Ein neues Ziel läuft zuerst nur als Trockenlauf mit Bericht; geschrieben wird erst nach der Durchsicht.",
+        "nein": "Ein neues Ziel schreibt gleich beim ersten Lauf."
+      },
+      "rolle": "admin",
+      "quelle": [
+        "project decision",
+        "decision 2026-10-27"
+      ],
+      "wirksamAb": "S7",
+      "seite": "tickets",
+      "titel": "Trockenlauf vor dem ersten Abgleich",
+      "beschreibung": "Ein neues Ziel läuft zuerst als Trockenlauf mit Bericht."
+    }
+  ]
+}

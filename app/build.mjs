@@ -444,6 +444,15 @@ await buildAtomic({
   outfile: join(out, 'test/lebensspur.mjs'),
 });
 
+// Der Startzeitpunkt des Rechners einzeln (10.11.): die beiden Lesarten der
+// Betriebssystem-Ausgabe lassen sich ohne den Rechner selbst pruefen.
+await buildAtomic({
+  ...common,
+  format: 'esm',
+  entryPoints: [join(root, 'src/main/rechnerstart.ts')],
+  outfile: join(out, 'test/rechnerstart.mjs'),
+});
+
 // Die Freigaben einzeln (2026-08-07): `freigabeErteilen` schreibt die
 // Freigabedatei nicht mehr selbst, sondern ruft `wb-freigabe` -- und nur bei
 // einem echten Klick. Beides gehoert geprueft, ohne dass ein Fenster entsteht:

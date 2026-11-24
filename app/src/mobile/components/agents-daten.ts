@@ -7,7 +7,7 @@
  * fehlt oder falsch getypt ist, faellt weg statt eine Ansicht zu sprengen.
  * Die Feldnamen bleiben die des Kerns, damit Paket 7 nichts uebersetzen muss.
  */
-import type { AgentsData, JsonValue } from '../../mobile-shared/vertrag';
+import type { AgentsData, JsonObject, JsonValue } from '../../mobile-shared/vertrag';
 
 export interface AgentNachricht {
   id: string;
@@ -70,6 +70,42 @@ export interface FrageKurz {
   gestellt: number;
 }
 
+/** Rechte, wie sie in einem Rechteantrag stehen (`RohRechteAenderung` in `main/welten.ts`). Ein fehlendes Feld bleibt unveraendert. */
+export interface RechteKurz {
+  tools?: string[];
+  bash?: string[];
+  skills?: string[];
+  web?: boolean;
+}
+
+/**
+ * Ein Rechteantrag (`WeltRechteAntrag` in `main/welten.ts`, `kind: rechte-antrag`).
+ * `an` ist `mensch` oder der Hauptagent; `abgelaufen` heisst offen, aber nicht
+ * mehr entscheidbar. Entscheiden geht am Mac und, wo der Kern es anbietet,
+ * auch hier (`rights_request.decide`, `rechteantragEntscheidbar`).
+ */
+export interface RechteAntragKurz {
+  id: string;
+  von: string;
+  an: string;
+  agent: string;
+  changes: RechteKurz;
+  /**
+   * `changes` genau so, wie `GET /agents` es geliefert hat. Die Entscheidung
+   * schickt dieses Objekt unveraendert zurueck; der Server vergleicht es mit
+   * der gespeicherten Aenderung. Null, wenn der Kern kein Objekt liefert.
+   */
+  changes_roh: JsonObject | null;
+  vorher: RechteKurz;
+  grund: string;
+  stand: string;
+  abgelaufen: boolean;
+  laeuft_ab: number;
+  zeit: number;
+  entscheidung: string | null;
+  bemerkung: string | null;
+}
+
 /**
  * Ein Team der Welt (`WeltTeam` in `main/welten.ts`): Leiter ist der erste
  * Teamleiter, Mitglieder die uebrigen. Der Kern adressiert mit `team:<name>`
@@ -86,12 +122,15 @@ export interface WeltKurz {
   name: string;
   maschine: string;
   fern: boolean;
+  /** Ob der Kern Rechteantraege dieser Welt vom Handy entscheiden laesst (`WeltRechteAntrag`, Kernfeld). */
+  rechteantrag_entscheidbar: boolean;
   verbindung: { ok: boolean; seit: number | null; text: string };
   hauptagent: string | null;
   agenten: AgentKurz[];
   teams: TeamKurz[];
   tickets: TicketKurz[];
   fragen: FrageKurz[];
+  rechteantraege: RechteAntragKurz[];
   kanal: AgentNachricht[];
   zaehler: { brauchen_dich: number; laufen: number; tickets_offen: number };
   /** Definition of Done der Welt; der Kern verlangt sie vor jeder Abnahme bestaetigt. */
@@ -207,6 +246,36 @@ function frage(v: JsonValue): FrageKurz | null {
   };
 }
 
+function rechte(v: JsonValue | undefined): RechteKurz {
+  const o = obj(v);
+  const r: RechteKurz = {};
+  if (!o) return r;
+  for (const k of ['tools', 'bash', 'skills'] as const) if (Array.isArray(o[k])) r[k] = strListe(o[k]);
+  if (typeof o.web === 'boolean') r.web = o.web;
+  return r;
+}
+
+function rechteAntrag(v: JsonValue): RechteAntragKurz | null {
+  const o = obj(v);
+  if (!o || !str(o.id)) return null;
+  return {
+    id: str(o.id),
+    von: str(o.von),
+    an: str(o.an),
+    agent: str(o.agent, str(o.von)),
+    changes: rechte(o.changes),
+    changes_roh: obj(o.changes) as JsonObject | null,
+    vorher: rechte(o.vorher),
+    grund: str(o.grund),
+    stand: str(o.stand),
+    abgelaufen: o.abgelaufen === true,
+    laeuft_ab: zeit(o.laeuft_ab),
+    zeit: zeit(o.zeit),
+    entscheidung: strOderNull(o.entscheidung),
+    bemerkung: strOderNull(o.bemerkung),
+  };
+}
+
 function team(v: JsonValue): TeamKurz | null {
   const o = obj(v);
   if (!o || !str(o.name)) return null;
@@ -244,12 +313,14 @@ function welt(v: JsonValue): WeltKurz | null {
     name: str(o.name, str(o.id)),
     maschine: str(o.maschine),
     fern: o.fern === true,
+    rechteantrag_entscheidbar: o.rechteantrag_entscheidbar === true,
     verbindung: { ok: vb?.ok !== false, seit: vb?.seit ? zeit(vb.seit) : null, text: str(vb?.text) },
     hauptagent: strOderNull(o.hauptagent),
     agenten,
     teams: Array.isArray(o.teams) ? o.teams.map(team).filter((t): t is TeamKurz => t !== null) : teamsAusAgenten(agenten),
     tickets: liste(o.tickets).map(ticket).filter((t): t is TicketKurz => t !== null),
     fragen: liste(o.fragen).map(frage).filter((f): f is FrageKurz => f !== null),
+    rechteantraege: liste(o.rechteantraege).map(rechteAntrag).filter((r): r is RechteAntragKurz => r !== null),
     kanal: liste(o.kanal).map(nachricht).filter((n): n is AgentNachricht => n !== null),
     dod: strListe(o.dod),
     zaehler: {
@@ -271,4 +342,29 @@ export function agentsLesen(data: AgentsData): AgentsAnsicht {
 /** Offene Fragen einer Welt, die auf den Menschen warten. */
 export function offeneFragen(w: WeltKurz): FrageKurz[] {
   return w.fragen.filter((f) => f.stand === 'offen');
+}
+
+/** Rechteantraege einer Welt, die auf den Menschen warten: an ihn gerichtet, offen und noch entscheidbar. */
+export function offeneRechteantraege(w: WeltKurz): RechteAntragKurz[] {
+  return w.rechteantraege.filter((r) => r.an === 'mensch' && r.stand === 'offen' && !r.abgelaufen);
+}
+
+/**
+ * Ob dieser Antrag vom Handy entschieden werden kann: offen, nicht abgelaufen,
+ * eine Welt dieser Maschine, und der Kern bietet es an. Die einzige Sperre ist
+ * das Kernfeld `rechteantrag_entscheidbar`; die App fuehrt keine eigene.
+ */
+export function rechteantragEntscheidbar(w: WeltKurz, r: RechteAntragKurz): boolean {
+  return r.stand === 'offen' && !r.abgelaufen && !w.fern && w.rechteantrag_entscheidbar && r.changes_roh !== null;
+}
+
+/** Die Rechtearten eines Antrags in Worten der Werkbank. */
+export const RECHTE_NAMEN: Readonly<Record<keyof RechteKurz, string>> = {
+  tools: 'Werkzeuge', bash: 'Bash-Muster', skills: 'Skills', web: 'Web',
+};
+
+/** Welche Rechtearten ein Antrag aendert, kurz fuer eine Kachel: „Bash-Muster, Web“. */
+export function rechteKurztext(r: RechteKurz): string {
+  const arten = (Object.keys(RECHTE_NAMEN) as (keyof RechteKurz)[]).filter((k) => r[k] !== undefined);
+  return arten.length ? arten.map((k) => RECHTE_NAMEN[k]).join(', ') : 'keine Angaben';
 }

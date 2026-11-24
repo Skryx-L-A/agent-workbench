@@ -1,4 +1,4 @@
-// STARTSPERRE DES DESKTOP-KERNS AUF LINUX (16.10.2026, Entwurf B1 aus wz-m2eng,
+// STARTSPERRE DES DESKTOP-KERNS AUF LINUX (16.10.2026, Entwurf B1 aus task,
 // Freigabe WorkbenchOrchestrator; docs/AGENTS-RECHTE.md, "Oberflaeche als Ahne").
 //
 // shell/wb-mensch nimmt auf peer einen Klick als menschlich, wenn er aus dem

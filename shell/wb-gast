@@ -32,7 +32,14 @@ def quellen():
             daten = json.load(f)
     except (OSError, ValueError) as e:
         sys.exit(f'wb-gast: Profil {PROFIL} nicht lesbar ({e}).')
-    liste = [q for q in daten.get('remoteSessionSources', []) if q.get('art') == 'wb-gast-tor' and q.get('ssh')]
+    roh = daten.get('remoteSessionSources', []) if isinstance(daten, dict) else []
+    if not isinstance(roh, list):
+        roh = []
+    liste = [q for q in roh if isinstance(q, dict) and q.get('art') == 'wb-gast-tor' and q.get('ssh')]
+    for q in liste:
+        q.setdefault('name', q['ssh'])
+        if not isinstance(q.get('projekte'), list):
+            q['projekte'] = []
     if not liste:
         sys.exit(f'wb-gast: keine Quelle mit "art": "wb-gast-tor" in {PROFIL}.')
     return liste

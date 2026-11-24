@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S -u DEVELOPER_DIR -u SDKROOT -u TOOLCHAINS /usr/bin/python3 -E -s -S
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): nie ein python3 aus dem PATH des
+# Aufrufers, ohne die xcrun-Variablen, PYTHON*-Variablen, User-site und site.
 # wb-post — das Postfach zwischen Orchestratoren. Eine Datei je Nachricht, ein
 # Postfach je Sitzung, und nichts davon haengt am Harness.
 #
@@ -26,25 +28,13 @@
 #   das Ausrollen entscheidet der Orchestrator. Auf peer liegt es ebenfalls; es steht
 #   dafuer in der Liste von `wb-sync-setup`.
 #
-# DIE ZUSTELLUNG IN DEN PANE MACHT DIESES WERKZEUG NICHT SELBST, und das ist Absicht:
-# `wb-pane-write` ist die EINE Stelle, die entscheidet, wer in einen Pane schreiben
-# darf, und die einzige, die es tut; `pi-worker` geht denselben Weg und prueft dort
-# auch die Absendung. Ein zweiter Weg daneben waere ein Loch in genau der Sicherung,
-# die den Orchestrator-Chat schuetzt — Regel des Nutzers vom 06.08. lautet woertlich
-# „ich will das niemand ausser mir und dem kontext guard in den orchestrator chat
-# promptet". Dieses Werkzeug legt die Nachricht ab (das ist der haltbare Teil) und
-# bittet danach `wb-pane-write` um einen kurzen Hinweis in den Pane des Empfaengers.
+# IN DEN PANE SCHREIBT DIESES WERKZEUG NICHTS (seit 27.10.2026). Bis dahin bat es
+# `wb-pane-write` um einen kurzen Hinweis in die Eingabezeile des Empfaengers, der dort
+# meist abgelehnt wurde. decision 10-27: in die Panes der Agenten, Worker und des
+# Orchestrators wird keine Meldung mehr getippt. Dieses Werkzeug legt die Nachricht ab
+# (das ist der haltbare Teil); die Ankuendigung macht der Kontext-Guard der Zielsitzung
+# ueber die Inbox ("POST (automatisch)"), und der Empfaenger liest mit `wb-post lesen`.
 # Was daraus wurde, steht in der Antwort und in der Nachricht selbst.
-#
-# In aller Regel wird dieser Hinweis ABGELEHNT, weil der Empfaenger ein
-# Orchestrator-Pane ist. Das ist kein Fehlschlag: die Nachricht liegt im Postfach,
-# und der Empfaenger holt sie sich mit `wb-post lesen`. Zugestellt wird nie mit
-# Enter — es wird nichts abgeschickt, was in einem fremden Chat als Eingabe gilt.
-#
-# Der Text geht als stdin an `wb-pane-write`, nie ueber eine Shell-Zeile. Backticks
-# in einem Text, den man durch eine Shell-Ebene schickt, werden dort ausgefuehrt und
-# der Text kommt leer an, waehrend der Schreibvorgang Erfolg meldet (Standing Rule
-# vom 30.07.).
 #
 # ZUSTAND, atomar geschrieben (tempfile + os.replace, nie halb lesbar):
 #   ~/.local/state/wb-post/<sitzung>/<zeit>-<kennung>.json
@@ -120,17 +110,8 @@ def atomar_schreiben(pfad, objekt):
 # ------------------------------------------------------------------- tmux
 
 def tmux_pfad():
-    """Dieselbe Vorsicht wie in shell/wb-belegung und im SessionStart-Haken: ein
-    Prozess ohne Login-Shell — ein launchd-Job etwa — hat /opt/homebrew/bin nicht
-    im PATH. Fehlt tmux ganz, faellt nur die Zustellung aus; abgelegt wird die
-    Nachricht trotzdem, und das ist der Teil, auf den es ankommt."""
-    p = shutil.which("tmux")
-    if p:
-        return p
-    for p in ("/opt/homebrew/bin/tmux", "/usr/local/bin/tmux", "/usr/bin/tmux"):
-        if os.access(p, os.X_OK):
-            return p
-    return None
+    """tmux-Auswahl (2026-10-19): im Testbett der PATH-Schirm, sonst der feste Maschinenpfad."""
+    return shutil.which("tmux") if os.environ.get("WB_TESTUMGEBUNG") == "1" else next((p for p in ("/opt/homebrew/bin/tmux", "/usr/local/bin/tmux", "/usr/bin/tmux", "/bin/tmux") if os.access(p, os.X_OK)), None)
 
 
 def socket_wahl():
@@ -164,6 +145,13 @@ def tmux_ruf(argumente, frist=3.0):
         return 126, ""
 
 
+# `-u` statt eines anderen Trenners: Ohne UTF-8-Gebietsschema des Clients (LANG/LC_ALL leer oder POSIX, etwa ueber
+# `ssh -n` oder aus launchd) gibt tmux ein Tab im -F-Format als '_' aus, Umlaute ebenso (gemessen 20.11.2026, tmux 3.8
+# am Mac und 3.7c auf peer). Sitzungsnamen sind freier Text; jedes druckbare Zeichen kann darin stehen, also auch jeder
+# Trenner. `-u` schaltet den Client auf UTF-8, dann bleiben Tab und Umlaute erhalten. Gilt fuer jede Abfrage hier.
+TMUX_UTF8 = ["-u"]
+
+
 def eigene_sitzung():
     """Der BASIS-Sessionname, nicht `#{session_name}`: sobald der Worker-Tab offen
     ist, haengt die Sitzung in einer Gruppe, und derselbe Pane meldet je nach
@@ -175,7 +163,7 @@ def eigene_sitzung():
     pane = os.environ.get("TMUX_PANE", "")
     if not pane:
         return ""
-    rc, aus = tmux_ruf(["display", "-p", "-t", pane, "#{session_group}\t#{session_name}"])
+    rc, aus = tmux_ruf(TMUX_UTF8 + ["display", "-p", "-t", pane, "#{session_group}\t#{session_name}"])
     if rc != 0 or not aus.strip():
         return ""
     teile = (aus.strip("\n").split("\t") + ["", ""])[:2]
@@ -246,7 +234,7 @@ def orchestrator_pane(ziel):
     Zwei Durchgaenge: erst die Pane-Option (eine einzige tmux-Abfrage), dann das
     Register (ein Aufruf je lebendem Pane dieser Sitzung, deshalb nur, wenn der
     erste Durchgang leer bleibt)."""
-    rc, aus = tmux_ruf(["list-panes", "-a", "-F",
+    rc, aus = tmux_ruf(TMUX_UTF8 + ["list-panes", "-a", "-F",
                         "#{session_group}\t#{session_name}\t#{@wb_role}\t#{pane_id}\t#{pane_dead}"])
     if rc != 0:
         return ""
@@ -267,48 +255,16 @@ def orchestrator_pane(ziel):
     return ""
 
 
-def pane_write_pfad():
-    """Reihenfolge, absichtlich in dieser: eine ausdrueckliche Umlenkung, dann die
-    installierte Fassung, dann die Schwesterdatei neben diesem Werkzeug (solange es
-    nur im Repo lebt). Einen Rueckfall auf `tmux send-keys` gibt es NICHT — der
-    waere ein Loch, das offensteht, sobald jemand halb installiert, und genau das
-    haelt `pi-worker` mit derselben Begruendung so."""
-    p = os.environ.get("WB_PANE_WRITE", "")
-    if p:
-        if not os.access(p, os.X_OK):
-            fehler("WB_PANE_WRITE zeigt auf '%s' — dort ist nichts Ausfuehrbares." % p)
-        return p
-    installiert = os.path.join(HOME, ".local", "bin", "wb-pane-write")
-    if os.access(installiert, os.X_OK):
-        return installiert
-    nachbar = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wb-pane-write")
-    return nachbar if os.access(nachbar, os.X_OK) else ""
-
-
 def zustellen(ziel, nachricht):
-    """Best effort, ehrlich berichtet. Ein Hinweis, kein Text — und nie mit Enter."""
+    """Ehrlich berichtet, nie in einen Pane geschrieben. Bis 27.10.2026 fuegte wb-post einen
+    Hinweis ueber wb-pane-write (Unterbefehl einfuegen) in die Eingabezeile des Orchestrators ein. Seitdem
+    wird in Agenten-Panes nichts mehr getippt (decision 10-27); die Ankuendigung macht der
+    Kontext-Guard der Zielsitzung (check_postfach, "POST (automatisch)") ueber die Inbox."""
     pane = orchestrator_pane(ziel)
     if not pane:
         return "kein lebender Orchestrator-Pane fuer '%s' gefunden — die Nachricht liegt im Postfach" % ziel
-    werkzeug = pane_write_pfad()
-    if not werkzeug:
-        return "wb-pane-write nicht gefunden — es wurde NICHTS in einen Pane geschrieben"
-    erste = (nachricht.get("betreff") or nachricht.get("text", "").strip().splitlines() or [""])[0]
-    hinweis = "[wb-post] Neue Nachricht von %s (%s): %s — lesen mit: wb-post lesen" % (
-        nachricht["von"].get("sitzung") or nachricht["von"].get("host", "?"),
-        nachricht["id"], erste[:120])
-    try:
-        p = subprocess.run([werkzeug, "einfuegen", pane], input=hinweis,
-                           capture_output=True, text=True, timeout=10)
-    except (subprocess.TimeoutExpired, OSError) as e:
-        return "wb-pane-write antwortete nicht (%s) — die Nachricht liegt im Postfach" % e
-    if p.returncode == 0:
-        return "Hinweis in Pane %s eingefuegt (ohne Enter)" % pane
-    if p.returncode == 77:
-        return ("Hinweis in Pane %s abgelehnt (Orchestrator-Schutz, wb-pane-write) — "
-                "so gedacht; die Nachricht liegt im Postfach" % pane)
-    return "wb-pane-write scheiterte (Exit %d: %s)" % (p.returncode,
-                                                       (p.stderr or "").strip()[:200])
+    return ("nichts in Pane %s geschrieben — die Nachricht liegt im Postfach, der Kontext-Guard "
+            "der Sitzung kuendigt sie ueber die Inbox an" % pane)
 
 
 # ---------------------------------------------------------------- Postfach
@@ -367,7 +323,7 @@ def bekannte_ziele():
     except OSError:
         faecher = []
     sitzungen = []
-    rc, aus = tmux_ruf(["list-sessions", "-F", "#{session_group}\t#{session_name}"])
+    rc, aus = tmux_ruf(TMUX_UTF8 + ["list-sessions", "-F", "#{session_group}\t#{session_name}"])
     if rc == 0:
         for zeile in aus.splitlines():
             teile = (zeile.split("\t") + ["", ""])[:2]

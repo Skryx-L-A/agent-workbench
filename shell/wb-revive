@@ -68,8 +68,27 @@
 # Sitzungsregister ~/.claude/sessions, genau DIESER Pane). Ein im Startbefehl
 # stehendes --resume/--continue wird dann durch diese Kennung ersetzt, statt den
 # Startbefehl unveraendert zu nehmen.
+# --konto <gross|klein> (task Zug 2, 14.11.2026): nur fuer claude-Panes. Der Neustart
+# laeuft auf diesem Anthropic-Abo; aufgerufen von `wb-konto wechsel` nach einer Limitmeldung, zusammen
+# mit --force --yes --resume-id. Gesetzt wird das Konto NUR in der Zeile, die jetzt startet; @wb_cmd
+# behaelt seine Angabe (meist 'auto'), damit ein spaeterer Neustart wieder waehlt. Drei Formen der
+# Startzeile kennt dieser Schalter, jede andere lehnt er ab (Exit 5, nichts neu gestartet):
+#   1. die Zeile traegt WB_CLAUDE_KONTO=gross|klein|auto woertlich (pi-worker, claude-worker, wb-code):
+#      der Wert wird ersetzt;
+#   2. die Zeile startet claude direkt ([/usr/bin/env -u ...] .../claude ...; wb-code vor Zug 2):
+#      davor kommt `WB_CLAUDE_KONTO=<konto> $HOME/.local/bin/wb-konto start --`;
+#   3. die Zeile startet wb-harness-run ueber bash -lc: WB_CLAUDE_KONTO=<konto> vor bash.
+# Das Konto gehoert zum Pane (decision 2026-11-16): --konto und `wb-konto start` setzen die Pane-Option @wb_konto. Ein
+# Neustart OHNE --konto (wb-schlaf wecken, wb-autorevive, prefix + R, die App) uebernimmt sie in die startende Zeile;
+# @wb_cmd bleibt wortgleich. Ist das gemerkte Konto erschoepft gebucht, startet der Pane auf dem Konto mit Luft, das
+# `wb-konto wahl` nennt; gibt es keines, auf dem gemerkten Konto und laut. Ohne @wb_konto bleibt alles wie bisher.
+# Modell und Effort (task, 15.11.2026): setzt ein claude-Pane seine Unterhaltung mit
+# Kennung fort, kommen --model und --effort der startenden Zeile aus der letzten Anfrage dieser
+# Unterhaltung (Gespraechsprotokoll), nicht aus @wb_cmd; --model/--effort als Schalter schlagen das
+# Protokoll. Einzelheiten am Block "MODELL UND EFFORT DER UNTERHALTUNG".
 # Exit:  0 respawned   3 pane still alive, nothing done   2 usage/unknown pane
 #        4 eine andere Wiederbelebung dieses Panes laeuft gerade
+#        5 --konto: Startzeile ohne bekannte Kontoform, nichts neu gestartet
 #
 # Bound to: prefix + R   |   also called by wb-autorevive (pane-died hook)
 set -euo pipefail
@@ -83,6 +102,7 @@ tmux_socket=""
 trocken=0
 bind_only=0
 resume_override=""
+konto=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --force)   force=1 ;;
@@ -93,6 +113,9 @@ while [ $# -gt 0 ]; do
     --trocken) trocken=1 ;;
     --bind-only) bind_only=1 ;;
     --resume-id) [ $# -ge 2 ] || { echo "wb-revive: --resume-id braucht einen Wert" >&2; exit 2; }; resume_override="$2"; shift ;;
+    --konto)   [ $# -ge 2 ] || { echo "wb-revive: --konto braucht einen Wert" >&2; exit 2; }
+               case "$2" in gross|klein) konto="$2" ;; *) echo "wb-revive: --konto '$2' ist kein Konto (gross|klein)" >&2; exit 2 ;; esac
+               shift ;;
     -h|--help) sed -n '2,40p' "$0"; exit 0 ;;
     -*)        printf 'wb-revive: unknown option %s\n' "$1" >&2; exit 2 ;;
     *)         [ -z "$pane" ] && pane="$1" ;;
@@ -144,26 +167,78 @@ guard_live() {
   tmux display-message -t "$pane" "wb-revive: --force on a LIVE pane" 2>/dev/null || true
 }
 
-# Welcher Harness laeuft in diesem Pane? Abgeleitet aus dem Startbefehl, weil kein
-# Spawner eine @wb_harness-Option setzt (nachgesehen 2026-08-06: wb-code, pi-worker,
-# wb-ssh-worker und wb-agent setzen nur @wb_role, @wb_worker und @wb_cmd). Zwei Formen,
-# mehr gibt es heute nicht:
+# Die Startzeile als flache Wortliste. wb-code speichert die Zeile des Registry- und des
+# pi-Orchestrators mit printf %q ("bash -lc exec\ …wb-harness-run\ --model\ X\ …"): nach
+# --model steht dort ein Backslash, kein Leerzeichen, und jedes Muster auf der Rohzeile
+# trifft nichts (gemessen 2026-10-22: Kontextwache und wb-revive blind fuer opencode).
+# Zweistufig mit shlex entpackt; nur Zeilen MIT Backslash laufen hierdurch, alle anderen
+# bleiben unveraendert. Bei jedem Fehler kommt die Rohzeile zurueck. Der Python-Text steht
+# in einer Variablen, nicht in einem Heredoc im $(...): bash 3.2 (macOS) verzaehlt sich dort
+# an den Anfuehrungszeichen.
+pane_zeile() {   # <startbefehl> -> Woerter, durch Leerzeichen getrennt
+  local c="$1" w="" py=""
+  case "$c" in
+    *\\*)
+      IFS= read -r -d '' py <<'PYZ' || true
+import re, shlex, sys
+def ansi(m):
+    return shlex.quote(m.group(1).encode().decode("unicode_escape"))
+def woerter(s, tiefe):
+    s = re.sub(r"\$'((?:[^'\\]|\\.)*)'", ansi, s)
+    try:
+        t = shlex.split(s)
+    except ValueError:
+        return [s]
+    out = []
+    for w in t:
+        if tiefe < 3 and re.search(r"\s", w):
+            out.extend(woerter(w, tiefe + 1))
+        else:
+            out.append(w)
+    return out
+print(" ".join(woerter(sys.argv[1], 0)))
+PYZ
+      w=$(/usr/bin/python3 -I -c "$py" "$c" 2>/dev/null) || w=""
+      [ -n "$w" ] && c="$w" ;;
+  esac
+  printf '%s\n' "$c"
+}
+
+# Das Modell des Panes: zuerst die Pane-Option @wb_model (wb-code und pi-worker setzen sie
+# beim Start, wb-model-switch zieht sie nach), sonst das --model der Startzeile.
+pane_modell() {   # <startbefehl> [<pane>] -> modell-id oder leer
+  local c="$1" p="${2:-}" m=""
+  if [ -n "$p" ]; then
+    m=$(tmux show-options -pqv -t "$p" @wb_model 2>/dev/null || true)
+    [ -n "$m" ] && { printf '%s\n' "$m"; return; }
+  fi
+  pane_zeile "$c" | sed -nE 's/.*--model[= ]+([^ ]+).*/\1/p' | head -1
+}
+
+# Welcher Harness laeuft in diesem Pane? Zuerst die Pane-Option @wb_harness: wb-code und
+# pi-worker setzen sie beim Start (nachgesehen 2026-10-22; wb-agent und wb-ssh-worker nicht).
+# Fehlt sie, wird er aus dem Startbefehl abgeleitet. Zwei Formen, mehr gibt es heute nicht:
 #   1. Registry-Weg — "... wb-harness-run --model <id> ...": der Harness steht am Modell.
 #   2. Eingebauter Weg — das Programm selbst in der Zeile: ".../claude " oder "exec pi ".
 # Leer heisst UNBEKANNT, nicht "kaputt": dann verhaelt sich alles wie vor der Registry.
 #
-# ZWEITE STELLE: dieselbe Funktion steht in shell/context-guard. Sie ist bewusst
-# doppelt und nicht in einer gemeinsamen Datei — ein drittes Skript waere ein
-# weiteres Ausrollteil, und faellt es aus, ist der Guard still blind. Wer eine der
-# beiden aendert, aendert beide; shell/tests/test-harness-wege.sh vergleicht sie
-# Zeichen fuer Zeichen gegeneinander und schlaegt sonst fehl.
-pane_harness() {   # <startbefehl> -> harness-id oder leer
-  local c="$1" mid=""
+# ZWEITE STELLE: dieselben drei Funktionen (pane_zeile, pane_modell, pane_harness) stehen
+# in shell/context-guard, die beiden ersten auch in shell/wb-model-switch. Sie sind bewusst
+# doppelt und nicht in einer gemeinsamen Datei — ein weiteres Skript waere ein weiteres
+# Ausrollteil, und faellt es aus, ist der Guard still blind. Wer eine aendert, aendert alle;
+# shell/tests/test-harness-wege.sh vergleicht sie Zeichen fuer Zeichen.
+pane_harness() {   # <startbefehl> [<pane>] -> harness-id oder leer
+  local c="$1" p="${2:-}" mid="" h=""
+  if [ -n "$p" ]; then
+    h=$(tmux show-options -pqv -t "$p" @wb_harness 2>/dev/null || true)
+    [ -n "$h" ] && { printf '%s\n' "$h"; return; }
+  fi
+  c=$(pane_zeile "$c")
   case "$c" in
     *wb-harness-run*)
       # Nur dieser Zweig braucht die Registry: der Harness haengt am Modell.
       [ -x "$HOME/.local/bin/wb-state" ] || { printf ''; return; }
-      mid=$(printf '%s\n' "$c" | sed -nE 's/.*--model[= ]+([^ ]+).*/\1/p' | head -1)
+      mid=$(pane_modell "$c" "$p")
       [ -n "$mid" ] && "$HOME/.local/bin/wb-state" models get "$mid" --field harness 2>/dev/null
       return ;;
   esac
@@ -181,7 +256,7 @@ if [[ -z "$cmd" ]]; then
   # der mit EINEM Befehlstext gestartet wurde, liefert ihn in Anfuehrungszeichen
   # ("exec claude --settings '{\"a\":1}' ..."). Unveraendert an respawn-pane gegeben,
   # sucht die Shell ein einziges Wort als Befehl und der Pane stirbt sofort mit
-  # Status 127 (14.10.2026, wz-absturzbeleg Lauf 1 und 2: Pane ohne @wb_cmd). Ein
+  # Status 127 (14.10.2026, task Lauf 1 und 2: Pane ohne @wb_cmd). Ein
   # einzelnes Argument wird deshalb entpackt; mehrere bleiben in Shell-Form.
   cmd="$(/usr/bin/python3 - "$cmd" <<'PYQ'
 import shlex, sys
@@ -201,7 +276,7 @@ if [[ -z "$cmd" ]]; then
   exit 0
 fi
 
-hid="$(pane_harness "$cmd")"
+hid="$(pane_harness "$cmd" "$pane")"
 prole=$(tmux show-options -pqv -t "$pane" @wb_role 2>/dev/null || true)
 if [[ -z "$hid" && -z "$prole" ]]; then
   # Weder ein bekannter Harness noch eine Workbench-Rolle: das ist ein fremder Pane.
@@ -210,6 +285,19 @@ if [[ -z "$hid" && -z "$prole" ]]; then
   tmux display-message -t "$pane" "wb-revive: kein Workbench-Pane, nichts zu tun"
   echo "wb-revive: $pane gehoert zu keinem registrierten Harness und traegt keine @wb_role — nichts getan."
   exit 0
+fi
+
+# crossSessionInbound accept fuer Hauptsitzungen (22.10.2026, task): ein @wb_cmd von vor
+# diesem Tag traegt ihn nicht, und genau diese Zeile kehrt hier bei jeder Wiederbelebung zurueck.
+# Der Wert kommt von der einen Stelle (wb-state CLAUDE_SETTINGS); ein vorhandenes --settings wird
+# zusammengefuehrt, die Zeile sonst nicht angefasst. Gespeichert wird danach die ergaenzte Zeile.
+if [[ "$hid" = claude && "$prole" = orchestrator ]]; then
+  if inbound_cmd="$("$HOME/.local/bin/wb-state" models claude-settings orchestrator --in "$cmd" 2>/dev/null)" \
+      && [[ -n "$inbound_cmd" ]]; then
+    cmd="$inbound_cmd"
+  else
+    echo "wb-revive: WARNUNG $pane: crossSessionInbound nicht eingetragen ('wb-state models claude-settings' ohne Ergebnis); die Startzeile bleibt, wie sie war." >&2
+  fi
 fi
 
 # The first prompt contains the unique result path for this worker. Match that
@@ -297,6 +385,14 @@ fi
 # Remote-Control-Verbindung des Orchestrators. Ohne eigene Kennung startet ein
 # claude-Pane FRISCH, ohne --resume und ohne das ratende fallbackArgs '--continue'
 # (das nimmt die juengste Unterhaltung im Verzeichnis, also oft genau die fremde).
+# Die PID des letzten Prozesses im Pane. tmux 3.8 leert #{pane_pid} eines toten Panes (gemessen 02.11.2026, 3.7c behielt sie),
+# darum merkt sich die Wache sie zu Lebzeiten in @wb_pane_pid (context-guard, pane_pids_merken).
+pane_prozess_pid() {   # <pane>
+  local p
+  p="$(tmux display -p -t "$1" '#{pane_pid}' 2>/dev/null || true)"
+  [[ -n "$p" ]] || p="$(tmux show-options -pqv -t "$1" @wb_pane_pid 2>/dev/null || true)"
+  printf '%s' "$p"
+}
 fremde_sitzung() {  # <kennung> -> PID des fremden lebenden Besitzers auf stdout, sonst nichts
   /usr/bin/python3 - "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sessions" "$1" "$2" <<'PYF'
 import json, os, subprocess, sys
@@ -374,7 +470,7 @@ PYF
 #
 # NUR FUER DEN ORCHESTRATOR (14.10.2026). Die Zustandsdatei beschreibt die Unterhaltung
 # des Orchestrator-Panes, nicht die der Session. Bis heute bekam JEDER Pane der Session
-# deren claudeSessionId: am 14.10. 00:06 setzte wb-autorevive vier Agent-Panes in der
+# deren claudeSessionId: am 14.10. setzte wb-autorevive vier Agent-Panes in der
 # IOS-Session mit `--resume 071f597e-…` neu auf -- der laufenden Unterhaltung des
 # IOS-Orchestrators (Pane %35). Ein anderer Pane nimmt seine eigene Kennung
 # (@wb_chat_session, vom Chat-Hook IM Harness-Prozess gesetzt, also diesem Pane
@@ -404,7 +500,7 @@ fi
 # ein Orchestrator, der nach einem Absturz frisch zurueckkommt, verliert des Nutzers
 # Gespraech). Claude legt je Prozess ~/.claude/sessions/<pid>.json an (pid, sessionId,
 # cwd, tmux, ...). Nach SIGKILL bleibt die Datei einige Sekunden liegen (gemessen
-# 14.10., wz-absturzbeleg: da nach 5 s, weg nach 30 s; vermutlich raeumt eine andere
+# 14.10., task: da nach 5 s, weg nach 30 s; vermutlich raeumt eine andere
 # claude-Instanz sie ab). wb-autorevive laeuft im pane-died-Hook sofort und findet sie
 # meist; spaeter (Taste, App) fehlt sie, dann greifen Option und Zustandsdatei. Die
 # tote Pane-PID ist genau dieser Prozess: tmux behaelt #{pane_pid} eines toten Panes (remain-on-exit),
@@ -416,7 +512,7 @@ fi
 #   (c) die Kennung keiner anderen lebenden claude-PID gehoert (fremde_sitzung).
 register_grund=""
 if [[ -z "$resume_id" && "$hid" = claude ]]; then
-  r_pid="$(tmux display -p -t "$pane" '#{pane_pid}' 2>/dev/null || true)"
+  r_pid="$(pane_prozess_pid "$pane")"
   r_dead="$(tmux display -p -t "$pane" '#{pane_dead}' 2>/dev/null || true)"
   if [[ "$r_dead" = 1 && "$r_pid" =~ ^[0-9]+$ ]]; then
     r_out="$(/usr/bin/python3 - "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sessions" "$r_pid" "$pane" "$cmd" \
@@ -507,7 +603,7 @@ PYR
 fi
 # Die Zustandsdatei (nur Orchestrator oder Pane ohne Rolle). Sie nennt nur den Namen der
 # tmux-Session, nicht den Server: eine gleichnamige Session auf einem anderen Server
-# (Testserver mit Session "t", gemessen 14.10., wz-absturzbeleg) bekam sonst die
+# (Testserver mit Session "t", gemessen 14.10., task) bekam sonst die
 # claudeSessionId einer fremden Unterhaltung. Deshalb muss auch ihr Feld dir, wenn es
 # gesetzt ist (wb-state schreibt es immer), zum Pane passen (--dir, Start- oder letzter
 # Pfad), wie beim Register.
@@ -559,7 +655,7 @@ elif [[ -z "$resume_id" ]]; then
   # LEBENDEN Sitzung gehoert, zaehlt beim Vergleich als fehlend; gibt es dann auch keine
   # Option, wird sie trotzdem eingesetzt und weiter unten laut abgelehnt.
   zustand_fremd=""
-  [[ -n "$zustand_id" ]] && zustand_fremd="$(fremde_sitzung "$zustand_id" "$(tmux display -p -t "$pane" '#{pane_pid}' 2>/dev/null || true)")"
+  [[ -n "$zustand_id" ]] && zustand_fremd="$(fremde_sitzung "$zustand_id" "$(pane_prozess_pid "$pane")")"
   if [[ -n "$resume_eigen" && ( -z "$zustand_id" || -n "$zustand_fremd" || "$resume_eigen" = "$zustand_id" ) ]]; then
     resume_id="$resume_eigen"
     resume_quelle="@wb_chat_session"
@@ -578,7 +674,7 @@ fi
 
 # LETZTER EIGENER WEG FUER CLAUDE: das Transkript im Zeitfenster des Panes (14.10.2026,
 # Review-Fund F4). Claudes Register verschwindet 5 bis 30 s nach einem SIGKILL (gemessen,
-# wz-absturzbeleg); eine spaetere Wiederbelebung (Taste, App) findet es nicht mehr. Das
+# task); eine spaetere Wiederbelebung (Taste, App) findet es nicht mehr. Das
 # alte fallbackArgs `--continue` nimmt die JUENGSTE Unterhaltung im cwd -- am 14.10. die
 # eines anderen lebenden Panes. Genommen wird deshalb nur ein Transkript
 # ~/.claude/projects/<cwd kodiert>/<id>.jsonl, das als EINZIGES im Verzeichnis zwischen
@@ -598,7 +694,7 @@ if [[ -z "$resume_id" && "$hid" = claude ]]; then
     # Erstauftrag und in auftraege.tsv (Spalte 2, Pane in Spalte 3). Ein Treffer gilt nur,
     # wenn sein Transkript einen dieser Pfade enthaelt. Dazu: Kennungen aus den
     # Registerdateien anderer PIDs (lebend oder tot) gelten als fremd.
-    t_pid="$(tmux display -p -t "$pane" '#{pane_pid}' 2>/dev/null || true)"
+    t_pid="$(pane_prozess_pid "$pane")"
     t_worker="$(tmux show-options -pqv -t "$pane" @wb_worker 2>/dev/null || true)"
     t_buch=""
     [[ "$t_worker" =~ ^[A-Za-z0-9._-]{1,128}$ ]] && t_buch="$HOME/.pi-workers/results/$t_worker/auftraege.tsv"
@@ -717,6 +813,7 @@ fi
 # A model switch reuses this script's one guarded respawn path.  Rewrite only
 # the clean @wb_cmd, before resume arguments are added; the rewritten clean
 # command is stored back below so every later revive keeps the selected model.
+cmd_vor_schalter="$cmd"   # fuer die Meldung "Modell vorher -> nachher" (siehe MODELL UND EFFORT DER UNTERHALTUNG)
 if [[ -n "$switch_model" ]]; then
   [[ -n "$hid" && -n "$hjson" ]] || { echo "wb-revive: Harness des Panes ist unbekannt — Modell nicht geaendert." >&2; exit 2; }
   state="$HOME/.local/bin/wb-state"
@@ -733,23 +830,64 @@ if [[ -n "$switch_model" ]]; then
       echo "wb-revive: Denkstufe '$switch_effort' gilt nicht fuer '$target_id' — nichts getan." >&2; exit 2;
     }
   fi
-  rewritten="$(/usr/bin/python3 - "$cmd" "$target_ref" "$switch_effort" <<'PY'
+  # Eine printf-%q-Zeile (Registry- und pi-Orchestrator aus wb-code) enthaelt --model nur als
+  # "--model\ X": das Muster unten findet dort nichts (gemessen 2026-10-22, Exit 2). Solche
+  # Zeilen werden mit shlex in Woerter zerlegt; das Wort, in dem der Schalter steht, wird als
+  # Ganzes ersetzt und die Zeile mit shlex.quote wieder zusammengesetzt. Zeilen ohne
+  # Backslash laufen unveraendert durch das Muster. Der Python-Text steht in einer Variablen
+  # (bash 3.2, siehe pane_zeile).
+  py_um=""
+  IFS= read -r -d '' py_um <<'PYU' || true
 import re, shlex, sys
 cmd, model, effort = sys.argv[1:]
-pattern = r"(?<!\S)--model(?:=|\s+)(?:\"[^\"]*\"|'[^']*'|[^\s\"']+)"
-replacement = '--model ' + shlex.quote(model)
-new, count = re.subn(pattern, replacement, cmd, count=1)
-if count != 1:
+VAL = r"(?:\"[^\"]*\"|'[^']*'|[^\s\"']+)"
+def flag(f):
+    return r"(?<!\S)" + f + r"(?:=|\s+)" + VAL
+def setze(text):
+    new, n = re.subn(flag("--model"), lambda m: "--model " + shlex.quote(model), text, count=1)
+    if n != 1:
+        return None
+    if effort:
+        # pi nennt die Denkstufe --thinking, alle anderen --effort
+        name = "--thinking" if (re.search(flag("--thinking"), new) and not re.search(flag("--effort"), new)) else "--effort"
+        new, n = re.subn(flag(name), lambda m: name + " " + shlex.quote(effort), new, count=1)
+        if n == 0:
+            new += " " + name + " " + shlex.quote(effort)
+    return new
+if "\\" not in cmd:
+    out = setze(cmd)
+else:
+    try:
+        w = shlex.split(re.sub(r"\$'((?:[^'\\]|\\.)*)'", lambda m: shlex.quote(m.group(1).encode().decode("unicode_escape")), cmd))
+    except ValueError:
+        sys.exit(1)
+    if any(re.fullmatch(r"[;&|<>()]+", t) for t in w):
+        sys.exit(1)
+    out = None
+    for i, t in enumerate(w):
+        if re.search(r"\s", t):
+            r = setze(t)
+            if r is not None:
+                w[i] = r; out = True; break
+        elif t == "--model" and i + 1 < len(w):
+            w[i + 1] = model; out = "flach"; break
+        elif t.startswith("--model="):
+            w[i] = "--model=" + model; out = "flach"; break
+    if out == "flach" and effort:
+        for i, t in enumerate(w):
+            if t in ("--effort", "--thinking") and i + 1 < len(w):
+                w[i + 1] = effort; break
+            if t.startswith("--effort="):
+                w[i] = "--effort=" + effort; break
+        else:
+            w += ["--effort", effort]
+    if out:
+        out = " ".join(shlex.quote(t) for t in w)
+if out is None:
     sys.exit(1)
-if effort:
-    ep = r"(?<!\S)--effort(?:=|\s+)(?:\"[^\"]*\"|'[^']*'|[^\s\"']+)"
-    er = '--effort ' + shlex.quote(effort)
-    new, n = re.subn(ep, er, new, count=1)
-    if n == 0:
-        new += ' ' + er
-print(new)
-PY
-)" || { echo "wb-revive: Startbefehl hat keinen eindeutigen --model-Schalter — nichts getan." >&2; exit 2; }
+print(out)
+PYU
+  rewritten="$(/usr/bin/python3 -I -c "$py_um" "$cmd" "$target_ref" "$switch_effort")" || { echo "wb-revive: Startbefehl hat keinen eindeutigen --model-Schalter — nichts getan." >&2; exit 2; }
   cmd="$rewritten"
 fi
 
@@ -1005,6 +1143,342 @@ PY
   fi
 fi
 
+# DAS KONTO GEHOERT ZUM PANE (decision 2026-11-16, Befund: wb-schlaf weckte drei Orchestratoren ueber die Mac-Anmeldung
+# auf dem grossen Konto, weil der Weckbefehl aus @wb_cmd kam). --konto schlaegt die Option; ohne Schalter gilt
+# @wb_konto (gross|klein), nur fuer claude. Erschoepft gebucht: das Konto mit Luft aus `wb-konto wahl`, sonst laut.
+konto_quelle=""; konto_hinweis=""
+[[ -n "$konto" ]] && konto_quelle="Schalter"
+if [[ -z "$konto" && "${hid:-}" = claude ]]; then
+  pane_konto="$(tmux show -pqv -t "$pane" @wb_konto 2>/dev/null || true)"
+  case "$pane_konto" in
+    gross|klein)
+      konto="$pane_konto"; konto_quelle="Pane"
+      wbk="$HOME/.local/bin/wb-konto"
+      [[ -x "$wbk" ]] || wbk="$(command -v wb-konto 2>/dev/null || true)"
+      lage=""
+      if [[ -n "$wbk" ]]; then
+        lage="$("$wbk" wahl --json --ohne-messung 2>/dev/null | /usr/bin/python3 -I -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except ValueError:
+    sys.exit(0)
+s = {e.get("konto"): e for e in d.get("konten") or []}.get(sys.argv[1]) or {}
+print("%s|%s" % (s.get("status") or "", d.get("konto") or ""))' "$pane_konto" 2>/dev/null || true)"
+      fi
+      lage_status="${lage%%|*}"; lage_bestes="${lage#*|}"
+      if [[ "$lage_status" = erschoepft ]]; then
+        if [[ -n "$lage_bestes" && "$lage_bestes" != "$pane_konto" ]]; then
+          konto="$lage_bestes"
+          konto_hinweis="gemerktes Konto ${pane_konto} ist erschoepft, Neustart auf ${lage_bestes}"
+        else
+          konto_hinweis="WARNUNG: gemerktes Konto ${pane_konto} ist erschoepft und kein Konto hat Luft; Start trotzdem auf ${pane_konto}"
+          echo "wb-revive: $pane: ${konto_hinweis}." >&2
+        fi
+      fi
+      ;;
+  esac
+fi
+
+# --konto: das Abo dieses Neustarts (siehe Kopf). Nur die startende Zeile aendert sich, nie $cmd/@wb_cmd.
+if [[ -n "$konto" ]]; then
+  if [ "${hid:-}" != claude ]; then
+    echo "wb-revive: --konto gilt nur fuer claude-Panes (Harness '${hid:-unbekannt}'); nichts neu gestartet." >&2
+    exit 5
+  fi
+  kontocmd="$(/usr/bin/python3 -I - "$newcmd" "$konto" "$HOME/.local/bin/wb-konto" <<'PYK'
+import re, shlex, sys
+cmd, konto, wbk = sys.argv[1:4]
+neu, n = re.subn(r"(?<![A-Za-z0-9_])WB_CLAUDE_KONTO=(?:gross|klein|auto)(?![A-Za-z0-9_])", "WB_CLAUDE_KONTO=" + konto, cmd)
+if n:
+    print(neu)
+    sys.exit(0)
+vor = r"^((?:/usr/bin/env(?:\s+-u\s+\S+)*\s+)?)"
+m = re.match(vor + r"((?:\S*/)?claude)(?=\s|$)", cmd)
+if m:
+    print(cmd[:m.end(1)] + "WB_CLAUDE_KONTO=%s %s start -- " % (konto, shlex.quote(wbk)) + cmd[m.end(1):])
+    sys.exit(0)
+m = re.match(vor + r"(?=(?:/bin/)?bash\s+-lc\s)", cmd)
+if m and "wb-harness-run" in cmd:
+    print(cmd[:m.end(1)] + "WB_CLAUDE_KONTO=%s " % konto + cmd[m.end(1):])
+    sys.exit(0)
+sys.exit(1)
+PYK
+)" || kontocmd=""
+  if [[ -z "$kontocmd" && "$konto_quelle" = Pane ]]; then
+    # Kein angefragter Wechsel: der Pane kommt trotzdem zurueck, aber laut ohne Konto.
+    konto_hinweis="WARNUNG: @wb_konto=${konto}, aber die Startzeile hat keine bekannte Kontoform; Neustart OHNE Konto"
+    echo "wb-revive: $pane: ${konto_hinweis}." >&2
+    resume_why="${resume_why}; ${konto_hinweis}"
+    konto=""
+  elif [[ -z "$kontocmd" ]]; then
+    echo "wb-revive: --konto $konto: die Startzeile von $pane hat keine bekannte Kontoform (WB_CLAUDE_KONTO=, direktes claude, wb-harness-run); nichts neu gestartet." >&2
+    exit 5
+  else
+    newcmd="$kontocmd"
+    resume_why="${resume_why}; Konto ${konto}${konto_quelle:+ (${konto_quelle})}${konto_hinweis:+; ${konto_hinweis}}"
+  fi
+fi
+
+# MODELL UND EFFORT DER UNTERHALTUNG (task, 15.11.2026). Bis dahin startete jede
+# Fortsetzung mit Modell und Denkstufe aus @wb_cmd, bei Orchestratoren also mit der Vorgabe beim Spawn
+# (gemessen 15.11. an den Orchestrator-Panes: --model claude-opus-5-5 --effort high), auch wenn die
+# Unterhaltung laengst mit /model oder /effort umgestellt war. Ein Kontowechsel setzte beides damit
+# zurueck. Jetzt gilt fuer jede claude-Fortsetzung mit Kennung (--resume-id, Sitzungsregister, Neustart
+# nach OOM):
+#   1. Quelle ist die LETZTE Zeile "type":"api-request" mit querySource repl_main_thread im
+#      Gespraechsprotokoll <projects>/<cwd kodiert>/<id>.jsonl, Felder params.model und
+#      params.output_config.effort (die Datei wird von hinten gelesen; sie wird mehrere 100 MB gross).
+#      '<synthetic>' ist keine Anfrage und wird uebersprungen. Fehlt ein Wert, ist er unplausibel oder
+#      die Datei unlesbar, bleibt die Angabe der Startzeile.
+#   2. Gesetzt wird NUR in der startenden Zeile: ein vorhandenes --model/--effort wird ersetzt, ein
+#      fehlendes direkt hinter --model bzw. dem Programm eingefuegt, nie doppelt. @wb_cmd bleibt wie
+#      beim Konto, damit ein spaeterer Neustart wieder aus dem Protokoll liest.
+#   3. Die Schalter schlagen das Protokoll: --model (mit oder ohne --effort) schaltet die Uebernahme
+#      ab; --effort allein ersetzt nur die Denkstufe des Protokolls, ebenfalls nur in dieser Zeile.
+#   4. wb-harness-run loest --model ueber die Registry auf. Uebernommen wird dort nur ein startbarer
+#      claude-Eintrag desselben Wegs (provider) wie das Modell der Startzeile; zeigt die Startzeile
+#      schon auf dieses Modell, bleibt ihre Kennung. Sonst bleibt die Startzeile, die Meldung sagt warum.
+#   5. Die Meldung nennt Modell und Effort vorher und nachher mit Quelle; wb-konto wechsel uebernimmt
+#      diesen Teil in konto-wechsel.log. Andere Harnesses: ein Satz in der Meldung, keine Aenderung.
+modell_why=""
+if [ "${hid:-}" = claude ] && [[ -n "$resume_id" && "$newcmd" == *"$resume_id"* ]]; then
+  py_proto=""
+  IFS= read -r -d '' py_proto <<'PYP' || true
+import json, os, re, shlex, sys
+wurzel, kennung, cmd = sys.argv[1:4]
+pfade = [p for p in sys.argv[4:] if p]
+try:
+    toks = shlex.split(cmd)
+    for i, t in enumerate(toks):
+        if t == "--dir" and i + 1 < len(toks):
+            pfade.append(toks[i + 1])
+        elif t.startswith("--dir="):
+            pfade.append(t[6:])
+except ValueError:
+    pass
+datei = None
+for p in pfade:
+    p = os.path.expanduser(p)
+    for q in (p, os.path.realpath(p)):
+        k = os.path.join(wurzel, re.sub(r"[^A-Za-z0-9-]", "-", q), kennung + ".jsonl")
+        if datei is None and os.path.isfile(k):
+            datei = k
+def rueckwaerts(f, block=1 << 20):
+    f.seek(0, os.SEEK_END)
+    pos, rest = f.tell(), b""
+    while pos > 0:
+        n = min(block, pos)
+        pos -= n
+        f.seek(pos)
+        teile = (f.read(n) + rest).split(b"\n")
+        rest = teile[0]
+        for z in reversed(teile[1:]):
+            yield z
+    yield rest
+MODELL = re.compile(r"claude-[A-Za-z0-9._-]{1,80}")
+STUFEN = ("low", "medium", "high", "xhigh", "max")
+modell = effort = ""
+if datei:
+    try:
+        with open(datei, "rb") as f:
+            for z in rueckwaerts(f):
+                if b'"api-request"' not in z or b"repl_main_thread" not in z:
+                    continue
+                try:
+                    d = json.loads(z)
+                except ValueError:
+                    continue
+                if not isinstance(d, dict) or d.get("type") != "api-request" or d.get("querySource") != "repl_main_thread":
+                    continue
+                pr = d.get("params") if isinstance(d.get("params"), dict) else {}
+                m = pr.get("model")
+                if m == "<synthetic>":
+                    continue
+                oc = pr.get("output_config") if isinstance(pr.get("output_config"), dict) else {}
+                e = oc.get("effort")
+                modell = m if isinstance(m, str) and MODELL.fullmatch(m) else ""
+                effort = e if e in STUFEN else ""
+                break
+    except OSError:
+        pass
+print(modell + "|" + effort)
+PYP
+  # lies <zeile> -> "modell|effort" der Startzeile; setze <zeile> <modell> <effort> -> neue Zeile (Exit 1:
+  # kein --model und kein Programm in der Zeile). printf-%q-Zeilen wie im Modellschalter oben (py_um).
+  py_me=""
+  IFS= read -r -d '' py_me <<'PYM' || true
+import re, shlex, sys
+art, cmd = sys.argv[1], sys.argv[2]
+model, effort = (sys.argv[3], sys.argv[4]) if art == "setze" else ("", "")
+VAL = r"(?:\"[^\"]*\"|'[^']*'|[^\s\"']+)"
+def flag(f):
+    return r"(?<!\S)" + f + r"(?:=|\s+)(" + VAL + r")"
+ANKER = r"(?:^|(?<=[\s/]))(?:claude|wb-harness-run)(?=\s|$)"
+def wert(v):
+    try:
+        w = shlex.split(v)
+    except ValueError:
+        return v
+    return w[0] if len(w) == 1 else v
+def lies(text):
+    m, e = re.search(flag("--model"), text), re.search(flag("--effort"), text)
+    return (wert(m.group(1)) if m else ""), (wert(e.group(1)) if e else "")
+def setze(text):
+    if not re.search(flag("--model"), text) and not re.search(ANKER, text):
+        return None
+    new = text
+    if model:
+        new, n = re.subn(flag("--model"), lambda m: "--model " + shlex.quote(model), new, count=1)
+        if n == 0:
+            a = re.search(ANKER, new)
+            new = new[:a.end()] + " --model " + shlex.quote(model) + new[a.end():]
+        # Die Tuer zur Entscheidungsstelle (wb-identitaet lauf melden, development) nennt das Modell des Laufs
+        # als --modell=; es wechselt mit, wie im Modellschalter oben.
+        new = re.sub(r"(?<![^\s\"'])--modell=[^\s\"']+", lambda m: "--modell=" + shlex.quote(model), new, count=1)
+    if effort:
+        new, n = re.subn(flag("--effort"), lambda m: "--effort " + shlex.quote(effort), new, count=1)
+        if n == 0:
+            a = re.search(flag("--model"), new) or re.search(ANKER, new)
+            new = new[:a.end()] + " --effort " + shlex.quote(effort) + new[a.end():]
+    return new
+if "\\" not in cmd:
+    if art == "lies":
+        print("|".join(lies(cmd)))
+        sys.exit(0)
+    out = setze(cmd)
+    if out is None:
+        sys.exit(1)
+    print(out)
+    sys.exit(0)
+try:
+    w = shlex.split(re.sub(r"\$'((?:[^'\\]|\\.)*)'", lambda m: shlex.quote(m.group(1).encode().decode("unicode_escape")), cmd))
+except ValueError:
+    sys.exit(1)
+if any(re.fullmatch(r"[;&|<>()]+", t) for t in w):
+    sys.exit(1)
+FLACH = r"--(?:model|effort)(?:=.*)?|(?:.*/)?(?:claude|wb-harness-run)"
+erster = None
+for i, t in enumerate(w):
+    if re.search(r"\s", t):
+        if setze(t) is not None:
+            erster = i
+            break
+    elif re.fullmatch(FLACH, t):
+        erster = -1
+        break
+if erster is None:
+    sys.exit(1)
+if erster >= 0:
+    if art == "lies":
+        print("|".join(lies(w[erster])))
+        sys.exit(0)
+    w[erster] = setze(w[erster])
+else:
+    def stelle(name):
+        return next((i for i, t in enumerate(w) if t == name or t.startswith(name + "=")), None)
+    def wort(i, name):
+        return (w[i + 1] if i + 1 < len(w) else "") if w[i] == name else w[i][len(name) + 1:]
+    mi, ei = stelle("--model"), stelle("--effort")
+    if art == "lies":
+        print((wort(mi, "--model") if mi is not None else "") + "|" + (wort(ei, "--effort") if ei is not None else ""))
+        sys.exit(0)
+    ai = next((i for i, t in enumerate(w) if re.fullmatch(r"(?:.*/)?(?:claude|wb-harness-run)", t)), None)
+    if mi is None and ai is None:
+        sys.exit(1)
+    if model:
+        ti = stelle("--modell")
+        if ti is not None and w[ti].startswith("--modell="):
+            w[ti] = "--modell=" + model
+        if mi is None:
+            w[ai + 1:ai + 1] = ["--model", model]
+            mi = ai + 1
+        elif w[mi] == "--model":
+            w[mi + 1:mi + 2] = [model]
+        else:
+            w[mi] = "--model=" + model
+    if effort:
+        ei = stelle("--effort")
+        if ei is None:
+            pos = (mi + (2 if w[mi] == "--model" else 1)) if mi is not None else ai + 1
+            w[pos:pos] = ["--effort", effort]
+        elif w[ei] == "--effort":
+            w[ei + 1:ei + 2] = [effort]
+        else:
+            w[ei] = "--effort=" + effort
+print(" ".join(shlex.quote(t) for t in w))
+PYM
+  proto="$(/usr/bin/python3 -I -c "$py_proto" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" "$resume_id" "$cmd" \
+    "$(tmux display -p -t "$pane" '#{pane_start_path}' 2>/dev/null || true)" \
+    "$(tmux display -p -t "$pane" '#{pane_current_path}' 2>/dev/null || true)" 2>/dev/null || true)"
+  p_model=""; p_effort=""; a_model=""; a_effort=""; j_model=""; j_effort=""; n_model=""; n_effort=""
+  IFS='|' read -r p_model p_effort <<<"$proto" || true
+  IFS='|' read -r a_model a_effort <<<"$(/usr/bin/python3 -I -c "$py_me" lies "$cmd_vor_schalter" 2>/dev/null || true)" || true
+  IFS='|' read -r j_model j_effort <<<"$(/usr/bin/python3 -I -c "$py_me" lies "$newcmd" 2>/dev/null || true)" || true
+  z_model=""; z_effort=""; q_model="Startzeile"; q_effort="Startzeile"; m_hinweis=""
+  if [[ -n "$switch_model" ]]; then
+    q_model="Schalter"
+    [[ -n "$switch_effort" ]] && q_effort="Schalter"
+  else
+    [[ -n "$p_model" ]] && { z_model="$p_model"; q_model="Protokoll"; }
+    if [[ -n "$switch_effort" ]]; then
+      case "$switch_effort" in
+        low|medium|high|xhigh|max) z_effort="$switch_effort"; q_effort="Schalter" ;;
+        *) echo "wb-revive: Denkstufe '$switch_effort' ist keine Stufe (low|medium|high|xhigh|max) — nichts getan." >&2; exit 2 ;;
+      esac
+    elif [[ -n "$p_effort" ]]; then
+      z_effort="$p_effort"; q_effort="Protokoll"
+    fi
+  fi
+  if [[ "$newcmd" == *wb-harness-run* && -n "$z_model$z_effort" ]]; then
+    state="$HOME/.local/bin/wb-state"
+    [[ -x "$state" ]] || state="$(command -v wb-state 2>/dev/null || true)"
+    s_prov=""; z_gut=""
+    if [[ -n "$state" && -n "$z_model" ]]; then
+      s_prov="$("$state" models get "$j_model" --field provider 2>/dev/null || true)"
+      if [[ "$("$state" models get "$j_model" --field modelRef 2>/dev/null || true)" = "$z_model" ]]; then
+        z_model=""; z_gut=1   # die Startzeile zeigt schon auf dieses Modell; ihre Kennung bleibt
+      elif [[ "$("$state" models get "$z_model" --field harness 2>/dev/null || true)" = claude \
+           && -n "$s_prov" && "$("$state" models get "$z_model" --field provider 2>/dev/null || true)" = "$s_prov" \
+           && "$("$state" models get "$z_model" --field modelRef 2>/dev/null || true)" = "$z_model" ]] \
+           && "$state" models resolve "$z_model" >/dev/null 2>&1; then
+        z_gut=1
+      fi
+    fi
+    if [[ -n "$z_model" && -z "$z_gut" ]]; then
+      m_hinweis=" (Protokollmodell ${z_model} hat in der Registry keinen startbaren claude-Eintrag des Wegs ${s_prov:-unbekannt}, Startzeile bleibt)"
+      z_model=""; q_model="Startzeile"
+    fi
+    if [[ -n "$z_effort" ]]; then
+      e_ziel="${z_model:-$j_model}"
+      if [[ -z "$state" ]] || ! "$state" models effort "$e_ziel" --liste 2>/dev/null | tr ' ' '\n' | grep -Fxq "$z_effort"; then
+        m_hinweis="${m_hinweis} (Effort ${z_effort} gilt laut Registry nicht fuer ${e_ziel:-unbekannt}, Startzeile bleibt)"
+        z_effort=""; q_effort="Startzeile"
+      fi
+    fi
+  fi
+  [[ -n "$z_model" && "${j_model%\[1m\]}" = "$z_model" ]] && z_model=""   # schon gesetzt; [1m] bleibt
+  [[ -n "$z_effort" && "$j_effort" = "$z_effort" ]] && z_effort=""
+  if [[ -n "$z_model$z_effort" ]]; then
+    me_neu="$(/usr/bin/python3 -I -c "$py_me" setze "$newcmd" "$z_model" "$z_effort" 2>/dev/null)" || me_neu=""
+    if [[ -n "$me_neu" ]]; then
+      newcmd="$me_neu"
+    else
+      m_hinweis="${m_hinweis} (Startzeile ohne erkennbaren Platz fuer --model/--effort, unveraendert)"
+      q_model="Startzeile"; q_effort="Startzeile"
+    fi
+  fi
+  IFS='|' read -r n_model n_effort <<<"$(/usr/bin/python3 -I -c "$py_me" lies "$newcmd" 2>/dev/null || true)" || true
+  if [[ -z "$p_model$p_effort$switch_model$switch_effort" ]]; then
+    modell_why="Modell/Effort aus Startzeile, Protokoll ohne Angabe (Modell ${n_model:-keins}, Effort ${n_effort:-keins})"
+  else
+    modell_why="Modell ${a_model:-keins} -> ${n_model:-keins} (${q_model}), Effort ${a_effort:-keins} -> ${n_effort:-keins} (${q_effort})${m_hinweis}"
+  fi
+elif [ "${hid:-}" != claude ] && [[ -n "${resume_args:-}" ]]; then
+  modell_why="Modell/Effort aus der Startzeile (Uebernahme aus dem Gespraechsprotokoll nur bei claude)"
+fi
+[[ -n "$modell_why" ]] && resume_why="${resume_why}; ${modell_why}"
+
 # Sperre zuerst, Lebend-Pruefung darin: siehe die Begruendung im Kopf.
 if [ "$trocken" -eq 1 ]; then
   printf 'befehl\t%s\ngrund\t%s\nharness\t%s\n' "$newcmd" "$resume_why" "${hid:-}"
@@ -1058,6 +1532,10 @@ tmux respawn-pane -k -t "$pane" "$startcmd"
 # Re-assert the CLEAN @wb_cmd so the next revive still has a good source
 # (respawn-pane overwrites pane_start_command with the --continue variant).
 tmux set -p -t "$pane" @wb_cmd "$cmd"
+# Das Konto dieses Neustarts bleibt Zustand des Panes (siehe DAS KONTO GEHOERT ZUM PANE).
+if [[ -n "$konto" ]]; then
+  tmux set -p -t "$pane" @wb_konto "$konto" 2>/dev/null || true
+fi
 # Ein Respawn passiert nach Absturz oder tmux-Neustart — genau dann fehlt das
 # dauerhafte `workers`-Fenster, weil es beim Sessionstart angelegt wird und einen
 # Serverneustart nicht ueberlebt. Ohne es hat die Session nur EIN Fenster, und der

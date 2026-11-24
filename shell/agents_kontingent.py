@@ -78,7 +78,8 @@ def _iso(value: Any) -> Optional[float]:
 def aus_budget(data: Mapping[str, Any], jetzt: float, tz: Optional[_dt.tzinfo] = None,
                herkunft: str = "wb-budget") -> list[Sperre]:
     """Sperren aus einem Limitstand (``wb-budget --json`` oder ``limits-latest.json``), jede Grenze fuer sich."""
-    tz = tz or _dt.datetime.now().astimezone().tzinfo
+    # tz None = Ortszeit des Rechners. Kein fester Versatz aus dem Augenblick: der stimmt
+    # an Tagen mit anderem Versatz (Sommer-/Winterzeit) nicht.
     sperren: list[Sperre] = []
     five = _zahl(data.get("five_hour_pct"))
     five_reset = _zahl(data.get("five_hour_resets_at_epoch"))
@@ -101,7 +102,8 @@ def aus_budget(data: Mapping[str, Any], jetzt: float, tz: Optional[_dt.tzinfo] =
         return sperren
     for day in range(index + 1, 8):
         if week <= day * 100.0 / 7.0:
-            midnight = _dt.datetime.combine(start_day + _dt.timedelta(days=day - 1), _dt.time(0, 0), tz)
+            midnight = _dt.datetime.combine(start_day + _dt.timedelta(days=day - 1), _dt.time(0, 0))
+            midnight = midnight.replace(tzinfo=tz) if tz else midnight.astimezone()
             sperren.append(Sperre("tagesbudget", min(midnight.timestamp(), week_reset), "%s Tageslinie" % herkunft))
             return sperren
     sperren.append(Sperre("tagesbudget", week_reset, "%s Tageslinie bis Fensterende" % herkunft))

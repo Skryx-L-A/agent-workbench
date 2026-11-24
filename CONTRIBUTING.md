@@ -56,7 +56,7 @@ bash tools/werkzeuge-installieren.sh --install --target "$HOME/.local/share/wb-r
 ./gates.sh fmt    # likewise clippy, test, licenses, notices, mutants
 ```
 
-Details: `rust/README.md`, section Dependencies (tools) and section Gates. A new dependency must
+Details: `rust/README.md`, sections Dependencies and Gates. A new dependency must
 pass the licence list in `rust/deny.toml`.
 
 ### `main` (workbench)
@@ -154,7 +154,7 @@ bash tools/werkzeuge-installieren.sh --install --target "$HOME/.local/share/wb-r
 ./gates.sh fmt    # ebenso clippy, test, licenses, notices, mutants
 ```
 
-Einzelheiten: `rust/README.md`, Abschnitte Dependencies (Werkzeuge) und Gates. Eine neue
+Einzelheiten: `rust/README.md`, Abschnitte Dependencies und Gates. Eine neue
 Abhängigkeit muss die Lizenzliste in `rust/deny.toml` bestehen.
 
 ### `main` (Werkbank)

@@ -1,7 +1,7 @@
 // Woher dieses Programm erfaehrt, dass eine Sitzung ABGESTUERZT ist -- und
 // nicht bloss zu Ende gegangen.
 //
-// ENTSCHEIDUNG des Nutzers (05.09.2026, „Ja, nur bei Absturz"): Stirbt der
+// ENTSCHEIDUNG (05.09.2026: nur bei Absturz): Stirbt der
 // Orchestrator einer Sitzung mit Fehlercode oder durch ein Signal, erscheint
 // eine Zeile im Fenster; ein gewoehnliches `exit` (Status 0) bleibt still.
 // Die Lebensspur (lebensspur.ts) kann das nicht leisten: sie sieht nur, DASS
@@ -102,11 +102,19 @@ export interface PaneEnde {
  * Tabulator als Trenner, weil ein Sitzungsname Leerzeichen tragen darf; die
  * Felder sind einzeln in Anfuehrungszeichen, damit die Shell sie nicht
  * zerlegt. Ein Apostroph im Pfad wird fuer die Shell verpackt.
+ *
+ * DER HOOK SCHWEIGT, WENN ER NICHT SCHREIBEN KANN (22.10.2026). Endet der
+ * Befehl von `run-shell` mit einem Fehlercode, zeigt tmux ihn im View-Mode
+ * des AKTIVEN Panes der Sitzung an -- gemessen auf eigenem Socket mit tmux
+ * 3.7c: ein nicht anlegbares Protokoll schob einen lebenden Pane in den
+ * View-Mode, sobald daneben ein anderer starb. Ein fehlender Hinweis ist
+ * verkraftbar, ein gekaperter Pane nicht. `2>/dev/null` steht VOR `>>`, damit
+ * auch die Meldung der gescheiterten Umleitung selbst verschluckt wird.
  */
 export function absturzHookBefehl(logDatei: string): string {
   const pfad = logDatei.replace(/'/g, `'\\''`);
   const felder = ['#{session_name}', '#{pane_id}', '#{@wb_role}', '#{pane_dead_status}', '#{pane_dead_signal}'];
-  return `run-shell -b "printf '%s\t%s\t%s\t%s\t%s\\n' ${felder.map((f) => `'${f}'`).join(' ')} >> '${pfad}'"`;
+  return `run-shell -b "printf '%s\t%s\t%s\t%s\t%s\\n' ${felder.map((f) => `'${f}'`).join(' ')} 2>/dev/null >> '${pfad}' || true"`;
 }
 
 /**
@@ -125,7 +133,8 @@ export function absturzHookBefehl(logDatei: string): string {
  */
 export function absturzFernHookZeile(relLog: string): string {
   const felder = ['#{session_name}', '#{pane_id}', '#{@wb_role}', '#{pane_dead_status}', '#{pane_dead_signal}', '#{pane_dead_time}'];
-  const sh = `printf '%s\t%s\t%s\t%s\t%s\t%s\\n' ${felder.map((f) => `'${f}'`).join(' ')} >> '$HOME/${relLog}'`;
+  // Dasselbe Schweigen wie oertlich (absturzHookBefehl): kein Fehlercode, der drueben einen Pane kapert.
+  const sh = `printf '%s\t%s\t%s\t%s\t%s\t%s\\n' ${felder.map((f) => `'${f}'`).join(' ')} 2>/dev/null >> '$HOME/${relLog}' || true`;
   return `tmux set-hook -g '${ABSTURZ_FERN_HOOK}' "run-shell -b \\"${sh}\\"" 2>/dev/null || true`;
 }
 

@@ -35,7 +35,7 @@ S="${1:?usage: wb-workers-window <tmux-session> [window-name]}"
 WNAME="${2:-workers}"
 
 # DER FENSTERNAME IST EIN VERTRAG, KEIN FREITEXT (2026-09-05, gemessener Vorfall).
-# Am 05.09. um 08:39 lief `wb-workers-window wb-companion-299862 --no-attach` --
+# Am 05.09. lief `wb-workers-window wb-companion-299862 --no-attach` --
 # eine Verwechslung mit `wb-worker-tab`, das diese Option kennt. Das Werkzeug hat
 # den Namen damals ungeprueft weitergereicht, und die Folgen trafen NICHT das neue
 # Fenster, sondern den Orchestrator:

@@ -1,4 +1,4 @@
-import { ALLOWED_SPECIAL_KEYS, MAX_MOBILE_KEY_SEQUENCE, MOBILE_API_VERSION, MOBILE_ERROR_CODES, TICKET_APPROVE_REASONS } from './vertrag';
+import { ALLOWED_SPECIAL_KEYS, MAX_MOBILE_KEY_SEQUENCE, MOBILE_API_VERSION, MOBILE_ERROR_CODES, RIGHTS_DECISION_NOTE_MAX, TICKET_APPROVE_REASONS } from './vertrag';
 import type {
   AgentAction, ApiFailure, ApiResponse, ApiSuccess, CompatibilityResult, ContractVersion, JsonObject,
   JsonValue, MobileApiErrorCode, NotifyBody, PairingCompleteBody, PaneBinding, RequestEnvelope, SendKeyBody, SendMessageBody,
@@ -182,7 +182,7 @@ export function validateNotifyBody(value: unknown): ValidationResult<NotifyBody>
 const AGENT_ACTION_TYPES = new Set<AgentAction['type']>([
   'message.send', 'question.answer', 'question.withdraw', 'assignment.create',
   'ticket.accept', 'ticket.redirect', 'ticket.scope', 'ticket.review', 'ticket.reject', 'ticket.return',
-  'ticket.approve',
+  'ticket.approve', 'rights_request.decide',
 ]);
 
 export function validateAgentAction(value: unknown): ValidationResult<AgentAction> {
@@ -224,6 +224,21 @@ export function validateAgentAction(value: unknown): ValidationResult<AgentActio
       break;
     }
     case 'ticket.return': error = required('ticket_id', 'reason'); break;
+    case 'rights_request.decide': {
+      // Dieselben Regeln wie der Server (adapters/agents.ts validateRightsDecision), damit PWA und Testhilfen
+      // nichts schicken, was der Server abweist.
+      const erlaubt = new Set(['type', 'world_id', 'rights_request_id', 'decision', 'changes', 'note']);
+      if (Object.keys(value).some((key) => !erlaubt.has(key))) return { ok: false, error: 'rights decision has unknown fields' };
+      error = required('world_id', 'rights_request_id');
+      if (error) break;
+      if (value.decision !== 'approve' && value.decision !== 'reject') return { ok: false, error: 'decision must be approve or reject' };
+      if (!object(value.changes)) return { ok: false, error: 'changes must be the stored change object' };
+      if (value.note !== undefined && (typeof value.note !== 'string' || !value.note.trim()
+        || [...value.note].length > RIGHTS_DECISION_NOTE_MAX || /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(value.note))) {
+        return { ok: false, error: `note must be one line of at most ${RIGHTS_DECISION_NOTE_MAX} characters` };
+      }
+      break;
+    }
     case 'ticket.approve': {
       error = required('ticket_id');
       if (error) break;

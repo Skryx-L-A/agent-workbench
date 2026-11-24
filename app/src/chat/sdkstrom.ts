@@ -1,7 +1,7 @@
 // DER EREIGNISSTROM EINER CHAT-SITZUNG -- die Begriffe und der Umbau von
 // stream-json in das, was die Oberflaeche zeichnet.
 //
-// GETRENNTE WELTEN (Entscheidung des Nutzers, 12.08.). Diese Datei hat mit
+// GETRENNTE WELTEN (Entscheidung vom 12.08.). Diese Datei hat mit
 // chat/typen.ts und chat/leser.ts NICHTS zu tun. Jene beschreiben das
 // MITLESEN einer fremden Terminal-Sitzung: ein Protokoll, das jemand anders
 // fuehrt, wird von aussen aufgeschlagen und angezeigt. Hier gehoert die
@@ -381,6 +381,16 @@ export class Gespraechsstrom {
    */
   private nachrichtBloecke = new Map<number, Block>();
 
+  /**
+   * WIEVIELE EINTRAEGE DES `content`-FELDS DER LAUFENDEN NACHRICHT SCHON
+   * GELIEFERT SIND, mit ihrer Art. Die echte CLI schickt je Block ein eigenes
+   * `assistant`-Ereignis, dessen `content` nur diesen einen Block traegt
+   * (gemessen, Vorlagen sitzung-zwei-zuege.jsonl und subagent-zug.jsonl); sein
+   * `content[0]` steht dann an Stelle `arten.length` der Nachricht, nicht an
+   * Stelle 0.
+   */
+  private geliefert: { id: string; arten: string[] } = { id: '', arten: [] };
+
   /** Werkzeugbloecke nach tool_use_id -- das Ergebnis kommt spaeter und muss sie finden. */
   private werkzeuge = new Map<string, WerkzeugBlock>();
 
@@ -618,6 +628,7 @@ export class Gespraechsstrom {
     if (ev.type === 'message_start') {
       this.offeneBloecke.clear();
       this.nachrichtBloecke.clear();
+      this.geliefert = { id: '', arten: [] };
       this.g.arbeitet = true;
       // Der belegte Kontext dieses Aufrufs steht schon im Kopf der Nachricht,
       // bevor das erste Wort da ist -- damit weiss die Wache die Auslastung
@@ -691,17 +702,45 @@ export class Gespraechsstrom {
    * Bei einer Nachricht der Form Text, Werkzeug, Text ergab das Text, Text,
    * Werkzeug: eine Reihenfolge, die es nie gab, und niemand sieht ihr an, dass
    * sie falsch ist.
+   *
+   * WELCHE STELLE EIN EINTRAG HAT. Ein Ereignis traegt entweder alle Bloecke
+   * der Nachricht bisher (die kumulative Form, `content` beginnt wie beim
+   * letzten Mal) oder nur die neuen -- die echte CLI schickt je Block ein
+   * Ereignis mit einem Eintrag. Im zweiten Fall liegt der erste Eintrag hinter
+   * allen schon gelieferten, und die Stelle zaehlt ab dort. Nahm man stets den
+   * Platz im `content` des Ereignisses, fand die Antwort (Stromindex 1) den
+   * Denkblock (Stromindex 0) und ueberschrieb ihn (Befund B1, 22.10.2026).
+   *
+   * EREIGNISSE EINES SUBAGENTEN gehoeren nicht in diesen Verlauf. Sie tragen
+   * `parent_tool_use_id` und kommen zwischen die Teilstuecke des Hauptzuges
+   * (Vorlage subagent-zug.jsonl); ihre Bloecke trafen sonst die des Hauptzuges
+   * oder legten neue im Hauptverlauf an. `teilstueck()` zaeunt sie aus
+   * demselben Grund ein.
    */
   private assistent(e: RohEreignis): Folge {
     const nachricht = e.message as Record<string, unknown> | undefined;
     const inhalt = nachricht?.content;
     if (!Array.isArray(inhalt)) return NICHTS;
+    if (typeof e.parent_tool_use_id === 'string' && e.parent_tool_use_id.length > 0) return NICHTS;
 
     const dieserNachricht: Block[] = [];
 
-    for (const [i, roh] of inhalt.entries()) {
+    const nachrichtId = typeof nachricht?.id === 'string' ? nachricht.id : '';
+    if (this.geliefert.id !== nachrichtId) this.geliefert = { id: nachrichtId, arten: [] };
+    const arten = inhalt.map((roh) => {
+      const art = (roh as Record<string, unknown> | null)?.type;
+      return typeof art === 'string' ? art : '';
+    });
+    const bisher = this.geliefert.arten;
+    const kumulativ = bisher.length > 0 && arten.length > bisher.length
+      && bisher.every((art, k) => art === arten[k]);
+    const grundstelle = kumulativ ? 0 : bisher.length;
+    this.geliefert.arten = kumulativ ? arten : [...bisher, ...arten];
+
+    for (const [k, roh] of inhalt.entries()) {
       if (!roh || typeof roh !== 'object') continue;
       const b = roh as Record<string, unknown>;
+      const i = grundstelle + k;
       const schonDa = this.nachrichtBloecke.get(i);
 
       if (b.type === 'text' || b.type === 'thinking') {

@@ -67,11 +67,14 @@ tm() {
 # Das Register wird nicht ein zweites Mal nachgebaut: dieselbe Datei, die auch die
 # Hook-Kette liest. Repo-Fassung zuerst (dann prueft eine Suite den Arbeitsstand),
 # sonst die installierte.
-ROLLEN_PY=""
-for kandidat in "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)/hooks/lib/rollen.py" \
-                "$HOME/.claude/hooks/lib/rollen.py"; do
-    [ -f "$kandidat" ] && { ROLLEN_PY="$kandidat"; break; }
-done
+# Der zweite Ort ist die Heimat laut Benutzerdatenbank, nie $HOME (18.10.2026, Auftrag
+# pathklasse-sicher): das installierte Werkzeug findet ../hooks/lib nicht, und ein rollen.py aus
+# einem HOME, das der Aufrufer waehlt, liefe hier als Code der Rollenabfrage.
+ROLLEN_PY="$(CDPATH= cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)/hooks/lib/rollen.py"
+if [ ! -f "$ROLLEN_PY" ]; then
+    ROLLEN_PY="$(/usr/bin/env -i /usr/bin/python3 -I -S -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir)' 2>/dev/null)/.claude/hooks/lib/rollen.py"
+    [ -f "$ROLLEN_PY" ] || ROLLEN_PY=""
+fi
 [ -n "$ROLLEN_PY" ] || { echo "wb-rolle: hooks/lib/rollen.py nicht gefunden — ohne Register wird nichts gesetzt." >&2; exit 1; }
 
 # Positivliste mit denselben Werten wie bisher, die rollen.py liest: HOME und AWB_ROLLEN_DIR
@@ -107,11 +110,16 @@ M2_UMGEBUNG=()
 if [ "${WB_MENSCH_QUELLE:-}" = oberflaeche ]; then
   case "${WB_APP_PID:-}" in ''|*[!0-9]*) ;; *) M2_UMGEBUNG=(WB_MENSCH_QUELLE=oberflaeche "WB_APP_PID=$WB_APP_PID") ;; esac
 fi
+# wb-mensch aus der Heimat laut Benutzerdatenbank und mit HOME=<diese Heimat>, nie aus $HOME
+# (18.10.2026, Befund pathklasse-sicher OPEN 2). Testnaht: nur mit WB_TESTUMGEBUNG=1 gilt das
+# HOME der Umgebung (GRENZE: wer beides setzt, umgeht das; die getippte Form sperrt bash-guard).
+MENSCH_HEIM="$(/usr/bin/env -i /usr/bin/python3 -I -S -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir, end="")' 2>/dev/null)"
+[ "${WB_TESTUMGEBUNG:-}" = 1 ] && [ -n "${HOME:-}" ] && MENSCH_HEIM="$HOME"
 ist_mensch() {
     local beleg
-    if [ -x "$HOME/.local/bin/wb-mensch" ]; then
-        beleg=$(/usr/bin/env -i HOME="$HOME" TMPDIR=/tmp PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
-            ${M2_UMGEBUNG[@]+"${M2_UMGEBUNG[@]}"} "$HOME/.local/bin/wb-mensch" beleg 2>/dev/null)
+    if [ -n "$MENSCH_HEIM" ] && [ -x "$MENSCH_HEIM/.local/bin/wb-mensch" ]; then
+        beleg=$(/usr/bin/env -i HOME="$MENSCH_HEIM" TMPDIR=/tmp PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
+            ${M2_UMGEBUNG[@]+"${M2_UMGEBUNG[@]}"} "$MENSCH_HEIM/.local/bin/wb-mensch" beleg 2>/dev/null)
     else
         MENSCH_GRUND="wb-mensch am festen Pfad nicht gefunden — ohne Messung gilt: kein Mensch."
         return 1

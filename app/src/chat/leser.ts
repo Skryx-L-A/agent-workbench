@@ -133,6 +133,64 @@ function schreibe(
   raus.push(n);
 }
 
+/** Der Absender, wenn die Nachricht keinen nennt oder `unknown` schreibt. */
+export const ANDERE_SITZUNG = 'andere Sitzung';
+/**
+ * Vorspann einer Nachricht einer anderen Sitzung. Auf main (Fund 297, nur Sicherheitsfix) gibt es keine eigene
+ * Rolle dafuer: die Nachricht wird eine Systemzeile (reiner Text, keine Blase des Menschen), und dieser Vorspann
+ * sagt, woher sie kommt. Der Name danach ist eine ANGABE des Absenders, nie ein Beleg.
+ */
+export const PEER_VORSPANN = 'Andere Sitzung – Nachricht von';
+/** Obergrenze des Absendernamens; ein laengerer Name ist keine Namensangabe mehr. */
+const MAX_SENDER = 48;
+
+/** Wer eine `user`-Zeile des Claude-Transcripts verfasst hat, soweit die Zeile es sagt. */
+type Urheber = { von: 'mensch' } | { von: 'hinweis' } | { von: 'sitzung'; sender: string };
+
+function absenderSauber(w: unknown): string {
+  if (typeof w !== 'string') return '';
+  // Steuerzeichen und Zeilenumbrueche raus: der Name steht in einer Kopfzeile, nie in mehreren.
+  const t = w.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!t || t.toLowerCase() === 'unknown') return '';
+  return t.length > MAX_SENDER ? `${t.slice(0, MAX_SENDER - 1)}…` : t;
+}
+
+/**
+ * Die Kopfzeile einer Nachricht einer anderen Sitzung (GEMESSEN 14.11.2026 an einer echten Zeile,
+ * Claude Code 2.1.325): Text `Another Claude session sent a message:\n<cross-session-message
+ * from="NAME" from-mode="MODUS">\nKOERPER\n</cross-session-message>`; das Attribut `from` fehlt,
+ * wenn der Absender unbekannt ist. Liefert Absender (leer = keiner genannt) und Koerper. Passt die
+ * Form nicht, bleibt der ganze Text der Koerper: gekuerzt oder verfaelscht wird nichts.
+ */
+export function peerKopf(text: string): { sender: string; text: string } {
+  // Kein Regex ueber den Koerper: ein Peer waehlt den Text, und `[\\s\\S]*?` mit Rest waere bei langen Leerraumfolgen quadratisch.
+  const kopf = /^\s*Another Claude session sent a message:\s*<cross-session-message([^>]*)>/.exec(text);
+  if (!kopf) return { sender: '', text };
+  const ZU = '</cross-session-message>';
+  let koerper = text.slice(kopf[0].length).trim();
+  if (koerper.endsWith(ZU)) koerper = koerper.slice(0, -ZU.length).trim();
+  const von = /(?:^|\s)from="([^"]*)"/.exec(kopf[1].slice(0, 400));
+  return { sender: absenderSauber(von?.[1]), text: koerper };
+}
+
+/**
+ * Wer hat diese `user`-Zeile verfasst? FAIL CLOSED: `mensch` nur, wenn nichts in der Zeile dagegen
+ * spricht. GEMESSEN (14.11.2026, 60 juengste Transcripte, 87 000 `user`-Zeilen): echte Eingaben tragen
+ * `origin.kind: "human"` (aeltere Versionen gar keine `origin`); Nachrichten anderer Sitzungen tragen
+ * `isMeta: true`, `origin.kind: "peer"`, `turnOrigin: "peer"`; Aufgabenmeldungen `origin.kind:
+ * "task-notification"`; eingespielte Hinweise `isMeta: true`; Zusammenfassungen `isCompactSummary`.
+ * Der TEXT entscheidet nie: ein Peer kann ihn beliebig formen.
+ */
+export function urheberDerNutzerzeile(d: Record<string, unknown>): Urheber {
+  const o = d.origin && typeof d.origin === 'object' && !Array.isArray(d.origin) ? (d.origin as Record<string, unknown>) : null;
+  if (d.isCompactSummary === true) return { von: 'hinweis' };
+  if (o?.kind === 'peer' || d.turnOrigin === 'peer') return { von: 'sitzung', sender: absenderSauber(o?.from) };
+  if (d.isMeta === true) return { von: 'hinweis' };
+  if (d.origin !== undefined && d.origin !== null && o?.kind !== 'human') return { von: 'hinweis' };
+  if (d.turnOrigin !== undefined && d.turnOrigin !== null && d.turnOrigin !== 'human') return { von: 'hinweis' };
+  return { von: 'mensch' };
+}
+
 /**
  * claude-transcript -- ~/.claude/projects/<cwd-slug>/<sessionId>.jsonl.
  *
@@ -157,16 +215,25 @@ function claudeTranscript(roh: string): ChatNachricht[] {
     if (typ !== 'user' && typ !== 'assistant') continue;
     const m = (d.message ?? {}) as Record<string, unknown>;
     const zeit = zeitAus(d.timestamp);
-    const rolle: Rolle = typ === 'user' ? 'mensch' : 'agent';
+    // Fund 297: nur eine Zeile, die sicher vom Menschen stammt, wird `mensch`; alles andere eine Systemzeile.
+    const urheber = typ === 'user' ? urheberDerNutzerzeile(d) : null;
+    const rolle: Rolle = !urheber ? 'agent' : urheber.von === 'mensch' ? 'mensch' : 'system';
+    // Eine Nachricht einer anderen Sitzung: Kopfzeile ab, Vorspann mit dem Namen davor (der Name aus `origin` zuerst).
+    const text = (wert: string): string => {
+      if (urheber?.von !== 'sitzung') return wert;
+      const k = peerKopf(wert);
+      if (!k.text.trim()) return '';
+      return `${PEER_VORSPANN} ${urheber.sender || k.sender || ANDERE_SITZUNG}: ${k.text}`;
+    };
     const inhalt = m.content;
     if (typeof inhalt === 'string') {
-      schreibe(raus, rolle, inhalt, zeit);
+      schreibe(raus, rolle, text(inhalt), zeit);
       continue;
     }
     if (!Array.isArray(inhalt)) continue;
     for (const teil of inhalt as Record<string, unknown>[]) {
       if (!teil || typeof teil !== 'object') continue;
-      if (teil.type === 'text') schreibe(raus, rolle, String(teil.text ?? ''), zeit);
+      if (teil.type === 'text') schreibe(raus, rolle, text(String(teil.text ?? '')), zeit);
       else if (teil.type === 'thinking') schreibe(raus, 'agent', String(teil.thinking ?? ''), zeit, 'denken');
       else if (teil.type === 'tool_use') {
         const name = String(teil.name ?? 'Werkzeug');

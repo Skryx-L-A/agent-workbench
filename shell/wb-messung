@@ -51,6 +51,17 @@ def load(pfad: Path) -> dict:
     return json.loads(pfad.read_text(encoding="utf-8"))
 
 
+def lade_oder_melden(pfad: Path, was: str = "daten.json"):
+    """-> geladene JSON oder None (Meldung auf stderr: fehlt, nicht lesbar, kein JSON)."""
+    try:
+        return load(pfad)
+    except FileNotFoundError:
+        print(f"wb-messung: {was} nicht gefunden unter {pfad}", file=sys.stderr)
+    except (OSError, ValueError) as e:      # JSONDecodeError und UnicodeDecodeError sind ValueError
+        print(f"wb-messung: {was} nicht lesbar oder kein gueltiges JSON ({pfad}): {e}", file=sys.stderr)
+    return None
+
+
 def save(pfad: Path, data: dict) -> None:
     pfad.write_text(
         json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
@@ -70,6 +81,15 @@ def snapshot(pfad: Path) -> Path:
 # Validierung
 # ---------------------------------------------------------------------------
 
+def _liste(wert) -> list:
+    """Nur echte Listen werden durchlaufen; andere Formen meldet der Pflichtfeld-Check."""
+    return wert if isinstance(wert, list) else []
+
+
+def _id_ok(wert) -> bool:
+    return isinstance(wert, (str, int, float, bool))
+
+
 def pruefen_daten(data) -> tuple[list[str], list[str]]:
     fehler: list[str] = []
     warnungen: list[str] = []
@@ -83,15 +103,15 @@ def pruefen_daten(data) -> tuple[list[str], list[str]]:
         elif not isinstance(data[schluessel], list):
             fehler.append(f"'{schluessel}' muss eine Liste sein.")
 
-    modelle = data.get("modelle") or []
+    modelle = _liste(data.get("modelle"))
     modell_ids: set[str] = set()
     for i, m in enumerate(modelle):
         if not isinstance(m, dict):
             fehler.append(f"modelle[{i}] ist kein Objekt.")
             continue
         mid = m.get("id")
-        if not mid:
-            fehler.append(f"modelle[{i}] hat keine 'id'.")
+        if not mid or not _id_ok(mid):
+            fehler.append(f"modelle[{i}] hat keine 'id'." if not mid else f"modelle[{i}]: 'id' muss ein Text sein.")
             continue
         if mid in modell_ids:
             fehler.append(f"Modell-ID doppelt vergeben: '{mid}'.")
@@ -99,22 +119,22 @@ def pruefen_daten(data) -> tuple[list[str], list[str]]:
         if not m.get("name"):
             fehler.append(f"modelle[{i}] ('{mid}') hat keinen 'name'.")
 
-    messreihen = data.get("messreihen") or []
+    messreihen = _liste(data.get("messreihen"))
     messreihen_ids: set[str] = set()
     for i, mr in enumerate(messreihen):
         if not isinstance(mr, dict):
             fehler.append(f"messreihen[{i}] ist kein Objekt.")
             continue
         mrid = mr.get("id")
-        if not mrid:
-            fehler.append(f"messreihen[{i}] hat keine 'id'.")
+        if not mrid or not _id_ok(mrid):
+            fehler.append(f"messreihen[{i}] hat keine 'id'." if not mrid else f"messreihen[{i}]: 'id' muss ein Text sein.")
             mrid = f"[{i}]"
         if mrid in messreihen_ids:
             fehler.append(f"Messreihen-ID doppelt vergeben: '{mrid}'.")
         messreihen_ids.add(mrid)
 
         diagramm = mr.get("diagramm")
-        if diagramm not in DIAGRAMM_TYPEN:
+        if not _id_ok(diagramm) or diagramm not in DIAGRAMM_TYPEN:
             fehler.append(
                 f"messreihe '{mrid}': 'diagramm' muss eine von {sorted(DIAGRAMM_TYPEN)} sein, "
                 f"nicht {diagramm!r}."
@@ -129,6 +149,9 @@ def pruefen_daten(data) -> tuple[list[str], list[str]]:
             feld = k.get("feld") if isinstance(k, dict) else None
             if not feld:
                 fehler.append(f"messreihe '{mrid}': eine Kennzahl hat kein 'feld'.")
+                continue
+            if not _id_ok(feld):
+                fehler.append(f"messreihe '{mrid}': 'feld' einer Kennzahl muss ein Text sein.")
                 continue
             if feld in felder:
                 fehler.append(f"messreihe '{mrid}': Kennzahl-Feld doppelt: '{feld}'.")
@@ -145,7 +168,7 @@ def pruefen_daten(data) -> tuple[list[str], list[str]]:
             modell = z.get("modell")
             if not modell:
                 fehler.append(f"messreihe '{mrid}' zeile[{j}] hat kein 'modell'.")
-            elif modell not in modell_ids:
+            elif not _id_ok(modell) or modell not in modell_ids:
                 fehler.append(
                     f"messreihe '{mrid}' zeile[{j}]: unbekanntes Modell '{modell}'."
                 )
@@ -166,15 +189,15 @@ def pruefen_daten(data) -> tuple[list[str], list[str]]:
                         f"Schluessel '{feld}', der in keiner Kennzahl definiert ist."
                     )
 
-    kurven = data.get("kurven") or []
+    kurven = _liste(data.get("kurven"))
     kurven_ids: set[str] = set()
     for i, kv in enumerate(kurven):
         if not isinstance(kv, dict):
             fehler.append(f"kurven[{i}] ist kein Objekt.")
             continue
         kvid = kv.get("id")
-        if not kvid:
-            fehler.append(f"kurven[{i}] hat keine 'id'.")
+        if not kvid or not _id_ok(kvid):
+            fehler.append(f"kurven[{i}] hat keine 'id'." if not kvid else f"kurven[{i}]: 'id' muss ein Text sein.")
             kvid = f"[{i}]"
         if kvid in kurven_ids:
             fehler.append(f"Kurven-ID doppelt vergeben: '{kvid}'.")
@@ -190,14 +213,14 @@ def pruefen_daten(data) -> tuple[list[str], list[str]]:
                 fehler.append(f"kurve '{kvid}' reihe[{j}] ist kein Objekt.")
                 continue
             rid = r.get("id")
-            if not rid:
-                fehler.append(f"kurve '{kvid}' reihe[{j}] hat keine 'id'.")
+            if not rid or not _id_ok(rid):
+                fehler.append(f"kurve '{kvid}' reihe[{j}] hat keine 'id'." if not rid else f"kurve '{kvid}' reihe[{j}]: 'id' muss ein Text sein.")
                 rid = f"[{j}]"
             if rid in reihen_ids:
                 fehler.append(f"kurve '{kvid}': Reihen-ID doppelt vergeben: '{rid}'.")
             reihen_ids.add(rid)
             modell = r.get("modell")
-            if modell and modell not in modell_ids:
+            if modell and (not _id_ok(modell) or modell not in modell_ids):
                 fehler.append(f"kurve '{kvid}' reihe '{rid}': unbekanntes Modell '{modell}'.")
             punkte = r.get("punkte")
             if not isinstance(punkte, list) or not punkte:
@@ -207,12 +230,12 @@ def pruefen_daten(data) -> tuple[list[str], list[str]]:
                 if not isinstance(p, dict) or "x" not in p:
                     fehler.append(f"kurve '{kvid}' reihe '{rid}': ein Punkt hat kein 'x'.")
 
-    for i, k in enumerate(data.get("kosten") or []):
+    for i, k in enumerate(_liste(data.get("kosten"))):
         if not isinstance(k, dict):
             fehler.append(f"kosten[{i}] ist kein Objekt.")
             continue
         modell = k.get("modell")
-        if modell and modell not in modell_ids:
+        if modell and (not _id_ok(modell) or modell not in modell_ids):
             fehler.append(f"kosten[{i}]: unbekanntes Modell '{modell}'.")
 
     return fehler, warnungen
@@ -232,18 +255,30 @@ def cmd_pfad(args) -> int:
 
 def cmd_modelle(args) -> int:
     pfad = resolve_daten_pfad()
-    data = load(pfad)
-    for m in data.get("modelle", []):
+    data = lade_oder_melden(pfad)
+    if data is None:
+        return 1
+    for m in _liste(data.get("modelle") if isinstance(data, dict) else None):
+        if not isinstance(m, dict):
+            continue
         print(f"{m.get('id')}\t{m.get('name')}\t{m.get('rolle') or ''}")
     return 0
 
 
 def cmd_reihen(args) -> int:
     pfad = resolve_daten_pfad()
-    data = load(pfad)
-    for mr in data.get("messreihen", []):
+    data = lade_oder_melden(pfad)
+    if data is None:
+        return 1
+    if not isinstance(data, dict):
+        data = {}
+    for mr in _liste(data.get("messreihen")):
+        if not isinstance(mr, dict):
+            continue
         print(f"messreihe\t{mr.get('id')}\t{mr.get('projekt') or ''}\t{mr.get('datum') or ''}\t{mr.get('titel') or ''}")
-    for kv in data.get("kurven", []):
+    for kv in _liste(data.get("kurven")):
+        if not isinstance(kv, dict):
+            continue
         print(f"kurve\t{kv.get('id')}\t{kv.get('projekt') or ''}\t{kv.get('datum') or ''}\t{kv.get('titel') or ''}")
     return 0
 
@@ -266,10 +301,8 @@ def cmd_pruefen(args) -> int:
     if not pfad.exists():
         print(f"wb-messung: Datei nicht gefunden: {pfad}", file=sys.stderr)
         return 1
-    try:
-        data = load(pfad)
-    except json.JSONDecodeError as e:
-        print(f"wb-messung: kein gueltiges JSON in {pfad}: {e}", file=sys.stderr)
+    data = lade_oder_melden(pfad, "Datei")
+    if data is None:
         return 1
     fehler, warnungen = pruefen_daten(data)
     for w in warnungen:
@@ -293,8 +326,13 @@ def cmd_add(args) -> int:
         print(f"wb-messung: Datei nicht gefunden: {zusatz_pfad}", file=sys.stderr)
         return 1
 
-    data = load(pfad)
-    zusatz = load(zusatz_pfad)
+    data = lade_oder_melden(pfad)
+    zusatz = lade_oder_melden(zusatz_pfad, "Datei")
+    if data is None or zusatz is None:
+        return 1
+    if not isinstance(data, dict) or not isinstance(zusatz, dict):
+        print("wb-messung: daten.json und die Datei muessen JSON-Objekte sein.", file=sys.stderr)
+        return 1
 
     arten = [a for a in ("messreihe", "kurve") if a in zusatz]
     if len(arten) != 1:
@@ -306,13 +344,16 @@ def cmd_add(args) -> int:
     art = arten[0]
     eintrag = zusatz[art]
     neue_id = eintrag.get("id") if isinstance(eintrag, dict) else None
-    if not neue_id:
+    if not neue_id or not _id_ok(neue_id):
         print(f"wb-messung: '{art}' in {zusatz_pfad} hat keine 'id'.", file=sys.stderr)
         return 1
 
     ziel_liste_name = "messreihen" if art == "messreihe" else "kurven"
     ziel_liste = data.setdefault(ziel_liste_name, [])
-    bestehende_ids = {e.get("id") for e in ziel_liste}
+    if not isinstance(ziel_liste, list):
+        print(f"wb-messung: '{ziel_liste_name}' in {pfad} ist keine Liste, nichts geschrieben.", file=sys.stderr)
+        return 1
+    bestehende_ids = {e.get("id") for e in ziel_liste if isinstance(e, dict) and _id_ok(e.get("id"))}
     if neue_id in bestehende_ids:
         print(
             f"wb-messung: '{ziel_liste_name}' hat bereits die ID '{neue_id}' -- "

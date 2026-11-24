@@ -54,7 +54,12 @@ def token_lesen():
         fd = os.open(token_pfad(), os.O_RDONLY | os.O_NOFOLLOW)
     except OSError:
         return None
-    with os.fdopen(fd, encoding="utf-8") as f:
+    try:
+        f = os.fdopen(fd, encoding="utf-8")
+    except OSError:      # etwa ein Ordner am Tokenpfad
+        os.close(fd)
+        return None
+    with f:
         st = os.fstat(f.fileno())
         if st.st_uid != os.getuid() or st.st_mode & 0o077:
             return None
@@ -88,7 +93,13 @@ def token_ordner_fehler(pfad=None):
 def port():
     roh = os.environ.get("WB_HUB_PORT")
     if roh:
-        return int(roh)
+        try:
+            p = int(roh)
+        except ValueError:
+            p = 0
+        if not 0 < p < 65536:
+            raise SystemExit("wb-hub: WB_HUB_PORT ist keine Portnummer (1 bis 65535)")
+        return p
     try:
         q, _ = werkzeuge_kern.laden()
         return int((q.get("hub") or {}).get("port") or wb_hub_kern.VORGABE_PORT)
@@ -326,6 +337,18 @@ def _mit_sitzung(harness, fn):
         sitz.beenden()
 
 
+def _fehler_oder_ergebnis(obj):
+    """-> (Ergebnisobjekt, None) oder (None, Meldung); auch bei einer Antwort ohne result oder mit falscher Form."""
+    if not isinstance(obj, dict):
+        return None, "leer"
+    if obj.get("error"):
+        fehler = obj["error"]
+        return None, fehler.get("message", "leer") if isinstance(fehler, dict) else "leer"
+    if not isinstance(obj.get("result"), dict):
+        return None, "Antwort ohne Ergebnis"
+    return obj["result"], None
+
+
 def tools(argv):
     harness, rest = harness_aus(argv)
     if rest:
@@ -338,11 +361,15 @@ def tools(argv):
     except HubFehler as e:
         print("wb-hub: %s" % e, file=sys.stderr)
         return 1
-    if obj is None or "error" in obj:
-        print("wb-hub: tools/list: %s" % ((obj or {}).get("error") or {}).get("message", "leer"), file=sys.stderr)
+    ergebnis, meldung = _fehler_oder_ergebnis(obj)
+    if meldung:
+        print("wb-hub: tools/list: %s" % meldung, file=sys.stderr)
         return 1
-    for t in obj["result"].get("tools", []):
-        zeilen = (t.get("description") or "").splitlines()
+    for t in ergebnis.get("tools", []) if isinstance(ergebnis.get("tools", []), list) else []:
+        if not isinstance(t, dict):
+            continue
+        beschreibung = t.get("description")
+        zeilen = beschreibung.splitlines() if isinstance(beschreibung, str) else []
         print("%s\t%s" % (t.get("name"), zeilen[0] if zeilen else ""))
     return 0
 
@@ -368,11 +395,12 @@ def call(argv):
     except HubFehler as e:
         print("wb-hub: %s" % e, file=sys.stderr)
         return 1
-    if obj is None or "error" in obj:
-        print("wb-hub: %s" % ((obj or {}).get("error") or {}).get("message", "leer"), file=sys.stderr)
+    r, meldung = _fehler_oder_ergebnis(obj)
+    if meldung:
+        print("wb-hub: %s" % meldung, file=sys.stderr)
         return 1
-    r = obj["result"]
-    for c in r.get("content", []):
+    inhalt = r.get("content", [])
+    for c in inhalt if isinstance(inhalt, list) else []:
         if isinstance(c, dict) and c.get("type") == "text":
             print(c.get("text", ""))
     return 1 if r.get("isError") else 0

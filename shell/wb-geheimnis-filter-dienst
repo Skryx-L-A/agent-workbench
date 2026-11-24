@@ -1,6 +1,6 @@
 #!/bin/bash
 # wb-geheimnis-filter-dienst -- den Geheimnisfilter als Dienst mit Start bei Zugriff
-# einrichten, pruefen oder entfernen (Auftrag filter-live, der Nutzer 2026-10-10).
+# einrichten, pruefen oder entfernen (Auftrag filter-live, decision 2026-10-10).
 #
 #   macOS: launchd-Agent agent-workbench.geheimnis-filter (shell/agent-workbench.geheimnis-filter.plist)
 #   Linux: systemd-User-Socket wb-geheimnis-filter.socket + .service (shell/systemd/)
@@ -10,7 +10,7 @@
 # beim Laden (KeepAlive/SuccessfulExit impliziert RunAtLoad). Nach einem Absturz startet
 # er sofort neu (KeepAlive bzw. Restart=on-failure), sonst bei der naechsten Verbindung.
 # Derselbe Socket nimmt auch CONNECT an (--connect): Proxy-Modus fuer Claude (HTTPS_PROXY,
-# Auftrag wz-proxybau 13.10.). Installieren legt dafuer die lokale CA an (Buendel
+# task 13.10.). Installieren legt dafuer die lokale CA an (Buendel
 # ~/.local/state/wb-geheimnis-filter/ca.pem fuer NODE_EXTRA_CA_CERTS; nie Trust-Store).
 #
 # Programm: Dienstkopie ~/.local/share/wb-geheimnis-filter/wb-geheimnis-filter aus dem
@@ -27,6 +27,9 @@
 #   wb-geheimnis-filter-dienst installieren   einrichten bzw. auf den Repo-Stand bringen
 #     (aus dem Repo-Checkout aufrufen, z. B. ~/AI/claude-workbench/shell/wb-geheimnis-filter-dienst: eine Kopie in
 #     ~/.local/bin findet plist bzw. systemd-Units nicht und bricht vor jeder Aenderung ab -- Vorgabe 14.10.)
+#     --wenn-ruhig: Vor dem Neustart des laufenden Filters warten, bis /_wb/zaehler keine offene
+#     Anfrage mehr nennt (hoechstens 60 s; danach geht der Neustart trotzdem, ein Fix hat Vorrang).
+#     Unter Linux haelt die Socket-Unit den Port: Anfragen warten dann kurz, statt abgewiesen zu werden.
 #   wb-geheimnis-filter-dienst status         Dienstzustand und Zaehler
 #   wb-geheimnis-filter-dienst entfernen      Dienst abschalten (Harnesses VORHER zurueck!)
 # Entfernen bricht VOR jedem Dienst-Eingriff ab, solange Claude, Codex, pi,
@@ -51,7 +54,7 @@ while [ -L "$QUELLE" ]; do
 done
 REPO="$(cd -P -- "$(dirname -- "$QUELLE")" && pwd)" \
   || { echo "wb-geheimnis-filter-dienst: Skriptordner nicht aufloesbar" >&2; exit 1; }
-PORT=8093
+PORT="${WB_GF_PORT:-8093}"    # WB_GF_PORT nur fuer Tests und Messproben mit eigenem Filter
 LABEL=agent-workbench.geheimnis-filter
 UNIT=wb-geheimnis-filter
 ZIEL="$HOME/.local/share/wb-geheimnis-filter"
@@ -91,6 +94,29 @@ probe() {   # probe -> Exit 0, wenn die Zaehlerseite antwortet
   return 1
 }
 
+# --wenn-ruhig: Der laufende Filter wird erst neu gestartet, wenn er keine Anfrage in Arbeit hat.
+# `offen` auf /_wb/zaehler zaehlt Anfragen vom Hinweg bis zum letzten Byte des Rueckwegs (ein Strom zaehlt
+# bis zu seinem Ende). Frist 60 s (WB_GF_RUHE_FRIST nur fuer Tests): Danach geht der Neustart trotzdem.
+# Meldet die Seite kein `offen` (Dienst steht oder alte Fassung), gibt es nichts abzuwarten.
+WENN_RUHIG=0
+auf_ruhe() {
+  [ "$WENN_RUHIG" = 1 ] || return 0
+  local frist="${WB_GF_RUHE_FRIST:-60}" ab=$SECONDS n=""
+  while :; do
+    n="$(curl -s -m 5 "http://127.0.0.1:$PORT/_wb/zaehler" 2>/dev/null | sed -n 's/.*"offen": *\([0-9][0-9]*\).*/\1/p')"
+    if [ -z "$n" ]; then
+      echo "Keine Zaehlerseite mit offenen Anfragen (Dienst steht oder alte Fassung): kein Warten."; return 0
+    fi
+    if [ "$n" = 0 ]; then
+      echo "Keine Anfrage in Arbeit nach $((SECONDS - ab)) s: Neustart jetzt."; return 0
+    fi
+    if [ $((SECONDS - ab)) -ge "$frist" ]; then
+      echo "$n Anfrage(n) noch in Arbeit nach ${frist} s: Neustart trotzdem (ein Fix hat Vorrang)."; return 0
+    fi
+    sleep 0.5
+  done
+}
+
 # Argumente als eine Zeile, durch Leerzeichen getrennt (Pfade und Schalter ohne Leerzeichen).
 plist_zeile() {   # plist_zeile DATEI -> ProgramArguments, Exit 1 ohne Argumente
   local n=0 wert zeile=""
@@ -119,6 +145,7 @@ quellen_pruefen() {   # Alle Quellen da? Sonst Exit 1 mit Pfaden; schreibt NICHT
   # einer kopierten Fassung (~/.local/bin), blieb die Dienstkopie ersetzt und die Units ungeschrieben.
   local fehlt=""
   [ -f "$REPO/wb-geheimnis-filter" ] || fehlt="$fehlt $REPO/wb-geheimnis-filter"
+  [ -f "$REPO/geheimnis-routen.json" ] || fehlt="$fehlt $REPO/geheimnis-routen.json"
   if [ "$OS" = mac ]; then
     [ -f "$PLIST_QUELLE" ] || fehlt="$fehlt $PLIST_QUELLE"
   else
@@ -136,6 +163,10 @@ installieren() {
   [ -f "$LIB/geheimnis_inhalt.py" ] || fehler "$LIB/geheimnis_inhalt.py fehlt (Hooks nicht ausgerollt)"
   printf 'x\n' | WB_GEHEIMNIS_LIB="$LIB" "$PY" "$REPO/wb-geheimnis-filter" filter >/dev/null \
     || fehler "Filter laeuft mit $LIB nicht"
+  # Routentabelle neben dem neuen Filter: dieselbe Pruefung, die serve beim Start macht (routen_pruefen im Filter).
+  # Ohne gueltige Tabelle kaeme der neue Filter nicht hoch: kein Schreiben, kein Neustart, der alte Filter laeuft weiter.
+  WB_GEHEIMNIS_LIB="$LIB" "$PY" "$REPO/wb-geheimnis-filter" routen-pruefen --datei "$REPO/geheimnis-routen.json" >/dev/null \
+    || fehler "Die Routentabelle $REPO/geheimnis-routen.json ist ungueltig, der neue Filter startete nicht; kein Neustart, der laufende Filter bleibt"
   # Vor jeder Dienstkopie/Neustart pruefen: kein stiller Ersatz bei gesperrtem Speicher.
   WB_GEHEIMNIS_LIB="$LIB" "$PY" "$REPO/wb-geheimnis-filter" schluessel-pruefen \
     || fehler "Schluesselbund nicht bereit; Dienstkopie und laufender Dienst unveraendert"
@@ -149,7 +180,21 @@ installieren() {
     chmod 600 "$ZUSTAND/zaehler.json"
   fi
   local prog_neu=0
-  legen "$REPO/wb-geheimnis-filter" "$ZIEL/wb-geheimnis-filter" 755 && prog_neu=1
+  # Marke `neustart-offen` neben der Kopie: Die Kopie ist ersetzt, der Neustart noch nicht belegt. Sie bleibt,
+  # wenn dieser Lauf vor dem belegten Neustart endet; dann gilt der naechste Lauf (und wb-ausrollen,
+  # wb-consistency) so, als wiche die Kopie noch ab. Geloescht wird sie erst am Ende, nach belegtem Neustart.
+  [ -e "$ZIEL/neustart-offen" ] && prog_neu=1
+  # Die Routentabelle zuerst: der neue Filter startet ohne sie nicht, sie liegt nie fehlend neben ihm.
+  if legen "$REPO/geheimnis-routen.json" "$ZIEL/geheimnis-routen.json" 644; then
+    prog_neu=1
+  fi
+  if legen "$REPO/wb-geheimnis-filter" "$ZIEL/wb-geheimnis-filter" 755; then
+    prog_neu=1
+  fi
+  if [ "$prog_neu" = 1 ]; then
+    printf 'Kopie ersetzt am %s, Neustart noch nicht belegt\n' "$(date +%Y-%m-%dT%H:%M:%S%z)" > "$ZIEL/neustart-offen" \
+      || fehler "Marke $ZIEL/neustart-offen nicht geschrieben"
+  fi
   if [ "$OS" = mac ]; then
     plutil -lint "$PLIST_QUELLE" >/dev/null || fehler "plist ungueltig"
     local domain="gui/$(id -u)" job="gui/$(id -u)/$LABEL"
@@ -168,6 +213,9 @@ installieren() {
     # (13.10.: kein --connect nach kickstart). Dann wie bei einer geaenderten plist neu laden.
     if [ "$geladen" = 1 ] && [ "$(geladene_zeile "$vorher")" != "$soll" ]; then def_alt=1; fi
     if [ "$prog_neu" = 1 ] || [ "$plist_neu" = 1 ] || [ "$def_alt" = 1 ]; then aenderung=1; fi
+
+    # Der laufende Prozess wird gleich beendet (bootout oder kickstart -k): vorher auf Ruhe warten.
+    if [ "$aenderung" = 1 ] && [ -n "$alter_pid" ]; then auf_ruhe; fi
 
     # Aenderungen am plist muessen launchd neu laden, damit insbesondere der
     # socket-aktivierte Listener bei launchd registriert bleibt. Danach startet
@@ -209,6 +257,7 @@ installieren() {
     [ -n "$laufend" ] && [ "$(ohne_programm "$laufend")" != "$(ohne_programm "$soll")" ] && alt_def=1
     systemctl --user daemon-reload || fehler "daemon-reload gescheitert"
     if [ "$neu" = 1 ] || [ "$prog_neu" = 1 ] || [ "$alt_def" = 1 ]; then
+      if [ -n "$haupt" ] && [ "$haupt" != 0 ]; then auf_ruhe; fi
       systemctl --user stop "$UNIT.service" 2>/dev/null
     fi
     if ! systemctl --user is-active --quiet "$UNIT.socket"; then
@@ -248,6 +297,8 @@ installieren() {
     [ "$(ohne_programm "$laufend")" = "$(ohne_programm "$soll")" ] \
       || fehler "Prozessargumente weichen von der Unit ab: PID $haupt laeuft mit '$(ohne_programm "$laufend")', soll '$(ohne_programm "$soll")'"
   fi
+  # Neustart belegt (Prozess, Argumente, Zaehlerseite): Marke weg. Jeder fehler() davor laesst sie stehen.
+  rm -f "$ZIEL/neustart-offen"
   if [ "$OS" = mac ]; then
     if [ "$aenderung" = 1 ]; then
       if [ -n "$alter_pid" ] && [ -n "$alte_startzeit" ]; then
@@ -263,13 +314,37 @@ installieren() {
   echo "Proxy-Modus: HTTPS_PROXY=http://127.0.0.1:$PORT NODE_EXTRA_CA_CERTS=$ZUSTAND/ca.pem"
 }
 
+interpreter_pruefen() {   # interpreter_pruefen PID -> Warnzeile, wenn der laufende Filter auf einem geloeschten Programm laeuft
+  # 03.11.2026: brew ersetzte python@3.14 3.14.8_2, der Filter lief weiter auf dem geloeschten Cellar. Ein Neustart nimmt
+  # ein anderes Python, und ein Schluessel, den nur das alte lesen darf, laesst ihn fail-closed aus.
+  local pid="$1" prog=""
+  case "$pid" in ''|*[!0-9]*) return 0 ;; esac
+  if [ "$OS" = mac ]; then
+    prog="$(ps -o comm= -p "$pid" 2>/dev/null)"
+    [ -n "$prog" ] && [ ! -e "$prog" ] || return 0
+  else
+    prog="$(readlink "/proc/$pid/exe" 2>/dev/null)"
+    case "$prog" in *' (deleted)') ;; *) return 0 ;; esac
+  fi
+  echo "WARNUNG: Der laufende Filter (PID $pid) laeuft auf einem geloeschten Programm: $prog"
+  echo "  Ein Neustart nimmt ein anderes Python. Vorher pruefen: $PY $REPO/wb-geheimnis-filter schluessel-pruefen"
+}
+
 status() {
   if [ "$OS" = mac ]; then
-    launchctl print "gui/$(id -u)/$LABEL" 2>/dev/null \
-      | grep -E '^\s*(state|pid|runs|last exit code|last exit reason) =' || echo "launchd-Agent $LABEL nicht geladen"
+    local zeilen
+    zeilen="$(launchctl print "gui/$(id -u)/$LABEL" 2>/dev/null \
+      | grep -E '^\s*(state|pid|runs|last exit code|last exit reason) =')"
+    if [ -n "$zeilen" ]; then
+      printf '%s\n' "$zeilen"
+      interpreter_pruefen "$(printf '%s\n' "$zeilen" | awk '$1=="pid"{print $3; exit}')"
+    else
+      echo "launchd-Agent $LABEL nicht geladen"
+    fi
   else
     systemctl --user --no-pager status "$UNIT.socket" "$UNIT.service" 2>/dev/null | grep -E '●|Active:|Main PID:' \
       || echo "$UNIT nicht eingerichtet"
+    interpreter_pruefen "$(systemctl --user show -p MainPID --value "$UNIT.service" 2>/dev/null)"
   fi
   WB_GEHEIMNIS_LIB="$LIB" "$PY" "$REPO/wb-geheimnis-filter" zaehler --port "$PORT" --lesbar
   if [ -f "$ZUSTAND/ca.pem" ]; then
@@ -383,8 +458,16 @@ entfernen() {
 }
 
 case "${1:-}" in
-  installieren) installieren ;;
+  installieren)
+    shift
+    for arg in "$@"; do
+      case "$arg" in
+        --wenn-ruhig) WENN_RUHIG=1 ;;
+        *) fehler "unbekannter Schalter fuer installieren: $arg (bekannt: --wenn-ruhig)" ;;
+      esac
+    done
+    installieren ;;
   status) status ;;
   entfernen) entfernen ;;
-  *) sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  *) sed -n '2,36p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

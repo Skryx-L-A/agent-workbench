@@ -3,7 +3,7 @@
 <!--
   agent-workbench.geheimnis-filter - launchd haelt den Lauschsocket 127.0.0.1:8093, der
   Geheimnisfilter startet erst bei der ersten Verbindung (Auftrag filter-live,
-  der Nutzer 2026-10-10: "Alle umlenkbaren sofort").
+  decision 2026-10-10.).
 
   Bauart wie agent-workbench.modell-proxy: kein StartInterval - also kein Zeitgeber
   (KeepAlive seit 13.10., siehe unten). Beendet sich der Prozess (Absturz, kill,
@@ -20,7 +20,7 @@
   (~/.claude/hooks/lib/geheimnis_inhalt.py). Zaehler seit festem Zeitpunkt:
   ~/.local/state/wb-geheimnis-filter/zaehler.json (nur Zahlen).
 
-  Proxy-Modus (Auftrag wz-proxybau, 13.10.): -connect, derselbe Socket 8093 nimmt auch
+  Proxy-Modus (task, 13.10.): -connect, derselbe Socket 8093 nimmt auch
   CONNECT an. Claude laeuft dann ohne ANTHROPIC_BASE_URL (Remote Control bleibt moeglich)
   mit HTTPS_PROXY=http://127.0.0.1:8093 und NODE_EXTRA_CA_CERTS=
   ~/.local/state/wb-geheimnis-filter/ca.pem; nur api.anthropic.com wird aufgebrochen,

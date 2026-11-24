@@ -842,6 +842,10 @@ async function anlegenSichern(w: Welt, echt: boolean): Promise<void> {
   if (!a) return;
   const id = a.entwurf.id.trim();
   const r = await ausfuehren('anlegen', { welt: w.pfad, entwurf: entwurfJson(a.entwurf) }, echt);
+  // Die Antwort kommt erst, wenn der Kern fertig ist; die Datei steht schon vorher. Hat der Mensch
+  // inzwischen ein neues Formular geoeffnet, schloss die spaete Antwort es und sprang zum Profil
+  // (gemessen auf T1 unter Last, Fall 17 in test-app-welten.sh). Sie gilt nur fuer das Formular, das sie schickte.
+  if (z.anlegen !== a) { zeichnen(); return; }
   if (r.ok) {
     z.anlegen = null;
     z.auswahl = `agent:${id}`;

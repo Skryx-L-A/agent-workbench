@@ -46,7 +46,7 @@ ANLAESSE = ("sitzungsstart", "nachricht", "worker-auftrag")
 # Eintraege, die kein Adapter schreibt (leere Harness-Menge): Wissen bleibt in der Quelle, `grund` sagt warum.
 # nur-traeger: der Agenten-Traeger registriert den Hook selbst je Claude-Zug (eigene turn-settings.json).
 OHNE_HARNESS = ("nur-traeger",)
-# alle: jeder Harness der Registry, auch kuenftige (Stilregel, der Nutzer 13.10.); ohne toolAdapter-Bedingung.
+# alle: jeder Harness der Registry, auch kuenftige (Stilregel, decision 10-13); ohne toolAdapter-Bedingung.
 ALLE = "alle"
 VERWEIS_PRAEFIXE = ("schluesselbund:", "filter:")
 HUB_NAME = "werkbank"            # Name des einen Hub-Eintrags in mcp (Hub-Entwurf 5.1)
@@ -253,7 +253,7 @@ def _anweisungen_pruefen(ref, e, ung, fehlt, ordner, aktiv):
             for x in an:
                 if x not in ANLAESSE:
                     ung(ref, "unbekannter Anlass %r (erlaubt: %s)" % (x, ", ".join(ANLAESSE)))
-    # takt (P2, WO 13.10.): nachricht.alle = N (jede N-te Nachricht, >= 1), nach_kompaktierung bool
+    # takt (P2, decision 10-13): nachricht.alle = N (jede N-te Nachricht, >= 1), nach_kompaktierung bool
     t = e.get("takt")
     if t is not None:
         n = (t.get("nachricht") or {}).get("alle", 1) if isinstance(t, dict) and isinstance(
@@ -1057,7 +1057,7 @@ def _plan_zeilen(eintraege):
 # Die Wurzel, aus der `wb-instructions sync` (sync_skill_links) die Skills in alle uebrigen
 # skillRoots verlinkt (dort SRC_SKILLS_DIR). Ein Werkbank-Skill aus der Quelle (skills.<name>.quelle)
 # liegt hier als Link auf seinen Ordner neben der installierten werkzeuge.default.json; danach
-# verteilt sync_skill_links ihn wie jeden anderen Skill (Review wz-integ2, M1).
+# verteilt sync_skill_links ihn wie jeden anderen Skill (Review task, M1).
 QUELL_SKILLWURZEL = "~/.claude/skills"
 
 
@@ -1067,7 +1067,7 @@ def skills_anlegen(q, ordner, trocken=False, pruef_ordner=None):
     etwas anderes (fremde Fassung, anderer Link), kommt es vorher nach
     ~/.local/trash-snapshots/<Datum>-skill-<name>/ (verschoben, nicht geloescht); die Zeile nennt den
     Snapshot-Pfad. Der Name gehoert der Werkbank (Entscheidung WorkbenchOrchestrator 13.10.).
-    Fehlt <quelle>/SKILL.md, ist das auch im Trockenlauf ein FEHLER (Review wz-integ3, Fund 4); geprueft
+    Fehlt <quelle>/SKILL.md, ist das auch im Trockenlauf ein FEHLER (Review task, Fund 4); geprueft
     wird unter pruef_ordner, wenn gesetzt (wb-ausrollen: Repo-Quelle, die installierte fehlt im
     Trockenlauf noch), sonst unter ordner. Ein Dateifehler (Snapshot, Link) wird als FEHLER gemeldet,
     nicht als Traceback (Fund 5). -> (zeilen, fehler)"""
@@ -1177,6 +1177,13 @@ def _skills_anlegen_main(args):
     return 1 if fehler else 0
 
 
+def _eintrag_bekannt(q, reg, state, harness, eintrag):
+    """True, wenn der Harness einen Eintrag <name> oder <art>.<name> hat. `apply --force` nimmt nur so
+    einen Namen an: apply schreibt sonst trotzdem jeden FEHLT- und VERALTET-Eintrag des Harness."""
+    return any(x.get("harness") == harness and eintrag in (x["name"], "%s.%s" % (x["art"], x["name"]))
+               for x in bewerten(q, reg, state, [harness], None))
+
+
 def main(argv):
     for a in ADAPTER:
         if a.get("zustaendig") and a.get("main") and a["zustaendig"](argv):
@@ -1215,6 +1222,10 @@ def main(argv):
     if befehl == "apply" and force:
         if len(rest) != 2:
             print("wb-werkzeuge: apply --force <harness> <eintrag>", file=sys.stderr)
+            return 2
+        if not _eintrag_bekannt(q, reg, state, rest[0], rest[1]):
+            print("wb-werkzeuge: apply --force: %s hat keinen Eintrag %s (Form <name> oder <art>.<name>); "
+                  "nichts geschrieben" % (rest[0], rest[1]), file=sys.stderr)
             return 2
         zeilen, _ = anwenden(q, reg, [rest[0]], nur_art, force=(rest[0], rest[1]))
         print("\n".join(zeilen) or "nichts zu schreiben")

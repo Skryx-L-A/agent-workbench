@@ -516,7 +516,7 @@ class JevSchatten:
             grund = "wb-jev ensure konnte nicht gestartet werden"
         finally:
             # Die Startsperre gilt prozessweit: sie MUSS frei werden, auch wenn das Ernten haengt. Unter Last
-            # (GL#41, 14.10.2026) war ein per SIGKILL beendetes ensure nach 5 s noch nicht geerntet; das
+            # (Gesamtlauf, 14.10.2026) war ein per SIGKILL beendetes ensure nach 5 s noch nicht geerntet; das
             # TimeoutExpired aus wait() liess die Sperre fuer immer stehen, und kein Schatten startete mehr.
             try:
                 if proc is not None and proc.poll() is None:

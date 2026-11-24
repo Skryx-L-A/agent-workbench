@@ -40,9 +40,10 @@ def first_prompt(path: Path) -> str:
                     rec = json.loads(line)
                 except Exception:
                     continue
-                if rec.get("type") != "user":
+                if not isinstance(rec, dict) or rec.get("type") != "user":
                     continue
-                content = rec.get("message", {}).get("content")
+                nachricht = rec.get("message")
+                content = nachricht.get("content") if isinstance(nachricht, dict) else None
                 if isinstance(content, list):
                     content = " ".join(
                         c.get("text", "") for c in content if isinstance(c, dict)
@@ -52,22 +53,44 @@ def first_prompt(path: Path) -> str:
                 text = " ".join(content.split())
                 if not text or text.startswith(("<", "Caveat:", "[Request")):
                     continue
-                return text[:78]
+                # Steuerzeichen (ESC, BEL, C1) aus fremdem Text duerfen das Terminal nicht erreichen.
+                return "".join(c if c.isprintable() else "?" for c in text[:78])
     except OSError:
         pass
     return "(kein Prompt gefunden)"
 
 
-def project_dir(slug: str) -> str:
-    """Aus dem Verzeichnis-Slug den echten Pfad zurueckgewinnen."""
+def project_dir(slug: str, sess: Path | None = None) -> str:
+    """Den echten Pfad der Sitzung. Der Ordnername (Slug) ersetzt "/", "." und "-" durch "-" und ist
+    nicht umkehrbar; deshalb gilt zuerst das Feld "cwd", das Claude in die Sitzungsdatei schreibt.
+    Nur ohne dieses Feld bleibt die Rueckrechnung aus dem Slug."""
+    if sess is not None:
+        try:
+            with sess.open(encoding="utf-8", errors="replace") as fh:
+                for _ in range(400):
+                    line = fh.readline()
+                    if not line:
+                        break
+                    try:
+                        rec = json.loads(line)
+                    except Exception:
+                        continue
+                    cwd = rec.get("cwd") if isinstance(rec, dict) else None
+                    if isinstance(cwd, str) and os.path.isabs(cwd):
+                        return cwd
+        except OSError:
+            pass
     return "/" + slug.lstrip("-").replace("-", "/")
 
 
 def live_pids() -> set[str]:
     """Sitzungs-UUIDs, zu denen noch ein Prozess laeuft (offene Datei-Handles)."""
-    out = subprocess.run(
-        ["lsof", "-Fn", "-c", "claude"], capture_output=True, text=True
-    ).stdout
+    try:
+        out = subprocess.run(
+            ["lsof", "-Fn", "-c", "claude"], capture_output=True, text=True
+        ).stdout
+    except OSError:      # lsof fehlt: dann ist unbekannt, welche laufen
+        return set()
     return {
         Path(line[1:]).stem
         for line in out.splitlines()
@@ -80,7 +103,11 @@ def main() -> int:
     resume_idx = None
     if "--resume" in args:
         i = args.index("--resume")
-        resume_idx = int(args[i + 1])
+        try:
+            resume_idx = int(args[i + 1])
+        except (IndexError, ValueError):
+            print("wb-sessions: --resume braucht eine ganze Nummer aus der Liste.", file=sys.stderr)
+            return 1
         del args[i : i + 2]
     only_live = "--live" in args
     args = [a for a in args if a != "--live"]
@@ -117,11 +144,11 @@ def main() -> int:
             print(f"Nummer {resume_idx} gibt es nicht (1..{len(rows)}).", file=sys.stderr)
             return 1
         _, _, sess = rows[resume_idx - 1]
-        cwd = project_dir(sess.parent.name)
+        cwd = project_dir(sess.parent.name, sess)
         if not Path(cwd).is_dir():
             print(f"Verzeichnis existiert nicht mehr: {cwd}", file=sys.stderr)
             return 1
-        print(f"Setze fort in {cwd}\n")
+        print(f"Setze fort in {cwd}\n", flush=True)      # execvp ersetzt den Prozess: ungeleerte Ausgabe ginge verloren
         os.chdir(cwd)
         os.execvp("claude", ["claude", "--resume", sess.stem])
 
@@ -137,7 +164,7 @@ def main() -> int:
         when = f"{mins:.0f} min" if mins < 90 else (
             f"{mins/60:.1f} h" if mins < 2880 else f"{mins/1440:.0f} Tage")
         mark = " *" if sess.stem in live else "  "
-        print(f"{n:>3}{mark}{when:>12}  {size/1048576:5.1f}  {project_dir(sess.parent.name)}")
+        print(f"{n:>3}{mark}{when:>12}  {size/1048576:5.1f}  {project_dir(sess.parent.name, sess)}")
         print(f"        {first_prompt(sess)}")
     print("\n* = Prozess laeuft noch.  Fortsetzen: wb-sessions --resume <Nr>")
     return 0

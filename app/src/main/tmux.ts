@@ -1178,7 +1178,7 @@ export class TmuxControl extends EventEmitter {
    * ZEILEN, DIE DAS FENSTER HAT UND KEIN PANE BEKOMMT (08.09.2026, Auftrag
    * geometrie).
    *
-   * DER BEFUND (alice, 08.09., an der laufenden Werkbank): Die Buehne meldet
+   * DER BEFUND (decision 09-08, an der laufenden Werkbank): Die Buehne meldet
    * 160x52, der Kern stellt das Fenster auf 160x52, und der Pane darin ist
    * 160x51 -- `tmux display -p -t %1 '#{window_height} #{pane_height}'` sagt
    * `52 51`. Im Strom-Modus fliessen damit die rohen Bytes eines 51-zeiligen
@@ -1700,7 +1700,7 @@ export class TmuxControl extends EventEmitter {
   command(cmd: string, atEnd?: () => void): Promise<string[]> {
     // Ein geschlossener oder beendeter Schreibweg gilt als nicht verbunden:
     // ein `write` darauf kaeme sonst als ERR_STREAM_WRITE_AFTER_END zurueck
-    // (gemessen am Kernlog vom 11.10., 03:56), und zwar erst asynchron.
+    // (gemessen am Kernlog vom 11.10.), und zwar erst asynchron.
     if (!this.proc || this.closed || this.proc.stdin.writableEnded || this.proc.stdin.destroyed) {
       return Promise.reject(new Error('Steuerclient nicht verbunden'));
     }

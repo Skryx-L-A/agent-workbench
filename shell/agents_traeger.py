@@ -82,7 +82,7 @@ RPC_MODULE = ("agents_rpc_client.py", "agents_controller.py", "agents_data.py", 
 # Gespeichertes Skript der Bibliothek, das den Lernschritt schreibt; Prompt und Anweisung nennen es, wenn der Agent es hat.
 LERNSKRIPT = "lernschritt-schreiben"
 NACHRICHTEN_SITZUNG = "__nachrichten__"
-# Gedaechtnis und Brain (der Nutzer, 16.09.2026): eigene Sitzung fuer "Gedaechtnis kuerzen", Huelle `brain` im Zug.
+# Gedaechtnis und Brain (decision 2026-09-16): eigene Sitzung fuer "Gedaechtnis kuerzen", Huelle `brain` im Zug.
 GEDAECHTNIS_SITZUNG = "__gedaechtnis__"
 BRAIN_BIN = "brain-bin"
 _MODELL = re.compile(r"claude-[a-z0-9.-]{3,100}\Z")
@@ -382,7 +382,7 @@ _JEV_COMMIT_HASH = re.compile(r"[0-9a-f]{7,64}\Z")
 
 
 def projekt_pfade(world_root: Path) -> tuple[Optional[Path], Optional[Path]]:
-    """Projektwurzel der Welt und ihr gemeinsamer Ordner ``work/`` (der Nutzer, 15.09.2026: jeder Agent sieht
+    """Projektwurzel der Welt und ihr gemeinsamer Ordner ``work/`` (decision 2026-09-15: jeder Agent sieht
     das Projekt, geschrieben wird im eigenen Ordner und in ``work/``).
 
     Die Wurzel wird nur lesbar eingebunden, ``work/`` beschreibbar; der Ordner entsteht beim ersten Zug.
@@ -466,7 +466,7 @@ class WeltTraeger:
         self._zeitgeber = zeitgeber
         self._clock = clock
         # Codex-Abo: gemessener Stand aus wb-kontingent; Tests geben eine eigene Quelle, damit das echte
-        # Kontingent des Hosts (GL#30, 13.10.2026: Codex Free erschoepft) keinen Testzug schlafen legt.
+        # Kontingent des Hosts (Gesamtlauf, 13.10.2026: Codex Free erschoepft) keinen Testzug schlafen legt.
         self.codex_kontingentquelle = codex_kontingentquelle if codex_kontingentquelle is not None else \
             KontingentQuelle(None, ("wb-kontingent", "zeigen", "--json"), harness="codex", clock=clock)
         self.laeufe: dict[str, Any] = {}
@@ -712,7 +712,7 @@ class WeltTraeger:
 
     def arbeitsbaum(self, agent_id: str, arbeitsordner: Path,
                     sperren_raeumen: bool = False) -> tuple[Optional[aw.Arbeitsbaum], Optional[str]]:
-        """Worktree des Agenten im git-Projekt der Welt (agents_worktree, der Nutzer 16.09.2026).
+        """Worktree des Agenten im git-Projekt der Welt (agents_worktree, decision 2026-09-16).
 
         Ohne git-Projekt ``(None, None)``. Laesst er sich nicht anlegen oder pruefen, laeuft der Zug wie ohne
         git-Projekt, und der Grund steht als ``worktree_fehler`` im Zug und in der Anweisung. Das gilt auch fuer
@@ -1195,7 +1195,7 @@ class WeltTraeger:
     def _modellwahl(self, agent: dict[str, Any], info: dict[str, Any], summary: dict[str, Any],
                     cache: dict[str, Startfreigabe]) -> tuple[Optional[dict[str, Any]], Optional[str],
                                                               Optional[dict[str, Any]], bool]:
-        """Modell des naechsten Zuges: das Profilmodell oder sein Fallback (der Nutzer, 16.09.2026).
+        """Modell des naechsten Zuges: das Profilmodell oder sein Fallback (decision 2026-09-16).
 
         Der Fallback greift bei erschoepftem Kontingent (Vorabsperre oder vorgemerkte 429 des Abos), wenn ein
         lokales Modell belegt ist, und nach einem Startfehler. Ein Fallback im selben Abo hilft am Limit nicht:
@@ -1747,7 +1747,7 @@ class WeltTraeger:
             lines.append("Keine Skills verzeichnet." if not skills_fehler else
                          "Skillverzeichnis nicht lesbar: %s" % skills_fehler)
         if projekt is not None and baum is not None:
-            # Worktree je Agent (der Nutzer, 16.09.2026): am Projekt arbeitet jeder Agent auf seinem eigenen Zweig.
+            # Worktree je Agent (decision 2026-09-16): am Projekt arbeitet jeder Agent auf seinem eigenen Zweig.
             haupt = aw.hauptzweig(baum.projekt) or "main"
             lines += ["", "## Projekt", "",
                       "Das Projekt der Welt liegt unter `%s` und ist im Zug nur lesbar; seinen Arbeitsbaum und den "
@@ -1948,7 +1948,7 @@ class WeltTraeger:
         if brain_im_zug:
             lines.append("Vor der Arbeit: `brain search \"<Thema des Tickets>\" -k 5 --pfad %s/%s` (dein Bereich im "
                          "Brain), dann `--pfad %s/%s` (Projekt) und ohne `--pfad` (ganzes Brain, auch die Welt). Das "
-                         "Brain `%s` ist im Zug nur lesbar (Read, Grep, Glob gehen auch); `secrets/` bleibt gesperrt. "
+                         "Brain `%s` ist im Zug nur lesbar (Read, Grep, Glob gehen auch); `90-secrets/` bleibt gesperrt. "
                          "Geht `brain` nicht, liefert der Dienstweg dasselbe: %s (`bereich` eigen, welt oder alles)."
                          % (vault, eigen, vault, welt, vault, suche))
         else:

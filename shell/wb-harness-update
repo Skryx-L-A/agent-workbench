@@ -13,13 +13,19 @@ keg stays until then and is restored otherwise, with a report to leitung.  A
 main-version jump of an engine is only noted; `anwenden <engine> --freigabe`
 applies it, again behind the probe (Splash 1.0 -> 1.3 on 2026-10-10 stopped
 loading the default model after an unprobed app-start run).
+
+`anwenden --all` (the timer and app-start form) is put back while the Tafel holds
+mac-suite (a full run) or mac-ruhe (a measurement): log line "verschoben: Tafel
+<platz> belegt", exit 75, nothing started.  Named runs are never put back.
 """
 
 from __future__ import annotations
 
 import datetime as dt
 import fcntl
+import http.client
 import json
+import mmap
 import os
 import platform
 import pwd
@@ -28,6 +34,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -104,6 +112,19 @@ SPACE_RESERVE = 20 * 1024 ** 3
 BY_ID = {h.id: h for h in HARNESSES}
 VERSION_RE = re.compile(r"(?<!\d)v?(\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?)")
 AGY_MANIFEST = "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/{platform}.json"
+
+# Environment variables the Werkbank sets for a harness and that exist only inside its
+# program (no public documentation).  After an update of that harness the updater looks for
+# each name in the new program and gets loud if one is gone.  This is a hint only: the name
+# can stay in the file while the behaviour changes.  The proof is the listed probe.
+# A new variable is one more entry here; the check needs no further change.
+WATCHED_VARIABLES: dict[str, tuple[dict[str, str], ...]] = {
+    "claude": (
+        {"name": "CLAUDE_CODE_RETRY_WATCHDOG",
+         "wirkung": "Worker wiederholen Anfragen bei Anbieterfehlern ueber 10 hinaus (gesetzt von shell/pi-worker)",
+         "probe": "shell/tests/fixtures/netz-mess/probe-claude-retry-watchdog.sh"},
+    ),
+}
 
 
 def now() -> str:
@@ -403,14 +424,99 @@ def installed(h: Harness) -> VersionProbe:
     return VersionProbe(version)
 
 
+# Seconds for the small <registry>/<package>/latest document; the variable is for tests only.
+NPM_LATEST_TIMEOUT = float(os.environ.get("WB_HARNESS_UPDATE_NPM_LATEST_TIMEOUT", "15"))
+NPM_LATEST_MAX_BYTES = 1024 * 1024
+NPM_VIEW_TIMEOUT = 30
+_NPM_CONFIG: dict[str, str | None] = {}
+
+
+def redact(text: str, limit: int = 300) -> str:
+    """One line for the log: no URL credentials, no token-looking values, bounded."""
+    text = re.sub(r"(?i)\b(https?://)[^/@\s]*@", r"\1", text)
+    text = re.sub(r"(?i)\bbearer\s+\S+", "Bearer ***", text)
+    text = re.sub(r"(?i)((?:auth|token|password|passwd|secret|api[_-]?key)[\w-]*\s*[=:]\s*)\S+", r"\1***", text)
+    return " ".join(text.split())[:limit]
+
+
+def npm_config(key: str) -> str | None:
+    """`npm config get <key>`: the value, "" if the key is unset, None if npm cannot answer."""
+    if key not in _NPM_CONFIG:
+        p = run(("npm", "config", "get", key), timeout=15)
+        value = p.stdout.strip() if p.returncode == 0 else None
+        _NPM_CONFIG[key] = "" if value in ("undefined", "null") else value
+    return _NPM_CONFIG[key]
+
+
+def npm_registry_for(package: str) -> str | None:
+    """The registry npm itself would use for this package (company registry, scope
+    registry), or None if npm cannot say or the value is not a plain http(s) URL."""
+    value = ""
+    if package.startswith("@") and "/" in package:
+        scoped = npm_config(package.split("/", 1)[0] + ":registry")
+        if scoped is None:
+            return None
+        value = scoped
+    if not value:
+        value = npm_config("registry") or ""
+    parts = urllib.parse.urlsplit(value)
+    if parts.scheme not in ("http", "https") or not parts.hostname or "@" in parts.netloc:
+        return None
+    return value.rstrip("/")
+
+
+def npm_latest_direct(package: str) -> tuple[str, str]:
+    """The `latest` dist-tag from <registry>/<package>/latest: a document of a few KB, no node
+    process, a fixed deadline.  (version, "") or ("", reason); any reason lets the caller
+    ask `npm view` instead.  Measured 2026-11-02: urllib 0.24 s where `npm view` needed
+    about 70 s for the 18 MB package document and fell back to a stale cache."""
+    base = npm_registry_for(package)
+    if base is None:
+        return "", "npm config get registry nicht lesbar oder keine einfache http(s)-Adresse"
+    request = urllib.request.Request(f"{base}/{urllib.parse.quote(package, safe='@/')}/latest",
+                                     headers={"Accept": "application/json", "User-Agent": "wb-harness-update"})
+    try:
+        with urllib.request.urlopen(request, timeout=NPM_LATEST_TIMEOUT) as response:
+            if response.status != 200:
+                return "", f"Registry antwortete mit Status {response.status}"
+            raw = response.read(NPM_LATEST_MAX_BYTES + 1)
+        if len(raw) > NPM_LATEST_MAX_BYTES:
+            return "", "Registry-Antwort groesser als 1 MiB"
+        doc = json.loads(raw.decode("utf-8"))
+    except (OSError, ValueError, http.client.HTTPException) as exc:
+        return "", redact(f"Registry nicht lesbar: {type(exc).__name__}: {exc}", 160)
+    version = extract_version(doc["version"]) if isinstance(doc, dict) and isinstance(doc.get("version"), str) else ""
+    if not version or doc.get("name") != package:
+        return "", "Registry-Antwort ohne Namen und Version des Pakets"
+    return version, ""
+
+
+def npm_view_latest(package: str) -> tuple[str, str]:
+    """Fallback: `npm view`.  An answer npm took from a stale cache after the registry failed
+    (log line `cache stale`) is no current state and counts as a failure."""
+    p = run(("npm", "view", package, "version", "--loglevel=http"), timeout=NPM_VIEW_TIMEOUT)
+    if p.returncode != 0:
+        return "", redact(p.stderr.strip() or p.stdout.strip() or f"npm view: Exit {p.returncode}")
+    if re.search(r"cache stale", p.stderr or "", re.IGNORECASE):
+        return "", "npm view lieferte den Stand aus einem veralteten Cache, Registry nicht erreichbar"
+    version = extract_version(p.stdout)
+    return (version, "") if version else ("", "npm view ohne Versionsnummer")
+
+
 def latest(h: Harness) -> tuple[str, str]:
     if h.catalog == "mise":
         p = run((h.mise or "mise", "latest", h.package), timeout=60)
         version = extract_version(p.stdout or "")
         return (version, "") if p.returncode == 0 and version else ("", (p.stderr or p.stdout or "").strip() or "keine Version von mise latest")
     if h.catalog == "npm":
-        p = run(("npm", "view", h.package, "version"), timeout=30)
-        return (extract_version(p.stdout), p.stderr.strip()) if p.returncode == 0 else ("", p.stderr.strip() or p.stdout.strip())
+        version, error = npm_latest_direct(h.package)
+        if version:
+            return version, ""
+        direct_error = error
+        version, error = npm_view_latest(h.package)
+        if version:
+            return version, ""
+        return "", f"{error} (zuvor direkt: {direct_error})"
     if h.catalog == "brew":
         p = run(("brew", "info", "--json=v2", h.package), timeout=60)
         if p.returncode != 0:
@@ -582,6 +688,41 @@ def test_environment_reason() -> str | None:
         if name.startswith("AWB_TEST") or name.startswith("WB_TEST_"):
             return f"Testmarker {name} gesetzt"
     return None
+
+
+# Exit code of a run that was put back (same meaning as wb-splash-server probe: not now).
+EXIT_VERSCHOBEN = 75
+# Tafel places that stop an automatic run.  mac-suite: a full run tests the installed tools,
+# an update would swap them underneath.  mac-ruhe: a quiet-CPU measurement, and the updater
+# (npm/brew installs, model probes) is heavy work, which the Tafel itself keeps away from
+# mac-ruhe (sperrt_schwere).  mac-gpu is not listed: the engine probe asks for it itself.
+TAFEL_PLAETZE = ("suite", "ruhe")
+
+
+def tafel_belegt() -> str | None:
+    """The first Tafel place that is held right now, else None.
+
+    Only `wb-tafel frei` exit 1 (BELEGT) counts.  A missing Tafel or any other exit
+    (service down, unknown place) does not put the run back: a broken Tafel must not
+    stop the updates for good, so it is logged and the run goes on.
+    """
+    tafel = Path(os.path.expanduser("~")) / ".local" / "bin" / "wb-tafel"
+    if not os.access(tafel, os.X_OK):
+        return None
+    maschine = "mac" if sys.platform == "darwin" else "peer"
+    for art in TAFEL_PLAETZE:
+        platz = f"{maschine}-{art}"
+        p = run((str(tafel), "frei", platz), timeout=30)
+        if p.returncode == 1:
+            return platz
+        if p.returncode != 0:
+            append_log(f"Tafel nicht lesbar ({platz}, Exit {p.returncode}): nicht verschoben")
+    return None
+
+
+def actor_env() -> dict[str, str]:
+    """Name for wb-state's change log: the app run has no pane to be traced to."""
+    return {"WB_STATE_AKTEUR": "wb-harness-update; " + caller()}
 
 
 def lock_path() -> Path:
@@ -779,7 +920,7 @@ def after_update(h: Harness) -> list[str]:
     notes: list[str] = []
     if h.engine:
         return notes
-    discover = run(("wb-state", "models", "discover", h.id, "--force"), timeout=120)
+    discover = run(("wb-state", "models", "discover", h.id, "--force"), timeout=120, extra_env=actor_env())
     if discover.returncode != 0:
         notes.append("Modelldiscovery nicht verfügbar: " + (discover.stderr.strip() or discover.stdout.strip() or str(discover.returncode)))
     if needs_harness_config(h.id):
@@ -796,7 +937,7 @@ def discover_models() -> dict[str, Any]:
     probes each new id once and reports passed ones to the group leitung.  A
     failure here never fails the harness run; it is recorded.
     """
-    p = run(("wb-modelle", "entdecken", "--json"), timeout=3600)
+    p = run(("wb-modelle", "entdecken", "--json"), timeout=3600, extra_env=actor_env())
     try:
         report = json.loads(p.stdout)
     except (ValueError, TypeError):
@@ -838,6 +979,73 @@ def rollback(h: Harness, before: str) -> tuple[bool, str]:
     if h.catalog == "mise":
         detail += f" (gepinnt; entpinnen mit: mise use -g {h.package}@latest)"
     return True, detail
+
+
+def harness_binary(h: Harness) -> str | None:
+    """The real program file of the installed harness (symlinks resolved), or None."""
+    if h.mise:
+        path, _ = mise_real_binary(h.mise, h.binary)
+    else:
+        path = program_path(h)
+    return os.path.realpath(path) if path else None
+
+
+def name_in_file(path: str, name: str) -> bool | None:
+    """True if the byte string `name` occurs in the file, None if the file cannot be read."""
+    try:
+        with open(path, "rb") as fh, mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ) as data:
+            return data.find(name.encode()) >= 0
+    except (OSError, ValueError):
+        return None
+
+
+def check_watched_variables(h: Harness, version: str) -> list[str]:
+    """After an update: is every variable the Werkbank sets for this harness still named in the
+    new program?  Quiet when yes.  Loud (log line and group report) when not.  The check
+    sees the name only, never the behaviour, and says so, naming the probe that decides."""
+    entries = WATCHED_VARIABLES.get(h.id, ())
+    if not entries:
+        return []
+    path = harness_binary(h)
+    notes: list[str] = []
+    for entry in entries:
+        found = name_in_file(path, entry["name"]) if path else None
+        if found:
+            continue
+        reason = "steht nicht mehr im Programm" if found is False else "Programm war nicht lesbar, Name nicht geprueft"
+        text = (f"Merker: {entry['name']} fuer {h.id} {version}: {reason}. Wirkung bisher: {entry['wirkung']}. "
+                f"Das ist nur ein Hinweis auf den Namen, kein Beweis fuer oder gegen die Wirkung; "
+                f"den Beweis bringt die Probe {entry['probe']}.")
+        append_log(f"{h.id}: {text}")
+        melde_leitung(f"wb-harness-update: {text}")
+        notes.append(text)
+    return notes
+
+
+def failure_kind(rec: dict[str, Any]) -> str | None:
+    """Failures whose status line is the only trace of them (update failures log their own)."""
+    status = str(rec.get("status", ""))
+    if status == "Katalogabfrage fehlgeschlagen":
+        return "Katalogabfrage fehlgeschlagen"
+    if status.startswith("unbekannt (Probe fehlgeschlagen"):
+        return "Versionsprobe fehlgeschlagen"
+    if status.startswith("unbekannt (mise:"):
+        return "mise-Abfrage fehlgeschlagen"
+    return None
+
+
+def log_failures(records: list[dict[str, Any]]) -> None:
+    """One line per kind and cause with the names of all harnesses it hit, so the summary
+    `N fehlgeschlagen` at the end of a run always has its reason in the log too."""
+    groups: dict[tuple[str, str], list[str]] = {}
+    for rec in records:
+        kind = failure_kind(rec)
+        if kind:
+            notes = rec.get("notes") or []
+            cause = redact(str(notes[0])) if notes else "keine Ursache gemeldet"
+            groups.setdefault((kind, cause), []).append(str(rec.get("harness")))
+    for (kind, cause), names in groups.items():
+        append_log(f"Fehlschlag {kind} ({len(names)}): {', '.join(names)}: {cause}")
 
 
 def failed_update(h: Harness, before: str, detail: str, rec: dict[str, Any]) -> None:
@@ -1065,6 +1273,7 @@ def record_for(h: Harness, allow_network: bool, apply: bool, release: bool = Fal
     rec["status"] = "aktualisiert"
     rec["notes"] = after_update(h)
     append_log(f"{h.id}: aktualisiert {before} -> {after}" + (f"; {'; '.join(rec['notes'])}" if rec["notes"] else ""))
+    rec["notes"] += check_watched_variables(h, after)
     return rec, True
 
 
@@ -1304,6 +1513,13 @@ def main(argv: list[str]) -> int:
                 print_table(records)
             return 0
 
+    if action == "anwenden" and all_flag:
+        belegt = tafel_belegt()
+        if belegt:
+            append_log(f"verschoben: Tafel {belegt} belegt; " + caller())
+            print(f"wb-harness-update: verschoben, Tafel {belegt} belegt", file=sys.stderr)
+            return EXIT_VERSCHOBEN
+
     lock, acquired = acquire_lock(lock_path())
     if action == "anwenden":
         append_log(f"Lauf gestartet: anwenden {'--all' if all_flag else ' '.join(names)}"
@@ -1332,6 +1548,7 @@ def main(argv: list[str]) -> int:
             result["modelle"] = discover_models()
         write_json_atomic(state_file(), result)
         if action == "anwenden":
+            log_failures(records)
             append_log(f"Lauf beendet: {sum(r['status'] == 'aktualisiert' for r in records)} aktualisiert, "
                        f"{sum(bool(r['pending']) for r in records)} vorgemerkt, "
                        f"{sum('fehlgeschlagen' in str(r['status']).lower() for r in records)} fehlgeschlagen; "

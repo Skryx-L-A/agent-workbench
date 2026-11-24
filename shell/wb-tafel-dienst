@@ -7,7 +7,7 @@
 #
 # Anlass (Auftrag tafel-peer, 11.10.2026): wb-testsuite.timer startete So 04:00 auf peer den Gesamtlauf,
 # obwohl peer-ruhe gehalten wurde; die Tafel konnte ihn nur als "unangemeldet" zwangseintragen. Timer und
-# Zeitplan bleiben (der Nutzer 22.08.: peer behaelt seine Timer); der Dienst meldet sich stattdessen an:
+# Zeitplan bleiben (decision 08-22: peer behaelt seine Timer); der Dienst meldet sich stattdessen an:
 #
 #   1. `wb-tafel nimm <platz> --anstellen --warte <dauer>`: ist der Platz frei oder wird er innerhalb der
 #      Wartezeit frei (auch nach einer Ruhe-Messung), traegt die Tafel den Lauf ein. Die Wartezeit steht

@@ -327,7 +327,7 @@ export const DE: Record<string, string> = {
   'guard.secrets.wirkung':
     'Hält jeden Befehl an, der einen Schlüssel, ein Zertifikat oder den Geheimnis-Ordner anfasst.',
   'guard.secrets.info':
-    'Deckt ~/Knowledge/secrets, ~/.ssh und die üblichen Zugangsdaten-Dateien ab – dieselbe Liste, die '
+    'Deckt ~/Knowledge/90-secrets, ~/.ssh und die üblichen Zugangsdaten-Dateien ab – dieselbe Liste, die '
     + 'auch die Ordneransicht auslässt. Aus heißt: ein Agent kann diese Dateien lesen, kopieren und in eine '
     + 'Ausgabe schreiben, ohne dass jemand gefragt wird.',
   'guard.git-add.name': 'Alles auf einmal vormerken',
@@ -1074,7 +1074,16 @@ export const DE: Record<string, string> = {
   'wort.erneutZeigen': 'erneut zeigen',
   'wort.frage': 'frage …',
   'wort.erreichbar': 'erreichbar',
-  'wort.nichtErreichbar': 'nicht erreichbar: {grund}',
+  // Kurz neben dem Pruefknopf; der Grund steht als Satz UNTER der Zeile (05.11.2026).
+  'wort.nichtErreichbar': 'nicht erreichbar',
+  // Je Fall ein Satz statt der Ausgabe von ssh (app/src/main/maschine-pruefen.ts).
+  'satz.maschinePruefen.keineAntwort': 'Nicht erreichbar: Der Rechner antwortet nicht über SSH.',
+  'satz.maschinePruefen.name': 'Nicht erreichbar: Dieser Name ist im Netz unbekannt.',
+  'satz.maschinePruefen.anmeldung': 'Nicht erreichbar: Der Rechner lehnt die Anmeldung ab. Der SSH-Schlüssel fehlt oder ist dort nicht eingetragen.',
+  'satz.maschinePruefen.hostschluessel': 'Nicht erreichbar: Der Hostschlüssel des Rechners ist unbekannt oder hat sich geändert.',
+  'satz.maschinePruefen.verweigert': 'Nicht erreichbar: Der Rechner nimmt keine SSH-Verbindung an.',
+  'satz.maschinePruefen.keinSsh': 'Nicht geprüft: Auf diesem Rechner fehlt das Programm ssh.',
+  'satz.maschinePruefen.sonst': 'Nicht erreichbar: Die SSH-Verbindung ist fehlgeschlagen.',
   'wort.an': 'an',
   'wort.aus': 'aus',
   'wort.einEintrag': '1 Eintrag',
@@ -1264,6 +1273,19 @@ export const DE: Record<string, string> = {
   'bezeichnung.zustandsfarben': 'Die Farben der Sitzungszustände',
   'bezeichnung.chatAnsicht': 'Gespräch statt Terminal anzeigen',
   'bezeichnung.chatAnsichtVorgabe': 'Neue Sitzungen zeigen das Gespräch',
+  // Am 22.10.2026 kommen fuenf dazu, die als Einstellung laengst in der
+  // Auslieferung standen und in der Abweichungstabelle als "[fehlender Text: ...]"
+  // erschienen: harnessUpdateAuto, harnessUpdateIntervalHours, schlafNachMinuten
+  // und mobileServer (wortgleich mit ihrem Feldnamen) sowie agentsBlattVorschau
+  // (ohne Feld, seit dem 14.09.2026 ohne Wirkung). Macht 39 von 49, acht ohne
+  // Gegenstueck. Seitdem haelt test-app-bezeichnung-paritaet.sh auch, dass JEDER
+  // Schluessel der Auslieferung (VORGABEN in app/src/main/einstellungen.ts) hier
+  // einen Namen hat.
+  'bezeichnung.harnessUpdateAuto': 'Agenten-Programme automatisch aktuell halten',
+  'bezeichnung.harnessUpdateIntervalHours': 'Abstand der Harness-Prüfung',
+  'bezeichnung.schlafNachMinuten': 'Untätige Sitzungen schlafen legen nach',
+  'bezeichnung.mobileServer': 'Mobile Werkbank',
+  'bezeichnung.agentsBlattVorschau': 'Vorschau des alten Agents-Blatts (ohne Wirkung)',
 };
 
 /**
@@ -1552,7 +1574,7 @@ export const EN: Record<string, string> = {
   'guard.secrets.wirkung':
     'Holds any command that touches a key, a certificate, or the secrets folder.',
   'guard.secrets.info':
-    'Covers ~/Knowledge/secrets, ~/.ssh, and the usual credential files -- the same list the folder '
+    'Covers ~/Knowledge/90-secrets, ~/.ssh, and the usual credential files -- the same list the folder '
     + 'view also skips. Off means: an agent can read, copy, and write these files into an output without '
     + 'anyone being asked.',
   'guard.git-add.name': 'Staging everything at once',
@@ -2272,7 +2294,14 @@ export const EN: Record<string, string> = {
   'wort.erneutZeigen': 'show again',
   'wort.frage': 'ask …',
   'wort.erreichbar': 'reachable',
-  'wort.nichtErreichbar': 'not reachable: {grund}',
+  'wort.nichtErreichbar': 'not reachable',
+  'satz.maschinePruefen.keineAntwort': 'Not reachable: The machine does not answer over SSH.',
+  'satz.maschinePruefen.name': 'Not reachable: This name is not known on the network.',
+  'satz.maschinePruefen.anmeldung': 'Not reachable: The machine refuses the login. The SSH key is missing or not registered there.',
+  'satz.maschinePruefen.hostschluessel': 'Not reachable: The machine\'s host key is unknown or has changed.',
+  'satz.maschinePruefen.verweigert': 'Not reachable: The machine does not accept SSH connections.',
+  'satz.maschinePruefen.keinSsh': 'Not checked: The ssh program is missing on this computer.',
+  'satz.maschinePruefen.sonst': 'Not reachable: The SSH connection failed.',
   'wort.an': 'on',
   'wort.aus': 'off',
   'wort.einEintrag': '1 entry',
@@ -2434,6 +2463,11 @@ export const EN: Record<string, string> = {
   'bezeichnung.zustandsfarben': 'The session-state colors',
   'bezeichnung.chatAnsicht': 'Show conversation instead of terminal',
   'bezeichnung.chatAnsichtVorgabe': 'New sessions show the conversation',
+  'bezeichnung.harnessUpdateAuto': 'Keep agent programs up to date automatically',
+  'bezeichnung.harnessUpdateIntervalHours': 'Harness check interval',
+  'bezeichnung.schlafNachMinuten': 'Put idle sessions to sleep after',
+  'bezeichnung.mobileServer': 'Mobile workbench',
+  'bezeichnung.agentsBlattVorschau': 'Preview of the old Agents sheet (no effect)',
 };
 
 /** Die Tabellen je Sprache. Eine fehlende Sprache faellt auf Deutsch zurueck. */

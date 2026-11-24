@@ -11,6 +11,7 @@
  * unter jeder Basisadresse und brauchen keinen Server-Rueckfall. Die
  * Deep-Links aus Spezifikation 6 oeffnet der Service Worker (Paket 8) in
  * dieser Form: `./#/sitzungen/<global-id>`, `./#/agents/-/frage/<id>`,
+ * `./#/agents/<welt>/antrag/<id>` (Push-Art `welt.braucht-dich`),
  * `./#/meldungen/<event-id>`; der Stapel darunter entsteht hier (`stapelFuer`).
  */
 
@@ -27,6 +28,7 @@ export type Route =
   | { tab: 'agents'; ansicht: 'tickets'; welt: string }
   | { tab: 'agents'; ansicht: 'ticket'; welt: string; ticket: string }
   | { tab: 'agents'; ansicht: 'frage'; welt: string; frage: string }
+  | { tab: 'agents'; ansicht: 'antrag'; welt: string; antrag: string }
   | { tab: 'meldungen'; ansicht: 'liste' }
   | { tab: 'meldungen'; ansicht: 'meldung'; id: string }
   | { tab: 'meldungen'; ansicht: 'geraet' }
@@ -44,6 +46,7 @@ export function hashVon(r: Route): string {
     case 'tickets': return `#/agents/${enc(r.welt)}/tickets`;
     case 'ticket': return `#/agents/${enc(r.welt)}/ticket/${enc(r.ticket)}`;
     case 'frage': return `#/agents/${enc(r.welt)}/frage/${enc(r.frage)}`;
+    case 'antrag': return `#/agents/${enc(r.welt)}/antrag/${enc(r.antrag)}`;
     case 'meldung': return `#/meldungen/${enc(r.id)}`;
     case 'geraet': return '#/meldungen/geraet';
     case 'koppeln': return '#/meldungen/koppeln';
@@ -61,6 +64,7 @@ export function routeVon(hash: string): Route {
     if (b === 'tickets') return { tab, ansicht: 'tickets', welt: a };
     if (b === 'ticket' && c) return { tab, ansicht: 'ticket', welt: a, ticket: c };
     if (b === 'frage' && c) return { tab, ansicht: 'frage', welt: a, frage: c };
+    if (b === 'antrag' && c) return { tab, ansicht: 'antrag', welt: a, antrag: c };
     return { tab, ansicht: 'welt', welt: a };
   }
   if (tab === 'meldungen') {
@@ -82,6 +86,7 @@ export function stapelFuer(r: Route): string[] {
   switch (r.ansicht) {
     case 'liste': return [wurzel];
     case 'frage':
+    case 'antrag':
       // `-` heisst: Welt unbekannt (Deep Link aus einer Push-Meldung); die Frage liegt direkt ueber der Liste.
       if (r.welt === '-') return [wurzel, hashVon(r)];
       return [wurzel, hashVon({ tab: 'agents', ansicht: 'welt', welt: r.welt }), hashVon(r)];

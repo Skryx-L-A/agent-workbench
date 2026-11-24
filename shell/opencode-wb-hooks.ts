@@ -41,7 +41,7 @@
  * ueber `wb-anweisung --anlass nachricht --harness opencode erinnerung` (Befehl: $WB_ANWEISUNG, sonst
  * PATH) und haengt sie als eigenen Textteil (synthetic) an `output.parts` DIESER Nachricht an, nicht an
  * den System-Prompt: der bleibt Byte fuer Byte gleich, der Prompt-Cache lokaler Modelle haelt (Review
- * wz-integ2, M2). Beleg installierte Fassung (opencode 1.19.0, Binary; Typen @opencode-ai/plugin 1.18.9
+ * task, M2). Beleg installierte Fassung (opencode 1.19.0, Binary; Typen @opencode-ai/plugin 1.18.9
  * index.d.ts:187-199): SessionPrompt ruft trigger("chat.message", {sessionID,...}, {message, parts})
  * und speichert danach jedes Element von `parts` (updatePart); IDs vergibt es VOR dem Hook
  * (`id: Y.id ? make(Y.id) : ascending()`), ein angehaengter Teil bringt seine ID deshalb selbst mit.

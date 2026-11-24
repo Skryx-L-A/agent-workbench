@@ -3,11 +3,19 @@
 # Usage: work [session-name]   (default: main)
 # Inside it, run `claude` as usual; it survives SSH disconnects.
 session="${1:-main}"
+# Fixed command, stays a login shell (task, Nachtrag decision 2026-10-20):
+# without one, tmux starts a login shell via its own implicit default, non-deterministic
+# across machines. peer's /etc/profile.d sets CUDA_PATH/NVCC_CCBIN/PATH(/opt/cuda/bin)
+# etc. ONLY for a login shell (measured) -- dropping login status here would silently
+# break CUDA work on peer, so the explicit command keeps "-l" (plus "-i" for the usual
+# interactive rc-sourcing too).
+shell="${SHELL:-/bin/bash}"
+cmd="exec $shell -li"
 if [ -n "$TMUX" ]; then
   # Already inside tmux: don't nest. Create the target if missing, then switch.
-  tmux has-session -t "$session" 2>/dev/null || tmux new-session -d -s "$session"
+  tmux has-session -t "$session" 2>/dev/null || tmux new-session -d -s "$session" "$cmd"
   exec tmux switch-client -t "$session"
 else
   # Outside tmux: attach to the session, creating it if needed.
-  exec tmux new-session -A -s "$session"
+  exec tmux new-session -A -s "$session" "$cmd"
 fi

@@ -43,6 +43,11 @@
 #   wb-state wache set <orchestrator|worker> [--an true|false] [--mahnen-ab <n>]
 #            [--eingreifen true|false] [--notbremse-ab <n>] [--grund '<warum>']
 #   wb-state settings set orchestratorPermissionMode bypassPermissions --grund '<warum>'
+#   wb-state settings set orchestratorKonto auto|gross|klein|''   Konto des Orchestrators (leer = Mac-Anmeldung
+#            mit Remote Control, Vorgabe; mit Konto ist Remote Control aus, Fernsteuerung ueber die Handy-App)
+#   wb-state settings set orchestratorWechselBeiLimit true|false   wechselt ein Orchestrator mit Remote Control bei
+#            echtem Limit das Konto (ungesetzt = true; Remote Control geht dabei verloren, laut gemeldet); nur der START
+#            haengt an orchestratorKonto
 #            (2026-08-16) -- die vierte Sicherung, aber ohne eigenes Sub-Kommando: der
 #            Wert ist ein einzelnes ENUM-Feld (wie orchestratorEffort), keines der drei
 #            Objekte oben. SENKEN (jeder andere der sechs Werte) geht immer und ohne
@@ -56,6 +61,8 @@
 #            nichts, und SENKEN auf false darf jeder. Claude-Worker behalten ihren
 #            autonomen Startweg. Agent und Mensch teilen jedoch die UID: direktes
 #            Bearbeiten von settings.json umgeht beide wb-state-Schreibpruefungen.
+#   wb-state settings set kontoFortsetzungNachLimit true|false   nach einem Limit ohne Kontowechsel schickt
+#            `wb-konto fortsetzen` (aus der Kontextwache) genau ein "weiter", sobald das Limit vorbei ist (ungesetzt = true)
 #
 # V3 (SPEC-V3-MODELS section B) — the model/harness/provider REGISTRY:
 #   wb-state models list [--role worker|orchestrator] [--machine mac|peer]
@@ -151,6 +158,41 @@ set -euo pipefail
 # Kein `env -i` hier: die Bloecke lesen HOME, AWB_SETTINGS_FILE und die Testnaehte bewusst aus
 # der Umgebung; die Menschenmessung selbst ruft wb-mensch schon mit eigener Positivliste.
 unset DEVELOPER_DIR SDKROOT TOOLCHAINS
+
+# TESTLAUF-RIEGEL (28.10.2026, task): Die Schreibwege in settings.json (`settings set`)
+# und in die Registry (alle Unterkommandos von `models`/`harness`, die write_registry rufen) enden mit Exit 79
+# und einer Zeile, ohne zu schreiben, wenn WB_TESTUMGEBUNG nicht 1 ist UND realpath($HOME) nicht die Heimat
+# laut Benutzerdatenbank ist. Anlass (28.10.2026:47): Ein Worker fuhr Suiten aus einem alten Baum (Stand
+# 22./23.10.), dessen wb-state HOME ohne Testnaht hart auf die echte Heimat setzte; ein `settings set` mit
+# umgelenktem HOME schrieb guardMeldetWorkerStatus in die LIVE-Einstellungen (wb-settings-changes.log, Aufrufer
+# "-"). Mit WB_TESTUMGEBUNG=1 oder in der echten Heimat (App, Mensch, Agent) bleibt alles wie bisher; es gibt
+# keinen Schalter, der den Riegel ausschaltet. Die Meldung nennt nur Namen, nie Inhalte. heim_riegel ist die
+# EINE Stelle, die die Heimat ermittelt; sie setzt WB_STATE_RIEGEL fuer dieses Werkzeug und seine Python-Bloecke
+# und ueberschreibt dabei immer einen Wert aus der Umgebung des Aufrufers.
+heim_riegel() {
+  WB_STATE_RIEGEL=""
+  if [ "${WB_TESTUMGEBUNG:-}" != 1 ]; then
+    local u db h1 h2
+    u="$(/usr/bin/id -urn 2>/dev/null)"
+    db=""
+    case "$u" in ''|*[!A-Za-z0-9._-]*) ;; *) db="$(eval "printf %s ~$u" 2>/dev/null)" ;; esac   # HEIM-ERMITTLUNG (test-wb-state-testlauf-riegel.sh schreibt diese Zeile um)
+    case "$db" in
+      /*) ;;
+      *) db="$(/usr/bin/env -i PATH=/usr/bin:/bin /usr/bin/python3 -I -S -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir)' 2>/dev/null)" ;;
+    esac
+    h1="$(cd -P -- "${HOME:-}" 2>/dev/null && pwd -P)" || h1="${HOME:-}"
+    h2="$(cd -P -- "$db" 2>/dev/null && pwd -P)" || h2="$db"
+    [ -n "$h2" ] && [ "$h1" = "$h2" ] || WB_STATE_RIEGEL="HOME"
+  fi
+  export WB_STATE_RIEGEL
+}
+# riegel_tor <ziel-name>: vor jedem Schreiben in settings.json (bash-Weg); Exit 79 mit einer Zeile.
+riegel_tor() {
+  heim_riegel
+  [ -z "$WB_STATE_RIEGEL" ] && return 0
+  echo "wb-state: Schreiben in $1 abgelehnt (Exit 79): HOME ist nicht die Heimat laut Benutzerdatenbank und WB_TESTUMGEBUNG ist nicht 1. Nichts geschrieben." >&2
+  exit 79
+}
 
 STATEDIR="$HOME/.claude/workbench/sessions"
 LOCKDIR="$HOME/.claude/workbench/locks"
@@ -479,8 +521,7 @@ try:
     if kontext_val:
         entry["kontext"] = kontext_val
     # AN DERSELBEN STELLE aktualisiert, nicht ans Ende gehaengt (2026-08-22,
-    # Leisten-Springen-Bugjagd, der Nutzer 22.08. ~21:15 "die Worker-Tabs...
-    # springen auf und ab"): bis heute filterte dieser Befehl den alten
+    # Leisten-Springen-Bugjagd: die Worker-Tabs sprangen auf und ab): bis heute filterte dieser Befehl den alten
     # Eintrag heraus und haengte den neuen ans Ende der Liste -- das renderer-
     # seitige Sidebar-Modell (app/src/renderer/renderer.ts, zeichneRechts)
     # zeigt Worker/Subagenten GENAU in dieser Array-Reihenfolge, ohne eigene
@@ -692,8 +733,7 @@ DEFAULTS = {
     # kosten. Zweite Stelle: VORGABEN in app/src/main/einstellungen.ts.
     "orchestratorVorhersage": False,
     "workerVorhersage": False,
-    # WELCHER der hinterlegten Wege es sein soll (2026-08-21, der Nutzer: "ich
-    # will mich entscheiden koennen"). Der Wert ist die `id` eines Eintrags aus
+    # WELCHER der hinterlegten Wege es sein soll (2026-08-21, der Nutzer). Der Wert ist die `id` eines Eintrags aus
     # vorhersage.wege des gewaehlten Orchestrator-Modells -- kein Pfad: waehlbar
     # bleibt, was die Auslieferung gemessen hat. Leer heisst "der Vorgabeweg der
     # Registry" (vorhersage.wegVorgabe), und ein Weg, den das gerade gewaehlte
@@ -789,11 +829,11 @@ DEFAULTS = {
     # Schnelloeffner, Inhaltssuche), fragt DIESE Liste.
     #
     # Verzeichnisse werden AUSGELASSEN, nicht nur ihr Inhalt verborgen: '.ssh'
-    # und 'secrets' stehen deshalb hier und nicht in den Mustern. Die uebrigen
+    # und '90-secrets' stehen deshalb hier und nicht in den Mustern. Die uebrigen
     # Eintraege sind Ballast (node_modules & Co) und ersparen jeder Ansicht ihre
     # eigene Liste.
     "secretExcludeDirs": [
-        "secrets", ".ssh", ".gnupg",
+        "90-secrets", ".ssh", ".gnupg",
         "node_modules", ".git", "dist", "build", "__pycache__", ".venv", "venv",
         ".mypy_cache", ".pytest_cache", ".next", ".turbo", "target",
     ],
@@ -874,14 +914,16 @@ DEFAULTS = {
     # die Rueckfrage-Stufe bleiben davon unberuehrt.
     "workerSkipPermissions": True,
     # Auf welchem WEG ein Auftrag beim Worker ankommt (2026-08-20).
-    #   auto    Wo es eine Sitzungs-Inbox gibt (heute: Claude Code), wird sie
-    #           benutzt; sonst wird getippt. Vorgabe.
+    #   auto    Wo es eine Sitzungs-Inbox gibt (Claude Code, pi, opencode, codex),
+    #           wird sie benutzt; beim Start eines Workers nimmt ein Harness mit
+    #           Registry-Feld initialPrompt (codex, agy) den ersten Auftrag als
+    #           Startargument. Gibt es weder das eine noch das andere, startet
+    #           pi-worker nicht. Getippt wird nie (seit 29.10.2026). Vorgabe.
     #   socket  Die Inbox wird VERLANGT. Gibt es sie nicht, scheitert die
-    #           Zustellung hoerbar, statt ersatzweise zu tippen -- fuer Tests
-    #           und fuer den Fall, dass niemand mehr in eine Eingabezeile
-    #           schreiben soll.
-    #   paste   Nur der bisherige Tippweg. Der Rueckweg, falls der Inbox-Weg
-    #           an einer kuenftigen Harness-Version scheitert.
+    #           Zustellung hoerbar -- fuer Tests.
+    #   paste   Frueher: der Tippweg. Seit 29.10.2026 tippt pi-worker nie mehr;
+    #           der Wert bleibt gueltig, damit bestehende Einstellungen laufen,
+    #           und wird wie auto behandelt (mit Hinweis auf stderr).
     # Anlass: in der Nacht auf den 20.08. hat der Tippweg fuenf Panes eingefroren
     # und Auftraege stumm verschluckt. Gelesen von shell/pi-worker; der
     # Umgebungsschalter WB_ZUSTELLUNG schlaegt diesen Wert fuer einen einzelnen
@@ -1055,6 +1097,7 @@ PY
             *) shift ;;
           esac
         done
+        riegel_tor settings.json
         # Who is changing this? The settings file is shared state — a test that
         # flips workerLayout and forgets to reset it made four running workers
         # invisible once (2026-07-25). The write is never blocked, but it is always
@@ -1218,8 +1261,7 @@ try:
             # 'sockett' wuerde als unbekannter Wert auf 'auto' fallen und der
             # Mensch saehe im Menue einen Wert, der etwas anderes tut als er sagt.
             "workerZustellung": ["auto", "socket", "paste"],
-            # 2026-08-06: die Maschinenliste ist offen (der Nutzer: "mehr als
-            # zwei sind moeglich"), also kann das Ziel nicht mehr aus drei
+            # 2026-08-06: die Maschinenliste ist offen (der Nutzer), also kann das Ziel nicht mehr aus drei
             # festen Namen bestehen. Geprueft wird nur noch die FORM eines
             # SSH-Alias -- ein Tippfehler mit Leerzeichen oder Schraegstrich
             # faellt weiter durch, ein neuer Rechnername nicht mehr.
@@ -1240,12 +1282,26 @@ try:
             # weiter unten in diesem Skript.
             "orchestratorPermissionMode": ["acceptEdits", "auto", "bypassPermissions",
                                            "manual", "dontAsk", "plan"],
-            "orchestratorHarness": None}          # free, but must be a string
+            "orchestratorHarness": None,          # free, but must be a string
+            # 2026-11-14 (task, Grill-Runde des Nutzers Punkt 9: "auch fuer orchestrator
+            # waehlbar, die fernsteuerung soll ueber die workbench handy app gehen"): ueber welches Konto
+            # wb-code den Orchestrator startet. Leer (Vorgabe, KEIN Eintrag in DEFAULTS) = Mac-Anmeldung mit
+            # Claude Remote Control wie bisher; gross|klein|auto = Start ueber `wb-konto start`, dann ist Remote
+            # Control aus (Kontotoken nur Inferenz) und wb-code/wb-konto sagen das laut. Ein Tippfehler darf
+            # nicht still auf die Mac-Anmeldung fallen.
+            "orchestratorKonto": ["", "auto", "gross", "klein"]}
     BOOL = ("terminalStartMaximized", "contextGuardAutostart", "modelDiscoveryAuto",
             "harnessUpdateAuto",
             "closeSessionOnWindowClose", "mobileServer", "workerWorktrees", "workerSkipPermissions",
             "guardMeldetWorkerStatus", "orchestratorVorhersage", "workerVorhersage",
-            "agentsBlattVorschau")
+            "agentsBlattVorschau",
+            # 2026-11-15 (task, der Nutzer Entscheidung 3 "nur bei Limit wechseln"): wechselt ein
+            # Orchestrator mit Remote Control bei echtem Limit das Konto? Ungesetzt (KEIN Eintrag in DEFAULTS) = ja;
+            # orchestratorKonto steuert seitdem nur noch den START (wb-code).
+            "orchestratorWechselBeiLimit",
+            # 2026-11-16 (Z2b Zug 2, ersetzt limit-survivor): schickt `wb-konto fortsetzen` nach einem Limit ohne
+            # Kontowechsel genau ein "weiter", sobald das Limit vorbei ist? Ungesetzt = ja.
+            "kontoFortsetzungNachLimit")
     LIST = ("secretExcludeDirs", "secretExcludePatterns", "remoteMachines", "remoteMachinesPausiert")
     NAME = ("defaultWorkerMachine",)
     # 2026-08-06: die drei Objekt-Schluessel. Geprueft wird die FORM, nicht der
@@ -1346,7 +1402,7 @@ try:
         # durch einen Tippfehler, der als Zeichenkette durchgeht.
         if not isinstance(parsed, list) or not all(isinstance(x, str) for x in parsed):
             sys.stderr.write("wb-state: FEHLER — '%s' ist eine JSON-Liste von Zeichenketten "
-                             "(z. B. '[\"secrets\",\".ssh\"]'), '%s' wird nicht "
+                             "(z. B. '[\"90-secrets\",\".ssh\"]'), '%s' wird nicht "
                              "gespeichert.\n" % (key, value))
             sys.exit(1)
     elif key in NUM:
@@ -1562,8 +1618,18 @@ def mensch_oder_ende():
     """Ruft die Bash-Funktion nicht auf (sie lebt in der anderen Shell), sondern
     wb-mensch direkt -- dieselbe Messung, derselbe Text."""
     import os
-    wb = os.path.expanduser("~/.local/bin/wb-mensch")
-    probe_env = {"HOME": os.environ.get("HOME", ""),
+    # wb-mensch aus der Heimat laut Benutzerdatenbank, nie aus $HOME (18.10.2026, Befund
+    # pathklasse-sicher OPEN 2); Testnaht nur mit WB_TESTUMGEBUNG=1.
+    if os.environ.get("WB_TESTUMGEBUNG") == "1" and os.environ.get("HOME"):
+        mensch_heim = os.environ["HOME"]
+    else:
+        try:
+            import pwd
+            mensch_heim = pwd.getpwuid(os.getuid()).pw_dir
+        except (ImportError, KeyError):
+            mensch_heim = "/nonexistent"
+    wb = os.path.join(mensch_heim, ".local", "bin", "wb-mensch")
+    probe_env = {"HOME": mensch_heim,
                  "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
                  "TMPDIR": "/tmp"}
     probe_env.update({k: os.environ[k] for k in ("WB_MENSCH_QUELLE", "WB_APP_PID")
@@ -1799,15 +1865,18 @@ PY
   # `claude` and `pi` live in this code (SPEC-V3 G1), so a missing or broken
   # models.json still resolves them — the file only ever ADDS to or OVERRIDES them.
   models|harness)
+    heim_riegel   # Python-Block unten: write_registry bricht bei gesetztem WB_STATE_RIEGEL mit 79 ab
     if [ "$CMD" = harness ]; then
       SUB="harness-${1:?get}"; shift
     else
-      SUB="${1:?list|get|resolve|table|check|add|set|remove|discover|catalog|probe|families}"; shift
+      SUB="${1:?list|get|resolve|table|check|add|set|remove|discover|catalog|probe|families|kosten}"; shift
     fi
     # Who is changing the registry? Same reasoning as the settings change log: the
     # file is shared state, so every write is traceable to a pane.
-    ACTOR=""
-    if [ -n "${TMUX_PANE:-}" ]; then
+    # WB_STATE_AKTEUR (2026-10-30, task): ein Werkzeug ohne Pane, etwa der
+    # Harness-Updater der App, nennt sich selbst; Tabulator und Zeilenumbruch fliegen raus.
+    ACTOR=$(printf '%s' "${WB_STATE_AKTEUR:-}" | tr '\t\n' '  ')
+    if [ -z "$ACTOR" ] && [ -n "${TMUX_PANE:-}" ]; then
       ACTOR=$(tmux display -p -t "$TMUX_PANE" '#{@wb_worker}' 2>/dev/null || true)
       [ -n "$ACTOR" ] || ACTOR=$(tmux display -p -t "$TMUX_PANE" '#{pane_title}' 2>/dev/null || true)
     fi
@@ -2042,7 +2111,7 @@ def looks_like_secret(v):
         # (`https://host/v1?key=<key>`, `/dir/<key>`, `https://user:<key>@host`). The shared
         # list's provider forms (never the keyword-bound entropy rule) are checked here too.
         # Measured 2026-10-10 against what could coincide: 3.4 million file and directory names
-        # (~/AI, the vault without secrets, ~/.claude, ~/.cache, ~/.pi-workers, ~/.local/share,
+        # (~/AI, the vault without 90-secrets, ~/.claude, ~/.cache, ~/.pi-workers, ~/.local/share,
         # node_modules, Homebrew Cellar), the default and the live registry (178 and 188 values with
         # such a prefix) and 19585 such strings in shell/tests: 0 hits. The patterns demand the full
         # length of a key behind a prefix that is not glued to a letter, so `/opt/disk-images/x`,
@@ -2605,8 +2674,18 @@ def mensch_belegt(flag):
     Ablehnung.)"""
     if not flag:
         return False
-    wb = os.path.join(HOME, ".local", "bin", "wb-mensch")
-    probe_env = {"HOME": HOME,
+    # wb-mensch aus der Heimat laut Benutzerdatenbank, nie aus $HOME (18.10.2026, Befund
+    # pathklasse-sicher OPEN 2); Testnaht nur mit WB_TESTUMGEBUNG=1.
+    if os.environ.get("WB_TESTUMGEBUNG") == "1" and os.environ.get("HOME"):
+        mensch_heim = os.environ["HOME"]
+    else:
+        try:
+            import pwd
+            mensch_heim = pwd.getpwuid(os.getuid()).pw_dir
+        except (ImportError, KeyError):
+            mensch_heim = "/nonexistent"
+    wb = os.path.join(mensch_heim, ".local", "bin", "wb-mensch")
+    probe_env = {"HOME": mensch_heim,
                  "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
                  "TMPDIR": "/tmp"}
     probe_env.update({k: os.environ[k] for k in ("WB_MENSCH_QUELLE", "WB_APP_PID")
@@ -2727,6 +2806,137 @@ def contains_template_placeholder(value, placeholder):
     if isinstance(value, list):
         return any(contains_template_placeholder(v, placeholder) for v in value)
     return False
+
+# Die --settings-Werte des eingebauten claude je Rolle (22.10.2026, task): DIE
+# eine Stelle dafuer. decision 10-22.. Ohne crossSessionInbound haelt eine bypass-Sitzung jede Nachricht
+# eines Absenders ohne bezeugten Modus (wb-freigabe, wb-tafel, Wache) mit einem Dialog an; mit
+# "accept" stellt Claude Code 2.1.308 vor jeder Modus-Pruefung zu (Binaerdatei gelesen, Ergebnis
+# task). Der Worker-Wert bleibt Zeichen fuer Zeichen der bisherige; Hauptsitzungen behalten
+# Remote Control und bekommen deshalb KEIN remoteControlAtStartup. Nutzer: dieser Resolver,
+# wb-code, wb-revive und wb-traeger (ueber `models claude-settings`); pi-worker traegt den
+# Worker-Wert fuer seinen eigenen Schnellpfad (siehe dort). Die Herkunftszeile von wb-inbox
+# bleibt ueber jedem Text; eine Peer-Nachricht ist nie eine Zustimmung des Menschen.
+CLAUDE_SETTINGS = {
+    "worker": {"remoteControlAtStartup": False, "crossSessionInbound": "accept"},
+    "orchestrator": {"crossSessionInbound": "accept"},
+}
+
+def _shell_woerter(cmd):
+    """Die Woerter einer Shell-Zeile mit ihren Spannen: [(anfang, ende, wert)], wert None fuer
+    ; & |. Nur so viel Shell, wie Startzeilen hier tragen (Anfuehrungen, Backslash); None bei
+    offener Anfuehrung. Die Spannen erlauben, EIN Wort zu ersetzen und den Rest der Zeile
+    unveraendert zu lassen -- ein shlex-Hin-und-Zurueck machte aus "$(cat ...)" ein Literal."""
+    res, i, n = [], 0, len(cmd)
+    while i < n:
+        if cmd[i].isspace():
+            i += 1
+            continue
+        if cmd[i] in ";&|":
+            j = i
+            while j < n and cmd[j] in ";&|":
+                j += 1
+            res.append((i, j, None))
+            i = j
+            continue
+        anfang, wert = i, []
+        while i < n and not cmd[i].isspace() and cmd[i] not in ";&|":
+            c = cmd[i]
+            if c == "'":
+                j = cmd.find("'", i + 1)
+                if j < 0:
+                    return None
+                wert.append(cmd[i + 1:j])
+                i = j + 1
+            elif c == '"':
+                j = i + 1
+                while j < n and cmd[j] != '"':
+                    if cmd[j] == "\\" and j + 1 < n and cmd[j + 1] in '"\\$`\n':
+                        wert.append(cmd[j + 1])
+                        j += 2
+                    else:
+                        wert.append(cmd[j])
+                        j += 1
+                if j >= n:
+                    return None
+                i = j + 1
+            elif c == "\\":
+                if i + 1 >= n:
+                    return None
+                wert.append(cmd[i + 1])
+                i += 2
+            else:
+                wert.append(c)
+                i += 1
+        res.append((anfang, i, "".join(wert)))
+    return res
+
+def claude_settings_einfuegen(cmd, werte):
+    """`cmd` mit `werte` im --settings-JSON des claude-Aufrufs: ein vorhandenes --settings wird
+    zusammengefuehrt (andere Schluessel bleiben), sonst steht ein neues direkt hinter dem
+    Programmwort. (zeile, None) oder (None, grund). Gleiche Werte lassen die Zeile unveraendert."""
+    woerter = _shell_woerter(cmd)
+    if woerter is None:
+        return None, "Startzeile hat eine offene Anfuehrung"
+    prog = next((k for k, w in enumerate(woerter)
+                 if w[2] is not None and w[2].rsplit("/", 1)[-1] == "claude"), None)
+    if prog is None:
+        return None, "kein claude-Aufruf in der Startzeile"
+    stellen = []          # (anfang, ende, json-text, praefix)
+    k = prog + 1
+    while k < len(woerter) and woerter[k][2] is not None:
+        w = woerter[k][2]
+        if w == "--settings" and k + 1 < len(woerter) and woerter[k + 1][2] is not None:
+            a, e, v = woerter[k + 1]
+            stellen.append((a, e, v, ""))
+            k += 2
+            continue
+        if w.startswith("--settings="):
+            a, e, v = woerter[k]
+            stellen.append((a, e, v[len("--settings="):], "--settings="))
+        k += 1
+    if not stellen:
+        e = woerter[prog][1]
+        return cmd[:e] + " --settings " + shlex.quote(json.dumps(werte)) + cmd[e:], None
+    for a, e, v, praefix in reversed(stellen):
+        try:
+            alt = json.loads(v)
+        except ValueError:
+            return None, "--settings ist kein JSON (Datei?): %s" % v[:80]
+        if not isinstance(alt, dict):
+            return None, "--settings ist kein JSON-Objekt"
+        neu = dict(alt)
+        neu.update(werte)
+        if neu != alt:
+            cmd = cmd[:a] + shlex.quote(praefix + json.dumps(neu)) + cmd[e:]
+    return cmd, None
+
+def cmd_claude_settings():
+    """`models claude-settings <rolle>|--werte <json> [--in <befehl>]`: das --settings-JSON der
+    Rolle (oder der uebergebene JSON-Wert mit --werte, fuer einen Aufrufer ohne feste Rolle --
+    etwa wb-harness-run fuer apiKeyHelper), mit --in die Startzeile mit eingefuegtem bzw.
+    zusammengefuehrtem Wert. Exit 1 ohne Ergebnis."""
+    vals, _fl, pos = opts(ARGV, ["in", "werte"])
+    if vals["werte"] is not None:
+        if pos:
+            die("FEHLER: --werte nicht zusammen mit einer Rolle angeben.")
+        try:
+            werte = json.loads(vals["werte"])
+        except ValueError:
+            die("FEHLER: --werte ist kein JSON.")
+        if not isinstance(werte, dict):
+            die("FEHLER: --werte ist kein JSON-Objekt.")
+    else:
+        if len(pos) != 1 or pos[0] not in CLAUDE_SETTINGS:
+            die("FEHLER: wb-state models claude-settings <%s>|--werte <json> [--in <befehl>]"
+                % "|".join(sorted(CLAUDE_SETTINGS)))
+        werte = CLAUDE_SETTINGS[pos[0]]
+    if vals["in"] is None:
+        print(json.dumps(werte))
+        return
+    zeile, grund = claude_settings_einfuegen(vals["in"], werte)
+    if zeile is None:
+        die("FEHLER: claude-settings: %s." % grund)
+    print(zeile)
 
 def cmd_resolve():
     # --probe is for wb-harness-probe ALONE: it lifts exactly the two gates that
@@ -2969,6 +3179,8 @@ def cmd_resolve():
     if h["id"] == "claude" and role == "orchestrator":
         parts.append(("q", "--remote-control"))
         parts.append(("q", ctx["name"]))
+        parts.append(("q", "--settings"))
+        parts.append(("q", json.dumps(CLAUDE_SETTINGS["orchestrator"])))
     # Die Gegenseite (Nachtrag 2026-08-19, gemessen: 'claude
     # --dangerously-skip-permissions' allein zeigt ein aktives Remote Control in
     # der Fusszeile, obwohl kein '--remote-control' auf der Befehlszeile steht --
@@ -2986,7 +3198,7 @@ def cmd_resolve():
     # Wege einen Startbefehl bauen; der Wortlaut wird zusammen gepflegt.
     elif h["id"] == "claude" and role == "worker":
         parts.append(("q", "--settings"))
-        parts.append(("q", '{"remoteControlAtStartup": false, "crossSessionInbound": "accept"}'))
+        parts.append(("q", json.dumps(CLAUDE_SETTINGS["worker"])))
     res = h.get("resume") or {}
     if res.get("args"):
         probe = res.get("probe") or "always"
@@ -3067,7 +3279,12 @@ def cmd_resolve():
     print("cmd\t%s" % cmd.replace("\t", " "))
 
 def cmd_list():
-    vals, fl, _ = opts(ARGV, ["role", "machine", "harness"], ["all"])
+    # --provider (Nachtrag task, 11.11.2026): pi-worker braucht eine
+    # Rueckwaerts-Suche "welches Registry-Modell traegt diesen modelRef unter diesem
+    # Provider", um Claude-Abo-Aliase (sonnet/haiku/opus) bei Luft auf die
+    # anthropic-api-Spur umzulenken -- ohne diesen Filter muesste der Aufrufer eine
+    # EIGENE Modellliste mitfuehren, genau das Problem, das die Registry loesen soll.
+    vals, fl, _ = opts(ARGV, ["role", "machine", "harness", "provider"], ["all"])
     for m in MODELS:
         if not fl["all"] and m.get("enabled") is False:
             continue
@@ -3076,6 +3293,8 @@ def cmd_list():
         if vals["machine"] and m.get("machines") and vals["machine"] not in m["machines"]:
             continue
         if vals["harness"] and m.get("harness") != vals["harness"]:
+            continue
+        if vals["provider"] and m.get("provider") != vals["provider"]:
             continue
         print(m["id"])
 
@@ -3100,6 +3319,16 @@ def cmd_harness_get():
     if not h:
         die("FEHLER: Harness '%s' ist nicht registriert." % ARGV[0],
             "Registriert: " + " ".join(x["id"] for x in HARNESSES))
+    # Das Muster fuer "Worker steht auf einem Anbieterfehler" (context-guard, check_anbieterfehler) kommt aus
+    # der Auslieferung, solange die lebende Registry das Feld noch nicht traegt (wie family_specs: die
+    # Auslieferung ergaenzt, ueberschreibt nie).
+    # Dasselbe gilt fuer "Spinner steht auf einem Anbieterfehler" (anbieterfehlerSpinnerPattern, task).
+    for feld in ("anbieterfehlerPattern", "anbieterfehlerSpinnerPattern"):
+        if feld not in h:
+            shipped = next((t for t in template_harnesses() if t.get("id") == h.get("id")), {})
+            if feld in shipped:
+                h = dict(h)
+                h[feld] = shipped[feld]
     print(json.dumps(mask(h), indent=2, ensure_ascii=False))
 
 # One model can be the right answer to SEVERAL jobs at different effort — sonnet5
@@ -3300,6 +3529,10 @@ def cmd_check():
 # above — deliberately rebuilt, not reinvented: the extension's mkdir lock and the
 # flock used here are blind to each other, so a write takes both.
 def write_registry(mutate):
+    if os.environ.get("WB_STATE_RIEGEL"):   # Testlauf-Riegel (Kopf des Werkzeugs), VOR Ordner und Sperre
+        sys.stderr.write("wb-state: Schreiben in models.json abgelehnt (Exit 79): HOME ist nicht die Heimat "
+                         "laut Benutzerdatenbank und WB_TESTUMGEBUNG ist nicht 1. Nichts geschrieben.\n")
+        sys.exit(79)
     os.makedirs(os.path.dirname(MODELS_FILE), exist_ok=True)
     MKLOCK = os.path.join(LOCKDIR, os.path.basename(MODELS_FILE) + ".lock.d")
     STALE, TIMEOUT = 10.0, 60.0
@@ -3350,15 +3583,24 @@ def write_registry(mutate):
                              "  Kopie: %s\n"
                              "  Die Datei wird jetzt neu aufgebaut.\n" % (MODELS_FILE, e, snap))
         entries = mutate(cfg)           # list of (what, old, new) for the log
-        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(MODELS_FILE))
-        with os.fdopen(fd, "w") as f:
-            json.dump(cfg, f, indent=2, ensure_ascii=False)
-            # Trailing newline like every other text file here. Without it the first
-            # write through the CLI/UI made the installed models.json differ from
-            # shell/models.default.json in exactly one invisible byte — a permanent
-            # false positive for the deploy-drift check (measured 2026-07-28).
-            f.write("\n")
-        os.replace(tmp, MODELS_FILE)
+        # Trailing newline like every other text file here. Without it the first
+        # write through the CLI/UI made the installed models.json differ from
+        # shell/models.default.json in exactly one invisible byte — a permanent
+        # false positive for the deploy-drift check (measured 2026-07-28).
+        text = json.dumps(cfg, indent=2, ensure_ascii=False) + "\n"
+        try:
+            with open(MODELS_FILE, encoding="utf-8") as cur:
+                unchanged = cur.read() == text
+        except (OSError, ValueError):
+            unchanged = False
+        if not unchanged:
+            # Identical bytes are not written, so mtime stays too (task,
+            # 2026-10-30: an unchanged updater run rewrote models.json under a full run).
+            # The log below still records every entry the caller reports.
+            fd, tmp = tempfile.mkstemp(dir=os.path.dirname(MODELS_FILE))
+            with os.fdopen(fd, "w") as f:
+                f.write(text)
+            os.replace(tmp, MODELS_FILE)
         try:
             os.makedirs(os.path.dirname(CHANGELOG), exist_ok=True)
             with open(CHANGELOG, "a") as lg:
@@ -3684,10 +3926,9 @@ def cmd_migrate_session():
 MANAGED_FIELDS = ["label", "provider", "modelRef", "roles", "efforts", "maxEffort",
                   "defaultEffort", "machines", "supportsEffort", "contextWindow",
                   "discoveredAt", "discoveredVersion"]
-# discoveredAt refreshes on EVERY successful run by design (it is a last-seen
-# marker) — comparing it would report every untouched entry as "updated" forever,
-# since it never equals the previous run's value. It is still written like any
-# other managed field; it just does not decide added/updated/kept on its own.
+# discoveredAt is set when an entry is added or changed and stays on an unchanged
+# entry (apply_plan): a stamp that moved on every run rewrote models.json without
+# any logged change. It does not decide added/updated/kept on its own.
 DIFF_FIELDS = [f for f in MANAGED_FIELDS if f != "discoveredAt"]
 DISCOVER_TIMEOUT = 20   # seconds per source (Vertrag 1)
 
@@ -3708,8 +3949,14 @@ def discover_ollama(timeout):
         return None, str(e)
     if r.returncode != 0:
         return None, "ollama list: exit %d (%s)" % (r.returncode, (r.stderr or "").strip()[:200])
+    # Eine unlesbare Antwort ist ein Ausfall, kein Ergebnis (decision 2026-10-23: drei installierte Modelle fielen
+    # aus der Registry). Ohne die Kopfzeile "NAME ..." waere jedes erste Wort der Ausgabe ein Modell, und alle
+    # echten Eintraege galten als verschwunden. Leer (nur Kopfzeile) faengt empty_answer_guard ab.
+    zeilen = r.stdout.splitlines()
+    if not zeilen or zeilen[0].split()[:1] != ["NAME"]:
+        return None, "ollama list: Antwort ohne Kopfzeile NAME, unlesbar -- nichts entfernt."
     refs = []
-    for line in r.stdout.splitlines()[1:]:      # erste Zeile ist die Kopfzeile
+    for line in zeilen[1:]:                     # erste Zeile ist die Kopfzeile
         line = line.strip()
         if line:
             refs.append(line.split()[0])
@@ -4697,6 +4944,10 @@ def apply_plan(cfg, models_list, plan, entries_log):
                     cur[f] = new_e[f]
                 elif f in cur:
                     del cur[f]
+            if mid not in plan["updated"] and "discoveredAt" in old:
+                # An unchanged entry keeps its stamp: a fresh one each run rewrote
+                # models.json without any logged change (task).
+                cur["discoveredAt"] = old["discoveredAt"]
             validate("model", cur, cfg)
             if mid in plan["updated"]:
                 entries_log.append(("model:%s" % mid, old, dict(cur)))
@@ -5332,7 +5583,11 @@ def cmd_probe():
     if pos:
         targets = [need_model(x) for x in pos]
     else:
-        targets = [m for m in MODELS if (m.get("probe") or {}).get("status") in PROBE_RETRY]
+        # 2026-10-19 (task): ein Eintrag mit disabledReason ist eine
+        # bewusste Sperre (Auslieferung oder eine gescheiterte Probe). Ohne Namen wird er
+        # nie aufgerufen; nur eine benannte Probe holt ihn zurueck.
+        targets = [m for m in MODELS if (m.get("probe") or {}).get("status") in PROBE_RETRY
+                   and not m.get("disabledReason")]
     results, plan = [], {}
     for m in targets:
         h = byid(HARNESSES, m.get("harness")) or {}
@@ -5374,6 +5629,16 @@ def cmd_probe():
                     probe["reason"] = r["reason"]
                 e["probe"] = probe
                 e["enabled"] = r["status"] == "bestanden"
+                # Eine bestandene Probe hebt die Sperre auf. Der alte Grund bleibt mit
+                # Datum in disabledHistory, einer Liste, weil eine Sperre mehrfach fallen kann.
+                if r["status"] == "bestanden" and e.get("disabledReason"):
+                    lifted = {"reason": e.pop("disabledReason"), "liftedAt": r["at"]}
+                    e["disabledHistory"] = (e.get("disabledHistory") or []) + [lifted]
+                # Eine gescheiterte BENANNTE Probe ist eine Sperre: der Eintrag bekommt einen
+                # Grund, damit `probe` ohne Namen ihn nicht erneut aufruft. Ohne Namen bleibt
+                # er offen und wird beim naechsten Lauf erneut geprueft (wie bisher).
+                if pos and r["status"] == "abgelehnt" and not e.get("disabledReason"):
+                    e["disabledReason"] = "Probeaufruf abgelehnt (%s): %s" % (r["at"][:10], r.get("reason") or "keine Angabe")
                 validate("model", e, cfg)
                 log.append(("model:%s.probe" % e["id"], old.get("probe"), probe))
             return log
@@ -5406,12 +5671,81 @@ def cmd_families():
         print("%s\t%s\t%s%s" % (r["harness"], ",".join(r["aliases"]), r["target"] or "-",
                                  ("\tgesperrt: " + r["locked"]) if r["locked"] else ""))
 
+# Bezugsaufgabe fuer den Kostenvergleich (wb-request): 200000 Eingabe- und 20000 Ausgabetoken.
+# Die Zahl ist nur der feste Massstab, an dem zwei Modelle verglichen werden, keine Vorhersage
+# einer echten Aufgabe; ein anderer Massstab aendert die Rangfolge nur bei Modellen, deren Eingabe-
+# und Ausgabepreis sich gegenlaeufig verhalten.
+KOSTEN_BEZUG_EIN = 200000
+KOSTEN_BEZUG_AUS = 20000
+
+def kosten_modell(name):
+    """Registry-Eintrag zu einem Modellnamen, wie wb-request ihn bekommt: id, Alias,
+    Familienalias oder modelRef, ein angehaengtes ':<effort>' darf fehlen. Nie ein
+    Abbruch (byfamilyalias ohne error_unavailable): unbekannt heisst None."""
+    kandidaten = [name]
+    if ":" in name:
+        kandidaten.append(name.split(":", 1)[0])
+    for k in kandidaten:
+        m = byid(MODELS, k) or byalias(MODELS, k) or byfamilyalias(k)
+        if m:
+            return m
+        for e in MODELS:
+            if e.get("modelRef") == k:
+                return e
+    return None
+
+def kosten_usd(m, prov):
+    """(USD je Bezugsaufgabe, Quelle). Lokaler Anbieter: 0. Katalog-Anbieter (priceFields):
+    Preis aus dem Katalog-Cache zur modelRef, sonst unbekannt. Abo-Modelle haben keinen
+    Preis je Aufgabe: (None, None). Ein kaputter Cache ist 'unbekannt', nie ein Abbruch."""
+    if (prov or {}).get("kind") == "local":
+        return 0.0, "lokal"
+    dc = (prov or {}).get("discover")
+    if not (isinstance(dc, dict) and dc.get("priceFields")):
+        return None, None
+    try:
+        items, err = catalog_items(json.load(open(catalog_cache_path(prov["id"]))),
+                                   dc.get("jsonPath"), dc.get("priceFields"))
+    except Exception:
+        return None, None
+    if err:
+        return None, None
+    for it in items:
+        if it["ref"] == m.get("modelRef"):
+            try:
+                pin, pout = float(it["priceIn"]), float(it["priceOut"])
+            except (TypeError, ValueError):
+                return None, None
+            return round(pin * KOSTEN_BEZUG_EIN + pout * KOSTEN_BEZUG_AUS, 6), "katalog"
+    return None, None
+
+def cmd_kosten():
+    """Kosten je Bezugsaufgabe fuer die genannten Modelle, in der Reihenfolge der Argumente
+    (wb-request vergleicht damit Antragsteller und Kind). Nur lesend."""
+    _vals, fl, pos = opts(ARGV, [], ["json"])
+    if not pos:
+        die("FEHLER: wb-state models kosten [--json] <modell>...")
+    rows = []
+    for name in pos:
+        m = kosten_modell(name)
+        prov = byid(PROVIDERS, m.get("provider")) if m else None
+        usd, quelle = kosten_usd(m, prov) if m else (None, None)
+        rows.append({"modell": name, "id": m["id"] if m else None,
+                     "art": (prov or {}).get("kind"), "usd": usd, "quelle": quelle})
+    if fl["json"]:
+        print(json.dumps(rows, ensure_ascii=False))
+        return
+    for r in rows:
+        print("%s\t%s\t%s\t%s" % (r["modell"], r["id"] or "-", r["art"] or "-",
+                                  "-" if r["usd"] is None else r["usd"]))
+
 DISPATCH = {"list": cmd_list, "get": cmd_get, "resolve": cmd_resolve, "table": cmd_table,
             "check": cmd_check, "add": cmd_add, "set": cmd_set, "remove": cmd_remove,
             "harness-get": cmd_harness_get, "discover": cmd_discover, "catalog": cmd_catalog,
             "effort": cmd_effort, "cap": cmd_cap_get, "caps": cmd_cap_list,
             "migrate-session": cmd_migrate_session, "probe": cmd_probe,
-            "families": cmd_families}
+            "families": cmd_families, "kosten": cmd_kosten,
+            "claude-settings": cmd_claude_settings}
 if SUB not in DISPATCH:
     die("FEHLER: unbekanntes Registry-Kommando '%s'." % SUB,
         "Gueltig: " + " ".join(sorted(DISPATCH)))

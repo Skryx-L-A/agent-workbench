@@ -45,7 +45,7 @@
 #
 #   Aktueller Stand laut dieser Datei: Plan "max-200", belegt (nicht nur angenommen) durchgehend
 #   seit Montag der Vorwoche vor dem 2026-08-03 und weiterhin laufend -- das Wochenfenster vom
-#   03.08. 14:00 bis 10.08. 14:00 liegt damit VOLLSTAENDIG in einem Plan.
+#   03.08. bis 10.08. liegt damit VOLLSTAENDIG in einem Plan.
 #
 #   Das Wochenlimit resettet nachweislich jeden Montag 14:00 Ortszeit (Europe/Berlin, DST-
 #   bewusst je nach Jahreszeit) -- eine bekannte, feste Kante, keine geratene. --limit-
@@ -68,8 +68,7 @@
 #                                          Luft. Liest NUR limits.jsonl, laeuft in Millisekunden
 #                                          statt in neun Sekunden -- gedacht fuer den
 #                                          SessionStart-Hook und fuer jede Delegationsentscheidung.
-#                                          Nachtrag 2026-09-10 (der Nutzer: "das chatgpt limit soll
-#                                          auch getrackt werden wie das claude limit"): OHNE --knapp
+#                                          Nachtrag 2026-09-10 (der Nutzer): OHNE --knapp
 #                                          folgt nach dem Claude-Block ein zweiter Block "ChatGPT
 #                                          Plus (Codex)" aus codex-limits.jsonl (geschrieben von
 #                                          `wb-kontingent auffrischen`, siehe dort) -- eigene
@@ -168,7 +167,7 @@ knapp = sys.argv[2] == "--knapp" if len(sys.argv) > 2 else False
 jetzt = float(os.environ.get("WB_LIMIT_JETZT") or time.time())
 
 def deckel_pct(jetzt):
-    """Befristeter Deckel des Claude-Wochenlimits (der Nutzer 11.10.2026: bis Mo 12.10. 14:00
+    """Befristeter Deckel des Claude-Wochenlimits (decision 2026-10-11: bis Mo 12.10.
     hoechstens 95 %). Datei ~/.claude/workbench/limit-deckel.json {"pct": 95, "bis_epoch": ...};
     nach bis_epoch, ohne Datei oder bei kaputtem Inhalt: kein Deckel (100)."""
     try:
@@ -262,7 +261,7 @@ rc = 0
 # aber Kalendertage (Montag = 1 ... Samstag = 6), nicht 24-Stunden-Bloecke ab 14 Uhr. Der
 # Unterschied ist keine Rundung: am Samstagmorgen sind 4,5 der 7 Fenstertage verstrichen
 # (64 %), waehrend das Tagesbudget bei 6/7 steht (86 %).
-lok = datetime.datetime.now().astimezone().tzinfo
+lok = None  # naive Ortszeit: ein fester Versatz aus jetzt stimmt nicht an Tagen mit anderer Zeit
 tag_start = datetime.datetime.fromtimestamp(start, lok).date()
 tag_heute = datetime.datetime.fromtimestamp(jetzt, lok).date()
 tagesindex = (tag_heute - tag_start).days + 1
@@ -300,7 +299,7 @@ if knapp:
                                              "Luft" if luft >= 0 else "DARUEBER um",
                                              abs(luft), stand_text))
         if deckel_pct(jetzt) < 100.0:
-            print("DECKEL bis Mo 12.10. 14:00: hoechstens %.0f %% (der Nutzer, strikt) -- keine Claude-Worker, "
+            print("DECKEL bis Mo 12.10.: hoechstens %.0f %% (der Nutzer, strikt) -- keine Claude-Worker, "
                   "keine selbststaendige Claude-Arbeit, nur auf Eingabe des Nutzers." % deckel_pct(jetzt))
 else:
     print("== Wochenlimit: Tagesbudget ==")
@@ -327,9 +326,7 @@ else:
         else:
             print("  DARUEBER um:  %.1f Punkte -- jetzt drosseln: Worker lokal oder Aufgabe wartet."
                   % abs(luft))
-    # ChatGPT Plus (Codex) -- Nachtrag 2026-09-10 (der Nutzer: "das chatgpt limit
-    # soll auch getrackt werden wie das claude limit, achte darauf das es
-    # vielleicht anders aufgebaut ist als das von claude"). Anders als Claudes
+    # ChatGPT Plus (Codex) -- Nachtrag 2026-09-10 (der Nutzer). Anders als Claudes
     # Beide Abos werden am Wochenbudget nach Kalendertagen gemessen: der Tag,
     # an dem das rollende 7-Tage-Fenster beginnt, zaehlt schon als Tag 1; bis
     # heute Abend sind Tagindex * 100/7 erlaubt. Die rollende Restzeit ist
@@ -551,7 +548,7 @@ alle = os.environ.get("WB_JSON_ALLE") == "1"
 jetzt = float(os.environ.get("WB_LIMIT_JETZT") or time.time())
 
 def deckel_pct(jetzt):
-    """Befristeter Deckel des Claude-Wochenlimits (der Nutzer 11.10.2026: bis Mo 12.10. 14:00
+    """Befristeter Deckel des Claude-Wochenlimits (decision 2026-10-11: bis Mo 12.10.
     hoechstens 95 %). Datei ~/.claude/workbench/limit-deckel.json {"pct": 95, "bis_epoch": ...};
     nach bis_epoch, ohne Datei oder bei kaputtem Inhalt: kein Deckel (100)."""
     try:
@@ -720,7 +717,7 @@ def tageslinie(reset_ep):
     # Dieselbe Rechnung wie --limit: Kalendertage in LOKALER Zeit, Montag = 1, der
     # Maszstab ist das Tagesende, nicht der Augenblick; Deckel bei 100.
     start = reset_ep - 7 * 86400
-    lok = datetime.datetime.now().astimezone().tzinfo
+    lok = None  # naive Ortszeit, wie oben: kein fester Versatz aus jetzt
     tag_start = datetime.datetime.fromtimestamp(start, lok).date()
     tag_heute = datetime.datetime.fromtimestamp(jetzt, lok).date()
     tagesindex = max(1, min(7, (tag_heute - tag_start).days + 1))
@@ -2523,7 +2520,7 @@ HOME = os.path.expanduser("~")
 WURZEL = os.path.join(HOME, ".claude", "projects")
 # WB_BUDGET_JETZT (Epoch-Sekunden) gibt Tests eine feste Uhr: in den ersten 15 Minuten
 # des UTC-Tags faellt die Zeile "bisher heute" weg, und ein Test um 02:00 Sommerzeit
-# fand sie nicht (GL#28, 2026-10-13). Ohne die Variable gilt die echte Uhr.
+# fand sie nicht (Gesamtlauf, 2026-10-13). Ohne die Variable gilt die echte Uhr.
 JETZT = float(os.environ.get("WB_BUDGET_JETZT") or time.time())
 FENSTER_TAGE = 8
 # Etwas mehr als das Fenster: der Bericht schaut hoechstens 7 Tage zurueck, der

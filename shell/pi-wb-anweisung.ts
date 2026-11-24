@@ -3,7 +3,7 @@
  *
  * Installiert von `wb-werkzeuge apply pi` nach ~/.pi/agent/extensions/wb-anweisung.ts (Quelle:
  * shell/pi-wb-anweisung.ts im Repo claude-workbench; Registry toolAdapter.anweisungen.erinnerung).
- * Nicht von Hand aendern. Werkzeuge zentral, Spur W2c (der Nutzer 13.10.: Stilregel in jedem Harness).
+ * Nicht von Hand aendern. Werkzeuge zentral, Spur W2c (decision 10-13: Stilregel in jedem Harness).
  *
  * Der Volltext kommt am Sitzungsbeginn aus ~/.pi/agent/AGENTS.md (wb-instructions sync). Diese
  * Erweiterung holt vor jedem Zug die Erinnerungen mit Anlass nachricht ueber

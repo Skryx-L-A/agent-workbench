@@ -62,7 +62,9 @@ exit 2
 # PORTS (Stand 2026-08-13): 8080 = dieser Proxy (via launchd), 8081 =
 # grug-server/mlx_lm.server dahinter. pi's ~/.pi/agent/models.json zeigt
 # unveraendert auf 8080 und merkt vom Umbau nichts. 11434 (Ollama-Daemon)
-# und 8766/8767 (MCP) sind fremd und werden nie angefasst.
+# und 8767 (MCP) sind fremd und werden nie angefasst. 8766 (Basic Memory) ist
+# seit 2026-09-23 abgeschaltet und steht mit "abgeschaltet" in der Konfiguration:
+# der Proxy lehnt dort sofort ab, statt ensureCmd zu rufen.
 #
 # Aufruf:
 #   wb-modell-proxy                 Sockets von launchd uebernehmen (Normalfall)
@@ -78,6 +80,7 @@ exit 2
 import argparse
 import asyncio
 import ctypes
+import errno
 import ipaddress
 import json
 import os
@@ -109,6 +112,19 @@ def sicherer_lausch_host(host):
     except ValueError:
         return False
     return adresse.version == 4 and adresse.is_loopback
+
+
+def sicherer_backend_host(host):
+    """Ein Backend ausserhalb von Loopback wuerde den Proxy still zum Fernproxy machen."""
+    if not isinstance(host, str):
+        return False
+    if host == "localhost":
+        return True
+    try:
+        adresse = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return adresse.is_loopback
 LOG_MAX_BYTES = 1024 * 1024
 PUFFER = 65536
 # Wartezeiten nach einem gescheiterten Startversuch (Review S8). Solange sie
@@ -173,7 +189,12 @@ def launchd_sockets(name):
     Rueckgabewert ungleich 0 IST die errno (ESRCH: nicht von launchd
     gestartet, ENOENT: dieser Socket-Name steht nicht in der plist)."""
     libc = ctypes.CDLL(None, use_errno=True)
-    fn = libc.launch_activate_socket
+    # Ohne libSystem (Linux) fehlt das Symbol: ein AttributeError beendete den ganzen Proxy (T1 #18),
+    # ein OSError laesst nur diesen Eintrag aus, wie ausserhalb von launchd.
+    try:
+        fn = libc.launch_activate_socket
+    except AttributeError:
+        raise OSError(errno.ENOSYS, "launch_activate_socket fehlt (kein launchd auf dieser Plattform)")
     fn.argtypes = [
         ctypes.c_char_p,
         ctypes.POINTER(ctypes.POINTER(ctypes.c_int)),
@@ -228,6 +249,11 @@ class Backend:
         self.socket_name = str(cfg.get("socketName") or self.schluessel)
         self.ensure_cmd = cfg.get("ensureCmd") or ""
         self.stop_cmd = cfg.get("stopCmd") or ""
+        # "abgeschaltet": true oder ein Klartextgrund. Das Ziel von ensureCmd
+        # ist bewusst abgeschaltet; eine Verbindung wird sofort geschlossen,
+        # ohne ensureCmd und ohne Wartefrist. Je Kaltstart eine Logzeile.
+        self.abgeschaltet = cfg.get("abgeschaltet") or False
+        self._abgeschaltet_gemeldet = False
         # Betriebsbereitschaft wird auf HTTP-Ebene gemessen, nicht am
         # angenommenen TCP-Verbindungsaufbau (Review S10): ein halb
         # gestarteter oder wildfremder Prozess auf dem Backendport nimmt
@@ -614,6 +640,12 @@ class Backend:
         self.beruehren()
         rueck_leser = rueck_schreiber = None
         try:
+            if self.abgeschaltet:
+                if not self._abgeschaltet_gemeldet:
+                    self._abgeschaltet_gemeldet = True
+                    self.log("%s: Backend ist abgeschaltet (%s) — Verbindungen werden ohne ensure geschlossen."
+                             % (self.name, self.abgeschaltet if isinstance(self.abgeschaltet, str) else "abgeschaltet"))
+                return
             if self.dauerfehler:
                 await self.fehlerantwort(klient_schreiber, self.dauerfehler)
                 return
@@ -693,6 +725,10 @@ def eintrag_pruefen(pfad, schluessel, cfg):
         int(cfg["backendPort"])
     except (TypeError, ValueError):
         return "%s: Backend '%s' hat keinen numerischen backendPort" % (pfad, schluessel)
+    host = cfg.get("backendHost", "127.0.0.1")
+    if not sicherer_backend_host(host):
+        return ("%s: Backend '%s' hat backendHost '%s' — erlaubt ist nur Loopback "
+                "(127.0.0.1, ::1, localhost)" % (pfad, schluessel, host))
     return ""
 
 

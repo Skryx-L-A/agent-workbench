@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S -u DEVELOPER_DIR -u SDKROOT -u TOOLCHAINS /usr/bin/python3 -E -s -S
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): nie ein python3 aus dem PATH des
+# Aufrufers, ohne die xcrun-Variablen, PYTHON*-Variablen, User-site und site.
 """wb-vertrauen-codex — uebertraegt das Hook-Vertrauen von codex auf einen Werkbank-Worktree,
 damit der Start nicht am Dialog "Hooks need review" haengenbleibt.
 
@@ -34,8 +36,15 @@ KEINE ANHEBUNG DER ERLAUBNIS, sondern eine UEBERTRAGUNG, im selben Sinn wie wb-v
 Fremde Hooks werden so nie blind vertraut: ein Hook, den der Nutzer im Hauptbaum nicht
 bestaetigt hat, hat dort keinen Eintrag und bekommt auch im Worktree keinen. Weicht der
 Hook-Inhalt spaeter ab, passt der Hash nicht mehr, und codex fragt wieder -- diese
-Pruefung bleibt bei codex. Der Hash wird NICHT berechnet (die Bildungsregel ist nicht
-bekannt), nur kopiert.
+Pruefung bleibt bei codex. Dieser Weg berechnet den Hash NICHT, er kopiert nur. (Die Bildungsregel
+steht seit 19.10.2026 in werkzeuge_codex.trusted_hash; sie gilt fuer codex 0.163.0.)
+
+ABGLEICH 0.163.0 (19.10.2026): Quelltext rust-v0.163.0 (Commit 83086188). Der Schluessel ist
+`<pfad>:<ereignis>:<gruppe>:<index>` (codex-rs/hooks/src/lib.rs:108-115), der Hash haengt nicht am
+Pfad (codex-rs/hooks/src/engine/discovery.rs:777-793: Ereignis, Matcher, Befehl, Timeout). Die
+Binaerdatei 0.163.0 enthaelt den Dialogtext "Hooks need review" und das Feld trusted_hash unter
+hooks.state. Ein Lauf der Kopierlogik gegen 0.163.0 ist nicht gemacht; die Aussagen oben stuetzen
+sich auf den Quelltext und die Binaerdatei.
 
 AUFRUF:  wb-vertrauen-codex <verzeichnis> [--pruefen]
          --pruefen schreibt nichts und sagt nur, was passieren wuerde.
@@ -68,18 +77,49 @@ def melde(text: str) -> None:
     print(f"wb-vertrauen-codex: {text}", file=sys.stderr)
 
 
+# git von einem festen Pfad und ohne GIT_*-Variablen (18.10.2026, Befund devdir-sicher N5), wie in
+# wb-vertrauen: ein eigenes `git` oder GIT_DIR nannte sonst einen vertrauten Hauptbaum.
+GIT_FEST = ("/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git")
+
+
+def worktree_belegt(git: str, umg: dict, quelle: Path, verzeichnis: Path) -> bool:
+    """Nennt der Hauptbaum QUELLE diesen Ordner als seinen Worktree? Die Datei .git steht im Ordner selbst, ihren Text
+    kann jeder dort schreiben; mit dem Namen einer echten Verwaltung erbte eine Faelschung sonst das Hook-Vertrauen des
+    Hauptbaums (gemessen 31.10.2026 an der Worktree-Pruefung). Die Antwort kommt aus <admin>/gitdir ueber
+    `git worktree list`, auch mit worktree.useRelativePaths. Bei jedem Fehler gilt: nicht belegt.
+    Gleiche Funktion in wb-vertrauen -- beide Dateien zusammen aendern (ein Modul daneben braeuchte eine eigene
+    Installation)."""
+    try:
+        oben = subprocess.run([git, "-C", str(verzeichnis), "rev-parse", "--show-toplevel"],
+                              capture_output=True, text=True, timeout=10, stdin=subprocess.DEVNULL, env=umg)
+        liste = subprocess.run([git, "-C", str(quelle), "worktree", "list", "--porcelain"],
+                               capture_output=True, text=True, timeout=10, stdin=subprocess.DEVNULL, env=umg)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    if oben.returncode != 0 or liste.returncode != 0:
+        return False
+    wurzel = Path(oben.stdout.strip()).resolve()
+    return any(zeile.startswith("worktree ") and Path(zeile[len("worktree "):]).resolve() == wurzel
+               for zeile in liste.stdout.splitlines())
+
+
 def hauptbaum(verzeichnis: Path) -> Path | None:
+    """Der Baum, aus dem dieser Worktree stammt -- oder None, wenn es keiner ist oder der Baum ihn nicht als seinen nennt."""
+    git = next((k for k in GIT_FEST if os.access(k, os.X_OK)), GIT_FEST[0])
+    umg = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     try:
         roh = subprocess.run(
-            ["git", "-C", str(verzeichnis), "rev-parse",
+            [git, "-C", str(verzeichnis), "rev-parse",
              "--path-format=absolute", "--git-common-dir"],
-            capture_output=True, text=True, timeout=10, stdin=subprocess.DEVNULL)
+            capture_output=True, text=True, timeout=10, stdin=subprocess.DEVNULL, env=umg)
     except (OSError, subprocess.SubprocessError):
         return None
     if roh.returncode != 0:
         return None
     gemeinsam = Path(roh.stdout.strip())
-    return gemeinsam.parent if gemeinsam.name == ".git" else None
+    if gemeinsam.name != ".git":
+        return None
+    return gemeinsam.parent if worktree_belegt(git, umg, gemeinsam.parent, verzeichnis) else None
 
 
 def gewoehnliche_datei(pfad: Path) -> bool:
@@ -142,7 +182,8 @@ def main() -> int:
         return 0
     quelle = hauptbaum(ziel)
     if quelle is None or quelle == ziel:
-        melde(f"{ziel} ist kein git-Worktree — nichts eingetragen.")
+        melde(f"{ziel} ist kein git-Worktree, den ein Hauptbaum als seinen nennt — nichts eingetragen. "
+              f"Nach einem Verschieben (mv) hilft `git worktree repair` im Hauptbaum.")
         return 0
     quelle = quelle.resolve()
     hooks_ziel = ziel / ".codex" / "hooks.json"

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "_kommentar": "Vorlage fuer ~/.claude/workbench/tafel-plaetze.json (Platzdefinitionen von wb-tafel). Fehlt die Datei dort, liest wb-tafel diese Vorlage neben sich selbst. Jede Maschine hat ihre eigene Tafel; ein Platz gilt nur auf der Maschine, die 'maschine' nennt. Arten: exklusiv (Kapazitaet 1), zaehlend (Kapazitaet n), menge (Speicher in GiB, gerechnet und gebucht ueber wb-belegung), zustaendigkeit (Anspruch statt Ressource, siehe 'zustaendigkeiten'). 'schwer': solange ein Platz mit 'sperrt_schwere' von einer anderen Sitzung gehalten wird, meldet wb-tafel schwere Plaetze als belegt; umgekehrt meldet ein Platz mit 'sperrt_schwere' belegt, solange eine andere Sitzung einen schweren Platz derselben Maschine haelt (Ruhe wartet auf die schweren Plaetze, wer Ruhe will, stellt sich mit --anstellen an). 'annahme_s': Annahmefrist nach der Nachricht 'dran'. 'nachtrag_s': Nachtragsfrist fuer einen unangemeldeten Start, danach Zwangseintrag (Vorgabe 120). 'muster': regulaere Ausdruecke auf das ausgefuehrte Programm bzw. die Skriptdatei laufender Prozesse, ohne dessen Argumente (Huellen wie env/nice/nohup/timeout und Interpreter wie bash/python3 werden aufgeloest, bei python -m gilt das Modul; ein Wort in einem -c-Text oder in einem Argument zaehlt nicht); ein Treffer ohne Eintrag, ohne Eintrag an einem Vorfahren oder Nachfahren, gilt als unangemeldeter Start. 'vorschlag_art': welche Dauerhistorie der Nachtragsbefehl vorschlaegt. 'abbruch_kill_s': Abstand SIGTERM -> SIGKILL nach der Gnadenfrist (Vorgabe 30). 'erlaubnis_s': Gueltigkeit einer Einmal-Erlaubnis 'trotzdem' (Vorgabe 120). 'ohne_abbruch': an diesem Platz wird nach der Gnadenfrist nie ein Prozess beendet, nur gemeldet. 'selbst_vorrang_arten': Wartende dieser --art duerfen sich selbst per vorrang nach vorn holen (unterbrechen aber nie den Halter). Stoerungswaechter (nur melden, nie beenden; je Platz oder oben fuer alle Plaetze setzbar, Ablauf im Kopf von shell/wb-tafel, Abschnitt STOERUNGEN): 'stoerung': ob ein exklusiver Eintrag einen Waechter bekommt, der schwere Laeufe ohne Eintrag meldet (Vorgabe true fuer exklusiv, sonst ohne Wirkung). 'stoerung_takt_s': Abstand der Abtastungen der Prozesstabelle in Sekunden (Vorgabe 5). 'stoerung_cpu': Kerne, die ein Lauf ueber 'stoerung_dauer_s' im Mittel (und in zwei Dritteln der Abtastabstaende selbst) erreichen muss, um als schwer zu gelten (Vorgabe 0.5). 'stoerung_dauer_s': so viele Sekunden muss die Last anhalten, eine kuerzere Spitze zaehlt nicht (Vorgabe 20). 'stoerung_dauerwache_s': dasselbe Fenster, aber nur fuer den Wachprozess context-guard (Befehl mit Pfad unter ~/.local/bin oder shell/, nie ueber Umgebungsvariablen); Vorgabe 120, weil die Wache kurze Spitzen hat (Messung 14.10.2026, Kopf von shell/wb-tafel).'stoerung_ram_mib': Speicherzuwachs eines Laufs gegenueber seinem ersten Messwert in MiB, der die ganze Dauer ueber anhaelt und ebenfalls als schwer gilt (Vorgabe 1024). 'stoerung_ausnahmen': Liste regulaerer Ausdruecke auf das ausgefuehrte Programm samt Argumenten; ein Treffer ist nie eine Stoerung (Vorgabe leer). 'nicht_neben': Liste von Plaetzen; solange eine andere Sitzung einen davon haelt, meldet dieser Platz belegt, auch fuer Wartende beim Nachruecken (ein Mengenplatz erst ab 'schwer_ab'); nur in diese Richtung, der genannte Platz wartet nie auf diesen.",
+  "_kommentar": "Vorlage fuer ~/.claude/workbench/tafel-plaetze.json (Platzdefinitionen von wb-tafel). Fehlt die Datei dort, liest wb-tafel diese Vorlage neben sich selbst. Jede Maschine hat ihre eigene Tafel; ein Platz gilt nur auf der Maschine, die 'maschine' nennt. Arten: exklusiv (Kapazitaet 1), zaehlend (Kapazitaet n), menge (Speicher in GiB, gerechnet und gebucht ueber wb-belegung), zustaendigkeit (Anspruch statt Ressource, siehe 'zustaendigkeiten'). 'schwer': solange ein Platz mit 'sperrt_schwere' von einer anderen Sitzung gehalten wird, meldet wb-tafel schwere Plaetze als belegt; umgekehrt meldet ein Platz mit 'sperrt_schwere' belegt, solange eine andere Sitzung einen schweren Platz derselben Maschine haelt (Ruhe wartet auf die schweren Plaetze, wer Ruhe will, stellt sich mit --anstellen an). 'annahme_s': Annahmefrist nach der Nachricht 'dran'. 'nachtrag_s': Nachtragsfrist fuer einen unangemeldeten Start, danach Zwangseintrag (Vorgabe 120). 'muster': regulaere Ausdruecke auf das ausgefuehrte Programm bzw. die Skriptdatei laufender Prozesse, ohne dessen Argumente (Huellen wie env/nice/nohup/timeout und Interpreter wie bash/python3 werden aufgeloest, bei python -m gilt das Modul; ein Wort in einem -c-Text oder in einem Argument zaehlt nicht); ein Treffer ohne Eintrag, ohne Eintrag an einem Vorfahren oder Nachfahren, gilt als unangemeldeter Start. 'vorschlag_art': welche Dauerhistorie der Nachtragsbefehl vorschlaegt. 'abbruch_kill_s': Abstand SIGTERM -> SIGKILL nach der Gnadenfrist (Vorgabe 30). 'erlaubnis_s': Gueltigkeit einer Einmal-Erlaubnis 'trotzdem' (Vorgabe 120). 'ohne_abbruch': an diesem Platz wird nach der Gnadenfrist nie ein Prozess beendet, nur gemeldet. 'selbst_vorrang_arten': Wartende dieser --art duerfen sich selbst per vorrang nach vorn holen (unterbrechen aber nie den Halter). Stoerungswaechter (nur melden, nie beenden; je Platz oder oben fuer alle Plaetze setzbar, Ablauf im Kopf von shell/wb-tafel, Abschnitt STOERUNGEN): 'stoerung': ob ein exklusiver Eintrag einen Waechter bekommt, der schwere Laeufe ohne Eintrag meldet (Vorgabe true fuer exklusiv, sonst ohne Wirkung). 'stoerung_takt_s': Abstand der Abtastungen der Prozesstabelle in Sekunden (Vorgabe 5). 'stoerung_cpu': Kerne, die ein Lauf ueber 'stoerung_dauer_s' im Mittel (und in zwei Dritteln der Abtastabstaende selbst) erreichen muss, um als schwer zu gelten (Vorgabe 0.5). 'stoerung_dauer_s': so viele Sekunden muss die Last anhalten, eine kuerzere Spitze zaehlt nicht (Vorgabe 20). 'stoerung_dauerwache_s': dasselbe Fenster, aber nur fuer den Wachprozess context-guard (Befehl mit Pfad unter ~/.local/bin oder shell/, nie ueber Umgebungsvariablen); Vorgabe 120, weil die Wache kurze Spitzen hat (Messung 14.10.2026, Kopf von shell/wb-tafel).'stoerung_ram_mib': Speicherzuwachs eines Laufs gegenueber seinem ersten Messwert in MiB, der die ganze Dauer ueber anhaelt und ebenfalls als schwer gilt (Vorgabe 1024). 'stoerung_ausnahmen': Liste regulaerer Ausdruecke auf das ausgefuehrte Programm samt Argumenten; ein Treffer ist nie eine Stoerung (Vorgabe leer). Wache nach dem Austragen und Speicher ueber der Buchung (nur melden, task 18.10.2026, Abschnitt WACHE im Kopf von shell/wb-tafel): 'wache': ob ein Eintrag (auch nur mit Pane) einen Waechter bekommt, der die Laeufe des Eintrags merkt, ihren Speicher gegen die Buchung rechnet und nach dem Austragen weiterlaufende Nachkommen meldet (Vorgabe true fuer exklusiv, menge und 'schwer'). 'wache_takt_s': Abstand der Messungen (Vorgabe wie stoerung_takt_s). 'speicher_puffer': Aufschlag auf die gebuchte Menge, bevor gemeldet wird (Vorgabe 0.10). 'speicher_schwelle_gib': feste Schwelle in GiB fuer Laeufe, deren Halter nichts gebucht hat (Vorgabe 12, bei Plaetzen mit 'muster' aus; 0 schaltet ab). 'nachlauf_gnade_s': so lange darf ein Prozess nach dem Austragen noch auslaufen (Vorgabe 10). 'nachlauf_min_mib': Nachlauf erst ab so viel Speicher des Laufs melden (Vorgabe 0 = jeder Lauf). 'nachwache_max_s': laenger bleibt der Waechter nach dem Austragen nie (Vorgabe 7200). 'nicht_neben': Liste von Plaetzen; solange eine andere Sitzung einen davon haelt, meldet dieser Platz belegt, auch fuer Wartende beim Nachruecken (ein Mengenplatz erst ab 'schwer_ab'); nur in diese Richtung, der genannte Platz wartet nie auf diesen. 'nicht_neben_ab': Zuordnung Mengenplatz -> GiB, zum Beispiel {\"mac-speicher\": 16}; dieser Platz meldet belegt, solange eine andere Sitzung auf dem Mengenplatz mindestens so viel haelt oder wb-belegung eine Buchung ab dieser Menge fuehrt (auch ohne Tafel-Eintrag); ein kleineres Modell stoert nicht. Wie 'nicht_neben' erbt die Live-Platzdatei das Feld aus dieser Vorlage; abschalten je Platz mit {}.",
   "maschinen_je_os": {
     "Darwin": "mac",
     "Linux": "peer"
@@ -24,13 +24,26 @@
       "maschine": "mac",
       "art": "exklusiv",
       "schwer": true,
+      "nicht_neben_ab": {
+        "mac-speicher": 16
+      },
       "zweck": "Werkbank-Gesamtlauf (shell/tests/run-all.sh)",
       "muster": [
         "(^|/)run-all\\.sh( |$)"
       ],
       "vorschlag_art": "gesamtlauf",
+      "anlauf_s": 10,
+      "_anlauf_grund": "2026-10-28: run-all.sh steht vom Prozessstart bis zu seinem eigenen nimm (rund 0,25 s plus Warten auf die Sperre) ohne Eintrag da; jeder fremde Tafel-Aufruf in diesem Fenster meldete ihn als UNANGEMELDETEN START. Ein Treffer juenger als 10 s wird erst beim naechsten Abgleich erfasst.",
       "stoerung_ram_mib": 4096,
       "_stoerung_ram_grund": "2026-10-12: Gesamtlauf misst keine Zeit; das Einbettungsmodell von Ollama (+1,4 GiB) loeste bei jedem Lauf eine Meldung aus. Grosse Modelle und CPU-Last melden weiter."
+    },
+    "mac-vm": {
+      "maschine": "mac",
+      "art": "exklusiv",
+      "stoerung": false,
+      "live_ergaenzen": true,
+      "zweck": "eine VM zur Zeit (Lima, tart: T2, T3), zusaetzlich zum Platz des Laufs",
+      "_grund": "Zwei Laeufe auf mac-worker-schwer wollten dieselbe Lima-VM; ein Skript erkannte die laufende VM und brach ab. Kein Stoerungswaechter: eine VM ist selbst schwer, fremde Laeufe daneben sind kein Befund."
     },
     "mac-gpu": {
       "maschine": "mac",
@@ -51,7 +64,11 @@
       "nicht_neben": [
         "mac-suite"
       ],
-      "_nicht_neben_grund": "2026-10-14 (Auftrag wz-tafel): ein wartender schwerer Lauf startete neben einem inzwischen begonnenen Gesamtlauf; Ursache vieler NUR-UNTER-LAST-Fehler. Platz-Eigenschaft statt Option, damit es niemand vergessen kann."
+      "nicht_neben_ab": {
+        "mac-speicher": 16
+      },
+      "_nicht_neben_ab_grund": "2026-11-01: Eine Suite oder ein schwerer Lauf startet nicht neben einem grossen geladenen Modell (29.10.: Gemma 31B mit 28,2 GiB, daneben eine Suite, der Mac fiel auf 2,3 GiB frei). Gemessen wird die Buchung in wb-belegung, ab 16 GiB (Einstellung; entspricht schwer_ab von mac-speicher). Der Gesamtlauf (mac-suite) und der Spawn eines Workers sind ausgenommen: sie nehmen diesen Platz nicht.",
+      "_nicht_neben_grund": "2026-10-14 (task): ein wartender schwerer Lauf startete neben einem inzwischen begonnenen Gesamtlauf; Ursache vieler NUR-UNTER-LAST-Fehler. Platz-Eigenschaft statt Option, damit es niemand vergessen kann."
     },
     "mac-speicher": {
       "maschine": "mac",
@@ -77,7 +94,8 @@
       "muster": [
         "(^|/)run-all\\.sh( |$)"
       ],
-      "vorschlag_art": "gesamtlauf"
+      "vorschlag_art": "gesamtlauf",
+      "anlauf_s": 10
     },
     "peer-gpu": {
       "maschine": "peer",
@@ -99,13 +117,36 @@
         "peer-suite"
       ]
     },
+    "peer-ram": {
+      "maschine": "peer",
+      "art": "menge",
+      "einheit": "GiB",
+      "belegung_art": "ram",
+      "schwer_ab": 16,
+      "zweck": "Systemspeicher fuer Vorhaben ohne GPU-Bedarf (etwa eine KVM-VM), gebucht in wb-belegung --art ram",
+      "nicht_neben": [
+        "peer-suite"
+      ],
+      "_grund": "2026-11-18 (task): wie peer-speicher gesperrt (nicht neben dem Gesamtlauf, schwer erst ab 16 GiB, also unter peer-ruhe erst ab 16 GiB); rechnet aber nur gegen den Systemspeicher, das VRAM bleibt frei. Die schweren Plaetze (peer-worker-schwer) sehen eine Buchung ab 16 GiB ueber das Buch von wb-belegung, auch ohne eigenen Eintrag hier."
+    },
+    "peer-worker-schwer": {
+      "maschine": "peer",
+      "art": "zaehlend",
+      "kapazitaet": 3,
+      "schwer": true,
+      "zweck": "parallel laufende schwere Prueflaeufe auf peer (Kern-pytest, Suiten in Wegwerf-Klonen)",
+      "nicht_neben_ab": {
+        "peer-speicher": 16
+      },
+      "_grund": "2026-11-07: peer-suite hatte 22 Wartende bei Last 1,3 auf 16 Kernen; Form wie mac-worker-schwer. Ohne Sperre gegen peer-suite (die ist fast immer belegt, Last dabei 1,3 gemessen), Kapazitaet 3. peer-suite bleibt fuer Gesamtlaeufe."
+    },
     "frage-an-person-1": {
       "art": "zustaendigkeit",
       "ohne_abbruch": true,
       "selbst_vorrang_arten": [
         "sicherheit"
       ],
-      "zweck": "Fragerecht an den Menschen: eine Sitzung zur Zeit oeffnet einen Fragedialog (der Nutzer, 2026-10-09). Gilt auf jeder Maschine (ohne 'maschine')."
+      "zweck": "Fragerecht an den Menschen: eine Sitzung zur Zeit oeffnet einen Fragedialog (decision 2026-10-09). Gilt auf jeder Maschine (ohne 'maschine')."
     }
   },
   "zustaendigkeiten": {

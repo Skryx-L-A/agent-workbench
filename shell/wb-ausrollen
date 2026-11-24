@@ -2,8 +2,7 @@
 """wb-ausrollen — Repo nach ~/.local/bin (und die uebrigen Installationsziele
 von wb-consistency) ausrollen, ohne eigenmaechtige Aenderungen zu ueberschreiben.
 
-Anlass (20.08.2026, der Nutzer, woertlich): "Ich muss gleich ausrollen und will
-dabei nichts ueberschreiben, das jemand von Hand gesetzt hat." Zwei Worker
+Anlass (20.08.2026, der Nutzer) Zwei Worker
 hatten unabhaengig voneinander context-guard und wb-testsuite-run als
 KOPIE-EIGENMAECHTIG bzw. unklar liegen lassen -- beide Male war die
 installierte Fassung tatsaechlich nur AELTER, aber das war "genau die
@@ -55,6 +54,12 @@ Exit 1: mindestens eine eigenmaechtige/unklare Kopie wurde NICHT angefasst --
         deaktivierte plist zaehlt dafuer NICHT.
 Exit 3 (2026-08-22): ein AGENT hat versucht, aus einem git-Worktree auszurollen,
         und wurde abgewiesen -- siehe DER RIEGEL unten.
+Exit 6 (2026-10-27): ein Ausrollen in eine echte Heimat kam nicht aus dem sauberen
+        Hauptbaum auf main -- ueber ssh immer, lokal nur fuer einen Agenten; siehe DER
+        QUELLSCHUTZ (vor _schnappschuss).
+Exit 7 (2026-11-20): nach dem Ausrollen ist wb-belegung im Zielheim (<base>/.local/bin) nicht byte-gleich mit
+        shell/wb-belegung. Geprueft von shell/tests/test-belegung-spiegel.sh --nach-ausrollen --ziel-bin <ordner>,
+        nie bei --dry-run. Die Zeile "SPIEGELPRUEFUNG GESCHEITERT" steht auf stderr; der Bericht davor bleibt.
 
 DER RIEGEL: NIE AUS EINEM WORKTREE AUSROLLEN, AUSSER EIN MENSCH WILL ES (2026-08-22).
 Ein Worker-Worktree kennt in seiner eigenen Branch-Historie nicht jeden Stand, den
@@ -86,10 +91,22 @@ HUB-DIENST (Spur H2, 2026-10-13): wb-hub laeuft per Socket-Aktivierung (launchd/
 modell-proxy, dazu der Zustandsordner ~/.local/state/wb-hub (0700); Linux: shell/systemd/wb-hub.* nach
 ~/.config/systemd/user -- und LAEDT sie nur mit dem ausdruecklichen Schalter --hub-laden (launchctl
 bootstrap bzw. systemctl --user enable --now wb-hub.socket). Mit --dry-run nennt er die Befehle nur.
+
+FILTER-DIENSTKOPIE (task, 01.11.2026): Der Geheimnisfilter laeuft aus einer eigenen Kopie
+~/.local/share/wb-geheimnis-filter/wb-geheimnis-filter, nicht aus dem allgemeinen Installationsordner. Der
+allgemeine Vergleich kennt sie nicht; ohne diesen Schritt wirkte jeder Filter-Fix erst nach einem Handlauf von
+`wb-geheimnis-filter-dienst installieren` (derselbe Fehler wie alte Kopien anderswo). Weicht die Kopie vom
+Repo-Stand ab, ruft _filterdienst_teil `<Repo>/shell/wb-geheimnis-filter-dienst installieren --wenn-ruhig`
+(mit HOME=<base>); ein zweiter Lauf findet sie gleich und aendert nichts. Endete ein Lauf nach dem Ersetzen
+der Kopie, aber vor dem belegten Neustart, liegt neben der Kopie die Marke `neustart-offen`; sie zaehlt wie eine
+abweichende Kopie, bis der Dienstbefehl den Neustart belegt und die Marke loescht. Fehlt die Kopie, ist der Dienst auf
+dieser Maschine nicht eingerichtet: kein Einrichten ohne Auftrag, nur ein Hinweis. --dry-run nennt den Aufruf.
+Gleicher Code auf Mac und peer (jede Maschine rollt selbst aus; der Dienst waehlt launchd oder systemd).
 """
 import argparse
 import atomar_schreiben
 import datetime
+import filecmp
 import importlib.util
 import importlib.machinery
 import json
@@ -114,19 +131,33 @@ def _lade_wb_consistency():
     return mod
 
 
+# Heimat fuer den Menschen-Nachweis (18.10.2026, Befund pathklasse-sicher OPEN 2): wb-mensch kommt
+# aus der Heimat laut Benutzerdatenbank und laeuft mit HOME=<diese Heimat>, nie aus $HOME. Ein
+# umgelenktes HOME mit eigener wb-mensch-Attrappe (exit 0) galt sonst als Mensch. Testnaht: nur
+# mit WB_TESTUMGEBUNG=1 gilt das HOME der Umgebung. GRENZE: wer beides setzt, umgeht das; die
+# getippte Form sperrt bash-guard (heim-umlenkung).
+def _mensch_heim():
+    if os.environ.get("WB_TESTUMGEBUNG") == "1" and os.environ.get("HOME"):
+        return os.environ["HOME"]
+    try:
+        import pwd
+        return pwd.getpwuid(os.getuid()).pw_dir
+    except (ImportError, KeyError):
+        return ""
+
+
 def _wb_mensch_pfad():
-    """Woher `wb-mensch` kommt -- dasselbe echte $HOME wie bei pi-worker/wb-code
-    (`"$HOME/.local/bin/wb-mensch"`), NICHT --base: --base ist die Vorlage fuer
-    wb-consistencys install_map-Templating (siehe dortiger Kopfkommentar), kein
-    Umlenkziel fuer Systemwerkzeuge. Ein Test, der HIER umlenken will, setzt wie
-    pi-worker/wb-code auch $HOME um -- os.path.expanduser("~") liest dasselbe
-    $HOME wie eine Bash-Zeile "$HOME/..."."""
-    p = os.path.join(os.path.expanduser("~"), ".local", "bin", "wb-mensch")
-    return p if os.access(p, os.X_OK) else None
+    """Woher `wb-mensch` kommt -- die Heimat laut Benutzerdatenbank (_mensch_heim),
+    NICHT --base: --base ist die Vorlage fuer wb-consistencys install_map-Templating
+    (siehe dortiger Kopfkommentar), kein Umlenkziel fuer Systemwerkzeuge. Ein Test,
+    der HIER umlenken will, setzt HOME und WB_TESTUMGEBUNG=1."""
+    heim = _mensch_heim()
+    p = os.path.join(heim, ".local", "bin", "wb-mensch") if heim else ""
+    return p if p and os.access(p, os.X_OK) else None
 
 
 def _wb_mensch_env():
-    return {"HOME": os.environ.get("HOME", ""),
+    return {"HOME": _mensch_heim(),
             "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
             "TMPDIR": "/tmp"}
 
@@ -138,6 +169,10 @@ def _test_aufrufer_rolle():
     is ignored, and without a valid proof the live wb-mensch measurement below
     remains authoritative.
     """
+    # Nur in der Testumgebung (18.10.2026): der Beleg liegt unter $HOME, und ein umgelenktes
+    # HOME mit eigenem 0700-Ordner und Beleg hob sonst den Riegel auf.
+    if os.environ.get("WB_TESTUMGEBUNG") != "1":
+        return None
     role = os.environ.get("WB_TEST_AUFRUFER_ROLLE")
     raw_path = os.environ.get("WB_TEST_AUFBAU_BELEG")
     raw_home = os.environ.get("HOME")
@@ -227,6 +262,174 @@ def _worktree_riegel(wc, repo, trocken):
     print("  der rollt aus dem Hauptbaum aus.", file=sys.stderr)
     print("  --dry-run bleibt erlaubt (schreibt nichts).", file=sys.stderr)
     print("  Diagnose: wb-mensch beleg ; wb-mensch ahnen", file=sys.stderr)
+    return True
+
+
+# DER QUELLSCHUTZ (27.10.2026, task). Anlass: ein Diagnoseskript eines Workers fuhr wb-sync-setup
+# --apply aus einem Worktree gegen das echte peer. Dieselbe Huelle gilt hier fuer ein Ausrollen, das ueber ssh
+# (oder mosh) in eine echte Heimat kommt, also gegen eine Gegenmaschine: Es bricht vor jedem Schreiben mit
+# Exit 6 ab, wenn (a) --repo nicht der Hauptbaum mit HEAD gleich refs/heads/main ist (aus diesem Stand wird
+# live ausgerollt; eine eigene Ausroll-Marke gibt es nicht) oder (b) dieses Werkzeug oder --repo unter
+# <Heimat>/.pi-workers liegt. Heimat = laut Benutzerdatenbank, nie $HOME. "Ueber ssh" wird an der Ahnenreihe
+# gemessen (ein Vorfahr heisst sshd* oder mosh-server), nicht an SSH_CONNECTION, das sich leeren laesst.
+# Ausnahmen: --dry-run, ein Ziel, das keine Heimat ist (Testordner der Suiten), und eine Heimat mit gueltiger
+# Testmarke (T1/T2, Form wie shell/tests/testmaschine_marke.py). Testnaht nur mit WB_TESTUMGEBUNG=1: dann zaehlt
+# auch $HOME als echte Heimat (die Naht kann nur sperren).
+# LOKAL (27.10.2026): Dieselbe Pruefung gilt fuer ein Ausrollen ohne ssh in die
+# echte eigene Heimat. Ein AGENT wird mit Exit 6 abgewiesen, ein MENSCH (gemessen wie beim RIEGEL, _ist_mensch)
+# bekommt den Grund nur als Warnung -- die Werkbank haelt einen Menschen nie auf. Lokal wie ueber ssh gilt
+# zusaetzlich (c): keine uncommittete Aenderung (auch keine ungetrackte Datei) an einem Pfad, den die
+# Installationskarte ausrollen wuerde (_unsauber_grund; wb-sync-setup fragt dieselbe Pruefung ueber
+# --nur-sauberkeit ab). Eine Aenderung ausserhalb der Karte (etwa shell/tests/) stoert nicht.
+QUELLSCHUTZ_EXIT = 6
+# Spiegelpruefung nach dem Ausrollen (task, 20.11.2026): Weicht der ausgerollte wb-belegung im Zielheim
+# danach vom Quelltext ab, endet das Ausrollen mit diesem Exit und einer klaren Zeile auf stderr (_spiegelpruefung).
+SPIEGELPRUEFUNG_EXIT = 7
+TESTMARKE = ".wb-testumgebung"
+TESTMARKE_ZEILE = "wb-testumgebung: Testheimat, Ausrollen dieses Stands erlaubt"
+
+
+def _db_heim():
+    try:
+        import pwd
+        return pwd.getpwuid(os.getuid()).pw_dir
+    except (ImportError, KeyError):
+        return ""
+
+
+def _echte_heime():
+    heime = {os.path.realpath(h) for h in (_db_heim(),) if h}
+    if os.environ.get("WB_TESTUMGEBUNG") == "1" and os.environ.get("HOME"):
+        heime.add(os.path.realpath(os.environ["HOME"]))
+    return heime
+
+
+def _ueber_ssh():
+    """True, wenn ein Vorfahr dieses Prozesses sshd* oder mosh-server ist; im Zweifel True (fail closed)."""
+    pid, gesehen = os.getppid(), set()
+    try:
+        while pid > 1 and pid not in gesehen and len(gesehen) < 64:
+            gesehen.add(pid)
+            aus = subprocess.run(["ps", "-o", "ppid=,comm=", "-p", str(pid)], capture_output=True,
+                                 text=True, timeout=5).stdout.strip().split(None, 1)
+            if len(aus) != 2:
+                return True
+            name = os.path.basename(aus[1].strip())
+            if name.startswith("sshd") or name == "mosh-server":
+                return True
+            pid = int(aus[0])
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return True
+    return False
+
+
+def _testmarke_gueltig(heim):
+    try:
+        fd = os.open(os.path.join(heim, TESTMARKE), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except OSError:
+        return False
+    try:
+        info = os.fstat(fd)
+        if not (stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_uid == 0
+                and not stat.S_IMODE(info.st_mode) & 0o022):
+            return False
+        return os.read(fd, 4096).decode("utf-8", "replace").split("\n", 1)[0] == TESTMARKE_ZEILE
+    except OSError:
+        return False
+    finally:
+        os.close(fd)
+
+
+def _quellschutz_grund(repo):
+    """None = die Quelle ist der ausgerollte main-Stand; sonst der Grund in einem Satzteil."""
+    heim = _db_heim()
+    if not heim:
+        return "Heimat laut Benutzerdatenbank nicht bestimmbar"
+    pi = os.path.realpath(os.path.join(heim, ".pi-workers"))
+    for p in (os.path.realpath(os.path.abspath(__file__)), os.path.realpath(repo)):
+        if p == pi or p.startswith(pi + os.sep):
+            return "%s liegt unter %s (Worker-Worktree)" % (p, pi)
+    env = _git_env()
+
+    def git(*args):
+        try:
+            return subprocess.run(["git", "-C", repo] + list(args), capture_output=True, text=True,
+                                  timeout=10, env=env).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            return ""
+    gd = git("rev-parse", "--path-format=absolute", "--git-dir")
+    if not gd:
+        return "Quellbaum %s ist kein git-Baum" % repo
+    if gd != git("rev-parse", "--path-format=absolute", "--git-common-dir"):
+        return "Quellbaum %s ist ein git-Worktree, nicht der Hauptbaum" % repo
+    kopf = git("rev-parse", "-q", "--verify", "HEAD")
+    haupt = git("rev-parse", "-q", "--verify", "refs/heads/main")
+    if not kopf or kopf != haupt:
+        return "HEAD %s in %s ist nicht main (%s), der ausgerollte Stand" % (kopf[:12], repo, haupt[:12])
+    return None
+
+
+def _git_env():
+    return {k: v for k, v in os.environ.items()
+            if k not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_INDEX_FILE")}
+
+
+def _unsauber_grund(wc, repo, c7, zusatz=()):
+    """(c): None = keine uncommittete Aenderung an einem Pfad, der ausgerollt wuerde; sonst der Grund.
+    Ausgerollt heisst: ein Fall von wc.kopie_vergleiche (dieselbe Berechnung wie das Ausrollen selbst),
+    dazu `zusatz` (repo-relative Pfade, die ein Aufrufer direkt aus dem Repo kopiert). Ungetrackte Dateien
+    zaehlen, von .gitignore erfasste nicht. Ist etwas nicht bestimmbar, ist das ein Grund (fail closed)."""
+    pfade = set(zusatz)
+    if c7:
+        try:
+            pfade |= {f["rel"] for f in wc.kopie_vergleiche(c7)}
+        except Exception as e:  # noqa: BLE001 -- jede Ausnahme heisst hier: nicht bestimmbar
+            return "ausgerollte Pfade nicht bestimmbar (%s)" % e
+    if not pfade:
+        return None
+    try:
+        p = subprocess.run(["git", "-C", repo, "status", "--porcelain=v1", "-z", "--untracked-files=all",
+                            "--no-renames"], capture_output=True, timeout=60, env=_git_env())
+    except (OSError, subprocess.SubprocessError):
+        p = None
+    if p is None or p.returncode != 0:
+        return "git status in %s nicht lesbar" % repo
+    treffer = sorted({e[3:] for e in p.stdout.decode("utf-8", "surrogateescape").split("\0")
+                      if len(e) > 3} & pfade)
+    if not treffer:
+        return None
+    return "uncommittete Aenderung an %d ausgerolltem Pfad(en) in %s: %s%s" % (
+        len(treffer), repo, ", ".join(treffer[:5]), " ..." if len(treffer) > 5 else "")
+
+
+def _quellschutz_lage(wc, repo, base, trocken, c7):
+    """None = der Schutz greift nicht (--dry-run, keine echte Heimat, Testmarke) oder die Quelle ist sauber;
+    sonst (ziel, grund)."""
+    ziel = os.path.realpath(base)
+    if trocken or ziel not in _echte_heime() or _testmarke_gueltig(ziel):
+        return None
+    grund = _quellschutz_grund(repo) or _unsauber_grund(wc, repo, c7)
+    return (ziel, grund) if grund else None
+
+
+def _quellschutz(lage, ueber_ssh):
+    """True = abgewiesen (Exit 6), siehe DER QUELLSCHUTZ. Ueber ssh fuer jeden, lokal nur fuer einen Agenten."""
+    if lage is None:
+        return False
+    ziel, grund = lage
+    if ueber_ssh:
+        print("wb-ausrollen: ABGEWIESEN -- Ausrollen ueber ssh nach %s nur aus dem Hauptbaum auf main: %s."
+              % (ziel, grund), file=sys.stderr)
+        return True
+    if _ist_mensch():
+        print("wb-ausrollen: WARNUNG -- Ausrollen in die echte Heimat %s nicht aus dem sauberen Hauptbaum "
+              "auf main: %s. Ausgerollt wird trotzdem, weil hier ein Mensch entscheidet -- ein Agent waere "
+              "hier abgewiesen worden." % (ziel, grund), file=sys.stderr)
+        return False
+    print("wb-ausrollen: ABGEWIESEN -- Ausrollen in die echte Heimat %s nur aus dem sauberen Hauptbaum auf "
+          "main: %s." % (ziel, grund), file=sys.stderr)
+    print("  Erkannt wurde: %s" % _wb_mensch_beleg(), file=sys.stderr)
+    print("  Committen und den Merge dem Orchestrator ueberlassen; --dry-run bleibt erlaubt.", file=sys.stderr)
     return True
 
 
@@ -391,8 +594,58 @@ def _hub_teil(repo, base, lauf_id, trocken, laden, ausgerollt):
     return fehler
 
 
+FILTER_DIENSTKOPIE = (".local", "share", "wb-geheimnis-filter", "wb-geheimnis-filter")
+FILTER_DIENST_FRIST = 240    # Sekunden: bis zu 60 s Warten auf Ruhe, dazu Neustart und Probe
+
+
+def _filterdienst_teil(repo, base, trocken, ausgerollt):
+    """Dienstkopie des Geheimnisfilters gegen den Repo-Stand (siehe FILTER-DIENSTKOPIE oben).
+    -> 1 bei gescheitertem Dienstbefehl, sonst 0."""
+    quelle = os.path.join(repo, "shell", "wb-geheimnis-filter")
+    dienst = os.path.join(repo, "shell", "wb-geheimnis-filter-dienst")
+    kopie = os.path.join(base, *FILTER_DIENSTKOPIE)
+    if not (os.path.isfile(quelle) and os.path.isfile(dienst)):
+        return 0
+    print()
+    print("  -- Filterdienst (Dienstkopie) --")
+    if not os.path.isfile(kopie):
+        print("  %s fehlt: Dienst auf dieser Maschine nicht eingerichtet, nichts zu tun "
+              "(Einrichten von Hand: shell/wb-geheimnis-filter-dienst installieren)." % kopie)
+        return 0
+    marke = os.path.join(os.path.dirname(kopie), "neustart-offen")
+    gleich = filecmp.cmp(quelle, kopie, shallow=False)
+    # Die Routentabelle verlangt der Filter neben sich (08.11.2026): fehlt sie neben der Kopie, ist die Kopie nicht gleich.
+    q = os.path.join(repo, "shell", "geheimnis-routen.json")
+    neben = os.path.join(os.path.dirname(kopie), "geheimnis-routen.json")
+    gleich = gleich and (not os.path.isfile(q) or (os.path.isfile(neben) and filecmp.cmp(q, neben, shallow=False)))
+    if gleich and not os.path.exists(marke):
+        print("  Dienstkopie gleich dem Repo-Stand.")
+        return 0
+    argv = ["bash", dienst, "installieren", "--wenn-ruhig"]
+    ausgerollt.append(("shell/wb-geheimnis-filter", "Dienstkopie %s" % kopie))
+    if gleich:
+        print("  Dienstkopie gleich, aber Neustart nicht belegt (Marke %s): ein frueherer Lauf endete vor dem Neustart." % marke)
+    else:
+        print("  Dienstkopie weicht vom Repo-Stand ab: %s" % kopie)
+    print("    %s%s" % ("(trocken) " if trocken else "$ ", " ".join(argv[1:])))
+    if trocken:
+        return 0
+    try:
+        p = subprocess.run(argv, capture_output=True, text=True, timeout=FILTER_DIENST_FRIST,
+                           env=dict(os.environ, HOME=base))
+    except (OSError, subprocess.SubprocessError) as fehler:
+        print("  Filterdienst: Aufruf scheiterte: %s" % fehler, file=sys.stderr)
+        return 1
+    for zeile in p.stdout.splitlines():
+        print("    %s" % zeile)
+    if p.returncode != 0:
+        print("  Filterdienst: installieren Exit %d: %s" % (p.returncode, p.stderr.strip()), file=sys.stderr)
+        return 1
+    return 0
+
+
 def _skills_teil(wc, c7, base, trocken, ausgerollt):
-    """Werkbank-Skills der Quelle (skills.<name>.quelle, etwa kurz-und-knackig; Review wz-integ2 M1):
+    """Werkbank-Skills der Quelle (skills.<name>.quelle, etwa kurz-und-knackig; Review task M1):
     <base>/.claude/skills/<name> wird ein Link auf den Skill-Ordner neben der INSTALLIERTEN
     werkzeuge.default.json, eine vorhandene andere Fassung kommt vorher in den Snapshot. Die Logik
     steht einmal in werkzeuge_kern.skills_anlegen (wb-werkzeuge skills-anlegen), dieselbe, die
@@ -428,7 +681,7 @@ def _skills_teil(wc, c7, base, trocken, ausgerollt):
 
 
 def _anweisungen_teil(wc, c7, base, trocken, ausgerollt):
-    """Fester Schritt nach Dateien, Skills und Registry (Review wz-integ3, Fund 1): `wb-instructions sync`
+    """Fester Schritt nach Dateien, Skills und Registry (Review task, Fund 1): `wb-instructions sync`
     schreibt den Volltext in die Router-Dateien der Harnesses (systemPrompt.path, pi: ~/.pi/agent/AGENTS.md)
     und verteilt die Werkbank-Skills in die uebrigen skillRoots. Ohne ihn fehlte der Volltext dort bis zu
     einem Handlauf; pi-worker und wb-harness-run pruefen die Router-Datei und fallen dann auf Lesezeile bzw.
@@ -467,6 +720,26 @@ def _anweisungen_teil(wc, c7, base, trocken, ausgerollt):
     return 0
 
 
+def _spiegelpruefung(repo, ziel_bin):
+    """Ruft nach dem Ausrollen shell/tests/test-belegung-spiegel.sh --nach-ausrollen --ziel-bin <ziel_bin> auf.
+    Rueckgabe: None = nichts zu pruefen (Suite oder Quelle fehlt im Arbeitsbaum), sonst (exit, ausgabe).
+
+    Anlass (20.11.2026): Die Suite laesst zwischen Merge und Ausrollen eine fruehere Fassung als BEFUND gelten
+    (Ausrollen steht aus). Dieses Werkzeug ist der Schritt, der den Befund beendet; hier gilt darum nur noch
+    byte-gleich. Geprueft wird der Spiegel im ZIELHEIM dieses Ausrollens (<base>/.local/bin), nie stets $HOME.
+    WB_SPIEGEL_BIN und WB_TESTUMGEBUNG bekommt das Kind nicht: --ziel-bin allein bestimmt den Ort."""
+    suite = os.path.join(repo, "shell", "tests", "test-belegung-spiegel.sh")
+    if not os.path.isfile(suite) or not os.path.isfile(os.path.join(repo, "shell", "wb-belegung")):
+        return None
+    env = {k: v for k, v in os.environ.items() if k not in ("WB_SPIEGEL_BIN", "WB_TESTUMGEBUNG")}
+    try:
+        p = subprocess.run(["/bin/bash", suite, "--nach-ausrollen", "--ziel-bin", ziel_bin],
+                           capture_output=True, text=True, timeout=60, env=env)
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        return (SPIEGELPRUEFUNG_EXIT, "Spiegelpruefung nicht lauffaehig: %s" % exc)
+    return (p.returncode, (p.stdout + p.stderr).strip())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true",
@@ -492,9 +765,22 @@ def main():
     ap.add_argument("--hub-laden", action="store_true",
                     help="den Hub-Dienst (launchd-Agent bzw. systemd-Socket) auch LADEN; ohne diesen "
                          "Schalter werden die Einheiten nur ausgeliefert, nie geladen.")
+    # Fuer wb-sync-setup (QUELLSCHUTZ dort, Bedingung c): nur _unsauber_grund pruefen, nichts ausrollen.
+    # Ausgabe leer und Exit 0 = sauber; sonst steht der Grund auf stdout.
+    ap.add_argument("--nur-sauberkeit", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--auch", action="append", default=[], help=argparse.SUPPRESS)
     a = ap.parse_args()
 
     wc = _lade_wb_consistency()
+    if a.nur_sauberkeit:
+        if not a.repo:
+            print("--nur-sauberkeit braucht --repo")
+            return 2
+        cfg = wc.load_config(a.config, a.base, a.repo)
+        grund = _unsauber_grund(wc, a.repo, cfg.get("check7_kopien"), a.auch)
+        if grund:
+            print(grund)
+        return 0
     if a.repo:
         repo, repo_quelle = a.repo, "--repo (ausdruecklich genannt)"
     else:
@@ -506,12 +792,19 @@ def main():
             print("wb-ausrollen: ACHTUNG -- Arbeitsbaum %s" % repo_quelle, file=sys.stderr)
     print("wb-ausrollen: Arbeitsbaum -- %s" % repo_quelle)
 
-    if _worktree_riegel(wc, repo, a.dry_run):
-        return 3
-
     cfg = wc.load_config(a.config, a.base, repo)
     c7 = cfg.get("check7_kopien")
     c9 = cfg.get("check9_harness_konfig")
+    # Ueber ssh vor dem RIEGEL (Exit 6), lokal danach: ein Agent im Worktree behaelt Exit 3.
+    lage = _quellschutz_lage(wc, repo, a.base, a.dry_run, c7)
+    ueber_ssh = lage is not None and _ueber_ssh()
+    if ueber_ssh and _quellschutz(lage, True):
+        return QUELLSCHUTZ_EXIT
+    if _worktree_riegel(wc, repo, a.dry_run):
+        return 3
+    if not ueber_ssh and _quellschutz(lage, False):
+        return QUELLSCHUTZ_EXIT
+
     if not c7 and not c9:
         print("wb-ausrollen: weder 'check7_kopien' noch 'check9_harness_konfig' in der "
               "Konfiguration -- nichts zu tun.")
@@ -526,6 +819,7 @@ def main():
     # eigene Zusammenfassungszeile und faerbt den Exit-Code nicht; echte eigenmaechtige/
     # unklare Funde bleiben unveraendert ein Grund fuer Exit 1.
     ausgerollt, uebersprungen, deaktiviert = [], [], []
+    spiegel_ziel = None
     lauf_id = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
     if c7:
@@ -548,9 +842,11 @@ def main():
         # werkzeuge.default.json (2026-10-13) is the source wb-werkzeuge and
         # wb-mcp-start read beside their installed copy; once present, the
         # ordinary copy comparison keeps it current.
+        # geheimnis-routen.json (2026-11-08): die eingebauten Routen, ohne die wb-geheimnis-filter nicht startet.
         for vorlage, werkzeug in (("models.default.json", "wb-state"),
                                   ("tafel-plaetze.default.json", "wb-tafel"),
-                                  ("werkzeuge.default.json", "wb-werkzeuge")):
+                                  ("werkzeuge.default.json", "wb-werkzeuge"),
+                                  ("geheimnis-routen.json", "wb-geheimnis-filter")):
             template = os.path.join(c7["repo_dir"], "shell", vorlage)
             script_dir = wc._ziel_fuer("shell/" + werkzeug, werkzeug, c7)
             if script_dir and os.path.isfile(template):
@@ -588,6 +884,10 @@ def main():
 
         for fall in wc.kopie_vergleiche(c7, machine_tool_map, current_machine):
             status = fall["status"]
+            if fall["rel"] == "shell/wb-belegung" and status != "andere_maschine":
+                # Ein Fall "gleich" traegt keinen inst_datei; die Karte schickt shell/ nach <base>/.local/bin.
+                spiegel_ziel = (os.path.dirname(fall["inst_datei"]) if fall.get("inst_datei")
+                                else os.path.join(a.base, ".local", "bin"))
             if status in ("gleich", "andere_maschine"):
                 continue
             if status == "fehlt":
@@ -621,8 +921,8 @@ def main():
                 schnappschuss = _schnappschuss(fall["inst_datei"], a.base, lauf_id, a.dry_run)
                 _kopieren(fall["repo_datei"], fall["inst_datei"], a.dry_run)
                 ausgerollt.append((fall["rel"], warum))
-                print("  %s ausgerollt (%s) — Schnappschuss: %s"
-                      % (fall["rel"], warum, schnappschuss))
+                print("  %s %sausgerollt (%s) — Schnappschuss: %s"
+                      % (fall["rel"], "WUERDE " if a.dry_run else "", warum, schnappschuss))
             elif richtung == "worktree_unpruefbar":
                 # NICHT in uebersprungen (2026-08-22): ein Worktree deployt nach
                 # ~/.local/bin/~/.claude/hooks ohnehin nie (siehe wb-consistency,
@@ -672,10 +972,11 @@ def main():
             print(zeile)
             print("wb-ausrollen: WARNUNG --" + zeile[1:], file=sys.stderr)
 
-    hub_fehler = skill_fehler = 0
+    hub_fehler = skill_fehler = filter_fehler = 0
     if c7:
         hub_fehler = _hub_teil(c7["repo_dir"], a.base, lauf_id, a.dry_run, a.hub_laden, ausgerollt)
         skill_fehler = _skills_teil(wc, c7, a.base, a.dry_run, ausgerollt)
+        filter_fehler = _filterdienst_teil(c7["repo_dir"], a.base, a.dry_run, ausgerollt)
 
     # Konfigurations-Vorlagen fuer fremde Harnesses (crush/nanocoder/cline/
     # forge, siehe check9_harness_konfig in wb-consistency.config.json): dieselbe
@@ -747,8 +1048,28 @@ def main():
     # umgekehrt. wb-ausrollen kopiert hier deshalb nichts -- jeder Fund landet
     # als Handentscheidung in derselben uebersprungen-Sammlung wie eine
     # eigenmaechtige Kopie oben.
+    #
+    # Bewusst abweichend (18.10.2026): Ein Feld in registry_ausnahmen ist eine
+    # festgehaltene Entscheidung und kein Dauer-Rot. Es zaehlt nur mit Grund in
+    # registry_ausnahmen_gruende (Schluessel = derselbe Eintrag wie in
+    # registry_ausnahmen); dann steht es als eigene Zeile im Bericht, ohne Exit 1.
+    # Ohne Grund bleibt es eine gewoehnliche Abweichung.
+    bewusst = []
     if c7:
         registry_funde = wc.registry_vergleiche(c7)
+        gruende = c7.get("registry_ausnahmen_gruende") or {}
+        offen = {(f["name"], f["liste"], f["eintrag_id"], f["feld"]) for f in registry_funde}
+        for fall in wc.registry_vergleiche(dict(c7, registry_ausnahmen=[])):
+            if (fall["name"], fall["liste"], fall["eintrag_id"], fall["feld"]) in offen:
+                continue
+            grund = next((gruende[m] for m in (c7.get("registry_ausnahmen") or [])
+                          if gruende.get(m) and wc.registry_ausnahme(
+                              {"registry_ausnahmen": [m]}, fall["liste"], fall["eintrag_id"], fall["feld"])),
+                         None)
+            if grund:
+                bewusst.append((fall, grund))
+            else:
+                registry_funde.append(fall)
         if registry_funde:
             print()
             print("  -- Registry-Abweichungen (Vorlage vs. lebende Registry, von Hand entscheiden) --")
@@ -761,6 +1082,12 @@ def main():
             uebersprungen.append((pfad_text, "registry-abweichung", warum))
             print("  %s UEBERSPRUNGEN (registry-abweichung: %s) — von Hand pruefen."
                   % (pfad_text, warum))
+        if bewusst:
+            print()
+            print("  -- Registry bewusst abweichend (registry_ausnahmen mit Grund, kein Fehler) --")
+        for fall, grund in bewusst:
+            print("  %s.%s[%s=%s].%s BEWUSST ABWEICHEND (%s)" % (
+                fall["name"], fall["liste"], fall["schluessel"], fall["eintrag_id"], fall["feld"], grund))
 
     # Anweisungen erst jetzt: Dateien (wb-instructions, wb-anweisung), Skill-Links und die Registry-
     # Ergaenzungen stehen, und genau daraus erzeugt wb-instructions die Router-Dateien.
@@ -794,6 +1121,23 @@ def main():
         print("  %s UEBERSPRUNGEN (nicht-registriert: %s) — von Hand pruefen."
               % (fund.file, fund.truth))
 
+    # Spiegelpruefung: erst NACH allem Kopieren, nie bei --dry-run (dort ist nichts ausgerollt, die Pruefung
+    # meldete den Rueckstand als Fehler, den dieser Lauf gerade beheben soll).
+    spiegel = None
+    if spiegel_ziel and not a.dry_run:
+        spiegel = _spiegelpruefung(repo, spiegel_ziel)
+        if spiegel is not None:
+            print()
+            if spiegel[0] == 0:
+                print("wb-ausrollen: Spiegelpruefung bestanden -- wb-belegung in %s ist byte-gleich mit dem Quelltext."
+                      % spiegel_ziel)
+            else:
+                print("wb-ausrollen: SPIEGELPRUEFUNG GESCHEITERT (Exit %d) -- wb-belegung in %s weicht nach dem "
+                      "Ausrollen vom Quelltext ab; der Spiegel traegt nicht den ausgerollten Stand."
+                      % (spiegel[0], spiegel_ziel), file=sys.stderr)
+                for zeile in spiegel[1].splitlines():
+                    print("    | %s" % zeile, file=sys.stderr)
+
     vorsatz = "WUERDE " if a.dry_run else ""
     print()
     print("wb-ausrollen: %s%d ausgerollt, %d uebersprungen (eigenmaechtig/unklar)."
@@ -817,14 +1161,22 @@ def main():
               "--trotz-deaktivierung aufrufen:")
         for rel, richtung, warum in deaktiviert:
             print("    %-40s %-13s %s" % (rel, richtung, warum))
+    if bewusst:
+        print("wb-ausrollen: %d Registry-Feld(er) bewusst abweichend -- Entscheidung mit Grund, kein Fehler."
+              % len(bewusst))
     if hub_fehler:
         print("wb-ausrollen: %d Hub-Dienstbefehl(e) gescheitert." % hub_fehler, file=sys.stderr)
+    if filter_fehler:
+        print("wb-ausrollen: Filterdienst nicht erneuert (siehe oben); von Hand: "
+              "shell/wb-geheimnis-filter-dienst installieren.", file=sys.stderr)
     if skill_fehler:
         print("wb-ausrollen: Werkbank-Skills nicht vollstaendig angelegt (siehe FEHLER oben).", file=sys.stderr)
     if anweisungs_fehler:
         print("wb-ausrollen: wb-instructions sync nicht sauber (siehe oben); Router-Dateien ohne Volltext "
               "fallen in pi-worker auf die Lesezeile zurueck.", file=sys.stderr)
-    return 1 if (uebersprungen or hub_fehler or skill_fehler or anweisungs_fehler) else 0
+    if spiegel is not None and spiegel[0] != 0:
+        return SPIEGELPRUEFUNG_EXIT
+    return 1 if (uebersprungen or hub_fehler or skill_fehler or filter_fehler or anweisungs_fehler) else 0
 
 
 if __name__ == "__main__":

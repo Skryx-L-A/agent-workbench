@@ -400,7 +400,7 @@ elif [ -n "$WERKBANK_PID" ]; then
     exit 2
   fi
   # Dieselben Muster, an denen `wb-mensch` die Oberflaeche als Ahnen erkennt.
-  if ! printf '%s\n' "$WERKBANK_CMD" | grep -qiE 'electron|agent-workbench|Agent Workbench|Claude Workbench'; then
+  if ! grep -qiE 'electron|agent-workbench|Agent Workbench|Claude Workbench' <<<"$WERKBANK_CMD"; then
     echo "wb-nohup: PID $WERKBANK_PID sieht nicht wie das Werkbank-Programm aus — als Eigentuemer zaehlt nur die Oberflaeche selbst, sonst liesse sich jeder Dauerlaeufer eintragen." >&2
     exit 2
   fi

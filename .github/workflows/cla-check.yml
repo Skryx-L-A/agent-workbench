@@ -1,4 +1,3 @@
-# Place at .github/workflows/cla-check.yml in each public repository.
 # Sets the commit status "cla" on the head commit of every pull request:
 # success if the author is listed in CLA-SIGNATURES.md on the base branch or has posted the
 # acceptance sentence as a comment on the pull request, failure otherwise.
@@ -11,15 +10,18 @@ on:
   issue_comment:
     types: [created, edited]
 
+# Top level read-only; the one write right (commit status) belongs to the job that sets it.
 permissions:
   contents: read
-  pull-requests: read
-  statuses: write
 
 jobs:
   cla:
     if: github.event_name == 'pull_request_target' || github.event.issue.pull_request
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
     steps:
       - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:

@@ -158,7 +158,7 @@ export interface Settings {
   workerPollSeconds: number;
   /**
    * Whether `wb-code` starts `context-guard --auto` on its own (SPEC-V2 A). Off
-   * by default on purpose (alice 2026-07-27): the orchestrator starts its own
+   * by default on purpose (decision 2026-07-27): the orchestrator starts its own
    * guard once workers exist, and a second, silently-started one would type
    * `/compact` twice. The UI surfaces this reasoning instead of a bare switch.
    */
@@ -206,9 +206,7 @@ export interface Settings {
    * window RELOAD never closes anything either way — see sessionClose.ts for
    * the measurement that separates the two.
    *
-   * OFF BY DEFAULT SINCE 2026-08-07 (was on). alice: "Ich will nicht, dass
-   * die Sessions beendet werden durch Schließen der App, dafür ist der
-   * Rechtsklick auf die Session da." The measurement above still stands, it
+   * OFF BY DEFAULT SINCE 2026-08-07 (was on). alice The measurement above still stands, it
    * just weighs less: memory can be reclaimed at any time, a session ended by
    * accident — with its running work — cannot. This key lives in the SHARED
    * settings file, so its default must match the one the app ships

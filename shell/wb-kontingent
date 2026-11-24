@@ -56,7 +56,7 @@ Erlaubter Anteil je Fenster = verstrichener Fensteranteil = (limit_window_second
 Wochentag-Anker (`limit-anker.default.json`). `rate_limit.limit_reached`
 (bzw. `used_percent >= 100` im 7-Tage-Fenster) ist das Erschoepft-Signal, sicherer
 als der Fliesstext "try again at ..." und geht vor, wenn der Endpunkt antwortet.
-Testhaken: `WB_CODEX_USAGE_URL` (Endpunkt ueberschreiben), `WB_CODEX_USAGE_DATEI`
+Testhaken: `WB_CODEX_USAGE_URL` (Endpunkt ueberschreiben; NUR mit WB_TESTUMGEBUNG=1, sendet dann den Scheinschluessel, siehe ADRESSNAHT), `WB_CODEX_USAGE_DATEI`
 (liest eine Fixture-Datei statt eines Netzaufrufs -- das ist der einzige Weg,
 mit dem ein Test diese Antwort ueberhaupt betreten darf). Verlauf wie bei
 Claude (limits.jsonl): bei jedem erfolgreichen Auffrischen eine Zeile nach
@@ -130,7 +130,7 @@ dieser feste, vom Sammler geschriebene Anfang.
 Jeder Fehler (kein Key, kein Netz, 401, Timeout 10s, unbrauchbare Antwort)
 ergibt einen Eintrag ohne Urteil mit gesetztem hinweis -- nie einen Absturz,
 nie ein erfundenes 'frei'. Testhaken: `WB_CLINE_USAGE_URL` (API-Basis
-ueberschreiben), `WB_CLINE_USAGE_DATEI` (Fixture-Datei mit den Schluesseln
+ueberschreiben; NUR mit WB_TESTUMGEBUNG=1, Scheinschluessel, siehe ADRESSNAHT), `WB_CLINE_USAGE_DATEI` (Fixture-Datei mit den Schluesseln
 "plan"/"me"/"seiten" statt eines Netzaufrufs -- der einzige Weg, mit dem ein
 Test diese Antwort betreten darf).
 
@@ -171,6 +171,8 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -199,6 +201,640 @@ def jetzt():
 
 def jetzt_iso():
     return jetzt().strftime(ISO)
+
+
+# ── ANTHROPIC-API-GUTHABEN ──────
+# Fenster = KALENDERMONAT. Deckel, Warnung und Sperre in EUR sind eine EINSTELLUNG je Spur
+# (providers[].kontingent der Registry, siehe _anthropic_api_limits); die Konstanten unten sind
+# nur eine neutrale Beispielvorgabe fuer eine Registry ohne Einstellung. KEINE Tageslinie, KEIN
+# Monatsanteil, KEIN Deckel je Sitzung: 'pruefen anthropic-api' gibt 0, bis die Sperre greift --
+# die Warnung ist reine Anzeige (kein 'KNAPP:'-Praefix, der in cmd_pruefen sonst Exit 7
+# ausloest). 'zeigen' nennt Verbrauch gesamt/heute/je Sitzung und Projekt trotzdem, nur zur
+# Information.
+#
+# GEMESSEN, NICHT ERFUNDEN: der Verbrauch kommt NICHT von einem Netzaufruf (anders als
+# Codex/Cline Pass) -- ein gewoehnlicher sk-ant-Schluessel darf die Admin-Cost-API
+# vermutlich nicht lesen (Messung dazu: Ergebnisnotiz des Auftrags, ein lesender Aufruf,
+# nie der Schluessel im Ergebnis). Stattdessen liest dieser Zaehler die USAGE-Felder, die
+# Claude Code selbst in seine eigenen Transkripte schreibt (~/.claude/projects/<Ordner>/
+# *.jsonl, Feld message.usage je Zug) -- und zwar NUR fuer Sitzungen, die wb-harness-run
+# VOR dem Start in ANTHROPIC_API_SESSIONS_LOG eingetragen hat (Zeit, Workername, Modell,
+# Arbeitsverzeichnis, tmux-Sitzungsname; nie der Schluessel). Das deckt jeden Lauf UEBER
+# pi-worker/claude-worker; ein Aufruf mit dem Schluessel AUSSERHALB der Werkbank-Worker
+# (von Hand, ein Skript) bleibt fuer diesen Zaehler unsichtbar -- offen, siehe Notiz.
+#
+# ZUSAETZLICHE SPERRE (Nachtrag 2 Punkt 2, KORRIGIERT 12.11.2026 -- siehe
+# ANTHROPIC_API_FEHLERFELD unten): Anthropic antwortet nach Verbrauch des Guthabens
+# GEMESSEN (claudeissues.com/GitHub-Reports, mehrfach uebereinstimmend, keine offizielle
+# Fehlerreferenz gefunden -- 400/402 bleibt offen) mit HTTP 400, error.type
+# "invalid_request_error", Satzanfang "Your credit balance is too low to access the
+# Claude API." -- taucht dieser Satz in einer ECHTEN API-Fehlerantwort auf (siehe unten,
+# NICHT als blosses Zitat irgendwo im Text), sperrt dieser Zaehler SOFORT, unabhaengig von
+# der eigenen Dollar-Rechnung (Drift in der Preistabelle darf nie laenger sperren als der
+# echte Fehler) -- UND nur, solange danach kein erfolgreicher Zug mehr lag.
+#
+# ZWEITE SOFORTSPERRE: Die API kann auch weit unter jeder eigenen Sperre mit HTTP 400 und dem Satz
+# "You have reached your specified API usage limits. You will regain access on <datum>." antworten --
+# eine vom Guthaben UNABHAENGIGE Ausgabengrenze des Kontos, die diese Rechnung nicht sehen kann.
+# Das Datum hinter "regain access on" wird als "wieder frei ab" uebernommen
+# (k.wiederFreiAb) -- reine Anzeige, kein eigener Rueckfall-Zeitpunkt-Mechanismus hier.
+#
+# BEIDE SAETZE ZAEHLEN NUR IN EINER ECHTEN API-FEHLERANTWORT, NIE ALS BLOSSES ZITAT
+# (eine frueher zitierte Meldung in einem gewoehnlichen Zug sperrte faelschlich, waehrend die API
+# selbst 200 antwortete): ein
+# WebSearch-Werkzeugaufruf, ein Auftragstext oder eine Diskussion, die den Satz zitiert,
+# traegt NICHT das Feld unten und sperrt deshalb nicht mehr. GEMESSEN an der installierten
+# CLI (2.1.322, 'strings' auf die Binaerdatei): ein Transkript-Event, der eine echte
+# API-Fehlerantwort TRAEGT, ist eine 'assistant'-Nachricht mit dem Feld
+# "isApiErrorMessage": true ("@internal True when this assistant message wraps an API
+# error (from internal AssistantMessage.isApiErrorMessage)."). KEIN eigener
+# system/api_error-Eventtyp (eine frueher angenommene Form war FALSCH -- in keinem
+# durchsuchten echten Transkript dieses Rechners belegt, nur WebSearch-Abfragen und
+# Diskussionen, die den Satz zitieren). Weder eine Fehlerzeile des Harness noch das
+# Filter-Protokoll kommen hier vor, dieser Zaehler liest nie den Harness-Output oder den
+# Geheimnisfilter, nur die Claude-Code-Transkripte selbst.
+ANTHROPIC_API_LIMIT_ERREICHT_SATZ = "specified api usage limits"
+ANTHROPIC_API_LIMIT_DATUM_MUSTER = re.compile(r"regain access on (\d{4}-\d{2}-\d{2})")
+ANTHROPIC_API_PROVIDER = "anthropic-api"
+# Neutrale Beispielvorgabe, wenn die Registry keine eigene Einstellung fuer diese Spur traegt.
+# Die echten Zahlen einer Installation stehen als EINSTELLUNG je Spur in der Registry
+# (providers[].kontingent), nie hier.
+ANTHROPIC_API_DECKEL_EUR = 50.0
+ANTHROPIC_API_WARNUNG_EUR = 40.0
+ANTHROPIC_API_SPERRE_EUR = 45.0
+ANTHROPIC_API_GUTHABEN_ERSCHOEPFT_SATZ = "credit balance is too low"
+# Fester Kurs als Konfiguration (keine Live-Abfrage), manuell nachzufuehren.
+# Ueberschreibbar fuer Tests/Nachfuehren via WB_ANTHROPIC_API_KURS.
+ANTHROPIC_API_KURS_EUR_JE_USD = float(os.environ.get("WB_ANTHROPIC_API_KURS") or 0.92)
+ANTHROPIC_API_KURS_QUELLE = "fester Kurs, manuell gepflegt (keine Live-Abfrage; WB_ANTHROPIC_API_KURS)"
+ANTHROPIC_API_SESSIONS_LOG = os.environ.get("WB_ANTHROPIC_API_SESSIONS_LOG") or hp(
+    "~/.claude/workbench/anthropic-api-sessions.log")
+ANTHROPIC_API_PROJECTS_DIR = os.environ.get("WB_ANTHROPIC_API_PROJECTS_DIR") or hp("~/.claude/projects")
+
+# USD je 1 Mio. Token -- Quelle: claude-api-Skill-Preistabelle (platform.claude.com,
+# Stand 2026-11-03). cache_read ist, wo die Tabelle selbst einen Wert nennt, dieser Wert;
+# cache_write folgt der Anthropic-Konvention "5-Minuten-Cache-Schreiben = 1.25x Input",
+# wo die Tabelle keinen eigenen Wert nennt (Haiku 5.5) -- HERGELEITET, nicht gemessen.
+ANTHROPIC_API_PREISE_USD_JE_MTOK = {
+    "claude-sonnet-5-5": {"input": 2.00, "output": 10.00, "cache_read": 0.10, "cache_write": 2.50},
+    "claude-haiku-5-5":  {"input": 0.10, "output": 0.50,  "cache_read": 0.01, "cache_write": 0.125},
+    "claude-opus-5-5":   {"input": 4.00, "output": 20.00, "cache_read": 0.20, "cache_write": 5.00},
+}
+
+
+def _anthropic_api_key_vorhanden():
+    """Praesenz, NIE der Wert (Befund 3, task, 11.11.2026): ohne
+    einen hinterlegten Schluessel darf 'pruefen anthropic-api' nicht 0 melden, sonst
+    lenkt pi-worker auf eine Spur um, die beim Start selbst scheitert (wb-harness-run:
+    'kein Key hinterlegt'). Dieselbe Reihenfolge und dasselbe '-s ... ' OHNE '-w' wie
+    wb-state:secret_present -- Lesen der Praesenz darf nie den Schluesselbund-Zugriffs-
+    dialog ausloesen, den ein '-w' unter Umstaenden zeigt."""
+    svc = "wb-anthropic-api"
+    try:
+        reg = json.load(open(REGISTRY_FILE, encoding="utf-8"))
+        prov = next((p for p in reg.get("providers") or [] if p.get("id") == ANTHROPIC_API_PROVIDER), None)
+        if prov and prov.get("keychainService"):
+            svc = prov["keychainService"]
+    except Exception:
+        pass
+    if shutil.which("security"):
+        r = subprocess.run(["security", "find-generic-password", "-s", svc],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if r.returncode == 0:
+            return True
+    pfad = hp(os.path.join("~/.secrets-sync/api-keys", ANTHROPIC_API_PROVIDER))
+    if os.path.exists(pfad):
+        return True
+    return bool(os.environ.get("ANTHROPIC_API_KEY"))
+
+
+def _anthropic_api_limits():
+    """(deckel, warnung, sperre) in EUR fuer die anthropic-api-Spur -- aus
+    providers[].kontingent der Registry, sonst die Beispielvorgabe oben. EINSTELLUNG,
+    kein Code: der Betreiber setzt die Zahlen selbst (wb-state models set --kind provider anthropic-api
+    kontingent '{"deckelEur": ..., "warnungEur": ..., "sperreEur": ...}'), ohne dass
+    diese Datei sich aendert."""
+    deckel, warnung, sperre = (ANTHROPIC_API_DECKEL_EUR, ANTHROPIC_API_WARNUNG_EUR,
+                                ANTHROPIC_API_SPERRE_EUR)
+    try:
+        reg = json.load(open(REGISTRY_FILE, encoding="utf-8"))
+        prov = next((p for p in reg.get("providers") or [] if p.get("id") == ANTHROPIC_API_PROVIDER), None)
+        k = (prov or {}).get("kontingent") or {}
+        deckel = float(k.get("deckelEur", deckel))
+        warnung = float(k.get("warnungEur", warnung))
+        sperre = float(k.get("sperreEur", sperre))
+    except Exception:
+        pass
+    return deckel, warnung, sperre
+
+
+# ── LIVE-PROBE gegen die Verklemmung der Sofortsperre (task, 0a, decision 2026-11-12) ──
+# Befund: Die Sofortsperre loest sich nur durch einen erfolgreichen Zug im Transkript, doch
+# gesperrt startet niemand, also kommt nie ein solcher Zug. Darum fragt `auffrischen` und
+# `pruefen anthropic-api` im gesperrten Zustand hoechstens alle 10 Minuten selbst nach: eine
+# Anfrage an haiku mit max_tokens 1 ueber denselben Schluesselweg wie die Worker (Schluesselbund
+# -> ~/.secrets-sync/api-keys/anthropic-api -> ANTHROPIC_API_KEY, vgl. key-helper.sh in
+# wb-harness-run). 200 hebt die Sperre auf; 400 billing_error haelt sie; jeder andere Ausgang
+# (Netzfehler, 401, 429, 5xx) laesst sie unveraendert und merkt nur die Zeit. Der Wert des
+# Schluessels liegt ausschliesslich im Speicher dieses Prozesses (Header der Anfrage), nie in
+# argv, Datei oder Log. Die Kosten der Probe zaehlen in den Monatsverbrauch.
+ANTHROPIC_API_PROBE_ABSTAND_S = 600
+ANTHROPIC_API_PROBE_MODELL = "claude-haiku-5-5"
+# Die Probe fragt in der Form der Worker (Konto-Block 15.11.2026): Die Claude-CLI schickt bei jedem
+# Zug `anthropic-beta: claude-code-20250219`. Gemessen 15.11., sieben Paare: derselbe
+# Schluessel gab ohne diese Kopfzeile 200, mit ihr 400 "credit balance is too low". Eine Probe ohne
+# Beta meldete also "frei", waehrend jeder Worker-Start scheiterte.
+ANTHROPIC_API_PROBE_BETA = "claude-code-20250219"
+ANTHROPIC_API_PROBE_URL_FEST = "https://api.anthropic.com/v1/messages"
+ANTHROPIC_API_PROBE_DATEI = os.environ.get("WB_ANTHROPIC_API_PROBE_FILE") or os.path.join(
+    os.path.dirname(STATE_FILE), "anthropic-api-probe.json")
+
+
+def _anthropic_api_schluessel():
+    """Der Wert, nur im Speicher. Reihenfolge wie key-helper.sh (Schluesselbund, Datei mit Modus
+    600/400, Umgebung). Rueckgabe None, wenn nichts da ist."""
+    svc = "wb-anthropic-api"
+    try:
+        reg = json.load(open(REGISTRY_FILE, encoding="utf-8"))
+        prov = next((p for p in reg.get("providers") or [] if p.get("id") == ANTHROPIC_API_PROVIDER), None)
+        if prov and prov.get("keychainService"):
+            svc = prov["keychainService"]
+    except Exception:
+        pass
+    if shutil.which("security"):
+        r = subprocess.run(["security", "find-generic-password", "-s", svc, "-w"],
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        wert = r.stdout.decode("utf-8", "replace").strip() if r.returncode == 0 else ""
+        if wert:
+            return wert
+    pfad = hp(os.path.join("~/.secrets-sync/api-keys", ANTHROPIC_API_PROVIDER))
+    try:
+        if os.path.isfile(pfad) and (os.stat(pfad).st_mode & 0o777) in (0o600, 0o400):
+            with open(pfad, encoding="utf-8") as f:
+                wert = f.readline().strip()
+            if wert:
+                return wert
+    except OSError:
+        pass
+    return (os.environ.get("ANTHROPIC_API_KEY") or "").strip() or None
+
+
+def _anthropic_api_probe_lesen():
+    d = lies_json(ANTHROPIC_API_PROBE_DATEI)
+    return d if isinstance(d, dict) else {}
+
+
+def _anthropic_api_probe_schreiben(d):
+    os.makedirs(os.path.dirname(ANTHROPIC_API_PROBE_DATEI), exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(ANTHROPIC_API_PROBE_DATEI),
+                                prefix=".anthropic-api-probe-", suffix=".json")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+        os.replace(tmp, ANTHROPIC_API_PROBE_DATEI)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def _iso_lesen(text):
+    try:
+        return datetime.datetime.fromisoformat((text or "").replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return None
+
+
+def _anthropic_api_probe_faellig():
+    """Wahr, wenn die letzte Probe mindestens ANTHROPIC_API_PROBE_ABSTAND_S zurueckliegt (oder es
+    keine gibt). Eine Probe in der Zukunft (Uhrenfehler) gilt als faellig, sonst bliebe die
+    Sperre fuer immer verklemmt."""
+    d = _anthropic_api_probe_lesen()
+    t = _iso_lesen(d.get("letzte_zeit"))
+    if t is None:
+        return True
+    delta = (jetzt() - t).total_seconds()
+    return delta < 0 or delta >= ANTHROPIC_API_PROBE_ABSTAND_S
+
+
+def _anthropic_api_probe_ausfuehren():
+    """Eine Anfrage, dann das Ergebnis in die Probe-Datei. Gibt das Ergebnis ('frei', 'billing',
+    'unklar') oder None zurueck, wenn nicht gefragt werden durfte (kein Schluessel, Netz gesperrt)."""
+    url, schein = _adresse("WB_ANTHROPIC_API_PROBE_URL", ANTHROPIC_API_PROBE_URL_FEST)
+    if not _netz_erlaubt():
+        return None
+    schluessel = SCHEIN_SCHLUESSEL if schein else _anthropic_api_schluessel()
+    if not schluessel:
+        return None
+    d = _anthropic_api_probe_lesen()
+    jetzt_dt = jetzt()
+    # Die Zeit zuerst festhalten: bricht der Prozess mitten in der Anfrage ab, folgt trotzdem
+    # keine zweite innerhalb der Frist.
+    d["letzte_zeit"] = jetzt_dt.strftime(ISO)
+    d["anzahl"] = int(d.get("anzahl") or 0) + 1
+    _anthropic_api_probe_schreiben(d)
+    body = json.dumps({"model": ANTHROPIC_API_PROBE_MODELL, "max_tokens": 1,
+                        "messages": [{"role": "user", "content": "."}]}).encode("utf-8")
+    req = urllib.request.Request(
+        url, data=body, method="POST",
+        headers={"x-api-key": schluessel, "anthropic-version": "2023-06-01",
+                 "anthropic-beta": ANTHROPIC_API_PROBE_BETA,
+                 "content-type": "application/json"})
+    status, antwort = None, b""
+    try:
+        with _offne(req, 15) as r:
+            status, antwort = r.status, r.read(65536)
+    except urllib.error.HTTPError as ex:
+        status = ex.code
+        try:
+            antwort = ex.read(65536)
+        except Exception:
+            antwort = b""
+    except Exception:
+        status = None
+    try:
+        j = json.loads(antwort.decode("utf-8", "replace")) if antwort else {}
+    except ValueError:
+        j = {}
+    if not isinstance(j, dict):
+        j = {}
+    zeit = jetzt().strftime(ISO)
+    fehler = j.get("error") if isinstance(j.get("error"), dict) else {}
+    fehlertext = ((fehler.get("message") or "") + " " + (fehler.get("type") or "")).lower()
+    if status == 200:
+        ergebnis = "frei"
+        d["erfolg_zeit"] = zeit
+        usage = j.get("usage")
+        usd = _anthropic_api_kosten_usd(ANTHROPIC_API_PROBE_MODELL, usage) if isinstance(usage, dict) else None
+        if usd:
+            monat = jetzt_dt.strftime("%Y-%m")
+            kosten = d.get("kosten_usd") if isinstance(d.get("kosten_usd"), dict) else {}
+            kosten[monat] = float(kosten.get(monat) or 0.0) + usd
+            d["kosten_usd"] = kosten
+    elif status == 400 and (ANTHROPIC_API_GUTHABEN_ERSCHOEPFT_SATZ in fehlertext or "billing_error" in fehlertext):
+        ergebnis = "billing"
+        d["billing_zeit"] = zeit
+    else:
+        ergebnis = "unklar"
+    d["ergebnis"] = ergebnis
+    d["http"] = status
+    _anthropic_api_probe_schreiben(d)
+    return ergebnis
+
+
+def _anthropic_api_projektordner(workdir):
+    """Claude-Code-Projektordnername aus dem Arbeitsverzeichnis: jedes Zeichen
+    ausserhalb [A-Za-z0-9] wird 1:1 durch '-' ersetzt. GEMESSEN an drei eigenen
+    Transkriptordnern 2026-11-11 (u.a. ein Pfad mit Leerzeichen und 'Ü'), KEINE
+    dokumentierte Schnittstelle -- aendert Claude Code die Regel, faellt dieser
+    Zaehler still auf 'kein Transkriptordner gefunden' zurueck (kein Absturz,
+    siehe anthropic_api_verbrauch_anwenden)."""
+    return re.sub(r"[^A-Za-z0-9]", "-", workdir or "")
+
+
+def _anthropic_api_kosten_usd(modelref, usage):
+    preise = ANTHROPIC_API_PREISE_USD_JE_MTOK.get(modelref)
+    if not preise or not isinstance(usage, dict):
+        return None
+    mtok = 1000000.0
+    try:
+        summe = (float(usage.get("input_tokens") or 0) / mtok * preise["input"]
+                  + float(usage.get("output_tokens") or 0) / mtok * preise["output"]
+                  + float(usage.get("cache_read_input_tokens") or 0) / mtok * preise["cache_read"]
+                  + float(usage.get("cache_creation_input_tokens") or 0) / mtok * preise["cache_write"])
+    except (TypeError, ValueError):
+        return None
+    return summe
+
+
+def _anthropic_api_fehlertext(message):
+    """Den Textinhalt einer Transkriptnachricht fuer den Mustervergleich -- NUR
+    aufgerufen, wenn isApiErrorMessage bereits True ist (siehe Aufrufstelle), nie
+    fuer eine gewoehnliche Nachricht."""
+    if isinstance(message, str):
+        return message
+    if not isinstance(message, dict):
+        return ""
+    content = message.get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return " ".join(c["text"] for c in content
+                         if isinstance(c, dict) and isinstance(c.get("text"), str))
+    return ""
+
+
+def _anthropic_api_sitzungen_lesen():
+    """Zeilen aus dem Sitzungs-Log (von wb-harness-run vor jedem Start geschrieben):
+    Zeit, Workername, modelRef, Arbeitsverzeichnis, tmux-Sitzungsname (Tab-getrennt,
+    das fuenfte Feld kann leer sein). Fehlt die Datei: keine Sitzungen, kein Fehler."""
+    pfad = ANTHROPIC_API_SESSIONS_LOG
+    if not os.path.exists(pfad):
+        return []
+    sitzungen = []
+    try:
+        with open(pfad, encoding="utf-8", errors="replace") as f:
+            for zeile in f:
+                teile = zeile.rstrip("\n").split("\t")
+                if len(teile) < 4:
+                    continue
+                sitzungen.append({
+                    "zeit": teile[0], "worker": teile[1], "modell": teile[2],
+                    "workdir": teile[3], "sitzung": teile[4] if len(teile) > 4 else "",
+                })
+    except OSError:
+        return []
+    return sitzungen
+
+
+# Zuordnung je Unterhaltung: Zaehlte jede Transkriptdatei im Arbeitsordner nach einem API-Start als
+# API-Verbrauch, dann zaehlte ein Neustart desselben Workers ueber das Abo (im selben Ordner, ohne
+# Logzeile) faelschlich als API-Kosten und als "spaeterer Erfolg", der die Fehlersperre aufhob.
+# Jetzt gehoert zu jeder Logzeile genau EINE
+# Unterhaltung: die erste Transkriptdatei im Ordner, deren erster Zeitstempel nach dem Start
+# (Flanke ANTHROPIC_API_START_FLANKE_S gegen Uhrenversatz) und vor dem naechsten Start dort liegt.
+# Ein Neustart ohne Logzeile zaehlt nicht mehr, weder als Kosten noch als Erfolg. Ein --resume
+# schreibt in dieselbe Datei weiter und bleibt damit gezaehlt.
+# Ein Start und seine Unterhaltung liegen gemessen 1-3 s auseinander (Logzeilen vom 12. und 15.11.); ein
+# Abo-Neustart nach einem Fehlstart (pi-worker meldet FEHLSTART) kam 38 s bis 3 min spaeter, ein spaeterer gut 2 h.
+# Darum gehoert nur eine Unterhaltung, die hoechstens ANTHROPIC_API_START_FENSTER_S nach dem Start
+# beginnt, zu ihm; sonst haengt eine spaete Abo-Unterhaltung an einem Start, der selbst keine hatte.
+ANTHROPIC_API_START_FLANKE_S = 60
+ANTHROPIC_API_START_FENSTER_S = 30
+
+
+def _anthropic_api_eintrag_zwischen(pfad, von, bis):
+    """Wahr, wenn die Transkriptdatei einen Eintrag mit Zeitstempel in [von, bis] hat."""
+    try:
+        with open(pfad, encoding="utf-8", errors="replace") as f:
+            for zeile in f:
+                try:
+                    d = json.loads(zeile)
+                except (ValueError, TypeError):
+                    continue
+                t = _iso_lesen(d.get("timestamp")) if isinstance(d, dict) else None
+                if t is not None and von <= t <= bis:
+                    return True
+    except OSError:
+        return False
+    return False
+
+
+def _anthropic_api_erster_zeitpunkt(pfad):
+    """Erster Zeitstempel einer Transkriptdatei (UTC) oder None."""
+    try:
+        with open(pfad, encoding="utf-8", errors="replace") as f:
+            for zeile in f:
+                try:
+                    d = json.loads(zeile)
+                except (ValueError, TypeError):
+                    continue
+                if isinstance(d, dict) and d.get("timestamp"):
+                    t = _iso_lesen(d.get("timestamp"))
+                    if t is not None:
+                        return t
+    except OSError:
+        return None
+    return None
+
+
+def _anthropic_api_unterhaltungen(sitzungen):
+    """(sitzung, start_dt, pfad, ab) je Logzeile mit der ihr zugeordneten Unterhaltung; ab ist None fuer
+    ein neues Gespraech, sonst der Zeitpunkt, ab dem eine fortgesetzte (--resume) Datei zaehlt."""
+    je_ordner = {}
+    for s in sitzungen:
+        try:
+            start_dt = datetime.datetime.fromisoformat(s["zeit"].replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        je_ordner.setdefault(s["workdir"], []).append((start_dt, s))
+    flanke = datetime.timedelta(seconds=ANTHROPIC_API_START_FLANKE_S)
+    fenster = datetime.timedelta(seconds=ANTHROPIC_API_START_FENSTER_S)
+    for workdir, starts in je_ordner.items():
+        starts.sort(key=lambda x: x[0])
+        ordner = os.path.join(ANTHROPIC_API_PROJECTS_DIR, _anthropic_api_projektordner(workdir))
+        try:
+            namen = os.listdir(ordner)
+        except OSError:
+            continue
+        dateien = []
+        for name in namen:
+            if not name.endswith(".jsonl"):
+                continue
+            pfad = os.path.join(ordner, name)
+            t = _anthropic_api_erster_zeitpunkt(pfad)
+            if t is not None:
+                dateien.append((t, pfad))
+        dateien.sort()
+        vergeben = set()
+        for i, (start_dt, s) in enumerate(starts):
+            naechster = starts[i + 1][0] if i + 1 < len(starts) else None
+            gefunden = None
+            for t, pfad in dateien:
+                if pfad in vergeben or t < start_dt - flanke:
+                    continue
+                if (naechster is not None and t >= naechster) or t > start_dt + fenster:
+                    break
+                gefunden = pfad
+                break
+            if gefunden is not None:
+                vergeben.add(gefunden)
+                yield s, start_dt, gefunden, None
+                continue
+            # Kein neues Gespraech: ein --resume schreibt in eine aeltere Datei weiter. Sie zaehlt
+            # ab dem Start, wenn sie im Fenster nach dem Start einen Eintrag hat.
+            for t, pfad in dateien:
+                if pfad in vergeben or t >= start_dt - flanke:
+                    continue
+                if _anthropic_api_eintrag_zwischen(pfad, start_dt - flanke, start_dt + fenster):
+                    vergeben.add(pfad)
+                    yield s, start_dt, pfad, start_dt - flanke
+                    break
+
+
+def anthropic_api_verbrauch_anwenden(e, probe=True):
+    """Liest das Sitzungs-Log und die Claude-Code-Transkripte der dort genannten
+    Arbeitsverzeichnisse, summiert Kosten je Kalendermonat/Tag/Sitzung ueber die
+    Preistabelle, setzt Deckel/Warnung/Sperre und fuellt `e` (den Eintrag der Spur).
+    Rein lesend, kein Netz. Jeder Fehlschlag (fehlende Datei, falsche Form) landet
+    im `hinweis`, nie in einem Absturz -- dieselbe Regel wie bei den Netz-Sammlern."""
+    sitzungen = _anthropic_api_sitzungen_lesen()
+    if not sitzungen:
+        e["hinweis"] = ("Kein Sitzungs-Log (%s) -- noch kein anthropic-api-Worker ueber "
+                         "wb-harness-run gestartet; kein Urteil." % ANTHROPIC_API_SESSIONS_LOG)
+        return
+    jetzt_dt = jetzt()
+    monat_start = jetzt_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    heute = jetzt_dt.date()
+    gesehen_dateien = set()
+    monat_usd = 0.0
+    tag_usd = {}
+    sitzung_tag_usd = {}
+    je_sitzung_projekt_usd = {}
+    fehlerzeilen = []
+    letzter_fehler_ts = None
+    letzter_fehler_art = None
+    letzter_fehler_datum = None
+    letzter_erfolg_ts = None
+    for s, start_dt, pfad, ab_dt in _anthropic_api_unterhaltungen(sitzungen):
+            if pfad in gesehen_dateien:
+                continue
+            gesehen_dateien.add(pfad)
+            try:
+                with open(pfad, encoding="utf-8", errors="replace") as f:
+                    for zeile in f:
+                        try:
+                            d = json.loads(zeile)
+                        except (ValueError, TypeError):
+                            continue
+                        if not isinstance(d, dict):
+                            continue
+                        try:
+                            zeile_dt = datetime.datetime.fromisoformat(
+                                (d.get("timestamp") or "").replace("Z", "+00:00"))
+                        except ValueError:
+                            zeile_dt = start_dt
+                        if ab_dt is not None and zeile_dt < ab_dt:
+                            continue   # fortgesetzte Unterhaltung: nur ab dem API-Start
+                        # NUR eine echte, von Claude Code selbst markierte API-Fehlerantwort
+                        # zaehlt als Sofortsperre -- GEMESSEN an der installierten CLI (2.1.322,
+                        # 'strings' auf die Binaerdatei): "isApiErrorMessage ... True when this
+                        # assistant message wraps an API error (from internal
+                        # AssistantMessage.isApiErrorMessage)". Ein Zitat der Fehlermeldung in
+                        # einem ganz normalen Zug (ein Auftragstext, eine WebSearch-Abfrage, eine
+                        # Diskussion -- GEMESSEN: genau eine solche WebSearch-Abfrage-Zeile stand
+                        # in einem echten Transkript dieses Rechners) traegt dieses Feld nicht und
+                        # sperrt deshalb nicht mehr (genau das war ein frueherer Fehltreffer:
+                        # "erschoepft", waehrend die API selbst 200 antwortete).
+                        if d.get("isApiErrorMessage") is True:
+                            fehlertext = _anthropic_api_fehlertext(d.get("message")).lower()
+                            if ANTHROPIC_API_GUTHABEN_ERSCHOEPFT_SATZ in fehlertext:
+                                if letzter_fehler_ts is None or zeile_dt >= letzter_fehler_ts:
+                                    letzter_fehler_ts = zeile_dt
+                                    letzter_fehler_art = "guthaben"
+                                    letzter_fehler_datum = None
+                            elif ANTHROPIC_API_LIMIT_ERREICHT_SATZ in fehlertext:
+                                if letzter_fehler_ts is None or zeile_dt >= letzter_fehler_ts:
+                                    letzter_fehler_ts = zeile_dt
+                                    letzter_fehler_art = "limit"
+                                    m = ANTHROPIC_API_LIMIT_DATUM_MUSTER.search(fehlertext)
+                                    letzter_fehler_datum = m.group(1) if m else None
+                            continue   # ein Fehler-Zug traegt nie usage, nichts weiter zu tun
+                        msg = d.get("message")
+                        if not isinstance(msg, dict):
+                            continue
+                        usage = msg.get("usage")
+                        modelref = msg.get("model")
+                        if not isinstance(usage, dict) or not modelref:
+                            continue
+                        usd = _anthropic_api_kosten_usd(modelref, usage)
+                        if usd is None:
+                            continue
+                        # Ein erfolgreicher Zug (traegt usage) hebt eine fruehere Sofortsperre
+                        # wieder auf, sobald er NACH ihr liegt (Regel: sie faellt weg, sobald derselbe
+                        # Schluessel danach wieder einen erfolgreichen Zug hatte) -- unabhaengig vom Kalendermonat, denn die
+                        # Verfuegbarkeit selbst ist nicht monatsgebunden.
+                        if letzter_erfolg_ts is None or zeile_dt > letzter_erfolg_ts:
+                            letzter_erfolg_ts = zeile_dt
+                        if zeile_dt < monat_start:
+                            continue
+                        monat_usd += usd
+                        tag = zeile_dt.date().isoformat()
+                        tag_usd[tag] = tag_usd.get(tag, 0.0) + usd
+                        sk = s["sitzung"] or "unbekannt"
+                        sitzung_tag_usd[(sk, tag)] = sitzung_tag_usd.get((sk, tag), 0.0) + usd
+                        je_sitzung_projekt_usd[(sk, s["workdir"])] = (
+                            je_sitzung_projekt_usd.get((sk, s["workdir"]), 0.0) + usd)
+            except OSError as ex:
+                fehlerzeilen.append("%s nicht lesbar: %s" % (pfad, ex))
+    # Die Live-Probe (siehe oben) wirkt wie ein Transkriptzug: ein 200 ist ein erfolgreicher Zug,
+    # ein 400 billing ein Fehlerzug; ihre Kosten zaehlen im laufenden Monat mit.
+    probe_d = _anthropic_api_probe_lesen()
+    t_ok = _iso_lesen(probe_d.get("erfolg_zeit"))
+    if t_ok is not None and (letzter_erfolg_ts is None or t_ok > letzter_erfolg_ts):
+        letzter_erfolg_ts = t_ok
+    t_bill = _iso_lesen(probe_d.get("billing_zeit"))
+    if t_bill is not None and (letzter_fehler_ts is None or t_bill >= letzter_fehler_ts):
+        letzter_fehler_ts, letzter_fehler_art, letzter_fehler_datum = t_bill, "guthaben", None
+    kosten_probe = probe_d.get("kosten_usd") if isinstance(probe_d.get("kosten_usd"), dict) else {}
+    try:
+        monat_usd += float(kosten_probe.get(monat_start.strftime("%Y-%m")) or 0.0)
+    except (TypeError, ValueError):
+        pass
+    monat_eur = monat_usd * ANTHROPIC_API_KURS_EUR_JE_USD
+    heute_eur = tag_usd.get(heute.isoformat(), 0.0) * ANTHROPIC_API_KURS_EUR_JE_USD
+    deckel_eur, warnung_eur, sperre_eur = _anthropic_api_limits()
+    k = e["kontingent"]
+    k["art"] = "guthaben"
+    k["einheit"] = "EUR je Kalendermonat"
+    k["quelle"] = ("lokal: Sitzungs-Log %s + Claude-Code-Transkripte unter %s; Preistabelle "
+                   "claude-api-Skill Stand 2026-11-03; Kurs %s"
+                   % (ANTHROPIC_API_SESSIONS_LOG, ANTHROPIC_API_PROJECTS_DIR, ANTHROPIC_API_KURS_QUELLE))
+    k["verbraucht"] = round(monat_eur, 4)
+    k["grenze"] = deckel_eur
+    k["rest"] = max(0.0, round(deckel_eur - monat_eur, 4))
+    e["angemeldet"] = True
+    e["kontingent_heute_eur"] = round(heute_eur, 4)
+    e["kontingent_sitzung_heute_eur"] = {
+        sk: round(sum(v for (s2, t), v in sitzung_tag_usd.items() if s2 == sk and t == heute.isoformat())
+                   * ANTHROPIC_API_KURS_EUR_JE_USD, 4)
+        for sk in {sk for sk, _t in sitzung_tag_usd}
+    }
+    e["kontingent_je_sitzung_projekt_eur"] = {
+        ("%s|%s" % sk_wd): round(usd * ANTHROPIC_API_KURS_EUR_JE_USD, 4)
+        for sk_wd, usd in je_sitzung_projekt_usd.items()
+    }
+    # Keine Tageslinie, kein Monatsanteil, kein Deckel je Sitzung (2026-11-11):
+    # 'pruefen anthropic-api' gibt 0, bis die Sperre (sperre_eur, EINSTELLUNG,
+    # siehe _anthropic_api_limits) greift. Die Warnung ist reine Anzeige -- sie beginnt
+    # ABSICHTLICH NICHT mit 'KNAPP:' (dieses Praefix loest in cmd_pruefen generisch
+    # Exit 7 aus, das waere hier eine Sperre, die niemand wollte). Eine echte, vom Server
+    # selbst markierte Fehlerantwort (isApiErrorMessage, siehe oben) sperrt immer, auch
+    # unterhalb der eigenen Dollar-Rechnung -- ABER nur, solange danach kein erfolgreicher
+    # Zug mehr lag.
+    letzter_fehler_gesperrt = (
+        letzter_fehler_ts is not None
+        and (letzter_erfolg_ts is None or letzter_fehler_ts > letzter_erfolg_ts))
+    k["api_fehler_sperre"] = bool(letzter_fehler_gesperrt)
+    if letzter_fehler_gesperrt and probe and _anthropic_api_probe_faellig():
+        if _anthropic_api_probe_ausfuehren() is not None:
+            return anthropic_api_verbrauch_anwenden(e, probe=False)
+    if letzter_fehler_gesperrt and letzter_fehler_art == "limit":
+        e["erschoepft"] = True
+        k["wiederFreiAb"] = letzter_fehler_datum
+        e["hinweis"] = ("erschoepft: die API selbst hat 'specified API usage limits' gemeldet "
+                         "(echte Fehlerantwort, isApiErrorMessage) -- wieder frei ab %s. "
+                         "%.3f von %.2f EUR nach eigener Rechnung (faelschlich frei), "
+                         "Heute %.3f EUR."
+                         % (letzter_fehler_datum or "unbekannt", monat_eur, deckel_eur, heute_eur))
+    elif letzter_fehler_gesperrt and letzter_fehler_art == "guthaben":
+        e["erschoepft"] = True
+        e["hinweis"] = ("erschoepft: die API selbst hat 'credit balance is too low' gemeldet "
+                         "(echte Fehlerantwort, isApiErrorMessage) -- %.3f von %.2f EUR "
+                         "nach eigener Rechnung, Heute %.3f EUR."
+                         % (monat_eur, deckel_eur, heute_eur))
+    elif monat_eur >= sperre_eur:
+        e["erschoepft"] = True
+        e["hinweis"] = ("erschoepft: %.3f von %.2f EUR diesen Monat (Sperre ab %.0f). Heute: %.3f EUR."
+                         % (monat_eur, deckel_eur, sperre_eur, heute_eur))
+    elif monat_eur >= warnung_eur:
+        e["erschoepft"] = False
+        e["hinweis"] = ("WARNUNG (kein Start-Riegel): %.3f von %.2f EUR diesen Monat (Warnung ab "
+                         "%.0f, Sperre ab %.0f). Heute: %.3f EUR."
+                         % (monat_eur, deckel_eur, warnung_eur, sperre_eur, heute_eur))
+    else:
+        e["erschoepft"] = False
+        e["hinweis"] = ("frei: %.3f von %.2f EUR diesen Monat. Heute: %.3f EUR."
+                         % (monat_eur, deckel_eur, heute_eur))
+    if letzter_fehler_gesperrt and probe_d.get("letzte_zeit"):
+        e["hinweis"] += (" Letzte Live-Probe %s: %s (HTTP %s); naechste fruehestens nach %d min."
+                          % (probe_d.get("letzte_zeit"), probe_d.get("ergebnis") or "?",
+                             probe_d.get("http"), ANTHROPIC_API_PROBE_ABSTAND_S // 60))
+    if fehlerzeilen:
+        e["hinweis"] += " (Hinweis: %s)" % "; ".join(sorted(set(fehlerzeilen))[:3])
 
 
 DAUER_RE = re.compile(r"(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?")
@@ -514,6 +1150,16 @@ def sammle_codex(h, ctx):
 CODEX_USAGE_URL_DEFAULT = "https://chatgpt.com/backend-api/wham/usage"
 
 
+def codex_zugang():
+    """(access_token, account_id) fuer den Abruf. Bei aktiver Adressnaht der Scheinschluessel --
+    ~/.codex/auth.json wird dann NICHT gelesen."""
+    _url, schein = _adresse("WB_CODEX_USAGE_URL", CODEX_USAGE_URL_DEFAULT)
+    if schein:
+        return SCHEIN_SCHLUESSEL, "schein-konto"
+    tokens = (lies_json(hp("~/.codex/auth.json")) or {}).get("tokens") or {}
+    return tokens.get("access_token"), tokens.get("account_id")
+
+
 def codex_usage_abrufen(access_token, account_id):
     """Die Antwort des Endpunkts, oder None -- fuer JEDEN Fehler (kein Netz,
     401, abgelaufenes Token, Zeitueberschreitung, kaputtes JSON): der
@@ -524,13 +1170,13 @@ def codex_usage_abrufen(access_token, account_id):
         return lies_json(datei)
     if not _netz_erlaubt() or not access_token:
         return None
-    url = os.environ.get("WB_CODEX_USAGE_URL") or CODEX_USAGE_URL_DEFAULT
+    url, _schein = _adresse("WB_CODEX_USAGE_URL", CODEX_USAGE_URL_DEFAULT)
     headers = {"Authorization": "Bearer %s" % access_token, "Accept": "application/json"}
     if account_id:
         headers["ChatGPT-Account-Id"] = account_id
     try:
         anfrage = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(anfrage, timeout=10) as antwort:
+        with _offne(anfrage, 10) as antwort:
             return json.loads(antwort.read().decode("utf-8", "replace"))
     except Exception:
         return None
@@ -591,7 +1237,7 @@ def codex_usage_anwenden(e, antwort):
             sekundaer = lang[0] if lang else {}
             primaer = kurz[0] if kurz else {}
         plan = (antwort or {}).get("plan_type")
-        quelle = os.environ.get("WB_CODEX_USAGE_URL") or CODEX_USAGE_URL_DEFAULT
+        quelle = _adresse("WB_CODEX_USAGE_URL", CODEX_USAGE_URL_DEFAULT)[0]
         if plan:
             e["plan"] = plan
             e["plan_quelle"] = "netz:%s (plan_type)" % quelle
@@ -718,6 +1364,13 @@ CLINE_SEITEN_OBERGRENSE = 50
 CLINE_LIMIT = 200          # Seitengroesse; deckt 30 Tage Nutzung locker ab
 
 
+def cline_zugang():
+    """Der Schluessel fuer den Abruf: bei aktiver Adressnaht der Scheinschluessel (der echte wird
+    dann nicht gelesen), sonst cline_schluessel()."""
+    _basis, schein = _adresse("WB_CLINE_USAGE_URL", CLINE_API_BASIS_DEFAULT)
+    return SCHEIN_SCHLUESSEL if schein else cline_schluessel()
+
+
 def cline_schluessel():
     """Der Cline-API-Key, oder None. Dieselbe Kette wie wb-harness-run
     (SPEC-V3 A.1): macOS-Schluesselbund (Dienst 'cline-api-key'), dann
@@ -790,13 +1443,13 @@ def cline_usage_abrufen(schluessel):
                       "~/.secrets-sync/api-keys/cline-pass, CLINE_API_KEY alle leer)")
     if not _netz_erlaubt():
         return None, "Netzzugriff gesperrt (WB_KONTINGENT_KEIN_NETZ)"
-    basis = (os.environ.get("WB_CLINE_USAGE_URL") or CLINE_API_BASIS_DEFAULT).rstrip("/")
+    basis = _adresse("WB_CLINE_USAGE_URL", CLINE_API_BASIS_DEFAULT)[0].rstrip("/")
 
     def hole(url):
         anfrage = urllib.request.Request(
             url, headers={"Authorization": "Bearer %s" % schluessel,
                           "Accept": "application/json"})
-        with urllib.request.urlopen(anfrage, timeout=10) as antwort:
+        with _offne(anfrage, 10) as antwort:
             d = json.loads(antwort.read().decode("utf-8", "replace"))
         if not isinstance(d, dict):
             raise ValueError("Antwort ist kein JSON-Objekt")
@@ -934,7 +1587,7 @@ def cline_usage_anwenden(e, antworten):
         if not any(f[1] is not None for f in fenster_stat):
             raise ValueError("kein Fenster mit gemessenem Verbrauch (Caps fehlen)")
 
-        quelle = os.environ.get("WB_CLINE_USAGE_URL") or CLINE_API_BASIS_DEFAULT
+        quelle = _adresse("WB_CLINE_USAGE_URL", CLINE_API_BASIS_DEFAULT)[0]
         name = planinfo.get("displayName")
         if name:
             e["plan"] = name
@@ -1022,7 +1675,7 @@ def sammle_cline_pass(h, ctx):
     kb = kblock(h)
     e["modelle_nutzbar"] = [m.get("modelRef") or m.get("id") for m in ctx["eigene_modelle"]]
     e["modelle_quelle"] = kb.get("modellQuelle") or "registry:models[provider=cline-pass]"
-    if not cline_schluessel():
+    if not cline_zugang():
         e["hinweis"] = ("Kein Cline-API-Key (Schluesselbund 'cline-api-key', "
                         "~/.secrets-sync/api-keys/cline-pass, CLINE_API_KEY alle leer) -- "
                         "nichts ermittelbar, kein Urteil.")
@@ -1034,6 +1687,49 @@ def sammle_cline_pass(h, ctx):
 
 
 # ── claude: die Statusleiste schreibt die Zahlen laengst ────────────────────────
+def claude_konten():
+    """Stand je Anthropic-Konto aus `wb-konto wahl --json --ohne-messung` (task, 2026-11-20): dieselbe
+    Quelle wie die Kontowahl, gelesen aus limits.jsonl je Konto. Das gibt es, weil limits-latest.json nur die letzte
+    Sitzung zeigt, ohne zu sagen, von welchem Konto; schrieb zuletzt eine gross-Sitzung (ohne 5h-Fenster), stand dort
+    "5-Stunden-Fenster None%". Kein Netz, keine Messung, kein Schluesselbund. Jeder Fehler -> None (alter Weg bleibt).
+    Nur diese Felder kommen heraus, nie ein Dienstname, nie eine Adresse."""
+    hier = os.path.dirname(os.path.realpath(__file__))
+    for pfad in (os.path.join(hier, "wb-konto"), hp("~/.local/bin/wb-konto")):
+        if not os.access(pfad, os.X_OK):
+            continue
+        try:
+            r = subprocess.run([pfad, "wahl", "--json", "--ohne-messung"], capture_output=True, text=True, timeout=20,
+                               stdin=subprocess.DEVNULL)
+            if r.returncode not in (0, 3):
+                continue
+            d = json.loads(r.stdout)
+        except Exception:
+            continue
+        if not isinstance(d, dict) or not isinstance(d.get("konten"), list):
+            continue
+        erg = []
+        for x in d["konten"]:
+            if isinstance(x, dict) and isinstance(x.get("konto"), str):
+                erg.append({f: x.get(f) for f in ("konto", "status", "fuenf_stunden_fenster", "five_hour_pct",
+                                                  "five_hour_reset", "seven_day_pct", "linie", "gemessen")})
+        return erg or None
+    return None
+
+
+def claude_konto_text(x):
+    """Eine Zeile je Konto; ein Konto ohne 5h-Fenster nennt keine 5h-Zahl."""
+    if x.get("fuenf_stunden_fenster") is False:
+        fuenf = "5h: kein Fenster"
+    elif isinstance(x.get("five_hour_pct"), (int, float)):
+        fuenf = "5h %s%%" % _kurz(x["five_hour_pct"])
+    else:
+        fuenf = "5h nicht gemessen"
+    woche = ("Woche %s%%" % _kurz(x["seven_day_pct"]) if isinstance(x.get("seven_day_pct"), (int, float))
+             else "Woche nicht gemessen")
+    return "%s: %s, %s (Status %s%s)" % (x["konto"], fuenf, woche, x.get("status") or "?",
+                                         ", gemessen %s" % x["gemessen"] if x.get("gemessen") else "")
+
+
 def sammle_claude(h, ctx):
     e = leerer_eintrag("abo")
     kb = kblock(h)
@@ -1087,8 +1783,26 @@ def sammle_claude(h, ctx):
         e["erschoepft"] = None
     elif isinstance(fuenf, (int, float)) or isinstance(sieben, (int, float)):
         e["erschoepft"] = False
-    e["hinweis"] = "5-Stunden-Fenster %s%%, 7-Tage-Fenster %s%% (Stand der Datei: %s)%s." % (
-        fuenf, sieben, d.get("ts") or "?",
+    konten = claude_konten()
+    if konten:
+        # Fehlt der Datei der 5h-Wert (letzte Sitzung ohne 5h-Fenster), fuellt ihn ein Konto MIT Fenster und frischem Wert.
+        mit = [x for x in konten if x.get("fuenf_stunden_fenster") is not False
+               and isinstance(x.get("five_hour_pct"), (int, float))]
+        if mit and not isinstance(fuenf, (int, float)):
+            hoch = max(mit, key=lambda x: x["five_hour_pct"])
+            k["verbraucht"] = hoch["five_hour_pct"]
+            k["grenze"] = 100
+            k["rest"] = max(0, 100 - hoch["five_hour_pct"])
+            if isinstance(hoch.get("five_hour_reset"), (int, float)):
+                k["faellt_zurueck_am"] = datetime.datetime.fromtimestamp(
+                    int(hoch["five_hour_reset"]), datetime.timezone.utc).strftime(ISO)
+        e["hinweis"] = "Je Konto: %s (Stand der Datei: %s)%s." % (
+            "; ".join(claude_konto_text(x) for x in konten), d.get("ts") or "?",
+            "; das volle Fenster ist laut eigenem Rueckfallzeitpunkt schon zurueckgesetzt, "
+            "die Zahl daneben ist damit veraltet" if veraltet and not voll else "")
+        return e
+    e["hinweis"] = "5-Stunden-Fenster %s, 7-Tage-Fenster %s%% (Stand der Datei: %s)%s." % (
+        "%s%%" % fuenf if isinstance(fuenf, (int, float)) else "ohne Wert", sieben, d.get("ts") or "?",
         "; das volle Fenster ist laut eigenem Rueckfallzeitpunkt schon zurueckgesetzt, "
         "die Zahl daneben ist damit veraltet" if veraltet and not voll else "")
     return e
@@ -1213,6 +1927,24 @@ def sammle_lokal(h, ctx):
     return e
 
 
+# ── anthropic-api: Guthaben-Spur (EUR je Monat, Einstellung der Registry), hangt am PROVIDER, genau wie
+# cline-pass -- gefahren wird ueber den Harness 'claude' (kein eigener Harness),
+# siehe Kopfkommentar "ANTHROPIC-API-GUTHABEN" weiter unten bei der aktiven Seite.
+def sammle_anthropic_api(h, ctx):
+    e = leerer_eintrag("guthaben")
+    kb = kblock(h)
+    e["modelle_nutzbar"] = [m.get("modelRef") or m.get("id") for m in ctx["eigene_modelle"]]
+    e["modelle_quelle"] = kb.get("modellQuelle") or "registry:models[provider=anthropic-api]"
+    e["hinweis"] = ("Guthaben haelt Anthropic serverseitig vor; dieser Zaehler sieht NUR, was "
+                     "eigene Werkbank-Worker (pi-worker/claude-worker, Harness 'claude') ueber "
+                     "diesen Schluessel verbraucht haben -- gemessen aus den Claude-Code-"
+                     "Transkripten der geloggten Sitzungen, ausschliesslich per "
+                     "'wb-kontingent auffrischen'. Ein Aufruf mit dem Schluessel AUSSERHALB "
+                     "eines Werkbank-Workers (z.B. ein von Hand gestarteter curl) bleibt "
+                     "unsichtbar.")
+    return e
+
+
 SAMMLER = {
     "codex": sammle_codex,
     "claude": sammle_claude,
@@ -1299,6 +2031,20 @@ def auffrischen(nur_harness=None):
                                             and m.get("enabled") is not False],
                          "providers": providers}
             eintraege["cline-pass"] = sammle_cline_pass(None, cline_ctx)
+    # PROVIDER-SPUR anthropic-api (2026-11-11; die Spur ist fuer alle Worker nutzbar, begrenzt
+    # durch das Monatsbudget der Einstellung): derselbe Aufbau
+    # wie cline-pass oben -- die Spur haengt am PROVIDER 'anthropic-api', gefahren wird
+    # ueber den eingebauten Harness 'claude' (modelRef claude-sonnet-5-5/haiku-5-5/
+    # opus-5-5). Der aktive Teil (lokale Transkript-Auswertung, kein Netz) folgt in
+    # cmd_auffrischen ueber anthropic_api_verbrauch_anwenden().
+    if any(isinstance(p, dict) and p.get("id") == ANTHROPIC_API_PROVIDER for p in providers):
+        if not nur_harness or nur_harness == ANTHROPIC_API_PROVIDER:
+            aapi_ctx = {"eigene_modelle": [m for m in modelle
+                                           if isinstance(m, dict)
+                                           and m.get("provider") == ANTHROPIC_API_PROVIDER
+                                           and m.get("enabled") is not False],
+                        "providers": providers}
+            eintraege[ANTHROPIC_API_PROVIDER] = sammle_anthropic_api(None, aapi_ctx)
     # Beobachtungen und Zaehler sind keine Sammler-Ausgabe -- ein Refresh der
     # Harnesses darf sie nie wegwerfen, sonst verliert `pruefen agy` seinen
     # einzigen Nachweis beim naechsten Auffrischen wieder.
@@ -1413,6 +2159,46 @@ def _netz_erlaubt():
     Authorization-Header noetig). Tests setzen diese Variable, damit keiner
     der drei Aufrufe je das echte Netz erreicht."""
     return not os.environ.get("WB_KONTINGENT_KEIN_NETZ")
+
+
+# ── ADRESSNAHT FUER TESTS (Regel decision 2026-11-12, gilt fuer Codex, Cline und die Anthropic-Probe) ──
+# Eine Umgebungsvariable mit einer Adresse darf NIE den echten Schluessel aus dem Haus tragen.
+#  1. Ist die Adresse nicht die feste des Anbieters, wird der echte Schluessel/das Token nie gelesen.
+#  2. Die Naht gilt nur mit WB_TESTUMGEBUNG=1 und sendet dann den festen Scheinschluessel unten.
+#  3. Ohne WB_TESTUMGEBUNG=1 wird die Variable ignoriert (eine Zeile auf stderr, einmal je Variable);
+#     die feste Adresse gilt, und WB_KONTINGENT_KEIN_NETZ sperrt weiter -- die Naht hebt es NICHT auf.
+#  4. Kein Abruf folgt einer Umleitung: jeder 30x ist ein Fehler (_offne), ein Umleitungsziel
+#     bekommt den Kopf mit dem Schluessel nie.
+SCHEIN_SCHLUESSEL = "schein-schluessel-nur-testumgebung"
+_NAHT_GEMELDET = set()
+
+
+def _adresse(variable, fest):
+    """(adresse, nahtaktiv). Nur wenn die Variable gesetzt ist UND WB_TESTUMGEBUNG=1 gilt, kommt
+    die Nahtadresse zurueck; sonst immer die feste. Kein Rueckfall in die andere Richtung."""
+    wert = os.environ.get(variable)
+    if not wert:
+        return fest, False
+    if os.environ.get("WB_TESTUMGEBUNG") == "1":
+        return wert, True
+    if variable not in _NAHT_GEMELDET:
+        _NAHT_GEMELDET.add(variable)
+        print("wb-kontingent: %s ignoriert (Adressnaht gilt nur mit WB_TESTUMGEBUNG=1); "
+              "es gilt die feste Adresse." % variable, file=sys.stderr)
+    return fest, False
+
+
+class _KeineUmleitung(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None   # urllib wirft dann den HTTPError 30x
+
+
+_OPENER = urllib.request.build_opener(_KeineUmleitung)
+
+
+def _offne(anfrage, timeout):
+    """urlopen ohne Umleitungen (nur fuer Abrufe, deren Kopf einen Schluessel traegt)."""
+    return _OPENER.open(anfrage, timeout=timeout)
 
 
 def openrouter_schluessel():
@@ -1603,9 +2389,7 @@ def cmd_auffrischen(args):
     # Harness).
     codex_eintrag = daten.get("harnesses", {}).get("codex")
     if codex_eintrag is not None:
-        auth = lies_json(hp("~/.codex/auth.json")) or {}
-        tokens = auth.get("tokens") or {}
-        codex_antwort = codex_usage_abrufen(tokens.get("access_token"), tokens.get("account_id"))
+        codex_antwort = codex_usage_abrufen(*codex_zugang())
         if codex_antwort is not None:
             erfolg, fenster_meta = codex_usage_anwenden(codex_eintrag, codex_antwort)
             if erfolg:
@@ -1613,7 +2397,7 @@ def cmd_auffrischen(args):
         else:
             codex_eintrag["hinweis"] = (codex_eintrag.get("hinweis") or "").rstrip() + \
                 " Kontingent-Endpunkt (%s) nicht erreichbar -- alter Weg (JWT/Sitzungsdateien) gilt weiter." % (
-                    os.environ.get("WB_CODEX_USAGE_URL") or CODEX_USAGE_URL_DEFAULT)
+                    _adresse("WB_CODEX_USAGE_URL", CODEX_USAGE_URL_DEFAULT)[0])
         schreibe_zustand(daten)
     # cline-pass-Kontingent (2026-09-16): derselbe Aufbau wie der Codex-Endpunkt
     # oben -- drei aktive Aufrufe (plan, users/me, usages mit Paginierung),
@@ -1626,12 +2410,20 @@ def cmd_auffrischen(args):
     # nur den hinweis.
     cline_eintrag = daten.get("harnesses", {}).get("cline-pass")
     if cline_eintrag is not None and (args.harness is None or args.harness == "cline-pass"):
-        cline_antwort, cline_fehler = cline_usage_abrufen(cline_schluessel())
+        cline_antwort, cline_fehler = cline_usage_abrufen(cline_zugang())
         if cline_antwort is None:
             cline_eintrag["hinweis"] = (cline_eintrag.get("hinweis") or "").rstrip() + \
                 " Cline-Kontingent nicht messbar (%s) -- kein Urteil." % cline_fehler
         else:
             cline_usage_anwenden(cline_eintrag, cline_antwort)
+        schreibe_zustand(daten)
+    # anthropic-api-Guthaben (Nachtrag 2026-11-11): rein lokal (Transkripte), kein Netz --
+    # trotzdem nur hier (die explizite Aktion), nicht in sammle_anthropic_api/auffrischen,
+    # damit der implizite Auto-Refresh aus pruefen() vor jedem Spawn nicht bei jedem Start
+    # alle Transkriptdateien erneut durchliest. Nur, wenn dieser Lauf die Spur neu erhoben hat.
+    aapi_eintrag = daten.get("harnesses", {}).get(ANTHROPIC_API_PROVIDER)
+    if aapi_eintrag is not None and (args.harness is None or args.harness == ANTHROPIC_API_PROVIDER):
+        anthropic_api_verbrauch_anwenden(aapi_eintrag)
         schreibe_zustand(daten)
     # Luecke 2d (2026-08-27): hoechstens einmal am Tag den Rang des OpenRouter-
     # Schluessels pruefen (50 vs. 1000 kostenlose Anfragen) -- die einzige
@@ -1775,6 +2567,16 @@ def cmd_zeigen(args):
                 print("  Quelle %-8s %s" % (feld + ":", wert))
         if e.get("hinweis"):
             print("  Hinweis: %s" % e["hinweis"])
+        # anthropic-api (Nachtrag 2026-11-11): Verbrauch heute sowie je Sitzung und
+        # Projekt -- nur zur Information, keine dieser Zahlen sperrt irgendetwas.
+        if args.harness == ANTHROPIC_API_PROVIDER:
+            if e.get("kontingent_heute_eur") is not None:
+                print("  Heute: %.3f EUR" % e["kontingent_heute_eur"])
+            je_sp = e.get("kontingent_je_sitzung_projekt_eur") or {}
+            if je_sp:
+                print("  Je Sitzung/Projekt:")
+                for sk, eur in sorted(je_sp.items(), key=lambda kv: -kv[1]):
+                    print("    %-30s %.3f EUR" % (sk, eur))
         if beob is not None:
             print("  Beobachtung (nicht gemessen): erschoepft seit %s, wieder frei ab %s. Quelle: %s"
                   % (_lesbar(beob.get("seit")), _lesbar(beob.get("faellt_zurueck_am")),
@@ -1924,6 +2726,16 @@ def cmd_pruefen(args):
               % (args.harness, aufruf), file=sys.stderr)
         return 6
 
+    # Schluesselbund-Praesenz (Befund 3, task, 11.11.2026): LIVE
+    # geprueft, nicht aus dem (bis zu MAXALTER_STUNDEN alten) Kontingent-Stand -- ein
+    # seit dem letzten Auffrischen entfernter Schluessel darf 'pruefen anthropic-api'
+    # nicht noch Stunden spaeter mit 0 beantworten. sammle_anthropic_api() selbst
+    # kann das nicht sehen: es liest nur Transkripte, nie den Schluesselbund.
+    if args.harness == ANTHROPIC_API_PROVIDER and not _anthropic_api_key_vorhanden():
+        print("wb-kontingent: kein Schluessel fuer '%s' im Schluesselbund (Dienst "
+              "'wb-anthropic-api') oder an den anderen Stellen der Kette hinterlegt -- "
+              "kein Start ueber diese Spur." % args.harness, file=sys.stderr)
+        return 5
 
     z, _ = zustand_frisch()
 
@@ -1931,6 +2743,45 @@ def cmd_pruefen(args):
     # gilt -- unabhaengig davon, ob der Harness ueberhaupt einen Sammler-Eintrag
     # hat (agy z.B. hat nie ein 'erschoepft', der Sammler kann es nicht messen).
     beob = beobachtung_wirksam(z, args.harness)
+    # Keine Dauersperre durch die Beobachtung (Konto-Block 15.11.2026): Bei anthropic-api lief die
+    # Live-Probe unten nie, solange eine eingetragene 'erschoepft'-Beobachtung galt -- gemessen am
+    # 15.11. mit der Beobachtung vom 12.11. (bis 30.11.). Darum fragt `pruefen` hier, im selben
+    # 10-Minuten-Abstand wie die Probe unten, selbst nach. Nur 200 hebt die Beobachtung auf, mit
+    # der Probe als Quelle; billing, Netzfehler und jeder andere Ausgang lassen sie stehen.
+    if (beob is not None and args.harness == ANTHROPIC_API_PROVIDER
+            and _anthropic_api_probe_faellig()
+            and _anthropic_api_probe_ausfuehren() == "frei"):
+        z.setdefault("beobachtungen", {})[args.harness] = {
+            "zustand": "frei", "seit": jetzt_iso(), "faellt_zurueck_am": "",
+            "quelle": ("Live-Probe von 'pruefen' %s: HTTP 200 mit anthropic-beta %s; hebt die "
+                       "Beobachtung 'erschoepft' seit %s auf (Quelle damals: %s)"
+                       % (jetzt_iso(), ANTHROPIC_API_PROBE_BETA, beob.get("seit") or "?",
+                          beob.get("quelle") or "?")),
+        }
+        e_api = (z.get("harnesses") or {}).get(args.harness)
+        if isinstance(e_api, dict):
+            anthropic_api_verbrauch_anwenden(e_api, probe=False)
+        schreibe_zustand(z)
+        beob = None
+    # Probe auch im freien Zustand (task, decision 2026-11-15): Bis hierher fragte
+    # nur ein gesperrter Zustand nach, also sah im Zustand frei niemand die 400 mit der Beta der
+    # Worker -- gemessen am 15.11.: 'pruefen anthropic-api' gab 0, waehrend jeder Worker-Start mit
+    # "credit balance is too low" scheiterte. Jetzt fragt `pruefen` im selben 10-Minuten-Abstand
+    # auch frei nach; 400 billing traegt die Beobachtung 'erschoepft' selbst ein (ohne
+    # Rueckfallzeit, die naechste 200 hebt sie oben wieder auf). Jeder andere Ausgang aendert nichts.
+    # Ein schon gesperrter Eintrag bleibt der Probe weiter unten (0a) ueberlassen, die ihn neu rechnet.
+    e_vorher = (z.get("harnesses") or {}).get(args.harness)
+    if (beob is None and args.harness == ANTHROPIC_API_PROVIDER
+            and not (isinstance(e_vorher, dict) and e_vorher.get("erschoepft") is True)
+            and _anthropic_api_probe_faellig()
+            and _anthropic_api_probe_ausfuehren() == "billing"):
+        beob = {
+            "zustand": "erschoepft", "seit": jetzt_iso(), "faellt_zurueck_am": "",
+            "quelle": ("Live-Probe von 'pruefen' %s: HTTP 400 billing (credit balance is too low) "
+                       "mit anthropic-beta %s" % (jetzt_iso(), ANTHROPIC_API_PROBE_BETA)),
+        }
+        z.setdefault("beobachtungen", {})[args.harness] = beob
+        schreibe_zustand(z)
     if beob is not None:
         print("wb-kontingent: Harness '%s' ist laut Beobachtung erschoepft (nicht gemessen, "
               "kein Sammler kann das hier belegen) -- kein Start. Wieder frei ab: %s. Quelle: %s"
@@ -1955,6 +2806,15 @@ def cmd_pruefen(args):
         # ein fehlendes Programm ist damit schon oben abgefangen, sonst kaeme ein
         # Harness, den die Zustandsdatei nicht kennt, nie an der Pruefung vorbei.
         return 0
+
+    # Live-Probe gegen die Verklemmung (0a): ist die anthropic-api nur wegen einer echten
+    # API-Fehlerantwort gesperrt und die letzte Probe mindestens 10 Minuten her, wird jetzt
+    # einmal nachgefragt; 200 hebt die Sperre auf, alles andere haelt sie.
+    if (args.harness == ANTHROPIC_API_PROVIDER and e.get("erschoepft") is True
+            and (e.get("kontingent") or {}).get("api_fehler_sperre") is True
+            and _anthropic_api_probe_faellig()):
+        anthropic_api_verbrauch_anwenden(e)
+        schreibe_zustand(z)
 
     if e.get("erschoepft") is True:
         k = e.get("kontingent") or {}
@@ -1993,6 +2853,11 @@ def cmd_pruefen(args):
                   "laut Vergaberegel aus: %s" % (args.modell, provider_id, spur["hinweis"]),
                   file=sys.stderr)
             return 7
+        # anthropic-api hat ABSICHTLICH keinen Sitzungs- oder Tages-Riegel (2026-11-11,
+        # ersetzt eine fruehere Fassung dieser Pruefung): Die Spur darf mehr verbrauchen
+        # und darf dem normalen Limit vorgezogen werden.
+        # Nur die harte Monats-Sperre oben (spur.erschoepft, Exit 3) gilt; eine Warnung
+        # bei der Warnschwelle bleibt reine Anzeige in 'zeigen' und sperrt hier nichts.
 
     if args.modell:
         ref = _finde_modell(args.modell, args.harness)
@@ -2069,6 +2934,67 @@ def cmd_zaehl(args):
     schreibe_zustand(z)
     print("wb-kontingent: '%s' heute %d verbraucht." % (args.spur, eintrag["verbraucht"]))
     return 0
+
+
+def cmd_fehlstart(args):
+    """Fehlstart-Erkennung (task, 0b): beobachtet das Transkript des NEUEN Workers
+    (die Datei im Verzeichnis, die den Marker enthaelt -- der eindeutige Ergebnisdateiname aus dem
+    Auftragstext) bis zu --frist Sekunden. Eine echte API-Fehlerantwort (isApiErrorMessage) mit
+    billing_error / 'credit balance is too low' ist ein Fehlstart: Exit 10, eine Zeile auf stdout.
+    Ein erfolgreicher Zug (Antwort mit usage) beendet die Beobachtung frueh mit Exit 0 ('ok'); laeuft
+    die Frist ohne beides ab, ist es Exit 0 ('offen'). Der LETZTE entscheidende Zug zaehlt: Fehler,
+    danach Erfolg gilt als Erfolg. Rein lesend, kein Netz."""
+    start = jetzt()
+    ende = start + datetime.timedelta(seconds=max(0, args.frist))
+    anlauf_ende = start + datetime.timedelta(seconds=max(0, args.anlauf))
+    gefunden = False
+    while True:
+        try:
+            namen = sorted(n for n in os.listdir(args.verzeichnis) if n.endswith(".jsonl"))
+        except OSError:
+            namen = []
+        for n in namen:
+            pfad = os.path.join(args.verzeichnis, n)
+            try:
+                with open(pfad, encoding="utf-8", errors="replace") as f:
+                    inhalt = f.read()
+            except OSError:
+                continue
+            if args.marker not in inhalt:
+                continue
+            gefunden = True
+            zustand, text = None, ""
+            for zeile in inhalt.split("\n"):
+                if args.marker in zeile:
+                    zustand, text = None, ""   # der Auftrag selbst: ab hier zaehlt, was danach kommt
+                    continue
+                try:
+                    d = json.loads(zeile)
+                except (ValueError, TypeError):
+                    continue
+                if not isinstance(d, dict):
+                    continue
+                if d.get("isApiErrorMessage") is True:
+                    t = _anthropic_api_fehlertext(d.get("message"))
+                    tl = t.lower()
+                    if "billing_error" in tl or ANTHROPIC_API_GUTHABEN_ERSCHOEPFT_SATZ in tl:
+                        zustand, text = "billing", t
+                    continue
+                msg = d.get("message")
+                if isinstance(msg, dict) and isinstance(msg.get("usage"), dict) and msg.get("model"):
+                    zustand = "ok"
+            if zustand == "billing":
+                print("FEHLSTART billing_error: %s" % " ".join(text.split())[:200])
+                return 10
+            if zustand == "ok":
+                print("ok")
+                return 0
+        # Ohne ein Transkript mit dem Marker nach --anlauf Sekunden gibt es nichts zu beobachten
+        # (kein Claude-Worker, anderer Weg): nicht die ganze Frist warten.
+        if jetzt() >= ende or (not gefunden and jetzt() >= anlauf_ende):
+            print("offen")
+            return 0
+        time.sleep(max(0.05, args.takt))
 
 
 def cmd_knapp(args):
@@ -2226,7 +3152,7 @@ def main():
     p.add_argument("--reset", metavar="ZEIT",
                    help="Restdauer ('167h41m', wie die CLIs sie melden) oder Zeitpunkt "
                         "('2026-09-03T13:25', Ortszeit)")
-    p.add_argument("--quelle", help="woher die Beobachtung stammt, z.B. 'Meldung im Pane 2026-08-27 11:44'")
+    p.add_argument("--quelle", help="woher die Beobachtung stammt, z.B. 'Meldung im Pane 2026-08-27'")
     p.set_defaults(fn=cmd_erschoepft)
 
     p = sub.add_parser("frei", help="eine fruehere 'erschoepft'-Beobachtung aufheben")
@@ -2238,6 +3164,15 @@ def main():
     p.add_argument("spur")
     p.add_argument("anzahl", nargs="?", type=int, default=1)
     p.set_defaults(fn=cmd_zaehl)
+
+    p = sub.add_parser("fehlstart", help="Transkript eines NEUEN Workers auf eine billing_error-Antwort beobachten (Exit 10 = Fehlstart)")
+    p.add_argument("--verzeichnis", required=True)
+    p.add_argument("--marker", required=True)
+    p.add_argument("--frist", type=float, default=60)
+    p.add_argument("--takt", type=float, default=2)
+    p.add_argument("--anlauf", type=float, default=15,
+                   help="Sekunden, bis ein Transkript mit dem Marker erscheinen muss (sonst 'offen')")
+    p.set_defaults(fn=cmd_fehlstart)
 
     p = sub.add_parser("aktionen", help="volle Liste der laufenden OpenRouter-Preisaktionen")
     p.set_defaults(fn=cmd_aktionen)

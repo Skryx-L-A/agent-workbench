@@ -15,7 +15,7 @@ exit 2
 '''
 # wb-geheimnis-filter -- Geheimnisfilter fuer alle Harnesses und Modelle der Werkbank.
 #
-# WOFUER (Auftrag geheimnis-filter, der Nutzer 2026-10-10): Am 09.10. landeten ein
+# WOFUER (Auftrag geheimnis-filter, decision 2026-10-10): Am 09.10. landeten ein
 # Client-Secret und eine Client-ID aus einer weitergeleiteten Mail im Toolergebnis
 # des Orchestrators und damit beim Modell. Der gemeinsame Punkt ALLER Harnesses
 # (claude, codex, pi, opencode, aider, goose, crush ...) ist der Weg zur Modell-API:
@@ -30,6 +30,12 @@ exit 2
 #     sie ausfuehrt. Ein Platzhalter, der ueber Chunk-Grenzen reicht, wird je
 #     Delta-Strom zurueckgehalten, bis er vollstaendig ist (siehe StromAufloeser).
 #   Folge: Harness und Transcript auf der Platte sehen den echten Wert, das Modell nie.
+#
+# UNDURCHSICHTIG (task, 31.10.): Gefiltert wird jede Zeichenkette und jeder
+# JSON-Schluessel. Ausgenommen sind nur belegte Orte im Protokoll der Anfrage (siehe
+# opake_orte): Pfad und Geschwister-`type` muessen passen, ein Feldname allein reicht nie.
+# Der Rueckweg setzt an keinem dieser Orte ein (siehe _block_nie), und ein Wert, den er
+# anderswo eingesetzt hat, wird auch an einem opaken Ort ersetzt.
 #
 # MUSTER: ausschliesslich hooks/lib/geheimnis_inhalt.py (`treffer()`), keine zweite
 # Liste. Dazu kommt jeder Wert, den dieser Prozess schon einmal ersetzt hat: der
@@ -50,8 +56,9 @@ exit 2
 #
 # Aufruf:
 #   wb-geheimnis-filter serve --port P [--route NAME=URL ...] [--durchreichen]
-#       Routen (Pfadpraefix /NAME/...): anthropic, openai, chatgpt, openrouter,
-#       ollama, google; weitere oder abweichende per --route (Tests: Attrappe).
+#       Routen (Pfadpraefix /NAME/...): die eingebauten stehen in geheimnis-routen.json neben dem
+#       Filter (fehlt sie oder ist sie ungueltig, startet serve nicht); weitere oder abweichende per
+#       --route (Tests: Attrappe).
 #       --durchreichen: kein Filter (nur fuer Latenz-Vergleichsmessungen).
 #       --beobachte-env VAR: zaehlt nur, wie oft der Wert der Umgebungsvariable VAR
 #       in ausgehenden Anfragen bzw. eingehenden Antworten vorkommt (Pruefbeleg ohne
@@ -60,7 +67,7 @@ exit 2
 #       Claude, Proxy-Modus siehe unten; der Dienst startet so). --ca-ordner DIR (Vorgabe
 #       --zustand), --upstream-ca DATEI und --mitm HOST=ROUTE nur fuer Tests (lokaler
 #       TLS-Stub statt Anbieter). Gefiltert werden im Tunnel nur /v1/messages(/count_tokens);
-#       dazu der Remote-Control-Spiegel (Vorgabe --rc-spiegel filtern, der Nutzer 13.10.
+#       dazu der Remote-Control-Spiegel (Vorgabe --rc-spiegel filtern, decision 10-13
 #       21:09Z: "Platzhalter auf dem Handy"; --rc-spiegel durchreichen schaltet ab);
 #       alles andere geht unveraendert durch.
 #       --struktur-datei F: Messhilfe, schreibt das JSON-Geruest (Schluessel, Typen, nie
@@ -68,6 +75,9 @@ exit 2
 #   wb-geheimnis-filter ca-anlegen [--ca-ordner DIR] [--tage N]
 #       lokale CA des Proxy-Modus anlegen bzw. bei < 7 Tagen Rest erneuern; gibt den
 #       Pfad des Buendels ca.pem aus (fuer NODE_EXTRA_CA_CERTS). Nie in einen Trust-Store.
+#   wb-geheimnis-filter routen-pruefen [--datei F]
+#       geheimnis-routen.json (Vorgabe: neben dem Filter) mit derselben Pruefung lesen wie serve; Exit 1 mit einem
+#       Satz bei Fehler. Der Dienst-Installer ruft das vor jedem Neustart.
 #   wb-geheimnis-filter filter            stdin -> stdout, Funde als [GEHEIM:<regel>]
 #   wb-geheimnis-filter mit VAR=QUELLE ... -- BEFEHL ARG...
 #       setzt VAR aus QUELLE (kc:<Dienst> = macOS-Schluesselbund, env:<NAME>,
@@ -88,11 +98,15 @@ exit 2
 # Nur Python-Standardbibliothek.
 
 import argparse
+import base64
+import binascii
 import fcntl
 import gzip
 import hashlib
 import hmac
 import http.client
+import io
+import ipaddress
 import json
 import os
 import re
@@ -103,6 +117,7 @@ import signal
 import shutil
 import socket
 import ssl
+import string
 import subprocess
 import sys
 import threading
@@ -132,43 +147,145 @@ import geheimnis_inhalt  # noqa: E402  (die eine Musterquelle)
 
 HOOKS_DIR = os.path.dirname(os.path.abspath(LIB))
 
-STANDARD_ROUTEN = {
-    'anthropic': 'https://api.anthropic.com',
-    'openai': 'https://api.openai.com',
-    'chatgpt': 'https://chatgpt.com/backend-api',
-    'openrouter': 'https://openrouter.ai/api',
-    'ollama': 'http://127.0.0.1:11434',
-    'google': 'https://generativelanguage.googleapis.com',
-    # Lokale Motoren (Sockets von wb-modell-proxy): nur fuer Harnesses, deren Provider
-    # ausdruecklich hierher zeigt.
-    'mlx': 'http://127.0.0.1:8080',
-    'omlx': 'http://127.0.0.1:8079',
-    'splash': 'http://127.0.0.1:8001',
-}
+# Die eingebauten Routen stehen nur in geheimnis-routen.json neben dem Filter (08.11.2026): dieselbe Pruefung
+# (routen_pruefen) ruft der Dienst-Installer vor jedem Neustart (`routen-pruefen`). Kein Rueckfall auf ein Literal:
+# Fehlt die Datei oder ist sie ungueltig, startet `serve` nicht.
+ROUTEN_DATEI = os.path.join(HIER, 'geheimnis-routen.json')
+ROUTEN_NAME_RX = re.compile(r'[A-Za-z0-9_-]+')
+
+
+class RoutenUngueltig(Exception):
+    """Die Routentabelle ist unbrauchbar; der Text ist ein ganzer Satz fuer das Log."""
+
+
+def _routen_paare(paare):
+    """object_pairs_hook: ein doppelter Name waere sonst still der letzte Wert."""
+    d = {}
+    for k, v in paare:
+        if k in d:
+            raise RoutenUngueltig("Der Name '%s' steht in der Routentabelle doppelt." % k)
+        d[k] = v
+    return d
+
+
+def _ist_loopback(host):
+    if host == 'localhost':
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def routen_pruefen(datei):
+    """Die eingebauten Routen aus DATEI lesen und pruefen -> {Name: Ziel}. Die eine Pruefung fuer den Filter und den
+    Dienst-Installer. Gueltig: ein Objekt mit genau dem Feld `routen`, darin mindestens eine Route; Name aus
+    Buchstaben, Ziffern, _ und -; Ziel eine URL mit Host ohne Zugangsdaten, Abfrage und Fragment, `https://` oder
+    `http://` nur zu Loopback (lokale Motoren); jede Route der aufzubrechenden Hosts (MITM_HOSTS) ist vorhanden.
+    Sonst RoutenUngueltig mit einem ganzen Satz."""
+    try:
+        with open(datei, encoding='utf-8') as f:
+            roh = json.load(f, object_pairs_hook=_routen_paare)
+    except FileNotFoundError:
+        raise RoutenUngueltig("Die Routentabelle %s fehlt." % datei) from None
+    except RoutenUngueltig:
+        raise
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise RoutenUngueltig("Die Routentabelle %s ist nicht lesbar oder kein JSON (%s)." % (datei, exc)) from None
+    if not isinstance(roh, dict) or not isinstance(roh.get('routen'), dict):
+        raise RoutenUngueltig("Die Routentabelle %s braucht ein Objekt mit dem Feld 'routen'." % datei)
+    fremd = sorted(set(roh) - {'routen'})
+    if fremd:
+        raise RoutenUngueltig("Die Routentabelle %s hat unbekannte Felder: %s." % (datei, ', '.join(map(str, fremd))))
+    tabelle = roh['routen']
+    if not tabelle:
+        raise RoutenUngueltig("Die Routentabelle %s hat keine Route." % datei)
+    for name, ziel in tabelle.items():
+        if not ROUTEN_NAME_RX.fullmatch(name):
+            raise RoutenUngueltig("Der Routenname '%s' darf nur Buchstaben, Ziffern, _ und - enthalten." % name)
+        if not isinstance(ziel, str) or not ziel or ziel != ziel.strip() or any(c.isspace() or ord(c) < 32 for c in ziel):
+            raise RoutenUngueltig("Das Ziel der Route '%s' muss eine URL ohne Leerraum sein." % name)
+        try:
+            teile = urlsplit(ziel)
+            host, _port = teile.hostname, teile.port
+        except ValueError:
+            raise RoutenUngueltig("Das Ziel der Route '%s' ist keine gueltige URL." % name) from None
+        if teile.scheme not in ('http', 'https') or not host:
+            raise RoutenUngueltig("Das Ziel der Route '%s' braucht http(s) und einen Host." % name)
+        if teile.username is not None or teile.password is not None or teile.query or teile.fragment:
+            raise RoutenUngueltig("Das Ziel der Route '%s' darf keine Zugangsdaten, Abfrage oder Fragment tragen." % name)
+        if teile.scheme == 'http' and not _ist_loopback(host):
+            raise RoutenUngueltig("Das Ziel der Route '%s' nutzt http ausserhalb von Loopback; ein entferntes Ziel braucht https." % name)
+    for host, route in MITM_HOSTS.items():
+        if route not in tabelle:
+            raise RoutenUngueltig("Die Route '%s' fuer den aufzubrechenden Host %s fehlt in der Routentabelle." % (route, host))
+    return dict(tabelle)
+
+
+def standard_routen():
+    """Die eingebauten Routen fuer `serve`; ohne gueltige Datei neben dem Filter bricht der Start ab (fail closed)."""
+    try:
+        return routen_pruefen(ROUTEN_DATEI)
+    except RoutenUngueltig as exc:
+        sys.exit('wb-geheimnis-filter: Start verweigert, kein Rueckfall auf eingebaute Werte. %s' % exc)
+
 
 PRAEFIX = 'WB_GEHEIM_'
 HEXLEN = 16
 PLATZHALTER_RX = re.compile(PRAEFIX + '[0-9a-f]{%d}' % HEXLEN)
 PLATZHALTER_LEN = len(PRAEFIX) + HEXLEN
 MAX_TABELLE = 20000
+MAX_SAUBERE_NAMEN = 100000
 
-# Undurchsichtige Felder: signierte Denkbloecke, verschluesselte Begruendungen,
-# Base64-Medien. Eine Aenderung dort bricht Signaturen oder Bilder; lesbar fuer das
-# Modell ist dort nichts, was ein Werkzeug ausgegeben haette.
-UNDURCHSICHTIG = {'signature', 'encrypted_content', 'data', 'thinking'}
 # Felder, deren Inhalt selbst JSON-Text ist: ein eingesetzter Wert muss JSON-maskiert
 # werden (Zeilenumbruch eines privaten Schluessels wird dort zu \n).
 JSON_TEXT_FELDER = {'partial_json', 'arguments'}
 # Felder, die in Stroemen stueckweise ankommen (Delta-Stroeme). Nur dort wird ein
-# moeglicher Platzhalteranfang am Ende zurueckgehalten.
+# moeglicher Platzhalteranfang am Ende zurueckgehalten. Die Menge entscheidet nur ueber das
+# Zurueckhalten, nie ueber das Aufloesen: Ein unbekanntes Feld wird sofort aufgeloest, ein
+# dort zerteilter Platzhalter bleibt schlimmstenfalls stehen.
 DELTA_FELDER = {'text', 'partial_json', 'content', 'arguments', 'delta', 'response', 'input'}
-# Nie aufloesen: Denktext. Bleibt er Platzhalter, schickt der Harness ihn unveraendert
-# zurueck und die Signatur des Denkblocks bleibt gueltig.
-NIE_AUFLOESEN = {'thinking', 'reasoning', 'reasoning_content', 'signature', 'encrypted_content'}
+
+# Opake Felder je Blocktyp. Belegt sind sie aus Messung gegen eine Attrappe (claude 2.1.316,
+# codex, pi, Struktur ohne Inhalte) und aus den Typen von @anthropic-ai/sdk 0.129.0, openai
+# 7.19.0 und @google/genai 2.21.0. Eine Aenderung dort bricht Signaturen.
+OPAK_IMMER = {
+    'redacted_thinking': ('data',),
+    'compaction': ('encrypted_content',),
+    'advisor_redacted_result': ('encrypted_content',),
+    'web_search_result': ('encrypted_content',),
+    'web_search_result_location': ('encrypted_index',),
+    'encrypted_code_execution_result': ('encrypted_stdout',),
+    'reasoning': ('encrypted_content',),
+    'reasoning.encrypted': ('data',),       # OpenRouter reasoning_details
+}
+# Bloecke, deren Text unter einer Signatur steht: Mit Signatur bleibt der Text opak, sonst
+# bricht sie. Ohne Signatur wird der Text gefiltert.
+OPAK_SIGNIERT = {
+    'thinking': ('thinking', 'signature'),
+    'compaction': ('content', 'signature'),
+    'reasoning.text': ('text', 'signature'),
+}
+# Der Remote-Control-Spiegel ist Anzeige: Dort gilt nur Signiertes als opak, 'data' und
+# 'thinking' werden gefiltert.
+RC_OPAK = ('signature', 'encrypted_content')
+# Nur diese Medien bleiben unveraendert, wenn ihr Dateikopf dazu passt. image/svg+xml ist Text.
+MEDIEN_OPAK = {'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'application/pdf'}
+DATA_URL = re.compile(r'data:([^;,]*)(?:;[^;,]*)*;base64,', re.I)
+# Rueckweg: Hier wird nie eingesetzt. Die Menge umfasst jeden Block, den der Hinweg als opak
+# fuehrt, dazu die Delta-Arten dieser Bloecke und die Base64-Quelle. Sie gilt in jeder Tiefe:
+# Nicht aufloesen ist die sichere Seite, der Platzhalter geht unveraendert zurueck.
+RUECK_NIE_TYPEN = set(OPAK_IMMER) | set(OPAK_SIGNIERT) | {
+    'thinking_delta', 'signature_delta', 'compaction_delta', 'reasoning.summary', 'base64'}
+# Denkfelder ohne eigenen Typ (Chat, Ollama), nur direkt unter message, delta oder der Wurzel.
+DENK_FELDER = {'thinking', 'reasoning', 'reasoning_content', 'reasoning_text', 'reasoning_details'}
+GEMINI_OPAK = {'thoughtSignature', 'inlineData'}
 
 HOP_BY_HOP = {'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
               'te', 'trailer', 'trailers', 'transfer-encoding', 'upgrade', 'host',
-              'content-length', 'accept-encoding'}
+              'content-length', 'accept-encoding', 'expect'}
+# 'expect' (07.11.2026): Der Filter liest den ganzen Koerper vom Client und sendet ihn ohne auf 100 Continue zu warten.
+# Ein weitergereichtes Expect liesse den Anbieter 100 Continue schicken, das der Upload als fruehe Antwort lesen muesste.
 
 
 # Latenzverteilung (Dienstbetrieb, Auftrag filter-live 2026-10-10): je Groessenklasse der
@@ -227,15 +344,74 @@ def latenz_bild(latenz):
     return aus
 
 
+# Fehler je Zielhost (Diagnose, 04.11.2026): welcher Host hinter einem Fehler steht, nur der Hostname, nie Pfad,
+# Port oder Inhalt. Schluessel 'zielhost:<fehlerart>@<host>'. Ein CONNECT nennt beliebige Hosts, darum ist die Zahl
+# der Hosts begrenzt (ZIELHOST_MAX, der Rest zaehlt unter '(weitere)'), und ein Name, der kein Hostname ist, zaehlt
+# unter '(ungueltig)'. So kann ueber den Host weder Inhalt noch eine unbegrenzte Schluesselzahl in den Bestand.
+ZIELHOST_PRAEFIX = 'zielhost:'
+ZIELHOST_MAX = 64
+ZIELHOST_WEITERE = '(weitere)'
+ZIELHOST_UNGUELTIG = '(ungueltig)'
+ZIELHOST_ZEILE = 15   # so viele Eintraege zeigt die lesbare Ansicht, die meisten Fehler zuerst
+_HOST_MUSTER = re.compile(r'(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?|[0-9a-f:.]{2,45}')
+
+
+def zielhost_name(host):
+    h = (host or '').strip().strip('[]').lower().rstrip('.')
+    if not h or len(h) > 253 or not _HOST_MUSTER.fullmatch(h):
+        return ZIELHOST_UNGUELTIG
+    return h
+
+
+def zielhost_teile(schluessel):
+    """'zielhost:<art>@<host>' -> (art, host), sonst None."""
+    if not schluessel.startswith(ZIELHOST_PRAEFIX) or '@' not in schluessel:
+        return None
+    art, _, host = schluessel[len(ZIELHOST_PRAEFIX):].rpartition('@')
+    return art, host
+
+
+def zielhost_begrenzen(werte):
+    """Hoechstens ZIELHOST_MAX Hosts behalten (die mit den meisten Fehlern), den Rest unter '(weitere)' zusammenlegen."""
+    je_host = {}
+    for k, v in werte.items():
+        t = zielhost_teile(k)
+        if t and t[1] != ZIELHOST_WEITERE:
+            je_host[t[1]] = je_host.get(t[1], 0) + v
+    if len(je_host) <= ZIELHOST_MAX:
+        return werte
+    behalten = set(sorted(je_host, key=lambda h: (-je_host[h], h))[:ZIELHOST_MAX])
+    aus = {}
+    for k, v in werte.items():
+        t = zielhost_teile(k)
+        if t and t[1] != ZIELHOST_WEITERE and t[1] not in behalten:
+            k = '%s%s@%s' % (ZIELHOST_PRAEFIX, t[0], ZIELHOST_WEITERE)
+        aus[k] = aus.get(k, 0) + v
+    return aus
+
+
 class Zaehler:
     def __init__(self):
         self._l = threading.Lock()
         self.werte = {}
         self.latenz = {}
+        self._hosts = set()
 
     def plus(self, name, n=1):
         with self._l:
             self.werte[name] = self.werte.get(name, 0) + n
+
+    def host_plus(self, art, host, n=1):
+        """Fehlerart je Zielhost zaehlen; zusaetzlich zum Zaehler <art> selbst, der bleibt wie er ist."""
+        h = zielhost_name(host)
+        with self._l:
+            if h not in self._hosts:
+                if len(self._hosts) >= ZIELHOST_MAX:
+                    h = ZIELHOST_WEITERE
+                else:
+                    self._hosts.add(h)
+            k = '%s%s@%s' % (ZIELHOST_PRAEFIX, art, h)
+            self.werte[k] = self.werte.get(k, 0) + n
 
     def zeit(self, name, sek):
         with self._l:
@@ -310,7 +486,7 @@ class Bestand:
                 ziel = ls.setdefault(klasse, {}).setdefault(art, [0] * len(EIMER_MS))
                 for i, c in enumerate(eimer):
                     ziel[i] += c
-        return zs, ls
+        return zielhost_begrenzen(zs), ls
 
     def speichern(self, z, erzwingen=False):
         if not self.pfad:
@@ -359,12 +535,13 @@ def _security_werkzeug():
     return os.path.realpath(tool)
 
 
-def _mac_eintrag(keychain, neu=None):
-    """System-security ersetzen: Dialogsperre und Zugriff im SELBEN Prozess.
+def _mac_eintrag(keychain):
+    """Alter Leseweg fuer Eintraege, die vor dem 03.11.2026 im selben Prozess angelegt wurden: Dialogsperre und
+    Zugriff im SELBEN Prozess. Er gelingt nur, solange der Interpreter derselbe ist wie beim Anlegen.
 
     SecKeychainSetUserInteractionAllowed im Elternprozess sperrt keine Dialoge
-    eines security-Kindprozesses. Daher fuer das Systemwerkzeug die zugehoerige
-    Security-API verwenden; eigene Werkzeugadapter bleiben per PATH austauschbar.
+    eines security-Kindprozesses. Deshalb ruft _schluessel_lesen security nur, wenn
+    die Zugriffsliste es ohne Dialog zulaesst.
     """
     import ctypes
     sec = ctypes.CDLL('/System/Library/Frameworks/Security.framework/Security')
@@ -376,8 +553,6 @@ def _mac_eintrag(keychain, neu=None):
     sec.SecKeychainOpen.argtypes = [ctypes.c_char_p, ctypes.POINTER(pointer)]
     sec.SecKeychainFindGenericPassword.argtypes = [pointer, ctypes.c_uint32, ctypes.c_char_p,
         ctypes.c_uint32, ctypes.c_char_p, ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(pointer), pointer]
-    sec.SecKeychainAddGenericPassword.argtypes = [pointer, ctypes.c_uint32, ctypes.c_char_p,
-        ctypes.c_uint32, ctypes.c_char_p, ctypes.c_uint32, ctypes.c_char_p, pointer]
     sec.SecKeychainItemFreeContent.argtypes = [pointer, pointer]
     cf.CFRelease.argtypes = [pointer]
     ref = pointer()
@@ -385,11 +560,6 @@ def _mac_eintrag(keychain, neu=None):
         schluessel_fehler('Keychain nicht erreichbar')
     service, account = SCHLUESSEL_DIENST.encode(), SCHLUESSEL_KONTO.encode()
     try:
-        if neu is not None:
-            value = neu.encode('ascii')
-            rc = sec.SecKeychainAddGenericPassword(ref, len(service), service,
-                                                  len(account), account, len(value), value, None)
-            return subprocess.CompletedProcess([], rc, '', '')
         size, data = ctypes.c_uint32(), pointer()
         rc = sec.SecKeychainFindGenericPassword(ref, len(service), service, len(account), account,
                                                ctypes.byref(size), ctypes.byref(data), None)
@@ -405,6 +575,117 @@ def _mac_eintrag(keychain, neu=None):
         return subprocess.CompletedProcess([], 44 if rc == -25300 else rc, value, '')
     finally:
         cf.CFRelease(ref)
+
+
+SECURITY_SYSTEM = '/usr/bin/security'
+# Einmaliger Schritt fuer einen Eintrag, den nur ein anderes Programm lesen darf (03.11.2026: Homebrew ersetzte das Python,
+# das den Eintrag angelegt hatte). Der Mensch tippt ihn selbst; nie ein Agent, sonst oeffnet er beim Menschen einen Dialog.
+SCHRITT_FREIGABE = ('einmalig selbst im Terminal `/usr/bin/security find-generic-password -s %s -a %s -w >/dev/null` '
+                    'ausfuehren und "Immer erlauben" mit dem Schluesselbund-Passwort bestaetigen, dann erneut installieren')
+
+
+def _mac_zugriff_roh(keychain):
+    """Zugriffsliste des Eintrags lesen: Dialoge gesperrt, im selben Prozess, OHNE den Wert zu entschluesseln.
+
+    -> None, wenn es den Eintrag nicht gibt; sonst eine Liste (Autorisierungen, App-Pfade oder None fuer jede App,
+    Partitionskennungen oder None). Die Daten-Zeiger bleiben NULL: macOS prueft die Zugriffsliste dann nicht.
+    """
+    import ctypes
+    import plistlib
+    P = ctypes.c_void_p
+    sec = ctypes.CDLL('/System/Library/Frameworks/Security.framework/Security')
+    cf = ctypes.CDLL('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation')
+    sec.SecKeychainSetUserInteractionAllowed.argtypes = [ctypes.c_bool]
+    if sec.SecKeychainSetUserInteractionAllowed(False) != 0:
+        schluessel_fehler('Dialogsperre nicht verfuegbar')
+    sec.SecKeychainOpen.argtypes = [ctypes.c_char_p, ctypes.POINTER(P)]
+    sec.SecKeychainFindGenericPassword.argtypes = [P, ctypes.c_uint32, ctypes.c_char_p, ctypes.c_uint32,
+                                                   ctypes.c_char_p, P, P, ctypes.POINTER(P)]
+    sec.SecKeychainItemCopyAccess.argtypes = [P, ctypes.POINTER(P)]
+    sec.SecAccessCopyACLList.argtypes = [P, ctypes.POINTER(P)]
+    sec.SecACLCopyContents.argtypes = [P, ctypes.POINTER(P), ctypes.POINTER(P), ctypes.POINTER(ctypes.c_uint16)]
+    sec.SecACLCopyAuthorizations.argtypes = [P]
+    sec.SecACLCopyAuthorizations.restype = P
+    sec.SecTrustedApplicationCopyData.argtypes = [P, ctypes.POINTER(P)]
+    cf.CFRelease.argtypes = [P]
+    cf.CFArrayGetCount.argtypes = [P]
+    cf.CFArrayGetCount.restype = ctypes.c_long
+    cf.CFArrayGetValueAtIndex.argtypes = [P, ctypes.c_long]
+    cf.CFArrayGetValueAtIndex.restype = P
+    cf.CFDataGetLength.argtypes = [P]
+    cf.CFDataGetLength.restype = ctypes.c_long
+    cf.CFDataGetBytePtr.argtypes = [P]
+    cf.CFDataGetBytePtr.restype = P
+    cf.CFStringGetCString.argtypes = [P, ctypes.c_char_p, ctypes.c_long, ctypes.c_uint32]
+    frei = []
+
+    def text(ref):
+        b = ctypes.create_string_buffer(8192)
+        return b.value.decode('utf-8', 'replace') if ref and cf.CFStringGetCString(ref, b, 8192, 0x08000100) else ''
+
+    def liste(ref):
+        return [cf.CFArrayGetValueAtIndex(ref, i) for i in range(cf.CFArrayGetCount(ref))] if ref else []
+
+    ref = P()
+    if sec.SecKeychainOpen(os.fsencode(keychain), ctypes.byref(ref)) != 0:
+        schluessel_fehler('Keychain nicht erreichbar')
+    frei.append(ref)
+    try:
+        service, account = SCHLUESSEL_DIENST.encode(), SCHLUESSEL_KONTO.encode()
+        item = P()
+        rc = sec.SecKeychainFindGenericPassword(ref, len(service), service, len(account), account,
+                                                None, None, ctypes.byref(item))
+        if rc == -25300:
+            return None
+        if rc != 0 or not item:
+            schluessel_fehler('Eintrag nicht lesbar oder Speicher gesperrt/nicht erreichbar')
+        frei.append(item)
+        zugang, acls = P(), P()
+        if sec.SecKeychainItemCopyAccess(item, ctypes.byref(zugang)) != 0:
+            schluessel_fehler('Zugriffsliste des Eintrags nicht lesbar')
+        frei.append(zugang)
+        if sec.SecAccessCopyACLList(zugang, ctypes.byref(acls)) != 0:
+            schluessel_fehler('Zugriffsliste des Eintrags nicht lesbar')
+        frei.append(acls)
+        ergebnis = []
+        for acl in liste(acls.value):
+            apps, beschreibung, frage = P(), P(), ctypes.c_uint16()
+            if sec.SecACLCopyContents(acl, ctypes.byref(apps), ctypes.byref(beschreibung), ctypes.byref(frage)) != 0:
+                schluessel_fehler('Zugriffsliste des Eintrags nicht lesbar')
+            frei.extend(r for r in (apps, beschreibung) if r)
+            rechte = sec.SecACLCopyAuthorizations(acl)
+            if rechte:
+                frei.append(P(rechte))
+            namen = [text(r) for r in liste(rechte)]
+            pfade = None
+            if apps:
+                pfade = []
+                for app in liste(apps.value):
+                    d = P()
+                    if sec.SecTrustedApplicationCopyData(app, ctypes.byref(d)) == 0 and d:
+                        frei.append(d)
+                        pfade.append(os.fsdecode(ctypes.string_at(cf.CFDataGetBytePtr(d), cf.CFDataGetLength(d)).rstrip(b'\0')))
+            partitionen = None
+            if 'ACLAuthorizationPartitionID' in namen:
+                try:
+                    partitionen = list(plistlib.loads(bytes.fromhex(text(beschreibung))).get('Partitions', []))
+                except (ValueError, plistlib.InvalidFileException):
+                    partitionen = []
+            ergebnis.append((namen, pfade, partitionen))
+        return ergebnis
+    finally:
+        for r in reversed(frei):
+            cf.CFRelease(r)
+
+
+def _zugriff_bewerten(acls):
+    """-> 'system', wenn /usr/bin/security den Eintrag ohne Dialog entschluesseln darf: Es steht in der Liste fuer
+    Decrypt (oder sie erlaubt jede App), und eine Partitionsliste nennt apple-tool:. Sonst 'fremd'."""
+    entschluesseln = any('ACLAuthorizationDecrypt' in namen and (pfade is None or SECURITY_SYSTEM in pfade)
+                         for namen, pfade, _ in acls)
+    partitionen = [p for _, _, teil in acls if teil is not None for p in teil]
+    partition_ok = 'apple-tool:' in partitionen or not any(teil is not None for _, _, teil in acls)
+    return 'system' if entschluesseln and partition_ok else 'fremd'
 
 
 def _mac_keychain(keychain):
@@ -442,7 +723,24 @@ def _schluessel_lesen(keychain):
         security = _security_werkzeug()
         cmd = [security, 'find-generic-password', '-s', SCHLUESSEL_DIENST,
                '-a', SCHLUESSEL_KONTO, '-w'] + ([keychain] if keychain else [])
-        r = _mac_eintrag(keychain) if security == '/usr/bin/security' else _schluessel_befehl(cmd)
+        if security == SECURITY_SYSTEM:
+            # 03.11.2026: Ein Eintrag, den das ad-hoc-signierte Homebrew-Python anlegt, bindet macOS an dessen cdhash;
+            # jedes brew-Update macht ihn unlesbar. Stabil ist nur das Apple-signierte /usr/bin/security. Einen
+            # security-Kindprozess kann die Dialogsperre dieses Prozesses nicht erfassen (11.10.), darum entscheidet
+            # erst die Zugriffsliste, gelesen ohne Dialog und ohne Entschluesseln: Darf security, liest security;
+            # sonst nur der alte Weg im selben Prozess, der allein mit dem anlegenden Interpreter gelingt.
+            acls = _mac_zugriff_roh(keychain)
+            if acls is None:
+                return None
+            if _zugriff_bewerten(acls) == 'system':
+                r = _schluessel_befehl(cmd)
+            else:
+                r = _mac_eintrag(keychain)
+                if r.returncode != 0:
+                    schluessel_fehler('Eintrag ist an ein anderes Programm gebunden (etwa ein ersetztes Homebrew-Python); '
+                                      + SCHRITT_FREIGABE % (SCHLUESSEL_DIENST, SCHLUESSEL_KONTO))
+        else:
+            r = _schluessel_befehl(cmd)
         fehlt = r.returncode == 44  # errSecItemNotFound; andere Fehler NIE als fehlend werten
     else:
         if keychain:
@@ -491,14 +789,14 @@ def schluessel_laden(keychain=None):
             return wert
         neu = secrets.token_hex(32)
         if sys.platform == 'darwin':
-            # Eigene security-Adapter lesen den Wert ueber stdin, nie als Prozessargument.
-            # Kein -U: vorhandene Eintraege werden niemals ueberschrieben.
+            # security liest den Wert ueber stdin, nie als Prozessargument. Kein -U: vorhandene Eintraege werden
+            # niemals ueberschrieben. Auch am echten Schluesselbund legt /usr/bin/security an (03.11.2026): Dann
+            # steht es mit der Partition apple-tool: in der Zugriffsliste, und ein brew-Update aendert daran nichts.
+            # Anlegen in einem entsperrten Schluesselbund fragt nicht; gesperrt hat _mac_keychain vorher abgebrochen.
             import shlex
             cmd = ['add-generic-password', '-s', SCHLUESSEL_DIENST, '-a', SCHLUESSEL_KONTO,
-                   '-T', '/usr/bin/security', '-w', neu] + ([keychain] if keychain else [])
-            security = _security_werkzeug()
-            r = (_mac_eintrag(keychain, neu) if security == '/usr/bin/security'
-                 else _schluessel_befehl([security, '-i'], shlex.join(cmd) + '\n'))
+                   '-T', SECURITY_SYSTEM, '-w', neu] + ([keychain] if keychain else [])
+            r = _schluessel_befehl([_security_werkzeug(), '-i'], shlex.join(cmd) + '\n')
         else:
             r = _schluessel_befehl(['secret-tool', 'store', '--label=Workbench Geheimnisfilter HMAC',
                                    'service', SCHLUESSEL_DIENST, 'account', SCHLUESSEL_KONTO], neu + '\n')
@@ -520,6 +818,8 @@ class Tabelle:
         self.zu_wert = {}
         self.werte_nach_laenge = []
         self._werte = set()
+        self._eingesetzt = set()    # Werte, die der Rueckweg an den Harness gegeben hat
+        self.saubere_namen = set()  # JSON-Schluessel ohne Musterfund; Muster aendern sich nicht
         self.public = geheimnis_inhalt.load_public_values(HOOKS_DIR)
 
     def platzhalter(self, wert):
@@ -529,7 +829,7 @@ class Tabelle:
             if p not in self.zu_wert:
                 if len(self.zu_wert) >= MAX_TABELLE:
                     alt = next(iter(self.zu_wert))
-                    del self.zu_wert[alt]
+                    self._eingesetzt.discard(self.zu_wert.pop(alt))
                 self.zu_wert[p] = wert
                 self._werte = set(self.zu_wert.values())
                 self.werte_nach_laenge = sorted(self._werte, key=len, reverse=True)
@@ -547,25 +847,75 @@ class Tabelle:
         with self._l:
             return list(self.werte_nach_laenge)
 
+    def merke_eingesetzt(self, wert):
+        with self._l:
+            self._eingesetzt.add(wert)
+
+    def eingesetzte_werte(self):
+        with self._l:
+            return list(self._eingesetzt)
+
 
 def _privater_block(text, start):
     """Der Musterfund private_key_block ist nur die BEGIN-Zeile; ersetzt wird der ganze
-    Block bis zur passenden END-Zeile, sonst bliebe der Schluesselkoerper lesbar."""
+    Block bis zur passenden END-Zeile, sonst bliebe der Schluesselkoerper lesbar. Ohne END-Zeile
+    (abgeschnittene Ausgabe) gilt alles bis zum Ende des Felds als Schluessel."""
     m = re.compile(r'-----END [A-Z ]*PRIVATE KEY-----').search(text, start)
-    return text[start:m.end()] if m else None
+    return text[start:m.end()] if m else text[start:]
+
+
+def _private_bloecke(text, kopf):
+    """Alle Bloecke mit der BEGIN-Zeile `kopf`. treffer() nennt die Zeile, nicht die Stelle: Eine
+    Suche nach dem ersten Vorkommen liesse den zweiten Schluessel eines Felds stehen."""
+    bloecke, pos = [], 0
+    while (start := text.find(kopf, pos)) >= 0:
+        block = _privater_block(text, start)
+        bloecke.append(block)
+        pos = start + len(block)
+    return bloecke or [kopf]
+
+
+ERSATZ_ZEICHEN = '\ufffd'
+SCHATTEN_ALPHABET = string.ascii_letters + string.digits
+EINZELNES_ERSATZZEICHEN = re.compile('[\ud800-\udfff]')
+
+
+def _schatten(text):
+    """Text gleicher Laenge, in dem jedes U+FFFD durch ein Zeichen der Werteklasse des Musters
+    ersetzt ist (reihum, damit die Entropie eines Werts nicht sinkt). Die Muster kennen U+FFFD nicht
+    und endeten sonst vor dem Zeichen: ein Wert mit einem Ersatzzeichen in der Mitte waere
+    gekuerzt und unter der Entropieschwelle (gemessen 31.10., 24 von 300 Zuegen)."""
+    n = iter(range(len(text)))
+    return re.sub(ERSATZ_ZEICHEN, lambda _m: SCHATTEN_ALPHABET[next(n) % len(SCHATTEN_ALPHABET)], text)
+
+
+def _treffer(text, tabelle):
+    """Muster-Treffer von `text` als (Regel, Wert). Steht U+FFFD im Text, laufen die Muster
+    zusaetzlich ueber den Schattentext; der Wert ist dann der Ausschnitt des Originals an jeder Stelle,
+    an der der Schattenwert steht, also einschliesslich des Zeichens."""
+    for _zeile, regel, wert, _ent in geheimnis_inhalt.treffer(text, True, tabelle.public, True):
+        yield regel, wert
+    if ERSATZ_ZEICHEN not in text:
+        return
+    schatten = _schatten(text)
+    for _zeile, regel, wert, _ent in geheimnis_inhalt.treffer(schatten, True, tabelle.public, True):
+        if regel == 'private_key_block':
+            continue    # Die BEGIN-Zeile enthaelt kein Ersatzzeichen; der Fund oben deckt sie ab
+        i = schatten.find(wert)
+        while i >= 0:
+            yield regel, text[i:i + len(wert)]
+            i = schatten.find(wert, i + 1)
 
 
 def muster_funde(text, tabelle, regeln=None):
     """Werte, die die Muster in `text` finden (privater Schluessel als ganzer Block).
     regeln: optionales dict, bekommt je Fund den Regelnamen (fuer Zaehler, nie Werte)."""
     funde = set()
-    for _zeile, regel, wert, _ent in geheimnis_inhalt.treffer(text, True, tabelle.public, True):
-        if regel == 'private_key_block':
-            block = _privater_block(text, text.find(wert))
-            wert = block or wert
-        funde.add(wert)
-        if regeln is not None:
-            regeln[wert] = regel
+    for regel, wert in _treffer(text, tabelle):
+        for w in _private_bloecke(text, wert) if regel == 'private_key_block' else (wert,):
+            funde.add(w)
+            if regeln is not None:
+                regeln[w] = regel
     return funde
 
 
@@ -594,14 +944,247 @@ def ersetze_text(text, tabelle, z, muster=True):
     return text
 
 
-def sammle_json(obj, tabelle, schluessel=None, z=None, opak=UNDURCHSICHTIG):
+def _kopf_passt(b64):
+    """Beginnt der Base64-Text mit dem Dateikopf eines Bildes oder PDF? Nur der Anfang wird
+    dekodiert, die Pruefung bleibt auch bei grossen Bildern billig."""
+    try:
+        kopf = binascii.a2b_base64(b64[:24], strict_mode=True)
+    except (binascii.Error, ValueError):
+        return False
+    return (kopf.startswith((b'\x89PNG\r\n\x1a\n', b'\xff\xd8\xff', b'GIF87a', b'GIF89a', b'%PDF-'))
+            or (kopf[:4] == b'RIFF' and kopf[8:12] == b'WEBP'))
+
+
+def _dicts(x):
+    if isinstance(x, dict):
+        return (x,)
+    if isinstance(x, list):
+        return [v for v in x if isinstance(v, dict)]
+    return ()
+
+
+def opake_felder(block):
+    """Die Felder eines Blocks, die sein `type` opak macht. Gemeinsame Quelle des Hinwegs;
+    der Rueckweg leitet RUECK_NIE_TYPEN aus denselben Tabellen ab."""
+    t = block.get('type')
+    if not isinstance(t, str):
+        return ()
+    felder = OPAK_IMMER.get(t, ())
+    signiert = OPAK_SIGNIERT.get(t)
+    if signiert and isinstance(block.get('signature'), str) and block['signature']:
+        felder += signiert
+    return felder
+
+
+class Orte:
+    """Ergebnis der Ortspruefung einer Anfrage. opak: id(Behaelter) -> Schluessel der Felder, die
+    unveraendert bleiben. medien: Base64-Inhalte, die als Text gelten und dekodiert gefiltert
+    werden. Die Ids gelten, solange das JSON-Objekt lebt; Filter und Ortspruefung teilen es."""
+
+    def __init__(self):
+        self.opak = {}
+        self.medien = []
+
+    def _opak(self, behaelter, schluessel):
+        self.opak.setdefault(id(behaelter), set()).add(schluessel)
+
+    def felder(self, block, namen):
+        for n in namen:
+            if isinstance(block.get(n), str):
+                self._opak(block, n)
+
+    def medium(self, behaelter, schluessel, media_typ, praefix=''):
+        """media_typ None: Das Protokoll nennt keinen Typ (Ollama images), es zaehlt der
+        Dateikopf. Alles ausser Bild und PDF gilt als Text: dekodieren, filtern, neu kodieren."""
+        wert = behaelter[schluessel]
+        if not isinstance(wert, str):
+            return
+        n = len(praefix)
+        if (media_typ is None or (isinstance(media_typ, str) and media_typ.lower() in MEDIEN_OPAK)) \
+                and _kopf_passt(wert[n:n + 24]):
+            self._opak(behaelter, schluessel)
+            return
+        try:
+            roh = base64.b64decode(wert[n:], validate=True)
+        except (binascii.Error, ValueError):
+            return    # kein Base64: bleibt eine gewoehnliche Zeichenkette und wird gefiltert
+        try:
+            text, kodierung = roh.decode('utf-8'), 'utf-8'
+        except UnicodeDecodeError:
+            try:
+                # Ein einzelnes Ersatzzeichen als WTF-8 (ED A0 BD): als Ersatzzeichen lesen, nicht als
+                # drei Latin-1-Zeichen, die einen Wert zerschneiden. filtere_json macht U+FFFD daraus.
+                text, kodierung = roh.decode('utf-8', 'surrogatepass'), 'utf-8'
+            except UnicodeDecodeError:
+                text, kodierung = roh.decode('latin-1'), 'latin-1'
+        self.medien.append((behaelter, schluessel, praefix, text, kodierung))
+
+    def data_url(self, behaelter, schluessel):
+        wert = behaelter[schluessel]
+        m = DATA_URL.match(wert) if isinstance(wert, str) else None
+        if m:
+            self.medium(behaelter, schluessel, m.group(1), wert[:m.end()])
+
+
+# Anthropic Messages. Oben: direkt in messages[].content[]. Innen: Blocktyp -> Typen, die unter
+# seinem `content` stehen duerfen. Ein Block anderswo, etwa in tool_use.input, ist nie opak.
+ANTHROPIC_OBEN = {'thinking', 'redacted_thinking', 'compaction'}
+ANTHROPIC_MEDIEN = {'image', 'document'}
+ANTHROPIC_INNEN = {
+    'tool_result': ANTHROPIC_MEDIEN,
+    'mcp_tool_result': ANTHROPIC_MEDIEN,
+    'web_search_tool_result': {'web_search_result'},
+    'web_fetch_tool_result': {'web_fetch_result'},
+    'web_fetch_result': {'document'},
+    'advisor_tool_result': {'advisor_redacted_result'},
+    'code_execution_tool_result': {'encrypted_code_execution_result'},
+}
+
+
+def _anthropic_medium(block, orte):
+    quelle = block.get('source')
+    if not isinstance(quelle, dict):
+        return
+    if quelle.get('type') == 'base64' and 'data' in quelle:
+        orte.medium(quelle, 'data', quelle.get('media_type') or '')
+    elif quelle.get('type') == 'content':
+        for innen in _dicts(quelle.get('content')):
+            if innen.get('type') == 'image':
+                _anthropic_medium(innen, orte)
+
+
+def _anthropic_innen(block, orte):
+    erlaubt = ANTHROPIC_INNEN.get(block.get('type'))
+    if not erlaubt:
+        return
+    for innen in _dicts(block.get('content')):
+        t = innen.get('type')
+        if t not in erlaubt:
+            continue
+        if t in ANTHROPIC_MEDIEN:
+            _anthropic_medium(innen, orte)
+        else:
+            orte.felder(innen, opake_felder(innen))
+            _anthropic_innen(innen, orte)
+
+
+def _orte_anthropic(obj, orte):
+    for nachricht in _dicts(obj.get('messages')):
+        for block in _dicts(nachricht.get('content')):
+            t = block.get('type')
+            if t in ANTHROPIC_OBEN:
+                orte.felder(block, opake_felder(block))
+            elif t in ANTHROPIC_MEDIEN:
+                _anthropic_medium(block, orte)
+            elif t == 'text':
+                for zitat in _dicts(block.get('citations')):
+                    if zitat.get('type') == 'web_search_result_location':
+                        orte.felder(zitat, opake_felder(zitat))
+            else:
+                _anthropic_innen(block, orte)
+
+
+def _responses_teil(teil, orte):
+    if teil.get('type') == 'input_image' and 'image_url' in teil:
+        orte.data_url(teil, 'image_url')
+    elif teil.get('type') == 'input_file' and 'file_data' in teil:
+        orte.data_url(teil, 'file_data')
+
+
+def _orte_responses(obj, orte):
+    for eintrag in _dicts(obj.get('input')):
+        t = eintrag.get('type')
+        if t in ('reasoning', 'compaction'):
+            orte.felder(eintrag, OPAK_IMMER[t])
+        elif t in ('function_call_output', 'custom_tool_call_output'):
+            for teil in _dicts(eintrag.get('output')):
+                _responses_teil(teil, orte)
+        elif t == 'message' or 'role' in eintrag:
+            for teil in _dicts(eintrag.get('content')):
+                _responses_teil(teil, orte)
+
+
+def _orte_chat(obj, orte):
+    for nachricht in _dicts(obj.get('messages')):
+        for teil in _dicts(nachricht.get('content')):
+            innen = teil.get(teil.get('type')) if isinstance(teil.get('type'), str) else None
+            if not isinstance(innen, dict):
+                continue
+            if teil['type'] == 'image_url' and 'url' in innen:
+                orte.data_url(innen, 'url')
+            elif teil['type'] == 'file' and 'file_data' in innen:
+                orte.data_url(innen, 'file_data')
+        for detail in _dicts(nachricht.get('reasoning_details')):
+            if isinstance(detail.get('type'), str) and detail['type'].startswith('reasoning.'):
+                orte.felder(detail, opake_felder(detail))
+
+
+def _gemini_teil(teil, orte):
+    if isinstance(teil.get('thoughtSignature'), str) and teil['thoughtSignature']:
+        orte.felder(teil, ('thoughtSignature', 'text') if teil.get('thought') is True
+                    else ('thoughtSignature',))
+    blob = teil.get('inlineData')
+    if isinstance(blob, dict) and 'data' in blob:
+        orte.medium(blob, 'data', blob.get('mimeType') or '')
+    antwort = teil.get('functionResponse')
+    if isinstance(antwort, dict):
+        for innen in _dicts(antwort.get('parts')):
+            _gemini_teil(innen, orte)
+
+
+def _orte_gemini(obj, orte):
+    for inhalt in _dicts(obj.get('contents')):
+        for teil in _dicts(inhalt.get('parts')):
+            _gemini_teil(teil, orte)
+
+
+def _ollama_bilder(behaelter, orte):
+    bilder = behaelter.get('images')
+    if isinstance(bilder, list):
+        for i, bild in enumerate(bilder):
+            if isinstance(bild, str) and bild.startswith('data:'):
+                orte.data_url(bilder, i)
+            else:
+                orte.medium(bilder, i, None)
+
+
+def _orte_ollama(obj, orte):
+    _ollama_bilder(obj, orte)    # /api/generate
+    for nachricht in _dicts(obj.get('messages')):
+        _ollama_bilder(nachricht, orte)
+
+
+PROTOKOLLE = (
+    (re.compile(r'/messages(/count_tokens)?/?$'), _orte_anthropic),
+    (re.compile(r'/responses(/compact)?/?$'), _orte_responses),
+    (re.compile(r'/chat/completions/?$'), _orte_chat),
+    (re.compile(r':(streamGenerateContent|generateContent|countTokens)$'), _orte_gemini),
+    (re.compile(r'/api/(chat|generate)/?$'), _orte_ollama),
+)
+
+
+def opake_orte(pfad, obj):
+    """Ortspruefung des Hinwegs. Der Anfragepfad waehlt das Protokoll; ein anderer Pfad hat
+    keine opaken Orte, dort wird alles gefiltert."""
+    orte = Orte()
+    if isinstance(obj, dict):
+        p = pfad.split('?', 1)[0]
+        for rx, finde in PROTOKOLLE:
+            if rx.search(p):
+                finde(obj, orte)
+                break
+    return orte
+
+
+def sammle_json(obj, tabelle, z=None, opak={}, namen=None):
     """Erster Durchgang des Hinwegs: die Musterfunde ALLER Zeichenketten anmelden, bevor
     irgendwo ersetzt wird. Sonst haengt es von der Reihenfolge im Koerper ab, ob ein Wert,
     der in einem frueheren Feld ohne Schluesselwort steht (aufgeloester Befehl, Zusammen-
     fassung nach einer Kompaktierung), schon bekannt ist -- nach einem Neustart des Proxys
-    ist die Tabelle leer, und genau dann ginge er durch."""
+    ist die Tabelle leer, und genau dann ginge er durch.
+    namen: Menge, die alle JSON-Schluessel aufnimmt; sie werden gesammelt geprueft."""
     if isinstance(obj, str):
-        if schluessel in opak or len(obj) < 8:
+        if len(obj) < 8:
             return
         regeln = {}
         for w in muster_funde(obj, tabelle, regeln):
@@ -610,38 +1193,128 @@ def sammle_json(obj, tabelle, schluessel=None, z=None, opak=UNDURCHSICHTIG):
                     # Je NEU erkanntem Wert der Regelname (Fehlalarme sichtbar machen).
                     z.plus('neu_regel_' + regeln.get(w, '?'))
                 tabelle.platzhalter(w)
-    elif isinstance(obj, list):
-        for v in obj:
-            sammle_json(v, tabelle, schluessel, z, opak)
-    elif isinstance(obj, dict):
-        for k, v in obj.items():
-            sammle_json(v, tabelle, k, z, opak)
+    elif isinstance(obj, (list, dict)):
+        hier = opak.get(id(obj), ())
+        if isinstance(obj, list):
+            paare = enumerate(obj)
+        else:
+            paare = obj.items()
+            if namen is not None:
+                namen.update(obj)
+        for k, v in paare:
+            if k not in hier:
+                sammle_json(v, tabelle, z, opak, namen)
 
 
-def ersetze_json(obj, tabelle, z, schluessel=None, muster=True, opak=UNDURCHSICHTIG):
-    """Alle Zeichenketten eines JSON-Objekts filtern (Hinweg). -> (neues Objekt, geaendert)."""
+def _opak_pruefen(wert, tabelle, z, eingesetzt):
+    """Ein opaker Ort bleibt bytegleich, ausser dort steht ein Wert, den der Rueckweg dem
+    Harness gegeben hat. Dann bricht lieber die Signatur, als dass der Wert hinausgeht."""
+    for w in eingesetzt:
+        if w in wert:
+            wert = wert.replace(w, tabelle.platzhalter(w))
+            z.plus('opak_eingesetzt_ersetzt')
+    return wert
+
+
+def ersetze_json(obj, tabelle, z, muster=True, opak={}, eingesetzt=(), namen=False):
+    """Alle Zeichenketten eines JSON-Objekts filtern (Hinweg). -> (neues Objekt, geaendert).
+    namen: JSON-Schluessel ebenfalls ersetzen."""
     if isinstance(obj, str):
-        if schluessel in opak:
-            return obj, False
         neu = ersetze_text(obj, tabelle, z, muster)
         return neu, neu is not obj and neu != obj
-    if isinstance(obj, list):
+    if isinstance(obj, (list, dict)):
         geaendert = False
-        for i, v in enumerate(obj):
-            n, g = ersetze_json(v, tabelle, z, schluessel, muster, opak)
-            if g:
-                obj[i] = n
-                geaendert = True
-        return obj, geaendert
-    if isinstance(obj, dict):
-        geaendert = False
-        for k in list(obj.keys()):
-            n, g = ersetze_json(obj[k], tabelle, z, k, muster, opak)
+        hier = opak.get(id(obj), ())
+        for k in (range(len(obj)) if isinstance(obj, list) else list(obj.keys())):
+            if k in hier:
+                n = _opak_pruefen(obj[k], tabelle, z, eingesetzt)
+                g = n != obj[k]
+            else:
+                n, g = ersetze_json(obj[k], tabelle, z, muster, opak, eingesetzt, namen)
             if g:
                 obj[k] = n
                 geaendert = True
+        if namen and isinstance(obj, dict):
+            neu = {ersetze_text(k, tabelle, z, muster): v for k, v in obj.items()}
+            if list(neu) != list(obj):
+                obj.clear()
+                obj.update(neu)
+                geaendert = True
         return obj, geaendert
     return obj, False
+
+
+def ersatzzeichen_ersetzen(obj, opak={}):
+    """Vorlauf des Hinwegs: Ein einzelnes UTF-16-Ersatzzeichen (das JSON-Escape \\ud83d allein) ausserhalb
+    opaker Orte wird U+FFFD, in Werten wie in JSON-Schluesseln. Es steht dann nicht mehr als Trenner in
+    einem Wert, und der Koerper bleibt kodierbar: ein Fund endet nicht mehr in 500. Am opaken Ort
+    bleibt es stehen (bytegleich); dort heisst ein Fund weiter 500. -> Anzahl ersetzter Zeichen."""
+    n = 0
+    hier = opak.get(id(obj), ())
+    if isinstance(obj, list):
+        paare = enumerate(obj)
+    elif isinstance(obj, dict):
+        paare = list(obj.items())
+    else:
+        return 0
+    for k, v in paare:
+        if k in hier:
+            continue
+        if isinstance(v, str):
+            neu, c = EINZELNES_ERSATZZEICHEN.subn(ERSATZ_ZEICHEN, v)
+            if c:
+                obj[k] = neu
+                n += c
+        elif isinstance(v, (list, dict)):
+            n += ersatzzeichen_ersetzen(v, opak)
+    if isinstance(obj, dict) and any(EINZELNES_ERSATZZEICHEN.search(k) for k in obj if isinstance(k, str)):
+        neu = {}
+        for k, v in obj.items():
+            if isinstance(k, str) and k not in hier:
+                k, c = EINZELNES_ERSATZZEICHEN.subn(ERSATZ_ZEICHEN, k)
+                n += c
+            neu[k] = v
+        obj.clear()
+        obj.update(neu)
+    return n
+
+
+def filtere_json(obj, orte, tabelle, z):
+    """Hinweg fuer einen JSON-Koerper: erst alle Funde anmelden, dann ersetzen. Textmedien
+    zuerst, damit ihr neu kodierter Inhalt im Baum steht. -> (neues Objekt, geaendert).
+    Einzelne Ersatzzeichen werden vorher zu U+FFFD (ersatzzeichen_ersetzen); sie allein machen
+    den Koerper nicht zu `geaendert`: ohne Fund geht er bytegleich weiter."""
+    n = ersatzzeichen_ersetzen(obj, orte.opak)
+    for i, (b, k, p, text, kod) in enumerate(orte.medien):
+        text, c = EINZELNES_ERSATZZEICHEN.subn(ERSATZ_ZEICHEN, text)
+        if c:
+            orte.medien[i] = (b, k, p, text, kod)
+            n += c
+    if n:
+        z.plus('ersatzzeichen_ersetzt', n)
+    namen = set()
+    sammle_json(obj, tabelle, z=z, opak=orte.opak, namen=namen)
+    for _b, _k, _p, text, _kod in orte.medien:
+        sammle_json(text, tabelle, z=z)
+    # Werkzeugschemata wiederholen sich je Zug: Nur neue Schluessel laufen durch die Muster.
+    neu = namen - tabelle.saubere_namen
+    if neu:
+        neu_text = '\n'.join(neu)
+        sammle_json(neu_text, tabelle, z=z)
+        if len(tabelle.saubere_namen) > MAX_SAUBERE_NAMEN:
+            tabelle.saubere_namen.clear()
+        if not muster_funde(neu_text, tabelle):
+            tabelle.saubere_namen.update(neu)
+    geaendert = False
+    for behaelter, k, praefix, text, kodierung in orte.medien:
+        neu = ersetze_text(text, tabelle, z, False)
+        if neu != text:
+            behaelter[k] = praefix + base64.b64encode(neu.encode(kodierung)).decode('ascii')
+            geaendert = True
+    obj, g = ersetze_json(obj, tabelle, z, muster=False, opak=orte.opak,
+                          eingesetzt=tabelle.eingesetzte_werte(),
+                          namen=bool(geheimnisse_in('\n'.join(namen), tabelle, muster=False)))
+    return obj, geaendert or g
 
 
 def _einsetzen(wert, json_text):
@@ -655,6 +1328,7 @@ def loese_auf(text, tabelle, z, json_text=False):
             z.plus('platzhalter_unbekannt')
             return m.group(0)
         z.plus('aufgeloest')
+        tabelle.merke_eingesetzt(w)
         return _einsetzen(w, json_text)
     return PLATZHALTER_RX.sub(ersatz, text)
 
@@ -668,13 +1342,64 @@ def _moeglicher_anfang(t):
     return t.startswith(PRAEFIX) and all(c in '0123456789abcdef' for c in t[len(PRAEFIX):])
 
 
+HOHES_ERSATZZEICHEN = re.compile(r'[\ud800-\udbff]\Z')
+ERSATZPAAR = re.compile('([\ud800-\udbff])([\udc00-\udfff])')
+
+
+def _paare_verbinden(text):
+    """Zwei Ersatzzeichen, die erst durch das Aneinanderhaengen zweier Deltas ein Paar bilden, werden das
+    eine Zeichen, das sie sind. Einzelne bleiben stehen (der Aufrufer ersetzt sie)."""
+    if not ERSATZPAAR.search(text):
+        return text
+    return ERSATZPAAR.sub(lambda m: chr(0x10000 + ((ord(m.group(1)) - 0xD800) << 10) + (ord(m.group(2)) - 0xDC00)), text)
+
+
+def _kodierbar(text, z):
+    """Rueckweg: Ein einzelnes UTF-16-Ersatzzeichen in einer Antwort wird U+FFFD. Sonst scheitert das
+    Kodieren (UnicodeEncodeError), und die Verbindung bricht ab. Zaehler `ersatzzeichen_rueckweg`."""
+    if not isinstance(text, str):
+        return text
+    n = len(EINZELNES_ERSATZZEICHEN.findall(text))
+    if not n:
+        return text
+    z.plus('ersatzzeichen_rueckweg', n)
+    return EINZELNES_ERSATZZEICHEN.sub(ERSATZ_ZEICHEN, text)
+
+
 def zurueckhalten(text):
     """(sofort, zurueck): zurueck ist der laengste Rest am Ende, der Anfang eines
-    Platzhalters sein kann."""
+    Platzhalters sein kann -- oder ein hohes Ersatzzeichen, dessen Gegenstueck im naechsten Delta kommen
+    kann (zwei Deltas teilen ein Zeichen ausserhalb der BMP)."""
+    if HOHES_ERSATZZEICHEN.search(text):
+        return text[:-1], text[-1]
     for k in range(min(len(text), PLATZHALTER_LEN - 1), 0, -1):
         if _moeglicher_anfang(text[-k:]):
             return text[:-k], text[-k:]
     return text, ''
+
+
+def _block_nie(obj, eltern):
+    """Ortsregel des Rueckwegs fuer einen ganzen Block; siehe RUECK_NIE_TYPEN."""
+    t = obj.get('type')
+    if isinstance(t, str) and (t in RUECK_NIE_TYPEN or t.startswith('response.reasoning')):
+        return True
+    return eltern == 'parts' and obj.get('thought') is True
+
+
+def _feld_nie(k, eltern):
+    """Ortsregel des Rueckwegs fuer Felder ohne eigenen Blocktyp."""
+    if eltern == 'parts':
+        return k in GEMINI_OPAK
+    return k in DENK_FELDER and eltern in ('delta', 'message', None)
+
+
+def _namen_aufloesen(obj, tabelle, z):
+    """Der Hinweg ersetzt auch JSON-Schluessel; schreibt das Modell einen solchen Platzhalter
+    in einen Werkzeugaufruf, bekommt das Werkzeug den echten Namen."""
+    if any(PRAEFIX in k for k in obj):
+        neu = {loese_auf(k, tabelle, z): v for k, v in obj.items()}
+        obj.clear()
+        obj.update(neu)
 
 
 def _ist_json_text(pfad, typ):
@@ -698,7 +1423,7 @@ class StromAufloeser:
         self.z = z
         self.rest = {}    # schluessel -> (zurueckgehalten, vorlage, pfad, ereignisname)
 
-    def _gehe(self, obj, pfad, idx, typ, beruehrt, vorlage, ereignis, nie):
+    def _gehe(self, obj, pfad, idx, typ, beruehrt, vorlage, ereignis, nie, eltern=None):
         if isinstance(obj, dict):
             if 'type' in obj and isinstance(obj['type'], str) and not typ:
                 typ = obj['type']
@@ -706,15 +1431,16 @@ class StromAufloeser:
             for k in ('index', 'output_index', 'content_index'):
                 if isinstance(obj.get(k), int):
                     neu_idx = neu_idx + ((k, obj[k]),)
-            # Denk-Deltas: Anthropic {"type":"thinking_delta","thinking":...}
-            nie_hier = nie or obj.get('type') in ('thinking_delta', 'signature_delta')
+            nie_hier = nie or _block_nie(obj, eltern)
             for k in list(obj.keys()):
                 obj[k] = self._gehe(obj[k], pfad + (k,), neu_idx, typ, beruehrt, vorlage,
-                                    ereignis, nie_hier or k in NIE_AUFLOESEN)
+                                    ereignis, nie_hier or _feld_nie(k, eltern), k)
+            if not nie_hier:
+                _namen_aufloesen(obj, self.t, self.z)
             return obj
         if isinstance(obj, list):
             for i, v in enumerate(obj):
-                obj[i] = self._gehe(v, pfad + (i,), idx, typ, beruehrt, vorlage, ereignis, nie)
+                obj[i] = self._gehe(v, pfad + (i,), idx, typ, beruehrt, vorlage, ereignis, nie, eltern)
             return obj
         if not isinstance(obj, str) or nie:
             return obj
@@ -725,16 +1451,16 @@ class StromAufloeser:
         # *.done-Ereignis traegt den ganzen Text; ein dort zurueckgehaltener Rest kaeme als
         # zweites done-Ereignis heraus.
         if letzter not in DELTA_FELDER or (typ is not None and 'delta' not in typ):
-            return loese_auf(obj, self.t, self.z, json_text) if PRAEFIX[:3] in obj else obj
+            return _kodierbar(loese_auf(obj, self.t, self.z, json_text) if PRAEFIX[:3] in obj else obj, self.z)
         schl = (typ, pfad, idx)
         beruehrt.add(schl)
         alt = self.rest.pop(schl, None)
-        text = (alt[0] if alt else '') + obj
+        text = _paare_verbinden((alt[0] if alt else '') + obj)
         sofort, zurueck = zurueckhalten(text)
         if zurueck:
             self.rest[schl] = (zurueck, vorlage, pfad, ereignis)
             self.z.plus('zurueckgehalten')
-        return loese_auf(sofort, self.t, self.z, json_text)
+        return _kodierbar(loese_auf(sofort, self.t, self.z, json_text), self.z)
 
     def _ausgeben_rest(self, schl):
         zurueck, vorlage, pfad, ereignis = self.rest.pop(schl)
@@ -742,7 +1468,7 @@ class StromAufloeser:
         ziel = obj
         for k in pfad[:-1]:
             ziel = ziel[k]
-        ziel[pfad[-1]] = zurueck
+        ziel[pfad[-1]] = _kodierbar(zurueck, self.z)
         self.z.plus('rest_ausgegeben')
         return ereignis, obj
 
@@ -759,19 +1485,21 @@ class StromAufloeser:
         return [self._ausgeben_rest(s) for s in list(self.rest)]
 
 
-def loese_json_auf(obj, tabelle, z, schluessel=None, typ=None, nie=False):
+def loese_json_auf(obj, tabelle, z, schluessel=None, nie=False, eltern=None):
     """Rueckweg fuer nicht gestreamte JSON-Antworten."""
     if isinstance(obj, dict):
-        if isinstance(obj.get('type'), str):
-            typ = obj['type']
-        nie = nie or obj.get('type') in ('thinking', 'redacted_thinking', 'reasoning')
+        nie = nie or _block_nie(obj, eltern)
         for k in list(obj.keys()):
-            obj[k] = loese_json_auf(obj[k], tabelle, z, k, typ, nie or k in NIE_AUFLOESEN)
+            obj[k] = loese_json_auf(obj[k], tabelle, z, k, nie or _feld_nie(k, eltern), k)
+        if not nie:
+            _namen_aufloesen(obj, tabelle, z)
         return obj
     if isinstance(obj, list):
-        return [loese_json_auf(v, tabelle, z, schluessel, typ, nie) for v in obj]
-    if isinstance(obj, str) and not nie and PRAEFIX[:3] in obj:
-        return loese_auf(obj, tabelle, z, schluessel in JSON_TEXT_FELDER)
+        return [loese_json_auf(v, tabelle, z, schluessel, nie, eltern) for v in obj]
+    if isinstance(obj, str) and not nie:
+        if PRAEFIX[:3] in obj:
+            obj = loese_auf(obj, tabelle, z, schluessel in JSON_TEXT_FELDER)
+        return _kodierbar(obj, z)
     return obj
 
 
@@ -798,8 +1526,9 @@ class UngueltigeAnfrage(ValueError):
 
 def fehlerklasse(exc):
     """Feste Namen, niemals Ausnahmetext, errno-Text, Host oder dynamische Klassen."""
-    for typ, name in ((socket.gaierror, 'dns'), (ssl.SSLError, 'tls'),
-                      (TimeoutError, 'zeitlimit'), (ConnectionRefusedError, 'abgelehnt'),
+    for typ, name in ((FrueheAntwort, 'fruehantwort'), (socket.gaierror, 'dns'), (ssl.SSLError, 'tls'),
+                      ((TimeoutError, socket.timeout), 'zeitlimit'),   # vor 3.10 ist socket.timeout eigen
+                      (ConnectionRefusedError, 'abgelehnt'),
                       (BrokenPipeError, 'pipe'), (ConnectionResetError, 'reset'),
                       (http.client.IncompleteRead, 'unvollstaendig'),
                       (http.client.RemoteDisconnected, 'getrennt'),
@@ -809,6 +1538,77 @@ def fehlerklasse(exc):
         if isinstance(exc, typ):
             return name
     return 'sonstig'
+
+
+# Retry-After (Sekunden) fuer Fehler VOR dem Versand. Claude Code nutzt Werte bis 60 s als Abstand und bricht
+# ab 90 s sofort ab (gemessen 02.11.2026, 2.1.316); mehr als 60 waere daher falsch.
+WIEDERHOLEN_NACH = 60
+
+# Groesse der Upload-Stuecke (Bytes, ein TLS-Record). Ein Koerper bis zu dieser Groesse geht in einem Stueck wie bisher.
+UPLOAD_STUECK = 16384
+
+
+class FrueheAntwort(Exception):
+    """Der Anbieter hat geantwortet, bevor der Upload fertig war; traegt die schon empfangenen Bytes."""
+    def __init__(self, vorlauf):
+        super().__init__('fruehe Antwort')
+        self.vorlauf = vorlauf
+
+
+class _Vorlauf(io.RawIOBase):
+    def __init__(self, vorlauf, sk):
+        self._v, self._sk = vorlauf, sk
+
+    def readable(self):
+        return True
+
+    def readinto(self, b):
+        if self._v:
+            n = min(len(b), len(self._v))
+            b[:n] = self._v[:n]
+            self._v = self._v[n:]
+            return n
+        return self._sk.recv_into(b)
+
+
+class _MitVorlauf:
+    """Socket-Huelle fuer http.client: makefile liefert zuerst die schon gelesenen Bytes, dann den Socket."""
+    def __init__(self, vorlauf, sk):
+        self._vorlauf, self._sk = vorlauf, sk
+
+    def makefile(self, mode='rb', *a, **kw):
+        return io.BufferedReader(_Vorlauf(self._vorlauf, self._sk))
+
+    def __getattr__(self, name):
+        return getattr(self._sk, name)
+
+
+# Hoechstens so lange (Sekunden) wartet der Filter nach einem Fehler im Upload auf eine schon gesendete
+# Antwort des Anbieters (etwa 413), bevor er den Fehler als Netzabbruch wertet.
+FRUEHANTWORT_FRIST = 2
+
+# Zustandslose Modell-Aufrufe (POST): Messages, Count-Tokens, Chat-Completions, Responses. Nur diese und GET
+# duerfen nach vollstaendiger Uebergabe noch einmal gesendet werden (Keepalive-Erholung).
+ZUSTANDSLOS_PFADE = re.compile(r'/(messages(/count_tokens)?|chat/completions|responses)/?$')
+
+def _ruhend_lebt(c):
+    """Lebt eine ruhende Upstream-Verbindung noch? Ohne offene Anfrage darf der Socket nichts zu lesen haben:
+    Lesbarkeit heisst EOF, close_notify, Reset oder Unerwartetes, also tot. Blockiert nie (select mit 0), liest
+    nichts und nutzt bei TLS kein MSG_PEEK. Eine unnoetige neue Verbindung ist der schlimmste Fall."""
+    sk = c.sock
+    if sk is None:
+        return True   # noch nicht verbunden: der Aufbau folgt ohnehin
+    try:
+        if isinstance(sk, ssl.SSLSocket) and sk.pending():
+            return False
+        lesbar, _, kaputt = select.select([sk], [], [sk], 0)
+        return not lesbar and not kaputt
+    except (OSError, ValueError, TypeError):
+        return False
+
+
+# Dauer des TLS-Rueckfalls auf klassischen Schluesselaustausch je Zielhost (Sekunden).
+TLS_KLASSISCH_DAUER = 3600
 
 
 class Proxy:
@@ -824,6 +1624,51 @@ class Proxy:
         self.beobachte = beobachte.encode('utf-8') if beobachte else None
         self.beobachte_bis = None   # Sonde ueber /_wb/sonde: Ablaufzeit (monotonic)
         self.ctx = ssl.create_default_context()
+        # Klassischer Schluesselaustausch fuer Netze, die den grossen Post-Quanten-ClientHello
+        # (X25519MLKEM768, etwa 1,8 kB) zuruecksetzen. Gemessen 06.11.2026 an einem Heimnetz: 18 von
+        # 30 Handshakes mit ConnectionResetError, mit X25519 30 von 30 heil. Rueckfall je Zielhost
+        # fuer TLS_KLASSISCH_DAUER Sekunden, danach wird der Standard wieder versucht.
+        # Aeltere Python-/TLS-Fassungen (etwa /usr/bin/python3 mit LibreSSL) kennen weder set_groups noch den
+        # Namen X25519 und bieten ohnehin kein Post-Quanten an: dann ist der klassische Kontext der Standard.
+        self.ctx_klassisch = ssl.create_default_context()
+        try:
+            if hasattr(self.ctx_klassisch, 'set_groups'):
+                self.ctx_klassisch.set_groups('X25519:P-256:P-384')
+            else:
+                self.ctx_klassisch.set_ecdh_curve('prime256v1')
+        except (ssl.SSLError, ValueError):
+            self.ctx_klassisch = self.ctx
+        self._klassisch_bis = {}
+        self._klassisch_l = threading.Lock()
+        self._offen = 0
+        self._offen_l = threading.Lock()
+
+    def ctx_fuer(self, host):
+        """TLS-Kontext zum Anbieter: Standard, ausser der Host steht im Rueckfall."""
+        with self._klassisch_l:
+            bis = self._klassisch_bis.get(host)
+            if bis is not None and time.monotonic() >= bis:
+                del self._klassisch_bis[host]
+                bis = None
+        return self.ctx_klassisch if bis is not None else self.ctx
+
+    def klassisch_merken(self, host):
+        with self._klassisch_l:
+            self._klassisch_bis[host] = time.monotonic() + TLS_KLASSISCH_DAUER
+
+    def upstream_ca(self, cafile):
+        for ctx in {id(c): c for c in (self.ctx, self.ctx_klassisch)}.values():
+            ctx.load_verify_locations(cafile=cafile)
+
+    def offen_plus(self, n):
+        """Anfragen in Arbeit (Hinweg bis zum letzten Byte des Rueckwegs; Zaehlerseiten und Leerlauf-
+        Verbindungen zaehlen nicht). `wb-geheimnis-filter-dienst installieren --wenn-ruhig` wartet auf 0."""
+        with self._offen_l:
+            self._offen += n
+
+    def offen(self):
+        with self._offen_l:
+            return self._offen
 
     def beobachtet(self):
         """Der zu zaehlende Wert (Testoption oder laufende Sonde), sonst None."""
@@ -837,6 +1682,7 @@ class Proxy:
         werte, latenz = self.z.roh()
         aus = dict(werte)
         aus['start'] = self.start
+        aus['offen'] = self.offen()
         aus['latenz'] = latenz_bild(latenz)
         if self.bestand.pfad:
             zs, ls = self.bestand.summe(self.z)
@@ -857,10 +1703,12 @@ def baue_handler(proxy):
         def _ohne_filter(self):
             return proxy.durchreichen or self._durch
 
-        def _antwort(self, code, text):
+        def _antwort(self, code, text, kopf=None):
             body = (json.dumps({'error': {'type': 'wb_geheimnis_filter', 'message': text}}) + '\n').encode()
             self.send_response(code)
             self.send_header('Content-Type', 'application/json')
+            for k, v in (kopf or {}).items():
+                self.send_header(k, v)
             self.send_header('Content-Length', str(len(body)))
             self.end_headers()
             self.wfile.write(body)
@@ -906,10 +1754,15 @@ def baue_handler(proxy):
         def _bearbeite(self):
             self._phase = 'anfrage'
             self._antwort_begonnen = False
+            self._zielhost = None
             try:
                 if self.path.startswith('/_wb/') and self._wb():
                     return
-                self._weiter()
+                proxy.offen_plus(1)
+                try:
+                    self._weiter()
+                finally:
+                    proxy.offen_plus(-1)
             except Exception as exc:
                 if isinstance(exc, UngueltigeAnfrage):
                     proxy.z.plus('anfrage_ungueltig')
@@ -917,6 +1770,8 @@ def baue_handler(proxy):
                 elif self._phase == 'upstream_lesen' and isinstance(exc, (http.client.HTTPException, OSError)):
                     proxy.z.plus('upstream_stream_fehler')
                     proxy.z.plus('upstream_stream_fehler_' + fehlerklasse(exc))
+                    if getattr(self, '_zielhost', None):
+                        proxy.z.host_plus('upstream_stream_fehler_' + fehlerklasse(exc), self._zielhost)
                     code, text = 502, 'Anbieterantwort abgebrochen'
                 elif isinstance(exc, (BrokenPipeError, ConnectionResetError)):
                     proxy.z.plus('client_abbruch')
@@ -982,6 +1837,7 @@ def baue_handler(proxy):
                 return
             rest = '/' + (teile[2] if len(teile) > 2 else '')
             u = urlsplit(ziel)
+            self._zielhost = u.hostname
             pfad = (u.path.rstrip('/') + rest) if u.path else rest
             body = self._koerper()
             kodierung = self.headers.get('Content-Encoding')
@@ -1017,30 +1873,103 @@ def baue_handler(proxy):
             kopf['Content-Length'] = str(len(body))
             senden = body if body or self.command in ('POST', 'PUT', 'PATCH') else None
             r = None
-            for versuch in (0, 1):
+            gesendet = False   # klebrig: ein frueherer Versuch kann die Anfrage schon vollstaendig abgeschickt haben
+            rueckfall = False  # hoechstens ein TLS-Rueckfall je Anfrage
+            upload_neu = False  # hoechstens ein Neuversand nach Abbruch mitten im Upload je Anfrage
+            # Nur zustandslose Modell-Aufrufe duerfen nach vollstaendiger Uebergabe noch einmal gesendet werden:
+            # ein doppelter Aufruf kostet dort nur Token, der Client bekommt genau eine Antwort (decision 2026-11-07).
+            zustandslos = self.command == 'GET' or (
+                self.command == 'POST' and ZUSTANDSLOS_PFADE.search(urlsplit(pfad).path) is not None)
+            for versuch in (0, 1, 2, 3):
                 c = self._verbindung(u, neu=versuch > 0)
                 wiederverwendet = getattr(c, '_wb_benutzt', False)
                 c._wb_benutzt = True
+                im_aufbau = False
+                im_upload = False
                 try:
                     if c.sock is None:
+                        im_aufbau = True
                         self._verbinde_dns(c)
-                    c.request(self.command, pfad, body=senden, headers=kopf)
+                        im_aufbau = False
+                    # Bricht die Verbindung, bevor die ganze Anfrage (Kopf und Body nach Content-Length)
+                    # an das Betriebssystem uebergeben ist, kann der Anbieter sie nicht verarbeitet haben:
+                    # ein unvollstaendiger Body ist keine Anfrage. Erst danach gilt sie als gesendet.
+                    im_upload = True
+                    c.request(self.command, pfad, headers=kopf,
+                              body=self._stuecke(c, senden) if senden and len(senden) > UPLOAD_STUECK else senden)
+                    im_upload = False
+                    gesendet = True
                     r = c.getresponse()
                     break
                 except Exception as exc:
                     ursache = fehlerklasse(exc)
                     z.plus('upstream_versuch_' + ursache)
+                    if im_upload:
+                        # Der Anbieter kann schon waehrend des Uploads endgueltig geantwortet haben (etwa 413)
+                        # und dann schliessen. Diese Antwort geht unveraendert durch, nie als 503.
+                        r = self._fruehe_antwort(c, exc)
+                        if r is not None:
+                            z.plus('upstream_fruehantwort')
+                            z.host_plus('upstream_fruehantwort', u.hostname)
+                            break
                     c.close()
                     self._ups.pop((u.scheme, u.netloc), None)
-                    if not wiederverwendet:
+                    if (im_aufbau and not rueckfall and isinstance(exc, (ConnectionResetError, ssl.SSLEOFError))
+                            and getattr(c, '_context', None) is proxy.ctx and proxy.ctx_klassisch is not proxy.ctx
+                            and u.scheme == 'https'):
+                        grund = 'tls'
+                    elif im_upload and not upload_neu and not wiederverwendet:
+                        grund = 'upload'
+                    elif wiederverwendet and versuch == 0:
+                        # Bestehende Keepalive-Erholung: genau ein frischer Versuch,
+                        # wenn die wiederverwendete Verbindung still geschlossen war.
+                        # Dessen DNS darf vor dem Versand separat wiederholt werden.
+                        grund = 'keepalive'
+                    else:
                         break
-                    # Bestehende Keepalive-Erholung: genau ein frischer Versuch,
-                    # wenn die wiederverwendete Verbindung still geschlossen war.
-                    # Dessen DNS darf vor dem Versand separat wiederholt werden.
+                    # Nie neu senden, wenn der Upload bis zum Zeitlimit staute (der Client hat dann laengst selbst
+                    # wiederholt), wenn der Client aufgegeben hat, oder wenn eine vollstaendig uebergebene Anfrage
+                    # keine zustandslose Modellanfrage ist (Remote Control, Sitzungen, Unbekanntes).
+                    if ursache == 'zeitlimit':
+                        sperre = 'zeitlimit'
+                    elif self._client_weg():
+                        sperre = 'client_weg'
+                    elif gesendet and not zustandslos:
+                        sperre = 'uebergeben'
+                    else:
+                        sperre = None
+                    if sperre:
+                        z.plus('neuversand_gesperrt')
+                        z.plus('neuversand_gesperrt_' + sperre)
+                        z.host_plus('neuversand_gesperrt_' + sperre, u.hostname)
+                        break
+                    if grund == 'tls':
+                        # Reset im TLS-Handshake: die Anfrage ist nie gesendet. Einmal mit klassischem
+                        # Schluesselaustausch neu aufbauen und den Host fuer eine Stunde merken.
+                        rueckfall = True
+                        proxy.klassisch_merken(u.hostname)
+                        z.plus('tls_klassisch_rueckfall')
+                        z.host_plus('tls_klassisch_rueckfall', u.hostname)
+                    elif grund == 'upload':
+                        # Abbruch mitten im Upload auf frischer Verbindung (gemessen 06.11.2026: ein Netz
+                        # brach 300-KB-Uploads nach 64 KB ab). Genau ein Neuversand auf neuer Verbindung.
+                        upload_neu = True
+                        z.plus('upload_abbruch_neu')
+                        z.host_plus('upload_abbruch_neu', u.hostname)
             if r is None:
                 z.plus('upstream_fehler')
                 z.plus('upstream_fehler_' + ursache)
-                self._antwort(502, 'Anbieter nicht erreichbar')
+                z.host_plus('upstream_fehler_' + ursache, u.hostname)
+                if not gesendet:
+                    # Namensaufloesung oder Verbindungsaufbau scheiterte: die Anfrage hat den Anbieter nie
+                    # erreicht, ein Wiederholen kostet nichts. 503 mit retry-after laesst die Harnesses selbst
+                    # wiederholen (gemessen 02.11.2026, docs/NETZAUSFALL.md); der Text bleibt ehrlich.
+                    z.plus('upstream_fehler_vor_versand')
+                    self._antwort(503, 'Anbieter nicht erreichbar', {'Retry-After': str(WIEDERHOLEN_NACH)})
+                else:
+                    # Fehler nach dem Versand: der Anbieter kann die Anfrage schon haben, ein Wiederholen
+                    # koennte das Modell doppelt aufrufen. Bleibt 502 ohne Wiederholungsangebot.
+                    self._antwort(502, 'Anbieter nicht erreichbar')
                 return
             z.zeit('bis_erstes_byte', time.monotonic() - t0)
             z.latenz_plus(self._klasse, 'erstes_byte', time.monotonic() - t0)
@@ -1053,6 +1982,89 @@ def baue_handler(proxy):
                 if r.will_close or not r.isclosed():
                     c.close()
                     self._ups.pop((u.scheme, u.netloc), None)
+
+        def _client_weg(self):
+            """Hat der Client die Verbindung geschlossen oder zurueckgesetzt? Blockiert nie. Lesbare Daten
+            (etwa die naechste Anfrage) heissen verbunden; EOF, Fehler oder ein TLS-Alert heissen weg."""
+            k = self.connection
+            try:
+                tls = isinstance(k, ssl.SSLSocket)
+                if tls and k.pending():
+                    return False
+                if not select.select([k], [], [], 0)[0]:
+                    return False
+                roh = socket.socket.recv(k, 1, socket.MSG_PEEK)   # roher Socket, auch unter TLS
+            except (OSError, ValueError):
+                return True
+            return roh == b'' or (tls and roh[:1] == b'\x15')
+
+        def _stuecke(self, c, body):
+            """Grosser Koerper in Stuecken zu einem TLS-Record. Vor jedem Stueck wartet der Filter, bis der Socket
+            schreibbar ist, und prueft dabei, ob der Anbieter schon geantwortet hat (etwa 413). Dann endet der
+            Upload, und die Antwort wird gelesen. Unter TLS ist sie nach einem Schreibfehler nicht mehr lesbar
+            (gemessen 07.11.2026: BrokenPipeError beim Lesen), darum vor dem Fehler pruefen. Kommt bis zum
+            Zeitlimit der Verbindung weder Platz noch Antwort, endet der Upload mit TimeoutError (Stau)."""
+            sk = c.sock
+            mv = memoryview(body)
+            frist = sk.gettimeout()
+            for i in range(0, len(mv), UPLOAD_STUECK):
+                ende = None if frist is None else time.monotonic() + frist
+                while True:
+                    if isinstance(sk, ssl.SSLSocket) and sk.pending():
+                        lesbar, schreibbar = True, False
+                    else:
+                        rest = None if ende is None else max(0.0, ende - time.monotonic())
+                        lesbar, schreibbar, _ = select.select([sk], [sk], [], rest)
+                        lesbar, schreibbar = bool(lesbar), bool(schreibbar)
+                    if lesbar:
+                        vorlauf = self._antwort_liegt(sk)
+                        if vorlauf:
+                            raise FrueheAntwort(vorlauf)
+                    if schreibbar:
+                        break
+                    if ende is not None and time.monotonic() >= ende:
+                        raise TimeoutError('Upload staut')
+                yield mv[i:i + UPLOAD_STUECK]
+
+        @staticmethod
+        def _antwort_liegt(sk):
+            """Nicht blockierend: schon empfangene Antwortbytes des Anbieters, sonst None. Ein TLS-1.3-Sitzungsticket
+            macht den Socket lesbar, liefert aber keine Anwendungsdaten (SSLWantReadError) und zaehlt nicht.
+            Schliesst der Anbieter ohne Antwort, ist das ein Abbruch im Upload (ConnectionResetError)."""
+            alt = sk.gettimeout()
+            try:
+                sk.settimeout(0)
+                daten = sk.recv(65536)
+            except (ssl.SSLWantReadError, ssl.SSLWantWriteError, BlockingIOError):
+                return None
+            finally:
+                try:
+                    sk.settimeout(alt)
+                except OSError:
+                    pass
+            if not daten:
+                raise ConnectionResetError('Anbieter schloss waehrend des Uploads ohne Antwort')
+            return daten
+
+        def _fruehe_antwort(self, c, exc):
+            """Nach einem Fehler im Upload die schon gesendete Antwort des Anbieters lesen, sonst None.
+            FrueheAntwort traegt die ersten Bytes; sonst nur ohne TLS hoechstens FRUEHANTWORT_FRIST Sekunden aus
+            dem Empfangspuffer."""
+            sk = getattr(c, 'sock', None)
+            if not isinstance(sk, socket.socket):
+                return None
+            try:
+                if isinstance(exc, FrueheAntwort):
+                    c.sock = _MitVorlauf(exc.vorlauf, sk)
+                    r = c.getresponse()
+                else:
+                    sk.settimeout(FRUEHANTWORT_FRIST)
+                    r = c.getresponse()
+                    sk.settimeout(c.timeout)
+            except Exception:
+                return None
+            r.will_close = True   # die Anfrage ist unvollstaendig: diese Verbindung nie wiederverwenden
+            return r
 
         def _verbinde_dns(self, c):
             """Nur den Resolver wiederholen, vor TCP/TLS und HTTP-Versand.
@@ -1091,11 +2103,13 @@ def baue_handler(proxy):
                             if rest > 0:
                                 time.sleep(rest)
                             proxy.z.plus('dns_aufgegeben')
+                            proxy.z.host_plus('dns_aufgegeben', address[0])
                             raise
                         proxy.z.plus('upstream_versuch_dns')
                         time.sleep(abstand)
                         if time.monotonic() >= ende:
                             proxy.z.plus('dns_aufgegeben')
+                            proxy.z.host_plus('dns_aufgegeben', address[0])
                             raise
                         proxy.z.plus('dns_wiederholt')
                         abstand = min(abstand * 2, 8.0)
@@ -1127,14 +2141,23 @@ def baue_handler(proxy):
                 self._ups = {}
             schl = (u.scheme, u.netloc)
             c = None if neu else self._ups.get(schl)
+            if c is not None:
+                proxy.z.plus('upstream_wiederverwendet')
+                if not _ruhend_lebt(c):
+                    # Das Ziel hat die ruhende Keepalive-Verbindung still geschlossen (EOF, close_notify, Reset).
+                    # Vor dem ersten Byte frisch verbinden; die Anfrage ist dann nie auf einer toten Verbindung
+                    # gesendet und braucht keinen Neuversand (decision 2026-11-07).
+                    proxy.z.plus('upstream_versuch_ruhend_tot')
+                    proxy.z.host_plus('upstream_versuch_ruhend_tot', u.hostname)
+                    c.close()
+                    c = None
             if c is None:
                 if u.scheme == 'https':
-                    c = http.client.HTTPSConnection(u.hostname, u.port or 443, timeout=600, context=proxy.ctx)
+                    c = http.client.HTTPSConnection(u.hostname, u.port or 443, timeout=600,
+                                                    context=proxy.ctx_fuer(u.hostname))
                 else:
                     c = http.client.HTTPConnection(u.hostname, u.port or 80, timeout=600)
                 self._ups[schl] = c
-            else:
-                proxy.z.plus('upstream_wiederverwendet')
             return c
 
         def finish(self):
@@ -1149,8 +2172,7 @@ def baue_handler(proxy):
             except Exception:
                 obj = None
             if obj is not None:
-                sammle_json(obj, proxy.tabelle, z=z)
-                obj, geaendert = ersetze_json(obj, proxy.tabelle, z, muster=False)
+                obj, geaendert = filtere_json(obj, opake_orte(self.path, obj), proxy.tabelle, z)
                 if not geaendert:
                     return roh
                 z.plus('anfragen_gefiltert')
@@ -1280,6 +2302,15 @@ def baue_handler(proxy):
                     aus.append(b'data: ' + json.dumps(obj, ensure_ascii=False).encode('utf-8') + b'\n\n')
                 return b''.join(aus)
 
+            def mit_leerzeile(zeilen):
+                # Die Leerzeile nimmt das Zeilenende der Zeilen an (CRLF bleibt CRLF); fehlt das
+                # Zeilenende am Stromende, wird es ergaenzt.
+                ende = b'\r\n' if zeilen[0].endswith(b'\r\n') else b'\n'
+                teil = b''.join(zeilen)
+                if not teil.endswith(b'\n'):
+                    teil += ende
+                return teil + ende
+
             def blockende():
                 name, daten, sonst = None, [], []
                 for z in block:
@@ -1298,10 +2329,11 @@ def baue_handler(proxy):
                     except Exception:
                         obj = None
                 if obj is None or sonst:
-                    # Kein JSON (z. B. "[DONE]") oder Zusatzfelder (id:, retry:):
-                    # offene Reste zuerst, dann das Ereignis unveraendert.
+                    # Kein JSON (z. B. "[DONE]"), Zusatzfelder (id:, retry:) oder nur ein
+                    # Kommentar (": heartbeat"): offene Reste zuerst, dann der Block unveraendert
+                    # mit seiner Leerzeile, sonst verschmilzt er mit dem naechsten Ereignis.
                     out = schreibe(sa.ende())
-                    self._chunk(out + b''.join(block))
+                    self._chunk(out + mit_leerzeile(block))
                     return
                 self._chunk(schreibe(sa.ereignis(obj, name)))
 
@@ -1338,8 +2370,7 @@ def baue_handler(proxy):
 
 
 # ---------------------------------------------------------------------------
-# Proxy-Modus (Auftrag wz-proxybau, der Nutzer 13.10.: "remote control soll wieder gehen,
-# aber der filter soll noch gehen"). Claude verweigert Remote Control, sobald
+# Proxy-Modus (task, decision 10-13.). Claude verweigert Remote Control, sobald
 # ANTHROPIC_BASE_URL auf einen lokalen Port zeigt. Stattdessen laeuft Claude mit
 # HTTPS_PROXY=http://127.0.0.1:8093 und NODE_EXTRA_CA_CERTS=<zustand>/ca.pem (derselbe
 # Port wie die Pfadrouten, mit --connect; abgenommen vom WorkbenchOrchestrator 13.10.):
@@ -1353,29 +2384,26 @@ def baue_handler(proxy):
 # abhanden kommt. Sie liegt nur im Zustandsordner (0700, Schluessel 0600) und kommt nie
 # in einen System-Trust-Store; vertraut wird ihr nur ueber NODE_EXTRA_CA_CERTS.
 
-MITM_HOSTS = {'api.anthropic.com': 'anthropic'}   # Host -> Route (STANDARD_ROUTEN)
+MITM_HOSTS = {'api.anthropic.com': 'anthropic'}   # Host -> Route (geheimnis-routen.json)
 CA_TAGE = 30         # Gueltigkeit einer neuen CA
 CA_ERNEUERN_TAGE = 7     # beim Start erneuern, wenn weniger Rest bleibt
 BLATT_SEK = 3 * 86400    # Gueltigkeit eines Blattzertifikats
 BLATT_ERNEUERN_SEK = 86400   # neues Blatt, wenn weniger Rest bleibt
 TUNNEL_PUFFER = 65536
 TUNNEL_LEERLAUF = 900    # Sekunden ohne Bytes in beide Richtungen, dann schliessen
-# Was im aufgebrochenen Verkehr durch den Filter geht (Messung wz-proxy 13.10.): die
+# Was im aufgebrochenen Verkehr durch den Filter geht (Messung task 13.10.): die
 # Modellanfragen. Alles andere (bootstrap, oauth, event_logging, mcp_servers, der lange
 # Remote-Control-Strom .../worker/events/stream) wird unveraendert durchgereicht.
 FILTER_PFADE = re.compile(r'^/v1/messages(/count_tokens)?/?$')
 # Remote-Control-Spiegel des Sitzungsprotokolls (POST/PUT/PATCH/DELETE unter /v1/code/sessions/,
-# u. a. .../worker/events, .../worker): Vorgabe filtern -- der Nutzer 13.10. 21:09Z,
+# u. a. .../worker/events, .../worker): Vorgabe filtern -- decision 10-13Z,
 # Fragefunktion: "Platzhalter auf dem Handy". Das Handy (claude.ai) zeigt Platzhalter;
 # einen Rueckweg (Aufloesen) gibt es fuer den Spiegel nicht. Schalter --rc-spiegel
 # durchreichen schaltet das ab.
-# Ueberholt (nicht mehr gueltig): Vorgabe durchreichen -- der Nutzer 13.10. frueher:
+# Ueberholt (nicht mehr gueltig): Vorgabe durchreichen -- decision 10-13 frueher:
 # "Handy wie Maschine", d. h. das Handy zeigt dasselbe wie das Terminal, der Filter wirkt
 # nur auf das, was das Modell bekommt. Durch die Antwort 21:09Z korrigiert.
 RC_PFADE = re.compile(r'^/v1/code/sessions/')
-# Im Spiegel ist nur Signiertes undurchsichtig; 'data' und 'thinking' sind dort Anzeige
-# (Werkzeugausgaben, Denktext) und werden gefiltert.
-RC_UNDURCHSICHTIG = {'signature', 'encrypted_content'}
 DURCH_ZEITLIMIT = 3600   # durchgereichte lange Stroeme (worker/events/stream) halten
 
 
@@ -1599,6 +2627,22 @@ class StrukturProtokoll:
                 os.close(fd)
 
 
+def _orte_rc(o, orte):
+    """Spiegel: Nur Bloecke unter `message.content` sind Protokollbloecke. Werkzeugeingaben
+    (`input`) tragen beliebige Daten und bleiben aussen vor."""
+    if isinstance(o, dict):
+        nachricht = o.get('message')
+        if isinstance(nachricht, dict):
+            for block in _dicts(nachricht.get('content')):
+                orte.felder(block, [f for f in opake_felder(block) if f in RC_OPAK])
+        for k, v in o.items():
+            if k != 'input':
+                _orte_rc(v, orte)
+    elif isinstance(o, list):
+        for v in o:
+            _orte_rc(v, orte)
+
+
 def baue_proxy_handler(proxy, blaetter, mitm=None, rc_spiegel=True, struktur=None):
     """Handler des Filterports mit CONNECT: Pfadrouten wie baue_handler, dazu HTTPS_PROXY."""
     mitm = dict(MITM_HOSTS if mitm is None else mitm)
@@ -1644,8 +2688,9 @@ def baue_proxy_handler(proxy, blaetter, mitm=None, rc_spiegel=True, struktur=Non
             else:
                 # Gleiches Geruest, nur Zeichenketten-Werte ersetzt; Content-Length setzt
                 # _weiter neu.
-                sammle_json(obj, proxy.tabelle, z=z, opak=RC_UNDURCHSICHTIG)
-                obj, geaendert = ersetze_json(obj, proxy.tabelle, z, muster=False, opak=RC_UNDURCHSICHTIG)
+                orte = Orte()
+                _orte_rc(obj, orte)
+                obj, geaendert = filtere_json(obj, orte, proxy.tabelle, z)
                 neu = json.dumps(obj, ensure_ascii=False, separators=(',', ':')).encode('utf-8') if geaendert else roh
             if neu is not None and neu is not roh:
                 z.plus('rc_spiegel_ersetzt')
@@ -1683,13 +2728,14 @@ def baue_proxy_handler(proxy, blaetter, mitm=None, rc_spiegel=True, struktur=Non
         def _tunnel(self, host, port):
             proxy.z.plus('tunnel')
             try:
-                # Gleiche DNS-Wiederholung wie der Filterweg (Messung wz-proxy: gaierror
+                # Gleiche DNS-Wiederholung wie der Filterweg (Messung task: gaierror
                 # beim Telemetrie-CONNECT); TCP-Fehler werden nicht wiederholt.
                 c = http.client.HTTPConnection(host, port, timeout=30)
                 self._verbinde_dns(c)
                 oben = c.sock
             except OSError as exc:
                 proxy.z.plus('tunnel_fehler_' + fehlerklasse(exc))
+                proxy.z.host_plus('tunnel_fehler_' + fehlerklasse(exc), host)
                 self._antwort(502, 'Ziel nicht erreichbar')
                 return
             try:
@@ -1735,7 +2781,7 @@ class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = False
     # Vorgabe von socketserver ist 5: unter vielen gleichzeitigen CONNECTs (Bash-Aufrufe mit
-    # geerbtem HTTPS_PROXY) liefen Verbindungen in Zeitlimits (Lasttest wz-proxybau 13.10.).
+    # geerbtem HTTPS_PROXY) liefen Verbindungen in Zeitlimits (Lasttest task 13.10.).
     # Gilt fuer selbst gebundene Sockets; launchd/systemd setzen den Backlog ihres Sockets.
     request_queue_size = 1024
 
@@ -1825,7 +2871,7 @@ def _fd_grenze_anheben(ziel=8192):
 
 
 def befehl_serve(a):
-    routen = dict(STANDARD_ROUTEN)
+    routen = standard_routen()
     for r in a.route or []:
         name, _, url = r.partition('=')
         if not name or not url:
@@ -1841,7 +2887,7 @@ def befehl_serve(a):
         mitm[host.lower()] = route
     proxy = Proxy(routen, a.durchreichen, beob, zustand, schluessel_laden(a.schluesselbund), a.dns_frist)
     if a.upstream_ca:
-        proxy.ctx.load_verify_locations(cafile=a.upstream_ca)   # Tests: lokaler TLS-Stub
+        proxy.upstream_ca(a.upstream_ca)   # Tests: lokaler TLS-Stub
     handler, connect = baue_handler(proxy), False
     if a.connect:
         # CA-Fehler (openssl fehlt o. a.) duerfen den Pfadrouten-Betrieb der anderen Harnesses
@@ -1889,12 +2935,15 @@ def schwaerze(text, extra=None):
     for name, wert in (extra or {}).items():
         if wert:
             text = text.replace(wert, '[GEHEIM:%s]' % name)
+            # Ein Befehl kann einen mehrzeiligen Wert auch nur teilweise ausgeben.
+            for zeile in wert.splitlines() if '\n' in wert else ():
+                if len(zeile.strip()) >= 8:
+                    text = text.replace(zeile, '[GEHEIM:%s]' % name)
     funde = []
     for _z, regel, wert, _e in geheimnis_inhalt.treffer(
             text, True, geheimnis_inhalt.load_public_values(HOOKS_DIR), True):
-        if regel == 'private_key_block':
-            wert = _privater_block(text, text.find(wert)) or wert
-        funde.append((wert, regel))
+        for w in _private_bloecke(text, wert) if regel == 'private_key_block' else (wert,):
+            funde.append((w, regel))
     for wert, regel in sorted(funde, key=lambda x: len(x[0]), reverse=True):
         text = text.replace(wert, '[GEHEIM:%s]' % regel)
     return text
@@ -1923,6 +2972,26 @@ def quelle_lesen(q):
     raise SystemExit('wb-geheimnis-filter: Quelle kc:|env:|datei: erwartet')
 
 
+PRIVAT_BEGIN = re.compile(rb'-----BEGIN [A-Z ]*PRIVATE KEY-----')
+PRIVAT_ENDE = re.compile(rb'-----END [A-Z ]*PRIVATE KEY-----')
+
+
+def _ausgabe_grenze(puffer, mehrzeilig):
+    """Bis zu welchem Byte darf `puffer` hinaus? Nur ganze Zeilen, und nichts ab einer Stelle,
+    an der ein mehrzeiliger Wert oder ein privater Block erst in der naechsten Lesung endet."""
+    grenze = puffer.rfind(b'\n') + 1
+    for w in mehrzeilig:
+        for k in range(min(len(w) - 1, len(puffer)), 0, -1):
+            if puffer.endswith(w[:k]):
+                grenze = min(grenze, len(puffer) - k)
+                break
+    for m in PRIVAT_BEGIN.finditer(puffer):
+        if not PRIVAT_ENDE.search(puffer, m.end()):
+            grenze = min(grenze, m.start())
+            break
+    return grenze
+
+
 def befehl_mit(argv):
     if '--' not in argv:
         sys.exit('wb-geheimnis-filter mit VAR=QUELLE ... -- BEFEHL ARG...')
@@ -1940,6 +3009,7 @@ def befehl_mit(argv):
     p = subprocess.Popen(befehl, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     ausgaben = {p.stdout.fileno(): (p.stdout, sys.stdout), p.stderr.fileno(): (p.stderr, sys.stderr)}
     puffer = {fd: b'' for fd in ausgaben}
+    mehrzeilig = [w.encode('utf-8') for w in werte.values() if '\n' in w]
     offen = set(ausgaben)
     while offen:
         bereit, _, _ = select.select(list(offen), [], [])
@@ -1953,17 +3023,18 @@ def befehl_mit(argv):
                     ausgaben[fd][1].flush()
                 continue
             puffer[fd] += b
-            # Nur ganze Zeilen filtern: ein Wert, der ueber zwei Lesungen reicht, bleibt ganz.
-            if b'\n' in puffer[fd]:
-                fertig, _, puffer[fd] = puffer[fd].rpartition(b'\n')
-                ausgaben[fd][1].write(schwaerze(fertig.decode('utf-8', 'replace') + '\n', werte))
+            # Ein Wert, der ueber zwei Lesungen reicht, bleibt im Puffer, bis er ganz ist.
+            grenze = _ausgabe_grenze(puffer[fd], mehrzeilig)
+            if grenze:
+                fertig, puffer[fd] = puffer[fd][:grenze], puffer[fd][grenze:]
+                ausgaben[fd][1].write(schwaerze(fertig.decode('utf-8', 'replace'), werte))
                 ausgaben[fd][1].flush()
     return p.wait()
 
 
 DIENST_PORT = 8093   # Dienstbetrieb (launchd/systemd), siehe wb-geheimnis-filter-dienst
 
-FEHLERZAEHLER = ('upstream_fehler', 'fehler_intern', 'abgewiesen_kodierung', 'abgewiesen_binaer',
+FEHLERZAEHLER = ('upstream_fehler', 'fehler_intern', 'abgewiesen_kodierung', 'abgewiesen_binaer', 'opak_eingesetzt_ersetzt',
                  'websocket_abgelehnt', 'route_unbekannt', 'platzhalter_unbekannt',
                  'antwort_kodiert_unaufgeloest', 'zustand_schreibfehler', 'verbindungsfehler')
 
@@ -1975,11 +3046,19 @@ def _lesbar(titel, werte, latenz):
                  werte.get('ersetzt', 0), werte.get('aufgeloest', 0))]
     fehler = {k: v for k, v in werte.items() if v and
               (k in FEHLERZAEHLER or k in ('client_abbruch', 'anfrage_ungueltig', 'upstream_stream_fehler',
-                                         'dns_wiederholt', 'dns_aufgegeben') or
-               k.startswith(('upstream_fehler_', 'upstream_versuch_', 'upstream_stream_fehler_',
+                                         'dns_wiederholt', 'dns_aufgegeben', 'tls_klassisch_rueckfall',
+                                         'upload_abbruch_neu', 'upstream_fruehantwort', 'neuversand_gesperrt') or
+               k.startswith(('upstream_fehler_', 'upstream_versuch_', 'upstream_stream_fehler_', 'neuversand_gesperrt_',
                              'fehler_intern_', 'verbindungsfehler_', 'client_abbruch_')))}
     zeilen.append('  Fehler/Abweisungen: %s' % (', '.join('%s %d' % kv for kv in sorted(fehler.items()))
                                                 if fehler else 'keine'))
+    hosts = sorted(((v, zielhost_teile(k)) for k, v in werte.items() if v and zielhost_teile(k)),
+                   key=lambda e: (-e[0], e[1]))
+    if hosts:
+        teile = ['%s@%s %d' % (t[0], t[1], v) for v, t in hosts[:ZIELHOST_ZEILE]]
+        if len(hosts) > ZIELHOST_ZEILE:
+            teile.append('(+%d weitere Eintraege)' % (len(hosts) - ZIELHOST_ZEILE))
+        zeilen.append('  Fehler je Zielhost: %s' % ', '.join(teile))
     regeln = {k[len('neu_regel_'):]: v for k, v in werte.items() if k.startswith('neu_regel_')}
     if regeln:
         zeilen.append('  neu erkannte Werte je Regel: %s' % ', '.join('%s %d' % kv for kv in sorted(regeln.items())))
@@ -2031,7 +3110,7 @@ def main(argv=None):
     s.add_argument('--mitm', action='append', help='HOST=ROUTE aufbrechen (Vorgabe api.anthropic.com=anthropic)')
     s.add_argument('--rc-spiegel', choices=('filtern', 'durchreichen'), default='filtern',
                    help='Remote-Control-Spiegel (POST/PUT/PATCH/DELETE /v1/code/sessions/...) im Proxy-Modus; '
-                        'Vorgabe filtern (der Nutzer 13.10. 21:09Z: "Platzhalter auf dem Handy")')
+                        'Vorgabe filtern (decision 10-13Z: "Platzhalter auf dem Handy")')
     s.add_argument('--struktur-datei', help='Messhilfe: JSON-Geruest (ohne Werte) des RC-Spiegels, Datei 0600')
     sub.add_parser('filter')
     ca = sub.add_parser('ca-anlegen', help='lokale CA des Proxy-Modus anlegen/erneuern, Pfad von ca.pem ausgeben')
@@ -2039,6 +3118,8 @@ def main(argv=None):
     ca.add_argument('--tage', type=int, default=CA_TAGE)
     kk = sub.add_parser('schluessel-pruefen', help='Schluessel laden/einmalig anlegen, nie ausgeben')
     kk.add_argument('--schluesselbund')
+    rr = sub.add_parser('routen-pruefen', help='geheimnis-routen.json pruefen (dieselbe Pruefung wie der Start von serve)')
+    rr.add_argument('--datei', default=ROUTEN_DATEI)
     zz = sub.add_parser('zaehler')
     zz.add_argument('--port', type=int, default=DIENST_PORT)
     zz.add_argument('--lesbar', action='store_true')
@@ -2047,6 +3128,11 @@ def main(argv=None):
         ap.error('--dns-frist muss zwischen 0 und 90 Sekunden liegen')
     if a.befehl == 'ca-anlegen':
         print(ca_sicherstellen(os.path.expanduser(a.ca_ordner), tage=a.tage))
+    elif a.befehl == 'routen-pruefen':
+        try:
+            print('Routentabelle %s: %d Routen gueltig' % (a.datei, len(routen_pruefen(a.datei))))
+        except RoutenUngueltig as exc:
+            sys.exit('wb-geheimnis-filter: %s' % exc)
     elif a.befehl == 'schluessel-pruefen':
         schluessel_laden(a.schluesselbund)
         print('Schluesselbund: HMAC-Eintrag lesbar (256 Bit); kein Wert ausgegeben')

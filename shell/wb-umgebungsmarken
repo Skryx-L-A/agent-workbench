@@ -1,0 +1,101 @@
+#!/usr/bin/python3 -I
+"""wb-umgebungsmarken -- zaehlt, ob Agentenmarken in der Startumgebung eines Prozesses stehen.
+
+  wb-umgebungsmarken <pid>     je Marke eine Zeile "NAME 0|1", danach "SUMME <n>"
+                               Exit 0 = keine Marke, 1 = mindestens eine, 2 = nicht lesbar/Bedienfehler
+
+WARUM (14.11.2026): Die Regel "Werkbank.app nie aus einer Agenten-Shell starten" verlangte nach einem
+Neustart `ps eww -p <pid> | ... | grep -c CLAUDECODE`. Seit der Waechter-Regel umgebung-auszug ist `ps eww` in
+Agenten-Shells gesperrt, weil die Startumgebung eines claude-Prozesses Kontotoken traegt (Messung 14.11.).
+Dieses Werkzeug beantwortet nur die eine Frage der Regel: Stehen die Agentenmarken drin?
+
+GRENZEN, absichtlich:
+- Die Namensliste ist fest (MARKEN unten, dieselben Marken wie wb-mensch A1 und wb-harness-update). Ein
+  Aufrufer kann keinen eigenen Namen erfragen.
+- Ausgegeben werden nur diese Namen mit 0 oder 1. Nie ein Wert, nie ein anderer Name, nie die Umgebung.
+- Gelesen wird die Startumgebung genau: am Mac ueber sysctl KERN_PROCARGS2 (dieselbe Quelle wie `ps -E`),
+  unter Linux /proc/<pid>/environ. Kein Rueckfall auf das Zerlegen einer ps-Zeile.
+- Fail closed: Ist die Umgebung nicht lesbar (fremde Kennung, Prozess weg, Plattform-Programm am Mac, das
+  seine Umgebung nicht zeigt, oder gar keine Variable), endet das Werkzeug mit Exit 2 und meldet nie 0.
+"""
+import ctypes
+import os
+import sys
+
+MARKEN = ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SESSION_ID", "PI_AGENT", "WB_AGENT",
+          "CODEX_SANDBOX")
+
+CTL_KERN = 1
+KERN_ARGMAX = 8
+KERN_PROCARGS2 = 49
+
+
+def _fehler(text):
+    print("wb-umgebungsmarken: %s" % text, file=sys.stderr)
+    return 2
+
+
+def _namen_mac(pid):
+    libc = ctypes.CDLL(None, use_errno=True)
+    argmax = ctypes.c_int(0)
+    groesse = ctypes.c_size_t(ctypes.sizeof(argmax))
+    mib = (ctypes.c_int * 2)(CTL_KERN, KERN_ARGMAX)
+    if libc.sysctl(mib, 2, ctypes.byref(argmax), ctypes.byref(groesse), None, 0) != 0:
+        return None
+    puffer = ctypes.create_string_buffer(argmax.value)
+    groesse = ctypes.c_size_t(argmax.value)
+    mib3 = (ctypes.c_int * 3)(CTL_KERN, KERN_PROCARGS2, pid)
+    if libc.sysctl(mib3, 3, puffer, ctypes.byref(groesse), None, 0) != 0:
+        return None
+    daten = puffer.raw[:groesse.value]
+    if len(daten) < 4:
+        return None
+    argc = int.from_bytes(daten[:4], sys.byteorder)
+    rest = daten[4:]
+    # Pfad des Programms, dann Fuellnullen, dann argc Argumente, dann die Umgebung bis zum ersten leeren Eintrag.
+    ende = rest.find(b"\0")
+    if ende < 0:
+        return None
+    i = ende
+    while i < len(rest) and rest[i:i + 1] == b"\0":
+        i += 1
+    teile = rest[i:].split(b"\0")
+    if len(teile) < argc:
+        return None
+    namen = []
+    for eintrag in teile[argc:]:
+        if not eintrag:
+            break
+        namen.append(eintrag.split(b"=", 1)[0].decode("utf-8", "replace"))
+    return namen
+
+
+def _namen_linux(pid):
+    try:
+        with open("/proc/%d/environ" % pid, "rb") as f:
+            daten = f.read()
+    except OSError:
+        return None
+    return [e.split(b"=", 1)[0].decode("utf-8", "replace") for e in daten.split(b"\0") if e]
+
+
+def main(argv):
+    if len(argv) != 2 or not argv[1].isdigit() or int(argv[1]) <= 0:
+        return _fehler("Aufruf: wb-umgebungsmarken <pid>")
+    pid = int(argv[1])
+    namen = _namen_mac(pid) if sys.platform == "darwin" else _namen_linux(pid)
+    if not namen:
+        return _fehler("Startumgebung von PID %d nicht lesbar (Prozess weg, fremde Kennung, Plattform-Programm "
+                       "oder leere Umgebung); keine Aussage." % pid)
+    vorhanden = set(namen)
+    summe = 0
+    for marke in MARKEN:
+        da = 1 if marke in vorhanden else 0
+        summe += da
+        print("%s %d" % (marke, da))
+    print("SUMME %d" % summe)
+    return 1 if summe else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

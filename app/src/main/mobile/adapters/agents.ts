@@ -1,10 +1,11 @@
 import { validateAgentAction } from '../../../mobile-shared/validierung';
-import type { AgentAction, JsonObject } from '../../../mobile-shared/vertrag';
+import { MOBILE_ERROR_CODES, RIGHTS_DECISION_NOTE_MAX, type AgentAction, type MobileApiErrorCode, type JsonObject, type SignedRequestEnvelope } from '../../../mobile-shared/vertrag';
 import { MobileAuthError } from '../auth/auth';
 import type { MobileRouteHandlers, MobileRouteRequest } from '../http/server';
 import type { AufgabenNutzlast } from '../../aufgaben';
 import type { WeltenHandlungsErgebnis } from '../../welten';
 import { mobilBeleg, type Herkunft, type Herkunftsbeleg } from '../../herkunft';
+import { aenderungSha256 } from '../auth/rechteantrag-beleg';
 
 /**
  * Der HTTP-Transport setzt `device` erst nach erfolgreicher Pruefung der
@@ -146,7 +147,65 @@ function resolveAction(snapshot: AufgabenNutzlast, action: AgentAction): Resolve
         ...(action.note ? { bemerkung: action.note } : {}),
         ...(action.dod_confirmed ? { dod_geprueft: true } : {}),
       });
+    /** Geht nie ueber die geschlossene Menge: eigener Weg mit Geraetebeleg (`resolveRightsDecision`). */
+    case 'rights_request.decide':
+      return badRequest('rights decisions take their own path');
   }
+}
+
+/** Wie `wb-mobil-pruefen`: Steuerzeichen und Zeilentrenner machen eine Bemerkung ungueltig. */
+const STEUERZEICHEN = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
+
+interface RightsDecision {
+  readonly world_id: string; readonly rights_request_id: string; readonly decision: 'approve' | 'reject';
+  readonly changes: JsonObject; readonly note?: string;
+}
+
+/**
+ * v1.9: `rights_request.decide` (18.10.2026). Nur die feste Feldmenge; die Entscheidung
+ * traegt allein `decision`. `changes` ist die Aenderung, die das Geraet angezeigt und
+ * unterschrieben hat; sie muss der gespeicherten gleichen.
+ */
+function validateRightsDecision(value: unknown): RightsDecision {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) badRequest('rights decision must be an object');
+  const body = value as Record<string, unknown>;
+  const allowed = new Set(['type', 'world_id', 'rights_request_id', 'decision', 'changes', 'note']);
+  if (Object.keys(body).some((key) => !allowed.has(key))) badRequest('rights decision has unknown fields');
+  for (const field of ['world_id', 'rights_request_id'] as const) {
+    if (typeof body[field] !== 'string' || !body[field]) badRequest(`${field} must be a non-empty string`);
+  }
+  if (body.decision !== 'approve' && body.decision !== 'reject') badRequest('decision must be approve or reject');
+  if (typeof body.changes !== 'object' || body.changes === null || Array.isArray(body.changes)) badRequest('changes must be the stored change object');
+  if (body.note !== undefined && (typeof body.note !== 'string' || !body.note.trim() || [...body.note].length > RIGHTS_DECISION_NOTE_MAX
+    || STEUERZEICHEN.test(body.note))) badRequest(`note must be one line of at most ${RIGHTS_DECISION_NOTE_MAX} characters`);
+  return body as unknown as RightsDecision;
+}
+
+/** Der Mobilbeleg samt Nachweis (Umschlag + exakte Bodybytes), wie bei den Freigaben (approvals.ts). */
+function proofWithEnvelope(request: MobileRouteRequest): Herkunftsbeleg {
+  if (!request.device || !request.envelope) unavailable('a verified mobile device with its signed envelope is required');
+  return mobilBeleg(request.device, { umschlag: request.envelope as SignedRequestEnvelope, body: request.rawBody });
+}
+
+/**
+ * Vorpruefung am frischen Stand: Welt dieser Maschine, Antrag bekannt, offen, nicht
+ * abgelaufen, angezeigte gleich gespeicherter Aenderung. Massgeblich bleiben die Bindung in
+ * `wb-mobil-pruefen` und die Pruefung im Entscheider; hier faellt nur frueh ab, was dort
+ * ohnehin scheitert.
+ */
+function resolveRightsDecision(snapshot: AufgabenNutzlast, action: RightsDecision): ResolvedAction {
+  const worlds = snapshot.welten.welten.filter((world) => world.id === action.world_id);
+  if (worlds.length !== 1) throw new MobileAuthError('stale_target', 'world is no longer current');
+  const world = worlds[0];
+  if (world.fern) unavailable('rights requests of a world on another machine are decided there');
+  const entry = (world.rechteantraege ?? []).find((item) => item.id === action.rights_request_id);
+  if (!entry) throw new MobileAuthError('stale_target', 'rights request is unknown in this world');
+  if (entry.stand !== 'offen') throw new MobileAuthError('stale_target', 'rights request is already decided or withdrawn');
+  if (entry.abgelaufen) throw new MobileAuthError('stale_target', 'rights request has expired');
+  if (aenderungSha256(action.changes) !== aenderungSha256(entry.changes)) throw new MobileAuthError('stale_target', 'rights request changed since it was shown');
+  return worldCommand('rechte_antrag_entscheiden', {
+    welt: world.pfad, id: entry.id, annehmen: action.decision === 'approve', ...(action.note ? { bemerkung: action.note } : {}),
+  });
 }
 
 async function fresh(source: AufgabenQuelleForMobile): Promise<AufgabenNutzlast> {
@@ -166,6 +225,18 @@ export function createAgentsHandlers(source: AufgabenQuelleForMobile): Pick<Mobi
   return {
     'GET /agents': () => ({ data: asJson(source.aktuell()) }),
     'POST /agents/actions': async (request) => {
+      if ((request.body as { type?: unknown } | null)?.type === 'rights_request.decide') {
+        const action = validateRightsDecision(request.body);
+        const proof = proofWithEnvelope(request);
+        const command = resolveRightsDecision(await fresh(source), action);
+        const result = await source.ausfuehren(command.befehl, proof, { bestaetigt: true } satisfies AgentsActionOptions);
+        if (!result.ok) {
+          // Die Pruefstelle nennt ihren Code (etwa `invalid_signature`, `nonce_replayed`); sonst ist der Antrag nicht mehr entscheidbar.
+          const code = MOBILE_ERROR_CODES.includes(result.code as MobileApiErrorCode) ? result.code as MobileApiErrorCode : 'stale_target';
+          throw new MobileAuthError(code, result.meldung || 'rights request could not be decided');
+        }
+        return { data: asJson({ result: result as unknown as JsonObject }) };
+      }
       const checked = validateAgentAction(request.body);
       if (!checked.ok) badRequest(checked.error);
       const proof = originFor(request);

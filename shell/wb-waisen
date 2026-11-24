@@ -409,7 +409,7 @@ lebende_pane_pids() {
   done
 }
 
-# EIN lsof-AUFRUF FUER ALLE KANDIDATEN (13.10.2026, GL#35: test-waisen.sh lief
+# EIN lsof-AUFRUF FUER ALLE KANDIDATEN (13.10.2026, Gesamtlauf: test-waisen.sh lief
 # in TIMEOUT nach 300s). Die drei lsof-Helfer unten nehmen eine
 # Komma-Liste von PIDs (`lsof -p 1,2,3`) und geben je PID eine Zeile aus,
 # beginnend mit der PID (Spalte 2 der lsof-Ausgabe). Frueher lief jeder
@@ -514,7 +514,7 @@ launchd_job_laeuft() {
   [ -n "$label" ] || return 1
   case "$label" in agent-workbench.*) ;; *) return 1 ;; esac
   aus="$(launchctl print "gui/$(id -u)/$label" 2>/dev/null)" || return 1
-  printf '%s\n' "$aus" | grep -qE '^[[:space:]]*(pid = [0-9]+|state = running)'
+  grep -qE '^[[:space:]]*(pid = [0-9]+|state = running)' <<<"$aus"
 }
 
 # Dritte Eigentuemer-Art (2026-08-21, siehe wb-nohup --werkbank): der Starter
@@ -531,7 +531,7 @@ werkbank_laeuft() {
   [ -n "$pid" ] && [ "$pid" != "0" ] || return 1
   cmd="$(ps -o command= -p "$pid" 2>/dev/null)"
   [ -n "$cmd" ] || return 1
-  printf '%s\n' "$cmd" | grep -qiE 'electron|agent-workbench|Agent Workbench|Claude Workbench' || return 1
+  grep -qiE 'electron|agent-workbench|Agent Workbench|Claude Workbench' <<<"$cmd" || return 1
   # LC_ALL=C aus demselben Grund wie ueberall sonst hier: `ps -o lstart=`
   # formatiert nach LC_TIME, und ein Vergleich ueber zwei Umgebungen hinweg
   # faellt sonst still aus.
@@ -685,7 +685,7 @@ if [ -d "$REGDIR" ] && [ -n "$ALLE_PIDS" ]; then
   for f in "$REGDIR"/*.json; do
     [ -e "$f" ] || continue
     p="$(basename "$f" .json)"
-    printf '%s\n' "$ALLE_PIDS" | grep -qx "$p" || rm -f "$f"
+    grep -qx "$p" <<<"$ALLE_PIDS" || rm -f "$f"
   done
 fi
 

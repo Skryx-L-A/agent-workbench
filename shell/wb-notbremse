@@ -183,7 +183,7 @@ PROTOKOLL = os.path.join(STATE_DIR, "protokoll.log")
 PIDDATEI = os.path.join(STATE_DIR, "wache.pid")
 EINGRIFF = os.path.join(STATE_DIR, "letzter-eingriff.json")
 
-# WAR 1024 ("unter 1gb freier speicher insgesammt", der Nutzer 2026-08-21).
+# WAR 1024 ("unter 1gb freier speicher insgesammt", decision 2026-08-21).
 # 2026-08-27, neue Anweisung, woertlich "weniger als 0,5 GB Speicher frei
 # sind": 512. Per WB_NOTBREMSE_SCHWELLE_MIB ueberschreibbar -- das macht die
 # Schwelle fuer einen Test verstellbar, ohne echten Speicher wegnehmen zu

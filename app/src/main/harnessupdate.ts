@@ -85,10 +85,16 @@ export function harnessUpdateMeldungen(state: HarnessUpdateState): string[] {
   return out;
 }
 
+/** Exit des Shell-Werkzeugs: Der Lauf wurde zurueckgestellt (Tafel mac-suite oder mac-ruhe belegt). */
+const EXIT_VERSCHOBEN = 75;
+const NEUER_VERSUCH_MS = 15 * 60 * 1000;
+
 export interface HarnessUpdateSchedulerOptions {
   bin?: string;
   settingsFile: string;
   startDelayMs?: number;
+  /** Abstand zwischen zwei Versuchen nach einer Rueckstellung (Vorgabe 15 min). */
+  neuerVersuchMs?: number;
   env?: NodeJS.ProcessEnv;
   melden(text: string): void;
   aktualisiert?(): void;
@@ -103,6 +109,7 @@ export class HarnessUpdateScheduler {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private kind: ChildProcess | null = null;
   private beendet = false;
+  private verschobenSeit: number | null = null;
 
   constructor(private readonly opt: HarnessUpdateSchedulerOptions) {}
 
@@ -133,6 +140,24 @@ export class HarnessUpdateScheduler {
     this.plane(harnessUpdateIntervalHours(this.opt.settingsFile) * 60 * 60 * 1000);
   }
 
+  /**
+   * Die Tafel ist belegt: kurz spaeter noch einmal fragen, hoechstens ein Intervall lang.
+   * Danach gilt wieder der normale Takt; der Abstand ist nie kuerzer als `neuerVersuchMs`,
+   * also entsteht keine enge Schleife.
+   */
+  private verschieben(): void {
+    const abstand = this.opt.neuerVersuchMs ?? NEUER_VERSUCH_MS;
+    const intervall = harnessUpdateIntervalHours(this.opt.settingsFile) * 60 * 60 * 1000;
+    const jetzt = Date.now();
+    this.verschobenSeit ??= jetzt;
+    if (jetzt - this.verschobenSeit + abstand >= intervall) {
+      this.verschobenSeit = null;
+      this.naechsterLauf();
+      return;
+    }
+    this.plane(abstand);
+  }
+
   private lauf(): void {
     if (this.beendet || this.kind) return;
     if (!harnessUpdateAuto(this.opt.settingsFile)) {
@@ -157,6 +182,11 @@ export class HarnessUpdateScheduler {
     });
     kind.on('close', (code) => {
       this.kind = null;
+      if (code === EXIT_VERSCHOBEN) {
+        this.verschieben();
+        return;
+      }
+      this.verschobenSeit = null;
       if (code === 0 || out.trim()) {
         try {
           const state = JSON.parse(out) as HarnessUpdateState;

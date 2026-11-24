@@ -1,0 +1,3184 @@
+#!/usr/bin/env python3
+"""wb-konto -- welches Anthropic-Abo (gross/klein) ein Claude-Start der Werkbank bekommt.
+
+  wb-konto wahl [--json] [--ohne-messung]   unter den Konten mit Luft das mit mehr Luft (Abstand zur Linie); Exit 3,
+                                            wenn keines Luft hat
+  wb-konto ziel [--json]                    EINE Zeile: je Konto der Rest bis zur Zielmarke der Woche (Obergrenze,
+                                            sonst 100) und die Zeit bis zum Wochenreset
+  wb-konto aufloesen <gross|klein|auto>     gibt den Kontonamen aus (auto = wahl); Exit != 0 ohne Konto
+  wb-konto dienst <gross|klein>             Name des Schluesselbund-Eintrags, nur nach Existenzpruefung
+  wb-konto buche <konto> --bis <epoch> [--grund TEXT]   Konto erschoepft bis <epoch> (Schnittstelle fuer Zug 2)
+  wb-konto messen <konto|alle> [--erzwingen]            billige Messung ohne Sitzung, hoechstens alle 30 min
+  wb-konto zuordnen --seven-day-resets-at <epoch> [--angabe <konto>] [--sitzung <id>] [--pid <pid>]
+                                                                     Kontofeld fuer limits.jsonl
+  wb-konto konten [--json]                  die Konfiguration unten, mit Selbstpruefung
+  wb-konto start [--konto <k>] -- <programm> [args...]
+                                            Konto nach der Angabe des Starters (--konto oder WB_CLAUDE_KONTO
+                                            in einem frischen Prozess; Vorgabe auto = Wahl), Token nur in die
+                                            Umgebung, dann exec (wb-code); ohne Eintrag Exit != 0. Eine in der
+                                            Sitzung GEERBTE WB_CLAUDE_KONTO gilt nicht als Angabe, das Kind
+                                            bekommt sie nicht weiter 
+  wb-konto wechsel <%pane> [--tmux-socket-pfad P] [--trocken]
+                                            Limitmeldung im Pane -> Konto buchen, Neustart derselben
+                                            Unterhaltung auf dem anderen Konto (Kontextwache, Zug 2)
+  wb-konto budget <%pane> [--tmux-socket-pfad P] [--trocken]
+                                            Zugende ueber Tageslinie oder 5h-Grenze (frischer Messwert) ->
+                                            Neustart derselben Unterhaltung auf dem anderen Konto (Kontextwache)
+  wb-konto fortsetzen [--trocken]           faellige Fortsetzungen nach dem Limit-Reset: genau EIN "weiter"
+                                            ueber die Sitzungs-Inbox (Kontextwache, beim naechsten Poll)
+  wb-konto planwechsel <konto> --zeit <ISO|epoch> [--plan <name>]
+                                            Plan des Kontos mitten im Wochenfenster gewechselt: Messzeilen vor
+                                            <zeit> zaehlen fuer Woche und 5h nicht mehr (Zaehler stehen neu auf 0)
+  wb-konto obergrenze [--json]              Obergrenze je Konto (Woche, 5h-Fenster) und woher sie kommt
+  wb-konto obergrenze <konto> [--woche N|aus] [--fuenf-stunden N|aus]
+                                            Obergrenze setzen; "aus" hebt sie auf (auch eine Vorgabe)
+  wb-konto obergrenze --warnung <konto> <woche_pct> [<fuenf_pct>]
+                                            ein kurzer Warntext fuer die Statuszeile, sonst nichts
+  wb-konto status [--json]                  letzter Kontowechsel je Unterhaltung, nur lesend (fuer die App):
+                                            zeit, von, nach (gross|klein), grund (limit|budget),
+                                            remote_control_verloren (ja|nein|unbekannt); nie Token, nie Adressen
+  wb-konto tokensicht [--json]              sieht das Bash-Werkzeug den Konto-Token? Pruefbefehl je
+                                            Claude-Update; nur Zaehler, Attrappe statt Modell
+
+Dieses Werkzeug ist die EINZIGE Stelle mit Kontonamen, Schluesselbund-Diensten und Wochenbeginn; wb-harness-run, pi-worker,
+claude-worker und die Statuszeile fragen hier nach, statt eigene Tabellen zu fuehren. Ziel: ein Kontowechsel zwischen
+den beiden Konten gross und klein braucht keinen Menschen.
+
+WAHLREGEL:
+  Ein Konto hat Luft, wenn five_hour_pct < 85 UND seven_day_pct unter seiner Tageslinie liegt.
+  Ein Konto OHNE 5h-Fenster ("fuenf_stunden_fenster": false in der Konfiguration) hat nur die Wochenbedingung:
+  five_hour_pct ist dort None (nicht 0), und jede Ausgabe sagt "5h: kein Fenster".
+  Tageslinie = Tagesindex x 100/7 (gedeckelt bei 100); Tagesindex = Kalendertage (Ortszeit) vom
+  Starttag DIESES Kontofensters bis heute, heute mitgezaehlt. Das Fenster beginnt 7 Tage vor dem
+  naechsten Reset des Kontos (reset_anker + k x 7 Tage).
+  MEHR LUFT ZUERST: Unter mehreren Konten mit Luft gewinnt das mit dem groesseren Abstand zur Linie (Abstand = Linie
+  minus Woche, in Punkten); bei Gleichstand gilt die feste Reihenfolge "reihenfolge" der Konfiguration. wahl_vorrang gibt
+  es in der Vorgabe nicht; eine eigene Konfiguration kann es setzen, dann gewinnt das erste Konto daraus. LINIE
+  AUSGESETZT: Traegt ein Konto "linie_aus_bis" (ISO-Zeit), bremst seine Tageslinie bis dahin nicht: es wird nicht "knapp"
+  und `budget` wechselt nicht weg, der Abstand rechnet gegen die Wochenmarke (Obergrenze, sonst 100) statt gegen die
+  Linie; Obergrenze, 100 %, Buchung und harte Enden gelten weiter. Ab der Zeit gilt die Linie wieder, ohne Eingriff. Die
+  Vorgabe traegt keinen solchen Eintrag. Kein Messwert im laufenden Fenster oder ein Messwert aelter als max_alter_min
+  heisst "unbekannt" -- nie frei. Eine Buchung "erschoepft bis" schlaegt jeden Messwert.
+
+MESSWERTE: ~/.claude/workbench/limits.jsonl (Schreiber: claude/statusline-command.sh und
+`wb-konto messen`). Das alte Feld "konto" dort ist nicht verlaesslich; massgeblich ist die
+seven_day_resets_at-Familie: (resets_at - reset_anker) ist ein Vielfaches von 7 Tagen. Im selben
+Fenster sinkt der Verbrauch nie, deshalb zaehlt der Hoechstwert des Fensters, nicht die letzte Zeile.
+
+WECHSEL BEI LIMIT: Die Kontextwache sieht die Limitmeldung am Zugende eines Claude-Panes
+und ruft `wechsel`. Das bucht das laufende Konto erschoepft bis zum Reset, nimmt die Kennung der Unterhaltung
+aus ~/.claude/sessions/<pane_pid>.json (nie aus @wb_cmd) und startet denselben Pane ueber
+`wb-revive --force --yes --resume-id <id> --konto <anderes>` neu (gleiche Startzeile, also gleiche Rolle).
+Danach geht EIN "weiter" ueber wb-inbox an die Sitzung und eine Zeile an die Gruppe leitung. Kein Wechsel
+im Kreis: ist das andere Konto gebucht oder gemessen erschoepft, oder kam diese Unterhaltung von dort, solange
+dessen Limit gilt, wird angehalten und gemeldet. Ein Vorfall (Eintrag im Transkript) wird nur einmal
+behandelt. Ausserhalb des Mac wird nur gemeldet.
+UMMELDUNG VON HAND: Meldet ein Mensch eine laufende Sitzung mit /login um, nennt die Marke
+(konto-prozesse/<pid>.json) weiter das alte Konto. Zeigen die zwei juengsten Messzeilen DIESER Unterhaltung, beide juenger
+als der Prozessstart und als der letzte eingetragene Wechsel, ueber ihre Reset-Familie (seven_day_resets_at, nie das Feld
+konto) uebereinstimmend ein anderes Konto, gilt das gemessene Konto, und die Marke wird nachgezogen.
+UNBESTIMMTE LIMITART: Eine Meldung kann die Art des Limits offenlassen. Bei der Art "usage" oder "" widerspricht ein
+frischer Messwert der Meldung nur, wenn five_hour_pct UND seven_day_pct unter limit_messwert_min (90) liegen. Liegt nur
+die Woche darueber, gilt die Meldung als Wochenlimit: gebucht wird bis zum Wochenreset des Kontos. "session", "5-hour",
+"five-hour" und "weekly" bleiben, wie sie sind.
+KONTO OHNE 5h-FENSTER: Die Konfiguration "fuenf_stunden_fenster": false (Vorgabe true) sagt es je Konto. Dort ist
+five_hour_pct None (nie 0, das hiesse "Fenster offen, 0 %"), und das JSON von stand/wahl/ziel traegt
+"fuenf_stunden_fenster": false. Jede Textausgabe nennt "5h: kein Fenster" statt eines Prozentwerts. Das Konto wird nur
+nach der Woche bewertet (nie "knapp" wegen 5h); fuenf_stunden_grenze (85) und budget_fuenf_reset_warte_min gelten nur
+fuer Konten MIT Fenster. Bei unbestimmter Limitart prueft `wechsel` dort nur die Woche (liegt sie frisch unter
+limit_messwert_min, widerspricht der Messwert). GRENZE: Erkennt der Text der Meldung ein Modell (opus, sonnet, haiku,
+fable), gilt sie dort nicht als Kontolimit (kein Widerspruch, keine Buchung, "melden"); das gilt nur fuer Konten ohne
+5h-Fenster, fuer Konten mit Fenster bleibt das Verhalten wie vorher. Ein Modellname, den die Meldung nicht nennt, bleibt
+unerkannt. `obergrenze <konto> --fuenf-stunden N` lehnt ein solches Konto mit Exit 2 ab ("aus" bleibt erlaubt); ein
+vorhandener Eintrag in konto-obergrenze.json wird nie geloescht, nur als "ohne Wirkung" angezeigt.
+
+PLANWECHSEL: Ein Planwechsel kann die Zaehler mitten im SELBEN Wochenfenster auf 0 setzen. stand() nimmt den
+Hoechstwert des Fensters; der alte Hoechstwert bliebe stehen. Ein Konto kann deshalb ein Ereignis tragen (`planwechsel
+<konto> --zeit <ISO>`, Datei konto-planwechsel.json, Vorgabe "planwechsel" in der Konfiguration): Messzeilen vor der Zeit
+zaehlen fuer Woche und 5h nicht mehr, danach gilt der Hoechstwert wie bisher; ohne Zeile nach dem Wechsel ist der Stand
+"unbekannt", nie 0. TAGESLINIE: bleibt die des Wochenfensters (verstrichener Anteil der Woche); der Verbrauch ab dem
+Wechsel auf dem neuen, leeren Zaehler wird gegen sie gehalten. Eine Linie nur ueber die Resttage verwuerfe den Satz
+"erlaubt ist der verstrichene Anteil der Woche" und liesse das Konto nach dem Wechsel ohne Not "knapp" stehen.
+
+WECHSEL BEI BUDGET: `budget` prueft am ZUGENDE (letzter Eintrag des
+Gespraechsprotokolls ist eine Assistentenantwort mit stop_reason end_turn; die Wache ruft es nur fuer einen leeren,
+stehenden Pane), ob das laufende Konto ueber seiner Tageslinie oder ueber der 5h-Grenze (fuenf_stunden_grenze) liegt.
+Der Messwert des laufenden Kontos muss frisch sein: hoechstens budget_messwert_max_min (30) Minuten alt. Grund der
+Grenze: 30 min ist der Messabstand von `messen` (mess_abstand_min), also die kuerzeste Frist, in der das ZIELkonto ohne
+eigene Sitzung ueberhaupt neu gemessen werden kann; das laufende Konto schreibt seine Statuszeile ohnehin bei jedem
+Zug. Fuer dieselbe Frist gilt der Messwert des Zielkontos, den 10 Punkte Luft gegen Drift absichern. Gewechselt wird
+nur, wenn das Zielkonto mindestens budget_ziel_luft_punkte (10) unter seiner Tageslinie UND 10 unter der 5h-Grenze
+liegt, kein Wechsel im Kreis ansteht und der letzte Wechsel DIESER Unterhaltung mindestens budget_mindestabstand_min
+(60) Minuten zurueckliegt (ein Neustart laedt den Kontext neu; die Stunde verhindert Hin und Her). Liegen beide ueber
+der Linie, meldet es die naechste freie Spur laut regeln/vergabe.md. Ein Orchestrator mit Remote Control wechselt nur
+mit orchestratorWechselBeiLimit != false und sagt den Verlust laut. Jede Entscheidung ab dem Ausloeser steht mit den
+Messwerten BEIDER Konten in konto-wechsel.log; der Verlauf traegt grund "budget". Kein "weiter": der Zug war fertig.
+Laeuft unter dem Harness-Prozess noch eine Shell (Werkzeugaufruf, Hintergrundjob, Monitor), wechselt es nicht
+("nichts: Hintergrundauftrag laeuft"): der Neustart wuerde den Auftrag mitnehmen.
+
+ERST KOMPAKTIEREN, DANN WECHSELN: Ein Neustart mit --resume schreibt den ganzen Kontext neu in den Cache des
+Zielkontos und kostet dort spuerbar Kontingent. Liegt der Kontext der juengsten Anfrage (cache_creation + cache_read +
+input aus dem Gespraechsprotokoll) bei mindestens budget_kompakt_ab_tokens (150000), wechselt `budget` NICHT, sondern
+antwortet "kompaktieren" und merkt sich die Unterhaltung in konto-wechsel.json (vorwechsel). Die Kontextwache fuehrt
+dann ihr Sentinelverfahren aus (Uebergabe bzw. Sentinel, /compact, Anschluss). Gewechselt wird erst, wenn das
+Gespraechsprotokoll eine Kompaktierungsgrenze (compact_boundary) NACH dem Vormerken zeigt; bis dahin antwortet es weiter
+"kompaktieren" (die Wache handelt je Vormerkung nur einmal).
+Ein frisch kompaktierter Pane (nach der Grenze noch keine Antwort) zaehlt als Zugende. Ohne Bestaetigung binnen
+budget_kompakt_frist_min (60) Minuten: "halt" an leitung, kein Wechsel; die Vormerkung verfaellt nach 8 h.
+Grund der 150000: nach einer Kompaktierung liegt deutlich weniger im Kontext; darunter spart sie kaum etwas.
+5h-RESET NAH: Ist nur die 5h-Grenze der Ausloeser und liegt der 5h-Reset hoechstens
+budget_fuenf_reset_warte_min (30) Minuten entfernt, wechselt `budget` nicht; die Sitzung bleibt auf ihrem Konto.
+RESERVE VOR DER HARTEN MARKE: /compact auf einem erschoepften Konto scheitert an dessen Wochenlimit. `budget` loest
+deshalb auch aus, wenn seven_day_pct >= harte Marke - budget_wochen_reserve_punkte (2) liegt.
+Harte Marke ist die Wochen-Obergrenze des Kontos, ohne Obergrenze 100. So laeuft die Kompaktierung noch auf dem alten
+Konto, solange es Token hat. Liegt die Quelle in dieser Reserve, verlangt `budget` vom Zielkonto keine
+budget_ziel_luft_punkte: es reicht ein Ziel unter seiner Tageslinie, unter der 5h-Grenze und ohne Halt aus ziel_halt.
+KEIN UMZUG AM HARTEN ENDE: Steht das laufende Konto am harten Ende (gebucht erschoepft oder
+frisch gemessen Woche bzw. 5h >= 100), wechselt `budget` NICHT. Eine ruhende Sitzung kostet nichts, ein Umzug einen vollen
+ungecachten Lesezug; den Wechsel uebernimmt `wechsel`, sobald die Sitzung wieder arbeiten will und die Limitmeldung
+zeigt. Antwort "nichts" mit Grund, hoechstens einmal je budget_mindestabstand_min ins Protokoll.
+
+KOMPAKTIEREN NACH DEM WECHSEL: Liegt der Kontext beim Limitwechsel (`wechsel`) bei mindestens budget_kompakt_ab_tokens,
+geht nach dem Neustart KEIN sofortiges "weiter" hinaus. `wechsel` antwortet "nachkompaktieren" und merkt die
+Unterhaltung in konto-fortsetzung.json (nachwechsel); die Kontextwache fuehrt ihr Verfahren wie bei "kompaktieren" aus,
+diesmal auf dem NEUEN Konto. Den Resume-Prompt nach der Kompaktierung schickt die Wache selbst (nach jedem /compact der
+Wache ihr eigener Resume-Prompt). wb-konto ist nur das Sicherheitsnetz: Zeigt das
+Gespraechsprotokoll eine compact_boundary nach dem Wechsel und steht danach schon ein Nutzereintrag (gelesen werden nur
+Typ, Zeitstempel und die Marken isCompactSummary/toolUseResult, nie Inhalte), raeumt es die Vormerkung ohne Senden ab.
+Sonst wartet es NACHWECHSEL_SCHONFRIST_S (180 s = drei Polls der Wache) ab dem Boundary und schickt dann genau EIN
+"weiter" ueber die Inbox. In beiden Faellen antwortet `budget` "fortgesetzt", und die Wache raeumt ihre Vormerkung ab;
+`fortsetzen` prueft dieselbe Bedingung alle fortsetzung_abstand_min, falls budget den Pane nicht sieht. Ohne Bestaetigung nach
+budget_kompakt_frist_min geht das "weiter" trotzdem hinaus, und eine Zeile geht an leitung: die Sitzung bleibt nie
+stehen. Unter der Schwelle bleibt es beim sofortigen "weiter". `budget` selbst wechselt am harten Ende nicht.
+
+FORTSETZUNG NACH DEM LIMIT: Endet ein Limit ohne
+Wechsel (Halt: anderes Konto am Ende, Kreis, Orchestrator ohne Erlaubnis; ausserhalb des Mac nur Meldung), merkt sich
+`wechsel` Unterhaltung, Pane und Reset in konto-fortsetzung.json; die Datei konto-fortsetzung.faellig traegt den
+fruehesten Zeitpunkt, den die Kontextwache billig vergleicht (kein Dauerprozess). `fortsetzen` schickt dann genau EIN
+"weiter" ueber wb-inbox, nur wenn der Pane lebt, dieselbe Unterhaltung fuehrt, steht und der letzte Eintrag des
+Gespraechsprotokolls weiter DERSELBE Limitfehler ist; hat jemand weitergearbeitet, geschieht nichts. Auf dem Mac
+braucht es vorher einen Messwert nach dem Reset, hoechstens 30 min alt, unter limit_messwert_min; fehlt er oder ist das
+Fenster noch voll, wird nach fortsetzung_abstand_min (10) erneut geprueft, hoechstens fortsetzung_max_versuche (12) mal.
+Ohne Schluesselbund (Linux) gibt es keinen Messweg: dort zaehlt die Reset-Uhrzeit der Meldung. Kommt das Limit nach
+einem "weiter" wieder, zaehlt das: hoechstens fortsetzung_max_sendungen (3) je Unterhaltung in 24 h. Abschalten:
+`wb-state settings set kontoFortsetzungNachLimit false` (ungesetzt = an).
+
+MESSWEG OHNE SITZUNG (hergeleitet, nicht am echten Konto gemessen; der Dienst kann mit HTTP 429 antworten): GET
+https://api.anthropic.com/api/oauth/usage mit dem Langzeit-Token des Kontos (Kopf Authorization,
+anthropic-beta oauth-2025-04-20). Es ist kein Modellaufruf, kostet also keine Tokens. Der Token
+wird nur im Speicher dieses Prozesses gehalten, nie ausgegeben, nie in argv eines Kindes.
+
+ADRESSNAHT (wie wb-kontingent): WB_KONTO_USAGE_URL gilt NUR mit
+WB_TESTUMGEBUNG=1 und sendet dann den festen Scheinschluessel; der Schluesselbund wird dann nicht
+gelesen. Ohne WB_TESTUMGEBUNG=1 wird die Variable ignoriert. WB_KONTO_KEIN_NETZ=1 sperrt jeden Abruf.
+Keine Umleitung wird verfolgt. 429 und jeder andere Fehler heissen "nicht gemessen", nie frei; ein 429 sperrt
+diesen Weg fuer max(Retry-After, verdoppelter Abstand). Ein 401/403 (etwa 403 permission_error, wenn dem Token aus
+`claude setup-token` der Bereich user:profile fehlt) sperrt ihn 24 h, mit Grund in konto-wechsel.log;
+--erzwingen fragt trotzdem. --erzwingen durchbricht den Abstand, aber je Konto hoechstens ein erzwungener Abruf
+in 5 min (beide Wege zusammen, ERZWUNGEN_ABSTAND_S); ein weiterer sendet nichts und nennt den letzten Messwert mit
+"gemessen vor N s". Der Fehlertext nennt error.type und error.message des Rumpfs, nie Kopfzeilen. ERSATZWEG: ein Minimalaufruf `claude -p --model haiku`
+mit dem Token nur in der Kindumgebung; den Stand liefert das Stream-Ereignis rate_limit_event, die Kosten die
+result-Zeile (beide werden genannt). Unter der Naht nur die Attrappe WB_KONTO_CLAUDE_BIN.
+
+Testhaken: WB_KONTO_KONFIG (JSON-Datei statt der eingebauten Konfiguration), WB_KONTO_JETZT (epoch).
+"""
+import datetime
+import json
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.request
+
+WOCHE = 7 * 86400
+
+# OBERGRENZE JE KONTO: Je Konto gibt es eine Obergrenze der Woche und eine des 5h-Fensters (Vorgabe unten in "konten").
+# Erreicht ein FRISCHER Messwert (hoechstens max_alter_min alt) die Grenze, gilt das
+# Konto bis zum Reset des betroffenen Fensters als erschoepft: `wahl` waehlt es nicht, und `budget` wechselt am
+# Zugende weg wie bei der Tageslinie (gleicher Weg, gleicher Mindestabstand). Ein veralteter Messwert macht das Konto
+# "unbekannt", nicht erschoepft; wahl misst dann neu. Geschrieben wird dabei nichts: die Grenze gilt, solange der
+# Messwert des laufenden Fensters sie zeigt, und ein neues Fenster beginnt ohne Messwert, also wieder offen.
+# Aendern ohne Codeaenderung: `wb-konto obergrenze gross --woche 100` oder `--woche aus` (Datei konto-obergrenze.json
+# im Werkbank-Ordner; ein Eintrag dort schlaegt die Vorgabe, auch als "aus"). Die eigene Installation setzt ihre
+# Grenzen dort, nicht hier. Starts ueber die Mac-Anmeldung laufen
+# nicht ueber wb-konto und bleiben, wie sie sind; dort zeigt die Statuszeile nur eine Warnung (`--warnung`).
+
+# ── KONFIGURATION: Beispielwerte fuer zwei Konten; die Testsuiten rechnen mit genau diesen Werten ──────────
+# Eine Installation mit anderen Konten gibt ihre Konfiguration ueber WB_KONTO_KONFIG (JSON-Datei gleicher Form) und
+# ihre Obergrenzen ueber `wb-konto obergrenze` (konto-obergrenze.json).
+# reset_anker: ein beobachteter seven_day_resets_at des Kontos (UTC-epoch). Der Wochenbeginn ist
+# derselbe Zeitpunkt; "wochenbeginn" ist nur die lesbare Form und wird gegen den Anker geprueft.
+KONFIG = {
+    "konten": {
+        "gross": {"dienst": "wb-claude-abo-1", "plan": "beispiel-gross",
+                  "wochenbeginn": "Mo 13:00", "reset_anker": 1794830400,
+                  "obergrenze_woche": 98,    # Beispiel: 2 Punkte Reserve vor dem Wochenlimit
+                  "fuenf_stunden_fenster": False},
+        "klein": {"dienst": "wb-claude-abo-2", "plan": "beispiel-klein",
+                  "wochenbeginn": "Di 20:00", "reset_anker": 1794942000,
+                  "fuenf_stunden_fenster": False},
+    },
+    "reihenfolge": ["gross", "klein"],
+    "fuenf_stunden_grenze": 85,   # ab 85 % im 5h-Fenster nichts Neues (nur Konten MIT Fenster)
+    "max_alter_min": 120,
+    "mess_abstand_min": 30,
+    "familien_toleranz_s": 300,
+    # Begruendung im Kopf unter WECHSEL BEI BUDGET und FORTSETZUNG NACH DEM LIMIT
+    "budget_messwert_max_min": 30,
+    "budget_mindestabstand_min": 60,
+    "budget_ziel_luft_punkte": 10,
+    "fortsetzung_vorlauf_s": 60,
+    "fortsetzung_abstand_min": 10,
+    "fortsetzung_max_versuche": 12,
+    "fortsetzung_max_sendungen": 3,
+    # Begruendung im Kopf unter ERST KOMPAKTIEREN und 5h-RESET NAH
+    "budget_kompakt_ab_tokens": 150000,
+    "budget_kompakt_frist_min": 60,
+    "budget_fuenf_reset_warte_min": 30,
+    # Begruendung im Kopf unter RESERVE VOR DER HARTEN MARKE
+    "budget_wochen_reserve_punkte": 2,
+}
+
+VORGABEN_Z2B = {"budget_messwert_max_min": 30, "budget_mindestabstand_min": 60, "budget_ziel_luft_punkte": 10,
+                "fortsetzung_vorlauf_s": 60, "fortsetzung_abstand_min": 10, "fortsetzung_max_versuche": 12,
+                "fortsetzung_max_sendungen": 3, "limit_messwert_min": 90, "fuenf_stunden_grenze": 85,
+                "budget_kompakt_ab_tokens": 150000, "budget_kompakt_frist_min": 60, "budget_fuenf_reset_warte_min": 30,
+                "budget_wochen_reserve_punkte": 2}
+
+
+def kwert(k, schluessel):
+    """Zahl aus der Konfiguration; fehlt sie (eigene Testkonfiguration), gilt die Vorgabe oben."""
+    return float(k.get(schluessel, VORGABEN_Z2B[schluessel]))
+
+def hat_fuenf(k, name):
+    """Hat das Konto ein 5h-Fenster? Vorgabe ja; nur ein ausdrueckliches false in der Konfiguration sagt nein."""
+    c = (k.get("konten") or {}).get(name) or {}
+    return c.get("fuenf_stunden_fenster", True) is not False
+
+
+KEIN_FENSTER = "5h: kein Fenster"
+
+
+def fuenf_text(s, roh=False):
+    """Satzteil fuer das 5h-Fenster eines stand()-Ergebnisses; ohne Fenster nie "5h 0 %" (unterscheidbar von
+    "Fenster offen, 0 %"). roh: der Wert ungeformt (wie die Messzeile ihn nennt), sonst gerundet."""
+    if s.get("fuenf_stunden_fenster") is False:
+        return KEIN_FENSTER
+    w = s.get("five_hour_pct")
+    return "5h %s %%" % (w if roh else _zahl(w))
+
+
+OBERGRENZE_ARTEN = (("woche", "obergrenze_woche"), ("fuenf_stunden", "obergrenze_fuenf_stunden"))
+
+
+def obergrenze_datei():
+    return os.path.join(wbdir(), "konto-obergrenze.json")
+
+
+def obergrenzen_gesetzt():
+    try:
+        with open(obergrenze_datei()) as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def obergrenzen(k, name):
+    """{"woche": (wert|None, quelle), "fuenf_stunden": (wert|None, quelle)}; die Datei schlaegt die Vorgabe."""
+    gesetzt = obergrenzen_gesetzt().get(name)
+    gesetzt = gesetzt if isinstance(gesetzt, dict) else {}
+    vorgabe = (k.get("konten") or {}).get(name) or {}
+    erg = {}
+    for art, schluessel in OBERGRENZE_ARTEN:
+        if art in gesetzt:
+            w = gesetzt[art]
+            erg[art] = (float(w) if isinstance(w, (int, float)) and not isinstance(w, bool) else None, "gesetzt")
+        elif isinstance(vorgabe.get(schluessel), (int, float)):
+            erg[art] = (float(vorgabe[schluessel]), "vorgabe")
+        else:
+            erg[art] = (None, "keine")
+    return erg
+
+
+# PLANWECHSEL: Hebt ein Mensch ein Konto mitten im Wochenfenster auf einen anderen Plan,
+# setzt der Dienst die Zaehler auf 0, OHNE das Fenster zu wechseln (seven_day_resets_at bleibt
+# gleich). Der Hoechstwert des Fensters bliebe sonst stehen. Ein Konto kann deshalb ein Ereignis "planwechsel" tragen:
+# Messzeilen mit ts VOR der Zeit zaehlen fuer Woche und 5h nicht mehr (eine Zeile genau zur Zeit zaehlt), danach gilt der
+# Hoechstwert wie bisher. Fehlt eine Zeile nach dem Wechsel, ist der Stand "unbekannt", nie 0. Eine Zeile ohne lesbare Zeit
+# zaehlt nicht. Das Ereignis steht in konto-planwechsel.json (schlaegt die Vorgabe "planwechsel" der Konfiguration, wie
+# konto-obergrenze.json die Obergrenze); `wb-konto planwechsel` schreibt es. Ein unlesbares Ereignis laesst NICHTS zaehlen.
+def planwechsel_datei():
+    return os.path.join(wbdir(), "konto-planwechsel.json")
+
+
+def planwechsel_gesetzt():
+    try:
+        with open(planwechsel_datei()) as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def zeit_endlich(wert):
+    """epoch_aus, aber nie nan/inf."""
+    z = epoch_aus(wert)
+    return z if z is not None and z == z and abs(z) != float("inf") else None
+
+
+def planwechsel(k, name):
+    """-> None (kein Ereignis) oder {"zeit": epoch|None, "plan": str|None, "quelle": "gesetzt"|"vorgabe"}; zeit None heisst
+    unlesbar (dann zaehlt keine Messzeile)."""
+    gesetzt = planwechsel_gesetzt().get(name)
+    vorgabe = ((k.get("konten") or {}).get(name) or {}).get("planwechsel")
+    for e, quelle in ((gesetzt, "gesetzt"), (vorgabe, "vorgabe")):
+        if isinstance(e, dict):
+            plan = e.get("plan") if isinstance(e.get("plan"), str) and e.get("plan") else None
+            return {"zeit": zeit_endlich(e.get("zeit")), "plan": plan, "quelle": quelle}
+    return None
+
+
+def zeile_nach_planwechsel(pw, d):
+    """Zaehlt die Messzeile d nach dem Planwechsel pw (None = kein Ereignis)?"""
+    if pw is None:
+        return True
+    ts = epoch_aus(d.get("ts"))
+    return pw["zeit"] is not None and ts is not None and ts >= pw["zeit"]
+
+
+def planwechsel_text(pw):
+    if pw is None:
+        return "keiner"
+    zeit = "unlesbar" if pw["zeit"] is None else datetime.datetime.fromtimestamp(pw["zeit"]).strftime("%Y-%m-%d %H:%M")
+    return "%s%s" % (zeit, " (Plan %s)" % pw["plan"] if pw["plan"] else "")
+
+
+USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
+SCHEIN_SCHLUESSEL = "schein-schluessel-nur-testumgebung"
+VERWEIGERT_SPERRE_S = 24 * 3600   # 401/403 der Nutzungsabfrage: Weg 1 ruht so lange (Fund L, 17.11.2026)
+ERZWUNGEN_ABSTAND_S = 5 * 60      # hoechstens ein erzwungener Abruf je Konto in diesem Abstand, beide Wege zusammen (18.11.2026)
+WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+
+
+def fehler(text, rc=1):
+    print("wb-konto: " + text, file=sys.stderr)
+    sys.exit(rc)
+
+
+def konfig():
+    pfad = os.environ.get("WB_KONTO_KONFIG")
+    if not pfad:
+        return KONFIG
+    try:
+        with open(pfad) as f:
+            return json.load(f)
+    except (OSError, ValueError) as e:
+        fehler("Konfiguration %s nicht lesbar (%s)" % (pfad, type(e).__name__))
+
+
+def jetzt():
+    wert = os.environ.get("WB_KONTO_JETZT")
+    return float(wert) if wert else time.time()
+
+
+def wbdir():
+    return os.path.join(os.path.expanduser("~"), ".claude", "workbench")
+
+
+def konto_pruefen(k, name, auto_erlaubt=False):
+    erlaubt = list(k["konten"]) + (["auto"] if auto_erlaubt else [])
+    if name not in erlaubt:
+        fehler("unbekanntes Konto '%s' (erlaubt: %s)" % (name, "|".join(erlaubt)), 2)
+    return name
+
+
+# ── Familie, Fenster, Linie ─────────────────────────────────────────────────────────────────────────
+def epoch_aus(wert):
+    if wert is None or wert == "":
+        return None
+    try:
+        return float(wert)
+    except (TypeError, ValueError):
+        pass
+    try:
+        s = str(wert).replace("Z", "+00:00")
+        return datetime.datetime.fromisoformat(s).timestamp()
+    except ValueError:
+        return None
+
+
+def familie(k, resets_at):
+    """Konto, zu dessen Familie dieser seven_day_resets_at gehoert, oder None."""
+    if resets_at is None:
+        return None
+    tol = float(k.get("familien_toleranz_s", 300))
+    treffer = []
+    for name, c in k["konten"].items():
+        rest = (resets_at - float(c["reset_anker"])) % WOCHE
+        if min(rest, WOCHE - rest) <= tol:
+            treffer.append(name)
+    return treffer[0] if len(treffer) == 1 else None
+
+
+def naechster_reset(c, t):
+    anker = float(c["reset_anker"])
+    k = int((t - anker) // WOCHE) + 1
+    return anker + k * WOCHE
+
+
+def linie(c, t):
+    reset = naechster_reset(c, t)
+    start = reset - WOCHE
+    tag_start = datetime.datetime.fromtimestamp(start).date()
+    tag_heute = datetime.datetime.fromtimestamp(t).date()
+    idx = max(1, min(7, (tag_heute - tag_start).days + 1))
+    return min(100.0, idx * 100.0 / 7.0), idx, reset
+
+
+# ── Messwerte lesen ─────────────────────────────────────────────────────────────────────────────────
+def zeilen():
+    pfad = os.path.join(wbdir(), "limits.jsonl")
+    try:
+        with open(pfad, errors="replace") as f:
+            for nr, roh in enumerate(f):
+                try:
+                    d = json.loads(roh)
+                except ValueError:
+                    continue
+                if isinstance(d, dict):
+                    d["_nr"] = nr
+                    yield d
+    except FileNotFoundError:
+        return
+
+
+def zeile_konto(k, d):
+    """Konto einer Zeile: zuerst die Familie; ohne resets_at nur ein gepruefter neuer Eintrag."""
+    fam = familie(k, epoch_aus(d.get("seven_day_resets_at")))
+    angabe = d.get("konto")
+    if fam is not None:
+        if d.get("konto_quelle") and angabe in k["konten"] and angabe != fam:
+            return None   # Widerspruch im neuen Feld: nicht raten
+        return fam
+    if d.get("konto_quelle") and angabe in k["konten"]:
+        return angabe
+    return None
+
+
+def buchungen():
+    try:
+        with open(os.path.join(wbdir(), "konto-buchung.json")) as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def linie_aus_bis(k, name):
+    """Zeit (epoch), bis zu der die Tageslinie des Kontos nicht bremst, oder None. Eine unlesbare Angabe heisst None:
+    die Linie gilt dann (die Lockerung faellt nie von selbst an)."""
+    return zeit_endlich(((k.get("konten") or {}).get(name) or {}).get("linie_aus_bis"))
+
+
+def stand(k, name, t):
+    """Bewertung eines Kontos: dict mit status frei|knapp|erschoepft|unbekannt. "linie" ist die Tageslinie des
+    Wochenfensters, "linie_wirksam" die, gegen die bewertet wird (gleich, ausser die Linie ist ausgesetzt)."""
+    c = k["konten"][name]
+    lin, idx, reset = linie(c, t)
+    aus_bis = linie_aus_bis(k, name)
+    ausgesetzt = aus_bis is not None and t < aus_bis
+    if ausgesetzt:
+        og_w = obergrenzen(k, name)["woche"][0]
+        lin_w = min(100.0, og_w if og_w is not None else 100.0)
+    else:
+        lin_w = lin
+    erg = {"konto": name, "linie": round(lin, 1), "linie_wirksam": round(lin_w, 1), "tagesindex": idx,
+           "fenster_reset": int(reset),
+           "five_hour_pct": None, "seven_day_pct": None, "gemessen": None, "abstand": None,
+           "fuenf_stunden_fenster": hat_fuenf(k, name)}
+    b = buchungen().get(name)
+    if isinstance(b, dict) and (epoch_aus(b.get("erschoepft_bis")) or 0) > t:
+        erg.update(status="erschoepft", gebucht=True, grund="gebucht erschoepft bis %s (%s)"
+                   % (datetime.datetime.fromtimestamp(epoch_aus(b["erschoepft_bis"])).strftime("%d.%m. %H:%M"),
+                      b.get("grund") or "ohne Grund"))
+        return erg
+    pw = planwechsel(k, name)
+    if pw is not None:
+        erg["planwechsel"] = None if pw["zeit"] is None else int(pw["zeit"])
+    im_fenster = []
+    vor_wechsel = 0
+    for d in zeilen():
+        if zeile_konto(k, d) != name:
+            continue
+        r = epoch_aus(d.get("seven_day_resets_at"))
+        if r is None or abs(r - reset) > float(k.get("familien_toleranz_s", 300)):
+            continue
+        if not isinstance(d.get("seven_day_pct"), (int, float)):
+            continue
+        if not zeile_nach_planwechsel(pw, d):
+            vor_wechsel += 1   # Zaehler des alten Plans: gilt nicht mehr (Woche und 5h)
+            continue
+        im_fenster.append(d)
+    if not im_fenster:
+        erg.update(status="unbekannt", grund="kein Messwert im laufenden Fenster (Reset %s)"
+                   % datetime.datetime.fromtimestamp(reset).strftime("%a %d.%m. %H:%M"))
+        if pw is not None:
+            erg["grund"] += ", keiner nach dem Planwechsel (%s; %d Zeile(n) des alten Plans zaehlen nicht)" % (
+                planwechsel_text(pw), vor_wechsel)
+        return erg
+    seven = max(float(d["seven_day_pct"]) for d in im_fenster)
+    juengste = max(im_fenster, key=lambda d: (epoch_aus(d.get("ts")) or float("-inf"), d["_nr"]))
+    ts = epoch_aus(juengste.get("ts"))
+    erg["gemessen"] = juengste.get("ts")
+    erg["seven_day_pct"] = seven
+    max_alter = float(k.get("max_alter_min", 120)) * 60
+    if ts is None or t - ts > max_alter:
+        erg.update(status="unbekannt", grund="letzter Messwert %s ist aelter als %d min"
+                   % (juengste.get("ts") or "ohne Zeit", int(max_alter // 60)))
+        return erg
+    fenster5 = erg["fuenf_stunden_fenster"]
+    fuenf_zeilen = [d for d in im_fenster
+                    if fenster5 and isinstance(d.get("five_hour_pct"), (int, float))
+                    and (epoch_aus(d.get("five_hour_resets_at")) or 0) > t]
+    if not fenster5:
+        five = None   # Konto ohne 5h-Fenster: nichts gemessen, nichts zu pruefen (nie 0, das hiesse "Fenster offen, 0 %")
+    elif fuenf_zeilen:
+        r5 = max(epoch_aus(d["five_hour_resets_at"]) for d in fuenf_zeilen)
+        five = max(float(d["five_hour_pct"]) for d in fuenf_zeilen if epoch_aus(d["five_hour_resets_at"]) == r5)
+        erg["five_hour_reset"] = int(r5)
+    else:
+        five = 0.0   # kein 5h-Fenster offen: abgelaufen oder nie begonnen (statusline schreibt dann null)
+    erg["five_hour_pct"] = five
+    erg["abstand"] = round(lin_w - seven, 1)
+    if aus_bis is not None:
+        erg["linie_aus_bis"] = int(aus_bis)
+    og = obergrenzen(k, name)
+    ow, o5 = og["woche"][0], og["fuenf_stunden"][0]
+    if ow is not None and seven >= ow:
+        erg.update(status="erschoepft", obergrenze="woche", erschoepft_bis=int(reset),
+                   grund="Obergrenze Woche %s %% erreicht (gemessen %s %%), erschoepft bis Reset %s"
+                   % (_zahl(ow), _zahl(seven), datetime.datetime.fromtimestamp(reset).strftime("%a %d.%m. %H:%M")))
+        return erg
+    if o5 is not None and fuenf_zeilen and five >= o5:
+        erg.update(status="erschoepft", obergrenze="fuenf_stunden", erschoepft_bis=int(r5),
+                   grund="Obergrenze 5h %s %% erreicht (gemessen %s %%), erschoepft bis %s"
+                   % (_zahl(o5), _zahl(five), datetime.datetime.fromtimestamp(r5).strftime("%H:%M")))
+        return erg
+    grenze = kwert(k, "fuenf_stunden_grenze")
+    if fenster5 and five >= grenze:
+        erg.update(status="knapp", grund="5h %.0f %% >= %.0f" % (five, grenze))
+    elif seven >= lin_w:
+        erg.update(status="knapp", grund="Woche %.0f %% >= Linie %.1f (Tag %d)" % (seven, lin_w, idx))
+    elif ausgesetzt and seven >= lin:
+        erg.update(status="frei", grund="Woche %.0f %% ueber Linie %.1f (Tag %d), Linie ausgesetzt bis %s, %s"
+                   % (seven, lin, idx, datetime.datetime.fromtimestamp(aus_bis).strftime("%d.%m. %H:%M"),
+                      "5h %.0f %%" % five if fenster5 else KEIN_FENSTER))
+    else:
+        erg.update(status="frei", grund="Woche %.0f %% unter Linie %.1f (Tag %d), %s"
+                   % (seven, lin, idx, "5h %.0f %%" % five if fenster5 else KEIN_FENSTER))
+    return erg
+
+
+def bewerten(k, t):
+    return [stand(k, n, t) for n in k["reihenfolge"]]
+
+
+def waehlen(k, t, messen_erlaubt=True):
+    widerspruch_melden(k, t)
+    staende = bewerten(k, t)
+    if messen_erlaubt:
+        offen = [s["konto"] for s in staende if s["status"] == "unbekannt"]
+        if offen:
+            for n in offen:
+                messen(k, n, t, erzwingen=False, leise=True)
+            staende = bewerten(k, t)
+    freie = [s for s in staende if s["status"] == "frei"]
+    if not freie:
+        return None, staende
+    for n in k.get("wahl_vorrang") or []:
+        for s in freie:
+            if s["konto"] == n:
+                return s, staende
+    reihe = k["reihenfolge"]
+    beste = max(freie, key=lambda s: (s["abstand"], -reihe.index(s["konto"])))
+    return beste, staende
+
+
+def widerspruch_melden(k, t):
+    """Die Statuszeile schreibt "widerspruch", wenn die Start-Angabe nicht zur Messung passt; ihr
+    stderr sieht niemand. Hier wird es laut: bei jeder Wahl, solange solche Zeilen frisch sind."""
+    grenze = t - float(k.get("max_alter_min", 120)) * 60
+    n = sum(1 for d in zeilen() if d.get("konto") == "widerspruch" and (epoch_aus(d.get("ts")) or 0) >= grenze)
+    if n:
+        print("wb-konto: WARNUNG -- %d Messzeile(n) mit Kontowiderspruch seit %d min: eine Sitzung laeuft "
+              "laut Start auf einem anderen Konto, als ihre Messung zeigt (limits.jsonl, konto=widerspruch). "
+              "Eintraege im Schluesselbund pruefen." % (n, int(k.get("max_alter_min", 120))), file=sys.stderr)
+    return n
+
+
+def zeile_fuer(s):
+    return "%s: %s%s" % (s["konto"], s["status"], (" -- " + s["grund"]) if s.get("grund") else "")
+
+
+# ── Schluesselbund ──────────────────────────────────────────────────────────────────────────────────
+def security_bin():
+    return shutil.which("security")
+
+
+def dienst_vorhanden(dienst):
+    sec = security_bin()
+    if not sec:
+        return False
+    r = subprocess.run([sec, "find-generic-password", "-s", dienst],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return r.returncode == 0
+
+
+def token_lesen(dienst):
+    """Nur fuer `messen`. Der Wert bleibt in diesem Prozess; er wird nie ausgegeben."""
+    sec = security_bin()
+    if not sec:
+        return None
+    r = subprocess.run([sec, "find-generic-password", "-s", dienst, "-w"],
+                       capture_output=True, text=True)
+    wert = r.stdout.strip() if r.returncode == 0 else ""
+    return wert or None
+
+
+# ── Messen ──────────────────────────────────────────────────────────────────────────────────────────
+class _KeineUmleitung(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+def _adresse():
+    wert = os.environ.get("WB_KONTO_USAGE_URL")
+    if not wert:
+        return USAGE_URL, False
+    if os.environ.get("WB_TESTUMGEBUNG") == "1":
+        return wert, True
+    print("wb-konto: WB_KONTO_USAGE_URL ignoriert (Adressnaht gilt nur mit WB_TESTUMGEBUNG=1); "
+          "es gilt die feste Adresse.", file=sys.stderr)
+    return USAGE_URL, False
+
+
+def _messstand_pfad():
+    return os.path.join(wbdir(), "konto-messung.json")
+
+
+def _json_schreiben(pfad, daten):
+    os.makedirs(os.path.dirname(pfad), exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(pfad), prefix=".wb-konto.")
+    with os.fdopen(fd, "w") as f:
+        json.dump(daten, f, indent=1, sort_keys=True)
+        f.write("\n")
+    os.replace(tmp, pfad)
+
+
+def _pct(wert):
+    """utilization kommt als Prozentzahl (0-100), wie sie auch die Statuszeile zeigt (hergeleitet)."""
+    return float(wert) if isinstance(wert, (int, float)) and not isinstance(wert, bool) else None
+
+
+def _ms_lesen():
+    try:
+        with open(_messstand_pfad()) as f:
+            ms = json.load(f)
+        return ms if isinstance(ms, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _retry_after(kopf):
+    """Retry-After in Sekunden (Zahl oder HTTP-Datum); None, wenn nicht lesbar."""
+    if not kopf:
+        return None
+    try:
+        return max(0.0, float(kopf))
+    except ValueError:
+        pass
+    try:
+        import email.utils
+        d = email.utils.parsedate_to_datetime(kopf)
+        return max(0.0, d.timestamp() - time.time())
+    except (TypeError, ValueError):
+        return None
+
+
+def _sauber(text, n):
+    """Steuerzeichen raus, Leerraum zusammengefasst, hoechstens n Zeichen."""
+    return " ".join(re.sub(r"[\x00-\x1f\x7f]", " ", str(text)).split())[:n]
+
+
+def _fehler_rumpf(e, token):
+    """Was der Dienst zu einem HTTP-Fehler sagt (Fund L, 17.11.2026): aus einem JSON-Rumpf error.type und
+    error.message (hoechstens 200 Zeichen), sonst Inhaltstyp und die ersten 80 Zeichen. Nie Kopfzeilen, nie der
+    Token (stuende er im Rumpf, wird er ersetzt)."""
+    try:
+        roh = e.read(4096).decode("utf-8", "replace")
+    except (OSError, ValueError, AttributeError):
+        roh = ""
+    if token:
+        roh = roh.replace(token, "<token>")
+    try:
+        d = json.loads(roh)
+    except ValueError:
+        d = None
+    if isinstance(d, dict):
+        f = d.get("error") if isinstance(d.get("error"), dict) else d
+        typ, text = f.get("type"), f.get("message")
+        if typ is not None or text is not None:
+            return " (%s: %s)" % (_sauber(typ if typ is not None else "-", 60),
+                                  _sauber(text if text is not None else "-", 200))
+    inhalt = e.headers.get("Content-Type") if getattr(e, "headers", None) else None
+    return " (kein JSON-Fehlerrumpf, Inhaltstyp %s: %r)" % (_sauber(inhalt or "fehlt", 60), _sauber(roh, 80))
+
+
+def _messen_nutzung(url, token):
+    """Weg 1, kostenlos: GET api/oauth/usage.
+    -> ("ok", daten) | ("429", retry_after_s) | ("verweigert", text) bei 401/403 | ("fehler", text)."""
+    anfrage = urllib.request.Request(url, headers={
+        "Authorization": "Bearer " + token, "anthropic-beta": "oauth-2025-04-20",
+        "Accept": "application/json", "User-Agent": "wb-konto"})
+    try:
+        with urllib.request.build_opener(_KeineUmleitung).open(anfrage, timeout=10) as antwort:
+            daten = json.loads(antwort.read().decode("utf-8", "replace"))
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            return "429", _retry_after(e.headers.get("Retry-After") if e.headers else None)
+        if e.code in (401, 403):
+            return "verweigert", "HTTPError %s%s" % (e.code, _fehler_rumpf(e, token))
+        return "fehler", "HTTPError %s%s" % (e.code, _fehler_rumpf(e, token))
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        return "fehler", type(e).__name__
+    if not isinstance(daten, dict) or not isinstance(daten.get("seven_day"), dict):
+        return "fehler", "Antwort ohne seven_day"
+    fuenf = daten.get("five_hour") if isinstance(daten.get("five_hour"), dict) else {}
+    sieben = daten["seven_day"]
+    return "ok", {"five": _pct(fuenf.get("utilization")), "five_r": epoch_aus(fuenf.get("resets_at")),
+                  "seven": _pct(sieben.get("utilization")), "seven_r": epoch_aus(sieben.get("resets_at")),
+                  "kosten": "keine (kein Modellaufruf)"}
+
+
+def _claude_bin(naht):
+    """Unter der Adressnaht nur die Attrappe aus WB_KONTO_CLAUDE_BIN, nie ein echtes claude."""
+    if naht:
+        return os.environ.get("WB_KONTO_CLAUDE_BIN") or None
+    eigen = os.path.join(os.path.expanduser("~"), ".local", "bin", "claude")
+    return eigen if os.access(eigen, os.X_OK) else shutil.which("claude")
+
+
+def _messen_ersatz(token, naht):
+    """Weg 2, kostet einen Minimalaufruf: `claude -p --model haiku` mit dem Token NUR in der Umgebung des
+    Kindes, in einem Wegwerf-HOME (keine Hooks, keine Einstellungen, keine Sitzungsdatei). Den Stand traegt
+    das Stream-Ereignis rate_limit_event (rate_limit_info.unifiedWindows.{five_hour,seven_day}.utilization
+    als Anteil 0..1 und resetsAt; gemessen im Stream von claude 2.1.3xx, task). Die Kosten
+    kommen aus der result-Zeile desselben Laufs und werden genannt.
+    -> ("ok", daten) | ("fehler", text)."""
+    prog = _claude_bin(naht)
+    if not prog:
+        return "fehler", "claude nicht gefunden"
+    tmp = tempfile.mkdtemp(prefix="wb-konto-ersatz.")
+    try:
+        os.makedirs(os.path.join(tmp, "home"))
+        os.makedirs(os.path.join(tmp, "cfg"))
+        os.makedirs(os.path.join(tmp, "arbeit"))
+        umg = {"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "HOME": os.path.join(tmp, "home"),
+               "CLAUDE_CONFIG_DIR": os.path.join(tmp, "cfg"), "LANG": "C.UTF-8",
+               "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1", "DISABLE_AUTOUPDATER": "1",
+               "CLAUDE_CODE_OAUTH_TOKEN": token}
+        if os.environ.get("TZ"):
+            umg["TZ"] = os.environ["TZ"]
+        argv = [prog, "-p", "--model", "haiku", "--output-format", "stream-json", "--verbose",
+                "--max-turns", "1", "--tools", "", "--strict-mcp-config", "--no-session-persistence", "--", "."]
+        try:
+            r = subprocess.run(argv, env=umg, cwd=os.path.join(tmp, "arbeit"), stdin=subprocess.DEVNULL,
+                               capture_output=True, text=True, timeout=180)
+        except (OSError, subprocess.SubprocessError) as e:
+            return "fehler", "claude-Aufruf gescheitert (%s)" % type(e).__name__
+    finally:
+        umg = None
+        shutil.rmtree(tmp, ignore_errors=True)
+    fenster, kosten = None, None
+    for roh in r.stdout.splitlines():
+        try:
+            d = json.loads(roh)
+        except ValueError:
+            continue
+        if not isinstance(d, dict):
+            continue
+        if d.get("type") == "rate_limit_event":
+            w = (d.get("rate_limit_info") or {}).get("unifiedWindows")
+            if isinstance(w, dict) and isinstance(w.get("seven_day"), dict):
+                fenster = w
+        elif d.get("type") == "result":
+            u = d.get("usage") or {}
+            kosten = "%s USD laut CLI; Tokens: Eingabe %s, Cache-Schreiben %s, Cache-Lesen %s, Ausgabe %s" % (
+                d.get("total_cost_usd"), u.get("input_tokens"), u.get("cache_creation_input_tokens"),
+                u.get("cache_read_input_tokens"), u.get("output_tokens"))
+    if fenster is None:
+        return "fehler", "kein rate_limit_event mit seven_day (claude Exit %s)" % r.returncode
+
+    def anteil(w):
+        u = (w or {}).get("utilization")
+        return round(float(u) * 100.0, 1) if isinstance(u, (int, float)) and not isinstance(u, bool) else None
+    fuenf = fenster.get("five_hour") if isinstance(fenster.get("five_hour"), dict) else {}
+    return "ok", {"five": anteil(fuenf), "five_r": epoch_aus(fuenf.get("resetsAt")),
+                  "seven": anteil(fenster["seven_day"]), "seven_r": epoch_aus(fenster["seven_day"].get("resetsAt")),
+                  "kosten": kosten or "nicht gemeldet (keine result-Zeile)"}
+
+
+def _messzeile(k, name, t, daten, quelle, sag):
+    """Schreibt die Messzeile; 0 geschrieben, 2 Widerspruch/unvollstaendig (dann nichts geschrieben)."""
+    r7 = daten.get("seven_r")
+    fam = familie(k, r7)
+    if fam != name:
+        sag("messen %s: WIDERSPRUCH -- der Token des Eintrags '%s' misst ein Fenster der Familie %s "
+            "(seven_day_resets_at %s); kein Messwert geschrieben" % (name, k["konten"][name]["dienst"], fam or "unbekannt",
+                                                                    int(r7) if r7 else "fehlt"))
+        return 2
+    if daten.get("seven") is None:
+        sag("messen %s: Antwort ohne Wochenwert -- nicht gemessen" % name)
+        return 2
+    fenster5 = hat_fuenf(k, name)
+    r5 = daten.get("five_r") if fenster5 else None
+    zeile = {"ts": datetime.datetime.fromtimestamp(t, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+             "session": "wb-konto-messung",
+             "five_hour_pct": daten.get("five") if fenster5 else None,
+             "seven_day_pct": daten.get("seven"),
+             "five_hour_resets_at": str(int(r5)) if r5 else "",
+             "seven_day_resets_at": str(int(r7)),
+             "konto": name, "konto_quelle": quelle}
+    os.makedirs(wbdir(), exist_ok=True)
+    with open(os.path.join(wbdir(), "limits.jsonl"), "a") as f:
+        f.write(json.dumps(zeile) + "\n")
+    sag("messen %s (%s): %s, Woche %s %%; Kosten: %s" % (
+        name, quelle, "5h %s %%" % zeile["five_hour_pct"] if fenster5 else KEIN_FENSTER,
+        zeile["seven_day_pct"], daten.get("kosten")))
+    return 0
+
+
+def _letzte_messung(name):
+    """Die juengste Messzeile (session wb-konto-messung) des Kontos, sonst None. Beide Wege schreiben sie."""
+    letzte = None
+    for d in zeilen():
+        if d.get("session") == "wb-konto-messung" and d.get("konto") == name:
+            letzte = d
+    return letzte
+
+
+def messen(k, name, t, erzwingen=False, leise=False):
+    """Rueckgabe wie ein Exit-Code: 0 gemessen, 4 gedrosselt, 5 gesperrt/kein Eintrag, 2 Fehler/Widerspruch,
+    6 HTTP 429 und kein Ersatz gemessen. Jeder Ausgang ausser 0 heisst "nicht gemessen": es wird KEINE Zeile
+    geschrieben, das Konto bleibt fuer `wahl` unbekannt und damit nie frei (decision 11-14: 429 gemessen).
+
+    Zwei Wege, je Konto gedrosselt (Abstand mess_abstand_min, auch mit --erzwingen nie schneller als eine
+    429-Sperre erlaubt):
+      1. GET api/oauth/usage (kostenlos). Ein 429 sperrt diesen Weg fuer max(Retry-After, Abstand x 2^n),
+         n = 429 in Folge, hoechstens 6 h. --erzwingen hebt diese Sperre NICHT auf.
+      2. Scheitert Weg 1 oder ist er gesperrt: ein Minimalaufruf `claude -p --model haiku` (Kosten werden
+         genannt). WB_KONTO_KEIN_ERSATZ=1 schaltet ihn ab.
+    --erzwingen durchbricht den Abstand, aber hoechstens EIN erzwungener Abruf je Konto in ERZWUNGEN_ABSTAND_S,
+    Weg 1 und Ersatzweg zusammen (task, 18.11.2026). Kommt ein weiterer, sendet er nichts und nennt den
+    letzten Messwert mit seinem Alter ("gemessen vor N s"); Rueckgabe 4."""
+    def sag(text):
+        if not leise:
+            print("wb-konto: " + text, file=sys.stderr)
+    if os.environ.get("WB_KONTO_KEIN_NETZ"):
+        sag("messen %s: Netzzugriff gesperrt (WB_KONTO_KEIN_NETZ)" % name)
+        return 5
+    ms = _ms_lesen()
+    eintrag = ms.get(name) if isinstance(ms.get(name), dict) else {}
+    abstand = float(k.get("mess_abstand_min", 30)) * 60
+    letzte = epoch_aus(eintrag.get("versuch"))
+    if not erzwingen and letzte is not None and t - letzte < abstand:
+        sag("messen %s: letzter Versuch vor %d min, Abstand %d min -- nicht gemessen"
+            % (name, int((t - letzte) // 60), int(abstand // 60)))
+        return 4
+    erzw = epoch_aus(eintrag.get("erzwungen")) if erzwingen else None
+    if erzw is not None and 0 <= t - erzw < ERZWUNGEN_ABSTAND_S:
+        m = _letzte_messung(name)
+        alter = epoch_aus(m.get("ts")) if m else None
+        stand_txt = ("letzter Messwert %s, Woche %s %%, gemessen vor %d s"
+                     % ("5h %s %%" % _zahl(m.get("five_hour_pct")) if hat_fuenf(k, name) else KEIN_FENSTER,
+                        _zahl(m.get("seven_day_pct")), int(t - alter))
+                     if alter is not None else "kein Messwert vorhanden")
+        sag("messen %s: erzwungener Abruf vor %d s, hoechstens einer je %d min -- keine Anfrage; %s"
+            % (name, int(t - erzw), ERZWUNGEN_ABSTAND_S // 60, stand_txt))
+        return 4
+    eintrag["versuch"] = int(t)
+    ms[name] = eintrag
+    _json_schreiben(_messstand_pfad(), ms)
+    url, naht = _adresse()
+    if naht:
+        token = SCHEIN_SCHLUESSEL
+    else:
+        dienst = k["konten"][name]["dienst"]
+        token = token_lesen(dienst)
+        if not token:
+            sag("messen %s: Schluesselbund-Eintrag '%s' fehlt oder ist leer -- nicht gemessen" % (name, dienst))
+            return 5
+    war_429 = False
+    sperre = epoch_aus(eintrag.get("nutzung_sperre_bis"))
+    if sperre is not None and sperre > t:
+        war_429 = True
+        sag("messen %s: Nutzungsabfrage nach HTTP 429 gesperrt bis %s -- nicht abgefragt"
+            % (name, datetime.datetime.fromtimestamp(sperre).strftime("%d.%m. %H:%M")))
+    elif not erzwingen and (epoch_aus(eintrag.get("nutzung_verweigert_bis")) or 0) > t:
+        sag("messen %s: Nutzungsabfrage gesperrt bis %s, der Dienst verweigerte sie (%s) -- nicht abgefragt"
+            % (name, datetime.datetime.fromtimestamp(epoch_aus(eintrag["nutzung_verweigert_bis"])).strftime(
+                "%d.%m. %H:%M"), eintrag.get("nutzung_verweigert_grund") or "ohne Grund"))
+    else:
+        if erzwingen:   # der erzwungene Abruf geht jetzt hinaus; er zaehlt fuer den Riegel (task)
+            eintrag["erzwungen"] = int(t)
+            ms[name] = eintrag
+            _json_schreiben(_messstand_pfad(), ms)
+        art, wert = _messen_nutzung(url, token)
+        if art == "ok":
+            eintrag.pop("n429", None)
+            eintrag.pop("nutzung_sperre_bis", None)
+            eintrag.pop("nutzung_verweigert_bis", None)
+            eintrag.pop("nutzung_verweigert_grund", None)
+            rc = _messzeile(k, name, t, wert, "messung", sag)
+            if rc == 0:
+                eintrag["erfolg"] = int(t)
+            ms[name] = eintrag
+            _json_schreiben(_messstand_pfad(), ms)
+            token = None
+            return rc      # 0 gemessen; 2 Widerspruch: der Ersatzweg mit demselben Token zeigte dasselbe
+        elif art == "429":
+            war_429 = True
+            n = int(eintrag.get("n429") or 0) + 1
+            warte = max(wert or 0.0, min(6 * 3600.0, abstand * (2 ** (n - 1))))
+            eintrag["n429"] = n
+            eintrag["nutzung_sperre_bis"] = int(t + warte)
+            ms[name] = eintrag
+            _json_schreiben(_messstand_pfad(), ms)
+            sag("messen %s: HTTP 429 (Retry-After %s) -- NICHT gemessen, Nutzungsabfrage gesperrt fuer %d min"
+                % (name, "%.0f s" % wert if wert is not None else "fehlt", int(warte // 60)))
+        elif art == "verweigert":
+            # Fund L (17.11.2026, gemessen): 403 permission_error "OAuth token does not meet scope requirement
+            # user:profile" -- der Langzeit-Token aus `claude setup-token` hat den Bereich nicht. Erneutes Fragen
+            # aendert daran nichts; der Weg ruht deshalb VERWEIGERT_SPERRE_S, --erzwingen fragt trotzdem.
+            eintrag["nutzung_verweigert_bis"] = int(t + VERWEIGERT_SPERRE_S)
+            eintrag["nutzung_verweigert_grund"] = wert
+            ms[name] = eintrag
+            _json_schreiben(_messstand_pfad(), ms)
+            text = ("messen %s: Nutzungsabfrage verweigert (%s) -- nicht gemessen; Weg 1 gesperrt fuer %d h "
+                    "(--erzwingen fragt erneut)" % (name, wert, VERWEIGERT_SPERRE_S // 3600))
+            sag(text)
+            protokoll("wb-konto: " + text)
+        else:
+            sag("messen %s: Nutzungsabfrage gescheitert (%s) -- nicht gemessen" % (name, wert))
+    if os.environ.get("WB_KONTO_KEIN_ERSATZ") == "1":
+        token = None
+        sag("messen %s: Ersatzweg abgeschaltet (WB_KONTO_KEIN_ERSATZ=1)" % name)
+        return 6 if war_429 else 2
+    letzte_e = epoch_aus(eintrag.get("ersatz_versuch"))
+    if not erzwingen and letzte_e is not None and t - letzte_e < abstand:
+        token = None
+        sag("messen %s: Ersatzweg vor %d min versucht, Abstand %d min -- nicht gemessen"
+            % (name, int((t - letzte_e) // 60), int(abstand // 60)))
+        return 6 if war_429 else 4
+    eintrag["ersatz_versuch"] = int(t)
+    if erzwingen:   # die Ersatzmessung ist ein erzwungener Abruf und zaehlt fuer den Riegel mit
+        eintrag["erzwungen"] = int(t)
+    ms[name] = eintrag
+    _json_schreiben(_messstand_pfad(), ms)
+    art, wert = _messen_ersatz(token, naht)
+    token = None
+    if art != "ok":
+        sag("messen %s: Ersatzweg (claude -p haiku) gescheitert (%s) -- nicht gemessen" % (name, wert))
+        return 6 if war_429 else 2
+    rc = _messzeile(k, name, t, wert, "messung-ersatz", sag)
+    if rc == 0:
+        eintrag["erfolg"] = int(t)
+        ms[name] = eintrag
+        _json_schreiben(_messstand_pfad(), ms)
+    return rc
+
+
+# ── start: ein Claude-Start ueber die Kontowahl (wb-code, Zug 2) ────────────────────────────────────
+def _prozess_start(pid):
+    """Startzeit wie Claude sie in ~/.claude/sessions/<pid>.json als procStart eintraegt (LC_ALL=C TZ=UTC)."""
+    try:
+        r = subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True, timeout=5,
+                           env=dict(os.environ, LC_ALL="C", TZ="UTC"), stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return " ".join(r.stdout.split()) if r.returncode == 0 else ""
+
+
+def _prozess_start_epoch(start):
+    try:
+        return datetime.datetime.strptime(start, "%a %b %d %H:%M:%S %Y").replace(
+            tzinfo=datetime.timezone.utc).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+def _marken_dir():
+    return os.path.join(wbdir(), "konto-prozesse")
+
+
+def _marke_schreiben(pid, name, angabe):
+    d = _marken_dir()
+    os.makedirs(d, exist_ok=True)
+    for n in os.listdir(d):                      # Marken toter Prozesse abraeumen
+        if n.endswith(".json") and n[:-5].isdigit() and int(n[:-5]) != pid:
+            try:
+                os.kill(int(n[:-5]), 0)
+            except ProcessLookupError:
+                try:
+                    os.unlink(os.path.join(d, n))
+                except OSError:
+                    pass
+            except PermissionError:
+                pass
+    _json_schreiben(os.path.join(d, "%d.json" % pid),
+                    {"pid": pid, "konto": name, "angabe": angabe, "start": _prozess_start(pid)})
+
+
+def _pane_konto_merken(name):
+    """Das Konto ist Zustand des Panes (decision 2026-11-16): ein Neustart ohne --konto (wb-schlaf wecken, wb-autorevive,
+    prefix + R, die App) uebernimmt @wb_konto in seine startende Zeile (wb-revive). Nur im eigenen Pane (TMUX_PANE
+    und TMUX gesetzt, derselbe tmux-Server); ein Fehler haelt den Start nicht auf."""
+    pane = os.environ.get("TMUX_PANE", "")
+    if not re.fullmatch(r"%\d+", pane) or not os.environ.get("TMUX"):
+        return
+    try:
+        subprocess.run(["tmux", "set", "-p", "-t", pane, "@wb_konto", name], capture_output=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
+def _pane_konto_lesen():
+    """@wb_konto des eigenen Panes (das Konto des letzten Starts hier) oder ''. Nur im eigenen Pane, nie ein Fehler."""
+    pane = os.environ.get("TMUX_PANE", "")
+    if not re.fullmatch(r"%\d+", pane) or not os.environ.get("TMUX"):
+        return ""
+    try:
+        r = subprocess.run(["tmux", "show", "-p", "-v", "-t", pane, "@wb_konto"], capture_output=True, text=True,
+                           timeout=10, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def _kurz(wert):
+    return wert if re.fullmatch(r"[A-Za-z0-9_-]{1,16}", wert or "") else "?"
+
+
+def _start_angabe(rest):
+    """Welche Angabe gilt fuer DIESEN Start? -> (befehl, angabe, grund, hinweis).
+
+    Eine Angabe gilt nur fuer den Start, fuer den sie gemacht wurde (task, Fund decision 2026-11-18):
+    - `--konto <k>` vor dem `--`: ausdruecklich, auch innerhalb einer Sitzung;
+    - WB_CLAUDE_KONTO in einem frischen Prozess (die Startzeile eines Panes, wb-revive, wb-code): ausdruecklich;
+    - WB_CLAUDE_KONTO zusammen mit WB_CLAUDE_KONTO_AKTIV: der Prozess laeuft in einer Sitzung, die schon ueber
+      wb-konto, wb-harness-run oder pi-worker gestartet wurde. Die Variable stammt von deren Start und gilt nicht
+      als Angabe fuer den neuen; es entscheidet die Wahl;
+    - sonst auto = die Wahl."""
+    if "--" in rest:
+        i = rest.index("--")
+        vor, befehl = rest[:i], rest[i + 1:]
+    else:
+        vor, befehl = [], rest
+    flag = None
+    n = 0
+    while n < len(vor):
+        if vor[n] == "--konto" and n + 1 < len(vor):
+            flag = vor[n + 1]
+            n += 2
+        else:
+            fehler("start: unbekannte Angabe '%s' vor --" % vor[n], 2)
+    if not befehl:
+        fehler("start [--konto <k>] -- <programm> [args...]", 2)
+    env = os.environ.get("WB_CLAUDE_KONTO") or ""
+    aktiv = os.environ.get("WB_CLAUDE_KONTO_AKTIV") or ""
+    hinweis = ""
+    if flag:
+        angabe, grund = flag, "Angabe des Starters"
+    elif env and not aktiv:
+        angabe, grund = env, "Angabe des Starters"
+    else:
+        angabe, grund = "auto", "Wahl"
+        if env:
+            hinweis = ("die geerbte Variable WB_CLAUDE_KONTO=%s dieser Sitzung (laeuft auf Konto %s) gilt nicht als "
+                       "Angabe fuer einen neuen Start; ausdruecklich geht --konto" % (_kurz(env), _kurz(aktiv)))
+    if angabe == "auto":
+        grund = "Wahl"
+    return befehl, angabe, grund, hinweis
+
+
+def befehl_start(k, rest, t):
+    """wb-konto start [--konto <k>] -- <programm> [args...]: Konto nach der Angabe DIESES Starts (siehe
+    _start_angabe; ohne Angabe die Wahl) waehlen, Token aus dem Schluesselbund NUR in die Umgebung, dann exec
+    (dieselbe PID: Register und Wache sehen den Pane-Prozess). Das Kind bekommt WB_CLAUDE_KONTO nicht weiter
+    (das laufende Konto steht in WB_CLAUDE_KONTO_AKTIV). Ohne Konto, Eintrag oder Token: Exit != 0, kein stiller
+    Rueckfall auf die Browser-Anmeldung."""
+    befehl, angabe, grund, hinweis = _start_angabe(rest)
+    konto_pruefen(k, angabe, auto_erlaubt=True)
+    name = angabe
+    if angabe == "auto":
+        beste, staende = waehlen(k, t)
+        if not beste:
+            fehler("start: auto findet kein Konto mit Luft -- %s; kein Start."
+                   % "; ".join(zeile_fuer(s) for s in staende), 3)
+        name = beste["konto"]
+    elif any(a in ("--resume", "-r", "--continue", "-c") or a.startswith("--resume=") for a in befehl[1:]):
+        # Dieselbe Unterhaltung wird fortgesetzt: lief der Pane zuletzt auf einem anderen Konto, ist das der Wechsel.
+        vorher = _pane_konto_lesen()
+        if vorher in k["konten"]:
+            grund = ("Neustart nach Wechsel (Pane lief auf %s)" % vorher) if vorher != name \
+                else "Neustart, Konto des Panes"
+    dienst = k["konten"][name]["dienst"]
+    if not dienst_vorhanden(dienst):
+        fehler("FEHLER -- kein Schluesselbund-Eintrag '%s' fuer Konto %s; kein stiller Rueckfall auf die "
+               "Browser-Anmeldung; kein Start." % (dienst, name))
+    token = token_lesen(dienst)
+    if not token:
+        fehler("FEHLER -- Schluesselbund-Eintrag '%s' leer oder nicht lesbar; kein stiller Rueckfall auf die "
+               "Browser-Anmeldung; kein Start." % dienst)
+    umg = dict(os.environ)
+    umg.pop("ANTHROPIC_API_KEY", None)
+    umg.pop("WB_CLAUDE_KONTO", None)             # gilt nur fuer diesen Start; das Kind waehlt selbst (task)
+    umg["CLAUDE_CODE_OAUTH_TOKEN"] = token
+    umg["WB_CLAUDE_KONTO_AKTIV"] = name
+    token = None
+    try:
+        _marke_schreiben(os.getpid(), name, angabe)
+    except OSError as e:
+        print("wb-konto: Marke des Prozesses nicht geschrieben (%s); der Wechsel bei Limit liest dann die "
+              "Messzeilen" % type(e).__name__, file=sys.stderr)
+    _pane_konto_merken(name)
+    print("wb-konto: start auf Konto %s (Angabe %s; Grund: %s)" % (name, angabe, grund), file=sys.stderr)
+    if hinweis:
+        print("wb-konto: HINWEIS -- %s" % hinweis, file=sys.stderr)
+    if any(a == "--remote-control" or a.startswith("--remote-control=") for a in befehl[1:]):
+        # Sichtbar, nie still: die CLI startet mit Kontotoken
+        # und --remote-control ohne jede Meldung (gemessen mit echter CLI, Wegwerf-Token, eigenem tmux-Server),
+        # laut ihren Zeichenketten sind Langzeit-Token aber "inference-only". Die Zeile bleibt ueber der Sitzung
+        # im Pane stehen.
+        print("wb-konto: ACHTUNG -- Orchestrator auf Konto %s: Claude Remote Control ist AUS (Kontotoken nur "
+              "Inferenz). Fernsteuerung ueber die Werkbank-Handy-App. Zurueck zur Mac-Anmeldung: "
+              "wb-state settings set orchestratorKonto ''" % name, file=sys.stderr)
+    try:
+        os.execvpe(befehl[0], befehl, umg)
+    except OSError as e:
+        fehler("start: %s nicht startbar (%s)" % (befehl[0], type(e).__name__), 127)
+
+
+# ── wechsel: Kontowechsel bei Limit (Soll 3) ────────────────────────────────────────────────────────
+# Wortlaut der Limitmeldung in den Gespraechsdateien (~/.claude/projects/*/*.jsonl, Eintraege mit
+# isApiErrorMessage und error "rate_limit"): "You've hit your <art> limit · resets <uhrzeit> (<zeitzone>)", mit
+# <art> etwa session oder weekly. Die CLI baut den Satz aus "You've hit your " + Art + " limit"
+# (Zeichenketten der Programmdatei); dazu kommen "<Modell> limit reached" und Ausgabenlimits. Nur Sitzungs-,
+# Wochen- und allgemeine Nutzungslimits erschoepfen ein KONTO; Modell-, Ausgaben- und Teamlimits nicht.
+LIMIT_ZEILE = re.compile(r"hit your (?P<art>[A-Za-z0-9'\- ]*?)\s*limit\b|(?P<art2>[A-Za-z0-9\-]+) limit reached", re.I)
+KONTO_ARTEN = {"", "session", "weekly", "usage", "5-hour", "five-hour"}
+MODELL_RE = re.compile(r"\b(?:opus|sonnet|haiku|fable)\b", re.I)
+RESET_RE = re.compile(r"resets?\s+(?:at\s+|on\s+)?(?:(?P<mon>[A-Z][a-z]{2,8})\s+(?P<tag>\d{1,2})(?:st|nd|rd|th)?,?\s+"
+                      r"(?:at\s+)?)?(?P<h>\d{1,2})(?::(?P<m>\d{2}))?\s*(?P<ap>am|pm)?\s*(?:\((?P<tz>[^)]+)\))?", re.I)
+BUSY_RE = re.compile(r"esc to interrupt|…\s*\(\d+[hms]|Running \d+ (?:shell|tool)|Compacting", re.I)
+ASSISTENT_RE = re.compile(r"^\s*[⏺●]")
+SITZUNG_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+
+
+def _tmux(sock, *args):
+    argv = [shutil.which("tmux") or "/opt/homebrew/bin/tmux"] + (["-S", sock] if sock else []) + list(args)
+    umg = {k: v for k, v in os.environ.items() if k not in ("TMUX", "TMUX_PANE")}
+    try:
+        r = subprocess.run(argv, capture_output=True, text=True, timeout=20, env=umg, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return r.stdout if r.returncode == 0 else None
+
+
+def limit_im_bild(text):
+    """Letzte Limitzeile am Zugende -> (zeile, art) oder (None, grund)."""
+    zeilen = text.splitlines()
+    treffer = None
+    for i, z in enumerate(zeilen):
+        m = LIMIT_ZEILE.search(z)
+        if m:
+            treffer = (i, z, m)
+    if treffer is None:
+        return None, "keine Limitmeldung im Bild"
+    i, z, m = treffer
+    if any(ASSISTENT_RE.match(x) for x in zeilen[i + 1:]):
+        return None, "Limitmeldung ist Verlauf (danach neue Ausgabe)"
+    nichtleer = [x for x in zeilen if x.strip()][-10:]
+    if any(BUSY_RE.search(x) for x in nichtleer):
+        return None, "Pane arbeitet gerade"
+    art = (m.group("art") if m.group("art") is not None else (m.group("art2") or "")).strip().lower()
+    return z.strip(), art
+
+
+def reset_aus_zeile(zeile, art, c, t):
+    """Reset-Zeitpunkt: Woche = Wochenreset des Kontos (Konfiguration, gemessen); sonst die Uhrzeit der Meldung
+    (naechster solcher Zeitpunkt, hoechstens 24 h); unlesbar: t + 5 h."""
+    if art == "weekly":
+        return naechster_reset(c, t), "Wochenreset des Kontos"
+    m = RESET_RE.search(zeile)
+    if m:
+        try:
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo(m.group("tz")) if m.group("tz") else None
+        except Exception:
+            tz = None
+        h, mi = int(m.group("h")), int(m.group("m") or 0)
+        ap = (m.group("ap") or "").lower()
+        if ap == "pm" and h != 12:
+            h += 12
+        elif ap == "am" and h == 12:
+            h = 0
+        if 0 <= h <= 23 and 0 <= mi <= 59:
+            jetzt_dt = datetime.datetime.fromtimestamp(t, tz) if tz else datetime.datetime.fromtimestamp(t)
+            ziel = jetzt_dt.replace(hour=h, minute=mi, second=0, microsecond=0)
+            if ziel.timestamp() <= t:
+                ziel += datetime.timedelta(days=1)
+            return ziel.timestamp(), "Uhrzeit der Meldung"
+    return t + 5 * 3600, "Meldung ohne lesbare Uhrzeit, 5 h angenommen"
+
+
+def sitzung_aus_register(pid):
+    """Kennung der Unterhaltung aus ~/.claude/sessions/<pid>.json (nie aus @wb_cmd). Die Datei muss genau diesen
+    lebenden Prozess nennen (pid, procStart)."""
+    ordner = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude"),
+                          "sessions")
+    try:
+        with open(os.path.join(ordner, "%s.json" % pid)) as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        return None, "kein Register %s/%s.json" % (ordner, pid)
+    if str(d.get("pid")) != str(pid):
+        return None, "Register %s.json nennt eine andere PID" % pid
+    start = d.get("procStart")
+    if isinstance(start, str) and start.strip() and " ".join(start.split()) != _prozess_start(pid):
+        return None, "Register %s.json gehoert einem frueheren Prozess (procStart)" % pid
+    sid = d.get("sessionId") or ""
+    if not SITZUNG_RE.match(sid):
+        return None, "Register %s.json ohne gueltige sessionId" % pid
+    return sid, "Register %s.json" % pid
+
+
+def limit_aus_transkript(sid):
+    """BELEG eines echten Limit-Stopps (decision 11-14): Der LETZTE Unterhaltungseintrag (type user oder assistant)
+    ist eine API-Fehlermeldung mit error rate_limit. Bildschirmtext allein reicht nie: ein Assistent kann den Satz
+    zitieren (Bericht am Zugende), eine Person kann ihn in den Prompt tippen.
+    -> ("beleg", "uuid:<uuid>") | ("kein", grund) | ("unlesbar", grund)."""
+    wurzel = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude"),
+                          "projects")
+    import glob
+    pfade = glob.glob(os.path.join(wurzel, "*", sid + ".jsonl"))
+    if not pfade:
+        return "unlesbar", "kein Transkript %s.jsonl" % sid
+    pfad = max(pfade, key=lambda p: os.path.getmtime(p) if os.path.exists(p) else 0)
+    try:
+        with open(pfad, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - 4 * 1024 * 1024))
+            roh = f.read().decode("utf-8", "replace").splitlines()
+    except OSError as e:
+        return "unlesbar", "Transkript nicht lesbar (%s)" % type(e).__name__
+    for z in reversed(roh):
+        try:
+            d = json.loads(z)
+        except ValueError:
+            continue
+        if not isinstance(d, dict) or d.get("type") not in ("user", "assistant"):
+            continue
+        if d.get("isApiErrorMessage") is True and d.get("error") == "rate_limit" and d.get("uuid"):
+            return "beleg", "uuid:%s" % d["uuid"]
+        return "kein", "letzter Eintrag (%s) ist kein Limitfehler" % d.get("type")
+    return "unlesbar", "Transkript ohne Unterhaltungseintrag"
+
+
+UNBESTIMMTE_ARTEN = ("usage", "")
+
+
+def _fuenf_frisch(k, konto, t):
+    """Juengster frischer five_hour_pct eines OFFENEN 5h-Fensters -> (wert, ts) oder (None, None). stand() setzt
+    ohne Fenster 0, das waere kein Messwert. Ein Konto ohne 5h-Fenster hat nie einen Wert."""
+    if not hat_fuenf(k, konto):
+        return None, None
+    max_alter = float(k.get("max_alter_min", 120)) * 60
+    pw = planwechsel(k, konto)
+    frisch = [d for d in zeilen() if zeile_konto(k, d) == konto and isinstance(d.get("five_hour_pct"), (int, float))
+              and (epoch_aus(d.get("five_hour_resets_at")) or 0) > t
+              and t - (epoch_aus(d.get("ts")) or float("-inf")) <= max_alter
+              and zeile_nach_planwechsel(pw, d)]
+    if not frisch:
+        return None, None
+    juengste = max(frisch, key=lambda d: (epoch_aus(d.get("ts")) or 0, d["_nr"]))
+    return float(juengste["five_hour_pct"]), juengste.get("ts")
+
+
+def _woche_frisch(k, konto, t):
+    """Wochenwert des laufenden Fensters aus einem frischen Messwert -> (wert, ts) oder (None, None)."""
+    s = stand(k, konto, t)
+    if s.get("status") == "unbekannt" or not isinstance(s.get("seven_day_pct"), (int, float)):
+        return None, None
+    return float(s["seven_day_pct"]), s.get("gemessen")
+
+
+def messwert_widerspricht(k, konto, art, t):
+    """Frischer Messwert des Kontos klar unter dem Limit -> Satz, sonst None (14.11.2026): Woche gegen
+    seven_day_pct, Sitzung/5 h gegen five_hour_pct. Ohne frischen Messwert gilt die Meldung.
+    UNBESTIMMTE ART (Vorfall 16.11.: "Usage limit reached" ohne Angabe der Art): bei
+    "usage" oder "" widerspricht der Messwert nur, wenn five_hour_pct UND seven_day_pct gemessen unter der Grenze
+    liegen. Welche Art dann gilt, sagt art_aus_messwert()."""
+    grenze = float(k.get("limit_messwert_min", 90))
+    if art == "weekly":
+        s = stand(k, konto, t)
+        if s.get("status") in ("unbekannt", "erschoepft"):
+            return None
+        wert, wann = s.get("seven_day_pct"), s.get("gemessen")
+    elif art in UNBESTIMMTE_ARTEN and not hat_fuenf(k, konto):
+        # Ohne 5h-Fenster prueft nur die Woche (decision 2026-11-20, Entscheidung b): liegt sie frisch unter der Grenze, gilt
+        # die Meldung nicht; ohne frischen Wochenwert gilt sie wie immer.
+        woche, wann7 = _woche_frisch(k, konto, t)
+        if woche is None or woche >= grenze:
+            return None
+        return "seven_day_pct %.0f %% (gemessen %s) liegt unter %.0f %% (%s)" % (woche, wann7 or "?", grenze, KEIN_FENSTER)
+    elif art in UNBESTIMMTE_ARTEN:
+        fuenf, wann5 = _fuenf_frisch(k, konto, t)
+        woche, wann7 = _woche_frisch(k, konto, t)
+        if fuenf is None or woche is None or fuenf >= grenze or woche >= grenze:
+            return None
+        return "five_hour_pct %.0f %% (gemessen %s) und seven_day_pct %.0f %% (gemessen %s) liegen unter %.0f %%" % (
+            fuenf, wann5 or "?", woche, wann7 or "?", grenze)
+    else:
+        wert, wann = _fuenf_frisch(k, konto, t)
+        if wert is None:
+            return None
+    feld = "seven_day_pct" if art == "weekly" else "five_hour_pct"
+    if isinstance(wert, (int, float)) and wert < grenze:
+        return "%s %.0f %% (gemessen %s) liegt unter %.0f %%" % (feld, wert, wann or "?", grenze)
+    return None
+
+
+def art_aus_messwert(k, konto, art, t):
+    """Unbestimmte Art ("usage", ""): liegt nur die Woche ueber limit_messwert_min (5h darunter), gilt "weekly";
+    gebucht wird dann bis zum Wochenreset des Kontos. Eine ausdrueckliche Art bleibt. -> (art, grund|None)."""
+    if art not in UNBESTIMMTE_ARTEN:
+        return art, None
+    grenze = float(k.get("limit_messwert_min", 90))
+    fuenf, _w5 = _fuenf_frisch(k, konto, t)
+    woche, wann7 = _woche_frisch(k, konto, t)
+    if woche is not None and woche >= grenze and (fuenf is None or fuenf < grenze):
+        return "weekly", "Woche %s %% (gemessen %s), %s: Wochenlimit" % (
+            _zahl(woche), wann7 or "?",
+            KEIN_FENSTER if not hat_fuenf(k, konto) else "5h ? %" if fuenf is None else "5h %s %%" % _zahl(fuenf))
+    return art, None
+
+
+def ummeldung_von_hand(k, sid, start, konto_marke):
+    """UMMELDUNG VON HAND (task): meldet ein Mensch eine laufende Sitzung mit /login um, nennt die Marke
+    weiter das alte Konto, die Messzeilen das neue (dort konto=widerspruch). Massgeblich ist die Reset-Familie
+    (seven_day_resets_at), nie das Feld konto. Zeigen die zwei juengsten Messzeilen DIESER Unterhaltung, beide juenger
+    als der Prozessstart und als der letzte eingetragene Wechsel, uebereinstimmend ein anderes Konto -> (konto, grund),
+    sonst (None, "")."""
+    if not sid:
+        return None, ""
+    ab = _prozess_start_epoch(start)
+    wechsel_t = [epoch_aus(v.get("t")) or 0 for v in _wechsel_lesen()["verlauf"] if v.get("sitzung") == sid]
+    seit = max([x for x in (ab, max(wechsel_t) if wechsel_t else None) if x is not None] or [None])
+    if seit is None:
+        return None, ""
+    passend = []
+    for d in zeilen():
+        ts = epoch_aus(d.get("ts"))
+        if d.get("session") == sid and ts is not None and ts > seit:
+            passend.append((ts, d["_nr"], familie(k, epoch_aus(d.get("seven_day_resets_at")))))
+    letzte = sorted(passend)[-2:]
+    if len(letzte) < 2 or letzte[0][2] is None or letzte[0][2] != letzte[1][2] or letzte[0][2] == konto_marke:
+        return None, ""
+    return letzte[0][2], "zwei Messzeilen der Unterhaltung seit dem Prozessstart zeigen die Familie %s" % letzte[0][2]
+
+
+def konto_der_marke(k, pid, sid, start):
+    """Marke von `wb-konto start` (PID + Startzeit muessen passen); eine Ummeldung von Hand (E) zieht sie nach.
+    Ohne Sitzung kein Nachziehen. -> (konto, grund) | (None, "")."""
+    marke = os.path.join(_marken_dir(), "%s.json" % pid)
+    try:
+        with open(marke) as f:
+            m = json.load(f)
+        if m.get("konto") in k["konten"] and m.get("start") and m.get("start") == start:
+            gemessen, grund = ummeldung_von_hand(k, sid, start, m["konto"])
+            if gemessen:
+                m.update(konto=gemessen, nachgezogen="%s (vorher %s)" % (grund, m["konto"]))
+                try:
+                    _json_schreiben(marke, m)
+                except OSError:
+                    pass
+                return gemessen, "Ummeldung von Hand: %s; Marke nachgezogen" % grund
+            return m["konto"], "Marke von wb-konto start"
+    except (OSError, ValueError):
+        pass
+    return None, ""
+
+
+def _elternprozess(pid):
+    try:
+        r = subprocess.run(["ps", "-o", "ppid=", "-p", str(pid)], capture_output=True, text=True, timeout=5,
+                           stdin=subprocess.DEVNULL)
+        return int(r.stdout.strip()) if r.returncode == 0 else None
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+
+
+def konto_der_ahnenmarke(k, pid, sid):
+    """Fund K (17.11.2026): die Statuszeile ist ein Enkel des claude-Prozesses und kennt dessen PID nicht sicher.
+    Von pid aufwaerts (hoechstens 8 Ebenen) zaehlt die erste Ahnen-PID mit einer Markendatei. -> (konto, grund)."""
+    for _ in range(8):
+        if not pid or pid <= 1:
+            break
+        if os.path.exists(os.path.join(_marken_dir(), "%d.json" % pid)):
+            return konto_der_marke(k, pid, sid, _prozess_start(pid))
+        pid = _elternprozess(pid)
+    return None, ""
+
+
+def konto_des_prozesses(k, pid, sid, startzeile):
+    """Auf welchem Konto laeuft der Prozess? 1. Marke von `wb-konto start` (PID + Startzeit), 2. ein genanntes
+    Konto in der laufenden Startzeile, 3. Messzeilen DIESER Unterhaltung seit dem Prozessstart (Familie)."""
+    start = _prozess_start(pid)
+    konto, grund = konto_der_marke(k, pid, sid, start)
+    if konto:
+        return konto, grund
+    gefunden = re.findall(r"(?<![A-Za-z0-9_])WB_CLAUDE_KONTO=(\w+)", startzeile or "")
+    if gefunden and gefunden[-1] in k["konten"]:
+        return gefunden[-1], "Startzeile des Panes"
+    ab = _prozess_start_epoch(start)
+    beste = None
+    for d in zeilen():
+        if d.get("session") != sid:
+            continue
+        ts = epoch_aus(d.get("ts"))
+        if ab is not None and (ts is None or ts < ab - 5):
+            continue
+        n = zeile_konto(k, d)
+        if n and (beste is None or (ts or 0) >= beste[0]):
+            beste = (ts or 0, n)
+    if beste:
+        return beste[1], "Messzeile der Unterhaltung"
+    return None, "weder Marke noch Konto in der Startzeile noch Messzeile seit dem Prozessstart"
+
+
+def _wechsel_pfad():
+    return os.path.join(wbdir(), "konto-wechsel.json")
+
+
+def _wechsel_lesen():
+    try:
+        with open(_wechsel_pfad()) as f:
+            d = json.load(f)
+        if isinstance(d, dict):
+            d.setdefault("vorfaelle", {})
+            d.setdefault("verlauf", [])
+            return d
+    except (OSError, ValueError):
+        pass
+    return {"vorfaelle": {}, "verlauf": []}
+
+
+def ziel_halt(k, ziel, sid, verlauf, t):
+    """Grund, NICHT auf `ziel` zu wechseln, oder None. Kein Wechsel im Kreis: das Ziel ist gebucht erschoepft,
+    gemessen am Ende, oder genau diese Unterhaltung kam von dort, solange dessen Limit gilt."""
+    s = stand(k, ziel, t)
+    if s["status"] == "erschoepft":
+        return "%s ist %s" % (ziel, s.get("grund"))
+    if (s.get("seven_day_pct") or 0) >= 100 or (s.get("five_hour_pct") or 0) >= 100:
+        return "%s ist gemessen am Ende (Woche %s %%, %s)" % (ziel, s.get("seven_day_pct"), fuenf_text(s, roh=True))
+    for v in verlauf:
+        if v.get("sitzung") == sid and v.get("von") == ziel and (epoch_aus(v.get("bis")) or 0) > t:
+            return "Wechsel im Kreis: diese Unterhaltung kam um %s von %s, dessen Limit bis %s gilt" % (
+                datetime.datetime.fromtimestamp(epoch_aus(v.get("t")) or 0).strftime("%H:%M"), ziel,
+                datetime.datetime.fromtimestamp(epoch_aus(v["bis"])).strftime("%d.%m. %H:%M"))
+    return None
+
+
+def _werkzeug(name):
+    eigen = os.path.join(os.path.expanduser("~"), ".local", "bin", name)
+    return eigen if os.access(eigen, os.X_OK) else shutil.which(name)
+
+
+def _einstellung(schluessel):
+    """Wert aus ~/.claude/workbench/settings.json ueber wb-state; leer, wenn nicht gesetzt oder nicht lesbar."""
+    st = _werkzeug("wb-state")
+    if not st:
+        return ""
+    try:
+        r = subprocess.run([st, "settings", "get", schluessel], capture_output=True, text=True, timeout=20,
+                           stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def leitung(text):
+    """Eine Zeile an die Gruppe leitung; scheitert die Zustellung (die Kontextwache hat als verwaister Prozess
+    keinen messbaren Absender), steht die Zeile mit dem Grund in ~/.claude/workbench/konto-wechsel.log."""
+    grund = ""
+    gruppe = _werkzeug("wb-gruppe")
+    if not gruppe:
+        grund = "wb-gruppe fehlt"
+    else:
+        try:
+            r = subprocess.run([gruppe, "schreib", "leitung", "--art", "meldung", text], capture_output=True,
+                               text=True, timeout=60, stdin=subprocess.DEVNULL)
+            if r.returncode != 0:
+                grund = "wb-gruppe Exit %d: %s" % (r.returncode, ((r.stderr or r.stdout).strip().splitlines() or [""])[-1][:160])
+        except (OSError, subprocess.SubprocessError) as e:
+            grund = "wb-gruppe ohne Antwort (%s)" % type(e).__name__
+    try:
+        os.makedirs(wbdir(), exist_ok=True)
+        with open(os.path.join(wbdir(), "konto-wechsel.log"), "a") as f:
+            f.write("%s %s [leitung: %s]\n" % (datetime.datetime.now().strftime("%F %T"), text,
+                                                "zugestellt" if not grund else "NICHT zugestellt, " + grund))
+    except OSError:
+        pass
+    return grund
+
+
+def _warte_auf_register(pane, sock, sid):
+    """Nach einem Neustart: Frist in Sekunden, bis der neue Prozess dieselbe Unterhaltung im Register fuehrt.
+    Rueckgabe: leer = gefunden, sonst der Grund."""
+    frist = float(os.environ.get("WB_KONTO_WARTE_S") or 90)
+    ende = time.time() + frist
+    while time.time() < ende:
+        p = (_tmux(sock, "display", "-p", "-t", pane, "#{pane_pid}") or "").strip()
+        if p.isdigit() and sitzung_aus_register(p)[0] == sid:
+            return ""
+        time.sleep(1)
+    return "neuer Prozess fuehrt die Unterhaltung nach %d s nicht im Register" % int(frist)
+
+
+def _weiter_senden(sid, pane, sock, von, nach, t):
+    """Nach dem Neustart: warten, bis der neue Prozess dieselbe Unterhaltung im Register fuehrt, dann EIN
+    "weiter" ueber die Sitzungs-Inbox (nie getippt). Rueckgabe: leer = zugestellt, sonst der Grund."""
+    grund = _warte_auf_register(pane, sock, sid)
+    if grund:
+        return grund
+    return _inbox_zustellen(pane, sock, "weiter -- setze deine aktuelle Aufgabe fort (automatischer Kontowechsel "
+                            "nach Limit: %s -> %s)\n" % (von, nach))
+
+
+def _inbox_zustellen(pane, sock, text):
+    """Ein Text ueber `wb-inbox sende <pane> <datei>` (nie getippt). Rueckgabe: leer = zugestellt, sonst der Grund;
+    ein Grund, der mit "unklar" beginnt, heisst: vielleicht zugestellt (Zeitablauf), also nie nochmal senden."""
+    inbox = os.environ.get("WB_INBOX") or _werkzeug("wb-inbox")
+    if not inbox:
+        return "wb-inbox fehlt"
+    fd, datei = tempfile.mkstemp(prefix="wb-konto-weiter.", suffix=".txt")
+    with os.fdopen(fd, "w") as f:
+        f.write(text)
+    umg = {k2: v for k2, v in os.environ.items() if k2 not in ("TMUX_PANE",)}
+    if sock:
+        umg["TMUX"] = sock + ",0,0"
+    try:
+        r = subprocess.run([inbox, "sende", pane, datei], capture_output=True, text=True, timeout=60,
+                           stdin=subprocess.DEVNULL, env=umg)
+    except subprocess.TimeoutExpired:
+        return "unklar: wb-inbox nach 60 s ohne Antwort"
+    except (OSError, subprocess.SubprocessError) as e:
+        return "wb-inbox ohne Antwort (%s)" % type(e).__name__
+    finally:
+        try:
+            os.unlink(datei)
+        except OSError:
+            pass
+    if r.returncode in (0, 6):
+        return ""
+    return "wb-inbox Exit %d" % r.returncode
+
+
+# Nachtrag task (18.11.2026): ein Vorfall ohne endgueltiges Ergebnis (melden: Konto unbekannt, Messwert
+# widerspricht, ohne Beleg; neustart gescheitert) sperrt nur VORFALL_ERNEUT_S lang. Danach darf die Kontextwache, die
+# dieselbe Limitzeile nach KONTO_LIMIT_ERNEUT_S (Vorgabe ebenfalls 300 s) erneut meldet, einen neuen Versuch ausloesen.
+# Endgueltig bleiben nur gewechselt und halt.
+VORFALL_ERNEUT_S = 300
+VORFALL_ENDGUELTIG = ("gewechselt", "halt")
+
+
+def _vorfall_gesperrt(alt, t):
+    """True, solange ein gemerkter Vorfall keinen neuen Versuch zulaesst."""
+    if not isinstance(alt, dict) or alt.get("ergebnis") in VORFALL_ENDGUELTIG:
+        return True
+    return t - float(alt.get("t") or 0) < VORFALL_ERNEUT_S
+
+
+def _gemeldet_merken(neu, alt, text):
+    """task (18.11.2026): eine Meldung geht je Vorfall und Wortlaut hoechstens EINMAL an leitung,
+    wie bei der Kontextwache; erneute Pruefungen nach VORFALL_ERNEUT_S stehen nur in konto-wechsel.log. Uebernimmt die
+    schon gemeldeten Wortlaute (Pruefsummen) des alten Eintrags in den neuen. -> True: an leitung, False: nur Protokoll."""
+    import zlib
+    gemeldet = [x for x in ((alt or {}).get("gemeldet") or []) if isinstance(x, str)] if isinstance(alt, dict) else []
+    laut = True
+    if text is not None:
+        fp = "%08x" % zlib.crc32(text.encode("utf-8", "replace"))
+        laut = fp not in gemeldet
+        if laut:
+            gemeldet.append(fp)
+    if gemeldet:
+        neu["gemeldet"] = gemeldet[-20:]
+    return laut
+
+
+def befehl_wechsel(k, rest, t):
+    """wb-konto wechsel <pane> [--tmux-socket-pfad <pfad>] [--trocken]
+    Eine Zeile auf stdout: nichts|melden|halt|gewechselt TAB Text. Exit 0, ausser bei Bedienfehlern."""
+    pane, sock, trocken = None, "", False
+    i = 0
+    while i < len(rest):
+        if rest[i] == "--tmux-socket-pfad" and i + 1 < len(rest):
+            sock = rest[i + 1]; i += 2
+        elif rest[i] == "--trocken":
+            trocken = True; i += 1
+        elif pane is None and re.match(r"^%\d+$", rest[i]):
+            pane = rest[i]; i += 1
+        else:
+            fehler("wechsel <%%pane> [--tmux-socket-pfad <pfad>] [--trocken]; unbekannt: '%s'" % rest[i], 2)
+    if pane is None:
+        fehler("wechsel <%pane> [--tmux-socket-pfad <pfad>] [--trocken]", 2)
+
+    def aus(art, text):
+        print("%s\t%s" % (art, text))
+        return 0
+    system = os.uname().sysname
+    if os.environ.get("WB_TESTUMGEBUNG") == "1" and os.environ.get("WB_KONTO_UNAME"):
+        system = os.environ["WB_KONTO_UNAME"]
+    bild = _tmux(sock, "capture-pane", "-p", "-t", pane, "-S", "-60")
+    if bild is None:
+        return aus("nichts", "Pane %s nicht lesbar" % pane)
+    zeile, art = limit_im_bild(bild)
+    if zeile is None:
+        return aus("nichts", art)
+    if system != "Darwin":
+        # Z2b C: ausserhalb des Mac kein Wechsel, aber die Fortsetzung nach dem Reset wird vorgemerkt
+        zusatz = _fortsetzung_ausserhalb(k, pane, sock, zeile, art, t, trocken)
+        if zusatz is None:
+            return aus("nichts", "Limitfehler in %s schon behandelt (ausserhalb des Mac)" % pane)
+        text = ("Limitmeldung in %s (\"%s\"), aber kein Kontowechsel ausserhalb des Mac (%s: kein "
+                "wb-konto-Schluesselbund)%s" % (pane, zeile[:160], system, zusatz))
+        if zusatz:
+            protokoll("wb-konto: " + text)
+        return aus("melden", text)
+    if art not in KONTO_ARTEN:
+        return aus("melden", "Limit in %s ist kein Kontolimit (\"%s\"): kein Kontowechsel" % (pane, zeile[:160]))
+    info = (_tmux(sock, "display", "-p", "-t", pane, "#{pane_pid}\t#{pane_dead}\t#{pane_start_command}") or "")
+    teile = info.rstrip("\n").split("\t", 2)
+    if len(teile) < 3 or not teile[0].isdigit() or teile[1] != "0":
+        return aus("nichts", "Pane %s ohne lebenden Prozess (Wiederbelebung ist Sache von wb-autorevive)" % pane)
+    pid, startzeile = teile[0], teile[2]
+    sid, quelle = sitzung_aus_register(pid)
+    if sid is None:
+        return aus("melden", "Limitmeldung in %s (\"%s\"), aber keine Sitzungskennung (%s): kein Neustart"
+                   % (pane, zeile[:160], quelle))
+    w = _wechsel_lesen()
+    # REGEL KONTO-BELEG (decision 11-14): gebucht und neu gestartet wird nur mit Transkript-Beleg; das Bild ist nur der Anstoss
+    beleg, vorfall = limit_aus_transkript(sid)
+    if beleg == "kein":
+        return aus("nichts", "Limitzeile im Bild von %s, aber die Unterhaltung endet nicht mit einem Limitfehler (%s): "
+                   "kein Wechsel" % (pane, vorfall))
+    if beleg != "beleg":
+        schluessel = "ohne-beleg:%s:%s" % (sid, zeile[:120])
+        if schluessel in w["vorfaelle"] and _vorfall_gesperrt(w["vorfaelle"][schluessel], t):
+            return aus("nichts", "Limitzeile ohne Beleg in %s schon gemeldet" % pane)
+        text = ("Limitzeile in %s (\"%s\"), aber kein Transkript-Beleg (%s): nicht gebucht, kein Neustart"
+                % (pane, zeile[:120], vorfall))
+        alt = w["vorfaelle"].get(schluessel)
+        w["vorfaelle"][schluessel] = {"t": int(t), "pane": pane, "sitzung": sid, "ergebnis": "melden"}
+        laut = _gemeldet_merken(w["vorfaelle"][schluessel], alt, text)
+        if not trocken:
+            _json_schreiben(_wechsel_pfad(), w)
+        (leitung if laut else protokoll)("wb-konto: " + text)
+        return aus("melden", text)
+    if vorfall in w["vorfaelle"]:
+        if _vorfall_gesperrt(w["vorfaelle"][vorfall], t):
+            return aus("nichts", "Vorfall %s schon behandelt (%s)" % (vorfall[:60], w["vorfaelle"][vorfall].get("ergebnis")))
+    aktuell, kquelle = konto_des_prozesses(k, pid, sid, startzeile)
+
+    def merken(ergebnis, text=None):
+        """Merkt den Vorfall; mit text: True, wenn dieser Wortlaut fuer den Vorfall neu ist (dann an leitung)."""
+        alt = w["vorfaelle"].get(vorfall)
+        w["vorfaelle"][vorfall] = {"t": int(t), "pane": pane, "sitzung": sid, "ergebnis": ergebnis}
+        laut = _gemeldet_merken(w["vorfaelle"][vorfall], alt, text)
+        if not trocken:
+            _json_schreiben(_wechsel_pfad(), w)
+        return laut
+    if aktuell is None:
+        text = "Limitmeldung in %s (\"%s\"), Konto unbekannt (%s): kein Wechsel" % (pane, zeile[:160], kquelle)
+        (leitung if merken("melden", text) else protokoll)("wb-konto: " + text)
+        return aus("melden", text)
+    # MODELLLIMIT OHNE 5h-FENSTER (20.11.2026): Prueft ein Konto nur die Woche, darf ein Modell-Wochenlimit
+    # ("Opus weekly limit reached", Wochenanteil des Kontos darunter) nicht als Widerspruch zum Konto gelten. Der Text nennt
+    # das Modell: kein Kontolimit, nichts gebucht, kein Wechsel.
+    if not hat_fuenf(k, aktuell) and art in UNBESTIMMTE_ARTEN + ("weekly",) and MODELL_RE.search(zeile):
+        text = ("Limitmeldung in %s auf %s (\"%s\") nennt ein Modell: kein Kontolimit, nicht gebucht, kein Wechsel"
+                % (pane, aktuell, zeile[:120]))
+        (leitung if merken("melden", text) else protokoll)("wb-konto: " + text)
+        return aus("melden", text)
+    # REGEL KONTO-MESSWERT (decision 11-14): ein frischer Messwert klar unter dem Limit widerspricht der Meldung
+    widerspruch = messwert_widerspricht(k, aktuell, art, t)
+    if widerspruch:
+        text = ("Limitfehler in %s auf %s (\"%s\"), aber %s: nicht gebucht, kein Wechsel"
+                % (pane, aktuell, zeile[:120], widerspruch))
+        (leitung if merken("melden", text) else protokoll)("wb-konto: " + text)
+        return aus("melden", text)
+    art, art_grund = art_aus_messwert(k, aktuell, art, t)
+    bis, bis_quelle = reset_aus_zeile(zeile, art, k["konten"][aktuell], t)
+    if art_grund:
+        bis_quelle += " (unbestimmte Meldung, %s)" % art_grund
+    andere = [n for n in k["reihenfolge"] if n != aktuell]
+    ziel = andere[0] if andere else None
+    halt = ziel_halt(k, ziel, sid, w["verlauf"], t) if ziel else "kein anderes Konto konfiguriert"
+    bis_text = datetime.datetime.fromtimestamp(bis).strftime("%d.%m. %H:%M")
+    if trocken:
+        return aus("halt" if halt else "gewechselt", "TROCKEN: %s erschoepft bis %s (%s); %s" % (
+            aktuell, bis_text, bis_quelle, ("Halt: " + halt) if halt else "Neustart auf %s mit --resume %s" % (ziel, sid)))
+    b = buchungen()
+    b[aktuell] = {"erschoepft_bis": int(bis), "grund": "Limitmeldung in %s: %s" % (pane, zeile[:120]), "gebucht": int(t)}
+    _json_schreiben(os.path.join(wbdir(), "konto-buchung.json"), b)
+    if (not halt and re.search(r"(?<!\S)--remote-control(?!\S)", startzeile)
+            and _einstellung("orchestratorWechselBeiLimit") == "false"):
+        # Remote Control braucht die volle Mac-Anmeldung; ein Kontotoken ist "inference-only" (Zeichenketten der
+        # CLI 2.1.325). Seit task (15.11.2026, der Nutzer) steuert
+        # orchestratorKonto nur den START; ob ein Orchestrator bei echtem Limit wechselt, sagt
+        # orchestratorWechselBeiLimit (ungesetzt = ja). Nur mit false bleibt die Sitzung, wie sie ist.
+        halt = ("die Sitzung nutzt Remote Control, und orchestratorWechselBeiLimit ist false; ein Wechsel braeche "
+                "Remote Control (Entscheidung: wb-state settings set orchestratorWechselBeiLimit true)")
+    if halt:
+        merken("halt")
+        zusatz = fortsetzung_merken(k, sid, vorfall, pane, sock, aktuell, bis, art, t, trocken)
+        text = ("Limit in %s auf %s (\"%s\"), %s gebucht erschoepft bis %s. KEIN Wechsel: %s. Die Sitzung wartet%s."
+                % (pane, aktuell, zeile[:120], aktuell, bis_text, halt, zusatz))
+        leitung("wb-konto: " + text)
+        return aus("halt", text)
+    revive = os.path.join(os.path.dirname(os.path.realpath(__file__)), "wb-revive")
+    if not os.access(revive, os.X_OK):
+        revive = _werkzeug("wb-revive") or ""
+    umg = {k2: v for k2, v in os.environ.items() if k2 not in ("TMUX_PANE",)}
+    if sock:
+        umg["TMUX"] = sock + ",0,0"
+    else:
+        umg.pop("TMUX", None)
+    try:
+        r = subprocess.run([revive, "--force", "--yes", "--resume-id", sid, "--konto", ziel, pane],
+                           capture_output=True, text=True, timeout=120, env=umg, stdin=subprocess.DEVNULL)
+        rc, meldung = r.returncode, (r.stderr.strip() + " " + r.stdout.strip()).strip()
+        ausgabe = r.stdout
+    except (OSError, subprocess.SubprocessError) as e:
+        rc, meldung, ausgabe = 127, type(e).__name__, ""
+    if rc != 0:
+        text = ("Limit in %s auf %s, %s gebucht erschoepft bis %s; Neustart auf %s GESCHEITERT (wb-revive Exit %s: %s)"
+                % (pane, aktuell, aktuell, bis_text, ziel, rc, meldung[-200:]))
+        (leitung if merken("neustart gescheitert", text) else protokoll)("wb-konto: " + text)
+        return aus("melden", text)
+    w["verlauf"].append({"t": int(t), "sitzung": sid, "pane": pane, "von": aktuell, "nach": ziel, "bis": int(bis),
+                         "grund": "limit",
+                         "rc_verloren": bool(re.search(r"(?<!\S)--remote-control(?!\S)", startzeile))})
+    w["verlauf"] = [v for v in w["verlauf"] if (epoch_aus(v.get("bis")) or 0) > t - 8 * 86400][-200:]
+    merken("gewechselt")
+    # KOMPAKTIEREN NACH DEM WECHSEL (task): auf dem erschoepften Konto scheitert /compact; ein grosser
+    # Kontext wird deshalb auf dem NEUEN Konto kompaktiert, und das "weiter" folgt erst danach (nachwechsel_*).
+    nachk = _nach_wechsel_kontext(k, sid)
+    if nachk is None:
+        weiter = _weiter_senden(sid, pane, sock, aktuell, ziel, t)
+    else:
+        weiter = _warte_auf_register(pane, sock, sid)
+        nachwechsel_merken(k, sid, pane, sock, aktuell, ziel, nachk, t)
+    # Modell und Effort vorher/nachher aus der Meldung von wb-revive (task, 15.11.2026).
+    mm = re.search(r"Modell(?:/Effort)? [^;\n]*", ausgabe or "")
+    modell = "; " + mm.group(0).rstrip(" .") if mm else ""
+    text = ("Kontowechsel %s: %s -> %s (Limit \"%s\", %s erschoepft bis %s), Unterhaltung %s fortgesetzt%s%s%s"
+            % (pane, aktuell, ziel, zeile[:100], aktuell, bis_text, sid, modell,
+               "" if not weiter else "; 'weiter' NICHT zugestellt: " + weiter,
+               "; Claude Remote Control ist AUS (Kontotoken), Fernsteuerung ueber die Werkbank-Handy-App"
+               if re.search(r"(?<!\S)--remote-control(?!\S)", startzeile) else ""))
+    if nachk is not None:
+        text += ("; ERST KOMPAKTIEREN auf %s: Kontext %d Token >= %d, das 'weiter' folgt nach der bestaetigten "
+                 "Kompaktierung (spaetestens nach %d min)" % (ziel, nachk, int(kwert(k, "budget_kompakt_ab_tokens")),
+                                                             int(kwert(k, "budget_kompakt_frist_min"))))
+    leitung("wb-konto: " + text)
+    return aus("gewechselt" if nachk is None else "nachkompaktieren", text)
+
+
+# ── gemeinsam fuer budget und fortsetzen (Z2b, 15.11.2026) ─────────────────────────────────────────────
+def _system():
+    system = os.uname().sysname
+    if os.environ.get("WB_TESTUMGEBUNG") == "1" and os.environ.get("WB_KONTO_UNAME"):
+        system = os.environ["WB_KONTO_UNAME"]
+    return system
+
+
+def protokoll(text):
+    """Eine Zeile in ~/.claude/workbench/konto-wechsel.log, ohne Zustellung an leitung."""
+    try:
+        os.makedirs(wbdir(), exist_ok=True)
+        with open(os.path.join(wbdir(), "konto-wechsel.log"), "a") as f:
+            f.write("%s %s\n" % (datetime.datetime.now().strftime("%F %T"), text.replace("\n", " ")))
+    except OSError as e:
+        print("wb-konto: konto-wechsel.log nicht geschrieben (%s)" % type(e).__name__, file=sys.stderr)
+
+
+def _pane_argumente(rest, befehl):
+    pane, sock, trocken = None, "", False
+    i = 0
+    while i < len(rest):
+        if rest[i] == "--tmux-socket-pfad" and i + 1 < len(rest):
+            sock = rest[i + 1]; i += 2
+        elif rest[i] == "--trocken":
+            trocken = True; i += 1
+        elif pane is None and re.match(r"^%\d+$", rest[i]):
+            pane = rest[i]; i += 1
+        else:
+            fehler("%s <%%pane> [--tmux-socket-pfad <pfad>] [--trocken]; unbekannt: '%s'" % (befehl, rest[i]), 2)
+    if pane is None:
+        fehler("%s <%%pane> [--tmux-socket-pfad <pfad>] [--trocken]" % befehl, 2)
+    return pane, sock, trocken
+
+
+def _pane_prozess(sock, pane):
+    """(pid, startzeile) eines lebenden Panes oder (None, grund)."""
+    info = _tmux(sock, "display", "-p", "-t", pane, "#{pane_pid}\t#{pane_dead}\t#{pane_start_command}")
+    if info is None:
+        return None, "Pane %s nicht lesbar" % pane
+    teile = info.rstrip("\n").split("\t", 2)
+    if len(teile) < 3 or not teile[0].isdigit() or teile[1] != "0":
+        return None, "Pane %s ohne lebenden Prozess" % pane
+    return teile[0], teile[2]
+
+
+HINTERGRUND_SHELLS = {"bash", "zsh", "sh", "dash", "fish"}
+
+
+def _hintergrund(pid):
+    """Shells unter dem Harness-Prozess des Panes: ein Werkzeugaufruf, ein Hintergrundjob, ein Monitor. Dieselbe
+    Pruefung wie wb-schlaf "untaetig" (Abschnitt WANN UNTAETIG): ist die Pane-Wurzel nur eine Shell-Huelle mit genau
+    einem Kind, zaehlt das Kind als Harness. Rueckgabe: Namen der Shells (leer = nichts laeuft), None = ps nicht
+    lesbar."""
+    try:
+        r = subprocess.run(["ps", "-axo", "pid=,ppid=,stat=,comm="], capture_output=True, text=True, timeout=10,
+                           env=dict(os.environ, LC_ALL="C"), stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if r.returncode != 0:
+        return None
+    kinder, name = {}, {}
+    for zeile in r.stdout.splitlines():
+        t = zeile.split(None, 3)
+        if len(t) < 4 or not t[0].isdigit() or not t[1].isdigit():
+            continue
+        # Ein Zombie (Zustand Z) laeuft nicht mehr; er wartet nur darauf, dass sein Vater ihn einsammelt.
+        name[int(t[0])] = "" if t[2].startswith("Z") else os.path.basename(t[3].strip()).lstrip("-")
+        kinder.setdefault(int(t[1]), []).append(int(t[0]))
+    try:
+        h = int(pid)
+    except (TypeError, ValueError):
+        return None
+    if name.get(h) in HINTERGRUND_SHELLS and len(kinder.get(h, [])) == 1:
+        h = kinder[h][0]
+    unter, stapel = [], list(kinder.get(h, []))
+    while stapel:
+        q = stapel.pop()
+        unter.append(q)
+        stapel.extend(kinder.get(q, []))
+    return [name[q] for q in unter if name.get(q) in HINTERGRUND_SHELLS]
+
+
+def _pane_arbeitet(bild):
+    nichtleer = [x for x in (bild or "").splitlines() if x.strip()][-10:]
+    return any(BUSY_RE.search(x) for x in nichtleer)
+
+
+def _letzter_eintrag(sid):
+    """Letzter Unterhaltungseintrag (type user|assistant) des Gespraechsprotokolls -> ("ok", dict) | ("unlesbar", grund)."""
+    import glob
+    wurzel = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude"),
+                          "projects")
+    pfade = glob.glob(os.path.join(wurzel, "*", sid + ".jsonl"))
+    if not pfade:
+        return "unlesbar", "kein Transkript %s.jsonl" % sid
+    pfad = max(pfade, key=lambda p: os.path.getmtime(p) if os.path.exists(p) else 0)
+    try:
+        with open(pfad, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - 4 * 1024 * 1024))
+            roh = f.read().decode("utf-8", "replace").splitlines()
+    except OSError as e:
+        return "unlesbar", "Transkript nicht lesbar (%s)" % type(e).__name__
+    for z in reversed(roh):
+        try:
+            d = json.loads(z)
+        except ValueError:
+            continue
+        if isinstance(d, dict) and d.get("type") in ("user", "assistant"):
+            return "ok", d
+    return "unlesbar", "Transkript ohne Unterhaltungseintrag"
+
+
+def zug_ende(sid):
+    """ZUGENDE (gemessen 15.11.2026 an 36 Gespraechsdateien von claude 2.1.3xx): ein fertiger Zug endet mit einem
+    assistant-Eintrag, dessen message.stop_reason "end_turn" ist; mitten im Zug steht dort tool_use oder ein
+    user-Eintrag (tool_result oder neue Eingabe). Ein API-Fehler (isApiErrorMessage) ist kein normales Zugende,
+    den behandelt `wechsel`. -> ("ja"|"nein"|"unlesbar", grund)."""
+    befund, d = _letzter_eintrag(sid)
+    if befund != "ok":
+        return "unlesbar", d
+    m = d.get("message") if isinstance(d.get("message"), dict) else {}
+    if d.get("type") != "assistant":
+        return "nein", "letzter Eintrag ist eine Eingabe (user)"
+    if d.get("isApiErrorMessage"):
+        return "nein", "letzter Eintrag ist ein API-Fehler (%s)" % d.get("error")
+    if m.get("stop_reason") != "end_turn":
+        return "nein", "letzte Antwort endet mit %s" % m.get("stop_reason")
+    return "ja", "letzte Antwort endet mit end_turn"
+
+
+def transkript_zahlen(sid):
+    """Nur Zahlenfelder aus dem Gespraechsprotokoll (ERST KOMPAKTIEREN): kontext = Token der juengsten Anfrage
+    (cache_creation + cache_read + input), nach einer Kompaktierungsgrenze ohne neue Antwort deren postTokens;
+    kompakt_ts = Zeit der letzten compact_boundary; frisch_kompaktiert = nach dieser Grenze noch keine Antwort;
+    nutzer_nach_kompakt = nach dieser Grenze steht ein Nutzereintrag (Typ "user" mit spaeterem Zeitstempel, nicht die
+    Zusammenfassung, kein Werkzeugergebnis; Inhalte werden nie gelesen). Unlesbar: kontext None."""
+    import glob
+    erg = {"kontext": None, "kompakt_ts": None, "frisch_kompaktiert": False, "nutzer_nach_kompakt": False}
+    wurzel = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude"),
+                          "projects")
+    pfade = glob.glob(os.path.join(wurzel, "*", sid + ".jsonl"))
+    if not pfade:
+        return erg
+    pfad = max(pfade, key=lambda p: os.path.getmtime(p) if os.path.exists(p) else 0)
+    try:
+        with open(pfad, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - 4 * 1024 * 1024))
+            roh = f.read().decode("utf-8", "replace").splitlines()
+    except OSError:
+        return erg
+    for z in roh:
+        try:
+            d = json.loads(z)
+        except ValueError:
+            continue
+        if not isinstance(d, dict):
+            continue
+        if d.get("type") == "system" and d.get("subtype") == "compact_boundary":
+            erg["kompakt_ts"] = epoch_aus(d.get("timestamp"))
+            erg["frisch_kompaktiert"] = True
+            erg["nutzer_nach_kompakt"] = False
+            post = (d.get("compactMetadata") or {}).get("postTokens")
+            if isinstance(post, (int, float)) and not isinstance(post, bool):
+                erg["kontext"] = int(post)
+            continue
+        if d.get("type") == "user" and erg["kompakt_ts"] is not None and not d.get("isCompactSummary") \
+                and "toolUseResult" not in d and "sourceToolUseID" not in d:
+            ts = epoch_aus(d.get("timestamp"))
+            if ts is not None and ts > erg["kompakt_ts"]:
+                erg["nutzer_nach_kompakt"] = True
+            continue
+        if d.get("type") != "assistant" or d.get("isApiErrorMessage"):
+            continue
+        u = (d.get("message") or {}).get("usage") if isinstance(d.get("message"), dict) else None
+        if not isinstance(u, dict):
+            continue
+        erg["kontext"] = sum(int(u.get(x) or 0) for x in ("cache_creation_input_tokens", "cache_read_input_tokens",
+                                                          "input_tokens"))
+        erg["frisch_kompaktiert"] = False
+    return erg
+
+
+def _dauer(s):
+    s = max(0, int(s))
+    if s >= 86400:
+        return "%d T %d h" % (s // 86400, s % 86400 // 3600)
+    if s >= 3600:
+        return "%d h %d min" % (s // 3600, s % 3600 // 60)
+    return "%d min" % (s // 60)
+
+
+def _messalter(s, t):
+    ts = epoch_aus(s.get("gemessen"))
+    return None if ts is None else t - ts
+
+
+def _zahl(x):
+    return "?" if x is None else ("%.0f" % x if float(x) == int(x) else "%.1f" % x)
+
+
+def messwerte_text(staende, t):
+    """Messwerte beider Konten fuer das Protokoll: 5h, Woche, Linie, Alter des juengsten Messwerts."""
+    teile = []
+    for s in staende:
+        alter = _messalter(s, t)
+        teile.append("%s %s, Woche %s %% / Linie %s (Tag %s), gemessen %s%s" % (
+            s["konto"], fuenf_text(s), _zahl(s.get("seven_day_pct")), s.get("linie"),
+            s.get("tagesindex"), s.get("gemessen") or "nie",
+            "" if alter is None else " (vor %d min)" % int(alter // 60)))
+    return "; ".join(teile)
+
+
+def _remote_control(startzeile):
+    return bool(re.search(r"(?<!\S)--remote-control(?!\S)", startzeile or ""))
+
+
+# ── budget: Kontowechsel bei Tageslinie oder 5h-Fenster (Z2b Teil A) ────────────────────────────────
+NAECHSTE_SPUR = ("naechste freie Spur laut regeln/vergabe.md: Rang 1 lokal (qwen38 ueber Splash), dann Rang 2 kostenlose "
+                 "Kontingente (wb-kontingent pruefen <spur>), dann Rang 4 Cline Pass")
+
+
+def hartes_ende(s):
+    """Grund, wenn das Konto am harten Ende steht (gebucht erschoepft, frisch gemessen Woche oder 5h >= 100), sonst ""."""
+    if s.get("gebucht"):
+        return s.get("grund") or "gebucht erschoepft"
+    if s.get("status") == "unbekannt":
+        return ""
+    teile = []
+    if (s.get("seven_day_pct") or 0) >= 100:
+        teile.append("Woche %s %%" % _zahl(s["seven_day_pct"]))
+    if (s.get("five_hour_pct") or 0) >= 100:
+        teile.append("5h %s %%" % _zahl(s["five_hour_pct"]))
+    return ", ".join(teile)
+
+
+def befehl_budget(k, rest, t):
+    """wb-konto budget <pane> [--tmux-socket-pfad <pfad>] [--trocken]
+    Eine Zeile auf stdout: nichts|halt|melden|gewechselt TAB Text. Exit 0, ausser bei Bedienfehlern."""
+    pane, sock, trocken = _pane_argumente(rest, "budget")
+
+    def aus(art, text):
+        print("%s\t%s" % (art, text))
+        return 0
+    if _system() != "Darwin":
+        return aus("nichts", "kein Kontowechsel ausserhalb des Mac")
+    pid, startzeile = _pane_prozess(sock, pane)
+    if pid is None:
+        return aus("nichts", startzeile)
+    bild = _tmux(sock, "capture-pane", "-p", "-t", pane, "-S", "-60")
+    if bild is None:
+        return aus("nichts", "Pane %s nicht lesbar" % pane)
+    if _pane_arbeitet(bild):
+        return aus("nichts", "Pane arbeitet gerade")
+    rsid, rquelle = sitzung_aus_register(pid)
+    if rsid is None:
+        return aus("nichts", "keine Sitzungskennung (%s)" % rquelle)
+    nw = nachwechsel_abschliessen(k, rsid, t, trocken, von_budget=True)
+    if nw:
+        return aus(*nw)
+    ende, egrund = zug_ende(rsid)
+    tz = transkript_zahlen(rsid)
+    vorwechsel = (_wechsel_lesen().get("vorwechsel") or {}).get(rsid)
+    kfrist = kwert(k, "budget_kompakt_frist_min") * 60
+    kompakt_bestaetigt = (isinstance(vorwechsel, dict) and tz["kompakt_ts"] is not None
+                          and tz["kompakt_ts"] > float(vorwechsel.get("t") or 0))
+    if ende != "ja" and not (kompakt_bestaetigt and tz["frisch_kompaktiert"]):
+        return aus("nichts", "kein Zugende (%s)" % egrund)
+    # Ein freiwilliger Wechsel startet die Sitzung neu (wb-revive --force); ein Hintergrundauftrag unter dem Harness
+    # (Gesamtlauf, Push mit Pre-Push-Suiten, Testlauf, Monitor) stuerbe mit (decision 2026-11-16). Bei der Limitmeldung
+    # (wechsel) bleibt das hinnehmbar, hier nicht.
+    laeuft = _hintergrund(pid)
+    if laeuft is None:
+        return aus("nichts", "Prozessbaum nicht lesbar (ps); kein Wechsel")
+    if laeuft:
+        return aus("nichts", "Hintergrundauftrag laeuft (%s)" % ", ".join(laeuft[:3]))
+    aktuell, kquelle = konto_des_prozesses(k, pid, rsid, startzeile)
+    if aktuell is None:
+        return aus("nichts", "Konto unbekannt (%s)" % kquelle)
+    s_akt = stand(k, aktuell, t)
+    hart = hartes_ende(s_akt)
+    if hart:
+        # KEIN UMZUG AM HARTEN ENDE (task): eine ruhende Sitzung kostet nichts, ein Umzug einen vollen
+        # ungecachten Lesezug; den Wechsel uebernimmt `wechsel`, sobald die Sitzung wieder arbeiten will.
+        grund = ("Budget %s (%s, Unterhaltung %s): KEIN Umzug, %s ist am harten Ende (%s); die ruhende Sitzung bleibt, "
+                 "den Wechsel uebernimmt der Limit-Weg (wb-konto wechsel), sobald sie wieder arbeiten will"
+                 % (pane, aktuell, rsid, aktuell, hart))
+        w0 = _wechsel_lesen()
+        m0 = w0.setdefault("budget_meldungen", {})
+        alt0 = m0.get(rsid + ":hart") or {}
+        if not alt0 or t - float(alt0.get("t") or 0) >= kwert(k, "budget_mindestabstand_min") * 60:
+            m0[rsid + ":hart"] = {"t": int(t), "grund": hart}
+            if not trocken:
+                _json_schreiben(_wechsel_pfad(), w0)
+                protokoll("wb-konto: " + grund)
+        return aus("nichts", grund)
+    ueber_og = s_akt["status"] == "erschoepft" and bool(s_akt.get("obergrenze"))
+    if (s_akt["status"] in ("erschoepft", "unbekannt") and not ueber_og) or s_akt.get("seven_day_pct") is None:
+        return aus("nichts", "%s: %s" % (aktuell, s_akt.get("grund")))
+    grenze5 = kwert(k, "fuenf_stunden_grenze")
+    ueber5 = bool(s_akt["fuenf_stunden_fenster"]) and (s_akt.get("five_hour_pct") or 0) >= grenze5
+    ueberlinie = s_akt["seven_day_pct"] >= s_akt.get("linie_wirksam", s_akt["linie"])
+    # RESERVE VOR DER HARTEN MARKE (task): die Kompaktierung vor dem Wechsel braucht noch Token des
+    # alten Kontos, also loest budget schon budget_wochen_reserve_punkte vor der Wochen-Obergrenze (ohne sie 100) aus.
+    og_woche = obergrenzen(k, aktuell)["woche"][0]
+    harte_marke = og_woche if og_woche is not None else 100.0
+    in_reserve = s_akt["seven_day_pct"] >= harte_marke - kwert(k, "budget_wochen_reserve_punkte")
+    if not (ueber5 or ueberlinie or ueber_og or in_reserve):
+        return aus("nichts", "%s unter Linie%s" % (aktuell, " und 5h-Grenze" if s_akt["fuenf_stunden_fenster"]
+                                                    else " (%s)" % KEIN_FENSTER))
+    ausloeser = "; ".join(x for x in (
+        s_akt["grund"] if ueber_og else "",
+        "Woche %s %% in der Reserve vor %s %%" % (_zahl(s_akt["seven_day_pct"]), _zahl(harte_marke))
+        if in_reserve and not ueber_og else "",
+        "5h %s %% >= %s" % (_zahl(s_akt.get("five_hour_pct")), _zahl(grenze5)) if ueber5 else "",
+        "Woche %s %% >= Linie %s (Tag %s)" % (_zahl(s_akt["seven_day_pct"]), s_akt.get("linie_wirksam", s_akt["linie"]),
+                                               s_akt["tagesindex"])
+        if ueberlinie else "") if x)
+    frist = kwert(k, "budget_messwert_max_min") * 60
+    alter = _messalter(s_akt, t)
+    andere = [n for n in k["reihenfolge"] if n != aktuell]
+    ziel = andere[0] if andere else None
+    w = _wechsel_lesen()
+    meldungen = w.setdefault("budget_meldungen", {})
+    abstand = kwert(k, "budget_mindestabstand_min") * 60
+
+    def entscheiden(art, grund, s_ziel=None, schluessel=None, laut=False):
+        """Jede Entscheidung ab dem Ausloeser: Protokoll mit den Messwerten BEIDER Konten; gleiche Halte- und
+        Wartegruende hoechstens einmal je Mindestabstand (schluessel), damit jeder Poll nicht dasselbe schreibt."""
+        if schluessel:
+            alt = meldungen.get(schluessel) or {}
+            if alt and t - float(alt.get("t") or 0) < abstand:
+                return aus("nichts", "schon gemeldet: " + grund)
+            meldungen[schluessel] = {"t": int(t), "grund": grund}
+            for n in [n for n, v in meldungen.items() if t - float((v or {}).get("t") or 0) > 8 * 86400]:
+                meldungen.pop(n, None)
+            if not trocken:
+                _json_schreiben(_wechsel_pfad(), w)
+        staende = [s_akt] + ([s_ziel] if s_ziel else ([stand(k, ziel, t)] if ziel else []))
+        text = ("Budget %s (%s, Unterhaltung %s): %s -- %s [Messwerte: %s]"
+                % (pane, aktuell, rsid, ausloeser, grund, messwerte_text(staende, t)))
+        if not trocken:
+            if laut:
+                leitung("wb-konto: " + text)
+            else:
+                protokoll("wb-konto: " + text)
+        return aus(art, text)
+
+    if alter is None or alter > frist:
+        return entscheiden("nichts", "Messwert von %s ist %s alt (Grenze %d min): kein Budgetwechsel"
+                           % (aktuell, "unbekannt" if alter is None else "%d min" % int(alter // 60), int(frist // 60)),
+                           schluessel=rsid + ":alt")
+    r5 = s_akt.get("five_hour_reset")
+    warte5 = kwert(k, "budget_fuenf_reset_warte_min") * 60
+    if ueber5 and not ueberlinie and not ueber_og and r5 and r5 - t <= warte5:
+        return entscheiden("nichts", "5h-Reset um %s in %d min (hoechstens %d min): kein Wechsel, die Sitzung bleibt "
+                           "auf %s" % (datetime.datetime.fromtimestamp(r5).strftime("%H:%M"), int((r5 - t) // 60),
+                                       int(warte5 // 60), aktuell), schluessel=rsid + ":reset-nah")
+    wechselzeiten = [epoch_aus(v.get("t")) or 0 for v in w["verlauf"] if v.get("sitzung") == rsid]
+    juengster = max(wechselzeiten) if wechselzeiten else None
+    if juengster is not None and t - juengster < abstand:
+        return entscheiden("nichts", "Mindestabstand: letzter Wechsel dieser Unterhaltung vor %d min (< %d min)"
+                           % (int((t - juengster) // 60), int(abstand // 60)), schluessel=rsid + ":abstand")
+    rc_verloren = _remote_control(startzeile)
+    if rc_verloren and _einstellung("orchestratorWechselBeiLimit") == "false":
+        return entscheiden("halt", "KEIN Wechsel: die Sitzung nutzt Remote Control, und orchestratorWechselBeiLimit "
+                           "ist false (Entscheidung: wb-state settings set orchestratorWechselBeiLimit true)",
+                           schluessel=rsid + ":orchestrator", laut=True)
+    if ziel is None:
+        return entscheiden("halt", "KEIN Wechsel: kein anderes Konto konfiguriert", schluessel=rsid + ":ziel")
+    s_ziel = stand(k, ziel, t)
+    alter_ziel = _messalter(s_ziel, t)
+    if s_ziel["status"] != "erschoepft" and (alter_ziel is None or alter_ziel > frist) and not trocken:
+        messen(k, ziel, t, erzwingen=False, leise=True)
+        s_ziel = stand(k, ziel, t)
+        alter_ziel = _messalter(s_ziel, t)
+    kreis = ziel_halt(k, ziel, rsid, w["verlauf"], t)
+    luft = kwert(k, "budget_ziel_luft_punkte")
+    if kreis:
+        return entscheiden("halt", "KEIN Wechsel: " + kreis, s_ziel, schluessel=rsid + ":kreis", laut=True)
+    if alter_ziel is None or alter_ziel > frist or s_ziel.get("seven_day_pct") is None:
+        return entscheiden("halt", "KEIN Wechsel: Zielkonto %s ohne frischen Messwert (Grenze %d min, %s)"
+                           % (ziel, int(frist // 60), s_ziel.get("grund")), s_ziel, schluessel="*:ziel-unbekannt",
+                           laut=True)
+    ziel_fuenf = s_ziel.get("five_hour_pct") or 0
+    ziel_abstand = s_ziel.get("linie_wirksam", s_ziel["linie"]) - s_ziel["seven_day_pct"]
+    # ZIEL BEI QUELLE IN DER RESERVE (task): steht die Quelle kurz vor ihrer harten Marke, reicht ein Ziel
+    # unter seiner Tageslinie und unter der 5h-Grenze; die 10 Punkte Luft gelten sonst.
+    if in_reserve:
+        zu_knapp = ziel_abstand <= 0 or ziel_fuenf >= grenze5
+    else:
+        zu_knapp = ziel_abstand < luft or ziel_fuenf > grenze5 - luft
+    if zu_knapp:
+        werte = "Woche %s %% / Linie %s, %s" % (_zahl(s_ziel["seven_day_pct"]), s_ziel["linie"], fuenf_text(s_ziel))
+        if ziel_abstand <= 0 or ziel_fuenf >= grenze5:
+            grund, schluessel = "beide Konten ueber der Linie (%s: %s)" % (ziel, werte), "*:beide"
+        else:
+            grund, schluessel = "Zielkonto %s hat weniger als %d Punkte Luft (%s)" % (ziel, int(luft), werte), "*:luft"
+        return entscheiden("halt", "KEIN Wechsel: %s; %s" % (grund, NAECHSTE_SPUR), s_ziel, schluessel=schluessel,
+                           laut=True)
+    # ERST KOMPAKTIEREN (task): ohne bestaetigte Kompaktierung kein Wechsel eines grossen Kontexts
+    schwelle = kwert(k, "budget_kompakt_ab_tokens")
+    vw = w.setdefault("vorwechsel", {})
+    for n in [n for n, v in vw.items() if t - float((v or {}).get("t") or 0) > 8 * 3600]:
+        vw.pop(n, None)
+    vorwechsel = vw.get(rsid)
+    if schwelle > 0 and not kompakt_bestaetigt and (tz["kontext"] or 0) >= schwelle:
+        if not isinstance(vorwechsel, dict):
+            vw[rsid] = {"t": int(t), "kontext": tz["kontext"], "pane": pane, "von": aktuell, "nach": ziel}
+            if not trocken:
+                _json_schreiben(_wechsel_pfad(), w)
+            return entscheiden("kompaktieren", "ERST KOMPAKTIEREN: Kontext %d Token >= %d; Wechsel auf %s erst nach "
+                               "bestaetigter Kompaktierung" % (tz["kontext"], int(schwelle), ziel), s_ziel)
+        seit = t - float(vorwechsel.get("t") or 0)
+        if seit > kfrist:
+            return entscheiden("halt", "KEIN Wechsel: die Kompaktierung vor dem Wechsel ist seit %d min nicht bestaetigt "
+                               "(Frist %d min)" % (int(seit // 60), int(kfrist // 60)), s_ziel,
+                               schluessel=rsid + ":kompakt-frist", laut=True)
+        return aus("kompaktieren", "wartet auf die Kompaktierung vor dem Wechsel (vorgemerkt vor %d min, Kontext %d Token)"
+                   % (int(seit // 60), tz["kontext"] or 0))
+    kontext_text = "" if tz["kontext"] is None else "; Kontext beim Wechsel %d Token%s" % (
+        tz["kontext"], " (nach Kompaktierung)" if kompakt_bestaetigt else "")
+    if trocken:
+        return entscheiden("gewechselt", "TROCKEN: Neustart auf %s mit --resume %s%s" % (ziel, rsid, kontext_text), s_ziel)
+    revive = os.path.join(os.path.dirname(os.path.realpath(__file__)), "wb-revive")
+    if not os.access(revive, os.X_OK):
+        revive = _werkzeug("wb-revive") or ""
+    umg = {k2: v for k2, v in os.environ.items() if k2 not in ("TMUX_PANE",)}
+    if sock:
+        umg["TMUX"] = sock + ",0,0"
+    else:
+        umg.pop("TMUX", None)
+    try:
+        r = subprocess.run([revive, "--force", "--yes", "--resume-id", rsid, "--konto", ziel, pane],
+                           capture_output=True, text=True, timeout=120, env=umg, stdin=subprocess.DEVNULL)
+        rcode, meldung = r.returncode, (r.stderr.strip() + " " + r.stdout.strip()).strip()
+    except (OSError, subprocess.SubprocessError) as e:
+        rcode, meldung = 127, type(e).__name__
+    if rcode != 0:
+        return entscheiden("melden", "Neustart auf %s GESCHEITERT (wb-revive Exit %s: %s)" % (ziel, rcode, meldung[-200:]),
+                           s_ziel, schluessel=rsid + ":neustart", laut=True)
+    w = _wechsel_lesen()
+    w["verlauf"].append({"t": int(t), "sitzung": rsid, "pane": pane, "von": aktuell, "nach": ziel, "bis": int(t),
+                         "grund": "budget", "rc_verloren": rc_verloren, "kontext": tz["kontext"],
+                         "kompaktiert": bool(kompakt_bestaetigt)})
+    w["verlauf"] = [v for v in w["verlauf"] if (epoch_aus(v.get("bis")) or 0) > t - 8 * 86400][-200:]
+    (w.get("vorwechsel") or {}).pop(rsid, None)
+    _json_schreiben(_wechsel_pfad(), w)
+    register = _warte_auf_register(pane, sock, rsid)
+    return entscheiden("gewechselt", "Kontowechsel %s -> %s, Unterhaltung %s mit --resume neu gestartet%s%s%s" % (
+        aktuell, ziel, rsid, kontext_text, "" if not register else "; " + register,
+        "; Claude Remote Control ist AUS (Kontotoken), Fernsteuerung ueber die Werkbank-Handy-App" if rc_verloren else ""),
+        s_ziel, laut=True)
+
+
+# ── fortsetzen: genau EIN "weiter" nach dem Limit-Reset, wenn kein Wechsel moeglich war (Z2b Teil C) ─────────
+def _fs_pfad():
+    return os.path.join(wbdir(), "konto-fortsetzung.json")
+
+
+def _fs_faellig_pfad():
+    return os.path.join(wbdir(), "konto-fortsetzung.faellig")
+
+
+class _Sperre:
+    """flock auf konto-fortsetzung.lock: mehrere Kontextwachen (eine je Werkbank-Sitzung) teilen sich die Datei."""
+
+    def __init__(self, warten=True):
+        self.warten = warten
+        self.fd = None
+
+    def __enter__(self):
+        import fcntl
+        os.makedirs(wbdir(), exist_ok=True)
+        self.fd = os.open(os.path.join(wbdir(), "konto-fortsetzung.lock"), os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            fcntl.flock(self.fd, fcntl.LOCK_EX | (0 if self.warten else fcntl.LOCK_NB))
+        except BlockingIOError:
+            os.close(self.fd)
+            self.fd = None
+            raise
+        return self
+
+    def __exit__(self, *a):
+        import fcntl
+        if self.fd is not None:
+            fcntl.flock(self.fd, fcntl.LOCK_UN)
+            os.close(self.fd)
+        return False
+
+
+def _fs_lesen():
+    try:
+        with open(_fs_pfad()) as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        d = {}
+    if not isinstance(d, dict):
+        d = {}
+    for feld in ("offen", "erledigt", "gesendet", "nachwechsel", "nachwechsel_fertig"):
+        if not isinstance(d.get(feld), dict):
+            d[feld] = {}
+    return d
+
+
+def _fs_schreiben(d, t):
+    d["erledigt"] = {u: z for u, z in d["erledigt"].items() if t - float(z or 0) < 8 * 86400}
+    d["gesendet"] = {s: [x for x in z if t - float(x) < 86400] for s, z in d["gesendet"].items()}
+    d["gesendet"] = {s: z for s, z in d["gesendet"].items() if z}
+    _json_schreiben(_fs_pfad(), d)
+    d["nachwechsel_fertig"] = {s: z for s, z in d["nachwechsel_fertig"].items()
+                               if isinstance(z, dict) and t - float(z.get("t") or 0) < 8 * 3600}
+    termine = [int(e.get("naechster") or 0) for e in list(d["offen"].values()) + list(d["nachwechsel"].values())
+               if isinstance(e, dict)]
+    if termine:
+        with open(_fs_faellig_pfad() + ".neu", "w") as f:
+            f.write("%d\n" % min(termine))
+        os.replace(_fs_faellig_pfad() + ".neu", _fs_faellig_pfad())
+    else:
+        try:
+            os.unlink(_fs_faellig_pfad())
+        except FileNotFoundError:
+            pass
+
+
+def _fortsetzung_an():
+    return _einstellung("kontoFortsetzungNachLimit") != "false"
+
+
+def fortsetzung_merken(k, sid, vorfall, pane, sock, konto, bis, art, t, trocken):
+    """Merkt eine Unterhaltung, die am Limit ohne Wechsel steht. Rueckgabe: Zusatz fuer die Meldung."""
+    if trocken:
+        return ""
+    if not _fortsetzung_an():
+        protokoll("wb-konto: Fortsetzung %s (%s) nicht vorgemerkt: kontoFortsetzungNachLimit ist false" % (pane, sid))
+        return "; keine Fortsetzung nach dem Reset (kontoFortsetzungNachLimit ist false)"
+    vorlauf = kwert(k, "fortsetzung_vorlauf_s")
+    with _Sperre():
+        d = _fs_lesen()
+        if vorfall in d["erledigt"]:
+            return ""
+        frueher = [x for x in d["gesendet"].get(sid, []) if t - float(x) < 86400]
+        if len(frueher) >= kwert(k, "fortsetzung_max_sendungen"):
+            text = ("Fortsetzung %s (%s) aufgegeben: schon %d-mal 'weiter' in 24 h, das Limit kam jedes Mal wieder"
+                    % (pane, sid, len(frueher)))
+            leitung("wb-konto: " + text)
+            return "; " + text
+        d["offen"][sid] = {"sitzung": sid, "vorfall": vorfall, "pane": pane, "sock": sock, "konto": konto,
+                           "reset": int(bis), "art": art, "angelegt": int(t), "versuche": 0,
+                           "naechster": int(bis + vorlauf)}
+        _fs_schreiben(d, t)
+    zeit = datetime.datetime.fromtimestamp(bis + vorlauf).strftime("%d.%m. %H:%M")
+    protokoll("wb-konto: Fortsetzung %s (%s, Konto %s) vorgemerkt ab %s" % (pane, sid, konto or "unbekannt", zeit))
+    return "; Fortsetzung nach dem Reset vorgemerkt (ab %s ein 'weiter' ueber die Inbox)" % zeit
+
+
+def _fortsetzung_ausserhalb(k, pane, sock, zeile, art, t, trocken):
+    """Ausserhalb des Mac: kein Wechsel, aber dieselbe Fortsetzung. -> Zusatz, oder None = Vorfall schon behandelt."""
+    if not (art in KONTO_ARTEN):
+        return ""
+    pid, startzeile = _pane_prozess(sock, pane)
+    if pid is None:
+        return "; keine Fortsetzung (%s)" % startzeile
+    rsid, rquelle = sitzung_aus_register(pid)
+    if rsid is None:
+        return "; keine Fortsetzung (keine Sitzungskennung: %s)" % rquelle
+    befund, uuid = limit_aus_transkript(rsid)
+    if befund != "beleg":
+        return "; keine Fortsetzung (kein Transkript-Beleg: %s)" % uuid
+    w = _wechsel_lesen()
+    if uuid in w["vorfaelle"]:
+        return None
+    w["vorfaelle"][uuid] = {"t": int(t), "pane": pane, "sitzung": rsid, "ergebnis": "melden ausserhalb des Mac"}
+    if not trocken:
+        _json_schreiben(_wechsel_pfad(), w)
+    bis, _q = reset_aus_zeile(zeile, "", None, t)      # ohne Kontokonfiguration: die Uhrzeit der Meldung
+    return fortsetzung_merken(k, rsid, uuid, pane, sock, None, bis, art, t, trocken)
+
+
+def fenster_frei(k, konto, art, reset, t):
+    """Frischer Messwert NACH dem Reset unter der Grenze? -> (True|False|None, grund); None = nicht gemessen."""
+    frist = kwert(k, "budget_messwert_max_min") * 60
+    grenze = kwert(k, "limit_messwert_min")
+    beste = None
+    for d in zeilen():
+        if zeile_konto(k, d) != konto or not isinstance(d.get("seven_day_pct"), (int, float)):
+            continue
+        ts = epoch_aus(d.get("ts"))
+        if ts is None or ts < reset or t - ts > frist:
+            continue
+        if beste is None or (ts, d["_nr"]) > (epoch_aus(beste.get("ts")), beste["_nr"]):
+            beste = d
+    if beste is None:
+        return None, "kein Messwert von %s nach dem Reset, der hoechstens %d min alt ist" % (konto, int(frist // 60))
+    fenster5 = hat_fuenf(k, konto)
+    fuenf = beste.get("five_hour_pct") if (epoch_aus(beste.get("five_hour_resets_at")) or 0) > t else 0
+    fuenf = float(fuenf) if isinstance(fuenf, (int, float)) else 0.0
+    sieben = float(beste["seven_day_pct"])
+    # ohne 5h-Fenster entscheidet fuer jede Art die Woche (ein "0 %" des fehlenden Fensters hiesse sonst immer "frei")
+    wert = sieben if art == "weekly" or not fenster5 else fuenf
+    text = "%s %s, Woche %s %% (gemessen %s)" % (konto, "5h %s %%" % _zahl(fuenf) if fenster5 else KEIN_FENSTER,
+                                                 _zahl(sieben), beste.get("ts"))
+    if wert < grenze and sieben < 100:
+        return True, text
+    return False, text + ", Fenster noch voll (Grenze %s %%)" % _zahl(grenze)
+
+
+def _fortsetzung_pruefen(k, sid, e, t):
+    """-> ("senden"|"spaeter"|"weg", grund)."""
+    pane, sock = e.get("pane") or "", e.get("sock") or ""
+    pid, startzeile = _pane_prozess(sock, pane)
+    if pid is None:
+        return "weg", startzeile
+    if sitzung_aus_register(pid)[0] != sid:
+        return "weg", "im Pane %s laeuft nicht mehr die Unterhaltung %s" % (pane, sid)
+    befund, beleg = limit_aus_transkript(sid)
+    if befund == "kein":
+        return "weg", "jemand hat weitergearbeitet (%s): nichts gesendet" % beleg
+    if befund != "beleg":
+        return "spaeter", "Gespraechsprotokoll nicht lesbar (%s)" % beleg
+    if beleg != e.get("vorfall"):
+        return "weg", "neuer Limitfehler %s seit dem Vormerken: eigener Vorfall" % beleg[:60]
+    if _pane_arbeitet(_tmux(sock, "capture-pane", "-p", "-t", pane, "-S", "-60")):
+        return "spaeter", "Pane arbeitet gerade"
+    if not e.get("konto"):
+        return "senden", "ohne Messweg (ausserhalb des Mac, Konto unbekannt): Reset-Uhrzeit der Meldung"
+    frei, grund = fenster_frei(k, e["konto"], e.get("art"), float(e.get("reset") or 0), t)
+    if frei is None:
+        messen(k, e["konto"], t, erzwingen=False, leise=True)
+        frei, grund = fenster_frei(k, e["konto"], e.get("art"), float(e.get("reset") or 0), t)
+    if frei:
+        return "senden", grund
+    return "spaeter", grund
+
+
+# ── nachwechsel: Kompaktierung auf dem neuen Konto, dann EIN "weiter" (task) ─────────────────────
+def _nach_wechsel_kontext(k, sid):
+    """Kontext der juengsten Anfrage, wenn er die Kompaktierschwelle erreicht; sonst None (sofortiges "weiter")."""
+    ab_tokens = kwert(k, "budget_kompakt_ab_tokens")
+    kontext = transkript_zahlen(sid)["kontext"]
+    if ab_tokens > 0 and kontext is not None and kontext >= ab_tokens:
+        return kontext
+    return None
+
+
+def nachwechsel_merken(k, sid, pane, sock, von, nach, kontext, t):
+    """Merkt die Unterhaltung in konto-fortsetzung.json (nachwechsel). Faellig wird sie fuer `fortsetzen` alle
+    fortsetzung_abstand_min, damit das "weiter" auch dann hinausgeht, wenn budget den Pane nie sieht."""
+    with _Sperre():
+        d = _fs_lesen()
+        d["nachwechsel"][sid] = {"sitzung": sid, "t": int(t), "pane": pane, "sock": sock, "von": von, "nach": nach,
+                                 "kontext": kontext, "naechster": int(t + kwert(k, "fortsetzung_abstand_min") * 60)}
+        d["nachwechsel_fertig"].pop(sid, None)
+        _fs_schreiben(d, t)
+
+
+# Nachtrag task (18.11.2026): Schonfrist fuer den eigenen Resume-Prompt der Wache. Drei Polls (60 s): die Wache
+# tippt WEITERARBEITEN bzw. den Anschluss nach COMPACT_SETTLE (120 s nach dem Kompaktierbefehl, der Boundary liegt davor).
+NACHWECHSEL_SCHONFRIST_S = 180
+
+
+def _nachwechsel_pruefen(k, e, t):
+    """-> ("senden", grund, laut) | ("warten", grund, False) | ("erledigt", grund, False)."""
+    tz = transkript_zahlen(e.get("sitzung") or "")
+    seit = t - float(e.get("t") or 0)
+    if tz["kompakt_ts"] is not None and tz["kompakt_ts"] > float(e.get("t") or 0):
+        kontext = "?" if tz["kontext"] is None else tz["kontext"]
+        if tz["nutzer_nach_kompakt"]:
+            return "erledigt", ("Kompaktierung auf %s bestaetigt (Kontext danach %s Token); danach steht schon ein "
+                                "Nutzereintrag (Resume-Prompt der Wache), kein 'weiter'" % (e.get("nach"), kontext)), False
+        nach_k = t - tz["kompakt_ts"]
+        if nach_k < NACHWECHSEL_SCHONFRIST_S:
+            return "warten", ("Kompaktierung auf %s bestaetigt, Schonfrist fuer den Resume-Prompt der Wache (%d von %d s)"
+                              % (e.get("nach"), int(nach_k), NACHWECHSEL_SCHONFRIST_S)), False
+        return "senden", ("Kompaktierung auf %s bestaetigt (Kontext danach %s Token), %d s danach kein Resume-Prompt der "
+                          "Wache" % (e.get("nach"), kontext, int(nach_k))), False
+    frist = kwert(k, "budget_kompakt_frist_min") * 60
+    if seit > frist:
+        return "senden", ("Kompaktierung auf %s nach %d min NICHT bestaetigt (Frist %d min); 'weiter' trotzdem, damit "
+                          "die Sitzung nicht stehen bleibt" % (e.get("nach"), int(seit // 60), int(frist // 60))), True
+    return "warten", "wartet auf die Kompaktierung nach dem Wechsel auf %s (seit %d min, Kontext %s Token)" % (
+        e.get("nach"), int(seit // 60), e.get("kontext")), False
+
+
+def nachwechsel_abschliessen(k, sid, t, trocken, von_budget):
+    """Fuer `budget` (von_budget, Antwort an die Wache) und `fortsetzen`. -> None (nichts offen) oder (art, text):
+    art "fortgesetzt" (das "weiter" ist hinaus; die Wache raeumt ihre Vormerkung und ihren Anschluss ab),
+    "nachkompaktieren" (wartet), bei fortsetzen auch "gesendet"/"spaeter"."""
+    if trocken:
+        d = _fs_lesen()
+        e = d["nachwechsel"].get(sid)
+        return None if not isinstance(e, dict) else ("nachkompaktieren", "TROCKEN: " + _nachwechsel_pruefen(k, e, t)[1])
+    with _Sperre():
+        d = _fs_lesen()
+        e = d["nachwechsel"].get(sid)
+        fertig = d["nachwechsel_fertig"].get(sid)
+        if not isinstance(e, dict):
+            if von_budget and isinstance(fertig, dict) and not fertig.get("gemeldet"):
+                fertig["gemeldet"] = True
+                _fs_schreiben(d, t)
+                return "fortgesetzt", fertig.get("text") or "nach dem Wechsel fortgesetzt"
+            return None
+        art, grund, laut = _nachwechsel_pruefen(k, e, t)
+        if art == "warten":
+            e["naechster"] = int(t + kwert(k, "fortsetzung_abstand_min") * 60)
+            _fs_schreiben(d, t)
+            return ("nachkompaktieren" if von_budget else "spaeter"), grund
+        if art == "erledigt":
+            d["nachwechsel"].pop(sid, None)
+            text = "Nach dem Kontowechsel %s -> %s (%s, %s): %s" % (e.get("von"), e.get("nach"), sid, e.get("pane"), grund)
+            d["nachwechsel_fertig"][sid] = {"t": int(t), "gemeldet": bool(von_budget), "text": text}
+            _fs_schreiben(d, t)
+            protokoll("wb-konto: " + text)
+            return ("fortgesetzt" if von_budget else "weg"), text
+        fehlt = _inbox_zustellen(e.get("pane") or "", e.get("sock") or "",
+                                 "weiter -- setze deine aktuelle Aufgabe fort (automatischer Kontowechsel nach Limit: %s -> "
+                                 "%s; %s)\n" % (e.get("von"), e.get("nach"), grund))
+        if fehlt and not fehlt.startswith("unklar"):
+            e["naechster"] = int(t + kwert(k, "fortsetzung_abstand_min") * 60)
+            _fs_schreiben(d, t)
+            text = "Nach dem Kontowechsel %s (%s): 'weiter' NICHT zugestellt (%s), naechster Versuch spaeter" % (
+                sid, e.get("pane"), fehlt)
+            protokoll("wb-konto: " + text)
+            return ("nachkompaktieren" if von_budget else "spaeter"), text
+        d["nachwechsel"].pop(sid, None)
+        text = "Nach dem Kontowechsel %s -> %s (%s, %s): 'weiter' ueber die Inbox%s; %s" % (
+            e.get("von"), e.get("nach"), sid, e.get("pane"), "" if not fehlt else " (" + fehlt + ")", grund)
+        d["nachwechsel_fertig"][sid] = {"t": int(t), "gemeldet": bool(von_budget), "text": text}
+        _fs_schreiben(d, t)
+    if laut:
+        leitung("wb-konto: " + text)
+    else:
+        protokoll("wb-konto: " + text)
+    return ("fortgesetzt" if von_budget else "gesendet"), text
+
+
+def befehl_fortsetzen(k, rest, t):
+    """wb-konto fortsetzen [--trocken]: je faelliger Unterhaltung eine Zeile gesendet|spaeter|weg|aufgegeben TAB
+    Kennung TAB Text; nichts faellig: keine Ausgabe. Exit 0, ausser bei Bedienfehlern."""
+    trocken = "--trocken" in rest
+    for a in rest:
+        if a != "--trocken":
+            fehler("fortsetzen [--trocken]; unbekannt: '%s'" % a, 2)
+    try:
+        sperre = _Sperre(warten=False).__enter__()
+    except BlockingIOError:
+        print("nichts\t-\tein anderer Lauf von wb-konto fortsetzen arbeitet gerade")
+        return 0
+    try:
+        d = _fs_lesen()
+        an = _fortsetzung_an()
+        abstand = kwert(k, "fortsetzung_abstand_min") * 60
+        for sid in sorted(d["offen"]):
+            e = d["offen"][sid]
+            if not isinstance(e, dict):
+                d["offen"].pop(sid, None)
+                continue
+            if not an:
+                art, grund = "weg", "kontoFortsetzungNachLimit ist false"
+            elif float(e.get("naechster") or 0) > t:
+                continue
+            else:
+                art, grund = _fortsetzung_pruefen(k, sid, e, t)
+            pane = e.get("pane")
+            if trocken:
+                print("%s\t%s\tTROCKEN: %s" % (art, sid, grund))
+                continue
+            if art == "senden":
+                d["offen"].pop(sid, None)
+                d["erledigt"][e.get("vorfall") or sid] = int(t)        # vor dem Senden: nie ein zweites "weiter"
+                _fs_schreiben(d, t)
+                reset = datetime.datetime.fromtimestamp(float(e.get("reset") or t)).strftime("%H:%M")
+                fehlt = _inbox_zustellen(pane, e.get("sock") or "", "weiter -- das Limit ist zurueckgesetzt (Reset %s); "
+                                         "setze deine aktuelle Aufgabe fort (automatische Fortsetzung nach dem Limit)\n"
+                                         % reset)
+                if not fehlt:
+                    d["gesendet"].setdefault(sid, []).append(int(t))
+                    text = "Fortsetzung %s: 'weiter' ueber die Inbox an %s (%s)" % (sid, pane, grund)
+                    leitung("wb-konto: " + text)
+                    print("gesendet\t%s\t%s" % (sid, text))
+                elif fehlt.startswith("unklar"):
+                    d["gesendet"].setdefault(sid, []).append(int(t))
+                    text = "Fortsetzung %s: Zustellung an %s %s; kein zweiter Versuch" % (sid, pane, fehlt)
+                    leitung("wb-konto: " + text)
+                    print("aufgegeben\t%s\t%s" % (sid, text))
+                else:
+                    d["erledigt"].pop(e.get("vorfall") or sid, None)
+                    art, grund = "spaeter", "'weiter' nicht zugestellt (%s)" % fehlt
+            if art == "weg":
+                d["offen"].pop(sid, None)
+                text = "Fortsetzung %s (%s) entfaellt: %s" % (sid, pane, grund)
+                protokoll("wb-konto: " + text)
+                print("weg\t%s\t%s" % (sid, text))
+            elif art == "spaeter":
+                e["versuche"] = int(e.get("versuche") or 0) + 1
+                if e["versuche"] >= kwert(k, "fortsetzung_max_versuche"):
+                    d["offen"].pop(sid, None)
+                    text = ("Fortsetzung %s (%s) aufgegeben nach %d Pruefungen: %s. Von Hand mit 'weiter' fortsetzen."
+                            % (sid, pane, e["versuche"], grund))
+                    leitung("wb-konto: " + text)
+                    print("aufgegeben\t%s\t%s" % (sid, text))
+                else:
+                    e["naechster"] = int(t + abstand)
+                    d["offen"][sid] = e
+                    text = "Fortsetzung %s (%s) wartet, Pruefung %d: %s" % (sid, pane, e["versuche"], grund)
+                    protokoll("wb-konto: " + text)
+                    print("spaeter\t%s\t%s" % (sid, text))
+            _fs_schreiben(d, t)
+        if not trocken:
+            _fs_schreiben(d, t)
+        faellige_nw = [s for s, e in sorted(d["nachwechsel"].items())
+                       if isinstance(e, dict) and float(e.get("naechster") or 0) <= t]
+    finally:
+        sperre.__exit__()
+    for sid in faellige_nw:
+        erg = nachwechsel_abschliessen(k, sid, t, trocken, von_budget=False)
+        if erg:
+            print("%s\t%s\t%s" % (erg[0], sid, erg[1]))
+    return 0
+
+
+# ── tokensicht: sieht das Bash-Werkzeug einer Claude-Sitzung den Konto-Token? ────────
+def befehl_tokensicht(k, rest):
+    """Echte CLI gegen eine Messages-Attrappe auf 127.0.0.1, Wegwerf-Token, eigenes HOME/CLAUDE_CONFIG_DIR; kein
+    echter Modellaufruf. Zwei Laeufe: Token als CLAUDE_CODE_OAUTH_TOKEN, dann als ANTHROPIC_AUTH_TOKEN. Die
+    Attrappe laesst das Bash-Werkzeug zaehlen (printenv | wc -l), nie den Wert ausgeben. Erwartung je Update:
+    Kontrolle 1, CLAUDE_CODE_OAUTH_TOKEN 0. Exit 0 wie erwartet, 1 LAUT (Kontoweg undicht), 2 nicht gemessen.
+    Netz-Stummel: Claude Code ruft in manchen Konfigurationen `ssh -T` gegen den Git-Dienst von GitHub
+    (gemessen: bei einer GitHub-Marketplace-Quelle in settings.json, auch mit
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1; mit leerer Wegwerf-Konfiguration nicht). ssh liest Schluessel aus dem ECHTEN
+    Heimordner. Darum liegt in jedem Wegwerfordner ein ssh-Stummel (zaehlt, Exit 255, kein Netz) VOR dem festen Suchpfad;
+    SSH_AUTH_SOCK, GIT_SSH und GIT_SSH_COMMAND fehlen in der Umgebung. GRENZE: nur Aufrufe ueber den Suchpfad werden
+    abgefangen (die CLI nennt `ssh` ohne Pfad); ein absoluter Pfad ginge daran vorbei."""
+    import http.server
+    import secrets
+    import threading
+    prog = os.environ.get("WB_KONTO_TOKENSICHT_CLAUDE") or _claude_bin(False)
+    if not prog:
+        print("wb-konto tokensicht: claude nicht gefunden -- nicht gemessen", file=sys.stderr)
+        return 2
+    befehl = ("printf 'kontrolle=%s oauth=%s auth=%s\\n' \"$(printenv WB_SICHT_PROBE | wc -l | tr -d ' ')\" "
+              "\"$(printenv CLAUDE_CODE_OAUTH_TOKEN | wc -l | tr -d ' ')\" \"$(printenv ANTHROPIC_AUTH_TOKEN | wc -l | tr -d ' ')\"")
+
+    def lauf(variable):
+        token = "wegwerf-" + secrets.token_hex(12)
+        zahl = {"anfragen": 0, "ergebnis": None, "wert_gesehen": 0}
+
+        class Attrappe(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_GET(self):
+                self.send_response(404)
+                self.end_headers()
+
+            def do_POST(self):
+                laenge = int(self.headers.get("Content-Length") or 0)
+                roh = self.rfile.read(laenge).decode("utf-8", "replace")
+                if self.path.split("?")[0] != "/v1/messages":
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+                zahl["anfragen"] += 1
+                try:
+                    d = json.loads(roh)
+                except ValueError:
+                    d = {}
+                texte = []
+                for m in d.get("messages") or []:
+                    for c in m.get("content") if isinstance(m.get("content"), list) else []:
+                        if isinstance(c, dict) and c.get("type") == "tool_result":
+                            texte.append(c.get("content") if isinstance(c.get("content"), str) else json.dumps(c.get("content")))
+                hat_bash = any(isinstance(x, dict) and x.get("name") == "Bash" for x in d.get("tools") or [])
+                if texte:
+                    t = "\n".join(texte)
+                    if token in t:
+                        zahl["wert_gesehen"] += 1
+                    m = re.search(r"kontrolle=(\d+) oauth=(\d+) auth=(\d+)", t)
+                    if m:
+                        zahl["ergebnis"] = tuple(int(x) for x in m.groups())
+                if not texte and hat_bash:
+                    inhalt = {"type": "tool_use", "id": "toolu_1", "name": "Bash",
+                              "input": {"command": befehl, "description": "probe"}}
+                    stop = "tool_use"
+                else:
+                    inhalt, stop = {"type": "text", "text": "fertig"}, "end_turn"
+                msg = {"id": "msg_%d" % zahl["anfragen"], "type": "message", "role": "assistant", "model": "attrappe",
+                       "content": [], "stop_reason": None, "usage": {"input_tokens": 1, "output_tokens": 1}}
+                if d.get("stream"):
+                    self.send_response(200)
+                    self.send_header("content-type", "text/event-stream")
+                    self.end_headers()
+                    start = ({"type": "text", "text": ""} if inhalt["type"] == "text"
+                             else {"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {}})
+                    delta = ({"type": "text_delta", "text": inhalt["text"]} if inhalt["type"] == "text"
+                             else {"type": "input_json_delta", "partial_json": json.dumps(inhalt["input"])})
+                    for typ, daten in (("message_start", {"message": msg}),
+                                       ("content_block_start", {"index": 0, "content_block": start}),
+                                       ("content_block_delta", {"index": 0, "delta": delta}),
+                                       ("content_block_stop", {"index": 0}),
+                                       ("message_delta", {"delta": {"stop_reason": stop}, "usage": {"output_tokens": 1}}),
+                                       ("message_stop", {})):
+                        daten = dict(daten, type=typ)
+                        self.wfile.write(("event: %s\ndata: %s\n\n" % (typ, json.dumps(daten))).encode())
+                else:
+                    msg.update(content=[inhalt], stop_reason=stop)
+                    body = json.dumps(msg).encode()
+                    self.send_response(200)
+                    self.send_header("content-type", "application/json")
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+
+        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Attrappe)
+        th = threading.Thread(target=srv.serve_forever, daemon=True)
+        th.start()
+        tmp = tempfile.mkdtemp(prefix="wb-konto-sicht.")
+        try:
+            for n in ("home", "cfg", "arbeit", "stummel"):
+                os.makedirs(os.path.join(tmp, n))
+            ssh_log = os.path.join(tmp, "stummel", "ssh-aufrufe.log")
+            ssh_stummel = os.path.join(tmp, "stummel", "ssh")
+            with open(ssh_stummel, "w") as f:
+                f.write("#!/bin/sh\nprintf 'ssh %%s\\n' \"$*\" >>%s\nexit 255\n" % shlex.quote(ssh_log))
+            os.chmod(ssh_stummel, 0o755)
+            umg = {"PATH": os.path.join(tmp, "stummel") + ":/usr/bin:/bin:/usr/sbin:/sbin", "HOME": os.path.join(tmp, "home"),
+                   "CLAUDE_CONFIG_DIR": os.path.join(tmp, "cfg"), "LANG": "C.UTF-8",
+                   "ANTHROPIC_BASE_URL": "http://127.0.0.1:%d" % srv.server_address[1],
+                   "WB_SICHT_PROBE": "1", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1", "DISABLE_AUTOUPDATER": "1",
+                   variable: token}
+            try:
+                r = subprocess.run([prog, "-p", "--model", "claude-sonnet-4-6", "--allowedTools", "Bash", "--",
+                                    "Run the probe."], env=umg, cwd=os.path.join(tmp, "arbeit"),
+                                   stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=180)
+                aus_rc = r.returncode
+                im_text = (r.stdout + r.stderr).count(token)
+            except (OSError, subprocess.SubprocessError) as e:
+                aus_rc, im_text = type(e).__name__, 0
+            try:
+                with open(ssh_log, encoding="utf-8", errors="replace") as f:
+                    ssh_aufrufe = sum(1 for z in f if z.startswith("ssh "))
+            except OSError:
+                ssh_aufrufe = 0
+            dateien = 0
+            for wurzel, _, namen in os.walk(tmp):
+                for n in namen:
+                    try:
+                        with open(os.path.join(wurzel, n), "rb") as f:
+                            if token.encode() in f.read():
+                                dateien += 1
+                    except OSError:
+                        pass
+        finally:
+            srv.shutdown()
+            srv.server_close()
+            shutil.rmtree(tmp, ignore_errors=True)
+        return {"variable": variable, "claude_rc": aus_rc, "anfragen": zahl["anfragen"], "ergebnis": zahl["ergebnis"],
+                "wert_in_werkzeugausgabe": zahl["wert_gesehen"], "wert_in_ausgabe": im_text, "dateien_mit_wert": dateien,
+                "ssh_stummel_aufrufe": ssh_aufrufe}
+
+    version = ""
+    try:
+        version = subprocess.run([prog, "--version"], capture_output=True, text=True, timeout=30,
+                                 stdin=subprocess.DEVNULL).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    laeufe = [lauf("CLAUDE_CODE_OAUTH_TOKEN"), lauf("ANTHROPIC_AUTH_TOKEN")]
+    rc = 0
+    zeilen_aus = []
+    for l in laeufe:
+        e = l["ergebnis"]
+        if e is None:
+            urteil = "NICHT GEMESSEN (keine Zaehlerzeile; Anfragen %d, claude Exit %s)" % (l["anfragen"], l["claude_rc"])
+            rc = max(rc, 2)
+        else:
+            kontrolle, oauth, auth = e
+            sicht = oauth if l["variable"] == "CLAUDE_CODE_OAUTH_TOKEN" else auth
+            urteil = "Kontrolle %d, %s %d" % (kontrolle, l["variable"], sicht)
+            if kontrolle != 1:
+                urteil += " -- NICHT GEMESSEN (Positivkontrolle fehlt)"
+                rc = max(rc, 2)
+            elif l["variable"] == "CLAUDE_CODE_OAUTH_TOKEN" and oauth != 0:
+                urteil += " -- LAUT: das Bash-Werkzeug SIEHT den Konto-Token, der Kontoweg der Worker ist undicht"
+                rc = 1
+        zeilen_aus.append("%s: %s; Wert in Werkzeugausgabe %d, in CLI-Ausgabe %d, in Dateien %d; ssh-Stummel-Aufrufe %d" % (
+            l["variable"], urteil, l["wert_in_werkzeugausgabe"], l["wert_in_ausgabe"], l["dateien_mit_wert"],
+            l["ssh_stummel_aufrufe"]))
+    if "--json" in rest:
+        print(json.dumps({"claude": version, "laeufe": laeufe, "rc": rc}, ensure_ascii=False))
+    else:
+        print("claude %s" % (version or "?"))
+        for z in zeilen_aus:
+            print(z)
+        print("Erwartung je Update: CLAUDE_CODE_OAUTH_TOKEN 0 bei Kontrolle 1. Ergebnis: %s"
+              % {0: "wie erwartet", 1: "UNDICHT", 2: "nicht gemessen"}[rc])
+    return rc
+
+
+# ── Befehle ─────────────────────────────────────────────────────────────────────────────────────────
+def konten_selbstpruefung(k):
+    probleme = []
+    for name, c in k["konten"].items():
+        anker = datetime.datetime.fromtimestamp(float(c["reset_anker"]))
+        lesbar = "%s %02d:%02d" % (WOCHENTAGE[anker.weekday()], anker.hour, anker.minute)
+        if c.get("wochenbeginn") != lesbar:
+            probleme.append("%s: wochenbeginn '%s' passt nicht zum reset_anker (%s Ortszeit)"
+                            % (name, c.get("wochenbeginn"), lesbar))
+        if not c.get("dienst"):
+            probleme.append("%s: dienst fehlt" % name)
+        if "fuenf_stunden_fenster" in c and not isinstance(c["fuenf_stunden_fenster"], bool):
+            probleme.append("%s: fuenf_stunden_fenster muss true oder false sein (nicht %r)"
+                            % (name, c["fuenf_stunden_fenster"]))
+    if sorted(k["reihenfolge"]) != sorted(k["konten"]):
+        probleme.append("reihenfolge nennt nicht genau die Konten")
+    return probleme
+
+
+# ── ziel: vor dem Wochenreset gezielt leerfahren (task, decision 2026-11-16) ──────────────────────────
+# EINE Zeile fuer die Statusanzeige und fuer den Orchestrator: je Konto der Rest bis zur Zielmarke (Obergrenze der Woche, sonst 100)
+# und die Zeit bis zum Wochenreset. Eigener Befehl statt einer Zeile in einer Sammelanzeige: wb-konto hat keine
+# Sammelanzeige, und die Statuszeile braucht genau eine billige Zeile ohne Messung und ohne Netz.
+def befehl_ziel(k, rest, t):
+    eintraege = []
+    for n in k["reihenfolge"]:
+        s = stand(k, n, t)
+        og = obergrenzen(k, n)["woche"][0]
+        marke = og if og is not None else 100.0
+        woche = s.get("seven_day_pct")
+        rest_pct = None if woche is None else max(0.0, marke - float(woche))
+        reset = s["fenster_reset"]
+        r_dt = datetime.datetime.fromtimestamp(reset)
+        eintraege.append({"konto": n, "woche_pct": woche, "ziel_pct": marke, "rest_pct": rest_pct, "reset": reset,
+                          "fuenf_stunden_fenster": s["fuenf_stunden_fenster"],
+                          "status": s["status"], "text": "%s noch %s %% bis %s %% (Reset %s %s, in %s)" % (
+                              n, "?" if rest_pct is None else _zahl(round(rest_pct)), _zahl(marke),
+                              WOCHENTAGE[r_dt.weekday()], r_dt.strftime("%H:%M"), _dauer(reset - t))})
+    if "--kurz" in rest:
+        # Statuszeile (decision 2026-11-16): je Konto nur der Rest bis zur Zielmarke und der Reset-Zeitpunkt, ohne Dauer.
+        teile = []
+        for e in eintraege:
+            r_dt = datetime.datetime.fromtimestamp(e["reset"])
+            teile.append("%s noch %s%% bis %s %s" % (
+                e["konto"], "?" if e["rest_pct"] is None else _zahl(round(e["rest_pct"])),
+                WOCHENTAGE[r_dt.weekday()], r_dt.strftime("%H:%M")))
+        print("Ziel " + ", ".join(teile))
+    elif "--json" in rest:
+        print(json.dumps({"konten": eintraege}, ensure_ascii=False))
+    else:
+        print(" | ".join(e["text"] for e in eintraege))
+    return 0
+
+
+# ── status: lesende Schnittstelle fuer die App (Z2b, decision 2026-11-15) ────────────────────────────────────
+# Die App liest NUR diesen Befehl, nie konto-wechsel.json und nie ein Textmuster. Ausgabe je Unterhaltung der letzte
+# Wechsel aus dem Verlauf: zeit (ISO, UTC), von/nach (nur die Etiketten der Konten, z. B. gross/klein), grund
+# (limit|budget) und remote_control_verloren (ja|nein; "unbekannt" fuer Eintraege von vor dem 15.11.2026, die das
+# Feld nicht tragen). Nie ein Token, nie eine Kontoadresse, nie ein Dienstname des Schluesselbunds.
+STATUS_GRUENDE = ("limit", "budget")
+
+
+def _status_eintrag(v):
+    zeit = datetime.datetime.fromtimestamp(int(v.get("t") or 0), datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    grund = v.get("grund") if v.get("grund") in STATUS_GRUENDE else "limit"
+    rc = v.get("rc_verloren")
+    rc_text = "unbekannt" if rc is None else ("ja" if rc else "nein")
+    etikett = re.compile(r"^[a-z][a-z0-9-]{0,31}$")
+    von = v.get("von") if isinstance(v.get("von"), str) and etikett.match(v.get("von")) else "unbekannt"
+    nach = v.get("nach") if isinstance(v.get("nach"), str) and etikett.match(v.get("nach")) else "unbekannt"
+    return {"zeit": zeit, "von": von, "nach": nach, "grund": grund, "remote_control_verloren": rc_text}
+
+
+def befehl_status(rest):
+    w = _wechsel_lesen()
+    letzte = {}
+    for v in w.get("verlauf") or []:
+        if not isinstance(v, dict) or not isinstance(v.get("sitzung"), str) or not v.get("sitzung"):
+            continue
+        alt = letzte.get(v["sitzung"])
+        if alt is None or int(v.get("t") or 0) >= int(alt.get("t") or 0):
+            letzte[v["sitzung"]] = v
+    aus_d = {sid: _status_eintrag(v) for sid, v in sorted(letzte.items())}
+    if "--json" in rest:
+        print(json.dumps({"version": 1, "unterhaltungen": aus_d}, ensure_ascii=False, sort_keys=True))
+    else:
+        if not aus_d:
+            print("wb-konto: kein Kontowechsel im Verlauf")
+        for sid, e in aus_d.items():
+            print("%s\t%s\t%s -> %s\t%s\tRemote Control verloren: %s"
+                  % (sid, e["zeit"], e["von"], e["nach"], e["grund"], e["remote_control_verloren"]))
+    return 0
+
+
+def befehl_obergrenze(k, rest):
+    if rest[:1] == ["--warnung"]:
+        # Statuszeile: nur ein Satz, nie ein Fehler auf dem Schirm (Exit 0 auch bei unlesbaren Zahlen).
+        if len(rest) < 3 or rest[1] not in k["konten"]:
+            return 0
+        og = obergrenzen(k, rest[1])
+        teile = []
+        for art, wert in (("woche", rest[2]), ("fuenf_stunden", rest[3] if len(rest) > 3 else "")):
+            try:
+                gemessen = float(wert)
+            except ValueError:
+                continue
+            g = og[art][0]
+            if art == "fuenf_stunden" and not hat_fuenf(k, rest[1]):
+                continue   # ohne 5h-Fenster gibt es nichts zu warnen
+            if g is not None and gemessen >= g:
+                teile.append("%s %s%% >= %s%%" % ("Woche" if art == "woche" else "5h", _zahl(gemessen), _zahl(g)))
+        if teile:
+            print("OBERGRENZE %s: %s" % (rest[1], ", ".join(teile)))
+        return 0
+    if not rest or rest[0] == "--json":
+        zeilen_aus = {n: {art: dict({"wert": w, "quelle": q},
+                                    **({"wirkt": False, "grund": "kein 5h-Fenster"}
+                                       if art == "fuenf_stunden" and not hat_fuenf(k, n) else {}))
+                          for art, (w, q) in obergrenzen(k, n).items()}
+                      for n in k["reihenfolge"]}
+        if rest[:1] == ["--json"]:
+            print(json.dumps(zeilen_aus, ensure_ascii=False))
+        else:
+            for n, arten in zeilen_aus.items():
+                print("%s\t%s" % (n, ", ".join("%s %s (%s%s)" % (art, "aus" if v["wert"] is None else _zahl(v["wert"]),
+                                                                  v["quelle"], ", ohne Wirkung: kein 5h-Fenster"
+                                                                  if v.get("wirkt") is False and v["wert"] is not None else "")
+                                                for art, v in arten.items())))
+        return 0
+    name = rest[0]
+    if name not in k["konten"]:
+        fehler("obergrenze: unbekanntes Konto '%s' (%s)" % (name, "|".join(k["reihenfolge"])), 2)
+    neu = {}
+    i = 1
+    while i < len(rest):
+        schalter = rest[i]
+        if schalter not in ("--woche", "--fuenf-stunden") or i + 1 >= len(rest):
+            fehler("obergrenze: erwartet --woche N|aus oder --fuenf-stunden N|aus", 2)
+        wert = rest[i + 1]
+        if wert == "aus":
+            zahl = None
+        else:
+            if schalter == "--fuenf-stunden" and not hat_fuenf(k, name):
+                fehler("obergrenze: %s hat kein 5h-Fenster, --fuenf-stunden %s wirkte nie und wird nicht gesetzt "
+                       "(nur 'aus' ist erlaubt)" % (name, wert), 2)
+            try:
+                zahl = float(wert)
+            except ValueError:
+                fehler("obergrenze: '%s' ist keine Zahl und nicht 'aus'" % wert, 2)
+            if not 0 < zahl <= 100:
+                fehler("obergrenze: %s liegt nicht in (0, 100]" % wert, 2)
+        neu["woche" if schalter == "--woche" else "fuenf_stunden"] = zahl
+        i += 2
+    if not neu:
+        fehler("obergrenze: nichts zu setzen (--woche oder --fuenf-stunden)", 2)
+    alle = obergrenzen_gesetzt()
+    eintrag = alle.get(name) if isinstance(alle.get(name), dict) else {}
+    eintrag.update(neu)
+    alle[name] = eintrag
+    _json_schreiben(obergrenze_datei(), alle)
+    protokoll("wb-konto: Obergrenze %s gesetzt: %s" % (name, ", ".join(
+        "%s %s" % (a, "aus" if v is None else _zahl(v)) for a, v in sorted(neu.items()))))
+    print("%s\t%s" % (name, ", ".join("%s %s (%s)" % (a, "aus" if w is None else _zahl(w), q)
+                                     for a, (w, q) in obergrenzen(k, name).items())))
+    return 0
+
+
+PLAN_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,39}$")
+
+
+def befehl_planwechsel(k, rest, t):
+    """planwechsel <konto> --zeit <ISO|epoch> [--plan <name>]: schreibt das Ereignis atomar (konto-planwechsel.json),
+    ersetzt ein vorhandenes und nennt alten und neuen Wert. Ohne gueltige Angaben Exit 2 und nichts geschrieben."""
+    if not rest or rest[0].startswith("-"):
+        fehler("planwechsel <%s> --zeit <ISO|epoch> [--plan <name>]" % "|".join(k["reihenfolge"]), 2)
+    name = konto_pruefen(k, rest[0])
+    zeit = plan = None
+    i = 1
+    while i < len(rest):
+        if rest[i] == "--zeit" and i + 1 < len(rest):
+            zeit = zeit_endlich(rest[i + 1]); i += 2
+            if zeit is None:
+                fehler("planwechsel: --zeit '%s' ist keine Zeit (ISO 8601 oder epoch)" % rest[i - 1], 2)
+        elif rest[i] == "--plan" and i + 1 < len(rest):
+            plan = rest[i + 1]; i += 2
+            if not PLAN_RE.match(plan):
+                fehler("planwechsel: --plan '%s' ist kein Planname (Buchstaben, Ziffern, _ . -, hoechstens 40)" % plan, 2)
+        else:
+            fehler("planwechsel: unbekannte Angabe '%s'" % rest[i], 2)
+    if zeit is None:
+        fehler("planwechsel: --zeit <ISO|epoch> fehlt", 2)
+    if zeit > t + 300:
+        fehler("planwechsel: --zeit liegt in der Zukunft (%s); ein Wechsel ist schon geschehen" %
+               datetime.datetime.fromtimestamp(zeit).strftime("%Y-%m-%d %H:%M"), 2)
+    alt = planwechsel(k, name)
+    alle = planwechsel_gesetzt()
+    eintrag = {"zeit": int(zeit), "gesetzt": int(t)}
+    if plan:
+        eintrag["plan"] = plan
+    alle[name] = eintrag
+    _json_schreiben(planwechsel_datei(), alle)
+    neu = planwechsel(k, name)
+    protokoll("wb-konto: Planwechsel %s gesetzt: %s" % (name, planwechsel_text(neu)))
+    print("%s\tPlanwechsel alt: %s\tneu: %s" % (name, planwechsel_text(alt), planwechsel_text(neu)))
+    return 0
+
+
+def main(argv):
+    if not argv or argv[0] in ("-h", "--help", "hilfe"):
+        print(__doc__)
+        return 0
+    if argv[0] == "status":
+        return befehl_status(argv[1:])
+    k = konfig()
+    befehl, rest = argv[0], argv[1:]
+    t = jetzt()
+
+    if befehl == "obergrenze":
+        return befehl_obergrenze(k, rest)
+
+    if befehl == "ziel":
+        return befehl_ziel(k, rest, t)
+
+    if befehl == "planwechsel":
+        return befehl_planwechsel(k, rest, t)
+
+    if befehl == "wahl":
+        als_json = "--json" in rest
+        beste, staende = waehlen(k, t, messen_erlaubt="--ohne-messung" not in rest)
+        if als_json:
+            print(json.dumps({"konto": beste["konto"] if beste else None,
+                              "grund": beste["grund"] if beste else "kein Konto mit Luft",
+                              "gemessen": beste["gemessen"] if beste else None,
+                              "konten": staende}, ensure_ascii=False))
+        elif beste:
+            print("%s\t%s\tgemessen %s" % (beste["konto"], beste["grund"], beste["gemessen"]))
+        if not beste:
+            print("wb-konto: kein Konto mit Luft -- %s; kein Start."
+                  % "; ".join(zeile_fuer(s) for s in staende), file=sys.stderr)
+            return 3
+        return 0
+
+    if befehl == "aufloesen":
+        if len(rest) != 1:
+            fehler("aufloesen <%s|auto>" % "|".join(k["konten"]), 2)
+        name = konto_pruefen(k, rest[0], auto_erlaubt=True)
+        if name == "auto":
+            beste, staende = waehlen(k, t)
+            if not beste:
+                print("wb-konto: auto findet kein Konto mit Luft -- %s; kein Start."
+                      % "; ".join(zeile_fuer(s) for s in staende), file=sys.stderr)
+                return 3
+            print("wb-konto: auto waehlt %s (%s)" % (beste["konto"], beste["grund"]), file=sys.stderr)
+            name = beste["konto"]
+        print(name)
+        return 0
+
+    if befehl == "dienst":
+        if len(rest) != 1:
+            fehler("dienst <%s>" % "|".join(k["konten"]), 2)
+        name = konto_pruefen(k, rest[0])
+        dienst = k["konten"][name]["dienst"]
+        if not dienst_vorhanden(dienst):
+            fehler("FEHLER -- kein Schluesselbund-Eintrag '%s' fuer Konto %s; kein stiller Rueckfall auf "
+                   "die Browser-Anmeldung; kein Start. Anlegen mit: claude setup-token, dann "
+                   "security add-generic-password -s %s -a \"$USER\" -w" % (dienst, name, dienst))
+        print(dienst)
+        return 0
+
+    if befehl == "buche":
+        if not rest:
+            fehler("buche <konto> --bis <epoch> [--grund TEXT]", 2)
+        name = konto_pruefen(k, rest[0])
+        bis = grund = None
+        i = 1
+        while i < len(rest):
+            if rest[i] == "--bis" and i + 1 < len(rest):
+                bis = epoch_aus(rest[i + 1]); i += 2
+            elif rest[i] == "--grund" and i + 1 < len(rest):
+                grund = rest[i + 1]; i += 2
+            else:
+                fehler("unbekannte Angabe '%s'" % rest[i], 2)
+        if bis is None:
+            fehler("buche: --bis <epoch|ISO> fehlt oder ist unlesbar", 2)
+        pfad = os.path.join(wbdir(), "konto-buchung.json")
+        b = buchungen()
+        b[name] = {"erschoepft_bis": int(bis), "grund": grund or "", "gebucht": int(t)}
+        _json_schreiben(pfad, b)
+        print("wb-konto: %s erschoepft bis %s gebucht" % (name, datetime.datetime.fromtimestamp(bis).strftime("%d.%m. %H:%M")),
+              file=sys.stderr)
+        return 0
+
+    if befehl == "messen":
+        if not rest:
+            fehler("messen <konto|alle> [--erzwingen]", 2)
+        namen = list(k["reihenfolge"]) if rest[0] == "alle" else [konto_pruefen(k, rest[0])]
+        rcs = [messen(k, n, t, erzwingen="--erzwingen" in rest) for n in namen]
+        return max(rcs) if rcs else 0
+
+    if befehl == "zuordnen":
+        r7 = angabe = sitzung = None
+        ahn = os.getppid()
+        i = 0
+        while i < len(rest):
+            if rest[i] == "--seven-day-resets-at" and i + 1 < len(rest):
+                r7 = epoch_aus(rest[i + 1]); i += 2
+            elif rest[i] == "--sitzung" and i + 1 < len(rest):
+                sitzung = rest[i + 1] or None; i += 2
+            elif rest[i] == "--pid" and i + 1 < len(rest):
+                ahn = int(rest[i + 1]) if rest[i + 1].isdigit() else None; i += 2
+            elif rest[i] == "--angabe" and i + 1 < len(rest):
+                angabe = rest[i + 1] or None; i += 2
+            else:
+                fehler("unbekannte Angabe '%s'" % rest[i], 2)
+        fam = familie(k, r7)
+        if angabe and angabe in k["konten"]:
+            if fam is None or fam == angabe:
+                print(angabe)
+                return 0
+            # Fund K: nach /login nennt WB_CLAUDE_KONTO_AKTIV weiter das Startkonto. Traegt die Marke des
+            # claude-Prozesses (auch nach Regel E nachgezogen) schon die gemessene Familie, gilt sie.
+            marke, grund = konto_der_ahnenmarke(k, ahn, sitzung)
+            if marke == fam:
+                print(fam)
+                return 0
+            print("wb-konto: WIDERSPRUCH -- die Sitzung laeuft laut Start auf %s, die Messung gehoert zur "
+                  "Familie %s; Kontofeld 'widerspruch'" % (angabe, fam), file=sys.stderr)
+            print("widerspruch")
+            return 0
+        print(fam or "unbekannt")
+        return 0
+
+    if befehl == "start":
+        return befehl_start(k, rest, t)
+
+    if befehl == "wechsel":
+        return befehl_wechsel(k, rest, t)
+
+    if befehl == "budget":
+        return befehl_budget(k, rest, t)
+
+    if befehl == "fortsetzen":
+        return befehl_fortsetzen(k, rest, t)
+
+    if befehl == "tokensicht":
+        return befehl_tokensicht(k, rest)
+
+    if befehl == "konten":
+        probleme = konten_selbstpruefung(k)
+        pws = {n: planwechsel(k, n) for n in k["reihenfolge"]}
+        if "--json" in rest:
+            print(json.dumps({"konten": k["konten"], "reihenfolge": k["reihenfolge"], "probleme": probleme,
+                              "planwechsel": {n: dict(p, zeit_text=planwechsel_text(p)) for n, p in pws.items() if p}},
+                             ensure_ascii=False))
+        else:
+            for n in k["reihenfolge"]:
+                c = k["konten"][n]
+                pw = pws[n]
+                print("%s\t%s\t%s\tWochenbeginn %s%s" % (n, c["dienst"], (pw or {}).get("plan") or c.get("plan", ""),
+                                                        c.get("wochenbeginn", ""),
+                                                        "\tPlanwechsel %s" % planwechsel_text(pw) if pw else ""))
+            for p in probleme:
+                print("PROBLEM: " + p, file=sys.stderr)
+        return 1 if probleme else 0
+
+    fehler("unbekannter Befehl '%s' (wb-konto --help)" % befehl, 2)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

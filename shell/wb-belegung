@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S -u DEVELOPER_DIR -u SDKROOT -u TOOLCHAINS /usr/bin/python3 -E -s -S
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): nie ein python3 aus dem PATH des
+# Aufrufers, ohne die xcrun-Variablen, PYTHON*-Variablen, User-site und site.
 # wb-belegung — das Belegungsbuch fuer grosse Ressourcen. Es beantwortet drei
 # Fragen und sonst nichts:
 #
@@ -27,6 +29,29 @@
 #                                   Schritt frisch verifiziert statt angenommen
 #                                   (Befund 20.08.: 'ollama stop' meldet Erfolg und wirkt
 #                                   nicht, siehe cmd_ollama_freigeben()).
+#
+# EXIT-CODES (darf, nimm): 0 = ja (bei nimm: gebucht), 1 = nein (nichts eingetragen; --json nennt
+# `grund`, `grenze` und `knappe_quelle`), 2 = Aufruf- oder Rechenfehler, 3 = das Buch ist gesperrt oder
+# enthaelt eine unbrauchbare Groesse. Einen Exit 20 gibt es hier nicht (gemessen 18.11.2026: kein
+# Quelltextpfad dieses Werkzeugs und der Tafel liefert ihn); er kam aus dem umgebenden Befehl.
+#
+# BUCHUNGSART (`--art modell|ram`, 18.11.2026): `modell` ist die Vorgabe und rechnet wie immer gegen den
+# KNAPPEREN von VRAM und Systemspeicher. `ram` ist fuer Vorhaben, die nur Systemspeicher brauchen
+# (Beispiel: eine KVM-VM auf peer) und das VRAM der GPU nie anfassen: sie rechnet allein gegen den
+# Systemspeicher. Anlass: `darf --gb 8` auf peer wurde am VRAM (12 GiB, 3,8 GiB belegt) abgelehnt,
+# obwohl `free -m` 16,3 GiB Systemspeicher frei zeigte. Name: `ram` heisst im Messwerkzeug
+# (`check-resources`) genau dieser Speicher; `systemspeicher` waere laenger, `vm` benennte den Anlass
+# statt der Ressource. Wie die Arten zaehlen:
+#   - peer (eigener GPU-Speicher, vram.kind nicht "unified"): jede Art rechnet nur mit den Belegungen
+#     ihrer eigenen Art (Grenze B und der Abzug fuer noch nicht geladene Belegungen), und Ollama-
+#     Ladungen (VRAM) zaehlen nur fuer `modell`. Sonst kuerzte die VM-Buchung die VRAM-Rechnung der
+#     Modelle und umgekehrt. Ein Eintrag ohne Feld `art` (aus der Zeit davor) ist ein `modell`.
+#   - Mac (einheitlicher Speicher, vram.kind "unified"): VRAM und RAM sind dieselbe Zahl. `ram` rechnet
+#     dort dieselbe Messung wie `modell`, und JEDE Belegung zaehlt, gleich welcher Art, denn ein Modell
+#     und eine VM teilen sich denselben Speicher.
+#   - Kann nichts gemessen werden, bleibt es beim Nein (oder bei --ohne-messung allein Grenze B).
+# Gebucht ueber die Tafel (`wb-tafel nimm <platz> --menge n`) bucht diese selbst, siehe wb-tafel; eine
+# zweite eigene Buchung desselben Vorhabens zaehlt doppelt, und das Nein sagt es dann ausdruecklich.
 #
 # WOZU ES DA IST, ehrlich gesagt: Am 10./11.08. ist die Maschine zweimal in zwei
 # Stunden mit derselben Signatur stehengeblieben — `completeMemory() prepare count
@@ -170,6 +195,21 @@
 # harmlosen Testprozess erprobt, nie gegen einen echten Speicherengpass
 # (siehe deren Kopfkommentar und das Ergebnisprotokoll dieses Auftrags).
 #
+# NACHTRAG 2026-11-01 (Regel: 0,5 bis 1 GiB Reserve):
+# RESERVE_GIB steht jetzt auf 0,75. Das hebt die Anweisung vom 27.08. nicht auf und fuehrt die
+# 6-GiB-Kopplung von oben NICHT zurueck: 0,75 GiB liegen UEBER der Schwelle der Notbremse (512 MiB,
+# 0,5 GiB), nie darunter, und sind eine kleine Pufferzone, kein zweiter Waechter mit eigener Meinung.
+# Anlass war der 29.10.: Gemma 31B belegte 28,2 GiB, daneben startete eine Suite, der Mac fiel auf
+# 2,3 GiB frei, bei fast vollem Swap. Gegen genau das schuetzt vor allem die Tafel (eine Suite
+# startet nicht neben einem grossen gebuchten Modell, `nicht_neben_ab` in wb-tafel); die Reserve
+# ist die kleine Pufferzone dazu. Gemessen mit `darf --ohne-messung` (Splash, --gewichte-gb 19,6
+# --kv-quant q8, 1 Strom, 2026-11-01): Spitze 20,54 GiB bei 18432 Token und 21,28 GiB bei 32768. Mit
+# Reserve 0,75 muss Grenze A also mindestens 21,29 bzw. 22,03 GiB frei haben; ein Start bei
+# 20,54 bis 21,29 GiB (18k) oder 21,28 bis 22,03 GiB (32k) frei, der vorher durchging, wird jetzt
+# abgelehnt. Der Grenzfall vom 30.10. (20,52 GiB Spitze bei 20,32 GiB frei) war auch vorher ein Nein
+# und bleibt eins. Das ist gewollt: ein falsches Nein kostet Wartezeit, kein falsches Ja. Die
+# Reserve wirkt in Grenze A UND Grenze B (siehe oben). `--reserve-gb` bleibt fuer den Aufruf.
+#
 # DER FREIE SPEICHER WIRD NIE AUS EINER EINZIGEN ABTASTUNG GENOMMEN. MLX gibt seine
 # Puffer verzoegert zurueck; unmittelbar nach einer Stufe wurde dort eine Messung mit
 # 735 MiB frei abgelehnt, waehrend eine Minute spaeter wieder 14,2 GiB frei waren.
@@ -247,6 +287,12 @@
 #   ~/.local/state/wb-belegung/kv-bedarf.json   der KV-Bedarf je Modell
 #   ~/.local/state/wb-belegung/buch.json.lock   die Sperre (flock, mit Frist)
 #
+# DIE SPERRE HAELT KEINE MESSUNG (task, 19.10.2026): `darf` und `nimm` messen den
+# freien Speicher VOR der Sperre (drei Abtastungen, Sekunden). Unter ihr wird nur das Buch gelesen,
+# mit dem fruehen Messwert entschieden und geschrieben; was seit der Messung als geladen gemeldet
+# wurde, zaehlt dabei weiter als noch nicht geladen (buch_fuer_entscheidung). Unter der Sperre
+# bleibt nur die Lebendigkeitspruefung der Halter (tmux/ps/systemctl, Zeitlimit je Aufruf).
+#
 # EXIT-CODES:  0 = ja / erledigt, 1 = nein (kein Platz) bzw. nichts gefunden,
 #              2 = Benutzungsfehler, 3 = das Buch war nicht zu bekommen.
 import argparse
@@ -257,6 +303,7 @@ import math
 import os
 import re
 import shutil
+import socket
 import statistics
 import subprocess
 import sys
@@ -273,17 +320,19 @@ MIB_JE_GIB = 1024.0
 
 # Voreinstellungen. Jede ist als Schalter ueberschreibbar; sie stehen hier zusammen,
 # damit niemand sie im Code suchen muss.
+ART_WERTE = ("modell", "ram")   # Buchungsarten, siehe der Kopf (BUCHUNGSART) und eine_abtastung()
 FRIST_MIN = 45          # Nachtrag 11.08.: eine Stufe laeuft bis 900 s, eine volle
                         # Leiter samt Serverstart und Kalibrierung 20-40 min, und das
                         # Laden eines grossen Modells allein mehrere Minuten.
 KARENZ_MIN = 60         # nur fuer Belegungen OHNE messbaren Pane, siehe Kopf.
-RESERVE_GIB = 0.0       # WAR 6.0 (6144 MiB), siehe „Die Reserve war gekoppelt" oben --
+RESERVE_GIB = 0.75      # WAR 6.0 (6144 MiB), siehe „Die Reserve war gekoppelt" oben --
                         # auf Null gesetzt 2026-08-27, ausdrueckliche des Nutzers
                         # Anweisung, mit wb-notbremse (Schwelle 512 MiB, PID-Anbindung
                         # an jeden wb-mlx-server-Start) als Ersatz danach statt einer
-                        # Reserve davor.
+                        # Reserve davor. Seit 2026-11-01 0,75 (Regel:
+                        # 0,5 bis 1 GiB), siehe der Nachtrag im Kopf.
 ZUSCHLAG_JE_SEQUENZ_GIB = 0.0  # WAR 2.3, Prompt-Cache und Spitzen, PRO Sequenz -- Herleitung
-# unten bei zuschlag_herleiten(). URSPRUENGLICH 0.6 (der Nutzer, 2026-08-19, Betriebsfehler 1, zweite
+# unten bei zuschlag_herleiten(). URSPRUENGLICH 0.6 (decision 2026-08-19, Betriebsfehler 1, zweite
 # Runde Prueferbefunde): der alte ZUSCHLAG_GIB=4.0 war ein FESTER Wert, unabhaengig
 # von --parallel -- richtig fuer die Betriebsart, in der EIN Aufruf mehrere
 # gleichzeitige Sequenzen buchte (grug-server, bis 2026-08-19, bis zu acht). Seit dem
@@ -353,6 +402,15 @@ ZUSCHLAG_FIXED_GIB = 0.0  # WAR 2.0, Sockel, unabhaengig von der Stromzahl -- si
 # ausgraben muss.
 ABTASTUNGEN = 3
 ABSTAND_S = 1.5
+# Testnaht (task, 19.10.2026): der Takt der Abtastungen laesst sich per Umgebung verkuerzen,
+# damit ein Test mit verzoegernder Mess-Attrappe nicht dreimal 1,5 s wartet. Die Vorgabe bleibt 1,5 s;
+# ein unbrauchbarer Wert (keine Zahl, negativ, nan) wird ignoriert, nie still als 0 gelesen.
+try:
+    _takt = float(os.environ.get("WB_BELEGUNG_ABSTAND_S", ""))
+    if 0.0 <= _takt <= 10.0:
+        ABSTAND_S = _takt
+except ValueError:
+    pass
 METAL_ARBEITSSATZ_GIB = 42.0  # Der Bezugswert von VLLM_METAL_MEMORY_FRACTION.
 # Nachtrag "vllm-metal als zweiter Motor" (2026-08-21). Diese Zahl ist NICHT der
 # Gesamtspeicher der Maschine (48 GiB) und auch nicht das, was gerade frei ist. Sie ist
@@ -421,7 +479,7 @@ PROMPT_CACHE_DECKEL_FAKTOR = 2.2
 # siehe Kopfkommentar "PROMPT-CACHE-PLAETZE" oben fuer die volle Herleitung und wieso
 # das ein EIGENER Posten ist, kein Teil von ZUSCHLAG_JE_SEQUENZ_GIB.
 SICHERHEITSFAKTOR = 1.1  # auf jede ANGENOMMENE KV-Zahl, bis sie gemessen ist.
-# der Nutzer, 2026-08-19, Pruefer-Nachtrag: vorher 1,5. Ehrlichkeitspruefung gegen die
+# decision 2026-08-19, Pruefer-Nachtrag: vorher 1,5. Ehrlichkeitspruefung gegen die
 # Paniknacht vom 11.08. (siehe ~/Knowledge/10-global/incident-2026-08-11-kernel-panik-
 # durch-gpu-speichermangel.md): dort war die angenommene KV-Konstante 0,11 MiB/Token,
 # gemessen waren es 1,05 MiB/Token — Faktor 9,5 daneben. Weder 1,5 noch 1,1 haetten das
@@ -606,6 +664,24 @@ EINGEBAUTE_KV = {
                   "Token haelt (KV, Seitentabellen), nicht nur den reinen KV-Cache (theoretisch "
                   "0,0332 in q8). Grundsatz 19,6 GiB als --gewichte-gb."),
     },
+    # Gemma 4 31B (mlx-community/gemma-4-31B-it-qat-4bit). Schluessel = Verzeichnisname, wie
+    # wb-mlx-server ihn uebergibt. Hergeleitet wie kv_aus_config() es rechnet, nicht gemessen.
+    "gemma-4-31b-it-qat-4bit": {
+        "mib_je_token": 0.078125,
+        "fest_mib_je_sequenz": 2400.0,
+        "herkunft": "angenommen",
+        "wann": "2026-10-29",
+        "kv_quant": "off",
+        "notiz": ("Aus der config.json (text_config) hergeleitet, NICHT gemessen: 60 Lagen, davon "
+                  "10 mit voller Aufmerksamkeit (num_global_key_value_heads 4, global_head_dim "
+                  "512) und 50 mit gleitendem Fenster 1024 (num_key_value_heads 16, head_dim "
+                  "256). Je Token 10 x 4 x 512 x K+V x 2 Byte = 81.920 Byte = 0,078125 MiB. "
+                  "Fensterlagen fest je Sequenz: 50 x 16 x 256 x K+V x 2 Byte x (1024 Fenster "
+                  "+ 2048 Prefill-Schritt) = 2400 MiB. attention_k_eq_v ist gesetzt, K und V "
+                  "zaehlen trotzdem beide (harmlose Richtung). Gewichte laut "
+                  "model.safetensors.index.json 28.816.250.584 Byte = 26,84 GiB. Messen, "
+                  "sobald die Messung freigegeben ist, dann mit --herkunft gemessen ersetzen."),
+    },
 }
 KV_NOTFALL = 1.05   # Ausgangswert fuer ein unbekanntes Modell, siehe oben.
 
@@ -765,16 +841,8 @@ class Sperre(object):
 # ------------------------------------------------------------------- tmux
 
 def tmux_pfad():
-    """Dieselbe Vorsicht wie in hooks/sessionstart-claude-session.sh und
-    app/src/main/pfad.ts: ein Prozess, der nicht aus einer Login-Shell stammt —
-    ein launchd-Job zum Beispiel — hat /opt/homebrew/bin nicht im PATH."""
-    p = shutil.which("tmux")
-    if p:
-        return p
-    for p in ("/opt/homebrew/bin/tmux", "/usr/local/bin/tmux", "/usr/bin/tmux"):
-        if os.access(p, os.X_OK):
-            return p
-    return None
+    """tmux-Auswahl (2026-10-19): im Testbett der PATH-Schirm, sonst der feste Maschinenpfad."""
+    return shutil.which("tmux") if os.environ.get("WB_TESTUMGEBUNG") == "1" else next((p for p in ("/opt/homebrew/bin/tmux", "/usr/local/bin/tmux", "/usr/bin/tmux", "/bin/tmux") if os.access(p, os.X_OK)), None)
 
 
 def tmux_ruf(argumente, socket_pfad="", frist=3.0):
@@ -914,7 +982,11 @@ def eigener_halter():
         unit_halter_ergaenzen(halter)
         return halter
     halter["pane"] = pane
-    rc, aus = tmux_ruf(["display", "-p", "-t", pane,
+    # `-u`, kein anderer Trenner: Ohne UTF-8-Gebietsschema des Clients (LANG/LC_ALL leer oder POSIX, etwa ueber
+    # `ssh -n` oder aus launchd) gibt tmux ein Tab im -F-Format als '_' aus, Umlaute ebenso (gemessen 20.11.2026,
+    # tmux 3.8 am Mac und 3.7c auf peer). Sitzungs- und Workernamen sind freier Text; jedes druckbare Zeichen kann
+    # darin stehen, also auch jeder Trenner. `-u` schaltet den Client auf UTF-8, dann bleiben Tab und Umlaute.
+    rc, aus = tmux_ruf(["-u", "display", "-p", "-t", pane,
                         "#{session_group}\t#{session_name}\t#{@wb_worker}"],
                        halter["socket"])
     if rc == 0 and aus.strip():
@@ -922,6 +994,27 @@ def eigener_halter():
         halter["sitzung"] = teile[0] or teile[1]
         halter["worker"] = teile[2]
     return halter
+
+
+def standard_socket():
+    """Der Socket, den tmux ohne -S/-L benutzt."""
+    return os.path.join(os.environ.get("TMUX_TMPDIR") or "/tmp", "tmux-%d" % os.getuid(), "default")
+
+
+def socket_nimmt_an(pfad):
+    """True: ein Server nimmt am Socket Verbindungen an. False: eindeutig keiner (Datei fehlt,
+    Verbindung abgewiesen). None: nicht messbar (Frist, Rechte, anderer Fehler)."""
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.settimeout(1.0)
+    try:
+        s.connect(pfad)
+    except (FileNotFoundError, ConnectionRefusedError):
+        return False
+    except OSError:
+        return None
+    finally:
+        s.close()
+    return True
 
 
 def panes_des_servers(socket_pfad):
@@ -934,18 +1027,33 @@ def panes_des_servers(socket_pfad):
     laufende Belegung ab."""
     if socket_pfad and not os.path.exists(socket_pfad):
         return "kein-server", {}
-    rc, aus = tmux_ruf(["list-panes", "-a", "-F", "#{pane_id}\t#{pane_dead}"], socket_pfad)
+    # Trenner ist '|', kein Tabulator: Ohne UTF-8-Gebietsschema des Clients (LANG/LC_ALL leer oder POSIX, etwa ueber
+    # `ssh -n` oder aus launchd) gibt tmux ein Tab im -F-Format als '_' aus (gemessen 20.11.2026, tmux 3.8 am Mac und
+    # 3.7c auf peer: "%0_0"). Dann blieb die Karte leer, die Lage hiess trotzdem 'ok', und jede Belegung mit
+    # Pane-Halter galt als verfallen. Pane-Kennung und pane_dead enthalten kein '|', und tmux ersetzt '|' nicht.
+    rc, aus = tmux_ruf(["list-panes", "-a", "-F", "#{pane_id}|#{pane_dead}"], socket_pfad)
     if rc == 127 or rc == 126:
         return "unklar", {}
     if rc != 0:
-        # tmux antwortet, hat aber keine Sitzung: "no server running on ..."
-        return ("kein-server", {}) if not aus.strip() else ("unklar", {})
+        # tmux antwortet, hat aber keine Sitzung: "no server running on ...". Das allein ist keine
+        # eindeutige Messung: ein anderes tmux (PATH-Schirm im Testbett, andere Version) findet den
+        # Server womoeglich nicht. Fort ist er erst, wenn auch sein Socket keine Verbindung annimmt
+        # (24.10.2026, Auftrag tafelmessung: ein Gesamtlauf erklaerte so alle Pane-Halter fuer tot).
+        if aus.strip():
+            return "unklar", {}
+        return ("unklar", {}) if socket_nimmt_an(socket_pfad or standard_socket()) is not False \
+            else ("kein-server", {})
+    # Kein fail-open: Eine Zeile, die nicht genau "%<n>|0" oder "%<n>|1" ist, oder eine leere Antwort eines laufenden
+    # Servers (er hat immer mindestens einen Pane) heisst 'unklar', nie "kein Pane lebt". Sonst erklaerte eine
+    # unlesbare Ausgabe jeden Pane-Halter fuer tot.
     karte = {}
     for zeile in aus.splitlines():
-        if "\t" not in zeile:
-            continue
-        pane, tot = zeile.split("\t", 1)
-        karte[pane] = (tot.strip() == "1")
+        m = re.fullmatch(r"(%[0-9]+)\|([01])", zeile.strip())
+        if not m:
+            return "unklar", {}
+        karte[m.group(1)] = (m.group(2) == "1")
+    if not karte:
+        return "unklar", {}
     return "ok", karte
 
 
@@ -1136,6 +1244,8 @@ def ollama_stabile_summe(messung):
     status, eintraege, _grund = messung.get("ollama", ("unbekannt", [], ""))
     if status != "ladungen":
         return 0.0
+    if messung.get("art") == "ram" and messung.get("getrennt"):
+        return 0.0      # Ollama haelt seine Ladung im VRAM: sie gehoert nicht zur Systemspeicher-Rechnung
     return sum(e["gb"] for e in ollama_bewerten(eintraege) if e["stabil"])
 
 
@@ -1177,17 +1287,22 @@ def ollama_zeigen(messung):
     return zeilen
 
 
-def eine_abtastung(pfad):
-    """(frei_mib, gesamt_mib, ollama) oder None. ollama = (status, eintraege, grund),
-    siehe ollama_aus_antwort().
+def eine_abtastung(pfad, art="modell"):
+    """(frei_mib, gesamt_mib, ollama, quelle, getrennt) oder None. ollama = (status, eintraege,
+    grund), siehe ollama_aus_antwort(). getrennt = True, wenn die Maschine einen eigenen
+    GPU-Speicher hat (vram.kind nicht "unified"): dort sind VRAM und Systemspeicher zwei Speicher.
 
-    Genommen wird die Quelle mit dem KNAPPEREN freien Speicher, samt IHREM
-    Gesamtwert. Auf diesem Mac sind RAM und VRAM dieselbe Zahl (unified memory);
+    Buchungsart "modell" (die Vorgabe): genommen wird die Quelle mit dem KNAPPEREN freien Speicher,
+    samt IHREM Gesamtwert. Auf diesem Mac sind RAM und VRAM dieselbe Zahl (unified memory);
     auf peer sind sie getrennt, und dort waere ein `min` ueber die freien Werte
     zusammen mit einem `min` ueber die Gesamtwerte ein Paar aus zwei verschiedenen
     Welten — der freie Speicher der einen Quelle am Gesamtspeicher der anderen
     gemessen. Die Grenzen A und B rechnen beide mit diesem Paar, es muss also
-    zusammengehoeren."""
+    zusammengehoeren.
+
+    Buchungsart "ram" (18.11.2026): nur das RAM-Paar. Ein Vorhaben, das nur Systemspeicher braucht
+    (eine KVM-VM), darf nicht am VRAM der GPU scheitern, den es nie anfasst. Fehlt das RAM-Paar,
+    ist nichts messbar (None), nie ein Rueckfall auf das VRAM."""
     if not pfad:
         return None
     try:
@@ -1200,8 +1315,10 @@ def eine_abtastung(pfad):
         d = json.loads(p.stdout)
     except ValueError:
         return None
+    if not isinstance(d, dict):
+        return None
     paare = []
-    for schluessel in ("vram", "ram"):
+    for schluessel in (("ram",) if art == "ram" else ("vram", "ram")):
         teil = d.get(schluessel) or {}
         f, g = teil.get("free_mib"), teil.get("total_mib")
         if isinstance(f, (int, float)) and isinstance(g, (int, float)) and g > 0:
@@ -1209,10 +1326,13 @@ def eine_abtastung(pfad):
     if not paare:
         return None
     frei_mib, gesamt_mib, quelle = min(paare, key=lambda paar: paar[0])
-    return frei_mib, gesamt_mib, ollama_aus_antwort(d), quelle
+    vram = d.get("vram") or {}
+    vram_da = isinstance(vram.get("free_mib"), (int, float)) and isinstance(vram.get("total_mib"), (int, float))
+    getrennt = bool(vram_da and vram.get("kind") != "unified")
+    return frei_mib, gesamt_mib, ollama_aus_antwort(d), quelle, getrennt
 
 
-def frei_messen(abtastungen, abstand, beruhigen):
+def frei_messen(abtastungen, abstand, beruhigen, art="modell"):
     """Nie aus einer einzigen Abtastung — siehe Kopf (MLX gibt verzoegert frei).
 
     Rueckgabe: dict mit frei_gib, gesamt_gib, verfahren (Klartext), messbar und
@@ -1227,17 +1347,18 @@ def frei_messen(abtastungen, abstand, beruhigen):
         wartezeit = min(float(beruhigen), 300.0)
         verfahren.append("Beruhigungsfrist %s s" % zahl(wartezeit))
         time.sleep(wartezeit)
-    werte, gesamtwerte, ollama_werte, knappe = [], [], [], []
+    werte, gesamtwerte, ollama_werte, knappe, getrennte = [], [], [], [], []
     n = max(1, int(abtastungen))
     for i in range(n):
         if i:
             time.sleep(max(0.0, min(float(abstand), 10.0)))
-        w = eine_abtastung(pfad)
+        w = eine_abtastung(pfad, art)
         if w:
             werte.append(w[0])
             gesamtwerte.append(w[1])
             ollama_werte.append(w[2])
             knappe.append(w[3])
+            getrennte.append(w[4])
     # Blieb keine Abtastung uebrig, war auch Ollama nicht zu befragen -- 'unbekannt',
     # nie 'leer' (siehe OLLAMA_STABIL_SCHWELLE_S oben: unbekannt ist nicht frei).
     ollama = ollama_werte[-1] if ollama_werte else (
@@ -1247,7 +1368,7 @@ def frei_messen(abtastungen, abstand, beruhigen):
         # ohne ihn waere auch Grenze B nicht zu rechnen, und dann bliebe fuer eine
         # Entscheidung gar nichts uebrig.
         gesamt = gesamtspeicher_unabhaengig()
-        return {"messbar": False, "frei_gib": 0.0,
+        return {"messbar": False, "frei_gib": 0.0, "art": art, "getrennt": False,
                 "gesamt_gib": gesamt or 0.0, "gesamt_bekannt": gesamt is not None,
                 "verfahren": ", ".join(verfahren) or "keine",
                 "quelle": pfad or "check-resources nicht gefunden",
@@ -1257,7 +1378,7 @@ def frei_messen(abtastungen, abstand, beruhigen):
     else:
         verfahren.append("Median aus %d Abtastungen ueber %s s"
                          % (len(werte), zahl((len(werte) - 1) * abstand)))
-    return {"messbar": True, "gesamt_bekannt": True,
+    return {"messbar": True, "gesamt_bekannt": True, "art": art, "getrennt": bool(getrennte[-1]),
             "frei_gib": statistics.median(werte) / MIB_JE_GIB,
             "gesamt_gib": max(gesamtwerte) / MIB_JE_GIB,
             "verfahren": ", ".join(verfahren),
@@ -1645,6 +1766,110 @@ def kv_fuer(modell):
             hoechster, False, "", True)
 
 
+# DER ERSATZWERT TRIFFT JEDES NEUE MODELL, UND ER LIEGT RUND 18-FACH ZU HOCH (29.10.2026).
+# der Nutzer
+# Ein Modell ohne Registereintrag rechnet mit 1,05 x 1,1 = 1,155 MiB/Token (der Wert 'kat'
+# oben). Gemessen sind fuer heutige Modelle 0,03 bis 0,07 MiB/Token. Gemma 4 31B mit 32.768
+# Token buchte so 37 GiB KV neben 26,8 GiB Gewichten und waere selbst auf leerem Mac
+# abgelehnt worden. Wer den Modellordner kennt, gibt ihn mit --modell-pfad an. Dann wird
+# der Wert aus der config.json gerechnet, als ANGENOMMEN gekennzeichnet und mit dem
+# Sicherheitsfaktor belegt. Ohne Pfad oder ohne lesbare config.json bleibt der Ersatzwert.
+# Die Formel trifft den gemessenen Eintrag qwen38-27b-mlx-4bit exakt (16 volle Lagen x 4
+# KV-Koepfe x 256 x K+V x 2 Byte = 0,0625 MiB/Token).
+def config_json_finden(pfad):
+    """Die config.json zu einem Modellordner oder einer Hugging-Face-Kennung (org/name im
+    lokalen Hub-Cache). Leer, wenn keine lesbar ist."""
+    pfad = (pfad or "").strip()
+    if not pfad:
+        return ""
+    kandidat = os.path.join(os.path.expanduser(pfad), "config.json")
+    if os.path.isfile(kandidat):
+        return kandidat
+    if pfad.count("/") == 1 and not pfad.startswith((".", "~", "/")):
+        hub = os.environ.get("HF_HUB_CACHE") or os.path.join(
+            os.environ.get("HF_HOME") or os.path.join(HOME, ".cache", "huggingface"), "hub")
+        schnappschuesse = os.path.join(hub, "models--" + pfad.replace("/", "--"), "snapshots")
+        try:
+            staende = sorted(os.listdir(schnappschuesse))
+        except OSError:
+            return ""
+        for stand in staende:
+            kandidat = os.path.join(schnappschuesse, stand, "config.json")
+            if os.path.isfile(kandidat):
+                return kandidat
+    return ""
+
+
+def kv_aus_config(pfad):
+    """(mib_je_token, fest_mib_je_sequenz, beschreibung) aus der config.json, oder None.
+
+    Je Token zaehlen nur Lagen mit voller Aufmerksamkeit. Lagen mit gleitendem Fenster
+    halten hoechstens Fenster plus einen Prefill-Schritt von 2048 Token; das ist ein fester
+    Betrag je Sequenz. Rekurrente Lagen (linear_attention) halten einen festen Zustand, der
+    hier nicht gerechnet wird. K und V zaehlen beide, in 2 Byte (bf16), auch wenn das Modell
+    K und V teilt: die harmlose Richtung. Fehlt ein Feld oder ist die Bauart unbekannt
+    (etwa komprimierte Aufmerksamkeit mit kv_lora_rank), gibt es None und damit den
+    Ersatzwert."""
+    datei = config_json_finden(pfad)
+    if not datei:
+        return None
+    try:
+        with open(datei, encoding="utf-8") as f:
+            c = json.load(f)
+    except (OSError, ValueError):
+        return None
+    t = c.get("text_config") if isinstance(c.get("text_config"), dict) else c
+    if t.get("kv_lora_rank") or c.get("kv_lora_rank"):
+        return None
+
+    def ganz(*namen):
+        for n in namen:
+            w = t.get(n)
+            if isinstance(w, int) and not isinstance(w, bool) and w > 0:
+                return w
+        return None
+
+    lagen = ganz("num_hidden_layers", "n_layer", "num_layers")
+    koepfe = ganz("num_attention_heads", "n_head")
+    kv_koepfe = ganz("num_key_value_heads") or koepfe
+    kopf = ganz("head_dim")
+    if kopf is None and koepfe and ganz("hidden_size"):
+        kopf = ganz("hidden_size") // koepfe
+    if not (lagen and kv_koepfe and kopf):
+        return None
+    arten = t.get("layer_types")
+    fenster = ganz("sliding_window")
+    if isinstance(arten, list) and arten:
+        voll = sum(1 for x in arten if x == "full_attention")
+        gleitend = sum(1 for x in arten if x == "sliding_attention")
+        if voll + gleitend + sum(1 for x in arten if x == "linear_attention") != len(arten):
+            return None
+    elif ganz("full_attention_interval"):
+        voll, gleitend = lagen // ganz("full_attention_interval"), 0
+    else:
+        voll, gleitend = lagen, 0
+    if gleitend and not fenster:
+        return None
+    voll_kv = ganz("num_global_key_value_heads") if gleitend else None
+    voll_kopf = ganz("global_head_dim") if gleitend else None
+    voll_kv, voll_kopf = voll_kv or kv_koepfe, voll_kopf or kopf
+    je_token = voll * voll_kv * voll_kopf * 2 * 2 / (1024.0 * 1024.0)
+    fest = gleitend * kv_koepfe * kopf * 2 * 2 * (fenster + 2048) / (1024.0 * 1024.0) if gleitend else 0.0
+    text = "%d volle Lagen x %d KV-Koepfe x %d x K+V x 2 Byte" % (voll, voll_kv, voll_kopf)
+    if gleitend:
+        text += "; %d Fensterlagen x %d x %d bis %d Token fest je Sequenz" % (
+            gleitend, kv_koepfe, kopf, fenster + 2048)
+    return je_token, fest, text
+
+
+def kv_fest_fuer(modell):
+    """Der feste KV-Anteil je Sequenz in MiB aus dem exakt getroffenen Registereintrag
+    (Feld fest_mib_je_sequenz, etwa Fensterlagen), sonst 0."""
+    e = kv_registry().get(kv_schluessel(modell)) or {}
+    w = e.get("fest_mib_je_sequenz")
+    return float(w) if isinstance(w, (int, float)) and not isinstance(w, bool) and w > 0 else 0.0
+
+
 # --------------------------------------------------------------- das Buch
 
 def buch_lesen():
@@ -1655,6 +1880,27 @@ def buch_lesen():
 
 def buch_schreiben(belegungen):
     atomar_schreiben(BUCH, {"version": 1, "belegungen": belegungen})
+
+
+def ps_pfad():
+    """ps-Auswahl wie tmux_pfad (24.10.2026): im Testbett der PATH-Schirm, sonst der feste Systempfad."""
+    if os.environ.get("WB_TESTUMGEBUNG") == "1":
+        return shutil.which("ps") or "/bin/ps"
+    return next((p for p in ("/bin/ps", "/usr/bin/ps") if os.access(p, os.X_OK)), "/bin/ps")
+
+
+def prozess_besteht(pid):
+    """True/False/None nach dem Urteil des Kerns (kill -0), ohne Programm aus dem PATH. False nur
+    bei ESRCH: diese PID gibt es nicht mehr. None bei einem unbrauchbaren Wert."""
+    try:
+        os.kill(int(pid), 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except (OSError, ValueError, TypeError, OverflowError):
+        return None
+    return True
 
 
 def prozess_lstart(pid):
@@ -1668,7 +1914,7 @@ def prozess_lstart(pid):
     env = dict(os.environ)
     env["LC_ALL"] = "C"
     try:
-        p = subprocess.run(["ps", "-o", "lstart=", "-p", str(int(pid))],
+        p = subprocess.run([ps_pfad(), "-o", "lstart=", "-p", str(int(pid))],
                             capture_output=True, text=True, timeout=3, env=env)
     except (subprocess.TimeoutExpired, OSError, ValueError, TypeError):
         return ""
@@ -1685,8 +1931,16 @@ def prozess_lebt(pid, lstart_pruefwert):
     dass es wirklich noch derselbe Prozess ist."""
     if not pid or not lstart_pruefwert:
         return None
+    da = prozess_besteht(pid)
+    if da is False:
+        return False
     jetzt = prozess_lstart(pid)
-    return bool(jetzt) and jetzt == lstart_pruefwert
+    if jetzt:
+        return jetzt == lstart_pruefwert
+    # Der Kern kennt die PID noch, `ps` lieferte aber nichts (Frist unter Last, Fehler, eine Attrappe
+    # im PATH): das ist keine Messung, also nicht pruefbar. Bis 24.10.2026 galt das als tot, und ein
+    # Gesamtlauf liess so lebende Halter und Wartende aller Sitzungen verfallen (Auftrag tafelmessung).
+    return None
 
 
 def prozess_tot(eintrag):
@@ -1871,8 +2125,9 @@ def belegungen_zeigen(gueltige):
         status = "geladen" if e.get("realisiert") else "laedt noch"
         if e.get("_zustand") == "tot":
             status = "TOT"
-        gib_aus("  %-8s %8s GiB  %-12s %s"
-                % (e.get("id", "?"), zahl(e.get("gb", 0.0)), status, halter_text(e)))
+        gib_aus("  %-8s %8s GiB  %-12s %s%s"
+                % (e.get("id", "?"), zahl(e.get("gb", 0.0)), status, halter_text(e),
+                   "  [ram]" if e.get("art") == "ram" else ""))
         gib_aus("           Zweck: %s" % (e.get("zweck") or "(nicht genannt)"))
         # Nachtrag 2026-08-21, zweiter Pruefpass: kv_ersatzwert stand bisher NUR in
         # 'rechnung' (JSON) -- der eigene Kommentar bei cmd_nimm behauptete, das mache
@@ -2026,7 +2281,20 @@ def spitze_rechnen(a):
         kv_gib = 0.0
     else:
         kv_mib, herkunft, _roh, _gemessen, kv_quant_eintrag, kv_ersatzwert = kv_fuer(a.modell)
-        kv_gib = parallel * kontext * kv_mib / MIB_JE_GIB
+        # Fester Anteil je Sequenz (Fensterlagen), siehe kv_aus_config(). Ein angenommener
+        # Wert traegt den Sicherheitsfaktor wie der Anteil je Token.
+        kv_fest_mib = kv_fest_fuer(a.modell) * (1.0 if _gemessen else SICHERHEITSFAKTOR)
+        hergeleitet = kv_aus_config(getattr(a, "modell_pfad", "")) if kv_ersatzwert else None
+        if hergeleitet:
+            roh, fest_roh, text = hergeleitet
+            kv_mib, kv_fest_mib = roh * SICHERHEITSFAKTOR, fest_roh * SICHERHEITSFAKTOR
+            herkunft = ("ANGENOMMEN aus der config.json von '%s' (%s = %s MiB/Token%s, x "
+                        "Sicherheitsfaktor %s; nicht gemessen)"
+                        % (a.modell_pfad, text, zahl(roh, 4),
+                           (", fest %s MiB je Sequenz" % zahl(fest_roh, 0)) if fest_roh else "",
+                           zahl(SICHERHEITSFAKTOR, 1)))
+            kv_quant_eintrag, kv_ersatzwert = "off", False
+        kv_gib = parallel * (kontext * kv_mib + kv_fest_mib) / MIB_JE_GIB
     spitze = gewichte + gewichte_entwerfer + kv_gib + zuschlag + cache_gib
     if gewichte_entwerfer > 0:
         zeilen = [
@@ -2067,6 +2335,9 @@ def spitze_rechnen(a):
         % (parallel, kontext, zahl(kv_mib, 2)),
         "             %s" % herkunft,
     ]
+    if kv_fest_mib > 0:
+        zeilen.insert(-1, "             plus %d x %s MiB fest je Sequenz (Fensterlagen)"
+                      % (parallel, zahl(kv_fest_mib, 0)))
     if "ANGENOMMEN" in herkunft:
         zeilen.append("             einmal messen und eintragen: wb-belegung kv setzen "
                       "%s <mib-je-token> --herkunft gemessen --kv-quant q8"
@@ -2220,7 +2491,10 @@ def knapp_grund(spitze_gb, gueltige, messung, reserve_gib, verfuegbar, offen, gr
                 % (zahl(spitze_gb, 2), zahl(messung["gesamt_gib"]), zahl(reserve_gib),
                    zahl(offen), zahl(verfuegbar, 2)))
     quelle = {"ram": "RAM", "vram": "VRAM"}.get(messung.get("knappe_quelle"), "")
-    quelle = (" (knapperer Speicher: %s)" % quelle) if quelle else ""
+    if messung.get("art") == "ram":
+        quelle = " (Buchungsart ram: nur Systemspeicher)"
+    else:
+        quelle = (" (knapperer Speicher: %s)" % quelle) if quelle else ""
     if grenze_a <= grenze_b:
         engere = ("Grenze A = %s frei gemessen%s - %s Reserve - %s belegt, aber noch nicht "
                   "geladen = %s GiB"
@@ -2235,11 +2509,35 @@ def knapp_grund(spitze_gb, gueltige, messung, reserve_gib, verfuegbar, offen, gr
             "Grenze ist %s." % (zahl(spitze_gb, 2), zahl(verfuegbar, 2), engere))
 
 
+def tafel_buchung_hinweis(gueltige, halter):
+    """Hat dieser Halter schon eine Buchung, die `wb-tafel nimm <platz> --menge n` angelegt hat? Dann der
+    Satz zu einem Nein: die Tafel bucht den Speicher selbst (ihr Zweck beginnt mit "wb-tafel "), eine
+    zweite eigene Buchung desselben Vorhabens zaehlt ihn doppelt (Fund 18.11.2026, VM auf peer). Sonst ""."""
+    for e in gueltige:
+        if not str(e.get("zweck") or "").startswith("wb-tafel "):
+            continue
+        h = e.get("halter") or {}
+        gleich = ((halter.get("pane") and h.get("pane") == halter.get("pane")
+                   and h.get("socket") == halter.get("socket"))
+                  or (halter.get("unit") and h.get("unit") == halter.get("unit")))
+        if gleich:
+            return ("Dieser Halter hat %s GiB schon ueber die Tafel gebucht (Belegung %s). `wb-tafel nimm "
+                    "<platz> --menge <GiB>` bucht den Speicher selbst in wb-belegung; eine zweite eigene "
+                    "Buchung fuer dasselbe Vorhaben zaehlt ihn doppelt. Richtiger Weg: den Speicher nur "
+                    "ueber --menge der Tafel buchen (bei Bedarf mehr --menge) und kein zusaetzliches "
+                    "`wb-belegung nimm` aufrufen."
+                    % (zahl(e.get("gb", 0.0)), e.get("id", "?")))
+    return ""
+
+
 def entscheidung_zeigen(spitze_gb, zeilen, gueltige, messung, reserve_gib,
                         ja, verfuegbar, offen, grenze_a, grenze_b, grund="", widerspruch="",
-                        knapp=""):
+                        knapp="", nicht_gezaehlt=0):
     for z in zeilen:
         gib_aus(z)
+    if messung.get("art") == "ram":
+        gib_aus("  Buchungsart ram: gerechnet gegen den Systemspeicher, das VRAM der GPU bleibt "
+                "unberuehrt.")
     if messung["messbar"]:
         gib_aus("  Frei       %s GiB gemessen (%s)" % (zahl(messung["frei_gib"]), messung["verfahren"]))
         laedt = nicht_geladen(gueltige)
@@ -2274,6 +2572,9 @@ def entscheidung_zeigen(spitze_gb, zeilen, gueltige, messung, reserve_gib,
     gib_aus()
     gib_aus("  Offene Belegungen:")
     belegungen_zeigen(gueltige)
+    if nicht_gezaehlt:
+        gib_aus("  (%d Belegung(en) anderer Buchungsart zaehlen hier nicht: auf dieser Maschine sind "
+                "Systemspeicher und VRAM getrennt; `wb-belegung wer` zeigt alle.)" % nicht_gezaehlt)
     gib_aus()
     for z in ollama_zeigen(messung):
         gib_aus(z)
@@ -2337,13 +2638,29 @@ def antwort_json(ja, spitze_gb, verfuegbar, offen, messung, gueltige, extra=None
 
 # ------------------------------------------- der Weg auf eigene Gefahr
 
+# Heimat fuer den Menschen-Nachweis (18.10.2026, Befund pathklasse-sicher OPEN 2): wb-mensch kommt
+# aus der Heimat laut Benutzerdatenbank und laeuft mit HOME=<diese Heimat>, nie aus $HOME. Ein
+# umgelenktes HOME mit eigener wb-mensch-Attrappe (exit 0) galt sonst als Mensch. Testnaht: nur
+# mit WB_TESTUMGEBUNG=1 gilt das HOME der Umgebung. GRENZE: wer beides setzt, umgeht das; die
+# getippte Form sperrt bash-guard (heim-umlenkung).
+def _mensch_heim():
+    if os.environ.get("WB_TESTUMGEBUNG") == "1" and os.environ.get("HOME"):
+        return os.environ["HOME"]
+    try:
+        import pwd
+        return pwd.getpwuid(os.getuid()).pw_dir
+    except (ImportError, KeyError):
+        return ""
+
+
 def wb_mensch_pfad():
-    p = os.path.join(HOME, ".local", "bin", "wb-mensch")
-    return p if os.access(p, os.X_OK) else ""
+    heim = _mensch_heim()
+    p = os.path.join(heim, ".local", "bin", "wb-mensch") if heim else ""
+    return p if p and os.access(p, os.X_OK) else ""
 
 
 def wb_mensch_env():
-    return {"HOME": HOME,
+    return {"HOME": _mensch_heim(),
             "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
             "TMPDIR": "/tmp"}
 
@@ -2426,7 +2743,87 @@ def gefahr_zeilen(spitze_gb, verfuegbar, grund=""):
 # ------------------------------------------------------------ Unterbefehle
 
 def messung_holen(a):
-    return frei_messen(a.abtastungen, a.abstand, a.beruhigen)
+    return frei_messen(a.abtastungen, a.abstand, a.beruhigen, getattr(a, "art", "modell"))
+
+
+def buchungsart(a):
+    return getattr(a, "art", "modell") or "modell"
+
+
+def zaehlende(gueltige, art, messung):
+    """Die Belegungen, die fuer eine Anfrage dieser Buchungsart zaehlen (18.11.2026).
+
+    Auf einer Maschine mit einheitlichem Speicher (Mac) und wenn nichts gemessen werden konnte, zaehlt
+    jede Belegung: dort ist jeder Speicher derselbe. Auf einer Maschine mit eigenem GPU-Speicher (peer)
+    zaehlt nur, was dieselbe Art hat: eine KVM-VM mit 8 GiB Systemspeicher kuerzt die VRAM-Rechnung
+    der Modelle nicht, und ein Modell kuerzt nicht die Rechnung der VM. Ein Eintrag ohne Feld `art`
+    stammt aus der Zeit vor `--art` und ist ein Modell."""
+    if not messung.get("getrennt"):
+        return list(gueltige)
+    return [e for e in gueltige if (e.get("art") or "modell") == art]
+
+
+def grenze_felder(a, messung, ga, gb):
+    """Die Felder fuer die JSON-Antwort, die eine Absage erklaeren: Buchungsart, die engere Grenze
+    ("A", "B" oder None ohne Messung) und die Speicherart, die die kleinere freie Zahl lieferte."""
+    grenze = None
+    if ga is not None and gb is not None:
+        grenze = "A" if ga <= gb else "B"
+    elif gb is not None:
+        grenze = "B"
+    return {"art": buchungsart(a), "grenze": grenze,
+            "knappe_quelle": messung.get("knappe_quelle") if messung.get("messbar") else None}
+
+
+def messung_vor_der_sperre(a):
+    """(messung, beginn). Die Speichermessung dauert Sekunden (drei Abtastungen im Abstand von 1,5 s,
+    dazu ein Unterprozess je Abtastung) und gehoert NIE unter die Sperre des Buchs: sonst wartet jedes
+    `nimm` und `gib` hinter jedem `darf` (Befund task OPEN, 19.10.2026). Unter der Sperre wird
+    danach nur noch mit diesem Messwert und dem dann aktuellen Buch entschieden, siehe
+    buch_fuer_entscheidung(). `beginn` ist der Zeitpunkt VOR der ersten Abtastung."""
+    beginn = jetzt()
+    return messung_holen(a), beginn
+
+
+def realisiert_zeit(eintrag):
+    """Wann `geladen` gemeldet wurde, in Sekunden, oder None (nicht lesbar / aeltere Fassung).
+    Das ISO-Feld ist auf die Sekunde abgerundet; der Aufrufer rechnet deshalb eine Sekunde zu."""
+    ts = eintrag.get("realisiert_ts")
+    if isinstance(ts, (int, float)) and not isinstance(ts, bool) and math.isfinite(ts):
+        return float(ts)
+    m = BIS_RE.match((eintrag.get("realisiert_iso") or "").strip())
+    if not m:
+        return None
+    jahr, monat, tag, std, minu, sek, _zone = m.groups()
+    try:
+        return float(calendar.timegm((int(jahr), int(monat), int(tag),
+                                      int(std), int(minu), int(sek), 0, 0, 0))) + 1.0
+    except (ValueError, OverflowError):
+        return None
+
+
+def buch_fuer_entscheidung(gueltige, messung_beginn):
+    """Das Buch, wie es fuer die Entscheidung mit einer VORHER genommenen Messung gelten muss.
+
+    Die Messung ist aelter als die Sperre. In der Zwischenzeit kann ein anderer Aufrufer gebucht (dann
+    steht die Buchung im Buch, ist noch nicht geladen und wird von Grenze A abgezogen: richtig) oder
+    ein Modell fertig geladen und `geladen` gemeldet haben. Dessen Speicher steht in einer Messung, die
+    vor dem Laden begann, NOCH NICHT, und `nicht_geladen()` zoege ihn nach der Meldung nicht mehr ab:
+    derselbe Speicher wuerde zweimal vergeben. Deshalb gilt jede Belegung, die erst seit dem Beginn der
+    Messung als geladen gemeldet ist (oder deren Zeitpunkt sich nicht lesen laesst, aber nach dem
+    Beginn liegen koennte), fuer diese Entscheidung weiter als NICHT geladen. Das ist die harmlose
+    Richtung: hoechstens ein zu frueh gesprochenes Nein, nie ein Fehlbuchen. Eine freigegebene Belegung
+    macht die Messung nur knapper als die Wirklichkeit, auch das ist harmlos. Das Buch selbst bleibt
+    unveraendert; die Ansicht ist eine Kopie."""
+    sicht = []
+    for e in gueltige:
+        if e.get("realisiert"):
+            ts = realisiert_zeit(e)
+            if ts is not None and ts >= messung_beginn:
+                e = dict(e)
+                e["realisiert"] = False
+        sicht.append(e)
+    return sicht
 
 
 def cmd_darf(a):
@@ -2437,18 +2834,22 @@ def cmd_darf(a):
         else:
             gib_aus("%s GiB Spitze" % zahl(spitze))
         return 0
+    # Messung VOR der Sperre (task, 19.10.2026): unter ihr nur Buch lesen,
+    # entscheiden, schreiben.
+    messung, beginn = messung_vor_der_sperre(a)
     with Sperre():
         gueltige, entfernt = buch_pruefen(buch_lesen())
         pruefe_buch(gueltige)
         if entfernt:
             buch_schreiben([{k: v for k, v in e.items() if not k.startswith("_")}
                             for e in gueltige])
-        messung = messung_holen(a)
+        sicht_alle = buch_fuer_entscheidung(gueltige, beginn)
+        sicht = zaehlende(sicht_alle, buchungsart(a), messung)
         ja, verfuegbar, offen, ga, gb, grund, widerspruch = entscheiden(
-            spitze, gueltige, messung, a.reserve_gb, a.ohne_messung)
+            spitze, sicht, messung, a.reserve_gb, a.ohne_messung)
         knapp = "" if ja or grund else knapp_grund(
-            spitze, gueltige, messung, a.reserve_gb, verfuegbar, offen, ga, gb)
-    # Der Mensch darf die Buchung uebergehen, ein Agent nicht (der Nutzer, 2026-08-21).
+            spitze, sicht, messung, a.reserve_gb, verfuegbar, offen, ga, gb)
+    # Der Mensch darf die Buchung uebergehen, ein Agent nicht (decision 2026-08-21).
     # Die Ablehnung wird NICHT weggerechnet: sie steht weiter vollstaendig in der
     # Ausgabe, sie hoert nur auf, ein Nein zu sein.
     gefahr = bool(getattr(a, "auf_eigene_gefahr", False)) and not ja
@@ -2458,6 +2859,7 @@ def cmd_darf(a):
     if a.json:
         antwort_json(ja, spitze, verfuegbar, offen, messung, gueltige,
                      {"verfallen": [e.get("id") for e in entfernt], "grund": grund or knapp,
+                      **grenze_felder(a, messung, ga, gb),
                       "ollama_widerspruch": widerspruch or None,
                       "auf_eigene_gefahr": gefahr or None,
                       "warnung_eigene_gefahr": "\n".join(z.strip() for z in warnzeilen if z.strip()) or None,
@@ -2481,9 +2883,9 @@ def cmd_darf(a):
     for z in warnzeilen:
         gib_aus(z)
     gib_aus()
-    entscheidung_zeigen(spitze, zeilen, gueltige, messung, a.reserve_gb,
+    entscheidung_zeigen(spitze, zeilen, sicht, messung, a.reserve_gb,
                         ja, verfuegbar, offen, ga, gb, grund, widerspruch,
-                        "" if ja else knapp)
+                        "" if ja else knapp, len(sicht_alle) - len(sicht))
     if entfernt:
         gib_aus()
         for e in entfernt:
@@ -2504,14 +2906,21 @@ def cmd_nimm(a):
     if halter.get("halter_art") == "unit" and a.frist < 1:
         fehler("--frist muss mit einer Unit als Eigentuemer mindestens 1 Minute sein: die Frist "
                "bleibt Pflicht, sie macht die Buchung ueberfaellig und sichtbar.")
+    # Messung VOR der Sperre, siehe cmd_darf und buch_fuer_entscheidung(): unter der Sperre wird mit
+    # diesem Messwert und dem aktuellen Buch entschieden und im selben Zug gebucht. Fuenf gleichzeitige
+    # `nimm` messen alle denselben freien Speicher, aber jedes sieht unter der Sperre die Buchungen der
+    # vorigen (noch nicht geladen, von Grenze A abgezogen) -- die Summe uebersteigt nie den Speicher.
+    messung, beginn = messung_vor_der_sperre(a)
     with Sperre():
         gueltige, entfernt = buch_pruefen(buch_lesen())
         pruefe_buch(gueltige)
-        messung = messung_holen(a)
+        sicht_alle = buch_fuer_entscheidung(gueltige, beginn)
+        sicht = zaehlende(sicht_alle, buchungsart(a), messung)
         ja, verfuegbar, offen, ga, gb, grund, widerspruch = entscheiden(
-            spitze, gueltige, messung, a.reserve_gb, a.ohne_messung)
+            spitze, sicht, messung, a.reserve_gb, a.ohne_messung)
         knapp = "" if ja or grund else knapp_grund(
-            spitze, gueltige, messung, a.reserve_gb, verfuegbar, offen, ga, gb)
+            spitze, sicht, messung, a.reserve_gb, verfuegbar, offen, ga, gb)
+        tafel_hinweis = "" if ja else tafel_buchung_hinweis(gueltige, halter)
         # Siehe cmd_darf: der Mensch darf uebergehen, ein Agent nicht. Die Belegung
         # traegt danach ein eigenes Merkmal, damit `wer` und jeder spaetere Leser
         # sehen, dass diese eine Zahl NICHT durch die Pruefung gekommen ist.
@@ -2524,6 +2933,7 @@ def cmd_nimm(a):
             neu = {
                 "id": kennung(),
                 "gb": round(spitze, 3),
+                "art": buchungsart(a),
                 "zweck": a.zweck,
                 "modell": a.modell or "",
                 # metal_fraktion (Nachtrag "vllm-metal als zweiter Motor",
@@ -2566,6 +2976,7 @@ def cmd_nimm(a):
                 "auf_eigene_gefahr": bool(gefahr),
             }
             gueltige = gueltige + [neu]
+            sicht = sicht + [neu]
         buch_schreiben([{k: v for k, v in e.items() if not k.startswith("_")}
                         for e in gueltige])
     if a.json:
@@ -2593,6 +3004,8 @@ def cmd_nimm(a):
                        "die Sequenz noch laeuft.") % (int(a.frist), int(a.karenz), neu["id"])
         antwort_json(ja, spitze, verfuegbar, offen, messung, gueltige,
                      {"kennung": neu["id"] if neu else None, "grund": grund or knapp,
+                      **grenze_felder(a, messung, ga, gb),
+                      "hinweis": tafel_hinweis or None,
                       "halter": halter_text(neu) if neu else None,
                       "halter_unit": halter.get("unit") if neu else None,
                       "warnung": warnung, "ollama_widerspruch": widerspruch or None,
@@ -2634,10 +3047,13 @@ def cmd_nimm(a):
                 % (zahl(spitze),
                    "" if verfuegbar is None else (", nur %s GiB verfuegbar" % zahl(verfuegbar))))
         gib_aus()
-    entscheidung_zeigen(spitze, zeilen, gueltige, messung, a.reserve_gb,
+    entscheidung_zeigen(spitze, zeilen, sicht, messung, a.reserve_gb,
                         ja, verfuegbar, offen, ga, gb, grund, widerspruch,
-                        "" if ja else knapp)
+                        "" if ja else knapp, len(sicht_alle) - len(sicht))
     absage_erklaeren(ja, gueltige, messung, grund)
+    if tafel_hinweis:
+        gib_aus()
+        gib_aus("  HINWEIS: %s" % tafel_hinweis)
     return 0 if ja else 1
 
 
@@ -2823,7 +3239,8 @@ def cmd_geladen(a):
                 if e.get("realisiert"):
                     continue
                 e["realisiert"] = True
-                e["realisiert_iso"] = iso(jetzt())
+                e["realisiert_ts"] = jetzt()
+                e["realisiert_iso"] = iso(e["realisiert_ts"])
                 if pid:
                     e["prozess_pid"] = pid
                     e["prozess_lstart"] = lstart
@@ -3172,6 +3589,11 @@ def rechen_argumente(p):
                    help="Kontext-Token je Anfrage")
     p.add_argument("--modell", default="",
                    help="Modellname fuer den KV-Bedarf je Token")
+    p.add_argument("--modell-pfad", default="",
+                   help="Modellordner oder Hugging-Face-Kennung (org/name). Nur wenn --modell "
+                        "keinen Registereintrag trifft: KV-Bedarf aus dessen config.json "
+                        "gerechnet (ANGENOMMEN, mit Sicherheitsfaktor) statt mit dem "
+                        "Ersatzwert des hungrigsten gemessenen Modells.")
     p.add_argument("--kv-quant", default="", choices=("", "off", "q8", "q4"),
                    help="womit der Motor den KV-Cache gleich faehrt. Wird NIE "
                         "eingerechnet, nur mit dem Registereintrag verglichen und "
@@ -3188,6 +3610,12 @@ def rechen_argumente(p):
                         "(der Server hat den Sockel schon bei seinem eigenen Start "
                         "gebucht). Ohne Wirkung, wenn --zuschlag-gb ausdruecklich "
                         "gesetzt ist." % ZUSCHLAG_FIXED_GIB)
+    p.add_argument("--art", choices=ART_WERTE, default="modell",
+                   help="Buchungsart. modell (Vorgabe): gegen den KNAPPEREN von VRAM und Systemspeicher, "
+                        "wie bisher. ram: nur Systemspeicher, das VRAM bleibt unberuehrt -- fuer "
+                        "Vorhaben ohne GPU-Bedarf, etwa eine KVM-VM. Auf peer (eigener GPU-Speicher) "
+                        "zaehlen dann nur Belegungen derselben Art; auf dem Mac (einheitlicher "
+                        "Speicher) rechnen beide Arten dieselbe Zahl und zaehlen alle Belegungen")
     p.add_argument("--reserve-gb", type=float, default=RESERVE_GIB,
                    help="was dem System bleibt (Vorgabe %s)" % RESERVE_GIB)
     p.add_argument("--abtastungen", type=int, default=ABTASTUNGEN,

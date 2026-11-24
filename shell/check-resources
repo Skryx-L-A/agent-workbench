@@ -113,7 +113,7 @@ ollama_lokale_laeufer_lage() {
     return
   fi
   kandidaten="$(printf '%s\n' "$ps_out" | grep -E '\bollama runne[r]\b|\bllama[-_](serve[r]|cl[i])\b')"
-  if printf '%s\n' "$kandidaten" | grep -qi 'ollama'; then
+  if grep -qi 'ollama' <<<"$kandidaten"; then
     printf 'ja'
   else
     printf 'nein'
@@ -131,7 +131,7 @@ note_add() {
 collect_ollama() {
   if ! command -v ollama >/dev/null 2>&1; then OLLAMA_NOTE="ollama not installed"; return; fi
   local ops
-  if ! ops="$(ollama ps 2>/dev/null)" || printf '%s' "$ops" | grep -qi "could not connect"; then
+  if ! ops="$(ollama ps 2>/dev/null)" || grep -qi "could not connect" <<<"$ops"; then
     # Der Server ist bestaetigt NICHT erreichbar -- dann ist "nichts geladen"
     # keine Vermutung, sondern so sicher wie ein Prozess, der nicht laeuft. Kein
     # Versuch gegen :11434, der nur eine zweite Art desselben Nein waere.

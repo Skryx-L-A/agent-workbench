@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Worktree je Agent (docs/AGENTS-PLAN.md, Abschnitt 8 Punkt 9; docs/AGENTS-TRAEGER.md, "Worktree je Agent").
 
-der Nutzer, 16.09.2026: "Agents sollen in den jeweiligen Projektordner schreiben, wie die Worker dann auch nicht
-nach main sondern in eigene." Hat die Welt ein git-Projekt (``<projekt>/.git`` ist ein echter Ordner), legt der
+decision 2026-09-16. Hat die Welt ein git-Projekt (``<projekt>/.git`` ist ein echter Ordner), legt der
 Traeger vor dem ersten Zug eines Agenten einen Worktree auf dem Zweig ``agent/<id>`` an, abgezweigt vom
 Hauptzweig (``main``, sonst ``master``). Er liegt im privaten Arbeitsordner des Agenten,
 ``<agentenbereich>/<id>/work/<id>``: ausserhalb des nur lesbar eingebundenen Projekts, kurz (die Sockets

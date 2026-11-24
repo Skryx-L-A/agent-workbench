@@ -8,6 +8,10 @@
 #   wb-speicher --reste      nur die Liste dessen, was liegengeblieben ist
 #   wb-speicher --reste --aufraeumen   beendet davon, was nachweislich tot ist
 #
+# Exit 3: die Messung ist nicht moeglich (top -l scheitert oder liefert nichts,
+# etwa auf Linux). Dann gibt es keine Zahl und keine Ampel, und nichts wird
+# beendet. Eine leere Messung ist nie gruen.
+#
 # WOZU (2026-08-20). der Nutzer sah "fast 20 GB" belegt, waehrend nur die Werkbank
 # lief. Die Zahl kam aus `ps rss` — und die ist auf macOS die falsche Zahl. Der
 # tmux-Server stand dort mit 4,07 GiB; sein tatsaechlicher Fussabdruck waren
@@ -65,10 +69,26 @@ def sh(*cmd):
         return ""
 
 
+class MessungFehlt(Exception):
+    """top liefert keine Werte. Dann gibt es keine Zahl, die man zeigen darf."""
+
+
 def fussabdruecke():
-    """phys_footprint je PID in MiB, aus einem einzigen top-Lauf."""
+    """phys_footprint je PID in MiB, aus einem einzigen top-Lauf.
+
+    Scheitert top (procps auf Linux kennt -l nicht) oder liefert es keine
+    Prozesszeile, ist das MessungFehlt. Eine leere Messung ergaebe sonst 0 GiB
+    und damit eine gruene Ampel.
+    """
+    try:
+        roh = subprocess.run(["top", "-l", "1", "-stats", "pid,mem"],
+                             capture_output=True, text=True, timeout=20)
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        raise MessungFehlt("top laeuft nicht (fehlt oder haengt)")
+    if roh.returncode != 0:
+        raise MessungFehlt(f"top -l 1 endet mit Exit {roh.returncode} (kein macOS-top)")
     aus = {}
-    for zeile in sh("top", "-l", "1", "-stats", "pid,mem").splitlines():
+    for zeile in roh.stdout.splitlines():
         f = zeile.split()
         if len(f) != 2 or not f[0].isdigit():
             continue
@@ -81,7 +101,15 @@ def fussabdruecke():
             aus[int(f[0])] = float(wert[:-1]) * faktor
         except ValueError:
             pass
+    if not aus:
+        raise MessungFehlt("top -l 1 liefert keine Prozesszeile")
     return aus
+
+
+def reste_suchen():
+    """Die Reste ohne Speichermessung: sie brauchen nur die Prozesstabelle."""
+    _, args, eltern, alter, tty = prozessbaum()
+    return reste_finden(args, eltern, alter, tty)
 
 
 def prozessbaum():
@@ -165,10 +193,15 @@ def nachkommen(pid, kinder, gesehen=None):
 def wb_tmux():
     """(Server-PIDs, Pane-PIDs) der tmux-Server, die Werkbank-Sessions halten."""
     server, panes = set(), set()
-    for zeile in sh("tmux", "list-sessions", "-F", "#{pid}\t#{session_name}").splitlines():
-        f = zeile.split("\t")
-        if len(f) == 2 and f[1].startswith("wb-"):
-            server.add(int(f[0]))
+    # Trenner ist '|', kein Tabulator: Ohne UTF-8-Gebietsschema des Clients (LANG/LC_ALL leer oder POSIX, etwa ueber
+    # `ssh -n` oder aus launchd) gibt tmux ein Tab im -F-Format als '_' aus (gemessen 20.11.2026, tmux 3.8 am Mac und
+    # 3.7c auf peer). Dann fand die Zeile nie zwei Felder, und der tmux-Server fehlte im Bericht. Die Server-PID steht
+    # vorn und enthaelt kein '|'; der Sitzungsname ist der ganze Rest, auch wenn er selbst ein '|' enthaelt. Gebraucht
+    # wird nur sein Anfang "wb-", den tmux auch ohne UTF-8 unveraendert ausgibt.
+    for zeile in sh("tmux", "list-sessions", "-F", "#{pid}|#{session_name}").splitlines():
+        pid, sep, name = zeile.partition("|")
+        if sep and pid.isdigit() and name.startswith("wb-"):
+            server.add(int(pid))
     for zeile in sh("tmux", "list-panes", "-a", "-F", "#{pane_pid}").splitlines():
         if zeile.strip().isdigit():
             panes.add(int(zeile.strip()))
@@ -544,21 +577,30 @@ def main():
     p.add_argument("--aufraeumen", action="store_true")
     a = p.parse_args()
 
-    d = erheben()
+    # Die Liste der Reste braucht keine Messung. Nur das Aufraeumen nennt
+    # Zahlen davor und danach, und ohne Messung beendet es nichts.
+    if a.reste and not a.aufraeumen:
+        funde = reste_suchen()
+        if a.json:
+            print(json.dumps(funde, indent=1))
+        else:
+            print(reste_bericht(funde))
+        return 0
+
+    try:
+        d = erheben()
+    except MessungFehlt as fehler:
+        print(f"wb-speicher: Messung nicht moeglich: {fehler}.", file=sys.stderr)
+        print("Ohne Messung gibt es keine Ampel. Exit 3, nichts beendet.", file=sys.stderr)
+        return 3
 
     if a.reste:
-        if a.aufraeumen:
-            beendet, geblieben = reste_beenden(d["reste"])
-            print(f"Beendet: {len(beendet)} Prozesse.")
-            if geblieben:
-                print(f"Geblieben trotz Aufforderung: {len(geblieben)} — {geblieben}")
-            nach = erheben()
-            print(f"Werkbank vorher {gib(d['gesamt_mib'])}, nachher {gib(nach['gesamt_mib'])}.")
-            return 0
-        if a.json:
-            print(json.dumps(d["reste"], indent=1))
-        else:
-            print(reste_bericht(d["reste"]))
+        beendet, geblieben = reste_beenden(d["reste"])
+        print(f"Beendet: {len(beendet)} Prozesse.")
+        if geblieben:
+            print(f"Geblieben trotz Aufforderung: {len(geblieben)} — {geblieben}")
+        nach = erheben()
+        print(f"Werkbank vorher {gib(d['gesamt_mib'])}, nachher {gib(nach['gesamt_mib'])}.")
         return 0
 
     if a.json:

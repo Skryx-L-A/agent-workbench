@@ -27,7 +27,8 @@ idleMinutes ohne Aufruf. Ausfall (2.5): isError-Ergebnis statt Absturz, Neustart
 Umgebung (Tests): WB_WERKZEUGE_SRC, WB_WERKZEUGE_REGISTRY, WB_MASCHINE (wie werkzeuge_kern),
 WB_HUB_STATE (Zustandsordner), WB_HUB_TOKEN_DATEI, WB_HUB_PORT, WB_HUB_IDLE_SEKUNDEN,
 WB_HUB_BACKOFF ("1,5,30"), WB_HUB_FILTER_CMD (Filterbefehl, leer = keiner),
-WB_HUB_HANDLER_TIMEOUT (Socket-Zeitgrenze in Sekunden, Vorgabe 30), WB_HUB_SELBSTENDE_SEKUNDEN (siehe wb_hub_dienst).
+WB_HUB_HANDLER_TIMEOUT (Socket-Zeitgrenze in Sekunden, Vorgabe 30), WB_HUB_SELBSTENDE_SEKUNDEN (siehe wb_hub_dienst),
+WB_HUB_ZEILEN_GRENZE (Byte je Zeile eines stdio-Backends inklusive Zeilenende, Vorgabe 32 MiB, nur senkbar).
 """
 import datetime
 import fcntl
@@ -57,6 +58,7 @@ VORGABE_PORT = 8790
 VORGABE_IDLE_MINUTEN = 10
 VORGABE_TIMEOUT = 120
 VORGABE_BACKOFF = (1.0, 5.0, 30.0)
+VORGABE_ZEILEN_GRENZE = 32 * 1024 * 1024
 PROTOKOLLE = ("2025-06-18", "2025-03-26", "2024-11-05")
 SERVERNAME = re.compile(r"^[a-z0-9]+$")
 WERKZEUGNAME = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
@@ -107,6 +109,16 @@ def backoff_stufen():
     if not roh:
         return VORGABE_BACKOFF
     return tuple(float(x) for x in roh.split(",") if x.strip())
+
+
+def zeilen_grenze():
+    """Obergrenze einer Zeile je stdio-Backend in Byte (mit Zeilenende). Leer, nicht ganzzahlig oder nicht
+    positiv ergibt die Vorgabe; eine hoehere Zahl wird auf die Vorgabe begrenzt, senken ist der einzige Weg."""
+    try:
+        n = int(os.environ.get("WB_HUB_ZEILEN_GRENZE", ""))
+    except ValueError:
+        return VORGABE_ZEILEN_GRENZE
+    return min(n, VORGABE_ZEILEN_GRENZE) if n > 0 else VORGABE_ZEILEN_GRENZE
 
 
 def filter_befehl():
@@ -181,7 +193,7 @@ class Log:
     def zeile(self, **felder):
         """Nur feste, inhaltsfreie Felder; Werte werden auf ein Wort ohne Leerraum gekuerzt."""
         teile = [datetime.datetime.now().isoformat(timespec="seconds")]
-        for k in ("ereignis", "harness", "server", "werkzeug", "dauer_ms", "ergebnis", "grund"):
+        for k in ("ereignis", "harness", "server", "werkzeug", "dauer_ms", "ergebnis", "grund", "grenze"):
             if k in felder and felder[k] is not None:
                 teile.append("%s=%s" % (k, re.sub(r"[^A-Za-z0-9_.:-]", "_", str(felder[k]))[:80]))
         with self.sperre:
@@ -198,6 +210,10 @@ class Log:
 
 class ProzessWeg(BackendFehler):
     """Der Backendprozess ist beendet oder seine Leitung zu; zaehlt als Fehlschlag."""
+
+
+class ZeileZuLang(ProzessWeg):
+    """Eine Zeile des Backends war ueber der Grenze; das Backend wurde getrennt (Antwort -32603)."""
 
 
 class Backend:
@@ -227,6 +243,8 @@ class Backend:
         else:
             self.idle_sekunden = 60.0 * float(idle if idle is not None else hub.idle_minuten)
         self.timeout = float(eintrag.get("timeout", VORGABE_TIMEOUT))
+        self.zeilen_grenze = zeilen_grenze()
+        self.zu_lang = None      # Prozess, dessen Zeile ueber der Grenze lag; nur fuer seine wartenden Anfragen
 
     # -- Zustand
 
@@ -375,7 +393,14 @@ class Backend:
             raise ProzessWeg("Verbindung zum Prozess verloren")
 
     def _lesen(self, proc):
-        for zeile in proc.stdout:
+        grenze = self.zeilen_grenze
+        while True:
+            zeile = proc.stdout.readline(grenze + 1)      # hoechstens grenze+1 Byte im Speicher
+            if not zeile:
+                break
+            if len(zeile) > grenze:                       # ueberlang: nicht weiterlesen, Backend trennen
+                self._zu_lang(proc, grenze)
+                break
             try:
                 m = json.loads(zeile)
             except ValueError:
@@ -404,6 +429,16 @@ class Backend:
         for ev in list(self.offen.values()):
             ev[0].set()
 
+    def _zu_lang(self, proc, grenze):
+        """Trennt den Prozess; die Anfragen, die auf ihn warten, sehen ZeileZuLang statt eines blossen Abbruchs."""
+        self.zu_lang = proc
+        self.hub.log.zeile(ereignis="zeile-zu-lang", server=self.name, grenze=grenze)
+        if proc.poll() is None:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)    # Gruppe = eigene Session des Starters
+            except OSError:
+                pass
+
     def _anfrage_roh(self, methode, params, timeout):
         with self.schreib_sperre:
             self.naechste_id += 1
@@ -420,6 +455,8 @@ class Backend:
                     pass
                 raise BackendFehler("Zeitgrenze %.0f s" % timeout)
             if ev[1] is None:
+                if self.zu_lang is not None and self.zu_lang is self.proc:
+                    raise ZeileZuLang("Backend %s: Zeile ueber %d Byte, Backend getrennt" % (self.name, self.zeilen_grenze))
                 raise ProzessWeg("Prozess beendet")
             if "error" in ev[1]:
                 raise BackendFehler("Fehler %s" % ev[1]["error"].get("code"))
@@ -582,6 +619,10 @@ class Hub:
         try:
             r = b.anfrage("tools/call", {"name": tool, "arguments": params.get("arguments") or {}})
             ergebnis = "fehler" if r.get("isError") else "ok"
+        except ZeileZuLang:
+            self.log.zeile(ereignis="aufruf", harness=harness or "-", server=server, werkzeug=tool,
+                           dauer_ms=int((time.monotonic() - t0) * 1000), ergebnis="zeile")
+            raise
         except BackendFehler as e:
             ergebnis = "zeit" if str(e).startswith("Zeitgrenze") else "fehler"
             r = {"content": [{"type": "text", "text": "Server %s nicht erreichbar: %s" % (server, e)}],
@@ -612,7 +653,10 @@ class Hub:
         if methode == "tools/list":
             return ok(self.tools_list(harness))
         if methode == "tools/call":
-            r = self.tools_call(harness, params)
+            try:
+                r = self.tools_call(harness, params)
+            except ZeileZuLang as e:
+                return err(-32603, str(e))
             return ok(r) if r is not None else err(-32602, "unbekanntes Werkzeug")
         if methode in wb_hub_prompts.PROMPT_METHODEN:
             try:
@@ -816,6 +860,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     allow_reuse_address = True
+    # Rueckstau wie die Fadengrenze: mit der socketserver-Vorgabe 5 verwirft Linux bei einem
+    # Verbindungsstoss die SYNs, jede achte Verbindung wartete 1 s (gemessen auf peer, 24.10.).
+    request_queue_size = FAEDEN_GRENZE
     faeden = threading.BoundedSemaphore(FAEDEN_GRENZE)
     hub = None
 

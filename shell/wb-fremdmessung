@@ -106,9 +106,12 @@ def quelle_aider_polyglot() -> list[dict]:
     """
     y = hole("https://raw.githubusercontent.com/Aider-AI/aider/main/aider/website/_data/"
              "polyglot_leaderboard.yml")
+    # Die Zwischenzeilen duerfen keinen neuen Eintrag ("- dirname:") ueberqueren, sonst bekaeme ein Eintrag
+    # ohne pass_rate_2 die Quote des naechsten.
+    ueber = r"(?:(?!- dirname:).*\n)*?"
     treffer = re.findall(
-        r"- dirname: (\d{4}-\d{2}-\d{2})[^\n]*\n(?:.*?\n)*?  model: ([^\n]+)\n"
-        r"(?:.*?\n)*?  pass_rate_2: ([\d.]+)", y)
+        r"- dirname: (\d{4}-\d{2}-\d{2})[^\n]*\n" + ueber + r"  model: ([^\n]+)\n"
+        + ueber + r"  pass_rate_2: ([\d.]+)", y)
     raus = []
     for datum, modell, quote in treffer:
         raus.append({
@@ -143,7 +146,7 @@ def quelle_openrouter_preise() -> list[dict]:
             "einheit": "US-Dollar je Million Ausgabe-Token",
             "eingabe_je_mtok": round(ein * 1e6, 4),
             "kontextfenster": m.get("context_length") or 0,
-            # Was das Modell ueberhaupt aufnehmen und ausgeben kann. der Nutzer am 2026-08-27:
+            # Was das Modell ueberhaupt aufnehmen und ausgeben kann. decision 2026-08-27:
             # "Ein Modell, das an etwas Visuellem arbeitet, braucht zwingend Sicht oder native
             # Bildverarbeitung." Das ist ein Ausschlusskriterium und keine Feinheit -- es geht
             # der ganzen Kosten-zu-Intelligenz-Rechnung voraus. Kein noch so kluges Textmodell
@@ -187,9 +190,16 @@ QUELLEN = {
 def lies() -> dict:
     if ZIEL.is_file():
         try:
-            return json.loads(ZIEL.read_text())
-        except json.JSONDecodeError:
-            print(f"WARNUNG: {ZIEL} ist unlesbar, wird neu angelegt.", file=sys.stderr)
+            d = json.loads(ZIEL.read_text())
+        except ValueError:      # JSONDecodeError und UnicodeDecodeError
+            d = None
+        if isinstance(d, dict):
+            # Handgeaenderte Dateien: fehlende oder falsch geformte Teile gelten als leer.
+            d["werte"] = [w for w in d["werte"] if isinstance(w, dict)] if isinstance(d.get("werte"), list) else []
+            if not isinstance(d.get("quellen"), dict):
+                d["quellen"] = {}
+            return d
+        print(f"WARNUNG: {ZIEL} ist unlesbar, wird neu angelegt.", file=sys.stderr)
     return {"zweck": ("Bewertungen aus FREMDEN Quellen. Bewusst getrennt von daten.json, in der "
                       "die selbst gemessenen Werte stehen. Eine Zahl von hier ersetzt keine "
                       "eigene Messung, sie fuellt Luecken."),
@@ -212,6 +222,8 @@ def cmd_holen(nur: str | None) -> int:
         except Exception as fehler:
             print(f"  {name}: FEHLGESCHLAGEN ({type(fehler).__name__}: {fehler})")
             stand["quellen"].setdefault(name, {})["letzter_fehler"] = f"{heute}: {fehler}"
+            # Ein Ausfall loescht nichts: die alten Werte bleiben mit ihrem alten Abrufdatum.
+            behalten.extend(w for w in stand["werte"] if w.get("quelle") == name)
             continue
         if not werte:
             print(f"  {name}: 0 Treffer -- vermutlich hat sich der Aufbau der Quelle geaendert. "
@@ -365,17 +377,42 @@ def cmd_kann(gesucht: list[str], hoechstpreis: float) -> int:
     return 0
 
 
+class Bedienfehler(ValueError):
+    pass
+
+
+def flagwert(args: list[str], i: int, flag: str) -> str:
+    """Der Wert hinter einem Schalter an Stelle i; fehlt er, ist das ein Bedienfehler (Exit 2)."""
+    if i + 1 >= len(args):
+        raise Bedienfehler(f"{flag} braucht einen Wert")
+    return args[i + 1]
+
+
+def zahl(text: str, flag: str) -> float:
+    try:
+        return float(text)
+    except ValueError:
+        raise Bedienfehler(f"{flag} braucht eine Zahl, nicht '{text}'")
+
+
 def main() -> int:
-    args = sys.argv[1:]
+    try:
+        return _main(sys.argv[1:])
+    except Bedienfehler as e:
+        print(f"FEHLER: {e}", file=sys.stderr)
+        return 2
+
+
+def _main(args: list[str]) -> int:
     if not args:
         return cmd_zeigen(None)
     if args[0] == "holen":
-        nur = args[args.index("--quelle") + 1] if "--quelle" in args else None
+        nur = flagwert(args, args.index("--quelle"), "--quelle") if "--quelle" in args else None
         return cmd_holen(nur)
     if args[0] == "zeigen":
         return cmd_zeigen(args[1] if len(args) > 1 else None)
     if args[0] == "rangliste":
-        grenze = float(args[args.index("--bis") + 1]) if "--bis" in args else 0.0
+        grenze = zahl(flagwert(args, args.index("--bis"), "--bis"), "--bis") if "--bis" in args else 0.0
         return cmd_rangliste(grenze)
     if args[0] == "kann":
         grenze = 0.0
@@ -385,7 +422,7 @@ def main() -> int:
             if args[i] == "--bis":
                 # Der WERT nach --bis darf nicht als Modalitaet mitgezaehlt werden, sonst sucht
                 # das Werkzeug nach einer Eingabeart namens "1.0" und findet nie etwas.
-                grenze = float(args[i + 1])
+                grenze = zahl(flagwert(args, i, "--bis"), "--bis")
                 i += 2
                 continue
             if not args[i].startswith("--"):

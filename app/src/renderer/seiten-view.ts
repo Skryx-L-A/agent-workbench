@@ -221,11 +221,14 @@ export class Seiten {
     // meist bevor ueberhaupt ein Bild gezeichnet wurde.
     this.rahmen.addEventListener('load', () => this.themaSenden());
     // Antworten der Seite auf unsere Fragen einsammeln (siehe bootstrap()).
+    // Nur der eigene Rahmen antwortet; der Schluessel waehlt nur unter den
+    // eigenen Wartern in der Map (CodeQL js/unvalidated-dynamic-method-call).
     window.addEventListener('message', (e) => {
+      if (e.source !== this.rahmen.contentWindow) return;
       const d = e.data as { __awbAntwort?: boolean; nr?: number; antwort?: unknown } | null;
       if (!d || d.__awbAntwort !== true || typeof d.nr !== 'number') return;
       const warten = this.offeneFragen.get(d.nr);
-      if (!warten) return;
+      if (typeof warten !== 'function') return;
       this.offeneFragen.delete(d.nr);
       warten(d.antwort);
     });

@@ -380,7 +380,7 @@ function ladeRenderer(paneId: string, t: Terminal): void {
   // shell/tests/test-app-scroll-renderer.sh liest den Wert hier und dreht
   // sich von selbst mit, in beide Richtungen -- niemand muss daran denken.
   // Offen und ausdruecklich unerklaert bleiben die grauen Balken auf dem
-  // Bildschirmfoto vom 16.08., 21:52; kommen sie unter WebGL wieder, ist das
+  // Bildschirmfoto vom 16.08.; kommen sie unter WebGL wieder, ist das
   // das Zeichen, hier wieder zuzumachen.
   const WEBGL_AUS = false;
   if (WEBGL_AUS) { aufCanvas(); return; }
@@ -490,6 +490,16 @@ function terminalZwischenablageHaken(t: Terminal): void {
 }
 
 let gemeldet = { cols: 0, rows: 0 };
+/**
+ * Ob schon ein Modell gezeichnet ist. VORHER steht die Anordnung um die Buehne
+ * noch nicht -- Leisten, Tabstreifen und Blatt kommen erst mit dem Modell --,
+ * und eine Flaeche aus diesem Zustand ist keine, die jemand sehen soll.
+ * GEMESSEN auf T1 (27.10., test-app-fenster-umbruch-naht.sh): vor dem ersten
+ * Modell meldete die Buehne 142x28 (994x500 Bildpunkte), danach 122x30
+ * (856x534); das Anhaengen stellte den Pane zuerst auf die 142, dann auf die
+ * 122 -- zwei Umbrueche und der Salat im Puffer.
+ */
+let modellDa = false;
 
 /** Wieviele ganze Zellen die Buehne fasst -- die Zahl, die tmux bekommt. */
 function flaecheInZellen(): { cols: number; rows: number } | null {
@@ -500,6 +510,7 @@ function flaecheInZellen(): { cols: number; rows: number } | null {
 }
 
 function passeAn(): void {
+  if (!modellDa) return;
   const mass = flaecheInZellen();
   if (!mass) return;
   if (mass.cols === gemeldet.cols && mass.rows === gemeldet.rows) return;
@@ -871,11 +882,28 @@ function kachelLage(
   // uebrig bleibt, wird wie bisher auf ganze Zellen abgerundet. Der Rest der
   // Abrundung liegt weiterhin zwischen den Kacheln und macht die Fuge dort um
   // bis zu eine Zelle breiter; ueberstehen kann keine Kachel.
+  //
+  // DIE ZEILENZAHL KOMMT AUS DERSELBEN RECHNUNG WIE IM HAUPTPROZESS (24.10.2026).
+  // tmux bekommt je Kachel `floor(floor(flaecheH / zelle) / reihen)` Zeilen
+  // (capacity.ts, `kachelZellen`, aus der Zellenzahl von `flaecheInZellen`).
+  // Hier stand `floor((flaecheH - Fugen) / reihen / zelle)`, und das ist eine
+  // Zeile weniger, sobald die Fugen nicht mehr in den Rest der Abrundung passen
+  // oder die gemessene Zelle ein Haar ueber einer ganzen Zahl liegt. GEMESSEN
+  // auf Linux mit eigenem Bildschirm (T1, sieben Worker in zwei Reihen):
+  // Schirmhoehe 718, Zelle 7x17, tmux 21 Zeilen, Kachel 20 -- der Inhalt lief
+  // 17 Bildpunkte ueber seine Kachel. Mit derselben Zahl wie tmux passt die
+  // Kachel immer (reihen * zeilen * zelle <= flaecheH); die Fuge ist dann der
+  // Rest und kann im Grenzfall schmaler als FUGE werden. Wo FUGE in den Rest
+  // passt, ist alles wie vorher.
   const nutzH = Math.max(1, flaecheH - (reihen.length - 1) * FUGE);
-  const zeilenZellen = zelle.hoehe > 0 ? Math.max(1, Math.floor(nutzH / reihen.length / zelle.hoehe)) : 0;
+  const zeilenZellen = zelle.hoehe > 0
+    ? Math.max(1, Math.floor(Math.floor(flaecheH / zelle.hoehe) / reihen.length))
+    : 0;
   const kachelH = zeilenZellen > 0 ? Math.min(nutzH, zeilenZellen * zelle.hoehe) : nutzH / reihen.length;
+  // Gleich `FUGE + (nutzH - reihen * kachelH) / (reihen - 1)`, solange FUGE in
+  // den Rest passt; sonst der Rest selbst, damit keine Kachel hinausragt.
   const fugeH = reihen.length > 1
-    ? FUGE + Math.max(0, (nutzH - reihen.length * kachelH) / (reihen.length - 1))
+    ? Math.max(0, (flaecheH - reihen.length * kachelH) / (reihen.length - 1))
     : 0;
   const lagen: { x: number; y: number; b: number; h: number }[] = [];
   let n = 0;
@@ -1329,7 +1357,7 @@ function nachfordernSpaeter(p: LayoutPayload): void {
  */
 const nachgefordert = new Set<string>();
 function nachfordern(p: LayoutPayload): void {
-  if (p.art !== 'pane' || !p.panes.length || p.vorgegeben) return;
+  if (!modellDa || p.art !== 'pane' || !p.panes.length || p.vorgegeben) return;
   const mass = flaecheInZellen();
   if (!mass) return;
   const box = p.panes[0];
@@ -1896,8 +1924,15 @@ export function initPaneflaeche(u: PaneflaecheUmgebung): void {
  * weiter die alten 143 Spalten (gemessen 03.09. in
  * test-app-fenster-zu-klein.sh, Zusage 4).
  */
-export function flaecheMelden(): void {
-  requestAnimationFrame(passeAn);
+export function flaecheMelden(modellNr?: number): void {
+  requestAnimationFrame(() => {
+    modellDa = true;
+    passeAn();
+    // Erst NACH der Flaechenmeldung: der Hauptprozess bricht in tmux erst um,
+    // wenn das Fenster das neueste Modell gezeichnet hat (main.ts,
+    // FLAECHE_MODELL_MAX_MS) -- eine Flaeche aus der Anordnung davor gilt nicht.
+    if (modellNr) window.awbBridge.bedienung('modell-gezeichnet', modellNr);
+  });
 }
 
 /** Die Flaeche neu vermessen und die Kacheln nachziehen -- nach jeder Aenderung am Layout um sie herum. */
@@ -2067,6 +2102,9 @@ export function paneflaecheBericht(): Record<string, unknown> {
         rows: e.term.rows,
         kasten: [Math.round(kasten.width * 100) / 100, Math.round(kasten.height * 100) / 100],
         schirm: schirm ? [Math.round(schirm.width * 100) / 100, Math.round(schirm.height * 100) / 100] : null,
+        // Wo der Schirm im FENSTER steht. Passt er nicht in die Kachel, ist er nach oben verschoben
+        // (das untere Ende bleibt sichtbar); wer am Bildpunkt misst, braucht diese Lage, nicht die der Kachel.
+        schirmLage: schirm ? [Math.round(schirm.left * 100) / 100, Math.round(schirm.top * 100) / 100] : null,
       };
     }),
     // Die eingestellte Schriftgroesse und die Zellgroesse, die daraus faellt.

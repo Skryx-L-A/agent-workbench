@@ -54,6 +54,18 @@
 .frage-meta { font-size: 0.765rem; color: var(--gedaempft); }
 .frage-text { font-size: 1rem; line-height: 1.4; }
 .frage.kompakt .text-knopf { align-self: flex-start; min-height: 36px; }
+/* Rechteantrag (antrag.ts): nur zum Lesen, wie eine Frage gesetzt, Rechte Zeile fuer Zeile. */
+.antrag-kachel, .antrag-kopf { display: flex; flex-direction: column; gap: 12px; padding: 14px; }
+.antrag-kachel .text-knopf { align-self: flex-start; min-height: 36px; }
+.antrag-kopf .marke { align-self: flex-start; }
+/* Freigeben/Ablehnen (rights_request.decide): Knoepfe wie bei den Freigaben, Notiz und Fehler am Rand der Karten. */
+.detail-koerper > .antrag-notiz { margin: -8px var(--rand) 0; }
+.antrag-fehler { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.antrag-fehler .text-knopf { min-height: 36px; }
+/* Ein Muster je Zeile, linksbuendig unter der Beschriftung; umgebrochen wird nur, was allein breiter als die Karte ist. */
+.eigenschaften > div.mehrzeilig { flex-direction: column; align-items: stretch; gap: 6px; }
+.eigenschaften > div.mehrzeilig dd { text-align: left; overflow-wrap: break-word; }
+.rechte-eintrag + .rechte-eintrag { margin-top: 4px; }
 .empfehlung {
   margin-left: auto; flex: none; font-size: 0.706rem; font-weight: 600; color: var(--akzent-text);
   padding: 2px 6px; border-radius: 5px; background: var(--akzent-matt);
@@ -135,6 +147,12 @@ button.status-zeile:active { background: var(--wahl); }
 .meldung-fuss { display: flex; align-items: center; gap: 6px; font-size: 0.765rem; color: var(--gedaempft); }
 .meldung-fuss .punkt { width: 8px; height: 8px; }
 .meldung-spiegel { padding-left: 4px; }
+/* Erledigt (Push-Art welt.braucht-dich, `erledigt_at`): ausgegraut und mit dem Wort, nicht nur in Farbe. */
+.meldung.erledigt .meldung-titel, .meldung.erledigt .meldung-inhalt { color: var(--gedaempft); }
+.meldung-erledigt {
+  flex: none; font-size: 0.72rem; font-weight: 600; color: var(--gedaempft);
+  padding: 1px 7px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--linie);
+}
 .meldung-buehne { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; padding: 4px calc(var(--rand) + 4px) 4px; }
 .meldung-gross { font-size: 1.4rem; font-weight: 700; line-height: 1.25; }
 .meldung-wann { color: var(--gedaempft); font-size: 0.882rem; }

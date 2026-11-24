@@ -245,8 +245,23 @@ export interface Approval {
   kind: 'request' | 'guard';
   source: Source;
   session_id: GlobalSessionId | null;
+  /** Die Kurzansicht in einer Zeile: „Worker wz-x: Änderungen pushen (git push)“. */
   summary: string;
   created_at: number;
+  /**
+   * Wer fragt, und wofuer (26.10.2026, task). Optional, damit ein aelterer Kern
+   * gueltig bleibt. `rolle`: orchestrator | worker | unbekannt; `anzeigename`: der Name,
+   * den die Werkbank zeigt; `absicht`: ein Satz, `absicht_quelle`: harness (Beschreibung
+   * des Harness) | abgeleitet (aus Werkzeug und Befehl) | unklar.
+   */
+  rolle?: 'orchestrator' | 'worker' | 'unbekannt';
+  anzeigename?: string;
+  absicht?: string;
+  absicht_quelle?: 'harness' | 'abgeleitet' | 'unklar';
+  /** Nur `guard`: der genaue Befehl, wortgleich, fuer die Detailansicht. Nie im Push. */
+  befehl?: string;
+  /** Nur `guard`: das Arbeitsverzeichnis des Befehls. Nie im Push. */
+  cwd?: string;
 }
 
 export interface ThemePayload extends JsonObject {
@@ -408,7 +423,21 @@ export type AgentAction =
    * `teilweise`) und die Bestaetigung der Definition of Done, die der Kern
    * verlangt, sobald die Welt eine hat.
    */
-  | { type: 'ticket.approve'; ticket_id: string; reason: TicketApproveReason; note?: string; dod_confirmed?: boolean };
+  | { type: 'ticket.approve'; ticket_id: string; reason: TicketApproveReason; note?: string; dod_confirmed?: boolean }
+  /**
+   * v1.9 (18.10.2026, alice: Rechteantrag auch vom Handy entscheiden): Freigeben oder
+   * Ablehnen eines Rechteantrags (`WeltRechteAntrag`) einer Welt DIESER Maschine. Die
+   * Entscheidung traegt allein `decision`; `note` ist eine kurze Bemerkung fuer den
+   * Antragsteller (hoechstens RIGHTS_DECISION_NOTE_MAX Zeichen, eine Zeile) und entscheidet nie.
+   * `changes` ist die angezeigte gespeicherte Aenderung, unveraendert aus `GET /agents`; der Server
+   * vergleicht ihren SHA-256 (kanonische Form) mit dem gespeicherten Stand. Der Kern laesst den
+   * signierten Umschlag von `wb-mobil-pruefen` pruefen und verbrauchen (gebunden an Welt, Kennung,
+   * Entscheidung und Aenderungs-Hash) und gibt den Hash als `--erwartet-sha256` an die Bibliothek.
+   */
+  | { type: 'rights_request.decide'; world_id: string; rights_request_id: string; decision: Decision; changes: JsonObject; note?: string };
+
+/** Hoechstlaenge der Bemerkung zu einer Rechteantrags-Entscheidung vom Handy. */
+export const RIGHTS_DECISION_NOTE_MAX = 200;
 
 export interface AgentActionData extends JsonObject {}
 
@@ -426,7 +455,17 @@ export type NotificationEventType =
   | 'worker.done'
   | 'command.blocked'
   | 'session.lost'
-  | 'worker.stalled';
+  | 'worker.stalled'
+  /** Ein Rechteantrag oder eine Frage einer Welt an den Menschen ist offen (target_id = Kennung des Antrags bzw. der Frage, `welt` benennt die Welt). */
+  | 'welt.braucht-dich';
+
+/** Nur bei `welt.braucht-dich`: welche Welt, welche Art, welche Kennung. Nie der Inhalt des Antrags. */
+export interface WeltAnliegenRef {
+  welt_id: string;
+  welt_name: string;
+  art: 'rechteantrag' | 'frage';
+  anliegen_id: string;
+}
 
 export interface Notification {
   id: string;
@@ -436,6 +475,10 @@ export interface Notification {
   target_id: string;
   created_at: number;
   text: string;
+  /** Nur `welt.braucht-dich`. */
+  welt?: WeltAnliegenRef;
+  /** Nur `welt.braucht-dich`: wann der Antrag bzw. die Frage erledigt war (beantwortet, zurueckgezogen, abgelaufen, entschieden). Fehlt, solange offen. */
+  erledigt_at?: number;
 }
 
 export interface NotificationsData { notifications: readonly Notification[]; cursor: string | null; }

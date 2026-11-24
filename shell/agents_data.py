@@ -151,6 +151,100 @@ def derived_id(prefix: str, *parts: object) -> str:
     return prefix + "-" + digest[:64 - len(prefix) - 1]
 
 
+def _utf16_schluessel(schluessel: str) -> bytes:
+    """Sort key equal to the JS string comparison `a < b` (UTF-16 code units)."""
+    return schluessel.encode("utf-16-be", "surrogatepass")
+
+
+def _kanonischer_text(text: str) -> str:
+    """A string exactly like `JSON.stringify`: only quote, backslash, control characters
+    and lone surrogates are escaped; everything else stays literal (no ASCII escapes)."""
+    teile = ['"']
+    for zeichen in text:
+        code = ord(zeichen)
+        if zeichen == '"':
+            teile.append('\\"')
+        elif zeichen == "\\":
+            teile.append("\\\\")
+        elif zeichen == "\b":
+            teile.append("\\b")
+        elif zeichen == "\f":
+            teile.append("\\f")
+        elif zeichen == "\n":
+            teile.append("\\n")
+        elif zeichen == "\r":
+            teile.append("\\r")
+        elif zeichen == "\t":
+            teile.append("\\t")
+        elif code < 0x20 or 0xD800 <= code <= 0xDFFF:
+            teile.append("\\u%04x" % code)
+        else:
+            teile.append(zeichen)
+    teile.append('"')
+    return "".join(teile)
+
+
+def _kanonische_zahl(zahl: float) -> str:
+    """A number exactly like `JSON.stringify`: shortest round-trip form, plain digits up to
+    1e21, exponential notation beyond that or below 1e-6 (ECMA-262 Number::toString)."""
+    if zahl != zahl or zahl in (float("inf"), float("-inf")):
+        raise AgentsError("Zahl in Aenderungen ist nicht endlich")
+    if zahl == 0:
+        return "0"
+    if zahl == int(zahl) and abs(zahl) < 1e21:
+        return str(int(zahl))
+    vorzeichen = "-" if zahl < 0 else ""
+    text = repr(abs(zahl))
+    mantisse, _, exponent = text.partition("e")
+    stufe = int(exponent) if exponent else 0
+    ganz, _, bruch = mantisse.partition(".")
+    alle = ganz + bruch
+    ziffern = alle.lstrip("0")
+    stelle = len(ganz) + stufe - (len(alle) - len(ziffern))
+    laenge = len(ziffern)
+    if laenge <= stelle <= 21:
+        return vorzeichen + ziffern + "0" * (stelle - laenge)
+    if 0 < stelle <= 21:
+        return vorzeichen + ziffern[:stelle] + "." + ziffern[stelle:]
+    if -6 < stelle <= 0:
+        return vorzeichen + "0." + "0" * (-stelle) + ziffern
+    exponent10 = stelle - 1
+    kopf = ziffern[0] + ("." + ziffern[1:] if laenge > 1 else "")
+    return "%s%se%s%d" % (vorzeichen, kopf, "+" if exponent10 >= 0 else "-", abs(exponent10))
+
+
+def kanonisches_json(wert: Any) -> str:
+    """Canonical JSON form of a change, byte-identical to `kanonischesJson` in
+    app/src/main/mobile/auth/rechteantrag-beleg.ts: sorted keys without
+    whitespace, strings like `JSON.stringify` without ASCII escapes.  Python has no
+    undefined, so `None` stays `null`; there is nothing to drop."""
+    if wert is None:
+        return "null"
+    if wert is True:
+        return "true"
+    if wert is False:
+        return "false"
+    if isinstance(wert, str):
+        return _kanonischer_text(wert)
+    if isinstance(wert, int):
+        return str(wert)
+    if isinstance(wert, float):
+        return _kanonische_zahl(wert)
+    if isinstance(wert, list):
+        return "[%s]" % ",".join(kanonisches_json(eintrag) for eintrag in wert)
+    if isinstance(wert, dict):
+        eintraege = sorted(wert.items(), key=lambda eintrag: _utf16_schluessel(eintrag[0]))
+        return "{%s}" % ",".join("%s:%s" % (_kanonischer_text(schluessel), kanonisches_json(inhalt))
+                                 for schluessel, inhalt in eintraege)
+    raise AgentsError("Wert ist kein JSON-Wert: %r" % (wert,))
+
+
+def aenderung_sha256(changes: Any) -> str:
+    """SHA-256 of `kanonisches_json(changes)`, the same number the phone proof binds
+    (`aenderungSha256` in rechteantrag-beleg.ts)."""
+    return hashlib.sha256(kanonisches_json(changes).encode("utf-8")).hexdigest()
+
+
 def valid_id(value: str, label: str = "Kennung") -> str:
     if not isinstance(value, str) or not ID_RE.fullmatch(value):
         raise AgentsError("%s ist ungueltig (nur Buchstaben, Zahlen, '.', '_' und '-' erlaubt)" % label)
@@ -906,6 +1000,8 @@ def answer_question(root: Path, question_id: str, answer: str,
         question = read_question(root, question_id)
         if question.get("kind") == RIGHTS_REQUEST_KIND:
             raise AgentsError("%s ist ein Rechteantrag; entscheiden mit wb-agent rechte-antrag-entscheiden" % question_id)
+        if question.get("kind") == AGENT_REQUEST_KIND:
+            raise AgentsError("%s ist ein Agentenantrag; entscheiden mit wb-agent antrag-entscheiden" % question_id)
         if question.get("state") == "beantwortet":
             if question.get("answer", {}).get("text") == answer:
                 return question
@@ -3984,7 +4080,7 @@ def world_carrier_config(root: Path) -> dict[str, Any] | None:
 def world_machine_default(root: Path) -> str:
     """Machine of a new agent without one: the carrier host of the world (`execution_host`), else `lokal`.
 
-    der Nutzer, 16.09.2026: agents of the world myproject run on peer; the world's carrier decides that."""
+    decision 2026-09-16: agents of the world myproject run on peer; the world's carrier decides that."""
     host = (world_carrier_config(root) or {}).get("execution_host")
     return host if isinstance(host, str) and ID_RE.match(host) else "lokal"
 
@@ -4245,7 +4341,7 @@ def _plan_rights(root: Path, agent: dict[str, Any], changes: dict[str, Any]) -> 
 
 def set_agent_rights(root: Path, agent_id: str, changes: dict[str, Any], sender: str | None = None,
                      claimed_role: str | None = None, antrag: str | None = None) -> dict[str, Any]:
-    """Set tools, Bash patterns, skills or web access of an agent (der Nutzer, 16.09.2026).
+    """Set tools, Bash patterns, skills or web access of an agent (decision 2026-09-16).
 
     Allowed for the human and for the world's main agent on every other agent of the world; team
     leaders and members ask the main agent.  `tools` replaces the tool list (Bash always stays),
@@ -4397,11 +4493,14 @@ def _rights_change_text(diff: dict[str, list[Any]]) -> str:
 
 
 def _rights_request_event(root: Path, agent_id: str, request_id: str, stand: str, actor: dict[str, Any],
-                          note: str | None) -> None:
-    _append_history(root, agent_id, {
+                          note: str | None, geraet: str | None = None) -> None:
+    eintrag = {
         "id": new_id("h"), "time": now(), "event": "rechte-antrag", "antrag": request_id, "stand": stand,
         "actor": actor, "note": note,
-    })
+    }
+    if geraet is not None:
+        eintrag["geraet"] = geraet
+    _append_history(root, agent_id, eintrag)
 
 
 def _read_rights_request(root: Path, request_id: str) -> dict[str, Any]:
@@ -4413,7 +4512,7 @@ def _read_rights_request(root: Path, request_id: str) -> dict[str, Any]:
 
 def request_rights(root: Path, changes: dict[str, Any], grund: str, sender: str | None = None,
                    claimed_role: str | None = None, request_id: str | None = None) -> dict[str, Any]:
-    """An agent asks for a change of its OWN rights (der Nutzer, 13.10.2026: „Eigener Typ jetzt“).
+    """An agent asks for a change of its OWN rights (decision 2026-10-13.).
 
     There is no parameter for another agent: the request always concerns the sender.  The change is
     checked like `set_agent_rights` (tool names, house list, skills, the world's accesses) without
@@ -4495,7 +4594,8 @@ def request_rights(root: Path, changes: dict[str, Any], grund: str, sender: str 
 
 
 def decide_rights_request(root: Path, request_id: str, accept: bool, note: str | None = None,
-                          sender: str | None = None, claimed_role: str | None = None) -> dict[str, Any]:
+                          sender: str | None = None, claimed_role: str | None = None,
+                          erwartet_sha256: str | None = None, geraet: str | None = None) -> dict[str, Any]:
     """The main agent or the human grants or declines a rights request; nobody decides an own request.
 
     A request of the main agent is decided only by the human, team leaders never decide.  Granting
@@ -4504,6 +4604,12 @@ def decide_rights_request(root: Path, request_id: str, accept: bool, note: str |
     setting the rights and marking the request run under ONE lock, so a concurrent decision,
     withdrawal or expiry cannot leave a declined request with rights in effect (review F1, 14.10.2026).
     A repeated identical decision only delivers the reply again (idempotent through its derived ID).
+
+    With `erwartet_sha256` (the phone proof's `changes_sha256`, 18.10.2026) the decision only
+    proceeds when the SHA-256 of the canonical form of the stored `changes` still matches; the
+    check runs inside this same transaction right after the request is read.  On a mismatch
+    nothing is applied, marked or delivered.  `geraet` records the deciding device in the answer
+    and in the history event; both options stay optional.
     """
     root = world_path(str(root))
     valid_id(request_id, "Antragskennung")
@@ -4511,10 +4617,17 @@ def decide_rights_request(root: Path, request_id: str, accept: bool, note: str |
         raise AgentsError("Entscheidung muss freigeben oder ablehnen sein")
     if note is not None and (not isinstance(note, str) or not note.strip()):
         raise AgentsError("Bemerkung muss ein Text sein")
+    if erwartet_sha256 is not None and not re.fullmatch(r"[0-9a-f]{64}", erwartet_sha256):
+        raise AgentsError("--erwartet-sha256 braucht 64 kleine Hexziffern")
+    if geraet is not None and not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", geraet):
+        raise AgentsError("--geraet braucht 1 bis 64 Zeichen aus Buchstaben, Zahlen, '_' und '-'")
     decision = "freigegeben" if accept else "abgelehnt"
     with transaction(root):
         actor = _require_governance_actor(root, sender or WORLD_HUMAN, claimed_role, ("hauptagent",))
         question = _read_rights_request(root, request_id)
+        if erwartet_sha256 is not None and aenderung_sha256(question.get("changes")) != erwartet_sha256:
+            raise AgentsError("Rechteantrag %s: die gespeicherten Aenderungen weichen vom erwarteten Stand ab"
+                              % request_id)
         if actor.get("kind") == "agent":
             if actor.get("role") != "hauptagent":
                 raise AgentsError("Rechteantraege entscheidet der Hauptagent oder der Mensch")
@@ -4537,9 +4650,11 @@ def decide_rights_request(root: Path, request_id: str, accept: bool, note: str |
             question["answer"] = {"text": decision, "note": note, "sender": actor["id"], "role": actor.get("role"),
                                   "verified": bool(actor.get("verified")), "source": actor.get("source"),
                                   "answered_at": now()}
+            if geraet is not None:
+                question["answer"]["geraet"] = geraet
             question["updated_at"] = question["answer"]["answered_at"]
             _write_json(_question_dir(root, request_id) / "question.json", question)
-            _rights_request_event(root, agent_id, request_id, decision, actor, note)
+            _rights_request_event(root, agent_id, request_id, decision, actor, note, geraet)
     # The reply is built from the stored answer, so a repeated call delivers the same message once.
     answer = question["answer"]
     reply = "Rechteantrag %s: %s%s" % (request_id, answer["text"], " – %s" % answer["note"] if answer.get("note") else "")
@@ -4727,7 +4842,7 @@ def _read_jsonl(path: Path, label: str) -> list[dict[str, Any]]:
 
 
 def _snapshot_memory(root: Path, agent_id: str, memory: dict[str, Any], vault: Any) -> dict[str, Any] | None:
-    """Groesse des Gedaechtnisses und Brain-Bereich (der Nutzer, 16.09.2026); die volle Datei, nicht nur der Auszug."""
+    """Groesse des Gedaechtnisses und Brain-Bereich (decision 2026-09-16); die volle Datei, nicht nur der Auszug."""
     try:
         import agents_gedaechtnis
     except ImportError:  # the RPC copy in a turn carries no memory module
@@ -5263,6 +5378,8 @@ def parser_for(kind: str) -> argparse.ArgumentParser:
         p = sub.add_parser("rechte-antrag", help="eigene Rechte beim Hauptagenten (als Hauptagent beim Menschen) beantragen"); p.add_argument("world"); p.add_argument("--werkzeuge", help="Liste mit Komma, z. B. Read,Grep,Write"); g = p.add_mutually_exclusive_group(); g.add_argument("--bash", action="append", help="eigenes Muster zusaetzlich zum Dienstweg, wiederholbar"); g.add_argument("--ohne-bash", action="store_true", help="nur die Dienstwegmuster"); p.add_argument("--skills", help="Liste mit Komma; leer entfernt alle"); g = p.add_mutually_exclusive_group(); g.add_argument("--web", dest="web", action="store_const", const=True); g.add_argument("--ohne-web", dest="web", action="store_const", const=False); p.add_argument("--grund", required=True, help="Begruendung, hoechstens %d Zeichen" % RIGHTS_REQUEST_REASON_LIMIT); p.add_argument("--id", help="Antragskennung fuer eine wiederholbare Anfrage"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         p = sub.add_parser("rechte-antrag-entscheiden", help="Rechteantrag freigeben oder ablehnen (Hauptagent oder Mensch)"); p.add_argument("world"); p.add_argument("antrag"); g = p.add_mutually_exclusive_group(required=True); g.add_argument("--freigeben", action="store_true"); g.add_argument("--ablehnen", action="store_true")
         p.add_argument("--bemerkung"); p.add_argument("--absender", default=WORLD_HUMAN); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
+        p.add_argument("--erwartet-sha256", help="SHA-256 der kanonischen Aenderungen (64 kleine Hexziffern); Abweichung bricht ohne Wirkung ab")
+        p.add_argument("--geraet", help="Geraetekennung des entscheidenden Geraets, 1 bis 64 Zeichen aus A-Z a-z 0-9 _ -")
         p = sub.add_parser("rechte-antrag-zurueckziehen", help="eigenen offenen Rechteantrag zurueckziehen"); p.add_argument("world"); p.add_argument("antrag"); p.add_argument("--bemerkung"); p.add_argument("--absender", default="cli-operator"); p.add_argument("--rolle"); p.add_argument("--json", action="store_true")
         return parser
     if kind == "ticket":
@@ -5452,7 +5569,8 @@ def run(kind: str, argv: list[str]) -> int:
                 data = request_rights(Path(args.world), changes, args.grund, args.absender, args.rolle, args.id)
                 _json_or_text(args, data, data["id"])
             elif args.command == "rechte-antrag-entscheiden":
-                data = decide_rights_request(Path(args.world), args.antrag, args.freigeben, args.bemerkung, args.absender, args.rolle)
+                data = decide_rights_request(Path(args.world), args.antrag, args.freigeben, args.bemerkung,
+                                             args.absender, args.rolle, args.erwartet_sha256, args.geraet)
                 _json_or_text(args, data, data["id"])
             elif args.command == "rechte-antrag-zurueckziehen":
                 data = withdraw_rights_request(Path(args.world), args.antrag, args.bemerkung, args.absender, args.rolle)

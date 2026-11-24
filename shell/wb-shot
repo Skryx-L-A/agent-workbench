@@ -9,7 +9,7 @@
 #   wb-shot <pattern> <outfile.png>   capture the single window matching <pattern>
 #   wb-shot --list                    list capturable windows (id | app | title)
 #
-# Original rule (der Nutzer, 2026-07-25): agents never record or screenshot the
+# Original rule (decision 2026-07-25): agents never record or screenshot the
 # whole screen, and never move his focus. `screencapture -l <windowid>` grabs
 # exactly one window and does NOT raise it; there is deliberately NO
 # full-screen fallback here — an ambiguous or missing match fails instead of

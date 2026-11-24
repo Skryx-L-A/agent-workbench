@@ -1,8 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S -u DEVELOPER_DIR -u SDKROOT -u TOOLCHAINS /usr/bin/python3 -E -s -S
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): nie ein python3 aus dem PATH des
+# Aufrufers, ohne die xcrun-Variablen, PYTHON*-Variablen, User-site und site.
 """wb-vertrauen — traegt das Arbeitsverzeichnis eines Workers in ~/.claude.json
 als vertraut ein, damit der Start nicht am Workspace-Trust-Dialog haengenbleibt.
 
-ANLASS (01.09.2026): claude 2.1.252 (installiert 31.08.2026 21:58) zeigt fuer
+ANLASS (01.09.2026): claude 2.1.252 (installiert 31.08.2026) zeigt fuer
 ein Verzeichnis, das noch nie eine Sitzung gesehen hat, den Dialog "Quick safety
 check: Is this a project you created or one you trust?" -- auch mit
 `--dangerously-skip-permissions`, denn der Schalter regelt Werkzeug-Erlaubnisse,
@@ -63,13 +65,51 @@ def melde(text: str) -> None:
     print(f"wb-vertrauen: {text}", file=sys.stderr)
 
 
+# git von einem festen Pfad und ohne GIT_*-Variablen (18.10.2026, Befund devdir-sicher N5): ein
+# eigenes `git` vorn im PATH oder GIT_DIR/GIT_COMMON_DIR des Aufrufers nannten sonst einen
+# vertrauten Hauptbaum, und der Worktree erbte dessen Vertrauen. Der Interpreter steht fest in
+# der Shebang-Zeile.
+GIT_FEST = ("/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git")
+
+
+def git_aufruf() -> tuple[str, dict]:
+    git = next((k for k in GIT_FEST if os.access(k, os.X_OK)), GIT_FEST[0])
+    umg = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    return git, umg
+
+
+# Ordner, deren .git auf einen Hauptbaum zeigt, der sie nicht als seinen Worktree nennt (nur fuer die Meldung).
+ABGELEHNT: list[Path] = []
+
+
+def worktree_belegt(git: str, umg: dict, quelle: Path, verzeichnis: Path) -> bool:
+    """Nennt der Hauptbaum QUELLE diesen Ordner als seinen Worktree? Die Datei .git steht im Ordner selbst, ihren Text
+    kann jeder dort schreiben. Mit dem Namen einer echten Verwaltung im Hauptbaum erbte eine Faelschung sonst dessen
+    Vertrauen (gemessen 31.10.2026). Die Antwort kommt aus <admin>/gitdir ueber `git worktree list`, also aus dem
+    Hauptbaum; sie gilt auch mit worktree.useRelativePaths. Bei jedem Fehler gilt: nicht belegt.
+    Gleiche Funktion in wb-vertrauen-codex -- beide Dateien zusammen aendern."""
+    try:
+        oben = subprocess.run([git, "-C", str(verzeichnis), "rev-parse", "--show-toplevel"],
+                              capture_output=True, text=True, timeout=10, env=umg)
+        liste = subprocess.run([git, "-C", str(quelle), "worktree", "list", "--porcelain"],
+                               capture_output=True, text=True, timeout=10, env=umg)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    if oben.returncode != 0 or liste.returncode != 0:
+        return False
+    wurzel = Path(oben.stdout.strip()).resolve()
+    return any(zeile.startswith("worktree ") and Path(zeile[len("worktree "):]).resolve() == wurzel
+               for zeile in liste.stdout.splitlines())
+
+
 def hauptbaum(verzeichnis: Path) -> Path | None:
-    """Der Baum, aus dem dieser Worktree stammt -- oder None, wenn es keiner ist."""
+    """Der Baum, aus dem dieser Worktree stammt -- oder None, wenn es keiner ist oder der Baum ihn nicht als seinen nennt."""
+    git, umg = git_aufruf()
     try:
         roh = subprocess.run(
-            ["git", "-C", str(verzeichnis), "rev-parse",
+            [git, "-C", str(verzeichnis), "rev-parse",
              "--path-format=absolute", "--git-common-dir"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, timeout=10, env=umg,
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -80,7 +120,14 @@ def hauptbaum(verzeichnis: Path) -> Path | None:
         # Ein bare-Repo oder eine ungewoehnliche Ablage: dann ist der Elternordner
         # nicht der Arbeitsbaum, und wir raten hier nicht.
         return None
-    return gemeinsam.parent
+    if worktree_belegt(git, umg, gemeinsam.parent, verzeichnis):
+        return gemeinsam.parent
+    ABGELEHNT.append(verzeichnis)
+    return None
+
+
+HINWEIS_ABGELEHNT = (" Das .git dieses Ordners nennt einen Hauptbaum, der den Ordner nicht als seinen Worktree fuehrt. "
+                     "Wurde der Worktree verschoben (mv), erbt er nichts, bis `git worktree repair` im Hauptbaum lief.")
 
 
 def vertraut(pfad: Path, projekte: dict) -> bool:
@@ -181,7 +228,7 @@ def main() -> int:
         melde(
             f"kein vertrauter Buerge fuer {schluessel} (weder der Hauptbaum eines "
             f"Worktrees noch ein Elternordner unter $HOME) — nicht eingetragen, "
-            f"der Dialog bleibt."
+            f"der Dialog bleibt." + HINWEIS_ABGELEHNT * bool(ABGELEHNT)
         )
         return 0
 

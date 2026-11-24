@@ -27,9 +27,11 @@ import hashlib
 import json
 import os
 import platform
+import pwd
 import re
 import sys
 import shutil
+import stat
 import subprocess
 
 RANK = {"low": 0, "medium": 1, "high": 2, "xhigh": 3, "max": 4}
@@ -1662,7 +1664,7 @@ def _installiert_richtung(repo_datei, inst_datei, repo_dir):
     frueheren GANZDATEI-Stand der Repo-Datei (Byte fuer Byte), dann ist er ein
     alter Stand, Punkt.
 
-    ZWEITER WEG, gemessener Nachtrag (der Nutzer, 20.08.2026 -- zwei Worker
+    ZWEITER WEG, gemessener Nachtrag (decision 2026-08-20 -- zwei Worker
     hatten unabhaengig voneinander context-guard/wb-testsuite-run als
     KOPIE-EIGENMAECHTIG bzw. unklar stehen lassen, obwohl beide installierten
     Fassungen nachweislich NUR aelter waren: "alle Zeilen, die nur in der
@@ -1791,9 +1793,17 @@ def _linux_gegenstueck(rel, name, c7):
     sobald sie unter shell/linux/ liegt, ohne dass hier ein Eintrag noetig
     waere. Fehlt eine Linux-Fassung fuer ein Werkzeug (noch nicht geholt, oder
     bewusst nie eine gebraucht), bleibt der alte Vergleich -- und ein echter
-    KOPIE-EIGENMAECHTIG-Fund bleibt ein Fund."""
+    KOPIE-EIGENMAECHTIG-Fund bleibt ein Fund.
+
+    Nur ein WERKZEUG direkt unter prefix (Ziel direkt in ~/.local/bin) hat ein
+    Linux-Gegenstueck, und eine README.md ist nie eines (2026-11-21): auf peer
+    wurde ~/.local/bin/schema.d/README.md (= shell/schema.d/README.md) gegen
+    shell/linux/README.md verglichen, die Beschreibung des Linux-Ordners, und
+    als eigenmaechtig gemeldet, obwohl die Datei der Repo-Fassung glich."""
     lv = c7.get("linux_variante")
     if not lv or not rel.startswith(lv["prefix"]):
+        return None
+    if rel[len(lv["prefix"]):] != name or name.lower() == "readme.md":
         return None
     aktuelle_maschine = current_machine_id(lv.get("machine_ids_by_os", {}))
     if aktuelle_maschine != lv.get("linux_machine_id", "peer"):
@@ -2057,9 +2067,7 @@ def _sorte_a(c7, findings, machine_tool_map=None, current_machine=None):
         richtung, warum = fall["richtung"], fall["warum"]
         vergleich_rel, inst_datei = fall["rel"], fall["inst_datei"]
         if richtung == "veraltet":
-            # severity="hint", nicht "error" (der Nutzer, 20.08.2026: "der
-            # erste [Fall] ist eine Aufforderung zum Ausrollen und darf
-            # als solche gemeldet werden"). Eine Kopie, die NUR aelter
+            # severity="hint", nicht "error" (decision 2026-08-20.). Eine Kopie, die NUR aelter
             # ist, ist der Normalzustand zwischen zwei Ausroll-
             # Zeitpunkten, kein Fehler -- als "error" gemeldet, verwaesserte
             # sie genau die Pruefung, die eine ECHTE eigenmaechtige
@@ -3285,6 +3293,12 @@ def _kopfkommentar(lines):
 LIVE_ABSICHT_RE = re.compile(r"LIVE-SOCKET ABSICHTLICH:\s*\S", re.I)
 
 
+HOME_GESETZT_RE = re.compile(
+    r"""\bHOME\s*="""                                   # Shell: HOME=..., export HOME=..., dict(HOME=...)
+    r"""|["']HOME["']\s*(?::|\]\s*=(?!=))"""            # Python: {"HOME": ...} und env["HOME"] = ...
+    r"""|(?:setenv|putenv|setdefault)\(\s*["']HOME["']""")  # monkeypatch.setenv("HOME", ...), os.putenv, environ.setdefault
+
+
 def check8_test_socket(cfg, base):
     c8 = cfg.get("check8_test_socket")
     if not c8:
@@ -3294,6 +3308,10 @@ def check8_test_socket(cfg, base):
     for path in expand_globs(c8["test_globs"], c8.get("exclude_substrings", ())):
         lines = read_lines(path)
         if not lines:
+            continue
+        # Eine .txt-Datei neben den Suiten ist Daten, kein Pruefling: sie ruft nichts auf. Die Lueckenliste der Sync-Liste
+        # (sync-liste-bekannte-luecken.txt) nennt pi-wb-inbox.ts als Pfad und wurde als Suite an der Inbox gemeldet (24.10.2026).
+        if path.endswith(".txt"):
             continue
         # DIE SITZUNGS-INBOX IST DURCH EINEN EIGENEN TMUX-SOCKET NICHT ISOLIERT
         # (2026-08-20, Vorfall). Ein Testlauf auf eigenem Socket hat seine
@@ -3311,7 +3329,14 @@ def check8_test_socket(cfg, base):
         # Anfuehrungszeichen, nach einem Rautezeichen am Zeilenanfang oder nach
         # einem Leerzeichen), keine zweite, eigene.
         ganz = "\n".join(_ohne_kommentar(z) for z in lines)
-        if re.search(r"\bwb-inbox\b", ganz) or ".claude/sessions" in ganz:
+        # Der Pfad einer Attrappe (`.../attrappen-tafel/wb-inbox`) ist keine Nutzung der Sitzungs-Inbox: Der Pflichtkopf
+        # lib-tafel-isolation.sh stellt die Tafel genau darauf um und wurde dafuer gemeldet (Gesamtlauf 28.10.2026).
+        # Nur dieser Pfad faellt weg; ein echter `wb-inbox`-Aufruf in derselben Datei zaehlt weiter.
+        # Erkannt wird der Ordnername (`attrappen-tafel/wb-inbox`) und eine Variable, die ihn traegt
+        # (`$_TAFEL_ATTRAPPEN/wb-inbox`, so steht es im Pflichtkopf).
+        ohne_attrappe = re.sub(r"(?i)(attrappen?[a-z0-9._-]*|\$\{?[a-z0-9_]*attrappe[a-z0-9_]*\}?)/wb-inbox\b",
+                               "", ganz)
+        if re.search(r"\bwb-inbox\b", ohne_attrappe) or ".claude/sessions" in ganz:
             # Die gesourcten Helfer zaehlen mit: eine Suite, die ihren Aufbau aus
             # lib-zustellbett.sh holt, setzt HOME dort und nicht bei sich selbst.
             # Ohne diesen Schritt meldet die Pruefung genau die Suiten, die es
@@ -3325,7 +3350,10 @@ def check8_test_socket(cfg, base):
                 helfer = os.path.join(os.path.dirname(path), name)
                 if os.path.isfile(helfer):
                     gesamt.append("\n".join(read_lines(helfer)))
-            if not any(re.search(r"\bHOME\s*=", t) for t in gesamt):
+            # HOME wird gesetzt als `HOME=...` (Shell, dict(HOME=...)) oder, in Python, als Schluessel `"HOME": ...`, als
+            # `env["HOME"] = ...` oder ueber setenv/putenv/setdefault("HOME", ...). Bis 24.10.2026 galten nur die
+            # Shell-Formen: test-naht-ziel-modul.py setzt HOME in seinem env-dict und wurde trotzdem gemeldet.
+            if not any(HOME_GESETZT_RE.search(t) for t in gesamt):
                 findings.append(Finding(
                     "TEST-INBOX-OHNE-HOME", path, 1,
                     "benutzt die Sitzungs-Inbox (wb-inbox / ~/.claude/sessions), "
@@ -3918,6 +3946,146 @@ def check15_werkzeuge(cfg, base):
 
 
 # --------------------------------------------------------------------------
+# Check 16 -- Testmarke in einer echten Nutzerheimat (2026-10-26)
+# --------------------------------------------------------------------------
+# Die Testmarke <Heimat>/.wb-testumgebung schaltet das HID-Tor ab (testmaschine_marke.py). Sie gehoert
+# nur in die Heimat eines Testnutzers. Hier wird jede Heimat geprueft, deren Kontoname NICHT in
+# testnutzer steht: {BASE} und jedes Verzeichnis unter heimat_wurzeln. Gueltig = dieselbe Form wie in
+# testmaschine_marke.py (regulaere Datei, genau ein Link, Eigentuemer eigentuemer_uid, nicht gruppen-
+# oder weltschreibbar, erste Zeile = zeile). Gueltig in einer echten Heimat ist ein Fehler, ungueltig
+# nur ein Hinweis. Die Konfiguration bestimmt alles; der Check schreibt nichts.
+
+def _kontoname(pfad):
+    """Kontoname des Eigentuemers von <pfad> laut Benutzerdatenbank; None, wenn der Pfad fehlt."""
+    try:
+        uid = os.lstat(pfad).st_uid
+    except OSError:
+        return None
+    try:
+        return pwd.getpwuid(uid).pw_name
+    except KeyError:
+        return str(uid)
+
+
+def _testmarke_pruefen(pfad, c16):
+    """(status, grund): status ist "GUELTIG", "UNGUELTIG" oder None (keine Marke vorhanden)."""
+    try:
+        info = os.lstat(pfad)
+    except OSError:
+        return None, ""
+    if not (stat.S_ISREG(info.st_mode) and info.st_nlink == 1
+            and info.st_uid == c16.get("eigentuemer_uid", 0)
+            and not stat.S_IMODE(info.st_mode) & 0o022):
+        return "UNGUELTIG", ("keine Testmarke der Form: regulaere Datei, ein Link, Eigentuemer uid %s, "
+                             "nicht gruppen- oder weltschreibbar" % c16.get("eigentuemer_uid", 0))
+    try:
+        with open(pfad, "rb") as f:
+            erste = f.read(4096).decode("utf-8", "replace").split("\n", 1)[0]
+    except OSError:
+        return "UNGUELTIG", "nicht lesbar, daher nicht als Testmarke pruefbar"
+    if erste != c16.get("zeile", ""):
+        return "UNGUELTIG", "erste Zeile ist nicht die Erkennungszeile"
+    return "GUELTIG", ""
+
+
+def check16_testmarke(cfg, base):
+    c16 = cfg.get("check16_testmarke")
+    if not c16:
+        return []
+    testnutzer = set(c16.get("testnutzer") or [])
+    marke = c16.get("marke", ".wb-testumgebung")
+    kandidaten = [base]
+    for wurzel in c16.get("heimat_wurzeln") or []:
+        try:
+            namen = sorted(os.listdir(wurzel))
+        except OSError:
+            continue
+        kandidaten += [os.path.join(wurzel, n) for n in namen]
+    findings = []
+    gesehen = set()
+    for heim in kandidaten:
+        if os.path.islink(heim) or not os.path.isdir(heim):
+            continue
+        echt = os.path.realpath(heim)
+        if echt in gesehen:
+            continue
+        gesehen.add(echt)
+        konto = _kontoname(heim)
+        if konto is None or konto in testnutzer:
+            continue
+        pfad = os.path.join(heim, marke)
+        status, grund = _testmarke_pruefen(pfad, c16)
+        if status == "GUELTIG":
+            liste = ", ".join(sorted(testnutzer)) or "keiner"
+            findings.append(Finding(
+                "TESTMARKE-ECHTE-HEIMAT", pfad, 1,
+                "Testmarke liegt in der Heimat von %s, einem echten Nutzer" % konto,
+                "die Marke schaltet das HID-Tor ab; sie gehoert nur in die Heimat eines Testnutzers "
+                "(%s). Entfernen nur mit Root -- wb-consistency aendert nichts." % liste,
+                severity="error"))
+        elif status == "UNGUELTIG":
+            findings.append(Finding(
+                "TESTMARKE-UNGUELTIG", pfad, 1,
+                "Datei %s in der Heimat von %s" % (marke, konto),
+                "%s -- sie schaltet das Tor nicht ab." % grund, severity="hint"))
+    return findings
+
+
+# --------------------------------------------------------------------------
+# Check 17 -- Dienstkopie des Geheimnisfilters (task, 2026-11-01)
+# --------------------------------------------------------------------------
+# Der Filter laeuft aus einer eigenen Kopie unter <base>/.local/share/wb-geheimnis-filter/, nicht aus
+# dem allgemeinen Installationsordner; Sorte A kennt sie nicht. Ein Fix im Repo blieb so bis zu einem
+# Handlauf von `wb-geheimnis-filter-dienst installieren` wirkungslos. Diese Pruefung liest nur:
+# sie vergleicht die Kopie mit shell/wb-geheimnis-filter des Arbeitsbaums. `wb-ausrollen` erneuert
+# sie (FILTER-DIENSTKOPIE dort). Fehlt die Kopie, ist der Dienst hier nicht eingerichtet: kein Fund.
+
+def live_schwere(repo_dir):
+    """Wie schwer wiegt eine Abweichung zwischen LIVE-Zustand und Arbeitsbaum? "error", wenn der Baum der
+    Hauptbaum auf main ist -- von dort wird ausgerollt, ein Unterschied ist dann ein Versaeumnis. Jeder
+    andere Baum (Worker-Worktree, anderer Zweig) traegt noch ungemergte Arbeit: "hint"."""
+    if ist_worktree(repo_dir):
+        return "hint"
+    try:
+        zweig = subprocess.run(["git", "-C", repo_dir, "rev-parse", "--abbrev-ref", "HEAD"],
+                               capture_output=True, text=True, timeout=10).stdout.strip()
+    except Exception:
+        return "hint"
+    return "error" if zweig == "main" else "hint"
+
+
+FILTER_DIENSTKOPIE_REL = os.path.join(".local", "share", "wb-geheimnis-filter", "wb-geheimnis-filter")
+
+
+def check17_filter_dienstkopie(cfg, base):
+    c7 = cfg.get("check7_kopien")
+    if not c7:
+        return []
+    repo = c7.get("repo_dir")
+    quelle = os.path.join(repo or "", "shell", "wb-geheimnis-filter")
+    kopie = os.path.join(base, FILTER_DIENSTKOPIE_REL)
+    if not repo or not os.path.isfile(quelle) or not os.path.isfile(kopie):
+        return []
+    marke = os.path.join(os.path.dirname(kopie), "neustart-offen")
+    gleich = filecmp.cmp(quelle, kopie, shallow=False)
+    # Die Routentabelle verlangt der Filter neben sich (08.11.2026): fehlt sie neben der Kopie, ist die Kopie veraltet.
+    q = os.path.join(repo, "shell", "geheimnis-routen.json")
+    neben = os.path.join(os.path.dirname(kopie), "geheimnis-routen.json")
+    gleich = gleich and (not os.path.isfile(q) or (os.path.isfile(neben) and filecmp.cmp(q, neben, shallow=False)))
+    if gleich and not os.path.exists(marke):
+        return []
+    return [Finding(
+        "FILTER-DIENSTKOPIE-VERALTET", kopie, 1,
+        "der laufende Geheimnisfilter ist der Repo-Stand von shell/wb-geheimnis-filter",
+        ("die Kopie ist ersetzt, aber der Neustart ist nicht belegt (Marke neustart-offen neben der Kopie) -- "
+         "der laufende Prozess kann noch die alte Fassung sein. " if gleich else
+         "die Dienstkopie weicht davon ab -- ein Filter-Fix wirkt erst, wenn sie erneuert ist. ") +
+        "`wb-ausrollen` tut das (wb-geheimnis-filter-dienst installieren --wenn-ruhig); "
+        "von Hand: shell/wb-geheimnis-filter-dienst installieren.",
+        severity=live_schwere(repo))]
+
+
+# --------------------------------------------------------------------------
 
 def main():
     ap = argparse.ArgumentParser()
@@ -3965,6 +4133,8 @@ def main():
     all_findings += check13_hookspath_lokal(cfg, args.base)
     all_findings += check14_shebang_maschinenfest(cfg, args.base)
     all_findings += check15_werkzeuge(cfg, args.base)
+    all_findings += check16_testmarke(cfg, args.base)
+    all_findings += check17_filter_dienstkopie(cfg, args.base)
 
     if not args.quiet:
         for f in all_findings:

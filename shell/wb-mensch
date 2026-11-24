@@ -6,6 +6,8 @@
 #   wb-mensch ahnen           Die geprueften Ahnen, eine Zeile je Prozess (Diagnose);
 #                             reisst die Lese ab, lautet die letzte Zeile
 #                             "UNVOLLSTAENDIG <grund>" (Exit bleibt 0)
+#   wb-mensch m1-kette        Die gemessene Kette, aus der M1 entscheidet (JSON),
+#                             danach das Urteil "JA|NEIN <grund>" (Diagnose, Exit 0)
 #
 # WARUM ES DIESES WERKZEUG GIBT
 # Drei Sicherungen in dieser Werkbank duerfen nur von einem Menschen gelockert
@@ -86,9 +88,31 @@
 #       wb-mensch nie aufruft.
 #
 # POSITIVPRUEFUNG (eine muss zutreffen -> Mensch):
-#   M1  Ein steuerndes Terminal. Gemessen: die Shell des Bash-Werkzeugs hat
-#       KEINES (`tty` sagt "not a tty", `ps -o tty=` zeigt "??"). Ein Mensch am
-#       Terminal hat immer eines.
+#   M1  Ein steuerndes Terminal mit gepruefter HERKUNFT. Gemessen: die Shell des
+#       Bash-Werkzeugs hat KEINES (`tty` sagt "not a tty", `ps -o tty=` zeigt "??").
+#       Ein Mensch am Terminal hat immer eines.
+#       Ein Terminal allein reicht seit 2026-10-18 nicht mehr. Gemessen am 18.10.:
+#       ein abgekoppeltes eigenes Pseudoterminal (python pty unter launchd, leere
+#       Umgebung) und ein Pane eines eigenen tmux-Servers ohne Client ergaben beide
+#       "mensch ... (M1)". Seitdem zaehlt auf dem Mac nur:
+#         - der Sitzungsfuehrer des tty ist /usr/bin/login (M1_LOGIN) mit uid 0, und
+#           dessen Elternprozess ist Terminal.app (M1_TERMINAL_MAC, unter /System)
+#           oder iTerm2 bzw. iTermServer-<version>, dessen LAUFENDER Prozess die
+#           Code-Anforderung M1_ITERM_ANFORDERUNG_MAC erfuellt (`codesign -v -R=`
+#           gegen die PID; iTerm liegt benutzerbeschreibbar);
+#         - eine SSH-Sitzung, deren Gegenstelle A4 als fremd gemessen hat;
+#         - ein Pane des Werkbank-tmux-Servers (M1_WERKBANK_SOCKET), auch ein Tab
+#           ohne Rolle und ohne angehaengten Client;
+#         - ein Pane eines ANDEREN tmux-Servers nur mit angehaengtem Client, dessen
+#           tty am Kernel zum Client-Prozess passt und dessen Sitzung nach der
+#           ersten Regel zaehlt.
+#       Jedes andere tty ergibt Nein, und der Beleg nennt den Grund ("M1 scheiterte:
+#       Das steuernde Terminal zaehlt nicht, ..."). Unter Linux zaehlt weiter jedes
+#       steuernde Terminal (GRENZE). Die Entscheidung ist eine reine Funktion ueber
+#       die gemessene Kette; `wb-mensch m1-kette` zeigt beides. Die Tests pruefen
+#       feste Ketten (`m1-entscheiden`, nur unter WB_TESTUMGEBUNG=1) und eine Kopie,
+#       in der nur M1_WERKBANK_SOCKET auf ihren Testserver zeigt
+#       (shell/tests/lib-m1-attrappe.sh).
 #   M2  Die Oberflaeche: WB_MENSCH_QUELLE=oberflaeche zusammen mit WB_APP_PID.
 #       Die Variablen allein zaehlen NICHT. Die PID X muss ein echter Ahne dieses
 #       Prozesses sein, und X muss der Kern der ECHTEN Werkbank sein:
@@ -167,6 +191,27 @@
 # nicht -- als derselbe Benutzer gibt es dagegen in einer Shell kein Mittel.
 # Abgewehrt wird der reale Fall: ein Agent, der das Merkmal in der Dokumentation
 # oder im Code liest und es einfach mitschickt.
+#
+# Fuer M1 schliesst die Herkunftspruefung (2026-10-18) auf dem Mac das eigene
+# Pseudoterminal und den eigenen tmux-Server ohne Client. Offen bleiben:
+#   - Ein Terminal.app-Fenster, das ueber `open`, eine .command-Datei oder AppleScript
+#     `do script` entsteht, hat dieselbe Kette wie ein Fenster des Menschen
+#     (Terminal -> login als root -> Shell, gemessen 2026-10-18) und zaehlt als Mensch.
+#   - Ein Pane, das ein Agent mit rohem tmux auf dem Werkbank-Server anlegt, zaehlt als
+#     Mensch, wie jeder Tab dort ohne Rolle. Eine Kennzeichnung der Menschen-Tabs durch
+#     den Kern ist entworfen, nicht gebaut (2026-10-19).
+#   - Dieselbe Benutzerkennung: ein Agent betreibt einen eigenen tmux-Server und
+#     beantwortet list-panes und list-clients selbst. Geprueft werden nur die
+#     Server-PID als Ahne und die Client-PID samt tty am Kernel; ein gefaelschter
+#     Server kann so den echten Client eines Menschenfensters als seinen ausgeben.
+#     Ebenso kann er unter dem Pfad des Werkbank-Sockets lauschen, solange der echte
+#     Server nicht laeuft.
+#   - Linux ist nicht geprueft: dort zaehlt jedes steuernde Terminal wie vor
+#     2026-10-18. Auf peer liess sich das Desktop-Terminal per `ps` nicht sicher
+#     bestimmen (2026-10-18).
+#   - Ein SSH-Client an einem tmux-Server, der nicht der Werkbank-Server ist, zaehlt
+#     nicht: M1 prueft angehaengte Clients nur auf Terminal.app und iTerm, nicht auf
+#     A4. Die SSH-Sitzung selbst und Panes des Werkbank-Servers bleiben Mensch.
 #
 # Fuer M2 gilt dieselbe Grenze in anderer Form: M2 bindet an die echten
 # Programmdateien, nicht an alles, was darin laeuft. Seit 2026-10-14 nimmt das
@@ -492,6 +537,9 @@ fernzugang_name() {
 # Laesst sich so kein Eintrag finden (kein steuerndes Terminal, ein selbst geoeffnetes
 # Pseudoterminal, ein sshd ohne root, mosh), ist die Antwort Nein (A4b).
 GRUND_SSH=""
+# SSH_FREMD=1: die Gegenstelle ist gemessen und fremd (FREMD unten). M1 zaehlt diese
+# Sitzung als Mensch, wie vor der Herkunftspruefung des Terminals (decision 2026-10-18).
+SSH_FREMD=0
 ssh_auf_sich_selbst() {
     local pid=$$ zeile ppid uid comm luecke=""
     local -a pids=() uids=() namen=()
@@ -588,7 +636,7 @@ for zeile in sys.stdin:
 print("FREMD %s" % peer)
 ' "$tty" "${erlaubt[@]}" 2>/dev/null)
     case "$befund" in
-        "FREMD "*) return 1 ;;
+        "FREMD "*) SSH_FREMD=1; return 1 ;;
         "EIGEN "*)
             GRUND_SSH="SSH-Sitzung auf DIESE Maschine selbst -- die Gegenstelle ${befund#EIGEN } ist eine eigene Adresse (A4)."
             return 0 ;;
@@ -635,6 +683,203 @@ hat_terminal() {
     local t
     t=$(ps -o tty= -p $$ 2>/dev/null | tr -d ' ')
     [ -n "$t" ] && [ "$t" != "??" ] && [ "$t" != "?" ]
+}
+
+# M1: WOHER das steuernde Terminal kommt (Kopf, M1). Feste Listen, keine Umgebung,
+# keine Datei. Die Tests schreiben genau diese Zeilen in einer KOPIE auf Attrappen um
+# (lib-m1-attrappe.sh); das installierte Werkzeug kennt keinen Schalter.
+# Der Standard-Server der Werkbank; %u ist die eigene uid. Fest /tmp, nicht
+# ${TMUX_TMPDIR}: die Variable setzt der Aufrufer (Pfadform wie _rollen_zielsocket in
+# hooks/bash-guard.py, Abschnitt "3c. rolle").
+M1_WERKBANK_SOCKET=('/tmp/tmux-%u/default')
+M1_LOGIN=('/usr/bin/login')
+M1_TERMINAL_MAC=('/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal')
+# iTerm liegt benutzerbeschreibbar unter /Applications und ~/Library; es zaehlt nur der
+# laufende Prozess mit dieser Signatur (Team-ID gemessen 2026-10-18, codesign -dv).
+M1_ITERM_ANFORDERUNG_MAC=('anchor apple generic and certificate leaf[subject.OU] = "H7V7XYVQ7D"')
+
+# Messung und Entscheidung von M1 in EINEM Python-Programm mit zwei Teilen:
+#   messen       liest die Prozesskette am Kernel (proc_pidpath, getsid, /bin/ps) und
+#                die tmux-Lage (Server-PID je Socket, angehaengte Clients) und druckt sie
+#                als JSON;
+#   entscheiden  ist eine REINE Funktion ueber dieses JSON (stdin): keine Prozesse, keine
+#                Dateien. `wb-mensch m1-entscheiden <datei>` ruft nur sie auf, und nur unter
+#                WB_TESTUMGEBUNG=1 (Fixtures in shell/tests/test-mensch-m1-kette.sh).
+# Eingabe von entscheiden (alle Felder gemessen):
+#   plattform, terminal (bool), ssh_fremd (bool, A4 hat eine fremde Gegenstelle gemessen),
+#   ahnen [{pid, ppid, uid, pfad}], sitzung {fuehrer, eltern, signatur},
+#   tmux {socket, server_pid, clients [{pid, tty, tty_passt, sitzung}]} oder null,
+#   werkbank_socket [physische Pfade].
+# `read -d ''` statt $(cat <<…): bash 3.2 (Mac) verschluckt sich an Klammern in einem
+# Here-Dokument innerhalb von $(…). read endet am Dateiende mit Status 1, das ist gewollt.
+M1_PY=""
+read -r -d '' M1_PY <<'PY'
+import json, os, sys
+modus = sys.argv[1]
+listen, cur = {}, None
+for a in sys.argv[2:]:
+    if a.startswith("--"):
+        cur = listen.setdefault(a[2:], [])
+    elif cur is not None:
+        cur.append(a)
+
+def terminal_mensch(s):
+    if not s:
+        return False, "der Sitzungsfuehrer des Terminals ist nicht messbar."
+    f, p = s.get("fuehrer") or {}, s.get("eltern") or {}
+    if f.get("pfad") not in listen.get("login", []) or f.get("uid") != 0:
+        return False, ("der Sitzungsfuehrer des Terminals ist %r (uid %s), nicht /usr/bin/login als root."
+                       % (f.get("pfad"), f.get("uid")))
+    pp = p.get("pfad") or ""
+    if pp in listen.get("terminal", []):
+        return True, "Terminal.app (login als root unter %s)" % pp
+    name = pp.rsplit("/", 1)[-1]
+    if name == "iTerm2" or name.startswith("iTermServer-"):
+        if s.get("signatur") is True:
+            return True, "iTerm (%s, Signatur geprueft)" % name
+        return False, "login laeuft unter %r, aber dessen Signaturpruefung ist nicht bestanden." % pp
+    return False, "login laeuft unter %r, keinem zugelassenen Terminal." % (pp or None)
+
+def entscheiden(e):
+    """Reine Funktion: gemessene Kette -> (Mensch?, Grund)."""
+    if not e.get("terminal"):
+        return False, "kein steuerndes Terminal."
+    if e.get("ssh_fremd"):
+        return True, "SSH-Sitzung von einer fremden Gegenstelle, gemessen im utmp-Eintrag des Servers (A4)"
+    pf = e.get("plattform")
+    if pf == "linux":
+        return True, "steuerndes Terminal unter Linux, Herkunft ungeprueft (GRENZE)"
+    if pf != "darwin":
+        return False, "Plattform %r ohne Terminal-Pruefung." % pf
+    t = e.get("tmux")
+    if t:
+        sock = t.get("socket") or ""
+        if sock and sock in (e.get("werkbank_socket") or []):
+            return True, "Pane des Werkbank-tmux-Servers %s" % sock
+        for c in t.get("clients") or []:
+            if not c.get("tty_passt"):
+                continue
+            ja, grund = terminal_mensch(c.get("sitzung"))
+            if ja:
+                return True, "Pane des tmux-Servers %s mit Client %s aus %s" % (sock, c.get("tty"), grund)
+        return False, ("Pane des tmux-Servers %s; das ist nicht der Werkbank-Server, und kein angehaengter "
+                       "Client kommt aus einem zugelassenen Terminal." % sock)
+    if any((a.get("pfad") or "").rsplit("/", 1)[-1] == "tmux" for a in e.get("ahnen") or []):
+        return False, "ein tmux-Server steht in der Ahnenreihe, sein Socket ist nicht gefunden."
+    return terminal_mensch(e.get("sitzung"))
+
+def messen():
+    e = {"plattform": "darwin" if sys.platform == "darwin" else
+                      ("linux" if sys.platform.startswith("linux") else sys.platform),
+         "terminal": listen["terminal_da"] == ["1"], "ssh_fremd": listen["ssh_fremd"] == ["1"],
+         "ahnen": [], "sitzung": None, "tmux": None, "werkbank_socket": []}
+    if e["plattform"] != "darwin" or not e["terminal"] or e["ssh_fremd"]:
+        return e
+    import ctypes, subprocess
+    lib = ctypes.CDLL("/usr/lib/libSystem.B.dylib")
+    def lauf(argv):
+        try:
+            r = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=10)
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        return r.stdout.decode(errors="replace") if r.returncode == 0 else None
+    def proc(pid):
+        # ppid, uid, tty aus /bin/ps (proc_pidinfo scheitert an root-Prozessen wie login,
+        # gemessen 2026-10-18); das Programm aus proc_pidpath, nie aus argv[0].
+        z = (lauf(["/bin/ps", "-o", "ppid=,uid=,tty=", "-p", str(pid)]) or "").split()
+        if len(z) != 3 or not z[0].isdigit() or not z[1].isdigit():
+            return None
+        b = ctypes.create_string_buffer(4096)
+        pfad = b.value.decode(errors="replace") if lib.proc_pidpath(pid, b, 4096) > 0 else None
+        return {"pid": pid, "ppid": int(z[0]), "uid": int(z[1]), "tty": z[2], "pfad": pfad}
+    def sitzung(pid):
+        sid = lib.getsid(pid)
+        f = proc(sid) if sid > 1 else None
+        p = proc(f["ppid"]) if f and f["ppid"] > 1 else None
+        if not f or not p:
+            return None
+        s = {"fuehrer": f, "eltern": p, "signatur": None}
+        name = (p["pfad"] or "").rsplit("/", 1)[-1]
+        if name == "iTerm2" or name.startswith("iTermServer-"):
+            s["signatur"] = any(subprocess.call(["/usr/bin/codesign", "-v", "-R=" + a, str(p["pid"])],
+                                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+                                for a in listen.get("iterm", []))
+        return s
+    pid = int(listen["pid"][0])
+    while pid > 1:
+        a = proc(pid)
+        if a is None:
+            break
+        e["ahnen"].append({k: a[k] for k in ("pid", "ppid", "uid", "pfad")})
+        pid = a["ppid"]
+    e["sitzung"] = sitzung(int(listen["pid"][0]))
+    uid = str(os.getuid())
+    e["werkbank_socket"] = [os.path.realpath(s.replace("%u", uid)) for s in listen.get("werkbank", [])]
+    pids = {a["pid"] for a in e["ahnen"]}
+    tmux = (listen.get("tmux") or [None])[0]
+    for sock in listen.get("socket", []) if tmux else []:
+        aus = lauf([tmux, "-S", sock, "list-panes", "-a", "-F", "#{pid}"]) or ""
+        server = aus.split()[0] if aus.split() else ""
+        if not server.isdigit() or int(server) not in pids:
+            continue
+        t = {"socket": os.path.realpath(sock), "server_pid": int(server), "clients": []}
+        for z in (lauf([tmux, "-S", sock, "list-clients", "-F", "#{client_pid} #{client_tty}"]) or "").splitlines():
+            teile = z.split()
+            if len(teile) != 2 or not teile[0].isdigit():
+                continue
+            c = proc(int(teile[0]))
+            # Die Angaben des Servers sind Behauptungen: der Client-Prozess muss am Kernel
+            # genau dieses Terminal tragen.
+            t["clients"].append({"pid": int(teile[0]), "tty": teile[1],
+                                 "tty_passt": bool(c) and "/dev/" + c["tty"] == teile[1],
+                                 "sitzung": sitzung(int(teile[0])) if c else None})
+        e["tmux"] = t
+        break
+    return e
+
+if modus == "messen":
+    print(json.dumps(messen()))
+else:
+    try:
+        e = json.load(sys.stdin)
+    except ValueError:
+        print("NEIN die Messung der Kette ist kein JSON."); sys.exit(0)
+    ja, grund = entscheiden(e if isinstance(e, dict) else {})
+    print(("JA " if ja else "NEIN ") + grund)
+PY
+
+# M1 nach der Regel im Kopf. GRUND_M1 traegt die Begruendung, in beide Richtungen.
+GRUND_M1=""
+m1_listen() {
+    printf '%s\0' --login "${M1_LOGIN[@]}" --terminal "${M1_TERMINAL_MAC[@]}"
+}
+m1_entscheiden() {   # JSON auf stdin
+    local -a l=()
+    while IFS= read -r -d '' x; do l+=("$x"); done < <(m1_listen)
+    /usr/bin/env -i /usr/bin/python3 -I -S -c "$M1_PY" entscheiden "${l[@]}" 2>/dev/null
+}
+m1_messen() {
+    local tmux_bin="" terminal_da=0
+    hat_terminal && terminal_da=1
+    tmux_bin=$(tmux_fest) || tmux_bin=""
+    local -a socks=()
+    if [ "$terminal_da" = 1 ] && [ -n "$tmux_bin" ]; then
+        while IFS= read -r s; do [ -n "$s" ] && socks+=("$s"); done < <(tmux_sockets | lebende_sockets)
+    fi
+    /usr/bin/env -i /usr/bin/python3 -I -S -c "$M1_PY" messen --pid "$$" \
+        --terminal_da "$terminal_da" --ssh_fremd "$SSH_FREMD" \
+        --werkbank "${M1_WERKBANK_SOCKET[@]}" --iterm "${M1_ITERM_ANFORDERUNG_MAC[@]}" \
+        --tmux ${tmux_bin:+"$tmux_bin"} --socket ${socks[@]+"${socks[@]}"} 2>/dev/null
+}
+m1_terminal_ist_mensch() {
+    local befund
+    befund=$(m1_messen | m1_entscheiden)
+    case "$befund" in
+        "JA "*) GRUND_M1="${befund#JA }"; return 0 ;;
+        "NEIN "*) GRUND_M1="${befund#NEIN }" ;;
+        *) GRUND_M1="die Pruefung des Terminals lieferte kein Ergebnis." ;;
+    esac
+    return 1
 }
 
 # Die Oberflaeche als Ahne (M2, Regel im Kopf). WB_APP_PID ist eine BEHAUPTUNG und
@@ -972,7 +1217,7 @@ klassifizieren() {   # setzt ART und GRUND
     local pid name
     while read -r pid name; do
         [ -n "$name" ] || continue
-        if printf '%s\n' "$kom" | grep -qxF -e "$name"; then
+        if grep -qxF -e "$name" <<<"$kom"; then
             ART=agent; GRUND="Harness '$name' (PID $pid) steht in der Ahnenreihe (A2)."; return
         fi
     done <<<"$AHNEN"
@@ -993,8 +1238,8 @@ klassifizieren() {   # setzt ART und GRUND
     if ssh_auf_sich_selbst; then
         ART=agent; GRUND="$GRUND_SSH"; return
     fi
-    if hat_terminal; then
-        ART=mensch; GRUND="Steuerndes Terminal vorhanden, kein Agent in der Ahnenreihe (M1)."; return
+    if hat_terminal && m1_terminal_ist_mensch; then
+        ART=mensch; GRUND="Steuerndes Terminal vorhanden ($GRUND_M1), kein Agent in der Ahnenreihe (M1)."; return
     fi
     if oberflaeche_ist_ahne; then
         ART=mensch; GRUND="Oberflaeche als geprueften Ahnen nachgewiesen (WB_APP_PID=$WB_APP_PID, M2)."; return
@@ -1004,6 +1249,7 @@ klassifizieren() {   # setzt ART und GRUND
     # Die Oberflaeche zeigt diesen Text ("Freigabe nicht als Mensch erkannt: ..."); ohne
     # den Grund von M2 saehe der Mensch nicht, WARUM sein Klick nicht zaehlte.
     [ -n "$GRUND_M2" ] && GRUND="$GRUND M2 scheiterte: $GRUND_M2"
+    [ -n "$GRUND_M1" ] && GRUND="$GRUND M1 scheiterte: Das steuernde Terminal zaehlt nicht, $GRUND_M1"
 }
 
 case "$CMD" in
@@ -1018,7 +1264,20 @@ case "$CMD" in
     ahnen)
         ahnen
         exit 0 ;;
+    m1-kette)
+        # Diagnose: die gemessene Kette, aus der M1 entscheidet (JSON), danach das Urteil.
+        ahnen_lesen
+        ssh_auf_sich_selbst >/dev/null || true
+        kette=$(m1_messen)
+        printf '%s\n' "$kette"
+        printf '%s\n' "$kette" | m1_entscheiden
+        exit 0 ;;
+    m1-entscheiden)
+        # Nur die reine Entscheidung ueber eine feste Kette (Fixture), nur in Tests.
+        [ "${WB_TESTUMGEBUNG:-}" = 1 ] || { echo "wb-mensch: m1-entscheiden nur unter WB_TESTUMGEBUNG=1" >&2; exit 2; }
+        if [ "${2:--}" = - ]; then m1_entscheiden; else m1_entscheiden < "$2"; fi
+        exit 0 ;;
     *)
-        echo "wb-mensch: unbekanntes Kommando '$CMD' (pruefen|beleg|ahnen)" >&2
+        echo "wb-mensch: unbekanntes Kommando '$CMD' (pruefen|beleg|ahnen|m1-kette)" >&2
         exit 2 ;;
 esac

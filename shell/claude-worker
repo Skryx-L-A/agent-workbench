@@ -1,6 +1,22 @@
 #!/bin/bash
-# claude-worker [--mensch] <name> <haiku45|sonnet5|opus5|opus48|fable51>[:effort] <dir> <task...>
+# claude-worker [--mensch] [--konto gross|klein|auto] <name> <haiku45|sonnet5|opus5|opus48|fable51>[:effort] <dir> <task...>
 # Permanent Claude chat agent pane (pi-worker mechanics). Model is REQUIRED.
+#
+# `--konto gross|klein|auto` (12.11./14.11.2026): das Anthropic-Abo des Workers, als
+# CLAUDE_CODE_OAUTH_TOKEN aus dem Schluesselbund (Eintrag je Konto: `wb-konto konten`)
+# statt der Browser-Anmeldung dieses Rechners. Vorgabe `auto`: `wb-konto wahl` nimmt
+# beim Start das Konto mit der meisten Luft unter seiner Tageslinie; hat keines Luft,
+# startet nichts. Ein genanntes Konto schliesst sich mit einem Modell der
+# anthropic-api-Spur aus (kein Start, klare Meldung); ohne Schluesselbund-Eintrag
+# ebenfalls kein Start -- kein stiller Rueckfall auf die Browser-Anmeldung.
+# Gleichwertig: WB_CLAUDE_KONTO=<konto> in der Umgebung.
+#
+# `--basis <ref>` (27.10.2026, vor dem Namen, beliebig zwischen --mensch/--on): der
+# Worktree wb/<name> entsteht auf <ref> statt auf dem HEAD von <dir>, z. B.
+#   claude-worker --basis development w1 opus5:high ~/AI/claude-workbench "<auftrag>"
+# Fehlt <ref> oder steht ein vorhandener Baum auf anderer Basis, startet KEIN Worker
+# (Meldung von wb-worktree, Exit 2). Mit --on oder einer anderen defaultWorkerMachine
+# wird --basis laut abgelehnt (Exit 1): wb-ssh-worker kann es nicht weitergeben.
 #
 # `--mensch` (2026-08-06) hebt den Effort-Deckel fuer diesen einen Start auf. Es
 # wird hier nur DURCHGEREICHT — entschieden wird es in pi-worker, wo `wb-mensch`
@@ -39,7 +55,7 @@
 # never creates a pane itself, it only ever execs onward (below, or into
 # wb-ssh-worker just above) — so pi-worker's check already covers every path that
 # actually spawns something, on whichever machine that turns out to be.
-# Befristeter Deckel des Claude-Wochenlimits (der Nutzer 11.10.2026: bis Mo 12.10. 14:00 hoechstens
+# Befristeter Deckel des Claude-Wochenlimits (decision 2026-10-11: bis Mo 12.10. hoechstens
 # 95 %): solange ~/.claude/workbench/limit-deckel.json gilt, startet kein Claude-Worker. Nach
 # bis_epoch laeuft die Sperre von selbst aus. Arbeit geht an codex-worker oder pi-worker.
 # `env -i` (nur HOME, derselbe Wert) und -I -S: /usr/bin/python3 ist auf macOS der xcrun-Shim
@@ -49,9 +65,59 @@
 if /usr/bin/env -i HOME="$HOME" /usr/bin/python3 -I -S -c 'import json,os,sys,time
 d=json.load(open(os.path.expanduser("~/.claude/workbench/limit-deckel.json")))
 sys.exit(0 if time.time() < float(d["bis_epoch"]) else 1)' 2>/dev/null; then
-  echo "claude-worker: GESPERRT -- befristeter Deckel des Claude-Wochenlimits (limit-deckel.json, der Nutzer 11.10.); Worker an Codex oder lokal vergeben." >&2
+  echo "claude-worker: GESPERRT -- befristeter Deckel des Claude-Wochenlimits (limit-deckel.json, decision 10-11); Worker an Codex oder lokal vergeben." >&2
   exit 3
 fi
+# --basis darf vor, zwischen oder nach --mensch/--on stehen; es wird hier
+# herausgezogen, die uebrige Reihenfolge bleibt unberuehrt.
+#
+# --konto gross|klein|auto (task 12.11., task 14.11.2026):
+# ueber WB_CLAUDE_KONTO in der Umgebung durchgereicht -- die Angabe selbst, NIE ein
+# Schluessel oder Token. 'export' reicht: pi-worker und wb-harness-run erben die
+# Variable ueber jeden weiteren exec, kein eigenes Flag noetig. Ohne --konto gilt eine
+# schon gesetzte Angabe der aufrufenden Umgebung, sonst 'auto' (unten).
+BASIS=""; BASIS_GESETZT=""; VOR=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --basis)   [ -n "${2:-}" ] || { echo "claude-worker: --basis braucht einen Ref." >&2; exit 1; }
+               BASIS="$2"; BASIS_GESETZT=1; shift 2 ;;
+    --basis=*) BASIS="${1#--basis=}"; BASIS_GESETZT=1; shift
+               [ -n "$BASIS" ] || { echo "claude-worker: --basis braucht einen Ref." >&2; exit 1; } ;;
+    --konto)   case "${2:-}" in gross|klein|auto) ;; *) echo "claude-worker: --konto kennt nur gross, klein oder auto." >&2; exit 1 ;; esac
+               export WB_CLAUDE_KONTO="$2"; unset WB_CLAUDE_KONTO_VORGABE; shift 2 ;;
+    --mensch)  VOR+=("$1"); shift ;;
+    --on)      [ $# -ge 2 ] || break; VOR+=("$1" "$2"); shift 2 ;;
+    *)         break ;;
+  esac
+done
+set -- ${VOR[@]+"${VOR[@]}"} "$@"
+# Vorgabe 'auto' (task, 14.11.2026): ohne --konto und ohne geerbte Angabe
+# waehlt wb-konto beim Start das Konto mit Luft; die Browser-Anmeldung bleibt aussen vor.
+# Unter der Testnaht (WB_TESTUMGEBUNG=1) gilt die Vorgabe nicht (Begruendung in pi-worker).
+case "${WB_CLAUDE_KONTO:-}" in
+  # Nur am Mac (decision 11-14): die Konto-Token liegen im macOS-Schluesselbund. Auf peer gibt es weder `security`
+  # noch wb-konto (bewusst nicht in der Sync-Liste); dort bleibt die eigene Anmeldung des Rechners wie bisher.
+  # WB_CLAUDE_KONTO_VORGABE (15.11.2026): markiert, dass 'auto' hier nur die Vorgabe ist und niemand ein Konto genannt hat.
+  # Nur dann darf der anthropic-api-Vorzug in pi-worker greifen; jedes ausdrueckliche --konto (auch auto) heisst Abo.
+  "")               [ "${WB_TESTUMGEBUNG:-}" = 1 ] || [ "$(uname -s)" != Darwin ] || export WB_CLAUDE_KONTO=auto WB_CLAUDE_KONTO_VORGABE=1 ;;
+  gross|klein|auto) ;;
+  *) echo "claude-worker: WB_CLAUDE_KONTO='$WB_CLAUDE_KONTO' ist kein Konto (gross|klein|auto). Kein Worker gestartet." >&2; exit 1 ;;
+esac
+# Ein ausdruecklich genanntes Konto braucht den Schluesselbund-Eintrag DIESER Maschine und
+# wird nicht an wb-ssh-worker weitergegeben (task, Nachtrag 3) -- sonst
+# liefe der Worker dort still auf der Anmeldung jener Maschine. 'auto' (die Vorgabe) gilt
+# dort als "das Konto jener Maschine" und haelt den Start nicht auf.
+konto_remote_ablehnen() {
+  case "${WB_CLAUDE_KONTO:-}" in gross|klein) ;; *) return 0 ;; esac
+  echo "claude-worker: --konto $WB_CLAUDE_KONTO gilt nur fuer einen Worker auf DIESER Maschine — wb-ssh-worker gibt es nicht weiter. Kein Worker gestartet. Ohne --konto starten oder lokal (ohne --on)." >&2
+  exit 1
+}
+basis_remote_ablehnen() {
+  [ -n "$BASIS_GESETZT" ] || return 0
+  echo "claude-worker: --basis '$BASIS' gilt nur fuer einen Worker auf DIESER Maschine — der Worktree auf $1 entsteht dort, und wb-ssh-worker gibt --basis nicht weiter. Kein Worker gestartet. Ohne --basis starten oder lokal (ohne --on)." >&2
+  exit 1
+}
+
 MENSCHFLAG=""
 if [ "${1:-}" = "--mensch" ]; then MENSCHFLAG="--mensch"; shift; fi
 
@@ -59,6 +125,12 @@ if [ "${1:-}" = "--on" ]; then
   ONMACHINE="${2:?Maschine (mac|peer)}"; shift 2
   case "$(uname -s)" in Darwin) SELF=mac ;; *) SELF=peer ;; esac
   [ "$ONMACHINE" = "$SELF" ] && { echo "claude-worker: --on gilt nur fuer eine ANDERE Maschine — '$ONMACHINE' ist diese hier. Ohne --on starten." >&2; exit 1; }
+  basis_remote_ablehnen "$ONMACHINE"
+  # --konto klein braucht den Schluesselbund-Eintrag wb-claude-abo-2 DIESER Maschine
+  # und wird nicht an wb-ssh-worker weitergegeben (task, Nachtrag 3,
+  # 12.11.2026) -- sonst liefe der Worker auf der anderen Maschine still am grossen
+  # Konto, ohne dass das irgendwo auffiele. Lieber Abbruch als Verlust der Angabe.
+  konto_remote_ablehnen
   # Auf der ANDEREN Maschine wird die Herkunft neu gemessen (die SSH-Sitzung dort
   # ist ein anderer Prozessbaum), deshalb geht das Merkmal hier NICHT mit: es
   # waere dort eine reine Behauptung ohne pruefbaren Ursprung. Wer auf der
@@ -81,7 +153,7 @@ case "$NAME" in
     if [ "$DEFMACH" != local ]; then
       case "$(uname -s)" in Darwin) SELF=mac ;; *) SELF=peer ;; esac
       # Already on the configured default machine: nothing to redirect.
-      [ "$DEFMACH" = "$SELF" ] || exec "$HOME/.local/bin/wb-ssh-worker" "$DEFMACH" claude "$@"
+      [ "$DEFMACH" = "$SELF" ] || { basis_remote_ablehnen "$DEFMACH (defaultWorkerMachine)"; konto_remote_ablehnen; exec "$HOME/.local/bin/wb-ssh-worker" "$DEFMACH" claude "$@"; }
     fi
     ;;
 esac
@@ -91,13 +163,31 @@ esac
 # nicht mehr gegenseitig in die Dateien laufen. Der Aufruf steht HIER, nach dem
 # Maschinen-Routing: ein Worker auf der ANDEREN Maschine hat seinen Worktree dort,
 # nicht hier, und beide `exec`-Pfade oben sind schon zurueckgekehrt.
-# `wb-worktree ensure` druckt IMMER ein benutzbares Verzeichnis — ohne git, ohne
-# Repo oder mit abgeschaltetem Schalter (workerWorktrees) faellt es auf $DIR
-# zurueck, mit einem Hinweis nach stderr. Der Normalfall kann daran nicht scheitern:
-# ein leeres Ergebnis oder ein Fehler laesst $DIR unveraendert.
-if [ -x "$HOME/.local/bin/wb-worktree" ]; then
-  WT_DIR="$("$HOME/.local/bin/wb-worktree" ensure "$NAME" "$DIR")" || WT_DIR=""
-  [ -n "$WT_DIR" ] && [ -d "$WT_DIR" ] && DIR="$WT_DIR"
+# `wb-worktree ensure` faellt nur fuer einen Ordner ohne Repo auf $DIR zurueck, mit
+# einem Hinweis nach stderr. Laesst sich der Worktree nicht bestaetigen, bricht
+# ensure laut ab (Exit 2, stdout leer), und der Worker startet nicht — seit
+# 22.11.2026 auch ohne --basis. pi-worker bekommt --basis danach nicht mehr, $DIR ist
+# dann schon der Worktree.
+if [ -n "$BASIS_GESETZT" ]; then
+  [ -x "$HOME/.local/bin/wb-worktree" ] \
+    || { echo "claude-worker: --basis '$BASIS' braucht wb-worktree, das fehlt hier. Kein Worker gestartet." >&2; exit 1; }
+  WT_RC=0
+  WT_DIR="$("$HOME/.local/bin/wb-worktree" ensure "$NAME" "$DIR" --basis "$BASIS")" || WT_RC=$?
+  if [ "$WT_RC" -ne 0 ] || [ -z "$WT_DIR" ] || [ ! -d "$WT_DIR" ]; then
+    echo "claude-worker: Worktree fuer '$NAME' auf Basis '$BASIS' nicht angelegt (wb-worktree Exit $WT_RC, Meldung darueber). Kein Worker gestartet." >&2
+    exit 2
+  fi
+  DIR="$WT_DIR"
+elif [ -x "$HOME/.local/bin/wb-worktree" ]; then
+  # Fail closed (22.11.2026): ein Fehler von ensure startet keinen Worker. Bis dahin
+  # blieb $DIR stehen, und ein Worker lief im Hauptbaum (Fall vom 22.11.).
+  WT_RC=0
+  WT_DIR="$("$HOME/.local/bin/wb-worktree" ensure "$NAME" "$DIR")" || WT_RC=$?
+  if [ "$WT_RC" -ne 0 ] || [ -z "$WT_DIR" ] || [ ! -d "$WT_DIR" ]; then
+    echo "claude-worker: Worktree fuer '$NAME' nicht bestaetigt (wb-worktree Exit $WT_RC, Meldung darueber). Kein Worker gestartet." >&2
+    exit 2
+  fi
+  DIR="$WT_DIR"
 fi
 
 # `default` takes workerModel/workerEffort from the settings menu (resolved in

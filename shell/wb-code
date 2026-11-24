@@ -3,7 +3,21 @@
 #
 #   wb-code [project-dir] [--resume <session-id>] [--name <name>] [--key <sessionKey>]
 #          [--harness claude|pi] [--model <model>] [--effort <effort>] [--mensch]
-#          [--kontext <stufe|auto>] [--fresh]
+#          [--kontext <stufe|auto>] [--fresh] [--konto gross|klein|auto]
+#
+# KONTOWAHL (task Zug 2, 14.11.2026, OPEN d aus Zug 1): Der eingebaute claude-Zweig
+# startet ueber dieselbe Kontowahl wie die Worker. `--konto` (oder WB_CLAUDE_KONTO) nimmt gross|klein|auto;
+# ohne Angabe gilt die Einstellung orchestratorKonto (settings.json, gross|klein|auto|leer; Vorgabe leer), ohne
+# sie die Mac-Anmeldung: Remote Control laeuft nur mit ihr (Begruendung an der Stelle unten). decision 11-14
+# (Grill-Runde Punkt 9): Kontowahl auch fuer den Orchestrator, Fernsteuerung dann ueber die Werkbank-Handy-App;
+# der Verlust von Remote Control steht laut in der Meldung von wb-code und im Pane (wb-konto start), nie still.
+# Mit Konto beginnt die Startzeile mit
+# `WB_CLAUDE_KONTO=<angabe> wb-konto start --`:
+# wb-konto waehlt bei JEDEM Start (auch nach wb-revive) neu, liest den Token aus dem Schluesselbund NUR in die
+# Umgebung und startet claude per exec (dieselbe PID). Vor dem Anlegen der Sitzung prueft wb-code Wahl und
+# Eintrag; fehlt einer, startet KEINE Sitzung -- kein stiller Rueckfall auf die Browser-Anmeldung. Die
+# interaktive Mac-Anmeldung (claude auth login) bleibt unberuehrt. Auf peer gibt es kein wb-konto und keinen
+# Schluesselbund: dort bleibt orchestratorKonto leer; ein ausdrueckliches Konto bricht dort laut ab.
 #
 # ZWEI DINGE, DIE NICHT DASSELBE SIND (2026-08-06). Sie tragen beide das Wort
 # "Effort" und werden deshalb leicht verwechselt:
@@ -72,12 +86,11 @@ unset TMUX TMUX_PANE
 # Das Heimatverzeichnis aus der Benutzerdatenbank, nicht aus der Umgebung --
 # Begruendung im Kopf von pi-worker ("WO das Pruefprogramm gesucht wird").
 wb_heimatverzeichnis() {
-  local h=""
-  if command -v dscl >/dev/null 2>&1; then
-    h="$(dscl . -read "/Users/$(id -un)" NFSHomeDirectory 2>/dev/null | awk '{print $2}')"
-  fi
-  [ -n "$h" ] || h="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)"
-  printf '%s' "${h:-$HOME}"
+  # Mit festem Interpreter unter `env -i`, nie mit dscl/id/getent aus dem PATH des Aufrufers
+  # (18.10.2026, Befund devdir-sicher N5): ein eigenes `dscl` vorn im PATH nannte sonst das
+  # umgelenkte HOME als Heimat, und die Schranke darunter fiel. Kein Rueckfall auf $HOME:
+  # scheitert die Abfrage, bleibt die Schranke (WB_HEIM leer).
+  /usr/bin/env -i /usr/bin/python3 -I -S -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir, end="")' 2>/dev/null
 }
 WB_HEIM="$(wb_heimatverzeichnis)"
 # M2 (Oberflaeche als Ahne) braucht WB_MENSCH_QUELLE und WB_APP_PID, und `env -i`
@@ -102,7 +115,14 @@ mensch_gemessen() {
 }
 
 DIR="$PWD"; RESUME=""; NAME=""; KEY=""; HARNESS=""; MODEL=""; EFFORT=""; EFFORT_EXPLIZIT=""; FRESH=""
-HARNESS_FLAG=""; MODEL_FLAG=""; MENSCH=""; KONTEXT_ARG=""
+HARNESS_FLAG=""; MODEL_FLAG=""; MENSCH=""; KONTEXT_ARG=""; KONTO="${WB_CLAUDE_KONTO:-}"
+# task (18.11.2026): laeuft dieser Aufruf in einer Sitzung, die ueber wb-konto, wb-harness-run oder pi-worker
+# gestartet wurde (WB_CLAUDE_KONTO_AKTIV gesetzt), ist ein WB_CLAUDE_KONTO dort das Erbe des alten Starts, nie
+# eine Angabe fuer diesen. Dann entscheidet die Einstellung orchestratorKonto; ausdruecklich geht nur --konto.
+if [ -n "$KONTO" ] && [ -n "${WB_CLAUDE_KONTO_AKTIV:-}" ]; then
+  echo "wb-code: HINWEIS -- geerbte WB_CLAUDE_KONTO=$KONTO dieser Sitzung (laeuft auf Konto $WB_CLAUDE_KONTO_AKTIV) gilt nicht als Angabe fuer einen neuen Start; ausdruecklich geht --konto." >&2
+  KONTO=""
+fi
 while [ $# -gt 0 ]; do
   case "$1" in
     # `--mensch` ist eine BEHAUPTUNG und wird nie geglaubt: `wb-mensch` misst die
@@ -144,6 +164,7 @@ while [ $# -gt 0 ]; do
     # freiem Speicher automatisch waehlen (settings.json 'orchestratorKontext'
     # zuerst, siehe die volle Rangfolge weiter unten am Punkt der Wahl selbst).
     --kontext) KONTEXT_ARG="${2:?stufe|auto}"; shift 2 ;;
+    --konto) KONTO="${2:?gross|klein|auto}"; shift 2 ;;
     -*) echo "wb-code: unbekannte Option '$1'" >&2; exit 1 ;;
     *) DIR="$1"; shift ;;
   esac
@@ -333,8 +354,17 @@ case "$HARNESS" in
       exit 1
     fi
     MH="$($HOME/.local/bin/wb-state models get "$MODEL" --field harness 2>/dev/null || true)"
+    if [ -z "$MH" ]; then
+      # Der Grund steht in der stderr-Zeile von wb-state (etwa "keins verfuegbar"). Sie geht
+      # durch, statt dass ein "?" ihn verdeckt.
+      MH_ERR="$($HOME/.local/bin/wb-state models get "$MODEL" --field harness 2>&1 >/dev/null || true)"
+      [ -n "$MH_ERR" ] && echo "$MH_ERR" >&2
+      echo "wb-code: Modell '$MODEL' ist nicht startbar, gestartet werden soll '$HARNESS'." >&2
+      echo "  Auswahl: wb-state models list --role orchestrator --harness $HARNESS" >&2
+      exit 1
+    fi
     if [ "$MH" != "$HARNESS" ]; then
-      echo "wb-code: Modell '$MODEL' gehoert zu Harness '${MH:-?}', gestartet werden soll '$HARNESS'." >&2
+      echo "wb-code: Modell '$MODEL' gehoert zu Harness '$MH', gestartet werden soll '$HARNESS'." >&2
       echo "  Auswahl: wb-state models list --role orchestrator --harness $HARNESS" >&2
       exit 1
     fi
@@ -354,7 +384,7 @@ esac
 # Sitzung aufmachen koennen. Mit `--mensch` faellt er weg -- dann gilt nur noch,
 # was der Harness annimmt. Ein Mensch, der einen Worker-Deckel gesetzt hat,
 # bremst damit also nie sich selbst.
-# QWEN LAEUFT IMMER AUF DER HOECHSTEN STUFE (der Nutzer 2026-09-20), und das gilt
+# QWEN LAEUFT IMMER AUF DER HOECHSTEN STUFE (decision 2026-09-20), und das gilt
 # auch, wenn qwen3.8 als ORCHESTRATOR in der Werkbank laeuft. Ohne ausdrueckliches
 # --effort gewinnt deshalb fuer ein Splash-Modell die Registry-Vorgabe des Modells
 # (defaultEffort, heute xhigh) und nicht die allgemeine Orchestrator-Einstellung
@@ -635,7 +665,18 @@ fi
 # (siehe unten). Beide Formen muessen als "das hier ist ein MLX-Modell" zaehlen.
 ist_mlx_lokal() { case "$1" in mlx-lokal*) return 0 ;; *) return 1 ;; esac; }
 
+# Ein pi-Modell mit ENTFERNTEM Provider (nicht lokal) laeuft ueber den Registry-Weg wie jeder
+# andere Registry-Harness: Schluessel, Geheimnisfilter und Rolle kommen dort. Der pi-Schnellpfad
+# unten kennt nur lokale Provider und gibt die nackte modelRef an wb-kontext, das nur
+# Registry-Kennungen kennt. Lokal sind ollama, mlx-lokal*, splash-lokal und omlx-lokal.
+PI_FERN=""
 if [ "$HARNESS" = "pi" ]; then
+  case "$($HOME/.local/bin/wb-state models get "$MODEL" --field provider 2>/dev/null || true)" in
+    ""|ollama|mlx-lokal*|splash-lokal|omlx-lokal) ;;
+    *) PI_FERN=1 ;;
+  esac
+fi
+if [ "$HARNESS" = "pi" ] && [ -z "$PI_FERN" ]; then
   # Local orchestrator (SPEC-V2 section F): same pane contract, other harness.
   # PIPROVIDER defaults to Ollama; qwen38 uses Splash or the explicit MLX path.
   # Provider-specific ensure calls happen later in the shared context block.
@@ -697,7 +738,14 @@ if [ "$HARNESS" = "pi" ]; then
     # lebende Splash-Stroeme angehoben werden.
     SPLASH_KONTEXT_ARGS=(--kontext 262144)
     SPLASH_FALLBACK=""
-    if SPLASH_IST="$("$HOME/.local/bin/wb-splash-server" ensure "$SPLASH_ID" \
+    # EIN MENSCH WIRD GEWARNT, NICHT AUFGEHALTEN -- auch auf dem Splash-Weg (25.10.2026: der Start
+    # einer Sitzung brach ab, obwohl oben "wird zur WARNUNG" stand; die Zusage erreichte
+    # wb-splash-server nie). wb-splash-server nimmt die Notluke WB_SPLASH_OHNE_BELEGUNG=1 nur von
+    # einem Menschen, den es SELBST mit wb-mensch misst; die Variable allein oeffnet nichts. Gesetzt
+    # wird sie nur hier, nur fuer diesen Aufruf, und nur wenn wb-code den Menschen schon bezeugt hat.
+    SPLASH_ENV=()
+    [ -n "$MENSCH" ] && SPLASH_ENV=(WB_SPLASH_OHNE_BELEGUNG=1)
+    if SPLASH_IST="$(env ${SPLASH_ENV[@]+"${SPLASH_ENV[@]}"} "$HOME/.local/bin/wb-splash-server" ensure "$SPLASH_ID" \
       "${SPLASH_KONTEXT_ARGS[@]}" --rolle orchestrator --sitzung "$SESSION")"; then
       SPLASH_RC=0
     else
@@ -736,10 +784,7 @@ if [ "$HARNESS" = "pi" ]; then
   # Registry-Eintrag mit diesem Feld, der Nachschlag liefert dann einfach
   # nichts -- kein Fehler, nur "fuer dieses Modell nichts hinterlegt".
   #
-  # SEIT DEM 21.08.2026 IST ES EINE WAHL UNTER MEHREREN WEGEN (der Nutzer: "ich
-  # will das ich als zweite option qwen3.8 als orchestrator auch mit einem
-  # multitokenprediction model starten kann anstatt mtplx, ich will mich
-  # entscheiden koennen"). Die WEGE stehen weiterhin ausschliesslich in der
+  # SEIT DEM 21.08.2026 IST ES EINE WAHL UNTER MEHREREN WEGEN (der Nutzer). Die WEGE stehen weiterhin ausschliesslich in der
   # Registry (vorhersage.wege); die Einstellung 'orchestratorVorhersageWeg'
   # traegt nur die `id` eines davon. Damit bleibt die Zuordnung in der
   # Auslieferung -- waehlbar ist, was gemessen wurde, kein freier Pfad.
@@ -1120,7 +1165,37 @@ else
   else
     echo "wb-code: wb-chat-hook-install nicht gefunden — keine Chat-Zuordnung eingetragen." >&2
   fi
-  CLAUDE_CMD="$HOME/.local/bin/claude --model $(printf %q "$MODEL") --effort $(printf %q "$EFFORT")"
+  # Kontowahl (siehe Kopf "KONTOWAHL"): Pruefung VOR dem Anlegen der Sitzung, laut und ohne Rueckfall.
+  KONTO_START=""
+  # Vorgabe aus settings.json orchestratorKonto (gross|klein|auto), nicht fest 'auto': Remote Control (fuer
+  # den Orchestrator immer an, decision 2026-08-05) braucht die volle Mac-Anmeldung. Gemessen in den
+  # Zeichenketten der CLI 2.1.325: "Remote Control requires a full-scope login token. Long-lived tokens (from
+  # `claude setup-token` or CLAUDE_CODE_OAUTH_TOKEN) are limited to inference-only". Ohne Einstellung bleibt
+  # es deshalb bei der Mac-Anmeldung (bestehende Funktion); die Entscheidung liegt beim Betreiber.
+  [ -z "${KONTO:-}" ] && KONTO="$("$HOME/.local/bin/wb-state" settings get orchestratorKonto 2>/dev/null || true)"
+  case "${KONTO:-}" in
+    "") : ;;
+    gross|klein|auto) ;;
+    *) echo "wb-code: FEHLER -- Konto '$KONTO' ist keins (gross|klein|auto); keine Sitzung gestartet." >&2; exit 1 ;;
+  esac
+  if [ -n "${KONTO:-}" ]; then
+    WB_KONTO_BIN="$HOME/.local/bin/wb-konto"
+    if [ ! -x "$WB_KONTO_BIN" ]; then
+      echo "wb-code: FEHLER -- Konto $KONTO, aber wb-konto fehlt ($WB_KONTO_BIN); kein stiller Rueckfall auf die Browser-Anmeldung; keine Sitzung gestartet." >&2
+      exit 1
+    fi
+    if ! KONTO_GEWAEHLT="$("$WB_KONTO_BIN" aufloesen "$KONTO")" || [ -z "$KONTO_GEWAEHLT" ]; then
+      echo "wb-code: FEHLER -- keine Kontowahl fuer $KONTO (Meldung von wb-konto oben); kein stiller Rueckfall auf die Browser-Anmeldung; keine Sitzung gestartet." >&2
+      exit 1
+    fi
+    if ! "$WB_KONTO_BIN" dienst "$KONTO_GEWAEHLT" >/dev/null; then
+      echo "wb-code: FEHLER -- kein Schluesselbund-Eintrag fuer Konto $KONTO_GEWAEHLT (Meldung von wb-konto oben); kein stiller Rueckfall auf die Browser-Anmeldung; keine Sitzung gestartet." >&2
+      exit 1
+    fi
+    echo "wb-code: Konto $KONTO (jetzt $KONTO_GEWAEHLT; der Pane waehlt bei jedem Start neu). WARNUNG: mit Kontotoken ist Remote Control nicht verfuegbar (nur Inferenz); Fernsteuerung ueber die Werkbank-Handy-App. Mac-Anmeldung mit Remote Control: wb-state settings set orchestratorKonto ''" >&2
+    KONTO_START="WB_CLAUDE_KONTO=$KONTO $(printf %q "$WB_KONTO_BIN") start -- "
+  fi
+  CLAUDE_CMD="${KONTO_START}$HOME/.local/bin/claude --model $(printf %q "$MODEL") --effort $(printf %q "$EFFORT")"
   [ -n "$NAME" ] && CLAUDE_CMD="$CLAUDE_CMD -n $(printf %q "$NAME")"
   [ -n "$RESUME" ] && CLAUDE_CMD="$CLAUDE_CMD --resume $(printf %q "$RESUME")"
   # Der Berechtigungsmodus des Orchestrators (2026-08-16, Anweisung des Nutzers:
@@ -1162,6 +1237,16 @@ else
   # (--remote-control-session-name-prefix, Vorgabe: Hostname), also nicht hier
   # zusaetzlich davorsetzen.
   CLAUDE_CMD="$CLAUDE_CMD --remote-control $(printf %q "${NAME:-$SESSION}")"
+  # crossSessionInbound accept (22.10.2026, task, der Nutzer): ohne ihn haelt diese bypass-Sitzung jede Nachricht ohne bezeugten Absendermodus
+  # (wb-freigabe, wb-tafel, Wache) mit einem Dialog an. Der Wert steht an EINER Stelle
+  # (wb-state CLAUDE_SETTINGS); Remote Control bleibt an. Ohne Antwort von wb-state startet die
+  # Sitzung wie bisher, laut.
+  if INBOUND_CMD="$("$HOME/.local/bin/wb-state" models claude-settings orchestrator --in "$CLAUDE_CMD" 2>/dev/null)" \
+      && [ -n "$INBOUND_CMD" ]; then
+    CLAUDE_CMD="$INBOUND_CMD"
+  else
+    echo "wb-code: WARNUNG -- 'wb-state models claude-settings' antwortete nicht; die Sitzung startet ohne crossSessionInbound und haelt Nachrichten ohne bezeugten Modus an." >&2
+  fi
   CLAUDE_CMD="$CLAUDE_CMD --append-system-prompt \"\$(cat $HOME/.claude/roles/orchestrator.md)\""
 fi
 
@@ -1192,6 +1277,9 @@ fi
 tmux new-session -d -s "$SESSION" -c "$DIR" "$CLAUDE_CMD"
 orch=$(tmux list-panes -t "=$SESSION" -F '#{pane_id}' | head -1)
 tmux set -p -t "$orch" @wb_harness "$HARNESS"
+# Das Registry-Modell dazu: die Startzeile ist mit printf %q gespeichert und fuer die
+# Kontextwache nicht lesbar (shell/context-guard pane_zeile); die Option ist der gerade Weg.
+[ -n "$MODEL" ] && tmux set -p -t "$orch" @wb_model "$MODEL"
 
 # ── Diese Sitzung traegt sich als Benutzer des Modellservers ein (2026-08-21) ─
 # Beim Start gab es diese Sitzung noch nicht: `wb-mlx-server ensure` laeuft

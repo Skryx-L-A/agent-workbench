@@ -15,6 +15,8 @@
  * `history.back()` auf -- dieselbe Navigation wie der Zurueck-Knopf.
  */
 import { agentAnsicht, agentsListe, frageAnsicht, weltAnsicht } from './agents';
+import { offeneFragen, offeneRechteantraege } from './agents-daten';
+import { antragAnsicht } from './antrag';
 import { chatAnsicht } from './chat';
 import { h, symbol, textSetzen } from './dom';
 import { istStandalone, layoutVon } from './geraet';
@@ -46,6 +48,7 @@ function bauen(r: Route, u: Umgebung): Ansicht {
     case 'tickets': return ticketListe(u, r.welt);
     case 'ticket': return ticketAnsicht(u, r.welt, r.ticket);
     case 'frage': return frageAnsicht(u, r.welt, r.frage);
+    case 'antrag': return antragAnsicht(u, r.welt, r.antrag);
     case 'meldung': return meldungAnsicht(u, r.id);
     case 'geraet': return geraetAnsicht(u);
     case 'koppeln': return kopplungsAnsicht(u, true);
@@ -192,7 +195,8 @@ export class Rahmen {
   private zahlenSetzen(): void {
     const s = this.stand;
     const warten = (s.sitzungen ?? []).filter((x) => x.state === 'attention').length;
-    const fragen = (s.agents?.welten ?? []).reduce((n, w) => n + w.fragen.filter((f) => f.stand === 'offen').length, 0);
+    // Wie „Brauchen Dich“ in der Agents-Liste: offene Fragen und offene Rechteantraege an Dich.
+    const fragen = (s.agents?.welten ?? []).reduce((n, w) => n + offeneFragen(w).length + offeneRechteantraege(w).length, 0);
     const ungelesen = (s.meldungen ?? []).filter((n) => s.ungelesen(n)).length;
     const werte: Record<Tab, number> = { sitzungen: warten, agents: fragen, meldungen: ungelesen };
     for (const t of TABS) {

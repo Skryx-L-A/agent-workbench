@@ -6,7 +6,7 @@
 # first change (Vault-Messung 24.09.2026: Claude-Worker suchten nur in 9 % der
 # Faelle von selbst).
 #
-# Exception (der Nutzer, 25.09.2026, reason: a kit for a company laptop): a project that must
+# Exception (decision 2026-09-25, reason: a kit for a company laptop): a project that must
 # stay free of private data -- e.g. a kit that ends up on a company laptop -- must
 # not pull anything from the private vault ~/Knowledge. Such a project carries a
 # file named `.wb-ohne-brain` in its directory or in any parent up to (but not

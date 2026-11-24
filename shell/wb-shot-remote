@@ -3,7 +3,7 @@
 # ausgeloest. Ruft das Gegenstueck `peer-shot` per SSH auf peer auf, holt NUR die
 # entstandene PNG-Datei per SCP herueber und loescht sie danach auf peer wieder.
 #
-# Rule (der Nutzer, 2026-07-25): agents never record or screenshot the whole screen,
+# Rule (decision 2026-07-25): agents never record or screenshot the whole screen,
 # and never move his focus. Die eigentliche Regel-Durchsetzung (kein Vollbild-
 # Fallback, mehrdeutiges Muster bricht ab, kein Treffer bricht ab) sitzt in
 # peer-shot selbst; dieses Skript reicht dessen Exitcodes unveraendert durch.

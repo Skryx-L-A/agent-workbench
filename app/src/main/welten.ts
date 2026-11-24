@@ -80,15 +80,15 @@
 // Oberflaechen selbst; der Kern liefert dafuer nur Zeiten, damit die Nutzlast nicht jede
 // Sekunde anders aussieht.
 //
-// RECHTE UND MODELLE (Auftrag agentsform, 16.09.2026; alice: „Der Hauptagent darf entscheiden, wer
-// welche Berechtigung bekommt, und ich beim Erstellen."). Je Welt reisen `modelle` und `maschine_vorgabe`
+// RECHTE UND MODELLE (Auftrag agentsform, 16.09.2026; alice). Je Welt reisen `modelle` und `maschine_vorgabe`
 // aus `wb-welt ansicht` (Worker agentrechte; fehlt das Feld, bleibt `modelle` null und die Oberflaechen
 // nehmen die Registry), der Skillkatalog der Welt und der Bibliothek, ob es einen Zugang der Art `web`
 // gibt und ob die Bibliothek `agent rechte` kennt. `welt:rechte` ruft `wb-agent rechte <agent>
 // --werkzeuge … --bash … --skills …`; die Form der Listen liest der Kern aus der Hilfe des Unterbefehls
 // und prueft nach dem Schreiben, ob das Profil sie traegt. `welt:vergessen` nimmt einen gemerkten
 // Projektordner aus `welten-projekte.json`, ohne den Ordner anzufassen.
-import { belegAus, istVerifizierterMobilbeleg, menschlicherAbsender, type Herkunft, type Herkunftsbeleg } from './herkunft';
+import { belegAus, istVerifizierterMobilbeleg, menschlicherAbsender, mobilNachweis, type Herkunft, type Herkunftsbeleg } from './herkunft';
+import { aenderungSha256, mobilHeim, rechteantragBelegPruefen } from './mobile/auth/rechteantrag-beleg';
 import { constants, chmodSync, closeSync, existsSync, fstatSync, lstatSync, mkdirSync, openSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, watch, writeFileSync, type FSWatcher } from 'node:fs';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
@@ -447,12 +447,19 @@ export interface WeltenOptionen {
   projekteDatei: string;
   /** Kurzlebige, quittierte Mobilbelege fuer `wb-ticket abnehmen`. */
   mobilBelege: string;
+  /**
+   * Heimat laut Benutzerdatenbank fuer `wb-mobil-pruefen` und die Kopplungsliste (Rechteantrag
+   * vom Handy, 18.10.2026); nie aus einer Umgebungsvariable, wie WB_MOBIL_HEIM in wb-decide.
+   */
+  mobilHeim: string;
   /** Fernwelten: ssh, Laufzeit dort, Register, Fristen (fernwelten.ts). */
   fern: FernOptionen;
 }
 
 export interface WeltenHandlungsErgebnis {
   ok: boolean; handlung: string; id: string; meldung: string; rueckfrage?: string; warnungen?: string[];
+  /** Ein Fehlercode des Mobilvertrags, wenn ein Geraetebeleg abgesagt wurde (`rechte_antrag_entscheiden`). */
+  code?: string;
   /** Vorschlag und Pruefung eines Agenten-Entwurfs (Nr. 3). */
   entwurf?: Record<string, unknown>; anweisungen?: string; pruefung?: string;
   aufruf?: VorschlagErgebnis['aufruf']; kosten?: number | null; dauer_ms?: number;
@@ -486,6 +493,7 @@ export function weltenOptionenAusUmgebung(env: NodeJS.ProcessEnv, home: string, 
     // Nicht aus einer Eingabe oder einem allgemeinen Zustands-Pfad ableiten: die
     // Python-Schranke erkennt genau dieses gemeinsame Mobil-Zustandsverzeichnis.
     mobilBelege: join(home, '.claude', 'workbench', 'mobile', 'belege'),
+    mobilHeim: mobilHeim(),
     fern: fernOptionenAusUmgebung(env, zustand),
   };
 }
@@ -2500,12 +2508,36 @@ export class WeltenQuelle {
         }
         if (x.stand !== 'offen') return antwort(false, `Der Rechteantrag von ${name} ist schon ${x.stand === 'zurueckgezogen' ? 'zurückgezogen' : 'entschieden'}.`);
         if (x.abgelaufen) return antwort(false, `Der Rechteantrag von ${name} ist abgelaufen und nicht mehr entscheidbar.`);
-        const bemerkung = s(daten.bemerkung).trim();
-        const args = ['agent', 'rechte-antrag-entscheiden', ort, x.id, daten.annehmen ? '--freigeben' : '--ablehnen'];
+        let bemerkung = s(daten.bemerkung).trim();
+        let mensch = menschBelegt;
+        // Vom Handy (R1, Review 18.10.): der Hash der geprueften Aenderung und das Geraet gehen an die Bibliothek,
+        // die beides in derselben Transaktion gegen den gespeicherten Antrag prueft bzw. im Verlauf vermerkt.
+        let mobilArgs: string[] = [];
+        // Vom Handy (18.10.2026, alice): M2 gibt es erst, wenn `wb-mobil-pruefen` den signierten
+        // Umschlag geprueft, an Welt, Kennung, gespeicherte Aenderung und Entscheidung gebunden und
+        // verbraucht hat. Ohne Nachweis oder bei einer Absage wird nichts entschieden, kein Rueckfall.
+        if (beleg.art === 'mobilgeraet') {
+          const nachweis = mobilNachweis(beleg);
+          if (!nachweis) return antwort(false, 'Entscheiden per Mobilgerät braucht den signierten Gerätebeleg; er fehlt. Nichts entschieden.', { code: 'capability_unavailable' });
+          if (welt.fern) return antwort(false, `Rechteanträge von ${welt.maschine} entscheidet das Handy dort, nicht über diese Maschine. Nichts entschieden.`, { code: 'capability_unavailable' });
+          const hash = aenderungSha256(x.changes);
+          const p = await rechteantragBelegPruefen(this.opt.mobilHeim, nachweis, {
+            welt_id: welt.id, antrag: x.id, changes_sha256: hash, entscheidung: daten.annehmen ? 'approve' : 'reject',
+          });
+          if (!p.ok) return antwort(false, `Gerätebeleg abgelehnt (${p.code}). Nichts entschieden.`, { code: p.code });
+          if (!/^[A-Za-z0-9_-]{1,64}$/.test(p.geraet)) {
+            return antwort(false, 'Die Gerätekennung aus dem Beleg hat keine gültige Form. Nichts entschieden.', { code: 'capability_unavailable' });
+          }
+          mobilArgs = [`--erwartet-sha256=${hash}`, `--geraet=${p.geraet}`];
+          mensch = true;
+          // Die Bemerkung ist die unterschriebene; sie entscheidet nichts.
+          bemerkung = (p.note ?? '').trim();
+        }
+        const args = ['agent', 'rechte-antrag-entscheiden', ort, x.id, daten.annehmen ? '--freigeben' : '--ablehnen', ...mobilArgs];
         if (bemerkung) args.push(`--bemerkung=${bemerkung}`);
         args.push(`--absender=${absender}`, '--json');
         // Die Entscheidung legt dem Antragsteller eine Zustellung an: wecken wie der CLI-Wrapper (Review F4).
-        const l = await this.datenFuer(welt, args, { wecken: WECKEN.has(handlung), mensch: menschBelegt });
+        const l = await this.datenFuer(welt, args, { wecken: WECKEN.has(handlung), mensch });
         await this.nachHandlung(pfad);
         if (l.code !== 0) return antwort(false, kurz(l));
         return antwort(true, (daten.annehmen ? `Rechteantrag von ${name} freigegeben; die Rechte gelten ab dem nächsten Zug.` : `Rechteantrag von ${name} abgelehnt.`) + l.weck);

@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S -u DEVELOPER_DIR -u SDKROOT -u TOOLCHAINS /usr/bin/python3 -E -s -S
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): nie ein python3 aus dem PATH des
+# Aufrufers, ohne die xcrun-Variablen, PYTHON*-Variablen, User-site und site.
 """wb-aufgabe — die Aufgabendatei des Agents-Features anlegen, freigeben,
 fortschreiben und lesen (Bau-Schritt 1, siehe docs/AGENTS-PLAN.md, Abschnitt 9,
 Punkt 1 und Abschnitt 2 „Die Aufgabe").
@@ -31,7 +33,7 @@ endet mit Exit 2. Aufgelöst wird in `registry_eintrag()`, derselben Stelle,
 die wb-traeger für jeden Start benutzt.
 
 DAS FALLBACK-MODELL (docs/AGENTS-PLAN.md, Abschnitt 4, Absatz „Das
-Fallback-Modell", der Nutzer 10.09. 17:55/18:00): `hauptagent` traegt neben
+Fallback-Modell", decision 09-10/18:00): `hauptagent` traegt neben
 `model`/`effort` ein `fallback` (`{model, effort}` oder `null` fuer „keins").
 `anlegen --fallback <model[:effort]|keins>` setzt es, vorbelegt aus
 `agents.fallbackModell` (Vorgabe ohne Eintrag: siehe FALLBACK_VORGABE unten).
@@ -204,13 +206,29 @@ def ausgabe(args, text, daten=None):
 
 
 # ---------------------------------------------------------------- Mensch --
+# Heimat fuer den Menschen-Nachweis (18.10.2026, Befund pathklasse-sicher OPEN 2): wb-mensch kommt
+# aus der Heimat laut Benutzerdatenbank und laeuft mit HOME=<diese Heimat>, nie aus $HOME. Ein
+# umgelenktes HOME mit eigener wb-mensch-Attrappe (exit 0) galt sonst als Mensch. Testnaht: nur
+# mit WB_TESTUMGEBUNG=1 gilt das HOME der Umgebung. GRENZE: wer beides setzt, umgeht das; die
+# getippte Form sperrt bash-guard (heim-umlenkung).
+def _mensch_heim():
+    if os.environ.get("WB_TESTUMGEBUNG") == "1" and os.environ.get("HOME"):
+        return os.environ["HOME"]
+    try:
+        import pwd
+        return pwd.getpwuid(os.getuid()).pw_dir
+    except (ImportError, KeyError):
+        return ""
+
+
 def _wb_mensch_pfad():
-    p = os.path.join(os.path.expanduser("~"), ".local", "bin", "wb-mensch")
-    return p if os.access(p, os.X_OK) else None
+    heim = _mensch_heim()
+    p = os.path.join(heim, ".local", "bin", "wb-mensch") if heim else ""
+    return p if p and os.access(p, os.X_OK) else None
 
 
 def _wb_mensch_env():
-    return {"HOME": os.environ.get("HOME", ""),
+    return {"HOME": _mensch_heim(),
             "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
             "TMPDIR": "/tmp"}
 
@@ -244,7 +262,12 @@ def _beleg_datei_sagt_mensch(pfad):
 # WB_VORRAT nach ausserhalb zeigend) zaehlt deshalb ausschliesslich die GEMESSENE
 # Herkunft ueber `wb-mensch pruefen`.
 def im_testbett(args):
-    home = os.path.realpath(os.path.expanduser("~"))
+    # Gegen dieselbe Heimat wie der Menschen-Nachweis (18.10.2026): ein umgelenktes HOME
+    # machte sonst jedes echte --base/WB_VORRAT zum "Testbett" und --mensch-beleg gueltig.
+    heim = _mensch_heim()
+    if not heim:
+        return False
+    home = os.path.realpath(heim)
 
     def aussen(pfad):
         if not pfad:

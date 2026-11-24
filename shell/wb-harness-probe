@@ -1166,7 +1166,7 @@ k=json.loads(sys.argv[1]); k.append({"datei":sys.argv[2],"kennwort":sys.argv[3]}
     for _ in $(seq 1 30); do
       sleep 2
       ANTWORT="$(pane_cap)"
-      printf '%s' "$ANTWORT" | grep -q "LOSUNG\|losung[0-9]" && break
+      grep -q "LOSUNG\|losung[0-9]" <<<"$ANTWORT" && break
     done
     pane_cap > "$AUFNAHME/rollen-antwort.txt"
     # Der FLAG-Weg als zweite Spur, aus der Hilfe gelesen (nicht gemessen): manche
@@ -1346,7 +1346,7 @@ print("1" if any("ollama" in str(v).lower() or "11434" in str(v) for v in felder
     for bef in "models" "model list" "models list" "list-models"; do
       # shellcheck disable=SC2086
       out="$(HOME="$PHOME" mit_frist 20 "$BIN" $bef | head -30)"
-      if [ -n "$out" ] && ! printf '%s' "$out" | grep -qiE "unknown|unrecognized|invalid|usage:|error"; then
+      if [ -n "$out" ] && ! grep -qiE "unknown|unrecognized|invalid|usage:|error" <<<"$out"; then
         DISCOUT="$out"; DISCBEF="$(basename "$BIN") $bef"; break
       fi
     done

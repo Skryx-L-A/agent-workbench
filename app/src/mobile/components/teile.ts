@@ -100,6 +100,7 @@ export function ebenenTitel(r: Route, stand: Stand): string {
     case 'tickets': return 'Tickets';
     case 'ticket': return r.ticket;
     case 'frage': return 'Frage';
+    case 'antrag': return 'Rechteantrag';
     case 'meldung': return 'Meldung';
     case 'geraet': return 'Gerät';
     default: return 'Zurück';

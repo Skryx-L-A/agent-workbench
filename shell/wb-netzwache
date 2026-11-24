@@ -10,7 +10,7 @@
   wb-netzwache gesendet <name> <schluessel>   eine Fortsetzung verbuchen
   wb-netzwache gemeldet <name> <schluessel>   die Meldung an den startenden Pane verbuchen
 
-Anlass (14.10.2026 15:11, WLAN-Verlust 14:45-14:52): der Geheimnisfilter wartete seine
+Anlass (14.10.2026, kurzer WLAN-Verlust): der Geheimnisfilter wartete seine
 DNS-Frist ab und lieferte "502 Anbieter nicht erreichbar"; Claude Code gab nach eigenen
 Wiederholungen auf, drei Worker standen mitten im Auftrag still. Diese Wache erkennt solche
 Worker, wartet bis die Namensaufloesung wieder geht und schickt EIN "weiter".

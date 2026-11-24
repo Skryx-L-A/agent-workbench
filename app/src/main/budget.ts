@@ -54,7 +54,7 @@ export interface BudgetStand {
   sevenDayPct: number;
   /**
    * Wann das Kontingent zurueckfaellt, im Klartext von `wb-budget`
-   * ("2026-08-12 14:00 CEST"). Leer, wenn der Abschnitt fehlt oder das Log
+   * ("2026-08-12 CEST"). Leer, wenn der Abschnitt fehlt oder das Log
    * keinen Ruecksetzpunkt kennt -- dann steht in der Statusleiste keiner, statt
    * eines geratenen.
    */
@@ -125,7 +125,7 @@ export const BUDGET_JSON_ARGV = ['--json', '--tage', '1', '--harness', 'claude']
  *
  * Der Textbericht liess `date -r … '+%Y-%m-%d %H:%M %Z'` schreiben und bekam
  * damit die Kuerzel des Systems ("CEST"). Hier steht stattdessen, was die
- * Laufzeitumgebung wirklich hergibt -- "2026-08-16 04:10 GMT+2". Ein Kuerzel,
+ * Laufzeitumgebung wirklich hergibt -- "2026-08-16 GMT+2". Ein Kuerzel,
  * das wir uns selbst ausdenken, waere eine Zeitzonen-Behauptung; der Versatz
  * ist dieselbe Auskunft, nur nachpruefbar.
  */

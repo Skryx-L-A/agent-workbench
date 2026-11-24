@@ -1,12 +1,16 @@
 #!/bin/sh
 set -eu
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): agents_data.py entscheidet ueber
+# Antraege, Rechte und Herkunft; ein python3 aus dem PATH des Aufrufers waere ein fremder
+# Entscheider. Ohne die xcrun-Variablen, ohne PYTHON*-Variablen und User-site.
+unset DEVELOPER_DIR SDKROOT TOOLCHAINS
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 # Eine Welt <host>:/pfad liegt verbindlich auf einer anderen Maschine: der ganze Befehl laeuft dort.
 for arg in "$@"; do
   case "$arg" in
     [a-z]*:/*)
-      if python3 "$SCRIPT_DIR/agents_fernweg.py" pruefen ticket "$@"; then
-        exec python3 "$SCRIPT_DIR/agents_fernweg.py" ausfuehren ticket "$@"
+      if /usr/bin/python3 -E -s "$SCRIPT_DIR/agents_fernweg.py" pruefen ticket "$@"; then
+        exec /usr/bin/python3 -E -s "$SCRIPT_DIR/agents_fernweg.py" ausfuehren ticket "$@"
       fi
       break ;;
   esac
@@ -16,7 +20,7 @@ if [ "${1:-}" = "neu" ]; then
   # Ordner als erstes Argument; mit `--absender orchestrator` traegt `neu` die Sitzungs-Inbox der
   # aufrufenden Claude-Code-Sitzung als Rueckweg ein (`--inbox auto|keine`, `--inbox-pid <pid>`).
   # Nach erfolgreichem Schreiben den Traeger der Welt wecken, falls einer konfiguriert ist.
-  exec python3 - "$SCRIPT_DIR" "$@" <<'PY'
+  exec /usr/bin/python3 -E -s - "$SCRIPT_DIR" "$@" <<'PY'
 import os, subprocess, sys
 sys.path.insert(0, sys.argv[1])
 import agents_data as ad
@@ -33,4 +37,4 @@ if status == 0:
 raise SystemExit(status)
 PY
 fi
-exec python3 "$SCRIPT_DIR/agents_data.py" ticket "$@"
+exec /usr/bin/python3 -E -s "$SCRIPT_DIR/agents_data.py" ticket "$@"

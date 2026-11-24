@@ -5,8 +5,8 @@
  * Installiert von `wb-inbox einrichten opencode` nach ~/.config/opencode/plugin/wb-inbox.ts
  * (Quelle: shell/inbox/opencode-wb-inbox.ts im Repo claude-workbench). Nicht von Hand aendern.
  *
- * Anlass (der Nutzer, 29.09.2026): "ich will nicht das bei der freigabe automatisch in den
- * pane getippt wird" und "der message weg muss für alle harrnesse funktionieren".
+ * Anlass (Regel vom 29.09.2026): Bei einer Freigabe wird nichts automatisch in den Pane
+ * getippt, und der Nachrichtenweg muss fuer alle Harnesses funktionieren.
  *
  * Protokoll: die gemeinsame Datei-Inbox aus shell/wb-inbox (Abschnitt "DATEI-INBOX").
  * Das Plugin laeuft im opencode-Prozess, meldet ihn unter <inbox>/<pid>.json an und holt

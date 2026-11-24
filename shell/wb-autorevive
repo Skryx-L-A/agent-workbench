@@ -66,10 +66,10 @@ fi
 # Nur der LIVE-Server darf wiederbeleben (2026-10-14). Der pane-died-Hook steht in
 # ~/.tmux.conf und laedt auch in jedem Test-tmux-Server ohne `-f /dev/null`. Ein
 # absichtlich getoeteter Testpane rief so dieses Skript mit dem echten HOME auf und
-# konnte einen echten claude im Testserver starten (Befund wz-testleck2, OPEN 5).
+# konnte einen echten claude im Testserver starten (Befund task, OPEN 5).
 # Live ist der Standard-Server der Werkbank: Socket `${TMUX_TMPDIR:-/private/tmp}/tmux-<uid>/default`
 # (ohne -L/-S gilt der umgebende Server, siehe shell/wb-inbox "WELCHER TMUX-SERVER";
-# die Werkbank-Sitzungen laufen dort, Beleg: wb-PraktikumNebenStudium-* auf dem Default-
+# die Werkbank-Sitzungen laufen dort, Beleg: die Sitzungen wb-* auf dem Default-
 # Socket, `ps`-Zeile tmux new-session ohne -L). Test-Server
 # nutzen eigene Namen (`-L wbtest-*`, `-L wbk7c-*` aus test-wb-tafel-deckung.sh:421,
 # `-L $SOCKET`, `-S <tmp>`) und sind damit draussen. Gemessen 2026-10-14: kein Test in

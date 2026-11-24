@@ -29,7 +29,8 @@
     "node-pty": "1.2.0-beta.14"
   },
   "overrides": {
-    "dompurify": ">=3.4.16"
+    "dompurify": ">=3.4.16",
+    "undici": "^7.30.1"
   },
   "allowScripts": {
     "electron": true,

@@ -547,16 +547,36 @@ function belegVorhanden(pfad: string): boolean {
   }
 }
 
+// DIE SCHLUESSELDATEI ZAEHLT WIE BEI `wb-state` (22.10.2026). `secret_present()`
+// in shell/wb-state findet einen Schluessel auch in
+// ~/.secrets-sync/api-keys/<anbieter> (dort der Weg ohne Schluesselbund) und
+// startet damit; diese Seite sah nur die Umgebungsvariable und meldete
+// denselben Anbieter als „nein". Es gilt dieselbe Bedingung wie dort: eine
+// Datei mit Mode 600 -- eine fuer andere lesbare Datei lehnt `wb-state` ab,
+// also ist sie auch hier kein Zugang.
+function schluesseldateiTaugt(anbieter: string): boolean {
+  if (!anbieter || anbieter.includes('/')) return false;
+  try {
+    const s = statSync(expandHome(`~/.secrets-sync/api-keys/${anbieter}`));
+    return s.isFile() && (s.mode & 0o077) === 0;
+  } catch {
+    return false;
+  }
+}
+
 type Zugang = { art: 'schluessel' | 'abo' | 'lokal'; stand: 'ja' | 'nein' | 'unbekannt' };
 
 function zugangEines(
-  p: { kind?: string; apiKeyEnv?: string; loginCheckPath?: string } | undefined,
+  p: { id?: string; kind?: string; apiKeyEnv?: string; keychainService?: string; loginCheckPath?: string } | undefined,
   env: NodeJS.ProcessEnv,
 ): Zugang {
   if (!p) return { art: 'abo', stand: 'unbekannt' };
   if (p.kind === 'local') return { art: 'lokal', stand: 'ja' };
   if (p.loginCheckPath) {
     return { art: 'abo', stand: belegVorhanden(p.loginCheckPath) ? 'ja' : 'nein' };
+  }
+  if ((p.apiKeyEnv || p.keychainService) && schluesseldateiTaugt(p.id ?? '')) {
+    return { art: 'schluessel', stand: 'ja' };
   }
   if (p.apiKeyEnv) {
     // Nur die ANWESENHEIT der Variablen, nie ihr Inhalt.

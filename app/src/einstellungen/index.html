@@ -764,7 +764,7 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 11.5px;
         /* Ein Eintrag der Ausschlussliste ist EIN Wort. Ohne das brach
-           `secrets` am Bindestrich um und stand in zwei Zeilen -- am Bild
+           `90-secrets` am Bindestrich um und stand in zwei Zeilen -- am Bild
            gesehen, 05.08. */
         white-space: nowrap;
       }
@@ -884,6 +884,12 @@
       .vorhersagewege .grund {
         color: var(--gedaempft);
         margin-top: 2px;
+      }
+      /* Der Grund einer fehlgeschlagenen Maschinenpruefung, unter ihrer Zeile. */
+      .klartext.pruefgrund {
+        color: var(--aus-text);
+        border-left-color: var(--aus-text);
+        margin: 0 10px 4px;
       }
 
       /* --- die Farben der Sitzungszustaende ----------------------------- */

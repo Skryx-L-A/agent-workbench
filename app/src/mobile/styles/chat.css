@@ -88,6 +88,22 @@ details.werkzeug[open] > .wz-kopf::after { transform: rotate(45deg); }
 .entscheidung-knoepfe { display: flex; flex-wrap: wrap; gap: 10px; }
 .entscheidung-knoepfe .knopf { flex: 1 1 7em; min-width: 0; }
 .entscheidung-notiz { font-size: 0.765rem; color: var(--gedaempft); line-height: 1.4; }
+/* Freigabekarte: kurz Rolle, Name und Absicht; der genaue Befehl mit Herkunft und Ordner im Detail. */
+.freigabe-inhalt { display: flex; flex-direction: column; gap: 8px; }
+.freigabe-detail > * + * { margin-top: 6px; }
+.freigabe-detail > summary {
+  display: flex; align-items: center; gap: 8px; min-height: 44px; list-style: none; cursor: pointer;
+  font-size: 0.882rem; color: var(--gedaempft);
+}
+.freigabe-detail > summary::-webkit-details-marker { display: none; }
+.freigabe-detail > summary::after {
+  content: ''; flex: none; width: 6px; height: 6px;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg); transition: transform 0.15s;
+}
+.freigabe-detail[open] > summary::after { transform: rotate(45deg); }
+.freigabe-detail-titel { font-size: 0.882rem; color: var(--gedaempft); }
+.freigabe-ordner code { font-family: var(--mono); overflow-wrap: anywhere; }
 .entscheidung-fehler { font-size: 0.82rem; color: var(--zustand-tot); line-height: 1.35; }
 .optionen { display: flex; flex-direction: column; gap: 8px; }
 .option {

@@ -25,7 +25,7 @@
 # Geschrieben wird allein eine Anmeldung unter guard-warten/ ("in diesem Pane wartet
 # jemand"), damit `erteilen` weiss, dass es keinen Hinweis mehr schicken muss.
 #
-# ZURUECKZIEHEN (der Nutzer, 25.09.2026, Anlass eine Kundensitzung): eine ueberfluessige
+# ZURUECKZIEHEN (decision 2026-09-25, Anlass eine Kundensitzung): eine ueberfluessige
 # Rueckfrage (dort eine `sudo -n true`-Probe) sperrte den Pane fuer jeden anderen
 # Wortlaut, bis sie nach rund fuenf Minuten ablief -- die AELTERE Frage gewinnt
 # (hooks/bash-guard.py), und das mit Grund. `zurueckziehen` loescht den wartenden
@@ -175,11 +175,17 @@ M2_UMGEBUNG=()
 if [ "${WB_MENSCH_QUELLE:-}" = oberflaeche ]; then
   case "${WB_APP_PID:-}" in ''|*[!0-9]*) ;; *) M2_UMGEBUNG=(WB_MENSCH_QUELLE=oberflaeche "WB_APP_PID=$WB_APP_PID") ;; esac
 fi
+# wb-mensch aus der Heimat laut Benutzerdatenbank (WB_MOBIL_HEIM) und mit HOME=<diese Heimat>,
+# nie aus $HOME (18.10.2026, Befund pathklasse-sicher OPEN 2): ein umgelenktes HOME mit eigener
+# Attrappe (exit 0) erteilte sonst Freigaben als Mensch. Testnaht: nur mit WB_TESTUMGEBUNG=1 gilt
+# das HOME der Umgebung (GRENZE wie dort; die getippte Form sperrt bash-guard heim-umlenkung).
+MENSCH_HEIM="$WB_MOBIL_HEIM"
+[ "${WB_TESTUMGEBUNG:-}" = 1 ] && [ -n "${HOME:-}" ] && MENSCH_HEIM="$HOME"
 messen() {
     local beleg
-    if [ -x "$HOME/.local/bin/wb-mensch" ]; then
-        beleg=$(/usr/bin/env -i HOME="$HOME" TMPDIR=/tmp PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
-            ${M2_UMGEBUNG[@]+"${M2_UMGEBUNG[@]}"} "$HOME/.local/bin/wb-mensch" beleg 2>/dev/null)
+    if [ -n "$MENSCH_HEIM" ] && [ -x "$MENSCH_HEIM/.local/bin/wb-mensch" ]; then
+        beleg=$(/usr/bin/env -i HOME="$MENSCH_HEIM" TMPDIR=/tmp PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \
+            ${M2_UMGEBUNG[@]+"${M2_UMGEBUNG[@]}"} "$MENSCH_HEIM/.local/bin/wb-mensch" beleg 2>/dev/null)
     else
         MENSCH_ART=agent
         MENSCH_GRUND="wb-mensch am festen Pfad nicht gefunden — ohne Messung gilt: kein Mensch."
@@ -193,9 +199,21 @@ messen() {
 # Die Herkunftsart, die in der Freigabe steht: das Programmfenster nennt sich so,
 # ein Mensch am Terminal 'mensch'. Beides sind Messungen aus wb-mensch (M2/M1) --
 # unterschieden wird an dessen Begruendung, nicht an einer Behauptung des Aufrufers.
+#
+# GENAU DER SATZ, NICHT ZWEI ZEICHEN DARIN (21.10.2026, Befund lastrauschen): bis hierhin
+# stand `*Oberflaeche*|*M2*`. MENSCH_GRUND traegt im Mobilbeleg-Zweig (unten) Geraete- und
+# Anfragekennung in base64url; enthaelt eine davon zufaellig die Zeichen "M2", schrieb
+# wb-freigabe 'oberflaeche' statt 'mensch' in die Freigabe. Gemessen in zwei Gesamtlaeufen
+# (Faelle A1 und C1), je rund 1 % der Laeufe. Im Gesamtlauf sah das wie ein Lastfehler aus,
+# weil der Bestaetigungslauf neue Kennungen zieht und dann gruen ist. Verglichen wird jetzt
+# mit dem WORTLAUT, den wb-mensch fuer M2 schreibt (klassifizieren() dort: "Oberflaeche als
+# geprueften Ahnen nachgewiesen (WB_APP_PID=<pid>, M2)."); kein Teilstueck einer Kennung kann
+# ihn treffen. Der Agenten-Grund nennt M2 anders ("noch die Oberflaeche als Ahne (M2)") und
+# kommt hier ohnehin nie an, weil messen() dann schon abgelehnt hat.
+M2_WORTLAUT='Oberflaeche als geprueften Ahnen nachgewiesen (WB_APP_PID='
 herkunft_art() {
     case "$MENSCH_GRUND" in
-        *Oberflaeche*|*M2*) printf 'oberflaeche' ;;
+        *"$M2_WORTLAUT"*) printf 'oberflaeche' ;;
         *) printf 'mensch' ;;
     esac
 }
@@ -1067,6 +1085,27 @@ if [ "$MOBILBELEG" = 1 ]; then
     GRANTS="$WB_MOBIL_HEIM/.pi-workers/guard-grants"
     BLOCKS="$WB_MOBIL_HEIM/.pi-workers/guard-blocks"
     VERLAUF="$WB_MOBIL_HEIM/.pi-workers/guard-blocks.log"
+    # Seit 18.10.2026 kommen auch der Verlaufshelfer und der Rueckkanal hier
+    # aus dem Repo neben dem Skript bzw. aus der Heimat laut Benutzerdatenbank, nie aus $HOME.
+    # Das installierte Werkzeug findet ../hooks/lib nicht; ein Angreifer-HOME stellte sonst
+    # guard_log.py (unterdrueckt die Verlaufszeile einer Absage) und wb-inbox (der Rueckkanal).
+    # Keine Variable des Aufrufers wirkt; die Testnaht ist die Kopie mit umgeschriebener Zeile
+    # WB_MOBIL_HEIM.
+    WB_GUARD_LOG_PY=""
+    for kandidat in "$(CDPATH= cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)/hooks/lib/guard_log.py" \
+                    "$WB_MOBIL_HEIM/.claude/hooks/lib/guard_log.py"; do
+        [ -f "$kandidat" ] && { WB_GUARD_LOG_PY="$kandidat"; break; }
+    done
+    export WB_GUARD_LOG_PY
+    PY_REIN=(/usr/bin/env -i "PATH=$PY_PATH" "HOME=$HOME" "WB_GUARD_LOG_PY=$WB_GUARD_LOG_PY"
+             /usr/bin/python3 -I -S -X utf8)
+    INBOX_BIN=""
+    if [ -x "$WB_MOBIL_HEIM/.local/bin/wb-inbox" ]; then
+        INBOX_BIN="$WB_MOBIL_HEIM/.local/bin/wb-inbox"
+    else
+        NACHBAR="$(CDPATH= cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)/wb-inbox"
+        [ -x "$NACHBAR" ] && INBOX_BIN="$NACHBAR"
+    fi
     erteilen_py "$BLOCKS" "$GRANTS" "$PANE" "" "" "" "$TTL" "$ERWARTETER_SCHLUESSEL" "$VERLAUF" "" "" "" 1 || exit $?
     mobil_belegen || ablehnen "der Geraetebeleg traegt nicht (Verlaufszeile geschrieben)."
 else

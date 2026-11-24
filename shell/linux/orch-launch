@@ -20,7 +20,11 @@ T="${TMUX_BIN:-$(command -v tmux 2>/dev/null || true)}"
 # nachvollziehbar noch wiederherstellbar. Ausgeliefert wird es von hier nach
 # peer:~/.local/bin/orch-launch.
 NAME="${1:?name}"
-$T has-session -t wb-orch 2>/dev/null || $T new-session -d -s wb-orch -n orch
+# Nicht-Login-Shell ohne rc-Dateien (task, 20.10.2026, Vorbild wb-ssh-worker:108):
+# ohne Kommando startet tmux eine Login-Shell, die als Waise liegen bleiben kann. bash statt
+# eines Platzhalters, weil der Prune unten (pane_current_command 'bash') genau diese Basis-
+# Shell danach abraeumt -- ein anderer Befehl bliebe dort stehen und unabgeraeumt.
+$T has-session -t wb-orch 2>/dev/null || $T new-session -d -s wb-orch -n orch 'exec /bin/bash --noprofile --norc'
 # ANKER-FENSTER (2026-08-13, nach Befund des Nutzers „wb-orch existiert nach dem Ende des
 # Workers nicht mehr"). Der Prune weiter unten raeumt die Basis-Shell weg; danach besteht
 # wb-orch nur noch aus den Agenten-Panes. Endet der letzte davon, stirbt sein Fenster,

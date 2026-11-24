@@ -34,7 +34,7 @@ MODEL=""; ROLE="worker"; EFFORT=""; DIR=""; NAME=""; RESUME_ARGS=""; INITIAL_TAS
 while [ $# -gt 0 ]; do
   case "$1" in
     --model)  MODEL="${2:?model id}"; shift 2 ;;
-    --role)   ROLE="${2:?worker|orchestrator}"; shift 2 ;;
+    --role)   ROLE="${2:?worker|orchestrator}"; ROLLE_AUSDRUECKLICH=1; shift 2 ;;
     --effort) EFFORT="${2:?effort}"; shift 2 ;;
     --dir)    DIR="${2:?dir}"; shift 2 ;;
     --name)   NAME="${2:?name}"; shift 2 ;;
@@ -44,6 +44,69 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -n "$MODEL" ] || { echo "wb-harness-run: --model fehlt" >&2; exit 1; }
+
+# WB_CLAUDE_KONTO=gross|klein|auto (task 12.11.2026, erweitert durch
+# task 14.11.2026): das Anthropic-Abo, ueber CLAUDE_CODE_OAUTH_TOKEN aus dem
+# Schluesselbund statt der Browser-Anmeldung dieses Rechners. Welcher Eintrag zu welchem
+# Konto gehoert und welches Konto 'auto' bekommt, steht allein in wb-konto (aufloesen,
+# dienst) -- hier keine eigene Tabelle. Ohne WB_CLAUDE_KONTO bleibt alles wie vorher.
+# Ein ausdruecklich genanntes Konto schliesst sich mit der anthropic-api-Spur aus
+# (apiKeyHelper/ANTHROPIC_API_KEY schlagen in Claudes Vorrangkette den Token): Abbruch.
+# 'auto' ist die Vorgabe jedes Workers und darf einen anthropic-api- oder Nicht-Claude-
+# Start deshalb nicht verhindern; dort entfaellt das Konto. Alle Pruefungen VOR jedem
+# Seiteneffekt (Rollendatei, Vertrauensspeicher usw.); der Tokenwert selbst wird erst ganz
+# am Ende, unmittelbar vor dem eval/exec, gelesen -- fehlt der Eintrag: Abbruch, kein
+# stiller Rueckfall auf die Browser-Anmeldung.
+WB_KONTO=""; WB_KONTO_DIENST=""
+if [ -n "${WB_CLAUDE_KONTO:-}" ]; then
+  case "$WB_CLAUDE_KONTO" in
+    gross|klein|auto) ;;
+    *) echo "wb-harness-run: FEHLER -- WB_CLAUDE_KONTO='$WB_CLAUDE_KONTO' ist kein Konto (gross|klein|auto); kein Start." >&2; exit 1 ;;
+  esac
+  KONTO_PROVIDER="$("$HOME/.local/bin/wb-state" models get "$MODEL" --field provider 2>/dev/null || true)"
+  KONTO_HARNESS="$("$HOME/.local/bin/wb-state" models get "$MODEL" --field harness 2>/dev/null || true)"
+  KONTO_WIRKT=1
+  if [ "$KONTO_PROVIDER" = anthropic-api ]; then
+    if [ "$WB_CLAUDE_KONTO" != auto ]; then
+      echo "wb-harness-run: FEHLER -- WB_CLAUDE_KONTO=$WB_CLAUDE_KONTO und ein Modell der Spur anthropic-api ('$MODEL') schliessen sich aus (apiKeyHelper/ANTHROPIC_API_KEY schlagen den Token); kein Start." >&2
+      exit 1
+    fi
+    KONTO_WIRKT=""
+  fi
+  [ "$WB_CLAUDE_KONTO" = auto ] && [ -n "$KONTO_HARNESS" ] && [ "$KONTO_HARNESS" != claude ] && KONTO_WIRKT=""
+  if [ -n "$KONTO_WIRKT" ]; then
+    WB_KONTO_BIN="$HOME/.local/bin/wb-konto"
+    if [ ! -x "$WB_KONTO_BIN" ]; then
+      echo "wb-harness-run: FEHLER -- WB_CLAUDE_KONTO=$WB_CLAUDE_KONTO, aber wb-konto fehlt ($WB_KONTO_BIN); kein stiller Rueckfall auf die Browser-Anmeldung; kein Start." >&2
+      exit 1
+    fi
+    WB_KONTO="$("$WB_KONTO_BIN" aufloesen "$WB_CLAUDE_KONTO")" || {
+      echo "wb-harness-run: FEHLER -- keine Kontowahl fuer WB_CLAUDE_KONTO=$WB_CLAUDE_KONTO (Meldung von wb-konto oben); kein Start." >&2
+      exit 1
+    }
+    case "$WB_KONTO" in
+      gross|klein) ;;
+      *) echo "wb-harness-run: FEHLER -- wb-konto lieferte kein Konto; kein Start." >&2; exit 1 ;;
+    esac
+    WB_KONTO_DIENST="$("$WB_KONTO_BIN" dienst "$WB_KONTO")" || exit 1
+    [ -n "$WB_KONTO_DIENST" ] || { echo "wb-harness-run: FEHLER -- kein Schluesselbund-Dienst fuer Konto $WB_KONTO; kein Start." >&2; exit 1; }
+  fi
+fi
+
+# Ohne --role gilt "worker". Ein Start ohne ausdrueckliche Rolle ausserhalb des eigenen
+# Worker-Arbeitsbaums schriebe den Worker-Rollenblock in die AGENTS.md eines fremden Ordners,
+# wo er nach dem Ende des Workers liegen bliebe. Alle Spawner (pi-worker, wb-code) geben --role
+# mit, Wiederbelebungen verwenden ihre gespeicherte Startzeile. Ein Direktaufruf muss die Rolle
+# nennen, ausser er laeuft im eigenen Arbeitsbaum ~/.pi-workers/worktrees/<name>.
+if [ -z "${ROLLE_AUSDRUECKLICH:-}" ]; then
+  wb_rolle_wt="$(cd "$HOME/.pi-workers/worktrees" 2>/dev/null && pwd -P)"
+  wb_rolle_dir="$(cd "${DIR:-$PWD}" 2>/dev/null && pwd -P)"
+  case "$wb_rolle_dir/" in
+    "${wb_rolle_wt:-/nie/ein/worktree}"/*/*) ;;
+    *) echo "wb-harness-run: --role worker|orchestrator fehlt. Ohne ausdrueckliche Rolle startet nur ein Worker in seinem eigenen Arbeitsbaum (~/.pi-workers/worktrees/<name>); sonst bliebe eine Worker-Rolle in ${wb_rolle_dir:-?}/AGENTS.md liegen." >&2
+       exit 1 ;;
+  esac
+fi
 
 ARGS=(models resolve "$MODEL" --role "$ROLE")
 [ -n "$EFFORT" ] && ARGS+=(--effort "$EFFORT")
@@ -76,7 +139,12 @@ secret_value() {
           # und endet mit 1. Die alte BSD-zuerst-Reihenfolge haengte diesen Block
           # also vor den Mode, der Vergleich unten scheiterte immer, und damit
           # startete auf Linux kein einziges Modell mit hinterlegtem Key.
-          mode="$(stat -c %a "$path" 2>/dev/null || stat -f %Lp "$path" 2>/dev/null || echo 777)"
+          # -L: ein Key darf ein Symlink auf einen anderen Key desselben Speichers sein
+          # (headroom -> bifrost). Ohne -L meldet stat den Mode des Links selbst (777 bzw.
+          # 755), und jeder Start ueber den Link scheiterte an "hat Mode ..., verlangt 600".
+          # wb-state und wb-llm folgen dem Link ebenfalls; geprueft wird die Datei, die
+          # tatsaechlich gelesen wird.
+          mode="$(stat -L -c %a "$path" 2>/dev/null || stat -L -f %Lp "$path" 2>/dev/null || echo 777)"
           case "$mode" in
             600|400) ;;
             *) echo "wb-harness-run: FEHLER — $path hat Mode $mode, verlangt 600. Key nicht gelesen." >&2
@@ -95,7 +163,128 @@ secret_value() {
   return 1
 }
 
-CMD=""; HARNESS=""
+# apiKeyHelper statt Umgebungsvariable, NUR fuer harness=claude + ANTHROPIC_API_KEY
+# (task, 11.11.2026): ein echter claude-Pane (nicht "-p") liest
+# ANTHROPIC_API_KEY aus seiner EIGENEN Umgebung als "custom key" und haengt an der
+# Rueckfrage "Detected a custom API key in your environment ... Do you want to use
+# this API key?" fest -- ein Pane, in das niemand tippt, bleibt dort stehen. Gemessen
+# an der installierten CLI (2.1.322, `strings` auf die Binaerdatei): das Gate dieser
+# Rueckfrage prueft NUR die Prozessumgebung,
+#   function aGn(){let e=i.ANTHROPIC_API_KEY;if(!e||aC()||!Fn())return; ...}
+# nie apiKeyHelper. Deshalb wird der Schluessel fuer diesen einen Fall NIE in diesen
+# Prozess (und damit nie in claudes eigene Umgebung) exportiert; stattdessen bekommt
+# claude ueber --settings einen apiKeyHelper-Pfad, der dieselbe Kette (Keychain ->
+# Datei -> Umgebungsvariable) ERNEUT laeuft, wenn claude ihn selbst aufruft -- der
+# Wert existiert dann nur innerhalb von DESSEN kurzlebigem Skriptaufruf, nie in argv,
+# nie in der Umgebung von wb-harness-run, nie auf der Platte ausser als Kommando.
+#
+# Ueber --setting-sources/Workspace-Trust: wb-harness-run setzt --setting-sources fuer
+# den normalen claude-Worker-Start HEUTE GAR NICHT (geprueft: kein Treffer im ganzen
+# Repo ausser `shell/models.default.json:622`, und das ist eine ANDERE, kopflose
+# Kurzprobe vor dem Eintrag eines entdeckten Modells, kein Teil dieses Startpfads).
+# --settings auf der Befehlszeile laedt als eigene Quelle "flagSettings" (im Binary
+# als String belegt), getrennt von "projectSettings"/"localSettings" -- und genau
+# diese beiden sind es, die den Workspace-Trust-Riegel ausloesen (gemessen:
+# `function TC(){... Za("projectSettings")... Za("localSettings") ...}`, gated durch
+# `if(TC()){ if(!Vs()){ FEHLER vor Vertrauensbestaetigung } }`). Ein --settings-Flag
+# mit apiKeyHelper oeffnet diesen Riegel also nicht und braucht ihn auch nicht.
+#
+# Aufraeumen: wb-harness-run endet nie normal (der gebaute Befehl traegt `exec`, der
+# diesen Bash-Prozess ERSETZT -- kein Code danach laeuft mehr, kein EXIT-Trap feuert).
+# Der 0700-Ordner traegt deshalb beim naechsten Start IRGENDEINES claude-Workers eine
+# eigene Faelligkeitspruefung (wb_apikeyhelper_sweep): verschwunden ist der Pane laut
+# `tmux list-panes -a`, verschwindet der Ordner mit. Bis dahin liegt dort NIE der
+# Schluessel selbst, nur ein Kommando, das ihn holt -- also dieselbe Offenlegung wie
+# ein direkter `security`-Aufruf durch denselben Nutzer, keine zusaetzliche.
+wb_apikeyhelper_sweep() {
+  local base="$1" d pane alive now mtime alter
+  [ -d "$base" ] || return 0
+  alive="$(tmux list-panes -a -F '#{pane_id}' 2>/dev/null || true)"
+  now="$(date +%s)"
+  for d in "$base"/*/; do
+    [ -d "$d" ] || continue
+    # Befund decision 2026-11-12 (Nachtrag task): ein Ordner, der GERADE erst
+    # angelegt wurde, darf nie verschwinden, nur weil 'tmux list-panes' die neue
+    # Sitzung in diesem Moment noch nicht meldet (Reihenfolge Start/erste
+    # Sweep-Pruefung ist nicht garantiert). Zwei Minuten Schonfrist, unabhaengig von
+    # der Pane-Lebendpruefung unten.
+    mtime="$(stat -f %m "$d" 2>/dev/null || stat -c %Y "$d" 2>/dev/null || echo 0)"
+    alter=$((now - mtime))
+    [ "$alter" -lt 120 ] && continue
+    pane="$(cat "${d}pane_id" 2>/dev/null || true)"
+    if [ -z "$pane" ] || ! grep -qxF -- "$pane" <<<"$alive"; then
+      rm -rf "$d"
+    fi
+  done
+}
+
+# Baut den Ordner + das Helferskript fuer EINE Schluesselkette (dieselbe
+# @keychain:/@file:/@env:-Syntax wie secret_value) und gibt den Pfad des
+# AUSFUEHRBAREN Helferskripts (key-helper.sh) auf stdout aus -- das ist der Wert,
+# der als apiKeyHelper in die Startzeile muss (Befund decision 2026-11-12, Nachtrag
+# task: eine fruehere Fassung gab hier den Pfad einer separaten
+# settings.json zurueck, die apiKeyHelper zwar richtig trug, aber selbst NIE in die
+# Startzeile einging -- AAPI_WERTE weiter unten baute daraus "apiKeyHelper":
+# "<...>/settings.json", also einen Verweis auf eine nicht ausfuehrbare JSON-Datei
+# statt auf das Skript. claude meldete das sichtbar als "apiKeyHelper failed: exited
+# 126 ... Permission denied", startete aber trotzdem -- vermutlich ueber die
+# bestehende /login-Anmeldung dieses Rechners, nicht ueber den Schluessel; der
+# hermetische Test prueft deshalb nicht mehr eine separate Datei, sondern denselben
+# Wert, der tatsaechlich in der Startzeile steht, siehe dort). Kein Schluesselwert
+# beruehrt dabei die Platte.
+wb_apikeyhelper_bauen() {
+  local base dir helper
+  base="${WB_APIKEYHELPER_BASE:-$HOME/.claude/workbench/apikeyhelper-sessions}"
+  mkdir -p "$base" 2>/dev/null || return 1
+  wb_apikeyhelper_sweep "$base"
+  dir="$(mktemp -d "$base/XXXXXXXX")" || return 1
+  chmod 700 "$dir"
+  helper="$(/usr/bin/python3 - "$dir" "$@" <<'PY'
+import os, shlex, sys
+dir_, chain = sys.argv[1], sys.argv[2:]
+lines = ["#!/bin/sh"]
+for spec in chain:
+    if spec.startswith("@keychain:"):
+        svc = spec[len("@keychain:"):]
+        lines.append(
+            "v=$(security find-generic-password -s %s -w 2>/dev/null) "
+            "&& [ -n \"$v\" ] && { printf %%s \"$v\"; exit 0; }" % shlex.quote(svc))
+    elif spec.startswith("@file:"):
+        path = spec[len("@file:"):]
+        q = shlex.quote(path)
+        lines.append(
+            "if [ -e %s ]; then "
+            "m=$(stat -L -c %%a %s 2>/dev/null || stat -L -f %%Lp %s 2>/dev/null || echo 777); "
+            "case \"$m\" in 600|400) v=$(head -1 %s | tr -d '\\r\\n'); "
+            "[ -n \"$v\" ] && { printf %%s \"$v\"; exit 0; } ;; esac; fi" % (q, q, q, q))
+    elif spec.startswith("@env:"):
+        var = spec[len("@env:"):]
+        lines.append(
+            "v=$(printenv %s 2>/dev/null) && [ -n \"$v\" ] && { printf %%s \"$v\"; exit 0; }"
+            % shlex.quote(var))
+if len(lines) == 1:
+    sys.exit(1)
+lines.append("exit 1")
+helper = os.path.join(dir_, "key-helper.sh")
+with open(helper, "w") as f:
+    f.write("\n".join(lines) + "\n")
+os.chmod(helper, 0o700)
+print(helper)
+PY
+)" || { rm -rf "$dir"; return 1; }
+  [ -n "$helper" ] || { rm -rf "$dir"; return 1; }
+  # Befund decision 2026-11-12: 'tmux display-message' ohne -t beantwortet nach der
+  # Pane/Fenster-Historie des SERVERS, nicht zwingend nach der Pane, in der DIESER
+  # Prozess laeuft -- gemessen stand dort wiederholt die Pane des STARTERS, nicht die
+  # des gerade gespawnten Workers. $TMUX_PANE ist dagegen die Umgebungsvariable, die
+  # tmux jedem Kindprozess EINER Pane auf genau diese setzt; es gibt keine Abfrage,
+  # die daneben zeigen kann.
+  AAPI_PANE_ID="${TMUX_PANE:-}"
+  [ -n "$AAPI_PANE_ID" ] && printf '%s' "$AAPI_PANE_ID" > "$dir/pane_id"
+  printf '%s' "$helper"
+}
+
+CMD=""; HARNESS=""; AAPI_HELPER=""
 while IFS=$'\t' read -r key rest; do
   case "$key" in
     harness) HARNESS="$rest" ;;
@@ -111,7 +300,22 @@ while IFS=$'\t' read -r key rest; do
         @keychain:*|@file:*|@env:*)
           # split the chain on tabs and walk it in order
           IFS=$'\t' read -r -a CHAIN <<<"$VALSPEC"
-          if SECRET="$(secret_value "${CHAIN[@]}")" && [ -n "$SECRET" ]; then
+          if [ "$HARNESS" = claude ] && [ "$VAR" = "ANTHROPIC_API_KEY" ]; then
+            # apiKeyHelper statt Export in diesen Prozess -- siehe Kopfkommentar von
+            # wb_apikeyhelper_bauen weiter oben. Erst pruefen, ob UEBERHAUPT ein Key
+            # vorliegt (derselbe Fehlergang wie beim Export-Weg, vor jedem Dateischreiben),
+            # dann sofort wieder vergessen -- der eigentliche, claude-seitige Abruf
+            # laeuft spaeter erneut, im Helferskript.
+            if SECRET="$(secret_value "${CHAIN[@]}")" && [ -n "$SECRET" ]; then
+              unset SECRET
+              AAPI_HELPER="$(wb_apikeyhelper_bauen "${CHAIN[@]}")" && [ -n "$AAPI_HELPER" ] || {
+                echo "wb-harness-run: FEHLER — konnte keine apiKeyHelper-Sitzungsdatei fuer \$$VAR anlegen; kein Start." >&2
+                exit 1; }
+            else
+              echo "wb-harness-run: FEHLER — kein Key hinterlegt fuer \$$VAR; kein Start ohne Auth." >&2
+              exit 1
+            fi
+          elif SECRET="$(secret_value "${CHAIN[@]}")" && [ -n "$SECRET" ]; then
             # A failing export must not fall through (no `set -e` here): an invalid
             # variable name would otherwise start the CLI WITHOUT its key, and the
             # auth error would only turn up inside the pane.
@@ -122,6 +326,25 @@ while IFS=$'\t' read -r key rest; do
           else
             echo "wb-harness-run: FEHLER — kein Key hinterlegt fuer \$$VAR; kein Start ohne Auth." >&2
             exit 1
+          fi
+          # anthropic-api-Guthabenspur (task, 11.11.2026): wb-kontingent
+          # kann den Verbrauch eines API-Schluessel-Workers nur messen, wenn es WEISS, welche
+          # Sitzung mit welchem Modell in welchem Arbeitsverzeichnis gestartet wurde -- danach
+          # liest es die Claude-Code-Transkripte dieses Verzeichnisses (sie tragen `usage` je
+          # Zug) und rechnet mit der Preistabelle. Diese Zeile traegt NIE den Schluessel selbst,
+          # nur Name/Modell/Verzeichnis/Sitzung, und nur fuer genau DIESE Variable -- jeder
+          # andere Provider-Key (etwa Cline Pass) bleibt unberuehrt, UNABHAENGIG davon, ueber
+          # welchen der beiden Wege (apiKeyHelper oder Export) der Key diesmal lief. Ein
+          # fehlgeschlagenes tmux display-message (kein TMUX, Testlauf) liefert eine leere
+          # Sitzungsspalte; das ist kein Fehler, nur eine unbekannte Sitzung (sammelt dann
+          # unter "unbekannt").
+          if [ "$VAR" = "ANTHROPIC_API_KEY" ]; then
+            AAPI_LOG="${WB_ANTHROPIC_API_SESSIONS_LOG:-$HOME/.claude/workbench/anthropic-api-sessions.log}"
+            AAPI_SITZUNG="$(tmux display-message -p '#{session_name}' 2>/dev/null || true)"
+            mkdir -p "$(dirname "$AAPI_LOG")" 2>/dev/null
+            printf '%s\t%s\t%s\t%s\t%s\n' \
+              "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$NAME" "${WB_HARNESS_MODEL:-}" "$DIR" "$AAPI_SITZUNG" \
+              >> "$AAPI_LOG" 2>/dev/null || true
           fi ;;
         *) export "$VAR=$VALSPEC" || {
              echo "wb-harness-run: FEHLER — '$VAR' ist kein gueltiger Variablenname; kein Start." >&2
@@ -131,6 +354,24 @@ while IFS=$'\t' read -r key rest; do
 done <<<"$RESOLVED"
 
 [ -n "$CMD" ] || { echo "wb-harness-run: resolve lieferte kein Startkommando." >&2; exit 1; }
+
+# apiKeyHelper in die Startzeile einfuegen (erst JETZT moeglich: 'env'-Zeilen kommen
+# in RESOLVED vor der 'cmd'-Zeile, CMD stand beim Bau von AAPI_HELPER oben noch
+# nicht fest). Ein claude-Worker traegt fuer role=worker/orchestrator schon ein
+# eigenes '--settings {...}' (remoteControlAtStartup/crossSessionInbound,
+# shell/wb-state CLAUDE_SETTINGS) -- ein zweites, eigenes '--settings'-Flag daneben
+# wuerde (je nach CLI-Vorrang) dieses stillschweigend verdecken statt ergaenzen.
+# 'models claude-settings --werte ... --in ...' fuehrt deshalb in DASSELBE JSON
+# zusammen, mit derselben, schon getesteten Funktion, die auch role-basierte Werte
+# einfuegt (claude_settings_einfuegen) -- keine zweite Kopie der Zusammenfuehrung.
+if [ -n "$AAPI_HELPER" ]; then
+  AAPI_WERTE="$(/usr/bin/python3 -c 'import json,sys; print(json.dumps({"apiKeyHelper": sys.argv[1]}))' "$AAPI_HELPER")"
+  NEUCMD="$("$HOME/.local/bin/wb-state" models claude-settings --werte "$AAPI_WERTE" --in "$CMD")" \
+    && [ -n "$NEUCMD" ] || {
+      echo "wb-harness-run: FEHLER — konnte apiKeyHelper nicht in die Startzeile einfuegen." >&2
+      exit 1; }
+  CMD="$NEUCMD"
+fi
 
 # An older installed registry may still add `resume --last` on a normal start.
 # It is global to CODEX_HOME, so discard it even when no explicit resume was
@@ -317,9 +558,9 @@ if not os.path.exists(quelle):
 text = open(quelle, encoding="utf-8", errors="replace").read()
 
 # Anweisungen mit Anlass sitzungsstart (Werkzeug-Quelle, zuerst die Stilregel kurz-und-knackig,
-# der Nutzer 13.10.) stehen im Rollenblock hinter der Rolle: Datei-Harnesses lesen ihn beim Start.
+# decision 10-13) stehen im Rollenblock hinter der Rolle: Datei-Harnesses lesen ihn beim Start.
 # Ohne wb-anweisung oder ohne Text bleibt der Block wie bisher; ein Fehler stoppt keinen Start.
-# VOLLTEXT GENAU EINMAL (Review wz-integ2, D; robust nach Review wz-integ3): Der Rollenblock laesst den
+# VOLLTEXT GENAU EINMAL (Review task, D; robust nach Review task): Der Rollenblock laesst den
 # Volltext nur weg, wenn die Router-Datei (systemPrompt.path, von wb-instructions sync geschrieben)
 # existiert und ihn nachweislich traegt (ein wb-rolle-Block darin zaehlt nicht). Sonst steht er hier;
 # pi-worker prueft dieselbe Bedingung fuer die Zeile im Auftrag.
@@ -331,7 +572,7 @@ try:
                          capture_output=True, text=True, timeout=10).stdout.strip("\n")
 except Exception:
     anw = ""
-# agy: Leseort des Routers unbelegt (werkzeuge_anweisungen NICHT_BELEGT, Review wz-integ3 Fund 2),
+# agy: Leseort des Routers unbelegt (werkzeuge_anweisungen NICHT_BELEGT, Review task Fund 2),
 # deshalb zaehlt seine Router-Datei nicht; der Volltext steht im Rollenblock.
 if anw and sp.get("path") and h.get("id") not in ("agy",):
     try:
@@ -383,7 +624,7 @@ os.makedirs(os.path.dirname(ziel) or ".", exist_ok=True)
 with open(ziel, "w", encoding="utf-8") as f:
     f.write(inhalt)
 
-# Der Rollenblock gehoert NIE in einen Commit (Vault-Sitzung, 25.09.2026: im Worktree
+# Der Rollenblock gehoert NIE in einen Commit (decision 2026-09-25: im Worktree
 # von ~/Knowledge landete er in der versionierten Vault-Anleitung und musste von Hand
 # verworfen werden). Seit AGENTS.md die eine Anweisungsdatei jedes Projekts ist, trifft
 # das jedes Repo. Deshalb, nur im Projektweg und nur in DIESEM Arbeitsbaum:
@@ -779,7 +1020,7 @@ if [ "$ROLE" = worker ] && [ "$HARNESS" = claude ] && [ -z "${WB_MCP_VOLL:-}" ];
   MCP_WORKER="$HOME/.claude/workbench/mcp-worker.json"
   if [ ! -s "$MCP_WORKER" ]; then
     mkdir -p "$(dirname "$MCP_WORKER")" 2>/dev/null
-    printf '%s\n' '{"mcpServers":{"basic-memory":{"type":"http","url":"http://127.0.0.1:8766/mcp"}}}' \
+    printf '%s\n' '{"mcpServers":{}}' \
       > "$MCP_WORKER" 2>/dev/null || true
   fi
   if [ -s "$MCP_WORKER" ] && [ "${CMD#*--strict-mcp-config}" = "$CMD" ]; then
@@ -794,8 +1035,8 @@ fi
 # Codex 0.146.0 startet mit normaler des Nutzers Ausstattung je Worker einen privaten
 # Playwright-MCP und die Computer-Use-Helfer. Direkt mit `footprint` gemessen kosten
 # diese Kinder zusammen rund 185 MiB je Worker. `--disable plugins` entfernt genau
-# die plugin-gelieferten MCPs (Playwright, Computer History und CUA), waehrend der
-# geteilte HTTP-MCP basic-memory aus config.toml erreichbar bleibt. Ein kleiner,
+# die plugin-gelieferten MCPs (Playwright, Computer History und CUA). Basic Memory ist
+# seit 2026-09-23 abgeschaltet und kein Teil der Ausstattung mehr. Ein kleiner,
 # global konfigurierter node_repl bleibt ebenfalls erhalten; ihn hier per `-c` nur
 # teilweise zu ueberschreiben ist bei 0.146.0 ungueltig ("invalid transport").
 #
@@ -973,16 +1214,48 @@ if [ -n "$INITIAL_TASK_FILE" ] && { [ -z "$RESUME_ARGS" ] || [ "$HARNESS" = code
     | /usr/bin/python3 -c 'import json,sys
 try: print(json.load(sys.stdin).get("initialPrompt", ""))
 except Exception: pass')"
-  [ "$HARNESS" = codex ] && [ "$START_STYLE" = positional ] \
+  # Stil 'positional' (codex): der Auftrag ist das letzte Argument. Stil 'flag:<option>' (agy:
+  # 'flag:-i', belegt an `agy --help`: --prompt-interactive "Run an initial prompt interactively
+  # and continue the session"; ohne Wert endet agy mit "flag needs an argument: -i"): der
+  # Auftrag folgt der Option. Beide Male bleibt er EIN Argument und wird nie als Shell geparst.
+  # Ein Resume mit Erstauftrag (--resume-args) bleibt auf codex beschraenkt.
+  [[ "$START_STYLE" =~ ^(positional|flag:--?[A-Za-z][A-Za-z0-9-]*)$ ]] \
+    && { [ -z "$RESUME_ARGS" ] || [ "$HARNESS" = codex ]; } \
     && [ -f "$INITIAL_TASK_FILE" ] && [ -r "$INITIAL_TASK_FILE" ] \
     && [ -s "$INITIAL_TASK_FILE" ] || {
-      echo "wb-harness-run: Codex-Erstauftrag oder Registry-Startfeld ungueltig — kein Start." >&2
+      echo "wb-harness-run: Erstauftrag oder Registry-Startfeld (initialPrompt) fuer $HARNESS ungueltig — kein Start." >&2
       exit 1
     }
   MODE="$(stat -c %a "$INITIAL_TASK_FILE" 2>/dev/null || stat -f %Lp "$INITIAL_TASK_FILE" 2>/dev/null)"
-  [ "$MODE" = 600 ] || { echo "wb-harness-run: Codex-Erstauftrag braucht Mode 0600 — kein Start." >&2; exit 1; }
+  [ "$MODE" = 600 ] || { echo "wb-harness-run: Erstauftrag braucht Mode 0600 — kein Start." >&2; exit 1; }
   WB_INITIAL_PROMPT="$(cat "$INITIAL_TASK_FILE")" || exit 1
-  CMD="$CMD \"\$WB_INITIAL_PROMPT\""
+  case "$START_STYLE" in
+    flag:*) CMD="$CMD ${START_STYLE#flag:} \"\$WB_INITIAL_PROMPT\"" ;;
+    *)      CMD="$CMD \"\$WB_INITIAL_PROMPT\"" ;;
+  esac
+fi
+
+# Der Tokenwert erst HIER, unmittelbar vor dem eval/exec, aus dem Schluesselbund
+# gelesen und NUR in diese (gleich ersetzte) Prozessumgebung exportiert: nie in
+# argv, nie in CMD selbst, nie in einer Datei, einem Log, einer tmux-Option oder
+# dem Pane-Titel. ANTHROPIC_API_KEY wird dabei entfernt, falls dieser Prozess es
+# aus seiner eigenen Umgebung geerbt hat -- Claudes Vorrangkette liest es vor dem
+# Token und wuerde den Token sonst lautlos uebergehen.
+if [ -n "$WB_KONTO_DIENST" ]; then
+  unset ANTHROPIC_API_KEY
+  WB_KONTO_TOKEN="$(security find-generic-password -s "$WB_KONTO_DIENST" -w 2>/dev/null || true)"
+  if [ -z "$WB_KONTO_TOKEN" ]; then
+    echo "wb-harness-run: FEHLER -- Schluesselbund-Eintrag '$WB_KONTO_DIENST' (Konto $WB_KONTO) ist jetzt leer oder verschwunden; kein stiller Rueckfall auf die Browser-Anmeldung; kein Start." >&2
+    exit 1
+  fi
+  export CLAUDE_CODE_OAUTH_TOKEN="$WB_KONTO_TOKEN"
+  unset WB_KONTO_TOKEN
+  # Das tatsaechlich gewaehlte Konto fuer die Statuszeile (Kontofeld in limits.jsonl).
+  # Die Angabe WB_CLAUDE_KONTO gilt nur fuer diesen Start (task, 18.11.2026): sie wird hier entfernt,
+  # damit Worker und Kindlaeufe, die diese Sitzung startet, wieder selbst waehlen statt das Konto der Mutter zu
+  # erben ('auto' in der Variable genuegte dafuer nicht: ein ausdrueckliches gross/klein blieb in der Sitzung stehen).
+  export WB_CLAUDE_KONTO_AKTIV="$WB_KONTO"
+  unset WB_CLAUDE_KONTO WB_CLAUDE_KONTO_VORGABE
 fi
 
 eval "$CMD"

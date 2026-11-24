@@ -1,4 +1,8 @@
 #!/bin/bash
+# Fester Interpreter (18.10.2026, Befund devdir-sicher N5): agents_data.py entscheidet ueber
+# Antraege, Rechte und Herkunft; ein python3 aus dem PATH des Aufrufers waere ein fremder
+# Entscheider. Ohne die xcrun-Variablen, ohne PYTHON*-Variablen und User-site.
+unset DEVELOPER_DIR SDKROOT TOOLCHAINS
 # Data-model subcommands share this historical name.  No-argument and legacy
 # pane invocations continue through the original implementation below.
 case "${1:-}" in
@@ -7,15 +11,15 @@ case "${1:-}" in
     # Posten des Hauptagenten: danach den Traeger wecken.
     SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
     status=0
-    python3 "$SCRIPT_DIR/agents_data.py" agent "$@" || status=$?
+    /usr/bin/python3 -E -s "$SCRIPT_DIR/agents_data.py" agent "$@" || status=$?
     if [ "$status" -eq 0 ]; then
-      python3 "$SCRIPT_DIR/agents_traeger_wecken.py" agent "$@" || true
+      /usr/bin/python3 -E -s "$SCRIPT_DIR/agents_traeger_wecken.py" agent "$@" || true
     fi
     exit "$status"
     ;;
   neu|liste|zeigen|pause|start|stop|profil|rechte|gedaechtnis|vorlagen|entwurf|anlegen)
     SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-    exec python3 "$SCRIPT_DIR/agents_data.py" agent "$@"
+    exec /usr/bin/python3 -E -s "$SCRIPT_DIR/agents_data.py" agent "$@"
     ;;
   "") ;;
   *)

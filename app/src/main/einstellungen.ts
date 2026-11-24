@@ -37,7 +37,7 @@ import { chatVorgabeAus, type ChatVorgabe } from '../chat/ansichtsregel';
  * Wer sie ändert, ändert BEIDE Stellen. Die Suite prüft genau das.
  */
 export const VORGABE_AUSSCHLUSS_ORDNER: readonly string[] = [
-  'secrets', '.ssh', '.gnupg',
+  '90-secrets', '.ssh', '.gnupg',
   'node_modules', '.git', 'dist', 'build', '__pycache__', '.venv', 'venv',
   '.mypy_cache', '.pytest_cache', '.next', '.turbo', 'target',
 ];
@@ -69,8 +69,7 @@ export interface AskMuster {
   /** Der eine Satz, der in der Ansicht erklaert, warum gefragt wird. */
   grund: string;
   /**
-   * Einzeln abgeschaltet (alice, 06.08.: "jeder Eintrag ist einzeln an- und
-   * abschaltbar"). Der Eintrag bleibt in der Liste stehen und wirkt nicht --
+   * Einzeln abgeschaltet (decision 08-06.). Der Eintrag bleibt in der Liste stehen und wirkt nicht --
    * anders als beim Loeschen sieht man danach noch, dass es ihn gab.
    */
   aus?: boolean;
@@ -184,8 +183,7 @@ export const VORGABEN: Readonly<Record<string, unknown>> = {
   // shell/wb-state.
   orchestratorVorhersage: false,
   workerVorhersage: false,
-  // WELCHER der hinterlegten Wege (2026-08-21, alice: "ich will mich
-  // entscheiden koennen"). Der Wert ist die `id` eines Eintrags aus
+  // WELCHER der hinterlegten Wege (2026-08-21, alice). Der Wert ist die `id` eines Eintrags aus
   // vorhersage.wege des gewaehlten Orchestrator-Modells -- kein Pfad: waehlbar
   // bleibt, was die Auslieferung gemessen hat. Leer heisst "der Vorgabeweg der
   // Registry"; der Schalter darueber bleibt das An/Aus und schlaegt jede

@@ -582,7 +582,8 @@ else
     hook_prog="$(printf '%s' "$hook_befehl" | awk '{print $1}')"
     hook_prog="${hook_prog/#\$HOME/$HOME}"
     hook_prog="${hook_prog/#\~/$HOME}"
-    if [ -n "$hook_prog" ] && [ ! -x "$hook_prog" ]; then
+    # Ein Shell-Builtin (printf im Absturzprotokoll-Hook) ist kein Dateipfad, den '-x' finden kann.
+    if [ -n "$hook_prog" ] && [ ! -x "$hook_prog" ] && [ "$(type -t "$hook_prog" 2>/dev/null)" != builtin ]; then
       melde "Hook $hook_name ruft '$hook_prog' -- gibt es nicht oder nicht ausfuehrbar"
       hinweis "Der Aufruf endet mit exit 127; ohne Abschirmung friert das aktive Pane ein. Pfad in ~/.tmux.conf richtigstellen (\$HOME statt fest verdrahtet)."
       hook_befunde=$((hook_befunde + 1))

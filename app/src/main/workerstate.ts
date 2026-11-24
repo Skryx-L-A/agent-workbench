@@ -3,7 +3,7 @@
 // Zahl ihre Quelle bekommt, und jede Wahl steht hier mit ihrem Grund.
 //
 // Warum ueberhaupt: Der Kontext-Guard liest die Auslastung aus der Statuszeile
-// des Panes. Am 04.08. um 10:19 meldete er fuer einen Pane "BLIND — weder
+// des Panes. Am 04.08. meldete er fuer einen Pane "BLIND — weder
 // Transcript noch Statuszeile lesbar", weil drei Worker nebeneinander den Pane
 // unter 80 Spalten gedrueckt hatten. Ein Zustand, der von der Fensterbreite
 // abhaengt, ist kein Zustand. Das Programm legt die Panes selbst an und kennt
@@ -237,6 +237,17 @@ const SESSION_LOAD_FRIST_MS = 5_000;
 const SESSION_LOAD_FRISCH_MS = 5_000;
 
 /**
+ * So lange gilt der Wert eines Workers OHNE lebenden Pane (fertig, Pane weg).
+ * Seine Sitzungsdatei aendert sich nicht mehr; bis zum 19.10.2026 wurde sie
+ * trotzdem alle 5 Sekunden neu gelesen, je registriertem Worker ein
+ * Python-Start. Gemessen im Live-Kern (240 s): 415 Laeufe von `wb-session-load`
+ * bei 28 verschiedenen Arbeitsordnern, aber nur rund zwoelf lebenden Panes --
+ * der groesste Einzelposten der Kindprozess-CPU des Kerns. Kommt der Pane
+ * zurueck, gilt wieder `SESSION_LOAD_FRISCH_MS`.
+ */
+export const SESSION_LOAD_FRISCH_OHNE_PANE_MS = 300_000;
+
+/**
  * Ein Eintrag, nach dem so lange niemand mehr gefragt hat, faellt aus dem
  * Gedaechtnis -- sonst wuechse die Tabelle mit jedem je gesehenen Worker.
  */
@@ -334,7 +345,7 @@ function sessionLoadAufraeumen(jetzt: number): void {
  * vormachen. Der Aufrufer bekommt sofort, was zuletzt bekannt war; beim ersten
  * Mal ist das UNBEKANNT, und einen Takt spaeter steht die Zahl da.
  */
-export function sessionLoadGemerkt(spec: HarnessSessionSpec, cwd: string, contextWindow: number, bin = 'wb-session-load'): SessionLoadStand {
+export function sessionLoadGemerkt(spec: HarnessSessionSpec, cwd: string, contextWindow: number, bin = 'wb-session-load', frischMs = SESSION_LOAD_FRISCH_MS): SessionLoadStand {
   if (!spec.ort || !cwd) return LEER_SESSION;
   const specJson = JSON.stringify({ via: spec.via, ort: spec.ort, format: spec.format, maxAgeSec: spec.maxAgeSec });
   const argv = [specJson, cwd, String(contextWindow || 0)];
@@ -349,7 +360,7 @@ export function sessionLoadGemerkt(spec: HarnessSessionSpec, cwd: string, contex
     sessionLoadGedaechtnis.set(schluessel, e);
   }
   e.gefragt = jetzt;
-  if (!e.laufend && jetzt - e.gelesen >= SESSION_LOAD_FRISCH_MS) sessionLoadStarten(e, bin, argv);
+  if (!e.laufend && jetzt - e.gelesen >= frischMs) sessionLoadStarten(e, bin, argv);
   sessionLoadAufraeumen(jetzt);
   return e.wert;
 }

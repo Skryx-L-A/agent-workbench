@@ -1,5 +1,6 @@
 /**
- * AGENTS: Welten, Agenten mit ihren Figuren, offene Fragen, der Kanal einer
+ * AGENTS: Welten, Agenten mit ihren Figuren, offene Fragen und
+ * Rechteantraege an Dich (Ansicht und Entscheidung in `antrag.ts`), der Kanal einer
  * Welt, Auftraege und Tickets (Spezifikation 7.1). Jede Handlung ist eine
  * getypte `AgentAction` mit den Fachfeldern von Vertrag 1.1; freie
  * Shellzeilen gibt es nicht. Eine Nachricht geht an genau einen Empfaenger:
@@ -11,8 +12,8 @@
  * Ausdruck; der Zustand steuert Augen, Bewegung und Zeichen.
  */
 import { figur, figurZustandVon } from '../../renderer/agentenfigur';
-import type { AgentKurz, AgentNachricht, FrageKurz, TeamKurz, WeltKurz } from './agents-daten';
-import { offeneFragen, teamEmpfaenger } from './agents-daten';
+import type { AgentKurz, AgentNachricht, FrageKurz, RechteAntragKurz, TeamKurz, WeltKurz } from './agents-daten';
+import { offeneFragen, offeneRechteantraege, rechteKurztext, teamEmpfaenger } from './agents-daten';
 import { abfrage, auswahlBlatt, formblatt } from './blatt';
 import { Composer } from './composer';
 import { ersetzen, h, symbol } from './dom';
@@ -180,6 +181,26 @@ export function frageKarte(u: Umgebung, w: WeltKurz, f: FrageKurz, kompakt: bool
   return karte;
 }
 
+/**
+ * Ein offener Rechteantrag an Dich als Kachel unter „Brauchen Dich“. Sie
+ * fuehrt nur zur Ansicht; dort wird entschieden, wo der Kern es anbietet,
+ * sonst am Mac (`antrag.ts`).
+ */
+export function antragKachel(u: Umgebung, w: WeltKurz, r: RechteAntragKurz): HTMLElement {
+  const agent = w.agenten.find((a) => a.id === r.agent) ?? w.agenten.find((a) => a.id === r.von);
+  return h('section', { class: 'entscheidung karte antrag-kachel', 'data-antrag': r.id, 'aria-label': `Rechteantrag von ${agent?.name ?? r.von}` },
+    h('div', { class: 'frage-kopf' },
+      agent ? agentFigur(agent, 40, `kachel:${r.id}`) : punkt('will'),
+      h('div', { class: 'frage-wer' },
+        h('span', { class: 'frage-name' }, agent?.name ?? r.agent),
+        h('span', { class: 'frage-meta' }, `${w.name}, Rechteantrag, ${relativ(r.zeit)}`),
+      ),
+    ),
+    h('p', { class: 'frage-text' }, r.grund || `Beantragt: ${rechteKurztext(r.changes)}.`),
+    h('button', { class: 'text-knopf', type: 'button', onclick: () => u.router.oeffnen({ tab: 'agents', ansicht: 'antrag', welt: w.id, antrag: r.id }) }, 'Antrag ansehen'),
+  );
+}
+
 function agentZeile(u: Umgebung, w: WeltKurz, a: AgentKurz): HTMLElement {
   return h('button', { class: 'agent-zeile', type: 'button', onclick: () => u.router.oeffnen({ tab: 'agents', ansicht: 'agent', welt: w.id, agent: a.id }) },
     agentFigur(a, 44),
@@ -208,9 +229,10 @@ export function agentsListe(u: Umgebung): Ansicht {
       return;
     }
     const fragen = ag.welten.flatMap((w) => offeneFragen(w).map((f) => ({ w, f })));
-    if (fragen.length) {
-      teile.push(h('div', { class: 'gruppe' }, abschnitt('Brauchen Dich', String(fragen.length)),
-        h('div', { class: 'karten' }, ...fragen.map(({ w, f }) => frageKarte(u, w, f, true)))));
+    const antraege = ag.welten.flatMap((w) => offeneRechteantraege(w).map((r) => ({ w, r })));
+    if (fragen.length || antraege.length) {
+      teile.push(h('div', { class: 'gruppe brauchen-dich' }, abschnitt('Brauchen Dich', String(fragen.length + antraege.length)),
+        h('div', { class: 'karten' }, ...fragen.map(({ w, f }) => frageKarte(u, w, f, true)), ...antraege.map(({ w, r }) => antragKachel(u, w, r)))));
     }
     for (const w of ag.welten) {
       const offen = w.tickets.filter((t) => !['abgenommen', 'verworfen'].includes(t.stand)).length;

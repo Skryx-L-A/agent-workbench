@@ -1,6 +1,6 @@
 // WANN EIN „WORKER FERTIG“ DOCH ALS PUSH HINAUSGEHT.
 //
-// Entscheidung alice 09.10.2026 + feste Regel aus jev/mobil (09.10.2026):
+// Entscheidung decision 2026-10-09 + feste Regel aus jev/mobil (09.10.2026):
 // Gepusht wird nur Dringendes -- Freigabe-Anfrage, Fehler, Frage an ihn. Ein
 // `worker.done` steht deshalb gewoehnlich nur in der App (`in_app`). Die
 // Jev-Pruefung (jev/mobil/PLAN.md Abschnitt 2 „E1“ und Abschnitt 3
@@ -39,7 +39,7 @@ export interface WorkerFertigFelder {
 }
 
 /**
- * DIE REGEL. Entscheidung alice 09.10.2026 + feste Regel aus jev/mobil
+ * DIE REGEL. Entscheidung decision 2026-10-09 + feste Regel aus jev/mobil
  * (09.10.2026). Reihenfolge wie in PLAN.md Abschnitt 3; die erste passende
  * Regel entscheidet.
  *
@@ -49,13 +49,13 @@ export interface WorkerFertigFelder {
  *   R4n  gescheitert/abgebrochen, andere Worker laufen                -> in_app
  *   R5   alles andere                                                 -> in_app
  *
- * R3b ENTFAELLT BEWUSST (Entscheidung alice 09.10.2026): Es gibt keine
+ * R3b ENTFAELLT BEWUSST (Entscheidung decision 2026-10-09): Es gibt keine
  * Nachtvollmacht. Eine Frage an alice wird immer gepusht, auch nachts --
  * R3 gilt ohne Ausnahme. Damit entfaellt auch U1 aus jev/mobil (Wartewunsch
  * bei Nachtvollmacht): es gilt R2.
  *
  * Der Wartewunsch (R2) gilt bis zum ersten ausgeloesten Push, hoechstens
- * 12 Stunden (Entscheidung alice 09.10.2026; WARTEWUNSCH_MS in service.ts).
+ * 12 Stunden (Entscheidung decision 2026-10-09; WARTEWUNSCH_MS in service.ts).
  */
 export function workerFertigEinstufen(wartewunsch: boolean, felder: WorkerFertigFelder | null): WorkerFertigStufe {
   if (wartewunsch) return { zustellung: 'push', grund: 'R2' };

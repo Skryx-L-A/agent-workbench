@@ -87,8 +87,11 @@ antwortet() {  # 0 wenn /v1/models antwortet
 served_ref() {  # welche Modell-ID bedient der laufende Server (omlx versteckt
                 # die Prozess-Args via setproctitle 'omlx-server', darum ueber
                 # /v1/models statt ps)
-  curl -s -m 4 "http://$HOSTB:$PORT/v1/models" 2>/dev/null \
-    | python3 -c 'import json,sys
+  # Erst die Antwort holen, dann auswerten: keine Leitung von curl in einen Interpreter
+  # (Scorecard PinnedDependencies, downloadThenRun). Python liest nur JSON, nie Code.
+  local antwort
+  antwort="$(curl -s -m 4 "http://$HOSTB:$PORT/v1/models" 2>/dev/null)"
+  printf '%s' "$antwort" | python3 -c 'import json,sys
 try:
     d=json.load(sys.stdin); print((d.get("data") or [{}])[0].get("id",""))
 except Exception: print("")' 2>/dev/null
@@ -157,7 +160,7 @@ cmd_ensure() {
   # nahtlos. Der umgekehrte Weg (zurueck auf qwen38, waehrend qwen38u laeuft) wird
   # von wb-mlx-server NICHT geraeumt; dort hilft der 20-min-Leerlauf-Stopp oder
   # `wb-omlx-server stop`.
-  if [ "$nimm_rc" -eq 1 ] && printf '%s' "$nimm_out" | grep -qiE 'wb-mlx-server|qwen38-27b|Port 8081'; then
+  if [ "$nimm_rc" -eq 1 ] && grep -qiE 'wb-mlx-server|qwen38-27b|Port 8081' <<<"$nimm_out"; then
     err "wb-omlx-server: kein Platz, aber ein wb-mlx-server-Modell haelt den Speicher — stoppe es und buche neu."
     "$HOME/.local/bin/wb-mlx-server" stop >/dev/null 2>&1
     sleep 2
@@ -203,7 +206,7 @@ cmd_ensure() {
   probe="$(curl -s -m 60 "http://$HOSTB:$PORT/v1/chat/completions" \
     -H 'Content-Type: application/json' \
     -d "{\"model\":\"$RES_REF\",\"messages\":[{\"role\":\"user\",\"content\":\"Sag OK.\"}],\"max_tokens\":8,\"temperature\":0}" 2>/dev/null)"
-  if ! printf '%s' "$probe" | grep -q '"content"'; then
+  if ! grep -q '"content"' <<<"$probe"; then
     err "Probeanfrage an '$RES_REF' scheiterte — Antwort: $(printf '%s' "$probe" | head -c 200)"
     kill "$newpid" 2>/dev/null
     [ -n "$kennung" ] && "$WBB" gib "$kennung" --fremd >/dev/null 2>&1

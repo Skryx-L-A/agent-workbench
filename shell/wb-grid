@@ -210,7 +210,7 @@ move_pane_to_named() {
 # break-pane starts no process, so it still works then. Before 13.10.2026 such a
 # pane went to _wbhold and the sweep below put it into `workers` NEXT TO the
 # worker already there -- two workers in one window, exit 0, no message
-# (GL#36, reproduced by failing `new-window -n workers-2` once).
+# (Gesamtlauf, reproduced by failing `new-window -n workers-2` once).
 break_pane_to_own_tab() {
   local p="$1" n=1 name wid
   while :; do

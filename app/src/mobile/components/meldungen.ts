@@ -1,6 +1,7 @@
 /**
- * MELDUNGEN: das zusammengefuehrte Journal beider Origins, ungelesene
- * Eintraege, Deep Links -- und oben die dauerhaften, handlungsfaehigen Zeilen
+ * MELDUNGEN: das zusammengefuehrte Journal beider Origins, ungelesene und
+ * erledigte Eintraege (`erledigt_at`, Push-Art `welt.braucht-dich`), Deep
+ * Links -- und oben die dauerhaften, handlungsfaehigen Zeilen
  * fuer Mitteilungen, Geraet, Maschinen und Version (Spezifikation 7.1).
  */
 import type { Notification, NotificationEventType } from '../../mobile-shared/vertrag';
@@ -15,6 +16,7 @@ const TYP: Record<NotificationEventType, { titel: string; farbe: string }> = {
   'command.blocked': { titel: 'Wartet auf Freigabe', farbe: 'will' },
   'session.lost': { titel: 'Sitzung verloren', farbe: 'aus' },
   'worker.stalled': { titel: 'Worker hängt', farbe: 'will' },
+  'welt.braucht-dich': { titel: 'Welt braucht dich', farbe: 'will' },
 };
 
 function statusZeile(sym: string, titel: string, wert: string, knopf?: { text: string; beiKlick: () => void; aus?: boolean }, wohin?: () => void): HTMLElement {
@@ -51,8 +53,9 @@ export function statusKarte(u: Umgebung): HTMLElement {
 function meldungZeile(u: Umgebung, n: Notification, gewaehlt: boolean, jetzt: number): HTMLElement {
   const t = TYP[n.type];
   const ungelesen = u.stand.ungelesen(n);
+  const erledigt = typeof n.erledigt_at === 'number';
   return h('button', {
-    class: `meldung ${ungelesen ? 'ungelesen' : ''} ${gewaehlt ? 'gewaehlt' : ''}`, type: 'button', 'data-id': n.id,
+    class: `meldung ${ungelesen ? 'ungelesen' : ''} ${gewaehlt ? 'gewaehlt' : ''} ${erledigt ? 'erledigt' : ''}`, type: 'button', 'data-id': n.id,
     'aria-current': gewaehlt ? 'true' : null,
     onclick: () => { u.stand.alsGelesen([n.id]); u.router.oeffnen({ tab: 'meldungen', ansicht: 'meldung', id: n.id }); },
   },
@@ -60,6 +63,7 @@ function meldungZeile(u: Umgebung, n: Notification, gewaehlt: boolean, jetzt: nu
   h('span', { class: 'meldung-text' },
     h('span', { class: 'meldung-kopf' },
       h('span', { class: 'meldung-titel' }, t.titel),
+      erledigt ? h('span', { class: 'meldung-erledigt' }, 'erledigt') : null,
       h('span', { class: 'meldung-zeit' }, relativ(n.created_at, jetzt))),
     h('span', { class: 'meldung-inhalt' }, n.text),
     h('span', { class: 'meldung-fuss' }, punkt(t.farbe), maschinenName(n.machine), n.source === 'mirror' ? h('span', { class: 'meldung-spiegel' }, 'gespiegelt') : null),
@@ -90,7 +94,7 @@ export function meldungsListe(u: Umgebung): Ansicht {
       push ? [push.erlaubnis, push.grund ?? ''] : null, k ? [k.gekoppelt, k.geraet ?? ''] : null,
       stand.maschinen.map((m) => [m.machine, m.erreichbar, m.seit ? uhr(m.seit) : '']),
       stand.quelle.client_build, !!stand.bootstrap, stand.quelle.name,
-      liste?.map((n) => [n.id, n.type, n.text, n.machine, n.source, n.created_at, stand.ungelesen(n), relativ(n.created_at, jetzt)]) ?? null,
+      liste?.map((n) => [n.id, n.type, n.text, n.machine, n.source, n.created_at, n.erledigt_at ?? null, stand.ungelesen(n), relativ(n.created_at, jetzt)]) ?? null,
     ]);
     ersetzenBeiAenderung(koerper, signatur, () => {
       const teile: (HTMLElement | null)[] = [verbindungsZeile(stand, jetzt), statusKarte(u)];
@@ -128,13 +132,23 @@ export function meldungAnsicht(u: Umgebung, id: string): Ansicht {
     if (stand.ungelesen(n)) queueMicrotask(() => stand.alsGelesen([n.id]));
     const t = TYP[n.type];
     const sitzung = stand.sitzungen?.find((x) => x.id === n.target_id);
+    const welt = n.welt;
     s.titelSetzen(t.titel);
     ersetzen(koerper,
       h('div', { class: 'meldung-buehne' },
-        marke(t.titel, t.farbe as 'will'),
+        typeof n.erledigt_at === 'number' ? marke('Erledigt', 'fertig') : marke(t.titel, t.farbe as 'will'),
         h('h1', { class: 'meldung-gross' }, n.text),
         h('p', { class: 'meldung-wann' }, `${zeitmarke(n.created_at)}, ${maschinenName(n.machine)}${n.source === 'mirror' ? ', vom Mac gespiegelt' : ''}`),
+        typeof n.erledigt_at === 'number' ? h('p', { class: 'meldung-wann' }, `Erledigt ${zeitmarke(n.erledigt_at)}.`) : null,
       ),
+      welt ? h('button', {
+        class: 'karte weiter-zeile', type: 'button',
+        onclick: () => u.router.oeffnen(welt.art === 'rechteantrag'
+          ? { tab: 'agents', ansicht: 'antrag', welt: welt.welt_id, antrag: welt.anliegen_id }
+          : { tab: 'agents', ansicht: 'frage', welt: welt.welt_id, frage: welt.anliegen_id }),
+      }, h('span', { class: 'weiter-text' },
+        h('span', { class: 'weiter-titel' }, welt.art === 'rechteantrag' ? 'Rechteantrag öffnen' : 'Frage öffnen'),
+        h('span', { class: 'weiter-sub' }, 'wechselt zum Tab Agents')), symbol('weiter', 16)) : null,
       sitzung ? h('button', {
         class: 'karte weiter-zeile', type: 'button',
         onclick: () => u.router.oeffnen({ tab: 'sitzungen', ansicht: 'chat', id: sitzung.id }),

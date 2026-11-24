@@ -1568,9 +1568,11 @@ bedienter_modellname() {
     printf '%s' "$fallback"
     return 0
   fi
-  local id
-  id="$(curl -s --max-time 5 "http://127.0.0.1:$PORT/v1/models" 2>/dev/null \
-        | python3 -c '
+  local id antwort
+  # Erst die Antwort holen, dann auswerten: keine Leitung von curl in einen Interpreter
+  # (Scorecard PinnedDependencies, downloadThenRun). Python liest nur JSON, nie Code.
+  antwort="$(curl -s --max-time 5 "http://127.0.0.1:$PORT/v1/models" 2>/dev/null)"
+  id="$(printf '%s' "$antwort" | python3 -c '
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -2366,6 +2368,14 @@ belegung_nehmen() {
   [ "$auf_eigene_gefahr" = "1" ] && zusatz+=(--auf-eigene-gefahr)
   BELEGUNG_KENNUNG=""
   local wbb; wbb="$(belegung_bin)"
+  # Der Modellordner fuer ein Modell ohne Registereintrag (29.10.2026): wb-belegung rechnet
+  # den KV-Bedarf dann aus seiner config.json statt mit dem rund 18-fach zu hohen
+  # Ersatzwert. Nur fuer den Koerper, dessen Name auch nachgeschlagen wird, und nur, wenn
+  # das gefundene wb-belegung den Schalter kennt (ein aelteres bricht sonst mit Exit 2 ab).
+  if [ -n "$wbb" ] && [ -n "${MODEL_PATH:-}" ] && [ "$(basename "$MODEL_PATH")" = "$kv_modellname" ] \
+      && grep -q -- '--modell-pfad' "$wbb" 2>/dev/null; then
+    zusatz+=(--modell-pfad "$MODEL_PATH")
+  fi
   if [ -z "$wbb" ]; then
     if [ "${WB_MLX_SERVER_OHNE_BELEGUNG:-0}" = "1" ]; then
       err "WARNUNG: wb-belegung nicht gefunden — WB_MLX_SERVER_OHNE_BELEGUNG=1 gesetzt, starte OHNE Cross-Sitzungs-Sperre."
@@ -2657,7 +2667,7 @@ cmd_status() {
     # Kennung/Alias UND Kontext kommen ab jetzt NICHT MEHR aus aktuell.json,
     # sondern live: die Identitaet frisch aus der Registry ueber den
     # tatsaechlich laufenden Pfad aufgeloest, der Kontext direkt aus
-    # wb-belegungs eigenem Buch (der Nutzer, 2026-08-19, Fehler 2 -- "zwei
+    # wb-belegungs eigenem Buch (decision 2026-08-19, Fehler 2 -- "zwei
     # Zahlen fuer dieselbe Sache"). Ursache der Divergenz, gefunden ohne den
     # Server anzufassen: aktuell_schreiben() laeuft als LETZTER Schritt eines
     # erfolgreichen `ensure`, NACH wb-nohup/wait_health/Probeanfrage. Wird

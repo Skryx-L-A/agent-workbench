@@ -68,7 +68,7 @@
         "mac",
         "peer"
       ],
-      "zweck": "Higgsfield-MCP (der Nutzer 13.10.: auf beiden Maschinen, in jedem MCP-faehigen Harness)",
+      "zweck": "Higgsfield-MCP (decision 10-13: auf beiden Maschinen, in jedem MCP-faehigen Harness)",
       "hinweis": "gemessen auf peer 13.10.: type http, keine headers, keine env. Claude traegt ihn direkt in die Plugin-.mcp.json (Anmeldung macht Claude); fuer die anderen Harnesses ist der Weg nicht gemessen (status OFFEN)"
     },
     "magic": {
@@ -90,7 +90,7 @@
         "mac",
         "peer"
       ],
-      "zweck": "Magic-MCP (der Nutzer 13.10.: auf beiden Maschinen, in jedem MCP-faehigen Harness)",
+      "zweck": "Magic-MCP (decision 10-13: auf beiden Maschinen, in jedem MCP-faehigen Harness)",
       "hinweis": "gemessen auf peer 13.10.: npx -y @21st-dev/magic@latest, liest API_KEY oder TWENTY_FIRST_API_KEY. README: Magic MCP ist jetzt der 21st MCP, alte Magic-Schluessel wurden zurueckgesetzt - der Schluessel unter magic-mcp/default muss evtl. neu erzeugt werden"
     }
   },
@@ -114,7 +114,7 @@
         "mac",
         "peer"
       ],
-      "zweck": "Bash-Kinder von Claude erben den Geheimnisfilter-Proxy aus der settings-env nicht (WO 13.10.): der Adapter schreibt 'unset <env_entfernen>' in CLAUDE_ENV_FILE; der Claude-Prozess selbst bleibt auf dem Proxy. Messung 14.10. (claude 2.1.296): wirkt fuer Vordergrund-, Hintergrund- und Subagenten-Bash, nach resume/compact/clear; claude -p aus so einer Bash liest die settings-env selbst und geht wieder ueber den Filter. Der Filter schuetzt den Kontext der Claude-Sitzung; Bash-Kinder, die selbst Modelle rufen (SDK-Skripte), gehen am Filter vorbei. opencode und pi laufen ueber ihre eigene Konfiguration auf die /anthropic-Route und bleiben gefiltert."
+      "zweck": "Bash-Kinder von Claude erben den Geheimnisfilter-Proxy aus der settings-env nicht (decision 10-13): der Adapter schreibt 'unset <env_entfernen>' in CLAUDE_ENV_FILE; der Claude-Prozess selbst bleibt auf dem Proxy. Messung 14.10. (claude 2.1.296): wirkt fuer Vordergrund-, Hintergrund- und Subagenten-Bash, nach resume/compact/clear; claude -p aus so einer Bash liest die settings-env selbst und geht wieder ueber den Filter. Der Filter schuetzt den Kontext der Claude-Sitzung; Bash-Kinder, die selbst Modelle rufen (SDK-Skripte), gehen am Filter vorbei. opencode und pi laufen ueber ihre eigene Konfiguration auf die /anthropic-Route und bleiben gefiltert."
     },
     "inbox-einspielen": {
       "ereignisse": [
@@ -148,7 +148,7 @@
       "befehl": "bash \"$HOME/.claude/hooks/profil-sperre.sh\"",
       "timeout": 10,
       "harnesses": "nur-traeger",
-      "grund": "registriert der Agenten-Traeger selbst je Claude-Zug (agents_traeger.py, eigene turn-settings.json); nicht ins Plugin, in kein Harness-Ausrollen (WO 13.10. 19:52)",
+      "grund": "registriert der Agenten-Traeger selbst je Claude-Zug (agents_traeger.py, eigene turn-settings.json); nicht ins Plugin, in kein Harness-Ausrollen (decision 10-13)",
       "maschinen": [
         "mac",
         "peer"
@@ -178,7 +178,7 @@
       "befehl": "bash \"$HOME/.claude/hooks/skills-sperre.sh\"",
       "timeout": 10,
       "harnesses": "nur-traeger",
-      "grund": "registriert der Agenten-Traeger selbst je Claude-Zug (agents_traeger.py, eigene turn-settings.json); nicht ins Plugin, in kein Harness-Ausrollen (WO 13.10. 19:52)",
+      "grund": "registriert der Agenten-Traeger selbst je Claude-Zug (agents_traeger.py, eigene turn-settings.json); nicht ins Plugin, in kein Harness-Ausrollen (decision 10-13)",
       "maschinen": [
         "mac",
         "peer"
@@ -208,6 +208,24 @@
         "mac",
         "peer"
       ]
+    },
+    "anweisungen-erinnerung": {
+      "ereignisse": [
+        "UserPromptSubmit"
+      ],
+      "befehl": "command -v wb-anweisung >/dev/null 2>&1 && wb-anweisung --anlass nachricht erinnerung --claude-hook UserPromptSubmit || true",
+      "timeout": 10,
+      "harnesses": [
+        "qwen",
+        "copilot",
+        "cline",
+        "openhands"
+      ],
+      "maschinen": [
+        "mac",
+        "peer"
+      ],
+      "zweck": "Erinnerung der Anweisungen mit Anlass nachricht (Stilregel, takt.nachricht.alle) ueber die Hook-Bruecke in Harnesses, deren Bruecke UserPromptSubmit mit Kontext traegt. Den Takt zaehlt wb-anweisung je session_id der Nutzlast. Nicht alle-mit-hooks: claude (Plugin), pi (Erweiterung wb-anweisung.ts) und opencode (wb-hooks.ts) holen die Erinnerung selbst; ein zweiter Weg zaehlte jede Nachricht doppelt."
     }
   },
   "prompts": {
@@ -231,7 +249,7 @@
         "mac",
         "peer"
       ],
-      "zweck": "Stilregel als Skill im Katalog jedes Harness (der Nutzer 13.10.; Volltext wie anweisungen.stil)"
+      "zweck": "Stilregel als Skill im Katalog jedes Harness (decision 10-13; Volltext wie anweisungen.stil)"
     }
   },
   "anweisungen": {
@@ -254,7 +272,7 @@
         },
         "nach_kompaktierung": true
       },
-      "zweck": "Stilregel kurz-und-knackig fuer jeden Harness und jedes Modell (der Nutzer 13.10. 20:52Z/20:56Z): Volltext am Sitzungsbeginn und im Worker-Auftrag, Erinnerung je Nachricht, wo der Harness das kann; Ausgabe ueber wb-anweisung"
+      "zweck": "Stilregel kurz-und-knackig fuer jeden Harness und jedes Modell (13.10.2026): Volltext am Sitzungsbeginn und im Worker-Auftrag, Erinnerung je Nachricht, wo der Harness das kann; Ausgabe ueber wb-anweisung"
     }
   }
 }

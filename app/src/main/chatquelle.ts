@@ -27,6 +27,7 @@ import { sessionBloeckeAus, urteil } from '../chat/registry';
 import { ansichtOffen, harnessErlaubt, type PaneRolle } from '../chat/ansichtsregel';
 import { leserVorhanden, nachrichtenAus, kopfAus } from '../chat/leser';
 import { kandidatWaehlen } from '../chat/zuordnung';
+import { mitMaschinenLocale } from './pfad';
 import { bruecke } from '../chat/bruecke';
 import type { PaneLage } from '../chat/bruecke';
 import { transcriptStand } from './workerstate';
@@ -956,6 +957,9 @@ export function anfrageFuerPane(
     // sessions.ts ueber zwei Minuten haengen.
     const r = spawnSync('tmux', [...basis, 'display-message', '-p', '-t', paneId, format], {
       encoding: 'utf8',
+      // Ohne UTF-8-Locale ersetzt tmux \x1f durch '_' (gemessen T1, Linux, LANG leer, 24.10.);
+      // dieselbe Regel wie fuer jeden zerlegten tmux-Aufruf (MASCHINEN_LOCALE in pfad.ts).
+      env: mitMaschinenLocale(),
       timeout: FRIST_MS,
       killSignal: 'SIGKILL',
     });

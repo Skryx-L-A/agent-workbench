@@ -1,7 +1,7 @@
 /**
  * DAS SITZUNGSDETAIL: Kopf, Verlauf mit Neue-Nachrichten-Marke, offene
  * Rueckfrage und Freigaben, Composer (Spezifikation 7.1). Keine
- * Terminalansicht. Worker erscheinen hier nicht (alice, 18.09.): die
+ * Terminalansicht. Worker erscheinen hier nicht (decision 09-18): die
  * Sitzungsliste nennt nur ihre Zahl; ihre Antraege und angehaltenen Befehle
  * stehen als Karten im Chat ihres Orchestrators.
  */
@@ -21,10 +21,20 @@ const ZEITABSTAND = 15 * 60_000;
  * Kann der Server das Gespraech einer Sitzung nicht lesen (`capability_unavailable`:
  * Pane ohne laufenden Harness, keine Sitzungsdatei, Harness ohne Chatquelle), steht
  * hier dieser Hinweis statt der englischen Servermeldung, die den Grund nicht nennt.
- * ANLASS (13.10.2026, alice): „ich sehe auch keinen chat oder so".
+ * ANLASS (13.10.2026, alice).
  */
 const KEIN_VERLAUF_TITEL = 'Kein Verlauf';
 const KEIN_VERLAUF_TEXT = 'Für diese Sitzung gibt es hier keinen Verlauf. Die Werkbank kann ihr Gespräch gerade nicht lesen.';
+/** Der neutrale Satz des Kerns fuer eine Freigabe in einem Ordner ueber INTERNAL (E1, `GESPERRTE_FREIGABE` in adapters/approvals.ts). */
+const GESPERRTE_FREIGABE = 'approval in a restricted folder';
+const GESPERRT_SATZ = 'Eine Freigabe in einem vertraulichen Ordner. Entscheiden geht nur am Rechner.';
+/** Woher die Absicht einer Freigabe stammt (`absicht_quelle`). */
+const HERKUNFT: Record<string, string> = {
+  harness: 'Absicht laut Agent.',
+  abgeleitet: 'Absicht abgeleitet aus dem Befehl.',
+  unklar: 'Zweck nicht erkennbar. Prüfe den Befehl.',
+};
+const HERKUNFT_UNBEKANNT = 'Herkunft der Absicht unbekannt. Prüfe den Befehl.';
 
 /** Ein v1-Server liefert nur Text der Form `Name(Argumente)\nAusgabe`; daraus wird dieselbe Form. */
 function werkzeugAusText(text: string): ChatToolCall {
@@ -107,6 +117,8 @@ export function chatAnsicht(u: Umgebung, id: string): Ansicht {
   let trenner: HTMLElement | null = null;
   let erstesMal = true;
   let offeneSchluessel = '';
+  // Welche Freigabe-Details offen sind; ein Neuzeichnen der Karten klappt sie nicht zu.
+  const offeneDetails = new Set<string>();
 
   const amEnde = (): boolean => s.inhalt.scrollHeight - s.inhalt.scrollTop - s.inhalt.clientHeight < NAHE_AM_ENDE;
   const nachUnten = (weich = false): void => {
@@ -211,19 +223,55 @@ export function chatAnsicht(u: Umgebung, id: string): Ansicht {
     return karte;
   };
 
+  /**
+   * Das Detail einer Befehlsfreigabe: Herkunft der Absicht, der Befehl wortgleich und der Ordner.
+   * Ist der Zweck erkennbar (Harness oder abgeleitet), liegt es zu hinter „Genauer Befehl“ und
+   * bleibt beim Neuzeichnen offen, wenn es offen war. Ohne erkennbaren Zweck steht es offen da:
+   * ohne Absicht entscheidet niemand blind.
+   */
+  const freigabeDetail = (f: Approval): HTMLElement => {
+    const zweck = f.absicht_quelle === 'harness' || f.absicht_quelle === 'abgeleitet';
+    const teile = [
+      h('p', { class: 'entscheidung-notiz freigabe-herkunft' }, (f.absicht_quelle && HERKUNFT[f.absicht_quelle]) || HERKUNFT_UNBEKANNT),
+      f.befehl ? h('pre', { class: 'befehl' }, f.befehl) : null,
+      f.cwd ? h('p', { class: 'entscheidung-notiz freigabe-ordner' }, 'Ordner: ', h('code', null, f.cwd)) : null,
+    ];
+    if (!zweck) return h('div', { class: 'freigabe-detail offen' }, f.befehl ? h('p', { class: 'freigabe-detail-titel' }, 'Genauer Befehl') : null, ...teile);
+    const d = h('details', { class: 'freigabe-detail' }, h('summary', null, f.befehl ? 'Genauer Befehl' : 'Details'), ...teile);
+    d.open = offeneDetails.has(f.id);
+    d.addEventListener('toggle', () => { if (d.open) offeneDetails.add(f.id); else offeneDetails.delete(f.id); });
+    return d;
+  };
+
   const freigabeKarte = (f: Approval): HTMLElement => {
     const guard = f.kind === 'guard';
-    const [wer, ...befehl] = guard ? f.summary.split(': ') : [null];
+    const titel = guard ? 'Angehaltener Befehl' : 'Worker-Antrag';
+    const kopf = h('div', { class: 'entscheidung-kopf' }, punkt('will'), h('h3', null, titel),
+      h('span', { class: 'entscheidung-zeit' }, relativ(f.created_at)));
+    // Gesperrt (E1): der Kern schickt nur den neutralen Satz und lehnt jede Entscheidung ab.
+    if (f.summary === GESPERRTE_FREIGABE && !f.rolle) {
+      return h('section', { class: 'entscheidung karte', 'data-freigabe': f.id, 'aria-label': titel },
+        kopf, h('p', { class: 'entscheidung-text' }, GESPERRT_SATZ));
+    }
+    // Wer fragt, und wofuer (26.10.2026, task): ein Kern mit `rolle`/`absicht`
+    // liefert die Kurzansicht, der genaue Befehl steht im Detail. Ein aelterer
+    // Kern liefert nur `summary`; dann gilt die bisherige Zerlegung.
+    const rollenWort = f.rolle === 'orchestrator' ? 'Orchestrator' : f.rolle === 'worker' ? 'Worker' : 'Unbekannter';
+    const neu = Boolean(f.rolle && f.absicht);
+    const [wer, ...befehl] = neu ? [`${rollenWort} ${f.anzeigename ?? ''}`.trim()]
+      : guard ? f.summary.split(': ') : [null];
     const darfJa = stand.darfSchreiben() && stand.faehig(guard ? 'approvals.guard.approve' : 'approvals.request.decide');
     const darfNein = stand.darfSchreiben() && stand.faehig(guard ? 'approvals.guard.reject' : 'approvals.request.decide');
     const ja = h('button', { class: 'knopf primaer', type: 'button', disabled: !darfJa }, guard ? 'Erlauben' : 'Annehmen');
     const nein = h('button', { class: 'knopf getoent', type: 'button', disabled: !darfNein }, 'Ablehnen');
-    const karte = h('section', { class: 'entscheidung karte', 'data-freigabe': f.id, 'aria-label': guard ? 'Angehaltener Befehl' : 'Worker-Antrag' },
-      h('div', { class: 'entscheidung-kopf' }, punkt('will'), h('h3', null, guard ? 'Angehaltener Befehl' : 'Worker-Antrag'),
-        h('span', { class: 'entscheidung-zeit' }, relativ(f.created_at))),
-      guard
-        ? h('div', null, h('p', { class: 'entscheidung-wer' }, `${wer} möchte einmalig ausführen:`), h('pre', { class: 'befehl' }, befehl.join(': ') || f.summary))
-        : h('p', { class: 'entscheidung-text' }, f.summary),
+    const karte = h('section', { class: 'entscheidung karte', 'data-freigabe': f.id, 'aria-label': titel },
+      kopf,
+      neu
+        ? h('div', { class: 'freigabe-inhalt' }, h('p', { class: 'entscheidung-text freigabe-kurz' }, h('strong', null, wer), `: ${f.absicht}`),
+          guard ? freigabeDetail(f) : null)
+        : guard
+          ? h('div', null, h('p', { class: 'entscheidung-wer' }, `${wer} möchte einmalig ausführen:`), h('pre', { class: 'befehl' }, befehl.join(': ') || f.summary))
+          : h('p', { class: 'entscheidung-text' }, f.summary),
       h('div', { class: 'entscheidung-knoepfe' }, nein, ja),
       !darfJa && stand.darfSchreiben() ? h('p', { class: 'entscheidung-notiz' }, 'Annehmen per App ist noch nicht freigegeben. Ablehnen geht.') : null,
       h('p', { class: 'entscheidung-fehler', role: 'alert', hidden: true }),

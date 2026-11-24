@@ -12,7 +12,14 @@
 #           OWN window named `ssh-<name>`. TMUX_PANE is set explicitly, exactly like
 #           peer's `orch-launch` does, because a machine with several wb-* sessions
 #           cannot guess the target.
-#   LOCAL   `wb-remote-view <machine>` — EIN Spiegel-Pane je Zielmaschine, der die
+#           Seit 14.11.2026 laeuft dieser Start drueben in einem dauerhaften STARTER-PANE
+#           je gemessenem Absender-Pane hier (Abschnitt STARTER-PANE unten): nur so kommen
+#           Erstauftrag und Nachtrag dort gemessen als AUFTRAG an (wb-inbox, HERKUNFT).
+#           Folge: Der Aufruf kehrt erst zurueck, wenn der Start drueben fertig ist (Kontingent,
+#           Bereitschaft, Zustellung), hoechstens nach STARTER_FRIST = 900 s; dessen stderr
+#           erscheint erst am Ende, nicht laufend. Laeuft die Frist ab, meldet dieser Aufruf
+#           einen Fehler, der Start drueben laeuft aber weiter.
+#   LOCAL`wb-remote-view <machine>` — EIN Spiegel-Pane je Zielmaschine, der die
 #           ganze Worker-Session des Ziels zeigt (nicht mehr einer je Worker, siehe
 #           Kopf von wb-remote-view). Ein Spiegel je entfernter SESSION, markiert als
 #           `@wb_worker REMOTE-<machine>-<session>`, von wb-grid wie jeder Worker
@@ -37,6 +44,16 @@ NAME="${3:?name}"; MODEL="${4:?model}"; WORKDIR="${5:?workdir}"; shift 5
 TASK="$*"
 
 case "$MACHINE" in mac|peer) ;; *) echo "wb-ssh-worker: unbekannte Maschine '$MACHINE' (mac|peer)" >&2; exit 1 ;; esac
+
+# Heimpfad (14.11.2026, Probestart --on peer): Die Maschinen haben verschiedene Heime (/Users/<n> am Mac,
+# /home/<n> auf peer). Die aufrufende Shell hat `~` und `$HOME` im Arbeitsordner schon zum EIGENEN Heim
+# aufgeloest; drueben gab es den Ordner nicht ("cd: /Users/...: No such file or directory"). Ein Pfad unter
+# dem eigenen HOME geht deshalb als `~/<rest>` hinueber, und die Fernseite setzt ihr eigenes HOME ein.
+# Ein Pfad ausserhalb des Heims bleibt, wie er ist.
+case "$WORKDIR" in
+  "$HOME") WORKDIR="~" ;;
+  "$HOME"/*) WORKDIR="~/${WORKDIR#"$HOME"/}" ;;
+esac
 case "$KIND" in claude|pi) ;; *) echo "wb-ssh-worker: unbekannte Worker-Art '$KIND' (claude|pi)" >&2; exit 1 ;; esac
 
 # Eigentuemer-Markierung fuer den Spiegel (2026-08-27, siehe Kopf von wb-remote-view):
@@ -64,6 +81,41 @@ LOCALSESS="$(local_owner_session)"
 OWNER=""
 [ -n "$LOCALSESS" ] && OWNER="$SELF:$LOCALSESS"
 
+# STARTER-PANE (14.11.2026, task). Drueben zeigt wb-inbox eine Sendung nur dann
+# als AUFTRAG, wenn sie aus dem Pane kommt, den pi-worker als @wb_spawner des Workers eingetragen hat
+# (Abschnitt HERKUNFT in wb-inbox). Eine ssh-Shell hat keinen Pane-Ahnen (gemessen 14.11. auf peer:
+# bash <- sshd-session <- sshd), also blieb dort jeder Auftrag INFORMATION. Deshalb laeuft jeder
+# Start, Erstauftrag wie Nachtrag, drueben IN einem dauerhaften Starter-Pane: genau einer je
+# ABSENDER-PANE hier. Der Absender-Pane ist gemessen (`wb-inbox absender-pane`, Ahnenkette, festes
+# tmux), nie TMUX_PANE. Ohne gemessenen Pane gibt es keinen Starter: drueben laeuft alles wie
+# vorher in der ssh-Shell, und jede Sendung bleibt INFORMATION.
+# Der Schluessel nennt Maschine, tmux-Server (PID und Startzeit, Pane-Kennungen beginnen nach einem
+# Neustart wieder bei %0) und Pane. So landet der Nachtrag eines ANDEREN Panes nie im Starter, der
+# den Worker gestartet hat, und bleibt drueben INFORMATION.
+# GRENZE: Der Schluessel reist als Argument ueber ssh. Wer den ssh-Schluessel hat oder drueben unter
+# derselben Kennung laeuft, kann den Starter-Pane selbst ansprechen (fremden Schluessel nennen,
+# `tmux respawn-pane` auf ihn, @wb_ssh_starter an einen anderen Pane schreiben) und erhaelt dann
+# AUFTRAG an die Worker dieses Starters. Das ist dieselbe Klasse wie die GRENZE in wb-inbox: Code
+# unter derselben Kennung kann @wb_spawner umschreiben. Geschuetzt ist gegen behauptete Herkunft
+# im Text und gegen Sendungen aus anderen Panes oder von ausserhalb jedes Panes.
+INBOX_BIN=""
+for kandidat in "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/wb-inbox" "$HOME/.local/bin/wb-inbox"; do
+  [ -x "$kandidat" ] && { INBOX_BIN="$kandidat"; break; }
+done
+ABS_PANE=""
+[ -n "$INBOX_BIN" ] && ABS_PANE="$("$INBOX_BIN" absender-pane 2>/dev/null)" || ABS_PANE=""
+[[ "$ABS_PANE" =~ ^%[0-9]+$ ]] || ABS_PANE=""
+STARTER_KEY=""
+if [ -n "$ABS_PANE" ]; then
+  SERVER_ID="$(tmux display -p -t "$ABS_PANE" '#{pid}.#{start_time}' 2>/dev/null)"
+  [[ "$SERVER_ID" =~ ^[0-9]+\.[0-9]+$ ]] || SERVER_ID=""
+  [ -n "$SERVER_ID" ] && STARTER_KEY="${SELF:-unbekannt}:$SERVER_ID:$ABS_PANE"
+fi
+[ -n "$STARTER_KEY" ] || echo "wb-ssh-worker: Hinweis — kein Absender-Pane gemessen; der Worker auf $MACHINE bekommt diesen Auftrag nur als INFORMATION." >&2
+# Frist fuer einen Start im Starter-Pane (Sekunden): pi-worker wartet auf Kontingent, Bereitschaft
+# und Zustellung. Danach meldet die Fernseite einen Fehler; der Start selbst laeuft drueben weiter.
+STARTER_FRIST=900
+
 # `SSH-` is added once, never twice — callers may already carry the prefix.
 BASE="${NAME#SSH-}"
 SSHNAME="SSH-$BASE"
@@ -84,14 +136,18 @@ TASK_B64=$(printf '%s' "$TASK" | base64 | tr -d '\n')
 # The script runs on the TARGET with the target's own scripts — nothing of ours is
 # installed over there. It is kept in a variable because it may have to run twice
 # (see the delivery check below).
-REMOTE_SCRIPT=$(cat <<'REMOTE'
+# read statt $(cat <<...): bash parst ein 'case ... )' im Rumpf einer Befehlsersetzung falsch.
+IFS= read -r -d '' REMOTE_SCRIPT <<'REMOTE' || :
 set -u
 # Eine nicht-interaktive ssh-Shell traegt nur den Systempfad (gemessen 2026-09-19 auf peer:
 # /usr/local/bin:/usr/bin:/bin). Die Harness-Programme liegen aber unter ~/.local/bin bzw. in
 # den mise-Shims; ohne sie meldet die Registry "Binary 'codex' ... nicht installiert".
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/opt/homebrew/bin:$PATH"
 SESS="$1"; WIN="$2"; NAME="$3"; MODEL="$4"; WORKDIR="$5"; KIND="$6"; TASK_B64="$7"; OWNER="${8:-}"
-TASK=$(printf '%s' "$TASK_B64" | base64 -d 2>/dev/null || printf '%s' "$TASK_B64" | base64 -D)
+STARTER_KEY="${9:-}"; FRIST="${10:-900}"
+# `~` im Arbeitsordner meint das Heim DIESER Maschine (siehe Heimpfad im Kopf des aufrufenden Teils).
+case "$WORKDIR" in "~") WORKDIR="$HOME" ;; "~/"*) WORKDIR="$HOME/${WORKDIR#"~/"}" ;; esac
+case "$FRIST" in ''|*[!0-9]*) FRIST=900 ;; esac
 
 if [ -z "$SESS" ]; then
   SESS=$(tmux list-sessions -F '#{session_attached} #{session_name}' 2>/dev/null | awk '$1>=1 && $2 ~ /^wb-/{print $2; exit}')
@@ -101,11 +157,28 @@ if [ -z "$SESS" ]; then
   fi
   [ -z "$SESS" ] && { echo "FEHLER: Ziel-Workbench auf der Zielmaschine nicht eindeutig (keine/mehrere wb-* Sessions)." >&2; exit 1; }
 fi
-tmux has-session -t "=$SESS" 2>/dev/null || tmux new-session -d -s "$SESS" -n orch
+# Fenster 'orch' mit einer NICHT-Login-Shell ohne rc-Dateien (task, 19.10.2026). Ohne
+# Kommando startet tmux eine Login-Shell, die die rc-Dateien liest und als Waise liegen bleiben
+# kann. bash statt eines festen Platzhalters: orch-launch raeumt Basis-Shells mit
+# pane_current_command 'bash' nach dem ersten Spawn ab; ein Platzhalter bliebe dort stehen.
+tmux has-session -t "=$SESS" 2>/dev/null || tmux new-session -d -s "$SESS" -n orch 'exec /bin/bash --noprofile --norc'
 # @wb_owner (siehe Kopf von wb-remote-view): bei JEDEM Aufruf neu gesetzt, nicht nur
 # beim ersten -- ueberlebt so einen Neustart dieser Session (der naechste Worker-Spawn
 # stempelt sie erneut) und verfaellt sauber, wenn niemand mehr hier hineinspawnt.
 [ -n "$OWNER" ] && tmux set-option -t "=$SESS:" @wb_owner "$OWNER" 2>/dev/null
+
+# Der eigentliche Start steht in einer eigenen Datei. Er laeuft im Starter-Pane (STARTER-PANE im
+# Kopf von wb-ssh-worker) oder, ohne Schluessel, wie vor dem 14.11.2026 in dieser ssh-Shell.
+BASIS="$HOME/.local/state/wb-ssh-starter"
+mkdir -p "$BASIS" && chmod 700 "$BASIS" || { echo "FEHLER: $BASIS nicht anlegbar." >&2; exit 1; }
+AUFTRAG_DIR=$(mktemp -d "$BASIS/auftrag.XXXXXX") || { echo "FEHLER: Auftragsordner unter $BASIS nicht anlegbar." >&2; exit 1; }
+case "$AUFTRAG_DIR" in *[!A-Za-z0-9._/-]*) echo "FEHLER: Auftragsordner '$AUFTRAG_DIR' hat Zeichen ausserhalb [A-Za-z0-9._/-]." >&2; rm -rf "$AUFTRAG_DIR"; exit 1 ;; esac
+printf '%s\0' "$SESS" "$WIN" "$NAME" "$MODEL" "$WORKDIR" "$KIND" "$TASK_B64" > "$AUFTRAG_DIR/args"
+cat > "$AUFTRAG_DIR/job.sh" <<'JOB'
+set -u
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/opt/homebrew/bin:$PATH"
+SESS="$1"; WIN="$2"; NAME="$3"; MODEL="$4"; WORKDIR="$5"; KIND="$6"; TASK_B64="$7"
+TASK=$(printf '%s' "$TASK_B64" | base64 -d 2>/dev/null || printf '%s' "$TASK_B64" | base64 -D)
 
 # Own window per ssh worker — only that makes a mirror of exactly ONE worker possible.
 wid=$(tmux list-windows -t "=$SESS" -F '#{window_id} #{window_name}' | awk -v n="$WIN" '$2==n{print $1; exit}')
@@ -143,12 +216,101 @@ if [ -n "$wp" ]; then
   echo "WBPANE=$wpane"
 fi
 exit $rc
+JOB
+
+if [ -z "$STARTER_KEY" ]; then
+  # Kein gemessener Absender-Pane: wie bisher in dieser ssh-Shell. Jede Sendung an den Worker
+  # bleibt dann INFORMATION.
+  a=(); while IFS= read -r -d '' x; do a+=("$x"); done < "$AUFTRAG_DIR/args"
+  bash "$AUFTRAG_DIR/job.sh" "${a[@]}"; rc=$?
+  rm -rf "$AUFTRAG_DIR"
+  exit $rc
+fi
+case "$STARTER_KEY" in *[!A-Za-z0-9:%._-]*) echo "FEHLER: Starter-Schluessel '$STARTER_KEY' hat Zeichen ausserhalb [A-Za-z0-9:%._-]." >&2; rm -rf "$AUFTRAG_DIR"; exit 1 ;; esac
+
+# Der Starter-Pane dieses Absenders in dieser Session: gefunden ueber @wb_ssh_starter, sonst neu
+# in einem eigenen Fenster. remain-on-exit haelt die Kennung, auch wenn sein Prozess endet.
+# ROLLE (Nachtrag 1, 14.11.2026): @wb_role ssh-starter, NICHT orchestrator und NICHT worker.
+# context-guard waehlt den ersten lebenden orchestrator-Pane einer Session als Anker und verlaesst
+# dann den Modus workers-only (context-guard, --ensure); auf peer hat wb-orch keinen solchen Pane.
+# Leer darf die Rolle auch nicht sein: orch-launch raeumt Panes ohne Rolle mit 'bash' ab, und
+# waehrend eines Starts laeuft hier bash.
+sp=$(tmux list-panes -s -t "=$SESS" -F '#{pane_id}|#{@wb_ssh_starter}' 2>/dev/null | awk -F'|' -v k="$STARTER_KEY" '$2==k{print $1; exit}')
+if [ -z "$sp" ]; then
+  sp=$(tmux new-window -d -t "=$SESS:" -n ssh-starter -P -F '#{pane_id}' 'exec sleep 2147483647') \
+    || { echo "FEHLER: Starter-Pane in '$SESS' nicht anlegbar." >&2; rm -rf "$AUFTRAG_DIR"; exit 1; }
+  tmux set-option -w -t "$sp" automatic-rename off
+  tmux set-option -p -t "$sp" @wb_ssh_starter "$STARTER_KEY"
+fi
+tmux set-option -p -t "$sp" remain-on-exit on
+tmux set-option -p -t "$sp" @wb_role ssh-starter
+
+# Ein Start zur Zeit je Starter-Pane: respawn-pane -k beendete sonst einen laufenden Start.
+# Die Sperre haelt erst diese Shell, dann der Start im Pane. Verwaist ist sie nur, wenn beide
+# Prozesse weg sind und sie aelter als eine Minute ist.
+SERVER=$(tmux display -p -t "$sp" '#{pid}')
+SPERRE="$BASIS/sperre-$SERVER-${sp#%}"
+bis=$((SECONDS + FRIST))
+until mkdir "$SPERRE" 2>/dev/null; do
+  lebt=0
+  for p in $(cat "$SPERRE/halter" "$SPERRE/start" 2>/dev/null); do
+    case "$p" in ''|*[!0-9]*) continue ;; esac
+    kill -0 "$p" 2>/dev/null && lebt=1
+  done
+  if [ "$lebt" = 0 ] && [ -n "$(find "$SPERRE" -maxdepth 0 -mmin +1 2>/dev/null)" ]; then
+    rm -rf "$SPERRE"; continue
+  fi
+  [ "$SECONDS" -lt "$bis" ] || { echo "FEHLER: Starter-Pane $sp ist seit ${FRIST}s belegt (Sperre $SPERRE)." >&2; rm -rf "$AUFTRAG_DIR"; exit 1; }
+  sleep 0.5
+done
+echo $$ > "$SPERRE/halter"
+printf '%s' "$SPERRE" > "$AUFTRAG_DIR/sperre"
+
+# KEIN STEUERNDES TERMINAL (Nachtrag 1): os.setsid() loest den Start vom Pseudoterminal des Panes,
+# ohne zu forken (bash ist hier nicht Gruppenfuehrer), die Ahnenkette bis zur pane_pid bleibt also.
+# Gemessen 14.11. am Mac auf einem eigenen tmux-Server: tty '??', ppid = pane_pid, wb-mensch
+# 'agent'. Mit Terminal zaehlte ein Pane des Werkbank-Servers fuer wb-mensch als Mensch (M1), und
+# die Herkunft fiele auf INFORMATION.
+cat > "$AUFTRAG_DIR/run" <<'RUN'
+d="${0%/*}"
+sperre="$(cat "$d/sperre")"
+echo $$ > "$sperre/start"
+a=(); while IFS= read -r -d '' x; do a+=("$x"); done < "$d/args"
+/usr/bin/python3 -I -S -c 'import os, sys
+os.setsid()
+os.execv("/bin/bash", ["bash"] + sys.argv[1:])' "$d/job.sh" "${a[@]}" < /dev/null > "$d/out" 2> "$d/err"; rc=$?
+printf '%s\n' "$rc" > "$d/rc.tmp" && mv "$d/rc.tmp" "$d/rc"
+rm -rf "$sperre"
+exec sleep 2147483647
+RUN
+if ! tmux respawn-pane -k -t "$sp" "exec /bin/bash --noprofile --norc '$AUFTRAG_DIR/run'"; then
+  echo "FEHLER: respawn-pane im Starter-Pane $sp scheiterte." >&2
+  rm -rf "$SPERRE" "$AUFTRAG_DIR"; exit 1
+fi
+n=0
+while [ ! -e "$AUFTRAG_DIR/rc" ]; do
+  if [ "$SECONDS" -ge "$bis" ]; then
+    echo "FEHLER: Start im Starter-Pane $sp nach ${FRIST}s nicht fertig; er laeuft dort weiter (Ordner $AUFTRAG_DIR)." >&2
+    exit 1
+  fi
+  n=$((n+1))
+  if [ $((n % 25)) = 0 ] && ! tmux display -p -t "$sp" '#{pane_id}' >/dev/null 2>&1; then
+    echo "FEHLER: Starter-Pane $sp ist waehrend des Starts verschwunden." >&2
+    rm -rf "$SPERRE"; exit 1
+  fi
+  sleep 0.2
+done
+cat "$AUFTRAG_DIR/err" >&2
+cat "$AUFTRAG_DIR/out"
+rc=$(cat "$AUFTRAG_DIR/rc")
+rm -rf "$AUFTRAG_DIR"
+case "$rc" in ''|*[!0-9]*) rc=1 ;; esac
+exit "$rc"
 REMOTE
-)
 
 remote_spawn() {
   printf '%s\n' "$REMOTE_SCRIPT" | ssh -o BatchMode=yes -o ConnectTimeout=10 "$MACHINE" \
-    "bash -s -- $(q "$RSESS") $(q "$WIN") $(q "$SSHNAME") $(q "$MODEL") $(q "$WORKDIR") $(q "$KIND") $(q "$TASK_B64") $(q "$OWNER")"
+    "bash -s -- $(q "$RSESS") $(q "$WIN") $(q "$SSHNAME") $(q "$MODEL") $(q "$WORKDIR") $(q "$KIND") $(q "$TASK_B64") $(q "$OWNER") $(q "$STARTER_KEY") $(q "$STARTER_FRIST")"
 }
 
 REMOTE_OUT=$(remote_spawn) \

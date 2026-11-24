@@ -11,7 +11,7 @@ codex, opencode, ...), nicht nur fuer Claude.
   wb-schlaf [-L <socket>] hook <pane>           (tmux after-select-pane: wecken, falls
                                                  er schlaeft; dann gedrosselte Runde)
 
-ANLASS (der Nutzer, 25.09.2026): "ein Grund warum so viel Speicher verbraucht wird sind
+ANLASS (decision 2026-09-25): "ein Grund warum so viel Speicher verbraucht wird sind
 die vielen Sitzungen ... Sessions, die laenger untaetig sind, aus dem Speicher laden
 und erst, wenn man in der Werkbank wieder drauf drueckt oder Anfragen an die Session
 gehen, wieder in den Speicher laden" -- und ausdruecklich: "nicht nur Claude, auch
@@ -342,6 +342,28 @@ def bereit(pane, harness, jetzt_start, frist):
     return False
 
 
+def mit_konto(pane, befehl):
+    """Das Konto gehoert zum Pane (decision 2026-11-16): ein vor diesem Zug gespeicherter Weckbefehl kam aus @wb_cmd und
+    traegt kein Konto; der Pane startete dann ueber die Mac-Anmeldung. Ist @wb_konto gesetzt und fehlt es im Befehl,
+    rechnet wb-revive --trocken ihn mit der Kennung aus dem Befehl neu. Gelingt das nicht, bleibt der alte Befehl,
+    und es steht laut im Verlauf."""
+    konto = opt(pane, "@wb_konto")
+    if konto not in ("gross", "klein") or "WB_CLAUDE_KONTO=%s" % konto in befehl:
+        return befehl
+    m = re.search(r"--resume(?:=|\s+)['\"]?([A-Za-z0-9._-]+)", befehl)
+    if not m:
+        notiz("WARNUNG %s: @wb_konto=%s, aber der Weckbefehl nennt keine Kennung -- geweckt OHNE Konto" % (pane, konto))
+        return befehl
+    rc, w = aufweckbefehl(pane, {"sessionId": m.group(1)})
+    neu, warum = w.get("befehl", ""), w.get("grund", "")
+    if rc != 0 or not neu or "WB_CLAUDE_KONTO=" not in neu or "frischer Start" in warum or "OHNE Unterhaltung" in warum:
+        notiz("WARNUNG %s: Weckbefehl mit Konto %s nicht berechnet (%s) -- geweckt OHNE Konto"
+              % (pane, konto, warum or "wb-revive rc=%d" % rc))
+        return befehl
+    notiz("Weckbefehl %s neu berechnet: %s" % (pane, warum))
+    return neu
+
+
 def wecken(pane, warten=0):
     if not opt(pane, "@wb_schlaeft"):
         return True, "schlaeft nicht"
@@ -356,6 +378,7 @@ def wecken(pane, warten=0):
         harness = opt(pane, "@wb_schlaf_harness")
         if not befehl:
             return False, "kein gespeicherter Befehl"
+        befehl = mit_konto(pane, befehl)
         start = time.time()
         r = subprocess.run(["tmux"] + (["-L", SOCKET] if SOCKET else []) +
                            ["respawn-pane", "-k", "-c", cwd, "-t", pane, befehl],
