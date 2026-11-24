@@ -45,5 +45,12 @@ start = { path = "../start" }
 traeger = { path = "../traeger" }
 zustandskern = { path = "../zustandskern" }
 
+# nix 0.28 (macOS only, default features off, feature `socket` only; the version in Cargo.lock, no second version): the check of the peer of the
+# report of `lauf` (contract `dienst`, section 18 point 3). `getsockopt` with `LocalPeerCred` (uid) and `LocalPeerPid` (pid); `rustix` 1.1.6
+# gives no peer credentials under macOS without `unsafe`, and `unsafe` is forbidden here. The package is in the graph already (portable-pty,
+# rangkern); `socket` adds memoffset, which is in the graph already too. Linux keeps `SO_PEERCRED` through `rustix`.
+[target.'cfg(target_os = "macos")'.dependencies]
+nix = { version = "0.28", default-features = false, features = ["socket"] }
+
 [lints]
 workspace = true

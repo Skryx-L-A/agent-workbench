@@ -726,6 +726,17 @@ class ArbeitsordnerOrte(unittest.TestCase):
     def probelauf_konfig(self):
         return konfig.lade(os.path.join(HIER, "konfig.probelauf.json"), HIER, self.arbeit, "wb")
 
+    def test_ort_hinter_einem_verweis_gilt_wie_der_ort(self):
+        """Ein Arbeitsordner, der ueber einen Verweis in einem Systemordner landet, ergibt denselben Grund wie der Systemordner selbst
+        (unter macOS sind `/etc` und `/tmp` Verweise auf `/private/...`; unter Linux gilt dasselbe fuer jeden Verweis)."""
+        basis = tempfile.mkdtemp(prefix="orte-")
+        self.addCleanup(shutil.rmtree, basis, True)
+        verweis = os.path.join(basis, "nach-etc")
+        os.symlink("/etc", verweis)
+        k = self.probelauf_konfig()
+        k["start"]["cloud"]["arbeitsordner"] = os.path.join(verweis, "o1")
+        self.assertEqual(probelauf.arbeitsordner_befund(k, heim=self.heim), "system")
+
     def test_probelauf_konfig_legt_die_arbeitsordner_unter_arbeit(self):
         k = self.probelauf_konfig()
         for art in ("cloud", "lokal"):
@@ -773,6 +784,44 @@ class ArbeitsordnerOrte(unittest.TestCase):
             self.assertEqual(probelauf.arbeit_basis(os.path.join(HIER, "konfig.probelauf.json")), self.heim)
             self.assertIsNone(probelauf.arbeit_basis(os.path.join(HIER, "konfig.attrappe.json")), "Tests legen nichts im Heim an")
             self.assertIsNone(probelauf.arbeit_basis(os.path.join(self.heim, "gibt-es-nicht.json")))
+
+
+class NurCloudExit(unittest.TestCase):
+    """Exitcodes von `probelauf.lauf` mit --nur-cloud ohne Attrappen: Voraussetzung und Meldungen beim Aufraeumen (Befund B4)."""
+
+    def setUp(self):
+        self.arbeit = tempfile.mkdtemp(prefix="nurcloud-exit-")
+        self.addCleanup(shutil.rmtree, self.arbeit, True)
+        self.k = konfig.lade(os.path.join(HIER, "konfig.attrappe.json"), HIER, self.arbeit)
+        self.k["umfang"] = "nur_cloud"
+
+    @staticmethod
+    def gruen():
+        return [{"schritt": s, "ergebnis": "gruen", "dauer_ms": 1, "teile": [], "offen": [], "fehler": None, "code_fest": None,
+                 "code_rot": None, "code_offen": None, "messwerte": {}} for s in probelauf.SCHRITTE]
+
+    def lauf(self, voraus=None, meldungen=()):
+        info = {"starts": 1, "browser": "pruefclient", "cloud_eingaben": 2}
+        vers = {n: "1.0" for n in ("paket", "laeufer", "copilot_cli", "ubuntu", "kernel")}
+        with mock.patch.object(probelauf, "versionen", return_value=vers), \
+                mock.patch.object(probelauf, "voraussetzungen", return_value=voraus), \
+                mock.patch.object(ablauf, "fuehre_aus", return_value=(self.gruen(), list(meldungen), info)):
+            return probelauf.lauf(self.k, self.arbeit, os.path.join(self.arbeit, "e.json"), HIER)
+
+    def test_ohne_meldung_exit_4(self):
+        self.assertEqual(self.lauf()[0], probelauf.EXIT_TEILUMFANG)
+
+    def test_fehlende_voraussetzung_bleibt_exit_3(self):
+        code, d, _, _ = self.lauf(voraus="bruecke.sitzungen_laufen")
+        self.assertEqual(code, 3)
+        self.assertEqual((d["voraussetzung"], d["bestanden"], d["kennzeichnung"]), ("bruecke.sitzungen_laufen", False, "Teilumfang"))
+
+    def test_meldung_beim_aufraeumen_ist_exit_1_wie_im_vollen_lauf(self):
+        meld = ["Dienst werkbank-kern nicht gestoppt"]
+        self.k["umfang"] = "voll"
+        self.assertEqual(self.lauf(meldungen=meld)[0], 1, "voll: probelauf.py, Exit 1 bei einer Meldung")
+        self.k["umfang"] = "nur_cloud"
+        self.assertEqual(self.lauf(meldungen=meld)[0], 1, "Teilumfang darf eine Meldung nicht hinter Exit 4 verbergen")
 
 
 class MarkerDatei(unittest.TestCase):
@@ -1067,6 +1116,51 @@ class MarkerDatei(unittest.TestCase):
             self.fuehre(self.k(), im_lauf=lambda: os.kill(os.getpid(), signal.SIGINT))
         self.assertFalse(os.path.exists(os.path.dirname(self.pfad)))
         self.assertEqual(self.s.aufrufe_mit("stop"), [BRUECKE, KERN])
+
+    def test_sighup_mitten_im_lauf(self):
+        """Befund B8: ein ssh-Abbruch (SIGHUP) raeumt auf wie SIGTERM: Markerdatei weg, Dienste und Kern wie vorher."""
+        self.stub(laeuft=[KERN], dateien_bei=BRUECKE, dateien=True)
+
+        class NichtAbgefangen(Exception):
+            pass
+
+        def ersatz(_n, _f):  # haelt der Laeufer SIGHUP nicht, endet nicht der Testprozess, sondern der Test wird rot
+            raise NichtAbgefangen()
+        alt = signal.signal(signal.SIGHUP, ersatz)
+        try:
+            with self.assertRaises(SystemExit) as e:
+                self.fuehre(self.k(), im_lauf=lambda: os.kill(os.getpid(), signal.SIGHUP))
+            self.assertEqual(e.exception.code, 128 + signal.SIGHUP)
+            self.assertFalse(os.path.exists(os.path.dirname(self.pfad)), "Datei und Ordner weg")
+            self.assertEqual(self.s.aufrufe_mit("restart"), [KERN, KERN], "der Kern lief vorher: neu gestartet, jetzt ohne Datei")
+            self.assertEqual(self.s.aufrufe_mit("stop"), [BRUECKE], "die Bruecke lief vorher nicht: gestoppt")
+            self.assertIs(signal.getsignal(signal.SIGHUP), ersatz, "der alte Handler ist zurueck")
+        finally:
+            signal.signal(signal.SIGHUP, alt)
+
+    def test_sighup_endet_wie_sigterm(self):
+        alt = signal.getsignal(signal.SIGHUP)
+        s = probelauf._SignaleAlsEnde().__enter__()
+        try:
+            self.assertIs(signal.getsignal(signal.SIGHUP), probelauf._ende_durch_signal, "ssh-Abbruch: Aufraeumen ueber SystemExit")
+        finally:
+            s.__exit__()
+        self.assertIs(signal.getsignal(signal.SIGHUP), alt)
+
+    def test_erstes_signal_ignoriert_weitere_sofort(self):
+        """Der Wrapper reicht SIGTERM und SIGHUP weiter, ein ssh-Abbruch schickt SIGHUP zusaetzlich ueber die Gruppe: Ein zweites
+        Signal vor `ignorieren` darf kein zweites SystemExit werfen."""
+        alt = {n: signal.getsignal(n) for n in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)}
+        s = probelauf._SignaleAlsEnde().__enter__()
+        try:
+            with self.assertRaises(SystemExit) as e:
+                probelauf._ende_durch_signal(signal.SIGHUP, None)
+            self.assertEqual(e.exception.code, 129)
+            for n in alt:
+                self.assertEqual(signal.getsignal(n), signal.SIG_IGN, n)
+        finally:
+            s.__exit__()
+        self.assertEqual({n: signal.getsignal(n) for n in alt}, alt, "die alten Handler sind zurueck")
 
     def test_start_scheitert_datei_trotzdem_weg(self):
         self.stub(start_scheitert=[KERN], dateien=True)

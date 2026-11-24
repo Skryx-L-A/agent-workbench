@@ -105,8 +105,10 @@ def fuehre_aus(k, arbeit, fehler=(), nur=(), browser=None):
     seite_b = None
     art_browser = "pruefclient"
     try:
+        t_bruecke = time.monotonic()
         try:
             b = z.starten()
+            messen.teilzeit_notiere("s1.bruecke_bereit", time.monotonic() - t_bruecke)  # Aufbau des Ziels bis zur bereiten Bruecke
         except Exception as e:
             meldungen = z.beenden()
             messen.diagnose_notiere("ablauf.aufbau", "%s: %s" % (type(e).__name__, e))

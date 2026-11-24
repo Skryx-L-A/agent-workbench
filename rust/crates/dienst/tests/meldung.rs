@@ -1,11 +1,11 @@
-//! Tests of the report of `lauf` (contract `dienst`, section 18; Linux only): the program `wb-dienst` makes the socket `meldung.sock` in the
+//! Tests of the report of `lauf` (contract `dienst`, section 18; Linux and macOS): the program `wb-dienst` makes the socket `meldung.sock` in the
 //! folder of every session of `Starten`, starts `lauf` with `--meldung <pfad>` before the start file, accepts one connection of the child
 //! and reads one line `<code> <grund>\n` from it.
 //!
 //! The program of a session is a Python script (`lauf.programm`) that plays `lauf`. What it does is named by files the test writes
 //! into the throw-away folder before `Starten`: `modus`, `hex` (the bytes to send), `exit` (its own exit code).
 
-#![cfg(target_os = "linux")]
+#![cfg(any(target_os = "linux", target_os = "macos"))]
 
 mod gemeinsam;
 
@@ -367,38 +367,35 @@ fn ein_fremder_prozess_der_sich_zuerst_verbindet_wird_geschlossen_und_ein_zweite
     assert_eq!(res["code"], json!(69), "{res}");
     assert_eq!(res["grund"], json!("lauf.echt"), "{res}");
 
-    // a connection after the one of the child: it holds the connection, a second one finds the listener closed
+    // a connection after the one of the child: it holds the connection, and the service closes its listener (R-B3). Proof without a race and
+    // without filling the backlog: one connection of this test. Made before the close, it waits in the backlog and ends when the listener
+    // closes (`Ok(0)` or a reset); made after it, `connect` is refused. A listener that stays open leaves the connection waiting until the
+    // deadline: red. After that a fresh connection must be refused as well (one waiting connection does not fill the backlog of 4).
     spielen(&ort, "halten", b"69 lauf.erste\n", 1);
     let id = starten(&mut ans);
     warte_datei(&ort, "verbunden");
     let sock = ort.ordner().join(&id).join("meldung.sock");
-    let ende = Instant::now() + Duration::from_secs(10);
-    loop {
-        match UnixStream::connect(&sock) {
-            Err(_) => break,
-            Ok(mut strom) => {
-                strom
-                    .set_read_timeout(Some(Duration::from_millis(200)))
-                    .expect("timeout");
-                let _ = strom.write_all(b"99 zweite.zeile\n");
-                let mut puf = [0_u8; 8];
-                match strom.read(&mut puf) {
-                    Ok(0) => break,
-                    Err(res)
-                        if !matches!(res.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut) =>
-                    {
-                        break;
-                    }
-                    _ => {}
-                }
+    let geschlossen =
+        |e: &std::io::Error| matches!(e.kind(), ErrorKind::ConnectionRefused | ErrorKind::NotFound);
+    match UnixStream::connect(&sock) {
+        Err(e) => assert!(geschlossen(&e), "connect: {e:?}"),
+        Ok(mut strom) => {
+            strom
+                .set_read_timeout(Some(Duration::from_secs(10)))
+                .expect("timeout");
+            let _ = strom.write_all(b"99 zweite.zeile\n");
+            let mut puf = [0_u8; 8];
+            match strom.read(&mut puf) {
+                Ok(0) => {}
+                Err(e) if !matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut) => {}
+                r => panic!(
+                    "a second connection stayed open after the one of the child: the listener is open ({r:?})"
+                ),
             }
         }
-        assert!(
-            Instant::now() < ende,
-            "a second connection stayed open after the one of the child"
-        );
-        std::thread::sleep(Duration::from_millis(20));
     }
+    let e = UnixStream::connect(&sock).expect_err("the listener is closed: no second connection");
+    assert!(geschlossen(&e), "connect: {e:?}");
     anlegen(&ort, "weiter");
     let res = warte_beendet(&mut ans, &id);
     assert_eq!(res["code"], json!(69), "{res}");

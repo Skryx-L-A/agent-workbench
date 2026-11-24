@@ -292,6 +292,17 @@ WERKBANK_ORTE = ("/var/lib/werkbank", "/etc/werkbank")
 ANMELDE_ORTE = (".copilot",)  # Anmeldespeicher der Harness im Heim (Teil von ANMELDE_ORDNER des Einschlusses)
 
 
+def _mit_aufgeloesten(orte):
+    """Die Orte und ihre aufgeloesten Formen (`realpath`). Der Arbeitsordner wird aufgeloest verglichen; ein Ort, der ueber einen Verweis
+    erreicht wird (unter macOS `/etc` und `/tmp` auf `/private/...`), muss darum auch aufgeloest in der Liste stehen."""
+    erg = []
+    for o in orte:
+        for f in (o, os.path.realpath(o)):
+            if f not in erg:
+                erg.append(f)
+    return tuple(erg)
+
+
 def _innerhalb(pfad, ordner):
     """Wahr, wenn `pfad` gleich `ordner` ist oder darunter liegt (ganze Pfadteile)."""
     pfad, ordner = os.path.normpath(pfad), os.path.normpath(ordner)
@@ -314,13 +325,14 @@ def arbeitsordner_befund(k, heim=None):
     """None, wenn jeder Arbeitsordner der Sitzungen erlaubt ist, sonst ein fester Grund ohne Pfad: `geheimnisteil`, `heim`,
     `system`, `geschuetzt`."""
     heim = os.path.realpath(heim or os.path.expanduser("~"))
-    orte = _geschuetzte_orte(k, heim)
+    orte = _mit_aufgeloesten(_geschuetzte_orte(k, heim))
+    verboten, unter_verboten = _mit_aufgeloesten(SYSTEM_VERBOTEN), _mit_aufgeloesten(SYSTEM_UNTER_VERBOTEN)
     for p in ablauf.arbeitsordner(k):
         if any(t in GEHEIMNIS_TEILE for t in p.split(os.sep)):
             return "geheimnisteil"
         if _innerhalb(heim, p):
             return "heim"  # das Heim selbst oder ein Ordner darueber
-        if any(_innerhalb(s, p) for s in SYSTEM_VERBOTEN) or any(_innerhalb(p, s) for s in SYSTEM_UNTER_VERBOTEN):
+        if any(_innerhalb(s, p) for s in verboten) or any(_innerhalb(p, s) for s in unter_verboten):
             return "system"
         if any(_innerhalb(p, o) or _innerhalb(o, p) for o in orte):
             return "geschuetzt"
@@ -477,9 +489,10 @@ def konsole_schritte(d, ergebnisse):
 
 
 def ende_zeile(schritt, mw):
-    """Eine Zeile `  <schritt> ende: zustand <z>, code <c>, lauf <code1,code2|->, texte <name=n,...|->` fuer einen Schritt, in dem eine Sitzung ohne
-    Eingabefeld endete (Messwerte `ende_*`, Diagnose bei Sitzungsende); sonst None. Nur Codes und Zahlen: Zustand und Code der
-    Sitzung, die `lauf.*`-Codes, die Zaehler fester Texte ungleich 0 (Leerzeichen der Namen als `_`). Nie Inhalt des Bildes, nie ein Pfad.
+    """Eine Zeile `  <schritt> ende: zustand <z>, code <c>, grund <g|->, lauf <code1,code2|->, texte <name=n,...|->` fuer einen Schritt, in dem
+    eine Sitzung ohne Eingabefeld endete (Messwerte `ende_*`, Diagnose bei Sitzungsende); sonst None. Nur Codes und Zahlen:
+    Zustand, Code und Grund der Sitzung (`grund` aus der Sitzungsliste als fester Code, sonst `abweichend`), die `lauf.*`-Codes,
+    die Zaehler fester Texte ungleich 0 (Leerzeichen der Namen als `_`). Nie Inhalt des Bildes, nie ein Pfad.
     Die Muster von erwartung-m1.py (Schritt, offen, teile, rc) treffen sie nicht."""
     if "ende_texte" not in mw:
         return None
@@ -489,7 +502,9 @@ def ende_zeile(schritt, mw):
     texte = ["%s=%d" % (n.replace(" ", "_"), v) for n, v in (mw.get("ende_texte") or {}).items() if isinstance(v, int) and not isinstance(v, bool) and v > 0]
     z = zustand if zustand in ("laeuft", "beendet") else "-"
     c = str(code) if isinstance(code, int) and not isinstance(code, bool) else "-"
-    return "  %s ende: zustand %s, code %s, lauf %s, texte %s" % (schritt, z, c, ",".join(codes) or "-", ",".join(texte) or "-")
+    grund = mw.get("ende_grund")
+    g = "-" if grund is None else messen.fester_code(grund, "abweichend")
+    return "  %s ende: zustand %s, code %s, grund %s, lauf %s, texte %s" % (schritt, z, c, g, ",".join(codes) or "-", ",".join(texte) or "-")
 
 
 def fehlercode(r):
@@ -849,16 +864,26 @@ class ProbeDienste:
         return meld
 
 
+ENDE_SIGNALE = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)  # SIGHUP: ssh-Abbruch in der VM (Befund B8)
+
+
 def _ende_durch_signal(n, _frame):
+    # Weitere Signale sofort ignorieren: `werkbank-probelauf` reicht SIGTERM und SIGHUP weiter, und bei einem ssh-Abbruch kommt
+    # SIGHUP zusaetzlich ueber die Gruppe. Ein zweites SystemExit vor `ignorieren` braeche sonst das Aufraeumen ab.
+    for s in ENDE_SIGNALE:
+        try:
+            signal.signal(s, signal.SIG_IGN)
+        except ValueError:
+            pass
     raise SystemExit(128 + n)
 
 
 class _SignaleAlsEnde:
-    """SIGINT und SIGTERM beenden den Lauf ueber SystemExit, damit `finally` die Markerdatei loescht und den Zustand herstellt."""
+    """SIGINT, SIGTERM und SIGHUP beenden den Lauf ueber SystemExit, damit `finally` die Markerdatei loescht und den Zustand herstellt."""
 
     def __enter__(self):
         self.alt = {}
-        for s in (signal.SIGINT, signal.SIGTERM):
+        for s in ENDE_SIGNALE:
             try:
                 self.alt[s] = signal.signal(s, _ende_durch_signal)
             except ValueError:  # nicht im Hauptfaden
@@ -866,7 +891,7 @@ class _SignaleAlsEnde:
         return self
 
     def ignorieren(self):
-        """Vor dem Aufraeumen: weitere SIGINT und SIGTERM werden ignoriert, sonst bricht der Handler das Aufraeumen ab (Markerdatei oder
+        """Vor dem Aufraeumen: weitere SIGINT, SIGTERM und SIGHUP werden ignoriert, sonst bricht der Handler das Aufraeumen ab (Markerdatei oder
         gestoppte Dienste blieben zurueck). Der Exitcode des ersten Signals bleibt; `__exit__` stellt die alten Handler wieder her."""
         for s in self.alt:
             signal.signal(s, signal.SIG_IGN)
@@ -925,8 +950,10 @@ def lauf(k, arbeit, ergebnis_pfad, hier, fehler=(), nur=(), browser=None):
     if voraus is not None:
         return 3, d, ergebnisse, meldungen + hinweise
     if k.get("umfang") == "nur_cloud":
-        # nie 0: ein Teillauf ist kein Probelauf. Ein roter Schritt bleibt sichtbar (Exit 1 wie im vollen Lauf), sonst Exit 4.
-        return (1 if any(r["ergebnis"] == "rot" for r in ergebnisse) else EXIT_TEILUMFANG), d, ergebnisse, meldungen
+        # nie 0: ein Teillauf ist kein Probelauf. Ein roter Schritt oder eine Meldung beim Aufraeumen bleibt sichtbar (Exit 1 wie im
+        # vollen Lauf, Befund B4), sonst Exit 4.
+        rot = any(r["ergebnis"] == "rot" for r in ergebnisse) or meldungen
+        return (1 if rot else EXIT_TEILUMFANG), d, ergebnisse, meldungen
     return (0 if d["bestanden"] and not meldungen else 1), d, ergebnisse, meldungen
 
 

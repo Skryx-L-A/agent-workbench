@@ -16,8 +16,6 @@ import shutil
 import subprocess
 import time
 
-from .bruecke import Bruecke
-
 from . import konfig, lauf, messen
 
 
@@ -228,11 +226,36 @@ def _fest_codes(xs):
 
 
 # --- S1 --------------------------------------------------------------------------------------------------------
+# Teilzeiten von S1 (23.11.2026): feste Namen, Sekunden aus `time.monotonic()`. Sie gehen nur in die Diagnosedatei und
+# nur, wenn die ohnehin entsteht (`messen.teilzeit_notiere`). `s1.bruecke_bereit` misst der Ablauf um den Aufbau des Ziels.
+ZUGTEILE = ("sichtbar", "enter", "abgesendet", "fertig")  # je Zug ab seinem Beginn; ein nicht erreichter Teil fehlt
+
+
+def _zug_gemessen(L, nr, fn, *a, **kw):
+    """Ein Zug von S1; seine Teilzeiten kommen als `s1.zug<nr>.<teil>` in die Teilzeiten, auch wenn er mit einer Ausnahme endet."""
+    t0 = time.monotonic()
+    try:
+        return fn(*a, **kw)
+    finally:
+        zeiten = getattr(L, "zugzeiten", None) or {}
+        for teil in ZUGTEILE:
+            if teil in zeiten:
+                messen.teilzeit_notiere("s1.zug%d.%s" % (nr, teil), zeiten[teil])
+        # Gerundet wie die Teile (`Lauf._zugzeit`): Runden ist monoton, so liegt `gesamt` nie unter einem Teil (sonst 0,4157 < 0,416).
+        messen.teilzeit_notiere("s1.zug%d.gesamt" % nr, round(time.monotonic() - t0, 3))
+
+
 def s1(L):
     s = Schritt("S1", "Sitzung mit Cloud-Modell starten")
     k = L.k
     vor = L.b.diagnose()
-    m = L.sitzung_starten("cloud")
+    t_start = time.monotonic()
+    try:
+        m = L.sitzung_starten("cloud")
+    finally:
+        messen.teilzeit_notiere("s1.start_gesamt", time.monotonic() - t_start)
+    messen.teilzeit_notiere("s1.start_eingabefeld", m.get("dauer_s"))  # t0 bis Eingabefeld; fehlt, wenn es ausblieb
+    messen.teilzeit_notiere("s1.vertrauensfrage", m.get("t_vertrauen"))  # t0 bis zum Enter auf die Vertrauensfrage; fehlt ohne Frage
     sid = m["sitzung"]
     s.haupt("Start angenommen", sid is not None, status=m["status"])
     if not sid:
@@ -259,12 +282,12 @@ def s1(L):
     if L.knapp:
         # Knapper Cloud-Lauf: Eingabe 1 ist die gezaehlte Anfrage ohne Werkzeug, Eingabe 2 das eine Buendel Shell-Befehle.
         L.ziel0 = L.zinfo["ziel_zaehler"]() if L.zinfo.get("ziel_zaehler") else None  # fuer E4-cloud: Zaehler vor den Eingaben
-        z = L.zug(sid, "zaehlen", "")
+        z = _zug_gemessen(L, 1, L.zug, sid, "zaehlen", "")
         s.haupt("Eingabezeile nimmt Text an, die Anfrage ohne Werkzeug wird beantwortet (FERTIG)", True)
         s.haupt("Kopf-Tausch: eine Antwort kam, obwohl im Einschluss nur der Platzhalter steht (Anfrage am Weiterreicher gezaehlt)",
                 z.mw is None or z.mw.get("antworten", 0) >= 1, anfragen_eingabe1=None if z.mw is None else z.mw.get("antworten", 0))
         _zaehlung_cloud(s, z, "S1", L)
-        zb = L.zug(sid, "buendel", cloud_buendel(L), frist_s=float(k["grenzen"].get("baum_s", 30)))
+        zb = _zug_gemessen(L, 2, L.zug, sid, "buendel", cloud_buendel(L), frist_s=float(k["grenzen"].get("baum_s", 30)))
         L.buendel, L.buendel_zug = buendel_lesen(zb), zb
         erwartet = 5 + len(TOKENPRUEFUNGEN)
         s.haupt("Das Shell-Werkzeug laeuft ohne Rueckfrage: das Buendel liefert alle Zeilen", len(L.buendel) >= erwartet,
@@ -274,7 +297,7 @@ def s1(L):
                 route_variablen=bn[0] if bn else None, route_werte=bw[0] if bw else None,
                 umgebung_variablen=(L.buendel.get("s1_umgebung") or (None,))[0])
     else:
-        z = L.befehl(sid, k["befehle"]["env"])
+        z = _zug_gemessen(L, 1, L.befehl, sid, k["befehle"]["env"])
         zeilen_env = [l.strip().lstrip("\u23bf ").strip() for l in z.ausgabe().splitlines()]
         namen = [l.split("=", 1)[0] for l in zeilen_env if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", l)]
         werte = [l.split("=", 1)[1] for l in zeilen_env if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", l)]
@@ -293,7 +316,11 @@ def s1(L):
     else:
         L.ca["cli_nimmt_an"] = mw.get("anfragen", 0) >= 1 and not any(re.search(m, start_text, re.I) for m in ca_k.get("fehlermuster", []))
     if ca_k.get("ausgang_befehl") and ca_k.get("ausgang_ziel"):
-        rc_a, out_a = messen.aussen_shell(_fmt(ca_k["ausgang_befehl"], ziel=ca_k["ausgang_ziel"]), frist_s=20)
+        t_aus = time.monotonic()
+        try:
+            rc_a, out_a = messen.aussen_shell(_fmt(ca_k["ausgang_befehl"], ziel=ca_k["ausgang_ziel"]), frist_s=20)
+        finally:
+            messen.teilzeit_notiere("s1.ausgang_ca", time.monotonic() - t_aus)
         cd = re.findall(r"\d{3}", out_a)
         L.ca["ausgang"] = rc_a == 0 and bool(cd) and cd[0] != "000"
     if k["bruecke"].get("pruefe_token", True):
@@ -1216,7 +1243,8 @@ def _warte_bereit(L, sid, harness):
 
 def _versuch(L, start):
     """Ein Start, den die Ordnermarke abweisen muss. Der Start geht an die Bruecke; Lauf starten weist vor jedem Kind ab, die
-    Sitzung endet dann mit dem Code im Terminal (Vertrag 1: Kindende). Zaehlt nur als Copilot-Start, wenn ein Harness lief."""
+    Sitzung endet dann mit Code und `grund` in der Sitzungsliste (Vertrag 1: Kindende; Vertrag `dienst` Abschnitt 18). Zaehlt nur als
+    Copilot-Start, wenn ein Harness lief."""
     d0 = L.b.diagnose()
     code, antw, _ = L.b.starten(start)
     sid = antw.get("sitzung") if isinstance(antw, dict) else None
@@ -1235,17 +1263,11 @@ def _versuch(L, start):
         time.sleep(0.05)
     erg["abgewiesen"] = isinstance(info, dict) and info.get("zustand") == "beendet" and info.get("code") not in (0, None)
     erg["laeuft"] = isinstance(info, dict) and info.get("zustand") == "laeuft"
-    # Der Code steht im Terminalverlauf, der kurz nach dem Ende der Sitzung noch nachlaufen kann: bis zum selben Ende
-    # weiterlesen statt einmal. Gelesen wird immer ueber die Schnittstelle der Bruecke, auch im Browser-Modus: Das Raster der
-    # Seite zeigt nach einem Sitzungswechsel kurz noch die vorige Sitzung, und E6 prueft Lauf starten, nicht die Anzeige
-    # (Entscheidung vom 20.11.2026: im Browser-Modus las E6 sonst den Code der vorigen, abgewiesenen Sitzung).
-    m = None
-    while True:
-        m = re.search(r"lauf\.[a-z_]+", Bruecke.verlauf(L.b, sid, 0)[1])
-        if m or time.monotonic() >= ende:
-            break
-        time.sleep(0.05)
-    erg["code"] = m.group(0) if m else None
+    # Der Code von Lauf starten kommt aus der Sitzungsliste: `grund` des Eintrags (Zeile von `lauf`, Vertrag `dienst` DI12 Punkt 5 und
+    # Abschnitt 18), nicht mehr aus dem Verlauf (Weg A, Entscheidung vom 23.11.2026: das Bild einer frueh beendeten Sitzung bleibt nur bis zur Neuvergabe
+    # ihrer Nummer). Ein Grund in anderer Form wird `abweichend`, ohne Grund steht None.
+    grund = info.get("grund") if isinstance(info, dict) and info.get("zustand") == "beendet" else None
+    erg["code"] = None if grund is None else messen.fester_code(grund, "abweichend")
     d1 = L.b.diagnose()
     if d0 and d1:
         erg["harness_neu"] = d1.get("harness_gestartet", 0) - d0.get("harness_gestartet", 0)

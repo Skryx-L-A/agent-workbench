@@ -107,7 +107,8 @@ class KeinEingabefeld(Exception):
 
 class NichtAbgesendet(Exception):
     """Der Text eines Zugs stand nach dem Enter noch im Eingabefeld der CLI (Entscheidung vom 22.11.2026): Die Eingabe ist nicht
-    abgesendet. Der Laeufer sendet kein zweites Enter (das waere ein ungemessener Weg); das Bild geht in die Diagnosedatei."""
+    abgesendet. Der Laeufer sendet kein zweites Enter (das waere ein ungemessener Weg); das Bild geht in die Diagnosedatei. Danach ist
+    die Sitzung fuer weitere Zuege gesperrt: Ein Folgezug saehe den liegengebliebenen Text mit ab."""
 
 
 # Senden eines Zugs (Enter mit Abstand): erst der Text, dann warten, bis sein Ende im Raster steht (hoechstens EINGABE_SICHTBAR_S), dann
@@ -236,10 +237,16 @@ class Lauf:
         self.zinfo = {}  # Attrappen: Marke des Tokens, Zaehler am Ziel, Adressen
         self.turn = 0
         self.sendung = {}  # Ergebnis des letzten `senden`
+        # Teilzeiten des letzten Zugs in Sekunden ab seinem Beginn: `sichtbar`, `enter`, `abgesendet`, `fertig`.
+        # Ein Teil, der nicht erreicht wurde, fehlt. Nur Zahlen; der Schritt gibt sie unter festen Namen an `messen.teilzeit_notiere`.
+        self.zugzeiten = {}
+        self._zug_t0 = None
+        self.gesperrt = set()  # Sitzungen nach `NichtAbgesendet`: ihr Feld kann noch Text tragen, kein weiterer Zug
         self.sitzungen = []
         self.eingabefeld = {}  # Sitzung -> wahr, wenn ihr Eingabefeld beim Start erkannt wurde; ohne Eingabefeld sendet `zug` nie
         self.ende_befund = {}  # Sitzung -> Messwerte der Diagnose bei Sitzungsende (nur Codes und Zahlen), gesetzt, wenn das Eingabefeld ausblieb
         self.sitzung_zustand = {}  # Sitzung -> (zustand, code) aus der Sitzungsliste, gelesen, wenn das Eingabefeld ausblieb
+        self.sitzung_grund = {}  # Sitzung -> `grund` aus der Sitzungsliste (Text der Antwort oder None), zur selben Zeit gelesen
         self.s1 = None
         self.einst_pfad = k["einstellungen"]["pfad"]
         self._einst_vorher = None
@@ -352,13 +359,15 @@ class Lauf:
                     info = None
                 if isinstance(info, dict):
                     m["zustand"], m["code"] = info.get("zustand"), info.get("code")
+                    self.sitzung_grund[m["sitzung"]] = info.get("grund")
                 self.sitzung_zustand[m["sitzung"]] = (m.get("zustand"), m.get("code"))
                 self.ende_diagnose(m["sitzung"])
         return m
 
     def ende_diagnose(self, sid):
         """Diagnose bei Sitzungsende: Zustand und Code der Sitzung, die `lauf.*`-Codes aus dem letzten Bild und die Zaehler fester Fehlertexte.
-        Nur Codes und Zahlen (`ende_zustand`, `ende_code`, `ende_lauf_codes`, `ende_texte`); sie stehen im Bericht, nie in der Ergebnisdatei."""
+        Nur Codes und Zahlen (`ende_zustand`, `ende_code`, `ende_grund`, `ende_lauf_codes`, `ende_texte`); sie stehen im Bericht, nie in der
+        Ergebnisdatei. `ende_grund` ist der `grund` der Sitzungsliste als fester Code, `abweichend` fuer jede andere Form, None ohne Grund."""
         try:
             r = self.b.raster(sid)
             text = "\n".join(str(z) for z in r.get("zeilen", [])) if isinstance(r, dict) else ""
@@ -368,7 +377,13 @@ class Lauf:
             text = ""
         codes, zaehler = ende_befund(text)
         zustand, code = self.sitzung_zustand.get(sid, (None, None))
-        self.ende_befund[sid] = {"ende_zustand": zustand, "ende_code": code, "ende_lauf_codes": codes, "ende_texte": zaehler}
+        grund = self.sitzung_grund.get(sid)
+        grund = None if grund is None else messen.fester_code(grund, "abweichend")
+        # Werte der Bruecke nur fest (Befund 4): Zustand laeuft/beendet, Code nur als int (kein bool), sonst abweichend
+        zustand = zustand if zustand is None or (isinstance(zustand, str) and zustand in ("laeuft", "beendet")) else "abweichend"
+        code = code if code is None or (isinstance(code, int) and not isinstance(code, bool)) else "abweichend"
+        self.ende_befund[sid] = {"ende_zustand": zustand, "ende_code": code, "ende_grund": grund, "ende_lauf_codes": codes,
+                                 "ende_texte": zaehler}
         return self.ende_befund[sid]
 
     def beenden(self, sid):
@@ -398,6 +413,7 @@ class Lauf:
             info = self.b.sitzung(sid)
             if isinstance(info, dict):
                 self.sitzung_zustand[sid] = (info.get("zustand"), info.get("code"))
+                self.sitzung_grund[sid] = info.get("grund")
         except Exception:
             pass
         return False
@@ -427,25 +443,35 @@ class Lauf:
             return []
         return r.get("zeilen", []) if isinstance(r, dict) else []
 
+    def _zugzeit(self, name):
+        if self._zug_t0 is not None:
+            self.zugzeiten[name] = round(time.monotonic() - self._zug_t0, 3)
+
     def senden(self, sid, text, marke=None):
         """Sendet einen Zugtext (Entscheidung vom 22.11.2026). Mit Bruecke (`text_und_taste`): erst das Ereignis `Text`, dann warten,
-        bis sein Ende im Raster steht (hoechstens EINGABE_SICHTBAR_S), dann ENTER_ABSTAND_S, dann `Taste` Enter, dann hoechstens
+        bis sein Ende im Raster OEFTER steht als vor dem Text (hoechstens EINGABE_SICHTBAR_S), dann ENTER_ABSTAND_S, dann `Taste` Enter
+        (die Cloud-Eingabe zaehlt ab dem Aufruf, auch wenn er wirft; dann Diagnose und `Zeitueberschreitung`), dann hoechstens
         ABGESENDET_S warten, bis es nicht mehr im Eingabefeld steht (oder kein Feld im Bild ist). Steht es nie im Raster oder lehnt der Dienst ab (seit `marke`), geht
         KEIN Enter hinaus. Ohne `text_und_taste` (Seite im Browser, Test-Bruecken) oder ohne Text unveraendert `eingabe`. Das Ergebnis steht
         in `self.sendung` (sichtbar, abgesendet: True, False oder None fuer nicht feststellbar). Gibt (code, antwort) wie `eingabe`."""
         b = self.b
         if not text or not getattr(b, "text_und_taste", False):
             self.sendung = {"weg": "eingabe", "sichtbar": None, "abgesendet": None}
-            return b.eingabe(sid, text)
+            code, antw = b.eingabe(sid, text)
+            if code in (200, 202):
+                self._zugzeit("enter")  # Text und Enter in einem Ereignis
+            return code, antw
         merk = merkmal(text)
         self.sendung = {"weg": "abstand", "sichtbar": False, "abgesendet": None}
+        n0 = _flach("".join(self._zeilen(sid))).count(merk)  # ein gleicher Text eines frueheren Zugs im Bild zaehlt nicht (Befund 2)
         code, antw = b.text(sid, text)
         if code not in (200, 202):
             return code, antw
         ende = time.monotonic() + EINGABE_SICHTBAR_S
         while time.monotonic() < ende:
-            if merk in _flach("".join(self._zeilen(sid))):
+            if _flach("".join(self._zeilen(sid))).count(merk) > n0:
                 self.sendung["sichtbar"] = True
+                self._zugzeit("sichtbar")
                 break
             if marke is not None and b.ablehnungen_seit(marke):
                 break  # `zug` meldet die Ablehnung
@@ -453,19 +479,46 @@ class Lauf:
         if not self.sendung["sichtbar"]:
             return 202, {"ok": True}  # kein Enter; `zug` endet mit NichtAbgesendet
         time.sleep(ENTER_ABSTAND_S)
-        code, antw = b.taste(sid, "Enter")
+        self._eingabe_zaehlen(sid)  # ab dem Aufruf: das Enter kann angekommen sein, auch wenn `taste` wirft (Befund 3)
+        try:
+            code, antw = b.taste(sid, "Enter")
+        except Exception as e:
+            messen.diagnose_notiere("lauf.zug", "Enter ohne Antwort: %s: %s" % (type(e).__name__, e))  # die Ausnahme nur hierhin
+            self.diagnose_bild(sid)
+            self.gesperrt.add(sid)  # das Enter kann angekommen sein, der Text noch im Feld stehen (Entscheidung vom 23.11.2026)
+            raise Zeitueberschreitung("Enter ohne Antwort")
         if code not in (200, 202):
             return code, antw
+        self._zugzeit("enter")
         ende = time.monotonic() + ABGESENDET_S
         while time.monotonic() < ende:
             feld = im_eingabefeld(self._zeilen(sid), merk)
             self.sendung["abgesendet"] = None if feld is None else not feld
             if feld is not True:
+                if feld is False:
+                    self._zugzeit("abgesendet")
                 break  # leer oder kein Feld mehr im Bild: nicht weiter warten
             time.sleep(0.1)
         return code, antw  # abgesendet None (kein Feld mit PROMPT_ZEICHEN im Bild): kein Halt, keine Diagnosezeile
 
+    def _sperren_nach_enter(self, sid):
+        """Endet ein Zug nach dem Enter mit einem Fehler (Ablehnung des Dienstes, abgelehnter Code bei `taste`), kann der Text noch im Feld
+        stehen. Dann sperrt der Lauf die Sitzung wie nach `NichtAbgesendet` (Entscheidung vom 23.11.2026). Ging kein Enter hinaus (Text nie sichtbar),
+        bleibt sie frei."""
+        if self.sendung.get("sichtbar") is not False:
+            self.gesperrt.add(sid)
+
+    def _eingabe_zaehlen(self, sid):
+        """Zaehlt eine Eingabe an eine Cloud-Sitzung (Grenze `cloud_eingaben_max`)."""
+        if self.art_von.get(sid, "cloud") == "cloud":
+            self.cloud_eingaben += 1
+            self.eingaben_je_sitzung[sid] = self.eingaben_je_sitzung.get(sid, 0) + 1
+
     def zug(self, sid, art, arg, vorlage=None, frist_s=None):
+        if sid in self.gesperrt:
+            # nach `NichtAbgesendet` kann der alte Text im Feld stehen: weder Text noch Enter, sonst ginge er mit ab (Befund 1)
+            raise NichtAbgesendet("Sitzung nach nicht abgesendetem Zug gesperrt")
+        self.zugzeiten, self._zug_t0 = {}, time.monotonic()
         if self.eingabefeld.get(sid) is False and not self._eingabefeld_jetzt(sid):
             # vor allem anderen: ohne erkanntes Eingabefeld geht keine Eingabe raus (auch kein spaetes Feld, das jetzt fehlt)
             if self.sitzung_zustand.get(sid, (None, None))[0] != "beendet":
@@ -488,20 +541,22 @@ class Lauf:
         if code not in (200, 202):
             messen.diagnose_notiere("lauf.zug", "Eingabe abgelehnt: %s %s" % (code, antw))  # die Antwort der Bruecke nur in die Diagnosedatei
             self.diagnose_bild(sid)
+            self._sperren_nach_enter(sid)
             raise Zeitueberschreitung("Eingabe abgelehnt")
-        if cloud and self.sendung.get("sichtbar") is not False:  # das Enter ging hinaus: es zaehlt, auch wenn die CLI nicht absendet
-            self.cloud_eingaben += 1
-            self.eingaben_je_sitzung[sid] = self.eingaben_je_sitzung.get(sid, 0) + 1
+        if self.sendung.get("weg") == "eingabe":  # alter Weg: zaehlt bei Annahme; der Weg `abstand` zaehlt in `senden` vor dem Enter
+            self._eingabe_zaehlen(sid)
         if self.sendung.get("sichtbar") is False or self.sendung.get("abgesendet") is False:
             abgelehnt = self.b.ablehnungen_seit(marke)
             if abgelehnt:  # der Dienst lehnte den Text ab: wie im Warten unten
                 messen.diagnose_notiere("lauf.zug", "Eingabe vom Dienst abgelehnt: %s" % ", ".join(g or c or "?" for g, c in abgelehnt))
                 self.diagnose_bild(sid)
+                self._sperren_nach_enter(sid)
                 raise Zeitueberschreitung("Eingabe vom Dienst abgelehnt")
             # Kein zweites Enter (Entscheidung vom 22.11.2026): Halt dieses Zugs mit festem Code, das Bild nur in die Diagnosedatei
             messen.diagnose_notiere("lauf.zug", "Zug %d nicht abgesendet: sichtbar=%s abgesendet=%s" % (
                 n, self.sendung.get("sichtbar"), self.sendung.get("abgesendet")))
             self.diagnose_bild(sid)
+            self.gesperrt.add(sid)
             raise NichtAbgesendet("Zug %d nicht abgesendet" % n)
         # Leerraum zwischen FERTIG und T<n> darf ein Zeilenende sein: bricht das Terminal dort um, steht im Verlauf ein Zeilenumbruch
         token = TOKEN(n)
@@ -510,11 +565,13 @@ class Lauf:
         while True:
             laenge, t = self.b.verlauf(sid, ab)
             if len(token.findall(t)) >= erwartet:
+                self._zugzeit("fertig")
                 break
             abgelehnt = self.b.ablehnungen_seit(marke)
             if abgelehnt:
                 messen.diagnose_notiere("lauf.zug", "Eingabe vom Dienst abgelehnt: %s" % ", ".join(g or c or "?" for g, c in abgelehnt))
                 self.diagnose_bild(sid)
+                self._sperren_nach_enter(sid)
                 raise Zeitueberschreitung("Eingabe vom Dienst abgelehnt")
             if time.monotonic() > ende:
                 # Bild und Verlauf sind Inhalt der Sitzung: nur in die Diagnosedatei, nie in die Meldung der Ausnahme

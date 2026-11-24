@@ -35,7 +35,7 @@ line `wb-dienst: ...` on stderr, nothing on stdout, and nothing stays behind (no
 | `src/betrachter.rs` | one viewer: queue of frames (DI5), non-blocking write, the extract of `rasterauszug` |
 | `src/sitzung.rs` | one core (a session with carrier and child, or the room core), state for the rebuild, start and end of the children, `anfang` for the cores |
 | `src/starten.rs` | DI12 `Starten`: `start_form` and `start_pruefen` (the one place of the check of the start structure: the crate `start`), the settings file (the crate `einstellungen`) and `Startwahl`, folder and `start.json` (`start::schreiben`) |
-| `src/meldung.rs` | contract section 18: the socket `meldung.sock` of a session of `Starten`, the one connection of `lauf` (user and, under Linux, pid), the line `<code> <grund>` and its judgment at the end of the child |
+| `src/meldung.rs` | contract section 18: the socket `meldung.sock` of a session of `Starten`, the one connection of `lauf` (user and, under Linux and macOS, pid), the line `<code> <grund>` and its judgment at the end of the child |
 | `src/dienst.rs` | the loop, the steps of the core and their effects (DI4 to DI9, DI11) |
 | `src/huelle.rs` | the cover of the child: the environment is exactly `kind.env` |
 | `src/kindprogramm.rs` | the fixed child programs of DI8 |
@@ -69,7 +69,8 @@ to the wake socket. The loop wakes for each readable connection and at least eve
 ## Dependencies
 
 `traeger`, `zustandskern`, `rasterauszug` (path), `serde_json`, `rustix` 1.1.6 (feature `process`: `geteuid` for DI2 point 2 and
-`kill_process` for SIGHUP and SIGKILL), `signal-hook` 0.4.6 (SIGTERM and SIGINT; safe API only). The reason for each stands in
+`kill_process` for SIGHUP and SIGKILL), `signal-hook` 0.4.6 (SIGTERM and SIGINT; safe API only), under macOS only `nix` 0.28 (feature `socket`: `LOCAL_PEERCRED` and
+`LOCAL_PEERPID` for the peer of the report of `lauf`). The reason for each stands in
 `Cargo.toml`. No `tokio`, no `axum`, no `tungstenite`, no `unsafe`, no network socket of any kind.
 
 ## Security points
@@ -101,7 +102,7 @@ to the wake socket. The loop wakes for each readable connection and at least eve
 
 `cargo test -p dienst`: unit tests in `src/`, `tests/dienst.rs` (start errors, end, steady load, limit of the core, threads),
 `tests/mehrere.rs` (DI12: numbers and identifiers, `Beenden` with SIGKILL for a child that ignores SIGHUP, folders and their
-removal also after the crash of a session, the rebuild of one core, no listener), `tests/meldung.rs` (section 18, Linux: the option `--meldung`, the
+removal also after the crash of a session, the rebuild of one core, no listener), `tests/meldung.rs` (section 18, Linux and macOS: the option `--meldung`, the
 line of `lauf` and its borders, a foreign connection, a path too long), `tests/faelle.rs` (the 275 visible outside cases
 through the Python runner in `tests/werkzeug/`; needs `python3` and `lsof`). The runner repeats nothing: a red case ends its
 runner, and the test is red.

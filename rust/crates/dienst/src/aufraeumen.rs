@@ -9,7 +9,14 @@
 //! SECURITY: a pid file is written by the child of the session, so the pid in it is no more than a claim. A signal goes out only when
 //! every condition of [`pidfd_pruefen`] holds (the file is a regular file of the session folder holding exactly one decimal number with a
 //! line feed; the process lives; it leads its own session; it was started after the child of the session: later start time, or the same
-//! tick of 10 ms and a larger pid, [`spaeter_gestartet`]). Under Linux the process is read behind a pidfd that was opened first. The signal
+//! tick of 10 ms and a larger pid, [`spaeter_gestartet`]; its parent is this service and it is no own child of the service). Under Linux
+//! the process is read behind a pidfd that was opened first. The parent is the proof that the process belongs to the service: the
+//! helpers are children of the child of the session, and at the end of the session that child has ended, so the kernel has handed its
+//! live children to this service, the child subreaper (`waisen.rs`). A process that took the pid of a dead helper (a new shell of the
+//! person, a later leader of a session of the same user) has another parent and gets no signal. An adopted child cannot be collected by
+//! anyone but this service, and the service collects only in its own loop (`waisen.rs`), never between the check and the signal, so its
+//! pid stays bound to the process of the pidfd. The own children of the service (the children of the other sessions) are named by the
+//! caller and get no signal either. The signal
 //! goes to the process group of the checked leader: a group number is not handed to another process while any process belongs to the
 //! group, and a number comes back only after the whole pid space has run through, so between the check and the signal the number cannot
 //! name another group. In doubt no signal goes out; the files are removed in any case. Removing never follows a link and acts only below the own session folder `s-<n>`.
@@ -51,18 +58,20 @@ impl KindZeit {
 #[derive(Debug, PartialEq, Eq)]
 struct ProzessStand {
     zustand: char,
+    eltern: u64,
     gruppe: u64,
     sitzung: u64,
     start: u64,
 }
 
 /// Parses the text of `/proc/<pid>/stat`. The name of the process stands in brackets and may hold spaces and brackets itself, so the
-/// fields are counted from the last closing bracket: state is field 3, group 5, session 6, start time 22.
+/// fields are counted from the last closing bracket: state is field 3, parent 4, group 5, session 6, start time 22.
 fn stat_lesen(text: &str) -> Option<ProzessStand> {
     let rest = &text[text.rfind(')')? + 1..];
     let felder: Vec<&str> = rest.split_ascii_whitespace().collect();
     Some(ProzessStand {
         zustand: felder.first()?.chars().next()?,
+        eltern: felder.get(1)?.parse().ok()?,
         gruppe: felder.get(2)?.parse().ok()?,
         sitzung: felder.get(3)?.parse().ok()?,
         start: felder.get(19)?.parse().ok()?,
@@ -140,19 +149,22 @@ fn spaeter_gestartet(start: u64, pid: u32, kind_start: u64, kind_pid: u32) -> bo
 }
 
 /// The conditions on the fields of the process behind a pid, free of any system call. `true` only when all of these hold: the
-/// process is no zombie, it is not the child itself and not this service, it leads its own session (session and group equal its pid),
-/// and it was started after the child of the session ([`spaeter_gestartet`]). The start time and the pid of the child must be known.
-/// In doubt `false`.
+/// process is no zombie, it is not the child itself, not this service and none of the own children `eigene` of the service, its
+/// parent is this service (the child of the session has ended, so its live children were handed to the service, see the module text),
+/// it leads its own session (session and group equal its pid), and it was started after the child of the session
+/// ([`spaeter_gestartet`]). The start time and the pid of the child must be known. In doubt `false`.
 #[cfg(any(target_os = "linux", test))]
-fn stand_zulaessig(pid: u32, stand: &ProzessStand, kind: KindZeit) -> bool {
+fn stand_zulaessig(pid: u32, stand: &ProzessStand, kind: KindZeit, eigene: &[u32]) -> bool {
     let (Some(kind_start), Some(kind_pid)) = (kind.start, kind.pid) else {
         return false;
     };
-    if kind_pid == pid || pid == std::process::id() {
+    let ich = std::process::id();
+    if kind_pid == pid || pid == ich || eigene.contains(&pid) {
         return false;
     }
     let pid64 = u64::from(pid);
     !matches!(stand.zustand, 'Z' | 'X' | 'x')
+        && stand.eltern == u64::from(ich)
         && stand.sitzung == pid64
         && stand.gruppe == pid64
         && spaeter_gestartet(stand.start, pid, kind_start, kind_pid)
@@ -164,13 +176,13 @@ fn stand_zulaessig(pid: u32, stand: &ProzessStand, kind: KindZeit) -> bool {
 /// behind the pidfd has ended meanwhile (a pidfd that has not ended names the process that held the pid during the whole read,
 /// never a later owner of the number). Any failure gives `None`: in doubt no signal. Linux only; [`signalisieren`] sends nothing elsewhere.
 #[cfg(target_os = "linux")]
-fn pidfd_pruefen(pid: u32, kind: KindZeit) -> Option<std::os::fd::OwnedFd> {
+fn pidfd_pruefen(pid: u32, kind: KindZeit, eigene: &[u32]) -> Option<std::os::fd::OwnedFd> {
     use rustix::event::{PollFd, PollFlags, Timespec, poll};
     use rustix::process::{PidfdFlags, pidfd_open};
     let roh = i32::try_from(pid).ok().and_then(Pid::from_raw)?;
     let fd = pidfd_open(roh, PidfdFlags::empty()).ok()?;
     let stand = prozess_stand(pid)?;
-    if !stand_zulaessig(pid, &stand, kind) {
+    if !stand_zulaessig(pid, &stand, kind, eigene) {
         return None;
     }
     // a pidfd is readable once its process has ended: then the fields may be those of a process that is gone
@@ -186,16 +198,16 @@ fn pidfd_pruefen(pid: u32, kind: KindZeit) -> Option<std::os::fd::OwnedFd> {
 }
 
 /// SIGTERM to the process group of the pid in the pid file, when the protection allows it. Returns whether a signal went out.
-fn signalisieren(ordner: &Path, name: &str, kind: KindZeit) -> bool {
+fn signalisieren(ordner: &Path, name: &str, kind: KindZeit, eigene: &[u32]) -> bool {
     let Some(pid) = pid_lesen(ordner, name) else {
         return false;
     };
     // outside Linux there is no pidfd and no `/proc`: never a signal (no second variant of `pidfd_pruefen`, a mutant in it could not fail a test here)
     #[cfg(target_os = "linux")]
-    let pidfd = pidfd_pruefen(pid, kind);
+    let pidfd = pidfd_pruefen(pid, kind, eigene);
     #[cfg(not(target_os = "linux"))]
     let pidfd: Option<()> = {
-        let _ = (pid, kind);
+        let _ = (pid, kind, eigene);
         None
     };
     let Some(_pidfd) = pidfd else {
@@ -227,7 +239,9 @@ fn loeschen(wurzel: BorrowedFd<'_>, ordner: &Path) {
 }
 
 /// The rule "the end of a session cleans up": first the signals (SIGTERM to the groups of `suche.pid` and `modellweg.pid`, each only
-/// with the protection of [`pidfd_pruefen`]), then the removal of the folder of the session. Returns the number of signals sent.
+/// with the protection of [`pidfd_pruefen`]), then the removal of the folder of the session. `eigene` are the pids of the own children
+/// of the service that have not been collected (the children of the other sessions); they never get a signal. Returns the number of
+/// signals sent.
 ///
 /// SECURITY: this is the one place. The files are removed even when no signal goes out. Called at the end of the child, for
 /// `Beenden` (through the end of the child) and at the end of the service; a second call finds nothing.
@@ -235,11 +249,12 @@ pub(crate) fn sitzung_ende_raeumt_auf(
     ordner: &Path,
     wurzel: BorrowedFd<'_>,
     kind: KindZeit,
+    eigene: &[u32],
 ) -> usize {
     let mut gesendet = 0;
     if ist_sitzungsordner(ordner) {
         for name in PID_DATEIEN {
-            if signalisieren(ordner, name, kind) {
+            if signalisieren(ordner, name, kind, eigene) {
                 gesendet += 1;
             }
         }
@@ -258,11 +273,16 @@ mod tests {
 
     /// The rule through the open parent folder of the session folder, as the service does it with the socket folder.
     fn raeumen(ordner: &Path, kind: KindZeit) -> usize {
+        raeumen_ohne(ordner, kind, &[])
+    }
+
+    /// [`raeumen`] with the own children `eigene` of the service.
+    fn raeumen_ohne(ordner: &Path, kind: KindZeit, eigene: &[u32]) -> usize {
         use rustix::fs::{CWD, Mode, openat};
         let eltern = ordner.parent().expect("parent");
         let fd =
             openat(CWD, eltern, crate::loeschen::ORDNER_OFFEN, Mode::empty()).expect("open parent");
-        sitzung_ende_raeumt_auf(ordner, std::os::fd::AsFd::as_fd(&fd), kind)
+        sitzung_ende_raeumt_auf(ordner, std::os::fd::AsFd::as_fd(&fd), kind, eigene)
     }
 
     /// `loeschen` through the open parent folder of the path.
@@ -354,12 +374,13 @@ mod tests {
     #[test]
     fn stat_wird_vom_letzten_klammerende_gezaehlt() {
         // name with spaces and a closing bracket; field 22 is the start time
-        let text = "123 (a b) c) S 1 123 123 0 -1 4194560 100 0 0 0 1 2 0 0 20 0 1 0 987654 1000 100 18446744073709551615";
+        let text = "123 (a b) c) S 77 123 123 0 -1 4194560 100 0 0 0 1 2 0 0 20 0 1 0 987654 1000 100 18446744073709551615";
         let s = stat_lesen(text).expect("stat");
         assert_eq!(
             s,
             ProzessStand {
                 zustand: 'S',
+                eltern: 77,
                 gruppe: 123,
                 sitzung: 123,
                 start: 987_654
@@ -367,6 +388,7 @@ mod tests {
         );
         assert!(stat_lesen("kaputt").is_none());
         assert!(stat_lesen("1 (x) S 1 2").is_none());
+        assert!(stat_lesen("1 (x) S y 2 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 5").is_none());
     }
 
     #[test]
@@ -606,9 +628,11 @@ mod tests {
         assert!(!spaeter_gestartet(4, 99, 5, 1));
     }
 
+    /// The fields of a process whose parent is this service (the test process).
     fn stand(zustand: char, gruppe: u64, sitzung: u64, start: u64) -> ProzessStand {
         ProzessStand {
             zustand,
+            eltern: u64::from(std::process::id()),
             gruppe,
             sitzung,
             start,
@@ -622,44 +646,61 @@ mod tests {
             start: Some(50),
         };
         // the leader of its session and group, started in the same tick with a larger pid: allowed
-        assert!(stand_zulaessig(101, &stand('S', 101, 101, 50), kind));
+        assert!(stand_zulaessig(101, &stand('S', 101, 101, 50), kind, &[]));
         // each condition alone
         assert!(
-            !stand_zulaessig(101, &stand('Z', 101, 101, 50), kind),
+            !stand_zulaessig(101, &stand('Z', 101, 101, 50), kind, &[]),
             "zombie"
         );
         assert!(
-            !stand_zulaessig(101, &stand('X', 101, 101, 50), kind),
+            !stand_zulaessig(101, &stand('X', 101, 101, 50), kind, &[]),
             "dead"
         );
         assert!(
-            !stand_zulaessig(101, &stand('x', 101, 101, 50), kind),
+            !stand_zulaessig(101, &stand('x', 101, 101, 50), kind, &[]),
             "dead"
         );
         assert!(
-            !stand_zulaessig(101, &stand('S', 101, 7, 50), kind),
+            !stand_zulaessig(101, &stand('S', 101, 7, 50), kind, &[]),
             "no session leader"
         );
         assert!(
-            !stand_zulaessig(101, &stand('S', 7, 101, 50), kind),
+            !stand_zulaessig(101, &stand('S', 7, 101, 50), kind, &[]),
             "no group leader"
         );
         assert!(
-            !stand_zulaessig(99, &stand('S', 99, 99, 50), kind),
+            !stand_zulaessig(99, &stand('S', 99, 99, 50), kind, &[]),
             "same tick, smaller pid"
         );
         assert!(
-            !stand_zulaessig(101, &stand('S', 101, 101, 49), kind),
+            !stand_zulaessig(101, &stand('S', 101, 101, 49), kind, &[]),
             "earlier tick"
         );
         assert!(
-            !stand_zulaessig(100, &stand('S', 100, 100, 51), kind),
+            !stand_zulaessig(100, &stand('S', 100, 100, 51), kind, &[]),
             "the child itself"
         );
         assert!(
-            !stand_zulaessig(std::process::id(), &stand('S', 0, 0, 51), kind),
+            !stand_zulaessig(std::process::id(), &stand('S', 0, 0, 51), kind, &[]),
             "this service"
         );
+        // the parent must be this service: a process with another parent (a later leader that took the pid of a dead helper) is none of ours
+        let mut fremd = stand('S', 101, 101, 50);
+        fremd.eltern = 1;
+        assert!(!stand_zulaessig(101, &fremd, kind, &[]), "another parent");
+        fremd.eltern = u64::from(std::process::id()) + 1;
+        assert!(!stand_zulaessig(101, &fremd, kind, &[]), "another parent");
+        // an own child of the service (the child of another session) gets no signal
+        assert!(
+            !stand_zulaessig(101, &stand('S', 101, 101, 50), kind, &[7, 101]),
+            "an own child"
+        );
+        assert!(stand_zulaessig(
+            101,
+            &stand('S', 101, 101, 50),
+            kind,
+            &[7, 100, 102]
+        ));
         // the child must be known with both its pid and its start
         let ohne_start = KindZeit {
             pid: Some(100),
@@ -669,12 +710,23 @@ mod tests {
             pid: None,
             start: Some(50),
         };
-        assert!(!stand_zulaessig(101, &stand('S', 101, 101, 60), ohne_start));
-        assert!(!stand_zulaessig(101, &stand('S', 101, 101, 60), ohne_pid));
         assert!(!stand_zulaessig(
             101,
             &stand('S', 101, 101, 60),
-            KindZeit::default()
+            ohne_start,
+            &[]
+        ));
+        assert!(!stand_zulaessig(
+            101,
+            &stand('S', 101, 101, 60),
+            ohne_pid,
+            &[]
+        ));
+        assert!(!stand_zulaessig(
+            101,
+            &stand('S', 101, 101, 60),
+            KindZeit::default(),
+            &[]
         ));
     }
 
@@ -716,6 +768,126 @@ mod tests {
             "no signal"
         );
         drop((helfer, zweiter));
+        let _ = std::fs::remove_dir_all(&o);
+    }
+
+    /// A session leader of the same user that started after the child of the session and is no child of this service: the test
+    /// starts it through a shell that ends at once (`setsid` in a job of `sh`, which leads no group, so `setsid` makes the session
+    /// itself and execs `sleep`). It goes to the next subreaper above this process, as a new shell of the person would. Returns its pid
+    /// and a pidfd of it, opened while it sleeps; the test ends it only through that pidfd.
+    #[cfg(target_os = "linux")]
+    fn fremder_sitzungsleiter() -> (u32, std::os::fd::OwnedFd) {
+        use rustix::process::{PidfdFlags, pidfd_open};
+        let aus = std::process::Command::new("/bin/sh")
+            .args([
+                "-c",
+                "setsid /bin/sleep 30 </dev/null >/dev/null 2>&1 & echo $!",
+            ])
+            .output()
+            .expect("sh");
+        let pid: u32 = String::from_utf8_lossy(&aus.stdout)
+            .trim()
+            .parse()
+            .expect("pid");
+        let fd = pidfd_open(
+            Pid::from_raw(i32::try_from(pid).expect("pid")).expect("pid"),
+            PidfdFlags::empty(),
+        )
+        .expect("pidfd");
+        let bis = Instant::now() + Duration::from_secs(5);
+        while Instant::now() < bis {
+            if prozess_stand(pid)
+                .is_some_and(|s| s.sitzung == u64::from(pid) && s.gruppe == u64::from(pid))
+            {
+                return (pid, fd);
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        panic!("the foreign process did not become a session leader");
+    }
+
+    /// `true` once the process of the pidfd has ended (a pidfd is readable then).
+    #[cfg(target_os = "linux")]
+    fn fd_beendet(fd: &std::os::fd::OwnedFd, frist: Duration) -> bool {
+        use rustix::event::{PollFd, PollFlags, Timespec, poll};
+        let t = Timespec {
+            tv_sec: 0,
+            tv_nsec: i64::try_from(frist.as_nanos()).expect("short"),
+        };
+        let mut fds = [PollFd::new(fd, PollFlags::IN)];
+        matches!(poll(&mut fds, Some(&t)), Ok(n) if n > 0)
+    }
+
+    /// The forced case of P23: a helper writes its pid file and ends; a session leader of the same user that started later and is no
+    /// child of this service stands behind the pid in the file. The kernel gives the number of the dead helper anew only after the
+    /// whole pid space, which no test can force without rights over the pid namespace (`ns_last_pid`), so the test writes the pid of the
+    /// foreign leader into the file: the same state as a real reuse. Before the fix (no check of the parent) it got SIGTERM.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn ein_fremder_sitzungsleiter_mit_der_pid_eines_toten_helfers_bekommt_kein_signal() {
+        let o = wegwerf("fremd");
+        let kind = KindZeit::von(Some(std::process::id()));
+        std::thread::sleep(Duration::from_millis(60));
+        // 1. the helper writes its pid file and ends
+        let helfer = schlaf();
+        sitzungsleiter_warten(&helfer);
+        let hp = helfer.pid().expect("pid");
+        let s = o.join("s-1");
+        std::fs::create_dir(&s).expect("dir");
+        std::fs::write(s.join("suche.pid"), format!("{hp}\n")).expect("write");
+        drop(helfer);
+        // `Kind::drop` sent SIGKILL and collected it: the number is free
+        assert!(prozess_stand(hp).is_none(), "the helper is gone");
+        // 2. the foreign leader takes the pid of the file
+        let (fp, fd) = fremder_sitzungsleiter();
+        std::fs::write(s.join("suche.pid"), format!("{fp}\n")).expect("write");
+        let st = crate::waisen::stat_lesen(
+            &std::fs::read_to_string(format!("/proc/{fp}/stat")).expect("stat"),
+        )
+        .expect("stat");
+        assert_ne!(st.eltern, std::process::id(), "no child of this process");
+        assert!(
+            startzeit(fp).zip(kind.start).is_some_and(|(f, k)| f > k),
+            "started after the child"
+        );
+        // 3. no signal: it still sleeps
+        assert_eq!(raeumen(&s, kind), 0);
+        assert!(!s.exists(), "files go in any case");
+        assert!(!fd_beendet(&fd, Duration::from_millis(300)), "no signal");
+        let _ = rustix::process::pidfd_send_signal(std::os::fd::AsFd::as_fd(&fd), Signal::KILL);
+        assert!(
+            fd_beendet(&fd, Duration::from_millis(900)),
+            "the test ends its own process"
+        );
+        let _ = std::fs::remove_dir_all(&o);
+    }
+
+    /// The own children of the service (the children of the other sessions) get no signal, even when they pass every other condition.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn ein_eigenes_kind_des_dienstes_bekommt_kein_signal() {
+        let o = wegwerf("eigene");
+        let kind = KindZeit::von(Some(std::process::id()));
+        std::thread::sleep(Duration::from_millis(60));
+        let mut anderes = schlaf();
+        sitzungsleiter_warten(&anderes);
+        let ap = anderes.pid().expect("pid");
+        let s = o.join("s-1");
+        std::fs::create_dir(&s).expect("dir");
+        std::fs::write(s.join("modellweg.pid"), format!("{ap}\n")).expect("write");
+        assert_eq!(raeumen_ohne(&s, kind, &[ap]), 0);
+        assert!(!s.exists());
+        assert!(
+            !ende_in(&mut anderes, Duration::from_millis(300)),
+            "no signal"
+        );
+        // the same process, not named as an own child: the signal goes out
+        let s2 = o.join("s-2");
+        std::fs::create_dir(&s2).expect("dir");
+        std::fs::write(s2.join("modellweg.pid"), format!("{ap}\n")).expect("write");
+        assert_eq!(raeumen_ohne(&s2, kind, &[ap + 1]), 1);
+        assert!(ende_in(&mut anderes, Duration::from_secs(3)), "SIGTERM");
+        drop(anderes);
         let _ = std::fs::remove_dir_all(&o);
     }
 }

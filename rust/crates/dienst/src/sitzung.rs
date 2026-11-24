@@ -212,8 +212,11 @@ pub(crate) fn kind_starten(start: &KindStart, huelle: Option<&Path>) -> Result<K
 pub(crate) struct Sitzung {
     /// The identifier; `None` for the room core.
     pub(crate) sid: Option<String>,
-    /// The session number in the raster frame: 0 for the session of `kind`, `n` for `s-<n>`.
-    pub(crate) nr: u8,
+    /// The raster number in the frame (DI12 point 4, P25): 0 for the session of `kind` and the room core, one of 1 to 255 for a
+    /// session of `Starten`; `None` once a later session took the number (the session cannot be watched live any more).
+    pub(crate) nr: Option<u8>,
+    /// The place of this session in the order of the ends of the run (1 for the first end); `None` while it runs.
+    pub(crate) beendet_als: Option<u64>,
     /// The entry of `anfang.sitzungen` this core is built from (a session of `Starten`); `None` for the session of `kind`
     /// (its entry is in the start file) and for the room core.
     pub(crate) eintrag: Option<Value>,
@@ -254,12 +257,12 @@ pub(crate) struct Sitzung {
 impl Sitzung {
     /// The session of `kind` (number 0).
     pub(crate) fn neu(sid: String, kern: Sitzungskern, kind: Kind) -> Self {
-        Self::mit(Some(sid), 0, kern, Some(kind))
+        Self::mit(Some(sid), Some(0), kern, Some(kind))
     }
 
     /// The room core (DI12).
     pub(crate) fn raum(kern: Sitzungskern) -> Self {
-        Self::mit(None, 0, kern, None)
+        Self::mit(None, Some(0), kern, None)
     }
 
     /// A session of `Starten` (DI12).
@@ -273,7 +276,7 @@ impl Sitzung {
         ordner: (PathBuf, Arc<OwnedFd>, Meldung),
     ) -> Self {
         let kind_zeit = KindZeit::von(kind.pid());
-        let mut s = Self::mit(Some(sid), nr, kern, Some(kind));
+        let mut s = Self::mit(Some(sid), Some(nr), kern, Some(kind));
         s.kind_zeit = kind_zeit;
         s.eintrag = Some(eintrag);
         s.meta = meta;
@@ -283,12 +286,13 @@ impl Sitzung {
         s
     }
 
-    fn mit(sid: Option<String>, nr: u8, kern: Sitzungskern, kind: Option<Kind>) -> Self {
+    fn mit(sid: Option<String>, nr: Option<u8>, kern: Sitzungskern, kind: Option<Kind>) -> Self {
         // the carrier has not been asked for the end of the child yet, so its pid is still the child
         let blick = Kindblick::von(kind.as_ref().and_then(Kind::pid));
         Self {
             sid,
             nr,
+            beendet_als: None,
             eintrag: None,
             meta: Default::default(),
             ordner: None,
@@ -328,10 +332,12 @@ impl Sitzung {
         }
     }
 
-    /// The end of the session cleans up (see `aufraeumen.rs`): signals first, then the folder. Once only; a second call finds no folder.
-    pub(crate) fn ende_aufraeumen(&mut self) {
+    /// The end of the session cleans up (see `aufraeumen.rs`): signals first, then the folder. `eigene` are the pids of the own
+    /// children of the service that have not been collected (the children of the other sessions): never signalled. Once only; a second
+    /// call finds no folder.
+    pub(crate) fn ende_aufraeumen(&mut self, eigene: &[u32]) {
         if let (Some(ordner), Some(wurzel)) = (self.ordner.take(), self.wurzel.take()) {
-            sitzung_ende_raeumt_auf(&ordner, wurzel.as_fd(), self.kind_zeit);
+            sitzung_ende_raeumt_auf(&ordner, wurzel.as_fd(), self.kind_zeit, eigene);
         }
     }
 

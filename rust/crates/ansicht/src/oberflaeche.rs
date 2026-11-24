@@ -234,7 +234,19 @@ async fn strom_lauf(a: A, token: String) {
     k.write().offen(strom.deflate);
     let mut zerleger = Zerleger::default();
     'lesen: while let Some(stueck) = strom.lesen().await {
-        for (art, nutz) in zerleger.nimm(&stueck) {
+        let rahmen = match zerleger.nimm(&stueck) {
+            Ok(r) => r,
+            // like `RahmenZuGross` of a raster frame: the error field, then the stream ends
+            Err(e) => {
+                k.write().fehler = Some((
+                    e.code().to_owned(),
+                    "Strom der Verbindung nicht lesbar".to_owned(),
+                ));
+                wirken(a, vec![Wirkung::StromZu]);
+                break;
+            }
+        };
+        for (art, nutz) in rahmen {
             if BEENDET.with(Cell::get) {
                 break 'lesen;
             }

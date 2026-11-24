@@ -34,8 +34,15 @@ const OBERSTE_SCHLUESSEL: [&str; 10] = [
     "lauf",
 ];
 
-/// The most sessions that `Starten` hands numbers to in one run (DI12): the number is one byte in the raster frame.
+/// The most raster numbers of the sessions of `Starten` at the same time (DI12 point 4, P25): the number is one byte in the raster
+/// frame (RA), 0 is the session of `kind`. A raster number is used again once its session has ended and no viewer subscribes it.
 pub const NUMMER_MAX: usize = 255;
+/// The most identifiers `s-<n>` that `Starten` hands out in one run (DI12 point 4, P25): nine digits, the form `^s-[0-9]{1,9}$` that
+/// the target lists and the runners check. An identifier is never used again; at a million starts a day it lasts over 2700 years.
+pub const KENNUNG_MAX: usize = 999_999_999;
+/// The most ended sessions of `Starten` the `Sitzungsliste` holds (DI12 point 5, P26, Projektentscheid, 23.11.2026): a later end that raises the
+/// count above it takes the entry out that ended longest ago and that no viewer subscribes.
+pub const BEENDET_MAX: usize = 256;
 
 /// The key `lauf` of the start file (DI12): what `Starten` needs. The paths come from here and from nowhere else.
 #[derive(Debug, Clone, PartialEq)]
@@ -61,8 +68,12 @@ pub struct Lauf {
     pub marker_datei: Option<String>,
     /// The folder of the count of the markers (optional, absolute path, from the start file, DI12 point 14).
     pub marker_ordner: Option<String>,
-    /// The most numbers `Starten` hands out; [`NUMMER_MAX`] unless the start file lowers it (test mode only).
+    /// The most identifiers `Starten` hands out; [`KENNUNG_MAX`] unless the start file lowers it (test mode only).
     pub nummer_max: usize,
+    /// The most raster numbers at the same time; [`NUMMER_MAX`] unless the start file lowers it (test mode only).
+    pub rahmen_max: usize,
+    /// The most ended sessions in the list; [`BEENDET_MAX`] unless the start file lowers it (test mode only).
+    pub beendet_max: usize,
 }
 
 /// What the start file says, checked.
@@ -292,7 +303,7 @@ fn lauf_pfad(wert: Option<&Value>) -> Option<String> {
     t.starts_with('/').then(|| t.to_owned())
 }
 
-/// The key `lauf` (DI12): exactly `programm`, `env`, `groesse`, `einstellungen`; `nummer_max` only in test mode.
+/// The key `lauf` (DI12): exactly `programm`, `env`, `groesse`, `einstellungen`; `nummer_max`, `rahmen_max` and `beendet_max` only in test mode.
 fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
     let Some(karte) = wert.as_object() else {
         return ungueltig("lauf");
@@ -302,6 +313,8 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
         !pflicht.contains(&k.as_str())
             && ![
                 "nummer_max",
+                "rahmen_max",
+                "beendet_max",
                 "sitzungen",
                 "ziellisten",
                 "laufzeit",
@@ -358,11 +371,21 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
         return ungueltig("lauf.env");
     };
     let nummer_max = match karte.get("nummer_max") {
+        None => KENNUNG_MAX,
+        Some(w) => match ganz(w).and_then(|n| usize::try_from(n).ok()) {
+            Some(n) if (1..=KENNUNG_MAX).contains(&n) && pruefmodus => n,
+            _ => return ungueltig("lauf.nummer_max"),
+        },
+    };
+    let rahmen_max = match karte.get("rahmen_max") {
         None => NUMMER_MAX,
         Some(w) => match ganz(w).and_then(|n| usize::try_from(n).ok()) {
             Some(n) if (1..=NUMMER_MAX).contains(&n) && pruefmodus => n,
-            _ => return ungueltig("lauf.nummer_max"),
+            _ => return ungueltig("lauf.rahmen_max"),
         },
+    };
+    let Some(beendet_max) = testgrenze(karte.get("beendet_max"), BEENDET_MAX, pruefmodus) else {
+        return ungueltig("lauf.beendet_max");
     };
     let Ok(groesse) = groesse_lesen(&karte["groesse"]) else {
         return ungueltig("lauf.groesse");
@@ -378,7 +401,20 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
         marker_datei,
         marker_ordner,
         nummer_max,
+        rahmen_max,
+        beendet_max,
     })
+}
+
+/// A limit that only test mode may lower: missing gives `max`, otherwise a whole number from 1 to `max` in test mode; anything else is
+/// `None` (P26, `lauf.beendet_max`).
+fn testgrenze(wert: Option<&Value>, max: usize, pruefmodus: bool) -> Option<usize> {
+    let Some(w) = wert else {
+        return Some(max);
+    };
+    ganz(w)
+        .and_then(|n| usize::try_from(n).ok())
+        .filter(|n| (1..=max).contains(n) && pruefmodus)
 }
 
 /// `true` for an identifier of the form `s-<n>` (digits only): those belong to `Starten` (DI12).
@@ -1012,7 +1048,9 @@ mod tests {
             (l.groesse, l.einstellungen.as_str()),
             ((30, 9), "/etc/e.json")
         );
-        assert_eq!(l.nummer_max, NUMMER_MAX);
+        assert_eq!(l.nummer_max, KENNUNG_MAX);
+        assert_eq!(l.rahmen_max, NUMMER_MAX);
+        assert_eq!(l.beendet_max, BEENDET_MAX);
     }
 
     #[test]
@@ -1224,7 +1262,7 @@ mod tests {
     }
 
     #[test]
-    fn lauf_nummer_max_nur_im_pruefmodus_von_1_bis_255() {
+    fn lauf_nummer_max_nur_im_pruefmodus_von_1_bis_999999999() {
         let mit_max = |n: Value, pruefmodus: bool| {
             ohne_kind(|o| {
                 o.insert("pruefmodus".into(), json!(pruefmodus));
@@ -1242,12 +1280,12 @@ mod tests {
             1
         );
         assert_eq!(
-            mit_max(json!(255), true)
-                .expect("255")
+            mit_max(json!(999_999_999), true)
+                .expect("999999999")
                 .lauf
                 .expect("l")
                 .nummer_max,
-            255
+            999_999_999
         );
         assert_eq!(
             mit_max(json!(7), true)
@@ -1257,6 +1295,53 @@ mod tests {
                 .nummer_max,
             7
         );
+        for schlecht in [
+            json!(0),
+            json!(1_000_000_000),
+            json!(-1),
+            json!(1.5),
+            json!("3"),
+            json!(true),
+        ] {
+            rot(&mit_max(schlecht, true));
+        }
+        rot(&mit_max(json!(3), false));
+    }
+
+    #[test]
+    fn lauf_beendet_max_nur_im_pruefmodus_von_1_bis_256() {
+        let mit_max = |n: Value, pruefmodus: bool| {
+            ohne_kind(|o| {
+                o.insert("pruefmodus".into(), json!(pruefmodus));
+                let mut l = lauf_gut();
+                l["beendet_max"] = n;
+                o.insert("lauf".into(), l);
+            })
+        };
+        for gut in [1, 3, 256] {
+            let l = mit_max(json!(gut), true).expect("valid").lauf.expect("l");
+            assert_eq!(l.beendet_max, gut);
+        }
+        for schlecht in [json!(0), json!(257), json!(-1), json!(1.5), json!("3")] {
+            rot(&mit_max(schlecht, true));
+        }
+        rot(&mit_max(json!(3), false));
+    }
+
+    #[test]
+    fn lauf_rahmen_max_nur_im_pruefmodus_von_1_bis_255() {
+        let mit_max = |n: Value, pruefmodus: bool| {
+            ohne_kind(|o| {
+                o.insert("pruefmodus".into(), json!(pruefmodus));
+                let mut l = lauf_gut();
+                l["rahmen_max"] = n;
+                o.insert("lauf".into(), l);
+            })
+        };
+        for gut in [1, 7, 255] {
+            let l = mit_max(json!(gut), true).expect("valid").lauf.expect("l");
+            assert_eq!(l.rahmen_max, gut);
+        }
         for schlecht in [
             json!(0),
             json!(256),

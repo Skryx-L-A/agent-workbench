@@ -59,6 +59,25 @@ pub(crate) fn subreaper_werden() -> std::io::Result<()> {
     Ok(())
 }
 
+/// The fixed text of the start error when the subreaper cannot list its children (contract, section 17, point 1).
+pub(crate) const KINDER_FEHLT: &str = "Subreaper: children fehlt";
+
+/// Checks once at the start, after [`subreaper_werden`], that the service can list its children: the `children` file of the calling
+/// thread (`/proc/thread-self/children`, the same as `/proc/self/task/<tid>/children`) must be readable. Without it (a kernel without `CONFIG_PROC_CHILDREN`, a `/proc`
+/// with `hidepid` or without `task`) every hunt would end at its first look, silently (N1 of the review of 23.11.2026). `true`
+/// when the file can be read, or when the process is no subreaper (outside Linux, or a test that runs the service in its own
+/// process).
+pub(crate) fn kinder_lesbar() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        if ist_subreaper() {
+            // `/proc/thread-self` is `/proc/self/task/<tid>` of the calling thread (Linux 3.17)
+            return std::fs::read_to_string("/proc/thread-self/children").is_ok();
+        }
+    }
+    true
+}
+
 /// `true` once [`subreaper_werden`] succeeded (never outside Linux).
 pub(crate) fn ist_subreaper() -> bool {
     SUBREAPER.load(Ordering::SeqCst)
@@ -226,6 +245,21 @@ impl Waisen {
         }
         self.runde(eigene, &[], Instant::now());
     }
+}
+
+/// Ends children that a failed start leaves behind (DI8) and returns their pids: each child leads its session in the PTY, so its
+/// pid is the session id of its orphans. The pids are taken before the end. `Starten` hunts them in the loop (`Waisen::jagen`).
+pub(crate) fn kinder_verwerfen(kinder: Vec<traeger::Kind>) -> Vec<u32> {
+    let sids = kinder.iter().filter_map(traeger::Kind::pid).collect();
+    crate::sitzung::kinder_beenden(kinder);
+    sids
+}
+
+/// A start error of `Dienst::neu` after the child started (M1 of the review of 23.11.2026): ends the children and then hunts
+/// their orphans to the end (the whole order, at most [`JAGD_MAX`]) before the service ends with the error (section 17, point 8).
+pub(crate) fn start_verwerfen(kinder: Vec<traeger::Kind>) {
+    let sids = kinder_verwerfen(kinder);
+    Waisen::default().alle_beenden(&sids, &[]);
 }
 
 /// One pass over the adopted children; returns the session ids of the hunts that still saw a process of their session (alive,
@@ -517,5 +551,87 @@ mod tests {
         // WNOWAIT left the status to the owner of the child
         assert_eq!(kind.wait().expect("wait").code(), Some(9));
         assert!(blick.beendet(), "a collected child counts as ended");
+    }
+
+    /// Without the subreaper (a test in the process of other tests, every system but Linux) nothing is checked: the start goes on.
+    #[test]
+    fn ohne_subreaper_gilt_die_children_datei_als_lesbar() {
+        if !ist_subreaper() {
+            assert!(kinder_lesbar());
+        }
+        assert_eq!(KINDER_FEHLT, "Subreaper: children fehlt");
+    }
+
+    /// M1: a start error after the child started ends the child and then its orphans (section 17). The test runs alone in a
+    /// process of its own (the subreaper takes every orphan of the process; other tests may not share it): the outer call
+    /// starts the test binary again with only this test, the inner one does the work.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn start_verwerfen_beendet_auch_die_waisen_des_kindes() {
+        const ALLEIN: &str = "WB_DIENST_TEST_START_VERWERFEN";
+        if std::env::var_os(ALLEIN).is_none() {
+            let status = std::process::Command::new(std::env::current_exe().expect("test binary"))
+                .args([
+                    "--exact",
+                    "waisen::tests::start_verwerfen_beendet_auch_die_waisen_des_kindes",
+                    "--test-threads=1",
+                    "--nocapture",
+                ])
+                .env(ALLEIN, "1")
+                .status()
+                .expect("test process");
+            assert!(status.success(), "the inner test failed: {status:?}");
+            return;
+        }
+        subreaper_werden().expect("subreaper");
+        let ordner =
+            std::env::temp_dir().join(format!("dienst-start-verwerfen-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&ordner);
+        std::fs::create_dir(&ordner).expect("folder");
+        // the child ignores SIGHUP (so the orphan exists before `kinder_beenden` ends the child with SIGKILL) and leaves a
+        // SIGHUP-deaf orphan in its session; only the hunt ends that orphan, with SIGKILL after the second
+        let skript = "trap '' HUP\n( exec sleep 60 ) </dev/null >/dev/null 2>&1 &\necho $! > \"$1/w.tmp\"\n\
+                      mv \"$1/w.tmp\" \"$1/waise.pid\"\nexec sleep 60\n";
+        let kind = traeger::Kind::starten(traeger::Start {
+            argv: vec![
+                "/bin/sh".to_owned(),
+                "-c".to_owned(),
+                skript.to_owned(),
+                "sh".to_owned(),
+                ordner.to_string_lossy().into_owned(),
+            ],
+            env: vec![("PATH".to_owned(), "/usr/bin:/bin".to_owned())],
+            cwd: ordner.clone(),
+            spalten: 40,
+            zeilen: 10,
+            ruecklauf: 100,
+        })
+        .expect("child");
+        let ende = Instant::now() + Duration::from_secs(10);
+        let waise: u32 = loop {
+            if let Some(p) = std::fs::read_to_string(ordner.join("waise.pid"))
+                .ok()
+                .and_then(|t| t.trim().parse().ok())
+            {
+                break p;
+            }
+            assert!(Instant::now() < ende, "the orphan was not started");
+            std::thread::sleep(Duration::from_millis(5));
+        };
+        let halt = pidfd(waise).expect("pidfd of the orphan");
+        let lebt = |p: u32| {
+            rustix::process::Pid::from_raw(i32::try_from(p).expect("pid"))
+                .is_some_and(|p| rustix::process::test_kill_process(p).is_ok())
+        };
+        start_verwerfen(vec![kind]);
+        let weg = !lebt(waise);
+        // whatever the result: nothing of the test is left behind
+        let _ = rustix::process::pidfd_send_signal(halt.as_fd(), rustix::process::Signal::KILL);
+        let _ = std::fs::remove_dir_all(&ordner);
+        assert!(
+            weg,
+            "the orphan of the discarded child is gone: {:?}",
+            stand_von(waise)
+        );
     }
 }

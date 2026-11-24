@@ -21,15 +21,51 @@ pub fn token_aus_fragment(hash: &str) -> Option<String> {
         .then(|| t.to_owned())
 }
 
+/// The largest `n` of a frame on the stream: the art plus the bytes of the largest raster frame.
+///
+/// Contract `dienst` DI3 bounds only frames into the service (`n = 1 048 576`). The largest frame out is
+/// `Raster`, whose payload is a frame on the line after `RA`: at most [`rasterauszug::RAHMEN_MAX`] bytes (RA11).
+pub const N_MAX: usize = rasterauszug::RAHMEN_MAX + 1;
+
+/// Why the stream cannot be split any further; after it the stream must end.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ZerlegerFehler {
+    /// A head with `n = 0` (DI3 `laenge_ungueltig`).
+    LaengeUngueltig,
+    /// A head with `n` above [`N_MAX`] (DI3 `rahmen_zu_gross`).
+    RahmenZuGross,
+}
+
+impl ZerlegerFehler {
+    /// The fixed word of the error, the same as in `dienst` DI3.
+    #[must_use]
+    pub fn code(self) -> &'static str {
+        match self {
+            ZerlegerFehler::LaengeUngueltig => "laenge_ungueltig",
+            ZerlegerFehler::RahmenZuGross => "rahmen_zu_gross",
+        }
+    }
+}
+
 /// Splits the bytes of the stream into frames `[n: u32 big endian][art: u8][payload]` (contract `dienst` section 5).
 #[derive(Debug, Default)]
 pub struct Zerleger {
     puffer: Vec<u8>,
+    kaputt: Option<ZerlegerFehler>,
 }
 
 impl Zerleger {
     /// Takes a piece of the stream and returns the complete frames as (art, payload).
-    pub fn nimm(&mut self, stueck: &[u8]) -> Vec<(u8, Vec<u8>)> {
+    ///
+    /// # Errors
+    ///
+    /// [`ZerlegerFehler`] as soon as the four bytes of a head with `n = 0` or `n` above [`N_MAX`] are there; the
+    /// frames of the same piece before it are dropped with the stream. After an error the splitter keeps nothing
+    /// and returns the same error for every later piece.
+    pub fn nimm(&mut self, stueck: &[u8]) -> Result<Vec<(u8, Vec<u8>)>, ZerlegerFehler> {
+        if let Some(e) = self.kaputt {
+            return Err(e);
+        }
         self.puffer.extend_from_slice(stueck);
         let mut raus = Vec::new();
         let mut p = 0;
@@ -40,15 +76,31 @@ impl Zerleger {
                 self.puffer[p + 2],
                 self.puffer[p + 3],
             ]);
-            let Ok(n) = usize::try_from(n) else { break };
-            if n < 1 || self.puffer.len() - p < 4 + n {
+            // `n <= N_MAX` before any sum; `checked_add` still keeps a 32-bit `usize` (wasm32) from wrapping
+            let ende = match usize::try_from(n) {
+                Ok(0) => Err(ZerlegerFehler::LaengeUngueltig),
+                Ok(n) if n <= N_MAX => n
+                    .checked_add(4)
+                    .and_then(|l| l.checked_add(p))
+                    .ok_or(ZerlegerFehler::RahmenZuGross),
+                _ => Err(ZerlegerFehler::RahmenZuGross),
+            };
+            let ende = match ende {
+                Ok(ende) => ende,
+                Err(e) => {
+                    self.kaputt = Some(e);
+                    self.puffer = Vec::new();
+                    return Err(e);
+                }
+            };
+            if self.puffer.len() < ende {
                 break;
             }
-            raus.push((self.puffer[p + 4], self.puffer[p + 5..p + 4 + n].to_vec()));
-            p += 4 + n;
+            raus.push((self.puffer[p + 4], self.puffer[p + 5..ende].to_vec()));
+            p = ende;
         }
         self.puffer.drain(..p);
-        raus
+        Ok(raus)
     }
 }
 
@@ -233,8 +285,73 @@ mod tests {
     fn frames_in_any_pieces() {
         let mut z = Zerleger::default();
         let rahmen = [0, 0, 0, 3, 6, b'{', b'}', 0, 0, 0, 1, 5];
-        assert_eq!(z.nimm(&rahmen[..2]), Vec::new());
-        assert_eq!(z.nimm(&rahmen[2..9]), vec![(6, b"{}".to_vec())]);
-        assert_eq!(z.nimm(&rahmen[9..]), vec![(5, Vec::new())]);
+        assert_eq!(z.nimm(&rahmen[..2]), Ok(Vec::new()));
+        assert_eq!(z.nimm(&rahmen[2..9]), Ok(vec![(6, b"{}".to_vec())]));
+        assert_eq!(z.nimm(&rahmen[9..]), Ok(vec![(5, Vec::new())]));
+    }
+
+    #[test]
+    fn a_head_with_zero_or_above_the_bound_ends_the_stream() {
+        // n = 0: an error, not a silent stop; every later piece gets the same error
+        let mut z = Zerleger::default();
+        assert_eq!(
+            z.nimm(&[0, 0, 0, 0, 6]),
+            Err(ZerlegerFehler::LaengeUngueltig)
+        );
+        assert_eq!(
+            z.nimm(&[0, 0, 0, 1, 5]),
+            Err(ZerlegerFehler::LaengeUngueltig)
+        );
+        // n just above the largest frame: an error as soon as the four bytes of the head are there
+        let mut z = Zerleger::default();
+        let zu_gross = u32::try_from(N_MAX + 1).expect("fits");
+        assert_eq!(
+            z.nimm(&zu_gross.to_be_bytes()),
+            Err(ZerlegerFehler::RahmenZuGross)
+        );
+        // the n where `4 + n` wraps a 32-bit usize (wasm32), and the largest n of a u32: an error, never a panic
+        for n in [0xFFFF_FFFC_u32, u32::MAX] {
+            let mut z = Zerleger::default();
+            assert_eq!(z.nimm(&n.to_be_bytes()), Err(ZerlegerFehler::RahmenZuGross));
+        }
+        // a frame before the bad head in the same piece goes down with the stream
+        let mut z = Zerleger::default();
+        assert_eq!(
+            z.nimm(&[0, 0, 0, 1, 5, 0, 0, 0, 0]),
+            Err(ZerlegerFehler::LaengeUngueltig)
+        );
+        assert_eq!(ZerlegerFehler::LaengeUngueltig.code(), "laenge_ungueltig");
+        assert_eq!(ZerlegerFehler::RahmenZuGross.code(), "rahmen_zu_gross");
+    }
+
+    #[test]
+    fn a_head_at_the_bound_waits_for_its_payload() {
+        let mut z = Zerleger::default();
+        let n = u32::try_from(N_MAX).expect("fits");
+        assert_eq!(z.nimm(&n.to_be_bytes()), Ok(Vec::new()));
+        assert_eq!(z.nimm(&[5]), Ok(Vec::new()));
+        let nutz = vec![7; N_MAX - 1];
+        let (a, b) = nutz.split_at(N_MAX / 2);
+        assert_eq!(z.nimm(a), Ok(Vec::new()));
+        assert_eq!(z.nimm(b), Ok(vec![(5, nutz.clone())]));
+        assert_eq!(z.puffer, Vec::<u8>::new());
+    }
+
+    #[test]
+    fn a_head_outside_the_bound_keeps_no_buffer() {
+        // n = 0: the stream must not stop silently with every later frame stuck in the buffer
+        let mut z = Zerleger::default();
+        let _ = z.nimm(&[0, 0, 0, 0, 6]);
+        let _ = z.nimm(&[0, 0, 0, 1, 5]);
+        assert!(z.puffer.is_empty(), "n = 0 keeps {} bytes", z.puffer.len());
+        // a huge n: the buffer must not grow with every later piece
+        let mut z = Zerleger::default();
+        let _ = z.nimm(&0x7FFF_FFFF_u32.to_be_bytes());
+        let _ = z.nimm(&[0; 1000]);
+        assert!(
+            z.puffer.is_empty(),
+            "a huge n keeps {} bytes",
+            z.puffer.len()
+        );
     }
 }

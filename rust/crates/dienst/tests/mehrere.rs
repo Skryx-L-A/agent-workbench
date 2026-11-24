@@ -336,6 +336,121 @@ fn nach_dem_neustart_raeumt_der_dienst_die_alte_zielliste_der_nummer() {
     );
 }
 
+/// The names in a folder, sorted.
+fn namen_in(ordner: &Path) -> Vec<String> {
+    let mut namen: Vec<String> = std::fs::read_dir(ordner)
+        .expect("dir")
+        .map(|e| e.expect("entry").file_name().to_string_lossy().into_owned())
+        .collect();
+    namen.sort();
+    namen
+}
+
+/// DI12 point 15a together with P25 (Nachtrag 24.11.2026): the identifier and the raster number are handed out apart, and the old target
+/// list goes only with the identifier that is handed out. Run 1 (`rahmen_max` 2) ends `s-1` to `s-3`; `s-3` takes the raster number of
+/// `s-1` (red without P25: `nummern_erschoepft`). Run 2 (`nummer_max` 3) finds the three lists of run 1: `s-1` and `s-2` are handed out
+/// again (red without 15a: every identifier taken); with both raster numbers subscribed the start is refused and the old list of `s-3`
+/// stays untouched (red when 15a removes it before the refusal); once a viewer lets go, `s-3` gets raster number 1 and a new list.
+#[test]
+fn neustart_vergibt_kennung_mit_alter_zielliste_und_rasternummer_getrennt() {
+    let w = Wegwerf::neu("zielliste-rasternummer");
+    let ziellisten = w.0.join("ziellisten");
+    std::fs::create_dir(&ziellisten).expect("ziellisten");
+    std::fs::set_permissions(&ziellisten, std::fs::Permissions::from_mode(0o700)).expect("mode");
+    let skript = w.0.join("laufkind-zielliste.sh");
+    std::fs::write(
+        &skript,
+        format!(
+            "#!/bin/sh\nset -C\nfor f; do :; done\nsid=$(basename \"$(dirname \"$f\")\")\nprintf '{{\"sitzung\":\"%s\"}}\\n' \"$sid\" > \"{}/$sid.zielliste.json\" || exit 73\nexec {DIENST} --kind lauf \"$0\" \"$@\"\n",
+            ziellisten.display()
+        ),
+    )
+    .expect("script");
+    std::fs::set_permissions(&skript, std::fs::Permissions::from_mode(0o700)).expect("mode");
+    let plan = json!({"*": {"modus": "ende", "code": 0}});
+    let zusatz = |extra: Value| {
+        let mut l = json!({"programm": skript.to_string_lossy(), "ziellisten": ziellisten.to_string_lossy(), "rahmen_max": 2});
+        for (k, v) in extra.as_object().expect("object") {
+            l[k] = v.clone();
+        }
+        json!({"lauf": l})
+    };
+    let listen = [
+        "s-1.zielliste.json",
+        "s-2.zielliste.json",
+        "s-3.zielliste.json",
+    ];
+    // run 1: three sessions on two raster numbers
+    let mut p = Prozess::starten(&w, &lauf_start(&w, &plan, &zusatz(json!({}))));
+    let mut v = Probe::neu(&w.socket(), false);
+    for k in 1..=3 {
+        assert_eq!(
+            starte_bis_ende(&mut v),
+            format!("s-{k}"),
+            "run 1, start {k}"
+        );
+    }
+    assert_eq!(
+        nr_in_liste(&mut v, "s-3"),
+        json!(1),
+        "P25: s-3 takes the number of s-1"
+    );
+    drop(v);
+    p.signal("TERM");
+    assert_eq!(p.warte_ende(Duration::from_secs(15)), Some(0));
+    drop(p);
+    assert_eq!(namen_in(&ziellisten), listen, "every list of run 1 stays");
+    std::fs::write(ziellisten.join("s-3.zielliste.json"), b"ALT").expect("mark");
+    // run 2: the identifiers count from s-1 again, only three of them
+    let mut p = Prozess::starten(
+        &w,
+        &lauf_start(&w, &plan, &zusatz(json!({"nummer_max": 3}))),
+    );
+    let mut v = Probe::neu(&w.socket(), false);
+    assert_eq!(
+        starte_bis_ende(&mut v),
+        "s-1",
+        "15a: the old list of s-1 goes"
+    );
+    assert_eq!(
+        starte_bis_ende(&mut v),
+        "s-2",
+        "15a: the old list of s-2 goes"
+    );
+    for id in ["s-1", "s-2"] {
+        v.ereignis(&json!({"art": "Abo", "sitzung": id, "an": true, "spalten": 40, "zeilen": 10}));
+    }
+    assert_eq!(starten(&mut v, &gut()), Err(json!("nummern_erschoepft")));
+    assert_eq!(
+        std::fs::read(ziellisten.join("s-3.zielliste.json")).expect("old list of s-3"),
+        b"ALT",
+        "a refused start removes no list"
+    );
+    v.ereignis(&json!({"art": "Abo", "sitzung": "s-1", "an": false}));
+    let id = starten(&mut v, &gut()).expect("the start after the viewer let go");
+    assert_eq!(id, "s-3");
+    v.ereignis(&json!({"art": "Abo", "sitzung": "s-3", "an": true, "spalten": 40, "zeilen": 10}));
+    warte_bereit(&mut v, "s-3");
+    v.ereignis(&json!({"art": "Text", "sitzung": "s-3", "text": "g"}));
+    let s3 = warte_zustand(&mut v, "s-3", "beendet");
+    assert_eq!(
+        s3["code"],
+        json!(0),
+        "no code 73: the old list was gone before the child wrote"
+    );
+    assert_eq!(nr_in_liste(&mut v, "s-3"), json!(1));
+    assert_eq!(nr_in_liste(&mut v, "s-1"), json!(null));
+    assert_eq!(nr_in_liste(&mut v, "s-2"), json!(2));
+    drop(v);
+    p.signal("TERM");
+    assert_eq!(p.warte_ende(Duration::from_secs(15)), Some(0));
+    assert_eq!(namen_in(&ziellisten), listen);
+    assert_eq!(
+        std::fs::read(ziellisten.join("s-3.zielliste.json")).expect("new list"),
+        b"{\"sitzung\":\"s-3\"}\n"
+    );
+}
+
 #[test]
 fn beenden_trifft_mit_sigkill_auch_ein_kind_das_sighup_ignoriert() {
     let w = Wegwerf::neu("beenden");
@@ -554,4 +669,133 @@ fn neubau_baut_nur_den_kern_der_einen_sitzung() {
         !w.ordner().join("s-1").exists(),
         "the folders are removed at the end"
     );
+}
+
+/// Starts the next session, waits for `BEREIT`, sends the start byte (input needs an `Abo`, contract `zustandskern`), lets the
+/// subscription go again and waits for the end; returns the identifier. The session ends with no viewer subscribing it.
+fn starte_bis_ende(v: &mut Probe) -> String {
+    let id = starten(v, &gut()).expect("the start succeeds");
+    v.ereignis(&json!({"art": "Abo", "sitzung": id, "an": true, "spalten": 40, "zeilen": 10}));
+    warte_bereit(v, &id);
+    v.ereignis(&json!({"art": "Text", "sitzung": id, "text": "g"}));
+    v.ereignis(&json!({"art": "Abo", "sitzung": id, "an": false}));
+    warte_zustand(v, &id, "beendet");
+    // the probe keeps every message; only the last ones matter here
+    if v.nachrichten.len() > 64 {
+        let rest = v.nachrichten.split_off(v.nachrichten.len() - 8);
+        v.nachrichten = rest;
+    }
+    id
+}
+
+/// The raster number of a session in the last list (`null` once a later session took it).
+fn nr_in_liste(v: &mut Probe, id: &str) -> Value {
+    liste(v)
+        .into_iter()
+        .find(|s| s["id"] == id)
+        .map_or(json!("fehlt"), |s| s["nr"].clone())
+}
+
+/// P25 (Nachtrag 23.11.2026): a long run starts more than 255 sessions. The identifier comes from a wide counter and is never used again;
+/// the raster number (one byte) of an ended session that no viewer subscribes is handed out again, the one that ended first first.
+#[test]
+fn mehr_als_255_starts_in_einem_lauf() {
+    let w = Wegwerf::neu("nummern-256");
+    let start = lauf_start(&w, &json!({"*": {"modus": "ende", "code": 0}}), &json!({}));
+    let mut p = Prozess::starten(&w, &start);
+    let mut v = Probe::neu(&w.socket(), false);
+    for k in 1..=257_u32 {
+        assert_eq!(starte_bis_ende(&mut v), format!("s-{k}"), "start {k}");
+    }
+    assert_eq!(nr_in_liste(&mut v, "s-255"), json!(255));
+    assert_eq!(nr_in_liste(&mut v, "s-256"), json!(1));
+    assert_eq!(nr_in_liste(&mut v, "s-257"), json!(2));
+    // P26 (Projektentscheid, 23.11.2026): at most 256 ended sessions stay; the 257th end takes out s-1, which ended longest ago
+    assert_eq!(nr_in_liste(&mut v, "s-1"), json!("fehlt"));
+    assert_eq!(nr_in_liste(&mut v, "s-2"), json!(null));
+    assert_eq!(nr_in_liste(&mut v, "s-3"), json!(3));
+    assert_eq!(v.zustand()["dienst"]["gestartet"], json!(257));
+    p.signal("TERM");
+    assert_eq!(p.warte_ende(Duration::from_secs(30)), Some(0));
+}
+
+/// P25 (Nachtrag 5/7): a session that ends before any `Abo` keeps its number and its picture while numbers never handed out remain
+/// (a number handed out again at once is red); when a number is needed, the one of the session that ended first is taken (the
+/// latest first is red); from then on the old entry shows `nr: null`, an `Abo` on it is refused, and the first frame of the new
+/// session is a full picture (every connection forgot the number).
+#[test]
+fn nummer_bleibt_bis_zur_neuvergabe_in_der_reihenfolge_des_endes() {
+    let w = Wegwerf::neu("nummern-neuvergabe");
+    let plan = json!({"s-1": {"modus": "marke", "text": "eins", "sek": 0}, "s-2": {"modus": "marke", "text": "zwei", "sek": 0},
+                      "*": {"modus": "marke", "text": "drei", "sek": 60}});
+    let start = lauf_start(&w, &plan, &json!({"lauf": {"rahmen_max": 2}}));
+    let mut p = Prozess::starten(&w, &start);
+    let mut v = Probe::neu(&w.socket(), false);
+    assert_eq!(starte_bis_ende(&mut v), "s-1");
+    assert_eq!(starte_bis_ende(&mut v), "s-2");
+    // (a) a number never handed out comes first: s-2 has 2, s-1 keeps 1 and its picture
+    assert_eq!(nr_in_liste(&mut v, "s-1"), json!(1));
+    assert_eq!(nr_in_liste(&mut v, "s-2"), json!(2));
+    v.ereignis(&json!({"art": "Abo", "sitzung": "s-1", "an": true, "spalten": 40, "zeilen": 10}));
+    assert!(
+        warte_text(&mut v, "MARKE eins"),
+        "the ended s-1 shows its last picture"
+    );
+    v.ereignis(&json!({"art": "Abo", "sitzung": "s-1", "an": false}));
+    // (b) every number is handed out: the number of the session that ended first (s-1) goes to s-3
+    assert_eq!(starten(&mut v, &gut()).as_deref(), Ok("s-3"));
+    assert_eq!(nr_in_liste(&mut v, "s-3"), json!(1));
+    assert_eq!(nr_in_liste(&mut v, "s-1"), json!(null));
+    assert_eq!(nr_in_liste(&mut v, "s-2"), json!(2));
+    let n = v.ablehnungen.len();
+    v.ereignis(&json!({"art": "Abo", "sitzung": "s-1", "an": true, "spalten": 40, "zeilen": 10}));
+    assert!(v.warte(Duration::from_secs(10), |p| p.ablehnungen.len() > n));
+    assert_eq!(
+        v.ablehnungen.last().map(String::as_str),
+        Some("sitzung_ohne_nummer")
+    );
+    // the first frame of s-3 on this connection is a full picture: the receiver still holds the picture of s-1 under number 1
+    let (rahmen, fehler) = (v.rahmennummern.len(), v.rahmenfehler);
+    v.ereignis(&json!({"art": "Abo", "sitzung": "s-3", "an": true, "spalten": 40, "zeilen": 10}));
+    warte_bereit(&mut v, "s-3");
+    v.ereignis(&json!({"art": "Text", "sitzung": "s-3", "text": "g"}));
+    assert!(
+        warte_text(&mut v, "MARKE drei"),
+        "s-3 shows its own picture"
+    );
+    assert!(
+        !v.zeilen.iter().any(|z| z.contains("eins")),
+        "nothing of s-1 is left: {:?}",
+        v.zeilen
+    );
+    assert_eq!(v.rahmenfehler, fehler, "no frame was refused");
+    assert!(v.rahmennummern[rahmen..].iter().all(|n| *n == 1));
+    p.signal("TERM");
+    assert_eq!(p.warte_ende(Duration::from_secs(30)), Some(0));
+}
+
+/// P25 (Nachtrag 7 (c)): a subscribed number is never handed out again; with every number held, `Starten` ends with
+/// `nummern_erschoepft` (code and fixed text) and uses no identifier. Once the viewer lets go, the number goes to the next session.
+#[test]
+fn abonnierte_nummer_wird_nie_vergeben() {
+    let w = Wegwerf::neu("nummern-abonniert");
+    let plan = json!({"s-1": {"modus": "marke", "text": "eins", "sek": 0}, "*": {"modus": "marke", "text": "zwei", "sek": 60}});
+    let start = lauf_start(&w, &plan, &json!({"lauf": {"rahmen_max": 1}}));
+    let mut p = Prozess::starten(&w, &start);
+    let mut v = Probe::neu(&w.socket(), false);
+    assert_eq!(starten(&mut v, &gut()).as_deref(), Ok("s-1"));
+    v.ereignis(&json!({"art": "Abo", "sitzung": "s-1", "an": true, "spalten": 40, "zeilen": 10}));
+    warte_bereit(&mut v, "s-1");
+    v.ereignis(&json!({"art": "Text", "sitzung": "s-1", "text": "g"}));
+    warte_zustand(&mut v, "s-1", "beendet");
+    let n = v.nachrichten.len();
+    assert_eq!(starten(&mut v, &gut()), Err(json!("nummern_erschoepft")));
+    assert!(!v.nachrichten[n..].iter().any(|m| m["art"] == "Gestartet"));
+    assert_eq!(nr_in_liste(&mut v, "s-1"), json!(1));
+    v.ereignis(&json!({"art": "Abo", "sitzung": "s-1", "an": false}));
+    assert_eq!(starten(&mut v, &gut()).as_deref(), Ok("s-2"));
+    assert_eq!(nr_in_liste(&mut v, "s-2"), json!(1));
+    assert_eq!(nr_in_liste(&mut v, "s-1"), json!(null));
+    p.signal("TERM");
+    assert_eq!(p.warte_ende(Duration::from_secs(30)), Some(0));
 }

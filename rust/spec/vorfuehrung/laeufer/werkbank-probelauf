@@ -28,10 +28,15 @@ Ablauf:
  3. Danach laeuft
         python3 -I -B /usr/lib/werkbank/probelauf/drehbuch.py probelauf --ergebnis <datei> \\
             --konfig /usr/share/werkbank/probelauf/konfig.json
-    Dessen Exitcode 0, 1, 2 oder 3 wird weitergegeben; jeder andere Wert (etwa ein Signal) wird 3.
+    Dessen Exitcode 0 bis 4 wird weitergegeben; endet der Laeufer durch SIGINT, SIGTERM oder SIGHUP, gilt 128 + Signal
+    (130, 143, 129, Projektentscheid, 23.11.2026, `exitcode_des_laeufers`); jeder andere Wert wird 3.
+    Solange der Laeufer laeuft, ignoriert der Befehl SIGINT (Strg-C trifft den Laeufer ueber die Vordergrundgruppe) und reicht
+    SIGTERM und SIGHUP an ihn weiter. Er wartet ohne Frist auf dessen Ende und toetet ihn nie selbst, damit der Laeufer
+    Markerdatei, Dienste und Kern fertig aufraeumt.
 
 Exitcodes: 0 gruen; 1 ein Schritt rot oder offen; 2 falscher Aufruf (es entsteht keine Datei);
-3 Aufbau oder Einrichtung gescheitert; 5 der Schutz vor einem Kernabbild laesst sich nicht herstellen (fail closed, Schritt 0); 4 nur mit --nur-cloud (Messbetrieb, Teilumfang ohne roten Schritt; mit
+3 Aufbau oder Einrichtung gescheitert; 129, 130, 143 der Laeufer endete durch SIGHUP, SIGINT oder SIGTERM (keine Ergebnisdatei
+zugesagt); 5 der Schutz vor einem Kernabbild laesst sich nicht herstellen (fail closed, Schritt 0); 4 nur mit --nur-cloud (Messbetrieb, Teilumfang ohne roten Schritt; mit
 rotem Schritt 1; nie 0).
 
 Nur fuer Tests (reine Testhilfen, im Betrieb nicht setzen):
@@ -48,6 +53,7 @@ import json
 import json.decoder
 import os
 import re
+import signal
 import stat as _stat
 import subprocess
 import sys
@@ -69,6 +75,10 @@ S_SCHREIBEN = "Die Einrichtung konnte nicht geschrieben werden."
 S_ABBRUCH = "Die Eingabe wurde abgebrochen. Die Einrichtung ist abgebrochen."
 S_SCHUTZ = "Der Prozess laesst sich nicht gegen ein Kernabbild schuetzen. Der Probelauf ist abgebrochen."
 PR_GET_DUMPABLE, PR_SET_DUMPABLE = 3, 4
+# Exitcodes des Laeufers, die der Befehl unveraendert durchgibt. Die einzige Stelle der Abbildung (Projektentscheid, 23.11.2026).
+CODES_DES_DREHBUCHS = (0, 1, 2, 3, 4)
+WEITERGEREICHT = (signal.SIGTERM, signal.SIGHUP)  # an den Laeufer; SIGINT trifft ihn ueber die Vordergrundgruppe
+CODES_NACH_SIGNAL = {128 + s: s for s in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)}  # 130, 143, 129
 
 
 class Ende(Exception):
@@ -400,11 +410,52 @@ def main(argv):
         cmd = [sys.executable, "-I", "-B", drehbuch, "probelauf", "--ergebnis", args.ergebnis, "--konfig", konfig]
         if args.nur_cloud:
             cmd.append("--nur-cloud")
-        code = subprocess.call(cmd)
+        code = laeufer_ausfuehren(cmd)
     except OSError:
         print("Der Probelauf konnte nicht gestartet werden.", file=sys.stderr)
         return 3
-    return code if code in (0, 1, 2, 3, 4) else 3
+    return exitcode_des_laeufers(code)
+
+
+def exitcode_des_laeufers(code):
+    """Exitcode des Befehls aus dem Code des Laeufers (`Popen.returncode`; -n heisst: durch Signal n beendet)."""
+    if code is not None and code < 0 and 128 - code in CODES_NACH_SIGNAL:
+        code = 128 - code
+    if code in CODES_DES_DREHBUCHS or code in CODES_NACH_SIGNAL:
+        return code
+    return 3
+
+
+def laeufer_ausfuehren(cmd):
+    """Startet den Laeufer und wartet ohne Frist auf sein Ende. Statt `subprocess.call`: das toetet das Kind nach Strg-C
+    nach 0,25 s mit SIGKILL, mitten im Aufraeumen (Befund B1). Der Befehl toetet den Laeufer nie selbst."""
+    kind = None
+    vorgemerkt = []
+
+    def weiterreichen(n, _frame):
+        if kind is None:
+            vorgemerkt.append(n)  # kam vor dem Start an: nach dem Start nachreichen
+        elif kind.returncode is None:
+            try:
+                kind.send_signal(n)
+            except OSError:
+                pass
+
+    alt = {signal.SIGINT: signal.signal(signal.SIGINT, signal.SIG_IGN)}
+    try:
+        for s in WEITERGEREICHT:
+            alt[s] = signal.signal(s, weiterreichen)
+        # Das Kind erbte SIG_IGN fuer SIGINT; es bekommt den Standard zurueck, damit Python dort wieder KeyboardInterrupt
+        # einrichtet und der Laeufer seine eigenen Handler setzt.
+        kind = subprocess.Popen(cmd, preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_DFL))
+        for n in vorgemerkt:
+            weiterreichen(n, None)
+        while kind.returncode is None:
+            kind.wait()  # ohne Frist; PEP 475 setzt den Aufruf nach einem Handler fort
+        return kind.returncode
+    finally:
+        for s, h in alt.items():
+            signal.signal(s, h)
 
 
 if __name__ == "__main__":

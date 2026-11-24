@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import unicodedata
 
 NULL64 = "0" * 64
 
@@ -498,21 +499,48 @@ def kinder_zahl(proc_wurzel, pid):
 DIAGNOSE_GRENZE = 65536  # Bytes der Datei; der Rest wird abgeschnitten
 DIAGNOSE_ENDUNG = ".diagnose"
 FESTER_CODE = re.compile(r"^[a-z][a-z0-9._-]{0,63}$")  # Form eines festen Codes (`ziel.aufbau`, `s1.zug_frist`)
+_DIAGNOSE_MASKE = {"\\": "\\\\", "\n": "\\n", "\r": "\\r"}
 _diagnose_zeilen = []
 _diagnose_stand = {"zuletzt": None}  # "angelegt", "nicht angelegt" oder None (nichts zu schreiben)
+# Teilzeiten (an earlier work item, 23.11.): feste Namen und Sekunden. Sie stehen in einer eigenen Liste und kommen nur mit in die
+# Diagnosedatei, wenn es dort ohnehin andere Zeilen gibt; ein gruener Lauf legt deshalb weiter keine Datei an. Nie in Ergebnisdatei,
+# Bericht oder Konsole.
+_teilzeiten = []
 
 
 def diagnose_leeren():
     """Beginn eines Laufs: nichts aus einem frueheren Lauf bleibt stehen."""
     del _diagnose_zeilen[:]
+    del _teilzeiten[:]
     _diagnose_stand["zuletzt"] = None
+
+
+def teilzeit_notiere(name, sekunden):
+    """Merkt eine Teilzeit: `name` ist ein fester Code (`s1.zug1.fertig`), `sekunden` eine Zahl. Anderes wird nicht gemerkt, so kommt
+    nur ein fester Name mit einer Zahl in die Datei. Ein zweiter Wert unter demselben Namen ersetzt den ersten."""
+    if not (isinstance(name, str) and FESTER_CODE.match(name)):
+        return
+    if isinstance(sekunden, bool) or not isinstance(sekunden, (int, float)) or sekunden != sekunden:
+        return
+    for i, (n, _) in enumerate(_teilzeiten):
+        if n == name:
+            _teilzeiten[i] = (name, float(sekunden))
+            return
+    _teilzeiten.append((name, float(sekunden)))
+
+
+def teilzeiten():
+    """Die gemerkten Teilzeiten als Liste von (name, sekunden), in der Reihenfolge der Messung."""
+    return list(_teilzeiten)
 
 
 def diagnose_notiere(ort, text):
     """Merkt einen Text mit veraenderlichem Inhalt fuer die Diagnosedatei. `ort` ist ein fester Name der Stelle. Der Text kommt nie in
-    Ergebnisdatei, Bericht oder Konsole."""
+    Ergebnisdatei, Bericht oder Konsole. Jedes Steuerzeichen (Unicode-Kategorie Cc, etwa ESC) steht maskiert da (`\\n`, `\\r`, sonst
+    `\\xNN`): `cat` der Datei in einem Terminal fuehrt keine Folge aus (Befund 5)."""
     roh = "%s" % (text,)
-    _diagnose_zeilen.append("%s: %s" % (ort, roh.replace("\\", "\\\\").replace("\n", "\\n").replace("\r", "\\r")))
+    _diagnose_zeilen.append("%s: %s" % (ort, "".join(_DIAGNOSE_MASKE.get(c) or ("\\x%02x" % ord(c) if unicodedata.category(c) == "Cc" else c)
+                                                     for c in roh)))
 
 
 def fester_code(text, ersatz):
@@ -525,8 +553,12 @@ def diagnose_schreibe(ergebnis_pfad):
     nicht anlegen, auch weil der Name schon vergeben ist) oder None (nichts zu schreiben). Merkt sich den Wert fuer `diagnose_zeile`."""
     if not _diagnose_zeilen:
         _diagnose_stand["zuletzt"] = None
-        return None
-    inhalt = ("\n".join(_diagnose_zeilen) + "\n").encode("utf-8", "replace")[:DIAGNOSE_GRENZE]
+        return None  # Teilzeiten allein legen keine Datei an
+    # Die Teilzeiten stehen am Ende; die Grenze kuerzt zuerst die anderen Zeilen, damit sie nie abgeschnitten werden.
+    zeiten = "".join("teilzeit.%s: %.3f\n" % (n, t) for n, t in _teilzeiten).encode("ascii")
+    rest = ("\n".join(_diagnose_zeilen) + "\n").encode("utf-8", "replace")[:max(0, DIAGNOSE_GRENZE - len(zeiten))]
+    rest = rest.decode("utf-8", "ignore").encode("utf-8")  # kein halbes Zeichen am Schnitt: die Datei bleibt gueltiges UTF-8
+    inhalt = rest + zeiten
     flaggen = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
     alt = os.umask(0o077)
     try:

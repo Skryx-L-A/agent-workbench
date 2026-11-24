@@ -12,7 +12,7 @@
 use std::fs;
 use std::io::ErrorKind;
 use std::os::fd::{BorrowedFd, OwnedFd};
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::os::unix::fs::MetadataExt;
 use std::os::unix::net::UnixListener;
 use std::path::Path;
 
@@ -163,11 +163,64 @@ pub(crate) fn socket_gebunden(pfad: &Path, wurzel: BorrowedFd<'_>) -> Result<Own
     let adresse =
         SocketAddrUnix::new(pfad).map_err(|e| StartFehler::neu(1, &format!("bind: {e}")))?;
     bind(&fd, &adresse).map_err(|e| StartFehler::neu(1, &format!("bind: {e}")))?;
-    if let Err(e) = fs::set_permissions(pfad, fs::Permissions::from_mode(SOCKET_MODUS)) {
+    if socket_modus_setzen(pfad, wurzel).is_err() {
         socket_entfernen(pfad, wurzel);
-        return Err(StartFehler::neu(1, &format!("chmod: {}", e.kind())));
+        return Err(StartFehler::neu(1, "chmod: kein Socket ohne Link"));
     }
     Ok(fd)
+}
+
+/// Sets the mode 0600 on the name of the socket inside the held folder `wurzel` without following a link, and checks afterwards with
+/// `lstat` through the same descriptor that the name is a socket with mode 0600 (the same way as `modus_setzen` of the report socket,
+/// N3 of the review of 23.11.2026): a process of the same user that puts a link in place of the socket between `bind` and this call
+/// changes no other file, and the start fails.
+///
+/// Linux: the name is opened with `O_PATH | O_NOFOLLOW` below `wurzel` (a link fails with `ELOOP`), the descriptor must be a socket,
+/// and the mode is set through `/proc/self/fd/<n>`, which names exactly that inode (`rustix` 1.1.6 refuses `AT_SYMLINK_NOFOLLOW` for
+/// `fchmodat` under Linux). Elsewhere `fchmodat` with `AT_SYMLINK_NOFOLLOW` changes a link itself, never its target.
+fn socket_modus_setzen(pfad: &Path, wurzel: BorrowedFd<'_>) -> Result<(), ()> {
+    use rustix::fs::{AtFlags, FileType, Mode, statat};
+    let name = pfad.file_name().ok_or(())?;
+    #[cfg(target_os = "linux")]
+    {
+        use rustix::fs::{OFlags, openat};
+        use std::os::fd::AsRawFd;
+        use std::os::unix::fs::PermissionsExt;
+        let fd = openat(
+            wurzel,
+            name,
+            OFlags::PATH | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::empty(),
+        )
+        .map_err(|_| ())?;
+        let st = rustix::fs::fstat(&fd).map_err(|_| ())?;
+        if FileType::from_raw_mode(st.st_mode) != FileType::Socket {
+            return Err(());
+        }
+        fs::set_permissions(
+            format!("/proc/self/fd/{}", fd.as_raw_fd()),
+            fs::Permissions::from_mode(SOCKET_MODUS),
+        )
+        .map_err(|_| ())?;
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        rustix::fs::chmodat(
+            wurzel,
+            name,
+            Mode::RUSR | Mode::WUSR,
+            AtFlags::SYMLINK_NOFOLLOW,
+        )
+        .map_err(|_| ())?;
+    }
+    let st = statat(wurzel, name, AtFlags::SYMLINK_NOFOLLOW).map_err(|_| ())?;
+    if FileType::from_raw_mode(st.st_mode) == FileType::Socket
+        && Mode::from_raw_mode(st.st_mode) == Mode::RUSR | Mode::WUSR
+    {
+        Ok(())
+    } else {
+        Err(())
+    }
 }
 
 /// Starts to listen on a bound socket whose mode is 0600 already.
@@ -206,6 +259,7 @@ pub fn socket_binden(pfad: &Path, wurzel: BorrowedFd<'_>) -> Result<UnixListener
 mod tests {
     use super::*;
     use std::os::fd::AsFd;
+    use std::os::unix::fs::PermissionsExt;
     use std::os::unix::fs::symlink;
     use std::path::PathBuf;
 
@@ -374,6 +428,40 @@ mod tests {
         let hoerer = hoeren(fd, &pfad, wurzel.as_fd()).expect("listen");
         std::os::unix::net::UnixStream::connect(&pfad).expect("connect after listen");
         drop(hoerer);
+    }
+
+    /// The mode of the service socket is set on the name itself: a link in place of the socket is refused, and the mode of its target stays.
+    #[test]
+    fn socket_modus_setzen_folgt_keinem_link() {
+        let w = Wegwerf::neu("link");
+        let o = w.ordner("o", 0o700);
+        let wurzel = ordner_oeffnen(&o, euid()).expect("open");
+        let ziel = w.unter("ziel");
+        fs::write(&ziel, b"x").expect("target");
+        fs::set_permissions(&ziel, fs::Permissions::from_mode(0o644)).expect("chmod");
+        let link = o.join("s.sock");
+        symlink(&ziel, &link).expect("link");
+        assert_eq!(socket_modus_setzen(&link, wurzel.as_fd()), Err(()));
+        let modus = fs::metadata(&ziel).expect("target").mode() & 0o7777;
+        assert_eq!(modus, 0o644, "the target keeps its mode");
+        // a plain file is no socket either, and a missing name fails
+        let datei = o.join("datei");
+        fs::write(&datei, b"").expect("file");
+        fs::set_permissions(&datei, fs::Permissions::from_mode(0o644)).expect("chmod");
+        assert_eq!(socket_modus_setzen(&datei, wurzel.as_fd()), Err(()));
+        assert_eq!(
+            socket_modus_setzen(&o.join("fehlt"), wurzel.as_fd()),
+            Err(())
+        );
+        // a real socket gets 0600
+        let _hoerer = UnixListener::bind(o.join("echt.sock")).expect("bind");
+        fs::set_permissions(o.join("echt.sock"), fs::Permissions::from_mode(0o755)).expect("chmod");
+        assert_eq!(
+            socket_modus_setzen(&o.join("echt.sock"), wurzel.as_fd()),
+            Ok(())
+        );
+        let meta = fs::symlink_metadata(o.join("echt.sock")).expect("meta");
+        assert_eq!(meta.mode() & 0o7777, 0o600);
     }
 
     #[test]

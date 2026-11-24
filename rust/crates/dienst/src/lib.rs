@@ -49,8 +49,8 @@ pub use fehler::StartFehler;
 pub use kindprogramm::lauf as kindprogramm;
 pub use rechte::{ORDNER_MODUS, SOCKET_MODUS, rechte_pruefen, socket_binden};
 pub use startdatei::{
-    KLEINSTE_SPALTEN, Lauf, MAX_START, NUMMER_MAX, SOCKET_PFAD_MAX, Startdatei, WARTESCHLANGE_MAX,
-    lesen, pruefen,
+    KENNUNG_MAX, KLEINSTE_SPALTEN, Lauf, MAX_START, NUMMER_MAX, SOCKET_PFAD_MAX, Startdatei,
+    WARTESCHLANGE_MAX, lesen, pruefen,
 };
 
 /// The whole program with the arguments after the program name; returns the exit code.

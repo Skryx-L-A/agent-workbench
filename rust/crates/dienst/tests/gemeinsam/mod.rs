@@ -257,6 +257,10 @@ pub struct Probe {
     pub zustaende: Vec<Value>,
     pub quittungen: usize,
     pub rahmen: usize,
+    /// Raster frames the receiver refused (RA10), e.g. a change without a full picture before it.
+    pub rahmenfehler: usize,
+    /// The raster number of every raster frame the receiver took, in order.
+    pub rahmennummern: Vec<u8>,
     pub ende: bool,
 }
 
@@ -290,6 +294,8 @@ impl Probe {
             zustaende: Vec::new(),
             quittungen: 0,
             rahmen: 0,
+            rahmenfehler: 0,
+            rahmennummern: Vec::new(),
             ende: false,
         }
     }
@@ -371,11 +377,13 @@ impl Probe {
             self.puffer.drain(..4 + n);
             self.rahmen += 1;
             match art {
-                0x05 => {
-                    if let Ok((_, abbild)) = self.empfang.nimm(&nutzlast) {
+                0x05 => match self.empfang.nimm(&nutzlast) {
+                    Ok((auszug, abbild)) => {
+                        self.rahmennummern.push(auszug.nr);
                         self.zeilen = abbild.lines.iter().map(|z| zeile_schreiben(z)).collect();
                     }
-                }
+                    Err(_) => self.rahmenfehler += 1,
+                },
                 0x11 => self.quittungen += 1,
                 0x06 | 0x07 | 0x08 | 0x12 => {
                     let wert: Value = serde_json::from_slice(&nutzlast).unwrap_or(Value::Null);

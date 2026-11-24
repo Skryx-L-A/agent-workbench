@@ -11,6 +11,7 @@ import os
 import pty
 import select
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -458,6 +459,83 @@ class TestProbelaufAufruf(Basis):
                     treffer.append(pfad)
         self.assertEqual(sorted(treffer), sorted([self.einst, self.schl]))
         self.assertEqual(lies(self.erg).count(TEST_SCHLUESSEL.encode()), 0)
+
+
+SIGNAL_ATTRAPPE = """\
+import os, signal, sys, time
+def ende(n, _f):
+    time.sleep(1.0)  # Aufraeumen dauert laenger als die 0,25 s, die subprocess.call nach Strg-C wartet
+    open(os.environ["ATTRAPPE_PROTOKOLL"] + ".aufgeraeumt", "w").close()
+    sys.exit(128 + n)
+for s in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+    signal.signal(s, ende)
+open(os.environ["ATTRAPPE_PROTOKOLL"] + ".bereit", "w").close()
+time.sleep(30)
+sys.exit(0)
+"""
+
+
+class Signale(Basis):
+    """Befund B1 und B8: Der Befehl laesst den Laeufer fertig aufraeumen und gibt 128 + Signal durch
+    (Projektentscheid, 23.11.2026). Signale gehen nur an eigene Kindprozesse in einer eigenen Sitzung."""
+
+    def starte(self):
+        with open(self.attrappe, "w") as f:
+            f.write(SIGNAL_ATTRAPPE)
+        fd = os.open(self.schl, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)  # eingerichtet: keine Abfrage
+        os.write(fd, (TEST_SCHLUESSEL + "\n").encode())
+        os.close(fd)
+        p = subprocess.Popen([sys.executable, "-B", BEFEHL, "--ergebnis", self.erg], env=self.umgebung(),
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+        self.addCleanup(self.aufraeumen, p)
+        ende = time.monotonic() + 10
+        while not os.path.exists(self.protokoll + ".bereit"):
+            self.assertLess(time.monotonic(), ende, "Attrappe nicht bereit")
+            self.assertIsNone(p.poll(), "der Befehl endete vor dem Laeufer")
+            time.sleep(0.05)
+        return p
+
+    @staticmethod
+    def aufraeumen(p):
+        try:
+            os.killpg(p.pid, signal.SIGKILL)  # die eigene Gruppe, auch ein verwaister Laeufer
+        except (ProcessLookupError, PermissionError):
+            pass
+        p.wait()
+
+    def pruefe(self, p, soll):
+        p.wait(timeout=10)
+        self.assertTrue(os.path.exists(self.protokoll + ".aufgeraeumt"), "der Wrapper hat den Laeufer im Aufraeumen getoetet")
+        self.assertEqual(p.returncode, soll, "128 + Signal, nicht 3: nach einem Signal gibt es keine Ergebnisdatei")
+
+    def test_strg_c_laesst_den_laeufer_fertig_aufraeumen(self):
+        p = self.starte()
+        os.killpg(p.pid, signal.SIGINT)  # Strg-C trifft die ganze Vordergrundgruppe
+        self.pruefe(p, 130)
+
+    def test_sigterm_an_den_befehl_geht_an_den_laeufer(self):
+        p = self.starte()
+        os.kill(p.pid, signal.SIGTERM)  # nur der Befehl, etwa `kill <pid>`
+        self.pruefe(p, 143)
+
+    def test_sighup_an_den_befehl_geht_an_den_laeufer(self):
+        p = self.starte()
+        os.kill(p.pid, signal.SIGHUP)
+        self.pruefe(p, 129)
+
+    def test_sighup_an_die_gruppe_raeumt_einmal_auf(self):
+        p = self.starte()
+        os.killpg(p.pid, signal.SIGHUP)  # ssh-Abbruch: Gruppe und Weiterreichen, der Laeufer bekommt es zweimal
+        self.pruefe(p, 129)
+
+    def test_abbildung_der_exitcodes(self):
+        mod = lade_modul()
+        faelle = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 3, 7: 3, 129: 129, 130: 130, 143: 143, 137: 3,
+                  -signal.SIGINT: 130, -signal.SIGTERM: 143, -signal.SIGHUP: 129, -signal.SIGKILL: 3}
+        for code, soll in faelle.items():
+            with self.subTest(code=code):
+                self.assertEqual(mod.exitcode_des_laeufers(code), soll)
 
 
 if __name__ == "__main__":

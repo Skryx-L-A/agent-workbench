@@ -28,7 +28,20 @@ import zlib
 RAHMEN_MAX = 16_777_216            # laengster Rasterrahmen nach dem Entpacken (RA11)
 STROM_N_MAX = RAHMEN_MAX + 1024    # groesstes `n` eines Rahmens auf der Leitung; mehr ist `rahmen.zu_gross`
 KENNUNG = re.compile(r"^[0-9a-f]{32}$")
-SITZUNG = re.compile(r"^s-([0-9]{1,3})$")
+SITZUNG = re.compile(r"^s-([0-9]{1,20})$")  # Kennung einer Sitzung; die Zahl haengt nicht an der Rahmennummer und kann ueber 255 wachsen
+NR_MAX = 255  # Rahmennummer (Kanal des Rasterauszugs): Feld `nr` je Eintrag der Sitzungsliste, 0 bis 255 oder null (Weg A, Projektentscheid, 23.11.2026)
+
+
+def nr_aus_eintrag(e):
+    """Die Rahmennummer aus einem Eintrag der Sitzungsliste: eine ganze Zahl von 0 bis 255, sonst None. `nr: null` heisst: die Nummer wurde
+    neu vergeben, kein Rahmen gehoert mehr zu der Sitzung. Fehlt der Schluessel `nr` (Einzelbetrieb ohne `lauf`, Liste des Kerns), gilt 0
+    (Vertrag `dienst`, Abschnitt 19; 23.11.2026). Ein anders geformtes Feld ergibt None: die Sitzung hat fuer den Laeufer kein Bild."""
+    if not isinstance(e, dict):
+        return None
+    if "nr" not in e:
+        return 0
+    nr = e["nr"]
+    return nr if isinstance(nr, int) and not isinstance(nr, bool) and 0 <= nr <= NR_MAX else None
 
 
 class StromFehler(Exception):
@@ -235,6 +248,11 @@ class Rasterleser:
         self.bilder[nr] = neu
         return nr, neu, schub
 
+    def vergiss(self, nr):
+        """Die Nummer ist frei oder gehoert jetzt einer anderen Sitzung: Ihr Bild ist vergessen, der naechste Rahmen muss ein voller Abzug sein
+        (sonst `rahmen_dekodieren`: Aenderung ohne Abzug). Der Deflate-Kontext gehoert der Verbindung, nicht der Nummer (RA11), und bleibt."""
+        self.bilder.pop(nr, None)
+
 
 # --- Verlauf aus den Rasterrahmen -----------------------------------------------------------------------------------------
 def _breite(text):
@@ -353,8 +371,9 @@ class Strom:
         self.fehler = None            # StromFehler oder None
         self.zu = False               # die Verbindung ist zu (vom Dienst, von uns oder wegen eines Fehlers)
         self.selbst_zu = False
-        self.protokolle = protokolle  # nr -> Protokoll; gehoert der Bruecke und ueberlebt die Verbindung
+        self.protokolle = protokolle  # Kennung der Sitzung -> Protokoll; gehoert der Bruecke und ueberlebt die Verbindung
         self.sitzungen = {}           # id -> Eintrag der letzten `Sitzungsliste`
+        self.sid_je_nr = {}           # Rahmennummer -> Kennung, nach dem Feld `nr` der letzten `Sitzungsliste`
         self.liste_da = False
         self.ablehnungen = []         # [(grund, code)] der Rahmen Art 7
         self.rahmen_je_nr = {}
@@ -420,11 +439,23 @@ class Strom:
         if art == 5:
             nr, bild, schub = self.leser.nimm(nutz)
             self.rahmen_je_nr[nr] = self.rahmen_je_nr.get(nr, 0) + 1
-            self.protokolle.setdefault(nr, Protokoll()).aktualisiere(bild, schub)
+            sid = self.sid_je_nr.get(nr)
+            if sid is not None:  # der Verlauf gehoert der Kennung, nie der Nummer: er traegt nie Zeilen einer anderen Sitzung
+                self.protokolle.setdefault(sid, Protokoll()).aktualisiere(bild, schub)
         elif art == 6:
             m = self._json(nutz)
             if m.get("art") == "Sitzungsliste" and isinstance(m.get("sitzungen"), list):
                 self.sitzungen = {e["id"]: e for e in m["sitzungen"] if isinstance(e, dict) and isinstance(e.get("id"), str)}
+                neu = {}
+                for sid, e in self.sitzungen.items():
+                    nr = nr_aus_eintrag(e)
+                    if nr is not None:
+                        neu[nr] = sid
+                for nr, sid in self.sid_je_nr.items():
+                    if neu.get(nr) != sid:  # Nummer frei (`nr: null`) oder wiederverwendet: Bild und Zaehler der alten Sitzung vergessen
+                        self.leser.vergiss(nr)
+                        self.rahmen_je_nr.pop(nr, None)
+                self.sid_je_nr = neu
                 self.liste_da = True
         elif art == 7:
             m = self._json(nutz)
@@ -530,9 +561,14 @@ class Bruecke:
         return code
 
     @staticmethod
-    def _nr(sid):
-        m = SITZUNG.match(sid or "")
-        return int(m.group(1)) if m else None
+    def _nr(st, sid, frist_s=2.0):
+        """Die Rahmennummer der Sitzung aus dem Feld `nr` der Sitzungsliste (nie aus der Kennung). Steht die Sitzung noch nicht in der Liste,
+        wartet der Aufruf bis `frist_s`. None: unbekannt oder `nr: null` (kein Bild). Der Aufrufer haelt `st.lock` nicht."""
+        ende = time.monotonic() + frist_s
+        with st.lock:
+            while sid not in st.sitzungen and not st.zu and time.monotonic() < ende:
+                st.lock.wait(0.05)
+            return nr_aus_eintrag(st.sitzungen.get(sid))
 
     def _abonniere(self, st, sid):
         with self._sperre:
@@ -564,7 +600,9 @@ class Bruecke:
         return code, antw, t0
 
     def sitzung(self, sid, frist_s=2.0):
-        """Die Sitzung aus der letzten `Sitzungsliste`: `start` (harness, modell, route, kunde), `zustand` (laeuft, beendet), `code`.
+        """Die Sitzung aus der letzten `Sitzungsliste`: `start` (harness, modell, route, kunde), `zustand` (laeuft, beendet), `code` und
+        `grund` (der Grund aus der Zeile von `lauf`, DI12 Punkt 5 und Abschnitt 18 des Vertrags `dienst`; None, wenn der Eintrag keinen traegt).
+        `grund` ist Text aus einer Antwort: Wer ihn ausgibt, macht ihn vorher zum festen Code (`messen.fester_code`).
         Ist sie noch nicht in der Liste, wartet der Aufruf bis `frist_s`."""
         st = self._offen()
         ende = time.monotonic() + frist_s
@@ -575,7 +613,7 @@ class Bruecke:
         if e is None:
             return {"error": "unbekannt"}
         return {"sitzung": sid, "start": {n: e.get(n) for n in ("harness", "modell", "route", "kunde")},
-                "zustand": e.get("zustand"), "code": e.get("code", 0)}
+                "zustand": e.get("zustand"), "code": e.get("code", 0), "grund": e.get("grund")}
 
     def sitzungs_ids(self, frist_s=3.0):
         """Menge der Kennungen aller Sitzungen der letzten `Sitzungsliste` (auch beendete); None, wenn die Liste nicht innerhalb von `frist_s`
@@ -601,11 +639,16 @@ class Bruecke:
 
     def raster(self, sid):
         """Das Bild der Sitzung: `zeilen` (alle Zeilen als Klartext), `cursor` (`[zeile, spalte, sichtbar]`), `stand`, `groesse`, `rahmen`
-        (Zahl der bisher angenommenen Rahmen). Vor dem ersten Rahmen ist `zeilen` leer."""
+        (Zahl der bisher angenommenen Rahmen). Vor dem ersten Rahmen ist `zeilen` leer. Hat die Sitzung keine Rahmennummer (`nr: null` oder
+        nicht in der Liste), gibt es kein Bild: `rahmen` 0, `zeilen` leer, ohne Abo und ohne Ausnahme."""
         st = self._offen()
+        nr = self._nr(st, sid)
+        if nr is None:
+            return {"rahmen": 0, "zeilen": []}
         self._abonniere(st, sid)
-        nr = self._nr(sid)
         with st.lock:
+            if st.sid_je_nr.get(nr) != sid:  # die Nummer wechselte seit dem Lesen
+                return {"rahmen": 0, "zeilen": []}
             b = st.leser.bilder.get(nr)
             n = st.rahmen_je_nr.get(nr, 0)
             if b is None:
@@ -613,11 +656,13 @@ class Bruecke:
             return {"rahmen": n, "zeilen": list(b.rows), "cursor": list(b.cursor), "stand": b.stand, "groesse": [b.spalten, b.zeilen]}
 
     def verlauf(self, sid, ab=0):
-        """Gibt (Laenge, Text ab Zeichen `ab`). Der Text waechst nur (siehe `Protokoll`)."""
+        """Gibt (Laenge, Text ab Zeichen `ab`). Der Text waechst nur (siehe `Protokoll`) und gehoert der Kennung: Er bleibt, wenn die Sitzung
+        ihre Nummer abgibt (`nr: null`), und traegt nie Zeilen einer anderen Sitzung mit derselben Nummer. Abonniert nur mit Nummer."""
         st = self._offen()
-        self._abonniere(st, sid)
+        if self._nr(st, sid) is not None:
+            self._abonniere(st, sid)
         with st.lock:
-            p = self._protokolle.get(self._nr(sid))
+            p = self._protokolle.get(sid)
             t = p.text if p else ""
         return len(t), t[ab:]
 

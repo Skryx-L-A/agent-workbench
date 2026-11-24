@@ -196,6 +196,31 @@ fn eintraege_der_nummer(lauf: &Lauf, n: usize) -> Vec<PathBuf> {
     eintraege
 }
 
+/// The raster number for the session `s-<n>` (DI12 point 4, P25). `vergeben[x]`: the number `x` was handed out in this run; `frei`:
+/// the numbers of ended sessions that no viewer subscribes, with the place of their end. First a number never handed out: `n` itself
+/// when it is at most `max` (so the first sessions keep the number of their identifier), else the smallest one; then the free number
+/// whose session ended first. `None`: every number from 1 to `max` is held. 0 belongs to the session of `kind`.
+pub(crate) fn rahmennummer(
+    n: usize,
+    max: usize,
+    vergeben: &[bool; 256],
+    frei: &[(u64, u8)],
+) -> Option<u8> {
+    let nie = |x: usize| u8::try_from(x).ok().filter(|_| !vergeben[x]);
+    if (1..=max).contains(&n)
+        && let Some(x) = nie(n)
+    {
+        return Some(x);
+    }
+    if let Some(x) = (1..=max).find_map(nie) {
+        return Some(x);
+    }
+    frei.iter()
+        .filter(|(_, x)| (1..=max).contains(&usize::from(*x)))
+        .min()
+        .map(|(_, x)| *x)
+}
+
 /// Is the number `n` taken? It is when ANY entry of [`eintraege_der_nummer`] exists. Only `lstat` looks (it follows no link): an entry of any kind,
 /// a dead link too, takes the number; only `NotFound` leaves an entry free, and the number is free only when every entry is free. `Err(())`: another
 /// error (no rights, a name too long), the start is refused. The service creates, reads and removes nothing there. Without the keys no number is taken.
@@ -726,7 +751,38 @@ mod tests {
             marker_datei: None,
             marker_ordner: text(marker_ordner),
             nummer_max: 255,
+            rahmen_max: 255,
+            beendet_max: 256,
         }
+    }
+
+    /// DI12 point 4 (P25): first the number of the identifier while it was never handed out, then the smallest never handed out,
+    /// then the free number whose session ended first; with every number held, none.
+    #[test]
+    fn rahmennummer_nie_vergeben_dann_am_laengsten_beendet() {
+        let mut v = [false; 256];
+        assert_eq!(rahmennummer(1, 255, &v, &[]), Some(1));
+        assert_eq!(rahmennummer(255, 255, &v, &[]), Some(255));
+        // an identifier beyond the raster numbers takes the smallest number never handed out
+        v[1] = true;
+        assert_eq!(rahmennummer(300, 255, &v, &[]), Some(2));
+        // a skipped identifier leaves its number unused, and a later identifier takes its own
+        assert_eq!(rahmennummer(5, 255, &v, &[]), Some(5));
+        // every number handed out: the free one of the session that ended first (place 3 before 7 and 9), not the latest
+        let alle = [true; 256];
+        assert_eq!(
+            rahmennummer(256, 255, &alle, &[(7, 4), (3, 9), (9, 2)]),
+            Some(9)
+        );
+        assert_eq!(rahmennummer(256, 255, &alle, &[]), None);
+        // the bound of the test mode: numbers above it are never handed out
+        assert_eq!(rahmennummer(3, 2, &v, &[]), Some(2));
+        assert_eq!(rahmennummer(3, 2, &alle, &[(1, 200)]), None);
+        // the identifier at the bound of the run is no exception
+        assert_eq!(
+            rahmennummer(crate::startdatei::KENNUNG_MAX, 255, &alle, &[(1, 17)]),
+            Some(17)
+        );
     }
 
     /// Four own folders `s`, `z`, `l`, `m` below one test folder, and a `Lauf` that names all four.

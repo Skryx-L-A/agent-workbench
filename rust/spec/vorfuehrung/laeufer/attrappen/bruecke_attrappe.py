@@ -260,6 +260,10 @@ def strom_rahmen(art, nutzlast):
     return struct.pack(">IB", 1 + len(nutzlast), art) + nutzlast
 
 
+NR_MAX = 255  # hoechste Rahmennummer (Kanal des Rasterauszugs, 0 bis 255; 23.11.2026)
+ABO_OHNE_NUMMER = "sitzung_ohne_nummer"  # fester Grund laut Vertrag `dienst`, Abschnitt 19 (23.11.2026)
+
+
 class Verbindung:
     """Eine Verbindung `GET /strom`: Kennung, Warteschlange der Rahmen, Deflate-Kontext, Abos. Ein Schreiber (der Faden der Anfrage) leert die
     Warteschlange; wer einen Rahmen packt, haelt `self.lock`, damit Packen und Einreihen in einer Reihenfolge geschehen."""
@@ -293,7 +297,9 @@ class Verbindung:
         a = self.abos.get(s.sid)
         if a is None:
             return
-        rows, cur, nr = s.term.bild(), s.term.cursor(), int(s.sid.split("-")[1])
+        rows, cur, nr = s.term.bild(), s.term.cursor(), s.nr  # die Nummer aus dem Feld `nr`, nie aus der Kennung (Weg A)
+        if nr is None:
+            return
         if a["gesendet"] is None:
             a["stand"] += 1
             a["schuebe"] = s.term.schuebe
@@ -321,6 +327,9 @@ class Sitzung:
         self.lock = threading.RLock()
         self.beendet = False
         self.code = 0
+        self.nr = None  # Rahmennummer 1 bis 255 (Feld `nr` der Sitzungsliste); None = frei (Weg A, Projektentscheid, 23.11.2026)
+        self.ende_nr = None  # Reihenfolge des Endes (Neuvergabe zuerst an die am laengsten beendete Sitzung)
+        self.grund = None  # `grund` der Sitzungsliste: nur bei `beendet` und nur, wenn `lauf` eine Zeile meldete (DI12 Punkt 5, Abschnitt 18)
         self.eingabe = ""
         self.gezeigt = 0  # so viele Zeichen von `eingabe` stehen schon im Bild (Echo beim Ereignis `Text`)
         self.feld = None  # Zeile (ab Anfang, mit Schub gezaehlt) des Promptzeichens, solange darin ungesendeter Text stehen kann
@@ -368,6 +377,12 @@ class Kern:
         self.einmalig = set()
         self.zaehler = {"kinder_gestartet": 0, "harness_gestartet": 0}
         self.n = 0
+        self.nummern = {}  # Rahmennummer -> Kennung der Sitzung, die sie haelt (Weg A)
+        # Weg A (Projektentscheid, 23.11.2026, endgueltig): Eine freie Nummer (Sitzung beendet, kein Abo) wird erst bei Bedarf neu vergeben: zuerst nie
+        # vergebene Nummern, dann die der am laengsten beendeten Sitzung. Erst dann zeigt deren Eintrag `nr: null`. Keine Uhr, keine Frist.
+        # `kanaele`: Nummern 1 bis `kanaele` (0 gehoert im Dienst der Sitzung aus `kind`); Vorgabe NR_MAX, kleiner nur fuer Tests.
+        self.kanaele = max(1, min(NR_MAX, int(k.get("kanaele", NR_MAX))))
+        self.ende_zaehler = 0
         self.verbindungen = []
         self.verb_lock = threading.Lock()
         g = k.get("groesse") or [120, 40]
@@ -416,6 +431,7 @@ class Kern:
         with self.lock:
             self.n += 1
             sid = "s-%d" % self.n
+            nr = self._nummer_nehmen(sid)
             self.zaehler["kinder_gestartet"] += 1
         vorlage = self.k.get("marker_start_datei")
         if vorlage:  # wie der Kern: start.json der Sitzung mit `marker` (Liste und Zaehlordner)
@@ -454,10 +470,12 @@ class Kern:
         if "s1-eingabefeld-spaet" in self.fehler:
             dauer += float(self.k.get("fehler_verzoegerung_s", 2.5))
         s = Sitzung(sid, start, sp, env, time.time() + dauer, self.groesse, self.bild_verteilen)
+        s.nr = nr
         ende = self.k["harness"][start["harness"]].get("sim_ende")  # Konfiguration (kein Fehlername): der Harness endet vor dem ersten Bild
         if ende:
             s.schreibe(ende["text"])
             s.beendet, s.code = True, int(ende["code"])
+            s.grund = ende.get("grund")  # wie eine gueltige Zeile von `lauf` (`<code> <grund>`); ohne Schluessel meldete `lauf` nichts
             if sp:  # der Harness ist tot: die Suche der Sitzung endet mit ihm
                 sp.beenden()
                 try:
@@ -466,6 +484,7 @@ class Kern:
                     pass
             with self.lock:
                 self.sitzungen[sid] = s
+            self._nach_ende(s)
             self.liste_senden()
             return 200, {"sitzung": sid}
         s.schreibe("Sim-Harness %s, Route %s\n" % (start["harness"], start["route"]))
@@ -598,14 +617,46 @@ class Kern:
         with self.lock:
             self.n += 1
             sid = "s-%d" % self.n
+            nr = self._nummer_nehmen(sid)
             self.zaehler["kinder_gestartet"] += 1  # das Startprogramm lief, ein Harness nicht
         s = Sitzung(sid, start, None, {}, time.time(), self.groesse, self.bild_verteilen)
+        s.nr = nr
         s.beendet, s.code = True, 65
+        s.grund = code  # wie `lauf` mit einer gueltigen Zeile `65 <code>` an den Meldekanal (Vertrag `dienst`, Abschnitt 18)
         s.schreibe("%s: %s\n" % (code, grund))
         with self.lock:
             self.sitzungen[sid] = s
+        self._nach_ende(s)
         self.liste_senden()
         return 200, {"sitzung": sid}
+
+    def _nummer_nehmen(self, sid):
+        """Eine Rahmennummer fuer eine neue Sitzung (Weg A). Der Aufrufer haelt `self.lock`. Zuerst die Zahl der Kennung, wenn sie hoechstens `kanaele` ist und nie vergeben war, sonst die kleinste nie
+        vergebene Nummer, dann die
+        Nummer der am laengsten beendeten Sitzung ohne Abo; deren Eintrag zeigt danach `nr: null`. Eine abonnierte Nummer wird nie vergeben.
+        Jede Verbindung bekommt fuer die neue Sitzung zuerst einen vollen Abzug (neues Abo, neue Kennung). None: keine Nummer frei."""
+        eigen = re.match(r"^s-([0-9]{1,9})$", sid or "")
+        if eigen and 1 <= int(eigen.group(1)) <= self.kanaele and int(eigen.group(1)) not in self.nummern:
+            self.nummern[int(eigen.group(1))] = sid  # wie der Kern: zuerst die Zahl der Kennung, wenn sie nie vergeben war (23.11.2026)
+            return int(eigen.group(1))
+        for nr in range(1, self.kanaele + 1):
+            if nr not in self.nummern:
+                self.nummern[nr] = sid
+                return nr
+        abonniert = set(k for v in list(self.verbindungen) for k in list(v.abos))
+        frei = [s for s in self.sitzungen.values() if s.beendet and s.nr is not None and s.sid not in abonniert]
+        if not frei:
+            return None  # die Attrappe lehnt den Start deswegen nicht ab; die Sitzung hat kein Bild
+        alt = min(frei, key=lambda s: s.ende_nr)
+        nr, alt.nr = alt.nr, None
+        self.nummern[nr] = sid
+        return nr
+
+    def _nach_ende(self, s):
+        """Beim Ende einer Sitzung: Platz in der Reihenfolge der Neuvergabe. Die Nummer bleibt bis zur Neuvergabe (Weg A)."""
+        with self.lock:
+            self.ende_zaehler += 1
+            s.ende_nr = self.ende_zaehler
 
     def _harness_bereit(self, s):
         with self.lock:
@@ -625,6 +676,7 @@ class Kern:
                 os.rmdir(os.path.dirname(s.such.socket_pfad))
             except OSError:
                 pass
+        self._nach_ende(s)
         self.liste_senden()
         return 200, {"ok": True}
 
@@ -640,9 +692,11 @@ class Kern:
         liste = []
         for s in sitzungen:
             e = {"id": s.sid, "harness": s.start["harness"], "modell": s.start["modell"], "route": s.start["route"],
-                 "kunde": s.start["kunde"] or "", "zustand": "beendet" if s.beendet else "laeuft"}
+                 "kunde": s.start["kunde"] or "", "zustand": "beendet" if s.beendet else "laeuft", "nr": s.nr}
             if s.beendet:
                 e["code"] = s.code
+                if s.grund is not None:
+                    e["grund"] = s.grund
             liste.append(e)
         return {"art": "Sitzungsliste", "sitzungen": liste}
 
@@ -702,6 +756,8 @@ class Kern:
             sp, ze = e.get("spalten"), e.get("zeilen")
             if e.get("an", True) is False:
                 v.abos.pop(sid, None)
+            elif s.nr is None:
+                v.ablehnung(ABO_OHNE_NUMMER)  # beendet, Nummer frei: kein neues Abo (Weg A)
             elif not (isinstance(sp, int) and isinstance(ze, int) and 2 <= sp <= 1000 and 1 <= ze <= 1000):
                 v.ablehnung("groesse_ungueltig")
             elif sid not in v.abos:

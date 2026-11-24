@@ -369,6 +369,7 @@
         "id": "s-alpha",
         "kunde": "",
         "modell": "",
+        "nr": 0,
         "route": "",
         "zustand": "laeuft"
        }
@@ -430,6 +431,7 @@
         "id": "s-alpha",
         "kunde": "",
         "modell": "",
+        "nr": 0,
         "route": "",
         "zustand": "beendet"
        }
@@ -444,6 +446,7 @@
         "id": "s-alpha",
         "kunde": "",
         "modell": "",
+        "nr": 0,
         "route": "",
         "zustand": "beendet"
        },
@@ -452,6 +455,7 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 1,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -470,6 +474,7 @@
         "id": "s-alpha",
         "kunde": "",
         "modell": "",
+        "nr": 0,
         "route": "",
         "zustand": "beendet"
        },
@@ -478,6 +483,7 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 1,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -486,6 +492,7 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 2,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }

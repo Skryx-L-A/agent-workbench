@@ -333,7 +333,7 @@ class Tisch:
                 self.end_headers()
                 self.close_connection = True
                 tisch.senden(6, json.dumps({"art": "Sitzungsliste", "sitzungen": [
-                    {"id": "s-1", "harness": "pi", "modell": "m", "route": "lokal", "kunde": "", "zustand": "laeuft"}]}).encode())
+                    {"id": "s-1", "harness": "pi", "modell": "m", "route": "lokal", "kunde": "", "zustand": "laeuft", "nr": 1}]}).encode())
                 bis = time.monotonic() + 8
                 while time.monotonic() < bis and not tisch.ende:
                     with tisch.lock:

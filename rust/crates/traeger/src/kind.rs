@@ -276,6 +276,27 @@ impl Kind {
         self.raster.groesse(spalten, zeilen)
     }
 
+    /// Gives the carrier back once `Kindende` was reported: closes the queue (the writing thread ends with its copy of the master),
+    /// drops the master of the PTY and joins the reading thread, which has ended with the output. The screen, the process id
+    /// and the end stay; a size still changes the screen, bytes are refused with `BrokenPipe`. Before the end it does
+    /// nothing, so a running child keeps its PTY. Can be called again.
+    pub fn freigeben(&mut self) {
+        if !self.ende {
+            return;
+        }
+        self.schlange.schliessen();
+        self.master.take();
+        if let Some(faden) = self.leser.take() {
+            let _ = faden.join();
+        }
+    }
+
+    /// `true` once [`Kind::freigeben`] gave the PTY back.
+    #[must_use]
+    pub fn freigegeben(&self) -> bool {
+        self.ende && self.master.is_none() && self.leser.is_none()
+    }
+
     /// The screen made from the output so far.
     #[must_use]
     pub fn raster(&self) -> &Raster {
@@ -537,6 +558,40 @@ mod tests {
                 .any(|e| matches!(e, Ereignis::Kindende { code: 4 })),
             "{ereignisse:?}"
         );
+    }
+
+    /// P26: `freigeben` does nothing while the child runs; after `Kindende` it drops the master and joins the reading thread. The
+    /// screen stays, a size changes the screen, bytes are refused, and a second call changes nothing.
+    #[cfg(unix)]
+    #[test]
+    fn freigeben_erst_nach_dem_ende_und_das_bild_bleibt() {
+        let mut laeuft = Kind::starten(start(&["/bin/sleep", "60"])).expect("sleep starts");
+        laeuft.freigeben();
+        assert!(laeuft.master.is_some() && laeuft.leser.is_some());
+        assert!(!laeuft.freigegeben());
+        assert!(laeuft.schreibe(b"x").is_ok(), "a running child takes bytes");
+
+        let mut kind =
+            Kind::starten(start(&["/bin/sh", "-c", "echo fertig; exit 5"])).expect("sh starts");
+        let frist = Instant::now() + Duration::from_secs(10);
+        while !kind.ist_zu_ende() {
+            assert!(Instant::now() < frist, "Kindende did not come");
+            let _ = kind.lies(Duration::from_millis(50));
+        }
+        kind.freigeben();
+        assert!(kind.freigegeben());
+        assert!(kind.master.is_none() && kind.leser.is_none());
+        assert!(kind.raster().zeilen().join(" ").contains("fertig"));
+        assert_eq!(
+            kind.schreibe(b"x").map_err(|e| e.kind()),
+            Err(std::io::ErrorKind::BrokenPipe)
+        );
+        assert!(kind.groesse(30, 7).is_ok());
+        assert_eq!(kind.raster().groesse_jetzt(), (30, 7));
+        kind.freigeben();
+        assert!(kind.freigegeben());
+        assert_eq!(kind.lies(Duration::ZERO), Vec::<Ereignis>::new());
+        assert!(kind.pid().is_some());
     }
 
     /// The wiring of the prelude rule (W7): with `vorspann` on, the first title that names the started program is dropped; with it off

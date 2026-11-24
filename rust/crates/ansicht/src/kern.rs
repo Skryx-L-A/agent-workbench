@@ -67,6 +67,8 @@ pub struct Sitzung {
     pub laeuft: bool,
     /// The exit code as text (when ended).
     pub code: String,
+    /// The raster number of its frames (field `nr` of the list, DI12 point 5, P25); `None` once a later session took it.
+    pub nr: Option<u8>,
 }
 
 impl Sitzung {
@@ -203,13 +205,9 @@ pub fn klemme(breite: f64, hoehe: f64, zeichenbreite: f64, zeilenhoehe: f64) -> 
     (ganz(breite / zw, 2), ganz(hoehe / zh, 1))
 }
 
-/// The session number after `DI` DI12 point 2: `s-<n>` has the number n, the session from `kind` the number 0.
-#[must_use]
-pub fn nr_von(id: &str) -> u64 {
-    id.strip_prefix("s-")
-        .filter(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
-        .and_then(|n| n.parse().ok())
-        .unwrap_or(0)
+/// The raster number of the session `id` in the list (DI12 point 5, P25): the field `nr`, never the digits of the identifier.
+fn nr_der(sitzungen: &[Sitzung], id: &str) -> Option<u8> {
+    sitzungen.iter().find(|s| s.id == id).and_then(|s| s.nr)
 }
 
 fn feld(v: &Value, name: &str) -> String {
@@ -287,7 +285,7 @@ impl Kern {
         let Some(aktiv) = &self.aktiv else {
             return Vec::new();
         };
-        if u64::from(auszug.nr) != nr_von(aktiv) {
+        if nr_der(&self.sitzungen, aktiv) != Some(auszug.nr) {
             return Vec::new();
         }
         self.bild = Some(abbild.clone());
@@ -317,6 +315,29 @@ impl Kern {
             .collect()
     }
 
+    /// A message `Hinweis` (SE3 point 3): a fixed text for each known reason, only without `sitzung` or for the shown session;
+    /// every other reason stays quiet.
+    fn hinweis(&self, n: &Value) -> Vec<Wirkung> {
+        let fuer_aktiv = match n.get("sitzung") {
+            None => true,
+            Some(s) => s.as_str().is_some() && s.as_str() == self.aktiv.as_deref(),
+        };
+        let text = match n.get("hinweis").and_then(Value::as_str) {
+            Some("osc52_geschrieben") => "Das Programm hat in die Zwischenablage geschrieben",
+            // the service let an oversized message not out (contract `dienst`, section 8 point 19)
+            Some("zwischenablage_zu_gross") => {
+                "Die Zwischenablage des Programms war zu groß und wurde nicht übertragen"
+            }
+            Some("nachricht_zu_gross") => "Eine Nachricht war zu groß und wurde nicht übertragen",
+            _ => return Vec::new(),
+        };
+        if fuer_aktiv {
+            vec![Wirkung::Ansage(text.into()), Wirkung::Notiz(text.into())]
+        } else {
+            Vec::new()
+        }
+    }
+
     fn nachricht(&mut self, n: &Value, groesse: (usize, usize)) -> Vec<Wirkung> {
         match n.get("art").and_then(Value::as_str) {
             Some("Sitzungsliste") => self.sitzungsliste(n, groesse),
@@ -324,20 +345,7 @@ impl Kern {
                 self.start.startwahl(n);
                 Vec::new()
             }
-            Some("Hinweis") => {
-                let fuer_aktiv = match n.get("sitzung") {
-                    None => true,
-                    Some(s) => s.as_str().is_some() && s.as_str() == self.aktiv.as_deref(),
-                };
-                if n.get("hinweis").and_then(Value::as_str) == Some("osc52_geschrieben")
-                    && fuer_aktiv
-                {
-                    let t = "Das Programm hat in die Zwischenablage geschrieben";
-                    vec![Wirkung::Ansage(t.into()), Wirkung::Notiz(t.into())]
-                } else {
-                    Vec::new()
-                }
-            }
+            Some("Hinweis") => self.hinweis(n),
             Some("Anfragen") => {
                 self.anfragen = n
                     .get("anfragen")
@@ -418,6 +426,7 @@ impl Kern {
 
     fn sitzungsliste(&mut self, n: &Value, groesse: (usize, usize)) -> Vec<Wirkung> {
         let mut w = Vec::new();
+        let alt = std::mem::take(&mut self.sitzungen);
         self.sitzungen = n
             .get("sitzungen")
             .and_then(Value::as_array)
@@ -432,10 +441,26 @@ impl Kern {
                         kunde: feld(s, "kunde"),
                         laeuft: s.get("zustand").and_then(Value::as_str) == Some("laeuft"),
                         code: feld(s, "code"),
+                        // without the key (the list of the core in the single mode, no `lauf`) the one session has 0
+                        nr: match s.get("nr") {
+                            None => Some(0),
+                            Some(n) => n.as_u64().and_then(|n| u8::try_from(n).ok()),
+                        },
                     })
                     .collect()
             })
             .unwrap_or_default();
+        // a number that now belongs to another session: the picture under it is the one of the old session (P25)
+        for neu in &self.sitzungen {
+            let Some(nr) = neu.nr else {
+                continue;
+            };
+            if nr_der(&alt, &neu.id) != Some(nr)
+                && let Some(e) = self.empfang.as_mut()
+            {
+                e.vergessen(nr);
+            }
+        }
         for s in &self.sitzungen {
             if !s.laeuft && self.bekannt.get(&s.id) == Some(&true) {
                 w.push(Wirkung::Ansage(format!(
@@ -476,11 +501,11 @@ impl Kern {
             ));
         }
         self.aktiv = Some(id.to_owned());
-        let nr = nr_von(id);
+        let nr = nr_der(&self.sitzungen, id);
         self.bild = self
             .empfang
             .as_ref()
-            .and_then(|e| u8::try_from(nr).ok().and_then(|n| e.abbild(n)))
+            .and_then(|e| nr.and_then(|n| e.abbild(n)))
             .cloned();
         let (sp, ze) = groesse;
         self.gemeldet.insert(id.to_owned(), groesse);
@@ -740,6 +765,43 @@ mod tests {
     }
 
     #[test]
+    fn oversized_messages_are_announced_for_the_shown_session() {
+        let mut k = Kern::default();
+        k.waehle("s-1", (2, 1));
+        let gross = "Die Zwischenablage des Programms war zu groß und wurde nicht übertragen";
+        let nachricht = "Eine Nachricht war zu groß und wurde nicht übertragen";
+        let beide = |t: &str| vec![Wirkung::Ansage(t.into()), Wirkung::Notiz(t.into())];
+        let w = liste(
+            &mut k,
+            &json!({"art": "Hinweis", "hinweis": "zwischenablage_zu_gross", "sitzung": "s-1", "t": 9}),
+        );
+        assert_eq!(w, beide(gross));
+        let w = liste(
+            &mut k,
+            &json!({"art": "Hinweis", "hinweis": "nachricht_zu_gross"}),
+        );
+        assert_eq!(w, beide(nachricht));
+        // another session, a session that is no text and an unknown reason stay quiet
+        for n in [
+            json!({"art": "Hinweis", "hinweis": "zwischenablage_zu_gross", "sitzung": "s-2"}),
+            json!({"art": "Hinweis", "hinweis": "nachricht_zu_gross", "sitzung": 1}),
+            json!({"art": "Hinweis", "hinweis": "ganz_neu", "sitzung": "s-1"}),
+            json!({"art": "Hinweis", "hinweis": "titel", "sitzung": "s-1", "titel": "neu"}),
+        ] {
+            assert_eq!(liste(&mut k, &n), Vec::new(), "{n}");
+        }
+        // the old reason keeps its text
+        let w = liste(
+            &mut k,
+            &json!({"art": "Hinweis", "hinweis": "osc52_geschrieben", "sitzung": "s-1", "laenge": 5}),
+        );
+        assert_eq!(
+            w,
+            beide("Das Programm hat in die Zwischenablage geschrieben")
+        );
+    }
+
+    #[test]
     fn the_input_line_sends_text_then_enter() {
         let mut k = Kern::default();
         assert_eq!(k.zeile_absenden("ls"), Vec::new());
@@ -763,10 +825,60 @@ mod tests {
     }
 
     #[test]
-    fn session_numbers() {
-        assert_eq!(nr_von("s-12"), 12);
-        assert_eq!(nr_von("kind"), 0);
-        assert_eq!(nr_von("s-"), 0);
-        assert_eq!(nr_von("s-1x"), 0);
+    fn session_numbers_come_from_the_list() {
+        let mut k = Kern::default();
+        liste(
+            &mut k,
+            &json!({"art": "Sitzungsliste", "sitzungen": [
+                {"id": "s-12", "zustand": "laeuft", "nr": 3},
+                {"id": "s-1", "zustand": "beendet", "code": 0, "nr": null},
+                {"id": "s-2", "zustand": "beendet", "code": 0},
+                {"id": "s-4", "zustand": "beendet", "code": 0, "nr": 256}]}),
+        );
+        let nrn: Vec<Option<u8>> = k.sitzungen.iter().map(|s| s.nr).collect();
+        assert_eq!(nrn, [Some(3), None, Some(0), None]);
+        assert_eq!(nr_der(&k.sitzungen, "s-12"), Some(3));
+        assert_eq!(nr_der(&k.sitzungen, "s-1"), None);
+        assert_eq!(nr_der(&k.sitzungen, "s-9"), None);
+    }
+
+    /// A full picture of 10 x 2 with the number `nr` and the first line `text`.
+    fn vollbild(nr: u8, text: &str) -> Vec<u8> {
+        let auszug = rasterauszug::Auszug {
+            nr,
+            stand: 1,
+            groesse: Some((10, 2)),
+            invers: false,
+            schub: None,
+            cursor: None,
+            zeilen: vec![(0, rasterauszug::zeile_lesen(text).expect("line"))],
+        };
+        rasterauszug::rahmen_kodieren(&auszug)
+    }
+
+    /// P25: the frames of the chosen session are those with its number from the list, not the digits of its identifier; a number
+    /// that goes to another session drops the old picture under it.
+    #[test]
+    fn frames_follow_the_number_of_the_list() {
+        let mut k = Kern::default();
+        k.offen(false);
+        liste(
+            &mut k,
+            &json!({"art": "Sitzungsliste", "sitzungen": [{"id": "s-300", "zustand": "laeuft", "nr": 7}]}),
+        );
+        assert_eq!(k.aktiv.as_deref(), Some("s-300"));
+        // a frame with number 44 (300 mod 256) is not this session
+        k.rahmen(ART_RASTER, &vollbild(44, "fremd"), 0.0, (80, 24));
+        assert!(k.bild.is_none());
+        k.rahmen(ART_RASTER, &vollbild(7, "eigen"), 0.0, (80, 24));
+        assert!(k.bild.is_some());
+        // number 7 goes to s-301 (s-300 shows null): choosing s-301 shows no old picture of s-300
+        liste(
+            &mut k,
+            &json!({"art": "Sitzungsliste", "sitzungen": [{"id": "s-300", "zustand": "beendet", "code": 0, "nr": null},
+                                                          {"id": "s-301", "zustand": "laeuft", "nr": 7}]}),
+        );
+        k.waehle("s-301", (80, 24));
+        assert!(k.bild.is_none(), "the picture of s-300 is gone");
     }
 }

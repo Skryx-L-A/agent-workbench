@@ -13,7 +13,7 @@
 //! every 2 ms (1 ms while a viewer has a backlog) to accept connections, take the output of the child, write the queues and run
 //! the timers of the core.
 
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::io::{ErrorKind, Read, Write};
 use std::os::fd::{AsFd, OwnedFd};
 use std::os::unix::net::{UnixListener, UnixStream};
@@ -28,9 +28,8 @@ use traeger::Ereignis;
 use zustandskern::Wirkungen;
 
 use crate::bereit::Bereitschaft;
-use crate::betrachter::Betrachter;
+use crate::betrachter::{Betrachter, json_rahmen};
 use crate::fehler::StartFehler;
-use crate::json;
 use crate::kindprogramm::unhex;
 use crate::meldung::{Meldung, SOCKET_NAME};
 use crate::rahmen::{
@@ -45,9 +44,9 @@ use crate::sitzung::{
 use crate::startdatei::{KLEINSTE_SPALTEN, Startdatei};
 use crate::starten::{
     Abgelehnt, SITZUNGEN_MAX, einstellungen_laden, meta_von, nummer_vergebbar, ordner_anlegen,
-    start_form, start_pruefen, starten_form, startwahl_von,
+    rahmennummer, start_form, start_pruefen, starten_form, startwahl_von,
 };
-use crate::waisen::Waisen;
+use crate::waisen::{Waisen, kinder_verwerfen, start_verwerfen};
 
 /// The kinds of event a viewer may give (DI3): the lines `Ansicht` of `VT` section 4 without `Verbinden` and `Trennen`.
 const ERLAUBT: [&str; 10] = [
@@ -263,8 +262,15 @@ pub struct Dienst {
     wurzel: Arc<OwnedFd>,
     /// The markers of a trial run, read once from `lauf.marker_datei` at the start; they go into every `start.json` and nowhere else.
     marker: Option<start::Marker>,
-    /// The numbers `Starten` handed out so far (`s-<n>`, never used again, DI12).
+    /// The identifiers `Starten` handed out so far (`s-<n>`, never used again, DI12 point 4); not the raster number.
     naechste: usize,
+    /// The raster numbers handed out in this run, by number (DI12 point 4, P25): a number never handed out is taken first.
+    vergeben: [bool; 256],
+    /// The ends of sessions so far (the order of `Sitzung::beendet_als`).
+    enden: u64,
+    /// P26: the sessions out of the `Sitzungsliste` (more than `lauf.beendet_max` ended), by identifier; they are dropped at the end
+    /// of the turn of the loop ([`Self::entfernte_wegnehmen`]).
+    entfernt: BTreeSet<String>,
     /// The content of the last `Startwahl` that went out (without `t`).
     startwahl_letzt: Option<Value>,
     /// The adopted children and the hunts for the orphans of ended sessions (Linux, `waisen.rs`).
@@ -312,6 +318,10 @@ impl Dienst {
         let kern_grenze = optionen
             .kern_grenze
             .unwrap_or(zustandskern::NACHRICHTEN_MAX);
+        // section 17, point 1: a subreaper that cannot list its children would end every hunt silently (fail closed)
+        if !crate::waisen::kinder_lesbar() {
+            return Err(StartFehler::neu(1, crate::waisen::KINDER_FEHLT));
+        }
         let wurzel = Arc::new(ordner_oeffnen(
             Path::new(&cfg.ordner),
             rustix::process::geteuid().as_raw(),
@@ -329,7 +339,7 @@ impl Dienst {
             let kern = match zustandskern::Sitzungskern::neu_mit(&anfang, kern_grenze) {
                 Ok(k) => k,
                 Err(e) => {
-                    kinder_beenden(vec![kind]);
+                    start_verwerfen(vec![kind]);
                     return Err(StartFehler::neu(2, &format!("anfang: {e}")));
                 }
             };
@@ -338,27 +348,22 @@ impl Dienst {
         let hoerer = match socket_binden(Path::new(&cfg.pfad), wurzel.as_fd()) {
             Ok(h) => h,
             Err(f) => {
-                kinder_beenden(Self::kinder_nehmen(&mut sitzungen));
+                start_verwerfen(Self::kinder_nehmen(&mut sitzungen));
                 return Err(f);
             }
         };
         if let Err(e) = hoerer.set_nonblocking(true) {
             drop(hoerer);
             crate::loeschen::datei_entfernen(wurzel.as_fd(), &cfg.name);
-            kinder_beenden(Self::kinder_nehmen(&mut sitzungen));
+            start_verwerfen(Self::kinder_nehmen(&mut sitzungen));
             return Err(StartFehler::neu(1, &format!("nonblocking: {}", e.kind())));
         }
-        let weck = UnixStream::pair().and_then(|(lese, schreib)| {
-            lese.set_nonblocking(true)?;
-            schreib.set_nonblocking(true)?;
-            Ok((lese, schreib))
-        });
-        let (weck_lese, weck_schreib) = match weck {
+        let (weck_lese, weck_schreib) = match weckpaar() {
             Ok(paar) => paar,
             Err(e) => {
                 drop(hoerer);
                 crate::loeschen::datei_entfernen(wurzel.as_fd(), &cfg.name);
-                kinder_beenden(Self::kinder_nehmen(&mut sitzungen));
+                start_verwerfen(Self::kinder_nehmen(&mut sitzungen));
                 return Err(StartFehler::neu(1, &format!("wake socket: {}", e.kind())));
             }
         };
@@ -376,7 +381,7 @@ impl Dienst {
             Ok(b) => b,
             Err(f) => {
                 drop(hoerer);
-                kinder_beenden(Self::kinder_nehmen(&mut sitzungen));
+                start_verwerfen(Self::kinder_nehmen(&mut sitzungen));
                 return Err(f);
             }
         };
@@ -394,6 +399,7 @@ impl Dienst {
             t_zuletzt: 0,
             t_ein: 0,
             arbeit: VecDeque::new(),
+            entfernt: BTreeSet::new(),
             neubau_tiefe: 0,
             fatal: false,
             socket_da: true,
@@ -402,6 +408,8 @@ impl Dienst {
             wurzel,
             marker,
             naechste: 0,
+            vergeben: [false; 256],
+            enden: 0,
             startwahl_letzt: None,
             waisen: Waisen::default(),
         })
@@ -458,6 +466,7 @@ impl Dienst {
             self.takt_pruefen();
             self.kill_pruefen();
             self.waisen_pruefen();
+            self.entfernte_wegnehmen();
             if self.fatal {
                 self.aufraeumen();
                 return 1;
@@ -540,11 +549,7 @@ impl Dienst {
                 self.waisen.jagen(sid, jetzt);
             }
         }
-        let eigene: Vec<u32> = self
-            .sitzungen
-            .iter()
-            .filter_map(Sitzung::eigenes_kind)
-            .collect();
+        let eigene = self.eigene_kinder();
         let laufende: Vec<u32> = self
             .sitzungen
             .iter()
@@ -552,6 +557,12 @@ impl Dienst {
             .filter_map(Sitzung::eigenes_kind)
             .collect();
         self.waisen.runde(&eigene, &laufende, jetzt);
+    }
+
+    /// The pids of the own children of the sessions that the carriers have not collected yet: no orphans (`waisen.rs`), and never
+    /// signalled by the end of another session (`aufraeumen.rs`).
+    fn eigene_kinder(&self) -> Vec<u32> {
+        kinder_der(&self.sitzungen)
     }
 
     /// `Verbinden`, `Trennen`, `Takt`, `Socket` go to every core: the room core first, then the sessions in the order of their
@@ -665,7 +676,7 @@ impl Dienst {
 
     /// The frame `Ablehnung` to one viewer.
     fn ablehnen(&mut self, nr: u64, nutzlast: &Value) {
-        self.senden(nr, rahmen(A_ABLEHNUNG, &json::bytes(nutzlast)));
+        self.senden(nr, json_rahmen(A_ABLEHNUNG, nutzlast));
     }
 
     /// The effect `groessen`: the PTY and the screen get the size; the caller passes the events of the carrier on to the core (DI8).
@@ -688,6 +699,12 @@ impl Dienst {
     /// An event of the carrier goes to the core with the session and the time (DI8). The end of the child makes the session
     /// `beendet` and the new list goes to every viewer (DI12 point 5).
     fn traeger_ereignis(&mut self, k: usize, x: &Ereignis) {
+        // the own children of the sessions, for the end of this one (read before the session is borrowed)
+        let eigene = if let Ereignis::Kindende { .. } = x {
+            self.eigene_kinder()
+        } else {
+            Vec::new()
+        };
         let Some(s) = self.sitzungen.get_mut(k) else {
             return;
         };
@@ -701,8 +718,14 @@ impl Dienst {
                 gemeldet = Some(Ereignis::Kindende { code });
                 s.kind_ende = Some(code);
                 s.kill_ab = None;
+                self.enden += 1;
+                s.beendet_als = Some(self.enden);
                 // SECURITY: every end of a session cleans up, before the list shows `beendet`
-                s.ende_aufraeumen();
+                s.ende_aufraeumen(&eigene);
+                // P26: the PTY and the threads of the carrier go back now; the entry, the core and the last picture stay
+                if let Some(kind) = s.kind.as_mut() {
+                    kind.freigeben();
+                }
             }
             _ => {}
         }
@@ -713,8 +736,71 @@ impl Dienst {
         e["sitzung"] = json!(sid);
         self.ereignis(k, e, None);
         if matches!(x, Ereignis::Kindende { .. }) && self.cfg.lauf.is_some() {
+            self.beendete_begrenzen(k);
             self.liste_senden();
         }
+    }
+
+    /// DI12 point 5 (P26, Projektentscheid, 23.11.2026): the list holds at most `lauf.beendet_max` ended sessions of `Starten`. The end of the
+    /// session `k` itself takes nothing out of the list for it; while more than the limit have ended, the one that ended longest ago
+    /// and that no viewer subscribes goes into `entfernt` (it leaves the list at once, the session goes at the end of the turn,
+    /// [`Self::entfernte_wegnehmen`]). With every old entry subscribed, the list holds more until a later end.
+    fn beendete_begrenzen(&mut self, k: usize) {
+        let Some(max) = self.cfg.lauf.as_ref().map(|l| l.beendet_max) else {
+            return;
+        };
+        loop {
+            let entfernt = &self.entfernt;
+            let beendet = |s: &Sitzung| {
+                s.eintrag.is_some()
+                    && s.beendet_als.is_some()
+                    && !s.sid.as_ref().is_some_and(|sid| entfernt.contains(sid))
+            };
+            if self.sitzungen.iter().filter(|s| beendet(s)).count() <= max {
+                return;
+            }
+            let aeltester = self
+                .sitzungen
+                .iter()
+                .enumerate()
+                .filter(|(i, s)| *i != k && beendet(s))
+                .filter(|(_, s)| {
+                    let sid = s.sid.as_deref().unwrap_or_default();
+                    !self.betrachter.values().any(|b| b.abos.contains_key(sid))
+                })
+                .min_by_key(|(_, s)| s.beendet_als)
+                .map(|(i, _)| i);
+            match aeltester.and_then(|i| self.sitzungen.get(i)?.sid.clone()) {
+                Some(sid) => {
+                    self.entfernt.insert(sid);
+                }
+                None => return,
+            }
+        }
+    }
+
+    /// Drops the sessions marked `entfernt` (P26), at the end of a turn of the loop, when no step waits (the indexes of the sessions
+    /// change). The raster number of a dropped session counts as never handed out again, and every connection forgets it (RA R13).
+    fn entfernte_wegnehmen(&mut self) {
+        if !self.arbeit.is_empty() || self.entfernt.is_empty() {
+            return;
+        }
+        let weg = std::mem::take(&mut self.entfernt);
+        let ist_weg = |s: &Sitzung| s.sid.as_ref().is_some_and(|sid| weg.contains(sid));
+        let nummern: Vec<u8> = self
+            .sitzungen
+            .iter()
+            .filter(|s| ist_weg(s))
+            .filter_map(|s| s.nr)
+            .collect();
+        for nummer in nummern {
+            for b in self.betrachter.values_mut() {
+                b.raster.vergessen(nummer);
+            }
+            self.vergeben[usize::from(nummer)] = false;
+        }
+        // `Kind::drop`: the child has ended and was collected; the carrier was given back at `Kindende`
+        self.sitzungen.retain(|s| !ist_weg(s));
     }
 
     /// DI6: the core gave an error and is spent. Builds it again from the state of the carrier (lines, `stand`, modes and
@@ -880,6 +966,37 @@ impl Dienst {
         }
     }
 
+    /// DI12 point 4 (P25, Projektentscheid, 23.11.2026): the raster number of a new session `s-<n>`. A number is free when its session has ended and
+    /// no viewer subscribes it; it is taken only when a new session needs one: first a number never handed out in this run, then the
+    /// free one whose session ended longest ago. The session that gave it shows `nr: null` from then on, and every connection forgets
+    /// the number (RA R13), so the first frame of the new session is a full picture. A subscribed number is never taken.
+    fn rahmen_waehlen(&self, n: usize, max: usize) -> Option<u8> {
+        let frei: Vec<(u64, u8)> = self
+            .sitzungen
+            .iter()
+            .filter(|s| s.eintrag.is_some())
+            .filter_map(|s| {
+                let (sid, nr, ende) = (s.sid.as_ref()?, s.nr?, s.beendet_als?);
+                let abonniert = self.betrachter.values().any(|b| b.abos.contains_key(sid));
+                (!abonniert).then_some((ende, nr))
+            })
+            .collect();
+        rahmennummer(n, max, &self.vergeben, &frei)
+    }
+
+    /// Takes the number chosen by [`Self::rahmen_waehlen`]: the session that held it loses it, every connection forgets it.
+    fn rahmen_nehmen(&mut self, nummer: u8) {
+        for s in &mut self.sitzungen {
+            if s.eintrag.is_some() && s.nr == Some(nummer) {
+                s.nr = None;
+            }
+        }
+        for b in self.betrachter.values_mut() {
+            b.raster.vergessen(nummer);
+        }
+        self.vergeben[usize::from(nummer)] = true;
+    }
+
     fn trennen_melden(&mut self, name: &str) {
         let t = self.jetzt();
         self.an_alle_kerne(&json!({"t": t, "art": "Trennen", "betrachter": name}));
@@ -903,7 +1020,7 @@ impl Dienst {
         if melden {
             self.trennen_melden(&name);
         }
-        self.senden(nr, rahmen(A_FEHLER, &json::bytes(&json!({"fehler": code}))));
+        self.senden(nr, json_rahmen(A_FEHLER, &json!({"fehler": code})));
     }
 
     // ---------------------------------------------------------------------------------------------- queue (DI5)
@@ -913,7 +1030,10 @@ impl Dienst {
     fn nachricht_an(&mut self, nr: u64, nachricht: &Value, k: Option<usize>) {
         let art = nachricht.get("art").and_then(Value::as_str);
         if let (Some(k), Some("Abzug" | "Rasteraenderung")) = (k, art) {
-            let sitzungsnr = self.sitzungen.get(k).map_or(0, |s| s.nr);
+            // a session without a raster number sends no frame (DI12 point 4, P25): its number belongs to another session now
+            let Some(sitzungsnr) = self.sitzungen.get(k).map_or(Some(0), |s| s.nr) else {
+                return;
+            };
             let Some(b) = self.betrachter.get_mut(&nr) else {
                 return;
             };
@@ -926,7 +1046,7 @@ impl Dienst {
                 }
             }
         } else {
-            self.senden(nr, rahmen(A_NACHRICHT, &json::bytes(nachricht)));
+            self.senden(nr, json_rahmen(A_NACHRICHT, nachricht));
         }
         self.melden(nr);
     }
@@ -1105,6 +1225,14 @@ impl Dienst {
             // the single mode has one core, at index 0
             0
         };
+        // DI12 point 4 (P25): a session whose raster number went to a later session cannot be watched live any more
+        if lauf
+            && art == "Abo"
+            && e.get("an") != Some(&Value::Bool(false))
+            && self.sitzungen.get(k).is_some_and(|s| s.nr.is_none())
+        {
+            return self.ablehnen(nr, &json!({"grund": "sitzung_ohne_nummer"}));
+        }
         let sid = self.sitzungen.get(k).and_then(|s| s.sid.clone());
         if let Ok(w) = self.schritt(k, e.clone()) {
             if w.ablehnungen.is_empty()
@@ -1121,15 +1249,18 @@ impl Dienst {
 
     // ---------------------------------------------------------------------------------------------- Starten, Beenden (DI12)
 
-    /// The list of the sessions (DI12 point 5): in the order of the start, the session of `kind` first; ended ones stay.
+    /// The list of the sessions (DI12 point 5): in the order of the start, the session of `kind` first; ended ones stay, at most
+    /// `lauf.beendet_max` of them (P26).
     fn liste_nachricht(&mut self) -> Value {
         let sitzungen: Vec<Value> = self
             .sitzungen
             .iter()
+            .filter(|s| !s.sid.as_ref().is_some_and(|sid| self.entfernt.contains(sid)))
             .filter_map(|s| {
                 let sid = s.sid.as_ref()?;
                 let mut x = json!({"id": sid, "harness": s.meta[0], "modell": s.meta[1], "route": s.meta[2],
-                                   "kunde": s.meta[3], "zustand": if s.kind_ende.is_some() { "beendet" } else { "laeuft" }});
+                                   "kunde": s.meta[3], "zustand": if s.kind_ende.is_some() { "beendet" } else { "laeuft" },
+                                   "nr": s.nr});
                 if let Some(code) = s.kind_ende {
                     x["code"] = json!(code);
                 }
@@ -1225,14 +1356,20 @@ impl Dienst {
         if self.laufende() >= SITZUNGEN_MAX {
             return self.start_ablehnen(nr, &Abgelehnt::fest("zu_viele_sitzungen"));
         }
-        // DI12 points 13 and 15: skip every number whose entry under `lauf.sitzungen` or whose target list under `lauf.ziellisten` still
-        // exists (`lstat`: any kind, a dead link too); point 15a in `nummer_vergebbar`
+        // DI12 point 4 (P25): with every raster number held the start is refused before the identifier loop, so point 15a removes an
+        // old target list only for a start that is handed out (whether a raster number is free does not depend on the identifier)
+        if self
+            .rahmen_waehlen(self.naechste + 1, lauf.rahmen_max)
+            .is_none()
+        {
+            return self.start_ablehnen(nr, &Abgelehnt::fest("nummern_erschoepft"));
+        }
+        // DI12 points 13 and 15: skip every identifier whose entry under `lauf.sitzungen` or whose target list under `lauf.ziellisten`
+        // still exists (`lstat`: any kind, a dead link too); point 15a in `nummer_vergebbar`: the identifiers count from `s-1` again
+        // after a restart, so this is where an identifier of an ended session of an earlier run is handed out again
         let mut n = self.naechste + 1;
         loop {
             if n > lauf.nummer_max {
-                return self.start_ablehnen(nr, &Abgelehnt::fest("nummern_erschoepft"));
-            }
-            if u8::try_from(n).is_err() {
                 return self.start_ablehnen(nr, &Abgelehnt::fest("nummern_erschoepft"));
             }
             match nummer_vergebbar(&lauf, n) {
@@ -1241,7 +1378,9 @@ impl Dienst {
                 Err(()) => return self.start_ablehnen(nr, &Abgelehnt::fest("start_ordner")),
             }
         }
-        let Ok(nummer) = u8::try_from(n) else {
+        // DI12 point 4 (P25): the raster number is separate from the identifier. Every number held: the start is refused, before
+        // anything is made. The number is taken only after the folder, the child and the core exist (see below).
+        let Some(nummer) = self.rahmen_waehlen(n, lauf.rahmen_max) else {
             return self.start_ablehnen(nr, &Abgelehnt::fest("nummern_erschoepft"));
         };
         let kennung = format!("s-{n}");
@@ -1272,15 +1411,14 @@ impl Dienst {
             &Traegerstand::anfang(lauf.groesse),
         );
         let Ok(kern) = zustandskern::Sitzungskern::neu_mit(&anfang, self.kern_grenze) else {
-            let pid = kind.pid();
-            kinder_beenden(vec![kind]);
-            if let Some(pid) = pid {
-                self.waisen.jagen(pid, Instant::now());
+            for sid in kinder_verwerfen(vec![kind]) {
+                self.waisen.jagen(sid, Instant::now());
             }
             crate::loeschen::sitzung_entfernen(self.wurzel.as_fd(), &kennung);
             return self.start_ablehnen(nr, &Abgelehnt::fest("programm_nicht_startbar"));
         };
         self.naechste = n;
+        self.rahmen_nehmen(nummer);
         self.sitzungen.push(Sitzung::gestartet(
             kennung.clone(),
             nummer,
@@ -1398,7 +1536,7 @@ impl Dienst {
             }
             A_ZUSTAND => {
                 let z = self.pruefzustand();
-                self.senden(nr, rahmen(A_ZUSTAND, &json::bytes(&z)));
+                self.senden(nr, json_rahmen(A_ZUSTAND, &z));
             }
             _ => {
                 // with `lauf` the frame is not allowed (DI12 point 7); the rebuild per session stays a duty of the service
@@ -1527,8 +1665,9 @@ impl Dienst {
         kinder_beenden(Self::kinder_nehmen(&mut self.sitzungen));
         // the children are collected now: their orphans get the whole order (SIGHUP, up to 1 s, SIGKILL) before the folders go
         self.waisen.alle_beenden(&sids, &[]);
+        // the carriers have collected every child: no own child is left
         for s in &mut self.sitzungen {
-            s.ende_aufraeumen();
+            s.ende_aufraeumen(&[]);
         }
     }
 }
@@ -1553,10 +1692,81 @@ pub fn signale_anmelden() -> std::io::Result<signal_hook::iterator::Signals> {
     signal_hook::iterator::Signals::new([SIGTERM, SIGINT])
 }
 
+/// The wake socket pair of the loop, both ends non-blocking.
+fn weckpaar() -> std::io::Result<(UnixStream, UnixStream)> {
+    let (lese, schreib) = UnixStream::pair()?;
+    lese.set_nonblocking(true)?;
+    schreib.set_nonblocking(true)?;
+    Ok((lese, schreib))
+}
+
+/// The pids of the own children of `sitzungen` that the carriers have not collected yet ([`Dienst::eigene_kinder`]).
+fn kinder_der(sitzungen: &[Sitzung]) -> Vec<u32> {
+    sitzungen.iter().filter_map(Sitzung::eigenes_kind).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::os::unix::net::UnixStream;
+
+    /// P23 after P26: a session whose child has ended and whose carrier was given back keeps the pid of its child
+    /// (`Kind::pid`), but that child is collected, so the own children hold only the pid of the child that still runs. A collected
+    /// pid in the list would protect a stranger that took the number; a missing running one would let the end of another session
+    /// signal it.
+    #[test]
+    fn eigene_kinder_nach_der_freigabe_nur_das_laufende_kind() {
+        let start = |argv: &[&str]| traeger::Start {
+            argv: argv.iter().map(|a| (*a).to_owned()).collect(),
+            env: Vec::new(),
+            cwd: PathBuf::from("/"),
+            spalten: 20,
+            zeilen: 5,
+            ruecklauf: 10,
+        };
+        let kern = || {
+            let basis = json!({"personen": {"anna": {}}, "sitzungen": []});
+            zustandskern::Sitzungskern::neu(&basis).expect("core")
+        };
+        let kind = |argv: &[&str]| traeger::Kind::starten(start(argv)).expect("child starts");
+        let mut sitzungen = vec![
+            Sitzung::raum(kern()),
+            Sitzung::neu("s-1".to_owned(), kern(), kind(&["/bin/sh", "-c", "exit 0"])),
+            Sitzung::neu("s-2".to_owned(), kern(), kind(&["/bin/sleep", "30"])),
+        ];
+        let pid = |s: &Sitzung| s.kind.as_ref().and_then(traeger::Kind::pid).expect("pid");
+        let (a, b) = (pid(&sitzungen[1]), pid(&sitzungen[2]));
+        let mut beide = kinder_der(&sitzungen);
+        beide.sort_unstable();
+        let mut erwartet = vec![a, b];
+        erwartet.sort_unstable();
+        assert_eq!(beide, erwartet, "both children run");
+        // the child of s-1 ends: the carrier reads up to `Kindende` and collects it, then gives the PTY back (P26)
+        let frist = Instant::now() + Duration::from_secs(10);
+        let ende = loop {
+            let kind = sitzungen[1].kind.as_mut().expect("carrier");
+            let ereignisse = kind.lies(Duration::from_millis(50));
+            if let Some(e) = ereignisse
+                .iter()
+                .find(|e| matches!(e, Ereignis::Kindende { .. }))
+            {
+                break e.clone();
+            }
+            assert!(Instant::now() < frist, "the child of s-1 ends within 10 s");
+        };
+        assert!(matches!(ende, Ereignis::Kindende { code: 0 }), "{ende:?}");
+        // as at the end of a session: the own children are read before the carrier is given back
+        assert_eq!(kinder_der(&sitzungen), vec![b], "before the release");
+        let kind = sitzungen[1].kind.as_mut().expect("carrier");
+        kind.freigeben();
+        assert!(kind.freigegeben(), "the carrier of s-1 is given back");
+        assert_eq!(
+            kind.pid(),
+            Some(a),
+            "the pid stays with the released carrier"
+        );
+        assert_eq!(kinder_der(&sitzungen), vec![b], "after the release");
+    }
 
     #[test]
     fn the_reading_of_a_child_goes_on_past_data_without_an_event() {

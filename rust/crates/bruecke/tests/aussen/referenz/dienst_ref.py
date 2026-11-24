@@ -66,6 +66,8 @@ MUTANTEN = [
     # DI7 Kind
     "kind_code_plus_eins", "kind_signal_roh", "kind_env_erweitert", "kind_cwd_nicht_gesetzt", "pty_vor_groesse",
     "groesse_pty_nicht", "eingabe_cr_zu_lf", "kind_bleibt_am_leben",
+    # DI4, Nachtrag 21.11.2026: die Ereignisse des Traegers fuer eine neue Groesse gehen nach den Nachrichten des Schritts an den Kern
+    "groesse_ereignis_sofort",
     # DI1 / DI8, Nachtrag 20.11.: kleinste Groesse 2 Spalten (decision of 20.11.2026)
     "start_eine_spalte_ok", "groesse_eine_spalte_durchlassen",
     # DI1 / DI5, Nachtrag 20.11.: Startdatei warteschlange_max
@@ -150,7 +152,9 @@ TOP_SCHLUESSEL = {"socket", "betrachter", "kind", "groesse", "ruecklauf", "defla
 LAUF_SCHLUESSEL = {"programm", "env", "groesse", "einstellungen"}      # einstellungen: addendum of 20.11.2026, Pflicht
 START_MAX = 4096              # Nachtrag vom 20.11.2026: die Start-Struktur hat hoechstens 4096 Byte (kanonische Form, vor dem Einsetzen von `sitzung`)
 SITZUNGEN_MAX = 8             # gleichzeitig laufende Sitzungen (decision of 20.11.2026 (a))
-NUMMER_MAX = 255              # die Sitzungsnummer im Rasterrahmen ist ein Byte (RA); s-<n> hat die Nummer n, die Sitzung aus `kind` die Nummer 0
+NUMMER_MAX = 255              # die Sitzungsnummer im Rasterrahmen ist ein Byte (RA): die Sitzung aus `kind` hat 0, die Sitzungen von Starten teilen sich 1 bis 255
+                              # (Nachtrag P25, Abschnitt 19: die Rasternummer ist von der Kennung getrennt und wird neu vergeben; im Pruefmodus lauf.rahmen_max)
+KENNUNG_MAX = 999_999_999     # Nachtrag P25: die meisten Kennungen s-<n> je Lauf (neun Ziffern, ^s-[0-9]{1,9}$); eine Kennung wird nie wiederverwendet
 KILL_FRIST = 1.0              # Beenden und Dienstende: SIGHUP, bis zu 1 s, SIGKILL
 START_EREIGNIS = {"art", "start"}
 # addendum of 20.11.2026: the harness table of version 1 (contract 1) and the fixed texts of the refusals of Starten
@@ -247,7 +251,7 @@ def start_pruefen(o):
         L = o["lauf"]
         if not isinstance(L, dict):
             bad("lauf")
-        fremd = set(L) - LAUF_SCHLUESSEL - {"nummer_max", "sitzungen", "ziellisten", "laufzeit", "marker_datei", "marker_ordner"}
+        fremd = set(L) - LAUF_SCHLUESSEL - {"nummer_max", "rahmen_max", "sitzungen", "ziellisten", "laufzeit", "marker_datei", "marker_ordner"}
         pflicht = LAUF_SCHLUESSEL - ({"einstellungen"} if m("lauf_einstellungen_nicht_pflicht") else set())
         if (fremd and not m("lauf_unbekannter_schluessel_ok")) or not pflicht <= set(L):
             bad("lauf")
@@ -281,10 +285,14 @@ def start_pruefen(o):
                 bad("lauf.marker_datei muss ein absoluter Pfad sein")
             MARKER_PFAD = mp
             MARKER_DIENST = marker_datei_lesen(mp, L.get("marker_ordner"))
-        if "nummer_max" in L:      # nur zum Pruefen, wie warteschlange_max: senkt die Zahl der Nummern (Sitzungen von Starten insgesamt)
+        if "nummer_max" in L:      # nur zum Pruefen, wie warteschlange_max: senkt die Zahl der Kennungen (Sitzungen von Starten insgesamt; P25: bis KENNUNG_MAX)
             nm = L["nummer_max"]
-            if not (ganz(nm) and 1 <= nm <= NUMMER_MAX and o.get("pruefmodus") is True):
+            if not (ganz(nm) and 1 <= nm <= KENNUNG_MAX and o.get("pruefmodus") is True):
                 bad("lauf.nummer_max")
+        if "rahmen_max" in L:      # Nachtrag P25: nur zum Pruefen, senkt die Zahl der Rasternummern der Sitzungen von Starten (Vorgabe NUMMER_MAX)
+            rm = L["rahmen_max"]
+            if not (ganz(rm) and 1 <= rm <= NUMMER_MAX and o.get("pruefmodus") is True):
+                bad("lauf.rahmen_max")
         pg = L["programm"]
         if not (isinstance(pg, str) and 0 < len(pg.encode()) <= 4096 and "\x00" not in pg):
             bad("lauf.programm")
@@ -298,6 +306,7 @@ def start_pruefen(o):
         if not spalten_ok(lg[0]) and not m("lauf_eine_spalte_ok"):
             bad("lauf.groesse hat weniger als %d Spalten" % KLEINSTE_SPALTEN)
         lauf = {"programm": pg, "env": dict(L["env"]), "groesse": list(lg), "einstellungen": L.get("einstellungen"), **({"nummer_max": L["nummer_max"]} if "nummer_max" in L else {}),
+                **({"rahmen_max": L["rahmen_max"]} if "rahmen_max" in L else {}),
                 **({"sitzungen": L["sitzungen"]} if "sitzungen" in L else {}),
                 **({"ziellisten": L["ziellisten"]} if "ziellisten" in L else {}),
                 **({"laufzeit": L["laufzeit"]} if "laufzeit" in L else {}),
@@ -666,6 +675,7 @@ class Client:
         self.qlen = 0
         self.ver = ra_ref.Verbindung(deflate and not m("betr_deflate_ignoriert"))
         self.abo = None
+        self.abos = {}                  # P25 (with lauf): session id -> [spalten, zeilen] of every Abo this viewer holds (the service's own record)
         self.stumm = False
         self.schliessen = False
         self.gesperrt = False
@@ -736,6 +746,32 @@ class Sitzung:
         self.beendet_von_uns = False
         self.kind_pid = None            # pid and start time of the child at the start of the session (for the pid protection at the end)
         self.kind_start = None
+        self.beendet_als = None         # P25: the place of this session in the order of the ends of the run (1 for the first end); None while it runs
+
+
+def rahmennummer(n, rmax, vergeben, frei):
+    """P25: n itself when it is at most rmax and never handed out, else the smallest number never handed out, else the free number
+    whose session ended first (`frei`: (place of the end, number)). None: every number from 1 to rmax is held. 0 is the session of `kind`."""
+    if 1 <= n <= rmax and n not in vergeben:
+        return n
+    for x in range(1, rmax + 1):
+        if x not in vergeben:
+            return x
+    frei = sorted((e, x) for e, x in frei if 1 <= x <= rmax)
+    return frei[0][1] if frei else None
+
+
+def abo_nachfuehren(abos, sid, e):
+    """P25: the service's record of the Abos of a viewer (as the build's `abo_nachfuehren`): Abo an with a size, Abo aus, Groesse."""
+    art, an = e.get("art"), e.get("an", True)
+    groesse = [e["spalten"], e["zeilen"]] if ganz(e.get("spalten")) and ganz(e.get("zeilen")) else None
+    if art == "Abo" and an is True:
+        if groesse is not None:
+            abos[sid] = groesse
+    elif art == "Abo" and an is False:
+        abos.pop(sid, None)
+    elif art == "Groesse" and sid in abos and groesse is not None:
+        abos[sid] = groesse
 
 
 def kanon(o):
@@ -1124,6 +1160,8 @@ class Dienst:
         self.sitz = {}              # sid -> Sitzung, in the order of their start
         self.basis = None
         self.naechste = 0           # numbers of Starten handed out so far (s-<n>, never used again)
+        self.vergeben = set()       # P25: raster numbers handed out in this run
+        self.enden = 0              # P25: ends of sessions so far (the order of the ends)
         self.s0 = None
         if cfg["sid"] is not None:
             self.s0 = Sitzung(cfg["sid"], 0, cfg["groesse"])
@@ -1220,6 +1258,7 @@ class Dienst:
                 self.pty_schreiben(s, bytes.fromhex(w["hex"]))
             pty = []
             schritte = [("g", groessen), ("p", pty)]
+        spaeter = []        # DI4 (Nachtrag 21.11.2026): the carrier events of a new size make the next step, after the messages of this one
         for art, liste in schritte:
             for w in liste:
                 if art == "g":
@@ -1234,7 +1273,10 @@ class Dienst:
                         self.pty_groesse(s, w["spalten"], w["zeilen"])
                         ev = s.traeger.groesse(w["spalten"], w["zeilen"])
                     for x in ev:
-                        self.traeger_ereignis(x, s)
+                        if m("groesse_ereignis_sofort"):
+                            self.traeger_ereignis(x, s)
+                        else:
+                            spaeter.append(x)
                 else:
                     b = bytes.fromhex(w["hex"])
                     if m("eingabe_cr_zu_lf"):
@@ -1264,10 +1306,14 @@ class Dienst:
             for c in ziele2:
                 if not c.tot and not c.schliessen:
                     self.senden(c, rahmen(A_ABLEHNUNG, jbytes({"grund": ab["grund"]})))
+        for x in spaeter:
+            self.traeger_ereignis(x, s)
 
     def nachricht_an(self, c, msg, s):
         art = msg.get("art")
         if art in ("Abzug", "Rasteraenderung"):
+            if s is not None and s.nr is None:
+                return              # P25: a session without a raster number sends no frame (its number belongs to another session now)
             nr = s.nr
             if m("betr_nr_eins"):
                 nr = 1
@@ -1296,7 +1342,7 @@ class Dienst:
         for s in self.sitz.values():
             if m("beenden_entfernt_sitzung") and s.beendet_von_uns and s.zustand == "beendet":
                 continue
-            x = {"id": s.sid, "zustand": s.zustand}
+            x = {"id": s.sid, "zustand": s.zustand, "nr": s.nr}     # P25: nr is the raster number, null once a later session took it
             for k in ("harness", "modell", "route", "kunde"):
                 x[k] = "" if m("liste_felder_leer") else s.meta[k]
             if s.zustand == "beendet" and not m("liste_ohne_code"):
@@ -1563,7 +1609,12 @@ class Dienst:
                     s = self.basis
                 if s is None:
                     return self.ablehnen(c, "sitzung_unbekannt")
+                # P25 (Abschnitt 19 Punkt 6): a session whose raster number went to a later session cannot be watched live any more
+                if e["art"] == "Abo" and e.get("an") is not False and s.nr is None:
+                    return self.ablehnen(c, "sitzung_ohne_nummer")
             aus = self.schritt(e, c, s)
+            if self.lauf is not None and not aus["ablehnungen"] and s.sid is not None:
+                abo_nachfuehren(c.abos, s.sid, e)
             if self.lauf is None and not aus["ablehnungen"] and e["art"] in ("Abo", "Groesse"):
                 if e["art"] == "Abo" and e.get("an", True) is True and ganz(e.get("spalten")) and ganz(e.get("zeilen")):
                     c.abo = [e["spalten"], e["zeilen"]]
@@ -1860,6 +1911,10 @@ class Dienst:
                 n += 1
                 if m("sitzungen_naechste_beim_ueberspringen"):
                     self.naechste = n
+        # P25 (DI12 Punkt 4, Abschnitt 19): the raster number is separate from the identifier; chosen now, taken only after the child started
+        nummer = self.rahmen_waehlen(n, L.get("rahmen_max", NUMMER_MAX))
+        if nummer is None:
+            return self.ablehnen_start(c, "nummern_erschoepft")
         sid = "s-%d" % n
         ordner = os.path.join(self.cfg["ordner"], sid)
         datei = os.path.join(ordner, "start.txt" if m("starten_datei_name") else "start.json")
@@ -1918,9 +1973,10 @@ class Dienst:
                 self.nachricht_an(c, {"t": self.jetzt(), "art": "Gestartet", "sitzung": sid}, None)
             return
         self.naechste = n
+        self.rahmen_nehmen(nummer)
         eintrag = {"id": sid, "titel": "", "route": meta["route"] or None, "kundenraum": self.cfg["betrachter"]["raum"],
                    "person": self.cfg["betrachter"]["person"], "groesse": groesse}
-        s = Sitzung(sid, n if not m("sitzung_nr_zu_gross_ok") else n % 256, groesse, meta, eintrag)
+        s = Sitzung(sid, nummer, groesse, meta, eintrag)
         s.ordner = ordner
         s.pid, s.master = pid, master
         s.kind_pid = pid
@@ -1956,6 +2012,27 @@ class Dienst:
         else:
             liste()
             antwort()
+
+    def rahmen_waehlen(self, n, rmax):
+        """P25 (DI12 Punkt 4, Abschnitt 19): the raster number of a new session s-<n>. Free is the number of an ended session that no
+        viewer subscribes; first a number never handed out in this run, then the free one whose session ended longest ago. None: all held."""
+        frei = []
+        for s in self.sitz.values():
+            if s.eintrag is None or s.nr is None or s.beendet_als is None:
+                continue
+            if any(s.sid in cc.abos for cc in self.clients.values()):
+                continue
+            frei.append((s.beendet_als, s.nr))
+        return rahmennummer(n, rmax, self.vergeben, frei)
+
+    def rahmen_nehmen(self, nummer):
+        """Takes the chosen number: the session that held it shows nr null from then on, every connection forgets the number (RA R13)."""
+        for s in self.sitz.values():
+            if s.eintrag is not None and s.nr == nummer:
+                s.nr = None
+        for cc in self.clients.values():
+            cc.ver.vergessen(nummer)
+        self.vergeben.add(nummer)
 
     def pid_pruefen(self, pid, s):
         """The protection against a reused or foreign pid; in doubt False."""
@@ -2136,6 +2213,8 @@ class Dienst:
         s.kill_ab = None
         s.kind_ende = code
         s.zustand = "beendet"
+        self.enden += 1
+        s.beendet_als = self.enden
         self.sitzung_ende(s)           # DI12 point 12: before the list shows `beendet`
         self.traeger_ereignis({"art": "Kindende", "code": code}, s)
         if not m("liste_nicht_nach_aenderung"):

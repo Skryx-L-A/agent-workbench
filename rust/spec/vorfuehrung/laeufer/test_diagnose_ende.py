@@ -122,7 +122,7 @@ class DiagnoseBeiSitzungsende(Werkstatt):
 
 
 class EndeZeileAufDerKonsole(Werkstatt):
-    """Nachtrag 3: je Schritt mit `ende_*` genau eine Zeile `  <schritt> ende: zustand <z>, code <c>, lauf <codes|->, texte <name=n,...|->` auf der Konsole
+    """Nachtrag 3: je Schritt mit `ende_*` genau eine Zeile `  <schritt> ende: zustand <z>, code <c>, grund <g|->, lauf <codes|->, texte <name=n,...|->` auf der Konsole
     von `drehbuch.py probelauf` (lauf.log). Nur Codes und Zahlen; ein gruener Lauf hat sie nie. Die Ergebnisdatei bleibt Fassung 2.
     Dass erwartung-m1.py sie nicht anders entscheiden laesst, wird ausserhalb des Repos belegt (kein Test mit Pfad ausserhalb)."""
 
@@ -144,10 +144,10 @@ class EndeZeileAufDerKonsole(Werkstatt):
         zeilen, d = self.konsole("ende", {"code": 1, "text": ENTPACKEN + "\n"})
         ende = [z for z in zeilen if " ende: " in z]
         # jeder sendende Schritt, dessen Sitzung ohne Eingabefeld endete, hat genau eine Zeile (hier S1, S2, S3, E1, E2, E3: gleiche Sitzung, gleicher Text)
-        self.assertEqual(ende.count("  S1 ende: zustand beendet, code 1, lauf -, texte Failed_to_extract_bundled_package=1"), 1)
+        self.assertEqual(ende.count("  S1 ende: zustand beendet, code 1, grund -, lauf -, texte Failed_to_extract_bundled_package=1"), 1)
         schritte_ = [z.split()[0] for z in ende]
         self.assertEqual(len(schritte_), len(set(schritte_)), "je Schritt hoechstens eine Zeile")
-        self.assertTrue(all(z.endswith("code 1, lauf -, texte Failed_to_extract_bundled_package=1") for z in ende))
+        self.assertTrue(all(z.endswith("code 1, grund -, lauf -, texte Failed_to_extract_bundled_package=1") for z in ende))
         self.assertEqual(probelauf.pruefe_form(d), [])
         self.assertNotIn("ende_", json.dumps(d), "nichts davon in der Ergebnisdatei")
 
@@ -159,14 +159,14 @@ class EndeZeileAufDerKonsole(Werkstatt):
         mw = {"ende_zustand": "beendet", "ende_code": 65, "ende_lauf_codes": ["lauf.paket_entpacken", "lauf.paket_teil"],
               "ende_texte": {"ENOSPC": 1, "Permission denied": 2, "No such file": 0}}
         self.assertEqual(probelauf.ende_zeile("S1", mw),
-                         "  S1 ende: zustand beendet, code 65, lauf lauf.paket_entpacken,lauf.paket_teil, texte ENOSPC=1,Permission_denied=2")
+                         "  S1 ende: zustand beendet, code 65, grund -, lauf lauf.paket_entpacken,lauf.paket_teil, texte ENOSPC=1,Permission_denied=2")
         leer = {"ende_zustand": None, "ende_code": None, "ende_lauf_codes": [], "ende_texte": {t: 0 for t in lauf.ENDE_TEXTE}}
-        self.assertEqual(probelauf.ende_zeile("E5", leer), "  E5 ende: zustand -, code -, lauf -, texte -")
+        self.assertEqual(probelauf.ende_zeile("E5", leer), "  E5 ende: zustand -, code -, grund -, lauf -, texte -")
         self.assertIsNone(probelauf.ende_zeile("S1", {"rc_env": 0}))
         # Inhalt des Bildes oder ein Pfad kommt nie hinein: Codes werden auf die Form `lauf.<wort>` begrenzt
         boese = dict(mw, ende_lauf_codes=["lauf.x", "/pfad/geheim", "Inhalt mit Leerzeichen"], ende_zustand="/pfad")
         z = probelauf.ende_zeile("S1", boese)
-        self.assertEqual(z, "  S1 ende: zustand -, code 65, lauf lauf.x, texte ENOSPC=1,Permission_denied=2")
+        self.assertEqual(z, "  S1 ende: zustand -, code 65, grund -, lauf lauf.x, texte ENOSPC=1,Permission_denied=2")
 
 
 def im_pty(argv, env, frist=10.0):
@@ -239,6 +239,40 @@ class AbbruchgrundDerAttrappe(unittest.TestCase):
         self.assertRegex(zeilen[1], r"^[A-Za-z]+(Error|Exit)$|^[A-Za-z]+$")
         self.assertNotIn("Traceback", bild)
         self.assertNotIn("/dev/null", bild, "nur der Name der Ausnahme, nie ihr Text")
+
+
+
+class EndeWerteNurFest(unittest.TestCase):
+    """Befund 4: `ende_zustand` steht nur als `laeuft`, `beendet` oder `abweichend` da, `ende_code` nur als `int` (kein
+    `bool`), sonst `abweichend`; None (nicht gelesen) bleibt None. Der Weg geht ueber `Lauf.sitzung_starten` (Sitzungsliste der Bruecke)."""
+
+    def befund(self, zustand, code):
+        from unittest import mock
+        from test_einstart import FalscheBruecke
+        from test_enter_abstand import lauf_mit
+
+        class Liste(FalscheBruecke):
+            def sitzung(self, sid):
+                return {"zustand": zustand, "code": code}
+        arbeit = tempfile.mkdtemp(prefix="ende-fest-")
+        self.addCleanup(shutil.rmtree, arbeit, True)
+        L = lauf_mit(arbeit, Liste())
+        with mock.patch.object(lauf.messen, "start_bis_eingabefeld", lambda *a, **k: {"sitzung": "s-9", "t1": None}):
+            L.sitzung_starten("cloud")
+        b = L.ende_befund["s-9"]
+        return b["ende_zustand"], b["ende_code"]
+
+    def test_feste_werte_bleiben(self):
+        self.assertEqual(self.befund("beendet", 65), ("beendet", 65))
+        self.assertEqual(self.befund("laeuft", 0), ("laeuft", 0))
+        self.assertEqual(self.befund(None, None), (None, None))
+
+    def test_anderes_wird_abweichend(self):
+        text = "Fehlertext der Bruecke /pfad"
+        self.assertEqual(self.befund(text, text), ("abweichend", "abweichend"))
+        self.assertEqual(self.befund("beendet", True), ("beendet", "abweichend"), "bool ist kein Code")
+        self.assertEqual(self.befund(["laeuft"], 1.5), ("abweichend", "abweichend"))
+        self.assertEqual(self.befund({"x": 1}, "65"), ("abweichend", "abweichend"))
 
 
 if __name__ == "__main__":

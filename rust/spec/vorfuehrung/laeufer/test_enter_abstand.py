@@ -49,7 +49,7 @@ class NachgebildeteCli(FalscheBruecke):
 
     def text(self, sid, text):
         self.ereignisse.append(("Text", time.monotonic()))
-        self.getippt, self.getippt_t, self.umbruch = text, time.monotonic(), False
+        self.getippt, self.getippt_t, self.umbruch, self.gesehen_t = text, time.monotonic(), False, None  # je Zug neu sichtbar
         return 202, {"ok": True}
 
     def taste(self, sid, taste="Enter"):
@@ -191,6 +191,7 @@ class EnterMitAbstand(unittest.TestCase):
         self.assertLess(time.monotonic() - t0, 2.0, "die Ablehnung beendet das Warten auf den Text")
         self.assertEqual(str(f.exception), "Eingabe vom Dienst abgelehnt")
         self.assertEqual([a for a, _ in b.ereignisse], ["Text"])
+        self.assertNotIn("s-1", L.gesperrt, "ohne Enter bleibt die Sitzung frei")
 
     def test_attrappen_bild_text_unter_der_fusszeile(self):
         b = NachgebildeteCli("attrappe")
@@ -228,6 +229,173 @@ class EnterMitAbstand(unittest.TestCase):
     def test_seite_bleibt_beim_eigenen_weg(self):
         self.assertIs(br.Bruecke.text_und_taste, True)
         self.assertIs(seite.SeiteBruecke.text_und_taste, False, "die Seite sendet ueber ihr Formular")
+
+    # --- Befunde 1 bis 3 und fehlende Faelle eines Reviews ---------------------------------------------
+    def test_folgezug_nach_nicht_abgesendet_sendet_nichts(self):
+        """Befund 1: Nach `NichtAbgesendet` steht der Text noch im Feld; der naechste Zug auf derselben Sitzung sendet weder Text noch
+        Enter und endet sofort mit `<schritt>.nicht_abgesendet`."""
+        b = NachgebildeteCli("bleibt")
+        L = lauf_mit(self.arbeit, b)
+        with mock.patch.object(lauf, "ABGESENDET_S", 0.3):
+            with self.assertRaises(lauf.NichtAbgesendet):
+                L.zug("s-1", "zaehlen", "")
+            t0 = time.monotonic()
+            with self.assertRaises(lauf.NichtAbgesendet) as f:
+                L.zug("s-1", "zaehlen", "")
+        self.assertLess(time.monotonic() - t0, 0.2, "der Folgezug endet sofort")
+        self.assertEqual(ablauf.ausnahme_code("S2", f.exception), "s2.nicht_abgesendet")
+        self.assertEqual([a for a, _ in b.ereignisse], ["Text", "Taste"], "der Folgezug sendet weder Text noch Enter")
+        self.assertEqual((L.cloud_eingaben, b.eingaben), (1, []))
+
+    def test_folgezug_nach_nie_sichtbar_sendet_nichts(self):
+        """Befund 1, Fall "nie sichtbar": auch ohne Enter bleibt die Sitzung gesperrt (der Text kann spaeter noch im Feld erscheinen)."""
+        b = NachgebildeteCli("nie")
+        L = lauf_mit(self.arbeit, b)
+        with mock.patch.object(lauf, "EINGABE_SICHTBAR_S", 0.3):
+            for _ in range(2):
+                with self.assertRaises(lauf.NichtAbgesendet):
+                    L.zug("s-1", "zaehlen", "")
+        self.assertEqual([a for a, _ in b.ereignisse], ["Text"])
+        self.assertEqual(L.cloud_eingaben, 0)
+
+    def test_andere_sitzung_bleibt_frei(self):
+        """Die Sperre gilt nur fuer die Sitzung mit dem liegengebliebenen Text."""
+        b = NachgebildeteCli("bleibt")
+        L = lauf_mit(self.arbeit, b)
+        with mock.patch.object(lauf, "ABGESENDET_S", 0.3):
+            with self.assertRaises(lauf.NichtAbgesendet):
+                L.zug("s-1", "zaehlen", "")
+        b.art = "cli"
+        L.art_von["s-2"] = "cloud"
+        L.zug("s-2", "zaehlen", "")
+        self.assertIs(L.sendung["abgesendet"], True)
+
+    def test_gleiches_merkmal_im_bild_wartet_auf_den_neuen_text(self):
+        """Befund 2: Steht das Merkmal schon aus einem frueheren Zug im Bild, geht das Enter erst nach dem neuen Text hinaus."""
+        frage = "gleiche-frage-am-ende-des-zugs"
+        b = NachgebildeteCli("cli", zeigen_s=1.0)
+        b.verlaufzeilen.append("\u203a frueherer Zug " + frage)  # die abgeschickte Zeile eines frueheren Zugs, gleiches Ende
+        L = lauf_mit(self.arbeit, b)
+        L.zug("s-1", "suche", frage)
+        self.assertIsNotNone(b.gesehen_t, "der neue Text war sichtbar, bevor das Enter kam")
+        enter_t = [t for a, t in b.ereignisse if a == "Taste"][0]
+        self.assertGreaterEqual(enter_t - b.gesehen_t, lauf.ENTER_ABSTAND_S - 0.01)
+        self.assertEqual(L.sendung, {"weg": "abstand", "sichtbar": True, "abgesendet": True})
+
+    def test_zwei_gleiche_zuege_hintereinander(self):
+        """Befund 2: Zwei gleiche Suchzuege auf derselben Sitzung (wie S3/S5/E1 mit `konfig.attrappe.json`): auch der zweite wartet auf
+        seinen eigenen Text und sendet ab."""
+        frage = "gleiche-frage-am-ende-des-zugs"
+        b = NachgebildeteCli("cli", zeigen_s=1.0)
+        L = lauf_mit(self.arbeit, b)
+        for i in range(2):
+            L.zug("s-1", "suche", frage)
+            enter_t = [t for a, t in b.ereignisse if a == "Taste"][i]
+            self.assertIsNotNone(b.gesehen_t, "Zug %d: der neue Text war sichtbar, bevor das Enter kam" % (i + 1))
+            self.assertGreaterEqual(enter_t - b.gesehen_t, lauf.ENTER_ABSTAND_S - 0.01, "Zug %d" % (i + 1))
+            self.assertIs(L.sendung["abgesendet"], True)
+        self.assertEqual(len(b.verlaufzeilen), 2, "beide Zuege abgesendet")
+        self.assertEqual([a for a, _ in b.ereignisse], ["Text", "Taste"] * 2)
+
+    def test_taste_wirft_eingabe_zaehlt(self):
+        """Befund 3: Wirft `taste` (Zeitueberschreitung der Antwort), kann das Enter angekommen sein: die Cloud-Eingabe zaehlt, das Bild
+        geht in die Diagnosedatei, der Zug endet mit festem Code. Der Text der Ausnahme steht nur in der Diagnosedatei."""
+        geheim = "antwort-" + "q7" * 8
+
+        class Wirft(NachgebildeteCli):
+            def taste(self, sid, taste="Enter"):
+                super().taste(sid, taste)
+                raise TimeoutError(geheim)
+        b = Wirft("cli")
+        L = lauf_mit(self.arbeit, b)
+        with self.assertRaises(lauf.Zeitueberschreitung) as f:
+            L.zug("s-1", "zaehlen", "")
+        self.assertEqual(L.cloud_eingaben, 1, "das Enter kann hinausgegangen sein")
+        self.assertEqual(ablauf.ausnahme_code("S1", f.exception), "s1.zug_frist")
+        self.assertNotIn(geheim, str(f.exception))
+        self.assertEqual([a for a, _ in b.ereignisse], ["Text", "Taste"], "kein zweites Enter")
+        pfad = os.path.join(self.arbeit, "e.json")
+        self.assertEqual(messen.diagnose_schreibe(pfad), "angelegt")
+        with open(pfad + ".diagnose", encoding="utf-8") as fd:
+            inhalt = fd.read()
+        self.assertIn("TimeoutError: " + geheim, inhalt)
+        self.assertIn("lauf.raster: zeile ", inhalt, "diagnose_bild lief")
+        n = len(b.ereignisse)
+        with self.assertRaises(lauf.NichtAbgesendet):
+            L.zug("s-1", "zaehlen", "")
+        self.assertEqual(len(b.ereignisse), n, "gesperrt: der Folgezug sendet weder Text noch Enter (Projektentscheid, 23.11.2026)")
+
+    def test_taste_abgelehnter_http_code(self):
+        """Fehlender Fall: `taste` gibt einen abgelehnten HTTP-Code. Die Eingabe zaehlt ab dem Aufruf von `taste` (Befund 3), der Zug endet
+        mit `zug_frist`, die Antwort der Bruecke steht nur in der Diagnosedatei."""
+        class Abgelehnt(NachgebildeteCli):
+            def taste(self, sid, taste="Enter"):
+                self.ereignisse.append(("Taste", time.monotonic()))
+                return 409, {"fehler": "antwort-der-bruecke"}
+        b = Abgelehnt("cli")
+        L = lauf_mit(self.arbeit, b)
+        with self.assertRaises(lauf.Zeitueberschreitung) as f:
+            L.zug("s-1", "zaehlen", "")
+        self.assertEqual(str(f.exception), "Eingabe abgelehnt")
+        self.assertEqual(ablauf.ausnahme_code("S1", f.exception), "s1.zug_frist")
+        self.assertEqual(L.cloud_eingaben, 1)
+        self.assertEqual([a for a, _ in b.ereignisse], ["Text", "Taste"])
+        pfad = os.path.join(self.arbeit, "e.json")
+        messen.diagnose_schreibe(pfad)
+        with open(pfad + ".diagnose", encoding="utf-8") as fd:
+            self.assertIn("Eingabe abgelehnt: 409", fd.read())
+        n = len(b.ereignisse)
+        with self.assertRaises(lauf.NichtAbgesendet):
+            L.zug("s-1", "zaehlen", "")
+        self.assertEqual(len(b.ereignisse), n, "gesperrt: der Folgezug sendet weder Text noch Enter (Projektentscheid, 23.11.2026)")
+
+    def test_text_abgelehnter_http_code_zaehlt_nicht(self):
+        """Gegenstueck: Lehnt die Bruecke schon den Text ab, geht kein Enter hinaus und nichts zaehlt."""
+        class TextAbgelehnt(NachgebildeteCli):
+            def text(self, sid, text):
+                self.ereignisse.append(("Text", time.monotonic()))
+                return 409, {"fehler": "x"}
+        b = TextAbgelehnt("cli")
+        L = lauf_mit(self.arbeit, b)
+        with self.assertRaises(lauf.Zeitueberschreitung):
+            L.zug("s-1", "zaehlen", "")
+        self.assertEqual((L.cloud_eingaben, [a for a, _ in b.ereignisse]), (0, ["Text"]))
+
+    def test_ablehnung_nach_dem_enter_zaehlt_und_bleibt_ablehnung(self):
+        """Test D: Der Dienst lehnt nach dem Enter ab, der Text steht noch im Feld."""
+        class SpaetAbgelehnt(NachgebildeteCli):
+            def ablehnungen_seit(self, marke):
+                return [("harness_nicht_bereit", "")] if any(a == "Taste" for a, _ in self.ereignisse) else []
+        b = SpaetAbgelehnt("bleibt")
+        L = lauf_mit(self.arbeit, b)
+        with mock.patch.object(lauf, "ABGESENDET_S", 0.3):
+            with self.assertRaises(lauf.Zeitueberschreitung) as f:
+                L.zug("s-1", "zaehlen", "")
+        self.assertEqual(str(f.exception), "Eingabe vom Dienst abgelehnt")
+        self.assertEqual(L.cloud_eingaben, 1, "das Enter ging hinaus")
+        self.assertEqual([a for a, _ in b.ereignisse], ["Text", "Taste"])
+        n = len(b.ereignisse)
+        with self.assertRaises(lauf.NichtAbgesendet):
+            L.zug("s-1", "zaehlen", "")
+        self.assertEqual(len(b.ereignisse), n, "gesperrt: der Folgezug sendet weder Text noch Enter (Projektentscheid, 23.11.2026)")
+
+    def test_ablehnung_beim_warten_auf_fertig_sperrt(self):
+        """Die CLI sandte ab (Feld leer), dann lehnt der Dienst beim Warten auf FERTIG ab: Die Sitzung ist gesperrt (Projektentscheid, 23.11.2026)."""
+        class AbgelehntBeimWarten(NachgebildeteCli):
+            def verlauf(self, sid, ab=0):
+                return 0, ""
+            def ablehnungen_seit(self, marke):
+                return [("harness_nicht_bereit", "")] if any(a == "Taste" for a, _ in self.ereignisse) else []
+        b = AbgelehntBeimWarten("cli")
+        L = lauf_mit(self.arbeit, b)
+        with self.assertRaises(lauf.Zeitueberschreitung) as f:
+            L.zug("s-1", "zaehlen", "")
+        self.assertEqual(str(f.exception), "Eingabe vom Dienst abgelehnt")
+        self.assertIs(L.sendung["abgesendet"], True)
+        n = len(b.ereignisse)
+        with self.assertRaises(lauf.NichtAbgesendet):
+            L.zug("s-1", "zaehlen", "")
+        self.assertEqual(len(b.ereignisse), n, "gesperrt: der Folgezug sendet weder Text noch Enter (Projektentscheid, 23.11.2026)")
 
     def test_feste_codes(self):
         self.assertEqual(ablauf.ausnahme_code("S1", lauf.NichtAbgesendet("x")), "s1.nicht_abgesendet")

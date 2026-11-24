@@ -1,0 +1,117 @@
+{
+ "beschreibung": "Eine zu grosse Zwischenablage und eine zu grosse Nachricht werden je einmal angesagt; ein Hinweis fuer eine andere Sitzung und ein unbekannter Hinweis bleiben still.",
+ "datensatz": "A",
+ "name": "se3_hinweis_zu_gross",
+ "regeln": [
+  "SE3"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "nr": 1,
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": []
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Hinweis",
+    "hinweis": "zwischenablage_zu_gross",
+    "sitzung": "s-1",
+    "t": 9
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Die Zwischenablage des Programms war zu groß und wurde nicht übertragen"
+   ]
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Hinweis",
+    "hinweis": "nachricht_zu_gross"
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Eine Nachricht war zu groß und wurde nicht übertragen"
+   ]
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Hinweis",
+    "hinweis": "zwischenablage_zu_gross",
+    "sitzung": "s-2"
+   }
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Hinweis",
+    "hinweis": "ganz_neuer_hinweis",
+    "sitzung": "s-1"
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": []
+  }
+ ]
+}

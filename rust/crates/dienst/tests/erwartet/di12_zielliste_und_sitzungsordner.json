@@ -227,6 +227,7 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 2,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }

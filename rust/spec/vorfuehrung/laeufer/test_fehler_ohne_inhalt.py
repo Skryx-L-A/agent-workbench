@@ -20,6 +20,7 @@ import string
 import sys
 import tempfile
 import time
+import unicodedata
 import unittest
 from unittest import mock
 
@@ -205,6 +206,42 @@ class NieUeberschreiben(Werkstatt):
         with open(opfer, encoding="utf-8") as f:
             self.assertEqual(f.read(), "unberuehrt")
         self.assertIn("diagnose: nicht angelegt", konsole.splitlines())
+
+
+
+class DiagnoseMaskeUndSchnitt(unittest.TestCase):
+    """Befund 5: `diagnose_notiere` maskiert jedes Steuerzeichen (Kategorie Cc) als `\\xNN` (`\\n`, `\\r` wie bisher);
+    das Abschneiden auf 65536 Byte laesst gueltiges UTF-8 stehen."""
+
+    def setUp(self):
+        from drehbuchlib import messen
+        self.m = messen
+        self.ordner = tempfile.mkdtemp(prefix="diag-maske-")
+        self.addCleanup(shutil.rmtree, self.ordner, True)
+        messen.diagnose_leeren()
+        self.addCleanup(messen.diagnose_leeren)
+
+    def lies(self):
+        pfad = os.path.join(self.ordner, "e.json")
+        self.assertEqual(self.m.diagnose_schreibe(pfad), "angelegt")
+        with open(pfad + ".diagnose", "rb") as f:
+            return f.read()
+
+    def test_steuerzeichen_maskiert(self):
+        self.m.diagnose_notiere("lauf.zug", "a\x1b]0;titel\x07b\x1b[2Jc\x9bd\x00e\x7ff\tg\nh\ri\\j \u00e9")
+        roh = self.lies()
+        text = roh.decode("utf-8")
+        self.assertEqual(text.count("\n"), 1, "nur das Zeilenende der einen Zeile")
+        self.assertFalse([c for c in text[:-1] if unicodedata.category(c) == "Cc"], "kein Steuerzeichen in der Datei")
+        for m in ("\\x1b]0;titel\\x07", "\\x1b[2J", "\\x9b", "\\x00", "\\x7f", "\\x09", "\\n", "\\r", "\\\\j", "\u00e9"):
+            self.assertIn(m, text)
+
+    def test_schnitt_bleibt_utf8(self):
+        self.m.diagnose_notiere("o", "\u00e9" * 40000)  # 3 Byte Vorsatz, dann 2 Byte je Zeichen: Byte 65536 liegt mitten in einem Zeichen
+        roh = self.lies()
+        self.assertLessEqual(len(roh), self.m.DIAGNOSE_GRENZE)
+        self.assertGreaterEqual(len(roh), self.m.DIAGNOSE_GRENZE - 3)
+        roh.decode("utf-8")  # strikt: wirft bei einem halben Zeichen
 
 
 if __name__ == "__main__":

@@ -566,6 +566,7 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "nr": 1,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -583,6 +584,7 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "nr": 1,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -591,6 +593,7 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 2,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -608,6 +611,7 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "nr": 1,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -616,6 +620,7 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 2,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -624,6 +629,7 @@
         "id": "s-3",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 3,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -641,6 +647,7 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "nr": 1,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -649,6 +656,7 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 2,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -657,6 +665,7 @@
         "id": "s-3",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 3,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -665,6 +674,7 @@
         "id": "s-4",
         "kunde": "",
         "modell": "claude-sonnet-5-5",
+        "nr": 4,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -682,6 +692,7 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "nr": 1,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -690,6 +701,7 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 2,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -698,6 +710,7 @@
         "id": "s-3",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 3,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -706,6 +719,7 @@
         "id": "s-4",
         "kunde": "",
         "modell": "claude-sonnet-5-5",
+        "nr": 4,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -714,6 +728,7 @@
         "id": "s-5",
         "kunde": "k-beispiel",
         "modell": "auto",
+        "nr": 5,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -731,6 +746,7 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "nr": 1,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -739,6 +755,7 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 2,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -747,6 +764,7 @@
         "id": "s-3",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 3,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -755,6 +773,7 @@
         "id": "s-4",
         "kunde": "",
         "modell": "claude-sonnet-5-5",
+        "nr": 4,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -763,6 +782,7 @@
         "id": "s-5",
         "kunde": "k-beispiel",
         "modell": "auto",
+        "nr": 5,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -771,6 +791,7 @@
         "id": "s-6",
         "kunde": "k-beispiel",
         "modell": "qwen3:8b",
+        "nr": 6,
         "route": "lokal-beispiel",
         "zustand": "laeuft"
        }
@@ -788,6 +809,7 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "nr": 1,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -796,6 +818,7 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 2,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -804,6 +827,7 @@
         "id": "s-3",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "nr": 3,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -812,6 +836,7 @@
         "id": "s-4",
         "kunde": "",
         "modell": "claude-sonnet-5-5",
+        "nr": 4,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -820,6 +845,7 @@
         "id": "s-5",
         "kunde": "k-beispiel",
         "modell": "auto",
+        "nr": 5,
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -828,6 +854,7 @@
         "id": "s-6",
         "kunde": "k-beispiel",
         "modell": "qwen3:8b",
+        "nr": 6,
         "route": "lokal-beispiel",
         "zustand": "laeuft"
        },
@@ -836,6 +863,7 @@
         "id": "s-7",
         "kunde": "k-beispiel",
         "modell": "gpt-5.6-sol",
+        "nr": 7,
         "route": "cloud-fest",
         "zustand": "laeuft"
        }

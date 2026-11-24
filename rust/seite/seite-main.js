@@ -50,11 +50,16 @@ let ersteListe = true;
 let aktiv = null; // Kennung der abonnierten Sitzung
 const gemeldet = new Map(); // Kennung -> [spalten, zeilen], zuletzt gemeldet
 
-// Sitzungsnummer nach `DI` DI12 Punkt 2: `s-<n>` hat die Nummer n, die Sitzung aus `kind` die 0.
-const nrVon = (id) => {
-  const r = /^s-(\d+)$/.exec(id);
-  return r ? Number(r[1]) : 0;
+// Rasternummer einer Sitzung nach `DI` DI12 Punkt 5 (P25): das Feld `nr` der letzten Liste, nie die Ziffern der Kennung.
+// `null`, wenn die Liste keine Nummer (mehr) nennt; dann gehoert kein Rahmen zu ihr. Ohne den Schluessel (Liste des Kerns im
+// Einzelbetrieb ohne `lauf`) hat die eine Sitzung die 0.
+const nrIn = (liste, id) => {
+  const s = liste.find((x) => x.id === id);
+  if (!s) return null;
+  if (!('nr' in s)) return 0;
+  return Number.isInteger(s.nr) && s.nr >= 0 && s.nr <= 255 ? s.nr : null;
 };
+const nrVon = (id) => nrIn(sitzungen, id);
 
 function verbindungZeigen(zustand, text) {
   verbindungEl.dataset.zustand = zustand;
@@ -118,7 +123,8 @@ function waehle(id, fokus) {
   aktiv = id;
   terminalBenennen();
   zeigeListe();
-  ansicht.zeige(empfaenger ? empfaenger.abbild(nrVon(id)) || null : null);
+  const nr = nrVon(id);
+  ansicht.zeige(empfaenger && nr !== null ? empfaenger.abbild(nr) || null : null);
   abo(id);
   if (fokus) eingang.focus({ preventScroll: true });
 }
@@ -155,7 +161,13 @@ function zeigeListe() {
   listeLeer.hidden = sitzungen.length > 0;
 }
 function sitzungsliste(n) {
+  const alt = sitzungen;
   sitzungen = Array.isArray(n.sitzungen) ? n.sitzungen.filter((s) => s && typeof s.id === 'string') : [];
+  // eine Nummer, die jetzt einer anderen Sitzung gehoert: das Bild darunter ist das der alten Sitzung (P25)
+  for (const s of sitzungen) {
+    const nr = nrIn(sitzungen, s.id);
+    if (nr !== null && nrIn(alt, s.id) !== nr && empfaenger) empfaenger.vergessen(nr);
+  }
   for (const s of sitzungen) {
     if (s.zustand !== 'laeuft' && bekannt.get(s.id) === 'laeuft') ansager.sage(`Sitzung ${s.id} beendet, Code ${s.code}`);
   }
@@ -203,7 +215,7 @@ function rasterRahmen(nutz) {
     return; // ein ungueltiger Rahmen aendert nichts (RA10)
   }
   const { auszug, abbild } = ergebnis;
-  if (aktiv === null || abbild.nr !== nrVon(aktiv)) return;
+  if (aktiv === null || nrVon(aktiv) === null || abbild.nr !== nrVon(aktiv)) return;
   const voll = auszug.groesse !== null;
   ansicht.zeige(abbild, voll || auszug.schub ? null : auszug.zeilen.map(([i]) => i));
   if (voll) return; // ein Vollbild sagt nichts an

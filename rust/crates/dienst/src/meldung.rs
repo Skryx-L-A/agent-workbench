@@ -4,11 +4,12 @@
 //! Why a socket and no inherited descriptor: the carrier closes every descriptor above 2 in the child before the `exec`, and `unsafe`
 //! is forbidden here, so a pipe cannot reach `lauf`. `lauf` finds the socket through the path in its argument `--meldung <pfad>`.
 //!
-//! SECURITY: the service accepts exactly one connection, and only one whose peer is this user and, under Linux, the child of the session
-//! (`SO_PEERCRED`: user and pid of the process that called `connect`). Every other connection is closed at once and never read. It reads at
-//! most [`ZEILE_MAX`] bytes without blocking. Only the exact form of the line counts; anything else is [`GRUND_UNGUELTIG`] (fail closed).
-//! Where the system gives no peer credentials without `unsafe` (every system but Linux in `rustix` 1.1.6) only the mode of the socket
-//! (0600) and of the folder of the session (0700) keep others out; the contract names this as a limit.
+//! SECURITY: the service accepts exactly one connection, and only one whose peer is this user and, under Linux and macOS, the child of
+//! the session (Linux `SO_PEERCRED` through `rustix`, macOS `LOCAL_PEERCRED` and `LOCAL_PEERPID` through `nix`: user and pid of the process
+//! that called `connect`). Every other connection is closed at once and never read. It reads at most [`ZEILE_MAX`] bytes without blocking.
+//! Only the exact form of the line counts; anything else is [`GRUND_UNGUELTIG`] (fail closed). On any other system the service gets no peer
+//! credentials without `unsafe`; there only the mode of the socket (0600) and of the folder of the session (0700) keep others out; the
+//! contract names this as a limit.
 
 use std::fs;
 use std::io::Read;
@@ -33,6 +34,55 @@ pub(crate) const CODE_UNGUELTIG: u32 = 70;
 const GRUND_MAX: usize = 64;
 /// The backlog of the socket: one connection counts, a second is closed at once.
 const WARTESCHLANGE: i32 = 4;
+
+/// Sets the mode 0600 on the name `pfad` without following a link, and checks afterwards with `lstat` that the name is a socket
+/// with mode 0600 (N3 of the review of 23.11.2026): a process of the same user that puts a link in place of the socket between
+/// `bind` and this call changes no other file, and the start fails.
+///
+/// Linux: the name is opened with `O_PATH | O_NOFOLLOW` (a link fails with `ELOOP`), the descriptor must be a socket, and the mode
+/// is set through `/proc/self/fd/<n>`, which names exactly that inode (the way glibc does `fchmodat` with `AT_SYMLINK_NOFOLLOW`;
+/// `rustix` 1.1.6 refuses that flag under Linux). Elsewhere `fchmodat` with `AT_SYMLINK_NOFOLLOW` changes a link itself, never
+/// its target.
+fn modus_setzen(pfad: &Path) -> Result<(), ()> {
+    use std::os::unix::fs::FileTypeExt;
+    #[cfg(target_os = "linux")]
+    {
+        use rustix::fs::{Mode, OFlags};
+        use std::os::fd::AsRawFd;
+        let fd = rustix::fs::open(
+            pfad,
+            OFlags::PATH | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::empty(),
+        )
+        .map_err(|_| ())?;
+        let datei = fs::File::from(fd);
+        if !datei.metadata().map_err(|_| ())?.file_type().is_socket() {
+            return Err(());
+        }
+        fs::set_permissions(
+            format!("/proc/self/fd/{}", datei.as_raw_fd()),
+            fs::Permissions::from_mode(0o600),
+        )
+        .map_err(|_| ())?;
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        use rustix::fs::{AtFlags, CWD, Mode};
+        rustix::fs::chmodat(
+            CWD,
+            pfad,
+            Mode::from_bits_truncate(0o600),
+            AtFlags::SYMLINK_NOFOLLOW,
+        )
+        .map_err(|_| ())?;
+    }
+    let meta = fs::symlink_metadata(pfad).map_err(|_| ())?;
+    if meta.file_type().is_socket() && meta.permissions().mode() & 0o7777 == 0o600 {
+        Ok(())
+    } else {
+        Err(())
+    }
+}
 
 /// What the buffer says so far.
 #[derive(Debug, PartialEq, Eq)]
@@ -137,7 +187,7 @@ impl Meldung {
         let fd: OwnedFd = crate::rechte::unix_socket(SocketType::STREAM).map_err(|_| ())?;
         let adresse = SocketAddrUnix::new(pfad).map_err(|_| ())?;
         bind(&fd, &adresse).map_err(|_| ())?;
-        fs::set_permissions(pfad, fs::Permissions::from_mode(0o600)).map_err(|_| ())?;
+        modus_setzen(pfad)?;
         listen(&fd, WARTESCHLANGE).map_err(|_| ())?;
         let hoerer = UnixListener::from(fd);
         hoerer.set_nonblocking(true).map_err(|_| ())?;
@@ -156,7 +206,7 @@ impl Meldung {
         self.pid = pid;
     }
 
-    /// `true` if the peer of `strom` may report: this user and, under Linux, the child of the session.
+    /// `true` if the peer of `strom` may report: this user and, under Linux and macOS, the child of the session.
     fn gegenseite_gut(&self, strom: &UnixStream) -> bool {
         #[cfg(target_os = "linux")]
         {
@@ -166,7 +216,26 @@ impl Meldung {
             cred.uid.as_raw() == self.euid
                 && u32::try_from(cred.pid.as_raw_nonzero().get()).is_ok_and(|p| p == self.pid)
         }
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(target_os = "macos")]
+        {
+            // `LOCAL_PEERCRED` (the effective uid, taken at the `connect`) and `LOCAL_PEERPID` (the pid); `nix` wraps both calls, our
+            // code has no `unsafe`. A failed uid refuses the connection (fail closed). The pid exists only while the peer holds its end:
+            // when the peer closed before the `accept`, macOS answers `ENOTCONN` (measured, macOS 26.5.1), and only the uid decides
+            // then, so that a line `lauf` wrote just before its end is not lost (point 5). Any other error refuses the connection.
+            use nix::sys::socket::{getsockopt, sockopt};
+            let Ok(cred) = getsockopt(strom, sockopt::LocalPeerCred) else {
+                return false;
+            };
+            if cred.uid() != self.euid {
+                return false;
+            }
+            match getsockopt(strom, sockopt::LocalPeerPid) {
+                Ok(pid) => u32::try_from(pid).is_ok_and(|p| p == self.pid),
+                Err(nix::errno::Errno::ENOTCONN) => true,
+                Err(_) => false,
+            }
+        }
+        #[cfg(not(any(target_os = "linux", target_os = "macos")))]
         {
             let _ = (strom, self.euid, self.pid);
             true
@@ -349,8 +418,25 @@ mod tests {
         assert!(Meldung::binden(&zu_lang).is_err());
     }
 
+    /// N3: the mode is set on the name itself: a link in place of the socket is refused, and the mode of its target stays as it was.
+    #[test]
+    fn modus_setzen_folgt_keinem_link() {
+        let w = Wegwerf::neu("link");
+        let ziel = w.0.join("ziel");
+        fs::write(&ziel, b"x").expect("target");
+        fs::set_permissions(&ziel, fs::Permissions::from_mode(0o644)).expect("chmod");
+        let link = w.0.join(SOCKET_NAME);
+        std::os::unix::fs::symlink(&ziel, &link).expect("link");
+        assert_eq!(modus_setzen(&link), Err(()));
+        let modus = fs::metadata(&ziel).expect("target").permissions().mode() & 0o7777;
+        assert_eq!(modus, 0o644, "the target keeps its mode");
+        // a plain file is no socket either
+        assert_eq!(modus_setzen(&ziel), Err(()));
+        assert_eq!(modus_setzen(&w.0.join("fehlt")), Err(()));
+    }
+
     /// The child writes its line and ends before the service looks at the socket: the end reads the socket empty first.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     #[test]
     fn am_ende_wird_zuerst_gelesen_dann_ausgewertet() {
         let w = Wegwerf::neu("drain");
@@ -369,7 +455,7 @@ mod tests {
         );
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     #[test]
     fn die_vier_ausgaenge_am_ende() {
         // no connection
@@ -410,7 +496,7 @@ mod tests {
     }
 
     /// The service reads at most [`ZEILE_MAX`] bytes and then no more.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     #[test]
     fn nie_mehr_als_128_byte_werden_gelesen() {
         let w = Wegwerf::neu("grenze");
@@ -431,7 +517,7 @@ mod tests {
     }
 
     /// The connection of a process that is not the child is closed at once and never read; the right one that comes after it counts.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     #[test]
     fn eine_fremde_pid_wird_geschlossen_und_die_richtige_danach_angenommen() {
         let w = Wegwerf::neu("fremd");
@@ -446,9 +532,13 @@ mod tests {
             !m.verbunden && m.hoerer.is_some(),
             "still waiting for the child"
         );
-        fremd
-            .set_read_timeout(Some(std::time::Duration::from_secs(5)))
-            .expect("timeout");
+        // macOS refuses the timeout with EINVAL on a socket whose peer has closed already; the read below then ends at once
+        if let Err(e) = fremd.set_read_timeout(Some(std::time::Duration::from_secs(5))) {
+            assert!(
+                cfg!(target_os = "macos") && e.raw_os_error() == Some(22),
+                "timeout: {e}"
+            );
+        }
         let mut b = [0_u8; 4];
         assert!(
             matches!(Read::read(&mut fremd, &mut b), Ok(0) | Err(_)),
@@ -472,5 +562,64 @@ mod tests {
         m.abfragen();
         assert!(m.verbunden && m.strom.is_some() && m.hoerer.is_none());
         assert!(UnixStream::connect(&pfad2).is_err(), "no second connection");
+    }
+    /// A real child (another process than this test) connects and holds its end: its connection counts, the one of this test (the
+    /// same user, another pid) is closed first. Another uid than the one of the service is closed too.
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[test]
+    fn die_verbindung_des_kindes_zaehlt_eine_andere_pid_und_eine_andere_uid_nicht() {
+        use std::process::{Command, Stdio};
+        let w = Wegwerf::neu("kind");
+        let pfad = w.0.join(SOCKET_NAME);
+        // another uid: the effective user of the service is set to one that is not ours
+        let mut m = Meldung::binden(&pfad).expect("binds");
+        m.kind_setzen(std::process::id());
+        m.euid = m.euid.wrapping_add(1);
+        let _c = UnixStream::connect(&pfad).expect("connect");
+        m.abfragen();
+        assert!(!m.verbunden && m.hoerer.is_some(), "another uid is closed");
+        drop(m);
+        let _ = fs::remove_file(&pfad);
+        // the child: connects, writes its line, holds its end until its stdin ends
+        let mut m = Meldung::binden(&pfad).expect("binds");
+        let skript = "import socket, sys\ns = socket.socket(socket.AF_UNIX)\ns.connect(sys.argv[1])\n\
+                      s.sendall(b'69 lauf.kind\\n')\nprint('verbunden', flush=True)\nsys.stdin.read()\n";
+        let mut kind = Command::new("/usr/bin/python3")
+            .args(["-I", "-c", skript])
+            .arg(&pfad)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("python3");
+        m.kind_setzen(kind.id());
+        // this test connects first: the same user, but not the child
+        let _fremd = UnixStream::connect(&pfad).expect("connect");
+        m.abfragen();
+        assert!(
+            !m.verbunden && m.hoerer.is_some(),
+            "the test is not the child"
+        );
+        let mut zeile = String::new();
+        std::io::BufRead::read_line(
+            &mut std::io::BufReader::new(kind.stdout.take().expect("stdout")),
+            &mut zeile,
+        )
+        .expect("read");
+        assert_eq!(zeile, "verbunden\n");
+        let ende = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while m.puffer.len() < 13 && std::time::Instant::now() < ende {
+            m.abfragen();
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert!(m.verbunden && m.hoerer.is_none(), "the child is accepted");
+        drop(kind.stdin.take());
+        assert!(kind.wait().expect("wait").success());
+        assert_eq!(
+            m.auswerten_am_ende(),
+            Ende::Gemeldet {
+                code: 69,
+                grund: "lauf.kind".to_owned()
+            }
+        );
     }
 }
