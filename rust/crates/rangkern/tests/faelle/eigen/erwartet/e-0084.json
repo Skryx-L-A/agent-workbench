@@ -1,0 +1,1 @@
+{"exit": 0, "stdout": {"fallback": false, "hits": [{"rel": "garten/tor.md", "score": 0.9196527777777779, "title": "Aufgabe Steckdose", "snippet": "Ich beet einbettung wir offen", "lines": [5, 5], "match": "hybrid", "cosine": 0.916979194427315, "bm25_rang": 13, "bm25_norm": 0.055439107361850995, "vektor_rang": 1, "space": "gartenraum"}]}}

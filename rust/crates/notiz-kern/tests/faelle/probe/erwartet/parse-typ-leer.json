@@ -1,0 +1,22 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Ohne Typ\ntype: \"  \""
+  ],
+  "fields": {
+   "title": "Ohne Typ",
+   "type": "  "
+  },
+  "body": "Text\n",
+  "title": "Ohne Typ",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "note",
+   "ohne typ"
+  ],
+  "embed_text": "Ohne Typ\ntype:   \n\nText\n"
+ }
+}

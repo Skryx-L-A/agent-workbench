@@ -1,0 +1,86 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [],
+   "id": 1
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 1.0,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9993818803663115,
+     "vektor_rang": 1,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.9411764705882353,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9388900000008723,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-1.md",
+     "score": 0.8888888888888888,
+     "title": "Fueller Bahnhof",
+     "snippet": "Ein Text ueber bahnhof und bahnhofstand, ohne Bezug zu den anderen Notizen. bahnhof bahnhof.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.927556991452256,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.8421052631578947,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9149859922759462,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "10-global/misc/fueller-3.md",
+     "score": 0.8,
+     "title": "Fueller Gleis",
+     "snippet": "Ein Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8889366136802194,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 2
+  },
+  {
+   "fallback": true,
+   "hits": []
+  }
+ ],
+ "exit": 0
+}

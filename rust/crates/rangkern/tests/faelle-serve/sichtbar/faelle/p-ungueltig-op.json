@@ -1,0 +1,43 @@
+{
+ "description": "Unbekanntes, fehlendes oder falsch getyptes op: bad_request (mit id, wenn gültig)",
+ "vault": {
+  "files": {
+   "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text ueber Wolken.\n"
+  }
+ },
+ "args": [
+  "{root}/vault"
+ ],
+ "steps": [
+  {
+   "line": "{\"op\":\"stop\",\"id\":3}"
+  },
+  {
+   "line": "{\"id\":\"x\"}"
+  },
+  {
+   "line": "{\"op\":5}"
+  },
+  {
+   "line": "{\"op\":null}"
+  },
+  {
+   "line": "{\"op\":\"PING\"}"
+  },
+  {
+   "line": "{\"op\":\"search \",\"query\":\"a\"}"
+  },
+  {
+   "line": "{\"op\":[\"ping\"]}"
+  },
+  {
+   "line": "{\"op\":\"\"}"
+  },
+  {
+   "request": {
+    "op": "ping",
+    "id": "weiter"
+   }
+  }
+ ]
+}

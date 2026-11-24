@@ -1,0 +1,313 @@
+{
+ "beschreibung": "Eine Route ohne Modell ergibt den einzigen Eintrag auto; die Beispiel-Eintraege bleiben nur bis zur ersten Startwahl; eine neue Startwahl ersetzt die Eintraege.",
+ "datensatz": "A",
+ "name": "se6_modell_auto",
+ "regeln": [
+  "SE6",
+  "SE7"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": []
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Harness",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "cloud-beispiel",
+   "optionen": [
+    "cloud-beispiel",
+    "lokal-beispiel"
+   ],
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Startwahl",
+    "fassung": 1,
+    "harness": [
+     {
+      "art": "claude",
+      "name": "claude",
+      "routenart": "cloud"
+     },
+     {
+      "art": "pi",
+      "name": "pi",
+      "routenart": "cloud"
+     },
+     {
+      "art": "hermes",
+      "name": "hermes",
+      "routenart": "cloud"
+     }
+    ],
+    "kunden": [
+     "k-beispiel",
+     "k-zwei",
+     null
+    ],
+    "routen": [
+     {
+      "art": "cloud",
+      "klasse": "extern",
+      "modell": "cloud-modell-a",
+      "schluessel": "cloud"
+     },
+     {
+      "art": "cloud",
+      "klasse": "extern",
+      "modell": null,
+      "schluessel": "offen"
+     },
+     {
+      "art": "lokal",
+      "klasse": "intern",
+      "modell": "lokal-modell-b",
+      "schluessel": "lokal"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "cloud-modell-a",
+   "optionen": [
+    "cloud-modell-a"
+   ],
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Waehle",
+   "testid": "route-wahl",
+   "wert": "offen"
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "auto",
+   "optionen": [
+    "auto"
+   ],
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "arbeitsordner-eingabe"
+   }
+  },
+  {
+   "art": "Einsetzen",
+   "text": "/srv/projekt-ä"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzung-start"
+   }
+  },
+  {
+   "art": "Starts",
+   "erwartet": [
+    {
+     "arbeitsordner": "/srv/projekt-ä",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": null,
+     "modell": "auto",
+     "route": "offen"
+    }
+   ]
+  },
+  {
+   "art": "Waehle",
+   "testid": "route-wahl",
+   "wert": "lokal"
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "lokal-modell-b",
+   "optionen": [
+    "lokal-modell-b"
+   ],
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Waehle",
+   "testid": "route-wahl",
+   "wert": "offen"
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "auto",
+   "optionen": [
+    "auto"
+   ],
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Startwahl",
+    "fassung": 1,
+    "harness": [
+     {
+      "art": "claude",
+      "name": "claude",
+      "routenart": "cloud"
+     },
+     {
+      "art": "pi",
+      "name": "pi",
+      "routenart": "cloud"
+     },
+     {
+      "art": "hermes",
+      "name": "hermes",
+      "routenart": "cloud"
+     }
+    ],
+    "kunden": [
+     "k-beispiel",
+     "k-zwei",
+     null
+    ],
+    "routen": [
+     {
+      "art": "cloud",
+      "klasse": "extern",
+      "modell": "modell-neu-a",
+      "schluessel": "cloud"
+     },
+     {
+      "art": "cloud",
+      "klasse": "extern",
+      "modell": null,
+      "schluessel": "offen"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Testid",
+   "optionen": [
+    "cloud",
+    "offen"
+   ],
+   "testid": "route-wahl"
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "auto",
+   "optionen": [
+    "auto"
+   ],
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Waehle",
+   "testid": "route-wahl",
+   "wert": "cloud"
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "modell-neu-a",
+   "optionen": [
+    "modell-neu-a"
+   ],
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Startwahl",
+    "fassung": 1,
+    "harness": [
+     {
+      "art": "claude",
+      "name": "claude",
+      "routenart": "cloud"
+     },
+     {
+      "art": "pi",
+      "name": "pi",
+      "routenart": "cloud"
+     },
+     {
+      "art": "hermes",
+      "name": "hermes",
+      "routenart": "cloud"
+     }
+    ],
+    "kunden": [
+     "k-beispiel",
+     "k-zwei",
+     null
+    ],
+    "routen": [
+     {
+      "art": "cloud",
+      "klasse": "extern",
+      "modell": null,
+      "schluessel": "cloud"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "auto",
+   "optionen": [
+    "auto"
+   ],
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzung-start"
+   }
+  },
+  {
+   "art": "Starts",
+   "erwartet": [
+    {
+     "arbeitsordner": "/srv/projekt-ä",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": null,
+     "modell": "auto",
+     "route": "cloud"
+    }
+   ]
+  }
+ ],
+ "starten": [
+  {
+   "antwort": {
+    "sitzung": "s-3"
+   },
+   "status": 200
+  },
+  {
+   "antwort": {
+    "sitzung": "s-3"
+   },
+   "status": 200
+  }
+ ]
+}

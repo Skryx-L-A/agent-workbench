@@ -1,0 +1,148 @@
+{
+ "name": "s2-mensch-waehlt",
+ "regeln": [
+  "S14",
+  "A37"
+ ],
+ "beschreibung": "Ein Mensch wählt die Klasse selbst; sie gilt auch unter dem Ort und mit erkanntem Namen. Ein gewählter Kunde wird übernommen.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ },
+ "anfragen": [
+  {
+   "kontext": {
+    "herkunft": "mensch",
+    "sitzung": null,
+    "route": null,
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text",
+    "klasse": "oeffentlich"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "mensch",
+    "sitzung": null,
+    "route": null,
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text",
+    "klasse": "intern",
+    "kunde": "k-nord"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "mensch",
+    "sitzung": null,
+    "route": null,
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text",
+    "klasse": "oeffentlich"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": "kundendaten",
+     "kunden": [
+      "k-nord"
+     ]
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  }
+ ]
+}

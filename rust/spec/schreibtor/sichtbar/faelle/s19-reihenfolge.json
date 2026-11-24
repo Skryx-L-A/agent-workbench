@@ -1,0 +1,273 @@
+{
+ "name": "s19-reihenfolge",
+ "regeln": [
+  "S0"
+ ],
+ "beschreibung": "Die erste zutreffende Regel bestimmt den Grund.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ },
+ "anfragen": [
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": null,
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": null,
+    "art": "anlegen",
+    "inhalt": "Text",
+    "klasse": "intern"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": null,
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text",
+    "klasse": "intern"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "cloud",
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text",
+    "klasse": "intern"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "kundendaten",
+     "kunde": null
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "cloud",
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "aendern",
+    "inhalt": "Text neu",
+    "vorher_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "kundendaten",
+     "kunde": null
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": "unklar"
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "intern",
+     "kunde": null
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": "unklar"
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "aendern",
+    "inhalt": "Text neu",
+    "vorher_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "intern",
+     "kunde": null
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": "unklar"
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "mensch",
+    "sitzung": null,
+    "route": null,
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text",
+    "klasse": "geheim"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "intern",
+     "kunde": null
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  }
+ ]
+}

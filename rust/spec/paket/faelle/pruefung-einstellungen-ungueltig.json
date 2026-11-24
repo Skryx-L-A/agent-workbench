@@ -1,0 +1,23 @@
+{
+ "beschreibung": "Einstellungsdatei ungültig, der Code aus Vertrag 2 steht in der Zeile",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "windows",
+  "konten": 1,
+  "halter": "ok",
+  "wfp": "ok",
+  "einstellungen": {
+   "zustand": "ungueltig",
+   "code": "einst.anzahl"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

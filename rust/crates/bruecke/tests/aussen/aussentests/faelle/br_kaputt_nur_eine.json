@@ -1,0 +1,56 @@
+{
+ "beschreibung": "eine kaputte Anfrage beendet nur ihre eigene Verbindung: eine gehaltene Verbindung und die Bruecke selbst arbeiten weiter",
+ "datensatz": "A",
+ "name": "br_kaputt_nur_eine",
+ "regeln": [
+  "BR5"
+ ],
+ "schritte": [
+  {
+   "anzahl": 2,
+   "art": "Halte"
+  },
+  {
+   "anfrage": {
+    "roh": "\u0000\u0001\u0002 binaer\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "HalteLesen",
+   "name": "h0"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "pruefmodus": true,
+  "token_datei": "@token_datei",
+  "verbindungen_max": 8
+ }
+}

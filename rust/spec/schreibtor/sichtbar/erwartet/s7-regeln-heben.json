@@ -1,0 +1,55 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "freigabe-noetig",
+    "grund": null,
+    "klasse": "kundendaten",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": "brain_schreiben"
+   },
+   {
+    "ergebnis": "freigabe-noetig",
+    "grund": null,
+    "klasse": "intern",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": "brain_schreiben"
+   },
+   {
+    "ergebnis": "freigabe-noetig",
+    "grund": null,
+    "klasse": "intern",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": "brain_schreiben"
+   },
+   {
+    "ergebnis": "freigabe-noetig",
+    "grund": null,
+    "klasse": "intern",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": "brain_schreiben"
+   },
+   {
+    "ergebnis": "freigabe-noetig",
+    "grund": null,
+    "klasse": "kundendaten",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": "brain_schreiben"
+   },
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "kundendaten",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   }
+  ]
+ }
+}

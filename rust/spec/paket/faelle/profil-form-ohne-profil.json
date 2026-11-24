@@ -1,0 +1,5 @@
+{
+ "beschreibung": "nur Kopfzeilen, kein Profil",
+ "form": "profil",
+ "text": "abi <abi/4.0>,\ninclude <tunables/global>\n"
+}

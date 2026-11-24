@@ -1,0 +1,26 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Einzeln\naliases: Nur einer\ntags: solo"
+  ],
+  "fields": {
+   "title": "Einzeln",
+   "aliases": "Nur einer",
+   "tags": "solo"
+  },
+  "body": "Text\n",
+  "title": "Einzeln",
+  "type": "note",
+  "aliases": [
+   "Nur einer"
+  ],
+  "links": [],
+  "keys": [
+   "einzeln",
+   "note",
+   "nur einer"
+  ],
+  "embed_text": "Einzeln\naliases: Nur einer\ntags: solo\n\nText\n"
+ }
+}

@@ -1,0 +1,9 @@
+{
+ "beschreibung": "die Werte hängen am Nutzer und seiner uid: Ordner, laufzeit, Heim",
+ "form": "laufkonfig",
+ "nutzer": "anna",
+ "uid": 1234,
+ "heim": "/srv/beispiel/heim/anna",
+ "harness": {},
+ "vorher": null
+}

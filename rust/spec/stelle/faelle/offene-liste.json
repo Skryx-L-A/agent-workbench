@@ -1,0 +1,281 @@
+{
+  "beschreibung": "mcp.offene zeigt dem Menschen die offenen Anfragen mit Vorschau, sortiert nach Kennung, ohne Zeile im Protokoll; erteilte, abgelehnte und abgelaufene stehen nicht mehr darin, ihre Vorschau ist aus dem Zustand.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "A90",
+    "Nachtrag 4"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"such-mcp\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[]}}}"
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.offene",
+      "jetzt_ms": 1795179600500,
+      "eingabe": {},
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offene",
+          "offene": []
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179601000,
+      "eingabe": {
+        "argumente": {
+          "n": 1
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "tickets",
+        "sitzung": "s-1",
+        "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
+        "werkzeug": "update"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offen",
+          "anfrage": "mf-1795179540000-1",
+          "digest": "d85cb830a14fbe3aa0a484fcf41ef2e1ce64289c2fc06e8394273906641ad854",
+          "frist_bis_ms": 1795179661000,
+          "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef"
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179601001,
+      "eingabe": {
+        "argumente": {
+          "n": 2
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "tickets",
+        "sitzung": "s-1",
+        "vorschau": null,
+        "werkzeug": "update"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offen",
+          "anfrage": "mf-1795179540000-2",
+          "digest": "c530b9fcae3f187c1006ab0da66af62cbecf5dbd48c299e3845953ae4f18e484",
+          "frist_bis_ms": 1795179661001,
+          "vorschau_sha256": null
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179601002,
+      "eingabe": {
+        "argumente": {
+          "n": 3
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "tickets",
+        "sitzung": "s-1",
+        "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
+        "werkzeug": "update"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offen",
+          "anfrage": "mf-1795179540000-3",
+          "digest": "05881af04e02c031ec0f18d4c1c7ee8993e61ef5c975062f76b4b4702fb8aa5d",
+          "frist_bis_ms": 1795179661002,
+          "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef"
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.offene",
+      "jetzt_ms": 1795179601500,
+      "eingabe": {},
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offene",
+          "offene": [
+            {
+              "anfrage": "mf-1795179540000-1",
+              "server": "tickets",
+              "werkzeug": "update",
+              "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
+              "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef",
+              "digest": "d85cb830a14fbe3aa0a484fcf41ef2e1ce64289c2fc06e8394273906641ad854",
+              "frist_bis_ms": 1795179661000
+            },
+            {
+              "anfrage": "mf-1795179540000-2",
+              "server": "tickets",
+              "werkzeug": "update",
+              "vorschau": null,
+              "vorschau_sha256": null,
+              "digest": "c530b9fcae3f187c1006ab0da66af62cbecf5dbd48c299e3845953ae4f18e484",
+              "frist_bis_ms": 1795179661001
+            },
+            {
+              "anfrage": "mf-1795179540000-3",
+              "server": "tickets",
+              "werkzeug": "update",
+              "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
+              "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef",
+              "digest": "05881af04e02c031ec0f18d4c1c7ee8993e61ef5c975062f76b4b4702fb8aa5d",
+              "frist_bis_ms": 1795179661002
+            }
+          ]
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.entscheiden",
+      "jetzt_ms": 1795179602000,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1",
+        "entscheidung": "erteilen",
+        "nachweis": "h1:ps_00000000000000000000000000000a01:331d23113928bc3c8b336c14dbc4755aff213d0ff55969b3590660e9fe3c0db6"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "erteilt",
+          "anfrage": "mf-1795179540000-1",
+          "einloesen_bis_ms": 1795179632000
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.entscheiden",
+      "jetzt_ms": 1795179602001,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-3",
+        "entscheidung": "ablehnen",
+        "nachweis": "h1:ps_00000000000000000000000000000a01:73a0d22c63706c948bf90d9bfb09d3b791acdafb6aac5c5b05ef379c206e9cb9"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "abgelehnt",
+          "anfrage": "mf-1795179540000-3"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-3\",\"digest\":\"05881af04e02c031ec0f18d4c1c7ee8993e61ef5c975062f76b4b4702fb8aa5d\",\"entscheidend\":\"ps_00000000000000000000000000000a01\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"person\":\"ps_00000000000000000000000000000001\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:02.001Z\",\"zeit_anfrage\":\"2026-11-20T13:00:01.002Z\",\"zeit_entscheidung\":\"2026-11-20T13:00:02.001Z\"}",
+            "sha256": "e52a49686436cfda740d47a60e428de593cb2fa1e394759debf20adbdb7839f5"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.offene",
+      "jetzt_ms": 1795179602500,
+      "eingabe": {},
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offene",
+          "offene": [
+            {
+              "anfrage": "mf-1795179540000-2",
+              "server": "tickets",
+              "werkzeug": "update",
+              "vorschau": null,
+              "vorschau_sha256": null,
+              "digest": "c530b9fcae3f187c1006ab0da66af62cbecf5dbd48c299e3845953ae4f18e484",
+              "frist_bis_ms": 1795179661001
+            }
+          ]
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.offene",
+      "jetzt_ms": 1795179662000,
+      "eingabe": {},
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offene",
+          "offene": []
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"d85cb830a14fbe3aa0a484fcf41ef2e1ce64289c2fc06e8394273906641ad854\",\"entscheidend\":\"ps_00000000000000000000000000000a01\",\"ergebnis\":\"abgelaufen\",\"fassung\":2,\"person\":\"ps_00000000000000000000000000000001\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"e52a49686436cfda740d47a60e428de593cb2fa1e394759debf20adbdb7839f5\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:01:02.000Z\",\"zeit_anfrage\":\"2026-11-20T13:00:01.000Z\",\"zeit_entscheidung\":\"2026-11-20T13:00:02.000Z\"}",
+            "sha256": "32076d056fb1a4148cfbaf52702ad9d904f80886acc415b0591a0324ec719bc9"
+          },
+          {
+            "text": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-2\",\"digest\":\"c530b9fcae3f187c1006ab0da66af62cbecf5dbd48c299e3845953ae4f18e484\",\"entscheidend\":null,\"ergebnis\":\"abgelaufen\",\"fassung\":2,\"person\":\"ps_00000000000000000000000000000001\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"32076d056fb1a4148cfbaf52702ad9d904f80886acc415b0591a0324ec719bc9\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:01:02.000Z\",\"zeit_anfrage\":\"2026-11-20T13:00:01.001Z\",\"zeit_entscheidung\":null}",
+            "sha256": "8d9dffaceda5bc226add23f486e42495a74434fa7b5e0221c81810deca82c3cb"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1"
+    ],
+    "anfragen": {
+      "mf-1795179540000-1": "abgelaufen",
+      "mf-1795179540000-2": "abgelaufen",
+      "mf-1795179540000-3": "abgelehnt"
+    },
+    "zaehler": 3,
+    "zeilen": 4,
+    "letzte": "8d9dffaceda5bc226add23f486e42495a74434fa7b5e0221c81810deca82c3cb"
+  }
+}

@@ -1,0 +1,1 @@
+{"vorgabe": {"klassen": ["intern", "kundendaten"], "routen": [{"schluessel": "cloud", "art": "cloud", "klasse": "intern", "klasse": "kundendaten"}], "kunden": []}, "anfragen": [{"einheit": {"klasse": "kundendaten"}, "route": "cloud"}]}

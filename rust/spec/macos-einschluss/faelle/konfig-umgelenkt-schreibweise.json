@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Pfad in anderer Schreibweise als auf der Platte",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"/Users/beispiel/PROJEKTE\"\n ],\n \"programmordner\": [\n  \"/Users/beispiel/.local/share/claude\",\n  \"/opt/homebrew\"\n ]\n}\n"
+}

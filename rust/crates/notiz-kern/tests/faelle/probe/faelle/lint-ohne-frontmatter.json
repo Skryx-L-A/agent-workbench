@@ -1,0 +1,12 @@
+{
+ "description": "no frontmatter",
+ "files": {
+  "note.md": "Nur Text.\n"
+ },
+ "args": [
+  "lint",
+  "{root}/note.md",
+  "--rel",
+  "10-global/g.md"
+ ]
+}

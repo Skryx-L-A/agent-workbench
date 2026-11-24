@@ -1,0 +1,18 @@
+{
+ "beschreibung": "kein copilot im PATH",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "fehlt",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

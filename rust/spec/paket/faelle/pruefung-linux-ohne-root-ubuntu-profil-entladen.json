@@ -1,0 +1,32 @@
+{
+ "beschreibung": "Aufruf ohne root: die Probe des System-bwrap scheitert mit `uid map: Permission denied`: Ubuntus Profil gilt als nicht geladen (S0)",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   }
+  ],
+  "apparmor": "nicht_pruefbar",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "ok",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok",
+  "ohne_root": true,
+  "ubuntu_profil": "entladen"
+ }
+}

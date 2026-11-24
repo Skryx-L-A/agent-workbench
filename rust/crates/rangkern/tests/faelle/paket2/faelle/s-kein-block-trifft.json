@@ -1,0 +1,12 @@
+{
+ "description": "keine Überschneidung: Rückfall auf die Hook-Zeile",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\ntitle: Kaffee\n---\n\nFür künftige Sessions: Die Kaffeemaschine wird im Frühling entkalkt.\n\nDer Filter ist neu.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "Motorrad Reifen Luftdruck"
+ ]
+}

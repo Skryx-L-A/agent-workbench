@@ -1,0 +1,19 @@
+{
+ "start": "bereit",
+ "socket_rechte": "0600",
+ "responses": [
+  {
+   "kill": "scheitert"
+  },
+  {
+   "ok": true,
+   "id": 1
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "exit": 0,
+  "socket_weg": true,
+  "ordner_bleibt": true
+ }
+}

@@ -1,0 +1,127 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "werkbank:regelebenen/fassung-1",
+ "title": "Dateien der Regelebenen, Fassung 1",
+ "description": "Form der Firmen-, Gruppen- und Nutzerdatei. Nicht im Schema: Größe, BOM, doppelte JSON-Schlüssel, Doppel in Objektlisten (route, kunde, nutzer, schluessel), Nutzer in zwei Gruppen, Querverweise, Lockerung, Befugnis und der Fehlercode. `einstellung` prüft das Schema von Vertrag 2 (../einstellungen/einstellungen.schema.json). Siehe README.md.",
+ "oneOf": [{"$ref": "#/$defs/firma"}, {"$ref": "#/$defs/gruppe"}, {"$ref": "#/$defs/nutzer"}],
+ "$defs": {
+  "kennung": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+  "pseudonym": {"type": "string", "pattern": "^ps_[0-9a-f]{32}$", "description": "Person nur als Pseudonym (A12, Vertrag 9)"},
+  "kennungen64": {"type": "array", "maxItems": 64, "uniqueItems": true, "items": {"$ref": "#/$defs/kennung"}},
+  "firma": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["fassung", "ebene", "einstellung", "rollen", "gruppen", "nutzerregeln"],
+   "properties": {
+    "fassung": {"const": 1},
+    "ebene": {"const": "firma"},
+    "einstellung": {"type": "object", "description": "Vertrag 2 Fassung 1"},
+    "rollen": {
+     "type": "object", "minProperties": 1, "maxProperties": 1024, "propertyNames": {"$ref": "#/$defs/pseudonym"},
+     "additionalProperties": {"type": "array", "minItems": 1, "maxItems": 2, "items": {"enum": ["admin", "einsicht"]}},
+     "not": {"additionalProperties": {"not": {"contains": {"const": "admin"}}}},
+     "description": "Pseudonym -> Rollen; mindestens ein admin (B09)"
+    },
+    "gruppen": {
+     "type": "array", "maxItems": 256,
+     "items": {
+      "type": "object", "additionalProperties": false, "required": ["schluessel", "mitglieder"],
+      "properties": {
+       "schluessel": {"$ref": "#/$defs/kennung"},
+       "mitglieder": {"type": "array", "maxItems": 4096, "uniqueItems": true, "items": {"$ref": "#/$defs/pseudonym"}}
+      }
+     }
+    },
+    "nutzerregeln": {
+     "type": "array", "maxItems": 4096,
+     "items": {
+      "type": "object", "additionalProperties": false, "required": ["nutzer", "regeln"],
+      "properties": {"nutzer": {"$ref": "#/$defs/pseudonym"}, "regeln": {"$ref": "#/$defs/regelsatz_voll"}}
+     }
+    },
+    "routen_status": {
+     "type": "array", "maxItems": 64,
+     "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["route", "status", "grund", "seit", "freigabe_durch"],
+      "properties": {
+       "route": {"$ref": "#/$defs/kennung"},
+       "status": {"enum": ["frei", "gesperrt", "evaluierung"]},
+       "grund": {"type": "string", "pattern": "^[^\\u0000-\\u001f\\u007f]{1,200}$"},
+       "seit": {"type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"},
+       "freigabe_durch": {"$ref": "#/$defs/kennung"},
+       "zone": {"$ref": "#/$defs/kennung"}
+      }
+     }
+    },
+    "senkung": {
+     "type": "object", "additionalProperties": false, "required": ["aus", "bestaetigung", "arten"],
+     "properties": {"aus": {"type": "boolean"}, "bestaetigung": {"type": "boolean"}, "arten": {"$ref": "#/$defs/kennungen64"}}
+    },
+    "protokoll": {
+     "type": "object", "additionalProperties": false, "required": ["aufbewahrung_tage"],
+     "properties": {
+      "aufbewahrung_tage": {"type": "integer", "minimum": 0, "maximum": 36500}
+     }
+    }
+   }
+  },
+  "gruppe": {
+   "type": "object", "additionalProperties": false, "required": ["fassung", "ebene", "gruppe", "regeln"],
+   "properties": {
+    "fassung": {"const": 1}, "ebene": {"const": "gruppe"}, "gruppe": {"$ref": "#/$defs/kennung"},
+    "regeln": {"$ref": "#/$defs/regelsatz_voll"}
+   }
+  },
+  "nutzer": {
+   "type": "object", "additionalProperties": false, "required": ["fassung", "ebene", "nutzer", "regeln"],
+   "properties": {
+    "fassung": {"const": 1}, "ebene": {"const": "nutzer"}, "nutzer": {"$ref": "#/$defs/pseudonym"},
+    "regeln": {"$ref": "#/$defs/regelsatz_nutzer"}
+   }
+  },
+  "routen": {
+   "type": "array", "maxItems": 64,
+   "items": {
+    "type": "object", "additionalProperties": false, "required": ["route"],
+    "properties": {"route": {"$ref": "#/$defs/kennung"}, "klasse": {"$ref": "#/$defs/kennung"}, "gesperrt": {"type": "boolean"}}
+   }
+  },
+  "kunden": {
+   "type": "array", "maxItems": 256,
+   "items": {
+    "type": "object", "additionalProperties": false, "required": ["kunde"],
+    "properties": {"kunde": {"$ref": "#/$defs/kennung"}, "erlaubt": {"$ref": "#/$defs/kennungen64"}, "verboten": {"$ref": "#/$defs/kennungen64"}}
+   }
+  },
+  "freigaben_entfernt": {
+   "type": "array", "maxItems": 1024, "uniqueItems": true,
+   "items": {
+    "type": "object", "additionalProperties": false, "required": ["route", "kunde"],
+    "properties": {"route": {"$ref": "#/$defs/kennung"}, "kunde": {"$ref": "#/$defs/kennung"}}
+   }
+  },
+  "regelsatz_voll": {
+   "type": "object", "additionalProperties": false,
+   "properties": {
+    "routen": {"$ref": "#/$defs/routen"}, "kunden": {"$ref": "#/$defs/kunden"},
+    "freigaben_entfernt": {"$ref": "#/$defs/freigaben_entfernt"},
+    "senkung": {
+     "type": "object", "additionalProperties": false,
+     "properties": {"arten": {"$ref": "#/$defs/kennungen64"}, "aus": {"type": "boolean"}, "bestaetigung": {"type": "boolean"}}
+    }
+   }
+  },
+  "regelsatz_nutzer": {
+   "type": "object", "additionalProperties": false,
+   "properties": {
+    "routen": {"$ref": "#/$defs/routen"}, "kunden": {"$ref": "#/$defs/kunden"},
+    "freigaben_entfernt": {"$ref": "#/$defs/freigaben_entfernt"},
+    "senkung": {
+     "type": "object", "additionalProperties": false,
+     "properties": {"aus": {"type": "boolean"}, "bestaetigung": {"type": "boolean"}}
+    }
+   }
+  }
+ }
+}

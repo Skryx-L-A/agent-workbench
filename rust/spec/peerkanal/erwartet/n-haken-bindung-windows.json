@@ -1,0 +1,25 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": {
+  "system": "windows",
+  "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "appcontainer_sid": null,
+  "uid": null,
+  "gid": null,
+  "pid": "=client",
+  "startzeit": "=client",
+  "im_job": null,
+  "programm": "=client",
+  "signatur": null,
+  "eingeschraenkt": false,
+  "sandbox": null
+ },
+ "gemessen": [
+  "kein neuer Prozess bekommt die pid, solange Vorlaeufig lebt",
+  "der Stand-in findet den Prozess mit derselben startzeit (beendet, aber nicht wiederverwendet)",
+  "nach ablehnen oder bestaetigen ist das Handle zu"
+ ]
+}

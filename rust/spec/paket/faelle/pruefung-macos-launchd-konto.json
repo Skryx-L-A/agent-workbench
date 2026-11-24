@@ -1,0 +1,23 @@
+{
+ "beschreibung": "Halter-Dienst im Zustand konto",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "macos",
+  "konten": 1,
+  "launchd": "konto",
+  "schluesselbund": "ok",
+  "einschluss": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

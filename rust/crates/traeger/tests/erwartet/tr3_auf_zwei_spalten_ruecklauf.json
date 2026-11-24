@@ -1,0 +1,171 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    2,
+    3,
+    true
+   ],
+   "groesse": [
+    7,
+    3
+   ],
+   "ruecklauf": {
+    "erste": "漢1",
+    "letzte": "漢9",
+    "zahl": 9
+   },
+   "stand": 3,
+   "zeilen": [
+    "漢10",
+    "漢11",
+    "漢z"
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       3,
+       3,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "漢9",
+       "1": "漢10",
+       "2": "漢11",
+       "3": "漢z"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      3,
+      3,
+      true
+     ],
+     "groesse": [
+      7,
+      4
+     ],
+     "ruecklauf": {
+      "erste": "漢1",
+      "letzte": "漢8",
+      "zahl": 8
+     },
+     "stand": 1,
+     "zeilen": [
+      "漢9",
+      "漢10",
+      "漢11",
+      "漢z"
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       2,
+       1,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": "11",
+       "1": "漢",
+       "2": "z"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      2,
+      1,
+      true
+     ],
+     "groesse": [
+      2,
+      3
+     ],
+     "ruecklauf": {
+      "erste": "漢",
+      "letzte": "漢",
+      "zahl": 21
+     },
+     "stand": 2,
+     "zeilen": [
+      "11",
+      "漢",
+      "z"
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       2,
+       3,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "0": "漢10",
+       "1": "漢11",
+       "2": "漢z"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      2,
+      3,
+      true
+     ],
+     "groesse": [
+      7,
+      3
+     ],
+     "ruecklauf": {
+      "erste": "漢1",
+      "letzte": "漢9",
+      "zahl": 9
+     },
+     "stand": 3,
+     "zeilen": [
+      "漢10",
+      "漢11",
+      "漢z"
+     ]
+    }
+   }
+  ]
+ }
+}

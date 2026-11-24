@@ -1,0 +1,22 @@
+{
+ "beschreibung": "A108 an der Grenze: zwei Konten",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "windows",
+  "konten": 2,
+  "halter": "ok",
+  "wfp": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "fehlt"
+ }
+}

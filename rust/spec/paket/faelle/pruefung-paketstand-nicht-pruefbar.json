@@ -1,0 +1,22 @@
+{
+ "beschreibung": "Paketstand nicht prüfbar",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "windows",
+  "konten": 1,
+  "halter": "ok",
+  "wfp": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "nicht_pruefbar",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

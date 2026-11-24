@@ -1,0 +1,126 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    0,
+    0,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 0,
+   "zeilen": [
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Zwischenablage",
+      "daten_b64": "S29waWUgZWlucyDDpMO2w7w="
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Zwischenablage",
+      "daten_b64": "S29waWUgZWlucyDDpMO2w7wy"
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Zwischenablage",
+      "daten_b64": "bGVlcg=="
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Zwischenablage",
+      "daten_b64": "cA=="
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Zwischenablage",
+      "daten_b64": ""
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Zwischenablage",
+      "daten_b64": "S29waWUgZWlucyDDpMO2w7w="
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      0,
+      0,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 0,
+     "zeilen": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

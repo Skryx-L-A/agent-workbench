@@ -1,0 +1,10 @@
+{
+ "beschreibung": "Startdatei ist kein gueltiges JSON-Objekt: Exitcode 2, eine Zeile auf stderr",
+ "datensatz": "A",
+ "name": "di1_start_nan",
+ "regeln": [
+  "DI1"
+ ],
+ "schritte": [],
+ "start_roh": "{\"groesse\": [NaN, 24]}"
+}

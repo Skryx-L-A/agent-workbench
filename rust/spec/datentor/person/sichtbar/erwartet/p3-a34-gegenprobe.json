@@ -1,0 +1,35 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "intern",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "oeffentlich"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "oeffentlich",
+    "meldung": "frei",
+    "leseklasse": "oeffentlich"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "leseklasse": "intern"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "leseklasse": "kundendaten"
+   }
+  ]
+ }
+}

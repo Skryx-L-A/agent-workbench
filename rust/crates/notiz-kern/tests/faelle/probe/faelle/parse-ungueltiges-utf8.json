@@ -1,0 +1,10 @@
+{
+ "description": "invalid UTF-8 byte is replaced by U+FFFD",
+ "files_b64": {
+  "note.md": "LS0tCnRpdGxlOiBLYXB1dHQKLS0tClZvcv9OYWNoCg=="
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

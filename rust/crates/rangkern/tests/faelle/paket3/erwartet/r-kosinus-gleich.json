@@ -1,0 +1,35 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "werkstatt/bohrer.md",
+    "score": 1.0,
+    "title": "Bohrmaschine",
+    "snippet": "Die Bohrmaschine liegt im Regal.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 1.0,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 1
+   },
+   {
+    "rel": "werkstatt/saege.md",
+    "score": 0.47058823529411764,
+    "title": "Säge",
+    "snippet": "Die Säge ist scharf.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "vektor_rang": 2
+   }
+  ]
+ }
+}

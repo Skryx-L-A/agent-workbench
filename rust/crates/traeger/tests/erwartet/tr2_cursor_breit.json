@@ -1,0 +1,168 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    0,
+    8,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 6,
+   "zeilen": [
+    "a漢漢👍🏽é",
+    "漢字",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       4,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "a漢b"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       4,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "1": "漢字"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       2,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {}
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       5,
+       true
+      ],
+      "stand": 4,
+      "zeilen": {
+       "0": "a漢漢"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       7,
+       true
+      ],
+      "stand": 5,
+      "zeilen": {
+       "0": "a漢漢👍🏽"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       8,
+       true
+      ],
+      "stand": 6,
+      "zeilen": {
+       "0": "a漢漢👍🏽é"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      0,
+      8,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 6,
+     "zeilen": [
+      "a漢漢👍🏽é",
+      "漢字",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,31 @@
+{
+ "description": "Leere Zeile und Zeile nur aus Leerraum: bad_request",
+ "vault": {
+  "files": {
+   "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text ueber Wolken.\n"
+  }
+ },
+ "args": [
+  "{root}/vault"
+ ],
+ "steps": [
+  {
+   "line": ""
+  },
+  {
+   "line": "   "
+  },
+  {
+   "line": "\t"
+  },
+  {
+   "request": {
+    "op": "ping",
+    "id": 1
+   }
+  },
+  {
+   "line": ""
+  }
+ ]
+}

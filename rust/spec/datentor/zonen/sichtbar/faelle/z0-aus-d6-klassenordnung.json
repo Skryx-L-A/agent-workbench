@@ -1,0 +1,84 @@
+{
+ "name": "z0-aus-d6-klassenordnung",
+ "regeln": [
+  "A127",
+  "Z0",
+  "D6",
+  "D7",
+  "A34"
+ ],
+ "beschreibung": "Option aus: der Fall d6-klassenordnung aus Vertrag 3 mit derselben Erwartung. Die Klasse der Route ist die höchste, die sie sehen darf.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": []
+ },
+ "modellzonen": {
+  "an": false,
+  "zonen": []
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "oeffentlich"
+   },
+   "route": "r-oeff",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "r-oeff",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r-oeff",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "r-intern",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "oeffentlich"
+   },
+   "route": "r-kd",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r-kd",
+   "kunde": null
+  }
+ ]
+}

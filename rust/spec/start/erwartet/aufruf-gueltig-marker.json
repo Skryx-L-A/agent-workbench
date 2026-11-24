@@ -1,0 +1,19 @@
+{
+ "exec": "pi",
+ "stderr": "",
+ "suche_gestartet": true,
+ "suche_argv_ende": [
+  "--probelauf",
+  "--marker",
+  "MK-7Q2,MK-INTERN",
+  "--marker-zaehlung",
+  "/home/beispiel/zaehlung/s-2.suche.json"
+ ],
+ "modellweg_argv_ende": [
+  "--probelauf",
+  "--marker",
+  "MK-7Q2,MK-INTERN",
+  "--marker-zaehlung",
+  "/home/beispiel/zaehlung/s-2.modellweg.json"
+ ]
+}

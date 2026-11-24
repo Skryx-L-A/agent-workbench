@@ -1,0 +1,9 @@
+{
+ "agent": "laeuft",
+ "exit": "der des Agenten",
+ "dienst_ops": [
+  "projekt_neu",
+  "lauf_start",
+  "lauf_ende"
+ ]
+}

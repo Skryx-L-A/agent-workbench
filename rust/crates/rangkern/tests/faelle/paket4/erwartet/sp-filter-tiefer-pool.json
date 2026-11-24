@@ -1,0 +1,22 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "20-projects/b/rezept.md",
+    "score": 0.444832296251328,
+    "title": "Rezept b",
+    "snippet": "Ein langer Text, der nur einmal Kaffeebohnen nennt und sonst von Tee, Wasser und Geschirr erzaehlt.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 3,
+    "bm25_norm": 0.444832296251328,
+    "space": "b"
+   }
+  ]
+ }
+}

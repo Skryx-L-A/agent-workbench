@@ -1,0 +1,7 @@
+{
+ "erwartet": "eigener Socket antwortet; fremder EPERM",
+ "messwerte": [
+  "Antwort",
+  "errno"
+ ]
+}

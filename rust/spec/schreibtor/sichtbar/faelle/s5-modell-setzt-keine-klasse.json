@@ -1,0 +1,150 @@
+{
+ "name": "s5-modell-setzt-keine-klasse",
+ "regeln": [
+  "S5",
+  "A36"
+ ],
+ "beschreibung": "Ein Modell nennt beim Anlegen und Ändern keine Klasse und keinen Kunden; das System ordnet zu.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ },
+ "anfragen": [
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "cloud",
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text",
+    "klasse": "oeffentlich"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "cloud",
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text",
+    "klasse": "auto"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "cloud",
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "aendern",
+    "inhalt": "Text neu",
+    "vorher_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "klasse": "intern",
+    "kunde": null
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "intern",
+     "kunde": null
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  }
+ ]
+}

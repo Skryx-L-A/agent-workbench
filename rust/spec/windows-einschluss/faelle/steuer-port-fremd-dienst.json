@@ -1,0 +1,8 @@
+{
+ "beschreibung": "Port eines fremden lokalen Dienstes",
+ "form": "steuer",
+ "text": "{\"op\": \"lauf_start\", \"ordner\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"sitzung\": \"s-1\", \"pid\": 4242, \"ports\": [5432]}\n",
+ "lage": {
+  "5432": "Hörer eines fremden Dienstes"
+ }
+}

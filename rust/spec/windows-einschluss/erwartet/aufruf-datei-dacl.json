@@ -1,0 +1,6 @@
+{
+ "exit": 66,
+ "stderr": "lauf.datei_modus: Startdatei nicht eigen, nicht 0600 oder keine Datei",
+ "agent": "nie erzeugt",
+ "dienst_ops": []
+}

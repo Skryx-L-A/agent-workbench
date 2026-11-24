@@ -1,0 +1,31 @@
+{
+ "beschreibung": "Hinweis und A108: der Hinweis steht vor der Stellenzeile, die Stellenzeile bleibt die letzte, rc 20",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 2,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   }
+  ],
+  "apparmor": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "ok",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "fehlt",
+  "system_bwrap": "ubuntu"
+ }
+}

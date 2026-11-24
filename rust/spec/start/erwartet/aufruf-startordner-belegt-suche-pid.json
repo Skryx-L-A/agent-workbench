@@ -1,0 +1,8 @@
+{
+ "exit": 73,
+ "stderr": "lauf.startordner_belegt: Startordner enthaelt Dateien einer fruehen Sitzung",
+ "suche_gestartet": false,
+ "datei_unveraendert": [
+  "<startordner>/suche.pid"
+ ]
+}

@@ -1,0 +1,24 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": {
+  "system": "macos",
+  "sid": null,
+  "appcontainer_sid": null,
+  "uid": 1000000101,
+  "gid": 1000000201,
+  "pid": "=client",
+  "startzeit": "=client",
+  "im_job": null,
+  "programm": "=client",
+  "signatur": "=client",
+  "eingeschraenkt": null,
+  "sandbox": true
+ },
+ "gemessen": [
+  "angenommen: die Bibliothek trennt nicht nach Sandbox, sie meldet sie",
+  "sandbox true, signatur gleich der Signatur des Client-Programms (kennung, team_id, gueltig)"
+ ]
+}

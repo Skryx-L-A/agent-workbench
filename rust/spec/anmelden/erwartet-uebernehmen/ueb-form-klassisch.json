@@ -1,0 +1,10 @@
+{
+ "exit": 13,
+ "code": "anmelden.form_falsch",
+ "stdout": "",
+ "stderr": "werkbank-anmelden: anmelden.form_falsch: Das Token hat nicht die erwartete Form.\n",
+ "ziel_datei": "keine",
+ "config": "unveraendert",
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

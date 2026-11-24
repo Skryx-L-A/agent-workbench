@@ -1,0 +1,118 @@
+{
+ "beschreibung": "die Form der Start-Struktur (Stufen 1 bis 13) wird vor der Einstellungsdatei geprueft; ist diese nicht lesbar, antwortet bei gueltiger Form einst_unlesbar, auch bei einer Verletzung der Stufen 14 bis 17",
+ "datensatz": "A",
+ "einstellungen_inhalt": {
+  "fassung": 1,
+  "routen": 5
+ },
+ "name": "di12_starten_stufen_form_vor_einst",
+ "regeln": [
+  "DI12"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "gemini",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "gibt-es-nicht"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 2,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "ablehnungen_voll": true,
+   "art": "Zustand",
+   "betrachter": "c1",
+   "voll": true
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

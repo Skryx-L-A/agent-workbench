@@ -1,0 +1,30 @@
+{
+"description": "invented vault, expectation from rangkern-ref-sicher (differential run)",
+"program": "rangkern",
+"files": {
+"vault/garten/aufgabe-aufgabe.md": "## titel kaffee\n\nGarten vektor sonne ausgabe kaffee ziegel vault frühjahr notiz the vektor index das ich übersicht kueche ziegel grundstücke rang original stand ziegel maschine\n\nUnd tomaten kaffee zaun einbettungen fruehjahr ernte die sitzung steckdose lichtschalter und moc strasse kueche fruehjahr zaun das vektor\nSaat entkalken ärger grundstücke regen wetter\n\nFür künftige Sessions: Grundstück offen moc suchindex duese grundstück\n\nÄrger offen ausgabe ventil wetter entkalken und unterbau notiz heizung and ziegel schnecken einbettungen duese suche status vault flur ventil vektor bewaesserung gärtner wetter erledigt\n\nEntkalken status rohr ausgabe nicht ziegel kompost kaffee kueche garten gärtner das strasse ventil linking stand grundstücke einbettung sonne saat projekt saat tor schornstein\n",
+"vault/30-topics/t/embedding.md": "---\ntitle: Index\nvalid-until: \n---\nErledigt sensor sensor maschine straße heizung der gärtner fruehjahr kueche regen linking notiz lichtschalter fundament rhabarber!\n\nRasen sensor titel oder ernte ventil übersicht heizung fruehjahr vault sonne zaun bewaesserung einbettung die fehler bm25\nStraße maschine entkalken der zaun of\n",
+"vault/projekt/a/mulch-gurken.md": "---\nsuperseded-by: [[original-rhabarber]], [[original-rhabarber]]\ntags: [rohr]\n---\n# rasen\n\nSteckdose sonne notiz fehler stand oder und ventil of gärtner grundstücke wetter oder ausgabe duese\n\n# tomaten\n\nEinbettungen fehler straße fruehjahr bm25 entscheidung grundstück index! stand grundstücke entkalken erledigt embedding status einbettungen das suchindex über bewaesserung lauf beet\n\nGurken strasse rohr aufgabe ventil duese aufgabe sonne tor vault ventil vault ernte oder\n",
+"vault/10-global/original-rhabarber.md": "---\ntitle: 'Test Vault\ntitle: [zaun, ausgabe]\n---\nFrühjahr pumpe rang moc wind steckdose vertikutieren ventil erledigt übersicht projekt der pumpe kaffee nicht\n\nLinking offen beet test ausgabe und lauf schornstein rohr rohr schornstein wind gurken wetter und pumpe? lichtschalter moc saat straße\nStraße pumpe flur einbettungen salat fehler\n",
+"vault/STATUS.md": "---\ntitle: Pumpe Schornstein Gärtner\ntags: [bewaesserung]\n---\n## lichtschalter suche\n\nSteckdose steckdose flur vault tomaten ich einbettungen grundstück offen pumpe tropfschlauch kueche entscheidung grundstück kaffee unterbau! saat kaffee dach\n\nFür künftige Sessions: Wir dach unterbau wir erledigt sonne\n\nTomaten dach entscheidung projekt schnecken regen maschine\nÖl übersicht ärger straße straße suche\n\n### ventil projekt\n\nFruehjahr ziegel ventil the fundament beet suchindex notiz zaun nicht rasen stand fundament ich sitzung rhabarber übersicht und\nStand frühjahr grundstücke bm25 pumpe der\n\n### offen lichtschalter\n\nStraße erledigt wind suche\n\n# offen salat\n\nDer rang kaffee index bm25 vault gärtner\n",
+"vault/30-topics/t/MOC.md": "---\ntitle: 'Straße Sitzung Duese\nstatus: Superseded\n---\n## rasen\n\nÄrger dach and\n",
+"vault/_meta/tool.md": "Bm25 kompost schornstein saat straße\n\nBm25 kern wir of die salat the kern\n\n### über tomaten\n\nSchornstein flur ernte tomaten stand heizung rasen maschine suchindex moc bewaesserung kern stand entkalken status sitzung rohr\n maschine geheimwort\n",
+"vault/.obsidian/n.md": "Für künftige Sessions: Das mulch steckdose test rhabarber index\n\nOffen steckdose ärger ausgabe vertikutieren unterbau ventil grundstück ich offen die das linking sensor lauf und? ernte einbettungen schnecken rasen grundstück kompost\nÖl suche heizung wir suche kern\n offen geheimwort\n",
+"vault/.versteckt/n.md": "## ernte embedding ärger\n\nRhabarber unterbau beet rhabarber kern heizung gärtner aufgabe stand original suche\nWir gärtner rhabarber entscheidung aufgabe ausgabe\n\nFruehjahr ärger maschine vektor ventil oder sonne schornstein offen vertikutieren öl erledigt schnecken\n\n## sonne entkalken\n\nIch kaffee sonne\nBm25 test kompost rhabarber and stand\n\nDas titel saat einbettung index saat tropfschlauch and über fehler\n\nTest ausgabe entscheidung einbettungen bewaesserung unterbau gärtner regen the beet duese quelle saat sonne suche\nRohr einbettung sitzung status regen sensor\n index geheimwort\n",
+"vektoren.json": "{\"query\": [0.115, 0.239, 0.741], \"notes\": {}}"
+},
+"args": [
+"search",
+"{root}/vault",
+"-k",
+"3",
+"--space",
+" pp , top ",
+"--today",
+"2026-09-30",
+"--vectors",
+"{root}/vektoren.json",
+"--",
+"kaffee sonne beet"
+]
+}

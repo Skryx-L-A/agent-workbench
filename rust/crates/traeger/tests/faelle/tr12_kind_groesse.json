@@ -1,0 +1,62 @@
+{
+ "name": "tr12_kind_groesse",
+ "regeln": [
+  "TR12"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Die Größe des Kerns erreicht das Kind: stty size meldet die neue Größe",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "groesse",
+  "argv": [],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "text": "BEREIT"
+   }
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "cursor": [
+     1,
+     0,
+     true
+    ]
+   }
+  },
+  {
+   "art": "Groesse",
+   "spalten": 42,
+   "zeilen": 11
+  },
+  {
+   "art": "Tasten",
+   "hex": "0a"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ],
+ "system": [
+  "linux",
+  "macos"
+ ]
+}

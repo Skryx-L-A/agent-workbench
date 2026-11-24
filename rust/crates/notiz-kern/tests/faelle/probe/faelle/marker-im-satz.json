@@ -1,0 +1,16 @@
+{
+ "description": "markers quoted inside a sentence are text",
+ "files": {
+  "note.md": "Das Paar `<!-- dream:block:start -->` und `<!-- dream:block:end -->` steht im Satz.\n"
+ },
+ "args": [
+  "markers",
+  "{root}/note.md",
+  "--start",
+  "<!-- dream:block:start -->",
+  "--end",
+  "<!-- dream:block:end -->",
+  "--replace",
+  "X"
+ ]
+}

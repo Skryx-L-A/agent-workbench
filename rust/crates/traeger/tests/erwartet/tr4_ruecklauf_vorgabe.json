@@ -1,0 +1,85 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    5,
+    0,
+    true
+   ],
+   "groesse": [
+    12,
+    6
+   ],
+   "ruecklauf": {
+    "erste": "Z02996",
+    "letzte": "Z04995",
+    "zahl": 2000
+   },
+   "stand": 1,
+   "zeilen": [
+    "Z04996",
+    "Z04997",
+    "Z04998",
+    "Z04999",
+    "Z05000",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       5,
+       0,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "Z04996",
+       "1": "Z04997",
+       "2": "Z04998",
+       "3": "Z04999",
+       "4": "Z05000"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      5,
+      0,
+      true
+     ],
+     "groesse": [
+      12,
+      6
+     ],
+     "ruecklauf": {
+      "erste": "Z02996",
+      "letzte": "Z04995",
+      "zahl": 2000
+     },
+     "stand": 1,
+     "zeilen": [
+      "Z04996",
+      "Z04997",
+      "Z04998",
+      "Z04999",
+      "Z05000",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

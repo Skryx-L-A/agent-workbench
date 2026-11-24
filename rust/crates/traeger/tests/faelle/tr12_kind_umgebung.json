@@ -1,0 +1,40 @@
+{
+ "name": "tr12_kind_umgebung",
+ "regeln": [
+  "TR12"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Das Kind bekommt genau die Umgebung des Falls und nichts dazu",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "umgebung",
+  "argv": [
+   "TERM",
+   "COLORTERM",
+   "LC_ALL",
+   "TR_ZUSATZ",
+   "FOO"
+  ],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin",
+   "FOO": "alpha"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

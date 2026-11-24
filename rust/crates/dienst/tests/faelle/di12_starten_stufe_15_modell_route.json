@@ -1,0 +1,215 @@
+{
+ "beschreibung": "Stufe 15 (start.modell_route): die Route traegt ein modell (Einstellungen der Fassung 2) und modell der Anfrage ist nicht genau gleich; Stufe 15 vor 16 und 17; eine Cloud-Route ohne modell prueft nichts",
+ "datensatz": "A",
+ "einstellungen_inhalt": {
+  "fassung": 2,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "kunden": [
+   {
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "schluessel": "k-beispiel",
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "freigaben": [],
+   "vorgabe": "nie"
+  },
+  "routen": [
+   {
+    "art": "cloud",
+    "klasse": "intern",
+    "netzziele": [
+     {
+      "host": "api.eins.example",
+      "pfade": [
+       {
+        "methode": "GET",
+        "pfad": "/copilot_internal/*"
+       }
+      ],
+      "port": 443,
+      "schluessel": true,
+      "zugriff": "kopf-einsetzen"
+     }
+    ],
+    "schluessel": "cloud-beispiel"
+   },
+   {
+    "art": "cloud",
+    "klasse": "intern",
+    "modell": "gpt-5.6-sol",
+    "netzziele": [
+     {
+      "host": "api.eins.example",
+      "pfade": [
+       {
+        "methode": "GET",
+        "pfad": "/copilot_internal/*"
+       }
+      ],
+      "port": 443,
+      "schluessel": true,
+      "zugriff": "kopf-einsetzen"
+     }
+    ],
+    "schluessel": "cloud-fest"
+   },
+   {
+    "art": "lokal",
+    "klasse": "kundendaten",
+    "modell": "qwen3:8b",
+    "netzziele": [],
+    "schluessel": "lokal-beispiel",
+    "ziel": "http://127.0.0.1:11434/v1"
+   }
+  ],
+  "vorgabestufe": "kundendaten"
+ },
+ "name": "di12_starten_stufe_15_modell_route",
+ "regeln": [
+  "DI12"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "gpt-4.1",
+     "route": "cloud-fest"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "pi",
+     "kunde": "k-beispiel",
+     "modell": "gpt-4.1",
+     "route": "lokal-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "pi",
+     "kunde": "k-beispiel",
+     "modell": "QWEN3:8B",
+     "route": "lokal-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "gpt-5.6-solx",
+     "route": "cloud-fest"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-fremd",
+     "modell": "gpt-4.1",
+     "route": "cloud-fest"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "pi",
+     "kunde": "k-beispiel",
+     "modell": "gpt-4.1",
+     "route": "cloud-fest"
+    }
+   }
+  },
+  {
+   "ablehnungen_voll": true,
+   "art": "Zustand",
+   "betrachter": "c1",
+   "voll": true
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

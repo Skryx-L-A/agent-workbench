@@ -1,0 +1,6 @@
+{
+ "erwartet": "der gelöste Enkel und das Kind mit POSIX_SPAWN_SETSID leben nach der Frist; der Test wird rot",
+ "messwerte": [
+  "PIDs nach dem Ende"
+ ]
+}

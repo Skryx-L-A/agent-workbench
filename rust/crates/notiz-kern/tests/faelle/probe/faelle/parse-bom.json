@@ -1,0 +1,10 @@
+{
+ "description": "a UTF-8 BOM before the delimiter: the model parser finds no frontmatter",
+ "files": {
+  "note.md": "﻿---\ntitle: Mit BOM\ntype: note\n---\n\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

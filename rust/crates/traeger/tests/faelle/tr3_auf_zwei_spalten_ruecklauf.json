@@ -1,0 +1,39 @@
+{
+ "name": "tr3_auf_zwei_spalten_ruecklauf",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Breite Zeichen im Rücklauf: Der Wechsel auf zwei Spalten endet, der Rücklauf bleibt in Zahl und Inhalt wie ihn die Bibliothek umbricht",
+ "art": "strom",
+ "groesse": [
+  7,
+  4
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "漢1\r\n漢2\r\n漢3\r\n漢4\r\n漢5\r\n漢6\r\n漢7\r\n漢8\r\n漢9\r\n漢10\r\n漢11\r\n漢z"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 2,
+   "zeilen": 3
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 7,
+   "zeilen": 3
+  },
+  {
+   "art": "Zustand"
+  }
+ ],
+ "ruecklauf": 100
+}

@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.paketstand_manifest_fehlt: Das Manifest des Pakets fehlt.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

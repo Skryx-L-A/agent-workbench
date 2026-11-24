@@ -1,0 +1,49 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "person-fehlt",
+    "klasse": "oeffentlich",
+    "meldung": "Anfrage ohne Person",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "person-fehlt",
+    "klasse": "oeffentlich",
+    "meldung": "Anfrage ohne Person",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "person-fehlt",
+    "klasse": "oeffentlich",
+    "meldung": "Anfrage ohne Person",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "person-fehlt",
+    "klasse": "oeffentlich",
+    "meldung": "Anfrage ohne Person",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "person-fehlt",
+    "klasse": "oeffentlich",
+    "meldung": "Anfrage ohne Person",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "route-fehlt",
+    "klasse": "oeffentlich",
+    "meldung": "Anfrage ohne Route",
+    "leseklasse": null
+   }
+  ]
+ }
+}

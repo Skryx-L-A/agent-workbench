@@ -1,0 +1,5 @@
+{
+ "beschreibung": "ein Profil mit `unconfined` ohne `userns`: Stufe 4 greift allein",
+ "form": "profil",
+ "text": "abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile werkbank-x /usr/lib/werkbank/x flags=(unconfined) {\n  /usr/lib/werkbank/x mr,\n}\n"
+}

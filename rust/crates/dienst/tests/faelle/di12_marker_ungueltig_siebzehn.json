@@ -1,0 +1,69 @@
+{
+ "beschreibung": "ungueltige Marker-Datei (siebzehn): der Dienst startet nicht, Exitcode 2, eine Zeile lauf.marker_datei ungueltig: <Grund>",
+ "datensatz": "A",
+ "marker_datei": {
+  "inhalt": {
+   "liste": [
+    "N0",
+    "N1",
+    "N2",
+    "N3",
+    "N4",
+    "N5",
+    "N6",
+    "N7",
+    "N8",
+    "N9",
+    "N10",
+    "N11",
+    "N12",
+    "N13",
+    "N14",
+    "N15",
+    "N16"
+   ]
+  }
+ },
+ "name": "di12_marker_ungueltig_siebzehn",
+ "regeln": [
+  "DI12",
+  "DI1"
+ ],
+ "schritte": [],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"bericht\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "marker_datei": "@marker_datei",
+   "marker_ordner": "/var/lib/probelauf/mp-2c5",
+   "programm": "@laufkind"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

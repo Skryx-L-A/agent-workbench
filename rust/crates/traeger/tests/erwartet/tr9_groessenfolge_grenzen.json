@@ -1,0 +1,104 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    0,
+    0,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 0,
+   "zeilen": [
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "GroessenFolge",
+      "spalten": 80,
+      "zeilen": 0
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "GroessenFolge",
+      "spalten": 0,
+      "zeilen": 24
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "GroessenFolge",
+      "spalten": 0,
+      "zeilen": 0
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "GroessenFolge",
+      "spalten": 65535,
+      "zeilen": 65535
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   }
+  ]
+ }
+}

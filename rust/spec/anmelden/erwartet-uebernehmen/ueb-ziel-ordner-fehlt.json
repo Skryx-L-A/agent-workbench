@@ -1,0 +1,10 @@
+{
+ "exit": 14,
+ "code": "anmelden.ziel_nicht_schreibbar",
+ "stdout": "",
+ "stderr": "werkbank-anmelden: anmelden.ziel_nicht_schreibbar: Der Zielordner ist nicht schreibbar.\n",
+ "ziel_datei": "keine",
+ "config": "unveraendert",
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

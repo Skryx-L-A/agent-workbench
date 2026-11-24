@@ -1,0 +1,6 @@
+{
+ "erwartet": "Signal und SIGCONT: EPERM; task_for_pid scheitert. Umgebung, proc_pidinfo und proc_pidpath bleiben lesbar: das ist eine Grenze des Profils, kein Schutz (Messlauf 2c, H1 bis H3); der Test prüft sie als lesbar und hält die Grenze fest",
+ "messwerte": [
+  "errno je Versuch"
+ ]
+}

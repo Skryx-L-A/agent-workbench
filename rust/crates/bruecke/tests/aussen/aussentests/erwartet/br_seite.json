@@ -1,0 +1,105 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "protokoll": [],
+   "stderr_fremd": 0,
+   "token_datei_entfernt": true,
+   "token_nicht_in_ausgabe": true
+  },
+  "ergebnisse": [
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "csp": true,
+    "csp_wasm": true,
+    "koerper_nicht_leer": true,
+    "koerper_ohne_url": true,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 200,
+    "typ": "text/html; charset=utf-8"
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "csp": true,
+    "csp_wasm": true,
+    "koerper_nicht_leer": true,
+    "koerper_ohne_url": true,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 200,
+    "typ": "text/javascript; charset=utf-8"
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "csp": true,
+    "csp_wasm": true,
+    "koerper_nicht_leer": true,
+    "koerper_ohne_url": true,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 200,
+    "typ": "application/wasm"
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "csp": true,
+    "csp_wasm": true,
+    "koerper_nicht_leer": true,
+    "koerper_ohne_url": true,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 200,
+    "typ": "text/html; charset=utf-8"
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "csp": true,
+    "csp_wasm": true,
+    "koerper_nicht_leer": true,
+    "koerper_ohne_url": true,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 200,
+    "typ": "application/wasm"
+   },
+   {
+    "betrachter": 0,
+    "sitzungen": [],
+    "verbindungen": 0
+   }
+  ],
+  "start": {
+   "hoerer": [
+    "127.0.0.1"
+   ],
+   "ok": true,
+   "ordner_modus": "0700",
+   "port_zeile": true,
+   "stderr_leer": true,
+   "stdout_zeilen": 1,
+   "token_datei": {
+    "form": true,
+    "modus": "0600",
+    "verschieden": true
+   }
+  }
+ },
+ "exit": 0
+}

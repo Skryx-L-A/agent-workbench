@@ -1,0 +1,196 @@
+{
+ "name": "s4-modell-eingeloest",
+ "regeln": [
+  "S15",
+  "A90",
+  "A105",
+  "E7"
+ ],
+ "beschreibung": "Nach dem Einlösen der Freigabe schreibt das Tor genau das freigegebene Ergebnis; weichen Ergebnis oder Werkzeug ab, lehnt es ab.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ },
+ "anfragen": [
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "cloud",
+    "freigabe": {
+     "klasse": "intern",
+     "kunde": null,
+     "werkzeug": "brain_schreiben",
+     "zweite_person": false
+    },
+    "person": null,
+    "entscheidend": "ps_22222222222222222222222222222222"
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": "intern",
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "cloud",
+    "freigabe": {
+     "klasse": "intern",
+     "kunde": null,
+     "werkzeug": "brain_schreiben",
+     "zweite_person": false
+    },
+    "person": null,
+    "entscheidend": "ps_22222222222222222222222222222222"
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "kundendaten",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": "intern",
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "cloud",
+    "freigabe": {
+     "klasse": "kundendaten",
+     "kunde": null,
+     "werkzeug": "brain_schreiben",
+     "zweite_person": false
+    },
+    "person": null,
+    "entscheidend": "ps_22222222222222222222222222222222"
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": "kundendaten",
+     "kunden": [
+      "k-nord"
+     ]
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "cloud",
+    "freigabe": {
+     "klasse": "intern",
+     "kunde": null,
+     "werkzeug": "brain_senken",
+     "zweite_person": false
+    },
+    "person": null,
+    "entscheidend": "ps_22222222222222222222222222222222"
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "anlegen",
+    "inhalt": "Text"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": "intern",
+     "kunden": []
+    }
+   }
+  }
+ ]
+}

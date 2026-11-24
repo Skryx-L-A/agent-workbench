@@ -1,0 +1,8 @@
+{
+ "rc": 0,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.hinweis_harness_nicht_eingetragen: pi liegt an einem gesuchten Ort, steht aber nicht in lauf.json; sudo dpkg-reconfigure werkbank.",
+  "pruef.ok: Alle 8 Pruefungen bestanden."
+ ]
+}

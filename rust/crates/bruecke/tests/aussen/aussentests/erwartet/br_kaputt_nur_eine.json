@@ -1,0 +1,89 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "protokoll": [
+    "anfrage_form",
+    "anfrage_form"
+   ],
+   "stderr_fremd": 0,
+   "token_datei_entfernt": true,
+   "token_nicht_in_ausgabe": true
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 400
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 400
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "csp": true,
+    "csp_wasm": true,
+    "koerper_nicht_leer": true,
+    "koerper_ohne_url": true,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 200,
+    "typ": "text/html; charset=utf-8"
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "csp": true,
+    "csp_wasm": true,
+    "koerper_nicht_leer": true,
+    "koerper_ohne_url": true,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 200,
+    "typ": "text/html; charset=utf-8"
+   },
+   {
+    "betrachter": 0,
+    "sitzungen": [],
+    "verbindungen": 0
+   }
+  ],
+  "start": {
+   "hoerer": [
+    "127.0.0.1"
+   ],
+   "ok": true,
+   "ordner_modus": "0700",
+   "port_zeile": true,
+   "stderr_leer": true,
+   "stdout_zeilen": 1,
+   "token_datei": {
+    "form": true,
+    "modus": "0600",
+    "verschieden": true
+   }
+  }
+ },
+ "exit": 0
+}

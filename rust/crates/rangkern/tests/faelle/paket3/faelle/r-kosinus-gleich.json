@@ -1,0 +1,22 @@
+{
+ "description": "Notizvektor gleich dem Anfragevektor: cosine 1,0",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Bohrmaschine",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/werkstatt/bohrer.md": "---\ntitle: Bohrmaschine\ntype: note\n---\n\nDie Bohrmaschine liegt im Regal.\n",
+  "vault/werkstatt/saege.md": "---\ntitle: Säge\ntype: note\n---\n\nDie Säge ist scharf.\n",
+  "vektoren.json": "{\"query\": [3, 4, 0], \"notes\": {\"werkstatt/bohrer.md\": [3, 4, 0], \"werkstatt/saege.md\": [0, 0, 1]}}"
+ }
+}

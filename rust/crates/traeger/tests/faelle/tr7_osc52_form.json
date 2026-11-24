@@ -1,0 +1,42 @@
+{
+ "name": "tr7_osc52_form",
+ "regeln": [
+  "TR7"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Nur OSC 52 mit genau drei Teilen (52, Auswahl, Daten) ist ein Ereignis",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b]52\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;c\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;c;a;b\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;eA==\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]53;c;eA==\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]5;c;eA==\u0007"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

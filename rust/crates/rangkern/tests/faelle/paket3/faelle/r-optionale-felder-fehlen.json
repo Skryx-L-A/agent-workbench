@@ -1,0 +1,19 @@
+{
+ "description": "ein schlichter Treffer hat nur die Pflichtfelder und die gesetzten",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Zitrone",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/kueche/zitrone.md": "---\ntitle: Zitrone\ntype: note\n---\n\nDie Zitrone ist sauer.\n",
+  "vault/kueche/limette.md": "---\ntitle: Limette\ntype: note\n---\n\nDie Limette ist grün.\n"
+ }
+}

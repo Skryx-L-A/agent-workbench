@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "linking": [
+   "20-projects/größe test/Notiz eins.md",
+   "20-projects/größe test/Ärger.md",
+   "30-topics/Tee/Käse.md"
+  ],
+  "search": [
+   "20-projects/größe test/Notiz eins.md",
+   "20-projects/größe test/Ärger.md",
+   "30-topics/Tee/Käse.md"
+  ]
+ }
+}

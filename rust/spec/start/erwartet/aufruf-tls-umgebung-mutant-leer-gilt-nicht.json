@@ -1,0 +1,5 @@
+{
+ "exit": 78,
+ "tls_pruefung": "rot",
+ "befund": "Start gelingt mit leerem SSL_CERT_DIR"
+}

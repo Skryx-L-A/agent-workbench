@@ -1,0 +1,30 @@
+{
+ "gueltig": true,
+ "datei": {
+  "fassung": 1,
+  "einstellungen": "/var/lib/werkbank/anna/einstellungen.json",
+  "vault": "/var/lib/werkbank/anna/vorfuehr-vault",
+  "protokoll": "/var/lib/werkbank/anna/protokoll",
+  "zustand": "/var/lib/werkbank/anna",
+  "laufzeit": "/var/lib/werkbank/l/1234",
+  "sitzungen": "/var/lib/werkbank/s/1234",
+  "heim": "/srv/beispiel/heim/anna",
+  "path": "/usr/local/bin:/usr/bin:/bin",
+  "programme": {
+   "rangkern": "/usr/lib/werkbank/rangkern",
+   "modellweg": "/usr/lib/werkbank/werkbank-modellweg",
+   "kind": "/usr/lib/werkbank/werkbank-lauf-kind",
+   "such_mcp": "/usr/lib/werkbank/such-mcp",
+   "weiter": "/usr/lib/werkbank/einschluss-weiter"
+  },
+  "harness": {},
+  "programmordner": [],
+  "schluessel": {
+   "copilot": "/var/lib/werkbank/anna/copilot.schluessel",
+   "lokal": "/var/lib/werkbank/anna/modellweg.schluessel"
+  },
+  "ca_zulassung": "offen"
+ },
+ "modus": "0644",
+ "eigentuemer": "root:root"
+}

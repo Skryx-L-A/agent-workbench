@@ -1,0 +1,163 @@
+{
+ "beschreibung": "Form der Anfrage an /starten: falscher oder fehlender Inhaltstyp 415, fehlende Laenge 411, kein oder kaputtes JSON 400, ein Koerper ueber 16384 Byte 413; nichts davon erreicht den Dienst",
+ "datensatz": "A",
+ "dienst": {
+  "plan": {
+   "*": {
+    "modus": "marke",
+    "sek": 30,
+    "text": "EINS"
+   }
+  }
+ },
+ "name": "br_starten_form",
+ "regeln": [
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "inhalt_typ": "text/plain",
+    "koerper": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "inhalt_typ": null,
+    "koerper": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "inhalt_typ": "application/jsonx",
+    "koerper": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "content_laenge": null,
+    "koerper": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "{",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "NaN",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "{\"a\":1},\"x\":2",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "[1] [2]",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "{}",
+    "koerper_laenge": 16385,
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

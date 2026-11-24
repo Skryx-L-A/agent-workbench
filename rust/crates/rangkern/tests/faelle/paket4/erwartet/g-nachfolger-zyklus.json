@@ -1,0 +1,42 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "zyklus/a.md",
+    "score": 0.49,
+    "title": "Zyklus A",
+    "snippet": "Kuechenwaage Eichung, Kuechenwaage neu eichen.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "status": "superseded",
+    "abgeloest_durch": [
+     "zyklus/b.md"
+    ]
+   },
+   {
+    "rel": "zyklus/b.md",
+    "score": 0.3876723243868325,
+    "title": "Zyklus B",
+    "snippet": "Kuechenwaage Eichung im Vergleich.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.7911680089527194,
+    "status": "superseded",
+    "abgeloest_durch": [
+     "zyklus/a.md"
+    ]
+   }
+  ]
+ }
+}

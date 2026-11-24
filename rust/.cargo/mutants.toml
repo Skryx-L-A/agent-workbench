@@ -1,0 +1,5 @@
+# cargo-mutants reads the source as text and does not evaluate `cfg`. A function that exists only for
+# another platform is not compiled on the machine that runs the gate, so no test can fail for a change
+# in it, and its mutants would always survive. The Windows build is checked by the cross build
+# (`rust-gates-<linux-host>.sh <worktree> windows`) and, later, by the Windows test machine.
+exclude_re = ["portable_key"]

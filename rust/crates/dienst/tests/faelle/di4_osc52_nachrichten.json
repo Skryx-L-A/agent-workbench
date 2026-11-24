@@ -1,0 +1,140 @@
+{
+ "beschreibung": "OSC 52: Inhalt nur an den Betrachter mit der letzten Eingabe, Hinweis an alle Abonnenten",
+ "datensatz": "A",
+ "name": "di4_osc52_nachrichten",
+ "regeln": [
+  "DI4"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-alpha",
+    "spalten": 40,
+    "zeilen": 10
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "BEREIT"
+   },
+   "takt": 16
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c2"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-alpha",
+    "spalten": 40,
+    "zeilen": 10
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c2",
+   "bis": {
+    "text": "BEREIT"
+   },
+   "takt": 16
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "g"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "nachricht": {
+     "art": "Hinweis"
+    }
+   },
+   "takt": 16
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c2",
+   "bis": {
+    "nachricht": {
+     "art": "Hinweis"
+    }
+   },
+   "takt": 16
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c2"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   40,
+   10
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "ausgabewarte",
+    "1b5d35323b633b53323977615755675345464d5445383d07",
+    "30"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

@@ -1,0 +1,33 @@
+{
+"description": "invented vault, expectation from rangkern-ref-sicher (differential run)",
+"program": "rangkern",
+"files": {
+"vault/projekt/a/wetter.md": "---\ntitle: 'Öl Flur Duese\nsuperseded-by: [[nichtda]]\nvalid-until: 2026-11-17\n---\nUnd regen erledigt maschine ich vault salat sensor offen rang moc regen\n\nTitel sitzung entkalken steckdose grundstück the aufgabe kompost\n\nMoc notiz schnecke bewaesserung heizung kueche kaffee suchindex bm25 projekt über fehler mulch original of\nZaun tor pumpe flur ich status\n\nKompost the schnecke wetter ernte moc\n\nSuchindex unterbau test entkalken tropfschlauch stand sonne tropfschlauch der\n",
+"vault/10-global/suchindex.md": "---\ntitle: [unterbau, grundstück]\nclass: derived\nstatus: \nsuperseded-by: [[nichtda]]\n---\nGrundstück ausgabe bewaesserung das über dach sensor vertikutieren strasse the status moc vektor projekt straße\nRegen ich sitzung tomaten rasen vektor\n",
+"vault/20-projects/q/salat.md": "---\ntitle: 'Ärger\nstatus: active\n---\nQuelle oder rohr oder und lichtschalter\n",
+"vault/20-projects/p/STATUS.md": "# projekt\n\nÖl duese pumpe ärger status titel grundstück nicht mulch vault rhabarber and rohr erledigt kaffee stand. beet zaun strasse ich ventil kaffee nicht einbettung bm25\nErledigt projekt status oder tropfschlauch ärger\n\nRang fruehjahr gurken schnecke status moc dach regen rhabarber steckdose the\n",
+"vault/30-topics/t/MOC.md": "---\nstatus: active\nsuperseded-by: [[suchindex]], [[suchindex]]\n---\nEntscheidung schnecke straße ventil salat ausgabe projekt erledigt\nFlur quelle dach entkalken moc fundament\n\nAnd frühjahr nicht mulch tor offen zaun\n",
+"vault/90-secrets/geheim.md": "### grundstücke ausgabe\n\nOf projekt strasse ventil frühjahr test lichtschalter sitzung garten\n\nFrühjahr duese duese nicht schnecken projekt tropfschlauch salat fehler rohr rang wetter einbettung sitzung und suche nicht ernte\n\nFundament embedding vault entscheidung nicht fehler original über maschine salat nicht ziegel sitzung\n wetter geheimwort\n",
+"vault/_meta/tool.md": "Für künftige Sessions: Wir and schnecke the aufgabe mulch\n\nVektor pumpe ausgabe ziegel entkalken wetter ziegel rasen ventil ziegel embedding\n\nGrundstück fehler steckdose entkalken quelle nicht gärtner sonne aufgabe steckdose linking die rohr wind fundament aufgabe schnecke\n\nFür künftige Sessions: Fundament einbettungen pumpe tropfschlauch übersicht titel\n\nStand fundament ziegel salat regen suche einbettungen beet saat garten sitzung dach wetter frühjahr ich gärtner der mulch wir saat saat\n ziegel geheimwort\n",
+"vault/INDEX.md": "Regen rasen wir nicht sensor entscheidung the fehler. titel ziegel test der ausgabe fundament rohr maschine tor stand stand ventil grundstück kueche ziegel\nFundament test mulch index suchindex ich\n\nOffen strasse oder the fundament fundament grundstück linking\nÜber saat fehler embedding strasse linking\n sitzung geheimwort\n",
+"vault/DECISIONS.md": "Lauf stand und kueche wir das garten quelle einbettung ziegel bm25 of ausgabe suchindex regen schornstein kompost ich saat salat\n\nKaffee status salat\n\nOffen steckdose übersicht die der\n tropfschlauch geheimwort\n",
+"vault/garten/DECISIONS.md": "Tomaten strasse garten der einbettung regen über öl quelle wir öl und garten einbettungen beet oder quelle\nGurken rohr öl vektor gurken pumpe\n\nÜbersicht suchindex entkalken wetter oder das lichtschalter the lauf flur\nNotiz kern wind duese rohr rohr\n\n## test bewaesserung einbettungen\n\nNotiz der einbettung projekt tor heizung fehler ich\n kompost geheimwort\n",
+"vault/readme.txt": "# tor bewaesserung gurken\n\nFehler wir vault vektor bewaesserung original sitzung gurken regen bewaesserung vektor aufgabe wetter nicht heizung stand. vertikutieren aufgabe\n vertikutieren geheimwort\n",
+"vault/.brain/spaces.lock": "{\"spaces\": [{\"space\": \"kern2\", \"mount\": \"\"}]}",
+"vektoren.json": "{\"query\": [0.129, 0.434], \"notes\": {\"projekt/a/wetter.md\": [0.825, -0.393], \"garten/./beet.md\": [-0.726, 0.631], \"20-projects/p/STATUS.md\": [-0.889, 0.068], \"20-projects/q/salat.md\": [0.903, -0.015, 0.492], \"_meta/tool.md\": [0.443, 0.479], \"30-topics/t/MOC.md\": [-0.837, -0.246], \"10-global/suchindex.md\": [0.251, -0.982, 0.775]}}"
+},
+"args": [
+"search",
+"{root}/vault",
+"-k",
+"2",
+"--space",
+" pp , top ",
+"--today",
+"2026-11-18",
+"--vectors",
+"{root}/vektoren.json",
+"--",
+"tropfschlauch"
+]
+}

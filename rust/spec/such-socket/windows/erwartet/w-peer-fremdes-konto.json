@@ -1,0 +1,26 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "oeffnen_fehler": 5
+  },
+  {
+   "abgewiesen": true
+  }
+ ],
+ "protokoll": [
+  {
+   "aktionsname": "kanal.abgewiesen",
+   "ergebnis": "abgewiesen",
+   "fassung": 2,
+   "grund": "pk.appcontainer_falsch",
+   "kanal": "such",
+   "route": "cloud",
+   "sitzung": "s-test-1"
+  }
+ ],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

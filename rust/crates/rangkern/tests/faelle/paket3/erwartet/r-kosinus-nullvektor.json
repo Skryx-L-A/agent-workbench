@@ -1,0 +1,35 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "mathe/eins.md",
+    "score": 1.0,
+    "title": "Eins",
+    "snippet": "Die Nullstelle steht hier.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 1.0,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 1
+   },
+   {
+    "rel": "mathe/null.md",
+    "score": 0.47058823529411764,
+    "title": "Null",
+    "snippet": "Ein Vektor ohne Länge.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "vektor_rang": 2
+   }
+  ]
+ }
+}

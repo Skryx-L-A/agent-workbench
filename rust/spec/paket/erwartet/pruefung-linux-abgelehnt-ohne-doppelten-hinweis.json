@@ -1,0 +1,9 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.programmordner_verboten: Harness pi nicht eingetragen. Abhilfe: Harness unter einem anderen Praefix installieren, dann dpkg-reconfigure werkbank. Ordner: /opt/p",
+  "pruef.hinweis_harness_nicht_gefunden: copilot nicht gefunden in ~/.nvm/versions/node/v*/bin, ~/.local/bin, ~/.npm-global/bin, ~/.volta/bin, /usr/local/bin, /usr/bin; andere Orte werden nicht gesucht.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

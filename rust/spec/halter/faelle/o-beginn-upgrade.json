@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Beginn reicht Upgrade weiter",
+ "form": "antwort",
+ "text": "{\"art\":\"beginn\",\"fassung\":1,\"id\":\"m-2\",\"kopf\":{\"upgrade\":\"websocket\"},\"status\":101}"
+}

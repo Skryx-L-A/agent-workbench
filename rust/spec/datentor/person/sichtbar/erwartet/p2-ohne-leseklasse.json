@@ -1,0 +1,56 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "person-ohne-leseklasse",
+    "klasse": "oeffentlich",
+    "meldung": "Person ohne Leseklasse",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "person-ohne-leseklasse",
+    "klasse": "oeffentlich",
+    "meldung": "Person ohne Leseklasse",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "person-ohne-leseklasse",
+    "klasse": "oeffentlich",
+    "meldung": "Person ohne Leseklasse",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "person-ohne-leseklasse",
+    "klasse": "oeffentlich",
+    "meldung": "Person ohne Leseklasse",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "person-ohne-leseklasse",
+    "klasse": "oeffentlich",
+    "meldung": "Person ohne Leseklasse",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "person-ohne-leseklasse",
+    "klasse": "oeffentlich",
+    "meldung": "Person ohne Leseklasse",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "person-ohne-leseklasse",
+    "klasse": "oeffentlich",
+    "meldung": "Person ohne Leseklasse",
+    "leseklasse": null
+   }
+  ]
+ }
+}

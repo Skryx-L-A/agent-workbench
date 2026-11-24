@@ -1,0 +1,18 @@
+{
+ "beschreibung": "der Ordner der CLI fehlt",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "fehlt",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

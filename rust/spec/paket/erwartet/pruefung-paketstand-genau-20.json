@@ -1,0 +1,27 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d00.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d01.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d02.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d03.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d04.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d05.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d06.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d07.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d08.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d09.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d10.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d11.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d12.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d13.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d14.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d15.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d16.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d17.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d18.bin fehlt.",
+  "pruef.paketstand_datei_fehlt: Die Datei daten/d19.bin fehlt.",
+  "pruef.rot: 20 Befunde."
+ ]
+}

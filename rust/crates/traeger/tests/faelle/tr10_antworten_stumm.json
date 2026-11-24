@@ -1,0 +1,126 @@
+{
+ "name": "tr10_antworten_stumm",
+ "regeln": [
+  "TR10"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Ohne Antwort bleiben: DSR mit ?, Fensterabfragen (14t, 16t, 19t, 20t, 21t, 22t, 23t), DA3, XTVERSION, Kitty-Abfrage, Farbabfragen OSC 4, 10, 11, 12, OSC 52 und ENQ; keine Antwort heißt: pty_antworten leer",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?6n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?15n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?25n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?996n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[14t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[16t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[19t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[15t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[20t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[21t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[22;0t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[23;0t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[=c"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[>q"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?u"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[x"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1;1;1;1;1*y"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1;1;0S"
+  },
+  {
+   "art": "Text",
+   "text": "\u001bP+q544e\u001b\\"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]4;1;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]10;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]11;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]12;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]104\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;c;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u0005"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

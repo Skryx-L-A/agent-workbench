@@ -1,0 +1,128 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    0,
+    14,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 3,
+   "zeilen": [
+    "alphabetagamma",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "SyncBeginn"
+     },
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       5,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "alpha"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       9,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": "alphabeta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "SyncBeginn"
+     },
+     {
+      "art": "SyncBeginn"
+     },
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       14,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "0": "alphabetagamma"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      0,
+      14,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 3,
+     "zeilen": [
+      "alphabetagamma",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

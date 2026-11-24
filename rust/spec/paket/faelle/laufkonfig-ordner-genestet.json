@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Paketwurzel von pi und bin-Ordner von node (mit copilot) liegen nebeneinander, keiner im anderen: beide bleiben (vorher: ein Präfix umfasste beide)",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/opt/pi/lib/node_modules/pi/cli.js",
+   "node": "/opt/pi/bin/node"
+  },
+  "copilot": {
+   "programm": "/opt/pi/bin/copilot",
+   "node": null
+  }
+ },
+ "vorher": null
+}

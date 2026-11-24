@@ -1,0 +1,18 @@
+{
+ "beschreibung": "`werkbank-ordnermarke` ist dynamisch gelinkt: erlaubt",
+ "form": "statisch",
+ "programme": [
+  {
+   "ziel": "usr/lib/werkbank/werkbank-einschluss",
+   "interp": false,
+   "needed": []
+  },
+  {
+   "ziel": "usr/bin/werkbank-ordnermarke",
+   "interp": true,
+   "needed": [
+    "libc.so.6"
+   ]
+  }
+ ]
+}

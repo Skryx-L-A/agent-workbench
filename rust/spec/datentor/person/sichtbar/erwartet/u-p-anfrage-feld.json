@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13"
+ ],
+ "beschreibung": "Eine Anfrage trägt ein unbekanntes Feld person; die Person steht im kontext."
+}

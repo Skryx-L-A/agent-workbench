@@ -1,0 +1,10 @@
+{
+ "exec": "copilot",
+ "e4": {
+  "treffer_marke_im_einschluss": 0,
+  "upstream_zaehler": "steigt",
+  "get_/user/repos": "403",
+  "proc_mem_cli": "EPERM",
+  "ziel_direkt": "scheitert"
+ }
+}

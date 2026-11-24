@@ -1,0 +1,8 @@
+{
+ "erwartet": "nach der Frist lebt kein Prozess mit dem Merkmal; kein Prozess ohne Merkmal bekam ein Signal",
+ "messwerte": [
+  "PIDs mit Merkmal vor und nach dem Ende",
+  "Zeit bis zum Ende",
+  "Zähler fremder Treffer: 0"
+ ]
+}

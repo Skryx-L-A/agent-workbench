@@ -1,0 +1,188 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitt 13.5. Gilt, wo Betriebsart 2 gebaut ist (im Durchstich nur Linux); sonst gilt in aufruf.json das Feld erwartet der Faelle betriebsart_kopf_einsetzen und betriebsart_vor_form.",
+ "codes": {
+  "mw.ziele_ungueltig": [
+   78,
+   "Zielliste ungueltig"
+  ],
+  "mw.ca_nicht_zugelassen": [
+   78,
+   "Lokale CA nicht zugelassen"
+  ],
+  "mw.ca_ungueltig": [
+   78,
+   "CA-Datei ungueltig"
+  ]
+ },
+ "aufruf": [
+  {
+   "name": "gueltig",
+   "beschreibung": "Betriebsart 2 mit ihren acht Optionen",
+   "argv": [
+    "--betriebsart",
+    "kopf-einsetzen",
+    "--socket",
+    "/run/user/1000/wb/s-1/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--sitzung",
+    "s-1",
+    "--route",
+    "cloud-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--zielliste",
+    "/run/user/1000/wb/s-1/zielliste.json",
+    "--ca-schluessel",
+    "/run/user/1000/wb/s-1/ca.key",
+    "--ca-zertifikat",
+    "/run/user/1000/wb/s-1/ca.crt"
+   ],
+   "erwartet": {
+    "bis_schritt": "aufruf_gut"
+   }
+  },
+  {
+   "name": "mit_ziel",
+   "beschreibung": "--ziel gehoert zu openai-lokal",
+   "argv": [
+    "--betriebsart",
+    "kopf-einsetzen",
+    "--socket",
+    "/run/user/1000/wb/s-1/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--sitzung",
+    "s-1",
+    "--route",
+    "cloud-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--zielliste",
+    "/run/user/1000/wb/s-1/zielliste.json",
+    "--ca-schluessel",
+    "/run/user/1000/wb/s-1/ca.key",
+    "--ca-zertifikat",
+    "/run/user/1000/wb/s-1/ca.crt",
+    "--ziel",
+    "https://x.beispiel.invalid/v1"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "ohne_ca_zertifikat",
+   "beschreibung": "ohne --ca-zertifikat",
+   "argv": [
+    "--betriebsart",
+    "kopf-einsetzen",
+    "--socket",
+    "/run/user/1000/wb/s-1/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--sitzung",
+    "s-1",
+    "--route",
+    "cloud-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--zielliste",
+    "/run/user/1000/wb/s-1/zielliste.json",
+    "--ca-schluessel",
+    "/run/user/1000/wb/s-1/ca.key"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "alte_option_ca",
+   "beschreibung": "--ca statt der zwei CA-Optionen",
+   "argv": [
+    "--betriebsart",
+    "kopf-einsetzen",
+    "--socket",
+    "/run/user/1000/wb/s-1/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--sitzung",
+    "s-1",
+    "--route",
+    "cloud-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--zielliste",
+    "/run/user/1000/wb/s-1/zielliste.json",
+    "--ca",
+    "/run/user/1000/wb/s-1/ca.pem"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "ohne_betriebsart",
+   "beschreibung": "ohne --betriebsart gilt openai-lokal, dann fehlen dessen Optionen",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-1/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--sitzung",
+    "s-1",
+    "--route",
+    "cloud-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--zielliste",
+    "/run/user/1000/wb/s-1/zielliste.json",
+    "--ca-schluessel",
+    "/run/user/1000/wb/s-1/ca.key",
+    "--ca-zertifikat",
+    "/run/user/1000/wb/s-1/ca.crt"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "ca_relativ",
+   "beschreibung": "--ca-zertifikat relativ",
+   "argv": [
+    "--betriebsart",
+    "kopf-einsetzen",
+    "--socket",
+    "/run/user/1000/wb/s-1/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--sitzung",
+    "s-1",
+    "--route",
+    "cloud-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--zielliste",
+    "/run/user/1000/wb/s-1/zielliste.json",
+    "--ca-schluessel",
+    "/run/user/1000/wb/s-1/ca.key",
+    "--ca-zertifikat",
+    "ca.crt"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  }
+ ]
+}

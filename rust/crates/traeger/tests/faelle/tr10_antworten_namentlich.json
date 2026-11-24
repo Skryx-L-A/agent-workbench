@@ -1,0 +1,86 @@
+{
+ "name": "tr10_antworten_namentlich",
+ "regeln": [
+  "TR10"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Namentlich beantwortet (je Frage ein Schritt): DA1 (ESC[c, ESC[0c, ESC Z), DA2 (ESC[>c), DSR 5n und 6n, ESC[18t, DECRQM privat und ANSI; jede Antwort steht im Schritt der Frage",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[c"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[0c"
+  },
+  {
+   "art": "Text",
+   "text": "\u001bZ"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[>c"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[>0c"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[5n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[6n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[18t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?2004$p"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1$p"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?25$p"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?2026$p"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?9999$p"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[4$p"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[20$p"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?5$p"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

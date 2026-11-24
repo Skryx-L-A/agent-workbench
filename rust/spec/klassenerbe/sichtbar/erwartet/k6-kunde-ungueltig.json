@@ -1,0 +1,25 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "unklar",
+    "klasse": null,
+    "kunden": [],
+    "grund": "quelle-kunde-ungueltig"
+   },
+   {
+    "ergebnis": "unklar",
+    "klasse": null,
+    "kunden": [],
+    "grund": "quelle-kunde-ungueltig"
+   },
+   {
+    "ergebnis": "unklar",
+    "klasse": null,
+    "kunden": [],
+    "grund": "quelle-kunde-ungueltig"
+   }
+  ]
+ }
+}

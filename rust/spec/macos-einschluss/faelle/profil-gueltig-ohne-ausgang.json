@@ -1,0 +1,33 @@
+{
+ "beschreibung": "lokale Route: nur der Modellweg",
+ "form": "profil",
+ "eingabe": {
+  "harness": "claude",
+  "arbeitsordner": "/Users/beispiel/Projekte/projekt",
+  "programmordner": [
+   "/Users/beispiel/.local/share/claude"
+  ],
+  "zustand": "/Users/beispiel/Library/Application Support/werkbank/heime/s-1",
+  "heim": "/Users/beispiel",
+  "such_socket": "/Users/beispiel/.wbs/s-1/such.sock",
+  "merkmal": "/Users/beispiel/Library/Application Support/werkbank/dienst/merkmal/s-1/kennung",
+  "sitzungsports": {
+   "modellweg": 41001
+  },
+  "umgebung": {
+   "home": "/Users/beispiel/Library/Application Support/werkbank/heime/s-1",
+   "path": "/Users/beispiel/.local/share/claude:/usr/bin:/bin",
+   "term": "xterm-256color",
+   "lang": "de_DE.UTF-8",
+   "tmpdir": "/Users/beispiel/Library/Application Support/werkbank/heime/s-1/tmp"
+  },
+  "geschuetzt": [
+   "/Users/beispiel/Knowledge",
+   "/Users/beispiel/Library/Application Support/werkbank/protokoll",
+   "/Users/beispiel/Library/Application Support/werkbank/dienst"
+  ],
+  "argv": [
+   "/Users/beispiel/.local/share/claude/claude"
+  ]
+ }
+}

@@ -1,0 +1,42 @@
+{
+ "beschreibung": "richtige uid, falsche gid",
+ "art": "aussentest",
+ "ort": [
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk",
+  "gid_fremd": 1000000202
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "uid": 1000000101,
+    "gid": 1000000201
+   }
+  ],
+  "instanzen": 4,
+  "unix": {
+   "ordner": "/k-beispiel/lauf/pk",
+   "modus": "0600"
+  }
+ },
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "uid": 1000000101
+  },
+  "frist_ms": 2000,
+  "unix_ordner": "/k-beispiel/lauf/pk"
+ },
+ "aufbau": [
+  "Client läuft mit primärer gid gid_fremd"
+ ],
+ "handlung": [
+  "Client verbindet"
+ ]
+}

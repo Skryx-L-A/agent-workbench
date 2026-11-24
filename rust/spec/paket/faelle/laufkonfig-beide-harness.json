@@ -1,0 +1,18 @@
+{
+ "beschreibung": "beide Harness gefunden: beide Einträge, Programmordner ohne Doppel, Reihenfolge copilot, pi",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "copilot": {
+   "programm": "/usr/local/lib/node_modules/@github/copilot/index.js",
+   "node": "/usr/local/bin/node"
+  },
+  "pi": {
+   "programm": "/srv/beispiel/heim/nutzer1/.nvm/versions/node/v24.1.0/lib/node_modules/pi-coding-agent/dist/cli.js",
+   "node": "/srv/beispiel/heim/nutzer1/.nvm/versions/node/v24.1.0/bin/node"
+  }
+ },
+ "vorher": null
+}

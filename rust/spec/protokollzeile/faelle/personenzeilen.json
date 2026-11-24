@@ -1,0 +1,855 @@
+{
+  "quelle": "Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
+  "pruefe": [
+    {
+      "fall": "geloescht, geloescht, Pseudonym handelnd",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"2302552a24832826ad2cc46be627804cec8b1d4f5c4c6cf74894505f5554fb40\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "geloescht, Selbstloeschung: handelnd null",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":null,\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"eb680751a99f175ae0a5c1b4d4018da291e2e01becc317e4ade1061e80a7ec02\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "geloescht, unbekannt, Marke null",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"unbekannt\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"7567f04ded4913bc5637b883719201dd2b144412c945f4ac68b75c5fa562dac0\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "geloescht, unbekannt, Selbstloeschung null",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"unbekannt\",\"fassung\":2,\"handelnd\":null,\"loeschmarke\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"e563ebb7b128487b3de668e1cd8797cf126bde1509f7e682bd8ac238ab53af34\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "auskunft, geliefert, 3 Zeilen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":3,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"f4ae7f988f893d0c0201be9dc5895516bb5d906362ddd703c451b6dc70a03046\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "auskunft, geliefert, 0 Zeilen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":0,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"37ad96dbc7fc10796faf98e79a2cd02e4bb0a96bfec5012b7bb253211f6b32da\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "auskunft, geliefert, obere Grenze 4294967295",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":4294967295,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"f8bf7b2c70c0efe574f287c4a09fdfbb0ebb5f1e5b1b8bfb8615d8ba93c34d25\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "auskunft, unbekannt, 0 Zeilen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"unbekannt\",\"fassung\":2,\"handelnd\":\"ps_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":0,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"167f6e032c347d83fd7ca005aba95397667b1fb9e68a20b36831a96a70074a1c\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "drei Zeilen der Personenarten in einer Kette: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"vorher\":\"2302552a24832826ad2cc46be627804cec8b1d4f5c4c6cf74894505f5554fb40\",\"zeilen\":2,\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"unbekannt\",\"fassung\":2,\"handelnd\":null,\"loeschmarke\":null,\"vorher\":\"7a84bf6683717c2efce1d84a9030f60abdb34590abcdcc1408b2a58caf5628bc\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"347347d00ffd8ee4572b5c781150e5fde34cf758c94111380dd9df40aa86b36d\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "geloescht: ergebnis nicht aus der Liste",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: Marke fehlt bei geloescht (null)",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: Marke gesetzt bei unbekannt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"unbekannt\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: Marke mit Grossbuchstaben",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: Marke zu kurz",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: Marke keine Text",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":5,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: handelnd kein Pseudonym (Kennung)",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"anna\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: handelnd ps_ mit 31 Ziffern",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: handelnd ps_ mit 33 Ziffern",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: handelnd ps_ mit Grossbuchstaben",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: handelnd ft_ statt ps_",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ft_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: handelnd keine Text",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":5,\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: zusaetzliches Feld kennung",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"kennung\":\"anna\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: zusaetzliches Feld pseudonym",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"pseudonym\":\"ps_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: Feld ergebnis fehlt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: Feld handelnd fehlt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht: Feld loeschmarke fehlt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: ergebnis nicht aus der Liste",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":1,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: handelnd null (nicht erlaubt)",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":1,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: handelnd kein Pseudonym",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"anna\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":1,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: unbekannt mit 1 Zeile",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"unbekannt\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":1,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: zeilen 4294967296",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":4294967296,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: zeilen -1",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":-1,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: zeilen 1.5",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":1.5,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: zeilen als Text",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":\"3\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: zeilen null",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":null,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: zusaetzliches Feld kennung",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"kennung\":\"anna\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":1,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: zusaetzliches Feld loeschmarke",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":1,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: Feld ergebnis fehlt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":1,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: Feld handelnd fehlt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":1,\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "auskunft: Feld zeilen fehlt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht ohne fassung in brain-Datei: fassung fehlt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"fassung_fehlt\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht ohne fassung in gateway-Datei (1g): form_falsch",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloescht mit fassung 3: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":3,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    }
+  ],
+  "anhaengen": [
+    {
+      "fall": "allgemeines Anhaengen: person.geloescht nur in der geschlossenen Form",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "person.geloescht",
+            "ergebnis": "geloescht",
+            "handelnd": "ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "loeschmarke": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "kennung": "anna"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "person.geloescht",
+            "ergebnis": "geloescht",
+            "handelnd": "anna",
+            "loeschmarke": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "person.geloescht",
+            "ergebnis": "unbekannt",
+            "handelnd": "ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "loeschmarke": null
+          },
+          "erwartet": {
+            "sha256": "491e0052f7dcaa5cbf13b334c9d02d097f241dbe40cd0005ae73c2aad82b7493"
+          }
+        }
+      ],
+      "ende": {
+        "brain.anker.jsonl": "",
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"unbekannt\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"loeschmarke\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"491e0052f7dcaa5cbf13b334c9d02d097f241dbe40cd0005ae73c2aad82b7493\",\"ok\":true,\"zeilen\":1}\n"
+        }
+      }
+    },
+    {
+      "fall": "allgemeines Anhaengen: person.auskunft nur in der geschlossenen Form",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "person.auskunft",
+            "ergebnis": "unbekannt",
+            "handelnd": "ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "zeilen": 2
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "person.auskunft",
+            "ergebnis": "geliefert",
+            "handelnd": null,
+            "zeilen": 2
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "person.auskunft",
+            "ergebnis": "geliefert",
+            "handelnd": "ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "zeilen": 2
+          },
+          "erwartet": {
+            "sha256": "4699607d831ddce7904dbc24c294580828fbd428dac2b2bf7933e937212c0a31"
+          }
+        }
+      ],
+      "ende": {
+        "brain.anker.jsonl": "",
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":2,\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"4699607d831ddce7904dbc24c294580828fbd428dac2b2bf7933e937212c0a31\",\"ok\":true,\"zeilen\":1}\n"
+        }
+      }
+    }
+  ]
+}

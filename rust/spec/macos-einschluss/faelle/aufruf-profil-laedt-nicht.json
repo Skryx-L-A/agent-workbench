@@ -1,0 +1,5 @@
+{
+ "beschreibung": "das Profil lädt nicht",
+ "form": "aufruf",
+ "lage": "macOS 26; Startdatei 0600 im 0700-Ordner des Dienstes; Einschlussdatei gültig; Arbeitsordner vorhanden unter einer Projektwurzel; /usr/bin/sandbox-exec vorhanden, root gehört es; Syntaxfehler im gebauten Profil (Prüfling)"
+}

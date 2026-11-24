@@ -1,0 +1,30 @@
+{
+ "beschreibung": "die Kennung der Verbindung ist 32 Hex-Zeichen und nicht erratbar (nicht fortlaufend)",
+ "datensatz": "A",
+ "name": "br_strom_kennung",
+ "regeln": [
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "art": "Strom",
+   "name": "s1"
+  },
+  {
+   "art": "Strom",
+   "name": "s2"
+  },
+  {
+   "art": "Strom",
+   "name": "s3"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

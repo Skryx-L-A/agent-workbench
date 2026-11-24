@@ -1,0 +1,58 @@
+{
+ "name": "d11-kundenwerkzeug",
+ "regeln": [
+  "D11",
+  "A52"
+ ],
+ "beschreibung": "Das Cloud-Werkzeug des Kunden ist eine eigene Route; ohne Freigabe gehen keine Kundendaten dorthin.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "k-k-werkzeug",
+    "art": "cloud",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "c1",
+    "art": "cloud",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-k",
+    "erlaubt": [
+     "k-k-werkzeug",
+     "c1",
+     "lokal"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "k-k-werkzeug",
+   "kunde": "k-k"
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "lokal",
+   "kunde": "k-k"
+  }
+ ]
+}

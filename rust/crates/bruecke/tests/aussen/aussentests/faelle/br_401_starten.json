@@ -1,0 +1,165 @@
+{
+ "beschreibung": "POST /starten mit falschem oder fehlendem Token: 401 ohne Inhalt, der Dienst sieht keine Verbindung",
+ "datensatz": "A",
+ "name": "br_401_starten",
+ "regeln": [
+  "BR2"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "koerper": {
+     "fassung": 1
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": null,
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "fassung": 1
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "fassung": 1
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer @token_falsch",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "fassung": 1
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer @token_anders_erst",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "fassung": 1
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer bbbbbbbbbb",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "fassung": 1
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer @tokenx",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "fassung": 1
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "fassung": 1
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer ",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "fassung": 1
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "@token",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "fassung": 1
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "bearer @token",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "fassung": 1
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Basic aaaaaaaaaaaaaaaaaaaa",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "fassung": 1
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer  @token",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

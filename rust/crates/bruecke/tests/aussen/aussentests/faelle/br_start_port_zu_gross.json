@@ -1,0 +1,17 @@
+{
+ "beschreibung": "ungueltige Startdatei (port_zu_gross): Exitcode 2, eine Zeile auf stderr, kein Token, stdout leer",
+ "datensatz": "A",
+ "name": "br_start_port_zu_gross",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 70000,
+  "token_datei": "@token_datei"
+ }
+}

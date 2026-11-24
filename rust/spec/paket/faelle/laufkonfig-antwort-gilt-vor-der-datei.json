@@ -1,0 +1,10 @@
+{
+ "beschreibung": "die Datei trug `zugelassen`, die wartende Antwort ist `abgelehnt`: die Antwort gilt",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {},
+ "vorher": "zugelassen",
+ "antwort": "abgelehnt"
+}

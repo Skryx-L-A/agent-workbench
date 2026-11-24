@@ -1,0 +1,19 @@
+{
+ "beschreibung": "ungueltige Startdatei (verbindungen_null): Exitcode 2, eine Zeile auf stderr, kein Token, stdout leer",
+ "datensatz": "A",
+ "name": "br_start_verbindungen_null",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "pruefmodus": true,
+  "token_datei": "@token_datei",
+  "verbindungen_max": 0
+ }
+}

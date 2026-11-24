@@ -1,0 +1,8 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13",
+  "A139"
+ ],
+ "beschreibung": "Doppel in Escape-Schreibweise: an und \\u0061n sind derselbe Schlüssel."
+}

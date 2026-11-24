@@ -1,0 +1,8 @@
+{
+ "beschreibung": "Weiterleiter hört nur auf 127.0.0.1, nicht auf [::1]",
+ "form": "steuer",
+ "text": "{\"op\": \"lauf_start\", \"ordner\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"sitzung\": \"s-1\", \"pid\": 4242, \"ports\": [50101]}\n",
+ "lage": {
+  "50101": "Weiterleiter des Aufrufers, nur 127.0.0.1"
+ }
+}

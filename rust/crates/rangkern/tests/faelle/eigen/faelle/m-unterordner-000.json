@@ -1,0 +1,19 @@
+{
+"description": "permissions 000; expectation measured on rangkern-ref-sicher (18.11.)",
+"program": "rangkern",
+"files": {
+"vault/b.md": "kaffee b\n",
+"vault/a/n.md": "kaffee a\n"
+},
+"args": [
+"search",
+"{root}/vault",
+"--today",
+"2026-11-18",
+"--",
+"kaffee"
+],
+"modes": {
+"vault/a": "000"
+}
+}

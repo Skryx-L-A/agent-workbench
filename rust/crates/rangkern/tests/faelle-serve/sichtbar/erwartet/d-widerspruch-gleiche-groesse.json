@@ -1,0 +1,71 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "contradiction": true
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.2886652754003433,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.2886652754003433,
+     "contradiction": true
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.2886652754003433,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.2886652754003433
+    }
+   ],
+   "id": 2
+  }
+ ],
+ "exit": 0
+}

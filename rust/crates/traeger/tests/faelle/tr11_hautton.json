@@ -1,0 +1,34 @@
+{
+ "name": "tr11_hautton",
+ "regeln": [
+  "TR11"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Ein Hautton-Zeichen U+1F3FB bis U+1F3FF ist breitenlos und hängt am Zeichen davor, wie ein kombinierendes Zeichen; die Zeilen zeigen es hinter dem Grundzeichen",
+ "art": "strom",
+ "groesse": [
+  14,
+  6
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "a👍🏽b\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "👍🏻👍🏿\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "x🏾y\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "🏻\r\n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

@@ -1,0 +1,84 @@
+{
+ "name": "k8-route",
+ "regeln": [
+  "K1",
+  "A42",
+  "A43"
+ ],
+ "beschreibung": "Ohne Route oder mit einer Route ohne Klasse ist das Erbe unklar, gleich welcher Boden gilt.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "cloud-n",
+    "art": "cloud"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "erbe": {
+   "boden": "gelesen"
+  }
+ },
+ "anfragen": [
+  {
+   "route": null,
+   "sitzungskunde": null,
+   "gelesen": []
+  },
+  {
+   "route": "",
+   "sitzungskunde": null,
+   "gelesen": []
+  },
+  {
+   "route": "cloud-x",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "oeffentlich"
+    }
+   ]
+  },
+  {
+   "route": "cloud-n",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "oeffentlich"
+    }
+   ]
+  }
+ ]
+}

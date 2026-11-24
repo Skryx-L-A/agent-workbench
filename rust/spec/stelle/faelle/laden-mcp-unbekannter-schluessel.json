@@ -1,0 +1,18 @@
+{
+  "beschreibung": "Ein unbekannter Schluessel im Block mcp faellt in die vorhandene Stufe von Vertrag 2 (einst.schluessel_unbekannt).",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "V2 F2"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[],\"schreiben\":[],\"frist\":5}}}"
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "erwartet_laden": {
+    "fehler": "einst.schluessel_unbekannt",
+    "grund": "unbekannter Schluessel"
+  }
+}

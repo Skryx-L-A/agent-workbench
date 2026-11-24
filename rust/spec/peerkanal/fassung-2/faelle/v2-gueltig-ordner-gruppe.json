@@ -1,0 +1,34 @@
+{
+ "fassung": 2,
+ "beschreibung": "gültige Vorgabe: Ordner 0750 mit Rollengruppe, Socket 0666",
+ "art": "vorgabe",
+ "ort": [
+  "linux"
+ ],
+ "konten": {
+  "uid_halter": 1000000103,
+  "uid_person": 1000000101,
+  "g_hub": 1000000211,
+  "ordner": "/k-beispiel/run/wb-halter/hub"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "uid": 1000000101,
+    "gruppe": 1000000211
+   }
+  ],
+  "instanzen": 4,
+  "unix": {
+   "ordner": "/k-beispiel/run/wb-halter/hub",
+   "modus": "0666",
+   "ordner_gruppe": 1000000211
+  }
+ },
+ "client": null,
+ "aufbau": [],
+ "handlung": [
+  "Vorgabe prüfen"
+ ]
+}

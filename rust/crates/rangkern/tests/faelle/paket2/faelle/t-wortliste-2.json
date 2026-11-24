@@ -1,0 +1,8 @@
+{
+ "description": "deutsche Wörter über die Endungsklassen des Stemmers, zweite Liste",
+ "program": "rangkern",
+ "args": [
+  "tokens",
+  "Gesundheit Schönheit Feuchtigkeit Ausgeglichenheit Wahrheit biologisch klimatisch täglich kräftig wachsend rollend wohnen tanzen gehören basteln gesunden kalten roten Brunnens Ofens Kissen Gärten Vogels Tisches Kindes Kessel Schüsseln Schnecken Mayonnaise Heu Naturen Stiefel Strände Grüße Fußbälle Gruß Maß Kleinstadt Hauptstraße Größte Schönste"
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "kueche/zitrone.md",
+    "score": 1.0,
+    "title": "Zitrone",
+    "snippet": "Die Zitrone ist sauer.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   }
+  ]
+ }
+}

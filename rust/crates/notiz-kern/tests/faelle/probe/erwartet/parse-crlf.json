@@ -1,0 +1,28 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Windows\ntype: note\naliases: [Fenster]"
+  ],
+  "fields": {
+   "title": "Windows",
+   "type": "note",
+   "aliases": [
+    "Fenster"
+   ]
+  },
+  "body": "\nZeile eins\nZeile zwei\n",
+  "title": "Windows",
+  "type": "note",
+  "aliases": [
+   "Fenster"
+  ],
+  "links": [],
+  "keys": [
+   "fenster",
+   "note",
+   "windows"
+  ],
+  "embed_text": "Windows\naliases: Fenster\ntype: note\n\n\nZeile eins\nZeile zwei\n"
+ }
+}

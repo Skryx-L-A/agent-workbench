@@ -1,0 +1,10 @@
+{
+ "exit": 0,
+ "code": null,
+ "stdout": "Anmeldung gespeichert.\n",
+ "stderr": "Hinweis: Reste frueherer Anmeldungen wurden geloescht: 2\n",
+ "ziel_datei": "token",
+ "config": "ohne-token",
+ "reste_geloescht": 2,
+ "reste_uebrig": 0
+}

@@ -1,0 +1,68 @@
+[package]
+name = "ansicht"
+version = "0.1.0"
+description = "Browser view of the new interface (code view of today's workbench) with Dioxus-web: a thin view over the stream of the service, built for wasm32-unknown-unknown and served by wb-bruecke."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+# The view is a binary: wasm-bindgen calls `main` of a wasm32 binary at start, so no `#[wasm_bindgen]` attribute
+# (and no generated `unsafe` export) is needed in this crate.
+[[bin]]
+name = "ansicht"
+path = "src/main.rs"
+
+# dioxus 0.7.10 without default features and without its feature "web": the feature "web" names weak dependencies
+# (dioxus-fullstack?/web and others) that Cargo writes into Cargo.lock although they are never built (270 instead of
+# 106 new packages, measured 21.11.2026). No devtools (a WebSocket to a dev server), no logger, no document or asset
+# machinery. dioxus-web, the web-sys renderer, is named directly below. wasm-bindgen, wasm-bindgen-futures, js-sys and
+# web-sys are the versions dioxus-web brings; they are named here for the network and the measurement of the
+# terminal. rasterauszug reads the raster frames (A118: logic only once); serde_json reads the messages.
+[dependencies]
+dioxus = { version = "=0.7.10", default-features = false, features = ["macro", "html", "signals", "hooks"] }
+js-sys = "0.3"
+rasterauszug = { path = "../rasterauszug" }
+serde_json = "1"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "AbortController",
+    "AbortSignal",
+    "ClipboardEvent",
+    "CssStyleDeclaration",
+    "DataTransfer",
+    "Document",
+    "DomRect",
+    "Element",
+    "Event",
+    "EventTarget",
+    "FocusOptions",
+    "Headers",
+    "HtmlElement",
+    "HtmlInputElement",
+    "HtmlTextAreaElement",
+    "InputEvent",
+    "KeyboardEvent",
+    "Location",
+    "Node",
+    "NodeList",
+    "Performance",
+    "ReadableStream",
+    "ReadableStreamDefaultReader",
+    "Request",
+    "RequestInit",
+    "Response",
+    "Selection",
+    "Window",
+] }
+
+# The renderer only for the browser build: on the host `main` does nothing and the gates check the rest. The feature
+# "mounted" turns on `onmounted` (web-sys features only, no further crate); "devtools" and "document" stay off.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+dioxus-web = { version = "=0.7.10", default-features = false, features = ["mounted"] }
+
+[lints]
+workspace = true

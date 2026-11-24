@@ -1,0 +1,257 @@
+{
+ "beschreibung": "Cloud-Route mit genau 16 Netzzielen: der Start geht weiter",
+ "form": "aufruf",
+ "lage": {
+  "argv": [
+   "<programm>",
+   "<start>"
+  ],
+  "datei_modus": "0600",
+  "datei_art": "datei",
+  "einstellungen": {
+   "fassung": 2,
+   "klassen": [
+    "oeffentlich",
+    "intern",
+    "kundendaten"
+   ],
+   "vorgabestufe": "kundendaten",
+   "routen": [
+    {
+     "schluessel": "cloud-beispiel",
+     "art": "cloud",
+     "klasse": "intern",
+     "netzziele": [
+      {
+       "host": "api1.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api2.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api3.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api4.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api5.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api6.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api7.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api8.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api9.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api10.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api11.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api12.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api13.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api14.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api15.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      },
+      {
+       "host": "api16.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "schluessel": "lokal-beispiel",
+     "art": "lokal",
+     "klasse": "kundendaten",
+     "ziel": "http://127.0.0.1:11434/v1",
+     "modell": "qwen3:8b",
+     "netzziele": []
+    }
+   ],
+   "kunden": [
+    {
+     "schluessel": "k-beispiel",
+     "erlaubt": [
+      "lokal-beispiel"
+     ],
+     "verboten": []
+    }
+   ],
+   "kundendaten_an_cloud": {
+    "vorgabe": "nie",
+    "freigaben": []
+   }
+  },
+  "ordner_vorhanden": true,
+  "einschluss": true,
+  "suche": "bereit",
+  "harness_vorhanden": true,
+  "start": {
+   "fassung": 1,
+   "sitzung": "s-3",
+   "harness": "copilot",
+   "modell": "claude-sonnet-5.5",
+   "route": "cloud-beispiel",
+   "kunde": "k-beispiel",
+   "arbeitsordner": "/home/beispiel/projekt"
+  },
+  "zustandsordner": "/var/lib/werkbank/beispiel"
+ }
+}

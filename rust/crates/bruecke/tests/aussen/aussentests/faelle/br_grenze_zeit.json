@@ -1,0 +1,45 @@
+{
+ "beschreibung": "die Zeitgrenze beim Lesen (Pruefmodus: kurz): ein Kopf, der nicht fertig wird, und ein Koerper, der nicht fertig wird, enden mit 408 innerhalb der Frist",
+ "datensatz": "A",
+ "name": "br_grenze_zeit",
+ "regeln": [
+  "BR5"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Langsam",
+   "bytes": 12,
+   "frist": 4
+  },
+  {
+   "anfrage": {
+    "koerper_laenge": 50,
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Langsam",
+   "frist": 4,
+   "nur_kopf": true
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "lese_frist_ms": 400,
+  "port": 0,
+  "pruefmodus": true,
+  "token_datei": "@token_datei"
+ }
+}

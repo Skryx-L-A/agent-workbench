@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "K7"
+ ],
+ "beschreibung": "Das Feld sitzungskunde fehlt; es muss ausdrücklich null sein."
+}

@@ -1,0 +1,10 @@
+{
+ "description": "file name with spaces and umlauts gives the title",
+ "files": {
+  "Mein Plan für Öl.md": "Kein Kopf, aber [[Plan B]].\n"
+ },
+ "args": [
+  "parse",
+  "{root}/Mein Plan für Öl.md"
+ ]
+}

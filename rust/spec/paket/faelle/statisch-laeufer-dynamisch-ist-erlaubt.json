@@ -1,0 +1,19 @@
+{
+ "beschreibung": "der Läufer ist dynamisch gelinkt (libssl3t64 der Distribution): die Statik-Prüfung gilt für ihn nicht",
+ "form": "statisch",
+ "programme": [
+  {
+   "ziel": "usr/lib/werkbank/werkbank-einschluss",
+   "interp": false,
+   "needed": []
+  },
+  {
+   "ziel": "usr/lib/werkbank/werkbank-lauf",
+   "interp": true,
+   "needed": [
+    "libc.so.6",
+    "libssl.so.3"
+   ]
+  }
+ ]
+}

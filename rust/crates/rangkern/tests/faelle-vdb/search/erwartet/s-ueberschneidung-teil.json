@@ -1,0 +1,195 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "10-werkstatt/feile.md",
+    "score": 1.0,
+    "title": "Feile und Raspel",
+    "snippet": "Notiz zu feile: feile frueh planen, raspel zweimal im Monat pruefen. Wer feile anlegt, braucht Zeit fuer raspel. Merkzettel feile.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.5547516902532014,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 13
+   },
+   {
+    "rel": "10-werkstatt/hobel.md",
+    "score": 0.6363636363636364,
+    "title": "Hobel und Spaene",
+    "snippet": "Notiz zu hobel: hobel frueh planen, spaene zweimal im Monat pruefen. Wer hobel anlegt, braucht Zeit fuer spaene. Merkzettel hobel.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.9995791820481637,
+    "vektor_rang": 1
+   },
+   {
+    "rel": "10-werkstatt/saege.md",
+    "score": 0.5989304812834224,
+    "title": "Saege und Zahn",
+    "snippet": "Notiz zu saege: saege frueh planen, zahn zweimal im Monat pruefen. Wer saege anlegt, braucht Zeit fuer zahn. Merkzettel saege.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.9995791820481637,
+    "vektor_rang": 2
+   },
+   {
+    "rel": "10-werkstatt/leim.md",
+    "score": 0.5656565656565656,
+    "title": "Leim und Zwinge",
+    "snippet": "Notiz zu leim: leim frueh planen, zwinge zweimal im Monat pruefen. Wer leim anlegt, braucht Zeit fuer zwinge. Merkzettel leim.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.9995791820481637,
+    "vektor_rang": 3
+   },
+   {
+    "rel": "10-werkstatt/misc/fueller-3.md",
+    "score": 0.5358851674641149,
+    "title": "Fueller Nebel",
+    "snippet": "Ein Text ueber nebel und nebelstand, ohne Bezug zu den anderen Notizen. nebel nebel.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.9130231988660519,
+    "vektor_rang": 4
+   },
+   {
+    "rel": "10-werkstatt/misc/fueller-5.md",
+    "score": 0.5090909090909091,
+    "title": "Fueller Hagel",
+    "snippet": "Ein Text ueber hagel und hagelstand, ohne Bezug zu den anderen Notizen. hagel hagel.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.802460810971832,
+    "vektor_rang": 5
+   },
+   {
+    "rel": "20-projects/holz/zirkel.md",
+    "score": 0.4848484848484848,
+    "title": "Zirkel und Lineal",
+    "snippet": "Notiz zu zirkel: zirkel frueh planen, lineal zweimal im Monat pruefen. Wer zirkel anlegt, braucht Zeit fuer lineal. Merkzettel zirkel.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.7661181741324117,
+    "vektor_rang": 6,
+    "space": "holz"
+   },
+   {
+    "rel": "10-werkstatt/misc/fueller-4.md",
+    "score": 0.4628099173553719,
+    "title": "Fueller Sturm",
+    "snippet": "Ein Text ueber sturm und sturmstand, ohne Bezug zu den anderen Notizen. sturm sturm.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.7396188618647336,
+    "vektor_rang": 7
+   },
+   {
+    "rel": "10-werkstatt/misc/fueller-6.md",
+    "score": 0.4426877470355731,
+    "title": "Fueller Tau",
+    "snippet": "Ein Text ueber tau und taustand, ohne Bezug zu den anderen Notizen. tau tau.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.7266039211651204,
+    "vektor_rang": 8
+   },
+   {
+    "rel": "20-projects/holz/schleifpapier.md",
+    "score": 0.42424242424242425,
+    "title": "Schleifpapier und Koernung",
+    "snippet": "Notiz zu schleifpapier: schleifpapier frueh planen, koernung zweimal im Monat pruefen. Wer schleifpapier anlegt, braucht Zeit fuer koernung. Merkzettel schleifpapier.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.722519899126131,
+    "vektor_rang": 9,
+    "space": "holz"
+   },
+   {
+    "rel": "10-werkstatt/misc/fueller-2.md",
+    "score": 0.4072727272727273,
+    "title": "Fueller Regen",
+    "snippet": "Ein Text ueber regen und regenstand, ohne Bezug zu den anderen Notizen. regen regen.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.6879332684597322,
+    "vektor_rang": 10
+   },
+   {
+    "rel": "10-werkstatt/misc/fueller-1.md",
+    "score": 0.3916083916083916,
+    "title": "Fueller Wolke",
+    "snippet": "Ein Text ueber wolke und wolkestand, ohne Bezug zu den anderen Notizen. wolke wolke.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.6822795392456968,
+    "vektor_rang": 11
+   },
+   {
+    "rel": "20-projects/holz/bohrer.md",
+    "score": 0.3771043771043771,
+    "title": "Bohrer und Spannfutter",
+    "snippet": "Notiz zu bohrer: bohrer frueh planen, spannfutter zweimal im Monat pruefen. Wer bohrer anlegt, braucht Zeit fuer spannfutter. Merkzettel bohrer.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.6407122999180872,
+    "vektor_rang": 12,
+    "space": "holz"
+   },
+   {
+    "rel": "10-werkstatt/schraube.md",
+    "score": 0.3510971786833856,
+    "title": "Schraube und Gewinde",
+    "snippet": "Notiz zu schraube: schraube frueh planen, gewinde zweimal im Monat pruefen. Wer schraube anlegt, braucht Zeit fuer gewinde. Merkzettel schraube.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.48054971664814183,
+    "vektor_rang": 14
+   }
+  ]
+ }
+}

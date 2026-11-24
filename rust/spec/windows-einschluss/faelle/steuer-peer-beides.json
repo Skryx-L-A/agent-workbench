@@ -1,0 +1,5 @@
+{
+ "beschreibung": "peer mit tcp und pid",
+ "form": "steuer",
+ "text": "{\"op\": \"peer\", \"tcp\": {\"lokal\": 41001, \"fern\": 50123}, \"pid\": 4242}\n"
+}

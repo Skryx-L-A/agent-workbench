@@ -1,0 +1,22 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "description: eins\n  zwei\n  drei\ntitle: Umbruch"
+  ],
+  "fields": {
+   "description": "eins zwei drei",
+   "title": "Umbruch"
+  },
+  "body": "\nX\n",
+  "title": "Umbruch",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "note",
+   "umbruch"
+  ],
+  "embed_text": "Umbruch\neins zwei drei\n\n\nX\n"
+ }
+}

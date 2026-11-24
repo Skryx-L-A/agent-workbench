@@ -1,0 +1,23 @@
+{
+ "description": "bm25_rang, bm25_norm, vektor_rang stehen da und ändern Reihenfolge und Score nicht",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Pilz Wald",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/wald/pilz.md": "---\ntitle: Pilz\ntype: note\n---\n\nDer Pilz im Wald wächst schnell.\n",
+  "vault/wald/wald.md": "---\ntitle: Wald\ntype: note\n---\n\nDer Wald ist dunkel.\n",
+  "vault/wald/moos.md": "---\ntitle: Moos\ntype: note\n---\n\nMoos wächst am Stein.\n",
+  "vektoren.json": "{\"query\": [0, 1, 0], \"notes\": {\"wald/pilz.md\": [0.3, 0.9, 0.0], \"wald/wald.md\": [0.2, 0.6, 0.8], \"wald/moos.md\": [0.9, 0.1, 0.0]}}"
+ }
+}

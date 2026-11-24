@@ -1,0 +1,34 @@
+{
+ "name": "tr10_antwort_kein_text",
+ "regeln": [
+  "TR10"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Alles zusammen: Text, den ein Kind in Titel, Farben, DCS und Zwischenablage gesetzt hat, steht in keiner Antwort; die Antworten sind die festen der Geräteabfragen",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b]2;GEHEIM-A-4711\u0007\u001b]10;GEHEIM-A-4711\u0007\u001b]11;GEHEIM-A-4711\u0007\u001b]4;1;GEHEIM-A-4711\u0007\u001bP$qGEHEIM-A-4711\u001b\\\u001b]52;c;R0VIRUlNLUEtNDcxMQ==\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[21t\u001b[20t\u001b]10;?\u0007\u001b]11;?\u0007\u001b]4;1;?\u0007\u001bP$qm\u001b\\\u001b]52;c;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[c\u001b[>c\u001b[5n\u001b[6n\u001b[18t\u001b[?2004$p\u001b[4$p"
+  },
+  {
+   "art": "Text",
+   "text": "GEHEIM-A-4711\u001b[6n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

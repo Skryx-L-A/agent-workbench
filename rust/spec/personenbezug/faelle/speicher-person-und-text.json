@@ -1,0 +1,95 @@
+{
+ "beschreibung": "Ein Freitext nur fuer eine bekannte Person; eine bekannte Person behaelt ihr Geheimnis; ein Geheimnis gilt nur fuer eine Person; eine Kennung in Pseudonymform ist keine Kennung; derselbe Text steht einmal mit der Zeit seiner letzten Ablage",
+ "kette": "stelle-2026-11.jsonl",
+ "schritte": [
+  {
+   "schritt": "oeffnen",
+   "zufall": "9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c",
+   "jetzt_ms": 1795179600000,
+   "erwartet": {
+    "ok": true
+   }
+  },
+  {
+   "schritt": "text",
+   "kennung": "p-a01",
+   "text": "Bitte das Ticket 4711 mit Prioritaet hoch anlegen.",
+   "jetzt_ms": 1795179600000,
+   "erwartet": {
+    "fehler": "person_unbekannt"
+   }
+  },
+  {
+   "schritt": "person",
+   "kennung": "p-a01",
+   "zufall": "b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50",
+   "jetzt_ms": 1795179600000,
+   "erwartet": {
+    "neu": true,
+    "pseudonym": "ps_e2f010a3a4e89fe59b529650297964ad"
+   }
+  },
+  {
+   "schritt": "person",
+   "kennung": "p-a01",
+   "zufall": "0aa878df1f7a1831d4c681259e81b035c97f964031859991729711ce34f15cef",
+   "jetzt_ms": 1795179600001,
+   "erwartet": {
+    "neu": false,
+    "pseudonym": "ps_e2f010a3a4e89fe59b529650297964ad"
+   }
+  },
+  {
+   "schritt": "person",
+   "kennung": "p-b02",
+   "zufall": "b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50",
+   "jetzt_ms": 1795179600002,
+   "erwartet": {
+    "fehler": "geheimnis_doppelt"
+   }
+  },
+  {
+   "schritt": "person",
+   "kennung": "ps_00000000000000000000000000000001",
+   "zufall": "920fd3ed26dd60b777bef6451cbde75288fba1ddc88a81e7152f34c8dce0403d",
+   "jetzt_ms": 1795179600003,
+   "erwartet": {
+    "fehler": "feld_ungueltig:kennung"
+   }
+  },
+  {
+   "schritt": "text",
+   "kennung": "p-a01",
+   "text": "",
+   "jetzt_ms": 1795179600004,
+   "erwartet": {
+    "fehler": "text_ungueltig"
+   }
+  },
+  {
+   "schritt": "text",
+   "kennung": "p-a01",
+   "text": "Bitte das Ticket 4711 mit Prioritaet hoch anlegen.",
+   "jetzt_ms": 1795179600005,
+   "erwartet": {
+    "freitext": "ft_b386485e048d76c14039e047e9de019b3c5da65fed181571242e77f489efd52d"
+   }
+  },
+  {
+   "schritt": "text",
+   "kennung": "p-a01",
+   "text": "Bitte das Ticket 4711 mit Prioritaet hoch anlegen.",
+   "jetzt_ms": 1795179600006,
+   "erwartet": {
+    "freitext": "ft_b386485e048d76c14039e047e9de019b3c5da65fed181571242e77f489efd52d"
+   }
+  },
+  {
+   "schritt": "speicher",
+   "erwartet": {
+    "schluessel": "{\"fassung\":1,\"schluessel\":[{\"ab_ms\":1795179600000,\"wert\":\"9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c\"}]}\n",
+    "zuordnung": "{\"fassung\":1,\"personen\":{\"p-a01\":{\"geheimnis\":\"b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50\",\"seit_ms\":1795179600000,\"texte\":{\"ft_b386485e048d76c14039e047e9de019b3c5da65fed181571242e77f489efd52d\":{\"text\":\"Bitte das Ticket 4711 mit Prioritaet hoch anlegen.\",\"zuletzt_ms\":1795179600006}}}}}\n"
+   }
+  }
+ ]
+}

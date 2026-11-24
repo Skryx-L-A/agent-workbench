@@ -1,0 +1,31 @@
+{
+ "beschreibung": "lauf.json ist da, aber nicht lesbar oder ohne einen der drei Werte: die Cloud-Route gilt als gesperrt, eine Zeile, rc 0",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   }
+  ],
+  "apparmor": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "ok",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok",
+  "ca_zulassung": "unbekannt"
+ }
+}

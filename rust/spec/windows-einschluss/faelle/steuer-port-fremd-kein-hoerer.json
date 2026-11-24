@@ -1,0 +1,8 @@
+{
+ "beschreibung": "auf dem Port hört niemand",
+ "form": "steuer",
+ "text": "{\"op\": \"lauf_start\", \"ordner\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"sitzung\": \"s-1\", \"pid\": 4242, \"ports\": [50999]}\n",
+ "lage": {
+  "50999": "frei"
+ }
+}

@@ -1,0 +1,45 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "20-projects/holz/bohrer.md",
+    "score": 1.0,
+    "title": "Bohrer und Spannfutter",
+    "snippet": "Notiz zu bohrer: bohrer frueh planen, spannfutter zweimal im Monat pruefen. Wer bohrer anlegt, braucht Zeit fuer spannfutter. Merkzettel bohrer.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.9990978794699735,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 1,
+    "space": "holz"
+   },
+   {
+    "rel": "20-projects/holz/schleifpapier.md",
+    "score": 0.47058823529411764,
+    "title": "Schleifpapier und Koernung",
+    "snippet": "Notiz zu schleifpapier: schleifpapier frueh planen, koernung zweimal im Monat pruefen. Wer schleifpapier anlegt, braucht Zeit fuer koernung. Merkzettel schleifpapier.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.9833776819680584,
+    "vektor_rang": 2,
+    "space": "holz"
+   }
+  ]
+ },
+ "aufrufe": [
+  {
+   "model": "embeddinggemma:latest",
+   "input": "bohrer spannfutter",
+   "keep_alive": "30m"
+  }
+ ]
+}

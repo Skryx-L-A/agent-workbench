@@ -1,0 +1,10 @@
+{
+ "description": "a horizontal rule pair around prose is not frontmatter",
+ "files": {
+  "note.md": "---\n\nAbsatz zwischen zwei Linien.\n\n---\n\nWeiter.\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

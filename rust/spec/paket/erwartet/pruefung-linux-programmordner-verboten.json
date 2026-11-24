@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.programmordner_verboten: Ein Programmordner in lauf.json beruehrt den Anmeldespeicher oder ein Geheimnis; der Einschluss lehnt jede Sitzung ab (5 verboten).",
+  "pruef.rot: 1 Befunde."
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "beschreibung": "GET ohne Origin geht (Seite und Strom brauchen keinen), GET mit fremdem Origin ist 403, auch die Seite",
+ "datensatz": "A",
+ "name": "br_origin_get",
+ "regeln": [
+  "BR3"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": "http://boese.example",
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": "http://127.0.0.1:@port",
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": "null",
+    "token": null,
+    "ziel": "/ansicht.js"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": "http://boese.example",
+    "token": null,
+    "ziel": "/ansicht_bg.wasm"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

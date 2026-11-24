@@ -1,0 +1,49 @@
+[package]
+name = "dienst"
+version = "0.1.0"
+description = "Service of the new session view: one child in a PTY, the state core, one extract per viewer, a Unix socket. `wb-dienst` is the core service of the trial run and, with `--kind`, the check program of the contract cases."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "wb-dienst"
+path = "src/main.rs"
+
+# traeger, zustandskern, rasterauszug (path): the three building blocks. The service only translates between them and the
+# socket; it decides nothing that belongs to one of them.
+# rustix 1.1.6 (direct, features `process` and `event`, see below): `geteuid`. DI2 point 2 needs the effective user of the service to compare it with
+# the owner of the socket folder; `std` has no call for the effective user id and `unsafe` is forbidden in this workspace.
+# The package is in Cargo.lock already (through portable-pty); no new package enters the graph. Contract `dienst`, section 11
+# (decision of 19.11.2026 F5). The same feature gives `kill_process` for SIGHUP and SIGKILL to the child.
+# rustix feature `event` (decision of 20.11.2026): `poll`. The loop waits in one `poll` on the listener, the
+# connections and a wake socket, so that the inputs of several viewers come in a fixed order that the readiness decides (like
+# the `epoll` of the reference); with one reading thread per connection the order depended on which thread woke first. The
+# feature adds no package and no `unsafe`.
+# rustix feature `net`: `socket_with`, `bind`, `listen`, so the service sets the mode 0600 of the socket between `bind` and
+# `listen`; `UnixListener::bind` does both in one step and the socket would be reachable with the mode of the umask. No new package, no `unsafe`.
+# signal-hook 0.4.6 (direct, safe API only): SIGTERM and SIGINT must end the service in an orderly way (remove the socket
+# file, end the child, exit code 0, DI2 point 7). `std` has no signal handler and `unsafe` is forbidden. The package is in
+# Cargo.lock already (it comes with alacritty_terminal); this is a new direct dependency of the crate `dienst`, not a new
+# package. It is not in the list of the order for this crate; see OPEN in the result of the build.
+# start, einstellungen (path, crates of the workspace; no new package): the check of the start structure of `Starten` (contract 1: `start::lesen_anfrage`,
+# `start::pruefen`, `start::schreiben`) and the settings file (contract 2: `einstellungen::lesen`). The service has no list of codes or stages of its own.
+# serde_json: the start file, the events and the messages as JSON values (default features, depth limit 128 stays on).
+# kernabbild (path, crate of the workspace; no new package): the first step of the program shields the memory of the process from core
+# images (`PR_SET_DUMPABLE 0`, `RLIMIT_CORE` 1/1; decision of 21.11.2026). The crate returns reasons; `src/abschirmung.rs` turns them into exit code 5.
+[dependencies]
+einstellungen = { path = "../einstellungen" }
+kernabbild = { path = "../kernabbild" }
+rasterauszug = { path = "../rasterauszug" }
+rustix = { version = "=1.1.6", features = ["process", "event", "fs", "net"] }
+serde_json = "1"
+signal-hook = "=0.4.6"
+start = { path = "../start" }
+traeger = { path = "../traeger" }
+zustandskern = { path = "../zustandskern" }
+
+[lints]
+workspace = true

@@ -1,0 +1,75 @@
+{
+ "beschreibung": "für die genannte Person gibt es keinen Token dieses Servers",
+ "form": "anfrage",
+ "text": "{\"argumente\":{\"id\":\"t-1\",\"status\":\"erledigt\"},\"fassung\":1,\"id\":7,\"lauf\":\"l-beispiel\",\"op\":\"mcp.aufruf\",\"person\":\"ps_b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2\",\"schein\":{\"daten\":{\"ablauf\":1795000030000,\"anfrage\":\"mf_0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d\",\"art\":\"mcp-schein\",\"ausgestellt\":1794999990000,\"digest\":\"79fbd7238c74e0146015ab4be82820455255962ae0cfcbf4a7da4eb203fa8e9f\",\"einmal\":\"5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e\",\"fassung\":1,\"kid\":\"stelle-mcp-1\",\"lauf\":\"l-beispiel\"},\"signatur\":\"2xTLH0SSSLCRl6suqU/H3lRY3g7s3v/GdvMBWspYga4KDEptPdIFlwUNbivxE5gXiJ2/MOEp0J0pU8nuK+m4Aw==\"},\"server\":\"tickets\",\"vorschau_sha256\":\"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3\",\"werkzeug\":\"update\"}",
+ "lage": {
+  "aufrufer": {
+   "rolle": "hub",
+   "konto": "S-1-5-21-1000-1000-1000-1001",
+   "vertreter": false
+  },
+  "jetzt_ms": 1795000000000,
+  "start_ms": 1794996400000,
+  "kids": {
+   "stelle-mcp-1": "qvy5SgFhefK2a9hsceqk+MJ5evYpEJTTdGpqO3O85VY="
+  },
+  "benutzt": [],
+  "nachweis_gueltig": true,
+  "konfig": {
+   "ziele": {
+    "cloud-beispiel": {
+     "pfade": [
+      "POST /v1/messages"
+     ],
+     "schluessel": "modell.cloud-beispiel"
+    }
+   },
+   "server": {
+    "tickets": {
+     "schluessel": "mcp.tickets",
+     "freigabe": true,
+     "werkzeuge": {
+      "update": "schreibend",
+      "get": "lesend"
+     }
+    },
+    "notizen": {
+     "schluessel": "mcp.notizen",
+     "freigabe": false,
+     "werkzeuge": {
+      "anlegen": "schreibend"
+     }
+    },
+    "wiki": {
+     "schluessel": "mcp.wiki",
+     "freigabe": true,
+     "werkzeuge": {
+      "seite": "lesend"
+     }
+    }
+   }
+  },
+  "geheimnisse": [
+   {
+    "name": "modell.cloud-beispiel",
+    "konto": null,
+    "person": null
+   },
+   {
+    "name": "mcp.tickets",
+    "konto": "S-1-5-21-1000-1000-1000-1001",
+    "person": "ps_a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+   },
+   {
+    "name": "mcp.notizen",
+    "konto": "S-1-5-21-1000-1000-1000-1001",
+    "person": "ps_a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+   },
+   {
+    "name": "mcp.wiki",
+    "konto": "S-1-5-21-1000-1000-1000-1002",
+    "person": "ps_b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+   }
+  ]
+ }
+}

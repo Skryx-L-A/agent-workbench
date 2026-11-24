@@ -1,0 +1,39 @@
+{
+ "beschreibung": "Bildpfad des Clients über die pidfd, auch ohne Lesbarkeit",
+ "art": "aussentest",
+ "ort": [
+  "linux"
+ ],
+ "konten": {
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "uid": 1000000101
+   }
+  ],
+  "instanzen": 4,
+  "unix": {
+   "ordner": "/k-beispiel/lauf/pk",
+   "modus": "0600"
+  }
+ },
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "uid": 1000000101
+  },
+  "frist_ms": 2000,
+  "unix_ordner": "/k-beispiel/lauf/pk"
+ },
+ "aufbau": [
+  "zwei Clients desselben Programms, der zweite setzt PR_SET_DUMPABLE 0"
+ ],
+ "handlung": [
+  "beide verbinden"
+ ]
+}

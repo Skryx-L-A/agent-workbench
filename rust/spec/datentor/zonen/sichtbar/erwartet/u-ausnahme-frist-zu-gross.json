@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "Z10"
+ ],
+ "beschreibung": "Die Frist liegt über 2^64 - 1."
+}

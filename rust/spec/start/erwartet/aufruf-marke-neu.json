@@ -1,0 +1,11 @@
+{
+ "exec": "pi",
+ "marke_danach": [
+  {
+   "ordner": "/home/beispiel/projekt",
+   "kennung": "<neu>",
+   "kunde": "k-beispiel",
+   "klasse_hoch": "kundendaten"
+  }
+ ]
+}

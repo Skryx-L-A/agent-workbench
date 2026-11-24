@@ -1,0 +1,938 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 7, Abschnitt 2 und 10. einstellungen: Schluessel in lagen.einstellungen (text = Bytes fuer den Lader von Vertrag 2; fehler = dessen erwarteter Code). registry: Schluessel in lagen.registry (Bytes fuer den Lader aus Abschnitt 3). laeufe_ohne: dieser Lauf ist abgemeldet. kopfzeilen reicht die Huelle nicht an den Kern. koerper_muster: vorne + fuellung * anzahl + hinten.",
+ "lagen": {
+  "einstellungen": {
+   "ok": {
+    "text": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud-beispiel\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal-beispiel\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-beispiel\",\n   \"erlaubt\": [\n    \"lokal-beispiel\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+   },
+   "fehler": {
+    "text": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud-beispiel\",\n   \"art\": \"cloud\",\n   \"klasse\": null\n  },\n  {\n   \"schluessel\": \"lokal-beispiel\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-beispiel\",\n   \"erlaubt\": [\n    \"lokal-beispiel\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n",
+    "fehler": "einst.route_ohne_klasse"
+   },
+   "ohne_cloud": {
+    "text": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"lokal-beispiel\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-beispiel\",\n   \"erlaubt\": [\n    \"lokal-beispiel\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+   }
+  },
+  "registry": {
+   "vorfuehrung": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "anbieter_b": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-b\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-b\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-b\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "anbieter_b_ohne_modell": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-b\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-b\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"anderes-modell\",\n     \"anbieter\": \"anb-cloud-b\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "ohne_cloud_route": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "lokal_auf_cloud": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "stufen_aus": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    },\n    {\n     \"modell\": \"m2-frei\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    },\n    {\n     \"modell\": \"m3-tief\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-2\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "ungueltig": "{\n \"fassung\": 2,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "stufen_an": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": true\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    },\n    {\n     \"modell\": \"m2-frei\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    },\n    {\n     \"modell\": \"m3-tief\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-2\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "kosten_aus": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": false,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n"
+  },
+  "laeufe": [
+   {
+    "sitzung": "s-1",
+    "route": "cloud-beispiel",
+    "kunde": "k-beispiel",
+    "modell": "claude-sonnet-5-5",
+    "schein_sha256": "6646208a39b1d67601cd6a63999f227a9d4bd83a0c3fa17754e455bba8f1ecd7",
+    "peer": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    }
+   },
+   {
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "kunde": "k-beispiel",
+    "modell": "qwen3:8b",
+    "schein_sha256": "1145e27e2ada347024ed87d3002e511d89cddba5e651ba94841c46e432eee8a7",
+    "peer": {
+     "art": "unix",
+     "socket": "s-2",
+     "uid": 1000
+    }
+   },
+   {
+    "sitzung": "s-3",
+    "route": "cloud-beispiel",
+    "kunde": null,
+    "modell": "claude-sonnet-5-5",
+    "schein_sha256": "d4553b5fad19b057083a77387971225545835726820391fab672e1ae6301e21a",
+    "peer": {
+     "art": "tcp",
+     "sid": "S-1-15-2-1-2-3-4-5-6-7",
+     "job": "j-3",
+     "lauf": "l-3"
+    }
+   }
+  ],
+  "scheine": {
+   "s-1": "wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+   "s-2": "wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
+   "s-3": "wbs_gi43VlRWyizsqpwghqtw3KznWwXhIbu2vXZEUlI05BU"
+  }
+ },
+ "faelle": [
+  {
+   "name": "cloud_gueltig",
+   "beschreibung": "Gueltiger Aufruf der Cloud-Sitzung s-1: Weg ueber den Halter an genau den Anbieter der Route",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-cloud-a",
+     "einheit": 9,
+     "halter": "anb-cloud-a",
+     "kosten_mitschreiben": true,
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "preis_aus": 15000,
+     "preis_ein": 3000,
+     "protokoll": "messages",
+     "route": "cloud-beispiel",
+     "sitzung": "s-1",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "halter",
+     "pfad": "/v1/messages",
+     "ziel": null
+    }
+   }
+  },
+  {
+   "name": "lokal_gueltig",
+   "beschreibung": "Gueltiger Aufruf der lokalen Sitzung s-2: direkter Weg an Ollama auf Loopback, ohne Halter",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-2",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-lokal",
+     "einheit": 9,
+     "halter": null,
+     "kosten_mitschreiben": true,
+     "kunde": "k-beispiel",
+     "modell": "qwen3:8b",
+     "preis_aus": 0,
+     "preis_ein": 0,
+     "protokoll": "chat",
+     "route": "lokal-beispiel",
+     "sitzung": "s-2",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "direkt",
+     "pfad": "/v1/chat/completions",
+     "ziel": "http://127.0.0.1:11434/v1/chat/completions"
+    }
+   }
+  },
+  {
+   "name": "lokal_strom",
+   "beschreibung": "Strom angefragt: strom true, die Huelle setzt stream_options.include_usage",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-2",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"qwen3:8b\",\"stream\":true,\"messages\":[]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-lokal",
+     "einheit": 9,
+     "halter": null,
+     "kosten_mitschreiben": true,
+     "kunde": "k-beispiel",
+     "modell": "qwen3:8b",
+     "preis_aus": 0,
+     "preis_ein": 0,
+     "protokoll": "chat",
+     "route": "lokal-beispiel",
+     "sitzung": "s-2",
+     "strom": true,
+     "waehrung": "EUR",
+     "weg": "direkt",
+     "pfad": "/v1/chat/completions",
+     "ziel": "http://127.0.0.1:11434/v1/chat/completions"
+    }
+   }
+  },
+  {
+   "name": "modell_der_anfrage_zaehlt_nicht",
+   "beschreibung": "Die Anfrage nennt ein anderes Modell; es gilt das Modell aus Start und Registry",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"m3-tief\",\"max_tokens\":1,\"messages\":[]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-cloud-a",
+     "einheit": 9,
+     "halter": "anb-cloud-a",
+     "kosten_mitschreiben": true,
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "preis_aus": 15000,
+     "preis_ein": 3000,
+     "protokoll": "messages",
+     "route": "cloud-beispiel",
+     "sitzung": "s-1",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "halter",
+     "pfad": "/v1/messages",
+     "ziel": null
+    }
+   }
+  },
+  {
+   "name": "windows_gueltig",
+   "beschreibung": "Windows: Peer ueber den Plattformdienst mit SID, Job und Lauf des Scheins",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_gi43VlRWyizsqpwghqtw3KznWwXhIbu2vXZEUlI05BU",
+    "verbindung": {
+     "art": "tcp",
+     "sid": "S-1-15-2-1-2-3-4-5-6-7",
+     "job": "j-3",
+     "lauf": "l-3",
+     "im_job": true
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-cloud-a",
+     "einheit": 9,
+     "halter": "anb-cloud-a",
+     "kosten_mitschreiben": true,
+     "kunde": null,
+     "modell": "claude-sonnet-5-5",
+     "preis_aus": 15000,
+     "preis_ein": 3000,
+     "protokoll": "messages",
+     "route": "cloud-beispiel",
+     "sitzung": "s-3",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "halter",
+     "pfad": "/v1/messages",
+     "ziel": null
+    }
+   }
+  },
+  {
+   "name": "route_im_koerper",
+   "beschreibung": "Die Anfrage der Cloud-Sitzung nennt im Koerper die lokale Route: abgelehnt, das Feld steht auf keiner Erlaubnisliste",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"qwen3:8b\",\"route\":\"lokal-beispiel\",\"max_tokens\":1,\"messages\":[]}"
+   },
+   "erwartet": {
+    "code": "gw.feld_unbekannt"
+   }
+  },
+  {
+   "name": "route_in_kopfzeile",
+   "beschreibung": "Die Anfrage nennt die lokale Route in einer Kopfzeile: wirkungslos, die Huelle reicht keine Kopfzeile ausser Authorization an den Kern",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}",
+    "kopfzeilen": {
+     "x-awb-route": "lokal-beispiel",
+     "x-wb-route": "lokal-beispiel"
+    }
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-cloud-a",
+     "einheit": 9,
+     "halter": "anb-cloud-a",
+     "kosten_mitschreiben": true,
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "preis_aus": 15000,
+     "preis_ein": 3000,
+     "protokoll": "messages",
+     "route": "cloud-beispiel",
+     "sitzung": "s-1",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "halter",
+     "pfad": "/v1/messages",
+     "ziel": null
+    }
+   }
+  },
+  {
+   "name": "route_im_pfad",
+   "beschreibung": "Ein Pfad mit Route ist kein Weg des Gateways",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/lokal-beispiel/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.pfad_unbekannt"
+   }
+  },
+  {
+   "name": "route_ohne_klasse",
+   "beschreibung": "Die Route der Sitzung steht nicht mehr in der Einstellungsdatei (A42): Route cloud-beispiel hat keine Klasse",
+   "einstellungen": "ohne_cloud",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.route_ohne_klasse"
+   }
+  },
+  {
+   "name": "einstellungen_route_null",
+   "beschreibung": "Die Einstellungsdatei hat eine Route mit klasse null; der Lader von Vertrag 2 lehnt sie ab, das Gateway bedient keine Sitzung",
+   "einstellungen": "fehler",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-2",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.einstellungen_ungueltig"
+   }
+  },
+  {
+   "name": "ohne_registry_eintrag",
+   "beschreibung": "Die Route hat keinen Registry-Eintrag: Abbruch, kein Rueckfall",
+   "einstellungen": "ok",
+   "registry": "ohne_cloud_route",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.registry_fehlt"
+   }
+  },
+  {
+   "name": "registry_ungueltig",
+   "beschreibung": "Die Registry-Datei ist ungueltig (Fassung 2): kein Aufruf",
+   "einstellungen": "ok",
+   "registry": "ungueltig",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-2",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.registry_ungueltig"
+   }
+  },
+  {
+   "name": "lokal_auf_cloud_anbieter",
+   "beschreibung": "Die lokale Route zeigt auf einen Cloud-Anbieter: abgelehnt, Kundendaten der lokalen Route gingen sonst an eine Cloud",
+   "einstellungen": "ok",
+   "registry": "lokal_auf_cloud",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-2",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.art_unvertraeglich"
+   }
+  },
+  {
+   "name": "zielwahl_anbieter_b",
+   "beschreibung": "Der Admin stellt die Cloud-Route auf Anbieter B um: derselbe Aufruf geht an B und nie an A",
+   "einstellungen": "ok",
+   "registry": "anbieter_b",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-cloud-b",
+     "einheit": 9,
+     "halter": "anb-cloud-b",
+     "kosten_mitschreiben": true,
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "preis_aus": 15000,
+     "preis_ein": 3000,
+     "protokoll": "messages",
+     "route": "cloud-beispiel",
+     "sitzung": "s-1",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "halter",
+     "pfad": "/v1/messages",
+     "ziel": null
+    },
+    "nie_halter": "anb-cloud-a"
+   }
+  },
+  {
+   "name": "zielwahl_kein_rueckfall",
+   "beschreibung": "Anbieter B eingestellt, aber ohne Eintrag fuer das Modell der Sitzung: Abbruch statt Rueckfall auf A",
+   "einstellungen": "ok",
+   "registry": "anbieter_b_ohne_modell",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.registry_fehlt"
+   }
+  },
+  {
+   "name": "preis_aus_erster",
+   "beschreibung": "Modellwahl nach Preis aus (Vorgabe): das Modell der Sitzung, auch wenn ein guenstigeres derselben Stufe existiert",
+   "einstellungen": "ok",
+   "registry": "stufen_aus",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-cloud-a",
+     "einheit": 9,
+     "halter": "anb-cloud-a",
+     "kosten_mitschreiben": true,
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "preis_aus": 15000,
+     "preis_ein": 3000,
+     "protokoll": "messages",
+     "route": "cloud-beispiel",
+     "sitzung": "s-1",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "halter",
+     "pfad": "/v1/messages",
+     "ziel": null
+    }
+   }
+  },
+  {
+   "name": "preis_an_gleiche_stufe",
+   "beschreibung": "Modellwahl nach Preis an: das kostenfreie Modell derselben Stufe, nie das der tieferen Stufe",
+   "einstellungen": "ok",
+   "registry": "stufen_an",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-cloud-a",
+     "einheit": 9,
+     "halter": "anb-cloud-a",
+     "kosten_mitschreiben": true,
+     "kunde": "k-beispiel",
+     "modell": "m2-frei",
+     "preis_aus": 0,
+     "preis_ein": 0,
+     "protokoll": "messages",
+     "route": "cloud-beispiel",
+     "sitzung": "s-1",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "halter",
+     "pfad": "/v1/messages",
+     "ziel": null
+    },
+    "nie_modell": "m3-tief"
+   }
+  },
+  {
+   "name": "kosten_aus",
+   "beschreibung": "Option Kosten mitschreiben aus: die Weiterleitung sagt es der Huelle, es entsteht keine Zeile",
+   "einstellungen": "ok",
+   "registry": "kosten_aus",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-cloud-a",
+     "einheit": 9,
+     "halter": "anb-cloud-a",
+     "kosten_mitschreiben": false,
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "preis_aus": 15000,
+     "preis_ein": 3000,
+     "protokoll": "messages",
+     "route": "cloud-beispiel",
+     "sitzung": "s-1",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "halter",
+     "pfad": "/v1/messages",
+     "ziel": null
+    }
+   }
+  },
+  {
+   "name": "ohne_schein",
+   "beschreibung": "Keine Kopfzeile Authorization",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": null,
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.schein_fehlt"
+   }
+  },
+  {
+   "name": "schein_falsche_art",
+   "beschreibung": "Authorization ohne Bearer",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Basic wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.schein_fehlt"
+   }
+  },
+  {
+   "name": "schein_unbekannt",
+   "beschreibung": "Ein Schein der richtigen Form, den kein Lauf traegt",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_2P8EqaMrP7f34HQ2ZAH_zM1kEq-BV5I_lwQueYCsuS0",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.schein_unbekannt"
+   }
+  },
+  {
+   "name": "schein_falsche_form",
+   "beschreibung": "Ein Anbieterschluessel statt eines Scheins",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer sk-beispiel-0000",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.schein_unbekannt"
+   }
+  },
+  {
+   "name": "schein_beendeter_lauf",
+   "beschreibung": "Der Lauf s-1 ist beendet und abgemeldet; sein Schein gilt nicht mehr",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": "s-1",
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.schein_unbekannt"
+   }
+  },
+  {
+   "name": "schein_am_fremden_socket",
+   "beschreibung": "Der Schein von s-2 kommt ueber den Socket von s-1",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.peer_falsch"
+   }
+  },
+  {
+   "name": "fremde_kennung",
+   "beschreibung": "Der Schein kommt am richtigen Socket, aber von einer anderen Kennung",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1001
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.peer_falsch"
+   }
+  },
+  {
+   "name": "windows_fremder_job",
+   "beschreibung": "Windows: richtige SID, anderer Job",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_gi43VlRWyizsqpwghqtw3KznWwXhIbu2vXZEUlI05BU",
+    "verbindung": {
+     "art": "tcp",
+     "sid": "S-1-15-2-1-2-3-4-5-6-7",
+     "job": "j-9",
+     "lauf": "l-3",
+     "im_job": true
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.peer_falsch"
+   }
+  },
+  {
+   "name": "windows_nicht_im_job",
+   "beschreibung": "Windows: Prozess nicht im Job des Laufs",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_gi43VlRWyizsqpwghqtw3KznWwXhIbu2vXZEUlI05BU",
+    "verbindung": {
+     "art": "tcp",
+     "sid": "S-1-15-2-1-2-3-4-5-6-7",
+     "job": "j-3",
+     "lauf": "l-3",
+     "im_job": false
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.peer_falsch"
+   }
+  },
+  {
+   "name": "windows_peer_unbekannt",
+   "beschreibung": "Windows: der Plattformdienst antwortet nicht in 500 ms oder der Client ist schon fort",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_gi43VlRWyizsqpwghqtw3KznWwXhIbu2vXZEUlI05BU",
+    "verbindung": {
+     "art": "unbekannt"
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.peer_unbekannt"
+   }
+  },
+  {
+   "name": "schein_vor_peer",
+   "beschreibung": "Ohne Schein meldet der Kern schein_fehlt, auch wenn der Peer unbekannt ist",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": null,
+    "verbindung": {
+     "art": "unbekannt"
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.schein_fehlt"
+   }
+  },
+  {
+   "name": "protokoll_falsch",
+   "beschreibung": "Die Cloud-Sitzung ruft die Chat-Route, ihr Anbieter spricht Messages",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.protokoll_falsch"
+   }
+  },
+  {
+   "name": "koerper_doppelt",
+   "beschreibung": "Ein doppelter Schluessel in einer tiefen Ebene des Koerpers",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"x\",\"max_tokens\":1,\"messages\":[{\"role\":\"user\",\"role\":\"assistant\",\"content\":\"x\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.json_ungueltig"
+   }
+  },
+  {
+   "name": "koerper_kein_objekt",
+   "beschreibung": "Der Koerper ist eine Liste",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "[]"
+   },
+   "erwartet": {
+    "code": "gw.json_ungueltig"
+   }
+  },
+  {
+   "name": "koerper_zu_gross",
+   "beschreibung": "Der Koerper der Chat-Route hat 2 MiB und ein Byte",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-2",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_muster": {
+     "vorne": "{\"messages\":\"",
+     "fuellung": "a",
+     "anzahl": 2097138,
+     "hinten": "\"}"
+    }
+   },
+   "erwartet": {
+    "code": "gw.koerper_zu_gross"
+   }
+  },
+  {
+   "name": "feld_unbekannt",
+   "beschreibung": "Ein Feld ausserhalb der Erlaubnisliste (Ziel des Anbieters)",
+   "einstellungen": "ok",
+   "registry": "vorfuehrung",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-2",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"x\",\"messages\":[],\"api_base\":\"https://fremd.beispiel.invalid\"}"
+   },
+   "erwartet": {
+    "code": "gw.feld_unbekannt"
+   }
+  }
+ ]
+}

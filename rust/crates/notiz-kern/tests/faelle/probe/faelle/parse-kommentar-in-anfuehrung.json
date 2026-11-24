@@ -1,0 +1,10 @@
+{
+ "description": "comment stripping runs before unquoting",
+ "files": {
+  "note.md": "---\ntitle: \"q  # nicht\"\nort: 'Bahnhof'   # Kommentar\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

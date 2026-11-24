@@ -1,0 +1,14 @@
+{
+ "beschreibung": "ungueltige Startdatei (dienst_fehlt): Exitcode 2, eine Zeile auf stderr, kein Token, stdout leer",
+ "datensatz": "A",
+ "name": "br_start_dienst_fehlt",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

@@ -1,0 +1,36 @@
+{
+ "beschreibung": "zwei Authorization-Koepfe: 400 (Form), nicht 401 und nicht 200",
+ "datensatz": "A",
+ "name": "br_401_zwei_koepfe",
+ "regeln": [
+  "BR2",
+  "BR3"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "koepfe": [
+     [
+      "Authorization",
+      "Bearer @token"
+     ]
+    ],
+    "origin": null,
+    "token": "gut",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

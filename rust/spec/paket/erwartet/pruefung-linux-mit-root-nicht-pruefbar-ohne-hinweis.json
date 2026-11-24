@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.apparmor_nicht_pruefbar: Das AppArmor-Profil war nicht pruefbar.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

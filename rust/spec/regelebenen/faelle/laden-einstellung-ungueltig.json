@@ -1,0 +1,72 @@
+{
+ "name": "laden-einstellung-ungueltig",
+ "anforderungen": [
+  "A26"
+ ],
+ "beschreibung": "die eingebettete Einstellung nennt eine unbekannte Klasse: der Code von Vertrag 2 geht unverändert durch",
+ "stand": {
+  "firma": {
+   "fassung": 1,
+   "ebene": "firma",
+   "einstellung": {
+    "fassung": 1,
+    "klassen": [
+     "oeffentlich",
+     "intern",
+     "kundendaten"
+    ],
+    "vorgabestufe": "kundendaten",
+    "routen": [
+     {
+      "schluessel": "cloud-r",
+      "art": "cloud",
+      "klasse": "geheim"
+     }
+    ],
+    "kunden": [],
+    "kundendaten_an_cloud": {
+     "vorgabe": "nie",
+     "freigaben": []
+    }
+   },
+   "rollen": {
+    "ps_00000000000000000000000000000b01": [
+     "admin"
+    ],
+    "ps_00000000000000000000000000000b02": [
+     "admin"
+    ]
+   },
+   "gruppen": [
+    {
+     "schluessel": "g-eins",
+     "mitglieder": [
+      "ps_00000000000000000000000000000c01"
+     ]
+    },
+    {
+     "schluessel": "g-zwei",
+     "mitglieder": [
+      "ps_00000000000000000000000000000c02"
+     ]
+    }
+   ],
+   "nutzerregeln": [],
+   "senkung": {
+    "aus": false,
+    "bestaetigung": false,
+    "arten": [
+     "bedienwissen",
+     "quellenauszug",
+     "regeln",
+     "vorlagen"
+    ]
+   }
+  }
+ },
+ "schritte": [
+  {
+   "zeige": "ps_00000000000000000000000000000c01"
+  }
+ ]
+}

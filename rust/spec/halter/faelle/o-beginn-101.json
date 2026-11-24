@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Beginn eines Stroms mit Status 101",
+ "form": "antwort",
+ "text": "{\"art\":\"beginn\",\"fassung\":1,\"id\":\"m-2\",\"kopf\":{\"sec-websocket-accept\":\"s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\"},\"status\":101}"
+}

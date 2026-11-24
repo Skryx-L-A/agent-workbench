@@ -1,0 +1,10 @@
+{
+ "beschreibung": "M14 fall",
+ "form": "mac",
+ "eigenschaft": "M14",
+ "anforderung": "A142",
+ "art": "fall",
+ "ausgangslage": "Mac mit macOS 26; Lauf s-1 unter dem gebauten Profil mit Modellweg-Port M1 und Ausgangs-Port A1; Lauf s-2 unter seinem Profil mit M2; Hörer der Browser-Brücke auf Port K; Vorführ-Vault mit der Notiz MK-7Q2 außerhalb; Such-Prozess je Sitzung außerhalb; Wegwerf-Token unter ~/.copilot und ~/.config/gh einer Testperson",
+ "handlung": "Vor jedem Start prüft der Starter das fertige Profil an Kanarien: eine erlaubte Probe (Arbeitsordner lesen) muss gelingen, gesperrte Proben (Kanarie-Datei außerhalb, fremder Loopback-Port, Signal 0 an einen Prozess außerhalb) müssen mit EPERM scheitern; dann startet der Lauf",
+ "beleg": "gemessen: Startkosten 0,013 bis 0,015 s je sandbox-exec (Messlauf 1); die Kanarien selbst sind die Proben D3, N5, H4 (die Umgebung ist keine Kanarie: sie bleibt lesbar, H1)"
+}

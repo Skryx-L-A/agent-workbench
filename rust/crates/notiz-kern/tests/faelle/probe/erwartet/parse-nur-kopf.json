@@ -1,0 +1,21 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Nur Kopf"
+  ],
+  "fields": {
+   "title": "Nur Kopf"
+  },
+  "body": "",
+  "title": "Nur Kopf",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "kopf",
+   "nur kopf"
+  ],
+  "embed_text": "Nur Kopf\n\n"
+ }
+}

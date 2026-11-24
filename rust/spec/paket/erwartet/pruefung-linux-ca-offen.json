@@ -1,0 +1,8 @@
+{
+ "rc": 0,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.hinweis_ca_offen: Die Zulassung der lokalen CA ist offen; die Cloud-Route ist gesperrt. Das ist kein Fehler der Installation.",
+  "pruef.ok: Alle 8 Pruefungen bestanden."
+ ]
+}

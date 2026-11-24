@@ -1,0 +1,22 @@
+{
+ "beschreibung": "nie ein Schlüssel eingegeben: nichts liegt da und es gibt keinen Hinweis",
+ "form": "remove",
+ "nutzer": "nutzer1",
+ "marke": "SCHLUESSEL-PRUEFMARKE-0001",
+ "nach_installation": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1"
+ ],
+ "nach_remove": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1"
+ ],
+ "meldung": "Entferne werkbank ...\n",
+ "journal": ""
+}

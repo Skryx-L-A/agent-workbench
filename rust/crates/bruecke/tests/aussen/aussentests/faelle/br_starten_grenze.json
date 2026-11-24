@@ -1,0 +1,52 @@
+{
+ "beschreibung": "ein Koerper von genau 16384 Byte geht an den Dienst (der ihn als Start-Struktur ablehnt: 422), 16385 Byte sind 413",
+ "datensatz": "A",
+ "dienst": {
+  "plan": {
+   "*": {
+    "modus": "marke",
+    "sek": 30,
+    "text": "EINS"
+   }
+  }
+ },
+ "name": "br_starten_grenze",
+ "regeln": [
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "koerper": "{}",
+    "koerper_laenge": 16384,
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "{}",
+    "koerper_laenge": 16385,
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

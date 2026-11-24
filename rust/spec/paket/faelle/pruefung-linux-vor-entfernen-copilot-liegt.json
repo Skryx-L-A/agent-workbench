@@ -1,0 +1,32 @@
+{
+ "beschreibung": "`prerm`: nur die Anmeldedatei der Copilot CLI liegt da, ein fester Satz ohne Inhalt, rc 0",
+ "form": "pruefung",
+ "aufruf": [
+  "--vor-entfernen"
+ ],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   }
+  ],
+  "apparmor": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "fehlt",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

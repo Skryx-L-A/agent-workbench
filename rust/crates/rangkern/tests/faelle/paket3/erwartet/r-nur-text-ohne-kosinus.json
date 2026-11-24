@@ -1,0 +1,49 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "haus/rahmen.md",
+    "score": 1.0,
+    "title": "Rahmen",
+    "snippet": "Der Rahmen am Fenster ist neu.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 1.0,
+    "bm25_rang": 2,
+    "bm25_norm": 0.26814163342900926,
+    "vektor_rang": 1
+   },
+   {
+    "rel": "haus/fenster.md",
+    "score": 0.5151515151515151,
+    "title": "Fenster",
+    "snippet": "Das Fenster klemmt.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   },
+   {
+    "rel": "haus/tuer.md",
+    "score": 0.48484848484848486,
+    "title": "Tür",
+    "snippet": "Die Tür quietscht.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.7071067811865476,
+    "vektor_rang": 2
+   }
+  ]
+ }
+}

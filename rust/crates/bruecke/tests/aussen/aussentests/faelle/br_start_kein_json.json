@@ -1,0 +1,10 @@
+{
+ "beschreibung": "Startdatei ist kein JSON: Exitcode 2",
+ "datensatz": "A",
+ "name": "br_start_kein_json",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start_roh": "{\"port\": "
+}

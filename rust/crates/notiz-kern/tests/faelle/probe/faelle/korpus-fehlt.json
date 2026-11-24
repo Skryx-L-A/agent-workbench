@@ -1,0 +1,7 @@
+{
+ "description": "missing vault directory",
+ "args": [
+  "corpus",
+  "{root}/nicht-da"
+ ]
+}

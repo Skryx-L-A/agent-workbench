@@ -1,0 +1,23 @@
+{
+ "beschreibung": "die Token-Datei besteht schon: Exitcode 3, die Datei bleibt, wie sie ist",
+ "datensatz": "A",
+ "name": "br_token_datei_besteht",
+ "ordner": {
+  "art": "verzeichnis",
+  "modus": "0700",
+  "token_vorher": "datei"
+ },
+ "regeln": [
+  "BR1",
+  "BR2"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

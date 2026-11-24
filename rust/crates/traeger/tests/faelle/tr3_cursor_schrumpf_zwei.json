@@ -1,0 +1,37 @@
+{
+ "name": "tr3_cursor_schrumpf_zwei",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Schrumpfen auf die kleinste Breite von zwei Spalten mit einem breiten Zeichen vor dem Cursor: umgebrochener Cursor, kein Absturz",
+ "art": "strom",
+ "groesse": [
+  40,
+  10
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[8;1Hxxxxxxxxxxxxxxxxxxxxxxxxxxxxx漢"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 2,
+   "zeilen": 5
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "y"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

@@ -1,0 +1,38 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "garten/beet.md",
+    "score": 1.0,
+    "title": "Beet",
+    "snippet": "Das Gartenprojekt braucht ein neues Beet.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.9938837346736189,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 1
+   },
+   {
+    "rel": "garten/MOC.md",
+    "score": 0.9411764705882353,
+    "title": "Garten",
+    "snippet": "Gartenprojekt mit Beeten, Wasser und Kompost.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.7071067811865475,
+    "bm25_rang": 2,
+    "bm25_norm": 0.7239520646777748,
+    "vektor_rang": 2
+   }
+  ]
+ }
+}

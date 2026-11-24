@@ -1,0 +1,53 @@
+{
+ "gueltig": true,
+ "dateien": {
+  "kern": {
+   "socket": {
+    "ordner": "/run/user/0/werkbank",
+    "name": "dienst.sock"
+   },
+   "betrachter": {
+    "person": "n",
+    "raum": "werkbank",
+    "ansicht": "browser"
+   },
+   "deflate": true,
+   "lauf": {
+    "programm": "/usr/lib/werkbank/werkbank-lauf",
+    "env": {
+     "TERM": "xterm-256color"
+    },
+    "groesse": [
+     120,
+     40
+    ],
+    "einstellungen": "/var/lib/werkbank/n/einstellungen.json",
+    "sitzungen": "/var/lib/werkbank/s/0",
+    "marker_datei": "/run/user/0/werkbank-probelauf/marker.json",
+    "marker_ordner": "/var/lib/werkbank/z/0",
+    "ziellisten": "/var/lib/werkbank/n/sitzungen",
+    "laufzeit": "/var/lib/werkbank/l/0"
+   },
+   "anfang": {
+    "personen": {
+     "n": {
+      "art": "mensch",
+      "rolle": "nutzer"
+     }
+    },
+    "sitzungen": []
+   }
+  },
+  "bruecke": {
+   "dienst": {
+    "socket": "/run/user/0/werkbank/dienst.sock"
+   },
+   "port": 0,
+   "token_datei": "/run/user/0/werkbank/bruecke.token",
+   "port_datei": "/run/user/0/werkbank/bruecke.port",
+   "deflate": true
+  }
+ },
+ "modus": "0644",
+ "eigentuemer": "root:root"
+}

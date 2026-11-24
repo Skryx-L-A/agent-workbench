@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "K7"
+ ],
+ "beschreibung": "Die Eingabe ist kein JSON."
+}

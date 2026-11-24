@@ -1,0 +1,66 @@
+#!/bin/sh
+# postrm of the package werkbank (contract rust/spec/paket, part A, "Skripte des Pakets", "Entfernen").
+# remove: unload every profile of the product (`prerm` did it by file; here the rest by file or by label) and delete its compiled cache file under /var/cache/apparmor, switch the units off globally; /var/lib/werkbank stays (configuration).
+# purge: additionally delete the answer of the debconf question werkbank/ca_zulassung, the copy of bwrap (form B), /etc/werkbank/lauf.json, kern.json and bruecke.json (and /etc/werkbank when empty) and /var/lib/werkbank with the key file (overwrite, then remove); remove leaves the three files.
+# Never stops the removal: no `set -e`; exit 0 for every action.
+
+# purge: the answer of the question of the package leaves debconf, so a new installation starts again with `offen`.
+if [ "$1" = purge ] && [ -e /usr/share/debconf/confmodule ]; then
+    . /usr/share/debconf/confmodule
+    db_purge || true
+fi
+
+PROFILE="/etc/apparmor.d/usr.lib.werkbank.werkbank-einschluss /etc/apparmor.d/usr.lib.werkbank.bwrap"
+# werkbank-modellweg.service is the unit of an earlier package; its trace is removed here as well.
+EINHEITEN="werkbank-kern.service werkbank-bruecke.service werkbank-modellweg.service"
+
+entladen() {
+    command -v apparmor_parser >/dev/null 2>&1 || return 0
+    for profil in $PROFILE; do
+        [ -f "$profil" ] && apparmor_parser -R "$profil" 2>/dev/null
+    done
+    # What the parser could not unload by file (the file is already gone at purge): remove by label.
+    verwaltung=/sys/kernel/security/apparmor
+    if [ -r "$verwaltung/profiles" ] && [ -w "$verwaltung/.remove" ]; then
+        while IFS= read -r zeile; do
+            name=${zeile% (*}
+            case "$name" in
+                werkbank-* | /usr/lib/werkbank/*) printf '%s' "$name" >"$verwaltung/.remove" 2>/dev/null ;;
+            esac
+        done <"$verwaltung/profiles"
+    fi
+    # The compiled copy of the profile (written by `apparmor_parser -W` in postinst) stays after `-R`; measured on 26.04.1.
+    find /var/cache/apparmor -maxdepth 2 -type f -name 'usr.lib.werkbank.*' -delete 2>/dev/null
+    return 0
+}
+
+abschalten() {
+    command -v systemctl >/dev/null 2>&1 || return 0
+    for e in $EINHEITEN; do
+        systemctl --global disable "$e" >/dev/null 2>&1
+    done
+    return 0
+}
+
+case "$1" in
+    remove)
+        entladen
+        abschalten
+        ;;
+    purge)
+        entladen
+        abschalten
+        rm -f /etc/systemd/user/default.target.wants/werkbank-kern.service \
+            /etc/systemd/user/default.target.wants/werkbank-bruecke.service \
+            /etc/systemd/user/default.target.wants/werkbank-modellweg.service 2>/dev/null
+        rm -f /usr/lib/werkbank/bwrap 2>/dev/null
+        if [ -d /var/lib/werkbank ]; then
+            find /var/lib/werkbank -type f \( -name 'modellweg.schluessel' -o -name 'copilot.schluessel' \) -exec shred -u {} + 2>/dev/null
+            rm -rf /var/lib/werkbank 2>/dev/null
+        fi
+        rm -f /etc/werkbank/lauf.json /etc/werkbank/kern.json /etc/werkbank/bruecke.json 2>/dev/null
+        rmdir /etc/werkbank 2>/dev/null
+        rmdir /usr/lib/werkbank /usr/share/werkbank 2>/dev/null
+        ;;
+esac
+exit 0

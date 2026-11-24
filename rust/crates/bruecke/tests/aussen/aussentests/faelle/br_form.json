@@ -1,0 +1,184 @@
+{
+ "beschreibung": "kaputte Anfragen (Version, Methode, Ziel, Koepfe, Laenge, doppelte Koepfe, Steuerzeichen): jede ist 400 ohne Inhalt, nichts erreicht den Dienst",
+ "datensatz": "A",
+ "name": "br_form",
+ "regeln": [
+  "BR3",
+  "BR5"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.0\r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "get / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET  / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET HTTP/1.1\r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET http://127.0.0.1:@port/ HTTP/1.1\r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1 x\r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET x HTTP/1.1\r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nFoo\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nFoo : bar\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\n Foo: bar\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nX-A: 1\r\n  folded\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nContent-Length: 5\r\n\r\nhallo"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "POST /starten HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nOrigin: http://127.0.0.1:@port\r\nAuthorization: Bearer @token\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\n\r\n2\r\n{}\r\n0\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "POST /starten HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nOrigin: http://127.0.0.1:@port\r\nAuthorization: Bearer @token\r\nContent-Type: application/json\r\nContent-Length: 2\r\nContent-Length: 2\r\n\r\n{}"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "POST /starten HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nOrigin: http://127.0.0.1:@port\r\nAuthorization: Bearer @token\r\nContent-Type: application/json\r\nContent-Length: -1\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "POST /starten HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nOrigin: http://127.0.0.1:@port\r\nAuthorization: Bearer @token\r\nContent-Type: application/json\r\nContent-Length: abc\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "POST /starten HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nOrigin: http://127.0.0.1:@port\r\nAuthorization: Bearer @token\r\nContent-Type: application/json\r\nContent-Length: 2\r\nContent-Length: 3\r\n\r\n{}"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nX-A: a\u0000b\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nX-A: a\u0001b\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET /é HTTP/1.1\r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nOrigin: http://127.0.0.1:@port\r\nOrigin: http://127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "POST /starten HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nOrigin: http://127.0.0.1:@port\r\nContent-Type: application/json\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1 \r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": " GET / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET /\tHTTP/1.1\r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nBad Name: x\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\n: leer\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

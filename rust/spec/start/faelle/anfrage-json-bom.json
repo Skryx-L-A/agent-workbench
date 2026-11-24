@@ -1,0 +1,39 @@
+{
+ "beschreibung": "UTF-8 mit BOM",
+ "form": "anfrage",
+ "b64": "77u/ewogImZhc3N1bmciOiAxLAogImhhcm5lc3MiOiAiY2xhdWRlIiwKICJtb2RlbGwiOiAiY2xhdWRlLXNvbm5ldC01LTUiLAogInJvdXRlIjogImNsb3VkLWJlaXNwaWVsIiwKICJrdW5kZSI6ICJrLWJlaXNwaWVsIiwKICJhcmJlaXRzb3JkbmVyIjogIi9ob21lL2JlaXNwaWVsL3Byb2pla3QiCn0K",
+ "einstellungen": {
+  "fassung": 1,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "vorgabestufe": "kundendaten",
+  "routen": [
+   {
+    "schluessel": "cloud-beispiel",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal-beispiel",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-beispiel",
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ }
+}

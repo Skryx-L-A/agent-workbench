@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.paketstand_datei_abweichend: Die Datei etc/apparmor.d/usr.lib.werkbank.werkbank-lauf weicht vom Manifest ab.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

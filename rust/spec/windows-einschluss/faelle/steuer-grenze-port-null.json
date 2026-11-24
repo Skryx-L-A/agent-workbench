@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Port 0",
+ "form": "steuer",
+ "text": "{\"op\": \"peer\", \"tcp\": {\"lokal\": 0, \"fern\": 50123}}\n"
+}

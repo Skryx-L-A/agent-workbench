@@ -1,0 +1,9 @@
+{
+ "erwartet": "M steht im Arbeitsordner, und die nächste Anfrage an die Attrappe enthält M; bash.exe wird nicht gefunden oder scheitert; nach dem Jobende lebt kein Prozess",
+ "messwerte": [
+  "Datei im Arbeitsordner",
+  "Mitschrift der Attrappe",
+  "Ergebnis des bash-Aufrufs",
+  "Prozessliste"
+ ]
+}

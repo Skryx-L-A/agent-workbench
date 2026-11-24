@@ -1,0 +1,35 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "haushalt/heizung.md",
+    "score": 1.0,
+    "title": "Heizung",
+    "snippet": "Heizkoerper entlueften: Schritt fuer Schritt, Heizkoerper leise.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   },
+   {
+    "rel": "haushalt/heizung-archiv.md",
+    "score": 0.3351865219883498,
+    "title": "Heizung Archiv",
+    "snippet": "Heizkoerper entlueften im Keller, Schluessel bereit.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.6840541265068364,
+    "status": "archived"
+   }
+  ]
+ }
+}

@@ -1,0 +1,1 @@
+{"name":"ra2_leere_zeile","regeln":["RA2"],"datensatz":"A","beschreibung":"Leere Zeile und Zeile nur aus Leerzeichen sind gleich leer","schritte":[{"art":"Zeile","sgr":""},{"art":"Zeile","sgr":"     "},{"art":"Zeile","sgr":"\u001b[0m"},{"art":"Zeile","sgr":"\u001b[34m"}]}

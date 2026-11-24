@@ -1,0 +1,21 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 3,
+   "protokoll": [],
+   "stderr_fremd": 1,
+   "token_datei_entfernt": false
+  },
+  "ergebnisse": [],
+  "start": {
+   "exitcode": 3,
+   "ok": false,
+   "stderr_beginn": true,
+   "stderr_zeilen": 1,
+   "stdout_leer": true,
+   "token_da": true
+  }
+ },
+ "exit": 0
+}

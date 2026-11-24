@@ -1,0 +1,60 @@
+{
+ "description": "ping mit id als Text und als Zahl, ohne id, mit Sonderzeichen, leerem Text und negativer Zahl",
+ "vault": {
+  "files": {
+   "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text ueber Wolken.\n"
+  }
+ },
+ "args": [
+  "{root}/vault"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "ping"
+   }
+  },
+  {
+   "request": {
+    "op": "ping",
+    "id": "abc"
+   }
+  },
+  {
+   "request": {
+    "op": "ping",
+    "id": 7
+   }
+  },
+  {
+   "request": {
+    "op": "ping",
+    "id": -3
+   }
+  },
+  {
+   "request": {
+    "op": "ping",
+    "id": 0
+   }
+  },
+  {
+   "request": {
+    "op": "ping",
+    "id": "grüß \"dich\""
+   }
+  },
+  {
+   "request": {
+    "op": "ping",
+    "id": ""
+   }
+  },
+  {
+   "request": {
+    "op": "ping",
+    "id": "zaun"
+   }
+  }
+ ]
+}

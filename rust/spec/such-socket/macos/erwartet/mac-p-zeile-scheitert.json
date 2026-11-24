@@ -1,0 +1,26 @@
+{
+ "start": "bereit",
+ "socket_rechte": "0600",
+ "responses": [
+  {
+   "abgewiesen": true
+  },
+  {
+   "ok": true,
+   "id": 2
+  }
+ ],
+ "geltend": 2,
+ "ende": {
+  "exit": 0,
+  "socket_weg": true,
+  "ordner_bleibt": true
+ },
+ "stufen": {
+  "2": {
+   "stderr_zeilen": [],
+   "stderr_ohne_inhalt": true,
+   "protokoll": []
+  }
+ }
+}

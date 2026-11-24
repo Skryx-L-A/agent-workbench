@@ -1,0 +1,5 @@
+{
+ "beschreibung": "eine auskommentierte Zeile zählt nicht",
+ "form": "kerneinheit",
+ "text": "[Unit]\nDescription=Werkbank core service\n\n[Service]\n# NoNewPrivileges=yes\n; NoNewPrivileges=yes\nType=simple\nExecStart=/usr/lib/werkbank/werkbank-kern /etc/werkbank/kern.json\nRuntimeDirectory=werkbank\nRuntimeDirectoryMode=0700\n\n[Install]\nWantedBy=default.target\n"
+}

@@ -1,0 +1,18 @@
+{
+ "exit": 0,
+ "stdout": {
+  "in_scope": true,
+  "fields": {
+   "id": "01M3KEHCGEKTVFPC15XAVEPRDS",
+   "schema": "4",
+   "title": "Gute Notiz",
+   "type": "note",
+   "class": "knowledge",
+   "created": "2026-09-28T08:00",
+   "stand": "2026-09"
+  },
+  "blocks": 1,
+  "findings": [],
+  "new": true
+ }
+}

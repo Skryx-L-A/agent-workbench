@@ -1,0 +1,34 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "auto/reifen-wechseln.md",
+    "score": 1.0,
+    "title": "Reifen wechseln",
+    "snippet": "Der alte Reifen ist platt.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   },
+   {
+    "rel": "auto/reifenwechsel.md",
+    "score": 0.6318036868952761,
+    "title": "Reifenwechsel",
+    "snippet": "Reifen wechseln, Reifen wechseln, der Reifenwechsel ist nötig.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.6318036868952761
+   }
+  ]
+ }
+}

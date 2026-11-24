@@ -1,0 +1,63 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-fuer-kunde-verboten",
+    "klasse": "kundendaten",
+    "meldung": "Route r1 ist für diesen Kunden verboten",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "kunde-ohne-eintrag",
+    "klasse": "kundendaten",
+    "meldung": "Kunde ohne Eintrag in der Kundenvorgabe",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-fuer-kunde-nicht-erlaubt",
+    "klasse": "kundendaten",
+    "meldung": "Route r2 ist für diesen Kunden nicht erlaubt",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-fuer-kunde-nicht-erlaubt",
+    "klasse": "kundendaten",
+    "meldung": "Route r1 ist für diesen Kunden nicht erlaubt",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "kunde-ohne-eintrag",
+    "klasse": "kundendaten",
+    "meldung": "Kunde ohne Eintrag in der Kundenvorgabe",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "kunde-ohne-eintrag",
+    "klasse": "kundendaten",
+    "meldung": "Kunde ohne Eintrag in der Kundenvorgabe",
+    "protokoll": null
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": null
+   }
+  ]
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "description": "type system from the vocabulary gives no finding",
+ "files": {
+  "note.md": "---\nid: 01N7QWB2XHD4RT9ZKMA3VC5EPY\nschema: 4\ntitle: Gartenweg-Plan\ntype: system\nclass: knowledge\ncreated: \"2026-10-02\"\nstand: \"2026-10\"\n---\n\nFür den Weg nehmen wir Holzschnitzel.\n"
+ },
+ "args": [
+  "lint",
+  "{root}/note.md",
+  "--rel",
+  "10-global/system-bewaesserung.md"
+ ]
+}

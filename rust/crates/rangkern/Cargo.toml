@@ -1,0 +1,66 @@
+[package]
+name = "rangkern"
+version = "0.1.0"
+description = "Ranking core of `brain search` without a model in the process: tokenizer, Snowball German stemmer, BM25, RRF, validity, spaces, snippets."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "rangkern"
+path = "src/main.rs"
+
+# notiz-kern: the one source of the corpus and exclusion rules (corpus, is_excluded, path_info, read_text).
+# serde + serde_json: the vector file is read with a visitor that keeps the key order of `notes`; a request
+# keeps the text of its numbers (feature raw_value), so that `k` of any size is read as `rangkern search` reads it.
+# The feature float_roundtrip reads a decimal number to the same double as Python's `float()`, bit for bit; without it
+# `serde_json` read 3.93 % of the numbers of the real databases one ULP differently (measured 19.11.2026). It adds no crate.
+# rusqlite (feature bundled): the note vectors are read straight from the SQLite databases of the model, read only;
+# `bundled` compiles SQLite (public domain) into the program, so that Windows needs no system SQLite.
+# No default features: `cache` (a statement cache) would pull in hashlink, hashbrown and foldhash (Zlib), and
+# the one statement of the program needs no cache; `ffi-sqlite-wasm-rs` is for WebAssembly only.
+# regex: the full-text fallback (the engine `rg` uses); no process is started.
+# einstellungen: the one reader of the settings file (contract 2, version 1 and 2); `sitzung` has no reader of its own.
+# datentor, formate: the gate `darf` (contract 3) and the writer of the line `ausgabe.gesperrt` (contract 5); `rangkern sitzung`
+# only calls them and changes nothing in them.
+# signal-hook (default features, so `iterator`): SIGTERM and SIGINT end `rangkern sitzung` through a thread that waits for
+# them, with no `unsafe` in this crate (`unsafe_code = "forbid"`). It is already in the graph (traeger, via
+# signal-hook-registry); it adds no crate. Unix only: the Windows pipe follows with variant B of the contract.
+# rustix (features `process` and `fs`, no default features but `std`): `umask(077)` before the `bind` of the socket of
+# `rangkern sitzung` on Unix, behind a safe interface. `fs` only carries the type `Mode` that `umask` takes (the step
+# `PR_SET_DUMPABLE` now lives in `kernabbild`). Already in the graph (traeger, polling); it adds no crate.
+# kernabbild (path, crate of the workspace; no new package): `rangkern serve` and `rangkern sitzung` shield the memory of the process
+# from core images as their first act (`PR_SET_DUMPABLE 0` under Linux, `RLIMIT_CORE` 1/1; decision of 21.11.2026). The crate returns reasons;
+# `src/abschirmung.rs` turns them into one line and exit 5. Its types exist on every system, `abschirmen` itself on Unix only.
+[dependencies]
+datentor = { path = "../datentor" }
+einstellungen = { path = "../einstellungen" }
+formate = { path = "../formate" }
+kernabbild = { path = "../kernabbild" }
+notiz-kern = { path = "../notiz-kern" }
+regex = "1"
+rusqlite = { version = "0.43", default-features = false, features = ["bundled"] }
+serde = "1"
+serde_json = { version = "1", features = ["raw_value", "float_roundtrip"] }
+
+[target.'cfg(unix)'.dependencies]
+signal-hook = "0.4"
+rustix = { version = "1", default-features = false, features = ["std", "process", "fs"] }
+
+# nix (macOS only; `socket` and `user` carry `getpeereid`, nothing else): the measurement of the peer of a connection under
+# macOS (addendum to contract 4, section 4). `unsafe_code` is forbidden here, so there is no FFI of our own. Version 0.28 is
+# already in the graph (portable-pty); `socket` adds memoffset.
+[target.'cfg(target_os = "macos")'.dependencies]
+nix = { version = "0.28", default-features = false, features = ["socket", "user"] }
+
+# rustix with `net`, for the tests only (`tests/embed.rs`): a bound TCP socket that does not listen, so that a connect to
+# its address is refused at once and no other program can listen there while a test runs. The same package as above; the
+# feature adds no crate, and the program itself is built without it.
+[target.'cfg(unix)'.dev-dependencies]
+rustix = { version = "1", default-features = false, features = ["std", "net"] }
+
+[lints]
+workspace = true

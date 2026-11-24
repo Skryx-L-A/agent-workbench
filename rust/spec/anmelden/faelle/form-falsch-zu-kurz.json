@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Token zu kurz",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "erfolg",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "E",
+  "laenge": 12
+ },
+ "ziel": "frei",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

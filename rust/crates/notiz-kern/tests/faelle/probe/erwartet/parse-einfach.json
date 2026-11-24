@@ -1,0 +1,31 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Kaffeemaschine entkalken\ntype: note\naliases: [Entkalken, Kalk]"
+  ],
+  "fields": {
+   "title": "Kaffeemaschine entkalken",
+   "type": "note",
+   "aliases": [
+    "Entkalken",
+    "Kalk"
+   ]
+  },
+  "body": "\nAlle vier Wochen.\n",
+  "title": "Kaffeemaschine entkalken",
+  "type": "note",
+  "aliases": [
+   "Entkalken",
+   "Kalk"
+  ],
+  "links": [],
+  "keys": [
+   "entkalken",
+   "kaffeemaschine entkalken",
+   "kalk",
+   "note"
+  ],
+  "embed_text": "Kaffeemaschine entkalken\naliases: Entkalken, Kalk\ntype: note\n\n\nAlle vier Wochen.\n"
+ }
+}

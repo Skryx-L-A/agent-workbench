@@ -1,0 +1,40 @@
+{
+ "beschreibung": "ein JSON-Koerper mit 128 Ebenen ist zu tief: 400, nichts davon erreicht den Dienst",
+ "datensatz": "A",
+ "dienst": {
+  "plan": {
+   "*": {
+    "modus": "marke",
+    "sek": 30,
+    "text": "EINS"
+   }
+  }
+ },
+ "name": "br_starten_tiefe_128",
+ "regeln": [
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "koerper": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

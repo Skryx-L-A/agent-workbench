@@ -1,0 +1,96 @@
+{
+ "beschreibung": "Ein Schreiben in die Zwischenablage aus dem Programm wird einmal angesagt; ein Hinweis zum Titel bleibt still.",
+ "datensatz": "A",
+ "name": "se3_hinweis_osc52",
+ "regeln": [
+  "SE3"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": []
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Hinweis",
+    "hinweis": "osc52_geschrieben",
+    "laenge": 5,
+    "sitzung": "s-1"
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Das Programm hat in die Zwischenablage geschrieben"
+   ]
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Hinweis",
+    "hinweis": "titel",
+    "sitzung": "s-1",
+    "titel": "neu"
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": []
+  }
+ ]
+}

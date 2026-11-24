@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Beide Ordner eines Harness sind verboten (Paketordner und node): die Zustandsdatei nennt nur den ersten (den Paketordner), eine Zeile je Harness",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/srv/beispiel/heim/nutzer1/.ssh/pi/cli.js",
+   "node": "/srv/beispiel/heim/nutzer1/.local/share/keyrings/node"
+  }
+ },
+ "vorher": null,
+ "pruefer_verboten": [
+  "/srv/beispiel/heim/nutzer1/.ssh/pi",
+  "/srv/beispiel/heim/nutzer1/.local/share/keyrings"
+ ]
+}

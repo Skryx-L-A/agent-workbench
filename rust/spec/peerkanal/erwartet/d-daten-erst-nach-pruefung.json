@@ -1,0 +1,11 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Byte 1 bis 4 vom Client: pk1 und LF; Byte 1 bis 4 vom Server: pk1 und LF",
+  "die Nutzdaten kommen erst nach der Antwort des Servers an"
+ ]
+}

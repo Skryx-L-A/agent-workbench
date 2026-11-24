@@ -1,0 +1,342 @@
+{
+ "name": "s26-modell-traegt-senken",
+ "regeln": [
+  "S17",
+  "S18",
+  "A38",
+  "E6",
+  "E7"
+ ],
+ "beschreibung": "Ein Modell kann auf Anweisung eines Menschen umklassieren (A38); es schreibt erst nach dem zweiten Aufruf. Senken braucht einen Grund und nennt brain_senken; meldet die Stelle zweite_person, muss eine zweite Person entscheiden.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ },
+ "anfragen": [
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": null,
+    "person": "ps_11111111111111111111111111111111",
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "umklassieren",
+    "vorher_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "klasse": "intern",
+    "kunde": null
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "kundendaten",
+     "kunde": "k-nord"
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": "kundendaten",
+     "kunden": [
+      "k-nord"
+     ]
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": null,
+    "person": "ps_11111111111111111111111111111111",
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "umklassieren",
+    "vorher_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "klasse": "intern",
+    "kunde": null,
+    "grund": "Alte Preisliste wurde veroeffentlicht"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "kundendaten",
+     "kunde": "k-nord"
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": "kundendaten",
+     "kunden": [
+      "k-nord"
+     ]
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": {
+     "klasse": "intern",
+     "kunde": null,
+     "werkzeug": "brain_senken",
+     "zweite_person": true
+    },
+    "person": "ps_11111111111111111111111111111111",
+    "entscheidend": "ps_11111111111111111111111111111111"
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "umklassieren",
+    "vorher_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "klasse": "intern",
+    "kunde": null,
+    "grund": "Alte Preisliste wurde veroeffentlicht"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "kundendaten",
+     "kunde": "k-nord"
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": "kundendaten",
+     "kunden": [
+      "k-nord"
+     ]
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": {
+     "klasse": "intern",
+     "kunde": null,
+     "werkzeug": "brain_senken",
+     "zweite_person": true
+    },
+    "person": "ps_11111111111111111111111111111111",
+    "entscheidend": "ps_22222222222222222222222222222222"
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "umklassieren",
+    "vorher_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "klasse": "intern",
+    "kunde": null,
+    "grund": "Alte Preisliste wurde veroeffentlicht"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "kundendaten",
+     "kunde": "k-nord"
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": "kundendaten",
+     "kunden": [
+      "k-nord"
+     ]
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": {
+     "klasse": "kundendaten",
+     "kunde": "k-nord",
+     "werkzeug": "brain_schreiben",
+     "zweite_person": false
+    },
+    "person": "ps_11111111111111111111111111111111",
+    "entscheidend": "ps_11111111111111111111111111111111"
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "umklassieren",
+    "vorher_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "klasse": "kundendaten",
+    "kunde": "k-nord"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "intern",
+     "kunde": null
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": {
+     "klasse": "intern",
+     "kunde": null,
+     "werkzeug": "brain_senken",
+     "zweite_person": true
+    },
+    "person": "ps_11111111111111111111111111111111",
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "umklassieren",
+    "vorher_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "klasse": "intern",
+    "kunde": null,
+    "grund": "Alte Preisliste wurde veroeffentlicht"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "kundendaten",
+     "kunde": "k-nord"
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": "kundendaten",
+     "kunden": [
+      "k-nord"
+     ]
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": {
+     "klasse": "intern",
+     "kunde": null,
+     "werkzeug": "brain_schreiben",
+     "zweite_person": false
+    },
+    "person": "ps_11111111111111111111111111111111",
+    "entscheidend": "ps_22222222222222222222222222222222"
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "umklassieren",
+    "vorher_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "klasse": "intern",
+    "kunde": null,
+    "grund": "Alte Preisliste wurde veroeffentlicht"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "kundendaten",
+     "kunde": "k-nord"
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": "kundendaten",
+     "kunden": [
+      "k-nord"
+     ]
+    }
+   }
+  }
+ ]
+}

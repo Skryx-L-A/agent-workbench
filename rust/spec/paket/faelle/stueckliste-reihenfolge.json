@@ -1,0 +1,6 @@
+{
+ "beschreibung": "serde vor anyhow",
+ "form": "stueckliste",
+ "text": "serde\t1.0.228\tMIT OR Apache-2.0\tcrates.io\nanyhow\t1.0.100\tMIT OR Apache-2.0\tcrates.io\n",
+ "im_paket": []
+}

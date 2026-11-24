@@ -1,0 +1,6 @@
+{
+ "beschreibung": "Steuerdatei des deb: Paket werkbank, amd64, die sechs Abhängigkeiten",
+ "form": "steuerdatei",
+ "text": "Package: werkbank\nVersion: 0.1.0\nArchitecture: amd64\nMaintainer: werkbank-paket <paket@example.invalid>\nDepends: libc6 (>= 2.40), libssl3t64 (>= 3.0.0), python3, bubblewrap, apparmor, ca-certificates, systemd\nDescription: Werkbank, Probelauf\n Arbeitsplatz fuer Agenten mit Einschluss und Tor.\n",
+ "manifest_version": "0.1.0"
+}

@@ -1,0 +1,20 @@
+# Exclusion list of the deb for Ubuntu 26.04 (contract rust/spec/paket, part A).
+# One pattern per line: <pattern>  # <reason of at least 12 characters>. Compared in lower case.
+# The runner of the trial is the only Python file in this package, so there is no `*.py` here (the Windows list has it);
+# a compiled `*.pyc` never belongs in the package.
+*.pdb  # debug symbols of Windows never belong in the Linux package
+*.sh  # no shell script of the build or of the tests in the package
+*.js  # no Node program in the package (A60)
+*.mjs  # no Node program in the package (A60)
+*.rs  # no source code in the package
+*.rlib  # no build intermediate in the package
+*.toml  # no build or tool configuration in the package
+*.pyc  # no compiled Python in the package
+tests/  # no test tool and no test data in the package
+crate:placeholder  # the scaffold crate only gives the gates something to check
+usr/lib/werkbank/wb-attrappe  # the stand-in of the enclosure exists only in test builds (contract, A8)
+usr/lib/werkbank/probelauf/test_werkbank_probelauf.py  # the test of the runner lives in the tree only
+usr/bin/test_werkbank_probelauf.py  # the test of the runner lives in the tree only
+usr/lib/werkbank/probelauf/mutationsprobe.py  # the mutation probe of the runner lives in the tree only
+usr/lib/werkbank/probelauf/attrappen/  # the stand-ins of the runner never belong in the package
+usr/lib/werkbank/probelauf/browser/  # the browser tool of the runner never belongs in the package

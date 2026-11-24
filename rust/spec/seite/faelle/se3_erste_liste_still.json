@@ -1,0 +1,34 @@
+{
+ "beschreibung": "Die erste Liste sagt kein Ende an, auch wenn eine Sitzung schon beendet ist.",
+ "datensatz": "A",
+ "name": "se3_erste_liste_still",
+ "regeln": [
+  "SE3"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "code": 0,
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "beendet"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": []
+  }
+ ]
+}

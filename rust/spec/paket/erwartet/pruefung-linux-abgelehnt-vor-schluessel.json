@@ -1,0 +1,11 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.nutzerordner_fehlt: Der Ordner des Nutzers unter /var/lib/werkbank fehlt.",
+  "pruef.programmordner_verboten: Ein Programmordner in lauf.json beruehrt den Anmeldespeicher oder ein Geheimnis; der Einschluss lehnt jede Sitzung ab (5 verboten).",
+  "pruef.programmordner_verboten: Harness pi nicht eingetragen. Abhilfe: Harness unter einem anderen Praefix installieren, dann dpkg-reconfigure werkbank. Ordner: /opt/p",
+  "pruef.schluessel_fehlt: Die Schluesseldatei fehlt.",
+  "pruef.rot: 4 Befunde."
+ ]
+}

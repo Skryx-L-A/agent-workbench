@@ -1,0 +1,8 @@
+{
+ "erwartet": "Der Job endet, oder der Agent erreicht weder M noch Q; Q zu keinem Zeitpunkt erreichbar; die Sperre steht danach",
+ "messwerte": [
+  "Lebensdauer des Jobs nach dem Tod des Dienstes",
+  "Ergebnis je Versuch",
+  "Filterliste"
+ ]
+}

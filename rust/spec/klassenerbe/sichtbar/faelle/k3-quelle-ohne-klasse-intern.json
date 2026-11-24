@@ -1,0 +1,65 @@
+{
+ "name": "k3-quelle-ohne-klasse-intern",
+ "regeln": [
+  "K4",
+  "A35"
+ ],
+ "beschreibung": "Mit Vorgabestufe intern erbt ein Ergebnis aus einer Quelle ohne Klasse intern.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "cloud-n",
+    "art": "cloud"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "vorgabestufe": "intern",
+  "erbe": {
+   "boden": "gelesen"
+  }
+ },
+ "anfragen": [
+  {
+   "route": "cloud",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": null
+    }
+   ]
+  }
+ ]
+}

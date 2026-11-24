@@ -1,0 +1,11 @@
+{
+ "description": "drop zone is a prefix match on the parent path",
+ "args": [
+  "paths",
+  "00-sources/drop/x.md",
+  "00-sources/drop/tief/y.md",
+  "00-sources/dropbox/x.md",
+  "00-sources/drop.md",
+  "00-sources/x.md"
+ ]
+}

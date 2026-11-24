@@ -1,0 +1,199 @@
+{
+ "beschreibung": "Rücktaste, Entf, Pfeile, Pos1, Ende, Bild auf und ab gehen als Tasten; der Fokus bleibt.",
+ "datensatz": "A",
+ "name": "se1_bearbeiten",
+ "regeln": [
+  "SE1",
+  "SE2"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Backspace",
+   "key": "Backspace",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "Delete",
+   "key": "Delete",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "ArrowUp",
+   "key": "ArrowUp",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "ArrowDown",
+   "key": "ArrowDown",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "ArrowLeft",
+   "key": "ArrowLeft",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "ArrowRight",
+   "key": "ArrowRight",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "Home",
+   "key": "Home",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "End",
+   "key": "End",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "PageUp",
+   "key": "PageUp",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "PageDown",
+   "key": "PageDown",
+   "umschalter": []
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Ruecktaste",
+     "umschalter": []
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Entf",
+     "umschalter": []
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Hoch",
+     "umschalter": []
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Runter",
+     "umschalter": []
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Links",
+     "umschalter": []
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Rechts",
+     "umschalter": []
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Pos1",
+     "umschalter": []
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Ende",
+     "umschalter": []
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "BildAuf",
+     "umschalter": []
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "BildAb",
+     "umschalter": []
+    }
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": true,
+    "name_beginnt": "Terminal",
+    "name_enthaelt": "s-1",
+    "rolle": "textbox"
+   }
+  }
+ ]
+}

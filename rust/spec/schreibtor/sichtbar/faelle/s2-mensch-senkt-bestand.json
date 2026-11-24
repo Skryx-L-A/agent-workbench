@@ -1,0 +1,126 @@
+{
+ "name": "s2-mensch-senkt-bestand",
+ "regeln": [
+  "S14",
+  "S17",
+  "A37",
+  "E7"
+ ],
+ "beschreibung": "Eine ausdrückliche Wahl eines Menschen darf den Bestand senken, mit Grund; das Tor fragt dafür die Stelle mit brain_senken. Die Antwort nennt die alte wirksame Klasse.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ },
+ "anfragen": [
+  {
+   "kontext": {
+    "herkunft": "mensch",
+    "sitzung": null,
+    "route": null,
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "aendern",
+    "inhalt": "Text neu",
+    "vorher_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "klasse": "oeffentlich",
+    "grund": "Alte Preisliste wurde veroeffentlicht"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "kundendaten",
+     "kunde": null
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "mensch",
+    "sitzung": null,
+    "route": null,
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "betrieb/notiz.md",
+    "art": "umklassieren",
+    "vorher_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "klasse": "intern",
+    "kunde": null,
+    "grund": "Alte Preisliste wurde veroeffentlicht"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": true,
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "klasse": "intern",
+     "kunde": "k-nord"
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  }
+ ]
+}

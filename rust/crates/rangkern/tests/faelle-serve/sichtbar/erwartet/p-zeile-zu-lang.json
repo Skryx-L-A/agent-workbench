@@ -1,0 +1,34 @@
+{
+ "responses": [
+  {
+   "error": "bad_request"
+  },
+  {
+   "ok": true,
+   "id": "danach"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": "und-danach"
+  }
+ ],
+ "exit": 0
+}

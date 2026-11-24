@@ -1,0 +1,30 @@
+{
+ "beschreibung": "Benutzerdienste nicht abfragbar (etwa als root ohne Nutzer): rot",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "nicht_pruefbar"
+   }
+  ],
+  "apparmor": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "ok",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

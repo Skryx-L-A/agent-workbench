@@ -1,0 +1,24 @@
+{
+ "description": "A -> B -> C: C erscheint, abgeloest_durch nennt C; B wird abgewertet",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "--today",
+  "2026-11-18",
+  "Passwort Manager"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-5.md": "---\ntitle: Füller 5\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-6.md": "---\ntitle: Füller 6\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-7.md": "---\ntitle: Füller 7\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-8.md": "---\ntitle: Füller 8\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/kette/a.md": "---\ntitle: Kette A\ntype: note\nsuperseded-by: [\"[[b]]\"]\n---\n\nPasswort Manager Umstellung, Passwort Manager.\n",
+  "vault/kette/b.md": "---\ntitle: Kette B\ntype: note\nstatus: superseded\nsuperseded-by: [\"[[c]]\"]\n---\n\nPasswort Manager alt, Passwort Manager ersetzt.\n",
+  "vault/kette/c.md": "---\ntitle: Kette C\ntype: note\nstatus: active\n---\n\nNachfolgetext ohne Suchwort.\n"
+ }
+}

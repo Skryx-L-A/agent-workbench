@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Beginn einer Modellantwort",
+ "form": "antwort",
+ "text": "{\"art\":\"beginn\",\"fassung\":1,\"id\":\"m-1\",\"kopf\":{\"content-type\":\"text/event-stream\"},\"status\":200}"
+}

@@ -1,0 +1,23 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "freigabe-noetig",
+    "grund": null,
+    "klasse": "intern",
+    "kunde": null,
+    "klasse_alt": "kundendaten",
+    "werkzeug": "brain_senken"
+   },
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "intern",
+    "kunde": null,
+    "klasse_alt": "kundendaten",
+    "werkzeug": null
+   }
+  ]
+ }
+}

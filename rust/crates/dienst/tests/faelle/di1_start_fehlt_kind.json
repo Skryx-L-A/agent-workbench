@@ -1,0 +1,42 @@
+{
+ "beschreibung": "Pflichtfeld kind fehlt: Exitcode 2",
+ "datensatz": "A",
+ "name": "di1_start_fehlt_kind",
+ "regeln": [
+  "DI1"
+ ],
+ "schritte": [],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   40,
+   10
+  ],
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

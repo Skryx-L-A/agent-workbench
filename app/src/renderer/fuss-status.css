@@ -1,6 +1,0 @@
-/* Die Fusszeile der linken Leiste (bis 05.09.2026: die Statusleiste unten).
-   Schmal, ruhig, im Vorbeigehen zu lesen. Ihr Aufbau und ihre Farben stehen in
-   werkbank.css; hier bleibt nur, was allein sie betrifft. Sie darf umbrechen:
-   232 Bildpunkte fassen Verbrauch und Wochenbalken nicht nebeneinander, der
-   Wochenstand bekommt deshalb seine eigene Zeile (werkbank.css, `.sz-woche`). */
-#statuszeile { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; min-width: 0; }

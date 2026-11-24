@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.apparmor_datei_fehlt: Die Datei des AppArmor-Profils fehlt.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

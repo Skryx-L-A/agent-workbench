@@ -1,0 +1,58 @@
+{
+ "name": "tr2_cursor_nur_schritt",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Ein Cursorschritt ohne Zeilenänderung ist eine Ausgabe mit leerem zeilen und steigendem stand; derselbe Cursor erneut meldet nichts; Verstecken und Zeigen im selben Stück meldet nichts",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha"
+  },
+  {
+   "art": "Text",
+   "text": "\r"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[2C"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[2C"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1A"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1H"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1H"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?25l\u001b[?25h"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?25l"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?25l"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

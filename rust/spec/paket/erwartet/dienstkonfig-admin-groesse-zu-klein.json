@@ -1,0 +1,56 @@
+{
+ "gueltig": true,
+ "dateien": {
+  "kern": {
+   "socket": {
+    "ordner": "/run/user/1000/werkbank",
+    "name": "dienst.sock"
+   },
+   "betrachter": {
+    "person": "nutzer1",
+    "raum": "werkbank",
+    "ansicht": "browser"
+   },
+   "deflate": true,
+   "lauf": {
+    "programm": "/usr/lib/werkbank/werkbank-lauf",
+    "env": {
+     "TERM": "xterm-256color"
+    },
+    "groesse": [
+     120,
+     40
+    ],
+    "einstellungen": "/var/lib/werkbank/nutzer1/einstellungen.json",
+    "sitzungen": "/var/lib/werkbank/s/1000",
+    "marker_datei": "/run/user/1000/werkbank-probelauf/marker.json",
+    "marker_ordner": "/var/lib/werkbank/z/1000",
+    "ziellisten": "/var/lib/werkbank/nutzer1/sitzungen",
+    "laufzeit": "/var/lib/werkbank/l/1000"
+   },
+   "anfang": {
+    "personen": {
+     "nutzer1": {
+      "art": "mensch",
+      "rolle": "nutzer"
+     }
+    },
+    "sitzungen": []
+   }
+  },
+  "bruecke": {
+   "dienst": {
+    "socket": "/run/user/1000/werkbank/dienst.sock"
+   },
+   "port": 0,
+   "token_datei": "/run/user/1000/werkbank/bruecke.token",
+   "port_datei": "/run/user/1000/werkbank/bruecke.port",
+   "deflate": true
+  }
+ },
+ "modus": "0644",
+ "eigentuemer": "root:root",
+ "journal": [
+  "werkbank: kern.json: groesse ungueltig, die Vorgabe gilt"
+ ]
+}

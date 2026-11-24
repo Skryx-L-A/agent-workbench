@@ -1,0 +1,9 @@
+{
+ "exit": 0,
+ "stdout": {
+  "state": "one",
+  "block": "<!-- dream:block:start -->\nx\n<!-- dream:block:end -->",
+  "stripped": "Text\n",
+  "replaced": "Text\n\nZ"
+ }
+}

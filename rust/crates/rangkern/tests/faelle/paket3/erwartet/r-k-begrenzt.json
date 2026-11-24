@@ -1,0 +1,38 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "garten/schnecke-1.md",
+    "score": 1.0,
+    "title": "Schnecke 1",
+    "snippet": "Schnecke Nummer 1 im Beet.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.9938837346736189,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 1
+   },
+   {
+    "rel": "garten/schnecke-2.md",
+    "score": 0.9411764705882353,
+    "title": "Schnecke 2",
+    "snippet": "Schnecke Nummer 2 im Beet.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.9701425001453318,
+    "bm25_rang": 2,
+    "bm25_norm": 1.0,
+    "vektor_rang": 2
+   }
+  ]
+ }
+}

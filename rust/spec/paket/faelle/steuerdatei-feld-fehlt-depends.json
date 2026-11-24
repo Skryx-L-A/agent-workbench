@@ -1,0 +1,6 @@
+{
+ "beschreibung": "`Depends` fehlt",
+ "form": "steuerdatei",
+ "text": "Package: werkbank\nVersion: 0.1.0\nArchitecture: amd64\nMaintainer: werkbank-paket <paket@example.invalid>\nDescription: Werkbank, Probelauf\n Arbeitsplatz fuer Agenten mit Einschluss und Tor.\n",
+ "manifest_version": "0.1.0"
+}

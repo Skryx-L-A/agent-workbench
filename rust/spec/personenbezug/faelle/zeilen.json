@@ -1,0 +1,145 @@
+{
+ "beschreibung": "zeile_geloescht und zeile_auskunft: Bytes oder erster Fehlercode",
+ "geloescht": {
+  "gut": [
+   {
+    "eingabe": {
+     "ergebnis": "geloescht",
+     "handelnd": "ps_8c183f6572a61769067fe62d39ebc68f",
+     "marke": "1be77e62e980296187b1e88b411f62d430c117998e90cd2c589a692fd9d4f7cd",
+     "zeit_ms": 1795179600000
+    },
+    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+    "zeile": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_8c183f6572a61769067fe62d39ebc68f\",\"loeschmarke\":\"1be77e62e980296187b1e88b411f62d430c117998e90cd2c589a692fd9d4f7cd\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}"
+   },
+   {
+    "eingabe": {
+     "ergebnis": "geloescht",
+     "handelnd": null,
+     "marke": "1be77e62e980296187b1e88b411f62d430c117998e90cd2c589a692fd9d4f7cd",
+     "zeit_ms": 1795179600000
+    },
+    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+    "zeile": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":null,\"loeschmarke\":\"1be77e62e980296187b1e88b411f62d430c117998e90cd2c589a692fd9d4f7cd\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}"
+   },
+   {
+    "eingabe": {
+     "ergebnis": "unbekannt",
+     "handelnd": "ps_8c183f6572a61769067fe62d39ebc68f",
+     "marke": null,
+     "zeit_ms": 1795179600000
+    },
+    "vorher": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+    "zeile": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"unbekannt\",\"fassung\":2,\"handelnd\":\"ps_8c183f6572a61769067fe62d39ebc68f\",\"loeschmarke\":null,\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}"
+   }
+  ],
+  "schlecht": [
+   {
+    "eingabe": {
+     "ergebnis": "weg",
+     "handelnd": "ps_8c183f6572a61769067fe62d39ebc68f",
+     "marke": "1be77e62e980296187b1e88b411f62d430c117998e90cd2c589a692fd9d4f7cd",
+     "zeit_ms": 1795179600000
+    },
+    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+    "fehler": "feld_ungueltig:ergebnis"
+   },
+   {
+    "eingabe": {
+     "ergebnis": "geloescht",
+     "handelnd": "p-adm01",
+     "marke": "1be77e62e980296187b1e88b411f62d430c117998e90cd2c589a692fd9d4f7cd",
+     "zeit_ms": 1795179600000
+    },
+    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+    "fehler": "feld_ungueltig:handelnd"
+   },
+   {
+    "eingabe": {
+     "ergebnis": "geloescht",
+     "handelnd": "ps_8c183f6572a61769067fe62d39ebc68f",
+     "marke": null,
+     "zeit_ms": 1795179600000
+    },
+    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+    "fehler": "feld_ungueltig:loeschmarke"
+   },
+   {
+    "eingabe": {
+     "ergebnis": "unbekannt",
+     "handelnd": "ps_8c183f6572a61769067fe62d39ebc68f",
+     "marke": "1be77e62e980296187b1e88b411f62d430c117998e90cd2c589a692fd9d4f7cd",
+     "zeit_ms": 1795179600000
+    },
+    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+    "fehler": "feld_ungueltig:loeschmarke"
+   },
+   {
+    "eingabe": {
+     "ergebnis": "geloescht",
+     "handelnd": "ps_8c183f6572a61769067fe62d39ebc68f",
+     "marke": "1be77e62e980296187b1e88b411f62d430c117998e90cd2c589a692fd9d4f7cd",
+     "zeit_ms": 1795179600000
+    },
+    "vorher": "abc",
+    "fehler": "feld_ungueltig:vorher"
+   },
+   {
+    "eingabe": {
+     "ergebnis": "geloescht",
+     "handelnd": "ps_8c183f6572a61769067fe62d39ebc68f",
+     "marke": "1be77e62e980296187b1e88b411f62d430c117998e90cd2c589a692fd9d4f7cd",
+     "zeit_ms": -1
+    },
+    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+    "fehler": "zeit_ungueltig"
+   }
+  ]
+ },
+ "auskunft": {
+  "gut": [
+   {
+    "eingabe": {
+     "ergebnis": "geliefert",
+     "handelnd": "ps_8c183f6572a61769067fe62d39ebc68f",
+     "zeilen": 3,
+     "zeit_ms": 1795179600000
+    },
+    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+    "zeile": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_8c183f6572a61769067fe62d39ebc68f\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":3,\"zeit\":\"2026-11-20T13:00:00.000Z\"}"
+   },
+   {
+    "eingabe": {
+     "ergebnis": "unbekannt",
+     "handelnd": "ps_8c183f6572a61769067fe62d39ebc68f",
+     "zeilen": 0,
+     "zeit_ms": 1795179600000
+    },
+    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+    "zeile": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"unbekannt\",\"fassung\":2,\"handelnd\":\"ps_8c183f6572a61769067fe62d39ebc68f\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeilen\":0,\"zeit\":\"2026-11-20T13:00:00.000Z\"}"
+   }
+  ],
+  "schlecht": [
+   {
+    "eingabe": {
+     "ergebnis": "unbekannt",
+     "handelnd": "ps_8c183f6572a61769067fe62d39ebc68f",
+     "zeilen": 2,
+     "zeit_ms": 1795179600000
+    },
+    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+    "fehler": "feld_ungueltig:zeilen"
+   },
+   {
+    "eingabe": {
+     "ergebnis": "geliefert",
+     "handelnd": null,
+     "zeilen": 0,
+     "zeit_ms": 1795179600000
+    },
+    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+    "fehler": "feld_ungueltig:handelnd"
+   }
+  ]
+ }
+}

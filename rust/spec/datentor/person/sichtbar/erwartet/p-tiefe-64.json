@@ -1,0 +1,14 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "intern",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "oeffentlich"
+   }
+  ]
+ }
+}

@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "Z10"
+ ],
+ "beschreibung": "A128 (5): Eine Gruppenregel öffnet public für alle Klassen."
+}

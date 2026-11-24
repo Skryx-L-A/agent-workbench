@@ -1,0 +1,15 @@
+{
+ "start": "bereit",
+ "socket_rechte": "0600",
+ "responses": [
+  {
+   "errno": "EPERM"
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "exit": 0,
+  "socket_weg": true,
+  "ordner_bleibt": true
+ }
+}

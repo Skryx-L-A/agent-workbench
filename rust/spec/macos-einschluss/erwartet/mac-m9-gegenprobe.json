@@ -1,0 +1,6 @@
+{
+ "erwartet": "beide Sockets antworten; der Test wird rot",
+ "messwerte": [
+  "Antwort je Socket"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "beschreibung": "der Eintrag ist der einzige im Feld: das Feld bleibt als leeres Objekt",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg-allein",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

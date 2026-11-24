@@ -1,0 +1,41 @@
+{
+ "gueltig": true,
+ "enthaelt": [
+  "(version 1)",
+  "(deny default)",
+  "(import \"system.sb\")",
+  "(allow process-fork)",
+  "(allow process-exec)",
+  "(allow signal (target same-sandbox))",
+  "(allow process-info* (target same-sandbox))",
+  "(allow network-outbound (remote ip \"localhost:41001\") (remote ip \"localhost:41002\"))",
+  "(allow network-outbound (remote unix-socket (path-literal \"/Users/beispiel/.wbs/s-1/such.sock\")))",
+  "(allow file-read* file-write* (subpath \"/Users/beispiel/Projekte/projekt\") (subpath \"/Users/beispiel/Library/Application Support/werkbank/heime/s-1\"))",
+  "(literal \"/Users/beispiel\")",
+  "(literal \"/Users\")",
+  "(subpath \"/Users/beispiel/Knowledge\")",
+  "(subpath \"/Users/beispiel/.copilot\")",
+  "(subpath \"/Users/beispiel/Library/Keychains\")",
+  "(deny sysctl-read (sysctl-name \"kern.procargs2\") (sysctl-name \"kern.procargs\") (sysctl-name-prefix \"kern.proc.\"))",
+  "(deny process-info* (target others))",
+  "(allow file-write-data (literal \"/Users/beispiel/Library/Application Support/werkbank/dienst/merkmal/s-1/kennung\"))"
+ ],
+ "enthaelt_nicht": [
+  "(allow default)",
+  "(allow network*",
+  "(allow network-outbound)",
+  "(allow network-bind",
+  "(allow network-inbound",
+  "(allow file-read*)",
+  "(allow file-write*)",
+  "(allow signal)",
+  "(allow process-info*)",
+  "(allow mach-lookup",
+  "(allow mach-priv",
+  "(remote ip \"*:",
+  "(remote tcp",
+  "(remote udp",
+  "(subpath \"/Users/beispiel\")",
+  "(subpath \"/Users/beispiel/.wbs"
+ ]
+}

@@ -1,0 +1,42 @@
+{
+ "beschreibung": "fremde uid an einem Socket mit Modus 0666",
+ "art": "aussentest",
+ "ort": [
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk",
+  "uid_fremd": 1000000102,
+  "gid_fremd": 1000000201
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "uid": 1000000101
+   }
+  ],
+  "instanzen": 4,
+  "unix": {
+   "ordner": "/k-beispiel/lauf/pk",
+   "modus": "0666"
+  }
+ },
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "uid": 1000000101
+  },
+  "frist_ms": 2000,
+  "unix_ordner": "/k-beispiel/lauf/pk"
+ },
+ "aufbau": [
+  "Ordner 0700; der Testaufbau bindet nur den Socket für uid_fremd ein (Einschluss mit eigener Kennung)"
+ ],
+ "handlung": [
+  "uid_fremd verbindet"
+ ]
+}

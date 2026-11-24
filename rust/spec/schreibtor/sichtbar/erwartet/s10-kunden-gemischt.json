@@ -1,0 +1,47 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "kunden-gemischt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "kunden-gemischt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "kunden-gemischt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "freigabe-noetig",
+    "grund": null,
+    "klasse": "kundendaten",
+    "kunde": "k-nord",
+    "klasse_alt": "kundendaten",
+    "werkzeug": "brain_schreiben"
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "kunden-gemischt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   }
+  ]
+ }
+}

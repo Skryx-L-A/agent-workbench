@@ -1,0 +1,72 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "ebenen.kennung_form",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.kennung_form",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "85218416137600caf17e82c5244956e62ed076ff21e08138f69a433e9c18e3db",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "eb37118fbdd68648df4f8d6c4c1a901300ba1ff602cba28d98b5818c53e16dc3",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.kennung_doppelt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.kennung_doppelt",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "77e1ca3b2d1dafa8b012a8f81b29ba8f4dfc2440093212e02cd56092434ebcaf",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.schluessel_unbekannt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.schluessel_unbekannt",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "06413bdc4c5900cbfe301b0094723a657fe3046739cfb4e1923c4a1bab42a000",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  }
+ ]
+}

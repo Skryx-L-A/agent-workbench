@@ -1,0 +1,10 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "fehler",
+ "code": "pk.abgewiesen",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Client: pk.abgewiesen nach dem Hallo, ohne Nutzdaten"
+ ]
+}

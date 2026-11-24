@@ -1,0 +1,31 @@
+{
+ "beschreibung": "Hinweis und der rote Zustand `system_bwrap_frei` (Freigabe von einem Profil der Werkbank oder ohne Profil) zusammen: ein Befund",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   }
+  ],
+  "apparmor": "system_bwrap_frei",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "ok",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok",
+  "system_bwrap": "ubuntu"
+ }
+}

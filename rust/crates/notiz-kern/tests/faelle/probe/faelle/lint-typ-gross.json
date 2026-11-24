@@ -1,0 +1,12 @@
+{
+ "description": "type is case-sensitive",
+ "files": {
+  "note.md": "---\nid: 01M3KEHCGEKTVFPC15XAVEPRDS\nschema: 4\ntitle: Gute Notiz\ntype: Note\nclass: knowledge\ncreated: \"2026-09-28\"\nstand: \"2026-09\"\n---\n\nFür künftige Sessions: x\n"
+ },
+ "args": [
+  "lint",
+  "{root}/note.md",
+  "--rel",
+  "40-people/a.md"
+ ]
+}

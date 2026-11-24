@@ -1,0 +1,37 @@
+{
+ "exit": 0,
+ "stdout": {
+  "words": [
+   "kaffee",
+   "maschine",
+   "entkalken",
+   "am",
+   "3",
+   "10"
+  ],
+  "stems": [
+   "kaffe",
+   "maschin",
+   "entkalk",
+   "am",
+   "3",
+   "10"
+  ],
+  "index": [
+   "kaffe",
+   "maschin",
+   "#masc",
+   "#asch",
+   "#schi",
+   "#chin",
+   "entkalk",
+   "#entk",
+   "#ntka",
+   "#tkal",
+   "#kalk",
+   "am",
+   "3",
+   "10"
+  ]
+ }
+}

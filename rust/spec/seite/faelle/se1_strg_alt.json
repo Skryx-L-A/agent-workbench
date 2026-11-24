@@ -1,0 +1,199 @@
+{
+ "beschreibung": "Strg+C, Strg+D, Strg+L, Alt+Buchstabe, Strg+Alt+Buchstabe und Wortsprünge gehen als Tasten mit Umschaltern in fester Reihenfolge.",
+ "datensatz": "A",
+ "name": "se1_strg_alt",
+ "regeln": [
+  "SE1"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "KeyC",
+   "key": "c",
+   "umschalter": [
+    "strg"
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "KeyD",
+   "key": "d",
+   "umschalter": [
+    "strg"
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "KeyL",
+   "key": "l",
+   "umschalter": [
+    "strg"
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "KeyB",
+   "key": "b",
+   "umschalter": [
+    "alt"
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "KeyA",
+   "key": "a",
+   "umschalter": [
+    "strg",
+    "alt"
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "ArrowLeft",
+   "key": "ArrowLeft",
+   "umschalter": [
+    "strg"
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "ArrowRight",
+   "key": "ArrowRight",
+   "umschalter": [
+    "alt"
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "Backspace",
+   "key": "Backspace",
+   "umschalter": [
+    "alt"
+   ]
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "c",
+     "umschalter": [
+      "strg"
+     ]
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "d",
+     "umschalter": [
+      "strg"
+     ]
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "l",
+     "umschalter": [
+      "strg"
+     ]
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "b",
+     "umschalter": [
+      "alt"
+     ]
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "a",
+     "umschalter": [
+      "strg",
+      "alt"
+     ]
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Links",
+     "umschalter": [
+      "strg"
+     ]
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Rechts",
+     "umschalter": [
+      "alt"
+     ]
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Ruecktaste",
+     "umschalter": [
+      "alt"
+     ]
+    }
+   ]
+  }
+ ]
+}

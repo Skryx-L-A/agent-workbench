@@ -1,0 +1,178 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "protokoll": [
+    "kennung",
+    "kennung",
+    "kennung",
+    "kennung",
+    "kennung",
+    "json",
+    "json",
+    "json",
+    "inhalt_typ",
+    "koerper_zu_gross"
+   ],
+   "stderr_fremd": 0,
+   "token_datei_entfernt": true,
+   "token_nicht_in_ausgabe": true
+  },
+  "ergebnisse": [
+   {
+    "deflate": "0",
+    "kennung": true,
+    "kennung_verschieden": true,
+    "status": 200
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 400
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 400
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 400
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 400
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 404
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 400
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 400
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 400
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 415
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 413
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 204
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild_fehler": [],
+    "abbilder": {},
+    "ablehnungen": [
+     "sitzung_unbekannt"
+    ],
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     "Einstellungen",
+     "Routen",
+     "Sitzungsliste",
+     "Anfragen",
+     "Agenten",
+     "Startwahl"
+    ],
+    "ok": true
+   }
+  ],
+  "start": {
+   "hoerer": [
+    "127.0.0.1"
+   ],
+   "ok": true,
+   "ordner_modus": "0700",
+   "port_zeile": true,
+   "stderr_leer": true,
+   "stdout_zeilen": 1,
+   "token_datei": {
+    "form": true,
+    "modus": "0600",
+    "verschieden": true
+   }
+  }
+ },
+ "exit": 0
+}

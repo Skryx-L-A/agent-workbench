@@ -1,0 +1,11 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "fehler",
+ "code": "pk.zugriff_verweigert",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Der entfernte Client wird abgewiesen (PIPE_REJECT_REMOTE_CLIENTS)",
+  "kein Ereignis am Server"
+ ]
+}

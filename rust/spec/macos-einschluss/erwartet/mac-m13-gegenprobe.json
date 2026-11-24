@@ -1,0 +1,6 @@
+{
+ "erwartet": "der Auftrag liest die Notiz; der Test wird rot",
+ "messwerte": [
+  "Marke des Auftrags"
+ ]
+}

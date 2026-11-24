@@ -1,0 +1,16 @@
+{
+ "description": "end marker is the last line without newline",
+ "files": {
+  "note.md": "Text\n\n<!-- dream:block:start -->\nx\n<!-- dream:block:end -->"
+ },
+ "args": [
+  "markers",
+  "{root}/note.md",
+  "--start",
+  "<!-- dream:block:start -->",
+  "--end",
+  "<!-- dream:block:end -->",
+  "--replace",
+  "Z"
+ ]
+}

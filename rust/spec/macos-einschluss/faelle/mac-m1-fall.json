@@ -1,0 +1,11 @@
+{
+ "beschreibung": "M1 fall",
+ "form": "mac",
+ "eigenschaft": "M1",
+ "anforderung": "A142",
+ "art": "fall",
+ "ausgangslage": "Mac mit macOS 26; Lauf s-1 unter dem gebauten Profil mit Modellweg-Port M1 und Ausgangs-Port A1; Lauf s-2 unter seinem Profil mit M2; Hörer der Browser-Brücke auf Port K; Vorführ-Vault mit der Notiz MK-7Q2 außerhalb; Such-Prozess je Sitzung außerhalb; Wegwerf-Token unter ~/.copilot und ~/.config/gh einer Testperson",
+ "handlung": "Der Agent liest die Notizdatei mit cat, über einen Verweis im Arbeitsordner, in anderer Schreibweise, als Enkel und als abgelöster Nachfahr (doppelter fork)",
+ "beleg": "gemessen: Messproben D3, D9, D13, D15, D16, D20",
+ "gemeinsam": "Notizdatei lesen scheitert"
+}

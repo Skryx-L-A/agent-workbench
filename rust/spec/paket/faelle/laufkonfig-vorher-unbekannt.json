@@ -1,0 +1,9 @@
+{
+ "beschreibung": "ein unbekannter früherer Wert wird nie übernommen: `offen`",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {},
+ "vorher": "ja"
+}

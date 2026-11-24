@@ -1,0 +1,6 @@
+{
+ "erwartet": "Der Agent von s-2 bekommt Treffer der Route lokal-beispiel; der Test wird rot",
+ "messwerte": [
+  "Zähler der Marken in Antworten: größer 0"
+ ]
+}

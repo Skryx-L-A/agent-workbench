@@ -1,0 +1,16 @@
+{
+ "exec": "copilot",
+ "zielliste": {
+  "pfad": "/var/lib/werkbank/beispiel/sitzungen/s-3.zielliste.json",
+  "modus": "0600",
+  "o_excl": true,
+  "vor_modellweg": true,
+  "bleibt_nach_ende": true,
+  "im_einschluss": false,
+  "enthaelt_schluessel": false
+ },
+ "modellweg_argv_enthaelt": [
+  "--zielliste",
+  "/var/lib/werkbank/beispiel/sitzungen/s-3.zielliste.json"
+ ]
+}

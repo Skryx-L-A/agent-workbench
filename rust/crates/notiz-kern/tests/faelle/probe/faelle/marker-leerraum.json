@@ -1,0 +1,16 @@
+{
+ "description": "marker line with surrounding blanks counts",
+ "files": {
+  "note.md": "Text\n   <!-- dream:block:start -->  \nx\n\t<!-- dream:block:end -->\n"
+ },
+ "args": [
+  "markers",
+  "{root}/note.md",
+  "--start",
+  "<!-- dream:block:start -->",
+  "--end",
+  "<!-- dream:block:end -->",
+  "--replace",
+  "Y"
+ ]
+}

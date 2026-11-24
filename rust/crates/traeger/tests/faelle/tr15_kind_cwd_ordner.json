@@ -1,0 +1,39 @@
+{
+ "name": "tr15_kind_cwd_ordner",
+ "regeln": [
+  "TR12",
+  "TR15"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Nachtrag 20.11. (TR15): start.cwd ist das Arbeitsverzeichnis des Kindes",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "ordner",
+  "argv": [],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  },
+  "cwd": "/usr/bin"
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ],
+ "system": [
+  "linux",
+  "macos"
+ ]
+}

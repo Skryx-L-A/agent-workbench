@@ -1,0 +1,34 @@
+{
+ "name": "tr2_cursor_anfang",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Anfangsstand: Cursor [0, 0, wahr] gilt als gemeldet; ein Stück ohne Änderung meldet keine Ausgabe, das Verstecken des Cursors schon",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[?5h"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?25h"
+  },
+  {
+   "art": "Text",
+   "text": ""
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?25l"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

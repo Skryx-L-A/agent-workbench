@@ -1,0 +1,22 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "aus",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "intern",
+     "meldung": "frei"
+    }
+   }
+  ]
+ }
+}

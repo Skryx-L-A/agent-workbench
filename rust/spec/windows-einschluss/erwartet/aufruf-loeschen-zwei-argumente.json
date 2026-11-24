@@ -1,0 +1,5 @@
+{
+ "exit": 64,
+ "stderr": "loeschen.aufruf: genau ein Pfad erwartet",
+ "danach": "unveraendert"
+}

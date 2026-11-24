@@ -1,0 +1,10 @@
+{
+ "description": "YAML 1.1 words, octal, float, null and booleans stay text",
+ "files": {
+  "note.md": "---\ntitle: Schalter\ndraft: yes\non: off\nn: no\nmodus: 0755\nzahl: 1e3\nnichts: ~\nwahr: True\nleer: null\nversion: 1.10\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

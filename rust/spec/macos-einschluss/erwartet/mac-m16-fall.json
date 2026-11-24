@@ -1,0 +1,7 @@
+{
+ "erwartet": "Bis zum Neustart darf der Enkel leben; jeder seiner Versuche scheitert mit EPERM (er bleibt im Profil). Vor dem ersten neuen Start sucht der Dienst alle Merkmal-Ordner seines 0700-Ordners, beendet jeden eigenen Prozess mit einem dieser Merkmale nach der Frist aus M15 und löscht dann die Merkmal-Ordner; erst danach startet die neue Sitzung",
+ "messwerte": [
+  "PIDs mit altem Merkmal vor und nach dem Neustart",
+  "Reihenfolge: Aufräumen vor Start"
+ ]
+}

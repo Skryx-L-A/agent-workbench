@@ -1,0 +1,6 @@
+{
+ "erwartet": "Der weiterlaufende Agent erreicht Q; der Test wird rot",
+ "messwerte": [
+  "Zeit bis zur ersten Verbindung auf Q"
+ ]
+}

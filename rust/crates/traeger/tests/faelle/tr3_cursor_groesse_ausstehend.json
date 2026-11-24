@@ -1,0 +1,50 @@
+{
+ "name": "tr3_cursor_groesse_ausstehend",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Größenänderung bei ausstehendem Umbruch und Cursor in der letzten Zeile",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 23,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 34,
+   "zeilen": 10
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[10;1Halpha"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 34,
+   "zeilen": 6
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

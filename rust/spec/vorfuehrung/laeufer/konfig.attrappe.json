@@ -1,0 +1,277 @@
+{
+ "ziel": "attrappe",
+ "testwurzel": "$ARBEIT",
+ "bruecke": {
+  "url": "auto",
+  "token": "auto",
+  "token_kopf": "Authorization",
+  "token_praefix": "Bearer ",
+  "frist_s": 10,
+  "pruefe_token": true,
+  "attrappe_start_dauer_s": 0.2,
+  "abo": {
+   "spalten": 120,
+   "zeilen": 40
+  },
+  "diagnose_pfad": "/diagnose",
+  "deflate": true
+ },
+ "modell": {
+  "mcp_werkzeug": "mcp__brain__brain_suche",
+  "cloud": {
+   "bind": "127.0.0.1:0",
+   "zaehlen": true
+  },
+  "lokal": {
+   "bind": "127.0.0.1:0",
+   "zaehlen": true
+  }
+ },
+ "fremd": {
+  "bind": "127.0.0.1:0"
+ },
+ "einstellungen": {
+  "pfad": "$ARBEIT/testinstallation/einstellungen.json"
+ },
+ "protokoll": {
+  "ordner": "$ARBEIT/testinstallation/protokoll"
+ },
+ "kette_befehl": [
+  "python3",
+  "-I",
+  "-B",
+  "$HIER/attrappen/kette.py",
+  "pruefe"
+ ],
+ "datentor_befehl": [
+  "python3",
+  "-I",
+  "-B",
+  "$HIER/attrappen/darf.py"
+ ],
+ "vault": "$HIER/../../such-socket/vorfuehr-vault",
+ "klassen": [
+  "public",
+  "internal",
+  "confidential",
+  "customer"
+ ],
+ "routen": {
+  "cloud": "copilot",
+  "lokal": "lokal"
+ },
+ "routen_klassen": {
+  "cloud": "internal",
+  "lokal": "customer"
+ },
+ "kunde": "k-nord",
+ "harness": {
+  "copilot": {
+   "art": "cloud",
+   "eingabefeld_muster": [
+    "SIM-EINGABE>"
+   ],
+   "sim_zeile": "  SIM-EINGABE >",
+   "zaehlt_als_start": true
+  },
+  "pi": {
+   "art": "lokal",
+   "eingabefeld_muster": [
+    "SIM-EINGABE>"
+   ],
+   "sim_zeile": "  SIM-EINGABE >"
+  }
+ },
+ "start": {
+  "cloud": {
+   "harness": "copilot",
+   "modell": "attrappe-cloud",
+   "kunde": null,
+   "arbeitsordner": "$ARBEIT/ordner/b/o2"
+  },
+  "lokal": {
+   "harness": "pi",
+   "modell": "qwen3:8b",
+   "kunde": "k-nord",
+   "arbeitsordner": "$ARBEIT/ordner/a/o1"
+  }
+ },
+ "erwartete_codes": {
+  "ohne_route": [
+   "start.schluessel_fehlt"
+  ]
+ },
+ "marker": {
+  "nk": "MK-7Q2",
+  "ni": "MI-4F9",
+  "ns": "MS-3P8",
+  "np": "MP-2C5"
+ },
+ "notiz_nk": {
+  "rel": "kunden/k-nord/MK-7Q2-liefertermin-presslinie.md",
+  "titel": "Liefertermin und Wartungsfenster (MK-7Q2)"
+ },
+ "frage": "Wann ist das nächste Wartungsfenster der Presslinie?",
+ "antwort_muster_lokal": [
+  "Auslieferung",
+  "zwei Tage"
+ ],
+ "befehle": {
+  "env": "env",
+  "datei": "cat {pfad}",
+  "netz": "curl -sS -m 5 --noproxy '*' {url}",
+  "baum": "grep -rIl '{muster}' / 2>/dev/null",
+  "baum_aussen": "grep -rIl '{muster}' {vault}",
+  "ps": "ps -eo pid=,user=,comm=",
+  "kill": "kill -0 {pid}",
+  "umgebung_lesen": "cat /proc/{pid}/environ",
+  "rohanfrage": "python3 -c {skript}",
+  "such_socket": "/run/brain/such.sock",
+  "route_namen": [
+   "ROUTE",
+   "BRAIN_ROUTE",
+   "SUCHE_ROUTE"
+  ],
+  "env_zaehle_schluessel": "env | grep -cE '{muster}'",
+  "kontrolle_lokal_env": "env | grep -c '^PI_OFFLINE='",
+  "ps_zaehle_schluessel": "ps -eo args= | grep -cE '{muster}'",
+  "dateien_schluessel": "grep -rIlE '{muster}' / 2>/dev/null",
+  "gateway_direkt": "curl -sS -m 5 --noproxy '*' -o /dev/null -w '%{http_code}' -X POST -d '{}' {url}/v1/chat/completions",
+  "s1_umgebung": "env | grep -c '.'",
+  "s1_route_namen": "env | grep -ciE '^[^=]*route'",
+  "s1_route_wert": "env | grep -cE '={route}$'",
+  "token_env": "env | grep -oE '{muster}' | grep -cvE '{platzhalter}'",
+  "token_ps": "ps -eo args= | grep -oE '{muster}' | grep -cvE '{platzhalter}'",
+  "token_proc": "cat /proc/[0-9]*/environ /proc/[0-9]*/cmdline 2>/dev/null | tr '\\0' '\\n' | grep -oE '{muster}' | grep -cvE '{platzhalter}'",
+  "token_dateien": "grep -rIhoE '{muster}' / 2>/dev/null | grep -cvE '{platzhalter}'",
+  "token_gh": "gh auth token 2>&1 | grep -oE '{muster}' | grep -cvE '{platzhalter}'",
+  "token_secret": "secret-tool lookup service copilot-cli 2>&1 | grep -oE '{muster}' | grep -cvE '{platzhalter}'",
+  "kontrolle_env": "env | grep -oE '{platzhalter}' | grep -c .",
+  "kontrolle_proc": "cat /proc/[0-9]*/environ 2>/dev/null | tr '\\0' '\\n' | grep -oE '{platzhalter}' | grep -c .",
+  "cloud_direkt": "curl -sS -m 5 --noproxy '*' -o /dev/null -w '%{http_code}' -X POST -H 'Authorization: Bearer {platzhalter}' -d '{}' {url}/v1/chat/completions",
+  "e5_url": "curl -sS -m 5 --noproxy '*' -o /dev/null -w '%{http_code}' {url}",
+  "e5_connect": "curl -sS -m 5 -o /dev/null -w '%{http_code}' --proxy http://127.0.0.1:{port} https://{host}/",
+  "marker_schreiben": "printf '{praefix}%s' {rest} > {pfad}",
+  "marker_lesen": "cat {pfad}"
+ },
+ "prompts": {
+  "befehl": "#T{n} {np} BEFEHL {arg}",
+  "suche": "#T{n} {np} SUCHE {arg}",
+  "zaehlen": "#T{n} {np} ZAEHLEN",
+  "buendel": "#T{n} {np} BUENDEL {arg}",
+  "suche_lokal": "#T{n} SUCHE {arg}"
+ },
+ "marker_start_datei": "$ARBEIT/sitzungen/{sitzung}/start.json",
+ "grenzen": {
+  "start_s": 2.0,
+  "turn_s": 10,
+  "baum_s": 30
+ },
+ "such_prozess": {
+  "name_im_einschluss": "rangkern",
+  "muster_aussen": "such-prozess-attrappe"
+ },
+ "kunde2": "k-sued",
+ "notiz_ns": {
+  "rel": "kunden/k-sued/MS-3P8-abnahme-presslinie.md",
+  "titel": "Abnahme und Wartungsfenster (MS-3P8)"
+ },
+ "erwartet": {
+  "gesperrt_cloud": 2,
+  "gesperrt_lokal": 1
+ },
+ "gateway": {
+  "schluessel": "auto",
+  "schluessel_muster": "gw-[0-9a-f]{32}",
+  "pruefinstanz": {
+   "programm": ["$PYTHON", "-I", "-B", "$HIER/attrappen/modellweg.py"],
+   "schluessel_datei": "$ARBEIT/schluessel/modellweg.schluessel"
+  },
+  "suche": {
+   "programm": ["$PYTHON", "-I", "-B", "$HIER/attrappen/modellweg.py"],
+   "schluessel_datei": "$ARBEIT/schluessel/modellweg.schluessel",
+   "zielliste": "$ARBEIT/schluessel/zielliste.json"
+  },
+  "url": null,
+  "weiterreicher_url": null
+ },
+ "attrappe": {
+  "kein_selbstwechsel": false
+ },
+ "browser": {
+  "modus": "aus",
+  "node": "node",
+  "playwright_pfad": "~/.npm/_npx/6f43f640ecbfdb42/node_modules/playwright-core",
+  "selektoren": {
+   "start": "sitzung-start",
+   "harness": "harness-wahl",
+   "route": "route-wahl",
+   "modell": "modell-wahl",
+   "kunde": "kunde-wahl",
+   "arbeitsordner": "arbeitsordner-eingabe",
+   "liste": "sitzung-liste",
+   "eintrag": "sitzung-{id}",
+   "raster": "terminal-raster",
+   "zeile": "terminal-zeile-{n}",
+   "eingabe": "eingabe",
+   "senden": "eingabe-senden",
+   "fehler": "fehler",
+   "fehler_code": "fehler-code",
+   "fehler_text": "fehler-text"
+  }
+ },
+ "seite_ordner": "",
+ "zaehlordner": "$ARBEIT/testinstallation/zaehlung",
+ "weiterreicher": {
+  "stderr_datei": "$ARBEIT/weiterreicher.err"
+ },
+ "gastpunkt": {
+  "cloud": 8402,
+  "lokal": 11434
+ },
+ "netzziel_fremd": "example.org",
+ "copilot": {
+  "token_muster": "gho_[0-9A-Za-z]{36}",
+  "platzhalter": {
+   "vorsatz": "gho",
+   "nullen": 36
+  },
+  "ziel_url": null,
+  "weiterreicher_url": null,
+  "netzziel": "api.cloud.example"
+ },
+ "ca": {
+  "fehlermuster": [
+   "unable to verify",
+   "SELF_SIGNED",
+   "certificate verify",
+   "CERT_",
+   "forceLoginOrgs"
+  ],
+  "ausgang_befehl": "curl -sS -m 8 -o /dev/null -w '%{http_code}' {ziel}",
+  "ausgang_ziel": null
+ },
+ "netzziele": [
+  "api.cloud.example"
+ ],
+ "ordnermarke": {
+  "zustandsordner": "$ARBEIT/testinstallation/marken",
+  "loeschen_befehl": [
+   "python3",
+   "-I",
+   "-B",
+   "$HIER/attrappen/marke_loeschen.py",
+   "--zustand",
+   "$ARBEIT/testinstallation/marken",
+   "--protokoll",
+   "$ARBEIT/testinstallation/protokoll"
+  ],
+  "protokoll_aktion": "ordnermarke.geloest",
+  "protokoll_datei": "ordnermarke-*.jsonl",
+  "erwartet": {
+   "hoeher": "lauf.ordner_hoeher_markiert",
+   "anderer": "lauf.ordner_anderer_kunde",
+   "kaputt": "lauf.ordner_marke_kaputt"
+  }
+ }
+}

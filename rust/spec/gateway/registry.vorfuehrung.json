@@ -1,0 +1,52 @@
+{
+ "fassung": 1,
+ "waehrung": "EUR",
+ "einheit": 9,
+ "optionen": {
+  "kosten_mitschreiben": true,
+  "kostenauswertung": false,
+  "modellwahl_nach_preis": false
+ },
+ "anbieter": [
+  {
+   "schluessel": "anb-cloud-a",
+   "art": "cloud",
+   "protokoll": "messages",
+   "ziel": null,
+   "halter": "anb-cloud-a"
+  },
+  {
+   "schluessel": "anb-lokal",
+   "art": "lokal",
+   "protokoll": "chat",
+   "ziel": "http://127.0.0.1:11434",
+   "halter": null
+  }
+ ],
+ "routen": [
+  {
+   "route": "cloud-beispiel",
+   "modelle": [
+    {
+     "modell": "claude-sonnet-5-5",
+     "anbieter": "anb-cloud-a",
+     "stufe": "stufe-1",
+     "preis_ein": 3000,
+     "preis_aus": 15000
+    }
+   ]
+  },
+  {
+   "route": "lokal-beispiel",
+   "modelle": [
+    {
+     "modell": "qwen3:8b",
+     "anbieter": "anb-lokal",
+     "stufe": "stufe-1",
+     "preis_ein": 0,
+     "preis_aus": 0
+    }
+   ]
+  }
+ ]
+}

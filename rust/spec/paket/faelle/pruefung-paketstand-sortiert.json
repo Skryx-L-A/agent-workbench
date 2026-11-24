@@ -1,0 +1,35 @@
+{
+ "beschreibung": "Dateizeilen nach Pfad, dann nach Art (fehlt, abweichend, fremd), egal in welcher Reihenfolge sie anfallen",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "windows",
+  "konten": 1,
+  "halter": "ok",
+  "wfp": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": [
+    {
+     "pfad": "bin/b.exe",
+     "art": "abweichend"
+    },
+    {
+     "pfad": "bin/a.exe",
+     "art": "fremd"
+    },
+    {
+     "pfad": "bin/a.exe",
+     "art": "fehlt"
+    }
+   ]
+  },
+  "stelle": "ok"
+ }
+}

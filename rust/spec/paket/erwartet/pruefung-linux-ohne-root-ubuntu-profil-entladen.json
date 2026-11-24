@@ -1,0 +1,10 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.apparmor_nicht_pruefbar: Das AppArmor-Profil war nicht pruefbar.",
+  "pruef.hinweis_ubuntu_profil_entladen: Das Ubuntu-Profil bwrap-userns-restrict ist nicht geladen.",
+  "pruef.hinweis_sudo: Ohne root waren nicht alle Pruefungen moeglich; fuer diese Pruefungen mit sudo aufrufen.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

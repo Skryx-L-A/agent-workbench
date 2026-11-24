@@ -1,0 +1,16 @@
+{
+ "description": "one well-formed pair",
+ "files": {
+  "note.md": "# Titel\n\nVor.\n\n<!-- dream:block:start -->\nalt\n<!-- dream:block:end -->\n\nNach.\n"
+ },
+ "args": [
+  "markers",
+  "{root}/note.md",
+  "--start",
+  "<!-- dream:block:start -->",
+  "--end",
+  "<!-- dream:block:end -->",
+  "--replace",
+  "<!-- dream:block:start -->\nneu\n<!-- dream:block:end -->"
+ ]
+}

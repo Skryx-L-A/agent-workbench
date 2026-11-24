@@ -1,0 +1,11 @@
+{
+ "seite": "anlegen",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Socket vom Typ S_IFSOCK, Modus 0600, Besitzer uid_person",
+  "Ordner weiter 0700"
+ ]
+}

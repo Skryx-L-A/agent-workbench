@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Tilde wird nicht ausgewertet",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"~/Projekte\"\n ],\n \"programmordner\": [\n  \"/Users/beispiel/.local/share/claude\",\n  \"/opt/homebrew\"\n ]\n}\n"
+}

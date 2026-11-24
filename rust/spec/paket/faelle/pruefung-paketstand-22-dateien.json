@@ -1,0 +1,111 @@
+{
+ "beschreibung": "22 abweichende Dateien: 20 Zeilen, dann `weitere`",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "windows",
+  "konten": 1,
+  "halter": "ok",
+  "wfp": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": [
+    {
+     "pfad": "daten/d00.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d01.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d02.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d03.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d04.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d05.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d06.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d07.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d08.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d09.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d10.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d11.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d12.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d13.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d14.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d15.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d16.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d17.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d18.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d19.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d20.bin",
+     "art": "fehlt"
+    },
+    {
+     "pfad": "daten/d21.bin",
+     "art": "fehlt"
+    }
+   ]
+  },
+  "stelle": "ok"
+ }
+}

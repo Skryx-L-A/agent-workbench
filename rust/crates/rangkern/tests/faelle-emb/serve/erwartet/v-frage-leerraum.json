@@ -1,0 +1,169 @@
+{
+ "responses": [
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-werkstatt/schraube.md",
+     "score": 1.0,
+     "title": "Schraube und Gewinde",
+     "snippet": "Notiz zu schraube: schraube frueh planen, gewinde zweimal im Monat pruefen. Wer schraube anlegt, braucht Zeit fuer gewinde. Merkzettel schraube.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9990662795274372,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-1.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Wolke",
+     "snippet": "Ein Text ueber wolke und wolkestand, ohne Bezug zu den anderen Notizen. wolke wolke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9709520964239055,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/holz/bohrer.md",
+     "score": 0.4444444444444444,
+     "title": "Bohrer und Spannfutter",
+     "snippet": "Notiz zu bohrer: bohrer frueh planen, spannfutter zweimal im Monat pruefen. Wer bohrer anlegt, braucht Zeit fuer spannfutter. Merkzettel bohrer.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9481002915911898,
+     "vektor_rang": 3,
+     "space": "holz"
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-4.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Sturm",
+     "snippet": "Ein Text ueber sturm und sturmstand, ohne Bezug zu den anderen Notizen. sturm sturm.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9306304338785639,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "10-werkstatt/feile.md",
+     "score": 0.4,
+     "title": "Feile und Raspel",
+     "snippet": "Notiz zu feile: feile frueh planen, raspel zweimal im Monat pruefen. Wer feile anlegt, braucht Zeit fuer raspel. Merkzettel feile.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8984333030324517,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-werkstatt/leim.md",
+     "score": 1.0,
+     "title": "Leim und Zwinge",
+     "snippet": "Notiz zu leim: leim frueh planen, zwinge zweimal im Monat pruefen. Wer leim anlegt, braucht Zeit fuer zwinge. Merkzettel leim.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9140498222388052,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 10
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-4.md",
+     "score": 0.6097560975609756,
+     "title": "Fueller Sturm",
+     "snippet": "Ein Text ueber sturm und sturmstand, ohne Bezug zu den anderen Notizen. sturm sturm.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9878416069293467,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "20-projects/holz/zirkel.md",
+     "score": 0.5738880918220947,
+     "title": "Zirkel und Lineal",
+     "snippet": "Notiz zu zirkel: zirkel frueh planen, lineal zweimal im Monat pruefen. Wer zirkel anlegt, braucht Zeit fuer lineal. Merkzettel zirkel.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9585526132516147,
+     "vektor_rang": 2,
+     "space": "holz"
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-1.md",
+     "score": 0.5420054200542005,
+     "title": "Fueller Wolke",
+     "snippet": "Ein Text ueber wolke und wolkestand, ohne Bezug zu den anderen Notizen. wolke wolke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9579850056599617,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-3.md",
+     "score": 0.5134788189987163,
+     "title": "Fueller Nebel",
+     "snippet": "Ein Text ueber nebel und nebelstand, ohne Bezug zu den anderen Notizen. nebel nebel.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9553476715089168,
+     "vektor_rang": 4
+    }
+   ],
+   "id": 2
+  }
+ ],
+ "exit": 0,
+ "aufrufe": [
+  [
+   {
+    "model": "embeddinggemma:latest",
+    "input": "  schraube\tgewinde\n  Größe ẞ  ",
+    "keep_alive": "30m"
+   }
+  ],
+  [
+   {
+    "model": "embeddinggemma:latest",
+    "input": "-leim zwinge",
+    "keep_alive": "30m"
+   }
+  ]
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "description": "U+2028 splits a frontmatter line like a newline",
+ "files": {
+  "note.md": "---\ntitle: vorne zweit: hinten\ntype: note\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

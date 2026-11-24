@@ -1,0 +1,22 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "klasse": "nur",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "kundendaten",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "kunde-fehlt",
+     "klasse": "nur",
+     "meldung": "Kundendaten ohne Kunde"
+    }
+   }
+  ]
+ }
+}

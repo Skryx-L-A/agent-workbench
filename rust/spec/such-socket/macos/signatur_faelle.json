@@ -1,0 +1,16 @@
+{
+ "faelle": [
+  {
+   "name": "mac-s-rangkern-ohne-get-task-allow",
+   "herkunft": "macos",
+   "orte": [
+    "mac"
+   ],
+   "programm": "rangkern",
+   "beschreibung": "rangkern trägt keines der verbotenen Rechte; eine Kopie, die get-task-allow trägt, macht dieselbe Prüfung rot (Gegenprobe)",
+   "verbotene_rechte": [
+    "com.apple.security.get-task-allow"
+   ]
+  }
+ ]
+}

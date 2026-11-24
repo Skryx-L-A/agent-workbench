@@ -1,0 +1,160 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    0,
+    1,
+    true
+   ],
+   "groesse": [
+    2,
+    8
+   ],
+   "ruecklauf": {
+    "erste": "a",
+    "letzte": "a",
+    "zahl": 1
+   },
+   "stand": 5,
+   "zeilen": [
+    "漢",
+    "b",
+    "漢",
+    "字",
+    "😀",
+    "é",
+    "👍🏽",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       3,
+       0,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "a",
+       "1": "漢",
+       "2": "b"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       5,
+       0,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "3": "漢",
+       "4": "字"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       6,
+       0,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "5": "😀"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       7,
+       0,
+       true
+      ],
+      "stand": 4,
+      "zeilen": {
+       "0": "漢",
+       "1": "b",
+       "2": "漢",
+       "3": "字",
+       "4": "😀",
+       "5": "é",
+       "6": "👍🏽"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       1,
+       true
+      ],
+      "stand": 5,
+      "zeilen": {}
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      0,
+      1,
+      true
+     ],
+     "groesse": [
+      2,
+      8
+     ],
+     "ruecklauf": {
+      "erste": "a",
+      "letzte": "a",
+      "zahl": 1
+     },
+     "stand": 5,
+     "zeilen": [
+      "漢",
+      "b",
+      "漢",
+      "字",
+      "😀",
+      "é",
+      "👍🏽",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

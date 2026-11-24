@@ -1,0 +1,9 @@
+{
+ "beschreibung": "W10 fall",
+ "form": "vm",
+ "eigenschaft": "W10",
+ "art": "fall",
+ "ausgangslage": "Windows-VM; Plattformdienst unter NT SERVICE mit den fünf ACEs, Admin-Helfer unter LocalSystem; Projekt A mit Arbeitsordner unter der Projektwurzel; ein Lauf in A mit Claude Code (PowerShell-Werkzeug) gegen die Attrappe des Modellwegs hinter einem Weiterleiter auf dem Sitzungsport M; die Browser-Brücke des Kern-Dienstes hört auf dem Loopback des Rechners; ssh-Stummel vorn im PATH, SSH_AUTH_SOCK leer; zwei Läufe s-1 und s-2 im selben Projekt, je eigener Schein",
+ "handlung": "Jeder Lauf fragt den Modellweg mit dem eigenen und mit dem fremden Schein; dann endet s-1",
+ "beleg": "gemessen: Frage 11, je mindestens 42 von 42; 129 von 129"
+}

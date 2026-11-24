@@ -1,0 +1,11 @@
+{
+ "description": "stem of unusual names",
+ "args": [
+  "paths",
+  "10-global/a.b.md",
+  "10-global/.md",
+  "10-global/x.MD",
+  "10-global/a..md",
+  "10-global/notiz.txt"
+ ]
+}

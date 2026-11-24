@@ -1,0 +1,105 @@
+#!/bin/sh
+# werkbank-ca-zulassung <zugelassen|offen|abgelehnt> -- the explicit step of an administrator (root) that sets `ca_zulassung` in
+# /etc/werkbank/lauf.json without a question (contract rust/spec/paket, part A, "Zulassung der CA"). The same step as the question of
+# `dpkg-reconfigure werkbank`, for a setup by script.
+# It changes exactly one field of the file, writes the file atomically (temporary file in the same folder, root:root 0644, then rename),
+# writes one line to the journal (`logger -t werkbank-installation`: new value, old value, way, uid, time; no secret) and makes the answer
+# of debconf the same value, so the next question shows it as default and `dpkg-reconfigure` or an upgrade never turn it back.
+# Exit codes: 0 done (also: value unchanged); 64 usage error or a value that is none of the three (nothing changed); 66 the file is
+# missing, no ordinary file, or has not exactly one field `ca_zulassung` in the form of postinst (nothing changed); 74 writing failed
+# (nothing changed); 77 not root.
+ETCW=/etc/werkbank
+
+ca_uid() {
+    id -u 2>/dev/null
+}
+
+# --- ca-befehl begin
+# ca_datei_wert: prints the value of `ca_zulassung` of lauf.json, read as JSON text: any white space (space, tab, CR, LF) around ":" and in front of the
+# value is fine, so a file that an administrator rewrote with another tool is read as before. Only the three valid values count; the key must stand
+# exactly once (a second `"ca_zulassung"` or a value of another form gives nothing, which means `ungueltig` to the callers). POSIX tools only.
+ca_roh() {
+    tr '\n\r\t' '   ' <"$ETCW/lauf.json" 2>/dev/null
+}
+
+ca_datei_wert() {
+    [ -f "$ETCW/lauf.json" ] || return 0
+    cb_n=$(ca_roh | grep -o '"ca_zulassung"' | wc -l)
+    [ $((cb_n + 0)) -eq 1 ] || return 0
+    cb_w=$(ca_roh | grep -o -E '"ca_zulassung" *: *"[^"]*"' | sed -E 's/^"ca_zulassung" *: *"([^"]*)"$/\1/')
+    case "$cb_w" in
+        zugelassen | offen | abgelehnt) printf '%s' "$cb_w" ;;
+    esac
+    return 0
+}
+
+ca_protokoll() {
+    cb_zeit=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || cb_zeit=unbekannt
+    cb_wer=$(ca_uid)
+    case "$cb_wer" in "" | *[!0-9]*) cb_wer=unbekannt ;; esac
+    cb_zeile="werkbank: ca_zulassung $1 (vorher $2), Weg befehl, uid $cb_wer"
+    case "${SUDO_UID:-}" in "" | *[!0-9]*) ;; *) cb_zeile="$cb_zeile, sudo_uid $SUDO_UID" ;; esac
+    logger -t werkbank-installation "$cb_zeile, Zeit $cb_zeit" 2>/dev/null || true
+}
+
+ca_setzen() {
+    cb_neu=$1
+    cb_datei=$ETCW/lauf.json
+    if [ -L "$cb_datei" ] || [ ! -f "$cb_datei" ]; then
+        echo "werkbank-ca-zulassung: $cb_datei fehlt oder ist keine gewoehnliche Datei; nichts geaendert" >&2
+        return 66
+    fi
+    # exactly one field in a form that is read as JSON (white space around ":" and line breaks allowed), nothing else is touched
+    cb_n=$(ca_roh | grep -o '"ca_zulassung"' | wc -l)
+    cb_f=$(ca_roh | grep -o -E '"ca_zulassung" *: *"[a-z]*"' | wc -l)
+    if [ $((cb_n + 0)) -ne 1 ] || [ $((cb_f + 0)) -ne 1 ]; then
+        echo "werkbank-ca-zulassung: $cb_datei hat nicht genau ein Feld ca_zulassung in der erwarteten Form; nichts geaendert" >&2
+        return 66
+    fi
+    cb_alt=$(ca_datei_wert)
+    cb_alt_text=${cb_alt:-ungueltig}
+    if [ "$cb_alt" != "$cb_neu" ]; then
+        cb_tmp=$(mktemp "$ETCW/.lauf.json.XXXXXX") || return 74
+        # The line breaks go to SOH for the one sed run, so a key, a colon and a value on separate lines are found; only the value changes.
+        cb_soh=$(printf '\001')
+        if tr '\n' "$cb_soh" <"$cb_datei" | sed -E "s/(\"ca_zulassung\"[[:space:]$cb_soh]*:[[:space:]$cb_soh]*)\"[a-z]*\"/\1\"$cb_neu\"/" | tr "$cb_soh" '\n' >"$cb_tmp" \
+            && chmod 0644 "$cb_tmp" && chown root:root "$cb_tmp" && mv -f "$cb_tmp" "$cb_datei"; then
+            :
+        else
+            rm -f "$cb_tmp"
+            echo "werkbank-ca-zulassung: $cb_datei konnte nicht geschrieben werden; nichts geaendert" >&2
+            return 74
+        fi
+        ca_protokoll "$cb_neu" "$cb_alt_text"
+        echo "werkbank-ca-zulassung: ca_zulassung ist jetzt $cb_neu (vorher $cb_alt_text)."
+    else
+        echo "werkbank-ca-zulassung: ca_zulassung ist schon $cb_neu; nichts geaendert."
+    fi
+    # debconf gets the same value (and the answer counts as consumed), so no older answer can turn it back.
+    if command -v debconf-communicate >/dev/null 2>&1; then
+        cb_aus=$(printf 'SET werkbank/ca_zulassung %s\nFSET werkbank/ca_zulassung seen false\n' "$cb_neu" | debconf-communicate werkbank 2>/dev/null)
+        if [ -n "$(printf '%s\n' "$cb_aus" | grep '^[1-9]')" ]; then
+            echo "werkbank-ca-zulassung: Warnung: debconf wurde nicht abgeglichen; die Datei gilt." >&2
+        fi
+    fi
+    return 0
+}
+# --- ca-befehl end
+
+if [ $# -ne 1 ]; then
+    echo "Aufruf: werkbank-ca-zulassung <zugelassen|offen|abgelehnt>" >&2
+    exit 64
+fi
+case "$1" in
+    zugelassen | offen | abgelehnt) ;;
+    *)
+        echo "werkbank-ca-zulassung: der Wert ist keiner von zugelassen, offen, abgelehnt; nichts geaendert" >&2
+        exit 64
+        ;;
+esac
+if [ "$(ca_uid)" != 0 ]; then
+    echo "werkbank-ca-zulassung: nur als root (sudo werkbank-ca-zulassung $1); nichts geaendert" >&2
+    exit 77
+fi
+ca_setzen "$1"
+exit $?

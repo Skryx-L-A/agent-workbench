@@ -1,0 +1,114 @@
+{
+ "description": "Vault fehlt beim Start (der Prozess startet trotzdem): unreadable, bis der Ordner da ist",
+ "args": [
+  "{root}/vault"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "search",
+    "id": 1,
+    "query": "zaun"
+   }
+  },
+  {
+   "request": {
+    "op": "ping",
+    "id": 2
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "id": 3,
+    "query": "zaun",
+    "k": 2
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/zaun.md": "---\ntitle: Zaun und Pfosten\ntype: note\n---\n\nNotiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/kompost.md": "---\ntitle: Kompost und Wurmkiste\ntype: note\n---\n\nNotiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/tomaten.md": "---\ntitle: Tomaten und Gewaechshaus\ntype: note\n---\n\nNotiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/hecke.md": "---\ntitle: Hecke und Schnitt\ntype: note\n---\n\nNotiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/teich.md": "---\ntitle: Teich und Folie\ntype: note\n---\n\nNotiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/20-projects/garten/rasen.md": "---\ntitle: Rasen und Maehen\ntype: note\n---\n\nNotiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/20-projects/garten/hochbeet.md": "---\ntitle: Hochbeet und Erde\ntype: note\n---\n\nNotiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/20-projects/garten/regentonne.md": "---\ntitle: Regentonne und Dachrinne\ntype: note\n---\n\nNotiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/misc/fueller-1.md": "---\ntitle: Fueller Bahnhof\ntype: note\n---\n\nEin Text ueber bahnhof und bahnhofstand, ohne Bezug zu den anderen Notizen. bahnhof bahnhof.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/misc/fueller-2.md": "---\ntitle: Fueller Fahrplan\ntype: note\n---\n\nEin Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/misc/fueller-3.md": "---\ntitle: Fueller Gleis\ntype: note\n---\n\nEin Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/misc/fueller-4.md": "---\ntitle: Fueller Schaffner\ntype: note\n---\n\nEin Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/misc/fueller-5.md": "---\ntitle: Fueller Koffer\ntype: note\n---\n\nEin Text ueber koffer und kofferstand, ohne Bezug zu den anderen Notizen. koffer koffer.\n"
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/misc/fueller-6.md": "---\ntitle: Fueller Ticket\ntype: note\n---\n\nEin Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.\n"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "id": 4,
+    "query": "zaun"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "id": 5,
+    "query": "zaun",
+    "k": 2
+   }
+  }
+ ]
+}

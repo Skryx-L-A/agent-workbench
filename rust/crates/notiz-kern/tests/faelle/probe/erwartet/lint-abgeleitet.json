@@ -1,0 +1,14 @@
+{
+ "exit": 0,
+ "stdout": {
+  "in_scope": true,
+  "fields": {
+   "title": "T",
+   "class": "derived",
+   "type": "quatsch"
+  },
+  "blocks": 1,
+  "findings": [],
+  "new": false
+ }
+}

@@ -1,0 +1,8 @@
+{
+ "description": "Apostroph bleibt im Wort",
+ "program": "rangkern",
+ "args": [
+  "tokens",
+  "Ich geht's zu Omas' Garten"
+ ]
+}

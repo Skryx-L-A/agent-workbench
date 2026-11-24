@@ -1,0 +1,32 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "fehler",
+ "code": "pk.prozess_gewechselt",
+ "ereignisse": [
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.prozess_gewechselt",
+   "grund": "pk.prozess_beendet",
+   "peer": {
+    "system": "linux",
+    "sid": null,
+    "appcontainer_sid": null,
+    "uid": 1000000101,
+    "gid": 1000000201,
+    "pid": "=client",
+    "startzeit": "=neuer_prozess",
+    "im_job": null,
+    "programm": "=client",
+    "signatur": null,
+    "eingeschraenkt": null,
+    "sandbox": null
+   }
+  }
+ ],
+ "peer": null,
+ "gemessen": [
+  "Ereignis pk.prozess_gewechselt",
+  "keine Verbindung an den Aufrufer"
+ ]
+}

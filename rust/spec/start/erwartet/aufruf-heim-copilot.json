@@ -1,0 +1,9 @@
+{
+ "exec": "copilot",
+ "heim_im_einschluss": {
+  "home": "<heim>",
+  "tmpfs": "<heim>",
+  "unter_heim_nur": ".copilot",
+  "unter_heim_nur_lesend": ".cache/copilot/pkg/<plattform>/<fassung>"
+ }
+}

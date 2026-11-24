@@ -1,0 +1,10 @@
+{
+ "description": "frontmatter without trailing newline",
+ "files": {
+  "kopf.md": "---\ntitle: Nur Kopf\n---"
+ },
+ "args": [
+  "parse",
+  "{root}/kopf.md"
+ ]
+}

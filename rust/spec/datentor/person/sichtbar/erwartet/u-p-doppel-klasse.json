@@ -1,0 +1,8 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13",
+  "A139"
+ ],
+ "beschreibung": "Ein Eintrag nennt klasse zweimal, das zweite Mal als kl\\u0061sse; der zweite Wert wäre lockerer."
+}

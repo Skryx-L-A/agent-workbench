@@ -1,0 +1,47 @@
+{
+ "responses": [
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-werkstatt/leim.md",
+     "score": 1.0,
+     "title": "Leim und Zwinge",
+     "snippet": "Notiz zu leim: leim frueh planen, zwinge zweimal im Monat pruefen. Wer leim anlegt, braucht Zeit fuer zwinge. Merkzettel leim.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-werkstatt/leim.md",
+     "score": 1.0,
+     "title": "Leim und Zwinge",
+     "snippet": "Notiz zu leim: leim frueh planen, zwinge zweimal im Monat pruefen. Wer leim anlegt, braucht Zeit fuer zwinge. Merkzettel leim.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 2
+  }
+ ],
+ "exit": 0,
+ "aufrufe": [
+  [],
+  []
+ ]
+}

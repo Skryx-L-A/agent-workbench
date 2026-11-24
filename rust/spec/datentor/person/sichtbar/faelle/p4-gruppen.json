@@ -1,0 +1,203 @@
+{
+ "name": "p4-gruppen",
+ "regeln": [
+  "P4",
+  "F1"
+ ],
+ "beschreibung": "Ohne eigenen Eintrag gilt die höchste Leseklasse der Gruppen der Person; unbekannte Gruppen zählen nicht.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oe",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-in",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "c-kd",
+    "art": "cloud",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "r-ohne",
+    "art": "lokal"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-1",
+    "erlaubt": [
+     "r-kd",
+     "c-kd"
+    ]
+   },
+   {
+    "schluessel": "k-2",
+    "erlaubt": [
+     "r-kd"
+    ],
+    "verboten": [
+     "c-kd"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": [
+    {
+     "route": "c-kd",
+     "kunde": "k-1"
+    }
+   ]
+  }
+ },
+ "personen": {
+  "leseklassen": [
+   {
+    "ebene": "nutzer",
+    "wer": "p-oe",
+    "klasse": "oeffentlich"
+   },
+   {
+    "ebene": "nutzer",
+    "wer": "p-in",
+    "klasse": "intern"
+   },
+   {
+    "ebene": "nutzer",
+    "wer": "p-kd",
+    "klasse": "kundendaten"
+   },
+   {
+    "ebene": "gruppe",
+    "wer": "g-oe",
+    "klasse": "oeffentlich"
+   },
+   {
+    "ebene": "gruppe",
+    "wer": "g-in",
+    "klasse": "intern"
+   },
+   {
+    "ebene": "gruppe",
+    "wer": "g-kd",
+    "klasse": "kundendaten"
+   },
+   {
+    "ebene": "nutzer",
+    "wer": "p-tief",
+    "klasse": "oeffentlich"
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "r-in",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-g",
+    "gruppen": [
+     "g-oe"
+    ]
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "r-in",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-g",
+    "gruppen": [
+     "g-oe",
+     "g-in"
+    ]
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "r-in",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-g",
+    "gruppen": [
+     "g-in",
+     "g-oe"
+    ]
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "r-in",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-g",
+    "gruppen": [
+     "g-x",
+     "g-in"
+    ]
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r-kd",
+   "kunde": "k-1",
+   "kontext": {
+    "nutzer": "p-g",
+    "gruppen": [
+     "g-oe",
+     "g-kd",
+     "g-in"
+    ]
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "oeffentlich"
+   },
+   "route": "r-oe",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-g",
+    "gruppen": []
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "oeffentlich"
+   },
+   "route": "r-oe",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-g",
+    "gruppen": [
+     "G-IN"
+    ]
+   }
+  }
+ ]
+}

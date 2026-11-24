@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Antwort mit dem Wert des Schlüssels",
+ "form": "antwort",
+ "text": "{\"art\":\"antwort\",\"fassung\":1,\"id\":\"q-1\",\"ok\":true,\"vorhanden\":true,\"wert\":\"beispielwert\"}"
+}

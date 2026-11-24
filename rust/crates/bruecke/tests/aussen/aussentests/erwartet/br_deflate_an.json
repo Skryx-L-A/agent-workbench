@@ -1,0 +1,121 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "protokoll": [],
+   "stderr_fremd": 0,
+   "token_datei_entfernt": true,
+   "token_nicht_in_ausgabe": true
+  },
+  "ergebnisse": [
+   {
+    "deflate": "1",
+    "kennung": true,
+    "kennung_verschieden": true,
+    "status": 200
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "json": {
+     "sitzung": "s-1"
+    },
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 200,
+    "typ": "application/json"
+   },
+   {
+    "ok": true
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 204
+   },
+   {
+    "ok": true
+   },
+   {
+    "close": true,
+    "cookie": false,
+    "cors": false,
+    "koerper_laenge": 0,
+    "laenge_stimmt": true,
+    "no_store": true,
+    "nosniff": true,
+    "status": 204
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild_fehler": [],
+    "abbilder": {
+     "1": {
+      "cursor": [
+       2,
+       0,
+       true
+      ],
+      "groesse": [
+       100,
+       12
+      ],
+      "zeilen": [
+       "BEREIT",
+       "MARKE EINS",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       ""
+      ]
+     }
+    },
+    "ablehnungen": [],
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     "Einstellungen",
+     "Routen",
+     "Sitzungsliste",
+     "Anfragen",
+     "Agenten",
+     "Startwahl",
+     "Sitzungsliste"
+    ],
+    "ok": true
+   }
+  ],
+  "start": {
+   "hoerer": [
+    "127.0.0.1"
+   ],
+   "ok": true,
+   "ordner_modus": "0700",
+   "port_zeile": true,
+   "stderr_leer": true,
+   "stdout_zeilen": 1,
+   "token_datei": {
+    "form": true,
+    "modus": "0600",
+    "verschieden": true
+   }
+  }
+ },
+ "exit": 0
+}

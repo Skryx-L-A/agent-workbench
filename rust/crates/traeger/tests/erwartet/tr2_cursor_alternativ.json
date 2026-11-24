@@ -1,0 +1,180 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    1,
+    6,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 6,
+   "zeilen": [
+    "alpha",
+    "bdelta",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       4,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "alpha",
+       "1": "beta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       4,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": "",
+       "1": ""
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       2,
+       9,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "2": "    gamma"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       4,
+       true
+      ],
+      "stand": 4,
+      "zeilen": {
+       "0": "alpha",
+       "1": "beta",
+       "2": ""
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       1,
+       true
+      ],
+      "stand": 5,
+      "zeilen": {}
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       6,
+       true
+      ],
+      "stand": 6,
+      "zeilen": {
+       "1": "bdelta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      1,
+      6,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 6,
+     "zeilen": [
+      "alpha",
+      "bdelta",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

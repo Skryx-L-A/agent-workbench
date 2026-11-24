@@ -1,0 +1,10 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.paketstand_datei_fehlt: Die Datei bin/a.exe fehlt.",
+  "pruef.paketstand_datei_fremd: Die Datei bin/a.exe steht nicht im Manifest.",
+  "pruef.paketstand_datei_abweichend: Die Datei bin/b.exe weicht vom Manifest ab.",
+  "pruef.rot: 3 Befunde."
+ ]
+}

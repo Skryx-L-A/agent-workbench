@@ -1,0 +1,7 @@
+{
+ "erwartet": "Der Dienst erlaubt den Port, und der Agent erreicht die Browser-Brücke; der Test wird rot",
+ "messwerte": [
+  "Antwort auf lauf_start",
+  "Ergebnis der Verbindung"
+ ]
+}

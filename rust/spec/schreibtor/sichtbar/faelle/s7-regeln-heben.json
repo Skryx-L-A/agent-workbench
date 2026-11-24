@@ -1,0 +1,258 @@
+{
+ "name": "s7-regeln-heben",
+ "regeln": [
+  "S14",
+  "A36"
+ ],
+ "beschreibung": "Admin-Regeln heben nach Ordner und Kennzeichen; eine Regel mit niedrigerer Klasse senkt nie unter den Ort.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  },
+  "schreiben": {
+   "regeln": [
+    {
+     "schluessel": "r-kunden-o",
+     "ordner": "kunden/o",
+     "kennzeichen": "k-markt",
+     "klasse": "kundendaten"
+    },
+    {
+     "schluessel": "r-handbuch",
+     "ordner": "handbuch",
+     "klasse": "oeffentlich"
+    },
+    {
+     "schluessel": "r-betrieb",
+     "ordner": "betrieb",
+     "klasse": "intern"
+    }
+   ]
+  }
+ },
+ "anfragen": [
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "kunden/o/n1.md",
+    "art": "anlegen",
+    "inhalt": "Text"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [
+     "k-markt"
+    ],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "kunden/o/n2.md",
+    "art": "anlegen",
+    "inhalt": "Text"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "kunden/ox/n3.md",
+    "art": "anlegen",
+    "inhalt": "Text"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [
+     "k-markt"
+    ],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "handbuch/n4.md",
+    "art": "anlegen",
+    "inhalt": "Text"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "intern",
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "modell",
+    "sitzung": "s-1",
+    "route": "lokal",
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "handbuch/n5.md",
+    "art": "anlegen",
+    "inhalt": "Text"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": null,
+    "kennzeichen": [],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  },
+  {
+   "kontext": {
+    "herkunft": "mensch",
+    "sitzung": null,
+    "route": null,
+    "freigabe": null,
+    "person": null,
+    "entscheidend": null
+   },
+   "anfrage": {
+    "ziel": "kunden/o/a/n6.md",
+    "art": "anlegen",
+    "inhalt": "Text"
+   },
+   "lage": {
+    "ziel": {
+     "vorhanden": false
+    },
+    "ort": "oeffentlich",
+    "kennzeichen": [
+     "k-markt"
+    ],
+    "erkannt": {
+     "klasse": null,
+     "kunden": []
+    },
+    "erbe": {
+     "klasse": null,
+     "kunden": []
+    }
+   }
+  }
+ ]
+}

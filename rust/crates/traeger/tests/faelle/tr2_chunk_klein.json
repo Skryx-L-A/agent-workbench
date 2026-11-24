@@ -1,0 +1,234 @@
+{
+ "name": "tr2_chunk_klein",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Byte für Byte: UTF-8 und Steuerfolgen über Stückgrenzen hinweg geben dasselbe Bild",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Bytes",
+   "hex": "1b"
+  },
+  {
+   "art": "Bytes",
+   "hex": "5b"
+  },
+  {
+   "art": "Bytes",
+   "hex": "33"
+  },
+  {
+   "art": "Bytes",
+   "hex": "31"
+  },
+  {
+   "art": "Bytes",
+   "hex": "6d"
+  },
+  {
+   "art": "Bytes",
+   "hex": "47"
+  },
+  {
+   "art": "Bytes",
+   "hex": "72"
+  },
+  {
+   "art": "Bytes",
+   "hex": "c3"
+  },
+  {
+   "art": "Bytes",
+   "hex": "bc"
+  },
+  {
+   "art": "Bytes",
+   "hex": "c3"
+  },
+  {
+   "art": "Bytes",
+   "hex": "9f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "65"
+  },
+  {
+   "art": "Bytes",
+   "hex": "20"
+  },
+  {
+   "art": "Bytes",
+   "hex": "c3"
+  },
+  {
+   "art": "Bytes",
+   "hex": "a4"
+  },
+  {
+   "art": "Bytes",
+   "hex": "c3"
+  },
+  {
+   "art": "Bytes",
+   "hex": "b6"
+  },
+  {
+   "art": "Bytes",
+   "hex": "c3"
+  },
+  {
+   "art": "Bytes",
+   "hex": "bc"
+  },
+  {
+   "art": "Bytes",
+   "hex": "20"
+  },
+  {
+   "art": "Bytes",
+   "hex": "c3"
+  },
+  {
+   "art": "Bytes",
+   "hex": "9f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "1b"
+  },
+  {
+   "art": "Bytes",
+   "hex": "5b"
+  },
+  {
+   "art": "Bytes",
+   "hex": "30"
+  },
+  {
+   "art": "Bytes",
+   "hex": "6d"
+  },
+  {
+   "art": "Bytes",
+   "hex": "0d"
+  },
+  {
+   "art": "Bytes",
+   "hex": "0a"
+  },
+  {
+   "art": "Bytes",
+   "hex": "e6"
+  },
+  {
+   "art": "Bytes",
+   "hex": "bc"
+  },
+  {
+   "art": "Bytes",
+   "hex": "a2"
+  },
+  {
+   "art": "Bytes",
+   "hex": "e5"
+  },
+  {
+   "art": "Bytes",
+   "hex": "ad"
+  },
+  {
+   "art": "Bytes",
+   "hex": "97"
+  },
+  {
+   "art": "Bytes",
+   "hex": "20"
+  },
+  {
+   "art": "Bytes",
+   "hex": "65"
+  },
+  {
+   "art": "Bytes",
+   "hex": "cc"
+  },
+  {
+   "art": "Bytes",
+   "hex": "81"
+  },
+  {
+   "art": "Bytes",
+   "hex": "20"
+  },
+  {
+   "art": "Bytes",
+   "hex": "f0"
+  },
+  {
+   "art": "Bytes",
+   "hex": "9f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "91"
+  },
+  {
+   "art": "Bytes",
+   "hex": "8d"
+  },
+  {
+   "art": "Bytes",
+   "hex": "1b"
+  },
+  {
+   "art": "Bytes",
+   "hex": "5d"
+  },
+  {
+   "art": "Bytes",
+   "hex": "32"
+  },
+  {
+   "art": "Bytes",
+   "hex": "3b"
+  },
+  {
+   "art": "Bytes",
+   "hex": "74"
+  },
+  {
+   "art": "Bytes",
+   "hex": "07"
+  },
+  {
+   "art": "Bytes",
+   "hex": "1b"
+  },
+  {
+   "art": "Bytes",
+   "hex": "5b"
+  },
+  {
+   "art": "Bytes",
+   "hex": "3f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "35"
+  },
+  {
+   "art": "Bytes",
+   "hex": "68"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

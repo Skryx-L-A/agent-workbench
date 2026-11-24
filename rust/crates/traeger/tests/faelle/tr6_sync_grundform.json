@@ -1,0 +1,26 @@
+{
+ "name": "tr6_sync_grundform",
+ "regeln": [
+  "TR6"
+ ],
+ "datensatz": "A",
+ "beschreibung": "SyncBeginn und SyncEnde je Vorkommen; der Träger puffert nicht: die Ausgabe vor SyncEnde steht in der Folge der Ereignisse zwischen beiden",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?2026hbeta\r\ngamma\u001b[?2026ldelta"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

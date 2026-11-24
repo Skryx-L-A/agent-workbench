@@ -1,0 +1,18 @@
+{
+ "beschreibung": "die CLI endet mit 0, aber ohne config.json",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "ohne-config",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

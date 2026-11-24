@@ -1,0 +1,23 @@
+{
+ "exit": 0,
+ "stdout": {
+  "in_scope": true,
+  "fields": {
+   "id": "01M3KEHCGEKTVFPC15XAVEPRDS",
+   "schema": "4",
+   "title": "Gute Notiz",
+   "type": "note",
+   "class": "knowledge",
+   "created": "2026-09-28",
+   "stand": "2026-09"
+  },
+  "blocks": 1,
+  "findings": [
+   {
+    "kind": "klasse-pfad",
+    "detail": "Pfad sessions/ oder 00-sources/ verlangt class: source, steht class: knowledge"
+   }
+  ],
+  "new": true
+ }
+}

@@ -1,0 +1,11 @@
+{
+ "seite": "anlegen",
+ "ergebnis": "fehler",
+ "code": "pk.pfad_zu_lang",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe von anlegen",
+  "kein Eintrag im Ordner"
+ ]
+}

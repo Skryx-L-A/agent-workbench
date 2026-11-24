@@ -1,0 +1,16 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [],
+  "fields": {},
+  "body": "---\n\n---\nText\n",
+  "title": "note",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "note"
+  ],
+  "embed_text": "note\n\n---\n\n---\nText\n"
+ }
+}

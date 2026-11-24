@@ -1,0 +1,12 @@
+{
+ "description": "Auszug als Überschrift: Text",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\ntitle: Beet\n---\n\n## Bewässerung\n\nDas Beet bekommt jeden Morgen Wasser.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "Beet Wasser"
+ ]
+}

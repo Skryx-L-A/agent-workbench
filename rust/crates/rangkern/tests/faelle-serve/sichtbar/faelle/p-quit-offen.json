@@ -1,0 +1,28 @@
+{
+ "description": "quit beendet den Prozess mit Exit 0, auch wenn stdin noch offen ist",
+ "vault": {
+  "files": {
+   "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text ueber Wolken.\n"
+  }
+ },
+ "args": [
+  "{root}/vault"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "search",
+    "query": "wolken"
+   }
+  },
+  {
+   "request": {
+    "op": "quit",
+    "id": "ende"
+   }
+  },
+  {
+   "expect_exit": true
+  }
+ ]
+}

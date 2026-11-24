@@ -1,0 +1,31 @@
+{
+ "beschreibung": "SID und uid in derselben Liste",
+ "art": "vorgabe",
+ "ort": [
+  "windows",
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "uid_person": 1000000101
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+    "appcontainer_sid": null
+   },
+   {
+    "uid": 1000000101
+   }
+  ],
+  "instanzen": 4
+ },
+ "client": null,
+ "aufbau": [],
+ "handlung": [
+  "Server anlegen"
+ ]
+}

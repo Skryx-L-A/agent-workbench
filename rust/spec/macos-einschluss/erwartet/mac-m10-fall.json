@@ -1,0 +1,6 @@
+{
+ "erwartet": "EPERM beim bind",
+ "messwerte": [
+  "errno"
+ ]
+}

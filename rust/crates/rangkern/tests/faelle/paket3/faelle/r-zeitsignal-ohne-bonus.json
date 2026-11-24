@@ -1,0 +1,22 @@
+{
+ "description": "Frage mit aktuell, neuere Notiz im selben Projekt: kein Zeitbonus",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "aktuell Beet",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/20-projects/garten/beet-alt.md": "---\ntitle: Beet alt\ntype: note\ncreated: 2025-03-01\n---\n\nBeet anlegen. Beet pflegen. Beet mähen.\n",
+  "vault/20-projects/garten/beet-neu.md": "---\ntitle: Beet neu\ntype: note\ncreated: 2026-11-01\n---\n\nDas Beet ist angelegt.\n",
+  "vektoren.json": "{\"query\": [1, 0, 0], \"notes\": {}}"
+ }
+}

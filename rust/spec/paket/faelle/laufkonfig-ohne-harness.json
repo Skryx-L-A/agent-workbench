@@ -1,0 +1,9 @@
+{
+ "beschreibung": "kein Harness gefunden: die Tabelle `harness` ist leer, die Ordner fehlen, PATH ist fest; die Datei steht trotzdem da (lauf endet dann mit seinem festen Code)",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {},
+ "vorher": null
+}

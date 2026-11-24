@@ -1,0 +1,31 @@
+{
+ "beschreibung": "der Client endet vor der Messung, die PID kommt wieder",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+    "appcontainer_sid": null
+   }
+  ],
+  "instanzen": 4,
+  "prozess_pflicht": true
+ },
+ "client": null,
+ "aufbau": [
+  "Server unter person, prozess_pflicht",
+  "Testnaht des Läufers: annehmen wartet nach ConnectNamedPipe auf ein Zeichen"
+ ],
+ "handlung": [
+  "Client verbindet, sendet das Hallo, vererbt den Pipe-Handle an ein Kind und endet",
+  "Der Läufer startet Prozesse, bis einer die alte PID hat (höchstens 60 s, sonst Fall nicht ausführbar)",
+  "Der Server misst"
+ ]
+}

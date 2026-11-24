@@ -1,0 +1,5 @@
+{
+ "beschreibung": "eine Klammer fehlt",
+ "form": "profil",
+ "text": "abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile werkbank-bwrap /usr/lib/werkbank/bwrap {\n  userns,\n\n"
+}

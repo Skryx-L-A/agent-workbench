@@ -1,0 +1,10 @@
+{
+ "beschreibung": "eine Datei, die ein Admin mit einem anderen Werkzeug neu geschrieben hat (json.dumps mit indent=1, Leerzeichen um den Doppelpunkt): `zugelassen` bleibt",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {},
+ "vorher": "zugelassen",
+ "vorher_form": "indent1"
+}

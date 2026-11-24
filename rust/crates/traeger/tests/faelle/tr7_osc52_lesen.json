@@ -1,0 +1,30 @@
+{
+ "name": "tr7_osc52_lesen",
+ "regeln": [
+  "TR7"
+ ],
+ "datensatz": "A",
+ "beschreibung": "OSC 52 mit ? ist eine Leseanfrage: das Ereignis lesen, und der Träger schreibt nie eine Antwort an das Kind (pty_antworten bleibt leer)",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b]52;c;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;;?\u001b\\"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;c;?x\u0007"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

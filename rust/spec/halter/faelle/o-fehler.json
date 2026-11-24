@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Fehlerantwort mit festem Grund",
+ "form": "antwort",
+ "text": "{\"art\":\"antwort\",\"code\":\"halter.schein_benutzt\",\"fassung\":1,\"grund\":\"Schein schon benutzt\",\"id\":7,\"ok\":false}"
+}

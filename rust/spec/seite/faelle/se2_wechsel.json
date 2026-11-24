@@ -1,0 +1,161 @@
+{
+ "beschreibung": "Wahl einer anderen Sitzung: Abo aus für die alte, Abo an für die neue, Fokus ins Terminal, ihr Bild erscheint, Eingaben gehen an sie.",
+ "datensatz": "A",
+ "name": "se2_wechsel",
+ "regeln": [
+  "SE2",
+  "SE4"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     },
+     {
+      "harness": "claude",
+      "id": "s-2",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "F6",
+   "key": "F6",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name_enthaelt": "s-2",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Enter",
+   "key": "Enter",
+   "umschalter": []
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": false,
+     "art": "Abo",
+     "sitzung": "s-1"
+    },
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-2",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": true,
+    "name_beginnt": "Terminal",
+    "name_enthaelt": "s-2",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "050204011e0501000000020001000e7a7765697465205369747a756e67010100075a65696c652032"
+  },
+  {
+   "art": "Zeilen",
+   "erwartet": [
+    "zweite Sitzung",
+    "Zeile 2",
+    "",
+    "",
+    ""
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "KeyA",
+   "key": "a",
+   "umschalter": []
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Text",
+     "sitzung": "s-2",
+     "text": "a"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,107 @@
+{
+ "name": "k3-nicht-geerbt",
+ "regeln": [
+  "K3",
+  "H2"
+ ],
+ "beschreibung": "Die Automatik senkt nur unter die geerbte Klasse: eine eigene Klasse und die Vorgabestufe bleiben.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ],
+  "vorgabestufe": "intern"
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "klasse": "intern"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": null,
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-intern"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "klasse": "intern"
+   },
+   "route": "r-oeff"
+  }
+ ],
+ "tiefe": {
+  "herabstufen": {
+   "an": true
+  }
+ }
+}

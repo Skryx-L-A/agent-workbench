@@ -1,0 +1,23 @@
+{
+ "description": "A -> B -> A: die Suche endet, kein Absturz, beide bleiben in der Liste",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "--today",
+  "2026-11-18",
+  "Kuechenwaage Eichung"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-5.md": "---\ntitle: Füller 5\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-6.md": "---\ntitle: Füller 6\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-7.md": "---\ntitle: Füller 7\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-8.md": "---\ntitle: Füller 8\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zyklus/a.md": "---\ntitle: Zyklus A\ntype: note\nsuperseded-by: [\"[[b]]\"]\n---\n\nKuechenwaage Eichung, Kuechenwaage neu eichen.\n",
+  "vault/zyklus/b.md": "---\ntitle: Zyklus B\ntype: note\nsuperseded-by: [\"[[a]]\"]\n---\n\nKuechenwaage Eichung im Vergleich.\n"
+ }
+}

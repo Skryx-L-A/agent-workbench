@@ -1,0 +1,15 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.dienst_inaktiv: Der Dienst werkbank-kern.service ist nicht aktiv.",
+  "pruef.dienst_fehlgeschlagen: Der Dienst werkbank-bruecke.service ist fehlgeschlagen.",
+  "pruef.apparmor_nicht_geladen: Das AppArmor-Profil ist nicht geladen.",
+  "pruef.einstellungen_fehlt: Die Einstellungsdatei fehlt oder ist nicht lesbar.",
+  "pruef.nutzerordner_fehlt: Der Ordner des Nutzers unter /var/lib/werkbank fehlt.",
+  "pruef.schluessel_modus: Die Schluesseldatei hat nicht den Modus 0600.",
+  "pruef.vault_fehlt: Der Vault-Ordner fehlt.",
+  "pruef.paketstand_manifest_fehlt: Das Manifest des Pakets fehlt.",
+  "pruef.rot: 8 Befunde."
+ ]
+}

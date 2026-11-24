@@ -1,0 +1,174 @@
+{
+ "beschreibung": "Tote Taste mit Vokal: die laufende Komposition schickt nichts, erst das Ergebnis geht als ein Text hinaus.",
+ "datensatz": "A",
+ "name": "se1_tote_tasten",
+ "regeln": [
+  "SE1"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Backquote",
+   "key": "Dead",
+   "umschalter": [],
+   "vk": 229
+  },
+  {
+   "art": "Komposition",
+   "text": "^"
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": []
+  },
+  {
+   "art": "Taste",
+   "code": "KeyE",
+   "key": "Process",
+   "umschalter": [],
+   "vk": 229
+  },
+  {
+   "art": "Einsetzen",
+   "text": "ê"
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "ê"
+    }
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "Equal",
+   "key": "Dead",
+   "umschalter": [],
+   "vk": 229
+  },
+  {
+   "art": "Komposition",
+   "text": "´"
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": []
+  },
+  {
+   "art": "Taste",
+   "code": "KeyE",
+   "key": "Process",
+   "umschalter": [],
+   "vk": 229
+  },
+  {
+   "art": "Einsetzen",
+   "text": "é"
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "é"
+    }
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "Equal",
+   "key": "Dead",
+   "umschalter": [
+    "umschalt"
+   ],
+   "vk": 229
+  },
+  {
+   "art": "Komposition",
+   "text": "`"
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": []
+  },
+  {
+   "art": "Taste",
+   "code": "KeyE",
+   "key": "Process",
+   "umschalter": [],
+   "vk": 229
+  },
+  {
+   "art": "Einsetzen",
+   "text": "è"
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "è"
+    }
+   ]
+  }
+ ]
+}

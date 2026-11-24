@@ -1,0 +1,14 @@
+{
+ "beschreibung": "ein Harness als einzelnes Programm außerhalb von /usr ohne node: sein Ordner ist der Programmordner",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/opt/pi/bin/pi",
+   "node": null
+  }
+ },
+ "vorher": null
+}

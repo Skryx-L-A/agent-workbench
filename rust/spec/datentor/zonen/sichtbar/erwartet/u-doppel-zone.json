@@ -1,0 +1,8 @@
+{
+ "exit": 2,
+ "regeln": [
+  "Z10",
+  "A139"
+ ],
+ "beschreibung": "Ein doppelter Schlüssel in einer Zone; der zweite Wert wäre lockerer."
+}

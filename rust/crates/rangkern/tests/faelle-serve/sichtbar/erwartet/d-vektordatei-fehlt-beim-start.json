@@ -1,0 +1,159 @@
+{
+ "responses": [
+  {
+   "error": "unreadable",
+   "id": 1
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/teich.md",
+     "score": 1.0,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9990158821485361,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/misc/fueller-4.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Schaffner",
+     "snippet": "Ein Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9911867716341167,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4444444444444444,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9845072107802847,
+     "vektor_rang": 3,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9824841778418032,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9626894350182001,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 2
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/teich.md",
+     "score": 1.0,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9990158821485361,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/misc/fueller-4.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Schaffner",
+     "snippet": "Ein Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9911867716341167,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4444444444444444,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9845072107802847,
+     "vektor_rang": 3,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9824841778418032,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9626894350182001,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 3
+  }
+ ],
+ "exit": 0
+}

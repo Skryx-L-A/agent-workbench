@@ -1,0 +1,34 @@
+{
+ "beschreibung": "schliesst der Browser den Strom, endet die Verbindung zum Dienst: der Dienst meldet Trennen (kein Betrachter mehr)",
+ "datensatz": "A",
+ "name": "br_strom_ende",
+ "regeln": [
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "art": "Strom",
+   "name": "s1"
+  },
+  {
+   "art": "Dienst",
+   "warte_betrachter": 1
+  },
+  {
+   "art": "Schliesse",
+   "strom": "s1"
+  },
+  {
+   "art": "Dienst",
+   "warte_betrachter": 0
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

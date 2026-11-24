@@ -1,0 +1,34 @@
+{
+ "beschreibung": "Kern und Brücke laufen, die Schlüsseldatei des Modellwegs fehlt (keine Einheit des Modellwegs im Paket): nur diese Zeile, rc 1",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   },
+   {
+    "name": "werkbank-bruecke.service",
+    "zustand": "ok"
+   }
+  ],
+  "apparmor": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "fehlt",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

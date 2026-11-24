@@ -1,0 +1,1 @@
+{"vorgabe": {"klassen": ["a"], "routen": [{"schluessel": "r", "art": "lokal", "klasse": "a"}], "kunden": []}, "modellzonen": {"an": true, "\u0061n": false, "zonen": []}, "anfragen": [{"einheit": {"klasse": "a"}, "route": "r", "kontext": {"nutzer": "n"}}]}

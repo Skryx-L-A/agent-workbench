@@ -1,0 +1,172 @@
+{
+ "responses": [
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-werkstatt/feile.md",
+     "score": 1.0,
+     "title": "Feile und Raspel",
+     "snippet": "Notiz zu feile: feile frueh planen, raspel zweimal im Monat pruefen. Wer feile anlegt, braucht Zeit fuer raspel. Merkzettel feile.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9991398630877099,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-werkstatt/saege.md",
+     "score": 0.47058823529411764,
+     "title": "Saege und Zahn",
+     "snippet": "Notiz zu saege: saege frueh planen, zahn zweimal im Monat pruefen. Wer saege anlegt, braucht Zeit fuer zahn. Merkzettel saege.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9584469861265453,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-4.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Sturm",
+     "snippet": "Ein Text ueber sturm und sturmstand, ohne Bezug zu den anderen Notizen. sturm sturm.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9411467012702894,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-2.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Regen",
+     "snippet": "Ein Text ueber regen und regenstand, ohne Bezug zu den anderen Notizen. regen regen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9257875795896826,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-6.md",
+     "score": 0.4,
+     "title": "Fueller Tau",
+     "snippet": "Ein Text ueber tau und taustand, ohne Bezug zu den anderen Notizen. tau tau.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9147672124814448,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-werkstatt/saege.md",
+     "score": 1.0,
+     "title": "Saege und Zahn",
+     "snippet": "Notiz zu saege: saege frueh planen, zahn zweimal im Monat pruefen. Wer saege anlegt, braucht Zeit fuer zahn. Merkzettel saege.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9990082699331901,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-6.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Tau",
+     "snippet": "Ein Text ueber tau und taustand, ohne Bezug zu den anderen Notizen. tau tau.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9818011725321226,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-werkstatt/feile.md",
+     "score": 0.4444444444444444,
+     "title": "Feile und Raspel",
+     "snippet": "Notiz zu feile: feile frueh planen, raspel zweimal im Monat pruefen. Wer feile anlegt, braucht Zeit fuer raspel. Merkzettel feile.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9507358115615244,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-3.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Nebel",
+     "snippet": "Ein Text ueber nebel und nebelstand, ohne Bezug zu den anderen Notizen. nebel nebel.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9267056468487751,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-4.md",
+     "score": 0.4,
+     "title": "Fueller Sturm",
+     "snippet": "Ein Text ueber sturm und sturmstand, ohne Bezug zu den anderen Notizen. sturm sturm.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9236225603018205,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 2
+  }
+ ],
+ "exit": 0,
+ "aufrufe": [
+  [
+   {
+    "model": "embeddinggemma:latest",
+    "input": "feile raspel",
+    "keep_alive": "30m"
+   },
+   {
+    "model": "embeddinggemma:latest",
+    "input": "feile raspel",
+    "keep_alive": "30m"
+   }
+  ],
+  [
+   {
+    "model": "embeddinggemma:latest",
+    "input": "saege zahn",
+    "keep_alive": "30m"
+   }
+  ]
+ ]
+}

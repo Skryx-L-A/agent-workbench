@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Token zu kurz",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "Y",
+  "laenge": 12
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

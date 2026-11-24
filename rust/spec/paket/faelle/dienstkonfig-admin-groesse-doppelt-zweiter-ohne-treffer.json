@@ -1,0 +1,7 @@
+{
+ "beschreibung": "der Schlüssel groesse steht zweimal, der zweite mit einem Text als Wert: ungültig, Vorgabe und eine Journalzeile",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "vorher_kern": "{\"lauf\":{\"groesse\":[100,30],\"x\":{\"groesse\":\"90x20\"}}}"
+}

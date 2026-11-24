@@ -1,0 +1,10 @@
+{
+ "exec": "copilot",
+ "datei_da": [
+  "<startordner>/ca.key",
+  "<startordner>/ca.crt",
+  "<startordner>/ca-bundle.pem",
+  "<startordner>/suche.pid",
+  "<startordner>/modellweg.pid"
+ ]
+}

@@ -1,0 +1,23 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: vorne zweit: hinten\ntype: note"
+  ],
+  "fields": {
+   "title": "vorne",
+   "zweit": "hinten",
+   "type": "note"
+  },
+  "body": "Text\n",
+  "title": "vorne",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "note",
+   "vorne"
+  ],
+  "embed_text": "vorne\ntype: note\n\nText\n"
+ }
+}

@@ -1,0 +1,106 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "kind_beendet": true,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": {
+     "cursor": [
+      2,
+      0,
+      true
+     ],
+     "groesse": [
+      40,
+      10
+     ],
+     "invers": false,
+     "nr": 0,
+     "zeilen": [
+      "BEREIT",
+      "PID=#",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    },
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "kernbau": 1
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [
+         "s-alpha"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         40,
+         10
+        ],
+        "id": "s-alpha",
+        "invers": false,
+        "letzte_eingabe": "b1",
+        "titel": "Alpha"
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": 5,
+    "ok": true
+   }
+  ],
+  "start": {
+   "netz_sockets": 0,
+   "ok": true,
+   "ordner_modus": "0700",
+   "socket_modus": "0600"
+  }
+ },
+ "exit": 0
+}

@@ -1,0 +1,35 @@
+{
+ "name": "tr12_kind_cursor",
+ "regeln": [
+  "TR12"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Aus einem echten Kind: der Cursor im Endzustand ist der gemeldete (abbild_gleich gilt für Zeilen und Cursor)",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "ausgabe",
+  "argv": [
+   "616c7068610d0a1b5b333b3448626574611b5b3f32356c"
+  ],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

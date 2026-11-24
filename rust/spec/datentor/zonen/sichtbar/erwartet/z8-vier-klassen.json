@@ -1,0 +1,51 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "s3",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "z-alle",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "s0",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "z-unten",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-zone",
+    "klasse": "s1",
+    "meldung": "Klasse der Einheit liegt über der Zone der Route b",
+    "protokoll": {
+     "zone": "z-unten",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-zone",
+    "klasse": "s3",
+    "meldung": "Klasse der Einheit liegt über der Zone der Route b",
+    "protokoll": {
+     "zone": "z-unten",
+     "grund": null,
+     "ausnahme": null
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "description": "Vektordatei kein JSON: Exit 3",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Schnecke",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/garten/schnecke.md": "---\ntitle: Schnecke\ntype: note\n---\n\nSchnecken am Salat.\n",
+  "vektoren.json": "{kaputt"
+ }
+}

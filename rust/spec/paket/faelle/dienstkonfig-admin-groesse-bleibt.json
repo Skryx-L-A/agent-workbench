@@ -1,0 +1,7 @@
+{
+ "beschreibung": "der Admin setzte lauf.groesse auf [200, 50]: ein Update schreibt denselben Wert wieder (Leerzeichen im Paar fallen nicht ins Gewicht)",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "vorher_kern": "{\"lauf\":{\"programm\":\"/x\",\"groesse\": [ 200 , 50 ],\"env\":{}}}\n"
+}

@@ -1,0 +1,8 @@
+{
+ "description": "Umlaute und ß im Wort",
+ "program": "rangkern",
+ "args": [
+  "tokens",
+  "Größe Straße Übergänge Füße"
+ ]
+}

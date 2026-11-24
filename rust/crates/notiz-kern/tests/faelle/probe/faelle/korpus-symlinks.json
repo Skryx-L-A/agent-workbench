@@ -1,0 +1,16 @@
+{
+ "description": "symlinked files and directories are skipped",
+ "files": {
+  "v/10-global/echt.md": "e\n",
+  "ziel/fremd.md": "f\n"
+ },
+ "args": [
+  "corpus",
+  "{root}/v"
+ ],
+ "symlinks": {
+  "v/10-global/link.md": "echt.md",
+  "v/20-projects/linkdir": "../../ziel",
+  "v/10-global/kaputt.md": "gibt-es-nicht.md"
+ }
+}

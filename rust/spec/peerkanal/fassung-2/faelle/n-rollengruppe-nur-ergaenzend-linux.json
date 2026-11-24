@@ -1,0 +1,42 @@
+{
+ "fassung": 2,
+ "beschreibung": "Rollengruppe nur in gruppen, nicht als gid",
+ "art": "aussentest",
+ "ort": [
+  "linux"
+ ],
+ "konten": {
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk",
+  "g_hub": 1000000211
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "uid": 1000000101,
+    "gruppe": 1000000211
+   }
+  ],
+  "instanzen": 4,
+  "unix": {
+   "ordner": "/k-beispiel/lauf/pk",
+   "modus": "0600"
+  }
+ },
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "uid": 1000000101
+  },
+  "frist_ms": 2000,
+  "unix_ordner": "/k-beispiel/lauf/pk"
+ },
+ "aufbau": [
+  "Testkonto uid_person: Hauptgruppe gid_person, Ergänzungsgruppen genau [gid_person, g_hub] (wie SupplementaryGroups= einer System-Einheit)"
+ ],
+ "handlung": [
+  "Client verbindet"
+ ]
+}

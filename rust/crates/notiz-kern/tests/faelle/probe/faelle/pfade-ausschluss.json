@@ -1,0 +1,16 @@
+{
+ "description": "hard exclusions, case-insensitive",
+ "args": [
+  "paths",
+  "90-secrets/x.md",
+  "90-Secrets/deep/x.md",
+  ".obsidian/x.md",
+  "_Meta/templates/note.md",
+  "HOT.md",
+  "hot.md",
+  "review-queue.md",
+  "00-sources/brain-health-2026-27.md",
+  "10-global/note.md",
+  "20-projects/demo/MOC.md"
+ ]
+}

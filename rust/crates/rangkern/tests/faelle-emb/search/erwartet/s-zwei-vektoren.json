@@ -1,0 +1,85 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "20-projects/holz/schleifpapier.md",
+    "score": 1.0,
+    "title": "Schleifpapier und Koernung",
+    "snippet": "Notiz zu schleifpapier: schleifpapier frueh planen, koernung zweimal im Monat pruefen. Wer schleifpapier anlegt, braucht Zeit fuer koernung. Merkzettel schleifpapier.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.9980233961793477,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 1,
+    "space": "holz"
+   },
+   {
+    "rel": "20-projects/holz/bohrer.md",
+    "score": 0.47058823529411764,
+    "title": "Bohrer und Spannfutter",
+    "snippet": "Notiz zu bohrer: bohrer frueh planen, spannfutter zweimal im Monat pruefen. Wer bohrer anlegt, braucht Zeit fuer spannfutter. Merkzettel bohrer.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.9801823474600889,
+    "vektor_rang": 2,
+    "space": "holz"
+   },
+   {
+    "rel": "10-werkstatt/misc/fueller-1.md",
+    "score": 0.4444444444444444,
+    "title": "Fueller Wolke",
+    "snippet": "Ein Text ueber wolke und wolkestand, ohne Bezug zu den anderen Notizen. wolke wolke.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.9580144868182532,
+    "vektor_rang": 3
+   },
+   {
+    "rel": "20-projects/holz/zirkel.md",
+    "score": 0.42105263157894735,
+    "title": "Zirkel und Lineal",
+    "snippet": "Notiz zu zirkel: zirkel frueh planen, lineal zweimal im Monat pruefen. Wer zirkel anlegt, braucht Zeit fuer lineal. Merkzettel zirkel.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.9311668992558864,
+    "vektor_rang": 4,
+    "space": "holz"
+   },
+   {
+    "rel": "10-werkstatt/hobel.md",
+    "score": 0.4,
+    "title": "Hobel und Spaene",
+    "snippet": "Notiz zu hobel: hobel frueh planen, spaene zweimal im Monat pruefen. Wer hobel anlegt, braucht Zeit fuer spaene. Merkzettel hobel.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.9084796237383179,
+    "vektor_rang": 5
+   }
+  ]
+ },
+ "aufrufe": [
+  {
+   "model": "embeddinggemma:latest",
+   "input": "schleifpapier koernung",
+   "keep_alive": "30m"
+  }
+ ]
+}

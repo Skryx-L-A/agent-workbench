@@ -1,0 +1,23 @@
+{
+ "beschreibung": "nach `purge` ist kein Label `werkbank-*` mehr geladen; ein Rest einer älteren Installation (vorher schon da) zählt auch",
+ "form": "entfernen",
+ "nutzer": "nutzer1",
+ "heimwurzel": "/srv/beispiel/heim",
+ "ergebnisdatei": "/srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+ "vorher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "profil:werkbank-einschluss-bwrap"
+ ],
+ "nachher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "profil:werkbank-einschluss-bwrap"
+ ]
+}

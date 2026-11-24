@@ -1,0 +1,46 @@
+{
+  "beschreibung": "Ein Kunde ausserhalb der Einstellungen wird abgelehnt.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "V1 Stufe 13"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"such-mcp\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[]}}}"
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-fremd\",\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "start.kunde_unbekannt",
+          "grund": "Kunde unbekannt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"start.kunde_unbekannt\",\"harness\":\"claude\",\"kunde\":\"k-fremd\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "a97abd0ee8b4d7e3757e7bb3ae059b41ae073cf26d81a259ee30fcca24c61be3"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [],
+    "anfragen": {},
+    "zaehler": 0,
+    "zeilen": 1,
+    "letzte": "a97abd0ee8b4d7e3757e7bb3ae059b41ae073cf26d81a259ee30fcca24c61be3"
+  }
+}

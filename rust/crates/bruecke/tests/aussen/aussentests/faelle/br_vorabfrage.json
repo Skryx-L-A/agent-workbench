@@ -1,0 +1,79 @@
+{
+ "beschreibung": "OPTIONS (Vorabfrage): ohne Token 401, mit fremdem Origin 403, mit gutem Origin und Token 405; nie ein CORS-Kopf",
+ "datensatz": "A",
+ "name": "br_vorabfrage",
+ "regeln": [
+  "BR3",
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "koepfe": [
+     [
+      "Access-Control-Request-Method",
+      "POST"
+     ]
+    ],
+    "methode": "OPTIONS",
+    "origin": "http://boese.example",
+    "token": null,
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koepfe": [
+     [
+      "Access-Control-Request-Method",
+      "POST"
+     ]
+    ],
+    "methode": "OPTIONS",
+    "origin": "http://boese.example",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "OPTIONS",
+    "origin": "gut",
+    "token": null,
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "OPTIONS",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "OPTIONS",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

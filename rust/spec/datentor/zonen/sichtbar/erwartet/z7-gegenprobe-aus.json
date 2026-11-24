@@ -1,0 +1,77 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": null
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": null,
+    "meldung": "frei",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": "intern",
+    "meldung": "Route r-local hat keine Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": null,
+    "meldung": "Route r-local hat keine Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": "oeffentlich",
+    "meldung": "Route r-unsafe hat keine Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-route",
+    "klasse": "intern",
+    "meldung": "Klasse der Einheit liegt über Route r-local2",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "kundendaten-an-cloud",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Cloud-Route r-public-kd ohne Freigabe",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-fehlt",
+    "klasse": null,
+    "meldung": "Anfrage ohne Route",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": null,
+    "meldung": "Route r-x hat keine Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": "intern",
+    "meldung": "Route r-x hat keine Klasse",
+    "protokoll": null
+   }
+  ]
+ }
+}

@@ -1,0 +1,8 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13",
+  "P0"
+ ],
+ "beschreibung": "Ladefehler: Ein Eintrag gibt einer Person eine Klasse, die es nicht gibt."
+}

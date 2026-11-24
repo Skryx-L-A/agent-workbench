@@ -1,0 +1,45 @@
+{
+ "name": "tr3_cursor_schrumpf_text",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Cursor am Ende einer Zeile, die beim Schrumpfen der Spalten umbricht: Der Cursor wandert mit dem Text (Wert der Bibliothek); danach geht die Eingabe von dort weiter",
+ "art": "strom",
+ "groesse": [
+  40,
+  10
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[8;1Hxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 20,
+   "zeilen": 5
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "y"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 40,
+   "zeilen": 10
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13"
+ ],
+ "beschreibung": "gruppen ist null; die leere Liste heißt keine Gruppe."
+}

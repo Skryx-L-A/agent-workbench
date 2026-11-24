@@ -1,0 +1,36 @@
+{
+ "name": "tr10_antworten_cursor",
+ "regeln": [
+  "TR10"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Die Antwort auf die Cursorabfrage nennt die Stelle des Cursors im Raster",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alphabeta\r\ngamma"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[6n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1H\u001b[6n"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 33,
+   "zeilen": 10
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[6n"
+  }
+ ]
+}

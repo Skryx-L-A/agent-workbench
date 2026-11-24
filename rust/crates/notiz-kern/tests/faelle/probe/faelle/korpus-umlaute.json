@@ -1,0 +1,12 @@
+{
+ "description": "umlauts and spaces in directory and file names",
+ "files": {
+  "v/20-projects/größe test/Notiz eins.md": "1\n",
+  "v/20-projects/größe test/Ärger.md": "2\n",
+  "v/30-topics/Tee/Käse.md": "3\n"
+ },
+ "args": [
+  "corpus",
+  "{root}/v"
+ ]
+}

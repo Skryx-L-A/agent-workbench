@@ -1,0 +1,19 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "kundendaten-an-cloud",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Cloud-Route k-k-werkzeug ohne Freigabe"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei"
+   }
+  ]
+ }
+}

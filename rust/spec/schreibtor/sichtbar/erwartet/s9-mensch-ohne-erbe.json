@@ -1,0 +1,23 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "oeffentlich",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "oeffentlich",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   }
+  ]
+ }
+}

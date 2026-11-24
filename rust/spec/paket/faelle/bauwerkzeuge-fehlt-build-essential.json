@@ -1,0 +1,6 @@
+{
+ "beschreibung": "build-essential fehlt im deb",
+ "form": "bauwerkzeuge",
+ "text": "dpkg-dev\t1.23.7ubuntu1\tGPL-2.0-or-later\tsha256:507b526fd78f9dff89696bbc3085af3117059f37fd281542778ac8b97be44690\tnein\n",
+ "plattform": "ubuntu-26.04-x64"
+}

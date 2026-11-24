@@ -1,0 +1,9 @@
+{
+ "beschreibung": "W1 fall",
+ "form": "vm",
+ "eigenschaft": "W1",
+ "art": "fall",
+ "ausgangslage": "Windows-VM; Plattformdienst unter NT SERVICE mit den fünf ACEs, Admin-Helfer unter LocalSystem; Projekt A mit Arbeitsordner unter der Projektwurzel; ein Lauf in A mit Claude Code (PowerShell-Werkzeug) gegen die Attrappe des Modellwegs hinter einem Weiterleiter auf dem Sitzungsport M; die Browser-Brücke des Kern-Dienstes hört auf dem Loopback des Rechners; ssh-Stummel vorn im PATH, SSH_AUTH_SOCK leer; Such-Prozess und Halter laufen",
+ "handlung": "Der Agent öffnet die Pipe des Halters, öffnet den Such-Prozess, den Halter und den Starter mit OpenProcess (PROCESS_TERMINATE, PROCESS_VM_READ, PROCESS_QUERY_LIMITED_INFORMATION) und fragt die Such-Pipe seiner Sitzung",
+ "beleg": "gemessen: Halter-Pipe Fehler 5 (Fragen 2, 5); nicht gemessen: OpenProcess aus dem Container"
+}

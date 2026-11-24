@@ -1,0 +1,11 @@
+{
+ "seite": "anlegen",
+ "ergebnis": "fehler",
+ "code": "pk.name_belegt",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe für B",
+  "Server A nimmt weiter an"
+ ]
+}

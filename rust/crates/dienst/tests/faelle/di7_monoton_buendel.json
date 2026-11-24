@@ -1,0 +1,137 @@
+{
+ "beschreibung": "echte Uhr: eine zweite Aenderung in der Buendelungsfrist kommt ohne Zutun des Clients an (der Dienst ruft den Kern an der naechsten Frist)",
+ "datensatz": "A",
+ "name": "di7_monoton_buendel",
+ "regeln": [
+  "DI7"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-alpha",
+    "spalten": 30,
+    "zeilen": 6
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "BEREIT"
+   },
+   "frist": 10,
+   "takt": 16
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "g"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "Erster Teil"
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "x"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "Zweiter Teil HALLO"
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "kindende": true
+   },
+   "takt": 0
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "regeln": {
+    "bildrate_max": {
+     "art": "zahl",
+     "min": 1,
+     "nutzer_darf": true,
+     "vorgabe": 1
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   30,
+   6
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "stufen",
+    "457273746572205465696c0d0a",
+    "5a776569746572205465696c2048414c4c4f0d0a"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "pruefmodus": false,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

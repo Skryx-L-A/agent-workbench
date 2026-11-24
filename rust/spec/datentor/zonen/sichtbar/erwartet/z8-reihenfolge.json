@@ -1,0 +1,148 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "route-fehlt",
+    "klasse": null,
+    "meldung": "Anfrage ohne Route",
+    "protokoll": {
+     "zone": null,
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "nutzer-fehlt",
+    "klasse": null,
+    "meldung": "Anfrage ohne Nutzer",
+    "protokoll": {
+     "zone": null,
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-zone",
+    "klasse": null,
+    "meldung": "Route r-x hat keine Zone",
+    "protokoll": {
+     "zone": null,
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": {
+      "zone": "unsafe",
+      "nutzer": [
+       "n-a"
+      ],
+      "gruppen": [],
+      "gesetzt_von": "admin-1",
+      "zweck": "Evaluierung Modell X",
+      "bis": 1800000000
+     }
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-durch-regel-gesperrt",
+    "klasse": "kundendaten",
+    "meldung": "Zone der Route r-conf ist durch eine Regel gesperrt",
+    "protokoll": {
+     "zone": "conf",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": "kundendaten",
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "grund-fehlt",
+    "klasse": "kundendaten",
+    "meldung": "Route r-conf braucht einen Grund für die nachrangige Zone",
+    "protokoll": {
+     "zone": "conf",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-zone",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über der Zone der Route r-public-kd",
+    "protokoll": {
+     "zone": "public",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-route",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über Route r-local2",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "kunde-ohne-eintrag",
+    "klasse": "kundendaten",
+    "meldung": "Kunde ohne Eintrag in der Kundenvorgabe",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "kunde-fehlt",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten ohne Kunde",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "kunde-ohne-eintrag",
+    "klasse": "kundendaten",
+    "meldung": "Kunde ohne Eintrag in der Kundenvorgabe",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   }
+  ]
+ }
+}

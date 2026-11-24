@@ -1,0 +1,10 @@
+{
+ "seite": "anlegen",
+ "ergebnis": "fehler",
+ "code": "pk.ordner_rechte",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe von anlegen"
+ ]
+}

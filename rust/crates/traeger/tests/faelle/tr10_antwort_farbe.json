@@ -1,0 +1,62 @@
+{
+ "name": "tr10_antwort_farbe",
+ "regeln": [
+  "TR10"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Farbabfragen OSC 4, 10, 11, 12 mit ?, auch nachdem eine Farbe gesetzt wurde: keine Antwort, nie ein gesetzter Wert oder Text",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b]10;#102030\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]10;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]11;rgb:aa/bb/cc\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]11;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]4;1;rgb:12/34/56\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]4;1;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]4;2;#abcdef;3;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]12;#ff0000\u0007\u001b]12;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]10;GEHEIM-A-4711\u0007\u001b]10;?\u0007\u001b[6n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]104;1\u0007\u001b]4;1;?\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]110\u0007\u001b]111\u0007\u001b]10;?\u0007\u001b]11;?\u0007"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

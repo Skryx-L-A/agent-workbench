@@ -1,0 +1,7 @@
+{
+ "erwartet": "der Auftrag entsteht nicht, oder er läuft ohne Leserecht auf die Notiz",
+ "messwerte": [
+  "Exitcode von launchctl",
+  "Marke des Auftrags"
+ ]
+}

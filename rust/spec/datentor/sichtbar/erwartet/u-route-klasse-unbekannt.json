@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13"
+ ],
+ "beschreibung": "Die Klasse einer Route steht nicht in klassen."
+}

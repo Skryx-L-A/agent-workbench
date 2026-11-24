@@ -1,0 +1,21 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "kundendaten-an-cloud",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Cloud-Route c1 ohne Freigabe",
+    "protokoll": null
+   }
+  ]
+ }
+}

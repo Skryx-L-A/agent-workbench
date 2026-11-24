@@ -1,0 +1,37 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": "intern",
+    "meldung": "Route Cloud hat keine Klasse"
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": "intern",
+    "meldung": "Route cloud  hat keine Klasse"
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": "intern",
+    "meldung": "Route clöud hat keine Klasse"
+   },
+   {
+    "darf": false,
+    "grund": "kunde-ohne-eintrag",
+    "klasse": "kundendaten",
+    "meldung": "Kunde ohne Eintrag in der Kundenvorgabe"
+   },
+   {
+    "darf": false,
+    "grund": "kunde-ohne-eintrag",
+    "klasse": "kundendaten",
+    "meldung": "Kunde ohne Eintrag in der Kundenvorgabe"
+   }
+  ]
+ }
+}

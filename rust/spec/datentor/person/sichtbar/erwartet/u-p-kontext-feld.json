@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13"
+ ],
+ "beschreibung": "kontext trägt ein Feld, das dieser Vertrag nicht kennt."
+}

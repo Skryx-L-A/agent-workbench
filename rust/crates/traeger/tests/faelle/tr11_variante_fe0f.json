@@ -1,0 +1,46 @@
+{
+ "name": "tr11_variante_fe0f",
+ "regeln": [
+  "TR11"
+ ],
+ "datensatz": "A",
+ "beschreibung": "U+FE0F (Variantenwahl Emoji) gilt wie in alacritty_terminal: es hängt ohne Breite am Zeichen davor und ändert dessen Breite nicht; allein am Zeilenanfang und doppelt ebenso",
+ "art": "strom",
+ "groesse": [
+  14,
+  9
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "a❤️b\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "x☺️y\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "p漢️q\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "1️⃣z\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "️a\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "c❤️️d\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "😀️!\r\n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

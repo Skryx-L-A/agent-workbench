@@ -1,0 +1,8 @@
+{
+ "beschreibung": "die alte Datei hat die Felder nicht (ein früherer Stand des Pakets): die Vorgabe gilt, keine Journalzeile",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "vorher_kern": "{\"lauf\":{\"programm\":\"/x\"}}",
+ "vorher_bruecke": "{\"deflate\":true}"
+}

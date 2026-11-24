@@ -1,0 +1,30 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Schalter\ndraft: yes\non: off\nn: no\nmodus: 0755\nzahl: 1e3\nnichts: ~\nwahr: True\nleer: null\nversion: 1.10"
+  ],
+  "fields": {
+   "title": "Schalter",
+   "draft": "yes",
+   "on": "off",
+   "n": "no",
+   "modus": "0755",
+   "zahl": "1e3",
+   "nichts": "~",
+   "wahr": "True",
+   "leer": "null",
+   "version": "1.10"
+  },
+  "body": "Text\n",
+  "title": "Schalter",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "note",
+   "schalter"
+  ],
+  "embed_text": "Schalter\n\nText\n"
+ }
+}

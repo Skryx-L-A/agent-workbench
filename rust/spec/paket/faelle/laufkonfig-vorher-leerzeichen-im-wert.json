@@ -1,0 +1,10 @@
+{
+ "beschreibung": "der Wert `\"zugelassen \"` (mit Leerzeichen im Wert) ist keiner der drei: das Ergebnis ist `offen`",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {},
+ "vorher": "zugelassen",
+ "vorher_form": "leerzeichen-im-wert"
+}

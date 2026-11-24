@@ -1,0 +1,31 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "fehler",
+ "code": "pk.kennung_nicht_erlaubt",
+ "ereignisse": [
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.kennung_nicht_erlaubt",
+   "grund": "pk.gid_falsch",
+   "peer": {
+    "system": "=system",
+    "sid": null,
+    "appcontainer_sid": null,
+    "uid": 1000000101,
+    "gid": 1000000202,
+    "pid": "=client",
+    "startzeit": "=client",
+    "im_job": null,
+    "programm": "=client",
+    "signatur": null,
+    "eingeschraenkt": null,
+    "sandbox": null
+   }
+  }
+ ],
+ "peer": null,
+ "gemessen": [
+  "Ereignis"
+ ]
+}

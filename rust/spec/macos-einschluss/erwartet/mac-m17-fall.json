@@ -1,0 +1,8 @@
+{
+ "erwartet": "jeder Aufruf: Exit 0; git meldet auf stderr nur die Warnung, dass es die Datei xcrun_db unter /var/folders nicht anlegen kann; unter dem Ordner der Command Line Tools entsteht keine Datei",
+ "messwerte": [
+  "Exitcode je Aufruf",
+  "stderr je Aufruf",
+  "Ergebnis eines Schreibversuchs unter /Library/Developer/CommandLineTools"
+ ]
+}

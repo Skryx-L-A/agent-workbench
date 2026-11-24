@@ -1,0 +1,7 @@
+{
+ "beschreibung": "port 70000 liegt über 65535: die Vorgabe 0 und eine Journalzeile",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "vorher_bruecke": "{\"port\":70000}"
+}

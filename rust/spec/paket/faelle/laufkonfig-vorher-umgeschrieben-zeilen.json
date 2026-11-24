@@ -1,0 +1,10 @@
+{
+ "beschreibung": "Schlüssel, Doppelpunkt und Wert auf getrennten Zeilen, mit Tabulator und CR LF: `abgelehnt` bleibt",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {},
+ "vorher": "abgelehnt",
+ "vorher_form": "zeilen"
+}

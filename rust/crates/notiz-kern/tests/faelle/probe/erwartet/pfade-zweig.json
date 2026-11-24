@@ -1,0 +1,53 @@
+{
+ "exit": 0,
+ "stdout": [
+  {
+   "rel": "20-projects/p/x.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": true,
+   "branch": "20-projects/p",
+   "stem_key": "x"
+  },
+  {
+   "rel": "20-projects/x.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": true,
+   "branch": "20-projects",
+   "stem_key": "x"
+  },
+  {
+   "rel": "x.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "x"
+  },
+  {
+   "rel": "30-topics/t/sub/y.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": true,
+   "branch": "30-topics/t",
+   "stem_key": "y"
+  },
+  {
+   "rel": "40-people/a/b.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": true,
+   "branch": "40-people",
+   "stem_key": "b"
+  },
+  {
+   "rel": "10-global/c.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": true,
+   "branch": "10-global",
+   "stem_key": "c"
+  }
+ ]
+}

@@ -1,0 +1,36 @@
+{
+ "gueltig": true,
+ "datei": {
+  "fassung": 1,
+  "einstellungen": "/var/lib/werkbank/nutzer1/einstellungen.json",
+  "vault": "/var/lib/werkbank/nutzer1/vorfuehr-vault",
+  "protokoll": "/var/lib/werkbank/nutzer1/protokoll",
+  "zustand": "/var/lib/werkbank/nutzer1",
+  "laufzeit": "/var/lib/werkbank/l/1000",
+  "sitzungen": "/var/lib/werkbank/s/1000",
+  "heim": "/srv/beispiel/heim/nutzer1",
+  "path": "/opt/pi/bin:/usr/local/bin:/usr/bin:/bin",
+  "programme": {
+   "rangkern": "/usr/lib/werkbank/rangkern",
+   "modellweg": "/usr/lib/werkbank/werkbank-modellweg",
+   "kind": "/usr/lib/werkbank/werkbank-lauf-kind",
+   "such_mcp": "/usr/lib/werkbank/such-mcp",
+   "weiter": "/usr/lib/werkbank/einschluss-weiter"
+  },
+  "harness": {
+   "copilot": "/opt/pi/bin/werkzeug/copilot",
+   "pi": "/opt/pi/lib/node_modules/pi/cli.js"
+  },
+  "programmordner": [
+   "/opt/pi/lib/node_modules/pi",
+   "/opt/pi/bin"
+  ],
+  "schluessel": {
+   "copilot": "/var/lib/werkbank/nutzer1/copilot.schluessel",
+   "lokal": "/var/lib/werkbank/nutzer1/modellweg.schluessel"
+  },
+  "ca_zulassung": "offen"
+ },
+ "modus": "0644",
+ "eigentuemer": "root:root"
+}

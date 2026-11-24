@@ -1,0 +1,821 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitt 9 (fuer jede Betriebsart, nur mit --probelauf). startfolge: Ausgabe des Starts (protokoll_neu = an die Kette angehaengte Bytes, leere Kette am Anfang). folge: Anfragen einer Sitzung in der Lage aus anfragen.json mit --marker MK-KUNDE,MK-INTERN; datei ist der Inhalt der Zaehldatei nach der Anfrage (RFC 8785). anfang ist der Inhalt vor der ersten Anfrage.",
+ "marker": [
+  "MK-KUNDE",
+  "MK-INTERN"
+ ],
+ "anfang": "{\"anfragen\":0,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-2\"}",
+ "aufruf": [
+  {
+   "name": "ohne_probelauf",
+   "beschreibung": "keine der drei Optionen: keine Zaehlung, keine Datei, keine Startzeile",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "bis_schritt": "aufruf_gut"
+   }
+  },
+  {
+   "name": "alle_drei",
+   "beschreibung": "--probelauf, --marker und --marker-zaehlung",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "--marker",
+    "MK-KUNDE,MK-INTERN",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json"
+   ],
+   "erwartet": {
+    "bis_schritt": "aufruf_gut"
+   }
+  },
+  {
+   "name": "schalter_vorn",
+   "beschreibung": "--probelauf als erstes Argument",
+   "argv": [
+    "--probelauf",
+    "--marker",
+    "MK-KUNDE,MK-INTERN",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json",
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "bis_schritt": "aufruf_gut"
+   }
+  },
+  {
+   "name": "nur_probelauf",
+   "beschreibung": "nur --probelauf",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.probelauf_aufruf: Probelauf-Optionen ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "marker_ohne_probelauf",
+   "beschreibung": "--marker und --marker-zaehlung ohne --probelauf",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--marker",
+    "MK-KUNDE",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.probelauf_aufruf: Probelauf-Optionen ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "nur_marker",
+   "beschreibung": "nur --marker",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--marker",
+    "MK-KUNDE"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.probelauf_aufruf: Probelauf-Optionen ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "probelauf_ohne_datei",
+   "beschreibung": "--probelauf und --marker ohne --marker-zaehlung",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "--marker",
+    "MK-KUNDE"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.probelauf_aufruf: Probelauf-Optionen ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "probelauf_doppelt",
+   "beschreibung": "--probelauf zweimal",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "--marker",
+    "MK-KUNDE,MK-INTERN",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json",
+    "--probelauf"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "probelauf_mit_wert",
+   "beschreibung": "--probelauf mit Wert ja: ja ist keine Option",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "ja",
+    "--marker",
+    "MK-A",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "marker_klein",
+   "beschreibung": "Marker mit Kleinbuchstaben",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "--marker",
+    "mk-kunde",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.probelauf_aufruf: Probelauf-Optionen ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "marker_lang",
+   "beschreibung": "Marker mit 33 Zeichen",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "--marker",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.probelauf_aufruf: Probelauf-Optionen ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "marker_leer",
+   "beschreibung": "leerer Marker zwischen zwei Kommas",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "--marker",
+    "MK-A,,MK-B",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.probelauf_aufruf: Probelauf-Optionen ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "marker_17",
+   "beschreibung": "17 Marker",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "--marker",
+    "MK-0,MK-1,MK-2,MK-3,MK-4,MK-5,MK-6,MK-7,MK-8,MK-9,MK-10,MK-11,MK-12,MK-13,MK-14,MK-15,MK-16",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.probelauf_aufruf: Probelauf-Optionen ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "marker_doppelt",
+   "beschreibung": "derselbe Marker zweimal",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "--marker",
+    "MK-A,MK-A",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.probelauf_aufruf: Probelauf-Optionen ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "datei_relativ",
+   "beschreibung": "Zaehldatei relativ",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "--marker",
+    "MK-A",
+    "--marker-zaehlung",
+    "marker.json"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.probelauf_aufruf: Probelauf-Optionen ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "vor_vollstaendigkeit",
+   "beschreibung": "nur --probelauf und fehlendes --ziel: der Probelauf-Fehler zuerst",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.probelauf_aufruf: Probelauf-Optionen ungueltig\n",
+    "stdout": ""
+   }
+  }
+ ],
+ "folge": [
+  {
+   "name": "erste",
+   "beschreibung": "zwei Treffer MK-KUNDE im Koerper",
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nX-Notiz: MK-INTERN\r\nContent-Length: 107\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"Frage zu MK-KUNDE und MK-KUNDE\"}]}",
+   "datei_schreibbar": true,
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /v1/chat/completions HTTP/1.1\r\nHost: modelle.firma.beispiel.invalid\r\nAuthorization: Bearer mw-testschluessel-7f3a9c0e5b2d4618\r\nContent-Type: application/json\r\nContent-Length: 107\r\nConnection: close\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"Frage zu MK-KUNDE und MK-KUNDE\"}]}",
+    "datei": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":2},\"sitzung\":\"s-2\"}"
+   }
+  },
+  {
+   "name": "abgelehnt",
+   "beschreibung": "anderes Modell: abgelehnt, zaehlt nicht",
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 85\r\n\r\n{\"model\":\"lokal-beispiel/modell-b\",\"messages\":[{\"role\":\"user\",\"content\":\"MK-KUNDE\"}]}",
+   "datei_schreibbar": true,
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "code": "mw.modell_nicht_erlaubt",
+    "datei": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":2},\"sitzung\":\"s-2\"}"
+   }
+  },
+  {
+   "name": "zweite",
+   "beschreibung": "ein Treffer MK-INTERN",
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 86\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"MK-INTERN\"}]}",
+   "datei_schreibbar": true,
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /v1/chat/completions HTTP/1.1\r\nHost: modelle.firma.beispiel.invalid\r\nAuthorization: Bearer mw-testschluessel-7f3a9c0e5b2d4618\r\nContent-Type: application/json\r\nContent-Length: 86\r\nConnection: close\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"MK-INTERN\"}]}",
+    "datei": "{\"anfragen\":2,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":2},\"sitzung\":\"s-2\"}"
+   }
+  },
+  {
+   "name": "nicht_schreibbar",
+   "beschreibung": "Zaehldatei nicht schreibbar: die Anfrage geht nicht hinaus",
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 107\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"Frage zu MK-KUNDE und MK-KUNDE\"}]}",
+   "datei_schreibbar": false,
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 503,
+    "koerper": "{\"error\":{\"code\":\"mw.zaehlung_fehler\",\"message\":\"Zaehlung nicht schreibbar\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.zaehlung_fehler"
+    },
+    "datei": "{\"anfragen\":2,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":2},\"sitzung\":\"s-2\"}"
+   }
+  },
+  {
+   "name": "danach",
+   "beschreibung": "Datei wieder schreibbar: weiter ab dem letzten guten Stand",
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 86\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"MK-INTERN\"}]}",
+   "datei_schreibbar": true,
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /v1/chat/completions HTTP/1.1\r\nHost: modelle.firma.beispiel.invalid\r\nAuthorization: Bearer mw-testschluessel-7f3a9c0e5b2d4618\r\nContent-Type: application/json\r\nContent-Length: 86\r\nConnection: close\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"MK-INTERN\"}]}",
+    "datei": "{\"anfragen\":3,\"marker\":{\"MK-INTERN\":2,\"MK-KUNDE\":2},\"sitzung\":\"s-2\"}"
+   }
+  }
+ ],
+ "startzeile": [
+  {
+   "name": "zwei_marker",
+   "beschreibung": "Probelauf mit zwei Markern",
+   "aufruf": {
+    "zeit_ms": 1795192200000,
+    "programm": "modellweg",
+    "sitzung": "s-2",
+    "anzahl": 2
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":2,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"modellweg\",\"sitzung\":\"s-2\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:30:00.000Z\"}",
+    "sha256": "859f10a2e7cdc9e00649e1e4eed383a0d8b8685dcc84829b862eaff928753ed5"
+   }
+  },
+  {
+   "name": "sechzehn",
+   "beschreibung": "Probelauf mit 16 Markern",
+   "aufruf": {
+    "zeit_ms": 1795192200000,
+    "programm": "modellweg",
+    "sitzung": "s-2",
+    "anzahl": 16
+   },
+   "vorher": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":16,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"modellweg\",\"sitzung\":\"s-2\",\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T16:30:00.000Z\"}",
+    "sha256": "63bdb037a9923b4eb1dd9456945b7b17a09ecc13bfc5d667d1d427be6a7c0a2e"
+   }
+  },
+  {
+   "name": "programm_gross",
+   "beschreibung": "Programm mit Grossbuchstaben",
+   "aufruf": {
+    "zeit_ms": 1795192200000,
+    "programm": "Modellweg",
+    "sitzung": "s-2",
+    "anzahl": 2
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:programm"
+   }
+  },
+  {
+   "name": "sitzung_leer",
+   "beschreibung": "Sitzung leer",
+   "aufruf": {
+    "zeit_ms": 1795192200000,
+    "programm": "modellweg",
+    "sitzung": "",
+    "anzahl": 2
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:sitzung"
+   }
+  },
+  {
+   "name": "anzahl_0",
+   "beschreibung": "anzahl 0",
+   "aufruf": {
+    "zeit_ms": 1795192200000,
+    "programm": "modellweg",
+    "sitzung": "s-2",
+    "anzahl": 0
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:anzahl"
+   }
+  },
+  {
+   "name": "anzahl_17",
+   "beschreibung": "anzahl 17",
+   "aufruf": {
+    "zeit_ms": 1795192200000,
+    "programm": "modellweg",
+    "sitzung": "s-2",
+    "anzahl": 17
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:anzahl"
+   }
+  },
+  {
+   "name": "vorher_falsch",
+   "beschreibung": "vorher mit 63 Zeichen",
+   "aufruf": {
+    "zeit_ms": 1795192200000,
+    "programm": "modellweg",
+    "sitzung": "s-2",
+    "anzahl": 2
+   },
+   "vorher": "000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:vorher"
+   }
+  },
+  {
+   "name": "zeit_negativ",
+   "beschreibung": "zeit vor 1970",
+   "aufruf": {
+    "zeit_ms": -1,
+    "programm": "modellweg",
+    "sitzung": "s-2",
+    "anzahl": 2
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "zeit_ungueltig"
+   }
+  }
+ ],
+ "startfolge": [
+  {
+   "name": "start_gut",
+   "beschreibung": "Probelauf mit zwei Markern, Protokoll und Zaehldatei schreibbar",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "--marker",
+    "MK-KUNDE,MK-INTERN",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json"
+   ],
+   "protokoll_schreibbar": true,
+   "zaehldatei_schreibbar": true,
+   "zeit_ms": 1795192200000,
+   "erwartet": {
+    "exit": null,
+    "stdout": "{\"bereit\":true}\n",
+    "stderr": "mw.probelauf: Marker werden gezählt\n",
+    "protokoll_neu": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":2,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"modellweg\",\"sitzung\":\"s-2\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:30:00.000Z\"}\n",
+    "zaehldatei": "{\"anfragen\":0,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-2\"}"
+   }
+  },
+  {
+   "name": "protokoll_nicht_schreibbar",
+   "beschreibung": "Startzeile nicht schreibbar: kein Start",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "--marker",
+    "MK-KUNDE,MK-INTERN",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json"
+   ],
+   "protokoll_schreibbar": false,
+   "zaehldatei_schreibbar": true,
+   "zeit_ms": 1795192200000,
+   "erwartet": {
+    "exit": 74,
+    "stdout": "",
+    "stderr": "mw.protokoll_fehlt: Protokoll nicht schreibbar\n",
+    "protokoll_neu": "",
+    "socket": "nicht angelegt"
+   }
+  },
+  {
+   "name": "zaehldatei_nicht_schreibbar",
+   "beschreibung": "Zaehldatei nicht schreibbar: kein Start, keine Startzeile",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--probelauf",
+    "--marker",
+    "MK-KUNDE,MK-INTERN",
+    "--marker-zaehlung",
+    "/run/user/1000/wb/s-2/marker.json"
+   ],
+   "protokoll_schreibbar": true,
+   "zaehldatei_schreibbar": false,
+   "zeit_ms": 1795192200000,
+   "erwartet": {
+    "exit": 74,
+    "stdout": "",
+    "stderr": "mw.zaehlung_fehler: Zaehldatei nicht schreibbar\n",
+    "protokoll_neu": "",
+    "socket": "nicht angelegt"
+   }
+  },
+  {
+   "name": "ohne_probelauf",
+   "beschreibung": "ohne Probelauf: keine Startzeile, keine Zaehldatei, keine Zeile auf stderr",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/srv/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll"
+   ],
+   "protokoll_schreibbar": true,
+   "zaehldatei_schreibbar": true,
+   "zeit_ms": 1795192200000,
+   "erwartet": {
+    "exit": null,
+    "stdout": "{\"bereit\":true}\n",
+    "stderr": "",
+    "protokoll_neu": "",
+    "zaehldatei": null
+   }
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [],
+  "fields": {},
+  "body": "Kein Kopf, aber [[Plan B]].\n",
+  "title": "Mein Plan für Öl",
+  "type": "note",
+  "aliases": [],
+  "links": [
+   "plan b"
+  ],
+  "keys": [
+   "mein plan für öl"
+  ],
+  "embed_text": "Mein Plan für Öl\n\nKein Kopf, aber [[Plan B]].\n"
+ }
+}

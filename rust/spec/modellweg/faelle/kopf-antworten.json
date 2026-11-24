@@ -1,0 +1,509 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitt 13.3. ziel_antwort.laenge ist Content-Length des Ziels oder null (chunked oder bis zum Schliessen).",
+ "marke": "wb-marke-echtes-token-7d1c0e",
+ "faelle": [
+  {
+   "name": "json_unveraendert",
+   "beschreibung": "Antwort mit Koepfen des Dienstes: alle ausser Rahmung und set-cookie gehen mit",
+   "ziel_antwort": {
+    "status": 200,
+    "gebunden": true,
+    "kopf": [
+     [
+      "Content-Type",
+      "application/json"
+     ],
+     [
+      "X-GitHub-Request-Id",
+      "A:B"
+     ],
+     [
+      "Set-Cookie",
+      "s=1"
+     ],
+     [
+      "Content-Length",
+      "11"
+     ]
+    ],
+    "laenge": 11,
+    "teile": [
+     "{\"login\":1}"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 200,
+     "kopf": [
+      [
+       "Content-Type",
+       "application/json"
+      ],
+      [
+       "X-GitHub-Request-Id",
+       "A:B"
+      ],
+      [
+       "content-length",
+       "11"
+      ]
+     ],
+     "koerper": "{\"login\":1}"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200
+    }
+   }
+  },
+  {
+   "name": "strom_chunked",
+   "beschreibung": "SSE vom Plan-Host ohne Laenge: an den Harness chunked, Bytes gleich",
+   "ziel_antwort": {
+    "status": 200,
+    "gebunden": true,
+    "kopf": [
+     [
+      "Content-Type",
+      "text/event-stream"
+     ],
+     [
+      "Transfer-Encoding",
+      "chunked"
+     ]
+    ],
+    "laenge": null,
+    "teile": [
+     "data: {\"a\":1}\n\n",
+     "data: [DONE]\n\n"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 200,
+     "kopf": [
+      [
+       "Content-Type",
+       "text/event-stream"
+      ],
+      [
+       "transfer-encoding",
+       "chunked"
+      ]
+     ],
+     "koerper": "data: {\"a\":1}\n\ndata: [DONE]\n\n"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200
+    }
+   }
+  },
+  {
+   "name": "fehler_401",
+   "beschreibung": "401 des Dienstes unveraendert",
+   "ziel_antwort": {
+    "status": 401,
+    "gebunden": true,
+    "kopf": [
+     [
+      "Content-Type",
+      "application/json"
+     ],
+     [
+      "Content-Length",
+      "28"
+     ]
+    ],
+    "laenge": 28,
+    "teile": [
+     "{\"message\":\"Bad credentials\""
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 401,
+     "kopf": [
+      [
+       "Content-Type",
+       "application/json"
+      ],
+      [
+       "content-length",
+       "28"
+      ]
+     ],
+     "koerper": "{\"message\":\"Bad credentials\""
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 401
+    }
+   }
+  },
+  {
+   "name": "gzip_gebunden",
+   "beschreibung": "ein gebundenes Ziel antwortet trotz identity komprimiert: verworfen, 502 mw.antwort_komprimiert",
+   "ziel_antwort": {
+    "status": 200,
+    "gebunden": true,
+    "kopf": [
+     [
+      "Content-Encoding",
+      "gzip"
+     ],
+     [
+      "Content-Length",
+      "3"
+     ]
+    ],
+    "laenge": 3,
+    "teile": [
+     "\u001f\b"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "ersetzt",
+     "status": 502,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ],
+      [
+       "content-length",
+       "75"
+      ]
+     ],
+     "koerper": "{\"error\":{\"code\":\"mw.antwort_komprimiert\",\"message\":\"Antwort komprimiert\"}}"
+    },
+    "zeile": {
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.antwort_komprimiert",
+     "status": 502
+    }
+   }
+  },
+  {
+   "name": "gzip_ungebunden",
+   "beschreibung": "ein ungebundenes Ziel antwortet komprimiert: ungelesen und unveraendert durch",
+   "ziel_antwort": {
+    "status": 200,
+    "gebunden": false,
+    "kopf": [
+     [
+      "Content-Encoding",
+      "gzip"
+     ],
+     [
+      "Content-Length",
+      "3"
+     ]
+    ],
+    "laenge": 3,
+    "teile": [
+     "\u001f\b"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 200,
+     "kopf": [
+      [
+       "Content-Encoding",
+       "gzip"
+      ],
+      [
+       "content-length",
+       "3"
+      ]
+     ],
+     "koerper": "\u001f\b"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200
+    }
+   }
+  },
+  {
+   "name": "identity_gebunden",
+   "beschreibung": "ein gebundenes Ziel mit Content-Encoding identity: gelesen und durchgereicht",
+   "ziel_antwort": {
+    "status": 200,
+    "gebunden": true,
+    "kopf": [
+     [
+      "Content-Encoding",
+      "identity"
+     ],
+     [
+      "Content-Length",
+      "2"
+     ]
+    ],
+    "laenge": 2,
+    "teile": [
+     "{}"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 200,
+     "kopf": [
+      [
+       "Content-Encoding",
+       "identity"
+      ],
+      [
+       "content-length",
+       "2"
+      ]
+     ],
+     "koerper": "{}"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200
+    }
+   }
+  },
+  {
+   "name": "leck_koerper",
+   "beschreibung": "der Dienst spiegelt die Marke im Koerper",
+   "ziel_antwort": {
+    "status": 200,
+    "gebunden": true,
+    "kopf": [
+     [
+      "Content-Type",
+      "application/json"
+     ]
+    ],
+    "laenge": null,
+    "teile": [
+     "{\"token\":\"wb-marke-echtes-token-7d1c0e\"}"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "ersetzt",
+     "status": 502,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ],
+      [
+       "content-length",
+       "76"
+      ]
+     ],
+     "koerper": "{\"error\":{\"code\":\"mw.leck_gesperrt\",\"message\":\"Antwort des Ziels gesperrt\"}}"
+    },
+    "zeile": {
+     "ergebnis": "leck_gesperrt",
+     "grund": "mw.leck_gesperrt",
+     "status": 502
+    }
+   }
+  },
+  {
+   "name": "leck_kopf",
+   "beschreibung": "der Dienst spiegelt die Marke in einem Kopf",
+   "ziel_antwort": {
+    "status": 200,
+    "gebunden": true,
+    "kopf": [
+     [
+      "X-Echo",
+      "Bearer wb-marke-echtes-token-7d1c0e"
+     ],
+     [
+      "Content-Length",
+      "2"
+     ]
+    ],
+    "laenge": 2,
+    "teile": [
+     "{}"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "ersetzt",
+     "status": 502,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ],
+      [
+       "content-length",
+       "76"
+      ]
+     ],
+     "koerper": "{\"error\":{\"code\":\"mw.leck_gesperrt\",\"message\":\"Antwort des Ziels gesperrt\"}}"
+    },
+    "zeile": {
+     "ergebnis": "leck_gesperrt",
+     "grund": "mw.leck_gesperrt",
+     "status": 502
+    }
+   }
+  },
+  {
+   "name": "websocket_101",
+   "beschreibung": "Umstellung auf WebSocket am gebundenen Ziel: 101 mit Upgrade und Connection, danach die Rahmen Byte fuer Byte",
+   "ziel_antwort": {
+    "status": 101,
+    "gebunden": true,
+    "upgrade_ziel": "durchreichen",
+    "kopf": [
+     [
+      "Upgrade",
+      "websocket"
+     ],
+     [
+      "Connection",
+      "Upgrade"
+     ],
+     [
+      "Sec-WebSocket-Accept",
+      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+     ]
+    ],
+    "laenge": null,
+    "teile": [
+     "\u0005Hallo",
+     "\u0002ok"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 101,
+     "kopf": [
+      [
+       "Upgrade",
+       "websocket"
+      ],
+      [
+       "Connection",
+       "Upgrade"
+      ],
+      [
+       "Sec-WebSocket-Accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ]
+     ],
+     "koerper": "\u0005Hallo\u0002ok"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "websocket_leck",
+   "beschreibung": "die Marke kommt in einem spaeteren WebSocket-Rahmen: Abriss",
+   "ziel_antwort": {
+    "status": 101,
+    "gebunden": true,
+    "upgrade_ziel": "durchreichen",
+    "kopf": [
+     [
+      "Upgrade",
+      "websocket"
+     ],
+     [
+      "Connection",
+      "Upgrade"
+     ]
+    ],
+    "laenge": null,
+    "teile": [
+     "~\u0000@xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "\u001cwb-marke-echtes-token-7d1c0e"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "abgerissen",
+     "status": 101,
+     "kopf": [
+      [
+       "Upgrade",
+       "websocket"
+      ],
+      [
+       "Connection",
+       "Upgrade"
+      ]
+     ],
+     "gesendet": "~\u0000@xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    "zeile": {
+     "ergebnis": "leck_gesperrt",
+     "grund": "mw.leck_gesperrt",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "leck_spaet",
+   "beschreibung": "die Marke kommt spaet im Strom: Abriss",
+   "ziel_antwort": {
+    "status": 200,
+    "gebunden": true,
+    "kopf": [
+     [
+      "Content-Type",
+      "text/event-stream"
+     ]
+    ],
+    "laenge": null,
+    "teile": [
+     "data: {\"a\":1}\n\ndata: {\"b\":2}\n\ndata: {\"c\":3}\n\n",
+     "data: {\"k\":\"wb-marke-echtes-token-7d1c0e\"}\n\n"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "abgerissen",
+     "status": 200,
+     "kopf": [
+      [
+       "Content-Type",
+       "text/event-stream"
+      ],
+      [
+       "transfer-encoding",
+       "chunked"
+      ]
+     ],
+     "gesendet": "data: {\"a\":1}\n\ndat"
+    },
+    "zeile": {
+     "ergebnis": "leck_gesperrt",
+     "grund": "mw.leck_gesperrt",
+     "status": 200
+    }
+   }
+  }
+ ]
+}

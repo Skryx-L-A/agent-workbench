@@ -1,0 +1,12 @@
+{
+ "description": "über 220 Zeichen: an der Wortgrenze gekürzt, Satzzeichen am Ende entfernt, ... angehängt",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\ntitle: Aquarium\n---\n\nDas Aquarium braucht regelmäßig frisches Wasser, damit die Fische gesund bleiben, der Filter muss alle vier Wochen gereinigt werden, sonst setzt sich der Schmutz an den Pflanzen, Steinen und Wurzeln fest, Wasseroberflächenverschmutzung entsteht dann schnell, so dass das Wasser trüb wird.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "Aquarium Wasser"
+ ]
+}

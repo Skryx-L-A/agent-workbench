@@ -1,0 +1,55 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "ebenen.route_unbekannt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.route_unbekannt",
+    "ebene": "nutzer",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000c01",
+    "neu": "cdb515e8918fd1e2b9f42694fc14864b28d955fa25538557780e284f74cb86ba",
+    "pflicht": null,
+    "ziel": "ps_00000000000000000000000000000c01",
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.kunde_unbekannt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.kunde_unbekannt",
+    "ebene": "nutzer",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000c01",
+    "neu": "c4a4c906aaa8e6513502da8c85ae22b7a178cd8072337d96d473fce22fafb27d",
+    "pflicht": null,
+    "ziel": "ps_00000000000000000000000000000c01",
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.klasse_unbekannt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.klasse_unbekannt",
+    "ebene": "nutzer",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000c01",
+    "neu": "7c2a782ef9c4d1816b48061e2a502c85b0c54160058c96993ad45dbdeceb8981",
+    "pflicht": null,
+    "ziel": "ps_00000000000000000000000000000c01",
+    "zweiter": null
+   }
+  }
+ ]
+}

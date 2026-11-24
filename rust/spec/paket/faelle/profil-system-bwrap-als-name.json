@@ -1,0 +1,5 @@
+{
+ "beschreibung": "ein Profil, dessen Name der Pfad `/usr/bin/bwrap` ist, hängt am System-bwrap",
+ "form": "profil",
+ "text": "abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile /usr/bin/bwrap flags=(unconfined) {\n  userns,\n}\n"
+}

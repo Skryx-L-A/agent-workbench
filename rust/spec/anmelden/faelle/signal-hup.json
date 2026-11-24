@@ -1,0 +1,18 @@
+{
+ "beschreibung": "SIGHUP während des Logins",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "haengt",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": "HUP",
+ "reste": "keine"
+}

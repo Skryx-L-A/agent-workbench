@@ -1,0 +1,22 @@
+{
+ "description": "nur die abgeleitete Seite passt: sie kommt trotzdem",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Themenseite Heizung",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/30-topics/heizung.md": "---\ntitle: Themenseite Heizung\ntype: note\nclass: derived\n---\n\nHeizung allgemein.\n",
+  "vault/haus/fenster.md": "---\ntitle: Fenster\ntype: note\n---\n\nDas Fenster klemmt.\n",
+  "vektoren.json": "{\"query\": [1, 0, 0], \"notes\": {}}"
+ }
+}

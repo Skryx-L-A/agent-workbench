@@ -1,0 +1,16 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [],
+  "fields": {},
+  "body": "Nur ein Satz ohne Kopf.\n",
+  "title": "einkauf",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "einkauf"
+  ],
+  "embed_text": "einkauf\n\nNur ein Satz ohne Kopf.\n"
+ }
+}

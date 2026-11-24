@@ -1,0 +1,90 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/hecke.md",
+     "score": 1.0,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/hecke.md",
+     "score": 1.0,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/hecke.md",
+     "score": 1.0,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    },
+    {
+     "rel": "10-global/leer/n.md",
+     "score": 0.6159378214973708,
+     "title": "Im leeren Ordner",
+     "snippet": "hecke hecke jetzt nicht mehr leer.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.6159378214973708
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/hecke.md",
+     "score": 1.0,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  }
+ ],
+ "exit": 0
+}

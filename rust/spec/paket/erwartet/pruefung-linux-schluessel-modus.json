@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.schluessel_modus: Die Schluesseldatei hat nicht den Modus 0600.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

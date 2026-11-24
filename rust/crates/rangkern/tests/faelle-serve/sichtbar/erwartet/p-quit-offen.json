@@ -1,0 +1,19 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "notiz.md",
+     "score": 0.0,
+     "match": "text"
+    }
+   ]
+  },
+  {
+   "ok": true,
+   "id": "ende"
+  }
+ ],
+ "exit": 0
+}

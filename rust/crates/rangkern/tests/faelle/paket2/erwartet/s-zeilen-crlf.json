@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "snippet": "Die Regentonne ist voll. Der Deckel fehlt.",
+  "lines": [
+   5,
+   6
+  ],
+  "hook": "Die Regentonne ist voll.",
+  "hook_lines": [
+   5,
+   5
+  ]
+ }
+}

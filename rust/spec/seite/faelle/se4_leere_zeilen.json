@@ -1,0 +1,79 @@
+{
+ "beschreibung": "Die Seite zeigt genau so viele Zeilen wie das Abbild, leere eingeschlossen.",
+ "datensatz": "A",
+ "name": "se4_leere_zeilen",
+ "regeln": [
+  "SE4"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "0501040214060100000003000100046f62656e030100056d6974746505010005756e74656e"
+  },
+  {
+   "art": "Zeilen",
+   "erwartet": [
+    "oben",
+    "",
+    "",
+    "mitte",
+    "",
+    "unten"
+   ]
+  }
+ ]
+}

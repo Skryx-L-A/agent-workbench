@@ -1,0 +1,29 @@
+{
+ "exit": 0,
+ "stdout": {
+  "words": [
+   "ich",
+   "geht's",
+   "zu",
+   "omas'",
+   "garten"
+  ],
+  "stems": [
+   "ich",
+   "geht's",
+   "zu",
+   "omas'",
+   "gart"
+  ],
+  "index": [
+   "ich",
+   "geht's",
+   "#geht",
+   "#eht'",
+   "#ht's",
+   "zu",
+   "omas'",
+   "gart"
+  ]
+ }
+}

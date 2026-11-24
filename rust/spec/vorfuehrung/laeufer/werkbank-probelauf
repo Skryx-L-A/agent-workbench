@@ -1,0 +1,411 @@
+#!/usr/bin/python3
+"""werkbank-probelauf: richtet den Modellweg ein und startet den Probelauf auf dem Zielrechner.
+
+Aufruf:
+    werkbank-probelauf --ergebnis <datei> [--neu-einrichten]
+
+Ablauf:
+ 0. Schutz vor einem Kernabbild: RLIMIT_CORE weich 1 und hart 1 (Vertrag `dienst`, Abschnitt 16), unter Linux PR_SET_DUMPABLE 0; scheitert das, Exit 5 (Regel des Crates `kernabbild`).
+ 1. Datenordner /var/lib/werkbank/<nutzer>/ (<nutzer> = getpass.getuser()) pruefen: Er muss ein
+    Ordner sein (kein Link) und dem Nutzer gehoeren. Sonst Exit 3 mit festem Satz.
+ 2. Einrichtung, wenn `modellweg.schluessel` im Datenordner fehlt oder mit --neu-einrichten:
+    - Adresse des Gateways ohne Anzeige lesen. Form nach Vertrag 2 (Feld `ziel`): http oder https,
+      Host, Port, Pfad, der letzte Teil genau `v1`; http nur fuer 127.0.0.1. Die Adresse kommt in das Feld
+      `ziel` der Route mit "schluessel": "lokal" in `einstellungen.json`. Die Route wird nach dem
+      Schluessel gesucht, nie nach einem Index. Nur der Wert von `ziel` wird ersetzt, alle anderen
+      Bytes der Datei bleiben gleich. Geschrieben wird atomar: Temp-Datei 0600 im selben Ordner,
+      dann os.replace.
+    - Schluessel der IT ohne Anzeige lesen (getpass). Form nach Vertrag 8 Abschnitt 5: genau eine Zeile
+      aus 1 bis 4096 Zeichen von 0x21 bis 0x7e. Ziel: `modellweg.schluessel`, reguelaere Datei, Modus
+      genau 0600. Sie entsteht nie mit anderen Rechten: umask 077, os.open mit O_WRONLY|O_CREAT|O_EXCL|
+      O_NOFOLLOW und 0600 auf eine Temp-Datei, dann os.replace.
+    - Eine falsche Form wird mit einem festen Satz abgewiesen (ohne den Wert). Je Eingabe gibt es
+      hoechstens drei Versuche, danach Exit 3.
+    - Weder Schluessel noch Adresse erscheinen auf stdout oder stderr, in der Ergebnisdatei oder in einer
+      anderen Datei als diesen beiden.
+    - Erst die Adresse und der Schluessel werden gelesen, dann die Einstellungsdatei geschrieben, zuletzt die
+      Schluesseldatei. Bricht die Einrichtung ab, fehlt der Schluessel, und der naechste Aufruf fragt erneut.
+ 3. Danach laeuft
+        python3 -I -B /usr/lib/werkbank/probelauf/drehbuch.py probelauf --ergebnis <datei> \\
+            --konfig /usr/share/werkbank/probelauf/konfig.json
+    Dessen Exitcode 0, 1, 2 oder 3 wird weitergegeben; jeder andere Wert (etwa ein Signal) wird 3.
+
+Exitcodes: 0 gruen; 1 ein Schritt rot oder offen; 2 falscher Aufruf (es entsteht keine Datei);
+3 Aufbau oder Einrichtung gescheitert; 5 der Schutz vor einem Kernabbild laesst sich nicht herstellen (fail closed, Schritt 0); 4 nur mit --nur-cloud (Messbetrieb, Teilumfang ohne roten Schritt; mit
+rotem Schritt 1; nie 0).
+
+Nur fuer Tests (reine Testhilfen, im Betrieb nicht setzen):
+    WERKBANK_DATEN     Datenordner statt /var/lib/werkbank/<nutzer>
+    WERKBANK_DREHBUCH  Pfad von drehbuch.py
+    WERKBANK_KONFIG    Pfad der Konfiguration des Probelaufs
+
+Nur Python-3-Standardbibliothek.
+"""
+
+import argparse
+import getpass
+import json
+import json.decoder
+import os
+import re
+import stat as _stat
+import subprocess
+import sys
+
+DATEN_BASIS = "/var/lib/werkbank"
+DREHBUCH = "/usr/lib/werkbank/probelauf/drehbuch.py"
+KONFIG = "/usr/share/werkbank/probelauf/konfig.json"
+SCHLUESSEL_DATEI = "modellweg.schluessel"
+EINSTELLUNGEN_DATEI = "einstellungen.json"
+EINSTELLUNGEN_MAX = 65536
+VERSUCHE = 3
+
+S_ORDNER = "Der Datenordner fehlt oder gehoert nicht dem Nutzer."
+S_ADRESSE = "Die Adresse hat nicht die Form <schema>://<host>:<port>/.../v1 (http nur fuer 127.0.0.1)."
+S_SCHLUESSEL = "Der Schluessel hat nicht die erlaubte Form: eine Zeile aus 1 bis 4096 sichtbaren Zeichen ohne Leerzeichen."
+S_ZU_OFT = "Zu viele falsche Eingaben. Die Einrichtung ist abgebrochen."
+S_EINST = "Die Einstellungsdatei fehlt, ist nicht lesbar oder hat keine Route 'lokal' mit Feld 'ziel'."
+S_SCHREIBEN = "Die Einrichtung konnte nicht geschrieben werden."
+S_ABBRUCH = "Die Eingabe wurde abgebrochen. Die Einrichtung ist abgebrochen."
+S_SCHUTZ = "Der Prozess laesst sich nicht gegen ein Kernabbild schuetzen. Der Probelauf ist abgebrochen."
+PR_GET_DUMPABLE, PR_SET_DUMPABLE = 3, 4
+
+
+class Ende(Exception):
+    def __init__(self, code, satz):
+        Exception.__init__(self, satz)
+        self.code = code
+        self.satz = satz
+
+
+# ---- Form von Adresse und Schluessel ---------------------------------------------------------
+
+_TEIL = re.compile(r"[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\Z")
+_PFADTEIL = re.compile(r"[A-Za-z0-9._~-]+\Z")
+_DEZ = re.compile(r"(0|[1-9][0-9]{0,2})\Z")
+_SCHLUESSEL = re.compile(r"[\x21-\x7e]{1,4096}\Z")
+
+
+def adresse_ok(text):
+    """Form des Feldes `ziel` nach Vertrag 2 (Fassung 2)."""
+    if not isinstance(text, str) or not text or len(text) > 256:
+        return False
+    try:
+        text.encode("ascii")
+    except UnicodeEncodeError:
+        return False
+    schema, sep, rest = text.partition(":")
+    if not sep or schema not in ("http", "https") or not rest.startswith("//"):
+        return False
+    rest = rest[2:]
+    if any(c in rest for c in "?#@[]\\ "):
+        return False
+    i = rest.find("/")
+    if i < 0:
+        return False
+    hostport, pfad = rest[:i], rest[i:]
+    host, sep, port = hostport.rpartition(":")
+    if not sep or not host or ":" in host:
+        return False
+    if not (port.isdigit() and port.isascii() and len(port) <= 5 and port[0] != "0" and 1 <= int(port) <= 65535):
+        return False
+    teile = pfad[1:].split("/")
+    if not teile or any(t in ("", ".", "..") or not _PFADTEIL.match(t) for t in teile) or teile[-1] != "v1":
+        return False
+    if all(c in "0123456789." for c in host):
+        zahlen = host.split(".")
+        if len(zahlen) != 4 or not all(_DEZ.match(z) and int(z) <= 255 for z in zahlen):
+            return False
+        a, b = int(zahlen[0]), int(zahlen[1])
+        loopback = a == 127
+        privat = a == 10 or (a == 172 and 16 <= b <= 31) or (a == 192 and b == 168)
+        if not (loopback or privat):
+            return False
+        if schema == "http" and host != "127.0.0.1":
+            return False
+        return True
+    if schema == "http":
+        return False
+    if len(host) > 253:
+        return False
+    namen = host.split(".")
+    if not all(_TEIL.match(n) for n in namen):
+        return False
+    return True
+
+
+def schluessel_ok(text):
+    return isinstance(text, str) and _SCHLUESSEL.match(text) is not None
+
+
+# ---- Einstellungsdatei: nur den Wert von `ziel` ersetzen --------------------------------------
+
+_WS = " \t\r\n"
+
+
+def _ws(t, i):
+    while i < len(t) and t[i] in _WS:
+        i += 1
+    return i
+
+
+def _knoten(t, i):
+    """Liest einen JSON-Wert ab Stelle i. Ergebnis: (start, ende, art, kinder, wert)."""
+    i = _ws(t, i)
+    if i >= len(t):
+        raise ValueError("ende")
+    c = t[i]
+    if c == "{":
+        kinder = {}
+        start = i
+        i = _ws(t, i + 1)
+        if t[i:i + 1] == "}":
+            return (start, i + 1, "objekt", kinder, None)
+        while True:
+            i = _ws(t, i)
+            if t[i:i + 1] != '"':
+                raise ValueError("schluessel")
+            name, i = json.decoder.scanstring(t, i + 1)
+            if name in kinder:
+                raise ValueError("doppelt")
+            i = _ws(t, i)
+            if t[i:i + 1] != ":":
+                raise ValueError("doppelpunkt")
+            k = _knoten(t, i + 1)
+            kinder[name] = k
+            i = _ws(t, k[1])
+            if t[i:i + 1] == ",":
+                i += 1
+                continue
+            if t[i:i + 1] == "}":
+                return (start, i + 1, "objekt", kinder, None)
+            raise ValueError("objekt")
+    if c == "[":
+        kinder = []
+        start = i
+        i = _ws(t, i + 1)
+        if t[i:i + 1] == "]":
+            return (start, i + 1, "liste", kinder, None)
+        while True:
+            k = _knoten(t, i)
+            kinder.append(k)
+            i = _ws(t, k[1])
+            if t[i:i + 1] == ",":
+                i += 1
+                continue
+            if t[i:i + 1] == "]":
+                return (start, i + 1, "liste", kinder, None)
+            raise ValueError("liste")
+    if c == '"':
+        wert, ende = json.decoder.scanstring(t, i + 1)
+        return (i, ende, "text", None, wert)
+    wert, ende = json.JSONDecoder().raw_decode(t, i)
+    return (i, ende, "einfach", None, wert)
+
+
+def _ziel_spanne(daten):
+    """Gibt (start, ende) des Wertes `ziel` der Route mit schluessel `lokal` zurueck, sonst Ende(3)."""
+    try:
+        if len(daten) > EINSTELLUNGEN_MAX or daten.startswith(b"\xef\xbb\xbf"):
+            raise ValueError("form")
+        text = daten.decode("utf-8")
+        wurzel = _knoten(text, 0)
+        if _ws(text, wurzel[1]) != len(text) or wurzel[2] != "objekt":
+            raise ValueError("wurzel")
+        routen = wurzel[3]["routen"]
+        if routen[2] != "liste":
+            raise ValueError("routen")
+        for r in routen[3]:
+            if r[2] != "objekt":
+                continue
+            s = r[3].get("schluessel")
+            if s and s[2] == "text" and s[4] == "lokal":
+                z = r[3].get("ziel")
+                if not z or z[2] != "text":
+                    raise ValueError("ziel")
+                return text, z[0], z[1]
+        raise ValueError("keine route")
+    except (ValueError, KeyError, IndexError, UnicodeDecodeError, RecursionError):
+        raise Ende(3, S_EINST)
+
+
+# ---- Schreiben ------------------------------------------------------------------------------
+
+def _atomar_schreiben(ordner, name, inhalt):
+    """Temp-Datei 0600 im selben Ordner, dann os.replace. Es entsteht nie eine Datei mit weiteren Rechten."""
+    os.umask(0o077)
+    tmp = os.path.join(ordner, ".%s.tmp-%d" % (name, os.getpid()))
+    ziel = os.path.join(ordner, name)
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    try:
+        try:
+            _alles_schreiben(fd, inhalt)
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        os.replace(tmp, ziel)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def _alles_schreiben(fd, inhalt):
+    view = memoryview(inhalt)
+    while view:
+        n = os.write(fd, view)
+        view = view[n:]
+
+
+# ---- Eingabe --------------------------------------------------------------------------------
+
+def _fragen(prompt, pruefung, satz):
+    for _ in range(VERSUCHE):
+        try:
+            wert = getpass.getpass(prompt)
+        except (EOFError, KeyboardInterrupt):
+            raise Ende(3, S_ABBRUCH)
+        if pruefung(wert):
+            return wert
+        print(satz, file=sys.stderr)
+    raise Ende(3, S_ZU_OFT)
+
+
+# ---- Ablauf ---------------------------------------------------------------------------------
+
+def datenordner():
+    pfad = os.environ.get("WERKBANK_DATEN") or os.path.join(DATEN_BASIS, getpass.getuser())
+    try:
+        st = os.lstat(pfad)
+    except OSError:
+        raise Ende(3, S_ORDNER)
+    if not _stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid():
+        raise Ende(3, S_ORDNER)
+    return pfad
+
+
+def einrichten(ordner):
+    einst_pfad = os.path.join(ordner, EINSTELLUNGEN_DATEI)
+    try:
+        with open(einst_pfad, "rb") as f:
+            daten = f.read(EINSTELLUNGEN_MAX + 1)
+    except OSError:
+        raise Ende(3, S_EINST)
+    text, a, b = _ziel_spanne(daten)
+
+    adresse = _fragen("Adresse des Gateways (ohne Anzeige): ", adresse_ok, S_ADRESSE)
+    schluessel = _fragen("Schluessel der IT (ohne Anzeige): ", schluessel_ok, S_SCHLUESSEL)
+
+    neu = (text[:a] + json.dumps(adresse) + text[b:]).encode("utf-8")
+    try:
+        if len(neu) > EINSTELLUNGEN_MAX:
+            raise ValueError("gross")
+        json.loads(neu.decode("utf-8"))
+        _atomar_schreiben(ordner, EINSTELLUNGEN_DATEI, neu)
+        _atomar_schreiben(ordner, SCHLUESSEL_DATEI, schluessel.encode("ascii") + b"\n")
+    except (OSError, ValueError):
+        raise Ende(3, S_SCHREIBEN)
+
+
+CORE_PATTERN = "/proc/sys/kernel/core_pattern"
+CORE_PATTERN_MAX = 4096  # hoechstens so viele Byte des Musters werden gelesen
+NICHT_LESBAR = object()  # Marke fuer ein Muster, das sich nicht lesen laesst
+HINWEIS_KERNABBILD = {"muster_fehlt": "kein core_pattern (anderes System als Linux): die Grenze bleibt, wie sie ist",
+                      "muster_datei": "die harte Grenze ist 0, das Kernabbild geht in eine Datei: die Grenze bleibt, wie sie ist"}
+GRUND_KERNABBILD = {"muster_pipe": "die harte Grenze ist 0 und das Kernabbild geht ueber eine Pipe",
+                    "muster_nicht_lesbar": "die harte Grenze ist 0 und das Muster fuer Kernabbilder ist nicht lesbar"}
+
+
+def kernabbild_entscheiden(harte_grenze, muster):
+    """Reine Entscheidung (Falltabelle Vertrag `dienst`, Abschnitt 16, Punkt 4). `muster`: Text, None (fehlt) oder NICHT_LESBAR; es wird nur
+    angesehen, wenn die harte Grenze 0 ist. Gibt (Entscheidung, Wort): ("setzen", None), ("weiter", "muster_fehlt"|"muster_datei") oder
+    ("abbruch", "muster_pipe"|"muster_nicht_lesbar")."""
+    if harte_grenze != 0:
+        return "setzen", None
+    if muster is NICHT_LESBAR:
+        return "abbruch", "muster_nicht_lesbar"
+    if muster is None:
+        return "weiter", "muster_fehlt"
+    return ("abbruch", "muster_pipe") if muster.startswith("|") else ("weiter", "muster_datei")
+
+
+def core_pattern_lesen():
+    """Hoechstens 4096 Byte von /proc/sys/kernel/core_pattern: Text, None (die Datei gibt es nicht) oder NICHT_LESBAR."""
+    try:
+        with open(CORE_PATTERN, "rb") as f:
+            return f.read(CORE_PATTERN_MAX).decode("utf-8", "replace")
+    except FileNotFoundError:
+        return None
+    except OSError:
+        return NICHT_LESBAR
+
+
+def abschirmen():
+    """Vor jeder Eingabe eines Schluessels: Kernabbild-Grenze weich 1 und hart 1 und unter Linux nicht abzugsfaehig (PR_SET_DUMPABLE 0).
+    Gemessen am 21.11. (in einem Testlauf): Ubuntu 26.04 leitet Kernabbilder ueber eine Pipe an apport; die Grenze 0 allein haelt
+    das nicht auf, ein abzugsfaehiger Prozess hinterliess einen Bericht mit dem Geheimnis im Speicher, ein nicht abzugsfaehiger keinen.
+    1 statt 0 (Vertrag `dienst`, Abschnitt 16): Bei einem Pipe-Muster hoert der Kern an der Grenze 1 auf, bei einem Dateimuster liegt 1 Byte
+    unter der kleinsten Groesse eines Abbilds, und eine harte 0 koennte ein Kind ohne root nicht anheben (kein Programm der Werkbank setzt
+    die harte Grenze auf 0). Ist die geerbte harte Grenze schon 0, gilt die Falltabelle (`kernabbild_entscheiden`).
+    Dieser Prozess haelt den Schluessel der IT nach der Einrichtung bis zum Ende des Laufs. Wirft Ende(5), wenn ein Schritt scheitert."""
+    import resource
+    try:
+        harte = resource.getrlimit(resource.RLIMIT_CORE)[1]
+    except (ValueError, OSError):
+        raise Ende(5, S_SCHUTZ)
+    entscheidung, wort = kernabbild_entscheiden(harte, core_pattern_lesen() if harte == 0 else None)
+    if entscheidung == "abbruch":
+        print("werkbank-probelauf: kernabbild: " + GRUND_KERNABBILD[wort], file=sys.stderr)
+        raise Ende(5, S_SCHUTZ)
+    if entscheidung == "weiter":
+        print("werkbank-probelauf: kernabbild: " + HINWEIS_KERNABBILD[wort], file=sys.stderr)
+    else:
+        try:
+            resource.setrlimit(resource.RLIMIT_CORE, (1, 1))
+        except (ValueError, OSError):
+            raise Ende(5, S_SCHUTZ)
+    if sys.platform.startswith("linux"):
+        import ctypes
+        try:
+            libc = ctypes.CDLL(None, use_errno=True)
+            if libc.prctl(PR_SET_DUMPABLE, 0, 0, 0, 0) != 0 or libc.prctl(PR_GET_DUMPABLE, 0, 0, 0, 0) != 0:
+                raise Ende(5, S_SCHUTZ)
+        except (OSError, AttributeError):
+            raise Ende(5, S_SCHUTZ)
+
+
+def main(argv):
+    ap = argparse.ArgumentParser(prog="werkbank-probelauf", allow_abbrev=False,
+                                 description="Richtet den Modellweg ein und startet den Probelauf.")
+    ap.add_argument("--ergebnis", required=True, metavar="DATEI")
+    ap.add_argument("--neu-einrichten", action="store_true", dest="neu")
+    ap.add_argument("--nur-cloud", action="store_true", dest="nur_cloud")
+    args = ap.parse_args(argv)
+    if not args.ergebnis:
+        ap.error("--ergebnis braucht einen Pfad")
+    try:
+        abschirmen()
+        os.umask(0o077)
+        ordner = datenordner()
+        if args.neu or not os.path.lexists(os.path.join(ordner, SCHLUESSEL_DATEI)):
+            einrichten(ordner)
+    except Ende as e:
+        print(e.satz, file=sys.stderr)
+        return e.code
+    drehbuch = os.environ.get("WERKBANK_DREHBUCH") or DREHBUCH
+    konfig = os.environ.get("WERKBANK_KONFIG") or KONFIG
+    try:
+        cmd = [sys.executable, "-I", "-B", drehbuch, "probelauf", "--ergebnis", args.ergebnis, "--konfig", konfig]
+        if args.nur_cloud:
+            cmd.append("--nur-cloud")
+        code = subprocess.call(cmd)
+    except OSError:
+        print("Der Probelauf konnte nicht gestartet werden.", file=sys.stderr)
+        return 3
+    return code if code in (0, 1, 2, 3, 4) else 3
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

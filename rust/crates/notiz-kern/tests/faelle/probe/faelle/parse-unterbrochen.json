@@ -1,0 +1,10 @@
+{
+ "description": "opening delimiter without a closing one: no frontmatter",
+ "files": {
+  "note.md": "---\ntitle: Halb\ntype: note\n\nText ohne Ende des Kopfes.\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

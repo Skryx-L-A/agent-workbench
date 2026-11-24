@@ -1,0 +1,19 @@
+{
+ "beschreibung": "wie ueb-config-nicht-ersetzbar, mit --neu über eine alte Datei: die alte kommt zurück",
+ "args": [
+  "copilot",
+  "--uebernehmen",
+  "--neu"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "datei-da",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": "config-stoeren"
+}

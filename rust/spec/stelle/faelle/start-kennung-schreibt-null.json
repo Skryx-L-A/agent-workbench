@@ -1,0 +1,47 @@
+{
+  "beschreibung": "Eine Route mit Leerzeichen verletzt die Kennungsform; die Zeile nimmt den Wert nicht auf, sondern null.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "A104",
+    "V1 Stufe 8"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"such-mcp\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[]}}}"
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"Cloud Beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "start.kennung_form",
+          "grund": "Kennung hat falsche Form"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"start.kennung_form\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":null,\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "6266ccb7b238f330b7653cb2ef84ac887797d22dceee122de5e9ebb5c9b143bd"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [],
+    "anfragen": {},
+    "zaehler": 0,
+    "zeilen": 1,
+    "letzte": "6266ccb7b238f330b7653cb2ef84ac887797d22dceee122de5e9ebb5c9b143bd"
+  }
+}

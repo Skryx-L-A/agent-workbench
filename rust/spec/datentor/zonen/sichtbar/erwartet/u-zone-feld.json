@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "Z10"
+ ],
+ "beschreibung": "Ein unbekanntes Feld an einer Zone (Anzeigedaten gehören nicht zur Sicht des Tors)."
+}

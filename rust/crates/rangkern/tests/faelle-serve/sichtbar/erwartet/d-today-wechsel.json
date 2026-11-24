@@ -1,0 +1,177 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      7,
+      7
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.49,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      7,
+      7
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "status": "expired"
+    }
+   ],
+   "id": 2
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      7,
+      7
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 3
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.49,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      7,
+      7
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "status": "expired"
+    }
+   ],
+   "id": 4
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      7,
+      7
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 5
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.49,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      7,
+      7
+     ],
+     "match": "hybrid",
+     "cosine": 0.9993691787040635,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1,
+     "status": "expired"
+    },
+    {
+     "rel": "10-global/kompost.md",
+     "score": 0.47058823529411764,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9293550389781042,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9274585847674263,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.42105263157894735,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9174279770823514,
+     "vektor_rang": 4,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.4,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9093757906050273,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 6
+  }
+ ],
+ "exit": 0
+}

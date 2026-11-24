@@ -1,0 +1,21 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "kunde-fehlt",
+    "klasse": "nur",
+    "meldung": "Kundendaten ohne Kunde",
+    "protokoll": null
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "nur",
+    "meldung": "frei",
+    "protokoll": null
+   }
+  ]
+ }
+}

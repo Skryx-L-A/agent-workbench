@@ -1,0 +1,29 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": null,
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": "oeffentlich",
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   }
+  ]
+ }
+}

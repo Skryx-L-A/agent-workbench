@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Token mit Leerzeichen",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "erfolg",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "F G",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

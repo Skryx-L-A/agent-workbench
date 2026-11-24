@@ -1,0 +1,34 @@
+{
+ "fassung": 1,
+ "klassen": [
+  "oeffentlich",
+  "intern",
+  "kundendaten"
+ ],
+ "vorgabestufe": "kundendaten",
+ "routen": [
+  {
+   "schluessel": "cloud-beispiel",
+   "art": "cloud",
+   "klasse": "intern"
+  },
+  {
+   "schluessel": "lokal-beispiel",
+   "art": "lokal",
+   "klasse": "kundendaten"
+  }
+ ],
+ "kunden": [
+  {
+   "schluessel": "k-beispiel",
+   "erlaubt": [
+    "lokal-beispiel"
+   ],
+   "verboten": []
+  }
+ ],
+ "kundendaten_an_cloud": {
+  "vorgabe": "nie",
+  "freigaben": []
+ }
+}

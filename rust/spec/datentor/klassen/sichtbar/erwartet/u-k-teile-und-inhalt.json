@@ -1,0 +1,8 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13",
+  "A33"
+ ],
+ "beschreibung": "Eine Einheit mit teile trägt selbst eine Klasse."
+}

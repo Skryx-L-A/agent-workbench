@@ -1,0 +1,10 @@
+{
+ "rc": 0,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.hinweis_ca_offen: Die Zulassung der lokalen CA ist offen; die Cloud-Route ist gesperrt. Das ist kein Fehler der Installation.",
+  "pruef.hinweis_harness_nicht_gefunden: copilot nicht gefunden in ~/.nvm/versions/node/v*/bin, ~/.local/bin, ~/.npm-global/bin, ~/.volta/bin, /usr/local/bin, /usr/bin; andere Orte werden nicht gesucht.",
+  "pruef.hinweis_harness_ausserhalb: pi liegt an einem gesuchten Ort, der echte Pfad aber nicht unter /usr, /opt, ~/.nvm, ~/.local, ~/.npm-global oder ~/.volta; er wird nicht genommen.",
+  "pruef.ok: Alle 8 Pruefungen bestanden."
+ ]
+}

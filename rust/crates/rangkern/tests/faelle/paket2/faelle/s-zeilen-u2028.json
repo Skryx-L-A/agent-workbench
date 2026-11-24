@@ -1,0 +1,12 @@
+{
+ "description": "U+2028 und Formfeed im Rumpf verschieben die Zeilen nicht",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\ntitle: Garten\n---\n\nErste Zeile noch dieselbe Zeile.\n\nDas Gewächshaus\fliegt im Garten.\nAbends wird es geschlossen.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "Gewächshaus Garten"
+ ]
+}

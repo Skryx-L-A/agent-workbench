@@ -1,0 +1,9 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.vault_rechte: Der Vault-Ordner hat falsche Rechte.",
+  "pruef.hinweis_ubuntu_profil_entladen: Das Ubuntu-Profil bwrap-userns-restrict ist nicht geladen.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

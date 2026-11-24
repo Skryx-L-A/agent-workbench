@@ -1,0 +1,11 @@
+{
+ "description": "corpus walk never enters the upper case spelling of an excluded folder (a case of its own: a file system that folds the case keeps one folder for 90-SECRETS and 90-ſecrets)",
+ "files": {
+  "10-global/ok.md": "# ok\n",
+  "90-SECRETS/zwei.md": "erfunden\n"
+ },
+ "args": [
+  "corpus",
+  "{root}"
+ ]
+}

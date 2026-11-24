@@ -1,0 +1,26 @@
+{
+ "exit": 0,
+ "stdout": {
+  "words": [
+   "suchindex",
+   "index",
+   "indizes"
+  ],
+  "stems": [
+   "suchindex",
+   "index",
+   "indiz"
+  ],
+  "index": [
+   "suchindex",
+   "#such",
+   "#uchi",
+   "#chin",
+   "#hind",
+   "#inde",
+   "#ndex",
+   "index",
+   "indiz"
+  ]
+ }
+}

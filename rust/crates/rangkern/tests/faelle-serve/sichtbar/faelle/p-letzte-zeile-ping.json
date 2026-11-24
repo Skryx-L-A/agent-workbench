@@ -1,0 +1,27 @@
+{
+ "description": "Letzte Zeile ohne \\n vor dem Dateiende gilt als Anfrage (ping)",
+ "vault": {
+  "files": {
+   "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text ueber Wolken.\n"
+  }
+ },
+ "args": [
+  "{root}/vault"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "ping",
+    "id": 1
+   }
+  },
+  {
+   "line": "{\"op\":\"ping\",\"id\":\"ohne-lf\"}",
+   "newline": false,
+   "answers": 0
+  },
+  {
+   "close": true
+  }
+ ]
+}

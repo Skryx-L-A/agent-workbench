@@ -1,0 +1,34 @@
+{
+ "name": "tr11_hautton_zwj",
+ "regeln": [
+  "TR11"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Hautton (breitenlos nach TR11) zusammen mit Zeichenverbindung und Variantenwahl: der Hautton belegt keine Zelle, die Folge sonst wie in alacritty_terminal",
+ "art": "strom",
+ "groesse": [
+  16,
+  6
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "👨🏽‍👩🏻\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "👍🏽‍♂️.\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "🏼‍\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "a🏾️🏿\r\n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

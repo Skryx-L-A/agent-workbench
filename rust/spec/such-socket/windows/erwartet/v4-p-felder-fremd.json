@@ -1,0 +1,34 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "ok": true
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

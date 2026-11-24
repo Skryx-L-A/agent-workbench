@@ -1,0 +1,22 @@
+{
+ "description": "class: derived mit bestem Treffer steht unter der Quellnotiz, Feld derived",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Bewässerung Beet",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/garten/quelle.md": "---\ntitle: Bewässerung\ntype: note\n---\n\nDas Beet braucht Wasser am Morgen.\n",
+  "vault/30-topics/bewaesserung.md": "---\ntitle: Themenseite Bewässerung\ntype: note\nclass: derived\n---\n\nBewässerung Beet Wasser Morgen Bewässerung.\n",
+  "vektoren.json": "{\"query\": [1, 0, 0], \"notes\": {\"30-topics/bewaesserung.md\": [1, 0, 0], \"garten/quelle.md\": [0.8, 0.6, 0.0]}}"
+ }
+}

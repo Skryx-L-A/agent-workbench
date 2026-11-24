@@ -1,0 +1,38 @@
+{
+ "name": "tr10_cpr_alternativ",
+ "regeln": [
+  "TR10",
+  "TR14"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Im Alternativschirm nennt die Antwort den Cursor des Alternativschirms; nach dem Verlassen den des Hauptschirms",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha\r\nbeta"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049h\u001b[4;3H\u001b[6n"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "gamma\u001b[6n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049l\u001b[6n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

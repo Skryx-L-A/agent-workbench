@@ -1,0 +1,36 @@
+# Cargo workspace for the Rust rebuild.
+# Gates: ./gates.sh (see README.md).
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.99.0"
+publish = false
+
+# Shared lints. Every crate opts in with `[lints] workspace = true`.
+# clippy runs with -D warnings in gates.sh, so every warning here is an error in the gate.
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+dbg_macro = "warn"
+todo = "warn"
+unwrap_used = "warn"
+print_stdout = "warn"
+print_stderr = "warn"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+# The browser view (crates/ansicht, built by ansicht/bauen.sh for wasm32-unknown-unknown): small code, no unwinding.
+[profile.ansicht]
+inherits = "release"
+opt-level = "s"
+panic = "abort"

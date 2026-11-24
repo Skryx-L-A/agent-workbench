@@ -1,0 +1,23 @@
+{
+ "beschreibung": "nur die Datei am Ort von `--ergebnis` ist Ausnahme, nicht eine zweite",
+ "form": "entfernen",
+ "nutzer": "nutzer1",
+ "heimwurzel": "/srv/beispiel/heim",
+ "ergebnisdatei": "/srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+ "vorher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1"
+ ],
+ "nachher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "datei:/srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+  "datei:/srv/beispiel/heim/nutzer1/zweite.json"
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "description": "delimiters with trailing blanks are accepted",
+ "files": {
+  "note.md": "---  \ntitle: Leerraum\n---\t\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

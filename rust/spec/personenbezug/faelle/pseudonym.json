@@ -1,0 +1,59 @@
+{
+ "beschreibung": "pseudonym und loeschmarke aus Schluessel und Personengeheimnis: gleiche Person gleiches Pseudonym, verschiedene Personen verschiedene, anderer Schluessel andere; Fehler der Form",
+ "vektoren": [
+  {
+   "schluessel": "9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c",
+   "geheimnis": "b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50",
+   "pseudonym": "ps_e2f010a3a4e89fe59b529650297964ad",
+   "loeschmarke": "1be77e62e980296187b1e88b411f62d430c117998e90cd2c589a692fd9d4f7cd",
+   "herkunft": "K1/p-a01"
+  },
+  {
+   "schluessel": "9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c",
+   "geheimnis": "1d1b3d10d06411776014010229e3253755fe05db46d7e3502832086f0580b9e1",
+   "pseudonym": "ps_ce1ec9d0cff94e7fd706691cfe0c3f12",
+   "loeschmarke": "97a5b29601b8a67a4e3649495590b055417fa7ecb3f453bff9e5ab691934cf3f",
+   "herkunft": "K1/p-b02"
+  },
+  {
+   "schluessel": "9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c",
+   "geheimnis": "d6459cca9b30d3a5553547fd2bb69cdbdc49d961c823ca85626d6161ad23ae53",
+   "pseudonym": "ps_8c183f6572a61769067fe62d39ebc68f",
+   "loeschmarke": "adf90656e3332cd093616bd2388b28441ae513664c33ff32d623399cfd77a94e",
+   "herkunft": "K1/p-adm01"
+  },
+  {
+   "schluessel": "b3df365457565a7982022968b4f7c560b43f89c8e29eaea770c1e83777d29cdb",
+   "geheimnis": "b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50",
+   "pseudonym": "ps_d890f3ef472e71c484822890ff8bb721",
+   "loeschmarke": "3a8f18fe78d3158c86ae8d4151efc11761e228d261d98e1efee5b111908bcf47",
+   "herkunft": "K2/p-a01"
+  },
+  {
+   "schluessel": "b3df365457565a7982022968b4f7c560b43f89c8e29eaea770c1e83777d29cdb",
+   "geheimnis": "1d1b3d10d06411776014010229e3253755fe05db46d7e3502832086f0580b9e1",
+   "pseudonym": "ps_f19c3ef437e0957a0f729d4b2ad98a8f",
+   "loeschmarke": "dd2ad2df7990bb0ec20987ca255622f539ed4abaacac2d9be0380fb8ec650678",
+   "herkunft": "K2/p-b02"
+  },
+  {
+   "schluessel": "b3df365457565a7982022968b4f7c560b43f89c8e29eaea770c1e83777d29cdb",
+   "geheimnis": "d6459cca9b30d3a5553547fd2bb69cdbdc49d961c823ca85626d6161ad23ae53",
+   "pseudonym": "ps_13f3619b04acc845687eb8cabae259af",
+   "loeschmarke": "a4b58ce2f61883c5dc6c681d3d8b66bcca91d0457c380fd398ba5c859510879c",
+   "herkunft": "K2/p-adm01"
+  }
+ ],
+ "fehler": [
+  {
+   "schluessel": "ab",
+   "geheimnis": "b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50",
+   "fehler": "feld_ungueltig:schluessel"
+  },
+  {
+   "schluessel": "9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c",
+   "geheimnis": "B04B5695B379D42540D32F0E5A8456EC0EFFCF2EA3DEE4BFBA210B54EBB9EE50",
+   "fehler": "feld_ungueltig:geheimnis"
+  }
+ ]
+}

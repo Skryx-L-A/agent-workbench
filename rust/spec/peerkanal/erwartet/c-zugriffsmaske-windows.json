@@ -1,0 +1,25 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": {
+  "system": "windows",
+  "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "appcontainer_sid": null,
+  "uid": null,
+  "gid": null,
+  "pid": "=server",
+  "startzeit": null,
+  "im_job": null,
+  "programm": null,
+  "signatur": null,
+  "eingeschraenkt": false,
+  "sandbox": null
+ },
+ "gemessen": [
+  "Client 1 verbindet und schreibt",
+  "Client 2 scheitert mit Fehler 5 (GENERIC_WRITE enthält FILE_CREATE_PIPE_INSTANCE)",
+  "ohne das Label LW scheitert auch Client 1 mit Fehler 5 (Gegenprobe im Testaufbau)"
+ ]
+}

@@ -1,0 +1,32 @@
+{
+ "exec": "werkbank-einschluss",
+ "eltern_ist_programm": true,
+ "stderr": "",
+ "starter_argv": [
+  "/usr/lib/werkbank/werkbank-einschluss",
+  "start",
+  "--beschreibung-fd",
+  "3"
+ ],
+ "lauf_ohne_apparmor_profil": true,
+ "fd3": "lesende einer pipe, die der lauf anlegt und beschreibt",
+ "beschreibung": {
+  "harness": "copilot",
+  "lokal_weiter": null,
+  "dateien": [
+   {
+    "quelle": "<quelle>",
+    "ziel": "<heim>/.copilot/wb-mcp.json"
+   }
+  ],
+  "umgebung_des_harness_nicht": [
+   "PI_OFFLINE",
+   "PI_TELEMETRY"
+  ],
+  "zustandsordner_beim_start": "leer",
+  "paket": {
+   "quelle": "<cache>/pkg/<plattform>/<fassung>",
+   "nur_lesend_an": "<heim>/.cache/copilot/pkg/<plattform>/<fassung>"
+  }
+ }
+}

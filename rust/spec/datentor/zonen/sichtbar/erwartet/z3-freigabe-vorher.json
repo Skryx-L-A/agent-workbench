@@ -1,0 +1,62 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "zone-ohne-freigabe",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Route r-appr ohne Freigabe für Kunde und Projekt",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-ohne-freigabe",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Route r-appr ohne Freigabe für Kunde und Projekt",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": null,
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "conf",
+     "grund": "local reicht fuer die Aufgabe nicht",
+     "ausnahme": null
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,30 @@
+{
+ "gueltig": true,
+ "enthaelt": [
+  "(version 1)",
+  "(deny default)",
+  "(import \"system.sb\")",
+  "(allow process-fork)",
+  "(allow process-exec)",
+  "(allow signal (target same-sandbox))",
+  "(allow process-info* (target same-sandbox))",
+  "(allow network-outbound (remote ip \"localhost:41001\"))"
+ ],
+ "enthaelt_nicht": [
+  "(allow default)",
+  "(allow network*",
+  "(allow network-outbound)",
+  "(allow network-bind",
+  "(allow network-inbound",
+  "(allow file-read*)",
+  "(allow file-write*)",
+  "(allow signal)",
+  "(allow process-info*)",
+  "(allow mach-lookup",
+  "(allow mach-priv",
+  "(remote ip \"*:",
+  "(remote tcp",
+  "(remote udp",
+  "\"localhost:41002\""
+ ]
+}

@@ -1,0 +1,14 @@
+{
+ "description": "two pairs: malformed state, strip removes both",
+ "files": {
+  "note.md": "Kopf\n\n<!-- dream:block:start -->\n1\n<!-- dream:block:end -->\n\nMitte\n\n<!-- dream:block:start -->\n2\n<!-- dream:block:end -->\n\nFuss\n"
+ },
+ "args": [
+  "markers",
+  "{root}/note.md",
+  "--start",
+  "<!-- dream:block:start -->",
+  "--end",
+  "<!-- dream:block:end -->"
+ ]
+}

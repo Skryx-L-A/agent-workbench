@@ -1,0 +1,9 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.schluessel_fehlt: Die Schluesseldatei fehlt.",
+  "pruef.copilot_fehlt: Die Anmeldedatei der Copilot CLI fehlt.",
+  "pruef.rot: 2 Befunde."
+ ]
+}

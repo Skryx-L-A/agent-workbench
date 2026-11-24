@@ -1,0 +1,136 @@
+{
+ "beschreibung": "Ausgabe-Ansagen höchstens eine je 1000 ms; was in der Sperrzeit kommt, folgt gebündelt am Ende.",
+ "datensatz": "A",
+ "name": "se3_buendel",
+ "regeln": [
+  "SE3"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "0501020202000101000000010101000465696e73"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     1,
+     "eins"
+    ]
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "eins"
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "050102030300010100000001020100047a776569"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     2,
+     "zwei"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "0501020404000101000000010301000464726569"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     3,
+     "drei"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "0501020505000101000000010401000476696572"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     4,
+     "vier"
+    ]
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": []
+  },
+  {
+   "art": "Uhr",
+   "ms": 1000
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "zwei\ndrei\nvier"
+   ]
+  }
+ ]
+}

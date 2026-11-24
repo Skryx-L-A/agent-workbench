@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13"
+ ],
+ "beschreibung": "Nachtrag 20.11., 2: senkung_nutzer ist eine Liste statt Text."
+}

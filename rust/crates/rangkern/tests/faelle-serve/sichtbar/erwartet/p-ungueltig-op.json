@@ -1,0 +1,35 @@
+{
+ "responses": [
+  {
+   "error": "bad_request",
+   "id": 3
+  },
+  {
+   "error": "bad_request",
+   "id": "x"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "ok": true,
+   "id": "weiter"
+  }
+ ],
+ "exit": 0
+}

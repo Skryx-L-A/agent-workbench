@@ -1,0 +1,91 @@
+{
+ "beschreibung": "ein Eintrag s-1 nur im Ordner des Dienstes (nicht unter lauf.sitzungen): geprueft wird lauf.sitzungen, s-1 ist dort frei, aber der eigene Ordner besteht: Ablehnung start_ordner",
+ "datensatz": "A",
+ "name": "di12_kennung_nur_sitzungen_zaehlt",
+ "ordner": {
+  "art": "verzeichnis",
+  "modus": "0700",
+  "unter": [
+   "s-1"
+  ]
+ },
+ "ordner_pruefen": true,
+ "regeln": [
+  "DI12",
+  "DI2"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "ablehnung": "start_ordner"
+   },
+   "frist": 20,
+   "takt": 16
+  },
+  {
+   "ablehnungen_voll": true,
+   "art": "Zustand",
+   "betrachter": "c1",
+   "voll": true
+  }
+ ],
+ "sitzungen": {
+  "vorher": []
+ },
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind",
+   "sitzungen": "@sitzungen"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

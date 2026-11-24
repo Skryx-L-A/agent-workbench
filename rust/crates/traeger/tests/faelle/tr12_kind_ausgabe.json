@@ -1,0 +1,39 @@
+{
+ "name": "tr12_kind_ausgabe",
+ "regeln": [
+  "TR12"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Ein Kind schreibt feste Bytes und endet mit 0: Bild, Ende nach der Ausgabe, Code 0",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "ausgabe",
+  "argv": [
+   "616c7068610d0a1b5b33316d726f741b5b306d204772c3bcc39f6520c3a4c3b6c3bc20c39f0d0a"
+  ],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ],
+ "system": [
+  "linux",
+  "macos"
+ ]
+}

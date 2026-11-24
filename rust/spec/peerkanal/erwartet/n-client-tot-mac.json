@@ -1,0 +1,31 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "fehler",
+ "code": "pk.prozess_gewechselt",
+ "ereignisse": [
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.prozess_gewechselt",
+   "grund": "pk.pidversion_weicht_ab",
+   "peer": {
+    "system": "macos",
+    "sid": null,
+    "appcontainer_sid": null,
+    "uid": 1000000101,
+    "gid": 1000000201,
+    "pid": "=client",
+    "startzeit": null,
+    "im_job": null,
+    "programm": null,
+    "signatur": null,
+    "eingeschraenkt": null,
+    "sandbox": null
+   }
+  }
+ ],
+ "peer": null,
+ "gemessen": [
+  "Ereignis pk.prozess_gewechselt (pidversion aus LOCAL_PEERTOKEN passt zu keinem lebenden Prozess)"
+ ]
+}

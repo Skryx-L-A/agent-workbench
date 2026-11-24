@@ -1,0 +1,50 @@
+{
+ "name": "k10-keine-anfrage",
+ "regeln": [
+  "K0"
+ ],
+ "beschreibung": "Eine leere Liste von Anfragen ergibt eine leere Liste von Antworten.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "cloud-n",
+    "art": "cloud"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ]
+ },
+ "anfragen": []
+}

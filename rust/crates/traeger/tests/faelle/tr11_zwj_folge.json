@@ -1,0 +1,42 @@
+{
+ "name": "tr11_zwj_folge",
+ "regeln": [
+  "TR11"
+ ],
+ "datensatz": "A",
+ "beschreibung": "U+200D (Zeichenverbindung) gilt wie in alacritty_terminal: die Zeichen einer Folge belegen ihre eigenen Zellen, die Verbindung selbst keine; allein und mehrfach ebenso",
+ "art": "strom",
+ "groesse": [
+  16,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "👨‍👩‍👧x\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "a‍b\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "‍\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "漢‍字\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "🏳️‍🌈!\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "‍‍‍z\r\n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

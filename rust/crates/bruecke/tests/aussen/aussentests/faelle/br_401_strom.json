@@ -1,0 +1,141 @@
+{
+ "beschreibung": "GET /strom mit falschem oder fehlendem Token: 401 ohne Inhalt, der Dienst sieht keine Verbindung",
+ "datensatz": "A",
+ "name": "br_401_strom",
+ "regeln": [
+  "BR2"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "GET",
+    "origin": null,
+    "token": null,
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "GET",
+    "origin": null,
+    "token": "Bearer aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "GET",
+    "origin": null,
+    "token": "Bearer @token_falsch",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "GET",
+    "origin": null,
+    "token": "Bearer @token_anders_erst",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "GET",
+    "origin": null,
+    "token": "Bearer bbbbbbbbbb",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "GET",
+    "origin": null,
+    "token": "Bearer @tokenx",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "GET",
+    "origin": null,
+    "token": "Bearer bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "GET",
+    "origin": null,
+    "token": "Bearer ",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "GET",
+    "origin": null,
+    "token": "@token",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "GET",
+    "origin": null,
+    "token": "bearer @token",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "GET",
+    "origin": null,
+    "token": "Basic aaaaaaaaaaaaaaaaaaaa",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "",
+    "methode": "GET",
+    "origin": null,
+    "token": "Bearer  @token",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

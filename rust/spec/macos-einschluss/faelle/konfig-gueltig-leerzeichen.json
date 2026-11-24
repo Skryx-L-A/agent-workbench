@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Leerzeichen im Pfad (Application Support) ist gewöhnlich",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"/Users/beispiel/Projekte\"\n ],\n \"programmordner\": [\n  \"/Users/beispiel/.local/share/claude\",\n  \"/opt/homebrew\",\n  \"/Users/beispiel/Library/Application Support/werkbank/bin\"\n ]\n}\n"
+}

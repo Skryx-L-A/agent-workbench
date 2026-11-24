@@ -1,0 +1,39 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "klasse-unbekannt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "klasse-unbekannt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "kunde-unbekannt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "kunde-unbekannt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   }
+  ]
+ }
+}

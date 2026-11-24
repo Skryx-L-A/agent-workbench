@@ -1,0 +1,23 @@
+{
+ "description": "vorhandener tieferer Nachfolger wird auf den Score des alten gehoben, nicht doppelt",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "--today",
+  "2026-11-18",
+  "Scanner Vorlage"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-5.md": "---\ntitle: Füller 5\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-6.md": "---\ntitle: Füller 6\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-7.md": "---\ntitle: Füller 7\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-8.md": "---\ntitle: Füller 8\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/buero/alt-scanner.md": "---\ntitle: Alter Scanner\ntype: note\nsuperseded-by: [\"[[neu-scanner]]\"]\n---\n\nScanner Vorlage einlegen, Scanner Vorlage flach auflegen, Scanner Vorlage gerade.\n",
+  "vault/buero/neu-scanner.md": "---\ntitle: Neuer Scanner\ntype: note\n---\n\nScanner kurz: Vorlage ablegen.\n"
+ }
+}

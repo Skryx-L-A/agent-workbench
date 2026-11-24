@@ -1,0 +1,24 @@
+{
+ "beschreibung": "Client mit Frist 0 ms",
+ "art": "vorgabe",
+ "ort": [
+  "windows",
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "dienst": "S-1-5-80-1000000011-1000000012-1000000013-1000000014-1000000015"
+ },
+ "server": null,
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "sid": "S-1-5-80-1000000011-1000000012-1000000013-1000000014-1000000015"
+  },
+  "frist_ms": 0
+ },
+ "aufbau": [],
+ "handlung": [
+  "Client verbinden"
+ ]
+}

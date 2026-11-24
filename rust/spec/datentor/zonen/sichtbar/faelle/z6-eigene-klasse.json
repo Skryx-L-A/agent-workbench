@@ -1,0 +1,223 @@
+{
+ "name": "z6-eigene-klasse",
+ "regeln": [
+  "A128-6",
+  "D6",
+  "Z6"
+ ],
+ "beschreibung": "A128 (6): Es gilt der strengere Wert von Zone und eigener Klasse der Route, in beide Richtungen.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-local",
+    "art": "lokal"
+   },
+   {
+    "schluessel": "r-local2",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-conf",
+    "art": "cloud"
+   },
+   {
+    "schluessel": "r-appr",
+    "art": "cloud"
+   },
+   {
+    "schluessel": "r-public",
+    "art": "cloud"
+   },
+   {
+    "schluessel": "r-public-kd",
+    "art": "cloud",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "r-unsafe",
+    "art": "cloud"
+   },
+   {
+    "schluessel": "r-ohne-zone",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k",
+    "erlaubt": [
+     "r-local",
+     "r-local2",
+     "r-conf",
+     "r-appr",
+     "r-public",
+     "r-public-kd",
+     "r-unsafe",
+     "r-ohne-zone"
+    ]
+   },
+   {
+    "schluessel": "k2",
+    "erlaubt": [
+     "r-appr",
+     "r-local"
+    ]
+   },
+   {
+    "schluessel": "k-v",
+    "erlaubt": [
+     "r-appr"
+    ],
+    "verboten": [
+     "r-appr"
+    ]
+   }
+  ]
+ },
+ "modellzonen": {
+  "an": true,
+  "zonen": [
+   {
+    "schluessel": "local",
+    "klassen": "alle",
+    "bedingung": "immer",
+    "routen": [
+     "r-local",
+     "r-local2"
+    ]
+   },
+   {
+    "schluessel": "conf",
+    "klassen": "alle",
+    "bedingung": "nachrangig",
+    "routen": [
+     "r-conf"
+    ]
+   },
+   {
+    "schluessel": "appr",
+    "klassen": "alle",
+    "bedingung": "freigabe",
+    "routen": [
+     "r-appr"
+    ]
+   },
+   {
+    "schluessel": "public",
+    "klassen": "niedrigste",
+    "bedingung": "immer",
+    "routen": [
+     "r-public",
+     "r-public-kd"
+    ]
+   },
+   {
+    "schluessel": "unsafe",
+    "klassen": "keine",
+    "bedingung": "gesperrt",
+    "routen": [
+     "r-unsafe"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "oeffentlich"
+   },
+   "route": "r-local2",
+   "kunde": null,
+   "projekt": null,
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "r-local2",
+   "kunde": null,
+   "projekt": null,
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r-local2",
+   "kunde": "k",
+   "projekt": "p1",
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "r-public-kd",
+   "kunde": null,
+   "projekt": null,
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "oeffentlich"
+   },
+   "route": "r-public-kd",
+   "kunde": null,
+   "projekt": null,
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "r-local",
+   "kunde": null,
+   "projekt": null,
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  }
+ ]
+}

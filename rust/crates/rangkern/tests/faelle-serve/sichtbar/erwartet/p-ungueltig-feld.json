@@ -1,0 +1,41 @@
+{
+ "responses": [
+  {
+   "error": "bad_request",
+   "id": "f"
+  },
+  {
+   "error": "bad_request",
+   "id": 8
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": "weiter"
+  }
+ ],
+ "exit": 0
+}

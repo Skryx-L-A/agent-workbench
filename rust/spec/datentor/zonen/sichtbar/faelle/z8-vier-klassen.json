@@ -1,0 +1,118 @@
+{
+ "name": "z8-vier-klassen",
+ "regeln": [
+  "Z6",
+  "D5"
+ ],
+ "beschreibung": "Das Tor kennt keinen Klassennamen: niedrigste ist die erste Klasse, alle die letzte.",
+ "vorgabe": {
+  "klassen": [
+   "s0",
+   "s1",
+   "s2",
+   "s3"
+  ],
+  "routen": [
+   {
+    "schluessel": "a",
+    "art": "lokal"
+   },
+   {
+    "schluessel": "b",
+    "art": "lokal"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k",
+    "erlaubt": [
+     "a",
+     "b"
+    ]
+   }
+  ]
+ },
+ "modellzonen": {
+  "an": true,
+  "zonen": [
+   {
+    "schluessel": "z-alle",
+    "klassen": "alle",
+    "bedingung": "immer",
+    "routen": [
+     "a"
+    ]
+   },
+   {
+    "schluessel": "z-unten",
+    "klassen": "niedrigste",
+    "bedingung": "immer",
+    "routen": [
+     "b"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "s3"
+   },
+   "route": "a",
+   "kunde": "k",
+   "projekt": null,
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "s0"
+   },
+   "route": "b",
+   "kunde": null,
+   "projekt": null,
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "s1"
+   },
+   "route": "b",
+   "kunde": null,
+   "projekt": null,
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "s0"
+   },
+   "route": "b",
+   "kunde": "k",
+   "projekt": null,
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  }
+ ]
+}

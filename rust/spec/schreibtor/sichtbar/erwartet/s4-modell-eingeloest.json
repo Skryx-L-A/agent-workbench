@@ -1,0 +1,39 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "intern",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "ergebnis-abweichend",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "ergebnis-abweichend",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "werkzeug-abweichend",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   }
+  ]
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "exit": 0,
+ "stdout": {
+  "in_scope": true,
+  "fields": {
+   "title": "Gute Notiz",
+   "type": "note",
+   "class": "knowledge",
+   "created": "2026-09-28",
+   "stand": "2026-09"
+  },
+  "blocks": 1,
+  "findings": [
+   {
+    "kind": "pflichtfeld",
+    "detail": "Pflichtfeld fehlt: id, schema"
+   }
+  ],
+  "new": true
+ }
+}

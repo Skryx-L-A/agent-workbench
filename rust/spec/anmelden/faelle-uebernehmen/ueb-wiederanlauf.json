@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Schlüsseldatei hat schon genau dieses Token (Lauf starb nach Schritt 8): nur config.json wird fertig",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "datei-gleich",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

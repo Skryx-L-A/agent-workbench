@@ -1,0 +1,13 @@
+{
+ "beschreibung": "der Weiterreicher listet eine Bibliothek (DT_NEEDED)",
+ "form": "statisch",
+ "programme": [
+  {
+   "ziel": "usr/lib/werkbank/einschluss-weiter",
+   "interp": false,
+   "needed": [
+    "libgcc_s.so.1"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "description": "Basic-Memory block above the real one, blank line between, later block wins",
+ "files": {
+  "note.md": "---\npermalink: main/10-global/x\ntitle: Alt\n---\n\n---\ntitle: Neu\ntype: decision\n---\n\nRumpf\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

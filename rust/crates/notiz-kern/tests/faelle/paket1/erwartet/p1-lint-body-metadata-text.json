@@ -1,0 +1,18 @@
+{
+ "exit": 0,
+ "stdout": {
+  "in_scope": true,
+  "fields": {
+   "id": "01N7QWB2XHD4RT9ZKMA3VC5EPY",
+   "schema": "4",
+   "title": "Gartenweg-Plan",
+   "type": "note",
+   "class": "knowledge",
+   "created": "2026-10-02",
+   "stand": "2026-10"
+  },
+  "blocks": 1,
+  "findings": [],
+  "new": true
+ }
+}

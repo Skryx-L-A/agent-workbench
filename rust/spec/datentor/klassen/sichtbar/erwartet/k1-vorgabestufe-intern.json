@@ -1,0 +1,37 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "klasse": "intern",
+    "herkunft": "vorgabestufe",
+    "senkung": {
+     "grund": "aus",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "intern",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": "kundendaten",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "aus",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "kundendaten",
+     "meldung": "Klasse der Einheit liegt über Route r-intern"
+    }
+   }
+  ]
+ }
+}

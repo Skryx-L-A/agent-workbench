@@ -1,0 +1,8 @@
+{
+ "beschreibung": "beide Admin-Felder gesetzt: beide bleiben, jedes andere Feld ist wieder das des Pakets (der Admin änderte auch deflate und das Programm von Hand: das gilt nicht)",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "vorher_kern": "{\"deflate\":false,\"lauf\":{\"programm\":\"/opt/x\",\"groesse\":[100,30]}}",
+ "vorher_bruecke": "{\"deflate\":false,\"port\":4000,\"token_datei\":\"/x\"}"
+}

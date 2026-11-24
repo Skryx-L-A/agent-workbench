@@ -1,0 +1,48 @@
+{
+ "name": "tr3_cursor_schrumpf_alternativ",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Alternativschirm: Dort klemmt die Bibliothek den Cursor (kein Umbruch); beim Verlassen kehrt der Cursor des Hauptschirms zurück, den die Bibliothek beim Schrumpfen umgebrochen hat",
+ "art": "strom",
+ "groesse": [
+  40,
+  10
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[8;30H"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049h\u001b[7;1Hzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 20,
+   "zeilen": 5
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049l"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "y"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

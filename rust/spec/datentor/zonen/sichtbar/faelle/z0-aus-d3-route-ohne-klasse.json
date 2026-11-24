@@ -1,0 +1,95 @@
+{
+ "name": "z0-aus-d3-route-ohne-klasse",
+ "regeln": [
+  "A127",
+  "Z0",
+  "D3",
+  "A42",
+  "D12"
+ ],
+ "beschreibung": "Option aus: der Fall d3-route-ohne-klasse aus Vertrag 3 mit derselben Erwartung. Unbekannte Route, Route mit Klasse null und Route ohne Feld klasse sind gesperrt; die Gegenprobe mit Klasse ist frei.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "cloud-n",
+    "art": "cloud",
+    "klasse": null
+   },
+   {
+    "schluessel": "cloud-o",
+    "art": "cloud"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ]
+ },
+ "modellzonen": {
+  "an": false,
+  "zonen": []
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "cloud-x",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "cloud-n",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "cloud-o",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "cloud",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "geheim"
+   },
+   "route": "cloud-x",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "cloud-n",
+   "kunde": "k-nord"
+  }
+ ]
+}

@@ -1,0 +1,53 @@
+{
+ "exit": 0,
+ "stdout": [
+  {
+   "rel": "brain-vorschlaege-x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "brain-vorschlaege-x"
+  },
+  {
+   "rel": "20-projects/p/brain-vorschlaege.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "20-projects/p",
+   "stem_key": "brain-vorschlaege"
+  },
+  {
+   "rel": "10-global/gardener-report-1.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "10-global",
+   "stem_key": "gardener-report-1"
+  },
+  {
+   "rel": "10-global/README.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "10-global",
+   "stem_key": "readme"
+  },
+  {
+   "rel": "dream-report-2026.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "dream-report-2026"
+  },
+  {
+   "rel": "30-topics/t/brain-run-7.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "30-topics/t",
+   "stem_key": "brain-run-7"
+  }
+ ]
+}

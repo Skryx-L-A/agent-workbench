@@ -1,0 +1,8 @@
+{
+ "erwartet": "Breakaway Fehler 5; nach dem Jobende lebt kein Prozess des Baums und keine Erlaubnis der SID",
+ "messwerte": [
+  "Fehlercode",
+  "Prozessliste nach dem Jobende",
+  "Filterliste"
+ ]
+}

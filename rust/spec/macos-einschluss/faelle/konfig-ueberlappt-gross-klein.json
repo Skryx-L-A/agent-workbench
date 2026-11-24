@@ -1,0 +1,5 @@
+{
+ "beschreibung": "derselbe Ordner in anderer Schreibweise (APFS ohne Unterscheidung)",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"/Users/beispiel/Projekte\"\n ],\n \"programmordner\": [\n  \"/users/BEISPIEL/projekte\"\n ]\n}\n"
+}

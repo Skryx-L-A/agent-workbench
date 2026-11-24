@@ -1,0 +1,14 @@
+{
+ "beschreibung": "Paket mit Scope (@scope/paket) unter .local: die Paketwurzel hat zwei Ebenen unter lib/node_modules",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/srv/beispiel/heim/nutzer1/.local/lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js",
+   "node": "/usr/bin/node"
+  }
+ },
+ "vorher": null
+}

@@ -1,0 +1,5 @@
+{
+ "beschreibung": "kein Port in der Konfiguration: Sitzungsports entstehen je Sitzung",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"/Users/beispiel/Projekte\"\n ],\n \"programmordner\": [\n  \"/Users/beispiel/.local/share/claude\",\n  \"/opt/homebrew\"\n ],\n \"modellweg_port\": 41001\n}\n"
+}

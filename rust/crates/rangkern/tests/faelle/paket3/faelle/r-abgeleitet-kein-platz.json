@@ -1,0 +1,23 @@
+{
+ "description": "abgeleitete Seite auf Vektorrang 1 schiebt die Quellnotizen nicht nach hinten",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Bewässerung",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/garten/quelle1.md": "---\ntitle: Bewässerung Beet\ntype: note\n---\n\nBewässerung am Beet, Bewässerung im Beet.\n",
+  "vault/garten/quelle2.md": "---\ntitle: Bewässerung Tropf\ntype: note\n---\n\nBewässerung per Tropfschlauch.\n",
+  "vault/30-topics/themen.md": "---\ntitle: Themen Allgemein\ntype: note\nclass: derived\n---\n\nAllgemeines zum Garten.\n",
+  "vektoren.json": "{\"query\": [1, 0, 0], \"notes\": {\"30-topics/themen.md\": [1, 0, 0], \"garten/quelle1.md\": [0.9, 0.1, 0.0]}}"
+ }
+}

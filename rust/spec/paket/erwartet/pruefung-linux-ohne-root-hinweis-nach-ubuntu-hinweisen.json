@@ -1,0 +1,11 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.vault_nicht_pruefbar: Der Vault-Ordner war nicht pruefbar.",
+  "pruef.hinweis_ubuntu_profil_geladen: Das Ubuntu-Profil bwrap-userns-restrict ist geladen.",
+  "pruef.hinweis_system_bwrap_ubuntu: Das System-bwrap ist durch das Ubuntu-Profil frei; die Firma kann dieses Profil entfernen.",
+  "pruef.hinweis_sudo: Ohne root waren nicht alle Pruefungen moeglich; fuer diese Pruefungen mit sudo aufrufen.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

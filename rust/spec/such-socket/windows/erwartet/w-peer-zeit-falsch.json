@@ -1,0 +1,23 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "abgewiesen": true
+  }
+ ],
+ "protokoll": [
+  {
+   "aktionsname": "kanal.abgewiesen",
+   "ergebnis": "abgewiesen",
+   "fassung": 2,
+   "grund": "such.lauf_unbekannt",
+   "kanal": "such",
+   "route": "cloud",
+   "sitzung": "s-test-1"
+  }
+ ],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

@@ -1,0 +1,9 @@
+{
+ "beschreibung": "ohne sudo-Nutzer schreibt postinst keine Datei",
+ "form": "laufkonfig",
+ "nutzer": null,
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {},
+ "vorher": null
+}

@@ -1,0 +1,11 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "fehler",
+ "code": "pk.nicht_erreichbar",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "dritter Client nach 500 ms (bis 700 ms) mit pk.nicht_erreichbar",
+  "nach dem Ende eines der zwei verbindet ein vierter Client"
+ ]
+}

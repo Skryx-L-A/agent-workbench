@@ -1,0 +1,6 @@
+{
+ "erwartet": "bind und listen gelingen; der Test wird rot",
+ "messwerte": [
+  "errno"
+ ]
+}

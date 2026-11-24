@@ -1,0 +1,1 @@
+{"name":"h_ohne_anfang_felder","regeln":[],"beschreibung":"scenario","anfang":{"personen":null,"sitzungen":null,"routen":null,"regeln":null},"ereignisse":[{"t":0,"art":"Verbinden","betrachter":"b1","person":"n1","raum":"ra"},{"t":5,"art":"Takt"}]}

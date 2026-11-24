@@ -1,0 +1,21 @@
+{
+ "beschreibung": "der Schlüssel steht in der Umgebung des Prozesses",
+ "form": "einrichten",
+ "nutzer": "nutzer1",
+ "marke": "SCHLUESSEL-PRUEFMARKE-0001",
+ "stdout": "Gateway-Adresse: \nSchluessel der IT: \nEingerichtet.\n",
+ "stderr": "",
+ "journal": "werkbank-probelauf: eingerichtet\n",
+ "argv": "werkbank-probelauf --ergebnis /srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+ "umgebung": "WERKBANK_SCHLUESSEL=SCHLUESSEL-PRUEFMARKE-0001\n",
+ "protokolle": [
+  "{\"aktion\":\"einrichten\",\"ergebnis\":\"ok\"}\n"
+ ],
+ "ergebnisdatei": "{\"art\":\"probelauf-ergebnis\",\"fassung\":1}\n",
+ "echo": false,
+ "datei": {
+  "modus": "0600",
+  "eigentuemer": "nutzer1",
+  "inhalt": "SCHLUESSEL-PRUEFMARKE-0001"
+ }
+}

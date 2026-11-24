@@ -1,0 +1,18 @@
+{
+ "beschreibung": "mit port_datei schreibt die Bruecke den Port (Dezimalzahl und Zeilenende) in eine Datei mit Modus 0600; nach SIGTERM ist die Datei weg",
+ "datensatz": "A",
+ "name": "br_port_datei",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "port_datei": "@port_datei",
+  "token_datei": "@token_datei"
+ }
+}

@@ -1,0 +1,54 @@
+{
+ "beschreibung": "Der Rahmen Fehler setzt das Fehlerfeld (Code und fester Text); das Ende des Stroms wird angesagt.",
+ "datensatz": "A",
+ "name": "se3_fehler_rahmen",
+ "regeln": [
+  "SE3",
+  "SE7"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": []
+   }
+  },
+  {
+   "art": "Testid",
+   "sichtbar": false,
+   "testid": "fehler"
+  },
+  {
+   "art": "Fehler",
+   "fehler": "dienst_fehler_a"
+  },
+  {
+   "art": "Testid",
+   "sichtbar": true,
+   "testid": "fehler"
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-code",
+   "text": "dienst_fehler_a"
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-text",
+   "text": "Verbindung mit Fehler beendet"
+  },
+  {
+   "art": "StromEnde"
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Verbindung getrennt"
+   ]
+  }
+ ]
+}

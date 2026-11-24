@@ -1,0 +1,9 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.dienst_fehlt: Der Dienst werkbank-kern.service ist nicht eingetragen.",
+  "pruef.dienst_fehlt: Der Dienst werkbank-bruecke.service ist nicht eingetragen.",
+  "pruef.rot: 2 Befunde."
+ ]
+}

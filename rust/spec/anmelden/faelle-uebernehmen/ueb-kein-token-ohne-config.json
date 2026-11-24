@@ -1,0 +1,18 @@
+{
+ "beschreibung": "config.json fehlt",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "ohne-config",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

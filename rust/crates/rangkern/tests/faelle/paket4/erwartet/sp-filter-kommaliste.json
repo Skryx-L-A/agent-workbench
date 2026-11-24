@@ -1,0 +1,36 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "20-projects/a/lager.md",
+    "score": 0.819835277968428,
+    "title": "Lager a",
+    "snippet": "Kaffeebohnen lagern dunkel und kuehl.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 3,
+    "bm25_norm": 0.819835277968428,
+    "space": "a"
+   },
+   {
+    "rel": "20-projects/b/rezept.md",
+    "score": 0.7607866338129639,
+    "title": "Rezept b",
+    "snippet": "Kaffeebohnen fuer Filterkaffee, eine Prise Salz.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 4,
+    "bm25_norm": 0.7607866338129639,
+    "space": "b"
+   }
+  ]
+ }
+}

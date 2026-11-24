@@ -1,0 +1,23 @@
+{
+ "beschreibung": "Vault-Ordner mit falschen Rechten",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "macos",
+  "konten": 1,
+  "launchd": "ok",
+  "schluesselbund": "ok",
+  "einschluss": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "rechte",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

@@ -1,0 +1,69 @@
+{
+ "name": "k4-aufteilen-ausdruecklich-an",
+ "regeln": [
+  "K4",
+  "A33"
+ ],
+ "beschreibung": "Nachtrag 20.11. (F2): aufteilen ausdrücklich true wirkt wie die Vorgabe.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "oeffentlich",
+    "teile": [
+     {},
+     {
+      "klasse": "kundendaten",
+      "kunde": "k-a"
+     }
+    ]
+   },
+   "route": "r-oeff"
+  }
+ ],
+ "tiefe": {
+  "aufteilen": true
+ }
+}

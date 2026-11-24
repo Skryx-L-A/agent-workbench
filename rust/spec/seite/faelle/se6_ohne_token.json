@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Ohne Token im Fragment ruft die Seite nichts außer sich selbst ab.",
+ "datensatz": "A",
+ "name": "se6_ohne_token",
+ "regeln": [
+  "SE6"
+ ],
+ "schritte": [
+  {
+   "art": "Laden",
+   "ohne_token": true
+  },
+  {
+   "art": "Uhr",
+   "ms": 500
+  }
+ ]
+}

@@ -1,0 +1,191 @@
+{
+ "name": "k3-eigene-art",
+ "regeln": [
+  "K3",
+  "H0",
+  "H7",
+  "A39",
+  "A41"
+ ],
+ "beschreibung": "Nachtrag 20.11. (F3): Der Admin ergänzt die eigene Art glossar; sie sinkt. Eine Gruppe streicht sie wieder; eine Gruppe, die eine nicht erlaubte Art streicht, fügt nichts hinzu.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "glossar",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "bedienwissen",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "glossar",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "gruppe": "g-a"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "gruppe": "g-a"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "faq",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "gruppe": "g-b"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "glossar",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "gruppe": "g-b"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "Glossar",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "glossar",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": true
+    }
+   },
+   "route": "r-oeff"
+  }
+ ],
+ "tiefe": {
+  "herabstufen": {
+   "an": true,
+   "arten": [
+    "regel",
+    "glossar"
+   ],
+   "gruppen": [
+    {
+     "schluessel": "g-a",
+     "streicht": [
+      "glossar"
+     ]
+    },
+    {
+     "schluessel": "g-b",
+     "streicht": [
+      "faq"
+     ]
+    }
+   ]
+  }
+ }
+}

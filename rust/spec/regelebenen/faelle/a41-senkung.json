@@ -1,0 +1,176 @@
+{
+ "name": "a41-senkung",
+ "anforderungen": [
+  "A41",
+  "A39"
+ ],
+ "beschreibung": "Firmenliste mit vier Arten; g-eins streicht eine, versucht dann eine fünfte; u schaltet ab; v verlangt Bestätigung",
+ "stand": {
+  "firma": {
+   "fassung": 1,
+   "ebene": "firma",
+   "einstellung": {
+    "fassung": 1,
+    "klassen": [
+     "oeffentlich",
+     "intern",
+     "kundendaten"
+    ],
+    "vorgabestufe": "kundendaten",
+    "routen": [
+     {
+      "schluessel": "cloud-r",
+      "art": "cloud",
+      "klasse": "intern"
+     },
+     {
+      "schluessel": "cloud-s",
+      "art": "cloud",
+      "klasse": "intern"
+     },
+     {
+      "schluessel": "lokal-l",
+      "art": "lokal",
+      "klasse": "kundendaten"
+     }
+    ],
+    "kunden": [
+     {
+      "schluessel": "k-beispiel",
+      "erlaubt": [
+       "cloud-r",
+       "lokal-l"
+      ],
+      "verboten": []
+     },
+     {
+      "schluessel": "k-zwei",
+      "erlaubt": [
+       "lokal-l"
+      ],
+      "verboten": []
+     }
+    ],
+    "kundendaten_an_cloud": {
+     "vorgabe": "nie",
+     "freigaben": [
+      {
+       "route": "cloud-r",
+       "kunde": "k-beispiel"
+      }
+     ]
+    }
+   },
+   "rollen": {
+    "ps_00000000000000000000000000000b01": [
+     "admin"
+    ],
+    "ps_00000000000000000000000000000b02": [
+     "admin"
+    ]
+   },
+   "gruppen": [
+    {
+     "schluessel": "g-eins",
+     "mitglieder": [
+      "ps_00000000000000000000000000000c01"
+     ]
+    },
+    {
+     "schluessel": "g-zwei",
+     "mitglieder": [
+      "ps_00000000000000000000000000000c02"
+     ]
+    }
+   ],
+   "nutzerregeln": [],
+   "senkung": {
+    "aus": false,
+    "bestaetigung": false,
+    "arten": [
+     "bedienwissen",
+     "quellenauszug",
+     "regeln",
+     "vorlagen"
+    ]
+   }
+  }
+ },
+ "schritte": [
+  {
+   "aendern": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "datei": {
+     "fassung": 1,
+     "ebene": "gruppe",
+     "gruppe": "g-eins",
+     "regeln": {
+      "senkung": {
+       "arten": [
+        "bedienwissen",
+        "regeln",
+        "vorlagen"
+       ]
+      }
+     }
+    }
+   }
+  },
+  {
+   "aendern": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "datei": {
+     "fassung": 1,
+     "ebene": "gruppe",
+     "gruppe": "g-eins",
+     "regeln": {
+      "senkung": {
+       "arten": [
+        "bedienwissen",
+        "regeln",
+        "vorlagen",
+        "vertraege"
+       ]
+      }
+     }
+    }
+   }
+  },
+  {
+   "aendern": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "datei": {
+     "fassung": 1,
+     "ebene": "nutzer",
+     "nutzer": "ps_00000000000000000000000000000c01",
+     "regeln": {
+      "senkung": {
+       "aus": true
+      }
+     }
+    }
+   }
+  },
+  {
+   "aendern": {
+    "wer": "ps_00000000000000000000000000000c02",
+    "datei": {
+     "fassung": 1,
+     "ebene": "nutzer",
+     "nutzer": "ps_00000000000000000000000000000c02",
+     "regeln": {
+      "senkung": {
+       "bestaetigung": true
+      }
+     }
+    }
+   }
+  },
+  {
+   "zeige": "ps_00000000000000000000000000000c01"
+  },
+  {
+   "zeige": "ps_00000000000000000000000000000c02"
+  }
+ ]
+}

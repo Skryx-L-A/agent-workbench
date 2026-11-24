@@ -1,0 +1,124 @@
+{
+ "name": "k3-kundendaten",
+ "regeln": [
+  "K3",
+  "H3",
+  "K2",
+  "A40"
+ ],
+ "beschreibung": "Kundendaten sinken nie: weder mit Kunde noch mit geerbter höchster Klasse; der Kunde hebt weiter auf die höchste Klasse.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "kunde": "k-a"
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "kunde": "k-a"
+   },
+   "route": "r-intern"
+  },
+  {
+   "einheit": {
+    "geerbt": "kundendaten",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "kunde": ""
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "oeffentlich",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "kunde": "k-a"
+   },
+   "route": "r-kd"
+  }
+ ],
+ "tiefe": {
+  "herabstufen": {
+   "an": true
+  }
+ }
+}

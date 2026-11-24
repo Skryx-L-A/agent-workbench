@@ -1,0 +1,76 @@
+{
+ "name": "d2-route-fehlt",
+ "regeln": [
+  "D2",
+  "A43",
+  "D12"
+ ],
+ "beschreibung": "Leere, fehlende und null-Route werden abgelehnt, vor jeder anderen Prüfung; die Klasse steht trotzdem in der Antwort.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": null,
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": 7
+   },
+   "route": null,
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "",
+   "kunde": "k-nord"
+  }
+ ]
+}

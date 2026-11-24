@@ -1,0 +1,13 @@
+{
+ "description": "--vectors ohne Dateiname: Exit 2 ohne Ausgabe",
+ "vault": {
+  "files": {
+   "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text.\n"
+  }
+ },
+ "args": [
+  "{root}/vault",
+  "--vectors"
+ ],
+ "steps": []
+}

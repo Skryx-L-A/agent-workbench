@@ -1,0 +1,7 @@
+{
+ "beschreibung": "lauf.groesse mit 4 Zeilen: Vorgabe und eine Journalzeile",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "vorher_kern": "{\"lauf\":{\"groesse\":[120,4]}}"
+}

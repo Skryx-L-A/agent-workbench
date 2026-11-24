@@ -1,0 +1,25 @@
+[package]
+name = "notiz-kern"
+version = "0.1.0"
+description = "Read-only reader for Markdown vault notes: frontmatter, schema 4 lint, corpus rules, marker blocks, sections."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "notiz-kern"
+path = "src/main.rs"
+
+# serde_json: one JSON line per call; the `json!` macro needs no derive, so no proc-macro crates enter the graph.
+# unicode-normalization: NFC for `key_of`, as Python's `unicodedata.normalize`.
+# caseless: Unicode full case folding (Python's `str.casefold`) for the exclusion rules of `corpus.rs`; MIT.
+[dependencies]
+caseless = "0.2"
+serde_json = "1"
+unicode-normalization = "0.1"
+
+[lints]
+workspace = true

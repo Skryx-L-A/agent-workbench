@@ -1,0 +1,189 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    7,
+    0,
+    true
+   ],
+   "groesse": [
+    14,
+    9
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 7,
+   "zeilen": [
+    "a❤️b",
+    "x☺️y",
+    "p漢️q",
+    "1️⃣z",
+    "a",
+    "c❤️️d",
+    "😀️!",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       0,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "a❤️b"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       2,
+       0,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "1": "x☺️y"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       3,
+       0,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "2": "p漢️q"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       0,
+       true
+      ],
+      "stand": 4,
+      "zeilen": {
+       "3": "1️⃣z"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       5,
+       0,
+       true
+      ],
+      "stand": 5,
+      "zeilen": {
+       "4": "a"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       6,
+       0,
+       true
+      ],
+      "stand": 6,
+      "zeilen": {
+       "5": "c❤️️d"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       7,
+       0,
+       true
+      ],
+      "stand": 7,
+      "zeilen": {
+       "6": "😀️!"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      7,
+      0,
+      true
+     ],
+     "groesse": [
+      14,
+      9
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 7,
+     "zeilen": [
+      "a❤️b",
+      "x☺️y",
+      "p漢️q",
+      "1️⃣z",
+      "a",
+      "c❤️️d",
+      "😀️!",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

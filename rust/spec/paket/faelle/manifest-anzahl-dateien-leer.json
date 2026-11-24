@@ -1,0 +1,5 @@
+{
+ "beschreibung": "keine Datei",
+ "form": "manifest",
+ "text": "{\n \"fassung\": 1,\n \"paket\": \"werkbank\",\n \"version\": \"0.1.0\",\n \"plattform\": \"windows-x64\",\n \"bau\": \"auslieferung\",\n \"merkmale\": [],\n \"dateien\": [],\n \"bibliotheken\": 148\n}\n"
+}

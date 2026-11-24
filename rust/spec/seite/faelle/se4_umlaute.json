@@ -1,0 +1,79 @@
+{
+ "beschreibung": "Beispiel `umlaute` des Abbilds: jede Zeile im DOM und im Barrierebaum gleich der Zeile des Abbilds, das kombinierende Zeichen bleibt.",
+ "datensatz": "A",
+ "name": "se4_umlaute",
+ "regeln": [
+  "SE4"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "050104021e060100000006000100114772c3bcc39f6520617573204bc3b66c6e01010010c384c396c39c20c3a4c3b6c3bc20c39f0201000753747261c39f650301000c6e61c3af766520636166c3a904010018e282ac20352c303020e2809320e2809e5a69746174e2809c0501000765cc812061cc88"
+  },
+  {
+   "art": "Zeilen",
+   "erwartet": [
+    "Grüße aus Köln",
+    "ÄÖÜ äöü ß",
+    "Straße",
+    "naïve café",
+    "€ 5,00 – „Zitat“",
+    "é ä"
+   ]
+  }
+ ]
+}

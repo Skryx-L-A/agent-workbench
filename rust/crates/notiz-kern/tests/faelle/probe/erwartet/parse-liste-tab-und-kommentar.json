@@ -1,0 +1,28 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "aliases:\n\t- erstes\n  - 'zweites'   # Kommentar\n  -drittes"
+  ],
+  "fields": {
+   "aliases": [
+    "erstes",
+    "zweites"
+   ]
+  },
+  "body": "Text\n",
+  "title": "note",
+  "type": "note",
+  "aliases": [
+   "erstes",
+   "zweites"
+  ],
+  "links": [],
+  "keys": [
+   "erstes",
+   "note",
+   "zweites"
+  ],
+  "embed_text": "note\naliases: erstes, zweites\n\nText\n"
+ }
+}

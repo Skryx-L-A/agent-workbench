@@ -1,0 +1,7 @@
+{
+ "erwartet": "Halter-Pipe Fehler 5; jedes OpenProcess Fehler 5; die Such-Pipe antwortet",
+ "messwerte": [
+  "Fehlercode je Versuch",
+  "Antwort der Such-Pipe"
+ ]
+}

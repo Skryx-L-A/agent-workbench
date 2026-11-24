@@ -1,0 +1,10 @@
+{
+ "gueltig": true,
+ "antwort": {
+  "ok": true,
+  "pid": 4242,
+  "start": "<FILETIME>",
+  "sid": "<S-1-15-2-...>",
+  "sitzung": "s-1"
+ }
+}

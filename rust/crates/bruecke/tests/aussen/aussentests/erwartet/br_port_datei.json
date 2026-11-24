@@ -1,0 +1,34 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "port_datei_entfernt": true,
+   "protokoll": [],
+   "stderr_fremd": 0,
+   "token_datei_entfernt": true,
+   "token_nicht_in_ausgabe": true
+  },
+  "ergebnisse": [],
+  "start": {
+   "hoerer": [
+    "127.0.0.1"
+   ],
+   "ok": true,
+   "ordner_modus": "0700",
+   "port_datei": {
+    "inhalt_stimmt": true,
+    "modus": "0600"
+   },
+   "port_zeile": true,
+   "stderr_leer": true,
+   "stdout_zeilen": 1,
+   "token_datei": {
+    "form": true,
+    "modus": "0600",
+    "verschieden": true
+   }
+  }
+ },
+ "exit": 0
+}

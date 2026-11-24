@@ -1,0 +1,10 @@
+{
+ "exit": 16,
+ "code": "anmelden.echte_anmeldung",
+ "stdout": "",
+ "stderr": "werkbank-anmelden: anmelden.echte_anmeldung: Im Heim des Nutzers liegt eine Anmeldung der Copilot CLI. Sie muss weg, bevor eine Sitzung startet.\n",
+ "ziel_datei": "token",
+ "config": "ohne-token",
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

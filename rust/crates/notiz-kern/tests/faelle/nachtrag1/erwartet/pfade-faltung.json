@@ -1,0 +1,101 @@
+{
+ "exit": 0,
+ "stdout": [
+  {
+   "rel": "90-ſecrets/x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "90-ſecrets",
+   "stem_key": "x"
+  },
+  {
+   "rel": "90-SECRETS/x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "90-SECRETS",
+   "stem_key": "x"
+  },
+  {
+   "rel": "a/90-ſECRETS/deep/x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "a",
+   "stem_key": "x"
+  },
+  {
+   "rel": "９０-secrets/x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "９０-secrets",
+   "stem_key": "x"
+  },
+  {
+   "rel": "_MEＴA/x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "_MEＴA",
+   "stem_key": "x"
+  },
+  {
+   "rel": "．git/x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "．git",
+   "stem_key": "x"
+  },
+  {
+   "rel": "ＨＯＴ.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "ｈｏｔ"
+  },
+  {
+   "rel": "Hot.MD",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "hot"
+  },
+  {
+   "rel": "LＯＧ.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "lｏｇ"
+  },
+  {
+   "rel": "a/ＨＯＴ.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "a",
+   "stem_key": "ｈｏｔ"
+  },
+  {
+   "rel": "90-secret/x.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "90-secret",
+   "stem_key": "x"
+  },
+  {
+   "rel": "90-secrets.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "90-secrets"
+  }
+ ]
+}

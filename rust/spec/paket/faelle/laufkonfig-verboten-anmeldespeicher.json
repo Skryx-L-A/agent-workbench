@@ -1,0 +1,17 @@
+{
+ "beschreibung": "Der Ordner des Programms liegt im Anmeldespeicher (.local/share/keyrings): das Harness wird nicht eingetragen (Journalzeile mit Code 19, Zustandsdatei), postinst endet mit 0",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/srv/beispiel/heim/nutzer1/.local/share/keyrings/pi",
+   "node": null
+  }
+ },
+ "vorher": null,
+ "pruefer_verboten": [
+  "/srv/beispiel/heim/nutzer1/.local/share/keyrings"
+ ]
+}

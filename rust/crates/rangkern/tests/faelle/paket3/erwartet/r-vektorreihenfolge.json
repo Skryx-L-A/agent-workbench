@@ -1,0 +1,59 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "mathe/d1.md",
+    "score": 1.0,
+    "title": "d1",
+    "snippet": "Ein Text ohne Bezug.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.9761870601839527,
+    "vektor_rang": 1
+   },
+   {
+    "rel": "mathe/d2.md",
+    "score": 0.9411764705882353,
+    "title": "d2",
+    "snippet": "Ein Text ohne Bezug.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.9486832980505139,
+    "vektor_rang": 2
+   },
+   {
+    "rel": "mathe/d3.md",
+    "score": 0.8888888888888888,
+    "title": "d3",
+    "snippet": "Ein Text ohne Bezug.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.7071067811865475,
+    "vektor_rang": 3
+   },
+   {
+    "rel": "mathe/d4.md",
+    "score": 0.8421052631578947,
+    "title": "d4",
+    "snippet": "Ein Text ohne Bezug.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "vektor_rang": 4
+   }
+  ]
+ }
+}

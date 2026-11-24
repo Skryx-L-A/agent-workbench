@@ -1,0 +1,7 @@
+{
+ "beschreibung": "port als Text (\"8765\"): ungültig, Vorgabe 0 und eine Journalzeile",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "vorher_bruecke": "{\"port\":\"8765\"}"
+}

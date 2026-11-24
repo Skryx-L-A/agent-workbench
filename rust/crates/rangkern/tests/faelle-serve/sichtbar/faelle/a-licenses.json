@@ -1,0 +1,12 @@
+{
+ "description": "serve --licenses ist ein Aufruffehler: Exit 2 ohne Ausgabe",
+ "vault": {
+  "files": {
+   "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text.\n"
+  }
+ },
+ "args": [
+  "--licenses"
+ ],
+ "steps": []
+}

@@ -1,0 +1,121 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    1,
+    10,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 3,
+   "zeilen": [
+    "alphabeta",
+    "gammadelta",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       5,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "alpha"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "SyncBeginn"
+     },
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       5,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": "alphabeta",
+       "1": "gamma"
+      }
+     },
+     {
+      "art": "SyncEnde"
+     },
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       10,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "1": "gammadelta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      1,
+      10,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 3,
+     "zeilen": [
+      "alphabeta",
+      "gammadelta",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

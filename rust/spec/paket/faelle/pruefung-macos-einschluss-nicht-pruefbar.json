@@ -1,0 +1,23 @@
+{
+ "beschreibung": "Einschluss im Zustand nicht_pruefbar",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "macos",
+  "konten": 1,
+  "launchd": "ok",
+  "schluesselbund": "ok",
+  "einschluss": "nicht_pruefbar",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

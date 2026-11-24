@@ -1,0 +1,6 @@
+{
+ "erwartet": "EPERM; der Port hängt am Profil der Sitzung",
+ "messwerte": [
+  "errno"
+ ]
+}

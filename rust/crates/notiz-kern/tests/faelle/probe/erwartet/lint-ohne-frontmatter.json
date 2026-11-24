@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "in_scope": true,
+  "fields": {},
+  "blocks": 0,
+  "findings": [
+   {
+    "kind": "pflichtfeld",
+    "detail": "kein Frontmatter"
+   }
+  ],
+  "new": false
+ }
+}

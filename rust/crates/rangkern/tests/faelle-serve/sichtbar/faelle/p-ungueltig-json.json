@@ -1,0 +1,46 @@
+{
+ "description": "Keine gültige JSON-Zeile: bad_request, der Prozess läuft weiter",
+ "vault": {
+  "files": {
+   "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text ueber Wolken.\n"
+  }
+ },
+ "args": [
+  "{root}/vault"
+ ],
+ "steps": [
+  {
+   "line": "das ist kein json"
+  },
+  {
+   "line": "{"
+  },
+  {
+   "line": "{\"op\":\"ping\",}"
+  },
+  {
+   "line": "{'op':'ping'}"
+  },
+  {
+   "line": "{\"op\":\"ping\"} x"
+  },
+  {
+   "line": "{\"op\":\"ping\",\"id\":1} {\"op\":\"ping\",\"id\":2}"
+  },
+  {
+   "line": "{\"op\":NaN}"
+  },
+  {
+   "line": "{\"op\":\"ping\",\"id\":01}"
+  },
+  {
+   "line": "{\"op\":\"ping\""
+  },
+  {
+   "request": {
+    "op": "ping",
+    "id": "weiter"
+   }
+  }
+ ]
+}

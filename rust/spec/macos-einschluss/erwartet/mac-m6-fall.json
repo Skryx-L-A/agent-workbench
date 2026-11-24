@@ -1,0 +1,7 @@
+{
+ "erwartet": "EPERM; die Netzgrenze steht im Profil, das vor dem exec feststand",
+ "messwerte": [
+  "errno",
+  "Exitcode von curl"
+ ]
+}

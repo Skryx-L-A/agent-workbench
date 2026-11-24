@@ -1,0 +1,21 @@
+{
+ "exit": 0,
+ "stdout": {
+  "linking": [
+   "B/x.md",
+   "a/a/z.md",
+   "a/a-b.md",
+   "a/x.md",
+   "a-b/x.md",
+   "a.md"
+  ],
+  "search": [
+   "B/x.md",
+   "a/a/z.md",
+   "a/a-b.md",
+   "a/x.md",
+   "a-b/x.md",
+   "a.md"
+  ]
+ }
+}

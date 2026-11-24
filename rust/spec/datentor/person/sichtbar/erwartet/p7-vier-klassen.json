@@ -1,0 +1,49 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "s3",
+    "meldung": "frei",
+    "leseklasse": "s2"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "s2",
+    "meldung": "frei",
+    "leseklasse": "s2"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "s1",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "s2"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "s2",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "s3"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "s1",
+    "meldung": "frei",
+    "leseklasse": "s1"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "s0",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "s1"
+   }
+  ]
+ }
+}

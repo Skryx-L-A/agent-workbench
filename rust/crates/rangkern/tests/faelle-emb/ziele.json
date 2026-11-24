@@ -1,0 +1,535 @@
+{
+ "adresse-loopback": {
+  "search": [
+   "s-ipv6",
+   "s-localhost"
+  ],
+  "serve": [
+   "v-ipv6",
+   "v-localhost-ipv6"
+  ]
+ },
+ "adresse-nicht-loopback": {
+  "search": [
+   "s-adresse-0000",
+   "s-adresse-127-0-0-2",
+   "s-adresse-anderes-schema",
+   "s-adresse-benutzer",
+   "s-adresse-fremde-ip",
+   "s-adresse-hostname",
+   "s-adresse-https",
+   "s-adresse-leer",
+   "s-adresse-localhost-suffix",
+   "s-adresse-ohne-port",
+   "s-adresse-ohne-schema",
+   "s-adresse-pfad",
+   "s-adresse-port-zu-gross",
+   "s-adresse-v6-fremd"
+  ],
+  "serve": [
+   "v-adresse-127-0-0-2",
+   "v-adresse-fremde-ip",
+   "v-adresse-hostname",
+   "v-adresse-https",
+   "v-adresse-pfad"
+  ]
+ },
+ "aufruffehler": {
+  "search": [
+   "s-embed-mit-vectors",
+   "s-embed-ohne-index-db",
+   "s-embed-ohne-wert",
+   "s-timeout-bruch",
+   "s-timeout-negativ",
+   "s-timeout-text"
+  ],
+  "serve": [
+   "v-embed-doppelt",
+   "v-embed-mit-vectors",
+   "v-embed-ohne-index-db",
+   "v-embed-und-query-vector-option",
+   "v-timeout-ungueltig"
+  ]
+ },
+ "ausfall-zwei-fehler": {
+  "search": [
+   "s-aus-abgebrochen",
+   "s-aus-erster",
+   "s-aus-fehlt",
+   "s-aus-frist",
+   "s-aus-gemischt",
+   "s-aus-kein-json",
+   "s-aus-kein-objekt",
+   "s-aus-leer",
+   "s-aus-sofort",
+   "s-aus-status-201",
+   "s-aus-status",
+   "s-aus-zu",
+   "s-frist-versuch-chunked-zweimal",
+   "s-frist-versuch-zweimal",
+   "s-frist-zweimal",
+   "s-ollama-aus-gleich-ohne-embed",
+   "s-ollama-aus",
+   "s-verb-port-zu",
+   "s-verb-ueber-haengt"
+  ],
+  "serve": [
+   "v-ausfall-und-zurueck",
+   "v-frist-versuch-chunked",
+   "v-frist-versuch-zweimal",
+   "v-frist",
+   "v-keine-vektoren-ollama-aus",
+   "v-plan-wechsel",
+   "v-start-ohne-ollama",
+   "v-verb-port-zu",
+   "v-verb-ueber-haengt",
+   "v-wdh-aus-abgebrochen",
+   "v-wdh-aus-erster",
+   "v-wdh-aus-fehlt",
+   "v-wdh-aus-frist",
+   "v-wdh-aus-kein-json",
+   "v-wdh-aus-kein-objekt",
+   "v-wdh-aus-leer",
+   "v-wdh-aus-sofort",
+   "v-wdh-aus-status-201",
+   "v-wdh-aus-status",
+   "v-wdh-aus-zu",
+   "v-zufall-a",
+   "v-zufall-b",
+   "v-zufall-c"
+  ]
+ },
+ "beide-datenbanken": {
+  "search": [
+   "s-extra-db"
+  ],
+  "serve": [
+   "v-extra-db"
+  ]
+ },
+ "chunked": {
+  "search": [
+   "s-chunked-gross-hex",
+   "s-frist-versuch-chunked-dann-ok",
+   "s-frist-versuch-chunked-zweimal",
+   "s-gelungen-chunked",
+   "s-grosse-antwort-chunked"
+  ],
+  "serve": [
+   "v-chunked",
+   "v-frist-versuch-chunked",
+   "v-grosse-antwort"
+  ]
+ },
+ "content-length": {
+  "search": [
+   "s-gelungen",
+   "s-grosse-antwort-laenge",
+   "s-laenge-stueckweise"
+  ],
+  "serve": [
+   "v-chunked",
+   "v-folge-gelungen",
+   "v-grosse-antwort"
+  ]
+ },
+ "db-unlesbar": {
+  "search": [
+   "s-db-fehlt",
+   "s-db-kaputt",
+   "s-db-ungueltiger-vektor"
+  ],
+  "serve": [
+   "v-db-kaputt-dann-heil"
+  ]
+ },
+ "einbettung-gelungen": {
+  "search": [
+   "s-chunked-gross-hex",
+   "s-extra-db",
+   "s-frage-bindestrich",
+   "s-frage-leerraum",
+   "s-frist-langsam-ok",
+   "s-frist-versuch-gegenfall",
+   "s-gelungen-chunked",
+   "s-gelungen",
+   "s-grosse-antwort-chunked",
+   "s-grosse-antwort-laenge",
+   "s-ipv6",
+   "s-keep-alive-0s",
+   "s-laenge-stueckweise",
+   "s-lang-8001",
+   "s-lang-9000",
+   "s-lang-astral",
+   "s-lang-genau-8000",
+   "s-lang-kombizeichen",
+   "s-lang-umlaute",
+   "s-localhost",
+   "s-optionen",
+   "s-space-k",
+   "s-vektor-exponent",
+   "s-vektor-ganzzahlen",
+   "s-verb-unter-annahme-spaet",
+   "s-zwei-vektoren"
+  ],
+  "serve": [
+   "v-chunked",
+   "v-db-aenderung-mit-embed",
+   "v-db-kaputt-dann-heil",
+   "v-extra-db",
+   "v-folge-gelungen",
+   "v-frage-leerraum",
+   "v-frist-langsam-ok",
+   "v-frist-versuch-gegenfall",
+   "v-gemischt",
+   "v-ipv6",
+   "v-keine-offene-verbindung",
+   "v-keine-vektoren-wechsel",
+   "v-lange-folge",
+   "v-lange-frage",
+   "v-localhost-ipv6",
+   "v-optionen",
+   "v-protokoll-mit-embed",
+   "v-verb-unter-annahme-spaet",
+   "v-zufall-a",
+   "v-zufall-b",
+   "v-zufall-c",
+   "v-zwei-vektoren-exponent"
+  ]
+ },
+ "embed-mit-query-vector": {
+  "search": [
+   "s-embed-mit-query-vector-vorn",
+   "s-embed-mit-query-vector"
+  ],
+  "serve": [
+   "v-embed-und-query-vector-option"
+  ]
+ },
+ "fehler-embeddings-fehlt": {
+  "search": [
+   "s-aus-fehlt",
+   "s-aus-gemischt",
+   "s-aus-kein-objekt",
+   "s-wdh-fehlt",
+   "s-wdh-kein-objekt"
+  ],
+  "serve": [
+   "v-wdh-aus-fehlt",
+   "v-wdh-aus-kein-objekt"
+  ]
+ },
+ "fehler-embeddings-leer": {
+  "search": [
+   "s-aus-leer",
+   "s-wdh-leer"
+  ],
+  "serve": [
+   "v-wdh-aus-leer"
+  ]
+ },
+ "fehler-erster-eintrag": {
+  "search": [
+   "s-aus-erster",
+   "s-wdh-erster"
+  ],
+  "serve": [
+   "v-wdh-aus-erster"
+  ]
+ },
+ "fehler-frist": {
+  "search": [
+   "s-aus-frist",
+   "s-wdh-frist"
+  ],
+  "serve": [
+   "v-frist",
+   "v-wdh-aus-frist"
+  ]
+ },
+ "fehler-kein-json": {
+  "search": [
+   "s-aus-abgebrochen",
+   "s-aus-kein-json",
+   "s-wdh-abgebrochen",
+   "s-wdh-kein-json"
+  ],
+  "serve": [
+   "v-wdh-aus-abgebrochen",
+   "v-wdh-aus-kein-json"
+  ]
+ },
+ "fehler-keine-verbindung": {
+  "search": [
+   "s-aus-sofort",
+   "s-aus-zu",
+   "s-ollama-aus",
+   "s-verb-port-zu",
+   "s-wdh-sofort",
+   "s-wdh-zu"
+  ],
+  "serve": [
+   "v-ausfall-und-zurueck",
+   "v-verb-port-zu",
+   "v-wdh-aus-sofort",
+   "v-wdh-aus-zu"
+  ]
+ },
+ "fehler-status": {
+  "search": [
+   "s-aus-gemischt",
+   "s-aus-status-201",
+   "s-aus-status",
+   "s-wdh-status-201",
+   "s-wdh-status"
+  ],
+  "serve": [
+   "v-plan-wechsel",
+   "v-status-201",
+   "v-wdh-aus-status-201",
+   "v-wdh-aus-status"
+  ]
+ },
+ "frist": {
+  "search": [
+   "s-frist-dann-ok",
+   "s-frist-langsam-ok",
+   "s-frist-versuch-chunked-dann-ok",
+   "s-frist-versuch-chunked-zweimal",
+   "s-frist-versuch-dann-ok",
+   "s-frist-versuch-gegenfall",
+   "s-frist-versuch-zweimal",
+   "s-frist-zweimal",
+   "s-verb-ueber-haengt"
+  ],
+  "serve": [
+   "v-frist-langsam-ok",
+   "v-frist-versuch-chunked",
+   "v-frist-versuch-dann-ok",
+   "v-frist-versuch-gegenfall",
+   "v-frist-versuch-zweimal",
+   "v-frist",
+   "v-verb-ueber-haengt"
+  ]
+ },
+ "frist-je-versuch": {
+  "search": [
+   "s-frist-versuch-chunked-dann-ok",
+   "s-frist-versuch-chunked-zweimal",
+   "s-frist-versuch-dann-ok",
+   "s-frist-versuch-gegenfall",
+   "s-frist-versuch-zweimal"
+  ],
+  "serve": [
+   "v-frist-versuch-chunked",
+   "v-frist-versuch-dann-ok",
+   "v-frist-versuch-gegenfall",
+   "v-frist-versuch-zweimal"
+  ]
+ },
+ "gemischt-qv": {
+  "serve": [
+   "v-gemischt",
+   "v-protokoll-mit-embed",
+   "v-qv-vor-embed",
+   "v-zufall-a",
+   "v-zufall-b",
+   "v-zufall-c"
+  ]
+ },
+ "keine-notizvektoren": {
+  "search": [
+   "s-keine-vektoren-extra-relikt",
+   "s-keine-vektoren-leer",
+   "s-keine-vektoren-ollama-aus",
+   "s-keine-vektoren-relikte"
+  ],
+  "serve": [
+   "v-keine-vektoren-ollama-aus",
+   "v-keine-vektoren-wechsel"
+  ]
+ },
+ "keine-offene-verbindung": {
+  "serve": [
+   "v-keine-offene-verbindung",
+   "v-lange-folge"
+  ]
+ },
+ "lange-frage": {
+  "search": [
+   "s-lang-8001",
+   "s-lang-9000",
+   "s-lang-astral",
+   "s-lang-fehler-wiederholung",
+   "s-lang-genau-8000",
+   "s-lang-kombizeichen",
+   "s-lang-umlaute"
+  ],
+  "serve": [
+   "v-lange-frage"
+  ]
+ },
+ "ohne-embed": {
+  "search": [
+   "s-ohne-embed"
+  ],
+  "serve": [
+   "v-ohne-embed-option"
+  ]
+ },
+ "optionen": {
+  "search": [
+   "s-keep-alive-0s",
+   "s-optionen"
+  ],
+  "serve": [
+   "v-optionen"
+  ]
+ },
+ "qv-vor-embed": {
+  "serve": [
+   "v-gemischt",
+   "v-qv-vor-embed"
+  ]
+ },
+ "relikt-andere-ordner": {
+  "search": [
+   "s-relikt-alles",
+   "s-relikt-andere-ordner"
+  ],
+  "serve": [
+   "v-relikt-andere-ordner",
+   "v-relikt-nach-aenderung"
+  ]
+ },
+ "relikt-bester-kosinus": {
+  "search": [
+   "s-relikt-alles",
+   "s-relikt-andere-ordner",
+   "s-relikt-extra-db",
+   "s-relikt-geloeschte-notiz",
+   "s-relikt-secrets"
+  ],
+  "serve": [
+   "v-relikt-andere-ordner",
+   "v-relikt-geloeschte-notiz",
+   "v-relikt-nach-aenderung",
+   "v-relikt-secrets"
+  ]
+ },
+ "relikt-geloescht": {
+  "search": [
+   "s-keine-vektoren-relikte",
+   "s-relikt-alles",
+   "s-relikt-extra-db",
+   "s-relikt-geloeschte-notiz"
+  ],
+  "serve": [
+   "v-relikt-geloeschte-notiz",
+   "v-relikt-nach-aenderung"
+  ]
+ },
+ "relikt-secrets": {
+  "search": [
+   "s-relikt-alles",
+   "s-relikt-extra-db",
+   "s-relikt-secrets"
+  ],
+  "serve": [
+   "v-relikt-nach-aenderung",
+   "v-relikt-secrets"
+  ]
+ },
+ "verbindungsfrist": {
+  "search": [
+   "s-verb-port-zu",
+   "s-verb-ueber-haengt",
+   "s-verb-unter-annahme-spaet"
+  ],
+  "serve": [
+   "v-verb-port-zu",
+   "v-verb-ueber-haengt",
+   "v-verb-unter-annahme-spaet"
+  ]
+ },
+ "verbindungsfrist-ueber": {
+  "search": [
+   "s-verb-ueber-haengt"
+  ],
+  "serve": [
+   "v-verb-ueber-haengt"
+  ]
+ },
+ "verbindungsfrist-unter": {
+  "search": [
+   "s-verb-unter-annahme-spaet"
+  ],
+  "serve": [
+   "v-verb-unter-annahme-spaet"
+  ]
+ },
+ "wiederholung": {
+  "search": [
+   "s-frist-dann-ok",
+   "s-frist-versuch-chunked-dann-ok",
+   "s-frist-versuch-dann-ok",
+   "s-lang-fehler-wiederholung",
+   "s-wdh-abgebrochen",
+   "s-wdh-erster",
+   "s-wdh-fehlt",
+   "s-wdh-frist",
+   "s-wdh-kein-json",
+   "s-wdh-kein-objekt",
+   "s-wdh-leer",
+   "s-wdh-sofort",
+   "s-wdh-status-201",
+   "s-wdh-status",
+   "s-wdh-zu"
+  ],
+  "serve": [
+   "v-ausfall-und-zurueck",
+   "v-frist-versuch-chunked",
+   "v-frist-versuch-dann-ok",
+   "v-frist",
+   "v-plan-wechsel",
+   "v-start-ohne-ollama",
+   "v-status-201",
+   "v-wdh-aus-abgebrochen",
+   "v-wdh-aus-erster",
+   "v-wdh-aus-fehlt",
+   "v-wdh-aus-frist",
+   "v-wdh-aus-kein-json",
+   "v-wdh-aus-kein-objekt",
+   "v-wdh-aus-leer",
+   "v-wdh-aus-sofort",
+   "v-wdh-aus-status-201",
+   "v-wdh-aus-status",
+   "v-wdh-aus-zu",
+   "v-zufall-a",
+   "v-zufall-b",
+   "v-zufall-c"
+  ]
+ },
+ "zeile-geaendert": {
+  "serve": [
+   "v-db-aenderung-mit-embed",
+   "v-zufall-a",
+   "v-zufall-b",
+   "v-zufall-c"
+  ]
+ },
+ "zeile-geloescht": {
+  "serve": [
+   "v-zufall-a",
+   "v-zufall-b",
+   "v-zufall-c"
+  ]
+ },
+ "zeile-neu": {
+  "serve": [
+   "v-zufall-a",
+   "v-zufall-b",
+   "v-zufall-c"
+  ]
+ }
+}

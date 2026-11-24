@@ -1,0 +1,49 @@
+{
+ "name": "tr15_kind_schlange_grenze",
+ "regeln": [
+  "TR12",
+  "TR15"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Nachtrag 20.11. (TR15): Ein Kind liest seine Eingabe nie; ein Schreiben von genau 262 144 Byte kommt sofort zurück und wird angenommen",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "stumm",
+  "argv": [],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "text": "BEREIT"
+   }
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "cursor": [
+     1,
+     0,
+     true
+    ]
+   }
+  },
+  {
+   "art": "Tasten",
+   "hex": "61",
+   "mal": 262144
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

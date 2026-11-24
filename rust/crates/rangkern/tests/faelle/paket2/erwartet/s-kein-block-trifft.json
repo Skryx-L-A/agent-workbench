@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "snippet": "Für künftige Sessions: Die Kaffeemaschine wird im Frühling entkalkt.",
+  "lines": [
+   5,
+   5
+  ],
+  "hook": "Für künftige Sessions: Die Kaffeemaschine wird im Frühling entkalkt.",
+  "hook_lines": [
+   5,
+   5
+  ]
+ }
+}

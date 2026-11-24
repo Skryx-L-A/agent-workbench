@@ -1,0 +1,5 @@
+{
+ "beschreibung": "`ProtectHome=read-only` zieht NoNewPrivileges nicht nach sich und ist kein Befund dieses Falls",
+ "form": "kerneinheit",
+ "text": "[Unit]\nDescription=Werkbank core service\n\n[Service]\nProtectHome=read-only\nType=simple\nExecStart=/usr/lib/werkbank/werkbank-kern /etc/werkbank/kern.json\nRuntimeDirectory=werkbank\nRuntimeDirectoryMode=0700\n\n[Install]\nWantedBy=default.target\n"
+}

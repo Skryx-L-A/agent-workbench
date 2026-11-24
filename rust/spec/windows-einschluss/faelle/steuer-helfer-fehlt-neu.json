@@ -1,0 +1,8 @@
+{
+ "beschreibung": "Projekt anlegen bei ausgefallenem Helfer: Sperre steht, keine Ausnahme",
+ "form": "steuer",
+ "text": "{\"op\": \"projekt_neu\", \"ordner\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\"}\n",
+ "lage": {
+  "helfer": "gestoppt"
+ }
+}

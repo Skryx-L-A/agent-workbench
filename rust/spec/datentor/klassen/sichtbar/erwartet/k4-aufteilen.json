@@ -1,0 +1,312 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "teile": [
+     {
+      "klasse": "oeffentlich",
+      "herkunft": "geerbt",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "oeffentlich",
+       "meldung": "frei"
+      }
+     },
+     {
+      "klasse": "kundendaten",
+      "herkunft": "kunde",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": false,
+       "grund": "klasse-ueber-route",
+       "klasse": "kundendaten",
+       "meldung": "Klasse der Einheit liegt über Route r-oeff"
+      }
+     }
+    ],
+    "ausgeliefert": [
+     0
+    ],
+    "gesperrt": 1
+   },
+   {
+    "teile": [
+     {
+      "klasse": "oeffentlich",
+      "herkunft": "geerbt",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "oeffentlich",
+       "meldung": "frei"
+      }
+     },
+     {
+      "klasse": "kundendaten",
+      "herkunft": "kunde",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "kundendaten",
+       "meldung": "frei"
+      }
+     }
+    ],
+    "ausgeliefert": [
+     0,
+     1
+    ],
+    "gesperrt": 0
+   },
+   {
+    "teile": [
+     {
+      "klasse": "oeffentlich",
+      "herkunft": "geerbt",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "oeffentlich",
+       "meldung": "frei"
+      }
+     },
+     {
+      "klasse": "intern",
+      "herkunft": "eigen",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": false,
+       "grund": "klasse-ueber-route",
+       "klasse": "intern",
+       "meldung": "Klasse der Einheit liegt über Route r-oeff"
+      }
+     },
+     {
+      "klasse": "oeffentlich",
+      "herkunft": "eigen",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "oeffentlich",
+       "meldung": "frei"
+      }
+     }
+    ],
+    "ausgeliefert": [
+     0,
+     2
+    ],
+    "gesperrt": 1
+   },
+   {
+    "teile": [
+     {
+      "klasse": null,
+      "herkunft": "ungueltig",
+      "senkung": {
+       "grund": "klasse-ungueltig",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": false,
+       "grund": "einheit-ohne-klasse",
+       "klasse": null,
+       "meldung": "Einheit ohne gültige Klasse"
+      }
+     },
+     {
+      "klasse": "oeffentlich",
+      "herkunft": "geerbt",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "oeffentlich",
+       "meldung": "frei"
+      }
+     }
+    ],
+    "ausgeliefert": [
+     1
+    ],
+    "gesperrt": 1
+   },
+   {
+    "teile": [
+     {
+      "klasse": "kundendaten",
+      "herkunft": "eigen",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": false,
+       "grund": "kunde-fehlt",
+       "klasse": "kundendaten",
+       "meldung": "Kundendaten ohne Kunde"
+      }
+     },
+     {
+      "klasse": "intern",
+      "herkunft": "geerbt",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "intern",
+       "meldung": "frei"
+      }
+     }
+    ],
+    "ausgeliefert": [
+     1
+    ],
+    "gesperrt": 1
+   },
+   {
+    "teile": [
+     {
+      "klasse": "kundendaten",
+      "herkunft": "vorgabestufe",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": false,
+       "grund": "klasse-ueber-route",
+       "klasse": "kundendaten",
+       "meldung": "Klasse der Einheit liegt über Route r-oeff"
+      }
+     },
+     {
+      "klasse": "oeffentlich",
+      "herkunft": "eigen",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "oeffentlich",
+       "meldung": "frei"
+      }
+     }
+    ],
+    "ausgeliefert": [
+     1
+    ],
+    "gesperrt": 1
+   },
+   {
+    "teile": [
+     {
+      "klasse": "kundendaten",
+      "herkunft": "kunde",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "kundendaten",
+       "meldung": "frei"
+      }
+     },
+     {
+      "klasse": "kundendaten",
+      "herkunft": "kunde",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "kundendaten",
+       "meldung": "frei"
+      }
+     }
+    ],
+    "ausgeliefert": [
+     0,
+     1
+    ],
+    "gesperrt": 0
+   },
+   {
+    "teile": [
+     {
+      "klasse": "oeffentlich",
+      "herkunft": "geerbt",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": false,
+       "grund": "route-fehlt",
+       "klasse": "oeffentlich",
+       "meldung": "Anfrage ohne Route"
+      }
+     }
+    ],
+    "ausgeliefert": [],
+    "gesperrt": 1
+   }
+  ]
+ }
+}

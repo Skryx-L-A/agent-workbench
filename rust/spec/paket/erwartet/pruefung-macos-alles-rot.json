@@ -1,0 +1,13 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.launchd_gestoppt: Der Dienst werkbank.halter laeuft nicht.",
+  "pruef.schluesselbund_fehlt: Der Schluesselbund-Eintrag des Modellwegs fehlt.",
+  "pruef.einschluss_probelauf: Der Probelauf des Einschlusses scheitert.",
+  "pruef.einstellungen_fehlt: Die Einstellungsdatei fehlt oder ist nicht lesbar.",
+  "pruef.vault_fehlt: Der Vault-Ordner fehlt.",
+  "pruef.paketstand_manifest_fehlt: Das Manifest des Pakets fehlt.",
+  "pruef.rot: 6 Befunde."
+ ]
+}

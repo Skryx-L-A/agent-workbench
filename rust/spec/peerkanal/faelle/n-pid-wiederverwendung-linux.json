@@ -1,0 +1,36 @@
+{
+ "beschreibung": "der Client endet, seine PID gehört danach einem anderen Prozess",
+ "art": "aussentest",
+ "ort": [
+  "linux"
+ ],
+ "konten": {
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "uid": 1000000101
+   }
+  ],
+  "instanzen": 4,
+  "unix": {
+   "ordner": "/k-beispiel/lauf/pk",
+   "modus": "0600"
+  },
+  "prozess_pflicht": true
+ },
+ "client": null,
+ "aufbau": [
+  "Eigener PID-Namensraum (unshare --user --pid --fork), damit die PID schnell wiederkommt",
+  "Der Server hört, ruft annehmen aber erst auf Zeichen des Läufers"
+ ],
+ "handlung": [
+  "Client verbindet, sendet das Hallo, reicht den Socket an ein Kind weiter und endet",
+  "Der Läufer startet Prozesse, bis einer die alte PID hat",
+  "Dann ruft der Server annehmen"
+ ]
+}

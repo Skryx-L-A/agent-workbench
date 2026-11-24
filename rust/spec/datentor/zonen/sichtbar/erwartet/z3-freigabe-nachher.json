@@ -1,0 +1,106 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-ohne-freigabe",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Route r-appr ohne Freigabe für Kunde und Projekt",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-ohne-freigabe",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Route r-appr ohne Freigabe für Kunde und Projekt",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-ohne-freigabe",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Route r-appr ohne Freigabe für Kunde und Projekt",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-ohne-freigabe",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Route r-appr ohne Freigabe für Kunde und Projekt",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-ohne-freigabe",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Route r-appr ohne Freigabe für Kunde und Projekt",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "route-fuer-kunde-verboten",
+    "klasse": "kundendaten",
+    "meldung": "Route r-appr ist für diesen Kunden verboten",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "kunde-fehlt",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten ohne Kunde",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "kundendaten-an-cloud",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Cloud-Route r-conf ohne Freigabe",
+    "protokoll": {
+     "zone": "conf",
+     "grund": "local reicht fuer die Aufgabe nicht",
+     "ausnahme": null
+    }
+   }
+  ]
+ }
+}

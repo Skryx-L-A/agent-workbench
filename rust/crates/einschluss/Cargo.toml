@@ -1,0 +1,38 @@
+[package]
+name = "einschluss"
+version = "0.1.0"
+description = "Linux enclosure of a session: a fixed bubblewrap profile built from a typed description, with the checks before the start."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+# The stand-in harness and the stand-in search process for the outside tests. Only test builds have it: the feature
+# `attrappe` is off by default, and the program does not exist without it (a case builds the library without the
+# feature and looks for it).
+[[bin]]
+name = "einschluss-attrappe"
+path = "src/bin/attrappe.rs"
+required-features = ["attrappe"]
+
+# The forwarder of the cloud exit: runs inside the enclosure below `bwrap` (see `src/weiter.rs`). Part of the delivery.
+[[bin]]
+name = "einschluss-weiter"
+path = "src/bin/weiter.rs"
+
+# The fixed starter: the only program with the `AppArmor` transition to `bwrap` (see `src/starter.rs`). Part of the
+# delivery, installed as `/usr/lib/werkbank/werkbank-einschluss`. No mode that takes free arguments exists.
+[[bin]]
+name = "werkbank-einschluss"
+path = "src/bin/werkbank_einschluss.rs"
+
+[features]
+attrappe = []
+
+# No dependency: the argument list is plain text, the checks use `std` only (`unsafe` is forbidden in this workspace).
+[dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,9 @@
+{
+ "rc": 0,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.hinweis_ubuntu_profil_geladen: Das Ubuntu-Profil bwrap-userns-restrict ist geladen.",
+  "pruef.hinweis_system_bwrap_ubuntu: Das System-bwrap ist durch das Ubuntu-Profil frei; die Firma kann dieses Profil entfernen.",
+  "pruef.ok: Alle 8 Pruefungen bestanden."
+ ]
+}

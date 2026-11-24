@@ -1,0 +1,17 @@
+{
+ "beschreibung": "Die Prüfung nennt einen verbotenen Ordner, den kein gefundenes Harness braucht: nichts wird abgelehnt, keine Zustandsdatei",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/opt/pi/pi",
+   "node": null
+  }
+ },
+ "vorher": null,
+ "pruefer_verboten": [
+  "/srv/beispiel/heim/nutzer1/.ssh"
+ ]
+}

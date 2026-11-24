@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "Z10"
+ ],
+ "beschreibung": "nutzer ist weder Text noch null."
+}

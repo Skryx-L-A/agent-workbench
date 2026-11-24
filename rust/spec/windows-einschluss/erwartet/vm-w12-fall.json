@@ -1,0 +1,7 @@
+{
+ "erwartet": "erst Exit 75 ohne Änderung; bei gestopptem Helfer Exit 75, Sperre bleibt; dann Exit 0 und Ausnahme, Sperre, Sublayer, Freigaben und Profil weg; beim zweiten Mal Exit 0",
+ "messwerte": [
+  "Exitcode je Aufruf",
+  "Ausnahmeliste, Filterliste, ACL und Profil nach jedem Schritt"
+ ]
+}

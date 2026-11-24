@@ -1,0 +1,89 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "nutzer-fehlt",
+    "klasse": null,
+    "meldung": "Anfrage ohne Nutzer",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": {
+      "zone": "unsafe",
+      "nutzer": [],
+      "gruppen": [
+       "g-eval"
+      ],
+      "gesetzt_von": "admin-2",
+      "zweck": "Evaluierung Gruppe",
+      "bis": 1800001000
+     }
+    }
+   },
+   {
+    "darf": false,
+    "grund": "nutzer-fehlt",
+    "klasse": null,
+    "meldung": "Anfrage ohne Nutzer",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": {
+      "zone": "unsafe",
+      "nutzer": [],
+      "gruppen": [
+       "g-eval"
+      ],
+      "gesetzt_von": "admin-2",
+      "zweck": "Evaluierung Gruppe",
+      "bis": 1800001000
+     }
+    }
+   },
+   {
+    "darf": false,
+    "grund": "nutzer-fehlt",
+    "klasse": "oeffentlich",
+    "meldung": "Anfrage ohne Nutzer",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": {
+      "zone": "unsafe",
+      "nutzer": [],
+      "gruppen": [
+       "g-eval"
+      ],
+      "gesetzt_von": "admin-2",
+      "zweck": "Evaluierung Gruppe",
+      "bis": 1800001000
+     }
+    }
+   },
+   {
+    "darf": false,
+    "grund": "nutzer-fehlt",
+    "klasse": null,
+    "meldung": "Anfrage ohne Nutzer",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "nutzer-fehlt",
+    "klasse": null,
+    "meldung": "Anfrage ohne Nutzer",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   }
+  ]
+ }
+}

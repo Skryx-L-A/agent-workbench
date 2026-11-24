@@ -1,0 +1,63 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "haus/heizung-a.md",
+    "score": 1.0,
+    "title": "Heizung A",
+    "snippet": "Heizung läuft mit Gas.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "contradiction": true
+   },
+   {
+    "rel": "haus/heizung-b.md",
+    "score": 0.9411764705882353,
+    "title": "Heizung B",
+    "snippet": "Heizung läuft mit Öl.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 1.0,
+    "contradiction": true
+   },
+   {
+    "rel": "haus/heizung-c.md",
+    "score": 0.8888888888888888,
+    "title": "Heizung C",
+    "snippet": "Heizung ist abgeschaltet.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 3,
+    "bm25_norm": 1.0,
+    "contradiction": true
+   },
+   {
+    "rel": "haus/heizung-d.md",
+    "score": 0.8421052631578947,
+    "title": "Heizung D",
+    "snippet": "Heizung wird gewartet.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 4,
+    "bm25_norm": 1.0
+   }
+  ]
+ }
+}

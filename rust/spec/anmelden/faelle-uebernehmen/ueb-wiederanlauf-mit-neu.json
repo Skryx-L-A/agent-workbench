@@ -1,0 +1,19 @@
+{
+ "beschreibung": "wie ueb-wiederanlauf, mit --neu",
+ "args": [
+  "copilot",
+  "--uebernehmen",
+  "--neu"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "datei-gleich",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

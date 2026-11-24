@@ -1,0 +1,93 @@
+{
+ "name": "k2-boden-gelesen",
+ "regeln": [
+  "K3",
+  "K5"
+ ],
+ "beschreibung": "Option „nur Gelesenes“: Das Ergebnis erbt das Maximum der gelesenen Einheiten; ohne Quelle gibt es keinen Boden.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "cloud-n",
+    "art": "cloud"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "erbe": {
+   "boden": "gelesen"
+  }
+ },
+ "anfragen": [
+  {
+   "route": "cloud",
+   "sitzungskunde": null,
+   "gelesen": []
+  },
+  {
+   "route": "cloud",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "oeffentlich"
+    }
+   ]
+  },
+  {
+   "route": "cloud",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "oeffentlich"
+    },
+    {
+     "klasse": "intern"
+    },
+    {
+     "klasse": "oeffentlich"
+    }
+   ]
+  },
+  {
+   "route": "lokal",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "oeffentlich"
+    }
+   ]
+  }
+ ]
+}

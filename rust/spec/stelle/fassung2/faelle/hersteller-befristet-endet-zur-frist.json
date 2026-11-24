@@ -1,0 +1,215 @@
+{
+  "beschreibung": "Ein befristeter Zugang erlaubt Zugriffe bis eine Millisekunde vor der Frist; jeder Zugriff steht in der Kette; zur Frist endet er mit einer Zeile abgelaufen, und der naechste Zugriff wird abgelehnt.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "A11",
+    "A102",
+    "Issue 24"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"brain\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[\"brain_schreiben\",\"brain_senken\"],\"zweite_person\":[\"brain_senken\"],\"frist_ms\":60000,\"einloesefrist_ms\":30000}},\"stelle\":{\"hersteller\":{\"fall\":\"befristet\",\"hoechstfrist_ms\":3600000}}}",
+    "rollen": {
+      "ps_00000000000000000000000000000b01": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000b02": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000e01": [
+        "einsicht"
+      ],
+      "ps_00000000000000000000000000000e02": [
+        "einsicht"
+      ]
+    }
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/srv/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "hersteller.gewaehren",
+      "jetzt_ms": 1795179601000,
+      "eingabe": {
+        "frist_ms": 60000,
+        "nonce": "00000000000000000000000000000001",
+        "nachweis": "h1:ps_00000000000000000000000000000b01:d8c96341d4d240c4129431a96d1d209dc947fe34de7de73fad64d5be0ab9a12d"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gewaehrt",
+          "zugang": "hz-1795179540000-1",
+          "bis_ms": 1795179661000
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"hersteller.zugang\",\"bis\":\"2026-11-20T13:01:01.000Z\",\"ergebnis\":\"gewaehrt\",\"fall\":\"befristet\",\"fassung\":2,\"person\":\"ps_00000000000000000000000000000b01\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:01.000Z\",\"zugang\":\"hz-1795179540000-1\"}",
+            "sha256": "c82def9beb4ce8fc32bba13162a907eedf362c02cc95f9700780775084e37060"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hersteller",
+      "vorgang": "hersteller.zugriff",
+      "jetzt_ms": 1795179602000,
+      "eingabe": {
+        "zugang": "hz-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "erlaubt",
+          "zugang": "hz-1795179540000-1",
+          "bis_ms": 1795179661000
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"hersteller.zugriff\",\"ergebnis\":\"erlaubt\",\"fassung\":2,\"vorher\":\"c82def9beb4ce8fc32bba13162a907eedf362c02cc95f9700780775084e37060\",\"zeit\":\"2026-11-20T13:00:02.000Z\",\"zugang\":\"hz-1795179540000-1\"}",
+            "sha256": "ddc38d0b711d91c1223431fba24ca1f70220be53326a86d3029a4fe85421abf3"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hersteller",
+      "vorgang": "hersteller.zugriff",
+      "jetzt_ms": 1795179660999,
+      "eingabe": {
+        "zugang": "hz-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "erlaubt",
+          "zugang": "hz-1795179540000-1",
+          "bis_ms": 1795179661000
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"hersteller.zugriff\",\"ergebnis\":\"erlaubt\",\"fassung\":2,\"vorher\":\"ddc38d0b711d91c1223431fba24ca1f70220be53326a86d3029a4fe85421abf3\",\"zeit\":\"2026-11-20T13:01:00.999Z\",\"zugang\":\"hz-1795179540000-1\"}",
+            "sha256": "955fc14c4e28d7b0396fb6c6298a2f94ab9e9471e625703e3bf7e27b002f8145"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hersteller",
+      "vorgang": "hersteller.zugriff",
+      "jetzt_ms": 1795179661000,
+      "eingabe": {
+        "zugang": "hz-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.zugang_abgelaufen",
+          "grund": "Zugang abgelaufen"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"hersteller.zugang\",\"bis\":\"2026-11-20T13:01:01.000Z\",\"ergebnis\":\"abgelaufen\",\"fall\":\"befristet\",\"fassung\":2,\"person\":null,\"vorher\":\"955fc14c4e28d7b0396fb6c6298a2f94ab9e9471e625703e3bf7e27b002f8145\",\"zeit\":\"2026-11-20T13:01:01.000Z\",\"zugang\":\"hz-1795179540000-1\"}",
+            "sha256": "a8908f1d80aa7df2c048771826c268bfb2ba1d9d4aace54ab8bedde26f813318"
+          },
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"hz-1795179540000-1\",\"aufrufer\":\"hersteller\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.zugang_abgelaufen\",\"vorgang\":\"hersteller.zugriff\",\"vorher\":\"a8908f1d80aa7df2c048771826c268bfb2ba1d9d4aace54ab8bedde26f813318\",\"zeit\":\"2026-11-20T13:01:01.000Z\"}",
+            "sha256": "5ab00bb7ef1faf7964b85fef4013e11c3c3ab53e58de2efe4ad97bf247f19025"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "hersteller.gewaehren",
+      "jetzt_ms": 1795179662000,
+      "eingabe": {
+        "frist_ms": 1000,
+        "nonce": "00000000000000000000000000000002",
+        "nachweis": "h1:ps_00000000000000000000000000000b02:baec8a89bb386e47d1dffab73cbaf2184552ede20a512724bebbab4a3af002f6"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gewaehrt",
+          "zugang": "hz-1795179540000-2",
+          "bis_ms": 1795179663000
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"hersteller.zugang\",\"bis\":\"2026-11-20T13:01:03.000Z\",\"ergebnis\":\"gewaehrt\",\"fall\":\"befristet\",\"fassung\":2,\"person\":\"ps_00000000000000000000000000000b02\",\"vorher\":\"5ab00bb7ef1faf7964b85fef4013e11c3c3ab53e58de2efe4ad97bf247f19025\",\"zeit\":\"2026-11-20T13:01:02.000Z\",\"zugang\":\"hz-1795179540000-2\"}",
+            "sha256": "dcb39210310950455d681fb63bda9573e9be510b0ad33abc34595f8abd0f61d0"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "takt",
+      "vorgang": "ablauf.pruefen",
+      "jetzt_ms": 1795179663000,
+      "eingabe": {},
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "geprueft",
+          "abgelaufen": 1
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"hersteller.zugang\",\"bis\":\"2026-11-20T13:01:03.000Z\",\"ergebnis\":\"abgelaufen\",\"fall\":\"befristet\",\"fassung\":2,\"person\":null,\"vorher\":\"dcb39210310950455d681fb63bda9573e9be510b0ad33abc34595f8abd0f61d0\",\"zeit\":\"2026-11-20T13:01:03.000Z\",\"zugang\":\"hz-1795179540000-2\"}",
+            "sha256": "d28585d5f35669492ae2e721eaed533a94127f848fb728b3b0b745fb1f41131c"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1"
+    ],
+    "anfragen": {},
+    "zaehler": 0,
+    "antraege": {},
+    "zugaenge": {
+      "hz-1795179540000-1": "abgelaufen",
+      "hz-1795179540000-2": "abgelaufen"
+    },
+    "pflichten": {
+      "halter_bescheinigung": true,
+      "mcp.brain.freigabe": true,
+      "mcp.notizen.freigabe": false,
+      "mcp.tickets.freigabe": true,
+      "senken_zweite_person": false,
+      "vier_augen": false
+    },
+    "zeilen": 8,
+    "letzte": "d28585d5f35669492ae2e721eaed533a94127f848fb728b3b0b745fb1f41131c"
+  }
+}

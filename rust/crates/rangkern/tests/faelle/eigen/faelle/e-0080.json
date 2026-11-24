@@ -1,0 +1,33 @@
+{
+"description": "invented vault, expectation from rangkern-ref-sicher (differential run)",
+"program": "rangkern",
+"files": {
+"vault/20-projects/q/maschine.md": "And sonne kompost der fundament rohr maschine einbettungen original notiz tropfschlauch rhabarber notiz und linking embedding und öl suche\nEmbedding sensor kaffee rhabarber lauf the\n",
+"vault/30-topics/t/ärger.md": "# einbettung sitzung\n\nBewaesserung beet tomaten bewaesserung schornstein of bm25\n\n## fehler salat mulch\n\nÜbersicht and tomaten saat stand schnecke steckdose gärtner unterbau rang sonne dach rang\n",
+"vault/20-projects/p/pumpe-rhabarber.md": "---\ntitle: Linking Kern\nsuperseded-by: [[nichtda]]\ntags: [rang]\n---\nTomaten öl tomaten rhabarber\n\n### aufgabe lichtschalter heizung\n\nKueche lauf wind ausgabe index\nQuelle tomaten nicht ventil original linking\n\nKaffee ernte rhabarber das grundstück entscheidung öl kaffee ich\n\nQuelle entkalken ventil übersicht bm25 übersicht tropfschlauch bm25 fruehjahr mulch einbettung offen nicht duese\nThe and die projekt the wind\n\nFür künftige Sessions: Fundament saat öl vertikutieren über rang\n\nMulch aufgabe sonne grundstück offen dach ventil ärger? sensor kompost embedding salat bm25 projekt oder unterbau! pumpe zaun salat ernte sitzung moc kompost gurken! vektor\n",
+"vault/30-topics/t/titel-entkalken.md": "Moc salat lauf kompost der notiz gurken beet strasse lichtschalter oder the titel gärtner garten dach straße frühjahr linking titel ich salat notiz offen moc kaffee das status dach aufgabe ich bm25 ventil gurken tomaten strasse über wind suchindex schnecke projekt dach embedding ventil vektor sitzung aufgabe moc sensor tropfschlauch titel\n",
+"vault/30-topics/t/kueche-test.md": "---\ntitle: 'Embedding Fruehjahr\nsuperseded-by: [[ärger]], [[ärger]]\ntags: [maschine]\n---\n# ernte tropfschlauch notiz\n\nDuese embedding grundstück öl rasen das lauf kompost ziegel ernte strasse gurken kaffee\n\nStand einbettung maschine titel öl einbettung entkalken lichtschalter wetter schornstein öl heizung maschine bm25 ausgabe schnecken\n\n### mulch straße\n\nSonne vertikutieren strasse einbettungen straße maschine frühjahr ausgabe gärtner vault sitzung übersicht straße aufgabe ventil lauf mulch suche über quelle ventil grundstücke\n\nRohr einbettung rohr\n",
+"vault/garten/entscheidung.md": "Für künftige Sessions: Ziegel die index schnecken sitzung vektor\n\nKompost sitzung ausgabe frühjahr kaffee original ausgabe öl. vault of vault nicht rohr status nicht projekt die ärger fruehjahr der\n\n### fehler\n\nWetter tomaten sitzung ventil frühjahr die zaun bewaesserung\n\nFrühjahr frühjahr embedding straße und steckdose und rasen\n",
+"vault/garten/MOC.md": "Für künftige Sessions: Und titel projekt vertikutieren notiz tor\n\nMulch suchindex der pumpe the and vertikutieren heizung? rang\n\n### fundament gärtner\n\nMoc bm25 öl maschine rhabarber zaun bewaesserung suchindex bm25 heizung\nWind der vault sitzung projekt wir\n\nVentil einbettung fundament unterbau kern and vault wir notiz öl einbettungen vektor grundstücke gurken öl über! lauf suchindex the lauf dach maschine nicht\n\nSuchindex kueche tropfschlauch test vault gurken lauf rohr einbettungen ernte\n\nErledigt sonne fruehjahr original grundstück rhabarber strasse die das heizung kern\nNotiz öl über sitzung tropfschlauch rang\n",
+"vault/20-projects/p/KERN.md": "---\naliases: [tor]\nstatus: active\nsuperseded-by: [[maschine]]\n---\nKaffee ärger bm25 quelle\n",
+"vault/x/90-secrets/tief.md": "Der das notiz quelle ventil regen kompost index? vault rhabarber ventil\nLichtschalter ärger öl wind heizung straße\n kaffee geheimwort\n",
+"vault/00-sources/drop/roh.md": "Duese ausgabe moc das tropfschlauch bm25 of rasen. rhabarber linking suchindex garten original einbettung schornstein tor die sonne fruehjahr projekt aufgabe fruehjahr unterbau gärtner? schornstein\n pumpe geheimwort\n",
+"vault/garten/.hidden.md": "### einbettung\n\nVault entscheidung tomaten notiz gärtner mulch linking\n zaun geheimwort\n",
+"vault/.brain/spaces.lock": "{\"spaces\": [{\"space\": \"ppdeep\", \"mount\": \"20-projects/p/sub/\"}]}",
+"vektoren.json": "{\"query\": [0.671, 0.052, 0.232], \"notes\": {\"20-projects/q/maschine.md\": [-0.683, -0.495, -0.22], \"garten/entscheidung.md\": [0.268, -0.791, 0.644], \"20-projects/p/KERN.md\": [0.268, -0.791, 0.644], \"90-secrets/geheim.md\": [0.615, 0.393, 0.629], \"30-topics/t/kueche-test.md\": [0.854, 0.604, -0.435], \"30-topics/t/\\u00e4rger.md\": [-0.001, 0.664, 0.097], \"garten/MOC.md\": [0.966, -0.082, -0.57], \"30-topics/t/titel-entkalken.md\": [0.37, 0.695, 0.129], \"20-projects/p/pumpe-rhabarber.md\": [-0.001, 0.664, 0.097], \"quelle1/quellen/orig.md\": [-0.524, -0.434, 0.477]}}"
+},
+"args": [
+"search",
+"{root}/vault",
+"-k",
+"8",
+"--space",
+"kern",
+"--today",
+"2026-10-01",
+"--vectors",
+"{root}/vektoren.json",
+"--",
+"einbettungen nicht"
+]
+}

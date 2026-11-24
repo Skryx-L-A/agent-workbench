@@ -1,0 +1,4 @@
+{
+ "beschreibung": "Schlüssel in anderer Reihenfolge: gültig",
+ "text": "{\"kundendaten_an_cloud\": {\"vorgabe\": \"nie\", \"freigaben\": []}, \"kunden\": [{\"schluessel\": \"k-beispiel\", \"erlaubt\": [\"lokal-beispiel\"], \"verboten\": []}], \"routen\": [{\"schluessel\": \"cloud-beispiel\", \"art\": \"cloud\", \"klasse\": \"intern\"}, {\"schluessel\": \"lokal-beispiel\", \"art\": \"lokal\", \"klasse\": \"kundendaten\"}], \"vorgabestufe\": \"kundendaten\", \"klassen\": [\"oeffentlich\", \"intern\", \"kundendaten\"], \"fassung\": 1}"
+}

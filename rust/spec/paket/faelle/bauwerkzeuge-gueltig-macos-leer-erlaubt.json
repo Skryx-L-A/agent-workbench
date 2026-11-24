@@ -1,0 +1,6 @@
+{
+ "beschreibung": "unter macOS ist keine Pflichtzeile vorgeschrieben; eine Zeile genügt",
+ "form": "bauwerkzeuge",
+ "text": "wix\t5.0.2\tMS-RL\tsha256:f30ef0c74e2a986126539c5780be93ac24e8136eaf723b1937b26272703ae173\tnein\n",
+ "plattform": "macos-arm64"
+}

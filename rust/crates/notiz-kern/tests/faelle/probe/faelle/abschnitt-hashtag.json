@@ -1,0 +1,11 @@
+{
+ "description": "a #tag line counts as a level-1 heading and ends the section",
+ "files": {
+  "note.md": "## Notizen\n\nText\n#tag am Zeilenanfang\nnoch Text\n"
+ },
+ "args": [
+  "section",
+  "{root}/note.md",
+  "Notizen"
+ ]
+}

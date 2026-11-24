@@ -1,0 +1,10 @@
+{
+ "description": "lint without --rel",
+ "args": [
+  "lint",
+  "{root}/x.md"
+ ],
+ "files": {
+  "x.md": "x\n"
+ }
+}

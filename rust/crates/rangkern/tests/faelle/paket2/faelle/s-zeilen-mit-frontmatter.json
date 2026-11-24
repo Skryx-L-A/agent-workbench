@@ -1,0 +1,12 @@
+{
+ "description": "lines sind Dateizeilen ab 1, Frontmatter mitgezählt",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\ntitle: Wetter\ntype: note\nstand: \"2026-09\"\n---\n\nDie Wetterstation misst Temperatur.\n\nDer Regensensor meldet Niederschlag.\nDie Anzeige zeigt es an.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "Regensensor"
+ ]
+}

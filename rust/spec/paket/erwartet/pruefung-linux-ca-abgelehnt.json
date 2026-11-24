@@ -1,0 +1,8 @@
+{
+ "rc": 0,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.hinweis_ca_abgelehnt: Die Zulassung der lokalen CA ist abgelehnt; die Cloud-Route ist gesperrt.",
+  "pruef.ok: Alle 8 Pruefungen bestanden."
+ ]
+}

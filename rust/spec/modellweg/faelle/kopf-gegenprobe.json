@@ -1,0 +1,210 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitt 14. Modell der Gegenprobe E5 als Ausseentest in der VM: funde zaehlt Treffer der Marke im Einschluss; user_repos ist das Ergebnis von GET /user/repos ueber den Weiterreicher. test rot heisst: dieser Aufbau muss den Ausseentest rot machen.",
+ "marke": "wb-marke-echtes-token-7d1c0e",
+ "faelle": [
+  {
+   "name": "basis",
+   "beschreibung": "Weg (a) wie vorgesehen",
+   "zuordnung": "Weiterreicher und Einbindung",
+   "aufbau": {
+    "umgebung": {
+     "COPILOT_GITHUB_TOKEN": "wb-platzhalter-0000",
+     "HTTPS_PROXY": "http://127.0.0.1:8402",
+     "COPILOT_AUTO_UPDATE": "false",
+     "COPILOT_MASCOT_BLINK": "0",
+     "HOME": "/srv/agent"
+    },
+    "dateien": {
+     "/srv/agent/.copilot/settings.json": "{\"storeTokenPlaintext\":false}",
+     "/etc/ssl/certs/ca-certificates.crt": "<System-Bundle des Rechners>\n<Zertifikat der Wegwerf-CA>"
+    },
+    "dbus_wirt": false,
+    "gh_angemeldet": false,
+    "speicher_lesbar": false,
+    "zielliste": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"github-api\",\n   \"host\": \"api.github.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"GET\",\n     \"pfad\": \"/copilot_internal/*\"\n    },\n    {\n     \"methode\": \"GET\",\n     \"pfad\": \"/copilot/mcp_registry\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-api\",\n   \"host\": \"api.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-plan\",\n   \"host\": \"api.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-telemetrie\",\n   \"host\": \"telemetry.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  },\n  {\n   \"name\": \"copilot-exp\",\n   \"host\": \"exp.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/api/v1/assignments\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "funde": 0,
+    "user_repos": "abgelehnt",
+    "fundorte": [],
+    "test": "gruen"
+   }
+  },
+  {
+   "name": "gegenprobe_ohne_einschluss",
+   "beschreibung": "Gegenprobe: Marke direkt in der Umgebung der CLI (wie Messung v1)",
+   "zuordnung": "Gegenprobe",
+   "aufbau": {
+    "umgebung": {
+     "COPILOT_GITHUB_TOKEN": "wb-marke-echtes-token-7d1c0e",
+     "HTTPS_PROXY": "http://127.0.0.1:8402",
+     "COPILOT_AUTO_UPDATE": "false",
+     "COPILOT_MASCOT_BLINK": "0",
+     "HOME": "/srv/agent"
+    },
+    "dateien": {
+     "/srv/agent/.copilot/settings.json": "{\"storeTokenPlaintext\":false}",
+     "/etc/ssl/certs/ca-certificates.crt": "<System-Bundle des Rechners>\n<Zertifikat der Wegwerf-CA>"
+    },
+    "dbus_wirt": false,
+    "gh_angemeldet": false,
+    "speicher_lesbar": false,
+    "zielliste": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"github-api\",\n   \"host\": \"api.github.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"GET\",\n     \"pfad\": \"/copilot_internal/*\"\n    },\n    {\n     \"methode\": \"GET\",\n     \"pfad\": \"/copilot/mcp_registry\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-api\",\n   \"host\": \"api.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-plan\",\n   \"host\": \"api.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-telemetrie\",\n   \"host\": \"telemetry.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  },\n  {\n   \"name\": \"copilot-exp\",\n   \"host\": \"exp.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/api/v1/assignments\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "funde": 1,
+    "fundorte": [
+     "umgebung:COPILOT_GITHUB_TOKEN"
+    ],
+    "test": "rot"
+   }
+  },
+  {
+   "name": "mutant_1_umgebung",
+   "beschreibung": "Mutant 1: das echte Token in der Umgebung des Einschlusses",
+   "zuordnung": "Einbindung",
+   "aufbau": {
+    "umgebung": {
+     "COPILOT_GITHUB_TOKEN": "wb-platzhalter-0000",
+     "HTTPS_PROXY": "http://127.0.0.1:8402",
+     "COPILOT_AUTO_UPDATE": "false",
+     "COPILOT_MASCOT_BLINK": "0",
+     "HOME": "/srv/agent",
+     "GH_TOKEN": "wb-marke-echtes-token-7d1c0e"
+    },
+    "dateien": {
+     "/srv/agent/.copilot/settings.json": "{\"storeTokenPlaintext\":false}",
+     "/etc/ssl/certs/ca-certificates.crt": "<System-Bundle des Rechners>\n<Zertifikat der Wegwerf-CA>"
+    },
+    "dbus_wirt": false,
+    "gh_angemeldet": false,
+    "speicher_lesbar": false,
+    "zielliste": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"github-api\",\n   \"host\": \"api.github.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"GET\",\n     \"pfad\": \"/copilot_internal/*\"\n    },\n    {\n     \"methode\": \"GET\",\n     \"pfad\": \"/copilot/mcp_registry\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-api\",\n   \"host\": \"api.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-plan\",\n   \"host\": \"api.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-telemetrie\",\n   \"host\": \"telemetry.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  },\n  {\n   \"name\": \"copilot-exp\",\n   \"host\": \"exp.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/api/v1/assignments\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "funde": 1,
+    "fundorte": [
+     "umgebung:GH_TOKEN"
+    ],
+    "test": "rot"
+   }
+  },
+  {
+   "name": "mutant_2_config",
+   "beschreibung": "Mutant 2: config.json mit der Marke eingebunden",
+   "zuordnung": "Einbindung",
+   "aufbau": {
+    "umgebung": {
+     "COPILOT_GITHUB_TOKEN": "wb-platzhalter-0000",
+     "HTTPS_PROXY": "http://127.0.0.1:8402",
+     "COPILOT_AUTO_UPDATE": "false",
+     "COPILOT_MASCOT_BLINK": "0",
+     "HOME": "/srv/agent"
+    },
+    "dateien": {
+     "/srv/agent/.copilot/settings.json": "{\"storeTokenPlaintext\":false}",
+     "/etc/ssl/certs/ca-certificates.crt": "<System-Bundle des Rechners>\n<Zertifikat der Wegwerf-CA>",
+     "/srv/agent/.copilot/config.json": "{\"copilot_tokens\":{\"github.com\":\"wb-marke-echtes-token-7d1c0e\"}}"
+    },
+    "dbus_wirt": false,
+    "gh_angemeldet": false,
+    "speicher_lesbar": false,
+    "zielliste": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"github-api\",\n   \"host\": \"api.github.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"GET\",\n     \"pfad\": \"/copilot_internal/*\"\n    },\n    {\n     \"methode\": \"GET\",\n     \"pfad\": \"/copilot/mcp_registry\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-api\",\n   \"host\": \"api.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-plan\",\n   \"host\": \"api.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-telemetrie\",\n   \"host\": \"telemetry.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  },\n  {\n   \"name\": \"copilot-exp\",\n   \"host\": \"exp.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/api/v1/assignments\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "funde": 1,
+    "fundorte": [
+     "datei:/srv/agent/.copilot/config.json"
+    ],
+    "test": "rot"
+   }
+  },
+  {
+   "name": "mutant_3_dbus",
+   "beschreibung": "Mutant 3: D-Bus-Socket des Wirts eingebunden (secret-tool lookup service copilot-cli)",
+   "zuordnung": "Einbindung",
+   "aufbau": {
+    "umgebung": {
+     "COPILOT_GITHUB_TOKEN": "wb-platzhalter-0000",
+     "HTTPS_PROXY": "http://127.0.0.1:8402",
+     "COPILOT_AUTO_UPDATE": "false",
+     "COPILOT_MASCOT_BLINK": "0",
+     "HOME": "/srv/agent"
+    },
+    "dateien": {
+     "/srv/agent/.copilot/settings.json": "{\"storeTokenPlaintext\":false}",
+     "/etc/ssl/certs/ca-certificates.crt": "<System-Bundle des Rechners>\n<Zertifikat der Wegwerf-CA>"
+    },
+    "dbus_wirt": true,
+    "gh_angemeldet": false,
+    "speicher_lesbar": false,
+    "zielliste": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"github-api\",\n   \"host\": \"api.github.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"GET\",\n     \"pfad\": \"/copilot_internal/*\"\n    },\n    {\n     \"methode\": \"GET\",\n     \"pfad\": \"/copilot/mcp_registry\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-api\",\n   \"host\": \"api.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-plan\",\n   \"host\": \"api.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-telemetrie\",\n   \"host\": \"telemetry.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  },\n  {\n   \"name\": \"copilot-exp\",\n   \"host\": \"exp.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/api/v1/assignments\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "funde": 1,
+    "fundorte": [
+     "secret-tool"
+    ],
+    "test": "rot"
+   }
+  },
+  {
+   "name": "mutant_4_gh",
+   "beschreibung": "Mutant 4: gh mit Anmeldung erreichbar (gh auth token)",
+   "zuordnung": "Einbindung",
+   "aufbau": {
+    "umgebung": {
+     "COPILOT_GITHUB_TOKEN": "wb-platzhalter-0000",
+     "HTTPS_PROXY": "http://127.0.0.1:8402",
+     "COPILOT_AUTO_UPDATE": "false",
+     "COPILOT_MASCOT_BLINK": "0",
+     "HOME": "/srv/agent"
+    },
+    "dateien": {
+     "/srv/agent/.copilot/settings.json": "{\"storeTokenPlaintext\":false}",
+     "/etc/ssl/certs/ca-certificates.crt": "<System-Bundle des Rechners>\n<Zertifikat der Wegwerf-CA>"
+    },
+    "dbus_wirt": false,
+    "gh_angemeldet": true,
+    "speicher_lesbar": false,
+    "zielliste": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"github-api\",\n   \"host\": \"api.github.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"GET\",\n     \"pfad\": \"/copilot_internal/*\"\n    },\n    {\n     \"methode\": \"GET\",\n     \"pfad\": \"/copilot/mcp_registry\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-api\",\n   \"host\": \"api.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-plan\",\n   \"host\": \"api.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-telemetrie\",\n   \"host\": \"telemetry.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  },\n  {\n   \"name\": \"copilot-exp\",\n   \"host\": \"exp.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/api/v1/assignments\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "funde": 1,
+    "fundorte": [
+     "gh auth token"
+    ],
+    "test": "rot"
+   }
+  },
+  {
+   "name": "mutant_5_pfadliste",
+   "beschreibung": "Mutant 5: Pfadliste fuer api.github.com fehlt (eine Regel * /*)",
+   "zuordnung": "Weiterreicher",
+   "aufbau": {
+    "umgebung": {
+     "COPILOT_GITHUB_TOKEN": "wb-platzhalter-0000",
+     "HTTPS_PROXY": "http://127.0.0.1:8402",
+     "COPILOT_AUTO_UPDATE": "false",
+     "COPILOT_MASCOT_BLINK": "0",
+     "HOME": "/srv/agent"
+    },
+    "dateien": {
+     "/srv/agent/.copilot/settings.json": "{\"storeTokenPlaintext\":false}",
+     "/etc/ssl/certs/ca-certificates.crt": "<System-Bundle des Rechners>\n<Zertifikat der Wegwerf-CA>"
+    },
+    "dbus_wirt": false,
+    "gh_angemeldet": false,
+    "speicher_lesbar": false,
+    "zielliste": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"github-api\",\n   \"host\": \"api.github.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-api\",\n   \"host\": \"api.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-plan\",\n   \"host\": \"api.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"copilot-telemetrie\",\n   \"host\": \"telemetry.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  },\n  {\n   \"name\": \"copilot-exp\",\n   \"host\": \"exp.individual.githubcopilot.com\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/api/v1/assignments\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "funde": 0,
+    "user_repos": "gelingt",
+    "fundorte": [],
+    "test": "rot"
+   }
+  }
+ ]
+}

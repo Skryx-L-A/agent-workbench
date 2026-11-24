@@ -1,0 +1,10 @@
+{
+ "exit": 12,
+ "code": "anmelden.kein_token",
+ "stdout": "To authenticate, visit https://github.com/login/device and enter code ABCD-1234\nWaiting for authorization...\n",
+ "stderr": "werkbank-anmelden: anmelden.kein_token: Die Anmeldung hat kein Token geliefert.\n",
+ "ziel_datei": "nicht-angelegt",
+ "login_gestartet": true,
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

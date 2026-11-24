@@ -1,0 +1,7 @@
+{
+ "erwartet": "EPERM; curl meldet einen Fehler",
+ "messwerte": [
+  "errno",
+  "Exitcode von curl"
+ ]
+}

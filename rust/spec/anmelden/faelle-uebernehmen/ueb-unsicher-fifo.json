@@ -1,0 +1,18 @@
+{
+ "beschreibung": "config.json ist keine reguläre Datei (FIFO); kein Hängen",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "fifo",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

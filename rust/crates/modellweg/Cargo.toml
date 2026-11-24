@@ -1,0 +1,47 @@
+[package]
+name = "modellweg"
+version = "0.1.0"
+description = "Model path of the local route (contract 8): a forwarder outside the enclosure that lets one path and one model through, inserts the key from a file and hands the answer back unchanged."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "modellweg"
+path = "src/main.rs"
+
+# formate (workspace): the line `modellweg.aufruf` goes through its general append over months (contract 5, section 5).
+# serde_json: reads the body of a request and of an answer; already in the workspace.
+# serde: the visitor that refuses a duplicate key on every level (serde_json alone keeps the last one); already in the workspace.
+# rustix: PR_SET_PDEATHSIG (PR_SET_DUMPABLE now lives in `kernabbild`), getuid, umask and open with O_NOFOLLOW without `unsafe`; already in the
+#   workspace (traeger), same version, licence "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT".
+# signal-hook: SIGTERM and SIGINT without `unsafe` (delete the socket, write the lines, exit 0); already in the workspace
+#   (traeger), MIT OR Apache-2.0.
+# native-tls: TLS with the truststore of the system (OpenSSL on Linux, Security.framework on macOS), MIT OR Apache-2.0;
+#   the licences of its graph are listed in the commit that adds it.
+# kernabbild (path, crate of the workspace; no new package): step 1 shields the memory from core images (`PR_SET_DUMPABLE` 0 under Linux,
+#   `RLIMIT_CORE` 1/1), fail closed with exit 5 (`mw.kernabbild`).
+[dependencies]
+formate = { path = "../formate" }
+kernabbild = { path = "../kernabbild" }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+serde = { version = "1", default-features = false, features = ["std"] }
+rustix = { version = "1", features = ["fs", "process", "std"] }
+signal-hook = "0.4"
+native-tls = "0.2"
+
+# openssl 0.10 (Apache-2.0, already below native-tls on Linux): mode 2 needs a TLS server with an SNI callback and leaf
+# certificates signed by the throw-away CA (section 17 of contract 8); native-tls covers neither. Linux only, where
+# OpenSSL 3 is the system library; mode 2 is therefore built only on Linux. Measured with cargo-deny on 20.11.2026:
+# no licence outside the list.
+[target.'cfg(target_os = "linux")'.dependencies]
+openssl = "0.10"
+
+[dev-dependencies]
+rustix = { version = "1", features = ["fs", "process", "std"] }
+
+[lints]
+workspace = true

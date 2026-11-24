@@ -1,0 +1,265 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitt 13.4.",
+ "zeilen": [
+  {
+   "name": "erlaubt",
+   "beschreibung": "erlaubte Anfrage, Kopf ersetzt",
+   "aufruf": {
+    "zeit_ms": 1795190400000,
+    "betriebsart": "kopf-einsetzen",
+    "route": "cloud-beispiel",
+    "sitzung": "s-1",
+    "ziel": "github-api",
+    "methode": "GET",
+    "pfadregel": "/copilot_internal/*",
+    "kopf": "ersetzt",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"kopf\":\"ersetzt\",\"methode\":\"GET\",\"pfadregel\":\"/copilot_internal/*\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"github-api\"}",
+    "sha256": "eb0783d3c0bfbb062e0c48f7616a195e38941dd38de19472231512f1ec415636"
+   }
+  },
+  {
+   "name": "ungebunden",
+   "beschreibung": "Telemetrie ohne Anmeldung",
+   "aufruf": {
+    "zeit_ms": 1795190400000,
+    "betriebsart": "kopf-einsetzen",
+    "route": "cloud-beispiel",
+    "sitzung": "s-1",
+    "ziel": "copilot-telemetrie",
+    "methode": "POST",
+    "pfadregel": "/telemetry",
+    "kopf": "keiner",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"kopf\":\"keiner\",\"methode\":\"POST\",\"pfadregel\":\"/telemetry\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"copilot-telemetrie\"}",
+    "sha256": "31db753e87b8f8c5a7686fa8bc99b64f950de521a353ef405ff281a931e97138"
+   }
+  },
+  {
+   "name": "abgewiesen",
+   "beschreibung": "Verstoss: Anmeldung an ungebundenes Ziel, unterscheidbar an kopf und grund",
+   "aufruf": {
+    "zeit_ms": 1795190400000,
+    "betriebsart": "kopf-einsetzen",
+    "route": "cloud-beispiel",
+    "sitzung": "s-1",
+    "ziel": "copilot-telemetrie",
+    "methode": "POST",
+    "pfadregel": "/telemetry",
+    "kopf": "abgewiesen",
+    "ergebnis": "abgelehnt",
+    "grund": "mw.anmeldung_an_ungebundenes_ziel",
+    "status": 403
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.anmeldung_an_ungebundenes_ziel\",\"kopf\":\"abgewiesen\",\"methode\":\"POST\",\"pfadregel\":\"/telemetry\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":403,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"copilot-telemetrie\"}",
+    "sha256": "58c8680fff817ceb7bc31043bd070b0c45be9a9f2dc09b0270216f69dd9f1ae6"
+   }
+  },
+  {
+   "name": "pfad_verboten",
+   "beschreibung": "GET /user/repos abgelehnt: pfadregel null, nie der Pfad",
+   "aufruf": {
+    "zeit_ms": 1795190400000,
+    "betriebsart": "kopf-einsetzen",
+    "route": "cloud-beispiel",
+    "sitzung": "s-1",
+    "ziel": "github-api",
+    "methode": "GET",
+    "pfadregel": null,
+    "kopf": null,
+    "ergebnis": "abgelehnt",
+    "grund": "mw.pfad_nicht_erlaubt",
+    "status": 403
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.pfad_nicht_erlaubt\",\"kopf\":null,\"methode\":\"GET\",\"pfadregel\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":403,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"github-api\"}",
+    "sha256": "0a89f874bde320b3e74ef2217ff81c1eaacd20b03c507502faa174c69cd7d8a7"
+   }
+  },
+  {
+   "name": "ziel_fremd",
+   "beschreibung": "CONNECT an ein fremdes Ziel: ziel null",
+   "aufruf": {
+    "zeit_ms": 1795190400000,
+    "betriebsart": "kopf-einsetzen",
+    "route": "cloud-beispiel",
+    "sitzung": "s-1",
+    "ziel": null,
+    "methode": null,
+    "pfadregel": null,
+    "kopf": null,
+    "ergebnis": "abgelehnt",
+    "grund": "mw.ziel_nicht_erlaubt",
+    "status": 403
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.ziel_nicht_erlaubt\",\"kopf\":null,\"methode\":null,\"pfadregel\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":403,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":null}",
+    "sha256": "62277f774347038bf39c3bf065cf2272bd03df3241e5e38e76416d8870e88680"
+   }
+  },
+  {
+   "name": "sni",
+   "beschreibung": "TLS-Abbruch: status null",
+   "aufruf": {
+    "zeit_ms": 1795190400000,
+    "betriebsart": "kopf-einsetzen",
+    "route": "cloud-beispiel",
+    "sitzung": "s-1",
+    "ziel": "github-api",
+    "methode": null,
+    "pfadregel": null,
+    "kopf": null,
+    "ergebnis": "abgelehnt",
+    "grund": "mw.sni_falsch",
+    "status": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.sni_falsch\",\"kopf\":null,\"methode\":null,\"pfadregel\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"github-api\"}",
+    "sha256": "a5f8f7f7e2b9ef6fa63e65282ab4337388f459812c11952d12cd707c903a74bb"
+   }
+  },
+  {
+   "name": "leck",
+   "beschreibung": "Leck gesperrt",
+   "aufruf": {
+    "zeit_ms": 1795190400000,
+    "betriebsart": "kopf-einsetzen",
+    "route": "cloud-beispiel",
+    "sitzung": "s-1",
+    "ziel": "github-api",
+    "methode": "GET",
+    "pfadregel": "/copilot_internal/*",
+    "kopf": "ersetzt",
+    "ergebnis": "leck_gesperrt",
+    "grund": "mw.leck_gesperrt",
+    "status": 502
+   },
+   "vorher": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"leck_gesperrt\",\"fassung\":2,\"grund\":\"mw.leck_gesperrt\",\"kopf\":\"ersetzt\",\"methode\":\"GET\",\"pfadregel\":\"/copilot_internal/*\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":502,\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"github-api\"}",
+    "sha256": "71cef18efd614c6c81b0dcf6ec17039d0723ff229824be95c8e04bfde5ac12ae"
+   }
+  },
+  {
+   "name": "betriebsart_falsch",
+   "beschreibung": "Betriebsart openai-lokal mit der Form der Betriebsart 2",
+   "aufruf": {
+    "zeit_ms": 1795190400000,
+    "betriebsart": "openai-lokal",
+    "route": "cloud-beispiel",
+    "sitzung": "s-1",
+    "ziel": "github-api",
+    "methode": "GET",
+    "pfadregel": "/copilot_internal/*",
+    "kopf": "ersetzt",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:betriebsart"
+   }
+  },
+  {
+   "name": "methode_text",
+   "beschreibung": "Methode ausserhalb der Liste",
+   "aufruf": {
+    "zeit_ms": 1795190400000,
+    "betriebsart": "kopf-einsetzen",
+    "route": "cloud-beispiel",
+    "sitzung": "s-1",
+    "ziel": "github-api",
+    "methode": "PROPFIND",
+    "pfadregel": "/copilot_internal/*",
+    "kopf": "ersetzt",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:methode"
+   }
+  },
+  {
+   "name": "pfadregel_pfad",
+   "beschreibung": "ein echter Pfad mit Abfrage statt einer Regel",
+   "aufruf": {
+    "zeit_ms": 1795190400000,
+    "betriebsart": "kopf-einsetzen",
+    "route": "cloud-beispiel",
+    "sitzung": "s-1",
+    "ziel": "github-api",
+    "methode": "GET",
+    "pfadregel": "/user/repos?per_page=100",
+    "kopf": "ersetzt",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:pfadregel"
+   }
+  },
+  {
+   "name": "kopf_weiter_abgewiesen",
+   "beschreibung": "weitergereicht mit kopf abgewiesen",
+   "aufruf": {
+    "zeit_ms": 1795190400000,
+    "betriebsart": "kopf-einsetzen",
+    "route": "cloud-beispiel",
+    "sitzung": "s-1",
+    "ziel": "github-api",
+    "methode": "GET",
+    "pfadregel": "/copilot_internal/*",
+    "kopf": "abgewiesen",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:kopf"
+   }
+  },
+  {
+   "name": "status_null_sonst",
+   "beschreibung": "status null ohne TLS-Abbruch",
+   "aufruf": {
+    "zeit_ms": 1795190400000,
+    "betriebsart": "kopf-einsetzen",
+    "route": "cloud-beispiel",
+    "sitzung": "s-1",
+    "ziel": "github-api",
+    "methode": "GET",
+    "pfadregel": "/copilot_internal/*",
+    "kopf": "ersetzt",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:status"
+   }
+  }
+ ]
+}

@@ -1,0 +1,147 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "30-quelle-garten/notiz.md",
+     "score": 1.0,
+     "title": "Notiz zur Quelle",
+     "snippet": "zebra Notiz zur Quelle, zebra dazu.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "quelle-s"
+    },
+    {
+     "rel": "30-quelle-garten/quellen/original.md",
+     "score": 0.8963397751813501,
+     "title": "Original der Quelle",
+     "snippet": "zebra Streifen Original der Quelle, zebra.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.8963397751813501,
+     "space": "quelle-s"
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "30-quelle-garten/notiz.md",
+     "score": 1.0,
+     "title": "Notiz zur Quelle",
+     "snippet": "zebra Notiz zur Quelle, zebra dazu.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "quelle-s"
+    }
+   ],
+   "id": 2
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "30-quelle-garten/notiz.md",
+     "score": 1.0,
+     "title": "Notiz zur Quelle",
+     "snippet": "zebra Notiz zur Quelle, zebra dazu.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "quelle-s"
+    },
+    {
+     "rel": "30-quelle-garten/quellen/original.md",
+     "score": 0.8963397751813501,
+     "title": "Original der Quelle",
+     "snippet": "zebra Streifen Original der Quelle, zebra.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.8963397751813501,
+     "space": "quelle-s"
+    }
+   ],
+   "id": 3
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "30-quelle-garten/notiz.md",
+     "score": 1.0,
+     "title": "Notiz zur Quelle",
+     "snippet": "zebra Notiz zur Quelle, zebra dazu.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "quelle-s"
+    }
+   ],
+   "id": 4
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "30-quelle-garten/notiz.md",
+     "score": 1.0,
+     "title": "Notiz zur Quelle",
+     "snippet": "zebra Notiz zur Quelle, zebra dazu.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "quelle-s"
+    },
+    {
+     "rel": "30-quelle-garten/quellen/original.md",
+     "score": 0.8963397751813501,
+     "title": "Original der Quelle",
+     "snippet": "zebra Streifen Original der Quelle, zebra.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.8963397751813501,
+     "space": "quelle-s"
+    }
+   ],
+   "id": 5
+  }
+ ],
+ "exit": 0
+}

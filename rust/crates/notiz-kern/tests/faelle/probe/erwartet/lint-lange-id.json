@@ -1,0 +1,23 @@
+{
+ "exit": 0,
+ "stdout": {
+  "in_scope": true,
+  "fields": {
+   "id": "nicht-ulid-sondern-ein-sehr-langer-bezeichner-mit-ueberlaenge",
+   "schema": "4",
+   "title": "Gute Notiz",
+   "type": "note",
+   "class": "knowledge",
+   "created": "2026-09-28",
+   "stand": "2026-09"
+  },
+  "blocks": 1,
+  "findings": [
+   {
+    "kind": "id-format",
+    "detail": "id 'nicht-ulid-sondern-ein-sehr-la' ist keine ULID"
+   }
+  ],
+  "new": true
+ }
+}

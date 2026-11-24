@@ -1,0 +1,151 @@
+{
+ "name": "k4-teile-senkung",
+ "regeln": [
+  "K4",
+  "K3",
+  "A33",
+  "A39"
+ ],
+ "beschreibung": "Aufteilen an, Herabstufen an: je Teil eine Klasse; der Regelteil sinkt, der Vertragsteil nicht; die Lage gilt für alle Teile.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "teile": [
+     {
+      "art": "regel",
+      "befund": {
+       "geheimnis": false,
+       "personenbezug": false,
+       "interner_name": false
+      }
+     },
+     {
+      "art": "vertrag",
+      "befund": {
+       "geheimnis": false,
+       "personenbezug": false,
+       "interner_name": false
+      }
+     }
+    ]
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "senkung_nutzer": "bestaetigung",
+    "teile": [
+     {
+      "art": "regel",
+      "befund": {
+       "geheimnis": false,
+       "personenbezug": false,
+       "interner_name": false
+      }
+     },
+     {
+      "art": "bedienwissen",
+      "befund": {
+       "geheimnis": false,
+       "personenbezug": false,
+       "interner_name": false
+      }
+     }
+    ]
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "gruppe": "g-x",
+    "teile": [
+     {
+      "art": "regel",
+      "befund": {
+       "geheimnis": false,
+       "personenbezug": false,
+       "interner_name": false
+      }
+     }
+    ]
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "teile": [
+     {
+      "art": "regel",
+      "befund": {
+       "geheimnis": false,
+       "personenbezug": false,
+       "interner_name": false
+      },
+      "kunde": "k-a"
+     },
+     {
+      "art": "regel",
+      "befund": {
+       "geheimnis": false,
+       "personenbezug": false,
+       "interner_name": false
+      }
+     }
+    ]
+   },
+   "route": "r-oeff"
+  }
+ ],
+ "tiefe": {
+  "herabstufen": {
+   "an": true
+  }
+ }
+}

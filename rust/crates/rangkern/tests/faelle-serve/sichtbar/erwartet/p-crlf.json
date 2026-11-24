@@ -1,0 +1,38 @@
+{
+ "responses": [
+  {
+   "ok": true,
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": "crlf"
+  },
+  {
+   "error": "bad_request",
+   "id": 5
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "ok": true
+  }
+ ],
+ "exit": 0
+}

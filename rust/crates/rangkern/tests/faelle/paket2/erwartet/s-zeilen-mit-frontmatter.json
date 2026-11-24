@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "snippet": "Der Regensensor meldet Niederschlag. Die Anzeige zeigt es an.",
+  "lines": [
+   9,
+   10
+  ],
+  "hook": "Die Wetterstation misst Temperatur.",
+  "hook_lines": [
+   7,
+   7
+  ]
+ }
+}

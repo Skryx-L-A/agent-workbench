@@ -1,0 +1,35 @@
+{
+ "name": "tr2_nur_geaenderte",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Eine Zeile mit neu geschriebenem gleichem Text kommt nicht; eine zurückgeänderte Zeile kommt erst, wenn sie sich zur letzten Meldung ändert; Stiländerung ist Änderung",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha\r\nbeta\r\ngamma"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1Halpha"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[2;1Hbetax"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[2;1Hbeta\u001b[K"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[3;1H\u001b[31mgamma"
+  }
+ ]
+}

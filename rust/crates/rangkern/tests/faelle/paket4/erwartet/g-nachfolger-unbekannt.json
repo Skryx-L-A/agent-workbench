@@ -1,0 +1,25 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "wasser/kanne.md",
+    "score": 0.49,
+    "title": "Kanne",
+    "snippet": "Wasserfilter Kanne wechseln, Wasserfilter Kartusche.",
+    "lines": [
+     8,
+     8
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "status": "superseded",
+    "abgeloest_durch": [
+     "gibt-es-nicht"
+    ]
+   }
+  ]
+ }
+}

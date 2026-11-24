@@ -1,0 +1,23 @@
+{
+ "beschreibung": "jede Prüfung rot: Reihenfolge Halter, Schlüsselbund, Einschluss, Einstellungen, Vault, Paketstand",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "macos",
+  "konten": 1,
+  "launchd": "gestoppt",
+  "schluesselbund": "fehlt",
+  "einschluss": "probelauf",
+  "einstellungen": {
+   "zustand": "fehlt"
+  },
+  "vault": "fehlt",
+  "paketstand": {
+   "manifest": "fehlt",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

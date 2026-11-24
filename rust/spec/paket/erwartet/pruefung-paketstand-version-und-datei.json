@@ -1,0 +1,10 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.paketstand_testbau: Das Paket ist ein Testbau.",
+  "pruef.paketstand_version: Die installierte Version weicht vom Manifest ab.",
+  "pruef.paketstand_datei_fehlt: Die Datei bin/wb.exe fehlt.",
+  "pruef.rot: 3 Befunde."
+ ]
+}

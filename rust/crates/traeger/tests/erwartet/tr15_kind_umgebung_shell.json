@@ -1,0 +1,77 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "ausgaben_nach_kindende": 0,
+   "cursor": [
+    4,
+    0,
+    true
+   ],
+   "groesse": [
+    40,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "zeilen": [
+    "LC_ALL=C.UTF-8",
+    "PATH=/usr/bin:/bin",
+    "SHELL=/bin/beta",
+    "TERM=xterm-256color",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Kindende",
+      "code": 0
+     }
+    ],
+    "ok": true
+   },
+   {
+    "ereignisse": [],
+    "ok": true,
+    "zustand": {
+     "abbild_gleich": true,
+     "ausgaben_nach_kindende": 0,
+     "cursor": [
+      4,
+      0,
+      true
+     ],
+     "groesse": [
+      40,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "zeilen": [
+      "LC_ALL=C.UTF-8",
+      "PATH=/usr/bin:/bin",
+      "SHELL=/bin/beta",
+      "TERM=xterm-256color",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

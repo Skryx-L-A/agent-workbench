@@ -1,0 +1,44 @@
+# AppArmor profile of the package (contract rust/spec/paket, part A, "Das AppArmor-Profil", form A, decision V1).
+# Only the fixed starter werkbank-einschluss carries the parent profile; werkbank-lauf has none. The child profiles have no path
+# attachment, so nobody else can reach them. No profile here is unconfined (the build stops on it: paket.profil_unconfined).
+abi <abi/4.0>,
+include <tunables/global>
+
+profile werkbank-einschluss /usr/lib/werkbank/werkbank-einschluss {
+  include <abstractions/base>
+  /usr/lib/werkbank/werkbank-einschluss mr,
+  # The three read lines below are measured (Ubuntu 26.04.1, audit DENIED; without them the starter ends with code 5 or 6):
+  # the TIOCSTI switch and the kernel release are read by the pre-check, and the sources are checked by canonicalize, metadata and read_dir.
+  /proc/sys/dev/tty/legacy_tiocsti r,
+  /proc/sys/kernel/osrelease r,
+  /{**,} r,
+  /usr/bin/bwrap Px -> werkbank-einschluss-bwrap,
+}
+
+profile werkbank-einschluss-bwrap flags=(attach_disconnected,mediate_deleted) {
+  allow capability,
+  allow file rwlkm /{**,},
+  allow network,
+  allow unix,
+  allow ptrace,
+  allow signal,
+  allow userns,
+  allow mount,
+  allow umount,
+  allow pivot_root,
+  allow pix /** -> &werkbank-einschluss-bwrap//&werkbank-einschluss-kind,
+}
+
+profile werkbank-einschluss-kind flags=(attach_disconnected,mediate_deleted) {
+  allow file rwlkm /{**,},
+  allow network,
+  allow unix,
+  allow ptrace,
+  allow signal,
+  allow userns,
+  allow mount,
+  allow umount,
+  allow pivot_root,
+  allow pix /** -> &werkbank-einschluss-kind,
+  audit deny capability,
+}

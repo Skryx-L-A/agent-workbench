@@ -1,0 +1,20 @@
+{
+ "beschreibung": "keine erlaubte Kennung",
+ "art": "vorgabe",
+ "ort": [
+  "windows",
+  "linux",
+  "mac"
+ ],
+ "konten": {},
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [],
+  "instanzen": 4
+ },
+ "client": null,
+ "aufbau": [],
+ "handlung": [
+  "Server anlegen"
+ ]
+}

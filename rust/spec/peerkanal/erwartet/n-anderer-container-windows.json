@@ -1,0 +1,11 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "fehler",
+ "code": "pk.zugriff_verweigert",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "CreateFileW im Client scheitert mit Fehler 5",
+  "kein Ereignis am Server: die Verbindung kommt nicht an"
+ ]
+}

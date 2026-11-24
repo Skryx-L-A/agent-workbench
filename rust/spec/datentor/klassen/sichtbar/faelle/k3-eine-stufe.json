@@ -1,0 +1,155 @@
+{
+ "name": "k3-eine-stufe",
+ "regeln": [
+  "K3",
+  "H0",
+  "H4",
+  "H3",
+  "H2",
+  "A40"
+ ],
+ "beschreibung": "Vier Klassen: s2 sinkt auf s1, nie auf s0; s1 auf s0; s0 bleibt; s3 bleibt; eine eigene Klasse sinkt nie weiter. Wiederholt gleich.",
+ "vorgabe": {
+  "klassen": [
+   "s0",
+   "s1",
+   "s2",
+   "s3"
+  ],
+  "routen": [
+   {
+    "schluessel": "r0",
+    "art": "lokal",
+    "klasse": "s0"
+   },
+   {
+    "schluessel": "r1",
+    "art": "lokal",
+    "klasse": "s1"
+   },
+   {
+    "schluessel": "r2",
+    "art": "lokal",
+    "klasse": "s2"
+   },
+   {
+    "schluessel": "r3",
+    "art": "lokal",
+    "klasse": "s3"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r3"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "s2",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r1"
+  },
+  {
+   "einheit": {
+    "geerbt": "s2",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r0"
+  },
+  {
+   "einheit": {
+    "geerbt": "s2",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r0"
+  },
+  {
+   "einheit": {
+    "geerbt": "s1",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r0"
+  },
+  {
+   "einheit": {
+    "geerbt": "s0",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r0"
+  },
+  {
+   "einheit": {
+    "geerbt": "s3",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r2"
+  },
+  {
+   "einheit": {
+    "geerbt": "s2",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "klasse": "s1"
+   },
+   "route": "r0"
+  },
+  {
+   "einheit": {
+    "geerbt": "s3",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "klasse": "s2"
+   },
+   "route": "r1"
+  }
+ ],
+ "tiefe": {
+  "herabstufen": {
+   "an": true
+  }
+ }
+}

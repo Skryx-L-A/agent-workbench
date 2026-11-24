@@ -1,0 +1,328 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    1,
+    3,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 4,
+   "zeilen": [
+    "a漢b",
+    "漢x",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       2,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "a漢b",
+       "1": "漢"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      1,
+      2,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 1,
+     "zeilen": [
+      "a漢b",
+      "漢",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [],
+    "fehler": "groesse_ungueltig",
+    "ok": false,
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      1,
+      2,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 1,
+     "zeilen": [
+      "a漢b",
+      "漢",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [],
+    "fehler": "groesse_ungueltig",
+    "ok": false,
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "fehler": "groesse_ungueltig",
+    "ok": false,
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "fehler": "groesse_ungueltig",
+    "ok": false,
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "fehler": "groesse_ungueltig",
+    "ok": false,
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "fehler": "groesse_ungueltig",
+    "ok": false,
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      1,
+      2,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 1,
+     "zeilen": [
+      "a漢b",
+      "漢",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       1,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": "漢"
+      }
+     }
+    ],
+    "ok": true,
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      0,
+      1,
+      true
+     ],
+     "groesse": [
+      2,
+      1
+     ],
+     "ruecklauf": {
+      "erste": "a",
+      "letzte": "b",
+      "zahl": 3
+     },
+     "stand": 2,
+     "zeilen": [
+      "漢"
+     ]
+    }
+   },
+   {
+    "ereignisse": [],
+    "fehler": "groesse_ungueltig",
+    "ok": false,
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       1,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "0": "x"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      0,
+      1,
+      true
+     ],
+     "groesse": [
+      2,
+      1
+     ],
+     "ruecklauf": {
+      "erste": "a",
+      "letzte": "漢",
+      "zahl": 4
+     },
+     "stand": 3,
+     "zeilen": [
+      "x"
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       3,
+       true
+      ],
+      "stand": 4,
+      "zeilen": {
+       "0": "a漢b",
+       "1": "漢x"
+      }
+     }
+    ],
+    "ok": true,
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      1,
+      3,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 4,
+     "zeilen": [
+      "a漢b",
+      "漢x",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

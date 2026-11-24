@@ -1,0 +1,70 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse",
+    "protokoll": null
+   }
+  ]
+ }
+}

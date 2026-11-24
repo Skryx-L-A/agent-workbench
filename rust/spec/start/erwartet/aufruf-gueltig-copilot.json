@@ -1,0 +1,70 @@
+{
+ "exec": "copilot",
+ "harness_argv": [
+  "copilot",
+  "--model",
+  "claude-sonnet-5.5",
+  "--disable-builtin-mcps",
+  "--additional-mcp-config",
+  "@<heim>/.copilot/wb-mcp.json"
+ ],
+ "eltern_ist_programm": true,
+ "stderr": "",
+ "suche_gestartet": true,
+ "eigener_netzraum": true,
+ "harness_umgebung": {
+  "COPILOT_GITHUB_TOKEN": "<platzhalter>",
+  "HTTPS_PROXY": "http://127.0.0.1:8402",
+  "COPILOT_AUTO_UPDATE": "false",
+  "COPILOT_MASCOT_BLINK": "0"
+ },
+ "mcp_datei": "<heim>/.copilot/wb-mcp.json",
+ "mcp_server": [
+  "wissenssuche"
+ ],
+ "modellweg_argv": [
+  "<modellweg>",
+  "--betriebsart",
+  "kopf-einsetzen",
+  "--socket",
+  "<socket>",
+  "--socket-rechte",
+  "0600",
+  "--sitzung",
+  "s-3",
+  "--route",
+  "cloud-beispiel",
+  "--protokoll",
+  "<protokoll>",
+  "<optionen von kopf-einsetzen nach Vertrag 8>"
+ ],
+ "modellweg_gast": "127.0.0.1:8402",
+ "ca": {
+  "zertifikat_im_bundle_des_einschlusses": true,
+  "bundle_des_wirts_unveraendert": true,
+  "schluessel_im_einschluss": false,
+  "SSL_CERT_FILE": null,
+  "NODE_EXTRA_CA_CERTS": null
+ },
+ "im_einschluss_nicht": [
+  "gh",
+  "dbus_des_wirts",
+  "copilot_config_mit_schluessel"
+ ],
+ "e5_agent": {
+  "connect_api.cloud.example:443": "gelingt, TLS endet am Modellweg",
+  "get_/copilot_internal/user": "gelingt, Kopf getauscht",
+  "get_/user/repos": "403 mit Protokollzeile",
+  "connect_api.cloud.example:80": "scheitert",
+  "connect_anderer_name:443": "scheitert",
+  "connect_ip_literal": "scheitert",
+  "rechner_loopback_bruecke": "scheitert",
+  "gast_11434": "scheitert",
+  "direkt_ohne_modellweg": "scheitert"
+ },
+ "ohne_marker_nicht_in_argv": [
+  "--probelauf",
+  "--marker",
+  "--marker-zaehlung"
+ ]
+}

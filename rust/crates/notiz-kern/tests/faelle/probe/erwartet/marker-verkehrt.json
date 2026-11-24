@@ -1,0 +1,8 @@
+{
+ "exit": 0,
+ "stdout": {
+  "state": "malformed",
+  "block": null,
+  "stripped": "Vor\n<!-- dream:block:end -->\nMitte\n<!-- dream:block:start -->\nNach\n"
+ }
+}

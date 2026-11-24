@@ -1,0 +1,7 @@
+{
+ "erwartet": "jede Antwort wie in erwartet/helfer-*; SETZE C: ABGELEHNT ohne_sperre; Ausnahmeliste nach jedem Fehlversuch gleich",
+ "messwerte": [
+  "Antwort je Zeile",
+  "Ausnahmeliste vorher und nachher"
+ ]
+}

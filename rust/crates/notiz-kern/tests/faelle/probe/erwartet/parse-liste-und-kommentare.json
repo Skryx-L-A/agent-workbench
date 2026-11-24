@@ -1,0 +1,32 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Z        # ein Kommentar\naliases:\n  - alpha\n  - beta\nreview-after: 2026-01   # ttl\nfarbe: rot # kein Kommentar"
+  ],
+  "fields": {
+   "title": "Z",
+   "aliases": [
+    "alpha",
+    "beta"
+   ],
+   "review-after": "2026-01",
+   "farbe": "rot # kein Kommentar"
+  },
+  "body": "\nRumpf\n",
+  "title": "Z",
+  "type": "note",
+  "aliases": [
+   "alpha",
+   "beta"
+  ],
+  "links": [],
+  "keys": [
+   "alpha",
+   "beta",
+   "note",
+   "z"
+  ],
+  "embed_text": "Z\naliases: alpha, beta\n\n\nRumpf\n"
+ }
+}

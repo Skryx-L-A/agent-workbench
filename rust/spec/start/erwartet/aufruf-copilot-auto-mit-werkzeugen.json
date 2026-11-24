@@ -1,0 +1,17 @@
+{
+ "exec": "copilot",
+ "harness_argv": [
+  "copilot",
+  "--model",
+  "auto",
+  "--auto-tier",
+  "efficiency",
+  "--disable-builtin-mcps",
+  "--additional-mcp-config",
+  "@<heim>/.copilot/wb-mcp.json",
+  "--allow-tool",
+  "shell"
+ ],
+ "eltern_ist_programm": true,
+ "suche_gestartet": true
+}

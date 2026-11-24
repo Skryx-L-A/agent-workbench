@@ -1,0 +1,24 @@
+[package]
+name = "datentor"
+version = "0.1.0"
+description = "The data gate of the walking skeleton: darf(unit, route, customer) decides whether a piece of knowledge may go to a route."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "datentor"
+path = "src/main.rs"
+
+# serde_json: only the program reads JSON (the case runner of the contract). serde (no derive): the program's reader refuses a
+# duplicate key in any object with a visitor of its own (`src/ohne_doppel.rs`). It adds no crate: both are already in the graph.
+# The library has no input, no output, no clock, no randomness, no serde and no JSON.
+[dependencies]
+serde = "1"
+serde_json = "1"
+
+[lints]
+workspace = true

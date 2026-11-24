@@ -1,0 +1,8 @@
+{
+ "beschreibung": "Löschen ist wiederholbar, auch ohne Sublayer",
+ "form": "steuer",
+ "text": "{\"op\": \"projekt_loeschen\", \"ordner\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\"}\n",
+ "lage": {
+  "projekt": "geloescht"
+ }
+}

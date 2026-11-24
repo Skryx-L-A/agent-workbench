@@ -1,0 +1,13 @@
+{
+ "exit": 0,
+ "stdout": {
+  "linking": [
+   "10-global/90-secret/ok2.md",
+   "10-global/ok.md"
+  ],
+  "search": [
+   "10-global/90-secret/ok2.md",
+   "10-global/ok.md"
+  ]
+ }
+}

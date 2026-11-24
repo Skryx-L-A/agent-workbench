@@ -1,0 +1,12 @@
+{
+ "description": "dot and empty segments, NFD stems, spaces",
+ "args": [
+  "paths",
+  "./10-global/a.md",
+  "10-global//b.md",
+  "10-global/./c.md",
+  "10-global/Äpfel.md",
+  "20-projects/mein projekt/Notiz mit Leerzeichen.md",
+  "10-global/ÄRGER.md"
+ ]
+}

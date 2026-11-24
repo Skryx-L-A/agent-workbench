@@ -1,0 +1,137 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "zone-durch-regel-gesperrt",
+    "klasse": "intern",
+    "meldung": "Zone der Route r-conf ist durch eine Regel gesperrt",
+    "protokoll": {
+     "zone": "conf",
+     "grund": "local reicht fuer die Aufgabe nicht",
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-durch-regel-gesperrt",
+    "klasse": null,
+    "meldung": "Zone der Route r-conf ist durch eine Regel gesperrt",
+    "protokoll": {
+     "zone": "conf",
+     "grund": "local reicht fuer die Aufgabe nicht",
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "conf",
+     "grund": "local reicht fuer die Aufgabe nicht",
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-zone",
+    "klasse": "oeffentlich",
+    "meldung": "Klasse der Einheit liegt über der Zone der Route r-public",
+    "protokoll": {
+     "zone": "public",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": null,
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "public",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "oeffentlich",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "public",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-zone",
+    "klasse": "intern",
+    "meldung": "Klasse der Einheit liegt über der Zone der Route r-local",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-durch-regel-gesperrt",
+    "klasse": null,
+    "meldung": "Zone der Route r-unsafe ist durch eine Regel gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": {
+      "zone": "unsafe",
+      "nutzer": [
+       "n-a"
+      ],
+      "gruppen": [],
+      "gesetzt_von": "admin-1",
+      "zweck": "Evaluierung Modell X",
+      "bis": 1800000000
+     }
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": null,
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   }
+  ]
+ }
+}

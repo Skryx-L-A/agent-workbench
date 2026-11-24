@@ -1,0 +1,18 @@
+{
+ "beschreibung": "der Schlüsselbund hat einen Eintrag: Schlüsseldatei steht, config.json ist ohne Token, Code",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "gefunden",
+ "reste": "keine",
+ "probe": null
+}

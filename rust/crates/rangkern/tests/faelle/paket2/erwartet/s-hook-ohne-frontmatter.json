@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "snippet": "Nur ein Satz ohne Kopf.",
+  "lines": [
+   1,
+   1
+  ],
+  "hook": "Nur ein Satz ohne Kopf.",
+  "hook_lines": [
+   1,
+   1
+  ]
+ }
+}

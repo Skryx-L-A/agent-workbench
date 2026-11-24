@@ -1,0 +1,12 @@
+{
+ "description": "Datei ohne Kopf",
+ "program": "rangkern",
+ "files": {
+  "note.md": "Nur ein Satz ohne Kopf.\nZweiter Satz.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "xyzzy"
+ ]
+}

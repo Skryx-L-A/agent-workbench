@@ -1,0 +1,27 @@
+{
+ "responses": [
+  {
+   "ok": true,
+   "id": 1
+  },
+  {
+   "error": "bad_request",
+   "id": 5
+  },
+  {
+   "error": "unreadable",
+   "id": "a"
+  },
+  {
+   "error": "unreadable",
+   "id": 7
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "ok": true
+  }
+ ],
+ "exit": 0
+}

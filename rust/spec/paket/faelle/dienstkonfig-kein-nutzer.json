@@ -1,0 +1,6 @@
+{
+ "beschreibung": "kein Nutzer (kein sudo): keine Datei",
+ "form": "dienstkonfig",
+ "nutzer": null,
+ "uid": 1000
+}

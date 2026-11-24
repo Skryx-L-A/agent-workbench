@@ -1,0 +1,152 @@
+{
+ "beschreibung": "Umlaute und ß der deutschen Belegung gehen je als ein Text hinaus.",
+ "datensatz": "A",
+ "name": "se1_umlaute",
+ "regeln": [
+  "SE1"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Quote",
+   "key": "ä",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "Semicolon",
+   "key": "ö",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "BracketLeft",
+   "key": "ü",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "Minus",
+   "key": "ß",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "Quote",
+   "key": "Ä",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "Semicolon",
+   "key": "Ö",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "BracketLeft",
+   "key": "Ü",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "ä"
+    },
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "ö"
+    },
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "ü"
+    },
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "ß"
+    },
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "Ä"
+    },
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "Ö"
+    },
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "Ü"
+    }
+   ]
+  }
+ ]
+}

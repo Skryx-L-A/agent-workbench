@@ -1,0 +1,84 @@
+[package]
+name = "lauf"
+version = "0.1.0"
+description = "The program \"Lauf starten\" (contract 1): checks the start file, marks the working folder, starts the search process and the model path outside the enclosure and replaces itself by the enclosure."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "werkbank-lauf"
+path = "src/main.rs"
+
+# The command of the human: shows, releases or lowers the mark of a working folder (contract 1, "Ordnermarke"). It
+# shares the mark logic with `werkbank-lauf` and writes one line per change into the log chain (formate).
+[[bin]]
+name = "werkbank-ordnermarke"
+path = "src/bin/ordnermarke.rs"
+
+# The trampoline of the children: sets PR_SET_PDEATHSIG, compares getppid, calls setsid and replaces itself by the
+# search process or the model path. A program of its own because the workspace forbids `unsafe` (no `pre_exec`).
+[[bin]]
+name = "werkbank-lauf-kind"
+path = "src/bin/kind.rs"
+
+# The stand-in of the tests (search process, model path, harness probe). Test build only.
+[[bin]]
+name = "lauf-attrappe"
+path = "src/bin/attrappe.rs"
+required-features = ["pruefbau"]
+
+[features]
+# Test and development build only, never in the delivered build (the package builds without it): the own
+# configuration is read next to the program instead of /etc/werkbank/lauf.json, and the enclosure is started by
+# calling bwrap directly instead of the starter (the configuration may name the bwrap). The default build has neither.
+pruefbau = []
+
+# start, einstellungen, einschluss: the workspace crates of contracts 1 and 2 and the enclosure.
+# rustix: open with O_NOFOLLOW, fstat, flock, pipe, dup2, poll, getppid, setsid, kill and PR_SET_PDEATHSIG without
+#   `unsafe`; already in the workspace (modellweg, rangkern), same version 1.1.6.
+[dependencies]
+start = { path = "../start" }
+einstellungen = { path = "../einstellungen" }
+einschluss = { path = "../einschluss" }
+# formate: the line `ordnermarke.geloest` / `ordnermarke.gesenkt` of the command `werkbank-ordnermarke` (contract 5, section 6.4).
+formate = { path = "../formate" }
+rustix = { version = "1", features = ["fs", "process", "pipe", "event", "std", "stdio"] }
+# signal-hook 0.4.6 (safe API only): the parent of the starter takes SIGHUP, SIGTERM, SIGINT and SIGQUIT, passes the
+#   first two on and ends by the signal of the starter (contract 1, "Lebensdauer"). `std` has no signal handler and
+#   `unsafe` is forbidden. Already in Cargo.lock as a direct dependency of dienst, same version.
+signal-hook = "=0.4.6"
+
+# openssl 0.10 (Apache-2.0): the throw-away CA of a cloud session with name constraints (contract 1, contract 8
+# section 12). Already in the graph on Linux below modellweg and native-tls, so no new dependency; the CA exists on
+# Linux only, like mode 2 of the model path.
+[target.'cfg(target_os = "linux")'.dependencies]
+openssl = "0.10"
+# nix 0.28 (MIT, safe API only): the trampoline sets close-on-exec on descriptor 4 and writes one line there, a number
+#   it got from its parent (contract 1, "Meldung an den Dienst"); `rustix` and `std` take only descriptors they own and
+#   the workspace forbids `unsafe`. Already in Cargo.lock below portable-pty, same version 0.28.0.
+nix = { version = "0.28", default-features = false, features = ["fs", "socket"] }
+
+# serde_json reads the cases of contract 1 in the tests; modellweg checks the throw-away CA and the target list with
+# its own start checks (both workspace crates, already in the graph).
+[dev-dependencies]
+serde_json = "1"
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+modellweg = { path = "../modellweg" }
+# dienst (path, crate of the workspace; no new package): the cross test of B24 (`tests/kreuz.rs`) runs the real core service in a
+#   thread and lets it start the real `werkbank-lauf` with `--meldung`. `dienst` does not depend on `lauf`, so there is no cycle.
+dienst = { path = "../dienst" }
+
+# The cross test has no test harness: the same program is the cover `wb-dienst --exec` of the service (a test of this package has
+# no `wb-dienst` of the same build) and runs the cases otherwise.
+[[test]]
+name = "kreuz"
+path = "tests/kreuz.rs"
+harness = false
+
+[lints]
+workspace = true

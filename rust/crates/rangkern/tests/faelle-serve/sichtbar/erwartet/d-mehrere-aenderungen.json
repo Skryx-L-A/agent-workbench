@@ -1,0 +1,245 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    },
+    {
+     "rel": "10-global/teich.md",
+     "score": 0.296705521810272,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.296705521810272
+    },
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.296705521810272,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 3,
+     "bm25_norm": 0.296705521810272
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9992944280535204,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.9150326797385621,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9275373631038171,
+     "bm25_rang": 3,
+     "bm25_norm": 0.296705521810272,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/teich.md",
+     "score": 0.8515406162464986,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.8214244366148095,
+     "bm25_rang": 2,
+     "bm25_norm": 0.296705521810272,
+     "vektor_rang": 6
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8729957542566618,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8545078219581688,
+     "vektor_rang": 4
+    }
+   ],
+   "id": 2
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/anders-kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    },
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.8932135131614135,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.8932135131614135
+    },
+    {
+     "rel": "10-global/neu-teich.md",
+     "score": 0.26807415442585897,
+     "title": "Neu",
+     "snippet": "teich teich neue Notiz.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 3,
+     "bm25_norm": 0.26807415442585897
+    }
+   ],
+   "id": 3
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9275373631038171,
+     "bm25_rang": 2,
+     "bm25_norm": 0.8932135131614135,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/anders-kompost.md",
+     "score": 0.5151515151515151,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.48484848484848486,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8729957542566618,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.4579124579124579,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8545078219581688,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/neu-teich.md",
+     "score": 0.4579124579124579,
+     "title": "Neu",
+     "snippet": "teich teich neue Notiz.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 3,
+     "bm25_norm": 0.26807415442585897
+    }
+   ],
+   "id": 4
+  }
+ ],
+ "exit": 0
+}

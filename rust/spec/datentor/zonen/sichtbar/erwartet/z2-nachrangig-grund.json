@@ -1,0 +1,117 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "grund-fehlt",
+    "klasse": "intern",
+    "meldung": "Route r-conf braucht einen Grund für die nachrangige Zone",
+    "protokoll": {
+     "zone": "conf",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "grund-fehlt",
+    "klasse": null,
+    "meldung": "Route r-conf braucht einen Grund für die nachrangige Zone",
+    "protokoll": {
+     "zone": "conf",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "grund-fehlt",
+    "klasse": "intern",
+    "meldung": "Route r-conf braucht einen Grund für die nachrangige Zone",
+    "protokoll": {
+     "zone": "conf",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "grund-fehlt",
+    "klasse": "intern",
+    "meldung": "Route r-conf braucht einen Grund für die nachrangige Zone",
+    "protokoll": {
+     "zone": "conf",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "grund-fehlt",
+    "klasse": "intern",
+    "meldung": "Route r-conf braucht einen Grund für die nachrangige Zone",
+    "protokoll": {
+     "zone": "conf",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "conf",
+     "grund": "local reicht fuer die Aufgabe nicht",
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": null,
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "conf",
+     "grund": "local reicht fuer die Aufgabe nicht",
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "conf",
+     "grund": " x ",
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse",
+    "protokoll": {
+     "zone": "conf",
+     "grund": "local reicht fuer die Aufgabe nicht",
+     "ausnahme": null
+    }
+   }
+  ]
+ }
+}

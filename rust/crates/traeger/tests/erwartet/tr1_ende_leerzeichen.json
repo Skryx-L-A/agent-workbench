@@ -1,0 +1,89 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    5,
+    0,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 1,
+   "zeilen": [
+    "alpha",
+    "beta  \u001b[0;31m  ",
+    "\u001b[0;1mgamma   ",
+    "\u001b[0;42m   ",
+    "  delta",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       5,
+       0,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "alpha",
+       "1": "beta  \u001b[0;31m  ",
+       "2": "\u001b[0;1mgamma   ",
+       "3": "\u001b[0;42m   ",
+       "4": "  delta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      5,
+      0,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 1,
+     "zeilen": [
+      "alpha",
+      "beta  \u001b[0;31m  ",
+      "\u001b[0;1mgamma   ",
+      "\u001b[0;42m   ",
+      "  delta",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

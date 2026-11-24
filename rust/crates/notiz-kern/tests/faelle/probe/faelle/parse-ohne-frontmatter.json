@@ -1,0 +1,10 @@
+{
+ "description": "no frontmatter: title is the stem, type note",
+ "files": {
+  "einkauf.md": "Nur ein Satz ohne Kopf.\n"
+ },
+ "args": [
+  "parse",
+  "{root}/einkauf.md"
+ ]
+}

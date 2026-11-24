@@ -1,0 +1,12 @@
+{
+ "description": "path outside the scope still gets findings, in_scope false",
+ "files": {
+  "note.md": "---\ntitle: T\n---\nx\n"
+ },
+ "args": [
+  "lint",
+  "{root}/note.md",
+  "--rel",
+  "20-projects/p/MOC.md"
+ ]
+}

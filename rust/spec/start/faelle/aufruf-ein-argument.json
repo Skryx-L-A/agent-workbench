@@ -1,0 +1,49 @@
+{
+ "beschreibung": "argv ohne Pfad",
+ "form": "aufruf",
+ "lage": {
+  "argv": [
+   "<programm>"
+  ],
+  "datei_modus": "0600",
+  "datei_art": "datei",
+  "einstellungen": {
+   "fassung": 1,
+   "klassen": [
+    "oeffentlich",
+    "intern",
+    "kundendaten"
+   ],
+   "vorgabestufe": "kundendaten",
+   "routen": [
+    {
+     "schluessel": "cloud-beispiel",
+     "art": "cloud",
+     "klasse": "intern"
+    },
+    {
+     "schluessel": "lokal-beispiel",
+     "art": "lokal",
+     "klasse": "kundendaten"
+    }
+   ],
+   "kunden": [
+    {
+     "schluessel": "k-beispiel",
+     "erlaubt": [
+      "lokal-beispiel"
+     ],
+     "verboten": []
+    }
+   ],
+   "kundendaten_an_cloud": {
+    "vorgabe": "nie",
+    "freigaben": []
+   }
+  },
+  "ordner_vorhanden": true,
+  "einschluss": true,
+  "suche": "bereit",
+  "harness_vorhanden": true
+ }
+}

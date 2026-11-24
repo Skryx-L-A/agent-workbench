@@ -1,0 +1,10 @@
+{
+ "exit": 64,
+ "code": "anmelden.aufruf",
+ "stdout": "",
+ "stderr": "werkbank-anmelden: anmelden.aufruf: Aufruf: werkbank-anmelden copilot [--uebernehmen] [--neu]\n",
+ "ziel_datei": "keine",
+ "config": "unveraendert",
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

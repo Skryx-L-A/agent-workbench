@@ -1,0 +1,10 @@
+{
+ "description": "tab-indented items, quoted item, comment on item",
+ "files": {
+  "note.md": "---\naliases:\n\t- erstes\n  - 'zweites'   # Kommentar\n  -drittes\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

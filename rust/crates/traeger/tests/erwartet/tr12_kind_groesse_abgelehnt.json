@@ -1,0 +1,139 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "ausgaben_nach_kindende": 0,
+   "cursor": [
+    3,
+    0,
+    true
+   ],
+   "groesse": [
+    42,
+    11
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "zeilen": [
+    "BEREIT",
+    "",
+    "GROESSE 11 42",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [],
+    "ok": true
+   },
+   {
+    "ereignisse": [],
+    "ok": true
+   },
+   {
+    "ereignisse": [],
+    "ok": true
+   },
+   {
+    "ereignisse": [],
+    "fehler": "groesse_ungueltig",
+    "ok": false
+   },
+   {
+    "ereignisse": [],
+    "ok": true,
+    "zustand": {
+     "abbild_gleich": true,
+     "ausgaben_nach_kindende": 0,
+     "cursor": [
+      1,
+      0,
+      true
+     ],
+     "groesse": [
+      42,
+      11
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "zeilen": [
+      "BEREIT",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [],
+    "ok": true
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Kindende",
+      "code": 0
+     }
+    ],
+    "ok": true
+   },
+   {
+    "ereignisse": [],
+    "ok": true,
+    "zustand": {
+     "abbild_gleich": true,
+     "ausgaben_nach_kindende": 0,
+     "cursor": [
+      3,
+      0,
+      true
+     ],
+     "groesse": [
+      42,
+      11
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "zeilen": [
+      "BEREIT",
+      "",
+      "GROESSE 11 42",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

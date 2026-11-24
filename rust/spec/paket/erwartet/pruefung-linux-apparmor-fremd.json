@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.apparmor_fremd: Ein anderes AppArmor-Profil gilt fuer /usr/bin/bwrap.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

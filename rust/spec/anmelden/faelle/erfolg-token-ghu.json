@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Token mit Präfix ghu_",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "erfolg",
+ "token": {
+  "praefix": "ghu_",
+  "fuell": "B",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

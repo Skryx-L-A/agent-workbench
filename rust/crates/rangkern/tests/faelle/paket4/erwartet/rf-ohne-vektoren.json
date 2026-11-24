@@ -1,0 +1,35 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "garten/beet.md",
+    "score": 1.0,
+    "title": "Beet",
+    "snippet": "Beet Bewaesserung mit Tropfschlauch, Beet Bewaesserung am Morgen.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   },
+   {
+    "rel": "garten/ableitung.md",
+    "score": 0.2067305664196156,
+    "title": "Ableitung",
+    "snippet": "Beet Bewaesserung Uebersicht aus fremden Notizen.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.4134611328392312,
+    "derived": true
+   }
+  ]
+ }
+}

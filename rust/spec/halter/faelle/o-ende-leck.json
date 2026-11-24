@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Abbruch wegen Leck",
+ "form": "antwort",
+ "text": "{\"art\":\"ende\",\"code\":\"halter.leck_gesperrt\",\"fassung\":1,\"grund\":\"Antwort enthielt einen Schluessel\",\"id\":\"m-1\",\"ok\":false}"
+}

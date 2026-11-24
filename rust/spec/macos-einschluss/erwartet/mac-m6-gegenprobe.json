@@ -1,0 +1,6 @@
+{
+ "erwartet": "das Ziel der Variable antwortet; der Test wird rot",
+ "messwerte": [
+  "Antwort"
+ ]
+}

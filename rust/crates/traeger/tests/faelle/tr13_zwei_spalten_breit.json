@@ -1,0 +1,38 @@
+{
+ "name": "tr13_zwei_spalten_breit",
+ "regeln": [
+  "TR13"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Raster mit zwei Spalten (kleinste Größe): Ein Zeichen der Breite 2 füllt eine ganze Zeile, ein zweites bricht um; kein Absturz; schmale, kombinierende und Hauttonzeichen wie sonst",
+ "art": "strom",
+ "groesse": [
+  2,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "a漢b\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "漢字\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "😀\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "é👍🏽\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1H漢"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

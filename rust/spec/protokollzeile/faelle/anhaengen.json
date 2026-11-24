@@ -1,0 +1,281 @@
+{
+  "quelle": "Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
+  "faelle": [
+    {
+      "fall": "neue Datei: erste Zeile mit 64 Nullen, Rechte 0600",
+      "datei": "brain-2026-11.jsonl",
+      "anfang": null,
+      "aufrufe": [
+        {
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "route": "cloud-beispiel",
+            "sitzung": "s-0001",
+            "grund": "kundendaten-an-cloud",
+            "klasse": "kundendaten",
+            "kunde": "k-beispiel",
+            "anzahl": 1
+          },
+          "erwartet": {
+            "sha256": "ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4"
+          }
+        }
+      ],
+      "ende": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n",
+      "rechte_neu_unix": "0600"
+    },
+    {
+      "fall": "leere Datei wie neue",
+      "datei": "brain-2026-11.jsonl",
+      "anfang": "",
+      "aufrufe": [
+        {
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "route": "cloud-beispiel",
+            "sitzung": "s-0001",
+            "grund": "kundendaten-an-cloud",
+            "klasse": "kundendaten",
+            "kunde": "k-beispiel",
+            "anzahl": 1
+          },
+          "erwartet": {
+            "sha256": "ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4"
+          }
+        }
+      ],
+      "ende": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n",
+      "rechte_neu_unix": null
+    },
+    {
+      "fall": "drei Aufrufe nacheinander ergeben L1, L2, L3",
+      "datei": "brain-2026-11.jsonl",
+      "anfang": null,
+      "aufrufe": [
+        {
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "route": "cloud-beispiel",
+            "sitzung": "s-0001",
+            "grund": "kundendaten-an-cloud",
+            "klasse": "kundendaten",
+            "kunde": "k-beispiel",
+            "anzahl": 1
+          },
+          "erwartet": {
+            "sha256": "ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4"
+          }
+        },
+        {
+          "eingabe": {
+            "zeit_ms": 1795179601500,
+            "route": "cloud-beispiel",
+            "sitzung": "s-0001",
+            "grund": "klasse-ueber-route",
+            "klasse": "vertraulich",
+            "kunde": null,
+            "anzahl": 3
+          },
+          "erwartet": {
+            "sha256": "bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569"
+          }
+        },
+        {
+          "eingabe": {
+            "zeit_ms": 1795179661001,
+            "route": "cloud-beispiel",
+            "sitzung": "s-0002",
+            "grund": "einheit-ohne-klasse",
+            "klasse": null,
+            "kunde": null,
+            "anzahl": 2
+          },
+          "erwartet": {
+            "sha256": "8d5acffb7ee38d04497a8ffe5ebf3baa525e520616bcedf88d77ede8c6774c9a"
+          }
+        }
+      ],
+      "ende": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"einheit-ohne-klasse\",\"klasse\":null,\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0002\",\"vorher\":\"bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569\",\"zeit\":\"2026-11-20T13:01:01.001Z\"}\n",
+      "rechte_neu_unix": "0600"
+    },
+    {
+      "fall": "fortsetzen nach vorhandener Zeile",
+      "datei": "brain-2026-11.jsonl",
+      "anfang": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n",
+      "aufrufe": [
+        {
+          "eingabe": {
+            "zeit_ms": 1795179601500,
+            "route": "cloud-beispiel",
+            "sitzung": "s-0001",
+            "grund": "klasse-ueber-route",
+            "klasse": "vertraulich",
+            "kunde": null,
+            "anzahl": 3
+          },
+          "erwartet": {
+            "sha256": "bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569"
+          }
+        }
+      ],
+      "ende": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n",
+      "rechte_neu_unix": null
+    },
+    {
+      "fall": "letzte Zeile ohne LF: nichts geschrieben",
+      "datei": "brain-2026-11.jsonl",
+      "anfang": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+      "aufrufe": [
+        {
+          "eingabe": {
+            "zeit_ms": 1795179601500,
+            "route": "cloud-beispiel",
+            "sitzung": "s-0001",
+            "grund": "klasse-ueber-route",
+            "klasse": "vertraulich",
+            "kunde": null,
+            "anzahl": 3
+          },
+          "erwartet": {
+            "fehler": "letzte_zeile_unvollstaendig"
+          }
+        }
+      ],
+      "ende": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+      "rechte_neu_unix": null
+    },
+    {
+      "fall": "falsches Feld: nichts geschrieben, der naechste Aufruf gelingt",
+      "datei": "brain-2026-11.jsonl",
+      "anfang": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n",
+      "aufrufe": [
+        {
+          "eingabe": {
+            "zeit_ms": 1795179601500,
+            "route": "X",
+            "sitzung": "s-0001",
+            "grund": "klasse-ueber-route",
+            "klasse": "vertraulich",
+            "kunde": null,
+            "anzahl": 3
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:route"
+          }
+        },
+        {
+          "eingabe": {
+            "zeit_ms": 1795179601500,
+            "route": "cloud-beispiel",
+            "sitzung": "s-0001",
+            "grund": "klasse-ueber-route",
+            "klasse": "vertraulich",
+            "kunde": null,
+            "anzahl": 3
+          },
+          "erwartet": {
+            "sha256": "bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569"
+          }
+        }
+      ],
+      "ende": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n",
+      "rechte_neu_unix": null
+    },
+    {
+      "fall": "unlesbare letzte Zeile: der Schreiber hasht nur Rohbytes",
+      "datei": "brain-2026-11.jsonl",
+      "anfang": "kaputt\n",
+      "aufrufe": [
+        {
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "route": "cloud-beispiel",
+            "sitzung": "s-0001",
+            "grund": "kundendaten-an-cloud",
+            "klasse": "kundendaten",
+            "kunde": "k-beispiel",
+            "anzahl": 1
+          },
+          "erwartet": {
+            "sha256": "b18ebfac3cbf78825a1e201a3f876d61a84e48950a7d89dc858cbf8a4d595db4"
+          }
+        }
+      ],
+      "ende": "kaputt\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"de2278dc9494c18239292d291345b81b4fe848a3c137d64d9858ffdcf620ae98\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n",
+      "rechte_neu_unix": null
+    }
+  ],
+  "zwei_schreiber": {
+    "fall": "zwei_schreiber",
+    "beschreibung": "Zwei Schreiber mit je eigenem Datei-Handle (zwei Prozesse oder zwei Threads mit eigenem open) haengen gleichzeitig je 50 Zeilen an dieselbe neue Datei. Schreiber a nutzt sitzung s-a, Schreiber b sitzung s-b; Aufruf i (1 bis 50) hat anzahl i und zeit_ms basis + i. Die Reihenfolge der Zeilen ist offen.",
+    "datei": "brain-2026-11.jsonl",
+    "basis": {
+      "zeit_ms": 1795179600000,
+      "route": "cloud-beispiel",
+      "sitzung": "s-0001",
+      "grund": "kundendaten-an-cloud",
+      "klasse": "kundendaten",
+      "kunde": "k-beispiel",
+      "anzahl": 1
+    },
+    "je_schreiber": 50,
+    "erwartet": {
+      "pruefe": {
+        "exit": 0,
+        "zeilen": 100
+      },
+      "je_sitzung_anzahl": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50
+      ]
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+ "name": "tr10_cpr_zwei",
+ "regeln": [
+  "TR10",
+  "TR14"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Zwei Abfragen hintereinander geben zwei Antworten; zwischen anderen Geräteabfragen steht jede Antwort an der Stelle ihrer Abfrage; genau einmal je Abfrage, auch in den Formen ESC[06n, ESC[6;5n und ESC[6:1n; ESC[?6n, ESC[0;6n, ESC[n und ESC[5;6n sind keine Cursorabfrage",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[6n\u001b[6n"
+  },
+  {
+   "art": "Text",
+   "text": "beta\u001b[c\u001b[6n\u001b[5ngamma\u001b[6n\u001b[18t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[06n\u001b[6;5n\u001b[6:1n\u001b[?6n\u001b[0;6n\u001b[n\u001b[5;6n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

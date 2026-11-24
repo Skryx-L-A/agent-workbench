@@ -1,0 +1,134 @@
+{
+ "name": "k3-befund",
+ "regeln": [
+  "K3",
+  "H8",
+  "A40"
+ ],
+ "beschreibung": "Findet der Filterkern ein Geheimnis, einen Personenbezug oder einen internen Namen, bleibt die geerbte Klasse; ohne Befund ebenso.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": true,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": true,
+     "interner_name": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": true
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": true,
+     "personenbezug": true,
+     "interner_name": true
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": null
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-oeff"
+  }
+ ],
+ "tiefe": {
+  "herabstufen": {
+   "an": true
+  }
+ }
+}

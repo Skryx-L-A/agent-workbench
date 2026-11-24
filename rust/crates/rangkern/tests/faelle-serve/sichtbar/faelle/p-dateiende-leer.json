@@ -1,0 +1,12 @@
+{
+ "description": "Dateiende auf stdin ohne jede Anfrage: Exit 0, keine Ausgabe",
+ "vault": {
+  "files": {
+   "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text ueber Wolken.\n"
+  }
+ },
+ "args": [
+  "{root}/vault"
+ ],
+ "steps": []
+}

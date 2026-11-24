@@ -1,0 +1,10 @@
+{
+ "exit": 17,
+ "code": "anmelden.heim_nicht_anlegbar",
+ "stdout": "",
+ "stderr": "werkbank-anmelden: anmelden.heim_nicht_anlegbar: Das Wegwerf-Heim ist nicht anlegbar.\n",
+ "ziel_datei": "nicht-angelegt",
+ "login_gestartet": false,
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

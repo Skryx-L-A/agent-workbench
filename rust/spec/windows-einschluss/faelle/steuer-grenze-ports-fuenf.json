@@ -1,0 +1,5 @@
+{
+ "beschreibung": "fünf Ports",
+ "form": "steuer",
+ "text": "{\"op\": \"lauf_start\", \"ordner\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"sitzung\": \"s-1\", \"pid\": 4242, \"ports\": [50101, 50102, 50103, 50104, 50105]}\n"
+}

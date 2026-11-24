@@ -1,0 +1,77 @@
+{
+ "beschreibung": "NFD-Zerlegung bleibt zerlegt: die Seite normalisiert nicht.",
+ "datensatz": "A",
+ "name": "se4_nfd",
+ "regeln": [
+  "SE4"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "050104021e04010000000400010013477275cc88c39f6520617573204b6fcc886c6e0101001341cc88726765722075cc88626572204fcc886c0201000643616665cc810301000b6ecc8320756e642061cc8a"
+  },
+  {
+   "art": "Zeilen",
+   "erwartet": [
+    "Grüße aus Köln",
+    "Ärger über Öl",
+    "Café",
+    "ñ und å"
+   ]
+  }
+ ]
+}

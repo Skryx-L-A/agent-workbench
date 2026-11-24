@@ -1,0 +1,51 @@
+{
+ "name": "tr13_grenzgroesse",
+ "regeln": [
+  "TR13"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Größen 1000 mal 2, 2 mal 1000, 1000 mal 1 und 2 mal 1 (Grenzen: 2 bis 1000 Spalten, 1 bis 1000 Zeilen; Nachtrag 20.11.)",
+ "art": "strom",
+ "groesse": [
+  2,
+  1
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 1000,
+   "zeilen": 2
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 2,
+   "zeilen": 1000
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 1000,
+   "zeilen": 1
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 2,
+   "zeilen": 1
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

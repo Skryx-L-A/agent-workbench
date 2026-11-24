@@ -1,0 +1,253 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "kind_beendet": null,
+   "ordner_inhalt": [],
+   "sitzungen_inhalt": [
+    "s-1"
+   ],
+   "socket_entfernt": true,
+   "ziellisten_inhalt": [
+    "s-2.zielliste.json"
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": {
+     "cursor": [
+      1,
+      0,
+      true
+     ],
+     "groesse": [
+      120,
+      14
+     ],
+     "invers": false,
+     "nr": 3,
+     "zeilen": [
+      "BEREIT",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    },
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "gestartet": 3,
+      "kernbau": 2,
+      "kind": {
+       "s-3": {
+        "code": null,
+        "ende": false
+       }
+      },
+      "nummern": {
+       "s-3": 3
+      },
+      "traeger_zeilen": {
+       "s-3": [
+        "BEREIT",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+       ]
+      }
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [
+         "s-3"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "code": null,
+        "cursor": [
+         1,
+         0,
+         true
+        ],
+        "dialog": null,
+        "groesse": [
+         120,
+         14
+        ],
+        "id": "s-3",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": "",
+        "zustand": "laeuft"
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     {
+      "art": "Einstellungen",
+      "werte": {
+       "bildrate_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 63,
+        "wert": 63
+       },
+       "osc52_grenze": {
+        "herkunft": "vorgabe",
+        "vorgabe": 100000,
+        "wert": 100000
+       },
+       "osc52_schreiben": {
+        "herkunft": "vorgabe",
+        "vorgabe": "an",
+        "wert": "an"
+       },
+       "rueckstau_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 16384,
+        "wert": 16384
+       }
+      }
+     },
+     {
+      "art": "Routen",
+      "routen": []
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": []
+     },
+     {
+      "anfragen": [],
+      "art": "Anfragen"
+     },
+     {
+      "agenten": [],
+      "art": "Agenten"
+     },
+     {
+      "art": "Startwahl",
+      "fassung": 1,
+      "harness": [
+       {
+        "art": "cloud",
+        "name": "claude",
+        "routenart": "cloud"
+       },
+       {
+        "art": "cloud",
+        "name": "copilot",
+        "routenart": "cloud"
+       },
+       {
+        "art": "lokal",
+        "name": "pi",
+        "routenart": "lokal"
+       }
+      ],
+      "kunden": [
+       "k-beispiel",
+       null
+      ],
+      "routen": [
+       {
+        "art": "cloud",
+        "klasse": "intern",
+        "modell": null,
+        "schluessel": "cloud-beispiel"
+       },
+       {
+        "art": "lokal",
+        "klasse": "kundendaten",
+        "modell": null,
+        "schluessel": "lokal-beispiel"
+       }
+      ]
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "harness": "claude",
+        "id": "s-3",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "art": "Gestartet",
+      "sitzung": "s-3"
+     }
+    ],
+    "ok": true
+   }
+  ],
+  "start": {
+   "netz_sockets": 0,
+   "ok": true,
+   "ordner_modus": "0700",
+   "socket_modus": "0600"
+  }
+ },
+ "exit": 0
+}

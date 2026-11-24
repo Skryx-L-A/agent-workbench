@@ -1,0 +1,18 @@
+{
+ "beschreibung": "der feste Platzhalter ist nie ein Schlüssel",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "0",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

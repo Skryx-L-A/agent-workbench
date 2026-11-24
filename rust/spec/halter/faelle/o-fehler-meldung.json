@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Fehler mit freiem Text des Firmensystems",
+ "form": "antwort",
+ "text": "{\"art\":\"antwort\",\"code\":\"halter.mcp_fehler\",\"fassung\":1,\"grund\":\"MCP-Server meldet Fehler\",\"id\":7,\"meldung\":\"token abc ungueltig\",\"ok\":false}"
+}

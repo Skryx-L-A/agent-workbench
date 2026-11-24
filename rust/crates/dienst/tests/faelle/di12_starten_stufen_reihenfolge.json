@@ -1,0 +1,318 @@
+{
+ "beschreibung": "die niedrigste verletzte Stufe antwortet: 3 vor 4 und 5, 6 vor 7, 7 vor 8, 8 vor 9, 9 vor 10 und 13, 10 vor 11, 11 vor 13, 13 vor 14, 14 vor 15 bis 17, 15 vor 16 und 17, 16 vor 17, 1 vor 3",
+ "datensatz": "A",
+ "einstellungen_inhalt": {
+  "fassung": 2,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "kunden": [
+   {
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "schluessel": "k-beispiel",
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "freigaben": [],
+   "vorgabe": "nie"
+  },
+  "routen": [
+   {
+    "art": "cloud",
+    "klasse": "intern",
+    "netzziele": [
+     {
+      "host": "api.eins.example",
+      "pfade": [
+       {
+        "methode": "GET",
+        "pfad": "/copilot_internal/*"
+       }
+      ],
+      "port": 443,
+      "schluessel": true,
+      "zugriff": "kopf-einsetzen"
+     }
+    ],
+    "schluessel": "cloud-beispiel"
+   },
+   {
+    "art": "cloud",
+    "klasse": "intern",
+    "modell": "gpt-5.6-sol",
+    "netzziele": [
+     {
+      "host": "api.eins.example",
+      "pfade": [
+       {
+        "methode": "GET",
+        "pfad": "/copilot_internal/*"
+       }
+      ],
+      "port": 443,
+      "schluessel": true,
+      "zugriff": "kopf-einsetzen"
+     }
+    ],
+    "schluessel": "cloud-fest"
+   },
+   {
+    "art": "lokal",
+    "klasse": "kundendaten",
+    "modell": "qwen3:8b",
+    "netzziele": [],
+    "schluessel": "lokal-beispiel",
+    "ziel": "http://127.0.0.1:11434/v1"
+   }
+  ],
+  "vorgabestufe": "kundendaten"
+ },
+ "name": "di12_starten_stufen_reihenfolge",
+ "regeln": [
+  "DI12"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "marker": 1,
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel",
+     "sitzung": "s-1"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "modell": 1,
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": "x",
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "gibt-es-nicht"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 2,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "A"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "a b",
+     "route": "A"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "rel",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "a b",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "rel",
+     "fassung": 1,
+     "harness": "gemini",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "gemini",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "gibt-es-nicht"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-fremd",
+     "modell": "claude-sonnet-5-5",
+     "route": "gibt-es-nicht"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-fremd",
+     "modell": "gpt-4.1",
+     "route": "cloud-fest"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "pi",
+     "kunde": "k-beispiel",
+     "modell": "gpt-4.1",
+     "route": "cloud-fest"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "pi",
+     "kunde": "k-fremd",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "fassung": 1,
+     "sitzung": "s-1",
+     "x": "ababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababa"
+    }
+   }
+  },
+  {
+   "ablehnungen_voll": true,
+   "art": "Zustand",
+   "betrachter": "c1",
+   "voll": true
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

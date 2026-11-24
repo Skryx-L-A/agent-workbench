@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Projektwurzel ist kein vorhandener Ordner",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"/Users/beispiel/gibt-es-nicht\"\n ],\n \"programmordner\": [\n  \"/Users/beispiel/.local/share/claude\",\n  \"/opt/homebrew\"\n ]\n}\n"
+}

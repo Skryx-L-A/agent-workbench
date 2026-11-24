@@ -1,0 +1,158 @@
+{
+ "beschreibung": "Tab und Umschalt+Tab gehören im Terminal dem Programm; Esc geht als Taste.",
+ "datensatz": "A",
+ "name": "se1_tab_esc",
+ "regeln": [
+  "SE1",
+  "SE2"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": true,
+    "name_beginnt": "Terminal",
+    "name_enthaelt": "s-1",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": true,
+    "name_beginnt": "Terminal",
+    "name_enthaelt": "s-1",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Escape",
+   "key": "Escape",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": true,
+    "name_beginnt": "Terminal",
+    "name_enthaelt": "s-1",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": true,
+    "name_beginnt": "Terminal",
+    "name_enthaelt": "s-1",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Tab",
+     "umschalter": []
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Tab",
+     "umschalter": [
+      "umschalt"
+     ]
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Escape",
+     "umschalter": []
+    },
+    {
+     "art": "Taste",
+     "sitzung": "s-1",
+     "taste": "Tab",
+     "umschalter": []
+    }
+   ]
+  }
+ ]
+}

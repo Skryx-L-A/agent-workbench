@@ -1,0 +1,19 @@
+{
+ "beschreibung": "--neu vor --uebernehmen",
+ "args": [
+  "copilot",
+  "--neu",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

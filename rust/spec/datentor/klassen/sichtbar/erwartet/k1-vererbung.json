@@ -1,0 +1,97 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "aus",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "intern",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": "oeffentlich",
+    "herkunft": "eigen",
+    "senkung": {
+     "grund": "aus",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "oeffentlich",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": "kundendaten",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "aus",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "kunde-fehlt",
+     "klasse": "kundendaten",
+     "meldung": "Kundendaten ohne Kunde"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "aus",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "eigen",
+    "senkung": {
+     "grund": "aus",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "oeffentlich",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "aus",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "oeffentlich",
+     "meldung": "frei"
+    }
+   }
+  ]
+ }
+}

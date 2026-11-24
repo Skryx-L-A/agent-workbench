@@ -1,0 +1,327 @@
+{
+ "beschreibung": "stummer Betrachter: ausstehende Bytes, verfallene Bilder, Nachholen mit vollem Endzustand; der lesende bekommt jedes Bild",
+ "datensatz": "A",
+ "name": "di5_stumm_nachholen",
+ "regeln": [
+  "DI5",
+  "DI4"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-alpha",
+    "spalten": 40,
+    "zeilen": 10
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "BEREIT"
+   },
+   "takt": 0
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c2"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-alpha",
+    "spalten": 40,
+    "zeilen": 10
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c2",
+   "bis": {
+    "text": "BEREIT"
+   },
+   "takt": 0
+  },
+  {
+   "an": true,
+   "art": "Stumm",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "g"
+   }
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c2",
+   "ohne_nachrichten": true
+  },
+  {
+   "art": "Uhr",
+   "betrachter": "c2",
+   "t": 100
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "x"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c2",
+   "bis": {
+    "text": "Bild 0001"
+   },
+   "takt": 0
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c2",
+   "ohne_nachrichten": true
+  },
+  {
+   "art": "Uhr",
+   "betrachter": "c2",
+   "t": 200
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "x"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c2",
+   "bis": {
+    "text": "Bild 0002"
+   },
+   "takt": 0
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c2",
+   "ohne_nachrichten": true
+  },
+  {
+   "art": "Uhr",
+   "betrachter": "c2",
+   "t": 300
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "x"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c2",
+   "bis": {
+    "text": "Bild 0003"
+   },
+   "takt": 0
+  },
+  {
+   "art": "Uhr",
+   "betrachter": "c2",
+   "t": 400
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "x"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c2",
+   "bis": {
+    "text": "Bild 0004"
+   },
+   "takt": 0
+  },
+  {
+   "art": "Uhr",
+   "betrachter": "c2",
+   "t": 500
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "x"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c2",
+   "bis": {
+    "text": "Bild 0005"
+   },
+   "takt": 0
+  },
+  {
+   "art": "Uhr",
+   "betrachter": "c2",
+   "t": 600
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "x"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c2",
+   "bis": {
+    "text": "Bild 0006"
+   },
+   "takt": 0
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c2",
+   "ohne_nachrichten": true
+  },
+  {
+   "art": "Uhr",
+   "betrachter": "c2",
+   "t": 700
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "x"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c2",
+   "bis": {
+    "text": "ENDE"
+   },
+   "takt": 0
+  },
+  {
+   "an": false,
+   "art": "Stumm",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Uhr",
+   "betrachter": "c2",
+   "t": 800
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "ENDE"
+   },
+   "takt": 0
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c2",
+   "ohne_nachrichten": true
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1",
+   "ohne_nachrichten": true
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "regeln": {
+    "rueckstau_max": {
+     "art": "zahl",
+     "nutzer_darf": true,
+     "vorgabe": 400
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   64,
+   8
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "bilder",
+    "6",
+    "30"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

@@ -1,0 +1,7 @@
+{
+ "erwartet": "jeder Mutant macht den Fall rot: ohne wirksames Profil startet der Lauf nicht (Exit 69, lauf.einschluss_fehlt)",
+ "messwerte": [
+  "Exitcode",
+  "stderr-Zeile"
+ ]
+}

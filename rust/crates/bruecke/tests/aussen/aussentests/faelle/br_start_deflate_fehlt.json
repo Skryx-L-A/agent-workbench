@@ -1,0 +1,16 @@
+{
+ "beschreibung": "die Startdatei nennt `deflate` nicht (Pflicht, sagt dem Strom, ob die Rasterrahmen gepackt sind): Exitcode 2",
+ "datensatz": "A",
+ "name": "br_start_deflate_fehlt",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

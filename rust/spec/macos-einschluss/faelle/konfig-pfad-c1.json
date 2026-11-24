@@ -1,0 +1,5 @@
+{
+ "beschreibung": "C1-Steuerzeichen",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"/Users/beispiel/ab\"\n ],\n \"programmordner\": [\n  \"/Users/beispiel/.local/share/claude\",\n  \"/opt/homebrew\"\n ]\n}\n"
+}

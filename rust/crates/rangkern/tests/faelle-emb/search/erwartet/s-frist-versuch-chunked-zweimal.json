@@ -1,0 +1,34 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "20-projects/holz/schleifpapier.md",
+    "score": 1.0,
+    "title": "Schleifpapier und Koernung",
+    "snippet": "Notiz zu schleifpapier: schleifpapier frueh planen, koernung zweimal im Monat pruefen. Wer schleifpapier anlegt, braucht Zeit fuer koernung. Merkzettel schleifpapier.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "space": "holz"
+   }
+  ]
+ },
+ "aufrufe": [
+  {
+   "model": "embeddinggemma:latest",
+   "input": "schleifpapier koernung",
+   "keep_alive": "30m"
+  },
+  {
+   "model": "embeddinggemma:latest",
+   "input": "schleifpapier koernung",
+   "keep_alive": "30m"
+  }
+ ]
+}

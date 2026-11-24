@@ -1,0 +1,10 @@
+{
+ "description": "indented first key: not frontmatter",
+ "files": {
+  "note.md": "---\n  title: Eingerückt\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

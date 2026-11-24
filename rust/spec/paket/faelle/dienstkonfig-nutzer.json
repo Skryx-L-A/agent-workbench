@@ -1,0 +1,6 @@
+{
+ "beschreibung": "ein Nutzer mit uid 1000: Socket-Ordner unter /run/user/1000/werkbank, die Umgebung der Sitzungen ist genau TERM, die Brücke zeigt auf denselben Socket und legt Token- und Portdatei in denselben Ordner",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000
+}

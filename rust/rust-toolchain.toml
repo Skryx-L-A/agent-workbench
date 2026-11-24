@@ -1,0 +1,5 @@
+# Fixed toolchain for the workspace. Raise the version deliberately, in its own commit.
+[toolchain]
+channel = "1.99.0"
+profile = "minimal"
+components = ["rustfmt", "clippy"]

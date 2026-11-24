@@ -1,0 +1,45 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "teile": [
+     {
+      "klasse": "oeffentlich",
+      "herkunft": "geerbt",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "oeffentlich",
+       "meldung": "frei"
+      }
+     },
+     {
+      "klasse": "kundendaten",
+      "herkunft": "kunde",
+      "senkung": {
+       "grund": "aus",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": false,
+       "grund": "klasse-ueber-route",
+       "klasse": "kundendaten",
+       "meldung": "Klasse der Einheit liegt über Route r-oeff"
+      }
+     }
+    ],
+    "ausgeliefert": [
+     0
+    ],
+    "gesperrt": 1
+   }
+  ]
+ }
+}

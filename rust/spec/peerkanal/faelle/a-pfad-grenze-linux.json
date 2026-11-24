@@ -1,0 +1,32 @@
+{
+ "beschreibung": "Socketpfad mit 107 Byte unter Linux",
+ "art": "aussentest",
+ "ort": [
+  "linux"
+ ],
+ "konten": {
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "uid": 1000000101
+   }
+  ],
+  "instanzen": 4,
+  "unix": {
+   "ordner": "/k-beispiel/lauf/pk",
+   "modus": "0600"
+  }
+ },
+ "client": null,
+ "aufbau": [
+  "Ordner 0700, dessen Pfad mit /k-beispiel.sock genau 107 Byte ergibt"
+ ],
+ "handlung": [
+  "Server::anlegen"
+ ]
+}

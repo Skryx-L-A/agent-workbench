@@ -1,0 +1,163 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "klasse": "s1",
+    "herkunft": "gesenkt",
+    "senkung": {
+     "grund": "gesenkt",
+     "vorschlag": null
+    },
+    "protokoll": {
+     "art": "regel",
+     "erkannt_durch": [
+      "typ:regel",
+      "filter:frei"
+     ],
+     "regel_ebene": "firma",
+     "klasse_alt": "s2",
+     "klasse_neu": "s1"
+    },
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "s1",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": "s1",
+    "herkunft": "gesenkt",
+    "senkung": {
+     "grund": "gesenkt",
+     "vorschlag": null
+    },
+    "protokoll": {
+     "art": "regel",
+     "erkannt_durch": [
+      "typ:regel",
+      "filter:frei"
+     ],
+     "regel_ebene": "firma",
+     "klasse_alt": "s2",
+     "klasse_neu": "s1"
+    },
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "s1",
+     "meldung": "Klasse der Einheit liegt über Route r0"
+    }
+   },
+   {
+    "klasse": "s1",
+    "herkunft": "gesenkt",
+    "senkung": {
+     "grund": "gesenkt",
+     "vorschlag": null
+    },
+    "protokoll": {
+     "art": "regel",
+     "erkannt_durch": [
+      "typ:regel",
+      "filter:frei"
+     ],
+     "regel_ebene": "firma",
+     "klasse_alt": "s2",
+     "klasse_neu": "s1"
+    },
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "s1",
+     "meldung": "Klasse der Einheit liegt über Route r0"
+    }
+   },
+   {
+    "klasse": "s0",
+    "herkunft": "gesenkt",
+    "senkung": {
+     "grund": "gesenkt",
+     "vorschlag": null
+    },
+    "protokoll": {
+     "art": "regel",
+     "erkannt_durch": [
+      "typ:regel",
+      "filter:frei"
+     ],
+     "regel_ebene": "firma",
+     "klasse_alt": "s1",
+     "klasse_neu": "s0"
+    },
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "s0",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": "s0",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "niedrigste",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "s0",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": "s3",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "kundendaten",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "s3",
+     "meldung": "Klasse der Einheit liegt über Route r2"
+    }
+   },
+   {
+    "klasse": "s1",
+    "herkunft": "eigen",
+    "senkung": {
+     "grund": "nicht-geerbt",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "s1",
+     "meldung": "Klasse der Einheit liegt über Route r0"
+    }
+   },
+   {
+    "klasse": "s2",
+    "herkunft": "eigen",
+    "senkung": {
+     "grund": "nicht-geerbt",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "s2",
+     "meldung": "Klasse der Einheit liegt über Route r1"
+    }
+   }
+  ]
+ }
+}

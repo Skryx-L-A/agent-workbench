@@ -1,0 +1,177 @@
+{
+ "beschreibung": "POST /eingabe mit falschem oder fehlendem Token: 401 ohne Inhalt, der Dienst sieht keine Verbindung",
+ "datensatz": "A",
+ "name": "br_401_eingabe",
+ "regeln": [
+  "BR2"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "art": "Abo"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": null,
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "art": "Abo"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "art": "Abo"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer @token_falsch",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "art": "Abo"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer @token_anders_erst",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "art": "Abo"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer bbbbbbbbbb",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "art": "Abo"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer @tokenx",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "art": "Abo"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "art": "Abo"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer ",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "art": "Abo"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "@token",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "art": "Abo"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "bearer @token",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "art": "Abo"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Basic aaaaaaaaaaaaaaaaaaaa",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "art": "Abo"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "Bearer  @token",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

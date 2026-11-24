@@ -1,0 +1,33 @@
+{
+ "beschreibung": "Socket-Ordner ist ein symbolischer Link",
+ "art": "aussentest",
+ "ort": [
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "uid": 1000000101
+   }
+  ],
+  "instanzen": 4,
+  "unix": {
+   "ordner": "/k-beispiel/lauf/pk",
+   "modus": "0600"
+  }
+ },
+ "client": null,
+ "aufbau": [
+  "Pfad des Ordners ist ein Link auf einen Ordner 0700"
+ ],
+ "handlung": [
+  "Server::anlegen"
+ ]
+}

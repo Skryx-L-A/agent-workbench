@@ -1,0 +1,226 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    5,
+    4,
+    true
+   ],
+   "groesse": [
+    30,
+    11
+   ],
+   "ruecklauf": {
+    "erste": "alpha 0",
+    "letzte": "epsilon 16",
+    "zahl": 17
+   },
+   "stand": 4,
+   "zeilen": [
+    "zeta 17",
+    "alpha 18",
+    "beta 19",
+    "gamma 20",
+    "delta 21",
+    "betalon 22",
+    "zeta 23",
+    "alpha 24",
+    "beta 25",
+    "gamma 26",
+    "delta 27"
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       7,
+       8,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "gamma 20",
+       "1": "delta 21",
+       "2": "epsilon 22",
+       "3": "zeta 23",
+       "4": "alpha 24",
+       "5": "beta 25",
+       "6": "gamma 26",
+       "7": "delta 27"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      7,
+      8,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": "alpha 0",
+      "letzte": "beta 19",
+      "zahl": 20
+     },
+     "stand": 1,
+     "zeilen": [
+      "gamma 20",
+      "delta 21",
+      "epsilon 22",
+      "zeta 23",
+      "alpha 24",
+      "beta 25",
+      "gamma 26",
+      "delta 27"
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       5,
+       8,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": "epsilon 22",
+       "1": "zeta 23",
+       "2": "alpha 24",
+       "3": "beta 25",
+       "4": "gamma 26",
+       "5": "delta 27"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      5,
+      8,
+      true
+     ],
+     "groesse": [
+      30,
+      6
+     ],
+     "ruecklauf": {
+      "erste": "alpha 0",
+      "letzte": "delta 21",
+      "zahl": 22
+     },
+     "stand": 2,
+     "zeilen": [
+      "epsilon 22",
+      "zeta 23",
+      "alpha 24",
+      "beta 25",
+      "gamma 26",
+      "delta 27"
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       4,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "0": "betalon 22"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       5,
+       4,
+       true
+      ],
+      "stand": 4,
+      "zeilen": {
+       "0": "zeta 17",
+       "1": "alpha 18",
+       "10": "delta 27",
+       "2": "beta 19",
+       "3": "gamma 20",
+       "4": "delta 21",
+       "5": "betalon 22",
+       "6": "zeta 23",
+       "7": "alpha 24",
+       "8": "beta 25",
+       "9": "gamma 26"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      5,
+      4,
+      true
+     ],
+     "groesse": [
+      30,
+      11
+     ],
+     "ruecklauf": {
+      "erste": "alpha 0",
+      "letzte": "epsilon 16",
+      "zahl": 17
+     },
+     "stand": 4,
+     "zeilen": [
+      "zeta 17",
+      "alpha 18",
+      "beta 19",
+      "gamma 20",
+      "delta 21",
+      "betalon 22",
+      "zeta 23",
+      "alpha 24",
+      "beta 25",
+      "gamma 26",
+      "delta 27"
+     ]
+    }
+   }
+  ]
+ }
+}

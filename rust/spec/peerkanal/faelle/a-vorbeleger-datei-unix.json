@@ -1,0 +1,34 @@
+{
+ "beschreibung": "am Socketpfad liegt eine Datei oder ein Link",
+ "art": "aussentest",
+ "ort": [
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "uid": 1000000101
+   }
+  ],
+  "instanzen": 4,
+  "unix": {
+   "ordner": "/k-beispiel/lauf/pk",
+   "modus": "0600"
+  }
+ },
+ "client": null,
+ "aufbau": [
+  "Ordner 0700",
+  "k-beispiel.sock ist ein symbolischer Link auf eine Datei außerhalb des Ordners"
+ ],
+ "handlung": [
+  "Server::anlegen"
+ ]
+}

@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "S16"
+ ],
+ "beschreibung": "Der Block schreiben hat ein unbekanntes Feld."
+}

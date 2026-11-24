@@ -1,0 +1,16 @@
+Template: werkbank/ca_zulassung
+Type: select
+Choices: zugelassen, offen, abgelehnt
+Default: offen
+Description: Zulassung der lokalen Zertifizierungsstelle fuer die Cloud-Route
+ Mit "zugelassen" gibt der Administrator der Cloud-Route frei, je Sitzung ein
+ eigenes Zertifikat zu erzeugen. Das Zertifikat gilt hoechstens 23 Stunden, nur
+ fuer die Ziele der Zielliste der Sitzung, und sein Schluessel liegt ausserhalb
+ des Einschlusses.
+ .
+ Mit "offen" (Vorgabe) startet die Cloud-Route nicht, bis ein Administrator
+ zulaesst. Mit "abgelehnt" ist die Cloud-Route ebenfalls gesperrt, als
+ ausdrueckliche Entscheidung. Die lokale Route ist in beiden Faellen nicht
+ betroffen.
+ .
+ Ohne Rueckfrage geht dasselbe mit: sudo werkbank-ca-zulassung <Wert>

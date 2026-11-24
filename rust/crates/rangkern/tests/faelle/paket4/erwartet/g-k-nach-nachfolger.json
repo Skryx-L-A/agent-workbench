@@ -1,0 +1,32 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "balkon/x1.md",
+    "score": 1.0,
+    "title": "Kasten eins",
+    "snippet": "Pflanzkasten fuer den Balkon, eine Anleitung.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   },
+   {
+    "rel": "balkon/kasten-neu.md",
+    "score": 0.993295112233991,
+    "title": "Neuer Kasten",
+    "snippet": "Hinweis ohne Suchwort.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "nachfolger"
+   }
+  ]
+ }
+}

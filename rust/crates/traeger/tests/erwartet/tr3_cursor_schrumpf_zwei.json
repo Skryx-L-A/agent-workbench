@@ -1,0 +1,180 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    4,
+    1,
+    true
+   ],
+   "groesse": [
+    2,
+    5
+   ],
+   "ruecklauf": {
+    "erste": "",
+    "letzte": "xx",
+    "zahl": 18
+   },
+   "stand": 3,
+   "zeilen": [
+    "xx",
+    "xx",
+    "xx",
+    "x",
+    " y"
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       7,
+       31,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "7": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx漢"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      7,
+      31,
+      true
+     ],
+     "groesse": [
+      40,
+      10
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 1,
+     "zeilen": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx漢",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       1,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": "xx",
+       "1": "xx",
+       "2": "xx",
+       "3": "x",
+       "4": "漢"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      4,
+      1,
+      true
+     ],
+     "groesse": [
+      2,
+      5
+     ],
+     "ruecklauf": {
+      "erste": "",
+      "letzte": "xx",
+      "zahl": 18
+     },
+     "stand": 2,
+     "zeilen": [
+      "xx",
+      "xx",
+      "xx",
+      "x",
+      "漢"
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       1,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "4": " y"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      4,
+      1,
+      true
+     ],
+     "groesse": [
+      2,
+      5
+     ],
+     "ruecklauf": {
+      "erste": "",
+      "letzte": "xx",
+      "zahl": 18
+     },
+     "stand": 3,
+     "zeilen": [
+      "xx",
+      "xx",
+      "xx",
+      "x",
+      " y"
+     ]
+    }
+   }
+  ]
+ }
+}

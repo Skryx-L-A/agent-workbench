@@ -1,0 +1,11 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "fehler",
+ "code": "pk.falscher_server",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe pk.falscher_server",
+  "0 Byte beim Hörer"
+ ]
+}

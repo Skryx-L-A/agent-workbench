@@ -1,0 +1,36 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "haus/heizung.md",
+    "score": 1.0,
+    "title": "Heizung",
+    "snippet": "Die Heizung läuft im Winter.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.8,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 1
+   },
+   {
+    "rel": "haus/keller.md",
+    "score": 0.47058823529411764,
+    "title": "Keller",
+    "snippet": "Im Keller steht die Heizung.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.5098869852527134
+   }
+  ]
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "name": "tr1_ende_leerzeichen",
+ "regeln": [
+  "TR1"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Leerzeichen im Vorgabestil am Zeilenende fallen weg, mit Stil und am Anfang bleiben sie",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha   \r\nbeta  \u001b[31m  \u001b[0m\r\n\u001b[1mgamma   \u001b[0m\r\n\u001b[42m   \u001b[0m\r\n  delta\r\n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

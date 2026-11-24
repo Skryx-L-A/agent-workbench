@@ -1,0 +1,23 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Tief\nmetadata:\n  type: user\n  name: x\ntype: reference"
+  ],
+  "fields": {
+   "title": "Tief",
+   "metadata": [],
+   "type": "reference"
+  },
+  "body": "Text\n",
+  "title": "Tief",
+  "type": "reference",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "note",
+   "tief"
+  ],
+  "embed_text": "Tief\ntype: reference\n\nText\n"
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "description": "match hybrid, text und semantic in einer Liste",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Sauerteig Ofen",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/brot/sauerteig.md": "---\ntitle: Sauerteig\ntype: note\n---\n\nSauerteig braucht Zeit und Wärme.\n",
+  "vault/brot/kruste.md": "---\ntitle: Kruste\ntype: note\n---\n\nDer Sauerteig macht die Kruste knusprig.\n",
+  "vault/brot/ofen.md": "---\ntitle: Ofen\ntype: note\n---\n\nDer Ofen heizt auf Temperatur.\n",
+  "vault/brot/roggen.md": "---\ntitle: Roggen\ntype: note\n---\n\nRoggenmehl ist schwer, Sauerteig hilft.\n",
+  "vault/brot/knetung.md": "---\ntitle: Knetung\ntype: note\n---\n\nDie Knetung fühlt sich weich an.\n",
+  "vektoren.json": "{\"query\": [0, 1, 0], \"notes\": {\"brot/sauerteig.md\": [0.2, 1.0, 0.0], \"brot/kruste.md\": [0.6, 0.8, 0.0], \"brot/roggen.md\": [0.8, 0.6, 0.0], \"brot/knetung.md\": [0.9, 0.4, 0.0]}}"
+ }
+}

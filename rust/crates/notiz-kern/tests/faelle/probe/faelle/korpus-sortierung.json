@@ -1,0 +1,15 @@
+{
+ "description": "sorted by path components, not by the joined string",
+ "files": {
+  "v/a/x.md": "1\n",
+  "v/a-b/x.md": "2\n",
+  "v/a.md": "3\n",
+  "v/B/x.md": "4\n",
+  "v/a/a-b.md": "5\n",
+  "v/a/a/z.md": "6\n"
+ },
+ "args": [
+  "corpus",
+  "{root}/v"
+ ]
+}

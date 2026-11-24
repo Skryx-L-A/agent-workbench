@@ -1,0 +1,108 @@
+{
+ "name": "d4-einheit-ohne-klasse",
+ "regeln": [
+  "D4",
+  "D14"
+ ],
+ "beschreibung": "Eine Klasse, die kein Text ist oder nicht in klassen steht, sperrt; auch mit Kunde. Vergleich byte-genau.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "geheim"
+   },
+   "route": "lokal",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "INTERN"
+   },
+   "route": "lokal",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": " intern"
+   },
+   "route": "lokal",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": ""
+   },
+   "route": "lokal",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": 5
+   },
+   "route": "lokal",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": true
+   },
+   "route": "lokal",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": [
+     "intern"
+    ]
+   },
+   "route": "lokal",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": {
+     "name": "intern"
+    }
+   },
+   "route": "lokal",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "geheim"
+   },
+   "route": "lokal",
+   "kunde": "k-nord"
+  }
+ ]
+}

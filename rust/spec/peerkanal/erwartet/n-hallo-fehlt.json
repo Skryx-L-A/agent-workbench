@@ -1,0 +1,20 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "fehler",
+ "code": "pk.hallo_ungueltig",
+ "ereignisse": [
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.hallo_ungueltig",
+   "grund": "pk.hallo_fehlt",
+   "peer": null
+  }
+ ],
+ "peer": null,
+ "gemessen": [
+  "Ereignis nach 500 ms (Spielraum bis 700 ms)",
+  "Verbindung danach vom Server geschlossen",
+  "peer null unter Windows, weil vor dem ersten Lesen nicht impersoniert wird; unter Unix gemessen"
+ ]
+}

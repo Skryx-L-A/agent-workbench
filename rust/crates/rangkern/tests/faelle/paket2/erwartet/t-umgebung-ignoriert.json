@@ -1,0 +1,27 @@
+{
+ "exit": 0,
+ "stdout": {
+  "words": [
+   "einbettungen",
+   "suchindex"
+  ],
+  "stems": [
+   "einbett",
+   "suchindex"
+  ],
+  "index": [
+   "einbett",
+   "#einb",
+   "#inbe",
+   "#nbet",
+   "#bett",
+   "suchindex",
+   "#such",
+   "#uchi",
+   "#chin",
+   "#hind",
+   "#inde",
+   "#ndex"
+  ]
+ }
+}

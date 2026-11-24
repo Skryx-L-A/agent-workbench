@@ -1,0 +1,5 @@
+{
+ "beschreibung": "17 Programmordner",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"/Users/beispiel/Projekte\"\n ],\n \"programmordner\": [\n  \"/opt/p0\",\n  \"/opt/p1\",\n  \"/opt/p2\",\n  \"/opt/p3\",\n  \"/opt/p4\",\n  \"/opt/p5\",\n  \"/opt/p6\",\n  \"/opt/p7\",\n  \"/opt/p8\",\n  \"/opt/p9\",\n  \"/opt/p10\",\n  \"/opt/p11\",\n  \"/opt/p12\",\n  \"/opt/p13\",\n  \"/opt/p14\",\n  \"/opt/p15\",\n  \"/opt/p16\"\n ]\n}\n"
+}

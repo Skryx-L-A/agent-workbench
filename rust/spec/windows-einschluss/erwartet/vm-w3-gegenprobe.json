@@ -1,0 +1,6 @@
+{
+ "erwartet": "Alle Zugriffe gelingen; der Test wird rot",
+ "messwerte": [
+  "Fehlercode je Zugriff"
+ ]
+}

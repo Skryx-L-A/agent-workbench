@@ -1,0 +1,8 @@
+{
+ "beschreibung": "Prozess mit SID des Projekts, aber in keinem Job des Dienstes",
+ "form": "steuer",
+ "text": "{\"op\": \"peer\", \"pid\": 4242}\n",
+ "lage": {
+  "peer": "AppContainer des Projekts ausserhalb jedes Laufs"
+ }
+}

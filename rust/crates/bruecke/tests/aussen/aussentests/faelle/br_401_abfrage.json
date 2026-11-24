@@ -1,0 +1,37 @@
+{
+ "beschreibung": "das Token in der Abfrage des Ziels zaehlt nicht: 401",
+ "datensatz": "A",
+ "name": "br_401_abfrage",
+ "regeln": [
+  "BR2"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/strom?token=@token"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/strom?token=@token_falsch"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

@@ -1,0 +1,33 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "werkstatt/nah.md",
+    "score": 1.0,
+    "title": "Nah",
+    "snippet": "Auch hier kein Treffer.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.7071067811865475,
+    "vektor_rang": 1
+   },
+   {
+    "rel": "werkstatt/orth.md",
+    "score": 0.9411764705882353,
+    "title": "Orthogonal",
+    "snippet": "Kein Wort passt hier.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "vektor_rang": 2
+   }
+  ]
+ }
+}

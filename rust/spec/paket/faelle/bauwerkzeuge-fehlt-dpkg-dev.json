@@ -1,0 +1,6 @@
+{
+ "beschreibung": "dpkg-dev fehlt im deb",
+ "form": "bauwerkzeuge",
+ "text": "build-essential\t12.12ubuntu2\tGPL-2.0-or-later\tsha256:e4896a79cf1d2b62c6d5be654e34a84678cc8cad344c6468419d53b614e1af2b\tnein\n",
+ "plattform": "ubuntu-26.04-x64"
+}

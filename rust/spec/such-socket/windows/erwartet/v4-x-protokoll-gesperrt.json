@@ -1,0 +1,22 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "error": "protokoll",
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "rels": [
+    "sonst/wetter.md"
+   ],
+   "gesperrt": 0,
+   "id": 2
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

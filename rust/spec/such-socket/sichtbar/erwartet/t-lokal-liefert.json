@@ -1,0 +1,32 @@
+{
+ "start": "bereit",
+ "socket_rechte": "0600",
+ "responses": [
+  {
+   "fallback": true,
+   "rels": [
+    "kunden/nord/lieferplan-qkx1.md",
+    "handbuch/lieferplan-lesen.md",
+    "projekte/lieferplan.md"
+   ],
+   "gesperrt": 1,
+   "id": 1
+  }
+ ],
+ "protokoll": [
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "lokal",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": null,
+   "grund": "kunde-fehlt",
+   "anzahl": 1
+  }
+ ],
+ "ende": {
+  "exit": 0
+ }
+}

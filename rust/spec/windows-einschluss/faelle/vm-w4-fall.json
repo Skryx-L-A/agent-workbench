@@ -1,0 +1,9 @@
+{
+ "beschreibung": "W4 fall",
+ "form": "vm",
+ "eigenschaft": "W4",
+ "art": "fall",
+ "ausgangslage": "Windows-VM; Plattformdienst unter NT SERVICE mit den fünf ACEs, Admin-Helfer unter LocalSystem; Projekt A mit Arbeitsordner unter der Projektwurzel; ein Lauf in A mit Claude Code (PowerShell-Werkzeug) gegen die Attrappe des Modellwegs hinter einem Weiterleiter auf dem Sitzungsport M; die Browser-Brücke des Kern-Dienstes hört auf dem Loopback des Rechners; ssh-Stummel vorn im PATH, SSH_AUTH_SOCK leer; ein fremder Hörer Q auf 127.0.0.1 und [::1]; ein Ziel im LAN und eines im Internet",
+ "handlung": "Der Agent verbindet sich mit M, Q und der Browser-Brücke über 127.0.0.1, [::1] und [::ffff:127.0.0.1], mit dem LAN-Ziel, mit dem Internet-Ziel und löst einen Namen auf",
+ "beleg": "gemessen: erlaubter Port und Q (Fragen 7, IPv6); nicht gemessen: Browser-Brücke, Internet-Ziel ohne Fähigkeit, Namensauflösung"
+}

@@ -1,0 +1,7 @@
+{
+ "beschreibung": "der Admin setzte port auf 8765: ein Update schreibt ihn wieder",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "vorher_bruecke": "{\"port\":8765,\"deflate\":true}\n"
+}

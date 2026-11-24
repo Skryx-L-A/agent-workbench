@@ -1,0 +1,11 @@
+{
+ "exec": [
+  "/usr/bin/sandbox-exec",
+  "-f",
+  "<profil im 0700-Ordner>",
+  "--",
+  "<argv des Harness>"
+ ],
+ "stderr": "",
+ "zustand": "Such-Prozess und Weiterreicher laufen; ihre PIDs stehen in suche.pid und weiter.pid"
+}

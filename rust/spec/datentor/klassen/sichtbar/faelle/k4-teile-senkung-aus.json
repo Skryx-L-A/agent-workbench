@@ -1,0 +1,96 @@
+{
+ "name": "k4-teile-senkung-aus",
+ "regeln": [
+  "K4",
+  "K3",
+  "A33"
+ ],
+ "beschreibung": "Aufteilen aus, Herabstufen an: eine Einheit mit Teilen sinkt nie, auch wenn jeder Teil herabstufbar wäre.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "teile": [
+     {
+      "art": "regel",
+      "befund": {
+       "geheimnis": false,
+       "personenbezug": false,
+       "interner_name": false
+      }
+     },
+     {
+      "art": "regel",
+      "befund": {
+       "geheimnis": false,
+       "personenbezug": false,
+       "interner_name": false
+      }
+     }
+    ]
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-oeff"
+  }
+ ],
+ "tiefe": {
+  "aufteilen": false,
+  "herabstufen": {
+   "an": true
+  }
+ }
+}

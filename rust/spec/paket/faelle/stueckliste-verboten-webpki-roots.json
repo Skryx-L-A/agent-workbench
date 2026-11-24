@@ -1,0 +1,6 @@
+{
+ "beschreibung": "`webpki-roots` bringt ein festes CA-Bündel mit; der System-Truststore gilt immer",
+ "form": "stueckliste",
+ "text": "anyhow\t1.0.100\tMIT OR Apache-2.0\tcrates.io\nserde\t1.0.228\tMIT OR Apache-2.0\tcrates.io\nwebpki-roots\t1.0.0\tCDLA-Permissive-2.0\tcrates.io\n",
+ "im_paket": []
+}

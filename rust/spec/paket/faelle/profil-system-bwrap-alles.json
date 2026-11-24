@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Anhang `/**`",
+ "form": "profil",
+ "text": "abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile werkbank-bwrap /** {\n  userns,\n}\n"
+}

@@ -1,0 +1,8 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13",
+  "A139"
+ ],
+ "beschreibung": "Ein doppelter Schlüssel in herabstufen; der zweite Wert wäre lockerer."
+}

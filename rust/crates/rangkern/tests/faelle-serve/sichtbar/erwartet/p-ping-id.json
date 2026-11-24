@@ -1,0 +1,36 @@
+{
+ "responses": [
+  {
+   "ok": true
+  },
+  {
+   "ok": true,
+   "id": "abc"
+  },
+  {
+   "ok": true,
+   "id": 7
+  },
+  {
+   "ok": true,
+   "id": -3
+  },
+  {
+   "ok": true,
+   "id": 0
+  },
+  {
+   "ok": true,
+   "id": "grüß \"dich\""
+  },
+  {
+   "ok": true,
+   "id": ""
+  },
+  {
+   "ok": true,
+   "id": "zaun"
+  }
+ ],
+ "exit": 0
+}

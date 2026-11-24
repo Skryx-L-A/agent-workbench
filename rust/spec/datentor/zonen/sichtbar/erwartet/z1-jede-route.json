@@ -1,0 +1,172 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "oeffentlich",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "oeffentlich",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "public",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-zone",
+    "klasse": "intern",
+    "meldung": "Klasse der Einheit liegt über der Zone der Route r-public",
+    "protokoll": {
+     "zone": "public",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-zone",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über der Zone der Route r-public",
+    "protokoll": {
+     "zone": "public",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": "oeffentlich",
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": "intern",
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": "kundendaten",
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "oeffentlich",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "conf",
+     "grund": "local reicht fuer die Aufgabe nicht",
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "conf",
+     "grund": "local reicht fuer die Aufgabe nicht",
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "kundendaten-an-cloud",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Cloud-Route r-conf ohne Freigabe",
+    "protokoll": {
+     "zone": "conf",
+     "grund": "local reicht fuer die Aufgabe nicht",
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "oeffentlich",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-ohne-freigabe",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Route r-appr ohne Freigabe für Kunde und Projekt",
+    "protokoll": {
+     "zone": "appr",
+     "grund": null,
+     "ausnahme": null
+    }
+   }
+  ]
+ }
+}

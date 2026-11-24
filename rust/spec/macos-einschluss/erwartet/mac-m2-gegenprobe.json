@@ -1,0 +1,6 @@
+{
+ "erwartet": "TCP: ECONNREFUSED (der Stapel ist erreicht), UDP gesendet; der Test wird rot",
+ "messwerte": [
+  "errno je Versuch"
+ ]
+}

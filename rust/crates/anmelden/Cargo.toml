@@ -1,0 +1,30 @@
+[package]
+name = "anmelden"
+version = "0.1.0"
+description = "werkbank-anmelden (contract 9): logs in the Copilot CLI in a throw-away home without a keychain and stores the token only in the key file of the model path."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "werkbank-anmelden"
+path = "src/main.rs"
+
+# serde_json: reads `config.json` of the Copilot CLI (only to find the token; its content is never printed).
+# signal-hook (flag module only): SIGINT, SIGTERM and SIGHUP set a flag; the main loop ends the CLI, deletes the
+# throw-away home and exits with 128 + the signal number. No `unsafe` in this crate (`unsafe_code = "forbid"`).
+# rustix (features `process` and `fs`, no default features but `std`): the own user id and SIGTERM to the child.
+# Both are already in the graph (rangkern uses the same features); they add no crate to Cargo.lock.
+# kernabbild (path, crate of the workspace; no new package): the protection against a core image, `RLIMIT_CORE` 1/1 and under Linux
+# `PR_SET_DUMPABLE` 0, first act of `main` and checked again before the child `copilot login` (contract 9, section 3c).
+[dependencies]
+kernabbild = { path = "../kernabbild" }
+serde_json = "1"
+signal-hook = "0.4"
+rustix = { version = "1", default-features = false, features = ["std", "process", "fs"] }
+
+[lints]
+workspace = true

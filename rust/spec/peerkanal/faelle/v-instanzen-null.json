@@ -1,0 +1,27 @@
+{
+ "beschreibung": "null Instanzen",
+ "art": "vorgabe",
+ "ort": [
+  "windows",
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+    "appcontainer_sid": null
+   }
+  ],
+  "instanzen": 0
+ },
+ "client": null,
+ "aufbau": [],
+ "handlung": [
+  "Server anlegen"
+ ]
+}

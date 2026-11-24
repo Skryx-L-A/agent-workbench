@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Anhang am System-bwrap und `userns`: `profil_system_bwrap` zuerst",
+ "form": "profil",
+ "text": "abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile werkbank-einschluss-bwrap /usr/bin/bwrap flags=(unconfined) {\n  userns,\n}\n"
+}

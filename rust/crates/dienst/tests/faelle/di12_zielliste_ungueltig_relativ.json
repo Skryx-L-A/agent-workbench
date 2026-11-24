@@ -1,0 +1,45 @@
+{
+ "beschreibung": "lauf.ziellisten ungueltig (relativ): Exitcode 2, die Zeile lauf.ziellisten muss ein absoluter Pfad sein",
+ "datensatz": "A",
+ "name": "di12_zielliste_ungueltig_relativ",
+ "regeln": [
+  "DI12",
+  "DI1"
+ ],
+ "schritte": [],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind",
+   "ziellisten": "ziellisten/ordner"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

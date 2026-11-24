@@ -1,0 +1,22 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: 'Omas ''bestes'' Rezept: Teil 1'\ntype: 'note'"
+  ],
+  "fields": {
+   "title": "Omas 'bestes' Rezept: Teil 1",
+   "type": "note"
+  },
+  "body": "Text\n",
+  "title": "Omas 'bestes' Rezept: Teil 1",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "note",
+   "omas 'bestes' rezept: teil 1"
+  ],
+  "embed_text": "Omas 'bestes' Rezept: Teil 1\ntype: note\n\nText\n"
+ }
+}

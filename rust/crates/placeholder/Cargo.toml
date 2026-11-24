@@ -1,0 +1,10 @@
+[package]
+name = "placeholder"
+version = "0.0.0"
+description = "Placeholder crate so the gates have something to check; replaced by the first building block."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true

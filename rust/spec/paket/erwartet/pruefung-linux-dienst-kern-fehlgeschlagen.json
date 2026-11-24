@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.dienst_fehlgeschlagen: Der Dienst werkbank-kern.service ist fehlgeschlagen.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

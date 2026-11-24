@@ -1,0 +1,15 @@
+{
+ "beschreibung": "leere Ausgabe",
+ "form": "stueckliste",
+ "text": "",
+ "im_paket": [
+  {
+   "name": "serde",
+   "version": "1.0.228"
+  },
+  {
+   "name": "zlib-rs",
+   "version": "0.5.2"
+  }
+ ]
+}

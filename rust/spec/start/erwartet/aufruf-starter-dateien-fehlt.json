@@ -1,0 +1,5 @@
+{
+ "exit": 3,
+ "stderr": "lauf.einschluss_fehlt: Einschluss nicht verfuegbar\nlauf.einschluss_teil: 3 eingabe-ungueltig",
+ "suche_gestartet": true
+}

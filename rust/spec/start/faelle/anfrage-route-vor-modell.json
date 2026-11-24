@@ -1,0 +1,56 @@
+{
+ "beschreibung": "unbekannte Route geht vor dem Modell der Route",
+ "form": "anfrage",
+ "text": "{\n \"fassung\": 1,\n \"harness\": \"pi\",\n \"modell\": \"qwen3:4b\",\n \"route\": \"lokal-anders\",\n \"kunde\": \"k-beispiel\",\n \"arbeitsordner\": \"/home/beispiel/projekt\"\n}\n",
+ "einstellungen": {
+  "fassung": 2,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "vorgabestufe": "kundendaten",
+  "routen": [
+   {
+    "schluessel": "cloud-beispiel",
+    "art": "cloud",
+    "klasse": "intern",
+    "netzziele": [
+     {
+      "host": "api.cloud.example",
+      "port": 443,
+      "zugriff": "kopf-einsetzen",
+      "schluessel": true,
+      "pfade": [
+       {
+        "methode": "GET",
+        "pfad": "/copilot_internal/*"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "schluessel": "lokal-beispiel",
+    "art": "lokal",
+    "klasse": "kundendaten",
+    "ziel": "http://127.0.0.1:11434/v1",
+    "modell": "qwen3:8b",
+    "netzziele": []
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-beispiel",
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ }
+}

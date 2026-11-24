@@ -1,0 +1,10 @@
+{
+ "description": "empty value becomes an empty list; list items follow",
+ "files": {
+  "leerwert.md": "---\ntitle:\ntags:\n  - eins\n  - zwei\nleer:\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/leerwert.md"
+ ]
+}

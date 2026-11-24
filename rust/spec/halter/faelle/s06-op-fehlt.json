@@ -1,0 +1,75 @@
+{
+ "beschreibung": "op fehlt",
+ "form": "anfrage",
+ "text": "{\"fassung\":1,\"id\":\"q-1\",\"name\":\"mcp.tickets\"}",
+ "lage": {
+  "aufrufer": {
+   "rolle": "hub",
+   "konto": "S-1-5-21-1000-1000-1000-1001",
+   "vertreter": false
+  },
+  "jetzt_ms": 1795000000000,
+  "start_ms": 1794996400000,
+  "kids": {
+   "stelle-mcp-1": "qvy5SgFhefK2a9hsceqk+MJ5evYpEJTTdGpqO3O85VY="
+  },
+  "benutzt": [],
+  "nachweis_gueltig": true,
+  "konfig": {
+   "ziele": {
+    "cloud-beispiel": {
+     "pfade": [
+      "POST /v1/messages"
+     ],
+     "schluessel": "modell.cloud-beispiel"
+    }
+   },
+   "server": {
+    "tickets": {
+     "schluessel": "mcp.tickets",
+     "freigabe": true,
+     "werkzeuge": {
+      "update": "schreibend",
+      "get": "lesend"
+     }
+    },
+    "notizen": {
+     "schluessel": "mcp.notizen",
+     "freigabe": false,
+     "werkzeuge": {
+      "anlegen": "schreibend"
+     }
+    },
+    "wiki": {
+     "schluessel": "mcp.wiki",
+     "freigabe": true,
+     "werkzeuge": {
+      "seite": "lesend"
+     }
+    }
+   }
+  },
+  "geheimnisse": [
+   {
+    "name": "modell.cloud-beispiel",
+    "konto": null,
+    "person": null
+   },
+   {
+    "name": "mcp.tickets",
+    "konto": "S-1-5-21-1000-1000-1000-1001",
+    "person": "ps_a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+   },
+   {
+    "name": "mcp.notizen",
+    "konto": "S-1-5-21-1000-1000-1000-1001",
+    "person": "ps_a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+   },
+   {
+    "name": "mcp.wiki",
+    "konto": "S-1-5-21-1000-1000-1000-1002",
+    "person": "ps_b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+   }
+  ]
+ }
+}

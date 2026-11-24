@@ -1,0 +1,1 @@
+{"name":"ra3_breite_zeichen","regeln":["RA3"],"datensatz":"A","beschreibung":"Umlaute, CJK, Emoji mit Hautton und kombinierende Zeichen laufen unveraendert durch","schritte":[{"art":"Zeile","sgr":"Grüße äöü ß"},{"art":"Zeile","sgr":"漢字 👍🏽 é"},{"art":"Zeile","sgr":"\u001b[33m漢字 👍🏽 é\u001b[0mGrüße äöü ß"},{"art":"Zeile","sgr":" alpha beta​"}]}

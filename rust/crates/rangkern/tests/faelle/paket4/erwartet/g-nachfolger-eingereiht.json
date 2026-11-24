@@ -1,0 +1,38 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "buero/neu-drucker.md",
+    "score": 1.0,
+    "title": "Neuer Drucker",
+    "snippet": "Nachfolgegeraet, siehe Hinweis im Keller.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.6354300399071903
+   },
+   {
+    "rel": "buero/alt-drucker.md",
+    "score": 0.49,
+    "title": "Alter Drucker",
+    "snippet": "Drucker Toner wechseln, Drucker Papierstau beheben.",
+    "lines": [
+     8,
+     8
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "status": "superseded",
+    "abgeloest_durch": [
+     "buero/neu-drucker.md"
+    ]
+   }
+  ]
+ }
+}

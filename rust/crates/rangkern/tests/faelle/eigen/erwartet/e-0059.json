@@ -1,0 +1,1 @@
+{"exit": 0, "stdout": {"fallback": false, "hits": [{"rel": "projekt/a/fruehjahr.md", "score": 1.0, "title": "fruehjahr", "snippet": "Übersicht aufgabe sitzung schnecken pumpe original rohr rohr heizung", "lines": [1, 1], "match": "hybrid", "cosine": 0.3183870446660211, "bm25_rang": 1, "bm25_norm": 1.0, "vektor_rang": 5, "space": "top"}]}}

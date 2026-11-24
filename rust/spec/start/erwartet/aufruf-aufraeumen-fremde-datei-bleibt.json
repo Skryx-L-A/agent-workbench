@@ -1,0 +1,16 @@
+{
+ "exit": 69,
+ "stderr": "lauf.modellweg_fehlt: Modellweg nicht startbar",
+ "suche_gestartet": true,
+ "suche_beendet": true,
+ "modellweg_gestartet": false,
+ "datei_unveraendert": [
+  "<startordner>/ca.key"
+ ],
+ "datei_fehlt": [
+  "<startordner>/ca.crt",
+  "<startordner>/ca-bundle.pem",
+  "<startordner>/suche.pid",
+  "<startordner>/modellweg.pid"
+ ]
+}

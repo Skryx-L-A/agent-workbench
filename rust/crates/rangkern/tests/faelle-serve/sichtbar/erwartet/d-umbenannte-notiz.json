@@ -1,0 +1,276 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9992944280535204,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.47058823529411764,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9275373631038171,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8729957542566618,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8545078219581688,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8411588336707453,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/umbenannt-kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9275373631038171,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/umbenannt-kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.9411764705882353,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8729957542566618,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.8888888888888888,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8545078219581688,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.8421052631578947,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8411588336707453,
+     "vektor_rang": 4,
+     "space": "garten"
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9992944280535204,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.47058823529411764,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9275373631038171,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8729957542566618,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8545078219581688,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8411588336707453,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ]
+  }
+ ],
+ "exit": 0
+}

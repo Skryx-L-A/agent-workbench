@@ -1,0 +1,28 @@
+{
+ "exit": 0,
+ "stdout": {
+  "words": [
+   "v2",
+   "build_id",
+   "3a7f9c"
+  ],
+  "stems": [
+   "v2",
+   "build_id",
+   "3a7f9c"
+  ],
+  "index": [
+   "v2",
+   "build_id",
+   "#buil",
+   "#uild",
+   "#ild_",
+   "#ld_i",
+   "#d_id",
+   "3a7f9c",
+   "#3a7f",
+   "#a7f9",
+   "#7f9c"
+  ]
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "description": "Frage nur aus Stoppwörtern: Rückfall",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\ntitle: Schlüssel\n---\n\nFür künftige Sessions: Der Ersatzschlüssel liegt unter der Matte.\n\nDie Tür und der Hof sind immer offen.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "der die und"
+ ]
+}

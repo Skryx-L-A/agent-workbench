@@ -1,0 +1,36 @@
+{
+ "beschreibung": "die Prozessbindung gilt während des Hakens",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+    "appcontainer_sid": null
+   }
+  ],
+  "instanzen": 4,
+  "prozess_pflicht": true
+ },
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+  },
+  "frist_ms": 2000
+ },
+ "aufbau": [
+  "Server unter person; der Haken wartet auf ein Zeichen des Läufers"
+ ],
+ "handlung": [
+  "Client verbindet und endet, während der Haken wartet",
+  "Der Läufer startet 60 s lang Prozesse und vergleicht ihre pid mit prozess().pid",
+  "Der Haken fragt einen Stand-in des Plattformdienstes mit pid und startzeit"
+ ]
+}

@@ -1,0 +1,24 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "20-projects/holz/bohrer.md",
+    "score": 1.0,
+    "title": "Bohrer und Spannfutter",
+    "snippet": "Notiz zu bohrer: bohrer frueh planen, spannfutter zweimal im Monat pruefen. Wer bohrer anlegt, braucht Zeit fuer spannfutter. Merkzettel bohrer.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "space": "holz"
+   }
+  ]
+ },
+ "aufrufe": [],
+ "hoechstens_ms": 2500
+}

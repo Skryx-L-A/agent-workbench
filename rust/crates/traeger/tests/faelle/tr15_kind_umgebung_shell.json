@@ -1,0 +1,35 @@
+{
+ "name": "tr15_kind_umgebung_shell",
+ "regeln": [
+  "TR12",
+  "TR15"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Nachtrag 20.11. (TR15): Nennt der Fall SHELL selbst, sieht das Kind genau diesen Wert",
+ "art": "kind",
+ "groesse": [
+  40,
+  8
+ ],
+ "start": {
+  "kind": "umgebung_alle",
+  "argv": [],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin",
+   "SHELL": "/bin/beta"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

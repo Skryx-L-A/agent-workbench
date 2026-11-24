@@ -1,0 +1,63 @@
+{
+ "beschreibung": "lehnt der Dienst die Start-Struktur ab, antwortet die Bruecke 422 mit grund, code und text des Dienstes, unveraendert",
+ "datensatz": "A",
+ "dienst": {
+  "plan": {
+   "*": {
+    "modus": "marke",
+    "sek": 30,
+    "text": "EINS"
+   }
+  }
+ },
+ "name": "br_starten_abgelehnt",
+ "regeln": [
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "koerper": [
+     1,
+     2
+    ],
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {},
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "text",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

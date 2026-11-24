@@ -1,0 +1,127 @@
+{
+ "name": "p7-vier-klassen",
+ "regeln": [
+  "P3",
+  "A29"
+ ],
+ "beschreibung": "Vier Klassen mit vertauschten Namen: das Tor vergleicht nur Positionen; s3 ist die niedrigste, s0 die höchste.",
+ "vorgabe": {
+  "klassen": [
+   "s3",
+   "s2",
+   "s1",
+   "s0"
+  ],
+  "routen": [
+   {
+    "schluessel": "a",
+    "art": "lokal",
+    "klasse": "s0"
+   },
+   {
+    "schluessel": "b",
+    "art": "lokal",
+    "klasse": "s1"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k",
+    "erlaubt": [
+     "a"
+    ]
+   }
+  ]
+ },
+ "personen": {
+  "leseklassen": [
+   {
+    "ebene": "nutzer",
+    "wer": "p-1",
+    "klasse": "s2"
+   },
+   {
+    "ebene": "gruppe",
+    "wer": "g-1",
+    "klasse": "s3"
+   },
+   {
+    "ebene": "gruppe",
+    "wer": "g-2",
+    "klasse": "s1"
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "s3"
+   },
+   "route": "a",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-1"
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "s2"
+   },
+   "route": "a",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-1"
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "s1"
+   },
+   "route": "a",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-1"
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "s2"
+   },
+   "route": "a",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-2",
+    "gruppen": [
+     "g-1"
+    ]
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "s1"
+   },
+   "route": "a",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-2",
+    "gruppen": [
+     "g-1",
+     "g-2"
+    ]
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "s3"
+   },
+   "route": "a",
+   "kunde": "k",
+   "kontext": {
+    "nutzer": "p-2",
+    "gruppen": [
+     "g-2"
+    ]
+   }
+  }
+ ]
+}

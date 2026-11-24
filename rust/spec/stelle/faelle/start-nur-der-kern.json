@@ -1,0 +1,112 @@
+{
+  "beschreibung": "Nur der Kern-Dienst startet. Agent, Hub und unbekannter Aufrufer scheitern vor jeder Pruefung der Eingabe; ungueltige Eingabe des Kerns scheitert danach.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "A92",
+    "Prueffolge"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"such-mcp\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[]}}}"
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "agent",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"harness\":null,\"kunde\":null,\"route\":null,\"sitzung\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "905230ed91ff6bca4e0a6d8492c78231c6a16b61e906e4913ca48d86cde951f2"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600001,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"harness\":null,\"kunde\":null,\"route\":null,\"sitzung\":null,\"vorher\":\"905230ed91ff6bca4e0a6d8492c78231c6a16b61e906e4913ca48d86cde951f2\",\"zeit\":\"2026-11-20T13:00:00.001Z\"}",
+            "sha256": "0c92fb952271841e0a74f0b04f27d1a23ee2334fcd3a27518c253457da056ee0"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "unbekannt",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600002,
+      "eingabe": {
+        "start": 5
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"harness\":null,\"kunde\":null,\"route\":null,\"sitzung\":null,\"vorher\":\"0c92fb952271841e0a74f0b04f27d1a23ee2334fcd3a27518c253457da056ee0\",\"zeit\":\"2026-11-20T13:00:00.002Z\"}",
+            "sha256": "aff52294646b282d829bb102eda3d307360dda1c49af69412eeb917b7e14e89a"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600003,
+      "eingabe": {
+        "start": 5
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.eingabe_ungueltig",
+          "grund": "Eingabe ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.eingabe_ungueltig\",\"harness\":null,\"kunde\":null,\"route\":null,\"sitzung\":null,\"vorher\":\"aff52294646b282d829bb102eda3d307360dda1c49af69412eeb917b7e14e89a\",\"zeit\":\"2026-11-20T13:00:00.003Z\"}",
+            "sha256": "1070998991ac6a97d5c3cc43f43ee4d2726314879800197edaa7e09103160808"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [],
+    "anfragen": {},
+    "zaehler": 0,
+    "zeilen": 4,
+    "letzte": "1070998991ac6a97d5c3cc43f43ee4d2726314879800197edaa7e09103160808"
+  }
+}

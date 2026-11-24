@@ -1,0 +1,114 @@
+{
+ "beschreibung": "Stufe 17 (start.harness_route_unvertraeglich): die Art der Route passt nicht zum Harness (claude und copilot nur mit Cloud-Route, pi nur mit lokaler Route)",
+ "datensatz": "A",
+ "name": "di12_starten_stufe_17_harness_route",
+ "regeln": [
+  "DI12"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "lokal-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "copilot",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "lokal-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "pi",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "pi",
+     "kunde": "k-beispiel",
+     "modell": "auto",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "ablehnungen_voll": true,
+   "art": "Zustand",
+   "betrachter": "c1",
+   "voll": true
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

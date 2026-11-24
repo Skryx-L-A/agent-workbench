@@ -1,0 +1,33 @@
+{
+ "beschreibung": "die Reihenfolge der Hinweise: Zustand von Ubuntus Profil, System-bwrap, dann `hinweis_sudo`",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   }
+  ],
+  "apparmor": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "ok",
+  "copilot": "ok",
+  "vault": "nicht_pruefbar",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok",
+  "ohne_root": true,
+  "ubuntu_profil": "geladen",
+  "system_bwrap": "ubuntu"
+ }
+}

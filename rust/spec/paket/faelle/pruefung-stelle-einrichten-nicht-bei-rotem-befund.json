@@ -1,0 +1,22 @@
+{
+ "beschreibung": "A108 Gegenprobe 2: ein echter Fehler gibt Code 1, die Stellenzeile entfällt",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "windows",
+  "konten": 3,
+  "halter": "fehlt",
+  "wfp": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "fehlt"
+ }
+}

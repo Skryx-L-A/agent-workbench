@@ -1,0 +1,30 @@
+{
+ "exit": 0,
+ "stdout": {
+  "in_scope": true,
+  "fields": {
+   "permalink": "main/x",
+   "id": "01M3KEHCGEKTVFPC15XAVEPRDS",
+   "schema": "4",
+   "name": "g",
+   "metadata": "",
+   "title": "G",
+   "type": "note",
+   "class": "knowledge",
+   "created": "2026-09-28",
+   "stand": "2026-09"
+  },
+  "blocks": 2,
+  "findings": [
+   {
+    "kind": "mehrfach-frontmatter",
+    "detail": "2 Frontmatter-Bloecke (Basic-Memory-Rest)"
+   },
+   {
+    "kind": "memory-rest",
+    "detail": "Claude-Memory-Felder: name:, metadata:"
+   }
+  ],
+  "new": true
+ }
+}

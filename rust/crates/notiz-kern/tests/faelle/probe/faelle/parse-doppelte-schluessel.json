@@ -1,0 +1,10 @@
+{
+ "description": "duplicate key in one block: last value wins",
+ "files": {
+  "note.md": "---\ntitle: Erster\ntype: note\ntitle: Zweiter\naliases: [a]\naliases:\n  - b\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

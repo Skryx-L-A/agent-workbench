@@ -1,0 +1,10 @@
+{
+ "beschreibung": "der Text `ca_zulassung` steht als zweiter Schlüssel-Treffer in einem anderen Wert: die Datei gilt als ungültig, das Ergebnis ist `offen`",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {},
+ "vorher": "zugelassen",
+ "vorher_form": "als-wert"
+}

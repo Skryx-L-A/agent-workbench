@@ -1,0 +1,5 @@
+{
+ "beschreibung": "der Port gehört nicht in die Konfiguration des Starters",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"C:\\\\Users\\\\beispiel\\\\Projekte\"\n ],\n \"programmordner\": [\n  \"C:\\\\Users\\\\beispiel\\\\AppData\\\\Local\\\\Programs\\\\werkbank-harness\"\n ],\n \"shell\": \"powershell\",\n \"modellweg_port\": 41001\n}\n"
+}

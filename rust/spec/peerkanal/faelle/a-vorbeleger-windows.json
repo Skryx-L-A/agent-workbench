@@ -1,0 +1,28 @@
+{
+ "beschreibung": "ein Prozess der Person belegt den Pipe-Namen vor dem Dienst",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "dienst": "S-1-5-80-1000000011-1000000012-1000000013-1000000014-1000000015"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+    "appcontainer_sid": null
+   }
+  ],
+  "instanzen": 4
+ },
+ "client": null,
+ "aufbau": [
+  "Der Prozess der Person legt \\\\.\\pipe\\k-beispiel an und hält ihn offen."
+ ],
+ "handlung": [
+  "Der Dienst ruft Server::anlegen."
+ ]
+}

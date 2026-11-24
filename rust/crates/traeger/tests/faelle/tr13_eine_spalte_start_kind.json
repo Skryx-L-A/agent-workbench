@@ -1,0 +1,1 @@
+{"art": "kind", "groesse": [1, 8], "start": {"kind": "ausgabe", "argv": ["e6bca2"], "env": {"PATH": "/usr/bin:/bin"}}, "schritte": [{"art": "Warte", "bis": {"kindende": true}}]}

@@ -1,0 +1,34 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "garten/schnecke.md",
+    "score": 1.0,
+    "title": "Schnecke",
+    "snippet": "Schnecken am Salat.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   },
+   {
+    "rel": "garten/salat.md",
+    "score": 0.9411764705882353,
+    "title": "Salat",
+    "snippet": "Schnecken fressen den Salat.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.5085859552656161
+   }
+  ]
+ }
+}

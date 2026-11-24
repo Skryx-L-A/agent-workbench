@@ -1,0 +1,78 @@
+{
+ "beschreibung": "ein Ereignis, das der Dienst als Fehler wertet (zum Beispiel mit t), beendet nur diese Verbindung: der Strom endet, ein zweiter Strom bleibt",
+ "datensatz": "A",
+ "name": "br_eingabe_dienstfehler",
+ "regeln": [
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "art": "Strom",
+   "name": "s1"
+  },
+  {
+   "art": "Strom",
+   "name": "s2"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "art": "Abo",
+     "t": 5
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "verbindung": "s1",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "fehler": "feld_verboten"
+   },
+   "strom": "s1"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "getrennt": true
+   },
+   "strom": "s1"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-9",
+     "spalten": 10,
+     "zeilen": 5
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "verbindung": "s2",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "ablehnung": "sitzung_unbekannt"
+   },
+   "strom": "s2"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

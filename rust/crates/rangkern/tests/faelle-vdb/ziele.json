@@ -1,0 +1,381 @@
+{
+ "aufruf": {
+  "search": [
+   "s-extra-ohne-index",
+   "s-index-db-ohne-wert",
+   "s-kurzform",
+   "s-query-vector-ohne-index"
+  ],
+  "serve": [
+   "v-extra-ohne-index",
+   "v-index-db-doppelt",
+   "v-index-db-ohne-wert",
+   "v-query-vector-option"
+  ]
+ },
+ "beide": {
+  "search": [
+   "s-beide",
+   "s-db-anderer-ort",
+   "s-gleiche-kosinus-beide",
+   "s-schreibschutz"
+  ],
+  "serve": [
+   "v-beide",
+   "v-db-anderer-ort",
+   "v-extra-zeile-neu",
+   "v-schreibschutz"
+  ]
+ },
+ "db-ersetzt": {
+  "serve": [
+   "v-db-ersetzt-kaputt",
+   "v-db-ersetzt",
+   "v-extra-ersetzt",
+   "v-kaputt-dann-heil",
+   "v-zufall-a",
+   "v-zufall-b"
+  ]
+ },
+ "db-geloescht": {
+  "serve": [
+   "v-db-geloescht",
+   "v-db-umbenannt",
+   "v-extra-geloescht",
+   "v-zufall-a",
+   "v-zufall-b"
+  ]
+ },
+ "db-neu": {
+  "serve": [
+   "v-db-geloescht",
+   "v-db-neu-angelegt",
+   "v-db-umbenannt",
+   "v-extra-neu-angelegt",
+   "v-zufall-a",
+   "v-zufall-b"
+  ]
+ },
+ "extra-fehlt": {
+  "search": [
+   "s-extra-fehlt"
+  ],
+  "serve": [
+   "v-extra-fehlt",
+   "v-extra-neu-angelegt"
+  ]
+ },
+ "fallback-ohne-vektor": {
+  "search": [
+   "s-fallback-kaputt",
+   "s-fallback-ohne-datei",
+   "s-fallback-ohne-qv"
+  ],
+  "serve": [
+   "v-kaputt",
+   "v-ohne-qv-liest-nicht"
+  ]
+ },
+ "fehlende-tabelle": {
+  "search": [
+   "s-fehlende-spalte-extra",
+   "s-fehlende-spalte",
+   "s-fehlende-tabelle",
+   "s-leere-datei"
+  ],
+  "serve": [
+   "v-fehlende-spalte",
+   "v-fehlende-tabelle",
+   "v-leere-datei"
+  ]
+ },
+ "gleiche-kosinus": {
+  "search": [
+   "s-einfuegereihenfolge",
+   "s-gleiche-kosinus-beide",
+   "s-gleiche-kosinus",
+   "s-ueberschneidung-platz"
+  ],
+  "serve": [
+   "v-gleiche-kosinus",
+   "v-ueberschneidung",
+   "v-zeile-ersetzt-platz"
+  ]
+ },
+ "kaputte-datei": {
+  "search": [
+   "s-abgeschnitten",
+   "s-fallback-kaputt",
+   "s-index-fehlt-ordner",
+   "s-index-fehlt",
+   "s-kaputt-extra",
+   "s-kaputt-index",
+   "s-leere-datei"
+  ],
+  "serve": [
+   "v-db-ersetzt-kaputt",
+   "v-kaputt-dann-heil",
+   "v-kaputt-extra",
+   "v-kaputt",
+   "v-leere-datei",
+   "v-ohne-qv-liest-nicht",
+   "v-protokoll-mit-db"
+  ]
+ },
+ "kein-neues-file": {
+  "search": [
+   "s-abgeschnitten",
+   "s-beide-leer",
+   "s-beide",
+   "s-db-anderer-ort",
+   "s-einfuegereihenfolge",
+   "s-extra-fehlt",
+   "s-extra-leer",
+   "s-extra-ohne-index",
+   "s-fallback-kaputt",
+   "s-fallback-ohne-datei",
+   "s-fallback-ohne-qv",
+   "s-fehlende-spalte-extra",
+   "s-fehlende-spalte",
+   "s-fehlende-tabelle",
+   "s-gleiche-kosinus-beide",
+   "s-gleiche-kosinus",
+   "s-grosse-db",
+   "s-index-db-ohne-wert",
+   "s-index-fehlt-ordner",
+   "s-index-fehlt",
+   "s-kaputt-extra",
+   "s-kaputt-index",
+   "s-kurzform",
+   "s-leere-datei",
+   "s-leere-tabelle",
+   "s-nur-gardener",
+   "s-ohne-vektoren-alt",
+   "s-query-vector-ohne-index",
+   "s-qv-eintrag-text",
+   "s-qv-fehlt",
+   "s-qv-kein-json",
+   "s-qv-leer",
+   "s-qv-objekt",
+   "s-relikt-geheim-extra",
+   "s-relikt-geheim",
+   "s-schreibschutz",
+   "s-space-k",
+   "s-ueberschneidung-platz",
+   "s-ueberschneidung-teil",
+   "s-ueberschneidung-wert",
+   "s-vectors-alt",
+   "s-vectors-und-index-vorn",
+   "s-vectors-und-index",
+   "s-vektor-bool",
+   "s-vektor-eintrag-text",
+   "s-vektor-infinity",
+   "s-vektor-kein-json",
+   "s-vektor-leerer-text",
+   "s-vektor-nan",
+   "s-vektor-null",
+   "s-vektor-objekt",
+   "s-vektor-relikt-ungueltig",
+   "s-vektor-spaet",
+   "s-vektor-ungueltig-extra",
+   "s-vektor-zahl"
+  ],
+  "serve": [
+   "v-aenderung-gleiche-groesse",
+   "v-aenderung-mehrere",
+   "v-beide",
+   "v-db-anderer-ort",
+   "v-db-ersetzt-kaputt",
+   "v-db-ersetzt",
+   "v-db-geloescht",
+   "v-db-neu-angelegt",
+   "v-db-umbenannt",
+   "v-extra-ersetzt",
+   "v-extra-fehlt",
+   "v-extra-geloescht",
+   "v-extra-neu-angelegt",
+   "v-extra-ohne-index",
+   "v-extra-zeile-geaendert",
+   "v-extra-zeile-geloescht",
+   "v-extra-zeile-neu",
+   "v-fehlende-spalte",
+   "v-fehlende-tabelle",
+   "v-gleiche-kosinus",
+   "v-index-db-doppelt",
+   "v-index-db-ohne-wert",
+   "v-kaputt-dann-heil",
+   "v-kaputt-extra",
+   "v-kaputt",
+   "v-keine-offen",
+   "v-lange-folge",
+   "v-leere-datei",
+   "v-leere-tabelle",
+   "v-nur-gardener",
+   "v-ohne-extra-option",
+   "v-ohne-qv-liest-nicht",
+   "v-protokoll-mit-db",
+   "v-query-vector-option",
+   "v-relikt-geheim",
+   "v-relikt-nach-loeschen",
+   "v-schreibschutz",
+   "v-ueberschneidung-wert",
+   "v-ueberschneidung",
+   "v-ungueltig-dann-repariert",
+   "v-vault-und-db",
+   "v-vectors-alt",
+   "v-vectors-und-index",
+   "v-vektor-eintrag-text",
+   "v-vektor-nan",
+   "v-vektor-relikt-ungueltig",
+   "v-vektor-ungueltig",
+   "v-zeile-ersetzt-platz",
+   "v-zeile-geaendert",
+   "v-zeile-geloescht",
+   "v-zeile-neu",
+   "v-zufall-a",
+   "v-zufall-b"
+  ]
+ },
+ "leere-tabelle": {
+  "search": [
+   "s-beide-leer",
+   "s-extra-leer",
+   "s-leere-tabelle"
+  ],
+  "serve": [
+   "v-leere-tabelle"
+  ]
+ },
+ "nur-gardener": {
+  "search": [
+   "s-db-anderer-ort",
+   "s-grosse-db",
+   "s-nur-gardener",
+   "s-space-k"
+  ],
+  "serve": [
+   "v-db-anderer-ort",
+   "v-lange-folge",
+   "v-nur-gardener",
+   "v-ohne-extra-option"
+  ]
+ },
+ "query-vector": {
+  "search": [
+   "s-qv-eintrag-text",
+   "s-qv-fehlt",
+   "s-qv-kein-json",
+   "s-qv-leer",
+   "s-qv-objekt"
+  ]
+ },
+ "regression-alt": {
+  "search": [
+   "s-ohne-vektoren-alt",
+   "s-vectors-alt"
+  ],
+  "serve": [
+   "v-vectors-alt"
+  ]
+ },
+ "relikt-geheim": {
+  "search": [
+   "s-grosse-db",
+   "s-relikt-geheim-extra",
+   "s-relikt-geheim",
+   "s-vektor-relikt-ungueltig"
+  ],
+  "serve": [
+   "v-relikt-geheim",
+   "v-relikt-nach-loeschen",
+   "v-vektor-relikt-ungueltig"
+  ]
+ },
+ "ueberschneidung-platz": {
+  "search": [
+   "s-ueberschneidung-platz",
+   "s-ueberschneidung-teil"
+  ],
+  "serve": [
+   "v-ueberschneidung"
+  ]
+ },
+ "ueberschneidung-wert": {
+  "search": [
+   "s-ueberschneidung-teil",
+   "s-ueberschneidung-wert"
+  ],
+  "serve": [
+   "v-extra-zeile-geaendert",
+   "v-extra-zeile-geloescht",
+   "v-ueberschneidung-wert",
+   "v-ueberschneidung"
+  ]
+ },
+ "ungueltiger-vektor": {
+  "search": [
+   "s-vektor-bool",
+   "s-vektor-eintrag-text",
+   "s-vektor-infinity",
+   "s-vektor-kein-json",
+   "s-vektor-leerer-text",
+   "s-vektor-nan",
+   "s-vektor-null",
+   "s-vektor-objekt",
+   "s-vektor-relikt-ungueltig",
+   "s-vektor-spaet",
+   "s-vektor-ungueltig-extra",
+   "s-vektor-zahl"
+  ],
+  "serve": [
+   "v-ungueltig-dann-repariert",
+   "v-vektor-eintrag-text",
+   "v-vektor-nan",
+   "v-vektor-relikt-ungueltig",
+   "v-vektor-ungueltig"
+  ]
+ },
+ "vectors-mit-index": {
+  "search": [
+   "s-vectors-und-index-vorn",
+   "s-vectors-und-index"
+  ],
+  "serve": [
+   "v-vectors-und-index"
+  ]
+ },
+ "zeile-geaendert": {
+  "serve": [
+   "v-aenderung-gleiche-groesse",
+   "v-aenderung-mehrere",
+   "v-extra-zeile-geaendert",
+   "v-ungueltig-dann-repariert",
+   "v-vault-und-db",
+   "v-zeile-ersetzt-platz",
+   "v-zeile-geaendert",
+   "v-zufall-a",
+   "v-zufall-b"
+  ]
+ },
+ "zeile-geloescht": {
+  "serve": [
+   "v-aenderung-mehrere",
+   "v-extra-zeile-geloescht",
+   "v-vektor-relikt-ungueltig",
+   "v-zeile-geloescht",
+   "v-zufall-a",
+   "v-zufall-b"
+  ]
+ },
+ "zeile-neu": {
+  "serve": [
+   "v-aenderung-mehrere",
+   "v-db-anderer-ort",
+   "v-extra-zeile-neu",
+   "v-vault-und-db",
+   "v-zeile-neu",
+   "v-zufall-a",
+   "v-zufall-b"
+  ]
+ }
+}

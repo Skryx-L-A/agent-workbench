@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Ergebnis eines MCP-Aufrufs",
+ "form": "antwort",
+ "text": "{\"art\":\"antwort\",\"ergebnis\":{\"content\":[{\"text\":\"ok\",\"type\":\"text\"}]},\"fassung\":1,\"id\":7,\"ok\":true}"
+}

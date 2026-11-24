@@ -1,0 +1,22 @@
+{
+ "description": "orthogonal: cosine 0, das Feld fehlt",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Zauberwort",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/werkstatt/orth.md": "---\ntitle: Orthogonal\ntype: note\n---\n\nKein Wort passt hier.\n",
+  "vault/werkstatt/nah.md": "---\ntitle: Nah\ntype: note\n---\n\nAuch hier kein Treffer.\n",
+  "vektoren.json": "{\"query\": [1, 0, 0], \"notes\": {\"werkstatt/orth.md\": [0, 0, 1], \"werkstatt/nah.md\": [1, 1, 0]}}"
+ }
+}

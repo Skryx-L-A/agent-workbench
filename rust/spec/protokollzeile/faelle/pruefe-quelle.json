@@ -1,0 +1,1577 @@
+{
+  "quelle": "Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
+  "faelle": [
+    {
+      "fall": "drei Monate mit zwei Ankern: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"4db31f7b71252862cf950d693523722aa3e61afe51cdef556002fb1336a1aa7d\",\"ok\":true,\"zeilen\":6}\n"
+      }
+    },
+    {
+      "fall": "Reihenfolge der Dateien im Ordner ist gleich",
+      "dateien": [
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"4db31f7b71252862cf950d693523722aa3e61afe51cdef556002fb1336a1aa7d\",\"ok\":true,\"zeilen\":6}\n"
+      }
+    },
+    {
+      "fall": "nur der laufende Monat, keine Ankerdatei: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"5c58f1649fcbb8c87b0578f3a4184f224b9d7e822a307ab6fb38a1ec2ccc4c26\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "laufender Monat mit eigenem Anker (Wechsel unterbrochen): gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744000,\"fassung\":2,\"letzte\":\"0e7c1064bb79037c95c118129578924da46df918b57d6d0da70e2463068e9dd8\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"0e7c1064bb79037c95c118129578924da46df918b57d6d0da70e2463068e9dd8\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "leerer Ordner: gruen mit null Zeilen",
+      "dateien": [],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":null,\"ok\":true,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "der Ordner fehlt",
+      "dateien": [],
+      "aufruf": [
+        "pruefe-quelle",
+        "@weg",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"weg\",\"grund\":\"datei_nicht_lesbar\",\"zeile\":null},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "stiller Monat (Oktober, Dezember): gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"b02f475d34c91f86aaf823b86a5f6af475c3849bcbbe1249255afa6a4b159b16\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "Anker geaendert: letzte",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "Anker des Novembers: Feld bis geaendert",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744002,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "Anker des Novembers: Feld von geaendert",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744001,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "Anker des Novembers: Feld vorher_erste geaendert",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"3333333333333333333333333333333333333333333333333333333333333333\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "Anker des Novembers: Feld monat geaendert",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-10\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "Anker des Novembers: Feld abschnitt geaendert",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-12.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"anker_fehlt\",\"zeile\":null},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "Anker des Novembers: von null statt Zahl",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":null,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "Anker mit zusaetzlichem Feld",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"titel\":\"x\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "Anker ohne Feld von",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "Anker mit fassung 3",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":3,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "Anker mit fassung 2 und Leerzeichen: nicht kanonisch",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\", \"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "Anker ohne fassung (Form 1g, Leerzeichen erlaubt): gilt",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\", \"bis\":1794744001,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"4db31f7b71252862cf950d693523722aa3e61afe51cdef556002fb1336a1aa7d\",\"ok\":true,\"zeilen\":6}\n"
+      }
+    },
+    {
+      "fall": "Monat November geloescht, Anker bleibt",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_ohne_datei\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Monat Oktober (zuerst) geloescht, Anker bleibt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_ohne_datei\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Anker ohne Datei: geloeschter Monat und kein Anker (die Kette zeigt es)",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-12.jsonl\",\"grund\":\"kette_gebrochen\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "Monat November geloescht samt Anker: die Kette zeigt es",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-12.jsonl\",\"grund\":\"kette_gebrochen\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "geschlossener Monat ohne Anker",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"anker_fehlt\",\"zeile\":null},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "geschlossener Monat, die Ankerdatei fehlt ganz",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-10.jsonl\",\"grund\":\"anker_fehlt\",\"zeile\":null},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "zwei Anker fuer einen Monat",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_doppelt\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Anker nennt eine Datei einer anderen Quelle",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"stelle-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Anker nennt keinen Monatsnamen",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-13.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Anker ohne Text abschnitt",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":5,\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Anker auf eine leere Monatsdatei",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": ""
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "leere Monatsdatei ohne Anker zwischen zwei Monaten: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": ""
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"7e9f7b06441fc7683b797b48f621b755ddf004c5a51b4e6ae0ed3ea457e5c59c\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "geschlossener Monat: Zeile 1 geaendert, einfach: die Kette bricht in Zeile 2",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":8,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-10.jsonl\",\"grund\":\"kette_gebrochen\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "geschlossener Monat: letzte Zeile geaendert, einfach: rot ueber den Anker",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":7,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "geschlossener Monat: Zeile 1 geaendert und alles danach neu verkettet: rot ueber den Anker",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":99,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"7463c95968cb0e71b4f1c3f2a2644a7610a3d7254cb5ab226675ae42a95ec3ce\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"69d16f11361bf137dee4f2bdc91ade7f392a85a011cdd548e3ab46f1523bff77\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"95062625d7c60b1cde291a578f98098a62fd9b20691e9180ec39b6528847bb73\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"d63414c6a64ed4a47555fc4409b89e2b5ce838dba7d88109f265383d7ce70c9c\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0a10f60beef5d6e774f7817f8b7f520aeb3b06bf2d372af61c9ada6711c6e303\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "geschlossener Monat: letzte Zeile geaendert und alles danach neu verkettet: rot ueber den Anker",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":99,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"b24467f8738a8979033524ddc7077ce74f87947e01c9a7ec7e93493d5ff8228d\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"3606beeb8be5b333219142e143e8a9b41b23cbcbb61433aa368c5177c3b81281\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"d0a81b7414b9e4cb5ae4b862de205eac3022021a487a7a152750f104c8e82a13\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"f572bd7a5f6a5f76c7a62605dfd16ea1abba383082dea5bc919be91937245545\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "zweiter geschlossener Monat neu verkettet: der erste Anker stimmt, der zweite nicht",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":99,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"7bec08ca3ea3d43795a6a0da1689b196c4c96313422205b574e1bfde1b67b0a0\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"7a1cab13fb9746e13aa1f2a842d935269208e203acfced2583b5d6f060ee0a2f\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "laufender Monat neu verkettet ohne Anker: bleibt unentdeckt (gruen)",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":99,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"6ecac3ca21cfac38bc1c00ae689a0a41150a001ad6645dbadcfb038d9c6e2fca\",\"ok\":true,\"zeilen\":6}\n"
+      }
+    },
+    {
+      "fall": "laufender Monat letzte Zeile geaendert, mit --letzte: rot",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":9,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "--letzte",
+        "4db31f7b71252862cf950d693523722aa3e61afe51cdef556002fb1336a1aa7d",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-12.jsonl\",\"grund\":\"letzte_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":6}\n"
+      }
+    },
+    {
+      "fall": "--letzte stimmt",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "--letzte",
+        "4db31f7b71252862cf950d693523722aa3e61afe51cdef556002fb1336a1aa7d",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"4db31f7b71252862cf950d693523722aa3e61afe51cdef556002fb1336a1aa7d\",\"ok\":true,\"zeilen\":6}\n"
+      }
+    },
+    {
+      "fall": "--vorher fuer einen Ordner, der mitten in der Kette beginnt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "--vorher",
+        "683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"4db31f7b71252862cf950d693523722aa3e61afe51cdef556002fb1336a1aa7d\",\"ok\":true,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "ohne --vorher beginnt dieser Ordner mit einem Bruch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"kette_gebrochen\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Zeile im Monat geaendert, Pruefer meldet die Kette zuerst",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":9,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"fed03ad5f824cbcf016c0d143743366e2a35761a3807bd1adb39e86f29d4e8a2\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":5,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"a6fcceba312a3c74968eda3561fd593ad85f83ea108f44cdf2e552647b58b3b1\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":6,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ce789003c0c5429725c2f6e6a561e05fc000487da4ff59eb6f9b8f23f4b686ab\",\"zeit\":\"2026-12-01T00:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "--vorher",
+        "683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"kette_gebrochen\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "Monatsdatei beginnt mit einem Bruch im zweiten Monat",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"kette_gebrochen\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "Ankerdatei: unlesbare Zeile",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "kaputt\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"zeile_unlesbar\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Ankerdatei: leere Zeile",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"zeile_unlesbar\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Ankerdatei: Zeile ist ein Feld, kein Objekt",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "[1]\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"zeile_unlesbar\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Ankerdatei: letzte Zeile ohne LF",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"brain-2026-10.jsonl\",\"bis\":1792540800,\"fassung\":2,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"monat\":\"2026-10\",\"von\":1792454400,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain.anker.jsonl\",\"grund\":\"letzte_zeile_unvollstaendig\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Ankerdatei leer: wie keine Anker",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-20T00:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"60194c4b2f5d6b3a10b3e47af274176384cf3e772bba18a32a76ac69a03ffc94\",\"zeit\":\"2026-10-21T00:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain.anker.jsonl",
+          "inhalt": ""
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"683d3f8267d1de79e10479439a802ef3254c2dfb5df08d4b9c6c42da5c0e04a7\",\"ok\":true,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "Dateien anderer Quellen und fremde Namen zaehlen nicht",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        },
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "kaputt\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl.bak",
+          "inhalt": "kaputt\n"
+        },
+        {
+          "name": "brain-2026-13.jsonl",
+          "inhalt": "kaputt\n"
+        },
+        {
+          "name": "brain.jsonl",
+          "inhalt": "kaputt\n"
+        },
+        {
+          "name": "stelle.anker.jsonl",
+          "inhalt": "kaputt\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"0e7c1064bb79037c95c118129578924da46df918b57d6d0da70e2463068e9dd8\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "Quelle stelle im selben Ordner",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "kaputt\n"
+        },
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "stelle"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"0e7c1064bb79037c95c118129578924da46df918b57d6d0da70e2463068e9dd8\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "Monatsdatei fehlt in der Liste (fehlt: true) zaehlt nicht",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "fehlt": true
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":null,\"ok\":true,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Gateway: Oktober (1g) mit altem Anker, November (1g) laufend",
+      "dateien": [
+        {
+          "name": "gateway-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.angemeldet\",\"ergebnis\":\"ok\",\"grund\":\"passkey\",\"person\":\"anna\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-31T23:59:58.500Z\"}\n{\"aktionsname\":\"test.sonderzeichen\",\"ergebnis\":\"ok\",\"grund\":\"a\\\"b\\\\c/d\\n\\t\\u0001\\u001fä€𝄞<>& \",\"status\":200,\"vorher\":\"cc93a534ce4b330dabe7c47b77753a593b0d9f0bac3686c12791e7be64b3b8d7\",\"zeit\":\"2026-10-31T23:59:59.999Z\"}\n"
+        },
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"audit.luecke\",\"anzahl\":50,\"ergebnis\":\"fehler\",\"grund\":\"bremse\",\"seit\":\"2026-10-31T23:59:00.000Z\",\"vorher\":\"581ef8e7d7b3982783b824fde024109264b23180a9e64806c24ae222c35bdd49\",\"zeit\":\"2026-11-01T00:00:00.000Z\"}\n{\"aktionsname\":\"sitzung.abgemeldet\",\"ergebnis\":\"ok\",\"person\":\"anna\",\"status\":200,\"vorher\":\"15925d1e1bbc4099e467abd7baa992394fa4a221b17ccf2fb24ab3cbbdd8167d\",\"zeit\":\"2026-11-01T00:00:00.001Z\"}\n"
+        },
+        {
+          "name": "gateway.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"gateway-2026-10.jsonl\",\"bis\":1793491199.999,\"letzte\":\"581ef8e7d7b3982783b824fde024109264b23180a9e64806c24ae222c35bdd49\",\"monat\":\"2026-10\",\"von\":1793491198.5,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "gateway"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"361a5747a2ba03d43df8b08a86480d933f96120cbe812156d9790cab9330d376\",\"ok\":true,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "Gateway: der alte Anker passt nicht zur Datei",
+      "dateien": [
+        {
+          "name": "gateway-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.angemeldet\",\"ergebnis\":\"ok\",\"grund\":\"passkey\",\"person\":\"anna\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-31T23:59:58.500Z\"}\n{\"aktionsname\":\"test.sonderzeichen\",\"ergebnis\":\"ok\",\"grund\":\"a\\\"b\\\\c/d\\n\\t\\u0001\\u001fä€𝄞<>& \",\"status\":200,\"vorher\":\"cc93a534ce4b330dabe7c47b77753a593b0d9f0bac3686c12791e7be64b3b8d7\",\"zeit\":\"2026-10-31T23:59:59.999Z\"}\n"
+        },
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"audit.luecke\",\"anzahl\":50,\"ergebnis\":\"fehler\",\"grund\":\"bremse\",\"seit\":\"2026-10-31T23:59:00.000Z\",\"vorher\":\"581ef8e7d7b3982783b824fde024109264b23180a9e64806c24ae222c35bdd49\",\"zeit\":\"2026-11-01T00:00:00.000Z\"}\n{\"aktionsname\":\"sitzung.abgemeldet\",\"ergebnis\":\"ok\",\"person\":\"anna\",\"status\":200,\"vorher\":\"15925d1e1bbc4099e467abd7baa992394fa4a221b17ccf2fb24ab3cbbdd8167d\",\"zeit\":\"2026-11-01T00:00:00.001Z\"}\n"
+        },
+        {
+          "name": "gateway.anker.jsonl",
+          "inhalt": "{\"abschnitt\":\"gateway-2026-10.jsonl\",\"bis\":1793491199.999,\"letzte\":\"581ef8e7d7b3982783b824fde024109264b23180a9e64806c24ae222c35bdd49\",\"monat\":\"2026-10\",\"von\":1793491198.6,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "gateway"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway.anker.jsonl\",\"grund\":\"anker_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "Aufruf ohne Quelle",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "Aufruf ohne Ordner und Quelle",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "Aufruf mit drei Angaben",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain",
+        "stelle"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "Aufruf mit unbekannter Quelle audit",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "audit"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "Aufruf mit Quelle in Grossbuchstaben",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "Brain"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "Aufruf mit unbekanntem Schalter",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "--alles",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "Aufruf mit --vorher zu kurz",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "--vorher",
+        "abc",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "Aufruf mit --vorher doppelt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "--vorher",
+        "0000000000000000000000000000000000000000000000000000000000000000",
+        "--vorher",
+        "0000000000000000000000000000000000000000000000000000000000000000",
+        "@@",
+        "brain"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "Aufruf mit --letzte ohne Wert",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe-quelle",
+        "@@",
+        "brain",
+        "--letzte"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    }
+  ]
+}

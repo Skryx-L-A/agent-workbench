@@ -1,0 +1,4 @@
+{
+ "beschreibung": "Tiefe 128 geht vor einem unbekannten Schlüssel (Stufe 2 vor 3)",
+ "text": "{\n \"fassung\": 1,\n \"y\": 1,\n \"x\": [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud-beispiel\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal-beispiel\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-beispiel\",\n   \"erlaubt\": [\n    \"lokal-beispiel\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+}

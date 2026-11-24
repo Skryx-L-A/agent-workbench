@@ -1,0 +1,13 @@
+{
+ "fassung": 2,
+ "seite": "anlegen",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe ok, Socket mit Modus 0666 vor listen",
+  "ohne g_hub: connect scheitert mit EACCES, kein Ereignis (Annahme L-2)",
+  "mit g_hub: Verbindung kommt beim Server an"
+ ]
+}

@@ -1,0 +1,5 @@
+{
+ "beschreibung": "pid über 2^32-1",
+ "form": "steuer",
+ "text": "{\"op\": \"lauf_start\", \"ordner\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"sitzung\": \"s-1\", \"pid\": 4294967296, \"ports\": [50101, 50102]}\n"
+}

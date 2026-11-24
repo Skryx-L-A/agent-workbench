@@ -1,0 +1,5 @@
+{
+ "beschreibung": "projektwurzeln als Text",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": \"C:\\\\Projekte\",\n \"programmordner\": [\n  \"C:\\\\Users\\\\beispiel\\\\AppData\\\\Local\\\\Programs\\\\werkbank-harness\"\n ],\n \"shell\": \"powershell\"\n}\n"
+}

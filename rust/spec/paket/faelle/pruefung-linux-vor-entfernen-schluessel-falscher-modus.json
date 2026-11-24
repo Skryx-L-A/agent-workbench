@@ -1,0 +1,32 @@
+{
+ "beschreibung": "die Datei liegt mit falschem Modus da: derselbe Satz, kein Modus und kein Pfad darin",
+ "form": "pruefung",
+ "aufruf": [
+  "--vor-entfernen"
+ ],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   }
+  ],
+  "apparmor": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "modus",
+  "copilot": "fehlt",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

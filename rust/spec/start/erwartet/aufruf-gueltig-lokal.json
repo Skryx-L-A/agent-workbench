@@ -1,0 +1,69 @@
+{
+ "exec": "pi",
+ "harness_argv": [
+  "pi",
+  "--provider",
+  "wb-lokal",
+  "--model",
+  "qwen3:8b"
+ ],
+ "eltern_ist_programm": true,
+ "stderr": "",
+ "suche_gestartet": true,
+ "eigener_netzraum": true,
+ "modellweg_argv": [
+  "<modellweg>",
+  "--betriebsart",
+  "openai-lokal",
+  "--socket",
+  "<socket>",
+  "--socket-rechte",
+  "0600",
+  "--sitzung",
+  "s-2",
+  "--route",
+  "lokal-beispiel",
+  "--protokoll",
+  "<protokoll>",
+  "--ziel",
+  "http://127.0.0.1:11434/v1",
+  "--modell",
+  "qwen3:8b",
+  "--schluessel-datei",
+  "<schluessel-datei>"
+ ],
+ "modellweg_umgebung": {},
+ "modellweg_gast": "127.0.0.1:11434",
+ "anbieter_datei": "<heim>/.pi/agent/models.json",
+ "anbieter": {
+  "providers": {
+   "wb-lokal": {
+    "baseUrl": "http://127.0.0.1:11434/v1",
+    "api": "openai-completions",
+    "apiKey": "wb-ohne-schluessel",
+    "models": [
+     {
+      "id": "qwen3:8b"
+     }
+    ]
+   }
+  }
+ },
+ "e5_agent": {
+  "gast_11434": "erreichbar, fuehrt zum Modellweg",
+  "rechner_loopback_bruecke": "scheitert",
+  "rechner_loopback_route_direkt": "scheitert",
+  "gast_8402": "scheitert",
+  "aussen_beliebig": "scheitert"
+ },
+ "e4": {
+  "treffer_marke_im_einschluss": 0,
+  "upstream_zaehler": "steigt",
+  "ziel_direkt": "scheitert"
+ },
+ "ohne_marker_nicht_in_argv": [
+  "--probelauf",
+  "--marker",
+  "--marker-zaehlung"
+ ]
+}

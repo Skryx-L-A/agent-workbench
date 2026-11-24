@@ -1,0 +1,95 @@
+{
+ "beschreibung": "ein Rahmen kommt in drei Teilen an und wird zusammengesetzt",
+ "datensatz": "A",
+ "name": "di3_rahmen_in_teilen",
+ "regeln": [
+  "DI3"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Roh",
+   "betrachter": "c1",
+   "hex": "000000"
+  },
+  {
+   "art": "Pause",
+   "sekunden": 0.1
+  },
+  {
+   "art": "Roh",
+   "betrachter": "c1",
+   "hex": "4e017b22616e223a20747275652c2022617274223a202241626f222c20227369747a756e6722"
+  },
+  {
+   "art": "Pause",
+   "sekunden": 0.1
+  },
+  {
+   "art": "Roh",
+   "betrachter": "c1",
+   "hex": "3a2022732d616c706861222c20227370616c74656e223a2034302c20227a65696c656e223a2031307d"
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "BEREIT"
+   },
+   "takt": 16
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   40,
+   10
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "ausgabe",
+    "48414c4c4f0d0a"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

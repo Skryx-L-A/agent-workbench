@@ -1,0 +1,21 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Kaputt"
+  ],
+  "fields": {
+   "title": "Kaputt"
+  },
+  "body": "Vor�Nach\n",
+  "title": "Kaputt",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "kaputt",
+   "note"
+  ],
+  "embed_text": "Kaputt\n\nVor�Nach\n"
+ }
+}

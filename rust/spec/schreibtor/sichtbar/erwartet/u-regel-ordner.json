@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "S16"
+ ],
+ "beschreibung": "Der Ordner einer Regel ist absolut."
+}

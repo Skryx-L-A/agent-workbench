@@ -1,0 +1,5 @@
+{
+ "exit": 78,
+ "tls_pruefung": "rot",
+ "befund": "stderr enthält /srv/beispiel/ca.pem"
+}

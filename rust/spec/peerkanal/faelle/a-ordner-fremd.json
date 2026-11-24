@@ -1,0 +1,34 @@
+{
+ "beschreibung": "Socket-Ordner gehört einer anderen Kennung",
+ "art": "aussentest",
+ "ort": [
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk",
+  "uid_fremd": 1000000102
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "uid": 1000000101
+   }
+  ],
+  "instanzen": 4,
+  "unix": {
+   "ordner": "/k-beispiel/lauf/pk",
+   "modus": "0600"
+  }
+ },
+ "client": null,
+ "aufbau": [
+  "Ordner 0700, Besitzer uid_fremd, für den Server betretbar über eine ACL oder als root angelegt"
+ ],
+ "handlung": [
+  "Server::anlegen als uid_person"
+ ]
+}

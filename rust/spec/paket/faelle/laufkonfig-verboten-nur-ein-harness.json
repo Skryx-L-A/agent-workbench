@@ -1,0 +1,21 @@
+{
+ "beschreibung": "Nur der Ordner von copilot ist verboten: copilot wird nicht eingetragen, pi und sein Programmordner bleiben; eine Zeile in der Zustandsdatei",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "copilot": {
+   "programm": "/srv/beispiel/heim/nutzer1/.local/share/keyrings/copilot",
+   "node": null
+  },
+  "pi": {
+   "programm": "/srv/beispiel/heim/nutzer1/.nvm/versions/node/v24.1.0/lib/node_modules/pi-coding-agent/dist/cli.js",
+   "node": "/srv/beispiel/heim/nutzer1/.nvm/versions/node/v24.1.0/bin/node"
+  }
+ },
+ "vorher": null,
+ "pruefer_verboten": [
+  "/srv/beispiel/heim/nutzer1/.local/share/keyrings"
+ ]
+}

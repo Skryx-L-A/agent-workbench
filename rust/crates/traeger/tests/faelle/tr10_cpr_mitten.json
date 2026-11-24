@@ -1,0 +1,34 @@
+{
+ "name": "tr10_cpr_mitten",
+ "regeln": [
+  "TR10",
+  "TR14"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Eine Abfrage mitten in der Ausgabe nennt die Lage beim letzten Byte der Abfrage, nicht am Ende des Stücks; sie ist kein Ereignis und teilt die Ausgabe nicht (eine Ausgabe je Stück), vor einem Titel bleibt die Reihenfolge von TR2",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha\u001b[6nbeta"
+  },
+  {
+   "art": "Text",
+   "text": "gamma\u001b[6n\r\ndelta\u001b[6n\u001b[2;2H"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "epsilon\u001b[6n\u001b]2;zeta\u0007alpha\u001b[6n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

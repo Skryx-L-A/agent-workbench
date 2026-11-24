@@ -1,0 +1,17 @@
+{
+ "exit": 0,
+ "stdout": {
+  "in_scope": false,
+  "fields": {
+   "title": "T"
+  },
+  "blocks": 1,
+  "findings": [
+   {
+    "kind": "pflichtfeld",
+    "detail": "Pflichtfeld fehlt: id, schema, class, type"
+   }
+  ],
+  "new": false
+ }
+}

@@ -1,0 +1,23 @@
+{
+ "beschreibung": "Datei gelöscht und kein Hinweis: `remove_schluessel_verloren` zuerst",
+ "form": "remove",
+ "nutzer": "nutzer1",
+ "marke": "SCHLUESSEL-PRUEFMARKE-0001",
+ "nach_installation": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "datei:/var/lib/werkbank/nutzer1/modellweg.schluessel"
+ ],
+ "nach_remove": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1"
+ ],
+ "meldung": "",
+ "journal": "werkbank: pruef.schluessel_rest: Eine Schluesseldatei liegt noch da; apt purge loescht sie.\n"
+}

@@ -1,0 +1,70 @@
+{
+ "name": "tr1_attribute",
+ "regeln": [
+  "TR1"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Attribute fett, dimm, kursiv, unterstrichen (auch gewellt und doppelt), invers, verdeckt, durchgestrichen",
+ "art": "strom",
+ "groesse": [
+  30,
+  16
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[1malpha 1\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[2malpha 2\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[3malpha 3\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[4malpha 4\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[4:3malpha 4:3\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[21malpha 21\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[7malpha 7\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8malpha 8\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[9malpha 9\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;3;4malpha 1;3;4\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;2malpha 1;2\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[2;22;1malpha 2;22;1\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;3mab\u001b[23mcd\u001b[22mef\u001b[0m\r\n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

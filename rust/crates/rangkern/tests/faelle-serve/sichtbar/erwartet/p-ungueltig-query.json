@@ -1,0 +1,41 @@
+{
+ "responses": [
+  {
+   "error": "bad_request",
+   "id": 1
+  },
+  {
+   "error": "bad_request",
+   "id": 2
+  },
+  {
+   "error": "bad_request",
+   "id": 3
+  },
+  {
+   "error": "bad_request",
+   "id": 4
+  },
+  {
+   "error": "bad_request",
+   "id": 5
+  },
+  {
+   "error": "bad_request",
+   "id": 6
+  },
+  {
+   "error": "bad_request",
+   "id": 7
+  },
+  {
+   "ok": true,
+   "id": "noch-da"
+  },
+  {
+   "ok": true,
+   "id": "ende"
+  }
+ ],
+ "exit": 0
+}

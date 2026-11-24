@@ -1,0 +1,135 @@
+{
+ "beschreibung": "Jede Ablehnung wird sofort angesagt, bekannte Gründe mit deutschem Text, unbekannte mit dem Code.",
+ "datensatz": "A",
+ "name": "se3_ablehnung",
+ "regeln": [
+  "SE3"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Testid",
+   "sichtbar": false,
+   "testid": "fehler"
+  },
+  {
+   "art": "Ablehnung",
+   "grund": "taste_unbekannt"
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Abgelehnt: Taste nicht belegt"
+   ]
+  },
+  {
+   "art": "Testid",
+   "sichtbar": true,
+   "testid": "fehler"
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-code",
+   "text": "taste_unbekannt"
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-text",
+   "text": "Taste nicht belegt"
+  },
+  {
+   "art": "Ablehnung",
+   "grund": "start.harness_unbekannt",
+   "text": "Der Harness ist unbekannt."
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Abgelehnt: Der Harness ist unbekannt."
+   ]
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-code",
+   "text": "start.harness_unbekannt"
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-text",
+   "text": "Der Harness ist unbekannt."
+  },
+  {
+   "art": "Ablehnung",
+   "grund": "neu_grund_x"
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Abgelehnt: neu_grund_x"
+   ]
+  },
+  {
+   "art": "Ablehnung",
+   "grund": "sitzung_beendet"
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Abgelehnt: Sitzung beendet"
+   ]
+  }
+ ]
+}

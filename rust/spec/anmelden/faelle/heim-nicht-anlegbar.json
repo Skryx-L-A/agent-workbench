@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Wurzel des Wegwerf-Heims fehlt",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "erfolg",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "fehlt",
+ "signal": null,
+ "reste": "keine"
+}

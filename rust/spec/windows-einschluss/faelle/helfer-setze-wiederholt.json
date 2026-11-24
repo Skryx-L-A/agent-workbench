@@ -1,0 +1,11 @@
+{
+ "beschreibung": "SETZE für eine SID, die schon in der Liste steht",
+ "form": "helfer",
+ "b64": "U0VUWkUgUy0xLTE1LTItMTExMTExMTExMS0yMjIyMjIyMjIyLTMzMzMzMzMzMzMtMTQ0NDQ0NDQ0NC0xNTU1NTU1NTU1LTM2NjY2NjY2NjYtMjc3Nzc3Nzc3Nwo=",
+ "lage": {
+  "sperre": true,
+  "liste": [
+   "S-1-15-2-1111111111-2222222222-3333333333-1444444444-1555555555-3666666666-2777777777"
+  ]
+ }
+}

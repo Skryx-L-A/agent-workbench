@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "erbe-unklar",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   }
+  ]
+ }
+}

@@ -1,0 +1,49 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "protokoll": [],
+   "stderr_fremd": 0,
+   "token_datei_entfernt": true,
+   "token_nicht_in_ausgabe": true
+  },
+  "ergebnisse": [
+   {
+    "deflate": "0",
+    "kennung": true,
+    "kennung_verschieden": true,
+    "status": 200
+   },
+   {
+    "betrachter": 1,
+    "sitzungen": [],
+    "verbindungen": 1
+   },
+   {
+    "ok": true
+   },
+   {
+    "betrachter": 0,
+    "sitzungen": [],
+    "verbindungen": 1
+   }
+  ],
+  "start": {
+   "hoerer": [
+    "127.0.0.1"
+   ],
+   "ok": true,
+   "ordner_modus": "0700",
+   "port_zeile": true,
+   "stderr_leer": true,
+   "stdout_zeilen": 1,
+   "token_datei": {
+    "form": true,
+    "modus": "0600",
+    "verschieden": true
+   }
+  }
+ },
+ "exit": 0
+}

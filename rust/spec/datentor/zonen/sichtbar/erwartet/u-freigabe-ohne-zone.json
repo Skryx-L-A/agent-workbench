@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "Z10"
+ ],
+ "beschreibung": "Eine Projektfreigabe nennt eine Route ohne Zone."
+}

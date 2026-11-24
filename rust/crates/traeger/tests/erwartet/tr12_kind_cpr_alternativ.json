@@ -1,0 +1,77 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "ausgaben_nach_kindende": 0,
+   "cursor": [
+    3,
+    0,
+    true
+   ],
+   "groesse": [
+    70,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "zeilen": [
+    "",
+    "",
+    "ANTWORT 1b5b323b3552",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Kindende",
+      "code": 0
+     }
+    ],
+    "ok": true
+   },
+   {
+    "ereignisse": [],
+    "ok": true,
+    "zustand": {
+     "abbild_gleich": true,
+     "ausgaben_nach_kindende": 0,
+     "cursor": [
+      3,
+      0,
+      true
+     ],
+     "groesse": [
+      70,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "zeilen": [
+      "",
+      "",
+      "ANTWORT 1b5b323b3552",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.paketstand_datei_fremd: Die Datei bin/fremd.dll steht nicht im Manifest.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

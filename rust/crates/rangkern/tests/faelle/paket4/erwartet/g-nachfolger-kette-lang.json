@@ -1,0 +1,36 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "lang/d.md",
+    "score": 1.0,
+    "title": "Lang D",
+    "snippet": "Endstand ohne Suchwort.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "nachfolger"
+   },
+   {
+    "rel": "lang/a.md",
+    "score": 0.49,
+    "title": "Lang A",
+    "snippet": "Gartenschlauch Anschluss, Gartenschlauch am Hahn.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "status": "superseded",
+    "abgeloest_durch": [
+     "lang/d.md"
+    ]
+   }
+  ]
+ }
+}

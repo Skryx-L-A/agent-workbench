@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Token mit Präfix github_pat_",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "erfolg",
+ "token": {
+  "praefix": "github_pat_",
+  "fuell": "C",
+  "laenge": 93
+ },
+ "ziel": "frei",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

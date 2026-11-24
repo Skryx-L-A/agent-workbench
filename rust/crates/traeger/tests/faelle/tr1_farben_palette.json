@@ -1,0 +1,66 @@
+{
+ "name": "tr1_farben_palette",
+ "regeln": [
+  "TR1"
+ ],
+ "datensatz": "A",
+ "beschreibung": "256 Farben (Zahl plus 1), Truecolor (0x01000000 plus RGB), Farbe 9 gleich 91",
+ "art": "strom",
+ "groesse": [
+  30,
+  16
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[38;5;0m0\u001b[48;5;255m0\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[38;5;7m7\u001b[48;5;248m7\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[38;5;8m8\u001b[48;5;247m8\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[38;5;15m15\u001b[48;5;240m15\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[38;5;16m16\u001b[48;5;239m16\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[38;5;21m21\u001b[48;5;234m21\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[38;5;100m100\u001b[48;5;155m100\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[38;5;231m231\u001b[48;5;24m231\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[38;5;255m255\u001b[48;5;0m255\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[38;2;12;200;99mgruen\u001b[48;2;250;3;128mrosa\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[38:2::1:2:3mdoppelpunkt\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[38;5;9mx\u001b[91my\u001b[39mz\r\n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

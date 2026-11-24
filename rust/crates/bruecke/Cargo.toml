@@ -1,0 +1,31 @@
+[package]
+name = "bruecke"
+version = "0.1.0"
+description = "The bridge of the walking skeleton: wb-bruecke speaks HTTP/1.1 on 127.0.0.1 to the browser and hands bytes to the Unix socket of the service."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "wb-bruecke"
+path = "src/main.rs"
+
+# serde_json: only reads the body (is it JSON? is it an object?) and writes the start event and the answers of the
+# bridge (default features, depth limit 128 stays on, as the contract's depth rule needs).
+# signal-hook (default features) and rustix (feature `process`) are already in Cargo.lock and in the build through
+# alacritty_terminal, polling and portable-pty: no new crate enters the graph. std offers neither a signal handler
+# (SIGTERM must end the bridge with exit code 0 and remove the token file) nor the effective user id (the owner of the
+# token folder is compared with it), and both are `unsafe` calls when made through libc. The crates make them safe.
+# kernabbild (path, crate of the workspace; no new package): the first step of the program shields the memory of the process from core
+# images (`PR_SET_DUMPABLE 0`, `RLIMIT_CORE` 1/1; decision of 21.11.2026). The crate returns reasons; `src/abschirmung.rs` turns them into exit code 5.
+[dependencies]
+kernabbild = { path = "../kernabbild" }
+rustix = { version = "1", default-features = false, features = ["std", "process", "fs"] }
+serde_json = "1"
+signal-hook = "0.4"
+
+[lints]
+workspace = true

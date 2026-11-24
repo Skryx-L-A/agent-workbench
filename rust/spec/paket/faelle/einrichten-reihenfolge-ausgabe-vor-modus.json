@@ -1,0 +1,21 @@
+{
+ "beschreibung": "Schlüssel in der Ausgabe und falscher Modus: `schluessel_in_ausgabe` zuerst",
+ "form": "einrichten",
+ "nutzer": "nutzer1",
+ "marke": "SCHLUESSEL-PRUEFMARKE-0001",
+ "stdout": "SCHLUESSEL-PRUEFMARKE-0001",
+ "stderr": "",
+ "journal": "werkbank-probelauf: eingerichtet\n",
+ "argv": "werkbank-probelauf --ergebnis /srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+ "umgebung": "TERM=xterm\nLANG=C.UTF-8\n",
+ "protokolle": [
+  "{\"aktion\":\"einrichten\",\"ergebnis\":\"ok\"}\n"
+ ],
+ "ergebnisdatei": "{\"art\":\"probelauf-ergebnis\",\"fassung\":1}\n",
+ "echo": false,
+ "datei": {
+  "modus": "0644",
+  "eigentuemer": "nutzer1",
+  "inhalt": "SCHLUESSEL-PRUEFMARKE-0001"
+ }
+}

@@ -1,0 +1,6 @@
+{
+ "erwartet": "Signal an den fremden Agenten gelingt; der Test wird rot",
+ "messwerte": [
+  "errno"
+ ]
+}

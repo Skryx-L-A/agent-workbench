@@ -1,0 +1,39 @@
+{
+ "beschreibung": "Klassen gehören nicht in den Start",
+ "form": "anfrage",
+ "text": "{\n \"fassung\": 1,\n \"harness\": \"claude\",\n \"modell\": \"claude-sonnet-5-5\",\n \"route\": \"cloud-beispiel\",\n \"kunde\": \"k-beispiel\",\n \"arbeitsordner\": \"/home/beispiel/projekt\",\n \"klasse\": \"intern\"\n}\n",
+ "einstellungen": {
+  "fassung": 1,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "vorgabestufe": "kundendaten",
+  "routen": [
+   {
+    "schluessel": "cloud-beispiel",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal-beispiel",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-beispiel",
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ }
+}

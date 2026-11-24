@@ -1,0 +1,7 @@
+{
+ "beschreibung": "port 65535 ist der größte gültige Wert und bleibt",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "vorher_bruecke": "{\"port\":65535}"
+}

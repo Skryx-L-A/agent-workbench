@@ -1,0 +1,296 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, wurmkiste zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer wurmkiste. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    },
+    {
+     "rel": "10-global/kompost.md",
+     "score": 0.5662009428353283,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, wurmkiste zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer wurmkiste. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.5662009428353283
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, wurmkiste zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer wurmkiste. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    },
+    {
+     "rel": "10-global/kompost.md",
+     "score": 0.5662009428353283,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, wurmkiste zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer wurmkiste. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.5662009428353283
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, wurmkiste zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer wurmkiste. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    },
+    {
+     "rel": "10-global/kompost.md",
+     "score": 0.5662009428353283,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, wurmkiste zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer wurmkiste. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.5662009428353283
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ]
+  }
+ ],
+ "exit": 0
+}

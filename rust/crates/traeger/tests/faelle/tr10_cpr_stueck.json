@@ -1,0 +1,68 @@
+{
+ "name": "tr10_cpr_stueck",
+ "regeln": [
+  "TR10",
+  "TR14"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Eine Abfrage, die über Stückgrenzen geschnitten ankommt, wird im Stück ihres letzten Bytes beantwortet, mit der Lage an dieser Stelle; eine mit CAN (0x18) abgebrochene Abfrage bleibt ohne Antwort; ESC[6, dann eine neue Abfrage ESC[6n im nächsten Stück gibt genau eine Antwort",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Bytes",
+   "hex": "1b"
+  },
+  {
+   "art": "Bytes",
+   "hex": "5b36"
+  },
+  {
+   "art": "Bytes",
+   "hex": "6e"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "delta"
+  },
+  {
+   "art": "Bytes",
+   "hex": "657073696c6f6e1b5b"
+  },
+  {
+   "art": "Bytes",
+   "hex": "366e7a657461"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Bytes",
+   "hex": "1b5b36"
+  },
+  {
+   "art": "Bytes",
+   "hex": "18616c706861"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Bytes",
+   "hex": "1b5b36"
+  },
+  {
+   "art": "Bytes",
+   "hex": "1b5b366e"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

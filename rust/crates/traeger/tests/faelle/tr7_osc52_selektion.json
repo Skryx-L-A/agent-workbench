@@ -1,0 +1,31 @@
+{
+ "name": "tr7_osc52_selektion",
+ "regeln": [
+  "TR7"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Die Auswahl (zweiter Teil) wird nicht ausgewertet; jede ist gleich",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b]52;cp;YQ==\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;s;Yg==\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;0;Yw==\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;x;?\u0007"
+  }
+ ]
+}

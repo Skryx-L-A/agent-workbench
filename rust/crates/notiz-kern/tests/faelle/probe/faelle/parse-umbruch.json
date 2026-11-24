@@ -1,0 +1,10 @@
+{
+ "description": "wrapped scalar over three lines joins with spaces",
+ "files": {
+  "note.md": "---\ndescription: eins\n  zwei\n  drei\ntitle: Umbruch\n---\n\nX\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

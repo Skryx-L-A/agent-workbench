@@ -1,0 +1,689 @@
+{
+  "quelle": "Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
+  "faelle": [
+    {
+      "fall": "drei gesperrt-Zeilen: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"einheit-ohne-klasse\",\"klasse\":null,\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0002\",\"vorher\":\"bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569\",\"zeit\":\"2026-11-20T13:01:01.001Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"8d5acffb7ee38d04497a8ffe5ebf3baa525e520616bcedf88d77ede8c6774c9a\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "Klasse in Zeile 2 von Hand geaendert: rot in Zeile 3",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"intern\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"einheit-ohne-klasse\",\"klasse\":null,\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0002\",\"vorher\":\"bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569\",\"zeit\":\"2026-11-20T13:01:01.001Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"kette_gebrochen\",\"zeile\":3},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "Leerzeichen in Zeile 2 eingefuegt: nicht kanonisch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\": 3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"einheit-ohne-klasse\",\"klasse\":null,\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0002\",\"vorher\":\"bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569\",\"zeit\":\"2026-11-20T13:01:01.001Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"nicht_kanonisch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "Zeile 2 geloescht: rot in der neuen Zeile 2",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"einheit-ohne-klasse\",\"klasse\":null,\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0002\",\"vorher\":\"bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569\",\"zeit\":\"2026-11-20T13:01:01.001Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"kette_gebrochen\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "zusaetzliches Feld titel, sonst richtig verkettet: Form falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"titel\":\"geheim\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "letzte Zeile geaendert, ohne --letzte: bleibt unentdeckt (gruen)",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":9,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"einheit-ohne-klasse\",\"klasse\":null,\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0002\",\"vorher\":\"bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569\",\"zeit\":\"2026-11-20T13:01:01.001Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"827c880eb47626344681567f43c1a9f35c9e518aa88ae8cc0b1206eaea92a5eb\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "letzte Zeile geaendert, mit --letzte: rot",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":9,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"einheit-ohne-klasse\",\"klasse\":null,\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0002\",\"vorher\":\"bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569\",\"zeit\":\"2026-11-20T13:01:01.001Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "--letzte",
+        "8d5acffb7ee38d04497a8ffe5ebf3baa525e520616bcedf88d77ede8c6774c9a",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"letzte_falsch\",\"zeile\":3},\"letzte\":null,\"ok\":false,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "--letzte stimmt: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"einheit-ohne-klasse\",\"klasse\":null,\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0002\",\"vorher\":\"bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569\",\"zeit\":\"2026-11-20T13:01:01.001Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "--letzte",
+        "8d5acffb7ee38d04497a8ffe5ebf3baa525e520616bcedf88d77ede8c6774c9a",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"8d5acffb7ee38d04497a8ffe5ebf3baa525e520616bcedf88d77ede8c6774c9a\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "letzte Zeile ohne LF",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"letzte_zeile_unvollstaendig\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "Zeile ohne fassung in brain-Datei",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"test.zeile\",\"ergebnis\":\"ok\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"fassung_fehlt\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "dieselbe Zeile in einer gateway-Datei gilt als 1g: gruen",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"test.zeile\",\"ergebnis\":\"ok\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"e6531e03206c64d20b5dfe9141952650dc198f70bf02c56127b52116c2a97ac8\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "fassung 3",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":3,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "fassung 2.0: besteht den Fassungsschritt, ist aber nicht kanonisch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2.0,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"nicht_kanonisch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Zeit ohne Millisekunden",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Route mit Grossbuchstaben in der Zeile",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"Cloud\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "anzahl 0 in der Zeile",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":0,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "doppelter Schluessel klasse",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"intern\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"nicht_kanonisch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "kein UTF-8",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt_b64": "eyJha3Rpb25zbmFtZSI6ImF1c2f/YmUuZ2VzcGVycnQiLCJhbnphaGwiOjEsImVyZ2VibmlzIjoiZ2VzcGVycnQiLCJmYXNzdW5nIjoyLCJncnVuZCI6Imt1bmRlbmRhdGVuLWFuLWNsb3VkIiwia2xhc3NlIjoia3VuZGVuZGF0ZW4iLCJrdW5kZSI6ImstYmVpc3BpZWwiLCJyb3V0ZSI6ImNsb3VkLWJlaXNwaWVsIiwic2l0enVuZyI6InMtMDAwMSIsInZvcmhlciI6IjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiLCJ6ZWl0IjoiMjAyNi0xMS0yMFQxMzowMDowMC4wMDBaIn0K"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"zeile_unlesbar\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "BOM vor der ersten Zeile",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt_b64": "77u/eyJha3Rpb25zbmFtZSI6ImF1c2dhYmUuZ2VzcGVycnQiLCJhbnphaGwiOjEsImVyZ2VibmlzIjoiZ2VzcGVycnQiLCJmYXNzdW5nIjoyLCJncnVuZCI6Imt1bmRlbmRhdGVuLWFuLWNsb3VkIiwia2xhc3NlIjoia3VuZGVuZGF0ZW4iLCJrdW5kZSI6ImstYmVpc3BpZWwiLCJyb3V0ZSI6ImNsb3VkLWJlaXNwaWVsIiwic2l0enVuZyI6InMtMDAwMSIsInZvcmhlciI6IjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiLCJ6ZWl0IjoiMjAyNi0xMS0yMFQxMzowMDowMC4wMDBaIn0K"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"zeile_unlesbar\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "leere Zeile in der Mitte",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"zeile_unlesbar\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "Zeile ist ein Feld, kein Objekt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "[1,2]\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"zeile_unlesbar\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "leere Datei: gruen mit null Zeilen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": ""
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":null,\"ok\":true,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Datei fehlt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "fehlt": true
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"datei_nicht_lesbar\",\"zeile\":null},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "zwei Dateien hintereinander als eine Kette",
+      "dateien": [
+        {
+          "name": "brain-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        },
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"einheit-ohne-klasse\",\"klasse\":null,\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0002\",\"vorher\":\"bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569\",\"zeit\":\"2026-11-20T13:01:01.001Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-10.jsonl",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"8d5acffb7ee38d04497a8ffe5ebf3baa525e520616bcedf88d77ede8c6774c9a\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "Datei beginnt mitten in der Kette, ohne --vorher",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"einheit-ohne-klasse\",\"klasse\":null,\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0002\",\"vorher\":\"bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569\",\"zeit\":\"2026-11-20T13:01:01.001Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"kette_gebrochen\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Datei beginnt mitten in der Kette, mit --vorher",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"einheit-ohne-klasse\",\"klasse\":null,\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0002\",\"vorher\":\"bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569\",\"zeit\":\"2026-11-20T13:01:01.001Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "--vorher",
+        "ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"8d5acffb7ee38d04497a8ffe5ebf3baa525e520616bcedf88d77ede8c6774c9a\",\"ok\":true,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "kette-vektoren k1, Zeilen 1 bis 4 (Fassung 1g): gruen",
+      "dateien": [
+        {
+          "name": "gateway-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.angemeldet\",\"ergebnis\":\"ok\",\"grund\":\"passkey\",\"person\":\"anna\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-31T23:59:58.500Z\"}\n{\"aktionsname\":\"test.sonderzeichen\",\"ergebnis\":\"ok\",\"grund\":\"a\\\"b\\\\c/d\\n\\t\\u0001\\u001fä€𝄞<>& \",\"status\":200,\"vorher\":\"cc93a534ce4b330dabe7c47b77753a593b0d9f0bac3686c12791e7be64b3b8d7\",\"zeit\":\"2026-10-31T23:59:59.999Z\"}\n{\"aktionsname\":\"audit.luecke\",\"anzahl\":50,\"ergebnis\":\"fehler\",\"grund\":\"bremse\",\"seit\":\"2026-10-31T23:59:00.000Z\",\"vorher\":\"581ef8e7d7b3982783b824fde024109264b23180a9e64806c24ae222c35bdd49\",\"zeit\":\"2026-11-01T00:00:00.000Z\"}\n{\"aktionsname\":\"sitzung.abgemeldet\",\"ergebnis\":\"ok\",\"person\":\"anna\",\"status\":200,\"vorher\":\"15925d1e1bbc4099e467abd7baa992394fa4a221b17ccf2fb24ab3cbbdd8167d\",\"zeit\":\"2026-11-01T00:00:00.001Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-10.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"361a5747a2ba03d43df8b08a86480d933f96120cbe812156d9790cab9330d376\",\"ok\":true,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "kette-vektoren k1, alle fuenf: rot am angekuendigten Bruch",
+      "dateien": [
+        {
+          "name": "gateway-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.angemeldet\",\"ergebnis\":\"ok\",\"grund\":\"passkey\",\"person\":\"anna\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-31T23:59:58.500Z\"}\n{\"aktionsname\":\"test.sonderzeichen\",\"ergebnis\":\"ok\",\"grund\":\"a\\\"b\\\\c/d\\n\\t\\u0001\\u001fä€𝄞<>& \",\"status\":200,\"vorher\":\"cc93a534ce4b330dabe7c47b77753a593b0d9f0bac3686c12791e7be64b3b8d7\",\"zeit\":\"2026-10-31T23:59:59.999Z\"}\n{\"aktionsname\":\"audit.luecke\",\"anzahl\":50,\"ergebnis\":\"fehler\",\"grund\":\"bremse\",\"seit\":\"2026-10-31T23:59:00.000Z\",\"vorher\":\"581ef8e7d7b3982783b824fde024109264b23180a9e64806c24ae222c35bdd49\",\"zeit\":\"2026-11-01T00:00:00.000Z\"}\n{\"aktionsname\":\"sitzung.abgemeldet\",\"ergebnis\":\"ok\",\"person\":\"anna\",\"status\":200,\"vorher\":\"15925d1e1bbc4099e467abd7baa992394fa4a221b17ccf2fb24ab3cbbdd8167d\",\"zeit\":\"2026-11-01T00:00:00.001Z\"}\n{\"aktionsname\":\"sitzung.angemeldet\",\"ergebnis\":\"ok\",\"kettenbruch\":\"letzte_zeile_unvollstaendig\",\"person\":\"bea\",\"status\":200,\"vorher\":\"361a5747a2ba03d43df8b08a86480d933f96120cbe812156d9790cab9330d376\",\"zeit\":\"2026-11-01T00:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-10.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-10.jsonl\",\"grund\":\"angekuendigt:letzte_zeile_unvollstaendig\",\"zeile\":5},\"letzte\":null,\"ok\":false,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "kette-vektoren k2: Bruch ohne vorher",
+      "dateien": [
+        {
+          "name": "gateway-2026-10.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.angemeldet\",\"ergebnis\":\"ok\",\"kettenbruch\":\"letzte_zeile_unlesbar\",\"person\":\"bea\",\"status\":200,\"zeit\":\"2026-11-01T00:00:02.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-10.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-10.jsonl\",\"grund\":\"angekuendigt:letzte_zeile_unlesbar\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "gemischte Kette 1g -> 2 aus fassung-vektoren.json: gruen",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.angemeldet\",\"detail\":{\"z\":1,\"a\":2},\"ergebnis\":\"ok\",\"person\":\"anna\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-30T23:59:58.500Z\"}\n{\"aktionsname\":\"sitzung.abgemeldet\",\"detail\":{\"a\":2,\"z\":1},\"ergebnis\":\"ok\",\"fassung\":2,\"person\":\"anna\",\"status\":200,\"vorher\":\"28c90762180916e5790e61b9ef46e28aa5a5bdf2f47e64c6a5e4c1feefd5380c\",\"zeit\":\"2026-12-01T00:00:01.250Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"955953dafbd5b43b69d525df8f5e5cabae8c3a47def592c6a71acadc863e3561\",\"ok\":true,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "gemischte Kette 1s -> 2 aus stelle-vektoren.json ueber zwei Dateien: gruen",
+      "dateien": [
+        {
+          "name": "audit.jsonl",
+          "inhalt": "{\"aktionsname\":\"klasse.erlaubt\",\"ergebnis\":\"erlaubt\",\"ganz\":5.0,\"klein\":1e-07,\"op\":\"klasse\",\"vorher\":\"e346d5440e9e4a020ee257376aee40c9a4ed82b25f1742d13386d9a2283b93bf\",\"zeit\":1793491203.0}\n"
+        },
+        {
+          "name": "stelle-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"klasse.erlaubt\",\"ergebnis\":\"ok\",\"fassung\":2,\"ganz\":5,\"klein\":1e-7,\"op\":\"klasse\",\"vorher\":\"f2613afd40ed5a18f27badcbb4df308b5def4d89e5e1cba3e6075cf49efc9ba3\",\"zeit\":\"2026-12-01T00:00:03.250Z\"}\n{\"aktionsname\":\"lauf.melden\",\"ergebnis\":\"ok\",\"fassung\":2,\"op\":\"lauf.melden\",\"pid\":4711,\"uid\":1000,\"vorher\":\"3b6e9181cd53401c91b24440f5763bb5146e20e1cd13da3d43133b7a491a2950\",\"zeit\":\"2026-12-01T00:00:04.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "--vorher",
+        "e346d5440e9e4a020ee257376aee40c9a4ed82b25f1742d13386d9a2283b93bf",
+        "@audit.jsonl",
+        "@stelle-2026-12.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"09c4d75421176f31e81fd40546cb9004bed808ba4c522f236bb7ff9a9065d80c\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "Zeile 1s in einer stelle-Datei: fassung fehlt",
+      "dateien": [
+        {
+          "name": "stelle-2026-12.jsonl",
+          "inhalt": "{\"aktionsname\":\"klasse.erlaubt\",\"ergebnis\":\"erlaubt\",\"ganz\":5.0,\"klein\":1e-07,\"op\":\"klasse\",\"vorher\":\"e346d5440e9e4a020ee257376aee40c9a4ed82b25f1742d13386d9a2283b93bf\",\"zeit\":1793491203.0}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "--vorher",
+        "e346d5440e9e4a020ee257376aee40c9a4ed82b25f1742d13386d9a2283b93bf",
+        "@stelle-2026-12.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-12.jsonl\",\"grund\":\"fassung_fehlt\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Aufruf ohne Unterbefehl",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "unbekannter Unterbefehl",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "zeige",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "keine Datei",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "unbekannter Schalter",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "--alles",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "--vorher zu kurz",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "--vorher",
+        "abc",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "--vorher in Grossbuchstaben",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "--vorher",
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    },
+    {
+      "fall": "--letzte ohne Wert",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "--letzte"
+      ],
+      "erwartet": {
+        "exit": 64,
+        "stdout": ""
+      }
+    }
+  ]
+}

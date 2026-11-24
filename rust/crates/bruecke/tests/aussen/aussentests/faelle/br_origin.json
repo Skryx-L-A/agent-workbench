@@ -1,0 +1,121 @@
+{
+ "beschreibung": "POST mit verschiedenen Origin-Koepfen: nur http://127.0.0.1:<port> und http://localhost:<port> gehen weiter (der kaputte Koerper endet dann mit 400), alles andere 403",
+ "datensatz": "A",
+ "name": "br_origin",
+ "regeln": [
+  "BR3"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "koerper": "kein json",
+    "methode": "POST",
+    "origin": "http://boese.example",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "kein json",
+    "methode": "POST",
+    "origin": "null",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "kein json",
+    "methode": "POST",
+    "origin": "https://127.0.0.1:@port",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "kein json",
+    "methode": "POST",
+    "origin": "http://127.0.0.1:1",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "kein json",
+    "methode": "POST",
+    "origin": "http://127.0.0.1.evil.example:@port",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "kein json",
+    "methode": "POST",
+    "origin": "http://127.0.0.1",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "kein json",
+    "methode": "POST",
+    "origin": "http://localhost:@port",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "kein json",
+    "methode": "POST",
+    "origin": "http://127.0.0.1:@port",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "kein json",
+    "methode": "POST",
+    "origin": "HTTP://127.0.0.1:@port",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "kein json",
+    "methode": "POST",
+    "origin": null,
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

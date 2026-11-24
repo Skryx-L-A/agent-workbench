@@ -1,0 +1,9 @@
+{
+ "beschreibung": "W11 fall",
+ "form": "vm",
+ "eigenschaft": "W11",
+ "art": "fall",
+ "ausgangslage": "Windows-VM; zwei Personen P1 und P2 ohne Adminrechte, jede mit einem Projekt am gleich benannten Pfad unter ihrer eigenen Projektwurzel; beide Projekte angelegt",
+ "handlung": "Vergleich der zwei AppContainer-SIDs; der Agent von P1 liest den Arbeitsordner von P2",
+ "beleg": "nicht gemessen"
+}

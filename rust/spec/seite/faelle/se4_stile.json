@@ -1,0 +1,77 @@
+{
+ "beschreibung": "Läufe mit Stilen ergeben als Text die Zeilenform ohne Stile; Leerzeichen innen und vorn bleiben.",
+ "datensatz": "A",
+ "name": "se4_stile",
+ "regeln": [
+  "SE4"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "05010402280406000001000000020000000010c9010000008384840800040003000466657474010520756e64200203726f740101011b202065696e676572c3bc636b7420206d697420204cc3bc636b656e02020306696e76657273010520456e64650303040750616c65747465050b2054727565636f6c6f722001012e"
+  },
+  {
+   "art": "Zeilen",
+   "erwartet": [
+    "fett und rot",
+    "  eingerückt  mit  Lücken",
+    "invers Ende",
+    "Palette Truecolor ."
+   ]
+  }
+ ]
+}

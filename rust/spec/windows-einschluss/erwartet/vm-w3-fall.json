@@ -1,0 +1,8 @@
+{
+ "erwartet": "Profildatei und Ordner von B: Fehler 5; Marke steht im eigenen Ordner; Elternordner zeigen nur Namen, Dateien darin Fehler 5; 0 DPAPI-Funde",
+ "messwerte": [
+  "Fehlercode je Zugriff",
+  "Marke",
+  "Zähler der DPAPI-Funde: 0"
+ ]
+}

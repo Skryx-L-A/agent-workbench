@@ -1,0 +1,10 @@
+{
+ "beschreibung": "M10 fall",
+ "form": "mac",
+ "eigenschaft": "M10",
+ "anforderung": "A145",
+ "art": "fall",
+ "ausgangslage": "Mac mit macOS 26; Lauf s-1 unter dem gebauten Profil mit Modellweg-Port M1 und Ausgangs-Port A1; Lauf s-2 unter seinem Profil mit M2; Hörer der Browser-Brücke auf Port K; Vorführ-Vault mit der Notiz MK-7Q2 außerhalb; Such-Prozess je Sitzung außerhalb; Wegwerf-Token unter ~/.copilot und ~/.config/gh einer Testperson",
+ "handlung": "Der Agent bindet und hört auf 127.0.0.1",
+ "beleg": "gemessen: Messprobe N10"
+}

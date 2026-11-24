@@ -1,0 +1,31 @@
+{
+ "description": "Linkformen in superseded-by: Klammern, Anzeige, Abschnitt, ohne Klammern",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "-k",
+  "10",
+  "--today",
+  "2026-11-18",
+  "Fahrrad Kette ölen"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-5.md": "---\ntitle: Füller 5\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-6.md": "---\ntitle: Füller 6\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-7.md": "---\ntitle: Füller 7\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-8.md": "---\ntitle: Füller 8\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/rad/form-a.md": "---\ntitle: Form A\ntype: note\nsuperseded-by: \"[[ziel-a]]\"\n---\n\nFahrrad Kette ölen.\n",
+  "vault/rad/form-b.md": "---\ntitle: Form B\ntype: note\nsuperseded-by: [\"[[ziel-b|Anzeige]]\", \"unbekannt-y\"]\n---\n\nFahrrad Kette ölen, Fahrrad Kette Glieder, Fahrrad Kette Zug.\n",
+  "vault/rad/form-c.md": "---\ntitle: Form C\ntype: note\nsuperseded-by: \"[[ziel-d#Abschnitt]]\"\n---\n\nFahrrad Kette ölen, Fahrrad Kette Ritzel, Fahrrad Kette Ritzel ölen.\n",
+  "vault/rad/form-d.md": "---\ntitle: Form D\ntype: note\nsuperseded-by: ziel-e\n---\n\nFahrrad Kette ölen, Fahrrad Kette Rolle, Fahrrad Kette Rolle ölen, Fahrrad.\n",
+  "vault/rad/ziel-a.md": "---\ntitle: Ziel A\ntype: note\n---\n\nHinweis ohne Suchwort.\n",
+  "vault/rad/ziel-b.md": "---\ntitle: Ziel B\ntype: note\n---\n\nHinweis zwei ohne Suchwort.\n",
+  "vault/rad/ziel-d.md": "---\ntitle: Ziel D\ntype: note\n---\n\nHinweis drei ohne Suchwort.\n",
+  "vault/rad/ziel-e.md": "---\ntitle: Ziel E\ntype: note\n---\n\nHinweis vier ohne Suchwort.\n"
+ }
+}

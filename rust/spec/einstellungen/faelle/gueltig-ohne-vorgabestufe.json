@@ -1,0 +1,4 @@
+{
+ "beschreibung": "ohne vorgabestufe: gültig, es gilt die höchste Klasse",
+ "text": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"routen\": [\n  {\n   \"schluessel\": \"cloud-beispiel\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal-beispiel\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-beispiel\",\n   \"erlaubt\": [\n    \"lokal-beispiel\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+}

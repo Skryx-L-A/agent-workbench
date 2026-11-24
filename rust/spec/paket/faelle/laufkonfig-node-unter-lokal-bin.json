@@ -1,0 +1,14 @@
+{
+ "beschreibung": "node liegt unter <heim>/.local/bin: der Ordner von node ist .local/bin, nicht zwei Ebenen darüber (.local); er steht im PATH vorn",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/opt/pi/pi",
+   "node": "/srv/beispiel/heim/nutzer1/.local/bin/node"
+  }
+ },
+ "vorher": null
+}

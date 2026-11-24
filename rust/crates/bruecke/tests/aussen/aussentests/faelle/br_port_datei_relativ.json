@@ -1,0 +1,18 @@
+{
+ "beschreibung": "port_datei ist kein absoluter Pfad: Exitcode 2",
+ "datensatz": "A",
+ "name": "br_port_datei_relativ",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "port_datei": "port",
+  "token_datei": "@token_datei"
+ }
+}

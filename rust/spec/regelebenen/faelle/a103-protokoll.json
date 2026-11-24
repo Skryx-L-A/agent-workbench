@@ -1,0 +1,317 @@
+{
+ "name": "a103-protokoll",
+ "anforderungen": [
+  "A103",
+  "A102"
+ ],
+ "beschreibung": "ohne Angabe gelten Aufbewahrung 365 Tage; der Admin stellt 0 ein (nichts löschen); eine Gruppe kann das Feld nicht setzen; das Feld einsicht gibt es hier nicht mehr (B08, es gehört der Stelle)",
+ "stand": {
+  "firma": {
+   "fassung": 1,
+   "ebene": "firma",
+   "einstellung": {
+    "fassung": 1,
+    "klassen": [
+     "oeffentlich",
+     "intern",
+     "kundendaten"
+    ],
+    "vorgabestufe": "kundendaten",
+    "routen": [
+     {
+      "schluessel": "cloud-r",
+      "art": "cloud",
+      "klasse": "intern"
+     },
+     {
+      "schluessel": "cloud-s",
+      "art": "cloud",
+      "klasse": "intern"
+     },
+     {
+      "schluessel": "lokal-l",
+      "art": "lokal",
+      "klasse": "kundendaten"
+     }
+    ],
+    "kunden": [
+     {
+      "schluessel": "k-beispiel",
+      "erlaubt": [
+       "cloud-r",
+       "lokal-l"
+      ],
+      "verboten": []
+     },
+     {
+      "schluessel": "k-zwei",
+      "erlaubt": [
+       "lokal-l"
+      ],
+      "verboten": []
+     }
+    ],
+    "kundendaten_an_cloud": {
+     "vorgabe": "nie",
+     "freigaben": [
+      {
+       "route": "cloud-r",
+       "kunde": "k-beispiel"
+      }
+     ]
+    }
+   },
+   "rollen": {
+    "ps_00000000000000000000000000000b01": [
+     "admin"
+    ],
+    "ps_00000000000000000000000000000b02": [
+     "admin"
+    ]
+   },
+   "gruppen": [
+    {
+     "schluessel": "g-eins",
+     "mitglieder": [
+      "ps_00000000000000000000000000000c01"
+     ]
+    },
+    {
+     "schluessel": "g-zwei",
+     "mitglieder": [
+      "ps_00000000000000000000000000000c02"
+     ]
+    }
+   ],
+   "nutzerregeln": [],
+   "senkung": {
+    "aus": false,
+    "bestaetigung": false,
+    "arten": [
+     "bedienwissen",
+     "quellenauszug",
+     "regeln",
+     "vorlagen"
+    ]
+   }
+  }
+ },
+ "schritte": [
+  {
+   "zeige": "ps_00000000000000000000000000000c01"
+  },
+  {
+   "aendern": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "datei": {
+     "fassung": 1,
+     "ebene": "firma",
+     "einstellung": {
+      "fassung": 1,
+      "klassen": [
+       "oeffentlich",
+       "intern",
+       "kundendaten"
+      ],
+      "vorgabestufe": "kundendaten",
+      "routen": [
+       {
+        "schluessel": "cloud-r",
+        "art": "cloud",
+        "klasse": "intern"
+       },
+       {
+        "schluessel": "cloud-s",
+        "art": "cloud",
+        "klasse": "intern"
+       },
+       {
+        "schluessel": "lokal-l",
+        "art": "lokal",
+        "klasse": "kundendaten"
+       }
+      ],
+      "kunden": [
+       {
+        "schluessel": "k-beispiel",
+        "erlaubt": [
+         "cloud-r",
+         "lokal-l"
+        ],
+        "verboten": []
+       },
+       {
+        "schluessel": "k-zwei",
+        "erlaubt": [
+         "lokal-l"
+        ],
+        "verboten": []
+       }
+      ],
+      "kundendaten_an_cloud": {
+       "vorgabe": "nie",
+       "freigaben": [
+        {
+         "route": "cloud-r",
+         "kunde": "k-beispiel"
+        }
+       ]
+      }
+     },
+     "rollen": {
+      "ps_00000000000000000000000000000b01": [
+       "admin"
+      ],
+      "ps_00000000000000000000000000000b02": [
+       "admin"
+      ]
+     },
+     "gruppen": [
+      {
+       "schluessel": "g-eins",
+       "mitglieder": [
+        "ps_00000000000000000000000000000c01"
+       ]
+      },
+      {
+       "schluessel": "g-zwei",
+       "mitglieder": [
+        "ps_00000000000000000000000000000c02"
+       ]
+      }
+     ],
+     "nutzerregeln": [],
+     "senkung": {
+      "aus": false,
+      "bestaetigung": false,
+      "arten": [
+       "bedienwissen",
+       "quellenauszug",
+       "regeln",
+       "vorlagen"
+      ]
+     },
+     "protokoll": {
+      "aufbewahrung_tage": 0
+     }
+    }
+   }
+  },
+  {
+   "zeige": "ps_00000000000000000000000000000c01"
+  },
+  {
+   "aendern": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "datei": {
+     "fassung": 1,
+     "ebene": "gruppe",
+     "gruppe": "g-eins",
+     "regeln": {
+      "protokoll": {
+       "aufbewahrung_tage": 1
+      }
+     }
+    }
+   }
+  },
+  {
+   "aendern": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "datei": {
+     "fassung": 1,
+     "ebene": "firma",
+     "einstellung": {
+      "fassung": 1,
+      "klassen": [
+       "oeffentlich",
+       "intern",
+       "kundendaten"
+      ],
+      "vorgabestufe": "kundendaten",
+      "routen": [
+       {
+        "schluessel": "cloud-r",
+        "art": "cloud",
+        "klasse": "intern"
+       },
+       {
+        "schluessel": "cloud-s",
+        "art": "cloud",
+        "klasse": "intern"
+       },
+       {
+        "schluessel": "lokal-l",
+        "art": "lokal",
+        "klasse": "kundendaten"
+       }
+      ],
+      "kunden": [
+       {
+        "schluessel": "k-beispiel",
+        "erlaubt": [
+         "cloud-r",
+         "lokal-l"
+        ],
+        "verboten": []
+       },
+       {
+        "schluessel": "k-zwei",
+        "erlaubt": [
+         "lokal-l"
+        ],
+        "verboten": []
+       }
+      ],
+      "kundendaten_an_cloud": {
+       "vorgabe": "nie",
+       "freigaben": [
+        {
+         "route": "cloud-r",
+         "kunde": "k-beispiel"
+        }
+       ]
+      }
+     },
+     "rollen": {
+      "ps_00000000000000000000000000000b01": [
+       "admin"
+      ],
+      "ps_00000000000000000000000000000b02": [
+       "admin"
+      ]
+     },
+     "gruppen": [
+      {
+       "schluessel": "g-eins",
+       "mitglieder": [
+        "ps_00000000000000000000000000000c01"
+       ]
+      },
+      {
+       "schluessel": "g-zwei",
+       "mitglieder": [
+        "ps_00000000000000000000000000000c02"
+       ]
+      }
+     ],
+     "nutzerregeln": [],
+     "senkung": {
+      "aus": false,
+      "bestaetigung": false,
+      "arten": [
+       "bedienwissen",
+       "quellenauszug",
+       "regeln",
+       "vorlagen"
+      ]
+     },
+     "protokoll": {
+      "aufbewahrung_tage": 30,
+      "einsicht": "rolle"
+     }
+    }
+   }
+  }
+ ]
+}

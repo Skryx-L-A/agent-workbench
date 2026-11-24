@@ -1,0 +1,50 @@
+{
+ "name": "tr2_cursor_umbruch",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Ausstehender Umbruch: Nach dem Zeichen in der letzten Spalte steht der Cursor auf der letzten Spalte, erst das nächste Zeichen bricht um; ein breites Zeichen am Zeilenende bricht um; ohne Umbruch (DECAWM aus) bleibt er am Rand",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "art": "Text",
+   "text": "y"
+  },
+  {
+   "art": "Text",
+   "text": "z"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8;1Hxxxxxxxxxxxxxxxxxxxxxxxxxxxx漢"
+  },
+  {
+   "art": "Text",
+   "text": "w"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1H\u001b[2Kxxxxxxxxxxxxxxxxxxxxxxxxxxxxx漢"
+  },
+  {
+   "art": "Text",
+   "text": "v"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?7l\u001b[1;1Hqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

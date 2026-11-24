@@ -1,0 +1,9 @@
+{
+ "beschreibung": "ein relativer Heimordner: keine Datei",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "heim/nutzer1",
+ "harness": {},
+ "vorher": null
+}

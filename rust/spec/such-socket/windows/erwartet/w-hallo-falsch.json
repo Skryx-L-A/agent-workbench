@@ -1,0 +1,27 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "abgewiesen": true
+  },
+  {
+   "ok": true,
+   "id": 2
+  }
+ ],
+ "protokoll": [
+  {
+   "aktionsname": "kanal.abgewiesen",
+   "ergebnis": "abgewiesen",
+   "fassung": 2,
+   "grund": "pk.hallo_falsch",
+   "kanal": "such",
+   "route": "cloud",
+   "sitzung": "s-test-1"
+  }
+ ],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

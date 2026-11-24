@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.launchd_konto: Der Dienst werkbank.halter laeuft nicht unter seinem eigenen Konto.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

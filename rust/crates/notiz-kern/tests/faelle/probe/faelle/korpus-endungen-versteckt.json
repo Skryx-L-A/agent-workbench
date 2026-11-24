@@ -1,0 +1,16 @@
+{
+ "description": "only lowercase .md; hidden and case-variant excluded dirs",
+ "files": {
+  "v/10-global/a.MD": "1\n",
+  "v/10-global/b.md.bak": "2\n",
+  "v/10-global/.c.md": "3\n",
+  "v/.trash/d.md": "4\n",
+  "v/_Meta/e.md": "5\n",
+  "v/10-global/f.md": "6\n",
+  "v/10-global/.git/g.md": "7\n"
+ },
+ "args": [
+  "corpus",
+  "{root}/v"
+ ]
+}

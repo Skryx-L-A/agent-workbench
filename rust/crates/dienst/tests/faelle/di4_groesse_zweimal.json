@@ -1,0 +1,161 @@
+{
+ "beschreibung": "zwei kleinere Groessen hintereinander bei einem Betrachter: der Abzug der zweiten Groesse kommt vor deren Aenderung, die Verbindung bleibt",
+ "datensatz": "A",
+ "name": "di4_groesse_zweimal",
+ "regeln": [
+  "DI4"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-alpha",
+    "spalten": 40,
+    "zeilen": 10
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "BEREIT"
+   },
+   "takt": 16
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "g"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "ENDE1"
+   },
+   "takt": 16
+  },
+  {
+   "art": "Uhr",
+   "betrachter": "c1",
+   "t": 100000
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Groesse",
+    "sitzung": "s-alpha",
+    "spalten": 30,
+    "zeilen": 6
+   }
+  },
+  {
+   "art": "Uhr",
+   "betrachter": "c1",
+   "t": 200000
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Groesse",
+    "sitzung": "s-alpha",
+    "spalten": 20,
+    "zeilen": 4
+   }
+  },
+  {
+   "art": "Uhr",
+   "betrachter": "c1",
+   "t": 300000
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "x"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "ZIEL"
+   },
+   "takt": 16
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "kindende": true
+   },
+   "takt": 16
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   40,
+   10
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "stufen",
+    "30302d616263646566670d0a30312d616263646566670d0a30322d616263646566670d0a30332d616263646566670d0a30342d616263646566670d0a30352d616263646566670d0a30362d616263646566670d0a30372d616263646566670d0a30382d616263646566670d0a30392d616263646566670d0a31302d616263646566670d0a31312d616263646566670d0a31322d616263646566670d0a454e444531",
+    "5a49454c"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "snippet": "Bewässerung: Das Gartenbeet braucht Bewässerung am Morgen.",
+  "lines": [
+   10,
+   10
+  ],
+  "hook": "Die Wasserpumpe steht im Keller.",
+  "hook_lines": [
+   6,
+   6
+  ]
+ }
+}

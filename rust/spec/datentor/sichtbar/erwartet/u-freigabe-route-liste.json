@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13"
+ ],
+ "beschreibung": "Nachtrag 20.11., 3: Die Route einer Freigabe ist eine Liste statt Text."
+}

@@ -1,0 +1,121 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    1,
+    3,
+    true
+   ],
+   "groesse": [
+    12,
+    3
+   ],
+   "ruecklauf": {
+    "erste": "",
+    "letzte": "",
+    "zahl": 1
+   },
+   "stand": 2,
+   "zeilen": [
+    "\u001b[0;44malpha       ",
+    "\u001b[0;41mrot         ",
+    "\u001b[0;44m            "
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       5,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "\u001b[0;44malpha       ",
+       "1": "\u001b[0;44m            ",
+       "2": "\u001b[0;44m            "
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      0,
+      5,
+      true
+     ],
+     "groesse": [
+      12,
+      3
+     ],
+     "ruecklauf": {
+      "erste": "",
+      "letzte": "",
+      "zahl": 1
+     },
+     "stand": 1,
+     "zeilen": [
+      "\u001b[0;44malpha       ",
+      "\u001b[0;44m            ",
+      "\u001b[0;44m            "
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       3,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "1": "\u001b[0;41mrot         "
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      1,
+      3,
+      true
+     ],
+     "groesse": [
+      12,
+      3
+     ],
+     "ruecklauf": {
+      "erste": "",
+      "letzte": "",
+      "zahl": 1
+     },
+     "stand": 2,
+     "zeilen": [
+      "\u001b[0;44malpha       ",
+      "\u001b[0;41mrot         ",
+      "\u001b[0;44m            "
+     ]
+    }
+   }
+  ]
+ }
+}

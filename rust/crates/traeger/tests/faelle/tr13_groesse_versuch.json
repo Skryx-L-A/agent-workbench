@@ -1,0 +1,95 @@
+{
+ "name": "tr13_groesse_versuch",
+ "regeln": [
+  "TR13"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Ein Versuch mit einer Größe außerhalb von 2 bis 1000 Spalten und 1 bis 1000 Zeilen wird abgelehnt (ok false, groesse_ungueltig): Raster, Cursor und Größe bleiben; 2 Spalten und 1 Zeile gelten",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "a漢b\r\n漢"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 1,
+   "zeilen": 8,
+   "versuch": true
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 0,
+   "zeilen": 4,
+   "versuch": true
+  },
+  {
+   "art": "Groesse",
+   "spalten": 3,
+   "zeilen": 0,
+   "versuch": true
+  },
+  {
+   "art": "Groesse",
+   "spalten": 1001,
+   "zeilen": 3,
+   "versuch": true
+  },
+  {
+   "art": "Groesse",
+   "spalten": 5,
+   "zeilen": 1001,
+   "versuch": true
+  },
+  {
+   "art": "Groesse",
+   "spalten": 1,
+   "zeilen": 1,
+   "versuch": true
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 2,
+   "zeilen": 1,
+   "versuch": true
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 1,
+   "zeilen": 1,
+   "versuch": true
+  },
+  {
+   "art": "Text",
+   "text": "x"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 30,
+   "zeilen": 8,
+   "versuch": true
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

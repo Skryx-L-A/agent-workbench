@@ -1,0 +1,394 @@
+{
+  "quelle": "Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
+  "zeile": [
+    {
+      "fall": "erste Zeile einer Kette, mit Kunde",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 1
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4"
+      }
+    },
+    {
+      "fall": "zweite Zeile, ohne Kunde",
+      "eingabe": {
+        "zeit_ms": 1795179601500,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0001",
+        "grund": "klasse-ueber-route",
+        "klasse": "vertraulich",
+        "kunde": null,
+        "anzahl": 3
+      },
+      "vorher": "ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"klasse-ueber-route\",\"klasse\":\"vertraulich\",\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"ac36b28e31b1c9d417190556941398f4842e6d413e7e8309264ce9c1a5a8c8d4\",\"zeit\":\"2026-11-20T13:00:01.500Z\"}",
+        "sha256": "bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569"
+      }
+    },
+    {
+      "fall": "Klasse und Kunde null (einheit-ohne-klasse)",
+      "eingabe": {
+        "zeit_ms": 1795179661001,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0002",
+        "grund": "einheit-ohne-klasse",
+        "klasse": null,
+        "kunde": null,
+        "anzahl": 2
+      },
+      "vorher": "bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"einheit-ohne-klasse\",\"klasse\":null,\"kunde\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0002\",\"vorher\":\"bebc2173c95ef85e3bef11eae86db55fc2e601d6db8954d44d9800e4b675d569\",\"zeit\":\"2026-11-20T13:01:01.001Z\"}",
+        "sha256": "8d5acffb7ee38d04497a8ffe5ebf3baa525e520616bcedf88d77ede8c6774c9a"
+      }
+    },
+    {
+      "fall": "anzahl am oberen Rand",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 4294967295
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4294967295,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "d2de3375cdb1ba8af506097a3142ba7e998926ea4e7d0e8fa1c340ba32af38e4"
+      }
+    },
+    {
+      "fall": "Schluessel mit 64 Zeichen und Punkt, Strich, Unterstrich",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "a.b-c_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 1
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"a.b-c_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "33c8833a6c4ffcc5d1ea5acd237f8030a6059b68561017aa67c1c905784d8b8b"
+      }
+    },
+    {
+      "fall": "Route mit Grossbuchstaben",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "Cloud",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 1
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:route"
+      }
+    },
+    {
+      "fall": "Klasse leer",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "",
+        "kunde": "k-beispiel",
+        "anzahl": 1
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:klasse"
+      }
+    },
+    {
+      "fall": "Kunde mit Leerzeichen",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k beispiel",
+        "anzahl": 1
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:kunde"
+      }
+    },
+    {
+      "fall": "Sitzung mit 65 Zeichen",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "cloud-beispiel",
+        "sitzung": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 1
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:sitzung"
+      }
+    },
+    {
+      "fall": "Grund als Satz",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0001",
+        "grund": "Kundendaten an Cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 1
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "Schluessel beginnt mit Strich",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "-cloud",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 1
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:route"
+      }
+    },
+    {
+      "fall": "anzahl 0",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 0
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:anzahl"
+      }
+    },
+    {
+      "fall": "vorher keine 64 hex",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 1
+      },
+      "vorher": "abc",
+      "erwartet": {
+        "fehler": "feld_ungueltig:vorher"
+      }
+    },
+    {
+      "fall": "vorher mit Grossbuchstaben",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 1
+      },
+      "vorher": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "erwartet": {
+        "fehler": "feld_ungueltig:vorher"
+      }
+    },
+    {
+      "fall": "Zeit vor 1970",
+      "eingabe": {
+        "zeit_ms": -1,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 1
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "zeit_ungueltig"
+      }
+    },
+    {
+      "fall": "Zeit nach 9999",
+      "eingabe": {
+        "zeit_ms": 253402300800000,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 1
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "zeit_ungueltig"
+      }
+    },
+    {
+      "fall": "zwei Fehler: der erste in der Reihenfolge zaehlt (route vor anzahl)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "route": "X",
+        "sitzung": "s-0001",
+        "grund": "kundendaten-an-cloud",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 0
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:route"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Felder vor Zeit",
+      "eingabe": {
+        "zeit_ms": -1,
+        "route": "cloud-beispiel",
+        "sitzung": "s-0001",
+        "grund": "",
+        "klasse": "kundendaten",
+        "kunde": "k-beispiel",
+        "anzahl": 1
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    }
+  ],
+  "zeit_text": [
+    {
+      "ms": 0,
+      "erwartet": {
+        "text": "1970-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "ms": 253402300799999,
+      "erwartet": {
+        "text": "9999-12-31T23:59:59.999Z"
+      }
+    },
+    {
+      "ms": 1835440496007,
+      "erwartet": {
+        "text": "2028-02-29T12:34:56.007Z"
+      }
+    },
+    {
+      "ms": 1795179600000,
+      "erwartet": {
+        "text": "2026-11-20T13:00:00.000Z"
+      }
+    },
+    {
+      "ms": -1,
+      "erwartet": {
+        "fehler": "zeit_ungueltig"
+      }
+    },
+    {
+      "ms": 253402300800000,
+      "erwartet": {
+        "fehler": "zeit_ungueltig"
+      }
+    }
+  ],
+  "abschnitt": [
+    {
+      "quelle": "brain",
+      "ms": 1796083199999,
+      "erwartet": {
+        "name": "brain-2026-11.jsonl"
+      }
+    },
+    {
+      "quelle": "brain",
+      "ms": 1796083200000,
+      "erwartet": {
+        "name": "brain-2026-12.jsonl"
+      }
+    },
+    {
+      "quelle": "stelle",
+      "ms": 1799971200000,
+      "erwartet": {
+        "name": "stelle-2027-01.jsonl"
+      }
+    },
+    {
+      "quelle": "gateway",
+      "ms": 1795179600000,
+      "erwartet": {
+        "name": "gateway-2026-11.jsonl"
+      }
+    },
+    {
+      "quelle": "halter",
+      "ms": 0,
+      "erwartet": {
+        "name": "halter-1970-01.jsonl"
+      }
+    },
+    {
+      "quelle": "audit",
+      "ms": 1795179600000,
+      "erwartet": {
+        "fehler": "feld_ungueltig:quelle"
+      }
+    },
+    {
+      "quelle": "Brain",
+      "ms": 1795179600000,
+      "erwartet": {
+        "fehler": "feld_ungueltig:quelle"
+      }
+    },
+    {
+      "quelle": "brain",
+      "ms": -1,
+      "erwartet": {
+        "fehler": "zeit_ungueltig"
+      }
+    }
+  ]
+}

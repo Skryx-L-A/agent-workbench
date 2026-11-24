@@ -1,0 +1,209 @@
+{
+ "beschreibung": "POST /eingabe: ohne oder mit kaputter Kennung 400, unbekannte Kennung 404, kein JSON-Objekt 400, falscher Inhaltstyp 415, Koerper bis 1 048 575 Byte gehen an den Dienst (204), 1 048 576 Byte sind 413",
+ "datensatz": "A",
+ "name": "br_eingabe",
+ "regeln": [
+  "BR4",
+  "BR5"
+ ],
+ "schritte": [
+  {
+   "art": "Strom",
+   "name": "s1"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-9",
+     "spalten": 10,
+     "zeilen": 5
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "xyz",
+    "koerper": {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-9",
+     "spalten": 10,
+     "zeilen": 5
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "koerper": {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-9",
+     "spalten": 10,
+     "zeilen": 5
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "0000000000000000000000000000000",
+    "koerper": {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-9",
+     "spalten": 10,
+     "zeilen": 5
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "kennung": "00000000000000000000000000000000",
+    "koerper": {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-9",
+     "spalten": 10,
+     "zeilen": 5
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": [
+     1
+    ],
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "verbindung": "s1",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "kein json",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "verbindung": "s1",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "7",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "verbindung": "s1",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "inhalt_typ": "text/plain",
+    "koerper": {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-9",
+     "spalten": 10,
+     "zeilen": 5
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "verbindung": "s1",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-9",
+     "spalten": 10,
+     "zeilen": 5
+    },
+    "koerper_laenge": 1048576,
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "verbindung": "s1",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-9",
+     "spalten": 10,
+     "zeilen": 5
+    },
+    "koerper_laenge": 1048575,
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "verbindung": "s1",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "ablehnung": "sitzung_unbekannt"
+   },
+   "frist": 30,
+   "strom": "s1"
+  },
+  {
+   "art": "Zustand",
+   "arten": true,
+   "strom": "s1"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

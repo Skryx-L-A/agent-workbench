@@ -1,0 +1,32 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "fehler",
+ "code": "pk.prozess_gewechselt",
+ "ereignisse": [
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.prozess_gewechselt",
+   "grund": "pk.startzeit_weicht_ab",
+   "peer": {
+    "system": "windows",
+    "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+    "appcontainer_sid": null,
+    "uid": null,
+    "gid": null,
+    "pid": "=client",
+    "startzeit": "=neuer_prozess",
+    "im_job": null,
+    "programm": "=client",
+    "signatur": null,
+    "eingeschraenkt": false,
+    "sandbox": null
+   }
+  }
+ ],
+ "peer": null,
+ "gemessen": [
+  "Ereignis pk.prozess_gewechselt",
+  "startzeit des neuen Prozesses liegt nach dem Verbindungszeitpunkt"
+ ]
+}

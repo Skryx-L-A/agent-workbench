@@ -1,0 +1,5 @@
+{
+ "beschreibung": "das alte Profil mit Anhang `/usr/bin/bwrap`: Es gäbe jedem Aufrufer von bwrap einen Benutzer-Namensraum",
+ "form": "profil",
+ "text": "abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile werkbank-einschluss-bwrap /usr/bin/bwrap flags=(unconfined) {\n  userns,\n}\n"
+}

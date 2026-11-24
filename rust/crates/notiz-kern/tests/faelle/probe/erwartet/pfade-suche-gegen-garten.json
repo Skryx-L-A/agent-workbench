@@ -1,0 +1,77 @@
+{
+ "exit": 0,
+ "stdout": [
+  {
+   "rel": "20-projects/p/MOC.md",
+   "linking_excluded": true,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "20-projects/p",
+   "stem_key": "moc"
+  },
+  {
+   "rel": "MOC.md",
+   "linking_excluded": true,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "moc"
+  },
+  {
+   "rel": "30-topics/t/DECISIONS.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "30-topics/t",
+   "stem_key": "decisions"
+  },
+  {
+   "rel": "10-global/review-queue.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "10-global",
+   "stem_key": "review-queue"
+  },
+  {
+   "rel": "INDEX.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "index"
+  },
+  {
+   "rel": "10-global/INDEX.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": true,
+   "branch": "10-global",
+   "stem_key": "index"
+  },
+  {
+   "rel": "Index.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "index"
+  },
+  {
+   "rel": "LOG.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "log"
+  },
+  {
+   "rel": "10-global/LOG.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": true,
+   "branch": "10-global",
+   "stem_key": "log"
+  }
+ ]
+}

@@ -1,0 +1,59 @@
+{
+  "quelle": "Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
+  "faelle": [
+    {
+      "fall": "Ganzzahl-Schluessel: Sortierung nach UTF-16-Codeeinheiten, nicht numerisch",
+      "quelle": "jcs-vektoren.json",
+      "eingabe_text": "{\"b\":1,\"10\":2,\"2\":3,\"a\":4}",
+      "erwartet": "{\"10\":2,\"2\":3,\"a\":4,\"b\":1}"
+    },
+    {
+      "fall": "kleiner Exponent: 1e-7 bleibt 1e-7 (Python schreibt 1e-07)",
+      "quelle": "jcs-vektoren.json",
+      "eingabe_text": "{\"aktionsname\":\"test.zahl\",\"klein\":1e-7}",
+      "erwartet": "{\"aktionsname\":\"test.zahl\",\"klein\":1e-7}"
+    },
+    {
+      "fall": "ganzzahliger Float: 5.0 wird 5 (Python schreibt 5.0)",
+      "quelle": "jcs-vektoren.json",
+      "eingabe_text": "{\"aktionsname\":\"test.zahl\",\"ganz\":5.0}",
+      "erwartet": "{\"aktionsname\":\"test.zahl\",\"ganz\":5}"
+    },
+    {
+      "fall": "Fassung 1g, alt, nur lesen: Ganzzahl-Schluessel zuerst und numerisch",
+      "quelle": "fassung-vektoren.json",
+      "eingabe_text": "{\"b\":1,\"10\":2,\"2\":3,\"a\":4}",
+      "erwartet": "{\"10\":2,\"2\":3,\"a\":4,\"b\":1}"
+    },
+    {
+      "fall": "Fassung 1g, alt, nur lesen: nur die oberste Ebene sortiert",
+      "quelle": "fassung-vektoren.json",
+      "eingabe_text": "{\"aussen\":{\"z\":1,\"a\":2}}",
+      "erwartet": "{\"aussen\":{\"a\":2,\"z\":1}}"
+    },
+    {
+      "fall": "Sortierung nach UTF-16-Codeeinheiten (RFC 8785, 3.2.3)",
+      "quelle": "jcs.mjs RFC_BEISPIELE",
+      "eingabe_text": "{\"\\u20ac\":\"Euro Sign\",\"\\r\":\"Carriage Return\",\"\\ufb33\":\"Hebrew Letter Dalet With Dagesh\",\"1\":\"One\",\"\\ud83d\\ude00\":\"Emoji: Grinning Face\",\"\\u0080\":\"Control\",\"\\u00f6\":\"Latin Small Letter O With Diaeresis\"}",
+      "erwartet": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}"
+    },
+    {
+      "fall": "Zahlen aus RFC 8785, Anhang B",
+      "quelle": "jcs.mjs RFC_BEISPIELE",
+      "eingabe_text": "[-0,1e21,5e-324,0.000001,1e-7,9007199254740992]",
+      "erwartet": "[0,1e+21,5e-324,0.000001,1e-7,9007199254740992]"
+    },
+    {
+      "fall": "Zahlen: 5.0 wird 5, 1E2 wird 100, 1e20 bleibt ausgeschrieben, 0.1 bleibt",
+      "quelle": "Ergaenzung",
+      "eingabe_text": "{\"a\":5.0,\"b\":1E2,\"c\":1e20,\"d\":0.1,\"e\":-1.5e-10,\"f\":123456789012345678901}",
+      "erwartet": "{\"a\":5,\"b\":100,\"c\":100000000000000000000,\"d\":0.1,\"e\":-1.5e-10,\"f\":123456789012345680000}"
+    },
+    {
+      "fall": "Leerraum und Verschachtelung",
+      "quelle": "Ergaenzung",
+      "eingabe_text": "{ \"z\" : [ 1 , { \"b\" : null , \"a\" : true } ] , \"a\" : \"x\" }",
+      "erwartet": "{\"a\":\"x\",\"z\":[1,{\"a\":true,\"b\":null}]}"
+    }
+  ]
+}

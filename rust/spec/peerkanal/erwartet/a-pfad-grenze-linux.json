@@ -1,0 +1,11 @@
+{
+ "seite": "anlegen",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe von anlegen",
+  "Socket vorhanden"
+ ]
+}

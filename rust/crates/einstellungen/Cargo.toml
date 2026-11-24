@@ -1,0 +1,18 @@
+[package]
+name = "einstellungen"
+version = "0.1.0"
+description = "Reader of the settings file (contract 2): strict JSON, closed form, the stages einst.* and the typed view."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+# No runtime dependency: the library carries its own strict JSON reader. serde_json is used only by the
+# outside tests, which read the case files of rust/spec/einstellungen.
+[dev-dependencies]
+serde_json = "1"
+
+[lints]
+workspace = true

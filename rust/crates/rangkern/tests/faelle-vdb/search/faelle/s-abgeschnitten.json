@@ -1,0 +1,42 @@
+{
+ "description": "gardener.db: nur die ersten 150 Bytes einer echten Datenbank (Rest fehlt): Exit 3",
+ "program": "rangkern",
+ "ziele": [
+  "kaputte-datei"
+ ],
+ "files": {
+  "vault/10-werkstatt/hobel.md": "---\ntitle: Hobel und Spaene\ntype: note\n---\n\nNotiz zu hobel: hobel frueh planen, spaene zweimal im Monat pruefen. Wer hobel anlegt, braucht Zeit fuer spaene. Merkzettel hobel.\n",
+  "vault/10-werkstatt/saege.md": "---\ntitle: Saege und Zahn\ntype: note\n---\n\nNotiz zu saege: saege frueh planen, zahn zweimal im Monat pruefen. Wer saege anlegt, braucht Zeit fuer zahn. Merkzettel saege.\n",
+  "vault/10-werkstatt/leim.md": "---\ntitle: Leim und Zwinge\ntype: note\n---\n\nNotiz zu leim: leim frueh planen, zwinge zweimal im Monat pruefen. Wer leim anlegt, braucht Zeit fuer zwinge. Merkzettel leim.\n",
+  "vault/10-werkstatt/schraube.md": "---\ntitle: Schraube und Gewinde\ntype: note\n---\n\nNotiz zu schraube: schraube frueh planen, gewinde zweimal im Monat pruefen. Wer schraube anlegt, braucht Zeit fuer gewinde. Merkzettel schraube.\n",
+  "vault/10-werkstatt/feile.md": "---\ntitle: Feile und Raspel\ntype: note\n---\n\nNotiz zu feile: feile frueh planen, raspel zweimal im Monat pruefen. Wer feile anlegt, braucht Zeit fuer raspel. Merkzettel feile.\n",
+  "vault/20-projects/holz/zirkel.md": "---\ntitle: Zirkel und Lineal\ntype: note\n---\n\nNotiz zu zirkel: zirkel frueh planen, lineal zweimal im Monat pruefen. Wer zirkel anlegt, braucht Zeit fuer lineal. Merkzettel zirkel.\n",
+  "vault/20-projects/holz/bohrer.md": "---\ntitle: Bohrer und Spannfutter\ntype: note\n---\n\nNotiz zu bohrer: bohrer frueh planen, spannfutter zweimal im Monat pruefen. Wer bohrer anlegt, braucht Zeit fuer spannfutter. Merkzettel bohrer.\n",
+  "vault/20-projects/holz/schleifpapier.md": "---\ntitle: Schleifpapier und Koernung\ntype: note\n---\n\nNotiz zu schleifpapier: schleifpapier frueh planen, koernung zweimal im Monat pruefen. Wer schleifpapier anlegt, braucht Zeit fuer koernung. Merkzettel schleifpapier.\n",
+  "vault/10-werkstatt/misc/fueller-1.md": "---\ntitle: Fueller Wolke\ntype: note\n---\n\nEin Text ueber wolke und wolkestand, ohne Bezug zu den anderen Notizen. wolke wolke.\n",
+  "vault/10-werkstatt/misc/fueller-2.md": "---\ntitle: Fueller Regen\ntype: note\n---\n\nEin Text ueber regen und regenstand, ohne Bezug zu den anderen Notizen. regen regen.\n",
+  "vault/10-werkstatt/misc/fueller-3.md": "---\ntitle: Fueller Nebel\ntype: note\n---\n\nEin Text ueber nebel und nebelstand, ohne Bezug zu den anderen Notizen. nebel nebel.\n",
+  "vault/10-werkstatt/misc/fueller-4.md": "---\ntitle: Fueller Sturm\ntype: note\n---\n\nEin Text ueber sturm und sturmstand, ohne Bezug zu den anderen Notizen. sturm sturm.\n",
+  "vault/10-werkstatt/misc/fueller-5.md": "---\ntitle: Fueller Hagel\ntype: note\n---\n\nEin Text ueber hagel und hagelstand, ohne Bezug zu den anderen Notizen. hagel hagel.\n",
+  "vault/10-werkstatt/misc/fueller-6.md": "---\ntitle: Fueller Tau\ntype: note\n---\n\nEin Text ueber tau und taustand, ohne Bezug zu den anderen Notizen. tau tau.\n",
+  "vault/.brain/spaces.lock": "{\"spaces\": [{\"space\": \"holz\", \"mount\": \"20-projects/holz\", \"art\": \"projekt\", \"owner\": \"team\", \"schreibbar\": true}]}",
+  "aux/q.json": "[0.68, 0.83, 0.32, 0.71]"
+ },
+ "files_b64": {
+  "aux/gardener.db": "U1FMaXRlIGZvcm1hdCAzABAAAQEAQCAgAAAABAAAAAcAAAAAAAAAAAAAAAMAAAAEAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAC6VyQ0P+AAGDc0ADx4Pww5WDusNzQ4rAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+ },
+ "args": [
+  "search",
+  "{root}/vault",
+  "-k",
+  "5",
+  "--today",
+  "2026-11-18",
+  "--index-db",
+  "{root}/aux/gardener.db",
+  "--query-vector",
+  "{root}/aux/q.json",
+  "--",
+  "saege zahn"
+ ]
+}

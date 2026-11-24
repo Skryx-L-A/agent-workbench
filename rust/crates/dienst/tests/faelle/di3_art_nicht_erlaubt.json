@@ -1,0 +1,132 @@
+{
+ "beschreibung": "Ereignisse der Traeger, des Kerns und des Dienstes sind fuer Clients verboten: Fehler art_nicht_erlaubt",
+ "datensatz": "A",
+ "name": "di3_art_nicht_erlaubt",
+ "regeln": [
+  "DI3",
+  "DI4"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c0"
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "x0"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "x0",
+   "ereignis": {
+    "art": "Ausgabe",
+    "sitzung": "s-alpha",
+    "stand": 99,
+    "zeilen": {
+     "0": "x"
+    }
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "x0",
+   "bis": {
+    "fehler": "art_nicht_erlaubt"
+   },
+   "frist": 3,
+   "takt": 16
+  },
+  {
+   "art": "Warte",
+   "betrachter": "x0",
+   "bis": {
+    "getrennt": true
+   },
+   "frist": 3,
+   "takt": 16
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "x1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "x1",
+   "ereignis": {
+    "ansicht": "fenster",
+    "art": "Verbinden",
+    "person": "anna",
+    "raum": "raum-nord"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "x1",
+   "bis": {
+    "fehler": "art_nicht_erlaubt"
+   },
+   "frist": 3,
+   "takt": 16
+  },
+  {
+   "art": "Warte",
+   "betrachter": "x1",
+   "bis": {
+    "getrennt": true
+   },
+   "frist": 3,
+   "takt": 16
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c0",
+   "ohne_nachrichten": true
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   40,
+   10
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "ende",
+    "0"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

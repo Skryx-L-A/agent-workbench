@@ -1,0 +1,34 @@
+{
+ "name": "tr2_stand_gemeinsam",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Ausgabe und Modus mit invers zählen den stand gemeinsam; jedes Vorkommen von ?5h oder ?5l ist ein Ereignis, auch bei gleichem Wert",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[?5ha"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?5lb"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?5l"
+  },
+  {
+   "art": "Text",
+   "text": "c"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

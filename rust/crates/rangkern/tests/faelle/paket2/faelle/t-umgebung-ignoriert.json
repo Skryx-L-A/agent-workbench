@@ -1,0 +1,12 @@
+{
+ "description": "Umgebungsvariablen des Vorbilds ändern nichts",
+ "program": "rangkern",
+ "args": [
+  "tokens",
+  "Einbettungen Suchindex"
+ ],
+ "env": {
+  "BRAIN_SEARCH_STEM": "0",
+  "BRAIN_SEARCH_NGRAM": "0"
+ }
+}

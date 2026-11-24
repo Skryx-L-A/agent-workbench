@@ -1,0 +1,47 @@
+{
+ "name": "k3-eine-klasse",
+ "regeln": [
+  "K3",
+  "H3"
+ ],
+ "beschreibung": "Mit nur einer Klasse ist sie die höchste; nichts sinkt.",
+ "vorgabe": {
+  "klassen": [
+   "nur"
+  ],
+  "routen": [
+   {
+    "schluessel": "r",
+    "art": "lokal",
+    "klasse": "nur"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "nur",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r"
+  }
+ ],
+ "tiefe": {
+  "herabstufen": {
+   "an": true
+  }
+ }
+}

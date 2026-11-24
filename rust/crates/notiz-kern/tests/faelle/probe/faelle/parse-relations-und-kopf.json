@@ -1,0 +1,10 @@
+{
+ "description": "embed text: relations cut, head fields in fixed order",
+ "files": {
+  "note.md": "---\nid: 1\ndescription: Kurz gesagt\nbranch: 10-global\ntype: note\ntags: [a, b]\naliases: [X]\ntitle: T\npermalink: main/t\n---\nRumpf\n\n## Relations\n- relates-to [[Alpha]]\n- part-of [[Gamma]]\n\nEnde\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

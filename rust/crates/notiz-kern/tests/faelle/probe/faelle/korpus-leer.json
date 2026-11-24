@@ -1,0 +1,11 @@
+{
+ "description": "empty vault",
+ "files": {},
+ "args": [
+  "corpus",
+  "{root}/v"
+ ],
+ "dirs": [
+  "v"
+ ]
+}

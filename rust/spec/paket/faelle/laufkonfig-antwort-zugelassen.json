@@ -1,0 +1,10 @@
+{
+ "beschreibung": "eine Antwort von debconf wartet (`zugelassen`, Frage von dpkg-reconfigure oder debconf-set-selections), die Datei fehlt noch: zugelassen",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {},
+ "vorher": null,
+ "antwort": "zugelassen"
+}

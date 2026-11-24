@@ -1,0 +1,23 @@
+{
+ "beschreibung": "ein haengender Link am Namen der Token-Datei: Exitcode 3",
+ "datensatz": "A",
+ "name": "br_token_datei_link",
+ "ordner": {
+  "art": "verzeichnis",
+  "modus": "0700",
+  "token_vorher": "link"
+ },
+ "regeln": [
+  "BR1",
+  "BR2"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

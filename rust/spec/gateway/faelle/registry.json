@@ -1,0 +1,259 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 7, Abschnitt 3. text sind die Bytes (UTF-8) der Datei; text_muster baut den grossen Fall aus der Vorfuehr-Registry.",
+ "faelle": [
+  {
+   "name": "vorfuehrung",
+   "beschreibung": "die Vorfuehr-Registry",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": true
+   }
+  },
+  {
+   "name": "zu_gross",
+   "beschreibung": "mehr als 65536 Byte",
+   "text_muster": {
+    "ersetze_ende": "\n}",
+    "durch": ",\"x\":\"<a mal 65536>\"\n}",
+    "basis": "vorfuehrung"
+   },
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.zu_gross"
+   }
+  },
+  {
+   "name": "bom",
+   "beschreibung": "UTF-8 mit BOM",
+   "text": "﻿{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.json_ungueltig"
+   }
+  },
+  {
+   "name": "doppelt_tief",
+   "beschreibung": "doppelter Schluessel im Objekt eines Anbieters",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\", \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.json_ungueltig"
+   }
+  },
+  {
+   "name": "unbekannt_tief",
+   "beschreibung": "unbekannter Schluessel in einem Modelleintrag",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000,\n     \"klasse\": \"intern\"\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.schluessel_unbekannt"
+   }
+  },
+  {
+   "name": "schluessel_im_eintrag",
+   "beschreibung": "ein Feld fuer den Anbieterschluessel ist unbekannt (Schluessel nur beim Halter)",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\",\n   \"api_key\": \"sk-beispiel\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.schluessel_unbekannt"
+   }
+  },
+  {
+   "name": "halter_fehlt",
+   "beschreibung": "Anbieter ohne Feld halter",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\"\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.schluessel_fehlt"
+   }
+  },
+  {
+   "name": "preis_dezimal",
+   "beschreibung": "preis_ein als 3000.0",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000.0,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.typ_falsch"
+   }
+  },
+  {
+   "name": "fassung_2",
+   "beschreibung": "fassung 2",
+   "text": "{\n \"fassung\": 2,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.fassung_unbekannt"
+   }
+  },
+  {
+   "name": "route_ohne_modell",
+   "beschreibung": "eine Route mit leerer Modellliste",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": []\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.anzahl"
+   }
+  },
+  {
+   "name": "kennung_gross",
+   "beschreibung": "Anbieterschluessel mit Grossbuchstaben",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"Anb\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"Anb\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.kennung_form"
+   }
+  },
+  {
+   "name": "modell_leerzeichen",
+   "beschreibung": "Modellname mit Leerzeichen",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude sonnet\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.modell_form"
+   }
+  },
+  {
+   "name": "art_hybrid",
+   "beschreibung": "art hybrid",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"hybrid\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.art_unbekannt"
+   }
+  },
+  {
+   "name": "ziel_mit_pfad",
+   "beschreibung": "Ziel mit Pfad",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"https://modelle.firma.beispiel.invalid/v1\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.ziel_form"
+   }
+  },
+  {
+   "name": "ziel_https_lokal",
+   "beschreibung": "lokaler Anbieter ueber TLS auf einem Rechner der Firma ist gueltig",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"https://modelle.firma.beispiel.invalid:8443\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": true
+   }
+  },
+  {
+   "name": "ziel_http_fremd",
+   "beschreibung": "lokaler Anbieter ohne TLS auf einer fremden Adresse",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://192.168.1.5:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.ziel_form"
+   }
+  },
+  {
+   "name": "ziel_port_null",
+   "beschreibung": "Port 0",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:0\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.ziel_form"
+   }
+  },
+  {
+   "name": "ziel_benutzer",
+   "beschreibung": "Ziel mit Benutzerteil",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"https://u:p@modelle.beispiel.invalid\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.ziel_form"
+   }
+  },
+  {
+   "name": "weg_beide",
+   "beschreibung": "Anbieter mit Ziel und Halter zugleich",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": \"https://modelle-a.beispiel.invalid\",\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.weg_form"
+   }
+  },
+  {
+   "name": "weg_keiner",
+   "beschreibung": "lokaler Anbieter ohne Ziel und ohne Halter",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": null,\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.weg_form"
+   }
+  },
+  {
+   "name": "lokal_mit_halter",
+   "beschreibung": "lokaler Anbieter mit Schluessel ueber den Halter ist gueltig",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": null,\n   \"halter\": \"anb-lokal\"\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": true
+   }
+  },
+  {
+   "name": "waehrung_klein",
+   "beschreibung": "Waehrung eur",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"eur\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.waehrung_form"
+   }
+  },
+  {
+   "name": "einheit_10",
+   "beschreibung": "einheit 10",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 10,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.einheit_grenze"
+   }
+  },
+  {
+   "name": "preis_zu_hoch",
+   "beschreibung": "preis_aus 1000001",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 1000001\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.preis_grenze"
+   }
+  },
+  {
+   "name": "modell_doppelt",
+   "beschreibung": "dasselbe Modell zweimal in einer Route",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    },\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.kennung_doppelt"
+   }
+  },
+  {
+   "name": "anbieter_unbekannt",
+   "beschreibung": "Modelleintrag nennt einen fehlenden Anbieter",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-fehlt\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.anbieter_unbekannt"
+   }
+  },
+  {
+   "name": "cloud_direkt",
+   "beschreibung": "Cloud-Anbieter direkt mit Ziel statt ueber den Halter",
+   "text": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": \"https://modelle-a.beispiel.invalid\",\n   \"halter\": null\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.halter_pflicht"
+   }
+  },
+  {
+   "name": "reihenfolge",
+   "beschreibung": "unbekannter Schluessel und falsche Fassung: der Schluessel zuerst",
+   "text": "{\n \"fassung\": 2,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ],\n \"x\": 1\n}\n",
+   "erwartet": {
+    "gueltig": false,
+    "code": "reg.schluessel_unbekannt"
+   }
+  }
+ ]
+}

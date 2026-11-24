@@ -1,0 +1,200 @@
+{
+ "name": "k3-reihenfolge",
+ "regeln": [
+  "K3",
+  "D12"
+ ],
+ "beschreibung": "Treffen mehrere Gründe zu, gilt der erste in der Reihenfolge der Tabelle.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "vertrag",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "klasse": "geheim",
+    "kunde": "k-a"
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "klasse": "intern",
+    "kunde": "k-a"
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "vertrag",
+    "befund": {
+     "geheimnis": true,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "kunde": "k-a",
+    "senkung_nutzer": "aus"
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "oeffentlich",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "gruppe": "g-x"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "vertrag",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "gruppe": "g-x"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "vertrag",
+    "befund": {
+     "geheimnis": true,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": true,
+     "interner_name": false
+    },
+    "modell": "verhindert"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "modell": "verhindert",
+    "senkung_nutzer": "aus"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    },
+    "modell": "verhindert",
+    "senkung_nutzer": "bestaetigung"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   }
+  }
+ ],
+ "tiefe": {
+  "herabstufen": {
+   "an": true
+  }
+ }
+}

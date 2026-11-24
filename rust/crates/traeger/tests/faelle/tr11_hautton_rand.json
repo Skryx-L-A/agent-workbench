@@ -1,0 +1,36 @@
+{
+ "name": "tr11_hautton_rand",
+ "regeln": [
+  "TR11"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Hautton am rechten Rand und nach Löschen: gleiche Regeln wie ein kombinierendes Zeichen",
+ "art": "strom",
+ "groesse": [
+  6,
+  3
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "12👍🏽"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "3"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1H\u001b[2Ḱ"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

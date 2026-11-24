@@ -1,0 +1,30 @@
+{
+ "name": "tr4_ruecklauf_klein",
+ "regeln": [
+  "TR4"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Der Rücklauf wächst bis zur Grenze und nicht darüber; der sichtbare Schirm ist davon unabhängig",
+ "art": "strom",
+ "groesse": [
+  12,
+  4
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "Z00001\r\nZ00002\r\nZ00003\r\nZ00004\r\nZ00005\r\nZ00006\r\nZ00007\r\nZ00008\r\nZ00009\r\n"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "Z00001\r\nZ00002\r\nZ00003\r\nZ00004\r\nZ00005\r\nZ00006\r\nZ00007\r\nZ00008\r\nZ00009\r\nZ00010\r\nZ00011\r\nZ00012\r\nZ00013\r\nZ00014\r\nZ00015\r\nZ00016\r\nZ00017\r\nZ00018\r\nZ00019\r\nZ00020\r\nZ00021\r\nZ00022\r\nZ00023\r\nZ00024\r\nZ00025\r\nZ00026\r\nZ00027\r\nZ00028\r\nZ00029\r\nZ00030\r\n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ],
+ "ruecklauf": 31
+}

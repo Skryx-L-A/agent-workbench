@@ -1,0 +1,7 @@
+{
+ "description": "unknown subcommand",
+ "args": [
+  "zerlege",
+  "{root}/x.md"
+ ]
+}

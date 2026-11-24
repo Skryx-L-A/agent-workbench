@@ -1,0 +1,24 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": {
+  "system": "windows",
+  "sid": "S-1-5-80-1000000011-1000000012-1000000013-1000000014-1000000015",
+  "appcontainer_sid": null,
+  "uid": null,
+  "gid": null,
+  "pid": "=server",
+  "startzeit": null,
+  "im_job": null,
+  "programm": null,
+  "signatur": null,
+  "eingeschraenkt": false,
+  "sandbox": null
+ },
+ "gemessen": [
+  "Besitzer der Instanz = dienst (GetSecurityInfo, OWNER)",
+  "OpenProcess auf die Server-PID wird nicht verlangt"
+ ]
+}

@@ -1,0 +1,158 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "teile": [
+     {
+      "klasse": "oeffentlich",
+      "herkunft": "gesenkt",
+      "senkung": {
+       "grund": "gesenkt",
+       "vorschlag": null
+      },
+      "protokoll": {
+       "art": "regel",
+       "erkannt_durch": [
+        "typ:regel",
+        "filter:frei"
+       ],
+       "regel_ebene": "firma",
+       "klasse_alt": "intern",
+       "klasse_neu": "oeffentlich"
+      },
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "oeffentlich",
+       "meldung": "frei"
+      }
+     },
+     {
+      "klasse": "intern",
+      "herkunft": "geerbt",
+      "senkung": {
+       "grund": "art-nicht-herabstufbar",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": false,
+       "grund": "klasse-ueber-route",
+       "klasse": "intern",
+       "meldung": "Klasse der Einheit liegt über Route r-oeff"
+      }
+     }
+    ],
+    "ausgeliefert": [
+     0
+    ],
+    "gesperrt": 1
+   },
+   {
+    "teile": [
+     {
+      "klasse": "intern",
+      "herkunft": "geerbt",
+      "senkung": {
+       "grund": "bestaetigung-fehlt",
+       "vorschlag": "oeffentlich"
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": false,
+       "grund": "klasse-ueber-route",
+       "klasse": "intern",
+       "meldung": "Klasse der Einheit liegt über Route r-oeff"
+      }
+     },
+     {
+      "klasse": "intern",
+      "herkunft": "geerbt",
+      "senkung": {
+       "grund": "bestaetigung-fehlt",
+       "vorschlag": "oeffentlich"
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": false,
+       "grund": "klasse-ueber-route",
+       "klasse": "intern",
+       "meldung": "Klasse der Einheit liegt über Route r-oeff"
+      }
+     }
+    ],
+    "ausgeliefert": [],
+    "gesperrt": 2
+   },
+   {
+    "teile": [
+     {
+      "klasse": "intern",
+      "herkunft": "geerbt",
+      "senkung": {
+       "grund": "gruppe-ohne-eintrag",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": false,
+       "grund": "klasse-ueber-route",
+       "klasse": "intern",
+       "meldung": "Klasse der Einheit liegt über Route r-oeff"
+      }
+     }
+    ],
+    "ausgeliefert": [],
+    "gesperrt": 1
+   },
+   {
+    "teile": [
+     {
+      "klasse": "kundendaten",
+      "herkunft": "kunde",
+      "senkung": {
+       "grund": "kundendaten",
+       "vorschlag": null
+      },
+      "protokoll": null,
+      "darf": {
+       "darf": false,
+       "grund": "klasse-ueber-route",
+       "klasse": "kundendaten",
+       "meldung": "Klasse der Einheit liegt über Route r-oeff"
+      }
+     },
+     {
+      "klasse": "oeffentlich",
+      "herkunft": "gesenkt",
+      "senkung": {
+       "grund": "gesenkt",
+       "vorschlag": null
+      },
+      "protokoll": {
+       "art": "regel",
+       "erkannt_durch": [
+        "typ:regel",
+        "filter:frei"
+       ],
+       "regel_ebene": "firma",
+       "klasse_alt": "intern",
+       "klasse_neu": "oeffentlich"
+      },
+      "darf": {
+       "darf": true,
+       "grund": "frei",
+       "klasse": "oeffentlich",
+       "meldung": "frei"
+      }
+     }
+    ],
+    "ausgeliefert": [
+     1
+    ],
+    "gesperrt": 1
+   }
+  ]
+ }
+}

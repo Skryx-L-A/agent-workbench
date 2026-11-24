@@ -1,0 +1,76 @@
+{
+ "beschreibung": "Breite Zeichen, Emoji und U+00A0 kommen als Text unverändert an.",
+ "datensatz": "A",
+ "name": "se4_breit",
+ "regeln": [
+  "SE4"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "050104021e0301000000030001000ce697a5e69cace8aa9e206f6b0101000d456d6f6a6920f09f9982206f6b02010009546162c2a04e425350"
+  },
+  {
+   "art": "Zeilen",
+   "erwartet": [
+    "日本語 ok",
+    "Emoji 🙂 ok",
+    "Tab NBSP"
+   ]
+  }
+ ]
+}

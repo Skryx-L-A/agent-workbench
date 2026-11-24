@@ -1,0 +1,198 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    5,
+    1,
+    true
+   ],
+   "groesse": [
+    2,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 6,
+   "zeilen": [
+    "a",
+    "漢",
+    "b",
+    "字",
+    "😀",
+    "c",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       0,
+       1,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "a"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       1,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "1": "漢"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       2,
+       1,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "2": "b"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       3,
+       1,
+       true
+      ],
+      "stand": 4,
+      "zeilen": {
+       "3": "字"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       1,
+       true
+      ],
+      "stand": 5,
+      "zeilen": {
+       "4": "😀"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       5,
+       1,
+       true
+      ],
+      "stand": 6,
+      "zeilen": {
+       "5": "c"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      5,
+      1,
+      true
+     ],
+     "groesse": [
+      2,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 6,
+     "zeilen": [
+      "a",
+      "漢",
+      "b",
+      "字",
+      "😀",
+      "c",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

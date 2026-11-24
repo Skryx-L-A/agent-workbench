@@ -1,0 +1,15 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "fallback": true,
+   "rels": [],
+   "gesperrt": 0
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

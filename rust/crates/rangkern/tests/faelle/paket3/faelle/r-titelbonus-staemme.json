@@ -1,0 +1,20 @@
+{
+ "description": "Titelbonus zählt gleiche Stämme, nicht gleiche N-Gramme",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Reifen wechseln",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/auto/reifen-wechseln.md": "---\ntitle: Reifen wechseln\ntype: note\n---\n\nDer alte Reifen ist platt.\n",
+  "vault/auto/reifenwechsel.md": "---\ntitle: Reifenwechsel\ntype: note\n---\n\nReifen wechseln, Reifen wechseln, der Reifenwechsel ist nötig.\n",
+  "vault/auto/oel.md": "---\ntitle: Öl\ntype: note\n---\n\nÖl prüfen.\n"
+ }
+}

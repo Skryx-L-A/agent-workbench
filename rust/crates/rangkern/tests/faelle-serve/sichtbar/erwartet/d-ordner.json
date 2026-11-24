@@ -1,0 +1,157 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 1.0,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 1.0,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/zusatz/a.md",
+     "score": 0.8107580473334035,
+     "title": "Zusatz eins",
+     "snippet": "hochbeet erde zusatz im neuen Ordner hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.8107580473334035
+    },
+    {
+     "rel": "10-global/zusatz/b.md",
+     "score": 0.666601102934165,
+     "title": "Zusatz zwei",
+     "snippet": "erde hochbeet noch eine Notiz im Ordner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 3,
+     "bm25_norm": 0.666601102934165
+    }
+   ],
+   "id": 2
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 1.0,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/verschoben/a.md",
+     "score": 0.8107580473334035,
+     "title": "Zusatz eins",
+     "snippet": "hochbeet erde zusatz im neuen Ordner hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 2,
+     "bm25_norm": 0.8107580473334035
+    },
+    {
+     "rel": "10-global/verschoben/b.md",
+     "score": 0.666601102934165,
+     "title": "Zusatz zwei",
+     "snippet": "erde hochbeet noch eine Notiz im Ordner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 3,
+     "bm25_norm": 0.666601102934165
+    }
+   ],
+   "id": 3
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 1.0,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 4
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 1.0,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 5
+  }
+ ],
+ "exit": 0
+}

@@ -1,0 +1,5 @@
+{
+ "exit": 66,
+ "stderr": "lauf.datei_modus: Startdatei nicht eigen, nicht 0600 oder keine Datei",
+ "suche_gestartet": false
+}

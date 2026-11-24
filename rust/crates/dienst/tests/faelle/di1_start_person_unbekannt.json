@@ -1,0 +1,55 @@
+{
+ "beschreibung": "betrachter.person fehlt in anfang.personen: Exitcode 2",
+ "datensatz": "A",
+ "name": "di1_start_person_unbekannt",
+ "regeln": [
+  "DI1"
+ ],
+ "schritte": [],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "niemand",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   40,
+   10
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "ende",
+    "0"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

@@ -1,0 +1,45 @@
+{
+ "exit": 0,
+ "stdout": [
+  {
+   "rel": "00-sources/drop/x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": true,
+   "branch": "00-sources",
+   "stem_key": "x"
+  },
+  {
+   "rel": "00-sources/drop/tief/y.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": true,
+   "branch": "00-sources",
+   "stem_key": "y"
+  },
+  {
+   "rel": "00-sources/dropbox/x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": true,
+   "branch": "00-sources",
+   "stem_key": "x"
+  },
+  {
+   "rel": "00-sources/drop.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": true,
+   "branch": "00-sources",
+   "stem_key": "drop"
+  },
+  {
+   "rel": "00-sources/x.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": true,
+   "branch": "00-sources",
+   "stem_key": "x"
+  }
+ ]
+}

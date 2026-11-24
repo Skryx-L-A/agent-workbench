@@ -1,0 +1,23 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": {
+  "system": "windows",
+  "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "appcontainer_sid": null,
+  "uid": null,
+  "gid": null,
+  "pid": "=client",
+  "startzeit": "=client",
+  "im_job": null,
+  "programm": "=client",
+  "signatur": null,
+  "eingeschraenkt": false,
+  "sandbox": null
+ },
+ "gemessen": [
+  "pid und startzeit gleich den Werten des Clients (GetProcessTimes)"
+ ]
+}

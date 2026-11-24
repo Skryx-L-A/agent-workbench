@@ -1,0 +1,59 @@
+{
+ "name": "tr15_kind_schreiben_nie_blockiert",
+ "regeln": [
+  "TR12",
+  "TR15"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Nachtrag 20.11. (TR15): Mehrere Schreiben nacheinander an ein Kind, das nie liest: 200 000 und 62 144 Byte werden angenommen (zusammen genau die Grenze), ein weiteres Schreiben über der Grenze wird abgelehnt; kein Schritt wartet",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "stumm",
+  "argv": [],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "text": "BEREIT"
+   }
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "cursor": [
+     1,
+     0,
+     true
+    ]
+   }
+  },
+  {
+   "art": "Tasten",
+   "hex": "6162",
+   "mal": 100000
+  },
+  {
+   "art": "Tasten",
+   "hex": "62",
+   "mal": 62144
+  },
+  {
+   "art": "Tasten",
+   "hex": "61",
+   "mal": 262145
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

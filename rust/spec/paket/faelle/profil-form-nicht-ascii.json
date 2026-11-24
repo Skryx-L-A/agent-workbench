@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Zeichen außerhalb ASCII",
+ "form": "profil",
+ "text": "abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile werkbank-bwrap /usr/lib/werkbank/bwrap {\n  userns, # ä\n}\n"
+}

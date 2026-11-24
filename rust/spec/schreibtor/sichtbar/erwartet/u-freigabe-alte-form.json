@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "S16"
+ ],
+ "beschreibung": "Die Freigabe hat nur klasse und kunde (Form vor E7)."
+}

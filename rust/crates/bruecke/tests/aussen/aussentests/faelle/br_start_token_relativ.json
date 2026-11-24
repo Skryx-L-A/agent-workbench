@@ -1,0 +1,17 @@
+{
+ "beschreibung": "ungueltige Startdatei (token_relativ): Exitcode 2, eine Zeile auf stderr, kein Token, stdout leer",
+ "datensatz": "A",
+ "name": "br_start_token_relativ",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "relativ/token"
+ }
+}

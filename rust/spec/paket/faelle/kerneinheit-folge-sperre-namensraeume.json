@@ -1,0 +1,5 @@
+{
+ "beschreibung": "`RestrictNamespaces=yes` zieht NoNewPrivileges nach sich",
+ "form": "kerneinheit",
+ "text": "[Unit]\nDescription=Werkbank core service\n\n[Service]\nRestrictNamespaces=yes\nType=simple\nExecStart=/usr/lib/werkbank/werkbank-kern /etc/werkbank/kern.json\nRuntimeDirectory=werkbank\nRuntimeDirectoryMode=0700\n\n[Install]\nWantedBy=default.target\n"
+}

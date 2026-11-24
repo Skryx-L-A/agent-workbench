@@ -1,0 +1,34 @@
+{
+ "name": "tr2_ausgabe_je_chunk",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Nach jedem Stück Bytes höchstens eine Ausgabe mit allen Zeilen, die sich gegenüber der letzten Meldung geändert haben; stand zählt hoch; ein leeres Stück meldet nichts",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "nichts"
+  },
+  {
+   "art": "Text",
+   "text": "\r\nalpha"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[2;1Hbeta\r\ngamma"
+  },
+  {
+   "art": "Text",
+   "text": ""
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

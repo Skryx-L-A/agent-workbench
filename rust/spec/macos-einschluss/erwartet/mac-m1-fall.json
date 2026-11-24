@@ -1,0 +1,6 @@
+{
+ "erwartet": "jeder Versuch: Operation not permitted (EPERM)",
+ "messwerte": [
+  "errno je Versuch"
+ ]
+}

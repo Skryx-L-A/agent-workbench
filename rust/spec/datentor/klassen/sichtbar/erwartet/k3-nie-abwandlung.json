@@ -1,0 +1,109 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "klasse": "oeffentlich",
+    "herkunft": "gesenkt",
+    "senkung": {
+     "grund": "gesenkt",
+     "vorschlag": null
+    },
+    "protokoll": {
+     "art": "vertraege",
+     "erkannt_durch": [
+      "typ:vertraege",
+      "filter:frei"
+     ],
+     "regel_ebene": "firma",
+     "klasse_alt": "intern",
+     "klasse_neu": "oeffentlich"
+    },
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "oeffentlich",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": "oeffentlich",
+    "herkunft": "gesenkt",
+    "senkung": {
+     "grund": "gesenkt",
+     "vorschlag": null
+    },
+    "protokoll": {
+     "art": "kunden-daten",
+     "erkannt_durch": [
+      "typ:kunden-daten",
+      "filter:frei"
+     ],
+     "regel_ebene": "firma",
+     "klasse_alt": "intern",
+     "klasse_neu": "oeffentlich"
+    },
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "oeffentlich",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": "oeffentlich",
+    "herkunft": "gesenkt",
+    "senkung": {
+     "grund": "gesenkt",
+     "vorschlag": null
+    },
+    "protokoll": {
+     "art": "vertrag.",
+     "erkannt_durch": [
+      "typ:vertrag.",
+      "filter:frei"
+     ],
+     "regel_ebene": "firma",
+     "klasse_alt": "intern",
+     "klasse_neu": "oeffentlich"
+    },
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "oeffentlich",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   }
+  ]
+ }
+}

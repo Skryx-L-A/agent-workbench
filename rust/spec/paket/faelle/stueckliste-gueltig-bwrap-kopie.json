@@ -1,0 +1,15 @@
+{
+ "beschreibung": "Form B: das `bubblewrap` aus dem Ubuntu-Archiv steht mit Lizenz und Herkunft `ubuntu-archiv` in der Liste",
+ "form": "stueckliste",
+ "text": "anyhow\t1.0.100\tMIT OR Apache-2.0\tcrates.io\nbubblewrap\t0.11.0\tLGPL-2.0-or-later\tubuntu-archiv\nserde\t1.0.228\tMIT OR Apache-2.0\tcrates.io\n",
+ "im_paket": [
+  {
+   "name": "serde",
+   "version": "1.0.228"
+  },
+  {
+   "name": "bubblewrap",
+   "version": "0.11.0"
+  }
+ ]
+}

@@ -1,0 +1,69 @@
+{
+ "name": "p7-eine-klasse",
+ "regeln": [
+  "P3",
+  "D7"
+ ],
+ "beschreibung": "Eine Klasse: sie ist die höchste; die Person liest sie, die Einheit braucht trotzdem einen Kunden.",
+ "vorgabe": {
+  "klassen": [
+   "nur"
+  ],
+  "routen": [
+   {
+    "schluessel": "r",
+    "art": "lokal",
+    "klasse": "nur"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r"
+    ]
+   }
+  ]
+ },
+ "personen": {
+  "leseklassen": [
+   {
+    "ebene": "nutzer",
+    "wer": "p-1",
+    "klasse": "nur"
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "nur"
+   },
+   "route": "r",
+   "kunde": "k-a",
+   "kontext": {
+    "nutzer": "p-1"
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "nur"
+   },
+   "route": "r",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-1"
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "nur"
+   },
+   "route": "r",
+   "kunde": "k-a",
+   "kontext": {
+    "nutzer": "p-2"
+   }
+  }
+ ]
+}

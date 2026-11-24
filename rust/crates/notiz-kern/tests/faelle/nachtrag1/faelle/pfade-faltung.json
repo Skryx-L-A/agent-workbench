@@ -1,0 +1,18 @@
+{
+ "description": "exclusion by Unicode folding: long s, full-width, case, root files in other spellings",
+ "args": [
+  "paths",
+  "90-ſecrets/x.md",
+  "90-SECRETS/x.md",
+  "a/90-ſECRETS/deep/x.md",
+  "９０-secrets/x.md",
+  "_MEＴA/x.md",
+  "．git/x.md",
+  "ＨＯＴ.md",
+  "Hot.MD",
+  "LＯＧ.md",
+  "a/ＨＯＴ.md",
+  "90-secret/x.md",
+  "90-secrets.md"
+ ]
+}

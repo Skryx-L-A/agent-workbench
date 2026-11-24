@@ -1,0 +1,18 @@
+{
+ "beschreibung": "ungueltige Startdatei (verbindungen_ohne_pruefmodus): Exitcode 2, eine Zeile auf stderr, kein Token, stdout leer",
+ "datensatz": "A",
+ "name": "br_start_verbindungen_ohne_pruefmodus",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei",
+  "verbindungen_max": 4
+ }
+}

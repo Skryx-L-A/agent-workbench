@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Segmente mit Punkt im Namen sind gewöhnlich",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"C:\\\\Users\\\\beispiel\\\\.werkbank\\\\pro.jekte\"\n ],\n \"programmordner\": [\n  \"C:\\\\Users\\\\beispiel\\\\AppData\\\\Local\\\\Programs\\\\werkbank-harness\"\n ],\n \"shell\": \"powershell\"\n}\n"
+}

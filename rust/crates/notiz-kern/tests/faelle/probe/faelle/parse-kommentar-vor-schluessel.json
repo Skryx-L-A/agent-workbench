@@ -1,0 +1,10 @@
+{
+ "description": "comment lines before the first key still count as frontmatter",
+ "files": {
+  "note.md": "---\n# Kopf von Hand\ntitle: Mit Kommentar\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

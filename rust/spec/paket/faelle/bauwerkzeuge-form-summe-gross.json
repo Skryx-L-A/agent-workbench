@@ -1,0 +1,6 @@
+{
+ "beschreibung": "Prüfsumme in Großbuchstaben",
+ "form": "bauwerkzeuge",
+ "text": "build-essential\t12.12ubuntu2\tGPL-2.0-or-later\tsha256:e4896a79cf1d2b62c6d5be654e34a84678cc8cad344c6468419d53b614e1af2b\tnein\ndpkg-dev\t1.23.7ubuntu1\tGPL-2.0-or-later\tsha256:507B526FD78F9DFF89696BBC3085AF3117059F37FD281542778AC8B97BE44690\tnein\n",
+ "plattform": "ubuntu-26.04-x64"
+}

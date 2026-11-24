@@ -1,0 +1,42 @@
+{
+ "name": "tr2_cursor_breit",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Ein breites Zeichen schiebt den Cursor um zwei Spalten, ein kombinierendes oder Hauttonzeichen um keine",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "a漢b"
+  },
+  {
+   "art": "Text",
+   "text": "\r\n漢字"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;3H"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;4H漢"
+  },
+  {
+   "art": "Text",
+   "text": "👍🏽"
+  },
+  {
+   "art": "Text",
+   "text": "é"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

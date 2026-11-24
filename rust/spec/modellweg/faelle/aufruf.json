@@ -1,0 +1,951 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitte 4, 5 und 10. aufruf: argv nach dem Programmnamen; bis_schritt aufruf_gut heisst, die Pruefung des Aufrufs besteht (die weiteren Schritte brauchen Dateien). schluesseldatei: art datei, link, ordner oder fehlt; eigen = Eigentuemer ist die eigene Kennung; inhalt latin1.",
+ "codes": {
+  "mw.aufruf": [
+   64,
+   "Aufruf ungueltig"
+  ],
+  "mw.betriebsart_unbekannt": [
+   64,
+   "Betriebsart unbekannt oder nicht gebaut"
+  ],
+  "mw.probelauf_aufruf": [
+   64,
+   "Probelauf-Optionen ungueltig"
+  ],
+  "mw.protokoll_fehlt": [
+   74,
+   "Protokoll nicht schreibbar"
+  ],
+  "mw.zaehlung_fehler": [
+   74,
+   "Zaehldatei nicht schreibbar"
+  ],
+  "mw.schluessel_datei": [
+   78,
+   "Schluesseldatei nicht eigen, nicht 0600 oder keine Datei"
+  ],
+  "mw.schluessel_form": [
+   78,
+   "Schluessel hat falsche Form"
+  ],
+  "mw.protokoll_ordner": [
+   78,
+   "Protokollordner fehlt oder ist kein Ordner"
+  ],
+  "mw.ziel_unaufloesbar": [
+   69,
+   "Ziel nicht aufloesbar"
+  ],
+  "mw.socket_belegt": [
+   74,
+   "Socket belegt oder nicht anlegbar"
+  ],
+  "mw.intern": [
+   70,
+   "interner Fehler"
+  ],
+  "mw.ziele_ungueltig": [
+   78,
+   "Zielliste ungueltig"
+  ],
+  "mw.ca_ungueltig": [
+   78,
+   "CA-Datei ungueltig"
+  ],
+  "mw.ca_nicht_zugelassen": [
+   78,
+   "Lokale CA nicht zugelassen"
+  ]
+ },
+ "aufruf": [
+  {
+   "name": "gueltig",
+   "beschreibung": "die acht Pflichtoptionen ohne --betriebsart: Vorgabe openai-lokal",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "bis_schritt": "aufruf_gut"
+   }
+  },
+  {
+   "name": "betriebsart_openai_lokal",
+   "beschreibung": "--betriebsart openai-lokal ausdruecklich",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll",
+    "--betriebsart",
+    "openai-lokal"
+   ],
+   "erwartet": {
+    "bis_schritt": "aufruf_gut"
+   }
+  },
+  {
+   "name": "betriebsart_vorne",
+   "beschreibung": "--betriebsart openai-lokal als erste Option",
+   "argv": [
+    "--betriebsart",
+    "openai-lokal",
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "bis_schritt": "aufruf_gut"
+   }
+  },
+  {
+   "name": "betriebsart_kopf_einsetzen",
+   "beschreibung": "--betriebsart kopf-einsetzen mit den Optionen von openai-lokal: wo Betriebsart 2 nicht gebaut ist, unbekannt; wo gebaut, mw.aufruf (erwartet_gebaut)",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll",
+    "--betriebsart",
+    "kopf-einsetzen"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.betriebsart_unbekannt: Betriebsart unbekannt oder nicht gebaut\n",
+    "stdout": ""
+   },
+   "erwartet_gebaut": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "betriebsart_fremd",
+   "beschreibung": "--betriebsart mit unbekanntem Wert",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll",
+    "--betriebsart",
+    "openai"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.betriebsart_unbekannt: Betriebsart unbekannt oder nicht gebaut\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "betriebsart_doppelt",
+   "beschreibung": "--betriebsart zweimal",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll",
+    "--betriebsart",
+    "openai-lokal",
+    "--betriebsart",
+    "openai-lokal"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "betriebsart_vor_form",
+   "beschreibung": "nicht gebaute Betriebsart und fehlendes --ziel: die Betriebsart zaehlt zuerst; wo gebaut, mw.aufruf (erwartet_gebaut)",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll",
+    "--betriebsart",
+    "kopf-einsetzen"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.betriebsart_unbekannt: Betriebsart unbekannt oder nicht gebaut\n",
+    "stdout": ""
+   },
+   "erwartet_gebaut": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "leer",
+   "beschreibung": "ohne Argument",
+   "argv": [],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "option_fehlt",
+   "beschreibung": "ohne --schluessel-datei",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "option_doppelt",
+   "beschreibung": "--modell zweimal",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll",
+    "--modell",
+    "lokal-beispiel/modell-a"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "option_unbekannt",
+   "beschreibung": "--schluessel statt --schluessel-datei (ein Wert in argv waere ein Leck)",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel",
+    "/x",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "gleichheitszeichen",
+   "beschreibung": "--route=lokal-beispiel",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll",
+    "--route=lokal-beispiel",
+    "x"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "rechte_0666",
+   "beschreibung": "--socket-rechte 0666",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0666",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "socket_zu_lang",
+   "beschreibung": "Socketpfad mit 108 Byte",
+   "argv": [
+    "--socket",
+    "/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "socket_relativ",
+   "beschreibung": "relativer Socketpfad",
+   "argv": [
+    "--socket",
+    "modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "ziel_http_fremd",
+   "beschreibung": "http an eine fremde Adresse",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "http://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "ziel_benutzer",
+   "beschreibung": "Ziel mit Benutzerteil",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://u:p@modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "ziel_abfrage",
+   "beschreibung": "Ziel mit Abfrageteil",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1?x=1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "ziel_schraegstrich",
+   "beschreibung": "Ziel endet mit /",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1/",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "ziel_port_gross",
+   "beschreibung": "Port 65536",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid:65536/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "ziel_loopback_http",
+   "beschreibung": "http auf 127.0.0.1 ist gueltig",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "http://127.0.0.1:11434/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "bis_schritt": "aufruf_gut"
+   }
+  },
+  {
+   "name": "ziel_ohne_v1",
+   "beschreibung": "Basisadresse ohne /v1 am Ende",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "ziel_praefix_v1",
+   "beschreibung": "Basisadresse mit Praefix vor /v1 ist gueltig",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/gw/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "bis_schritt": "aufruf_gut"
+   }
+  },
+  {
+   "name": "modell_leerzeichen",
+   "beschreibung": "Modell mit Leerzeichen",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "qwen 3",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "sitzung_gross",
+   "beschreibung": "Sitzung S-2",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "S-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "protokoll_punkt",
+   "beschreibung": "Protokollordner mit ..",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/../x"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  }
+ ],
+ "schluesseldatei": [
+  {
+   "name": "gueltig",
+   "beschreibung": "eigene Datei 0600 mit einer Zeile",
+   "datei": {
+    "art": "datei",
+    "eigen": true,
+    "modus": "0600",
+    "inhalt": "mw-testschluessel-7f3a9c0e5b2d4618\n"
+   },
+   "erwartet": {
+    "gueltig": true
+   }
+  },
+  {
+   "name": "ohne_lf",
+   "beschreibung": "ohne Zeilenende",
+   "datei": {
+    "art": "datei",
+    "eigen": true,
+    "modus": "0600",
+    "inhalt": "mw-testschluessel-7f3a9c0e5b2d4618"
+   },
+   "erwartet": {
+    "gueltig": true
+   }
+  },
+  {
+   "name": "modus_0640",
+   "beschreibung": "Modus 0640",
+   "datei": {
+    "art": "datei",
+    "eigen": true,
+    "modus": "0640",
+    "inhalt": "mw-testschluessel-7f3a9c0e5b2d4618\n"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.schluessel_datei: Schluesseldatei nicht eigen, nicht 0600 oder keine Datei\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "modus_0400",
+   "beschreibung": "Modus 0400",
+   "datei": {
+    "art": "datei",
+    "eigen": true,
+    "modus": "0400",
+    "inhalt": "mw-testschluessel-7f3a9c0e5b2d4618\n"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.schluessel_datei: Schluesseldatei nicht eigen, nicht 0600 oder keine Datei\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "fremd",
+   "beschreibung": "Eigentuemer ist eine andere Kennung",
+   "datei": {
+    "art": "datei",
+    "eigen": false,
+    "modus": "0600",
+    "inhalt": "mw-testschluessel-7f3a9c0e5b2d4618\n"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.schluessel_datei: Schluesseldatei nicht eigen, nicht 0600 oder keine Datei\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "link",
+   "beschreibung": "symbolischer Link (O_NOFOLLOW)",
+   "datei": {
+    "art": "link",
+    "eigen": true,
+    "modus": "0600",
+    "inhalt": "mw-testschluessel-7f3a9c0e5b2d4618\n"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.schluessel_datei: Schluesseldatei nicht eigen, nicht 0600 oder keine Datei\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "ordner",
+   "beschreibung": "ein Ordner",
+   "datei": {
+    "art": "ordner",
+    "eigen": true,
+    "modus": "0600",
+    "inhalt": "mw-testschluessel-7f3a9c0e5b2d4618\n"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.schluessel_datei: Schluesseldatei nicht eigen, nicht 0600 oder keine Datei\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "fehlt",
+   "beschreibung": "Datei fehlt",
+   "datei": {
+    "art": "fehlt"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.schluessel_datei: Schluesseldatei nicht eigen, nicht 0600 oder keine Datei\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "leer",
+   "beschreibung": "leere Datei",
+   "datei": {
+    "art": "datei",
+    "eigen": true,
+    "modus": "0600",
+    "inhalt": ""
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.schluessel_form: Schluessel hat falsche Form\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "zwei_zeilen",
+   "beschreibung": "zwei Zeilen",
+   "datei": {
+    "art": "datei",
+    "eigen": true,
+    "modus": "0600",
+    "inhalt": "mw-testschluessel-7f3a9c0e5b2d4618\nzweite\n"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.schluessel_form: Schluessel hat falsche Form\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "leerzeichen",
+   "beschreibung": "Schluessel mit Leerzeichen",
+   "datei": {
+    "art": "datei",
+    "eigen": true,
+    "modus": "0600",
+    "inhalt": "Bearer x\n"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.schluessel_form: Schluessel hat falsche Form\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "crlf",
+   "beschreibung": "Zeilenende CRLF",
+   "datei": {
+    "art": "datei",
+    "eigen": true,
+    "modus": "0600",
+    "inhalt": "mw-testschluessel-7f3a9c0e5b2d4618\r\n"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.schluessel_form: Schluessel hat falsche Form\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "zu_lang",
+   "beschreibung": "4097 Zeichen ohne LF",
+   "datei": {
+    "art": "datei",
+    "eigen": true,
+    "modus": "0600",
+    "inhalt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.schluessel_form: Schluessel hat falsche Form\n",
+    "stdout": ""
+   }
+  }
+ ]
+}

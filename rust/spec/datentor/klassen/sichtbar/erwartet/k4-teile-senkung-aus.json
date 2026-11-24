@@ -1,0 +1,46 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "klasse": "intern",
+    "herkunft": "teile",
+    "senkung": {
+     "grund": "nicht-aufgeteilt",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "oeffentlich",
+    "herkunft": "gesenkt",
+    "senkung": {
+     "grund": "gesenkt",
+     "vorschlag": null
+    },
+    "protokoll": {
+     "art": "regel",
+     "erkannt_durch": [
+      "typ:regel",
+      "filter:frei"
+     ],
+     "regel_ebene": "firma",
+     "klasse_alt": "intern",
+     "klasse_neu": "oeffentlich"
+    },
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "oeffentlich",
+     "meldung": "frei"
+    }
+   }
+  ]
+ }
+}

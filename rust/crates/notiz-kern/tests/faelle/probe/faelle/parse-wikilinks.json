@@ -1,0 +1,10 @@
+{
+ "description": "wikilink targets: alias, heading, open bracket, spaces, frontmatter link",
+ "files": {
+  "note.md": "---\ntitle: Links\nquelle: \"[[Kopflink]]\"\n---\n[[Ziel|Anzeige]] [[Seite#Abschnitt]] [[  Raum  ]] [[]] [[offen\nweiter]] [[A]] [[a]]\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

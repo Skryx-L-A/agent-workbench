@@ -1,0 +1,35 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "id: 01N7QWB2XHD4RT9ZKMA3VC5EPY\nschema: 4\ntitle: Fahrradkette ölen\ntype: note\nclass: knowledge\ncreated: \"2026-10-02\"\naliases: [Kette, Kettenpflege]"
+  ],
+  "fields": {
+   "id": "01N7QWB2XHD4RT9ZKMA3VC5EPY",
+   "schema": "4",
+   "title": "Fahrradkette ölen",
+   "type": "note",
+   "class": "knowledge",
+   "created": "2026-10-02",
+   "aliases": [
+    "Kette",
+    "Kettenpflege"
+   ]
+  },
+  "body": "\nAlle zwei Wochen mit dünnem Öl.\n",
+  "title": "Fahrradkette ölen",
+  "type": "note",
+  "aliases": [
+   "Kette",
+   "Kettenpflege"
+  ],
+  "links": [],
+  "keys": [
+   "fahrradkette ölen",
+   "kette",
+   "kettenpflege",
+   "note"
+  ],
+  "embed_text": "Fahrradkette ölen\naliases: Kette, Kettenpflege\ntype: note\n\n\nAlle zwei Wochen mit dünnem Öl.\n"
+ }
+}

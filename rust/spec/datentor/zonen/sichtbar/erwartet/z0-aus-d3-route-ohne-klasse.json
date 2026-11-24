@@ -1,0 +1,49 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": "intern",
+    "meldung": "Route cloud-x hat keine Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": "intern",
+    "meldung": "Route cloud-n hat keine Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": "intern",
+    "meldung": "Route cloud-o hat keine Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": null,
+    "meldung": "Route cloud-x hat keine Klasse",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": "kundendaten",
+    "meldung": "Route cloud-n hat keine Klasse",
+    "protokoll": null
+   }
+  ]
+ }
+}

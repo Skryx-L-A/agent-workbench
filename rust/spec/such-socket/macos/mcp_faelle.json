@@ -1,0 +1,950 @@
+{
+ "werkzeug": {
+  "name": "brain_suche",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "query": {
+     "type": "string"
+    },
+    "k": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 50
+    }
+   },
+   "required": [
+    "query"
+   ],
+   "additionalProperties": false
+  }
+ },
+ "faelle": [
+  {
+   "name": "v4-m-init-neu",
+   "beschreibung": "initialize mit 2025-11-25: gleiche Fassung zurück, Werkzeuge angeboten",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize",
+      "params": {
+       "protocolVersion": "2025-11-25",
+       "capabilities": {},
+       "clientInfo": {
+        "name": "probe",
+        "version": "1"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 1,
+      "result_teil": {
+       "protocolVersion": "2025-11-25",
+       "capabilities": {
+        "tools": {}
+       },
+       "serverInfo": {
+        "name": "such-mcp"
+       }
+      }
+     }
+    }
+   ],
+   "herkunft": "vertrag4:m-init-neu",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-init-alt",
+   "beschreibung": "initialize mit 2025-06-18: gleiche Fassung zurück",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize",
+      "params": {
+       "protocolVersion": "2025-06-18",
+       "capabilities": {},
+       "clientInfo": {
+        "name": "probe",
+        "version": "1"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 1,
+      "result_teil": {
+       "protocolVersion": "2025-06-18"
+      }
+     }
+    }
+   ],
+   "herkunft": "vertrag4:m-init-alt",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-init-unbekannt",
+   "beschreibung": "initialize mit unbekannter Fassung: Antwort 2025-11-25",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize",
+      "params": {
+       "protocolVersion": "2099-01-01",
+       "capabilities": {},
+       "clientInfo": {
+        "name": "probe",
+        "version": "1"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 1,
+      "result_teil": {
+       "protocolVersion": "2025-11-25"
+      }
+     }
+    }
+   ],
+   "herkunft": "vertrag4:m-init-unbekannt",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-liste",
+   "beschreibung": "tools/list nennt genau brain_suche mit festem Schema; die Mitteilung initialized bekommt keine Antwort",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "method": "notifications/initialized"
+     }
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": "l",
+      "method": "tools/list"
+     },
+     "erwarte": {
+      "id": "l",
+      "werkzeugliste": true
+     }
+    }
+   ],
+   "herkunft": "vertrag4:m-liste",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-ping",
+   "beschreibung": "ping ergibt ein leeres Ergebnis",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 9,
+      "method": "ping"
+     },
+     "erwarte": {
+      "id": 9,
+      "result": {}
+     }
+    }
+   ],
+   "herkunft": "vertrag4:m-ping",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-unbekannte-methode",
+   "beschreibung": "eine unbekannte Methode ergibt -32601",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "resources/list"
+     },
+     "erwarte": {
+      "id": 2,
+      "fehlercode": -32601
+     }
+    }
+   ],
+   "herkunft": "vertrag4:m-unbekannte-methode",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-kein-json",
+   "beschreibung": "eine Zeile, die kein JSON ist, ergibt -32700 mit id null; danach geht es weiter",
+   "schritte": [
+    {
+     "roh": "kein json",
+     "erwarte": {
+      "id": null,
+      "fehlercode": -32700
+     }
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "method": "ping"
+     },
+     "erwarte": {
+      "id": 3,
+      "result": {}
+     }
+    }
+   ],
+   "herkunft": "vertrag4:m-kein-json",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-unbekanntes-werkzeug",
+   "beschreibung": "tools/call mit fremdem Namen ergibt -32602, der Socket wird nicht gefragt",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 4,
+      "method": "tools/call",
+      "params": {
+       "name": "datei_lesen",
+       "arguments": {
+        "query": "x"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 4,
+      "fehlercode": -32602
+     }
+    }
+   ],
+   "socket_zeilen": [],
+   "herkunft": "vertrag4:m-unbekanntes-werkzeug",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-weiter",
+   "beschreibung": "Die Frage geht unverändert an den Socket, die Antwort unverändert als Text zurück",
+   "socket_antworten": [
+    "{\"fallback\":true,\"hits\":[],\"gesperrt\":1}"
+   ],
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 5,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "Wann ist das nächste Wartungsfenster der Presslinie?"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 5,
+      "werkzeug_text": "{\"fallback\":true,\"hits\":[],\"gesperrt\":1}",
+      "isError": false
+     }
+    }
+   ],
+   "socket_zeilen": [
+    {
+     "op": "search",
+     "query": "Wann ist das nächste Wartungsfenster der Presslinie?"
+    }
+   ],
+   "herkunft": "vertrag4:m-weiter",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-ruf-meta",
+   "beschreibung": "tools/call mit params._meta.progressToken, wie die angemeldete Copilot CLI 1.0.88 (gemessen am 20.11.2026): such-mcp uebergeht _meta und antwortet wie ohne",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 5,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "Wann ist das nächste Wartungsfenster der Presslinie?"
+       },
+       "_meta": {
+        "progressToken": 3
+       }
+      }
+     },
+     "erwarte": {
+      "id": 5,
+      "werkzeug_text": "{\"fallback\":true,\"hits\":[],\"gesperrt\":1}",
+      "isError": false
+     }
+    }
+   ],
+   "socket_antworten": [
+    "{\"fallback\":true,\"hits\":[],\"gesperrt\":1}"
+   ],
+   "socket_zeilen": [
+    {
+     "op": "search",
+     "query": "Wann ist das nächste Wartungsfenster der Presslinie?"
+    }
+   ],
+   "herkunft": "vertrag4:m-ruf-meta",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-weiter-k",
+   "beschreibung": "k geht mit, sonst nichts",
+   "socket_antworten": [
+    "{\"fallback\":true,\"hits\":[],\"gesperrt\":0}"
+   ],
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 6,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "Gehörschutz",
+        "k": 3
+       }
+      }
+     },
+     "erwarte": {
+      "id": 6,
+      "werkzeug_text": "{\"fallback\":true,\"hits\":[],\"gesperrt\":0}",
+      "isError": false
+     }
+    }
+   ],
+   "socket_zeilen": [
+    {
+     "op": "search",
+     "query": "Gehörschutz",
+     "k": 3
+    }
+   ],
+   "herkunft": "vertrag4:m-weiter-k",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-route-im-argument",
+   "beschreibung": "Ein Argument route wird abgelehnt, ohne den Socket zu fragen (Drehbuch E1)",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 7,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "x",
+        "route": "lokal"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 7,
+      "werkzeug_text": "Ungültige Anfrage",
+      "isError": true
+     }
+    }
+   ],
+   "socket_zeilen": [],
+   "herkunft": "vertrag4:m-route-im-argument",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-k-ungueltig",
+   "beschreibung": "k außerhalb 1 bis 50 oder als Text wird abgelehnt, ohne den Socket zu fragen",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 10,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "x",
+        "k": 0
+       }
+      }
+     },
+     "erwarte": {
+      "id": 10,
+      "werkzeug_text": "Ungültige Anfrage",
+      "isError": true
+     }
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 11,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "x",
+        "k": 51
+       }
+      }
+     },
+     "erwarte": {
+      "id": 11,
+      "werkzeug_text": "Ungültige Anfrage",
+      "isError": true
+     }
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 12,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "x",
+        "k": "5"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 12,
+      "werkzeug_text": "Ungültige Anfrage",
+      "isError": true
+     }
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 13,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "k": 5
+       }
+      }
+     },
+     "erwarte": {
+      "id": 13,
+      "werkzeug_text": "Ungültige Anfrage",
+      "isError": true
+     }
+    }
+   ],
+   "socket_zeilen": [],
+   "herkunft": "vertrag4:m-k-ungueltig",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-fehler-durch",
+   "beschreibung": "Ein Fehler der Suche geht als Text durch, mit isError",
+   "socket_antworten": [
+    "{\"error\":\"protokoll\"}"
+   ],
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 14,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "x"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 14,
+      "werkzeug_text": "{\"error\":\"protokoll\"}",
+      "isError": true
+     }
+    }
+   ],
+   "socket_zeilen": [
+    {
+     "op": "search",
+     "query": "x"
+    }
+   ],
+   "herkunft": "vertrag4:m-fehler-durch",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-socket-fehlt",
+   "beschreibung": "Ohne erreichbaren Socket kommt ein fester Text mit isError",
+   "kein_socket": true,
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 15,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "x"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 15,
+      "werkzeug_text": "Suche nicht erreichbar",
+      "isError": true
+     }
+    }
+   ],
+   "herkunft": "vertrag4:m-socket-fehlt",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-zwei-aufrufe",
+   "beschreibung": "Jeder Aufruf fragt den Socket genau einmal, in Reihenfolge",
+   "socket_antworten": [
+    "{\"fallback\":true,\"hits\":[],\"gesperrt\":0}",
+    "{\"fallback\":true,\"hits\":[],\"gesperrt\":1}"
+   ],
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 16,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "a"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 16,
+      "werkzeug_text": "{\"fallback\":true,\"hits\":[],\"gesperrt\":0}",
+      "isError": false
+     }
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 17,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "b"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 17,
+      "werkzeug_text": "{\"fallback\":true,\"hits\":[],\"gesperrt\":1}",
+      "isError": false
+     }
+    }
+   ],
+   "socket_zeilen": [
+    {
+     "op": "search",
+     "query": "a"
+    },
+    {
+     "op": "search",
+     "query": "b"
+    }
+   ],
+   "herkunft": "vertrag4:m-zwei-aufrufe",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-discover-copilot",
+   "beschreibung": "server/discover (Fassung 2026-07-28, so fragt die Copilot CLI zuerst) ergibt -32601; danach geht initialize mit 2025-11-25 (gemessen an Copilot CLI 1.0.113, 20.11.)",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 0,
+      "method": "server/discover",
+      "params": {
+       "_meta": {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientInfo": {
+         "name": "probe",
+         "version": "1"
+        }
+       }
+      }
+     },
+     "erwarte": {
+      "id": 0,
+      "fehlercode": -32601
+     }
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize",
+      "params": {
+       "protocolVersion": "2025-11-25",
+       "capabilities": {
+        "elicitation": {
+         "form": {},
+         "url": {}
+        },
+        "sampling": {}
+       },
+       "clientInfo": {
+        "name": "probe",
+        "version": "1"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 1,
+      "result_teil": {
+       "protocolVersion": "2025-11-25",
+       "capabilities": {
+        "tools": {}
+       }
+      }
+     }
+    }
+   ],
+   "herkunft": "vertrag4:m-discover-copilot",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-liste-meta",
+   "beschreibung": "tools/list mit params._meta.progressToken (wie die Copilot CLI) nennt das Werkzeug",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "tools/list",
+      "params": {
+       "_meta": {
+        "progressToken": 0
+       }
+      }
+     },
+     "erwarte": {
+      "id": 2,
+      "werkzeugliste": true
+     }
+    }
+   ],
+   "herkunft": "vertrag4:m-liste-meta",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-m-liste-zweimal",
+   "beschreibung": "tools/list zweimal in einer Sitzung, wie die angemeldete Copilot CLI 1.0.88 (einmal nach initialized, einmal beim Auftrag): beide Antworten nennen das Werkzeug",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "tools/list",
+      "params": {
+       "_meta": {
+        "progressToken": 0
+       }
+      }
+     },
+     "erwarte": {
+      "id": 2,
+      "werkzeugliste": true
+     }
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "method": "tools/list",
+      "params": {
+       "_meta": {
+        "progressToken": 1
+       }
+      }
+     },
+     "erwarte": {
+      "id": 3,
+      "werkzeugliste": true
+     }
+    }
+   ],
+   "herkunft": "vertrag4:m-liste-zweimal",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-e-argument-fremd",
+   "beschreibung": "Ein unbekanntes Argument beim Start: Exit 64",
+   "argv": [
+    "--route",
+    "lokal"
+   ],
+   "start_exit": 64,
+   "herkunft": "vertrag4:e-argument-fremd",
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "v4-e-socket-ohne-wert",
+   "beschreibung": "--socket ohne Pfad: Exit 64",
+   "argv": [
+    "--socket"
+   ],
+   "start_exit": 64,
+   "herkunft": "vertrag4:e-socket-ohne-wert",
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "mac-m-ohne-socket",
+   "beschreibung": "Unter macOS ist --socket Pflicht: ohne Angabe Exit 64 ohne Ausgabe",
+   "herkunft": "macos",
+   "argv": [],
+   "start_exit": 64,
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "mac-m-pfad-relativ",
+   "beschreibung": "Ein relativer Pfad: Exit 64 ohne Ausgabe",
+   "herkunft": "macos",
+   "argv": [
+    "--socket",
+    "such.sock"
+   ],
+   "start_exit": 64,
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "mac-m-pfad-104",
+   "beschreibung": "Ein Pfad mit 104 Byte: Exit 64 ohne Ausgabe",
+   "herkunft": "macos",
+   "argv": [
+    "--socket",
+    "{sock104}"
+   ],
+   "start_exit": 64,
+   "orte": [
+    "mac"
+   ]
+  },
+  {
+   "name": "mac-m-pfad-103",
+   "herkunft": "macos",
+   "orte": [
+    "mac"
+   ],
+   "beschreibung": "Ein Pfad mit genau 103 Byte wird angenommen; der Aufruf kommt durch",
+   "argv": [
+    "--socket",
+    "{sock103}"
+   ],
+   "socket_antworten": [
+    "{\"fallback\":true,\"hits\":[],\"gesperrt\":0}"
+   ],
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 21,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "x"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 21,
+      "werkzeug_text": "{\"fallback\":true,\"hits\":[],\"gesperrt\":0}",
+      "isError": false
+     }
+    }
+   ],
+   "socket_zeilen": [
+    {
+     "op": "search",
+     "query": "x"
+    }
+   ]
+  },
+  {
+   "name": "mac-m-server-fremd",
+   "herkunft": "macos",
+   "orte": [
+    "mac-zweites-konto",
+    "bau"
+   ],
+   "beschreibung": "Hat der Server eine andere euid, sendet such-mcp kein Byte: Suche nicht erreichbar",
+   "argv": [
+    "--socket",
+    "{sock}"
+   ],
+   "standin": "fremde-euid",
+   "socket_antworten": [
+    "{\"fallback\":true,\"hits\":[],\"gesperrt\":0}"
+   ],
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 21,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "x"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 21,
+      "werkzeug_text": "Suche nicht erreichbar",
+      "isError": true
+     }
+    }
+   ],
+   "socket_zeilen": []
+  }
+ ]
+}

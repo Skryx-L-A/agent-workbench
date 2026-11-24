@@ -1,0 +1,12 @@
+{
+ "description": "Überschriften werden übersprungen",
+ "program": "rangkern",
+ "files": {
+  "note.md": "# Titel\n\n## Unterkapitel\n\nErste Rumpfzeile ohne Hook.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "xyzzy"
+ ]
+}

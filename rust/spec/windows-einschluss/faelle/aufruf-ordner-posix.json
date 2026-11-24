@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Startdatei mit POSIX-Pfad unter Windows",
+ "form": "aufruf",
+ "lage": {
+  "start": {
+   "fassung": 1,
+   "sitzung": "s-1",
+   "harness": "claude",
+   "modell": "claude-sonnet-5-5",
+   "route": "cloud-beispiel",
+   "kunde": "k-beispiel",
+   "arbeitsordner": "C:\\Users\\beispiel\\Projekte\\projekt"
+  },
+  "start_aendern": {
+   "arbeitsordner": "/srv/beispiel/projekt"
+  }
+ }
+}

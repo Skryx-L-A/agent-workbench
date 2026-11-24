@@ -1,0 +1,6 @@
+{
+ "erwartet": "Signal gelingt; der Test wird rot",
+ "messwerte": [
+  "errno je Versuch"
+ ]
+}

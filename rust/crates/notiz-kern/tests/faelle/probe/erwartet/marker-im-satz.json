@@ -1,0 +1,9 @@
+{
+ "exit": 0,
+ "stdout": {
+  "state": "none",
+  "block": null,
+  "stripped": "Das Paar `<!-- dream:block:start -->` und `<!-- dream:block:end -->` steht im Satz.\n",
+  "replaced": "Das Paar `<!-- dream:block:start -->` und `<!-- dream:block:end -->` steht im Satz.\n"
+ }
+}

@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Zielordner fehlt",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "erfolg",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "ordner-fehlt",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

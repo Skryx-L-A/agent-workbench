@@ -1,0 +1,12 @@
+{
+ "description": "--- ohne Schlusszeile: alles zählt als Rumpf",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\ntitle: Halb\ntype: note\n\nText ohne Ende des Kopfes.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "Halb"
+ ]
+}

@@ -1,0 +1,12 @@
+{
+ "description": "„Für künftige Sessions …“ wird vor der ersten Rumpfzeile gewählt",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\ntitle: Kuchen\n---\n\nEinleitung ohne Bezug zum Thema.\n\nFür künftige Sessions: Den Teig erst nach einer Stunde formen.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "Kuchen Einleitung"
+ ]
+}

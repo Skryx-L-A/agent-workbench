@@ -1,0 +1,22 @@
+{
+ "beschreibung": "die übersetzte Zwischendatei des Profils unter `/var/cache/apparmor/` steht nach `purge` noch da (gemessen auf 26.04.1: `apparmor_parser -R` lässt sie liegen)",
+ "form": "entfernen",
+ "nutzer": "nutzer1",
+ "heimwurzel": "/srv/beispiel/heim",
+ "ergebnisdatei": "/srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+ "vorher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1"
+ ],
+ "nachher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "datei:/var/cache/apparmor/f6da0254.0/usr.lib.werkbank.werkbank-einschluss"
+ ]
+}

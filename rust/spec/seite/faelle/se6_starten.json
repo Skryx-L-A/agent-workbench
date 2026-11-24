@@ -1,0 +1,204 @@
+{
+ "beschreibung": "Das Startformular schickt die Start-Struktur an /starten (ohne Kunde als null); Erfolg und Ablehnung werden angesagt und stehen im Fehlerfeld.",
+ "datensatz": "A",
+ "name": "se6_starten",
+ "regeln": [
+  "SE6",
+  "SE3",
+  "SE7"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": []
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Harness",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Waehle",
+   "testid": "harness-wahl",
+   "wert": "claude"
+  },
+  {
+   "art": "Waehle",
+   "testid": "modell-wahl",
+   "wert": "cloud-beispiel"
+  },
+  {
+   "art": "Waehle",
+   "testid": "route-wahl",
+   "wert": "cloud"
+  },
+  {
+   "art": "Waehle",
+   "testid": "kunde-wahl",
+   "wert": "k-beispiel"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "arbeitsordner-eingabe"
+   }
+  },
+  {
+   "art": "Einsetzen",
+   "text": "/srv/projekt-ä"
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Starten",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Enter",
+   "key": "Enter",
+   "umschalter": []
+  },
+  {
+   "art": "Starts",
+   "erwartet": [
+    {
+     "arbeitsordner": "/srv/projekt-ä",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "cloud-beispiel",
+     "route": "cloud"
+    }
+   ]
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Sitzung s-3 gestartet"
+   ]
+  },
+  {
+   "art": "Testid",
+   "sichtbar": false,
+   "testid": "fehler"
+  },
+  {
+   "art": "Waehle",
+   "testid": "kunde-wahl",
+   "wert": "ohne Kunde"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzung-start"
+   }
+  },
+  {
+   "art": "Starts",
+   "erwartet": [
+    {
+     "arbeitsordner": "/srv/projekt-ä",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": null,
+     "modell": "cloud-beispiel",
+     "route": "cloud"
+    }
+   ]
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Abgelehnt: start_form"
+   ]
+  },
+  {
+   "art": "Testid",
+   "sichtbar": true,
+   "testid": "fehler"
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-code",
+   "text": "start_form"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzung-start"
+   }
+  },
+  {
+   "art": "Starts",
+   "erwartet": [
+    {
+     "arbeitsordner": "/srv/projekt-ä",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": null,
+     "modell": "cloud-beispiel",
+     "route": "cloud"
+    }
+   ]
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Abgelehnt: Der Harness ist unbekannt."
+   ]
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-code",
+   "text": "start.harness_unbekannt"
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-text",
+   "text": "Der Harness ist unbekannt."
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": []
+  }
+ ],
+ "starten": [
+  {
+   "antwort": {
+    "sitzung": "s-3"
+   },
+   "status": 200
+  },
+  {
+   "antwort": {
+    "grund": "start_form"
+   },
+   "status": 422
+  },
+  {
+   "antwort": {
+    "grund": "start.harness_unbekannt",
+    "text": "Der Harness ist unbekannt."
+   },
+   "status": 422
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+{
+ "beschreibung": "ein JSON-Koerper mit 127 Ebenen ist noch JSON: die Bruecke gibt ihn an den Dienst weiter (der ihn als Start-Struktur ablehnt: 422)",
+ "datensatz": "A",
+ "dienst": {
+  "plan": {
+   "*": {
+    "modus": "marke",
+    "sek": 30,
+    "text": "EINS"
+   }
+  }
+ },
+ "name": "br_starten_tiefe_127",
+ "regeln": [
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "koerper": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

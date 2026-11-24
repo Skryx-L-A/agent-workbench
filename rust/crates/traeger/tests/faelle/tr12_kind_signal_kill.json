@@ -1,0 +1,40 @@
+{
+ "name": "tr12_kind_signal_kill",
+ "regeln": [
+  "TR12"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Ein Kind, das sich selbst das Signal 9 schickt und davon endet: Kindende trägt 128 plus 9, die Ausgabe davor geht zuerst hinaus",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "signal",
+  "argv": [
+   "9",
+   "5369676e616c2065696e730d0a"
+  ],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ],
+ "system": [
+  "linux",
+  "macos"
+ ]
+}

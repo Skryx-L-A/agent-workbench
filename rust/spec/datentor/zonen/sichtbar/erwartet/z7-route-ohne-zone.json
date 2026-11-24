@@ -1,0 +1,73 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-zone",
+    "klasse": "intern",
+    "meldung": "Route r-ohne-zone hat keine Zone",
+    "protokoll": {
+     "zone": null,
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-zone",
+    "klasse": null,
+    "meldung": "Route r-ohne-zone hat keine Zone",
+    "protokoll": {
+     "zone": null,
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-zone",
+    "klasse": "oeffentlich",
+    "meldung": "Route r-x hat keine Zone",
+    "protokoll": {
+     "zone": null,
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-zone",
+    "klasse": "intern",
+    "meldung": "Route R-LOCAL hat keine Zone",
+    "protokoll": {
+     "zone": null,
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "nutzer-fehlt",
+    "klasse": "intern",
+    "meldung": "Anfrage ohne Nutzer",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,30 @@
+{
+ "exec": "werkbank-einschluss",
+ "eltern_ist_programm": true,
+ "stderr": "",
+ "starter_argv": [
+  "/usr/lib/werkbank/werkbank-einschluss",
+  "start",
+  "--beschreibung-fd",
+  "3"
+ ],
+ "lauf_ohne_apparmor_profil": true,
+ "fd3": "lesende einer pipe, die der lauf anlegt und beschreibt",
+ "beschreibung": {
+  "harness": "pi",
+  "modell_socket": "<socket>",
+  "lokal_weiter": "<einschluss-weiter>",
+  "cloud": null,
+  "dateien": [
+   {
+    "quelle": "<quelle>",
+    "ziel": "<heim>/.pi/agent/models.json"
+   }
+  ],
+  "umgebung_des_harness_fest": {
+   "PI_OFFLINE": "1",
+   "PI_TELEMETRY": "0"
+  },
+  "zustandsordner_beim_start": "leer"
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Links\nquelle: \"[[Kopflink]]\""
+  ],
+  "fields": {
+   "title": "Links",
+   "quelle": "[[Kopflink]]"
+  },
+  "body": "[[Ziel|Anzeige]] [[Seite#Abschnitt]] [[  Raum  ]] [[]] [[offen\nweiter]] [[A]] [[a]]\n",
+  "title": "Links",
+  "type": "note",
+  "aliases": [],
+  "links": [
+   "a",
+   "kopflink",
+   "offen",
+   "raum",
+   "seite",
+   "ziel"
+  ],
+  "keys": [
+   "links",
+   "note"
+  ],
+  "embed_text": "Links\n\n[[Ziel|Anzeige]] [[Seite#Abschnitt]] [[  Raum  ]] [[]] [[offen\nweiter]] [[A]] [[a]]\n"
+ }
+}

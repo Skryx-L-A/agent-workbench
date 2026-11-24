@@ -1,0 +1,50 @@
+{
+ "name": "tr10_antwort_titel",
+ "regeln": [
+  "TR10"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Titelabfrage CSI 21 t und CSI 20 t, nachdem ein Titel mit OSC 0 oder 2 gesetzt wurde: keine Antwort, nie der gesetzte Text",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b]2;GEHEIM-A-4711\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[21t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[20t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]0;GEHEIM-A-4711-0\u001b\\"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[21t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[20t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[22;2t\u001b[21t\u001b[23;2t\u001b[20t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]2;GEHEIM-A-4711\u0007\u001b[21t\u001b[20t\u001b[5n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

@@ -1,0 +1,35 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "error": "protokoll",
+   "id": 1
+  }
+ ],
+ "protokoll": [
+  {
+   "aktionsname": "probelauf.zaehlung",
+   "anzahl": 2,
+   "ergebnis": "an",
+   "fassung": 2,
+   "programm": "suche",
+   "sitzung": "s-test-1"
+  }
+ ],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ },
+ "marker_zaehlung": {
+  "datei": "zaehl/zaehlung.json",
+  "inhalt": {
+   "antworten": 0,
+   "marker": {
+    "MI-1A": 0,
+    "MK-1B": 0
+   },
+   "sitzung": "s-test-1"
+  }
+ },
+ "stderr_zeile": "such.probelauf: Marker werden gezählt"
+}

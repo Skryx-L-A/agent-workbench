@@ -1,0 +1,875 @@
+//! `Starten` (DI12): the checks and the files of a new session.
+//!
+//! SECURITY: [`start_form`] and [`start_pruefen`] are the ONE place that checks the structure of a start (DI12 points 3.1, 3.2 and 4). They call
+//! `start::lesen_anfrage` (stages 1 to 13 of contract 1) and `start::pruefen` (stages 14 to 17, against the settings file read by the crate
+//! `einstellungen`). A refusal carries `grund` `start_pruefung`, the code of the stage (`start.<code>`) and the fixed text of the stage, unchanged: the
+//! service has no list of codes of its own. The service never compares a code with a fixed list.
+//!
+//! The paths that this module reads and writes come from the start file of the service only: the folder of the sessions is
+//! `socket.ordner`, the settings file is `lauf.einstellungen`. No request, no environment variable and no argument names a path.
+
+use std::fs::{DirBuilder, File, OpenOptions};
+use std::io::{Read, Write};
+use std::os::fd::BorrowedFd;
+use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
+use std::path::{Path, PathBuf};
+
+use einstellungen::Einstellungen;
+use serde_json::{Map, Value, json};
+use start::{Routenart, Startanfrage, Startform};
+
+use crate::startdatei::Lauf;
+
+/// The most bytes of the settings file (stage 1 of contract 2).
+const EINST_MAX: u64 = 65_536;
+/// The most sessions that run at the same time.
+pub(crate) const SITZUNGEN_MAX: usize = 8;
+/// How long `Beenden` and the end of the service wait between SIGHUP and SIGKILL.
+pub(crate) const KILL_FRIST_MS: u64 = 1000;
+
+/// The refusal of `Starten`: the reason, the code and the fixed text (DI12 point 3). The code is passed on unchanged.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Abgelehnt {
+    pub(crate) grund: String,
+    pub(crate) code: String,
+    pub(crate) text: String,
+}
+
+impl Abgelehnt {
+    /// A refusal of the service itself: `code` is the same word as `grund`, the text is fixed.
+    pub(crate) fn fest(grund: &str) -> Self {
+        Self {
+            grund: grund.to_owned(),
+            code: grund.to_owned(),
+            text: text_zu(grund).to_owned(),
+        }
+    }
+
+    /// A refusal of the check of the start structure: `grund` `start_pruefung`, the code of the stage and its fixed text, as the crate `start` gives them.
+    pub(crate) fn pruefung(fehler: &start::Fehler) -> Self {
+        Self {
+            grund: "start_pruefung".to_owned(),
+            code: fehler.code().to_owned(),
+            text: fehler.grund().to_owned(),
+        }
+    }
+
+    /// The payload of the frame `Ablehnung`.
+    pub(crate) fn nutzlast(&self) -> Value {
+        json!({"grund": self.grund, "code": self.code, "text": self.text})
+    }
+}
+
+/// The fixed text of a reason of the service.
+pub(crate) fn text_zu(grund: &str) -> &'static str {
+    match grund {
+        "start_form" => "Start hat falsche Form",
+        "einst_unlesbar" => "Einstellungsdatei nicht lesbar",
+        "zu_viele_sitzungen" => "Zu viele Sitzungen",
+        "nummern_erschoepft" => "Keine Sitzungsnummer frei",
+        "start_ordner" => "Ordner der Sitzung nicht anlegbar",
+        "programm_nicht_startbar" => "Programm nicht startbar",
+        "meldung_kanal" => "Meldekanal der Sitzung nicht anlegbar",
+        _ => "",
+    }
+}
+
+/// The canonical form of a JSON value: compact, keys sorted, UTF-8, non-ASCII without a `\u` escape.
+pub(crate) fn kanon(wert: &Value) -> Vec<u8> {
+    serde_json::to_vec(wert).unwrap_or_default()
+}
+
+/// THE place of the check of the structure itself (stages 1 to 13 of contract 1; see the head of the file): the structure travels as a JSON value, the
+/// crate reads its canonical bytes.
+///
+/// # Errors
+/// The refusal `start_pruefung` with the code and the fixed text of the first violated stage.
+pub(crate) fn start_form(start: &Value) -> Result<Startanfrage, Abgelehnt> {
+    start::lesen_anfrage(&kanon(start)).map_err(|f| Abgelehnt::pruefung(&f))
+}
+
+/// THE place of the check against the settings file (stages 14 to 17 of contract 1).
+///
+/// # Errors
+/// The refusal `start_pruefung` with the code and the fixed text of the first violated stage.
+pub(crate) fn start_pruefen(
+    anfrage: &Startanfrage,
+    einstellungen: &Einstellungen,
+) -> Result<(), Abgelehnt> {
+    start::pruefen(anfrage, einstellungen)
+        .map(|_| ())
+        .map_err(|f| Abgelehnt::pruefung(&f))
+}
+
+/// The event `Starten` has exactly the keys `art` and `start` (the service sets `t` and `betrachter` before; a client may not).
+pub(crate) fn starten_form(ereignis: &Map<String, Value>) -> Result<&Value, Abgelehnt> {
+    let nur_erlaubte = ereignis
+        .keys()
+        .all(|k| matches!(k.as_str(), "art" | "start" | "t" | "betrachter"));
+    match ereignis.get("start") {
+        Some(s) if nur_erlaubte => Ok(s),
+        _ => Err(Abgelehnt::fest("start_form")),
+    }
+}
+
+/// The harness table of contract 1 (fassung 1 with the addendum of 20 November): name, kind and allowed kind of route. The crate `start` checks the
+/// harness itself; this table only feeds `Startwahl`. The test `harness_tabelle_gleicht_dem_crate` holds it equal to the crate.
+pub(crate) const HARNESS: [(&str, &str, Routenart); 3] = [
+    ("claude", "cloud", Routenart::Cloud),
+    ("copilot", "cloud", Routenart::Cloud),
+    ("pi", "lokal", Routenart::Lokal),
+];
+
+/// Reads the settings file (path from the start file only): a regular file of at most [`EINST_MAX`] bytes that the crate `einstellungen` reads
+/// (contract 2). `None` if it is no regular file, too large or refused by the crate.
+pub(crate) fn einstellungen_laden(pfad: &str) -> Option<Einstellungen> {
+    if !std::fs::metadata(pfad).ok()?.is_file() {
+        return None;
+    }
+    // one byte more than the bound is read, so that a file over the bound is seen as such and never cut to fit
+    let mut roh = Vec::new();
+    File::open(pfad)
+        .ok()?
+        .take(EINST_MAX + 1)
+        .read_to_end(&mut roh)
+        .ok()?;
+    if u64::try_from(roh.len()).ok()? > EINST_MAX {
+        return None;
+    }
+    einstellungen::lesen(&roh).ok()
+}
+
+/// The pieces of `Startwahl`: `fassung`, `harness`, `routen` (only `schluessel`, `art`, `klasse` and `modell`, the text of the route or `null`: no target,
+/// no network target, no key, no path) and `kunden` (the keys, `null` last).
+pub(crate) fn startwahl_von(einst: &Einstellungen) -> Value {
+    let harness: Vec<Value> = HARNESS
+        .iter()
+        .map(|(name, art, routenart)| json!({"name": name, "art": art, "routenart": routenart.kennung()}))
+        .collect();
+    let routen: Vec<Value> = einst
+        .routen()
+        .iter()
+        .map(|r| {
+            json!({"schluessel": r.schluessel(), "art": r.art().kennung(), "klasse": r.klasse(), "modell": r.modell()})
+        })
+        .collect();
+    let mut kunden: Vec<Value> = einst
+        .kunden()
+        .iter()
+        .map(|k| json!(k.schluessel()))
+        .collect();
+    kunden.push(Value::Null);
+    json!({"fassung": 1, "harness": harness, "routen": routen, "kunden": kunden})
+}
+
+/// The meta data of a session for the list: the four texts of the start structure, `""` for a session without a customer.
+pub(crate) fn meta_von(start: &Startanfrage) -> [String; 4] {
+    [
+        start.harness().to_owned(),
+        start.modell().to_owned(),
+        start.route().to_owned(),
+        start.kunde().unwrap_or("").to_owned(),
+    ]
+}
+
+/// The entries of the number `n` (DI12 points 13 and 15): one line for each file that a session of this number makes. An entry counts only when its key is set.
+/// This is the one place; a new entry is one line here and one case.
+///
+/// | entry | key | made by |
+/// |---|---|---|
+/// | `<sitzungen>/s-<n>` | `lauf.sitzungen` | the session folder of `werkbank-lauf` |
+/// | `<laufzeit>/s-<n>` | `lauf.laufzeit` | the socket folder of `werkbank-lauf` |
+/// | `<ziellisten>/s-<n>.zielliste.json` | `lauf.ziellisten` | the target list of `werkbank-lauf` |
+/// | `<marker_ordner>/s-<n>.suche.json` and `<marker_ordner>/s-<n>.modellweg.json` | `lauf.marker_ordner` | the count files of search and model path |
+fn eintraege_der_nummer(lauf: &Lauf, n: usize) -> Vec<PathBuf> {
+    let mut eintraege = Vec::new();
+    let mut dazu = |ordner: &Option<String>, name: String| {
+        if let Some(o) = ordner.as_deref() {
+            eintraege.push(Path::new(o).join(name));
+        }
+    };
+    dazu(&lauf.sitzungen, format!("s-{n}"));
+    dazu(&lauf.laufzeit, format!("s-{n}"));
+    dazu(&lauf.ziellisten, format!("s-{n}.zielliste.json"));
+    dazu(&lauf.marker_ordner, format!("s-{n}.suche.json"));
+    dazu(&lauf.marker_ordner, format!("s-{n}.modellweg.json"));
+    eintraege
+}
+
+/// Is the number `n` taken? It is when ANY entry of [`eintraege_der_nummer`] exists. Only `lstat` looks (it follows no link): an entry of any kind,
+/// a dead link too, takes the number; only `NotFound` leaves an entry free, and the number is free only when every entry is free. `Err(())`: another
+/// error (no rights, a name too long), the start is refused. The service creates, reads and removes nothing there. Without the keys no number is taken.
+pub(crate) fn kennung_belegt(lauf: &Lauf, n: usize) -> Result<bool, ()> {
+    for pfad in eintraege_der_nummer(lauf, n) {
+        match std::fs::symlink_metadata(&pfad) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Ok(_) => return Ok(true),
+            Err(_) => return Err(()),
+        }
+    }
+    Ok(false)
+}
+
+/// The folder `<ordner>/<kennung>` (0700) with `start.json` (0600, exclusive) that holds the start structure with `sitzung`
+/// set. SECURITY: a folder that exists already is never replaced or deleted (`Err`, nothing removed); a folder this call made
+/// and could not fill is removed again.
+///
+/// # Errors
+/// The folder exists, cannot be made, or the file cannot be written.
+pub(crate) fn ordner_anlegen(
+    ordner: &Path,
+    wurzel: BorrowedFd<'_>,
+    kennung: &str,
+    start: &Startanfrage,
+    marker: Option<&start::Marker>,
+) -> Result<(PathBuf, PathBuf), ()> {
+    // the file is what `start::schreiben` gives for the structure with the key set; `Lauf starten` reads it with `start::lesen_datei`
+    let inhalt = start::schreiben(
+        &start
+            .clone()
+            .mit_sitzung(kennung, marker.cloned())
+            .map_err(|_| ())?,
+    );
+    let sitzung = ordner.join(kennung);
+    DirBuilder::new()
+        .mode(0o700)
+        .create(&sitzung)
+        .map_err(|_| ())?;
+    let fertig = || -> std::io::Result<PathBuf> {
+        std::fs::set_permissions(&sitzung, std::fs::Permissions::from_mode(0o700))?;
+        let datei = sitzung.join("start.json");
+        let mut f = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&datei)?;
+        f.set_permissions(std::fs::Permissions::from_mode(0o600))?;
+        f.write_all(&inhalt)?;
+        Ok(datei)
+    };
+    if let Ok(datei) = fertig() {
+        Ok((sitzung, datei))
+    } else {
+        crate::loeschen::sitzung_entfernen(wurzel, kennung);
+        Err(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const EINST_1: &str = include_str!("../tests/werkzeug/einstellungen/vorfuehrung.json");
+    /// Settings of fassung 2: a cloud route without a model, a cloud route with a model, a local route with target and model.
+    const EINST_2: &str = r#"{"fassung":2,"klassen":["oeffentlich","intern","kundendaten"],"vorgabestufe":"kundendaten",
+        "routen":[
+          {"schluessel":"cloud-beispiel","art":"cloud","klasse":"intern","netzziele":[{"host":"api.cloud.example","port":443,"zugriff":"kopf-einsetzen","schluessel":true,"pfade":[{"methode":"GET","pfad":"/copilot_internal/*"}]}]},
+          {"schluessel":"cloud-fest","art":"cloud","klasse":"intern","modell":"gpt-5.6-sol","netzziele":[{"host":"api.cloud.example","port":443,"zugriff":"kopf-einsetzen","schluessel":true,"pfade":[{"methode":"GET","pfad":"/copilot_internal/*"}]}]},
+          {"schluessel":"lokal-beispiel","art":"lokal","klasse":"kundendaten","ziel":"http://127.0.0.1:11434/v1","modell":"qwen3:8b","netzziele":[]}],
+        "kunden":[{"schluessel":"k-beispiel","erlaubt":["lokal-beispiel"],"verboten":[]}],
+        "kundendaten_an_cloud":{"vorgabe":"nie","freigaben":[]}}"#;
+
+    fn gut() -> Value {
+        json!({"fassung": 1, "harness": "claude", "modell": "claude-sonnet-5-5", "route": "cloud-beispiel", "kunde": "k-beispiel", "arbeitsordner": "/tmp/p"})
+    }
+
+    #[allow(clippy::needless_pass_by_value)] // the call sites pass a `json!` literal
+    fn mit(wert: &Value, aenderung: Value) -> Value {
+        let mut neu = wert.clone();
+        if let (Some(a), Some(b)) = (neu.as_object_mut(), aenderung.as_object()) {
+            for (k, v) in b {
+                if v == &json!("<weg>") {
+                    a.remove(k);
+                } else {
+                    a.insert(k.clone(), v.clone());
+                }
+            }
+        }
+        neu
+    }
+
+    fn einst(text: &str) -> Einstellungen {
+        einstellungen::lesen(text.as_bytes()).expect("the settings are valid")
+    }
+
+    fn pruef(wert: &Value, e: &Einstellungen) -> Result<(), Abgelehnt> {
+        start_pruefen(&start_form(wert)?, e)
+    }
+
+    fn tripel(a: &Abgelehnt) -> (&str, &str, &str) {
+        (&a.grund, &a.code, &a.text)
+    }
+
+    #[test]
+    fn a_valid_start_passes_both_checks() {
+        assert!(pruef(&gut(), &einst(EINST_1)).is_ok());
+        let z = mit(
+            &gut(),
+            json!({"harness": "copilot", "modell": "auto", "route": "cloud-beispiel", "kunde": null}),
+        );
+        assert!(pruef(&z, &einst(EINST_2)).is_ok());
+    }
+
+    #[test]
+    #[allow(clippy::too_many_lines)] // one table row per stage of contract 1
+    fn every_stage_gives_its_code_and_fixed_text() {
+        let e1 = einst(EINST_1);
+        let e2 = einst(EINST_2);
+        let mut tabelle: Vec<(Value, &Einstellungen, &str, &str)> = vec![
+            (
+                json!("text"),
+                &e1,
+                "start.json_ungueltig",
+                "kein gueltiges JSON",
+            ),
+            (
+                mit(&gut(), json!({"sitzung": "s-1"})),
+                &e1,
+                "start.sitzung_nicht_erlaubt",
+                "Sitzung vergibt der Dienst",
+            ),
+            (
+                mit(&gut(), json!({"marker": 1})),
+                &e1,
+                "start.marker_nicht_erlaubt",
+                "Marker setzt der Dienst",
+            ),
+            (
+                mit(&gut(), json!({"x": 1})),
+                &e1,
+                "start.schluessel_unbekannt",
+                "unbekannter Schluessel",
+            ),
+            (
+                mit(&gut(), json!({"kunde": "<weg>"})),
+                &e1,
+                "start.schluessel_fehlt",
+                "Pflichtfeld fehlt",
+            ),
+            (
+                mit(&gut(), json!({"fassung": 1.0})),
+                &e1,
+                "start.typ_falsch",
+                "falscher Typ",
+            ),
+            (
+                mit(&gut(), json!({"fassung": 2})),
+                &e1,
+                "start.fassung_unbekannt",
+                "Fassung unbekannt",
+            ),
+            (
+                mit(&gut(), json!({"route": "A"})),
+                &e1,
+                "start.kennung_form",
+                "Kennung hat falsche Form",
+            ),
+            (
+                mit(&gut(), json!({"modell": "a b"})),
+                &e1,
+                "start.modell_form",
+                "Modell hat falsche Form",
+            ),
+            (
+                mit(&gut(), json!({"arbeitsordner": "rel"})),
+                &e1,
+                "start.ordner_ungueltig",
+                "Arbeitsordner ungueltig",
+            ),
+            (
+                mit(&gut(), json!({"harness": "gemini"})),
+                &e1,
+                "start.harness_unbekannt",
+                "Harness unbekannt",
+            ),
+            (
+                mit(&gut(), json!({"route": "gibt-es-nicht"})),
+                &e1,
+                "start.route_unbekannt",
+                "Route unbekannt",
+            ),
+            (
+                mit(&gut(), json!({"route": "cloud-fest", "modell": "o3"})),
+                &e2,
+                "start.modell_route",
+                "Modell passt nicht zur Route",
+            ),
+            (
+                mit(&gut(), json!({"kunde": "k-fremd"})),
+                &e1,
+                "start.kunde_unbekannt",
+                "Kunde unbekannt",
+            ),
+            (
+                mit(&gut(), json!({"harness": "pi"})),
+                &e1,
+                "start.harness_route_unvertraeglich",
+                "Harness passt nicht zur Route",
+            ),
+        ];
+        tabelle.push((
+            json!({"fassung": 1, "x": "a".repeat(4097)}),
+            &e1,
+            "start.zu_gross",
+            "Start zu gross",
+        ));
+        for (wert, e, code, text) in tabelle {
+            let a = pruef(&wert, e).expect_err(code);
+            assert_eq!(tripel(&a), ("start_pruefung", code, text), "{wert}");
+            assert_eq!(
+                a.nutzlast(),
+                json!({"grund": "start_pruefung", "code": code, "text": text})
+            );
+        }
+    }
+
+    #[test]
+    fn the_lowest_stage_wins_and_the_form_comes_before_the_settings() {
+        let e1 = einst(EINST_1);
+        let code = |w: &Value| pruef(w, &e1).expect_err("refused").code;
+        assert_eq!(
+            code(&mit(&gut(), json!({"sitzung": "s-1", "marker": 1, "x": 1}))),
+            "start.sitzung_nicht_erlaubt"
+        );
+        assert_eq!(
+            code(&mit(
+                &gut(),
+                json!({"route": "gibt-es-nicht", "kunde": "k-fremd"})
+            )),
+            "start.route_unbekannt"
+        );
+        assert_eq!(
+            code(&mit(&gut(), json!({"kunde": "k-fremd", "harness": "pi"}))),
+            "start.kunde_unbekannt"
+        );
+        // the form check does not need the settings file at all
+        assert_eq!(
+            start_form(&mit(&gut(), json!({"harness": "gemini"})))
+                .expect_err("form")
+                .code,
+            "start.harness_unbekannt"
+        );
+        assert!(start_form(&mit(&gut(), json!({"route": "gibt-es-nicht"}))).is_ok());
+    }
+
+    #[test]
+    fn four_thousand_ninety_six_bytes_pass_stage_one_and_four_thousand_ninety_seven_do_not() {
+        let mit_n = |n: usize| {
+            let leer = kanon(&json!({"fassung": 1, "x": ""})).len();
+            json!({"fassung": 1, "x": "a".repeat(n - leer)})
+        };
+        assert_eq!(kanon(&mit_n(4096)).len(), 4096);
+        assert_eq!(
+            start_form(&mit_n(4096)).expect_err("form").code,
+            "start.schluessel_unbekannt"
+        );
+        assert_eq!(
+            start_form(&mit_n(4097)).expect_err("form").code,
+            "start.zu_gross"
+        );
+    }
+
+    #[test]
+    fn harness_table_equals_the_crate() {
+        // the crate has no table to read: every row is checked against the crate with a cloud and a local route
+        let e = einst(EINST_1);
+        for (name, art, routenart) in HARNESS {
+            assert_eq!(routenart.kennung(), art);
+            for route in ["cloud-beispiel", "lokal-beispiel"] {
+                let w = mit(&gut(), json!({"harness": name, "route": route}));
+                let erg = pruef(&w, &e);
+                let passt = e.route(route).expect("route").art() == routenart;
+                assert_eq!(erg.is_ok(), passt, "{name} on {route}");
+                if !passt {
+                    assert_eq!(
+                        erg.expect_err("refused").code,
+                        "start.harness_route_unvertraeglich"
+                    );
+                }
+            }
+        }
+        let w = mit(&gut(), json!({"harness": "gemini"}));
+        assert_eq!(
+            start_form(&w).expect_err("form").code,
+            "start.harness_unbekannt"
+        );
+    }
+
+    #[test]
+    fn startwahl_has_four_texts_per_route_and_no_target() {
+        let w = startwahl_von(&einst(EINST_2));
+        assert_eq!(
+            w["routen"],
+            json!([
+                {"schluessel": "cloud-beispiel", "art": "cloud", "klasse": "intern", "modell": null},
+                {"schluessel": "cloud-fest", "art": "cloud", "klasse": "intern", "modell": "gpt-5.6-sol"},
+                {"schluessel": "lokal-beispiel", "art": "lokal", "klasse": "kundendaten", "modell": "qwen3:8b"}
+            ])
+        );
+        assert_eq!(w["kunden"], json!(["k-beispiel", null]));
+        assert_eq!(w["fassung"], json!(1));
+        assert_eq!(
+            w["harness"],
+            json!([
+                {"name": "claude", "art": "cloud", "routenart": "cloud"},
+                {"name": "copilot", "art": "cloud", "routenart": "cloud"},
+                {"name": "pi", "art": "lokal", "routenart": "lokal"}
+            ])
+        );
+        let text = w.to_string();
+        for geheim in [
+            "127.0.0.1",
+            "api.cloud.example",
+            "ziel",
+            "netzziele",
+            "erlaubt",
+        ] {
+            assert!(!text.contains(geheim), "{geheim}");
+        }
+        let v1 = startwahl_von(&einst(EINST_1));
+        assert!(
+            v1["routen"]
+                .as_array()
+                .expect("list")
+                .iter()
+                .all(|r| r["modell"].is_null())
+        );
+    }
+
+    #[test]
+    fn meta_is_the_four_texts_and_empty_without_a_customer() {
+        let a = start_form(&mit(&gut(), json!({"kunde": null}))).expect("valid");
+        assert_eq!(
+            meta_von(&a),
+            ["claude", "claude-sonnet-5-5", "cloud-beispiel", ""]
+        );
+        let b = start_form(&gut()).expect("valid");
+        assert_eq!(meta_von(&b)[3], "k-beispiel");
+    }
+
+    #[test]
+    fn abgelehnt_traegt_grund_code_text() {
+        let a = Abgelehnt::fest("zu_viele_sitzungen").nutzlast();
+        assert_eq!(
+            a,
+            json!({"grund": "zu_viele_sitzungen", "code": "zu_viele_sitzungen", "text": "Zu viele Sitzungen"})
+        );
+        for (g, t) in [
+            ("start_form", "Start hat falsche Form"),
+            ("einst_unlesbar", "Einstellungsdatei nicht lesbar"),
+            ("nummern_erschoepft", "Keine Sitzungsnummer frei"),
+            ("start_ordner", "Ordner der Sitzung nicht anlegbar"),
+            ("programm_nicht_startbar", "Programm nicht startbar"),
+            ("meldung_kanal", "Meldekanal der Sitzung nicht anlegbar"),
+        ] {
+            assert_eq!(text_zu(g), t);
+        }
+        assert_eq!(text_zu("start.irgendein_code"), "");
+    }
+
+    #[test]
+    fn starten_nur_art_und_start() {
+        let ok = json!({"art": "Starten", "start": {"fassung": 1}, "t": 1, "betrachter": "b1"});
+        assert!(starten_form(ok.as_object().expect("o")).is_ok());
+        let fremd = json!({"art": "Starten", "start": {}, "x": 1});
+        assert!(starten_form(fremd.as_object().expect("o")).is_err());
+        let ohne = json!({"art": "Starten"});
+        assert!(starten_form(ohne.as_object().expect("o")).is_err());
+    }
+
+    fn temp(name: &str) -> PathBuf {
+        let p = PathBuf::from(format!("/tmp/dienst-st-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&p);
+        std::fs::create_dir_all(&p).expect("dir");
+        p
+    }
+
+    /// The folder opened as the service holds it.
+    fn offen(p: &Path) -> std::os::fd::OwnedFd {
+        use rustix::fs::{CWD, Mode, openat};
+        openat(CWD, p, crate::loeschen::ORDNER_OFFEN, Mode::empty()).expect("open")
+    }
+
+    #[test]
+    fn ordner_und_datei_mit_rechten_und_inhalt() {
+        let o = temp("ordner");
+        let start = start_form(&gut()).expect("valid");
+        let (dir, datei) = ordner_anlegen(
+            &o,
+            std::os::fd::AsFd::as_fd(&offen(&o)),
+            "s-3",
+            &start,
+            None,
+        )
+        .expect("created");
+        assert_eq!(dir, o.join("s-3"));
+        let mode = |p: &Path| std::fs::metadata(p).expect("meta").permissions().mode() & 0o7777;
+        assert_eq!(mode(&dir), 0o700);
+        assert_eq!(mode(&datei), 0o600);
+        // what the file holds is a start file that `Lauf starten` reads again: the structure with the key
+        let gelesen =
+            start::lesen_datei(&std::fs::read(&datei).expect("read")).expect("start file");
+        assert_eq!(gelesen.sitzung(), "s-3");
+        assert_eq!(gelesen.harness(), "claude");
+        assert_eq!(gelesen.arbeitsordner(), "/tmp/p");
+        assert_eq!(gelesen.kunde(), Some("k-beispiel"));
+        // an existing folder is neither replaced nor removed
+        std::fs::write(dir.join("fremd"), b"x").expect("write");
+        assert!(
+            ordner_anlegen(
+                &o,
+                std::os::fd::AsFd::as_fd(&offen(&o)),
+                "s-3",
+                &start,
+                None
+            )
+            .is_err()
+        );
+        assert!(dir.join("fremd").exists(), "nothing was deleted");
+        let _ = std::fs::remove_dir_all(&o);
+    }
+
+    #[test]
+    fn der_marker_der_startdatei_steht_in_der_start_json_und_sonst_keiner() {
+        let o = temp("marker");
+        let start = start_form(&gut()).expect("valid");
+        let wurzel = offen(&o);
+        let marker =
+            start::Marker::neu(vec!["A-1".to_owned(), "B2".to_owned()], "/var/lib/zaehlung")
+                .expect("marker");
+        let (_, mit) = ordner_anlegen(
+            &o,
+            std::os::fd::AsFd::as_fd(&wurzel),
+            "s-1",
+            &start,
+            Some(&marker),
+        )
+        .expect("created");
+        let gelesen = start::lesen_datei(&std::fs::read(&mit).expect("read")).expect("start file");
+        assert_eq!(gelesen.marker(), Some(&marker));
+        let (_, ohne) = ordner_anlegen(&o, std::os::fd::AsFd::as_fd(&wurzel), "s-2", &start, None)
+            .expect("created");
+        let gelesen = start::lesen_datei(&std::fs::read(&ohne).expect("read")).expect("start file");
+        assert_eq!(gelesen.marker(), None);
+        let _ = std::fs::remove_dir_all(&o);
+    }
+
+    /// A `Lauf` with the folders of the keys `sitzungen`, `ziellisten`, `laufzeit` and `marker_ordner` (each optional).
+    fn lauf_mit(
+        sitzungen: Option<&Path>,
+        ziellisten: Option<&Path>,
+        laufzeit: Option<&Path>,
+        marker_ordner: Option<&Path>,
+    ) -> Lauf {
+        let text = |p: Option<&Path>| p.map(|p| p.to_string_lossy().into_owned());
+        Lauf {
+            programm: "/p".to_owned(),
+            env: Vec::new(),
+            groesse: (80, 24),
+            einstellungen: "/e".to_owned(),
+            sitzungen: text(sitzungen),
+            ziellisten: text(ziellisten),
+            laufzeit: text(laufzeit),
+            marker_datei: None,
+            marker_ordner: text(marker_ordner),
+            nummer_max: 255,
+        }
+    }
+
+    /// Four own folders `s`, `z`, `l`, `m` below one test folder, and a `Lauf` that names all four.
+    fn vier(name: &str) -> (PathBuf, Lauf) {
+        let o = temp(name);
+        for d in ["s", "z", "l", "m"] {
+            std::fs::create_dir_all(o.join(d)).expect("dir");
+        }
+        let lauf = lauf_mit(
+            Some(&o.join("s")),
+            Some(&o.join("z")),
+            Some(&o.join("l")),
+            Some(&o.join("m")),
+        );
+        (o, lauf)
+    }
+
+    #[test]
+    fn jede_datei_der_nummer_belegt_sie() {
+        use std::os::unix::fs::symlink;
+        let (o, lauf) = vier("belegt");
+        assert_eq!(kennung_belegt(&lauf, 1), Ok(false));
+        assert_eq!(
+            kennung_belegt(&lauf_mit(None, None, None, None), 1),
+            Ok(false)
+        );
+        // each of the five entries alone takes its number (and no other number), in every kind: file, folder, link, dead link
+        let eintraege: [(&str, &str); 5] = [
+            ("s", "s-1"),
+            ("l", "s-2"),
+            ("z", "s-3.zielliste.json"),
+            ("m", "s-4.suche.json"),
+            ("m", "s-5.modellweg.json"),
+        ];
+        for (k, (d, name)) in eintraege.iter().enumerate() {
+            let n = k + 1;
+            assert_eq!(kennung_belegt(&lauf, n), Ok(false), "{n} before");
+            std::fs::write(o.join(d).join(name), b"x").expect("file");
+            assert_eq!(kennung_belegt(&lauf, n), Ok(true), "{n} file");
+            for andere in 1..=5 {
+                if andere != n {
+                    assert_eq!(
+                        kennung_belegt(&lauf, andere),
+                        Ok(andere < n),
+                        "{n} / {andere}"
+                    );
+                }
+            }
+        }
+        // the kinds of entry, each for a fresh number 6 to 9 in the folder `l` (the socket folder)
+        std::fs::create_dir(o.join("l/s-6")).expect("dir");
+        symlink(&o, o.join("l/s-7")).expect("link");
+        symlink("/nirgends-xyz", o.join("l/s-8")).expect("dead link");
+        for n in 6..=8 {
+            assert_eq!(kennung_belegt(&lauf, n), Ok(true), "{n}");
+        }
+        // two folders at once and a dead link in the folder of the count files
+        std::fs::create_dir(o.join("s/s-9")).expect("dir");
+        std::fs::create_dir(o.join("l/s-9")).expect("dir");
+        symlink("/nirgends-xyz", o.join("m/s-10.modellweg.json")).expect("dead link");
+        symlink("/nirgends-xyz", o.join("m/s-11.suche.json")).expect("dead link");
+        for n in 9..=11 {
+            assert_eq!(kennung_belegt(&lauf, n), Ok(true), "{n}");
+        }
+        assert_eq!(kennung_belegt(&lauf, 12), Ok(false));
+        let _ = std::fs::remove_dir_all(&o);
+    }
+
+    #[test]
+    fn die_namen_sind_genau_und_ein_eintrag_zaehlt_nur_mit_seinem_schluessel() {
+        let (o, lauf) = vier("namen");
+        // wrong names take nothing
+        for (d, name) in [
+            ("z", "s-1"),
+            ("z", "s-1.json"),
+            ("z", "s-1.zielliste.json.alt"),
+            ("z", "s-2.suche.json"),
+            ("m", "s-1"),
+            ("m", "s-1.zielliste.json"),
+            ("m", "s-1.suche"),
+            ("l", "s-1.zielliste.json"),
+            ("s", "s-1.suche.json"),
+        ] {
+            std::fs::write(o.join(d).join(name), b"x").expect("file");
+        }
+        assert_eq!(kennung_belegt(&lauf, 1), Ok(false));
+        assert_eq!(kennung_belegt(&lauf, 2), Ok(false));
+        // each entry counts only with its own key
+        std::fs::write(o.join("z/s-3.zielliste.json"), b"x").expect("file");
+        std::fs::write(o.join("m/s-4.suche.json"), b"x").expect("file");
+        std::fs::write(o.join("m/s-5.modellweg.json"), b"x").expect("file");
+        std::fs::write(o.join("l/s-6"), b"x").expect("file");
+        std::fs::write(o.join("s/s-7"), b"x").expect("file");
+        let (sitz, ziel, lz, mark) = (o.join("s"), o.join("z"), o.join("l"), o.join("m"));
+        let ohne = [
+            (lauf_mit(Some(&sitz), None, Some(&lz), Some(&mark)), 3),
+            (lauf_mit(Some(&sitz), Some(&ziel), Some(&lz), None), 4),
+            (lauf_mit(Some(&sitz), Some(&ziel), Some(&lz), None), 5),
+            (lauf_mit(Some(&sitz), Some(&ziel), None, Some(&mark)), 6),
+            (lauf_mit(None, Some(&ziel), Some(&lz), Some(&mark)), 7),
+        ];
+        for (ohne_schluessel, nummer) in ohne {
+            assert_eq!(
+                kennung_belegt(&ohne_schluessel, nummer),
+                Ok(false),
+                "{nummer}"
+            );
+        }
+        // with the key the same entries take their numbers
+        for n in 3..=7 {
+            assert_eq!(kennung_belegt(&lauf, n), Ok(true), "{n}");
+        }
+        // a missing folder is free
+        let fehlt = o.join("gibt-es-nicht");
+        let allein = lauf_mit(Some(&fehlt), Some(&fehlt), Some(&fehlt), Some(&fehlt));
+        assert_eq!(kennung_belegt(&allein, 1), Ok(false));
+        let _ = std::fs::remove_dir_all(&o);
+    }
+
+    #[test]
+    fn ein_anderer_fehler_als_fehlt_ist_ein_fehler() {
+        use std::os::unix::fs::PermissionsExt;
+        let (o, lauf) = vier("fehler");
+        std::fs::write(o.join("m/s-1.suche.json"), b"x").expect("file");
+        // every folder without rights gives an error for a number whose earlier entries are free
+        for d in ["s", "z", "l", "m"] {
+            std::fs::set_permissions(o.join(d), std::fs::Permissions::from_mode(0o000))
+                .expect("mode");
+            assert_eq!(kennung_belegt(&lauf, 2), Err(()), "{d}");
+            std::fs::set_permissions(o.join(d), std::fs::Permissions::from_mode(0o700))
+                .expect("mode");
+            assert_eq!(kennung_belegt(&lauf, 2), Ok(false), "{d} again");
+        }
+        // an entry that is there answers before a later folder without rights is looked at
+        std::fs::set_permissions(o.join("m"), std::fs::Permissions::from_mode(0o000))
+            .expect("mode");
+        std::fs::create_dir(o.join("s/s-3")).expect("dir");
+        assert_eq!(kennung_belegt(&lauf, 3), Ok(true));
+        std::fs::set_permissions(o.join("m"), std::fs::Permissions::from_mode(0o700))
+            .expect("mode");
+        let _ = std::fs::remove_dir_all(&o);
+    }
+
+    #[test]
+    fn ordner_fehlt_ist_ein_fehler() {
+        let start = start_form(&gut()).expect("valid");
+        // descriptor and path belong to the same own test folder; the missing folder lies below it
+        let o = temp("fehlt");
+        let wurzel = offen(&o);
+        assert!(
+            ordner_anlegen(
+                &o.join("gibt-es-nicht"),
+                std::os::fd::AsFd::as_fd(&wurzel),
+                "s-1",
+                &start,
+                None
+            )
+            .is_err()
+        );
+        assert!(std::fs::read_dir(&o).expect("read").next().is_none());
+        let _ = std::fs::remove_dir_all(&o);
+    }
+
+    #[test]
+    fn einstellungen_nur_regulaere_datei_im_rahmen_und_vom_crate_gelesen() {
+        let o = temp("einst");
+        let f = o.join("e.json");
+        let pfad = f.to_str().expect("utf8");
+        std::fs::write(&f, EINST_1).expect("write");
+        assert!(einstellungen_laden(pfad).is_some());
+        std::fs::write(&f, EINST_2).expect("write");
+        assert_eq!(einstellungen_laden(pfad).expect("fassung 2").fassung(), 2);
+        for roh in [
+            "[]",
+            "{}",
+            r#"{"fassung":1,"routen":5}"#,
+            "kein json",
+            r#"{"routen":[],"kunden":[]}"#,
+        ] {
+            std::fs::write(&f, roh).expect("write");
+            assert!(einstellungen_laden(pfad).is_none(), "{roh}");
+        }
+        assert!(
+            einstellungen_laden(o.to_str().expect("utf8")).is_none(),
+            "a folder"
+        );
+        assert!(einstellungen_laden("/nirgends/da.json").is_none());
+        // the bound is 65 536 bytes: exactly that many is read, one more is not
+        let mit_laenge = |n: u64| {
+            let mut t = EINST_1.as_bytes().to_vec();
+            t.resize(usize::try_from(n).expect("size"), b' ');
+            std::fs::write(&f, t).expect("write");
+            einstellungen_laden(pfad)
+        };
+        assert!(mit_laenge(EINST_MAX).is_some(), "exactly the bound");
+        assert!(mit_laenge(EINST_MAX + 1).is_none(), "one byte over");
+        let _ = std::fs::remove_dir_all(&o);
+    }
+}

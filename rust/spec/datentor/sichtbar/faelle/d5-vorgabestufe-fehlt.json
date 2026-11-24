@@ -1,0 +1,61 @@
+{
+ "name": "d5-vorgabestufe-fehlt",
+ "regeln": [
+  "D5",
+  "A35",
+  "D7"
+ ],
+ "beschreibung": "Ohne Feld vorgabestufe bekommt eine Einheit ohne Klasse die höchste Klasse und kommt auf keiner Route an.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": null
+   },
+   "route": "cloud",
+   "kunde": null
+  },
+  {
+   "einheit": {},
+   "route": "lokal",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": null
+   },
+   "route": "lokal",
+   "kunde": "k-nord"
+  }
+ ]
+}

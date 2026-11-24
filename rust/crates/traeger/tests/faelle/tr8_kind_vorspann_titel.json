@@ -1,0 +1,39 @@
+{
+ "name": "tr8_kind_vorspann_titel",
+ "regeln": [
+  "TR8",
+  "TR16"
+ ],
+ "datensatz": "A",
+ "beschreibung": "W7, nur Windows: Ein Kind schreibt Text und keinen Titel; kein Ereignis Titel darf entstehen (ConPTY schreibt vor dem ersten Byte des Kindes einen Titel mit dem Pfad der Programmdatei; der Traeger verwirft ihn)",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "ausgabe",
+  "argv": [
+   "616c7068610d0a"
+  ],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ],
+ "system": [
+  "windows"
+ ]
+}

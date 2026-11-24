@@ -1,0 +1,44 @@
+{
+ "beschreibung": "Kunde ohne Eintrag in den Einstellungen bekommt auch lokal keine Route",
+ "herkunft": "vertrag4:t-kunde-ohne-eintrag",
+ "files": {
+  "vault/kunden/sued/plan-qkx4.md": "---\ntitle: \"Plan QKX4\"\ntype: \"note\"\ndatenklasse: \"kundendaten\"\nkunde: \"k-sued\"\n---\n\nWartungsplan QKX4 Wartungsplan.\n",
+  "vault/projekte/wartungsplan.md": "---\ntitle: \"Wartungsplan\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nDer Wartungsplan der Halle.\n",
+  "aux/einstellungen.json": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-nord\",\n   \"erlaubt\": [\n    \"lokal\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+ },
+ "dirs": [
+  "home",
+  "protokoll"
+ ],
+ "args": [
+  "sitzung",
+  "{root}/vault",
+  "--socket",
+  "{pipe}",
+  "--paket-sid",
+  "{paket_sid}",
+  "--route",
+  "lokal",
+  "--sitzung",
+  "s-test-1",
+  "--einstellungen",
+  "{root}/aux/einstellungen.json",
+  "--protokoll",
+  "{root}/protokoll"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "search",
+    "query": "Wartungsplan"
+   }
+  }
+ ],
+ "verboten": [
+  "qkx4"
+ ],
+ "orte": [
+  "attrappe",
+  "vm-container"
+ ]
+}

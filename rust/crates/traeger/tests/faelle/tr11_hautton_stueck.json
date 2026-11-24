@@ -1,0 +1,74 @@
+{
+ "name": "tr11_hautton_stueck",
+ "regeln": [
+  "TR11"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Das Hautton-Zeichen kommt über Stückgrenzen (UTF-8 Byte für Byte) genauso an",
+ "art": "strom",
+ "groesse": [
+  14,
+  3
+ ],
+ "schritte": [
+  {
+   "art": "Bytes",
+   "hex": "70"
+  },
+  {
+   "art": "Bytes",
+   "hex": "f0"
+  },
+  {
+   "art": "Bytes",
+   "hex": "9f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "91"
+  },
+  {
+   "art": "Bytes",
+   "hex": "8d"
+  },
+  {
+   "art": "Bytes",
+   "hex": "f0"
+  },
+  {
+   "art": "Bytes",
+   "hex": "9f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "8f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "bc"
+  },
+  {
+   "art": "Bytes",
+   "hex": "71"
+  },
+  {
+   "art": "Bytes",
+   "hex": "f0"
+  },
+  {
+   "art": "Bytes",
+   "hex": "9f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "8f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "bf"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

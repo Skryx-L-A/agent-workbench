@@ -1,0 +1,10 @@
+{
+ "description": "double-quoted escapes",
+ "files": {
+  "note.md": "---\ntitle: \"Sag \\\"Hallo\\\"\\tund\\\\weg\"\nort: \"a\\qb\"\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

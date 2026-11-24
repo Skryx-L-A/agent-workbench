@@ -1,0 +1,82 @@
+{
+ "name": "tr1_farben_benannt",
+ "regeln": [
+  "TR1"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Benannte Farben 30 bis 37, 90 bis 97, 40 bis 47, 100 bis 107 als Zahlen 1 bis 16 in der Zeilenform",
+ "art": "strom",
+ "groesse": [
+  30,
+  18
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[30malpha\u001b[0m \u001b[90mbeta\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[31mbeta\u001b[0m \u001b[91mgamma\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[32mgamma\u001b[0m \u001b[92mdelta\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[33mdelta\u001b[0m \u001b[93mepsilon\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[34mepsilon\u001b[0m \u001b[94mzeta\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[35mzeta\u001b[0m \u001b[95malpha\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[36malpha\u001b[0m \u001b[96mbeta\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[37mbeta\u001b[0m \u001b[97mgamma\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[40malpha\u001b[100;30mgamma\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[41mbeta\u001b[101;31mdelta\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[42mgamma\u001b[102;32mepsilon\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[43mdelta\u001b[103;33mzeta\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[44mepsilon\u001b[104;34malpha\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[45mzeta\u001b[105;35mbeta\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[46malpha\u001b[106;36mgamma\u001b[0m\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[47mbeta\u001b[107;37mdelta\u001b[0m\r\n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

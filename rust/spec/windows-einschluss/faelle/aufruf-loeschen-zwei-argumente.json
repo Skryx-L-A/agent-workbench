@@ -1,0 +1,11 @@
+{
+ "beschreibung": "einschluss-loeschen mit zwei Argumenten",
+ "form": "aufruf",
+ "lage": {
+  "argv": [
+   "einschluss-loeschen",
+   "C:\\a",
+   "C:\\b"
+  ]
+ }
+}

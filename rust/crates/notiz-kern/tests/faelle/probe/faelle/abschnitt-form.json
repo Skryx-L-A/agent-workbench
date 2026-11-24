@@ -1,0 +1,11 @@
+{
+ "description": "requested heading with hashes and other case; closing hashes ignored",
+ "files": {
+  "note.md": "# T\n\n## Offene Fragen ##\nA\n\n## Rest\n"
+ },
+ "args": [
+  "section",
+  "{root}/note.md",
+  "## offene FRAGEN"
+ ]
+}

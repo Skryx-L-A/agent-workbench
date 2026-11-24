@@ -1,0 +1,88 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 7, Abschnitt 5. erwartet null heisst: ohne Angabe (Ergebnis ohne_angabe, keine Kosten).",
+ "faelle": [
+  {
+   "name": "chat_json",
+   "protokoll": "chat",
+   "strom": false,
+   "antwort": "{\"id\":\"x\",\"usage\":{\"prompt_tokens\":12,\"completion_tokens\":5,\"total_tokens\":17}}",
+   "erwartet": {
+    "token_aus": 5,
+    "token_ein": 12
+   }
+  },
+  {
+   "name": "chat_strom",
+   "protokoll": "chat",
+   "strom": true,
+   "antwort": "data: {\"choices\":[{\"delta\":{\"content\":\"Ha\"}}]}\n\ndata: {\"choices\":[],\"usage\":{\"prompt_tokens\":20,\"completion_tokens\":7}}\n\ndata: [DONE]\n\n",
+   "erwartet": {
+    "token_aus": 7,
+    "token_ein": 20
+   }
+  },
+  {
+   "name": "chat_ohne_usage",
+   "protokoll": "chat",
+   "strom": false,
+   "antwort": "{\"id\":\"x\",\"choices\":[]}",
+   "erwartet": null
+  },
+  {
+   "name": "chat_dezimal",
+   "protokoll": "chat",
+   "strom": false,
+   "antwort": "{\"usage\":{\"prompt_tokens\":12.0,\"completion_tokens\":5}}",
+   "erwartet": null
+  },
+  {
+   "name": "chat_negativ",
+   "protokoll": "chat",
+   "strom": false,
+   "antwort": "{\"usage\":{\"prompt_tokens\":-1,\"completion_tokens\":5}}",
+   "erwartet": null
+  },
+  {
+   "name": "messages_json_cache",
+   "protokoll": "messages",
+   "strom": false,
+   "antwort": "{\"usage\":{\"input_tokens\":10,\"cache_creation_input_tokens\":100,\"cache_read_input_tokens\":1000,\"output_tokens\":3}}",
+   "erwartet": {
+    "token_aus": 3,
+    "token_ein": 1110
+   }
+  },
+  {
+   "name": "messages_strom",
+   "protokoll": "messages",
+   "strom": true,
+   "antwort": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":25,\"cache_read_input_tokens\":5,\"output_tokens\":1}}}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"usage\":{\"output_tokens\":40}}\n\n",
+   "erwartet": {
+    "token_aus": 40,
+    "token_ein": 30
+   }
+  },
+  {
+   "name": "messages_ohne_output",
+   "protokoll": "messages",
+   "strom": false,
+   "antwort": "{\"usage\":{\"input_tokens\":10}}",
+   "erwartet": null
+  },
+  {
+   "name": "messages_ueber_u32",
+   "protokoll": "messages",
+   "strom": false,
+   "antwort": "{\"usage\":{\"input_tokens\":4294967295,\"cache_read_input_tokens\":1,\"output_tokens\":1}}",
+   "erwartet": null
+  },
+  {
+   "name": "kein_json",
+   "protokoll": "messages",
+   "strom": false,
+   "antwort": "Fehlerseite",
+   "erwartet": null
+  }
+ ]
+}

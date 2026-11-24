@@ -1,0 +1,35 @@
+{
+ "beschreibung": "Aufruf ohne root: AppArmor und Dienste nicht prüfbar. Der Hinweis steht nach den Befunden, vor `pruef.rot`, und zählt dort nicht mit",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "nicht_pruefbar"
+   },
+   {
+    "name": "werkbank-bruecke.service",
+    "zustand": "nicht_pruefbar"
+   }
+  ],
+  "apparmor": "nicht_pruefbar",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "ok",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok",
+  "ohne_root": true
+ }
+}

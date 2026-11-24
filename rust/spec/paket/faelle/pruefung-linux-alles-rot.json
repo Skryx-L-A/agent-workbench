@@ -1,0 +1,34 @@
+{
+ "beschreibung": "jede Prüfung rot: Reihenfolge Dienste, AppArmor, Einstellungen, Nutzerordner, Schlüssel, Vault, Paketstand",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "inaktiv"
+   },
+   {
+    "name": "werkbank-bruecke.service",
+    "zustand": "fehlgeschlagen"
+   }
+  ],
+  "apparmor": "nicht_geladen",
+  "einstellungen": {
+   "zustand": "fehlt"
+  },
+  "nutzerordner": "fehlt",
+  "schluessel": "modus",
+  "copilot": "ok",
+  "vault": "fehlt",
+  "paketstand": {
+   "manifest": "fehlt",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

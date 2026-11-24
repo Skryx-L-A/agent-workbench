@@ -1,0 +1,34 @@
+{
+ "exit": 0,
+ "stdout": {
+  "words": [
+   "einbettung",
+   "einbettungen",
+   "eingebettet"
+  ],
+  "stems": [
+   "einbett",
+   "einbett",
+   "eingebett"
+  ],
+  "index": [
+   "einbett",
+   "#einb",
+   "#inbe",
+   "#nbet",
+   "#bett",
+   "einbett",
+   "#einb",
+   "#inbe",
+   "#nbet",
+   "#bett",
+   "eingebett",
+   "#eing",
+   "#inge",
+   "#ngeb",
+   "#gebe",
+   "#ebet",
+   "#bett"
+  ]
+ }
+}

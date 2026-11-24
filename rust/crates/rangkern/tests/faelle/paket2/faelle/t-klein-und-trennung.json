@@ -1,0 +1,8 @@
+{
+ "description": "Großbuchstaben, Bindestrich, Satzzeichen, Ziffern",
+ "program": "rangkern",
+ "args": [
+  "tokens",
+  "Kaffee-Maschine ENTKALKEN! am 3.10."
+ ]
+}

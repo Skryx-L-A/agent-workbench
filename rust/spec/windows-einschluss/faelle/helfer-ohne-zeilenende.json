@@ -1,0 +1,8 @@
+{
+ "beschreibung": "kein LF binnen 3 s: keine Antwort, Verbindung zu",
+ "form": "helfer",
+ "b64": "U0VUWkUgUy0xLTE1LTItMTExMTExMTExMS0yMjIyMjIyMjIyLTMzMzMzMzMzMzMtMTQ0NDQ0NDQ0NC0xNTU1NTU1NTU1LTM2NjY2NjY2NjYtMjc3Nzc3Nzc3Nw==",
+ "lage": {
+  "danach": "Schreiber wartet 3 s"
+ }
+}

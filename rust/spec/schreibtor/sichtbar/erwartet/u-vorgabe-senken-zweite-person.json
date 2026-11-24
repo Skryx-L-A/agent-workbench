@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "S16"
+ ],
+ "beschreibung": "Die Vorgabe trägt die alte Option senken_zweite_person; die Pflicht führt nur die Stelle."
+}

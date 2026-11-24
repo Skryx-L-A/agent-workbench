@@ -1,0 +1,17 @@
+{
+ "beschreibung": "`deflate` ist kein Wahrheitswert: Exitcode 2",
+ "datensatz": "A",
+ "name": "br_start_deflate_typ",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": "ja",
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

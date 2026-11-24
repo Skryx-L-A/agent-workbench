@@ -1,0 +1,524 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "werkbank:einstellungen/fassung-1-und-2",
+ "title": "Einstellungsdatei, Fassung 1 und 2",
+ "description": "Form der Einstellungsdatei. Fassung 1 ohne ziel, modell und netzziele, Fassung 2 mit beiden und dem optionalen Block mcp. Nicht im Schema: Größe, BOM, doppelte JSON-Schlüssel, doppelte Routenschlüssel und Netzziele, Querverweise (klasse in klassen, Routen und Kunden vorhanden, Freigabe nur für Cloud-Routen), IPv4-Grenzen, Portbereich und Hostregel des Ziels, die Prüfreihenfolge und der Fehlercode. Siehe README.md.",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "fassung",
+  "klassen",
+  "routen",
+  "kunden",
+  "kundendaten_an_cloud"
+ ],
+ "properties": {
+  "fassung": {
+   "enum": [
+    1,
+    2
+   ]
+  },
+  "klassen": {
+   "description": "Datenklassen, geordnet: die niedrigste zuerst, die höchste gilt als Kundendaten.",
+   "type": "array",
+   "minItems": 1,
+   "maxItems": 16,
+   "uniqueItems": true,
+   "items": {
+    "$ref": "#/$defs/kennung"
+   }
+  },
+  "vorgabestufe": {
+   "description": "Klasse einer Notiz ohne Klasse (A35); fehlt das Feld, gilt die höchste Klasse.",
+   "$ref": "#/$defs/kennung"
+  },
+  "routen": {
+   "type": "array",
+   "minItems": 1,
+   "maxItems": 64
+  },
+  "kunden": {
+   "type": "array",
+   "minItems": 0,
+   "maxItems": 256,
+   "items": {
+    "$ref": "#/$defs/kunde"
+   }
+  },
+  "kundendaten_an_cloud": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "vorgabe",
+    "freigaben"
+   ],
+   "properties": {
+    "vorgabe": {
+     "type": "string",
+     "const": "nie"
+    },
+    "freigaben": {
+     "type": "array",
+     "maxItems": 1024,
+     "uniqueItems": true,
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "route",
+       "kunde"
+      ],
+      "properties": {
+       "route": {
+        "$ref": "#/$defs/kennung"
+       },
+       "kunde": {
+        "$ref": "#/$defs/kennung"
+       }
+      }
+     }
+    }
+   }
+  },
+  "mcp": {
+   "$ref": "#/$defs/mcp"
+  },
+  "harness": {
+   "$ref": "#/$defs/harness"
+  }
+ },
+ "$defs": {
+  "kennung": {
+   "type": "string",
+   "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+  },
+  "route": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "schluessel",
+    "art",
+    "klasse"
+   ],
+   "properties": {
+    "schluessel": {
+     "$ref": "#/$defs/kennung"
+    },
+    "art": {
+     "enum": [
+      "cloud",
+      "lokal"
+     ]
+    },
+    "klasse": {
+     "$ref": "#/$defs/kennung"
+    }
+   }
+  },
+  "kunde": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "schluessel"
+   ],
+   "properties": {
+    "schluessel": {
+     "$ref": "#/$defs/kennung"
+    },
+    "erlaubt": {
+     "type": "array",
+     "maxItems": 64,
+     "uniqueItems": true,
+     "items": {
+      "$ref": "#/$defs/kennung"
+     }
+    },
+    "verboten": {
+     "type": "array",
+     "maxItems": 64,
+     "uniqueItems": true,
+     "items": {
+      "$ref": "#/$defs/kennung"
+     }
+    }
+   }
+  },
+  "ziel": {
+   "description": "Basisadresse der lokalen Route im OpenAI-Sinn: http oder https, Host, Port Pflicht, Pfad endet auf /v1.",
+   "type": "string",
+   "maxLength": 256,
+   "pattern": "^https?://[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*:(0|[1-9][0-9]{0,4})(/[A-Za-z0-9._~-]+)*/v1$",
+   "not": {
+    "pattern": "/\\.\\.?(/|$)"
+   }
+  },
+  "netzziel": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "host",
+    "port",
+    "zugriff"
+   ],
+   "properties": {
+    "host": {
+     "description": "Name mit mindestens zwei Teilen, letzter Teil beginnt mit einem Buchstaben; oder *.<Name> mit mindestens zwei Teilen dahinter. Kein localhost.",
+     "type": "string",
+     "maxLength": 253,
+     "pattern": "^(\\*\\.)?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\\.[a-z]([a-z0-9-]{0,61}[a-z0-9])?$",
+     "not": {
+      "pattern": "(^|\\.)localhost$"
+     }
+    },
+    "port": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 65535
+    },
+    "zugriff": {
+     "description": "Zugriffsart nach A141, Pflicht.",
+     "enum": [
+      "verbinden",
+      "http-lesen",
+      "kopf-einsetzen"
+     ]
+    },
+    "schluessel": {
+     "description": "nur bei kopf-einsetzen, dort Pflicht: true heißt, der Modellweg setzt an diesem Ziel den Schlüssel der Route ein.",
+     "type": "boolean"
+    },
+    "pfade": {
+     "description": "nur bei kopf-einsetzen, dort Pflicht: erlaubte Methode und Pfad.",
+     "type": "array",
+     "minItems": 1,
+     "maxItems": 32,
+     "uniqueItems": true,
+     "items": {
+      "$ref": "#/$defs/pfad"
+     }
+    }
+   },
+   "allOf": [
+    {
+     "if": {
+      "required": [
+       "zugriff"
+      ],
+      "properties": {
+       "zugriff": {
+        "const": "kopf-einsetzen"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "schluessel",
+       "pfade"
+      ]
+     },
+     "else": {
+      "not": {
+       "anyOf": [
+        {
+         "required": [
+          "schluessel"
+         ]
+        },
+        {
+         "required": [
+          "pfade"
+         ]
+        }
+       ]
+      }
+     }
+    },
+    {
+     "if": {
+      "required": [
+       "schluessel"
+      ],
+      "properties": {
+       "schluessel": {
+        "const": true
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "host": {
+        "not": {
+         "pattern": "^\\*\\."
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  "route2": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "schluessel",
+    "art",
+    "klasse",
+    "netzziele"
+   ],
+   "properties": {
+    "schluessel": {
+     "$ref": "#/$defs/kennung"
+    },
+    "art": {
+     "enum": [
+      "cloud",
+      "lokal"
+     ]
+    },
+    "klasse": {
+     "$ref": "#/$defs/kennung"
+    },
+    "ziel": {
+     "$ref": "#/$defs/ziel"
+    },
+    "netzziele": {
+     "type": "array",
+     "maxItems": 64,
+     "uniqueItems": true,
+     "items": {
+      "$ref": "#/$defs/netzziel"
+     }
+    },
+    "modell": {
+     "description": "Modell, das der Weiterreicher allein durchlässt (wie modell in Vertrag 1).",
+     "type": "string",
+     "pattern": "^[A-Za-z0-9._:/@+-]{1,128}$"
+    }
+   },
+   "allOf": [
+    {
+     "if": {
+      "required": [
+       "art"
+      ],
+      "properties": {
+       "art": {
+        "const": "lokal"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "ziel",
+       "modell"
+      ],
+      "properties": {
+       "netzziele": {
+        "maxItems": 0
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "required": [
+       "art"
+      ],
+      "properties": {
+       "art": {
+        "const": "cloud"
+       }
+      }
+     },
+     "then": {
+      "not": {
+       "required": [
+        "ziel"
+       ]
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "netzziele": {
+        "contains": {
+         "required": [
+          "schluessel"
+         ],
+         "properties": {
+          "schluessel": {
+           "const": true
+          }
+         }
+        }
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "netzziele": {
+        "not": {
+         "contains": {
+          "required": [
+           "zugriff"
+          ],
+          "properties": {
+           "zugriff": {
+            "const": "verbinden"
+           }
+          }
+         }
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  "pfad": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "methode",
+    "pfad"
+   ],
+   "properties": {
+    "methode": {
+     "enum": [
+      "GET",
+      "HEAD",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE"
+     ]
+    },
+    "pfad": {
+     "description": "genau dieser Pfad; mit Schrägstrich und Stern am Ende jeder Pfad darunter; Schrägstrich und Stern allein jeder Pfad.",
+     "type": "string",
+     "minLength": 2,
+     "maxLength": 256,
+     "pattern": "^(/[A-Za-z0-9._~-]+)*(/\\*)?$",
+     "not": {
+      "pattern": "/\\.\\.?(/|$)"
+     }
+    }
+   }
+  },
+  "werkzeugname": {
+   "type": "string",
+   "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+  },
+  "mcp_server": {
+   "description": "Zuordnung der Werkzeuge eines MCP-Servers für die Entscheidungsstelle (Vertrag 6, Abschnitt 2). Nicht im Schema: kein Name zugleich in lesen und schreiben (einst.mcp_doppelt).",
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "lesen",
+    "schreiben"
+   ],
+   "properties": {
+    "lesen": {
+     "type": "array",
+     "maxItems": 256,
+     "uniqueItems": true,
+     "items": {
+      "$ref": "#/$defs/werkzeugname"
+     }
+    },
+    "schreiben": {
+     "type": "array",
+     "maxItems": 256,
+     "uniqueItems": true,
+     "items": {
+      "$ref": "#/$defs/werkzeugname"
+     }
+    },
+    "freigabe": {
+     "type": "boolean"
+    },
+    "frist_ms": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 86400000
+    },
+    "einloesefrist_ms": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 86400000
+    }
+   }
+  },
+  "mcp": {
+   "description": "Nur in Fassung 2. Fehlt der Block, ist kein MCP-Server freigegeben (fail closed). Schlüssel sind Kennungen der Server; höchstens 64.",
+   "type": "object",
+   "maxProperties": 64,
+   "propertyNames": {
+    "$ref": "#/$defs/kennung"
+   },
+   "additionalProperties": {
+    "$ref": "#/$defs/mcp_server"
+   }
+  },
+  "harness": {
+   "description": "Nur in Fassung 2, optional. Je Harness Einstellungen für Läufe im Einschluss. Fehlt der Block, bleibt die Rückfrage des Harness vor jedem Werkzeug. Erlaubte Werte genau shell, write und such-mcp (einst.werkzeug_wert); jeder andere Text ist ein Ladefehler.",
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "copilot": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "werkzeuge_ohne_rueckfrage"
+     ],
+     "properties": {
+      "werkzeuge_ohne_rueckfrage": {
+       "type": "array",
+       "uniqueItems": true,
+       "items": {
+        "type": "string",
+        "enum": [
+         "shell",
+         "write",
+         "such-mcp"
+        ]
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "if": {
+  "required": [
+   "fassung"
+  ],
+  "properties": {
+   "fassung": {
+    "const": 2
+   }
+  }
+ },
+ "then": {
+  "properties": {
+   "routen": {
+    "items": {
+     "$ref": "#/$defs/route2"
+    }
+   }
+  }
+ },
+ "else": {
+  "properties": {
+   "routen": {
+    "items": {
+     "$ref": "#/$defs/route"
+    }
+   },
+   "mcp": false,
+   "harness": false
+  }
+ }
+}

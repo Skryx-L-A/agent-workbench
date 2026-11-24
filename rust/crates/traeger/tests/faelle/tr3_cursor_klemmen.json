@@ -1,0 +1,53 @@
+{
+ "name": "tr3_cursor_klemmen",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Ein Cursor in leerem Raster (keine Zeile ändert sich), den die Größenänderung nach innen klemmt: Er geht nicht noch einmal hinaus, wenn der Cursor des Rasters dem geklemmten des Kerns gleicht",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[1;25H"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 18,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8;1H"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 18,
+   "zeilen": 5
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 30,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

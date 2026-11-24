@@ -1,0 +1,23 @@
+{
+ "beschreibung": "die Port-Datei besteht schon: Exitcode 3, die Datei bleibt, die Token-Datei der Bruecke wird nicht angelegt",
+ "datensatz": "A",
+ "name": "br_port_datei_besteht",
+ "ordner": {
+  "art": "verzeichnis",
+  "modus": "0700",
+  "port_vorher": "datei"
+ },
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "port_datei": "@port_datei",
+  "token_datei": "@token_datei"
+ }
+}

@@ -1,0 +1,10 @@
+{
+ "beschreibung": "M11 fall",
+ "form": "mac",
+ "eigenschaft": "M11",
+ "anforderung": "A142",
+ "art": "fall",
+ "ausgangslage": "Mac mit macOS 26; Lauf s-1 unter dem gebauten Profil mit Modellweg-Port M1 und Ausgangs-Port A1; Lauf s-2 unter seinem Profil mit M2; Hörer der Browser-Brücke auf Port K; Vorführ-Vault mit der Notiz MK-7Q2 außerhalb; Such-Prozess je Sitzung außerhalb; Wegwerf-Token unter ~/.copilot und ~/.config/gh einer Testperson",
+ "handlung": "Der Agent wendet ein offenes Profil an: sandbox_init mit (allow default) und sandbox-exec mit (allow default) im Lauf; danach liest er die Notiz",
+ "beleg": "gemessen: Messproben D17, D18"
+}

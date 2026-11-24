@@ -1,0 +1,13 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "probe_fehler": 5
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

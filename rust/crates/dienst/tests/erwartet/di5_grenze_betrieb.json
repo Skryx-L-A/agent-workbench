@@ -1,0 +1,180 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "kind_beendet": null,
+   "protokoll": [
+    {
+     "betrachter": "b2",
+     "grund": "rueckstau_gerissen"
+    }
+   ],
+   "protokoll_ohne_inhalt": true,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": {
+     "cursor": [
+      2,
+      0,
+      true
+     ],
+     "groesse": [
+      64,
+      8
+     ],
+     "invers": false,
+     "nr": 0,
+     "zeilen": [
+      "BEREIT",
+      "ENDE",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    },
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": null,
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": null,
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": {
+     "cursor": [
+      2,
+      0,
+      true
+     ],
+     "groesse": [
+      64,
+      8
+     ],
+     "invers": false,
+     "nr": 0,
+     "zeilen": [
+      "BEREIT",
+      "ENDE",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    },
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": null,
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     {
+      "art": "Einstellungen",
+      "werte": {
+       "bildrate_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 63,
+        "wert": 63
+       },
+       "osc52_grenze": {
+        "herkunft": "vorgabe",
+        "vorgabe": 100000,
+        "wert": 100000
+       },
+       "osc52_schreiben": {
+        "herkunft": "vorgabe",
+        "vorgabe": "an",
+        "wert": "an"
+       },
+       "rueckstau_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 16384,
+        "wert": 16384
+       }
+      }
+     },
+     {
+      "art": "Routen",
+      "routen": []
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "code": 0,
+        "groesse": [
+         64,
+         8
+        ],
+        "id": "s-alpha",
+        "route": "r1",
+        "titel": "Alpha",
+        "zustand": "kindende"
+       }
+      ]
+     },
+     {
+      "anfragen": [],
+      "art": "Anfragen"
+     },
+     {
+      "agenten": [],
+      "art": "Agenten"
+     }
+    ],
+    "ok": true
+   }
+  ],
+  "start": {
+   "netz_sockets": 0,
+   "ok": true,
+   "ordner_modus": "0700",
+   "socket_modus": "0600"
+  }
+ },
+ "exit": 0
+}

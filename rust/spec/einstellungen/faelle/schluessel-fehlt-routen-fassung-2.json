@@ -1,0 +1,4 @@
+{
+ "beschreibung": "Fassung 2: Feld routen fehlt",
+ "text": "{\n \"fassung\": 2,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"kunden\": [\n  {\n   \"schluessel\": \"k-beispiel\",\n   \"erlaubt\": [\n    \"lokal-beispiel\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+}

@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Programmordner ist der Ordner von Copilot CLI mit Token",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"/Users/beispiel/Projekte\"\n ],\n \"programmordner\": [\n  \"/Users/beispiel/.copilot\"\n ]\n}\n"
+}

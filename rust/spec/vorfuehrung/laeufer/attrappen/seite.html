@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seite der Bruecke (Attrappe)</title>
+<style>
+  :root { color-scheme: light dark; --bg: #fff; --fg: #1a1a1a; --rand: #888; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161616; --fg: #e8e8e8; } }
+  body { background: var(--bg); color: var(--fg); font: 15px/1.4 system-ui, sans-serif; margin: 0; padding: 16px; }
+  label { display: block; margin: 6px 0 2px; }
+  select, input, button { font: inherit; padding: 4px 8px; }
+  #terminal-raster { font: 13px/1.3 ui-monospace, monospace; border: 1px solid var(--rand); min-height: 12em; padding: 6px; margin: 12px 0; white-space: pre; overflow-x: auto; }
+  ul { padding-left: 20px; }
+</style>
+</head>
+<body>
+<h1>Sitzungen</h1>
+<p>Attrappe der Seite des Kerns. Dieselben <code>data-testid</code> wie die echte Seite (Vertrag der Seite).</p>
+<div>
+  <label>Harness <select data-testid="harness-wahl"></select></label>
+  <label>Route <select data-testid="route-wahl"></select></label>
+  <label>Modell <select data-testid="modell-wahl"></select></label>
+  <label>Kunde <select data-testid="kunde-wahl"><option value="">(ohne Kunde)</option></select></label>
+  <label>Arbeitsordner <input data-testid="arbeitsordner-eingabe" size="40"></label>
+  <p><button data-testid="sitzung-start">Sitzung starten</button></p>
+</div>
+<div data-testid="fehler" hidden><span data-testid="fehler-code"></span>: <span data-testid="fehler-text"></span></div>
+<ul data-testid="sitzung-liste"></ul>
+<div data-testid="terminal-raster" data-cursor="0,0,false" aria-live="polite"></div>
+<div>
+  <input data-testid="eingabe" size="60" aria-label="Eingabe">
+  <button data-testid="eingabe-senden">Senden</button>
+</div>
+<script>
+"use strict";
+const token = (location.hash.match(/[#&]t=([^&]+)/) || [])[1] || "";
+const kopf = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
+const q = (id) => document.querySelector('[data-testid="' + id + '"]');
+let aktuell = null;
+let keinSelbstwechsel = false;  // Schalter `attrappe.kein_selbstwechsel`: wie die echte Seite wechselt die Seite nicht selbst in eine neue Sitzung
+const bekannt = new Set();
+
+async function api(methode, pfad, body) {
+  const r = await fetch(pfad, { method: methode, headers: kopf, body: body === undefined ? undefined : JSON.stringify(body) });
+  return { status: r.status, daten: await r.json().catch(() => ({})) };
+}
+
+function fuelle(sel, werte) {
+  const gewaehlt = sel.value;  // der Laeufer kann waehlen, bevor die Optionen geladen sind: die Wahl bleibt, wenn der Wert angeboten wird
+  sel.innerHTML = "";
+  for (const w of werte) sel.add(new Option(w === "" ? "(keine Auswahl)" : "Anzeige " + w.toUpperCase(), w));
+  if (gewaehlt !== "" && werte.includes(gewaehlt)) sel.value = gewaehlt;
+}
+
+let modelle = {};
+
+function modellFuellen() {
+  // Ein Eintrag: das Modell der gewaehlten Route aus der Startwahl, ohne Modell "auto" (wie die echte Seite)
+  const m = modelle[q("route-wahl").value];
+  const s = q("modell-wahl");
+  s.innerHTML = "";
+  s.add(new Option(typeof m === "string" && m !== "" ? m : "auto", typeof m === "string" && m !== "" ? m : "auto"));
+}
+
+async function optionen() {
+  const { daten } = await api("GET", "/attrappe/optionen");
+  fuelle(q("harness-wahl"), daten.harness || []);  // Wert und Anzeige sind verschieden: der Laeufer waehlt nach dem Wert
+  const r = q("route-wahl");
+  fuelle(r, [""].concat(daten.routen || []));
+  const k = q("kunde-wahl");
+  const kw = k.value;
+  k.innerHTML = '<option value="">(ohne Kunde)</option>';
+  for (const x of daten.kunden || []) k.add(new Option(x, x));
+  if (kw !== "" && (daten.kunden || []).includes(kw)) k.value = kw;
+  modelle = daten.modelle || {};
+  keinSelbstwechsel = daten.kein_selbstwechsel === true;
+  modellFuellen();
+  r.addEventListener("change", modellFuellen);  // die Modellliste haengt von der Route ab, wie in der echten Seite
+  q("arbeitsordner-eingabe").value = daten.arbeitsordner || "/tmp/arbeit";
+}
+
+function eintrag(id) {
+  if (bekannt.has(id)) return;
+  bekannt.add(id);
+  const li = document.createElement("li");
+  li.setAttribute("data-testid", "sitzung-" + id);
+  li.setAttribute("data-zustand", "laeuft");
+  li.textContent = id;
+  li.addEventListener("click", () => { aktuell = id; });
+  q("sitzung-liste").appendChild(li);
+}
+
+q("sitzung-start").addEventListener("click", async () => {
+  const f = q("fehler");
+  f.hidden = true;
+  q("fehler-code").textContent = "";
+  q("fehler-text").textContent = "";
+  const start = { fassung: 1, harness: q("harness-wahl").value, modell: q("modell-wahl").value,
+                  kunde: q("kunde-wahl").value === "" ? null : q("kunde-wahl").value, arbeitsordner: q("arbeitsordner-eingabe").value };
+  if (q("route-wahl").value !== "") start.route = q("route-wahl").value;  // ohne Auswahl fehlt das Feld
+  const { status, daten } = await api("POST", "/starten", start);
+  if (status === 200) { eintrag(daten.sitzung); if (!keinSelbstwechsel) aktuell = daten.sitzung; return; }
+  q("fehler-code").textContent = daten.code || String(status);
+  q("fehler-text").textContent = daten.text || "";
+  f.hidden = false;
+});
+
+q("eingabe-senden").addEventListener("click", async () => {
+  if (!aktuell) return;
+  const t = q("eingabe").value;
+  q("eingabe").value = "";
+  await api("POST", "/attrappe/sitzung/" + aktuell + "/eingabe", { text: t, enter: true });
+});
+
+async function takt() {
+  try {
+    for (const id of bekannt) {
+      const { daten } = await api("GET", "/attrappe/sitzung/" + id);
+      const li = q("sitzung-" + id);
+      if (li && daten.zustand) { li.setAttribute("data-zustand", daten.zustand); if (daten.zustand === "beendet") li.setAttribute("data-code", String(daten.code || 0)); }
+    }
+    if (aktuell) {
+      const { daten } = await api("GET", "/attrappe/sitzung/" + aktuell + "/raster");
+      const zeilen = daten.zeilen || [];
+      const feld = q("terminal-raster");
+      feld.innerHTML = "";
+      zeilen.forEach((z, n) => {
+        const d = document.createElement("div");
+        d.setAttribute("data-testid", "terminal-zeile-" + n);
+        d.textContent = z;
+        feld.appendChild(d);
+      });
+      feld.setAttribute("data-cursor", Math.max(zeilen.length - 1, 0) + ",0,true");  // "<zeile>,<spalte>,<sichtbar>", ab 0, Vertrag der Seite SE7
+    }
+  } finally { setTimeout(takt, 40); }
+}
+optionen().then(takt);
+</script>
+</body>
+</html>

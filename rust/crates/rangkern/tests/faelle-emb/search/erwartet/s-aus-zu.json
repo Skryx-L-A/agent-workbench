@@ -1,0 +1,33 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "10-werkstatt/schraube.md",
+    "score": 1.0,
+    "title": "Schraube und Gewinde",
+    "snippet": "Notiz zu schraube: schraube frueh planen, gewinde zweimal im Monat pruefen. Wer schraube anlegt, braucht Zeit fuer gewinde. Merkzettel schraube.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   }
+  ]
+ },
+ "aufrufe": [
+  {
+   "model": "embeddinggemma:latest",
+   "input": "schraube gewinde",
+   "keep_alive": "30m"
+  },
+  {
+   "model": "embeddinggemma:latest",
+   "input": "schraube gewinde",
+   "keep_alive": "30m"
+  }
+ ]
+}

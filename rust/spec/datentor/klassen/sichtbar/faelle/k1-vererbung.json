@@ -1,0 +1,92 @@
+{
+ "name": "k1-vererbung",
+ "regeln": [
+  "K1",
+  "A32"
+ ],
+ "beschreibung": "Ort P intern, Ort Q kundendaten: ohne eigene Klasse erbt die Einheit, eine eigene Klasse geht vor.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "intern"
+   },
+   "route": "r-intern"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "klasse": "oeffentlich"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "kundendaten"
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "oeffentlich",
+    "klasse": "intern"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "oeffentlich",
+    "klasse": null
+   },
+   "route": "r-oeff"
+  }
+ ]
+}

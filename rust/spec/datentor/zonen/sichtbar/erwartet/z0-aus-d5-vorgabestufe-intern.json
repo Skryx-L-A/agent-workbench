@@ -1,0 +1,28 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": null
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-route",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über Route cloud",
+    "protokoll": null
+   }
+  ]
+ }
+}

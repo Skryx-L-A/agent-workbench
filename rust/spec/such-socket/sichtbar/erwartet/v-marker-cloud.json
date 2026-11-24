@@ -1,0 +1,63 @@
+{
+ "start": "bereit",
+ "socket_rechte": "0600",
+ "responses": [
+  {
+   "ok": true
+  },
+  {
+   "fallback": true,
+   "rels": [
+    "a/pumpe-mi1a.md"
+   ],
+   "gesperrt": 1,
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "rels": [
+    "a/pumpe-mi1a.md"
+   ],
+   "gesperrt": 0
+  },
+  {
+   "error": "bad_request"
+  }
+ ],
+ "protokoll": [
+  {
+   "aktionsname": "probelauf.zaehlung",
+   "anzahl": 2,
+   "ergebnis": "an",
+   "fassung": 2,
+   "programm": "suche",
+   "sitzung": "s-test-1"
+  },
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": "k-nord",
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  }
+ ],
+ "ende": {
+  "exit": 0
+ },
+ "stderr_zeile": "such.probelauf: Marker werden gezählt",
+ "marker_zaehlung": {
+  "datei": "zaehl/zaehlung.json",
+  "inhalt": {
+   "antworten": 2,
+   "marker": {
+    "MI-1A": 4,
+    "MK-1B": 0
+   },
+   "sitzung": "s-test-1"
+  }
+ }
+}

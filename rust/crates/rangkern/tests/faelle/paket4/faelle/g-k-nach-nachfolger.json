@@ -1,0 +1,27 @@
+{
+ "description": "eingereihter Nachfolger zählt zu k: die Liste wird nach dem Einreihen auf k gekürzt",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "-k",
+  "2",
+  "--today",
+  "2026-11-18",
+  "Balkon Pflanzkasten"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-5.md": "---\ntitle: Füller 5\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-6.md": "---\ntitle: Füller 6\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-7.md": "---\ntitle: Füller 7\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-8.md": "---\ntitle: Füller 8\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/balkon/alt.md": "---\ntitle: Alt Kasten\ntype: note\nstatus: superseded\nsuperseded-by: [\"[[kasten-neu]]\"]\n---\n\nBalkon Pflanzkasten mit Erde, Balkon Pflanzkasten gross.\n",
+  "vault/balkon/x1.md": "---\ntitle: Kasten eins\ntype: note\n---\n\nPflanzkasten fuer den Balkon, eine Anleitung.\n",
+  "vault/balkon/x2.md": "---\ntitle: Kasten zwei\ntype: note\n---\n\nPflanzkasten Material, Holz oder Kunststoff.\n",
+  "vault/balkon/kasten-neu.md": "---\ntitle: Neuer Kasten\ntype: note\n---\n\nHinweis ohne Suchwort.\n"
+ }
+}

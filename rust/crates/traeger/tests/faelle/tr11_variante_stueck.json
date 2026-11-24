@@ -1,0 +1,162 @@
+{
+ "name": "tr11_variante_stueck",
+ "regeln": [
+  "TR11"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Variantenwahl und Zeichenverbindung, Byte für Byte: dasselbe Raster wie in einem Stück",
+ "art": "strom",
+ "groesse": [
+  16,
+  3
+ ],
+ "schritte": [
+  {
+   "art": "Bytes",
+   "hex": "61"
+  },
+  {
+   "art": "Bytes",
+   "hex": "e2"
+  },
+  {
+   "art": "Bytes",
+   "hex": "9d"
+  },
+  {
+   "art": "Bytes",
+   "hex": "a4"
+  },
+  {
+   "art": "Bytes",
+   "hex": "ef"
+  },
+  {
+   "art": "Bytes",
+   "hex": "b8"
+  },
+  {
+   "art": "Bytes",
+   "hex": "8f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "62"
+  },
+  {
+   "art": "Bytes",
+   "hex": "f0"
+  },
+  {
+   "art": "Bytes",
+   "hex": "9f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "91"
+  },
+  {
+   "art": "Bytes",
+   "hex": "a8"
+  },
+  {
+   "art": "Bytes",
+   "hex": "e2"
+  },
+  {
+   "art": "Bytes",
+   "hex": "80"
+  },
+  {
+   "art": "Bytes",
+   "hex": "8d"
+  },
+  {
+   "art": "Bytes",
+   "hex": "f0"
+  },
+  {
+   "art": "Bytes",
+   "hex": "9f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "91"
+  },
+  {
+   "art": "Bytes",
+   "hex": "a9"
+  },
+  {
+   "art": "Bytes",
+   "hex": "e2"
+  },
+  {
+   "art": "Bytes",
+   "hex": "80"
+  },
+  {
+   "art": "Bytes",
+   "hex": "8d"
+  },
+  {
+   "art": "Bytes",
+   "hex": "f0"
+  },
+  {
+   "art": "Bytes",
+   "hex": "9f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "91"
+  },
+  {
+   "art": "Bytes",
+   "hex": "a7"
+  },
+  {
+   "art": "Bytes",
+   "hex": "e6"
+  },
+  {
+   "art": "Bytes",
+   "hex": "bc"
+  },
+  {
+   "art": "Bytes",
+   "hex": "a2"
+  },
+  {
+   "art": "Bytes",
+   "hex": "ef"
+  },
+  {
+   "art": "Bytes",
+   "hex": "b8"
+  },
+  {
+   "art": "Bytes",
+   "hex": "8e"
+  },
+  {
+   "art": "Bytes",
+   "hex": "e2"
+  },
+  {
+   "art": "Bytes",
+   "hex": "80"
+  },
+  {
+   "art": "Bytes",
+   "hex": "8d"
+  },
+  {
+   "art": "Bytes",
+   "hex": "2e"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

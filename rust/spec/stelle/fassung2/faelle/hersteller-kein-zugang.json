@@ -1,0 +1,120 @@
+{
+  "beschreibung": "Vorgabe ist kein Zugang: Auch ein Admin mit gueltigem Nachweis kann keinen Zugang gewaehren; ein Zugriff des Herstellers findet keinen Zugang. Beides steht in der Kette.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "A11",
+    "Issue 24",
+    "Issue 12"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"brain\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[\"brain_schreiben\",\"brain_senken\"],\"zweite_person\":[\"brain_senken\"],\"frist_ms\":60000,\"einloesefrist_ms\":30000}},\"stelle\":{}}",
+    "rollen": {
+      "ps_00000000000000000000000000000b01": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000b02": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000e01": [
+        "einsicht"
+      ],
+      "ps_00000000000000000000000000000e02": [
+        "einsicht"
+      ]
+    }
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/srv/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "hersteller.gewaehren",
+      "jetzt_ms": 1795179601000,
+      "eingabe": {
+        "frist_ms": 3600000,
+        "nonce": "00000000000000000000000000000001",
+        "nachweis": "h1:ps_00000000000000000000000000000b01:707731c5d71451ff02e952c1337daf89bcac89e64dc96721840320f52d14fbb9"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.hersteller_aus",
+          "grund": "Herstellerzugang aus"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.hersteller_aus\",\"vorgang\":\"hersteller.gewaehren\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}",
+            "sha256": "5aeef1b982ab429ce956dd0fd9b423b0b778b8fde3eb1db4e8acd9e6f7396444"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hersteller",
+      "vorgang": "hersteller.zugriff",
+      "jetzt_ms": 1795179601001,
+      "eingabe": {
+        "zugang": "hz-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.zugang_unbekannt",
+          "grund": "Zugang unbekannt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"hz-1795179540000-1\",\"aufrufer\":\"hersteller\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.zugang_unbekannt\",\"vorgang\":\"hersteller.zugriff\",\"vorher\":\"5aeef1b982ab429ce956dd0fd9b423b0b778b8fde3eb1db4e8acd9e6f7396444\",\"zeit\":\"2026-11-20T13:00:01.001Z\"}",
+            "sha256": "c5fba5fc474a6e0f5004561bf74e2e05f29155332c7542b6a784a9afc1ad6790"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1"
+    ],
+    "anfragen": {},
+    "zaehler": 0,
+    "antraege": {},
+    "zugaenge": {},
+    "pflichten": {
+      "halter_bescheinigung": true,
+      "mcp.brain.freigabe": true,
+      "mcp.notizen.freigabe": false,
+      "mcp.tickets.freigabe": true,
+      "senken_zweite_person": false,
+      "vier_augen": false
+    },
+    "zeilen": 3,
+    "letzte": "c5fba5fc474a6e0f5004561bf74e2e05f29155332c7542b6a784a9afc1ad6790"
+  }
+}

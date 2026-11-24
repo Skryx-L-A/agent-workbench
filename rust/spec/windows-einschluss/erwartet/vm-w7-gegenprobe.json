@@ -1,0 +1,6 @@
+{
+ "erwartet": "Nach dem Neustart steht die Ausnahme ohne Sperre; der Prozess erreicht Q; der Test wird rot",
+ "messwerte": [
+  "Ergebnis je Verbindung"
+ ]
+}

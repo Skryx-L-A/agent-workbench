@@ -1,0 +1,38 @@
+{
+ "name": "tr5_modi_in_string",
+ "regeln": [
+  "TR5"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Der Text [?5h im Inhalt einer OSC- oder DCS-Zeichenkette ist kein Modus; ein ESC beendet die Zeichenkette, dann gilt die Folge dahinter",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b]2;[?5h\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]0;a[?2004hb\u001b\\"
+  },
+  {
+   "art": "Text",
+   "text": "\u001bPq[?5h\u001b\\"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]2;\u001b[?5h\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?5h"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

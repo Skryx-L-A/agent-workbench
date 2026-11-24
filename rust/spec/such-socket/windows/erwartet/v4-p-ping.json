@@ -1,0 +1,21 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "ok": true,
+   "id": 1
+  },
+  {
+   "ok": true,
+   "id": "a"
+  },
+  {
+   "ok": true
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

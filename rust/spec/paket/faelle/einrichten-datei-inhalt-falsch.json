@@ -1,0 +1,21 @@
+{
+ "beschreibung": "die Datei enthält nicht den eingegebenen Schlüssel",
+ "form": "einrichten",
+ "nutzer": "nutzer1",
+ "marke": "SCHLUESSEL-PRUEFMARKE-0001",
+ "stdout": "Gateway-Adresse: \nSchluessel der IT: \nEingerichtet.\n",
+ "stderr": "",
+ "journal": "werkbank-probelauf: eingerichtet\n",
+ "argv": "werkbank-probelauf --ergebnis /srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+ "umgebung": "TERM=xterm\nLANG=C.UTF-8\n",
+ "protokolle": [
+  "{\"aktion\":\"einrichten\",\"ergebnis\":\"ok\"}\n"
+ ],
+ "ergebnisdatei": "{\"art\":\"probelauf-ergebnis\",\"fassung\":1}\n",
+ "echo": false,
+ "datei": {
+  "modus": "0600",
+  "eigentuemer": "nutzer1",
+  "inhalt": "anderer-wert"
+ }
+}

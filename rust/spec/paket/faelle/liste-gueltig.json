@@ -1,0 +1,22 @@
+{
+ "beschreibung": "Liste, Ausschluss und Baum stimmen; manifest.json im Baum ist erlaubt",
+ "form": "liste",
+ "liste": "# Positivliste des Windows-Pakets: jede Datei im Paket steht hier, sonst kommt sie nicht mit.\nprogramm bin/wb.exe bin:wb:wb\ndienst bin/wb-halter.exe bin:halter:wb-halter\ndienst bin/wb-plattform.exe bin:plattform:wb-plattform\ndaten lizenzen/sbom.cdx.json erzeugt:sbom\nlizenz lizenzen/notice-rangkern.txt datei:crates/rangkern/NOTICE\n",
+ "ausschluss": "# Ausschlussliste: nichts davon kommt ins Paket, auch wenn es im Baum liegt.\n*.pdb  # Debug-Symbole sind kein Teil der Auslieferung\n*.py  # Kein Python im Paket\n*.sh  # Kein Shell-Werkzeug im Paket\n*.rs  # Kein Quelltext im Paket\ntests/  # Kein Testwerkzeug im Paket\nbin/wb-attrappe.exe  # Die Attrappe gehoert nur in Testbauten\ncrate:testwerkzeug-beispiel  # Testwerkzeug, kein Teil der Auslieferung\n",
+ "quellen": [
+  "bin:wb:wb",
+  "bin:halter:wb-halter",
+  "bin:plattform:wb-plattform",
+  "erzeugt:sbom",
+  "datei:crates/rangkern/NOTICE",
+  "bin:testwerkzeug-beispiel:pruefer"
+ ],
+ "baum": [
+  "bin/wb.exe",
+  "bin/wb-halter.exe",
+  "bin/wb-plattform.exe",
+  "lizenzen/sbom.cdx.json",
+  "lizenzen/notice-rangkern.txt",
+  "manifest.json"
+ ]
+}

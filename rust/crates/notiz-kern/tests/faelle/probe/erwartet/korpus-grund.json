@@ -1,0 +1,14 @@
+{
+ "exit": 0,
+ "stdout": {
+  "linking": [
+   "00-sources/q.md",
+   "10-global/a.md"
+  ],
+  "search": [
+   "00-sources/q.md",
+   "10-global/a.md",
+   "20-projects/p/MOC.md"
+  ]
+ }
+}

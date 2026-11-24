@@ -1,0 +1,1 @@
+{"vorgabe": {"klassen": ["oeffentlich", "kundendaten"], "routen": [{"schluessel": "r", "art": "lokal", "klasse": "oeffentlich"}], "kunden": []}, "anfragen": [{"einheit": {"teile": [{"klasse": "kundendaten", "klasse": "oeffentlich"}]}, "route": "r"}]}

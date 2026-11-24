@@ -1,0 +1,505 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitt 8. aufruf sind die Felder von Modellweg; erwartet.zeile die Bytes ohne LF. ketten.erwartet.pruefe ist die erwartete Ausgabe von kette pruefe (Vertrag 5).",
+ "zeilen": [
+  {
+   "name": "weitergereicht",
+   "beschreibung": "Antwort 200 mit usage",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": 3
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":3,\"token_ein\":9,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "4a0b29cbbd4a370dc047d3c60d2e3e0a40cc8170dd429d70ece4dc55ee3b6cd5"
+   }
+  },
+  {
+   "name": "ohne_tokens",
+   "beschreibung": "Antwort ohne usage",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": null,
+    "token_aus": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "1f475f6cca729a98221d0c8570f20a8b0499cd8e1f66aec178be3ef11cf90e94"
+   }
+  },
+  {
+   "name": "policy_403",
+   "beschreibung": "403 des Ziels unveraendert weitergereicht",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 403,
+    "token_ein": null,
+    "token_aus": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":403,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "f55f64867724f9455ec53603837c754675c2df3544732387dd599f054f14f49c"
+   }
+  },
+  {
+   "name": "abgelehnt_modell",
+   "beschreibung": "eigene Ablehnung: anderes Modell; modell ist das eingestellte, nie das angefragte",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "abgelehnt",
+    "grund": "mw.modell_nicht_erlaubt",
+    "status": 403,
+    "token_ein": null,
+    "token_aus": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.modell_nicht_erlaubt\",\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":403,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "4c5876d4815f950bfb8932447650a55824d045a02c891146c7591fa2fd9631a3"
+   }
+  },
+  {
+   "name": "ziel_fehler",
+   "beschreibung": "Ziel nicht erreichbar",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "ziel_fehler",
+    "grund": "mw.ziel_nicht_erreichbar",
+    "status": 502,
+    "token_ein": null,
+    "token_aus": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"ziel_fehler\",\"fassung\":2,\"grund\":\"mw.ziel_nicht_erreichbar\",\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":502,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "a6d58a7c48198c12b302f6e576ab5a8f0c4a9eda5a78f7e825198bac0ffb6a2f"
+   }
+  },
+  {
+   "name": "leck",
+   "beschreibung": "Leck gesperrt",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "leck_gesperrt",
+    "grund": "mw.leck_gesperrt",
+    "status": 502,
+    "token_ein": null,
+    "token_aus": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"leck_gesperrt\",\"fassung\":2,\"grund\":\"mw.leck_gesperrt\",\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":502,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "c2b02dde5c54d68f5d01aba9d24e052e360b71e5930a40740a5ad7d98495f688"
+   }
+  },
+  {
+   "name": "tokens_max",
+   "beschreibung": "Tokens 4294967295",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": 4294967295,
+    "token_aus": 4294967295
+   },
+   "vorher": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":4294967295,\"token_ein\":4294967295,\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "9d4321bab983a8bd75031c35556d2c4ad427f37e2d81f9d318e76807b5ec3804"
+   }
+  },
+  {
+   "name": "betriebsart_fremd",
+   "beschreibung": "Betriebsart kopf-einsetzen hat in Fassung 1 keine Zeilenform",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "kopf-einsetzen",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": 3
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:betriebsart"
+   }
+  },
+  {
+   "name": "reihenfolge_betriebsart",
+   "beschreibung": "falsche Betriebsart und falsche Route: die Betriebsart zuerst",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "",
+    "sitzung": "s-2",
+    "route": "Lokal",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": 3
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:betriebsart"
+   }
+  },
+  {
+   "name": "route_falsch",
+   "beschreibung": "Route mit Grossbuchstaben",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "Lokal",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": 3
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:route"
+   }
+  },
+  {
+   "name": "sitzung_falsch",
+   "beschreibung": "Sitzung leer",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": 3
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:sitzung"
+   }
+  },
+  {
+   "name": "modell_falsch",
+   "beschreibung": "Modell mit Anfuehrungszeichen (ein angefragtes Modell darf nie hinein)",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "a\"b",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": 3
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:modell"
+   }
+  },
+  {
+   "name": "ergebnis_falsch",
+   "beschreibung": "Ergebnis ok",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": 3
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:ergebnis"
+   }
+  },
+  {
+   "name": "grund_bei_weiter",
+   "beschreibung": "weitergereicht mit Grund",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": "mw.ausgelastet",
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": 3
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:grund"
+   }
+  },
+  {
+   "name": "grund_fremd",
+   "beschreibung": "abgelehnt mit Grund eines Zielfehlers",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "abgelehnt",
+    "grund": "mw.ziel_frist",
+    "status": 504,
+    "token_ein": null,
+    "token_aus": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:grund"
+   }
+  },
+  {
+   "name": "status_600",
+   "beschreibung": "Status 600",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 600,
+    "token_ein": 9,
+    "token_aus": 3
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:status"
+   }
+  },
+  {
+   "name": "tokens_bei_ablehnung",
+   "beschreibung": "abgelehnt mit Tokens",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "abgelehnt",
+    "grund": "mw.pfad_unbekannt",
+    "status": 404,
+    "token_ein": 9,
+    "token_aus": 3
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:token_ein"
+   }
+  },
+  {
+   "name": "tokens_halb",
+   "beschreibung": "nur token_ein",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:token_aus"
+   }
+  },
+  {
+   "name": "vorher_kurz",
+   "beschreibung": "vorher mit 63 Zeichen",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": 3
+   },
+   "vorher": "000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:vorher"
+   }
+  },
+  {
+   "name": "zeit_negativ",
+   "beschreibung": "zeit vor 1970",
+   "aufruf": {
+    "zeit_ms": -1,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": 3
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "zeit_ungueltig"
+   }
+  }
+ ],
+ "ketten": [
+  {
+   "name": "drei_aufrufe",
+   "beschreibung": "drei Aufrufe auf einen leeren Abschnitt gateway-2026-11.jsonl",
+   "datei": "gateway-2026-11.jsonl",
+   "anfang": "",
+   "aufrufe": [
+    {
+     "zeit_ms": 1795186800000,
+     "betriebsart": "openai-lokal",
+     "sitzung": "s-2",
+     "route": "lokal-beispiel",
+     "modell": "lokal-beispiel/modell-a",
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200,
+     "token_ein": 9,
+     "token_aus": 3
+    },
+    {
+     "zeit_ms": 1795186801000,
+     "betriebsart": "openai-lokal",
+     "sitzung": "s-2",
+     "route": "lokal-beispiel",
+     "modell": "lokal-beispiel/modell-a",
+     "ergebnis": "abgelehnt",
+     "grund": "mw.modell_nicht_erlaubt",
+     "status": 403,
+     "token_ein": null,
+     "token_aus": null
+    },
+    {
+     "zeit_ms": 1795186802000,
+     "betriebsart": "openai-lokal",
+     "sitzung": "s-2",
+     "route": "lokal-beispiel",
+     "modell": "lokal-beispiel/modell-a",
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 403,
+     "token_ein": null,
+     "token_aus": null
+    }
+   ],
+   "erwartet": {
+    "rueckgaben": [
+     "4a0b29cbbd4a370dc047d3c60d2e3e0a40cc8170dd429d70ece4dc55ee3b6cd5",
+     "b8637ade71fd5c4050fd3e62c72e907b797c2be530caec785ef1f09bcddde08c",
+     "5020ae9adaf9e5d8ac838dded7417fd8459ca569ee4590d17f854457fea4a46d"
+    ],
+    "inhalt": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":3,\"token_ein\":9,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}\n{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.modell_nicht_erlaubt\",\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":403,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"4a0b29cbbd4a370dc047d3c60d2e3e0a40cc8170dd429d70ece4dc55ee3b6cd5\",\"zeit\":\"2026-11-20T15:00:01.000Z\"}\n{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":403,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"b8637ade71fd5c4050fd3e62c72e907b797c2be530caec785ef1f09bcddde08c\",\"zeit\":\"2026-11-20T15:00:02.000Z\"}\n",
+    "pruefe": {
+     "bruch": null,
+     "letzte": "5020ae9adaf9e5d8ac838dded7417fd8459ca569ee4590d17f854457fea4a46d",
+     "ok": true,
+     "zeilen": 3
+    }
+   }
+  },
+  {
+   "name": "nach_fassung_1g",
+   "beschreibung": "ein laufender Monat mit einer Zeile des alten Gateways (Fassung 1g) wird fortgesetzt",
+   "datei": "gateway-2026-11.jsonl",
+   "anfang": "{\"aktionsname\":\"sitzung.angemeldet\",\"ergebnis\":\"ok\",\"grund\":\"passkey\",\"person\":\"anna\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-31T23:59:58.500Z\"}\n",
+   "aufrufe": [
+    {
+     "zeit_ms": 1795186800000,
+     "betriebsart": "openai-lokal",
+     "sitzung": "s-2",
+     "route": "lokal-beispiel",
+     "modell": "lokal-beispiel/modell-a",
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200,
+     "token_ein": 9,
+     "token_aus": 3
+    }
+   ],
+   "erwartet": {
+    "rueckgaben": [
+     "0f33d9715ffcfcc8fc1a041a50bd04fc30169749dd60b5161a3eced14fe9d6ae"
+    ],
+    "inhalt": "{\"aktionsname\":\"sitzung.angemeldet\",\"ergebnis\":\"ok\",\"grund\":\"passkey\",\"person\":\"anna\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-31T23:59:58.500Z\"}\n{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":3,\"token_ein\":9,\"vorher\":\"cc93a534ce4b330dabe7c47b77753a593b0d9f0bac3686c12791e7be64b3b8d7\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}\n",
+    "pruefe": {
+     "bruch": null,
+     "letzte": "0f33d9715ffcfcc8fc1a041a50bd04fc30169749dd60b5161a3eced14fe9d6ae",
+     "ok": true,
+     "zeilen": 2
+    }
+   }
+  }
+ ]
+}

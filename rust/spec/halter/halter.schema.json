@@ -1,0 +1,817 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-workbench.invalid/spec/halter/halter.schema.json",
+  "title": "Halter-Vertrag Fassung 1: Anfragen und Antworten an der Pipe des Halters",
+  "description": "Form der Zeilen. Die Bytes müssen zusätzlich RFC 8785 sein; das prüft das Schema nicht. Querbezüge (Rolle, Ziel, Schein) prüft erst der Bau.",
+  "$defs": {
+    "kennung": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "id": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/kennung"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      ]
+    },
+    "hex64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^(modell|anmeldung|mcp|mail)\\.[a-z0-9][a-z0-9._-]*$"
+    },
+    "b64": {
+      "type": "string",
+      "pattern": "^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+    },
+    "person": {
+      "type": "string",
+      "pattern": "^ps_[0-9a-f]{32}$"
+    },
+    "ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 253402300799999
+    },
+    "kopf": {
+      "type": "object",
+      "maxProperties": 64,
+      "propertyNames": {
+        "pattern": "^[a-z0-9-]{1,64}$",
+        "not": {
+          "enum": [
+            "authorization",
+            "proxy-authorization",
+            "x-api-key",
+            "api-key",
+            "cookie",
+            "set-cookie",
+            "host",
+            "content-length",
+            "transfer-encoding",
+            "connection",
+            "upgrade",
+            "te",
+            "trailer",
+            "keep-alive",
+            "proxy-connection",
+            "forwarded",
+            "x-forwarded-for",
+            "x-forwarded-host",
+            "accept-encoding",
+            "sec-websocket-extensions"
+          ]
+        }
+      },
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 8192,
+        "pattern": "^[\\x20-\\x7e]*$"
+      }
+    },
+    "schein": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "daten",
+        "signatur"
+      ],
+      "properties": {
+        "daten": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ablauf",
+            "anfrage",
+            "art",
+            "ausgestellt",
+            "digest",
+            "einmal",
+            "fassung",
+            "kid",
+            "lauf"
+          ],
+          "properties": {
+            "ablauf": {
+              "$ref": "#/$defs/ms"
+            },
+            "anfrage": {
+              "type": "string",
+              "pattern": "^mf_[0-9a-f]{32}$"
+            },
+            "art": {
+              "$ref": "#/$defs/kennung"
+            },
+            "ausgestellt": {
+              "$ref": "#/$defs/ms"
+            },
+            "digest": {
+              "$ref": "#/$defs/hex64"
+            },
+            "einmal": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "fassung": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "kid": {
+              "$ref": "#/$defs/kennung"
+            },
+            "lauf": {
+              "$ref": "#/$defs/kennung"
+            }
+          }
+        },
+        "signatur": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]{86}==$"
+        }
+      }
+    },
+    "anfrage": {
+      "type": "object",
+      "required": [
+        "fassung",
+        "id",
+        "op"
+      ],
+      "properties": {
+        "fassung": {
+          "const": 1
+        },
+        "op": {
+          "enum": [
+            "schluessel.vorhanden",
+            "modell.aufruf",
+            "modell.strom",
+            "strom.teil",
+            "strom.ende",
+            "modell.suche",
+            "mcp.aufruf",
+            "schluessel.setzen",
+            "schluessel.loeschen"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "schluessel.vorhanden"
+              }
+            }
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "fassung": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "op": true,
+              "name": {
+                "$ref": "#/$defs/name"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "modell.aufruf"
+              }
+            }
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "ziel",
+              "methode",
+              "pfad",
+              "abfrage",
+              "kopf",
+              "koerper_b64"
+            ],
+            "properties": {
+              "fassung": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "op": true,
+              "ziel": {
+                "$ref": "#/$defs/kennung"
+              },
+              "methode": {
+                "enum": [
+                  "GET",
+                  "POST"
+                ]
+              },
+              "pfad": {
+                "type": "string",
+                "pattern": "^/[A-Za-z0-9._~/-]{0,511}$"
+              },
+              "abfrage": {
+                "$ref": "#/$defs/abfrage"
+              },
+              "kopf": {
+                "$ref": "#/$defs/kopf"
+              },
+              "koerper_b64": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/b64"
+                  },
+                  {
+                    "maxLength": 32156332
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "modell.strom"
+              }
+            }
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "ziel",
+              "pfad",
+              "abfrage",
+              "kopf"
+            ],
+            "properties": {
+              "fassung": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "op": true,
+              "ziel": {
+                "$ref": "#/$defs/kennung"
+              },
+              "pfad": {
+                "type": "string",
+                "pattern": "^/[A-Za-z0-9._~/-]{0,511}$"
+              },
+              "abfrage": {
+                "$ref": "#/$defs/abfrage"
+              },
+              "kopf": {
+                "$ref": "#/$defs/kopf"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "strom.teil"
+              }
+            }
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "daten_b64"
+            ],
+            "properties": {
+              "fassung": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "op": true,
+              "daten_b64": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/b64"
+                  },
+                  {
+                    "minLength": 4,
+                    "maxLength": 87384
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "strom.ende"
+              }
+            }
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [],
+            "properties": {
+              "fassung": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "op": true
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "modell.suche"
+              }
+            }
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "ziel",
+              "pfade"
+            ],
+            "properties": {
+              "fassung": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "op": true,
+              "ziel": {
+                "$ref": "#/$defs/kennung"
+              },
+              "pfade": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 16,
+                "items": {
+                  "type": "string",
+                  "pattern": "^/[^\\x00-\\x1f]{0,4095}$",
+                  "not": {
+                    "pattern": "(^|/)\\.{1,2}(/|$)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "mcp.aufruf"
+              }
+            }
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "lauf",
+              "server",
+              "werkzeug",
+              "argumente",
+              "person",
+              "vorschau_sha256"
+            ],
+            "properties": {
+              "fassung": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "op": true,
+              "lauf": {
+                "$ref": "#/$defs/kennung"
+              },
+              "server": {
+                "$ref": "#/$defs/kennung"
+              },
+              "werkzeug": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_.-]{1,128}$"
+              },
+              "argumente": {
+                "type": "object"
+              },
+              "person": {
+                "$ref": "#/$defs/person"
+              },
+              "vorschau_sha256": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/hex64"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "schein": {
+                "$ref": "#/$defs/schein"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "schluessel.setzen"
+              }
+            }
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "wert_b64",
+              "nachweis"
+            ],
+            "properties": {
+              "fassung": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "op": true,
+              "name": {
+                "$ref": "#/$defs/name"
+              },
+              "wert_b64": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/b64"
+                  },
+                  {
+                    "minLength": 4,
+                    "maxLength": 16384
+                  }
+                ]
+              },
+              "nachweis": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8192,
+                "pattern": "^[\\x21-\\x7e]*$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "schluessel.loeschen"
+              }
+            }
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "nachweis"
+            ],
+            "properties": {
+              "fassung": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "op": true,
+              "name": {
+                "$ref": "#/$defs/name"
+              },
+              "nachweis": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8192,
+                "pattern": "^[\\x21-\\x7e]*$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^halter\\.[a-z_]{2,40}$"
+    },
+    "antwort": {
+      "type": "object",
+      "required": [
+        "art",
+        "fassung",
+        "id"
+      ],
+      "properties": {
+        "art": {
+          "enum": [
+            "antwort",
+            "beginn",
+            "teil",
+            "ende"
+          ]
+        },
+        "fassung": {
+          "const": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "art": {
+                "const": "antwort"
+              },
+              "ok": {
+                "const": true
+              }
+            },
+            "required": [
+              "ok"
+            ]
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "ok"
+            ],
+            "maxProperties": 5,
+            "properties": {
+              "art": true,
+              "fassung": true,
+              "ok": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "vorhanden": {
+                "type": "boolean"
+              },
+              "ergebnis": {
+                "type": "object"
+              },
+              "suche": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "dateien",
+                  "nicht_lesbar",
+                  "treffer",
+                  "uebersprungen"
+                ],
+                "properties": {
+                  "dateien": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "nicht_lesbar": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "treffer": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "uebersprungen": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "art": {
+                "enum": [
+                  "antwort",
+                  "ende"
+                ]
+              },
+              "ok": {
+                "const": false
+              }
+            },
+            "required": [
+              "ok"
+            ]
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "ok",
+              "code",
+              "grund"
+            ],
+            "properties": {
+              "art": true,
+              "fassung": true,
+              "ok": true,
+              "id": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/id"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "code": {
+                "$ref": "#/$defs/code"
+              },
+              "grund": {
+                "type": "string",
+                "maxLength": 80,
+                "pattern": "^[\\x20-\\x7e]+$"
+              },
+              "mcp_code": {
+                "type": "integer",
+                "minimum": -2147483648,
+                "maximum": 2147483647
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "art": {
+                "const": "beginn"
+              }
+            }
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "kopf"
+            ],
+            "properties": {
+              "art": true,
+              "fassung": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "status": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              },
+              "kopf": {
+                "type": "object",
+                "maxProperties": 64,
+                "propertyNames": {
+                  "pattern": "^[a-z0-9-]{1,64}$",
+                  "not": {
+                    "enum": [
+                      "authorization",
+                      "proxy-authorization",
+                      "x-api-key",
+                      "api-key",
+                      "cookie",
+                      "set-cookie",
+                      "proxy-authenticate",
+                      "connection",
+                      "keep-alive",
+                      "proxy-connection",
+                      "te",
+                      "trailer",
+                      "upgrade",
+                      "transfer-encoding",
+                      "content-length"
+                    ]
+                  }
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 8192,
+                  "pattern": "^[\\x20-\\x7e]*$"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "art": {
+                "const": "teil"
+              }
+            }
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "daten_b64"
+            ],
+            "properties": {
+              "art": true,
+              "fassung": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "daten_b64": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/b64"
+                  },
+                  {
+                    "minLength": 4,
+                    "maxLength": 87384
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "art": {
+                "const": "ende"
+              },
+              "ok": {
+                "const": true
+              }
+            },
+            "required": [
+              "ok"
+            ]
+          },
+          "then": {
+            "additionalProperties": false,
+            "required": [
+              "ok"
+            ],
+            "properties": {
+              "art": true,
+              "fassung": true,
+              "ok": true,
+              "id": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "art": {
+                "enum": [
+                  "antwort",
+                  "ende"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "ok"
+            ],
+            "properties": {
+              "ok": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "abfrage": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._~!$&'()*+,;=:@/?%-]{1,1024}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

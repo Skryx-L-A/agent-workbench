@@ -1,0 +1,15 @@
+{
+ "description": "MOC.md stays in the search corpus; root files only at the root",
+ "args": [
+  "paths",
+  "20-projects/p/MOC.md",
+  "MOC.md",
+  "30-topics/t/DECISIONS.md",
+  "10-global/review-queue.md",
+  "INDEX.md",
+  "10-global/INDEX.md",
+  "Index.md",
+  "LOG.md",
+  "10-global/LOG.md"
+ ]
+}

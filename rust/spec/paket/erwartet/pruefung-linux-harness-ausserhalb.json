@@ -1,0 +1,8 @@
+{
+ "rc": 0,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.hinweis_harness_ausserhalb: pi liegt an einem gesuchten Ort, der echte Pfad aber nicht unter /usr, /opt, ~/.nvm, ~/.local, ~/.npm-global oder ~/.volta; er wird nicht genommen.",
+  "pruef.ok: Alle 8 Pruefungen bestanden."
+ ]
+}

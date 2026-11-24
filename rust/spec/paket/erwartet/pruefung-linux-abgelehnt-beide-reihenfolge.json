@@ -1,0 +1,9 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.programmordner_verboten: Harness copilot nicht eingetragen. Abhilfe: Harness unter einem anderen Praefix installieren, dann dpkg-reconfigure werkbank. Ordner: /opt/c",
+  "pruef.programmordner_verboten: Harness pi nicht eingetragen. Abhilfe: Harness unter einem anderen Praefix installieren, dann dpkg-reconfigure werkbank. Ordner: /srv/beispiel/.ssh",
+  "pruef.rot: 2 Befunde."
+ ]
+}

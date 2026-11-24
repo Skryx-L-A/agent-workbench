@@ -1,0 +1,136 @@
+{
+ "beschreibung": "die Startwahl traegt kein Ziel, kein Netzziel und keinen Pfad: von jeder Route nur schluessel, art, klasse und modell (Text der Route oder null); von jedem Kunden nur den Schluessel",
+ "datensatz": "A",
+ "einstellungen_inhalt": {
+  "fassung": 2,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "kunden": [
+   {
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "schluessel": "k-beispiel",
+    "verboten": []
+   },
+   {
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "schluessel": "k-zwei",
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "freigaben": [],
+   "vorgabe": "nie"
+  },
+  "routen": [
+   {
+    "art": "cloud",
+    "klasse": "oeffentlich",
+    "netzziele": [],
+    "schluessel": "z-vorn"
+   },
+   {
+    "art": "cloud",
+    "klasse": "intern",
+    "netzziele": [
+     {
+      "host": "api.eins.example",
+      "pfade": [
+       {
+        "methode": "GET",
+        "pfad": "/copilot_internal/*"
+       }
+      ],
+      "port": 443,
+      "schluessel": true,
+      "zugriff": "kopf-einsetzen"
+     }
+    ],
+    "schluessel": "cloud-beispiel"
+   },
+   {
+    "art": "cloud",
+    "klasse": "intern",
+    "modell": "gpt-5.6-sol",
+    "netzziele": [
+     {
+      "host": "api.eins.example",
+      "pfade": [
+       {
+        "methode": "GET",
+        "pfad": "/copilot_internal/*"
+       }
+      ],
+      "port": 443,
+      "schluessel": true,
+      "zugriff": "kopf-einsetzen"
+     }
+    ],
+    "schluessel": "cloud-fest"
+   },
+   {
+    "art": "lokal",
+    "klasse": "kundendaten",
+    "modell": "qwen3:8b",
+    "netzziele": [],
+    "schluessel": "lokal-beispiel",
+    "ziel": "http://127.0.0.1:11434/v1"
+   }
+  ],
+  "vorgabestufe": "kundendaten"
+ },
+ "name": "di12_startwahl_filter",
+ "regeln": [
+  "DI12"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

@@ -1,0 +1,8 @@
+{
+ "start": {
+  "exit": 74
+ },
+ "nachher": {
+  "ordner_modus": "0755"
+ }
+}

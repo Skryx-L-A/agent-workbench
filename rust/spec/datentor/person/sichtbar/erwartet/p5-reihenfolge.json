@@ -1,0 +1,91 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "route-fehlt",
+    "klasse": null,
+    "meldung": "Anfrage ohne Route",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "person-fehlt",
+    "klasse": null,
+    "meldung": "Anfrage ohne Person",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "person-ohne-leseklasse",
+    "klasse": null,
+    "meldung": "Person ohne Leseklasse",
+    "leseklasse": null
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": null,
+    "meldung": "Route r-ohne hat keine Klasse",
+    "leseklasse": "oeffentlich"
+   },
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse",
+    "leseklasse": "oeffentlich"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-route",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über Route r-in",
+    "leseklasse": "oeffentlich"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "intern"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "intern"
+   },
+   {
+    "darf": false,
+    "grund": "kunde-fehlt",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten ohne Kunde",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": false,
+    "grund": "kunde-ohne-eintrag",
+    "klasse": "kundendaten",
+    "meldung": "Kunde ohne Eintrag in der Kundenvorgabe",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": false,
+    "grund": "route-fuer-kunde-verboten",
+    "klasse": "kundendaten",
+    "meldung": "Route c-kd ist für diesen Kunden verboten",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "oeffentlich"
+   }
+  ]
+ }
+}

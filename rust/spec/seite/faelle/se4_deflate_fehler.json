@@ -1,0 +1,90 @@
+{
+ "beschreibung": "Ein nicht lesbarer gepackter Rahmen zeigt inflate_fehler im Fehlerfeld und beendet die Verbindung mit Ansage.",
+ "datensatz": "A",
+ "deflate": true,
+ "name": "se4_deflate_fehler",
+ "regeln": [
+  "SE4"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "62656463d4e060606264646060600441150000"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "ff"
+  },
+  {
+   "art": "Testid",
+   "sichtbar": true,
+   "testid": "fehler"
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-code",
+   "text": "inflate_fehler"
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-text",
+   "text": "Bild der Verbindung nicht lesbar"
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Verbindung getrennt"
+   ]
+  }
+ ]
+}

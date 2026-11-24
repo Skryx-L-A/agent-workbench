@@ -1,0 +1,42 @@
+{
+ "name": "tr3_von_zwei_spalten",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Vom Raster mit zwei Spalten zurück zur vollen Breite: der umbrochene Text bleibt, danach gilt die volle Breite",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Groesse",
+   "spalten": 2,
+   "zeilen": 8
+  },
+  {
+   "art": "Text",
+   "text": "漢a漢"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 30,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "漢"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

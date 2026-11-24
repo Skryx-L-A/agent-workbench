@@ -1,0 +1,5 @@
+{
+ "exit": 77,
+ "werkzeuge_pruefung": "rot",
+ "befund": "ein Wert aus der Startdatei erscheint in argv"
+}

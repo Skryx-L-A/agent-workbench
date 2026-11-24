@@ -1,0 +1,360 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    16,
+    0,
+    true
+   ],
+   "groesse": [
+    30,
+    18
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 16,
+   "zeilen": [
+    "\u001b[0;30malpha\u001b[0m \u001b[0;90mbeta",
+    "\u001b[0;31mbeta\u001b[0m \u001b[0;91mgamma",
+    "\u001b[0;32mgamma\u001b[0m \u001b[0;92mdelta",
+    "\u001b[0;33mdelta\u001b[0m \u001b[0;93mepsilon",
+    "\u001b[0;34mepsilon\u001b[0m \u001b[0;94mzeta",
+    "\u001b[0;35mzeta\u001b[0m \u001b[0;95malpha",
+    "\u001b[0;36malpha\u001b[0m \u001b[0;96mbeta",
+    "\u001b[0;37mbeta\u001b[0m \u001b[0;97mgamma",
+    "\u001b[0;40malpha\u001b[0;30;100mgamma",
+    "\u001b[0;41mbeta\u001b[0;31;101mdelta",
+    "\u001b[0;42mgamma\u001b[0;32;102mepsilon",
+    "\u001b[0;43mdelta\u001b[0;33;103mzeta",
+    "\u001b[0;44mepsilon\u001b[0;34;104malpha",
+    "\u001b[0;45mzeta\u001b[0;35;105mbeta",
+    "\u001b[0;46malpha\u001b[0;36;106mgamma",
+    "\u001b[0;47mbeta\u001b[0;37;107mdelta",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       0,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "\u001b[0;30malpha\u001b[0m \u001b[0;90mbeta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       2,
+       0,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "1": "\u001b[0;31mbeta\u001b[0m \u001b[0;91mgamma"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       3,
+       0,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "2": "\u001b[0;32mgamma\u001b[0m \u001b[0;92mdelta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       0,
+       true
+      ],
+      "stand": 4,
+      "zeilen": {
+       "3": "\u001b[0;33mdelta\u001b[0m \u001b[0;93mepsilon"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       5,
+       0,
+       true
+      ],
+      "stand": 5,
+      "zeilen": {
+       "4": "\u001b[0;34mepsilon\u001b[0m \u001b[0;94mzeta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       6,
+       0,
+       true
+      ],
+      "stand": 6,
+      "zeilen": {
+       "5": "\u001b[0;35mzeta\u001b[0m \u001b[0;95malpha"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       7,
+       0,
+       true
+      ],
+      "stand": 7,
+      "zeilen": {
+       "6": "\u001b[0;36malpha\u001b[0m \u001b[0;96mbeta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       8,
+       0,
+       true
+      ],
+      "stand": 8,
+      "zeilen": {
+       "7": "\u001b[0;37mbeta\u001b[0m \u001b[0;97mgamma"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       9,
+       0,
+       true
+      ],
+      "stand": 9,
+      "zeilen": {
+       "8": "\u001b[0;40malpha\u001b[0;30;100mgamma"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       10,
+       0,
+       true
+      ],
+      "stand": 10,
+      "zeilen": {
+       "9": "\u001b[0;41mbeta\u001b[0;31;101mdelta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       11,
+       0,
+       true
+      ],
+      "stand": 11,
+      "zeilen": {
+       "10": "\u001b[0;42mgamma\u001b[0;32;102mepsilon"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       12,
+       0,
+       true
+      ],
+      "stand": 12,
+      "zeilen": {
+       "11": "\u001b[0;43mdelta\u001b[0;33;103mzeta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       13,
+       0,
+       true
+      ],
+      "stand": 13,
+      "zeilen": {
+       "12": "\u001b[0;44mepsilon\u001b[0;34;104malpha"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       14,
+       0,
+       true
+      ],
+      "stand": 14,
+      "zeilen": {
+       "13": "\u001b[0;45mzeta\u001b[0;35;105mbeta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       15,
+       0,
+       true
+      ],
+      "stand": 15,
+      "zeilen": {
+       "14": "\u001b[0;46malpha\u001b[0;36;106mgamma"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       16,
+       0,
+       true
+      ],
+      "stand": 16,
+      "zeilen": {
+       "15": "\u001b[0;47mbeta\u001b[0;37;107mdelta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      16,
+      0,
+      true
+     ],
+     "groesse": [
+      30,
+      18
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 16,
+     "zeilen": [
+      "\u001b[0;30malpha\u001b[0m \u001b[0;90mbeta",
+      "\u001b[0;31mbeta\u001b[0m \u001b[0;91mgamma",
+      "\u001b[0;32mgamma\u001b[0m \u001b[0;92mdelta",
+      "\u001b[0;33mdelta\u001b[0m \u001b[0;93mepsilon",
+      "\u001b[0;34mepsilon\u001b[0m \u001b[0;94mzeta",
+      "\u001b[0;35mzeta\u001b[0m \u001b[0;95malpha",
+      "\u001b[0;36malpha\u001b[0m \u001b[0;96mbeta",
+      "\u001b[0;37mbeta\u001b[0m \u001b[0;97mgamma",
+      "\u001b[0;40malpha\u001b[0;30;100mgamma",
+      "\u001b[0;41mbeta\u001b[0;31;101mdelta",
+      "\u001b[0;42mgamma\u001b[0;32;102mepsilon",
+      "\u001b[0;43mdelta\u001b[0;33;103mzeta",
+      "\u001b[0;44mepsilon\u001b[0;34;104malpha",
+      "\u001b[0;45mzeta\u001b[0;35;105mbeta",
+      "\u001b[0;46malpha\u001b[0;36;106mgamma",
+      "\u001b[0;47mbeta\u001b[0;37;107mdelta",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Abbruch wegen komprimierter Antwort",
+ "form": "antwort",
+ "text": "{\"art\":\"ende\",\"code\":\"halter.ziel_komprimiert\",\"fassung\":1,\"grund\":\"Antwort komprimiert\",\"id\":\"m-1\",\"ok\":false}"
+}

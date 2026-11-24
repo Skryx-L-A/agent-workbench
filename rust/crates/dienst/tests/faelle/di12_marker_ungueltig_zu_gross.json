@@ -1,0 +1,54 @@
+{
+ "beschreibung": "ungueltige Marker-Datei (zu_gross): der Dienst startet nicht, Exitcode 2, eine Zeile lauf.marker_datei ungueltig: <Grund>",
+ "datensatz": "A",
+ "marker_datei": {
+  "auffuellen": 4076,
+  "inhalt": {
+   "liste": [
+    "MP-2C5"
+   ]
+  }
+ },
+ "name": "di12_marker_ungueltig_zu_gross",
+ "regeln": [
+  "DI12",
+  "DI1"
+ ],
+ "schritte": [],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"bericht\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "marker_datei": "@marker_datei",
+   "marker_ordner": "/var/lib/probelauf/mp-2c5",
+   "programm": "@laufkind"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

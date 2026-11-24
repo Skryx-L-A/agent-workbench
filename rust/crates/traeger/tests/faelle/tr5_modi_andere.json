@@ -1,0 +1,26 @@
+{
+ "name": "tr5_modi_andere",
+ "regeln": [
+  "TR5"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Nur die Privatmodi mit ?: ohne ?, mit Abfrage ($p) oder mit anderer Zwischenstufe kein Ereignis (Abfragen beantwortet alacritty_terminal selbst)",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[5h\u001b[5l\u001b[2004h\u001b[?6h\u001b[?2004$p\u001b[?5$p\u001b[ ?5h\u001b[?5 h\u001b[>5h"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?2026$p"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

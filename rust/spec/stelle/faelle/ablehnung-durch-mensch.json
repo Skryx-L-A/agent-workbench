@@ -1,0 +1,156 @@
+{
+  "beschreibung": "Eine Ablehnung durch einen Menschen schreibt eine Zeile mit dem Entscheidenden; Einloesen und zweite Entscheidung scheitern danach.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "A91",
+    "A105"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"such-mcp\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[]}}}"
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179601000,
+      "eingabe": {
+        "argumente": {
+          "feld": "GEHEIM-ARG-7Q",
+          "id": "T-100",
+          "status": "erledigt"
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "tickets",
+        "sitzung": "s-1",
+        "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
+        "werkzeug": "update"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offen",
+          "anfrage": "mf-1795179540000-1",
+          "digest": "34b94b40a0e9af4b3040eef413cbf1db04b35d1ce446798e93e7d848e3ba4ced",
+          "frist_bis_ms": 1795179661000,
+          "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef"
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.entscheiden",
+      "jetzt_ms": 1795179602000,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1",
+        "entscheidung": "ablehnen",
+        "nachweis": "h1:ps_00000000000000000000000000000a01:d27315021721630bc7e7b4f26a04930f0ff731e5a8ee8eb6d094fcf4774b12e1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "abgelehnt",
+          "anfrage": "mf-1795179540000-1"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"34b94b40a0e9af4b3040eef413cbf1db04b35d1ce446798e93e7d848e3ba4ced\",\"entscheidend\":\"ps_00000000000000000000000000000a01\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"person\":\"ps_00000000000000000000000000000001\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:02.000Z\",\"zeit_anfrage\":\"2026-11-20T13:00:01.000Z\",\"zeit_entscheidung\":\"2026-11-20T13:00:02.000Z\"}",
+            "sha256": "1365807f985552dc5c85725613203f6b43a0b914be133ba2041af4bf0bfd8d9e"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.einloesen",
+      "jetzt_ms": 1795179603000,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1",
+        "argumente": {
+          "feld": "GEHEIM-ARG-7Q",
+          "id": "T-100",
+          "status": "erledigt"
+        },
+        "server": "tickets",
+        "werkzeug": "update"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.anfrage_abgelehnt",
+          "grund": "Anfrage abgelehnt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.anfrage_abgelehnt\",\"vorgang\":\"mcp.einloesen\",\"vorher\":\"1365807f985552dc5c85725613203f6b43a0b914be133ba2041af4bf0bfd8d9e\",\"zeit\":\"2026-11-20T13:00:03.000Z\"}",
+            "sha256": "47723c384b404313d76c67e1e576d517ceb625461b04316653c29053c4e5318b"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.entscheiden",
+      "jetzt_ms": 1795179604000,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1",
+        "entscheidung": "erteilen",
+        "nachweis": "h1:ps_00000000000000000000000000000a01:918055469153a175996d4f29b4664925a0f299094df4e88e735598f763d8898d"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.bereits_entschieden",
+          "grund": "Anfrage schon entschieden"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_entschieden\",\"vorgang\":\"mcp.entscheiden\",\"vorher\":\"47723c384b404313d76c67e1e576d517ceb625461b04316653c29053c4e5318b\",\"zeit\":\"2026-11-20T13:00:04.000Z\"}",
+            "sha256": "146a2311a1548cf4eab5c360cf6b7a53cc1ad84042a959cc4cf35a5ef4f081b2"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1"
+    ],
+    "anfragen": {
+      "mf-1795179540000-1": "abgelehnt"
+    },
+    "zaehler": 1,
+    "zeilen": 4,
+    "letzte": "146a2311a1548cf4eab5c360cf6b7a53cc1ad84042a959cc4cf35a5ef4f081b2"
+  }
+}

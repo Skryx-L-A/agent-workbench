@@ -1,0 +1,5 @@
+{
+ "beschreibung": "ein leerer Wert setzt die Option zurück",
+ "form": "kerneinheit",
+ "text": "[Unit]\nDescription=Werkbank core service\n\n[Service]\nRestrictAddressFamilies=AF_UNIX\nRestrictAddressFamilies=\nType=simple\nExecStart=/usr/lib/werkbank/werkbank-kern /etc/werkbank/kern.json\nRuntimeDirectory=werkbank\nRuntimeDirectoryMode=0700\n\n[Install]\nWantedBy=default.target\n"
+}

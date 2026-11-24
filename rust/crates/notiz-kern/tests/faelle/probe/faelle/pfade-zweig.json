@@ -1,0 +1,12 @@
+{
+ "description": "branch of a path",
+ "args": [
+  "paths",
+  "20-projects/p/x.md",
+  "20-projects/x.md",
+  "x.md",
+  "30-topics/t/sub/y.md",
+  "40-people/a/b.md",
+  "10-global/c.md"
+ ]
+}

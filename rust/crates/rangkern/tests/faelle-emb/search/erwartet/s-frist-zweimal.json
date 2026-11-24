@@ -1,0 +1,34 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "20-projects/holz/zirkel.md",
+    "score": 1.0,
+    "title": "Zirkel und Lineal",
+    "snippet": "Notiz zu zirkel: zirkel frueh planen, lineal zweimal im Monat pruefen. Wer zirkel anlegt, braucht Zeit fuer lineal. Merkzettel zirkel.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "space": "holz"
+   }
+  ]
+ },
+ "aufrufe": [
+  {
+   "model": "embeddinggemma:latest",
+   "input": "zirkel lineal",
+   "keep_alive": "30m"
+  },
+  {
+   "model": "embeddinggemma:latest",
+   "input": "zirkel lineal",
+   "keep_alive": "30m"
+  }
+ ]
+}

@@ -1,0 +1,78 @@
+# Positive list of the deb for Ubuntu 26.04 (contract rust/spec/paket, part A, "Positivliste und Ausschlussliste").
+# One line per file: <kind> <target> <source>. Everything the package holds stands here by name.
+# `rust/paket.sh deb --geruest` leaves out a line whose source is not in the tree yet and names it in the build report;
+# without `--geruest` a missing source stops the build (paket.quelle_fehlt).
+#
+# werkbank-lauf-kind (crate lauf, src/bin/kind.rs): the trampoline of werkbank-lauf; without it lauf starts no child.
+# werkbank-lauf, werkbank-lauf-kind and werkbank-ordnermarke run outside the enclosure and without a profile: they are dynamic, linked against the OpenSSL of
+# the distribution (Depends from dpkg-shlibdeps, libssl3t64). Only what runs in the enclosure or under the profile of the starter is static (referenz.STATISCH).
+# werkbank-ordnermarke (crate lauf, src/bin/ordnermarke.rs): a mandatory file of the manifest (decision of the package owner, 21.11.2026).
+# werkbank-ca-zulassung (shell script, root): the explicit step that sets `ca_zulassung` of lauf.json without a question (contract, "Zulassung der CA").
+# /etc/werkbank/lauf.json is not in this list: postinst writes it for the user (contract, "lauf.json").
+#
+# werkbank-anmelden (crate anmelden): the sign-in of the route `copilot`; its folder /var/lib/werkbank/<user> is made by postinst.
+#
+# The enclosure (decision V1, 20.11.2026): only the fixed starter werkbank-einschluss carries the AppArmor profile
+# (usr.lib.werkbank.werkbank-einschluss). werkbank-lauf has NO profile, so no profile line names its path. No profile of
+# this package is `unconfined`; the build stops on it (paket.profil_unconfined).
+#
+# Supplier of the parts that are not in the tree yet (state 20.11.2026):
+#   werkbank-kern, werkbank-lauf (crate lauf), such-mcp, werkbank-einschluss (the starter; crate einschluss),
+#   werkbank-modellweg (crate modellweg), the runner of the trial (werkbank-probelauf, drehbuch.py, drehbuchlib, konfig).
+# test_werkbank_probelauf.py of the runner is never in the package (exclusion list).
+programm usr/bin/werkbank-pruefen bin:werkbank-pruefen:werkbank-pruefen
+programm usr/bin/werkbank-anmelden bin:anmelden:werkbank-anmelden
+programm usr/bin/werkbank-probelauf datei:spec/vorfuehrung/laeufer/werkbank-probelauf
+programm usr/lib/werkbank/werkbank-lauf bin:lauf:werkbank-lauf
+programm usr/lib/werkbank/werkbank-lauf-kind bin:lauf:werkbank-lauf-kind
+programm usr/bin/werkbank-ordnermarke bin:lauf:werkbank-ordnermarke
+programm usr/bin/werkbank-ca-zulassung datei:paket/ubuntu-26.04-x64/werkbank-ca-zulassung
+programm usr/lib/werkbank/einschluss-weiter bin:einschluss:einschluss-weiter
+programm usr/lib/werkbank/werkbank-einschluss bin:einschluss:werkbank-einschluss
+programm usr/lib/werkbank/kette bin:formate:kette
+dienst usr/lib/werkbank/werkbank-kern bin:dienst:wb-dienst
+dienst usr/lib/werkbank/werkbank-bruecke bin:bruecke:wb-bruecke
+dienst usr/lib/werkbank/werkbank-modellweg bin:modellweg:modellweg
+programm usr/lib/werkbank/rangkern bin:rangkern:rangkern
+programm usr/lib/werkbank/such-mcp bin:such-mcp:such-mcp
+programm usr/lib/werkbank/probelauf/drehbuch.py datei:spec/vorfuehrung/laeufer/drehbuch.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/ablauf.py datei:spec/vorfuehrung/laeufer/drehbuchlib/ablauf.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/bericht.py datei:spec/vorfuehrung/laeufer/drehbuchlib/bericht.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/bruecke.py datei:spec/vorfuehrung/laeufer/drehbuchlib/bruecke.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/fremd.py datei:spec/vorfuehrung/laeufer/drehbuchlib/fremd.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/konfig.py datei:spec/vorfuehrung/laeufer/drehbuchlib/konfig.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/lauf.py datei:spec/vorfuehrung/laeufer/drehbuchlib/lauf.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/messen.py datei:spec/vorfuehrung/laeufer/drehbuchlib/messen.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/modell.py datei:spec/vorfuehrung/laeufer/drehbuchlib/modell.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/probelauf.py datei:spec/vorfuehrung/laeufer/drehbuchlib/probelauf.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/schritte.py datei:spec/vorfuehrung/laeufer/drehbuchlib/schritte.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/seite.py datei:spec/vorfuehrung/laeufer/drehbuchlib/seite.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/weiterreicher.py datei:spec/vorfuehrung/laeufer/drehbuchlib/weiterreicher.py
+programm usr/lib/werkbank/probelauf/drehbuchlib/ziel.py datei:spec/vorfuehrung/laeufer/drehbuchlib/ziel.py
+daten usr/share/werkbank/probelauf/einstellungen.json datei:spec/einstellungen/vorfuehrung.json
+daten usr/share/werkbank/probelauf/konfig.json datei:spec/vorfuehrung/laeufer/konfig.probelauf.json
+daten usr/share/werkbank/probelauf/vorfuehr-vault/betrieb/mi-4f9-wartungsfenster-presslinie.md datei:spec/such-socket/vorfuehr-vault/betrieb/MI-4F9-wartungsfenster-presslinie.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/betrieb/besprechung-montag.md datei:spec/such-socket/vorfuehr-vault/betrieb/besprechung-montag.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/betrieb/energieverbrauch-halle.md datei:spec/such-socket/vorfuehr-vault/betrieb/energieverbrauch-halle.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/betrieb/ersatzteile-lager.md datei:spec/such-socket/vorfuehr-vault/betrieb/ersatzteile-lager.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/betrieb/qualitaetspruefung-stanzteile.md datei:spec/such-socket/vorfuehr-vault/betrieb/qualitaetspruefung-stanzteile.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/betrieb/schichtplan-presslinie.md datei:spec/such-socket/vorfuehr-vault/betrieb/schichtplan-presslinie.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/betrieb/sicherheitsunterweisung.md datei:spec/such-socket/vorfuehr-vault/betrieb/sicherheitsunterweisung.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/betrieb/stoerung-melden.md datei:spec/such-socket/vorfuehr-vault/betrieb/stoerung-melden.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/betrieb/urlaubsregel.md datei:spec/such-socket/vorfuehr-vault/betrieb/urlaubsregel.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/handbuch/begriffe.md datei:spec/such-socket/vorfuehr-vault/handbuch/begriffe.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/handbuch/erste-hilfe.md datei:spec/such-socket/vorfuehr-vault/handbuch/erste-hilfe.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/handbuch/gehoerschutz.md datei:spec/such-socket/vorfuehr-vault/handbuch/gehoerschutz.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/handbuch/hydraulikoel-wechseln.md datei:spec/such-socket/vorfuehr-vault/handbuch/hydraulikoel-wechseln.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/handbuch/pressen-grundlagen.md datei:spec/such-socket/vorfuehr-vault/handbuch/pressen-grundlagen.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/handbuch/schmierplan-vorlage.md datei:spec/such-socket/vorfuehr-vault/handbuch/schmierplan-vorlage.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/it/datensicherung-ablauf.md datei:spec/such-socket/vorfuehr-vault/it/datensicherung-ablauf.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/it/druckerwarteschlange.md datei:spec/such-socket/vorfuehr-vault/it/druckerwarteschlange.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/kunden/k-nord/mk-7q2-liefertermin-presslinie.md datei:spec/such-socket/vorfuehr-vault/kunden/k-nord/MK-7Q2-liefertermin-presslinie.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/kunden/k-sued/ms-3p8-abnahme-presslinie.md datei:spec/such-socket/vorfuehr-vault/kunden/k-sued/MS-3P8-abnahme-presslinie.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/projekte/neue-presse-angebote.md datei:spec/such-socket/vorfuehr-vault/projekte/neue-presse-angebote.md
+daten usr/share/werkbank/probelauf/vorfuehr-vault/projekte/umbau-kantine.md datei:spec/such-socket/vorfuehr-vault/projekte/umbau-kantine.md
+daten usr/lib/systemd/user/werkbank-kern.service datei:paket/ubuntu-26.04-x64/werkbank-kern.service
+daten usr/lib/systemd/user/werkbank-bruecke.service datei:paket/ubuntu-26.04-x64/werkbank-bruecke.service
+daten usr/share/werkbank/sbom.cdx.json erzeugt:sbom
+daten etc/apparmor.d/usr.lib.werkbank.werkbank-einschluss datei:paket/ubuntu-26.04-x64/usr.lib.werkbank.werkbank-einschluss

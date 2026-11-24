@@ -1,0 +1,22 @@
+{
+ "beschreibung": "Beide Harness haben einen verbotenen Ordner: keines wird eingetragen, die Datei hat leere `harness` und `programmordner`, zwei Zeilen in der Zustandsdatei (erst copilot, dann pi)",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "copilot": {
+   "programm": "/opt/.secrets-sync/c/copilot",
+   "node": null
+  },
+  "pi": {
+   "programm": "/srv/beispiel/heim/nutzer1/.ssh/pi",
+   "node": null
+  }
+ },
+ "vorher": null,
+ "pruefer_verboten": [
+  "/opt/.secrets-sync/c",
+  "/srv/beispiel/heim/nutzer1/.ssh"
+ ]
+}

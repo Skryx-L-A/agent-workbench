@@ -1,0 +1,27 @@
+{
+ "description": "-k 2 bei fünf passenden Notizen",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Schnecke",
+  "-k",
+  "2",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/garten/schnecke-1.md": "---\ntitle: Schnecke 1\ntype: note\n---\n\nSchnecke Nummer 1 im Beet.\n",
+  "vault/garten/schnecke-2.md": "---\ntitle: Schnecke 2\ntype: note\n---\n\nSchnecke Nummer 2 im Beet.\n",
+  "vault/garten/schnecke-3.md": "---\ntitle: Schnecke 3\ntype: note\n---\n\nSchnecke Nummer 3 im Beet.\n",
+  "vault/garten/schnecke-4.md": "---\ntitle: Schnecke 4\ntype: note\n---\n\nSchnecke Nummer 4 im Beet.\n",
+  "vault/garten/schnecke-5.md": "---\ntitle: Schnecke 5\ntype: note\n---\n\nSchnecke Nummer 5 im Beet.\n",
+  "vektoren.json": "{\"query\": [1, 0, 0], \"notes\": {\"garten/schnecke-1.md\": [0.9, 0.1, 0.0], \"garten/schnecke-2.md\": [0.8, 0.2, 0.0], \"garten/schnecke-3.md\": [0.7, 0.3, 0.0], \"garten/schnecke-4.md\": [0.6, 0.4, 0.0], \"garten/schnecke-5.md\": [0.5, 0.5, 0.0]}}"
+ }
+}

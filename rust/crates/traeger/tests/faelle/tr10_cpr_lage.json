@@ -1,0 +1,44 @@
+{
+ "name": "tr10_cpr_lage",
+ "regeln": [
+  "TR10",
+  "TR14"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Der Träger beantwortet ESC[6n selbst mit ESC[<zeile>;<spalte>R, ab 1 gezählt, aus der Cursorlage seines Rasters: nach Setzen, mit ausstehendem Umbruch in der letzten Spalte, am unteren Rand nach Rücklauf, bei verstecktem Cursor; die Lage ist der Cursor des Zustands plus 1",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha\u001b[3;7H\u001b[6n"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;28Habc\u001b[6n"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nbeta\u001b[6n"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?25l\u001b[2;4H\u001b[6n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

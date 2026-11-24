@@ -1,0 +1,9 @@
+{
+ "exit": 69,
+ "stderr": "lauf.einschluss_fehlt: Einschluss nicht verfuegbar",
+ "agent": "angehalten erzeugt, beendet ohne Lauf",
+ "dienst_ops": [
+  "projekt_neu",
+  "lauf_start"
+ ]
+}

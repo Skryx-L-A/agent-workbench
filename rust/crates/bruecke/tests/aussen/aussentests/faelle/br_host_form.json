@@ -1,0 +1,33 @@
+{
+ "beschreibung": "kein Host-Kopf und zwei Host-Koepfe sind eine kaputte Anfrage: 400",
+ "datensatz": "A",
+ "name": "br_host_form",
+ "regeln": [
+  "BR3"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.1\r\nHost: 127.0.0.1:@port\r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

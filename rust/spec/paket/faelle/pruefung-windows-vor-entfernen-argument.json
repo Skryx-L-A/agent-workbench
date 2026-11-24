@@ -1,0 +1,24 @@
+{
+ "beschreibung": "`--vor-entfernen` gibt es nur unter Ubuntu: unter Windows ein unbekanntes Argument",
+ "form": "pruefung",
+ "aufruf": [
+  "--vor-entfernen"
+ ],
+ "lage": {
+  "plattform": "windows",
+  "konten": 1,
+  "halter": "ok",
+  "wfp": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

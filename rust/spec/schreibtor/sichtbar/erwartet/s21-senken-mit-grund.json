@@ -1,0 +1,135 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "freigabe-noetig",
+    "grund": null,
+    "klasse": "oeffentlich",
+    "kunde": null,
+    "klasse_alt": "intern",
+    "werkzeug": "brain_senken"
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "grund-fehlt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "grund-fehlt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "freigabe-noetig",
+    "grund": null,
+    "klasse": "intern",
+    "kunde": null,
+    "klasse_alt": "kundendaten",
+    "werkzeug": "brain_senken"
+   },
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "kundendaten",
+    "kunde": null,
+    "klasse_alt": "intern",
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "kundendaten",
+    "kunde": null,
+    "klasse_alt": "intern",
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "intern",
+    "kunde": null,
+    "klasse_alt": "intern",
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "kundendaten",
+    "kunde": null,
+    "klasse_alt": "kundendaten",
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "intern",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "oeffentlich",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "grund-fehlt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "grund-fehlt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "stand-abweichend",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "klasse-unbekannt",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "oeffentlich",
+    "kunde": null,
+    "klasse_alt": "intern",
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "abgelehnt",
+    "grund": "person-abweichend",
+    "klasse": null,
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   }
+  ]
+ }
+}

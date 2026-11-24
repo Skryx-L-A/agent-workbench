@@ -1,0 +1,1934 @@
+{
+  "quelle": "Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
+  "zeile": [
+    {
+      "fall": "geloest: Kunde und Klasse der alten Marke",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "09f66c4331cf68fffcd8e03836456eb5d2e3398c711a9c777852ad4729f66528"
+      }
+    },
+    {
+      "fall": "geloest: nur die Klasse bekannt (kunde_alt null)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": null,
+        "kunde_neu": null
+      },
+      "vorher": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":null,\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "c5450cc135e51fe1a1be78d4f4a677ddb88060aabb280a8d5fd22fbb44cfc60d"
+      }
+    },
+    {
+      "fall": "geloest: nur der Kunde bekannt (klasse_alt null)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": null,
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":null,\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "1c52a4ac198aa01830abfc91b3d3a27d18c2d350a17ac6570106bc38679b4136"
+      }
+    },
+    {
+      "fall": "gesenkt: kundendaten nach intern, Kunde bleibt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.gesenkt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": "intern",
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": "k-beispiel"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "6ad3c7bd37e7601d823640572201af596ee07cc160ba830079ad5a4c388e4669"
+      }
+    },
+    {
+      "fall": "gesenkt: Marke ohne Kunde (kunde_alt und kunde_neu null)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.gesenkt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": "intern",
+        "kunde_alt": null,
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":null,\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "01f88205502daaa3e4165fa0c5a650c8e110930da5745c6c7e5490eb9de12f71"
+      }
+    },
+    {
+      "fall": "gesenkt: klasse_alt null, klasse_neu gesetzt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.gesenkt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": null,
+        "klasse_neu": "intern",
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": "k-beispiel"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":null,\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "5ebde0c3bee193724d0c22cdae92407b2cd804ffb88423e1618959e0305285da"
+      }
+    },
+    {
+      "fall": "marke aus 32 Nullen (Grenze der Form)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "00000000000000000000000000000000",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"00000000000000000000000000000000\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "155630135b90ff8e338b156c92e4eaaf47fc0535a44e07a895dd70e97fc342e8"
+      }
+    },
+    {
+      "fall": "Kennung mit 64 Zeichen in klasse_alt (obere Grenze)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "a.b-c_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"a.b-c_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "d967bf05809e28febb3e22c9074d634fe2844b26e1f4f4a1c06108d48a861f9d"
+      }
+    },
+    {
+      "fall": "Aktionsname unbekannt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.entfernt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:aktionsname"
+      }
+    },
+    {
+      "fall": "Aktionsname ausgabe.gesperrt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ausgabe.gesperrt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:aktionsname"
+      }
+    },
+    {
+      "fall": "Aktionsname null",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": null,
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:aktionsname"
+      }
+    },
+    {
+      "fall": "marke mit Grossbuchstaben",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "A1B2C3D4E5F60718293A4B5C6D7E8F90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:marke"
+      }
+    },
+    {
+      "fall": "marke mit 31 Zeichen",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:marke"
+      }
+    },
+    {
+      "fall": "marke mit 33 Zeichen",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f900",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:marke"
+      }
+    },
+    {
+      "fall": "marke leer",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:marke"
+      }
+    },
+    {
+      "fall": "marke null",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": null,
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:marke"
+      }
+    },
+    {
+      "fall": "marke als Pfad",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "/srv/beispiel/projekt",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:marke"
+      }
+    },
+    {
+      "fall": "marke als sha256 (64 hex, etwa ueber einen Pfad)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "cce3566cf211987a942ebb4e2a22d5c366e87ad560bf10dff28863b0c99bf6eb",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:marke"
+      }
+    },
+    {
+      "fall": "marke mit g (kein hex)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "g1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:marke"
+      }
+    },
+    {
+      "fall": "klasse_alt mit Grossbuchstaben",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "Kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:klasse_alt"
+      }
+    },
+    {
+      "fall": "klasse_alt mit Pfad",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "/srv/beispiel",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:klasse_alt"
+      }
+    },
+    {
+      "fall": "klasse_alt leer",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:klasse_alt"
+      }
+    },
+    {
+      "fall": "klasse_neu mit Grossbuchstaben (gesenkt)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.gesenkt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": "Intern",
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": "k-beispiel"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:klasse_neu"
+      }
+    },
+    {
+      "fall": "kunde_alt mit 65 Zeichen",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:kunde_alt"
+      }
+    },
+    {
+      "fall": "kunde_neu mit Leerzeichen (gesenkt)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.gesenkt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": "intern",
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": "k beispiel"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:kunde_neu"
+      }
+    },
+    {
+      "fall": "geloest: kunde_alt und klasse_alt beide null",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": null,
+        "klasse_neu": null,
+        "kunde_alt": null,
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:klasse_alt"
+      }
+    },
+    {
+      "fall": "geloest mit klasse_neu",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": "intern",
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:klasse_neu"
+      }
+    },
+    {
+      "fall": "geloest mit kunde_neu",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": "k-beispiel"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:kunde_neu"
+      }
+    },
+    {
+      "fall": "gesenkt: klasse_neu null",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.gesenkt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": "k-beispiel"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:klasse_neu"
+      }
+    },
+    {
+      "fall": "gesenkt: klasse_neu gleich klasse_alt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.gesenkt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": "kundendaten",
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": "k-beispiel"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:klasse_neu"
+      }
+    },
+    {
+      "fall": "gesenkt: klasse_alt und klasse_neu beide null",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.gesenkt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": null,
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": "k-beispiel"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:klasse_neu"
+      }
+    },
+    {
+      "fall": "gesenkt mit anderem kunde_neu",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.gesenkt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": "intern",
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": "k-anderer"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:kunde_neu"
+      }
+    },
+    {
+      "fall": "gesenkt: kunde_neu null bei kunde_alt gesetzt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.gesenkt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": "intern",
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:kunde_neu"
+      }
+    },
+    {
+      "fall": "gesenkt: kunde_alt null, kunde_neu gesetzt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.gesenkt",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": "intern",
+        "kunde_alt": null,
+        "kunde_neu": "k-beispiel"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:kunde_neu"
+      }
+    },
+    {
+      "fall": "vorher keine 64 hex",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "abc",
+      "erwartet": {
+        "fehler": "feld_ungueltig:vorher"
+      }
+    },
+    {
+      "fall": "Zeit vor 1970",
+      "eingabe": {
+        "zeit_ms": -1,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "zeit_ungueltig"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Aktionsname vor marke",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "x",
+        "marke": "X",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:aktionsname"
+      }
+    },
+    {
+      "fall": "zwei Fehler: marke vor klasse_alt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "X",
+        "klasse_alt": "X",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:marke"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Form vor Kopplung (klasse_alt Form, klasse_neu Kopplung)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "X",
+        "klasse_neu": "intern",
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:klasse_alt"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Kopplung klasse_neu vor kunde_neu",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": "intern",
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": "k-x"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:klasse_neu"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Felder vor vorher",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "X",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "abc",
+      "erwartet": {
+        "fehler": "feld_ungueltig:marke"
+      }
+    },
+    {
+      "fall": "zwei Fehler: vorher vor Zeit",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "abc",
+      "erwartet": {
+        "fehler": "feld_ungueltig:vorher"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Felder vor Zeit",
+      "eingabe": {
+        "zeit_ms": -1,
+        "aktionsname": "ordnermarke.geloest",
+        "marke": "X",
+        "klasse_alt": "kundendaten",
+        "klasse_neu": null,
+        "kunde_alt": "k-beispiel",
+        "kunde_neu": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:marke"
+      }
+    }
+  ],
+  "pruefe": [
+    {
+      "fall": "drei Zeilen geloest, gesenkt, geloest: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"09f66c4331cf68fffcd8e03836456eb5d2e3398c711a9c777852ad4729f66528\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":null,\"kunde_neu\":null,\"marke\":\"0123456789abcdef0123456789abcdef\",\"vorher\":\"4c5e08a2c970a0fe782d2633f3f742d49dfd88ef31fb21d04b0cec96dd01d87f\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"116ca0eca97122a9f6d61132592489dfc65c73df1ba63a78cf83975a49f527b8\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "ordnermarke und gesperrt gemischt in einer Kette: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"09f66c4331cf68fffcd8e03836456eb5d2e3398c711a9c777852ad4729f66528\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"7a2f102c7d45953bffbd3202299a9570ea5f5c32689736511ac3c6a29e7efa38\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"df7fbca5f96ca5a36fe58cda887f88b7881ca6deec786e68f59ff50f8150f197\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "Datei ordnermarke-2026-11.jsonl: gruen",
+      "dateien": [
+        {
+          "name": "ordnermarke-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"09f66c4331cf68fffcd8e03836456eb5d2e3398c711a9c777852ad4729f66528\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@ordnermarke-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"4c5e08a2c970a0fe782d2633f3f742d49dfd88ef31fb21d04b0cec96dd01d87f\",\"ok\":true,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "klasse_neu in Zeile 2 von Hand geaendert: rot in Zeile 3",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"oeffentlich\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"09f66c4331cf68fffcd8e03836456eb5d2e3398c711a9c777852ad4729f66528\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":null,\"kunde_neu\":null,\"marke\":\"0123456789abcdef0123456789abcdef\",\"vorher\":\"4c5e08a2c970a0fe782d2633f3f742d49dfd88ef31fb21d04b0cec96dd01d87f\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"kette_gebrochen\",\"zeile\":3},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "Leerzeichen eingefuegt: nicht kanonisch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\": \"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"09f66c4331cf68fffcd8e03836456eb5d2e3398c711a9c777852ad4729f66528\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"nicht_kanonisch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "letzte Zeile geaendert: ohne --letzte unentdeckt, mit --letzte rot",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"oeffentlich\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"09f66c4331cf68fffcd8e03836456eb5d2e3398c711a9c777852ad4729f66528\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "--letzte",
+        "4c5e08a2c970a0fe782d2633f3f742d49dfd88ef31fb21d04b0cec96dd01d87f",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"letzte_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "zusaetzliches Feld ordner: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"ordner\":\"/srv/beispiel/projekt\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "zusaetzliches Feld ordner_hash: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"ordner_hash\":\"cce3566cf211987a942ebb4e2a22d5c366e87ad560bf10dff28863b0c99bf6eb\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "zusaetzliches Feld titel: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"titel\":\"t\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "zusaetzliches Feld ordner in Zeile 2: rot in Zeile 2",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"ordner\":\"/srv/beispiel/projekt\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld klasse_alt fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld klasse_neu fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld kunde_alt fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld kunde_neu fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld marke fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld ergebnis fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "marke mit Grossbuchstaben: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"A1B2C3D4E5F60718293A4B5C6D7E8F90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "marke mit 31 Zeichen: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "marke mit 33 Zeichen: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f900\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "marke als sha256 (64 hex): form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"cce3566cf211987a942ebb4e2a22d5c366e87ad560bf10dff28863b0c99bf6eb\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "marke als Pfad: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"/srv/beispiel/projekt\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "marke null: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "marke als Zahl: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":5,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "klasse_alt mit Grossbuchstaben: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"Kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "kunde_alt als Zahl: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":5,\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloest mit klasse_neu: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloest mit kunde_neu: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "geloest mit kunde_alt und klasse_alt null: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":null,\"klasse_neu\":null,\"kunde_alt\":null,\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "gesenkt mit klasse_neu gleich klasse_alt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"kundendaten\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "gesenkt mit klasse_neu null: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "gesenkt mit anderem kunde_neu: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-anderer\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "gesenkt mit kunde_neu null: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Ergebnis geloest statt ausgefuehrt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"geloest\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Ergebnis unbekannt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"unbekannt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Ergebnis null: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":null,\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Zeit ohne Millisekunden: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "fassung 3: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":3,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "ohne fassung in brain-Datei: fassung fehlt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"fassung_fehlt\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "ohne fassung in gateway-Datei (1g): form_falsch",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    }
+  ],
+  "anhaengen": [
+    {
+      "fall": "ordnermarke: neue Datei, erste Zeile mit 64 Nullen",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "ordnermarke",
+          "quelle": "ordnermarke",
+          "eingabe": {
+            "zeit_ms": 1794744000000,
+            "aktionsname": "ordnermarke.geloest",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "sha256": "311c3aa470b347d540ac3451f4f3d1fb695b567449763f38577ffcc0117bd901"
+          }
+        }
+      ],
+      "ende": {
+        "ordnermarke.anker.jsonl": "",
+        "ordnermarke-2026-11.jsonl": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "ordnermarke": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"311c3aa470b347d540ac3451f4f3d1fb695b567449763f38577ffcc0117bd901\",\"ok\":true,\"zeilen\":1}\n"
+        }
+      }
+    },
+    {
+      "fall": "ordnermarke: geloest und gesenkt, dann der Wechsel in den Dezember mit Anker",
+      "anfang": {
+        "ordnermarke-2026-11.jsonl": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+      },
+      "aufrufe": [
+        {
+          "art": "ordnermarke",
+          "quelle": "ordnermarke",
+          "eingabe": {
+            "zeit_ms": 1794744005000,
+            "aktionsname": "ordnermarke.gesenkt",
+            "marke": "ffffffffffffffffffffffffffffffff",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": "intern",
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": "k-beispiel"
+          },
+          "erwartet": {
+            "sha256": "820718b1d00c91f97099f234a340092d763ce36a508478e49b66e1f6b52a2497"
+          }
+        },
+        {
+          "art": "ordnermarke",
+          "quelle": "ordnermarke",
+          "eingabe": {
+            "zeit_ms": 1796083200000,
+            "aktionsname": "ordnermarke.geloest",
+            "marke": "0123456789abcdef0123456789abcdef",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": null,
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "sha256": "97ad1984890025b5f5e317560f63ee4066c2bf0370ae602427965250ba77eb73"
+          }
+        },
+        {
+          "art": "ordnermarke",
+          "quelle": "ordnermarke",
+          "eingabe": {
+            "zeit_ms": 1796083200001,
+            "aktionsname": "ordnermarke.gesenkt",
+            "marke": "ffffffffffffffffffffffffffffffff",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": "intern",
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": "k-beispiel"
+          },
+          "erwartet": {
+            "sha256": "1a937264a6c5110246c3597fc14c96f82b2cccc0a08a9159187b08ac2c345f77"
+          }
+        }
+      ],
+      "ende": {
+        "ordnermarke-2026-11.jsonl": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"311c3aa470b347d540ac3451f4f3d1fb695b567449763f38577ffcc0117bd901\",\"zeit\":\"2026-11-15T12:00:05.000Z\"}\n",
+        "ordnermarke.anker.jsonl": "{\"abschnitt\":\"ordnermarke-2026-11.jsonl\",\"bis\":1794744005,\"fassung\":2,\"letzte\":\"820718b1d00c91f97099f234a340092d763ce36a508478e49b66e1f6b52a2497\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n",
+        "ordnermarke-2026-12.jsonl": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":null,\"kunde_neu\":null,\"marke\":\"0123456789abcdef0123456789abcdef\",\"vorher\":\"820718b1d00c91f97099f234a340092d763ce36a508478e49b66e1f6b52a2497\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"97ad1984890025b5f5e317560f63ee4066c2bf0370ae602427965250ba77eb73\",\"zeit\":\"2026-12-01T00:00:00.001Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "ordnermarke": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"1a937264a6c5110246c3597fc14c96f82b2cccc0a08a9159187b08ac2c345f77\",\"ok\":true,\"zeilen\":4}\n"
+        }
+      }
+    },
+    {
+      "fall": "ordnermarke: Felder in der Reihenfolge Aktionsname, marke, Formen, Kopplung",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "ordnermarke",
+          "quelle": "ordnermarke",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "aktionsname": "x",
+            "marke": "X",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:aktionsname"
+          }
+        },
+        {
+          "art": "ordnermarke",
+          "quelle": "ordnermarke",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "aktionsname": "ordnermarke.geloest",
+            "marke": "X",
+            "klasse_alt": "X",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:marke"
+          }
+        },
+        {
+          "art": "ordnermarke",
+          "quelle": "ordnermarke",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "aktionsname": "ordnermarke.geloest",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "X",
+            "klasse_neu": "intern",
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:klasse_alt"
+          }
+        },
+        {
+          "art": "ordnermarke",
+          "quelle": "ordnermarke",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "aktionsname": "ordnermarke.geloest",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": "intern",
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": "k-x"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:klasse_neu"
+          }
+        },
+        {
+          "art": "ordnermarke",
+          "quelle": "ordnermarke",
+          "eingabe": {
+            "zeit_ms": 1795179601000,
+            "aktionsname": "ordnermarke.gesenkt",
+            "marke": "ffffffffffffffffffffffffffffffff",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": "intern",
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": "k-x"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:kunde_neu"
+          }
+        }
+      ],
+      "ende": {},
+      "pruefe_quelle": {
+        "ordnermarke": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":null,\"ok\":true,\"zeilen\":0}\n"
+        }
+      }
+    },
+    {
+      "fall": "ordnermarke: Felder vor Quelle vor Zeit",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "ordnermarke",
+          "quelle": "audit",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "aktionsname": "ordnermarke.geloest",
+            "marke": "X",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:marke"
+          }
+        },
+        {
+          "art": "ordnermarke",
+          "quelle": "audit",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "aktionsname": "ordnermarke.geloest",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:quelle"
+          }
+        },
+        {
+          "art": "ordnermarke",
+          "quelle": "audit",
+          "eingabe": {
+            "zeit_ms": -1,
+            "aktionsname": "ordnermarke.geloest",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:quelle"
+          }
+        },
+        {
+          "art": "ordnermarke",
+          "quelle": "ordnermarke",
+          "eingabe": {
+            "zeit_ms": -1,
+            "aktionsname": "ordnermarke.geloest",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "fehler": "zeit_ungueltig"
+          }
+        }
+      ],
+      "ende": {},
+      "pruefe_quelle": {
+        "ordnermarke": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":null,\"ok\":true,\"zeilen\":0}\n"
+        }
+      }
+    },
+    {
+      "fall": "ordnermarke: Zeit rueckwaerts nach dem Wechsel",
+      "anfang": {
+        "ordnermarke-2026-11.jsonl": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+      },
+      "aufrufe": [
+        {
+          "art": "ordnermarke",
+          "quelle": "ordnermarke",
+          "eingabe": {
+            "zeit_ms": 1796083200000,
+            "aktionsname": "ordnermarke.gesenkt",
+            "marke": "ffffffffffffffffffffffffffffffff",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": "intern",
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": "k-beispiel"
+          },
+          "erwartet": {
+            "sha256": "e4e26ecff85fa8609d4c61303a6566b1cb4c4d3277047a5579a7769325fbda6e"
+          }
+        },
+        {
+          "art": "ordnermarke",
+          "quelle": "ordnermarke",
+          "eingabe": {
+            "zeit_ms": 1794744000009,
+            "aktionsname": "ordnermarke.gesenkt",
+            "marke": "ffffffffffffffffffffffffffffffff",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": "intern",
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": "k-beispiel"
+          },
+          "erwartet": {
+            "fehler": "zeit_rueckwaerts"
+          }
+        }
+      ],
+      "ende": {
+        "ordnermarke-2026-11.jsonl": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n",
+        "ordnermarke.anker.jsonl": "{\"abschnitt\":\"ordnermarke-2026-11.jsonl\",\"bis\":1794744000,\"fassung\":2,\"letzte\":\"311c3aa470b347d540ac3451f4f3d1fb695b567449763f38577ffcc0117bd901\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n",
+        "ordnermarke-2026-12.jsonl": "{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"311c3aa470b347d540ac3451f4f3d1fb695b567449763f38577ffcc0117bd901\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "ordnermarke": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"e4e26ecff85fa8609d4c61303a6566b1cb4c4d3277047a5579a7769325fbda6e\",\"ok\":true,\"zeilen\":2}\n"
+        }
+      }
+    },
+    {
+      "fall": "allgemeines Anhaengen: ordnermarke.* nur in der geschlossenen Form",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "zeile",
+          "quelle": "ordnermarke",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "ordnermarke.geloest",
+            "ergebnis": "ausgefuehrt",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null,
+            "ordner": "/srv/beispiel/projekt"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "ordnermarke",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "ordnermarke.geloest",
+            "ergebnis": "ausgefuehrt",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null,
+            "ordner_hash": "cce3566cf211987a942ebb4e2a22d5c366e87ad560bf10dff28863b0c99bf6eb"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "ordnermarke",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "ordnermarke.geloest",
+            "ergebnis": "ausgefuehrt",
+            "marke": "A1B2C3D4E5F60718293A4B5C6D7E8F90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "ordnermarke",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "ordnermarke.geloest",
+            "ergebnis": "ausgefuehrt",
+            "marke": "1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "ordnermarke",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "ordnermarke.geloest",
+            "ergebnis": "ausgefuehrt",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": "intern",
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "ordnermarke",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "ordnermarke.gesenkt",
+            "ergebnis": "ausgefuehrt",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": "kundendaten",
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": "k-beispiel"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "ordnermarke",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "ordnermarke.gesenkt",
+            "ergebnis": "ausgefuehrt",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": "intern",
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": "k-anderer"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "ordnermarke",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "ordnermarke.geloest",
+            "ergebnis": "unbekannt",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "ordnermarke",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "ordnermarke.geloest",
+            "ergebnis": "ausgefuehrt",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "ordnermarke",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "ordnermarke.geloest",
+            "ergebnis": "ausgefuehrt",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": null,
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": null
+          },
+          "erwartet": {
+            "sha256": "311c3aa470b347d540ac3451f4f3d1fb695b567449763f38577ffcc0117bd901"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "ordnermarke",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "ordnermarke.gesenkt",
+            "ergebnis": "ausgefuehrt",
+            "marke": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "klasse_alt": "kundendaten",
+            "klasse_neu": "intern",
+            "kunde_alt": "k-beispiel",
+            "kunde_neu": "k-beispiel"
+          },
+          "erwartet": {
+            "sha256": "da0758ac907296e3ca6fb77822201fb0ba54d67c80883c16916f1ced46fc1310"
+          }
+        }
+      ],
+      "ende": {
+        "ordnermarke.anker.jsonl": "",
+        "ordnermarke-2026-11.jsonl": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"311c3aa470b347d540ac3451f4f3d1fb695b567449763f38577ffcc0117bd901\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "ordnermarke": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"da0758ac907296e3ca6fb77822201fb0ba54d67c80883c16916f1ced46fc1310\",\"ok\":true,\"zeilen\":2}\n"
+        }
+      }
+    },
+    {
+      "fall": "mehrere Zeilen mit einer ordnermarke-Zeile: gepruefte Form",
+      "anfang": {
+        "ordnermarke-2026-11.jsonl": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+      },
+      "aufrufe": [
+        {
+          "art": "zeilen",
+          "quelle": "ordnermarke",
+          "erwartet_vorher": "311c3aa470b347d540ac3451f4f3d1fb695b567449763f38577ffcc0117bd901",
+          "zeilen": [
+            "{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"ordner\":\"/srv/beispiel/projekt\",\"vorher\":\"311c3aa470b347d540ac3451f4f3d1fb695b567449763f38577ffcc0117bd901\",\"zeit\":\"2026-11-15T12:00:00.020Z\"}"
+          ],
+          "erwartet": {
+            "fehler": "zeile_ungueltig:form_falsch"
+          }
+        },
+        {
+          "art": "zeilen",
+          "quelle": "ordnermarke",
+          "erwartet_vorher": "311c3aa470b347d540ac3451f4f3d1fb695b567449763f38577ffcc0117bd901",
+          "zeilen": [
+            "{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"311c3aa470b347d540ac3451f4f3d1fb695b567449763f38577ffcc0117bd901\",\"zeit\":\"2026-11-15T12:00:00.020Z\"}"
+          ],
+          "erwartet": {
+            "sha256": "5c15be5443bec58abc136c32431611b859abb6e15d1820118a70122cb83d08ac"
+          }
+        }
+      ],
+      "ende": {
+        "ordnermarke-2026-11.jsonl": "{\"aktionsname\":\"ordnermarke.geloest\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":null,\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":null,\"marke\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ordnermarke.gesenkt\",\"ergebnis\":\"ausgefuehrt\",\"fassung\":2,\"klasse_alt\":\"kundendaten\",\"klasse_neu\":\"intern\",\"kunde_alt\":\"k-beispiel\",\"kunde_neu\":\"k-beispiel\",\"marke\":\"ffffffffffffffffffffffffffffffff\",\"vorher\":\"311c3aa470b347d540ac3451f4f3d1fb695b567449763f38577ffcc0117bd901\",\"zeit\":\"2026-11-15T12:00:00.020Z\"}\n",
+        "ordnermarke.anker.jsonl": ""
+      },
+      "pruefe_quelle": {
+        "ordnermarke": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"5c15be5443bec58abc136c32431611b859abb6e15d1820118a70122cb83d08ac\",\"ok\":true,\"zeilen\":2}\n"
+        }
+      }
+    }
+  ]
+}

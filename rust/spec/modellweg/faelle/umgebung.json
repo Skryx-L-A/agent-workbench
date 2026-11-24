@@ -1,0 +1,312 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitt 4 (Stufe 0 vor Schritt 1, F1). umgebung ist die Umgebung des Weiterreichers beim Start (Name: Wert); argv gilt nur, wo es steht. bis_schritt umgebung_gut heisst: Stufe 0 besteht, der Start geht zu Schritt 1 weiter. Der Fehler nennt weder Namen noch Wert der Variablen, nur die feste Zeile.",
+ "faelle": [
+  {
+   "name": "openai-lokal_ssl_cert_file",
+   "beschreibung": "SSL_CERT_FILE allein gesetzt",
+   "betriebsart": "openai-lokal",
+   "umgebung": {
+    "SSL_CERT_FILE": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "openai-lokal_ssl_cert_dir",
+   "beschreibung": "SSL_CERT_DIR allein gesetzt",
+   "betriebsart": "openai-lokal",
+   "umgebung": {
+    "SSL_CERT_DIR": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "openai-lokal_openssl_conf",
+   "beschreibung": "OPENSSL_CONF allein gesetzt",
+   "betriebsart": "openai-lokal",
+   "umgebung": {
+    "OPENSSL_CONF": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "openai-lokal_leer_ssl_cert_file",
+   "beschreibung": "SSL_CERT_FILE leer gesetzt gilt als gesetzt",
+   "betriebsart": "openai-lokal",
+   "umgebung": {
+    "SSL_CERT_FILE": ""
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "openai-lokal_leer_ssl_cert_dir",
+   "beschreibung": "SSL_CERT_DIR leer gesetzt gilt als gesetzt",
+   "betriebsart": "openai-lokal",
+   "umgebung": {
+    "SSL_CERT_DIR": ""
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "openai-lokal_leer_openssl_conf",
+   "beschreibung": "OPENSSL_CONF leer gesetzt gilt als gesetzt",
+   "betriebsart": "openai-lokal",
+   "umgebung": {
+    "OPENSSL_CONF": ""
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "openai-lokal_zwei_zugleich",
+   "beschreibung": "zwei der drei zugleich gesetzt: derselbe Fehler, nur eine Zeile",
+   "betriebsart": "openai-lokal",
+   "umgebung": {
+    "SSL_CERT_FILE": "/srv/beispiel/openssl/x",
+    "OPENSSL_CONF": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "openai-lokal_vor_dem_aufruf",
+   "beschreibung": "die Umgebung wird vor dem Aufruf geprueft: ein ungueltiger Aufruf aendert den Fehler nicht",
+   "betriebsart": "openai-lokal",
+   "umgebung": {
+    "SSL_CERT_DIR": "/srv/beispiel/openssl/x"
+   },
+   "argv": [
+    "--betriebsart",
+    "openai-lokal",
+    "--unbekannt"
+   ],
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "openai-lokal_keine",
+   "beschreibung": "keine der drei gesetzt: der Start geht zu Schritt 1 weiter",
+   "betriebsart": "openai-lokal",
+   "umgebung": {},
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   }
+  },
+  {
+   "name": "openai-lokal_andere_variablen",
+   "beschreibung": "andere Variablen gesetzt: der Start geht weiter",
+   "betriebsart": "openai-lokal",
+   "umgebung": {
+    "PATH": "/usr/bin",
+    "LANG": "C"
+   },
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   }
+  },
+  {
+   "name": "openai-lokal_aehnlich_files",
+   "beschreibung": "SSL_CERT_FILES (mit S) ist eine andere Variable: der Start geht weiter",
+   "betriebsart": "openai-lokal",
+   "umgebung": {
+    "SSL_CERT_FILES": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   }
+  },
+  {
+   "name": "openai-lokal_aehnlich_confx",
+   "beschreibung": "OPENSSL_CONFX ist eine andere Variable: der Start geht weiter",
+   "betriebsart": "openai-lokal",
+   "umgebung": {
+    "OPENSSL_CONFX": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   }
+  },
+  {
+   "name": "kopf-einsetzen_ssl_cert_file",
+   "beschreibung": "SSL_CERT_FILE allein gesetzt",
+   "betriebsart": "kopf-einsetzen",
+   "umgebung": {
+    "SSL_CERT_FILE": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "kopf-einsetzen_ssl_cert_dir",
+   "beschreibung": "SSL_CERT_DIR allein gesetzt",
+   "betriebsart": "kopf-einsetzen",
+   "umgebung": {
+    "SSL_CERT_DIR": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "kopf-einsetzen_openssl_conf",
+   "beschreibung": "OPENSSL_CONF allein gesetzt",
+   "betriebsart": "kopf-einsetzen",
+   "umgebung": {
+    "OPENSSL_CONF": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "kopf-einsetzen_leer_ssl_cert_file",
+   "beschreibung": "SSL_CERT_FILE leer gesetzt gilt als gesetzt",
+   "betriebsart": "kopf-einsetzen",
+   "umgebung": {
+    "SSL_CERT_FILE": ""
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "kopf-einsetzen_leer_ssl_cert_dir",
+   "beschreibung": "SSL_CERT_DIR leer gesetzt gilt als gesetzt",
+   "betriebsart": "kopf-einsetzen",
+   "umgebung": {
+    "SSL_CERT_DIR": ""
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "kopf-einsetzen_leer_openssl_conf",
+   "beschreibung": "OPENSSL_CONF leer gesetzt gilt als gesetzt",
+   "betriebsart": "kopf-einsetzen",
+   "umgebung": {
+    "OPENSSL_CONF": ""
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "kopf-einsetzen_zwei_zugleich",
+   "beschreibung": "zwei der drei zugleich gesetzt: derselbe Fehler, nur eine Zeile",
+   "betriebsart": "kopf-einsetzen",
+   "umgebung": {
+    "SSL_CERT_FILE": "/srv/beispiel/openssl/x",
+    "OPENSSL_CONF": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "kopf-einsetzen_vor_dem_aufruf",
+   "beschreibung": "die Umgebung wird vor dem Aufruf geprueft: ein ungueltiger Aufruf aendert den Fehler nicht",
+   "betriebsart": "kopf-einsetzen",
+   "umgebung": {
+    "SSL_CERT_DIR": "/srv/beispiel/openssl/x"
+   },
+   "argv": [
+    "--betriebsart",
+    "kopf-einsetzen",
+    "--unbekannt"
+   ],
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "kopf-einsetzen_keine",
+   "beschreibung": "keine der drei gesetzt: der Start geht zu Schritt 1 weiter",
+   "betriebsart": "kopf-einsetzen",
+   "umgebung": {},
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   }
+  },
+  {
+   "name": "kopf-einsetzen_andere_variablen",
+   "beschreibung": "andere Variablen gesetzt: der Start geht weiter",
+   "betriebsart": "kopf-einsetzen",
+   "umgebung": {
+    "PATH": "/usr/bin",
+    "LANG": "C"
+   },
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   }
+  },
+  {
+   "name": "kopf-einsetzen_aehnlich_files",
+   "beschreibung": "SSL_CERT_FILES (mit S) ist eine andere Variable: der Start geht weiter",
+   "betriebsart": "kopf-einsetzen",
+   "umgebung": {
+    "SSL_CERT_FILES": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   }
+  },
+  {
+   "name": "kopf-einsetzen_aehnlich_confx",
+   "beschreibung": "OPENSSL_CONFX ist eine andere Variable: der Start geht weiter",
+   "betriebsart": "kopf-einsetzen",
+   "umgebung": {
+    "OPENSSL_CONFX": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   }
+  }
+ ]
+}

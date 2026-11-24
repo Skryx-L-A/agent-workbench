@@ -1,0 +1,11 @@
+{
+ "beschreibung": "im Gerüst fehlt der Weiterreicher; geprüft wird, was gestuft ist",
+ "form": "statisch",
+ "programme": [
+  {
+   "ziel": "usr/lib/werkbank/werkbank-einschluss",
+   "interp": false,
+   "needed": []
+  }
+ ]
+}

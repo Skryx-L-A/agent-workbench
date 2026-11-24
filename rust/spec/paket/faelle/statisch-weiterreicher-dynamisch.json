@@ -1,0 +1,18 @@
+{
+ "beschreibung": "der Weiterreicher ist dynamisch gelinkt (Programminterpreter und Bibliotheken)",
+ "form": "statisch",
+ "programme": [
+  {
+   "ziel": "usr/lib/werkbank/werkbank-einschluss",
+   "interp": false,
+   "needed": []
+  },
+  {
+   "ziel": "usr/lib/werkbank/einschluss-weiter",
+   "interp": true,
+   "needed": [
+    "libc.so.6"
+   ]
+  }
+ ]
+}

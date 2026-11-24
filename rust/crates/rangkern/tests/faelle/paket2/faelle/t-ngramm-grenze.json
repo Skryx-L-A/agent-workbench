@@ -1,0 +1,8 @@
+{
+ "description": "Stämme der Länge 5, 6 und 7: Gramme erst ab 6",
+ "program": "rangkern",
+ "args": [
+  "tokens",
+  "Tomaten Kessel Schrauben Fenster Pflanzen Zwiebeln Vögel"
+ ]
+}

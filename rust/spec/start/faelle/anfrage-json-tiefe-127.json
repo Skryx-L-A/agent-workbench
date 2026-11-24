@@ -1,0 +1,39 @@
+{
+ "beschreibung": "Tiefe 127 (Objekt plus 126 Listen) ist die Grenze: JSON gelesen, erst die Form lehnt x ab",
+ "form": "anfrage",
+ "text": "{\n \"fassung\": 1,\n \"x\": [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],\n \"harness\": \"claude\",\n \"modell\": \"claude-sonnet-5-5\",\n \"route\": \"cloud-beispiel\",\n \"kunde\": \"k-beispiel\",\n \"arbeitsordner\": \"/srv/beispiel/projekt\"\n}\n",
+ "einstellungen": {
+  "fassung": 1,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "vorgabestufe": "kundendaten",
+  "routen": [
+   {
+    "schluessel": "cloud-beispiel",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal-beispiel",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-beispiel",
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ }
+}

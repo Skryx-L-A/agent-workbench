@@ -1,0 +1,220 @@
+{
+ "beschreibung": "Feste Selektoren: jedes data-testid genau einmal, Liste mit Zustand und Code, Zeilen ab 0 als Text, Cursor am Raster.",
+ "datensatz": "A",
+ "name": "se7_selektoren",
+ "regeln": [
+  "SE7"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     },
+     {
+      "code": 0,
+      "harness": "claude",
+      "id": "s-2",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "beendet"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Testid",
+   "testid": "sitzung-liste"
+  },
+  {
+   "art": "Testid",
+   "testid": "sitzung-start"
+  },
+  {
+   "art": "Testid",
+   "testid": "harness-wahl"
+  },
+  {
+   "art": "Testid",
+   "testid": "route-wahl"
+  },
+  {
+   "art": "Testid",
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Testid",
+   "testid": "kunde-wahl"
+  },
+  {
+   "art": "Testid",
+   "testid": "arbeitsordner-eingabe"
+  },
+  {
+   "art": "Testid",
+   "testid": "terminal-raster"
+  },
+  {
+   "art": "Testid",
+   "testid": "eingabe"
+  },
+  {
+   "art": "Testid",
+   "testid": "eingabe-senden"
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler"
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-code"
+  },
+  {
+   "art": "Testid",
+   "testid": "fehler-text"
+  },
+  {
+   "art": "Testid",
+   "optionen_enthaelt": [
+    "ohne Kunde"
+   ],
+   "testid": "kunde-wahl"
+  },
+  {
+   "art": "Testid",
+   "attribute": {
+    "data-code": null,
+    "data-zustand": "laeuft"
+   },
+   "testid": "sitzung-s-1"
+  },
+  {
+   "art": "Testid",
+   "attribute": {
+    "data-code": "0",
+    "data-zustand": "beendet"
+   },
+   "testid": "sitzung-s-2"
+  },
+  {
+   "art": "Testid",
+   "attribute": {
+    "data-cursor": "0,2,true"
+   },
+   "testid": "terminal-raster"
+  },
+  {
+   "art": "Testid",
+   "testid": "terminal-zeile-0",
+   "text": "$"
+  },
+  {
+   "art": "Testid",
+   "testid": "terminal-zeile-7",
+   "text": ""
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "terminal-zeile-8"
+  },
+  {
+   "art": "Raster",
+   "hex": "0501020201040001000000010101000c417573676162652065696e73"
+  },
+  {
+   "art": "Testid",
+   "testid": "terminal-zeile-1",
+   "text": "Ausgabe eins"
+  },
+  {
+   "art": "Testid",
+   "attribute": {
+    "data-cursor": "1,4,false"
+   },
+   "testid": "terminal-raster"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "code": 1,
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "beendet"
+     },
+     {
+      "code": 0,
+      "harness": "claude",
+      "id": "s-2",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "beendet"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Testid",
+   "attribute": {
+    "data-code": "1",
+    "data-zustand": "beendet"
+   },
+   "testid": "sitzung-s-1"
+  }
+ ]
+}

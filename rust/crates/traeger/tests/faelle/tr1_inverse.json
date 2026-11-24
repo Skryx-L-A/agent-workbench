@@ -1,0 +1,22 @@
+{
+ "name": "tr1_inverse",
+ "regeln": [
+  "TR1"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Das Attribut invers ist Bit 16; die Farben bleiben unvertauscht in der Zeilenform",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[7malpha\u001b[27m beta\u001b[0m\r\n\u001b[7;31;42mfarbig\u001b[0m"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

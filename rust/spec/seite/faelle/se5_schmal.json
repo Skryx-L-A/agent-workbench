@@ -1,0 +1,93 @@
+{
+ "beschreibung": "Schmale Breite: keine waagerechte Seitenleiste, auch mit einer Zeile breiter als das Fenster; Bedienziele mindestens 44 px.",
+ "datensatz": "A",
+ "fenster": {
+  "beruehrung": true,
+  "breite": 360,
+  "hoehe": 640,
+  "mobil": true
+ },
+ "name": "se5_schmal",
+ "regeln": [
+  "SE5"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Layout",
+   "kein_waagerecht": true,
+   "ziele_mindestens": 44
+  },
+  {
+   "art": "Raster",
+   "hex": "0501040278040100000002000100787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878780101000124"
+  },
+  {
+   "art": "Zeilen",
+   "erwartet": [
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "$",
+    "",
+    ""
+   ]
+  },
+  {
+   "art": "Layout",
+   "kein_waagerecht": true,
+   "ziele_mindestens": 44
+  }
+ ]
+}

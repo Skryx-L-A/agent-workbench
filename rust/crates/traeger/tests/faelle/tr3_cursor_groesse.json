@@ -1,0 +1,66 @@
+{
+ "name": "tr3_cursor_groesse",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Größenänderung: Der Cursor folgt dem Raster (Zeilen in den Rücklauf, Umbruch der Spalten); der Träger meldet ihn, wenn er von dem abweicht, was der Kern nach Klemmen auf die neue Größe hat",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha 0\r\nbeta 1\r\ngamma 2\r\ndelta 3\r\nepsilon 4\r\nzeta 5\r\nalpha 6\r\nbeta 7"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 30,
+   "zeilen": 5
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 30,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 18,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 30,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1Hxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 25,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

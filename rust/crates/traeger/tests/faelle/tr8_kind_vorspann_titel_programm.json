@@ -1,0 +1,39 @@
+{
+ "name": "tr8_kind_vorspann_titel_programm",
+ "regeln": [
+  "TR8",
+  "TR16"
+ ],
+ "datensatz": "A",
+ "beschreibung": "W7, nur Windows: Der einzige Titel ist der des Programms (OSC 2 des Kindes), nicht der Vorspann-Titel von ConPTY: genau ein Ereignis Titel",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "titel",
+  "argv": [
+   "Werkbank_eins"
+  ],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ],
+ "system": [
+  "windows"
+ ]
+}

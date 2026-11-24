@@ -1,0 +1,5 @@
+{
+ "exit": 75,
+ "stderr": "loeschen.ausnahme_bleibt: Ausnahme nicht entfernt, Sperre bleibt",
+ "danach": "Ausnahme und Sperre stehen, Freigaben und Profil bleiben"
+}

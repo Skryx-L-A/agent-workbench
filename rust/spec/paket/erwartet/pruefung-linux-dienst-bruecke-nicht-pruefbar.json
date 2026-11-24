@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.dienst_nicht_pruefbar: Der Dienst werkbank-bruecke.service war nicht pruefbar.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

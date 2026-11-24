@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "snippet": "--- title: Halb type: note",
+  "lines": [
+   1,
+   3
+  ],
+  "hook": "---",
+  "hook_lines": [
+   1,
+   1
+  ]
+ }
+}

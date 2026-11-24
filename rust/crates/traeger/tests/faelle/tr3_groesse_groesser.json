@@ -1,0 +1,34 @@
+{
+ "name": "tr3_groesse_groesser",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Größer werden: neue leere Zeilen unten, vorhandene Zeilen unverändert",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha 0\r\nbeta 1\r\ngamma 2\r\ndelta 3\r\nepsilon 4\r\nzeta 5"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 37,
+   "zeilen": 12
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[12;1Hunten"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

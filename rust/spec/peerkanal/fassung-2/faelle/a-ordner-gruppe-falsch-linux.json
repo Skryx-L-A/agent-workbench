@@ -1,0 +1,39 @@
+{
+ "fassung": 2,
+ "beschreibung": "Ordner 0750 mit einer anderen Gruppe als ordner_gruppe",
+ "art": "aussentest",
+ "ort": [
+  "linux"
+ ],
+ "konten": {
+  "uid_halter": 1000000103,
+  "uid_person": 1000000101,
+  "g_hub": 1000000211,
+  "g_bruecke": 1000000212,
+  "ordner": "/k-beispiel/run/wb-halter/hub"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "uid": 1000000101,
+    "gruppe": 1000000211
+   }
+  ],
+  "instanzen": 4,
+  "unix": {
+   "ordner": "/k-beispiel/run/wb-halter/hub",
+   "modus": "0666",
+   "ordner_gruppe": 1000000211
+  }
+ },
+ "client": null,
+ "aufbau": [
+  "Server läuft unter uid_halter",
+  "ordner gehört uid_halter:g_bruecke mit Modus 0750"
+ ],
+ "handlung": [
+  "Server::anlegen",
+  "danach derselbe Aufruf mit ordner uid_halter:g_hub und Modus 0700"
+ ]
+}

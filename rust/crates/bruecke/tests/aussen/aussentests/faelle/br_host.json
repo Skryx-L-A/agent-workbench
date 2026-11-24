@@ -1,0 +1,111 @@
+{
+ "beschreibung": "GET / mit verschiedenen Host-Koepfen: nur 127.0.0.1:<port> und localhost:<port> gehen, alles andere 403 ohne Inhalt",
+ "datensatz": "A",
+ "name": "br_host",
+ "regeln": [
+  "BR3"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "host": "boese.example:@port",
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "127.0.0.1:1",
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "127.0.0.1",
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "LOCALHOST:@port",
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "evil127.0.0.1:@port",
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "[::1]:@port",
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "localhost:@port",
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "127.0.0.1:@port",
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "",
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "127.0.0.1:@port, boese.example",
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

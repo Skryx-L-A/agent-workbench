@@ -1,0 +1,10 @@
+{
+ "exit": 73,
+ "stderr": "lauf.zielliste: Zielliste nicht schreibbar",
+ "suche_gestartet": true,
+ "suche_beendet": true,
+ "modellweg_gestartet": false,
+ "datei_unveraendert": [
+  "/var/lib/werkbank/beispiel/sitzungen/s-3.zielliste.json"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "beschreibung": "zwei Tokens im Feld: keine Wahl",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "zwei-tokens",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

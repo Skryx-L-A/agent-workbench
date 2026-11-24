@@ -1,0 +1,8 @@
+{
+ "beschreibung": "beide Dateien wurden mit einem anderen Werkzeug neu geschrieben (Zeilen, Tabulator, CR LF, Leerzeichen um den Doppelpunkt): beide Werte bleiben",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "vorher_kern": "{\r\n\t\"lauf\": {\r\n\t\t\"groesse\"\t:\r\n\t\t[ 132 ,\n 43 ]\r\n\t}\r\n}\r\n",
+ "vorher_bruecke": "{\n \"dienst\": {},\n \"port\"\n :\n 9001\n}\n"
+}

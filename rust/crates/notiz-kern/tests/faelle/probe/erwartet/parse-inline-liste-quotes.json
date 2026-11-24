@@ -1,0 +1,35 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "aliases: [\"A, B\", 'c', , d ]\ntags: []"
+  ],
+  "fields": {
+   "aliases": [
+    "A",
+    "B",
+    "c",
+    "d"
+   ],
+   "tags": []
+  },
+  "body": "Text\n",
+  "title": "note",
+  "type": "note",
+  "aliases": [
+   "A",
+   "B",
+   "c",
+   "d"
+  ],
+  "links": [],
+  "keys": [
+   "a",
+   "b",
+   "c",
+   "d",
+   "note"
+  ],
+  "embed_text": "note\naliases: A, B, c, d\n\nText\n"
+ }
+}

@@ -1,0 +1,9 @@
+{
+ "beschreibung": "W12 fall",
+ "form": "vm",
+ "eigenschaft": "W12",
+ "art": "fall",
+ "ausgangslage": "Windows-VM; Plattformdienst unter NT SERVICE mit den fünf ACEs, Admin-Helfer unter LocalSystem; Projekt A mit Arbeitsordner unter der Projektwurzel; ein Lauf in A mit Claude Code (PowerShell-Werkzeug) gegen die Attrappe des Modellwegs hinter einem Weiterleiter auf dem Sitzungsport M; die Browser-Brücke des Kern-Dienstes hört auf dem Loopback des Rechners; ssh-Stummel vorn im PATH, SSH_AUTH_SOCK leer; Lauf s-1 lebt",
+ "handlung": "einschluss-loeschen für A, dann Ende von s-1, dann einschluss-loeschen bei gestopptem Helfer, dann mit Helfer, dann ein zweites Mal",
+ "beleg": "gemessen: Frage 11 (3); nicht gemessen: Wiederholung ohne Sublayer"
+}

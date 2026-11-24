@@ -1,0 +1,39 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "garten/quelle.md",
+    "score": 1.0,
+    "title": "Bewässerung",
+    "snippet": "Das Beet braucht Wasser am Morgen.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.8,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 2
+   },
+   {
+    "rel": "30-topics/bewaesserung.md",
+    "score": 0.4852941176470588,
+    "title": "Themenseite Bewässerung",
+    "snippet": "Bewässerung Beet Wasser Morgen Bewässerung.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "hybrid",
+    "cosine": 1.0,
+    "bm25_rang": 2,
+    "bm25_norm": 0.8082722321070047,
+    "vektor_rang": 1,
+    "derived": true
+   }
+  ]
+ }
+}

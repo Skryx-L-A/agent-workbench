@@ -1,0 +1,38 @@
+{
+ "name": "tr3_auf_zwei_spalten",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Größenwechsel auf zwei Spalten, wenn breite Zeichen im Hauptraster stehen: Das Raster bricht um, wie es alacritty_terminal tut; kein Absturz, keine Endlosschleife; zurück zur vollen Breite",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "ab漢cd\r\n漢字漢\r\nalpha 0\r\nbeta 1\r\ngamma 2"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 2,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 30,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

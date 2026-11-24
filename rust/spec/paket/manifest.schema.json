@@ -1,0 +1,42 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "werkbank:paket/manifest/fassung-1",
+ "title": "Paket-Manifest, Fassung 1",
+ "description": "Form des Manifests (manifest.json im Produktordner). Nicht im Schema: Größe, BOM, doppelte JSON-Schlüssel, Zahlenbereich der Version, Regeln der Pfadsegmente, doppelte Pfade und Merkmale, verbotene Merkmale, Pflichtdateien und der Fehlercode. Siehe README.md.",
+ "type": "object",
+ "additionalProperties": false,
+ "required": ["fassung", "paket", "version", "plattform", "bau", "merkmale", "dateien", "bibliotheken"],
+ "properties": {
+  "fassung": {"const": 1},
+  "paket": {"const": "werkbank"},
+  "version": {"type": "string", "pattern": "^(0|[1-9][0-9]{0,2})\\.(0|[1-9][0-9]{0,2})\\.(0|[1-9][0-9]{0,4})$"},
+  "plattform": {"enum": ["windows-x64", "ubuntu-26.04-x64", "macos-arm64"]},
+  "bau": {"enum": ["auslieferung", "test"]},
+  "merkmale": {
+   "description": "Die Cargo-Merkmale, mit denen das Paket gebaut wurde. Im Auslieferungsbau ist `attrappe` und jedes Merkmal mit dem Anfang `test` verboten.",
+   "type": "array", "maxItems": 16,
+   "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"}
+  },
+  "dateien": {
+   "type": "array", "minItems": 1, "maxItems": 2000,
+   "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["pfad", "groesse", "sha256", "art"],
+    "properties": {
+     "pfad": {"$ref": "#/$defs/pfad"},
+     "groesse": {"type": "integer", "minimum": 0, "maximum": 2147483647},
+     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+     "art": {"enum": ["programm", "dienst", "daten", "lizenz"]}
+    }
+   }
+  },
+  "bibliotheken": {"description": "Zahl der Bibliotheken in lizenzen/sbom.cdx.json.", "type": "integer", "minimum": 1, "maximum": 100000}
+ },
+ "$defs": {
+  "pfad": {
+   "description": "Relativ zum Produktordner, Trenner `/`, Kleinbuchstaben (nur unter macOS auch Großbuchstaben, weil `/Library` so heißt; das prüft die Referenz, nicht das Schema). Die Segmentregeln (nicht `.`, nicht `..`, kein Punkt am Ende, kein reservierter Windows-Name, höchstens 200 Zeichen, nicht `manifest.json`) prüft die Referenz, nicht das Schema.",
+   "type": "string", "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$", "maxLength": 200
+  }
+ }
+}

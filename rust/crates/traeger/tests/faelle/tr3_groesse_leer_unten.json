@@ -1,0 +1,55 @@
+{
+ "name": "tr3_groesse_leer_unten",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Eine Größenänderung ohne geänderte Zeilen meldet keine Ausgabe; der Kern kürzt und füllt seine Zeilen selbst (abbild_gleich bleibt wahr)",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha\r\nbeta"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 30,
+   "zeilen": 5
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 34,
+   "zeilen": 5
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 34,
+   "zeilen": 13
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[13;1Hgamma"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 34,
+   "zeilen": 7
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Zielordner fehlt",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "ordner-fehlt",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

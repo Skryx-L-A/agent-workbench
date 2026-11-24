@@ -1,0 +1,12 @@
+{
+ "description": "leerer Auszug, lines und hook_lines sind null",
+ "program": "rangkern",
+ "files": {
+  "note.md": ""
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "Kaffee"
+ ]
+}

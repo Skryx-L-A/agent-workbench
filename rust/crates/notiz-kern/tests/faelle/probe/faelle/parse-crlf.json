@@ -1,0 +1,10 @@
+{
+ "description": "CRLF line endings are read as LF",
+ "files": {
+  "note.md": "---\r\ntitle: Windows\r\ntype: note\r\naliases: [Fenster]\r\n---\r\n\r\nZeile eins\r\nZeile zwei\r\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

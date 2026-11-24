@@ -1,0 +1,23 @@
+{
+ "description": "valid-until 2026-09 am 30.09.: noch gültig, kein Feld status",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "--today",
+  "2026-09-30",
+  "Stromvertrag Oekostrom"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-5.md": "---\ntitle: Füller 5\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-6.md": "---\ntitle: Füller 6\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-7.md": "---\ntitle: Füller 7\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-8.md": "---\ntitle: Füller 8\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/haus/vertrag.md": "---\ntitle: Stromvertrag\ntype: note\nvalid-until: 2026-09\n---\n\nStromvertrag Tarif Oekostrom, Tarif gilt bis September.\n",
+  "vault/haus/tarif-neu.md": "---\ntitle: Tarif neu\ntype: note\n---\n\nOekostrom Tarif fuer Haushalte, Tarif Oekostrom Vergleich.\n"
+ }
+}

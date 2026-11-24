@@ -1,0 +1,1720 @@
+{
+  "quelle": "Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
+  "zeile": [
+    {
+      "fall": "Grund pk.hallo_fehlt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.hallo_fehlt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.hallo_fehlt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "866626834b2265e4c2dc45b16e8748319dfa40d86b180897d268eecfdfa12cdb"
+      }
+    },
+    {
+      "fall": "Grund pk.hallo_falsch",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.hallo_falsch",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.hallo_falsch\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "214128f4370dc43e9322ce487b59f0e7774bba3bfcd94d8af90eabe7d9399d87"
+      }
+    },
+    {
+      "fall": "Grund pk.messung_gescheitert",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.messung_gescheitert",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.messung_gescheitert\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "1077141dccf1c7eef7a17d57bbe21618f1c8fe58a9ce5db80cbdc630ff8cf4e3"
+      }
+    },
+    {
+      "fall": "Grund pk.prozess_nicht_offen",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.prozess_nicht_offen",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.prozess_nicht_offen\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "898c8dafbd3eac264dcffef7f156e4cd3f6c1208990679dcd4a9aa7b41f77867"
+      }
+    },
+    {
+      "fall": "Grund pk.job_unbekannt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.job_unbekannt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.job_unbekannt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "4bcbb18a236cd7f9ac4be604bb7c08d54e3d7ba8cfb339e7884a948e3e465b80"
+      }
+    },
+    {
+      "fall": "Grund pk.prozess_beendet",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.prozess_beendet",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.prozess_beendet\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "8399e7b93d25defb0c15af50fd176e8be08293592aa6bee8f89c0bafb34922da"
+      }
+    },
+    {
+      "fall": "Grund pk.startzeit_weicht_ab",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.startzeit_weicht_ab",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.startzeit_weicht_ab\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "a04f66919b372193724e516b7e5e995f6999f7bc22449112e653617a4c0ee4e5"
+      }
+    },
+    {
+      "fall": "Grund pk.pidversion_weicht_ab",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.pidversion_weicht_ab",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.pidversion_weicht_ab\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "ea4a7899d73afcbe12ef91c1b4c8f4de50e523e4ae7f620cecd60c6f6eb0600b"
+      }
+    },
+    {
+      "fall": "Grund pk.eingeschraenkt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.eingeschraenkt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.eingeschraenkt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "84feb23fd017bd110307876301c5476824963beebb0dfddf609ab1b3a57309c5"
+      }
+    },
+    {
+      "fall": "Grund pk.sid_nicht_erlaubt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "bdb58bfd34ee95c79e2773715ed884b30a0dfb6c1f14a5255857cb12d55a312f"
+      }
+    },
+    {
+      "fall": "Grund pk.appcontainer_falsch",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.appcontainer_falsch",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.appcontainer_falsch\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "58f048163891c7ad301313ca672c5cc5af69d813a6dae0657b90543113d2fca4"
+      }
+    },
+    {
+      "fall": "Grund pk.uid_nicht_erlaubt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.uid_nicht_erlaubt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.uid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "a43f77300ef01fbc9a05d356271157a10a2f3c8b49ca9ad71771da6b594bcb1b"
+      }
+    },
+    {
+      "fall": "Grund pk.gid_falsch",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.gid_falsch",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.gid_falsch\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "7d4e776490f42b92fd800972d4d31dd9fc3851932b3f222fdf6b2ba40b4cd362"
+      }
+    },
+    {
+      "fall": "Grund such.dienst_stumm bei Kanal such",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "such.dienst_stumm",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"such.dienst_stumm\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "e412d29236e5495da7a633381cccca97e051ed9e45025bab256b8e225ae2f45f"
+      }
+    },
+    {
+      "fall": "Grund such.lauf_unbekannt bei Kanal such",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "such.lauf_unbekannt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"such.lauf_unbekannt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "a8d5be4431e8340bc2069e34b9289ad994baa6a057a1b4bdcd4e7f066c7a316f"
+      }
+    },
+    {
+      "fall": "Grund such.sitzung_fremd bei Kanal such",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "such.sitzung_fremd",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"such.sitzung_fremd\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "eb182ae13c56f66252baffa7b7f3add96970ac90661afc4702e4d8ea51a42282"
+      }
+    },
+    {
+      "fall": "Grund such.kennung_fremd bei Kanal such",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "such.kennung_fremd",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"such.kennung_fremd\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "79207b0cb2413199c4312dfd9c648c17d1803171b9d1be734720711c86f04394"
+      }
+    },
+    {
+      "fall": "Grund such.kennung_unmessbar bei Kanal such",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "such.kennung_unmessbar",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"such.kennung_unmessbar\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "1c2cb17a27c5008a294ab32e99675496fd8ddfd9a4fd33ea2c204f4c14b2cd18"
+      }
+    },
+    {
+      "fall": "pk.sid_nicht_erlaubt bei Kanal stelle",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "stelle",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"stelle\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "d5a91bd00ed773cbb7c21855e66406dd07dbbdbae65d6246224ce66acc83da96"
+      }
+    },
+    {
+      "fall": "pk.hallo_fehlt bei Kanal weiterreicher",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.hallo_fehlt",
+        "kanal": "weiterreicher",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.hallo_fehlt\",\"kanal\":\"weiterreicher\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "d9c78e5c68ebff737f1958ff9656a4615bca600e308ff2c59775237b38ad1c32"
+      }
+    },
+    {
+      "fall": "such.sitzung_fremd bei Kanal stelle: abgelehnt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "such.sitzung_fremd",
+        "kanal": "stelle",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "such.dienst_stumm bei Kanal weiterreicher: abgelehnt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "such.dienst_stumm",
+        "kanal": "weiterreicher",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "such.kennung_fremd bei Kanal stelle: abgelehnt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "such.kennung_fremd",
+        "kanal": "stelle",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "such.hallo_fehlt bei Kanal such (nicht in der Liste): abgelehnt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "such.hallo_fehlt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "stelle.dienst_stumm bei Kanal stelle (stelle hat keine eigenen Gruende): abgelehnt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "stelle.dienst_stumm",
+        "kanal": "stelle",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "Grund mit Kanal als Vorsilbe bei einem Kanal ohne Gruende (x.y): abgelehnt",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "x.y",
+        "kanal": "x",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "Grund such.* und Kanal ungueltig: der Grund zuerst",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "such.sitzung_fremd",
+        "kanal": "X",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "Route und Sitzung null",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "such",
+        "route": null,
+        "sitzung": null
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":null,\"sitzung\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "b5f46544b4faffbe9ddbed1b081cc95c5e400df0ffae90f419d217aa4399ae9d"
+      }
+    },
+    {
+      "fall": "nur die Route null, Kanal weiterreicher",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "weiterreicher",
+        "route": null,
+        "sitzung": "s-1"
+      },
+      "vorher": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"weiterreicher\",\"route\":null,\"sitzung\":\"s-1\",\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "b9d14a281d5388d715f6e2a0bf8af72cd93efb9d5a399653c45855cb3d9807d4"
+      }
+    },
+    {
+      "fall": "nur die Sitzung null, Kanal stelle",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "stelle",
+        "route": "cloud-beispiel",
+        "sitzung": null
+      },
+      "vorher": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"stelle\",\"route\":\"cloud-beispiel\",\"sitzung\":null,\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "5b918cfece27155c8a6a8ce38b1205bd1bcd357950f3241c0516d513eae6b710"
+      }
+    },
+    {
+      "fall": "Schluessel mit 64 Zeichen",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "a.b-c_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "route": "cloud-beispiel",
+        "sitzung": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"a.b-c_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"route\":\"cloud-beispiel\",\"sitzung\":\"ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "2b59a4c652386227bb99283d8ffbca8ea4f331f9cbe60cfa39806fa61520db09"
+      }
+    },
+    {
+      "fall": "Grund nicht aus der Liste",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.fremd",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "Grund der frueheren Liste peer.sid_fremd",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "peer.sid_fremd",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "Grund leer",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "Grund mit Grossbuchstaben",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "PK.sid_nicht_erlaubt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "Grund der anderen Zeilenart",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "kundendaten-an-cloud",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "Grund null",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": null,
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "Kanal mit Grossbuchstaben",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "Such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:kanal"
+      }
+    },
+    {
+      "fall": "Kanal leer",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:kanal"
+      }
+    },
+    {
+      "fall": "Kanal null",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": null,
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:kanal"
+      }
+    },
+    {
+      "fall": "Route mit Grossbuchstaben",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "such",
+        "route": "Cloud",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:route"
+      }
+    },
+    {
+      "fall": "Route leer",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "such",
+        "route": "",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:route"
+      }
+    },
+    {
+      "fall": "Sitzung mit Leerzeichen",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s 1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:sitzung"
+      }
+    },
+    {
+      "fall": "Sitzung mit 65 Zeichen",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:sitzung"
+      }
+    },
+    {
+      "fall": "vorher keine 64 hex",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "abc",
+      "erwartet": {
+        "fehler": "feld_ungueltig:vorher"
+      }
+    },
+    {
+      "fall": "Zeit vor 1970",
+      "eingabe": {
+        "zeit_ms": -1,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "zeit_ungueltig"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Grund vor Kanal",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "x",
+        "kanal": "X",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:grund"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Kanal vor Route",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "X",
+        "route": "X",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:kanal"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Route vor Sitzung",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "such",
+        "route": "X",
+        "sitzung": "X"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:route"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Sitzung vor vorher",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "such",
+        "route": "cloud-beispiel",
+        "sitzung": "X"
+      },
+      "vorher": "abc",
+      "erwartet": {
+        "fehler": "feld_ungueltig:sitzung"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Felder vor Zeit",
+      "eingabe": {
+        "zeit_ms": -1,
+        "grund": "pk.sid_nicht_erlaubt",
+        "kanal": "X",
+        "route": "cloud-beispiel",
+        "sitzung": "s-1"
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:kanal"
+      }
+    }
+  ],
+  "pruefe": [
+    {
+      "fall": "drei abgewiesen-Zeilen: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.hallo_falsch\",\"kanal\":\"such\",\"route\":null,\"sitzung\":null,\"vorher\":\"bdb58bfd34ee95c79e2773715ed884b30a0dfb6c1f14a5255857cb12d55a312f\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.gid_falsch\",\"kanal\":\"stelle\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"86c11fecae568e07cdfddc56381c5ddab022e811905f3d0057c4107e2928fc5e\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"f0c4595c15526e36f06b5898f16142aad4227207d8e4fe4174cc795842a45101\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "abgewiesen und gesperrt gemischt in einer Kette: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"bdb58bfd34ee95c79e2773715ed884b30a0dfb6c1f14a5255857cb12d55a312f\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.gid_falsch\",\"kanal\":\"stelle\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"8f5cc605428e80ddf8f86c30b60ffd3b11571a3756b6d60b5f92fb9818cb67c6\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"db95bfa51b1b9f378f49e36a6f41ac4b66924049950414fcd8cb22706e1add0c\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "Grund in Zeile 2 von Hand geaendert: rot in Zeile 3",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.job_unbekannt\",\"kanal\":\"such\",\"route\":null,\"sitzung\":null,\"vorher\":\"bdb58bfd34ee95c79e2773715ed884b30a0dfb6c1f14a5255857cb12d55a312f\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.gid_falsch\",\"kanal\":\"stelle\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"86c11fecae568e07cdfddc56381c5ddab022e811905f3d0057c4107e2928fc5e\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"kette_gebrochen\",\"zeile\":3},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "Leerzeichen eingefuegt: nicht kanonisch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.hallo_falsch\",\"kanal\": \"such\",\"route\":null,\"sitzung\":null,\"vorher\":\"bdb58bfd34ee95c79e2773715ed884b30a0dfb6c1f14a5255857cb12d55a312f\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"nicht_kanonisch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "zusaetzliches Feld sid, sonst richtig: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.hallo_falsch\",\"kanal\":\"such\",\"route\":null,\"sid\":\"S-1-5\",\"sitzung\":null,\"vorher\":\"bdb58bfd34ee95c79e2773715ed884b30a0dfb6c1f14a5255857cb12d55a312f\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "zusaetzliches Feld konto: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"konto\":\"x\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld grund fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld kanal fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld route fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld sitzung fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Grund nicht aus der Liste: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.fremd\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Grund kein Text: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":5,\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "such.sitzung_fremd bei Kanal such: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"such.sitzung_fremd\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"eb182ae13c56f66252baffa7b7f3add96970ac90661afc4702e4d8ea51a42282\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "pk.sid_nicht_erlaubt bei Kanal stelle: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"stelle\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"d5a91bd00ed773cbb7c21855e66406dd07dbbdbae65d6246224ce66acc83da96\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "such.sitzung_fremd bei Kanal stelle: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"such.sitzung_fremd\",\"kanal\":\"stelle\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "such.hallo_fehlt bei Kanal such: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"such.hallo_fehlt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Grund der frueheren Liste peer.sid_fremd: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"peer.sid_fremd\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Kanal mit Grossbuchstaben: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"Such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Route kein Text und nicht null: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":5,\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Sitzung mit Leerzeichen: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s 1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Ergebnis gesperrt statt abgewiesen: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Zeit ohne Millisekunden: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "fassung 3: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":3,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "ohne fassung in brain-Datei: fassung fehlt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"fassung_fehlt\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "ohne fassung in gateway-Datei (1g): form_falsch, die Zeile ist nur in Fassung 2 gueltig",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "--letzte mit abgewiesen-Zeilen: rot bei geaenderter letzter Zeile",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.hallo_falsch\",\"kanal\":\"such\",\"route\":null,\"sitzung\":null,\"vorher\":\"bdb58bfd34ee95c79e2773715ed884b30a0dfb6c1f14a5255857cb12d55a312f\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.gid_falsch\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"86c11fecae568e07cdfddc56381c5ddab022e811905f3d0057c4107e2928fc5e\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "--letzte",
+        "f0c4595c15526e36f06b5898f16142aad4227207d8e4fe4174cc795842a45101",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"letzte_falsch\",\"zeile\":3},\"letzte\":null,\"ok\":false,\"zeilen\":3}\n"
+      }
+    }
+  ],
+  "anhaengen": [
+    {
+      "fall": "abgewiesen: neue Datei, erste Zeile mit 64 Nullen",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "sha256": "bdb58bfd34ee95c79e2773715ed884b30a0dfb6c1f14a5255857cb12d55a312f"
+          }
+        }
+      ],
+      "ende": {
+        "brain.anker.jsonl": "",
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"bdb58bfd34ee95c79e2773715ed884b30a0dfb6c1f14a5255857cb12d55a312f\",\"ok\":true,\"zeilen\":1}\n"
+        }
+      }
+    },
+    {
+      "fall": "abgewiesen und gesperrt hintereinander, dann der Wechsel in den Dezember mit Anker",
+      "anfang": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+      },
+      "aufrufe": [
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1794744005000,
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "sha256": "265a1079964cdd9e0bdd12611b07de1673cb214094aeceb9002574079f22ccd9"
+          }
+        },
+        {
+          "art": "gesperrt",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1794744006000,
+            "route": "cloud-beispiel",
+            "sitzung": "s-0001",
+            "grund": "kundendaten-an-cloud",
+            "klasse": "kundendaten",
+            "kunde": "k-beispiel",
+            "anzahl": 4
+          },
+          "erwartet": {
+            "sha256": "274a9bf268522db22b1388e6907ba7a8628737e6b9bbaaae6fcedffdf9ff51b5"
+          }
+        },
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1796083200000,
+            "grund": "pk.gid_falsch",
+            "kanal": "stelle",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "sha256": "8b5ed5a237b25ae7ff8adf871bb816e9fb30773998aa1f74dba57ace56412459"
+          }
+        },
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1796083200001,
+            "grund": "pk.hallo_falsch",
+            "kanal": "such",
+            "route": null,
+            "sitzung": null
+          },
+          "erwartet": {
+            "sha256": "455a8293ee6ff0b52aad6e6b2cd2bc08271fe0bcd01947fb1fd1a0287063d254"
+          }
+        }
+      ],
+      "ende": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"zeit\":\"2026-11-15T12:00:05.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"265a1079964cdd9e0bdd12611b07de1673cb214094aeceb9002574079f22ccd9\",\"zeit\":\"2026-11-15T12:00:06.000Z\"}\n",
+        "brain.anker.jsonl": "{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744006,\"fassung\":2,\"letzte\":\"274a9bf268522db22b1388e6907ba7a8628737e6b9bbaaae6fcedffdf9ff51b5\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n",
+        "brain-2026-12.jsonl": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.gid_falsch\",\"kanal\":\"stelle\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"274a9bf268522db22b1388e6907ba7a8628737e6b9bbaaae6fcedffdf9ff51b5\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.hallo_falsch\",\"kanal\":\"such\",\"route\":null,\"sitzung\":null,\"vorher\":\"8b5ed5a237b25ae7ff8adf871bb816e9fb30773998aa1f74dba57ace56412459\",\"zeit\":\"2026-12-01T00:00:00.001Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"455a8293ee6ff0b52aad6e6b2cd2bc08271fe0bcd01947fb1fd1a0287063d254\",\"ok\":true,\"zeilen\":6}\n"
+        }
+      }
+    },
+    {
+      "fall": "abgewiesen: Grund und Kanal gehoeren zusammen",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "grund": "such.sitzung_fremd",
+            "kanal": "such",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "sha256": "eb182ae13c56f66252baffa7b7f3add96970ac90661afc4702e4d8ea51a42282"
+          }
+        },
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "stelle",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "sha256": "7243d0914bdaeb45c8fabb7d974b212a03567351180802e607bb414dd12be0ce"
+          }
+        },
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "grund": "such.sitzung_fremd",
+            "kanal": "stelle",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:grund"
+          }
+        },
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "grund": "pk.fremd",
+            "kanal": "such",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:grund"
+          }
+        }
+      ],
+      "ende": {
+        "brain.anker.jsonl": "",
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"such.sitzung_fremd\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"stelle\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"eb182ae13c56f66252baffa7b7f3add96970ac90661afc4702e4d8ea51a42282\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"7243d0914bdaeb45c8fabb7d974b212a03567351180802e607bb414dd12be0ce\",\"ok\":true,\"zeilen\":2}\n"
+        }
+      }
+    },
+    {
+      "fall": "abgewiesen: Felder in der Reihenfolge Grund, Kanal, Route, Sitzung",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "grund": "x",
+            "kanal": "X",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:grund"
+          }
+        },
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "X",
+            "route": "X",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:kanal"
+          }
+        },
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "route": "X",
+            "sitzung": "X"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:route"
+          }
+        },
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "route": "cloud-beispiel",
+            "sitzung": "X"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:sitzung"
+          }
+        }
+      ],
+      "ende": {},
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":null,\"ok\":true,\"zeilen\":0}\n"
+        }
+      }
+    },
+    {
+      "fall": "abgewiesen: Felder vor Quelle vor Zeit",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "abgewiesen",
+          "quelle": "audit",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "grund": "x",
+            "kanal": "such",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:grund"
+          }
+        },
+        {
+          "art": "abgewiesen",
+          "quelle": "audit",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:quelle"
+          }
+        },
+        {
+          "art": "abgewiesen",
+          "quelle": "audit",
+          "eingabe": {
+            "zeit_ms": -1,
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:quelle"
+          }
+        },
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": -1,
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "fehler": "zeit_ungueltig"
+          }
+        }
+      ],
+      "ende": {},
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":null,\"ok\":true,\"zeilen\":0}\n"
+        }
+      }
+    },
+    {
+      "fall": "abgewiesen: Zeit rueckwaerts nach dem Wechsel",
+      "anfang": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+      },
+      "aufrufe": [
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1796083200000,
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "sha256": "a1b8c73c315216fe5150a13a6cad0ec21034e78f78314df2a1abc52d908c8a0e"
+          }
+        },
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1794744000009,
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "fehler": "zeit_rueckwaerts"
+          }
+        }
+      ],
+      "ende": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n",
+        "brain.anker.jsonl": "{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n",
+        "brain-2026-12.jsonl": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"a1b8c73c315216fe5150a13a6cad0ec21034e78f78314df2a1abc52d908c8a0e\",\"ok\":true,\"zeilen\":3}\n"
+        }
+      }
+    },
+    {
+      "fall": "abgewiesen: Kanal null ist kein Schluessel",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "abgewiesen",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": null,
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:kanal"
+          }
+        }
+      ],
+      "ende": {},
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":null,\"ok\":true,\"zeilen\":0}\n"
+        }
+      }
+    },
+    {
+      "fall": "allgemeines Anhaengen: kanal.abgewiesen nur in der geschlossenen Form",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "kanal.abgewiesen",
+            "ergebnis": "abgewiesen",
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "route": null,
+            "sitzung": null,
+            "sid": "x"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "kanal.abgewiesen",
+            "ergebnis": "abgewiesen",
+            "grund": "pk.fremd",
+            "kanal": "such",
+            "route": null,
+            "sitzung": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "kanal.abgewiesen",
+            "ergebnis": "gesperrt",
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "route": null,
+            "sitzung": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "kanal.abgewiesen",
+            "ergebnis": "abgewiesen",
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "sitzung": null
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "kanal.abgewiesen",
+            "ergebnis": "abgewiesen",
+            "grund": "pk.sid_nicht_erlaubt",
+            "kanal": "such",
+            "route": null,
+            "sitzung": null
+          },
+          "erwartet": {
+            "sha256": "f4084b807c07dfef500c21556ac6a3d46138795681f6f308abd2d5f91ffe28dd"
+          }
+        }
+      ],
+      "ende": {
+        "brain.anker.jsonl": "",
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":null,\"sitzung\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"f4084b807c07dfef500c21556ac6a3d46138795681f6f308abd2d5f91ffe28dd\",\"ok\":true,\"zeilen\":1}\n"
+        }
+      }
+    },
+    {
+      "fall": "mehrere Zeilen mit einer abgewiesen-Zeile: gepruefte Form",
+      "anfang": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+      },
+      "aufrufe": [
+        {
+          "art": "zeilen",
+          "quelle": "brain",
+          "erwartet_vorher": "24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf",
+          "zeilen": [
+            "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"zeit\":\"2026-11-15T12:00:00.010Z\"}",
+            "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sid\":\"x\",\"sitzung\":\"s-1\",\"vorher\":\"5b9c21b2d979e6c55ae374dedf8ec050343010b5d51c129a95a56c595ab0a3ba\",\"zeit\":\"2026-11-15T12:00:00.020Z\"}"
+          ],
+          "erwartet": {
+            "fehler": "zeile_ungueltig:form_falsch"
+          }
+        },
+        {
+          "art": "zeilen",
+          "quelle": "brain",
+          "erwartet_vorher": "24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf",
+          "zeilen": [
+            "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"zeit\":\"2026-11-15T12:00:00.010Z\"}",
+            "{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"5b9c21b2d979e6c55ae374dedf8ec050343010b5d51c129a95a56c595ab0a3ba\",\"zeit\":\"2026-11-15T12:00:00.020Z\"}"
+          ],
+          "erwartet": {
+            "sha256": "56b8e6c56f96e438c266ff3543d45801fb23fb4262b784aa8472931e4f7fbd6e"
+          }
+        }
+      ],
+      "ende": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"zeit\":\"2026-11-15T12:00:00.010Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"5b9c21b2d979e6c55ae374dedf8ec050343010b5d51c129a95a56c595ab0a3ba\",\"zeit\":\"2026-11-15T12:00:00.020Z\"}\n",
+        "brain.anker.jsonl": ""
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"56b8e6c56f96e438c266ff3543d45801fb23fb4262b784aa8472931e4f7fbd6e\",\"ok\":true,\"zeilen\":4}\n"
+        }
+      }
+    }
+  ]
+}

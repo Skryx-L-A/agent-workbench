@@ -1,0 +1,16 @@
+{
+ "beschreibung": "die Person hat die Steuer-Pipe vorbelegt",
+ "form": "aufruf",
+ "lage": {
+  "start": {
+   "fassung": 1,
+   "sitzung": "s-1",
+   "harness": "claude",
+   "modell": "claude-sonnet-5-5",
+   "route": "cloud-beispiel",
+   "kunde": "k-beispiel",
+   "arbeitsordner": "C:\\Users\\beispiel\\Projekte\\projekt"
+  },
+  "dienst": "Pipe von der Person vorbelegt"
+ }
+}

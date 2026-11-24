@@ -1,0 +1,58 @@
+{
+ "name": "tr10_antwort_decrqss",
+ "regeln": [
+  "TR10"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Rückmeldung von Zeichenketten (DECRQSS, DCS $ q … ST), auch mit eigenem Text: keine Antwort; DCS-Zeichenketten ohne Abschluss wirken im nächsten Stück weiter",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[31;1m"
+  },
+  {
+   "art": "Text",
+   "text": "\u001bP$qm\u001b\\"
+  },
+  {
+   "art": "Text",
+   "text": "\u001bP$qr\u001b\\"
+  },
+  {
+   "art": "Text",
+   "text": "\u001bP$q q\u001b\\"
+  },
+  {
+   "art": "Text",
+   "text": "\u001bP$qGEHEIM-A-4711\u001b\\"
+  },
+  {
+   "art": "Text",
+   "text": "\u001bP$q\"p\u001b\\"
+  },
+  {
+   "art": "Text",
+   "text": "\u001bP$qs\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001bP$qGEHEIM-A-4711"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b\\\u001b[5n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001bP1$rGEHEIM-A-4711\u001b\\"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

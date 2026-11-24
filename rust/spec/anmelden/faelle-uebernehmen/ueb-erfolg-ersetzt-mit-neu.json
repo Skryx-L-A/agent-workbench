@@ -1,0 +1,19 @@
+{
+ "beschreibung": "Schlüsseldatei mit anderem Inhalt da, --neu ersetzt sie",
+ "args": [
+  "copilot",
+  "--uebernehmen",
+  "--neu"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "datei-da",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

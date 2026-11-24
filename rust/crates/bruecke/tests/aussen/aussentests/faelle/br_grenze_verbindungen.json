@@ -1,0 +1,46 @@
+{
+ "beschreibung": "hoechstens verbindungen_max Verbindungen gleichzeitig (Pruefmodus: 3): die vierte bekommt 503; nach dem Freigeben geht es wieder",
+ "datensatz": "A",
+ "name": "br_grenze_verbindungen",
+ "regeln": [
+  "BR5"
+ ],
+ "schritte": [
+  {
+   "anzahl": 3,
+   "art": "Halte"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Frei"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "pruefmodus": true,
+  "token_datei": "@token_datei",
+  "verbindungen_max": 3
+ }
+}

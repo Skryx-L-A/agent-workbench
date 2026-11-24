@@ -1,0 +1,40 @@
+{
+ "name": "tr12_kind_cpr_mitten",
+ "regeln": [
+  "TR12",
+  "TR14"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Zwei Abfragen mitten in der Ausgabe eines Kindes: jede Antwort nennt die Lage an ihrer Stelle",
+ "art": "kind",
+ "groesse": [
+  70,
+  8
+ ],
+ "start": {
+  "kind": "cursor",
+  "argv": [
+   "616c7068611b5b366e626574610d0a67616d6d611b5b366e"
+  ],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ],
+ "system": [
+  "linux",
+  "macos"
+ ]
+}

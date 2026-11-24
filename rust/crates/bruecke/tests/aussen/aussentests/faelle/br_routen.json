@@ -1,0 +1,181 @@
+{
+ "beschreibung": "unbekannte Ziele: mit Token 404, ohne Token 401; Abfrage am Ziel macht die Seite nicht oeffentlich",
+ "datensatz": "A",
+ "name": "br_routen",
+ "regeln": [
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/unbekannt"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/strom/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "//"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/starten/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/STROM"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/ansicht.js/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/index.html"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/%73trom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/seite.js"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/ansicht.wasm"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/ansicht_bg.wasm/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/ANSICHT.JS"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/unbekannt"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/strom/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "//"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/?a=1"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/ansicht.js?a=1"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/ansicht_bg.wasm?a=1"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/seite.js"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/?a=1"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

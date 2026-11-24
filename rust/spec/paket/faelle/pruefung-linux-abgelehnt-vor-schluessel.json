@@ -1,0 +1,37 @@
+{
+ "beschreibung": "Reihenfolge: nach dem Befund des Programmordners in lauf.json und vor der Schlüsseldatei",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   }
+  ],
+  "apparmor": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "fehlt",
+  "schluessel": "fehlt",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok",
+  "programmordner": "verboten",
+  "programmordner_abgelehnt": [
+   {
+    "harness": "pi",
+    "ordner": "/opt/p"
+   }
+  ]
+ }
+}

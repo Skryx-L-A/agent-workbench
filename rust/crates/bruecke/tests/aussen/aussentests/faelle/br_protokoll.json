@@ -1,0 +1,103 @@
+{
+ "beschreibung": "eine Zeile je abgelehnter Anfrage (`wb-bruecke: abgelehnt <grund>`), ohne Pfad, ohne Kopfwerte, ohne Koerper, ohne Token; das Token steht nie auf stdout oder stderr",
+ "datensatz": "A",
+ "geheim": [
+  "KANARIE-EINS",
+  "KANARIE-ZWEI",
+  "KANARIE-DREI",
+  "KANARIE-VIER",
+  "KANARIE-FUENF"
+ ],
+ "name": "br_protokoll",
+ "regeln": [
+  "BR6",
+  "BR2"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "roh": "GET /KANARIE-EINS HTTP/1.1\r\nHost: 127.0.0.1:@port\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "KANARIE-ZWEI:1",
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "Bearer KANARIE-DREI",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "x",
+    "methode": "POST",
+    "origin": "http://KANARIE-VIER",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "KANARIE-FUENF",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/strom?token=@token"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/KANARIE-EINS"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PUT",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.0\r\nHost: KANARIE-ZWEI\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

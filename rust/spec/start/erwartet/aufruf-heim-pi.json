@@ -1,0 +1,8 @@
+{
+ "exec": "pi",
+ "heim_im_einschluss": {
+  "home": "<heim>",
+  "tmpfs": "<heim>",
+  "unter_heim_nur": ".pi"
+ }
+}

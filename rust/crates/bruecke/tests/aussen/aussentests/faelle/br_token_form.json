@@ -1,0 +1,47 @@
+{
+ "beschreibung": "mit dem gueltigen Token gehen alle drei Routen: Strom 200 mit Kennung, Start und Eingabe haben ihre Antworten",
+ "datensatz": "A",
+ "name": "br_token_form",
+ "regeln": [
+  "BR1",
+  "BR2"
+ ],
+ "schritte": [
+  {
+   "art": "Strom",
+   "name": "s1"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-7",
+     "spalten": 10,
+     "zeilen": 4
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "verbindung": "s1",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "ablehnung": "sitzung_unbekannt"
+   },
+   "strom": "s1"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

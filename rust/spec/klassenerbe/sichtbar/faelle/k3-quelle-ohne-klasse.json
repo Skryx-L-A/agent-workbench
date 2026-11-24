@@ -1,0 +1,71 @@
+{
+ "name": "k3-quelle-ohne-klasse",
+ "regeln": [
+  "K4",
+  "A35"
+ ],
+ "beschreibung": "Eine Quelle ohne Klasse bekommt die Vorgabestufe, hier zuerst die höchste, dann intern.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "cloud-n",
+    "art": "cloud"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "erbe": {
+   "boden": "gelesen"
+  }
+ },
+ "anfragen": [
+  {
+   "route": "lokal",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": null
+    }
+   ]
+  },
+  {
+   "route": "lokal",
+   "sitzungskunde": null,
+   "gelesen": [
+    {}
+   ]
+  }
+ ]
+}

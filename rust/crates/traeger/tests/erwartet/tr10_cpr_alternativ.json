@@ -1,0 +1,172 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    1,
+    4,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 4,
+   "zeilen": [
+    "alpha",
+    "beta",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       4,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "alpha",
+       "1": "beta"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       3,
+       2,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": "",
+       "1": ""
+      }
+     }
+    ],
+    "pty_antworten": "1b5b343b3352"
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      3,
+      2,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 2,
+     "zeilen": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       3,
+       7,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "3": "  gamma"
+      }
+     }
+    ],
+    "pty_antworten": "1b5b343b3852"
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       4,
+       true
+      ],
+      "stand": 4,
+      "zeilen": {
+       "0": "alpha",
+       "1": "beta",
+       "3": ""
+      }
+     }
+    ],
+    "pty_antworten": "1b5b323b3552"
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      1,
+      4,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 4,
+     "zeilen": [
+      "alpha",
+      "beta",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

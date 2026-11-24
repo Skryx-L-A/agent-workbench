@@ -1,0 +1,86 @@
+# cargo-deny configuration: licences, bans and sources of every dependency.
+# Run through ./gates.sh licenses; the gate does not fetch the advisory database (see README.md).
+
+[graph]
+all-features = true
+
+[licenses]
+# Workspace crates carry `publish = false` and no licence field; they are ours, not dependencies.
+private = { ignore = true }
+confidence-threshold = 0.93
+# A licence on this list that no crate uses is not an error: the list is a policy, not an inventory.
+unused-allowed-license = "allow"
+
+# ---- BEGIN LICENCE LIST ---------------------------------------------------
+# Licence policy of 16.11.2026 (proposal checked against the toolkit licence review of 15.11.2026).
+# Distribution: BUSL 1.1 with a commercial licence, shipped as a binary. Everything not listed here is rejected.
+# Allowed without asking: MIT, Apache-2.0 and their OR forms (ISC only appears inside an OR choice that MIT satisfies).
+# Never allowed: GPL, AGPL, and LGPL when linked statically; copyleft would reach the shipped program.
+# Further SPDX ids of indirect dependencies (BSD-2-Clause, BSD-3-Clause, Zlib, Unicode-3.0 are common) are decided
+# one by one after the first full run, never allowed wholesale.
+allow = [
+    "MIT",
+    "Apache-2.0",
+]
+# Special cases, enabled only once the crate is chosen and in the graph (each needs a note in the bill of materials):
+#   { allow = ["CC0-1.0"], crate = "notify" }   # CC0 grants no patent licence
+#   Slint royalty-free 2.0 (LicenseRef) only with attribution in the about dialog, no embedded use, no Slint API exposed
+#   SQLite itself is public domain; rusqlite and libsqlite3-sys are MIT and need no exception. In use since
+#   18.11.2026 (rangkern reads the databases of the model): rusqlite 0.43.0 without default features and with
+#   `bundled`, libsqlite3-sys 0.40.0 with SQLite 3.54.1. The graph holds no licence outside the list: the
+#   default feature `cache` would add hashlink, hashbrown and foldhash (Zlib) and is switched off.
+# Approved on 18.11.2026 for the named crates only: unicode-normalization 0.1.26 is licensed
+# "(MIT OR Apache-2.0) AND Unicode-3.0"; the Unicode-3.0 part (permissive, OSI approved, covers the data tables)
+# is allowed for this one crate only, not wholesale. Needed by notiz-kern for NFC in `key_of` and for NFKC in
+# `exclusion_key`. The licence text belongs in the bill of materials of every shipped build.
+exceptions = [
+    { allow = ["Unicode-3.0"], crate = "unicode-normalization" },
+    # Approved on 18.11.2026 for this crate only (decision of 16.11.2026, decision of 18.11.2026): unicode-ident 1.0.27 is
+    # "(MIT OR Apache-2.0) AND Unicode-3.0", reached through proc-macro2 and syn (the macros of serde and thiserror).
+    # Licence text into the bill of materials.
+    { allow = ["Unicode-3.0"], crate = "unicode-ident" },
+    # Approved on 21.11.2026 for these crates only (decision of 21.11.2026, LIZENZEN FREI for the crate `ansicht`): dioxus-core
+    # 0.7.10 depends on them without a feature that could switch them off. const_format 0.2.37, const_format_proc_macros
+    # 0.2.37, konst 0.2.20, konst_macro_rules 0.2.19 and slotmap 1.1.1 are Zlib (permissive, OSI approved); libloading
+    # 0.8.9 is ISC (permissive, OSI approved), reached through subsecond 0.7.10 and built only for the host, not for wasm.
+    # Licence texts into the bill of materials. Never one of these licences for all crates.
+    { allow = ["Zlib"], crate = "const_format" },
+    { allow = ["Zlib"], crate = "const_format_proc_macros" },
+    { allow = ["Zlib"], crate = "konst" },
+    { allow = ["Zlib"], crate = "konst_macro_rules" },
+    { allow = ["Zlib"], crate = "slotmap" },
+    { allow = ["ISC"], crate = "libloading" },
+]
+# ---- END LICENCE LIST -----------------------------------------------------
+
+[bans]
+multiple-versions = "deny"
+wildcards = "deny"
+allow-wildcard-paths = true
+# Banned names. zlib-rs (licence Zlib) is not wanted: rasterauszug uses miniz_oxide directly for raw Deflate (decision of
+# 19.11.2026), and zlib-rs would need a licence exception for Zlib that nobody asked for. rasterauszug takes flate2 without default
+# features (20.11.2026), so Cargo.lock no longer lists it; this entry makes the gate red if a feature ever pulls it in.
+deny = [
+    { crate = "zlib-rs", reason = "rasterauszug uses miniz_oxide directly (decision of 19.11.2026); zlib-rs is Zlib licensed and would need a licence exception" },
+]
+# Duplicate names that the carrier `traeger` brings in. Each entry skips the older or the second version only, never the name.
+# Both versions are measured with `cargo deny check bans` on 19.11.2026; neither can be unified, because the pins come from
+# `portable-pty` 0.9.0 and `alacritty_terminal` 0.26.0, which `traeger` pins on purpose (contract of the carrier).
+skip = [
+    { crate = "bitflags@1.3.2", reason = "portable-pty 0.9.0 itself uses bitflags 1; alacritty_terminal, nix, rustix and others use bitflags 2" },
+    { crate = "syn@2.0.119", reason = "thiserror-impl 1.0.69 (thiserror 1 <- filedescriptor <- portable-pty 0.9.0) uses syn 2; serde_derive 1.0.229 uses syn 3" },
+    { crate = "windows-sys@0.59.0", reason = "alacritty_terminal 0.26.0 itself uses windows-sys 0.59; errno, home, miow, polling, rustix and serial2 use 0.61. Windows only, not compiled on macOS or Linux" },
+    # Duplicates that the view `ansicht` brings in through dioxus-web 0.7.10 (decision of 21.11.2026). Measured with
+    # `cargo deny check bans` on 21.11.2026.
+    { crate = "thiserror@1.0.69", reason = "filedescriptor 0.8.3 (portable-pty 0.9.0) uses thiserror 1; dioxus-devtools 0.7.10 and subsecond 0.7.10 use thiserror 2" },
+    { crate = "thiserror-impl@1.0.69", reason = "the derive of thiserror 1.0.69 (portable-pty 0.9.0); thiserror 2 brings thiserror-impl 2" },
+    { crate = "rustc-hash@1.1.0", reason = "sledgehammer_utils 0.3.1 (dioxus-interpreter-js 0.7.10) uses rustc-hash 1; dioxus-core 0.7.10 uses rustc-hash 2" },
+    { crate = "getrandom@0.3.4", reason = "rand_core 0.9.5 (rand 0.9.5, tungstenite 0.28.0, dioxus-devtools 0.7.10) uses getrandom 0.3; tempfile 3.27.0 uses 0.4. Host build only, not in the wasm build" },
+    { crate = "r-efi@5.3.0", reason = "getrandom 0.3.4 uses r-efi 5; getrandom 0.4.3 uses 6. UEFI only, not compiled on macOS or Linux" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

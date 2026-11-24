@@ -1,0 +1,37 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "route-fehlt",
+    "klasse": "intern",
+    "meldung": "Anfrage ohne Route"
+   },
+   {
+    "darf": false,
+    "grund": "route-fehlt",
+    "klasse": "intern",
+    "meldung": "Anfrage ohne Route"
+   },
+   {
+    "darf": false,
+    "grund": "route-fehlt",
+    "klasse": "intern",
+    "meldung": "Anfrage ohne Route"
+   },
+   {
+    "darf": false,
+    "grund": "route-fehlt",
+    "klasse": null,
+    "meldung": "Anfrage ohne Route"
+   },
+   {
+    "darf": false,
+    "grund": "route-fehlt",
+    "klasse": "kundendaten",
+    "meldung": "Anfrage ohne Route"
+   }
+  ]
+ }
+}

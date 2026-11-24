@@ -1,0 +1,215 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": null,
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": {
+      "zone": "unsafe",
+      "nutzer": [
+       "n-a"
+      ],
+      "gruppen": [],
+      "gesetzt_von": "admin-1",
+      "zweck": "Evaluierung Modell X",
+      "bis": 1800000000
+     }
+    }
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-zone",
+    "klasse": "oeffentlich",
+    "meldung": "Klasse der Einheit liegt über der Zone der Route r-unsafe",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": {
+      "zone": "unsafe",
+      "nutzer": [
+       "n-a"
+      ],
+      "gruppen": [],
+      "gesetzt_von": "admin-1",
+      "zweck": "Evaluierung Modell X",
+      "bis": 1800000000
+     }
+    }
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-zone",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über der Zone der Route r-unsafe",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": {
+      "zone": "unsafe",
+      "nutzer": [
+       "n-a"
+      ],
+      "gruppen": [],
+      "gesetzt_von": "admin-1",
+      "zweck": "Evaluierung Modell X",
+      "bis": 1800000000
+     }
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": null,
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": {
+      "zone": "unsafe",
+      "nutzer": [
+       "n-a"
+      ],
+      "gruppen": [],
+      "gesetzt_von": "admin-1",
+      "zweck": "Evaluierung Modell X",
+      "bis": 1800000000
+     }
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": null,
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": null,
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": null,
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": null,
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": null,
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": null,
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": null,
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": {
+      "zone": "unsafe",
+      "nutzer": [],
+      "gruppen": [
+       "g-eval"
+      ],
+      "gesetzt_von": "admin-2",
+      "zweck": "Evaluierung Gruppe",
+      "bis": 1800001000
+     }
+    }
+   },
+   {
+    "darf": false,
+    "grund": "zone-gesperrt",
+    "klasse": null,
+    "meldung": "Zone der Route r-unsafe ist gesperrt",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": null,
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "unsafe",
+     "grund": null,
+     "ausnahme": {
+      "zone": "unsafe",
+      "nutzer": [
+       "n-a"
+      ],
+      "gruppen": [],
+      "gesetzt_von": "admin-1",
+      "zweck": "Evaluierung Modell X",
+      "bis": 1800000000
+     }
+    }
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": null,
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   }
+  ]
+ }
+}

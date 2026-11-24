@@ -1,0 +1,55 @@
+{
+ "name": "tr5_modi_zerstueckelt",
+ "regeln": [
+  "TR5"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Eine Folge, die über mehrere Stücke verteilt ankommt, wirkt beim letzten Byte; ein abgebrochene Folge wirkt nicht",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b"
+  },
+  {
+   "art": "Text",
+   "text": "["
+  },
+  {
+   "art": "Text",
+   "text": "?"
+  },
+  {
+   "art": "Text",
+   "text": "5"
+  },
+  {
+   "art": "Text",
+   "text": "h"
+  },
+  {
+   "art": "Bytes",
+   "hex": "1b5b3f32"
+  },
+  {
+   "art": "Bytes",
+   "hex": "303034"
+  },
+  {
+   "art": "Bytes",
+   "hex": "68"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?5"
+  },
+  {
+   "art": "Text",
+   "text": "alpha"
+  }
+ ]
+}

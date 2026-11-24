@@ -1,0 +1,42 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "s1",
+    "meldung": "frei",
+    "protokoll": null
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "s2",
+    "meldung": "frei",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-route",
+    "klasse": "s3",
+    "meldung": "Klasse der Einheit liegt über Route r2",
+    "protokoll": null
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "s3",
+    "meldung": "frei",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "kunde-fehlt",
+    "klasse": "s3",
+    "meldung": "Kundendaten ohne Kunde",
+    "protokoll": null
+   }
+  ]
+ }
+}

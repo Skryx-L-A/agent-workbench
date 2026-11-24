@@ -1,0 +1,18 @@
+{
+ "beschreibung": "beide Temp-Dateien toter Läufe werden geräumt, Hinweis mit 2",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "beide",
+ "probe": null
+}

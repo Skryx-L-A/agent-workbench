@@ -1,0 +1,21 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "ok",
+    "klasse": "kundendaten",
+    "kunden": [
+     "k-nord"
+    ],
+    "grund": null
+   },
+   {
+    "ergebnis": "ok",
+    "klasse": "kundendaten",
+    "kunden": [],
+    "grund": null
+   }
+  ]
+ }
+}

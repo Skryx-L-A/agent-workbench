@@ -1,0 +1,8 @@
+{
+ "erwartet": "(a) 10013; (b) verbunden, der Modellweg antwortet; (c) 10013; (d) dienst.port_fremd, Filterliste unverändert",
+ "messwerte": [
+  "Ergebnis und Fehlercode je Verbindung",
+  "Antwort auf lauf_start",
+  "Filterliste vorher und nachher"
+ ]
+}

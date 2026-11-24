@@ -1,0 +1,18 @@
+{
+ "beschreibung": "ungueltige Startdatei (adresse): Exitcode 2, eine Zeile auf stderr, kein Token, stdout leer",
+ "datensatz": "A",
+ "name": "br_start_adresse",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "adresse": "0.0.0.0",
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

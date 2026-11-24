@@ -1,0 +1,129 @@
+{
+ "beschreibung": "Druckbare Zeichen gehen je als Text; eingesetzter Text (ohne Taste) geht als ein Text.",
+ "datensatz": "A",
+ "name": "se1_text",
+ "regeln": [
+  "SE1"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "",
+   "key": "a",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "",
+   "key": "Z",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Taste",
+   "code": "",
+   "key": "1",
+   "umschalter": []
+  },
+  {
+   "art": "Taste",
+   "code": "",
+   "key": " ",
+   "umschalter": []
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "a"
+    },
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "Z"
+    },
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "1"
+    },
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": " "
+    }
+   ]
+  },
+  {
+   "art": "Einsetzen",
+   "text": "Grüße"
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "Grüße"
+    }
+   ]
+  }
+ ]
+}

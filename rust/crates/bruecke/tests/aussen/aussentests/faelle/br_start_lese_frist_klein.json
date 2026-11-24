@@ -1,0 +1,19 @@
+{
+ "beschreibung": "ungueltige Startdatei (lese_frist_klein): Exitcode 2, eine Zeile auf stderr, kein Token, stdout leer",
+ "datensatz": "A",
+ "name": "br_start_lese_frist_klein",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "lese_frist_ms": 50,
+  "port": 0,
+  "pruefmodus": true,
+  "token_datei": "@token_datei"
+ }
+}

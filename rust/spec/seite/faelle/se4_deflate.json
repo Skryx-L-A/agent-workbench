@@ -1,0 +1,125 @@
+{
+ "beschreibung": "Mit X-Deflate: 1 liest die Seite gepackte Rasterrahmen mit einem Kontext je Verbindung (wiederholter Text verweist auf fruehere Rahmen).",
+ "datensatz": "A",
+ "deflate": true,
+ "name": "se4_deflate",
+ "regeln": [
+  "SE4",
+  "SE6"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "62656463d4e060606264646060600441150000"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "62650472413ca0188f6369717a6252aa426a665e3100"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     1,
+     "Ausgabe eins"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "024a30832580d292c8120ac81c0000"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     2,
+     "Ausgabe eins Ausgabe eins"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "02aa6201ab02aa55c3a90a850300"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     3,
+     "Ausgabe eins Ausgabe eins Ausgabe eins"
+    ]
+   }
+  },
+  {
+   "art": "Testid",
+   "testid": "terminal-zeile-1",
+   "text": "Ausgabe eins"
+  },
+  {
+   "art": "Testid",
+   "testid": "terminal-zeile-2",
+   "text": "Ausgabe eins Ausgabe eins"
+  },
+  {
+   "art": "Testid",
+   "testid": "terminal-zeile-3",
+   "text": "Ausgabe eins Ausgabe eins Ausgabe eins"
+  },
+  {
+   "art": "Testid",
+   "sichtbar": false,
+   "testid": "fehler"
+  }
+ ]
+}

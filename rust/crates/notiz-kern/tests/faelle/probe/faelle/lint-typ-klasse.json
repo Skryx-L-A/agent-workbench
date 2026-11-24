@@ -1,0 +1,12 @@
+{
+ "description": "unknown type and class",
+ "files": {
+  "note.md": "---\nid: 01M3KEHCGEKTVFPC15XAVEPRDS\nschema: 4\ntitle: Gute Notiz\ntype: finding\nclass: session\ncreated: \"2026-09-28\"\nstand: \"2026-09\"\n---\n\nFür künftige Sessions: x\n"
+ },
+ "args": [
+  "lint",
+  "{root}/note.md",
+  "--rel",
+  "10-global/g.md"
+ ]
+}

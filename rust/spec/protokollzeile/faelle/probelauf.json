@@ -1,0 +1,1077 @@
+{
+  "quelle": "Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
+  "zeile": [
+    {
+      "fall": "Programm suche, anzahl 3",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "suche",
+        "sitzung": "s-1",
+        "anzahl": 3
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "69eaf4357c307c73f183a661d668cdbdb49b50fcdd5b162dc2b51b6742ab525d"
+      }
+    },
+    {
+      "fall": "Programm modellweg, anzahl 1 (untere Grenze)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "modellweg",
+        "sitzung": "s-1",
+        "anzahl": 1
+      },
+      "vorher": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":1,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"modellweg\",\"sitzung\":\"s-1\",\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "fbfe47f1f80a031fdae8821767b5cf52daaa6c1f134443b3ae6cd582648ec861"
+      }
+    },
+    {
+      "fall": "anzahl 16 (obere Grenze)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "suche",
+        "sitzung": "s-1",
+        "anzahl": 16
+      },
+      "vorher": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":16,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "c816b3bf2473f5818b0c0e0a605ba4faed3eac2bb9cc45a2512eb79ace22dab0"
+      }
+    },
+    {
+      "fall": "Sitzung mit 64 Zeichen",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "suche",
+        "sitzung": "a.b-c_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "anzahl": 3
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "zeile": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"a.b-c_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+        "sha256": "d0a0de97c943a87148ed86f0fa9c17f8699080ab0d9cc42033635b9ce8278752"
+      }
+    },
+    {
+      "fall": "Programm nicht aus der Liste",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "stelle",
+        "sitzung": "s-1",
+        "anzahl": 3
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:programm"
+      }
+    },
+    {
+      "fall": "Programm mit Grossbuchstaben",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "Suche",
+        "sitzung": "s-1",
+        "anzahl": 3
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:programm"
+      }
+    },
+    {
+      "fall": "Programm leer",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "",
+        "sitzung": "s-1",
+        "anzahl": 3
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:programm"
+      }
+    },
+    {
+      "fall": "Programm null",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": null,
+        "sitzung": "s-1",
+        "anzahl": 3
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:programm"
+      }
+    },
+    {
+      "fall": "Sitzung mit Grossbuchstaben",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "suche",
+        "sitzung": "S-1",
+        "anzahl": 3
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:sitzung"
+      }
+    },
+    {
+      "fall": "Sitzung leer",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "suche",
+        "sitzung": "",
+        "anzahl": 3
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:sitzung"
+      }
+    },
+    {
+      "fall": "Sitzung null (hier kein null erlaubt)",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "suche",
+        "sitzung": null,
+        "anzahl": 3
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:sitzung"
+      }
+    },
+    {
+      "fall": "Sitzung mit 65 Zeichen",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "suche",
+        "sitzung": "sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss",
+        "anzahl": 3
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:sitzung"
+      }
+    },
+    {
+      "fall": "anzahl 0",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "suche",
+        "sitzung": "s-1",
+        "anzahl": 0
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:anzahl"
+      }
+    },
+    {
+      "fall": "anzahl 17",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "suche",
+        "sitzung": "s-1",
+        "anzahl": 17
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:anzahl"
+      }
+    },
+    {
+      "fall": "vorher keine 64 hex",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "suche",
+        "sitzung": "s-1",
+        "anzahl": 3
+      },
+      "vorher": "abc",
+      "erwartet": {
+        "fehler": "feld_ungueltig:vorher"
+      }
+    },
+    {
+      "fall": "Zeit vor 1970",
+      "eingabe": {
+        "zeit_ms": -1,
+        "programm": "suche",
+        "sitzung": "s-1",
+        "anzahl": 3
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "zeit_ungueltig"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Programm vor Sitzung",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "x",
+        "sitzung": "X",
+        "anzahl": 3
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:programm"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Sitzung vor anzahl",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "suche",
+        "sitzung": "X",
+        "anzahl": 0
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:sitzung"
+      }
+    },
+    {
+      "fall": "zwei Fehler: anzahl vor vorher",
+      "eingabe": {
+        "zeit_ms": 1795179600000,
+        "programm": "suche",
+        "sitzung": "s-1",
+        "anzahl": 0
+      },
+      "vorher": "abc",
+      "erwartet": {
+        "fehler": "feld_ungueltig:anzahl"
+      }
+    },
+    {
+      "fall": "zwei Fehler: Felder vor Zeit",
+      "eingabe": {
+        "zeit_ms": -1,
+        "programm": "suche",
+        "sitzung": "s-1",
+        "anzahl": 0
+      },
+      "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+      "erwartet": {
+        "fehler": "feld_ungueltig:anzahl"
+      }
+    }
+  ],
+  "pruefe": [
+    {
+      "fall": "drei probelauf-Zeilen: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":16,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"modellweg\",\"sitzung\":\"s-1\",\"vorher\":\"69eaf4357c307c73f183a661d668cdbdb49b50fcdd5b162dc2b51b6742ab525d\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":1,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-2\",\"vorher\":\"027b621c09c1c53cd62ab2abfc30cb5b583315d9d1a65933b7d0e842d2e2b98d\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"24e92b456c13b5df57906a2ceffdd8178f70a354e75bec7ed63c60ea089691cd\",\"ok\":true,\"zeilen\":3}\n"
+      }
+    },
+    {
+      "fall": "probelauf, gesperrt und abgewiesen gemischt in einer Kette: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"69eaf4357c307c73f183a661d668cdbdb49b50fcdd5b162dc2b51b6742ab525d\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"kanal.abgewiesen\",\"ergebnis\":\"abgewiesen\",\"fassung\":2,\"grund\":\"pk.sid_nicht_erlaubt\",\"kanal\":\"such\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"6f9a5ed8b788941dd9c80ce0fae581d713626a4832e0be1674bb4072bb625722\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":1,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-2\",\"vorher\":\"abab4e15401c6e7178b6b9248871c2933ffd114b1da25a24f81407f2b2180644\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"2e7e0d3c89051527318c66f0b691be58b64a5da4e6118006f5f4c82e3f91b0ff\",\"ok\":true,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "anzahl in Zeile 2 von Hand geaendert: rot in Zeile 3",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":15,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"modellweg\",\"sitzung\":\"s-1\",\"vorher\":\"69eaf4357c307c73f183a661d668cdbdb49b50fcdd5b162dc2b51b6742ab525d\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":1,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-2\",\"vorher\":\"027b621c09c1c53cd62ab2abfc30cb5b583315d9d1a65933b7d0e842d2e2b98d\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"kette_gebrochen\",\"zeile\":3},\"letzte\":null,\"ok\":false,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "Leerzeichen eingefuegt: nicht kanonisch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\": 16,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"modellweg\",\"sitzung\":\"s-1\",\"vorher\":\"69eaf4357c307c73f183a661d668cdbdb49b50fcdd5b162dc2b51b6742ab525d\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"nicht_kanonisch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "zusaetzliches Feld marker: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":16,\"ergebnis\":\"an\",\"fassung\":2,\"marker\":\"m-1\",\"programm\":\"modellweg\",\"sitzung\":\"s-1\",\"vorher\":\"69eaf4357c307c73f183a661d668cdbdb49b50fcdd5b162dc2b51b6742ab525d\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":2},\"letzte\":null,\"ok\":false,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "zusaetzliches Feld marker_anzahl: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"marker_anzahl\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld anzahl fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld programm fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld sitzung fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Feld ergebnis fehlt: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "anzahl 0: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":0,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "anzahl 17: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":17,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "anzahl 2.5: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":2.5,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "anzahl als Text: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":\"3\",\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Programm nicht aus der Liste: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"stelle\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Programm kein Text: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":5,\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Sitzung null: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Sitzung mit Leerzeichen: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s 1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Ergebnis ok statt an: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"ok\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Zeit ohne Millisekunden: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "fassung 3: form_falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":3,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "ohne fassung in brain-Datei: fassung fehlt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"fassung_fehlt\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "ohne fassung in gateway-Datei (1g): form_falsch",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    }
+  ],
+  "anhaengen": [
+    {
+      "fall": "probelauf: neue Datei, erste Zeile mit 64 Nullen",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "probelauf",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 3
+          },
+          "erwartet": {
+            "sha256": "69eaf4357c307c73f183a661d668cdbdb49b50fcdd5b162dc2b51b6742ab525d"
+          }
+        }
+      ],
+      "ende": {
+        "brain.anker.jsonl": "",
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"69eaf4357c307c73f183a661d668cdbdb49b50fcdd5b162dc2b51b6742ab525d\",\"ok\":true,\"zeilen\":1}\n"
+        }
+      }
+    },
+    {
+      "fall": "probelauf und gesperrt hintereinander, dann der Wechsel in den Dezember mit Anker",
+      "anfang": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+      },
+      "aufrufe": [
+        {
+          "art": "probelauf",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1794744005000,
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 3
+          },
+          "erwartet": {
+            "sha256": "d29b9a6e5b6e529d20204108c65063aea75420a47fcb7e39d3909cf86a207211"
+          }
+        },
+        {
+          "art": "gesperrt",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1794744006000,
+            "route": "cloud-beispiel",
+            "sitzung": "s-0001",
+            "grund": "kundendaten-an-cloud",
+            "klasse": "kundendaten",
+            "kunde": "k-beispiel",
+            "anzahl": 4
+          },
+          "erwartet": {
+            "sha256": "83a554e48778c82e71abe17072e2e4da417cb84934473ba2ced95b7fdbb8c3a7"
+          }
+        },
+        {
+          "art": "probelauf",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1796083200000,
+            "programm": "modellweg",
+            "sitzung": "s-1",
+            "anzahl": 16
+          },
+          "erwartet": {
+            "sha256": "2c9daf3ed8a024b87c0cf0ac440607f97ac19465e766b5c728edae4849c3e690"
+          }
+        },
+        {
+          "art": "probelauf",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1796083200001,
+            "programm": "suche",
+            "sitzung": "s-2",
+            "anzahl": 1
+          },
+          "erwartet": {
+            "sha256": "66e23753ebf61f20dfb3b1087bc9ad6dc81c02585a8048cdec01a0b4d140e593"
+          }
+        }
+      ],
+      "ende": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"zeit\":\"2026-11-15T12:00:05.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":4,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"d29b9a6e5b6e529d20204108c65063aea75420a47fcb7e39d3909cf86a207211\",\"zeit\":\"2026-11-15T12:00:06.000Z\"}\n",
+        "brain.anker.jsonl": "{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744006,\"fassung\":2,\"letzte\":\"83a554e48778c82e71abe17072e2e4da417cb84934473ba2ced95b7fdbb8c3a7\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n",
+        "brain-2026-12.jsonl": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":16,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"modellweg\",\"sitzung\":\"s-1\",\"vorher\":\"83a554e48778c82e71abe17072e2e4da417cb84934473ba2ced95b7fdbb8c3a7\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":1,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-2\",\"vorher\":\"2c9daf3ed8a024b87c0cf0ac440607f97ac19465e766b5c728edae4849c3e690\",\"zeit\":\"2026-12-01T00:00:00.001Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"66e23753ebf61f20dfb3b1087bc9ad6dc81c02585a8048cdec01a0b4d140e593\",\"ok\":true,\"zeilen\":6}\n"
+        }
+      }
+    },
+    {
+      "fall": "probelauf: Felder in der Reihenfolge Programm, Sitzung, anzahl",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "probelauf",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "programm": "x",
+            "sitzung": "X",
+            "anzahl": 3
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:programm"
+          }
+        },
+        {
+          "art": "probelauf",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "programm": "suche",
+            "sitzung": "X",
+            "anzahl": 0
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:sitzung"
+          }
+        },
+        {
+          "art": "probelauf",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 17
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:anzahl"
+          }
+        }
+      ],
+      "ende": {},
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":null,\"ok\":true,\"zeilen\":0}\n"
+        }
+      }
+    },
+    {
+      "fall": "probelauf: Felder vor Quelle vor Zeit",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "probelauf",
+          "quelle": "audit",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 0
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:anzahl"
+          }
+        },
+        {
+          "art": "probelauf",
+          "quelle": "audit",
+          "eingabe": {
+            "zeit_ms": 1795179600000,
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 3
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:quelle"
+          }
+        },
+        {
+          "art": "probelauf",
+          "quelle": "audit",
+          "eingabe": {
+            "zeit_ms": -1,
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 3
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:quelle"
+          }
+        },
+        {
+          "art": "probelauf",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": -1,
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 3
+          },
+          "erwartet": {
+            "fehler": "zeit_ungueltig"
+          }
+        }
+      ],
+      "ende": {},
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":null,\"ok\":true,\"zeilen\":0}\n"
+        }
+      }
+    },
+    {
+      "fall": "probelauf: Zeit rueckwaerts nach dem Wechsel",
+      "anfang": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+      },
+      "aufrufe": [
+        {
+          "art": "probelauf",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1796083200000,
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 3
+          },
+          "erwartet": {
+            "sha256": "d3fe4ae02dff3ca0ee8faff843d2e1b54e636581dabecbf72ca057f02e4db444"
+          }
+        },
+        {
+          "art": "probelauf",
+          "quelle": "brain",
+          "eingabe": {
+            "zeit_ms": 1794744000009,
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 3
+          },
+          "erwartet": {
+            "fehler": "zeit_rueckwaerts"
+          }
+        }
+      ],
+      "ende": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n",
+        "brain.anker.jsonl": "{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744001,\"fassung\":2,\"letzte\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n",
+        "brain-2026-12.jsonl": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"d3fe4ae02dff3ca0ee8faff843d2e1b54e636581dabecbf72ca057f02e4db444\",\"ok\":true,\"zeilen\":3}\n"
+        }
+      }
+    },
+    {
+      "fall": "allgemeines Anhaengen: probelauf.zaehlung nur in der geschlossenen Form",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "probelauf.zaehlung",
+            "ergebnis": "an",
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 3,
+            "marker": "m"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "probelauf.zaehlung",
+            "ergebnis": "an",
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 17
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "probelauf.zaehlung",
+            "ergebnis": "an",
+            "programm": "x",
+            "sitzung": "s-1",
+            "anzahl": 3
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "probelauf.zaehlung",
+            "ergebnis": "ok",
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 3
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "probelauf.zaehlung",
+            "ergebnis": "an",
+            "programm": "suche",
+            "anzahl": 3
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "probelauf.zaehlung",
+            "ergebnis": "an",
+            "programm": "suche",
+            "sitzung": "s-1",
+            "anzahl": 3
+          },
+          "erwartet": {
+            "sha256": "2ee7d646a2dc7d50e3454d0492c874ed4ad1213e62acb47618aab391dc6dae02"
+          }
+        }
+      ],
+      "ende": {
+        "brain.anker.jsonl": "",
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"2ee7d646a2dc7d50e3454d0492c874ed4ad1213e62acb47618aab391dc6dae02\",\"ok\":true,\"zeilen\":1}\n"
+        }
+      }
+    },
+    {
+      "fall": "mehrere Zeilen mit einer probelauf-Zeile: gepruefte Form",
+      "anfang": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n"
+      },
+      "aufrufe": [
+        {
+          "art": "zeilen",
+          "quelle": "brain",
+          "erwartet_vorher": "24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf",
+          "zeilen": [
+            "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"zeit\":\"2026-11-15T12:00:00.010Z\"}",
+            "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"marker\":\"m\",\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"5b9c21b2d979e6c55ae374dedf8ec050343010b5d51c129a95a56c595ab0a3ba\",\"zeit\":\"2026-11-15T12:00:00.020Z\"}"
+          ],
+          "erwartet": {
+            "fehler": "zeile_ungueltig:form_falsch"
+          }
+        },
+        {
+          "art": "zeilen",
+          "quelle": "brain",
+          "erwartet_vorher": "24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf",
+          "zeilen": [
+            "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"zeit\":\"2026-11-15T12:00:00.010Z\"}",
+            "{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"5b9c21b2d979e6c55ae374dedf8ec050343010b5d51c129a95a56c595ab0a3ba\",\"zeit\":\"2026-11-15T12:00:00.020Z\"}"
+          ],
+          "erwartet": {
+            "sha256": "308330b50c20381b5f11df54e3114c7228cd6cedd6eb7111b57833d512adb373"
+          }
+        }
+      ],
+      "ende": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":3,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"zeit\":\"2026-11-15T12:00:00.010Z\"}\n{\"aktionsname\":\"probelauf.zaehlung\",\"anzahl\":3,\"ergebnis\":\"an\",\"fassung\":2,\"programm\":\"suche\",\"sitzung\":\"s-1\",\"vorher\":\"5b9c21b2d979e6c55ae374dedf8ec050343010b5d51c129a95a56c595ab0a3ba\",\"zeit\":\"2026-11-15T12:00:00.020Z\"}\n",
+        "brain.anker.jsonl": ""
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"308330b50c20381b5f11df54e3114c7228cd6cedd6eb7111b57833d512adb373\",\"ok\":true,\"zeilen\":4}\n"
+        }
+      }
+    }
+  ]
+}

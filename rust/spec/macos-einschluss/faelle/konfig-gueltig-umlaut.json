@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Umlaut im Pfad",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"/Users/beispiel/Übungen\"\n ],\n \"programmordner\": [\n  \"/Users/beispiel/.local/share/claude\",\n  \"/opt/homebrew\"\n ]\n}\n"
+}

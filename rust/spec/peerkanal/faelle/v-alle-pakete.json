@@ -1,0 +1,26 @@
+{
+ "beschreibung": "ALL APPLICATION PACKAGES (S-1-15-2-1) als AppContainer-SID",
+ "art": "vorgabe",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "ac": "S-1-15-2-1"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+    "appcontainer_sid": "S-1-15-2-1"
+   }
+  ],
+  "instanzen": 4
+ },
+ "client": null,
+ "aufbau": [],
+ "handlung": [
+  "Server anlegen"
+ ]
+}

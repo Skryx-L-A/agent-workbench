@@ -1,0 +1,9 @@
+{
+ "beschreibung": "W6 fall",
+ "form": "vm",
+ "eigenschaft": "W6",
+ "art": "fall",
+ "ausgangslage": "Windows-VM; Plattformdienst unter NT SERVICE mit den fünf ACEs, Admin-Helfer unter LocalSystem; Projekt A mit Arbeitsordner unter der Projektwurzel; ein Lauf in A mit Claude Code (PowerShell-Werkzeug) gegen die Attrappe des Modellwegs hinter einem Weiterleiter auf dem Sitzungsport M; die Browser-Brücke des Kern-Dienstes hört auf dem Loopback des Rechners; ssh-Stummel vorn im PATH, SSH_AUTH_SOCK leer",
+ "handlung": "Das PowerShell-Werkzeug startet ein Kind mit CREATE_BREAKAWAY_FROM_JOB und ein Enkel-Kind; danach endet der Lauf regulär",
+ "beleg": "gemessen: Fragen 2, 5"
+}

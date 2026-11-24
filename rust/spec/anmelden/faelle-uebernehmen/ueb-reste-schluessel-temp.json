@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Temp-Datei des Schlüssels eines toten Laufs wird geräumt",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "schluessel-temp",
+ "probe": null
+}

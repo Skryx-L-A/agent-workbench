@@ -1,0 +1,92 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "pflege/ziel-datei.md",
+    "score": 1.0,
+    "title": "Ziel Datei",
+    "snippet": "Hinweis zwei ohne Suchwort.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "nachfolger"
+   },
+   {
+    "rel": "pflege/ziel-titel.md",
+    "score": 0.8330296504886536,
+    "title": "Titel des Ziels",
+    "snippet": "Hinweis ohne Suchwort.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "nachfolger"
+   },
+   {
+    "rel": "pflege/ziel-alias.md",
+    "score": 0.7284183082271148,
+    "title": "Ziel Alias",
+    "snippet": "Hinweis drei ohne Suchwort.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "nachfolger"
+   },
+   {
+    "rel": "pflege/alt-datei.md",
+    "score": 0.49,
+    "title": "Alt Datei",
+    "snippet": "Teppich Reinigung mit Dampf, Teppich Reinigung Fasern.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "status": "superseded",
+    "abgeloest_durch": [
+     "pflege/ziel-datei.md"
+    ]
+   },
+   {
+    "rel": "pflege/alt-titel.md",
+    "score": 0.4081845287394403,
+    "title": "Alt Titel",
+    "snippet": "Teppich Reinigung mit Schaum, Teppich Reinigung Flecken.",
+    "lines": [
+     8,
+     8
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.8330296504886536,
+    "status": "superseded",
+    "abgeloest_durch": [
+     "pflege/ziel-titel.md"
+    ]
+   },
+   {
+    "rel": "pflege/alt-alias.md",
+    "score": 0.3569249710312863,
+    "title": "Alt Alias",
+    "snippet": "Teppich Reinigung mit Bürste.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 3,
+    "bm25_norm": 0.7284183082271148,
+    "status": "superseded",
+    "abgeloest_durch": [
+     "pflege/ziel-alias.md"
+    ]
+   }
+  ]
+ }
+}

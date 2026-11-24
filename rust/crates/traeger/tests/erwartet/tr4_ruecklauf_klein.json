@@ -1,0 +1,126 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    3,
+    0,
+    true
+   ],
+   "groesse": [
+    12,
+    4
+   ],
+   "ruecklauf": {
+    "erste": "Z00006",
+    "letzte": "Z00027",
+    "zahl": 31
+   },
+   "stand": 2,
+   "zeilen": [
+    "Z00028",
+    "Z00029",
+    "Z00030",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       3,
+       0,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "Z00007",
+       "1": "Z00008",
+       "2": "Z00009"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      3,
+      0,
+      true
+     ],
+     "groesse": [
+      12,
+      4
+     ],
+     "ruecklauf": {
+      "erste": "Z00001",
+      "letzte": "Z00006",
+      "zahl": 6
+     },
+     "stand": 1,
+     "zeilen": [
+      "Z00007",
+      "Z00008",
+      "Z00009",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       3,
+       0,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": "Z00028",
+       "1": "Z00029",
+       "2": "Z00030"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      3,
+      0,
+      true
+     ],
+     "groesse": [
+      12,
+      4
+     ],
+     "ruecklauf": {
+      "erste": "Z00006",
+      "letzte": "Z00027",
+      "zahl": 31
+     },
+     "stand": 2,
+     "zeilen": [
+      "Z00028",
+      "Z00029",
+      "Z00030",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

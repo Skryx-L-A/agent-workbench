@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13"
+ ],
+ "beschreibung": "Verschachtelung über 64 Ebenen (im nicht ausgewerteten Feld beschreibung)."
+}

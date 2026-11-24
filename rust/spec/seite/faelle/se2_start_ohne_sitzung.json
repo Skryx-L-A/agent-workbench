@@ -1,0 +1,32 @@
+{
+ "beschreibung": "Ohne Sitzung steht der Fokus nach dem Laden im ersten Feld des Startformulars.",
+ "datensatz": "A",
+ "name": "se2_start_ohne_sitzung",
+ "regeln": [
+  "SE2"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": []
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Harness",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": []
+  }
+ ]
+}

@@ -1,0 +1,5 @@
+{
+ "beschreibung": "`userns` in einem Profil mit einem anderen Anhang als der Kopie",
+ "form": "profil",
+ "text": "abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile werkbank-bwrap /usr/lib/werkbank/anderes {\n  userns,\n}\n"
+}

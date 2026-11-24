@@ -1,0 +1,22 @@
+{
+ "description": "gleiche Notizen, Frage ohne Auslöser: kein Bonus",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Gartenprojekt Beet",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/garten/MOC.md": "---\ntitle: Garten\ntype: note\n---\n\nGartenprojekt mit Beeten, Wasser und Kompost.\n",
+  "vault/garten/beet.md": "---\ntitle: Beet\ntype: note\n---\n\nDas Gartenprojekt braucht ein neues Beet.\n",
+  "vektoren.json": "{\"query\": [1, 0, 0], \"notes\": {\"garten/beet.md\": [0.9, 0.1, 0.0], \"garten/MOC.md\": [0.5, 0.5, 0.0]}}"
+ }
+}

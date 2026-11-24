@@ -1,0 +1,12 @@
+{
+ "description": "zwei Blöcke gleich gut: der erste gewinnt",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\ntitle: Kaffee\n---\n\n## Erster\n\nKaffee entkalken im Frühling.\n\n## Zweiter\n\nKaffee filtern im Sommer.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "Kaffee"
+ ]
+}

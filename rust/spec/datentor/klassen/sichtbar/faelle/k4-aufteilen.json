@@ -1,0 +1,151 @@
+{
+ "name": "k4-aufteilen",
+ "regeln": [
+  "K4",
+  "A33"
+ ],
+ "beschreibung": "Vorgabe an: Teil 1 (allgemein, geerbt) kommt über r-oeff, Teil 2 (Kundenangabe) nur über r-kd; die Reihenfolge bleibt.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "oeffentlich",
+    "teile": [
+     {},
+     {
+      "klasse": "kundendaten",
+      "kunde": "k-a"
+     }
+    ]
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "oeffentlich",
+    "teile": [
+     {},
+     {
+      "klasse": "kundendaten",
+      "kunde": "k-a"
+     }
+    ]
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "oeffentlich",
+    "teile": [
+     {},
+     {
+      "klasse": "intern"
+     },
+     {
+      "klasse": "oeffentlich"
+     }
+    ]
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "oeffentlich",
+    "teile": [
+     {
+      "klasse": "geheim"
+     },
+     {}
+    ]
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "teile": [
+     {
+      "klasse": "kundendaten"
+     },
+     {}
+    ]
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "teile": [
+     {},
+     {
+      "klasse": "oeffentlich"
+     }
+    ]
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "oeffentlich",
+    "teile": [
+     {
+      "kunde": "k-a"
+     },
+     {
+      "kunde": "k-b"
+     }
+    ]
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "oeffentlich",
+    "teile": [
+     {}
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,15 @@
+{
+ "description": "drop zone and root-only exclusions",
+ "files": {
+  "v/00-sources/drop/neu.md": "1\n",
+  "v/00-sources/dropbox/alt.md": "2\n",
+  "v/INDEX.md": "3\n",
+  "v/10-global/INDEX.md": "4\n",
+  "v/review-queue.md": "5\n",
+  "v/10-global/review-queue.md": "6\n"
+ },
+ "args": [
+  "corpus",
+  "{root}/v"
+ ]
+}

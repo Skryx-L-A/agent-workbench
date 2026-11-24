@@ -1,0 +1,123 @@
+{
+  "beschreibung": "Ein Antrag auf Einsicht ohne zweite Person verfaellt zur Frist mit einer Zeile; danach scheitert das Bestaetigen.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "A102"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"brain\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[\"brain_schreiben\",\"brain_senken\"],\"zweite_person\":[\"brain_senken\"],\"frist_ms\":60000,\"einloesefrist_ms\":30000}},\"stelle\":{\"antrag_frist_ms\":10000,\"einsicht\":{\"regel\":\"rolle-vier-augen\"}}}",
+    "rollen": {
+      "ps_00000000000000000000000000000b01": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000b02": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000e01": [
+        "einsicht"
+      ],
+      "ps_00000000000000000000000000000e02": [
+        "einsicht"
+      ]
+    }
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/srv/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "einsicht.anfragen",
+      "jetzt_ms": 1795179601000,
+      "eingabe": {
+        "monat": "2026-11",
+        "nonce": "00000000000000000000000000000001",
+        "quelle": "stelle",
+        "zweck": "pruefung",
+        "nachweis": "h1:ps_00000000000000000000000000000e01:ce5e0e326868eca1688d35d6e40b87c952da249213099bb772f1124467c7abf1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "antrag_offen",
+          "antrag": "an-1795179540000-1",
+          "frist_bis_ms": 1795179611000
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.bestaetigen",
+      "jetzt_ms": 1795179611000,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000b01:44038bca272f31b5039243266fe48472ebeaf302c7902d93d63e5f5b656ed1fb"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.antrag_abgelaufen",
+          "grund": "Antrag abgelaufen"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"protokoll.einsicht\",\"antrag\":\"an-1795179540000-1\",\"ergebnis\":\"abgelaufen\",\"fassung\":2,\"monat\":\"2026-11\",\"person\":\"ps_00000000000000000000000000000e01\",\"quelle\":\"stelle\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:11.000Z\",\"zweck\":\"pruefung\",\"zweiter\":null}",
+            "sha256": "5310cafc8dac97dcdadd8054c144d9dc00fb1a09feccbb60fe7036d04b328645"
+          },
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.antrag_abgelaufen\",\"vorgang\":\"antrag.bestaetigen\",\"vorher\":\"5310cafc8dac97dcdadd8054c144d9dc00fb1a09feccbb60fe7036d04b328645\",\"zeit\":\"2026-11-20T13:00:11.000Z\"}",
+            "sha256": "5c209daaafb7b4a92f1f53c933cb75c1ac2c7e3f28e52e984e30e0f3971b745d"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1"
+    ],
+    "anfragen": {},
+    "zaehler": 0,
+    "antraege": {
+      "an-1795179540000-1": "abgelaufen"
+    },
+    "zugaenge": {},
+    "pflichten": {
+      "halter_bescheinigung": true,
+      "mcp.brain.freigabe": true,
+      "mcp.notizen.freigabe": false,
+      "mcp.tickets.freigabe": true,
+      "senken_zweite_person": false,
+      "vier_augen": false
+    },
+    "zeilen": 3,
+    "letzte": "5c209daaafb7b4a92f1f53c933cb75c1ac2c7e3f28e52e984e30e0f3971b745d"
+  }
+}

@@ -1,0 +1,39 @@
+{
+ "name": "tr15_warte_cursor_nie",
+ "regeln": [
+  "TR15"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Nachtrag 21.11. (TR15): Warte auf einen Cursor, den das Bild nie zeigt, bei einem Kind, das ohne Ausgabe endet: ok false, fehler nie (nicht zeit); der Zustand zeigt den Anfangscursor",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "ende",
+  "argv": [
+   "0"
+  ],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "cursor": [
+     5,
+     5,
+     true
+    ]
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

@@ -1,0 +1,95 @@
+{
+ "name": "p7-leer",
+ "regeln": [
+  "P2"
+ ],
+ "beschreibung": "Ohne einen einzigen Eintrag in leseklassen hat niemand eine Leseklasse; alles ist gesperrt.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oe",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-in",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "c-kd",
+    "art": "cloud",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "r-ohne",
+    "art": "lokal"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-1",
+    "erlaubt": [
+     "r-kd",
+     "c-kd"
+    ]
+   },
+   {
+    "schluessel": "k-2",
+    "erlaubt": [
+     "r-kd"
+    ],
+    "verboten": [
+     "c-kd"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": [
+    {
+     "route": "c-kd",
+     "kunde": "k-1"
+    }
+   ]
+  }
+ },
+ "personen": {
+  "leseklassen": []
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "oeffentlich"
+   },
+   "route": "r-oe",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-oe"
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "oeffentlich"
+   },
+   "route": "r-oe",
+   "kunde": null,
+   "kontext": {
+    "nutzer": "p-oe",
+    "gruppen": [
+     "g-oe"
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "exit": 69,
+ "stderr": "lauf.modellweg_fehlt: Modellweg nicht startbar",
+ "suche_gestartet": true,
+ "suche_beendet": true,
+ "zielliste": {
+  "pfad": "/var/lib/werkbank/beispiel/sitzungen/s-3.zielliste.json",
+  "bleibt_nach_ende": true
+ }
+}

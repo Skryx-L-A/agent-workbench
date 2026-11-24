@@ -1,0 +1,16 @@
+{
+ "description": "corpus walk never enters folded spellings of excluded folders (the spelling 90-SECRETS has a case of its own: korpus-faltung-gross)",
+ "files": {
+  "10-global/ok.md": "# ok\n",
+  "90-ſecrets/geheim.md": "erfunden\n",
+  "a/90-ſECRETS/drei.md": "erfunden\n",
+  "ＨＯＴ.md": "erfunden\n",
+  "．git/x.md": "erfunden\n",
+  "10-global/90-secret/ok2.md": "# ok2\n",
+  "HoT.md": "erfunden\n"
+ },
+ "args": [
+  "corpus",
+  "{root}"
+ ]
+}

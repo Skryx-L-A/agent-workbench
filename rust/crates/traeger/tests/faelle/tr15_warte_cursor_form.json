@@ -1,0 +1,1 @@
+{"art": "kind", "groesse": [30, 8], "start": {"kind": "ende", "argv": ["0"], "env": {"TERM": "xterm-256color", "LC_ALL": "C.UTF-8", "PATH": "/usr/bin:/bin"}}, "schritte": [{"art": "Warte", "bis": {"cursor": [1, 0]}}]}

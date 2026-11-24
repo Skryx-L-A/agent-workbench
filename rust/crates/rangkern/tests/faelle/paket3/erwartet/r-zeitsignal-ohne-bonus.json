@@ -1,0 +1,34 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "20-projects/garten/beet-alt.md",
+    "score": 1.0,
+    "title": "Beet alt",
+    "snippet": "Beet anlegen. Beet pflegen. Beet mähen.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   },
+   {
+    "rel": "20-projects/garten/beet-neu.md",
+    "score": 0.9411764705882353,
+    "title": "Beet neu",
+    "snippet": "Das Beet ist angelegt.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.9068129901177637
+   }
+  ]
+ }
+}

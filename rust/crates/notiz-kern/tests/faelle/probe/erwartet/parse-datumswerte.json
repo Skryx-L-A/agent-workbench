@@ -1,0 +1,25 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Daten\ncreated: 2026-09-28\nzeit: 2026-09-28T10:00:00Z\nstand: \"2026-09\"\nverified: 2026-9-3"
+  ],
+  "fields": {
+   "title": "Daten",
+   "created": "2026-09-28",
+   "zeit": "2026-09-28T10:00:00Z",
+   "stand": "2026-09",
+   "verified": "2026-9-3"
+  },
+  "body": "Text\n",
+  "title": "Daten",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "daten",
+   "note"
+  ],
+  "embed_text": "Daten\n\nText\n"
+ }
+}

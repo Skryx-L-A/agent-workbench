@@ -1,0 +1,11 @@
+{
+ "description": "section up to the next heading of the same level",
+ "files": {
+  "note.md": "# Titel\n\n## Plan\n\nSchritt eins.\n\n### Detail\n\nmehr\n\n## Danach\n\nweg\n"
+ },
+ "args": [
+  "section",
+  "{root}/note.md",
+  "Plan"
+ ]
+}

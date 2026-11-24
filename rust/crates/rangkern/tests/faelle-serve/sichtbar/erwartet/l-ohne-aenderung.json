@@ -1,0 +1,2200 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 0
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9992944280535204,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.47058823529411764,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9275373631038171,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8729957542566618,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8545078219581688,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8411588336707453,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 2
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/hecke.md",
+     "score": 1.0,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 3
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/teich.md",
+     "score": 1.0,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9990158821485361,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/misc/fueller-4.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Schaffner",
+     "snippet": "Ein Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9911867716341167,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4444444444444444,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9845072107802847,
+     "vektor_rang": 3,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9824841778418032,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9626894350182001,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 4
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 1.0,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 5
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 1.0,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 6
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 1.0,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9988359737195867,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9938784480888967,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-4.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Schaffner",
+     "snippet": "Ein Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9683303763351194,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/teich.md",
+     "score": 0.42105263157894735,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9634187029825354,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9625626209840107,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 7
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 8
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 9
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.999118130408033,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/misc/fueller-3.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Gleis",
+     "snippet": "Ein Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9829958864662376,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4444444444444444,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9685751037510265,
+     "vektor_rang": 3,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.42105263157894735,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9621032478682554,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9510124607923177,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 10
+  },
+  {
+   "fallback": true,
+   "hits": [],
+   "id": 11
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/teich.md",
+     "score": 1.0,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 12
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 1.0,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9993818803663115,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.47058823529411764,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9388900000008723,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-1.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Bahnhof",
+     "snippet": "Ein Text ueber bahnhof und bahnhofstand, ohne Bezug zu den anderen Notizen. bahnhof bahnhof.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.927556991452256,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9149859922759462,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "10-global/misc/fueller-3.md",
+     "score": 0.4,
+     "title": "Fueller Gleis",
+     "snippet": "Ein Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8889366136802194,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 13
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 1.0,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 14
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 1.0,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 15
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9993691787040635,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/kompost.md",
+     "score": 0.47058823529411764,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9293550389781042,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9274585847674263,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.42105263157894735,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9174279770823514,
+     "vektor_rang": 4,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.4,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9093757906050273,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 16
+  },
+  {
+   "fallback": true,
+   "hits": [],
+   "id": 17
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 18
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/hecke.md",
+     "score": 1.0,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9990231141915278,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/misc/fueller-3.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Gleis",
+     "snippet": "Ein Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9858073396815658,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 0.4444444444444444,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9451481503288283,
+     "vektor_rang": 3,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 0.42105263157894735,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9400755703487277,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.4,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9255233372416929,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 19
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/teich.md",
+     "score": 1.0,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 20
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 1.0,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 21
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 1.0,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9992321612313787,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/teich.md",
+     "score": 0.47058823529411764,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9828219609400837,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-4.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Schaffner",
+     "snippet": "Ein Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9714892139011826,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.42105263157894735,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9600788579399274,
+     "vektor_rang": 4,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 0.4,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9598663149235745,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 22
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 1.0,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 23
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 24
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9992944280535204,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.47058823529411764,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9275373631038171,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8729957542566618,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8545078219581688,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8411588336707453,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 25
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 26
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/hecke.md",
+     "score": 1.0,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 27
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/teich.md",
+     "score": 1.0,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9990158821485361,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/misc/fueller-4.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Schaffner",
+     "snippet": "Ein Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9911867716341167,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4444444444444444,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9845072107802847,
+     "vektor_rang": 3,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9824841778418032,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9626894350182001,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 28
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 1.0,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 29
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 1.0,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 30
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 1.0,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9988359737195867,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9938784480888967,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-4.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Schaffner",
+     "snippet": "Ein Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9683303763351194,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/teich.md",
+     "score": 0.42105263157894735,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9634187029825354,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9625626209840107,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 31
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 32
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 33
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.999118130408033,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/misc/fueller-3.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Gleis",
+     "snippet": "Ein Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9829958864662376,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4444444444444444,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9685751037510265,
+     "vektor_rang": 3,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.42105263157894735,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9621032478682554,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9510124607923177,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 34
+  },
+  {
+   "fallback": true,
+   "hits": [],
+   "id": 35
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/teich.md",
+     "score": 1.0,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 36
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 1.0,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9993818803663115,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.47058823529411764,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9388900000008723,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-1.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Bahnhof",
+     "snippet": "Ein Text ueber bahnhof und bahnhofstand, ohne Bezug zu den anderen Notizen. bahnhof bahnhof.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.927556991452256,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9149859922759462,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "10-global/misc/fueller-3.md",
+     "score": 0.4,
+     "title": "Fueller Gleis",
+     "snippet": "Ein Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8889366136802194,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 37
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 1.0,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 38
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 1.0,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 39
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9993691787040635,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/kompost.md",
+     "score": 0.47058823529411764,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9293550389781042,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9274585847674263,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.42105263157894735,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9174279770823514,
+     "vektor_rang": 4,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.4,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9093757906050273,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 40
+  },
+  {
+   "fallback": true,
+   "hits": [],
+   "id": 41
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 42
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/hecke.md",
+     "score": 1.0,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9990231141915278,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/misc/fueller-3.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Gleis",
+     "snippet": "Ein Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9858073396815658,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 0.4444444444444444,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9451481503288283,
+     "vektor_rang": 3,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 0.42105263157894735,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9400755703487277,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.4,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9255233372416929,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 43
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/teich.md",
+     "score": 1.0,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 44
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 1.0,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 45
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 1.0,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9992321612313787,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/teich.md",
+     "score": 0.47058823529411764,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9828219609400837,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-4.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Schaffner",
+     "snippet": "Ein Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9714892139011826,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.42105263157894735,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9600788579399274,
+     "vektor_rang": 4,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 0.4,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9598663149235745,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 46
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 1.0,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 47
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 48
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9992944280535204,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/zaun.md",
+     "score": 0.47058823529411764,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9275373631038171,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8729957542566618,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8545078219581688,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8411588336707453,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 49
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 50
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/hecke.md",
+     "score": 1.0,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 51
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/teich.md",
+     "score": 1.0,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9990158821485361,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/misc/fueller-4.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Schaffner",
+     "snippet": "Ein Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9911867716341167,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4444444444444444,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9845072107802847,
+     "vektor_rang": 3,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9824841778418032,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9626894350182001,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 52
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 1.0,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 53
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 1.0,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 54
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 1.0,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9988359737195867,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9938784480888967,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-4.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Schaffner",
+     "snippet": "Ein Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9683303763351194,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/teich.md",
+     "score": 0.42105263157894735,
+     "title": "Teich und Folie",
+     "snippet": "Notiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9634187029825354,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9625626209840107,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 55
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/zaun.md",
+     "score": 1.0,
+     "title": "Zaun und Pfosten",
+     "snippet": "Notiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 56
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/kompost.md",
+     "score": 1.0,
+     "title": "Kompost und Wurmkiste",
+     "snippet": "Notiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 57
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.999118130408033,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/misc/fueller-3.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Gleis",
+     "snippet": "Ein Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9829958864662376,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4444444444444444,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9685751037510265,
+     "vektor_rang": 3,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.42105263157894735,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9621032478682554,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9510124607923177,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 58
+  },
+  {
+   "fallback": true,
+   "hits": [],
+   "id": 59
+  }
+ ],
+ "exit": 0
+}

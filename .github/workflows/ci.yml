@@ -1,13 +1,17 @@
-# Checks that run without a live machine: syntax of every shell and Python script, ShellCheck at
-# error level, and the type check and build of the window in app/. The full test run needs tmux
-# sessions, harnesses and a second machine; it runs in the source tree before a state is published.
+# The gates of rust/gates.sh. On Linux and macOS the gates run through the script itself, with the
+# tool folder that rust/tools/werkzeuge-installieren.sh installs in pinned versions (the script
+# accepts no other cargo). That installer has pinned checksums for x86_64 Linux and arm64 macOS
+# only, so Windows runs the same cargo commands with the toolchain of rust/rust-toolchain.toml.
+#
+# fmt, clippy, test and cargo-deny are required on all three systems. The mutation gate (./gates.sh mutants) takes hours and runs in the source tree before a
+# state is published, not here.
 name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [development]
   pull_request:
-    branches: [main]
+    branches: [development]
   workflow_dispatch:
 
 permissions:
@@ -17,79 +21,101 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-jobs:
-  scripts:
-    name: shell and python
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.14"
-      - name: Find scripts
-        run: |
-          export LC_ALL=C
-          : > shell-files
-          : > python-files
-          git ls-files -z | while IFS= read -r -d '' f; do
-            [ -f "$f" ] || continue
-            case "$f" in
-              *.py) printf '%s\0' "$f" >> python-files; continue ;;
-              *.sh) printf '%s\0' "$f" >> shell-files; continue ;;
-            esac
-            first="$(head -n 1 -- "$f" 2>/dev/null | tr -d '\0')" || first=""
-            second="$(sed -n 2p -- "$f" 2>/dev/null | tr -d '\0')" || second=""
-            # A /bin/sh head that hands over to Python ("true" ''' on line 2) is a Python file.
-            case "$second" in
-              '"true" '"'''"*) printf '%s\0' "$f" >> python-files; continue ;;
-            esac
-            case "$first" in
-              '#!'*python*) printf '%s\0' "$f" >> python-files ;;
-              '#!'*bash*|'#!/bin/sh'*|'#!/usr/bin/env sh'*) printf '%s\0' "$f" >> shell-files ;;
-            esac
-          done
-          echo "shell scripts: $(tr -cd '\0' < shell-files | wc -c)"
-          echo "python scripts: $(tr -cd '\0' < python-files | wc -c)"
-      - name: Shell syntax (bash -n)
-        run: xargs -0 -r -n1 bash -n < shell-files
-      - name: ShellCheck (errors only)
-        run: |
-          shellcheck --version
-          xargs -0 -r shellcheck --severity=error --shell=bash < shell-files
-      - name: Python syntax
-        run: |
-          python3 - <<'PY'
-          import sys
-          names = [n for n in open("python-files", encoding="utf-8").read().split("\0") if n]
-          bad = 0
-          for name in names:
-              try:
-                  compile(open(name, "rb").read(), name, "exec")
-              except SyntaxError as e:
-                  bad += 1
-                  print(f"::error file={name},line={e.lineno or 1}::{e.msg}")
-          print(f"{len(names)} files, {bad} with a syntax error")
-          sys.exit(1 if bad else 0)
-          PY
+env:
+  CARGO_TERM_COLOR: always
 
-  app:
-    name: window (app/)
-    runs-on: ubuntu-latest
+jobs:
+  gates:
+    name: gates (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     defaults:
       run:
-        working-directory: app
+        shell: bash
+        working-directory: rust
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - name: Restore the tool folder
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          node-version: "22"
-      - name: Install (no install scripts, no Electron download)
-        run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Type check
-        run: npm run typecheck
-      - name: Build
-        run: npm run build
+          path: ~/.local/share/wb-rust-werkzeuge
+          key: wb-rust-werkzeuge-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('rust/tools/werkzeuge-installieren.sh', 'rust/rust-toolchain.toml') }}
+      - name: Install the tool folder (pinned versions)
+        run: bash tools/werkzeuge-installieren.sh --install --target "$HOME/.local/share/wb-rust-werkzeuge"
+      - name: Tools
+        run: ./gates.sh tools
+      - name: fmt
+        run: ./gates.sh fmt
+      - name: clippy
+        run: ./gates.sh clippy
+      # Ubuntu runners refuse user namespaces to unconfined programs (kernel.apparmor_restrict_unprivileged_userns=1)
+      # and confine /usr/bin/bwrap with Ubuntu's profile bwrap-userns-restrict, whose children may not build a namespace
+      # of their own. The tests build namespaces with `unshare -Ur` (the observation of the bridge, the service and the
+      # search) and test the boundaries of the enclosure with a nested `bwrap` (the counter probes must turn red without
+      # a boundary). The package profile usr.lib.werkbank.werkbank-einschluss attaches only to the installed starter
+      # /usr/lib/werkbank/werkbank-einschluss, which no test runs, so loading it changes none of these processes. This
+      # step therefore gives the runner the namespace rules of the upstream kernel, like the Linux reference host, and
+      # checks them before the tests. The package path behind the lock stays a duty of the reference run on Ubuntu.
+      - name: Linux test host (user namespaces of the upstream kernel, lsof)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          echo "restrict before: $(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null || echo none)"
+          ls /etc/apparmor.d | grep -E 'bwrap|unshare' || true
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          if [ -f /etc/apparmor.d/bwrap-userns-restrict ]; then
+            sudo apparmor_parser -R /etc/apparmor.d/bwrap-userns-restrict
+          fi
+          command -v lsof >/dev/null || { sudo apt-get update -q && sudo apt-get install -y -q lsof; }
+          # positive controls: what the tests need, each must succeed here
+          unshare -Ur -- true
+          /usr/bin/bwrap --unshare-user --ro-bind / / --dev /dev --proc /proc -- \
+            /usr/bin/bwrap --unshare-user --ro-bind / / -- /usr/bin/true
+          lsof -v 2>&1 | head -n 3
+          echo "/bin/sh is $(readlink -f /bin/sh)"
+      - name: test
+        run: ./gates.sh test
+      - name: licenses (cargo deny, SBOM)
+        run: ./gates.sh licenses
+      - name: notices
+        run: ./gates.sh notices
+
+  windows:
+    name: gates (windows-latest)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: rust
+    steps:
+      - name: Keep line endings as committed
+        working-directory: ${{ github.workspace }}
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Toolchain of rust-toolchain.toml
+        run: |
+          channel="$(sed -n 's/^channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' rust-toolchain.toml)"
+          test -n "$channel"
+          rustup toolchain install "$channel" --profile minimal --component rustfmt --component clippy
+          rustup override set "$channel"
+          cargo --version
+      - name: fmt
+        run: cargo fmt --all --check
+      - name: clippy
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - name: test
+        run: cargo test --workspace --all-targets --all-features --locked --no-fail-fast
+      - name: cargo-deny (version of rust/gates.sh)
+        run: |
+          version="$(sed -n 's/^TOOL_DENY="\([^"]*\)"/\1/p' gates.sh)"
+          test -n "$version"
+          cargo install --locked cargo-deny --version "$version"
+      - name: licenses (cargo deny)
+        run: cargo deny --locked --all-features check licenses bans sources

@@ -1,0 +1,9 @@
+{
+ "beschreibung": "Nutzername mit 32 Zeichen und die größte uid: laufzeit hängt nur an der uid, der längste Socketpfad bleibt unter 108 Byte",
+ "form": "laufkonfig",
+ "nutzer": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+ "uid": 4294967294,
+ "heim": "/srv/beispiel/heim/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+ "harness": {},
+ "vorher": null
+}

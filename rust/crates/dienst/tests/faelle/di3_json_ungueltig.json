@@ -1,0 +1,88 @@
+{
+ "beschreibung": "Ereignisrahmen ohne gueltiges JSON: Fehler json_ungueltig, die Verbindung endet",
+ "datensatz": "A",
+ "name": "di3_json_ungueltig",
+ "regeln": [
+  "DI3"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Rahmen",
+   "art_rahmen": "Ereignis",
+   "betrachter": "c1",
+   "hex": "7b6e69636874206a736f6e"
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "fehler": "json_ungueltig"
+   },
+   "frist": 5,
+   "takt": 16
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "getrennt": true
+   },
+   "frist": 5,
+   "takt": 16
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   40,
+   10
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "ende",
+    "0"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

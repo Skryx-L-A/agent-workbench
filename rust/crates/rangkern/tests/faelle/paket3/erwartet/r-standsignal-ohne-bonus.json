@@ -1,0 +1,34 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "20-projects/garten/log.md",
+    "score": 1.0,
+    "title": "Gartenlog",
+    "snippet": "Gartenprojekt Notiz vom Frühling. Gartenprojekt Notiz.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   },
+   {
+    "rel": "20-projects/garten/KERN.md",
+    "score": 0.9411764705882353,
+    "title": "Garten KERN",
+    "snippet": "Gartenprojekt: Beete angelegt.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.8234694398007103
+   }
+  ]
+ }
+}

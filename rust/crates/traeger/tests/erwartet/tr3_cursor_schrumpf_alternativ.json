@@ -1,0 +1,237 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    4,
+    10,
+    true
+   ],
+   "groesse": [
+    20,
+    5
+   ],
+   "ruecklauf": {
+    "erste": "",
+    "letzte": "",
+    "zahl": 4
+   },
+   "stand": 5,
+   "zeilen": [
+    "",
+    "",
+    "",
+    "",
+    "         y"
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       7,
+       29,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {}
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       6,
+       29,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "6": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      6,
+      29,
+      true
+     ],
+     "groesse": [
+      40,
+      10
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 2,
+     "zeilen": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "zzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+      "",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       19,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "4": "zzzzzzzzzzzzzzzzzzzz"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      4,
+      19,
+      true
+     ],
+     "groesse": [
+      20,
+      5
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 3,
+     "zeilen": [
+      "",
+      "",
+      "",
+      "",
+      "zzzzzzzzzzzzzzzzzzzz"
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       9,
+       true
+      ],
+      "stand": 4,
+      "zeilen": {
+       "4": ""
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      4,
+      9,
+      true
+     ],
+     "groesse": [
+      20,
+      5
+     ],
+     "ruecklauf": {
+      "erste": "",
+      "letzte": "",
+      "zahl": 4
+     },
+     "stand": 4,
+     "zeilen": [
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       10,
+       true
+      ],
+      "stand": 5,
+      "zeilen": {
+       "4": "         y"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      4,
+      10,
+      true
+     ],
+     "groesse": [
+      20,
+      5
+     ],
+     "ruecklauf": {
+      "erste": "",
+      "letzte": "",
+      "zahl": 4
+     },
+     "stand": 5,
+     "zeilen": [
+      "",
+      "",
+      "",
+      "",
+      "         y"
+     ]
+    }
+   }
+  ]
+ }
+}

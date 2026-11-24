@@ -1,0 +1,56 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": "intern",
+    "meldung": "Route r-ohne hat keine Klasse",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-route",
+    "klasse": "intern",
+    "meldung": "Klasse der Einheit liegt über Route r-oe",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": false,
+    "grund": "kunde-fehlt",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten ohne Kunde",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": false,
+    "grund": "route-fuer-kunde-verboten",
+    "klasse": "kundendaten",
+    "meldung": "Route c-kd ist für diesen Kunden verboten",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "oeffentlich",
+    "meldung": "frei",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "intern",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "oeffentlich"
+   }
+  ]
+ }
+}

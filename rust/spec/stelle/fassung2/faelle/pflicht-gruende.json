@@ -1,0 +1,428 @@
+{
+  "beschreibung": "pflicht.aendern und antrag.bestaetigen: unbekannte Pflicht, falscher Nachweis, benutzte Nonce, fehlende Rolle, unveraenderter Wert, fremder Inhalt beim Bestaetigen, unbekannter Antrag und falsche Aufrufer werden abgelehnt und protokolliert.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "A09",
+    "Prueffolge"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"brain\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[\"brain_schreiben\",\"brain_senken\"],\"zweite_person\":[\"brain_senken\"],\"frist_ms\":60000,\"einloesefrist_ms\":30000}},\"stelle\":{\"vier_augen\":true}}",
+    "rollen": {
+      "ps_00000000000000000000000000000b01": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000b02": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000e01": [
+        "einsicht"
+      ],
+      "ps_00000000000000000000000000000e02": [
+        "einsicht"
+      ]
+    }
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/srv/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179601000,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000001",
+        "pflicht": "mcp.fremd.freigabe",
+        "wert": false,
+        "nachweis": "h1:ps_00000000000000000000000000000b01:2251629602f77362ae22d077c30c22cfedb27727ea4b0bee54897a9ea6039a47"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.pflicht_unbekannt",
+          "grund": "Pflicht unbekannt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.pflicht_unbekannt\",\"vorgang\":\"pflicht.aendern\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}",
+            "sha256": "37d5ccc9c27993a713ff5fc61c62e0daa857fd869293626cee627cde3ce10d8d"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179601001,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000002",
+        "pflicht": "vier_augen",
+        "wert": true,
+        "nachweis": "h1:ps_00000000000000000000000000000b01:fb8e1d220df061dcf5981a25b45e67a9919a5dbe599f1a801f06f9b87ce3333c"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.nachweis_ungueltig",
+          "grund": "Nachweis ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.nachweis_ungueltig\",\"vorgang\":\"pflicht.aendern\",\"vorher\":\"37d5ccc9c27993a713ff5fc61c62e0daa857fd869293626cee627cde3ce10d8d\",\"zeit\":\"2026-11-20T13:00:01.001Z\"}",
+            "sha256": "229e26e15c1337f3a9ba13cc2a548ac756fffe939b5211c479715f7f9bddd3e6"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179601002,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000003",
+        "pflicht": "vier_augen",
+        "wert": false,
+        "nachweis": "h1:ps_00000000000000000000000000000e01:1c1a27a72d8c0471cbd2e7c8c953589bc6e87a4943a27b9cbd740650b093b4ed"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.rolle_fehlt",
+          "grund": "Rolle fehlt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.rolle_fehlt\",\"vorgang\":\"pflicht.aendern\",\"vorher\":\"229e26e15c1337f3a9ba13cc2a548ac756fffe939b5211c479715f7f9bddd3e6\",\"zeit\":\"2026-11-20T13:00:01.002Z\"}",
+            "sha256": "c8b47fa3175f7bf88f54b8d66a5b7bb7794147ba569c6eef4a968884bc7b84cf"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179601003,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000003",
+        "pflicht": "vier_augen",
+        "wert": false,
+        "nachweis": "h1:ps_00000000000000000000000000000b01:7f940c1fc90f43e1b843d0637b4fd786c14f1c21e8b5a9259accf9f30f7777d5"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.nonce_benutzt",
+          "grund": "Nachweis schon benutzt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.nonce_benutzt\",\"vorgang\":\"pflicht.aendern\",\"vorher\":\"c8b47fa3175f7bf88f54b8d66a5b7bb7794147ba569c6eef4a968884bc7b84cf\",\"zeit\":\"2026-11-20T13:00:01.003Z\"}",
+            "sha256": "02516abd36d2764b90f31884110198f2942332be9ee259b6d03da9b61c7a1c65"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179601004,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000004",
+        "pflicht": "vier_augen",
+        "wert": true,
+        "nachweis": "h1:ps_00000000000000000000000000000b01:2e60cfa7de1521a53183476061326f8b119494903a31393ae517441c96f489ae"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.pflicht_unveraendert",
+          "grund": "Wert schon gesetzt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.pflicht_unveraendert\",\"vorgang\":\"pflicht.aendern\",\"vorher\":\"02516abd36d2764b90f31884110198f2942332be9ee259b6d03da9b61c7a1c65\",\"zeit\":\"2026-11-20T13:00:01.004Z\"}",
+            "sha256": "b3e44bdf1dd918998b0a57e5e6ed291be5f1bb647e7b6cd6a96ea9d0dba7d1ca"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179601005,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000005",
+        "pflicht": "vier_augen",
+        "wert": false,
+        "nachweis": "h1:ps_00000000000000000000000000000b01:417a8871034d35eb1d4aa54166027371a3584cbf2db1ed15f86f86d1a8d49770"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "antrag_offen",
+          "antrag": "an-1795179540000-1",
+          "frist_bis_ms": 1795180201005
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"pflicht.aenderung\",\"antrag\":\"an-1795179540000-1\",\"ergebnis\":\"antrag\",\"fassung\":2,\"person\":\"ps_00000000000000000000000000000b01\",\"pflicht\":\"vier_augen\",\"vorher\":\"b3e44bdf1dd918998b0a57e5e6ed291be5f1bb647e7b6cd6a96ea9d0dba7d1ca\",\"wert\":false,\"zeit\":\"2026-11-20T13:00:01.005Z\",\"zweiter\":null}",
+            "sha256": "607c42e43ec8acb35e76bab00ab73c0833e52b9dea0abd23fb46a537e821af89"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.bestaetigen",
+      "jetzt_ms": 1795179601006,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000b02:17958fb86df8a72a00de8a937bc8ca07483224463e35074a7346ec5530c33b3e"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.nachweis_ungueltig",
+          "grund": "Nachweis ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.nachweis_ungueltig\",\"vorgang\":\"antrag.bestaetigen\",\"vorher\":\"607c42e43ec8acb35e76bab00ab73c0833e52b9dea0abd23fb46a537e821af89\",\"zeit\":\"2026-11-20T13:00:01.006Z\"}",
+            "sha256": "de9e12f3100fef445221218d6a65a2f14c0e1dfddaf4c2da3f313198114becc0"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.bestaetigen",
+      "jetzt_ms": 1795179601007,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000e01:89522ba60050159cab4fe564c7b779875c18214f52ff83312e2a387608be2334"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.rolle_fehlt",
+          "grund": "Rolle fehlt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.rolle_fehlt\",\"vorgang\":\"antrag.bestaetigen\",\"vorher\":\"de9e12f3100fef445221218d6a65a2f14c0e1dfddaf4c2da3f313198114becc0\",\"zeit\":\"2026-11-20T13:00:01.007Z\"}",
+            "sha256": "09a1952e53e7eafe048ec1d4b7825c46a5da3c894b078fe477ebdd4dfc00d0b1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.bestaetigen",
+      "jetzt_ms": 1795179601008,
+      "eingabe": {
+        "antrag": "an-1795179540000-9",
+        "nachweis": "h1:ps_00000000000000000000000000000b02:84d82a0a3f36a7e3ed6cf1f753140ab18d281fc2714a95aa6223b5b97a8d1161"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.antrag_unbekannt",
+          "grund": "Antrag unbekannt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-9\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.antrag_unbekannt\",\"vorgang\":\"antrag.bestaetigen\",\"vorher\":\"09a1952e53e7eafe048ec1d4b7825c46a5da3c894b078fe477ebdd4dfc00d0b1\",\"zeit\":\"2026-11-20T13:00:01.008Z\"}",
+            "sha256": "716adbaa80483927db6aeb0d54d3a2e4bfee38aaa5a60c589084db273dfda429"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179601100,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000006",
+        "pflicht": "vier_augen",
+        "wert": false,
+        "nachweis": "h1:ps_00000000000000000000000000000b01:181434d803467cfba1619b1252e97a093b2d42cade58d1133433f3a8850fb2c8"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"pflicht.aendern\",\"vorher\":\"716adbaa80483927db6aeb0d54d3a2e4bfee38aaa5a60c589084db273dfda429\",\"zeit\":\"2026-11-20T13:00:01.100Z\"}",
+            "sha256": "dd569d67fdedca7b928372f43366eaaed942efaecfb8e4538d062d3ab3202445"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "agent",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179601101,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000006",
+        "pflicht": "vier_augen",
+        "wert": false,
+        "nachweis": "h1:ps_00000000000000000000000000000b01:181434d803467cfba1619b1252e97a093b2d42cade58d1133433f3a8850fb2c8"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"agent\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"pflicht.aendern\",\"vorher\":\"dd569d67fdedca7b928372f43366eaaed942efaecfb8e4538d062d3ab3202445\",\"zeit\":\"2026-11-20T13:00:01.101Z\"}",
+            "sha256": "1e0ab067022f073037d0b85f5cc9cf96add35bae060bd5a230c5b20d657fff7c"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "brain",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179601102,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000006",
+        "pflicht": "vier_augen",
+        "wert": false,
+        "nachweis": "h1:ps_00000000000000000000000000000b01:181434d803467cfba1619b1252e97a093b2d42cade58d1133433f3a8850fb2c8"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"brain\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"pflicht.aendern\",\"vorher\":\"1e0ab067022f073037d0b85f5cc9cf96add35bae060bd5a230c5b20d657fff7c\",\"zeit\":\"2026-11-20T13:00:01.102Z\"}",
+            "sha256": "53036f314eeedb7e9f6caeeb0e9928c458821f2844a30d62bc77aa9c5732495c"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hersteller",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179601103,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000006",
+        "pflicht": "vier_augen",
+        "wert": false,
+        "nachweis": "h1:ps_00000000000000000000000000000b01:181434d803467cfba1619b1252e97a093b2d42cade58d1133433f3a8850fb2c8"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"hersteller\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"pflicht.aendern\",\"vorher\":\"53036f314eeedb7e9f6caeeb0e9928c458821f2844a30d62bc77aa9c5732495c\",\"zeit\":\"2026-11-20T13:00:01.103Z\"}",
+            "sha256": "ce84c9b2bc197f4b168e1e5f20da636ed33db321317b68aa9f66b75dde1e61fd"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "antrag.bestaetigen",
+      "jetzt_ms": 1795179601200,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000b02:0ed51aa4cff56acf8154d392236ef87efb7bae4b7e3d7a83e3318b984847bfa1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"antrag.bestaetigen\",\"vorher\":\"ce84c9b2bc197f4b168e1e5f20da636ed33db321317b68aa9f66b75dde1e61fd\",\"zeit\":\"2026-11-20T13:00:01.200Z\"}",
+            "sha256": "9ae9853b5fb01ab25f5d1039c2d53aebcad335958a6863e1d095f75bae5e96c6"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "agent",
+      "vorgang": "antrag.bestaetigen",
+      "jetzt_ms": 1795179601201,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000b02:0ed51aa4cff56acf8154d392236ef87efb7bae4b7e3d7a83e3318b984847bfa1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"agent\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"antrag.bestaetigen\",\"vorher\":\"9ae9853b5fb01ab25f5d1039c2d53aebcad335958a6863e1d095f75bae5e96c6\",\"zeit\":\"2026-11-20T13:00:01.201Z\"}",
+            "sha256": "f22efc485e3d36f5fcc34a81a11dd83c2bcc69f7826e1f933055dabe7b9bb230"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1"
+    ],
+    "anfragen": {},
+    "zaehler": 0,
+    "antraege": {
+      "an-1795179540000-1": "offen"
+    },
+    "zugaenge": {},
+    "pflichten": {
+      "halter_bescheinigung": true,
+      "mcp.brain.freigabe": true,
+      "mcp.notizen.freigabe": false,
+      "mcp.tickets.freigabe": true,
+      "senken_zweite_person": false,
+      "vier_augen": true
+    },
+    "zeilen": 16,
+    "letzte": "f22efc485e3d36f5fcc34a81a11dd83c2bcc69f7826e1f933055dabe7b9bb230"
+  }
+}

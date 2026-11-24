@@ -1,0 +1,9 @@
+{
+ "exit": 0,
+ "stdout": {
+  "state": "one",
+  "block": "<!-- dream:block:start -->\nalt\n<!-- dream:block:end -->",
+  "stripped": "# Titel\n\nVor.\n\nNach.\n",
+  "replaced": "# Titel\n\nVor.\n\n<!-- dream:block:start -->\nneu\n<!-- dream:block:end -->\n\nNach.\n"
+ }
+}

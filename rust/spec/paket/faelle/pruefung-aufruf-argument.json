@@ -1,0 +1,24 @@
+{
+ "beschreibung": "ein Argument: Code 64, eine Zeile auf stderr",
+ "form": "pruefung",
+ "aufruf": [
+  "--alles"
+ ],
+ "lage": {
+  "plattform": "windows",
+  "konten": 1,
+  "halter": "ok",
+  "wfp": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

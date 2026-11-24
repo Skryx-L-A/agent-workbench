@@ -1,0 +1,89 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "ausgaben_nach_kindende": 0,
+   "cursor": [
+    1,
+    0,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "zeilen": [
+    "BEREIT",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [],
+    "ok": true
+   },
+   {
+    "ereignisse": [],
+    "ok": true
+   },
+   {
+    "ereignisse": [],
+    "ok": true
+   },
+   {
+    "ereignisse": [],
+    "ok": true
+   },
+   {
+    "ereignisse": [],
+    "fehler": "schlange_voll",
+    "ok": false
+   },
+   {
+    "ereignisse": [],
+    "ok": true,
+    "zustand": {
+     "abbild_gleich": true,
+     "ausgaben_nach_kindende": 0,
+     "cursor": [
+      1,
+      0,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "zeilen": [
+      "BEREIT",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

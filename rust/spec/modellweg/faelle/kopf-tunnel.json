@@ -1,0 +1,366 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitt 13.1. sni ist der Name im TLS-Gruss des Harness (null: keiner). lage.ziele ist die Vorfuehr-Zielliste aus kopf-ziele.json.",
+ "faelle": [
+  {
+   "name": "gueltig",
+   "beschreibung": "CONNECT an ein Ziel der Liste, SNI gleich dem Host",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": true,
+    "unaufgeloest": []
+   },
+   "sni": "api.github.com",
+   "connect": "CONNECT api.github.com:443 HTTP/1.1\r\nHost: api.github.com:443\r\n\r\n",
+   "erwartet": {
+    "antwort": "HTTP/1.1 200 Connection Established\r\n\r\n",
+    "danach": "TLS-Abschluss mit einem Blattzertifikat fuer den Host, ausgestellt von der Wegwerf-CA",
+    "ziel": "github-api"
+   }
+  },
+  {
+   "name": "ziel_fremd",
+   "beschreibung": "CONNECT an github.com (nur fuer die Anmeldung ausserhalb)",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": true,
+    "unaufgeloest": []
+   },
+   "sni": "github.com",
+   "connect": "CONNECT github.com:443 HTTP/1.1\r\nHost: github.com:443\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "antwort": {
+     "status": 403,
+     "koerper": "{\"error\":{\"code\":\"mw.ziel_nicht_erlaubt\",\"message\":\"Ziel nicht erlaubt\"}}"
+    },
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.ziel_nicht_erlaubt",
+     "status": 403,
+     "ziel": null,
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "ziel_ohne_port",
+   "beschreibung": "CONNECT ohne Port",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": true,
+    "unaufgeloest": []
+   },
+   "sni": "api.github.com",
+   "connect": "CONNECT api.github.com HTTP/1.1\r\nHost: api.github.com\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "antwort": {
+     "status": 403,
+     "koerper": "{\"error\":{\"code\":\"mw.ziel_nicht_erlaubt\",\"message\":\"Ziel nicht erlaubt\"}}"
+    },
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.ziel_nicht_erlaubt",
+     "status": 403,
+     "ziel": null,
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "ziel_port_80",
+   "beschreibung": "CONNECT an Port 80",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": true,
+    "unaufgeloest": []
+   },
+   "sni": "api.github.com",
+   "connect": "CONNECT api.github.com:80 HTTP/1.1\r\nHost: api.github.com:80\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "antwort": {
+     "status": 403,
+     "koerper": "{\"error\":{\"code\":\"mw.ziel_nicht_erlaubt\",\"message\":\"Ziel nicht erlaubt\"}}"
+    },
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.ziel_nicht_erlaubt",
+     "status": 403,
+     "ziel": null,
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "ziel_gross",
+   "beschreibung": "CONNECT mit Grossbuchstaben im Host",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": true,
+    "unaufgeloest": []
+   },
+   "sni": "API.github.com",
+   "connect": "CONNECT API.github.com:443 HTTP/1.1\r\nHost: API.github.com:443\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "antwort": {
+     "status": 403,
+     "koerper": "{\"error\":{\"code\":\"mw.ziel_nicht_erlaubt\",\"message\":\"Ziel nicht erlaubt\"}}"
+    },
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.ziel_nicht_erlaubt",
+     "status": 403,
+     "ziel": null,
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "ziel_ip",
+   "beschreibung": "CONNECT an eine IP-Adresse",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": true,
+    "unaufgeloest": []
+   },
+   "sni": "140.82.112.6",
+   "connect": "CONNECT 140.82.112.6:443 HTTP/1.1\r\nHost: 140.82.112.6:443\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "antwort": {
+     "status": 403,
+     "koerper": "{\"error\":{\"code\":\"mw.ziel_nicht_erlaubt\",\"message\":\"Ziel nicht erlaubt\"}}"
+    },
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.ziel_nicht_erlaubt",
+     "status": 403,
+     "ziel": null,
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "nur_connect",
+   "beschreibung": "GET in Proxy-Form statt CONNECT",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": true,
+    "unaufgeloest": []
+   },
+   "sni": null,
+   "connect": "GET http://api.github.com/user HTTP/1.1\r\nHost: api.github.com\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "antwort": {
+     "status": 405,
+     "koerper": "{\"error\":{\"code\":\"mw.nur_connect\",\"message\":\"nur CONNECT\"}}"
+    },
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.nur_connect",
+     "status": 405,
+     "ziel": null,
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "sni_falsch",
+   "beschreibung": "Tunnel zu api.github.com, im TLS-Gruss SNI eines anderen Hosts",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": true,
+    "unaufgeloest": []
+   },
+   "sni": "evil.beispiel.invalid",
+   "connect": "CONNECT api.github.com:443 HTTP/1.1\r\nHost: api.github.com:443\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "antwort": "tls_abbruch",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.sni_falsch",
+     "status": null,
+     "ziel": "github-api",
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "sni_fehlt",
+   "beschreibung": "Tunnel ohne SNI",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": true,
+    "unaufgeloest": []
+   },
+   "sni": null,
+   "connect": "CONNECT api.github.com:443 HTTP/1.1\r\nHost: api.github.com:443\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "antwort": "tls_abbruch",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.sni_falsch",
+     "status": null,
+     "ziel": "github-api",
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "unlesbar",
+   "beschreibung": "kein HTTP",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": true,
+    "unaufgeloest": []
+   },
+   "sni": null,
+   "connect": "hallo\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "antwort": {
+     "status": 400,
+     "koerper": "{\"error\":{\"code\":\"mw.anfrage_unlesbar\",\"message\":\"Anfrage nicht lesbar\"}}"
+    },
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 400,
+     "ziel": null,
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "ausgelastet",
+   "beschreibung": "acht Tunnel offen",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 8,
+    "protokoll_ok": true,
+    "unaufgeloest": []
+   },
+   "sni": "api.github.com",
+   "connect": "CONNECT api.github.com:443 HTTP/1.1\r\nHost: api.github.com:443\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "antwort": {
+     "status": 429,
+     "koerper": "{\"error\":{\"code\":\"mw.ausgelastet\",\"message\":\"zu viele gleichzeitige Anfragen\"}}"
+    },
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.ausgelastet",
+     "status": 429,
+     "ziel": null,
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "protokoll_fehlt",
+   "beschreibung": "Anhaengen vorher gescheitert",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": false,
+    "unaufgeloest": []
+   },
+   "sni": "api.github.com",
+   "connect": "CONNECT api.github.com:443 HTTP/1.1\r\nHost: api.github.com:443\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "antwort": {
+     "status": 503,
+     "koerper": "{\"error\":{\"code\":\"mw.protokoll_fehlt\",\"message\":\"Protokoll nicht schreibbar\"}}"
+    },
+    "zeile": null
+   }
+  },
+  {
+   "name": "telemetrie_nxdomain",
+   "beschreibung": "ungebundenes Ziel beim Start nicht aufloesbar (gemessen NXDOMAIN): 502 fuer diesen Tunnel, alles andere laeuft",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": true,
+    "unaufgeloest": [
+     "copilot-telemetrie"
+    ]
+   },
+   "sni": "telemetry.individual.githubcopilot.com",
+   "connect": "CONNECT telemetry.individual.githubcopilot.com:443 HTTP/1.1\r\nHost: telemetry.individual.githubcopilot.com:443\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "antwort": {
+     "status": 502,
+     "koerper": "{\"error\":{\"code\":\"mw.ziel_nicht_erreichbar\",\"message\":\"Ziel nicht erreichbar\"}}"
+    },
+    "zeile": {
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.ziel_nicht_erreichbar",
+     "status": 502,
+     "ziel": "copilot-telemetrie",
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "andere_trotz_nxdomain",
+   "beschreibung": "derselbe Zustand: ein gebundenes Ziel geht weiter",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 0,
+    "protokoll_ok": true,
+    "unaufgeloest": [
+     "copilot-telemetrie"
+    ]
+   },
+   "sni": "api.individual.githubcopilot.com",
+   "connect": "CONNECT api.individual.githubcopilot.com:443 HTTP/1.1\r\nHost: api.individual.githubcopilot.com:443\r\n\r\n",
+   "erwartet": {
+    "antwort": "HTTP/1.1 200 Connection Established\r\n\r\n",
+    "danach": "TLS-Abschluss mit einem Blattzertifikat fuer den Host, ausgestellt von der Wegwerf-CA",
+    "ziel": "copilot-plan"
+   }
+  }
+ ]
+}

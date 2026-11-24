@@ -1,0 +1,20 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "fehler",
+ "code": "pk.aufrufer_abgewiesen",
+ "ereignisse": [
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.aufrufer_abgewiesen",
+   "grund": "aufrufer:sitzung-fremd",
+   "peer": null
+  }
+ ],
+ "peer": null,
+ "gemessen": [
+  "Ereignis mit grund aufrufer:sitzung-fremd und dem gemessenen Peer (im Fall nicht festgelegt, darum null)",
+  "Client: pk.abgewiesen, 0 Byte vom Server empfangen, auch kein Hallo",
+  "Gegenprobe: derselbe Aufbau mit bestaetigen() liefert das Hallo und die Verbindung"
+ ]
+}

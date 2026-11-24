@@ -1,0 +1,288 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    12,
+    0,
+    true
+   ],
+   "groesse": [
+    30,
+    16
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 12,
+   "zeilen": [
+    "\u001b[0;30m0\u001b[0;30;48;5;255m0",
+    "\u001b[0;37m7\u001b[0;37;48;5;248m7",
+    "\u001b[0;90m8\u001b[0;90;48;5;247m8",
+    "\u001b[0;97m15\u001b[0;97;48;5;240m15",
+    "\u001b[0;38;5;16m16\u001b[0;38;5;16;48;5;239m16",
+    "\u001b[0;38;5;21m21\u001b[0;38;5;21;48;5;234m21",
+    "\u001b[0;38;5;100m100\u001b[0;38;5;100;48;5;155m100",
+    "\u001b[0;38;5;231m231\u001b[0;38;5;231;48;5;24m231",
+    "\u001b[0;38;5;255m255\u001b[0;38;5;255;40m255",
+    "\u001b[0;38;2;12;200;99mgruen\u001b[0;38;2;12;200;99;48;2;250;3;128mrosa",
+    "\u001b[0;38;2;1;2;3mdoppelpunkt",
+    "\u001b[0;91mxy\u001b[0mz",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       0,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "\u001b[0;30m0\u001b[0;30;48;5;255m0"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       2,
+       0,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "1": "\u001b[0;37m7\u001b[0;37;48;5;248m7"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       3,
+       0,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "2": "\u001b[0;90m8\u001b[0;90;48;5;247m8"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       0,
+       true
+      ],
+      "stand": 4,
+      "zeilen": {
+       "3": "\u001b[0;97m15\u001b[0;97;48;5;240m15"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       5,
+       0,
+       true
+      ],
+      "stand": 5,
+      "zeilen": {
+       "4": "\u001b[0;38;5;16m16\u001b[0;38;5;16;48;5;239m16"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       6,
+       0,
+       true
+      ],
+      "stand": 6,
+      "zeilen": {
+       "5": "\u001b[0;38;5;21m21\u001b[0;38;5;21;48;5;234m21"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       7,
+       0,
+       true
+      ],
+      "stand": 7,
+      "zeilen": {
+       "6": "\u001b[0;38;5;100m100\u001b[0;38;5;100;48;5;155m100"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       8,
+       0,
+       true
+      ],
+      "stand": 8,
+      "zeilen": {
+       "7": "\u001b[0;38;5;231m231\u001b[0;38;5;231;48;5;24m231"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       9,
+       0,
+       true
+      ],
+      "stand": 9,
+      "zeilen": {
+       "8": "\u001b[0;38;5;255m255\u001b[0;38;5;255;40m255"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       10,
+       0,
+       true
+      ],
+      "stand": 10,
+      "zeilen": {
+       "9": "\u001b[0;38;2;12;200;99mgruen\u001b[0;38;2;12;200;99;48;2;250;3;128mrosa"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       11,
+       0,
+       true
+      ],
+      "stand": 11,
+      "zeilen": {
+       "10": "\u001b[0;38;2;1;2;3mdoppelpunkt"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       12,
+       0,
+       true
+      ],
+      "stand": 12,
+      "zeilen": {
+       "11": "\u001b[0;91mxy\u001b[0mz"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      12,
+      0,
+      true
+     ],
+     "groesse": [
+      30,
+      16
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 12,
+     "zeilen": [
+      "\u001b[0;30m0\u001b[0;30;48;5;255m0",
+      "\u001b[0;37m7\u001b[0;37;48;5;248m7",
+      "\u001b[0;90m8\u001b[0;90;48;5;247m8",
+      "\u001b[0;97m15\u001b[0;97;48;5;240m15",
+      "\u001b[0;38;5;16m16\u001b[0;38;5;16;48;5;239m16",
+      "\u001b[0;38;5;21m21\u001b[0;38;5;21;48;5;234m21",
+      "\u001b[0;38;5;100m100\u001b[0;38;5;100;48;5;155m100",
+      "\u001b[0;38;5;231m231\u001b[0;38;5;231;48;5;24m231",
+      "\u001b[0;38;5;255m255\u001b[0;38;5;255;40m255",
+      "\u001b[0;38;2;12;200;99mgruen\u001b[0;38;2;12;200;99;48;2;250;3;128mrosa",
+      "\u001b[0;38;2;1;2;3mdoppelpunkt",
+      "\u001b[0;91mxy\u001b[0mz",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

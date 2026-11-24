@@ -1,0 +1,9 @@
+{
+ "description": "Datei fehlt: Exit 3",
+ "program": "rangkern",
+ "args": [
+  "snippet",
+  "{root}/fehlt.md",
+  "Kaffee"
+ ]
+}

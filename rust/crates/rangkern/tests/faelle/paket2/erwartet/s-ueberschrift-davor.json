@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "snippet": "Bewässerung: Das Beet bekommt jeden Morgen Wasser.",
+  "lines": [
+   7,
+   7
+  ],
+  "hook": "Das Beet bekommt jeden Morgen Wasser.",
+  "hook_lines": [
+   7,
+   7
+  ]
+ }
+}

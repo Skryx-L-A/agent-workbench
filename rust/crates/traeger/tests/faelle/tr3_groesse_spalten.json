@@ -1,0 +1,38 @@
+{
+ "name": "tr3_groesse_spalten",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Spalten ändern: umbrochene Zeilen werden wieder verbunden oder neu umbrochen, wie es alacritty_terminal tut",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\nalpha"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 40,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 22,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

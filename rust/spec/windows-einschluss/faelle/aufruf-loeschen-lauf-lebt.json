@@ -1,0 +1,13 @@
+{
+ "beschreibung": "einschluss-loeschen mit lebendem Lauf",
+ "form": "aufruf",
+ "lage": {
+  "argv": [
+   "einschluss-loeschen",
+   "C:\\Users\\beispiel\\Projekte\\projekt"
+  ],
+  "laeufe": [
+   "s-1"
+  ]
+ }
+}

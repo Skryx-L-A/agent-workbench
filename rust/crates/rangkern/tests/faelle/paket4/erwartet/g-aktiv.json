@@ -1,0 +1,34 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "garten/rasen-aktiv.md",
+    "score": 1.0,
+    "title": "Rasen aktiv",
+    "snippet": "Rasen vertikutieren im Fruehjahr, Rasen nachsaeen.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   },
+   {
+    "rel": "garten/rasen.md",
+    "score": 0.3957703926517765,
+    "title": "Rasen",
+    "snippet": "Rasen maehen, Rasen duengen, Rasen wässern.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.3957703926517765
+   }
+  ]
+ }
+}

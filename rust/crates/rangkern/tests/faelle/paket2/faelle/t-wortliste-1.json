@@ -1,0 +1,8 @@
+{
+ "description": "deutsche Wörter über die Endungsklassen des Stemmers",
+ "program": "rangkern",
+ "args": [
+  "tokens",
+  "Wanderungen Lieferungen Freiheit Sicherheit Möglichkeit Sauberkeit praktisch botanisch freundlich wöchentlich fahrend blühend wandern sammeln feiern warmem altem Gärtner Fahrer Schalter Hauses Brotes Umzugs Autos Lampe Pumpe Kanne gehst fährst wärmste größte bauen Feuer Bayern Straße Fuß Bäume Käfer Höhle Brötchen"
+ ]
+}

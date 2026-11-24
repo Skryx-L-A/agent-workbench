@@ -1,0 +1,177 @@
+{
+ "responses": [
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-werkstatt/saege.md",
+     "score": 1.0,
+     "title": "Saege und Zahn",
+     "snippet": "Notiz zu saege: saege frueh planen, zahn zweimal im Monat pruefen. Wer saege anlegt, braucht Zeit fuer zahn. Merkzettel saege.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9990082699331901,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-6.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Tau",
+     "snippet": "Ein Text ueber tau und taustand, ohne Bezug zu den anderen Notizen. tau tau.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9818011725321226,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-werkstatt/feile.md",
+     "score": 0.4444444444444444,
+     "title": "Feile und Raspel",
+     "snippet": "Notiz zu feile: feile frueh planen, raspel zweimal im Monat pruefen. Wer feile anlegt, braucht Zeit fuer raspel. Merkzettel feile.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9507358115615244,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-3.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Nebel",
+     "snippet": "Ein Text ueber nebel und nebelstand, ohne Bezug zu den anderen Notizen. nebel nebel.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9267056468487751,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-4.md",
+     "score": 0.4,
+     "title": "Fueller Sturm",
+     "snippet": "Ein Text ueber sturm und sturmstand, ohne Bezug zu den anderen Notizen. sturm sturm.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9236225603018205,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-werkstatt/saege.md",
+     "score": 1.0,
+     "title": "Saege und Zahn",
+     "snippet": "Notiz zu saege: saege frueh planen, zahn zweimal im Monat pruefen. Wer saege anlegt, braucht Zeit fuer zahn. Merkzettel saege.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.7116581950436053,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 13
+    },
+    {
+     "rel": "20-projects/holz/bohrer.md",
+     "score": 0.6363636363636364,
+     "title": "Bohrer und Spannfutter",
+     "snippet": "Notiz zu bohrer: bohrer frueh planen, spannfutter zweimal im Monat pruefen. Wer bohrer anlegt, braucht Zeit fuer spannfutter. Merkzettel bohrer.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9990978794699735,
+     "vektor_rang": 1,
+     "space": "holz"
+    },
+    {
+     "rel": "20-projects/holz/schleifpapier.md",
+     "score": 0.5989304812834224,
+     "title": "Schleifpapier und Koernung",
+     "snippet": "Notiz zu schleifpapier: schleifpapier frueh planen, koernung zweimal im Monat pruefen. Wer schleifpapier anlegt, braucht Zeit fuer koernung. Merkzettel schleifpapier.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9833776819680584,
+     "vektor_rang": 2,
+     "space": "holz"
+    },
+    {
+     "rel": "10-werkstatt/misc/fueller-1.md",
+     "score": 0.5656565656565656,
+     "title": "Fueller Wolke",
+     "snippet": "Ein Text ueber wolke und wolkestand, ohne Bezug zu den anderen Notizen. wolke wolke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9809208925479367,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-werkstatt/schraube.md",
+     "score": 0.5358851674641149,
+     "title": "Schraube und Gewinde",
+     "snippet": "Notiz zu schraube: schraube frueh planen, gewinde zweimal im Monat pruefen. Wer schraube anlegt, braucht Zeit fuer gewinde. Merkzettel schraube.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9279935760459328,
+     "vektor_rang": 4
+    }
+   ],
+   "id": 2
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-werkstatt/saege.md",
+     "score": 1.0,
+     "title": "Saege und Zahn",
+     "snippet": "Notiz zu saege: saege frueh planen, zahn zweimal im Monat pruefen. Wer saege anlegt, braucht Zeit fuer zahn. Merkzettel saege.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 3
+  }
+ ],
+ "exit": 0,
+ "aufrufe": [
+  [],
+  [],
+  []
+ ]
+}

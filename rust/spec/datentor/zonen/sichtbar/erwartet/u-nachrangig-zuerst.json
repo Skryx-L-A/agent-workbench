@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "Z10"
+ ],
+ "beschreibung": "Die erste Zone hat die Bedingung nachrangig; es gibt keine vorrangige Zone."
+}

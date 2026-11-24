@@ -1,0 +1,17 @@
+{
+ "beschreibung": "der Port ist belegt: Exitcode 1, eine Zeile auf stderr, keine Token-Datei bleibt",
+ "datensatz": "A",
+ "name": "br_port_belegt",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": "@port_belegt",
+  "token_datei": "@token_datei"
+ }
+}

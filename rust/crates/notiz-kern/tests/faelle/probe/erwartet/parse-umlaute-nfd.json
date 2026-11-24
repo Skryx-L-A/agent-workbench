@@ -1,0 +1,30 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Härtung\naliases: [Ölwechsel]"
+  ],
+  "fields": {
+   "title": "Härtung",
+   "aliases": [
+    "Ölwechsel"
+   ]
+  },
+  "body": "Siehe [[Härtung]] und [[Härtung]] und [[ÖLWECHSEL]].\n",
+  "title": "Härtung",
+  "type": "note",
+  "aliases": [
+   "Ölwechsel"
+  ],
+  "links": [
+   "härtung",
+   "ölwechsel"
+  ],
+  "keys": [
+   "härtung",
+   "note",
+   "ölwechsel"
+  ],
+  "embed_text": "Härtung\naliases: Ölwechsel\n\nSiehe [[Härtung]] und [[Härtung]] und [[ÖLWECHSEL]].\n"
+ }
+}

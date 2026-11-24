@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "Z10"
+ ],
+ "beschreibung": "Eine Regel ändert die Bedingung einer Zone; das Feld gibt es nicht."
+}

@@ -1,0 +1,8 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13",
+  "A33"
+ ],
+ "beschreibung": "kunde eines Teils ist weder Text noch null."
+}

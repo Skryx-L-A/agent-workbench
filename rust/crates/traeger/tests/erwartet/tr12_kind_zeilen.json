@@ -1,0 +1,75 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "ausgaben_nach_kindende": 0,
+   "cursor": [
+    6,
+    0,
+    true
+   ],
+   "groesse": [
+    14,
+    7
+   ],
+   "ruecklauf": {
+    "erste": "Z002902",
+    "letzte": "Z002994",
+    "zahl": 93
+   },
+   "zeilen": [
+    "Z002995",
+    "Z002996",
+    "Z002997",
+    "Z002998",
+    "Z002999",
+    "Z003000",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Kindende",
+      "code": 0
+     }
+    ],
+    "ok": true
+   },
+   {
+    "ereignisse": [],
+    "ok": true,
+    "zustand": {
+     "abbild_gleich": true,
+     "ausgaben_nach_kindende": 0,
+     "cursor": [
+      6,
+      0,
+      true
+     ],
+     "groesse": [
+      14,
+      7
+     ],
+     "ruecklauf": {
+      "erste": "Z002902",
+      "letzte": "Z002994",
+      "zahl": 93
+     },
+     "zeilen": [
+      "Z002995",
+      "Z002996",
+      "Z002997",
+      "Z002998",
+      "Z002999",
+      "Z003000",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

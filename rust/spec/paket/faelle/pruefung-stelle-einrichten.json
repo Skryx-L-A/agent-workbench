@@ -1,0 +1,22 @@
+{
+ "beschreibung": "A108: nur die Stelle fehlt, drei Konten: eigener Code 20, ein Satz als letzte Zeile",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "windows",
+  "konten": 3,
+  "halter": "ok",
+  "wfp": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "fehlt"
+ }
+}

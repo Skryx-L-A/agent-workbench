@@ -1,0 +1,9 @@
+{
+ "beschreibung": "ein Heimordner mit Leerzeichen oder Punktsegment ist keine Ordnerform: keine Datei",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer 1",
+ "harness": {},
+ "vorher": null
+}

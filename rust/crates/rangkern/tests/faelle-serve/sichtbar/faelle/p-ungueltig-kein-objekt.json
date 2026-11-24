@@ -1,0 +1,40 @@
+{
+ "description": "Gültiges JSON, aber kein Objekt: bad_request ohne id",
+ "vault": {
+  "files": {
+   "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text ueber Wolken.\n"
+  }
+ },
+ "args": [
+  "{root}/vault"
+ ],
+ "steps": [
+  {
+   "line": "[]"
+  },
+  {
+   "line": "[{\"op\":\"ping\"}]"
+  },
+  {
+   "line": "42"
+  },
+  {
+   "line": "\"ping\""
+  },
+  {
+   "line": "null"
+  },
+  {
+   "line": "true"
+  },
+  {
+   "line": "1.5"
+  },
+  {
+   "request": {
+    "op": "ping",
+    "id": "weiter"
+   }
+  }
+ ]
+}

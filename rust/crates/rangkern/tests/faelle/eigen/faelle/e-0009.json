@@ -1,0 +1,33 @@
+{
+"description": "invented vault, expectation from rangkern-ref-sicher (differential run)",
+"program": "rangkern",
+"files": {
+"vault/30-topics/t/bewaesserung-tomaten.md": "---\ntitle: Tomaten Kern\nstatus: superseded\n---\nHeizung titel rang vault regen wir the\nStraße wir regen straße of bm25\n",
+"vault/20-projects/p/erledigt-regen.md": "---\ntitle: 'Status\ntitle: [vault, lauf]\naliases: [grundstücke]\nstatus: active\nsuperseded-by: [[sonne-original]]\nquelle: \ntags: [kompost]\n---\n## linking gärtner gurken\n\nBewaesserung embedding die vault embedding kern einbettungen saat straße entkalken öl öl tomaten embedding kompost embedding maschine\n\nFür künftige Sessions: Heizung schnecken index entkalken vertikutieren grundstück\n\nKueche frühjahr sonne kompost schnecke offen mulch wind. einbettungen schnecken entkalken das ausgabe sonne projekt rohr beet\nTomaten und fehler ernte embedding tropfschlauch\n\nStraße status suchindex straße bewaesserung aufgabe quelle tomaten unterbau\n\n## kueche\n\nSuche lauf kern bm25 heizung strasse steckdose ich. grundstücke grundstück sonne schnecken lichtschalter kern ziegel unterbau of der das die nicht quelle entscheidung notiz\nGrundstücke grundstück ausgabe fundament öl dach\n\nNotiz sitzung beet lichtschalter schornstein\n",
+"vault/garten/wetter-tropfschlauch.md": "---\ntitle: Sensor Ärger\naliases: [einbettungen, projekt, mulch]\nclass: derived\n---\n### kompost\n\nTomaten saat schornstein öl tomaten kueche oder ärger flur wetter das lauf\n\nIndex projekt status mulch sitzung übersicht of quelle kueche original kern und über titel ich der sitzung\nKaffee wetter vertikutieren gurken regen gärtner\n\nWind vault gärtner lichtschalter tropfschlauch mulch\n\nGärtner titel moc sitzung status\nSchornstein ich test einbettungen schnecken gurken\n\nKueche grundstücke frühjahr ventil grundstück fundament beet öl. ziegel fruehjahr moc erledigt rohr sonne wetter fruehjahr die aufgabe strasse rhabarber\n",
+"vault/30-topics/t/rohr-strasse.md": "---\ntitle: 'Grundstück Ventil Rang\n---\nÜber rang schnecke rasen zaun erledigt einbettung zaun wind schornstein fruehjahr vertikutieren\n",
+"vault/misc/deep/er/sonne-original.md": "Salat wir regen original original straße heizung moc. stand\n\n## tomaten\n\nTropfschlauch mulch öl notiz notiz tomaten wir\n",
+"vault/projekt/a/tropfschlauch-schornstein.md": "Vektor mulch rasen rhabarber index and rasen rhabarber kaffee salat flur schornstein kompost\n\nGurken einbettung lichtschalter rhabarber kueche rang grundstück bm25 ausgabe schornstein rohr quelle ventil lichtschalter kern sitzung\nDer vault of fundament kueche wir\n",
+"vault/10-global/einbettung-vertikutieren.md": "---\ntitle: Stand\ntitle: [duese, wetter]\naliases: [regen, sonne]\nsuperseded-by: '[[wetter-tropfschlauch]]'\n---\nNicht vektor tor linking schnecken bm25 offen ausgabe sitzung ich einbettung aufgabe erledigt straße rohr maschine ziegel\n",
+"vault/30-topics/t/MOC.md": "---\nstatus: superseded\n---\nSaat rohr vault ventil grundstück status titel regen maschine of\n\nSonne regen duese embedding duese tomaten pumpe tor index regen ich frühjahr rhabarber aufgabe wir sensor strasse zaun entkalken sonne schnecken dach fundament\n\nRasen schnecke wind bewaesserung bm25 rhabarber test of tomaten vertikutieren frühjahr fundament vektor moc der\n\n## bewaesserung einbettung mulch\n\nVertikutieren of heizung grundstück fruehjahr bm25 schornstein salat moc flur grundstück ernte titel fehler titel titel beet\n",
+"vault/x/90-secrets/tief.md": "Einbettung steckdose test ausgabe kueche einbettungen einbettungen öl titel\n ausgabe geheimwort\n",
+"vault/.versteckt/n.md": "# einbettungen vertikutieren\n\nVektor dach kern kaffee wind bm25 kaffee offen flur schnecke zaun ausgabe regen flur notiz of embedding kueche kompost bewaesserung original ernte suche\nProjekt tomaten suche unterbau steckdose sensor\n\nMoc ernte gurken tor sonne öl vertikutieren gärtner! kueche tropfschlauch stand\n frühjahr geheimwort\n",
+"vault/HOT.md": "Titel rhabarber moc grundstück\nTest bewaesserung oder the rang ausgabe\n\nRang salat vektor index rasen sensor wetter oder dach\n\nFundament schornstein heizung status\n schnecke geheimwort\n",
+"vault/gardener-report-1.md": "Heizung ausgabe maschine offen regen tomaten über sonne? übersicht kern rang schnecke lauf sonne of salat of original quelle beet schnecke steckdose steckdose the\n heizung geheimwort\n",
+"vault/readme.txt": "Garten offen ich salat stand tor wind entscheidung of straße ventil grundstücke unterbau rohr\n grundstück geheimwort\n",
+"vault/_meta/state/contradictions.json": "{\"findings\": {\"0\": {\"status\": \"closed\", \"note_a\": {\"rel\": \"30-topics/t/MOC.md\"}, \"note_b\": {\"rel\": \"10-global/einbettung-vertikutieren.md\"}}, \"1\": {\"status\": \"closed\", \"note_a\": {\"rel\": \"30-topics/t/MOC.md\"}, \"note_b\": {\"rel\": \"projekt/a/tropfschlauch-schornstein.md\"}}, \"2\": {\"status\": \"closed\", \"note_a\": {\"rel\": \"30-topics/t/rohr-strasse.md\"}, \"note_b\": {\"rel\": \"30-topics/t/bewaesserung-tomaten.md\"}}}}",
+"vektoren.json": "{\"query\": [-0.218, -0.712], \"notes\": {\"30-topics/t/rohr-strasse.md\": [-0.749, -0.677], \"quelle1/quellen/notiz.md\": [-0.012, 0.312], \"10-global/einbettung-vertikutieren.md\": [0.377, -0.037], \"projekt/a/tropfschlauch-schornstein.md\": [0.027, -0.346], \"30-topics/t/bewaesserung-tomaten.md\": [0.438, -0.42], \"garten/wetter-tropfschlauch.md\": [0.915, 0.289], \"misc/deep/er/sonne-original.md\": [0.204, -0.166], \"30-topics/t/MOC.md\": [-0.076, 0.674], \"20-projects/p/erledigt-regen.md\": [-0.974, -0.282, -0.038], \"HOT.md\": [0.0, 0.0]}}"
+},
+"args": [
+"search",
+"{root}/vault",
+"-k",
+"3",
+"--today",
+"2025-12-31",
+"--vectors",
+"{root}/vektoren.json",
+"--",
+"schnecken wetter"
+]
+}

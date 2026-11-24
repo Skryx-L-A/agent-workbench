@@ -1,0 +1,193 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.999118130408033,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/misc/fueller-3.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Gleis",
+     "snippet": "Ein Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9829958864662376,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4444444444444444,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9685751037510265,
+     "vektor_rang": 3,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.42105263157894735,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9621032478682554,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9510124607923177,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 2
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0
+    }
+   ],
+   "id": 3
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "10-global/tomaten.md",
+     "score": 1.0,
+     "title": "Tomaten und Gewaechshaus",
+     "snippet": "Notiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.999118130408033,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1
+    },
+    {
+     "rel": "10-global/misc/fueller-3.md",
+     "score": 0.47058823529411764,
+     "title": "Fueller Gleis",
+     "snippet": "Ein Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9829958864662376,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "20-projects/garten/hochbeet.md",
+     "score": 0.4444444444444444,
+     "title": "Hochbeet und Erde",
+     "snippet": "Notiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9685751037510265,
+     "vektor_rang": 3,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.42105263157894735,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9621032478682554,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.4,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9510124607923177,
+     "vektor_rang": 5,
+     "space": "garten"
+    }
+   ],
+   "id": 4
+  }
+ ],
+ "exit": 0
+}

@@ -1,0 +1,36 @@
+{
+ "beschreibung": "Client im AppContainer öffnet mit der Maske der Bibliothek",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "container_a": "S-1-15-2-1000000021-1000000022-1000000023-1000000024-1000000025-1000000026-1000000027"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+    "appcontainer_sid": "S-1-15-2-1000000021-1000000022-1000000023-1000000024-1000000025-1000000026-1000000027"
+   }
+  ],
+  "instanzen": 4
+ },
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+  },
+  "frist_ms": 2000
+ },
+ "aufbau": [
+  "Server unter person mit Package-SID container_a",
+  "zwei Clients in container_a"
+ ],
+ "handlung": [
+  "Client 1 über verbinden (GENERIC_READ | FILE_WRITE_DATA)",
+  "Client 2 roh mit GENERIC_READ | GENERIC_WRITE"
+ ]
+}

@@ -1,0 +1,9 @@
+{
+ "beschreibung": "eine frühere Datei trug `zugelassen` (vom Betreiber eingetragen): dpkg-reconfigure behält es",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {},
+ "vorher": "zugelassen"
+}

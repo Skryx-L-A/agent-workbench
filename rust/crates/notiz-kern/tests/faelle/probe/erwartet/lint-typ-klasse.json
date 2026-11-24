@@ -1,0 +1,27 @@
+{
+ "exit": 0,
+ "stdout": {
+  "in_scope": true,
+  "fields": {
+   "id": "01M3KEHCGEKTVFPC15XAVEPRDS",
+   "schema": "4",
+   "title": "Gute Notiz",
+   "type": "finding",
+   "class": "session",
+   "created": "2026-09-28",
+   "stand": "2026-09"
+  },
+  "blocks": 1,
+  "findings": [
+   {
+    "kind": "typ",
+    "detail": "type 'finding' nicht im Vokabular (asset|decision|incident|note|person|pitfall|reference|report|secret|session|system|term)"
+   },
+   {
+    "kind": "klasse",
+    "detail": "class 'session' unbekannt (derived|knowledge|meta|source)"
+   }
+  ],
+  "new": true
+ }
+}

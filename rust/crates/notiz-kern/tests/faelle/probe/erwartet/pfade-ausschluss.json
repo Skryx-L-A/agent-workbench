@@ -1,0 +1,85 @@
+{
+ "exit": 0,
+ "stdout": [
+  {
+   "rel": "90-secrets/x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "90-secrets",
+   "stem_key": "x"
+  },
+  {
+   "rel": "90-Secrets/deep/x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "90-Secrets",
+   "stem_key": "x"
+  },
+  {
+   "rel": ".obsidian/x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": ".obsidian",
+   "stem_key": "x"
+  },
+  {
+   "rel": "_Meta/templates/note.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "_Meta",
+   "stem_key": "note"
+  },
+  {
+   "rel": "HOT.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "hot"
+  },
+  {
+   "rel": "hot.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "hot"
+  },
+  {
+   "rel": "review-queue.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": "review-queue"
+  },
+  {
+   "rel": "00-sources/brain-health-2026-27.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "00-sources",
+   "stem_key": "brain-health-2026-27"
+  },
+  {
+   "rel": "10-global/note.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": true,
+   "branch": "10-global",
+   "stem_key": "note"
+  },
+  {
+   "rel": "20-projects/demo/MOC.md",
+   "linking_excluded": true,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "20-projects/demo",
+   "stem_key": "moc"
+  }
+ ]
+}

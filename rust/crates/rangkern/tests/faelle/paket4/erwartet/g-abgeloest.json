@@ -1,0 +1,35 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "haushalt/entkalkung-neu.md",
+    "score": 0.9902889443016852,
+    "title": "Entkalkung neu",
+    "snippet": "Kaffeemaschine entkalken: Entkalkung alle sechs Wochen mit Zitronensaeure, Entkalkung im Blick behalten.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.9902889443016852
+   },
+   {
+    "rel": "haushalt/entkalkung-alt.md",
+    "score": 0.49,
+    "title": "Entkalkung alt",
+    "snippet": "Entkalkung der Kaffeemaschine mit Essig.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "status": "superseded"
+   }
+  ]
+ }
+}

@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Ergebnis der Suche nur als Zahlen",
+ "form": "antwort",
+ "text": "{\"art\":\"antwort\",\"fassung\":1,\"id\":\"u-1\",\"ok\":true,\"suche\":{\"dateien\":12,\"nicht_lesbar\":0,\"treffer\":0,\"uebersprungen\":1}}"
+}

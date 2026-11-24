@@ -1,0 +1,39 @@
+{
+ "fassung": 2,
+ "seite": "annehmen",
+ "ergebnis": "fehler",
+ "code": "pk.aufrufer_abgewiesen",
+ "ereignisse": [
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.aufrufer_abgewiesen",
+   "grund": "aufrufer:rollen-mehrdeutig",
+   "peer": {
+    "system": "linux",
+    "sid": null,
+    "appcontainer_sid": null,
+    "uid": 1000000101,
+    "gid": 1000000211,
+    "pid": "=client",
+    "startzeit": "=client",
+    "im_job": null,
+    "programm": "=client",
+    "signatur": null,
+    "eingeschraenkt": null,
+    "sandbox": null,
+    "gruppen": [
+     1000000201,
+     1000000212
+    ],
+    "cgroup": "=client"
+   }
+  }
+ ],
+ "peer": null,
+ "gemessen": [
+  "die Liste lässt den Peer durch (beide Erlaubnisse treffen); erst der Haken lehnt ab",
+  "Ereignis mit peer.gid g_hub und g_bruecke in peer.gruppen",
+  "Client: pk.abgewiesen, 0 Byte vom Server, auch kein Hallo"
+ ]
+}

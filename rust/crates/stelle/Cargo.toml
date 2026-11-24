@@ -1,0 +1,24 @@
+[package]
+name = "stelle"
+version = "0.1.0"
+description = "Thin decision point of the new interface (contract 6): session start and the release of each MCP write call. Logic only, no clock, no randomness, no I/O."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+# formate: canonical form (RFC 8785), sha256_hex and the time text of the chain of contract 5; the lines of the
+# point are built with exactly these functions, so their bytes are the bytes of the chain. HMAC-SHA256 of the
+# proof checker h1 is built on its sha256_hex (no new crate).
+# einstellungen, start: the settings file (contract 2) and the start file (contract 1) are read by these crates.
+# serde_json: reads the input of each operation as JSON values and the readable values of a refused start.
+[dependencies]
+formate = { path = "../formate" }
+einstellungen = { path = "../einstellungen" }
+start = { path = "../start" }
+serde_json = "1"
+
+[lints]
+workspace = true

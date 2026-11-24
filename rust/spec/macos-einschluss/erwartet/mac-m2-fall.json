@@ -1,0 +1,7 @@
+{
+ "erwartet": "TCP und UDP: EPERM, bevor ein Paket den Stapel erreicht; der Mach-Dienst des Namensdienstes ist gesperrt",
+ "messwerte": [
+  "errno je Versuch",
+  "Antwort von sandbox_check für com.apple.dnssd.service"
+ ]
+}

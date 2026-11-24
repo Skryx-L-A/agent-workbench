@@ -1,0 +1,10 @@
+{
+ "description": "lone CR line endings are read as LF",
+ "files": {
+  "note.md": "---\rtitle: Alt-Mac\rtype: note\r---\rText\r"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "garten/beet.md",
+    "score": 1.0,
+    "title": "Beet",
+    "snippet": "Ein Beet im Garten.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.7071067811865475,
+    "vektor_rang": 1
+   }
+  ]
+ }
+}

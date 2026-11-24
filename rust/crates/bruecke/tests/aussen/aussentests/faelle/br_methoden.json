@@ -1,0 +1,413 @@
+{
+ "beschreibung": "andere Methoden und Methoden auf der falschen Route: mit Token 405, ohne Token 401, immer ohne Inhalt und ohne CORS-Kopf; der Dienst sieht nichts",
+ "datensatz": "A",
+ "name": "br_methoden",
+ "regeln": [
+  "BR4",
+  "BR2"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "methode": "PUT",
+    "origin": "gut",
+    "token": null,
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "DELETE",
+    "origin": "gut",
+    "token": null,
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PATCH",
+    "origin": "gut",
+    "token": null,
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "TRACE",
+    "origin": "gut",
+    "token": null,
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "FOO",
+    "origin": "gut",
+    "token": null,
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "HEAD",
+    "origin": "gut",
+    "token": null,
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PUT",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PUT",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PUT",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PUT",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PUT",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/ansicht.js"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PUT",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/ansicht_bg.wasm"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "DELETE",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "DELETE",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "DELETE",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "DELETE",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "DELETE",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/ansicht.js"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "DELETE",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/ansicht_bg.wasm"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PATCH",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PATCH",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PATCH",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PATCH",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PATCH",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/ansicht.js"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "PATCH",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/ansicht_bg.wasm"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "TRACE",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "FOO",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "FOO",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "FOO",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "FOO",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "FOO",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/ansicht.js"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "FOO",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/ansicht_bg.wasm"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "HEAD",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "HEAD",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "HEAD",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "HEAD",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "HEAD",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/ansicht.js"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "HEAD",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/ansicht_bg.wasm"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "GET",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "GET",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "{}",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "{}",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/ansicht.js"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "{}",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/ansicht_bg.wasm"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "{}",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

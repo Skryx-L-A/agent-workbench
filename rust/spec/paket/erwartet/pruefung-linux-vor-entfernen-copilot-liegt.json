@@ -1,0 +1,7 @@
+{
+ "rc": 0,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.copilot_rest: Eine Anmeldedatei der Copilot CLI liegt noch da; apt purge loescht sie."
+ ]
+}

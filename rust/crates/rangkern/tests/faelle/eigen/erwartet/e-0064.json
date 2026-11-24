@@ -1,0 +1,1 @@
+{"exit": 0, "stdout": {"fallback": true, "hits": [{"rel": "20-projects/p/tomaten.md", "score": 0.0, "match": "text"}, {"rel": "20-projects/q/fehler.md", "score": 0.0, "match": "text"}, {"rel": "20-projects/q/stand.md", "score": 0.0, "match": "text", "status": "archived", "abgeloest_durch": ["[stand]"]}]}}

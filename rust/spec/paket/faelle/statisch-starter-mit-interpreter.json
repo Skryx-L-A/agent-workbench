@@ -1,0 +1,11 @@
+{
+ "beschreibung": "der Starter hat einen Programminterpreter: er ist dynamisch gelinkt",
+ "form": "statisch",
+ "programme": [
+  {
+   "ziel": "usr/lib/werkbank/werkbank-einschluss",
+   "interp": true,
+   "needed": []
+  }
+ ]
+}

@@ -1,0 +1,12 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.halter_fehlt: Der Dienst wb-halter ist nicht eingetragen.",
+  "pruef.wfp_dienst_fehlt: Der Filterdienst wb-plattform laeuft nicht.",
+  "pruef.einstellungen_fehlt: Die Einstellungsdatei fehlt oder ist nicht lesbar.",
+  "pruef.vault_fehlt: Der Vault-Ordner fehlt.",
+  "pruef.paketstand_manifest_fehlt: Das Manifest des Pakets fehlt.",
+  "pruef.rot: 5 Befunde."
+ ]
+}

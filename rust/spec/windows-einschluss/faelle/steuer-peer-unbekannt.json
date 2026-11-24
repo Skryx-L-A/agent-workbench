@@ -1,0 +1,8 @@
+{
+ "beschreibung": "Verbindung keinem Prozess zuzuordnen",
+ "form": "steuer",
+ "text": "{\"op\": \"peer\", \"tcp\": {\"lokal\": 41001, \"fern\": 50123}}\n",
+ "lage": {
+  "peer": "Client endete vor der Abfrage"
+ }
+}

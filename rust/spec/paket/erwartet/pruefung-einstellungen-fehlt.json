@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.einstellungen_fehlt: Die Einstellungsdatei fehlt oder ist nicht lesbar.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

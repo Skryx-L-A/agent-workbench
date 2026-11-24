@@ -1,0 +1,194 @@
+{
+ "responses": [
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 1.0,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.9993818803663115,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 1,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/hecke.md",
+     "score": 0.47058823529411764,
+     "title": "Hecke und Schnitt",
+     "snippet": "Notiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9388900000008723,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-1.md",
+     "score": 0.4444444444444444,
+     "title": "Fueller Bahnhof",
+     "snippet": "Ein Text ueber bahnhof und bahnhofstand, ohne Bezug zu den anderen Notizen. bahnhof bahnhof.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.927556991452256,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.42105263157894735,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9149859922759462,
+     "vektor_rang": 4
+    },
+    {
+     "rel": "10-global/misc/fueller-3.md",
+     "score": 0.4,
+     "title": "Fueller Gleis",
+     "snippet": "Ein Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.8889366136802194,
+     "vektor_rang": 5
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 1.0,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 2
+  },
+  {
+   "fallback": false,
+   "hits": [
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 1.0,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "hybrid",
+     "cosine": 0.8129119096179197,
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "vektor_rang": 14,
+     "space": "garten"
+    },
+    {
+     "rel": "20-projects/garten/regentonne.md",
+     "score": 0.6444444444444445,
+     "title": "Regentonne und Dachrinne",
+     "snippet": "Notiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9827492419777624,
+     "vektor_rang": 1,
+     "space": "garten"
+    },
+    {
+     "rel": "10-global/misc/fueller-2.md",
+     "score": 0.6065359477124183,
+     "title": "Fueller Fahrplan",
+     "snippet": "Ein Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9759591802364328,
+     "vektor_rang": 2
+    },
+    {
+     "rel": "10-global/misc/fueller-6.md",
+     "score": 0.5728395061728395,
+     "title": "Fueller Ticket",
+     "snippet": "Ein Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9711060714022733,
+     "vektor_rang": 3
+    },
+    {
+     "rel": "10-global/misc/fueller-4.md",
+     "score": 0.5426900584795321,
+     "title": "Fueller Schaffner",
+     "snippet": "Ein Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "semantic",
+     "cosine": 0.9651657068453109,
+     "vektor_rang": 4
+    }
+   ],
+   "id": 3
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "20-projects/garten/rasen.md",
+     "score": 1.0,
+     "title": "Rasen und Maehen",
+     "snippet": "Notiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.",
+     "lines": [
+      6,
+      6
+     ],
+     "match": "text",
+     "bm25_rang": 1,
+     "bm25_norm": 1.0,
+     "space": "garten"
+    }
+   ],
+   "id": 4
+  }
+ ],
+ "exit": 0
+}

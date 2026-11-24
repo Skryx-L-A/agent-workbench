@@ -1,0 +1,34 @@
+{
+ "name": "tr13_zwei_spalten_cursor",
+ "regeln": [
+  "TR13"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Bei zwei Spalten steht der Cursor nach einem breiten Zeichen auf der letzten Spalte (ausstehender Umbruch); das nächste Zeichen bricht um",
+ "art": "strom",
+ "groesse": [
+  2,
+  4
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "x漢y"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1H漢"
+  },
+  {
+   "art": "Text",
+   "text": "\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?25l漢"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

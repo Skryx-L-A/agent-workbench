@@ -1,0 +1,61 @@
+{
+ "beschreibung": "die eigene Konfiguration ist kein JSON: nichts wird geändert",
+ "form": "aufruf",
+ "lage": {
+  "argv": [
+   "werkbank-ordnermarke",
+   "loesen",
+   "/home/beispiel/projekt"
+  ],
+  "datei_modus": "0600",
+  "datei_art": "datei",
+  "einstellungen": {
+   "fassung": 1,
+   "klassen": [
+    "oeffentlich",
+    "intern",
+    "kundendaten"
+   ],
+   "vorgabestufe": "kundendaten",
+   "routen": [
+    {
+     "schluessel": "cloud-beispiel",
+     "art": "cloud",
+     "klasse": "intern"
+    },
+    {
+     "schluessel": "lokal-beispiel",
+     "art": "lokal",
+     "klasse": "kundendaten"
+    }
+   ],
+   "kunden": [
+    {
+     "schluessel": "k-beispiel",
+     "erlaubt": [
+      "lokal-beispiel"
+     ],
+     "verboten": []
+    }
+   ],
+   "kundendaten_an_cloud": {
+    "vorgabe": "nie",
+    "freigaben": []
+   }
+  },
+  "ordner_vorhanden": true,
+  "einschluss": true,
+  "suche": "bereit",
+  "harness_vorhanden": true,
+  "ordnermarken": [
+   {
+    "ordner": "/home/beispiel/projekt",
+    "kennung": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+    "kunde": "k-beispiel",
+    "klasse_hoch": "kundendaten"
+   }
+  ],
+  "protokollordner": "<protokollordner>",
+  "konfig": "kein-json"
+ }
+}

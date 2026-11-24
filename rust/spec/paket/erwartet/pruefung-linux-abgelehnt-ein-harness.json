@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.programmordner_verboten: Harness pi nicht eingetragen. Abhilfe: Harness unter einem anderen Praefix installieren, dann dpkg-reconfigure werkbank. Ordner: /srv/beispiel/heim/nutzer1/.local",
+  "pruef.rot: 1 Befunde."
+ ]
+}

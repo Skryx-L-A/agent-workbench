@@ -1,0 +1,27 @@
+[package]
+name = "werkbank-pruefen"
+version = "0.1.0"
+description = "The check command of the Ubuntu package (contract rust/spec/paket, section check command): seven checks, fixed sentences, fixed exit codes."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "werkbank-pruefen"
+path = "src/main.rs"
+
+# formate: only `kette::sha256_hex` (the own SHA-256 of the workspace; no second implementation, no new crate).
+# serde (no derive) and serde_json: the manifest and the settings file are read with a visitor that refuses a
+# duplicate key (`src/ohne_doppel.rs`, the same reader as in `datentor`). Both are already in the graph.
+[dependencies]
+formate = { path = "../formate" }
+# einschluss: only the two functions of the deny list (`verbote`), so the package scripts and the check use the one rule of the enclosure (`src/programmordner.rs`).
+einschluss = { path = "../einschluss" }
+serde = "1"
+serde_json = "1"
+
+[lints]
+workspace = true

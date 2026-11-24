@@ -1,0 +1,31 @@
+[package]
+name = "formate"
+version = "0.1.0"
+description = "Formats of the new interface: the audit line `ausgabe.gesperrt`, its hash chain over months with anchors and the commands `kette pruefe` and `kette pruefe-quelle`."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "kette"
+path = "src/main.rs"
+
+# serde_json: reads a line of the chain as a JSON value and writes the checked result.
+# The feature float_roundtrip reads a decimal number to the same double as JavaScript's JSON.parse, bit for bit
+# (RFC 8785 prints the double, so a different rounding would change the bytes of a line); it adds no crate.
+# SHA-256 is an own small implementation (src/kette/hash.rs, tested with the vectors of FIPS 180-4): no new crate for one hash.
+# rustix (Unix only): the file that a failed write made is deleted with `unlinkat` relative to an open folder, only if the name
+#   still shows that file (src/kette/loeschen.rs), without `unsafe`; already in the workspace (modellweg and others), same
+#   version, features `fs` and `std` as there, licence "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT". Cargo.lock gets
+#   no new crate.
+[dependencies]
+serde_json = { version = "1", features = ["float_roundtrip"] }
+
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "1", features = ["fs", "std"] }
+
+[lints]
+workspace = true

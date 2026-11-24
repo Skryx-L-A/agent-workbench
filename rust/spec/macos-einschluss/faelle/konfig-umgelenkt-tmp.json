@@ -1,0 +1,5 @@
+{
+ "beschreibung": "/tmp ist ein Verweis auf /private/tmp",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"/tmp/projekte\"\n ],\n \"programmordner\": [\n  \"/Users/beispiel/.local/share/claude\",\n  \"/opt/homebrew\"\n ]\n}\n"
+}

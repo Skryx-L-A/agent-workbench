@@ -1,0 +1,34 @@
+{
+ "beschreibung": "Client bestätigt einen Dienst unter NT SERVICE am Besitzer der Instanz",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "dienst": "S-1-5-80-1000000011-1000000012-1000000013-1000000014-1000000015"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+    "appcontainer_sid": null
+   }
+  ],
+  "instanzen": 4
+ },
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "sid": "S-1-5-80-1000000011-1000000012-1000000013-1000000014-1000000015"
+  },
+  "frist_ms": 2000
+ },
+ "aufbau": [
+  "Dienst unter dienst ohne Leserecht der Person auf seinen Prozess"
+ ],
+ "handlung": [
+  "Die Person verbindet"
+ ]
+}

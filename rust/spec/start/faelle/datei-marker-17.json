@@ -1,0 +1,39 @@
+{
+ "beschreibung": "17 Marker",
+ "form": "datei",
+ "text": "{\n \"fassung\": 1,\n \"sitzung\": \"s-2\",\n \"harness\": \"pi\",\n \"modell\": \"qwen3:8b\",\n \"route\": \"lokal-beispiel\",\n \"kunde\": \"k-beispiel\",\n \"arbeitsordner\": \"/home/beispiel/projekt\",\n \"marker\": {\n  \"liste\": [\n   \"M0\",\n   \"M1\",\n   \"M2\",\n   \"M3\",\n   \"M4\",\n   \"M5\",\n   \"M6\",\n   \"M7\",\n   \"M8\",\n   \"M9\",\n   \"M10\",\n   \"M11\",\n   \"M12\",\n   \"M13\",\n   \"M14\",\n   \"M15\",\n   \"M16\"\n  ],\n  \"ordner\": \"/home/beispiel/zaehlung\"\n }\n}\n",
+ "einstellungen": {
+  "fassung": 1,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "vorgabestufe": "kundendaten",
+  "routen": [
+   {
+    "schluessel": "cloud-beispiel",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal-beispiel",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-beispiel",
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ }
+}

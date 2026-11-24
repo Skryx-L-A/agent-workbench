@@ -1,0 +1,18 @@
+# User unit of the core service (program wb-dienst of the crate dienst, installed as werkbank-kern; contract rust/spec/paket, part A, "Dienste").
+# The start file /etc/werkbank/kern.json is written by postinst for the user. RuntimeDirectory makes /run/user/<uid>/werkbank (0700): the socket
+# and, for the bridge, the token and the port file live there. No PrivateTmp and no RestrictAddressFamilies: the sessions are children of this
+# service ("Lauf starten" with the enclosure and the model path) and inherit every hardening of the unit.
+# NO NoNewPrivileges=yes here (and no option that implies it, such as RestrictAddressFamilies or SystemCallFilter): under that flag AppArmor refuses the
+# profile change of the fixed starter to bwrap ("no new privs"), and no session starts. The enclosure sets NoNewPrivs for the harness itself (bwrap).
+# The build refuses a core unit that has it (contract rust/spec/paket, "Dienste"); do not add it again.
+[Unit]
+Description=Werkbank core service
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/werkbank/werkbank-kern /etc/werkbank/kern.json
+RuntimeDirectory=werkbank
+RuntimeDirectoryMode=0700
+
+[Install]
+WantedBy=default.target

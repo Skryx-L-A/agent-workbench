@@ -1,0 +1,23 @@
+{
+ "beschreibung": "das eigene Profil von Ubuntu für das System-bwrap stand vorher da und bleibt (nicht von uns)",
+ "form": "entfernen",
+ "nutzer": "nutzer1",
+ "heimwurzel": "/srv/beispiel/heim",
+ "ergebnisdatei": "/srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+ "vorher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "profil:/usr/bin/bwrap"
+ ],
+ "nachher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "profil:/usr/bin/bwrap"
+ ]
+}

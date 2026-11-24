@@ -1,0 +1,23 @@
+{
+ "description": "ein reiner BM25-Treffer hat kein Feld cosine",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Fenster",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/haus/fenster.md": "---\ntitle: Fenster\ntype: note\n---\n\nDas Fenster klemmt.\n",
+  "vault/haus/rahmen.md": "---\ntitle: Rahmen\ntype: note\n---\n\nDer Rahmen am Fenster ist neu.\n",
+  "vault/haus/tuer.md": "---\ntitle: Tür\ntype: note\n---\n\nDie Tür quietscht.\n",
+  "vektoren.json": "{\"query\": [1, 0, 0], \"notes\": {\"haus/rahmen.md\": [1, 0, 0], \"haus/tuer.md\": [0.7, 0.7, 0.0]}}"
+ }
+}

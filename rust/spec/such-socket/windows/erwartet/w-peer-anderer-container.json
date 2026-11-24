@@ -1,0 +1,17 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "oeffnen_fehler": 5
+  },
+  {
+   "ok": true,
+   "id": 2
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

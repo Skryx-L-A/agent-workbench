@@ -1,0 +1,99 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "ausgaben_nach_kindende": 0,
+   "cursor": [
+    1,
+    0,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "zeilen": [
+    "ende",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Zwischenablage",
+      "daten_b64": "S29waWUgZWlucyDDpMO2w7w="
+     },
+     {
+      "art": "Zwischenablage",
+      "lesen": true
+     },
+     {
+      "art": "Modus",
+      "bracketed_paste": true
+     },
+     {
+      "art": "Modus",
+      "invers": true,
+      "stand": 1
+     },
+     {
+      "art": "GroessenFolge",
+      "spalten": 50,
+      "zeilen": 20
+     },
+     {
+      "art": "Kindende",
+      "code": 0
+     }
+    ],
+    "ok": true
+   },
+   {
+    "ereignisse": [],
+    "ok": true,
+    "zustand": {
+     "abbild_gleich": true,
+     "ausgaben_nach_kindende": 0,
+     "cursor": [
+      1,
+      0,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "zeilen": [
+      "ende",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

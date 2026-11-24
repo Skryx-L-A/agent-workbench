@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Form B mit `flags=(unconfined)` (früherer Entwurf)",
+ "form": "profil",
+ "text": "abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile werkbank-bwrap /usr/lib/werkbank/bwrap flags=(unconfined) {\n  userns,\n}\n"
+}

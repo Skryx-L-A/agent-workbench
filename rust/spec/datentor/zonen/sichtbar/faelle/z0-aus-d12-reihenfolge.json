@@ -1,0 +1,91 @@
+{
+ "name": "z0-aus-d12-reihenfolge",
+ "regeln": [
+  "A127",
+  "Z0",
+  "D12"
+ ],
+ "beschreibung": "Option aus: der Fall d12-reihenfolge aus Vertrag 3 mit derselben Erwartung. Treffen mehrere Gründe zu, gilt der erste in der Reihenfolge der Tabelle.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "c-intern",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "c1",
+    "art": "cloud",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-v",
+    "erlaubt": [
+     "c1"
+    ],
+    "verboten": [
+     "c1"
+    ]
+   },
+   {
+    "schluessel": "k-n",
+    "erlaubt": []
+   }
+  ]
+ },
+ "modellzonen": {
+  "an": false,
+  "zonen": []
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "c-intern",
+   "kunde": "k-x"
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "c1",
+   "kunde": "k-x"
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "c1",
+   "kunde": "k-v"
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "c1",
+   "kunde": "k-n"
+  },
+  {
+   "einheit": {
+    "klasse": "geheim"
+   },
+   "route": "c-x",
+   "kunde": "k-x"
+  },
+  {
+   "einheit": {
+    "klasse": "geheim"
+   },
+   "route": "c1",
+   "kunde": "k-x"
+  }
+ ]
+}

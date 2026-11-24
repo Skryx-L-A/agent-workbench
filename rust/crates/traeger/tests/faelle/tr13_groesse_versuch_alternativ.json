@@ -1,0 +1,64 @@
+{
+ "name": "tr13_groesse_versuch_alternativ",
+ "regeln": [
+  "TR13"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Auch im Alternativschirm erreicht eine Spalte das Raster nie: abgelehnt, Inhalt und Cursor beider Schirme bleiben",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "漢a\r\nb"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049h\u001b[2;1H漢x"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 1,
+   "zeilen": 8,
+   "versuch": true
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 1,
+   "zeilen": 2,
+   "versuch": true
+  },
+  {
+   "art": "Text",
+   "text": "q"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049l"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 1,
+   "zeilen": 8,
+   "versuch": true
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

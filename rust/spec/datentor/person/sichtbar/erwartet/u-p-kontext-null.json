@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13"
+ ],
+ "beschreibung": "kontext ist null; ein fehlender kontext heißt keine Person."
+}

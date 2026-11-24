@@ -1,0 +1,12 @@
+{
+ "fassung": 2,
+ "seite": "anlegen",
+ "ergebnis": "fehler",
+ "code": "pk.ordner_rechte",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "beide Aufrufe: pk.ordner_rechte",
+  "Modus, Eigentümer und Gruppe des Ordners unverändert"
+ ]
+}

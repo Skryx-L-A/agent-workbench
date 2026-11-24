@@ -1,0 +1,10 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "fehler",
+ "code": "pk.nicht_erreichbar",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe spätestens nach 500 ms"
+ ]
+}

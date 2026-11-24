@@ -1,0 +1,5 @@
+{
+ "beschreibung": "17 Programmordner",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"C:\\\\Users\\\\beispiel\\\\Projekte\"\n ],\n \"programmordner\": [\n  \"C:\\\\P\\\\p0\",\n  \"C:\\\\P\\\\p1\",\n  \"C:\\\\P\\\\p2\",\n  \"C:\\\\P\\\\p3\",\n  \"C:\\\\P\\\\p4\",\n  \"C:\\\\P\\\\p5\",\n  \"C:\\\\P\\\\p6\",\n  \"C:\\\\P\\\\p7\",\n  \"C:\\\\P\\\\p8\",\n  \"C:\\\\P\\\\p9\",\n  \"C:\\\\P\\\\p10\",\n  \"C:\\\\P\\\\p11\",\n  \"C:\\\\P\\\\p12\",\n  \"C:\\\\P\\\\p13\",\n  \"C:\\\\P\\\\p14\",\n  \"C:\\\\P\\\\p15\",\n  \"C:\\\\P\\\\p16\"\n ],\n \"shell\": \"powershell\"\n}\n"
+}

@@ -1,0 +1,19 @@
+{
+ "description": "basic walk: excluded dirs, MOC only in search, generated files",
+ "files": {
+  "v/10-global/a.md": "a\n",
+  "v/10-global/b.txt": "b\n",
+  "v/20-projects/p/MOC.md": "m\n",
+  "v/20-projects/p/DECISIONS.md": "d\n",
+  "v/90-secrets/s.md": "geheim\n",
+  "v/_meta/t.md": "t\n",
+  "v/.obsidian/o.md": "o\n",
+  "v/HOT.md": "h\n",
+  "v/00-sources/gardener-report-1.md": "r\n",
+  "v/00-sources/q.md": "q\n"
+ },
+ "args": [
+  "corpus",
+  "{root}/v"
+ ]
+}

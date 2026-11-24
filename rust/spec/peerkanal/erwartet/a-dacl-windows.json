@@ -1,0 +1,14 @@
+{
+ "seite": "anlegen",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Besitzer = dienst",
+  "DACL geschützt (SE_DACL_PROTECTED), genau diese ACEs: dienst 0x0012019F; person und container_a je 0x0012019B (ohne FILE_CREATE_PIPE_INSTANCE 0x4)",
+  "SACL mit genau dem Label S:(ML;;NW;;;LW), weil die Liste eine Package-SID trägt",
+  "keine ACE für S-1-1-0, S-1-5-11, S-1-5-32-545, S-1-5-32-544, S-1-5-4, S-1-5-2, S-1-5-7, S-1-15-2-1, S-1-15-2-2",
+  "PIPE_REJECT_REMOTE_CLIENTS gesetzt (Beleg über den Fall n-remote-windows)"
+ ]
+}

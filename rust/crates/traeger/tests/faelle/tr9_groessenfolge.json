@@ -1,0 +1,30 @@
+{
+ "name": "tr9_groessenfolge",
+ "regeln": [
+  "TR9"
+ ],
+ "datensatz": "A",
+ "beschreibung": "ESC[8;Zeilen;Spalten t geht als GroessenFolge (spalten, zeilen) hinaus und wird nie ausgeführt: die Größe des Trägers bleibt",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[8;30;100t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8;8;30t"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8;1;1t\u001b[8;24;80t"
+  }
+ ]
+}

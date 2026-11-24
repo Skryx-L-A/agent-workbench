@@ -1,0 +1,16 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [],
+  "fields": {},
+  "body": "---\n\nAbsatz zwischen zwei Linien.\n\n---\n\nWeiter.\n",
+  "title": "note",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "note"
+  ],
+  "embed_text": "note\n\n---\n\nAbsatz zwischen zwei Linien.\n\n---\n\nWeiter.\n"
+ }
+}

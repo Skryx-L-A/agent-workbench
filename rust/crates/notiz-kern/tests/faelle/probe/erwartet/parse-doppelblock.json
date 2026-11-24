@@ -1,0 +1,24 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "permalink: main/10-global/x\ntitle: Alt",
+   "title: Neu\ntype: decision"
+  ],
+  "fields": {
+   "permalink": "main/10-global/x",
+   "title": "Neu",
+   "type": "decision"
+  },
+  "body": "\nRumpf\n",
+  "title": "Neu",
+  "type": "decision",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "neu",
+   "note"
+  ],
+  "embed_text": "Neu\ntype: decision\n\n\nRumpf\n"
+ }
+}

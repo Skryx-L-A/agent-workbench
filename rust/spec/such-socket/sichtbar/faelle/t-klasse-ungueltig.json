@@ -1,0 +1,39 @@
+{
+ "description": "Unbekannte Klasse und eine Klasse, die kein Text ist, sperren auch lokal",
+ "files": {
+  "vault/a/geheim-qkx6.md": "---\ntitle: \"Bauplan QKX6\"\ntype: \"note\"\ndatenklasse: \"geheim\"\n---\n\nBauplan QKX6 Bauplan.\n",
+  "vault/a/liste-qkx7.md": "---\ntitle: \"Bauplan QKX7\"\ntype: \"note\"\ndatenklasse: [\"intern\"]\n---\n\nBauplan QKX7 als Liste.\n",
+  "vault/a/bauplan.md": "---\ntitle: \"Bauplan\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nDer Bauplan der Halle.\n",
+  "aux/einstellungen.json": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-nord\",\n   \"erlaubt\": [\n    \"lokal\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+ },
+ "dirs": [
+  "home",
+  "protokoll"
+ ],
+ "args": [
+  "sitzung",
+  "{root}/vault",
+  "--socket",
+  "{sock}",
+  "--route",
+  "lokal",
+  "--sitzung",
+  "s-test-1",
+  "--einstellungen",
+  "{root}/aux/einstellungen.json",
+  "--protokoll",
+  "{root}/protokoll"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "search",
+    "query": "Bauplan"
+   }
+  }
+ ],
+ "verboten": [
+  "qkx6",
+  "qkx7"
+ ]
+}

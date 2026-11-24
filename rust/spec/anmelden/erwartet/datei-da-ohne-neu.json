@@ -1,0 +1,10 @@
+{
+ "exit": 15,
+ "code": "anmelden.datei_da",
+ "stdout": "",
+ "stderr": "werkbank-anmelden: anmelden.datei_da: Die Schluesseldatei ist schon da. Mit --neu wird sie ersetzt.\n",
+ "ziel_datei": "unveraendert",
+ "login_gestartet": false,
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

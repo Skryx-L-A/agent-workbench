@@ -1,0 +1,142 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "klasse": null,
+    "herkunft": "ungueltig",
+    "senkung": {
+     "grund": "klasse-ungueltig",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "einheit-ohne-klasse",
+     "klasse": null,
+     "meldung": "Einheit ohne gültige Klasse"
+    }
+   },
+   {
+    "klasse": null,
+    "herkunft": "ungueltig",
+    "senkung": {
+     "grund": "klasse-ungueltig",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "einheit-ohne-klasse",
+     "klasse": null,
+     "meldung": "Einheit ohne gültige Klasse"
+    }
+   },
+   {
+    "klasse": null,
+    "herkunft": "ungueltig",
+    "senkung": {
+     "grund": "klasse-ungueltig",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "einheit-ohne-klasse",
+     "klasse": null,
+     "meldung": "Einheit ohne gültige Klasse"
+    }
+   },
+   {
+    "klasse": null,
+    "herkunft": "ungueltig",
+    "senkung": {
+     "grund": "klasse-ungueltig",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "einheit-ohne-klasse",
+     "klasse": null,
+     "meldung": "Einheit ohne gültige Klasse"
+    }
+   },
+   {
+    "klasse": null,
+    "herkunft": "ungueltig",
+    "senkung": {
+     "grund": "klasse-ungueltig",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "einheit-ohne-klasse",
+     "klasse": null,
+     "meldung": "Einheit ohne gültige Klasse"
+    }
+   },
+   {
+    "klasse": null,
+    "herkunft": "ungueltig",
+    "senkung": {
+     "grund": "klasse-ungueltig",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "einheit-ohne-klasse",
+     "klasse": null,
+     "meldung": "Einheit ohne gültige Klasse"
+    }
+   },
+   {
+    "klasse": null,
+    "herkunft": "ungueltig",
+    "senkung": {
+     "grund": "klasse-ungueltig",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "einheit-ohne-klasse",
+     "klasse": null,
+     "meldung": "Einheit ohne gültige Klasse"
+    }
+   },
+   {
+    "klasse": null,
+    "herkunft": "ungueltig",
+    "senkung": {
+     "grund": "klasse-ungueltig",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "route-fehlt",
+     "klasse": null,
+     "meldung": "Anfrage ohne Route"
+    }
+   },
+   {
+    "klasse": null,
+    "herkunft": "ungueltig",
+    "senkung": {
+     "grund": "klasse-ungueltig",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "route-ohne-klasse",
+     "klasse": null,
+     "meldung": "Route r-x hat keine Klasse"
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,9 @@
+{
+ "beschreibung": "W5 fall",
+ "form": "vm",
+ "eigenschaft": "W5",
+ "art": "fall",
+ "ausgangslage": "Windows-VM; Plattformdienst unter NT SERVICE mit den fünf ACEs, Admin-Helfer unter LocalSystem; Projekt A mit Arbeitsordner unter der Projektwurzel; ein Lauf in A mit Claude Code (PowerShell-Werkzeug) gegen die Attrappe des Modellwegs hinter einem Weiterleiter auf dem Sitzungsport M; die Browser-Brücke des Kern-Dienstes hört auf dem Loopback des Rechners; ssh-Stummel vorn im PATH, SSH_AUTH_SOCK leer",
+ "handlung": "Während der Agent läuft, wird der Plattformdienst hart beendet; der Agent versucht M und Q alle 10 ms",
+ "beleg": "gemessen: Fragen 9, 10a (Job endet nach 1 bis 11 ms)"
+}

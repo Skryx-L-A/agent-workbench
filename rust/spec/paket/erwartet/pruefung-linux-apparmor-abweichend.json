@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.apparmor_abweichend: Das AppArmor-Profil weicht vom Paket ab.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

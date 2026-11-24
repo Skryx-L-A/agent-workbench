@@ -1,0 +1,35 @@
+{
+ "beschreibung": "Agent im Container, erlaubt ist nur die Person ohne Container",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "container_a": "S-1-15-2-1000000021-1000000022-1000000023-1000000024-1000000025-1000000026-1000000027"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+    "appcontainer_sid": null
+   }
+  ],
+  "instanzen": 4,
+  "prozess_pflicht": true
+ },
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+  },
+  "frist_ms": 2000
+ },
+ "aufbau": [
+  "Server unter person; die DACL lässt container_a nicht zu, darum für diesen Fall eine Test-DACL, die container_a zulässt (nur im Testaufbau)"
+ ],
+ "handlung": [
+  "Der Agent in container_a verbindet"
+ ]
+}

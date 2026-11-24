@@ -1,0 +1,45 @@
+{
+ "beschreibung": "Ein gesperrter Nachfolger erscheint weder als Treffer noch in abgeloest_durch",
+ "herkunft": "vertrag4:t-nachfolger-gesperrt",
+ "files": {
+  "vault/projekte/regel-alt.md": "---\ntitle: \"Regel alt\"\ntype: \"note\"\ndatenklasse: \"intern\"\nstatus: \"superseded\"\nsuperseded-by: [\"[[regel-qkx5]]\"]\n---\n\nDie Regel Torzeit gilt bis Herbst. Torzeit.\n",
+  "vault/kunden/nord/regel-qkx5.md": "---\ntitle: \"Regel QKX5\"\ntype: \"note\"\ndatenklasse: \"kundendaten\"\nkunde: \"k-nord\"\n---\n\nNachfolgetext des Kunden QKX5.\n",
+  "vault/sonst/wetter.md": "---\ntitle: \"Wetter\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nSonne und Regen im Herbst.\n",
+  "aux/einstellungen.json": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-nord\",\n   \"erlaubt\": [\n    \"lokal\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+ },
+ "dirs": [
+  "home",
+  "protokoll"
+ ],
+ "args": [
+  "sitzung",
+  "{root}/vault",
+  "--socket",
+  "{pipe}",
+  "--paket-sid",
+  "{paket_sid}",
+  "--route",
+  "cloud",
+  "--sitzung",
+  "s-test-1",
+  "--einstellungen",
+  "{root}/aux/einstellungen.json",
+  "--protokoll",
+  "{root}/protokoll"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "search",
+    "query": "Torzeit"
+   }
+  }
+ ],
+ "verboten": [
+  "qkx5"
+ ],
+ "orte": [
+  "attrappe",
+  "vm-container"
+ ]
+}

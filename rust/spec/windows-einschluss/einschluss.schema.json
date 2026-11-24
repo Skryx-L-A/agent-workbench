@@ -1,0 +1,218 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://werkbank.invalid/spec/windows-einschluss/einschluss.schema.json",
+ "title": "Einschluss unter Windows, Fassung 1",
+ "$defs": {
+  "kennung": {
+   "type": "string",
+   "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+  },
+  "winpfad": {
+   "type": "string",
+   "minLength": 4,
+   "maxLength": 1024,
+   "pattern": "^[A-Za-z]:(?:\\\\(?!(?:[cC][oO][nN]|[pP][rR][nN]|[aA][uU][xX]|[nN][uU][lL]|[cC][oO][mM][0-9]|[lL][pP][tT][0-9])(?:\\.|\\\\|$))[^<>:\"/\\\\|?*\\x00-\\x1f\\x7f]*[^<>:\"/\\\\|?*\\x00-\\x1f\\x7f. ])+$"
+  },
+  "ordner": {
+   "type": "string",
+   "pattern": "^[0-9a-f]{64}$"
+  },
+  "pfadliste": {
+   "type": "array",
+   "minItems": 1,
+   "maxItems": 16,
+   "uniqueItems": true,
+   "items": {
+    "$ref": "#/$defs/winpfad"
+   }
+  },
+  "konfig": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "fassung",
+    "projektwurzeln",
+    "programmordner",
+    "shell"
+   ],
+   "properties": {
+    "fassung": {
+     "const": 1
+    },
+    "projektwurzeln": {
+     "$ref": "#/$defs/pfadliste"
+    },
+    "programmordner": {
+     "$ref": "#/$defs/pfadliste"
+    },
+    "shell": {
+     "const": "powershell"
+    }
+   }
+  },
+  "steuer": {
+   "oneOf": [
+    {
+     "$ref": "#/$defs/op_projekt_neu"
+    },
+    {
+     "$ref": "#/$defs/op_lauf_start"
+    },
+    {
+     "$ref": "#/$defs/op_lauf_ende"
+    },
+    {
+     "$ref": "#/$defs/op_projekt_loeschen"
+    },
+    {
+     "$ref": "#/$defs/op_peer"
+    }
+   ]
+  },
+  "op_projekt_neu": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op",
+    "ordner"
+   ],
+   "properties": {
+    "op": {
+     "const": "projekt_neu"
+    },
+    "ordner": {
+     "$ref": "#/$defs/ordner"
+    }
+   }
+  },
+  "op_lauf_start": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op",
+    "ordner",
+    "sitzung",
+    "pid",
+    "ports"
+   ],
+   "properties": {
+    "op": {
+     "const": "lauf_start"
+    },
+    "ordner": {
+     "$ref": "#/$defs/ordner"
+    },
+    "sitzung": {
+     "$ref": "#/$defs/kennung"
+    },
+    "pid": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 4294967295
+    },
+    "ports": {
+     "type": "array",
+     "minItems": 1,
+     "maxItems": 4,
+     "uniqueItems": true,
+     "items": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+     }
+    }
+   }
+  },
+  "op_lauf_ende": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op",
+    "sitzung"
+   ],
+   "properties": {
+    "op": {
+     "const": "lauf_ende"
+    },
+    "sitzung": {
+     "$ref": "#/$defs/kennung"
+    }
+   }
+  },
+  "op_projekt_loeschen": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op",
+    "ordner"
+   ],
+   "properties": {
+    "op": {
+     "const": "projekt_loeschen"
+    },
+    "ordner": {
+     "$ref": "#/$defs/ordner"
+    }
+   }
+  },
+  "op_peer": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "op"
+   ],
+   "properties": {
+    "op": {
+     "const": "peer"
+    },
+    "tcp": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "lokal",
+      "fern"
+     ],
+     "properties": {
+      "lokal": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 65535
+      },
+      "fern": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 65535
+      }
+     }
+    },
+    "pid": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 4294967295
+    }
+   },
+   "oneOf": [
+    {
+     "required": [
+      "tcp"
+     ],
+     "not": {
+      "required": [
+       "pid"
+      ]
+     }
+    },
+    {
+     "required": [
+      "pid"
+     ],
+     "not": {
+      "required": [
+       "tcp"
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,119 @@
+{
+ "start": "bereit",
+ "socket_rechte": "0600",
+ "responses": [
+  {
+   "fallback": true,
+   "rels": [
+    "handbuch/lieferplan-lesen.md"
+   ],
+   "gesperrt": 1
+  },
+  {
+   "fallback": true,
+   "rels": [
+    "handbuch/lieferplan-lesen.md",
+    "projekte/lieferplan.md"
+   ],
+   "gesperrt": 2
+  },
+  {
+   "fallback": true,
+   "rels": [
+    "handbuch/lieferplan-lesen.md",
+    "projekte/lieferplan.md"
+   ],
+   "gesperrt": 2
+  },
+  {
+   "fallback": true,
+   "rels": [
+    "handbuch/lieferplan-lesen.md",
+    "projekte/lieferplan.md"
+   ],
+   "gesperrt": 2
+  }
+ ],
+ "protokoll": [
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": null,
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  },
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": null,
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  },
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": "k-nord",
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  },
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": null,
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  },
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": "k-nord",
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  },
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": null,
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  },
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": "k-nord",
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  }
+ ],
+ "ende": {
+  "exit": 0
+ }
+}

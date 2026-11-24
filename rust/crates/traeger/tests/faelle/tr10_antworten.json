@@ -1,0 +1,55 @@
+{
+ "name": "tr10_antworten",
+ "regeln": [
+  "TR10"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Geräteabfragen beantwortet alacritty_terminal; der Träger reicht diese Bytes unverändert an das Kind weiter (pty_antworten)",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[c"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[>c"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[5n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?6n"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[>q"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[18t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[14t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?2026$p"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?2004$p"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[0c\u001b[5n"
+  }
+ ]
+}

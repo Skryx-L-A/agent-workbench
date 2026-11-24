@@ -1,0 +1,224 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "kind_beendet": null,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": null,
+    "abbild_fehler": [],
+    "ablehnungen": [
+     "start_pruefung",
+     "start_pruefung",
+     "start_pruefung",
+     "start_pruefung",
+     "start_pruefung",
+     "start_pruefung",
+     "start_pruefung",
+     "start_pruefung",
+     "start_pruefung"
+    ],
+    "ablehnungen_voll": [
+     {
+      "code": "start.kennung_form",
+      "grund": "start_pruefung",
+      "text": "Kennung hat falsche Form"
+     },
+     {
+      "code": "start.kennung_form",
+      "grund": "start_pruefung",
+      "text": "Kennung hat falsche Form"
+     },
+     {
+      "code": "start.kennung_form",
+      "grund": "start_pruefung",
+      "text": "Kennung hat falsche Form"
+     },
+     {
+      "code": "start.kennung_form",
+      "grund": "start_pruefung",
+      "text": "Kennung hat falsche Form"
+     },
+     {
+      "code": "start.kennung_form",
+      "grund": "start_pruefung",
+      "text": "Kennung hat falsche Form"
+     },
+     {
+      "code": "start.kennung_form",
+      "grund": "start_pruefung",
+      "text": "Kennung hat falsche Form"
+     },
+     {
+      "code": "start.kennung_form",
+      "grund": "start_pruefung",
+      "text": "Kennung hat falsche Form"
+     },
+     {
+      "code": "start.kennung_form",
+      "grund": "start_pruefung",
+      "text": "Kennung hat falsche Form"
+     },
+     {
+      "code": "start.kennung_form",
+      "grund": "start_pruefung",
+      "text": "Kennung hat falsche Form"
+     }
+    ],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "gestartet": 0,
+      "kernbau": 1,
+      "kind": {},
+      "nummern": {},
+      "traeger_zeilen": {}
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": []
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     {
+      "art": "Einstellungen",
+      "werte": {
+       "bildrate_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 63,
+        "wert": 63
+       },
+       "osc52_grenze": {
+        "herkunft": "vorgabe",
+        "vorgabe": 100000,
+        "wert": 100000
+       },
+       "osc52_schreiben": {
+        "herkunft": "vorgabe",
+        "vorgabe": "an",
+        "wert": "an"
+       },
+       "rueckstau_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 16384,
+        "wert": 16384
+       }
+      }
+     },
+     {
+      "art": "Routen",
+      "routen": []
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": []
+     },
+     {
+      "anfragen": [],
+      "art": "Anfragen"
+     },
+     {
+      "agenten": [],
+      "art": "Agenten"
+     },
+     {
+      "art": "Startwahl",
+      "fassung": 1,
+      "harness": [
+       {
+        "art": "cloud",
+        "name": "claude",
+        "routenart": "cloud"
+       },
+       {
+        "art": "cloud",
+        "name": "copilot",
+        "routenart": "cloud"
+       },
+       {
+        "art": "lokal",
+        "name": "pi",
+        "routenart": "lokal"
+       }
+      ],
+      "kunden": [
+       "k-beispiel",
+       null
+      ],
+      "routen": [
+       {
+        "art": "cloud",
+        "klasse": "intern",
+        "modell": null,
+        "schluessel": "cloud-beispiel"
+       },
+       {
+        "art": "lokal",
+        "klasse": "kundendaten",
+        "modell": null,
+        "schluessel": "lokal-beispiel"
+       }
+      ]
+     }
+    ],
+    "ok": true
+   }
+  ],
+  "start": {
+   "netz_sockets": 0,
+   "ok": true,
+   "ordner_modus": "0700",
+   "socket_modus": "0600"
+  }
+ },
+ "exit": 0
+}

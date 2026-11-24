@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "snippet": "Einleitung ohne Bezug zum Thema.",
+  "lines": [
+   5,
+   5
+  ],
+  "hook": "Für künftige Sessions: Den Teig erst nach einer Stunde formen.",
+  "hook_lines": [
+   7,
+   7
+  ]
+ }
+}

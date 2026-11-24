@@ -1,0 +1,22 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "20-projects/a/lager.md",
+    "score": 0.8198051948051948,
+    "title": "Lager a",
+    "snippet": "Kaffeebohnen lagern dunkel und kuehl.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.8198051948051948,
+    "space": "a"
+   }
+  ]
+ }
+}

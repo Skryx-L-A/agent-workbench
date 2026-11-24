@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Anhang an anderem Pfad mit `userns` und `unconfined`: `profil_userns_unbegrenzt` zuerst",
+ "form": "profil",
+ "text": "abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile werkbank-bwrap /usr/lib/werkbank/anderes flags=(unconfined) {\n  userns,\n}\n"
+}

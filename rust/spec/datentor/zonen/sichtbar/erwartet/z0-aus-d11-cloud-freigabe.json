@@ -1,0 +1,42 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "kundendaten-an-cloud",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Cloud-Route c1 ohne Freigabe",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "kundendaten-an-cloud",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten an Cloud-Route c2 ohne Freigabe",
+    "protokoll": null
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-route",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über Route c-intern",
+    "protokoll": null
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "protokoll": null
+   }
+  ]
+ }
+}

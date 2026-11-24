@@ -1,0 +1,19 @@
+{
+ "beschreibung": "Datei da, --neu ersetzt sie",
+ "args": [
+  "copilot",
+  "--neu"
+ ],
+ "attrappe": "erfolg",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "datei-da",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

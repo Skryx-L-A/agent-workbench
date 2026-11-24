@@ -1,0 +1,10 @@
+{
+ "exit": 18,
+ "code": "anmelden.rest_nicht_loeschbar",
+ "stdout": "",
+ "stderr": "werkbank-anmelden: anmelden.rest_nicht_loeschbar: Ein Rest eines frueheren Laufs ist nicht loeschbar.\n",
+ "ziel_datei": "nicht-angelegt",
+ "login_gestartet": false,
+ "reste_geloescht": 0,
+ "reste_uebrig": 1
+}

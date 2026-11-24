@@ -1,0 +1,26 @@
+[package]
+name = "kernabbild"
+version = "0.1.0"
+description = "The limit of core images 1/1: a program of the Werkbank shields its memory from a core image (`PR_SET_DUMPABLE 0`, `RLIMIT_CORE` 1/1) and returns reasons, no exit codes and no text."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+# The test program of the crate: it calls `abschirmen`, tells the result on standard output and waits. The tests of `tests/abschirmen.rs` start it
+# as a process and read `/proc/<pid>` (the owner of the files, `limits`). It is no part of a shipped build.
+[[bin]]
+name = "kernabbild-probe"
+path = "src/bin/probe.rs"
+
+# rustix is the one dependency (same version as in `dienst`, fewer features): `process` gives `set_dumpable_behavior` (`prctl PR_SET_DUMPABLE`),
+# `getrlimit` and `setrlimit`, `std` the `std` types of its errors. The package is in Cargo.lock already; no new package enters the graph, and
+# `unsafe` stays forbidden in this workspace (the calls are safe in rustix). It is a dependency of Unix targets only: `rustix::process` does
+# not exist under Windows, and a Windows build of the workspace must not stop at this crate.
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "=1.1.6", default-features = false, features = ["std", "process"] }
+
+[lints]
+workspace = true

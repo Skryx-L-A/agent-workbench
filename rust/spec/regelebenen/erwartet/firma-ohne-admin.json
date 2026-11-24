@@ -1,0 +1,55 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "ebenen.anzahl",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.anzahl",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "9d7db205e07f52bba3406ddc3544db199b65636fd1833b2c9a4115fb59c399cf",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": true,
+   "code": null,
+   "zeile": {
+    "aktionsname": "regel.geaendert",
+    "alt": null,
+    "antrag": null,
+    "code": null,
+    "ebene": "gruppe",
+    "ergebnis": "geaendert",
+    "handelnd": "ps_00000000000000000000000000000b02",
+    "neu": "75f48dddaf9b1094fd8eccfb717444ba824680a7208d563fdf5fe596ce9de4e0",
+    "pflicht": null,
+    "ziel": "g-eins",
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.anzahl",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.anzahl",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "86b7e00d45d888e227949ea04e0b2ec308d1e168fc087657ae5bb0d2e0058f65",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  }
+ ]
+}

@@ -1,0 +1,22 @@
+{
+ "name": "tr11_variante_ein_stueck",
+ "regeln": [
+  "TR11"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Dieselben Bytes in einem Stück ergeben dasselbe Raster wie Byte für Byte (tr11_variante_stueck)",
+ "art": "strom",
+ "groesse": [
+  16,
+  3
+ ],
+ "schritte": [
+  {
+   "art": "Bytes",
+   "hex": "61e29da4efb88f62f09f91a8e2808df09f91a9e2808df09f91a7e6bca2efb88ee2808d2e"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

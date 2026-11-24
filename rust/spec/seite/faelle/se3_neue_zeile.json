@@ -1,0 +1,134 @@
+{
+ "beschreibung": "Eine neue Zeile wird angesagt; das Echo in der Zeile des Cursors und ein Vollbild nicht.",
+ "datensatz": "A",
+ "name": "se3_neue_zeile",
+ "regeln": [
+  "SE3"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": []
+  },
+  {
+   "art": "Raster",
+   "hex": "0501020202020101000000030001000424206c730101000c417573676162652065696e730201000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     1,
+     "Ausgabe eins"
+    ]
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "$ ls\nAusgabe eins"
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010203020301010000000102010003242065"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     2,
+     "$ e"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "0501020402040101000000010201000424206563"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     2,
+     "$ ec"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "050102050205010100000001020100052420656368"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     2,
+     "$ ech"
+    ]
+   }
+  },
+  {
+   "art": "Uhr",
+   "ms": 2000
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": []
+  }
+ ]
+}

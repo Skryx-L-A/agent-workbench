@@ -1,0 +1,8 @@
+{
+ "description": "Ziffern und Unterstrich: kein Stemmen, aber N-Gramme ab Länge 6",
+ "program": "rangkern",
+ "args": [
+  "tokens",
+  "v2 build_id 3a7f9c"
+ ]
+}

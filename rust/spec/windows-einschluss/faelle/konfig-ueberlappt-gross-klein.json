@@ -1,0 +1,5 @@
+{
+ "beschreibung": "derselbe Ordner in anderer Schreibweise",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": [\n  \"C:\\\\Users\\\\beispiel\\\\Projekte\"\n ],\n \"programmordner\": [\n  \"c:\\\\users\\\\BEISPIEL\\\\projekte\"\n ],\n \"shell\": \"powershell\"\n}\n"
+}

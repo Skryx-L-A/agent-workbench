@@ -1,0 +1,11 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "fehler",
+ "code": "pk.zugriff_verweigert",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Fehler 5 im Client",
+  "kein Ereignis am Server"
+ ]
+}

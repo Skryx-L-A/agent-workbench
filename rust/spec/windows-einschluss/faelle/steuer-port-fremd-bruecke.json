@@ -1,0 +1,9 @@
+{
+ "beschreibung": "der Starter fordert den Port der Browser-Brücke an",
+ "form": "steuer",
+ "text": "{\"op\": \"lauf_start\", \"ordner\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"sitzung\": \"s-1\", \"pid\": 4242, \"ports\": [50101, 8443]}\n",
+ "lage": {
+  "8443": "Hörer des Kern-Dienstes (Browser-Brücke)",
+  "50101": "Weiterleiter des Aufrufers"
+ }
+}

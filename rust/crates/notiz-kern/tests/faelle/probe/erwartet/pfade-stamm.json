@@ -1,0 +1,45 @@
+{
+ "exit": 0,
+ "stdout": [
+  {
+   "rel": "10-global/a.b.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": true,
+   "branch": "10-global",
+   "stem_key": "a.b"
+  },
+  {
+   "rel": "10-global/.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "10-global",
+   "stem_key": ".md"
+  },
+  {
+   "rel": "10-global/x.MD",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "10-global",
+   "stem_key": "x"
+  },
+  {
+   "rel": "10-global/a..md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": true,
+   "branch": "10-global",
+   "stem_key": "a."
+  },
+  {
+   "rel": "10-global/notiz.txt",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "10-global",
+   "stem_key": "notiz"
+  }
+ ]
+}

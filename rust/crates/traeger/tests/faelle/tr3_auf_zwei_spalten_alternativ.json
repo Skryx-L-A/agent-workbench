@@ -1,0 +1,49 @@
+{
+ "name": "tr3_auf_zwei_spalten_alternativ",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Wechsel auf zwei Spalten im Alternativschirm: kein Absturz, keine Endlosschleife; der Alternativschirm behält seinen Inhalt (die Bibliothek klemmt dort), der Hauptschirm bricht um",
+ "art": "strom",
+ "groesse": [
+  8,
+  4
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "漢a\r\nb字"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049h"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[2;1H漢x字"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 2,
+   "zeilen": 4
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "q"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049l"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

@@ -1,0 +1,31 @@
+{
+ "name": "tr8_titel_osc1",
+ "regeln": [
+  "TR8"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Nur OSC 0 und OSC 2 melden einen Titel",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b]1;Werkbank eins\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]3;Werkbank eins\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]22;Werkbank eins\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[22;0t\u001b[23;0t"
+  }
+ ]
+}

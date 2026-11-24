@@ -1,0 +1,9 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.apparmor_nicht_pruefbar: Das AppArmor-Profil war nicht pruefbar.",
+  "pruef.hinweis_sudo: Ohne root waren nicht alle Pruefungen moeglich; fuer diese Pruefungen mit sudo aufrufen.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

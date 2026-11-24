@@ -1,0 +1,6 @@
+{
+ "beschreibung": "die Marker-Datei des Probelaufs liegt unter /run/user/<uid>/werkbank-probelauf und der Zaehlordner unter /var/lib/werkbank/z/<uid>, beide mit der uid des Nutzers, nicht mit dem Namen",
+ "form": "dienstkonfig",
+ "nutzer": "anna-b",
+ "uid": 77
+}

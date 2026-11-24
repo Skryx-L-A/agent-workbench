@@ -1,0 +1,19 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 4,
+   "kind_beendet": null,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [],
+  "start": {
+   "exitcode": 4,
+   "ok": false,
+   "socket_da": false,
+   "stderr_beginn": true,
+   "stderr_zeilen": 1
+  }
+ },
+ "exit": 0
+}

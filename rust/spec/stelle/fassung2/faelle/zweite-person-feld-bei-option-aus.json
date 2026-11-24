@@ -1,0 +1,271 @@
+{
+  "beschreibung": "Option aus: brain_senken braucht keine zweite Person. Ein Feld zweite_person true schaltet die Pflicht fuer diese Anfrage ein, auch auf einem Server mit Freigabe aus; dann gilt die Freigabe.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "Nachtrag 1",
+    "fail closed"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"brain\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[\"brain_schreiben\",\"brain_senken\"],\"zweite_person\":[\"brain_senken\"],\"frist_ms\":60000,\"einloesefrist_ms\":30000}},\"stelle\":{}}",
+    "rollen": {
+      "ps_00000000000000000000000000000b01": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000b02": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000e01": [
+        "einsicht"
+      ],
+      "ps_00000000000000000000000000000e02": [
+        "einsicht"
+      ]
+    }
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/srv/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "brain",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179601000,
+      "eingabe": {
+        "argumente": {
+          "n": 1
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "brain",
+        "sitzung": "s-1",
+        "vorschau": "Klasse kundendaten nach intern VORSCHAU-5K",
+        "werkzeug": "brain_senken"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offen",
+          "anfrage": "mf-1795179540000-1",
+          "digest": "a3dafa04a3c45a4db96a265985d750d94770a908fbbe0c4e709ba95b1a3d4518",
+          "frist_bis_ms": 1795179661000,
+          "vorschau_sha256": "e1525fc2e16cb0d389efade56f15bb3befdfcb196fc9f776b7ed6b6e7d631308",
+          "entscheidend": null,
+          "mitentscheidend": null,
+          "werkzeug": "brain_senken",
+          "zweite_person": false
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.entscheiden",
+      "jetzt_ms": 1795179602000,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1",
+        "entscheidung": "erteilen",
+        "nachweis": "h1:ps_00000000000000000000000000000001:ea13ca28c333be8ac24b19f400bf768f12b2e92337cb9d875a6042ccd47706f3"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "erteilt",
+          "anfrage": "mf-1795179540000-1",
+          "einloesen_bis_ms": 1795179632000
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "brain",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179603000,
+      "eingabe": {
+        "argumente": {
+          "n": 2
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "brain",
+        "sitzung": "s-1",
+        "vorschau": "Klasse kundendaten nach intern VORSCHAU-5K",
+        "werkzeug": "brain_senken",
+        "zweite_person": true
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offen",
+          "anfrage": "mf-1795179540000-2",
+          "digest": "f6f76d99db1f13a62aa4c93a90c7d2b57bb4d0bac42e237ef01ec6eecb74a82c",
+          "frist_bis_ms": 1795179663000,
+          "vorschau_sha256": "e1525fc2e16cb0d389efade56f15bb3befdfcb196fc9f776b7ed6b6e7d631308",
+          "entscheidend": null,
+          "mitentscheidend": null,
+          "werkzeug": "brain_senken",
+          "zweite_person": true
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.entscheiden",
+      "jetzt_ms": 1795179604000,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-2",
+        "entscheidung": "erteilen",
+        "nachweis": "h1:ps_00000000000000000000000000000001:bb3e489dad4c82c4607cc89de1bb8ec57b71228bc3e4363ffac3b37899eb9e28"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.selbe_person",
+          "grund": "Dieselbe Person darf hier nicht entscheiden"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-2\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.selbe_person\",\"vorgang\":\"mcp.entscheiden\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:04.000Z\"}",
+            "sha256": "553b496ee2ed112c59ec9be5f3359a7dec028aa2fe5a969ab0d085fdd25dc8f0"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179605000,
+      "eingabe": {
+        "argumente": {
+          "feld": "GEHEIM-ARG-7Q",
+          "id": "T-100",
+          "status": "erledigt"
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "notizen",
+        "sitzung": "s-1",
+        "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
+        "werkzeug": "anlegen",
+        "zweite_person": true
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offen",
+          "anfrage": "mf-1795179540000-3",
+          "digest": "fa22cc62a85b633aa31d7eb94358a24db19a5831ecf0130086b32e2c6aa43f9c",
+          "frist_bis_ms": 1795179665000,
+          "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef",
+          "entscheidend": null,
+          "mitentscheidend": null,
+          "werkzeug": "anlegen",
+          "zweite_person": true
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.offene",
+      "jetzt_ms": 1795179605500,
+      "eingabe": {},
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offene",
+          "offene": [
+            {
+              "anfrage": "mf-1795179540000-2",
+              "server": "brain",
+              "werkzeug": "brain_senken",
+              "vorschau": "Klasse kundendaten nach intern VORSCHAU-5K",
+              "vorschau_sha256": "e1525fc2e16cb0d389efade56f15bb3befdfcb196fc9f776b7ed6b6e7d631308",
+              "digest": "f6f76d99db1f13a62aa4c93a90c7d2b57bb4d0bac42e237ef01ec6eecb74a82c",
+              "frist_bis_ms": 1795179663000,
+              "antragsteller": "ps_00000000000000000000000000000001",
+              "art": "mcp.schreibaufruf",
+              "erste_freigabe": null,
+              "inhalt": {
+                "digest": "f6f76d99db1f13a62aa4c93a90c7d2b57bb4d0bac42e237ef01ec6eecb74a82c",
+                "server": "brain",
+                "vorschau_sha256": "e1525fc2e16cb0d389efade56f15bb3befdfcb196fc9f776b7ed6b6e7d631308",
+                "werkzeug": "brain_senken"
+              },
+              "inhalt_sha256": "e6f614df2ca0528e10164581c33b9b57206db07847639369ecbf60a6c769df8b"
+            },
+            {
+              "anfrage": "mf-1795179540000-3",
+              "server": "notizen",
+              "werkzeug": "anlegen",
+              "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
+              "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef",
+              "digest": "fa22cc62a85b633aa31d7eb94358a24db19a5831ecf0130086b32e2c6aa43f9c",
+              "frist_bis_ms": 1795179665000,
+              "antragsteller": "ps_00000000000000000000000000000001",
+              "art": "mcp.schreibaufruf",
+              "erste_freigabe": null,
+              "inhalt": {
+                "digest": "fa22cc62a85b633aa31d7eb94358a24db19a5831ecf0130086b32e2c6aa43f9c",
+                "server": "notizen",
+                "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef",
+                "werkzeug": "anlegen"
+              },
+              "inhalt_sha256": "2bc1562f50d93ff0b3e0dc8d89c86b7fb8650b26d0a7252898acd12533da7239"
+            }
+          ]
+        },
+        "zeilen": []
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1"
+    ],
+    "anfragen": {
+      "mf-1795179540000-1": "erteilt",
+      "mf-1795179540000-2": "offen",
+      "mf-1795179540000-3": "offen"
+    },
+    "zaehler": 3,
+    "antraege": {},
+    "zugaenge": {},
+    "pflichten": {
+      "halter_bescheinigung": true,
+      "mcp.brain.freigabe": true,
+      "mcp.notizen.freigabe": false,
+      "mcp.tickets.freigabe": true,
+      "senken_zweite_person": false,
+      "vier_augen": false
+    },
+    "zeilen": 2,
+    "letzte": "553b496ee2ed112c59ec9be5f3359a7dec028aa2fe5a969ab0d085fdd25dc8f0"
+  }
+}

@@ -1,0 +1,80 @@
+{
+ "name": "k1-boden-route",
+ "regeln": [
+  "K3",
+  "K5"
+ ],
+ "beschreibung": "Vorgabe: Der Boden ist die Klasse der Route. Ohne Quelle erbt das Ergebnis sie; eine niedrigere Quelle senkt nicht.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "cloud-n",
+    "art": "cloud"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "route": "cloud",
+   "sitzungskunde": null,
+   "gelesen": []
+  },
+  {
+   "route": "cloud",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "oeffentlich"
+    }
+   ]
+  },
+  {
+   "route": "cloud-oeff",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "oeffentlich"
+    }
+   ]
+  },
+  {
+   "route": "lokal",
+   "sitzungskunde": null,
+   "gelesen": []
+  }
+ ]
+}

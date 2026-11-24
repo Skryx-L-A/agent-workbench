@@ -1,0 +1,25 @@
+{
+ "beschreibung": "Everyone (S-1-1-0) als erlaubte Kennung",
+ "art": "vorgabe",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "everyone": "S-1-1-0"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-1-0",
+    "appcontainer_sid": null
+   }
+  ],
+  "instanzen": 4
+ },
+ "client": null,
+ "aufbau": [],
+ "handlung": [
+  "Server anlegen"
+ ]
+}

@@ -1,0 +1,225 @@
+{
+ "beschreibung": "Speicher::oeffnen auf einem Ordner mit Anfangsinhalt; git_darueber nennt einen Eintrag .git im Ordner (ebene 0) oder ebene Ordner darueber, art ordner, datei (Arbeitsbaum eines Worktrees) oder verweis; bei neu legt der Aufruf beide Dateien mit dem uebergebenen Zufall als Schluessel an (zufall, ab_ms)",
+ "zufall": "9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c",
+ "ab_ms": 1795179600000,
+ "faelle": [
+  {
+   "name": "neu",
+   "vorher": {
+    "ordner_modus": "0700",
+    "dateien": {}
+   },
+   "erwartet": {
+    "ok": true,
+    "angelegt": [
+     "schluessel.json",
+     "zuordnung.json",
+     "zuordnung.sperre"
+    ]
+   }
+  },
+  {
+   "name": "gut",
+   "vorher": {
+    "ordner_modus": "0700",
+    "dateien": {
+     "schluessel.json": {
+      "inhalt": "{\"fassung\":1,\"schluessel\":[{\"ab_ms\":1795179600000,\"wert\":\"9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c\"}]}\n",
+      "modus": "0600"
+     },
+     "zuordnung.json": {
+      "inhalt": "{\"fassung\":1,\"personen\":{\"p-a01\":{\"geheimnis\":\"b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50\",\"seit_ms\":1795179600000,\"texte\":{}}}}\n",
+      "modus": "0600"
+     }
+    }
+   },
+   "erwartet": {
+    "ok": true,
+    "angelegt": [
+     "zuordnung.sperre"
+    ]
+   }
+  },
+  {
+   "name": "schluessel-fehlt",
+   "vorher": {
+    "ordner_modus": "0700",
+    "dateien": {
+     "zuordnung.json": {
+      "inhalt": "{\"fassung\":1,\"personen\":{\"p-a01\":{\"geheimnis\":\"b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50\",\"seit_ms\":1795179600000,\"texte\":{}}}}\n",
+      "modus": "0600"
+     }
+    }
+   },
+   "erwartet": {
+    "fehler": "schluessel_fehlt"
+   }
+  },
+  {
+   "name": "zuordnung-fehlt",
+   "vorher": {
+    "ordner_modus": "0700",
+    "dateien": {
+     "schluessel.json": {
+      "inhalt": "{\"fassung\":1,\"schluessel\":[{\"ab_ms\":1795179600000,\"wert\":\"9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c\"}]}\n",
+      "modus": "0600"
+     }
+    }
+   },
+   "erwartet": {
+    "fehler": "zuordnung_fehlt"
+   }
+  },
+  {
+   "name": "datei-fuer-andere-lesbar",
+   "vorher": {
+    "ordner_modus": "0700",
+    "dateien": {
+     "schluessel.json": {
+      "inhalt": "{\"fassung\":1,\"schluessel\":[{\"ab_ms\":1795179600000,\"wert\":\"9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c\"}]}\n",
+      "modus": "0600"
+     },
+     "zuordnung.json": {
+      "inhalt": "{\"fassung\":1,\"personen\":{\"p-a01\":{\"geheimnis\":\"b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50\",\"seit_ms\":1795179600000,\"texte\":{}}}}\n",
+      "modus": "0640"
+     }
+    }
+   },
+   "erwartet": {
+    "fehler": "speicher_unsicher"
+   }
+  },
+  {
+   "name": "ordner-fuer-andere-offen",
+   "vorher": {
+    "ordner_modus": "0750",
+    "dateien": {
+     "schluessel.json": {
+      "inhalt": "{\"fassung\":1,\"schluessel\":[{\"ab_ms\":1795179600000,\"wert\":\"9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c\"}]}\n",
+      "modus": "0600"
+     },
+     "zuordnung.json": {
+      "inhalt": "{\"fassung\":1,\"personen\":{\"p-a01\":{\"geheimnis\":\"b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50\",\"seit_ms\":1795179600000,\"texte\":{}}}}\n",
+      "modus": "0600"
+     }
+    }
+   },
+   "erwartet": {
+    "fehler": "speicher_unsicher"
+   }
+  },
+  {
+   "name": "verweis",
+   "vorher": {
+    "ordner_modus": "0700",
+    "dateien": {
+     "schluessel.json": {
+      "inhalt": "{\"fassung\":1,\"schluessel\":[{\"ab_ms\":1795179600000,\"wert\":\"9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c\"}]}\n",
+      "modus": "0600"
+     },
+     "zuordnung.json": {
+      "verweis_auf": "anderswo.json",
+      "modus": "0600"
+     }
+    }
+   },
+   "erwartet": {
+    "fehler": "speicher_unsicher"
+   }
+  },
+  {
+   "name": "nicht-kanonisch",
+   "vorher": {
+    "ordner_modus": "0700",
+    "dateien": {
+     "schluessel.json": {
+      "inhalt": "{\"fassung\":1,\"schluessel\":[{\"ab_ms\":1795179600000,\"wert\":\"9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c\"}]}\n",
+      "modus": "0600"
+     },
+     "zuordnung.json": {
+      "inhalt": "{\"fassung\": 1,\"personen\":{\"p-a01\":{\"geheimnis\":\"b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50\",\"seit_ms\":1795179600000,\"texte\":{}}}}\n",
+      "modus": "0600"
+     }
+    }
+   },
+   "erwartet": {
+    "fehler": "speicher_ungueltig"
+   }
+  },
+  {
+   "name": "geheimnis-doppelt",
+   "vorher": {
+    "ordner_modus": "0700",
+    "dateien": {
+     "schluessel.json": {
+      "inhalt": "{\"fassung\":1,\"schluessel\":[{\"ab_ms\":1795179600000,\"wert\":\"9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c\"}]}\n",
+      "modus": "0600"
+     },
+     "zuordnung.json": {
+      "inhalt": "{\"fassung\":1,\"personen\":{\"p-a01\":{\"geheimnis\":\"b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50\",\"seit_ms\":1795179600000,\"texte\":{}},\"p-b02\":{\"geheimnis\":\"b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50\",\"seit_ms\":1795179600000,\"texte\":{}}}}\n",
+      "modus": "0600"
+     }
+    }
+   },
+   "erwartet": {
+    "fehler": "speicher_ungueltig"
+   }
+  },
+  {
+   "name": "im-git-arbeitsbaum",
+   "vorher": {
+    "ordner_modus": "0700",
+    "git_darueber": {
+     "ebene": 2,
+     "art": "ordner"
+    },
+    "dateien": {}
+   },
+   "erwartet": {
+    "fehler": "speicher_im_repo"
+   }
+  },
+  {
+   "name": "im-git-arbeitsbaum-gitdatei",
+   "vorher": {
+    "ordner_modus": "0700",
+    "git_darueber": {
+     "ebene": 0,
+     "art": "datei"
+    },
+    "dateien": {
+     "schluessel.json": {
+      "inhalt": "{\"fassung\":1,\"schluessel\":[{\"ab_ms\":1795179600000,\"wert\":\"9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c\"}]}\n",
+      "modus": "0600"
+     },
+     "zuordnung.json": {
+      "inhalt": "{\"fassung\":1,\"personen\":{\"p-a01\":{\"geheimnis\":\"b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50\",\"seit_ms\":1795179600000,\"texte\":{}}}}\n",
+      "modus": "0600"
+     }
+    }
+   },
+   "erwartet": {
+    "fehler": "speicher_im_repo"
+   }
+  },
+  {
+   "name": "schluessel-zeit-faellt",
+   "vorher": {
+    "ordner_modus": "0700",
+    "dateien": {
+     "schluessel.json": {
+      "inhalt": "{\"fassung\":1,\"schluessel\":[{\"ab_ms\":1795179600000,\"wert\":\"9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c\"},{\"ab_ms\":1795179600000,\"wert\":\"b3df365457565a7982022968b4f7c560b43f89c8e29eaea770c1e83777d29cdb\"}]}\n",
+      "modus": "0600"
+     },
+     "zuordnung.json": {
+      "inhalt": "{\"fassung\":1,\"personen\":{\"p-a01\":{\"geheimnis\":\"b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50\",\"seit_ms\":1795179600000,\"texte\":{}}}}\n",
+      "modus": "0600"
+     }
+    }
+   },
+   "erwartet": {
+    "fehler": "speicher_ungueltig"
+   }
+  }
+ ]
+}

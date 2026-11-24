@@ -1,0 +1,43 @@
+{
+ "responses": [
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/rest.md",
+     "score": 0.0,
+     "match": "text"
+    }
+   ],
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/rest.md",
+     "score": 0.0,
+     "match": "text"
+    }
+   ],
+   "id": 2
+  },
+  {
+   "fallback": true,
+   "hits": [],
+   "id": 3
+  },
+  {
+   "fallback": true,
+   "hits": [
+    {
+     "rel": "10-global/rest2.md",
+     "score": 0.0,
+     "match": "text"
+    }
+   ],
+   "id": 4
+  }
+ ],
+ "exit": 0
+}

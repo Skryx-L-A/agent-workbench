@@ -1,0 +1,409 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "kind_beendet": null,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": {
+     "cursor": [
+      3,
+      0,
+      true
+     ],
+     "groesse": [
+      120,
+      14
+     ],
+     "invers": false,
+     "nr": 1,
+     "zeilen": [
+      "BEREIT",
+      "MARKE EINS",
+      "EINGABE 6162",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    },
+    "abbild_fehler": [],
+    "abbilder": {
+     "1": {
+      "cursor": [
+       3,
+       0,
+       true
+      ],
+      "groesse": [
+       120,
+       14
+      ],
+      "invers": false,
+      "zeilen": [
+       "BEREIT",
+       "MARKE EINS",
+       "EINGABE 6162",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       ""
+      ]
+     },
+     "2": {
+      "cursor": [
+       3,
+       0,
+       true
+      ],
+      "groesse": [
+       120,
+       14
+      ],
+      "invers": false,
+      "zeilen": [
+       "BEREIT",
+       "MARKE ZWEI",
+       "EINGABE 63",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       ""
+      ]
+     }
+    },
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "gestartet": 2,
+      "kernbau": 3,
+      "kind": {
+       "s-1": {
+        "code": null,
+        "ende": false
+       },
+       "s-2": {
+        "code": null,
+        "ende": false
+       }
+      },
+      "nummern": {
+       "s-1": 1,
+       "s-2": 2
+      },
+      "traeger_zeilen": {
+       "s-1": [
+        "BEREIT",
+        "MARKE EINS",
+        "EINGABE 6162",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+       ],
+       "s-2": [
+        "BEREIT",
+        "MARKE ZWEI",
+        "EINGABE 63",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+       ]
+      }
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [
+         "s-1",
+         "s-2"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "code": null,
+        "cursor": [
+         3,
+         0,
+         true
+        ],
+        "dialog": null,
+        "groesse": [
+         120,
+         14
+        ],
+        "id": "s-1",
+        "invers": false,
+        "letzte_eingabe": "b1",
+        "titel": "",
+        "zustand": "laeuft"
+       },
+       {
+        "bracketed_paste": false,
+        "code": null,
+        "cursor": [
+         3,
+         0,
+         true
+        ],
+        "dialog": null,
+        "groesse": [
+         120,
+         14
+        ],
+        "id": "s-2",
+        "invers": false,
+        "letzte_eingabe": "b1",
+        "titel": "",
+        "zustand": "laeuft"
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     {
+      "art": "Einstellungen",
+      "werte": {
+       "bildrate_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 63,
+        "wert": 63
+       },
+       "osc52_grenze": {
+        "herkunft": "vorgabe",
+        "vorgabe": 100000,
+        "wert": 100000
+       },
+       "osc52_schreiben": {
+        "herkunft": "vorgabe",
+        "vorgabe": "an",
+        "wert": "an"
+       },
+       "rueckstau_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 16384,
+        "wert": 16384
+       }
+      }
+     },
+     {
+      "art": "Routen",
+      "routen": []
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": []
+     },
+     {
+      "anfragen": [],
+      "art": "Anfragen"
+     },
+     {
+      "agenten": [],
+      "art": "Agenten"
+     },
+     {
+      "art": "Startwahl",
+      "fassung": 1,
+      "harness": [
+       {
+        "art": "cloud",
+        "name": "claude",
+        "routenart": "cloud"
+       },
+       {
+        "art": "cloud",
+        "name": "copilot",
+        "routenart": "cloud"
+       },
+       {
+        "art": "lokal",
+        "name": "pi",
+        "routenart": "lokal"
+       }
+      ],
+      "kunden": [
+       "k-beispiel",
+       null
+      ],
+      "routen": [
+       {
+        "art": "cloud",
+        "klasse": "intern",
+        "modell": null,
+        "schluessel": "cloud-beispiel"
+       },
+       {
+        "art": "lokal",
+        "klasse": "kundendaten",
+        "modell": null,
+        "schluessel": "lokal-beispiel"
+       }
+      ]
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "harness": "claude",
+        "id": "s-1",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "art": "Gestartet",
+      "sitzung": "s-1"
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "harness": "claude",
+        "id": "s-1",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       },
+       {
+        "harness": "claude",
+        "id": "s-2",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "art": "Gestartet",
+      "sitzung": "s-2"
+     }
+    ],
+    "ok": true
+   }
+  ],
+  "start": {
+   "netz_sockets": 0,
+   "ok": true,
+   "ordner_modus": "0700",
+   "socket_modus": "0600"
+  }
+ },
+ "exit": 0
+}

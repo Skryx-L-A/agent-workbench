@@ -1,0 +1,35 @@
+{
+ "beschreibung": "Prozess der Person mit eingeschränktem Token (Restricting SIDs)",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+    "appcontainer_sid": null
+   }
+  ],
+  "instanzen": 4,
+  "prozess_pflicht": true
+ },
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+  },
+  "frist_ms": 2000
+ },
+ "aufbau": [
+  "Server unter person",
+  "Client mit CreateRestrictedToken (Restricting SIDs: person, Logon-SID) gestartet"
+ ],
+ "handlung": [
+  "Der eingeschränkte Client verbindet"
+ ]
+}

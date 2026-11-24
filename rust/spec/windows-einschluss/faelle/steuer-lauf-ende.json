@@ -1,0 +1,11 @@
+{
+ "beschreibung": "Ende eines Laufs entfernt seine Erlaubnisse",
+ "form": "steuer",
+ "text": "{\"op\": \"lauf_ende\", \"sitzung\": \"s-1\"}\n",
+ "lage": {
+  "laeufe": [
+   "s-1"
+  ],
+  "danach": "keine Erlaubnis für 50101 und 50102, Sperre steht"
+ }
+}

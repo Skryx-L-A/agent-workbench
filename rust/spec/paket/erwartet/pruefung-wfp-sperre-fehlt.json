@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.wfp_sperre_fehlt: Fuer einen Agentencontainer fehlt die Sperre fuer 127.0.0.0/8 und ::1.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

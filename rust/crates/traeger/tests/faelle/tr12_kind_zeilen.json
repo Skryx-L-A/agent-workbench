@@ -1,0 +1,36 @@
+{
+ "name": "tr12_kind_zeilen",
+ "regeln": [
+  "TR12"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Viele Zeilen aus einem Kind: sichtbarer Schirm, Rücklauf und die Wiedergabe aller Ausgabe-Ereignisse gleich dem Raster",
+ "art": "kind",
+ "groesse": [
+  14,
+  7
+ ],
+ "start": {
+  "kind": "zeilen",
+  "argv": [
+   "3000"
+  ],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ],
+ "ruecklauf": 93
+}

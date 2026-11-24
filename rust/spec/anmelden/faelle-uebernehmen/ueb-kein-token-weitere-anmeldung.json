@@ -1,0 +1,18 @@
+{
+ "beschreibung": "ein weiterer tokenartiger Text in einem anderen Feld: nach dem Entfernen bliebe eine Anmeldung",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "weitere-anmeldung",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

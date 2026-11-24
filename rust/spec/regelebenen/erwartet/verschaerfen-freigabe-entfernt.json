@@ -1,0 +1,194 @@
+{
+ "schritte": [
+  {
+   "angenommen": true,
+   "code": null,
+   "zeile": {
+    "aktionsname": "regel.geaendert",
+    "alt": null,
+    "antrag": null,
+    "code": null,
+    "ebene": "gruppe",
+    "ergebnis": "geaendert",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "6a1e07211515c7195240ec65c0beb158b246c4cf1e32693834467193d4b2c3d6",
+    "pflicht": null,
+    "ziel": "g-eins",
+    "zweiter": null
+   }
+  },
+  {
+   "wirksam": {
+    "einstellung": {
+     "fassung": 1,
+     "klassen": [
+      "oeffentlich",
+      "intern",
+      "kundendaten"
+     ],
+     "vorgabestufe": "kundendaten",
+     "routen": [
+      {
+       "schluessel": "cloud-r",
+       "art": "cloud",
+       "klasse": "intern"
+      },
+      {
+       "schluessel": "cloud-s",
+       "art": "cloud",
+       "klasse": "intern"
+      },
+      {
+       "schluessel": "lokal-l",
+       "art": "lokal",
+       "klasse": "kundendaten"
+      }
+     ],
+     "kunden": [
+      {
+       "schluessel": "k-beispiel",
+       "erlaubt": [
+        "cloud-r",
+        "lokal-l"
+       ],
+       "verboten": []
+      },
+      {
+       "schluessel": "k-zwei",
+       "erlaubt": [
+        "lokal-l"
+       ],
+       "verboten": []
+      }
+     ],
+     "kundendaten_an_cloud": {
+      "vorgabe": "nie",
+      "freigaben": []
+     }
+    },
+    "senkung": {
+     "aus": false,
+     "bestaetigung": false,
+     "arten": [
+      "bedienwissen",
+      "quellenauszug",
+      "regeln",
+      "vorlagen"
+     ]
+    },
+    "protokoll": {
+     "aufbewahrung_tage": 365
+    },
+    "routen_status": [],
+    "herkunft": [
+     {
+      "pfad": [
+       "routen",
+       "cloud-r",
+       "klasse"
+      ],
+      "wert": "intern",
+      "ebene": "firma"
+     },
+     {
+      "pfad": [
+       "routen",
+       "cloud-s",
+       "klasse"
+      ],
+      "wert": "intern",
+      "ebene": "firma"
+     },
+     {
+      "pfad": [
+       "routen",
+       "lokal-l",
+       "klasse"
+      ],
+      "wert": "kundendaten",
+      "ebene": "firma"
+     },
+     {
+      "pfad": [
+       "kunden",
+       "k-beispiel",
+       "erlaubt"
+      ],
+      "wert": [
+       "cloud-r",
+       "lokal-l"
+      ],
+      "ebene": "firma"
+     },
+     {
+      "pfad": [
+       "kunden",
+       "k-beispiel",
+       "verboten"
+      ],
+      "wert": [],
+      "ebene": "firma"
+     },
+     {
+      "pfad": [
+       "kunden",
+       "k-zwei",
+       "erlaubt"
+      ],
+      "wert": [
+       "lokal-l"
+      ],
+      "ebene": "firma"
+     },
+     {
+      "pfad": [
+       "kunden",
+       "k-zwei",
+       "verboten"
+      ],
+      "wert": [],
+      "ebene": "firma"
+     },
+     {
+      "pfad": [
+       "kundendaten_an_cloud",
+       "freigaben"
+      ],
+      "wert": [],
+      "ebene": "gruppe"
+     },
+     {
+      "pfad": [
+       "senkung",
+       "aus"
+      ],
+      "wert": false,
+      "ebene": "firma"
+     },
+     {
+      "pfad": [
+       "senkung",
+       "bestaetigung"
+      ],
+      "wert": false,
+      "ebene": "firma"
+     },
+     {
+      "pfad": [
+       "senkung",
+       "arten"
+      ],
+      "wert": [
+       "bedienwissen",
+       "quellenauszug",
+       "regeln",
+       "vorlagen"
+      ],
+      "ebene": "firma"
+     }
+    ],
+    "hinweise": []
+   }
+  }
+ ]
+}

@@ -1,0 +1,38 @@
+{
+ "description": "Eine Notiz der Klasse intern mit Kunde gilt als Kundendaten und kommt nicht in die Cloud",
+ "files": {
+  "vault/projekte/angebot.md": "---\ntitle: \"Angebot Lager\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nDas Angebot für das Lager.\n",
+  "vault/projekte/angebot-qkx3.md": "---\ntitle: \"Angebot QKX3\"\ntype: \"note\"\ndatenklasse: \"intern\"\nkunde: \"k-nord\"\n---\n\nAngebot QKX3 Angebot mit Rabatt.\n",
+  "vault/sonst/wetter.md": "---\ntitle: \"Wetter\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nSonne und Regen im Herbst.\n",
+  "aux/einstellungen.json": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-nord\",\n   \"erlaubt\": [\n    \"lokal\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+ },
+ "dirs": [
+  "home",
+  "protokoll"
+ ],
+ "args": [
+  "sitzung",
+  "{root}/vault",
+  "--socket",
+  "{sock}",
+  "--route",
+  "cloud",
+  "--sitzung",
+  "s-test-1",
+  "--einstellungen",
+  "{root}/aux/einstellungen.json",
+  "--protokoll",
+  "{root}/protokoll"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "search",
+    "query": "Angebot"
+   }
+  }
+ ],
+ "verboten": [
+  "qkx3"
+ ]
+}

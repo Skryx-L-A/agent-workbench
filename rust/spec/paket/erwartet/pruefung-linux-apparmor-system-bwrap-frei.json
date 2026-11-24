@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.apparmor_system_bwrap_frei: Das System-bwrap ist fuer jeden Nutzer freigegeben.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

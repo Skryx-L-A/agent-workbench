@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13"
+ ],
+ "beschreibung": "einheit ist null; dieser Vertrag kennt keinen Lauf ohne Einheit."
+}

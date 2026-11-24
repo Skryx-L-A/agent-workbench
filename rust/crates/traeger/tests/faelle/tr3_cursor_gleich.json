@@ -1,0 +1,35 @@
+{
+ "name": "tr3_cursor_gleich",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Bleibt der Cursor nach dem Klemmen des Kerns gleich dem Cursor des Rasters und ändert sich keine Zeile, kommt keine Ausgabe",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[1;1Halpha"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 35,
+   "zeilen": 13
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 30,
+   "zeilen": 8
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

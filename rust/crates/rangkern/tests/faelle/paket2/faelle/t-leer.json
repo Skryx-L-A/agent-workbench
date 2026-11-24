@@ -1,0 +1,8 @@
+{
+ "description": "leerer Text: drei leere Listen",
+ "program": "rangkern",
+ "args": [
+  "tokens",
+  ""
+ ]
+}

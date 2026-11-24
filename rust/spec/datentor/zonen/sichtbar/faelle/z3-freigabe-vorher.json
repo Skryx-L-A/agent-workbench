@@ -1,0 +1,219 @@
+{
+ "name": "z3-freigabe-vorher",
+ "regeln": [
+  "A128-3",
+  "Z7"
+ ],
+ "beschreibung": "A128 (3) vor der Freigabe: über appr keine Kundendaten, auch nicht mit der Freigabe aus A50 ohne Projekt; intern geht.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-local",
+    "art": "lokal"
+   },
+   {
+    "schluessel": "r-local2",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-conf",
+    "art": "cloud"
+   },
+   {
+    "schluessel": "r-appr",
+    "art": "cloud"
+   },
+   {
+    "schluessel": "r-public",
+    "art": "cloud"
+   },
+   {
+    "schluessel": "r-public-kd",
+    "art": "cloud",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "r-unsafe",
+    "art": "cloud"
+   },
+   {
+    "schluessel": "r-ohne-zone",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k",
+    "erlaubt": [
+     "r-local",
+     "r-local2",
+     "r-conf",
+     "r-appr",
+     "r-public",
+     "r-public-kd",
+     "r-unsafe",
+     "r-ohne-zone"
+    ]
+   },
+   {
+    "schluessel": "k2",
+    "erlaubt": [
+     "r-appr",
+     "r-local"
+    ]
+   },
+   {
+    "schluessel": "k-v",
+    "erlaubt": [
+     "r-appr"
+    ],
+    "verboten": [
+     "r-appr"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": [
+    {
+     "route": "r-conf",
+     "kunde": "k"
+    },
+    {
+     "route": "r-appr",
+     "kunde": "k"
+    }
+   ]
+  }
+ },
+ "modellzonen": {
+  "an": true,
+  "zonen": [
+   {
+    "schluessel": "local",
+    "klassen": "alle",
+    "bedingung": "immer",
+    "routen": [
+     "r-local",
+     "r-local2"
+    ]
+   },
+   {
+    "schluessel": "conf",
+    "klassen": "alle",
+    "bedingung": "nachrangig",
+    "routen": [
+     "r-conf"
+    ]
+   },
+   {
+    "schluessel": "appr",
+    "klassen": "alle",
+    "bedingung": "freigabe",
+    "routen": [
+     "r-appr"
+    ]
+   },
+   {
+    "schluessel": "public",
+    "klassen": "niedrigste",
+    "bedingung": "immer",
+    "routen": [
+     "r-public",
+     "r-public-kd"
+    ]
+   },
+   {
+    "schluessel": "unsafe",
+    "klassen": "keine",
+    "bedingung": "gesperrt",
+    "routen": [
+     "r-unsafe"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r-appr",
+   "kunde": "k",
+   "projekt": "p1",
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "r-appr",
+   "kunde": "k",
+   "projekt": "p1",
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "r-appr",
+   "kunde": null,
+   "projekt": null,
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  },
+  {
+   "einheit": null,
+   "route": "r-appr",
+   "kunde": "k",
+   "projekt": "p1",
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900
+   }
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r-conf",
+   "kunde": "k",
+   "projekt": "p1",
+   "kontext": {
+    "nutzer": "n-a",
+    "gruppen": [
+     "g-team"
+    ],
+    "jetzt": 1799999900,
+    "grund": "local reicht fuer die Aufgabe nicht"
+   }
+  }
+ ]
+}

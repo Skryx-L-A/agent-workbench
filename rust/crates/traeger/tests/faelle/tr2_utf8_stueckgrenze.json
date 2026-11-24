@@ -1,0 +1,66 @@
+{
+ "name": "tr2_utf8_stueckgrenze",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Ein UTF-8-Zeichen, das an einer Stückgrenze geschnitten ist, wird bis zum nächsten Stück zurückgehalten (bei jeder Spaltenzahl); folgt dort weiterer Text, gibt das dasselbe Raster wie ein einziges Stück (TR2: das Ergebnis hängt nicht von der Stückelung ab)",
+ "art": "strom",
+ "groesse": [
+  6,
+  2
+ ],
+ "schritte": [
+  {
+   "art": "Bytes",
+   "hex": "65cc"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Bytes",
+   "hex": "8165cc81"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Bytes",
+   "hex": "e282"
+  },
+  {
+   "art": "Bytes",
+   "hex": "ac"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Bytes",
+   "hex": "f09f98"
+  },
+  {
+   "art": "Bytes",
+   "hex": "80"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Bytes",
+   "hex": "e2"
+  },
+  {
+   "art": "Bytes",
+   "hex": "82ac65cc"
+  },
+  {
+   "art": "Bytes",
+   "hex": "8165cc81"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

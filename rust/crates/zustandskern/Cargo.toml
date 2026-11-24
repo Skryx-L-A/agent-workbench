@@ -1,0 +1,22 @@
+[package]
+name = "zustandskern"
+version = "0.1.0"
+description = "State core of the new interface: events in, effects out. Logic only, no clock, no randomness, no I/O in the library."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "zk"
+path = "src/main.rs"
+
+# serde_json: reads the case and writes the effects as JSON values (default features, depth limit 128 stays on).
+# serde itself comes in as its dependency; no derive is used, so no proc-macro crate enters the graph.
+[dependencies]
+serde_json = "1"
+
+[lints]
+workspace = true

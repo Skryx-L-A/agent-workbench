@@ -1,0 +1,24 @@
+{
+ "description": "Notiz in BM25 und Vektorliste steht vor Notizen aus nur einer Liste",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Gartenbeet Bewässerung",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/garten/beet-bewaesserung.md": "---\ntitle: Bewässerung im Gartenbeet\ntype: note\n---\n\nDas Gartenbeet braucht Bewässerung am Morgen.\n",
+  "vault/garten/kompost.md": "---\ntitle: Kompost\ntype: note\n---\n\nKompost im Gartenbeet braucht Bewässerung, Bewässerung und Gartenbeet.\n",
+  "vault/garten/schlauch.md": "---\ntitle: Schlauch\ntype: note\n---\n\nAm Gartenbeet liegt ein alter Schlauch.\n",
+  "vault/garten/regentonne.md": "---\ntitle: Regentonne\ntype: note\n---\n\nDie Regentonne ist im Frühling voll.\n",
+  "vektoren.json": "{\"query\": [1, 0, 0], \"notes\": {\"garten/beet-bewaesserung.md\": [0.9, 0.1, 0.0], \"garten/regentonne.md\": [0.6, 0.0, 0.8], \"garten/kompost.md\": [0.2, 0.9, 0.0]}}"
+ }
+}

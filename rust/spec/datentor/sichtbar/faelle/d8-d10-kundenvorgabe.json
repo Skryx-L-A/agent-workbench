@@ -1,0 +1,108 @@
+{
+ "name": "d8-d10-kundenvorgabe",
+ "regeln": [
+  "D8",
+  "D9",
+  "D10",
+  "A51",
+  "D14"
+ ],
+ "beschreibung": "Kunde ohne Eintrag bekommt keine Route; verboten geht vor erlaubt; ohne Liste nichts erlaubt.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r1",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "r2",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r1"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r1"
+    ],
+    "verboten": [
+     "r1"
+    ]
+   },
+   {
+    "schluessel": "k-ohne-liste"
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r1",
+   "kunde": "k-a"
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r1",
+   "kunde": "k-b"
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r1",
+   "kunde": "k-c"
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r2",
+   "kunde": "k-a"
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r1",
+   "kunde": "k-ohne-liste"
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r1",
+   "kunde": ""
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "r1",
+   "kunde": "K-A"
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "r1",
+   "kunde": null
+  }
+ ]
+}

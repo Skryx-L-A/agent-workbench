@@ -1,0 +1,599 @@
+#!/bin/sh
+# postinst of the package werkbank (contract rust/spec/paket, part A, "Skripte des Pakets").
+# Every step can be repeated and asks nothing. Steps 1, 2, 4 and 5 never stop the installation: no `set -e`, every step ends
+# with `|| true` or inside a function that returns 0, and a failed step writes one fixed line to the journal (no path, no
+# content). Two steps are the exception: step 1a (the session folders) ends with the fixed code 17 or 18 and step 3 (the enclosure) with the fixed
+# code 11 to 16, because a package without safe session folders or a carrying enclosure must not run. A program folder that the enclosure would
+# refuse (step 2a) is the code 19 as a journal line only: that harness is not entered and the installation goes on.
+# The exit code is 0 for every other case.
+
+# The answer of the question werkbank/ca_zulassung comes from debconf (file `config`, contract "Zulassung der CA"). The confmodule is sourced first:
+# it restarts the script once under the frontend, and it moves stdout of the script to stderr (the messages below stay visible).
+[ -e /usr/share/debconf/confmodule ] && . /usr/share/debconf/confmodule
+
+log() {
+    logger -t werkbank-installation "$1" 2>/dev/null || true
+    return 0
+}
+
+fail() {
+    echo "werkbank-einschluss: $2 (Code $1)" >&2
+    logger -t werkbank-installation "werkbank: Einschluss, Code $1" 2>/dev/null || true
+    exit "$1"
+}
+
+[ "$1" = "configure" ] || exit 0
+
+DATEN=/var/lib/werkbank
+VORLAGE=/usr/share/werkbank/probelauf
+EINHEITEN="werkbank-kern.service werkbank-bruecke.service"
+
+# Step 1: the user is the one who called sudo.
+nutzer=""
+case "${SUDO_USER:-}" in
+    "" | root) ;;
+    *[!a-z0-9_-]*) ;;
+    [a-z_]*) nutzer="$SUDO_USER" ;;
+esac
+if [ -n "$nutzer" ] && ! getent passwd "$nutzer" >/dev/null 2>&1; then
+    nutzer=""
+fi
+gruppe=""
+[ -n "$nutzer" ] && gruppe=$(id -gn "$nutzer" 2>/dev/null)
+[ -n "$nutzer" ] && [ -z "$gruppe" ] && nutzer=""
+
+# Step 1a (before step 2): the folders /var/lib/werkbank/s (root:root 0755) and s/<uid> (user, 0700) for the state of the sessions and
+# /var/lib/werkbank/l (root:root 0755) and l/<uid> (user, 0700) for the sockets. A folder that exists with a foreign owner, a wrong mode or as a symlink
+# (also /var/lib/werkbank, s and l themselves) stops the installation with the fixed code 17 (s, s/<uid>, /var/lib/werkbank) or 18 (l, l/<uid>); no
+# symlink is followed (fail closed). A missing folder is created and checked again.
+# /var/lib/werkbank/z (root:root 0755) and z/<uid> (user, 0700) is the count folder of a trial run (`lauf.marker_ordner` of kern.json); the same checks, the code 17.
+# --- sitzungsordner begin
+so_stat() {
+    stat -c '%u:%g:%a' "$1" 2>/dev/null
+}
+
+# so_sicher <path> <uid> <gid> <mode without leading 0> <code>; its variables carry the prefix sp_ (sh has no `local`: a shared name
+# would overwrite the uid of the caller)
+so_sicher() {
+    sp_pfad=$1 sp_uid=$2 sp_gid=$3 sp_modus=$4 sp_code=$5
+    if [ -L "$sp_pfad" ]; then
+        fail "$sp_code" "ein Ordner unter /var/lib/werkbank ist ein Symlink; nichts geaendert"
+    fi
+    if [ ! -e "$sp_pfad" ]; then
+        install -d -m "0$sp_modus" -o "$sp_uid" -g "$sp_gid" "$sp_pfad" 2>/dev/null \
+            || fail "$sp_code" "ein Ordner unter /var/lib/werkbank konnte nicht angelegt werden"
+    fi
+    if [ -L "$sp_pfad" ] || [ ! -d "$sp_pfad" ] || [ "$(so_stat "$sp_pfad")" != "$sp_uid:$sp_gid:$sp_modus" ]; then
+        fail "$sp_code" "ein Ordner unter /var/lib/werkbank hat einen falschen Eigentuemer oder Modus; nichts geaendert"
+    fi
+    return 0
+}
+
+sitzungsordner() {
+    [ -L "$DATEN" ] && fail 17 "/var/lib/werkbank ist ein Symlink; nichts geaendert"
+    install -d -m 0755 -o root -g root "$DATEN" 2>/dev/null || fail 17 "/var/lib/werkbank konnte nicht angelegt werden"
+    so_uid=$(id -u "$nutzer" 2>/dev/null) || return 0
+    case "$so_uid" in "" | *[!0-9]*) return 0 ;; esac
+    so_gid=$(id -g "$nutzer" 2>/dev/null) || return 0
+    case "$so_gid" in "" | *[!0-9]*) return 0 ;; esac
+    so_sicher "$DATEN/s" 0 0 755 17
+    so_sicher "$DATEN/s/$so_uid" "$so_uid" "$so_gid" 700 17
+    so_sicher "$DATEN/l" 0 0 755 18
+    so_sicher "$DATEN/l/$so_uid" "$so_uid" "$so_gid" 700 18
+    so_sicher "$DATEN/z" 0 0 755 17
+    so_sicher "$DATEN/z/$so_uid" "$so_uid" "$so_gid" 700 17
+    return 0
+}
+# --- sitzungsordner end
+if [ -n "$nutzer" ]; then
+    sitzungsordner
+fi
+
+# Step 2: the folder of the user with its sub folders; copy the templates once (never over an existing file).
+nutzerordner() {
+    install -d -m 0755 -o root -g root "$DATEN" || return 0
+    o="$DATEN/$nutzer"
+    install -d -m 0700 -o "$nutzer" -g "$gruppe" "$o" || return 0
+    install -d -m 0700 -o "$nutzer" -g "$gruppe" "$o/protokoll" || true
+    install -d -m 0700 -o "$nutzer" -g "$gruppe" "$o/sitzungen" || true
+    if [ -f "$VORLAGE/einstellungen.json" ] && [ ! -e "$o/einstellungen.json" ]; then
+        install -m 0600 -o "$nutzer" -g "$gruppe" "$VORLAGE/einstellungen.json" "$o/einstellungen.json" || true
+    fi
+    if [ -d "$VORLAGE/vorfuehr-vault" ] && [ ! -e "$o/vorfuehr-vault" ]; then
+        cp -R "$VORLAGE/vorfuehr-vault" "$o/vorfuehr-vault" || true
+        find "$o/vorfuehr-vault" -type d -exec chmod 0700 {} + 2>/dev/null || true
+        find "$o/vorfuehr-vault" -type f -exec chmod 0600 {} + 2>/dev/null || true
+        chown -R "$nutzer:$gruppe" "$o/vorfuehr-vault" 2>/dev/null || true
+    fi
+    return 0
+}
+if [ -n "$nutzer" ]; then
+    nutzerordner || log "werkbank: Nutzerordner konnte nicht angelegt werden"
+else
+    log "werkbank: kein sudo-Nutzer, Nutzerordner nicht angelegt"
+fi
+
+# Step 2a: /etc/werkbank/lauf.json, the own configuration of werkbank-lauf (contract rust/spec/paket, "lauf.json"; form in
+# rust/crates/lauf/src/konfig.rs). Written for the user of step 1, root:root 0644, atomically. Every value comes from this
+# script, from passwd or from a search of fixed folders, never from the environment of the caller. A value that is no clean
+# folder form (rust/spec/paket/referenz.py `lauf_ordner_form`) stops the file: no file is better than a broken one.
+# The search runs again with `sudo dpkg-reconfigure werkbank` (SUDO_USER stays the user).
+# --- lauf.json begin
+ETCW=/etc/werkbank
+LK_WURZEL=""
+
+# `ca_zulassung` (contract "Zulassung der CA"): the default is `offen` (fail closed). The value changes only by an explicit step of an
+# administrator: the answer of the question of `dpkg-reconfigure` (or of `debconf-set-selections`) or the command `werkbank-ca-zulassung`.
+# An answer counts when its flag `seen` is true; after the value is written, postinst sets the flag back to false and the answer to the
+# written value, so that an upgrade or a `dpkg-reconfigure` without an answer never changes it. Without debconf (a test, a script) the value of
+# the file stays, as before.
+# ca_datei_wert: prints the value of `ca_zulassung` of lauf.json, read as JSON text: any white space (space, tab, CR, LF) around ":" and in front of the
+# value is fine, so a file that an administrator rewrote with another tool is read as before. Only the three valid values count; the key must stand
+# exactly once (a second `"ca_zulassung"` or a value of another form gives nothing, which means `ungueltig` to the callers). POSIX tools only.
+ca_roh() {
+    tr '\n\r\t' '   ' <"$ETCW/lauf.json" 2>/dev/null
+}
+
+ca_datei_wert() {
+    [ -f "$ETCW/lauf.json" ] || return 0
+    cz_n=$(ca_roh | grep -o '"ca_zulassung"' | wc -l)
+    [ $((cz_n + 0)) -eq 1 ] || return 0
+    cz_w=$(ca_roh | grep -o -E '"ca_zulassung" *: *"[^"]*"' | sed -E 's/^"ca_zulassung" *: *"([^"]*)"$/\1/')
+    case "$cz_w" in
+        zugelassen | offen | abgelehnt) printf '%s' "$cz_w" ;;
+    esac
+    return 0
+}
+
+# ca_antwort: sets CA_ANTWORT to the answer that waits (flag seen true, one of the three values), else to "".
+ca_antwort() {
+    CA_ANTWORT=""
+    command -v db_fget >/dev/null 2>&1 || return 0
+    db_fget werkbank/ca_zulassung seen || return 0
+    [ "$RET" = true ] || return 0
+    db_get werkbank/ca_zulassung || return 0
+    case "$RET" in zugelassen | offen | abgelehnt) CA_ANTWORT=$RET ;; esac
+    return 0
+}
+
+# ca_protokoll <new> <old> <way>: one line to the journal, like the command: new value, old value, way, uid, time; no secret.
+ca_protokoll() {
+    cz_zeit=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || cz_zeit=unbekannt
+    cz_wer=$(id -u 2>/dev/null)
+    case "$cz_wer" in "" | *[!0-9]*) cz_wer=unbekannt ;; esac
+    cz_zeile="werkbank: ca_zulassung $1 (vorher $2), Weg $3, uid $cz_wer"
+    case "${SUDO_UID:-}" in "" | *[!0-9]*) ;; *) cz_zeile="$cz_zeile, sudo_uid $SUDO_UID" ;; esac
+    log "$cz_zeile, Zeit $cz_zeit"
+}
+
+# ca_nachher <new> <old text> <way>: after the file is written.
+ca_nachher() {
+    [ "$1" = "$2" ] || ca_protokoll "$1" "$2" "$3"
+    if command -v db_set >/dev/null 2>&1; then
+        db_set werkbank/ca_zulassung "$1" || true
+        db_fset werkbank/ca_zulassung seen false || true
+    fi
+    return 0
+}
+
+lk_form() {
+    case "$1" in
+        "" | */ | *//* | */./* | */../* | */. | */.. | *[!A-Za-z0-9._/+@-]*) return 1 ;;
+        /*) [ "${#1}" -gt 1 ] && [ "${#1}" -le 1024 ] && return 0 ;;
+    esac
+    return 1
+}
+
+# lk_nvm_ordner: the bin folders of the nvm versions of the user, the highest version first (numeric compare of major, minor, patch;
+# only names of the form v<a>.<b>.<c>; "v9.0.0" is lower than "v22.1.0").
+lk_nvm_ordner() {
+    ls -1 "$LK_WURZEL$heim/.nvm/versions/node" 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+        | sort -t. -k1.2,1nr -k2,2nr -k3,3nr | while read -r v; do
+        printf '%s\n' "$LK_WURZEL$heim/.nvm/versions/node/$v/bin"
+    done
+}
+
+# lk_suche <name>: sets LK_<NAME> (real program) and LK_<NAME>_NODE (real node) when the harness is found for the user.
+# The search order: the nvm versions of the user (the highest version first), then the fixed folders; the first hit wins.
+lk_suche() {
+    name=$1
+    treffer=""
+    for ordner in $(lk_nvm_ordner) "$LK_WURZEL$heim/.local/bin" "$LK_WURZEL$heim/.npm-global/bin" \
+        "$LK_WURZEL$heim/.volta/bin" "$LK_WURZEL/usr/local/bin" "$LK_WURZEL/usr/bin"; do
+        if [ -x "$ordner/$name" ] && [ -z "$treffer" ]; then
+            treffer="$ordner/$name"
+        fi
+    done
+    [ -n "$treffer" ] || return 0
+    echt=$(readlink -f "$treffer" 2>/dev/null) || return 0
+    echt=${echt#"$LK_WURZEL"}
+    case "$echt" in
+        /usr/* | /opt/* | "$heim"/.nvm/* | "$heim"/.local/* | "$heim"/.npm-global/* | "$heim"/.volta/*) ;;
+        *) return 0 ;;
+    esac
+    knoten=""
+    for kandidat in "$(dirname "$treffer")/node" "$LK_WURZEL/usr/local/bin/node" "$LK_WURZEL/usr/bin/node"; do
+        if [ -x "$kandidat" ]; then
+            knoten=$(readlink -f "$kandidat" 2>/dev/null) && knoten=${knoten#"$LK_WURZEL"}
+            break
+        fi
+    done
+    case "$name" in
+        pi)
+            LK_PI=$echt
+            LK_PI_NODE=$knoten
+            ;;
+        copilot)
+            LK_COPILOT=$echt
+            LK_COPILOT_NODE=$knoten
+            ;;
+    esac
+}
+
+# lk_ordner <real program> <real node>: prints the program folders of one harness (reference: referenz.lauf_programmordner).
+# The folder of a harness is the ROOT OF ITS PACKAGE, `<prefix>/lib/node_modules/<package>` (two levels for `@scope/package`), never the npm
+# prefix: a prefix such as `<home>/.local` holds the login store `.local/share/keyrings`, which the enclosure refuses. A program that is
+# no file of an npm package has the folder it lies in. `node` has the folder it lies in (its `bin` folder), never two levels above it.
+lk_ordner() {
+    case "$1" in
+        */lib/node_modules/*)
+            lo_prefix=${1%%/lib/node_modules/*}
+            lo_rest=${1#*/lib/node_modules/}
+            lo_p1=${lo_rest%%/*}
+            lo_rest2=${lo_rest#*/}
+            case "$lo_p1" in
+                @*)
+                    lo_p2=${lo_rest2%%/*}
+                    if [ "$lo_rest2" != "$lo_p2" ]; then
+                        printf '%s\n' "$lo_prefix/lib/node_modules/$lo_p1/$lo_p2"
+                    else
+                        printf '%s\n' "${1%/*}"
+                    fi
+                    ;;
+                *)
+                    if [ "$lo_rest" != "$lo_p1" ]; then
+                        printf '%s\n' "$lo_prefix/lib/node_modules/$lo_p1"
+                    else
+                        printf '%s\n' "${1%/*}"
+                    fi
+                    ;;
+            esac
+            ;;
+        *) printf '%s\n' "${1%/*}" ;;
+    esac
+    if [ -n "$2" ]; then
+        printf '%s\n' "${2%/*}"
+    fi
+}
+
+# lk_programmordner: sets LK_ORDNER to the program folders of both harnesses, separated by blanks: nothing at or below /usr (the enclosure
+# binds /usr whole), no double, no folder inside another folder of the list (the enclosure refuses overlapping folders).
+lk_programmordner() {
+    ordner=""
+    for h in "$LK_COPILOT|$LK_COPILOT_NODE" "$LK_PI|$LK_PI_NODE"; do
+        [ "${h%%|*}" = "" ] && continue
+        for d in $(lk_ordner "${h%%|*}" "${h#*|}"); do
+            case "$d" in /usr | /usr/*) continue ;; esac
+            case " $ordner " in *" $d "*) continue ;; esac
+            ordner="$ordner $d"
+        done
+    done
+    LK_ORDNER=""
+    for d in $ordner; do
+        eingebettet=0
+        for e in $ordner; do
+            if [ "$e" != "$d" ]; then
+                case "$d" in "$e"/*) eingebettet=1 ;; esac
+            fi
+        done
+        [ "$eingebettet" = 0 ] && LK_ORDNER="$LK_ORDNER $d"
+    done
+    return 0
+}
+
+# lk_ordner_pruefen: every program folder of a harness passes the rule of the enclosure BEFORE it is written. The rule is not repeated here:
+# `werkbank-pruefen --programmordner <home> <folder>` calls the same functions as the enclosure (crate einschluss, verbote.rs): exit 0 allowed,
+# 1 refused, anything else (the call failed) counts as refused (fail closed). A harness with a refused folder is NOT entered (neither `harness.<name>`
+# nor its folders reach lauf.json, so no session of it starts), one fixed journal line names the code 19 and the harness (no path, no content), the
+# folder goes to the state file of the package, and the installation goes on with exit 0 (services, the other harness and step 4b run).
+# A skeleton build without the command skips the check with a journal line and leaves the state file as it is; a delivered package always has
+# the command (mandatory file of the manifest).
+PRUEFEN=/usr/bin/werkbank-pruefen
+ABGELEHNT=$DATEN/programmordner-abgelehnt
+LK_ABGELEHNT_TEXT=""
+# lk_harness_pruefen <name>: checks the folders of the harness (package root, folder of node; nothing at or below /usr); the first refused folder
+# ends the check of that harness: the harness is cleared and one line `<name> <folder>` is added to LK_ABGELEHNT_TEXT.
+lk_harness_pruefen() {
+    hn=$1
+    case "$hn" in
+        pi) hp=$LK_PI hk=$LK_PI_NODE ;;
+        copilot) hp=$LK_COPILOT hk=$LK_COPILOT_NODE ;;
+        *) return 0 ;;
+    esac
+    [ -n "$hp" ] || return 0
+    for d in $(lk_ordner "$hp" "$hk"); do
+        case "$d" in /usr | /usr/*) continue ;; esac
+        "$PRUEFEN" --programmordner "$heim" "$d" >/dev/null 2>&1 && continue
+        LK_ABGELEHNT_TEXT="$LK_ABGELEHNT_TEXT$hn $d
+"
+        log "werkbank: Programmordner abgelehnt, Code 19, Harness $hn"
+        echo "werkbank: ein Programmordner des Harness $hn beruehrt den Anmeldespeicher oder ein Geheimnis; das Harness ist nicht eingetragen (Code 19)" >&2
+        case "$hn" in
+            pi) LK_PI="" LK_PI_NODE="" ;;
+            copilot) LK_COPILOT="" LK_COPILOT_NODE="" ;;
+        esac
+        return 0
+    done
+    return 0
+}
+
+lk_ordner_pruefen() {
+    LK_ABGELEHNT_TEXT=""
+    if [ ! -x "$PRUEFEN" ]; then
+        log "werkbank: Programmordner nicht geprueft, werkbank-pruefen fehlt"
+        return 0
+    fi
+    lk_harness_pruefen copilot
+    lk_harness_pruefen pi
+    # The state file (root:root 0644, only lines `<harness> <folder>`) is what `werkbank-pruefen` reads; it goes away with the next configuration
+    # that finds no refused folder.
+    if [ -z "$LK_ABGELEHNT_TEXT" ]; then
+        rm -f "$ABGELEHNT" 2>/dev/null
+        return 0
+    fi
+    atmp=$(mktemp "$DATEN/.abgelehnt.XXXXXX" 2>/dev/null) || {
+        log "werkbank: Ablehnung der Programmordner nicht festgehalten"
+        return 0
+    }
+    if printf '%s' "$LK_ABGELEHNT_TEXT" >"$atmp" && chmod 0644 "$atmp" && chown root:root "$atmp" && mv -f "$atmp" "$ABGELEHNT"; then
+        return 0
+    fi
+    rm -f "$atmp"
+    log "werkbank: Ablehnung der Programmordner nicht festgehalten"
+    return 0
+}
+
+lk_text() {
+    o=$DATEN/$nutzer
+    p=/usr/local/bin:/usr/bin:/bin
+    for k in "$LK_COPILOT_NODE" "$LK_PI_NODE"; do
+        case "$k" in
+            "" | /usr/*) ;;
+            *)
+                p=${k%/*}:$p
+                break
+                ;;
+        esac
+    done
+    liste=""
+    for d in $LK_ORDNER; do liste="$liste${liste:+,}\"$d\""; done
+    harness=""
+    [ -n "$LK_COPILOT" ] && harness="\"copilot\":\"$LK_COPILOT\""
+    [ -n "$LK_PI" ] && harness="$harness${harness:+,}\"pi\":\"$LK_PI\""
+    printf '{"fassung":1,"einstellungen":"%s/einstellungen.json","vault":"%s/vorfuehr-vault","protokoll":"%s/protokoll","zustand":"%s",' "$o" "$o" "$o" "$o"
+    printf '"laufzeit":"%s/l/%s","sitzungen":"%s/s/%s","heim":"%s","path":"%s",' "$DATEN" "$uid" "$DATEN" "$uid" "$heim" "$p"
+    printf '"programme":{"rangkern":"/usr/lib/werkbank/rangkern","modellweg":"/usr/lib/werkbank/werkbank-modellweg","kind":"/usr/lib/werkbank/werkbank-lauf-kind","such_mcp":"/usr/lib/werkbank/such-mcp","weiter":"/usr/lib/werkbank/einschluss-weiter"},'
+    printf '"harness":{%s},"programmordner":[%s],' "$harness" "$liste"
+    printf '"schluessel":{"copilot":"%s/copilot.schluessel","lokal":"%s/modellweg.schluessel"},"ca_zulassung":"%s"}\n' "$o" "$o" "$ca"
+}
+
+lauf_json() {
+    uid=$(id -u "$nutzer" 2>/dev/null) || return 0
+    heim=$(getent passwd "$nutzer" | cut -d: -f6)
+    LK_PI="" LK_PI_NODE="" LK_COPILOT="" LK_COPILOT_NODE=""
+    lk_suche copilot
+    lk_suche pi
+    lauf_schreiben
+}
+
+lauf_schreiben() {
+    lk_form "$heim" || return 0
+    for w in "$LK_PI" "$LK_PI_NODE" "$LK_COPILOT" "$LK_COPILOT_NODE"; do
+        [ -z "$w" ] || lk_form "$w" || return 0
+    done
+    lk_ordner_pruefen
+    lk_programmordner
+    # The value of the file stays (also one that the operator wrote by hand; nothing else is taken over), unless an answer waits in debconf.
+    ca_alt=$(ca_datei_wert)
+    ca=${ca_alt:-offen}
+    if [ -n "$ca_alt" ]; then
+        ca_alt_text=$ca_alt
+    elif [ -f "$ETCW/lauf.json" ]; then
+        ca_alt_text=ungueltig
+    else
+        ca_alt_text=keiner
+    fi
+    ca_antwort
+    [ -n "$CA_ANTWORT" ] && ca=$CA_ANTWORT
+    install -d -m 0755 -o root -g root "$ETCW" || return 0
+    tmp=$(mktemp "$ETCW/.lauf.json.XXXXXX") || return 0
+    if lk_text >"$tmp" && chmod 0644 "$tmp" && chown root:root "$tmp" && mv -f "$tmp" "$ETCW/lauf.json"; then
+        if [ -n "$CA_ANTWORT" ]; then ca_nachher "$ca" "$ca_alt_text" debconf; else ca_nachher "$ca" "$ca_alt_text" paket; fi
+        return 0
+    fi
+    rm -f "$tmp"
+    return 1
+}
+# --- lauf.json end
+if [ -n "$nutzer" ]; then
+    lauf_json || log "werkbank: lauf.json nicht geschrieben"
+fi
+
+# Step 2b: /etc/werkbank/kern.json and /etc/werkbank/bruecke.json, the start files of the core service (wb-dienst, crate dienst, DI1 and DI12) and
+# of the bridge (wb-bruecke, crate bruecke). Written for the user of step 1, root:root 0644, atomically, like lauf.json. <run> is /run/user/<uid>,
+# the uid comes from `id -u <user>` (never from the environment). The environment of the sessions is exactly TERM (contract 1, "Aufruf Lauf starten":
+# the service environment is empty but TERM; `werkbank-lauf` sets the rest itself and reads no secret from it).
+# `lauf.sitzungen` of kern.json has exactly the value of `sitzungen` of lauf.json ($DATEN/s/<uid>): the core service hands out no session id whose folder exists there.
+# `lauf.ziellisten` is the folder in which werkbank-lauf writes the target list of a session (<zustand>/sitzungen, $DATEN/<user>/sitzungen): the core service also skips every
+# session number whose <ziellisten>/s-<n>.zielliste.json exists (only lstat). Reference: rust/spec/paket/referenz.py `dienstkonfig`.
+# `lauf.marker_datei` is /run/user/<uid>/werkbank-probelauf/marker.json (the file of the trial run; the runner creates it and removes it at the end), `lauf.marker_ordner` is $DATEN/z/<uid> (the count folder of step 1a), both for the same uid as `lauf.sitzungen`.
+# Admin fields (contract "Welche Felder der Admin setzt"): `lauf.groesse` of kern.json and `port` of bruecke.json keep the value that an administrator set,
+# like `ca_zulassung` of lauf.json: the old file is read as JSON text with POSIX tools (`tr`, `grep`, `sed`): any white space around ":" and inside the pair is fine; the key
+# must stand exactly once and the value must have the valid form, else the default and one fixed journal line (no path, no content). Every other field is made again.
+# --- dienst.json begin
+dk_roh() {
+    tr '\n\r\t' '   ' <"$ETCW/$1" 2>/dev/null
+}
+
+# dk_alt <file> <key>: succeeds when the old file is an ordinary file that holds the key; DK_N is the number of its appearances
+dk_alt() {
+    DK_N=0
+    [ -f "$ETCW/$1" ] && [ ! -L "$ETCW/$1" ] || return 1
+    DK_N=$(dk_roh "$1" | grep -o "\"$2\"" | wc -l)
+    DK_N=$((DK_N + 0))
+    [ "$DK_N" -ge 1 ]
+}
+
+# dk_zahl <text> <min> <max>: succeeds for a decimal number of at most 5 digits without a leading zero in the range
+dk_zahl() {
+    case "$1" in "" | 0[0-9]* | ??????* | *[!0-9]*) return 1 ;; esac
+    [ "$1" -ge "$2" ] && [ "$1" -le "$3" ]
+}
+
+# dk_port_lesen: sets DK_PORT, the port of the bridge (0 to 65535; 0 lets the system choose, the default)
+dk_port_lesen() {
+    DK_PORT=0
+    dk_alt bruecke.json port || return 0
+    dp_w=""
+    if [ "$DK_N" -eq 1 ]; then
+        dp_w=$(dk_roh bruecke.json | grep -o -E '"port" *: *[0-9]+ *[,}]' | sed -E 's/^"port" *: *([0-9]+) *[,}]$/\1/')
+    fi
+    if dk_zahl "$dp_w" 0 65535; then DK_PORT=$dp_w; else log "werkbank: bruecke.json: port ungueltig, die Vorgabe gilt"; fi
+    return 0
+}
+
+# dk_groesse_lesen: sets DK_SPALTEN and DK_ZEILEN, the size of the terminal of a session (columns 20 to 1000, rows 5 to 1000; default 120 and 40)
+dk_groesse_lesen() {
+    DK_SPALTEN=120
+    DK_ZEILEN=40
+    dk_alt kern.json groesse || return 0
+    dg_p=""
+    if [ "$DK_N" -eq 1 ]; then
+        dg_p=$(dk_roh kern.json | grep -o -E '"groesse" *: *\[ *[0-9]+ *, *[0-9]+ *\]' | sed -E 's/^"groesse" *: *\[ *([0-9]+) *, *([0-9]+) *\]$/\1 \2/')
+    fi
+    dg_s=${dg_p% *}
+    dg_z=${dg_p#* }
+    if [ -n "$dg_p" ] && dk_zahl "$dg_s" 20 1000 && dk_zahl "$dg_z" 5 1000; then
+        DK_SPALTEN=$dg_s
+        DK_ZEILEN=$dg_z
+    else
+        log "werkbank: kern.json: groesse ungueltig, die Vorgabe gilt"
+    fi
+    return 0
+}
+
+dk_kern_text() {
+    run=/run/user/$uid
+    dk_groesse_lesen
+    printf '{"socket":{"ordner":"%s/werkbank","name":"dienst.sock"},"betrachter":{"person":"%s","raum":"werkbank","ansicht":"browser"},"deflate":true,' "$run" "$nutzer"
+    printf '"lauf":{"programm":"/usr/lib/werkbank/werkbank-lauf","env":{"TERM":"xterm-256color"},"groesse":[%s,%s],"einstellungen":"%s/%s/einstellungen.json","sitzungen":"%s/s/%s",' "$DK_SPALTEN" "$DK_ZEILEN" "$DATEN" "$nutzer" "$DATEN" "$uid"
+    printf '"marker_datei":"%s/werkbank-probelauf/marker.json","marker_ordner":"%s/z/%s","ziellisten":"%s/%s/sitzungen","laufzeit":"%s/l/%s"},' "$run" "$DATEN" "$uid" "$DATEN" "$nutzer" "$DATEN" "$uid"
+    printf '"anfang":{"personen":{"%s":{"art":"mensch","rolle":"nutzer"}},"sitzungen":[]}}\n' "$nutzer"
+}
+
+dk_bruecke_text() {
+    run=/run/user/$uid
+    dk_port_lesen
+    printf '{"dienst":{"socket":"%s/werkbank/dienst.sock"},"port":%s,"token_datei":"%s/werkbank/bruecke.token","port_datei":"%s/werkbank/bruecke.port","deflate":true}\n' "$run" "$DK_PORT" "$run" "$run"
+}
+
+dk_schreiben() {
+    name=$1
+    install -d -m 0755 -o root -g root "$ETCW" || return 1
+    tmp=$(mktemp "$ETCW/.$name.XXXXXX") || return 1
+    if "dk_${name%.json}_text" >"$tmp" && chmod 0644 "$tmp" && chown root:root "$tmp" && mv -f "$tmp" "$ETCW/$name"; then
+        return 0
+    fi
+    rm -f "$tmp"
+    return 1
+}
+
+dienst_json() {
+    uid=$(id -u "$nutzer" 2>/dev/null) || return 0
+    case "$uid" in "" | *[!0-9]*) return 0 ;; esac
+    dk_schreiben kern.json || return 1
+    dk_schreiben bruecke.json || return 1
+}
+# --- dienst.json end
+if [ -n "$nutzer" ]; then
+    dienst_json || log "werkbank: kern.json oder bruecke.json nicht geschrieben"
+fi
+
+# Step 3: the AppArmor profile of the fixed starter and the trial run of the enclosure (decision V1: only the starter
+# `werkbank-einschluss` carries the profile; never a profile with the attachment /usr/bin/bwrap, never `unconfined`).
+# Form B only: the own copy of bwrap first. This is the one step that stops the installation, with a fixed code:
+#   11 bwrap is missing           12 apparmor_parser is missing   13 the profile file is missing or not readable
+#   14 the parser rejects it      15 a foreign profile hangs at the path of the starter
+#   16 the trial run fails after loading (as a user without privileges: root passes the lock without any profile)
+STARTER=/usr/lib/werkbank/werkbank-einschluss
+PROFIL=/etc/apparmor.d/usr.lib.werkbank.werkbank-einschluss
+SYSCTL=/proc/sys/kernel/apparmor_restrict_unprivileged_userns
+
+einschluss() {
+    if [ -f /etc/apparmor.d/usr.lib.werkbank.bwrap ] && [ -x /usr/bin/bwrap ]; then
+        install -m 0755 -o root -g root /usr/bin/bwrap /usr/lib/werkbank/bwrap 2>/dev/null || log "werkbank: bwrap-Kopie nicht angelegt"
+    fi
+    [ -x /usr/bin/bwrap ] || fail 11 "/usr/bin/bwrap fehlt (Paket bubblewrap)"
+    if [ "$(cat "$SYSCTL" 2>/dev/null)" = 1 ]; then
+        command -v apparmor_parser >/dev/null 2>&1 || fail 12 "apparmor_parser fehlt (Paket apparmor)"
+        [ -f "$PROFIL" ] && [ -r "$PROFIL" ] || fail 13 "$PROFIL fehlt oder ist nicht lesbar"
+        fremd=$(grep -rlE '/usr/lib/werkbank/werkbank-einschluss' /etc/apparmor.d 2>/dev/null | grep -v "^$PROFIL\$" || true)
+        [ -z "$fremd" ] || fail 15 "$fremd haengt schon am Pfad $STARTER; nichts geaendert"
+        m=$(apparmor_parser -r -W "$PROFIL" 2>&1) || fail 14 "$(printf '%s' "$m" | tr '\n' ' ')"
+    fi
+    if [ ! -x "$STARTER" ]; then
+        # A skeleton build has no starter: the profile is loaded, but there is nothing to run. The check command reports the missing file.
+        log "werkbank: Starter fehlt (Geruest), Probelauf uebersprungen"
+        return 0
+    fi
+    command -v setpriv >/dev/null 2>&1 || fail 16 "setpriv fehlt, der Probelauf ist nicht moeglich"
+    m=$(setpriv --reuid=65534 --regid=65534 --clear-groups "$STARTER" selbsttest 2>&1) || fail 16 "Probelauf scheitert: $m"
+    echo "werkbank-einschluss: Probelauf gruen"
+    return 0
+}
+einschluss
+
+# Step 4: the user units, enabled for every user. A unit that is not in the package is skipped.
+if command -v systemctl >/dev/null 2>&1; then
+    for e in $EINHEITEN; do
+        [ -f "/usr/lib/systemd/user/$e" ] || continue
+        systemctl --global enable "$e" >/dev/null 2>&1 || log "werkbank: Einheit nicht aktiviert"
+    done
+fi
+
+# Step 4a: the unit of the model path of an earlier package is no part of this package (the runner starts the model path for each
+# session). Switch it off, stop it for the user and remove what is left, so that no trace stays after an upgrade.
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl --global disable werkbank-modellweg.service >/dev/null 2>&1 || true
+    if [ -n "$nutzer" ]; then
+        systemctl --user --machine="$nutzer@" stop werkbank-modellweg.service >/dev/null 2>&1 || true
+        systemctl --user --machine="$nutzer@" reset-failed werkbank-modellweg.service >/dev/null 2>&1 || true
+    fi
+fi
+rm -f /etc/systemd/user/default.target.wants/werkbank-modellweg.service /usr/lib/systemd/user/werkbank-modellweg.service 2>/dev/null || true
+
+# Step 4b: the units that prerm stopped for an upgrade or a reinstall run again (note /run/werkbank-paket-neustart: the user and the units that ran;
+# contract "Skripte des Pakets"). Only the user of step 1 and only the two fixed units are taken from the note; it is removed in every case.
+# `dpkg-reconfigure` stops nothing (prerm), so it leaves no note and this step does nothing.
+NEUSTART=/run/werkbank-paket-neustart
+if [ -f "$NEUSTART" ] && [ ! -L "$NEUSTART" ]; then
+    notiz=$(head -n 1 "$NEUSTART" 2>/dev/null)
+    rm -f "$NEUSTART" 2>/dev/null || true
+    if [ -n "$nutzer" ] && command -v systemctl >/dev/null 2>&1; then
+        for e in $EINHEITEN; do
+            case " $notiz " in
+                *" $nutzer "*" $e "* | *" $nutzer $e "*) ;;
+                *) continue ;;
+            esac
+            systemctl --user --machine="$nutzer@" start "$e" >/dev/null 2>&1 || log "werkbank: Einheit nicht neu gestartet"
+        done
+    fi
+fi
+
+# Step 5: the check command writes its lines to the journal; its exit code does not count. The channel of debconf is closed first, so
+# no child process inherits it.
+command -v db_stop >/dev/null 2>&1 && db_stop
+if [ -x /usr/bin/werkbank-pruefen ]; then
+    /usr/bin/werkbank-pruefen 2>&1 | logger -t werkbank-installation 2>/dev/null || true
+fi
+exit 0

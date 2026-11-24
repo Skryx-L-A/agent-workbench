@@ -1,0 +1,11 @@
+{
+ "description": "missing section",
+ "files": {
+  "note.md": "# T\n\n## Da\n"
+ },
+ "args": [
+  "section",
+  "{root}/note.md",
+  "Weg"
+ ]
+}

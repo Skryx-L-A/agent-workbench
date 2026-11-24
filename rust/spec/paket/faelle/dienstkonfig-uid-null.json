@@ -1,0 +1,6 @@
+{
+ "beschreibung": "uid 0 (der Nutzer root wird nie genommen, die Form bleibt gültig)",
+ "form": "dienstkonfig",
+ "nutzer": "n",
+ "uid": 0
+}

@@ -1,0 +1,12 @@
+{
+ "description": "lowercase id is no ULID",
+ "files": {
+  "note.md": "---\nid: 01m3kehcgektvfpc15xaveprds\nschema: 4\ntitle: Gute Notiz\ntype: note\nclass: knowledge\ncreated: \"2026-09-28\"\nstand: \"2026-09\"\n---\n\nFür künftige Sessions: x\n"
+ },
+ "args": [
+  "lint",
+  "{root}/note.md",
+  "--rel",
+  "10-global/g.md"
+ ]
+}

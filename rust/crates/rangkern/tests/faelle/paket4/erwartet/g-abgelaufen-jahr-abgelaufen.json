@@ -1,0 +1,35 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "haus/hausrat-neu.md",
+    "score": 0.5769562717176544,
+    "title": "Hausrat neu",
+    "snippet": "Angebot Hausrat fuer Mieter, Hausrat Vergleich.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.5769562717176544
+   },
+   {
+    "rel": "haus/hausrat.md",
+    "score": 0.49,
+    "title": "Hausrat",
+    "snippet": "Versicherung Hausrat, Police Hausrat mit Selbstbeteiligung.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "status": "expired"
+   }
+  ]
+ }
+}

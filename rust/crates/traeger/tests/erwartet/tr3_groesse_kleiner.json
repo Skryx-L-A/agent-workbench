@@ -1,0 +1,140 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    4,
+    6,
+    true
+   ],
+   "groesse": [
+    20,
+    5
+   ],
+   "ruecklauf": {
+    "erste": "alpha 0",
+    "letzte": "gamma 2",
+    "zahl": 3
+   },
+   "stand": 2,
+   "zeilen": [
+    "delta 3",
+    "epsilon 4",
+    "zeta 5",
+    "alpha 6",
+    "beta 7"
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       7,
+       6,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "alpha 0",
+       "1": "beta 1",
+       "2": "gamma 2",
+       "3": "delta 3",
+       "4": "epsilon 4",
+       "5": "zeta 5",
+       "6": "alpha 6",
+       "7": "beta 7"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       6,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": "delta 3",
+       "1": "epsilon 4",
+       "2": "zeta 5",
+       "3": "alpha 6",
+       "4": "beta 7"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      4,
+      6,
+      true
+     ],
+     "groesse": [
+      30,
+      5
+     ],
+     "ruecklauf": {
+      "erste": "alpha 0",
+      "letzte": "gamma 2",
+      "zahl": 3
+     },
+     "stand": 2,
+     "zeilen": [
+      "delta 3",
+      "epsilon 4",
+      "zeta 5",
+      "alpha 6",
+      "beta 7"
+     ]
+    }
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      4,
+      6,
+      true
+     ],
+     "groesse": [
+      20,
+      5
+     ],
+     "ruecklauf": {
+      "erste": "alpha 0",
+      "letzte": "gamma 2",
+      "zahl": 3
+     },
+     "stand": 2,
+     "zeilen": [
+      "delta 3",
+      "epsilon 4",
+      "zeta 5",
+      "alpha 6",
+      "beta 7"
+     ]
+    }
+   }
+  ]
+ }
+}

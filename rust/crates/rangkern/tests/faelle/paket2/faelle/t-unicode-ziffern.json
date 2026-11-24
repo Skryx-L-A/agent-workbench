@@ -1,0 +1,8 @@
+{
+ "description": "was \\w ist und was isalpha ist",
+ "program": "rangkern",
+ "args": [
+  "tokens",
+  "x² ٣ Ⅻ"
+ ]
+}

@@ -1,0 +1,506 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitt 13.2. Anfragen im Tunnel (latin1). Schluessel aller gebundenen Ziele ist die Marke wb-marke-echtes-token-7d1c0e, der Platzhalter wb-platzhalter-0000 (beide erfunden). zeile nennt die Felder der Protokollzeile.",
+ "marke": "wb-marke-echtes-token-7d1c0e",
+ "platzhalter": "wb-platzhalter-0000",
+ "faelle": [
+  {
+   "name": "github_user",
+   "beschreibung": "GET /copilot_internal/user mit den gemessenen Kopfnamen: Platzhalter verworfen, Marke eingesetzt, accept-encoding durch identity ersetzt, alle anderen Koepfe unveraendert",
+   "ziel": "github-api",
+   "anfrage": "GET /copilot_internal/user HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "GET /copilot_internal/user HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "ziel": "github-api",
+     "methode": "GET",
+     "pfadregel": "/copilot_internal/*",
+     "kopf": "ersetzt"
+    }
+   }
+  },
+  {
+   "name": "github_registry",
+   "beschreibung": "GET /copilot/mcp_registry (genaue Regel)",
+   "ziel": "github-api",
+   "anfrage": "GET /copilot/mcp_registry HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "GET /copilot/mcp_registry HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "ziel": "github-api",
+     "methode": "GET",
+     "pfadregel": "/copilot/mcp_registry",
+     "kopf": "ersetzt"
+    }
+   }
+  },
+  {
+   "name": "github_abfrage",
+   "beschreibung": "Abfrageteil bleibt, die Regel prueft nur den Pfad",
+   "ziel": "github-api",
+   "anfrage": "GET /copilot_internal/user?x=1 HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "GET /copilot_internal/user?x=1 HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "ziel": "github-api",
+     "methode": "GET",
+     "pfadregel": "/copilot_internal/*",
+     "kopf": "ersetzt"
+    }
+   }
+  },
+  {
+   "name": "user_repos",
+   "beschreibung": "GET /user/repos: nicht in der Pfadliste (Mutant 5 macht das gruen)",
+   "ziel": "github-api",
+   "anfrage": "GET /user/repos HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.pfad_nicht_erlaubt\",\"message\":\"Pfad nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.pfad_nicht_erlaubt",
+     "status": 403,
+     "ziel": "github-api",
+     "methode": "GET",
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "github_post",
+   "beschreibung": "POST /copilot_internal/user: Methode nicht erlaubt",
+   "ziel": "github-api",
+   "anfrage": "POST /copilot_internal/user HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nContent-Length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 405,
+    "koerper": "{\"error\":{\"code\":\"mw.methode_falsch\",\"message\":\"Methode nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.methode_falsch",
+     "status": 405,
+     "ziel": "github-api",
+     "methode": "POST",
+     "pfadregel": "/copilot_internal/*",
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "registry_unterpfad",
+   "beschreibung": "GET /copilot/mcp_registry/x: die genaue Regel deckt keinen Unterpfad",
+   "ziel": "github-api",
+   "anfrage": "GET /copilot/mcp_registry/x HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.pfad_nicht_erlaubt\",\"message\":\"Pfad nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.pfad_nicht_erlaubt",
+     "status": 403,
+     "ziel": "github-api",
+     "methode": "GET",
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "punkt_segment",
+   "beschreibung": "GET /copilot_internal/../user/repos",
+   "ziel": "github-api",
+   "anfrage": "GET /copilot_internal/../user/repos HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.pfad_nicht_erlaubt\",\"message\":\"Pfad nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.pfad_nicht_erlaubt",
+     "status": 403,
+     "ziel": "github-api",
+     "methode": "GET",
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "kodiert",
+   "beschreibung": "GET /copilot_internal/%2e%2e/user",
+   "ziel": "github-api",
+   "anfrage": "GET /copilot_internal/%2e%2e/user HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.pfad_nicht_erlaubt\",\"message\":\"Pfad nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.pfad_nicht_erlaubt",
+     "status": 403,
+     "ziel": "github-api",
+     "methode": "GET",
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "doppelter_strich",
+   "beschreibung": "GET /copilot_internal//user",
+   "ziel": "github-api",
+   "anfrage": "GET //copilot_internal/user HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.pfad_nicht_erlaubt\",\"message\":\"Pfad nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.pfad_nicht_erlaubt",
+     "status": 403,
+     "ziel": "github-api",
+     "methode": "GET",
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "host_falsch",
+   "beschreibung": "Host im Tunnel nennt ein anderes Ziel der Liste",
+   "ziel": "github-api",
+   "anfrage": "GET /copilot_internal/user HTTP/1.1\r\nHost: api.githubcopilot.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.host_falsch\",\"message\":\"Host passt nicht zum Tunnel\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.host_falsch",
+     "status": 400,
+     "ziel": "github-api",
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "host_mit_port",
+   "beschreibung": "Host mit :443 ist gueltig",
+   "ziel": "github-api",
+   "anfrage": "GET /copilot_internal/user HTTP/1.1\r\nHost: api.github.com:443\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "GET /copilot_internal/user HTTP/1.1\r\nHost: api.github.com:443\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "ziel": "github-api",
+     "methode": "GET",
+     "pfadregel": "/copilot_internal/*",
+     "kopf": "ersetzt"
+    }
+   }
+  },
+  {
+   "name": "plan_modelle",
+   "beschreibung": "POST /chat/completions am Plan-Host: alle Pfade (bis der echte Lauf sie liefert)",
+   "ziel": "copilot-plan",
+   "anfrage": "POST /chat/completions HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /chat/completions HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nContent-Type: application/json\r\nContent-Length: 2\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n{}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "ziel": "copilot-plan",
+     "methode": "POST",
+     "pfadregel": "/*",
+     "kopf": "ersetzt"
+    }
+   }
+  },
+  {
+   "name": "plan_chunked",
+   "beschreibung": "chunked im Tunnel geht unveraendert durch",
+   "ziel": "copilot-plan",
+   "anfrage": "POST /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nTransfer-Encoding: chunked\r\n\r\n2\r\n{}\r\n0\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nTransfer-Encoding: chunked\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n2\r\n{}\r\n0\r\n\r\n",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "ziel": "copilot-plan",
+     "methode": "POST",
+     "pfadregel": "/*",
+     "kopf": "ersetzt"
+    }
+   }
+  },
+  {
+   "name": "upgrade_durchgereicht",
+   "beschreibung": "WebSocket-Upgrade am gebundenen Plan-Host: Upgrade und Connection bleiben, kein connection: close, Schluessel eingesetzt",
+   "ziel": "copilot-plan",
+   "anfrage": "GET /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "GET /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\naccept-encoding: identity\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "ziel": "copilot-plan",
+     "methode": "GET",
+     "pfadregel": "/*",
+     "kopf": "ersetzt"
+    }
+   }
+  },
+  {
+   "name": "upgrade_ungebunden",
+   "beschreibung": "Upgrade am ungebundenen Telemetrie-Ziel: abgelehnt",
+   "ziel": "copilot-telemetrie",
+   "anfrage": "POST /telemetry HTTP/1.1\r\nHost: telemetry.individual.githubcopilot.com\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nContent-Length: 2\r\n\r\n[]",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.upgrade_abgelehnt\",\"message\":\"Upgrade nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.upgrade_abgelehnt",
+     "status": 403,
+     "ziel": "copilot-telemetrie",
+     "methode": "POST",
+     "pfadregel": "/telemetry",
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "telemetrie",
+   "beschreibung": "POST /telemetry ohne Anmeldung an das ungebundene Ziel: kein Schluessel geht hinaus",
+   "ziel": "copilot-telemetrie",
+   "anfrage": "POST /telemetry HTTP/1.1\r\nHost: telemetry.individual.githubcopilot.com\r\nContent-Length: 2\r\n\r\n[]",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /telemetry HTTP/1.1\r\nHost: telemetry.individual.githubcopilot.com\r\nContent-Length: 2\r\nconnection: close\r\n\r\n[]",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "ziel": "copilot-telemetrie",
+     "methode": "POST",
+     "pfadregel": "/telemetry",
+     "kopf": "keiner"
+    }
+   }
+  },
+  {
+   "name": "telemetrie_mit_anmeldung",
+   "beschreibung": "ungebundenes Ziel mit Authorization: 403 und Zeile mit kopf abgewiesen",
+   "ziel": "copilot-telemetrie",
+   "anfrage": "POST /telemetry HTTP/1.1\r\nHost: telemetry.individual.githubcopilot.com\r\nAuthorization: Bearer wb-platzhalter-0000\r\nContent-Length: 2\r\n\r\n[]",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.anmeldung_an_ungebundenes_ziel\",\"message\":\"Anmeldung an diesem Ziel nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anmeldung_an_ungebundenes_ziel",
+     "status": 403,
+     "ziel": "copilot-telemetrie",
+     "methode": "POST",
+     "pfadregel": "/telemetry",
+     "kopf": "abgewiesen"
+    }
+   }
+  },
+  {
+   "name": "telemetrie_cookie",
+   "beschreibung": "ungebundenes Ziel mit Cookie: Cookie geht unveraendert mit, kein Schluessel (vorlaeufig)",
+   "ziel": "copilot-telemetrie",
+   "anfrage": "POST /telemetry HTTP/1.1\r\nHost: telemetry.individual.githubcopilot.com\r\nCookie: a=b\r\nContent-Length: 2\r\n\r\n[]",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /telemetry HTTP/1.1\r\nHost: telemetry.individual.githubcopilot.com\r\nCookie: a=b\r\nContent-Length: 2\r\nconnection: close\r\n\r\n[]",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "ziel": "copilot-telemetrie",
+     "methode": "POST",
+     "pfadregel": "/telemetry",
+     "kopf": "keiner"
+    }
+   }
+  },
+  {
+   "name": "telemetrie_api_key",
+   "beschreibung": "ungebundenes Ziel mit X-Api-Key: geht unveraendert mit, nur Authorization zaehlt als Anmeldung (vorlaeufig)",
+   "ziel": "copilot-telemetrie",
+   "anfrage": "POST /telemetry HTTP/1.1\r\nHost: telemetry.individual.githubcopilot.com\r\nX-Api-Key: x\r\nContent-Length: 2\r\n\r\n[]",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /telemetry HTTP/1.1\r\nHost: telemetry.individual.githubcopilot.com\r\nX-Api-Key: x\r\nContent-Length: 2\r\nconnection: close\r\n\r\n[]",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "ziel": "copilot-telemetrie",
+     "methode": "POST",
+     "pfadregel": "/telemetry",
+     "kopf": "keiner"
+    }
+   }
+  },
+  {
+   "name": "exp_assignments",
+   "beschreibung": "POST /api/v1/assignments ohne authorization an das ungebundene exp-Ziel: weitergereicht, accept-encoding unveraendert, kein Schluessel",
+   "ziel": "copilot-exp",
+   "anfrage": "POST /api/v1/assignments HTTP/1.1\r\nHost: exp.individual.githubcopilot.com\r\naccept-encoding: gzip, br\r\ncontent-type: application/json\r\ncontent-length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /api/v1/assignments HTTP/1.1\r\nHost: exp.individual.githubcopilot.com\r\naccept-encoding: gzip, br\r\ncontent-type: application/json\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "ziel": "copilot-exp",
+     "methode": "POST",
+     "pfadregel": "/api/v1/assignments",
+     "kopf": "keiner"
+    }
+   }
+  },
+  {
+   "name": "exp_mit_authorization",
+   "beschreibung": "authorization an das ungebundene exp-Ziel: 403 und Zeile mit kopf abgewiesen",
+   "ziel": "copilot-exp",
+   "anfrage": "POST /api/v1/assignments HTTP/1.1\r\nHost: exp.individual.githubcopilot.com\r\nauthorization: Bearer wb-platzhalter-0000\r\ncontent-length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.anmeldung_an_ungebundenes_ziel\",\"message\":\"Anmeldung an diesem Ziel nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anmeldung_an_ungebundenes_ziel",
+     "status": 403,
+     "ziel": "copilot-exp",
+     "methode": "POST",
+     "pfadregel": "/api/v1/assignments",
+     "kopf": "abgewiesen"
+    }
+   }
+  },
+  {
+   "name": "exp_anderer_pfad",
+   "beschreibung": "exp-Ziel: der Pfad gilt genau, /api/v1/assignments/x passt nicht",
+   "ziel": "copilot-exp",
+   "anfrage": "POST /api/v1/assignments/x HTTP/1.1\r\nHost: exp.individual.githubcopilot.com\r\ncontent-length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.pfad_nicht_erlaubt\",\"message\":\"Pfad nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.pfad_nicht_erlaubt",
+     "status": 403,
+     "ziel": "copilot-exp",
+     "methode": "POST",
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "telemetrie_get",
+   "beschreibung": "GET /telemetry: nur POST erlaubt",
+   "ziel": "copilot-telemetrie",
+   "anfrage": "GET /telemetry HTTP/1.1\r\nHost: telemetry.individual.githubcopilot.com\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 405,
+    "koerper": "{\"error\":{\"code\":\"mw.methode_falsch\",\"message\":\"Methode nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.methode_falsch",
+     "status": 405,
+     "ziel": "copilot-telemetrie",
+     "methode": "GET",
+     "pfadregel": "/telemetry",
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "methode_fremd",
+   "beschreibung": "unbekannte Methode PROPFIND: methode null in der Zeile",
+   "ziel": "copilot-plan",
+   "anfrage": "PROPFIND /x HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 405,
+    "koerper": "{\"error\":{\"code\":\"mw.methode_falsch\",\"message\":\"Methode nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.methode_falsch",
+     "status": 405,
+     "ziel": "copilot-plan",
+     "methode": null,
+     "pfadregel": "/*",
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "zwei_laengen",
+   "beschreibung": "Content-Length und Transfer-Encoding zugleich",
+   "ziel": "copilot-plan",
+   "anfrage": "POST /x HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\nContent-Length: 2\r\nTransfer-Encoding: chunked\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.anfrage_unlesbar\",\"message\":\"Anfrage nicht lesbar\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 400,
+     "ziel": "copilot-plan",
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null
+    }
+   }
+  },
+  {
+   "name": "zu_gross",
+   "beschreibung": "Content-Length 33554433",
+   "ziel": "copilot-plan",
+   "anfrage": "POST /x HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\nContent-Length: 33554433\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 413,
+    "koerper": "{\"error\":{\"code\":\"mw.koerper_zu_gross\",\"message\":\"Koerper zu gross\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.koerper_zu_gross",
+     "status": 413,
+     "ziel": "copilot-plan",
+     "methode": "POST",
+     "pfadregel": "/*",
+     "kopf": null
+    }
+   }
+  }
+ ]
+}

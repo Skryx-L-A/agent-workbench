@@ -1,0 +1,7 @@
+{
+ "erwartet": "git scheitert mit Exit 1 und der Meldung xcode-select: error: No developer tools were found; der Test wird rot",
+ "messwerte": [
+  "Exitcode",
+  "stderr"
+ ]
+}

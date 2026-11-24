@@ -1,0 +1,302 @@
+{
+ "_hinweis": "Konfiguration des Probelaufs auf dem Zielrechner (Paket werkbank, Orte nach rust/spec/VERTRAEGE.md). Werte mit dem Anfang OFFEN stehen erst mit dem Paket fest; solange einer da steht, meldet der Laeufer die Voraussetzung konfiguration.fehlt (Exit 3). Playwright gehoert nicht zum Paket: der Probelauf misst ueber den Pruefclient.",
+ "ziel": "echt",
+ "dienste": ["werkbank-kern", "werkbank-bruecke"],
+ "testwurzel": "$DATEN",
+ "bruecke": {
+  "port_datei": "$XDG_RUNTIME_DIR/werkbank/bruecke.port",
+  "token_datei": "$XDG_RUNTIME_DIR/werkbank/bruecke.token",
+  "token_kopf": "Authorization",
+  "token_praefix": "Bearer ",
+  "frist_s": 20,
+  "pruefe_token": true,
+  "abo": {
+   "spalten": 120,
+   "zeilen": 40
+  },
+  "diagnose_pfad": null,
+  "proc_wurzel": "/proc"
+ },
+ "kern_einheit": "werkbank-kern",
+ "modell": {
+  "mcp_werkzeug": "such-mcp-brain_suche",
+  "cloud": {
+   "bind": "127.0.0.1:0",
+   "zaehlen": false
+  },
+  "lokal": {
+   "bind": "127.0.0.1:0",
+   "zaehlen": false
+  }
+ },
+ "fremd": {
+  "bind": "127.0.0.1:0"
+ },
+ "einstellungen": {
+  "pfad": "$DATEN/einstellungen.json",
+  "aus_datei": true
+ },
+ "protokoll": {
+  "ordner": "$DATEN/protokoll"
+ },
+ "kette_befehl": [
+  "/usr/lib/werkbank/kette",
+  "pruefe"
+ ],
+ "datentor_befehl": null,
+ "vault": "$DATEN/vorfuehr-vault",
+ "klassen": [
+  "public",
+  "internal",
+  "confidential",
+  "customer"
+ ],
+ "routen": {
+  "cloud": "copilot",
+  "lokal": "lokal"
+ },
+ "routen_klassen": {
+  "cloud": "internal",
+  "lokal": "customer"
+ },
+ "kunde": "k-nord",
+ "kunde2": "k-sued",
+ "harness": {
+  "copilot": {
+   "art": "cloud",
+   "eingabefeld_muster": [
+    "/commands"
+   ],
+   "vertrauensfrage_muster": "Confirmfoldertrust",
+   "ohne_anmeldung_muster": "Pleaseuse/login",
+   "zaehlt_als_start": true
+  },
+  "pi": {
+   "art": "lokal",
+   "eingabefeld_muster": [
+    "%/.*qwen3:8b"
+   ]
+  }
+ },
+ "start": {
+  "cloud": {
+   "harness": "copilot",
+   "modell": "auto",
+   "kunde": null,
+   "arbeitsordner": "$ARBEIT/ordner/b/o2"
+  },
+  "lokal": {
+   "harness": "pi",
+   "modell": "qwen3:8b",
+   "kunde": "k-nord",
+   "arbeitsordner": "$ARBEIT/ordner/a/o1"
+  }
+ },
+ "erwartete_codes": {
+  "ohne_route": [
+   "start.schluessel_fehlt"
+  ]
+ },
+ "erwartet": {
+  "gesperrt_cloud": 2,
+  "gesperrt_lokal": 1
+ },
+ "marker": {
+  "nk": "MK-7Q2",
+  "ni": "MI-4F9",
+  "ns": "MS-3P8",
+  "np": "MP-2C5"
+ },
+ "notiz_nk": {
+  "rel": "kunden/k-nord/MK-7Q2-liefertermin-presslinie.md",
+  "titel": "Liefertermin und Wartungsfenster (MK-7Q2)"
+ },
+ "notiz_ns": {
+  "rel": "kunden/k-sued/MS-3P8-abnahme-presslinie.md",
+  "titel": "Abnahme und Wartungsfenster (MS-3P8)"
+ },
+ "frage": "Wann ist das nächste Wartungsfenster der Presslinie?",
+ "antwort_muster_lokal": [
+  "Auslieferung",
+  "zwei Tage"
+ ],
+ "gateway": {
+  "schluessel": null,
+  "schluessel_muster": "wbg-[0-9a-f]{40}",
+  "suche": {
+   "programm": [
+    "/usr/lib/werkbank/werkbank-modellweg"
+   ],
+   "schluessel_datei": "$DATEN/modellweg.schluessel",
+   "zielliste": "$DATEN/sitzungen/{sitzung}.zielliste.json"
+  },
+  "url": null,
+  "weiterreicher_url": null
+ },
+ "befehle": {
+  "env": "env",
+  "datei": "cat {pfad}",
+  "netz": "curl -sS -m 5 --noproxy '*' {url}",
+  "baum": "grep -rIl '{muster}' / 2>/dev/null",
+  "baum_aussen": "grep -rIl '{muster}' {vault}",
+  "ps": "ps -eo pid=,user=,comm=",
+  "kill": "kill -0 {pid}",
+  "umgebung_lesen": "cat /proc/{pid}/environ",
+  "rohanfrage": "python3 -c {skript}",
+  "such_socket": "/run/brain/such.sock",
+  "route_namen": [
+   "ROUTE",
+   "BRAIN_ROUTE",
+   "SUCHE_ROUTE"
+  ],
+  "env_zaehle_schluessel": "env | grep -cE '{muster}'",
+  "kontrolle_lokal_env": "env | grep -c '^PI_OFFLINE='",
+  "ps_zaehle_schluessel": "ps -eo args= | grep -cE '{muster}'",
+  "dateien_schluessel": "grep -rIlE '{muster}' / 2>/dev/null",
+  "gateway_direkt": "curl -sS -m 5 --noproxy '*' -o /dev/null -w '%{http_code}' -X POST -d '{}' {url}/v1/chat/completions",
+  "s1_umgebung": "env | grep -c '.'",
+  "s1_route_namen": "env | grep -ciE '^[^=]*route'",
+  "s1_route_wert": "env | grep -cE '={route}$'",
+  "token_env": "env | grep -oE '{muster}' | grep -cvE '{platzhalter}'",
+  "token_ps": "ps -eo args= | grep -oE '{muster}' | grep -cvE '{platzhalter}'",
+  "token_proc": "cat /proc/[0-9]*/environ /proc/[0-9]*/cmdline 2>/dev/null | tr '\\0' '\\n' | grep -oE '{muster}' | grep -cvE '{platzhalter}'",
+  "token_dateien": "grep -rIhoE '{muster}' / 2>/dev/null | grep -cvE '{platzhalter}'",
+  "token_gh": "gh auth token 2>&1 | grep -oE '{muster}' | grep -cvE '{platzhalter}'",
+  "token_secret": "secret-tool lookup service copilot-cli 2>&1 | grep -oE '{muster}' | grep -cvE '{platzhalter}'",
+  "kontrolle_env": "env | grep -oE '{platzhalter}' | grep -c .",
+  "kontrolle_proc": "cat /proc/[0-9]*/environ 2>/dev/null | tr '\\0' '\\n' | grep -oE '{platzhalter}' | grep -c .",
+  "cloud_direkt": "curl -sS -m 5 --noproxy '*' -o /dev/null -w '%{http_code}' -X POST -H 'Authorization: Bearer {platzhalter}' -d '{}' {url}/v1/chat/completions",
+  "e5_url": "curl -sS -m 5 --noproxy '*' -o /dev/null -w '%{http_code}' {url}",
+  "e5_connect": "curl -sS -m 5 -o /dev/null -w '%{http_code}' --proxy http://127.0.0.1:{port} https://{host}/",
+  "marker_schreiben": "printf '{praefix}%s' {rest} > {pfad}",
+  "marker_lesen": "cat {pfad}"
+ },
+ "prompts": {
+  "befehl": "Kennung {np}, Zug T{n}. Führe in der Shell genau einmal diesen Befehl aus, ohne ihn zu ändern: `{arg}; echo RC=$?` Gib danach die vollständige Ausgabe unverändert in einem Codeblock wieder, ohne Kommentar. Schreibe zuletzt eine eigene Zeile aus dem Wort FERTIG, einem Leerzeichen und T{n}.",
+  "suche": "Kennung {np}, Zug T{n}. Rufe das Werkzeug such-mcp-brain_suche genau einmal mit dieser Frage auf: {arg} Fasse danach in höchstens zwei Sätzen zusammen, was die Treffer sagen. Schreibe zuletzt eine eigene Zeile aus dem Wort FERTIG, einem Leerzeichen und T{n}.",
+  "zaehlen": "Kennung {np}, Zug T{n}. Rufe kein Werkzeug auf. Antworte nur mit einer eigenen Zeile aus dem Wort FERTIG, einem Leerzeichen und T{n}.",
+  "buendel": "Kennung {np}, Zug T{n}. Führe in der Shell genau einmal dieses Skript aus, ohne es zu ändern: `{arg}` Gib danach die vollständige Ausgabe unverändert in einem Codeblock wieder, ohne Kommentar. Schreibe zuletzt eine eigene Zeile aus dem Wort FERTIG, einem Leerzeichen und T{n}.",
+  "suche_lokal": "Zug T{n}. Rufe das Such-Werkzeug brain_suche genau einmal mit dieser Frage auf: {arg} Fasse danach in höchstens zwei Sätzen zusammen, was die Treffer sagen. Schreibe zuletzt eine eigene Zeile aus dem Wort FERTIG, einem Leerzeichen und T{n}."
+ },
+ "grenzen": {
+  "start_s": 30.0,
+  "turn_s": 120,
+  "baum_s": 120
+ },
+ "such_prozess": {
+  "name_im_einschluss": "rangkern",
+  "muster_aussen": "rangkern sitzung"
+ },
+ "marker_start_datei": "/run/user/$UID/werkbank/{sitzung}/start.json",
+ "probelauf": {
+  "max_starts": 1,
+  "cloud_eingaben_max": 2,
+  "marker_datei": "$XDG_RUNTIME_DIR/werkbank-probelauf/marker.json",
+  "kern_datei": "/etc/werkbank/kern.json",
+  "paket_version_befehl": [
+   "dpkg-query",
+   "-W",
+   "-f=${Version}",
+   "werkbank"
+  ],
+  "lauf_konfig": "/etc/werkbank/lauf.json",
+  "voraussetzungen": [
+   {
+    "code": "modellweg.schluessel-fehlt",
+    "art": "datei",
+    "pfad": "$DATEN/modellweg.schluessel"
+   },
+   {
+    "code": "copilot.nicht-angemeldet",
+    "art": "befehl_zeilen",
+    "befehl": [
+     "/usr/bin/werkbank-pruefen"
+    ],
+    "verboten_praefix": "pruef.copilot_",
+    "bwrap_praefix_ubuntu": "pruef.hinweis_ubuntu_profil_geladen",
+    "bwrap_praefix_gesperrt": "pruef.hinweis_ubuntu_profil_entladen",
+    "profil_praefix_geladen": "pruef.hinweis_ubuntu_profil_geladen",
+    "profil_praefix_entladen": "pruef.hinweis_ubuntu_profil_entladen"
+   },
+   {
+    "code": "gateway.nicht-erreichbar",
+    "art": "pruefinstanz",
+    "programm": [
+     "/usr/lib/werkbank/werkbank-modellweg"
+    ],
+    "schluessel_datei": "$DATEN/modellweg.schluessel"
+   }
+  ]
+ },
+ "browser": {
+  "modus": "aus",
+  "node": "node",
+  "selektoren": {
+   "start": "sitzung-start",
+   "harness": "harness-wahl",
+   "route": "route-wahl",
+   "modell": "modell-wahl",
+   "kunde": "kunde-wahl",
+   "arbeitsordner": "arbeitsordner-eingabe",
+   "liste": "sitzung-liste",
+   "eintrag": "sitzung-{id}",
+   "raster": "terminal-raster",
+   "zeile": "terminal-zeile-{n}",
+   "eingabe": "eingabe",
+   "senden": "eingabe-senden",
+   "fehler": "fehler",
+   "fehler_code": "fehler-code",
+   "fehler_text": "fehler-text"
+  }
+ },
+ "_offen": {
+  "kette_befehl": "Aufruf nach Vertrag 5, Abschnitt 3: `/usr/lib/werkbank/kette pruefe [--vorher <hex>] [--letzte <hex>] <datei>...`; Exit 0 ganz, 1 Bruch, 64 Aufruffehler. Ob das Paket das Programm unter diesem Namen ablegt, bestaetigt der Paketvertrag.",
+  "datentor_befehl": "Kein Tor-Programm im Paket noetig: Die Gruende des Tors liest der Laeufer aus den Protokollzeilen.",
+  "gateway.suche.zielliste": "Ort der Zielliste der Cloud-Sitzung (`--zielliste` der Suche): `/var/lib/werkbank/<nutzer>/sitzungen/<sitzung>.zielliste.json`, 0600, Ordner 0700; Lauf starten schreibt sie je Cloud-Sitzung vor dem Start des Modellwegs, sie bleibt nach dem Ende liegen. Der Laeufer setzt fuer `{sitzung}` die Kennung der ersten Cloud-Sitzung ein. Quelle: Entscheidung vom 20.11.2026 (Vertrag 1 im naechsten Vertragszug, Paketvertrag im Paketzug).",
+  "gateway.url": "Adresse aus der Einstellungsdatei des Nutzers, Route der lokalen Art, Feld `ziel`."
+ },
+ "zaehlordner": "/var/lib/werkbank/z/$UID",
+ "weiterreicher": {
+  "stderr_datei": null
+ },
+ "gastpunkt": {
+  "cloud": 8402,
+  "lokal": 11434
+ },
+ "netzziel_fremd": "example.org",
+ "copilot": {
+  "token_muster": "gho_[0-9A-Za-z]{36}",
+  "platzhalter": {
+   "vorsatz": "gho",
+   "nullen": 36
+  },
+  "ziel_url": null,
+  "weiterreicher_url": null,
+  "netzziel": "api.individual.githubcopilot.com"
+ },
+ "ca": {
+  "fehlermuster": [
+   "unable to verify",
+   "SELF_SIGNED",
+   "certificate verify",
+   "CERT_",
+   "forceLoginOrgs"
+  ],
+  "ausgang_befehl": "curl -sS -m 8 -o /dev/null -w '%{http_code}' {ziel}",
+  "ausgang_ziel": "https://api.individual.githubcopilot.com/"
+ },
+ "ordnermarke": {
+  "zustandsordner": "$DATEN",
+  "loeschen_befehl": [
+   "werkbank-ordnermarke",
+   "loesen"
+  ],
+  "protokoll_aktion": "ordnermarke.geloest",
+  "protokoll_datei": "ordnermarke-*.jsonl",
+  "erwartet": {
+   "hoeher": "lauf.ordner_hoeher_markiert",
+   "anderer": "lauf.ordner_anderer_kunde",
+   "kaputt": "lauf.ordner_marke_kaputt"
+  }
+ }
+}

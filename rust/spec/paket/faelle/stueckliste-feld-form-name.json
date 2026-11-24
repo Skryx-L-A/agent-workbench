@@ -1,0 +1,15 @@
+{
+ "beschreibung": "Name mit Leerzeichen",
+ "form": "stueckliste",
+ "text": "any how\t1.0.100\tMIT OR Apache-2.0\tcrates.io\nserde\t1.0.228\tMIT OR Apache-2.0\tcrates.io\nzlib-rs\t0.5.2\tZlib\tcrates.io\n",
+ "im_paket": [
+  {
+   "name": "serde",
+   "version": "1.0.228"
+  },
+  {
+   "name": "zlib-rs",
+   "version": "0.5.2"
+  }
+ ]
+}

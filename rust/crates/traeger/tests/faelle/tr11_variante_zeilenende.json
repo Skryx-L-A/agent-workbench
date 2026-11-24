@@ -1,0 +1,38 @@
+{
+ "name": "tr11_variante_zeilenende",
+ "regeln": [
+  "TR11"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Variantenwahl und Zeichenverbindung am Zeilenende: Umbruch, ausstehender Umbruch und Wirkung auf die letzte Spalte wie in alacritty_terminal",
+ "art": "strom",
+ "groesse": [
+  12,
+  9
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "xxxxxxxxxxx❤️|\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "yyyyyyyyyy😀️|\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "zzzzzzzzzzz😀‍w\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "qqqqqqqqqqqq️‍r\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "sssssssssss👍🏽t\r\n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

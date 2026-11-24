@@ -1,0 +1,9 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.vault_fehlt: Der Vault-Ordner fehlt.",
+  "pruef.hinweis_ca_offen: Die Zulassung der lokalen CA ist offen; die Cloud-Route ist gesperrt. Das ist kein Fehler der Installation.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

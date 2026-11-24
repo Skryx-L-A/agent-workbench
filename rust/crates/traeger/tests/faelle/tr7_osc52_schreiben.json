@@ -1,0 +1,46 @@
+{
+ "name": "tr7_osc52_schreiben",
+ "regeln": [
+  "TR7"
+ ],
+ "datensatz": "A",
+ "beschreibung": "OSC 52 mit Daten: daten_b64 ist der Text der Folge unverändert (BEL oder ST am Ende, jede Auswahl, leere Daten, über Stückgrenzen)",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b]52;c;S29waWUgZWlucyDDpMO2w7w=\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;c;S29waWUgZWlucyDDpMO2w7wy\u001b\\"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;;bGVlcg==\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;p;cA==\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;c;\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b]52;c;S29waWUg"
+  },
+  {
+   "art": "Text",
+   "text": "ZWlucyDDpMO2w7w=\u0007"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

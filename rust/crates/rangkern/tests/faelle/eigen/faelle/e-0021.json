@@ -1,0 +1,30 @@
+{
+"description": "invented vault, expectation from rangkern-ref-sicher (differential run)",
+"program": "rangkern",
+"files": {
+"vault/garten/sonne-frühjahr.md": "---\ntitle: 'Grundstücke Tropfschlauch Straße\n---\nUnterbau oder projekt einbettung öl index dach duese schnecken entscheidung die ernte\nEinbettung schornstein kompost stand öl offen\n",
+"vault/30-topics/t/offen-moc.md": "# duese\n\nFlur suchindex pumpe stand einbettung kueche entkalken rohr die gurken zaun rohr frühjahr rang index regen übersicht mulch ventil vertikutieren duese and rhabarber\n",
+"vault/misc/deep/er/heizung.md": "---\nclass: derived\n---\nWetter fundament flur sensor fruehjahr zaun kueche stand! status sitzung regen fruehjahr grundstücke die ausgabe entkalken notiz ernte steckdose titel unterbau\nNicht grundstücke heizung fehler titel ich\n",
+"vault/10-global/öl.md": "# index aufgabe beet\n\nProjekt index test strasse gurken lichtschalter notiz\n\nOf und ziegel suche garten wind kueche tomaten notiz schornstein titel of kueche notiz über\n\nRasen grundstück fundament linking kaffee schnecke lauf das mulch gurken grundstück kueche\nRhabarber linking and strasse saat sitzung\n",
+"vault/garten/garten.md": "---\nvalid-until: 2027-01-01\n---\nErnte moc titel kompost mulch\n\n### kaffee ziegel\n\nFlur duese heizung ich original bewaesserung and wetter strasse kaffee gärtner pumpe ziegel straße regen wetter\n\nSonne einbettungen fruehjahr erledigt tropfschlauch projekt der fruehjahr titel schnecke steckdose kompost original oder dach ärger kaffee kompost über stand regen tropfschlauch kaffee beet! lauf\n\nDer schornstein bm25\n",
+"vault/20-projects/q/index-öl.md": "---\ntitle: 'Mulch\ntitle: [offen, vault]\naliases: [tor, kern]\nstatus: expired\n---\nVentil test ziegel schnecken kaffee status der wind vektor pumpe\n\nSchnecke notiz schnecke fundament über test tropfschlauch wind sitzung die the zaun linking fundament schnecke ich erledigt stand linking der\nTomaten status ziegel gärtner and zaun\n\nFür künftige Sessions: Ärger pumpe die öl entscheidung oder\n\nGrundstücke heizung kueche of titel vektor rohr\n\n## öl\n\nVentil der kueche\n\nEntkalken saat das schnecke suchindex fruehjahr ärger rasen bewaesserung index übersicht salat frühjahr kern straße maschine suchindex\n",
+"vault/garten/frühjahr.md": "---\naliases: [sensor, vault, dach]\n---\nSteckdose schnecke ernte linking oder the flur lauf der gurken zaun gurken tropfschlauch unterbau vertikutieren sitzung wir entkalken gurken test öl\n",
+"vault/20-projects/p/KERN.md": "---\naliases: [suchindex]\nsuperseded-by: garten\n---\nAufgabe saat offen fruehjahr salat\nEntscheidung rohr saat rhabarber fruehjahr fehler\n\n# index kaffee einbettungen\n\nVektor vault vault fundament notiz ausgabe rhabarber\n\n## fundament pumpe fundament\n\nEinbettung vault tomaten entscheidung saat ernte index titel! of fehler fruehjahr wind oder kern gurken embedding\nUnd steckdose nicht kueche rohr bm25\n",
+"vault/STATUS.md": "---\ntitle: 'Entkalken Fehler Beet\ntitle: [stand, schornstein]\naliases: [rang, einbettung]\nvalid-until: morgen\n---\nWetter beet kompost wir übersicht das garten und ventil vertikutieren grundstücke\nTor mulch aufgabe embedding und suche\n\nEinbettungen bewaesserung rohr nicht the offen zaun mulch die ventil die einbettungen aufgabe gurken das erledigt index linking rasen kompost\nDas tor regen projekt bm25 original\n\n# kompost\n\nGrundstück fruehjahr vault gurken pumpe sitzung rang rohr rang\nSalat oder pumpe lichtschalter rohr salat\n\nStrasse ausgabe grundstücke rhabarber der wir übersicht einbettungen heizung tropfschlauch wetter wir ventil entkalken projekt bm25 strasse kompost maschine frühjahr ich ausgabe rohr\n\n# zaun steckdose quelle\n\nSonne straße strasse kaffee tor rhabarber\n",
+"vault/x/90-secrets/tief.md": "Vektor flur einbettungen öl sonne heizung die ziegel? tomaten sonne ziegel erledigt offen einbettungen original duese? rhabarber fundament nicht einbettungen unterbau fruehjahr der original\n\nFür künftige Sessions: Pumpe suche aufgabe kompost wir zaun\n\nRasen titel test bm25 erledigt tor linking wind? einbettung zaun saat zaun ziegel sonne schnecke tor einbettung wir einbettungen einbettungen übersicht rohr erledigt vektor titel\n\n## rhabarber\n\nWind grundstücke rang rang tor dach schnecke\n tropfschlauch geheimwort\n",
+"vault/00-sources/drop/roh.md": "Kueche erledigt schornstein erledigt the kompost duese ernte ernte kueche strasse über projekt the status das kueche übersicht das kaffee rang zaun fundament frühjahr aufgabe\n\nDuese status offen und schnecke ausgabe projekt\nSteckdose moc garten stand the ziegel\n\nNotiz lichtschalter ich original das original kompost öl beet offen the rasen\n\nFür künftige Sessions: Zaun maschine titel mulch rhabarber flur\n\nÖl the über nicht aufgabe index kern vertikutieren einbettung garten wetter öl titel tomaten and\n ziegel geheimwort\n",
+"vault/HOT.md": "Lichtschalter aufgabe kompost linking tropfschlauch steckdose original wind sitzung übersicht kompost kaffee offen suche erledigt kaffee tropfschlauch oder\n duese geheimwort\n",
+"vault/garten/review-queue.md": "Gurken and original ärger gurken übersicht offen fruehjahr fundament entkalken ernte fundament einbettungen offen wind of projekt\n sensor geheimwort\n",
+"vault/_meta/state/contradictions.json": "{\"findings\": {\"0\": {\"status\": \"closed\", \"note_a\": {\"rel\": \"20-projects/q/index-\\u00f6l.md\"}, \"note_b\": {\"rel\": \"30-topics/t/offen-moc.md\"}}, \"1\": {\"status\": \"escalated\", \"note_a\": {\"rel\": \"10-global/\\u00f6l.md\"}, \"note_b\": {\"rel\": \"garten/garten.md\"}}, \"2\": {\"status\": \"open\", \"note_a\": {\"rel\": \"20-projects/p/KERN.md\"}, \"note_b\": {\"rel\": \"garten/garten.md\"}}}}"
+},
+"args": [
+"search",
+"{root}/vault",
+"-k",
+"8",
+"--today",
+"2026-10-01",
+"--",
+"regen"
+]
+}

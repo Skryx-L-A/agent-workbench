@@ -1,0 +1,24 @@
+{
+ "beschreibung": "Nutzdaten fließen erst nach beiden Prüfungen",
+ "art": "aussentest",
+ "ort": [
+  "windows",
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk"
+ },
+ "server": null,
+ "client": null,
+ "aufbau": [
+  "Server und Client erlaubt",
+  "Mitschnitt der Bytes auf beiden Seiten (Testnaht des Läufers)"
+ ],
+ "handlung": [
+  "Client schreibt 5 Byte Nutzdaten direkt nach verbinden"
+ ]
+}

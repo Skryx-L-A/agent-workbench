@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "snippet": "Für künftige Sessions: Kaffee nie kochen lassen.",
+  "lines": [
+   5,
+   5
+  ],
+  "hook": "Für künftige Sessions: Kaffee nie kochen lassen.",
+  "hook_lines": [
+   5,
+   5
+  ]
+ }
+}

@@ -1,0 +1,10 @@
+{
+ "description": "Fehlender Vault: Exit 2 ohne Ausgabe",
+ "vault": {
+  "files": {
+   "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text.\n"
+  }
+ },
+ "args": [],
+ "steps": []
+}

@@ -1,0 +1,11 @@
+{
+ "beschreibung": "dieselbe Bibliothek in zwei Versionen ist erlaubt, aufsteigend",
+ "form": "stueckliste",
+ "text": "serde\t1.0.200\tMIT\tcrates.io\nserde\t1.0.228\tMIT\tcrates.io\n",
+ "im_paket": [
+  {
+   "name": "serde",
+   "version": "1.0.200"
+  }
+ ]
+}

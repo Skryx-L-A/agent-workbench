@@ -1,0 +1,7 @@
+{
+ "exit": 78,
+ "stderr": "lauf.tls_umgebung: TLS-Umgebung gesetzt",
+ "suche_gestartet": false,
+ "modellweg_gestartet": false,
+ "stderr_ohne_wert": true
+}

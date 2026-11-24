@@ -1,0 +1,195 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    4,
+    7,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 3,
+   "zeilen": [
+    "ab漢cd",
+    "漢字漢",
+    "alpha 0",
+    "beta 1",
+    "gamma 2",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       7,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "ab漢cd",
+       "1": "漢字漢",
+       "2": "alpha 0",
+       "3": "beta 1",
+       "4": "gamma 2"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      4,
+      7,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 1,
+     "zeilen": [
+      "ab漢cd",
+      "漢字漢",
+      "alpha 0",
+      "beta 1",
+      "gamma 2",
+      "",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       1,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": " 1",
+       "1": "ga",
+       "2": "mm",
+       "3": "a",
+       "4": "2"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      4,
+      1,
+      true
+     ],
+     "groesse": [
+      2,
+      8
+     ],
+     "ruecklauf": {
+      "erste": "ab",
+      "letzte": "ta",
+      "zahl": 12
+     },
+     "stand": 2,
+     "zeilen": [
+      " 1",
+      "ga",
+      "mm",
+      "a",
+      "2",
+      "",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       7,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "0": "ab漢cd",
+       "1": "漢字漢",
+       "2": "alpha 0",
+       "3": "beta 1",
+       "4": "gamma 2"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      4,
+      7,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 3,
+     "zeilen": [
+      "ab漢cd",
+      "漢字漢",
+      "alpha 0",
+      "beta 1",
+      "gamma 2",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

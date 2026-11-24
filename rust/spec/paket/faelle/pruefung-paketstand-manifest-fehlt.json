@@ -1,0 +1,27 @@
+{
+ "beschreibung": "Manifest fehlt; Dateien werden dann nicht geprüft",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "windows",
+  "konten": 1,
+  "halter": "ok",
+  "wfp": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "fehlt",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": [
+    {
+     "pfad": "bin/wb.exe",
+     "art": "fehlt"
+    }
+   ]
+  },
+  "stelle": "ok"
+ }
+}

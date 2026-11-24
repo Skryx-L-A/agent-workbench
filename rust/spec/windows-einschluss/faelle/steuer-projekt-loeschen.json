@@ -1,0 +1,8 @@
+{
+ "beschreibung": "Löschen ohne lebenden Lauf",
+ "form": "steuer",
+ "text": "{\"op\": \"projekt_loeschen\", \"ordner\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\"}\n",
+ "lage": {
+  "laeufe": []
+ }
+}

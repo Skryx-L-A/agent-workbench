@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "snippet": "Das Gewächshaus\fliegt im Garten. Abends wird es geschlossen.",
+  "lines": [
+   7,
+   8
+  ],
+  "hook": "Erste Zeile noch dieselbe Zeile.",
+  "hook_lines": [
+   5,
+   5
+  ]
+ }
+}

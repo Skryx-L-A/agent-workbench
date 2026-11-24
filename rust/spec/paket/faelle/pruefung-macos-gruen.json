@@ -1,0 +1,23 @@
+{
+ "beschreibung": "macOS: alle sechs Prüfungen bestanden",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "macos",
+  "konten": 1,
+  "launchd": "ok",
+  "schluesselbund": "ok",
+  "einschluss": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

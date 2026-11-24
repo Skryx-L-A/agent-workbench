@@ -1,0 +1,13 @@
+{
+ "exec": "pi",
+ "harness_argv": [
+  "pi",
+  "--provider",
+  "wb-lokal",
+  "--model",
+  "qwen3:8b"
+ ],
+ "argv_ohne": [
+  "--allow-tool"
+ ]
+}

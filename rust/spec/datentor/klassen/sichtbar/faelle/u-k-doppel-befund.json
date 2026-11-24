@@ -1,0 +1,1 @@
+{"vorgabe": {"klassen": ["oeffentlich", "intern"], "routen": [], "kunden": []}, "anfragen": [{"einheit": {"geerbt": "intern", "art": "regel", "befund": {"geheimnis": true, "personenbezug": false, "interner_name": false, "geheimnis": false}}, "route": null}]}

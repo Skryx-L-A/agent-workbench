@@ -1,0 +1,118 @@
+{
+ "beschreibung": "Die Seite meldet nie weniger als 2 Spalten (Abo und Groesse) und meldet dieselbe Größe nicht doppelt.",
+ "datensatz": "A",
+ "fenster": {
+  "beruehrung": true,
+  "breite": 12,
+  "hoehe": 600,
+  "mobil": true
+ },
+ "name": "se5_klemme",
+ "regeln": [
+  "SE5"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       2
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Fenster",
+   "breite": 1024,
+   "hoehe": 768
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Groesse",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       3,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Fenster",
+   "breite": 1024,
+   "hoehe": 768
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": []
+  },
+  {
+   "art": "Fenster",
+   "breite": 8,
+   "hoehe": 600
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Groesse",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       2
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}

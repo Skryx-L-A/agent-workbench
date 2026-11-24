@@ -1,0 +1,12 @@
+{
+ "description": "der Block mit den meisten Stamm-Überschneidungen gewinnt, nicht der erste",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\ntitle: Gartenbeet\ntype: note\n---\n\nDie Wasserpumpe steht im Keller.\n\n## Bewässerung\n\nDas Gartenbeet braucht Bewässerung am Morgen.\n\n## Werkzeug\n\nDer Schlauch liegt im Schuppen.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "Gartenbeet Bewässerung Schlauch"
+ ]
+}

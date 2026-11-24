@@ -1,0 +1,39 @@
+{
+ "beschreibung": "marker geht vor einem unbekannten Schlüssel",
+ "form": "anfrage",
+ "text": "{\n \"fassung\": 1,\n \"harness\": \"pi\",\n \"modell\": \"qwen3:8b\",\n \"route\": \"lokal-beispiel\",\n \"kunde\": \"k-beispiel\",\n \"arbeitsordner\": \"/home/beispiel/projekt\",\n \"marker\": {\n  \"liste\": [\n   \"MK-7Q2\",\n   \"MK-INTERN\"\n  ],\n  \"ordner\": \"/home/beispiel/zaehlung\"\n },\n \"klasse\": \"intern\"\n}\n",
+ "einstellungen": {
+  "fassung": 1,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "vorgabestufe": "kundendaten",
+  "routen": [
+   {
+    "schluessel": "cloud-beispiel",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal-beispiel",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-beispiel",
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ }
+}

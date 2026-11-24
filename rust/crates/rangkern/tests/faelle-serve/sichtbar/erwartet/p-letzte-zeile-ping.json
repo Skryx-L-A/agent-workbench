@@ -1,0 +1,13 @@
+{
+ "responses": [
+  {
+   "ok": true,
+   "id": 1
+  },
+  {
+   "ok": true,
+   "id": "ohne-lf"
+  }
+ ],
+ "exit": 0
+}

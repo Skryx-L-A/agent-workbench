@@ -1,0 +1,45 @@
+{
+ "exit": 0,
+ "stdout": [
+  {
+   "rel": ".trash/x.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": ".trash",
+   "stem_key": "x"
+  },
+  {
+   "rel": "10-global/.b/c.md",
+   "linking_excluded": true,
+   "search_excluded": true,
+   "lint_in_scope": false,
+   "branch": "10-global",
+   "stem_key": "c"
+  },
+  {
+   "rel": ".x.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "",
+   "stem_key": ".x"
+  },
+  {
+   "rel": "10-global/.verborgen.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "10-global",
+   "stem_key": ".verborgen"
+  },
+  {
+   "rel": "20-projects/p/_assets/a.md.md",
+   "linking_excluded": false,
+   "search_excluded": false,
+   "lint_in_scope": false,
+   "branch": "20-projects/p",
+   "stem_key": "a.md"
+  }
+ ]
+}

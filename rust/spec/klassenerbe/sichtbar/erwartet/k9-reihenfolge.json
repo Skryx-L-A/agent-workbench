@@ -1,0 +1,19 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "unklar",
+    "klasse": null,
+    "kunden": [],
+    "grund": "route-ohne-klasse"
+   },
+   {
+    "ergebnis": "unklar",
+    "klasse": null,
+    "kunden": [],
+    "grund": "quelle-ohne-klasse"
+   }
+  ]
+ }
+}

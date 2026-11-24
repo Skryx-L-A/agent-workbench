@@ -1,0 +1,9 @@
+{
+ "beschreibung": "W3 fall",
+ "form": "vm",
+ "eigenschaft": "W3",
+ "art": "fall",
+ "ausgangslage": "Windows-VM; Plattformdienst unter NT SERVICE mit den fünf ACEs, Admin-Helfer unter LocalSystem; Projekt A mit Arbeitsordner unter der Projektwurzel; ein Lauf in A mit Claude Code (PowerShell-Werkzeug) gegen die Attrappe des Modellwegs hinter einem Weiterleiter auf dem Sitzungsport M; die Browser-Brücke des Kern-Dienstes hört auf dem Loopback des Rechners; ssh-Stummel vorn im PATH, SSH_AUTH_SOCK leer; Projekt B mit eigener SID; Testdatei im Profil der Person; Werkbank-Daten nur beim Halter",
+ "handlung": "Der Agent und sein PowerShell-Werkzeug lesen die Profildatei, listen und lesen den Arbeitsordner von B, schreiben eine Marke in den eigenen Arbeitsordner, listen die Elternordner; das Profil wird nach DPAPI-CurrentUser-Daten der Werkbank durchsucht",
+ "beleg": "gemessen: Fragen 2, 5, 6 (B: 7 von 7 Fehler 5); nicht gemessen: Namen in Elternordnern, DPAPI-Suche"
+}

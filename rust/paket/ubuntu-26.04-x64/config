@@ -1,0 +1,48 @@
+#!/bin/sh
+# config of the package werkbank (debconf; contract rust/spec/paket, part A, "Zulassung der CA").
+# The one question of the package: werkbank/ca_zulassung (zugelassen, offen, abgelehnt; default offen). It is asked at low priority, so
+# `dpkg-reconfigure werkbank` asks it and an installation does not. With DEBIAN_FRONTEND=noninteractive nothing is asked: the value stays.
+# The file /etc/werkbank/lauf.json is the truth. Before the question is asked, its value becomes the default of the question, unless an
+# answer is waiting (the flag `seen` is true: a dialog or `debconf-set-selections` set it and `postinst` did not consume it yet).
+# Never stops the installation: no `set -e`; exit 0 for every case.
+. /usr/share/debconf/confmodule || exit 0
+
+ETCW=/etc/werkbank
+
+# --- ca-frage begin
+# ca_datei_wert: prints the value of `ca_zulassung` of lauf.json, read as JSON text: any white space (space, tab, CR, LF) around ":" and in front of the
+# value is fine, so a file that an administrator rewrote with another tool is read as before. Only the three valid values count; the key must stand
+# exactly once (a second `"ca_zulassung"` or a value of another form gives nothing, which means `ungueltig` to the callers). POSIX tools only.
+ca_roh() {
+    tr '\n\r\t' '   ' <"$ETCW/lauf.json" 2>/dev/null
+}
+
+ca_datei_wert() {
+    [ -f "$ETCW/lauf.json" ] || return 0
+    cf_n=$(ca_roh | grep -o '"ca_zulassung"' | wc -l)
+    [ $((cf_n + 0)) -eq 1 ] || return 0
+    cf_w=$(ca_roh | grep -o -E '"ca_zulassung" *: *"[^"]*"' | sed -E 's/^"ca_zulassung" *: *"([^"]*)"$/\1/')
+    case "$cf_w" in
+        zugelassen | offen | abgelehnt) printf '%s' "$cf_w" ;;
+    esac
+    return 0
+}
+
+ca_abgleich() {
+    ca_f=$(ca_datei_wert)
+    [ -n "$ca_f" ] || return 0
+    db_fget werkbank/ca_zulassung seen || return 0
+    [ "$RET" = true ] && return 0
+    db_set werkbank/ca_zulassung "$ca_f" || true
+    return 0
+}
+# --- ca-frage end
+
+case "$1" in
+    configure | reconfigure)
+        ca_abgleich
+        db_input low werkbank/ca_zulassung || true
+        db_go || true
+        ;;
+esac
+exit 0

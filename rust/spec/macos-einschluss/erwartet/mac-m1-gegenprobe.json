@@ -1,0 +1,6 @@
+{
+ "erwartet": "jeder Versuch liest die Notiz; der Test wird rot",
+ "messwerte": [
+  "errno je Versuch"
+ ]
+}

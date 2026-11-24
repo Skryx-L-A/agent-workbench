@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Fehler des Firmensystems nur als Zahl",
+ "form": "antwort",
+ "text": "{\"art\":\"antwort\",\"code\":\"halter.mcp_fehler\",\"fassung\":1,\"grund\":\"MCP-Server meldet Fehler\",\"id\":7,\"mcp_code\":-32603,\"ok\":false}"
+}

@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "snippet": "Erste Rumpfzeile ohne Hook.",
+  "lines": [
+   5,
+   5
+  ],
+  "hook": "Erste Rumpfzeile ohne Hook.",
+  "hook_lines": [
+   5,
+   5
+  ]
+ }
+}

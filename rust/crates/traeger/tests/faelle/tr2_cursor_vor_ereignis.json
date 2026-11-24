@@ -1,0 +1,34 @@
+{
+ "name": "tr2_cursor_vor_ereignis",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Vor jedem anderen Ereignis geht eine Ausgabe, wenn sich Zeilen oder nur der Cursor gegenüber der letzten Meldung geändert haben",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[2;3H\u001b[?5h"
+  },
+  {
+   "art": "Text",
+   "text": "alpha\u001b[3;1H\u001b]2;Werkbank eins\u0007"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1H\u001b[?2026h\u001b[2;1H\u001b[?2026l\u001b[?2004h"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?25l\u001b[?5l"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

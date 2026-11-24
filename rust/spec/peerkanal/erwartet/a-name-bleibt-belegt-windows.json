@@ -1,0 +1,11 @@
+{
+ "seite": "anlegen",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "100 von 100 Verbindungen bestätigen den Dienst (Besitzer = dienst)",
+  "jeder Versuch des Vorbelegers scheitert (Fehler 5 oder 231)"
+ ]
+}

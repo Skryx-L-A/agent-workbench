@@ -1,0 +1,13 @@
+{
+ "responses": [
+  {
+   "ok": true,
+   "id": "vor-quit"
+  },
+  {
+   "ok": true,
+   "id": 9
+  }
+ ],
+ "exit": 0
+}

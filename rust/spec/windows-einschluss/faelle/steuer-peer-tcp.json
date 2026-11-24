@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Peer einer Loopback-Verbindung",
+ "form": "steuer",
+ "text": "{\"op\": \"peer\", \"tcp\": {\"lokal\": 41001, \"fern\": 50123}}\n"
+}

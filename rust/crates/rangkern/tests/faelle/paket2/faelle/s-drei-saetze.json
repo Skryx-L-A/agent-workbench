@@ -1,0 +1,12 @@
+{
+ "description": "höchstens 3 Sätze aus einem langen Block",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\ntitle: Aquarium\n---\n\nDas Aquarium braucht Licht. Der Filter läuft Tag und Nacht. Die Pumpe hält das Wasser in Bewegung. Einmal im Monat wird der Kies gesäubert. Am Ende steht ein Wasserwechsel an.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "Aquarium"
+ ]
+}

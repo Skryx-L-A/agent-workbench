@@ -1,0 +1,23 @@
+{
+ "description": "status superseded: Score mal 0,49, Feld status, Treffer bleibt in der Liste",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "--today",
+  "2026-11-18",
+  "Entkalkung Kaffeemaschine"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-5.md": "---\ntitle: Füller 5\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-6.md": "---\ntitle: Füller 6\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-7.md": "---\ntitle: Füller 7\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-8.md": "---\ntitle: Füller 8\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/haushalt/entkalkung-alt.md": "---\ntitle: Entkalkung alt\ntype: note\nstatus: superseded\n---\n\nEntkalkung der Kaffeemaschine mit Essig.\n",
+  "vault/haushalt/entkalkung-neu.md": "---\ntitle: Entkalkung neu\ntype: note\n---\n\nKaffeemaschine entkalken: Entkalkung alle sechs Wochen mit Zitronensaeure, Entkalkung im Blick behalten.\n"
+ }
+}

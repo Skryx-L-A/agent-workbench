@@ -1,0 +1,25 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "klasse-ueber-route",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über Route cloud"
+   },
+   {
+    "darf": false,
+    "grund": "kunde-fehlt",
+    "klasse": "kundendaten",
+    "meldung": "Kundendaten ohne Kunde"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei"
+   }
+  ]
+ }
+}

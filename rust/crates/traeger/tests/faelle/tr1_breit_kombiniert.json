@@ -1,0 +1,30 @@
+{
+ "name": "tr1_breit_kombiniert",
+ "regeln": [
+  "TR1"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Breite Zeichen belegen zwei Zellen, die zweite fehlt im Text; ein breites Zeichen in der letzten Spalte bricht um; kombinierende Zeichen folgen dem Grundzeichen",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "漢字 é 👍\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx漢z\r\n"
+  },
+  {
+   "art": "Text",
+   "text": "éë à́\r\n"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

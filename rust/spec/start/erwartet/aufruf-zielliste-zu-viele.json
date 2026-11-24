@@ -1,0 +1,15 @@
+{
+ "exit": 73,
+ "stderr": "lauf.zielliste: Zielliste nicht schreibbar",
+ "suche_gestartet": true,
+ "suche_beendet": true,
+ "modellweg_gestartet": false,
+ "zielliste": null,
+ "datei_fehlt": [
+  "<startordner>/ca.key",
+  "<startordner>/ca.crt",
+  "<startordner>/ca-bundle.pem",
+  "<startordner>/suche.pid",
+  "<startordner>/modellweg.pid"
+ ]
+}

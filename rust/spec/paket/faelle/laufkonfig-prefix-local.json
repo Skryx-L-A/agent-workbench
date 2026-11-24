@@ -1,0 +1,14 @@
+{
+ "beschreibung": "pi mit npm --prefix <heim>/.local: der Programmordner ist die Paketwurzel unter .local/lib/node_modules, nie .local (das den Anmeldespeicher .local/share/keyrings enthält); node aus /usr gibt keinen Ordner",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/srv/beispiel/heim/nutzer1/.local/lib/node_modules/pi-coding-agent/dist/cli.js",
+   "node": "/usr/bin/node"
+  }
+ },
+ "vorher": null
+}

@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.vault_kein_ordner: Der Vault-Pfad ist kein Ordner.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

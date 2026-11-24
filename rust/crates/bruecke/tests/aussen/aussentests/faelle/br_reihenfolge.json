@@ -1,0 +1,102 @@
+{
+ "beschreibung": "feste Reihenfolge der Pruefungen: Form (400), Host (403), Origin (403), Token (401), dann Methode und Route",
+ "datensatz": "A",
+ "name": "br_reihenfolge",
+ "regeln": [
+  "BR3",
+  "BR2"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "roh": "GET / HTTP/1.0\r\nHost: boese.example\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "roh": "get / HTTP/1.1\r\nHost: boese.example\r\n\r\n"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "boese.example:@port",
+    "origin": "http://evil.example",
+    "token": null,
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "boese.example:@port",
+    "origin": null,
+    "token": null,
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "{}",
+    "methode": "POST",
+    "origin": "http://evil.example",
+    "token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "{}",
+    "methode": "POST",
+    "origin": null,
+    "token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "koerper": "{}",
+    "methode": "PUT",
+    "origin": "gut",
+    "token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "methode": "GET",
+    "origin": null,
+    "token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ziel": "/unbekannt"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "content_laenge": 99999999,
+    "koerper": "{}",
+    "methode": "POST",
+    "origin": "gut",
+    "token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

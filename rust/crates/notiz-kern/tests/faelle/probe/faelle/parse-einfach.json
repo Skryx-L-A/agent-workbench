@@ -1,0 +1,10 @@
+{
+ "description": "one block, scalars, inline list",
+ "files": {
+  "note.md": "---\ntitle: Kaffeemaschine entkalken\ntype: note\naliases: [Entkalken, Kalk]\n---\n\nAlle vier Wochen.\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

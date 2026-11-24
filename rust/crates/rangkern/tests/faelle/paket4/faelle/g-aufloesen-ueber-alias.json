@@ -1,0 +1,29 @@
+{
+ "description": "Nachfolger über Titel, Dateiname oder Alias gefunden",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "-k",
+  "10",
+  "--today",
+  "2026-11-18",
+  "Teppich Reinigung"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-5.md": "---\ntitle: Füller 5\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-6.md": "---\ntitle: Füller 6\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-7.md": "---\ntitle: Füller 7\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-8.md": "---\ntitle: Füller 8\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/pflege/alt-titel.md": "---\ntitle: Alt Titel\ntype: note\nstatus: superseded\nsuperseded-by: [\"[[Titel des Ziels]]\"]\n---\n\nTeppich Reinigung mit Schaum, Teppich Reinigung Flecken.\n",
+  "vault/pflege/alt-datei.md": "---\ntitle: Alt Datei\ntype: note\nsuperseded-by: [\"[[ziel-datei]]\"]\n---\n\nTeppich Reinigung mit Dampf, Teppich Reinigung Fasern.\n",
+  "vault/pflege/alt-alias.md": "---\ntitle: Alt Alias\ntype: note\nsuperseded-by: [\"[[kurzname]]\"]\n---\n\nTeppich Reinigung mit Bürste.\n",
+  "vault/pflege/ziel-titel.md": "---\ntitle: Titel des Ziels\ntype: note\n---\n\nHinweis ohne Suchwort.\n",
+  "vault/pflege/ziel-datei.md": "---\ntitle: Ziel Datei\ntype: note\n---\n\nHinweis zwei ohne Suchwort.\n",
+  "vault/pflege/ziel-alias.md": "---\ntitle: Ziel Alias\ntype: note\naliases: [\"kurzname\"]\n---\n\nHinweis drei ohne Suchwort.\n"
+ }
+}

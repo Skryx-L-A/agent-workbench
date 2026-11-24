@@ -1,0 +1,9 @@
+{
+ "beschreibung": "W14 gegenprobe",
+ "form": "vm",
+ "eigenschaft": "W14",
+ "art": "gegenprobe",
+ "ausgangslage": "Windows-VM; Plattformdienst unter NT SERVICE mit den fünf ACEs, Admin-Helfer unter LocalSystem; Projekt A mit Arbeitsordner unter der Projektwurzel; ein Lauf in A mit Claude Code (PowerShell-Werkzeug) gegen die Attrappe des Modellwegs hinter einem Weiterleiter auf dem Sitzungsport M; die Browser-Brücke des Kern-Dienstes hört auf dem Loopback des Rechners; ssh-Stummel vorn im PATH, SSH_AUTH_SOCK leer; Plattformdienst ohne Prüfung der Port-Besitzer (Prüfling)",
+ "handlung": "Ein Prozess der Person sendet lauf_start mit dem Port der Browser-Brücke; danach verbindet sich der Agent mit ihr",
+ "beleg": "nicht gemessen"
+}

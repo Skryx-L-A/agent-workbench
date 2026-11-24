@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13"
+ ],
+ "beschreibung": "Ein doppelter Schlüssel in einer Route; der letzte Wert wäre lockerer (Nachtrag 20.11.)."
+}

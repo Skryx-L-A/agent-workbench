@@ -1,0 +1,50 @@
+{
+ "name": "tr2_cursor_alternativ",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Mit dem Alternativschirm (Modus 1049, 47, 1047) gilt der Cursor des gerade angezeigten Schirms; beim Verlassen kehrt der Cursor des Hauptschirms zurück",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha\r\nbeta"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049h"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[3;5Hgamma"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049l"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?47h\u001b[2;2H"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?47l"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1047hdelta"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1047l"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

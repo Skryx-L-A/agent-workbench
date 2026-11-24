@@ -1,0 +1,59 @@
+{
+ "name": "tr9_groessenfolge_grenzen",
+ "regeln": [
+  "TR9"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Nur genau drei Zahlen 8, Zeilen, Spalten; fehlende, zu viele oder andere ergeben kein Ereignis; Zahlen über 65535 gelten als 65535; 0 geht durch",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[8;5t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8;;80t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8;24;t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8;0;0t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8;99999;70000t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8;24;80;1t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[4;24;80t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8;24;80 t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?8;24;80t"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8:2;24;80t"
+  }
+ ]
+}

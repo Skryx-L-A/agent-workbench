@@ -1,0 +1,70 @@
+{
+ "name": "tr13_zwei_spalten_stueck",
+ "regeln": [
+  "TR13"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Breite Zeichen bei zwei Spalten, deren UTF-8-Bytes über Stückgrenzen ankommen: dasselbe Raster wie in einem Stück",
+ "art": "strom",
+ "groesse": [
+  2,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Bytes",
+   "hex": "61"
+  },
+  {
+   "art": "Bytes",
+   "hex": "e6"
+  },
+  {
+   "art": "Bytes",
+   "hex": "bc"
+  },
+  {
+   "art": "Bytes",
+   "hex": "a2"
+  },
+  {
+   "art": "Bytes",
+   "hex": "62"
+  },
+  {
+   "art": "Bytes",
+   "hex": "e5"
+  },
+  {
+   "art": "Bytes",
+   "hex": "ad"
+  },
+  {
+   "art": "Bytes",
+   "hex": "97"
+  },
+  {
+   "art": "Bytes",
+   "hex": "f0"
+  },
+  {
+   "art": "Bytes",
+   "hex": "9f"
+  },
+  {
+   "art": "Bytes",
+   "hex": "98"
+  },
+  {
+   "art": "Bytes",
+   "hex": "80"
+  },
+  {
+   "art": "Bytes",
+   "hex": "63"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

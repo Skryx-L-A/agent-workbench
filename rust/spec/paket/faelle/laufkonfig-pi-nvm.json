@@ -1,0 +1,14 @@
+{
+ "beschreibung": "pi unter einer nvm-Installation des Nutzers: die Paketwurzel von pi und der bin-Ordner von node als Programmordner (nicht der ganze Präfix), der bin-Ordner von node vorn im PATH",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/srv/beispiel/heim/nutzer1/.nvm/versions/node/v24.1.0/lib/node_modules/pi-coding-agent/dist/cli.js",
+   "node": "/srv/beispiel/heim/nutzer1/.nvm/versions/node/v24.1.0/bin/node"
+  }
+ },
+ "vorher": null
+}

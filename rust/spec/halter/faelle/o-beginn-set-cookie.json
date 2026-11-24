@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Beginn reicht Set-Cookie weiter",
+ "form": "antwort",
+ "text": "{\"art\":\"beginn\",\"fassung\":1,\"id\":\"m-1\",\"kopf\":{\"set-cookie\":\"a=b\"},\"status\":200}"
+}

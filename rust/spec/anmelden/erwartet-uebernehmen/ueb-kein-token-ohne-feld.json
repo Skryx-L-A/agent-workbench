@@ -1,0 +1,10 @@
+{
+ "exit": 19,
+ "code": "anmelden.quelle_ohne_token",
+ "stdout": "",
+ "stderr": "werkbank-anmelden: anmelden.quelle_ohne_token: In der Konfiguration der Copilot CLI liegt nicht genau ein Token.\n",
+ "ziel_datei": "keine",
+ "config": "unveraendert",
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

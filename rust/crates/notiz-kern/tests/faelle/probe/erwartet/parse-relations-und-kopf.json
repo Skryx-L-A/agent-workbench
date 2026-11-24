@@ -1,0 +1,39 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "id: 1\ndescription: Kurz gesagt\nbranch: 10-global\ntype: note\ntags: [a, b]\naliases: [X]\ntitle: T\npermalink: main/t"
+  ],
+  "fields": {
+   "id": "1",
+   "description": "Kurz gesagt",
+   "branch": "10-global",
+   "type": "note",
+   "tags": [
+    "a",
+    "b"
+   ],
+   "aliases": [
+    "X"
+   ],
+   "title": "T",
+   "permalink": "main/t"
+  },
+  "body": "Rumpf\n\n## Relations\n- relates-to [[Alpha]]\n- part-of [[Gamma]]\n\nEnde\n",
+  "title": "T",
+  "type": "note",
+  "aliases": [
+   "X"
+  ],
+  "links": [
+   "alpha",
+   "gamma"
+  ],
+  "keys": [
+   "note",
+   "t",
+   "x"
+  ],
+  "embed_text": "T\naliases: X\ntags: a, b\ntype: note\nbranch: 10-global\nKurz gesagt\n\nRumpf\n\n\nEnde\n"
+ }
+}

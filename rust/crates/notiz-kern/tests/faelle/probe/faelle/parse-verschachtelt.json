@@ -1,0 +1,10 @@
+{
+ "description": "nested mapping lines under an empty key are dropped",
+ "files": {
+  "note.md": "---\ntitle: Tief\nmetadata:\n  type: user\n  name: x\ntype: reference\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

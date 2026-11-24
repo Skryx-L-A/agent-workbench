@@ -1,0 +1,30 @@
+{
+ "name": "tr6_sync_ohne_ende",
+ "regeln": [
+  "TR6"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Ohne SyncEnde gehen die Ausgaben trotzdem sofort hinaus (der Kern hält sie zurück und gibt nach 150 ms frei); jedes SyncBeginn ist ein Ereignis",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[?2026halpha"
+  },
+  {
+   "art": "Text",
+   "text": "beta"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?2026h\u001b[?2026hgamma"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

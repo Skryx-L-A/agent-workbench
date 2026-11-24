@@ -1,0 +1,106 @@
+{
+ "beschreibung": "Eingabezeile und Terminal schalten Großschreibung und Rechtschreibprüfung der Bildschirmtastatur ab.",
+ "datensatz": "A",
+ "fenster": {
+  "beruehrung": true,
+  "breite": 360,
+  "hoehe": 640,
+  "mobil": true
+ },
+ "name": "se5_tastatur_attribute",
+ "regeln": [
+  "SE5"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Attribut",
+   "attribut": "autocapitalize",
+   "wert": "off",
+   "ziel": {
+    "name": "Eingabe",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Attribut",
+   "attribut": "enterkeyhint",
+   "wert": "send",
+   "ziel": {
+    "name": "Eingabe",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Attribut",
+   "attribut": "autocapitalize",
+   "wert": "off",
+   "ziel": {
+    "name": "Terminal s-1",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Attribut",
+   "attribut": "spellcheck",
+   "wert": "false",
+   "ziel": {
+    "name": "Terminal s-1",
+    "rolle": "textbox"
+   }
+  }
+ ]
+}

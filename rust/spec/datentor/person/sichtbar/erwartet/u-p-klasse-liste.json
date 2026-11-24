@@ -1,0 +1,8 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13",
+  "P0"
+ ],
+ "beschreibung": "Ladefehler: Die Klasse eines Eintrags ist eine Liste."
+}

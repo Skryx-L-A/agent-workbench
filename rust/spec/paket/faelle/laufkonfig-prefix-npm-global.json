@@ -1,0 +1,14 @@
+{
+ "beschreibung": "pi mit dem npm-Prefix <heim>/.npm-global: die Paketwurzel unter .npm-global/lib/node_modules, nicht der Prefix",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/srv/beispiel/heim/nutzer1/.npm-global/lib/node_modules/pi-coding-agent/dist/cli.js",
+   "node": "/usr/bin/node"
+  }
+ },
+ "vorher": null
+}

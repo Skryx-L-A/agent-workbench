@@ -1,0 +1,41 @@
+{
+ "beschreibung": "Ein Feld kunde, das kein Text ist, sperrt; im Protokoll steht kunde null",
+ "herkunft": "vertrag4:t-kunde-kein-text",
+ "orte": [
+  "mac"
+ ],
+ "files": {
+  "vault/a/notiz-qkx8.md": "---\ntitle: \"Messplan QKX8\"\ntype: \"note\"\ndatenklasse: \"intern\"\nkunde: [\"k-nord\"]\n---\n\nMessplan QKX8 Messplan.\n",
+  "vault/a/messplan.md": "---\ntitle: \"Messplan\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nDer Messplan der Halle.\n",
+  "aux/einstellungen.json": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-nord\",\n   \"erlaubt\": [\n    \"lokal\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+ },
+ "dirs": [
+  "home",
+  "protokoll"
+ ],
+ "args": [
+  "sitzung",
+  "{root}/vault",
+  "--socket",
+  "{sock}",
+  "--route",
+  "cloud",
+  "--sitzung",
+  "s-test-1",
+  "--einstellungen",
+  "{root}/aux/einstellungen.json",
+  "--protokoll",
+  "{root}/protokoll"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "search",
+    "query": "Messplan"
+   }
+  }
+ ],
+ "verboten": [
+  "qkx8"
+ ]
+}

@@ -1,0 +1,8 @@
+{
+ "beschreibung": "lauf_ende ohne Lauf",
+ "form": "steuer",
+ "text": "{\"op\": \"lauf_ende\", \"sitzung\": \"s-1\"}\n",
+ "lage": {
+  "laeufe": []
+ }
+}

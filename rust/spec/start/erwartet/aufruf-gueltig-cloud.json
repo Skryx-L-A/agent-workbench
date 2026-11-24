@@ -1,0 +1,34 @@
+{
+ "exec": "claude",
+ "eltern_ist_programm": true,
+ "stderr": "",
+ "suche_gestartet": true,
+ "socket_gast": "/run/brain/such.sock",
+ "socket_modus": "0600",
+ "socket_ordner_modus": "0700",
+ "socket_ordner_im_einschluss": false,
+ "suche_umgebung": {},
+ "suche_dumpable": 0,
+ "e3_agent": {
+  "signal": "scheitert",
+  "umgebung_lesen": "scheitert",
+  "ptrace": "scheitert"
+ },
+ "suche_argv": [
+  "rangkern",
+  "sitzung",
+  "<vault>",
+  "--socket",
+  "<socket>",
+  "--route",
+  "cloud-beispiel",
+  "--sitzung",
+  "s-1",
+  "--einstellungen",
+  "<einstellungen>",
+  "--protokoll",
+  "<protokoll>",
+  "--socket-rechte",
+  "0600"
+ ]
+}

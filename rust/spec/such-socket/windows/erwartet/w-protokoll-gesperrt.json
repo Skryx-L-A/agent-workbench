@@ -1,0 +1,16 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "abgewiesen": true
+  },
+  {
+   "abgewiesen": true
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

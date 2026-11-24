@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Komma vor einer schließenden Klammer: kein JSON",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "komma-vor-klammer",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

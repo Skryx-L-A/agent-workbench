@@ -1,0 +1,37 @@
+{
+ "name": "tr3_cursor_schrumpf",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Schrumpfen die Spalten und steht der Cursor rechts vom neuen Rand, bricht alacritty_terminal ihn um (auch ohne Text in der Zeile); der Träger meldet diesen Wert und klemmt nicht, anders als der Kern",
+ "art": "strom",
+ "groesse": [
+  40,
+  10
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[8;30H"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 20,
+   "zeilen": 5
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "y"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

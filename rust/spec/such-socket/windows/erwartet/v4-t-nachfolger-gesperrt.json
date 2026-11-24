@@ -1,0 +1,34 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "fallback": true,
+   "rels": [
+    "projekte/regel-alt.md"
+   ],
+   "gesperrt": 1,
+   "pruefe_felder": {
+    "projekte/regel-alt.md": {
+     "abgeloest_durch": null
+    }
+   }
+  }
+ ],
+ "protokoll": [
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": "k-nord",
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  }
+ ],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

@@ -1,0 +1,6 @@
+{
+ "beschreibung": "eine andere uid und ein anderer Nutzername: alle Pfade folgen der uid, die Einstellungsdatei dem Namen",
+ "form": "dienstkonfig",
+ "nutzer": "anna-b",
+ "uid": 1234
+}

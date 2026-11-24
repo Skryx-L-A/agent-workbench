@@ -1,0 +1,73 @@
+{
+ "name": "d6-vier-klassen",
+ "regeln": [
+  "D6",
+  "D5"
+ ],
+ "beschreibung": "Das Tor vergleicht nur Positionen; die Namen der Klassen bedeuten ihm nichts.",
+ "vorgabe": {
+  "klassen": [
+   "s0",
+   "s1",
+   "s2",
+   "s3"
+  ],
+  "routen": [
+   {
+    "schluessel": "r2",
+    "art": "lokal",
+    "klasse": "s2"
+   },
+   {
+    "schluessel": "r3",
+    "art": "lokal",
+    "klasse": "s3"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r3"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "s1"
+   },
+   "route": "r2",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "s2"
+   },
+   "route": "r2",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "s3"
+   },
+   "route": "r2",
+   "kunde": "k-a"
+  },
+  {
+   "einheit": {
+    "klasse": "s0"
+   },
+   "route": "r3",
+   "kunde": "k-a"
+  },
+  {
+   "einheit": {
+    "klasse": "s3"
+   },
+   "route": "r3",
+   "kunde": null
+  }
+ ]
+}

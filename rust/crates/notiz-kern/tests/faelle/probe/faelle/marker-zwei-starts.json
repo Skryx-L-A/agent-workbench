@@ -1,0 +1,16 @@
+{
+ "description": "two start markers: malformed",
+ "files": {
+  "note.md": "<!-- dream:block:start -->\na\n<!-- dream:block:start -->\nb\n<!-- dream:block:end -->\n"
+ },
+ "args": [
+  "markers",
+  "{root}/note.md",
+  "--start",
+  "<!-- dream:block:start -->",
+  "--end",
+  "<!-- dream:block:end -->",
+  "--replace",
+  "X"
+ ]
+}

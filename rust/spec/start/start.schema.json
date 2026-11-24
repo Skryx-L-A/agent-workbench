@@ -1,0 +1,140 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "werkbank:start/fassung-1",
+ "title": "Start-Struktur, Fassung 1",
+ "description": "Zwei Formen: $defs/anfrage (Ansicht an Kern-Dienst, ohne sitzung) und $defs/datei (Kern-Dienst an 'Lauf starten', mit sitzung und optional marker). Nicht im Schema: Größe in Byte, BOM, doppelte JSON-Schlüssel, Pfadlänge in Byte, Harness-Tabelle, Querverweise auf die Einstellungsdatei und der Fehlercode. Siehe README.md.",
+ "$ref": "#/$defs/datei",
+ "$defs": {
+  "kennung": {
+   "type": "string",
+   "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+  },
+  "felder": {
+   "fassung": {
+    "const": 1
+   },
+   "harness": {
+    "$ref": "#/$defs/kennung"
+   },
+   "modell": {
+    "type": "string",
+    "pattern": "^[A-Za-z0-9._:/@+-]{1,128}$"
+   },
+   "route": {
+    "$ref": "#/$defs/kennung"
+   },
+   "kunde": {
+    "anyOf": [
+     {
+      "type": "null"
+     },
+     {
+      "$ref": "#/$defs/kennung"
+     }
+    ]
+   },
+   "arbeitsordner": {
+    "type": "string",
+    "maxLength": 1024,
+    "pattern": "^(/[^/\\u0000-\\u001f\\u007f-\\u009f]+)+$",
+    "not": {
+     "pattern": "(^|/)\\.\\.?(/|$)"
+    }
+   },
+   "marker": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "liste",
+     "ordner"
+    ],
+    "properties": {
+     "liste": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+       "type": "string",
+       "pattern": "^[A-Z0-9-]{1,32}$"
+      }
+     },
+     "ordner": {
+      "$ref": "#/$defs/felder/arbeitsordner"
+     }
+    }
+   }
+  },
+  "anfrage": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "fassung",
+    "harness",
+    "modell",
+    "route",
+    "kunde",
+    "arbeitsordner"
+   ],
+   "properties": {
+    "fassung": {
+     "$ref": "#/$defs/felder/fassung"
+    },
+    "harness": {
+     "$ref": "#/$defs/felder/harness"
+    },
+    "modell": {
+     "$ref": "#/$defs/felder/modell"
+    },
+    "route": {
+     "$ref": "#/$defs/felder/route"
+    },
+    "kunde": {
+     "$ref": "#/$defs/felder/kunde"
+    },
+    "arbeitsordner": {
+     "$ref": "#/$defs/felder/arbeitsordner"
+    }
+   }
+  },
+  "datei": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "fassung",
+    "sitzung",
+    "harness",
+    "modell",
+    "route",
+    "kunde",
+    "arbeitsordner"
+   ],
+   "properties": {
+    "fassung": {
+     "$ref": "#/$defs/felder/fassung"
+    },
+    "sitzung": {
+     "$ref": "#/$defs/kennung"
+    },
+    "harness": {
+     "$ref": "#/$defs/felder/harness"
+    },
+    "modell": {
+     "$ref": "#/$defs/felder/modell"
+    },
+    "route": {
+     "$ref": "#/$defs/felder/route"
+    },
+    "kunde": {
+     "$ref": "#/$defs/felder/kunde"
+    },
+    "arbeitsordner": {
+     "$ref": "#/$defs/felder/arbeitsordner"
+    },
+    "marker": {
+     "$ref": "#/$defs/felder/marker"
+    }
+   }
+  }
+ }
+}

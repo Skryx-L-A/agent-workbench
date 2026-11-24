@@ -1,0 +1,12 @@
+{
+ "description": "name: and metadata: lines after the frontmatter are body text",
+ "files": {
+  "note.md": "---\nid: 01N7QWB2XHD4RT9ZKMA3VC5EPY\nschema: 4\ntitle: Gartenweg-Plan\ntype: note\nclass: knowledge\ncreated: \"2026-10-02\"\nstand: \"2026-10\"\n---\n\nFür den Weg nehmen wir Holzschnitzel.\nmetadata: Frühbeet, Ostseite\nname: Kürbis\n"
+ },
+ "args": [
+  "lint",
+  "{root}/note.md",
+  "--rel",
+  "10-global/beet-notiz.md"
+ ]
+}

@@ -1,0 +1,52 @@
+{
+ "beschreibung": "ist der Dienst nicht erreichbar: /starten und /strom antworten 502 ohne Inhalt, die Seite bleibt erreichbar",
+ "datensatz": "A",
+ "dienst": null,
+ "name": "br_starten_dienst_weg",
+ "regeln": [
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "koerper": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": "gut",
+    "ziel": "/strom"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

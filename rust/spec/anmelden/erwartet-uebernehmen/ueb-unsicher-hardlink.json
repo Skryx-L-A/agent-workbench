@@ -1,0 +1,10 @@
+{
+ "exit": 20,
+ "code": "anmelden.quelle_unsicher",
+ "stdout": "",
+ "stderr": "werkbank-anmelden: anmelden.quelle_unsicher: Die Konfiguration der Copilot CLI ist keine eigene regulaere Datei bis 1 MiB.\n",
+ "ziel_datei": "keine",
+ "config": "unveraendert",
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

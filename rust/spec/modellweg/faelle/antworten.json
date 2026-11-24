@@ -1,0 +1,413 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitte 7 und 11 (Betriebsart openai-lokal). Schluessel der Lage: mw-testschluessel-7f3a9c0e5b2d4618 (erfunden). ziel.teile sind die Teile des Koerpers in der Reihenfolge des Eintreffens (latin1). an_harness: antwort (Status, Koepfe ausser der Rahmung, Koerper), ersetzt (eigene 502) oder abgerissen (gesendet = Bytes vor dem Abriss).",
+ "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+ "faelle": [
+  {
+   "name": "reasoning_unveraendert",
+   "beschreibung": "Antwort mit Feld reasoning geht Byte fuer Byte durch; Tokens aus usage",
+   "ziel": {
+    "status": 200,
+    "kopf": [
+     [
+      "Content-Type",
+      "application/json"
+     ],
+     [
+      "Set-Cookie",
+      "s=1"
+     ]
+    ],
+    "teile": [
+     "{\"id\":\"c2\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Hallo\",\"reasoning\":\"Der Nutzer gruesst.\"}}],\"usage\":{\"prompt_tokens\":9,\"completion_tokens\":3}}"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ]
+     ],
+     "koerper": "{\"id\":\"c2\",\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Hallo\",\"reasoning\":\"Der Nutzer gruesst.\"}}],\"usage\":{\"prompt_tokens\":9,\"completion_tokens\":3}}"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200,
+     "token_aus": 3,
+     "token_ein": 9
+    }
+   }
+  },
+  {
+   "name": "strom_unveraendert",
+   "beschreibung": "SSE-Strom mit reasoning geht Byte fuer Byte durch; Tokens aus dem letzten usage",
+   "ziel": {
+    "status": 200,
+    "kopf": [
+     [
+      "Content-Type",
+      "text/event-stream"
+     ]
+    ],
+    "teile": [
+     "data: {\"id\":\"c1\",\"choices\":[{\"delta\":{\"reasoning\":\"Ich denke\"}}]}\n\n",
+     "data: {\"id\":\"c1\",\"choices\":[{\"delta\":{\"content\":\"Hallo\"}}]}\n\n",
+     "data: {\"id\":\"c1\",\"choices\":[],\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":4,\"total_tokens\":15}}\n\n",
+     "data: [DONE]\n\n"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "text/event-stream"
+      ]
+     ],
+     "koerper": "data: {\"id\":\"c1\",\"choices\":[{\"delta\":{\"reasoning\":\"Ich denke\"}}]}\n\ndata: {\"id\":\"c1\",\"choices\":[{\"delta\":{\"content\":\"Hallo\"}}]}\n\ndata: {\"id\":\"c1\",\"choices\":[],\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":4,\"total_tokens\":15}}\n\ndata: [DONE]\n\n"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200,
+     "token_aus": 4,
+     "token_ein": 11
+    }
+   }
+  },
+  {
+   "name": "strom_ohne_usage",
+   "beschreibung": "Strom ohne usage: Tokens null",
+   "ziel": {
+    "status": 200,
+    "kopf": [
+     [
+      "Content-Type",
+      "text/event-stream"
+     ]
+    ],
+    "teile": [
+     "data: {\"id\":\"c1\",\"choices\":[{\"delta\":{\"reasoning\":\"Ich denke\"}}]}\n\n",
+     "data: {\"id\":\"c1\",\"choices\":[{\"delta\":{\"content\":\"Hallo\"}}]}\n\n",
+     "data: [DONE]\n\n"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "text/event-stream"
+      ]
+     ],
+     "koerper": "data: {\"id\":\"c1\",\"choices\":[{\"delta\":{\"reasoning\":\"Ich denke\"}}]}\n\ndata: {\"id\":\"c1\",\"choices\":[{\"delta\":{\"content\":\"Hallo\"}}]}\n\ndata: [DONE]\n\n"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200,
+     "token_aus": null,
+     "token_ein": null
+    }
+   }
+  },
+  {
+   "name": "policy_403",
+   "beschreibung": "403 policy_model_blocked des Ziels: Status und Koerper unveraendert",
+   "ziel": {
+    "status": 403,
+    "kopf": [
+     [
+      "Content-Type",
+      "application/json"
+     ]
+    ],
+    "teile": [
+     "{\"error\":{\"message\":\"model lokal-beispiel/modell-b is not allowed for this key\",\"type\":\"policy_model_blocked\",\"code\":403}}"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 403,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ]
+     ],
+     "koerper": "{\"error\":{\"message\":\"model lokal-beispiel/modell-b is not allowed for this key\",\"type\":\"policy_model_blocked\",\"code\":403}}"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 403,
+     "token_aus": null,
+     "token_ein": null
+    }
+   }
+  },
+  {
+   "name": "fehler_401",
+   "beschreibung": "401 des Ziels mit Textkoerper unveraendert",
+   "ziel": {
+    "status": 401,
+    "kopf": [
+     [
+      "Content-Type",
+      "text/plain"
+     ]
+    ],
+    "teile": [
+     "unauthorized"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 401,
+     "kopf": [
+      [
+       "content-type",
+       "text/plain"
+      ]
+     ],
+     "koerper": "unauthorized"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 401,
+     "token_aus": null,
+     "token_ein": null
+    }
+   }
+  },
+  {
+   "name": "umleitung_nicht_gefolgt",
+   "beschreibung": "302 des Ziels: unveraendert zurueck, Location geht nicht mit, kein zweiter Aufruf",
+   "ziel": {
+    "status": 302,
+    "kopf": [
+     [
+      "Location",
+      "https://fremd.beispiel.invalid/"
+     ]
+    ],
+    "teile": [
+     ""
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 302,
+     "kopf": [],
+     "koerper": ""
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 302,
+     "token_aus": null,
+     "token_ein": null
+    }
+   }
+  },
+  {
+   "name": "leck_im_fehlerkoerper",
+   "beschreibung": "das Ziel spiegelt den Schluessel in einem Fehlerkoerper: ersetzt, bevor ein Byte zum Harness geht",
+   "ziel": {
+    "status": 401,
+    "kopf": [
+     [
+      "Content-Type",
+      "application/json"
+     ]
+    ],
+    "teile": [
+     "{\"error\":\"bad key Bearer mw-testschluessel-7f3a9c0e5b2d4618\"}"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "ersetzt",
+     "status": 502,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ]
+     ],
+     "koerper": "{\"error\":{\"code\":\"mw.leck_gesperrt\",\"message\":\"Antwort des Ziels gesperrt\"}}"
+    },
+    "zeile": {
+     "ergebnis": "leck_gesperrt",
+     "grund": "mw.leck_gesperrt",
+     "status": 502,
+     "token_aus": null,
+     "token_ein": null
+    }
+   }
+  },
+  {
+   "name": "leck_ueber_teilgrenze",
+   "beschreibung": "der Schluessel ist auf zwei Teile verteilt",
+   "ziel": {
+    "status": 200,
+    "kopf": [
+     [
+      "Content-Type",
+      "application/json"
+     ]
+    ],
+    "teile": [
+     "{\"x\":\"mw-testsch",
+     "luessel-7f3a9c0e5b2d4618\"}"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "ersetzt",
+     "status": 502,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ]
+     ],
+     "koerper": "{\"error\":{\"code\":\"mw.leck_gesperrt\",\"message\":\"Antwort des Ziels gesperrt\"}}"
+    },
+    "zeile": {
+     "ergebnis": "leck_gesperrt",
+     "grund": "mw.leck_gesperrt",
+     "status": 502,
+     "token_aus": null,
+     "token_ein": null
+    }
+   }
+  },
+  {
+   "name": "leck_spaet_im_strom",
+   "beschreibung": "der Schluessel kommt erst nach 2 Ereignissen: die Verbindung zum Harness reisst ab",
+   "ziel": {
+    "status": 200,
+    "kopf": [
+     [
+      "Content-Type",
+      "text/event-stream"
+     ]
+    ],
+    "teile": [
+     "data: {\"id\":\"c1\",\"choices\":[{\"delta\":{\"reasoning\":\"Ich denke\"}}]}\n\n",
+     "data: {\"id\":\"c1\",\"choices\":[{\"delta\":{\"content\":\"Hallo\"}}]}\n\n",
+     "data: {\"k\":\"mw-testschluessel-7f3a9c0e5b2d4618\"}\n\n"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "abgerissen",
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "text/event-stream"
+      ]
+     ],
+     "gesendet": "data: {\"id\":\"c1\",\"choices\":[{\"delta\":{\"reasoning\":\"Ich denke\"}}]}\n\ndata: {\"id\":\"c1\",\"choices\":["
+    },
+    "zeile": {
+     "ergebnis": "leck_gesperrt",
+     "grund": "mw.leck_gesperrt",
+     "status": 200,
+     "token_aus": null,
+     "token_ein": null
+    }
+   }
+  },
+  {
+   "name": "leck_im_kopf",
+   "beschreibung": "der Schluessel steht im Content-Type des Ziels",
+   "ziel": {
+    "status": 200,
+    "kopf": [
+     [
+      "Content-Type",
+      "text/plain; x=mw-testschluessel-7f3a9c0e5b2d4618"
+     ]
+    ],
+    "teile": [
+     "ok"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "ersetzt",
+     "status": 502,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ]
+     ],
+     "koerper": "{\"error\":{\"code\":\"mw.leck_gesperrt\",\"message\":\"Antwort des Ziels gesperrt\"}}"
+    },
+    "zeile": {
+     "ergebnis": "leck_gesperrt",
+     "grund": "mw.leck_gesperrt",
+     "status": 502,
+     "token_aus": null,
+     "token_ein": null
+    }
+   }
+  },
+  {
+   "name": "teil_kuerzer_als_schluessel",
+   "beschreibung": "viele kurze Teile ohne Schluessel kommen vollstaendig und in Reihenfolge an",
+   "ziel": {
+    "status": 200,
+    "kopf": [
+     [
+      "Content-Type",
+      "text/event-stream"
+     ]
+    ],
+    "teile": [
+     "da",
+     "ta: ",
+     "{}",
+     "\n\n"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "text/event-stream"
+      ]
+     ],
+     "koerper": "data: {}\n\n"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200,
+     "token_aus": null,
+     "token_ein": null
+    }
+   }
+  }
+ ]
+}

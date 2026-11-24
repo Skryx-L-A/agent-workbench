@@ -1,0 +1,6 @@
+{
+ "beschreibung": "`lauf.ziellisten` ist der Ordner der Ziellisten, `<zustand>/sitzungen` von lauf.json: der Zustandsordner des Nutzers (nach dem Namen, nicht nach der uid) plus /sitzungen; er ist nicht `lauf.sitzungen` (/var/lib/werkbank/s/<uid>)",
+ "form": "dienstkonfig",
+ "nutzer": "anna-b",
+ "uid": 77
+}

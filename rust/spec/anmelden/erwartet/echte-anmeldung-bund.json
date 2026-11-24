@@ -1,0 +1,10 @@
+{
+ "exit": 16,
+ "code": "anmelden.echte_anmeldung",
+ "stdout": "To authenticate, visit https://github.com/login/device and enter code ABCD-1234\nWaiting for authorization...\n",
+ "stderr": "werkbank-anmelden: anmelden.echte_anmeldung: Im Heim des Nutzers liegt eine Anmeldung der Copilot CLI. Sie muss weg, bevor eine Sitzung startet.\n",
+ "ziel_datei": "neu",
+ "login_gestartet": true,
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

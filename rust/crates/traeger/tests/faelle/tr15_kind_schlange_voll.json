@@ -1,0 +1,49 @@
+{
+ "name": "tr15_kind_schlange_voll",
+ "regeln": [
+  "TR12",
+  "TR15"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Nachtrag 20.11. (TR15): Ein Schreiben von 262 145 Byte passt nicht in die Schlange: sofort ok false, fehler schlange_voll, nichts davon wird geschrieben",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "stumm",
+  "argv": [],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "text": "BEREIT"
+   }
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "cursor": [
+     1,
+     0,
+     true
+    ]
+   }
+  },
+  {
+   "art": "Tasten",
+   "hex": "61",
+   "mal": 262145
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

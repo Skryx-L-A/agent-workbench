@@ -1,0 +1,453 @@
+{
+  "beschreibung": "Einsichtsregel rolle-vier-augen, Vier Augen an: Der Antragsteller holt das Ergebnis der Einsicht selbst ab, genau einmal. Abholen vor der zweiten Freigabe, durch die zweite Person, ein zweites Mal und nach der Abholfrist wird abgelehnt und protokolliert; die zweite Person sieht nie die Zeilen.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "A102",
+    "A103",
+    "Nachtrag 3"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"brain\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[\"brain_schreiben\",\"brain_senken\"],\"zweite_person\":[\"brain_senken\"],\"frist_ms\":60000,\"einloesefrist_ms\":30000}},\"stelle\":{\"vier_augen\":true,\"antrag_frist_ms\":10000,\"einsicht\":{\"regel\":\"rolle-vier-augen\"}}}",
+    "rollen": {
+      "ps_00000000000000000000000000000b01": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000b02": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000e01": [
+        "einsicht"
+      ],
+      "ps_00000000000000000000000000000e02": [
+        "einsicht"
+      ]
+    }
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/srv/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "einsicht.anfragen",
+      "jetzt_ms": 1795179601000,
+      "eingabe": {
+        "monat": "2026-11",
+        "nonce": "00000000000000000000000000000001",
+        "quelle": "stelle",
+        "zweck": "pruefung",
+        "nachweis": "h1:ps_00000000000000000000000000000e01:ce5e0e326868eca1688d35d6e40b87c952da249213099bb772f1124467c7abf1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "antrag_offen",
+          "antrag": "an-1795179540000-1",
+          "frist_bis_ms": 1795179611000
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.offene",
+      "jetzt_ms": 1795179601500,
+      "eingabe": {},
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "antraege",
+          "antraege": [
+            {
+              "antrag": "an-1795179540000-1",
+              "antragsteller": "ps_00000000000000000000000000000e01",
+              "art": "einsicht",
+              "erste_freigabe": null,
+              "frist_bis_ms": 1795179611000,
+              "inhalt": {
+                "antragsteller": "ps_00000000000000000000000000000e01",
+                "art": "einsicht",
+                "monat": "2026-11",
+                "quelle": "stelle",
+                "zweck": "pruefung"
+              },
+              "inhalt_sha256": "3d61532ab8893613506a5a25d130ccec1790afa1045229aeda6ae5ba2c29ffef"
+            }
+          ]
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.ergebnis",
+      "jetzt_ms": 1795179602000,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000e01:a8a1c9b4d6a8672112e0fd7df4889e5620854e9c5b3c35e7209642a8dfdf28f4"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.antrag_nicht_bestaetigt",
+          "grund": "Antrag nicht bestaetigt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.antrag_nicht_bestaetigt\",\"vorgang\":\"antrag.ergebnis\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}",
+            "sha256": "3b9aae95fbf7792122b420069855e362b615880ec9ed4077a740d296ef4aa3ea"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.bestaetigen",
+      "jetzt_ms": 1795179603000,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000b01:44038bca272f31b5039243266fe48472ebeaf302c7902d93d63e5f5b656ed1fb"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "bestaetigt",
+          "antrag": "an-1795179540000-1",
+          "abholen_bis_ms": 1795179613000
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"protokoll.einsicht\",\"antrag\":\"an-1795179540000-1\",\"ergebnis\":\"erlaubt\",\"fassung\":2,\"monat\":\"2026-11\",\"person\":\"ps_00000000000000000000000000000e01\",\"quelle\":\"stelle\",\"vorher\":\"3b9aae95fbf7792122b420069855e362b615880ec9ed4077a740d296ef4aa3ea\",\"zeit\":\"2026-11-20T13:00:03.000Z\",\"zweck\":\"pruefung\",\"zweiter\":\"ps_00000000000000000000000000000b01\"}",
+            "sha256": "0bcb0b24ba5296de7a276b2f08e67dd00aa83077952e488df49d947a23b7f7e2"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.ergebnis",
+      "jetzt_ms": 1795179603500,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000b01:0e1ebf2ce3ca29033d4960009471071b251bd626fb474f831e376a05a6d7ee36"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.nicht_antragsteller",
+          "grund": "Nur der Antragsteller holt ab"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.nicht_antragsteller\",\"vorgang\":\"antrag.ergebnis\",\"vorher\":\"0bcb0b24ba5296de7a276b2f08e67dd00aa83077952e488df49d947a23b7f7e2\",\"zeit\":\"2026-11-20T13:00:03.500Z\"}",
+            "sha256": "19dc11026ba231359105f973335bbc3b55a3939249c31ee13513ca20b25a5814"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.ergebnis",
+      "jetzt_ms": 1795179603501,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000e01:058fa9e59716f9c8bbffa7fb28aac7bbf3b105bb132574e77587b433225c607a"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.nachweis_ungueltig",
+          "grund": "Nachweis ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.nachweis_ungueltig\",\"vorgang\":\"antrag.ergebnis\",\"vorher\":\"19dc11026ba231359105f973335bbc3b55a3939249c31ee13513ca20b25a5814\",\"zeit\":\"2026-11-20T13:00:03.501Z\"}",
+            "sha256": "ed438e24be6f1b35087fbb984ff5325a1efd28b1b2c532f3f40956804fa1f347"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.ergebnis",
+      "jetzt_ms": 1795179604000,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000e01:a8a1c9b4d6a8672112e0fd7df4889e5620854e9c5b3c35e7209642a8dfdf28f4"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "einsicht_erlaubt",
+          "antrag": "an-1795179540000-1",
+          "monat": "2026-11",
+          "quelle": "stelle"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"protokoll.einsicht\",\"antrag\":\"an-1795179540000-1\",\"ergebnis\":\"abgeholt\",\"fassung\":2,\"monat\":\"2026-11\",\"person\":\"ps_00000000000000000000000000000e01\",\"quelle\":\"stelle\",\"vorher\":\"ed438e24be6f1b35087fbb984ff5325a1efd28b1b2c532f3f40956804fa1f347\",\"zeit\":\"2026-11-20T13:00:04.000Z\",\"zweck\":\"pruefung\",\"zweiter\":\"ps_00000000000000000000000000000b01\"}",
+            "sha256": "326cc9010f040edf45f53d4b1f4f3f2918ba3fcb32653ea557881da56fbba667"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.ergebnis",
+      "jetzt_ms": 1795179604001,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000e01:a8a1c9b4d6a8672112e0fd7df4889e5620854e9c5b3c35e7209642a8dfdf28f4"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.bereits_abgeholt",
+          "grund": "Ergebnis schon abgeholt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_abgeholt\",\"vorgang\":\"antrag.ergebnis\",\"vorher\":\"326cc9010f040edf45f53d4b1f4f3f2918ba3fcb32653ea557881da56fbba667\",\"zeit\":\"2026-11-20T13:00:04.001Z\"}",
+            "sha256": "81d6cef9da3d09b3c04679fb5173adabfb2b2ed0b7b112fd8bdbb8460463732d"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179604500,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000007",
+        "pflicht": "vier_augen",
+        "wert": false,
+        "nachweis": "h1:ps_00000000000000000000000000000b01:a9d17a7aeebfc6af7acb365e6b53788ac8cde23784ae02f5adf2cc1a91cabe59"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "antrag_offen",
+          "antrag": "an-1795179540000-2",
+          "frist_bis_ms": 1795179614500
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"pflicht.aenderung\",\"antrag\":\"an-1795179540000-2\",\"ergebnis\":\"antrag\",\"fassung\":2,\"person\":\"ps_00000000000000000000000000000b01\",\"pflicht\":\"vier_augen\",\"vorher\":\"81d6cef9da3d09b3c04679fb5173adabfb2b2ed0b7b112fd8bdbb8460463732d\",\"wert\":false,\"zeit\":\"2026-11-20T13:00:04.500Z\",\"zweiter\":null}",
+            "sha256": "bde07afe94493ebe91f2ed8ebb61b1144703975078db2e67f15390e901b607f9"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.ergebnis",
+      "jetzt_ms": 1795179604501,
+      "eingabe": {
+        "antrag": "an-1795179540000-2",
+        "nachweis": "h1:ps_00000000000000000000000000000b01:0be5f26e94e52c53a66648e40803cb110a67247f4591353fbfccc3ea986bee06"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.antrag_unbekannt",
+          "grund": "Antrag unbekannt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-2\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.antrag_unbekannt\",\"vorgang\":\"antrag.ergebnis\",\"vorher\":\"bde07afe94493ebe91f2ed8ebb61b1144703975078db2e67f15390e901b607f9\",\"zeit\":\"2026-11-20T13:00:04.501Z\"}",
+            "sha256": "87fbb1eb540f42cbca4911b2fb8be8cdaa813b1f472111b553458abdea6192d8"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "einsicht.anfragen",
+      "jetzt_ms": 1795179605000,
+      "eingabe": {
+        "monat": "2026-11",
+        "nonce": "00000000000000000000000000000002",
+        "quelle": "stelle",
+        "zweck": "vorfall",
+        "nachweis": "h1:ps_00000000000000000000000000000e02:0006d49aab0324d560bd8462f1941fe083bc302b8b497d07f1f103c2ef379e61"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "antrag_offen",
+          "antrag": "an-1795179540000-3",
+          "frist_bis_ms": 1795179615000
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.bestaetigen",
+      "jetzt_ms": 1795179605001,
+      "eingabe": {
+        "antrag": "an-1795179540000-3",
+        "nachweis": "h1:ps_00000000000000000000000000000e01:2c9285f025f3214bed97cfe83ff947c6630152d4a164c77d8d0a7386891aa230"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "bestaetigt",
+          "antrag": "an-1795179540000-3",
+          "abholen_bis_ms": 1795179615001
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"protokoll.einsicht\",\"antrag\":\"an-1795179540000-3\",\"ergebnis\":\"erlaubt\",\"fassung\":2,\"monat\":\"2026-11\",\"person\":\"ps_00000000000000000000000000000e02\",\"quelle\":\"stelle\",\"vorher\":\"87fbb1eb540f42cbca4911b2fb8be8cdaa813b1f472111b553458abdea6192d8\",\"zeit\":\"2026-11-20T13:00:05.001Z\",\"zweck\":\"vorfall\",\"zweiter\":\"ps_00000000000000000000000000000e01\"}",
+            "sha256": "95b6334a53d704cbb7c05392b422933fa4a55548b27e8745744a098dbcfa740f"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.ergebnis",
+      "jetzt_ms": 1795179615001,
+      "eingabe": {
+        "antrag": "an-1795179540000-3",
+        "nachweis": "h1:ps_00000000000000000000000000000e02:dc0f715300c012bf3666ee45894cba6b5fd43624c623534f66f60cc5a2ba5661"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.antrag_abgelaufen",
+          "grund": "Antrag abgelaufen"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"pflicht.aenderung\",\"antrag\":\"an-1795179540000-2\",\"ergebnis\":\"abgelaufen\",\"fassung\":2,\"person\":\"ps_00000000000000000000000000000b01\",\"pflicht\":\"vier_augen\",\"vorher\":\"95b6334a53d704cbb7c05392b422933fa4a55548b27e8745744a098dbcfa740f\",\"wert\":false,\"zeit\":\"2026-11-20T13:00:15.001Z\",\"zweiter\":null}",
+            "sha256": "a127c427841bb816dc4caeddf7d174545e7a2ee37797179845f023ba9d06b2ea"
+          },
+          {
+            "text": "{\"aktionsname\":\"protokoll.einsicht\",\"antrag\":\"an-1795179540000-3\",\"ergebnis\":\"verfallen\",\"fassung\":2,\"monat\":\"2026-11\",\"person\":\"ps_00000000000000000000000000000e02\",\"quelle\":\"stelle\",\"vorher\":\"a127c427841bb816dc4caeddf7d174545e7a2ee37797179845f023ba9d06b2ea\",\"zeit\":\"2026-11-20T13:00:15.001Z\",\"zweck\":\"vorfall\",\"zweiter\":\"ps_00000000000000000000000000000e01\"}",
+            "sha256": "f7005a717d190a6f1b7808dba0209927460bf9967e2e377180d4de4967949684"
+          },
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-3\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.antrag_abgelaufen\",\"vorgang\":\"antrag.ergebnis\",\"vorher\":\"f7005a717d190a6f1b7808dba0209927460bf9967e2e377180d4de4967949684\",\"zeit\":\"2026-11-20T13:00:15.001Z\"}",
+            "sha256": "c04c1ca5d5e3316e6f1b1a3e895251c512e4fa83bdda98d2e61031458a314e6c"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "antrag.ergebnis",
+      "jetzt_ms": 1795179616000,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000e01:a8a1c9b4d6a8672112e0fd7df4889e5620854e9c5b3c35e7209642a8dfdf28f4"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"antrag.ergebnis\",\"vorher\":\"c04c1ca5d5e3316e6f1b1a3e895251c512e4fa83bdda98d2e61031458a314e6c\",\"zeit\":\"2026-11-20T13:00:16.000Z\"}",
+            "sha256": "acd7401523725d07211c01db82791b1dfe65c410ea521846fa473b5a554de397"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "agent",
+      "vorgang": "antrag.ergebnis",
+      "jetzt_ms": 1795179616001,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000e01:a8a1c9b4d6a8672112e0fd7df4889e5620854e9c5b3c35e7209642a8dfdf28f4"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"agent\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"antrag.ergebnis\",\"vorher\":\"acd7401523725d07211c01db82791b1dfe65c410ea521846fa473b5a554de397\",\"zeit\":\"2026-11-20T13:00:16.001Z\"}",
+            "sha256": "b89a260a5e6995a46e7cd705ab2ddaa845d44d473a4f64d3fd8021d8b1c0d545"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "brain",
+      "vorgang": "antrag.ergebnis",
+      "jetzt_ms": 1795179616002,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000e01:a8a1c9b4d6a8672112e0fd7df4889e5620854e9c5b3c35e7209642a8dfdf28f4"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"brain\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"antrag.ergebnis\",\"vorher\":\"b89a260a5e6995a46e7cd705ab2ddaa845d44d473a4f64d3fd8021d8b1c0d545\",\"zeit\":\"2026-11-20T13:00:16.002Z\"}",
+            "sha256": "1cdd43e2179193d825094c1f94c8fb67b88a9f449bbf6e7f6bec79250f38d587"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1"
+    ],
+    "anfragen": {},
+    "zaehler": 0,
+    "antraege": {
+      "an-1795179540000-1": "abgeholt",
+      "an-1795179540000-2": "abgelaufen",
+      "an-1795179540000-3": "verfallen"
+    },
+    "zugaenge": {},
+    "pflichten": {
+      "halter_bescheinigung": true,
+      "mcp.brain.freigabe": true,
+      "mcp.notizen.freigabe": false,
+      "mcp.tickets.freigabe": true,
+      "senken_zweite_person": false,
+      "vier_augen": true
+    },
+    "zeilen": 16,
+    "letzte": "1cdd43e2179193d825094c1f94c8fb67b88a9f449bbf6e7f6bec79250f38d587"
+  }
+}

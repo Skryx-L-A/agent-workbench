@@ -1,0 +1,6 @@
+{
+ "beschreibung": "die Sitzungsordner liegen unter /var/lib/werkbank/s/<uid> mit der uid des Nutzers, nicht mit dem Namen: `lauf.sitzungen` gleich `sitzungen` in lauf.json",
+ "form": "dienstkonfig",
+ "nutzer": "anna-b",
+ "uid": 77
+}

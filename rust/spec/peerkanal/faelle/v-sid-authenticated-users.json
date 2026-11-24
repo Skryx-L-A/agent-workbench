@@ -1,0 +1,25 @@
+{
+ "beschreibung": "Authenticated Users (S-1-5-11) als erlaubte Kennung",
+ "art": "vorgabe",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "au": "S-1-5-11"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-5-11",
+    "appcontainer_sid": null
+   }
+  ],
+  "instanzen": 4
+ },
+ "client": null,
+ "aufbau": [],
+ "handlung": [
+  "Server anlegen"
+ ]
+}

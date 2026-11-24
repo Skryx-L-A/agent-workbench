@@ -1,0 +1,39 @@
+{
+ "name": "tr12_kind_osc52",
+ "regeln": [
+  "TR12"
+ ],
+ "datensatz": "A",
+ "beschreibung": "OSC 52, Modi und Größenfolge aus einem echten Kind: gleiche Ereignisse wie im Strom, in der Reihenfolge des Kindes",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "ausgabe",
+  "argv": [
+   "1b5d35323b633b53323977615755675a576c7563794444704d4f327737773d071b5d35323b633b3f071b5b3f32303034681b5b3f35681b5b383b32303b353074656e64650d0a"
+  ],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ],
+ "system": [
+  "linux",
+  "macos"
+ ]
+}

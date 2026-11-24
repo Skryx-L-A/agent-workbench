@@ -1,0 +1,167 @@
+{
+ "beschreibung": "Betrieb: ein Betrachter, der nichts liest, erreicht die Obergrenze von 33 554 432 Byte durch Zwischenablage-Inhalte und wird getrennt; ein lesender bleibt",
+ "datensatz": "A",
+ "geheim": [
+  "GEHEIMKOPIE"
+ ],
+ "limit": 400,
+ "name": "di5_grenze_betrieb",
+ "protokoll": true,
+ "regeln": [
+  "DI5",
+  "DI4"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-alpha",
+    "spalten": 64,
+    "zeilen": 8
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "BEREIT"
+   },
+   "takt": 0
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c2",
+   "lesen": false
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-alpha",
+    "spalten": 64,
+    "zeilen": 8
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "g"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "ENDE"
+   },
+   "frist": 300,
+   "takt": 0
+  },
+  {
+   "art": "Lesen",
+   "betrachter": "c2"
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c2",
+   "bis": {
+    "getrennt": true
+   },
+   "frist": 200,
+   "takt": 0
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1",
+   "nachrichten_aus": true
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c3"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c3",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-alpha",
+    "spalten": 64,
+    "zeilen": 8
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c3",
+   "bis": {
+    "text": "ENDE"
+   },
+   "frist": 60,
+   "takt": 0
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c3"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   64,
+   8
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "osc52viele",
+    "292",
+    "90000",
+    "GEHEIMKOPIE"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "pruefmodus": false,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

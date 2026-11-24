@@ -1,0 +1,7 @@
+{
+ "exit": 2,
+ "regeln": [
+  "S16"
+ ],
+ "beschreibung": "Ein Schlüssel steht doppelt im selben Objekt, hier in beschreibung."
+}

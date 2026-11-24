@@ -1,0 +1,43 @@
+{
+ "name": "tr13_zwei_mal_eins",
+ "regeln": [
+  "TR13"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Das kleinste Raster aus zwei Spalten und einer Zeile mit breiten Zeichen, auch im Alternativschirm",
+ "art": "strom",
+ "groesse": [
+  2,
+  1
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "漢"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "a漢漢"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049h漢"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049l"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

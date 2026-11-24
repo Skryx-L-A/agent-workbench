@@ -1,0 +1,9 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.vault_rechte: Der Vault-Ordner hat falsche Rechte.",
+  "pruef.hinweis_system_bwrap_ubuntu: Das System-bwrap ist durch das Ubuntu-Profil frei; die Firma kann dieses Profil entfernen.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

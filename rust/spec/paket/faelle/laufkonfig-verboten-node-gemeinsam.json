@@ -1,0 +1,21 @@
+{
+ "beschreibung": "Der Ordner von node ist verboten und beide Harness nutzen ihn: beide werden abgelehnt, jedes mit dem Ordner von node (nach dem Paketordner, der erlaubt ist)",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "copilot": {
+   "programm": "/opt/c/lib/node_modules/c/cli.js",
+   "node": "/srv/beispiel/heim/nutzer1/.local/share/keyrings/bin/node"
+  },
+  "pi": {
+   "programm": "/opt/p/lib/node_modules/p/cli.js",
+   "node": "/srv/beispiel/heim/nutzer1/.local/share/keyrings/bin/node"
+  }
+ },
+ "vorher": null,
+ "pruefer_verboten": [
+  "/srv/beispiel/heim/nutzer1/.local/share/keyrings/bin"
+ ]
+}

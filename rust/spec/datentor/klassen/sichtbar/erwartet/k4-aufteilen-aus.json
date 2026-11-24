@@ -1,0 +1,142 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "klasse": "kundendaten",
+    "herkunft": "teile",
+    "senkung": {
+     "grund": "nicht-aufgeteilt",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "kundendaten",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "kundendaten",
+    "herkunft": "teile",
+    "senkung": {
+     "grund": "nicht-aufgeteilt",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "kundendaten",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": "kundendaten",
+    "herkunft": "teile",
+    "senkung": {
+     "grund": "nicht-aufgeteilt",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "kunde-ohne-eintrag",
+     "klasse": "kundendaten",
+     "meldung": "Kunde ohne Eintrag in der Kundenvorgabe"
+    }
+   },
+   {
+    "klasse": "kundendaten",
+    "herkunft": "teile",
+    "senkung": {
+     "grund": "nicht-aufgeteilt",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "kundendaten",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "teile",
+    "senkung": {
+     "grund": "nicht-aufgeteilt",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "intern",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": "oeffentlich",
+    "herkunft": "teile",
+    "senkung": {
+     "grund": "nicht-aufgeteilt",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "oeffentlich",
+     "meldung": "frei"
+    }
+   },
+   {
+    "klasse": null,
+    "herkunft": "ungueltig",
+    "senkung": {
+     "grund": "klasse-ungueltig",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "einheit-ohne-klasse",
+     "klasse": null,
+     "meldung": "Einheit ohne gültige Klasse"
+    }
+   },
+   {
+    "klasse": null,
+    "herkunft": "ungueltig",
+    "senkung": {
+     "grund": "klasse-ungueltig",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "einheit-ohne-klasse",
+     "klasse": null,
+     "meldung": "Einheit ohne gültige Klasse"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "aus",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": true,
+     "grund": "frei",
+     "klasse": "intern",
+     "meldung": "frei"
+    }
+   }
+  ]
+ }
+}

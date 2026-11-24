@@ -1,0 +1,182 @@
+{
+  "beschreibung": "Die Bescheinigungspflicht des Halters (halter_bescheinigung, Vorgabe an) abzuschalten, also schwach zu erlauben, wird bei einer Person ein Antrag mit Zeile; ihre eigene Bestaetigung wird abgelehnt und protokolliert; erst ein zweiter Admin schaltet ab, die Stelle schreibt Zeile und Datei. Wieder einschalten darf ein Admin allein.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "A09",
+    "Nachtrag 9"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"brain\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[\"brain_schreiben\",\"brain_senken\"],\"zweite_person\":[\"brain_senken\"],\"frist_ms\":60000,\"einloesefrist_ms\":30000}},\"stelle\":{}}",
+    "rollen": {
+      "ps_00000000000000000000000000000b01": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000b02": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000e01": [
+        "einsicht"
+      ],
+      "ps_00000000000000000000000000000e02": [
+        "einsicht"
+      ]
+    }
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/srv/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179601000,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000001",
+        "pflicht": "halter_bescheinigung",
+        "wert": false,
+        "nachweis": "h1:ps_00000000000000000000000000000b01:d774bd6747ad88adbcdf30e66e788d7b7f54f1d7ae92e57c041aeb22c4e468a8"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "antrag_offen",
+          "antrag": "an-1795179540000-1",
+          "frist_bis_ms": 1795180201000
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"pflicht.aenderung\",\"antrag\":\"an-1795179540000-1\",\"ergebnis\":\"antrag\",\"fassung\":2,\"person\":\"ps_00000000000000000000000000000b01\",\"pflicht\":\"halter_bescheinigung\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"wert\":false,\"zeit\":\"2026-11-20T13:00:01.000Z\",\"zweiter\":null}",
+            "sha256": "d6aaebbb691583d65fa42e8da5c1825d4f903cfbf316dd9d0b2c5d3331100e7f"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.bestaetigen",
+      "jetzt_ms": 1795179602000,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000b01:7a0291cb887e9a147b69c30ac32d5e0bfa5d3f25fae8d93cbb367d6709a025e6"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.selbe_person",
+          "grund": "Dieselbe Person darf hier nicht entscheiden"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"an-1795179540000-1\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.selbe_person\",\"vorgang\":\"antrag.bestaetigen\",\"vorher\":\"d6aaebbb691583d65fa42e8da5c1825d4f903cfbf316dd9d0b2c5d3331100e7f\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}",
+            "sha256": "0a629be307aa8b737fea45b72113fbfb2954ac525e402f162a498ebafb5be408"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "antrag.bestaetigen",
+      "jetzt_ms": 1795179603000,
+      "eingabe": {
+        "antrag": "an-1795179540000-1",
+        "nachweis": "h1:ps_00000000000000000000000000000b02:a4abfecbd1c0b20f3d8ef00240323bceaff207def37170cc2f90b4c33aeaa489"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "geaendert",
+          "antrag": "an-1795179540000-1",
+          "pflicht": "halter_bescheinigung",
+          "wert": false
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"regel.geaendert\",\"alt\":\"3a778be8894e2d6b7bda8526db57f3b449ae7a4ff89c3bf7039bf4f90c6b162d\",\"antrag\":\"an-1795179540000-1\",\"code\":null,\"ebene\":\"firma\",\"ergebnis\":\"geaendert\",\"fassung\":2,\"handelnd\":\"ps_00000000000000000000000000000b01\",\"neu\":\"c4bd46a499fac825ce1c0478cc7e12dc5661aaeacc1065b2fe94f52a28aebfbc\",\"pflicht\":\"halter_bescheinigung\",\"vorher\":\"0a629be307aa8b737fea45b72113fbfb2954ac525e402f162a498ebafb5be408\",\"zeit\":\"2026-11-20T13:00:03.000Z\",\"ziel\":null,\"zweiter\":\"ps_00000000000000000000000000000b02\"}",
+            "sha256": "4a8ecea2417f912edfed29cdf81c3eaab4770778a9ff795bd66a6dfbe1af8efb"
+          }
+        ],
+        "datei": {
+          "ebene": "firma",
+          "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"kunden\":[{\"erlaubt\":[\"lokal-beispiel\"],\"schluessel\":\"k-beispiel\",\"verboten\":[]}],\"kundendaten_an_cloud\":{\"freigaben\":[],\"vorgabe\":\"nie\"},\"mcp\":{\"brain\":{\"einloesefrist_ms\":30000,\"frist_ms\":60000,\"lesen\":[\"brain_suche\"],\"schreiben\":[\"brain_schreiben\",\"brain_senken\"],\"zweite_person\":[\"brain_senken\"]},\"notizen\":{\"freigabe\":false,\"lesen\":[],\"schreiben\":[\"anlegen\"]},\"tickets\":{\"einloesefrist_ms\":30000,\"freigabe\":true,\"frist_ms\":60000,\"lesen\":[\"get\"],\"schreiben\":[\"update\"]}},\"routen\":[{\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}],\"port\":443,\"schluessel\":true,\"zugriff\":\"kopf-einsetzen\"}],\"schluessel\":\"cloud-beispiel\"},{\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"modell\":\"qwen3:8b\",\"netzziele\":[],\"schluessel\":\"lokal-beispiel\",\"ziel\":\"http://127.0.0.1:11434/v1\"}],\"stelle\":{\"halter_bescheinigung\":false},\"vorgabestufe\":\"kundendaten\"}"
+        }
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "pflicht.aendern",
+      "jetzt_ms": 1795179604000,
+      "eingabe": {
+        "nonce": "00000000000000000000000000000002",
+        "pflicht": "halter_bescheinigung",
+        "wert": true,
+        "nachweis": "h1:ps_00000000000000000000000000000b02:a51c5b8b0fa8cdeee4ae7339ff4ee709ad0125c8108e8a17ab329c6374c2fd58"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "geaendert",
+          "antrag": null,
+          "pflicht": "halter_bescheinigung",
+          "wert": true
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"regel.geaendert\",\"alt\":\"c4bd46a499fac825ce1c0478cc7e12dc5661aaeacc1065b2fe94f52a28aebfbc\",\"antrag\":null,\"code\":null,\"ebene\":\"firma\",\"ergebnis\":\"geaendert\",\"fassung\":2,\"handelnd\":\"ps_00000000000000000000000000000b02\",\"neu\":\"ba01cbc1da92aa179524738957449b863aa0627aa36427c9d1459699677d5458\",\"pflicht\":\"halter_bescheinigung\",\"vorher\":\"4a8ecea2417f912edfed29cdf81c3eaab4770778a9ff795bd66a6dfbe1af8efb\",\"zeit\":\"2026-11-20T13:00:04.000Z\",\"ziel\":null,\"zweiter\":null}",
+            "sha256": "9e1e30454187e6a65c2ced33aa567bfe36534123cd59fb1c4e02ad758d857260"
+          }
+        ],
+        "datei": {
+          "ebene": "firma",
+          "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"kunden\":[{\"erlaubt\":[\"lokal-beispiel\"],\"schluessel\":\"k-beispiel\",\"verboten\":[]}],\"kundendaten_an_cloud\":{\"freigaben\":[],\"vorgabe\":\"nie\"},\"mcp\":{\"brain\":{\"einloesefrist_ms\":30000,\"frist_ms\":60000,\"lesen\":[\"brain_suche\"],\"schreiben\":[\"brain_schreiben\",\"brain_senken\"],\"zweite_person\":[\"brain_senken\"]},\"notizen\":{\"freigabe\":false,\"lesen\":[],\"schreiben\":[\"anlegen\"]},\"tickets\":{\"einloesefrist_ms\":30000,\"freigabe\":true,\"frist_ms\":60000,\"lesen\":[\"get\"],\"schreiben\":[\"update\"]}},\"routen\":[{\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}],\"port\":443,\"schluessel\":true,\"zugriff\":\"kopf-einsetzen\"}],\"schluessel\":\"cloud-beispiel\"},{\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"modell\":\"qwen3:8b\",\"netzziele\":[],\"schluessel\":\"lokal-beispiel\",\"ziel\":\"http://127.0.0.1:11434/v1\"}],\"stelle\":{\"halter_bescheinigung\":true},\"vorgabestufe\":\"kundendaten\"}"
+        }
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1"
+    ],
+    "anfragen": {},
+    "zaehler": 0,
+    "antraege": {
+      "an-1795179540000-1": "bestaetigt"
+    },
+    "zugaenge": {},
+    "pflichten": {
+      "halter_bescheinigung": true,
+      "mcp.brain.freigabe": true,
+      "mcp.notizen.freigabe": false,
+      "mcp.tickets.freigabe": true,
+      "senken_zweite_person": false,
+      "vier_augen": false
+    },
+    "zeilen": 5,
+    "letzte": "9e1e30454187e6a65c2ced33aa567bfe36534123cd59fb1c4e02ad758d857260"
+  }
+}

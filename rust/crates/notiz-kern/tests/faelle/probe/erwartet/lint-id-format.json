@@ -1,0 +1,23 @@
+{
+ "exit": 0,
+ "stdout": {
+  "in_scope": true,
+  "fields": {
+   "id": "01m3kehcgektvfpc15xaveprds",
+   "schema": "4",
+   "title": "Gute Notiz",
+   "type": "note",
+   "class": "knowledge",
+   "created": "2026-09-28",
+   "stand": "2026-09"
+  },
+  "blocks": 1,
+  "findings": [
+   {
+    "kind": "id-format",
+    "detail": "id '01m3kehcgektvfpc15xaveprds' ist keine ULID"
+   }
+  ],
+  "new": true
+ }
+}

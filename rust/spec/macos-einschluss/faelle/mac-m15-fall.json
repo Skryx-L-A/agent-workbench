@@ -1,0 +1,10 @@
+{
+ "beschreibung": "M15 fall",
+ "form": "mac",
+ "eigenschaft": "M15",
+ "anforderung": "A142",
+ "art": "fall",
+ "ausgangslage": "Mac mit macOS 26; Lauf s-1 unter dem gebauten Profil mit Modellweg-Port M1 und Ausgangs-Port A1; Lauf s-2 unter seinem Profil mit M2; Hörer der Browser-Brücke auf Port K; Vorführ-Vault mit der Notiz MK-7Q2 außerhalb; Such-Prozess je Sitzung außerhalb; Wegwerf-Token unter ~/.copilot und ~/.config/gh einer Testperson; der Lauf startet ein Kind im Hintergrund, einen Enkel nach setsid mit doppeltem fork und ein Kind mit posix_spawn und POSIX_SPAWN_SETSID",
+ "handlung": "Die Sitzung endet. Der Wächter des Dienstes sendet SIGTERM an die Prozessgruppe und an jeden eigenen Prozess mit dem Merkmal des Laufs, nach der Frist von 5 s SIGKILL",
+ "beleg": "gemessen: Messlauf 2c, prozessende: 2 von 2 abgelöste Prozesse gefunden, 655 eigene Prozesse in 2,375 s geprüft, 0 fremde Treffer, Ende nach SIGTERM in 0,015 s (messlauf2-ergebnis.json)"
+}

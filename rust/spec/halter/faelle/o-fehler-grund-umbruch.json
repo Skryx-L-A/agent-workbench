@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Grund mit Zeilenumbruch",
+ "form": "antwort",
+ "text": "{\"art\":\"antwort\",\"code\":\"halter.intern\",\"fassung\":1,\"grund\":\"a\\nb\",\"id\":7,\"ok\":false}"
+}

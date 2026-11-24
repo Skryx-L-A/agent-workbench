@@ -1,0 +1,7 @@
+{
+ "erwartet": "Agent: FwpmEngineOpen0 0x5; Person: je 0x5 bzw. Fehler 5; Filter und Ausnahmen bleiben",
+ "messwerte": [
+  "Fehlercode je Versuch",
+  "Filterliste und Ausnahmeliste vorher und nachher"
+ ]
+}

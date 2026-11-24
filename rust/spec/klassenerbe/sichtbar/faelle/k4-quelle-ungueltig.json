@@ -1,0 +1,93 @@
+{
+ "name": "k4-quelle-ungueltig",
+ "regeln": [
+  "K2"
+ ],
+ "beschreibung": "Eine Quelle mit ungültiger Klasse macht das Erbe unklar; sie zählt nicht als niedrigste Klasse.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "cloud-n",
+    "art": "cloud"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "erbe": {
+   "boden": "gelesen"
+  }
+ },
+ "anfragen": [
+  {
+   "route": "lokal",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "oeffentlich"
+    },
+    {
+     "klasse": "geheim"
+    }
+   ]
+  },
+  {
+   "route": "lokal",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": 7
+    }
+   ]
+  },
+  {
+   "route": "lokal",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": ""
+    }
+   ]
+  },
+  {
+   "route": "lokal",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "INTERN"
+    }
+   ]
+  }
+ ]
+}

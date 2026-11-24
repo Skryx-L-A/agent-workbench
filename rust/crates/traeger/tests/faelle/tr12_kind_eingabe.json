@@ -1,0 +1,59 @@
+{
+ "name": "tr12_kind_eingabe",
+ "regeln": [
+  "TR12"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Die Bytes des Kerns kommen unverändert beim Kind an (ESC CR, UTF-8, CR, Strg+C)",
+ "art": "kind",
+ "groesse": [
+  30,
+  8
+ ],
+ "start": {
+  "kind": "eingabe",
+  "argv": [
+   "21"
+  ],
+  "env": {
+   "TERM": "xterm-256color",
+   "LC_ALL": "C.UTF-8",
+   "PATH": "/usr/bin:/bin"
+  }
+ },
+ "schritte": [
+  {
+   "art": "Warte",
+   "bis": {
+    "text": "BEREIT"
+   }
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "cursor": [
+     1,
+     0,
+     true
+    ]
+   }
+  },
+  {
+   "art": "Tasten",
+   "hex": "1b0d4772c3bcc39f6520c3a4c3b6c3bc20c39f0d03"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "kindende": true
+   }
+  },
+  {
+   "art": "Zustand"
+  }
+ ],
+ "system": [
+  "linux",
+  "macos"
+ ]
+}

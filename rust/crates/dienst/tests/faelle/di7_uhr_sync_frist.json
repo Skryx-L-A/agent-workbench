@@ -1,0 +1,129 @@
+{
+ "beschreibung": "die Uhr treibt die Zeitgeber des Kerns: das Abbild einer synchronisierten Folge erscheint genau 150 ms nach dem Beginn",
+ "datensatz": "A",
+ "name": "di7_uhr_sync_frist",
+ "regeln": [
+  "DI7"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-alpha",
+    "spalten": 40,
+    "zeilen": 10
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "BEREIT"
+   },
+   "takt": 16
+  },
+  {
+   "art": "Uhr",
+   "t": 100
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Text",
+    "sitzung": "s-alpha",
+    "text": "g"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "titel": "weiter"
+   },
+   "takt": 0
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Uhr",
+   "t": 249
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Uhr",
+   "t": 250
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "text": "SYNC"
+   },
+   "takt": 0
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   40,
+   10
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "ausgabewarte",
+    "1b5b3f323032366853594e431b5d323b77656974657207",
+    "30"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

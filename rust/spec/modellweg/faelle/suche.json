@@ -1,0 +1,4440 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitt 9a (Suche nach dem Schluessel, Nachtrag 18). argv ist der Aufruf des Programms ab dem Unterbefehl. baum ist der Dateibaum der Probe als Liste: pfad, art (datei, ordner, verknuepfung, fifo), inhalt (latin1-Text, nur datei), lesbar (false: nicht lesbar), ziel (nur verknuepfung); eigen und modus gelten fuer Schluesseldateien (Vorgabe: eigene Datei, 0600). Ordner stehen als eigene Eintraege. zielliste ist die Datei der Route Copilot (pfad und inhalt). erwartet: exit, stdout (eine Zeile RFC 8785 mit dateien, nicht_lesbar, treffer, uebersprungen, oder leer) und stderr (leer oder die feste Zeile mit Code). Die Schluessel sind erfundene Testwerte und nicht tokenfoermig; der Platzhalter im gho_-Format ist bewusst kuerzer als ein Token. Hinweis fuer den Bau: Der Fall fund_lesegrenze_4096 und die Grenzen bei kleinem Puffer gehoeren in dessen Tests.",
+ "faelle": [
+  {
+   "name": "kein_fund",
+   "beschreibung": "alle vier Wurzeln ohne den Schluessel: gruen",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 0,
+    "stdout": "{\"dateien\":4,\"nicht_lesbar\":0,\"treffer\":0,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "fund_eine_datei",
+   "beschreibung": "der Schluessel steht einmal im Arbeitsordner, ohne LF am Dateiende (der gesuchte Wert hat kein LF): rot",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/ausgabe.txt",
+     "art": "datei",
+     "inhalt": "Token: mw-suchschluessel-4c8e1a7d93b0",
+     "lesbar": true
+    }
+   ],
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":1,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "fund_zwei_in_datei",
+   "beschreibung": "zwei Vorkommen in einer Datei zaehlen zweimal",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/doppelt.txt",
+     "art": "datei",
+     "inhalt": "a mw-suchschluessel-4c8e1a7d93b0 b\nmw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true
+    }
+   ],
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":2,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "fund_in_ausgabedatei",
+   "beschreibung": "der Schluessel steht nur in der sichtbaren Ausgabe, die als Datei unter --in steht: rot",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbar: mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":4,\"nicht_lesbar\":0,\"treffer\":1,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "fund_in_unterordner",
+   "beschreibung": "tief verschachtelte Datei im Protokollordner: rot",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/a",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/a/b",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/a/b/c.txt",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true
+    }
+   ],
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":1,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "fund_lesegrenze_4096",
+   "beschreibung": "der Schluessel liegt ueber der Grenze von 4096 Byte (Hinweis: der Bau testet mit einem kleinen Puffer, auch mit 1 bis 7 Byte)",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/grenze.bin",
+     "art": "datei",
+     "inhalt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaamw-suchschluessel-4c8e1a7d93b0x",
+     "lesbar": true
+    }
+   ],
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":1,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "fund_lesegrenze_65536",
+   "beschreibung": "der Schluessel liegt ueber der Grenze von 65536 Byte, zwei Vorkommen in der Datei",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/grenze2.bin",
+     "art": "datei",
+     "inhalt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaamw-suchschluessel-4c8e1a7d93b0mw-suchschluessel-4c8e1a7d93b0",
+     "lesbar": true
+    }
+   ],
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":2,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "ohne_ueberlappung",
+   "beschreibung": "Schluessel wb-t-wb in wb-t-wb-t-wb: ohne Ueberlappung ein Vorkommen, nicht zwei",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "wb-t-wb\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/ueberlappung.txt",
+     "art": "datei",
+     "inhalt": "wb-t-wb-t-wb\n",
+     "lesbar": true
+    }
+   ],
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":1,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "nur_verknuepfung",
+   "beschreibung": "der Schluessel steht nur hinter Verknuepfungen im Arbeitsordner (auf die Schluesseldatei und auf einen Ordner ausserhalb): nicht gelesen, nicht verfolgt, kein Fund",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/fremd",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/fremd/kopie.txt",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/verweis-schluessel",
+     "art": "verknuepfung",
+     "ziel": "/srv/beispiel/lauf/schluessel/lokal.schluessel"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/verweis-ordner",
+     "art": "verknuepfung",
+     "ziel": "/srv/beispiel/lauf/fremd"
+    }
+   ],
+   "erwartet": {
+    "exit": 0,
+    "stdout": "{\"dateien\":4,\"nicht_lesbar\":0,\"treffer\":0,\"uebersprungen\":2}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "in_ist_verknuepfung",
+   "beschreibung": "--in ist selbst eine Verknuepfung auf einen Ordner mit dem Schluessel: nicht durchsucht, nicht als Fund gezaehlt; als Wurzel zaehlt sie in nicht_lesbar, also offen (Exit 3, offener Punkt des Vertrags)",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/wurzel-verweis",
+    "--in",
+    "/srv/beispiel/lauf/arbeit"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/fremd",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/fremd/kopie.txt",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/wurzel-verweis",
+     "art": "verknuepfung",
+     "ziel": "/srv/beispiel/lauf/fremd"
+    }
+   ],
+   "erwartet": {
+    "exit": 3,
+    "stdout": "{\"dateien\":1,\"nicht_lesbar\":1,\"treffer\":0,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "in_fehlt",
+   "beschreibung": "--in nennt einen Pfad, den es nicht gibt: nicht durchsucht, also offen",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/gibt-es-nicht"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 3,
+    "stdout": "{\"dateien\":1,\"nicht_lesbar\":1,\"treffer\":0,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "nicht_lesbar_ohne_fund",
+   "beschreibung": "eine Datei ist nicht lesbar, sonst kein Fund: offen (Exit 3)",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/gesperrt.txt",
+     "art": "datei",
+     "inhalt": "x",
+     "lesbar": false
+    }
+   ],
+   "erwartet": {
+    "exit": 3,
+    "stdout": "{\"dateien\":4,\"nicht_lesbar\":1,\"treffer\":0,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "nicht_lesbar_mit_fund",
+   "beschreibung": "eine Datei ist nicht lesbar und anderswo steht der Schluessel: rot (Exit 1)",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/gesperrt.txt",
+     "art": "datei",
+     "inhalt": "x",
+     "lesbar": false
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/leck.txt",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0",
+     "lesbar": true
+    }
+   ],
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":5,\"nicht_lesbar\":1,\"treffer\":1,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "nicht_lesbarer_ordner",
+   "beschreibung": "ein Ordner ist nicht lesbar: die Suche steigt nicht ab, offen",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/zu",
+     "art": "ordner",
+     "lesbar": false
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/zu/innen.txt",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0",
+     "lesbar": true
+    }
+   ],
+   "erwartet": {
+    "exit": 3,
+    "stdout": "{\"dateien\":4,\"nicht_lesbar\":1,\"treffer\":0,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "fifo",
+   "beschreibung": "eine FIFO wird nicht geoeffnet und zaehlt in uebersprungen, nicht in nicht_lesbar",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/rohr",
+     "art": "fifo"
+    }
+   ],
+   "erwartet": {
+    "exit": 0,
+    "stdout": "{\"dateien\":4,\"nicht_lesbar\":0,\"treffer\":0,\"uebersprungen\":1}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "verschachtelte_in",
+   "beschreibung": "--in nennt dieselben Dateien mehrfach (Ordner, Unterordner und die Datei selbst): jede Datei einmal gelesen und gezaehlt",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/unter",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/unter/fund.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/unter",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/unter/fund.txt",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0",
+     "lesbar": true
+    }
+   ],
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":2,\"nicht_lesbar\":0,\"treffer\":1,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "schluesseldatei_unter_in",
+   "beschreibung": "die Schluesseldatei selbst liegt unter einem --in: sie zaehlt als Fund, rot (keine Ausnahme per Inode, Abschnitt 9a S4)",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/schluessel"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":1,\"nicht_lesbar\":0,\"treffer\":1,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "zielliste_gleiche_datei",
+   "beschreibung": "Zielliste mit zwei gebundenen Zielen auf dieselbe Schluesseldatei und einem ungebundenen Ziel: ein Schluessel, ein Fund zaehlt einmal",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zielliste.json",
+     "art": "datei",
+     "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/leck.txt",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
+     "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":1,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "zielliste_zwei_schluessel_fund_zweiter",
+   "beschreibung": "Zielliste mit zwei verschiedenen Schluesseln: nur der zweite steht im Arbeitsordner, rot",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-b.schluessel",
+     "art": "datei",
+     "inhalt": "wb-t-wb-z\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/leck.txt",
+     "art": "datei",
+     "inhalt": "wb-t-wb-z",
+     "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-b.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":1,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "zielliste_zwei_schluessel_beide",
+   "beschreibung": "beide Schluessel stehen je einmal: treffer ist die Summe, 2",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-b.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/a.txt",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-b52f60d1e8a7",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/b.txt",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0",
+     "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-b.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":6,\"nicht_lesbar\":0,\"treffer\":2,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "zielliste_kein_fund",
+   "beschreibung": "Zielliste mit zwei Schluesseln, keiner steht irgendwo: gruen",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-b.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-b.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "exit": 0,
+    "stdout": "{\"dateien\":4,\"nicht_lesbar\":0,\"treffer\":0,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "platzhalter_gho",
+   "beschreibung": "ein Platzhalter im gho_-Format steht im Arbeitsordner (zu kurz fuer ein Token, ausdruecklich nicht der Wert): kein Fund",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-b.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/umgebung.txt",
+     "art": "datei",
+     "inhalt": "COPILOT_GITHUB_TOKEN=gho_platzhalter-0000\n",
+     "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-b.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "exit": 0,
+    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":0,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "aufruf_ohne_in",
+   "beschreibung": "ohne --in",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stdout": "",
+    "stderr": "mw.suche_aufruf: Suchaufruf ungueltig\n"
+   }
+  },
+  {
+   "name": "aufruf_ohne_quelle",
+   "beschreibung": "ohne Schluesselquelle",
+   "argv": [
+    "suche",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stdout": "",
+    "stderr": "mw.suche_aufruf: Suchaufruf ungueltig\n"
+   }
+  },
+  {
+   "name": "aufruf_beide_quellen",
+   "beschreibung": "beide Schluesselquellen",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-b.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "exit": 64,
+    "stdout": "",
+    "stderr": "mw.suche_aufruf: Suchaufruf ungueltig\n"
+   }
+  },
+  {
+   "name": "aufruf_quelle_doppelt",
+   "beschreibung": "--schluessel-datei zweimal",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stdout": "",
+    "stderr": "mw.suche_aufruf: Suchaufruf ungueltig\n"
+   }
+  },
+  {
+   "name": "aufruf_relativer_in",
+   "beschreibung": "--in als relativer Pfad",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "arbeit"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stdout": "",
+    "stderr": "mw.suche_aufruf: Suchaufruf ungueltig\n"
+   }
+  },
+  {
+   "name": "aufruf_relative_quelle",
+   "beschreibung": "--schluessel-datei als relativer Pfad",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stdout": "",
+    "stderr": "mw.suche_aufruf: Suchaufruf ungueltig\n"
+   }
+  },
+  {
+   "name": "aufruf_punkt_segment",
+   "beschreibung": "--in mit Segment ..",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/../arbeit"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stdout": "",
+    "stderr": "mw.suche_aufruf: Suchaufruf ungueltig\n"
+   }
+  },
+  {
+   "name": "aufruf_17_in",
+   "beschreibung": "17 mal --in",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w0",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w1",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w2",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w3",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w4",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w5",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w6",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w7",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w8",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w9",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w10",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w11",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w12",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w13",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w14",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w15",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w16"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stdout": "",
+    "stderr": "mw.suche_aufruf: Suchaufruf ungueltig\n"
+   }
+  },
+  {
+   "name": "aufruf_16_in",
+   "beschreibung": "16 mal --in ist gueltig (Wurzeln, die es nicht gibt, zaehlen in nicht_lesbar)",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w0",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w1",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w2",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w3",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w4",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w5",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w6",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w7",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w8",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w9",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w10",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w11",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w12",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w13",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w14",
+    "--in",
+    "/srv/beispiel/lauf/arbeit/w15"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 3,
+    "stdout": "{\"dateien\":0,\"nicht_lesbar\":16,\"treffer\":0,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "aufruf_gleichheitszeichen",
+   "beschreibung": "--in=pfad statt zwei Argumente",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in=/srv/beispiel/lauf/arbeit",
+    "x"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stdout": "",
+    "stderr": "mw.suche_aufruf: Suchaufruf ungueltig\n"
+   }
+  },
+  {
+   "name": "aufruf_unbekannte_option",
+   "beschreibung": "eine unbekannte Option",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+    "--schluessel",
+    "mw-suchschluessel-4c8e1a7d93b0"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stdout": "",
+    "stderr": "mw.suche_aufruf: Suchaufruf ungueltig\n"
+   }
+  },
+  {
+   "name": "schluessel_modus_0644",
+   "beschreibung": "die Schluesseldatei hat Modus 0644: keine Suche",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0644"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/leck.txt",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0",
+     "lesbar": true
+    }
+   ],
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.schluessel_fehlt: Schluessel nicht lesbar\n"
+   }
+  },
+  {
+   "name": "schluessel_datei_fehlt",
+   "beschreibung": "die Schluesseldatei gibt es nicht",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    }
+   ],
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.schluessel_fehlt: Schluessel nicht lesbar\n"
+   }
+  },
+  {
+   "name": "schluessel_verknuepfung",
+   "beschreibung": "der Pfad der Schluesseldatei ist eine Verknuepfung (O_NOFOLLOW)",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/echt.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "verknuepfung",
+     "ziel": "/srv/beispiel/lauf/schluessel/echt.schluessel"
+    }
+   ],
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.schluessel_fehlt: Schluessel nicht lesbar\n"
+   }
+  },
+  {
+   "name": "schluessel_zwei_zeilen",
+   "beschreibung": "die Schluesseldatei hat zwei Zeilen",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\nmw-suchschluessel-b52f60d1e8a7\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/leck.txt",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0",
+     "lesbar": true
+    }
+   ],
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.schluessel_fehlt: Schluessel nicht lesbar\n"
+   }
+  },
+  {
+   "name": "zielliste_zweite_datei_schlecht",
+   "beschreibung": "Zielliste mit zwei Schluesseln, der zweite hat Modus 0644: keine Suche, obwohl der erste im Arbeitsordner steht",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-b.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0644"
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/leck.txt",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-b52f60d1e8a7",
+     "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-b.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.schluessel_fehlt: Schluessel nicht lesbar\n"
+   }
+  },
+  {
+   "name": "zielliste_ungueltig",
+   "beschreibung": "die Zielliste ist ungueltig (keine Ziele): Abschnitt 12",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\"fassung\":1,\"ca_zulassung\":\"zugelassen\",\"ziele\":[]}\n"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.ziele_ungueltig: Zielliste ungueltig\n"
+   }
+  },
+  {
+   "name": "zielliste_ohne_gebundenes_ziel",
+   "beschreibung": "gueltige Zielliste ohne gebundenes Ziel: nichts zu suchen, kein Gruen",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.schluessel_fehlt: Schluessel nicht lesbar\n"
+   }
+  },
+  {
+   "name": "umgebung_ssl_cert_file",
+   "beschreibung": "Stufe 0 gilt auch hier: SSL_CERT_FILE gesetzt, der Aufruf ist sonst gueltig",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {
+    "SSL_CERT_FILE": "/srv/beispiel/openssl/x"
+   },
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n"
+   }
+  },
+  {
+   "name": "umgebung_vor_aufruf",
+   "beschreibung": "Stufe 0 vor dem Aufruf: ungueltiger Aufruf und OPENSSL_CONF leer gesetzt ergeben mw.umgebung_unsicher",
+   "argv": [
+    "suche"
+   ],
+   "umgebung": {
+    "OPENSSL_CONF": ""
+   },
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n"
+   }
+  },
+  {
+   "name": "umgebung_andere",
+   "beschreibung": "andere Variablen stoeren nicht",
+   "argv": [
+    "suche",
+    "--schluessel-datei",
+    "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {
+    "PATH": "/usr/bin",
+    "SSL_CERT_FILES": "/srv/beispiel/x"
+   },
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel/lokal.schluessel",
+     "art": "datei",
+     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
+     "lesbar": true,
+     "eigen": true,
+     "modus": "0600"
+    }
+   ],
+   "erwartet": {
+    "exit": 0,
+    "stdout": "{\"dateien\":4,\"nicht_lesbar\":0,\"treffer\":0,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  }
+ ]
+}

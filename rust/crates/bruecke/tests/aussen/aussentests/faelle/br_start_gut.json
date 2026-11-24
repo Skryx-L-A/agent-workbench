@@ -1,0 +1,17 @@
+{
+ "beschreibung": "gueltige Startdatei: eine Zeile PORT auf stdout, Token-Datei 0600 mit 64 Hex und Zeilenende, Ordner 0700, Hoerer nur 127.0.0.1, stderr leer, nach SIGTERM keine Token-Datei",
+ "datensatz": "A",
+ "name": "br_start_gut",
+ "regeln": [
+  "BR1"
+ ],
+ "schritte": [],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

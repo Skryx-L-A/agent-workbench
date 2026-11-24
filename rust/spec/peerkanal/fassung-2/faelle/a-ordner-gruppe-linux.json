@@ -1,0 +1,39 @@
+{
+ "fassung": 2,
+ "beschreibung": "Server unter eigenem Konto, Ordner 0750 mit der Rollengruppe",
+ "art": "aussentest",
+ "ort": [
+  "linux"
+ ],
+ "konten": {
+  "uid_halter": 1000000103,
+  "uid_person": 1000000101,
+  "g_hub": 1000000211,
+  "ordner": "/k-beispiel/run/wb-halter/hub"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "uid": 1000000101,
+    "gruppe": 1000000211
+   }
+  ],
+  "instanzen": 4,
+  "unix": {
+   "ordner": "/k-beispiel/run/wb-halter/hub",
+   "modus": "0666",
+   "ordner_gruppe": 1000000211
+  }
+ },
+ "client": null,
+ "aufbau": [
+  "Server läuft unter uid_halter, Mitglied keiner Rollengruppe",
+  "ordner gehört uid_halter:g_hub mit Modus 0750 (wie systemd-tmpfiles ihn anlegt)"
+ ],
+ "handlung": [
+  "Server::anlegen",
+  "ein Prozess unter uid_person ohne g_hub ruft connect",
+  "derselbe mit g_hub als gid"
+ ]
+}

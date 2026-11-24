@@ -1,0 +1,10 @@
+{
+ "description": "date and time values stay text as written",
+ "files": {
+  "note.md": "---\ntitle: Daten\ncreated: 2026-09-28\nzeit: 2026-09-28T10:00:00Z\nstand: \"2026-09\"\nverified: 2026-9-3\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "description": "empty type falls back to note",
+ "files": {
+  "note.md": "---\ntitle: Ohne Typ\ntype: \"  \"\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

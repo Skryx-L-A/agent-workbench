@@ -1,0 +1,28 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "nur",
+    "meldung": "frei",
+    "leseklasse": "nur"
+   },
+   {
+    "darf": false,
+    "grund": "kunde-fehlt",
+    "klasse": "nur",
+    "meldung": "Kundendaten ohne Kunde",
+    "leseklasse": "nur"
+   },
+   {
+    "darf": false,
+    "grund": "person-ohne-leseklasse",
+    "klasse": "nur",
+    "meldung": "Person ohne Leseklasse",
+    "leseklasse": null
+   }
+  ]
+ }
+}

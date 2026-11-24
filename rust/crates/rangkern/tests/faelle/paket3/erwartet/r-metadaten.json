@@ -1,0 +1,51 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "wald/pilz.md",
+    "score": 1.0,
+    "title": "Pilz",
+    "snippet": "Der Pilz im Wald wächst schnell.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.9486832980505139,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 1
+   },
+   {
+    "rel": "wald/wald.md",
+    "score": 0.9411764705882353,
+    "title": "Wald",
+    "snippet": "Der Wald ist dunkel.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.588348405414552,
+    "bm25_rang": 2,
+    "bm25_norm": 0.6677871397300279,
+    "vektor_rang": 2
+   },
+   {
+    "rel": "wald/moos.md",
+    "score": 0.4444444444444444,
+    "title": "Moos",
+    "snippet": "Moos wächst am Stein.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.11043152607484655,
+    "vektor_rang": 3
+   }
+  ]
+ }
+}

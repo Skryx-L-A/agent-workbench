@@ -1,0 +1,9 @@
+{
+ "start": "bereit",
+ "responses": [],
+ "protokoll": [],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

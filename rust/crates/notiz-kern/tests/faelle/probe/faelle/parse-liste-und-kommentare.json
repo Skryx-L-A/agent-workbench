@@ -1,0 +1,10 @@
+{
+ "description": "dash list, inline comments need two spaces before #",
+ "files": {
+  "note.md": "---\ntitle: Z        # ein Kommentar\naliases:\n  - alpha\n  - beta\nreview-after: 2026-01   # ttl\nfarbe: rot # kein Kommentar\n---\n\nRumpf\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

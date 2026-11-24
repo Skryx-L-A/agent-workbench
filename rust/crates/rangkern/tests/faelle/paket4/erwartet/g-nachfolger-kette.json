@@ -1,0 +1,55 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "kette/c.md",
+    "score": 1.0,
+    "title": "Kette C",
+    "snippet": "Nachfolgetext ohne Suchwort.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 3,
+    "bm25_norm": 0.07226561599463877
+   },
+   {
+    "rel": "kette/a.md",
+    "score": 0.49,
+    "title": "Kette A",
+    "snippet": "Passwort Manager Umstellung, Passwort Manager.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "status": "superseded",
+    "abgeloest_durch": [
+     "kette/c.md"
+    ]
+   },
+   {
+    "rel": "kette/b.md",
+    "score": 0.41751379310344816,
+    "title": "Kette B",
+    "snippet": "Passwort Manager alt, Passwort Manager ersetzt.",
+    "lines": [
+     8,
+     8
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.8520689655172412,
+    "status": "superseded",
+    "abgeloest_durch": [
+     "kette/c.md"
+    ]
+   }
+  ]
+ }
+}

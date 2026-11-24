@@ -1,0 +1,28 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Erster\ntype: note\ntitle: Zweiter\naliases: [a]\naliases:\n  - b"
+  ],
+  "fields": {
+   "title": "Zweiter",
+   "type": "note",
+   "aliases": [
+    "b"
+   ]
+  },
+  "body": "Text\n",
+  "title": "Zweiter",
+  "type": "note",
+  "aliases": [
+   "b"
+  ],
+  "links": [],
+  "keys": [
+   "b",
+   "note",
+   "zweiter"
+  ],
+  "embed_text": "Zweiter\naliases: b\ntype: note\n\nText\n"
+ }
+}

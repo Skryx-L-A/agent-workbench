@@ -1,0 +1,136 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    3,
+    7,
+    true
+   ],
+   "groesse": [
+    30,
+    4
+   ],
+   "ruecklauf": {
+    "erste": "alpha 0",
+    "letzte": "delta 9",
+    "zahl": 10
+   },
+   "stand": 2,
+   "zeilen": [
+    "epsilon 10",
+    "zeta 11",
+    "alpha 12",
+    "beta 13"
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       7,
+       7,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "alpha 6",
+       "1": "beta 7",
+       "2": "gamma 8",
+       "3": "delta 9",
+       "4": "epsilon 10",
+       "5": "zeta 11",
+       "6": "alpha 12",
+       "7": "beta 13"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      7,
+      7,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": "alpha 0",
+      "letzte": "zeta 5",
+      "zahl": 6
+     },
+     "stand": 1,
+     "zeilen": [
+      "alpha 6",
+      "beta 7",
+      "gamma 8",
+      "delta 9",
+      "epsilon 10",
+      "zeta 11",
+      "alpha 12",
+      "beta 13"
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       3,
+       7,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": "epsilon 10",
+       "1": "zeta 11",
+       "2": "alpha 12",
+       "3": "beta 13"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      3,
+      7,
+      true
+     ],
+     "groesse": [
+      30,
+      4
+     ],
+     "ruecklauf": {
+      "erste": "alpha 0",
+      "letzte": "delta 9",
+      "zahl": 10
+     },
+     "stand": 2,
+     "zeilen": [
+      "epsilon 10",
+      "zeta 11",
+      "alpha 12",
+      "beta 13"
+     ]
+    }
+   }
+  ]
+ }
+}

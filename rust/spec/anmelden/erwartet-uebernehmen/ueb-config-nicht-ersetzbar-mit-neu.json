@@ -1,0 +1,10 @@
+{
+ "exit": 21,
+ "code": "anmelden.quelle_nicht_schreibbar",
+ "stdout": "",
+ "stderr": "werkbank-anmelden: anmelden.quelle_nicht_schreibbar: Die Konfiguration der Copilot CLI ist nicht neu schreibbar.\n",
+ "ziel_datei": "alt",
+ "config": "unveraendert",
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

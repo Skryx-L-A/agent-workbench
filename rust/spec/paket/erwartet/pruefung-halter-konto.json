@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.halter_konto: Der Dienst wb-halter laeuft nicht unter dem Konto NT SERVICE\\wb-halter.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

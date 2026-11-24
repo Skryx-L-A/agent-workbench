@@ -1,0 +1,807 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitt 9 (WebSocket im Probelauf, Z1 bis Z3, Nachtrag 17) und 13.3. Nur Betriebsart 2, nur nach einer durchgereichten 101. von_harness sind die Teile (latin1-Text) der Rahmen vom Harness zum Dienst, maskiert nach RFC 6455 Abschnitt 5.3; die Lage davor: die Upgrade-Anfrage ist gezaehlt, also anfragen 1 und alle Marker 0 (datei_anfang). an_ziel sind die Bytes, die zum Dienst gehen: unveraendert, also maskiert, und nur vollstaendig gelesene, geprueft und gezaehlte Rahmen. datei_folge ist der Inhalt der Zaehldatei nach jedem vollstaendigen Datenrahmen (RFC 8785); Steuerrahmen schreiben nichts. abriss: Code, mit dem beide Richtungen schliessen (Ergebnis abgelehnt, status 101); null heisst Ende der Verbindung. Ohne probelauf gibt es weder Zaehlung noch Pruefung. Marker, Schluessel und Platzhalter sind erfundene Testwerte.",
+ "sitzung": "s-1",
+ "faelle": [
+  {
+   "name": "ws_marker_textrahmen",
+   "beschreibung": "ein Marker in einem Textrahmen des Harness: gezaehlt, der Rahmen geht unveraendert (maskiert) hinaus (Z1)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "¥^qã,á\u0016À~ú\u0004\u0013Ë\\î\u000bÎ5à"
+   ],
+   "erwartet": {
+    "an_ziel": "¥^qã,á\u0016À~ú\u0004\u0013Ë\\î\u000bÎ5à",
+    "rahmen_hinaus": 1,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_zwei_marker_in_einem_rahmen",
+   "beschreibung": "drei Treffer in einem Rahmen (zwei verschiedene Marker, einer doppelt)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "£\u001dÓO¶PbýH\u000bó=¦!Ò=\u0004T\u001bóOoÃs·oûVþ\u0004ãS\n"
+   ],
+   "erwartet": {
+    "an_ziel": "£\u001dÓO¶PbýH\u000bó=¦!Ò=\u0004T\u001bóOoÃs·oûVþ\u0004ãS\n",
+    "rahmen_hinaus": 1,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":2},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":2},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_marker_geteilt_zwei_rahmen",
+   "beschreibung": "ein Marker ueber zwei Rahmen einer Nachricht verteilt (erster Rahmen FIN=0, Fortsetzung FIN=1): zaehlt einmal, erst mit dem zweiten Rahmen (Z1)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "\u00017ú!=O\u0001p|×jh",
+    "k\u0012Ä\t%V)\u0012k"
+   ],
+   "erwartet": {
+    "an_ziel": "\u00017ú!=O\u0001p|×jhk\u0012Ä\t%V)\u0012k",
+    "rahmen_hinaus": 2,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_marker_ein_und_geteilt",
+   "beschreibung": "PFLICHT: ein Marker in einem Rahmen und ein anderer ueber zwei Rahmen verteilt, beide gezaehlt",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "¥^qè\u0015­8ë\nÅ#ë",
+    "\u0001\u001dÓO¶|ó\u0002ý0\u001a",
+    "7ú!=y¾d"
+   ],
+   "erwartet": {
+    "an_ziel": "¥^qè\u0015­8ë\nÅ#ë\u0001\u001dÓO¶|ó\u0002ý0\u001a7ú!=y¾d",
+    "rahmen_hinaus": 3,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_marker_ueber_nachrichten",
+   "beschreibung": "ein Marker ueber die Grenze zweier Nachrichten (beide Rahmen FIN=1): zaehlt einmal (Z1: ueber Rahmen- und Nachrichtengrenzen)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "k\u0012Ä\t&YéB>",
+    "¥^që\u001aÅ"
+   ],
+   "erwartet": {
+    "an_ziel": "k\u0012Ä\t&YéB>¥^që\u001aÅ",
+    "rahmen_hinaus": 2,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_marker_binaerrahmen",
+   "beschreibung": "ein Marker in einem Binaerrahmen (Opcode 0x2)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "\u001dÓO¶\u001dÒ\u0002ý0\u0001âX\u0001I"
+   ],
+   "erwartet": {
+    "an_ziel": "\u001dÓO¶\u001dÒ\u0002ý0\u0001âX\u0001I",
+    "rahmen_hinaus": 1,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_marker_laenge_126",
+   "beschreibung": "ein Marker am Ende eines Rahmens in der 16-Bit-Laengenform (130 Zeichen davor)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "þ\u00007ú!=OYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOlv\u001a±tss¿"
+   ],
+   "erwartet": {
+    "an_ziel": "þ\u00007ú!=OYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOYEOlv\u001a±tss¿",
+    "rahmen_hinaus": 1,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_marker_im_ping",
+   "beschreibung": "ein Marker in einem Ping: nicht gezaehlt, der Ping geht unveraendert hinaus, keine Datei geschrieben (Z1: Steuerrahmen zaehlen nicht)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "k\u0012Ä\t\np",
+    "¥^qè\u0015­:ð\u0010Ä4"
+   ],
+   "erwartet": {
+    "an_ziel": "k\u0012Ä\t\np¥^qè\u0015­:ð\u0010Ä4",
+    "rahmen_hinaus": 2,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_marker_im_close",
+   "beschreibung": "ein Marker im Grund eines Close-Rahmens: nicht gezaehlt",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "\u001dÓO¶\u001e;\u0002ý0\u001aøY"
+   ],
+   "erwartet": {
+    "an_ziel": "\u001dÓO¶\u001e;\u0002ý0\u001aøY",
+    "rahmen_hinaus": 1,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_ping_zwischen_teilen",
+   "beschreibung": "ein Marker ueber zwei Rahmen, dazwischen ein Ping, der denselben Marker traegt: zaehlt einmal; der Ping unterbricht nichts und traegt nichts bei (Z1)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "\u00017ú!=z±\fvb",
+    "k\u0012Ä\t&YéB>\\L",
+    "¥^që\u001aÅ"
+   ],
+   "erwartet": {
+    "an_ziel": "\u00017ú!=z±\fvbk\u0012Ä\t&YéB>\\L¥^që\u001aÅ",
+    "rahmen_hinaus": 3,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_marker_ohne_ueberlappung",
+   "beschreibung": "ein Marker, der sich mit sich selbst ueberlappen kann (AB-AB): ueber zwei Rahmen verteilt zaehlt von links ohne Ueberlappung, 2 und nicht 3",
+   "probelauf": true,
+   "marker": [
+    "AB-AB"
+   ],
+   "von_harness": [
+    "\u0001\u001dÓO¶\\b÷_þ\u000eô",
+    "7ú!=\u001a»c"
+   ],
+   "erwartet": {
+    "an_ziel": "\u0001\u001dÓO¶\\b÷_þ\u000eô7ú!=\u001a»c",
+    "rahmen_hinaus": 2,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"AB-AB\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"AB-AB\":1},\"sitzung\":\"s-1\"}",
+     "{\"anfragen\":1,\"marker\":{\"AB-AB\":2},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"AB-AB\":2},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_teile_byteweise",
+   "beschreibung": "dieselben zwei Rahmen wie in ws_marker_ein_und_geteilt, Byte fuer Byte als einzelne Teile geliefert: dasselbe Ergebnis, die Teilgrenzen haben keine Wirkung",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "",
+    "",
+    "k",
+    "\u0012",
+    "Ä",
+    "\t",
+    "&",
+    "Y",
+    "é",
+    "@",
+    "%",
+    "F",
+    "",
+    "[",
+    "%",
+    "\u0001",
+    "",
+    "¥",
+    "^",
+    "",
+    "q",
+    "Ä",
+    "~",
+    "Í",
+    ":",
+    "",
+    "\u0015",
+    "Õ",
+    "",
+    "",
+    "\u001d",
+    "Ó",
+    "O",
+    "¶",
+    "S",
+    "",
+    "\n"
+   ],
+   "erwartet": {
+    "an_ziel": "k\u0012Ä\t&Yé@%F[%\u0001¥^qÄ~Í:\u0015Õ\u001dÓO¶S\n",
+    "rahmen_hinaus": 3,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":1,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_ohne_probelauf",
+   "beschreibung": "ohne Probelauf: keine Zaehlung, keine Datei; auch ein Rahmen ohne Maskenbit, einer mit RSV1 und ein Opcode 0x3 gehen unveraendert hinaus (W6 bleibt, keine Pruefung dieser Richtung)",
+   "probelauf": false,
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "\tMK-INTERN",
+    "Ák\u0012Ä\t\np",
+    "¥^qÄ<"
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex\tMK-INTERNÁk\u0012Ä\t\np¥^qÄ<",
+    "rahmen_hinaus": null,
+    "abriss": null,
+    "datei_anfang": null,
+    "datei_folge": [],
+    "datei_ende": null,
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_maske_fehlt",
+   "beschreibung": "ein Rahmen des Harness ohne Maskenbit, mit einem Marker: nicht gezaehlt, geht nicht hinaus, Abriss in beide Richtungen (Z3); der Rahmen danach geht auch nicht mehr hinaus",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "\tMK-INTERN",
+    "k\u0012Ä\t&Yé@%F[%"
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex",
+    "rahmen_hinaus": 1,
+    "abriss": "mw.anfrage_unlesbar",
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_rsv1",
+   "beschreibung": "RSV1 gesetzt: Abriss (Z3)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "Á\u001dÓO¶|±",
+    "k\u0012Ä\t&Yé@%F[%"
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex",
+    "rahmen_hinaus": 1,
+    "abriss": "mw.anfrage_unlesbar",
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_rsv3",
+   "beschreibung": "RSV3 gesetzt: Abriss (Z3)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "7ú!=V",
+    "k\u0012Ä\t&Yé@%F[%"
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex",
+    "rahmen_hinaus": 1,
+    "abriss": "mw.anfrage_unlesbar",
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_opcode_3",
+   "beschreibung": "unbekannter Opcode 0x3: Abriss (Z3)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "k\u0012Ä\t\np",
+    "k\u0012Ä\t&Yé@%F[%"
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex",
+    "rahmen_hinaus": 1,
+    "abriss": "mw.anfrage_unlesbar",
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_laenge_zu_gross",
+   "beschreibung": "Laengenangabe 33554433 in der 64-Bit-Form: Abriss schon am Kopf, ohne die Nutzdaten abzuwarten (Z3)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "ÿ\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0001¥^qÄ",
+    "k\u0012Ä\t&Yé@%F[%"
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex",
+    "rahmen_hinaus": 1,
+    "abriss": "mw.anfrage_unlesbar",
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_ping_fin0",
+   "beschreibung": "ein Ping mit FIN=0: Abriss (Z3, Regelverstoss wie in 13.3)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "\t\u001dÓO¶m",
+    "k\u0012Ä\t&Yé@%F[%"
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex",
+    "rahmen_hinaus": 1,
+    "abriss": "mw.anfrage_unlesbar",
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_ping_laenge_126",
+   "beschreibung": "ein Ping mit der Laenge 126: Abriss (Z3)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "þ\u0000~7ú!=GQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMGQMG",
+    "k\u0012Ä\t&Yé@%F[%"
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex",
+    "rahmen_hinaus": 1,
+    "abriss": "mw.anfrage_unlesbar",
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_fortsetzung_ohne_anfang",
+   "beschreibung": "eine Fortsetzung ohne offene geteilte Nachricht: Abriss (Z3)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "k\u0012Ä\t\np",
+    "k\u0012Ä\t&Yé@%F[%"
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex",
+    "rahmen_hinaus": 1,
+    "abriss": "mw.anfrage_unlesbar",
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_text_in_geteilter",
+   "beschreibung": "ein neuer Textrahmen, waehrend eine geteilte Nachricht offen ist: Abriss (Z3); der erste Teil ging hinaus und ist gezaehlt",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "\u0001¥^qÄ<",
+    "\u001dÓO¶~·",
+    "k\u0012Ä\t&Yé@%F[%"
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex\u0001¥^qÄ<",
+    "rahmen_hinaus": 2,
+    "abriss": "mw.anfrage_unlesbar",
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_zaehldatei_nicht_schreibbar",
+   "beschreibung": "die Zaehldatei ist ab dem zweiten Datenrahmen nicht schreibbar: der zweite Rahmen geht nicht hinaus, beide Richtungen schliessen, Zeile mw.zaehlung_fehler; der Stand bleibt beim letzten geschriebenen Wert (Z3)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "zaehldatei_nicht_schreibbar_ab_datenrahmen": 2,
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "7ú!=z±\fty®doy",
+    "k\u0012Ä\t&YéB>\\L"
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex",
+    "rahmen_hinaus": 1,
+    "abriss": "mw.zaehlung_fehler",
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.zaehlung_fehler",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_zaehldatei_nicht_schreibbar_erster",
+   "beschreibung": "die Zaehldatei ist schon beim ersten Datenrahmen nicht schreibbar: nichts geht hinaus, der Stand bleibt der Anfangsstand (Z3)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "zaehldatei_nicht_schreibbar_ab_datenrahmen": 1,
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "k\u0012Ä\t&Yé@%F[%"
+   ],
+   "erwartet": {
+    "an_ziel": "",
+    "rahmen_hinaus": 0,
+    "abriss": "mw.zaehlung_fehler",
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.zaehlung_fehler",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_steuerrahmen_ohne_schreiben",
+   "beschreibung": "nur Steuerrahmen und eine nicht schreibbare Zaehldatei: kein Datenrahmen, also kein Schreiben und kein Abriss; die Rahmen gehen hinaus (Z2: Schreiben nach jedem Datenrahmen)",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "zaehldatei_nicht_schreibbar_ab_datenrahmen": 1,
+   "von_harness": [
+    "¥^qÕ7î\u0016",
+    "\u001dÓO¶m¼!Ñ"
+   ],
+   "erwartet": {
+    "an_ziel": "¥^qÕ7î\u0016\u001dÓO¶m¼!Ñ",
+    "rahmen_hinaus": 2,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_abgeschnitten",
+   "beschreibung": "der zweite Rahmen ist beim Ende der Verbindung abgeschnitten: er ist nie vollstaendig, wird nicht gezaehlt und geht nicht hinaus; kein Abriss, Zeile wie beim normalen Ende",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    "7ú!=z±\fty®"
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex",
+    "rahmen_hinaus": 1,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_abgeschnitten_kopf",
+   "beschreibung": "die Verbindung endet mitten im Rahmenkopf (nur das erste Byte da): nichts davon geht hinaus",
+   "probelauf": true,
+   "marker": [
+    "MK-KUNDE",
+    "MK-INTERN"
+   ],
+   "von_harness": [
+    "7ú!=z±\fvb´ex",
+    ""
+   ],
+   "erwartet": {
+    "an_ziel": "7ú!=z±\fvb´ex",
+    "rahmen_hinaus": 1,
+    "abriss": null,
+    "datei_anfang": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":0},\"sitzung\":\"s-1\"}",
+    "datei_folge": [
+     "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}"
+    ],
+    "datei_ende": "{\"anfragen\":1,\"marker\":{\"MK-INTERN\":0,\"MK-KUNDE\":1},\"sitzung\":\"s-1\"}",
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  }
+ ]
+}

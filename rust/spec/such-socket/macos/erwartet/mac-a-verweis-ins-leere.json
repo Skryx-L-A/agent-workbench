@@ -1,0 +1,9 @@
+{
+ "start": {
+  "exit": 74
+ },
+ "nachher": {
+  "verweis_bleibt": true,
+  "ziel_ohne_socket": true
+ }
+}

@@ -1,0 +1,79 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "brot/sauerteig.md",
+    "score": 1.0,
+    "title": "Sauerteig",
+    "snippet": "Sauerteig braucht Zeit und Wärme.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.9805806756909201,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 1
+   },
+   {
+    "rel": "brot/kruste.md",
+    "score": 0.9150326797385621,
+    "title": "Kruste",
+    "snippet": "Der Sauerteig macht die Kruste knusprig.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.8,
+    "bm25_rang": 3,
+    "bm25_norm": 0.5339350190971717,
+    "vektor_rang": 2
+   },
+   {
+    "rel": "brot/roggen.md",
+    "score": 0.8654970760233918,
+    "title": "Roggen",
+    "snippet": "Roggenmehl ist schwer, Sauerteig hilft.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.6,
+    "bm25_rang": 4,
+    "bm25_norm": 0.4878276240578634,
+    "vektor_rang": 3
+   },
+   {
+    "rel": "brot/ofen.md",
+    "score": 0.47058823529411764,
+    "title": "Ofen",
+    "snippet": "Der Ofen heizt auf Temperatur.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.6114903384599004
+   },
+   {
+    "rel": "brot/knetung.md",
+    "score": 0.42105263157894735,
+    "title": "Knetung",
+    "snippet": "Die Knetung fühlt sich weich an.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.4061384660534476,
+    "vektor_rang": 4
+   }
+  ]
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "exit": 0,
+ "stdout": {
+  "snippet": "Das Aquarium braucht regelmäßig frisches Wasser, damit die Fische gesund bleiben, der Filter muss alle vier Wochen gereinigt werden, sonst setzt sich der Schmutz an den Pflanzen, Steinen und Wurzeln fest...",
+  "lines": [
+   5,
+   5
+  ],
+  "hook": "Das Aquarium braucht regelmäßig frisches Wasser, damit die Fische gesund bleiben, der Filter muss alle vier Wochen gereinigt werden, sonst setzt sich der Schmutz an den Pflanzen, Steinen und Wurzeln fest, Wasseroberflächenverschmutzung entsteht dann schnell, so dass das Wasser trüb wird.",
+  "hook_lines": [
+   5,
+   5
+  ]
+ }
+}

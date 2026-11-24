@@ -1,0 +1,33 @@
+[package]
+name = "rasterauszug"
+version = "0.1.0"
+description = "Screen extract of the new interface: line form (SGR text), per-viewer difference frames with scroll detection (model M2), byte frame A-B and raw Deflate. Logic only, no clock, no randomness, no I/O in the library."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "ra"
+path = "src/main.rs"
+
+# serde_json: reads the case and the messages of the core and writes the results as JSON values (default features,
+# depth limit 128 stays on), the same as in zustandskern.
+# flate2 with the backend miniz_oxide only (pure Rust): raw Deflate with one context per connection (rule RA11).
+# No default features: the default feature runtime_detection names zlib-rs as a weak dependency ("zlib-rs?/std"),
+# and so Cargo.lock and the SBOM listed zlib-rs although it was never built. rust_backend is the backend that the
+# defaults chose (decision of 20.11.2026). crc32fast loses its feature std with it; raw Deflate computes no CRC-32.
+# miniz_oxide itself, the same package and version that flate2 uses, no further crate: the receiver calls its core
+# inflater on a contiguous buffer with the last 32 KiB of the connection in front, so that a distance reaching
+# before the start of the stream is an error as in zlib. flate2 hands out only the streaming inflater, which
+# reads such a distance as zero bytes and accepts the stream.
+# The versions are those of the lock file of the measuring runner of the contract.
+[dependencies]
+flate2 = { version = "1.1.11", default-features = false, features = ["rust_backend"] }
+miniz_oxide = "0.9.1"
+serde_json = "1"
+
+[lints]
+workspace = true

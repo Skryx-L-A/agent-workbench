@@ -1,0 +1,5 @@
+{
+ "beschreibung": "projektwurzeln als Text",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"projektwurzeln\": \"/Users/beispiel/Projekte\",\n \"programmordner\": [\n  \"/Users/beispiel/.local/share/claude\",\n  \"/opt/homebrew\"\n ]\n}\n"
+}

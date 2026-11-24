@@ -1,0 +1,117 @@
+{
+ "beschreibung": "„Sitzung beendet“ einmal je Übergang; das Ende des Stroms sagt „Verbindung getrennt“.",
+ "datensatz": "A",
+ "name": "se3_beendet_getrennt",
+ "regeln": [
+  "SE3"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "code": 0,
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "beendet"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Sitzung s-1 beendet, Code 0"
+   ]
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "code": 0,
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "beendet"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": []
+  },
+  {
+   "art": "StromEnde"
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": [
+    "Verbindung getrennt"
+   ]
+  }
+ ]
+}

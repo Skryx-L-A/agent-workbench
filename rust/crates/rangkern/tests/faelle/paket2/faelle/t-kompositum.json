@@ -1,0 +1,8 @@
+{
+ "description": "Kompositum und Teilwort teilen Gramme",
+ "program": "rangkern",
+ "args": [
+  "tokens",
+  "Suchindex Index Indizes"
+ ]
+}

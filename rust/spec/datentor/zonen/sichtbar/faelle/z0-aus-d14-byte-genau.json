@@ -1,0 +1,82 @@
+{
+ "name": "z0-aus-d14-byte-genau",
+ "regeln": [
+  "A127",
+  "Z0",
+  "D14",
+  "D3"
+ ],
+ "beschreibung": "Option aus: der Fall d14-byte-genau aus Vertrag 3 mit derselben Erwartung. Route und Kunde werden byte-genau verglichen; die Meldung nennt die Route so, wie sie übergeben wurde.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ },
+ "modellzonen": {
+  "an": false,
+  "zonen": []
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "Cloud",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "cloud ",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "route": "clöud",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "lokal",
+   "kunde": "k-nörd"
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "lokal",
+   "kunde": "k-nord "
+  }
+ ]
+}

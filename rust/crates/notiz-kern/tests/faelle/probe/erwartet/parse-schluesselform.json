@@ -1,0 +1,23 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Form\nTitle: Groß\nfarbe : blau\nключ: wert\nmit_unterstrich-1: ja"
+  ],
+  "fields": {
+   "title": "Form",
+   "Title": "Groß",
+   "mit_unterstrich-1": "ja"
+  },
+  "body": "Text\n",
+  "title": "Form",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "form",
+   "note"
+  ],
+  "embed_text": "Form\n\nText\n"
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "description": "leere Frage: Rückfall",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\ntitle: Kaffee\n---\n\nFür künftige Sessions: Kaffee nie kochen lassen.\n\nWeiterer Text.\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  ""
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "beschreibung": "eine Antwort außerhalb der drei Werte wird nie übernommen: die Datei gilt",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {},
+ "vorher": "zugelassen",
+ "antwort": "ja"
+}

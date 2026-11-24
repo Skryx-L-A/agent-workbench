@@ -1,0 +1,228 @@
+{
+ "beschreibung": "Startwahl fuellt Harness, Route, Kunde (ohne Kunde zuletzt) und Modell; die Route bestimmt das Modell; /starten traegt es.",
+ "datensatz": "A",
+ "name": "se6_startwahl",
+ "regeln": [
+  "SE6",
+  "SE7"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": []
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Harness",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "cloud-beispiel",
+   "optionen": [
+    "cloud-beispiel",
+    "lokal-beispiel"
+   ],
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Startwahl",
+    "fassung": 1,
+    "harness": [
+     {
+      "art": "claude",
+      "name": "claude",
+      "routenart": "cloud"
+     },
+     {
+      "art": "pi",
+      "name": "pi",
+      "routenart": "cloud"
+     },
+     {
+      "art": "hermes",
+      "name": "hermes",
+      "routenart": "cloud"
+     }
+    ],
+    "kunden": [
+     "k-beispiel",
+     "k-zwei",
+     null
+    ],
+    "routen": [
+     {
+      "art": "cloud",
+      "klasse": "extern",
+      "modell": "cloud-modell-a",
+      "schluessel": "cloud"
+     },
+     {
+      "art": "cloud",
+      "klasse": "extern",
+      "modell": null,
+      "schluessel": "offen"
+     },
+     {
+      "art": "lokal",
+      "klasse": "intern",
+      "modell": "lokal-modell-b",
+      "schluessel": "lokal"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "claude",
+   "optionen": [
+    "claude",
+    "pi",
+    "hermes"
+   ],
+   "testid": "harness-wahl"
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "cloud",
+   "optionen": [
+    "cloud",
+    "offen",
+    "lokal"
+   ],
+   "testid": "route-wahl"
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "ohne Kunde",
+   "optionen": [
+    "k-beispiel",
+    "k-zwei",
+    "ohne Kunde"
+   ],
+   "testid": "kunde-wahl"
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "cloud-modell-a",
+   "optionen": [
+    "cloud-modell-a"
+   ],
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Waehle",
+   "testid": "route-wahl",
+   "wert": "lokal"
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "lokal-modell-b",
+   "optionen": [
+    "lokal-modell-b"
+   ],
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Waehle",
+   "testid": "harness-wahl",
+   "wert": "hermes"
+  },
+  {
+   "art": "Waehle",
+   "testid": "kunde-wahl",
+   "wert": "k-zwei"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "arbeitsordner-eingabe"
+   }
+  },
+  {
+   "art": "Einsetzen",
+   "text": "/srv/projekt-ä"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzung-start"
+   }
+  },
+  {
+   "art": "Starts",
+   "erwartet": [
+    {
+     "arbeitsordner": "/srv/projekt-ä",
+     "fassung": 1,
+     "harness": "hermes",
+     "kunde": "k-zwei",
+     "modell": "lokal-modell-b",
+     "route": "lokal"
+    }
+   ]
+  },
+  {
+   "art": "Waehle",
+   "testid": "route-wahl",
+   "wert": "cloud"
+  },
+  {
+   "art": "Testid",
+   "gewaehlt": "cloud-modell-a",
+   "optionen": [
+    "cloud-modell-a"
+   ],
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Waehle",
+   "testid": "kunde-wahl",
+   "wert": "ohne Kunde"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzung-start"
+   }
+  },
+  {
+   "art": "Starts",
+   "erwartet": [
+    {
+     "arbeitsordner": "/srv/projekt-ä",
+     "fassung": 1,
+     "harness": "hermes",
+     "kunde": null,
+     "modell": "cloud-modell-a",
+     "route": "cloud"
+    }
+   ]
+  }
+ ],
+ "starten": [
+  {
+   "antwort": {
+    "sitzung": "s-3"
+   },
+   "status": 200
+  },
+  {
+   "antwort": {
+    "sitzung": "s-3"
+   },
+   "status": 200
+  }
+ ]
+}

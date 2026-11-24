@@ -1,0 +1,40 @@
+{
+ "start": "bereit",
+ "responses": [],
+ "protokoll": [
+  {
+   "aktionsname": "kanal.abgewiesen",
+   "ergebnis": "abgewiesen",
+   "fassung": 2,
+   "grund": "pk.hallo_fehlt",
+   "kanal": "such",
+   "route": "cloud",
+   "sitzung": "s-test-1"
+  }
+ ],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ },
+ "sicherheit": {
+  "besitzer": "{eigene_sid}",
+  "dacl_flags": "P",
+  "aces": [
+   [
+    "A",
+    "0x12019f",
+    "{eigene_sid}"
+   ],
+   [
+    "A",
+    "0x12019b",
+    "{paket_sid}"
+   ]
+  ],
+  "label": [
+   "ML",
+   "NW",
+   "S-1-16-4096"
+  ]
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "description": "Nullvektor: cosine 0, kein Fehler",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Nullstelle",
+  "--vectors",
+  "{root}/vektoren.json",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/mathe/null.md": "---\ntitle: Null\ntype: note\n---\n\nEin Vektor ohne Länge.\n",
+  "vault/mathe/eins.md": "---\ntitle: Eins\ntype: note\n---\n\nDie Nullstelle steht hier.\n",
+  "vektoren.json": "{\"query\": [1, 0, 0], \"notes\": {\"mathe/null.md\": [0, 0, 0], \"mathe/eins.md\": [1, 0, 0]}}"
+ }
+}

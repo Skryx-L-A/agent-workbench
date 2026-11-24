@@ -1,0 +1,64 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    0,
+    0,
+    true
+   ],
+   "groesse": [
+    30,
+    8
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 1,
+   "zeilen": [
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "SyncEnde"
+     },
+     {
+      "art": "SyncBeginn"
+     },
+     {
+      "art": "SyncBeginn"
+     },
+     {
+      "art": "SyncEnde"
+     },
+     {
+      "art": "SyncEnde"
+     },
+     {
+      "art": "SyncBeginn"
+     },
+     {
+      "art": "Modus",
+      "invers": true,
+      "stand": 1
+     }
+    ],
+    "pty_antworten": ""
+   }
+  ]
+ }
+}

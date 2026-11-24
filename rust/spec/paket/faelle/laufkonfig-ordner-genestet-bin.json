@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Ein Ordner im bin-Ordner von node fällt zusammen: nur der äußere bleibt; die Paketwurzel liegt daneben",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/opt/pi/lib/node_modules/pi/cli.js",
+   "node": "/opt/pi/bin/node"
+  },
+  "copilot": {
+   "programm": "/opt/pi/bin/werkzeug/copilot",
+   "node": null
+  }
+ },
+ "vorher": null
+}

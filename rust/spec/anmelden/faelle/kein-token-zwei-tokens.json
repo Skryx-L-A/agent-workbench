@@ -1,0 +1,18 @@
+{
+ "beschreibung": "config.json mit zwei Tokens: keine Wahl",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "zwei-tokens",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

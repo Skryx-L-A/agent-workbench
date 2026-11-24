@@ -1,0 +1,17 @@
+{
+ "beschreibung": "Ein Segment des Programmordners ist ein Geheimnisname (.secrets-sync): das Harness wird nicht eingetragen, postinst endet mit 0",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/opt/.secrets-sync/pi/pi",
+   "node": null
+  }
+ },
+ "vorher": null,
+ "pruefer_verboten": [
+  "/opt/.secrets-sync/pi"
+ ]
+}

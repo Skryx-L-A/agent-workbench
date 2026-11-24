@@ -1,0 +1,16 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [],
+  "fields": {},
+  "body": "---\ntitle: Halb\ntype: note\n\nText ohne Ende des Kopfes.\n",
+  "title": "note",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "note"
+  ],
+  "embed_text": "note\n\n---\ntitle: Halb\ntype: note\n\nText ohne Ende des Kopfes.\n"
+ }
+}

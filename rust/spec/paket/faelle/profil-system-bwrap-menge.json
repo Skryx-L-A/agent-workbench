@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Anhang `/usr/bin/{bwrap,x}`",
+ "form": "profil",
+ "text": "abi <abi/4.0>,\ninclude <tunables/global>\n\nprofile werkbank-bwrap /usr/bin/{bwrap,x} {\n  userns,\n}\n"
+}

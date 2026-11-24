@@ -1,0 +1,187 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    1,
+    5,
+    true
+   ],
+   "groesse": [
+    22,
+    8
+   ],
+   "ruecklauf": {
+    "erste": "xxxxxxxxxxxxxxxxxxxxxx",
+    "letzte": "xxxxxxxxxxxxxxxxxxxxxx",
+    "zahl": 1
+   },
+   "stand": 3,
+   "zeilen": [
+    "xxxxxxxxxxxxx",
+    "alpha",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       2,
+       5,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+       "1": "xxxxx",
+       "2": "alpha"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      2,
+      5,
+      true
+     ],
+     "groesse": [
+      30,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 1,
+     "zeilen": [
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxx",
+      "alpha",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       5,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "0": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+       "1": "alpha",
+       "2": ""
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      1,
+      5,
+      true
+     ],
+     "groesse": [
+      40,
+      8
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 2,
+     "zeilen": [
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "alpha",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       1,
+       5,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "0": "xxxxxxxxxxxxx"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      1,
+      5,
+      true
+     ],
+     "groesse": [
+      22,
+      8
+     ],
+     "ruecklauf": {
+      "erste": "xxxxxxxxxxxxxxxxxxxxxx",
+      "letzte": "xxxxxxxxxxxxxxxxxxxxxx",
+      "zahl": 1
+     },
+     "stand": 3,
+     "zeilen": [
+      "xxxxxxxxxxxxx",
+      "alpha",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

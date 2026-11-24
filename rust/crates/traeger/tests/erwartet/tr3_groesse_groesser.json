@@ -1,0 +1,155 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    11,
+    5,
+    true
+   ],
+   "groesse": [
+    37,
+    12
+   ],
+   "ruecklauf": {
+    "erste": null,
+    "letzte": null,
+    "zahl": 0
+   },
+   "stand": 2,
+   "zeilen": [
+    "alpha 0",
+    "beta 1",
+    "gamma 2",
+    "delta 3",
+    "epsilon 4",
+    "zeta 5",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "unten"
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       5,
+       6,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "alpha 0",
+       "1": "beta 1",
+       "2": "gamma 2",
+       "3": "delta 3",
+       "4": "epsilon 4",
+       "5": "zeta 5"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      5,
+      6,
+      true
+     ],
+     "groesse": [
+      37,
+      12
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 1,
+     "zeilen": [
+      "alpha 0",
+      "beta 1",
+      "gamma 2",
+      "delta 3",
+      "epsilon 4",
+      "zeta 5",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    }
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       11,
+       5,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "11": "unten"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      11,
+      5,
+      true
+     ],
+     "groesse": [
+      37,
+      12
+     ],
+     "ruecklauf": {
+      "erste": null,
+      "letzte": null,
+      "zahl": 0
+     },
+     "stand": 2,
+     "zeilen": [
+      "alpha 0",
+      "beta 1",
+      "gamma 2",
+      "delta 3",
+      "epsilon 4",
+      "zeta 5",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "unten"
+     ]
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,14 @@
+{
+ "name": "tr13_leerer_fall",
+ "regeln": [
+  "TR13"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Keine Schritte: nur der Endzustand des leeren Rasters",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": []
+}

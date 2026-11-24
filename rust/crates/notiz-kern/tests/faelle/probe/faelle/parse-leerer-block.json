@@ -1,0 +1,10 @@
+{
+ "description": "empty block between rules is a horizontal rule",
+ "files": {
+  "note.md": "---\n\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

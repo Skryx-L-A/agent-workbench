@@ -1,0 +1,183 @@
+{
+ "beschreibung": "s-2 belegt und s-1 frei: der erste Start bekommt s-1, der zweite ueberspringt s-2 und bekommt s-3",
+ "datensatz": "A",
+ "name": "di12_kennung_luecke",
+ "ordner_pruefen": true,
+ "regeln": [
+  "DI12"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "nachricht": {
+     "art": "Gestartet",
+     "sitzung": "s-1"
+    }
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "liste": {
+     "id": "s-1",
+     "zustand": "laeuft"
+    }
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-1",
+    "spalten": 120,
+    "zeilen": 14
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "nr": 1,
+    "text": "BEREIT"
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "nachricht": {
+     "art": "Gestartet",
+     "sitzung": "s-3"
+    }
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "liste": {
+     "id": "s-3",
+     "zustand": "laeuft"
+    }
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-3",
+    "spalten": 120,
+    "zeilen": 14
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "nr": 3,
+    "text": "BEREIT"
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1",
+   "voll": true
+  }
+ ],
+ "sitzungen": {
+  "vorher": [
+   {
+    "art": "ordner",
+    "name": "s-2"
+   }
+  ]
+ },
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind",
+   "sitzungen": "@sitzungen"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

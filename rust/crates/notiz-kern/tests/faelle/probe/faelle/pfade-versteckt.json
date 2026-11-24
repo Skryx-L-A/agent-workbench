@@ -1,0 +1,11 @@
+{
+ "description": "hidden directories and files",
+ "args": [
+  "paths",
+  ".trash/x.md",
+  "10-global/.b/c.md",
+  ".x.md",
+  "10-global/.verborgen.md",
+  "20-projects/p/_assets/a.md.md"
+ ]
+}

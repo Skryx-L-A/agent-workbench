@@ -1,0 +1,34 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "tiere/aquarium.md",
+    "score": 1.0,
+    "title": "Aquarium",
+    "snippet": "Aquarium Filter reinigen, Filter im Monat einmal.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   },
+   {
+    "rel": "tiere/filter.md",
+    "score": 0.2674430414445006,
+    "title": "Filter",
+    "snippet": "Filter Pumpe pruefen, Filter Schwamm waschen.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.2674430414445006
+   }
+  ]
+ }
+}

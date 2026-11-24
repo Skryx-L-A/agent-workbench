@@ -1,0 +1,16 @@
+{
+ "beschreibung": "Dienst lehnt lauf_start ab: Agent läuft nie an",
+ "form": "aufruf",
+ "lage": {
+  "start": {
+   "fassung": 1,
+   "sitzung": "s-1",
+   "harness": "claude",
+   "modell": "claude-sonnet-5-5",
+   "route": "cloud-beispiel",
+   "kunde": "k-beispiel",
+   "arbeitsordner": "C:\\Users\\beispiel\\Projekte\\projekt"
+  },
+  "dienst_antwort": "dienst.prozess_falsch"
+ }
+}

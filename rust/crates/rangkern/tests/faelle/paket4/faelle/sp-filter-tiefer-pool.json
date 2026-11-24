@@ -1,0 +1,29 @@
+{
+ "description": "-k 1 --space b: ein tiefer stehender Treffer aus b wird gefunden",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "-k",
+  "1",
+  "--space",
+  "b",
+  "--today",
+  "2026-11-18",
+  "Kaffeebohnen"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-5.md": "---\ntitle: Füller 5\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-6.md": "---\ntitle: Füller 6\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-7.md": "---\ntitle: Füller 7\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-8.md": "---\ntitle: Füller 8\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/10-global/bohnen-1.md": "---\ntitle: Bohnen eins\ntype: note\n---\n\nKaffeebohnen mahlen, Kaffeebohnen Kaffeebohnen, frisch.\n",
+  "vault/10-global/bohnen-2.md": "---\ntitle: Bohnen zwei\ntype: note\n---\n\nKaffeebohnen kaufen, Kaffeebohnen Sorten, Kaffeebohnen.\n",
+  "vault/20-projects/b/rezept.md": "---\ntitle: Rezept b\ntype: note\n---\n\nEin langer Text, der nur einmal Kaffeebohnen nennt und sonst von Tee, Wasser und Geschirr erzaehlt.\n",
+  "vault/.brain/spaces.lock": "{\n  \"spaces\": [\n    {\n      \"space\": \"b\",\n      \"mount\": \"20-projects/b\",\n      \"remote\": \"\",\n      \"commit\": \"00000000\",\n      \"art\": \"projekt\",\n      \"owner\": \"team\",\n      \"schreibbar\": true\n    }\n  ]\n}\n"
+ }
+}

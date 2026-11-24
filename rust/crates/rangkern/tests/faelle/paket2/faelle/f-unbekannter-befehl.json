@@ -1,0 +1,8 @@
+{
+ "description": "unbekannter Unterbefehl: Exit 2",
+ "program": "rangkern",
+ "args": [
+  "zerlege",
+  "x"
+ ]
+}

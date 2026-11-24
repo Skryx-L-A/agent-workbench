@@ -1,0 +1,12 @@
+{
+ "description": "CRLF-Datei: Zeilen wie bei LF",
+ "program": "rangkern",
+ "files": {
+  "note.md": "---\r\ntitle: Regen\r\n---\r\n\r\nDie Regentonne ist voll.\r\nDer Deckel fehlt.\r\n\r\nWeiter ohne Bezug.\r\n"
+ },
+ "args": [
+  "snippet",
+  "{root}/note.md",
+  "Regentonne Deckel"
+ ]
+}

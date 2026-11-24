@@ -1,0 +1,8 @@
+{
+ "description": "NFD-Umlaut: U+0308 ist kein \\w und trennt",
+ "program": "rangkern",
+ "args": [
+  "tokens",
+  "Härte"
+ ]
+}

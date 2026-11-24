@@ -1,0 +1,12 @@
+{
+ "description": "generated prefixes and lint-only names",
+ "args": [
+  "paths",
+  "brain-vorschlaege-x.md",
+  "20-projects/p/brain-vorschlaege.md",
+  "10-global/gardener-report-1.md",
+  "10-global/README.md",
+  "dream-report-2026.md",
+  "30-topics/t/brain-run-7.md"
+ ]
+}

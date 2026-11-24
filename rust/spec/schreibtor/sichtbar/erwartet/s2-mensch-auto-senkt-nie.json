@@ -1,0 +1,23 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "kundendaten",
+    "kunde": null,
+    "klasse_alt": "kundendaten",
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "kundendaten",
+    "kunde": "k-nord",
+    "klasse_alt": "kundendaten",
+    "werkzeug": null
+   }
+  ]
+ }
+}

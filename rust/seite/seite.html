@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Werkbank</title>
+<link rel="icon" href="data:,">
+<style>
+/*STILE*/
+</style>
+</head>
+<body>
+<div class="seite">
+  <header class="kopf">
+    <h1 class="titel">Werkbank</h1>
+    <p class="verbindung" id="verbindung" data-zustand="warte"><span class="verbindung-punkt" aria-hidden="true"></span><span class="verbindung-text">verbindet</span></p>
+  </header>
+
+  <section class="karte karte-liste" aria-labelledby="liste-titel">
+    <h2 class="karte-titel" id="liste-titel">Sitzungen</h2>
+    <ul class="liste" role="list" aria-label="Sitzungen" id="liste" data-testid="sitzung-liste"></ul>
+    <p class="leise" id="liste-leer">Noch keine Sitzung. Starte eine im Formular.</p>
+  </section>
+
+  <main class="haupt">
+    <div class="terminal-kopf" aria-hidden="true">
+      <span class="terminal-titel" id="terminal-titel">Keine Sitzung gewählt</span>
+      <span class="terminal-hinweis">F6 verlässt das Terminal</span>
+    </div>
+    <section class="terminal" id="terminal" data-testid="terminal-raster" data-cursor="0,0,false" aria-label="Terminal">
+      <div class="raster" id="raster">
+        <div class="raster-inhalt" id="raster-inhalt">
+          <div class="cursor" id="cursor" aria-hidden="true" hidden></div>
+          <textarea class="eingang" id="eingang" aria-label="Terminal" aria-roledescription="Terminal" aria-describedby="hinweis-f6"
+            autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" rows="1"></textarea>
+          <span class="messung" id="messung" aria-hidden="true">MMMMMMMMMM</span>
+        </div>
+      </div>
+    </section>
+    <p class="versteckt" id="hinweis-f6">F6 verlässt das Terminal, Umschalt+F6 geht zurück.</p>
+
+    <form class="eingabezeile" id="zeile-eingabe" aria-label="Eingabezeile">
+      <input class="feld" id="eingabe" data-testid="eingabe" type="text" aria-label="Eingabe" placeholder="Text an das Programm"
+        enterkeyhint="send" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="knopf" type="submit" data-testid="eingabe-senden">Senden</button>
+    </form>
+
+    <div class="meldung">
+      <div class="fehler" id="fehler" data-testid="fehler" hidden>
+        <span class="fehler-marke" aria-hidden="true">Abgelehnt</span>
+        <span class="fehler-text" id="fehler-text" data-testid="fehler-text"></span>
+        <code class="fehler-code" id="fehler-code" data-testid="fehler-code"></code>
+      </div>
+    </div>
+  </main>
+
+  <section class="karte karte-start" aria-labelledby="start-titel">
+    <h2 class="karte-titel" id="start-titel">Neue Sitzung</h2>
+    <form class="start" id="start" aria-label="Sitzung starten">
+      <div class="feldgruppe">
+      <label class="beschriftung" for="wahl-harness">Harness</label>
+      <select class="feld" id="wahl-harness" name="harness" data-testid="harness-wahl">
+        <option>claude</option>
+        <option>pi</option>
+      </select>
+      </div>
+      <div class="feldgruppe">
+      <label class="beschriftung" for="wahl-modell">Modell</label>
+      <select class="feld" id="wahl-modell" name="modell" data-testid="modell-wahl">
+        <option>cloud-beispiel</option>
+        <option>lokal-beispiel</option>
+      </select>
+      </div>
+      <div class="feldgruppe">
+      <label class="beschriftung" for="wahl-route">Route</label>
+      <select class="feld" id="wahl-route" name="route" data-testid="route-wahl">
+        <option>cloud</option>
+        <option>lokal</option>
+      </select>
+      </div>
+      <div class="feldgruppe">
+      <label class="beschriftung" for="wahl-kunde">Kunde</label>
+      <select class="feld" id="wahl-kunde" name="kunde" data-testid="kunde-wahl">
+        <option>k-beispiel</option>
+        <option>k-zwei</option>
+        <option value="" selected>ohne Kunde</option>
+      </select>
+      </div>
+      <div class="feldgruppe feldgruppe-breit">
+      <label class="beschriftung" for="wahl-arbeitsordner">Arbeitsordner</label>
+      <input class="feld" id="wahl-arbeitsordner" name="arbeitsordner" data-testid="arbeitsordner-eingabe" type="text"
+        autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <button class="knopf knopf-haupt" type="submit" data-testid="sitzung-start">Starten</button>
+    </form>
+  </section>
+</div>
+<div class="versteckt" role="log" aria-live="polite" id="ansagen"></div>
+<script type="module" src="/seite.js"></script>
+</body>
+</html>

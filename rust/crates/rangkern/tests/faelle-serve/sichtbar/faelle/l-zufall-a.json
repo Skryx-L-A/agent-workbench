@@ -1,0 +1,365 @@
+{
+ "description": "Zufallsfolge (Startwert 7) aus Änderungen und Suchen mit und ohne Vektor",
+ "vault": {
+  "files": {
+   "10-global/zaun.md": "---\ntitle: Zaun und Pfosten\ntype: note\n---\n\nNotiz zu zaun: zaun frueh planen, pfosten zweimal im Monat pruefen. Wer zaun anlegt, braucht Zeit fuer pfosten. Merkzettel zaun.\n",
+   "10-global/kompost.md": "---\ntitle: Kompost und Wurmkiste\ntype: note\n---\n\nNotiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost.\n",
+   "10-global/tomaten.md": "---\ntitle: Tomaten und Gewaechshaus\ntype: note\n---\n\nNotiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten.\n",
+   "10-global/hecke.md": "---\ntitle: Hecke und Schnitt\ntype: note\n---\n\nNotiz zu hecke: hecke frueh planen, schnitt zweimal im Monat pruefen. Wer hecke anlegt, braucht Zeit fuer schnitt. Merkzettel hecke.\n",
+   "10-global/teich.md": "---\ntitle: Teich und Folie\ntype: note\n---\n\nNotiz zu teich: teich frueh planen, folie zweimal im Monat pruefen. Wer teich anlegt, braucht Zeit fuer folie. Merkzettel teich.\n",
+   "20-projects/garten/rasen.md": "---\ntitle: Rasen und Maehen\ntype: note\n---\n\nNotiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen.\n",
+   "20-projects/garten/hochbeet.md": "---\ntitle: Hochbeet und Erde\ntype: note\n---\n\nNotiz zu hochbeet: hochbeet frueh planen, erde zweimal im Monat pruefen. Wer hochbeet anlegt, braucht Zeit fuer erde. Merkzettel hochbeet.\n",
+   "20-projects/garten/regentonne.md": "---\ntitle: Regentonne und Dachrinne\ntype: note\n---\n\nNotiz zu regentonne: regentonne frueh planen, dachrinne zweimal im Monat pruefen. Wer regentonne anlegt, braucht Zeit fuer dachrinne. Merkzettel regentonne.\n",
+   "10-global/misc/fueller-1.md": "---\ntitle: Fueller Bahnhof\ntype: note\n---\n\nEin Text ueber bahnhof und bahnhofstand, ohne Bezug zu den anderen Notizen. bahnhof bahnhof.\n",
+   "10-global/misc/fueller-2.md": "---\ntitle: Fueller Fahrplan\ntype: note\n---\n\nEin Text ueber fahrplan und fahrplanstand, ohne Bezug zu den anderen Notizen. fahrplan fahrplan.\n",
+   "10-global/misc/fueller-3.md": "---\ntitle: Fueller Gleis\ntype: note\n---\n\nEin Text ueber gleis und gleisstand, ohne Bezug zu den anderen Notizen. gleis gleis.\n",
+   "10-global/misc/fueller-4.md": "---\ntitle: Fueller Schaffner\ntype: note\n---\n\nEin Text ueber schaffner und schaffnerstand, ohne Bezug zu den anderen Notizen. schaffner schaffner.\n",
+   "10-global/misc/fueller-5.md": "---\ntitle: Fueller Koffer\ntype: note\n---\n\nEin Text ueber koffer und kofferstand, ohne Bezug zu den anderen Notizen. koffer koffer.\n",
+   "10-global/misc/fueller-6.md": "---\ntitle: Fueller Ticket\ntype: note\n---\n\nEin Text ueber ticket und ticketstand, ohne Bezug zu den anderen Notizen. ticket ticket.\n",
+   ".brain/spaces.lock": "{\"spaces\": [{\"space\": \"garten\", \"mount\": \"20-projects/garten\", \"art\": \"projekt\", \"owner\": \"team\", \"schreibbar\": true}]}"
+  }
+ },
+ "aux": {
+  "vek.json": "{\"notes\": {\"10-global/zaun.md\": [0.88, 0.46, 0.56, 0.39], \"10-global/kompost.md\": [0.97, 0.25, 0.17, 0.43], \"10-global/tomaten.md\": [0.44, 0.88, 0.68, 0.7], \"10-global/hecke.md\": [0.47, 0.46, 0.77, 0.55], \"10-global/teich.md\": [0.74, 0.89, 0.33, 0.39], \"20-projects/garten/rasen.md\": [0.65, 0.22, 0.74, 0.93], \"20-projects/garten/hochbeet.md\": [0.72, 0.96, 0.59, 0.48], \"20-projects/garten/regentonne.md\": [0.62, 0.69, 0.3, 0.64], \"10-global/misc/fueller-1.md\": [0.54, 0.16, 0.22, 0.89], \"10-global/misc/fueller-2.md\": [0.8, 0.83, 0.12, 0.4], \"10-global/misc/fueller-3.md\": [0.49, 0.66, 0.81, 0.53], \"10-global/misc/fueller-4.md\": [0.68, 0.92, 0.26, 0.46], \"10-global/misc/fueller-5.md\": [0.26, 0.61, 0.2, 0.83], \"10-global/misc/fueller-6.md\": [0.68, 0.58, 0.4, 0.71]}}"
+ },
+ "args": [
+  "{root}/vault",
+  "--vectors",
+  "{root}/aux/vek.json"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "search",
+    "query": "zaun pfosten"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "hochbeet teich",
+    "space": "kern",
+    "query_vector": [
+     0.77,
+     0.94,
+     0.62,
+     0.48
+    ]
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "zaun",
+    "k": 10,
+    "query_vector": [
+     0.93,
+     0.44,
+     0.59,
+     0.39
+    ]
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/kompost.md": "---\ntitle: Kompost und Wurmkiste\ntype: note\n---\n\nNotiz zu kompost: kompost frueh planen, wurmkiste zweimal im Monat pruefen. Wer kompost anlegt, braucht Zeit fuer wurmkiste. Merkzettel kompost. Zusatz 262 regentonne.\n"
+   }
+  },
+  {
+   "write": {
+    "aux/vek.json": "{\"notes\": {\"10-global/zaun.md\": [0.88, 0.46, 0.56, 0.39], \"10-global/kompost.md\": [0.97, 0.25, 0.17, 0.43], \"10-global/tomaten.md\": [0.44, 0.88, 0.68, 0.7], \"10-global/hecke.md\": [0.47, 0.46, 0.77, 0.55], \"10-global/teich.md\": [0.74, 0.89, 0.33, 0.39], \"20-projects/garten/rasen.md\": [0.65, 0.22, 0.74, 0.93], \"20-projects/garten/hochbeet.md\": [0.72, 0.96, 0.59, 0.48], \"20-projects/garten/regentonne.md\": [0.62, 0.69, 0.3, 0.64], \"10-global/misc/fueller-1.md\": [0.16, 0.77, 0.8, 0.97], \"10-global/misc/fueller-2.md\": [0.8, 0.83, 0.12, 0.4], \"10-global/misc/fueller-3.md\": [0.49, 0.66, 0.81, 0.53], \"10-global/misc/fueller-4.md\": [0.68, 0.92, 0.26, 0.46], \"10-global/misc/fueller-5.md\": [0.26, 0.61, 0.2, 0.83], \"10-global/misc/fueller-6.md\": [0.68, 0.58, 0.4, 0.71]}}"
+   }
+  },
+  {
+   "rename": [
+    [
+     "vault/20-projects/garten/hochbeet.md",
+     "vault/10-global/u1.md"
+    ]
+   ]
+  },
+  {
+   "write": {
+    "vault/20-projects/garten/rasen.md": "---\ntitle: Rasen und Maehen\ntype: note\n---\n\nNotiz zu rasen: rasen frueh planen, maehen zweimal im Monat pruefen. Wer rasen anlegt, braucht Zeit fuer maehen. Merkzettel rasen. Zusatz 997 hochbeet.\n"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "hochbeet zaun",
+    "query_vector": [
+     0.77,
+     0.94,
+     0.62,
+     0.48
+    ]
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/z2-hecke.md": "---\ntitle: Zufall 2\ntype: note\n---\n\nhecke schnitt zufaellig hecke nr 2.\n"
+   }
+  },
+  {
+   "write": {
+    "aux/vek.json": "{\"notes\": {\"10-global/zaun.md\": [0.88, 0.46, 0.56, 0.39], \"10-global/kompost.md\": [0.97, 0.25, 0.17, 0.43], \"10-global/tomaten.md\": [0.44, 0.88, 0.68, 0.7], \"10-global/hecke.md\": [0.47, 0.46, 0.77, 0.55], \"10-global/teich.md\": [0.74, 0.89, 0.33, 0.39], \"20-projects/garten/rasen.md\": [0.65, 0.22, 0.74, 0.93], \"20-projects/garten/hochbeet.md\": [0.72, 0.96, 0.59, 0.48], \"20-projects/garten/regentonne.md\": [0.62, 0.69, 0.3, 0.64], \"10-global/misc/fueller-1.md\": [0.16, 0.77, 0.8, 0.97], \"10-global/misc/fueller-2.md\": [0.8, 0.83, 0.12, 0.4], \"10-global/misc/fueller-3.md\": [0.49, 0.66, 0.81, 0.53], \"10-global/misc/fueller-4.md\": [0.68, 0.92, 0.26, 0.46], \"10-global/misc/fueller-5.md\": [0.26, 0.61, 0.2, 0.83], \"10-global/misc/fueller-6.md\": [0.68, 0.58, 0.4, 0.71], \"10-global/z2-hecke.md\": [0.6, 0.83, 0.5, 0.88]}}"
+   }
+  },
+  {
+   "write": {
+    "aux/vek.json": "{\"notes\": {\"10-global/zaun.md\": [0.88, 0.46, 0.56, 0.39], \"10-global/kompost.md\": [0.97, 0.25, 0.17, 0.43], \"10-global/tomaten.md\": [0.44, 0.88, 0.68, 0.7], \"10-global/hecke.md\": [0.47, 0.46, 0.77, 0.55], \"10-global/teich.md\": [0.74, 0.89, 0.33, 0.39], \"20-projects/garten/rasen.md\": [0.65, 0.22, 0.74, 0.93], \"20-projects/garten/hochbeet.md\": [0.72, 0.96, 0.59, 0.48], \"20-projects/garten/regentonne.md\": [0.62, 0.69, 0.3, 0.64], \"10-global/misc/fueller-1.md\": [0.16, 0.77, 0.8, 0.97], \"10-global/misc/fueller-2.md\": [0.8, 0.83, 0.12, 0.4], \"10-global/misc/fueller-3.md\": [0.49, 0.66, 0.81, 0.53], \"10-global/misc/fueller-4.md\": [0.53, 0.38, 0.25, 0.34], \"10-global/misc/fueller-5.md\": [0.26, 0.61, 0.2, 0.83], \"10-global/misc/fueller-6.md\": [0.68, 0.58, 0.4, 0.71], \"10-global/z2-hecke.md\": [0.6, 0.83, 0.5, 0.88]}}"
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/z3-teich.md": "---\ntitle: Zufall 3\ntype: note\n---\n\nteich folie zufaellig teich nr 3.\n"
+   }
+  },
+  {
+   "write": {
+    "aux/vek.json": "{\"notes\": {\"10-global/zaun.md\": [0.88, 0.46, 0.56, 0.39], \"10-global/kompost.md\": [0.97, 0.25, 0.17, 0.43], \"10-global/tomaten.md\": [0.44, 0.88, 0.68, 0.7], \"10-global/hecke.md\": [0.47, 0.46, 0.77, 0.55], \"10-global/teich.md\": [0.74, 0.89, 0.33, 0.39], \"20-projects/garten/rasen.md\": [0.65, 0.22, 0.74, 0.93], \"20-projects/garten/hochbeet.md\": [0.72, 0.96, 0.59, 0.48], \"20-projects/garten/regentonne.md\": [0.62, 0.69, 0.3, 0.64], \"10-global/misc/fueller-1.md\": [0.16, 0.77, 0.8, 0.97], \"10-global/misc/fueller-2.md\": [0.8, 0.83, 0.12, 0.4], \"10-global/misc/fueller-3.md\": [0.49, 0.66, 0.81, 0.53], \"10-global/misc/fueller-4.md\": [0.53, 0.38, 0.25, 0.34], \"10-global/misc/fueller-5.md\": [0.26, 0.61, 0.2, 0.83], \"10-global/misc/fueller-6.md\": [0.68, 0.58, 0.4, 0.71], \"10-global/z2-hecke.md\": [0.6, 0.83, 0.5, 0.88], \"10-global/z3-teich.md\": [0.29, 0.6, 0.76, 0.24]}}"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "tomaten zaun",
+    "space": "kern"
+   }
+  },
+  {
+   "delete": [
+    "vault/10-global/hecke.md"
+   ]
+  },
+  {
+   "write": {
+    "aux/vek.json": "{\"notes\": {\"10-global/zaun.md\": [0.88, 0.46, 0.56, 0.39], \"10-global/kompost.md\": [0.97, 0.25, 0.17, 0.43], \"10-global/tomaten.md\": [0.77, 0.67, 0.19, 0.65], \"10-global/hecke.md\": [0.47, 0.46, 0.77, 0.55], \"10-global/teich.md\": [0.74, 0.89, 0.33, 0.39], \"20-projects/garten/rasen.md\": [0.65, 0.22, 0.74, 0.93], \"20-projects/garten/hochbeet.md\": [0.72, 0.96, 0.59, 0.48], \"20-projects/garten/regentonne.md\": [0.62, 0.69, 0.3, 0.64], \"10-global/misc/fueller-1.md\": [0.16, 0.77, 0.8, 0.97], \"10-global/misc/fueller-2.md\": [0.8, 0.83, 0.12, 0.4], \"10-global/misc/fueller-3.md\": [0.49, 0.66, 0.81, 0.53], \"10-global/misc/fueller-4.md\": [0.53, 0.38, 0.25, 0.34], \"10-global/misc/fueller-5.md\": [0.26, 0.61, 0.2, 0.83], \"10-global/misc/fueller-6.md\": [0.68, 0.58, 0.4, 0.71], \"10-global/z2-hecke.md\": [0.6, 0.83, 0.5, 0.88], \"10-global/z3-teich.md\": [0.29, 0.6, 0.76, 0.24]}}"
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/z4-teich.md": "---\ntitle: Zufall 4\ntype: note\n---\n\nteich folie zufaellig teich nr 4.\n"
+   }
+  },
+  {
+   "write": {
+    "aux/vek.json": "{\"notes\": {\"10-global/zaun.md\": [0.88, 0.46, 0.56, 0.39], \"10-global/kompost.md\": [0.97, 0.25, 0.17, 0.43], \"10-global/tomaten.md\": [0.77, 0.67, 0.19, 0.65], \"10-global/hecke.md\": [0.47, 0.46, 0.77, 0.55], \"10-global/teich.md\": [0.74, 0.89, 0.33, 0.39], \"20-projects/garten/rasen.md\": [0.65, 0.22, 0.74, 0.93], \"20-projects/garten/hochbeet.md\": [0.72, 0.96, 0.59, 0.48], \"20-projects/garten/regentonne.md\": [0.62, 0.69, 0.3, 0.64], \"10-global/misc/fueller-1.md\": [0.16, 0.77, 0.8, 0.97], \"10-global/misc/fueller-2.md\": [0.8, 0.83, 0.12, 0.4], \"10-global/misc/fueller-3.md\": [0.49, 0.66, 0.81, 0.53], \"10-global/misc/fueller-4.md\": [0.53, 0.38, 0.25, 0.34], \"10-global/misc/fueller-5.md\": [0.26, 0.61, 0.2, 0.83], \"10-global/misc/fueller-6.md\": [0.68, 0.58, 0.4, 0.71], \"10-global/z2-hecke.md\": [0.6, 0.83, 0.5, 0.88], \"10-global/z3-teich.md\": [0.29, 0.6, 0.76, 0.24], \"10-global/z4-teich.md\": [0.43, 0.27, 0.38, 0.15]}}"
+   }
+  },
+  {
+   "rename": [
+    [
+     "vault/10-global/tomaten.md",
+     "vault/10-global/u5.md"
+    ]
+   ]
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "hecke kompost"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "regentonne dachrinne",
+    "k": 2
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "kompost hecke",
+    "query_vector": [
+     1.02,
+     0.23,
+     0.2,
+     0.43
+    ]
+   }
+  },
+  {
+   "rename": [
+    [
+     "vault/20-projects/garten/rasen.md",
+     "vault/10-global/u6.md"
+    ]
+   ]
+  },
+  {
+   "chmod": {
+    "vault/10-global/teich.md": "000"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "teich"
+   }
+  },
+  {
+   "chmod": {
+    "vault/10-global/teich.md": "644"
+   }
+  },
+  {
+   "chmod": {
+    "vault/10-global/misc/fueller-3.md": "000"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "rasen"
+   }
+  },
+  {
+   "chmod": {
+    "vault/10-global/misc/fueller-3.md": "644"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "kompost",
+    "k": 3
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/z7-hecke.md": "---\ntitle: Zufall 7\ntype: note\n---\n\nhecke schnitt zufaellig hecke nr 7.\n"
+   }
+  },
+  {
+   "write": {
+    "aux/vek.json": "{\"notes\": {\"10-global/zaun.md\": [0.88, 0.46, 0.56, 0.39], \"10-global/kompost.md\": [0.97, 0.25, 0.17, 0.43], \"10-global/tomaten.md\": [0.77, 0.67, 0.19, 0.65], \"10-global/hecke.md\": [0.47, 0.46, 0.77, 0.55], \"10-global/teich.md\": [0.74, 0.89, 0.33, 0.39], \"20-projects/garten/rasen.md\": [0.65, 0.22, 0.74, 0.93], \"20-projects/garten/hochbeet.md\": [0.72, 0.96, 0.59, 0.48], \"20-projects/garten/regentonne.md\": [0.62, 0.69, 0.3, 0.64], \"10-global/misc/fueller-1.md\": [0.16, 0.77, 0.8, 0.97], \"10-global/misc/fueller-2.md\": [0.8, 0.83, 0.12, 0.4], \"10-global/misc/fueller-3.md\": [0.49, 0.66, 0.81, 0.53], \"10-global/misc/fueller-4.md\": [0.53, 0.38, 0.25, 0.34], \"10-global/misc/fueller-5.md\": [0.26, 0.61, 0.2, 0.83], \"10-global/misc/fueller-6.md\": [0.68, 0.58, 0.4, 0.71], \"10-global/z2-hecke.md\": [0.6, 0.83, 0.5, 0.88], \"10-global/z3-teich.md\": [0.29, 0.6, 0.76, 0.24], \"10-global/z4-teich.md\": [0.43, 0.27, 0.38, 0.15], \"10-global/z7-hecke.md\": [0.78, 0.72, 0.69, 0.18]}}"
+   }
+  },
+  {
+   "write": {
+    "aux/vek.json": "{\"notes\": {\"10-global/zaun.md\": [0.88, 0.46, 0.56, 0.39], \"10-global/kompost.md\": [0.97, 0.25, 0.17, 0.43], \"10-global/tomaten.md\": [0.77, 0.67, 0.19, 0.65], \"10-global/hecke.md\": [0.47, 0.46, 0.77, 0.55], \"10-global/teich.md\": [0.74, 0.89, 0.33, 0.39], \"20-projects/garten/rasen.md\": [0.65, 0.22, 0.74, 0.93], \"20-projects/garten/hochbeet.md\": [0.72, 0.96, 0.59, 0.48], \"20-projects/garten/regentonne.md\": [0.62, 0.69, 0.3, 0.64], \"10-global/misc/fueller-1.md\": [0.16, 0.77, 0.8, 0.97], \"10-global/misc/fueller-2.md\": [0.8, 0.83, 0.12, 0.4], \"10-global/misc/fueller-3.md\": [0.49, 0.29, 0.47, 0.2], \"10-global/misc/fueller-4.md\": [0.53, 0.38, 0.25, 0.34], \"10-global/misc/fueller-5.md\": [0.26, 0.61, 0.2, 0.83], \"10-global/misc/fueller-6.md\": [0.68, 0.58, 0.4, 0.71], \"10-global/z2-hecke.md\": [0.6, 0.83, 0.5, 0.88], \"10-global/z3-teich.md\": [0.29, 0.6, 0.76, 0.24], \"10-global/z4-teich.md\": [0.43, 0.27, 0.38, 0.15], \"10-global/z7-hecke.md\": [0.78, 0.72, 0.69, 0.18]}}"
+   }
+  },
+  {
+   "rename": [
+    [
+     "vault/10-global/z7-hecke.md",
+     "vault/10-global/u8.md"
+    ]
+   ]
+  },
+  {
+   "write": {
+    "vault/10-global/z9-hecke.md": "---\ntitle: Zufall 9\ntype: note\n---\n\nhecke schnitt zufaellig hecke nr 9.\n"
+   }
+  },
+  {
+   "write": {
+    "aux/vek.json": "{\"notes\": {\"10-global/zaun.md\": [0.88, 0.46, 0.56, 0.39], \"10-global/kompost.md\": [0.97, 0.25, 0.17, 0.43], \"10-global/tomaten.md\": [0.77, 0.67, 0.19, 0.65], \"10-global/hecke.md\": [0.47, 0.46, 0.77, 0.55], \"10-global/teich.md\": [0.74, 0.89, 0.33, 0.39], \"20-projects/garten/rasen.md\": [0.65, 0.22, 0.74, 0.93], \"20-projects/garten/hochbeet.md\": [0.72, 0.96, 0.59, 0.48], \"20-projects/garten/regentonne.md\": [0.62, 0.69, 0.3, 0.64], \"10-global/misc/fueller-1.md\": [0.16, 0.77, 0.8, 0.97], \"10-global/misc/fueller-2.md\": [0.8, 0.83, 0.12, 0.4], \"10-global/misc/fueller-3.md\": [0.49, 0.29, 0.47, 0.2], \"10-global/misc/fueller-4.md\": [0.53, 0.38, 0.25, 0.34], \"10-global/misc/fueller-5.md\": [0.26, 0.61, 0.2, 0.83], \"10-global/misc/fueller-6.md\": [0.68, 0.58, 0.4, 0.71], \"10-global/z2-hecke.md\": [0.6, 0.83, 0.5, 0.88], \"10-global/z3-teich.md\": [0.29, 0.6, 0.76, 0.24], \"10-global/z4-teich.md\": [0.43, 0.27, 0.38, 0.15], \"10-global/z7-hecke.md\": [0.78, 0.72, 0.69, 0.18], \"10-global/z9-hecke.md\": [0.26, 0.35, 0.14, 0.78]}}"
+   }
+  },
+  {
+   "write": {
+    "aux/vek.json": "{\"notes\": {\"10-global/zaun.md\": [0.88, 0.46, 0.56, 0.39], \"10-global/kompost.md\": [0.97, 0.25, 0.17, 0.43], \"10-global/tomaten.md\": [0.77, 0.67, 0.19, 0.65], \"10-global/hecke.md\": [0.47, 0.46, 0.77, 0.55], \"10-global/teich.md\": [0.74, 0.89, 0.33, 0.39], \"20-projects/garten/rasen.md\": [0.65, 0.22, 0.74, 0.93], \"20-projects/garten/hochbeet.md\": [0.72, 0.96, 0.59, 0.48], \"20-projects/garten/regentonne.md\": [0.62, 0.69, 0.3, 0.64], \"10-global/misc/fueller-1.md\": [0.91, 0.34, 0.33, 0.14], \"10-global/misc/fueller-2.md\": [0.8, 0.83, 0.12, 0.4], \"10-global/misc/fueller-3.md\": [0.49, 0.29, 0.47, 0.2], \"10-global/misc/fueller-4.md\": [0.53, 0.38, 0.25, 0.34], \"10-global/misc/fueller-5.md\": [0.26, 0.61, 0.2, 0.83], \"10-global/misc/fueller-6.md\": [0.68, 0.58, 0.4, 0.71], \"10-global/z2-hecke.md\": [0.6, 0.83, 0.5, 0.88], \"10-global/z3-teich.md\": [0.29, 0.6, 0.76, 0.24], \"10-global/z4-teich.md\": [0.43, 0.27, 0.38, 0.15], \"10-global/z7-hecke.md\": [0.78, 0.72, 0.69, 0.18], \"10-global/z9-hecke.md\": [0.26, 0.35, 0.14, 0.78]}}"
+   }
+  },
+  {
+   "rename": [
+    [
+     "vault/10-global/z3-teich.md",
+     "vault/10-global/u10.md"
+    ]
+   ]
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "zaun zaun",
+    "query_vector": [
+     0.93,
+     0.44,
+     0.59,
+     0.39
+    ]
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/z11-tomaten.md": "---\ntitle: Zufall 11\ntype: note\n---\n\ntomaten gewaechshaus zufaellig tomaten nr 11.\n"
+   }
+  },
+  {
+   "write": {
+    "aux/vek.json": "{\"notes\": {\"10-global/zaun.md\": [0.88, 0.46, 0.56, 0.39], \"10-global/kompost.md\": [0.97, 0.25, 0.17, 0.43], \"10-global/tomaten.md\": [0.77, 0.67, 0.19, 0.65], \"10-global/hecke.md\": [0.47, 0.46, 0.77, 0.55], \"10-global/teich.md\": [0.74, 0.89, 0.33, 0.39], \"20-projects/garten/rasen.md\": [0.65, 0.22, 0.74, 0.93], \"20-projects/garten/hochbeet.md\": [0.72, 0.96, 0.59, 0.48], \"20-projects/garten/regentonne.md\": [0.62, 0.69, 0.3, 0.64], \"10-global/misc/fueller-1.md\": [0.91, 0.34, 0.33, 0.14], \"10-global/misc/fueller-2.md\": [0.8, 0.83, 0.12, 0.4], \"10-global/misc/fueller-3.md\": [0.49, 0.29, 0.47, 0.2], \"10-global/misc/fueller-4.md\": [0.53, 0.38, 0.25, 0.34], \"10-global/misc/fueller-5.md\": [0.26, 0.61, 0.2, 0.83], \"10-global/misc/fueller-6.md\": [0.68, 0.58, 0.4, 0.71], \"10-global/z2-hecke.md\": [0.6, 0.83, 0.5, 0.88], \"10-global/z3-teich.md\": [0.29, 0.6, 0.76, 0.24], \"10-global/z4-teich.md\": [0.43, 0.27, 0.38, 0.15], \"10-global/z7-hecke.md\": [0.78, 0.72, 0.69, 0.18], \"10-global/z9-hecke.md\": [0.26, 0.35, 0.14, 0.78], \"10-global/z11-tomaten.md\": [0.28, 0.51, 0.22, 0.88]}}"
+   }
+  },
+  {
+   "rename": [
+    [
+     "vault/10-global/z11-tomaten.md",
+     "vault/10-global/u12.md"
+    ]
+   ]
+  },
+  {
+   "delete": [
+    "vault/10-global/u12.md"
+   ]
+  },
+  {
+   "write": {
+    "vault/10-global/misc/fueller-1.md": "---\ntitle: Fueller Bahnhof\ntype: note\n---\n\nEin Text ueber bahnhof und bahnhofstand, ohne Bezug zu den anderen Notizen. bahnhof bahnhof. Zusatz 4 hochbeet.\n"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "regentonne dachrinne",
+    "space": "garten",
+    "query_vector": [
+     0.67,
+     0.67,
+     0.33,
+     0.64
+    ]
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "hochbeet",
+    "query_vector": [
+     0.77,
+     0.94,
+     0.62,
+     0.48
+    ]
+   }
+  },
+  {
+   "write": {
+    "vault/10-global/u5.md": "---\ntitle: Tomaten und Gewaechshaus\ntype: note\n---\n\nNotiz zu tomaten: tomaten frueh planen, gewaechshaus zweimal im Monat pruefen. Wer tomaten anlegt, braucht Zeit fuer gewaechshaus. Merkzettel tomaten. Zusatz 616 zaun.\n"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "zaun pfosten"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "kompost wurmkiste",
+    "query_vector": [
+     1.02,
+     0.23,
+     0.2,
+     0.43
+    ]
+   }
+  }
+ ]
+}

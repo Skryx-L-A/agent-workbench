@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Peer über die PID (Such-Pipe)",
+ "form": "steuer",
+ "text": "{\"op\": \"peer\", \"pid\": 4242}\n"
+}

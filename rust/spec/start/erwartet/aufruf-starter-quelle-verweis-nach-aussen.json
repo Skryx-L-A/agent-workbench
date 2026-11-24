@@ -1,0 +1,5 @@
+{
+ "exit": 5,
+ "stderr": "lauf.einschluss_fehlt: Einschluss nicht verfuegbar\nlauf.einschluss_teil: 5 quelle-unbrauchbar",
+ "suche_gestartet": true
+}

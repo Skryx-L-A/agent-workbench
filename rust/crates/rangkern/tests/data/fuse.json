@@ -1,0 +1,5877 @@
+[
+{
+"semantic": [
+{
+"rel": "garten/n2.md",
+"score": "0.183",
+"title": "T garten/n2.md",
+"matched": "semantic",
+"cosine": "0.183",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.49",
+"title": "",
+"matched": "semantic",
+"cosine": "0.49",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "garten/n5.md",
+"score": "0.368",
+"title": "",
+"matched": "semantic",
+"cosine": "0.368",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.157",
+"title": "",
+"matched": "semantic",
+"cosine": "0.157",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+}
+],
+"text": [],
+"query": "themenhub",
+"k": 3,
+"out": [
+{
+"rel": "garten/n2.md",
+"score": "1.0",
+"title": "T garten/n2.md",
+"matched": "semantic",
+"cosine": "0.183",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "garten/n5.md",
+"score": "0.9411764705882353",
+"title": "",
+"matched": "semantic",
+"cosine": "0.368",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.8888888888888888",
+"title": "",
+"matched": "semantic",
+"cosine": "0.157",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.176",
+"title": "",
+"matched": "semantic",
+"cosine": "0.176",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "0.151",
+"title": "",
+"matched": "semantic",
+"cosine": "0.151",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "y/z/n1.md",
+"score": "0.629",
+"title": "",
+"matched": "semantic",
+"cosine": "0.629",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "0.013",
+"title": "",
+"matched": "semantic",
+"cosine": "0.013",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.065",
+"title": "",
+"matched": "semantic",
+"cosine": "0.065",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+},
+{
+"rel": "20-projects/p/n5.md",
+"score": "0.751",
+"title": "",
+"matched": "semantic",
+"cosine": "0.751",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 6,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "20-projects/p/MOC.md",
+"score": "1.119",
+"title": "T 20-projects/p/MOC.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.119",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "Übersicht",
+"k": 20,
+"out": [
+{
+"rel": "y/z/STATUS.md",
+"score": "1.0",
+"title": "",
+"matched": "semantic",
+"cosine": "0.013",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.9672897196261682",
+"title": "T 20-projects/p/MOC.md",
+"matched": "hybrid",
+"cosine": "0.176",
+"bm25_rang": 1,
+"bm25_norm": "1.119",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "y/z/n1.md",
+"score": "0.7916437603078614",
+"title": "",
+"matched": "semantic",
+"cosine": "0.629",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.7083128381701917",
+"title": "",
+"matched": "semantic",
+"cosine": "0.065",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+},
+{
+"rel": "20-projects/p/n5.md",
+"score": "0.6728971962616823",
+"title": "",
+"matched": "semantic",
+"cosine": "0.751",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 6,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "0.3958218801539307",
+"title": "",
+"matched": "semantic",
+"cosine": "0.151",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/n5.md",
+"score": "0.724",
+"title": "",
+"matched": "semantic",
+"cosine": "0.724",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "y/z/n3.md",
+"score": "0.571",
+"title": "",
+"matched": "semantic",
+"cosine": "0.571",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+}
+],
+"text": [],
+"query": " moc",
+"k": 3,
+"out": [
+{
+"rel": "garten/n5.md",
+"score": "1.0",
+"title": "",
+"matched": "semantic",
+"cosine": "0.724",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "y/z/n3.md",
+"score": "0.9411764705882353",
+"title": "",
+"matched": "semantic",
+"cosine": "0.571",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+}
+]
+},
+{
+"semantic": [],
+"text": [
+{
+"rel": "garten/n4.md",
+"score": "0.879",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.879",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/MOC.md",
+"score": "2.888",
+"title": "T y/z/MOC.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.888",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "status vom Garten",
+"k": 2,
+"out": [
+{
+"rel": "y/z/MOC.md",
+"score": "1.0911764705882352",
+"title": "T y/z/MOC.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.888",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n4.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.879",
+"vektor_rang": 0,
+"derived": false
+}
+]
+},
+{
+"semantic": [],
+"text": [
+{
+"rel": "garten/n1.md",
+"score": "1.3",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.3",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "Übersicht",
+"k": 3,
+"out": [
+{
+"rel": "garten/n1.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.3",
+"vektor_rang": 0,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "x/n4.md",
+"score": "0.813",
+"title": "T x/n4.md",
+"matched": "semantic",
+"cosine": "0.813",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "y/z/MOC.md",
+"score": "0.808",
+"title": "T y/z/MOC.md",
+"matched": "semantic",
+"cosine": "0.808",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "x/n5.md",
+"score": "0.276",
+"title": "T x/n5.md",
+"matched": "semantic",
+"cosine": "0.276",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "y/z/n1.md",
+"score": "0.698",
+"title": "",
+"matched": "semantic",
+"cosine": "0.698",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": true
+},
+{
+"rel": "y/z/n6.md",
+"score": "0.461",
+"title": "",
+"matched": "semantic",
+"cosine": "0.461",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+},
+{
+"rel": "20-projects/p/n3.md",
+"score": "0.528",
+"title": "T 20-projects/p/n3.md",
+"matched": "semantic",
+"cosine": "0.528",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 6,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "x/n5.md",
+"score": "0.94",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.94",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n4.md",
+"score": "0.166",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.166",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "1.717",
+"title": "T x/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.717",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n6.md",
+"score": "1.617",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "1.617",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n6.md",
+"score": "1.877",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "1.877",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "status vom Garten",
+"k": 2,
+"out": [
+{
+"rel": "x/n5.md",
+"score": "1.0",
+"title": "T x/n5.md",
+"matched": "hybrid",
+"cosine": "0.276",
+"bm25_rang": 1,
+"bm25_norm": "0.94",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "y/z/n6.md",
+"score": "0.8917242601453127",
+"title": "",
+"matched": "hybrid",
+"cosine": "0.461",
+"bm25_rang": 4,
+"bm25_norm": "1.617",
+"vektor_rang": 5,
+"derived": false
+}
+]
+},
+{
+"semantic": [],
+"text": [
+{
+"rel": "x/n1.md",
+"score": "1.253",
+"title": "T x/n1.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.253",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "Übersicht",
+"k": 3,
+"out": [
+{
+"rel": "x/n1.md",
+"score": "1.0",
+"title": "T x/n1.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.253",
+"vektor_rang": 0,
+"derived": true
+}
+]
+},
+{
+"semantic": [],
+"text": [
+{
+"rel": "20-projects/p/n4.md",
+"score": "1.065",
+"title": "T 20-projects/p/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.065",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n5.md",
+"score": "1.448",
+"title": "T garten/n5.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.448",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "garten/STATUS.md",
+"score": "2.469",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.469",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n2.md",
+"score": "1.247",
+"title": "T y/z/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "1.247",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "Stand von x",
+"k": 3,
+"out": [
+{
+"rel": "garten/STATUS.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.469",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n4.md",
+"score": "0.9164420485175203",
+"title": "T 20-projects/p/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.065",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n2.md",
+"score": "0.8146151542377957",
+"title": "T y/z/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "1.247",
+"vektor_rang": 0,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.011",
+"title": "T 20-projects/p/n6.md",
+"matched": "semantic",
+"cosine": "0.011",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "0.521",
+"title": "T garten/n3.md",
+"matched": "semantic",
+"cosine": "0.521",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "y/z/n2.md",
+"score": "0.789",
+"title": "T y/z/n2.md",
+"matched": "semantic",
+"cosine": "0.789",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.099",
+"title": "T 20-projects/p/MOC.md",
+"matched": "semantic",
+"cosine": "0.099",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "y/z/n2.md",
+"score": "2.226",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.226",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.545",
+"title": "T 20-projects/p/MOC.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.545",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "2.459",
+"title": "T garten/n3.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.459",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "nichts besonderes",
+"k": 20,
+"out": [
+{
+"rel": "y/z/n2.md",
+"score": "1.0",
+"title": "T y/z/n2.md",
+"matched": "hybrid",
+"cosine": "0.789",
+"bm25_rang": 1,
+"bm25_norm": "2.226",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.9427609427609427",
+"title": "T 20-projects/p/MOC.md",
+"matched": "hybrid",
+"cosine": "0.099",
+"bm25_rang": 2,
+"bm25_norm": "0.545",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.5151515151515151",
+"title": "T 20-projects/p/n6.md",
+"matched": "semantic",
+"cosine": "0.011",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "0.47138047138047134",
+"title": "T garten/n3.md",
+"matched": "hybrid",
+"cosine": "0.521",
+"bm25_rang": 3,
+"bm25_norm": "2.459",
+"vektor_rang": 2,
+"derived": true
+}
+]
+},
+{
+"semantic": [],
+"text": [
+{
+"rel": "garten/n1.md",
+"score": "1.87",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.87",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "garten/n3.md",
+"score": "2.911",
+"title": "T garten/n3.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.911",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/MOC.md",
+"score": "2.345",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.345",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n2.md",
+"score": "0.8",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "0.8",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "Stand von x",
+"k": 3,
+"out": [
+{
+"rel": "y/z/MOC.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.345",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "0.9164420485175203",
+"title": "T garten/n3.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.911",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n1.md",
+"score": "0.45822102425876016",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.87",
+"vektor_rang": 0,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/n2.md",
+"score": "0.528",
+"title": "",
+"matched": "semantic",
+"cosine": "0.528",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "y/z/n1.md",
+"score": "0.794",
+"title": "",
+"matched": "semantic",
+"cosine": "0.794",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "garten/n4.md",
+"score": "0.505",
+"title": "",
+"matched": "semantic",
+"cosine": "0.505",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "x/MOC.md",
+"score": "0.32",
+"title": "T x/MOC.md",
+"matched": "semantic",
+"cosine": "0.32",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "y/z/n2.md",
+"score": "0.39",
+"title": "T y/z/n2.md",
+"matched": "semantic",
+"cosine": "0.39",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "x/n5.md",
+"score": "0.312",
+"title": "T x/n5.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.312",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n2.md",
+"score": "1.308",
+"title": "T y/z/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.308",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "x/MOC.md",
+"score": "2.09",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.09",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n2.md",
+"score": "0.486",
+"title": "T 20-projects/p/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "0.486",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n1.md",
+"score": "0.726",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "0.726",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "garten/n4.md",
+"score": "1.795",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 6,
+"bm25_norm": "1.795",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n6.md",
+"score": "2.68",
+"title": "T garten/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 7,
+"bm25_norm": "2.68",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "2.558",
+"title": "T y/z/STATUS.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 8,
+"bm25_norm": "2.558",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n1.md",
+"score": "1.328",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 9,
+"bm25_norm": "1.328",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "wo faengt es an",
+"k": 1,
+"out": [
+{
+"rel": "x/MOC.md",
+"score": "1.0",
+"title": "T x/MOC.md",
+"matched": "hybrid",
+"cosine": "0.32",
+"bm25_rang": 3,
+"bm25_norm": "2.09",
+"vektor_rang": 4,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/n1.md",
+"score": "0.519",
+"title": "T garten/n1.md",
+"matched": "semantic",
+"cosine": "0.519",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "0.436",
+"title": "",
+"matched": "semantic",
+"cosine": "0.436",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "x/n1.md",
+"score": "0.261",
+"title": "T x/n1.md",
+"matched": "semantic",
+"cosine": "0.261",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.582",
+"title": "",
+"matched": "semantic",
+"cosine": "0.582",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "x/STATUS.md",
+"score": "1.826",
+"title": "T x/STATUS.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.826",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "status vom Garten",
+"k": 3,
+"out": [
+{
+"rel": "x/STATUS.md",
+"score": "1.0",
+"title": "T x/STATUS.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.826",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n1.md",
+"score": "0.8695652173913044",
+"title": "T garten/n1.md",
+"matched": "semantic",
+"cosine": "0.519",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n1.md",
+"score": "0.8184143222506395",
+"title": "T x/n1.md",
+"matched": "semantic",
+"cosine": "0.261",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/n1.md",
+"score": "0.736",
+"title": "",
+"matched": "semantic",
+"cosine": "0.736",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "x/n6.md",
+"score": "2.463",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.463",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "themenhub",
+"k": 20,
+"out": [
+{
+"rel": "garten/n1.md",
+"score": "1.0",
+"title": "",
+"matched": "semantic",
+"cosine": "0.736",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n6.md",
+"score": "0.5",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.463",
+"vektor_rang": 0,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.993",
+"title": "T 20-projects/p/n6.md",
+"matched": "semantic",
+"cosine": "0.993",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "20-projects/p/n4.md",
+"score": "0.358",
+"title": "",
+"matched": "semantic",
+"cosine": "0.358",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.774",
+"title": "T x/n3.md",
+"matched": "semantic",
+"cosine": "0.774",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "y/z/n6.md",
+"score": "0.771",
+"title": "",
+"matched": "semantic",
+"cosine": "0.771",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.251",
+"title": "T y/z/n5.md",
+"matched": "semantic",
+"cosine": "0.251",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+},
+{
+"rel": "y/z/n2.md",
+"score": "0.221",
+"title": "",
+"matched": "semantic",
+"cosine": "0.221",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 6,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "y/z/MOC.md",
+"score": "1.625",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.625",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "Stand von x",
+"k": 20,
+"out": [
+{
+"rel": "y/z/MOC.md",
+"score": "1.15",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.625",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n6.md",
+"score": "1.0",
+"title": "T 20-projects/p/n6.md",
+"matched": "semantic",
+"cosine": "0.993",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "20-projects/p/n4.md",
+"score": "0.9411764705882353",
+"title": "",
+"matched": "semantic",
+"cosine": "0.358",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.8888888888888888",
+"title": "T x/n3.md",
+"matched": "semantic",
+"cosine": "0.774",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "y/z/n6.md",
+"score": "0.8421052631578947",
+"title": "",
+"matched": "semantic",
+"cosine": "0.771",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.8",
+"title": "T y/z/n5.md",
+"matched": "semantic",
+"cosine": "0.251",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+},
+{
+"rel": "y/z/n2.md",
+"score": "0.7619047619047619",
+"title": "",
+"matched": "semantic",
+"cosine": "0.221",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 6,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/n5.md",
+"score": "0.1",
+"title": "T garten/n5.md",
+"matched": "semantic",
+"cosine": "0.1",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "garten/MOC.md",
+"score": "0.791",
+"title": "",
+"matched": "semantic",
+"cosine": "0.791",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+}
+],
+"text": [
+{
+"rel": "garten/n5.md",
+"score": "2.228",
+"title": "T garten/n5.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.228",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "y/z/n1.md",
+"score": "0.556",
+"title": "T y/z/n1.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.556",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "0.178",
+"title": "T y/z/STATUS.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "0.178",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "wo faengt es an",
+"k": 5,
+"out": [
+{
+"rel": "y/z/STATUS.md",
+"score": "1.0",
+"title": "T y/z/STATUS.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "0.178",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n5.md",
+"score": "0.8056872037914692",
+"title": "T garten/n5.md",
+"matched": "hybrid",
+"cosine": "0.1",
+"bm25_rang": 1,
+"bm25_norm": "2.228",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "y/z/n1.md",
+"score": "0.8056872037914692",
+"title": "T y/z/n1.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.556",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/MOC.md",
+"score": "0.5",
+"title": "",
+"matched": "semantic",
+"cosine": "0.791",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "y/z/n3.md",
+"score": "0.599",
+"title": "T y/z/n3.md",
+"matched": "semantic",
+"cosine": "0.599",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "20-projects/p/n1.md",
+"score": "0.804",
+"title": "T 20-projects/p/n1.md",
+"matched": "semantic",
+"cosine": "0.804",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "x/STATUS.md",
+"score": "0.975",
+"title": "T x/STATUS.md",
+"matched": "semantic",
+"cosine": "0.975",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "x/n2.md",
+"score": "2.453",
+"title": "T x/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.453",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n3.md",
+"score": "2.324",
+"title": "T y/z/n3.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.324",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "2.141",
+"title": "T 20-projects/p/STATUS.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.141",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.059",
+"title": "T x/n3.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "0.059",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n1.md",
+"score": "1.303",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "1.303",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/MOC.md",
+"score": "2.923",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 6,
+"bm25_norm": "2.923",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "status vom Garten",
+"k": 1,
+"out": [
+{
+"rel": "y/z/n3.md",
+"score": "1.0",
+"title": "T y/z/n3.md",
+"matched": "hybrid",
+"cosine": "0.599",
+"bm25_rang": 2,
+"bm25_norm": "2.324",
+"vektor_rang": 1,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "y/z/n1.md",
+"score": "0.407",
+"title": "T y/z/n1.md",
+"matched": "semantic",
+"cosine": "0.407",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "0.613",
+"title": "T x/n4.md",
+"matched": "semantic",
+"cosine": "0.613",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "0.845",
+"title": "",
+"matched": "semantic",
+"cosine": "0.845",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.359",
+"title": "",
+"matched": "semantic",
+"cosine": "0.359",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "garten/n2.md",
+"score": "0.826",
+"title": "T garten/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.826",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n6.md",
+"score": "0.326",
+"title": "T y/z/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.326",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n3.md",
+"score": "2.975",
+"title": "T 20-projects/p/n3.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.975",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.197",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "0.197",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "0.478",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "0.478",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "garten/n3.md",
+"score": "1.129",
+"title": "T garten/n3.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 6,
+"bm25_norm": "1.129",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "2.985",
+"title": "T x/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 7,
+"bm25_norm": "2.985",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n1.md",
+"score": "1.677",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 8,
+"bm25_norm": "1.677",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "nichts besonderes",
+"k": 2,
+"out": [
+{
+"rel": "x/n4.md",
+"score": "1.0",
+"title": "T x/n4.md",
+"matched": "hybrid",
+"cosine": "0.613",
+"bm25_rang": 7,
+"bm25_norm": "2.985",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "0.9916666666666667",
+"title": "T garten/n3.md",
+"matched": "hybrid",
+"cosine": "0.845",
+"bm25_rang": 6,
+"bm25_norm": "1.129",
+"vektor_rang": 3,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.253",
+"title": "T 20-projects/p/n6.md",
+"matched": "semantic",
+"cosine": "0.253",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.104",
+"title": "",
+"matched": "semantic",
+"cosine": "0.104",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "y/z/n3.md",
+"score": "0.158",
+"title": "T y/z/n3.md",
+"matched": "semantic",
+"cosine": "0.158",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": true
+}
+],
+"text": [],
+"query": "themenhub",
+"k": 5,
+"out": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "1.0",
+"title": "T 20-projects/p/n6.md",
+"matched": "semantic",
+"cosine": "0.253",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.47058823529411764",
+"title": "",
+"matched": "semantic",
+"cosine": "0.104",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "y/z/n3.md",
+"score": "0.4444444444444444",
+"title": "T y/z/n3.md",
+"matched": "semantic",
+"cosine": "0.158",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/n2.md",
+"score": "0.57",
+"title": "",
+"matched": "semantic",
+"cosine": "0.57",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.022",
+"title": "",
+"matched": "semantic",
+"cosine": "0.022",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+}
+],
+"text": [
+{
+"rel": "garten/n2.md",
+"score": "2.993",
+"title": "T garten/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.993",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "Übersicht",
+"k": 3,
+"out": [
+{
+"rel": "garten/n2.md",
+"score": "1.0",
+"title": "T garten/n2.md",
+"matched": "hybrid",
+"cosine": "0.57",
+"bm25_rang": 1,
+"bm25_norm": "2.993",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.31029411764705883",
+"title": "",
+"matched": "semantic",
+"cosine": "0.022",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+}
+]
+},
+{
+"semantic": [],
+"text": [
+{
+"rel": "x/n4.md",
+"score": "0.953",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.953",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.191",
+"title": "T 20-projects/p/MOC.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.191",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "y/z/n5.md",
+"score": "1.252",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.252",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n2.md",
+"score": "0.69",
+"title": "T x/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "0.69",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "20-projects/p/n3.md",
+"score": "2.278",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "2.278",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n4.md",
+"score": "0.033",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 6,
+"bm25_norm": "0.033",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "wo faengt es an",
+"k": 2,
+"out": [
+{
+"rel": "x/n4.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.953",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.9411764705882353",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.252",
+"vektor_rang": 0,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "x/n4.md",
+"score": "0.784",
+"title": "T x/n4.md",
+"matched": "semantic",
+"cosine": "0.784",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "x/n6.md",
+"score": "0.602",
+"title": "T x/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.602",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "1.573",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.573",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "x/n4.md",
+"score": "1.515",
+"title": "T x/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.515",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n1.md",
+"score": "1.822",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "1.822",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "themenhub",
+"k": 1,
+"out": [
+{
+"rel": "x/n4.md",
+"score": "1.0",
+"title": "T x/n4.md",
+"matched": "hybrid",
+"cosine": "0.784",
+"bm25_rang": 3,
+"bm25_norm": "1.515",
+"vektor_rang": 1,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/n1.md",
+"score": "0.169",
+"title": "T garten/n1.md",
+"matched": "semantic",
+"cosine": "0.169",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "x/n1.md",
+"score": "0.59",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.59",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n1.md",
+"score": "1.749",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.749",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": " moc",
+"k": 3,
+"out": [
+{
+"rel": "garten/n1.md",
+"score": "1.0",
+"title": "T garten/n1.md",
+"matched": "hybrid",
+"cosine": "0.169",
+"bm25_rang": 2,
+"bm25_norm": "1.749",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n1.md",
+"score": "0.5151515151515151",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.59",
+"vektor_rang": 0,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "x/n6.md",
+"score": "0.584",
+"title": "",
+"matched": "semantic",
+"cosine": "0.584",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+}
+],
+"text": [],
+"query": "wo faengt es an",
+"k": 3,
+"out": [
+{
+"rel": "x/n6.md",
+"score": "1.0",
+"title": "",
+"matched": "semantic",
+"cosine": "0.584",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+}
+]
+},
+{
+"semantic": [],
+"text": [
+{
+"rel": "garten/n1.md",
+"score": "0.148",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.148",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n6.md",
+"score": "2.444",
+"title": "T x/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.444",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n4.md",
+"score": "0.293",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "0.293",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "Übersicht",
+"k": 5,
+"out": [
+{
+"rel": "garten/n1.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.148",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n6.md",
+"score": "0.9411764705882353",
+"title": "T x/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.444",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n4.md",
+"score": "0.4444444444444444",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "0.293",
+"vektor_rang": 0,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/n2.md",
+"score": "0.237",
+"title": "",
+"matched": "semantic",
+"cosine": "0.237",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "y/z/n2.md",
+"score": "0.085",
+"title": "",
+"matched": "semantic",
+"cosine": "0.085",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.677",
+"title": "",
+"matched": "semantic",
+"cosine": "0.677",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "garten/n4.md",
+"score": "0.777",
+"title": "T garten/n4.md",
+"matched": "semantic",
+"cosine": "0.777",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "0.346",
+"title": "",
+"matched": "semantic",
+"cosine": "0.346",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": true
+},
+{
+"rel": "20-projects/p/n4.md",
+"score": "0.884",
+"title": "",
+"matched": "semantic",
+"cosine": "0.884",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 6,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.753",
+"title": "T 20-projects/p/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.753",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n4.md",
+"score": "1.104",
+"title": "T garten/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.104",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "2.887",
+"title": "T y/z/STATUS.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.887",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n2.md",
+"score": "2.829",
+"title": "T garten/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "2.829",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n2.md",
+"score": "0.807",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "0.807",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n4.md",
+"score": "2.529",
+"title": "T 20-projects/p/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 6,
+"bm25_norm": "2.529",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "Stand von x",
+"k": 3,
+"out": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "1.0",
+"title": "T 20-projects/p/n6.md",
+"matched": "hybrid",
+"cosine": "0.677",
+"bm25_rang": 1,
+"bm25_norm": "0.753",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "garten/n2.md",
+"score": "0.9752321981424149",
+"title": "T garten/n2.md",
+"matched": "hybrid",
+"cosine": "0.237",
+"bm25_rang": 4,
+"bm25_norm": "2.829",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "garten/n4.md",
+"score": "0.9440903296303041",
+"title": "T garten/n4.md",
+"matched": "hybrid",
+"cosine": "0.777",
+"bm25_rang": 2,
+"bm25_norm": "1.104",
+"vektor_rang": 4,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "x/n1.md",
+"score": "0.846",
+"title": "T x/n1.md",
+"matched": "semantic",
+"cosine": "0.846",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "garten/n5.md",
+"score": "0.225",
+"title": "",
+"matched": "semantic",
+"cosine": "0.225",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "x/n1.md",
+"score": "1.329",
+"title": "T x/n1.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.329",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n3.md",
+"score": "1.056",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.056",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "x/n3.md",
+"score": "0.376",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "0.376",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "Übersicht",
+"k": 5,
+"out": [
+{
+"rel": "x/n1.md",
+"score": "1.0",
+"title": "T x/n1.md",
+"matched": "hybrid",
+"cosine": "0.846",
+"bm25_rang": 1,
+"bm25_norm": "1.329",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "garten/n5.md",
+"score": "0.47058823529411764",
+"title": "",
+"matched": "semantic",
+"cosine": "0.225",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.47058823529411764",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "0.376",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n3.md",
+"score": "0.23529411764705882",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.056",
+"vektor_rang": 0,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/n1.md",
+"score": "0.694",
+"title": "",
+"matched": "semantic",
+"cosine": "0.694",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "0.86",
+"title": "",
+"matched": "semantic",
+"cosine": "0.86",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "20-projects/p/n2.md",
+"score": "0.824",
+"title": "",
+"matched": "semantic",
+"cosine": "0.824",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": true
+},
+{
+"rel": "garten/STATUS.md",
+"score": "0.601",
+"title": "T garten/STATUS.md",
+"matched": "semantic",
+"cosine": "0.601",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": true
+}
+],
+"text": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "1.1",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.1",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n1.md",
+"score": "1.992",
+"title": "T garten/n1.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.992",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "wo faengt es an",
+"k": 5,
+"out": [
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "1.0",
+"title": "",
+"matched": "semantic",
+"cosine": "0.86",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.7744874715261959",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.1",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n1.md",
+"score": "0.7517084282460137",
+"title": "T garten/n1.md",
+"matched": "hybrid",
+"cosine": "0.694",
+"bm25_rang": 2,
+"bm25_norm": "1.992",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "garten/STATUS.md",
+"score": "0.4388562522479319",
+"title": "T garten/STATUS.md",
+"matched": "semantic",
+"cosine": "0.601",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": true
+},
+{
+"rel": "20-projects/p/n2.md",
+"score": "0.3442166540116426",
+"title": "",
+"matched": "semantic",
+"cosine": "0.824",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/MOC.md",
+"score": "0.513",
+"title": "",
+"matched": "semantic",
+"cosine": "0.513",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "0.072",
+"title": "T x/n4.md",
+"matched": "semantic",
+"cosine": "0.072",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "y/z/n4.md",
+"score": "0.388",
+"title": "T y/z/n4.md",
+"matched": "semantic",
+"cosine": "0.388",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": true
+},
+{
+"rel": "20-projects/p/n5.md",
+"score": "0.973",
+"title": "T 20-projects/p/n5.md",
+"matched": "semantic",
+"cosine": "0.973",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": true
+}
+],
+"text": [
+{
+"rel": "20-projects/p/n3.md",
+"score": "2.911",
+"title": "T 20-projects/p/n3.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.911",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n5.md",
+"score": "1.463",
+"title": "T 20-projects/p/n5.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.463",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "2.515",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.515",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "Stand von x",
+"k": 1,
+"out": [
+{
+"rel": "garten/MOC.md",
+"score": "1.0",
+"title": "",
+"matched": "semantic",
+"cosine": "0.513",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/n5.md",
+"score": "0.19",
+"title": "T garten/n5.md",
+"matched": "semantic",
+"cosine": "0.19",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "0.036",
+"title": "T garten/n3.md",
+"matched": "semantic",
+"cosine": "0.036",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "y/z/n4.md",
+"score": "0.123",
+"title": "T y/z/n4.md",
+"matched": "semantic",
+"cosine": "0.123",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "garten/n2.md",
+"score": "0.245",
+"title": "",
+"matched": "semantic",
+"cosine": "0.245",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "y/z/n1.md",
+"score": "0.531",
+"title": "T y/z/n1.md",
+"matched": "semantic",
+"cosine": "0.531",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+},
+{
+"rel": "y/z/MOC.md",
+"score": "0.473",
+"title": "",
+"matched": "semantic",
+"cosine": "0.473",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 6,
+"derived": false
+},
+{
+"rel": "20-projects/p/n1.md",
+"score": "0.787",
+"title": "T 20-projects/p/n1.md",
+"matched": "semantic",
+"cosine": "0.787",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 7,
+"derived": false
+},
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "0.706",
+"title": "",
+"matched": "semantic",
+"cosine": "0.706",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 8,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "2.505",
+"title": "T 20-projects/p/STATUS.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.505",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n2.md",
+"score": "0.101",
+"title": "T garten/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.101",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n4.md",
+"score": "0.342",
+"title": "T y/z/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "0.342",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/MOC.md",
+"score": "0.043",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "0.043",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "2.144",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "2.144",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "themenhub",
+"k": 5,
+"out": [
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "1.0",
+"title": "T 20-projects/p/STATUS.md",
+"matched": "hybrid",
+"cosine": "0.706",
+"bm25_rang": 1,
+"bm25_norm": "2.505",
+"vektor_rang": 8,
+"derived": false
+},
+{
+"rel": "y/z/MOC.md",
+"score": "0.9574541875615128",
+"title": "",
+"matched": "hybrid",
+"cosine": "0.473",
+"bm25_rang": 4,
+"bm25_norm": "0.043",
+"vektor_rang": 6,
+"derived": false
+},
+{
+"rel": "y/z/n4.md",
+"score": "0.9142178688037994",
+"title": "T y/z/n4.md",
+"matched": "hybrid",
+"cosine": "0.123",
+"bm25_rang": 3,
+"bm25_norm": "0.342",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "garten/n2.md",
+"score": "0.9142178688037994",
+"title": "T garten/n2.md",
+"matched": "hybrid",
+"cosine": "0.245",
+"bm25_rang": 2,
+"bm25_norm": "0.101",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "garten/n5.md",
+"score": "0.49955476402493326",
+"title": "T garten/n5.md",
+"matched": "semantic",
+"cosine": "0.19",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "y/z/n4.md",
+"score": "0.176",
+"title": "",
+"matched": "semantic",
+"cosine": "0.176",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "0.301",
+"title": "",
+"matched": "semantic",
+"cosine": "0.301",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "y/z/n3.md",
+"score": "0.804",
+"title": "T y/z/n3.md",
+"matched": "semantic",
+"cosine": "0.804",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "y/z/n4.md",
+"score": "0.967",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.967",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "0.596",
+"title": "T garten/n3.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.596",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "garten/MOC.md",
+"score": "2.756",
+"title": "T garten/MOC.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.756",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n3.md",
+"score": "2.358",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "2.358",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "Stand von x",
+"k": 3,
+"out": [
+{
+"rel": "y/z/n4.md",
+"score": "1.0",
+"title": "",
+"matched": "hybrid",
+"cosine": "0.176",
+"bm25_rang": 1,
+"bm25_norm": "0.967",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "y/z/n3.md",
+"score": "0.8888888888888888",
+"title": "T y/z/n3.md",
+"matched": "hybrid",
+"cosine": "0.804",
+"bm25_rang": 4,
+"bm25_norm": "2.358",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "garten/MOC.md",
+"score": "0.6205882352941177",
+"title": "T garten/MOC.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.756",
+"vektor_rang": 0,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/n5.md",
+"score": "0.368",
+"title": "",
+"matched": "semantic",
+"cosine": "0.368",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "garten/n6.md",
+"score": "0.655",
+"title": "T garten/n6.md",
+"matched": "semantic",
+"cosine": "0.655",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "y/z/n5.md",
+"score": "0.646",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.646",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n6.md",
+"score": "2.805",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.805",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n5.md",
+"score": "0.129",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "0.129",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "status vom Garten",
+"k": 1,
+"out": [
+{
+"rel": "garten/n6.md",
+"score": "1.0",
+"title": "T garten/n6.md",
+"matched": "hybrid",
+"cosine": "0.655",
+"bm25_rang": 2,
+"bm25_norm": "2.805",
+"vektor_rang": 2,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "x/MOC.md",
+"score": "0.385",
+"title": "",
+"matched": "semantic",
+"cosine": "0.385",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.027",
+"title": "T x/n3.md",
+"matched": "semantic",
+"cosine": "0.027",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+}
+],
+"text": [],
+"query": "status vom Garten",
+"k": 20,
+"out": [
+{
+"rel": "x/MOC.md",
+"score": "1.0",
+"title": "",
+"matched": "semantic",
+"cosine": "0.385",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.40920716112531974",
+"title": "T x/n3.md",
+"matched": "semantic",
+"cosine": "0.027",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+}
+]
+},
+{
+"semantic": [],
+"text": [
+{
+"rel": "y/z/n3.md",
+"score": "1.393",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.393",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n2.md",
+"score": "1.425",
+"title": "T 20-projects/p/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.425",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n5.md",
+"score": "2.394",
+"title": "T x/n5.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.394",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "status vom Garten",
+"k": 3,
+"out": [
+{
+"rel": "y/z/n3.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.393",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n2.md",
+"score": "0.9411764705882353",
+"title": "T 20-projects/p/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.425",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n5.md",
+"score": "0.8888888888888888",
+"title": "T x/n5.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.394",
+"vektor_rang": 0,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "y/z/n4.md",
+"score": "0.122",
+"title": "",
+"matched": "semantic",
+"cosine": "0.122",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "x/n1.md",
+"score": "1.014",
+"title": "T x/n1.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.014",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n1.md",
+"score": "0.818",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.818",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "status vom Garten",
+"k": 1,
+"out": [
+{
+"rel": "y/z/n4.md",
+"score": "1.0",
+"title": "",
+"matched": "semantic",
+"cosine": "0.122",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/n5.md",
+"score": "0.346",
+"title": "T 20-projects/p/n5.md",
+"matched": "semantic",
+"cosine": "0.346",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "20-projects/p/n2.md",
+"score": "0.442",
+"title": "",
+"matched": "semantic",
+"cosine": "0.442",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "0.35",
+"title": "",
+"matched": "semantic",
+"cosine": "0.35",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "1.983",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.983",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "status vom Garten",
+"k": 2,
+"out": [
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "1.0",
+"title": "",
+"matched": "hybrid",
+"cosine": "0.35",
+"bm25_rang": 1,
+"bm25_norm": "1.983",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "20-projects/p/n2.md",
+"score": "0.44795783926218713",
+"title": "",
+"matched": "semantic",
+"cosine": "0.442",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "x/n5.md",
+"score": "0.367",
+"title": "T x/n5.md",
+"matched": "semantic",
+"cosine": "0.367",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.578",
+"title": "",
+"matched": "semantic",
+"cosine": "0.578",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "20-projects/p/MOC.md",
+"score": "2.393",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.393",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "0.193",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.193",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n6.md",
+"score": "1.672",
+"title": "T x/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.672",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n5.md",
+"score": "1.6",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "1.6",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "nichts besonderes",
+"k": 20,
+"out": [
+{
+"rel": "20-projects/p/MOC.md",
+"score": "1.0",
+"title": "",
+"matched": "hybrid",
+"cosine": "0.578",
+"bm25_rang": 1,
+"bm25_norm": "2.393",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.193",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n5.md",
+"score": "0.9444444444444444",
+"title": "T x/n5.md",
+"matched": "hybrid",
+"cosine": "0.367",
+"bm25_rang": 4,
+"bm25_norm": "1.6",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "x/n6.md",
+"score": "0.9411764705882353",
+"title": "T x/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.672",
+"vektor_rang": 0,
+"derived": false
+}
+]
+},
+{
+"semantic": [],
+"text": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "2.2",
+"title": "T 20-projects/p/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.2",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "1.127",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.127",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "2.275",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.275",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n1.md",
+"score": "2.428",
+"title": "T garten/n1.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "2.428",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "Stand von x",
+"k": 20,
+"out": [
+{
+"rel": "y/z/STATUS.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.127",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.8184143222506395",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.275",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.4347826086956522",
+"title": "T 20-projects/p/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.2",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "garten/n1.md",
+"score": "0.36613272311212813",
+"title": "T garten/n1.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "2.428",
+"vektor_rang": 0,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.386",
+"title": "",
+"matched": "semantic",
+"cosine": "0.386",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "garten/n3.md",
+"score": "0.519",
+"title": "T garten/n3.md",
+"matched": "semantic",
+"cosine": "0.519",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.367",
+"title": "",
+"matched": "semantic",
+"cosine": "0.367",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "y/z/n4.md",
+"score": "0.22",
+"title": "T y/z/n4.md",
+"matched": "semantic",
+"cosine": "0.22",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": true
+}
+],
+"text": [
+{
+"rel": "y/z/n4.md",
+"score": "0.776",
+"title": "T y/z/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.776",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "20-projects/p/MOC.md",
+"score": "1.607",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.607",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "2.215",
+"title": "T garten/n3.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.215",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "x/n1.md",
+"score": "2.949",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "2.949",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "wo faengt es an",
+"k": 2,
+"out": [
+{
+"rel": "20-projects/p/MOC.md",
+"score": "1.0",
+"title": "",
+"matched": "hybrid",
+"cosine": "0.386",
+"bm25_rang": 2,
+"bm25_norm": "1.607",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.8695652173913044",
+"title": "",
+"matched": "semantic",
+"cosine": "0.367",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/n1.md",
+"score": "0.343",
+"title": "T 20-projects/p/n1.md",
+"matched": "semantic",
+"cosine": "0.343",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "20-projects/p/n3.md",
+"score": "0.468",
+"title": "",
+"matched": "semantic",
+"cosine": "0.468",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "0.35",
+"title": "",
+"matched": "semantic",
+"cosine": "0.35",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "20-projects/p/n5.md",
+"score": "0.331",
+"title": "",
+"matched": "semantic",
+"cosine": "0.331",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "0.755",
+"title": "",
+"matched": "semantic",
+"cosine": "0.755",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "0.424",
+"title": "T x/n4.md",
+"matched": "semantic",
+"cosine": "0.424",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 6,
+"derived": false
+},
+{
+"rel": "garten/n6.md",
+"score": "0.935",
+"title": "T garten/n6.md",
+"matched": "semantic",
+"cosine": "0.935",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 7,
+"derived": false
+}
+],
+"text": [],
+"query": "themenhub",
+"k": 5,
+"out": [
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "1.0",
+"title": "",
+"matched": "semantic",
+"cosine": "0.35",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "20-projects/p/n5.md",
+"score": "0.8184143222506395",
+"title": "",
+"matched": "semantic",
+"cosine": "0.331",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "0.7729468599033816",
+"title": "",
+"matched": "semantic",
+"cosine": "0.755",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "0.7322654462242563",
+"title": "T x/n4.md",
+"matched": "semantic",
+"cosine": "0.424",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 6,
+"derived": false
+},
+{
+"rel": "garten/n6.md",
+"score": "0.6956521739130436",
+"title": "T garten/n6.md",
+"matched": "semantic",
+"cosine": "0.935",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 7,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.746",
+"title": "T 20-projects/p/MOC.md",
+"matched": "semantic",
+"cosine": "0.746",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.058",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.058",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "Übersicht",
+"k": 20,
+"out": [
+{
+"rel": "20-projects/p/MOC.md",
+"score": "1.0",
+"title": "T 20-projects/p/MOC.md",
+"matched": "semantic",
+"cosine": "0.746",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.4347826086956522",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.058",
+"vektor_rang": 0,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/n4.md",
+"score": "0.287",
+"title": "",
+"matched": "semantic",
+"cosine": "0.287",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "garten/STATUS.md",
+"score": "0.819",
+"title": "",
+"matched": "semantic",
+"cosine": "0.819",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "x/STATUS.md",
+"score": "0.128",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.128",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "1.273",
+"title": "T 20-projects/p/STATUS.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.273",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.44",
+"title": "T y/z/n5.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "0.44",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n4.md",
+"score": "0.693",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "0.693",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "x/MOC.md",
+"score": "1.77",
+"title": "T x/MOC.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "1.77",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "Stand von x",
+"k": 1,
+"out": [
+{
+"rel": "x/STATUS.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.128",
+"vektor_rang": 0,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "y/z/n1.md",
+"score": "0.47",
+"title": "",
+"matched": "semantic",
+"cosine": "0.47",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "x/MOC.md",
+"score": "0.104",
+"title": "T x/MOC.md",
+"matched": "semantic",
+"cosine": "0.104",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "garten/n6.md",
+"score": "0.489",
+"title": "",
+"matched": "semantic",
+"cosine": "0.489",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "garten/n2.md",
+"score": "0.576",
+"title": "T garten/n2.md",
+"matched": "semantic",
+"cosine": "0.576",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.191",
+"title": "T x/n3.md",
+"matched": "semantic",
+"cosine": "0.191",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+},
+{
+"rel": "x/n6.md",
+"score": "0.373",
+"title": "T x/n6.md",
+"matched": "semantic",
+"cosine": "0.373",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 6,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "garten/n6.md",
+"score": "0.466",
+"title": "T garten/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.466",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/MOC.md",
+"score": "1.81",
+"title": "T x/MOC.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.81",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "1.754",
+"title": "T x/n3.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.754",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "y/z/n1.md",
+"score": "2.68",
+"title": "T y/z/n1.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "2.68",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "garten/n2.md",
+"score": "0.414",
+"title": "T garten/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "0.414",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "x/n6.md",
+"score": "0.058",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 6,
+"bm25_norm": "0.058",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "wo faengt es an",
+"k": 5,
+"out": [
+{
+"rel": "garten/n6.md",
+"score": "1.0",
+"title": "T garten/n6.md",
+"matched": "hybrid",
+"cosine": "0.489",
+"bm25_rang": 1,
+"bm25_norm": "0.466",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "x/MOC.md",
+"score": "0.5455882352941176",
+"title": "T x/MOC.md",
+"matched": "hybrid",
+"cosine": "0.104",
+"bm25_rang": 2,
+"bm25_norm": "1.81",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "y/z/n1.md",
+"score": "0.4605263157894737",
+"title": "T y/z/n1.md",
+"matched": "hybrid",
+"cosine": "0.47",
+"bm25_rang": 4,
+"bm25_norm": "2.68",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "x/n3.md",
+"score": "0.4444444444444444",
+"title": "T x/n3.md",
+"matched": "hybrid",
+"cosine": "0.191",
+"bm25_rang": 3,
+"bm25_norm": "1.754",
+"vektor_rang": 5,
+"derived": true
+},
+{
+"rel": "garten/n2.md",
+"score": "0.43529411764705883",
+"title": "T garten/n2.md",
+"matched": "hybrid",
+"cosine": "0.576",
+"bm25_rang": 5,
+"bm25_norm": "0.414",
+"vektor_rang": 4,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/n4.md",
+"score": "0.126",
+"title": "T 20-projects/p/n4.md",
+"matched": "semantic",
+"cosine": "0.126",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "20-projects/p/n1.md",
+"score": "0.463",
+"title": "",
+"matched": "semantic",
+"cosine": "0.463",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "x/n5.md",
+"score": "0.074",
+"title": "",
+"matched": "semantic",
+"cosine": "0.074",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "20-projects/p/n4.md",
+"score": "1.105",
+"title": "T 20-projects/p/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.105",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/MOC.md",
+"score": "0.845",
+"title": "T x/MOC.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.845",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n5.md",
+"score": "2.937",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.937",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "Stand von x",
+"k": 3,
+"out": [
+{
+"rel": "20-projects/p/n4.md",
+"score": "1.0",
+"title": "T 20-projects/p/n4.md",
+"matched": "hybrid",
+"cosine": "0.126",
+"bm25_rang": 1,
+"bm25_norm": "1.105",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/MOC.md",
+"score": "0.6205882352941177",
+"title": "T x/MOC.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.845",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n1.md",
+"score": "0.47058823529411764",
+"title": "",
+"matched": "semantic",
+"cosine": "0.463",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "x/MOC.md",
+"score": "0.963",
+"title": "",
+"matched": "semantic",
+"cosine": "0.963",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n6.md",
+"score": "0.285",
+"title": "T x/n6.md",
+"matched": "semantic",
+"cosine": "0.285",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "x/n3.md",
+"score": "0.32",
+"title": "T x/n3.md",
+"matched": "semantic",
+"cosine": "0.32",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "x/n3.md",
+"score": "0.311",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.311",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "status vom Garten",
+"k": 3,
+"out": [
+{
+"rel": "x/n3.md",
+"score": "1.0",
+"title": "T x/n3.md",
+"matched": "hybrid",
+"cosine": "0.32",
+"bm25_rang": 1,
+"bm25_norm": "0.311",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "x/MOC.md",
+"score": "0.6651515151515152",
+"title": "",
+"matched": "semantic",
+"cosine": "0.963",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n6.md",
+"score": "0.24242424242424243",
+"title": "T x/n6.md",
+"matched": "semantic",
+"cosine": "0.285",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+}
+]
+},
+{
+"semantic": [],
+"text": [
+{
+"rel": "x/n6.md",
+"score": "1.614",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.614",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n5.md",
+"score": "0.593",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.593",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "x/STATUS.md",
+"score": "1.108",
+"title": "T x/STATUS.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.108",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "garten/n3.md",
+"score": "0.523",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "0.523",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.683",
+"title": "T y/z/n5.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "0.683",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n1.md",
+"score": "1.807",
+"title": "T 20-projects/p/n1.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 6,
+"bm25_norm": "1.807",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "Übersicht",
+"k": 5,
+"out": [
+{
+"rel": "x/n6.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.614",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "0.9411764705882353",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "0.523",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.8888888888888888",
+"title": "T y/z/n5.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "0.683",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/STATUS.md",
+"score": "0.5194444444444444",
+"title": "T x/STATUS.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.108",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "x/n5.md",
+"score": "0.47058823529411764",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.593",
+"vektor_rang": 0,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "x/MOC.md",
+"score": "0.38",
+"title": "T x/MOC.md",
+"matched": "semantic",
+"cosine": "0.38",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "x/n3.md",
+"score": "0.559",
+"title": "T x/n3.md",
+"matched": "semantic",
+"cosine": "0.559",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "x/n2.md",
+"score": "0.098",
+"title": "",
+"matched": "semantic",
+"cosine": "0.098",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "garten/n4.md",
+"score": "0.266",
+"title": "",
+"matched": "semantic",
+"cosine": "0.266",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "0.917",
+"title": "T y/z/STATUS.md",
+"matched": "semantic",
+"cosine": "0.917",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": true
+}
+],
+"text": [
+{
+"rel": "y/z/STATUS.md",
+"score": "2.77",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.77",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "2.398",
+"title": "T x/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.398",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n3.md",
+"score": "0.204",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "0.204",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "themenhub",
+"k": 1,
+"out": [
+{
+"rel": "x/n3.md",
+"score": "1.0",
+"title": "T x/n3.md",
+"matched": "hybrid",
+"cosine": "0.559",
+"bm25_rang": 3,
+"bm25_norm": "0.204",
+"vektor_rang": 2,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "x/n2.md",
+"score": "0.794",
+"title": "",
+"matched": "semantic",
+"cosine": "0.794",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "0.595",
+"title": "",
+"matched": "semantic",
+"cosine": "0.595",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+}
+],
+"text": [
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "1.819",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.819",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n2.md",
+"score": "1.43",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.43",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "nichts besonderes",
+"k": 2,
+"out": [
+{
+"rel": "x/n2.md",
+"score": "1.0",
+"title": "",
+"matched": "hybrid",
+"cosine": "0.794",
+"bm25_rang": 2,
+"bm25_norm": "1.43",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "0.5",
+"title": "",
+"matched": "hybrid",
+"cosine": "0.595",
+"bm25_rang": 1,
+"bm25_norm": "1.819",
+"vektor_rang": 2,
+"derived": true
+}
+]
+},
+{
+"semantic": [],
+"text": [],
+"query": " moc",
+"k": 20,
+"out": []
+},
+{
+"semantic": [
+{
+"rel": "x/n3.md",
+"score": "0.127",
+"title": "",
+"matched": "semantic",
+"cosine": "0.127",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n6.md",
+"score": "0.125",
+"title": "",
+"matched": "semantic",
+"cosine": "0.125",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "x/n2.md",
+"score": "0.128",
+"title": "",
+"matched": "semantic",
+"cosine": "0.128",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "x/n3.md",
+"score": "1.434",
+"title": "T x/n3.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.434",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "nichts besonderes",
+"k": 20,
+"out": [
+{
+"rel": "x/n3.md",
+"score": "1.0",
+"title": "T x/n3.md",
+"matched": "hybrid",
+"cosine": "0.127",
+"bm25_rang": 1,
+"bm25_norm": "1.434",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n6.md",
+"score": "0.47058823529411764",
+"title": "",
+"matched": "semantic",
+"cosine": "0.125",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "x/n2.md",
+"score": "0.4444444444444444",
+"title": "",
+"matched": "semantic",
+"cosine": "0.128",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "y/z/n1.md",
+"score": "0.033",
+"title": "T y/z/n1.md",
+"matched": "semantic",
+"cosine": "0.033",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "0.136",
+"title": "",
+"matched": "semantic",
+"cosine": "0.136",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+}
+],
+"text": [],
+"query": " moc",
+"k": 20,
+"out": [
+{
+"rel": "y/z/STATUS.md",
+"score": "1.0911764705882352",
+"title": "",
+"matched": "semantic",
+"cosine": "0.136",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "y/z/n1.md",
+"score": "1.0",
+"title": "T y/z/n1.md",
+"matched": "semantic",
+"cosine": "0.033",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+}
+]
+},
+{
+"semantic": [],
+"text": [],
+"query": "nichts besonderes",
+"k": 3,
+"out": []
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/n5.md",
+"score": "0.625",
+"title": "T 20-projects/p/n5.md",
+"matched": "semantic",
+"cosine": "0.625",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "0.528",
+"title": "T x/n4.md",
+"matched": "semantic",
+"cosine": "0.528",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "garten/n4.md",
+"score": "0.291",
+"title": "",
+"matched": "semantic",
+"cosine": "0.291",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "20-projects/p/n1.md",
+"score": "0.31",
+"title": "T 20-projects/p/n1.md",
+"matched": "semantic",
+"cosine": "0.31",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": true
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "0.88",
+"title": "T y/z/STATUS.md",
+"matched": "semantic",
+"cosine": "0.88",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "y/z/STATUS.md",
+"score": "1.011",
+"title": "T y/z/STATUS.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.011",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "x/n4.md",
+"score": "2.814",
+"title": "T x/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.814",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "nichts besonderes",
+"k": 3,
+"out": [
+{
+"rel": "x/n4.md",
+"score": "1.0",
+"title": "T x/n4.md",
+"matched": "hybrid",
+"cosine": "0.528",
+"bm25_rang": 2,
+"bm25_norm": "2.814",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "20-projects/p/n5.md",
+"score": "0.5151515151515151",
+"title": "T 20-projects/p/n5.md",
+"matched": "semantic",
+"cosine": "0.625",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "y/z/STATUS.md",
+"score": "0.474481658692185",
+"title": "T y/z/STATUS.md",
+"matched": "hybrid",
+"cosine": "0.88",
+"bm25_rang": 1,
+"bm25_norm": "1.011",
+"vektor_rang": 5,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "y/z/n3.md",
+"score": "0.881",
+"title": "T y/z/n3.md",
+"matched": "semantic",
+"cosine": "0.881",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.964",
+"title": "T y/z/n5.md",
+"matched": "semantic",
+"cosine": "0.964",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": true
+},
+{
+"rel": "x/n4.md",
+"score": "0.92",
+"title": "",
+"matched": "semantic",
+"cosine": "0.92",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "20-projects/p/n4.md",
+"score": "0.574",
+"title": "",
+"matched": "semantic",
+"cosine": "0.574",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "0.554",
+"title": "",
+"matched": "semantic",
+"cosine": "0.554",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "garten/n1.md",
+"score": "1.684",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.684",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "2.661",
+"title": "T y/z/n5.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.661",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "Übersicht",
+"k": 1,
+"out": [
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "1.0",
+"title": "",
+"matched": "semantic",
+"cosine": "0.554",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+}
+]
+},
+{
+"semantic": [],
+"text": [
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.683",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.683",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n3.md",
+"score": "2.823",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.823",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "garten/n3.md",
+"score": "2.075",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.075",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n2.md",
+"score": "1.794",
+"title": "T y/z/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "1.794",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "themenhub",
+"k": 5,
+"out": [
+{
+"rel": "20-projects/p/MOC.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.683",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n3.md",
+"score": "0.8184143222506395",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.075",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n2.md",
+"score": "0.7729468599033816",
+"title": "T y/z/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "1.794",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n3.md",
+"score": "0.40920716112531974",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "2.823",
+"vektor_rang": 0,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "garten/n6.md",
+"score": "0.965",
+"title": "",
+"matched": "semantic",
+"cosine": "0.965",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+}
+],
+"text": [
+{
+"rel": "20-projects/p/n4.md",
+"score": "1.657",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "1.657",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "1.027",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.027",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/MOC.md",
+"score": "2.455",
+"title": "T 20-projects/p/MOC.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "2.455",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n6.md",
+"score": "0.133",
+"title": "T garten/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "0.133",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "x/n4.md",
+"score": "0.237",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "0.237",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "wo faengt es an",
+"k": 1,
+"out": [
+{
+"rel": "20-projects/p/STATUS.md",
+"score": "1.0",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.027",
+"vektor_rang": 0,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/n4.md",
+"score": "0.282",
+"title": "T 20-projects/p/n4.md",
+"matched": "semantic",
+"cosine": "0.282",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "garten/n1.md",
+"score": "0.348",
+"title": "",
+"matched": "semantic",
+"cosine": "0.348",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.56",
+"title": "T 20-projects/p/n6.md",
+"matched": "semantic",
+"cosine": "0.56",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.554",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.554",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n4.md",
+"score": "1.91",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.91",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/n1.md",
+"score": "1.558",
+"title": "T garten/n1.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.558",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "2.179",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "2.179",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "Übersicht",
+"k": 5,
+"out": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "1.0",
+"title": "T 20-projects/p/n6.md",
+"matched": "hybrid",
+"cosine": "0.56",
+"bm25_rang": 1,
+"bm25_norm": "0.554",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "garten/n1.md",
+"score": "0.9730639730639731",
+"title": "T garten/n1.md",
+"matched": "hybrid",
+"cosine": "0.348",
+"bm25_rang": 3,
+"bm25_norm": "1.558",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "20-projects/p/n4.md",
+"score": "0.5",
+"title": "T 20-projects/p/n4.md",
+"matched": "hybrid",
+"cosine": "0.282",
+"bm25_rang": 2,
+"bm25_norm": "1.91",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.21690590111642744",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "2.179",
+"vektor_rang": 0,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "x/n5.md",
+"score": "0.308",
+"title": "",
+"matched": "semantic",
+"cosine": "0.308",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": true
+},
+{
+"rel": "20-projects/p/n5.md",
+"score": "0.091",
+"title": "T 20-projects/p/n5.md",
+"matched": "semantic",
+"cosine": "0.091",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.887",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.887",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "garten/n6.md",
+"score": "0.979",
+"title": "T garten/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.979",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "x/n4.md",
+"score": "1.326",
+"title": "T x/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.326",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.851",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "0.851",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "20-projects/p/n5.md",
+"score": "0.654",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 5,
+"bm25_norm": "0.654",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n6.md",
+"score": "2.899",
+"title": "T x/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 6,
+"bm25_norm": "2.899",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n5.md",
+"score": "1.332",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 7,
+"bm25_norm": "1.332",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "Übersicht",
+"k": 3,
+"out": [
+{
+"rel": "20-projects/p/n5.md",
+"score": "1.0",
+"title": "T 20-projects/p/n5.md",
+"matched": "hybrid",
+"cosine": "0.091",
+"bm25_rang": 5,
+"bm25_norm": "0.654",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "x/n4.md",
+"score": "0.5294117647058824",
+"title": "T x/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.326",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n5.md",
+"score": "0.49826989619377166",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "0.851",
+"vektor_rang": 0,
+"derived": false
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "x/n3.md",
+"score": "0.51",
+"title": "T x/n3.md",
+"matched": "semantic",
+"cosine": "0.51",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "x/MOC.md",
+"score": "0.308",
+"title": "T x/MOC.md",
+"matched": "semantic",
+"cosine": "0.308",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "garten/STATUS.md",
+"score": "0.755",
+"title": "T garten/STATUS.md",
+"matched": "semantic",
+"cosine": "0.755",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": true
+},
+{
+"rel": "y/z/n4.md",
+"score": "0.856",
+"title": "",
+"matched": "semantic",
+"cosine": "0.856",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "20-projects/p/n2.md",
+"score": "0.88",
+"title": "T 20-projects/p/n2.md",
+"matched": "semantic",
+"cosine": "0.88",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+},
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.357",
+"title": "T 20-projects/p/MOC.md",
+"matched": "semantic",
+"cosine": "0.357",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 6,
+"derived": true
+}
+],
+"text": [
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.857",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "0.857",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/MOC.md",
+"score": "0.578",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "0.578",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "garten/STATUS.md",
+"score": "1.918",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.918",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n6.md",
+"score": "2.639",
+"title": "T y/z/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "2.639",
+"vektor_rang": 0,
+"derived": false
+}
+],
+"query": "themenhub",
+"k": 3,
+"out": [
+{
+"rel": "x/MOC.md",
+"score": "1.0",
+"title": "T x/MOC.md",
+"matched": "hybrid",
+"cosine": "0.308",
+"bm25_rang": 2,
+"bm25_norm": "0.578",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "garten/STATUS.md",
+"score": "0.4758454106280193",
+"title": "T garten/STATUS.md",
+"matched": "hybrid",
+"cosine": "0.755",
+"bm25_rang": 3,
+"bm25_norm": "1.918",
+"vektor_rang": 3,
+"derived": true
+},
+{
+"rel": "20-projects/p/MOC.md",
+"score": "0.4721790890269152",
+"title": "T 20-projects/p/MOC.md",
+"matched": "hybrid",
+"cosine": "0.357",
+"bm25_rang": 1,
+"bm25_norm": "0.857",
+"vektor_rang": 6,
+"derived": true
+}
+]
+},
+{
+"semantic": [
+{
+"rel": "20-projects/p/n3.md",
+"score": "0.32",
+"title": "",
+"matched": "semantic",
+"cosine": "0.32",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "20-projects/p/n6.md",
+"score": "0.306",
+"title": "",
+"matched": "semantic",
+"cosine": "0.306",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "x/n2.md",
+"score": "0.604",
+"title": "T x/n2.md",
+"matched": "semantic",
+"cosine": "0.604",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 3,
+"derived": false
+},
+{
+"rel": "20-projects/p/n2.md",
+"score": "0.342",
+"title": "T 20-projects/p/n2.md",
+"matched": "semantic",
+"cosine": "0.342",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 4,
+"derived": false
+},
+{
+"rel": "x/n5.md",
+"score": "0.364",
+"title": "",
+"matched": "semantic",
+"cosine": "0.364",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 5,
+"derived": false
+}
+],
+"text": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "2.298",
+"title": "T 20-projects/p/n6.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 1,
+"bm25_norm": "2.298",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "y/z/n4.md",
+"score": "1.667",
+"title": "T y/z/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.667",
+"vektor_rang": 0,
+"derived": false
+},
+{
+"rel": "x/n5.md",
+"score": "1.538",
+"title": "",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 3,
+"bm25_norm": "1.538",
+"vektor_rang": 0,
+"derived": true
+},
+{
+"rel": "x/n2.md",
+"score": "2.43",
+"title": "T x/n2.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 4,
+"bm25_norm": "2.43",
+"vektor_rang": 0,
+"derived": true
+}
+],
+"query": "status vom Garten",
+"k": 3,
+"out": [
+{
+"rel": "20-projects/p/n6.md",
+"score": "1.0",
+"title": "T 20-projects/p/n6.md",
+"matched": "hybrid",
+"cosine": "0.306",
+"bm25_rang": 1,
+"bm25_norm": "2.298",
+"vektor_rang": 2,
+"derived": false
+},
+{
+"rel": "20-projects/p/n3.md",
+"score": "0.5151515151515151",
+"title": "",
+"matched": "semantic",
+"cosine": "0.32",
+"bm25_rang": 0,
+"bm25_norm": "0.0",
+"vektor_rang": 1,
+"derived": false
+},
+{
+"rel": "y/z/n4.md",
+"score": "0.48484848484848486",
+"title": "T y/z/n4.md",
+"matched": "text",
+"cosine": "0.0",
+"bm25_rang": 2,
+"bm25_norm": "1.667",
+"vektor_rang": 0,
+"derived": false
+}
+]
+},
+{
+"semantic": [],
+"text": [],
+"query": "themenhub",
+"k": 20,
+"out": []
+}
+]

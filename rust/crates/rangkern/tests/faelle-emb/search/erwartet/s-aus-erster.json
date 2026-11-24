@@ -1,0 +1,33 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "10-werkstatt/saege.md",
+    "score": 1.0,
+    "title": "Saege und Zahn",
+    "snippet": "Notiz zu saege: saege frueh planen, zahn zweimal im Monat pruefen. Wer saege anlegt, braucht Zeit fuer zahn. Merkzettel saege.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   }
+  ]
+ },
+ "aufrufe": [
+  {
+   "model": "embeddinggemma:latest",
+   "input": "saege zahn",
+   "keep_alive": "30m"
+  },
+  {
+   "model": "embeddinggemma:latest",
+   "input": "saege zahn",
+   "keep_alive": "30m"
+  }
+ ]
+}

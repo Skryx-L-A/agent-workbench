@@ -1,0 +1,11 @@
+{
+ "beschreibung": "M8 fall",
+ "form": "mac",
+ "eigenschaft": "M8",
+ "anforderung": "A142",
+ "art": "fall",
+ "ausgangslage": "Mac mit macOS 26; Lauf s-1 unter dem gebauten Profil mit Modellweg-Port M1 und Ausgangs-Port A1; Lauf s-2 unter seinem Profil mit M2; Hörer der Browser-Brücke auf Port K; Vorführ-Vault mit der Notiz MK-7Q2 außerhalb; Such-Prozess je Sitzung außerhalb; Wegwerf-Token unter ~/.copilot und ~/.config/gh einer Testperson",
+ "handlung": "Der Agent sendet dem Such-Prozess Signal 0 und SIGCONT (Sonde und /bin/kill), liest seine Umgebung (KERN_PROCARGS2), fragt proc_pidinfo und proc_pidpath und ruft task_for_pid",
+ "beleg": "gemessen: Messlauf 2c, P1 bis P8 und H1 bis H4 (messlauf2-ergebnis.json); Umgebung P3, H1 lesbar, pidinfo P5, H2 lesbar, pidpath P6, H3 lesbar",
+ "gemeinsam": "Such-Prozess nicht signalisierbar"
+}

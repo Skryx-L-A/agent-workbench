@@ -1,0 +1,23 @@
+{
+ "exit": 0,
+ "stdout": {
+  "in_scope": true,
+  "fields": {
+   "id": "01M3KEHCGEKTVFPC15XAVEPRDS",
+   "schema": "4",
+   "title": "Gute Notiz",
+   "type": "Note",
+   "class": "knowledge",
+   "created": "2026-09-28",
+   "stand": "2026-09"
+  },
+  "blocks": 1,
+  "findings": [
+   {
+    "kind": "typ",
+    "detail": "type 'Note' nicht im Vokabular (asset|decision|incident|note|person|pitfall|reference|report|secret|session|system|term)"
+   }
+  ],
+  "new": true
+ }
+}

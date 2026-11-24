@@ -1,0 +1,587 @@
+{
+ "fassung": 1,
+ "hinweis": "Vertrag 8, Abschnitt 10 (Betriebsart openai-lokal). anfrage und an_ziel sind die Bytes (latin1) der HTTP-Anfrage. lage.schluessel ist der Inhalt der Schluesseldatei (erfundener Testwert). ziel_beruehrt false heisst: keine Verbindung zum Ziel. zeile nennt die Felder ergebnis, grund und status der Protokollzeile; null heisst keine Zeile.",
+ "faelle": [
+  {
+   "name": "gueltig",
+   "beschreibung": "gueltige Anfrage: geht unveraendert mit dem Schluessel aus der Datei an das Ziel",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 82\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /v1/chat/completions HTTP/1.1\r\nHost: modelle.firma.beispiel.invalid\r\nAuthorization: Bearer mw-testschluessel-7f3a9c0e5b2d4618\r\nContent-Type: application/json\r\nContent-Length: 82\r\nConnection: close\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   }
+  },
+  {
+   "name": "platzhalter_ersetzt",
+   "beschreibung": "Authorization \"Bearer platzhalter\" des Harness wird verworfen; hinaus geht nur der Schluessel aus der Datei",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nAuthorization: Bearer platzhalter\r\nContent-Length: 82\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /v1/chat/completions HTTP/1.1\r\nHost: modelle.firma.beispiel.invalid\r\nAuthorization: Bearer mw-testschluessel-7f3a9c0e5b2d4618\r\nContent-Type: application/json\r\nContent-Length: 82\r\nConnection: close\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   }
+  },
+  {
+   "name": "fremde_koepfe_verworfen",
+   "beschreibung": "Koepfe des Harness (Cookie, X-Forwarded-For, eigener Host) gehen nicht hinaus",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nCookie: a=b\r\nX-Forwarded-For: 10.0.0.1\r\nX-Api-Key: platzhalter\r\nContent-Length: 82\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /v1/chat/completions HTTP/1.1\r\nHost: modelle.firma.beispiel.invalid\r\nAuthorization: Bearer mw-testschluessel-7f3a9c0e5b2d4618\r\nContent-Type: application/json\r\nContent-Length: 82\r\nConnection: close\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   }
+  },
+  {
+   "name": "strom",
+   "beschreibung": "gestreamte Anfrage mit Accept text/event-stream: Koerper unveraendert, Accept geht mit",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nAccept: text/event-stream\r\nContent-Length: 96\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /v1/chat/completions HTTP/1.1\r\nHost: modelle.firma.beispiel.invalid\r\nAuthorization: Bearer mw-testschluessel-7f3a9c0e5b2d4618\r\nContent-Type: application/json\r\nAccept: text/event-stream\r\nContent-Length: 96\r\nConnection: close\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   }
+  },
+  {
+   "name": "koerper_unveraendert",
+   "beschreibung": "Koerper mit Leerraum und Escape im Modellnamen geht Byte fuer Byte hinaus",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 55\r\n\r\n{ \"model\" : \"lokal-beispiel\\/modell-a\", \"messages\":[] }",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /v1/chat/completions HTTP/1.1\r\nHost: modelle.firma.beispiel.invalid\r\nAuthorization: Bearer mw-testschluessel-7f3a9c0e5b2d4618\r\nContent-Type: application/json\r\nContent-Length: 55\r\nConnection: close\r\n\r\n{ \"model\" : \"lokal-beispiel\\/modell-a\", \"messages\":[] }"
+   }
+  },
+  {
+   "name": "lokal_ollama",
+   "beschreibung": "Ausweichziel ohne TLS auf dem Loopback des Rechners",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "http://127.0.0.1:11434/v1",
+    "modell": "qwen3:8b",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 34\r\n\r\n{\"model\":\"qwen3:8b\",\"messages\":[]}",
+   "erwartet": {
+    "ziel_beruehrt": true,
+    "an_ziel": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nAuthorization: Bearer mw-testschluessel-7f3a9c0e5b2d4618\r\nContent-Type: application/json\r\nContent-Length: 34\r\nConnection: close\r\n\r\n{\"model\":\"qwen3:8b\",\"messages\":[]}"
+   }
+  },
+  {
+   "name": "anderes_modell",
+   "beschreibung": "ein anderes Modell wird abgelehnt, ohne das Ziel zu beruehren",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 49\r\n\r\n{\"model\":\"lokal-beispiel/modell-b\",\"messages\":[]}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.modell_nicht_erlaubt\",\"message\":\"Modell nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.modell_nicht_erlaubt",
+     "status": 403
+    }
+   }
+  },
+  {
+   "name": "modell_fehlt",
+   "beschreibung": "ohne Feld model",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 15\r\n\r\n{\"messages\":[]}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.modell_nicht_erlaubt\",\"message\":\"Modell nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.modell_nicht_erlaubt",
+     "status": 403
+    }
+   }
+  },
+  {
+   "name": "modell_doppelt",
+   "beschreibung": "model zweimal: erst erlaubt, dann ein anderes (der Leser des Ziels nimmt oft den letzten)",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 83\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"model\":\"lokal-beispiel/modell-b\",\"messages\":[]}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.json_ungueltig\",\"message\":\"kein gueltiges JSON\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.json_ungueltig",
+     "status": 400
+    }
+   }
+  },
+  {
+   "name": "modell_gross",
+   "beschreibung": "Modellname mit anderer Schreibweise",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 49\r\n\r\n{\"model\":\"LOKAL-BEISPIEL/MODELL-A\",\"messages\":[]}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.modell_nicht_erlaubt\",\"message\":\"Modell nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.modell_nicht_erlaubt",
+     "status": 403
+    }
+   }
+  },
+  {
+   "name": "pfad_models",
+   "beschreibung": "GET /v1/models",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "GET /v1/models HTTP/1.1\r\nHost: x\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 404,
+    "koerper": "{\"error\":{\"code\":\"mw.pfad_unbekannt\",\"message\":\"Weg unbekannt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.pfad_unbekannt",
+     "status": 404
+    }
+   }
+  },
+  {
+   "name": "pfad_completions",
+   "beschreibung": "POST /v1/completions",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/completions HTTP/1.1\r\nHost: x\r\nContent-Length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 404,
+    "koerper": "{\"error\":{\"code\":\"mw.pfad_unbekannt\",\"message\":\"Weg unbekannt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.pfad_unbekannt",
+     "status": 404
+    }
+   }
+  },
+  {
+   "name": "pfad_abfrage",
+   "beschreibung": "Pfad mit Abfrageteil",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions?x=1 HTTP/1.1\r\nHost: x\r\nContent-Length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 404,
+    "koerper": "{\"error\":{\"code\":\"mw.pfad_unbekannt\",\"message\":\"Weg unbekannt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.pfad_unbekannt",
+     "status": 404
+    }
+   }
+  },
+  {
+   "name": "pfad_umweg",
+   "beschreibung": "Pfad mit Punkt-Segment",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/../v1/chat/completions HTTP/1.1\r\nHost: x\r\nContent-Length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 404,
+    "koerper": "{\"error\":{\"code\":\"mw.pfad_unbekannt\",\"message\":\"Weg unbekannt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.pfad_unbekannt",
+     "status": 404
+    }
+   }
+  },
+  {
+   "name": "methode_get",
+   "beschreibung": "GET auf den richtigen Pfad",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "GET /v1/chat/completions HTTP/1.1\r\nHost: x\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 405,
+    "koerper": "{\"error\":{\"code\":\"mw.methode_falsch\",\"message\":\"nur POST\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.methode_falsch",
+     "status": 405
+    }
+   }
+  },
+  {
+   "name": "methode_put",
+   "beschreibung": "PUT auf den richtigen Pfad",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "PUT /v1/chat/completions HTTP/1.1\r\nHost: x\r\nContent-Length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 405,
+    "koerper": "{\"error\":{\"code\":\"mw.methode_falsch\",\"message\":\"nur POST\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.methode_falsch",
+     "status": 405
+    }
+   }
+  },
+  {
+   "name": "zu_gross",
+   "beschreibung": "Content-Length 33554433",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: x\r\nContent-Length: 33554433\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 413,
+    "koerper": "{\"error\":{\"code\":\"mw.koerper_zu_gross\",\"message\":\"Koerper zu gross\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.koerper_zu_gross",
+     "status": 413
+    }
+   }
+  },
+  {
+   "name": "chunked",
+   "beschreibung": "Transfer-Encoding chunked",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: x\r\nTransfer-Encoding: chunked\r\n\r\n2\r\n{}\r\n0\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 411,
+    "koerper": "{\"error\":{\"code\":\"mw.chunked_nicht_unterstuetzt\",\"message\":\"Transfer-Encoding nicht unterstuetzt, Content-Length ist Pflicht\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.chunked_nicht_unterstuetzt",
+     "status": 411
+    }
+   }
+  },
+  {
+   "name": "ohne_laenge",
+   "beschreibung": "POST ohne Content-Length und ohne Koerper",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: x\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 411,
+    "koerper": "{\"error\":{\"code\":\"mw.laenge_fehlt\",\"message\":\"Content-Length fehlt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.laenge_fehlt",
+     "status": 411
+    }
+   }
+  },
+  {
+   "name": "laenge_doppelt",
+   "beschreibung": "zwei Content-Length",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: x\r\nContent-Length: 2\r\nContent-Length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.anfrage_unlesbar\",\"message\":\"Anfrage nicht lesbar\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 400
+    }
+   }
+  },
+  {
+   "name": "laenge_falsch",
+   "beschreibung": "Content-Length groesser als der Koerper",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: x\r\nContent-Length: 9\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.anfrage_unlesbar\",\"message\":\"Anfrage nicht lesbar\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 400
+    }
+   }
+  },
+  {
+   "name": "http10",
+   "beschreibung": "HTTP/1.0",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.0\r\nContent-Length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.anfrage_unlesbar\",\"message\":\"Anfrage nicht lesbar\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 400
+    }
+   }
+  },
+  {
+   "name": "kein_json",
+   "beschreibung": "Koerper ist kein JSON",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 7\r\n\r\nmodel=x",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.json_ungueltig\",\"message\":\"kein gueltiges JSON\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.json_ungueltig",
+     "status": 400
+    }
+   }
+  },
+  {
+   "name": "kein_objekt",
+   "beschreibung": "Koerper ist eine Liste",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n[]",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.json_ungueltig\",\"message\":\"kein gueltiges JSON\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.json_ungueltig",
+     "status": 400
+    }
+   }
+  },
+  {
+   "name": "ausgelastet",
+   "beschreibung": "acht Anfragen laufen schon",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 8,
+    "protokoll_ok": true
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 82\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 429,
+    "koerper": "{\"error\":{\"code\":\"mw.ausgelastet\",\"message\":\"zu viele gleichzeitige Anfragen\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.ausgelastet",
+     "status": 429
+    }
+   }
+  },
+  {
+   "name": "protokoll_fehlt",
+   "beschreibung": "das Anhaengen einer Zeile ist vorher gescheitert",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": false
+   },
+   "anfrage": "POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:11434\r\nContent-Type: application/json\r\nContent-Length: 82\r\n\r\n{\"model\":\"lokal-beispiel/modell-a\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 503,
+    "koerper": "{\"error\":{\"code\":\"mw.protokoll_fehlt\",\"message\":\"Protokoll nicht schreibbar\"}}",
+    "zeile": null
+   }
+  },
+  {
+   "name": "reihenfolge_pfad_vor_methode",
+   "beschreibung": "GET auf einen fremden Pfad: der Pfad zaehlt zuerst",
+   "lage": {
+    "betriebsart": "openai-lokal",
+    "ziel": "https://modelle.firma.beispiel.invalid/v1",
+    "modell": "lokal-beispiel/modell-a",
+    "schluessel": "mw-testschluessel-7f3a9c0e5b2d4618",
+    "laufend": 0,
+    "protokoll_ok": true
+   },
+   "anfrage": "GET /admin HTTP/1.1\r\nHost: x\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 404,
+    "koerper": "{\"error\":{\"code\":\"mw.pfad_unbekannt\",\"message\":\"Weg unbekannt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.pfad_unbekannt",
+     "status": 404
+    }
+   }
+  }
+ ]
+}

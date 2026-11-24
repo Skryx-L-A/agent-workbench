@@ -1,0 +1,23 @@
+{
+ "beschreibung": "A108 Gegenprobe 2 unter macOS: ein Befund gibt rc 1 ohne Stellenzeile",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "macos",
+  "konten": 3,
+  "launchd": "ok",
+  "schluesselbund": "ok",
+  "einschluss": "fehlt",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "fehlt"
+ }
+}

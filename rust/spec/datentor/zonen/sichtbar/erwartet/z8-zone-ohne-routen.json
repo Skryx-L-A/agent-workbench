@@ -1,0 +1,29 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "protokoll": {
+     "zone": "local",
+     "grund": null,
+     "ausnahme": null
+    }
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-zone",
+    "klasse": "intern",
+    "meldung": "Route r-conf hat keine Zone",
+    "protokoll": {
+     "zone": null,
+     "grund": null,
+     "ausnahme": null
+    }
+   }
+  ]
+ }
+}

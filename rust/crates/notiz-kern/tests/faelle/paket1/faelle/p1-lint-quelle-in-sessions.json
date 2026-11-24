@@ -1,0 +1,12 @@
+{
+ "description": "type session in sessions/ with class source gives no finding",
+ "files": {
+  "note.md": "---\nid: 01N7QWB2XHD4RT9ZKMA3VC5EPY\nschema: 4\ntitle: Gartenweg-Plan\ntype: session\nclass: source\ncreated: \"2026-10-02\"\nstand: \"2026-10\"\n---\n\nFür den Weg nehmen wir Holzschnitzel.\n"
+ },
+ "args": [
+  "lint",
+  "{root}/note.md",
+  "--rel",
+  "20-projects/gartenjahr/sessions/2026-10-02-ernte.md"
+ ]
+}

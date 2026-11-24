@@ -1,0 +1,73 @@
+{
+ "name": "z0-aus-d11-kundenwerkzeug-freigabe",
+ "regeln": [
+  "A127",
+  "Z0",
+  "D11",
+  "A52"
+ ],
+ "beschreibung": "Option aus: der Fall d11-kundenwerkzeug-freigabe aus Vertrag 3 mit derselben Erwartung. Freigabe nur für diese Route und k-k; eine andere Cloud-Route bleibt ohne Kundendaten.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "k-k-werkzeug",
+    "art": "cloud",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "c1",
+    "art": "cloud",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-k",
+    "erlaubt": [
+     "k-k-werkzeug",
+     "c1",
+     "lokal"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": [
+    {
+     "route": "k-k-werkzeug",
+     "kunde": "k-k"
+    }
+   ]
+  }
+ },
+ "modellzonen": {
+  "an": false,
+  "zonen": []
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "k-k-werkzeug",
+   "kunde": "k-k"
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "route": "c1",
+   "kunde": "k-k"
+  }
+ ]
+}

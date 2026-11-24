@@ -1,0 +1,6 @@
+{
+ "erwartet": "jeder Versuch scheitert (EPERM, defaults mit Fehler)",
+ "messwerte": [
+  "errno je Versuch"
+ ]
+}

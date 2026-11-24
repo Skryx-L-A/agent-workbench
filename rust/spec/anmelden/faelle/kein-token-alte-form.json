@@ -1,0 +1,18 @@
+{
+ "beschreibung": "config.json in der früheren, nie gemessenen Form mit copilot_tokens: kein Token",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "alte-form",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

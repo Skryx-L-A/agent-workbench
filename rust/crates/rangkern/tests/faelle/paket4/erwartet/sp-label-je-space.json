@@ -1,0 +1,49 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": true,
+  "hits": [
+   {
+    "rel": "10-global/bohnen.md",
+    "score": 1.0,
+    "title": "Bohnen kern",
+    "snippet": "Kaffeebohnen mahlen kurz vor dem Bruehen, Kaffeebohnen frisch kaufen.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0
+   },
+   {
+    "rel": "20-projects/a/lager.md",
+    "score": 0.8198051948051948,
+    "title": "Lager a",
+    "snippet": "Kaffeebohnen lagern dunkel und kuehl.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.8198051948051948,
+    "space": "a"
+   },
+   {
+    "rel": "20-projects/b/rezept.md",
+    "score": 0.76071113214155,
+    "title": "Rezept b",
+    "snippet": "Kaffeebohnen fuer Filterkaffee, eine Prise Salz.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 3,
+    "bm25_norm": 0.76071113214155,
+    "space": "b"
+   }
+  ]
+ }
+}

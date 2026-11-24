@@ -1,0 +1,319 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "kind_beendet": null,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": {
+     "cursor": [
+      8,
+      0,
+      true
+     ],
+     "groesse": [
+      40,
+      10
+     ],
+     "invers": false,
+     "nr": 0,
+     "zeilen": [
+      "Bild 0001 Zeile 0 xxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxx",
+      "Bild 0001 Zeile 1 xxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxx",
+      "Bild 0001 Zeile 2 xxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxx",
+      "Bild 0001 Zeile 3 xxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxx",
+      "",
+      ""
+     ]
+    },
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": true,
+        "warteschlange": 470
+       },
+       "b2": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "kernbau": 1
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [
+         "s-alpha"
+        ],
+        "ausstehend": 470,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       },
+       "b2": {
+        "abos": [
+         "s-alpha"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         40,
+         10
+        ],
+        "id": "s-alpha",
+        "invers": false,
+        "letzte_eingabe": "b2",
+        "titel": "Alpha"
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": 6,
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": {
+     "cursor": [
+      8,
+      0,
+      true
+     ],
+     "groesse": [
+      40,
+      10
+     ],
+     "invers": false,
+     "nr": 0,
+     "zeilen": [
+      "Bild 0001 Zeile 0 xxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxx",
+      "Bild 0001 Zeile 1 xxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxx",
+      "Bild 0001 Zeile 2 xxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxx",
+      "Bild 0001 Zeile 3 xxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxx",
+      "",
+      ""
+     ]
+    },
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       },
+       "b2": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "kernbau": 1
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [
+         "s-alpha"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       },
+       "b2": {
+        "abos": [
+         "s-alpha"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         40,
+         10
+        ],
+        "id": "s-alpha",
+        "invers": false,
+        "letzte_eingabe": "b2",
+        "titel": "Alpha"
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": 0,
+    "ok": true
+   },
+   {
+    "abbild": {
+     "cursor": [
+      8,
+      0,
+      true
+     ],
+     "groesse": [
+      40,
+      10
+     ],
+     "invers": false,
+     "nr": 0,
+     "zeilen": [
+      "Bild 0001 Zeile 0 xxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxx",
+      "Bild 0001 Zeile 1 xxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxx",
+      "Bild 0001 Zeile 2 xxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxx",
+      "Bild 0001 Zeile 3 xxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxx",
+      "",
+      ""
+     ]
+    },
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       },
+       "b2": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "kernbau": 1
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [
+         "s-alpha"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       },
+       "b2": {
+        "abos": [
+         "s-alpha"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         40,
+         10
+        ],
+        "id": "s-alpha",
+        "invers": false,
+        "letzte_eingabe": "b2",
+        "titel": "Alpha"
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": 6,
+    "ok": true
+   }
+  ],
+  "start": {
+   "netz_sockets": 0,
+   "ok": true,
+   "ordner_modus": "0700",
+   "socket_modus": "0600"
+  }
+ },
+ "exit": 0
+}

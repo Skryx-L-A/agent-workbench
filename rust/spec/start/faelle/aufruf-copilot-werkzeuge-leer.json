@@ -1,0 +1,81 @@
+{
+ "beschreibung": "leere Liste: die Rückfrage bleibt, kein --allow-tool",
+ "form": "aufruf",
+ "lage": {
+  "argv": [
+   "<programm>",
+   "<start>"
+  ],
+  "datei_modus": "0600",
+  "datei_art": "datei",
+  "einstellungen": {
+   "fassung": 2,
+   "klassen": [
+    "oeffentlich",
+    "intern",
+    "kundendaten"
+   ],
+   "vorgabestufe": "kundendaten",
+   "routen": [
+    {
+     "schluessel": "cloud-beispiel",
+     "art": "cloud",
+     "klasse": "intern",
+     "netzziele": [
+      {
+       "host": "api.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "schluessel": "lokal-beispiel",
+     "art": "lokal",
+     "klasse": "kundendaten",
+     "ziel": "http://127.0.0.1:11434/v1",
+     "modell": "qwen3:8b",
+     "netzziele": []
+    }
+   ],
+   "kunden": [
+    {
+     "schluessel": "k-beispiel",
+     "erlaubt": [
+      "lokal-beispiel"
+     ],
+     "verboten": []
+    }
+   ],
+   "kundendaten_an_cloud": {
+    "vorgabe": "nie",
+    "freigaben": []
+   },
+   "harness": {
+    "copilot": {
+     "werkzeuge_ohne_rueckfrage": []
+    }
+   }
+  },
+  "ordner_vorhanden": true,
+  "einschluss": true,
+  "suche": "bereit",
+  "harness_vorhanden": true,
+  "start": {
+   "fassung": 1,
+   "sitzung": "s-3",
+   "harness": "copilot",
+   "modell": "claude-sonnet-5.5",
+   "route": "cloud-beispiel",
+   "kunde": "k-beispiel",
+   "arbeitsordner": "/home/beispiel/projekt"
+  }
+ }
+}

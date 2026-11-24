@@ -1,0 +1,19 @@
+{
+ "name": "tr6_sync_verschachtelt",
+ "regeln": [
+  "TR6"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Jedes ?2026h und ?2026l ist ein Ereignis, auch ein SyncEnde ohne Beginn und mehrfaches Beginnen; in einer Folge mit weiteren Modi",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[?2026l\u001b[?2026h\u001b[?2026h\u001b[?2026l\u001b[?2026l\u001b[?1;2026;5h"
+  }
+ ]
+}

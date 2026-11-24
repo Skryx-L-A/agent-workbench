@@ -1,0 +1,12 @@
+{
+ "fassung": 2,
+ "seite": "anlegen",
+ "ergebnis": "fehler",
+ "code": "pk.vorgabe_ungueltig",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe pk.vorgabe_ungueltig",
+  "kein Eintrag am Socketpfad"
+ ]
+}

@@ -1,0 +1,62 @@
+{
+ "beschreibung": "GET /, GET /ansicht.js und GET /ansicht_bg.wasm ohne Token: 200 mit Inhaltstyp (text/html, text/javascript, application/wasm), Content-Security-Policy ohne fremde Quellen und mit 'wasm-unsafe-eval' in script-src, no-store, nosniff, kein Cookie, ohne CORS; im Inhalt keine fremde Adresse",
+ "datensatz": "A",
+ "name": "br_seite",
+ "regeln": [
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/ansicht.js"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": null,
+    "token": null,
+    "ziel": "/ansicht_bg.wasm"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "origin": "gut",
+    "token": null,
+    "ziel": "/"
+   },
+   "art": "Http"
+  },
+  {
+   "anfrage": {
+    "host": "localhost:@port",
+    "origin": null,
+    "token": null,
+    "ziel": "/ansicht_bg.wasm"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Dienst"
+  }
+ ],
+ "start": {
+  "deflate": false,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

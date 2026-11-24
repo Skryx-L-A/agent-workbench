@@ -1,0 +1,44 @@
+{
+ "name": "d6-eine-klasse",
+ "regeln": [
+  "D6",
+  "D7"
+ ],
+ "beschreibung": "Mit nur einer Klasse ist jede Einheit Kundendaten.",
+ "vorgabe": {
+  "klassen": [
+   "nur"
+  ],
+  "routen": [
+   {
+    "schluessel": "r",
+    "art": "lokal",
+    "klasse": "nur"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "nur"
+   },
+   "route": "r",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "nur"
+   },
+   "route": "r",
+   "kunde": "k-a"
+  }
+ ]
+}

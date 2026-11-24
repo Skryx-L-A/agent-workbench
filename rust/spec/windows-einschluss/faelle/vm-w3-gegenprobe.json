@@ -1,0 +1,9 @@
+{
+ "beschreibung": "W3 gegenprobe",
+ "form": "vm",
+ "eigenschaft": "W3",
+ "art": "gegenprobe",
+ "ausgangslage": "Windows-VM; Plattformdienst unter NT SERVICE mit den fünf ACEs, Admin-Helfer unter LocalSystem; Projekt A mit Arbeitsordner unter der Projektwurzel; ein Lauf in A mit Claude Code (PowerShell-Werkzeug) gegen die Attrappe des Modellwegs hinter einem Weiterleiter auf dem Sitzungsport M; die Browser-Brücke des Kern-Dienstes hört auf dem Loopback des Rechners; ssh-Stummel vorn im PATH, SSH_AUTH_SOCK leer; Freigabe des Arbeitsordners von B für ALL APPLICATION PACKAGES statt für die SID",
+ "handlung": "Der Agent in A liest und beschreibt den Ordner von B",
+ "beleg": "gemessen: Frage 6, 7 von 7 gelingen"
+}

@@ -1,0 +1,12 @@
+{
+ "seite": "anlegen",
+ "ergebnis": "fehler",
+ "code": "pk.name_belegt",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe von anlegen",
+  "OS-Fehler 5 (ERROR_ACCESS_DENIED) aus CreateNamedPipeW mit FILE_FLAG_FIRST_PIPE_INSTANCE",
+  "Die Pipe des Vorbelegers besteht unverändert weiter; der Dienst legt keine Instanz ohne FILE_FLAG_FIRST_PIPE_INSTANCE an"
+ ]
+}

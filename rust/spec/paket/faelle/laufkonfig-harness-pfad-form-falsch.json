@@ -1,0 +1,14 @@
+{
+ "beschreibung": "ein Harnessprogramm mit Anführungszeichen im Pfad: keine Datei (nie ein Pfad, der JSON bricht)",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "pi": {
+   "programm": "/opt/pi/\"x/pi",
+   "node": null
+  }
+ },
+ "vorher": null
+}

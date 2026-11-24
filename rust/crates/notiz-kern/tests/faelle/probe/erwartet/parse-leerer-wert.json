@@ -1,0 +1,25 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title:\ntags:\n  - eins\n  - zwei\nleer:"
+  ],
+  "fields": {
+   "title": [],
+   "tags": [
+    "eins",
+    "zwei"
+   ],
+   "leer": []
+  },
+  "body": "Text\n",
+  "title": "leerwert",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "leerwert"
+  ],
+  "embed_text": "leerwert\ntags: eins, zwei\n\nText\n"
+ }
+}

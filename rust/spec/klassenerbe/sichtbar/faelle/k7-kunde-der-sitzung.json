@@ -1,0 +1,78 @@
+{
+ "name": "k7-kunde-der-sitzung",
+ "regeln": [
+  "K6"
+ ],
+ "beschreibung": "Der Kunde der Sitzung hebt nur: Er wird Kunde des Ergebnisses, auch ohne Quelle, und macht es zu Kundendaten.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "cloud-n",
+    "art": "cloud"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "erbe": {
+   "boden": "gelesen"
+  }
+ },
+ "anfragen": [
+  {
+   "route": "cloud",
+   "sitzungskunde": "k-nord",
+   "gelesen": []
+  },
+  {
+   "route": "cloud",
+   "sitzungskunde": "k-nord",
+   "gelesen": [
+    {
+     "klasse": "oeffentlich"
+    }
+   ]
+  },
+  {
+   "route": "lokal",
+   "sitzungskunde": "k-nord",
+   "gelesen": [
+    {
+     "klasse": "intern",
+     "kunde": "k-nord"
+    }
+   ]
+  }
+ ]
+}

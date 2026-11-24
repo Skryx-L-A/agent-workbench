@@ -1,0 +1,10 @@
+{
+ "description": "keys need ASCII letters, digits, _ or - directly before the colon",
+ "files": {
+  "note.md": "---\ntitle: Form\nTitle: Groß\nfarbe : blau\nключ: wert\nmit_unterstrich-1: ja\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

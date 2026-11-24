@@ -1,0 +1,5 @@
+{
+ "beschreibung": "der Starter nennt keine SID",
+ "form": "steuer",
+ "text": "{\"op\": \"projekt_neu\", \"ordner\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\", \"sid\": \"S-1-15-2-1111111111-2222222222-3333333333-1444444444-1555555555-3666666666-2777777777\"}\n"
+}

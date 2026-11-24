@@ -1,0 +1,10 @@
+{
+ "description": "aliases as a single scalar, tags as scalar",
+ "files": {
+  "note.md": "---\ntitle: Einzeln\naliases: Nur einer\ntags: solo\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

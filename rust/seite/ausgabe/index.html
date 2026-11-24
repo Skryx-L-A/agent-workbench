@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Werkbank</title>
+<link rel="icon" href="data:,">
+<style>
+/* Erzeugt von erzeuge-css.mjs; nicht von Hand aendern. */
+:root { --raster-vorn: #e5e5e5; --raster-grund: #000000; }
+.raster { background: var(--raster-grund); color: var(--raster-vorn); font-family: ui-monospace, Menlo, Consolas, monospace; }
+.raster-zeile { white-space: pre; min-height: 1lh; }
+.f-grund { color: var(--raster-grund); }
+.b-vorn { background-color: var(--raster-vorn); }
+.f-0 { color: #000000; }
+.f-1 { color: #cd0000; }
+.f-2 { color: #00cd00; }
+.f-3 { color: #cdcd00; }
+.f-4 { color: #0000ee; }
+.f-5 { color: #cd00cd; }
+.f-6 { color: #00cdcd; }
+.f-7 { color: #e5e5e5; }
+.f-8 { color: #7f7f7f; }
+.f-9 { color: #ff0000; }
+.f-10 { color: #00ff00; }
+.f-11 { color: #ffff00; }
+.f-12 { color: #5c5cff; }
+.f-13 { color: #ff00ff; }
+.f-14 { color: #00ffff; }
+.f-15 { color: #ffffff; }
+.f-16 { color: #000000; }
+.f-17 { color: #00005f; }
+.f-18 { color: #000087; }
+.f-19 { color: #0000af; }
+.f-20 { color: #0000d7; }
+.f-21 { color: #0000ff; }
+.f-22 { color: #005f00; }
+.f-23 { color: #005f5f; }
+.f-24 { color: #005f87; }
+.f-25 { color: #005faf; }
+.f-26 { color: #005fd7; }
+.f-27 { color: #005fff; }
+.f-28 { color: #008700; }
+.f-29 { color: #00875f; }
+.f-30 { color: #008787; }
+.f-31 { color: #0087af; }
+.f-32 { color: #0087d7; }
+.f-33 { color: #0087ff; }
+.f-34 { color: #00af00; }
+.f-35 { color: #00af5f; }
+.f-36 { color: #00af87; }
+.f-37 { color: #00afaf; }
+.f-38 { color: #00afd7; }
+.f-39 { color: #00afff; }
+.f-40 { color: #00d700; }
+.f-41 { color: #00d75f; }
+.f-42 { color: #00d787; }
+.f-43 { color: #00d7af; }
+.f-44 { color: #00d7d7; }
+.f-45 { color: #00d7ff; }
+.f-46 { color: #00ff00; }
+.f-47 { color: #00ff5f; }
+.f-48 { color: #00ff87; }
+.f-49 { color: #00ffaf; }
+.f-50 { color: #00ffd7; }
+.f-51 { color: #00ffff; }
+.f-52 { color: #5f0000; }
+.f-53 { color: #5f005f; }
+.f-54 { color: #5f0087; }
+.f-55 { color: #5f00af; }
+.f-56 { color: #5f00d7; }
+.f-57 { color: #5f00ff; }
+.f-58 { color: #5f5f00; }
+.f-59 { color: #5f5f5f; }
+.f-60 { color: #5f5f87; }
+.f-61 { color: #5f5faf; }
+.f-62 { color: #5f5fd7; }
+.f-63 { color: #5f5fff; }
+.f-64 { color: #5f8700; }
+.f-65 { color: #5f875f; }
+.f-66 { color: #5f8787; }
+.f-67 { color: #5f87af; }
+.f-68 { color: #5f87d7; }
+.f-69 { color: #5f87ff; }
+.f-70 { color: #5faf00; }
+.f-71 { color: #5faf5f; }
+.f-72 { color: #5faf87; }
+.f-73 { color: #5fafaf; }
+.f-74 { color: #5fafd7; }
+.f-75 { color: #5fafff; }
+.f-76 { color: #5fd700; }
+.f-77 { color: #5fd75f; }
+.f-78 { color: #5fd787; }
+.f-79 { color: #5fd7af; }
+.f-80 { color: #5fd7d7; }
+.f-81 { color: #5fd7ff; }
+.f-82 { color: #5fff00; }
+.f-83 { color: #5fff5f; }
+.f-84 { color: #5fff87; }
+.f-85 { color: #5fffaf; }
+.f-86 { color: #5fffd7; }
+.f-87 { color: #5fffff; }
+.f-88 { color: #870000; }
+.f-89 { color: #87005f; }
+.f-90 { color: #870087; }
+.f-91 { color: #8700af; }
+.f-92 { color: #8700d7; }
+.f-93 { color: #8700ff; }
+.f-94 { color: #875f00; }
+.f-95 { color: #875f5f; }
+.f-96 { color: #875f87; }
+.f-97 { color: #875faf; }
+.f-98 { color: #875fd7; }
+.f-99 { color: #875fff; }
+.f-100 { color: #878700; }
+.f-101 { color: #87875f; }
+.f-102 { color: #878787; }
+.f-103 { color: #8787af; }
+.f-104 { color: #8787d7; }
+.f-105 { color: #8787ff; }
+.f-106 { color: #87af00; }
+.f-107 { color: #87af5f; }
+.f-108 { color: #87af87; }
+.f-109 { color: #87afaf; }
+.f-110 { color: #87afd7; }
+.f-111 { color: #87afff; }
+.f-112 { color: #87d700; }
+.f-113 { color: #87d75f; }
+.f-114 { color: #87d787; }
+.f-115 { color: #87d7af; }
+.f-116 { color: #87d7d7; }
+.f-117 { color: #87d7ff; }
+.f-118 { color: #87ff00; }
+.f-119 { color: #87ff5f; }
+.f-120 { color: #87ff87; }
+.f-121 { color: #87ffaf; }
+.f-122 { color: #87ffd7; }
+.f-123 { color: #87ffff; }
+.f-124 { color: #af0000; }
+.f-125 { color: #af005f; }
+.f-126 { color: #af0087; }
+.f-127 { color: #af00af; }
+.f-128 { color: #af00d7; }
+.f-129 { color: #af00ff; }
+.f-130 { color: #af5f00; }
+.f-131 { color: #af5f5f; }
+.f-132 { color: #af5f87; }
+.f-133 { color: #af5faf; }
+.f-134 { color: #af5fd7; }
+.f-135 { color: #af5fff; }
+.f-136 { color: #af8700; }
+.f-137 { color: #af875f; }
+.f-138 { color: #af8787; }
+.f-139 { color: #af87af; }
+.f-140 { color: #af87d7; }
+.f-141 { color: #af87ff; }
+.f-142 { color: #afaf00; }
+.f-143 { color: #afaf5f; }
+.f-144 { color: #afaf87; }
+.f-145 { color: #afafaf; }
+.f-146 { color: #afafd7; }
+.f-147 { color: #afafff; }
+.f-148 { color: #afd700; }
+.f-149 { color: #afd75f; }
+.f-150 { color: #afd787; }
+.f-151 { color: #afd7af; }
+.f-152 { color: #afd7d7; }
+.f-153 { color: #afd7ff; }
+.f-154 { color: #afff00; }
+.f-155 { color: #afff5f; }
+.f-156 { color: #afff87; }
+.f-157 { color: #afffaf; }
+.f-158 { color: #afffd7; }
+.f-159 { color: #afffff; }
+.f-160 { color: #d70000; }
+.f-161 { color: #d7005f; }
+.f-162 { color: #d70087; }
+.f-163 { color: #d700af; }
+.f-164 { color: #d700d7; }
+.f-165 { color: #d700ff; }
+.f-166 { color: #d75f00; }
+.f-167 { color: #d75f5f; }
+.f-168 { color: #d75f87; }
+.f-169 { color: #d75faf; }
+.f-170 { color: #d75fd7; }
+.f-171 { color: #d75fff; }
+.f-172 { color: #d78700; }
+.f-173 { color: #d7875f; }
+.f-174 { color: #d78787; }
+.f-175 { color: #d787af; }
+.f-176 { color: #d787d7; }
+.f-177 { color: #d787ff; }
+.f-178 { color: #d7af00; }
+.f-179 { color: #d7af5f; }
+.f-180 { color: #d7af87; }
+.f-181 { color: #d7afaf; }
+.f-182 { color: #d7afd7; }
+.f-183 { color: #d7afff; }
+.f-184 { color: #d7d700; }
+.f-185 { color: #d7d75f; }
+.f-186 { color: #d7d787; }
+.f-187 { color: #d7d7af; }
+.f-188 { color: #d7d7d7; }
+.f-189 { color: #d7d7ff; }
+.f-190 { color: #d7ff00; }
+.f-191 { color: #d7ff5f; }
+.f-192 { color: #d7ff87; }
+.f-193 { color: #d7ffaf; }
+.f-194 { color: #d7ffd7; }
+.f-195 { color: #d7ffff; }
+.f-196 { color: #ff0000; }
+.f-197 { color: #ff005f; }
+.f-198 { color: #ff0087; }
+.f-199 { color: #ff00af; }
+.f-200 { color: #ff00d7; }
+.f-201 { color: #ff00ff; }
+.f-202 { color: #ff5f00; }
+.f-203 { color: #ff5f5f; }
+.f-204 { color: #ff5f87; }
+.f-205 { color: #ff5faf; }
+.f-206 { color: #ff5fd7; }
+.f-207 { color: #ff5fff; }
+.f-208 { color: #ff8700; }
+.f-209 { color: #ff875f; }
+.f-210 { color: #ff8787; }
+.f-211 { color: #ff87af; }
+.f-212 { color: #ff87d7; }
+.f-213 { color: #ff87ff; }
+.f-214 { color: #ffaf00; }
+.f-215 { color: #ffaf5f; }
+.f-216 { color: #ffaf87; }
+.f-217 { color: #ffafaf; }
+.f-218 { color: #ffafd7; }
+.f-219 { color: #ffafff; }
+.f-220 { color: #ffd700; }
+.f-221 { color: #ffd75f; }
+.f-222 { color: #ffd787; }
+.f-223 { color: #ffd7af; }
+.f-224 { color: #ffd7d7; }
+.f-225 { color: #ffd7ff; }
+.f-226 { color: #ffff00; }
+.f-227 { color: #ffff5f; }
+.f-228 { color: #ffff87; }
+.f-229 { color: #ffffaf; }
+.f-230 { color: #ffffd7; }
+.f-231 { color: #ffffff; }
+.f-232 { color: #080808; }
+.f-233 { color: #121212; }
+.f-234 { color: #1c1c1c; }
+.f-235 { color: #262626; }
+.f-236 { color: #303030; }
+.f-237 { color: #3a3a3a; }
+.f-238 { color: #444444; }
+.f-239 { color: #4e4e4e; }
+.f-240 { color: #585858; }
+.f-241 { color: #626262; }
+.f-242 { color: #6c6c6c; }
+.f-243 { color: #767676; }
+.f-244 { color: #808080; }
+.f-245 { color: #8a8a8a; }
+.f-246 { color: #949494; }
+.f-247 { color: #9e9e9e; }
+.f-248 { color: #a8a8a8; }
+.f-249 { color: #b2b2b2; }
+.f-250 { color: #bcbcbc; }
+.f-251 { color: #c6c6c6; }
+.f-252 { color: #d0d0d0; }
+.f-253 { color: #dadada; }
+.f-254 { color: #e4e4e4; }
+.f-255 { color: #eeeeee; }
+.b-0 { background-color: #000000; }
+.b-1 { background-color: #cd0000; }
+.b-2 { background-color: #00cd00; }
+.b-3 { background-color: #cdcd00; }
+.b-4 { background-color: #0000ee; }
+.b-5 { background-color: #cd00cd; }
+.b-6 { background-color: #00cdcd; }
+.b-7 { background-color: #e5e5e5; }
+.b-8 { background-color: #7f7f7f; }
+.b-9 { background-color: #ff0000; }
+.b-10 { background-color: #00ff00; }
+.b-11 { background-color: #ffff00; }
+.b-12 { background-color: #5c5cff; }
+.b-13 { background-color: #ff00ff; }
+.b-14 { background-color: #00ffff; }
+.b-15 { background-color: #ffffff; }
+.b-16 { background-color: #000000; }
+.b-17 { background-color: #00005f; }
+.b-18 { background-color: #000087; }
+.b-19 { background-color: #0000af; }
+.b-20 { background-color: #0000d7; }
+.b-21 { background-color: #0000ff; }
+.b-22 { background-color: #005f00; }
+.b-23 { background-color: #005f5f; }
+.b-24 { background-color: #005f87; }
+.b-25 { background-color: #005faf; }
+.b-26 { background-color: #005fd7; }
+.b-27 { background-color: #005fff; }
+.b-28 { background-color: #008700; }
+.b-29 { background-color: #00875f; }
+.b-30 { background-color: #008787; }
+.b-31 { background-color: #0087af; }
+.b-32 { background-color: #0087d7; }
+.b-33 { background-color: #0087ff; }
+.b-34 { background-color: #00af00; }
+.b-35 { background-color: #00af5f; }
+.b-36 { background-color: #00af87; }
+.b-37 { background-color: #00afaf; }
+.b-38 { background-color: #00afd7; }
+.b-39 { background-color: #00afff; }
+.b-40 { background-color: #00d700; }
+.b-41 { background-color: #00d75f; }
+.b-42 { background-color: #00d787; }
+.b-43 { background-color: #00d7af; }
+.b-44 { background-color: #00d7d7; }
+.b-45 { background-color: #00d7ff; }
+.b-46 { background-color: #00ff00; }
+.b-47 { background-color: #00ff5f; }
+.b-48 { background-color: #00ff87; }
+.b-49 { background-color: #00ffaf; }
+.b-50 { background-color: #00ffd7; }
+.b-51 { background-color: #00ffff; }
+.b-52 { background-color: #5f0000; }
+.b-53 { background-color: #5f005f; }
+.b-54 { background-color: #5f0087; }
+.b-55 { background-color: #5f00af; }
+.b-56 { background-color: #5f00d7; }
+.b-57 { background-color: #5f00ff; }
+.b-58 { background-color: #5f5f00; }
+.b-59 { background-color: #5f5f5f; }
+.b-60 { background-color: #5f5f87; }
+.b-61 { background-color: #5f5faf; }
+.b-62 { background-color: #5f5fd7; }
+.b-63 { background-color: #5f5fff; }
+.b-64 { background-color: #5f8700; }
+.b-65 { background-color: #5f875f; }
+.b-66 { background-color: #5f8787; }
+.b-67 { background-color: #5f87af; }
+.b-68 { background-color: #5f87d7; }
+.b-69 { background-color: #5f87ff; }
+.b-70 { background-color: #5faf00; }
+.b-71 { background-color: #5faf5f; }
+.b-72 { background-color: #5faf87; }
+.b-73 { background-color: #5fafaf; }
+.b-74 { background-color: #5fafd7; }
+.b-75 { background-color: #5fafff; }
+.b-76 { background-color: #5fd700; }
+.b-77 { background-color: #5fd75f; }
+.b-78 { background-color: #5fd787; }
+.b-79 { background-color: #5fd7af; }
+.b-80 { background-color: #5fd7d7; }
+.b-81 { background-color: #5fd7ff; }
+.b-82 { background-color: #5fff00; }
+.b-83 { background-color: #5fff5f; }
+.b-84 { background-color: #5fff87; }
+.b-85 { background-color: #5fffaf; }
+.b-86 { background-color: #5fffd7; }
+.b-87 { background-color: #5fffff; }
+.b-88 { background-color: #870000; }
+.b-89 { background-color: #87005f; }
+.b-90 { background-color: #870087; }
+.b-91 { background-color: #8700af; }
+.b-92 { background-color: #8700d7; }
+.b-93 { background-color: #8700ff; }
+.b-94 { background-color: #875f00; }
+.b-95 { background-color: #875f5f; }
+.b-96 { background-color: #875f87; }
+.b-97 { background-color: #875faf; }
+.b-98 { background-color: #875fd7; }
+.b-99 { background-color: #875fff; }
+.b-100 { background-color: #878700; }
+.b-101 { background-color: #87875f; }
+.b-102 { background-color: #878787; }
+.b-103 { background-color: #8787af; }
+.b-104 { background-color: #8787d7; }
+.b-105 { background-color: #8787ff; }
+.b-106 { background-color: #87af00; }
+.b-107 { background-color: #87af5f; }
+.b-108 { background-color: #87af87; }
+.b-109 { background-color: #87afaf; }
+.b-110 { background-color: #87afd7; }
+.b-111 { background-color: #87afff; }
+.b-112 { background-color: #87d700; }
+.b-113 { background-color: #87d75f; }
+.b-114 { background-color: #87d787; }
+.b-115 { background-color: #87d7af; }
+.b-116 { background-color: #87d7d7; }
+.b-117 { background-color: #87d7ff; }
+.b-118 { background-color: #87ff00; }
+.b-119 { background-color: #87ff5f; }
+.b-120 { background-color: #87ff87; }
+.b-121 { background-color: #87ffaf; }
+.b-122 { background-color: #87ffd7; }
+.b-123 { background-color: #87ffff; }
+.b-124 { background-color: #af0000; }
+.b-125 { background-color: #af005f; }
+.b-126 { background-color: #af0087; }
+.b-127 { background-color: #af00af; }
+.b-128 { background-color: #af00d7; }
+.b-129 { background-color: #af00ff; }
+.b-130 { background-color: #af5f00; }
+.b-131 { background-color: #af5f5f; }
+.b-132 { background-color: #af5f87; }
+.b-133 { background-color: #af5faf; }
+.b-134 { background-color: #af5fd7; }
+.b-135 { background-color: #af5fff; }
+.b-136 { background-color: #af8700; }
+.b-137 { background-color: #af875f; }
+.b-138 { background-color: #af8787; }
+.b-139 { background-color: #af87af; }
+.b-140 { background-color: #af87d7; }
+.b-141 { background-color: #af87ff; }
+.b-142 { background-color: #afaf00; }
+.b-143 { background-color: #afaf5f; }
+.b-144 { background-color: #afaf87; }
+.b-145 { background-color: #afafaf; }
+.b-146 { background-color: #afafd7; }
+.b-147 { background-color: #afafff; }
+.b-148 { background-color: #afd700; }
+.b-149 { background-color: #afd75f; }
+.b-150 { background-color: #afd787; }
+.b-151 { background-color: #afd7af; }
+.b-152 { background-color: #afd7d7; }
+.b-153 { background-color: #afd7ff; }
+.b-154 { background-color: #afff00; }
+.b-155 { background-color: #afff5f; }
+.b-156 { background-color: #afff87; }
+.b-157 { background-color: #afffaf; }
+.b-158 { background-color: #afffd7; }
+.b-159 { background-color: #afffff; }
+.b-160 { background-color: #d70000; }
+.b-161 { background-color: #d7005f; }
+.b-162 { background-color: #d70087; }
+.b-163 { background-color: #d700af; }
+.b-164 { background-color: #d700d7; }
+.b-165 { background-color: #d700ff; }
+.b-166 { background-color: #d75f00; }
+.b-167 { background-color: #d75f5f; }
+.b-168 { background-color: #d75f87; }
+.b-169 { background-color: #d75faf; }
+.b-170 { background-color: #d75fd7; }
+.b-171 { background-color: #d75fff; }
+.b-172 { background-color: #d78700; }
+.b-173 { background-color: #d7875f; }
+.b-174 { background-color: #d78787; }
+.b-175 { background-color: #d787af; }
+.b-176 { background-color: #d787d7; }
+.b-177 { background-color: #d787ff; }
+.b-178 { background-color: #d7af00; }
+.b-179 { background-color: #d7af5f; }
+.b-180 { background-color: #d7af87; }
+.b-181 { background-color: #d7afaf; }
+.b-182 { background-color: #d7afd7; }
+.b-183 { background-color: #d7afff; }
+.b-184 { background-color: #d7d700; }
+.b-185 { background-color: #d7d75f; }
+.b-186 { background-color: #d7d787; }
+.b-187 { background-color: #d7d7af; }
+.b-188 { background-color: #d7d7d7; }
+.b-189 { background-color: #d7d7ff; }
+.b-190 { background-color: #d7ff00; }
+.b-191 { background-color: #d7ff5f; }
+.b-192 { background-color: #d7ff87; }
+.b-193 { background-color: #d7ffaf; }
+.b-194 { background-color: #d7ffd7; }
+.b-195 { background-color: #d7ffff; }
+.b-196 { background-color: #ff0000; }
+.b-197 { background-color: #ff005f; }
+.b-198 { background-color: #ff0087; }
+.b-199 { background-color: #ff00af; }
+.b-200 { background-color: #ff00d7; }
+.b-201 { background-color: #ff00ff; }
+.b-202 { background-color: #ff5f00; }
+.b-203 { background-color: #ff5f5f; }
+.b-204 { background-color: #ff5f87; }
+.b-205 { background-color: #ff5faf; }
+.b-206 { background-color: #ff5fd7; }
+.b-207 { background-color: #ff5fff; }
+.b-208 { background-color: #ff8700; }
+.b-209 { background-color: #ff875f; }
+.b-210 { background-color: #ff8787; }
+.b-211 { background-color: #ff87af; }
+.b-212 { background-color: #ff87d7; }
+.b-213 { background-color: #ff87ff; }
+.b-214 { background-color: #ffaf00; }
+.b-215 { background-color: #ffaf5f; }
+.b-216 { background-color: #ffaf87; }
+.b-217 { background-color: #ffafaf; }
+.b-218 { background-color: #ffafd7; }
+.b-219 { background-color: #ffafff; }
+.b-220 { background-color: #ffd700; }
+.b-221 { background-color: #ffd75f; }
+.b-222 { background-color: #ffd787; }
+.b-223 { background-color: #ffd7af; }
+.b-224 { background-color: #ffd7d7; }
+.b-225 { background-color: #ffd7ff; }
+.b-226 { background-color: #ffff00; }
+.b-227 { background-color: #ffff5f; }
+.b-228 { background-color: #ffff87; }
+.b-229 { background-color: #ffffaf; }
+.b-230 { background-color: #ffffd7; }
+.b-231 { background-color: #ffffff; }
+.b-232 { background-color: #080808; }
+.b-233 { background-color: #121212; }
+.b-234 { background-color: #1c1c1c; }
+.b-235 { background-color: #262626; }
+.b-236 { background-color: #303030; }
+.b-237 { background-color: #3a3a3a; }
+.b-238 { background-color: #444444; }
+.b-239 { background-color: #4e4e4e; }
+.b-240 { background-color: #585858; }
+.b-241 { background-color: #626262; }
+.b-242 { background-color: #6c6c6c; }
+.b-243 { background-color: #767676; }
+.b-244 { background-color: #808080; }
+.b-245 { background-color: #8a8a8a; }
+.b-246 { background-color: #949494; }
+.b-247 { background-color: #9e9e9e; }
+.b-248 { background-color: #a8a8a8; }
+.b-249 { background-color: #b2b2b2; }
+.b-250 { background-color: #bcbcbc; }
+.b-251 { background-color: #c6c6c6; }
+.b-252 { background-color: #d0d0d0; }
+.b-253 { background-color: #dadada; }
+.b-254 { background-color: #e4e4e4; }
+.b-255 { background-color: #eeeeee; }
+.fett { font-weight: bold; }
+.dimm { opacity: 0.6; }
+.kursiv { font-style: italic; }
+.unterstrichen { text-decoration-line: underline; }
+.verdeckt { color: transparent; }
+.durchgestrichen { text-decoration-line: line-through; }
+.unterstrichen.durchgestrichen { text-decoration-line: underline line-through; }
+/* Stile der Seite (Vertrag `seite`). Flaechen, Abstand und Rundung statt Linien; das Terminal steht in der Mitte.
+   Keine fremden Schriften, Bilder oder Adressen. Die Klassen des Rasters stehen in raster.css (davor eingebettet). */
+
+:root {
+  --grund: #f3f2ee;
+  --flaeche: #ffffff;
+  --flaeche-2: #eceae4;
+  --flaeche-3: #e2dfd7;
+  --text: #1f2124;
+  --leise: #5e6268;
+  --akzent: #2457c5;
+  --akzent-text: #ffffff;
+  --gut: #2f8a57;
+  --aus: #8d9196;
+  --fehler-grund: #fbe9e7;
+  --fehler-text: #962318;
+  --schatten: 0 1px 2px rgba(30, 28, 24, 0.06), 0 8px 24px rgba(30, 28, 24, 0.06);
+  --rund: 14px;
+  --rund-klein: 10px;
+  --raster-vorn: #e7e4dc;
+  --raster-grund: #15171a;
+  --term-cursor: rgba(231, 228, 220, 0.72);
+  --schrift: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --schrift-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --grund: #121417;
+    --flaeche: #1b1e22;
+    --flaeche-2: #24282d;
+    --flaeche-3: #2d3238;
+    --text: #e9e7e2;
+    --leise: #a3a8ae;
+    --akzent: #86aefc;
+    --akzent-text: #0f1a33;
+    --gut: #5cc48a;
+    --aus: #7d838a;
+    --fehler-grund: #3a1f1d;
+    --fehler-text: #ffb4a9;
+    --schatten: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    --raster-grund: #0d0f11;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--grund);
+  color: var(--text);
+  font: 16px/1.45 var(--schrift);
+  -webkit-text-size-adjust: 100%;
+}
+.versteckt {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+:focus-visible { outline: 3px solid var(--akzent); outline-offset: 2px; }
+
+/* ---- Raster der Seite: schmal eine Spalte, breit Seitenleiste und Terminal ---- */
+.seite {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "kopf" "liste" "haupt" "start";
+  gap: 16px;
+  padding: 16px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
+  max-width: 100%;
+}
+.kopf { grid-area: kopf; }
+.karte-liste { grid-area: liste; }
+.haupt { grid-area: haupt; }
+.karte-start { grid-area: start; }
+
+@media (min-width: 900px) {
+  .seite {
+    height: 100vh;
+    height: 100dvh;
+    grid-template-columns: 340px minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas: "kopf kopf" "liste haupt" "start haupt";
+    gap: 20px;
+    padding: 20px 24px 24px;
+  }
+  .karte-liste { max-height: 40vh; overflow: auto; }
+  .karte-start { align-self: start; max-height: 100%; overflow: auto; }
+  .haupt { min-height: 0; }
+}
+
+/* ---- Kopf ---- */
+.kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.titel { margin: 0; font-size: 1.15rem; font-weight: 650; letter-spacing: 0.01em; }
+.verbindung {
+  margin: 0; display: inline-flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 6px 12px; border-radius: 999px; background: var(--flaeche-2); color: var(--leise); font-size: 0.875rem;
+}
+.verbindung-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.verbindung-punkt { width: 8px; height: 8px; border-radius: 50%; background: var(--aus); flex: none; }
+.verbindung[data-zustand="offen"] .verbindung-punkt { background: var(--gut); }
+.verbindung[data-zustand="zu"] { background: var(--fehler-grund); color: var(--fehler-text); }
+.verbindung[data-zustand="zu"] .verbindung-punkt { background: var(--fehler-text); }
+
+/* ---- Karten ---- */
+.karte { background: var(--flaeche); border-radius: var(--rund); padding: 16px; box-shadow: var(--schatten); min-width: 0; }
+.karte-titel { margin: 0 0 12px; font-size: 0.8125rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--leise); }
+.leise { margin: 0; color: var(--leise); font-size: 0.9375rem; }
+
+/* ---- Sitzungsliste ---- */
+.liste { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.liste > li { min-width: 0; }
+.sitzung {
+  display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "punkt name zustand" "punkt art art";
+  align-items: center; column-gap: 10px; row-gap: 2px;
+  min-height: 44px; min-width: 44px; max-width: 100%; padding: 8px 12px;
+  font: inherit; text-align: left; color: inherit; cursor: pointer;
+  border: 0; border-radius: var(--rund-klein); background: var(--flaeche-2);
+}
+.sitzung:hover { background: var(--flaeche-3); }
+.sitzung[aria-current="true"] { background: var(--akzent); color: var(--akzent-text); }
+.sitzung-punkt { grid-area: punkt; width: 8px; height: 8px; border-radius: 50%; background: var(--gut); }
+.sitzung[data-zustand="beendet"] .sitzung-punkt { background: var(--aus); }
+.sitzung[aria-current="true"] .sitzung-punkt { background: currentColor; }
+.sitzung-name { grid-area: name; font-weight: 600; font-family: var(--schrift-mono); font-size: 0.9375rem; }
+.sitzung-zustand { grid-area: zustand; font-size: 0.8125rem; opacity: 0.85; white-space: nowrap; }
+.sitzung-art { grid-area: art; font-size: 0.8125rem; opacity: 0.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.sitzung-art:empty { display: none; }
+.liste { flex-direction: column; flex-wrap: nowrap; }
+.sitzung { width: 100%; }
+
+/* ---- Terminal ---- */
+.haupt { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.terminal-kopf { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 4px; min-width: 0; }
+.terminal-titel { font-family: var(--schrift-mono); font-weight: 600; font-size: 0.9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.terminal-hinweis { color: var(--leise); font-size: 0.8125rem; white-space: nowrap; }
+.terminal {
+  position: relative; display: flex; min-width: 0; min-height: 0;
+  height: 56vh; height: 56dvh; min-height: 200px;
+  border-radius: var(--rund); background: var(--raster-grund); box-shadow: var(--schatten);
+}
+@media (min-width: 900px) {
+  .terminal { flex: 1 1 auto; height: auto; min-height: 240px; }
+}
+.terminal:focus-within { outline: 3px solid var(--akzent); outline-offset: 3px; }
+.terminal.invers { --raster-vorn: #15171a; --raster-grund: #e7e4dc; --term-cursor: rgba(21, 23, 26, 0.7); background: var(--raster-grund); }
+.raster {
+  flex: 1 1 auto; min-width: 0; min-height: 0; overflow: auto;
+  padding: 14px 16px; border-radius: var(--rund);
+  background: var(--raster-grund); color: var(--raster-vorn);
+  font-family: var(--schrift-mono); font-size: 14px; line-height: 1.35;
+  -webkit-font-smoothing: antialiased; cursor: text;
+}
+.raster-inhalt { position: relative; width: max-content; min-width: 100%; }
+.raster-zeile { white-space: pre; min-height: 1.35em; }
+.cursor {
+  position: absolute; left: 0; top: 0; pointer-events: none;
+  border-radius: 2px; box-shadow: inset 0 0 0 1px var(--term-cursor);
+}
+.terminal.fokus .cursor { background: var(--term-cursor); box-shadow: none; }
+.eingang {
+  position: absolute; left: 0; top: 0; width: 1px; height: 1px; padding: 0; border: 0; margin: 0;
+  opacity: 0; resize: none; overflow: hidden; outline: none; background: transparent; color: transparent; caret-color: transparent;
+  font-size: 16px; line-height: 1;
+}
+.messung { position: absolute; left: 0; top: 0; visibility: hidden; white-space: pre; pointer-events: none; }
+
+/* ---- Eingabezeile und Meldung ---- */
+.eingabezeile { display: flex; gap: 8px; min-width: 0; }
+.eingabezeile .feld { flex: 1 1 auto; }
+.feld {
+  font: inherit; color: inherit; min-height: 44px; min-width: 44px; width: 100%; max-width: 100%;
+  padding: 10px 12px; border: 0; border-radius: var(--rund-klein); background: var(--flaeche-2);
+}
+.feld::placeholder { color: var(--leise); opacity: 1; }
+.knopf {
+  font: inherit; font-weight: 600; min-height: 44px; min-width: 44px; padding: 10px 18px; cursor: pointer;
+  border: 0; border-radius: var(--rund-klein); background: var(--flaeche-3); color: inherit;
+}
+.knopf:hover { filter: brightness(0.97); }
+.knopf-haupt { background: var(--akzent); color: var(--akzent-text); }
+.meldung { min-height: 44px; display: flex; align-items: center; min-width: 0; }
+.fehler {
+  display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%;
+  padding: 8px 12px; border-radius: var(--rund-klein); background: var(--fehler-grund); color: var(--fehler-text); font-size: 0.9375rem;
+}
+.fehler-marke { font-weight: 650; flex: none; }
+.fehler-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.fehler-code { font-family: var(--schrift-mono); font-size: 0.8125rem; opacity: 0.8; flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- Startformular ---- */
+.start { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.feldgruppe { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.feldgruppe-breit, .start .knopf { grid-column: 1 / -1; }
+.beschriftung { font-size: 0.875rem; font-weight: 550; color: var(--leise); }
+.start .knopf { margin-top: 4px; width: 100%; }
+
+@media (max-width: 899px) {
+  .fehler { flex-wrap: wrap; row-gap: 2px; }
+  .fehler-text, .fehler-code { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
+}
+@media (max-width: 600px) {
+  .terminal-hinweis { display: none; }
+  .raster { font-size: 13px; padding: 12px; }
+}
+
+/* Die 16 benannten Farben ruhiger und auf dunklem Grund lesbar; raster.css bleibt unveraendert, diese Regeln kommen danach. */
+.f-0 { color: #4b515a; }
+.f-1 { color: #e5737b; }
+.f-2 { color: #9fcd7f; }
+.f-3 { color: #e8c27a; }
+.f-4 { color: #6cb3f0; }
+.f-5 { color: #c98ae0; }
+.f-6 { color: #5fbfcb; }
+.f-7 { color: #dcdfe4; }
+.f-8 { color: #8a9099; }
+.f-9 { color: #f28b82; }
+.f-10 { color: #b8e094; }
+.f-11 { color: #f3d58a; }
+.f-12 { color: #93c7ff; }
+.f-13 { color: #dfa9f2; }
+.f-14 { color: #86d6df; }
+.f-15 { color: #ffffff; }
+.b-0 { background-color: #4b515a; }
+.b-1 { background-color: #e5737b; }
+.b-2 { background-color: #9fcd7f; }
+.b-3 { background-color: #e8c27a; }
+.b-4 { background-color: #6cb3f0; }
+.b-5 { background-color: #c98ae0; }
+.b-6 { background-color: #5fbfcb; }
+.b-7 { background-color: #dcdfe4; }
+.b-8 { background-color: #8a9099; }
+.b-9 { background-color: #f28b82; }
+.b-10 { background-color: #b8e094; }
+.b-11 { background-color: #f3d58a; }
+.b-12 { background-color: #93c7ff; }
+.b-13 { background-color: #dfa9f2; }
+.b-14 { background-color: #86d6df; }
+.b-15 { background-color: #ffffff; }
+</style>
+</head>
+<body>
+<div class="seite">
+  <header class="kopf">
+    <h1 class="titel">Werkbank</h1>
+    <p class="verbindung" id="verbindung" data-zustand="warte"><span class="verbindung-punkt" aria-hidden="true"></span><span class="verbindung-text">verbindet</span></p>
+  </header>
+
+  <section class="karte karte-liste" aria-labelledby="liste-titel">
+    <h2 class="karte-titel" id="liste-titel">Sitzungen</h2>
+    <ul class="liste" role="list" aria-label="Sitzungen" id="liste" data-testid="sitzung-liste"></ul>
+    <p class="leise" id="liste-leer">Noch keine Sitzung. Starte eine im Formular.</p>
+  </section>
+
+  <main class="haupt">
+    <div class="terminal-kopf" aria-hidden="true">
+      <span class="terminal-titel" id="terminal-titel">Keine Sitzung gewählt</span>
+      <span class="terminal-hinweis">F6 verlässt das Terminal</span>
+    </div>
+    <section class="terminal" id="terminal" data-testid="terminal-raster" data-cursor="0,0,false" aria-label="Terminal">
+      <div class="raster" id="raster">
+        <div class="raster-inhalt" id="raster-inhalt">
+          <div class="cursor" id="cursor" aria-hidden="true" hidden></div>
+          <textarea class="eingang" id="eingang" aria-label="Terminal" aria-roledescription="Terminal" aria-describedby="hinweis-f6"
+            autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" rows="1"></textarea>
+          <span class="messung" id="messung" aria-hidden="true">MMMMMMMMMM</span>
+        </div>
+      </div>
+    </section>
+    <p class="versteckt" id="hinweis-f6">F6 verlässt das Terminal, Umschalt+F6 geht zurück.</p>
+
+    <form class="eingabezeile" id="zeile-eingabe" aria-label="Eingabezeile">
+      <input class="feld" id="eingabe" data-testid="eingabe" type="text" aria-label="Eingabe" placeholder="Text an das Programm"
+        enterkeyhint="send" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="knopf" type="submit" data-testid="eingabe-senden">Senden</button>
+    </form>
+
+    <div class="meldung">
+      <div class="fehler" id="fehler" data-testid="fehler" hidden>
+        <span class="fehler-marke" aria-hidden="true">Abgelehnt</span>
+        <span class="fehler-text" id="fehler-text" data-testid="fehler-text"></span>
+        <code class="fehler-code" id="fehler-code" data-testid="fehler-code"></code>
+      </div>
+    </div>
+  </main>
+
+  <section class="karte karte-start" aria-labelledby="start-titel">
+    <h2 class="karte-titel" id="start-titel">Neue Sitzung</h2>
+    <form class="start" id="start" aria-label="Sitzung starten">
+      <div class="feldgruppe">
+      <label class="beschriftung" for="wahl-harness">Harness</label>
+      <select class="feld" id="wahl-harness" name="harness" data-testid="harness-wahl">
+        <option>claude</option>
+        <option>pi</option>
+      </select>
+      </div>
+      <div class="feldgruppe">
+      <label class="beschriftung" for="wahl-modell">Modell</label>
+      <select class="feld" id="wahl-modell" name="modell" data-testid="modell-wahl">
+        <option>cloud-beispiel</option>
+        <option>lokal-beispiel</option>
+      </select>
+      </div>
+      <div class="feldgruppe">
+      <label class="beschriftung" for="wahl-route">Route</label>
+      <select class="feld" id="wahl-route" name="route" data-testid="route-wahl">
+        <option>cloud</option>
+        <option>lokal</option>
+      </select>
+      </div>
+      <div class="feldgruppe">
+      <label class="beschriftung" for="wahl-kunde">Kunde</label>
+      <select class="feld" id="wahl-kunde" name="kunde" data-testid="kunde-wahl">
+        <option>k-beispiel</option>
+        <option>k-zwei</option>
+        <option value="" selected>ohne Kunde</option>
+      </select>
+      </div>
+      <div class="feldgruppe feldgruppe-breit">
+      <label class="beschriftung" for="wahl-arbeitsordner">Arbeitsordner</label>
+      <input class="feld" id="wahl-arbeitsordner" name="arbeitsordner" data-testid="arbeitsordner-eingabe" type="text"
+        autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <button class="knopf knopf-haupt" type="submit" data-testid="sitzung-start">Starten</button>
+    </form>
+  </section>
+</div>
+<div class="versteckt" role="log" aria-live="polite" id="ansagen"></div>
+<script type="module" src="/seite.js"></script>
+</body>
+</html>

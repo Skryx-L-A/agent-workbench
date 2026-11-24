@@ -1,0 +1,54 @@
+{
+ "name": "tr2_cursor_grundform",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Jede Ausgabe nennt den Cursor [zeile, spalte, sichtbar]; eine Cursorbewegung ohne Zeilenänderung (CR, Positionieren, DECTCEM) ist eine Ausgabe mit leerem zeilen",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha"
+  },
+  {
+   "art": "Text",
+   "text": "\r\nbeta"
+  },
+  {
+   "art": "Text",
+   "text": "\r"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[3;4H"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1Hgamma"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[2;2H\u001b[?25l"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?25h"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[8;30H"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[99;99H"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

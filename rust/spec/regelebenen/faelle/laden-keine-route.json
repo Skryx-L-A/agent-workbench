@@ -1,0 +1,127 @@
+{
+ "name": "laden-keine-route",
+ "anforderungen": [
+  "A26",
+  "A42"
+ ],
+ "beschreibung": "u sperrt alle drei Routen: keine Einstellung, der Aufrufer startet nichts",
+ "stand": {
+  "firma": {
+   "fassung": 1,
+   "ebene": "firma",
+   "einstellung": {
+    "fassung": 1,
+    "klassen": [
+     "oeffentlich",
+     "intern",
+     "kundendaten"
+    ],
+    "vorgabestufe": "kundendaten",
+    "routen": [
+     {
+      "schluessel": "cloud-r",
+      "art": "cloud",
+      "klasse": "intern"
+     },
+     {
+      "schluessel": "cloud-s",
+      "art": "cloud",
+      "klasse": "intern"
+     },
+     {
+      "schluessel": "lokal-l",
+      "art": "lokal",
+      "klasse": "kundendaten"
+     }
+    ],
+    "kunden": [
+     {
+      "schluessel": "k-beispiel",
+      "erlaubt": [
+       "cloud-r",
+       "lokal-l"
+      ],
+      "verboten": []
+     },
+     {
+      "schluessel": "k-zwei",
+      "erlaubt": [
+       "lokal-l"
+      ],
+      "verboten": []
+     }
+    ],
+    "kundendaten_an_cloud": {
+     "vorgabe": "nie",
+     "freigaben": [
+      {
+       "route": "cloud-r",
+       "kunde": "k-beispiel"
+      }
+     ]
+    }
+   },
+   "rollen": {
+    "ps_00000000000000000000000000000b01": [
+     "admin"
+    ],
+    "ps_00000000000000000000000000000b02": [
+     "admin"
+    ]
+   },
+   "gruppen": [
+    {
+     "schluessel": "g-eins",
+     "mitglieder": [
+      "ps_00000000000000000000000000000c01"
+     ]
+    },
+    {
+     "schluessel": "g-zwei",
+     "mitglieder": [
+      "ps_00000000000000000000000000000c02"
+     ]
+    }
+   ],
+   "nutzerregeln": [],
+   "senkung": {
+    "aus": false,
+    "bestaetigung": false,
+    "arten": [
+     "bedienwissen",
+     "quellenauszug",
+     "regeln",
+     "vorlagen"
+    ]
+   }
+  },
+  "nutzer": {
+   "ps_00000000000000000000000000000c01": {
+    "fassung": 1,
+    "ebene": "nutzer",
+    "nutzer": "ps_00000000000000000000000000000c01",
+    "regeln": {
+     "routen": [
+      {
+       "route": "cloud-r",
+       "gesperrt": true
+      },
+      {
+       "route": "cloud-s",
+       "gesperrt": true
+      },
+      {
+       "route": "lokal-l",
+       "gesperrt": true
+      }
+     ]
+    }
+   }
+  }
+ },
+ "schritte": [
+  {
+   "zeige": "ps_00000000000000000000000000000c01"
+  }
+ ]
+}

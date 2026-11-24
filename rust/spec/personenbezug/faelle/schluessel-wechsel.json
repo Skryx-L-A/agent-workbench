@@ -1,0 +1,412 @@
+{
+ "beschreibung": "Wechsel des Schluessels: neue Pseudonyme fuer dieselben Personen; die Auskunft findet Zeilen unter beiden Schluesseln; ein alter Schluessel und eine Zeit, die nicht steigt, werden abgelehnt; das Loeschen trennt beide Pseudonyme von der Person",
+ "kette": "stelle-2026-11.jsonl",
+ "schritte": [
+  {
+   "schritt": "oeffnen",
+   "zufall": "9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c",
+   "jetzt_ms": 1795179600000,
+   "erwartet": {
+    "ok": true
+   }
+  },
+  {
+   "schritt": "person",
+   "kennung": "p-adm01",
+   "zufall": "d6459cca9b30d3a5553547fd2bb69cdbdc49d961c823ca85626d6161ad23ae53",
+   "jetzt_ms": 1795179600000,
+   "erwartet": {
+    "neu": true,
+    "pseudonym": "ps_8c183f6572a61769067fe62d39ebc68f"
+   }
+  },
+  {
+   "schritt": "person",
+   "kennung": "p-a01",
+   "zufall": "b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50",
+   "jetzt_ms": 1795179601000,
+   "erwartet": {
+    "neu": true,
+    "pseudonym": "ps_e2f010a3a4e89fe59b529650297964ad"
+   }
+  },
+  {
+   "schritt": "person",
+   "kennung": "p-b02",
+   "zufall": "1d1b3d10d06411776014010229e3253755fe05db46d7e3502832086f0580b9e1",
+   "jetzt_ms": 1795179602000,
+   "erwartet": {
+    "neu": true,
+    "pseudonym": "ps_ce1ec9d0cff94e7fd706691cfe0c3f12"
+   }
+  },
+  {
+   "schritt": "text",
+   "kennung": "p-a01",
+   "text": "Bitte das Ticket 4711 mit Prioritaet hoch anlegen.",
+   "jetzt_ms": 1795179603000,
+   "erwartet": {
+    "freitext": "ft_b386485e048d76c14039e047e9de019b3c5da65fed181571242e77f489efd52d"
+   }
+  },
+  {
+   "schritt": "text",
+   "kennung": "p-b02",
+   "text": "Freigabe nach Ruecksprache mit dem Team.",
+   "jetzt_ms": 1795179604000,
+   "erwartet": {
+    "freitext": "ft_133de376c08a643e1b077a682c696c541166102416e5a4f927acae0d5d6b905f"
+   }
+  },
+  {
+   "schritt": "zeile",
+   "felder": {
+    "aktionsname": "mcp.schreibaufruf",
+    "anfrage": "mf-1795179600000-1",
+    "digest": "94878f0aa9a31cc87aeab6ffb95df916b64ed3ae0d1b23362d05e40256ba6dbc",
+    "entscheidend": "ps_ce1ec9d0cff94e7fd706691cfe0c3f12",
+    "ergebnis": "eingeloest",
+    "fassung": 2,
+    "person": "ps_e2f010a3a4e89fe59b529650297964ad",
+    "server": "tickets",
+    "sitzung": "s-1",
+    "werkzeug": "update",
+    "zeit": "2026-11-20T13:00:10.000Z",
+    "zeit_anfrage": "2026-11-20T13:00:03.000Z",
+    "zeit_entscheidung": "2026-11-20T13:00:07.000Z"
+   },
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179600000-1\",\"digest\":\"94878f0aa9a31cc87aeab6ffb95df916b64ed3ae0d1b23362d05e40256ba6dbc\",\"entscheidend\":\"ps_ce1ec9d0cff94e7fd706691cfe0c3f12\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_e2f010a3a4e89fe59b529650297964ad\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:10.000Z\",\"zeit_anfrage\":\"2026-11-20T13:00:03.000Z\",\"zeit_entscheidung\":\"2026-11-20T13:00:07.000Z\"}",
+    "sha256": "aa1cded9ae6d06ddb8f87a9cf63cd6cd8162e98750924c849534eb78c158cbcf"
+   }
+  },
+  {
+   "schritt": "zeile",
+   "felder": {
+    "aktionsname": "fall.freitext",
+    "ergebnis": "ok",
+    "fassung": 2,
+    "person": "ps_e2f010a3a4e89fe59b529650297964ad",
+    "text": "ft_b386485e048d76c14039e047e9de019b3c5da65fed181571242e77f489efd52d",
+    "zeit": "2026-11-20T13:00:11.000Z"
+   },
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"fall.freitext\",\"ergebnis\":\"ok\",\"fassung\":2,\"person\":\"ps_e2f010a3a4e89fe59b529650297964ad\",\"text\":\"ft_b386485e048d76c14039e047e9de019b3c5da65fed181571242e77f489efd52d\",\"vorher\":\"aa1cded9ae6d06ddb8f87a9cf63cd6cd8162e98750924c849534eb78c158cbcf\",\"zeit\":\"2026-11-20T13:00:11.000Z\"}",
+    "sha256": "cb2b41f0afdceb1588ecf5c426370fa05795db5e1ab446c2d7fb380bd8c8a242"
+   }
+  },
+  {
+   "schritt": "zeile",
+   "felder": {
+    "aktionsname": "mcp.schreibaufruf",
+    "anfrage": "mf-1795179600000-2",
+    "digest": "800cc901fee10855d1975c69c401ab0885735453afacb61bf860d33379bf4664",
+    "entscheidend": "ps_8c183f6572a61769067fe62d39ebc68f",
+    "ergebnis": "eingeloest",
+    "fassung": 2,
+    "person": "ps_ce1ec9d0cff94e7fd706691cfe0c3f12",
+    "server": "tickets",
+    "sitzung": "s-1",
+    "werkzeug": "update",
+    "zeit": "2026-11-20T13:00:12.000Z",
+    "zeit_anfrage": "2026-11-20T13:00:05.000Z",
+    "zeit_entscheidung": "2026-11-20T13:00:09.000Z"
+   },
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179600000-2\",\"digest\":\"800cc901fee10855d1975c69c401ab0885735453afacb61bf860d33379bf4664\",\"entscheidend\":\"ps_8c183f6572a61769067fe62d39ebc68f\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_ce1ec9d0cff94e7fd706691cfe0c3f12\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"cb2b41f0afdceb1588ecf5c426370fa05795db5e1ab446c2d7fb380bd8c8a242\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:12.000Z\",\"zeit_anfrage\":\"2026-11-20T13:00:05.000Z\",\"zeit_entscheidung\":\"2026-11-20T13:00:09.000Z\"}",
+    "sha256": "c9c495b8f09a1b400fb519a5c597454f9cf383b8a7692df789566e3ed88d9da2"
+   }
+  },
+  {
+   "schritt": "zeile",
+   "felder": {
+    "aktionsname": "fall.freitext",
+    "ergebnis": "ok",
+    "fassung": 2,
+    "person": "ps_ce1ec9d0cff94e7fd706691cfe0c3f12",
+    "text": "ft_133de376c08a643e1b077a682c696c541166102416e5a4f927acae0d5d6b905f",
+    "zeit": "2026-11-20T13:00:13.000Z"
+   },
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"fall.freitext\",\"ergebnis\":\"ok\",\"fassung\":2,\"person\":\"ps_ce1ec9d0cff94e7fd706691cfe0c3f12\",\"text\":\"ft_133de376c08a643e1b077a682c696c541166102416e5a4f927acae0d5d6b905f\",\"vorher\":\"c9c495b8f09a1b400fb519a5c597454f9cf383b8a7692df789566e3ed88d9da2\",\"zeit\":\"2026-11-20T13:00:13.000Z\"}",
+    "sha256": "dcaed6345a54ab68fa372bbc77fabf46c1f97bf91be2aaa2e90df820045084e6"
+   }
+  },
+  {
+   "schritt": "zeile",
+   "felder": {
+    "aktionsname": "mcp.schreibaufruf",
+    "anfrage": "mf-1795179600000-3",
+    "digest": "4eb56bc25d24480bd1f543973127b7e73cb49451a223cfee7d7e6bc5b33e18b6",
+    "entscheidend": "ps_e2f010a3a4e89fe59b529650297964ad",
+    "ergebnis": "eingeloest",
+    "fassung": 2,
+    "person": "ps_ce1ec9d0cff94e7fd706691cfe0c3f12",
+    "server": "tickets",
+    "sitzung": "s-1",
+    "werkzeug": "update",
+    "zeit": "2026-11-20T13:00:14.000Z",
+    "zeit_anfrage": "2026-11-20T13:00:07.000Z",
+    "zeit_entscheidung": "2026-11-20T13:00:11.000Z"
+   },
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179600000-3\",\"digest\":\"4eb56bc25d24480bd1f543973127b7e73cb49451a223cfee7d7e6bc5b33e18b6\",\"entscheidend\":\"ps_e2f010a3a4e89fe59b529650297964ad\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_ce1ec9d0cff94e7fd706691cfe0c3f12\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"dcaed6345a54ab68fa372bbc77fabf46c1f97bf91be2aaa2e90df820045084e6\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:14.000Z\",\"zeit_anfrage\":\"2026-11-20T13:00:07.000Z\",\"zeit_entscheidung\":\"2026-11-20T13:00:11.000Z\"}",
+    "sha256": "1a4b89adedd37a06097172246bc41a88698a977c547e6e556f2ed792aa4fab04"
+   }
+  },
+  {
+   "schritt": "wechseln",
+   "wert": "9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c",
+   "jetzt_ms": 1795179620000,
+   "erwartet": {
+    "fehler": "schluessel_ungueltig"
+   }
+  },
+  {
+   "schritt": "wechseln",
+   "wert": "b3df365457565a7982022968b4f7c560b43f89c8e29eaea770c1e83777d29cdb",
+   "jetzt_ms": 1795179600000,
+   "erwartet": {
+    "fehler": "zeit_ungueltig"
+   }
+  },
+  {
+   "schritt": "wechseln",
+   "wert": "b3df365457565a7982022968b4f7c560b43f89c8e29eaea770c1e83777d29cdb",
+   "jetzt_ms": 1795179620000,
+   "erwartet": {
+    "ok": true
+   }
+  },
+  {
+   "schritt": "person",
+   "kennung": "p-a01",
+   "zufall": "aad1238886936cd7322f028fb756b834ec2a8bde4fe88feafb1233aa0fbe9ac2",
+   "jetzt_ms": 1795179621000,
+   "erwartet": {
+    "neu": false,
+    "pseudonym": "ps_d890f3ef472e71c484822890ff8bb721"
+   }
+  },
+  {
+   "schritt": "text",
+   "kennung": "p-a01",
+   "text": "Bitte das Ticket 4711 mit Prioritaet hoch anlegen.",
+   "jetzt_ms": 1795179622000,
+   "erwartet": {
+    "freitext": "ft_6c30fcfe60b8665d5488ad2304dc408eacf79a90112343a05bcb22e5d6076371"
+   }
+  },
+  {
+   "schritt": "zeile",
+   "felder": {
+    "aktionsname": "mcp.schreibaufruf",
+    "anfrage": "mf-1795179600000-4",
+    "digest": "c5404e40bf659b72f59e74fab23ca6ebfd1185e0a14995c5813b1c539f2650e0",
+    "entscheidend": "ps_f19c3ef437e0957a0f729d4b2ad98a8f",
+    "ergebnis": "eingeloest",
+    "fassung": 2,
+    "person": "ps_d890f3ef472e71c484822890ff8bb721",
+    "server": "tickets",
+    "sitzung": "s-1",
+    "werkzeug": "update",
+    "zeit": "2026-11-20T13:00:23.000Z",
+    "zeit_anfrage": "2026-11-20T13:00:16.000Z",
+    "zeit_entscheidung": "2026-11-20T13:00:20.000Z"
+   },
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179600000-4\",\"digest\":\"c5404e40bf659b72f59e74fab23ca6ebfd1185e0a14995c5813b1c539f2650e0\",\"entscheidend\":\"ps_f19c3ef437e0957a0f729d4b2ad98a8f\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_d890f3ef472e71c484822890ff8bb721\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"1a4b89adedd37a06097172246bc41a88698a977c547e6e556f2ed792aa4fab04\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:23.000Z\",\"zeit_anfrage\":\"2026-11-20T13:00:16.000Z\",\"zeit_entscheidung\":\"2026-11-20T13:00:20.000Z\"}",
+    "sha256": "7a770eaeadfa6e2937f729332c58e1b0a9a67483a3b15c996b57d24128d63142"
+   }
+  },
+  {
+   "schritt": "zeile",
+   "felder": {
+    "aktionsname": "fall.freitext",
+    "ergebnis": "ok",
+    "fassung": 2,
+    "person": "ps_d890f3ef472e71c484822890ff8bb721",
+    "text": "ft_6c30fcfe60b8665d5488ad2304dc408eacf79a90112343a05bcb22e5d6076371",
+    "zeit": "2026-11-20T13:00:24.000Z"
+   },
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"fall.freitext\",\"ergebnis\":\"ok\",\"fassung\":2,\"person\":\"ps_d890f3ef472e71c484822890ff8bb721\",\"text\":\"ft_6c30fcfe60b8665d5488ad2304dc408eacf79a90112343a05bcb22e5d6076371\",\"vorher\":\"7a770eaeadfa6e2937f729332c58e1b0a9a67483a3b15c996b57d24128d63142\",\"zeit\":\"2026-11-20T13:00:24.000Z\"}",
+    "sha256": "dccc9e266cee18950b27469ec2c21379c379bc2378ea9d0c7968db3001cf4a62"
+   }
+  },
+  {
+   "schritt": "auskunft",
+   "kennung": "p-a01",
+   "handelnd": "ps_13f3619b04acc845687eb8cabae259af",
+   "jetzt_ms": 1795179625000,
+   "erwartet": {
+    "antwort": {
+     "gefunden": true,
+     "pseudonyme": [
+      "ps_e2f010a3a4e89fe59b529650297964ad",
+      "ps_d890f3ef472e71c484822890ff8bb721"
+     ],
+     "texte": [
+      {
+       "freitext": "ft_6c30fcfe60b8665d5488ad2304dc408eacf79a90112343a05bcb22e5d6076371",
+       "text": "Bitte das Ticket 4711 mit Prioritaet hoch anlegen.",
+       "zuletzt": "2026-11-20T13:00:22.000Z"
+      },
+      {
+       "freitext": "ft_b386485e048d76c14039e047e9de019b3c5da65fed181571242e77f489efd52d",
+       "text": "Bitte das Ticket 4711 mit Prioritaet hoch anlegen.",
+       "zuletzt": "2026-11-20T13:00:03.000Z"
+      }
+     ],
+     "zeilen": [
+      {
+       "datei": "stelle-2026-11.jsonl",
+       "nr": 1,
+       "sha256": "aa1cded9ae6d06ddb8f87a9cf63cd6cd8162e98750924c849534eb78c158cbcf",
+       "zeile": {
+        "aktionsname": "mcp.schreibaufruf",
+        "anfrage": "mf-1795179600000-1",
+        "digest": "94878f0aa9a31cc87aeab6ffb95df916b64ed3ae0d1b23362d05e40256ba6dbc",
+        "entscheidend": "anderer",
+        "ergebnis": "eingeloest",
+        "fassung": 2,
+        "person": "ps_e2f010a3a4e89fe59b529650297964ad",
+        "server": "tickets",
+        "sitzung": "s-1",
+        "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+        "werkzeug": "update",
+        "zeit": "2026-11-20T13:00:10.000Z",
+        "zeit_anfrage": "2026-11-20T13:00:03.000Z",
+        "zeit_entscheidung": "2026-11-20T13:00:07.000Z"
+       }
+      },
+      {
+       "datei": "stelle-2026-11.jsonl",
+       "nr": 2,
+       "sha256": "cb2b41f0afdceb1588ecf5c426370fa05795db5e1ab446c2d7fb380bd8c8a242",
+       "zeile": {
+        "aktionsname": "fall.freitext",
+        "ergebnis": "ok",
+        "fassung": 2,
+        "person": "ps_e2f010a3a4e89fe59b529650297964ad",
+        "text": "ft_b386485e048d76c14039e047e9de019b3c5da65fed181571242e77f489efd52d",
+        "vorher": "aa1cded9ae6d06ddb8f87a9cf63cd6cd8162e98750924c849534eb78c158cbcf",
+        "zeit": "2026-11-20T13:00:11.000Z"
+       }
+      },
+      {
+       "datei": "stelle-2026-11.jsonl",
+       "nr": 5,
+       "sha256": "1a4b89adedd37a06097172246bc41a88698a977c547e6e556f2ed792aa4fab04",
+       "zeile": {
+        "aktionsname": "mcp.schreibaufruf",
+        "anfrage": "mf-1795179600000-3",
+        "digest": "4eb56bc25d24480bd1f543973127b7e73cb49451a223cfee7d7e6bc5b33e18b6",
+        "entscheidend": "ps_e2f010a3a4e89fe59b529650297964ad",
+        "ergebnis": "eingeloest",
+        "fassung": 2,
+        "person": "anderer",
+        "server": "tickets",
+        "sitzung": "s-1",
+        "vorher": "dcaed6345a54ab68fa372bbc77fabf46c1f97bf91be2aaa2e90df820045084e6",
+        "werkzeug": "update",
+        "zeit": "2026-11-20T13:00:14.000Z",
+        "zeit_anfrage": "2026-11-20T13:00:07.000Z",
+        "zeit_entscheidung": "2026-11-20T13:00:11.000Z"
+       }
+      },
+      {
+       "datei": "stelle-2026-11.jsonl",
+       "nr": 6,
+       "sha256": "7a770eaeadfa6e2937f729332c58e1b0a9a67483a3b15c996b57d24128d63142",
+       "zeile": {
+        "aktionsname": "mcp.schreibaufruf",
+        "anfrage": "mf-1795179600000-4",
+        "digest": "c5404e40bf659b72f59e74fab23ca6ebfd1185e0a14995c5813b1c539f2650e0",
+        "entscheidend": "anderer",
+        "ergebnis": "eingeloest",
+        "fassung": 2,
+        "person": "ps_d890f3ef472e71c484822890ff8bb721",
+        "server": "tickets",
+        "sitzung": "s-1",
+        "vorher": "1a4b89adedd37a06097172246bc41a88698a977c547e6e556f2ed792aa4fab04",
+        "werkzeug": "update",
+        "zeit": "2026-11-20T13:00:23.000Z",
+        "zeit_anfrage": "2026-11-20T13:00:16.000Z",
+        "zeit_entscheidung": "2026-11-20T13:00:20.000Z"
+       }
+      },
+      {
+       "datei": "stelle-2026-11.jsonl",
+       "nr": 7,
+       "sha256": "dccc9e266cee18950b27469ec2c21379c379bc2378ea9d0c7968db3001cf4a62",
+       "zeile": {
+        "aktionsname": "fall.freitext",
+        "ergebnis": "ok",
+        "fassung": 2,
+        "person": "ps_d890f3ef472e71c484822890ff8bb721",
+        "text": "ft_6c30fcfe60b8665d5488ad2304dc408eacf79a90112343a05bcb22e5d6076371",
+        "vorher": "7a770eaeadfa6e2937f729332c58e1b0a9a67483a3b15c996b57d24128d63142",
+        "zeit": "2026-11-20T13:00:24.000Z"
+       }
+      }
+     ]
+    },
+    "zeile": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"geliefert\",\"fassung\":2,\"handelnd\":\"ps_13f3619b04acc845687eb8cabae259af\",\"vorher\":\"dccc9e266cee18950b27469ec2c21379c379bc2378ea9d0c7968db3001cf4a62\",\"zeilen\":5,\"zeit\":\"2026-11-20T13:00:25.000Z\"}"
+   }
+  },
+  {
+   "schritt": "speicher",
+   "erwartet": {
+    "schluessel": "{\"fassung\":1,\"schluessel\":[{\"ab_ms\":1795179600000,\"wert\":\"9ee7e73d019fbd92ac406971b911aab96b83a5cd427f16ae5bb51ec16bbb603c\"},{\"ab_ms\":1795179620000,\"wert\":\"b3df365457565a7982022968b4f7c560b43f89c8e29eaea770c1e83777d29cdb\"}]}\n",
+    "zuordnung": "{\"fassung\":1,\"personen\":{\"p-a01\":{\"geheimnis\":\"b04b5695b379d42540d32f0e5a8456ec0effcf2ea3dee4bfba210b54ebb9ee50\",\"seit_ms\":1795179601000,\"texte\":{\"ft_6c30fcfe60b8665d5488ad2304dc408eacf79a90112343a05bcb22e5d6076371\":{\"text\":\"Bitte das Ticket 4711 mit Prioritaet hoch anlegen.\",\"zuletzt_ms\":1795179622000},\"ft_b386485e048d76c14039e047e9de019b3c5da65fed181571242e77f489efd52d\":{\"text\":\"Bitte das Ticket 4711 mit Prioritaet hoch anlegen.\",\"zuletzt_ms\":1795179603000}}},\"p-adm01\":{\"geheimnis\":\"d6459cca9b30d3a5553547fd2bb69cdbdc49d961c823ca85626d6161ad23ae53\",\"seit_ms\":1795179600000,\"texte\":{}},\"p-b02\":{\"geheimnis\":\"1d1b3d10d06411776014010229e3253755fe05db46d7e3502832086f0580b9e1\",\"seit_ms\":1795179602000,\"texte\":{\"ft_133de376c08a643e1b077a682c696c541166102416e5a4f927acae0d5d6b905f\":{\"text\":\"Freigabe nach Ruecksprache mit dem Team.\",\"zuletzt_ms\":1795179604000}}}}}\n"
+   }
+  },
+  {
+   "schritt": "loeschen",
+   "kennung": "p-a01",
+   "handelnd": "ps_13f3619b04acc845687eb8cabae259af",
+   "jetzt_ms": 1795179630000,
+   "erwartet": {
+    "ergebnis": "geloescht",
+    "zeile": "{\"aktionsname\":\"person.geloescht\",\"ergebnis\":\"geloescht\",\"fassung\":2,\"handelnd\":\"ps_13f3619b04acc845687eb8cabae259af\",\"loeschmarke\":\"3a8f18fe78d3158c86ae8d4151efc11761e228d261d98e1efee5b111908bcf47\",\"vorher\":\"bbc83fac5a35dafab28d1db80a5bd5036271ef3f9dad42d368884fb3e56ff71c\",\"zeit\":\"2026-11-20T13:00:30.000Z\"}"
+   }
+  },
+  {
+   "schritt": "zuordnen",
+   "wert": "ps_e2f010a3a4e89fe59b529650297964ad",
+   "erwartet": {
+    "kennung": null
+   }
+  },
+  {
+   "schritt": "zuordnen",
+   "wert": "ps_d890f3ef472e71c484822890ff8bb721",
+   "erwartet": {
+    "kennung": null
+   }
+  },
+  {
+   "schritt": "auskunft",
+   "kennung": "p-a01",
+   "handelnd": "ps_13f3619b04acc845687eb8cabae259af",
+   "jetzt_ms": 1795179631000,
+   "erwartet": {
+    "antwort": {
+     "gefunden": false,
+     "pseudonyme": [],
+     "texte": [],
+     "zeilen": []
+    },
+    "zeile": "{\"aktionsname\":\"person.auskunft\",\"ergebnis\":\"unbekannt\",\"fassung\":2,\"handelnd\":\"ps_13f3619b04acc845687eb8cabae259af\",\"vorher\":\"d7c4b3366f0de4d29bcc86088134352a6ac2840f4a645e773ccbbeaff6fd085e\",\"zeilen\":0,\"zeit\":\"2026-11-20T13:00:31.000Z\"}"
+   }
+  },
+  {
+   "schritt": "pruefe",
+   "erwartet": {
+    "exit": 0,
+    "stdout": "{\"bruch\":null,\"letzte\":\"4b9e7be23960490d4d26fa7aa7d21f71c62718b4e341a8ff6058b963ab97047f\",\"ok\":true,\"zeilen\":10}\n"
+   }
+  }
+ ]
+}

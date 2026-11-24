@@ -1,0 +1,14 @@
+{
+ "beschreibung": "Copilot unter /usr/local: nichts unter /usr braucht einen Programmordner, PATH bleibt fest",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "copilot": {
+   "programm": "/usr/local/lib/node_modules/@github/copilot/index.js",
+   "node": "/usr/local/bin/node"
+  }
+ },
+ "vorher": null
+}

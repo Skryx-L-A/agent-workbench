@@ -1,0 +1,18 @@
+{
+ "beschreibung": "die frühere, nie gemessene Form mit copilot_tokens: kein Token",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "alte-form",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "frei",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

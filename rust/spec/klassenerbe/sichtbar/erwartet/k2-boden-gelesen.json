@@ -1,0 +1,31 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "ok",
+    "klasse": null,
+    "kunden": [],
+    "grund": null
+   },
+   {
+    "ergebnis": "ok",
+    "klasse": "oeffentlich",
+    "kunden": [],
+    "grund": null
+   },
+   {
+    "ergebnis": "ok",
+    "klasse": "intern",
+    "kunden": [],
+    "grund": null
+   },
+   {
+    "ergebnis": "ok",
+    "klasse": "oeffentlich",
+    "kunden": [],
+    "grund": null
+   }
+  ]
+ }
+}

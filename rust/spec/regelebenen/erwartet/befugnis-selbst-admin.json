@@ -1,0 +1,38 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "ebenen.nicht_befugt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.nicht_befugt",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000c01",
+    "neu": "bfa884475e2499902da1e35043f80443d0641f569ae1df7fb21a94f147117c05",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.nicht_befugt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.nicht_befugt",
+    "ebene": "gruppe",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000c01",
+    "neu": "75f48dddaf9b1094fd8eccfb717444ba824680a7208d563fdf5fe596ce9de4e0",
+    "pflicht": null,
+    "ziel": "g-eins",
+    "zweiter": null
+   }
+  }
+ ]
+}

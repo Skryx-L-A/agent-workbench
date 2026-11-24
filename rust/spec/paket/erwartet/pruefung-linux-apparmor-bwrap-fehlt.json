@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.apparmor_bwrap_fehlt: Das Programm /usr/bin/bwrap fehlt.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

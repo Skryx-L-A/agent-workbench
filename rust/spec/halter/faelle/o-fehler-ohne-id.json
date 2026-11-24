@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Fehlerantwort auf unlesbare Zeile",
+ "form": "antwort",
+ "text": "{\"art\":\"antwort\",\"code\":\"halter.json_ungueltig\",\"fassung\":1,\"grund\":\"kein gueltiges JSON\",\"id\":null,\"ok\":false}"
+}

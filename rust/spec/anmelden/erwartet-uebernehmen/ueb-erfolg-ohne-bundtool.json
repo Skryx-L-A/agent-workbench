@@ -1,0 +1,10 @@
+{
+ "exit": 0,
+ "code": null,
+ "stdout": "Anmeldung gespeichert.\n",
+ "stderr": "Hinweis: Der Schluesselbund wurde nicht geprueft, weil secret-tool und security fehlen.\n",
+ "ziel_datei": "token",
+ "config": "ohne-token",
+ "reste_geloescht": 0,
+ "reste_uebrig": 0
+}

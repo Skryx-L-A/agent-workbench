@@ -1,0 +1,22 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "30-topics/heizung.md",
+    "score": 1.0,
+    "title": "Themenseite Heizung",
+    "snippet": "Heizung allgemein.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "text",
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "derived": true
+   }
+  ]
+ }
+}

@@ -1,0 +1,2423 @@
+[
+{
+"fields": {
+"status": "",
+"superseded-by": "y [[z"
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[
+"z"
+],
+""
+]
+},
+{
+"fields": {
+"status": ""
+},
+"today": "2026-10-01",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {
+"status": [],
+"superseded-by": [
+"x",
+"x"
+],
+"valid-until": "2027-01"
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[
+"x"
+],
+"2027-01"
+]
+},
+{
+"fields": {
+"superseded-by": [
+"x",
+"x"
+],
+"valid-until": []
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"status": "",
+"valid-until": "morgen"
+},
+"today": "2026-10-01",
+"out": [
+"active",
+[],
+"morgen"
+]
+},
+{
+"fields": {
+"status": "active"
+},
+"today": "2026-09-30",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {
+"superseded-by": "[[x|y]]"
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"status": "draft",
+"superseded-by": [
+"x",
+"x"
+],
+"valid-until": "morgen"
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[
+"x"
+],
+"morgen"
+]
+},
+{
+"fields": {
+"valid-until": [
+"2020"
+]
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"['2020']"
+]
+},
+{
+"fields": {
+"status": " archived ",
+"superseded-by": "[[ ]]"
+},
+"today": "2025-12-31",
+"out": [
+"archived",
+[],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "",
+"valid-until": "2026-11-19"
+},
+"today": "2026-10-01",
+"out": [
+"active",
+[],
+"2026-11-19"
+]
+},
+{
+"fields": {
+"superseded-by": ""
+},
+"today": "2026-11-17",
+"out": null
+},
+{
+"fields": {
+"status": "superseded",
+"valid-until": "2026"
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[],
+"2026"
+]
+},
+{
+"fields": {
+"valid-until": "2026"
+},
+"today": "2026-11-18",
+"out": [
+"active",
+[],
+"2026"
+]
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {},
+"today": "2026-10-01",
+"out": null
+},
+{
+"fields": {},
+"today": "2026-10-01",
+"out": null
+},
+{
+"fields": {
+"status": "Superseded"
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[],
+""
+]
+},
+{
+"fields": {
+"valid-until": ""
+},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"status": "expired",
+"superseded-by": "[[x#h]]"
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"status": "superseded",
+"superseded-by": "[[x]]"
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {
+"status": [],
+"superseded-by": "[[x]]",
+"valid-until": []
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "x"
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"status": "active",
+"valid-until": "2026-1"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"2026-1"
+]
+},
+{
+"fields": {},
+"today": "2026-10-01",
+"out": null
+},
+{
+"fields": {},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {
+"status": "superseded"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[],
+""
+]
+},
+{
+"fields": {},
+"today": "2026-10-01",
+"out": null
+},
+{
+"fields": {
+"status": [
+"superseded"
+]
+},
+"today": "2026-11-18",
+"out": [
+"['superseded']",
+[],
+""
+]
+},
+{
+"fields": {
+"status": "superseded",
+"superseded-by": "y [[z"
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[
+"z"
+],
+""
+]
+},
+{
+"fields": {},
+"today": "2026-11-17",
+"out": null
+},
+{
+"fields": {
+"status": "archived",
+"valid-until": "2026-11-18 "
+},
+"today": "2026-09-30",
+"out": [
+"archived",
+[],
+"2026-11-18"
+]
+},
+{
+"fields": {
+"status": "superseded"
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[],
+""
+]
+},
+{
+"fields": {
+"status": "archived",
+"superseded-by": "[[a]] und [[b]]"
+},
+"today": "2026-09-30",
+"out": [
+"archived",
+[
+"a",
+"b"
+],
+""
+]
+},
+{
+"fields": {
+"status": "superseded",
+"valid-until": "2026-10"
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[],
+"2026-10"
+]
+},
+{
+"fields": {
+"status": "archived"
+},
+"today": "2026-11-18",
+"out": [
+"archived",
+[],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "y [[z",
+"valid-until": "2026-09"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"z"
+],
+"2026-09"
+]
+},
+{
+"fields": {},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {
+"status": "superseded",
+"valid-until": [
+"2020"
+]
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[],
+"['2020']"
+]
+},
+{
+"fields": {
+"status": "Superseded",
+"superseded-by": "[[[x]]"
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[
+"[x"
+],
+""
+]
+},
+{
+"fields": {
+"status": "active",
+"superseded-by": "[[a]] und [[b]]"
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[
+"a",
+"b"
+],
+""
+]
+},
+{
+"fields": {
+"valid-until": "2026-11-18"
+},
+"today": "2026-11-17",
+"out": [
+"active",
+[],
+"2026-11-18"
+]
+},
+{
+"fields": {
+"status": "Superseded",
+"superseded-by": "[[ ]]",
+"valid-until": "morgen"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[],
+"morgen"
+]
+},
+{
+"fields": {},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {
+"valid-until": "2026-11-18 "
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"2026-11-18"
+]
+},
+{
+"fields": {
+"superseded-by": "",
+"valid-until": "2025"
+},
+"today": "2026-11-18",
+"out": [
+"expired",
+[],
+"2025"
+]
+},
+{
+"fields": {},
+"today": "2026-11-17",
+"out": null
+},
+{
+"fields": {
+"status": " archived ",
+"superseded-by": "[[x]]"
+},
+"today": "2026-11-18",
+"out": [
+"archived",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"status": "superseded",
+"superseded-by": "[[x#h]]",
+"valid-until": "2026-11-18 "
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"x"
+],
+"2026-11-18"
+]
+},
+{
+"fields": {
+"status": [
+"superseded"
+],
+"valid-until": "morgen"
+},
+"today": "2026-10-01",
+"out": [
+"['superseded']",
+[],
+"morgen"
+]
+},
+{
+"fields": {
+"superseded-by": "[[ ]]"
+},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"status": ""
+},
+"today": "2026-09-30",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {
+"valid-until": "2025"
+},
+"today": "2026-11-17",
+"out": [
+"expired",
+[],
+"2025"
+]
+},
+{
+"fields": {
+"valid-until": "2026-11-17"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"2026-11-17"
+]
+},
+{
+"fields": {
+"valid-until": "2025"
+},
+"today": "2026-11-17",
+"out": [
+"expired",
+[],
+"2025"
+]
+},
+{
+"fields": {
+"status": "expired",
+"valid-until": "2026-11-19"
+},
+"today": "2026-11-18",
+"out": [
+"expired",
+[],
+"2026-11-19"
+]
+},
+{
+"fields": {
+"status": "draft",
+"superseded-by": "y [[z"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"z"
+],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "y [[z"
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[
+"z"
+],
+""
+]
+},
+{
+"fields": {
+"status": "draft",
+"superseded-by": "[[[x]]"
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[
+"[x"
+],
+""
+]
+},
+{
+"fields": {
+"valid-until": []
+},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {
+"status": "expired",
+"valid-until": "2026-09"
+},
+"today": "2026-09-30",
+"out": [
+"expired",
+[],
+"2026-09"
+]
+},
+{
+"fields": {},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"status": [
+"superseded"
+]
+},
+"today": "2025-12-31",
+"out": [
+"['superseded']",
+[],
+""
+]
+},
+{
+"fields": {},
+"today": "2026-11-17",
+"out": null
+},
+{
+"fields": {
+"status": [
+"superseded"
+],
+"superseded-by": "",
+"valid-until": "2026-11-17"
+},
+"today": "2025-12-31",
+"out": [
+"['superseded']",
+[],
+"2026-11-17"
+]
+},
+{
+"fields": {},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {
+"status": "active"
+},
+"today": "2026-09-30",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {
+"status": "superseded"
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[],
+""
+]
+},
+{
+"fields": {
+"status": " archived "
+},
+"today": "2026-09-30",
+"out": [
+"archived",
+[],
+""
+]
+},
+{
+"fields": {
+"status": "expired",
+"superseded-by": [
+"x",
+"x"
+]
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"valid-until": []
+},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {
+"status": "active",
+"superseded-by": "[[ ]]",
+"valid-until": "2025"
+},
+"today": "2026-11-18",
+"out": [
+"expired",
+[],
+"2025"
+]
+},
+{
+"fields": {},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {
+"status": "archived",
+"superseded-by": "[[x#h]]"
+},
+"today": "2026-11-17",
+"out": [
+"archived",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"status": "active"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "[[x|y]]",
+"valid-until": []
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"superseded-by": []
+},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {
+"valid-until": "2026"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"2026"
+]
+},
+{
+"fields": {
+"superseded-by": []
+},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {
+"status": "superseded",
+"superseded-by": [
+"[[x]]",
+"[[y]]"
+]
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[
+"x",
+"y"
+],
+""
+]
+},
+{
+"fields": {
+"valid-until": "morgen"
+},
+"today": "2026-10-01",
+"out": [
+"active",
+[],
+"morgen"
+]
+},
+{
+"fields": {
+"valid-until": "2026-10"
+},
+"today": "2026-10-01",
+"out": [
+"active",
+[],
+"2026-10"
+]
+},
+{
+"fields": {},
+"today": "2026-10-01",
+"out": null
+},
+{
+"fields": {
+"status": "active",
+"valid-until": "2026-09"
+},
+"today": "2026-11-18",
+"out": [
+"expired",
+[],
+"2026-09"
+]
+},
+{
+"fields": {
+"status": [
+"superseded"
+]
+},
+"today": "2025-12-31",
+"out": [
+"['superseded']",
+[],
+""
+]
+},
+{
+"fields": {
+"status": "archived",
+"superseded-by": [
+"x",
+"x"
+]
+},
+"today": "2026-11-18",
+"out": [
+"archived",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"status": "draft",
+"superseded-by": "[[x]]",
+"valid-until": ""
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"status": "superseded"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[],
+""
+]
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"status": " archived "
+},
+"today": "2026-10-01",
+"out": [
+"archived",
+[],
+""
+]
+},
+{
+"fields": {},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"status": "expired",
+"valid-until": "2025"
+},
+"today": "2026-11-18",
+"out": [
+"expired",
+[],
+"2025"
+]
+},
+{
+"fields": {
+"valid-until": "2025"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"2025"
+]
+},
+{
+"fields": {
+"status": "archived",
+"valid-until": [
+"2020"
+]
+},
+"today": "2026-10-01",
+"out": [
+"archived",
+[],
+"['2020']"
+]
+},
+{
+"fields": {
+"status": "archived",
+"superseded-by": "[[[x]]",
+"valid-until": "2026-11-18 "
+},
+"today": "2026-10-01",
+"out": [
+"archived",
+[
+"[x"
+],
+"2026-11-18"
+]
+},
+{
+"fields": {
+"status": ""
+},
+"today": "2026-11-17",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {
+"status": "expired"
+},
+"today": "2026-09-30",
+"out": [
+"expired",
+[],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "[[a]] und [[b]]",
+"valid-until": "morgen"
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[
+"a",
+"b"
+],
+"morgen"
+]
+},
+{
+"fields": {
+"superseded-by": [
+"x",
+"x"
+],
+"valid-until": "morgen"
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[
+"x"
+],
+"morgen"
+]
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {
+"superseded-by": "y [[z"
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"z"
+],
+""
+]
+},
+{
+"fields": {},
+"today": "2026-10-01",
+"out": null
+},
+{
+"fields": {
+"superseded-by": "[[x]]",
+"valid-until": "2026-1"
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[
+"x"
+],
+"2026-1"
+]
+},
+{
+"fields": {
+"superseded-by": "y [[z",
+"valid-until": "2026-11-18"
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[
+"z"
+],
+"2026-11-18"
+]
+},
+{
+"fields": {
+"superseded-by": "[[a]] und [[b]]",
+"valid-until": "2026"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"a",
+"b"
+],
+"2026"
+]
+},
+{
+"fields": {
+"status": "draft",
+"superseded-by": "[[a]] und [[b]]"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"a",
+"b"
+],
+""
+]
+},
+{
+"fields": {},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"superseded-by": "[[x|y]]"
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"valid-until": "2026-09"
+},
+"today": "2026-11-17",
+"out": [
+"expired",
+[],
+"2026-09"
+]
+},
+{
+"fields": {
+"status": "expired"
+},
+"today": "2026-09-30",
+"out": [
+"expired",
+[],
+""
+]
+},
+{
+"fields": {
+"valid-until": []
+},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"status": "Superseded"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "",
+"valid-until": "2026-1"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"2026-1"
+]
+},
+{
+"fields": {
+"status": "",
+"superseded-by": "x",
+"valid-until": "2026-10"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"x"
+],
+"2026-10"
+]
+},
+{
+"fields": {},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {
+"superseded-by": [
+"[[x]]",
+"[[y]]"
+],
+"valid-until": "2026-11-18 "
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[
+"x",
+"y"
+],
+"2026-11-18"
+]
+},
+{
+"fields": {
+"status": "archived",
+"valid-until": "2026-1"
+},
+"today": "2026-09-30",
+"out": [
+"archived",
+[],
+"2026-1"
+]
+},
+{
+"fields": {
+"status": "",
+"superseded-by": "[[[x]]"
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[
+"[x"
+],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "[[ ]]"
+},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {
+"status": "",
+"superseded-by": "[[[x]]",
+"valid-until": "2026"
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"[x"
+],
+"2026"
+]
+},
+{
+"fields": {
+"valid-until": "2026-11-17"
+},
+"today": "2026-11-17",
+"out": [
+"active",
+[],
+"2026-11-17"
+]
+},
+{
+"fields": {
+"superseded-by": "[[x]]"
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"status": "Superseded",
+"valid-until": "2027-01"
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[],
+"2027-01"
+]
+},
+{
+"fields": {
+"status": ""
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {
+"valid-until": "2026-11-18"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"2026-11-18"
+]
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {
+"superseded-by": [
+"[[x]]",
+"[[y]]"
+]
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"x",
+"y"
+],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "",
+"valid-until": "2025"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"2025"
+]
+},
+{
+"fields": {
+"status": "archived"
+},
+"today": "2026-11-17",
+"out": [
+"archived",
+[],
+""
+]
+},
+{
+"fields": {
+"superseded-by": [
+"[[x]]",
+"[[y]]"
+]
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[
+"x",
+"y"
+],
+""
+]
+},
+{
+"fields": {
+"valid-until": "2025"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"2025"
+]
+},
+{
+"fields": {
+"superseded-by": ""
+},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {
+"status": [
+"superseded"
+],
+"superseded-by": ""
+},
+"today": "2026-11-18",
+"out": [
+"['superseded']",
+[],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "[[x#h]]"
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"status": [
+"superseded"
+],
+"valid-until": "2027-01"
+},
+"today": "2026-11-17",
+"out": [
+"['superseded']",
+[],
+"2027-01"
+]
+},
+{
+"fields": {
+"status": "draft",
+"valid-until": "morgen"
+},
+"today": "2026-11-18",
+"out": [
+"draft",
+[],
+"morgen"
+]
+},
+{
+"fields": {},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"status": "",
+"valid-until": "2026-11-17"
+},
+"today": "2026-11-18",
+"out": [
+"expired",
+[],
+"2026-11-17"
+]
+},
+{
+"fields": {
+"superseded-by": "y [[z"
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"z"
+],
+""
+]
+},
+{
+"fields": {
+"status": "expired",
+"superseded-by": "",
+"valid-until": "2026-11-19"
+},
+"today": "2026-11-18",
+"out": [
+"expired",
+[],
+"2026-11-19"
+]
+},
+{
+"fields": {
+"status": [
+"superseded"
+]
+},
+"today": "2025-12-31",
+"out": [
+"['superseded']",
+[],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "[[x]]",
+"valid-until": "2026-09"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"x"
+],
+"2026-09"
+]
+},
+{
+"fields": {},
+"today": "2026-10-01",
+"out": null
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {
+"valid-until": "2026-09"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"2026-09"
+]
+},
+{
+"fields": {},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {
+"status": " archived "
+},
+"today": "2026-09-30",
+"out": [
+"archived",
+[],
+""
+]
+},
+{
+"fields": {
+"status": []
+},
+"today": "2026-09-30",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {
+"superseded-by": [
+"[[x]]",
+"[[y]]"
+]
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[
+"x",
+"y"
+],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "[[a]] und [[b]]",
+"valid-until": "2027-01"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"a",
+"b"
+],
+"2027-01"
+]
+},
+{
+"fields": {
+"superseded-by": ""
+},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"status": "draft",
+"superseded-by": "[[a]] und [[b]]",
+"valid-until": "morgen"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"a",
+"b"
+],
+"morgen"
+]
+},
+{
+"fields": {
+"superseded-by": []
+},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"valid-until": "2027-01"
+},
+"today": "2026-11-17",
+"out": [
+"active",
+[],
+"2027-01"
+]
+},
+{
+"fields": {
+"status": "Superseded"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[],
+""
+]
+},
+{
+"fields": {
+"status": [
+"superseded"
+],
+"superseded-by": [
+"[[x]]",
+"[[y]]"
+],
+"valid-until": "2026-11-18 "
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[
+"x",
+"y"
+],
+"2026-11-18"
+]
+},
+{
+"fields": {
+"status": []
+},
+"today": "2026-11-17",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {
+"status": "Superseded",
+"superseded-by": "[[x|y]]",
+"valid-until": "2026"
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[
+"x"
+],
+"2026"
+]
+},
+{
+"fields": {
+"status": "active",
+"superseded-by": []
+},
+"today": "2026-11-18",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {
+"status": []
+},
+"today": "2026-10-01",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {
+"status": "superseded",
+"superseded-by": "[[x#h]]",
+"valid-until": "2025"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"x"
+],
+"2025"
+]
+},
+{
+"fields": {},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {},
+"today": "2026-10-01",
+"out": null
+},
+{
+"fields": {
+"status": [
+"superseded"
+],
+"superseded-by": "[[ ]]",
+"valid-until": []
+},
+"today": "2026-09-30",
+"out": [
+"['superseded']",
+[],
+""
+]
+},
+{
+"fields": {
+"superseded-by": "[[x|y]]",
+"valid-until": "2026-11-18 "
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"x"
+],
+"2026-11-18"
+]
+},
+{
+"fields": {
+"status": "superseded",
+"superseded-by": ""
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[],
+""
+]
+},
+{
+"fields": {
+"status": "Superseded",
+"valid-until": "2026-11-18 "
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[],
+"2026-11-18"
+]
+},
+{
+"fields": {
+"status": "",
+"superseded-by": "[[[x]]",
+"valid-until": "morgen"
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"[x"
+],
+"morgen"
+]
+},
+{
+"fields": {},
+"today": "2026-10-01",
+"out": null
+},
+{
+"fields": {
+"status": "draft"
+},
+"today": "2026-11-17",
+"out": [
+"draft",
+[],
+""
+]
+},
+{
+"fields": {
+"status": [],
+"superseded-by": [
+"[[x]]",
+"[[y]]"
+]
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"x",
+"y"
+],
+""
+]
+},
+{
+"fields": {
+"status": "superseded",
+"superseded-by": ""
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[],
+""
+]
+},
+{
+"fields": {
+"status": "",
+"superseded-by": "[[ ]]",
+"valid-until": "2025"
+},
+"today": "2026-10-01",
+"out": [
+"expired",
+[],
+"2025"
+]
+},
+{
+"fields": {
+"superseded-by": "[[x|y]]"
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"status": "draft"
+},
+"today": "2026-10-01",
+"out": [
+"draft",
+[],
+""
+]
+},
+{
+"fields": {
+"status": "expired",
+"superseded-by": "[[x]]"
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"x"
+],
+""
+]
+},
+{
+"fields": {
+"status": "archived",
+"valid-until": "2026-1"
+},
+"today": "2026-09-30",
+"out": [
+"archived",
+[],
+"2026-1"
+]
+},
+{
+"fields": {},
+"today": "2026-11-17",
+"out": null
+},
+{
+"fields": {
+"status": " archived ",
+"superseded-by": "[[[x]]",
+"valid-until": "2027-01"
+},
+"today": "2026-10-01",
+"out": [
+"archived",
+[
+"[x"
+],
+"2027-01"
+]
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {
+"superseded-by": "y [[z",
+"valid-until": "2025"
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"z"
+],
+"2025"
+]
+},
+{
+"fields": {},
+"today": "2026-10-01",
+"out": null
+},
+{
+"fields": {},
+"today": "2026-11-17",
+"out": null
+},
+{
+"fields": {},
+"today": "2025-12-31",
+"out": null
+},
+{
+"fields": {
+"superseded-by": "[[[x]]",
+"valid-until": "2026-09"
+},
+"today": "2025-12-31",
+"out": [
+"superseded",
+[
+"[x"
+],
+"2026-09"
+]
+},
+{
+"fields": {
+"superseded-by": [
+"x",
+"x"
+],
+"valid-until": [
+"2020"
+]
+},
+"today": "2026-10-01",
+"out": [
+"superseded",
+[
+"x"
+],
+"['2020']"
+]
+},
+{
+"fields": {
+"superseded-by": "[[x|y]]",
+"valid-until": "2027-01"
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"x"
+],
+"2027-01"
+]
+},
+{
+"fields": {
+"status": "archived",
+"superseded-by": "",
+"valid-until": "morgen"
+},
+"today": "2026-11-17",
+"out": [
+"archived",
+[],
+"morgen"
+]
+},
+{
+"fields": {
+"superseded-by": []
+},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"status": "draft",
+"superseded-by": "y [[z",
+"valid-until": [
+"2020"
+]
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[
+"z"
+],
+"['2020']"
+]
+},
+{
+"fields": {
+"status": "superseded",
+"valid-until": "2025"
+},
+"today": "2026-11-17",
+"out": [
+"superseded",
+[],
+"2025"
+]
+},
+{
+"fields": {},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {
+"valid-until": "morgen"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"morgen"
+]
+},
+{
+"fields": {
+"status": "active",
+"superseded-by": "[[[x]]"
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[
+"[x"
+],
+""
+]
+},
+{
+"fields": {
+"status": "active",
+"superseded-by": "[[a]] und [[b]]",
+"valid-until": []
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"a",
+"b"
+],
+""
+]
+},
+{
+"fields": {
+"status": [
+"superseded"
+],
+"superseded-by": "[[a]] und [[b]]",
+"valid-until": "2026-11-18 "
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"a",
+"b"
+],
+"2026-11-18"
+]
+},
+{
+"fields": {},
+"today": "2026-11-18",
+"out": null
+},
+{
+"fields": {
+"status": " archived "
+},
+"today": "2025-12-31",
+"out": [
+"archived",
+[],
+""
+]
+},
+{
+"fields": {
+"status": " archived ",
+"superseded-by": "[[ ]]"
+},
+"today": "2026-09-30",
+"out": [
+"archived",
+[],
+""
+]
+},
+{
+"fields": {
+"valid-until": "2026-11-18 "
+},
+"today": "2026-10-01",
+"out": [
+"active",
+[],
+"2026-11-18"
+]
+},
+{
+"fields": {
+"superseded-by": [],
+"valid-until": "2027-01"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"2027-01"
+]
+},
+{
+"fields": {
+"valid-until": "2026-11-19"
+},
+"today": "2025-12-31",
+"out": [
+"active",
+[],
+"2026-11-19"
+]
+},
+{
+"fields": {},
+"today": "2026-10-01",
+"out": null
+},
+{
+"fields": {
+"status": " archived ",
+"valid-until": []
+},
+"today": "2026-11-17",
+"out": [
+"archived",
+[],
+""
+]
+},
+{
+"fields": {
+"status": "active",
+"superseded-by": "[[x|y]]",
+"valid-until": "2026-10"
+},
+"today": "2026-11-18",
+"out": [
+"superseded",
+[
+"x"
+],
+"2026-10"
+]
+},
+{
+"fields": {
+"status": []
+},
+"today": "2026-09-30",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {
+"valid-until": ""
+},
+"today": "2026-09-30",
+"out": null
+},
+{
+"fields": {},
+"today": "2026-11-17",
+"out": null
+},
+{
+"fields": {
+"status": "Superseded",
+"superseded-by": [
+"[[x]]",
+"[[y]]"
+]
+},
+"today": "2026-09-30",
+"out": [
+"superseded",
+[
+"x",
+"y"
+],
+""
+]
+},
+{
+"fields": {
+"status": "",
+"superseded-by": []
+},
+"today": "2026-11-17",
+"out": [
+"active",
+[],
+""
+]
+},
+{
+"fields": {},
+"today": "2026-11-17",
+"out": null
+}
+]

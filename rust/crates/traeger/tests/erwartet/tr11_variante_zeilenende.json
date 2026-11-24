@@ -1,0 +1,165 @@
+{
+ "datensatz": "A",
+ "exit": 0,
+ "ausgabe": {
+  "ende": {
+   "abbild_gleich": true,
+   "cursor": [
+    8,
+    0,
+    true
+   ],
+   "groesse": [
+    12,
+    9
+   ],
+   "ruecklauf": {
+    "erste": "xxxxxxxxxxx❤️",
+    "letzte": "|",
+    "zahl": 2
+   },
+   "stand": 5,
+   "zeilen": [
+    "yyyyyyyyyy😀️",
+    "|",
+    "zzzzzzzzzzz",
+    "😀‍w",
+    "qqqqqqqqqqqq️‍",
+    "r",
+    "sssssssssss",
+    "👍🏽t",
+    ""
+   ]
+  },
+  "ergebnisse": [
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       2,
+       0,
+       true
+      ],
+      "stand": 1,
+      "zeilen": {
+       "0": "xxxxxxxxxxx❤️",
+       "1": "|"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       4,
+       0,
+       true
+      ],
+      "stand": 2,
+      "zeilen": {
+       "2": "yyyyyyyyyy😀️",
+       "3": "|"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       6,
+       0,
+       true
+      ],
+      "stand": 3,
+      "zeilen": {
+       "4": "zzzzzzzzzzz",
+       "5": "😀‍w"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       8,
+       0,
+       true
+      ],
+      "stand": 4,
+      "zeilen": {
+       "6": "qqqqqqqqqqqq️‍",
+       "7": "r"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [
+     {
+      "art": "Ausgabe",
+      "cursor": [
+       8,
+       0,
+       true
+      ],
+      "stand": 5,
+      "zeilen": {
+       "0": "yyyyyyyyyy😀️",
+       "2": "zzzzzzzzzzz",
+       "3": "😀‍w",
+       "4": "qqqqqqqqqqqq️‍",
+       "5": "r",
+       "6": "sssssssssss",
+       "7": "👍🏽t"
+      }
+     }
+    ],
+    "pty_antworten": ""
+   },
+   {
+    "ereignisse": [],
+    "pty_antworten": "",
+    "zustand": {
+     "abbild_gleich": true,
+     "cursor": [
+      8,
+      0,
+      true
+     ],
+     "groesse": [
+      12,
+      9
+     ],
+     "ruecklauf": {
+      "erste": "xxxxxxxxxxx❤️",
+      "letzte": "|",
+      "zahl": 2
+     },
+     "stand": 5,
+     "zeilen": [
+      "yyyyyyyyyy😀️",
+      "|",
+      "zzzzzzzzzzz",
+      "😀‍w",
+      "qqqqqqqqqqqq️‍",
+      "r",
+      "sssssssssss",
+      "👍🏽t",
+      ""
+     ]
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,34 @@
+{
+ "beschreibung": "Route fehlt in dieser Einstellungsdatei",
+ "form": "datei",
+ "text": "{\n \"fassung\": 1,\n \"sitzung\": \"s-1\",\n \"harness\": \"claude\",\n \"modell\": \"claude-sonnet-5-5\",\n \"route\": \"cloud-beispiel\",\n \"kunde\": \"k-beispiel\",\n \"arbeitsordner\": \"/home/beispiel/projekt\"\n}\n",
+ "einstellungen": {
+  "fassung": 1,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "vorgabestufe": "kundendaten",
+  "routen": [
+   {
+    "schluessel": "lokal-beispiel",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-beispiel",
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  }
+ }
+}

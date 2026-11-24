@@ -1,0 +1,6 @@
+{
+ "beschreibung": "`rustls-webpki` prüft Ketten, enthält aber keine Wurzeln: erlaubt",
+ "form": "stueckliste",
+ "text": "rustls-webpki\t0.103.0\tISC\tcrates.io\n",
+ "im_paket": []
+}

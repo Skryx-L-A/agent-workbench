@@ -1,0 +1,12 @@
+{
+ "description": "derived page is exempt",
+ "files": {
+  "note.md": "---\ntitle: T\nclass: derived\ntype: quatsch\n---\nx\n"
+ },
+ "args": [
+  "lint",
+  "{root}/note.md",
+  "--rel",
+  "30-topics/t/x.md"
+ ]
+}

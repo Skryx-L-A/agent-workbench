@@ -1,0 +1,7 @@
+{
+ "beschreibung": "der Schlüssel port steht zweimal, der zweite mit einem Text als Wert: der Schlüssel zählt, ungültig, Vorgabe 0 und eine Journalzeile",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "vorher_bruecke": "{\"port\":8000,\"x\":{\"port\":\"9000\"}}"
+}

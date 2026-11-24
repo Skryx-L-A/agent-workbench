@@ -1,0 +1,15 @@
+{
+ "exec": "copilot",
+ "harness_argv": [
+  "copilot",
+  "--model",
+  "claude-sonnet-5.5",
+  "--disable-builtin-mcps",
+  "--additional-mcp-config",
+  "@<heim>/.copilot/wb-mcp.json",
+  "--allow-tool",
+  "write"
+ ],
+ "eltern_ist_programm": true,
+ "suche_gestartet": true
+}

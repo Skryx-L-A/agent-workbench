@@ -1,0 +1,90 @@
+{
+ "name": "k5-kunde-der-quelle",
+ "regeln": [
+  "K4",
+  "K6",
+  "D5"
+ ],
+ "beschreibung": "Eine Quelle mit Kunde macht das Ergebnis zu Kundendaten dieses Kunden; derselbe Kunde zweimal bleibt einer.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "cloud-n",
+    "art": "cloud"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ],
+  "erbe": {
+   "boden": "gelesen"
+  }
+ },
+ "anfragen": [
+  {
+   "route": "lokal",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "intern",
+     "kunde": "k-nord"
+    }
+   ]
+  },
+  {
+   "route": "lokal",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "oeffentlich",
+     "kunde": "k-nord"
+    },
+    {
+     "klasse": "intern",
+     "kunde": "k-nord"
+    }
+   ]
+  },
+  {
+   "route": "lokal",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "oeffentlich",
+     "kunde": null
+    }
+   ]
+  }
+ ]
+}

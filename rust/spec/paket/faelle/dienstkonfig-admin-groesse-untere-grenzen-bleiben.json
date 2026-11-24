@@ -1,0 +1,7 @@
+{
+ "beschreibung": "lauf.groesse [20, 5] (untere Grenzen) bleibt",
+ "form": "dienstkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "vorher_kern": "{\"lauf\":{\"groesse\":[20,5]}}"
+}

@@ -1,0 +1,10 @@
+{
+ "beschreibung": "M16 fall",
+ "form": "mac",
+ "eigenschaft": "M16",
+ "anforderung": "A142",
+ "art": "fall",
+ "ausgangslage": "Mac mit macOS 26; Lauf s-1 unter dem gebauten Profil mit Modellweg-Port M1 und Ausgangs-Port A1; Lauf s-2 unter seinem Profil mit M2; Hörer der Browser-Brücke auf Port K; Vorführ-Vault mit der Notiz MK-7Q2 außerhalb; Such-Prozess je Sitzung außerhalb; Wegwerf-Token unter ~/.copilot und ~/.config/gh einer Testperson; Lauf mit gelöstem Enkel wie in M15",
+ "handlung": "Der Dienst (Wächter) stirbt durch SIGKILL, solange der Lauf lebt; der gelöste Enkel versucht bis zum Neustart alle 100 ms die Notiz und den Port der Browser-Brücke. Danach startet der Dienst neu und will eine neue Sitzung starten",
+ "beleg": "hergeleitet: dieselbe Suche wie M15 (gemessen), aber ohne Wächter im Lauf; Neustart nicht gemessen"
+}

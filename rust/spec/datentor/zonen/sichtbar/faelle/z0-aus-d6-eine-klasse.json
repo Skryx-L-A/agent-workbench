@@ -1,0 +1,50 @@
+{
+ "name": "z0-aus-d6-eine-klasse",
+ "regeln": [
+  "A127",
+  "Z0",
+  "D6",
+  "D7"
+ ],
+ "beschreibung": "Option aus: der Fall d6-eine-klasse aus Vertrag 3 mit derselben Erwartung. Mit nur einer Klasse ist jede Einheit Kundendaten.",
+ "vorgabe": {
+  "klassen": [
+   "nur"
+  ],
+  "routen": [
+   {
+    "schluessel": "r",
+    "art": "lokal",
+    "klasse": "nur"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r"
+    ]
+   }
+  ]
+ },
+ "modellzonen": {
+  "an": false,
+  "zonen": []
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "nur"
+   },
+   "route": "r",
+   "kunde": null
+  },
+  {
+   "einheit": {
+    "klasse": "nur"
+   },
+   "route": "r",
+   "kunde": "k-a"
+  }
+ ]
+}

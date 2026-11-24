@@ -1,0 +1,5 @@
+{
+ "exec": "copilot",
+ "e4_pruefung": "rot",
+ "befund": "GET /user/repos gelingt"
+}

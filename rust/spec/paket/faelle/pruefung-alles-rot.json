@@ -1,0 +1,22 @@
+{
+ "beschreibung": "jede Prüfung rot: je ein Satz in fester Reihenfolge, dann die Summe",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "windows",
+  "konten": 1,
+  "halter": "fehlt",
+  "wfp": "dienst_fehlt",
+  "einstellungen": {
+   "zustand": "fehlt"
+  },
+  "vault": "fehlt",
+  "paketstand": {
+   "manifest": "fehlt",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok"
+ }
+}

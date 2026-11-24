@@ -1,0 +1,80 @@
+{
+ "name": "eine-ebene",
+ "anforderungen": [
+  "A26"
+ ],
+ "beschreibung": "nur die Firma, keine Gruppen, keine Nutzerdatei: die wirksame Einstellung ist die eingebettete nach Vertrag 2 Fassung 1",
+ "stand": {
+  "firma": {
+   "fassung": 1,
+   "ebene": "firma",
+   "einstellung": {
+    "fassung": 1,
+    "klassen": [
+     "oeffentlich",
+     "intern",
+     "kundendaten"
+    ],
+    "vorgabestufe": "kundendaten",
+    "routen": [
+     {
+      "schluessel": "cloud-r",
+      "art": "cloud",
+      "klasse": "intern"
+     },
+     {
+      "schluessel": "cloud-s",
+      "art": "cloud",
+      "klasse": "intern"
+     },
+     {
+      "schluessel": "lokal-l",
+      "art": "lokal",
+      "klasse": "kundendaten"
+     }
+    ],
+    "kunden": [
+     {
+      "schluessel": "k-beispiel",
+      "erlaubt": [
+       "cloud-r",
+       "lokal-l"
+      ],
+      "verboten": []
+     },
+     {
+      "schluessel": "k-zwei",
+      "erlaubt": [
+       "lokal-l"
+      ],
+      "verboten": []
+     }
+    ],
+    "kundendaten_an_cloud": {
+     "vorgabe": "nie",
+     "freigaben": [
+      {
+       "route": "cloud-r",
+       "kunde": "k-beispiel"
+      }
+     ]
+    }
+   },
+   "rollen": {
+    "ps_00000000000000000000000000000b01": [
+     "admin"
+    ],
+    "ps_00000000000000000000000000000b02": [
+     "admin"
+    ]
+   },
+   "gruppen": [],
+   "nutzerregeln": []
+  }
+ },
+ "schritte": [
+  {
+   "zeige": "ps_00000000000000000000000000000c01"
+  }
+ ]
+}

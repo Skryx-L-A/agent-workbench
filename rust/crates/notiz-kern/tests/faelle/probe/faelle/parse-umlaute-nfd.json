@@ -1,0 +1,10 @@
+{
+ "description": "NFD link targets are normalised to NFC in links and keys",
+ "files": {
+  "note.md": "---\ntitle: Härtung\naliases: [Ölwechsel]\n---\nSiehe [[Härtung]] und [[Härtung]] und [[ÖLWECHSEL]].\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

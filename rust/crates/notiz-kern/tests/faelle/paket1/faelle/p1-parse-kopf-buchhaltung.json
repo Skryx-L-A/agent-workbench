@@ -1,0 +1,10 @@
+{
+ "description": "embed text keeps title, aliases, type; id, schema, class and created are not content",
+ "files": {
+  "note.md": "---\nid: 01N7QWB2XHD4RT9ZKMA3VC5EPY\nschema: 4\ntitle: Fahrradkette ölen\ntype: note\nclass: knowledge\ncreated: \"2026-10-02\"\naliases: [Kette, Kettenpflege]\n---\n\nAlle zwei Wochen mit dünnem Öl.\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

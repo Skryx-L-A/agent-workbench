@@ -1,0 +1,11 @@
+{
+ "description": "headings inside a code fence count too",
+ "files": {
+  "note.md": "## Code\n\n```\n# kein Titel?\n```\n\nNach\n"
+ },
+ "args": [
+  "section",
+  "{root}/note.md",
+  "Code"
+ ]
+}

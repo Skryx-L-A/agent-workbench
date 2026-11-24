@@ -1,0 +1,5 @@
+{
+ "beschreibung": "Suche nennt einen Pfad",
+ "form": "antwort",
+ "text": "{\"art\":\"antwort\",\"fassung\":1,\"id\":\"u-1\",\"ok\":true,\"suche\":{\"dateien\":1,\"nicht_lesbar\":0,\"pfad\":\"/srv/beispiel/a\",\"treffer\":1,\"uebersprungen\":0}}"
+}

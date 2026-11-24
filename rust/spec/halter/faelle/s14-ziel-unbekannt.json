@@ -1,0 +1,75 @@
+{
+ "beschreibung": "unbekanntes Ziel",
+ "form": "anfrage",
+ "text": "{\"abfrage\":null,\"fassung\":1,\"id\":\"m-1\",\"koerper_b64\":\"eyJtb2RlbCI6ImNsYXVkZS1zb25uZXQtNS01In0=\",\"kopf\":{\"anthropic-version\":\"2023-06-01\",\"content-type\":\"application/json\"},\"methode\":\"POST\",\"op\":\"modell.aufruf\",\"pfad\":\"/v1/messages\",\"ziel\":\"cloud-fremd\"}",
+ "lage": {
+  "aufrufer": {
+   "rolle": "bruecke",
+   "konto": "S-1-5-21-1000-1000-1000-1001",
+   "vertreter": false
+  },
+  "jetzt_ms": 1795000000000,
+  "start_ms": 1794996400000,
+  "kids": {
+   "stelle-mcp-1": "qvy5SgFhefK2a9hsceqk+MJ5evYpEJTTdGpqO3O85VY="
+  },
+  "benutzt": [],
+  "nachweis_gueltig": true,
+  "konfig": {
+   "ziele": {
+    "cloud-beispiel": {
+     "pfade": [
+      "POST /v1/messages"
+     ],
+     "schluessel": "modell.cloud-beispiel"
+    }
+   },
+   "server": {
+    "tickets": {
+     "schluessel": "mcp.tickets",
+     "freigabe": true,
+     "werkzeuge": {
+      "update": "schreibend",
+      "get": "lesend"
+     }
+    },
+    "notizen": {
+     "schluessel": "mcp.notizen",
+     "freigabe": false,
+     "werkzeuge": {
+      "anlegen": "schreibend"
+     }
+    },
+    "wiki": {
+     "schluessel": "mcp.wiki",
+     "freigabe": true,
+     "werkzeuge": {
+      "seite": "lesend"
+     }
+    }
+   }
+  },
+  "geheimnisse": [
+   {
+    "name": "modell.cloud-beispiel",
+    "konto": null,
+    "person": null
+   },
+   {
+    "name": "mcp.tickets",
+    "konto": "S-1-5-21-1000-1000-1000-1001",
+    "person": "ps_a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+   },
+   {
+    "name": "mcp.notizen",
+    "konto": "S-1-5-21-1000-1000-1000-1001",
+    "person": "ps_a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+   },
+   {
+    "name": "mcp.wiki",
+    "konto": "S-1-5-21-1000-1000-1000-1002",
+    "person": "ps_b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+   }
+  ]
+ }
+}

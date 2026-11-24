@@ -1,0 +1,10 @@
+{
+ "description": "inline list splits on every comma, quotes are stripped per item",
+ "files": {
+  "note.md": "---\naliases: [\"A, B\", 'c', , d ]\ntags: []\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

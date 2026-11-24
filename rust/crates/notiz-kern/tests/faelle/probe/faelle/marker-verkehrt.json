@@ -1,0 +1,14 @@
+{
+ "description": "end before start: malformed, strip leaves it",
+ "files": {
+  "note.md": "Vor\n<!-- dream:block:end -->\nMitte\n<!-- dream:block:start -->\nNach\n"
+ },
+ "args": [
+  "markers",
+  "{root}/note.md",
+  "--start",
+  "<!-- dream:block:start -->",
+  "--end",
+  "<!-- dream:block:end -->"
+ ]
+}

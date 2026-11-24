@@ -1,0 +1,35 @@
+{
+ "beschreibung": "Agent in Container B, erlaubt ist Container A",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "container_a": "S-1-15-2-1000000021-1000000022-1000000023-1000000024-1000000025-1000000026-1000000027",
+  "container_b": "S-1-15-2-1000000031-1000000032-1000000033-1000000034-1000000035-1000000036-1000000037"
+ },
+ "server": {
+  "name": "k-beispiel",
+  "erlaubt": [
+   {
+    "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+    "appcontainer_sid": "S-1-15-2-1000000021-1000000022-1000000023-1000000024-1000000025-1000000026-1000000027"
+   }
+  ],
+  "instanzen": 4
+ },
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+  },
+  "frist_ms": 2000
+ },
+ "aufbau": [
+  "Server unter person, DACL mit container_a"
+ ],
+ "handlung": [
+  "Ein Agent in container_b verbindet"
+ ]
+}

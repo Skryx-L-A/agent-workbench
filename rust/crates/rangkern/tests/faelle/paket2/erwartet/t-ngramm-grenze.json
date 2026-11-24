@@ -1,0 +1,46 @@
+{
+ "exit": 0,
+ "stdout": {
+  "words": [
+   "tomaten",
+   "kessel",
+   "schrauben",
+   "fenster",
+   "pflanzen",
+   "zwiebeln",
+   "vögel"
+  ],
+  "stems": [
+   "tomat",
+   "kessel",
+   "schraub",
+   "fenst",
+   "pflanz",
+   "zwiebel",
+   "vogel"
+  ],
+  "index": [
+   "tomat",
+   "kessel",
+   "#kess",
+   "#esse",
+   "#ssel",
+   "schraub",
+   "#schr",
+   "#chra",
+   "#hrau",
+   "#raub",
+   "fenst",
+   "pflanz",
+   "#pfla",
+   "#flan",
+   "#lanz",
+   "zwiebel",
+   "#zwie",
+   "#wieb",
+   "#iebe",
+   "#ebel",
+   "vogel"
+  ]
+ }
+}

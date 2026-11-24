@@ -1,0 +1,53 @@
+{
+ "beschreibung": "lauf.marker_ordner ungueltig (kein_text): Exitcode 2, die Zeile lauf.marker_ordner muss ein absoluter Pfad sein",
+ "datensatz": "A",
+ "marker_datei": {
+  "inhalt": {
+   "liste": [
+    "MP-2C5"
+   ]
+  }
+ },
+ "name": "di12_marker_ordner_pfad_kein_text",
+ "regeln": [
+  "DI12",
+  "DI1"
+ ],
+ "schritte": [],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"bericht\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "marker_datei": "@marker_datei",
+   "marker_ordner": 5,
+   "programm": "@laufkind"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

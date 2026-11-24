@@ -1,0 +1,50 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "garten/quelle1.md",
+    "score": 1.0,
+    "title": "Bewässerung Beet",
+    "snippet": "Bewässerung am Beet, Bewässerung im Beet.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.9938837346736189,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 2
+   },
+   {
+    "rel": "garten/quelle2.md",
+    "score": 0.47058823529411764,
+    "title": "Bewässerung Tropf",
+    "snippet": "Bewässerung per Tropfschlauch.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 2,
+    "bm25_norm": 0.8598793932559092
+   },
+   {
+    "rel": "30-topics/themen.md",
+    "score": 0.25,
+    "title": "Themen Allgemein",
+    "snippet": "Allgemeines zum Garten.",
+    "lines": [
+     7,
+     7
+    ],
+    "match": "semantic",
+    "cosine": 1.0,
+    "vektor_rang": 1,
+    "derived": true
+   }
+  ]
+ }
+}

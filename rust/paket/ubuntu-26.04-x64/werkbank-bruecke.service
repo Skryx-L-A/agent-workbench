@@ -1,0 +1,16 @@
+# User unit of the bridge to the browser (program wb-bruecke of the crate bruecke, installed as werkbank-bruecke; contract rust/spec/paket, part A,
+# "Dienste"). The start file /etc/werkbank/bruecke.json is written by postinst for the user. It binds only 127.0.0.1 (fixed in the program).
+# No RuntimeDirectory of its own: it uses the folder of the core service, so the folder does not vanish with the bridge.
+[Unit]
+Description=Werkbank bridge to the browser
+BindsTo=werkbank-kern.service
+After=werkbank-kern.service
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/werkbank/werkbank-bruecke /etc/werkbank/bruecke.json
+NoNewPrivileges=yes
+RestrictAddressFamilies=AF_INET AF_UNIX
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,64 @@
+{
+ "exit": 0,
+ "stdout": {
+  "fallback": false,
+  "hits": [
+   {
+    "rel": "garten/beet-bewaesserung.md",
+    "score": 1.0,
+    "title": "Bewässerung im Gartenbeet",
+    "snippet": "Das Gartenbeet braucht Bewässerung am Morgen.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.9938837346736189,
+    "bm25_rang": 1,
+    "bm25_norm": 1.0,
+    "vektor_rang": 1
+   },
+   {
+    "rel": "garten/kompost.md",
+    "score": 0.9150326797385621,
+    "title": "Kompost",
+    "snippet": "Kompost im Gartenbeet braucht Bewässerung, Bewässerung und Gartenbeet.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "hybrid",
+    "cosine": 0.2169304578186562,
+    "bm25_rang": 2,
+    "bm25_norm": 0.6749887701213741,
+    "vektor_rang": 3
+   },
+   {
+    "rel": "garten/regentonne.md",
+    "score": 0.47058823529411764,
+    "title": "Regentonne",
+    "snippet": "Die Regentonne ist im Frühling voll.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "semantic",
+    "cosine": 0.6,
+    "vektor_rang": 2
+   },
+   {
+    "rel": "garten/schlauch.md",
+    "score": 0.4444444444444444,
+    "title": "Schlauch",
+    "snippet": "Am Gartenbeet liegt ein alter Schlauch.",
+    "lines": [
+     6,
+     6
+    ],
+    "match": "text",
+    "bm25_rang": 3,
+    "bm25_norm": 0.22860750453961318
+   }
+  ]
+ }
+}

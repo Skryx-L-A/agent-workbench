@@ -1,0 +1,251 @@
+{
+  "beschreibung": "mcp.stand: unbekannte Anfrage und falsche Aufrufer werden abgelehnt und protokolliert wie jede Ablehnung; nur der Hub fragt den Stand.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "A92",
+    "Nachtrag 6"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"such-mcp\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[]}}}"
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/home/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179601000,
+      "eingabe": {
+        "argumente": {
+          "feld": "GEHEIM-ARG-7Q",
+          "id": "T-100",
+          "status": "erledigt"
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "tickets",
+        "sitzung": "s-1",
+        "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
+        "werkzeug": "update"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offen",
+          "anfrage": "mf-1795179540000-1",
+          "digest": "34b94b40a0e9af4b3040eef413cbf1db04b35d1ce446798e93e7d848e3ba4ced",
+          "frist_bis_ms": 1795179661000,
+          "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef"
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.stand",
+      "jetzt_ms": 1795179602000,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-9"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.anfrage_unbekannt",
+          "grund": "Anfrage unbekannt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-9\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.anfrage_unbekannt\",\"vorgang\":\"mcp.stand\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:02.000Z\"}",
+            "sha256": "b7b3d89f251eabf3e524b6bbab88fb7040b176ce5e4b81b60d0942d1eb79f0c7"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.stand",
+      "jetzt_ms": 1795179602001,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"mensch\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"mcp.stand\",\"vorher\":\"b7b3d89f251eabf3e524b6bbab88fb7040b176ce5e4b81b60d0942d1eb79f0c7\",\"zeit\":\"2026-11-20T13:00:02.001Z\"}",
+            "sha256": "09efa4d55ba1d2e15827bae734a101c1104a763c497672a78316d20d64b8a2b4"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "agent",
+      "vorgang": "mcp.stand",
+      "jetzt_ms": 1795179602002,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"agent\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"mcp.stand\",\"vorher\":\"09efa4d55ba1d2e15827bae734a101c1104a763c497672a78316d20d64b8a2b4\",\"zeit\":\"2026-11-20T13:00:02.002Z\"}",
+            "sha256": "908c4afa85be2e9e908334905e98f48aae5b06a1e47085c799a258faa2153ad9"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "kern",
+      "vorgang": "mcp.stand",
+      "jetzt_ms": 1795179602003,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"kern\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"mcp.stand\",\"vorher\":\"908c4afa85be2e9e908334905e98f48aae5b06a1e47085c799a258faa2153ad9\",\"zeit\":\"2026-11-20T13:00:02.003Z\"}",
+            "sha256": "57d503d9d3615bc7f8cc054f54b333ffb90965c7159dcaa67333e5014ebf5a4e"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "takt",
+      "vorgang": "mcp.stand",
+      "jetzt_ms": 1795179602004,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"takt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"mcp.stand\",\"vorher\":\"57d503d9d3615bc7f8cc054f54b333ffb90965c7159dcaa67333e5014ebf5a4e\",\"zeit\":\"2026-11-20T13:00:02.004Z\"}",
+            "sha256": "d36ba0ca635393d34784e245661ca7f523fa7b235d46cabd945b153f840d0bcb"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "unbekannt",
+      "vorgang": "mcp.stand",
+      "jetzt_ms": 1795179602005,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.aufrufer_nicht_erlaubt",
+          "grund": "Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"unbekannt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.aufrufer_nicht_erlaubt\",\"vorgang\":\"mcp.stand\",\"vorher\":\"d36ba0ca635393d34784e245661ca7f523fa7b235d46cabd945b153f840d0bcb\",\"zeit\":\"2026-11-20T13:00:02.005Z\"}",
+            "sha256": "2ca7eeea1a74b6320254cc908de7f6aaba212f005e62abf088428d7ce55104e0"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.stand",
+      "jetzt_ms": 1795179603000,
+      "eingabe": {
+        "anfrage": "mf-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.eingabe_ungueltig",
+          "grund": "Eingabe ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.eingabe_ungueltig\",\"vorgang\":\"mcp.stand\",\"vorher\":\"2ca7eeea1a74b6320254cc908de7f6aaba212f005e62abf088428d7ce55104e0\",\"zeit\":\"2026-11-20T13:00:03.000Z\"}",
+            "sha256": "f85e3bf4fe8f3b41c51b12db4691ec0b8d9b98dc308860431812ee7ba6dd2ff6"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.stand",
+      "jetzt_ms": 1795179603001,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1",
+        "x": 1
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.eingabe_ungueltig",
+          "grund": "Eingabe ungueltig"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.eingabe_ungueltig\",\"vorgang\":\"mcp.stand\",\"vorher\":\"f85e3bf4fe8f3b41c51b12db4691ec0b8d9b98dc308860431812ee7ba6dd2ff6\",\"zeit\":\"2026-11-20T13:00:03.001Z\"}",
+            "sha256": "5e06ff3dc52a89861c8755403cc38eae683e44996f8f60307322e992de9fa22a"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1"
+    ],
+    "anfragen": {
+      "mf-1795179540000-1": "offen"
+    },
+    "zaehler": 1,
+    "zeilen": 9,
+    "letzte": "5e06ff3dc52a89861c8755403cc38eae683e44996f8f60307322e992de9fa22a"
+  }
+}

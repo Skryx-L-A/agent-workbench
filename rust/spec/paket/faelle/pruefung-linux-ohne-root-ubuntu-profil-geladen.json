@@ -1,0 +1,32 @@
+{
+ "beschreibung": "Aufruf ohne root: die Liste der Profile ist nicht lesbar, Ubuntus Profil gilt nach der Probe des System-bwrap als geladen (S1); unsere Labels bleiben nicht prüfbar",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   }
+  ],
+  "apparmor": "nicht_pruefbar",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "ok",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok",
+  "ohne_root": true,
+  "ubuntu_profil": "geladen"
+ }
+}

@@ -1,0 +1,407 @@
+{
+  "beschreibung": "Der Such-Prozess (brain) fragt nur den Server brain an, der Hub nie; eine Anfrage von brain ist fuer den Hub unbekannt und umgekehrt; lesend bleibt lesend.",
+  "laden_ms": 1795179540000,
+  "regeln": [
+    "Wunsch Vault",
+    "A92"
+  ],
+  "einstellungen": {
+    "text": "{\"fassung\":2,\"klassen\":[\"oeffentlich\",\"intern\",\"kundendaten\"],\"vorgabestufe\":\"kundendaten\",\"routen\":[{\"schluessel\":\"cloud-beispiel\",\"art\":\"cloud\",\"klasse\":\"intern\",\"netzziele\":[{\"host\":\"api.beispiel.invalid\",\"port\":443,\"zugriff\":\"kopf-einsetzen\",\"schluessel\":true,\"pfade\":[{\"methode\":\"GET\",\"pfad\":\"/modelle/*\"}]}]},{\"schluessel\":\"lokal-beispiel\",\"art\":\"lokal\",\"klasse\":\"kundendaten\",\"ziel\":\"http://127.0.0.1:11434/v1\",\"modell\":\"qwen3:8b\",\"netzziele\":[]}],\"kunden\":[{\"schluessel\":\"k-beispiel\",\"erlaubt\":[\"lokal-beispiel\"],\"verboten\":[]}],\"kundendaten_an_cloud\":{\"vorgabe\":\"nie\",\"freigaben\":[]},\"mcp\":{\"tickets\":{\"lesen\":[\"get\"],\"schreiben\":[\"update\"],\"freigabe\":true,\"frist_ms\":60000,\"einloesefrist_ms\":30000},\"notizen\":{\"lesen\":[],\"schreiben\":[\"anlegen\"],\"freigabe\":false},\"brain\":{\"lesen\":[\"brain_suche\"],\"schreiben\":[\"brain_schreiben\",\"brain_senken\"],\"zweite_person\":[\"brain_senken\"],\"frist_ms\":60000,\"einloesefrist_ms\":30000}},\"stelle\":{}}",
+    "rollen": {
+      "ps_00000000000000000000000000000b01": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000b02": [
+        "admin"
+      ],
+      "ps_00000000000000000000000000000e01": [
+        "einsicht"
+      ],
+      "ps_00000000000000000000000000000e02": [
+        "einsicht"
+      ]
+    }
+  },
+  "pruefer": {
+    "art": "h1",
+    "schluessel_hex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "schritte": [
+    {
+      "aufrufer": "kern",
+      "vorgang": "sitzung.starten",
+      "jetzt_ms": 1795179600000,
+      "eingabe": {
+        "start": {
+          "text": "{\"fassung\":1,\"sitzung\":\"s-1\",\"harness\":\"claude\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"kunde\":\"k-beispiel\",\"arbeitsordner\":\"/srv/beispiel/projekt\"}"
+        }
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "gestartet",
+          "sitzung": "s-1",
+          "route": "cloud-beispiel",
+          "route_art": "cloud"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}",
+            "sha256": "e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "brain",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179601000,
+      "eingabe": {
+        "argumente": {
+          "feld": "GEHEIM-ARG-7Q",
+          "id": "T-100",
+          "status": "erledigt"
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "tickets",
+        "sitzung": "s-1",
+        "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
+        "werkzeug": "update"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.server_nicht_erlaubt",
+          "grund": "Server fuer diesen Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"brain\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.server_nicht_erlaubt\",\"vorgang\":\"mcp.anfragen\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}",
+            "sha256": "75807f34d72cd5c6116e50457dd2c73c9c790b8488db85d54cc72a5fea9880bb"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179601001,
+      "eingabe": {
+        "argumente": {
+          "einheit": "GEHEIM-ARG-7Q",
+          "stufe": "intern"
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "brain",
+        "sitzung": "s-1",
+        "vorschau": "Klasse kundendaten nach intern VORSCHAU-5K",
+        "werkzeug": "brain_senken"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.server_nicht_erlaubt",
+          "grund": "Server fuer diesen Aufrufer nicht erlaubt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.server_nicht_erlaubt\",\"vorgang\":\"mcp.anfragen\",\"vorher\":\"75807f34d72cd5c6116e50457dd2c73c9c790b8488db85d54cc72a5fea9880bb\",\"zeit\":\"2026-11-20T13:00:01.001Z\"}",
+            "sha256": "7af3e5947539375f3cded72bf8d4030fa4b8fa7292496e411382c3532be70c81"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "brain",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179601002,
+      "eingabe": {
+        "argumente": {
+          "einheit": "GEHEIM-ARG-7Q",
+          "stufe": "intern"
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "brain",
+        "sitzung": "s-1",
+        "vorschau": "Klasse kundendaten nach intern VORSCHAU-5K",
+        "werkzeug": "brain_suche"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "lesend"
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "brain",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179601003,
+      "eingabe": {
+        "argumente": {
+          "einheit": "GEHEIM-ARG-7Q",
+          "stufe": "intern"
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "brain",
+        "sitzung": "s-1",
+        "vorschau": "Klasse kundendaten nach intern VORSCHAU-5K",
+        "werkzeug": "brain_schreiben"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offen",
+          "anfrage": "mf-1795179540000-1",
+          "digest": "0708143f6cb72708e6aad222316d630fe16fecc4241f18e6e1332520d54f9017",
+          "frist_bis_ms": 1795179661003,
+          "vorschau_sha256": "e1525fc2e16cb0d389efade56f15bb3befdfcb196fc9f776b7ed6b6e7d631308",
+          "entscheidend": null,
+          "mitentscheidend": null,
+          "werkzeug": "brain_schreiben",
+          "zweite_person": false
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.anfragen",
+      "jetzt_ms": 1795179601004,
+      "eingabe": {
+        "argumente": {
+          "feld": "GEHEIM-ARG-7Q",
+          "id": "T-100",
+          "status": "erledigt"
+        },
+        "frist_ms": 60000,
+        "person": "ps_00000000000000000000000000000001",
+        "server": "tickets",
+        "sitzung": "s-1",
+        "vorschau": "Vorher: offen, Nachher: erledigt VORSCHAU-5K",
+        "werkzeug": "update"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "offen",
+          "anfrage": "mf-1795179540000-2",
+          "digest": "34b94b40a0e9af4b3040eef413cbf1db04b35d1ce446798e93e7d848e3ba4ced",
+          "frist_bis_ms": 1795179661004,
+          "vorschau_sha256": "e6733bda06a026fbeda9df0df864083e088f88d2e7f10d3bd347a8d469978bef",
+          "entscheidend": null,
+          "mitentscheidend": null,
+          "werkzeug": "update",
+          "zweite_person": false
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.entscheiden",
+      "jetzt_ms": 1795179602000,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1",
+        "entscheidung": "erteilen",
+        "nachweis": "h1:ps_00000000000000000000000000000a01:fb5c7b4805767480ac75376093029b317325b9fd6f93e6523167c4f642382843"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "erteilt",
+          "anfrage": "mf-1795179540000-1",
+          "einloesen_bis_ms": 1795179632000
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "mensch",
+      "vorgang": "mcp.entscheiden",
+      "jetzt_ms": 1795179602001,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-2",
+        "entscheidung": "erteilen",
+        "nachweis": "h1:ps_00000000000000000000000000000a01:26b16554aac8b1343728c276aeec0032dacc11e76f52cbee30b1b40daf67ba52"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "erteilt",
+          "anfrage": "mf-1795179540000-2",
+          "einloesen_bis_ms": 1795179632001
+        },
+        "zeilen": []
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.stand",
+      "jetzt_ms": 1795179603000,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.anfrage_unbekannt",
+          "grund": "Anfrage unbekannt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.anfrage_unbekannt\",\"vorgang\":\"mcp.stand\",\"vorher\":\"7af3e5947539375f3cded72bf8d4030fa4b8fa7292496e411382c3532be70c81\",\"zeit\":\"2026-11-20T13:00:03.000Z\"}",
+            "sha256": "b3fe61e65a950d8ab6ee5aad6e559f432edf581c153519d0ad48078e8198d709"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.einloesen",
+      "jetzt_ms": 1795179603001,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1",
+        "argumente": {
+          "einheit": "GEHEIM-ARG-7Q",
+          "stufe": "intern"
+        },
+        "server": "brain",
+        "werkzeug": "brain_schreiben"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.anfrage_unbekannt",
+          "grund": "Anfrage unbekannt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.anfrage_unbekannt\",\"vorgang\":\"mcp.einloesen\",\"vorher\":\"b3fe61e65a950d8ab6ee5aad6e559f432edf581c153519d0ad48078e8198d709\",\"zeit\":\"2026-11-20T13:00:03.001Z\"}",
+            "sha256": "430dfbca671b1bec08235d8ddbcd57a5fbdc957df1e1f2875db5baf19d28932d"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "brain",
+      "vorgang": "mcp.einloesen",
+      "jetzt_ms": 1795179603002,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-2",
+        "argumente": {
+          "feld": "GEHEIM-ARG-7Q",
+          "id": "T-100",
+          "status": "erledigt"
+        },
+        "server": "tickets",
+        "werkzeug": "update"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": false,
+          "code": "stelle.anfrage_unbekannt",
+          "grund": "Anfrage unbekannt"
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-2\",\"aufrufer\":\"brain\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.anfrage_unbekannt\",\"vorgang\":\"mcp.einloesen\",\"vorher\":\"430dfbca671b1bec08235d8ddbcd57a5fbdc957df1e1f2875db5baf19d28932d\",\"zeit\":\"2026-11-20T13:00:03.002Z\"}",
+            "sha256": "665cd709faa9ff3013968baa37afa4404bfe2f25f04263cf57c5eff5562cd58b"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "brain",
+      "vorgang": "mcp.einloesen",
+      "jetzt_ms": 1795179603003,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-1",
+        "argumente": {
+          "einheit": "GEHEIM-ARG-7Q",
+          "stufe": "intern"
+        },
+        "server": "brain",
+        "werkzeug": "brain_schreiben"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "eingeloest",
+          "anfrage": "mf-1795179540000-1",
+          "digest": "0708143f6cb72708e6aad222316d630fe16fecc4241f18e6e1332520d54f9017",
+          "entscheidend": "ps_00000000000000000000000000000a01",
+          "mitentscheidend": null,
+          "werkzeug": "brain_schreiben",
+          "zweite_person": false
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"0708143f6cb72708e6aad222316d630fe16fecc4241f18e6e1332520d54f9017\",\"entscheidend\":\"ps_00000000000000000000000000000a01\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_00000000000000000000000000000001\",\"server\":\"brain\",\"sitzung\":\"s-1\",\"vorher\":\"665cd709faa9ff3013968baa37afa4404bfe2f25f04263cf57c5eff5562cd58b\",\"werkzeug\":\"brain_schreiben\",\"zeit\":\"2026-11-20T13:00:03.003Z\",\"zeit_anfrage\":\"2026-11-20T13:00:01.003Z\",\"zeit_entscheidung\":\"2026-11-20T13:00:02.000Z\"}",
+            "sha256": "d7035f391feb4fa9492f401065e50c4131c249c22c8b44e3b8a674c96bceaae6"
+          }
+        ]
+      }
+    },
+    {
+      "aufrufer": "hub",
+      "vorgang": "mcp.einloesen",
+      "jetzt_ms": 1795179603004,
+      "eingabe": {
+        "anfrage": "mf-1795179540000-2",
+        "argumente": {
+          "feld": "GEHEIM-ARG-7Q",
+          "id": "T-100",
+          "status": "erledigt"
+        },
+        "server": "tickets",
+        "werkzeug": "update"
+      },
+      "erwartet": {
+        "antwort": {
+          "ok": true,
+          "ergebnis": "eingeloest",
+          "anfrage": "mf-1795179540000-2",
+          "digest": "34b94b40a0e9af4b3040eef413cbf1db04b35d1ce446798e93e7d848e3ba4ced",
+          "entscheidend": "ps_00000000000000000000000000000a01",
+          "mitentscheidend": null,
+          "werkzeug": "update",
+          "zweite_person": false
+        },
+        "zeilen": [
+          {
+            "text": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-2\",\"digest\":\"34b94b40a0e9af4b3040eef413cbf1db04b35d1ce446798e93e7d848e3ba4ced\",\"entscheidend\":\"ps_00000000000000000000000000000a01\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_00000000000000000000000000000001\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"d7035f391feb4fa9492f401065e50c4131c249c22c8b44e3b8a674c96bceaae6\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:03.004Z\",\"zeit_anfrage\":\"2026-11-20T13:00:01.004Z\",\"zeit_entscheidung\":\"2026-11-20T13:00:02.001Z\"}",
+            "sha256": "0791d6ddc4d17afe3cd2b1fb5c092446b390ff7785faa05390aea9c9e73e9beb"
+          }
+        ]
+      }
+    }
+  ],
+  "ende": {
+    "sitzungen": [
+      "s-1"
+    ],
+    "anfragen": {
+      "mf-1795179540000-1": "eingeloest",
+      "mf-1795179540000-2": "eingeloest"
+    },
+    "zaehler": 2,
+    "antraege": {},
+    "zugaenge": {},
+    "pflichten": {
+      "halter_bescheinigung": true,
+      "mcp.brain.freigabe": true,
+      "mcp.notizen.freigabe": false,
+      "mcp.tickets.freigabe": true,
+      "senken_zweite_person": false,
+      "vier_augen": false
+    },
+    "zeilen": 8,
+    "letzte": "0791d6ddc4d17afe3cd2b1fb5c092446b390ff7785faa05390aea9c9e73e9beb"
+  }
+}

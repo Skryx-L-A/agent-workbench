@@ -1,0 +1,25 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": {
+  "system": "windows",
+  "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "appcontainer_sid": null,
+  "uid": null,
+  "gid": null,
+  "pid": "=client",
+  "startzeit": null,
+  "im_job": null,
+  "programm": null,
+  "signatur": null,
+  "eingeschraenkt": false,
+  "sandbox": null
+ },
+ "gemessen": [
+  "100 von 100 Annahmen mit sid = person und appcontainer_sid null",
+  "pid gleich der Client-PID (GetCurrentProcessId im Client) in 100 von 100",
+  "startzeit und programm null, weil ein Dienst unter NT SERVICE den Prozess der Person nicht öffnen darf"
+ ]
+}

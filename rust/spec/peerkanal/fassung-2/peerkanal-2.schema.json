@@ -1,0 +1,805 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://werkbank.invalid/spec/peerkanal/fassung-2/peerkanal-2.schema.json",
+ "title": "peerkanal, Fassung 2: Vorgaben, Peer, Ereignis und die Form der sichtbaren Fälle (Gruppen und Cgroup unter Linux)",
+ "$defs": {
+  "kennung": {
+   "type": "string",
+   "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+  },
+  "sid": {
+   "description": "Nur Konten- und Dienst-SIDs: lokales Konto oder Domäne (S-1-5-21-…), Entra ID (S-1-12-1-…), virtuelles Dienstkonto (S-1-5-80-…), SYSTEM (S-1-5-18). Gruppen wie Everyone, Authenticated Users, Users und ALL APPLICATION PACKAGES passen nicht.",
+   "type": "string",
+   "anyOf": [
+    {
+     "pattern": "^S-1-5-21-[0-9]{1,10}-[0-9]{1,10}-[0-9]{1,10}-[0-9]{1,10}$"
+    },
+    {
+     "pattern": "^S-1-12-1-[0-9]{1,10}-[0-9]{1,10}-[0-9]{1,10}-[0-9]{1,10}$"
+    },
+    {
+     "pattern": "^S-1-5-80-[0-9]{1,10}-[0-9]{1,10}-[0-9]{1,10}-[0-9]{1,10}-[0-9]{1,10}$"
+    },
+    {
+     "const": "S-1-5-18"
+    }
+   ]
+  },
+  "package_sid": {
+   "description": "AppContainer-Package-SID mit genau sieben Unterautoritäten nach S-1-15-2; ALL APPLICATION PACKAGES (S-1-15-2-1) passt nicht.",
+   "type": "string",
+   "pattern": "^S-1-15-2-[0-9]{1,10}-[0-9]{1,10}-[0-9]{1,10}-[0-9]{1,10}-[0-9]{1,10}-[0-9]{1,10}-[0-9]{1,10}$"
+  },
+  "unix_id": {
+   "type": "integer",
+   "minimum": 0,
+   "maximum": 4294967294
+  },
+  "frist_ms": {
+   "type": "integer",
+   "minimum": 1,
+   "maximum": 60000
+  },
+  "pfad": {
+   "type": "string",
+   "pattern": "^/",
+   "not": {
+    "pattern": "(^|/)\\.\\.?(/|$)|//|\u0000"
+   },
+   "maxLength": 4096
+  },
+  "erlaubnis_windows": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "sid",
+    "appcontainer_sid"
+   ],
+   "properties": {
+    "sid": {
+     "$ref": "#/$defs/sid"
+    },
+    "appcontainer_sid": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "$ref": "#/$defs/package_sid"
+      }
+     ]
+    }
+   }
+  },
+  "erlaubnis_unix": {
+   "description": "Fassung 1: {uid} oder {uid, gid}. Neu in Fassung 2: {uid, gruppe}, nur unter Linux. gid und gruppe nie zugleich.",
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "uid"
+   ],
+   "properties": {
+    "uid": {
+     "$ref": "#/$defs/unix_id"
+    },
+    "gid": {
+     "$ref": "#/$defs/unix_id"
+    },
+    "gruppe": {
+     "$ref": "#/$defs/unix_id"
+    }
+   },
+   "not": {
+    "required": [
+     "gid",
+     "gruppe"
+    ]
+   }
+  },
+  "server_vorgabe": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "name",
+    "erlaubt",
+    "instanzen"
+   ],
+   "properties": {
+    "name": {
+     "$ref": "#/$defs/kennung"
+    },
+    "erlaubt": {
+     "anyOf": [
+      {
+       "type": "array",
+       "minItems": 1,
+       "maxItems": 64,
+       "uniqueItems": true,
+       "items": {
+        "$ref": "#/$defs/erlaubnis_windows"
+       }
+      },
+      {
+       "type": "array",
+       "minItems": 1,
+       "maxItems": 64,
+       "uniqueItems": true,
+       "items": {
+        "$ref": "#/$defs/erlaubnis_unix"
+       }
+      }
+     ]
+    },
+    "instanzen": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 64
+    },
+    "hallo_frist_ms": {
+     "$ref": "#/$defs/frist_ms"
+    },
+    "prozess_pflicht": {
+     "type": "boolean"
+    },
+    "im_job_pruefen": {
+     "const": true
+    },
+    "unix": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "ordner",
+      "modus"
+     ],
+     "properties": {
+      "ordner": {
+       "$ref": "#/$defs/pfad"
+      },
+      "modus": {
+       "enum": [
+        "0600",
+        "0660",
+        "0666"
+       ]
+      },
+      "ordner_gruppe": {
+       "$ref": "#/$defs/unix_id"
+      }
+     },
+     "if": {
+      "required": [
+       "ordner_gruppe"
+      ]
+     },
+     "then": {
+      "properties": {
+       "modus": {
+        "const": "0666"
+       }
+      }
+     }
+    }
+   },
+   "if": {
+    "properties": {
+     "erlaubt": {
+      "items": {
+       "required": [
+        "sid"
+       ]
+      }
+     }
+    }
+   },
+   "then": {
+    "not": {
+     "required": [
+      "unix"
+     ]
+    }
+   },
+   "else": {
+    "required": [
+     "unix"
+    ],
+    "not": {
+     "required": [
+      "im_job_pruefen"
+     ]
+    }
+   }
+  },
+  "client_vorgabe": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "name",
+    "erwartet",
+    "frist_ms"
+   ],
+   "properties": {
+    "name": {
+     "$ref": "#/$defs/kennung"
+    },
+    "erwartet": {
+     "oneOf": [
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "sid"
+       ],
+       "properties": {
+        "sid": {
+         "$ref": "#/$defs/sid"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "uid"
+       ],
+       "properties": {
+        "uid": {
+         "$ref": "#/$defs/unix_id"
+        }
+       }
+      }
+     ]
+    },
+    "frist_ms": {
+     "$ref": "#/$defs/frist_ms"
+    },
+    "unix_ordner": {
+     "$ref": "#/$defs/pfad"
+    }
+   },
+   "if": {
+    "properties": {
+     "erwartet": {
+      "required": [
+       "sid"
+      ]
+     }
+    }
+   },
+   "then": {
+    "not": {
+     "required": [
+      "unix_ordner"
+     ]
+    }
+   },
+   "else": {
+    "required": [
+     "unix_ordner"
+    ]
+   }
+  },
+  "messwert": {
+   "description": "Im Fall: eine Zahl oder ein Verweis auf den Wert, den der Außenläufer an der Gegenseite misst (=client, =server, =neuer_prozess).",
+   "anyOf": [
+    {
+     "type": "integer",
+     "minimum": 0
+    },
+    {
+     "enum": [
+      "=client",
+      "=server",
+      "=neuer_prozess"
+     ]
+    }
+   ]
+  },
+  "peer": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "system",
+    "sid",
+    "appcontainer_sid",
+    "uid",
+    "gid",
+    "pid",
+    "startzeit",
+    "im_job",
+    "programm",
+    "signatur",
+    "eingeschraenkt",
+    "sandbox",
+    "gruppen",
+    "cgroup"
+   ],
+   "properties": {
+    "system": {
+     "description": "=system nur in Fällen für Linux und macOS zugleich; der Außenläufer setzt das System des Laufs ein.",
+     "enum": [
+      "windows",
+      "linux",
+      "macos",
+      "=system"
+     ]
+    },
+    "sid": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "$ref": "#/$defs/sid"
+      }
+     ]
+    },
+    "appcontainer_sid": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "$ref": "#/$defs/package_sid"
+      }
+     ]
+    },
+    "uid": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "$ref": "#/$defs/unix_id"
+      }
+     ]
+    },
+    "gid": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "$ref": "#/$defs/unix_id"
+      }
+     ]
+    },
+    "pid": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "$ref": "#/$defs/messwert"
+      }
+     ]
+    },
+    "startzeit": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "$ref": "#/$defs/messwert"
+      }
+     ]
+    },
+    "im_job": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "programm": {
+     "description": "Bildpfad; im Fall auch =client oder =server",
+     "type": [
+      "string",
+      "null"
+     ],
+     "maxLength": 4096
+    },
+    "signatur": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "enum": [
+        "=client",
+        "=server"
+       ]
+      },
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "kennung",
+        "team_id",
+        "gueltig"
+       ],
+       "properties": {
+        "kennung": {
+         "type": "string",
+         "maxLength": 256
+        },
+        "team_id": {
+         "type": [
+          "string",
+          "null"
+         ],
+         "pattern": "^[A-Z0-9]{10}$"
+        },
+        "gueltig": {
+         "type": "boolean"
+        }
+       }
+      }
+     ]
+    },
+    "eingeschraenkt": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "sandbox": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "gruppen": {
+     "description": "Ergänzungsgruppen aus SO_PEERGROUPS, aufsteigend ohne Doppel; null, wo es die Messung nicht gibt oder sie scheitert. [] heißt gemessen und leer.",
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "type": "array",
+       "maxItems": 65536,
+       "uniqueItems": true,
+       "items": {
+        "$ref": "#/$defs/unix_id"
+       }
+      }
+     ]
+    },
+    "cgroup": {
+     "description": "Linux: Pfad der Cgroup v2 aus der Zeile 0:: von /proc/<pid>/cgroup; im Fall auch =client oder =server; null, wenn nicht lesbar.",
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "enum": [
+        "=client",
+        "=server"
+       ]
+      },
+      {
+       "type": "string",
+       "pattern": "^/",
+       "maxLength": 4096,
+       "not": {
+        "pattern": "\n|\u0000"
+       }
+      }
+     ]
+    }
+   },
+   "if": {
+    "properties": {
+     "system": {
+      "const": "windows"
+     }
+    }
+   },
+   "then": {
+    "properties": {
+     "uid": {
+      "type": "null"
+     },
+     "gid": {
+      "type": "null"
+     },
+     "sid": {
+      "$ref": "#/$defs/sid"
+     },
+     "signatur": {
+      "type": "null"
+     },
+     "sandbox": {
+      "type": "null"
+     },
+     "eingeschraenkt": {
+      "type": "boolean"
+     },
+     "gruppen": {
+      "type": "null"
+     },
+     "cgroup": {
+      "type": "null"
+     }
+    }
+   },
+   "else": {
+    "allOf": [
+     {
+      "properties": {
+       "sid": {
+        "type": "null"
+       },
+       "appcontainer_sid": {
+        "type": "null"
+       },
+       "im_job": {
+        "type": "null"
+       },
+       "eingeschraenkt": {
+        "type": "null"
+       },
+       "uid": {
+        "$ref": "#/$defs/unix_id"
+       },
+       "gid": {
+        "$ref": "#/$defs/unix_id"
+       }
+      }
+     },
+     {
+      "if": {
+       "properties": {
+        "system": {
+         "const": "macos"
+        }
+       }
+      },
+      "then": {
+       "properties": {
+        "gruppen": {
+         "type": "null"
+        },
+        "cgroup": {
+         "type": "null"
+        }
+       }
+      }
+     }
+    ]
+   }
+  },
+  "ereignis": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "ereignis",
+    "kanal",
+    "code",
+    "grund",
+    "peer"
+   ],
+   "properties": {
+    "ereignis": {
+     "const": "abgewiesen"
+    },
+    "kanal": {
+     "$ref": "#/$defs/kennung"
+    },
+    "code": {
+     "enum": [
+      "pk.hallo_ungueltig",
+      "pk.peer_unmessbar",
+      "pk.prozess_gewechselt",
+      "pk.kennung_nicht_erlaubt",
+      "pk.aufrufer_abgewiesen"
+     ]
+    },
+    "grund": {
+     "anyOf": [
+      {
+       "enum": [
+        "pk.hallo_fehlt",
+        "pk.hallo_falsch",
+        "pk.messung_gescheitert",
+        "pk.prozess_nicht_offen",
+        "pk.job_unbekannt",
+        "pk.prozess_beendet",
+        "pk.startzeit_weicht_ab",
+        "pk.pidversion_weicht_ab",
+        "pk.eingeschraenkt",
+        "pk.sid_nicht_erlaubt",
+        "pk.appcontainer_falsch",
+        "pk.uid_nicht_erlaubt",
+        "pk.gid_falsch",
+        "pk.gruppen_unlesbar",
+        "pk.gruppe_fehlt"
+       ]
+      },
+      {
+       "type": "string",
+       "pattern": "^aufrufer:[a-z0-9][a-z0-9._-]{0,63}$"
+      }
+     ]
+    },
+    "peer": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "$ref": "#/$defs/peer"
+      }
+     ]
+    }
+   }
+  },
+  "fall": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "fassung",
+    "beschreibung",
+    "art",
+    "ort",
+    "konten",
+    "server",
+    "client",
+    "aufbau",
+    "handlung"
+   ],
+   "properties": {
+    "fassung": {
+     "const": 2
+    },
+    "beschreibung": {
+     "type": "string",
+     "minLength": 1
+    },
+    "art": {
+     "enum": [
+      "vorgabe",
+      "aussentest"
+     ]
+    },
+    "ort": {
+     "type": "array",
+     "minItems": 1,
+     "uniqueItems": true,
+     "items": {
+      "enum": [
+       "windows",
+       "linux",
+       "mac"
+      ]
+     }
+    },
+    "konten": {
+     "type": "object",
+     "additionalProperties": {
+      "type": [
+       "string",
+       "integer"
+      ]
+     }
+    },
+    "server": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "type": "object"
+      }
+     ]
+    },
+    "client": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "type": "object"
+      }
+     ]
+    },
+    "aufbau": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "handlung": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   }
+  },
+  "erwartet": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "fassung",
+    "seite",
+    "ergebnis",
+    "code",
+    "ereignisse",
+    "peer",
+    "gemessen"
+   ],
+   "properties": {
+    "fassung": {
+     "const": 2
+    },
+    "seite": {
+     "enum": [
+      "vorgabe",
+      "anlegen",
+      "annehmen",
+      "verbinden"
+     ]
+    },
+    "ergebnis": {
+     "enum": [
+      "ok",
+      "fehler"
+     ]
+    },
+    "code": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "type": "string",
+       "pattern": "^pk\\.[a-z_]+$"
+      }
+     ]
+    },
+    "ereignisse": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/ereignis"
+     }
+    },
+    "peer": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "$ref": "#/$defs/peer"
+      }
+     ]
+    },
+    "gemessen": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   },
+   "if": {
+    "properties": {
+     "ergebnis": {
+      "const": "ok"
+     }
+    }
+   },
+   "then": {
+    "properties": {
+     "code": {
+      "type": "null"
+     }
+    }
+   },
+   "else": {
+    "properties": {
+     "code": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

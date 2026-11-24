@@ -1,0 +1,42 @@
+{
+ "name": "tr3_cursor_ruecklauf",
+ "regeln": [
+  "TR3"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Der Cursor steht in Bildschirmzeilen, nie im Rücklauf: Zeilen, die oben hinauslaufen, ändern seine Zeile nicht",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha 0\r\nbeta 1\r\ngamma 2\r\ndelta 3\r\nepsilon 4\r\nzeta 5\r\nalpha 6\r\nbeta 7\r\ngamma 8\r\ndelta 9\r\nepsilon 10\r\nzeta 11\r\nalpha 12\r\nbeta 13\r\ngamma 14\r\ndelta 15\r\nepsilon 16\r\nzeta 17\r\nalpha 18\r\nbeta 19\r\ngamma 20\r\ndelta 21\r\nepsilon 22\r\nzeta 23\r\nalpha 24\r\nbeta 25\r\ngamma 26\r\ndelta 27"
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 30,
+   "zeilen": 6
+  },
+  {
+   "art": "Zustand"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[1;1Hbeta"
+  },
+  {
+   "art": "Groesse",
+   "spalten": 30,
+   "zeilen": 11
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

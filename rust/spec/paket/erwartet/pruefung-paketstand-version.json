@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.paketstand_version: Die installierte Version weicht vom Manifest ab.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

@@ -1,0 +1,73 @@
+{
+ "name": "k9-reihenfolge",
+ "regeln": [
+  "K0"
+ ],
+ "beschreibung": "Die Route wird vor den Quellen geprüft.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "lokal",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud-oeff",
+    "art": "cloud",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "cloud-n",
+    "art": "cloud"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-nord",
+    "erlaubt": [
+     "lokal"
+    ]
+   },
+   {
+    "schluessel": "k-sued",
+    "erlaubt": [
+     "lokal"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "route": null,
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "geheim"
+    }
+   ]
+  },
+  {
+   "route": "cloud",
+   "sitzungskunde": null,
+   "gelesen": [
+    {
+     "klasse": "geheim"
+    },
+    {
+     "klasse": "intern",
+     "kunde": "k-nord"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,9 @@
+{
+ "beschreibung": "Löschen bei ausgefallenem Helfer: Sperre bleibt",
+ "form": "steuer",
+ "text": "{\"op\": \"projekt_loeschen\", \"ordner\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\"}\n",
+ "lage": {
+  "laeufe": [],
+  "helfer": "gestoppt"
+ }
+}

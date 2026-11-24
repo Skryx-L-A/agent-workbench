@@ -1,0 +1,43 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": false,
+    "grund": "klasse-ueber-route",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über Route c-intern"
+   },
+   {
+    "darf": false,
+    "grund": "kunde-ohne-eintrag",
+    "klasse": "kundendaten",
+    "meldung": "Kunde ohne Eintrag in der Kundenvorgabe"
+   },
+   {
+    "darf": false,
+    "grund": "route-fuer-kunde-verboten",
+    "klasse": "kundendaten",
+    "meldung": "Route c1 ist für diesen Kunden verboten"
+   },
+   {
+    "darf": false,
+    "grund": "route-fuer-kunde-nicht-erlaubt",
+    "klasse": "kundendaten",
+    "meldung": "Route c1 ist für diesen Kunden nicht erlaubt"
+   },
+   {
+    "darf": false,
+    "grund": "route-ohne-klasse",
+    "klasse": null,
+    "meldung": "Route c-x hat keine Klasse"
+   },
+   {
+    "darf": false,
+    "grund": "einheit-ohne-klasse",
+    "klasse": null,
+    "meldung": "Einheit ohne gültige Klasse"
+   }
+  ]
+ }
+}

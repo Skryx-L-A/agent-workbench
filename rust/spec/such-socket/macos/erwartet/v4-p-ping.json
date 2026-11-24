@@ -1,0 +1,21 @@
+{
+ "start": "bereit",
+ "socket_rechte": "0600",
+ "responses": [
+  {
+   "ok": true,
+   "id": 1
+  },
+  {
+   "ok": true,
+   "id": "a"
+  },
+  {
+   "ok": true
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "exit": 0
+ }
+}

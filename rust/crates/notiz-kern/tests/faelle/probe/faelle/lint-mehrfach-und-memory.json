@@ -1,0 +1,12 @@
+{
+ "description": "two blocks and Claude memory fields",
+ "files": {
+  "note.md": "---\npermalink: main/x\n---\n\n---\nid: 01M3KEHCGEKTVFPC15XAVEPRDS\nschema: 4\nname: g\nmetadata:\n  type: user\ntitle: G\ntype: note\nclass: knowledge\ncreated: \"2026-09-28\"\nstand: \"2026-09\"\n---\n\nFür künftige Sessions: x\n"
+ },
+ "args": [
+  "lint",
+  "{root}/note.md",
+  "--rel",
+  "10-global/g.md"
+ ]
+}

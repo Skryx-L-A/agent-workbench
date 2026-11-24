@@ -1,0 +1,26 @@
+{
+ "name": "tr5_modi_text",
+ "regeln": [
+  "TR5"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Das Raster ändert sich bei ?5 nicht (alacritty_terminal kennt DECSCNM nicht)",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha\u001b[?5hbeta"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?5l"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

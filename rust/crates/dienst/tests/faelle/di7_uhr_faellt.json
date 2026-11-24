@@ -1,0 +1,96 @@
+{
+ "beschreibung": "die eingespeiste Uhr darf nicht zurueck: Fehler uhr_faellt, die Zeit bleibt",
+ "datensatz": "A",
+ "name": "di7_uhr_faellt",
+ "regeln": [
+  "DI7",
+  "DI9"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Uhr",
+   "t": 1400
+  },
+  {
+   "art": "Uhr",
+   "t": 1000
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "fehler": "uhr_faellt"
+   },
+   "frist": 3,
+   "takt": 16
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "getrennt": true
+   },
+   "frist": 3,
+   "takt": 16
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c2"
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c2",
+   "mit_t": true
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   40,
+   10
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "ende",
+    "0"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

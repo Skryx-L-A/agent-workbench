@@ -1,0 +1,81 @@
+{
+ "beschreibung": "Ein Rahmen mit Verschiebung (M2) ergibt dieselben Zeilen wie das Abbild.",
+ "datensatz": "A",
+ "name": "se4_verschiebung",
+ "regeln": [
+  "SE4"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "0501040228080100000008000100075a65696c652061010100075a65696c652062020100075a65696c652063030100075a65696c652064040100075a65696c652065050100075a65696c652066060100075a65696c652067070100075a65696c652068"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "Zeile a"
+    ]
+   }
+  },
+  {
+   "art": "Raster",
+   "hex": "050101030008030100000003050100056e65752031060100056e65752032070100056e65752033"
+  },
+  {
+   "art": "Zeilen",
+   "erwartet": [
+    "Zeile d",
+    "Zeile e",
+    "Zeile f",
+    "Zeile g",
+    "Zeile h",
+    "neu 1",
+    "neu 2",
+    "neu 3"
+   ]
+  }
+ ]
+}

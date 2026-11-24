@@ -1,0 +1,40 @@
+{
+ "beschreibung": "ein abgelehntes Harness hat nur den Befund, nicht noch den Hinweis „nicht eingetragen“; das andere Harness behält seinen Hinweis (die Hinweise stehen nach den Befunden)",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   }
+  ],
+  "apparmor": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "ok",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok",
+  "programmordner_abgelehnt": [
+   {
+    "harness": "pi",
+    "ordner": "/opt/p"
+   }
+  ],
+  "harness": {
+   "copilot": "nicht_gefunden",
+   "pi": "nicht_eingetragen"
+  }
+ }
+}

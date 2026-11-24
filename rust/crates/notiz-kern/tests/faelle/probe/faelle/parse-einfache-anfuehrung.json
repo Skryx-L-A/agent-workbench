@@ -1,0 +1,10 @@
+{
+ "description": "single-quoted doubled quote",
+ "files": {
+  "note.md": "---\ntitle: 'Omas ''bestes'' Rezept: Teil 1'\ntype: 'note'\n---\nText\n"
+ },
+ "args": [
+  "parse",
+  "{root}/note.md"
+ ]
+}

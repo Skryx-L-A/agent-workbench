@@ -1,0 +1,22 @@
+{
+ "exit": 0,
+ "stdout": {
+  "blocks": [
+   "title: Alt-Mac\ntype: note"
+  ],
+  "fields": {
+   "title": "Alt-Mac",
+   "type": "note"
+  },
+  "body": "Text\n",
+  "title": "Alt-Mac",
+  "type": "note",
+  "aliases": [],
+  "links": [],
+  "keys": [
+   "alt-mac",
+   "note"
+  ],
+  "embed_text": "Alt-Mac\ntype: note\n\nText\n"
+ }
+}

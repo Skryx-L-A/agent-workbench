@@ -1,0 +1,113 @@
+{
+ "beschreibung": "mit deflate an (Startdatei der Bruecke und des Dienstes) setzt der Strom den Kopf X-Deflate: 1, und die Rasterrahmen kommen gepackt an und lassen sich entpacken; mit deflate aus steht X-Deflate: 0 (br_strom_eingabe)",
+ "datensatz": "A",
+ "dienst": {
+  "deflate": true,
+  "plan": {
+   "*": {
+    "modus": "marke",
+    "sek": 30,
+    "text": "EINS"
+   }
+  },
+  "pruefmodus": false
+ },
+ "name": "br_deflate_an",
+ "regeln": [
+  "BR4"
+ ],
+ "schritte": [
+  {
+   "art": "Strom",
+   "name": "s1"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "ziel": "/starten"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "liste": {
+     "id": "s-1",
+     "zustand": "laeuft"
+    }
+   },
+   "strom": "s1"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": 100,
+     "zeilen": 12
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "verbindung": "s1",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "nr": 1,
+    "text": "BEREIT"
+   },
+   "strom": "s1"
+  },
+  {
+   "anfrage": {
+    "koerper": {
+     "art": "Text",
+     "sitzung": "s-1",
+     "text": "g"
+    },
+    "methode": "POST",
+    "origin": "gut",
+    "token": "gut",
+    "verbindung": "s1",
+    "ziel": "/eingabe"
+   },
+   "art": "Http"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "nr": 1,
+    "text": "MARKE EINS"
+   },
+   "strom": "s1"
+  },
+  {
+   "art": "Zustand",
+   "arten": true,
+   "strom": "s1"
+  }
+ ],
+ "start": {
+  "deflate": true,
+  "dienst": {
+   "socket": "@dienst_socket"
+  },
+  "port": 0,
+  "token_datei": "@token_datei"
+ }
+}

@@ -1,0 +1,23 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": {
+  "system": "windows",
+  "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "appcontainer_sid": "S-1-15-2-1000000021-1000000022-1000000023-1000000024-1000000025-1000000026-1000000027",
+  "uid": null,
+  "gid": null,
+  "pid": "=client",
+  "startzeit": "=client",
+  "im_job": true,
+  "programm": "=client",
+  "signatur": null,
+  "eingeschraenkt": false,
+  "sandbox": null
+ },
+ "gemessen": [
+  "sid = person, appcontainer_sid = container_a, im_job true"
+ ]
+}

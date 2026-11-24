@@ -1,0 +1,37 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "klasse": "kundendaten",
+    "herkunft": "vorgabestufe",
+    "senkung": {
+     "grund": "aus",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "kundendaten",
+     "meldung": "Klasse der Einheit liegt über Route r-intern"
+    }
+   },
+   {
+    "klasse": "kundendaten",
+    "herkunft": "vorgabestufe",
+    "senkung": {
+     "grund": "aus",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "kunde-fehlt",
+     "klasse": "kundendaten",
+     "meldung": "Kundendaten ohne Kunde"
+    }
+   }
+  ]
+ }
+}

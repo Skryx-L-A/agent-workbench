@@ -1,0 +1,387 @@
+{
+ "beschreibung": "Fokus nach dem Laden im Terminal; F6 und Umschalt+F6 verlassen es; Tab-Folge Liste, Terminal, Eingabezeile, Senden, Startformular; jeder Halt mit Rahmen.",
+ "datensatz": "A",
+ "name": "se2_tab_folge",
+ "regeln": [
+  "SE2"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     },
+     {
+      "harness": "claude",
+      "id": "s-2",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "route": "cloud",
+      "zustand": "laeuft"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": true,
+    "name_beginnt": "Terminal",
+    "name_enthaelt": "s-1",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "F6",
+   "key": "F6",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Eingabe",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Senden",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Harness",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Modell",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Route",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Kunde",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Arbeitsordner",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Starten",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Arbeitsordner",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Kunde",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Route",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Modell",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Harness",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Senden",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Eingabe",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": true,
+    "name_beginnt": "Terminal",
+    "name_enthaelt": "s-1",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "F6",
+   "key": "F6",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name_enthaelt": "s-2",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name_enthaelt": "s-1",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name_enthaelt": "s-2",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": true,
+    "name_beginnt": "Terminal",
+    "name_enthaelt": "s-1",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": []
+  }
+ ]
+}

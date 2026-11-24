@@ -1,0 +1,22 @@
+{
+ "name": "tr2_ereignis_trennt",
+ "regeln": [
+  "TR2"
+ ],
+ "datensatz": "A",
+ "beschreibung": "Vor jedem anderen Ereignis geht die Ausgabe der bisher geänderten Zeilen; die Ausgabe nach dem Ereignis ist eine neue",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "alpha\u001b]2;Werkbank eins\u0007beta\u001b[?2004hgamma\u001b[?5h\r\nende"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}

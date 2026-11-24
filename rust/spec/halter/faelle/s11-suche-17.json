@@ -1,0 +1,88 @@
+{
+ "beschreibung": "17 Suchpfade",
+ "form": "anfrage",
+ "text": "{\"fassung\":1,\"id\":\"u-1\",\"op\":\"modell.suche\",\"pfade\":[\"/srv/beispiel/0\",\"/srv/beispiel/1\",\"/srv/beispiel/2\",\"/srv/beispiel/3\",\"/srv/beispiel/4\",\"/srv/beispiel/5\",\"/srv/beispiel/6\",\"/srv/beispiel/7\",\"/srv/beispiel/8\",\"/srv/beispiel/9\",\"/srv/beispiel/10\",\"/srv/beispiel/11\",\"/srv/beispiel/12\",\"/srv/beispiel/13\",\"/srv/beispiel/14\",\"/srv/beispiel/15\",\"/srv/beispiel/16\"],\"ziel\":\"konto-beispiel\"}",
+ "lage": {
+  "aufrufer": {
+   "rolle": "bruecke",
+   "konto": "S-1-5-21-1000-1000-1000-1001",
+   "vertreter": false
+  },
+  "jetzt_ms": 1795000000000,
+  "start_ms": 1794996400000,
+  "kids": {
+   "stelle-mcp-1": "qvy5SgFhefK2a9hsceqk+MJ5evYpEJTTdGpqO3O85VY="
+  },
+  "benutzt": [],
+  "nachweis_gueltig": true,
+  "konfig": {
+   "ziele": {
+    "cloud-beispiel": {
+     "pfade": [
+      "POST /v1/messages"
+     ],
+     "schluessel": "modell.cloud-beispiel"
+    },
+    "konto-beispiel": {
+     "pfade": [
+      "GET /copilot_internal/*",
+      "GET /responses",
+      "POST /chat/completions"
+     ],
+     "schluessel": "anmeldung.konto-beispiel"
+    }
+   },
+   "server": {
+    "tickets": {
+     "schluessel": "mcp.tickets",
+     "freigabe": true,
+     "werkzeuge": {
+      "update": "schreibend",
+      "get": "lesend"
+     }
+    },
+    "notizen": {
+     "schluessel": "mcp.notizen",
+     "freigabe": false,
+     "werkzeuge": {
+      "anlegen": "schreibend"
+     }
+    },
+    "wiki": {
+     "schluessel": "mcp.wiki",
+     "freigabe": true,
+     "werkzeuge": {
+      "seite": "lesend"
+     }
+    }
+   }
+  },
+  "geheimnisse": [
+   {
+    "name": "modell.cloud-beispiel",
+    "konto": null,
+    "person": null
+   },
+   {
+    "name": "mcp.tickets",
+    "konto": "S-1-5-21-1000-1000-1000-1001",
+    "person": "ps_a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+   },
+   {
+    "name": "mcp.notizen",
+    "konto": "S-1-5-21-1000-1000-1000-1001",
+    "person": "ps_a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+   },
+   {
+    "name": "mcp.wiki",
+    "konto": "S-1-5-21-1000-1000-1000-1002",
+    "person": "ps_b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+   },
+   {
+    "name": "anmeldung.konto-beispiel",
+    "konto": "S-1-5-21-1000-1000-1000-1001",
+    "person": null
+   }
+  ]
+ }
+}

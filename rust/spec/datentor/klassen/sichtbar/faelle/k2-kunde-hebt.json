@@ -1,0 +1,95 @@
+{
+ "name": "k2-kunde-hebt",
+ "regeln": [
+  "K2",
+  "D5"
+ ],
+ "beschreibung": "Eine Einheit mit Kunde hat die höchste Klasse, gleich ob eigen, geerbt oder Vorgabestufe; ein leerer Text ist ein Kunde.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ],
+  "vorgabestufe": "intern"
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "intern",
+    "kunde": "k-a"
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "oeffentlich",
+    "kunde": "k-a"
+   },
+   "route": "r-intern"
+  },
+  {
+   "einheit": {
+    "kunde": "k-a"
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "kunde": ""
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "kunde": null
+   },
+   "route": "r-intern"
+  },
+  {
+   "einheit": {
+    "geerbt": "kundendaten",
+    "kunde": "k-b"
+   },
+   "route": "r-kd"
+  }
+ ]
+}

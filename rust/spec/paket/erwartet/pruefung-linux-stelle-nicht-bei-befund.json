@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.apparmor_nicht_geladen: Das AppArmor-Profil ist nicht geladen.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

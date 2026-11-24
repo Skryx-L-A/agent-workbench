@@ -1,0 +1,18 @@
+{
+ "description": "kein Wort trifft, keine Vektordatei: hits leer, fallback wahr",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/vault",
+  "Motorradreifen Luftdruck",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {
+  "vault/zz/fueller-1.md": "---\ntitle: Füller 1\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-2.md": "---\ntitle: Füller 2\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-3.md": "---\ntitle: Füller 3\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/zz/fueller-4.md": "---\ntitle: Füller 4\ntype: note\n---\n\nEin Text ohne Bezug zu den anderen Notizen.\n",
+  "vault/garten/beet.md": "---\ntitle: Beet\ntype: note\n---\n\nEin Beet im Garten.\n"
+ }
+}

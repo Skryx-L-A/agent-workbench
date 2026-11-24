@@ -1,0 +1,31 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "intern",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "schreiben",
+    "grund": null,
+    "klasse": "kundendaten",
+    "kunde": "k-nord",
+    "klasse_alt": null,
+    "werkzeug": null
+   },
+   {
+    "ergebnis": "freigabe-noetig",
+    "grund": null,
+    "klasse": "intern",
+    "kunde": null,
+    "klasse_alt": null,
+    "werkzeug": "brain_schreiben"
+   }
+  ]
+ }
+}

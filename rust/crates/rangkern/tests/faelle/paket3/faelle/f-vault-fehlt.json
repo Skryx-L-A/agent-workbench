@@ -1,0 +1,12 @@
+{
+ "description": "Vault fehlt: Exit 3",
+ "program": "rangkern",
+ "args": [
+  "search",
+  "{root}/fehlt",
+  "Kaffee",
+  "--today",
+  "2026-11-18"
+ ],
+ "files": {}
+}

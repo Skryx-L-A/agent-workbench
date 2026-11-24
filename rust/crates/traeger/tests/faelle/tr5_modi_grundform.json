@@ -1,0 +1,46 @@
+{
+ "name": "tr5_modi_grundform",
+ "regeln": [
+  "TR5"
+ ],
+ "datensatz": "A",
+ "beschreibung": "?5 (DECSCNM) und ?2004 (Bracketed Paste) als Modus-Ereignisse je Vorkommen; mehrere Modi in einer Folge in der Reihenfolge der Folge; andere Modi ohne Ereignis",
+ "art": "strom",
+ "groesse": [
+  30,
+  8
+ ],
+ "schritte": [
+  {
+   "art": "Text",
+   "text": "\u001b[?5h"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?5l"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?2004h"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?2004l"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?5;2004h"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?2004;5l"
+  },
+  {
+   "art": "Text",
+   "text": "\u001b[?1049h\u001b[?25l"
+  },
+  {
+   "art": "Zustand"
+  }
+ ]
+}
