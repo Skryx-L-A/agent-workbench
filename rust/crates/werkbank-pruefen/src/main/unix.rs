@@ -2,8 +2,9 @@
 //! called by `prerm` on `apt remove`, only reports a key file that stays and never fails; `--programmordner <heim> <ordner>`, called by
 //! `postinst`, applies the rule of the enclosure for program folders to one folder (exit 0 allowed, 1 refused).
 //!
-//! Test seam: with `WB_TESTUMGEBUNG=1` and `WB_PRUEFEN_LAGE=<file>` the program reads a `Lage` from the file (the `lage` of
-//! a case of the contract) instead of the machine. Without `WB_TESTUMGEBUNG=1` the variable is ignored.
+//! Test seam, only in the test build (feature `pruefbau`): with `WB_TESTUMGEBUNG=1` and `WB_PRUEFEN_LAGE=<file>` the program
+//! reads a `Lage` from the file (the `lage` of a case of the contract) instead of the machine. Without `WB_TESTUMGEBUNG=1` the
+//! variable is ignored. The delivered build has no seam and never reads either variable.
 
 use std::io::Write;
 use std::process::ExitCode;
@@ -77,8 +78,23 @@ fn programmordner_aufruf(mut args: impl Iterator<Item = std::ffi::OsString>) -> 
     ExitCode::SUCCESS
 }
 
+/// Test build (feature `pruefbau`): the file of the seam, only with `WB_TESTUMGEBUNG=1`.
+#[cfg(feature = "pruefbau")]
+fn lage_naht() -> Option<String> {
+    if std::env::var("WB_TESTUMGEBUNG").is_ok_and(|v| v == "1") {
+        std::env::var("WB_PRUEFEN_LAGE").ok()
+    } else {
+        None
+    }
+}
+
+/// Delivered build: no seam, the environment is not read for it.
+#[cfg(not(feature = "pruefbau"))]
+fn lage_naht() -> Option<String> {
+    None
+}
+
 pub fn main() -> ExitCode {
-    let seam = std::env::var("WB_TESTUMGEBUNG").is_ok_and(|v| v == "1");
     let mut args = std::env::args_os().skip(1);
     if let Some(erstes) = args.next() {
         if erstes == "--programmordner" {
@@ -87,33 +103,32 @@ pub fn main() -> ExitCode {
         if erstes != "--vor-entfernen" || args.next().is_some() {
             return ausgeben(&aufruf_falsch());
         }
-        return match std::env::var("WB_PRUEFEN_LAGE") {
-            Ok(pfad) if seam => ausgeben(
+        return match lage_naht() {
+            Some(pfad) => ausgeben(
                 &aus_datei(&pfad)
                     .map_or_else(|_| intern(), |l| vor_entfernen(&l.schluessel, &l.copilot)),
             ),
-            _ => ausgeben(&vor_entfernen(
+            None => ausgeben(&vor_entfernen(
                 schluessel_zustand("modellweg.schluessel"),
                 schluessel_zustand("copilot.schluessel"),
             )),
         };
     }
-    let ergebnis = match std::env::var("WB_PRUEFEN_LAGE") {
-        Ok(pfad) if seam => aus_datei(&pfad).map_or_else(|_| intern(), |l| bewerte(&l)),
-        _ => {
-            let (nutzer, root) = aufrufer(
-                std::env::var("SUDO_USER").ok().as_deref(),
-                reale_uid(),
-                std::path::Path::new("/"),
-            );
-            let umgebung = Umgebung {
-                wurzel: "/".into(),
-                nutzer,
-                root,
-                system: &Echt,
-            };
-            bewerte(&umgebung.lage())
-        }
+    let ergebnis = if let Some(pfad) = lage_naht() {
+        aus_datei(&pfad).map_or_else(|_| intern(), |l| bewerte(&l))
+    } else {
+        let (nutzer, root) = aufrufer(
+            std::env::var("SUDO_USER").ok().as_deref(),
+            reale_uid(),
+            std::path::Path::new("/"),
+        );
+        let umgebung = Umgebung {
+            wurzel: "/".into(),
+            nutzer,
+            root,
+            system: &Echt,
+        };
+        bewerte(&umgebung.lage())
     };
     ausgeben(&ergebnis)
 }

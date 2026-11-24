@@ -74,7 +74,7 @@ PATH="$ORT/cargo/bin:$ORT/tools/bin:$PATH"
 export PATH
 
 # ---- step 2: build --------------------------------------------------------------------------------------------------
-# No feature of the workspace is switched on: neither `attrappe` nor a feature that starts with `test`.
+# No feature of the workspace is switched on: neither `attrappe` nor `pruefbau` (the seams of the tests) nor a feature that starts with `test`.
 CRATES="$(python3 -I paket/bau.py crates --rust "$HERE")"
 rc=$?
 [ "$rc" -eq 0 ] && [ -n "$CRATES" ] || { echo "paket.sh: no crate to build (rc $rc)" >&2; exit 70; }

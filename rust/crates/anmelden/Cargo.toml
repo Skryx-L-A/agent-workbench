@@ -13,6 +13,11 @@ path = "src/lib.rs"
 name = "werkbank-anmelden"
 path = "src/main.rs"
 
+[features]
+# Test build only, never in the delivered build (the package builds without it): the seams `WB_ANMELDEN_*` of `main`,
+# valid there only with `WB_TESTUMGEBUNG=1`. Without the feature the program never reads them.
+pruefbau = []
+
 # serde_json: reads `config.json` of the Copilot CLI (only to find the token; its content is never printed).
 # signal-hook (flag module only): SIGINT, SIGTERM and SIGHUP set a flag; the main loop ends the CLI, deletes the
 # throw-away home and exits with 128 + the signal number. No `unsafe` in this crate (`unsafe_code = "forbid"`).

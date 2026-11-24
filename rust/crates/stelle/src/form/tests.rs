@@ -102,6 +102,59 @@ fn objekt_lesen_streng() {
     assert!(objekt_lesen(b"{\"a\":\"\xff\"}").is_none());
 }
 
+/// The frame of the shell (contract 6, section 13.3): one case per kind that the strict reading refuses.
+/// The shell is built later; the reading it takes is this one, so the kinds are fixed here.
+#[test]
+fn rahmen_streng_gelesen() {
+    let gut = br#"{"vorgang":"mcp.anfragen","eingabe":{"server":"tickets","werkzeug":"update"}}"#;
+    let felder = objekt_lesen(gut).expect("the frame is read");
+    assert_eq!(felder.len(), 2);
+    assert_eq!(felder["vorgang"], json!("mcp.anfragen"));
+    let abgewiesen: [(&str, &[u8]); 11] = [
+        ("kein JSON", b"vorgang=mcp.anfragen"),
+        ("kein Objekt", br#"["mcp.anfragen",{}]"#),
+        (
+            "Schluessel doppelt, oberste Ebene",
+            br#"{"vorgang":"mcp.anfragen","eingabe":{},"eingabe":{}}"#,
+        ),
+        (
+            "Schluessel doppelt, in der Eingabe",
+            br#"{"vorgang":"mcp.anfragen","eingabe":{"argumente":1,"argumente":2}}"#,
+        ),
+        (
+            "Zahl ausserhalb von JSON: NaN",
+            br#"{"vorgang":"mcp.anfragen","eingabe":{"frist_ms":NaN}}"#,
+        ),
+        (
+            "Zahl ausserhalb von JSON: Infinity",
+            br#"{"vorgang":"mcp.anfragen","eingabe":{"frist_ms":Infinity}}"#,
+        ),
+        (
+            "Zahl ausserhalb von JSON: 1e999",
+            br#"{"vorgang":"mcp.anfragen","eingabe":{"frist_ms":1e999}}"#,
+        ),
+        (
+            "Komma am Ende",
+            br#"{"vorgang":"mcp.anfragen","eingabe":{},}"#,
+        ),
+        (
+            "Text nach dem Objekt",
+            br#"{"vorgang":"mcp.anfragen","eingabe":{}} {"vorgang":"mcp.offene","eingabe":{}}"#,
+        ),
+        (
+            "BOM vor dem Objekt",
+            b"\xef\xbb\xbf{\"vorgang\":\"mcp.offene\",\"eingabe\":{}}",
+        ),
+        (
+            "kein UTF-8",
+            b"{\"vorgang\":\"mcp.anfragen\",\"eingabe\":{\"a\":\"\xff\"}}",
+        ),
+    ];
+    for (art, bytes) in abgewiesen {
+        assert!(objekt_lesen(bytes).is_none(), "{art}");
+    }
+}
+
 #[test]
 fn base64_lesen() {
     assert_eq!(base64(""), Some(Vec::new()));

@@ -59,7 +59,7 @@ impl Punkt {
     }
 }
 
-/// A probe of the tests at one point (seam of `main`, only with `WB_TESTUMGEBUNG=1`).
+/// A probe of the tests at one point (seam of `main`, only in the test build with `WB_TESTUMGEBUNG=1`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Probe {
     /// The process kills itself with SIGKILL at the point: a hard end between two steps.

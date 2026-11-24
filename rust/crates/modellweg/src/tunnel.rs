@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use openssl::ssl::{NameType, SniError, SslAcceptor, SslAlert, SslMethod, SslStream};
 
-use crate::betrieb::{Abbruch, Betrieb, Huelle, Server};
+use crate::betrieb::{Abbruch, Betrieb, Huelle, Server, TUNNEL_MAX};
 use crate::betriebsart::kopf_einsetzen::{self, Meldung, Rahmen, an_ziel, antwortkopf_bleibt};
 use crate::betriebsart::zielliste::{Ziel, Zielliste};
 use crate::ca::Ca;
@@ -164,7 +164,7 @@ impl Tunnel {
         if connect == Connect::Unlesbar {
             return self.abweisen(h, None, "mw.anfrage_unlesbar");
         }
-        let Some(_platz) = self.betrieb.platz() else {
+        let Some(_platz) = self.betrieb.platz(TUNNEL_MAX) else {
             return self.abweisen(h, None, "mw.ausgelastet");
         };
         let Connect::Ziel(ziel_text) = connect else {

@@ -284,11 +284,28 @@
    }
   },
   {
-   "name": "ausgelastet",
-   "beschreibung": "acht Tunnel offen",
+   "name": "letzter_platz",
+   "beschreibung": "einunddreissig Tunnel offen, der zweiunddreissigste kommt noch durch",
    "lage": {
     "ziele": "vorfuehrung",
-    "laufend": 8,
+    "laufend": 31,
+    "protokoll_ok": true,
+    "unaufgeloest": []
+   },
+   "sni": "api.github.com",
+   "connect": "CONNECT api.github.com:443 HTTP/1.1\r\nHost: api.github.com:443\r\n\r\n",
+   "erwartet": {
+    "antwort": "HTTP/1.1 200 Connection Established\r\n\r\n",
+    "danach": "TLS-Abschluss mit einem Blattzertifikat fuer den Host, ausgestellt von der Wegwerf-CA",
+    "ziel": "github-api"
+   }
+  },
+  {
+   "name": "ausgelastet",
+   "beschreibung": "zweiunddreissig Tunnel offen",
+   "lage": {
+    "ziele": "vorfuehrung",
+    "laufend": 32,
     "protokoll_ok": true,
     "unaufgeloest": []
    },

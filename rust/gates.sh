@@ -3,7 +3,8 @@
 #
 #   ./gates.sh fmt        cargo fmt --check
 #   ./gates.sh clippy     cargo clippy, every warning is an error
-#   ./gates.sh test       cargo test --no-fail-fast
+#   ./gates.sh test       cargo test --no-fail-fast; then the seam tests (`--test naht`) of the delivered programs
+#                         without any feature, as the package builds them (rust/paket.sh)
 #   ./gates.sh licenses   cargo-deny (licences, bans, sources) and a CycloneDX SBOM per crate
 #   ./gates.sh notices    every row of "Code taken from other projects" in README.md has its notice
 #                         (file or file head, names the SPDX id, ships in `cargo package --list`);
@@ -168,9 +169,18 @@ gate_clippy() {
   cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 }
 
+# Crates whose program has seams of the test build (feature `pruefbau`); `tests/naht.rs` of each also runs without
+# the feature and proves that the delivered program reads no seam.
+NAHT_CRATES="anmelden werkbank-pruefen"
+
 gate_test() {
   need cargo || return
-  cargo test --workspace --all-targets --all-features --locked --no-fail-fast
+  local rc=0 crate
+  cargo test --workspace --all-targets --all-features --locked --no-fail-fast || rc=$?
+  for crate in $NAHT_CRATES; do
+    cargo test --locked --no-fail-fast -p "$crate" --test naht || rc=$?
+  done
+  return "$rc"
 }
 
 gate_licenses() {

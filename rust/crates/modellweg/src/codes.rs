@@ -7,7 +7,7 @@ pub enum Code {
     ProtokollFehlt,
     /// Stage 2: not HTTP/1.1, head too long, `Content-Length` doubled, not decimal or not the length of the body.
     AnfrageUnlesbar,
-    /// Stage 3: 8 requests are already in work.
+    /// Stage 3: 8 requests (mode 1) or 32 tunnels (mode 2) are already in work.
     Ausgelastet,
     /// Stage 4: the request target is not exactly the path of the mode.
     PfadUnbekannt,

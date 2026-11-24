@@ -1,7 +1,8 @@
 //! `werkbank-anmelden copilot [--uebernehmen] [--neu]`: process shell. Arguments, signals and output; the logic is
 //! in the library. Seams for tests (`WB_ANMELDEN_ZIEL`, `WB_ANMELDEN_COPILOT_HEIM`, `WB_ANMELDEN_WURZEL`, and the
-//! probe `WB_ANMELDEN_PROBE` with `WB_ANMELDEN_PROBE_MARKE`, and `grenze-weich-0` for the check before the child) count only with `WB_TESTUMGEBUNG=1`; without it the
-//! paths are fixed and there is no probe.
+//! probe `WB_ANMELDEN_PROBE` with `WB_ANMELDEN_PROBE_MARKE`, and `grenze-weich-0` for the check before the child) exist
+//! only in the test build (feature `pruefbau`) and count there only with `WB_TESTUMGEBUNG=1`. The delivered build has no
+//! seam: it never reads these variables, the paths are fixed and there is no probe.
 
 #[cfg(unix)]
 fn main() -> std::process::ExitCode {
@@ -48,8 +49,8 @@ mod unix {
                 return code;
             }
         }
-        // Probe of the tests only (`WB_TESTUMGEBUNG=1`): the soft limit drops to 0 below the hard 1, so the check before the child must refuse.
-        if seam("WB_ANMELDEN_PROBE").is_some_and(|p| p.as_os_str() == "grenze-weich-0") {
+        // Probe of the test build only (feature `pruefbau`, `WB_TESTUMGEBUNG=1`): the soft limit drops to 0 below the hard 1, so the check before the child must refuse.
+        if seam(Naht::Probe).is_some_and(|p| p.as_os_str() == "grenze-weich-0") {
             let _ = rustix::process::setrlimit(
                 rustix::process::Resource::Core,
                 rustix::process::Rlimit {
@@ -140,7 +141,7 @@ mod unix {
 
     /// The probe of the tests: `toeten:<punkt>`, `warten:<punkt>` (with the mark file) or `config-stoeren`.
     fn probe() -> Option<Probe> {
-        let text = seam("WB_ANMELDEN_PROBE")?;
+        let text = seam(Naht::Probe)?;
         let text = text.to_str()?;
         if text == "config-stoeren" {
             return Some(Probe::ConfigStoeren);
@@ -149,7 +150,7 @@ mod unix {
         let punkt = Punkt::aus_name(punkt)?;
         match art {
             "toeten" => Some(Probe::Toeten(punkt)),
-            "warten" => Some(Probe::Warten(punkt, seam("WB_ANMELDEN_PROBE_MARKE")?)),
+            "warten" => Some(Probe::Warten(punkt, seam(Naht::ProbeMarke)?)),
             _ => None,
         }
     }
@@ -159,7 +160,26 @@ mod unix {
         ExitCode::from(fehler.exit())
     }
 
-    fn seam(name: &str) -> Option<PathBuf> {
+    /// The seams of the tests. Only the test build knows their names.
+    #[derive(Clone, Copy)]
+    enum Naht {
+        Ziel,
+        CopilotHeim,
+        Wurzel,
+        Probe,
+        ProbeMarke,
+    }
+
+    /// Test build (feature `pruefbau`): the value of the seam, only with `WB_TESTUMGEBUNG=1`.
+    #[cfg(feature = "pruefbau")]
+    fn seam(naht: Naht) -> Option<PathBuf> {
+        let name = match naht {
+            Naht::Ziel => "WB_ANMELDEN_ZIEL",
+            Naht::CopilotHeim => "WB_ANMELDEN_COPILOT_HEIM",
+            Naht::Wurzel => "WB_ANMELDEN_WURZEL",
+            Naht::Probe => "WB_ANMELDEN_PROBE",
+            Naht::ProbeMarke => "WB_ANMELDEN_PROBE_MARKE",
+        };
         if std::env::var_os("WB_TESTUMGEBUNG").is_some_and(|v| v == "1") {
             std::env::var_os(name).map(PathBuf::from)
         } else {
@@ -167,18 +187,24 @@ mod unix {
         }
     }
 
+    /// Delivered build: no seam, the environment is not read for it.
+    #[cfg(not(feature = "pruefbau"))]
+    fn seam(_naht: Naht) -> Option<PathBuf> {
+        None
+    }
+
     fn umgebung() -> Option<Umgebung> {
         let uid = rustix::process::getuid().as_raw();
-        let ziel_ordner = if let Some(p) = seam("WB_ANMELDEN_ZIEL") {
+        let ziel_ordner = if let Some(p) = seam(Naht::Ziel) {
             p
         } else {
             let passwd = std::fs::read_to_string("/etc/passwd").ok()?;
             nutzer_ordner(std::path::Path::new(NUTZER_ORT), &passwd, uid)?
         };
-        let echtes = seam("WB_ANMELDEN_COPILOT_HEIM")
+        let echtes = seam(Naht::CopilotHeim)
             .or_else(|| std::env::var_os("COPILOT_HOME").map(PathBuf::from))
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".copilot")))?;
-        let wurzel = seam("WB_ANMELDEN_WURZEL").unwrap_or_else(|| PathBuf::from("/var/tmp"));
+        let wurzel = seam(Naht::Wurzel).unwrap_or_else(|| PathBuf::from("/var/tmp"));
         Some(Umgebung {
             ziel_ordner,
             suchpfad: std::env::var_os("PATH").unwrap_or_default(),

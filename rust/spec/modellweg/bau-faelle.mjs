@@ -25,6 +25,7 @@ const U32 = 4294967295;
 const KOPF_MAX = 65536;
 const KOERPER_MAX = 33554432;
 const PARALLEL_MAX = 8;
+const TUNNEL_MAX = 32;
 const PFAD = '/v1/chat/completions';
 const ZEILE_FELDER = ['aktionsname', 'betriebsart', 'ergebnis', 'fassung', 'grund', 'host', 'modell', 'pfad', 'route', 'sitzung', 'status', 'token_aus', 'token_ein', 'vorher', 'zeit'];
 
@@ -749,7 +750,7 @@ function tunnelPruefen(lage, roh) {
   const start = /^([A-Z]{1,16}) ([\x21-\x7e]+) HTTP\/1\.1$/.exec(zeilen[0]);
   if (!start) throw fehler('mw.anfrage_unlesbar');
   for (const z of zeilen.slice(1)) if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+:[ \t]*[\x20-\x7e]*$/.test(z)) throw fehler('mw.anfrage_unlesbar');
-  if (lage.laufend >= PARALLEL_MAX) throw fehler('mw.ausgelastet');
+  if (lage.laufend >= TUNNEL_MAX) throw fehler('mw.ausgelastet');
   if (start[1] !== 'CONNECT') throw fehler('mw.nur_connect');
   const ziel = lage.ziele.find((z) => start[2] === `${z.host}:${z.port}`);
   if (!ziel) throw fehler('mw.ziel_nicht_erlaubt');
@@ -1043,7 +1044,8 @@ function baueKopf() {
     ['sni_falsch', 'Tunnel zu api.github.com, im TLS-Gruss SNI eines anderen Hosts', LAGE2, 'evil.beispiel.invalid', con('api.github.com:443'), { code: 'mw.sni_falsch' }],
     ['sni_fehlt', 'Tunnel ohne SNI', LAGE2, null, con('api.github.com:443'), { code: 'mw.sni_falsch' }],
     ['unlesbar', 'kein HTTP', LAGE2, null, 'hallo\r\n\r\n', { code: 'mw.anfrage_unlesbar' }],
-    ['ausgelastet', 'acht Tunnel offen', { ...LAGE2, laufend: 8 }, 'api.github.com', con('api.github.com:443'), { code: 'mw.ausgelastet' }],
+    ['letzter_platz', 'einunddreissig Tunnel offen, der zweiunddreissigste kommt noch durch', { ...LAGE2, laufend: 31 }, 'api.github.com', con('api.github.com:443'), { ziel: 'github-api' }],
+    ['ausgelastet', 'zweiunddreissig Tunnel offen', { ...LAGE2, laufend: 32 }, 'api.github.com', con('api.github.com:443'), { code: 'mw.ausgelastet' }],
     ['protokoll_fehlt', 'Anhaengen vorher gescheitert', { ...LAGE2, protokoll_ok: false }, 'api.github.com', con('api.github.com:443'), { code: 'mw.protokoll_fehlt' }],
     ['telemetrie_nxdomain', 'ungebundenes Ziel beim Start nicht aufloesbar (gemessen NXDOMAIN): 502 fuer diesen Tunnel, alles andere laeuft', { ...LAGE2, unaufgeloest: ['copilot-telemetrie'] }, 'telemetry.individual.githubcopilot.com', con('telemetry.individual.githubcopilot.com:443'), { code: 'mw.ziel_nicht_erreichbar' }],
     ['andere_trotz_nxdomain', 'derselbe Zustand: ein gebundenes Ziel geht weiter', { ...LAGE2, unaufgeloest: ['copilot-telemetrie'] }, 'api.individual.githubcopilot.com', con('api.individual.githubcopilot.com:443'), { ziel: 'copilot-plan' }],

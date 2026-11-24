@@ -35,6 +35,7 @@ const GRUENDE = {
   'stelle.server_unbekannt': 'Server unbekannt',
   'stelle.sitzung_unbekannt': 'Sitzung unbekannt',
   'stelle.frist_ungueltig': 'Frist ausserhalb der Vorgabe',
+  'stelle.anfragen_erschoepft': 'Kennungen erschoepft, Neustart noetig',
   'stelle.anfrage_unbekannt': 'Anfrage unbekannt',
   'stelle.anfrage_abgelaufen': 'Anfrage abgelaufen',
   'stelle.bereits_entschieden': 'Anfrage schon entschieden',

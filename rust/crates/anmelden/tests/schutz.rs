@@ -1,6 +1,7 @@
 //! Protections beyond the case set: exact modes under a hostile umask, no replacing without `--neu` under a race,
 //! the real home stays untouched, the program ends the CLI on a signal, a second call without `--neu`, an inherited hard limit 0 for core.
-#![cfg(unix)] // the crate is Unix only (see `src/lib.rs`)
+//! The program runs with the seams of the test build (feature `pruefbau`); the delivered build has none (`tests/naht.rs`).
+#![cfg(all(unix, feature = "pruefbau"))] // the crate is Unix only (see `src/lib.rs`)
 
 mod gemeinsam;
 

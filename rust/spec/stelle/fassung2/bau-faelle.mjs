@@ -60,6 +60,7 @@ const GRUENDE = {
   'stelle.server_unbekannt': 'Server unbekannt',
   'stelle.sitzung_unbekannt': 'Sitzung unbekannt',
   'stelle.frist_ungueltig': 'Frist ausserhalb der Vorgabe',
+  'stelle.anfragen_erschoepft': 'Kennungen erschoepft, Neustart noetig',
   'stelle.anfrage_unbekannt': 'Anfrage unbekannt',
   'stelle.anfrage_abgelaufen': 'Anfrage abgelaufen',
   'stelle.bereits_entschieden': 'Anfrage schon entschieden',
@@ -134,7 +135,7 @@ function zeitText(ms) {
 
 const STELLE_VORGABE = {
   vier_augen: false, senken_zweite_person: false, halter_bescheinigung: true, antrag_frist_ms: 600000,
-  einsicht: { regel: 'rolle', zwecke: ['pruefung', 'vorfall', 'auskunft'] },
+  einsicht: { regel: 'rolle-vier-augen', zwecke: ['pruefung', 'vorfall', 'auskunft'] },
   hersteller: { fall: 'kein', hoechstfrist_ms: 28800000, rollen: ['admin'] },
   flut: { offene_je_sitzung: 16, zeilen_je_fenster: 32, fenster_ms: 60000 },
 };
@@ -1022,8 +1023,8 @@ fall('pflicht-ueberlebt-neustart', ['A09', 'E1', 'Nachtrag 5'], 'Die Stelle schr
   { sitzungen: ['s-1'], anfragen: { [mf(1, LADEN2)]: 'erteilt' }, zaehler: 1, antraege: {}, zugaenge: {}, pflichten: PF({ vier_augen: false }) });
 
 // ----- 3. Einsicht ins Protokoll -----
-fall('einsicht-mit-rolle', ['A102', 'A103'], 'Einsichtsregel rolle (Vorgabe): Einsicht mit Rolle einsicht gelingt ohne zweite Person und ohne Zweck, die Einsicht steht in der Kette; ohne Rolle (auch als Admin) wird sie abgelehnt und protokolliert; ein Zweck ausserhalb der Liste wird abgelehnt, einer aus der Liste steht in der Zeile.',
-  einst(), [START1(),
+fall('einsicht-mit-rolle', ['A102', 'A103'], 'Einsichtsregel rolle (ausdruecklich gesetzt, ein Admin senkt die Vorgabe darauf): Einsicht mit Rolle einsicht gelingt ohne zweite Person und ohne Zweck, die Einsicht steht in der Kette; ohne Rolle (auch als Admin) wird sie abgelehnt und protokolliert; ein Zweck ausserhalb der Liste wird abgelehnt, einer aus der Liste steht in der Zeile.',
+  einst({ einsicht: { regel: 'rolle' } }), [START1(),
     st('mensch', 'einsicht.anfragen', 1000, einsicht(E1, 1), { ok: true, ergebnis: 'einsicht_erlaubt', antrag: null, zeilen: ['protokoll.einsicht:erlaubt'] }),
     st('mensch', 'einsicht.anfragen', 1001, einsicht(H1, 2), ABG('stelle.rolle_fehlt')),
     st('mensch', 'einsicht.anfragen', 1002, einsicht(A1, 3), ABG('stelle.rolle_fehlt')),
@@ -1076,10 +1077,18 @@ fall('einsicht-niemand', ['A102', 'A103', 'B08'], 'Einsichtsregel niemand: Jede 
     st('mensch', 'einsicht.anfragen', 1001, einsicht(E1, 2, { zweck: 'pruefung' }), ABG('stelle.einsicht_aus')),
     st('mensch', 'einsicht.anfragen', 1002, einsicht(A1, 3), ABG('stelle.einsicht_aus'))],
   E0({}));
-fall('einsicht-vier-augen-nur-schreiben', ['A102', 'A105', 'B08'], 'vier_augen an und Einsichtsregel rolle: Vier Augen gelten nur fuer Schreibaufrufe; die Einsicht mit Rolle gelingt ohne zweite Person und ohne Zweck.',
-  einst({ vier_augen: true }), [START1(),
+fall('einsicht-vier-augen-nur-schreiben', ['A102', 'A105', 'B08'], 'vier_augen an und Einsichtsregel rolle ausdruecklich gesetzt: Vier Augen gelten nur fuer Schreibaufrufe; die Einsicht mit Rolle gelingt ohne zweite Person und ohne Zweck.',
+  einst({ vier_augen: true, einsicht: { regel: 'rolle' } }), [START1(),
     st('mensch', 'einsicht.anfragen', 1000, einsicht(E1, 1), { ok: true, ergebnis: 'einsicht_erlaubt', antrag: null, zeilen: ['protokoll.einsicht:erlaubt'] })],
   E0({ pflichten: PF({ vier_augen: true }) }));
+
+fall('einsicht-vorgabe-rolle-vier-augen', ['A102', 'A103', 'B6', 'B7'], 'Vorgabe von einsicht.regel ist rolle-vier-augen: Eine Datei mit vier_augen an und ohne Feld einsicht.regel verlangt fuer die Einsicht Zweck und zweite Person. Ohne Zweck wird die Einsicht abgelehnt, mit Zweck entsteht ein Antrag, dieselbe Person bestaetigt ihn nicht, und erst eine zweite Person mit Rolle schreibt die Zeile.',
+  einst({ vier_augen: true }), [START1(),
+    st('mensch', 'einsicht.anfragen', 1000, einsicht(E1, 1), ABG('stelle.zweck_ungueltig')),
+    st('mensch', 'einsicht.anfragen', 1001, einsicht(E1, 2, { zweck: 'pruefung' }), { ok: true, ergebnis: 'antrag_offen', antrag: an(1), frist_bis_ms: T0 + 601001, zeilen: [] }),
+    st('mensch', 'antrag.bestaetigen', 2000, bestaetige(E1, an(1), EI(E1, 'pruefung')), ABG('stelle.selbe_person')),
+    st('mensch', 'antrag.bestaetigen', 3000, bestaetige(A1, an(1), EI(E1, 'pruefung')), { ok: true, ergebnis: 'bestaetigt', antrag: an(1), abholen_bis_ms: T0 + 603000, zeilen: ['protokoll.einsicht:erlaubt'] })],
+  E0({ antraege: { [an(1)]: 'bestaetigt' }, pflichten: PF({ vier_augen: true }) }));
 
 // ----- 4. Aufrufer brain -----
 fall('brain-nur-server-brain', ['Wunsch Vault', 'A92'], 'Der Such-Prozess (brain) fragt nur den Server brain an, der Hub nie; eine Anfrage von brain ist fuer den Hub unbekannt und umgekehrt; lesend bleibt lesend.',

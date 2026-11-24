@@ -42,7 +42,7 @@ const BUND_FRIST: Duration = Duration::from_secs(10);
 const TAKT: Duration = Duration::from_millis(20);
 
 /// Everything the run needs from its surroundings. `main` builds it from the real environment; the tests build it
-/// by hand (the seams of `main` are valid only with `WB_TESTUMGEBUNG=1`).
+/// by hand (the seams of `main` exist only in the test build, feature `pruefbau`, and are valid only with `WB_TESTUMGEBUNG=1`).
 pub struct Umgebung {
     /// Folder of the user, `/var/lib/werkbank/<user>`. It exists, is ours and is writable.
     pub ziel_ordner: PathBuf,

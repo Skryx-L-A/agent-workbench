@@ -1,7 +1,8 @@
 //! The visible cases of contract 9 (`rust/spec/anmelden/faelle/`): every case runs the program against the
 //! stand-in of the CLI and compares stdout, stderr and exit byte for byte, then the key file, the throw-away
 //! home and what the stand-in saw.
-#![cfg(unix)] // the crate is Unix only (see `src/lib.rs`)
+//! The program runs with the seams of the test build (feature `pruefbau`); the delivered build has none (`tests/naht.rs`).
+#![cfg(all(unix, feature = "pruefbau"))] // the crate is Unix only (see `src/lib.rs`)
 
 mod gemeinsam;
 

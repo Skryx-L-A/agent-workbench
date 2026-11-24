@@ -13,6 +13,11 @@ path = "src/lib.rs"
 name = "werkbank-pruefen"
 path = "src/main.rs"
 
+[features]
+# Test build only, never in the delivered build (the package builds without it): the seam `WB_PRUEFEN_LAGE` of `main`,
+# valid there only with `WB_TESTUMGEBUNG=1`. Without the feature the program never reads it.
+pruefbau = []
+
 # formate: only `kette::sha256_hex` (the own SHA-256 of the workspace; no second implementation, no new crate).
 # serde (no derive) and serde_json: the manifest and the settings file are read with a visitor that refuses a
 # duplicate key (`src/ohne_doppel.rs`, the same reader as in `datentor`). Both are already in the graph.

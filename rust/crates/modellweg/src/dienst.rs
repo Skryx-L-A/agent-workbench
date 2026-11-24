@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use crate::Betriebsart;
 use crate::betrieb::{Abbruch, Betrieb, Faden, Huelle, Platz, Server};
-pub use crate::betrieb::{FAEDEN_MAX, PARALLEL_MAX, Uhr};
+pub use crate::betrieb::{FAEDEN_MAX, PARALLEL_MAX, TUNNEL_MAX, Uhr};
 use crate::betriebsart::Regeln;
 use crate::betriebsart::openai_lokal::{OpenaiLokal, Optionen};
 use crate::codes::Code;
@@ -186,9 +186,9 @@ impl Dienst {
         Some(self.weiterreichen(h, anfrage, abbruch))
     }
 
-    /// Stage 3: one of the 8 places, or `None`.
+    /// Stage 3: one of the [`PARALLEL_MAX`] places, or `None`.
     fn platz(&self) -> Option<Platz<'_>> {
-        self.betrieb.platz()
+        self.betrieb.platz(PARALLEL_MAX)
     }
 
     /// Sends the request to the target and hands the answer back through the leak lock.

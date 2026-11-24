@@ -89,6 +89,21 @@ fn eigentuemer(pid: u32) -> u32 {
         .uid()
 }
 
+/// The owner of `/proc/<pid>/stat` once it is `erwartet`, or the last owner read after 5 seconds. `spawn` may return before the child has
+/// finished its `exec`: with `vfork` the parent goes on as soon as the new memory map is in place, and the kernel marks the new image as
+/// dumpable only after that. Until then the files still belong to root. A child that stays shielded after `exec` keeps root as owner and turns
+/// the test red after the wait.
+fn eigentuemer_nach_exec(pid: u32, erwartet: u32) -> u32 {
+    let ende = std::time::Instant::now() + Duration::from_secs(5);
+    loop {
+        let jetzt = eigentuemer(pid);
+        if jetzt == erwartet || std::time::Instant::now() >= ende {
+            return jetzt;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
 fn eigener_nutzer() -> u32 {
     rustix::process::geteuid().as_raw()
 }
@@ -135,7 +150,10 @@ fn ein_kind_erbt_die_grenze_1_1_und_ist_nach_exec_wieder_abzugsfaehig() {
     assert_eq!(zeilen[2], "BEREIT");
     // the child inherits 1/1 and, after `exec` of `sleep`, can be dumped again: its files belong to the user
     assert_eq!(core_grenze(kind_pid), ("1".to_owned(), "1".to_owned()));
-    assert_eq!(eigentuemer(kind_pid), eigener_nutzer());
+    assert_eq!(
+        eigentuemer_nach_exec(kind_pid, eigener_nutzer()),
+        eigener_nutzer()
+    );
     // the parent stays shielded
     assert_ne!(eigentuemer(kind.id()), eigener_nutzer());
     beenden(kind);

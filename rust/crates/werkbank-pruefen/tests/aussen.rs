@@ -2,8 +2,9 @@
 //!
 //! The program reads the `lage` of a case through the test seam (`WB_TESTUMGEBUNG=1`, `WB_PRUEFEN_LAGE=<file>`), gets the
 //! `aufruf` of the case as its arguments, and must print exactly the expected lines on the expected stream with the
-//! expected exit code. Nothing here touches the real machine.
-#![cfg(unix)] // the collection and the program read a Unix machine (see `src/main.rs`)
+//! expected exit code. Nothing here touches the real machine. The seam exists only in the test build (feature `pruefbau`);
+//! the delivered build has none (`tests/naht.rs`).
+#![cfg(all(unix, feature = "pruefbau"))] // the collection and the program read a Unix machine (see `src/main.rs`)
 
 use std::path::{Path, PathBuf};
 use std::process::Command;

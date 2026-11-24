@@ -1,4 +1,4 @@
-//! The common running part of every mode: places of connection threads, the 8 places of work, the tear-down at the end,
+//! The common running part of every mode: places of connection threads, the places of work, the tear-down at the end,
 //! the blocked protocol after a failed append, and the clock of the lines.
 
 use std::io::{self, Read, Write};
@@ -7,10 +7,18 @@ use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
-/// At most this many requests (mode 1) or tunnels (mode 2) in work at once.
+/// At most this many requests in work at once in mode 1.
 pub const PARALLEL_MAX: usize = 8;
+/// At most this many tunnels open at once in mode 2. The CLI keeps several connections and a stream open together; on
+/// 24.11.2026 the limit of 8 was measured as too small.
+pub const TUNNEL_MAX: usize = 32;
 /// At most this many connections are served at once; further ones wait in the queue of the socket.
 pub const FAEDEN_MAX: usize = 64;
+
+// A connection over the limit needs a thread of its own to get its 429. If a limit were not below the number of threads,
+// that connection would wait in the queue of the socket and get no answer.
+const _: () = assert!(PARALLEL_MAX < FAEDEN_MAX);
+const _: () = assert!(TUNNEL_MAX < FAEDEN_MAX);
 
 /// A clock in milliseconds since 1970 (in production the system time).
 pub type Uhr = Box<dyn Fn() -> i64 + Send + Sync>;
@@ -131,7 +139,7 @@ pub struct Betrieb {
     faden_frei: Condvar,
 }
 
-/// A place among the 8 in work; dropping it frees the place.
+/// A place among those in work; dropping it frees the place.
 pub(crate) struct Platz<'a>(&'a AtomicUsize);
 
 impl Drop for Platz<'_> {
@@ -174,11 +182,11 @@ impl Betrieb {
         }
     }
 
-    /// One of the 8 places, or `None`.
-    pub(crate) fn platz(&self) -> Option<Platz<'_>> {
+    /// One of the `grenze` places ([`PARALLEL_MAX`] in mode 1, [`TUNNEL_MAX`] in mode 2), or `None`.
+    pub(crate) fn platz(&self, grenze: usize) -> Option<Platz<'_>> {
         self.laufend
             .try_update(Ordering::SeqCst, Ordering::SeqCst, |n| {
-                (n < PARALLEL_MAX).then_some(n + 1)
+                (n < grenze).then_some(n + 1)
             })
             .ok()
             .map(|_| Platz(&self.laufend))
@@ -282,11 +290,39 @@ impl Drop for Faden {
 
 #[cfg(test)]
 mod tests {
-    use super::Betrieb;
+    use super::{Betrieb, FAEDEN_MAX, PARALLEL_MAX, TUNNEL_MAX};
     use std::io::{Read, Write};
     use std::os::unix::net::UnixStream;
     use std::sync::atomic::Ordering;
     use std::time::Duration;
+
+    #[test]
+    fn the_limits_of_the_modes() {
+        assert_eq!(PARALLEL_MAX, 8);
+        assert_eq!(TUNNEL_MAX, 32);
+        assert_eq!(FAEDEN_MAX, 64);
+        // A connection over the limit needs a thread of its own to get its 429.
+        const { assert!(PARALLEL_MAX < FAEDEN_MAX) };
+        const { assert!(TUNNEL_MAX < FAEDEN_MAX) };
+    }
+
+    #[test]
+    fn thirty_two_tunnels_and_no_thirty_third() {
+        let b = Betrieb::neu(Box::new(|| 0));
+        let plaetze: Vec<_> = (0..TUNNEL_MAX)
+            .map(|_| b.platz(TUNNEL_MAX).expect("a place"))
+            .collect();
+        assert!(b.platz(TUNNEL_MAX).is_none());
+        // The limit of mode 1 counts the same places: with 32 in work no request is taken either.
+        assert!(b.platz(PARALLEL_MAX).is_none());
+        drop(plaetze);
+        let acht: Vec<_> = (0..PARALLEL_MAX)
+            .map(|_| b.platz(PARALLEL_MAX).expect("a place"))
+            .collect();
+        assert!(b.platz(PARALLEL_MAX).is_none());
+        drop(acht);
+        assert!(b.platz(TUNNEL_MAX).is_some());
+    }
 
     #[test]
     fn a_finished_connection_leaves_the_tear_down_list() {

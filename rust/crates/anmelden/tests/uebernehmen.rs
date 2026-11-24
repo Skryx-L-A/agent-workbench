@@ -3,7 +3,8 @@
 //! the undo after a failed replace, the temp left-overs, the foreign owner (by a substituted user id) and the reader
 //! of the spans of `config.json`. No real home, no real `config.json`: everything lies in a throw-away folder and the
 //! token is a dummy built from prefix and filler.
-#![cfg(unix)] // the crate is Unix only (see `src/lib.rs`)
+//! The program runs with the seams of the test build (feature `pruefbau`); the delivered build has none (`tests/naht.rs`).
+#![cfg(all(unix, feature = "pruefbau"))] // the crate is Unix only (see `src/lib.rs`)
 
 mod gemeinsam;
 

@@ -285,3 +285,30 @@ fn jede_ablehnung_behaelt_code_und_grund_des_crates() {
     );
     assert_eq!(s(&datei(), Form::Datei), Ok(()));
 }
+
+/// B4 (Review of 23.11.2026): The largest start, 4096 bytes, stands twice in the code: `GROESSE_MAX` of
+/// `rust/crates/stelle/src/start.rs` builds the readable values of a refused start, and the limit of
+/// `rust/crates/start/src/lesen.rs` refuses with `start.zu_gross`. A shared constant would have to be public in
+/// the crate `start`, so the two values are bound by a test instead.
+/// `die_werte_einer_abgelehnten_datei_gelten_bis_4096_bytes` does that for the start file; this one does it for
+/// the request of the view, which the crate reads with its own function.
+#[test]
+fn groesse_max_haengt_an_der_grenze_des_crates_start_auch_fuer_die_anfrage() {
+    const KOPF: &str = r#"{"fassung":1,"harness":"pi","modell":"qwen3:8b","route":"lokal-beispiel","kunde":"k-beispiel","arbeitsordner":"/srv/beispiel/projekt","unbekannt":""#;
+    let text = |n: usize| format!("{KOPF}{}\"}}", "x".repeat(n - KOPF.len() - 2));
+    assert_eq!(text(4096).len(), 4096);
+    assert_eq!(text(4097).len(), 4097);
+
+    let bis = start::pruefen(text(4096).as_bytes(), Form::Anfrage, &einstellungen())
+        .expect_err("an unknown key is refused");
+    assert_eq!(bis.code.code(), "start.schluessel_unbekannt");
+    assert_eq!(bis.sicht.harness.as_deref(), Some("pi"));
+    assert_eq!(bis.sicht.route.as_deref(), Some("lokal-beispiel"));
+    assert_eq!(bis.sicht.kunde.as_deref(), Some("k-beispiel"));
+    assert_eq!(bis.sicht.sitzung, None);
+
+    let ueber = start::pruefen(text(4097).as_bytes(), Form::Anfrage, &einstellungen())
+        .expect_err("a start above the limit is refused");
+    assert_eq!(ueber.code.code(), "start.zu_gross");
+    assert_eq!(*ueber.sicht, start::Sicht::default());
+}
