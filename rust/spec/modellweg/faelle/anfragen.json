@@ -1,6 +1,6 @@
 {
  "fassung": 1,
- "hinweis": "Vertrag 8, Abschnitt 10 (Betriebsart openai-lokal). anfrage und an_ziel sind die Bytes (latin1) der HTTP-Anfrage. lage.schluessel ist der Inhalt der Schluesseldatei (erfundener Testwert). ziel_beruehrt false heisst: keine Verbindung zum Ziel. zeile nennt die Felder ergebnis, grund und status der Protokollzeile; null heisst keine Zeile.",
+ "hinweis": "Vertrag 8, Abschnitt 10 (Betriebsart openai-lokal). anfrage und an_ziel sind die Bytes (latin1) der HTTP-Anfrage. lage.schluessel ist der Inhalt der Schluesseldatei (erfundener Testwert). ziel_beruehrt false heisst: keine Verbindung zum Ziel. zeile nennt die Felder ergebnis, grund, status, pfad und host der Protokollzeile; null heisst keine Zeile.",
  "faelle": [
   {
    "name": "gueltig",
@@ -123,7 +123,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.modell_nicht_erlaubt",
-     "status": 403
+     "status": 403,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -146,7 +148,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.modell_nicht_erlaubt",
-     "status": 403
+     "status": 403,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -169,7 +173,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.json_ungueltig",
-     "status": 400
+     "status": 400,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -192,7 +198,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.modell_nicht_erlaubt",
-     "status": 403
+     "status": 403,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -215,7 +223,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.pfad_unbekannt",
-     "status": 404
+     "status": 404,
+     "pfad": "/v1/models",
+     "host": null
     }
    }
   },
@@ -238,7 +248,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.pfad_unbekannt",
-     "status": 404
+     "status": 404,
+     "pfad": "/v1/completions",
+     "host": null
     }
    }
   },
@@ -261,7 +273,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.pfad_unbekannt",
-     "status": 404
+     "status": 404,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -284,7 +298,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.pfad_unbekannt",
-     "status": 404
+     "status": 404,
+     "pfad": "/v1/..",
+     "host": null
     }
    }
   },
@@ -307,7 +323,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.methode_falsch",
-     "status": 405
+     "status": 405,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -330,7 +348,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.methode_falsch",
-     "status": 405
+     "status": 405,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -353,7 +373,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.koerper_zu_gross",
-     "status": 413
+     "status": 413,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -376,7 +398,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.chunked_nicht_unterstuetzt",
-     "status": 411
+     "status": 411,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -399,7 +423,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.laenge_fehlt",
-     "status": 411
+     "status": 411,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -422,7 +448,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.anfrage_unlesbar",
-     "status": 400
+     "status": 400,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -445,7 +473,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.anfrage_unlesbar",
-     "status": 400
+     "status": 400,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -468,7 +498,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.anfrage_unlesbar",
-     "status": 400
+     "status": 400,
+     "pfad": null,
+     "host": null
     }
    }
   },
@@ -491,7 +523,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.json_ungueltig",
-     "status": 400
+     "status": 400,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -514,7 +548,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.json_ungueltig",
-     "status": 400
+     "status": 400,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -537,7 +573,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.ausgelastet",
-     "status": 429
+     "status": 429,
+     "pfad": "/v1/chat",
+     "host": null
     }
    }
   },
@@ -579,7 +617,9 @@
     "zeile": {
      "ergebnis": "abgelehnt",
      "grund": "mw.pfad_unbekannt",
-     "status": 404
+     "status": 404,
+     "pfad": "/admin",
+     "host": null
     }
    }
   }

@@ -44,7 +44,7 @@ use crate::sitzung::{
 };
 use crate::startdatei::{KLEINSTE_SPALTEN, Startdatei};
 use crate::starten::{
-    Abgelehnt, SITZUNGEN_MAX, einstellungen_laden, kennung_belegt, meta_von, ordner_anlegen,
+    Abgelehnt, SITZUNGEN_MAX, einstellungen_laden, meta_von, nummer_vergebbar, ordner_anlegen,
     start_form, start_pruefen, starten_form, startwahl_von,
 };
 use crate::waisen::Waisen;
@@ -1226,7 +1226,7 @@ impl Dienst {
             return self.start_ablehnen(nr, &Abgelehnt::fest("zu_viele_sitzungen"));
         }
         // DI12 points 13 and 15: skip every number whose entry under `lauf.sitzungen` or whose target list under `lauf.ziellisten` still
-        // exists (`lstat`: any kind, a dead link too)
+        // exists (`lstat`: any kind, a dead link too); point 15a in `nummer_vergebbar`
         let mut n = self.naechste + 1;
         loop {
             if n > lauf.nummer_max {
@@ -1235,7 +1235,7 @@ impl Dienst {
             if u8::try_from(n).is_err() {
                 return self.start_ablehnen(nr, &Abgelehnt::fest("nummern_erschoepft"));
             }
-            match kennung_belegt(&lauf, n) {
+            match nummer_vergebbar(&lauf, n) {
                 Ok(false) => break,
                 Ok(true) => n += 1,
                 Err(()) => return self.start_ablehnen(nr, &Abgelehnt::fest("start_ordner")),

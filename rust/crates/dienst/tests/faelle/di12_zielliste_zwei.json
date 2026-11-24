@@ -1,5 +1,5 @@
 {
- "beschreibung": "die Ziellisten von s-1 und s-2 liegen: die erste Sitzung bekommt s-3",
+ "beschreibung": "die eigenen regulaeren Ziellisten von s-1 und s-2 liegen: Starten raeumt nur die von s-1 (Punkt 15a) und vergibt s-1, die Liste von s-2 bleibt",
  "datensatz": "A",
  "name": "di12_zielliste_zwei",
  "ordner_pruefen": true,
@@ -32,7 +32,7 @@
    "bis": {
     "nachricht": {
      "art": "Gestartet",
-     "sitzung": "s-3"
+     "sitzung": "s-1"
     }
    },
    "frist": 30,
@@ -43,7 +43,7 @@
    "betrachter": "c1",
    "bis": {
     "liste": {
-     "id": "s-3",
+     "id": "s-1",
      "zustand": "laeuft"
     }
    },
@@ -56,7 +56,7 @@
    "ereignis": {
     "an": true,
     "art": "Abo",
-    "sitzung": "s-3",
+    "sitzung": "s-1",
     "spalten": 120,
     "zeilen": 14
    }
@@ -65,7 +65,7 @@
    "art": "Warte",
    "betrachter": "c1",
    "bis": {
-    "nr": 3,
+    "nr": 1,
     "text": "BEREIT"
    },
    "frist": 30,

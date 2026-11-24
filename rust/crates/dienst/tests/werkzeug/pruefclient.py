@@ -782,7 +782,7 @@ class Lauf:
                 r["ordner_inhalt"] = None
         for feld, verz in (("ziellisten", self.zl_dir), ("laufzeit", self.lz_dir), ("marker_zaehl", self.mz_dir)):
             if self.fall.get(feld) is not None and not self.fall[feld].get("fehlt"):
-                # the service makes nothing and removes nothing under lauf.ziellisten, lauf.laufzeit and lauf.marker_ordner
+                # the service makes nothing under lauf.ziellisten, lauf.laufzeit and lauf.marker_ordner and removes nothing there, except an old own list by DI12 point 15a
                 try:
                     os.chmod(verz, 0o700)
                     r[feld + "_inhalt"] = sorted(os.listdir(verz))

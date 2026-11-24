@@ -5,7 +5,7 @@ Aufruf: <python mit jsonschema> -I rust/spec/windows-einschluss/pruefen.py
 Geprüft wird: Paarung faelle/erwartet, Pflichtfelder je Form, Größe und JSON-Lesen, das Schema gegen die Fälle
 der Formen konfig und steuer, die Helferzeilen gegen eine Referenz der Stufen 2 bis 5 und je Eigenschaft W1 bis
 W14 ein Fall und eine Gegenprobe. Erst mit dem Bau prüfbar: Stufen, die Dateisystem, Person, Dienst oder Lage
-brauchen, sowie alle Fälle der Formen aufruf und vm. Ohne jsonschema meldet es das Schema als nicht geprüft.
+brauchen, sowie alle Fälle der Formen aufruf und vm. Ohne jsonschema endet es mit Exit 2 und einer Zeile auf stderr; mit --ohne-schema meldet es das Schema in der Ausgabe als nicht geprüft.
 Exit 0, wenn jeder prüfbare Punkt stimmt.
 """
 import base64
@@ -75,6 +75,10 @@ def main():
         pruefer = {form: jsonschema.Draft202012Validator(dict(schema, **{"$ref": f"#/$defs/{form}"}))
                    for form in ("konfig", "steuer")}
     except ImportError:
+        if "--ohne-schema" not in sys.argv[1:]:
+            print("pruefen.py: das Modul jsonschema fehlt, das Schema wäre ungeprüft; Exit 2 "
+                  "(mit --ohne-schema bewusst ohne Schema prüfen)", file=sys.stderr)
+            return 2
         pruefer = None
     fehler, nur_bau, zahl = [], [], 0
     gesehen = {(w, art): [] for w in EIGENSCHAFTEN for art in ("fall", "gegenprobe")}
@@ -171,7 +175,7 @@ def main():
     for (w, art), namen in gesehen.items():
         if len(namen) != 1:
             fehler.append(f"{w}: {len(namen)} Fälle der Art {art}, erwartet genau 1")
-    print(f"{zahl} Fälle, {len(fehler)} Fehler, Schema {'geprüft' if pruefer else 'NICHT geprüft (jsonschema fehlt)'}")
+    print(f"{zahl} Fälle, {len(fehler)} Fehler, Schema {'geprüft' if pruefer else 'NICHT geprüft (--ohne-schema, jsonschema fehlt)'}")
     for zeile in nur_bau:
         print(f"  erst mit dem Bau prüfbar: {zeile}")
     for zeile in fehler:

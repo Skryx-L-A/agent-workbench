@@ -18,7 +18,9 @@
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": "/copilot_internal/*",
-     "kopf": "ersetzt"
+     "kopf": "ersetzt",
+     "pfad": "/copilot_internal/user",
+     "host": "api.github.com"
     }
    }
   },
@@ -36,7 +38,9 @@
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": "/copilot/mcp_registry",
-     "kopf": "ersetzt"
+     "kopf": "ersetzt",
+     "pfad": "/copilot/mcp_registry",
+     "host": "api.github.com"
     }
    }
   },
@@ -54,7 +58,9 @@
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": "/copilot_internal/*",
-     "kopf": "ersetzt"
+     "kopf": "ersetzt",
+     "pfad": "/copilot_internal/user",
+     "host": "api.github.com"
     }
    }
   },
@@ -74,7 +80,9 @@
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": null,
-     "kopf": null
+     "kopf": null,
+     "pfad": "/user/repos",
+     "host": "api.github.com"
     }
    }
   },
@@ -94,7 +102,9 @@
      "ziel": "github-api",
      "methode": "POST",
      "pfadregel": "/copilot_internal/*",
-     "kopf": null
+     "kopf": null,
+     "pfad": "/copilot_internal/user",
+     "host": "api.github.com"
     }
    }
   },
@@ -114,7 +124,9 @@
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": null,
-     "kopf": null
+     "kopf": null,
+     "pfad": "/copilot/mcp_registry",
+     "host": "api.github.com"
     }
    }
   },
@@ -134,7 +146,9 @@
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": null,
-     "kopf": null
+     "kopf": null,
+     "pfad": "/copilot_internal/..",
+     "host": "api.github.com"
     }
    }
   },
@@ -154,7 +168,9 @@
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": null,
-     "kopf": null
+     "kopf": null,
+     "pfad": "/copilot_internal/*",
+     "host": "api.github.com"
     }
    }
   },
@@ -174,7 +190,9 @@
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": null,
-     "kopf": null
+     "kopf": null,
+     "pfad": "/*/copilot_internal",
+     "host": "api.github.com"
     }
    }
   },
@@ -194,7 +212,9 @@
      "ziel": "github-api",
      "methode": null,
      "pfadregel": null,
-     "kopf": null
+     "kopf": null,
+     "pfad": "/copilot_internal/user",
+     "host": "api.github.com"
     }
    }
   },
@@ -212,7 +232,9 @@
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": "/copilot_internal/*",
-     "kopf": "ersetzt"
+     "kopf": "ersetzt",
+     "pfad": "/copilot_internal/user",
+     "host": "api.github.com"
     }
    }
   },
@@ -230,7 +252,9 @@
      "ziel": "copilot-plan",
      "methode": "POST",
      "pfadregel": "/*",
-     "kopf": "ersetzt"
+     "kopf": "ersetzt",
+     "pfad": null,
+     "host": "api.individual.githubcopilot.com"
     }
    }
   },
@@ -248,7 +272,9 @@
      "ziel": "copilot-plan",
      "methode": "POST",
      "pfadregel": "/*",
-     "kopf": "ersetzt"
+     "kopf": "ersetzt",
+     "pfad": null,
+     "host": "api.individual.githubcopilot.com"
     }
    }
   },
@@ -266,7 +292,9 @@
      "ziel": "copilot-plan",
      "methode": "GET",
      "pfadregel": "/*",
-     "kopf": "ersetzt"
+     "kopf": "ersetzt",
+     "pfad": "/responses",
+     "host": "api.individual.githubcopilot.com"
     }
    }
   },
@@ -286,7 +314,9 @@
      "ziel": "copilot-telemetrie",
      "methode": "POST",
      "pfadregel": "/telemetry",
-     "kopf": null
+     "kopf": null,
+     "pfad": "/telemetry",
+     "host": "telemetry.individual.githubcopilot.com"
     }
    }
   },
@@ -304,7 +334,9 @@
      "ziel": "copilot-telemetrie",
      "methode": "POST",
      "pfadregel": "/telemetry",
-     "kopf": "keiner"
+     "kopf": "keiner",
+     "pfad": null,
+     "host": "telemetry.individual.githubcopilot.com"
     }
    }
   },
@@ -324,7 +356,9 @@
      "ziel": "copilot-telemetrie",
      "methode": "POST",
      "pfadregel": "/telemetry",
-     "kopf": "abgewiesen"
+     "kopf": "abgewiesen",
+     "pfad": "/telemetry",
+     "host": "telemetry.individual.githubcopilot.com"
     }
    }
   },
@@ -342,7 +376,9 @@
      "ziel": "copilot-telemetrie",
      "methode": "POST",
      "pfadregel": "/telemetry",
-     "kopf": "keiner"
+     "kopf": "keiner",
+     "pfad": null,
+     "host": "telemetry.individual.githubcopilot.com"
     }
    }
   },
@@ -360,7 +396,9 @@
      "ziel": "copilot-telemetrie",
      "methode": "POST",
      "pfadregel": "/telemetry",
-     "kopf": "keiner"
+     "kopf": "keiner",
+     "pfad": null,
+     "host": "telemetry.individual.githubcopilot.com"
     }
    }
   },
@@ -378,7 +416,9 @@
      "ziel": "copilot-exp",
      "methode": "POST",
      "pfadregel": "/api/v1/assignments",
-     "kopf": "keiner"
+     "kopf": "keiner",
+     "pfad": null,
+     "host": "exp.individual.githubcopilot.com"
     }
    }
   },
@@ -398,7 +438,9 @@
      "ziel": "copilot-exp",
      "methode": "POST",
      "pfadregel": "/api/v1/assignments",
-     "kopf": "abgewiesen"
+     "kopf": "abgewiesen",
+     "pfad": "/api/v1",
+     "host": "exp.individual.githubcopilot.com"
     }
    }
   },
@@ -418,7 +460,9 @@
      "ziel": "copilot-exp",
      "methode": "POST",
      "pfadregel": null,
-     "kopf": null
+     "kopf": null,
+     "pfad": "/api/v1",
+     "host": "exp.individual.githubcopilot.com"
     }
    }
   },
@@ -438,7 +482,9 @@
      "ziel": "copilot-telemetrie",
      "methode": "GET",
      "pfadregel": "/telemetry",
-     "kopf": null
+     "kopf": null,
+     "pfad": "/telemetry",
+     "host": "telemetry.individual.githubcopilot.com"
     }
    }
   },
@@ -458,7 +504,9 @@
      "ziel": "copilot-plan",
      "methode": null,
      "pfadregel": "/*",
-     "kopf": null
+     "kopf": null,
+     "pfad": "/x",
+     "host": "api.individual.githubcopilot.com"
     }
    }
   },
@@ -478,7 +526,9 @@
      "ziel": "copilot-plan",
      "methode": null,
      "pfadregel": null,
-     "kopf": null
+     "kopf": null,
+     "pfad": "/x",
+     "host": "api.individual.githubcopilot.com"
     }
    }
   },
@@ -498,7 +548,9 @@
      "ziel": "copilot-plan",
      "methode": "POST",
      "pfadregel": "/*",
-     "kopf": null
+     "kopf": null,
+     "pfad": "/x",
+     "host": "api.individual.githubcopilot.com"
     }
    }
   }

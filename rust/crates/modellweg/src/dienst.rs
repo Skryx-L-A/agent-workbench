@@ -15,6 +15,7 @@ use crate::betriebsart::Regeln;
 use crate::betriebsart::openai_lokal::{OpenaiLokal, Optionen};
 use crate::codes::Code;
 use crate::http::{self, KoerperLeser, Lesefehler};
+use crate::pfad::pfad_feld;
 use crate::probelauf::Zaehlung;
 use crate::protokoll::{self, Modellweg};
 use crate::schluessel::Schluessel;
@@ -40,6 +41,8 @@ pub struct Lage {
     pub schluessel: Schluessel,
     /// The marker count of a trial run (section 9), else `None`.
     pub probelauf: Option<Zaehlung>,
+    /// Whether the whole path stands in the field `pfad` of the line (`--protokoll-pfad-voll`, section 8).
+    pub pfad_voll: bool,
 }
 
 /// The result of one request for its line.
@@ -123,15 +126,22 @@ impl Dienst {
             return;
         };
         let mut huelle = anmeldung.abbruch.huelle(harness);
-        if let Some(ausgang) = self.verarbeite(&mut huelle, &anmeldung.abbruch) {
-            self.zeile(ausgang);
+        let mut pfad = None;
+        if let Some(ausgang) = self.verarbeite(&mut huelle, &anmeldung.abbruch, &mut pfad) {
+            self.zeile(ausgang, pfad);
         }
         let _ = huelle.shutdown(std::net::Shutdown::Both);
         drop(anmeldung);
     }
 
     /// The stages 1 to 10 and the way to the target. `None` only for `mw.protokoll_fehlt` (no line).
-    fn verarbeite(&self, h: &mut Huelle, abbruch: &Abbruch) -> Option<Ausgang> {
+    /// `pfad` takes the limited path of the request as soon as the head is read, for the line (section 8).
+    fn verarbeite(
+        &self,
+        h: &mut Huelle,
+        abbruch: &Abbruch,
+        pfad: &mut Option<String>,
+    ) -> Option<Ausgang> {
         if self.betrieb.protokoll_kaputt.load(Ordering::SeqCst) {
             let _ = http::lies_anfragekopf(h);
             let _ = h.write_all(&Code::ProtokollFehlt.antwort());
@@ -140,6 +150,7 @@ impl Dienst {
         let Some((kopf, rest)) = http::lies_anfragekopf(h) else {
             return Some(ablehnen(h, Code::AnfrageUnlesbar));
         };
+        *pfad = Some(pfad_feld(&kopf.ziel, self.lage.pfad_voll));
         let Ok(laenge) = kopf.inhaltslaenge() else {
             return Some(ablehnen(h, Code::AnfrageUnlesbar));
         };
@@ -265,7 +276,8 @@ impl Dienst {
     }
 
     /// Appends the line of a request; a failure blocks every further request (`mw.protokoll_fehlt`).
-    fn zeile(&self, a: Ausgang) {
+    /// The path stands in the line only at a rejection (section 8); a `GET` never gets past stage 4 or 5 here.
+    fn zeile(&self, a: Ausgang, pfad: Option<String>) {
         // Only `weitergereicht` carries tokens; every other result is built without them.
         let (token_ein, token_aus) = a
             .tokens
@@ -281,6 +293,8 @@ impl Dienst {
             status: u32::from(a.status),
             token_ein,
             token_aus,
+            pfad: pfad.filter(|_| a.ergebnis == "abgelehnt"),
+            host: None,
         };
         if protokoll::anhaengen_modellweg(&self.lage.protokoll, &m).is_err() {
             self.betrieb.protokoll_kaputt.store(true, Ordering::SeqCst);
@@ -350,6 +364,7 @@ mod tests {
             protokoll: PathBuf::from("/nicht/da"),
             schluessel: Schluessel::fuer_test(b"k"),
             probelauf: None,
+            pfad_voll: false,
         };
         Arc::new(Dienst::neu(lage, Box::new(Nie), Box::new(|| 0)))
     }

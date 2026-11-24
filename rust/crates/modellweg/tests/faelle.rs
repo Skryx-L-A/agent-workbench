@@ -18,10 +18,11 @@ use std::time::{Duration, Instant};
 
 use formate::kette::{NULL_HASH, pruefe, sha256_hex};
 use gemeinsam::{
-    Antwort, FRIST, Prozess, Skript, Wegwerf, anfrage, argv, dienst, fall_datei, latin1,
-    lauf_bis_ende, text, zeilen,
+    Antwort, FRIST, Prozess, Skript, Wegwerf, anfrage, argv, dienst, dienst_pfad_voll, fall_datei,
+    latin1, lauf_bis_ende, text, zeilen,
 };
 use modellweg::aufruf::{self, Aufruffehler};
+use modellweg::pfad::{pfad_feld, pfad_feld_ok};
 use modellweg::protokoll::{Modellweg, anhaengen_modellweg, zeile_modellweg};
 use modellweg::schluessel::{self, Schluesselfehler};
 use serde_json::Value;
@@ -255,7 +256,7 @@ fn anfragen_cases() {
             continue;
         }
         let z = &alle[0];
-        for feld in ["ergebnis", "grund", "status"] {
+        for feld in ["ergebnis", "grund", "status", "pfad", "host"] {
             assert_eq!(z[feld], e["zeile"][feld], "{name}: {feld}");
         }
         assert_eq!(z["modell"], lage["modell"], "{name}");
@@ -331,7 +332,15 @@ fn antworten_cases() {
         assert!(!gemeinsam::enthaelt(&roh, schluessel.as_bytes()), "{name}");
         let alle = zeilen(&w.protokoll());
         assert_eq!(alle.len(), 1, "{name}");
-        for feld in ["ergebnis", "grund", "status", "token_ein", "token_aus"] {
+        for feld in [
+            "ergebnis",
+            "grund",
+            "status",
+            "token_ein",
+            "token_aus",
+            "pfad",
+            "host",
+        ] {
             assert_eq!(alle[0][feld], e["zeile"][feld], "{name}: {feld}");
         }
     }
@@ -350,6 +359,8 @@ fn modellweg_aus(a: &Value) -> Modellweg {
         status: u32::try_from(a["status"].as_u64().expect("status")).expect("u32"),
         token_ein: tok(&a["token_ein"]),
         token_aus: tok(&a["token_aus"]),
+        pfad: a["pfad"].as_str().map(str::to_owned),
+        host: a["host"].as_str().map(str::to_owned),
     }
 }
 
@@ -357,7 +368,7 @@ fn modellweg_aus(a: &Value) -> Modellweg {
 fn zeile_cases() {
     let f = fall_datei("zeile.json");
     let faelle = f["zeilen"].as_array().expect("cases");
-    assert!(faelle.len() >= 20, "{}", faelle.len());
+    assert!(faelle.len() >= 25, "{}", faelle.len());
     for fall in faelle {
         let name = text(&fall["name"]);
         let m = modellweg_aus(&fall["aufruf"]);
@@ -371,6 +382,66 @@ fn zeile_cases() {
             assert_eq!(sha256_hex(z.as_bytes()), text(&e["sha256"]), "{name}");
         }
     }
+}
+
+/// The cases of the field `pfad` (contract 8, section 8) against the function of the library; they stand in
+/// `kopf-zeile.json`, but the field is the same in both modes, and the check needs no mode.
+#[test]
+fn pfad_cases() {
+    let f = fall_datei("kopf-zeile.json");
+    let faelle = f["pfade"].as_array().expect("cases");
+    assert!(faelle.len() >= 27, "{}", faelle.len());
+    for fall in faelle {
+        let name = text(&fall["name"]);
+        let voll = fall["voll"].as_bool().expect("voll");
+        let ist = pfad_feld(text(&fall["ziel"]), voll);
+        assert_eq!(ist, text(&fall["erwartet"]), "{name}");
+        assert!(pfad_feld_ok(&ist), "{name}: {ist}");
+        assert!(!ist.contains(['?', '#']), "{name}: {ist}");
+    }
+}
+
+/// The line of a rejected request carries the limited path; a request that is handed through carries none
+/// (contract 8, section 8). With the admin switch the whole path stands there.
+#[test]
+fn eine_abgelehnte_anfrage_traegt_den_begrenzten_pfad() {
+    let w = Wegwerf::neu("pf");
+    let skript = Skript::ok();
+    let d = dienst(
+        &w,
+        "https://ziel.beispiel.invalid/v1",
+        "m",
+        "mw-testschluessel-1",
+        Box::new(skript.clone()),
+    );
+    let a = Antwort::lies(&anfrage(
+        &d,
+        b"GET /models/session/x?a=b HTTP/1.1\r\nHost: x\r\n\r\n",
+    ));
+    assert_eq!(a.status, 404);
+    let z = zeilen(&w.protokoll());
+    assert_eq!(z.len(), 1);
+    assert_eq!(z[0]["ergebnis"], "abgelehnt");
+    assert_eq!(z[0]["grund"], "mw.pfad_unbekannt");
+    assert_eq!(z[0]["pfad"], "/models/session");
+    assert!(z[0]["host"].is_null());
+    assert_eq!(skript.verbunden.load(Ordering::SeqCst), 0);
+
+    let w2 = Wegwerf::neu("pv");
+    let d2 = dienst_pfad_voll(
+        &w2,
+        "https://ziel.beispiel.invalid/v1",
+        "m",
+        "mw-testschluessel-1",
+        Box::new(Skript::ok()),
+    );
+    let a2 = Antwort::lies(&anfrage(
+        &d2,
+        b"GET /models/session/x?a=b HTTP/1.1\r\nHost: x\r\n\r\n",
+    ));
+    assert_eq!(a2.status, 404);
+    let z2 = zeilen(&w2.protokoll());
+    assert_eq!(z2[0]["pfad"], "/models/session/x");
 }
 
 #[test]

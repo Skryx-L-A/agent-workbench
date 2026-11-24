@@ -39,8 +39,9 @@ pub const SYSTEM_UNTER_VERBOTEN: [&str; 7] =
     ["/usr", "/run", "/proc", "/sys", "/dev", "/etc", "/opt"];
 
 /// Credential stores of the account, relative to the home: browser profiles, key rings, `ssh`, `gpg`, cloud tools,
-/// password managers.
-pub const ANMELDE_ORDNER: [&str; 38] = [
+/// password managers, and the store of the holder (`.local/state/agent-workbench/halter`, which keeps the login of
+/// the Copilot CLI). No harness is exempt from the last one: not even its own harness may see it.
+pub const ANMELDE_ORDNER: [&str; 39] = [
     ".config/google-chrome",
     ".config/chromium",
     ".mozilla",
@@ -79,6 +80,7 @@ pub const ANMELDE_ORDNER: [&str; 38] = [
     ".config/op",
     ".var/app/com.bitwarden.desktop",
     ".var/app/org.keepassxc.KeePassXC",
+    ".local/state/agent-workbench/halter",
 ];
 
 /// File stores of tokens and passwords of tools, relative to the home.
@@ -208,6 +210,38 @@ mod tests {
             "/home/v/.ssh",
         ] {
             assert!(!beruehrt_anmeldespeicher(p(pfad), heim, "claude"), "{pfad}");
+        }
+    }
+
+    #[test]
+    fn the_store_of_the_holder_is_closed_like_a_login_store_for_every_harness() {
+        let heim = p("/home/u");
+        let harnesse: Vec<&str> = HARNESS_ZUGANG
+            .iter()
+            .map(|(name, _)| *name)
+            .chain(["attrappe"])
+            .collect();
+        for harness in harnesse {
+            for pfad in [
+                "/home/u/.local/state/agent-workbench/halter/geheim/anmeldung.copilot",
+                "/home/u/.local/state/agent-workbench/halter",
+                "/home/u/.local/state/agent-workbench",
+                "/home/u/.local/state",
+            ] {
+                assert!(
+                    beruehrt_anmeldespeicher(p(pfad), heim, harness),
+                    "{harness} {pfad}"
+                );
+            }
+            for pfad in [
+                "/home/u/.local/state/andere",
+                "/home/u/.local/state/agent-workbench/andere",
+            ] {
+                assert!(
+                    !beruehrt_anmeldespeicher(p(pfad), heim, harness),
+                    "{harness} {pfad}"
+                );
+            }
         }
     }
 

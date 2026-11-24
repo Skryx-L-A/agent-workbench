@@ -25,7 +25,8 @@ fn code<T: std::fmt::Debug>(r: &Result<T, Fehler>) -> String {
 }
 
 fn objekt(fuell: usize) -> Value {
-    json!({"aktionsname": "t.u", "ergebnis": "ok", "x": "x".repeat(fuell)})
+    // A kind of the register whose form no arm checks yet, so this helper is about the length, not the form.
+    json!({"aktionsname": "suche.rueckfall", "ergebnis": "ok", "x": "x".repeat(fuell)})
 }
 
 fn ordner_mit_november(name: &str) -> Wegwerf {
@@ -232,7 +233,7 @@ fn finished_lines_are_checked_like_the_checker_does() {
 fn finished_lines_need_a_time_in_the_calendar_and_the_same_month() {
     let zeile = |zeit: &str, vorher: &str| {
         format!(
-            "{{\"aktionsname\":\"t.u\",\"ergebnis\":\"ok\",\"fassung\":2,\"vorher\":\"{vorher}\",\"zeit\":\"{zeit}\"}}"
+            "{{\"aktionsname\":\"suche.rueckfall\",\"ergebnis\":\"ok\",\"fassung\":2,\"vorher\":\"{vorher}\",\"zeit\":\"{zeit}\"}}"
         )
     };
     for zeit in ["2026-02-31T00:00:00.000Z", "1969-12-31T23:59:59.999Z"] {

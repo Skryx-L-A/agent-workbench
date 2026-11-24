@@ -63,7 +63,7 @@ fn basis_ist_gueltig_und_getypt() {
             lesen: ["get".to_owned()].into_iter().collect(),
             freigabe: true,
             frist_ms: 60_000,
-            einloesefrist_ms: 60_000,
+            einloesefrist_ms: 300_000,
         })
     );
     let e = lesen(

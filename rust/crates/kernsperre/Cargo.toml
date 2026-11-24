@@ -1,0 +1,38 @@
+[package]
+name = "kernsperre"
+version = "0.1.0"
+description = "The lock on the core-image limit (finding N3): a seccomp filter refuses every setting of RLIMIT_CORE with EPERM, so a child cannot lower the soft limit 1 back to 0. Linux only; it returns reasons, no exit codes and no text."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+# The test program of the crate: it installs the lock, tries the calls and tells every step on standard output. The tests of `tests/sperre.rs`
+# start it as a process, also as a child of a child. It is no part of a shipped build.
+[[bin]]
+name = "kernsperre-probe"
+path = "src/bin/probe.rs"
+
+# rustix (same version as in `kernabbild`, one feature more): `set_no_new_privs` (`prctl PR_SET_NO_NEW_PRIVS`, feature `thread`),
+# `getrlimit` and `setrlimit` for the test program, `std` for the `std` types of its errors. The package is in Cargo.lock already;
+# no new package enters the graph, and `unsafe` stays forbidden in this workspace (the calls are safe in rustix). Unix targets only:
+# `rustix::process` does not exist under Windows. Licence "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT".
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "=1.1.6", default-features = false, features = ["process", "std", "thread"] }
+
+# seccompiler 0.5.0 (rust-vmm, Amazon Firecracker team), licence "Apache-2.0 OR BSD-3-Clause": `Apache-2.0` is on the list of deny.toml,
+# so no exception is needed. It builds the BPF program from rules and installs it (`apply_filter`: `prctl(PR_SET_NO_NEW_PRIVS)` and
+# `syscall(SYS_seccomp, SECCOMP_SET_MODE_FILTER)`), so the `unsafe` for both calls stays in that crate and none enters ours. Chosen over
+# `libseccomp`/`syscallz`, which bind a library under LGPL-2.1 (the licence list forbids LGPL for a shipped binary), and over a hand
+# written BPF program, which would need a pointer to `sock_fprog` and with it our own `unsafe`. Its only dependency is `libc`, already in
+# the graph in the same version; `serde` and `serde_json` hang behind the feature `json`, which stays off (no default features).
+# libc: the syscall numbers of this architecture (`SYS_setrlimit`, `SYS_prlimit64`), `RLIMIT_CORE` and `EPERM`; already in the graph
+# (rustix, nix), MIT OR Apache-2.0.
+[target.'cfg(target_os = "linux")'.dependencies]
+seccompiler = { version = "=0.5.0", default-features = false }
+libc = "0.2"
+
+[lints]
+workspace = true

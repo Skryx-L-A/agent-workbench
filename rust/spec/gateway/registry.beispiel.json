@@ -28,7 +28,7 @@
    "route": "cloud-beispiel",
    "modelle": [
     {
-     "modell": "claude-sonnet-5-5",
+     "modell": "cloud-beispiel/modell-a",
      "anbieter": "anb-cloud-a",
      "stufe": "stufe-1",
      "preis_ein": 3000,
@@ -40,7 +40,7 @@
    "route": "lokal-beispiel",
    "modelle": [
     {
-     "modell": "qwen3:8b",
+     "modell": "lokal-beispiel/modell-a",
      "anbieter": "anb-lokal",
      "stufe": "stufe-1",
      "preis_ein": 0,

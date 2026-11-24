@@ -2,7 +2,8 @@
 """Prüft die sichtbaren Fälle des Vertrags Einstellungsdatei gegen Paarung, JSON-Lesen und Schema.
 
 Aufruf: <python mit jsonschema> -I rust/spec/einstellungen/pruefen.py
-Ohne jsonschema prüft es nur Paarung, Größe und JSON-Lesen und meldet das Schema als nicht geprüft.
+Ohne jsonschema endet es mit Exit 2 und einer Zeile auf stderr. Wer bewusst ohne Schema prüfen will, ruft es mit
+--ohne-schema auf: dann prüft es nur Paarung, Größe und JSON-Lesen und meldet das Schema in der Ausgabe als nicht geprüft.
 Exit 0, wenn jeder prüfbare Punkt stimmt. Codes außerhalb des Schemas sind erst mit dem Bau prüfbar.
 """
 import base64
@@ -93,6 +94,10 @@ def main():
         pruefer = jsonschema.Draft202012Validator(json.loads(SCHEMA_DATEI.read_text(encoding="utf-8")))
         jsonschema.Draft202012Validator.check_schema(pruefer.schema)
     except ImportError:
+        if "--ohne-schema" not in sys.argv[1:]:
+            print("pruefen.py: das Modul jsonschema fehlt, das Schema wäre ungeprüft; Exit 2 "
+                  "(mit --ohne-schema bewusst ohne Schema prüfen)", file=sys.stderr)
+            return 2
         pruefer = None
     fehler, nur_bau, zahl = [], [], 0
     faelle = {p.name for p in (HIER / "faelle").glob("*.json")}
@@ -133,7 +138,7 @@ def main():
         elif code is not None and (code not in SCHEMA_CODES or name in SCHEMA_BLIND):
             nur_bau.append(f"{name} ({erw['code']}, Schema {'nimmt an' if nimmt_an else 'lehnt ab'})")
     vorfuehrung_pruefen(pruefer, fehler)
-    print(f"{zahl} Fälle, {len(fehler)} Fehler, Schema {'geprüft' if pruefer else 'NICHT geprüft (jsonschema fehlt)'}")
+    print(f"{zahl} Fälle, {len(fehler)} Fehler, Schema {'geprüft' if pruefer else 'NICHT geprüft (--ohne-schema, jsonschema fehlt)'}")
     for zeile in nur_bau:
         print(f"  erst mit dem Bau prüfbar: {zeile}")
     for zeile in fehler:

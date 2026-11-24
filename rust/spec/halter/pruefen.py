@@ -31,7 +31,7 @@ ROLLEN = {
 OPS = set().union(*ROLLEN.values())
 SCHEMA_CODES = {"halter.schluessel_unbekannt", "halter.schluessel_fehlt", "halter.typ_falsch", "halter.wert_form",
                 "halter.kopf_verboten"}
-SCHEIN_SPANNE = 300000
+SCHEIN_SPANNE = 86400000
 SCHEIN_VORLAUF = 5000
 
 

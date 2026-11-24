@@ -18,7 +18,9 @@
      "ziel": "copilot-plan",
      "methode": "GET",
      "pfadregel": "/*",
-     "kopf": "ersetzt"
+     "kopf": "ersetzt",
+     "pfad": "/responses",
+     "host": "api.individual.githubcopilot.com"
     }
    }
   },
@@ -36,7 +38,9 @@
      "ziel": "copilot-plan",
      "methode": "GET",
      "pfadregel": "/*",
-     "kopf": "ersetzt"
+     "kopf": "ersetzt",
+     "pfad": "/responses",
+     "host": "api.individual.githubcopilot.com"
     }
    }
   },
@@ -54,7 +58,9 @@
      "ziel": "copilot-plan",
      "methode": "GET",
      "pfadregel": "/*",
-     "kopf": "ersetzt"
+     "kopf": "ersetzt",
+     "pfad": "/responses",
+     "host": "api.individual.githubcopilot.com"
     }
    }
   }

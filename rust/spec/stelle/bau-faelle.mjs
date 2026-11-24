@@ -98,12 +98,12 @@ function mcpLaden(d) {
     ['einst.anzahl', () => srv.length > 64 || objs.some((x) => x.lesen.length > 256 || x.schreiben.length > 256)],
     ['einst.kennung_form', () => srv.some(([k]) => !SCHLUESSEL.test(k)) || objs.some((x) => [...x.lesen, ...x.schreiben].some((w) => !WERKZEUG.test(w)))],
     ['einst.kennung_doppelt', () => objs.some((x) => new Set(x.lesen).size !== x.lesen.length || new Set(x.schreiben).size !== x.schreiben.length)],
-    ['einst.frist_bereich', () => objs.some((x) => (x.frist_ms !== undefined && (x.frist_ms < 1 || x.frist_ms > 86400000)) || (x.einloesefrist_ms !== undefined && (x.einloesefrist_ms < 1 || x.einloesefrist_ms > 300000)))],
+    ['einst.frist_bereich', () => objs.some((x) => (x.frist_ms !== undefined && (x.frist_ms < 1 || x.frist_ms > 86400000)) || (x.einloesefrist_ms !== undefined && (x.einloesefrist_ms < 1 || x.einloesefrist_ms > 86400000)))],
     ['einst.mcp_doppelt', () => objs.some((x) => x.lesen.some((w) => x.schreiben.includes(w)))],
   ];
   for (const [code, trifft] of stufen) if (trifft()) return { fehler: code };
   const mcp = {};
-  for (const [name, x] of srv) mcp[name] = { lesen: x.lesen, freigabe: x.freigabe ?? true, frist_ms: x.frist_ms ?? 60000, einloesefrist_ms: x.einloesefrist_ms ?? 60000 };
+  for (const [name, x] of srv) mcp[name] = { lesen: x.lesen, freigabe: x.freigabe ?? true, frist_ms: x.frist_ms ?? 60000, einloesefrist_ms: x.einloesefrist_ms ?? 300000 };
   return { mcp };
 }
 

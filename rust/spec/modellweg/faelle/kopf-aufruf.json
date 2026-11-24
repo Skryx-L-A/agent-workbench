@@ -44,6 +44,34 @@
    }
   },
   {
+   "name": "mit_pfad_voll",
+   "beschreibung": "Betriebsart 2 mit dem Schalter --protokoll-pfad-voll",
+   "argv": [
+    "--betriebsart",
+    "kopf-einsetzen",
+    "--socket",
+    "/run/user/1000/wb/s-1/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--sitzung",
+    "s-1",
+    "--route",
+    "cloud-beispiel",
+    "--protokoll",
+    "/srv/beispiel/.local/state/wb/protokoll",
+    "--zielliste",
+    "/run/user/1000/wb/s-1/zielliste.json",
+    "--ca-schluessel",
+    "/run/user/1000/wb/s-1/ca.key",
+    "--ca-zertifikat",
+    "/run/user/1000/wb/s-1/ca.crt",
+    "--protokoll-pfad-voll"
+   ],
+   "erwartet": {
+    "bis_schritt": "aufruf_gut"
+   }
+  },
+  {
    "name": "mit_ziel",
    "beschreibung": "--ziel gehoert zu openai-lokal",
    "argv": [

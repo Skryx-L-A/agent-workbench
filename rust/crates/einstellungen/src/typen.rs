@@ -355,7 +355,7 @@ impl McpServer {
         self.frist_ms
     }
 
-    /// The deadline to redeem a release in milliseconds: 60000 when absent.
+    /// The deadline to redeem a release in milliseconds: 300000 when absent.
     #[must_use]
     pub fn einloesefrist_ms(&self) -> u64 {
         self.einloesefrist_ms

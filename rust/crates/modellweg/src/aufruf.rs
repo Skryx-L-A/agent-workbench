@@ -21,6 +21,10 @@ pub const BETRIEBSART: &str = "--betriebsart";
 
 /// The switch of a trial run (section 9).
 pub const PROBELAUF: &str = "--probelauf";
+/// The switch of the administration for the whole path in the field `pfad` of the line (section 8); off by default.
+pub const PROTOKOLL_PFAD_VOLL: &str = "--protokoll-pfad-voll";
+/// The switches without a value, for every mode.
+pub const SCHALTER: [&str; 2] = [PROBELAUF, PROTOKOLL_PFAD_VOLL];
 /// The markers of a trial run.
 pub const MARKER: &str = "--marker";
 /// The count file of a trial run.
@@ -68,6 +72,8 @@ pub struct Aufruf {
     pub protokoll: PathBuf,
     /// The options of the mode.
     pub art: ArtOptionen,
+    /// Whether the whole path stands in the field `pfad` of the line (`--protokoll-pfad-voll`).
+    pub pfad_voll: bool,
     /// The trial run, if all three options are given.
     pub probelauf: Option<Probelauf>,
 }
@@ -79,7 +85,8 @@ pub struct Aufruf {
 /// # Errors
 /// [`Aufruffehler`] as above.
 pub fn lies(args: &[OsString]) -> Result<Aufruf, Aufruffehler> {
-    let (mut werte, schalter) = optionen_lesen(args).ok_or(Aufruffehler::Aufruf)?;
+    let (mut werte, gesetzt) = optionen_lesen(args).ok_or(Aufruffehler::Aufruf)?;
+    let [schalter, pfad_voll] = SCHALTER.map(|name| gesetzt.contains(&name));
     let art = match werte.remove(BETRIEBSART) {
         None => Betriebsart::OpenaiLokal,
         Some(name) => Betriebsart::aus_name(&name).ok_or(Aufruffehler::BetriebsartUnbekannt)?,
@@ -121,6 +128,7 @@ pub fn lies(args: &[OsString]) -> Result<Aufruf, Aufruffehler> {
         route,
         protokoll: PathBuf::from(protokoll),
         art: art_optionen,
+        pfad_voll,
         probelauf,
     })
 }
@@ -162,19 +170,20 @@ pub fn marker_ok(m: &str) -> bool {
             .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == b'-')
 }
 
-/// Reads the options: `--probelauf` is a switch without a value, every other option has exactly one value. Every
-/// name known (for every mode or for a mode), none twice, every part UTF-8. Returns the values and the switch.
-fn optionen_lesen(args: &[OsString]) -> Option<(BTreeMap<String, String>, bool)> {
+/// Reads the options: every name in [`SCHALTER`] is a switch without a value, every other option has exactly one
+/// value. Every name known (for every mode or for a mode), none twice, every part UTF-8. Returns the values and the
+/// switches that are set.
+fn optionen_lesen(args: &[OsString]) -> Option<(BTreeMap<String, String>, Vec<&'static str>)> {
     let mut werte = BTreeMap::new();
-    let mut schalter = false;
+    let mut gesetzt: Vec<&'static str> = Vec::new();
     let mut rest = args;
     while let Some((name, danach)) = rest.split_first() {
         let name = name.to_str()?;
-        if name == PROBELAUF {
-            if schalter {
+        if let Some(schalter) = SCHALTER.into_iter().find(|s| *s == name) {
+            if gesetzt.contains(&schalter) {
                 return None;
             }
-            schalter = true;
+            gesetzt.push(schalter);
             rest = danach;
             continue;
         }
@@ -193,7 +202,7 @@ fn optionen_lesen(args: &[OsString]) -> Option<(BTreeMap<String, String>, bool)>
         }
         rest = danach;
     }
-    Some((werte, schalter))
+    Some((werte, gesetzt))
 }
 
 /// An absolute path without a segment `.` or `..`, without an empty segment and without a control character

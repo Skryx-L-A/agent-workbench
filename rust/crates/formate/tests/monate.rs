@@ -113,7 +113,7 @@ fn kette(args: &[OsString]) -> (i32, String) {
 fn month_cases() {
     let datei = fall_datei("monate.json");
     let faelle = liste(&datei, "faelle");
-    assert_eq!(faelle.len(), 39);
+    assert_eq!(faelle.len(), 40);
     spiele(faelle, "monate");
 }
 
@@ -446,6 +446,17 @@ fn check_cases_of_the_person_lines() {
     let schreiben = liste(&datei, "anhaengen");
     assert_eq!(schreiben.len(), 2);
     spiele(schreiben, "personen-anhaengen");
+}
+
+#[test]
+fn check_cases_of_the_four_line_kinds_of_the_point() {
+    let datei = fall_datei("stellezeilen.json");
+    let faelle = liste(&datei, "pruefe");
+    assert_eq!(faelle.len(), 51);
+    pruefe_zeilenfaelle(faelle, "stelle-pruefe");
+    let schreiben = liste(&datei, "anhaengen");
+    assert_eq!(schreiben.len(), 2);
+    spiele(schreiben, "stelle-anhaengen");
 }
 
 #[test]

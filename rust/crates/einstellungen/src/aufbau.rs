@@ -14,8 +14,10 @@ use crate::typen::{
     Einstellungen, Freigabe, Kunde, KundendatenAnCloud, McpServer, Route, Routenart, Werkzeug,
 };
 
-/// The default of `frist_ms` and `einloesefrist_ms` of a server (contract 2, block `mcp`).
+/// The default of `frist_ms` of a server (contract 2, block `mcp`).
 const MCP_FRIST_VORGABE_MS: u64 = 60_000;
+/// The default of `einloesefrist_ms` of a server: 5 minutes (contract 2, block `mcp`).
+const MCP_EINLOESEFRIST_VORGABE_MS: u64 = 300_000;
 
 const GROESSE_MAX: usize = 65536;
 const OBEN: [&str; 6] = [
@@ -596,7 +598,7 @@ fn mcp_server(name: &str, felder: &[(String, Wert)], befund: &mut Befund) -> Mcp
     }
     let frist_ms = frist(felder, "frist_ms", befund).unwrap_or(MCP_FRIST_VORGABE_MS);
     let einloesefrist_ms =
-        frist(felder, "einloesefrist_ms", befund).unwrap_or(MCP_FRIST_VORGABE_MS);
+        frist(felder, "einloesefrist_ms", befund).unwrap_or(MCP_EINLOESEFRIST_VORGABE_MS);
     if lesen.iter().any(|name| schreiben.contains(name)) {
         befund.melde(Fehler::McpDoppelt);
     }

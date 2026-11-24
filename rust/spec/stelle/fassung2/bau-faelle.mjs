@@ -178,7 +178,7 @@ function laden2(d) {
     ['einst.kennung_doppelt', () => objs.some((x) => [x.lesen, x.schreiben, x.zweite_person ?? []].some((l) => new Set(l).size !== l.length))
       || (zwecke !== undefined && new Set(zwecke).size !== zwecke.length)
       || (hRollen !== undefined && new Set(hRollen).size !== hRollen.length)],
-    ['einst.frist_bereich', () => objs.some((x) => (x.frist_ms !== undefined && (x.frist_ms < 1 || x.frist_ms > 86400000)) || (x.einloesefrist_ms !== undefined && (x.einloesefrist_ms < 1 || x.einloesefrist_ms > 300000)))
+    ['einst.frist_bereich', () => objs.some((x) => (x.frist_ms !== undefined && (x.frist_ms < 1 || x.frist_ms > 86400000)) || (x.einloesefrist_ms !== undefined && (x.einloesefrist_ms < 1 || x.einloesefrist_ms > 86400000)))
       || (s.antrag_frist_ms !== undefined && !ganzIn(s.antrag_frist_ms, 1, 86400000))
       || (sub('hersteller').hoechstfrist_ms !== undefined && !ganzIn(sub('hersteller').hoechstfrist_ms, 1, 2592000000))
       || (sub('flut').fenster_ms !== undefined && !ganzIn(sub('flut').fenster_ms, 1000, 86400000))],
@@ -190,7 +190,7 @@ function laden2(d) {
   ];
   for (const [code, trifft] of stufen) if (trifft()) return { fehler: code };
   const mcp = {};
-  for (const [name, x] of srv) mcp[name] = { lesen: x.lesen, freigabe: x.freigabe ?? true, frist_ms: x.frist_ms ?? 60000, einloesefrist_ms: x.einloesefrist_ms ?? 60000, zweite_person: x.zweite_person ?? [] };
+  for (const [name, x] of srv) mcp[name] = { lesen: x.lesen, freigabe: x.freigabe ?? true, frist_ms: x.frist_ms ?? 60000, einloesefrist_ms: x.einloesefrist_ms ?? 300000, zweite_person: x.zweite_person ?? [] };
   const st = {
     vier_augen: s.vier_augen ?? STELLE_VORGABE.vier_augen, senken_zweite_person: s.senken_zweite_person ?? STELLE_VORGABE.senken_zweite_person,
     halter_bescheinigung: s.halter_bescheinigung ?? STELLE_VORGABE.halter_bescheinigung,

@@ -266,6 +266,116 @@
    }
   },
   {
+   "name": "pfad_voll",
+   "beschreibung": "--protokoll-pfad-voll ist ein Schalter ohne Wert, Vorgabe aus",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll",
+    "--protokoll-pfad-voll"
+   ],
+   "erwartet": {
+    "bis_schritt": "aufruf_gut"
+   }
+  },
+  {
+   "name": "pfad_voll_vorne",
+   "beschreibung": "--protokoll-pfad-voll als erste Option",
+   "argv": [
+    "--protokoll-pfad-voll",
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll"
+   ],
+   "erwartet": {
+    "bis_schritt": "aufruf_gut"
+   }
+  },
+  {
+   "name": "pfad_voll_doppelt",
+   "beschreibung": "--protokoll-pfad-voll zweimal",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll",
+    "--protokoll-pfad-voll",
+    "--protokoll-pfad-voll"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "pfad_voll_mit_wert",
+   "beschreibung": "--protokoll-pfad-voll mit Wert ja: ja ist keine Option",
+   "argv": [
+    "--socket",
+    "/run/user/1000/wb/s-2/modell.sock",
+    "--socket-rechte",
+    "0600",
+    "--ziel",
+    "https://modelle.firma.beispiel.invalid/v1",
+    "--modell",
+    "lokal-beispiel/modell-a",
+    "--schluessel-datei",
+    "/home/beispiel/.config/wb/modellweg.schluessel",
+    "--sitzung",
+    "s-2",
+    "--route",
+    "lokal-beispiel",
+    "--protokoll",
+    "/home/beispiel/.local/state/wb/protokoll",
+    "--protokoll-pfad-voll",
+    "ja"
+   ],
+   "erwartet": {
+    "exit": 64,
+    "stderr": "mw.aufruf: Aufruf ungueltig\n",
+    "stdout": ""
+   }
+  },
+  {
    "name": "leer",
    "beschreibung": "ohne Argument",
    "argv": [],

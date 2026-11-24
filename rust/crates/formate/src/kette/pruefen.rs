@@ -264,8 +264,381 @@ pub(super) fn person_auskunft_form(map: &Map<String, Value>) -> bool {
         && text("zeit").is_some_and(zeit_muster)
 }
 
+/// The fields of a line `modellweg.aufruf` of mode 1 `openai-lokal`, in the order of the canonical bytes
+/// (contract 8, sections 8 and 11).
+const MODELLWEG_1: [&str; 15] = [
+    "aktionsname",
+    "betriebsart",
+    "ergebnis",
+    "fassung",
+    "grund",
+    "host",
+    "modell",
+    "pfad",
+    "route",
+    "sitzung",
+    "status",
+    "token_aus",
+    "token_ein",
+    "vorher",
+    "zeit",
+];
+
+/// The fields of a line `modellweg.aufruf` of mode 2 `kopf-einsetzen` (contract 8, sections 8 and 13.4).
+const MODELLWEG_2: [&str; 16] = [
+    "aktionsname",
+    "betriebsart",
+    "ergebnis",
+    "fassung",
+    "grund",
+    "host",
+    "kopf",
+    "methode",
+    "pfad",
+    "pfadregel",
+    "route",
+    "sitzung",
+    "status",
+    "vorher",
+    "zeit",
+    "ziel",
+];
+
+/// The results of a line `modellweg.aufruf` (contract 8, section 8).
+const ERGEBNISSE_MODELLWEG: [&str; 4] = [
+    "weitergereicht",
+    "abgelehnt",
+    "ziel_fehler",
+    "leck_gesperrt",
+];
+
+/// A value of the field `pfad` (contract 8, section 8): `*`, `/`, or `/` and segments that are each `*` or of the
+/// form `[A-Za-z0-9._~-]+`, in all at most 512 bytes. So no query, no fragment and no percent encoding gets into a
+/// line, in neither form of the field.
+fn pfad_feld_ok(wert: &str) -> bool {
+    if wert == "*" || wert == "/" {
+        return true;
+    }
+    wert.len() <= 512
+        && wert.strip_prefix('/').is_some_and(|rest| {
+            rest.split('/').all(|teil| {
+                teil == "*"
+                    || (!teil.is_empty()
+                        && teil
+                            .bytes()
+                            .all(|c| c.is_ascii_alphanumeric() || b"._~-".contains(&c)))
+            })
+        })
+}
+
+/// A path of a rule of the target list (contract 8, section 12): `/*`, or segments `/[A-Za-z0-9._~-]+` with an
+/// optional `/*` at the end. So the path of a request never stands in the field `pfadregel`.
+fn regel_pfad_feld_ok(wert: &str) -> bool {
+    if wert == "/*" {
+        return true;
+    }
+    let rest = wert.strip_suffix("/*").unwrap_or(wert);
+    !rest.is_empty()
+        && rest.strip_prefix('/').is_some_and(|ohne| {
+            ohne.split('/').all(|teil| {
+                !teil.is_empty()
+                    && teil != "."
+                    && teil != ".."
+                    && teil
+                        .bytes()
+                        .all(|c| c.is_ascii_alphanumeric() || b"._~-".contains(&c))
+            })
+        })
+}
+
+/// A host of the target list (contract 8, section 12): lower case, with a dot, without a port.
+fn host_feld_ok(wert: &str) -> bool {
+    let label = |l: &str| {
+        let b = l.as_bytes();
+        let rand = |c: Option<&u8>| c.is_some_and(|c| c.is_ascii_lowercase() || c.is_ascii_digit());
+        b.len() <= 63
+            && rand(b.first())
+            && rand(b.last())
+            && b.iter()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'-')
+    };
+    wert.len() <= 253 && wert.contains('.') && wert.split('.').all(label)
+}
+
+/// A field that is a text of a form or `null`.
+fn text_oder_null(map: &Map<String, Value>, schluessel: &str, form: impl Fn(&str) -> bool) -> bool {
+    match map.get(schluessel) {
+        Some(Value::Null) => true,
+        Some(Value::String(wert)) => form(wert),
+        _ => false,
+    }
+}
+
+/// The line is a closed `modellweg.aufruf` line of version 2 (contract 8, sections 8, 11 and 13.4). The mode names
+/// the form: 15 fields for `openai-lokal`, 16 for `kopf-einsetzen`. A line of an older model without `pfad` and
+/// `host` keeps the form it had (13 and 14 fields), so a chain written before them stays whole; the coupling of the
+/// fields belongs to the writer (crate `modellweg`), not to this check.
+pub(super) fn modellweg_form(map: &Map<String, Value>) -> bool {
+    let text = |schluessel: &str| map.get(schluessel).and_then(Value::as_str);
+    let Some(art @ ("openai-lokal" | "kopf-einsetzen")) = text("betriebsart") else {
+        return false;
+    };
+    let neu = map.contains_key("pfad") || map.contains_key("host");
+    let felder: &[&str] = if art == "openai-lokal" {
+        &MODELLWEG_1
+    } else {
+        &MODELLWEG_2
+    };
+    let ohne: Vec<&str> = felder
+        .iter()
+        .copied()
+        .filter(|f| neu || !["pfad", "host"].contains(f))
+        .collect();
+    if map.len() != ohne.len() || !ohne.iter().all(|f| map.contains_key(*f)) {
+        return false;
+    }
+    let status_ok = match map.get("status") {
+        Some(Value::Null) => art == "kopf-einsetzen",
+        Some(zahl) => zahl.as_u64().is_some_and(|s| (100..=599).contains(&s)),
+        None => false,
+    };
+    let zahl_oder_null = |schluessel: &str| match map.get(schluessel) {
+        Some(Value::Null) => true,
+        Some(zahl) => zahl
+            .as_u64()
+            .is_some_and(|n| u32::try_from(n).is_ok() && zahl.is_u64()),
+        None => false,
+    };
+    let eigen = if art == "openai-lokal" {
+        // This mode has exactly one target from `--ziel`, so its line never names a host.
+        text("modell").is_some_and(|m| (1..=128).contains(&m.len()))
+            && zahl_oder_null("token_ein")
+            && zahl_oder_null("token_aus")
+            && (!neu || map.get("host") == Some(&Value::Null))
+    } else {
+        text_oder_null(map, "ziel", schluessel_ok)
+            && text_oder_null(map, "methode", |m| {
+                ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"].contains(&m)
+            })
+            && text_oder_null(map, "pfadregel", regel_pfad_feld_ok)
+            && text_oder_null(map, "kopf", |k| {
+                ["ersetzt", "keiner", "abgewiesen"].contains(&k)
+            })
+    };
+    eigen
+        && status_ok
+        && text("ergebnis").is_some_and(|e| ERGEBNISSE_MODELLWEG.contains(&e))
+        && map.get("fassung").and_then(Value::as_u64) == Some(2)
+        && text_oder_null(map, "grund", schluessel_ok)
+        && ["route", "sitzung"]
+            .iter()
+            .all(|k| text(k).is_some_and(schluessel_ok))
+        && (!neu
+            || (text_oder_null(map, "pfad", pfad_feld_ok)
+                && text_oder_null(map, "host", host_feld_ok)))
+        && text("vorher").is_some_and(ist_sha256)
+        && text("zeit").is_some_and(zeit_muster)
+}
+
+/// The fields of a line `mcp.schreibaufruf` (contract 5, section 6.8; contract 6, section 7.1).
+const SCHREIBAUFRUF_FELDER: [&str; 14] = [
+    "aktionsname",
+    "anfrage",
+    "digest",
+    "entscheidend",
+    "ergebnis",
+    "fassung",
+    "person",
+    "server",
+    "sitzung",
+    "vorher",
+    "werkzeug",
+    "zeit",
+    "zeit_anfrage",
+    "zeit_entscheidung",
+];
+
+/// The fields of a line `sitzung.gestartet` or `sitzung.abgelehnt` (contract 5, section 6.8; contract 6,
+/// section 7.2).
+const SITZUNG_FELDER: [&str; 10] = [
+    "aktionsname",
+    "ergebnis",
+    "fassung",
+    "grund",
+    "harness",
+    "kunde",
+    "route",
+    "sitzung",
+    "vorher",
+    "zeit",
+];
+
+/// The fields of a line `vorgang.abgelehnt` (contract 5, section 6.8; contract 6, section 7.3).
+const VORGANG_FELDER: [&str; 9] = [
+    "aktionsname",
+    "anfrage",
+    "aufrufer",
+    "ergebnis",
+    "fassung",
+    "grund",
+    "vorgang",
+    "vorher",
+    "zeit",
+];
+
+/// The kinds of caller of the point (contract 6, section 3).
+const AUFRUFER_STELLE: [&str; 6] = ["kern", "hub", "mensch", "agent", "takt", "unbekannt"];
+
+/// The operations whose refusal is a line `vorgang.abgelehnt` (contract 6, section 4). A refused
+/// `sitzung.starten` is a line `sitzung.abgelehnt`, so its name never stands in this field.
+const VORGAENGE_STELLE: [&str; 6] = [
+    "mcp.anfragen",
+    "mcp.entscheiden",
+    "mcp.einloesen",
+    "mcp.offene",
+    "mcp.stand",
+    "ablauf.pruefen",
+];
+
+/// The results of a line `mcp.schreibaufruf` (contract 6, section 7.1).
+const ERGEBNISSE_SCHREIBAUFRUF: [&str; 4] =
+    ["eingeloest", "abgelehnt", "abgelaufen", "ohne_freigabe"];
+
+/// A request identifier of the point (contract 6, section 4): `^mf-[0-9]{1,15}-[1-9][0-9]{0,9}$`.
+fn anfrage_kennung_ok(wert: &str) -> bool {
+    let ziffern = |text: &str, hoechstens: usize| {
+        (1..=hoechstens).contains(&text.len()) && text.bytes().all(|c| c.is_ascii_digit())
+    };
+    wert.strip_prefix("mf-")
+        .and_then(|rest| rest.split_once('-'))
+        .is_some_and(|(laden, n)| ziffern(laden, 15) && ziffern(n, 10) && !n.starts_with('0'))
+}
+
+/// A tool name (contract 6, section 2): `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`.
+fn werkzeug_ok(wert: &str) -> bool {
+    let bytes = wert.as_bytes();
+    bytes.len() <= 128
+        && bytes.first().is_some_and(u8::is_ascii_alphanumeric)
+        && bytes
+            .iter()
+            .all(|c| c.is_ascii_alphanumeric() || b"._-".contains(c))
+}
+
+/// The line holds exactly these fields, no further one and none missing.
+fn felder_genau(map: &Map<String, Value>, felder: &[&str]) -> bool {
+    map.len() == felder.len() && felder.iter().all(|f| map.contains_key(*f))
+}
+
+/// The line is a closed `mcp.schreibaufruf` line of version 2 (contract 5, section 6.8): fourteen fields, the
+/// person only as a pseudonym, an argument only as `digest`, and the decider coupled to the time of the decision.
+pub(super) fn schreibaufruf_form(map: &Map<String, Value>) -> bool {
+    let text = |schluessel: &str| map.get(schluessel).and_then(Value::as_str);
+    let entscheidend = match map.get("entscheidend") {
+        Some(Value::Null) => false,
+        Some(Value::String(wert)) if ist_pseudonym(wert) => true,
+        _ => return false,
+    };
+    let zeit_entscheidung = match map.get("zeit_entscheidung") {
+        Some(Value::Null) => false,
+        Some(Value::String(wert)) if zeit_muster(wert) => true,
+        _ => return false,
+    };
+    // A redeemed or refused request names its decider, one without a release names none; a request that ran out
+    // may name one (released, not redeemed) or none (nobody decided).
+    let kopplung = match text("ergebnis") {
+        Some("eingeloest" | "abgelehnt") => entscheidend,
+        Some("ohne_freigabe") => !entscheidend,
+        Some("abgelaufen") => true,
+        _ => false,
+    };
+    felder_genau(map, &SCHREIBAUFRUF_FELDER)
+        && text("aktionsname") == Some("mcp.schreibaufruf")
+        && text("ergebnis").is_some_and(|e| ERGEBNISSE_SCHREIBAUFRUF.contains(&e))
+        && kopplung
+        && entscheidend == zeit_entscheidung
+        && map.get("fassung").and_then(Value::as_u64) == Some(2)
+        && text("anfrage").is_some_and(anfrage_kennung_ok)
+        && text("digest").is_some_and(ist_sha256)
+        && text("person").is_some_and(ist_pseudonym)
+        && ["server", "sitzung"]
+            .iter()
+            .all(|k| text(k).is_some_and(schluessel_ok))
+        && text("werkzeug").is_some_and(werkzeug_ok)
+        && text("zeit_anfrage").is_some_and(zeit_muster)
+        && text("vorher").is_some_and(ist_sha256)
+        && text("zeit").is_some_and(zeit_muster)
+}
+
+/// The line is a closed `sitzung.gestartet` or `sitzung.abgelehnt` line of version 2 (contract 5, section 6.8):
+/// ten fields; `grund` is `null` exactly when the session started.
+pub(super) fn sitzung_form(map: &Map<String, Value>) -> bool {
+    let text = |schluessel: &str| map.get(schluessel).and_then(Value::as_str);
+    let Some(art @ ("sitzung.gestartet" | "sitzung.abgelehnt")) = text("aktionsname") else {
+        return false;
+    };
+    let gestartet = art == "sitzung.gestartet";
+    let grund_ok = match map.get("grund") {
+        Some(Value::Null) => gestartet,
+        Some(Value::String(wert)) => !gestartet && schluessel_ok(wert),
+        _ => false,
+    };
+    let ergebnis = if gestartet { "gestartet" } else { "abgelehnt" };
+    felder_genau(map, &SITZUNG_FELDER)
+        && text("ergebnis") == Some(ergebnis)
+        && grund_ok
+        && map.get("fassung").and_then(Value::as_u64) == Some(2)
+        && ["harness", "kunde", "route", "sitzung"]
+            .iter()
+            .all(|k| schluessel_oder_null(map, k))
+        && text("vorher").is_some_and(ist_sha256)
+        && text("zeit").is_some_and(zeit_muster)
+}
+
+/// The line is a closed `vorgang.abgelehnt` line of version 2 (contract 5, section 6.8): nine fields, the caller
+/// only as a fixed kind, the operation only as one of the six names of contract 6.
+pub(super) fn vorgang_form(map: &Map<String, Value>) -> bool {
+    let text = |schluessel: &str| map.get(schluessel).and_then(Value::as_str);
+    felder_genau(map, &VORGANG_FELDER)
+        && text("aktionsname") == Some("vorgang.abgelehnt")
+        && text("ergebnis") == Some("abgelehnt")
+        && map.get("fassung").and_then(Value::as_u64) == Some(2)
+        && text_oder_null(map, "anfrage", anfrage_kennung_ok)
+        && text("aufrufer").is_some_and(|a| AUFRUFER_STELLE.contains(&a))
+        && text("grund").is_some_and(schluessel_ok)
+        && text("vorgang").is_some_and(|v| VORGAENGE_STELLE.contains(&v))
+        && text("vorher").is_some_and(ist_sha256)
+        && text("zeit").is_some_and(zeit_muster)
+}
+
+/// Kinds of version 2 that contract 5 names but whose closed form has no check here yet (register group
+/// „angemeldet, Form noch nicht geprüft", contract 5, section 3). Their line passes as a chain link; their form
+/// comes with the build of their writer.
+const REGISTER_ANGEMELDET: [&str; 3] = ["regel.geaendert", "regel.abgelehnt", "suche.rueckfall"];
+
+/// Kinds of version 2 whose form another contract lays down (register group „in anderen Verträgen festgelegt",
+/// contract 5, section 3). This check only knows that they exist, so a chain that holds them stays whole.
+const REGISTER_FREMD: [&str; 13] = [
+    "hersteller.zugang",
+    "hersteller.zugriff",
+    "pflicht.aenderung",
+    "protokoll.einsicht",
+    "vorgang.gedrosselt",
+    "modell.aufruf",
+    "fall.freitext",
+    "mcp.schein_abgelehnt",
+    "wissen.geschrieben",
+    "wissen.schreiben.abgelehnt",
+    "klasse.erlaubt",
+    "lauf.melden",
+    "sitzung.abgemeldet",
+];
+
 /// Whether a line of a closed kind (`ausgabe.gesperrt`, `kanal.abgewiesen`, `probelauf.zaehlung`,
-/// `ordnermarke.geloest`, `ordnermarke.gesenkt`, `person.geloescht`, `person.auskunft`) has the closed form of version 2; every other kind passes.
+/// `ordnermarke.geloest`, `ordnermarke.gesenkt`, `person.geloescht`, `person.auskunft`, `modellweg.aufruf`,
+/// `mcp.schreibaufruf`, `sitzung.gestartet`, `sitzung.abgelehnt`, `vorgang.abgelehnt`) has the closed form of
+/// version 2, and whether a line of version 2 carries a kind of the register at all (contract 5, section 3,
+/// decision of the operator, 23.11.2026: fail closed for version 2). A line of version 1g or 1s comes here with `fassung_2`
+/// false and passes, because no register holds for it.
 pub(super) fn zeilenart_ok(map: &Map<String, Value>, fassung_2: bool) -> bool {
     match map.get("aktionsname").and_then(Value::as_str) {
         Some("ausgabe.gesperrt") => fassung_2 && gesperrt_form(map),
@@ -274,7 +647,17 @@ pub(super) fn zeilenart_ok(map: &Map<String, Value>, fassung_2: bool) -> bool {
         Some("ordnermarke.geloest" | "ordnermarke.gesenkt") => fassung_2 && ordnermarke_form(map),
         Some("person.geloescht") => fassung_2 && person_geloescht_form(map),
         Some("person.auskunft") => fassung_2 && person_auskunft_form(map),
-        _ => true,
+        Some("modellweg.aufruf") => fassung_2 && modellweg_form(map),
+        Some("mcp.schreibaufruf") => fassung_2 && schreibaufruf_form(map),
+        Some("sitzung.gestartet" | "sitzung.abgelehnt") => fassung_2 && sitzung_form(map),
+        Some("vorgang.abgelehnt") => fassung_2 && vorgang_form(map),
+        // Register: a version 2 line whose kind contract 5 does not name is `form_falsch`. So a kind with a
+        // typo, such as `mcp.schreibaufrufe` with a `vorschau`, no longer passes.
+        Some(art) => {
+            !fassung_2 || REGISTER_ANGEMELDET.contains(&art) || REGISTER_FREMD.contains(&art)
+        }
+        // No `aktionsname` of its own: a version 2 line fails that step before this one.
+        None => true,
     }
 }
 
@@ -501,7 +884,147 @@ pub fn pruefe<P: AsRef<Path>>(dateien: &[P], vorher: &str, letzte: Option<&str>)
 
 #[cfg(test)]
 mod tests {
-    use super::{LESE_GRENZE, ZEILE_MAX, jahr_monat, name_ohne_fassung};
+    use serde_json::{Map, Value, json};
+
+    use super::{
+        LESE_GRENZE, ZEILE_MAX, jahr_monat, modellweg_form, name_ohne_fassung, pfad_feld_ok,
+    };
+
+    /// A line `modellweg.aufruf` of mode 1 with the 15 fields of the closed form.
+    fn mw1() -> Map<String, Value> {
+        let o = json!({
+            "aktionsname": "modellweg.aufruf",
+            "betriebsart": "openai-lokal",
+            "ergebnis": "abgelehnt",
+            "fassung": 2,
+            "grund": "mw.pfad_unbekannt",
+            "host": Value::Null,
+            "modell": "lokal-beispiel/modell-a",
+            "pfad": "/v1/models",
+            "route": "lokal-beispiel",
+            "sitzung": "s-2",
+            "status": 404,
+            "token_aus": Value::Null,
+            "token_ein": Value::Null,
+            "vorher": "0".repeat(64),
+            "zeit": "2026-11-20T15:00:00.000Z",
+        });
+        o.as_object().expect("object").clone()
+    }
+
+    /// A line of mode 2 with the 16 fields of the closed form.
+    fn mw2() -> Map<String, Value> {
+        let o = json!({
+            "aktionsname": "modellweg.aufruf",
+            "betriebsart": "kopf-einsetzen",
+            "ergebnis": "weitergereicht",
+            "fassung": 2,
+            "grund": Value::Null,
+            "host": "api.beispiel.invalid",
+            "kopf": "ersetzt",
+            "methode": "GET",
+            "pfad": "/models/session",
+            "pfadregel": "/models/*",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1",
+            "status": 200,
+            "vorher": "0".repeat(64),
+            "zeit": "2026-11-20T16:00:00.000Z",
+            "ziel": "ziel-1",
+        });
+        o.as_object().expect("object").clone()
+    }
+
+    #[test]
+    fn a_line_of_the_model_path_keeps_its_closed_form() {
+        assert!(modellweg_form(&mw1()));
+        assert!(modellweg_form(&mw2()));
+        for (feld, wert) in [
+            ("betriebsart", json!("kopf-einsetzen")),
+            ("ergebnis", json!("ok")),
+            ("fassung", json!(1)),
+            ("grund", json!("Mw.Pfad")),
+            ("host", json!("api.beispiel.invalid")),
+            ("modell", json!("")),
+            ("pfad", json!("/v1/models?a=b")),
+            ("route", json!("Lokal")),
+            ("sitzung", json!(2)),
+            ("status", json!(600)),
+            ("token_ein", json!(-1)),
+            ("vorher", json!("x")),
+            ("zeit", json!("2026-11-20T15:00:00Z")),
+        ] {
+            let mut map = mw1();
+            map.insert(feld.to_owned(), wert.clone());
+            assert!(!modellweg_form(&map), "{feld} {wert}");
+        }
+        for (feld, wert) in [
+            ("host", json!("api.beispiel.invalid:443")),
+            ("host", json!("API.beispiel.invalid")),
+            ("host", json!("ohnepunkt")),
+            ("methode", json!("PROPFIND")),
+            ("kopf", json!("ersetz")),
+            ("pfadregel", json!("/user/repos?per_page=100")),
+            ("pfadregel", json!("/a/../b")),
+            ("status", json!(0)),
+        ] {
+            let mut map = mw2();
+            map.insert(feld.to_owned(), wert.clone());
+            assert!(!modellweg_form(&map), "{feld} {wert}");
+        }
+        // The status is null only in mode 2 (`mw.sni_falsch`).
+        let mut ohne_status = mw2();
+        ohne_status.insert("status".to_owned(), Value::Null);
+        assert!(modellweg_form(&ohne_status));
+        let mut eins_ohne_status = mw1();
+        eins_ohne_status.insert("status".to_owned(), Value::Null);
+        assert!(!modellweg_form(&eins_ohne_status));
+        // A field more or a field less breaks the form.
+        let mut mehr = mw1();
+        mehr.insert("titel".to_owned(), json!("geheim"));
+        assert!(!modellweg_form(&mehr));
+        let mut weniger = mw2();
+        weniger.remove("ziel");
+        assert!(!modellweg_form(&weniger));
+    }
+
+    #[test]
+    fn an_older_line_without_path_and_host_keeps_its_form() {
+        for mut map in [mw1(), mw2()] {
+            map.remove("pfad");
+            map.remove("host");
+            assert!(modellweg_form(&map), "{map:?}");
+            map.insert("pfad".to_owned(), Value::Null);
+            assert!(!modellweg_form(&map), "only the path: {map:?}");
+            map.remove("pfad");
+            map.insert("host".to_owned(), Value::Null);
+            assert!(!modellweg_form(&map), "only the host: {map:?}");
+        }
+    }
+
+    #[test]
+    fn a_path_in_a_line_carries_no_query_and_no_encoding() {
+        for gut in [
+            "*",
+            "/",
+            "/a",
+            "/a/b",
+            "/a/*",
+            "/*/b",
+            "/a/b/c/d",
+            "/a.b~c-d_e",
+        ] {
+            assert!(pfad_feld_ok(gut), "{gut}");
+        }
+        for falsch in [
+            "", "a", "/a?b=c", "/a#b", "/%2e", "/a b", "/a/", "/a//b", "**", "/a:b",
+        ] {
+            assert!(!pfad_feld_ok(falsch), "{falsch}");
+        }
+        let lang = format!("/{}", "a".repeat(511));
+        assert!(pfad_feld_ok(&lang));
+        assert!(!pfad_feld_ok(&format!("{lang}a")));
+    }
 
     #[test]
     fn read_limit_is_the_line_limit_plus_two() {

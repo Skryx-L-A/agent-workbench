@@ -285,6 +285,17 @@ pub fn dienst(
     dienst_mit(w, ziel, modell, schluessel, verbinder, None)
 }
 
+/// As [`dienst`], with the admin switch `--protokoll-pfad-voll` on (the whole path in the field `pfad`).
+pub fn dienst_pfad_voll(
+    w: &Wegwerf,
+    ziel: &str,
+    modell: &str,
+    schluessel: &str,
+    verbinder: Box<dyn Verbinder>,
+) -> Arc<Dienst> {
+    dienst_voll(w, ziel, modell, schluessel, verbinder, None, true)
+}
+
 /// As [`dienst`], with the marker count of a trial run.
 pub fn dienst_mit(
     w: &Wegwerf,
@@ -293,6 +304,19 @@ pub fn dienst_mit(
     schluessel: &str,
     verbinder: Box<dyn Verbinder>,
     probelauf: Option<modellweg::probelauf::Zaehlung>,
+) -> Arc<Dienst> {
+    dienst_voll(w, ziel, modell, schluessel, verbinder, probelauf, false)
+}
+
+/// As [`dienst_mit`], with the switch for the whole path.
+fn dienst_voll(
+    w: &Wegwerf,
+    ziel: &str,
+    modell: &str,
+    schluessel: &str,
+    verbinder: Box<dyn Verbinder>,
+    probelauf: Option<modellweg::probelauf::Zaehlung>,
+    pfad_voll: bool,
 ) -> Arc<Dienst> {
     let datei = w.schluessel(format!("{schluessel}\n").as_bytes());
     let schluessel =
@@ -308,6 +332,7 @@ pub fn dienst_mit(
         protokoll: w.protokoll(),
         schluessel,
         probelauf,
+        pfad_voll,
     };
     Arc::new(Dienst::neu(lage, verbinder, Box::new(|| ZEIT)))
 }

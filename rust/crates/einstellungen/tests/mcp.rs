@@ -99,12 +99,13 @@ fn the_example_of_the_contract_reads_back_with_every_field() {
 }
 
 #[test]
-fn the_defaults_are_a_release_and_60_seconds_for_both_deadlines() {
+fn the_defaults_are_a_release_60_seconds_to_decide_and_5_minutes_to_redeem() {
     let e = gelesen(&mit_mcp(json!({"s": {"lesen": [], "schreiben": ["w"]}})));
     let server = e.mcp_server("s").expect("server s");
     assert!(server.freigabe());
     assert_eq!(server.frist_ms(), 60_000);
-    assert_eq!(server.einloesefrist_ms(), 60_000);
+    assert_eq!(server.einloesefrist_ms(), 300_000);
+    assert_ne!(server.frist_ms(), server.einloesefrist_ms());
 }
 
 #[test]
@@ -117,7 +118,7 @@ fn each_default_applies_alone() {
     let a = e.mcp_server("a").expect("server is there");
     assert_eq!(
         (a.frist_ms(), a.einloesefrist_ms(), a.freigabe()),
-        (5, 60_000, true)
+        (5, 300_000, true)
     );
     let b = e.mcp_server("b").expect("server is there");
     assert_eq!(
@@ -127,7 +128,7 @@ fn each_default_applies_alone() {
     let c = e.mcp_server("c").expect("server is there");
     assert_eq!(
         (c.frist_ms(), c.einloesefrist_ms(), c.freigabe()),
-        (60_000, 60_000, false)
+        (60_000, 300_000, false)
     );
 }
 

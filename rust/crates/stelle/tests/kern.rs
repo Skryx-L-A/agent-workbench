@@ -218,7 +218,7 @@ fn einloesefrist_der_vorgabe() {
         json!({"anfrage": kennung, "entscheidung": "erteilen", "nachweis": person()}),
         T0 + 10,
     );
-    assert_eq!(r.antwort.json()["einloesen_bis_ms"], T0 + 10 + 60_000);
+    assert_eq!(r.antwort.json()["einloesen_bis_ms"], T0 + 10 + 300_000);
 }
 
 #[test]

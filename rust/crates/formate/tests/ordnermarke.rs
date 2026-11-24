@@ -367,14 +367,16 @@ fn the_general_append_keeps_the_closed_form() {
         falsch(&|m| drop(m.insert("aktionsname".into(), json!("ordnermarke.geloest")))),
         abgelehnt
     );
-    // another kind with the prefix has no closed form and passes.
+    // Register (contract 5, section 3): another kind with the prefix is in no contract, so it is refused too.
     let mut frei = objekt("ordnermarke.angelegt", MARKE);
     frei["zusatz"] = json!(1);
-    assert!(anhaengen_zeile(ordner.ordner(), "ordnermarke", ZEIT, &frei).is_ok());
-    // nothing of the refused lines was written: the two valid ones and the free one.
+    let fehler = anhaengen_zeile(ordner.ordner(), "ordnermarke", ZEIT, &frei)
+        .expect_err("the register refuses the kind");
+    assert_eq!(fehler.code(), "feld_ungueltig:zeile");
+    // nothing of the refused lines was written: only the two valid ones.
     let p = pruefe_quelle(ordner.ordner(), "ordnermarke", NULL_HASH, None).expect("source");
     assert!(p.ok());
-    assert_eq!(p.zeilen, 3);
+    assert_eq!(p.zeilen, 2);
 }
 
 #[test]
@@ -458,10 +460,12 @@ fn a_check_of_a_file_rejects_every_form_break() {
         assert_eq!(exit, 1, "{art} marke");
         assert!(aus.contains("form_falsch"), "{aus}");
     }
-    // another kind with the prefix has no closed form.
+    // Register (contract 5, section 3): another kind with the prefix stands in no contract.
     let mut frei = gut("ordnermarke.angelegt");
     frei["zusatz"] = json!(1);
-    assert_eq!(datei(&frei).0, 0);
+    let (exit, aus) = datei(&frei);
+    assert_eq!(exit, 1);
+    assert!(aus.contains("form_falsch"), "{aus}");
     // the coupling alone breaks the check.
     let mut o = gut("ordnermarke.gesenkt");
     o["klasse_neu"] = o["klasse_alt"].clone();

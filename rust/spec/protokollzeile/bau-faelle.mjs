@@ -123,6 +123,33 @@ function zeileProbelauf(e, vorher) {
   if (falsch) throw fehler(`feld_ungueltig:${falsch[0]}`);
   return jcs({ aktionsname: 'probelauf.zaehlung', anzahl: e.anzahl, ergebnis: 'an', fassung: 2, programm: e.programm, sitzung: e.sitzung, vorher, zeit: zeitText(e.zeit_ms) });
 }
+// Die Zeile modellweg.aufruf (Abschnitt 6.7): Vertrag 8 legt sie fest, hier steht nur, was der Pruefer verlangt.
+const MW_1 = ['aktionsname', 'betriebsart', 'ergebnis', 'fassung', 'grund', 'host', 'modell', 'pfad', 'route', 'sitzung', 'status', 'token_aus', 'token_ein', 'vorher', 'zeit'];
+const MW_2 = ['aktionsname', 'betriebsart', 'ergebnis', 'fassung', 'grund', 'host', 'kopf', 'methode', 'pfad', 'pfadregel', 'route', 'sitzung', 'status', 'vorher', 'zeit', 'ziel'];
+const MW_ERGEBNIS = ['weitergereicht', 'abgelehnt', 'ziel_fehler', 'leck_gesperrt'];
+const MW_METHODEN = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+const MW_PFAD = /^(\*|\/|(\/(\*|[A-Za-z0-9._~-]+))+)$/;
+const MW_HOST = /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
+const MW_REGEL = /^(\/\*|(\/[A-Za-z0-9._~-]+)+(\/\*)?)$/;
+function geschlossenMw(w) {
+  if (!['openai-lokal', 'kopf-einsetzen'].includes(w.betriebsart)) return false;
+  const neu = has(w, 'pfad') || has(w, 'host');
+  const soll = (w.betriebsart === 'openai-lokal' ? MW_1 : MW_2).filter((f) => neu || !['pfad', 'host'].includes(f));
+  const keys = Object.keys(w).sort();
+  if (keys.length !== soll.length || keys.some((k, i) => k !== soll[i])) return false;
+  const schl = (v) => typeof v === 'string' && SCHLUESSEL.test(v);
+  const text = (v, re) => typeof v === 'string' && re.test(v);
+  const u32 = (v) => v === null || (Number.isInteger(v) && v >= 0 && v <= 4294967295);
+  const eigen = w.betriebsart === 'openai-lokal'
+    ? typeof w.modell === 'string' && w.modell.length >= 1 && w.modell.length <= 128 && u32(w.token_ein) && u32(w.token_aus) && (!neu || w.host === null)
+    : (w.ziel === null || schl(w.ziel)) && (w.methode === null || MW_METHODEN.includes(w.methode))
+      && (w.pfadregel === null || text(w.pfadregel, MW_REGEL)) && [null, 'ersetzt', 'keiner', 'abgewiesen'].includes(w.kopf);
+  const status = w.status === null ? w.betriebsart === 'kopf-einsetzen' : Number.isInteger(w.status) && w.status >= 100 && w.status <= 599;
+  return w.aktionsname === 'modellweg.aufruf' && w.fassung === 2 && MW_ERGEBNIS.includes(w.ergebnis) && eigen && status
+    && (w.grund === null || schl(w.grund)) && schl(w.route) && schl(w.sitzung)
+    && (!neu || ((w.pfad === null || (text(w.pfad, MW_PFAD) && w.pfad.length <= 512)) && (w.host === null || text(w.host, MW_HOST))))
+    && text(w.vorher, HEX) && text(w.zeit, ZEIT);
+}
 // Die Zeilen person.geloescht und person.auskunft (Vertrag 9, Abschnitt 8): sieben Felder je Zeile.
 const PS = /^ps_[0-9a-f]{32}$/;
 const handelndOk = (w, nullOk) => (w.handelnd === null ? nullOk : typeof w.handelnd === 'string' && PS.test(w.handelnd));
@@ -141,6 +168,74 @@ function geschlossenAuskunft(w) {
   return w.aktionsname === 'person.auskunft' && zeilenOk && w.fassung === 2 && handelndOk(w, false)
     && typeof w.vorher === 'string' && HEX.test(w.vorher) && typeof w.zeit === 'string' && ZEIT.test(w.zeit);
 }
+// Die vier Zeilenarten der Entscheidungsstelle (Abschnitt 6.8): Vertrag 6 legt sie fest, hier steht nur,
+// was der Pruefer verlangt.
+const ST_SCHREIB = ['aktionsname', 'anfrage', 'digest', 'entscheidend', 'ergebnis', 'fassung', 'person', 'server', 'sitzung', 'vorher', 'werkzeug', 'zeit', 'zeit_anfrage', 'zeit_entscheidung'];
+const ST_SITZUNG = ['aktionsname', 'ergebnis', 'fassung', 'grund', 'harness', 'kunde', 'route', 'sitzung', 'vorher', 'zeit'];
+const ST_VORGANG = ['aktionsname', 'anfrage', 'aufrufer', 'ergebnis', 'fassung', 'grund', 'vorgang', 'vorher', 'zeit'];
+const ST_ERGEBNIS = ['eingeloest', 'abgelehnt', 'abgelaufen', 'ohne_freigabe'];
+const ST_AUFRUFER = ['kern', 'hub', 'mensch', 'agent', 'takt', 'unbekannt'];
+const ST_VORGAENGE = ['mcp.anfragen', 'mcp.entscheiden', 'mcp.einloesen', 'mcp.offene', 'mcp.stand', 'ablauf.pruefen'];
+const ST_SITZUNGSARTEN = ['sitzung.gestartet', 'sitzung.abgelehnt'];
+const ST_ANFRAGE = /^mf-[0-9]{1,15}-[1-9][0-9]{0,9}$/;
+const ST_WERKZEUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+// Mutanten des Modells (nur zur Gegenprobe, Umgebungsvariable STELLE_MUTANT): S1 nimmt ein zusaetzliches Feld an,
+// S2 prueft die Kopplung von entscheidend und zeit_entscheidung nicht, S3 laesst jede Art der Fassung 2 durch
+// (kein Register). Ohne die Variable bleibt die Ausgabe gleich.
+const ST_MUTANT = process.env.STELLE_MUTANT ?? '';
+const felderGenau = (w, soll) => {
+  if (ST_MUTANT === 'S1') return soll.every((f) => has(w, f));
+  const keys = Object.keys(w).sort();
+  const s = [...soll].sort();
+  return keys.length === s.length && keys.every((k, i) => k === s[i]);
+};
+function geschlossenSchreib(w) {
+  if (!felderGenau(w, ST_SCHREIB)) return false;
+  const ps = (v) => typeof v === 'string' && PS.test(v);
+  const zeit = (v) => typeof v === 'string' && ZEIT.test(v);
+  if (!(w.entscheidend === null || ps(w.entscheidend))) return false;
+  if (!(w.zeit_entscheidung === null || zeit(w.zeit_entscheidung))) return false;
+  const ent = w.entscheidend !== null;
+  if (ST_MUTANT !== 'S2' && ent !== (w.zeit_entscheidung !== null)) return false;
+  // eingeloest und abgelehnt nennen den Entscheidenden, ohne_freigabe nennt keinen, abgelaufen beides.
+  const kopplung = ['eingeloest', 'abgelehnt'].includes(w.ergebnis) ? ent : (w.ergebnis === 'ohne_freigabe' ? !ent : w.ergebnis === 'abgelaufen');
+  return w.aktionsname === 'mcp.schreibaufruf' && w.fassung === 2 && ST_ERGEBNIS.includes(w.ergebnis) && kopplung
+    && typeof w.anfrage === 'string' && ST_ANFRAGE.test(w.anfrage)
+    && typeof w.digest === 'string' && HEX.test(w.digest) && ps(w.person)
+    && typeof w.server === 'string' && SCHLUESSEL.test(w.server)
+    && typeof w.sitzung === 'string' && SCHLUESSEL.test(w.sitzung)
+    && typeof w.werkzeug === 'string' && ST_WERKZEUG.test(w.werkzeug)
+    && zeit(w.zeit_anfrage) && typeof w.vorher === 'string' && HEX.test(w.vorher) && zeit(w.zeit);
+}
+function geschlossenSitzung(w) {
+  if (!felderGenau(w, ST_SITZUNG) || !ST_SITZUNGSARTEN.includes(w.aktionsname)) return false;
+  const gestartet = w.aktionsname === 'sitzung.gestartet';
+  const grund = w.grund === null ? gestartet : (!gestartet && typeof w.grund === 'string' && SCHLUESSEL.test(w.grund));
+  return w.ergebnis === (gestartet ? 'gestartet' : 'abgelehnt') && grund && w.fassung === 2
+    && ['harness', 'kunde', 'route', 'sitzung'].every((k) => schlNull(w[k]))
+    && typeof w.vorher === 'string' && HEX.test(w.vorher) && typeof w.zeit === 'string' && ZEIT.test(w.zeit);
+}
+function geschlossenVorgang(w) {
+  if (!felderGenau(w, ST_VORGANG)) return false;
+  return w.aktionsname === 'vorgang.abgelehnt' && w.ergebnis === 'abgelehnt' && w.fassung === 2
+    && (w.anfrage === null || (typeof w.anfrage === 'string' && ST_ANFRAGE.test(w.anfrage)))
+    && ST_AUFRUFER.includes(w.aufrufer) && typeof w.grund === 'string' && SCHLUESSEL.test(w.grund)
+    && ST_VORGAENGE.includes(w.vorgang)
+    && typeof w.vorher === 'string' && HEX.test(w.vorher) && typeof w.zeit === 'string' && ZEIT.test(w.zeit);
+}
+const stelleForm = (w) => (w.aktionsname === 'mcp.schreibaufruf' ? geschlossenSchreib(w)
+  : (ST_SITZUNGSARTEN.includes(w.aktionsname) ? geschlossenSitzung(w)
+    : (w.aktionsname === 'vorgang.abgelehnt' ? geschlossenVorgang(w) : true)));
+const ST_ARTEN = ['mcp.schreibaufruf', 'sitzung.gestartet', 'sitzung.abgelehnt', 'vorgang.abgelehnt'];
+// Register (Abschnitt 3): Eine Zeile der Fassung 2 mit einem Aktionsnamen, den Vertrag 5 nicht nennt, ist form_falsch.
+// Gruppe "angemeldet": Vertrag 5 nennt die Art, ihre Form prueft noch kein Arm. Gruppe "fremd": die Form steht in einem anderen Vertrag.
+const REG_ANGEMELDET = ['regel.geaendert', 'regel.abgelehnt', 'suche.rueckfall'];
+const REG_FREMD = ['hersteller.zugang', 'hersteller.zugriff', 'pflicht.aenderung', 'protokoll.einsicht', 'vorgang.gedrosselt',
+  'modell.aufruf', 'fall.freitext', 'mcp.schein_abgelehnt', 'wissen.geschrieben', 'wissen.schreiben.abgelehnt',
+  'klasse.erlaubt', 'lauf.melden', 'sitzung.abgemeldet'];
+const REG_MIT_FORM = ['ausgabe.gesperrt', 'kanal.abgewiesen', 'probelauf.zaehlung', 'ordnermarke.geloest', 'ordnermarke.gesenkt',
+  'person.geloescht', 'person.auskunft', 'modellweg.aufruf', ...ST_ARTEN];
+const imRegister = (art) => ST_MUTANT === 'S3' || REG_MIT_FORM.includes(art) || REG_ANGEMELDET.includes(art) || REG_FREMD.includes(art);
 // Die Zeilen ordnermarke.geloest und ordnermarke.gesenkt (Abschnitt 6.4): zehn Felder je Zeile, marke ist eine zufaellige Kennung.
 // Mutanten des Modells (nur zur Gegenprobe, Umgebungsvariable ORDNERMARKE_MUTANT): O1 nimmt ein zusaetzliches Feld an,
 // O2 prueft die Form von marke nicht, O3 nimmt geloest mit klasse_neu an. Ohne die Variable bleibt die Ausgabe gleich.
@@ -248,6 +343,9 @@ function pruefe(dateien, { vorher = NULL64, letzte = null, nach = null } = {}) {
       if (ORD_ARTEN.includes(w.aktionsname) && (fas !== '2' || !geschlossenOrd(w))) return rot(d.name, nr, 'form_falsch');
       if (w.aktionsname === 'person.geloescht' && (fas !== '2' || !geschlossenGeloescht(w))) return rot(d.name, nr, 'form_falsch');
       if (w.aktionsname === 'person.auskunft' && (fas !== '2' || !geschlossenAuskunft(w))) return rot(d.name, nr, 'form_falsch');
+      if (w.aktionsname === 'modellweg.aufruf' && (fas !== '2' || !geschlossenMw(w))) return rot(d.name, nr, 'form_falsch');
+      if (ST_ARTEN.includes(w.aktionsname) && (fas !== '2' || !stelleForm(w))) return rot(d.name, nr, 'form_falsch');
+      if (fas === '2' && !imRegister(w.aktionsname)) return rot(d.name, nr, 'form_falsch');
       prev = sha(roh);
       n += 1;
       inDatei += 1;
@@ -395,6 +493,8 @@ function zeileAllgemein(objekt, ms, vorher) {
   if (ORD_ARTEN.includes(o.aktionsname) && !geschlossenOrd(o)) throw fehler('feld_ungueltig:zeile');
   if (o.aktionsname === 'person.geloescht' && !geschlossenGeloescht(o)) throw fehler('feld_ungueltig:zeile');
   if (o.aktionsname === 'person.auskunft' && !geschlossenAuskunft(o)) throw fehler('feld_ungueltig:zeile');
+  if (ST_ARTEN.includes(o.aktionsname) && !stelleForm(o)) throw fehler('feld_ungueltig:zeile');
+  if (!imRegister(o.aktionsname)) throw fehler('feld_ungueltig:zeile');
   if (Buffer.byteLength(z) > ZEILE_MAX) throw fehler('feld_ungueltig:zeile');
   return z;
 }
@@ -676,6 +776,47 @@ pFall('kein UTF-8', [{ name: BRAIN, inhalt_b64: kaputt.toString('base64') }], ['
 pFall('BOM vor der ersten Zeile', [{ name: BRAIN, inhalt_b64: Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), roh1]).toString('base64') }], ['pruefe', `@${BRAIN}`], br(BRAIN, 1, 'zeile_unlesbar', 0));
 pFall('leere Zeile in der Mitte', [{ name: BRAIN, inhalt: `${L1}\n\n${L2}\n` }], ['pruefe', `@${BRAIN}`], br(BRAIN, 2, 'zeile_unlesbar', 1));
 pFall('Zeile ist ein Feld, kein Objekt', [{ name: BRAIN, inhalt: '[1,2]\n' }], ['pruefe', `@${BRAIN}`], br(BRAIN, 1, 'zeile_unlesbar', 0));
+
+// Die Zeile modellweg.aufruf (Abschnitt 6.7): Vertrag 8 baut sie, hier steht nur die Form, die der Pruefer verlangt.
+const GATE = 'gateway-2026-11.jsonl';
+const MW_BASIS_1 = { aktionsname: 'modellweg.aufruf', betriebsart: 'openai-lokal', ergebnis: 'abgelehnt', fassung: 2, grund: 'mw.pfad_unbekannt', host: null,
+  modell: 'lokal-beispiel/modell-a', pfad: '/v1/models', route: 'lokal-beispiel', sitzung: 's-2', status: 404, token_aus: null, token_ein: null, vorher: NULL64, zeit: zeitText(T0) };
+const MWZ1 = jcs(MW_BASIS_1);
+const MWZ2 = jcs({ aktionsname: 'modellweg.aufruf', betriebsart: 'kopf-einsetzen', ergebnis: 'weitergereicht', fassung: 2, grund: null, host: 'api.beispiel.invalid',
+  kopf: 'ersetzt', methode: 'GET', pfad: '/models/session', pfadregel: '/models/*', route: 'cloud-beispiel', sitzung: 's-1', status: 200, vorher: sha(MWZ1), zeit: zeitText(T0 + 1000), ziel: 'ziel-1' });
+pFall('zwei modellweg-Zeilen beider Betriebsarten: gruen', [datei(GATE, [MWZ1, MWZ2])], ['pruefe', `@${GATE}`], { ...ok(2), letzte: sha(MWZ2) });
+const MW_ALT = { ...MW_BASIS_1 };
+delete MW_ALT.pfad; delete MW_ALT.host;
+const MWALT = jcs(MW_ALT);
+pFall('aeltere Zeile ohne pfad und host: gruen', [datei(GATE, [MWALT])], ['pruefe', `@${GATE}`], { ...ok(1), letzte: sha(MWALT) });
+const MW_HALB = { ...MW_BASIS_1 };
+delete MW_HALB.host;
+pFall('nur pfad, host fehlt: Form falsch', [datei(GATE, [jcs(MW_HALB)])], ['pruefe', `@${GATE}`], br(GATE, 1, 'form_falsch', 0));
+pFall('pfad mit Abfrage: Form falsch', [datei(GATE, [jcs({ ...MW_BASIS_1, pfad: '/v1/models?a=b' })])], ['pruefe', `@${GATE}`], br(GATE, 1, 'form_falsch', 0));
+pFall('zusaetzliches Feld in der modellweg-Zeile: Form falsch', [datei(GATE, [jcs({ ...MW_BASIS_1, titel: 'geheim' })])], ['pruefe', `@${GATE}`], br(GATE, 1, 'form_falsch', 0));
+const MW_BASIS_2 = { aktionsname: 'modellweg.aufruf', betriebsart: 'kopf-einsetzen', ergebnis: 'abgelehnt', fassung: 2, grund: 'mw.ziel_nicht_erlaubt', host: null,
+  kopf: null, methode: null, pfad: null, pfadregel: null, route: 'cloud-beispiel', sitzung: 's-1', status: 403, vorher: NULL64, zeit: zeitText(T0), ziel: null };
+pFall('host mit Port: Form falsch', [datei(GATE, [jcs({ ...MW_BASIS_2, host: 'api.beispiel.invalid:443' })])], ['pruefe', `@${GATE}`], br(GATE, 1, 'form_falsch', 0));
+// Register (Abschnitt 3): fail closed fuer die Fassung 2, kein Register fuer die Fassungen 1g und 1s.
+{
+  const frei = (art, zusatz = {}) => jcs({ aktionsname: art, ergebnis: 'ok', fassung: 2, vorher: NULL64, zeit: zeitText(T0), ...zusatz });
+  const unbekannt = frei('mcp.schreibaufrufe', { vorschau: 'Inhalt der Notiz' });
+  pFall('Fassung 2 mit einer Art ausserhalb des Registers: Form falsch', [datei(BRAIN, [unbekannt])], ['pruefe', `@${BRAIN}`], br(BRAIN, 1, 'form_falsch', 0));
+  pFall('Fassung 2 mit einem Tippfehler in einer bekannten Art: Form falsch', [datei(BRAIN, [frei('ausgabe.gesperrte')])], ['pruefe', `@${BRAIN}`], br(BRAIN, 1, 'form_falsch', 0));
+  const ohneF = (() => { const w = JSON.parse(unbekannt); delete w.fassung; return jcs(w); })();
+  pFall('dieselbe Zeile ohne fassung in einer gateway-Datei (1g): nur Kettenglied, gruen', [datei(GATE, [ohneF])], ['pruefe', `@${GATE}`], { ...ok(1), letzte: sha(ohneF) });
+  pFall('dieselbe Zeile ohne fassung in einer brain-Datei: fassung fehlt', [datei(BRAIN, [ohneF])], ['pruefe', `@${BRAIN}`], br(BRAIN, 1, 'fassung_fehlt', 0));
+  // Je eine Zeile der angemeldeten Arten: Vertrag 5 nennt sie, ihre Form prueft noch kein Arm.
+  for (const art of REG_ANGEMELDET) {
+    const z = frei(art, { feld: 'wert' });
+    pFall(`angemeldete Art ${art} mit freier Form: gruen`, [datei(BRAIN, [z])], ['pruefe', `@${BRAIN}`], { ...ok(1), letzte: sha(z) });
+  }
+  // Je eine Zeile der Arten, deren Form ein anderer Vertrag festlegt.
+  for (const art of ['modell.aufruf', 'wissen.geschrieben', 'protokoll.einsicht']) {
+    const z = frei(art);
+    pFall(`fremde Art ${art} aus dem Register: gruen`, [datei(BRAIN, [z])], ['pruefe', `@${BRAIN}`], { ...ok(1), letzte: sha(z) });
+  }
+}
 pFall('leere Datei: gruen mit null Zeilen', [datei(BRAIN, [])], ['pruefe', `@${BRAIN}`], { ...ok(0), letzte: null });
 pFall('Datei fehlt', [{ name: BRAIN, fehlt: true }], ['pruefe', `@${BRAIN}`], br(BRAIN, null, 'datei_nicht_lesbar', 0));
 pFall('zwei Dateien hintereinander als eine Kette', [datei('brain-2026-10.jsonl', [L1]), datei(BRAIN, [L2, L3])], ['pruefe', '@brain-2026-10.jsonl', `@${BRAIN}`], { ...ok(3), letzte: sha(L3) });
@@ -810,10 +951,14 @@ mFall('Quelle vor Zeit: Quelle falsch, Zeit falsch', {}, [g(ev(-1, 1), 'feld_ung
 mFall('Zeit ausserhalb', {}, [g(ev(MAX_MS + 1, 1), 'zeit_ungueltig')]);
 // 7. Allgemeines Anhaengen: ein Objekt, fassung und vorher setzt der Schreiber.
 {
-  const o = { aktionsname: 'test.zeile', ergebnis: 'ok', menge: 3, rest: { b: 1, a: [1.0, 'x'] } };
+  // Die allgemeine Zeile traegt eine Art des Registers (Abschnitt 3). Die Schluessel stehen hier absichtlich
+  // unsortiert; kanonisch sortiert sie. Die Art suche.rueckfall ist angemeldet, ihre Form prueft noch kein Arm.
+  const o = { grund: 'keine_verbindung', aktionsname: 'suche.rueckfall', sitzung: 's-1', ergebnis: 'lexikalisch', route: 'cloud-beispiel' };
   const z = (extra, absicht = 'ok', ms = NOV) => ({ art: 'zeile', quelle: 'brain', zeit_ms: ms, objekt: extra, absicht });
-  const ende = mFall('allgemeine Zeile: Wechsel mit Anker, Schluessel sortiert, fassung 2', { [NOVD]: text(novZ.zeilen) }, [z(o), z({ ...o, menge: 4 }, 'ok', DEZ)]);
-  if (!zeilenVon(ende[NOVD])[2].startsWith('{"aktionsname":"test.zeile","ergebnis":"ok","fassung":2,"menge":3,"rest":{"a":[1,"x"],"b":1},"vorher":')) throw new Error('allgemeine Zeile weicht ab');
+  const ende = mFall('allgemeine Zeile: Wechsel mit Anker, Schluessel sortiert, fassung 2', { [NOVD]: text(novZ.zeilen) }, [z(o), z({ ...o, grund: 'frist' }, 'ok', DEZ)]);
+  if (!zeilenVon(ende[NOVD])[2].startsWith('{"aktionsname":"suche.rueckfall","ergebnis":"lexikalisch","fassung":2,"grund":"keine_verbindung","route":"cloud-beispiel","sitzung":"s-1","vorher":')) throw new Error('allgemeine Zeile weicht ab');
+  // Register, fail closed: dieselbe freie Form mit einem Namen ausserhalb des Registers schreibt der Schreiber nicht.
+  mFall('allgemeine Zeile: Art ausserhalb des Registers', {}, [z({ aktionsname: 'test.zeile', ergebnis: 'ok', menge: 3, rest: { b: 1, a: [1.0, 'x'] } }, 'feld_ungueltig:zeile'), z({ aktionsname: 'mcp.schreibaufrufe', ergebnis: 'ok', vorschau: 'Inhalt' }, 'feld_ungueltig:zeile')]);
   mFall('allgemeine Zeile: Objekt ist keine Map', {}, [z([1], 'feld_ungueltig:zeile'), z(null, 'feld_ungueltig:zeile'), z('x', 'feld_ungueltig:zeile')]);
   mFall('allgemeine Zeile: aktionsname und ergebnis sind Text', {}, [z({ ergebnis: 'ok' }, 'feld_ungueltig:aktionsname'), z({ aktionsname: 1, ergebnis: 'ok' }, 'feld_ungueltig:aktionsname'), z({ aktionsname: 'a.b' }, 'feld_ungueltig:ergebnis'), z({ aktionsname: 'a.b', ergebnis: null }, 'feld_ungueltig:ergebnis')]);
   mFall('allgemeine Zeile: fassung, vorher und zeit setzt der Schreiber', {}, [z({ ...o, fassung: 2 }, 'feld_ungueltig:fassung'), z({ ...o, vorher: NULL64 }, 'feld_ungueltig:vorher'), z({ ...o, zeit: '2026-11-15T12:00:00.000Z' }, 'feld_ungueltig:zeit'), z({ ...o, vorher: 1, fassung: 3 }, 'feld_ungueltig:fassung')]);
@@ -1461,6 +1606,99 @@ const persAnhaengen = [];
   persAnhaengen.push(monateFaelle.pop());
 }
 
+// --- Fälle: die vier Zeilenarten der Entscheidungsstelle (Abschnitt 6.8, Vertrag 6 Abschnitte 7.1 bis 7.3) ---
+
+const stellePruefe = [];
+const stelleAnhaengen = [];
+{
+  const SD = 'stelle-2026-11.jsonl';
+  const PSP = `ps_${'1'.repeat(32)}`;
+  const PSE = `ps_${'a'.repeat(32)}`;
+  const DIG = 'd'.repeat(64);
+  const sch = (ueber = {}) => ({ aktionsname: 'mcp.schreibaufruf', anfrage: 'mf-1795179540000-1', digest: DIG, entscheidend: PSE, ergebnis: 'eingeloest', person: PSP, server: 'tickets', sitzung: 's-1', werkzeug: 'update', zeit_anfrage: zeitText(T0 - 7000), zeit_entscheidung: zeitText(T0 - 3000), ...ueber });
+  const sg = (ueber = {}) => ({ aktionsname: 'sitzung.gestartet', ergebnis: 'gestartet', grund: null, harness: 'claude', kunde: 'k-beispiel', route: 'cloud-beispiel', sitzung: 's-1', ...ueber });
+  const sa = (ueber = {}) => ({ aktionsname: 'sitzung.abgelehnt', ergebnis: 'abgelehnt', grund: 'start.route_unbekannt', harness: 'claude', kunde: 'k-beispiel', route: 'cloud-fremd', sitzung: 's-1', ...ueber });
+  const va = (ueber = {}) => ({ aktionsname: 'vorgang.abgelehnt', anfrage: 'mf-1795179540000-1', aufrufer: 'hub', ergebnis: 'abgelehnt', grund: 'stelle.bereits_eingeloest', vorgang: 'mcp.einloesen', ...ueber });
+  const ohne = (objekt, feld) => { const o = { ...objekt }; delete o[feld]; return o; };
+  const sFall = (fall, dateien, absicht) => pFall(fall, dateien, ['pruefe', `@${SD}`], absicht, stellePruefe);
+  const gruen = (zeilen) => ({ exit: 0, ok: true, zeilen: zeilen.length, bruch: null, letzte: sha(zeilen[zeilen.length - 1]) });
+  const rot = (zeile, grund) => br(SD, zeile, grund, zeile - 1);
+  const einzeln = (fall, objekt, grund) => {
+    const z = jcs({ ...objekt, fassung: 2, vorher: NULL64, zeit: zeitText(T0) });
+    sFall(fall, [datei(SD, [z])], grund === null ? gruen([z]) : rot(1, grund));
+  };
+  // mcp.schreibaufruf: gueltig, Zusatzfeld, fehlendes Feld
+  einzeln('schreibaufruf eingeloest mit Entscheidendem: gueltig', sch(), null);
+  einzeln('schreibaufruf mit Zusatzfeld vorschau: Form falsch', { ...sch(), vorschau: 'Inhalt der Notiz' }, 'form_falsch');
+  einzeln('schreibaufruf ohne Feld digest: Form falsch', ohne(sch(), 'digest'), 'form_falsch');
+  // weitere Formen und Kopplungen von mcp.schreibaufruf
+  einzeln('schreibaufruf mit Zusatzfeld argumente: Form falsch', { ...sch(), argumente: { titel: 'Notiz' } }, 'form_falsch');
+  einzeln('schreibaufruf mit Zusatzfeld pfad: Form falsch', { ...sch(), pfad: '/srv/beispiel/notizen' }, 'form_falsch');
+  einzeln('schreibaufruf ohne Feld person: Form falsch', ohne(sch(), 'person'), 'form_falsch');
+  einzeln('schreibaufruf ohne Feld zeit_entscheidung: Form falsch', ohne(sch(), 'zeit_entscheidung'), 'form_falsch');
+  einzeln('schreibaufruf mit person als Name: Form falsch', sch({ person: 'anna' }), 'form_falsch');
+  einzeln('schreibaufruf mit entscheidend als Name: Form falsch', sch({ entscheidend: 'anna' }), 'form_falsch');
+  einzeln('schreibaufruf abgelehnt mit Entscheidendem: gueltig', sch({ ergebnis: 'abgelehnt' }), null);
+  einzeln('schreibaufruf abgelehnt ohne Entscheidenden: Form falsch', sch({ ergebnis: 'abgelehnt', entscheidend: null, zeit_entscheidung: null }), 'form_falsch');
+  einzeln('schreibaufruf ohne_freigabe ohne Entscheidenden: gueltig', sch({ ergebnis: 'ohne_freigabe', entscheidend: null, zeit_entscheidung: null }), null);
+  einzeln('schreibaufruf ohne_freigabe mit Entscheidendem: Form falsch', sch({ ergebnis: 'ohne_freigabe' }), 'form_falsch');
+  einzeln('schreibaufruf abgelaufen nach Erteilung: gueltig', sch({ ergebnis: 'abgelaufen' }), null);
+  einzeln('schreibaufruf abgelaufen ohne Entscheidung: gueltig', sch({ ergebnis: 'abgelaufen', entscheidend: null, zeit_entscheidung: null }), null);
+  einzeln('schreibaufruf mit Entscheidendem ohne Zeit der Entscheidung: Form falsch', sch({ zeit_entscheidung: null }), 'form_falsch');
+  einzeln('schreibaufruf mit Zeit der Entscheidung ohne Entscheidenden: Form falsch', sch({ entscheidend: null }), 'form_falsch');
+  einzeln('schreibaufruf mit ergebnis ausserhalb der Liste: Form falsch', sch({ ergebnis: 'erteilt' }), 'form_falsch');
+  einzeln('schreibaufruf mit Anfragekennung ohne Praefix: Form falsch', sch({ anfrage: '1795179540000-1' }), 'form_falsch');
+  einzeln('schreibaufruf mit Anfragekennung null: Form falsch', sch({ anfrage: null }), 'form_falsch');
+  einzeln('schreibaufruf mit digest in Grossbuchstaben: Form falsch', sch({ digest: 'D'.repeat(64) }), 'form_falsch');
+  einzeln('schreibaufruf mit werkzeug als Pfad: Form falsch', sch({ werkzeug: '/srv/beispiel/werkzeug' }), 'form_falsch');
+  einzeln('schreibaufruf mit werkzeug in Grossbuchstaben: gueltig', sch({ werkzeug: 'Update' }), null);
+  einzeln('schreibaufruf mit zeit_anfrage ohne Millisekunden: Form falsch', sch({ zeit_anfrage: '2026-11-20T13:00:01Z' }), 'form_falsch');
+  // sitzung.gestartet: gueltig, Zusatzfeld, fehlendes Feld
+  einzeln('sitzung.gestartet mit allen vier Werten: gueltig', sg(), null);
+  einzeln('sitzung.gestartet mit Zusatzfeld vorschau: Form falsch', { ...sg(), vorschau: 'erste Antwort' }, 'form_falsch');
+  einzeln('sitzung.gestartet ohne Feld route: Form falsch', ohne(sg(), 'route'), 'form_falsch');
+  einzeln('sitzung.gestartet mit Grund: Form falsch', sg({ grund: 'start.route_unbekannt' }), 'form_falsch');
+  einzeln('sitzung.gestartet mit allen vier Werten null: gueltig', sg({ harness: null, kunde: null, route: null, sitzung: null }), null);
+  einzeln('sitzung.gestartet mit Kunde als Anzeigename: Form falsch', sg({ kunde: 'Beispiel GmbH' }), 'form_falsch');
+  // sitzung.abgelehnt: gueltig, Zusatzfeld, fehlendes Feld
+  einzeln('sitzung.abgelehnt mit Code der Ablehnung: gueltig', sa(), null);
+  einzeln('sitzung.abgelehnt mit Zusatzfeld argumente: Form falsch', { ...sa(), argumente: { route: 'cloud-fremd' } }, 'form_falsch');
+  einzeln('sitzung.abgelehnt ohne Feld grund: Form falsch', ohne(sa(), 'grund'), 'form_falsch');
+  einzeln('sitzung.abgelehnt mit Grund null: Form falsch', sa({ grund: null }), 'form_falsch');
+  einzeln('sitzung.abgelehnt mit stelle-Code und vier Werten null: gueltig', sa({ grund: 'stelle.sitzung_vergeben', harness: null, kunde: null, route: null, sitzung: null }), null);
+  einzeln('sitzung.abgelehnt mit ergebnis gestartet: Form falsch', sa({ ergebnis: 'gestartet' }), 'form_falsch');
+  einzeln('sitzung.abgelehnt mit Zusatzfeld aufrufer: Form falsch', { ...sa(), aufrufer: 'agent' }, 'form_falsch');
+  // vorgang.abgelehnt: gueltig, Zusatzfeld, fehlendes Feld
+  einzeln('vorgang.abgelehnt mit Anfragekennung: gueltig', va(), null);
+  einzeln('vorgang.abgelehnt mit Zusatzfeld argumente: Form falsch', { ...va(), argumente: { id: 7 } }, 'form_falsch');
+  einzeln('vorgang.abgelehnt ohne Feld aufrufer: Form falsch', ohne(va(), 'aufrufer'), 'form_falsch');
+  einzeln('vorgang.abgelehnt mit Zusatzfeld vorschau: Form falsch', { ...va(), vorschau: 'Inhalt' }, 'form_falsch');
+  einzeln('vorgang.abgelehnt mit Anfragekennung null: gueltig', va({ anfrage: null }), null);
+  einzeln('vorgang.abgelehnt mit unbekanntem Aufrufer: gueltig', va({ aufrufer: 'unbekannt' }), null);
+  einzeln('vorgang.abgelehnt mit Aufrufer als Name: Form falsch', va({ aufrufer: 'anna' }), 'form_falsch');
+  einzeln('vorgang.abgelehnt mit Vorgang sitzung.starten: Form falsch', va({ vorgang: 'sitzung.starten' }), 'form_falsch');
+  einzeln('vorgang.abgelehnt mit Vorgang ablauf.pruefen: gueltig', va({ vorgang: 'ablauf.pruefen', anfrage: null }), null);
+  einzeln('vorgang.abgelehnt mit Grund null: Form falsch', va({ grund: null }), 'form_falsch');
+  // eine Kette aus allen vier Arten
+  const z1 = zeileAllgemein(sg(), T0, NULL64);
+  const z2 = zeileAllgemein(va(), T0 + 1000, sha(z1));
+  const z3 = zeileAllgemein(sch(), T0 + 2000, sha(z2));
+  const z4 = zeileAllgemein(sa(), T0 + 3000, sha(z3));
+  sFall('Kette aus allen vier Zeilenarten der Stelle: gruen', [datei(SD, [z1, z2, z3, z4])], gruen([z1, z2, z3, z4]));
+  // Fassung
+  const ohneF = (() => { const o = JSON.parse(zeileAllgemein(sg(), T0, NULL64)); delete o.fassung; return jcs(o); })();
+  sFall('sitzung.gestartet ohne fassung in einer stelle-Datei: fassung fehlt', [datei(SD, [ohneF])], rot(1, 'fassung_fehlt'));
+  pFall('sitzung.gestartet ohne fassung in einer gateway-Datei (1g): Form falsch', [datei('gateway-2026-11.jsonl', [ohneF])], ['pruefe', '@gateway-2026-11.jsonl'], br('gateway-2026-11.jsonl', 1, 'form_falsch', 0), stellePruefe);
+  const schZ = jcs({ ...sch(), fassung: 2, vorher: NULL64, zeit: zeitText(T0) });
+  sFall('schreibaufruf mit fassung 3: Form falsch', [datei(SD, [jcs({ ...JSON.parse(schZ), fassung: 3 })])], rot(1, 'form_falsch'));
+  // allgemeines Anhaengen: dieselbe Form, Quelle stelle
+  const zl = (objekt, absicht) => ({ art: 'zeile', quelle: 'stelle', zeit_ms: NOV, objekt, absicht });
+  mFall('allgemeines Anhaengen: mcp.schreibaufruf nur in der geschlossenen Form', {}, [zl({ ...sch(), vorschau: 'Inhalt der Notiz' }, 'feld_ungueltig:zeile'), zl(ohne(sch(), 'digest'), 'feld_ungueltig:zeile'), zl(sch(), 'ok')], ['stelle']);
+  stelleAnhaengen.push(monateFaelle.pop());
+  mFall('allgemeines Anhaengen: die drei Zeilenarten der Sitzung und des Vorgangs', {}, [zl({ ...va(), argumente: { id: 7 } }, 'feld_ungueltig:zeile'), zl(sg({ grund: 'start.route_unbekannt' }), 'feld_ungueltig:zeile'), zl(sg(), 'ok'), zl(sa(), 'ok'), zl(va(), 'ok')], ['stelle']);
+  stelleAnhaengen.push(monateFaelle.pop());
+}
+
 // --- Fälle: letzte Zeile einer Art (Abschnitt 5.7) ---
 
 const letzteFaelle = [];
@@ -1575,5 +1813,6 @@ schreibe('abgewiesen.json', { zeile: abgZeile, pruefe: abgPruefe, anhaengen: abg
 schreibe('probelauf.json', { zeile: probeZeile, pruefe: probePruefe, anhaengen: probeAnhaengen });
 schreibe('ordnermarke.json', { zeile: ordZeile, pruefe: ordPruefe, anhaengen: ordAnhaengen });
 schreibe('personenzeilen.json', { pruefe: persPruefe, anhaengen: persAnhaengen });
+schreibe('stellezeilen.json', { pruefe: stellePruefe, anhaengen: stelleAnhaengen });
 schreibe('letzte-zeile.json', { faelle: letzteFaelle });
-process.stdout.write(`kanonisch ${kanonischFaelle.length}, zeile ${zeileFaelle.length}, zeit_text ${zeitFaelle.length}, abschnitt ${abschnittFaelle.length}, anhaengen ${anhaengenFaelle.length}+1, pruefe ${pruefeFaelle.length}, monate ${monateFaelle.length}+1, pruefe-quelle ${quelleFaelle.length}, abgewiesen zeile ${abgZeile.length} pruefe ${abgPruefe.length} anhaengen ${abgAnhaengen.length}, probelauf zeile ${probeZeile.length} pruefe ${probePruefe.length} anhaengen ${probeAnhaengen.length}, ordnermarke zeile ${ordZeile.length} pruefe ${ordPruefe.length} anhaengen ${ordAnhaengen.length}, personenzeilen pruefe ${persPruefe.length} anhaengen ${persAnhaengen.length}, letzte-zeile ${letzteFaelle.length}\n`);
+process.stdout.write(`kanonisch ${kanonischFaelle.length}, zeile ${zeileFaelle.length}, zeit_text ${zeitFaelle.length}, abschnitt ${abschnittFaelle.length}, anhaengen ${anhaengenFaelle.length}+1, pruefe ${pruefeFaelle.length}, monate ${monateFaelle.length}+1, pruefe-quelle ${quelleFaelle.length}, abgewiesen zeile ${abgZeile.length} pruefe ${abgPruefe.length} anhaengen ${abgAnhaengen.length}, probelauf zeile ${probeZeile.length} pruefe ${probePruefe.length} anhaengen ${probeAnhaengen.length}, ordnermarke zeile ${ordZeile.length} pruefe ${ordPruefe.length} anhaengen ${ordAnhaengen.length}, personenzeilen pruefe ${persPruefe.length} anhaengen ${persAnhaengen.length}, stellezeilen pruefe ${stellePruefe.length} anhaengen ${stelleAnhaengen.length}, letzte-zeile ${letzteFaelle.length}\n`);

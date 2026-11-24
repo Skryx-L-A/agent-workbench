@@ -323,7 +323,8 @@ fn steps_after_the_chain_link_run_in_order() {
 fn step_form_of_a_version_2_line() {
     let o = Wegwerf::neu("form2");
     let andere = |aendern: &dyn Fn(&mut Map<String, Value>)| {
-        let mut z = json!({"aktionsname": "test.zeile", "ergebnis": "ok", "fassung": 2, "vorher": NULL_HASH, "zeit": "2026-11-20T13:00:00.000Z"});
+        // A kind of the register whose form no arm checks yet, so this test stays about the step, not the form.
+        let mut z = json!({"aktionsname": "suche.rueckfall", "ergebnis": "ok", "fassung": 2, "vorher": NULL_HASH, "zeit": "2026-11-20T13:00:00.000Z"});
         aendern(objekt(&mut z));
         einzeln(&o, BRAIN, &kanon(&z))
     };
@@ -335,6 +336,17 @@ fn step_form_of_a_version_2_line() {
         None
     );
     let form_falsch = bruch_erwartet(BRAIN, "form_falsch", Some(1));
+    // Register, fail closed for version 2: a kind contract 5 does not name fails, with and without a field of
+    // its own; the same line in a gateway file (version 1g) stays a plain link (see the end of this test).
+    for art in ["test.zeile", "mcp.schreibaufrufe", "ausgabe.gesperrte"] {
+        assert_eq!(
+            andere(&|m| {
+                m.insert("aktionsname".to_owned(), json!(art));
+            }),
+            form_falsch,
+            "kind {art}"
+        );
+    }
     // A version that is not 2 fails even when the action is no `ausgabe.gesperrt`.
     for fassung in [json!(1), json!(3), json!(2.5), json!("2")] {
         assert_eq!(

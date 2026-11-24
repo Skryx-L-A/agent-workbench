@@ -260,6 +260,7 @@ fn vorbereiten_eins(
         protokoll: a.protokoll,
         schluessel,
         probelauf: zaehlung,
+        pfad_voll: a.pfad_voll,
     };
     Ok(Bereit {
         probelauf,
@@ -332,6 +333,7 @@ fn vorbereiten_zwei(
         a.route,
         a.protokoll,
         zaehlung,
+        a.pfad_voll,
         eigene_uid,
         Betrieb::neu(uhr),
     );

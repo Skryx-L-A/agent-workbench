@@ -190,7 +190,7 @@ fn eintraege_der_nummer(lauf: &Lauf, n: usize) -> Vec<PathBuf> {
     };
     dazu(&lauf.sitzungen, format!("s-{n}"));
     dazu(&lauf.laufzeit, format!("s-{n}"));
-    dazu(&lauf.ziellisten, format!("s-{n}.zielliste.json"));
+    dazu(&lauf.ziellisten, zielliste_name(n));
     dazu(&lauf.marker_ordner, format!("s-{n}.suche.json"));
     dazu(&lauf.marker_ordner, format!("s-{n}.modellweg.json"));
     eintraege
@@ -208,6 +208,59 @@ pub(crate) fn kennung_belegt(lauf: &Lauf, n: usize) -> Result<bool, ()> {
         }
     }
     Ok(false)
+}
+
+/// The name of the target list of the number `n` in `lauf.ziellisten`.
+fn zielliste_name(n: usize) -> String {
+    format!("s-{n}.zielliste.json")
+}
+
+/// DI12 point 15a (2026-11-23): removes the target list of the number `n` when it is the only entry that takes the number,
+/// and reports whether it did. The caller asks only for a number above every number this run of the service handed out, so the list was
+/// left by an earlier run (or a start outside the service) whose session has ended: its session folder and socket folder are gone. The
+/// lists of this run stay, the runner reads them after its sessions (`werkbank-modellweg suche --zielliste`).
+///
+/// SECURITY: removing only through descriptors. The folder `lauf.ziellisten` is opened with `O_DIRECTORY | O_NOFOLLOW` and must belong to
+/// the own user; the entry is looked at with `statat(AT_SYMLINK_NOFOLLOW)` relative to that descriptor and removed with `unlinkat` relative
+/// to it. Only a regular file of the own user is removed; a link, a folder or a foreign file stays and keeps the number taken. Every
+/// other entry of the number must be missing (`NotFound`); in doubt nothing is removed.
+pub(crate) fn alte_zielliste_raeumen(lauf: &Lauf, n: usize) -> bool {
+    use rustix::fs::{AtFlags, CWD, FileType, Mode, fstat, openat, statat, unlinkat};
+    let Some(ordner) = lauf.ziellisten.as_deref() else {
+        return false;
+    };
+    let liste = Path::new(ordner).join(zielliste_name(n));
+    let andere_frei = eintraege_der_nummer(lauf, n)
+        .iter()
+        .filter(|p| **p != liste)
+        .all(|p| matches!(std::fs::symlink_metadata(p), Err(e) if e.kind() == std::io::ErrorKind::NotFound));
+    if !andere_frei {
+        return false;
+    }
+    let eigen = rustix::process::geteuid().as_raw();
+    let Ok(fd) = openat(CWD, ordner, crate::loeschen::ORDNER_OFFEN, Mode::empty()) else {
+        return false;
+    };
+    if !fstat(&fd).is_ok_and(|st| st.st_uid == eigen) {
+        return false;
+    }
+    let Ok(name) = std::ffi::CString::new(zielliste_name(n)) else {
+        return false;
+    };
+    let regulaer_eigen = statat(&fd, &name, AtFlags::SYMLINK_NOFOLLOW).is_ok_and(|st| {
+        FileType::from_raw_mode(st.st_mode) == FileType::RegularFile && st.st_uid == eigen
+    });
+    regulaer_eigen && unlinkat(&fd, &name, AtFlags::empty()).is_ok()
+}
+
+/// The answer of [`kennung_belegt`] after DI12 point 15a: called only for a number above every number this run of the service handed out,
+/// so a target list that alone takes it was left by an earlier run; [`alte_zielliste_raeumen`] removes it and the number is asked again.
+/// `Ok(true)`: taken, `Ok(false)`: free, `Err(())`: refuse the start.
+pub(crate) fn nummer_vergebbar(lauf: &Lauf, n: usize) -> Result<bool, ()> {
+    match kennung_belegt(lauf, n) {
+        Ok(true) if alte_zielliste_raeumen(lauf, n) => kennung_belegt(lauf, n),
+        andere => andere,
+    }
 }
 
 /// The folder `<ordner>/<kennung>` (0700) with `start.json` (0600, exclusive) that holds the start structure with `sitzung`
@@ -870,6 +923,75 @@ mod tests {
         };
         assert!(mit_laenge(EINST_MAX).is_some(), "exactly the bound");
         assert!(mit_laenge(EINST_MAX + 1).is_none(), "one byte over");
+        let _ = std::fs::remove_dir_all(&o);
+    }
+
+    /// DI12 point 15a: the own regular list that alone takes the number is removed; nothing else is.
+    #[test]
+    fn eine_alte_eigene_zielliste_allein_wird_geraeumt() {
+        use std::os::unix::fs::symlink;
+        let (o, lauf) = vier("raeumen");
+        let z = o.join("z");
+        // the list alone: removed, the number is free again; nothing else in the folder changes
+        std::fs::write(z.join("s-1.zielliste.json"), b"{}").expect("file");
+        std::fs::write(z.join("s-2.zielliste.json"), b"{}").expect("file");
+        assert!(alte_zielliste_raeumen(&lauf, 1));
+        assert_eq!(kennung_belegt(&lauf, 1), Ok(false));
+        assert!(
+            z.join("s-2.zielliste.json").exists(),
+            "only the list of the number asked for"
+        );
+        // nothing there: nothing to do
+        assert!(!alte_zielliste_raeumen(&lauf, 1));
+        // a link, a dead link and a folder stay and keep the number taken; the target of the link stays
+        let ziel = o.join("ziel.json");
+        std::fs::write(&ziel, b"ziel").expect("file");
+        symlink(&ziel, z.join("s-3.zielliste.json")).expect("link");
+        symlink(o.join("fehlt"), z.join("s-4.zielliste.json")).expect("dead link");
+        std::fs::create_dir(z.join("s-5.zielliste.json")).expect("dir");
+        for n in 3..=5 {
+            assert!(!alte_zielliste_raeumen(&lauf, n), "{n}");
+            assert_eq!(kennung_belegt(&lauf, n), Ok(true), "{n}");
+        }
+        assert_eq!(std::fs::read(&ziel).expect("target"), b"ziel");
+        // another entry of the number lies: the list stays (a session of that number may still run or its files are unread)
+        for (d, name) in [
+            ("s", "s-6"),
+            ("l", "s-6"),
+            ("m", "s-6.suche.json"),
+            ("m", "s-6.modellweg.json"),
+        ] {
+            std::fs::write(z.join("s-6.zielliste.json"), b"{}").expect("file");
+            std::fs::write(o.join(d).join(name), b"x").expect("entry");
+            assert!(!alte_zielliste_raeumen(&lauf, 6), "{d}/{name}");
+            assert!(z.join("s-6.zielliste.json").exists(), "{d}/{name}");
+            std::fs::remove_file(o.join(d).join(name)).expect("rm");
+        }
+        assert!(alte_zielliste_raeumen(&lauf, 6), "alone again");
+        // without the key nothing is removed
+        std::fs::write(z.join("s-7.zielliste.json"), b"{}").expect("file");
+        let ohne = lauf_mit(
+            Some(&o.join("s")),
+            None,
+            Some(&o.join("l")),
+            Some(&o.join("m")),
+        );
+        assert!(!alte_zielliste_raeumen(&ohne, 7));
+        assert!(z.join("s-7.zielliste.json").exists());
+        // the key names a link to the folder: O_NOFOLLOW refuses it, nothing is removed below it
+        let verweis = o.join("z-verweis");
+        symlink(&z, &verweis).expect("link");
+        let ueber_verweis = lauf_mit(
+            Some(&o.join("s")),
+            Some(&verweis),
+            Some(&o.join("l")),
+            Some(&o.join("m")),
+        );
+        assert!(!alte_zielliste_raeumen(&ueber_verweis, 7));
+        assert!(z.join("s-7.zielliste.json").exists());
+        // the number has no upper bound here: the identifier counts, not the frame number
+        std::fs::write(z.join("s-300.zielliste.json"), b"{}").expect("file");
+        assert!(alte_zielliste_raeumen(&lauf, 300));
         let _ = std::fs::remove_dir_all(&o);
     }
 }

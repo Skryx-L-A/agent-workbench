@@ -1,36 +1,86 @@
 {
  "fassung": 1,
- "hinweis": "Vertrag 7, Abschnitt 2 und 10. einstellungen: Schluessel in lagen.einstellungen (text = Bytes fuer den Lader von Vertrag 2; fehler = dessen erwarteter Code). registry: Schluessel in lagen.registry (Bytes fuer den Lader aus Abschnitt 3). laeufe_ohne: dieser Lauf ist abgemeldet. kopfzeilen reicht die Huelle nicht an den Kern. koerper_muster: vorne + fuellung * anzahl + hinten.",
+ "hinweis": "Vertrag 7, Abschnitt 2 und 10. einstellungen: Schluessel in lagen.einstellungen (text = Bytes fuer den Lader von Vertrag 2; fehler = dessen erwarteter Code). registry: Schluessel in lagen.registry (Bytes fuer den Lader aus Abschnitt 3). zonen: Schluessel in lagen.zonen (Sicht des Tors, Abschnitt 4a). laeufe_ohne: dieser Lauf ist abgemeldet. kopfzeilen reicht die Huelle nicht an den Kern. koerper_muster: vorne + fuellung * anzahl + hinten.",
  "lagen": {
   "einstellungen": {
    "ok": {
-    "text": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud-beispiel\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal-beispiel\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-beispiel\",\n   \"erlaubt\": [\n    \"lokal-beispiel\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+    "text": "{\n \"fassung\": 2,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud-beispiel\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\",\n   \"netzziele\": []\n  },\n  {\n   \"schluessel\": \"lokal-beispiel\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\",\n   \"ziel\": \"http://127.0.0.1:11434/v1\",\n   \"modell\": \"lokal-beispiel/modell-a\",\n   \"netzziele\": []\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-beispiel\",\n   \"erlaubt\": [\n    \"lokal-beispiel\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
    },
    "fehler": {
-    "text": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud-beispiel\",\n   \"art\": \"cloud\",\n   \"klasse\": null\n  },\n  {\n   \"schluessel\": \"lokal-beispiel\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-beispiel\",\n   \"erlaubt\": [\n    \"lokal-beispiel\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n",
+    "text": "{\n \"fassung\": 2,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud-beispiel\",\n   \"art\": \"cloud\",\n   \"klasse\": null,\n   \"netzziele\": []\n  },\n  {\n   \"schluessel\": \"lokal-beispiel\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\",\n   \"ziel\": \"http://127.0.0.1:11434/v1\",\n   \"modell\": \"lokal-beispiel/modell-a\",\n   \"netzziele\": []\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-beispiel\",\n   \"erlaubt\": [\n    \"lokal-beispiel\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n",
     "fehler": "einst.route_ohne_klasse"
    },
    "ohne_cloud": {
-    "text": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"lokal-beispiel\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-beispiel\",\n   \"erlaubt\": [\n    \"lokal-beispiel\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+    "text": "{\n \"fassung\": 2,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"lokal-beispiel\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\",\n   \"ziel\": \"http://127.0.0.1:11434/v1\",\n   \"modell\": \"lokal-beispiel/modell-a\",\n   \"netzziele\": []\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-beispiel\",\n   \"erlaubt\": [\n    \"lokal-beispiel\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
    }
   },
   "registry": {
-   "vorfuehrung": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
-   "anbieter_b": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-b\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-b\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-b\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
-   "anbieter_b_ohne_modell": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-b\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-b\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"anderes-modell\",\n     \"anbieter\": \"anb-cloud-b\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
-   "ohne_cloud_route": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
-   "lokal_auf_cloud": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
-   "stufen_aus": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    },\n    {\n     \"modell\": \"m2-frei\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    },\n    {\n     \"modell\": \"m3-tief\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-2\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
-   "ungueltig": "{\n \"fassung\": 2,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
-   "stufen_an": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": true\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    },\n    {\n     \"modell\": \"m2-frei\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    },\n    {\n     \"modell\": \"m3-tief\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-2\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
-   "kosten_aus": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": false,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"claude-sonnet-5-5\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"qwen3:8b\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n"
+   "beispiel": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"cloud-beispiel/modell-a\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"lokal-beispiel/modell-a\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "anbieter_b": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-b\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-b\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"cloud-beispiel/modell-a\",\n     \"anbieter\": \"anb-cloud-b\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"lokal-beispiel/modell-a\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "anbieter_b_ohne_modell": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-b\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-b\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"anderes-modell\",\n     \"anbieter\": \"anb-cloud-b\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"lokal-beispiel/modell-a\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "ohne_cloud_route": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"lokal-beispiel/modell-a\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "lokal_auf_cloud": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"cloud-beispiel/modell-a\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"lokal-beispiel/modell-a\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "stufen_aus": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"cloud-beispiel/modell-a\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    },\n    {\n     \"modell\": \"m2-frei\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    },\n    {\n     \"modell\": \"m3-tief\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-2\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"lokal-beispiel/modell-a\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "ungueltig": "{\n \"fassung\": 2,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"cloud-beispiel/modell-a\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"lokal-beispiel/modell-a\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "stufen_an": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": true,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": true\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"cloud-beispiel/modell-a\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    },\n    {\n     \"modell\": \"m2-frei\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    },\n    {\n     \"modell\": \"m3-tief\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-2\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"lokal-beispiel/modell-a\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n",
+   "kosten_aus": "{\n \"fassung\": 1,\n \"waehrung\": \"EUR\",\n \"einheit\": 9,\n \"optionen\": {\n  \"kosten_mitschreiben\": false,\n  \"kostenauswertung\": false,\n  \"modellwahl_nach_preis\": false\n },\n \"anbieter\": [\n  {\n   \"schluessel\": \"anb-cloud-a\",\n   \"art\": \"cloud\",\n   \"protokoll\": \"messages\",\n   \"ziel\": null,\n   \"halter\": \"anb-cloud-a\"\n  },\n  {\n   \"schluessel\": \"anb-lokal\",\n   \"art\": \"lokal\",\n   \"protokoll\": \"chat\",\n   \"ziel\": \"http://127.0.0.1:11434\",\n   \"halter\": null\n  }\n ],\n \"routen\": [\n  {\n   \"route\": \"cloud-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"cloud-beispiel/modell-a\",\n     \"anbieter\": \"anb-cloud-a\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 3000,\n     \"preis_aus\": 15000\n    }\n   ]\n  },\n  {\n   \"route\": \"lokal-beispiel\",\n   \"modelle\": [\n    {\n     \"modell\": \"lokal-beispiel/modell-a\",\n     \"anbieter\": \"anb-lokal\",\n     \"stufe\": \"stufe-1\",\n     \"preis_ein\": 0,\n     \"preis_aus\": 0\n    }\n   ]\n  }\n ]\n}\n"
+  },
+  "zonen": {
+   "aus": {
+    "an": false
+   },
+   "an": {
+    "an": true,
+    "routen": {
+     "cloud-beispiel": {
+      "zone": "z-cloud",
+      "lauf_frei": true,
+      "grund": null
+     },
+     "lokal-beispiel": {
+      "zone": "z-lokal",
+      "lauf_frei": true,
+      "grund": null
+     }
+    }
+   },
+   "cloud_ohne_zone": {
+    "an": true,
+    "routen": {
+     "cloud-beispiel": {
+      "zone": null,
+      "lauf_frei": false,
+      "grund": "route-ohne-zone"
+     },
+     "lokal-beispiel": {
+      "zone": "z-lokal",
+      "lauf_frei": true,
+      "grund": null
+     }
+    }
+   },
+   "cloud_gesperrt": {
+    "an": true,
+    "routen": {
+     "cloud-beispiel": {
+      "zone": "z-unsicher",
+      "lauf_frei": false,
+      "grund": "zone-gesperrt"
+     },
+     "lokal-beispiel": {
+      "zone": "z-lokal",
+      "lauf_frei": true,
+      "grund": null
+     }
+    }
+   }
   },
   "laeufe": [
    {
     "sitzung": "s-1",
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "schein_sha256": "6646208a39b1d67601cd6a63999f227a9d4bd83a0c3fa17754e455bba8f1ecd7",
     "peer": {
      "art": "unix",
@@ -42,7 +92,7 @@
     "sitzung": "s-2",
     "route": "lokal-beispiel",
     "kunde": "k-beispiel",
-    "modell": "qwen3:8b",
+    "modell": "lokal-beispiel/modell-a",
     "schein_sha256": "1145e27e2ada347024ed87d3002e511d89cddba5e651ba94841c46e432eee8a7",
     "peer": {
      "art": "unix",
@@ -54,7 +104,7 @@
     "sitzung": "s-3",
     "route": "cloud-beispiel",
     "kunde": null,
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "schein_sha256": "d4553b5fad19b057083a77387971225545835726820391fab672e1ae6301e21a",
     "peer": {
      "art": "tcp",
@@ -62,12 +112,25 @@
      "job": "j-3",
      "lauf": "l-3"
     }
+   },
+   {
+    "sitzung": "s-4",
+    "route": "lokal-beispiel",
+    "kunde": "k-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "schein_sha256": "8d6ca775110e0eef0f48f50ba62ed1f02dfa090b938e91b49816b517fb5e226e",
+    "peer": {
+     "art": "mac",
+     "sitzung": "s-4",
+     "uid": 1000
+    }
    }
   ],
   "scheine": {
    "s-1": "wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
    "s-2": "wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
-   "s-3": "wbs_gi43VlRWyizsqpwghqtw3KznWwXhIbu2vXZEUlI05BU"
+   "s-3": "wbs_gi43VlRWyizsqpwghqtw3KznWwXhIbu2vXZEUlI05BU",
+   "s-4": "wbs_zyYqEjBmGSx35LGnlPJeBLNrPBTDMlBn7hn58GQMqUE"
   }
  },
  "faelle": [
@@ -75,7 +138,8 @@
    "name": "cloud_gueltig",
    "beschreibung": "Gueltiger Aufruf der Cloud-Sitzung s-1: Weg ueber den Halter an genau den Anbieter der Route",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -94,7 +158,7 @@
      "halter": "anb-cloud-a",
      "kosten_mitschreiben": true,
      "kunde": "k-beispiel",
-     "modell": "claude-sonnet-5-5",
+     "modell": "cloud-beispiel/modell-a",
      "preis_aus": 15000,
      "preis_ein": 3000,
      "protokoll": "messages",
@@ -110,9 +174,10 @@
   },
   {
    "name": "lokal_gueltig",
-   "beschreibung": "Gueltiger Aufruf der lokalen Sitzung s-2: direkter Weg an Ollama auf Loopback, ohne Halter",
+   "beschreibung": "Gueltiger Aufruf der lokalen Sitzung s-2: direkter Weg an das lokale Ziel auf Loopback, ohne Halter",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
@@ -131,7 +196,7 @@
      "halter": null,
      "kosten_mitschreiben": true,
      "kunde": "k-beispiel",
-     "modell": "qwen3:8b",
+     "modell": "lokal-beispiel/modell-a",
      "preis_aus": 0,
      "preis_ein": 0,
      "protokoll": "chat",
@@ -149,7 +214,8 @@
    "name": "lokal_strom",
    "beschreibung": "Strom angefragt: strom true, die Huelle setzt stream_options.include_usage",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
@@ -159,7 +225,7 @@
      "uid": 1000
     },
     "pfad": "/gw/v1/modelle/chat/completions",
-    "koerper_text": "{\"model\":\"qwen3:8b\",\"stream\":true,\"messages\":[]}"
+    "koerper_text": "{\"model\":\"lokal-beispiel/modell-a\",\"stream\":true,\"messages\":[]}"
    },
    "erwartet": {
     "weiterleitung": {
@@ -168,7 +234,7 @@
      "halter": null,
      "kosten_mitschreiben": true,
      "kunde": "k-beispiel",
-     "modell": "qwen3:8b",
+     "modell": "lokal-beispiel/modell-a",
      "preis_aus": 0,
      "preis_ein": 0,
      "protokoll": "chat",
@@ -186,7 +252,8 @@
    "name": "modell_der_anfrage_zaehlt_nicht",
    "beschreibung": "Die Anfrage nennt ein anderes Modell; es gilt das Modell aus Start und Registry",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -205,7 +272,7 @@
      "halter": "anb-cloud-a",
      "kosten_mitschreiben": true,
      "kunde": "k-beispiel",
-     "modell": "claude-sonnet-5-5",
+     "modell": "cloud-beispiel/modell-a",
      "preis_aus": 15000,
      "preis_ein": 3000,
      "protokoll": "messages",
@@ -223,7 +290,8 @@
    "name": "windows_gueltig",
    "beschreibung": "Windows: Peer ueber den Plattformdienst mit SID, Job und Lauf des Scheins",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_gi43VlRWyizsqpwghqtw3KznWwXhIbu2vXZEUlI05BU",
@@ -244,7 +312,7 @@
      "halter": "anb-cloud-a",
      "kosten_mitschreiben": true,
      "kunde": null,
-     "modell": "claude-sonnet-5-5",
+     "modell": "cloud-beispiel/modell-a",
      "preis_aus": 15000,
      "preis_ein": 3000,
      "protokoll": "messages",
@@ -262,7 +330,8 @@
    "name": "route_im_koerper",
    "beschreibung": "Die Anfrage der Cloud-Sitzung nennt im Koerper die lokale Route: abgelehnt, das Feld steht auf keiner Erlaubnisliste",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -272,7 +341,7 @@
      "uid": 1000
     },
     "pfad": "/gw/v1/modelle/v1/messages",
-    "koerper_text": "{\"model\":\"qwen3:8b\",\"route\":\"lokal-beispiel\",\"max_tokens\":1,\"messages\":[]}"
+    "koerper_text": "{\"model\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"max_tokens\":1,\"messages\":[]}"
    },
    "erwartet": {
     "code": "gw.feld_unbekannt"
@@ -282,7 +351,8 @@
    "name": "route_in_kopfzeile",
    "beschreibung": "Die Anfrage nennt die lokale Route in einer Kopfzeile: wirkungslos, die Huelle reicht keine Kopfzeile ausser Authorization an den Kern",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -305,7 +375,7 @@
      "halter": "anb-cloud-a",
      "kosten_mitschreiben": true,
      "kunde": "k-beispiel",
-     "modell": "claude-sonnet-5-5",
+     "modell": "cloud-beispiel/modell-a",
      "preis_aus": 15000,
      "preis_ein": 3000,
      "protokoll": "messages",
@@ -323,7 +393,8 @@
    "name": "route_im_pfad",
    "beschreibung": "Ein Pfad mit Route ist kein Weg des Gateways",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -343,7 +414,8 @@
    "name": "route_ohne_klasse",
    "beschreibung": "Die Route der Sitzung steht nicht mehr in der Einstellungsdatei (A42): Route cloud-beispiel hat keine Klasse",
    "einstellungen": "ohne_cloud",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -363,7 +435,8 @@
    "name": "einstellungen_route_null",
    "beschreibung": "Die Einstellungsdatei hat eine Route mit klasse null; der Lader von Vertrag 2 lehnt sie ab, das Gateway bedient keine Sitzung",
    "einstellungen": "fehler",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
@@ -384,6 +457,7 @@
    "beschreibung": "Die Route hat keinen Registry-Eintrag: Abbruch, kein Rueckfall",
    "einstellungen": "ok",
    "registry": "ohne_cloud_route",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -404,6 +478,7 @@
    "beschreibung": "Die Registry-Datei ist ungueltig (Fassung 2): kein Aufruf",
    "einstellungen": "ok",
    "registry": "ungueltig",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
@@ -424,6 +499,7 @@
    "beschreibung": "Die lokale Route zeigt auf einen Cloud-Anbieter: abgelehnt, Kundendaten der lokalen Route gingen sonst an eine Cloud",
    "einstellungen": "ok",
    "registry": "lokal_auf_cloud",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
@@ -444,6 +520,7 @@
    "beschreibung": "Der Admin stellt die Cloud-Route auf Anbieter B um: derselbe Aufruf geht an B und nie an A",
    "einstellungen": "ok",
    "registry": "anbieter_b",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -462,7 +539,7 @@
      "halter": "anb-cloud-b",
      "kosten_mitschreiben": true,
      "kunde": "k-beispiel",
-     "modell": "claude-sonnet-5-5",
+     "modell": "cloud-beispiel/modell-a",
      "preis_aus": 15000,
      "preis_ein": 3000,
      "protokoll": "messages",
@@ -482,6 +559,7 @@
    "beschreibung": "Anbieter B eingestellt, aber ohne Eintrag fuer das Modell der Sitzung: Abbruch statt Rueckfall auf A",
    "einstellungen": "ok",
    "registry": "anbieter_b_ohne_modell",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -502,6 +580,7 @@
    "beschreibung": "Modellwahl nach Preis aus (Vorgabe): das Modell der Sitzung, auch wenn ein guenstigeres derselben Stufe existiert",
    "einstellungen": "ok",
    "registry": "stufen_aus",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -520,7 +599,7 @@
      "halter": "anb-cloud-a",
      "kosten_mitschreiben": true,
      "kunde": "k-beispiel",
-     "modell": "claude-sonnet-5-5",
+     "modell": "cloud-beispiel/modell-a",
      "preis_aus": 15000,
      "preis_ein": 3000,
      "protokoll": "messages",
@@ -539,6 +618,7 @@
    "beschreibung": "Modellwahl nach Preis an: das kostenfreie Modell derselben Stufe, nie das der tieferen Stufe",
    "einstellungen": "ok",
    "registry": "stufen_an",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -577,6 +657,7 @@
    "beschreibung": "Option Kosten mitschreiben aus: die Weiterleitung sagt es der Huelle, es entsteht keine Zeile",
    "einstellungen": "ok",
    "registry": "kosten_aus",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -595,7 +676,7 @@
      "halter": "anb-cloud-a",
      "kosten_mitschreiben": false,
      "kunde": "k-beispiel",
-     "modell": "claude-sonnet-5-5",
+     "modell": "cloud-beispiel/modell-a",
      "preis_aus": 15000,
      "preis_ein": 3000,
      "protokoll": "messages",
@@ -613,7 +694,8 @@
    "name": "ohne_schein",
    "beschreibung": "Keine Kopfzeile Authorization",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": null,
@@ -633,7 +715,8 @@
    "name": "schein_falsche_art",
    "beschreibung": "Authorization ohne Bearer",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Basic wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -653,7 +736,8 @@
    "name": "schein_unbekannt",
    "beschreibung": "Ein Schein der richtigen Form, den kein Lauf traegt",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_2P8EqaMrP7f34HQ2ZAH_zM1kEq-BV5I_lwQueYCsuS0",
@@ -673,7 +757,8 @@
    "name": "schein_falsche_form",
    "beschreibung": "Ein Anbieterschluessel statt eines Scheins",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer sk-beispiel-0000",
@@ -693,7 +778,8 @@
    "name": "schein_beendeter_lauf",
    "beschreibung": "Der Lauf s-1 ist beendet und abgemeldet; sein Schein gilt nicht mehr",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": "s-1",
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -713,7 +799,8 @@
    "name": "schein_am_fremden_socket",
    "beschreibung": "Der Schein von s-2 kommt ueber den Socket von s-1",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
@@ -733,7 +820,8 @@
    "name": "fremde_kennung",
    "beschreibung": "Der Schein kommt am richtigen Socket, aber von einer anderen Kennung",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -753,7 +841,8 @@
    "name": "windows_fremder_job",
    "beschreibung": "Windows: richtige SID, anderer Job",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_gi43VlRWyizsqpwghqtw3KznWwXhIbu2vXZEUlI05BU",
@@ -775,7 +864,8 @@
    "name": "windows_nicht_im_job",
    "beschreibung": "Windows: Prozess nicht im Job des Laufs",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_gi43VlRWyizsqpwghqtw3KznWwXhIbu2vXZEUlI05BU",
@@ -797,7 +887,8 @@
    "name": "windows_peer_unbekannt",
    "beschreibung": "Windows: der Plattformdienst antwortet nicht in 500 ms oder der Client ist schon fort",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_gi43VlRWyizsqpwghqtw3KznWwXhIbu2vXZEUlI05BU",
@@ -815,7 +906,8 @@
    "name": "schein_vor_peer",
    "beschreibung": "Ohne Schein meldet der Kern schein_fehlt, auch wenn der Peer unbekannt ist",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": null,
@@ -833,7 +925,8 @@
    "name": "protokoll_falsch",
    "beschreibung": "Die Cloud-Sitzung ruft die Chat-Route, ihr Anbieter spricht Messages",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -853,7 +946,8 @@
    "name": "koerper_doppelt",
    "beschreibung": "Ein doppelter Schluessel in einer tiefen Ebene des Koerpers",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -873,7 +967,8 @@
    "name": "koerper_kein_objekt",
    "beschreibung": "Der Koerper ist eine Liste",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
@@ -893,7 +988,8 @@
    "name": "koerper_zu_gross",
    "beschreibung": "Der Koerper der Chat-Route hat 2 MiB und ein Byte",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
@@ -918,7 +1014,8 @@
    "name": "feld_unbekannt",
    "beschreibung": "Ein Feld ausserhalb der Erlaubnisliste (Ziel des Anbieters)",
    "einstellungen": "ok",
-   "registry": "vorfuehrung",
+   "registry": "beispiel",
+   "zonen": "aus",
    "laeufe_ohne": null,
    "anfrage": {
     "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
@@ -932,6 +1029,334 @@
    },
    "erwartet": {
     "code": "gw.feld_unbekannt"
+   }
+  },
+  {
+   "name": "mac_gueltig",
+   "beschreibung": "macOS: die Verbindung gehoert einer PID mit dem Merkmal der Sitzung, der Schein passt",
+   "einstellungen": "ok",
+   "registry": "beispiel",
+   "zonen": "aus",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_zyYqEjBmGSx35LGnlPJeBLNrPBTDMlBn7hn58GQMqUE",
+    "verbindung": {
+     "art": "mac",
+     "pid": 4242,
+     "merkmal": true,
+     "sitzung": "s-4",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-lokal",
+     "einheit": 9,
+     "halter": null,
+     "kosten_mitschreiben": true,
+     "kunde": "k-beispiel",
+     "modell": "lokal-beispiel/modell-a",
+     "preis_aus": 0,
+     "preis_ein": 0,
+     "protokoll": "chat",
+     "route": "lokal-beispiel",
+     "sitzung": "s-4",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "direkt",
+     "pfad": "/v1/chat/completions",
+     "ziel": "http://127.0.0.1:11434/v1/chat/completions"
+    }
+   }
+  },
+  {
+   "name": "mac_ohne_merkmal",
+   "beschreibung": "macOS: die PID der Verbindung traegt das Merkmal des Laufs nicht (Prozess der Person ausserhalb des Profils)",
+   "einstellungen": "ok",
+   "registry": "beispiel",
+   "zonen": "aus",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_zyYqEjBmGSx35LGnlPJeBLNrPBTDMlBn7hn58GQMqUE",
+    "verbindung": {
+     "art": "mac",
+     "pid": 4243,
+     "merkmal": false,
+     "sitzung": null,
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.peer_falsch"
+   }
+  },
+  {
+   "name": "mac_fremde_sitzung",
+   "beschreibung": "macOS: die PID traegt das Merkmal einer anderen Sitzung",
+   "einstellungen": "ok",
+   "registry": "beispiel",
+   "zonen": "aus",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_zyYqEjBmGSx35LGnlPJeBLNrPBTDMlBn7hn58GQMqUE",
+    "verbindung": {
+     "art": "mac",
+     "pid": 4244,
+     "merkmal": true,
+     "sitzung": "s-2",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.peer_falsch"
+   }
+  },
+  {
+   "name": "mac_fremde_kennung",
+   "beschreibung": "macOS: Merkmal und Sitzung passen, die Kennung nicht",
+   "einstellungen": "ok",
+   "registry": "beispiel",
+   "zonen": "aus",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_zyYqEjBmGSx35LGnlPJeBLNrPBTDMlBn7hn58GQMqUE",
+    "verbindung": {
+     "art": "mac",
+     "pid": 4245,
+     "merkmal": true,
+     "sitzung": "s-4",
+     "uid": 1001
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.peer_falsch"
+   }
+  },
+  {
+   "name": "mac_peer_unbekannt",
+   "beschreibung": "macOS: libproc ordnet die Verbindung keiner PID zu, oder der Client ist schon fort",
+   "einstellungen": "ok",
+   "registry": "beispiel",
+   "zonen": "aus",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_zyYqEjBmGSx35LGnlPJeBLNrPBTDMlBn7hn58GQMqUE",
+    "verbindung": {
+     "art": "unbekannt"
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.peer_unbekannt"
+   }
+  },
+  {
+   "name": "mac_schein_am_fremden_port",
+   "beschreibung": "macOS: der Schein von s-2 kommt ueber den Weiterreicher von s-4",
+   "einstellungen": "ok",
+   "registry": "beispiel",
+   "zonen": "aus",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
+    "verbindung": {
+     "art": "mac",
+     "pid": 4242,
+     "merkmal": true,
+     "sitzung": "s-4",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.peer_falsch"
+   }
+  },
+  {
+   "name": "zonen_aus",
+   "beschreibung": "Option Modellzonen aus (Vorgabe): das Gateway fragt keine Zone",
+   "einstellungen": "ok",
+   "registry": "beispiel",
+   "zonen": "aus",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-cloud-a",
+     "einheit": 9,
+     "halter": "anb-cloud-a",
+     "kosten_mitschreiben": true,
+     "kunde": "k-beispiel",
+     "modell": "cloud-beispiel/modell-a",
+     "preis_aus": 15000,
+     "preis_ein": 3000,
+     "protokoll": "messages",
+     "route": "cloud-beispiel",
+     "sitzung": "s-1",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "halter",
+     "pfad": "/v1/messages",
+     "ziel": null
+    }
+   }
+  },
+  {
+   "name": "zonen_an_frei",
+   "beschreibung": "Option an, die Route hat eine Zone und die Laufpruefung ist frei",
+   "einstellungen": "ok",
+   "registry": "beispiel",
+   "zonen": "an",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-cloud-a",
+     "einheit": 9,
+     "halter": "anb-cloud-a",
+     "kosten_mitschreiben": true,
+     "kunde": "k-beispiel",
+     "modell": "cloud-beispiel/modell-a",
+     "preis_aus": 15000,
+     "preis_ein": 3000,
+     "protokoll": "messages",
+     "route": "cloud-beispiel",
+     "sitzung": "s-1",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "halter",
+     "pfad": "/v1/messages",
+     "ziel": null
+    }
+   }
+  },
+  {
+   "name": "route_ohne_zone",
+   "beschreibung": "Option an, die Route steht in keiner Zone (A127): Route cloud-beispiel hat keine Zone",
+   "einstellungen": "ok",
+   "registry": "beispiel",
+   "zonen": "cloud_ohne_zone",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.route_ohne_zone"
+   }
+  },
+  {
+   "name": "zone_gesperrt",
+   "beschreibung": "Option an, die Zone der Route ist gesperrt und keine Ausnahme gilt (A128)",
+   "einstellungen": "ok",
+   "registry": "beispiel",
+   "zonen": "cloud_gesperrt",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.zone_gesperrt"
+   }
+  },
+  {
+   "name": "zone_nach_klasse",
+   "beschreibung": "Die Klasse kommt vor der Zone: eine Route ohne Klasse endet mit route_ohne_klasse, auch mit eingeschalteten Zonen",
+   "einstellungen": "ohne_cloud",
+   "registry": "beispiel",
+   "zonen": "cloud_ohne_zone",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_hVjRAFs7NELBcrY5lEywJk9BpFPnm33HsTVDibDSesw",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-1",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/v1/messages",
+    "koerper_text": "{\"model\":\"egal\",\"max_tokens\":16,\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "code": "gw.route_ohne_klasse"
+   }
+  },
+  {
+   "name": "zone_der_lokalen_route_frei",
+   "beschreibung": "Option an: die lokale Sitzung laeuft weiter, nur die Cloud-Route ist gesperrt",
+   "einstellungen": "ok",
+   "registry": "beispiel",
+   "zonen": "cloud_gesperrt",
+   "laeufe_ohne": null,
+   "anfrage": {
+    "authorization": "Bearer wbs_Yw9mfO-i5gX1QnBejTImybOmT8FK5aT4ERsLA5trnN8",
+    "verbindung": {
+     "art": "unix",
+     "socket": "s-2",
+     "uid": 1000
+    },
+    "pfad": "/gw/v1/modelle/chat/completions",
+    "koerper_text": "{\"model\":\"egal\",\"messages\":[{\"role\":\"user\",\"content\":\"Hallo\"}]}"
+   },
+   "erwartet": {
+    "weiterleitung": {
+     "anbieter": "anb-lokal",
+     "einheit": 9,
+     "halter": null,
+     "kosten_mitschreiben": true,
+     "kunde": "k-beispiel",
+     "modell": "lokal-beispiel/modell-a",
+     "preis_aus": 0,
+     "preis_ein": 0,
+     "protokoll": "chat",
+     "route": "lokal-beispiel",
+     "sitzung": "s-2",
+     "strom": false,
+     "waehrung": "EUR",
+     "weg": "direkt",
+     "pfad": "/v1/chat/completions",
+     "ziel": "http://127.0.0.1:11434/v1/chat/completions"
+    }
    }
   }
  ]

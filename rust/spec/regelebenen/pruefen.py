@@ -2,7 +2,9 @@
 """Prüft die sichtbaren Fälle des Vertrags Regelebenen gegen Paarung, Codes und Schema.
 
 Aufruf: <python mit jsonschema> -I rust/spec/regelebenen/pruefen.py
-Ohne jsonschema prüft es nur Paarung, strenges JSON-Lesen, Codes und Zeilenform und meldet das Schema als nicht geprüft.
+Ohne jsonschema endet es mit Exit 2 und einer Zeile auf stderr. Wer bewusst ohne Schema prüfen will, ruft es mit
+--ohne-schema auf: dann prüft es nur Paarung, strenges JSON-Lesen, Codes und Zeilenform, meldet das Schema in der Ausgabe
+als nicht geprüft und endet mit Exit 0 nur bei 0 Fehlern.
 Exit 0, wenn jeder prüfbare Punkt stimmt. Querverweise, Lockerung und Befugnis sind erst mit dem Bau prüfbar.
 """
 import json
@@ -49,6 +51,10 @@ def main():
         p_v2 = jsonschema.Draft202012Validator(json.loads(SCHEMA_V2.read_text(encoding="utf-8")))
         jsonschema.Draft202012Validator.check_schema(p_ebenen.schema)
     except ImportError:
+        if "--ohne-schema" not in sys.argv[1:]:
+            print("pruefen.py: das Modul jsonschema fehlt, das Schema wäre ungeprüft; Exit 2 "
+                  "(mit --ohne-schema bewusst ohne Schema prüfen)", file=sys.stderr)
+            return 2
         p_ebenen = p_v2 = None
     fehler, zahl, schritte_zahl, nur_bau = [], 0, 0, 0
     faelle = {p.name for p in (HIER / "faelle").glob("*.json")}
@@ -135,7 +141,7 @@ def main():
                 datei_pruefen(wo, a["datei"], True)
                 nur_bau += 1
     print(f"{zahl} Fälle, {schritte_zahl} Schritte, {len(fehler)} Fehler, "
-          f"Schema {'geprüft' if p_ebenen else 'NICHT geprüft (jsonschema fehlt)'}; "
+          f"Schema {'geprüft' if p_ebenen else 'NICHT geprüft (--ohne-schema, jsonschema fehlt)'}; "
           f"{nur_bau} Ablehnungen erst mit dem Bau prüfbar (Bezug, Befugnis, Lockerung, Ladefehler)")
     for zeile in fehler:
         print(f"  FEHLER {zeile}")

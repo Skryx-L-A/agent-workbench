@@ -363,6 +363,278 @@
       }
     },
     {
+      "fall": "zwei modellweg-Zeilen beider Betriebsarten: gruen",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.pfad_unbekannt\",\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":\"/v1/models\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":404,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":\"api.beispiel.invalid\",\"kopf\":\"ersetzt\",\"methode\":\"GET\",\"pfad\":\"/models/session\",\"pfadregel\":\"/models/*\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"vorher\":\"8413207d6a0b012f663e9f9b70fe9a4829aa18b3c51c33826af615d0dc6a568d\",\"zeit\":\"2026-11-20T13:00:01.000Z\",\"ziel\":\"ziel-1\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"96015b138ee94cb2a56cd098a24c71bac84ab833594391168e78b34ae3175015\",\"ok\":true,\"zeilen\":2}\n"
+      }
+    },
+    {
+      "fall": "aeltere Zeile ohne pfad und host: gruen",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.pfad_unbekannt\",\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":404,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"cbc0853caabf13b9854d502a8fc1a9be931f3f1f4ff24dff9c1d1561f0a58e10\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "nur pfad, host fehlt: Form falsch",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.pfad_unbekannt\",\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":\"/v1/models\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":404,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "pfad mit Abfrage: Form falsch",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.pfad_unbekannt\",\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":\"/v1/models?a=b\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":404,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "zusaetzliches Feld in der modellweg-Zeile: Form falsch",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.pfad_unbekannt\",\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":\"/v1/models\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":404,\"titel\":\"geheim\",\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "host mit Port: Form falsch",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.ziel_nicht_erlaubt\",\"host\":\"api.beispiel.invalid:443\",\"kopf\":null,\"methode\":null,\"pfad\":null,\"pfadregel\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":403,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"ziel\":null}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Fassung 2 mit einer Art ausserhalb des Registers: Form falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufrufe\",\"ergebnis\":\"ok\",\"fassung\":2,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"vorschau\":\"Inhalt der Notiz\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Fassung 2 mit einem Tippfehler in einer bekannten Art: Form falsch",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"ausgabe.gesperrte\",\"ergebnis\":\"ok\",\"fassung\":2,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "dieselbe Zeile ohne fassung in einer gateway-Datei (1g): nur Kettenglied, gruen",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufrufe\",\"ergebnis\":\"ok\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"vorschau\":\"Inhalt der Notiz\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"5a275ea1768167f82d7a7889a8ecad6682272b69380b3694f45740ff2d5961a4\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "dieselbe Zeile ohne fassung in einer brain-Datei: fassung fehlt",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufrufe\",\"ergebnis\":\"ok\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"vorschau\":\"Inhalt der Notiz\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"brain-2026-11.jsonl\",\"grund\":\"fassung_fehlt\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "angemeldete Art regel.geaendert mit freier Form: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"regel.geaendert\",\"ergebnis\":\"ok\",\"fassung\":2,\"feld\":\"wert\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"3df437f1932d787bc4706c72b3cdb972b0861aa99aa65362c75a312b8e26435a\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "angemeldete Art regel.abgelehnt mit freier Form: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"regel.abgelehnt\",\"ergebnis\":\"ok\",\"fassung\":2,\"feld\":\"wert\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"914b8cd62dab866655ee3d77db7414d661426cbf00f9aa841cdc224b829cb4fc\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "angemeldete Art suche.rueckfall mit freier Form: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"suche.rueckfall\",\"ergebnis\":\"ok\",\"fassung\":2,\"feld\":\"wert\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"ab5f1acd427c26290524310dc630928e36d5b0b5d414d292b9c26893dc8792f9\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "fremde Art modell.aufruf aus dem Register: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"modell.aufruf\",\"ergebnis\":\"ok\",\"fassung\":2,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"c94c911e41bcc66a2f501368129d556a4dd50f3a2a6c1c7a9cc170c0bcf22ac3\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "fremde Art wissen.geschrieben aus dem Register: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"wissen.geschrieben\",\"ergebnis\":\"ok\",\"fassung\":2,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"5102bcc47f7382b18387f6a339307f8bc9bc5a0ef11ddd72758b9fea308b2f61\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "fremde Art protokoll.einsicht aus dem Register: gruen",
+      "dateien": [
+        {
+          "name": "brain-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"protokoll.einsicht\",\"ergebnis\":\"ok\",\"fassung\":2,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@brain-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"33442c4bf201bba8a1a19fef6ddf528e676a4e6713cd3361ee4b93b5f68670a9\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
       "fall": "leere Datei: gruen mit null Zeilen",
       "dateien": [
         {

@@ -238,7 +238,7 @@ fn base64_helper_decodes() {
 fn pruefe_cases() {
     let datei = fall_datei("pruefe.json");
     let faelle = liste(&datei, "faelle");
-    assert_eq!(faelle.len(), 39);
+    assert!(faelle.len() >= 45, "{}", faelle.len());
     for (nummer, fall) in faelle.iter().enumerate() {
         let name = text(fall, "fall");
         let ordner = Wegwerf::neu(&format!("pruefe-{nummer}"));

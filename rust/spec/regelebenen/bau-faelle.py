@@ -516,6 +516,14 @@ fall("a45-routenstatus", ["A45"],
       (4, klasse("cloud-s"), "intern")],
      form={1: "ebenen.schluessel_unbekannt"})
 
+fall("a45-freigabe-person", ["A45", "A12"],
+     "freigabe_durch nennt eine Rolle der Firma, nie eine Person: ein Pseudonym dort ist ein Formfehler",
+     ST,
+     [A("ps_00000000000000000000000000000b01", firma(routen_status=[dict(STATUS[0], freigabe_durch="ps_00000000000000000000000000000b01")])),
+      A("ps_00000000000000000000000000000b01", firma(routen_status=STATUS))],
+     [(0, code, "ebenen.kennung_form"), (1, angenommen, True)],
+     form={0: "ebenen.kennung_form"})
+
 fall("a103-protokoll", ["A103", "A102"],
      "ohne Angabe gelten Aufbewahrung 365 Tage; der Admin stellt 0 ein (nichts löschen); eine Gruppe kann das Feld nicht setzen; das Feld einsicht gibt es hier nicht mehr (B08, es gehört der Stelle)",
      ST,

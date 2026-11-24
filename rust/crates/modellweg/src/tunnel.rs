@@ -38,6 +38,7 @@ pub struct Tunnel {
     route: String,
     protokoll: PathBuf,
     probelauf: Option<Zaehlung>,
+    pfad_voll: bool,
     eigene_uid: u32,
     betrieb: Betrieb,
 }
@@ -132,6 +133,7 @@ impl Tunnel {
         route: String,
         protokoll: PathBuf,
         probelauf: Option<Zaehlung>,
+        pfad_voll: bool,
         eigene_uid: u32,
         betrieb: Betrieb,
     ) -> Self {
@@ -143,6 +145,7 @@ impl Tunnel {
             route,
             protokoll,
             probelauf,
+            pfad_voll,
             eigene_uid,
             betrieb,
         }
@@ -265,7 +268,7 @@ impl Tunnel {
         let Some(k) = kopf_einsetzen::zerlege(&kopf) else {
             return ablehnen(tls, "mw.anfrage_unlesbar", Meldung::default());
         };
-        let g = match kopf_einsetzen::pruefe(ziel, &k) {
+        let g = match kopf_einsetzen::pruefe(ziel, &k, self.pfad_voll) {
             Ok(g) => g,
             Err((code, m)) => return ablehnen(tls, code, m),
         };
@@ -452,6 +455,13 @@ impl Tunnel {
             ergebnis: e.ergebnis.to_owned(),
             grund: e.grund.map(str::to_owned),
             status: e.status.map(u32::from),
+            // The path stands in the line only at a rejection and at a `GET` (section 8).
+            pfad: e
+                .meldung
+                .pfad
+                .clone()
+                .filter(|_| e.ergebnis == "abgelehnt" || e.meldung.methode == Some("GET")),
+            host: ziel.map(|z| z.host.clone()),
         };
         if protokoll::anhaengen_kopf(&self.protokoll, &z).is_err() {
             self.betrieb.protokoll_kaputt.store(true, Ordering::SeqCst);

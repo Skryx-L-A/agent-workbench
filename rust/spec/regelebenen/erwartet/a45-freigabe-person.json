@@ -1,0 +1,38 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "ebenen.kennung_form",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": "ebenen.kennung_form",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "875c7fc423d58c4af1d88dd5194d559cdc6304c5b7c3189db63c9e9e43017f1d",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": true,
+   "code": null,
+   "zeile": {
+    "aktionsname": "regel.geaendert",
+    "alt": "58884a5ec5817977fd253e4320cabdc3a56692ca4cf8cb19ebd0a5ceb6ee1c6c",
+    "antrag": null,
+    "code": null,
+    "ebene": "firma",
+    "ergebnis": "geaendert",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "8b7cfd11c3d3374a7bf20532cfef94960bbabb5e4239061c01960482efbcd3cb",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  }
+ ]
+}

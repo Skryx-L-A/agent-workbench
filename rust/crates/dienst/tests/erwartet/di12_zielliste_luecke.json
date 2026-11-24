@@ -6,9 +6,7 @@
    "kind_beendet": null,
    "ordner_inhalt": [],
    "socket_entfernt": true,
-   "ziellisten_inhalt": [
-    "s-2.zielliste.json"
-   ]
+   "ziellisten_inhalt": []
   },
   "ergebnisse": [
    {
@@ -84,21 +82,21 @@
         "warteschlange": 0
        }
       },
-      "gestartet": 3,
+      "gestartet": 2,
       "kernbau": 3,
       "kind": {
        "s-1": {
         "code": null,
         "ende": false
        },
-       "s-3": {
+       "s-2": {
         "code": null,
         "ende": false
        }
       },
       "nummern": {
        "s-1": 1,
-       "s-3": 3
+       "s-2": 2
       },
       "traeger_zeilen": {
        "s-1": [
@@ -117,7 +115,7 @@
         "",
         ""
        ],
-       "s-3": [
+       "s-2": [
         "BEREIT",
         "",
         "",
@@ -140,7 +138,7 @@
        "b1": {
         "abos": [
          "s-1",
-         "s-3"
+         "s-2"
         ],
         "ausstehend": 0,
         "person": "anna",
@@ -182,7 +180,7 @@
          120,
          14
         ],
-        "id": "s-3",
+        "id": "s-2",
         "invers": false,
         "letzte_eingabe": null,
         "titel": "",
@@ -304,7 +302,7 @@
        },
        {
         "harness": "claude",
-        "id": "s-3",
+        "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
         "route": "cloud-beispiel",
@@ -314,7 +312,7 @@
      },
      {
       "art": "Gestartet",
-      "sitzung": "s-3"
+      "sitzung": "s-2"
      }
     ],
     "ok": true

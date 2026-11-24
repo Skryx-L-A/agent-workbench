@@ -578,6 +578,9 @@ AUFRUFE = [
         ("aufruf-marke-gleich", "copilot nach copilot im selben Ordner: erlaubt, die Marke bleibt",
          datei(COPILOT, "s-3"), [{**MARKE_LOKAL, "klasse_hoch": "intern"}], None,
          {"exec": "copilot", "marke_danach": [{**MARKE_LOKAL, "klasse_hoch": "intern"}]}),
+        ("aufruf-marke-realpath-ausser-form", "der Verweis des Arbeitsordners führt auf ein Ziel mit Steuerzeichen: kein Pfad nach den Regeln von arbeitsordner, fail closed",
+         mit(datei(LOKAL, "s-2"), lambda o: o.update(arbeitsordner="/srv/beispiel/verweis")),
+         [], "/srv/beispiel/a\u0001b", ABGEWIESEN_KAPUTT),
         ("aufruf-marke-sinkt-nie", "lokal hat die Marke gehoben; ein späterer copilot-Start senkt sie nicht",
          datei(COPILOT, "s-3"), [MARKE_LOKAL], None, {**ABGEWIESEN_HOEHER, "marke_danach": [MARKE_LOKAL]}),
     ]
@@ -754,6 +757,12 @@ AUFRUFE_N2 = [
     ("aufruf-konfig-fehlt", "die Konfigurationsdatei fehlt: 78, kein Kind",
      {"start": datei(LOKAL, "s-2"), "einstellungen": EINSTELLUNGEN_2, "konfig": "fehlt"},
      {"exit": 78, "stderr": "lauf.konfig_fehlt: Konfigurationsdatei fehlt", "suche_gestartet": False,
+      "modellweg_gestartet": False}),
+    # Nachbesserung 23.11.: die Einstellungsdatei, deren Pfad die Konfiguration nennt, lässt sich nicht öffnen (Schritt 3)
+    ("aufruf-einst-unlesbar", "die Einstellungsdatei fehlt, obwohl die Konfiguration sie nennt: 78, kein Kind",
+     {"start": mit(datei(LOKAL, "s-2"), lambda o: o.update(arbeitsordner="/srv/beispiel/projekt")),
+      "einstellungen": EINSTELLUNGEN_2, "konfig": "einstellungen-fehlt"},
+     {"exit": 78, "stderr": "lauf.einst_unlesbar: Einstellungsdatei nicht lesbar", "suche_gestartet": False,
       "modellweg_gestartet": False}),
 ] + [
     (f"aufruf-konfig-kaputt-{name}", f"die Konfigurationsdatei {was}: 78, kein Kind",

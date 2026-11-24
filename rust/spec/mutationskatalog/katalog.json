@@ -1,0 +1,247 @@
+{
+  "fassung": 1,
+  "regeln": [
+    {
+      "id": "R-KERNABBILD",
+      "titel": "Kein Kernabbild nimmt den Speicher eines Prozesses mit, der ein Geheimnis haelt; bei harter Grenze 0 und einer Pipe im Muster bricht der Start ab (fail closed).",
+      "anforderung": "A14"
+    },
+    {
+      "id": "R-LOESCHEN-DESKRIPTOR",
+      "titel": "Geloescht wird nur ueber Deskriptoren relativ zum eigenen Ordner, ohne Verknuepfung zu folgen; ein Name mit Schraegstrich oder .. wird vorab abgewiesen.",
+      "anforderung": "A23"
+    },
+    {
+      "id": "R-DATEI-RECHTE",
+      "titel": "Jede gelesene Datei wird vor dem Lesen auf dem offenen Deskriptor geprueft: regulaer, eigene uid, Modus genau 0600, keine Verknuepfung.",
+      "anforderung": "A25"
+    },
+    {
+      "id": "R-ORDNER-MACOS",
+      "titel": "Unter macOS prueft die Plattformschicht zusaetzlich den Elternordner: Ordner, keine Verknuepfung, eigene uid, Modus genau 0700.",
+      "anforderung": "A25"
+    },
+    {
+      "id": "R-FREIGABE",
+      "titel": "Eine Freigabe gilt fuer genau einen Aufruf; ist die Freigabe fuer den Server aus, antwortet die Stelle ohne Freigabe und schreibt die Endzeile.",
+      "anforderung": "A105"
+    },
+    {
+      "id": "R-HERKUNFT",
+      "titel": "Die gemessene Herkunft des Aufrufers entscheidet: nur der fuer die Operation erlaubte Aufrufer kommt durch, ein Agent gibt nicht selbst frei.",
+      "anforderung": "A92"
+    },
+    {
+      "id": "R-NACHWEIS",
+      "titel": "Der Nachweis eines Menschen wird in konstanter Zeit verglichen; jedes Byte wird angesehen, gleich wo der erste Unterschied liegt.",
+      "anforderung": "A105"
+    },
+    {
+      "id": "R-KETTE-SPERRE",
+      "titel": "Die Hashkette des Protokolls waechst nur unter einer ausschliesslichen Sperre; keine Zeile wird verworfen, keine halbe Zeile bleibt stehen.",
+      "anforderung": "A102"
+    },
+    {
+      "id": "R-DOPPELTER-SCHLUESSEL",
+      "titel": "Jeder Lader einer Regel- oder Startdatei lehnt ein JSON-Objekt mit doppeltem Schluessel auf jeder Ebene ab (fail closed).",
+      "anforderung": "A139"
+    },
+    {
+      "id": "R-KLASSE-FAIL-CLOSED",
+      "titel": "Laesst sich die wirksame Klasse einer Einheit nicht bestimmen, ist die Einheit ungueltig; sie faellt nie still in eine niedrigere Klasse.",
+      "anforderung": "A23"
+    }
+  ],
+  "eintraege": [
+    {
+      "id": "K01",
+      "regel": "R-KERNABBILD",
+      "anforderung": "A14",
+      "datei": "rust/crates/kernabbild/src/lib.rs",
+      "funktion": "entscheiden",
+      "anker": "Muster::Inhalt(roh) if roh.first() == Some(&b'|')",
+      "mutant": "Die Bedingung wird zu `roh.first() != Some(&b'|')`: ein Muster mit Pipe gilt als harmlos, jedes andere bricht ab.",
+      "roter_test": "kernabbild: harte_null_mit_pipe_am_anfang_bricht_ab"
+    },
+    {
+      "id": "K02",
+      "regel": "R-KERNABBILD",
+      "anforderung": "A14",
+      "datei": "rust/crates/kernabbild/src/lib.rs",
+      "funktion": "entscheiden",
+      "anker": "if harte_grenze != Some(0) {",
+      "mutant": "Die Bedingung wird zu `harte_grenze == Some(0)`: bei einer Grenze ueber 0 wird das Muster gelesen und entschieden, bei harter 0 geht es ohne Pruefung weiter.",
+      "roter_test": "kernabbild: eine_harte_grenze_ueber_null_geht_weiter_und_liest_das_muster_nicht"
+    },
+    {
+      "id": "K03",
+      "regel": "R-KERNABBILD",
+      "anforderung": "A14",
+      "datei": "rust/crates/kernabbild/src/lib.rs",
+      "funktion": "abschirmen_mit",
+      "anker": "setrlimit(Resource::Core, grenze).map_err(|_| Abbruch::GrenzeSetzen)?;",
+      "mutant": "Der Aufruf wird durch `let _ = setrlimit(Resource::Core, grenze);` ersetzt: ein abgelehntes setrlimit fuehrt nicht mehr zum Abbruch.",
+      "roter_test": "kernabbild: dienst/tests/abschirmung.rs (Max core file size 1 1, das Kind erbt 1/1)"
+    },
+    {
+      "id": "K04",
+      "regel": "R-LOESCHEN-DESKRIPTOR",
+      "anforderung": "A23",
+      "datei": "rust/crates/formate/src/kette/loeschen.rs",
+      "funktion": "entfernen_in",
+      "anker": "if datei_kennung(&da) != Some(soll) {",
+      "mutant": "Die Bedingung wird zu `false`: der Eintrag unter dem Namen wird geloescht, auch wenn er nicht mehr die eigene Datei ist.",
+      "roter_test": "formate: another_file_a_link_or_a_folder_under_the_name_stays"
+    },
+    {
+      "id": "K05",
+      "regel": "R-LOESCHEN-DESKRIPTOR",
+      "anforderung": "A23",
+      "datei": "rust/crates/formate/src/kette/loeschen.rs",
+      "funktion": "entfernen_in",
+      "anker": "let Ok(da) = rustix::fs::statat(ordner, name, AtFlags::SYMLINK_NOFOLLOW) else {",
+      "mutant": "`AtFlags::SYMLINK_NOFOLLOW` wird zu `AtFlags::empty()`: der Blick folgt einer Verknuepfung, und das Ziel ausserhalb des Ordners zaehlt als die eigene Datei.",
+      "roter_test": "formate: another_file_a_link_or_a_folder_under_the_name_stays"
+    },
+    {
+      "id": "K06",
+      "regel": "R-LOESCHEN-DESKRIPTOR",
+      "anforderung": "A23",
+      "datei": "rust/crates/modellweg/src/loeschen.rs",
+      "funktion": "von_datei",
+      "anker": "Ok(Self::aus(&rustix::fs::fstat(datei)?))",
+      "mutant": "`fstat` auf dem Deskriptor wird durch `statat` auf dem zusammengesetzten Pfad ersetzt: die Kennung kommt nicht mehr von der offenen Datei.",
+      "roter_test": "modellweg: another_file_a_link_or_a_folder_under_the_name_stays"
+    },
+    {
+      "id": "K07",
+      "regel": "R-DATEI-RECHTE",
+      "anforderung": "A25",
+      "datei": "rust/crates/modellweg/src/schluessel.rs",
+      "funktion": "datei_ok",
+      "anker": "ist_datei && uid == eigene_uid && modus & 0o7777 == 0o600",
+      "mutant": "Die Bedingung wird zu `ist_datei && modus & 0o600 == 0o600`: eine Datei fremden Eigentuemers und eine Datei mit 0644 oder setuid werden angenommen.",
+      "roter_test": "modellweg: only_an_own_regular_file_with_0600"
+    },
+    {
+      "id": "K08",
+      "regel": "R-DATEI-RECHTE",
+      "anforderung": "A25",
+      "datei": "rust/crates/modellweg/src/schluessel.rs",
+      "funktion": "lies",
+      "anker": "let flags = OFlags::NOFOLLOW",
+      "mutant": "`OFlags::NOFOLLOW` wird zu `OFlags::empty()`: eine Verknuepfung auf eine Datei ausserhalb des Satzes wird geoeffnet und gelesen.",
+      "roter_test": "modellweg: only_an_own_regular_file_with_0600"
+    },
+    {
+      "id": "K09",
+      "regel": "R-DATEI-RECHTE",
+      "anforderung": "A25",
+      "datei": "rust/crates/modellweg/src/suche.rs",
+      "funktion": "liste_lesen",
+      "anker": "if !schluessel::datei_ok(meta.is_file(), meta.uid(), meta.mode(), eigene_uid) {",
+      "mutant": "Der Block wird entfernt: die Zielliste wird gelesen, auch wenn sie einem anderen Nutzer gehoert oder 0644 traegt.",
+      "roter_test": "modellweg: tests/suche.rs (Faelle zielliste_* aus spec/modellweg/faelle/suche.json)"
+    },
+    {
+      "id": "K10",
+      "regel": "R-DATEI-RECHTE",
+      "anforderung": "A25",
+      "datei": "rust/crates/modellweg/src/suche.rs",
+      "funktion": "eintrag",
+      "anker": "let Ok(stat) = statat(dirfd, name, AtFlags::SYMLINK_NOFOLLOW) else {",
+      "mutant": "`AtFlags::SYMLINK_NOFOLLOW` wird zu `AtFlags::empty()`: die Suche folgt Verknuepfungen, und der Verweis auf die Schluesseldatei zaehlt als Fund (Mutant M-S1 des Erzeugers im Bau).",
+      "roter_test": "modellweg: tests/suche.rs (Faelle nur_verknuepfung, in_ist_verknuepfung)"
+    },
+    {
+      "id": "K11",
+      "regel": "R-DATEI-RECHTE",
+      "anforderung": "A25",
+      "datei": "rust/crates/modellweg/src/ca.rs",
+      "funktion": "lies_datei",
+      "anker": "if !datei_ok(meta.is_file(), meta.uid(), meta.mode(), eigene_uid) {",
+      "mutant": "Der Block wird entfernt: Schluessel und Zertifikat der Sitzung werden auch mit fremdem Eigentuemer oder offenem Modus geladen.",
+      "roter_test": "modellweg: tests/tls.rs (CA-Faelle mit fremdem Eigentuemer, mw.ca_ungueltig)"
+    },
+    {
+      "id": "K12",
+      "regel": "R-ORDNER-MACOS",
+      "anforderung": "A25",
+      "datei": "rust/crates/rangkern/src/sitzung/mac.rs",
+      "funktion": "ordner_pruefen",
+      "anker": "if meta.mode() & 0o7777 != 0o700 {",
+      "mutant": "Der Vergleich wird zu `meta.mode() & 0o700 != 0o700`: ein Ordner mit 0707 oder mit setgid wird angenommen.",
+      "roter_test": "rangkern: sitzung/mac.rs, Test des Elternordners mit 0707 unter Plattform::MacOs"
+    },
+    {
+      "id": "K13",
+      "regel": "R-ORDNER-MACOS",
+      "anforderung": "A25",
+      "datei": "rust/crates/rangkern/src/sitzung/mac.rs",
+      "funktion": "ordner_pruefen",
+      "anker": "if meta.uid() != euid {",
+      "mutant": "Der Block wird entfernt: ein Elternordner fremden Eigentuemers wird angenommen.",
+      "roter_test": "rangkern: sitzung/mac.rs, Test des Elternordners fremden Eigentuemers"
+    },
+    {
+      "id": "K14",
+      "regel": "R-FREIGABE",
+      "anforderung": "A105",
+      "datei": "rust/crates/stelle/src/kern.rs",
+      "funktion": "anfragen",
+      "anker": "if !server.freigabe {",
+      "mutant": "Die Bedingung wird zu `if server.freigabe`: ein Server ohne Freigabe-Option bekommt eine offene Anfrage, einer mit Option wird abgewiesen.",
+      "roter_test": "stelle: alle_sichtbaren_faelle (Fall server-ohne-freigabe-option.json)"
+    },
+    {
+      "id": "K15",
+      "regel": "R-HERKUNFT",
+      "anforderung": "A92",
+      "datei": "rust/crates/stelle/src/kern.rs",
+      "funktion": "entscheide",
+      "anker": "if ereignis.aufrufer != vorgang.erlaubt() {",
+      "mutant": "Der Block wird entfernt: der Hub darf entscheiden, und ein Agent erteilt sich die Freigabe selbst.",
+      "roter_test": "stelle: alle_sichtbaren_faelle (Faelle mit Code stelle.aufrufer_nicht_erlaubt)"
+    },
+    {
+      "id": "K16",
+      "regel": "R-NACHWEIS",
+      "anforderung": "A105",
+      "datei": "rust/crates/stelle/src/pruefer.rs",
+      "funktion": "gleich_konstant",
+      "anker": "a.iter().zip(b).fold(0u8, |summe, (x, y)| summe | (x ^ y)) == 0",
+      "mutant": "Der Ausdruck wird zu `a.iter().zip(b).all(|(x, y)| x == y)`: der Vergleich endet beim ersten Unterschied.",
+      "roter_test": "stelle: vergleich_sieht_jedes_byte"
+    },
+    {
+      "id": "K17",
+      "regel": "R-KETTE-SPERRE",
+      "anforderung": "A102",
+      "datei": "rust/crates/formate/src/kette/schreiber.rs",
+      "funktion": "anhaengen_gesperrt",
+      "anker": "handle.lock().map_err(|e| ein_ausgabe(&e))?;",
+      "mutant": "Die Zeile wird entfernt: zwei Schreiber haengen ohne Sperre an, und eine Zeile bekommt den falschen Vorgaenger.",
+      "roter_test": "formate: two_writers_keep_one_chain"
+    },
+    {
+      "id": "K18",
+      "regel": "R-DOPPELTER-SCHLUESSEL",
+      "anforderung": "A139",
+      "datei": "rust/crates/einstellungen/src/json.rs",
+      "funktion": "objekt",
+      "anker": "if !namen.insert(name.clone()) {",
+      "mutant": "Der Block wird entfernt: ein Objekt mit doppeltem Schluessel wird angenommen, und der zweite, lockerere Wert gewinnt.",
+      "roter_test": "einstellungen: duplicate_keys_are_refused_and_the_order_is_kept"
+    },
+    {
+      "id": "K19",
+      "regel": "R-KLASSE-FAIL-CLOSED",
+      "anforderung": "A23",
+      "datei": "rust/crates/datentor/src/klassen.rs",
+      "funktion": "wirksame_klasse",
+      "anker": "let Ok((i, mut herkunft)) = grundklasse(v, lage, inhalt) else {",
+      "mutant": "Der Zweig `else` gibt die niedrigste Klasse statt `Klassenergebnis::ungueltig` zurueck: eine Einheit ohne bestimmbare Grundklasse faellt still nach unten.",
+      "roter_test": "datentor: Faelle der Klassen aus spec/datentor/klassen (ungueltige Einheit)"
+    }
+  ]
+}

@@ -11,6 +11,7 @@ use serde_json::{Map, Value};
 
 use crate::Betriebsart;
 use crate::aufruf::{kennung_ok, modell_ok};
+use crate::pfad::pfad_feld_ok;
 
 /// The name of the line type.
 pub const AKTIONSNAME: &str = "modellweg.aufruf";
@@ -41,6 +42,10 @@ pub struct Modellweg {
     pub token_ein: Option<u64>,
     /// `usage.completion_tokens` of the target, only for `weitergereicht`.
     pub token_aus: Option<u64>,
+    /// The limited path of the request (section 8), only for a rejection and for a `GET`; else `None`.
+    pub pfad: Option<String>,
+    /// The host of the bound target; in this mode always `None`, so both forms carry the same fields.
+    pub host: Option<String>,
 }
 
 /// The codes that fit a result.
@@ -90,7 +95,15 @@ fn pruefe(m: &Modellweg) -> Result<(), Fehler> {
     feld(
         token_gut(m.token_aus) && m.token_ein.is_some() == m.token_aus.is_some(),
         "token_aus",
-    )
+    )?;
+    // Only a rejection carries a path here: a `GET` never passes stage 4 or 5 of this mode (section 10).
+    feld(
+        m.pfad
+            .as_deref()
+            .is_none_or(|p| pfad_feld_ok(p) && m.ergebnis == "abgelehnt"),
+        "pfad",
+    )?;
+    feld(m.host.is_none(), "host")
 }
 
 /// The object of the line without `fassung`, `vorher` and `zeit`: the closed form of `openai-lokal`.
@@ -100,7 +113,9 @@ fn objekt(m: &Modellweg) -> Map<String, Value> {
     o.insert("betriebsart".to_owned(), m.betriebsart.clone().into());
     o.insert("ergebnis".to_owned(), m.ergebnis.clone().into());
     o.insert("grund".to_owned(), m.grund.clone().into());
+    o.insert("host".to_owned(), m.host.clone().into());
     o.insert("modell".to_owned(), m.modell.clone().into());
+    o.insert("pfad".to_owned(), m.pfad.clone().into());
     o.insert("route".to_owned(), m.route.clone().into());
     o.insert("sitzung".to_owned(), m.sitzung.clone().into());
     o.insert("status".to_owned(), m.status.into());
@@ -113,7 +128,7 @@ fn objekt(m: &Modellweg) -> Map<String, Value> {
 ///
 /// # Errors
 /// `feld_ungueltig:<feld>` in the order `betriebsart`, `route`, `sitzung`, `modell`, `ergebnis`, `grund`, `status`,
-/// `token_ein`, `token_aus`, `vorher`; then `zeit_ungueltig`.
+/// `token_ein`, `token_aus`, `pfad`, `host`, `vorher`; then `zeit_ungueltig`.
 pub fn zeile_modellweg(m: &Modellweg, vorher: &str) -> Result<String, Fehler> {
     pruefe(m)?;
     if !hex64(vorher) {
@@ -179,6 +194,10 @@ pub struct KopfZeile {
     pub grund: Option<String>,
     /// The status the harness got; `None` only for `mw.sni_falsch`.
     pub status: Option<u32>,
+    /// The limited path of the request (section 8), only for a rejection and for a `GET`; else `None`.
+    pub pfad: Option<String>,
+    /// The host of the target the tunnel is bound to, lower case and without port; `None` before the binding.
+    pub host: Option<String>,
 }
 
 /// The codes that fit a result of mode 2.
@@ -247,7 +266,21 @@ fn pruefe_kopf(z: &KopfZeile) -> Result<(), Fehler> {
         None => z.grund.as_deref() == Some("mw.sni_falsch"),
         Some(s) => (100..=599).contains(&s),
     };
-    feld(status_gut, "status")
+    feld(status_gut, "status")?;
+    feld(
+        z.pfad.as_deref().is_none_or(|p| {
+            pfad_feld_ok(p) && (z.ergebnis == "abgelehnt" || z.methode.as_deref() == Some("GET"))
+        }),
+        "pfad",
+    )?;
+    // The host says which target of the list the tunnel is bound to, so it stands exactly where `ziel` stands.
+    feld(
+        z.host.is_some() == z.ziel.is_some()
+            && z.host
+                .as_deref()
+                .is_none_or(crate::betriebsart::zielliste::host_ok),
+        "host",
+    )
 }
 
 fn objekt_kopf(z: &KopfZeile) -> Map<String, Value> {
@@ -256,8 +289,10 @@ fn objekt_kopf(z: &KopfZeile) -> Map<String, Value> {
     o.insert("betriebsart".to_owned(), z.betriebsart.clone().into());
     o.insert("ergebnis".to_owned(), z.ergebnis.clone().into());
     o.insert("grund".to_owned(), z.grund.clone().into());
+    o.insert("host".to_owned(), z.host.clone().into());
     o.insert("kopf".to_owned(), z.kopf.clone().into());
     o.insert("methode".to_owned(), z.methode.clone().into());
+    o.insert("pfad".to_owned(), z.pfad.clone().into());
     o.insert("pfadregel".to_owned(), z.pfadregel.clone().into());
     o.insert("route".to_owned(), z.route.clone().into());
     o.insert("sitzung".to_owned(), z.sitzung.clone().into());
@@ -270,7 +305,7 @@ fn objekt_kopf(z: &KopfZeile) -> Map<String, Value> {
 ///
 /// # Errors
 /// `feld_ungueltig:<feld>` in the order `betriebsart`, `route`, `sitzung`, `ziel`, `methode`, `pfadregel`, `kopf`,
-/// `ergebnis`, `grund`, `status`, `vorher`; then `zeit_ungueltig`.
+/// `ergebnis`, `grund`, `status`, `pfad`, `host`, `vorher`; then `zeit_ungueltig`.
 pub fn zeile_kopf(z: &KopfZeile, vorher: &str) -> Result<String, Fehler> {
     pruefe_kopf(z)?;
     if !hex64(vorher) {
@@ -295,7 +330,48 @@ pub fn anhaengen_kopf(ordner: &Path, z: &KopfZeile) -> Result<String, Fehler> {
 
 #[cfg(test)]
 mod tests {
-    use super::{KopfZeile, pruefe_kopf};
+    use super::{KopfZeile, Modellweg, pruefe, pruefe_kopf};
+
+    fn zeile_1(ergebnis: &str, grund: Option<&str>) -> Modellweg {
+        Modellweg {
+            zeit_ms: 0,
+            betriebsart: "openai-lokal".to_owned(),
+            sitzung: "s".to_owned(),
+            route: "r".to_owned(),
+            modell: "m".to_owned(),
+            ergebnis: ergebnis.to_owned(),
+            grund: grund.map(str::to_owned),
+            status: 404,
+            token_ein: None,
+            token_aus: None,
+            pfad: None,
+            host: None,
+        }
+    }
+
+    fn code_1(m: &Modellweg) -> Option<String> {
+        pruefe(m).err().map(|f| f.code())
+    }
+
+    #[test]
+    fn mode_1_carries_a_path_only_at_a_rejection_and_never_a_host() {
+        let mut m = zeile_1("abgelehnt", Some("mw.pfad_unbekannt"));
+        assert_eq!(code_1(&m), None);
+        m.pfad = Some("/v1/models".to_owned());
+        assert_eq!(code_1(&m), None);
+        m.pfad = Some("*".to_owned());
+        assert_eq!(code_1(&m), None);
+        m.pfad = Some("/v1/models?a=b".to_owned());
+        assert_eq!(code_1(&m).as_deref(), Some("feld_ungueltig:pfad"));
+        let mut weiter = zeile_1("weitergereicht", None);
+        weiter.status = 200;
+        assert_eq!(code_1(&weiter), None);
+        weiter.pfad = Some("/v1/chat".to_owned());
+        assert_eq!(code_1(&weiter).as_deref(), Some("feld_ungueltig:pfad"));
+        let mut host = zeile_1("abgelehnt", Some("mw.pfad_unbekannt"));
+        host.host = Some("api.beispiel.invalid".to_owned());
+        assert_eq!(code_1(&host).as_deref(), Some("feld_ungueltig:host"));
+    }
 
     fn zeile(ergebnis: &str, grund: Option<&str>, kopf: Option<&str>) -> KopfZeile {
         KopfZeile {
@@ -310,6 +386,8 @@ mod tests {
             ergebnis: ergebnis.to_owned(),
             grund: grund.map(str::to_owned),
             status: Some(502),
+            pfad: None,
+            host: Some("a.beispiel.invalid".to_owned()),
         }
     }
 
@@ -388,6 +466,7 @@ mod tests {
         );
         let mut ohne_ziel = zeile("weitergereicht", None, Some("ersetzt"));
         ohne_ziel.ziel = None;
+        ohne_ziel.host = None;
         assert_eq!(
             code(&ohne_ziel).as_deref(),
             Some("feld_ungueltig:pfadregel")
@@ -399,5 +478,46 @@ mod tests {
         assert_eq!(code(&ohne_status), None);
         ohne_status.grund = Some("mw.nur_connect".to_owned());
         assert_eq!(code(&ohne_status).as_deref(), Some("feld_ungueltig:status"));
+    }
+
+    #[test]
+    fn the_path_stands_only_at_a_rejection_or_a_get() {
+        let mut get = zeile("weitergereicht", None, Some("ersetzt"));
+        get.pfad = Some("/models/session".to_owned());
+        assert_eq!(code(&get), None);
+        let mut post = get.clone();
+        post.methode = Some("POST".to_owned());
+        assert_eq!(code(&post).as_deref(), Some("feld_ungueltig:pfad"));
+        post.ergebnis = "abgelehnt".to_owned();
+        post.grund = Some("mw.pfad_nicht_erlaubt".to_owned());
+        post.kopf = None;
+        assert_eq!(code(&post), None);
+        post.pfad = None;
+        assert_eq!(code(&post), None);
+        let mut roh = get.clone();
+        roh.pfad = Some("/models?a=b".to_owned());
+        assert_eq!(code(&roh).as_deref(), Some("feld_ungueltig:pfad"));
+        roh.pfad = Some("/*".to_owned());
+        assert_eq!(code(&roh), None);
+        roh.pfad = Some("*".to_owned());
+        assert_eq!(code(&roh), None);
+    }
+
+    #[test]
+    fn the_host_stands_exactly_where_the_target_stands() {
+        let mut z = zeile("weitergereicht", None, Some("ersetzt"));
+        assert_eq!(code(&z), None);
+        z.host = None;
+        assert_eq!(code(&z).as_deref(), Some("feld_ungueltig:host"));
+        z.ziel = None;
+        z.pfadregel = None;
+        assert_eq!(code(&z), None);
+        z.host = Some("a.beispiel.invalid".to_owned());
+        assert_eq!(code(&z).as_deref(), Some("feld_ungueltig:host"));
+        let mut mit_port = zeile("weitergereicht", None, Some("ersetzt"));
+        mit_port.host = Some("a.beispiel.invalid:443".to_owned());
+        assert_eq!(code(&mit_port).as_deref(), Some("feld_ungueltig:host"));
+        mit_port.host = Some("A.Beispiel.Invalid".to_owned());
+        assert_eq!(code(&mit_port).as_deref(), Some("feld_ungueltig:host"));
     }
 }

@@ -1,0 +1,22 @@
+{
+  "fassung": 1,
+  "regeln": [
+    {
+      "id": "R-HERKUNFT",
+      "titel": "Gegenprobe: der Anker steht im Quelltext, aber in einer anderen Funktion als der Eintrag nennt.",
+      "anforderung": "A92"
+    }
+  ],
+  "eintraege": [
+    {
+      "id": "K01",
+      "regel": "R-HERKUNFT",
+      "anforderung": "A92",
+      "datei": "rust/crates/stelle/src/kern.rs",
+      "funktion": "anfragen",
+      "anker": "if ereignis.aufrufer != vorgang.erlaubt() {",
+      "mutant": "Gegenprobe: ein absichtlich verschobener Mutant.",
+      "roter_test": "Gegenprobe, kein echter Test"
+    }
+  ]
+}

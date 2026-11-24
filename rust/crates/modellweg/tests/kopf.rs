@@ -166,6 +166,18 @@ fn aufbau_mit(
     unaufgeloest: &[&str],
     probelauf: Option<Zaehlung>,
 ) -> Aufbau {
+    aufbau_voll(w, liste_text, antwort, unaufgeloest, probelauf, false)
+}
+
+/// As [`aufbau_mit`]; `pfad_voll` is the admin switch `--protokoll-pfad-voll` (section 8).
+fn aufbau_voll(
+    w: Wegwerf,
+    liste_text: &str,
+    antwort: &[Vec<u8>],
+    unaufgeloest: &[&str],
+    probelauf: Option<Zaehlung>,
+    pfad_voll: bool,
+) -> Aufbau {
     let text = liste_lokal(&w, liste_text);
     let liste = zielliste::lies(text.as_bytes()).expect("valid list");
     let hosts: Vec<&str> = liste.ziele.iter().map(|z| z.host.as_str()).collect();
@@ -196,6 +208,7 @@ fn aufbau_mit(
         "cloud-beispiel".to_owned(),
         w.protokoll(),
         probelauf,
+        pfad_voll,
         uid,
         Betrieb::neu(Box::new(|| ZEIT)),
     );
@@ -547,6 +560,8 @@ fn kopf_zeile_cases() {
             ergebnis: text(&a["ergebnis"]).to_owned(),
             grund: s("grund"),
             status: a["status"].as_u64().map(|v| u32::try_from(v).expect("u32")),
+            pfad: s("pfad"),
+            host: s("host"),
         };
         let ist = zeile_kopf(&z, text(&fall["vorher"]));
         let e = &fall["erwartet"];
@@ -558,6 +573,35 @@ fn kopf_zeile_cases() {
             assert_eq!(sha256_hex(zeile.as_bytes()), text(&e["sha256"]), "{name}");
         }
     }
+}
+
+/// The line of a request in the tunnel carries the limited path and the host of the target the tunnel is bound
+/// to; with the admin switch it carries the whole path (contract 8, sections 8 and 13.4).
+#[test]
+fn die_zeile_im_tunnel_traegt_pfad_und_host() {
+    let antwort = vec![b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}".to_vec()];
+    let a = aufbau(&vorfuehrung(), &antwort);
+    let host = a.liste.ziele[0].host.clone();
+    let anfrage = format!("GET /copilot_internal/v2/token?x=1 HTTP/1.1\r\nHost: {host}\r\n\r\n");
+    im_tunnel(&a, "github-api", anfrage.as_bytes());
+    let z = letzte_zeile(&a, "pfad_und_host");
+    assert_eq!(z["ergebnis"], "weitergereicht");
+    assert_eq!(z["methode"], "GET");
+    assert_eq!(z["pfad"], "/copilot_internal/v2");
+    assert_eq!(z["host"], host.as_str());
+
+    let b = aufbau_voll(
+        Wegwerf::neu("kopfvoll"),
+        &vorfuehrung(),
+        &antwort,
+        &[],
+        None,
+        true,
+    );
+    im_tunnel(&b, "github-api", anfrage.as_bytes());
+    let zb = letzte_zeile(&b, "pfad_voll");
+    assert_eq!(zb["pfad"], "/copilot_internal/v2/token");
+    assert_eq!(zb["host"], host.as_str());
 }
 
 fn pruefe_zeile(name: &str, z: &Value, soll: &Value) {

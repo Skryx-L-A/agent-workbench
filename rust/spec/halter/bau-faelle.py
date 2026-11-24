@@ -185,6 +185,8 @@ def bauen():
     fall("a-mcp-schreibend", "schreibender Aufruf mit gültigem Schein", zeile(mcp()))
     fall("a-mcp-schein-letzte-ms", "Schein in der letzten Millisekunde vor dem Ablauf",
          zeile(mcp()), lage_=lage(jetzt_ms=JETZT + 29999))
+    fall("a-mcp-schein-frist-24h", "Schein mit der längsten Einlösefrist von 86400000 ms",
+         zeile(mcp(schein_=schein({"ablauf": JETZT - 10000 + 86400000}))))
     fall("a-mcp-freigabe-aus", "Server mit Option Freigabe aus: Schreibaufruf ohne Schein",
          zeile(mcp("anlegen", {"titel": "x"}, None, server="notizen")))
     fall("a-mcp-unicode-argument", "Argument mit Umlaut und Steuerzeichen in kanonischer Form",
@@ -308,8 +310,8 @@ def bauen():
          zeile(mcp(vorschau="d4" * 32)), code="halter.schein_digest")
     fall("s23-werkzeug-getauscht", "anderes schreibendes Werkzeug mit dem Schein von update",
          zeile(mcp("anlegen", schein_=schein(), server="tickets")), code="halter.schein_digest")
-    fall("s24-frist-zu-lang", "Ablauf mehr als 300 s nach Ausstellung",
-         zeile(mcp(schein_=schein({"ablauf": JETZT - 10000 + 300001}))), code="halter.schein_zeit")
+    fall("s24-frist-zu-lang", "Ablauf mehr als 86400000 ms nach Ausstellung",
+         zeile(mcp(schein_=schein({"ablauf": JETZT - 10000 + 86400001}))), code="halter.schein_zeit")
     fall("s24-zukunft", "ausgestellt mehr als 5 s in der Zukunft",
          zeile(mcp(schein_=schein({"ausgestellt": JETZT + 5001, "ablauf": JETZT + 35001}))), code="halter.schein_zeit")
     fall("s25-abgelaufen", "jetzt gleich Ablauf", zeile(mcp()), code="halter.schein_abgelaufen",

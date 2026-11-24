@@ -254,14 +254,17 @@ fn nach_dem_neustart_keine_kennung_deren_ordner_besteht() {
     );
 }
 
-/// DI12 point 15 with a real restart (a finding of a trial run): the child writes `<lauf.ziellisten>/<session>.zielliste.json` like `werkbank-lauf`
-/// does, never over a file that lies there (else code 73), and the session ends with a `lauf.*` code (73). The list stays after the end
-/// of the service; the service that starts again counts from `s-1` and must not hand out `s-1` again.
+/// DI12 points 15 and 15a with a real restart (a finding of a trial run): the child writes `<lauf.ziellisten>/<session>.zielliste.json` like
+/// `werkbank-lauf` does, never over a file that lies there (else code 73). The list stays after the end of the session and of the service
+/// (the runner reads it then). The service that starts again counts from `s-1`; the own regular list of `s-1` is the only entry of that
+/// number and comes from the earlier run, so the service removes it (through the descriptor of the folder) and hands out `s-1` again, and
+/// the child writes its new list without code 73.
 #[test]
-fn nach_dem_neustart_keine_kennung_deren_zielliste_liegt() {
+fn nach_dem_neustart_raeumt_der_dienst_die_alte_zielliste_der_nummer() {
     let w = Wegwerf::neu("zielliste-neustart");
     let ziellisten = w.0.join("ziellisten");
     std::fs::create_dir(&ziellisten).expect("ziellisten");
+    std::fs::set_permissions(&ziellisten, std::fs::Permissions::from_mode(0o700)).expect("mode");
     let skript = w.0.join("laufkind-zielliste.sh");
     std::fs::write(
         &skript,
@@ -272,13 +275,14 @@ fn nach_dem_neustart_keine_kennung_deren_zielliste_liegt() {
     )
     .expect("script");
     std::fs::set_permissions(&skript, std::fs::Permissions::from_mode(0o700)).expect("mode");
+    let zusatz = json!({"lauf": {"programm": skript.to_string_lossy(), "ziellisten": ziellisten.to_string_lossy()}});
     let start = lauf_start(
         &w,
-        &json!({"s-1": {"modus": "ende", "code": 73}, "*": {"modus": "marke", "text": "x", "sek": 60}}),
-        &json!({"lauf": {"programm": skript.to_string_lossy(), "ziellisten": ziellisten.to_string_lossy()}}),
+        &json!({"s-1": {"modus": "ende", "code": 0}, "*": {"modus": "marke", "text": "x", "sek": 60}}),
+        &zusatz,
     );
     let liste_s1 = ziellisten.join("s-1.zielliste.json");
-    // first run: s-1 writes its list and ends with code 73
+    // first run: s-1 writes its list and ends
     let mut p = Prozess::starten(&w, &start);
     let mut v = Probe::neu(&w.socket(), false);
     assert_eq!(starten(&mut v, &gut()).as_deref(), Ok("s-1"));
@@ -286,29 +290,39 @@ fn nach_dem_neustart_keine_kennung_deren_zielliste_liegt() {
     warte_bereit(&mut v, "s-1");
     v.ereignis(&json!({"art": "Text", "sitzung": "s-1", "text": "g"}));
     let s1 = warte_zustand(&mut v, "s-1", "beendet");
-    assert_eq!(s1["code"], json!(73));
+    assert_eq!(s1["code"], json!(0));
     let inhalt = std::fs::read(&liste_s1).expect("the child wrote the list of s-1");
     assert_eq!(inhalt, b"{\"sitzung\":\"s-1\"}\n");
     drop(v);
     p.signal("TERM");
     assert_eq!(p.warte_ende(Duration::from_secs(15)), Some(0));
     drop(p);
-    // the list stays (the service removes nothing there), the socket is gone
+    // the list stays after the end of the service (the runner reads it after its sessions); the socket is gone
     assert_eq!(std::fs::read(&liste_s1).expect("list"), inhalt);
     assert!(!w.socket().exists());
-    // second run: the service counts from s-1 again and skips the number whose list still lies
+    // a mark in the old list: after the restart the list must be a new one
+    std::fs::write(&liste_s1, b"ALT").expect("mark");
+    // second run: the service counts from s-1 again, removes the old list of s-1 and hands out s-1; the child writes a new list
     let mut p = Prozess::starten(&w, &start);
     let mut v = Probe::neu(&w.socket(), false);
-    assert_eq!(starten(&mut v, &gut()).as_deref(), Ok("s-2"));
-    warte_zustand(&mut v, "s-2", "laeuft");
-    assert_eq!(v.zustand()["dienst"]["gestartet"], json!(2));
+    assert_eq!(starten(&mut v, &gut()).as_deref(), Ok("s-1"));
+    v.ereignis(&json!({"art": "Abo", "sitzung": "s-1", "an": true, "spalten": 40, "zeilen": 10}));
+    warte_bereit(&mut v, "s-1");
+    v.ereignis(&json!({"art": "Text", "sitzung": "s-1", "text": "g"}));
+    let s1 = warte_zustand(&mut v, "s-1", "beendet");
+    assert_eq!(
+        s1["code"],
+        json!(0),
+        "no code 73: the old list was gone before the child wrote"
+    );
+    assert_eq!(v.zustand()["dienst"]["gestartet"], json!(1));
     drop(v);
     p.signal("TERM");
     assert_eq!(p.warte_ende(Duration::from_secs(15)), Some(0));
     assert_eq!(
-        std::fs::read(&liste_s1).expect("list"),
+        std::fs::read(&liste_s1).expect("new list"),
         inhalt,
-        "the list of s-1 is unchanged"
+        "the list of s-1 is the new one"
     );
     let mut namen: Vec<String> = std::fs::read_dir(&ziellisten)
         .expect("dir")
@@ -317,8 +331,8 @@ fn nach_dem_neustart_keine_kennung_deren_zielliste_liegt() {
     namen.sort();
     assert_eq!(
         namen,
-        ["s-1.zielliste.json", "s-2.zielliste.json"],
-        "the service made and removed nothing there"
+        ["s-1.zielliste.json"],
+        "only the list of the number handed out was touched"
     );
 }
 

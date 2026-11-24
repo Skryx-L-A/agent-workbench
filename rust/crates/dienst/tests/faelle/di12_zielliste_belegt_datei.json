@@ -1,5 +1,5 @@
 {
- "beschreibung": "lauf.ziellisten enthaelt die Zielliste von s-1 als datei: Starten vergibt s-2 (lstat, jeder Eintrag belegt), der Dienst legt dort nichts an und loescht nichts",
+ "beschreibung": "lauf.ziellisten enthaelt die Zielliste von s-1 als eigene regulaere datei und sonst keinen Eintrag von s-1: Starten raeumt sie (DI12 Punkt 15a, nur ueber Deskriptoren) und vergibt s-1",
  "datensatz": "A",
  "name": "di12_zielliste_belegt_datei",
  "ordner_pruefen": true,
@@ -32,7 +32,7 @@
    "bis": {
     "nachricht": {
      "art": "Gestartet",
-     "sitzung": "s-2"
+     "sitzung": "s-1"
     }
    },
    "frist": 30,
@@ -43,7 +43,7 @@
    "betrachter": "c1",
    "bis": {
     "liste": {
-     "id": "s-2",
+     "id": "s-1",
      "zustand": "laeuft"
     }
    },
@@ -56,7 +56,7 @@
    "ereignis": {
     "an": true,
     "art": "Abo",
-    "sitzung": "s-2",
+    "sitzung": "s-1",
     "spalten": 120,
     "zeilen": 14
    }
@@ -65,7 +65,7 @@
    "art": "Warte",
    "betrachter": "c1",
    "bis": {
-    "nr": 2,
+    "nr": 1,
     "text": "BEREIT"
    },
    "frist": 30,

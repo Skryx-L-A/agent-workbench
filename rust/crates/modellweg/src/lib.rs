@@ -24,6 +24,7 @@ mod http;
 mod json;
 mod loeschen;
 mod os;
+pub mod pfad;
 pub mod probelauf;
 pub mod protokoll;
 pub mod schluessel;

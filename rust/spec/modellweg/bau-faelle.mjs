@@ -26,7 +26,7 @@ const KOPF_MAX = 65536;
 const KOERPER_MAX = 33554432;
 const PARALLEL_MAX = 8;
 const PFAD = '/v1/chat/completions';
-const ZEILE_FELDER = ['aktionsname', 'betriebsart', 'ergebnis', 'fassung', 'grund', 'modell', 'route', 'sitzung', 'status', 'token_aus', 'token_ein', 'vorher', 'zeit'];
+const ZEILE_FELDER = ['aktionsname', 'betriebsart', 'ergebnis', 'fassung', 'grund', 'host', 'modell', 'pfad', 'route', 'sitzung', 'status', 'token_aus', 'token_ein', 'vorher', 'zeit'];
 
 // eigene Ablehnungen: Code, Status, fester Text
 const ABLEHNUNG = {
@@ -141,7 +141,7 @@ function zielTeile(ziel) {
 
 // --- Abschnitt 4: eine Anfrage pruefen (roh, HTTP/1.1) ---
 
-function anfrageLesen(roh) {
+function anfrageLesen(roh, voll = false) {
   const b = Buffer.from(roh, 'latin1');
   const ende = b.indexOf('\r\n\r\n');
   if (ende < 0 || ende + 4 > KOPF_MAX) throw fehler('mw.anfrage_unlesbar');
@@ -156,28 +156,32 @@ function anfrageLesen(roh) {
     kopf.push([k[1].toLowerCase(), k[2]]);
   }
   const werte = (n) => kopf.filter(([k]) => k === n).map(([, v]) => v);
+  const pfad = pfadFeld(start[2], voll);
   const cl = werte('content-length');
-  if (cl.length > 1 || (cl.length === 1 && !/^(0|[1-9][0-9]{0,15})$/.test(cl[0]))) throw fehler('mw.anfrage_unlesbar');
+  if (cl.length > 1 || (cl.length === 1 && !/^(0|[1-9][0-9]{0,15})$/.test(cl[0]))) { const e = fehler('mw.anfrage_unlesbar'); e.pfad = pfad; throw e; }
   const koerper = b.subarray(ende + 4);
   const laenge = cl.length ? Number(cl[0]) : 0;
-  return { methode: start[1], ziel: start[2], kopf, laenge, hatLaenge: cl.length === 1, koerper, werte };
+  return { methode: start[1], ziel: start[2], pfad, kopf, laenge, hatLaenge: cl.length === 1, koerper, werte };
 }
 
 function pruefeAnfrage(lage, roh) {
   if (lage.betriebsart !== 'openai-lokal') abbruch('nur die Betriebsart openai-lokal ist beschrieben');
   if (!lage.protokoll_ok) throw fehler('mw.protokoll_fehlt');
-  const a = anfrageLesen(roh);
-  if (lage.laufend >= PARALLEL_MAX) throw fehler('mw.ausgelastet');
-  if (a.ziel !== PFAD) throw fehler('mw.pfad_unbekannt');
-  if (a.methode !== 'POST') throw fehler('mw.methode_falsch');
-  if (a.werte('transfer-encoding').length) throw fehler('mw.chunked_nicht_unterstuetzt');
-  if (!a.hatLaenge) throw fehler('mw.laenge_fehlt');
-  if (a.laenge > KOERPER_MAX) throw fehler('mw.koerper_zu_gross');
-  if (a.koerper.length !== a.laenge) throw fehler('mw.anfrage_unlesbar');
+  const a = anfrageLesen(roh, lage.pfad_voll === true);
+  // Der Pfad der Zeile steht fest, sobald der Kopf gelesen ist (Abschnitt 8); jede Ablehnung danach traegt ihn.
+  const pfad = a.pfad;
+  const wirf = (code) => { const e = fehler(code); e.pfad = pfad; throw e; };
+  if (lage.laufend >= PARALLEL_MAX) wirf('mw.ausgelastet');
+  if (a.ziel !== PFAD) wirf('mw.pfad_unbekannt');
+  if (a.methode !== 'POST') wirf('mw.methode_falsch');
+  if (a.werte('transfer-encoding').length) wirf('mw.chunked_nicht_unterstuetzt');
+  if (!a.hatLaenge) wirf('mw.laenge_fehlt');
+  if (a.laenge > KOERPER_MAX) wirf('mw.koerper_zu_gross');
+  if (a.koerper.length !== a.laenge) wirf('mw.anfrage_unlesbar');
   let o;
-  try { o = jsonLesen(a.koerper); } catch { throw fehler('mw.json_ungueltig'); }
-  if (!istObj(o)) throw fehler('mw.json_ungueltig');
-  if (o.get('model') !== lage.modell) throw fehler('mw.modell_nicht_erlaubt');
+  try { o = jsonLesen(a.koerper); } catch { wirf('mw.json_ungueltig'); }
+  if (!istObj(o)) wirf('mw.json_ungueltig');
+  if (o.get('model') !== lage.modell) wirf('mw.modell_nicht_erlaubt');
   const z = zielTeile(lage.ziel);
   const accept = a.werte('accept');
   const kopf = [
@@ -234,6 +238,33 @@ function tokensAus(koerper) {
   return ein === null || aus === null ? { token_aus: null, token_ein: null } : { token_aus: aus, token_ein: ein };
 }
 
+// --- Feld pfad der Zeile (Abschnitt 8, Projektentscheid, 22.11.2026) ---
+
+const PFAD_SEGMENT = /^[A-Za-z0-9._~-]+$/;
+const SEGMENT_MAX = 32;
+const PFAD_VOLL_MAX = 512;
+// Begrenzter Pfad der Anfrage: ohne Abfrage und Fragment, hoechstens zwei Segmente, jedes Segment ausserhalb der
+// Zeichenform als "*" (nie gekuerzt, nie dekodiert). Mit voll der ganze Pfad, hoechstens 512 Zeichen.
+// M-P1: kuerzt ein zu langes Segment statt "*"; M-P2: die Abfrage bleibt stehen.
+function pfadFeld(ziel, voll) {
+  const ohne = M('M-P2') ? ziel.split('#')[0] : ziel.split(/[?#]/)[0];
+  if (!ohne.startsWith('/')) return '*';
+  if (ohne === '/') return '/';
+  if (voll && ohne.length > PFAD_VOLL_MAX) return '*';
+  const max = voll ? PFAD_VOLL_MAX : SEGMENT_MAX;
+  const teile = ohne.slice(1).split('/').map((t) => {
+    if (PFAD_SEGMENT.test(t) && t.length <= max) return t;
+    if (M('M-P1') && PFAD_SEGMENT.test(t)) return t.slice(0, max);
+    return '*';
+  });
+  return '/' + (voll ? teile : teile.slice(0, 2)).join('/');
+}
+const PFAD_FELD = /^(\*|\/|(\/(\*|[A-Za-z0-9._~-]+))+)$/;
+const pfadFeldOk = (w) => w.length <= PFAD_VOLL_MAX && PFAD_FELD.test(w);
+// Im Feld steht der Pfad nur bei einer Ablehnung und bei GET. M-P3: er steht auch bei einem weitergereichten POST.
+const pfadInZeile = (pfad, ergebnis, methode) => (pfad === null || pfad === undefined ? null
+  : (ergebnis === 'abgelehnt' || methode === 'GET' || M('M-P3') ? pfad : null));
+
 // --- Abschnitt 6: Protokollzeile ---
 
 function zeitText(ms) {
@@ -252,15 +283,18 @@ function zeileModellweg(a, vorher) {
   f('status', Number.isInteger(a.status) && a.status >= 100 && a.status <= 599);
   f('token_ein', tok(a.token_ein));
   f('token_aus', tok(a.token_aus) && (a.token_ein === null) === (a.token_aus === null));
+  // Ein GET kommt in dieser Betriebsart nie durch Stufe 4 oder 5; nur eine Ablehnung traegt einen Pfad.
+  f('pfad', a.pfad === null || (pfadFeldOk(a.pfad) && a.ergebnis === 'abgelehnt'));
+  f('host', a.host === null);
   f('vorher', HEX.test(vorher));
   const zeit = zeitText(a.zeit_ms);
-  return jcs({ aktionsname: 'modellweg.aufruf', betriebsart: a.betriebsart, ergebnis: a.ergebnis, fassung: 2, grund: a.grund, modell: a.modell, route: a.route,
-    sitzung: a.sitzung, status: a.status, token_aus: a.token_aus, token_ein: a.token_ein, vorher, zeit });
+  return jcs({ aktionsname: 'modellweg.aufruf', betriebsart: a.betriebsart, ergebnis: a.ergebnis, fassung: 2, grund: a.grund, host: a.host, modell: a.modell,
+    pfad: a.pfad, route: a.route, sitzung: a.sitzung, status: a.status, token_aus: a.token_aus, token_ein: a.token_ein, vorher, zeit });
 }
 function zeileVonHand(a, vorher) {
   const s = (v) => (v === null ? 'null' : typeof v === 'number' ? String(v) : `"${v}"`);
-  const w = { aktionsname: 'modellweg.aufruf', betriebsart: a.betriebsart, ergebnis: a.ergebnis, fassung: 2, grund: a.grund, modell: a.modell, route: a.route,
-    sitzung: a.sitzung, status: a.status, token_aus: a.token_aus, token_ein: a.token_ein, vorher, zeit: new Date(a.zeit_ms).toISOString() };
+  const w = { aktionsname: 'modellweg.aufruf', betriebsart: a.betriebsart, ergebnis: a.ergebnis, fassung: 2, grund: a.grund, host: a.host, modell: a.modell,
+    pfad: a.pfad, route: a.route, sitzung: a.sitzung, status: a.status, token_aus: a.token_aus, token_ein: a.token_ein, vorher, zeit: new Date(a.zeit_ms).toISOString() };
   return `{${ZEILE_FELDER.map((k) => `"${k}":${s(w[k])}`).join(',')}}`;
 }
 
@@ -273,13 +307,16 @@ const PFAD_ABS = (p, max) => typeof p === 'string' && Buffer.byteLength(p) <= ma
   && !p.split('/').slice(1).some((s) => s === '.' || s === '..');
 // Probelauf mit Marker-Zaehlung (Abschnitt 9, fuer jede Betriebsart): --probelauf, --marker und --marker-zaehlung alle drei oder keiner
 const MARKER_OPT = ['--probelauf', '--marker', '--marker-zaehlung'];
+// Schalter ohne Wert, fuer jede Betriebsart: --probelauf (Abschnitt 9) und --protokoll-pfad-voll (Abschnitt 8).
+const PFAD_VOLL_OPT = '--protokoll-pfad-voll';
+const SCHALTER = ['--probelauf', PFAD_VOLL_OPT];
 // argv lesen: --probelauf ist ein Schalter ohne Wert, jede andere Option hat genau einen Wert
 function argvLesen(argv, erlaubt) {
   const w = new Map();
   for (let i = 0; i < argv.length;) {
     const o = argv[i];
-    if (!(erlaubt.includes(o) || o === '--betriebsart' || MARKER_OPT.includes(o)) || w.has(o)) throw fehler('mw.aufruf');
-    if (o === '--probelauf') { w.set(o, true); i += 1; continue; }
+    if (!(erlaubt.includes(o) || o === '--betriebsart' || MARKER_OPT.includes(o) || o === PFAD_VOLL_OPT) || w.has(o)) throw fehler('mw.aufruf');
+    if (SCHALTER.includes(o)) { w.set(o, true); i += 1; continue; }
     if (i + 1 >= argv.length) throw fehler('mw.aufruf');
     w.set(o, argv[i + 1]); i += 2;
   }
@@ -312,7 +349,7 @@ function aufrufLesen(argv) {
   if (!w.has('--betriebsart')) w.set('--betriebsart', 'openai-lokal');
   if (!BETRIEBSARTEN.includes(w.get('--betriebsart'))) throw fehler('mw.betriebsart_unbekannt');
   markerPruefen(w);
-  if ([...w.keys()].filter((k) => !MARKER_OPT.includes(k)).length !== OPTIONEN.length + 1) throw fehler('mw.aufruf');
+  if ([...w.keys()].filter((k) => !MARKER_OPT.includes(k) && k !== PFAD_VOLL_OPT).length !== OPTIONEN.length + 1) throw fehler('mw.aufruf');
   if (!PFAD_ABS(w.get('--socket'), 107) || w.get('--socket-rechte') !== '0600' || !zielTeile(w.get('--ziel')) || !MODELL.test(w.get('--modell'))
     || !PFAD_ABS(w.get('--schluessel-datei'), 1024) || !KENNUNG.test(w.get('--sitzung')) || !KENNUNG.test(w.get('--route'))
     || !PFAD_ABS(w.get('--protokoll'), 1024)) throw fehler('mw.aufruf');
@@ -383,21 +420,24 @@ function baueAnfragen() {
   const faelle = [];
   for (const [name, beschreibung, lage, r, erw] of ANFRAGEN) {
     let ist;
+    let pfad = null;
     try { ist = pruefeAnfrage(lage, r); ist = { an_ziel: ist.an_ziel }; } catch (x) {
       if (!(x instanceof Fehler)) throw x;
       ist = { code: x.message };
+      pfad = x.pfad ?? null;
     }
     const soll = erw.code ? { code: erw.code } : { an_ziel: erw.an_ziel };
     if (jcs(ist) !== jcs(soll)) abbruch(`anfrage ${name}: Modell ${jcs(ist)} gegen Absicht ${jcs(soll)}`);
     if (erw.nie_im_ziel && ist.an_ziel.includes(erw.nie_im_ziel)) abbruch(`anfrage ${name}: Platzhalter geht hinaus`);
     if (ist.an_ziel && ist.an_ziel.split(`Bearer ${SCHL}`).length !== 2) abbruch(`anfrage ${name}: Schluessel nicht genau einmal`);
     const e = erw.code
-      ? { ziel_beruehrt: false, status: ABLEHNUNG[erw.code][0], koerper: fehlerKoerper(erw.code), zeile: { ergebnis: 'abgelehnt', grund: erw.code, status: ABLEHNUNG[erw.code][0] } }
+      ? { ziel_beruehrt: false, status: ABLEHNUNG[erw.code][0], koerper: fehlerKoerper(erw.code),
+        zeile: { ergebnis: 'abgelehnt', grund: erw.code, status: ABLEHNUNG[erw.code][0], pfad: pfadInZeile(pfad, 'abgelehnt', null), host: null } }
       : { ziel_beruehrt: true, an_ziel: erw.an_ziel };
     if (erw.code === 'mw.protokoll_fehlt') e.zeile = null;
     faelle.push({ name, beschreibung, lage, anfrage: r, erwartet: e });
   }
-  return { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 10 (Betriebsart openai-lokal). anfrage und an_ziel sind die Bytes (latin1) der HTTP-Anfrage. lage.schluessel ist der Inhalt der Schluesseldatei (erfundener Testwert). ziel_beruehrt false heisst: keine Verbindung zum Ziel. zeile nennt die Felder ergebnis, grund und status der Protokollzeile; null heisst keine Zeile.', faelle };
+  return { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 10 (Betriebsart openai-lokal). anfrage und an_ziel sind die Bytes (latin1) der HTTP-Anfrage. lage.schluessel ist der Inhalt der Schluesseldatei (erfundener Testwert). ziel_beruehrt false heisst: keine Verbindung zum Ziel. zeile nennt die Felder ergebnis, grund, status, pfad und host der Protokollzeile; null heisst keine Zeile.', faelle };
 }
 
 // --- Antworten ---
@@ -442,7 +482,7 @@ function baueAntworten() {
     if (ist.art === 'antwort' && ist.koerper !== ziel.teile.join('')) abbruch(`antwort ${name}: Koerper nicht unveraendert`);
     const ergErw = ist.art === 'antwort' ? 'weitergereicht' : 'leck_gesperrt';
     if (ergErw !== ergebnis) abbruch(`antwort ${name}: Ergebnis ${ergErw}`);
-    faelle.push({ name, beschreibung, ziel, erwartet: { an_harness: ist, zeile: { ergebnis, grund: ergebnis === 'leck_gesperrt' ? 'mw.leck_gesperrt' : null, status: ist.status, ...tok } } });
+    faelle.push({ name, beschreibung, ziel, erwartet: { an_harness: ist, zeile: { ergebnis, grund: ergebnis === 'leck_gesperrt' ? 'mw.leck_gesperrt' : null, status: ist.status, ...tok, pfad: pfadInZeile(pfadFeld(PFAD, false), ergebnis, 'POST'), host: null } } });
   }
   return { fassung: 1, hinweis: 'Vertrag 8, Abschnitte 7 und 11 (Betriebsart openai-lokal). Schluessel der Lage: ' + SCHL + ' (erfunden). ziel.teile sind die Teile des Koerpers in der Reihenfolge des Eintreffens (latin1). an_harness: antwort (Status, Koepfe ausser der Rahmung, Koerper), ersetzt (eigene 502) oder abgerissen (gesendet = Bytes vor dem Abriss).', schluessel: SCHL, faelle };
 }
@@ -462,6 +502,10 @@ function baueAufruf() {
     ['betriebsart_fremd', '--betriebsart mit unbekanntem Wert', [...gut, '--betriebsart', 'openai'], 'mw.betriebsart_unbekannt'],
     ['betriebsart_doppelt', '--betriebsart zweimal', [...gut, '--betriebsart', 'openai-lokal', '--betriebsart', 'openai-lokal'], 'mw.aufruf'],
     ['betriebsart_vor_form', 'nicht gebaute Betriebsart und fehlendes --ziel: die Betriebsart zaehlt zuerst; wo gebaut, mw.aufruf (erwartet_gebaut)', [...ohne('--ziel'), '--betriebsart', 'kopf-einsetzen'], 'mw.betriebsart_unbekannt'],
+    ['pfad_voll', '--protokoll-pfad-voll ist ein Schalter ohne Wert, Vorgabe aus', [...gut, '--protokoll-pfad-voll'], null],
+    ['pfad_voll_vorne', '--protokoll-pfad-voll als erste Option', ['--protokoll-pfad-voll', ...gut], null],
+    ['pfad_voll_doppelt', '--protokoll-pfad-voll zweimal', [...gut, '--protokoll-pfad-voll', '--protokoll-pfad-voll'], 'mw.aufruf'],
+    ['pfad_voll_mit_wert', '--protokoll-pfad-voll mit Wert ja: ja ist keine Option', [...gut, '--protokoll-pfad-voll', 'ja'], 'mw.aufruf'],
     ['leer', 'ohne Argument', [], 'mw.aufruf'],
     ['option_fehlt', 'ohne --schluessel-datei', ohne('--schluessel-datei'), 'mw.aufruf'],
     ['option_doppelt', '--modell zweimal', [...gut, '--modell', MOD], 'mw.aufruf'],
@@ -527,7 +571,7 @@ function baueAufruf() {
 
 function baueZeile() {
   const T0 = Date.UTC(2026, 10, 20, 15, 0, 0, 0);
-  const B = { zeit_ms: T0, betriebsart: 'openai-lokal', sitzung: 's-2', route: 'lokal-beispiel', modell: MOD, ergebnis: 'weitergereicht', grund: null, status: 200, token_ein: 9, token_aus: 3 };
+  const B = { zeit_ms: T0, betriebsart: 'openai-lokal', sitzung: 's-2', route: 'lokal-beispiel', modell: MOD, ergebnis: 'weitergereicht', grund: null, status: 200, token_ein: 9, token_aus: 3, pfad: null, host: null };
   const Z = [
     ['weitergereicht', 'Antwort 200 mit usage', B, NULL64, null],
     ['ohne_tokens', 'Antwort ohne usage', { ...B, token_ein: null, token_aus: null }, NULL64, null],
@@ -536,6 +580,11 @@ function baueZeile() {
     ['ziel_fehler', 'Ziel nicht erreichbar', { ...B, ergebnis: 'ziel_fehler', grund: 'mw.ziel_nicht_erreichbar', status: 502, token_ein: null, token_aus: null }, NULL64, null],
     ['leck', 'Leck gesperrt', { ...B, ergebnis: 'leck_gesperrt', grund: 'mw.leck_gesperrt', status: 502, token_ein: null, token_aus: null }, NULL64, null],
     ['tokens_max', 'Tokens 4294967295', { ...B, token_ein: U32, token_aus: U32 }, sha('x'), null],
+    ['pfad_bei_ablehnung', 'eigene Ablehnung: der begrenzte Pfad der Anfrage steht in der Zeile', { ...B, ergebnis: 'abgelehnt', grund: 'mw.pfad_unbekannt', status: 404, token_ein: null, token_aus: null, pfad: '/v1/models' }, NULL64, null],
+    ['pfad_stern', 'ein Segment ausserhalb der Zeichenform steht als Stern', { ...B, ergebnis: 'abgelehnt', grund: 'mw.pfad_unbekannt', status: 404, token_ein: null, token_aus: null, pfad: '/*' }, NULL64, null],
+    ['pfad_bei_weiter', 'weitergereicht mit Pfad: in dieser Betriebsart traegt nur eine Ablehnung einen Pfad', { ...B, pfad: '/v1/chat' }, NULL64, 'feld_ungueltig:pfad'],
+    ['pfad_mit_abfrage', 'ein roher Pfad mit Abfrage im Feld pfad', { ...B, ergebnis: 'abgelehnt', grund: 'mw.pfad_unbekannt', status: 404, token_ein: null, token_aus: null, pfad: '/v1/models?a=b' }, NULL64, 'feld_ungueltig:pfad'],
+    ['host_gesetzt', 'host in Betriebsart 1 ist immer null', { ...B, host: 'api.beispiel.invalid' }, NULL64, 'feld_ungueltig:host'],
     ['betriebsart_fremd', 'Betriebsart kopf-einsetzen hat in Fassung 1 keine Zeilenform', { ...B, betriebsart: 'kopf-einsetzen' }, NULL64, 'feld_ungueltig:betriebsart'],
     ['reihenfolge_betriebsart', 'falsche Betriebsart und falsche Route: die Betriebsart zuerst', { ...B, betriebsart: '', route: 'Lokal' }, NULL64, 'feld_ungueltig:betriebsart'],
     ['route_falsch', 'Route mit Grossbuchstaben', { ...B, route: 'Lokal' }, NULL64, 'feld_ungueltig:route'],
@@ -558,7 +607,9 @@ function baueZeile() {
     const e = { name, beschreibung, aufruf: a, vorher };
     if (code === null) {
       if (zeileVonHand(a, vorher) !== ist.zeile) abbruch(`zeile ${name}: jcs und Handform weichen ab`);
-      if (/content|reasoning|Hallo|Bearer|mw-testschluessel/.test(ist.zeile)) abbruch(`zeile ${name}: Inhalt in der Zeile`);
+      if (/content|reasoning|Hallo|Bearer|mw-testschluessel|[?#]/.test(ist.zeile)) abbruch(`zeile ${name}: Inhalt in der Zeile`);
+      const sollPfad = a.pfad === null ? 'null' : JSON.stringify(a.pfad);
+      if (!ist.zeile.includes(`"pfad":${sollPfad}`)) abbruch(`zeile ${name}: Feld pfad weicht ab`);
       e.erwartet = { zeile: ist.zeile, sha256: sha(ist.zeile) };
     } else e.erwartet = { code };
     zeilen.push(e);
@@ -581,7 +632,7 @@ function baueZeile() {
     { name: 'drei_aufrufe', beschreibung: 'drei Aufrufe auf einen leeren Abschnitt gateway-2026-11.jsonl', datei: 'gateway-2026-11.jsonl', anfang: '', aufrufe: drei, erwartet: kette('', drei) },
     { name: 'nach_fassung_1g', beschreibung: 'ein laufender Monat mit einer Zeile des alten Gateways (Fassung 1g) wird fortgesetzt', datei: 'gateway-2026-11.jsonl', anfang: k1.zeile + '\n', aufrufe: [B], erwartet: kette(k1.zeile + '\n', [B]) },
   ];
-  return { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 8. aufruf sind die Felder von Modellweg; erwartet.zeile die Bytes ohne LF. ketten.erwartet.pruefe ist die erwartete Ausgabe von kette pruefe (Vertrag 5).', zeilen, ketten };
+  return { fassung: 1, hinweis: 'Vertrag 8, Abschnitte 8 und 11. aufruf sind die Felder von Modellweg; erwartet.zeile die Bytes ohne LF. ketten.erwartet.pruefe ist die erwartete Ausgabe von kette pruefe (Vertrag 5).', zeilen, ketten };
 }
 
 // ===================================================================================================================
@@ -716,7 +767,7 @@ const regelPasst = (r, pfad) => r.pfad === '/*' || (r.pfad.endsWith('/*') ? pfad
 
 // eine Anfrage im Tunnel pruefen und die Bytes an das Ziel bilden (Abschnitt 12.2)
 function innenPruefen(lage, ziel, roh) {
-  const meldung = { methode: null, pfadregel: null, kopf: null };
+  const meldung = { pfad: null, methode: null, pfadregel: null, kopf: null };
   const wirf = (code) => { const e = fehler(code); e.meldung = { ...meldung }; throw e; };
   const b = Buffer.from(roh, 'latin1');
   const ende = b.indexOf('\r\n\r\n');
@@ -730,6 +781,8 @@ function innenPruefen(lage, ziel, roh) {
     if (!k) wirf('mw.anfrage_unlesbar');
     kopf.push([k[1], k[2]]);
   }
+  // Der Kopf ist gelesen: der Pfad der Zeile steht fest, vor jeder Stufe (Abschnitt 8).
+  meldung.pfad = pfadFeld(start[2], lage.pfad_voll === true);
   const werte = (n) => kopf.filter(([k]) => k.toLowerCase() === n).map(([, v]) => v);
   const te = werte('transfer-encoding'); const cl = werte('content-length');
   if (te.length > 1 || (te.length === 1 && te[0].toLowerCase() !== 'chunked') || (te.length && cl.length) || cl.length > 1
@@ -836,7 +889,7 @@ function antwortDurch2(schluesselListe, ziel) {
 }
 
 // Protokollzeile der Betriebsart 2 (Abschnitt 13)
-const ZEILE2_FELDER = ['aktionsname', 'betriebsart', 'ergebnis', 'fassung', 'grund', 'kopf', 'methode', 'pfadregel', 'route', 'sitzung', 'status', 'vorher', 'zeit', 'ziel'];
+const ZEILE2_FELDER = ['aktionsname', 'betriebsart', 'ergebnis', 'fassung', 'grund', 'host', 'kopf', 'methode', 'pfad', 'pfadregel', 'route', 'sitzung', 'status', 'vorher', 'zeit', 'ziel'];
 function zeileKopf(a, vorher) {
   const f = (feld, ok) => { if (!ok) throw fehler(`feld_ungueltig:${feld}`); };
   f('betriebsart', a.betriebsart === 'kopf-einsetzen');
@@ -850,10 +903,13 @@ function zeileKopf(a, vorher) {
   f('ergebnis', a.ergebnis in GRUENDE2);
   f('grund', GRUENDE2[a.ergebnis].includes(a.grund));
   f('status', a.status === null ? a.grund === 'mw.sni_falsch' : Number.isInteger(a.status) && a.status >= 100 && a.status <= 599);
+  f('pfad', a.pfad === null || (pfadFeldOk(a.pfad) && (a.ergebnis === 'abgelehnt' || a.methode === 'GET')));
+  // Der Host steht genau dort, wo ziel steht, und kommt aus der geprueften Zielliste.
+  f('host', (a.host === null) === (a.ziel === null) && (a.host === null || HOST_DNS.test(a.host)));
   f('vorher', HEX.test(vorher));
   const zeit = zeitText(a.zeit_ms);
-  return jcs({ aktionsname: 'modellweg.aufruf', betriebsart: a.betriebsart, ergebnis: a.ergebnis, fassung: 2, grund: a.grund, kopf: a.kopf, methode: a.methode,
-    pfadregel: a.pfadregel, route: a.route, sitzung: a.sitzung, status: a.status, vorher, zeit, ziel: a.ziel });
+  return jcs({ aktionsname: 'modellweg.aufruf', betriebsart: a.betriebsart, ergebnis: a.ergebnis, fassung: 2, grund: a.grund, host: a.host, kopf: a.kopf,
+    methode: a.methode, pfad: a.pfad, pfadregel: a.pfadregel, route: a.route, sitzung: a.sitzung, status: a.status, vorher, zeit, ziel: a.ziel });
 }
 function zeileKopfVonHand(a, vorher) {
   const s = (v) => (v === null ? 'null' : typeof v === 'number' ? String(v) : `"${v}"`);
@@ -869,7 +925,7 @@ function aufrufLesen2(argv) {
   if (!['openai-lokal', 'kopf-einsetzen'].includes(w.get('--betriebsart'))) throw fehler('mw.betriebsart_unbekannt');
   if (w.get('--betriebsart') === 'openai-lokal') return aufrufLesen(argv);
   markerPruefen(w);
-  const ohneMarker = [...w.keys()].filter((k) => !MARKER_OPT.includes(k));
+  const ohneMarker = [...w.keys()].filter((k) => !MARKER_OPT.includes(k) && k !== PFAD_VOLL_OPT);
   if (ohneMarker.length !== OPTIONEN2.length + 1 || ohneMarker.some((k) => k !== '--betriebsart' && !OPTIONEN2.includes(k))) throw fehler('mw.aufruf');
   if (!PFAD_ABS(w.get('--socket'), 107) || w.get('--socket-rechte') !== '0600' || !KENNUNG.test(w.get('--sitzung')) || !KENNUNG.test(w.get('--route'))
     || !PFAD_ABS(w.get('--protokoll'), 1024) || !PFAD_ABS(w.get('--zielliste'), 1024) || !PFAD_ABS(w.get('--ca-schluessel'), 1024) || !PFAD_ABS(w.get('--ca-zertifikat'), 1024)) throw fehler('mw.aufruf');
@@ -914,6 +970,10 @@ const ZL_TEXT = JSON.stringify(ZL_VORF, null, 1) + '\n';
 const ZIELE = zieleLesen(ZL_TEXT);
 const LAGE2 = { betriebsart: 'kopf-einsetzen', ziele: ZIELE, schluessel: { 'github-api': MARKE, 'copilot-api': MARKE, 'copilot-plan': MARKE }, laufend: 0, protokoll_ok: true };
 const zielVon = (name) => ZIELE.find((z) => z.name === name);
+// host der Zeile: der Host des zugeordneten Ziels aus der Zielliste, klein und ohne Port (Abschnitt 13.4).
+const hostVon = (name) => (name ? zielVon(name).host : null);
+// die Felder der Zeile, die eine Anfrage im Tunnel setzt: der Pfad nur bei einer Ablehnung und bei GET.
+const zeileM = (ergebnis, zielName, m) => ({ methode: m.methode, pfadregel: m.pfadregel, kopf: m.kopf, pfad: pfadInZeile(m.pfad, ergebnis, m.methode), host: hostVon(zielName) });
 const innen = (methode, pfad, host, kopf = [], koerper = '') => `${methode} ${pfad} HTTP/1.1\r\nHost: ${host}\r\n${kopf.map(([k, v]) => `${k}: ${v}\r\n`).join('')}\r\n${koerper}`;
 const COPILOT_KOEPFE = [['accept', 'application/json'], ['accept-encoding', 'gzip, br'], ['authorization', `Bearer ${PLATZ}`], ['copilot-harness-id', 'h-1'], ['copilot-integration-id', 'copilot-developer-cli'], ['editor-version', 'copilot/1.0.88'], ['openai-intent', 'conversation-agent'], ['runtime-client-version', '1'], ['user-agent', 'copilot/1.0.88'], ['x-client-machine-id', 'm-1'], ['x-copilot-client-exp-assignment-context', 'c-1'], ['x-copilot-exp-flight-names', 'f-1'], ['x-github-api-version', '2025-05-01'], ['x-initiator', 'user'], ['x-interaction-id', 'i-1']];  // Kopfnamen gemessen (decision), Werte erfunden
 
@@ -994,7 +1054,7 @@ function baueKopf() {
     if (jcs(ist) !== jcs(erw)) abbruch(`tunnel ${name}: Modell ${jcs(ist)} gegen ${jcs(erw)}`);
     const e = erw.code
       ? { ziel_beruehrt: false, antwort: ABLEHNUNG2[erw.code][0] === null ? 'tls_abbruch' : { status: ABLEHNUNG2[erw.code][0], koerper: fehlerKoerper2(erw.code) },
-        zeile: erw.code === 'mw.protokoll_fehlt' ? null : { ergebnis: erw.code === 'mw.ziel_nicht_erreichbar' ? 'ziel_fehler' : 'abgelehnt', grund: erw.code, status: ABLEHNUNG2[erw.code][0], ziel: erw.code === 'mw.sni_falsch' ? 'github-api' : zielName, methode: null, pfadregel: null, kopf: null } }
+        zeile: erw.code === 'mw.protokoll_fehlt' ? null : { ergebnis: erw.code === 'mw.ziel_nicht_erreichbar' ? 'ziel_fehler' : 'abgelehnt', grund: erw.code, status: ABLEHNUNG2[erw.code][0], ziel: erw.code === 'mw.sni_falsch' ? 'github-api' : zielName, methode: null, pfadregel: null, kopf: null, pfad: null, host: hostVon(erw.code === 'mw.sni_falsch' ? 'github-api' : zielName) } }
       : { antwort: 'HTTP/1.1 200 Connection Established\r\n\r\n', danach: 'TLS-Abschluss mit einem Blattzertifikat fuer den Host, ausgestellt von der Wegwerf-CA', ziel: erw.ziel };
     tunnel.push({ name, beschreibung, lage: { ziele: 'vorfuehrung', laufend: lage.laufend, protokoll_ok: lage.protokoll_ok, unaufgeloest: lage.unaufgeloest ?? [] }, sni, connect: roh, erwartet: e });
   }
@@ -1064,8 +1124,8 @@ function baueKopf() {
       if (!ist.an_ziel.endsWith('\r\n\r\n' + roh.slice(roh.indexOf('\r\n\r\n') + 4))) abbruch(`anfrage2 ${name}: Koerper veraendert`);
     }
     const e = ist.code
-      ? { ziel_beruehrt: false, status: ABLEHNUNG2[ist.code][0], koerper: fehlerKoerper2(ist.code), zeile: { ergebnis: 'abgelehnt', grund: ist.code, status: ABLEHNUNG2[ist.code][0], ziel: zielName, ...m } }
-      : { ziel_beruehrt: true, an_ziel: ist.an_ziel, zeile: { ergebnis: 'weitergereicht', grund: null, ziel: zielName, ...m } };
+      ? { ziel_beruehrt: false, status: ABLEHNUNG2[ist.code][0], koerper: fehlerKoerper2(ist.code), zeile: { ergebnis: 'abgelehnt', grund: ist.code, status: ABLEHNUNG2[ist.code][0], ziel: zielName, ...zeileM('abgelehnt', zielName, m) } }
+      : { ziel_beruehrt: true, an_ziel: ist.an_ziel, zeile: { ergebnis: 'weitergereicht', grund: null, ziel: zielName, ...zeileM('weitergereicht', zielName, m) } };
     anfragen.push({ name, beschreibung, ziel: zielName, anfrage: roh, erwartet: e });
   }
 
@@ -1116,7 +1176,7 @@ function baueKopf() {
     const r = innenPruefen(LAGE2, ziel, anfrage);
     if (r.an_ziel !== soll) abbruch(`ws anfrage ${name}: Bytes an das Ziel weichen ab:\n${JSON.stringify(r.an_ziel)}\ngegen\n${JSON.stringify(soll)}`);
     if (/sec-websocket-extensions/i.test(r.an_ziel) || r.an_ziel.includes(PLATZ) || r.an_ziel.split(MARKE).length !== 2 || /connection: close/i.test(r.an_ziel)) abbruch(`ws anfrage ${name}: Erweiterung, Platzhalter, Marke oder close`);
-    wsAnfragen.push({ name, beschreibung, ziel: 'copilot-plan', anfrage, erwartet: { ziel_beruehrt: true, an_ziel: soll, zeile: { ergebnis: 'weitergereicht', grund: null, ziel: 'copilot-plan', ...r.meldung } } });
+    wsAnfragen.push({ name, beschreibung, ziel: 'copilot-plan', anfrage, erwartet: { ziel_beruehrt: true, an_ziel: soll, zeile: { ergebnis: 'weitergereicht', grund: null, ziel: 'copilot-plan', ...zeileM('weitergereicht', 'copilot-plan', r.meldung) } } });
   }
 
   // Rahmen nach RFC 6455 Abschnitt 5.2, als latin1-Text; form 126 oder 127 erzwingt die lange Laengenform
@@ -1203,15 +1263,25 @@ function baueKopf() {
 
   // Zeile
   const T0 = Date.UTC(2026, 10, 20, 16, 0, 0, 0);
-  const B2 = { zeit_ms: T0, betriebsart: 'kopf-einsetzen', route: 'cloud-beispiel', sitzung: 's-1', ziel: 'github-api', methode: 'GET', pfadregel: '/copilot_internal/*', kopf: 'ersetzt', ergebnis: 'weitergereicht', grund: null, status: 200 };
+  const B2 = { zeit_ms: T0, betriebsart: 'kopf-einsetzen', route: 'cloud-beispiel', sitzung: 's-1', ziel: 'github-api', methode: 'GET', pfadregel: '/copilot_internal/*', kopf: 'ersetzt', ergebnis: 'weitergereicht', grund: null, status: 200, pfad: null, host: 'api.github.com' };
   const Z2 = [
     ['erlaubt', 'erlaubte Anfrage, Kopf ersetzt', B2, NULL64, null],
     ['ungebunden', 'Telemetrie ohne Anmeldung', { ...B2, ziel: 'copilot-telemetrie', methode: 'POST', pfadregel: '/telemetry', kopf: 'keiner' }, NULL64, null],
-    ['abgewiesen', 'Verstoss: Anmeldung an ungebundenes Ziel, unterscheidbar an kopf und grund', { ...B2, ziel: 'copilot-telemetrie', methode: 'POST', pfadregel: '/telemetry', kopf: 'abgewiesen', ergebnis: 'abgelehnt', grund: 'mw.anmeldung_an_ungebundenes_ziel', status: 403 }, NULL64, null],
+    ['abgewiesen', 'Verstoss: Anmeldung an ungebundenes Ziel, unterscheidbar an kopf und grund; die Ablehnung traegt den Pfad', { ...B2, ziel: 'copilot-telemetrie', host: 'telemetry.individual.githubcopilot.com', methode: 'POST', pfadregel: '/telemetry', kopf: 'abgewiesen', ergebnis: 'abgelehnt', grund: 'mw.anmeldung_an_ungebundenes_ziel', status: 403, pfad: '/telemetry' }, NULL64, null],
     ['pfad_verboten', 'GET /user/repos abgelehnt: pfadregel null, nie der Pfad', { ...B2, pfadregel: null, kopf: null, ergebnis: 'abgelehnt', grund: 'mw.pfad_nicht_erlaubt', status: 403 }, NULL64, null],
-    ['ziel_fremd', 'CONNECT an ein fremdes Ziel: ziel null', { ...B2, ziel: null, methode: null, pfadregel: null, kopf: null, ergebnis: 'abgelehnt', grund: 'mw.ziel_nicht_erlaubt', status: 403 }, NULL64, null],
+    ['ziel_fremd', 'CONNECT an ein fremdes Ziel: ziel und host null', { ...B2, ziel: null, host: null, methode: null, pfadregel: null, kopf: null, ergebnis: 'abgelehnt', grund: 'mw.ziel_nicht_erlaubt', status: 403 }, NULL64, null],
     ['sni', 'TLS-Abbruch: status null', { ...B2, methode: null, pfadregel: null, kopf: null, ergebnis: 'abgelehnt', grund: 'mw.sni_falsch', status: null }, NULL64, null],
     ['leck', 'Leck gesperrt', { ...B2, ergebnis: 'leck_gesperrt', grund: 'mw.leck_gesperrt', status: 502 }, sha('x'), null],
+    ['get_mit_pfad', 'GET weitergereicht: der begrenzte Pfad steht in der Zeile', { ...B2, pfad: '/copilot_internal/v2' }, NULL64, null],
+    ['post_ohne_pfad', 'POST weitergereicht: pfad null', { ...B2, ziel: 'copilot-telemetrie', host: 'telemetry.individual.githubcopilot.com', methode: 'POST', pfadregel: '/telemetry', kopf: 'keiner', pfad: null }, NULL64, null],
+    ['abgelehnt_mit_pfad', 'Ablehnung: der begrenzte Pfad steht in der Zeile, pfadregel bleibt null', { ...B2, pfadregel: null, kopf: null, ergebnis: 'abgelehnt', grund: 'mw.pfad_nicht_erlaubt', status: 403, pfad: '/a/b' }, NULL64, null],
+    ['pfad_stern', 'jedes Segment ausserhalb der Zeichenform steht als Stern', { ...B2, ergebnis: 'abgelehnt', grund: 'mw.pfad_nicht_erlaubt', pfadregel: null, kopf: null, status: 403, pfad: '/*' }, NULL64, null],
+    ['pfad_voll_drei', 'mit --protokoll-pfad-voll stehen auch drei Segmente in der Zeile', { ...B2, pfad: '/a/b/c' }, NULL64, null],
+    ['pfad_bei_post_weiter', 'POST weitergereicht mit Pfad: abgewiesen', { ...B2, methode: 'POST', pfadregel: '/copilot_internal/*', pfad: '/a/b' }, NULL64, 'feld_ungueltig:pfad'],
+    ['pfad_mit_abfrage', 'ein roher Pfad mit Abfrage im Feld pfad', { ...B2, ergebnis: 'abgelehnt', grund: 'mw.pfad_nicht_erlaubt', pfadregel: null, kopf: null, status: 403, pfad: '/a/b?x=1' }, NULL64, 'feld_ungueltig:pfad'],
+    ['host_fehlt', 'Ziel gesetzt, host null', { ...B2, host: null }, NULL64, 'feld_ungueltig:host'],
+    ['host_mit_port', 'host mit Port', { ...B2, host: 'api.github.com:443' }, NULL64, 'feld_ungueltig:host'],
+    ['host_ohne_ziel', 'host gesetzt, ziel null', { ...B2, ziel: null, pfadregel: null, methode: null, kopf: null, ergebnis: 'abgelehnt', grund: 'mw.ziel_nicht_erlaubt', status: 403 }, NULL64, 'feld_ungueltig:host'],
     ['betriebsart_falsch', 'Betriebsart openai-lokal mit der Form der Betriebsart 2', { ...B2, betriebsart: 'openai-lokal' }, NULL64, 'feld_ungueltig:betriebsart'],
     ['methode_text', 'Methode ausserhalb der Liste', { ...B2, methode: 'PROPFIND' }, NULL64, 'feld_ungueltig:methode'],
     ['pfadregel_pfad', 'ein echter Pfad mit Abfrage statt einer Regel', { ...B2, pfadregel: '/user/repos?per_page=100' }, NULL64, 'feld_ungueltig:pfadregel'],
@@ -1225,11 +1295,56 @@ function baueKopf() {
     const e = { name, beschreibung, aufruf: a, vorher };
     if (code === null) {
       if (zeileKopfVonHand(a, vorher) !== ist.zeile) abbruch(`zeile2 ${name}: Handform weicht ab`);
-      if (ist.zeile.includes(MARKE) || ist.zeile.includes(PLATZ) || /Bearer|repos|\?/.test(ist.zeile)) abbruch(`zeile2 ${name}: Inhalt in der Zeile`);
+      if (ist.zeile.includes(MARKE) || ist.zeile.includes(PLATZ) || /Bearer|repos|[?#]/.test(ist.zeile)) abbruch(`zeile2 ${name}: Inhalt in der Zeile`);
+      const soll = a.pfad === null ? 'null' : JSON.stringify(a.pfad);
+      if (!ist.zeile.includes(`"pfad":${soll}`)) abbruch(`zeile2 ${name}: Feld pfad weicht ab`);
       e.erwartet = { zeile: ist.zeile, sha256: sha(ist.zeile) };
     } else e.erwartet = { code };
     zeilen.push(e);
   }
+
+  // Faelle des Feldes pfad (Abschnitt 8): das Modell rechnet jeden nach
+  const LANG32 = 'a'.repeat(32);
+  const LANG33 = 'a'.repeat(33);
+  const VOLL512 = '/' + 'a'.repeat(PFAD_VOLL_MAX - 1);
+  const PF = [
+    ['ein_segment', 'ein Segment', '/models', false, '/models'],
+    ['zwei_segmente', 'zwei Segmente', '/models/session', false, '/models/session'],
+    ['drei_segmente', 'drei Segmente: nur zwei bleiben', '/a/b/c', false, '/a/b'],
+    ['fuenf_segmente', 'fuenf Segmente: nur zwei bleiben', '/models/session/a/b/c', false, '/models/session'],
+    ['abfrage', 'die Abfrage fehlt', '/models?per_page=100', false, '/models'],
+    ['fragment', 'das Fragment fehlt', '/models#teil', false, '/models'],
+    ['abfrage_und_fragment', 'Abfrage und Fragment fehlen', '/models?a=b#c', false, '/models'],
+    ['abfrage_mit_pfad', 'ein Pfad in der Abfrage kommt nicht in das Feld', '/a/b?x=/c/d', false, '/a/b'],
+    ['segment_32', 'Segment mit 32 Zeichen bleibt', '/' + LANG32, false, '/' + LANG32],
+    ['segment_33', 'Segment mit 33 Zeichen steht als Stern, nie gekuerzt', '/' + LANG33, false, '/*'],
+    ['segment_33_zweites', 'das zweite Segment mit 33 Zeichen steht als Stern', '/a/' + LANG33, false, '/a/*'],
+    ['prozent', 'Prozentkodierung steht als Stern, nie dekodiert', '/%2e%2e', false, '/*'],
+    ['prozent_tilde', 'Prozentkodierung im zweiten Segment', '/a/%7Eb', false, '/a/*'],
+    ['zeichen_ausserhalb', 'Doppelpunkt ausserhalb der Zeichenform', '/a:b/c', false, '/*/c'],
+    ['leerzeichen', 'Leerzeichen im zweiten Segment', '/a/b c', false, '/a/*'],
+    ['leeres_segment', 'leeres Segment', '/a//b', false, '/a/*'],
+    ['schraegstrich_ende', 'Schraegstrich am Ende', '/a/', false, '/a/*'],
+    ['stern', 'Anfragezeile mit *', '*', false, '*'],
+    ['absolute_uri', 'absolute URI', 'https://api.beispiel.invalid/a/b', false, '*'],
+    ['wurzel', 'die Wurzel', '/', false, '/'],
+    ['wurzel_mit_abfrage', 'die Wurzel mit Abfrage', '/?a=b', false, '/'],
+    ['voll_drei', 'voll: drei Segmente bleiben', '/a/b/c', true, '/a/b/c'],
+    ['voll_lang', 'voll: ein Segment ueber 32 Zeichen bleibt', '/' + LANG33, true, '/' + LANG33],
+    ['voll_zeichen', 'voll: ein Segment ausserhalb der Zeichenform steht als Stern', '/a/b c/d', true, '/a/*/d'],
+    ['voll_abfrage', 'voll: die Abfrage fehlt', '/a/b?x=y', true, '/a/b'],
+    ['voll_512', 'voll: 512 Zeichen bleiben', VOLL512, true, VOLL512],
+    ['voll_513', 'voll: 513 Zeichen machen das ganze Feld zu einem Stern', VOLL512 + 'a', true, '*'],
+  ];
+  const pfade = [];
+  for (const [name, beschreibung, ziel, voll, erwartet] of PF) {
+    const ist = pfadFeld(ziel, voll);
+    if (ist !== erwartet) abbruch(`pfad ${name}: Modell ${ist} gegen ${erwartet}`);
+    if (!pfadFeldOk(ist)) abbruch(`pfad ${name}: ${ist} ist kein Wert des Feldes`);
+    if (/[?#]/.test(ist)) abbruch(`pfad ${name}: Abfrage oder Fragment im Feld`);
+    pfade.push({ name, beschreibung, ziel, voll, erwartet });
+  }
+
   const zA = zeilen.find((z) => z.name === 'erlaubt').erwartet.zeile;
   const zV = zeilen.find((z) => z.name === 'abgewiesen').erwartet.zeile;
   if (zA === zV || !zV.includes('"kopf":"abgewiesen"')) abbruch('Verstoss nicht unterscheidbar');
@@ -1239,6 +1354,7 @@ function baueKopf() {
     '--protokoll', '/srv/beispiel/.local/state/wb/protokoll', '--zielliste', '/run/user/1000/wb/s-1/zielliste.json', '--ca-schluessel', '/run/user/1000/wb/s-1/ca.key', '--ca-zertifikat', '/run/user/1000/wb/s-1/ca.crt'];
   const AUF2 = [
     ['gueltig', 'Betriebsart 2 mit ihren acht Optionen', g2, null],
+    ['mit_pfad_voll', 'Betriebsart 2 mit dem Schalter --protokoll-pfad-voll', [...g2, '--protokoll-pfad-voll'], null],
     ['mit_ziel', '--ziel gehoert zu openai-lokal', [...g2, '--ziel', 'https://x.beispiel.invalid/v1'], 'mw.aufruf'],
     ['ohne_ca_zertifikat', 'ohne --ca-zertifikat', g2.slice(0, -2), 'mw.aufruf'],
     ['alte_option_ca', '--ca statt der zwei CA-Optionen', [...g2.slice(0, -4), '--ca', '/run/user/1000/wb/s-1/ca.pem'], 'mw.aufruf'],
@@ -1282,7 +1398,7 @@ function baueKopf() {
     'faelle/kopf-anfragen.json': { fassung: 1, hinweis: `Vertrag 8, Abschnitt 13.2. Anfragen im Tunnel (latin1). Schluessel aller gebundenen Ziele ist die Marke ${MARKE}, der Platzhalter ${PLATZ} (beide erfunden). zeile nennt die Felder der Protokollzeile.`, marke: MARKE, platzhalter: PLATZ, faelle: anfragen },
     'faelle/kopf-websocket.json': websocket,
     'faelle/kopf-antworten.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.3. ziel_antwort.laenge ist Content-Length des Ziels oder null (chunked oder bis zum Schliessen).', marke: MARKE, faelle: antworten },
-    'faelle/kopf-zeile.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.4.', zeilen },
+    'faelle/kopf-zeile.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitte 8 und 13.4. zeilen: Felder der Zeile und ihre Bytes. pfade: das Feld pfad fuer eine Anfragezeile, voll ist der Admin-Schalter --protokoll-pfad-voll.', zeilen, pfade },
     'faelle/kopf-aufruf.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.5. Gilt, wo Betriebsart 2 gebaut ist (im Durchstich nur Linux); sonst gilt in aufruf.json das Feld erwartet der Faelle betriebsart_kopf_einsetzen und betriebsart_vor_form.', codes: { 'mw.ziele_ungueltig': START_CODES['mw.ziele_ungueltig'], 'mw.ca_nicht_zugelassen': START_CODES['mw.ca_nicht_zugelassen'], 'mw.ca_ungueltig': START_CODES['mw.ca_ungueltig'] }, aufruf },
     'faelle/kopf-gegenprobe.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 14. Modell der Gegenprobe E5 als Ausseentest in der VM: funde zaehlt Treffer der Marke im Einschluss; user_repos ist das Ergebnis von GET /user/repos ueber den Weiterreicher. test rot heisst: dieser Aufbau muss den Ausseentest rot machen.', marke: MARKE, faelle: gegenprobe },
   };

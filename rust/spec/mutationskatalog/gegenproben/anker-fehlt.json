@@ -1,0 +1,22 @@
+{
+  "fassung": 1,
+  "regeln": [
+    {
+      "id": "R-FREIGABE",
+      "titel": "Gegenprobe: der Anker steht nicht im Quelltext; der Mutant ist ohne Ziel.",
+      "anforderung": "A105"
+    }
+  ],
+  "eintraege": [
+    {
+      "id": "K01",
+      "regel": "R-FREIGABE",
+      "anforderung": "A105",
+      "datei": "rust/crates/stelle/src/kern.rs",
+      "funktion": "anfragen",
+      "anker": "if !server.freigabe_entfernt {",
+      "mutant": "Gegenprobe: ein Anker, den es nicht gibt.",
+      "roter_test": "Gegenprobe, kein echter Test"
+    }
+  ]
+}

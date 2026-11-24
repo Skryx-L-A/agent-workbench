@@ -85,7 +85,10 @@ to the wake socket. The loop wakes for each readable connection and at least eve
   a dead link too); a missing entry is free, any other error is `start_ordner`; `nummer_max` holds for every number looked at. The service creates and removes nothing there.
   `lauf.ziellisten` and `lauf.laufzeit` (optional absolute paths, DI12 point 15): a number is free only when `lstat` finds NO entry of it: `<sitzungen>/s-<n>`, `<laufzeit>/s-<n>`,
   `<ziellisten>/s-<n>.zielliste.json`, `<marker_ordner>/s-<n>.suche.json`, `<marker_ordner>/s-<n>.modellweg.json` (an entry counts only with its key; any entry of any kind takes the number,
-  only `NotFound` frees it, any other error is `start_ordner`). The entries stand in one place, `eintraege_der_nummer` in `src/starten.rs`; the service creates, reads and removes nothing there.
+  only `NotFound` frees it, any other error is `start_ordner`). The entries stand in one place, `eintraege_der_nummer` in `src/starten.rs`; the service creates and reads nothing there.
+  DI12 point 15a: it removes one thing there. When a number above every number of this run is taken by its own regular target list alone, `alte_zielliste_raeumen`
+  (`src/starten.rs`) removes that list through the descriptor of `lauf.ziellisten` (`openat` with `O_DIRECTORY | O_NOFOLLOW`, own owner, `statat` without following,
+  `unlinkat`) and hands out the number. A link, a folder, a foreign file or a list next to another entry of the number stays and keeps the number taken.
   `lauf.marker_datei` and `lauf.marker_ordner` (both optional absolute paths, DI12 point 14): the service reads the marker file exactly once at its start
   (`src/markerdatei.rs`; the folder `O_NOFOLLOW`, own owner, mode 0700; the file relative to it with `O_NOFOLLOW`, own owner, mode 0600, at most 4096 bytes,
   JSON with exactly `{"liste": [...]}`; a missing file or folder is no error and gives no markers; any other failure is exit code 2 with

@@ -3,8 +3,8 @@
 
 Aufruf: <python mit jsonschema> -I rust/spec/paket/pruefen.py
 Geprüft wird: Paarung von faelle/ und erwartet/, die Form jedes Falls, der erwartete Code oder die erwarteten Zeilen
-gegen den Referenzprüfer (referenz.py) und, für Manifeste, das Schema gegen die Fälle. Ohne jsonschema bleibt das Schema
-ungeprüft und das Programm meldet es. Exit 0, wenn jeder prüfbare Punkt stimmt.
+gegen den Referenzprüfer (referenz.py) und, für Manifeste, das Schema gegen die Fälle. Ohne jsonschema endet es mit Exit 2
+und einer Zeile auf stderr; mit --ohne-schema bleibt das Schema bewusst ungeprüft und die Ausgabe meldet es. Exit 0, wenn jeder prüfbare Punkt stimmt.
 Nicht prüfbar vor dem Bau: die Rust-Umsetzung, der Windows-Installer und jeder Außentest auf Windows (README.md).
 """
 import base64
@@ -44,6 +44,10 @@ def main():
         pruefer = jsonschema.Draft202012Validator(json.loads(SCHEMA_DATEI.read_text(encoding="utf-8")))
         jsonschema.Draft202012Validator.check_schema(pruefer.schema)
     except ImportError:
+        if "--ohne-schema" not in sys.argv[1:]:
+            print("pruefen.py: das Modul jsonschema fehlt, das Schema wäre ungeprüft; Exit 2 "
+                  "(mit --ohne-schema bewusst ohne Schema prüfen)", file=sys.stderr)
+            return 2
         pruefer = None
     fehler, zahl, je_form = [], 0, {}
     faelle = {p.name for p in (HIER / "faelle").glob("*.json")}
@@ -161,7 +165,7 @@ def main():
     for c in sorted(gesehen - tabelle):
         fehler.append(f"Code {c} kommt in einem Fall vor, aber nicht in der README")
     teile = ", ".join(f"{k} {v}" for k, v in sorted(je_form.items()))
-    print(f"{zahl} Fälle ({teile}), {len(fehler)} Fehler, Schema {'geprüft' if pruefer else 'NICHT geprüft (jsonschema fehlt)'}")
+    print(f"{zahl} Fälle ({teile}), {len(fehler)} Fehler, Schema {'geprüft' if pruefer else 'NICHT geprüft (--ohne-schema, jsonschema fehlt)'}")
     print("  erst mit dem Bau prüfbar: Rust-Umsetzung, Windows-Installer und alle Außentests auf Windows (README, Abschnitt Außentests)")
     for zeile in fehler:
         print(f"  FEHLER {zeile}")

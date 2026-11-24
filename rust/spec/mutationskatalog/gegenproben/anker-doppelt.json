@@ -1,0 +1,22 @@
+{
+  "fassung": 1,
+  "regeln": [
+    {
+      "id": "R-DATEI-RECHTE",
+      "titel": "Gegenprobe: derselbe Anker steht siebenmal in der Datei; der Mutant trifft seine Stelle nicht genau einmal.",
+      "anforderung": "A25"
+    }
+  ],
+  "eintraege": [
+    {
+      "id": "K01",
+      "regel": "R-DATEI-RECHTE",
+      "anforderung": "A25",
+      "datei": "rust/crates/modellweg/src/suche.rs",
+      "funktion": "eintrag",
+      "anker": "self.nicht_lesbar();",
+      "mutant": "Gegenprobe: ein Anker ohne eindeutige Stelle.",
+      "roter_test": "Gegenprobe, kein echter Test"
+    }
+  ]
+}

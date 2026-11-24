@@ -39,7 +39,9 @@
      "grund": null,
      "status": 200,
      "token_aus": 3,
-     "token_ein": 9
+     "token_ein": 9,
+     "pfad": null,
+     "host": null
     }
    }
   },
@@ -78,7 +80,9 @@
      "grund": null,
      "status": 200,
      "token_aus": 4,
-     "token_ein": 11
+     "token_ein": 11,
+     "pfad": null,
+     "host": null
     }
    }
   },
@@ -116,7 +120,9 @@
      "grund": null,
      "status": 200,
      "token_aus": null,
-     "token_ein": null
+     "token_ein": null,
+     "pfad": null,
+     "host": null
     }
    }
   },
@@ -152,7 +158,9 @@
      "grund": null,
      "status": 403,
      "token_aus": null,
-     "token_ein": null
+     "token_ein": null,
+     "pfad": null,
+     "host": null
     }
    }
   },
@@ -188,7 +196,9 @@
      "grund": null,
      "status": 401,
      "token_aus": null,
-     "token_ein": null
+     "token_ein": null,
+     "pfad": null,
+     "host": null
     }
    }
   },
@@ -219,7 +229,9 @@
      "grund": null,
      "status": 302,
      "token_aus": null,
-     "token_ein": null
+     "token_ein": null,
+     "pfad": null,
+     "host": null
     }
    }
   },
@@ -255,7 +267,9 @@
      "grund": "mw.leck_gesperrt",
      "status": 502,
      "token_aus": null,
-     "token_ein": null
+     "token_ein": null,
+     "pfad": null,
+     "host": null
     }
    }
   },
@@ -292,7 +306,9 @@
      "grund": "mw.leck_gesperrt",
      "status": 502,
      "token_aus": null,
-     "token_ein": null
+     "token_ein": null,
+     "pfad": null,
+     "host": null
     }
    }
   },
@@ -330,7 +346,9 @@
      "grund": "mw.leck_gesperrt",
      "status": 200,
      "token_aus": null,
-     "token_ein": null
+     "token_ein": null,
+     "pfad": null,
+     "host": null
     }
    }
   },
@@ -366,7 +384,9 @@
      "grund": "mw.leck_gesperrt",
      "status": 502,
      "token_aus": null,
-     "token_ein": null
+     "token_ein": null,
+     "pfad": null,
+     "host": null
     }
    }
   },
@@ -405,7 +425,9 @@
      "grund": null,
      "status": 200,
      "token_aus": null,
-     "token_ein": null
+     "token_ein": null,
+     "pfad": null,
+     "host": null
     }
    }
   }

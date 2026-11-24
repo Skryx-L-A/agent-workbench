@@ -1,0 +1,1055 @@
+{
+  "quelle": "Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
+  "pruefe": [
+    {
+      "fall": "schreibaufruf eingeloest mit Entscheidendem: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"c2dc022a7bb1e6dae55d9891c5d8ce70230f68b786732461b5d83e2a95eebb58\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit Zusatzfeld vorschau: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"vorschau\":\"Inhalt der Notiz\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf ohne Feld digest: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit Zusatzfeld argumente: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"argumente\":{\"titel\":\"Notiz\"},\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit Zusatzfeld pfad: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"pfad\":\"/srv/beispiel/notizen\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf ohne Feld person: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf ohne Feld zeit_entscheidung: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit person als Name: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"anna\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit entscheidend als Name: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"anna\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf abgelehnt mit Entscheidendem: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"af7badac2566f07885c39d31d6202ad69a6d80a4c152b59403a168f3164cced3\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf abgelehnt ohne Entscheidenden: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":null,\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":null}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf ohne_freigabe ohne Entscheidenden: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":null,\"ergebnis\":\"ohne_freigabe\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":null}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"195096097c80efa4371cf4c8e77bd8b8f26c25d1c065c63624d670cfeaeeebaf\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf ohne_freigabe mit Entscheidendem: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"ohne_freigabe\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf abgelaufen nach Erteilung: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"abgelaufen\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"79e8189f34789983c02490c4d9aba2a99a2fbabed970819b5fe344d6532b17a8\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf abgelaufen ohne Entscheidung: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":null,\"ergebnis\":\"abgelaufen\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":null}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"c80bbb896456923aa38b515d9ba22a2c2b46c58caf149d0dbc78a10711a6a0b0\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit Entscheidendem ohne Zeit der Entscheidung: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":null}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit Zeit der Entscheidung ohne Entscheidenden: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":null,\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit ergebnis ausserhalb der Liste: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"erteilt\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit Anfragekennung ohne Praefix: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit Anfragekennung null: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":null,\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit digest in Grossbuchstaben: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit werkzeug als Pfad: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"/srv/beispiel/werkzeug\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit werkzeug in Grossbuchstaben: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"Update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"608b55c764fc0ab96d8aa34ef4a15be669d89d6f7509e6d7d49d6c16b3e3e6b9\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit zeit_anfrage ohne Millisekunden: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T13:00:01Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "sitzung.gestartet mit allen vier Werten: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "sitzung.gestartet mit Zusatzfeld vorschau: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"vorschau\":\"erste Antwort\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "sitzung.gestartet ohne Feld route: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "sitzung.gestartet mit Grund: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":\"start.route_unbekannt\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "sitzung.gestartet mit allen vier Werten null: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":null,\"kunde\":null,\"route\":null,\"sitzung\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"68d13cfee477486173829510fc066dec7e26bfde847148f84623cf42542c6bfe\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "sitzung.gestartet mit Kunde als Anzeigename: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"Beispiel GmbH\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "sitzung.abgelehnt mit Code der Ablehnung: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"start.route_unbekannt\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-fremd\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"ad5a03d7aef1e3aabbaca00f75b05f4e3df334764f1605e7a5f370dd782deacf\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "sitzung.abgelehnt mit Zusatzfeld argumente: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.abgelehnt\",\"argumente\":{\"route\":\"cloud-fremd\"},\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"start.route_unbekannt\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-fremd\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "sitzung.abgelehnt ohne Feld grund: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-fremd\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "sitzung.abgelehnt mit Grund null: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-fremd\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "sitzung.abgelehnt mit stelle-Code und vier Werten null: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.sitzung_vergeben\",\"harness\":null,\"kunde\":null,\"route\":null,\"sitzung\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"1300d544d95da2dbe2f0aec9ec5942e6b851e8ec2dfca6f7c06a47ddf894c2af\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "sitzung.abgelehnt mit ergebnis gestartet: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":\"start.route_unbekannt\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-fremd\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "sitzung.abgelehnt mit Zusatzfeld aufrufer: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.abgelehnt\",\"aufrufer\":\"agent\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"start.route_unbekannt\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-fremd\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "vorgang.abgelehnt mit Anfragekennung: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_eingeloest\",\"vorgang\":\"mcp.einloesen\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"8837758ef9dba99c822a9b2ddf53b7bd98e5b7eb5e90218fcd152a7f2c04a125\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "vorgang.abgelehnt mit Zusatzfeld argumente: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"argumente\":{\"id\":7},\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_eingeloest\",\"vorgang\":\"mcp.einloesen\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "vorgang.abgelehnt ohne Feld aufrufer: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_eingeloest\",\"vorgang\":\"mcp.einloesen\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "vorgang.abgelehnt mit Zusatzfeld vorschau: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_eingeloest\",\"vorgang\":\"mcp.einloesen\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"vorschau\":\"Inhalt\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "vorgang.abgelehnt mit Anfragekennung null: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_eingeloest\",\"vorgang\":\"mcp.einloesen\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"21959fa1bc0a6f1ed0590c552e06c2fa118c8857a7480aff338b33b24f1cfb7e\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "vorgang.abgelehnt mit unbekanntem Aufrufer: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"unbekannt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_eingeloest\",\"vorgang\":\"mcp.einloesen\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"d40a61a151021d4bcb3b99d295de6604d6f90d756afe21288c1ede6c68c30cec\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "vorgang.abgelehnt mit Aufrufer als Name: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"anna\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_eingeloest\",\"vorgang\":\"mcp.einloesen\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "vorgang.abgelehnt mit Vorgang sitzung.starten: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_eingeloest\",\"vorgang\":\"sitzung.starten\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "vorgang.abgelehnt mit Vorgang ablauf.pruefen: gueltig",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":null,\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_eingeloest\",\"vorgang\":\"ablauf.pruefen\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"9c869bddee56f2ba36d0656029f317793fa74ca76c59bf020a08d147721d8bba\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "vorgang.abgelehnt mit Grund null: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":null,\"vorgang\":\"mcp.einloesen\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "Kette aus allen vier Zeilenarten der Stelle: gruen",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_eingeloest\",\"vorgang\":\"mcp.einloesen\",\"vorher\":\"e2bbd239065276c21213d2400d47069efe2a5503f1d325227ed95fa6ce8070e1\",\"zeit\":\"2026-11-20T13:00:01.000Z\"}\n{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"4d605e6bd9bd2a2a44404987912795a707d127f84c3ed87d6de50624d54c486a\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:02.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"start.route_unbekannt\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-fremd\",\"sitzung\":\"s-1\",\"vorher\":\"23c3cb03db83b4ee9643321485395bdceb97ab74324f8a07e43aa917964a0355\",\"zeit\":\"2026-11-20T13:00:03.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"3167d294a522cd36281241a5a07a25ba3b495a0345f5c671a58e51e215277e6d\",\"ok\":true,\"zeilen\":4}\n"
+      }
+    },
+    {
+      "fall": "sitzung.gestartet ohne fassung in einer stelle-Datei: fassung fehlt",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"fassung_fehlt\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "sitzung.gestartet ohne fassung in einer gateway-Datei (1g): Form falsch",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "schreibaufruf mit fassung 3: Form falsch",
+      "dateien": [
+        {
+          "name": "stelle-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":3,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@stelle-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"stelle-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    }
+  ],
+  "anhaengen": [
+    {
+      "fall": "allgemeines Anhaengen: mcp.schreibaufruf nur in der geschlossenen Form",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "zeile",
+          "quelle": "stelle",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "mcp.schreibaufruf",
+            "anfrage": "mf-1795179540000-1",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "entscheidend": "ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "ergebnis": "eingeloest",
+            "person": "ps_11111111111111111111111111111111",
+            "server": "tickets",
+            "sitzung": "s-1",
+            "werkzeug": "update",
+            "zeit_anfrage": "2026-11-20T12:59:53.000Z",
+            "zeit_entscheidung": "2026-11-20T12:59:57.000Z",
+            "vorschau": "Inhalt der Notiz"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "stelle",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "mcp.schreibaufruf",
+            "anfrage": "mf-1795179540000-1",
+            "entscheidend": "ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "ergebnis": "eingeloest",
+            "person": "ps_11111111111111111111111111111111",
+            "server": "tickets",
+            "sitzung": "s-1",
+            "werkzeug": "update",
+            "zeit_anfrage": "2026-11-20T12:59:53.000Z",
+            "zeit_entscheidung": "2026-11-20T12:59:57.000Z"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "stelle",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "mcp.schreibaufruf",
+            "anfrage": "mf-1795179540000-1",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "entscheidend": "ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "ergebnis": "eingeloest",
+            "person": "ps_11111111111111111111111111111111",
+            "server": "tickets",
+            "sitzung": "s-1",
+            "werkzeug": "update",
+            "zeit_anfrage": "2026-11-20T12:59:53.000Z",
+            "zeit_entscheidung": "2026-11-20T12:59:57.000Z"
+          },
+          "erwartet": {
+            "sha256": "c43acc5663513af8857cd769e811ba855057c8e8caa07ff795c593ba855dfea6"
+          }
+        }
+      ],
+      "ende": {
+        "stelle.anker.jsonl": "",
+        "stelle-2026-11.jsonl": "{\"aktionsname\":\"mcp.schreibaufruf\",\"anfrage\":\"mf-1795179540000-1\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"entscheidend\":\"ps_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ergebnis\":\"eingeloest\",\"fassung\":2,\"person\":\"ps_11111111111111111111111111111111\",\"server\":\"tickets\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"werkzeug\":\"update\",\"zeit\":\"2026-11-15T12:00:00.000Z\",\"zeit_anfrage\":\"2026-11-20T12:59:53.000Z\",\"zeit_entscheidung\":\"2026-11-20T12:59:57.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "stelle": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"c43acc5663513af8857cd769e811ba855057c8e8caa07ff795c593ba855dfea6\",\"ok\":true,\"zeilen\":1}\n"
+        }
+      }
+    },
+    {
+      "fall": "allgemeines Anhaengen: die drei Zeilenarten der Sitzung und des Vorgangs",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "zeile",
+          "quelle": "stelle",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "vorgang.abgelehnt",
+            "anfrage": "mf-1795179540000-1",
+            "aufrufer": "hub",
+            "ergebnis": "abgelehnt",
+            "grund": "stelle.bereits_eingeloest",
+            "vorgang": "mcp.einloesen",
+            "argumente": {
+              "id": 7
+            }
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "stelle",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "sitzung.gestartet",
+            "ergebnis": "gestartet",
+            "grund": "start.route_unbekannt",
+            "harness": "claude",
+            "kunde": "k-beispiel",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "fehler": "feld_ungueltig:zeile"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "stelle",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "sitzung.gestartet",
+            "ergebnis": "gestartet",
+            "grund": null,
+            "harness": "claude",
+            "kunde": "k-beispiel",
+            "route": "cloud-beispiel",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "sha256": "0af59eb6f474202ff3a8ca020dcaf177abbc9bb03414382586850104a22f15c4"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "stelle",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "sitzung.abgelehnt",
+            "ergebnis": "abgelehnt",
+            "grund": "start.route_unbekannt",
+            "harness": "claude",
+            "kunde": "k-beispiel",
+            "route": "cloud-fremd",
+            "sitzung": "s-1"
+          },
+          "erwartet": {
+            "sha256": "60e3e32c0026dc8c49a31cb7193414045b387506638f1f16398f980367e85358"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "stelle",
+          "zeit_ms": 1794744000000,
+          "objekt": {
+            "aktionsname": "vorgang.abgelehnt",
+            "anfrage": "mf-1795179540000-1",
+            "aufrufer": "hub",
+            "ergebnis": "abgelehnt",
+            "grund": "stelle.bereits_eingeloest",
+            "vorgang": "mcp.einloesen"
+          },
+          "erwartet": {
+            "sha256": "b3ce503f369e9c7f33125a6670a7671a53f3cd060b9f156c67e0e6e8d795e618"
+          }
+        }
+      ],
+      "ende": {
+        "stelle.anker.jsonl": "",
+        "stelle-2026-11.jsonl": "{\"aktionsname\":\"sitzung.gestartet\",\"ergebnis\":\"gestartet\",\"fassung\":2,\"grund\":null,\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"sitzung.abgelehnt\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"start.route_unbekannt\",\"harness\":\"claude\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-fremd\",\"sitzung\":\"s-1\",\"vorher\":\"0af59eb6f474202ff3a8ca020dcaf177abbc9bb03414382586850104a22f15c4\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"vorgang.abgelehnt\",\"anfrage\":\"mf-1795179540000-1\",\"aufrufer\":\"hub\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"stelle.bereits_eingeloest\",\"vorgang\":\"mcp.einloesen\",\"vorher\":\"60e3e32c0026dc8c49a31cb7193414045b387506638f1f16398f980367e85358\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "stelle": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"b3ce503f369e9c7f33125a6670a7671a53f3cd060b9f156c67e0e6e8d795e618\",\"ok\":true,\"zeilen\":3}\n"
+        }
+      }
+    }
+  ]
+}

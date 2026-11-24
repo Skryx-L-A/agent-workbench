@@ -992,6 +992,53 @@
           "quelle": "brain",
           "zeit_ms": 1794744000000,
           "objekt": {
+            "grund": "keine_verbindung",
+            "aktionsname": "suche.rueckfall",
+            "sitzung": "s-1",
+            "ergebnis": "lexikalisch",
+            "route": "cloud-beispiel"
+          },
+          "erwartet": {
+            "sha256": "a98bd61e8f59950809a10b7f9435b10297341fd131c6e87eefd04d276c84f9ae"
+          }
+        },
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1796083200000,
+          "objekt": {
+            "grund": "frist",
+            "aktionsname": "suche.rueckfall",
+            "sitzung": "s-1",
+            "ergebnis": "lexikalisch",
+            "route": "cloud-beispiel"
+          },
+          "erwartet": {
+            "sha256": "b80120eabf707fcb1f21efad28b69d261312d3de36c5a2c9e8e2e052f2be28f6"
+          }
+        }
+      ],
+      "ende": {
+        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n{\"aktionsname\":\"suche.rueckfall\",\"ergebnis\":\"lexikalisch\",\"fassung\":2,\"grund\":\"keine_verbindung\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n",
+        "brain.anker.jsonl": "{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744000,\"fassung\":2,\"letzte\":\"a98bd61e8f59950809a10b7f9435b10297341fd131c6e87eefd04d276c84f9ae\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n",
+        "brain-2026-12.jsonl": "{\"aktionsname\":\"suche.rueckfall\",\"ergebnis\":\"lexikalisch\",\"fassung\":2,\"grund\":\"frist\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"vorher\":\"a98bd61e8f59950809a10b7f9435b10297341fd131c6e87eefd04d276c84f9ae\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n"
+      },
+      "pruefe_quelle": {
+        "brain": {
+          "exit": 0,
+          "stdout": "{\"bruch\":null,\"letzte\":\"b80120eabf707fcb1f21efad28b69d261312d3de36c5a2c9e8e2e052f2be28f6\",\"ok\":true,\"zeilen\":4}\n"
+        }
+      }
+    },
+    {
+      "fall": "allgemeine Zeile: Art ausserhalb des Registers",
+      "anfang": {},
+      "aufrufe": [
+        {
+          "art": "zeile",
+          "quelle": "brain",
+          "zeit_ms": 1794744000000,
+          "objekt": {
             "aktionsname": "test.zeile",
             "ergebnis": "ok",
             "menge": 3,
@@ -1004,39 +1051,28 @@
             }
           },
           "erwartet": {
-            "sha256": "bbd03406e44866b508cf3370d132811597ce54372768a28202ead405c920cfca"
+            "fehler": "feld_ungueltig:zeile"
           }
         },
         {
           "art": "zeile",
           "quelle": "brain",
-          "zeit_ms": 1796083200000,
+          "zeit_ms": 1794744000000,
           "objekt": {
-            "aktionsname": "test.zeile",
+            "aktionsname": "mcp.schreibaufrufe",
             "ergebnis": "ok",
-            "menge": 4,
-            "rest": {
-              "b": 1,
-              "a": [
-                1,
-                "x"
-              ]
-            }
+            "vorschau": "Inhalt"
           },
           "erwartet": {
-            "sha256": "37acc17ee92334c8767bbb2a5f80874f34764a7e3b7cea020a27c64bfcb86195"
+            "fehler": "feld_ungueltig:zeile"
           }
         }
       ],
-      "ende": {
-        "brain-2026-11.jsonl": "{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":1,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n{\"aktionsname\":\"ausgabe.gesperrt\",\"anzahl\":2,\"ergebnis\":\"gesperrt\",\"fassung\":2,\"grund\":\"kundendaten-an-cloud\",\"klasse\":\"kundendaten\",\"kunde\":\"k-beispiel\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-0001\",\"vorher\":\"91fa625f75ab74ecedf102965ba2945146c86c41e505396361ec102e74620280\",\"zeit\":\"2026-11-15T12:00:01.000Z\"}\n{\"aktionsname\":\"test.zeile\",\"ergebnis\":\"ok\",\"fassung\":2,\"menge\":3,\"rest\":{\"a\":[1,\"x\"],\"b\":1},\"vorher\":\"24c0b77028e0b9bb1c7c6acced345b56c610f93369d4933240ee2a3e41e90daf\",\"zeit\":\"2026-11-15T12:00:00.000Z\"}\n",
-        "brain.anker.jsonl": "{\"abschnitt\":\"brain-2026-11.jsonl\",\"bis\":1794744000,\"fassung\":2,\"letzte\":\"bbd03406e44866b508cf3370d132811597ce54372768a28202ead405c920cfca\",\"monat\":\"2026-11\",\"von\":1794744000,\"vorher_erste\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n",
-        "brain-2026-12.jsonl": "{\"aktionsname\":\"test.zeile\",\"ergebnis\":\"ok\",\"fassung\":2,\"menge\":4,\"rest\":{\"a\":[1,\"x\"],\"b\":1},\"vorher\":\"bbd03406e44866b508cf3370d132811597ce54372768a28202ead405c920cfca\",\"zeit\":\"2026-12-01T00:00:00.000Z\"}\n"
-      },
+      "ende": {},
       "pruefe_quelle": {
         "brain": {
           "exit": 0,
-          "stdout": "{\"bruch\":null,\"letzte\":\"37acc17ee92334c8767bbb2a5f80874f34764a7e3b7cea020a27c64bfcb86195\",\"ok\":true,\"zeilen\":4}\n"
+          "stdout": "{\"bruch\":null,\"letzte\":null,\"ok\":true,\"zeilen\":0}\n"
         }
       }
     },
@@ -1150,16 +1186,11 @@
           "quelle": "brain",
           "zeit_ms": 1794744000000,
           "objekt": {
-            "aktionsname": "test.zeile",
-            "ergebnis": "ok",
-            "menge": 3,
-            "rest": {
-              "b": 1,
-              "a": [
-                1,
-                "x"
-              ]
-            },
+            "grund": "keine_verbindung",
+            "aktionsname": "suche.rueckfall",
+            "sitzung": "s-1",
+            "ergebnis": "lexikalisch",
+            "route": "cloud-beispiel",
             "fassung": 2
           },
           "erwartet": {
@@ -1171,16 +1202,11 @@
           "quelle": "brain",
           "zeit_ms": 1794744000000,
           "objekt": {
-            "aktionsname": "test.zeile",
-            "ergebnis": "ok",
-            "menge": 3,
-            "rest": {
-              "b": 1,
-              "a": [
-                1,
-                "x"
-              ]
-            },
+            "grund": "keine_verbindung",
+            "aktionsname": "suche.rueckfall",
+            "sitzung": "s-1",
+            "ergebnis": "lexikalisch",
+            "route": "cloud-beispiel",
             "vorher": "0000000000000000000000000000000000000000000000000000000000000000"
           },
           "erwartet": {
@@ -1192,16 +1218,11 @@
           "quelle": "brain",
           "zeit_ms": 1794744000000,
           "objekt": {
-            "aktionsname": "test.zeile",
-            "ergebnis": "ok",
-            "menge": 3,
-            "rest": {
-              "b": 1,
-              "a": [
-                1,
-                "x"
-              ]
-            },
+            "grund": "keine_verbindung",
+            "aktionsname": "suche.rueckfall",
+            "sitzung": "s-1",
+            "ergebnis": "lexikalisch",
+            "route": "cloud-beispiel",
             "zeit": "2026-11-15T12:00:00.000Z"
           },
           "erwartet": {
@@ -1213,16 +1234,11 @@
           "quelle": "brain",
           "zeit_ms": 1794744000000,
           "objekt": {
-            "aktionsname": "test.zeile",
-            "ergebnis": "ok",
-            "menge": 3,
-            "rest": {
-              "b": 1,
-              "a": [
-                1,
-                "x"
-              ]
-            },
+            "grund": "keine_verbindung",
+            "aktionsname": "suche.rueckfall",
+            "sitzung": "s-1",
+            "ergebnis": "lexikalisch",
+            "route": "cloud-beispiel",
             "vorher": 1,
             "fassung": 3
           },
@@ -1248,16 +1264,11 @@
           "quelle": "audit",
           "zeit_ms": 1794744000000,
           "objekt": {
-            "aktionsname": "test.zeile",
-            "ergebnis": "ok",
-            "menge": 3,
-            "rest": {
-              "b": 1,
-              "a": [
-                1,
-                "x"
-              ]
-            }
+            "grund": "keine_verbindung",
+            "aktionsname": "suche.rueckfall",
+            "sitzung": "s-1",
+            "ergebnis": "lexikalisch",
+            "route": "cloud-beispiel"
           },
           "erwartet": {
             "fehler": "feld_ungueltig:quelle"
@@ -1268,16 +1279,11 @@
           "quelle": "brain",
           "zeit_ms": -1,
           "objekt": {
-            "aktionsname": "test.zeile",
-            "ergebnis": "ok",
-            "menge": 3,
-            "rest": {
-              "b": 1,
-              "a": [
-                1,
-                "x"
-              ]
-            }
+            "grund": "keine_verbindung",
+            "aktionsname": "suche.rueckfall",
+            "sitzung": "s-1",
+            "ergebnis": "lexikalisch",
+            "route": "cloud-beispiel"
           },
           "erwartet": {
             "fehler": "zeit_ungueltig"
@@ -1288,16 +1294,11 @@
           "quelle": "audit",
           "zeit_ms": -1,
           "objekt": {
-            "aktionsname": "test.zeile",
-            "ergebnis": "ok",
-            "menge": 3,
-            "rest": {
-              "b": 1,
-              "a": [
-                1,
-                "x"
-              ]
-            }
+            "grund": "keine_verbindung",
+            "aktionsname": "suche.rueckfall",
+            "sitzung": "s-1",
+            "ergebnis": "lexikalisch",
+            "route": "cloud-beispiel"
           },
           "erwartet": {
             "fehler": "feld_ungueltig:quelle"

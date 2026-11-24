@@ -93,6 +93,8 @@ pub fn antwort(code: &str) -> Vec<u8> {
 /// The fields of the line that a request has reached so far.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Meldung {
+    /// The limited path of the request (section 8), as soon as the head is read.
+    pub pfad: Option<String>,
     /// The method, if it is one of the seven known ones.
     pub methode: Option<&'static str>,
     /// The path of the rule that fitted.
@@ -183,9 +185,17 @@ pub struct Geprueft {
 ///
 /// # Errors
 /// The code of the first failing stage with its fields.
-pub fn pruefe(ziel: &Ziel, k: &InnenKopf) -> Result<Geprueft, (&'static str, Meldung)> {
-    let mut meldung = Meldung::default();
-    let rahmen = rahmen(k).ok_or(("mw.anfrage_unlesbar", Meldung::default()))?;
+pub fn pruefe(
+    ziel: &Ziel,
+    k: &InnenKopf,
+    pfad_voll: bool,
+) -> Result<Geprueft, (&'static str, Meldung)> {
+    // The path of the line is known with the head, before any stage, and stays limited (section 8).
+    let mut meldung = Meldung {
+        pfad: Some(crate::pfad::pfad_feld(&k.ziel, pfad_voll)),
+        ..Meldung::default()
+    };
+    let rahmen = rahmen(k).ok_or_else(|| ("mw.anfrage_unlesbar", meldung.clone()))?;
     let mut host = k.werte("host");
     let host_gut = match (host.next(), host.next()) {
         (Some(h), None) => h == ziel.host || h == format!("{}:{}", ziel.host, ziel.port),
@@ -385,17 +395,17 @@ mod tests {
     #[test]
     fn the_host_may_carry_the_port() {
         let z = ziel(true, true);
-        assert!(pruefe(&z, &kopf("")).is_ok());
+        assert!(pruefe(&z, &kopf(""), false).is_ok());
         let mit_port = zerlege(b"GET /a HTTP/1.1\r\nHost: a.b:443").expect("head");
-        assert!(pruefe(&z, &mit_port).is_ok());
+        assert!(pruefe(&z, &mit_port, false).is_ok());
         let falsch = zerlege(b"GET /a HTTP/1.1\r\nHost: a.b:80").expect("head");
         assert_eq!(
-            pruefe(&z, &falsch).map_err(|(c, _)| c),
+            pruefe(&z, &falsch, false).map_err(|(c, _)| c),
             Err("mw.host_falsch")
         );
         let doppelt = zerlege(b"GET /a HTTP/1.1\r\nHost: a.b\r\nHost: a.b").expect("head");
         assert_eq!(
-            pruefe(&z, &doppelt).map_err(|(c, _)| c),
+            pruefe(&z, &doppelt, false).map_err(|(c, _)| c),
             Err("mw.host_falsch")
         );
     }
@@ -408,14 +418,15 @@ mod tests {
             "\r\nConnection: keep-alive, Upgrade",
         ] {
             assert_eq!(
-                pruefe(&z, &kopf(felder)).map_err(|(c, _)| c),
+                pruefe(&z, &kopf(felder), false).map_err(|(c, _)| c),
                 Err("mw.upgrade_abgelehnt"),
                 "{felder}"
             );
         }
-        assert!(pruefe(&z, &kopf("\r\nConnection: keep-alive")).is_ok());
+        assert!(pruefe(&z, &kopf("\r\nConnection: keep-alive"), false).is_ok());
         assert!(
-            pruefe(&ziel(true, true), &kopf("\r\nUpgrade: websocket")).is_ok_and(|g| g.umstellen)
+            pruefe(&ziel(true, true), &kopf("\r\nUpgrade: websocket"), false)
+                .is_ok_and(|g| g.umstellen)
         );
     }
 

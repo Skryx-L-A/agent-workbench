@@ -1,5 +1,5 @@
 {
- "beschreibung": "nur die Zielliste von s-2 liegt: der erste Start bekommt s-1, der zweite ueberspringt s-2 und bekommt s-3",
+ "beschreibung": "nur die eigene regulaere Zielliste von s-2 liegt: der erste Start bekommt s-1, der zweite raeumt die Liste von s-2 (Punkt 15a) und bekommt s-2",
  "datensatz": "A",
  "name": "di12_zielliste_luecke",
  "ordner_pruefen": true,
@@ -92,7 +92,7 @@
    "bis": {
     "nachricht": {
      "art": "Gestartet",
-     "sitzung": "s-3"
+     "sitzung": "s-2"
     }
    },
    "frist": 30,
@@ -103,7 +103,7 @@
    "betrachter": "c1",
    "bis": {
     "liste": {
-     "id": "s-3",
+     "id": "s-2",
      "zustand": "laeuft"
     }
    },
@@ -116,7 +116,7 @@
    "ereignis": {
     "an": true,
     "art": "Abo",
-    "sitzung": "s-3",
+    "sitzung": "s-2",
     "spalten": 120,
     "zeilen": 14
    }
@@ -125,7 +125,7 @@
    "art": "Warte",
    "betrachter": "c1",
    "bis": {
-    "nr": 3,
+    "nr": 2,
     "text": "BEREIT"
    },
    "frist": 30,

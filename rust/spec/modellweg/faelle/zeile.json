@@ -1,6 +1,6 @@
 {
  "fassung": 1,
- "hinweis": "Vertrag 8, Abschnitt 8. aufruf sind die Felder von Modellweg; erwartet.zeile die Bytes ohne LF. ketten.erwartet.pruefe ist die erwartete Ausgabe von kette pruefe (Vertrag 5).",
+ "hinweis": "Vertrag 8, Abschnitte 8 und 11. aufruf sind die Felder von Modellweg; erwartet.zeile die Bytes ohne LF. ketten.erwartet.pruefe ist die erwartete Ausgabe von kette pruefe (Vertrag 5).",
  "zeilen": [
   {
    "name": "weitergereicht",
@@ -15,12 +15,14 @@
     "grund": null,
     "status": 200,
     "token_ein": 9,
-    "token_aus": 3
+    "token_aus": 3,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":3,\"token_ein\":9,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
-    "sha256": "4a0b29cbbd4a370dc047d3c60d2e3e0a40cc8170dd429d70ece4dc55ee3b6cd5"
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":3,\"token_ein\":9,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "dc155b386fb36c68643b720c4246c89d044613b3c2375ab2aad751026dbcd079"
    }
   },
   {
@@ -36,12 +38,14 @@
     "grund": null,
     "status": 200,
     "token_ein": null,
-    "token_aus": null
+    "token_aus": null,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
-    "sha256": "1f475f6cca729a98221d0c8570f20a8b0499cd8e1f66aec178be3ef11cf90e94"
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "a85ea4d7e38f0b9a868da0db99f10eed3df0a9a56b8c43224597c2a86fb9f1fa"
    }
   },
   {
@@ -57,12 +61,14 @@
     "grund": null,
     "status": 403,
     "token_ein": null,
-    "token_aus": null
+    "token_aus": null,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":403,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
-    "sha256": "f55f64867724f9455ec53603837c754675c2df3544732387dd599f054f14f49c"
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":403,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "af8fe612242a85391a42a253630ada9ac6456d4f625acdc5610f20284734d15f"
    }
   },
   {
@@ -78,12 +84,14 @@
     "grund": "mw.modell_nicht_erlaubt",
     "status": 403,
     "token_ein": null,
-    "token_aus": null
+    "token_aus": null,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.modell_nicht_erlaubt\",\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":403,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
-    "sha256": "4c5876d4815f950bfb8932447650a55824d045a02c891146c7591fa2fd9631a3"
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.modell_nicht_erlaubt\",\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":403,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "88ac8a1351d62d9ebe19d8ed93e8f803878196ad968f7253ef5cf78bbabac5b4"
    }
   },
   {
@@ -99,12 +107,14 @@
     "grund": "mw.ziel_nicht_erreichbar",
     "status": 502,
     "token_ein": null,
-    "token_aus": null
+    "token_aus": null,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"ziel_fehler\",\"fassung\":2,\"grund\":\"mw.ziel_nicht_erreichbar\",\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":502,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
-    "sha256": "a6d58a7c48198c12b302f6e576ab5a8f0c4a9eda5a78f7e825198bac0ffb6a2f"
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"ziel_fehler\",\"fassung\":2,\"grund\":\"mw.ziel_nicht_erreichbar\",\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":502,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "5aae27319a1402e1ba0aaae59be7939b0261250e09365e02bb28f00f81345b13"
    }
   },
   {
@@ -120,12 +130,14 @@
     "grund": "mw.leck_gesperrt",
     "status": 502,
     "token_ein": null,
-    "token_aus": null
+    "token_aus": null,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"leck_gesperrt\",\"fassung\":2,\"grund\":\"mw.leck_gesperrt\",\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":502,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
-    "sha256": "c2b02dde5c54d68f5d01aba9d24e052e360b71e5930a40740a5ad7d98495f688"
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"leck_gesperrt\",\"fassung\":2,\"grund\":\"mw.leck_gesperrt\",\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":502,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "a1a9c3bcbcf54391df0e64de9176e896e636ecf654c68a121f243b275238f033"
    }
   },
   {
@@ -141,12 +153,126 @@
     "grund": null,
     "status": 200,
     "token_ein": 4294967295,
-    "token_aus": 4294967295
+    "token_aus": 4294967295,
+    "pfad": null,
+    "host": null
    },
    "vorher": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":4294967295,\"token_ein\":4294967295,\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
-    "sha256": "9d4321bab983a8bd75031c35556d2c4ad427f37e2d81f9d318e76807b5ec3804"
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":4294967295,\"token_ein\":4294967295,\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "fef9fb5dd8cfb1c982fcf4f0687bc93036ca35faaa77cc0b1e32e54b81807f1f"
+   }
+  },
+  {
+   "name": "pfad_bei_ablehnung",
+   "beschreibung": "eigene Ablehnung: der begrenzte Pfad der Anfrage steht in der Zeile",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "abgelehnt",
+    "grund": "mw.pfad_unbekannt",
+    "status": 404,
+    "token_ein": null,
+    "token_aus": null,
+    "pfad": "/v1/models",
+    "host": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.pfad_unbekannt\",\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":\"/v1/models\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":404,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "c4e7c4501609fe0442b90ad5e471ab254f701665b7787ab3f375f73d9f87899a"
+   }
+  },
+  {
+   "name": "pfad_stern",
+   "beschreibung": "ein Segment ausserhalb der Zeichenform steht als Stern",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "abgelehnt",
+    "grund": "mw.pfad_unbekannt",
+    "status": 404,
+    "token_ein": null,
+    "token_aus": null,
+    "pfad": "/*",
+    "host": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.pfad_unbekannt\",\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":\"/*\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":404,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}",
+    "sha256": "fa782f9336dbc586741dac2016cf2847e3204e031f4778ec4c5d9cca96729053"
+   }
+  },
+  {
+   "name": "pfad_bei_weiter",
+   "beschreibung": "weitergereicht mit Pfad: in dieser Betriebsart traegt nur eine Ablehnung einen Pfad",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": 3,
+    "pfad": "/v1/chat",
+    "host": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:pfad"
+   }
+  },
+  {
+   "name": "pfad_mit_abfrage",
+   "beschreibung": "ein roher Pfad mit Abfrage im Feld pfad",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "abgelehnt",
+    "grund": "mw.pfad_unbekannt",
+    "status": 404,
+    "token_ein": null,
+    "token_aus": null,
+    "pfad": "/v1/models?a=b",
+    "host": null
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:pfad"
+   }
+  },
+  {
+   "name": "host_gesetzt",
+   "beschreibung": "host in Betriebsart 1 ist immer null",
+   "aufruf": {
+    "zeit_ms": 1795186800000,
+    "betriebsart": "openai-lokal",
+    "sitzung": "s-2",
+    "route": "lokal-beispiel",
+    "modell": "lokal-beispiel/modell-a",
+    "ergebnis": "weitergereicht",
+    "grund": null,
+    "status": 200,
+    "token_ein": 9,
+    "token_aus": 3,
+    "pfad": null,
+    "host": "api.beispiel.invalid"
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:host"
    }
   },
   {
@@ -162,7 +288,9 @@
     "grund": null,
     "status": 200,
     "token_ein": 9,
-    "token_aus": 3
+    "token_aus": 3,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -182,7 +310,9 @@
     "grund": null,
     "status": 200,
     "token_ein": 9,
-    "token_aus": 3
+    "token_aus": 3,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -202,7 +332,9 @@
     "grund": null,
     "status": 200,
     "token_ein": 9,
-    "token_aus": 3
+    "token_aus": 3,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -222,7 +354,9 @@
     "grund": null,
     "status": 200,
     "token_ein": 9,
-    "token_aus": 3
+    "token_aus": 3,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -242,7 +376,9 @@
     "grund": null,
     "status": 200,
     "token_ein": 9,
-    "token_aus": 3
+    "token_aus": 3,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -262,7 +398,9 @@
     "grund": null,
     "status": 200,
     "token_ein": 9,
-    "token_aus": 3
+    "token_aus": 3,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -282,7 +420,9 @@
     "grund": "mw.ausgelastet",
     "status": 200,
     "token_ein": 9,
-    "token_aus": 3
+    "token_aus": 3,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -302,7 +442,9 @@
     "grund": "mw.ziel_frist",
     "status": 504,
     "token_ein": null,
-    "token_aus": null
+    "token_aus": null,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -322,7 +464,9 @@
     "grund": null,
     "status": 600,
     "token_ein": 9,
-    "token_aus": 3
+    "token_aus": 3,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -342,7 +486,9 @@
     "grund": "mw.pfad_unbekannt",
     "status": 404,
     "token_ein": 9,
-    "token_aus": 3
+    "token_aus": 3,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -362,7 +508,9 @@
     "grund": null,
     "status": 200,
     "token_ein": 9,
-    "token_aus": null
+    "token_aus": null,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -382,7 +530,9 @@
     "grund": null,
     "status": 200,
     "token_ein": 9,
-    "token_aus": 3
+    "token_aus": 3,
+    "pfad": null,
+    "host": null
    },
    "vorher": "000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -402,7 +552,9 @@
     "grund": null,
     "status": 200,
     "token_ein": 9,
-    "token_aus": 3
+    "token_aus": 3,
+    "pfad": null,
+    "host": null
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
@@ -427,7 +579,9 @@
      "grund": null,
      "status": 200,
      "token_ein": 9,
-     "token_aus": 3
+     "token_aus": 3,
+     "pfad": null,
+     "host": null
     },
     {
      "zeit_ms": 1795186801000,
@@ -439,7 +593,9 @@
      "grund": "mw.modell_nicht_erlaubt",
      "status": 403,
      "token_ein": null,
-     "token_aus": null
+     "token_aus": null,
+     "pfad": null,
+     "host": null
     },
     {
      "zeit_ms": 1795186802000,
@@ -451,19 +607,21 @@
      "grund": null,
      "status": 403,
      "token_ein": null,
-     "token_aus": null
+     "token_aus": null,
+     "pfad": null,
+     "host": null
     }
    ],
    "erwartet": {
     "rueckgaben": [
-     "4a0b29cbbd4a370dc047d3c60d2e3e0a40cc8170dd429d70ece4dc55ee3b6cd5",
-     "b8637ade71fd5c4050fd3e62c72e907b797c2be530caec785ef1f09bcddde08c",
-     "5020ae9adaf9e5d8ac838dded7417fd8459ca569ee4590d17f854457fea4a46d"
+     "dc155b386fb36c68643b720c4246c89d044613b3c2375ab2aad751026dbcd079",
+     "40ca417ee88957c650f0f6e6593764d88890743eac8f7ff2a52bd4850f31cd9b",
+     "c89146ffde5723f14c430b3b685035ee6fe92102915681825e641ba30e833eb8"
     ],
-    "inhalt": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":3,\"token_ein\":9,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}\n{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.modell_nicht_erlaubt\",\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":403,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"4a0b29cbbd4a370dc047d3c60d2e3e0a40cc8170dd429d70ece4dc55ee3b6cd5\",\"zeit\":\"2026-11-20T15:00:01.000Z\"}\n{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":403,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"b8637ade71fd5c4050fd3e62c72e907b797c2be530caec785ef1f09bcddde08c\",\"zeit\":\"2026-11-20T15:00:02.000Z\"}\n",
+    "inhalt": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":3,\"token_ein\":9,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}\n{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.modell_nicht_erlaubt\",\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":403,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"dc155b386fb36c68643b720c4246c89d044613b3c2375ab2aad751026dbcd079\",\"zeit\":\"2026-11-20T15:00:01.000Z\"}\n{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":403,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"40ca417ee88957c650f0f6e6593764d88890743eac8f7ff2a52bd4850f31cd9b\",\"zeit\":\"2026-11-20T15:00:02.000Z\"}\n",
     "pruefe": {
      "bruch": null,
-     "letzte": "5020ae9adaf9e5d8ac838dded7417fd8459ca569ee4590d17f854457fea4a46d",
+     "letzte": "c89146ffde5723f14c430b3b685035ee6fe92102915681825e641ba30e833eb8",
      "ok": true,
      "zeilen": 3
     }
@@ -485,17 +643,19 @@
      "grund": null,
      "status": 200,
      "token_ein": 9,
-     "token_aus": 3
+     "token_aus": 3,
+     "pfad": null,
+     "host": null
     }
    ],
    "erwartet": {
     "rueckgaben": [
-     "0f33d9715ffcfcc8fc1a041a50bd04fc30169749dd60b5161a3eced14fe9d6ae"
+     "c23e41d3d7045fcc161ff6b8f438717cd7ddc1e8e05d5b5cc548f3338fe8691a"
     ],
-    "inhalt": "{\"aktionsname\":\"sitzung.angemeldet\",\"ergebnis\":\"ok\",\"grund\":\"passkey\",\"person\":\"anna\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-31T23:59:58.500Z\"}\n{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":3,\"token_ein\":9,\"vorher\":\"cc93a534ce4b330dabe7c47b77753a593b0d9f0bac3686c12791e7be64b3b8d7\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}\n",
+    "inhalt": "{\"aktionsname\":\"sitzung.angemeldet\",\"ergebnis\":\"ok\",\"grund\":\"passkey\",\"person\":\"anna\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-31T23:59:58.500Z\"}\n{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"openai-lokal\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":null,\"modell\":\"lokal-beispiel/modell-a\",\"pfad\":null,\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":3,\"token_ein\":9,\"vorher\":\"cc93a534ce4b330dabe7c47b77753a593b0d9f0bac3686c12791e7be64b3b8d7\",\"zeit\":\"2026-11-20T15:00:00.000Z\"}\n",
     "pruefe": {
      "bruch": null,
-     "letzte": "0f33d9715ffcfcc8fc1a041a50bd04fc30169749dd60b5161a3eced14fe9d6ae",
+     "letzte": "c23e41d3d7045fcc161ff6b8f438717cd7ddc1e8e05d5b5cc548f3338fe8691a",
      "ok": true,
      "zeilen": 2
     }

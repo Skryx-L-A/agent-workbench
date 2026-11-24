@@ -1,5 +1,5 @@
 {
- "beschreibung": "nummer_max 2 mit den Ziellisten von s-1 und s-2: Ablehnung nummern_erschoepft",
+ "beschreibung": "nummer_max 2 mit den Ziellisten von s-1 (als ordner) und s-2 (toter Verweis): beide belegen weiter, Punkt 15a raeumt nur eine eigene regulaere Datei: Ablehnung nummern_erschoepft",
  "datensatz": "A",
  "name": "di12_zielliste_nummer_max",
  "ordner_pruefen": true,
@@ -81,7 +81,7 @@
  "ziellisten": {
   "vorher": [
    {
-    "art": "datei",
+    "art": "ordner",
     "name": "s-1.zielliste.json"
    },
    {

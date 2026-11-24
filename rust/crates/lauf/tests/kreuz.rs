@@ -141,6 +141,11 @@ mod kreuz {
 
     impl Dienst {
         fn starten(w: &Welt, programm: &Path) -> Dienst {
+            Dienst::starten_mit(w, programm, &json!({}))
+        }
+
+        /// Like [`Dienst::starten`], with `extra` (an object) merged into the key `lauf` and `pruefmodus` set.
+        fn starten_mit(w: &Welt, programm: &Path, extra: &Value) -> Dienst {
             let ordner = w.wurzel.join("o");
             std::fs::create_dir_all(&ordner).expect("folder");
             std::fs::set_permissions(&ordner, std::fs::Permissions::from_mode(0o700))
@@ -161,6 +166,12 @@ mod kreuz {
                     "einstellungen": w.einstellungen.to_string_lossy(),
                 }
             });
+            let mut start = start;
+            if let (Some(lauf), Some(dazu)) = (start["lauf"].as_object_mut(), extra.as_object()) {
+                for (k, v) in dazu {
+                    lauf.insert(k.clone(), v.clone());
+                }
+            }
             let cfg = dienst::pruefen(&start).expect("start file of the service");
             let optionen = dienst::Optionen {
                 huelle: Some(std::env::current_exe().expect("own program")),
@@ -213,6 +224,31 @@ mod kreuz {
                 return id.to_owned();
             }
             assert!(Instant::now() < ende, "no Gestartet: {:?}", b.ablehnungen);
+            b.lesen(Duration::from_millis(20));
+        }
+    }
+
+    /// `Starten` with the cloud start of the world (`copilot` on `cloud-beispiel`): `Ok` with the identifier of `Gestartet`, `Err` with
+    /// the reason of the refusal.
+    fn starten_cloud(b: &mut Betrachter, w: &Welt) -> Result<String, String> {
+        let arbeit = w.wurzel.join("home/beispiel/projekt");
+        let (n, a) = (b.nachrichten.len(), b.ablehnungen.len());
+        b.ereignis(&json!({"art": "Starten", "start": {
+            "fassung": 1, "harness": "copilot", "modell": "claude-sonnet-5.5", "route": "cloud-beispiel",
+            "kunde": "k-beispiel", "arbeitsordner": arbeit.to_string_lossy()}}));
+        let ende = Instant::now() + Duration::from_secs(10);
+        loop {
+            if let Some(id) = b.nachrichten[n..]
+                .iter()
+                .find(|m| m["art"] == "Gestartet")
+                .and_then(|m| m["sitzung"].as_str())
+            {
+                return Ok(id.to_owned());
+            }
+            if let Some(grund) = b.ablehnungen.get(a) {
+                return Err(grund.clone());
+            }
+            assert!(Instant::now() < ende, "neither Gestartet nor a refusal");
             b.lesen(Duration::from_millis(20));
         }
     }
@@ -300,6 +336,74 @@ mod kreuz {
         welt_leer(&w);
     }
 
+    /// The names in `<zustand>/sitzungen` that end in `.zielliste.json`, sorted.
+    fn ziellisten(w: &Welt) -> Vec<String> {
+        let mut namen: Vec<String> = std::fs::read_dir(w.zustand.join("sitzungen"))
+            .expect("folder of the target lists")
+            .filter_map(Result::ok)
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n.ends_with(".zielliste.json"))
+            .collect();
+        namen.sort();
+        namen
+    }
+
+    /// The most numbers one run of the service hands out (`dienst::NUMMER_MAX`, the number is one byte in the raster frame).
+    const NUMMERN: usize = dienst::NUMMER_MAX;
+
+    /// Case 4 (2026-11-23): cloud sessions without the runner. The service runs with the keys of the package
+    /// (`lauf.sitzungen`, `lauf.ziellisten`, `lauf.laufzeit`); a session ends at once (the harness ends with 0). The first run of the
+    /// service hands out all 255 numbers, one after the other, each session ended before the next starts. Then the service starts again
+    /// (its count begins at `s-1`) and start number 256 must be given `s-1`: nobody but the runner removes a target list, so before the
+    /// fix all 255 lists still lie and the service refuses with `nummern_erschoepft`.
+    pub fn zweihundertsechsundfuenfzig_cloud_sitzungen_ohne_laeufer() {
+        let w = Welt::neu();
+        let _ = w.cloud();
+        // the harness ends at once with 0, quietly (the bwrap of the world writes a log line for every argument)
+        datei(&w.bin.join("bwrap"), b"#!/bin/sh\nexit 0\n", 0o755);
+        let extra = json!({
+            "sitzungen": w.sitzungen.to_string_lossy(),
+            "ziellisten": w.zustand.join("sitzungen").to_string_lossy(),
+            "laufzeit": w.laufzeit.to_string_lossy(),
+        });
+        let programm = w.bin.join("werkbank-lauf");
+        let d = Dienst::starten_mit(&w, &programm, &extra);
+        let mut b = Betrachter::neu(&d.socket);
+        for k in 1..=NUMMERN {
+            let id =
+                starten_cloud(&mut b, &w).unwrap_or_else(|g| panic!("start {k}: refused with {g}"));
+            assert_eq!(id, format!("s-{k}"), "start {k}");
+            let e = beendet(&mut b, &id);
+            assert_eq!(e["code"], json!(0), "start {k}: {e}");
+            // the messages of an ended session are not needed again; the list of the service grows with every session
+            b.nachrichten.clear();
+            b.zustaende.clear();
+        }
+        drop(b);
+        drop(d);
+        welt_leer(&w);
+        // what the runner reads after the sessions: one target list for each cloud session of this run
+        let vorher = ziellisten(&w);
+        println!("target lists after the first run: {}", vorher.len());
+        assert_eq!(vorher.len(), NUMMERN, "one list per session: {vorher:?}");
+        // the service starts again; the count of numbers begins at s-1
+        let d = Dienst::starten_mit(&w, &programm, &extra);
+        let mut b = Betrachter::neu(&d.socket);
+        let ergebnis = starten_cloud(&mut b, &w);
+        println!("start {}: {ergebnis:?}", NUMMERN + 1);
+        assert_eq!(
+            ergebnis,
+            Ok("s-1".to_owned()),
+            "start {} after the restart",
+            NUMMERN + 1
+        );
+        let e = beendet(&mut b, "s-1");
+        assert_eq!(e["code"], json!(0), "{e}");
+        drop(b);
+        drop(d);
+        welt_leer(&w);
+    }
+
     /// Counter probe in the test: a `lauf` that does not know `--meldung` (its step 1 refuses the call, as step 1 of the version before
     /// `--meldung` refuses three arguments) does not start through the service. Case 1 fails, and the session ends with 64 and no
     /// reason (no connection, the code is the one of the child).
@@ -328,7 +432,7 @@ fn main() {
     if args.first().is_some_and(|a| a == "--exec") {
         std::process::exit(dienst::programm(&args));
     }
-    let faelle: [(&str, fn()); 3] = [
+    let faelle: [(&str, fn()); 4] = [
         ("der_start_gelingt", kreuz::der_start_gelingt),
         (
             "ein_fehler_vor_dem_starter_kommt_als_code_und_grund_an",
@@ -337,6 +441,10 @@ fn main() {
         (
             "gegenprobe_ein_lauf_ohne_meldung_startet_nicht",
             kreuz::gegenprobe_ein_lauf_ohne_meldung_startet_nicht,
+        ),
+        (
+            "zweihundertsechsundfuenfzig_cloud_sitzungen_ohne_laeufer",
+            kreuz::zweihundertsechsundfuenfzig_cloud_sitzungen_ohne_laeufer,
         ),
     ];
     let filter: Vec<String> = args

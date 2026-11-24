@@ -11,8 +11,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -22,8 +24,8 @@
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"kosten\":8100000,\"kunde\":\"k-beispiel\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
-    "sha256": "a4538524d06147eda265853e3119f30dbb6c05c6f21fda9e65971e5077b2848d"
+    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"grund\":null,\"kosten\":8100000,\"kunde\":\"k-beispiel\",\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
+    "sha256": "a7c1b6732cd0aa98a44e3cef609170f84233a92622f108b5a92f1459be9ddd0f"
    }
   },
   {
@@ -35,8 +37,10 @@
     "route": "lokal-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-lokal",
-    "modell": "qwen3:8b",
+    "modell": "lokal-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 0,
@@ -46,8 +50,8 @@
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-lokal\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"kosten\":0,\"kunde\":\"k-beispiel\",\"modell\":\"qwen3:8b\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
-    "sha256": "631adaa44d3ce2de6dc6826d4ea891310be67fa27104f2530241897a1879e298"
+    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-lokal\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"grund\":null,\"kosten\":0,\"kunde\":\"k-beispiel\",\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
+    "sha256": "1221085af7dd4ba94f5d67787e8f3faf081ab0ae5ca874e69eb9998df8cacd8b"
    }
   },
   {
@@ -59,8 +63,10 @@
     "route": "cloud-beispiel",
     "kunde": null,
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -70,21 +76,23 @@
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"kosten\":8100000,\"kunde\":null,\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
-    "sha256": "834b9926db88d18c8cbbb617d2c43bcfe3f030257eec694e5d4d32fb8b39520d"
+    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"grund\":null,\"kosten\":8100000,\"kunde\":null,\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
+    "sha256": "6d9991beb9f1b0bcd3b2735b8a025b52d0080b112c391741e0d847609b791112"
    }
   },
   {
    "name": "ohne_angabe",
-   "beschreibung": "Antwort ohne lesbares usage: Tokens und Kosten null",
+   "beschreibung": "Antwort ohne lesbares usage: Tokens und Kosten null, Status 200, Grund null",
    "aufruf": {
     "zeit_ms": 1795183200000,
     "sitzung": "s-1",
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ohne_angabe",
+    "grund": null,
+    "status": 200,
     "token_ein": null,
     "token_aus": null,
     "preis_ein": 3000,
@@ -94,21 +102,23 @@
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ohne_angabe\",\"fassung\":2,\"kosten\":null,\"kunde\":\"k-beispiel\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
-    "sha256": "4bed303e1705a48b9219c918c9b3256dac50e374b2ec390c6c2efd22a6361296"
+    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ohne_angabe\",\"fassung\":2,\"grund\":null,\"kosten\":null,\"kunde\":\"k-beispiel\",\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
+    "sha256": "49deccd44978e3687f3e8b4ba22cd554ef3b592e93e929c1f3c50c7527b433c3"
    }
   },
   {
    "name": "anbieter_fehler",
-   "beschreibung": "Anbieter antwortet mit einem Status ausser 2xx",
+   "beschreibung": "Anbieter antwortet mit einem Status ausser 2xx: Status 503, Grund gw.anbieter_fehler",
    "aufruf": {
     "zeit_ms": 1795183200000,
     "sitzung": "s-1",
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "anbieter_fehler",
+    "grund": "gw.anbieter_fehler",
+    "status": 503,
     "token_ein": null,
     "token_aus": null,
     "preis_ein": 3000,
@@ -118,8 +128,86 @@
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"anbieter_fehler\",\"fassung\":2,\"kosten\":null,\"kunde\":\"k-beispiel\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
-    "sha256": "7b0b0d20c9acee58b5f092ac4091cca34407b1eb8993967d7e07306595b6b956"
+    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"anbieter_fehler\",\"fassung\":2,\"grund\":\"gw.anbieter_fehler\",\"kosten\":null,\"kunde\":\"k-beispiel\",\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":503,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
+    "sha256": "91ba23d2b128621903dea59888398be25c167cfe15b1097843742243a0bf6978"
+   }
+  },
+  {
+   "name": "halter_lehnt_ab",
+   "beschreibung": "Der Halter lehnt ab: Status 502, Grund gw.halter",
+   "aufruf": {
+    "zeit_ms": 1795183200000,
+    "sitzung": "s-1",
+    "route": "cloud-beispiel",
+    "kunde": "k-beispiel",
+    "anbieter": "anb-cloud-a",
+    "modell": "cloud-beispiel/modell-a",
+    "ergebnis": "anbieter_fehler",
+    "grund": "gw.halter",
+    "status": 502,
+    "token_ein": null,
+    "token_aus": null,
+    "preis_ein": 3000,
+    "preis_aus": 15000,
+    "waehrung": "EUR",
+    "einheit": 9
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"anbieter_fehler\",\"fassung\":2,\"grund\":\"gw.halter\",\"kosten\":null,\"kunde\":\"k-beispiel\",\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":502,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
+    "sha256": "4b5988d1ebcea6eca644131b6d5b9459c992d8448376802d911502a17cf14d8e"
+   }
+  },
+  {
+   "name": "frist_ohne_status",
+   "beschreibung": "Die Frist verstreicht, ohne dass ein Status kam: status null, Grund gw.frist",
+   "aufruf": {
+    "zeit_ms": 1795183200000,
+    "sitzung": "s-1",
+    "route": "cloud-beispiel",
+    "kunde": "k-beispiel",
+    "anbieter": "anb-cloud-a",
+    "modell": "cloud-beispiel/modell-a",
+    "ergebnis": "anbieter_fehler",
+    "grund": "gw.frist",
+    "status": null,
+    "token_ein": null,
+    "token_aus": null,
+    "preis_ein": 3000,
+    "preis_aus": 15000,
+    "waehrung": "EUR",
+    "einheit": 9
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"anbieter_fehler\",\"fassung\":2,\"grund\":\"gw.frist\",\"kosten\":null,\"kunde\":\"k-beispiel\",\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":null,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
+    "sha256": "1c0de69e923b21a4a4543add8d874bb2c83b069564b9359d8dd960cf4fca834d"
+   }
+  },
+  {
+   "name": "strom_abgebrochen",
+   "beschreibung": "Abgebrochener Strom mit Status 200 ohne lesbare Tokens: ohne_angabe, Grund null",
+   "aufruf": {
+    "zeit_ms": 1795183200000,
+    "sitzung": "s-1",
+    "route": "cloud-beispiel",
+    "kunde": "k-beispiel",
+    "anbieter": "anb-cloud-a",
+    "modell": "cloud-beispiel/modell-a",
+    "ergebnis": "ohne_angabe",
+    "grund": null,
+    "status": 200,
+    "token_ein": null,
+    "token_aus": null,
+    "preis_ein": 3000,
+    "preis_aus": 15000,
+    "waehrung": "EUR",
+    "einheit": 9
+   },
+   "vorher": "a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa",
+   "erwartet": {
+    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ohne_angabe\",\"fassung\":2,\"grund\":null,\"kosten\":null,\"kunde\":\"k-beispiel\",\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
+    "sha256": "be176a0b7caf3946cd1a5d4de3de07cea9c1bac821acb3b003f738b1c507d186"
    }
   },
   {
@@ -131,8 +219,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 4294967295,
     "token_aus": 4294967295,
     "preis_ein": 1000000,
@@ -142,8 +232,8 @@
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"kosten\":8589934590000000,\"kunde\":\"k-beispiel\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"token_aus\":4294967295,\"token_ein\":4294967295,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
-    "sha256": "14afacc8368151f1306c2be187bacef49f5adb94deff431e838957e4afb13c2a"
+    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"grund\":null,\"kosten\":8589934590000000,\"kunde\":\"k-beispiel\",\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"token_aus\":4294967295,\"token_ein\":4294967295,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
+    "sha256": "3469e316bd7f8729119e89d86bd75f633b77fc869fb3b8fc604d1cc464cbb1ca"
    }
   },
   {
@@ -155,8 +245,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -166,8 +258,8 @@
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"kosten\":8100000,\"kunde\":\"k-beispiel\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"9999-12-31T23:59:59.999Z\"}",
-    "sha256": "fdb7fe1371788fc550a0e378ee4b0ee8706d25df5e4adb13dba1ef6b4d209826"
+    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"grund\":null,\"kosten\":8100000,\"kunde\":\"k-beispiel\",\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"9999-12-31T23:59:59.999Z\"}",
+    "sha256": "f641f5b0570abe44e61b2d64e72989525c4c5c895a9928034952f651f4469bb2"
    }
   },
   {
@@ -179,8 +271,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -190,8 +284,8 @@
    },
    "vorher": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"kosten\":8100000,\"kunde\":\"k-beispiel\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
-    "sha256": "bd02f5f0bf03f5a1b42036785143fee2097a72531d7ad83d3c4a32fee3127203"
+    "zeile": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"grund\":null,\"kosten\":8100000,\"kunde\":\"k-beispiel\",\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}",
+    "sha256": "c4eccdb8a594ec7f392ebaba0aeefcf57411ce5feea7d59e9e3dbb0560295e96"
    }
   },
   {
@@ -203,8 +297,10 @@
     "route": "Cloud",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -226,8 +322,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -249,8 +347,10 @@
     "route": "cloud-beispiel",
     "kunde": "Kunde A",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -272,8 +372,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "https://x",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -297,6 +399,8 @@
     "anbieter": "anb-cloud-a",
     "modell": "a\"b",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -318,8 +422,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "gesperrt",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -333,6 +439,181 @@
    }
   },
   {
+   "name": "grund_bei_ok",
+   "beschreibung": "ok mit einem Grund",
+   "aufruf": {
+    "zeit_ms": 1795183200000,
+    "sitzung": "s-1",
+    "route": "cloud-beispiel",
+    "kunde": "k-beispiel",
+    "anbieter": "anb-cloud-a",
+    "modell": "cloud-beispiel/modell-a",
+    "ergebnis": "ok",
+    "grund": "gw.halter",
+    "status": 200,
+    "token_ein": 1200,
+    "token_aus": 300,
+    "preis_ein": 3000,
+    "preis_aus": 15000,
+    "waehrung": "EUR",
+    "einheit": 9
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:grund"
+   }
+  },
+  {
+   "name": "grund_fehlt",
+   "beschreibung": "anbieter_fehler ohne Grund",
+   "aufruf": {
+    "zeit_ms": 1795183200000,
+    "sitzung": "s-1",
+    "route": "cloud-beispiel",
+    "kunde": "k-beispiel",
+    "anbieter": "anb-cloud-a",
+    "modell": "cloud-beispiel/modell-a",
+    "ergebnis": "anbieter_fehler",
+    "grund": null,
+    "status": 503,
+    "token_ein": null,
+    "token_aus": null,
+    "preis_ein": 3000,
+    "preis_aus": 15000,
+    "waehrung": "EUR",
+    "einheit": 9
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:grund"
+   }
+  },
+  {
+   "name": "grund_fremd",
+   "beschreibung": "anbieter_fehler mit einem Grund ausserhalb der Liste",
+   "aufruf": {
+    "zeit_ms": 1795183200000,
+    "sitzung": "s-1",
+    "route": "cloud-beispiel",
+    "kunde": "k-beispiel",
+    "anbieter": "anb-cloud-a",
+    "modell": "cloud-beispiel/modell-a",
+    "ergebnis": "anbieter_fehler",
+    "grund": "gw.schein_fehlt",
+    "status": 503,
+    "token_ein": null,
+    "token_aus": null,
+    "preis_ein": 3000,
+    "preis_aus": 15000,
+    "waehrung": "EUR",
+    "einheit": 9
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:grund"
+   }
+  },
+  {
+   "name": "status_null_bei_ok",
+   "beschreibung": "ok ohne Status: nur anbieter_fehler darf status null tragen",
+   "aufruf": {
+    "zeit_ms": 1795183200000,
+    "sitzung": "s-1",
+    "route": "cloud-beispiel",
+    "kunde": "k-beispiel",
+    "anbieter": "anb-cloud-a",
+    "modell": "cloud-beispiel/modell-a",
+    "ergebnis": "ok",
+    "grund": null,
+    "status": null,
+    "token_ein": 1200,
+    "token_aus": 300,
+    "preis_ein": 3000,
+    "preis_aus": 15000,
+    "waehrung": "EUR",
+    "einheit": 9
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:status"
+   }
+  },
+  {
+   "name": "status_zu_klein",
+   "beschreibung": "Status 99",
+   "aufruf": {
+    "zeit_ms": 1795183200000,
+    "sitzung": "s-1",
+    "route": "cloud-beispiel",
+    "kunde": "k-beispiel",
+    "anbieter": "anb-cloud-a",
+    "modell": "cloud-beispiel/modell-a",
+    "ergebnis": "ok",
+    "grund": null,
+    "status": 99,
+    "token_ein": 1200,
+    "token_aus": 300,
+    "preis_ein": 3000,
+    "preis_aus": 15000,
+    "waehrung": "EUR",
+    "einheit": 9
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:status"
+   }
+  },
+  {
+   "name": "status_zu_gross",
+   "beschreibung": "Status 600",
+   "aufruf": {
+    "zeit_ms": 1795183200000,
+    "sitzung": "s-1",
+    "route": "cloud-beispiel",
+    "kunde": "k-beispiel",
+    "anbieter": "anb-cloud-a",
+    "modell": "cloud-beispiel/modell-a",
+    "ergebnis": "ok",
+    "grund": null,
+    "status": 600,
+    "token_ein": 1200,
+    "token_aus": 300,
+    "preis_ein": 3000,
+    "preis_aus": 15000,
+    "waehrung": "EUR",
+    "einheit": 9
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:status"
+   }
+  },
+  {
+   "name": "grund_vor_status",
+   "beschreibung": "falscher Grund und falscher Status: der Grund zuerst",
+   "aufruf": {
+    "zeit_ms": 1795183200000,
+    "sitzung": "s-1",
+    "route": "cloud-beispiel",
+    "kunde": "k-beispiel",
+    "anbieter": "anb-cloud-a",
+    "modell": "cloud-beispiel/modell-a",
+    "ergebnis": "ok",
+    "grund": "gw.halter",
+    "status": 600,
+    "token_ein": 1200,
+    "token_aus": 300,
+    "preis_ein": 3000,
+    "preis_aus": 15000,
+    "waehrung": "EUR",
+    "einheit": 9
+   },
+   "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
+   "erwartet": {
+    "code": "feld_ungueltig:grund"
+   }
+  },
+  {
    "name": "ok_ohne_tokens",
    "beschreibung": "ok ohne Tokens",
    "aufruf": {
@@ -341,8 +622,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": null,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -364,8 +647,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ohne_angabe",
+    "grund": null,
+    "status": 200,
     "token_ein": null,
     "token_aus": 3,
     "preis_ein": 3000,
@@ -387,8 +672,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 4294967296,
     "preis_ein": 3000,
@@ -410,8 +697,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 1000001,
@@ -433,8 +722,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -456,8 +747,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -479,8 +772,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -502,8 +797,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -525,8 +822,10 @@
     "route": "cloud-beispiel",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -548,8 +847,10 @@
     "route": "",
     "kunde": "k-beispiel",
     "anbieter": "anb-cloud-a",
-    "modell": "claude-sonnet-5-5",
+    "modell": "cloud-beispiel/modell-a",
     "ergebnis": "ok",
+    "grund": null,
+    "status": 200,
     "token_ein": 1200,
     "token_aus": 300,
     "preis_ein": 3000,
@@ -576,8 +877,10 @@
      "route": "cloud-beispiel",
      "kunde": "k-beispiel",
      "anbieter": "anb-cloud-a",
-     "modell": "claude-sonnet-5-5",
+     "modell": "cloud-beispiel/modell-a",
      "ergebnis": "ok",
+     "grund": null,
+     "status": 200,
      "token_ein": 1200,
      "token_aus": 300,
      "preis_ein": 3000,
@@ -591,10 +894,12 @@
      "route": "cloud-beispiel",
      "kunde": "k-beispiel",
      "anbieter": "anb-cloud-a",
-     "modell": "claude-sonnet-5-5",
-     "ergebnis": "ok",
-     "token_ein": 50,
-     "token_aus": 10,
+     "modell": "cloud-beispiel/modell-a",
+     "ergebnis": "anbieter_fehler",
+     "grund": "gw.anbieter_fehler",
+     "status": 429,
+     "token_ein": null,
+     "token_aus": null,
      "preis_ein": 3000,
      "preis_aus": 15000,
      "waehrung": "EUR",
@@ -606,8 +911,10 @@
      "route": "lokal-beispiel",
      "kunde": "k-beispiel",
      "anbieter": "anb-lokal",
-     "modell": "qwen3:8b",
+     "modell": "lokal-beispiel/modell-a",
      "ergebnis": "ok",
+     "grund": null,
+     "status": 200,
      "token_ein": 1200,
      "token_aus": 300,
      "preis_ein": 0,
@@ -618,14 +925,14 @@
    ],
    "erwartet": {
     "rueckgaben": [
-     "a4538524d06147eda265853e3119f30dbb6c05c6f21fda9e65971e5077b2848d",
-     "85d0066ce7b67022a06516f0ad5399fb6c9891eba1164d7960a7239fae31637b",
-     "8fe90f7861250506592f5768acc6f96c68e4906323952fe2227e14c28e8e5df4"
+     "a7c1b6732cd0aa98a44e3cef609170f84233a92622f108b5a92f1459be9ddd0f",
+     "4212ae8f98da301874cbf074ec147fe03d887793da1aec13c64bbbbcf07e9680",
+     "aad69c52af5e068179280a6e28237f1130a1872b901c70c1bfac3f3da8132f92"
     ],
-    "inhalt": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"kosten\":8100000,\"kunde\":\"k-beispiel\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}\n{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"kosten\":300000,\"kunde\":\"k-beispiel\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"token_aus\":10,\"token_ein\":50,\"vorher\":\"a4538524d06147eda265853e3119f30dbb6c05c6f21fda9e65971e5077b2848d\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:01.000Z\"}\n{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-lokal\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"kosten\":0,\"kunde\":\"k-beispiel\",\"modell\":\"qwen3:8b\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"85d0066ce7b67022a06516f0ad5399fb6c9891eba1164d7960a7239fae31637b\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:02.000Z\"}\n",
+    "inhalt": "{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"grund\":null,\"kosten\":8100000,\"kunde\":\"k-beispiel\",\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}\n{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"anbieter_fehler\",\"fassung\":2,\"grund\":\"gw.anbieter_fehler\",\"kosten\":null,\"kunde\":\"k-beispiel\",\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":429,\"token_aus\":null,\"token_ein\":null,\"vorher\":\"a7c1b6732cd0aa98a44e3cef609170f84233a92622f108b5a92f1459be9ddd0f\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:01.000Z\"}\n{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-lokal\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"grund\":null,\"kosten\":0,\"kunde\":\"k-beispiel\",\"modell\":\"lokal-beispiel/modell-a\",\"route\":\"lokal-beispiel\",\"sitzung\":\"s-2\",\"status\":200,\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"4212ae8f98da301874cbf074ec147fe03d887793da1aec13c64bbbbcf07e9680\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:02.000Z\"}\n",
     "pruefe": {
      "bruch": null,
-     "letzte": "8fe90f7861250506592f5768acc6f96c68e4906323952fe2227e14c28e8e5df4",
+     "letzte": "aad69c52af5e068179280a6e28237f1130a1872b901c70c1bfac3f3da8132f92",
      "ok": true,
      "zeilen": 3
     }
@@ -643,8 +950,10 @@
      "route": "cloud-beispiel",
      "kunde": "k-beispiel",
      "anbieter": "anb-cloud-a",
-     "modell": "claude-sonnet-5-5",
+     "modell": "cloud-beispiel/modell-a",
      "ergebnis": "ok",
+     "grund": null,
+     "status": 200,
      "token_ein": 1200,
      "token_aus": 300,
      "preis_ein": 3000,
@@ -655,12 +964,12 @@
    ],
    "erwartet": {
     "rueckgaben": [
-     "46c0e6068eeb5c09a06ad5ce81ff2b79b0a32fe8f01011b673fc8abcfd87168f"
+     "133bb03ad3e34bcbf6d0b70f2bf890ddb459ff085a02b29fac1ff7c9b2c38c16"
     ],
-    "inhalt": "{\"aktionsname\":\"sitzung.angemeldet\",\"ergebnis\":\"ok\",\"grund\":\"passkey\",\"person\":\"anna\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-31T23:59:58.500Z\"}\n{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"kosten\":8100000,\"kunde\":\"k-beispiel\",\"modell\":\"claude-sonnet-5-5\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"cc93a534ce4b330dabe7c47b77753a593b0d9f0bac3686c12791e7be64b3b8d7\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}\n",
+    "inhalt": "{\"aktionsname\":\"sitzung.angemeldet\",\"ergebnis\":\"ok\",\"grund\":\"passkey\",\"person\":\"anna\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-10-31T23:59:58.500Z\"}\n{\"aktionsname\":\"modell.aufruf\",\"anbieter\":\"anb-cloud-a\",\"einheit\":9,\"ergebnis\":\"ok\",\"fassung\":2,\"grund\":null,\"kosten\":8100000,\"kunde\":\"k-beispiel\",\"modell\":\"cloud-beispiel/modell-a\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"token_aus\":300,\"token_ein\":1200,\"vorher\":\"cc93a534ce4b330dabe7c47b77753a593b0d9f0bac3686c12791e7be64b3b8d7\",\"waehrung\":\"EUR\",\"zeit\":\"2026-11-20T14:00:00.000Z\"}\n",
     "pruefe": {
      "bruch": null,
-     "letzte": "46c0e6068eeb5c09a06ad5ce81ff2b79b0a32fe8f01011b673fc8abcfd87168f",
+     "letzte": "133bb03ad3e34bcbf6d0b70f2bf890ddb459ff085a02b29fac1ff7c9b2c38c16",
      "ok": true,
      "zeilen": 2
     }

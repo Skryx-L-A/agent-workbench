@@ -137,7 +137,7 @@ read by the crate `einstellungen` (both of the workspace, no new package). Contr
 (rules DI1 to DI12); details in `crates/dienst/README.md`.
 The optional key `lauf.sitzungen` (an absolute path) makes `Starten` skip every number whose entry `<lauf.sitzungen>/s-<n>` still exists, so a restarted service
 does not hand out `s-1` again while its folder is left (DI12 point 13); the service creates and removes nothing there.
-The optional keys `lauf.ziellisten` and `lauf.laufzeit` (absolute paths) make `Starten` skip a number also while the target list `<ziellisten>/s-<n>.zielliste.json`, the socket folder `<laufzeit>/s-<n>` or a count file `<marker_ordner>/s-<n>.suche.json` or `.modellweg.json` of a cloud session still lies (DI12 point 15).
+The optional keys `lauf.ziellisten` and `lauf.laufzeit` (absolute paths) make `Starten` skip a number also while the target list `<ziellisten>/s-<n>.zielliste.json`, the socket folder `<laufzeit>/s-<n>` or a count file `<marker_ordner>/s-<n>.suche.json` or `.modellweg.json` of a cloud session still lies (DI12 point 15). An own regular target list that alone takes a number of an earlier run is removed by `Starten` through the descriptor of the folder before the number is handed out (DI12 point 15a).
 The optional keys `lauf.marker_datei` (a file that only a trial run makes, read once at the start of the service) and `lauf.marker_ordner` (the folder of the count, from the start file)
 make the service write `marker` into every `start.json` of a trial run (DI12 point 14); the file holds only the list, a request of the view can never set `marker`.
 
