@@ -1,0 +1,43 @@
+{
+ "description": "Lokal: datenklasse null und leer, kunde null und ohne Schlüsselform",
+ "files": {
+  "vault/a/messplan.md": "---\ntitle: \"Messplan\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nDer Messplan der Halle.\n",
+  "vault/a/null-qkx31.md": "---\ntitle: \"Messplan QKX31\"\ntype: \"note\"\ndatenklasse: null\n---\n\nMessplan QKX31 Messplan.\n",
+  "vault/a/leer-qkx32.md": "---\ntitle: \"Messplan QKX32\"\ntype: \"note\"\ndatenklasse: \"\"\n---\n\nMessplan QKX32 Messplan.\n",
+  "vault/a/form-qkx33.md": "---\ntitle: \"Messplan QKX33\"\ntype: \"note\"\ndatenklasse: \"intern\"\nkunde: \"K Nord\"\n---\n\nMessplan QKX33 Messplan.\n",
+  "vault/a/ohne-kunde.md": "---\ntitle: \"Messplan ohne Kunde\"\ntype: \"note\"\ndatenklasse: \"intern\"\nkunde: null\n---\n\nMessplan, Feld kunde ohne Wert.\n",
+  "aux/einstellungen.json": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-nord\",\n   \"erlaubt\": [\n    \"lokal\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+ },
+ "dirs": [
+  "home",
+  "protokoll"
+ ],
+ "args": [
+  "sitzung",
+  "{root}/vault",
+  "--socket",
+  "{sock}",
+  "--route",
+  "lokal",
+  "--sitzung",
+  "s-test-1",
+  "--einstellungen",
+  "{root}/aux/einstellungen.json",
+  "--protokoll",
+  "{root}/protokoll"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "search",
+    "query": "Messplan",
+    "k": 10
+   }
+  }
+ ],
+ "verboten": [
+  "qkx31",
+  "qkx32",
+  "qkx33"
+ ]
+}

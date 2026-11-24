@@ -1,5 +1,5 @@
 {
- "description": "Adresse ohne Schema (127.0.0.1:<port>): Exit 2",
+ "description": "Adresse ohne Schema (127.0.0.1:<port>): Exit 64",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

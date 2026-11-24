@@ -457,7 +457,7 @@ fn a_wrong_json_type_is_refused_everywhere() {
 }
 
 #[test]
-fn only_the_whole_number_one_is_the_version() {
+fn only_the_whole_numbers_one_and_two_are_versions() {
     // Changed with the crate `einstellungen`: 2 is a version too. The content of this file has no `netzziele` and no `ziel`,
     // which version 2 requires; the old reader answered `einst.fassung_unbekannt` for the number alone.
     assert_eq!(

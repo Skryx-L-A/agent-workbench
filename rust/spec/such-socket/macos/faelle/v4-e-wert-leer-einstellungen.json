@@ -1,0 +1,35 @@
+{
+ "beschreibung": "--einstellungen mit leerem Wert: 64 vor 78 und 74, die Datei am Socketpfad bleibt",
+ "herkunft": "vertrag4:e-wert-leer-einstellungen",
+ "orte": [
+  "mac"
+ ],
+ "files": {
+  "vault/projekte/lieferplan.md": "---\ntitle: \"Lieferplan Lager\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nDer Lieferplan regelt die Termine im Lager.\n",
+  "vault/kunden/nord/lieferplan-qkx1.md": "---\ntitle: \"Lieferplan QKX1\"\ntype: \"note\"\ndatenklasse: \"kundendaten\"\nkunde: \"k-nord\"\n---\n\nLieferplan QKX1: Lieferplan und Preise des Kunden. Lieferplan QKX1 bleibt intern.\n",
+  "vault/handbuch/lieferplan-lesen.md": "---\ntitle: \"Lieferplan lesen\"\ntype: \"note\"\ndatenklasse: \"oeffentlich\"\n---\n\nWie man einen Lieferplan liest.\n",
+  "vault/eingang/lieferplan-qkx2.md": "---\ntitle: \"Lieferplan QKX2\"\ntype: \"note\"\n---\n\nLieferplan QKX2 kam ohne Klasse an.\n",
+  "vault/sonst/wetter.md": "---\ntitle: \"Wetter\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nSonne und Regen im Herbst.\n",
+  "s/such.sock": "fremd\n"
+ },
+ "dirs": [
+  "home",
+  "protokoll"
+ ],
+ "args": [
+  "sitzung",
+  "{root}/vault",
+  "--socket",
+  "{sock}",
+  "--route",
+  "cloud",
+  "--sitzung",
+  "s-test-1",
+  "--einstellungen",
+  "",
+  "--protokoll",
+  "{root}/protokoll"
+ ],
+ "steps": [],
+ "verboten": []
+}

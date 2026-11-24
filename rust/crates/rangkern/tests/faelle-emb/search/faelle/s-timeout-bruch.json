@@ -1,5 +1,5 @@
 {
- "description": "--embed-timeout-ms mit Bruchzahl: Exit 2, kein Aufruf",
+ "description": "--embed-timeout-ms mit Bruchzahl: Exit 64, kein Aufruf",
  "program": "rangkern",
  "ziele": [
   "aufruffehler"

@@ -1,5 +1,5 @@
 {
- "description": "--embed mit leerem Text: Exit 2",
+ "description": "--embed mit leerem Text: Exit 64",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

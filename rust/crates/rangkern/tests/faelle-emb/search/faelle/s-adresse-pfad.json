@@ -1,5 +1,5 @@
 {
- "description": "Adresse mit Pfad (/api/embed): Exit 2",
+ "description": "Adresse mit Pfad (/api/embed): Exit 64",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

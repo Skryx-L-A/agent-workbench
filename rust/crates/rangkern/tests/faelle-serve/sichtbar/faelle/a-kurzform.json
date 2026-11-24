@@ -1,5 +1,5 @@
 {
- "description": "Kurzform einer Option: Exit 2 ohne Ausgabe",
+ "description": "Kurzform einer Option: Exit 64 ohne Ausgabe",
  "vault": {
   "files": {
    "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text.\n"

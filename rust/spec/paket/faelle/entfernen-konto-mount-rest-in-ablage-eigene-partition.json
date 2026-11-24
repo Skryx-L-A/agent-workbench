@@ -1,0 +1,49 @@
+{
+ "beschreibung": "Schritt II: `/var/lib/wb-halter` liegt auf eigener Partition und enthält noch eine Datei; das ist ein Rückstand, kein Rest",
+ "form": "entfernen",
+ "schritt": 2,
+ "nutzer": "nutzer1",
+ "heimwurzel": "/srv/beispiel/heim",
+ "ergebnisdatei": "/srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+ "vorher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1"
+ ],
+ "nachher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "konto:wb-halter",
+  "gruppe:wb-halter",
+  "gruppe:wb-hub",
+  "gruppe:wb-bruecke",
+  "gruppe:wb-oberflaeche",
+  "datei:/var/lib/wb-halter/geheim/anmeldung.copilot"
+ ],
+ "rest": {
+  "dateien": [],
+  "prozesse": []
+ },
+ "journal": "werkbank: Konto wb-halter und Rollengruppen bleiben, Code 23\n",
+ "einhaengepunkte": [
+  {
+   "pfad": "/",
+   "typ": "ext4",
+   "lesbar": true,
+   "dateien": []
+  },
+  {
+   "pfad": "/var/lib/wb-halter",
+   "typ": "ext4",
+   "lesbar": true,
+   "dateien": [
+    "/var/lib/wb-halter/geheim/anmeldung.copilot"
+   ]
+  }
+ ]
+}

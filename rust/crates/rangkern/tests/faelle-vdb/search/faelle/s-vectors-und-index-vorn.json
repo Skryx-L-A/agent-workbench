@@ -1,5 +1,5 @@
 {
- "description": "--index-db vor --vectors (andere Reihenfolge der Optionen): Exit 2",
+ "description": "--index-db vor --vectors (andere Reihenfolge der Optionen): Exit 64",
  "program": "rangkern",
  "ziele": [
   "vectors-mit-index"

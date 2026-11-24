@@ -1,5 +1,5 @@
 {
- "description": "--embed zusammen mit --query-vector: Exit 2, kein Aufruf",
+ "description": "--embed zusammen mit --query-vector: Exit 64, kein Aufruf",
  "program": "rangkern",
  "ziele": [
   "embed-mit-query-vector"

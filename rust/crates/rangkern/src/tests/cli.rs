@@ -41,7 +41,7 @@ fn tokens_prints_words_stems_and_index_tokens() {
 }
 
 #[test]
-fn wrong_usage_is_exit_two_with_a_message_and_no_output() {
+fn wrong_usage_is_exit_64_with_a_message_and_no_output() {
     let bad: [&[&str]; 22] = [
         &[],
         &["zerlege", "x"],
@@ -68,7 +68,7 @@ fn wrong_usage_is_exit_two_with_a_message_and_no_output() {
     ];
     for args in bad {
         let (code, out, err) = call(args);
-        assert_eq!((code, out.as_str()), (2, ""), "{args:?}");
+        assert_eq!((code, out.as_str()), (64, ""), "{args:?}");
         assert!(err.starts_with("usage:"), "{args:?}");
     }
 }
@@ -338,10 +338,10 @@ fn licenses_prints_the_notice_and_nothing_else() {
 #[test]
 fn licenses_takes_no_further_argument_and_is_no_command_option() {
     let (code, out, err) = call(&["--licenses", "x"]);
-    assert_eq!((code, out.as_str()), (2, ""));
+    assert_eq!((code, out.as_str()), (64, ""));
     assert!(err.contains("--licenses"), "{err:?}");
     let (code, out, _) = call(&["tokens", "--licenses"]);
-    assert_eq!((code, out.as_str()), (2, ""));
+    assert_eq!((code, out.as_str()), (64, ""));
 }
 
 #[test]

@@ -1,0 +1,28 @@
+{
+ "start": "bereit",
+ "socket_rechte": "0600",
+ "responses": [
+  {
+   "fallback": true,
+   "rels": [
+    "sonst/wetter.md"
+   ],
+   "gesperrt": 0,
+   "id": 1
+  }
+ ],
+ "protokoll": [
+  {
+   "aktionsname": "suche.rueckfall",
+   "ergebnis": "lexikalisch",
+   "fassung": 2,
+   "grund": "antwort_ungueltig",
+   "route": "cloud",
+   "sitzung": "s-test-1"
+  }
+ ],
+ "ende": {
+  "exit": 0
+ },
+ "einbettung_aufrufe": 2
+}

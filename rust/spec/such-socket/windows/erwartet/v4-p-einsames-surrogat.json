@@ -1,0 +1,17 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "error": "bad_request"
+  },
+  {
+   "ok": true,
+   "id": "😀"
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ }
+}

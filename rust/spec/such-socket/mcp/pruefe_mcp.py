@@ -4,6 +4,8 @@
 Aufruf: MCP_BIN=<programm> python3 pruefe_mcp.py [fall ...]
 Ein Stand-in hört am Socket, schreibt jede empfangene Zeile mit und antwortet mit den Zeilen aus `socket_antworten`.
 Exit 0: alle Fälle grün; 1: mindestens einer rot; 2: Aufruffehler.
+Seit 23.11.2026 (B11): Fehlt `socket_zeilen` in einem Fall, erwartet der Läufer, dass am Socket keine Zeile ankommt (`[]`).
+Bei `start_exit` müssen stdout und stderr leer sein (Vertrag 4: „Exit 64 ohne Ausgabe“).
 """
 from __future__ import annotations
 
@@ -114,6 +116,21 @@ def pruefen(nr: int, erw: dict, got: dict, werkzeug: dict) -> None:
             raise Rot(f"Schritt {nr}: isError {res.get('isError')!r}, erwartet {erw['isError']!r}")
 
 
+def start_pruefen(fall: dict, lauf: subprocess.CompletedProcess) -> None:
+    """Ein Fall mit `start_exit`: dieser Exit, keine Ausgabe auf stdout und stderr."""
+    if lauf.returncode != fall["start_exit"] or lauf.stdout or lauf.stderr:
+        raise Rot(f"Start: Exit {lauf.returncode}, stdout {lauf.stdout[:80]!r} und stderr {lauf.stderr[:80]!r}, "
+                  f"erwartet Exit {fall['start_exit']} ohne Ausgabe")
+
+
+def socket_zeilen_pruefen(fall: dict, stand_in) -> None:
+    """Was am Socket ankam. Ohne `socket_zeilen` im Fall gilt `[]`: Dann darf das Werkzeug den Socket nicht fragen."""
+    soll = fall.get("socket_zeilen", [])
+    got = stand_in.zeilen if stand_in else []
+    if not gleich(got, soll):
+        raise Rot(f"Socket: empfangen {got}, erwartet {soll}")
+
+
 def fall_laufen(prog: str, fall: dict, werkzeug: dict) -> None:
     root = Path(tempfile.mkdtemp(prefix="mcp-", dir=os.environ.get("SOCKET_BASIS", "/tmp")))
     env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "LANG": "C.UTF-8", "TZ": "UTC", "HOME": str(root / "home")}
@@ -123,8 +140,7 @@ def fall_laufen(prog: str, fall: dict, werkzeug: dict) -> None:
         if "start_exit" in fall:
             lauf = subprocess.run([prog] + fall["argv"], stdin=subprocess.DEVNULL, capture_output=True, env=env,
                                   cwd=root, timeout=FRIST)
-            if lauf.returncode != fall["start_exit"] or lauf.stdout:
-                raise Rot(f"Start: Exit {lauf.returncode} und stdout {lauf.stdout[:80]!r}, erwartet Exit {fall['start_exit']}")
+            start_pruefen(fall, lauf)
             return
         sock = root / "s.sock"
         stand_in = None
@@ -154,10 +170,7 @@ def fall_laufen(prog: str, fall: dict, werkzeug: dict) -> None:
         rest = proc.stdout.read()
         if code != 0 or rest:
             raise Rot(f"Ende: Exit {code}, übrige Ausgabe {rest[:120]!r}")
-        if "socket_zeilen" in fall:
-            got = stand_in.zeilen if stand_in else []
-            if not gleich(got, fall["socket_zeilen"]):
-                raise Rot(f"Socket: empfangen {got}, erwartet {fall['socket_zeilen']}")
+        socket_zeilen_pruefen(fall, stand_in)
     finally:
         if proc and proc.poll() is None:
             proc.kill()
@@ -171,17 +184,24 @@ def main() -> int:
         print("pruefe_mcp.py: MCP_BIN fehlt", file=sys.stderr)
         return 2
     daten = json.loads((HIER / "faelle.json").read_text(encoding="utf-8"))
+    bekannt = {f["name"] for f in daten["faelle"]}
     namen = sys.argv[1:] or [f["name"] for f in daten["faelle"]]
-    rot = 0
+    # Ein unbekannter Fallname ist ein Aufruffehler, nie grün (wie pruefe_macos.py).
+    for n in namen:
+        if n not in bekannt:
+            print(f"pruefe_mcp.py: unbekannter Fall {n}", file=sys.stderr)
+            return 2
+    rot = gelaufen = 0
     for fall in (f for f in daten["faelle"] if f["name"] in namen):
+        gelaufen += 1
         try:
             fall_laufen(prog, fall, daten["werkzeug"])
             print(f"grün  {fall['name']}")
         except (Rot, OSError, subprocess.TimeoutExpired) as exc:
             rot += 1
             print(f"ROT   {fall['name']}: {exc}")
-    print(f"{len(namen) - rot} von {len(namen)} grün")
-    return 1 if rot else 0
+    print(f"{gelaufen - rot} von {gelaufen} grün")
+    return 1 if rot or not gelaufen else 0
 
 
 if __name__ == "__main__":

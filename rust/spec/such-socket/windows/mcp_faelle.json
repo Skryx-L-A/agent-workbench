@@ -826,6 +826,228 @@
    ]
   },
   {
+   "name": "v4-m-batch",
+   "beschreibung": "Klarstellung 7: ein Array auf einer Zeile ergibt einen Fehler -32600 mit id null, ohne Socket",
+   "schritte": [
+    {
+     "roh": "[{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"brain_suche\",\"arguments\":{\"query\":\"x\"}}}]",
+     "erwarte": {
+      "id": null,
+      "fehlercode": -32600
+     }
+    }
+   ],
+   "socket_zeilen": [],
+   "herkunft": "vertrag4:m-batch",
+   "argv": [
+    "--socket",
+    "{pipe}"
+   ],
+   "orte": [
+    "attrappe",
+    "windows"
+   ]
+  },
+  {
+   "name": "v4-m-ruf-ohne-id",
+   "beschreibung": "Klarstellung 8: tools/call ohne id bekommt keine Antwort und fragt den Socket nicht",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "x"
+       }
+      }
+     }
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "ping"
+     },
+     "erwarte": {
+      "id": 2,
+      "result": {}
+     }
+    }
+   ],
+   "socket_zeilen": [],
+   "herkunft": "vertrag4:m-ruf-ohne-id",
+   "argv": [
+    "--socket",
+    "{pipe}"
+   ],
+   "orte": [
+    "attrappe",
+    "windows"
+   ]
+  },
+  {
+   "name": "v4-m-argumente-form",
+   "beschreibung": "Klarstellung 9: k als 1.0 und true, query als Zahl sind ungültig; eine leere Zeile bleibt ohne Antwort",
+   "schritte": [
+    {
+     "roh": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"brain_suche\",\"arguments\":{\"query\":\"x\",\"k\":1.0}}}",
+     "erwarte": {
+      "id": 1,
+      "werkzeug_text": "Ungültige Anfrage",
+      "isError": true
+     }
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "x",
+        "k": true
+       }
+      }
+     },
+     "erwarte": {
+      "id": 2,
+      "werkzeug_text": "Ungültige Anfrage",
+      "isError": true
+     }
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": 5
+       }
+      }
+     },
+     "erwarte": {
+      "id": 3,
+      "werkzeug_text": "Ungültige Anfrage",
+      "isError": true
+     }
+    },
+    {
+     "roh": ""
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 4,
+      "method": "ping"
+     },
+     "erwarte": {
+      "id": 4,
+      "result": {}
+     }
+    }
+   ],
+   "socket_zeilen": [],
+   "herkunft": "vertrag4:m-argumente-form",
+   "argv": [
+    "--socket",
+    "{pipe}"
+   ],
+   "orte": [
+    "attrappe",
+    "windows"
+   ]
+  },
+  {
+   "name": "v4-m-init-ohne-fassung",
+   "beschreibung": "Klarstellung 10: initialize ohne protocolVersion oder mit einer Zahl ergibt -32602",
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize",
+      "params": {
+       "capabilities": {}
+      }
+     },
+     "erwarte": {
+      "id": 1,
+      "fehlercode": -32602
+     }
+    },
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "initialize",
+      "params": {
+       "protocolVersion": 20251125
+      }
+     },
+     "erwarte": {
+      "id": 2,
+      "fehlercode": -32602
+     }
+    }
+   ],
+   "herkunft": "vertrag4:m-init-ohne-fassung",
+   "argv": [
+    "--socket",
+    "{pipe}"
+   ],
+   "orte": [
+    "attrappe",
+    "windows"
+   ]
+  },
+  {
+   "name": "v4-m-antwort-kein-json",
+   "beschreibung": "Der Socket antwortet mit einer Zeile, die kein JSON ist: Text unverändert, isError true (fail closed, Entscheid 23.11.2026)",
+   "socket_antworten": [
+    "kein json"
+   ],
+   "schritte": [
+    {
+     "sende": {
+      "jsonrpc": "2.0",
+      "id": 5,
+      "method": "tools/call",
+      "params": {
+       "name": "brain_suche",
+       "arguments": {
+        "query": "x"
+       }
+      }
+     },
+     "erwarte": {
+      "id": 5,
+      "werkzeug_text": "kein json",
+      "isError": true
+     }
+    }
+   ],
+   "socket_zeilen": [
+    {
+     "op": "search",
+     "query": "x"
+    }
+   ],
+   "herkunft": "vertrag4:m-antwort-kein-json",
+   "argv": [
+    "--socket",
+    "{pipe}"
+   ],
+   "orte": [
+    "attrappe",
+    "windows"
+   ]
+  },
+  {
    "name": "v4-e-argument-fremd",
    "beschreibung": "Ein unbekanntes Argument beim Start: Exit 64",
    "argv": [

@@ -1,0 +1,34 @@
+{
+ "beschreibung": "Schritt II: ein Rest mit relativem Pfad",
+ "form": "entfernen",
+ "schritt": 2,
+ "nutzer": "nutzer1",
+ "heimwurzel": "/srv/beispiel/heim",
+ "ergebnisdatei": "/srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+ "vorher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1"
+ ],
+ "nachher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "konto:wb-halter",
+  "gruppe:wb-halter",
+  "gruppe:wb-hub",
+  "gruppe:wb-bruecke",
+  "gruppe:wb-oberflaeche"
+ ],
+ "rest": {
+  "dateien": [
+   "relativ"
+  ],
+  "prozesse": []
+ },
+ "journal": ""
+}

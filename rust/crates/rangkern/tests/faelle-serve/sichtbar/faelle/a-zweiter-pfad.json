@@ -1,5 +1,5 @@
 {
- "description": "Ein zweiter Pfad: Exit 2 ohne Ausgabe",
+ "description": "Ein zweiter Pfad: Exit 64 ohne Ausgabe",
  "vault": {
   "files": {
    "notiz.md": "---\ntitle: Eine Notiz\ntype: note\n---\n\nEin kurzer Text.\n"

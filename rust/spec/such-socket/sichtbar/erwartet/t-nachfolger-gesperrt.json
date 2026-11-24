@@ -10,7 +10,8 @@
    "gesperrt": 1,
    "pruefe_felder": {
     "projekte/regel-alt.md": {
-     "abgeloest_durch": null
+     "abgeloest_durch": null,
+     "status": "superseded"
     }
    }
   }

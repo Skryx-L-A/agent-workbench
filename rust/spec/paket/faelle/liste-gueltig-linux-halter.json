@@ -1,0 +1,38 @@
+{
+ "beschreibung": "Nachtrag Halter: deb-Liste mit dem Halter und seiner Benutzereinheit",
+ "form": "liste",
+ "liste": "# Positivliste des deb-Pakets für Ubuntu 26.04 (Ausschlussliste des deb: ohne `*.py`, der Läufer ist ein Python-Skript)\nprogramm usr/bin/werkbank-probelauf datei:paket/deb/werkbank-probelauf\nprogramm usr/bin/werkbank-pruefen bin:pruefen:werkbank-pruefen\nprogramm usr/lib/werkbank/werkbank-lauf bin:lauf:werkbank-lauf\nprogramm usr/lib/werkbank/werkbank-einschluss bin:einschluss:werkbank-einschluss\nprogramm usr/lib/werkbank/kette bin:formate:kette\ndaten etc/apparmor.d/usr.lib.werkbank.werkbank-einschluss datei:paket/ubuntu-26.04-x64/usr.lib.werkbank.werkbank-einschluss\ndienst usr/lib/werkbank/werkbank-kern bin:kern:werkbank-kern\ndienst usr/lib/werkbank/werkbank-modellweg bin:modellweg:werkbank-modellweg\nprogramm usr/lib/werkbank/probelauf/drehbuch.py datei:spec/vorfuehrung/laeufer/drehbuch.py\ndaten usr/share/werkbank/probelauf/einstellungen.json datei:spec/einstellungen/vorfuehrung.json\ndaten usr/share/werkbank/sbom.cdx.json erzeugt:sbom\ndienst usr/lib/werkbank/werkbank-halter bin:halter:werkbank-halter\ndaten usr/lib/systemd/user/wb-halter.service datei:paket/ubuntu-26.04-x64/wb-halter.service\n",
+ "ausschluss": "# Ausschlussliste: nichts davon kommt ins Paket, auch wenn es im Baum liegt.\n*.pdb  # Debug-Symbole sind kein Teil der Auslieferung\n*.pyc  # Kein uebersetzter Python-Code im Paket\n*.sh  # Kein Shell-Werkzeug im Paket\n*.rs  # Kein Quelltext im Paket\ntests/  # Kein Testwerkzeug im Paket\nbin/wb-attrappe.exe  # Die Attrappe gehoert nur in Testbauten\ncrate:testwerkzeug-beispiel  # Testwerkzeug, kein Teil der Auslieferung\n",
+ "quellen": [
+  "datei:paket/deb/werkbank-probelauf",
+  "bin:pruefen:werkbank-pruefen",
+  "bin:lauf:werkbank-lauf",
+  "bin:kern:werkbank-kern",
+  "bin:einschluss:werkbank-einschluss",
+  "bin:formate:kette",
+  "datei:paket/ubuntu-26.04-x64/usr.lib.werkbank.werkbank-einschluss",
+  "bin:modellweg:werkbank-modellweg",
+  "datei:spec/vorfuehrung/laeufer/drehbuch.py",
+  "datei:spec/einstellungen/vorfuehrung.json",
+  "erzeugt:sbom",
+  "datei:paket/andere-einstellungen.json",
+  "bin:halter:werkbank-halter",
+  "datei:paket/ubuntu-26.04-x64/wb-halter.service"
+ ],
+ "baum": [
+  "usr/bin/werkbank-probelauf",
+  "usr/bin/werkbank-pruefen",
+  "usr/lib/werkbank/werkbank-lauf",
+  "usr/lib/werkbank/werkbank-kern",
+  "usr/lib/werkbank/werkbank-einschluss",
+  "usr/lib/werkbank/kette",
+  "etc/apparmor.d/usr.lib.werkbank.werkbank-einschluss",
+  "usr/lib/werkbank/werkbank-modellweg",
+  "usr/lib/werkbank/probelauf/drehbuch.py",
+  "usr/share/werkbank/probelauf/einstellungen.json",
+  "usr/share/werkbank/sbom.cdx.json",
+  "usr/share/werkbank/manifest.json",
+  "usr/lib/werkbank/werkbank-halter",
+  "usr/lib/systemd/user/wb-halter.service"
+ ]
+}

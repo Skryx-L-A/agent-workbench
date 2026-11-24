@@ -156,21 +156,35 @@ fn a_missing_parent_folder_or_a_file_is_refused() {
     assert!(ordner_pruefen(MAC, Path::new("such.sock"), eigene_euid()).is_err());
 }
 
+/// Until 23.11.2026 this test was `linux_checks_no_parent_folder` and asked `Ok(())` for a folder 0755 and a foreign euid
+/// under Linux. Review B7 (23.11.2026) made the rule hold under Linux too; a bare name lies in the current folder
+/// there.
 #[test]
-fn linux_checks_no_parent_folder() {
+fn linux_checks_the_parent_folder_like_macos() {
     let dir = TempDir::new();
     let offen = ordner_mit(&dir, "offen", 0o755);
+    assert!(ordner_pruefen(Plattform::Linux, &offen.join("such.sock"), eigene_euid()).is_err());
+    let eng = ordner_mit(&dir, "eng", 0o700);
     assert_eq!(
-        ordner_pruefen(
-            Plattform::Linux,
-            &offen.join("such.sock"),
-            eigene_euid().wrapping_add(1)
-        ),
+        ordner_pruefen(Plattform::Linux, &eng.join("such.sock"), eigene_euid()),
         Ok(())
     );
-    assert_eq!(
-        ordner_pruefen(Plattform::Linux, Path::new("such.sock"), 0),
-        Ok(())
+    assert!(
+        ordner_pruefen(
+            Plattform::Linux,
+            &eng.join("such.sock"),
+            eigene_euid().wrapping_add(1)
+        )
+        .is_err()
+    );
+    // A bare name: the current folder of the test is not checked for 0700 here, only that it is looked at (a foreign euid).
+    assert!(
+        ordner_pruefen(
+            Plattform::Linux,
+            Path::new("such.sock"),
+            eigene_euid().wrapping_add(1)
+        )
+        .is_err()
     );
 }
 

@@ -1,7 +1,7 @@
 //! The run of `rangkern sitzung`: the start in its fixed order, the socket, the connections and the end on a signal.
 
 use std::collections::HashMap;
-use std::fs;
+use std::ffi::OsStr;
 use std::io::{BufReader, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
@@ -11,8 +11,8 @@ use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use formate::kette::{
-    Abgewiesen, Gesperrt, Probelauf, abschnitt, anhaengen_abgewiesen, anhaengen_gesperrt,
-    anhaengen_probelauf,
+    Abgewiesen, Gesperrt, Probelauf, anhaengen_abgewiesen, anhaengen_gesperrt_in,
+    anhaengen_probelauf, anhaengen_zeile,
 };
 use rustix::fs::{FileType, Mode, RawMode};
 use serde_json::{Value, json};
@@ -24,10 +24,11 @@ use super::einst;
 use super::konfig::{Konfig, Probelauf as ProbeKonfig, Vektoren};
 use super::loeschen::{Eigene, Ordner};
 use super::mac::{self, Plattform};
-use super::probelauf::{STDERR_ZEILE, Zaehlung};
+use super::probelauf::{STDERR_ZEILE, Zaehlung, zaehldatei_pruefen};
 use super::tor::{Gruppe, Tor};
 use super::{BEREIT, EXIT_CONFIG, EXIT_SOCKET};
 use crate::cli::hit_json;
+use crate::embed::Grund;
 use crate::serve::{Line, SearchRequest, Server, bad_request, next_line};
 use crate::stamp::now_ns;
 use crate::vault::contradiction_pairs;
@@ -101,26 +102,105 @@ fn signale_anmelden(pfad: SocketPfad) -> std::io::Result<()> {
     Ok(())
 }
 
-/// Binds the socket under the mask 077: the socket exists from the first moment with no right for group and others. The mask
-/// holds for the whole process; every file it makes later is 0600 or narrower anyway.
-fn socket_binden(pfad: &Path) -> std::io::Result<UnixListener> {
-    // Anything at the path, even a link that leads nowhere, makes it taken. `bind` alone is not enough: on macOS it
-    // follows a dangling link and makes the socket at the link's target (measured 20.11.2026).
-    if fs::symlink_metadata(pfad).is_ok() {
+/// Binds the socket `name` in the held folder under the mask 077: the socket exists from the first moment with no right for
+/// group and others. The mask holds for the whole process; every file it makes later is 0600 or narrower anyway.
+fn socket_binden(ordner: &Ordner, name: &OsStr, pfad: &Path) -> std::io::Result<UnixListener> {
+    // Anything at the name, even a link that leads nowhere, makes it taken. `bind` alone is not enough: on macOS it follows a
+    // dangling link and makes the socket at the link's target (measured 20.11.2026). The look goes through the held folder.
+    if ordner.kennung(name).is_some() {
         return Err(std::io::Error::from(std::io::ErrorKind::AddrInUse));
     }
     rustix::process::umask(Mode::from_raw_mode(0o077));
-    UnixListener::bind(pfad)
+    binden_im_ordner(ordner, name, pfad)
 }
 
-/// Makes the socket with the given rights. Under macOS the parent folder is checked first (exit 74 on a failure, the path
-/// unchanged). Nothing at the path is touched if the path is taken: `bind` fails then. A socket whose rights cannot be set
-/// is removed again.
+/// Under Linux the socket is bound through the held folder itself: `/proc/self/fd/<n>/<name>` names exactly that folder, so no
+/// swap of a folder on the path can come between the check and the `bind` (review B6). Without `/proc` the start fails with 74,
+/// as the change of the rights does (`loeschen::Ordner::rechte_setzen_wenn`).
+#[cfg(target_os = "linux")]
+fn binden_im_ordner(ordner: &Ordner, name: &OsStr, _pfad: &Path) -> std::io::Result<UnixListener> {
+    use std::os::fd::{AsFd, AsRawFd};
+    let mut weg =
+        std::ffi::OsString::from(format!("/proc/self/fd/{}/", ordner.as_fd().as_raw_fd()));
+    weg.push(name);
+    UnixListener::bind(weg)
+}
+
+/// Elsewhere there is no `bindat`: `bind` takes the path. The folder the path names must be the held folder right before and
+/// right after the `bind` (device and inode, review B6); otherwise the start fails with 74.
+#[cfg(not(target_os = "linux"))]
+fn binden_im_ordner(ordner: &Ordner, _name: &OsStr, pfad: &Path) -> std::io::Result<UnixListener> {
+    derselbe_ordner(ordner, pfad)?;
+    let listener = UnixListener::bind(pfad)?;
+    derselbe_ordner(ordner, pfad)?;
+    Ok(listener)
+}
+
+/// Whether the parent folder of `pfad`, not followed if it is a link, is the held folder (device and inode).
+#[cfg(not(target_os = "linux"))]
+fn derselbe_ordner(ordner: &Ordner, pfad: &Path) -> std::io::Result<()> {
+    let eltern = match pfad.parent() {
+        Some(eltern) if !eltern.as_os_str().is_empty() => eltern,
+        _ => Path::new("."),
+    };
+    let gehalten = rustix::fs::fstat(ordner)?;
+    let jetzt = rustix::fs::lstat(eltern)?;
+    if (gehalten.st_dev, gehalten.st_ino) == (jetzt.st_dev, jetzt.st_ino) {
+        Ok(())
+    } else {
+        Err(std::io::Error::other(
+            "the folder of the socket path is no longer the folder that was checked",
+        ))
+    }
+}
+
+/// The check of the held parent folder (section 3 of the macOS addendum; under Linux too since review B7): `fstat` on the
+/// descriptor that the rights, the `bind` (Linux) and the removal use later, never a second look through the path (review B6).
+#[allow(clippy::useless_conversion)] // `mode_t` is u16 under macOS and u32 under Linux
+fn ordner_halten(
+    pfad: &Path,
+    plattform: Plattform,
+    euid: u32,
+) -> std::io::Result<(Ordner, std::ffi::OsString)> {
+    if plattform == Plattform::MacOs
+        && pfad
+            .parent()
+            .is_none_or(|eltern| eltern.as_os_str().is_empty())
+    {
+        return Err(std::io::Error::other("the socket has no parent folder"));
+    }
+    let (ordner, name) = Ordner::von(pfad)?;
+    let st = rustix::fs::fstat(&ordner)?;
+    mac::ordner_regel(
+        FileType::from_raw_mode(st.st_mode) == FileType::Directory,
+        st.st_uid,
+        u32::from(st.st_mode),
+        euid,
+    )
+    .map_err(std::io::Error::other)?;
+    Ok((ordner, name))
+}
+
+/// Makes the socket with the given rights. The parent folder is opened once (no link) and checked through that descriptor
+/// first (exit 74 on a failure, the path unchanged). Nothing at the path is touched if the path is taken: the start fails
+/// then. A socket whose rights cannot be set is removed again. The start goes through [`socket_anlegen_gemerkt`].
+#[cfg(test)]
 fn socket_anlegen(
     pfad: &Path,
     rechte: u32,
     plattform: Plattform,
     euid: u32,
+) -> std::io::Result<(UnixListener, Eigene)> {
+    socket_anlegen_mit(pfad, rechte, plattform, euid, &|| {})
+}
+
+/// [`socket_anlegen`] with a seam right after the `bind`, before the socket is remembered (for the test of review B5).
+fn socket_anlegen_mit(
+    pfad: &Path,
+    rechte: u32,
+    plattform: Plattform,
+    euid: u32,
+    nach_bind: &dyn Fn(),
 ) -> std::io::Result<(UnixListener, Eigene)> {
     // The rights as `Mode` before anything is made (fail closed): `mode_t` is u32 under Linux and u16 under macOS. A value
     // that does not fit, or has a bit beyond the nine rights bits, is refused, and the path stays as it is. The bits are
@@ -130,16 +210,33 @@ fn socket_anlegen(
         .filter(|roh| roh & !0o777 == 0)
         .map(Mode::from_raw_mode)
         .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::InvalidInput))?;
-    mac::ordner_pruefen(plattform, pfad, euid).map_err(std::io::Error::other)?;
-    // The folder is opened once and held to the end: the rights and the removal go through it, never through the path.
-    let (ordner, name) = Ordner::von(pfad)?;
-    let listener = socket_binden(pfad)?;
+    // The folder is opened once and held to the end: the check, the rights and the removal go through it, never through the
+    // path.
+    let (ordner, name) = ordner_halten(pfad, plattform, euid)?;
+    let listener = socket_binden(&ordner, &name, pfad)?;
+    nach_bind();
     let eigene = Eigene::merken(ordner, name, FileType::Socket)
         .ok_or_else(|| std::io::Error::other("the socket path does not show the new socket"))?;
     eigene.rechte_setzen(modus).inspect_err(|_| {
         let _ = eigene.entfernen();
     })?;
     Ok((listener, eigene))
+}
+
+/// Makes the socket and remembers it for the end on a signal under one lock (review B5): the signal thread takes the same lock
+/// in `socket_loeschen`, so a SIGTERM between the `bind` and the remembering waits and then removes the socket.
+fn socket_anlegen_gemerkt(
+    gemerkt: &SocketPfad,
+    pfad: &Path,
+    rechte: u32,
+    plattform: Plattform,
+    euid: u32,
+    nach_bind: &dyn Fn(),
+) -> std::io::Result<UnixListener> {
+    let mut eintrag = gemerkt.lock().unwrap_or_else(PoisonError::into_inner);
+    let (listener, eigene) = socket_anlegen_mit(pfad, rechte, plattform, euid, nach_bind)?;
+    *eintrag = Some(eigene);
+    Ok(listener)
 }
 
 /// A place among the open connections: it counts as long as it lives.
@@ -162,8 +259,9 @@ impl Drop for Platz {
     }
 }
 
-/// The start after the arguments are valid: settings, route, log folder, socket, notes, readiness line, then the answers.
-/// Returns an exit code only when the start fails or the socket stops accepting.
+/// The start after the arguments are valid: settings, route, log folder, count file (probe run), socket, notes, readiness line, then the answers.
+/// Returns an exit code only when the start fails; after the readiness line only a signal ends the process (review B9: a failed
+/// `accept` is reported and the loop goes on).
 pub fn starten<O: Write, E: Write>(konfig: Konfig, out: &mut O, err: &mut E) -> u8 {
     let pfad: SocketPfad = Arc::default();
     if let Err(fehler) = signale_anmelden(Arc::clone(&pfad)) {
@@ -185,19 +283,27 @@ pub fn starten<O: Write, E: Write>(konfig: Konfig, out: &mut O, err: &mut E) -> 
         let _ = writeln!(err, "rangkern sitzung: the log folder is not a folder");
         return EXIT_CONFIG;
     }
-    let (listener, eigene) = match socket_anlegen(
+    // The count file belongs to 78, and 78 comes before 74: it is checked before the socket (W3).
+    if let Some(probe) = &konfig.probelauf
+        && let Err(fehler) = zaehldatei_pruefen(&probe.zaehlung)
+    {
+        let _ = writeln!(err, "rangkern sitzung: probe run: {fehler}");
+        return EXIT_CONFIG;
+    }
+    let listener = match socket_anlegen_gemerkt(
+        &pfad,
         &konfig.socket,
         konfig.rechte,
         Plattform::AKTUELL,
         mac::eigene_euid(),
+        &|| {},
     ) {
-        Ok(angelegt) => angelegt,
+        Ok(listener) => listener,
         Err(fehler) => {
             let _ = writeln!(err, "rangkern sitzung: socket: {fehler}");
             return EXIT_SOCKET;
         }
     };
-    *pfad.lock().unwrap_or_else(PoisonError::into_inner) = Some(eigene);
     let zaehlung = match probelauf_starten(&konfig, err) {
         Ok(zaehlung) => zaehlung,
         Err(fehler) => {
@@ -223,15 +329,18 @@ pub fn starten<O: Write, E: Write>(konfig: Konfig, out: &mut O, err: &mut E) -> 
     // The starter may start the harness only after this line. A closed pipe leaves nobody to tell.
     let _ = out.write_all(BEREIT).and_then(|()| out.flush());
     let offen = Arc::new(AtomicUsize::new(0));
-    for strom in listener
-        .incoming()
-        .inspect(|strom| {
-            if strom.is_err() {
+    let mut folge = Annahmefehler::default();
+    // The loop never ends: the process ends only through a signal (`signale_anmelden`).
+    loop {
+        let strom = match listener.accept() {
+            Ok((strom, _)) => strom,
+            Err(fehler) => {
+                folge.fehler(&fehler, err);
                 thread::sleep(Duration::from_millis(50));
+                continue;
             }
-        })
-        .flatten()
-    {
+        };
+        folge.erfolg();
         // Over the limit the stream is dropped here: closed without a byte.
         let Some(platz) = Platz::nehmen(&offen) else {
             continue;
@@ -242,19 +351,46 @@ pub fn starten<O: Write, E: Write>(konfig: Konfig, out: &mut O, err: &mut E) -> 
             verbindung(strom, &sitzung);
         });
     }
-    socket_loeschen(&pfad);
-    EXIT_SOCKET
+}
+
+/// A run of failed `accept` calls (review B9): the first failure of a run goes to the error output, one line without the content
+/// of anything; the next ones are silent until an `accept` works again. So a lasting failure (`EMFILE`) is reported once, not
+/// 20 times a second.
+#[derive(Debug, Default)]
+struct Annahmefehler {
+    in_folge: bool,
+}
+
+impl Annahmefehler {
+    fn fehler<E: Write>(&mut self, fehler: &std::io::Error, err: &mut E) {
+        if !self.in_folge {
+            let _ = writeln!(err, "rangkern sitzung: accept: {fehler}");
+        }
+        self.in_folge = true;
+    }
+
+    fn erfolg(&mut self) {
+        self.in_folge = false;
+    }
 }
 
 /// The start of the probe-run mode: the file of the counts with the count 0 first, then the log line `probelauf.zaehlung`, then
-/// the fixed line on the error output. `None` without the mode. Any failure ends the start (the caller removes the socket).
+/// the fixed line on the error output. `None` without the mode. A failure of the file or of the log line ends the start (the
+/// caller removes the socket); a failed log line removes the file again, so nothing of the failed start stays (review B8). The
+/// line on the error output comes after the log line and its failure ends nothing: the line is in the chain then, and a closed
+/// error output leaves nobody to tell (review B8: no failed start with a line in the chain).
 fn probelauf_starten<E: Write>(konfig: &Konfig, err: &mut E) -> std::io::Result<Option<Zaehlung>> {
     let Some(ProbeKonfig { marker, zaehlung }) = &konfig.probelauf else {
         return Ok(None);
     };
     let zaehlung = Zaehlung::anlegen(zaehlung.clone(), konfig.sitzung.clone(), marker.clone())?;
-    probelauf_zeile(&konfig.protokoll, &konfig.sitzung, zaehlung.anzahl_marker())?;
-    writeln!(err, "{STDERR_ZEILE}")?;
+    if let Err(fehler) =
+        probelauf_zeile(&konfig.protokoll, &konfig.sitzung, zaehlung.anzahl_marker())
+    {
+        let _ = zaehlung.entfernen();
+        return Err(fehler);
+    }
+    let _ = writeln!(err, "{STDERR_ZEILE}");
     Ok(Some(zaehlung))
 }
 
@@ -336,8 +472,9 @@ impl Sitzung {
     }
 
     /// A search: the whole list, the gate, then the counting of the markers (probe run only), then the log lines for the
-    /// blocked hits, then the buffer of the answer. If the counting or a log line cannot be written, the answer is
-    /// `{"error":"protokoll"}` with no hit; a failed counting writes no log line.
+    /// blocked hits, then the line `suche.rueckfall` when the embedding of `--embed` failed, then the buffer of the answer.
+    /// If the counting or a line of a blocked hit cannot be written, the answer is `{"error":"protokoll"}` with no hit; a
+    /// failed counting writes no log line. A failed line `suche.rueckfall` changes nothing of the answer.
     fn suchen(&self, query: String, k: usize, space: Option<String>, id: Option<Value>) -> Vec<u8> {
         let mut server = self.server();
         // The whole list: the prefix property makes `L[..k]` the answer of `rangkern serve` for `k`.
@@ -348,9 +485,9 @@ impl Sitzung {
             today: None,
             query_vector: None,
         };
-        let (antwort, gruppen) = match server.search_hits(&frage, now_ns()) {
-            Err(_) => (json!({"error": "unreadable"}), Vec::new()),
-            Ok((liste, fallback)) => {
+        let (antwort, gruppen, ausfall) = match server.search_hits_ausfall(&frage, now_ns()) {
+            Err(_) => (json!({"error": "unreadable"}), Vec::new(), None),
+            Ok((liste, fallback, ausfall)) => {
                 let notes: HashMap<_, _> = server.notes_by_rel();
                 let paare = contradiction_pairs(server.root());
                 let durch = self.tor.durchlassen(liste, k, &notes, &paare);
@@ -359,7 +496,7 @@ impl Sitzung {
                     "hits": durch.hits.iter().map(hit_json).collect::<Vec<_>>(),
                     "gesperrt": durch.gesperrt(),
                 });
-                (antwort, durch.gruppen)
+                (antwort, durch.gruppen, ausfall)
             }
         };
         let puffer = zeile_von(&mit_id(antwort, id.clone()));
@@ -370,7 +507,28 @@ impl Sitzung {
         if !gezaehlt || self.protokollieren(&gruppen).is_err() {
             return zeile_von(&mit_id(json!({"error": "protokoll"}), id));
         }
+        if let Some(grund) = ausfall {
+            self.rueckfall(grund);
+        }
         puffer
+    }
+
+    /// The log line `suche.rueckfall` (contract 5, section 6.5): the search answers lexically because the embedding of
+    /// `--embed` failed. A call of its own after the lines of the blocked hits. A failure is dropped: no second try, no
+    /// buffer, no text on the error output, no field in the answer (contract 4, "Rückfall der Einbettung").
+    fn rueckfall(&self, grund: Grund) {
+        let _ = anhaengen_zeile(
+            &self.protokoll,
+            "brain",
+            jetzt_ms(),
+            &json!({
+                "aktionsname": "suche.rueckfall",
+                "ergebnis": "lexikalisch",
+                "grund": grund.text(),
+                "route": self.route,
+                "sitzung": self.kennung,
+            }),
+        );
     }
 
     /// The log line `kanal.abgewiesen` for a connection turned away: channel `such`, route and session from the start, no uid.
@@ -391,16 +549,15 @@ impl Sitzung {
         }
     }
 
-    /// Writes one line per group to the log of the month, with the time of now.
+    /// Writes one line per group to the chain `brain`, with the time of now. Every line of the process goes through the
+    /// functions with folder and source, which lock the source (contract 5, section 5.3: "beide Wege nie mischen"); until
+    /// 23.11.2026 these lines locked only the file of the month (`anhaengen_gesperrt`), while the other lines locked the source.
     fn protokollieren(&self, gruppen: &[Gruppe]) -> Result<(), formate::kette::Fehler> {
-        if gruppen.is_empty() {
-            return Ok(());
-        }
         let zeit_ms = jetzt_ms();
-        let datei = self.protokoll.join(abschnitt("brain", zeit_ms)?);
         for gruppe in gruppen {
-            anhaengen_gesperrt(
-                &datei,
+            anhaengen_gesperrt_in(
+                &self.protokoll,
+                "brain",
                 &Gesperrt {
                     zeit_ms,
                     route: self.route.clone(),
@@ -419,6 +576,7 @@ impl Sitzung {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
     fn ordner(name: &str) -> PathBuf {
@@ -428,12 +586,33 @@ mod tests {
         ordner
     }
 
+    /// Runs in a process of its own: the mask holds for the whole process, and a test in a parallel thread of this binary could
+    /// change it between the `umask` of the test and the `bind`. The test starts its own test binary with only this test and the
+    /// marker `RK_UMASK_KIND`; the child does the check. "1 passed" shows that the child ran it and did not filter it away.
     #[test]
     fn the_socket_has_no_right_for_group_and_others_right_after_the_bind() {
+        const NAME: &str = "sitzung::lauf::tests::the_socket_has_no_right_for_group_and_others_right_after_the_bind";
+        if std::env::var_os("RK_UMASK_KIND").is_none() {
+            let aus = std::process::Command::new(std::env::current_exe().expect("test binary"))
+                .args(["--exact", NAME, "--test-threads=1"])
+                .env("RK_UMASK_KIND", "1")
+                .output()
+                .expect("the child test runs");
+            let text = format!(
+                "{}{}",
+                String::from_utf8_lossy(&aus.stdout),
+                String::from_utf8_lossy(&aus.stderr)
+            );
+            assert!(aus.status.success(), "{text}");
+            assert!(text.contains("1 passed"), "the child ran the test: {text}");
+            return;
+        }
         let ordner = ordner("umask");
         // A loose mask, as a caller may have it: only the mask of the process makes the socket narrow.
         rustix::process::umask(Mode::from_raw_mode(0o000));
-        let _listener = socket_binden(&ordner.join("s.sock")).expect("the socket is bound");
+        let pfad = ordner.join("s.sock");
+        let (gehalten, name) = Ordner::von(&pfad).expect("the folder is opened");
+        let _listener = socket_binden(&gehalten, &name, &pfad).expect("the socket is bound");
         let modus = fs::symlink_metadata(ordner.join("s.sock"))
             .expect("the socket")
             .mode();
@@ -635,6 +814,235 @@ mod tests {
         let _ = fs::remove_dir_all(&ordner);
     }
 
+    /// Review B5: a SIGTERM between the `bind` and the remembering of the socket. The seam after the `bind` starts what the signal
+    /// thread does (`socket_loeschen`) and gives it time; it must wait for the lock and then remove the socket. Without the lock
+    /// around the making it would find nothing, and the socket would stay.
+    #[test]
+    fn a_signal_right_after_the_bind_waits_for_the_socket_and_then_removes_it() {
+        use std::cell::RefCell;
+        use std::sync::mpsc;
+        let ordner = ordner("b5-signal");
+        fs::set_permissions(&ordner, fs::Permissions::from_mode(0o700)).expect("mode");
+        let pfad = ordner.join("s.sock");
+        let gemerkt: SocketPfad = Arc::default();
+        let faden: RefCell<Option<thread::JoinHandle<()>>> = RefCell::new(None);
+        let nach_bind = || {
+            let gemerkt = Arc::clone(&gemerkt);
+            let (los, gestartet) = mpsc::channel();
+            *faden.borrow_mut() = Some(thread::spawn(move || {
+                let _ = los.send(());
+                socket_loeschen(&gemerkt);
+            }));
+            gestartet.recv().expect("the signal thread runs");
+            thread::sleep(Duration::from_millis(300));
+            assert!(
+                fs::symlink_metadata(&pfad).is_ok(),
+                "the socket stands while it is not yet remembered"
+            );
+        };
+        let listener = socket_anlegen_gemerkt(
+            &gemerkt,
+            &pfad,
+            0o600,
+            Plattform::AKTUELL,
+            mac::eigene_euid(),
+            &nach_bind,
+        )
+        .expect("socket");
+        faden
+            .borrow_mut()
+            .take()
+            .expect("the seam ran")
+            .join()
+            .expect("the signal thread ends");
+        assert!(
+            fs::symlink_metadata(&pfad).is_err(),
+            "the signal removed the socket once it was remembered"
+        );
+        drop(listener);
+        let _ = fs::remove_dir_all(&ordner);
+    }
+
+    /// Review B6: the folder is swapped after it was opened and checked. Under Linux the `bind` goes through the held folder,
+    /// so the socket lands there and not in the new folder at the path. Elsewhere the comparison of device and inode refuses
+    /// the `bind`, and neither folder gets a socket. The positive control: without a swap the socket is made at the path.
+    #[test]
+    fn a_folder_swapped_after_the_check_gets_no_socket_at_the_path() {
+        let ordner = ordner("b6-tausch");
+        let a = ordner.join("a");
+        fs::create_dir_all(&a).expect("folder");
+        let pfad = a.join("s.sock");
+        let (gehalten, name) = Ordner::von(&pfad).expect("the folder is opened");
+        assert!(
+            socket_binden(&gehalten, &name, &pfad).is_ok(),
+            "no swap: bound"
+        );
+        assert!(fs::symlink_metadata(&pfad).is_ok());
+        fs::remove_file(&pfad).expect("remove");
+        fs::rename(&a, ordner.join("weg")).expect("move the held folder away");
+        fs::create_dir_all(&a).expect("a new folder at the path");
+        let ergebnis = socket_binden(&gehalten, &name, &pfad);
+        assert!(
+            fs::symlink_metadata(&pfad).is_err(),
+            "no socket in the new folder at the path"
+        );
+        if cfg!(target_os = "linux") {
+            assert!(ergebnis.is_ok(), "bound in the held folder");
+            assert!(fs::symlink_metadata(ordner.join("weg/s.sock")).is_ok());
+        } else {
+            assert!(ergebnis.is_err(), "the swap is refused");
+            assert!(fs::symlink_metadata(ordner.join("weg/s.sock")).is_err());
+        }
+        let _ = fs::remove_dir_all(&ordner);
+    }
+
+    /// Review B7: the rule for the parent folder holds under Linux as under macOS, also with the rights 0666. The positive
+    /// control: the same call with a folder 0700 makes the socket.
+    #[test]
+    fn under_linux_a_parent_folder_that_is_not_0700_ends_the_socket_also_with_0666() {
+        let ordner = ordner("b7-linux");
+        let eltern = ordner.join("s");
+        fs::create_dir_all(&eltern).expect("parent");
+        let euid = mac::eigene_euid();
+        for modus in [0o755, 0o750, 0o777] {
+            fs::set_permissions(&eltern, fs::Permissions::from_mode(modus)).expect("mode");
+            for rechte in [0o600, 0o666] {
+                assert!(
+                    socket_anlegen(&eltern.join("such.sock"), rechte, Plattform::Linux, euid)
+                        .is_err(),
+                    "{modus:o} {rechte:o}"
+                );
+                assert!(
+                    !eltern.join("such.sock").exists(),
+                    "the path stays as it is"
+                );
+            }
+        }
+        // Another owner: the euid of the process is not the owner of the folder.
+        fs::set_permissions(&eltern, fs::Permissions::from_mode(0o700)).expect("mode");
+        assert!(
+            socket_anlegen(
+                &eltern.join("such.sock"),
+                0o666,
+                Plattform::Linux,
+                euid.wrapping_add(1)
+            )
+            .is_err()
+        );
+        let (_listener, eigene) =
+            socket_anlegen(&eltern.join("such.sock"), 0o666, Plattform::Linux, euid)
+                .expect("a folder 0700 of the own user");
+        assert!(eigene.entfernen());
+        let _ = fs::remove_dir_all(&ordner);
+    }
+
+    /// A start of the probe run for the tests of review B8: the count file in `ordner/zaehl`, the log folder `protokoll`.
+    fn probe_konfig(ordner: &Path, protokoll: PathBuf) -> Konfig {
+        fs::create_dir_all(ordner.join("zaehl")).expect("folder");
+        Konfig {
+            vault: ordner.join("vault"),
+            socket: ordner.join("s.sock"),
+            rechte: 0o600,
+            route: "cloud".to_owned(),
+            sitzung: "s-1".to_owned(),
+            einstellungen: ordner.join("einst.json"),
+            protokoll,
+            vektoren: Vektoren::Datei(None),
+            embedder: None,
+            probelauf: Some(ProbeKonfig {
+                marker: vec!["MI-1A".to_owned()],
+                zaehlung: ordner.join("zaehl/zaehlung.json"),
+            }),
+        }
+    }
+
+    /// An error output that fails every write.
+    struct Kaputt;
+
+    impl Write for Kaputt {
+        fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+            Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe))
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe))
+        }
+    }
+
+    /// Review B8: the log line `probelauf.zaehlung` fails (the log folder is a file); the start fails, and the count file with
+    /// the count 0 does not stay. The positive control: with a log folder the file stays and the line stands in the log.
+    #[test]
+    fn a_failed_log_line_of_the_probe_run_removes_the_count_file_again() {
+        let ordner = ordner("b8-zeile");
+        fs::write(ordner.join("kein-ordner"), "x").expect("a file");
+        let konfig = probe_konfig(&ordner, ordner.join("kein-ordner"));
+        let mut err = Vec::new();
+        assert!(probelauf_starten(&konfig, &mut err).is_err());
+        assert!(
+            fs::symlink_metadata(ordner.join("zaehl/zaehlung.json")).is_err(),
+            "the count file is removed"
+        );
+        assert_eq!(
+            fs::read_dir(ordner.join("zaehl")).expect("folder").count(),
+            0
+        );
+        assert!(
+            err.is_empty(),
+            "no line on the error output for a failed start"
+        );
+        fs::create_dir_all(ordner.join("protokoll")).expect("log folder");
+        let konfig = probe_konfig(&ordner, ordner.join("protokoll"));
+        assert!(
+            probelauf_starten(&konfig, &mut err)
+                .expect("start")
+                .is_some()
+        );
+        assert!(ordner.join("zaehl/zaehlung.json").exists());
+        assert_eq!(zeilen(&ordner).len(), 1);
+        assert_eq!(
+            String::from_utf8(err).expect("text"),
+            format!("{STDERR_ZEILE}\n")
+        );
+        let _ = fs::remove_dir_all(&ordner);
+    }
+
+    /// Review B8: a failed line on the error output does not fail the start: the line in the chain belongs to a start that goes
+    /// on.
+    #[test]
+    fn a_failed_line_on_the_error_output_does_not_fail_the_probe_run() {
+        let ordner = ordner("b8-stderr");
+        fs::create_dir_all(ordner.join("protokoll")).expect("log folder");
+        let konfig = probe_konfig(&ordner, ordner.join("protokoll"));
+        assert!(
+            probelauf_starten(&konfig, &mut Kaputt)
+                .expect("start")
+                .is_some()
+        );
+        let alle = zeilen(&ordner);
+        assert_eq!(alle.len(), 1);
+        assert_eq!(alle[0]["aktionsname"], "probelauf.zaehlung");
+        assert!(ordner.join("zaehl/zaehlung.json").exists());
+        let _ = fs::remove_dir_all(&ordner);
+    }
+
+    /// Review B9: the first failed `accept` of a run is reported, the next ones are silent, and after a working `accept` the
+    /// next failure is reported again.
+    #[test]
+    fn the_first_failed_accept_of_a_run_is_reported_once() {
+        let mut folge = Annahmefehler::default();
+        let mut err = Vec::new();
+        let emfile = std::io::Error::other("too many open files");
+        folge.fehler(&emfile, &mut err);
+        folge.fehler(&emfile, &mut err);
+        folge.fehler(&emfile, &mut err);
+        assert_eq!(
+            String::from_utf8(err.clone()).expect("text"),
+            "rangkern sitzung: accept: too many open files\n"
+        );
+        folge.erfolg();
+        folge.fehler(&emfile, &mut err);
+        assert_eq!(String::from_utf8(err).expect("text").lines().count(), 2);
+    }
+
     /// The pointer of the end on a signal for a socket just made at `pfad`.
     fn angelegt(pfad: &Path) -> (UnixListener, SocketPfad) {
         let euid = mac::eigene_euid();
@@ -762,3 +1170,7 @@ mod tests {
         let _ = fs::remove_dir_all(&ordner);
     }
 }
+
+#[cfg(test)]
+#[path = "lauf_stderr_test.rs"]
+mod stderr_test;

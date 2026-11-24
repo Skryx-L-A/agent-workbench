@@ -560,7 +560,7 @@ fn the_command_takes_a_vault_and_the_option_vectors_and_nothing_else() {
     ];
     for args in bad {
         let (code, out, err) = exchange(args, "{\"op\":\"ping\"}\n");
-        assert_eq!((code, out.as_str()), (2, ""), "{args:?}");
+        assert_eq!((code, out.as_str()), (64, ""), "{args:?}");
         assert!(
             err.starts_with("usage:") && err.contains("serve"),
             "{args:?}"

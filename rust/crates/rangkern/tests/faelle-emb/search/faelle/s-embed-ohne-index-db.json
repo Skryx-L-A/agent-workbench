@@ -1,5 +1,5 @@
 {
- "description": "--embed ohne --index-db: Exit 2",
+ "description": "--embed ohne --index-db: Exit 64",
  "program": "rangkern",
  "ziele": [
   "aufruffehler"

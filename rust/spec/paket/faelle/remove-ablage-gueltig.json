@@ -1,0 +1,27 @@
+{
+ "beschreibung": "Nachtrag Halter: nach `apt remove` liegen Schlüsseldatei und anmeldung.copilot noch da, beide festen Sätze stehen in der Meldung",
+ "form": "remove",
+ "nutzer": "nutzer1",
+ "marke": "SCHLUESSEL-PRUEFMARKE-0001",
+ "nach_installation": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "datei:/var/lib/werkbank/nutzer1/modellweg.schluessel",
+  "datei:/srv/beispiel/heim/nutzer1/.local/state/agent-workbench/halter/geheim/anmeldung.copilot"
+ ],
+ "nach_remove": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "datei:/var/lib/werkbank/nutzer1/modellweg.schluessel",
+  "datei:/srv/beispiel/heim/nutzer1/.local/state/agent-workbench/halter/geheim/anmeldung.copilot"
+ ],
+ "meldung": "Entferne werkbank ...\npruef.schluessel_rest: Eine Schluesseldatei liegt noch da; apt purge loescht sie.\npruef.copilot_rest: Eine Anmeldedatei der Copilot CLI liegt noch da; apt purge loescht sie.\n",
+ "journal": "werkbank: pruef.schluessel_rest: Eine Schluesseldatei liegt noch da; apt purge loescht sie.\nwerkbank: pruef.copilot_rest: Eine Anmeldedatei der Copilot CLI liegt noch da; apt purge loescht sie.\n",
+ "heimwurzel": "/srv/beispiel/heim"
+}

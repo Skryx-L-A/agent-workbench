@@ -1,5 +1,5 @@
 {
- "description": "Adresse 127.0.0.2 (nicht in der Liste des Vertrags): Exit 2",
+ "description": "Adresse 127.0.0.2 (nicht in der Liste des Vertrags): Exit 64",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

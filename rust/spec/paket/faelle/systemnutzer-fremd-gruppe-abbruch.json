@@ -1,0 +1,69 @@
+{
+ "beschreibung": "eine Gruppe wb-hub mit Mitgliedern besteht schon: preinst endet mit 24 und ändert nichts",
+ "form": "systemnutzer",
+ "vorher": {
+  "konten": [
+   {
+    "name": "nutzer1",
+    "uid": 1000,
+    "gruppe": "nutzer1",
+    "heim": "/srv/beispiel/heim/nutzer1",
+    "shell": "/bin/bash"
+   }
+  ],
+  "gruppen": [
+   {
+    "name": "nutzer1",
+    "gid": 1000,
+    "mitglieder": []
+   },
+   {
+    "name": "sudo",
+    "gid": 27,
+    "mitglieder": [
+     "nutzer1"
+    ]
+   },
+   {
+    "name": "wb-hub",
+    "gid": 997,
+    "mitglieder": [
+     "nutzer1"
+    ]
+   }
+  ]
+ },
+ "nachher": {
+  "konten": [
+   {
+    "name": "nutzer1",
+    "uid": 1000,
+    "gruppe": "nutzer1",
+    "heim": "/srv/beispiel/heim/nutzer1",
+    "shell": "/bin/bash"
+   }
+  ],
+  "gruppen": [
+   {
+    "name": "nutzer1",
+    "gid": 1000,
+    "mitglieder": []
+   },
+   {
+    "name": "sudo",
+    "gid": 27,
+    "mitglieder": [
+     "nutzer1"
+    ]
+   },
+   {
+    "name": "wb-hub",
+    "gid": 997,
+    "mitglieder": [
+     "nutzer1"
+    ]
+   }
+  ]
+ },
+ "preinst_rc": 24
+}

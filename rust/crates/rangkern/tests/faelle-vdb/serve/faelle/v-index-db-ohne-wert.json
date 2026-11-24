@@ -1,5 +1,5 @@
 {
- "description": "--index-db ohne Wert: Aufruffehler, Exit 2",
+ "description": "--index-db ohne Wert: Aufruffehler, Exit 64",
  "ziele": [
   "aufruf"
  ],

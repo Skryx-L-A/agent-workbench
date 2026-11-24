@@ -132,10 +132,13 @@ fn rufe<B: Befrager>(id: &Value, params: Option<&Value>, befrager: &B) -> String
     };
     match befrager.frage(&anfrage) {
         Ok(antwort) => {
-            let fehlerhaft = matches!(
-                serde_json::from_str::<Value>(&antwort),
-                Ok(Value::Object(o)) if o.contains_key("error")
-            );
+            // The search always answers with a JSON object. An answer that is no JSON object (no JSON, a list, a number, a
+            // string) comes from a search that is out of order (fail closed, decision of 23.11.2026), as does an object with a
+            // field `error`. Only an object without `error` is no error.
+            let fehlerhaft = match serde_json::from_str::<Value>(&antwort) {
+                Ok(Value::Object(o)) => o.contains_key("error"),
+                _ => true,
+            };
             werkzeug_ergebnis(id, &antwort, fehlerhaft)
         }
         Err(_) => werkzeug_ergebnis(id, TEXT_NICHT_ERREICHBAR, true),

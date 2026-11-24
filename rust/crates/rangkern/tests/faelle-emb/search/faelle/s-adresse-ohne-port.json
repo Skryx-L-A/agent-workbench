@@ -1,5 +1,5 @@
 {
- "description": "Loopback-Adresse ohne Port (http://127.0.0.1): Exit 2",
+ "description": "Loopback-Adresse ohne Port (http://127.0.0.1): Exit 64",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

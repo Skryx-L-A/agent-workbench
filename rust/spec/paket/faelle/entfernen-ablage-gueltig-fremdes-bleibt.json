@@ -1,0 +1,25 @@
+{
+ "beschreibung": "Nachtrag Halter: `agent-workbench` stand vorher mit einer fremden Datei da; Ordner und Datei bleiben, nur die Ebenen des Halters gehen",
+ "form": "entfernen",
+ "nutzer": "nutzer1",
+ "heimwurzel": "/srv/beispiel/heim",
+ "ergebnisdatei": "/srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+ "vorher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "ordner:/srv/beispiel/heim/nutzer1/.local/state/agent-workbench",
+  "datei:/srv/beispiel/heim/nutzer1/.local/state/agent-workbench/ausgang-audit.jsonl"
+ ],
+ "nachher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "ordner:/srv/beispiel/heim/nutzer1/.local/state/agent-workbench",
+  "datei:/srv/beispiel/heim/nutzer1/.local/state/agent-workbench/ausgang-audit.jsonl"
+ ]
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Erzeugt die sichtbaren Fälle des Vertrags Paketbau und Prüfbefehl (faelle/, erwartet/).
+"""Erzeugt die sichtbaren Fälle des Vertrags Paketbau und Prüfbefehl (faelle/, erwartet/; ausstehend: faelle-ausstehend/, erwartet-ausstehend/).
 
 Aufruf: python3 -I rust/spec/paket/bau-faelle.py
 Die erwarteten Codes und Zeilen stehen hier von Hand, unabhängig von referenz.py; pruefen.py vergleicht beide.
@@ -81,7 +81,7 @@ fall_manifest("gueltig-windows", "Windows-Manifest mit den Pflichtdateien", MANI
 LINUX_DATEIEN = [
     datei("usr/bin/werkbank-probelauf", "programm", 1000), datei("usr/bin/werkbank-pruefen", "programm", 1000), datei("usr/bin/werkbank-ordnermarke", "programm", 1200000), datei("usr/bin/werkbank-ca-zulassung", "programm", 4000),
     datei("usr/lib/werkbank/werkbank-lauf", "programm", 5000000), datei("usr/lib/werkbank/werkbank-lauf-kind", "programm", 900000), datei("usr/lib/werkbank/werkbank-kern", "dienst", 4200000), datei("usr/lib/werkbank/werkbank-bruecke", "dienst", 3100000),
-    datei("usr/lib/werkbank/werkbank-modellweg", "dienst", 2900000), datei("usr/lib/werkbank/rangkern", "programm", 6000000),
+    datei("usr/lib/werkbank/werkbank-modellweg", "dienst", 2900000), datei("usr/lib/werkbank/werkbank-halter", "dienst", 2500000), datei("usr/lib/werkbank/rangkern", "programm", 6000000),
     datei("usr/lib/werkbank/kette", "programm", 900000), datei("usr/lib/werkbank/such-mcp", "programm", 1500000), datei("usr/lib/werkbank/probelauf/drehbuch.py", "programm", 90000),
     datei("usr/lib/werkbank/probelauf/drehbuchlib/ablauf.py", "programm", 20000), datei("usr/lib/werkbank/probelauf/drehbuchlib/bericht.py", "programm", 20000), datei("usr/lib/werkbank/probelauf/drehbuchlib/bruecke.py", "programm", 20000),
     datei("usr/lib/werkbank/probelauf/drehbuchlib/fremd.py", "programm", 20000), datei("usr/lib/werkbank/probelauf/drehbuchlib/konfig.py", "programm", 20000), datei("usr/lib/werkbank/probelauf/drehbuchlib/lauf.py", "programm", 20000), datei("usr/lib/werkbank/probelauf/drehbuchlib/messen.py", "programm", 20000), datei("usr/lib/werkbank/probelauf/drehbuchlib/modell.py", "programm", 20000),
@@ -90,6 +90,7 @@ LINUX_DATEIEN = [
     datei("usr/lib/werkbank/werkbank-einschluss", "programm", 1800000),
     datei("etc/apparmor.d/usr.lib.werkbank.werkbank-einschluss", "daten", 1300),
     datei("usr/lib/systemd/user/werkbank-kern.service", "daten", 500), datei("usr/lib/systemd/user/werkbank-bruecke.service", "daten", 500),
+    datei("usr/lib/systemd/user/wb-halter.service", "daten", 400),
     datei("usr/share/werkbank/sbom.cdx.json", "daten", 90000),
     datei("usr/share/werkbank/probelauf/vorfuehr-vault/betrieb/mi-4f9-wartungsfenster-presslinie.md", "daten", 900),
 ]
@@ -216,6 +217,11 @@ fall_manifest("pflichtdatei-linux-kette", "das Programm `kette` (Prüfbefehl der
 fall_manifest("pflichtdatei-linux-bruecke", "die Brücke zum Browser (`werkbank-bruecke`, Nachtrag 21.11.) fehlt", linux(ohne_datei("usr/lib/werkbank/werkbank-bruecke")), "pflichtdatei_fehlt")
 fall_manifest("pflichtdatei-linux-einheit-bruecke", "die Einheit der Brücke fehlt", linux(ohne_datei("usr/lib/systemd/user/werkbank-bruecke.service")), "pflichtdatei_fehlt")
 fall_manifest("pflichtdatei-linux-einheit", "die Einheit des Kern-Dienstes fehlt", linux(ohne_datei("usr/lib/systemd/user/werkbank-kern.service")), "pflichtdatei_fehlt")
+# Nachtrag Halter (23.11.): der Halter und seine Benutzereinheit sind Pflichtdateien des deb.
+fall_manifest("pflichtdatei-linux-halter", "Nachtrag Halter: das Programm `werkbank-halter` fehlt", linux(ohne_datei("usr/lib/werkbank/werkbank-halter")), "pflichtdatei_fehlt")
+fall_manifest("pflichtdatei-linux-halter-andere-art", "Nachtrag Halter: `werkbank-halter` ist als `programm` statt `dienst` eingetragen: eine Pflichtdatei mit anderer `art` gilt als fehlend",
+              linux(lambda o: [d.update(art="programm") for d in o["dateien"] if d["pfad"] == "usr/lib/werkbank/werkbank-halter"]), "pflichtdatei_fehlt")
+fall_manifest("pflichtdatei-linux-einheit-halter", "Nachtrag Halter: die Einheit `wb-halter.service` fehlt", linux(ohne_datei("usr/lib/systemd/user/wb-halter.service")), "pflichtdatei_fehlt")
 fall_manifest("pflichtdatei-linux-laeufer", "der Läufer des Probelaufs fehlt", linux(ohne_datei("usr/lib/werkbank/probelauf/drehbuch.py")), "pflichtdatei_fehlt")
 fall_manifest("pflichtdatei-linux-drehbuchlib", "ein Modul des Pakets drehbuchlib/ fehlt (drehbuch.py importiert es und kann ohne es nicht laufen)",
               linux(ohne_datei("usr/lib/werkbank/probelauf/drehbuchlib/ablauf.py")), "pflichtdatei_fehlt")
@@ -391,6 +397,16 @@ fall_liste("gueltig-linux-anmeldung", "deb-Liste mit der Anmeldung der Copilot C
            liste=LISTE_LINUX_AN, ausschluss=AUSSCHLUSS_LINUX, quellen=QUELLEN_LINUX + [ANMELDEN[1]], baum=BAUM_LINUX + [ANMELDEN[0]])
 fall_liste("anmeldung-ungelistet", "`/usr/bin/werkbank-anmelden` liegt im Baum, steht aber nicht in der Positivliste", "ungelistet",
            liste=LISTE_LINUX, ausschluss=AUSSCHLUSS_LINUX, quellen=QUELLEN_LINUX, baum=BAUM_LINUX + [ANMELDEN[0]])
+# Nachtrag Halter (23.11.): `/usr/lib/werkbank/werkbank-halter` und die Einheit `wb-halter.service` stehen namentlich in der Positivliste.
+HALTER = (("dienst", "usr/lib/werkbank/werkbank-halter", "bin:halter:werkbank-halter"),
+          ("daten", "usr/lib/systemd/user/wb-halter.service", "datei:paket/ubuntu-26.04-x64/wb-halter.service"))
+LISTE_LINUX_HA = LISTE_LINUX + "".join(f"{a} {z} {q}\n" for a, z, q in HALTER)
+fall_liste("gueltig-linux-halter", "Nachtrag Halter: deb-Liste mit dem Halter und seiner Benutzereinheit",
+           liste=LISTE_LINUX_HA, ausschluss=AUSSCHLUSS_LINUX, quellen=QUELLEN_LINUX + [q for _, _, q in HALTER], baum=BAUM_LINUX + [z for _, z, _ in HALTER])
+fall_liste("halter-ungelistet", "Nachtrag Halter: `werkbank-halter` liegt im Baum, steht aber nicht in der Positivliste", "ungelistet",
+           liste=LISTE_LINUX, ausschluss=AUSSCHLUSS_LINUX, quellen=QUELLEN_LINUX, baum=BAUM_LINUX + [HALTER[0][1]])
+fall_liste("halter-quelle-fehlt", "Nachtrag Halter: die Quelle `bin:halter:werkbank-halter` gibt es im Arbeitsbaum nicht (kein Crate `halter`)", "quelle_fehlt",
+           liste=LISTE_LINUX_HA, ausschluss=AUSSCHLUSS_LINUX, quellen=QUELLEN_LINUX + [HALTER[1][2]], baum=BAUM_LINUX + [z for _, z, _ in HALTER])
 fall_liste("anmeldung-fehlt-im-baum", "`/usr/bin/werkbank-anmelden` ist gelistet und fehlt im Baum", "fehlt_im_baum",
            liste=LISTE_LINUX_AN, ausschluss=AUSSCHLUSS_LINUX, quellen=QUELLEN_LINUX + [ANMELDEN[1]], baum=BAUM_LINUX)
 fall_liste("anmeldung-quelle-fehlt", "die Quelle der Anmeldung gibt es im Arbeitsbaum nicht", "quelle_fehlt",
@@ -954,6 +970,39 @@ fall_pruef("linux-ohne-root-ubuntu-profil-unbekannt", "Aufruf ohne root: die Pro
 fall_pruef("linux-ohne-root-hinweis-nach-ubuntu-hinweisen", "die Reihenfolge der Hinweise: Zustand von Ubuntus Profil, System-bwrap, dann `hinweis_sudo`", 1,
            ["pruef.vault_nicht_pruefbar: Der Vault-Ordner war nicht pruefbar.", UBUNTU_GELADEN, HINWEIS_UBUNTU, HINWEIS_SUDO, "pruef.rot: 1 Befunde."],
            lx(lambda o: o.update(ohne_root=True, vault="nicht_pruefbar", ubuntu_profil="geladen", system_bwrap="ubuntu")))
+# Nachtrag Halter (23.11.): die Einheit des Halters (nach der Brücke), die Ebenen der Ablage und der frühere Ort der Anmeldung.
+def halter_einheit(zustand, bruecke_zustand=None):
+    def a(o):
+        if bruecke_zustand:
+            o["dienste"].append({"name": "werkbank-bruecke.service", "zustand": bruecke_zustand})
+        o["dienste"].append({"name": "wb-halter.service", "zustand": zustand})
+    return lx(a)
+
+
+fall_pruef("linux-dienst-halter-gruen", "Nachtrag Halter: Kern, Brücke und Halter ok", 0, [OK7], halter_einheit("ok", "ok"))
+for z, satz in (("fehlt", "pruef.dienst_fehlt: Der Dienst wb-halter.service ist nicht eingetragen."),
+                ("inaktiv", "pruef.dienst_inaktiv: Der Dienst wb-halter.service ist nicht aktiv."),
+                ("fehlgeschlagen", "pruef.dienst_fehlgeschlagen: Der Dienst wb-halter.service ist fehlgeschlagen."),
+                ("nicht_pruefbar", "pruef.dienst_nicht_pruefbar: Der Dienst wb-halter.service war nicht pruefbar.")):
+    fall_pruef("linux-dienst-halter-" + z.replace("_", "-"), f"Nachtrag Halter: wb-halter.service im Zustand {z} (etwa Exit 78 bei falscher Ablage oder halter.json)", 1,
+               rot([satz]), halter_einheit(z))
+fall_pruef("linux-dienst-bruecke-und-halter-reihenfolge", "Nachtrag Halter: Brücke und Halter rot: der Halter steht nach der Brücke", 1,
+           rot(["pruef.dienst_inaktiv: Der Dienst werkbank-bruecke.service ist nicht aktiv.",
+                "pruef.dienst_fehlgeschlagen: Der Dienst wb-halter.service ist fehlgeschlagen."]), halter_einheit("fehlgeschlagen", "inaktiv"))
+fall_pruef("linux-copilot-ablage", "Nachtrag Halter: eine Ebene der Ablage ist ein Verweis oder geheim/ ist nicht 0700; die Zeile nennt keinen Pfad", 1,
+           rot(["pruef.copilot_ablage: Die Ablage des Halters hat falsche Rechte, einen falschen Eigentuemer oder einen Verweis."]), lx(lambda o: o.update(copilot="ablage")))
+ALTER_ORT = "pruef.copilot_alter_ort: Am frueheren Ort liegt noch eine Anmeldedatei der Copilot CLI; sie wird nicht mehr gelesen und muss weg."
+fall_pruef("linux-copilot-alter-ort", "Nachtrag Halter: anmeldung.copilot ist in Ordnung, die Datei am früheren Ort liegt noch da: ein eigener Befund", 1,
+           rot([ALTER_ORT]), lx(lambda o: o.update(copilot_alt=True)))
+fall_pruef("linux-copilot-alter-ort-und-fehlt", "Nachtrag Halter: neue Anmeldung fehlt, alte Datei liegt noch: erst die Zeile der Prüfung copilot, dann der alte Ort", 1,
+           rot(["pruef.copilot_fehlt: Die Anmeldedatei der Copilot CLI fehlt.", ALTER_ORT]), lx(lambda o: o.update(copilot="fehlt", copilot_alt=True)))
+fall_pruef("linux-copilot-alter-ort-falsch-ist-still", "Nachtrag Halter: copilot_alt false ist dasselbe wie ein fehlendes Feld: grün", 0, [OK7],
+           lx(lambda o: o.update(copilot_alt=False)))
+fall_pruef("linux-vor-entfernen-ablage", "Nachtrag Halter: `prerm` bei falschen Rechten der Ablage: die Anmeldung liegt noch, der feste Satz, rc 0", 0,
+           ["pruef.copilot_rest: Eine Anmeldedatei der Copilot CLI liegt noch da; apt purge loescht sie."],
+           lx(lambda o: o.update(schluessel="fehlt", copilot="ablage")), aufruf=["--vor-entfernen"])
+fall_pruef("linux-vor-entfernen-alter-ort-still", "Nachtrag Halter: `prerm` sagt zum früheren Ort nichts (purge löscht ihn mit /var/lib/werkbank)", 0, [],
+           lx(lambda o: o.update(schluessel="fehlt", copilot="fehlt", copilot_alt=True)), aufruf=["--vor-entfernen"])
 fall_pruef("linux-copilot-und-schluessel-reihenfolge", "beide Dateien fehlen: erst die Zeile des Modellweg-Schlüssels, dann die der Anmeldung", 1,
            rot(["pruef.schluessel_fehlt: Die Schluesseldatei fehlt.", "pruef.copilot_fehlt: Die Anmeldedatei der Copilot CLI fehlt."]),
            lx(lambda o: o.update(schluessel="fehlt", copilot="fehlt")))
@@ -1292,6 +1341,22 @@ fall_purge("rueckstand-copilot-eines-anderen", "der Ordner `.copilot` eines ande
 fall_purge("rueckstand-var-lib-nachbar", "`/var/lib/apt2` ist keine Systemausnahme (nur `/var/lib/apt/` darunter)", VOR + ["datei:/var/lib/apt2/x"], "entfernen_rueckstand")
 fall_purge("verloren-fremde-datei", "`purge` hat eine Datei entfernt, die nicht zum Paket gehört", [e for e in VOR if e != "datei:/etc/hostname"], "entfernen_verloren")
 fall_purge("verloren-heim", "`purge` hat die Heimdatei des Nutzers entfernt", [e for e in VOR if e != "datei:/srv/beispiel/heim/nutzer1/.bashrc"], "entfernen_verloren")
+# Nachtrag Halter (23.11.): die Ablage des Halters im Heim ist keine Ausnahme; `/etc/werkbank/halter.json` und die Einheit gehen mit `purge`.
+ABL = "/srv/beispiel/heim/nutzer1/.local/state/agent-workbench"
+fall_purge("halter-json-bleibt", "Nachtrag Halter: `/etc/werkbank/halter.json` bleibt nach `purge` liegen", VOR + ["datei:/etc/werkbank/halter.json"], "entfernen_rueckstand")
+fall_purge("halter-einheit-bleibt", "Nachtrag Halter: die Einheit `wb-halter.service` ist nach `purge` noch bekannt", VOR + ["einheit:wb-halter.service"], "entfernen_rueckstand")
+fall_purge("halter-prozess-laeuft", "Nachtrag Halter: der Halter läuft nach `purge` noch", VOR + ["prozess:werkbank-halter"], "entfernen_rueckstand")
+fall_purge("ablage-anmeldung-bleibt", "Nachtrag Halter: `anmeldung.copilot` steht nach `purge` noch in der Ablage", VOR + [f"datei:{ABL}/halter/geheim/anmeldung.copilot"], "entfernen_rueckstand")
+fall_purge("ablage-ordner-bleibt", "Nachtrag Halter: die leere Ebene `agent-workbench/halter/geheim` steht nach `purge` noch da", VOR + [f"ordner:{ABL}", f"ordner:{ABL}/halter", f"ordner:{ABL}/halter/geheim"], "entfernen_rueckstand")
+fall_purge("ablage-temp-bleibt", "Nachtrag Halter: eine Temp-Datei von werkbank-anmelden in der Ablage ist auch ein Rückstand", VOR + [f"datei:{ABL}/halter/geheim/.anmeldung.copilot.4242.tmp"], "entfernen_rueckstand")
+fall_purge("ablage-gueltig-weg", "Nachtrag Halter: nach `purge` fehlen anmeldung.copilot und die drei Ebenen; `.local/state` stand vorher da und bleibt",
+           VOR + ["ordner:/srv/beispiel/heim/nutzer1/.local/state"], vorher=VOR + ["ordner:/srv/beispiel/heim/nutzer1/.local/state"])
+fall_purge("ablage-gueltig-fremdes-bleibt", "Nachtrag Halter: `agent-workbench` stand vorher mit einer fremden Datei da; Ordner und Datei bleiben, nur die Ebenen des Halters gehen",
+           VOR + [f"ordner:{ABL}", f"datei:{ABL}/ausgang-audit.jsonl"], vorher=VOR + [f"ordner:{ABL}", f"datei:{ABL}/ausgang-audit.jsonl"])
+fall_purge("ablage-verloren-fremdes", "Nachtrag Halter: `purge` hat eine fremde Datei unter `agent-workbench` gelöscht", list(VOR),
+           vorher=VOR + [f"datei:{ABL}/ausgang-audit.jsonl"], code="entfernen_verloren")
+fall_purge("ablage-verloren-local-state", "Nachtrag Halter: `purge` hat den Ordner `.local/state` entfernt, der vorher da war", list(VOR),
+           vorher=VOR + ["ordner:/srv/beispiel/heim/nutzer1/.local/state"], code="entfernen_verloren")
 fall_purge("form-eintrag", "ein Eintrag ohne bekannte Art", VOR + ["verzeichnis:/x"], "entfernen_form")
 fall_purge("form-relativer-pfad", "ein relativer Pfad", VOR + ["datei:relativ"], "entfernen_form")
 fall_purge("reihenfolge-rueckstand-vor-verloren", "Rückstand und Verlust zugleich: `entfernen_rueckstand` zuerst",
@@ -1319,6 +1384,20 @@ fall_remove("hinweis-mit-inhalt-in-meldung", "der Schlüssel steht in der Meldun
 fall_remove("hinweis-mit-inhalt-im-journal", "der Schlüssel steht im Journal", "remove_hinweis_inhalt", journal="werkbank: SCHLUESSEL-PRUEFMARKE-0001\n")
 fall_remove("reihenfolge-verloren-vor-hinweis", "Datei gelöscht und kein Hinweis: `remove_schluessel_verloren` zuerst", "remove_schluessel_verloren",
             nach_remove=list(VOR), meldung="")
+
+# Nachtrag Halter (23.11.): mit `heimwurzel` gilt dasselbe für `anmeldung.copilot` in der Ablage des Halters.
+ANM = "datei:/srv/beispiel/heim/nutzer1/.local/state/agent-workbench/halter/geheim/anmeldung.copilot"
+CREST = "pruef.copilot_rest: Eine Anmeldedatei der Copilot CLI liegt noch da; apt purge loescht sie."
+fall_remove("ablage-gueltig", "Nachtrag Halter: nach `apt remove` liegen Schlüsseldatei und anmeldung.copilot noch da, beide festen Sätze stehen in der Meldung",
+            heimwurzel="/srv/beispiel/heim", nach_installation=VOR + [SCHL, ANM], nach_remove=VOR + [SCHL, ANM],
+            meldung="Entferne werkbank ...\n" + REST + "\n" + CREST + "\n", journal="werkbank: " + REST + "\nwerkbank: " + CREST + "\n")
+fall_remove("ablage-verloren", "Nachtrag Halter: `remove` hat anmeldung.copilot gelöscht (das tut nur `purge`)", "remove_schluessel_verloren",
+            heimwurzel="/srv/beispiel/heim", nach_installation=VOR + [SCHL, ANM], nach_remove=VOR + [SCHL],
+            meldung="Entferne werkbank ...\n" + REST + "\n")
+fall_remove("ablage-hinweis-fehlt", "Nachtrag Halter: anmeldung.copilot liegt nach `remove` da, aber die Meldung nennt nur die Schlüsseldatei", "remove_hinweis_fehlt",
+            heimwurzel="/srv/beispiel/heim", nach_installation=VOR + [SCHL, ANM], nach_remove=VOR + [SCHL, ANM])
+fall_remove("ablage-ohne-heimwurzel-ungeprueft", "ohne `heimwurzel` prüft ein Fall nur die Schlüsseldatei (wie vor dem Nachtrag)",
+            nach_installation=VOR + [SCHL, ANM], nach_remove=VOR + [SCHL])
 
 # ------------------------------------------------------------------------------------------ Einrichten: der Schlüssel erscheint nirgends
 MARKE = "SCHLUESSEL-PRUEFMARKE-0001"
@@ -1480,18 +1559,329 @@ fall_kerneinheit("folge-sperre-namensraeume", "`RestrictNamespaces=yes` zieht No
 fall_kerneinheit("mit-anderer-haertung-ohne-folge", "`ProtectHome=read-only` zieht NoNewPrivileges nicht nach sich und ist kein Befund dieses Falls", "ProtectHome=read-only\n")
 
 
+# ------------------------------------------------------------------------------------------ Schritt II: Systemnutzer wb-halter und drei Rollengruppen
+# Entscheid des Betreibers, 23.11.2026: Entscheidung 4 ist für wb-halter und drei Rollengruppen aufgehoben; purge nach Weg a.
+# Die Erwartungen stehen hier von Hand, unabhängig von referenz.py.
+SYS_KONTEN = ["konto:wb-halter", "gruppe:wb-halter", "gruppe:wb-hub", "gruppe:wb-bruecke", "gruppe:wb-oberflaeche"]
+
+# Stufe 9 mit setgid-Liste (Form `liste`, Feld `schritt` 2, dazu `gruppen`: Pfad -> Gruppe im gestuften Baum)
+MG = "usr/lib/werkbank/werkbank-modellweg"
+
+
+def fall_setgid(name, beschreibung, aenderung, gruppen, code=None, schritt=2):
+    m = dict(MODI_GUT)
+    m[MG] = "2755"
+    m.update(aenderung)
+    eintrag = {"beschreibung": beschreibung, "form": "liste", "liste": LISTE_LINUX, "ausschluss": AUSSCHLUSS_LINUX,
+               "quellen": QUELLEN_LINUX, "baum": BAUM_LINUX, "modi": m, "gruppen": gruppen}
+    if schritt is not None:
+        eintrag["schritt"] = schritt
+    fall("liste-setgid-" + name, eintrag, {"gueltig": True} if code is None else {"gueltig": False, "code": "paket." + code})
+
+
+fall_setgid("gueltig", "Schritt II: das Rollenprogramm der Brücke ist root:wb-bruecke 2755, alles andere ohne setgid", {}, {MG: "wb-bruecke"})
+fall_setgid("ausserhalb-liste", "Schritt II: `werkbank-pruefen` trägt setgid, steht aber nicht in der setgid-Liste", {"usr/bin/werkbank-pruefen": "2755"},
+            {MG: "wb-bruecke", "usr/bin/werkbank-pruefen": "wb-hub"}, "modus_setgid")
+fall_setgid("ordner-ausserhalb-liste", "Schritt II: ein Ordner mit setgid (2755) steht nicht in der Liste", {"usr/lib/werkbank/": "2755"},
+            {MG: "wb-bruecke"}, "modus_setgid")
+fall_setgid("falsche-gruppe", "Schritt II: das Rollenprogramm der Brücke trägt die Gruppe wb-hub statt wb-bruecke", {}, {MG: "wb-hub"}, "modus_setgid")
+fall_setgid("ohne-gruppe", "Schritt II: das Rollenprogramm trägt setgid, der Baum nennt aber keine Gruppe", {}, {}, "modus_setgid")
+fall_setgid("falscher-modus", "Schritt II: 2750 statt genau 2755", {MG: "2750"}, {MG: "wb-bruecke"}, "modus_setgid")
+fall_setgid("fehlt-an-listenpfad", "Schritt II: der Pfad der Liste liegt im Baum, aber ohne setgid (0755)", {MG: "0755"}, {MG: "wb-bruecke"}, "modus_setgid")
+fall_setgid("setuid-nie", "Schritt II: setuid (4755) ist nie erlaubt, auch nicht an einem Pfad der Liste", {MG: "4755"}, {MG: "wb-bruecke"}, "modus_setgid")
+fall_setgid("sticky-nie", "Schritt II: das Sticky-Bit an einem Ordner ist nie erlaubt", {"usr/lib/werkbank/": "1755"}, {MG: "wb-bruecke"}, "modus_setgid")
+fall_setgid("schreibbar-vor-setgid", "Schritt II: 2775 ist für die Gruppe schreibbar; der erste Teil von Stufe 9 meldet zuerst", {MG: "2775"}, {MG: "wb-bruecke"},
+            "modus_schreibbar")
+fall_setgid("schritt1-unveraendert", "Schritt I (ohne `schritt`): die setgid-Liste gilt nicht, Stufe 9 prüft nur Schreibrechte (unverändert)",
+            {"usr/bin/werkbank-pruefen": "2755"}, {}, None, schritt=None)
+
+# Installation: preinst legt Konto und Gruppen an (Form `systemnutzer`)
+PERSON = {"name": "nutzer1", "uid": 1000, "gruppe": "nutzer1", "heim": "/srv/beispiel/heim/nutzer1", "shell": "/bin/bash"}
+HALTER_KONTO = {"name": "wb-halter", "uid": 998, "gruppe": "wb-halter", "heim": "/nonexistent", "shell": "/usr/sbin/nologin"}
+GRUPPEN_VOR = [{"name": "nutzer1", "gid": 1000, "mitglieder": []}, {"name": "sudo", "gid": 27, "mitglieder": ["nutzer1"]}]
+SYS_GRUPPEN = [{"name": "wb-halter", "gid": 998, "mitglieder": []}, {"name": "wb-hub", "gid": 997, "mitglieder": []},
+               {"name": "wb-bruecke", "gid": 996, "mitglieder": []}, {"name": "wb-oberflaeche", "gid": 995, "mitglieder": []}]
+
+
+def stand(konten, gruppen):
+    return {"konten": copy.deepcopy(konten), "gruppen": copy.deepcopy(gruppen)}
+
+
+def fall_sysnutzer(name, beschreibung, code=None, vorher=None, nachher=None, rc=0):
+    fall("systemnutzer-" + name, {"beschreibung": beschreibung, "form": "systemnutzer",
+                                  "vorher": stand([PERSON], GRUPPEN_VOR) if vorher is None else vorher,
+                                  "nachher": stand([PERSON, HALTER_KONTO], GRUPPEN_VOR + SYS_GRUPPEN) if nachher is None else nachher,
+                                  "preinst_rc": rc},
+         {"gueltig": True} if code is None else {"gueltig": False, "code": "paket." + code})
+
+
+def nach(aendern):
+    s = stand([PERSON, HALTER_KONTO], GRUPPEN_VOR + SYS_GRUPPEN)
+    aendern(s)
+    return s
+
+
+def gruppe(s, name):
+    return next(g for g in s["gruppen"] if g["name"] == name)
+
+
+def konto(s, name):
+    return next(k for k in s["konten"] if k["name"] == name)
+
+
+fall_sysnutzer("gueltig-installation", "Installation: preinst legt das Systemkonto wb-halter (eigene Gruppe, /nonexistent, nologin) und die drei Rollengruppen an")
+fall_sysnutzer("gueltig-update-bestehend", "Update: Konto und Gruppen bestehen schon in der richtigen Form und bleiben unverändert",
+               vorher=stand([PERSON, HALTER_KONTO], GRUPPEN_VOR + SYS_GRUPPEN))
+fall_sysnutzer("konto-fehlt", "preinst endet mit 0, aber das Konto wb-halter fehlt", "konto_fehlt", nachher=stand([PERSON], GRUPPEN_VOR + SYS_GRUPPEN))
+fall_sysnutzer("gruppe-fehlt", "preinst endet mit 0, aber die Rollengruppe wb-oberflaeche fehlt", "konto_fehlt",
+               nachher=nach(lambda s: s["gruppen"].remove(gruppe(s, "wb-oberflaeche"))))
+fall_sysnutzer("rc-ohne-grund", "preinst endet mit 1, obwohl kein fremdes Konto im Weg ist", "konto_fehlt", rc=1)
+fall_sysnutzer("konto-form-shell", "das Konto wb-halter hat eine Anmelde-Shell", "konto_form", nachher=nach(lambda s: konto(s, "wb-halter").update(shell="/bin/bash")))
+fall_sysnutzer("konto-form-uid", "das Konto wb-halter liegt außerhalb des Bereichs der Systemkonten", "konto_form",
+               nachher=nach(lambda s: konto(s, "wb-halter").update(uid=1001)))
+fall_sysnutzer("konto-form-heim", "das Konto wb-halter hat einen Heimordner statt /nonexistent", "konto_form",
+               nachher=nach(lambda s: konto(s, "wb-halter").update(heim="/var/lib/wb-halter")))
+fall_sysnutzer("konto-form-hauptgruppe", "das Konto wb-halter hat nogroup statt der eigenen Gruppe", "konto_form",
+               nachher=nach(lambda s: konto(s, "wb-halter").update(gruppe="nogroup")))
+fall_sysnutzer("gruppe-form-gid", "die Rollengruppe wb-hub liegt außerhalb des Bereichs der Systemgruppen", "konto_form",
+               nachher=nach(lambda s: gruppe(s, "wb-hub").update(gid=1002)))
+fall_sysnutzer("mitglied-person", "die Person ist Mitglied der Rollengruppe wb-hub (sie bekäme die Rolle ohne Rollenprogramm)", "rollengruppe_mitglied",
+               nachher=nach(lambda s: gruppe(s, "wb-hub").update(mitglieder=["nutzer1"])))
+fall_sysnutzer("mitglied-halter", "das Konto wb-halter ist Mitglied der Rollengruppe wb-bruecke", "rollengruppe_mitglied",
+               nachher=nach(lambda s: gruppe(s, "wb-bruecke").update(mitglieder=["wb-halter"])))
+FREMD = {"name": "wb-halter", "uid": 1001, "gruppe": "wb-halter", "heim": "/srv/beispiel/heim/wb-halter", "shell": "/bin/bash"}
+fall_sysnutzer("fremd-konto-abbruch", "ein Mensch heißt schon wb-halter: preinst endet mit 24 und ändert nichts (fail closed)",
+               vorher=stand([PERSON, FREMD], GRUPPEN_VOR), nachher=stand([PERSON, FREMD], GRUPPEN_VOR), rc=24)
+fall_sysnutzer("fremd-konto-uebernommen", "ein Mensch heißt schon wb-halter, und preinst übernimmt das Konto", "konto_fremd",
+               vorher=stand([PERSON, FREMD], GRUPPEN_VOR), nachher=stand([PERSON, FREMD], GRUPPEN_VOR + SYS_GRUPPEN))
+FREMD_GRUPPE = {"name": "wb-hub", "gid": 997, "mitglieder": ["nutzer1"]}
+fall_sysnutzer("fremd-gruppe-abbruch", "eine Gruppe wb-hub mit Mitgliedern besteht schon: preinst endet mit 24 und ändert nichts",
+               vorher=stand([PERSON], GRUPPEN_VOR + [FREMD_GRUPPE]), nachher=stand([PERSON], GRUPPEN_VOR + [FREMD_GRUPPE]), rc=24)
+fall_sysnutzer("fremd-gruppe-uebernommen", "eine Gruppe wb-hub mit Mitgliedern besteht schon, und preinst legt den Rest daneben an", "konto_fremd",
+               vorher=stand([PERSON], GRUPPEN_VOR + [FREMD_GRUPPE]),
+               nachher=stand([PERSON, HALTER_KONTO], GRUPPEN_VOR + [FREMD_GRUPPE] + [g for g in SYS_GRUPPEN if g["name"] != "wb-hub"]))
+fall_sysnutzer("verloren-fremde-gruppe", "preinst hat die Person aus der Gruppe sudo genommen", "konto_verloren",
+               nachher=nach(lambda s: gruppe(s, "sudo").update(mitglieder=[])))
+fall_sysnutzer("form-feld-fehlt", "ein Konto ohne das Feld shell", "systemnutzer_form",
+               nachher=nach(lambda s: konto(s, "wb-halter").pop("shell")))
+
+# Update von Schritt I auf Schritt II: Umzug der Ablage (Form `umzug`)
+UMZUG_ZEILE = "werkbank: Umzug der Ablage gescheitert, Code 21"
+
+
+def geheim(name, eigentuemer="nutzer1", modus="0600", inhalt=None):
+    return {"name": name, "sha256": sha(inhalt or name), "modus": modus, "eigentuemer": eigentuemer}
+
+
+Q2 = [geheim("anmeldung.copilot"), geheim("mcp.wiki")]
+Z2 = [geheim("anmeldung.copilot", "wb-halter"), geheim("mcp.wiki", "wb-halter")]
+
+
+def fall_umzug(name, beschreibung, code=None, quelle_vorher=None, quelle_nachher=None, ziel_vorher=None, ziel_nachher=None, journal="", rc=0):
+    fall("umzug-" + name, {"beschreibung": beschreibung, "form": "umzug", "nutzer": "nutzer1",
+                           "quelle_vorher": Q2 if quelle_vorher is None else quelle_vorher,
+                           "quelle_nachher": [] if quelle_nachher is None else quelle_nachher,
+                           "ziel_vorher": [] if ziel_vorher is None else ziel_vorher,
+                           "ziel_nachher": Z2 if ziel_nachher is None else ziel_nachher,
+                           "journal": journal, "postinst_rc": rc},
+         {"gueltig": True} if code is None else {"gueltig": False, "code": "paket." + code})
+
+
+fall_umzug("gueltig-zwei-geheimnisse", "Update: beide Geheimnisse liegen danach unter /var/lib/wb-halter (wb-halter, 0600, gleicher Inhalt), die Quelle ist leer")
+fall_umzug("gueltig-ein-geheimnis", "Update mit nur anmeldung.copilot", quelle_vorher=Q2[:1], ziel_nachher=Z2[:1])
+fall_umzug("gueltig-ohne-quelle", "frische Installation oder keine Ablage der Person: nichts zu tun, keine Journalzeile", quelle_vorher=[], ziel_nachher=[])
+fall_umzug("gueltig-wiederholung", "ein früherer Lauf hatte das Ziel schon fertig (gleicher Inhalt); dieser Lauf räumt die Quelle", ziel_vorher=Z2)
+fall_umzug("gueltig-fremdes-im-ziel-bleibt", "ein anderes Geheimnis lag schon im Ziel und bleibt", ziel_vorher=[geheim("mcp.post", "wb-halter")],
+           ziel_nachher=[geheim("mcp.post", "wb-halter")] + Z2)
+fall_umzug("quelle-bleibt", "das Ziel ist fertig, aber eine Datei der Quelle liegt noch im Heim", "umzug_quelle_bleibt", quelle_nachher=Q2[1:])
+fall_umzug("gescheitert-quelle-bleibt", "der Umzug scheitert: Quelle und Ziel sind unverändert, das Journal nennt Code 21",
+           quelle_nachher=Q2, ziel_nachher=[], journal=UMZUG_ZEILE + "\n")
+fall_umzug("gescheitert-ohne-code", "der Umzug scheitert still: Quelle und Ziel sind unverändert, aber keine Journalzeile", "umzug_code_fehlt",
+           quelle_nachher=Q2, ziel_nachher=[])
+fall_umzug("halb-ziel", "halber Zustand: nur eines von zwei Geheimnissen liegt im Ziel, die Quelle ist unverändert", "umzug_halb",
+           quelle_nachher=Q2, ziel_nachher=Z2[:1], journal=UMZUG_ZEILE + "\n")
+fall_umzug("halb-quelle", "halber Zustand: das Ziel ist leer, aber eine Datei der Quelle ist schon gelöscht", "umzug_halb",
+           quelle_nachher=Q2[:1], ziel_nachher=[], journal=UMZUG_ZEILE + "\n")
+fall_umzug("inhalt-modus", "ein Geheimnis liegt im Ziel mit 0644", "umzug_inhalt", ziel_nachher=[Z2[0], geheim("mcp.wiki", "wb-halter", "0644")])
+fall_umzug("inhalt-eigentuemer", "ein Geheimnis liegt im Ziel, gehört aber noch der Person", "umzug_inhalt", ziel_nachher=[Z2[0], geheim("mcp.wiki")])
+fall_umzug("inhalt-anders", "ein Geheimnis liegt im Ziel mit anderem Inhalt", "umzug_inhalt",
+           ziel_nachher=[Z2[0], geheim("mcp.wiki", "wb-halter", inhalt="anderer Inhalt")])
+ALT = geheim("anmeldung.copilot", "wb-halter", inhalt="alte Anmeldung")
+fall_umzug("konflikt-bleibt", "im Ziel liegt anmeldung.copilot schon mit anderem Inhalt: nichts wird geändert, Code 21",
+           ziel_vorher=[ALT], quelle_nachher=Q2, ziel_nachher=[ALT], journal=UMZUG_ZEILE + "\n")
+fall_umzug("konflikt-ueberschrieben", "im Ziel lag anmeldung.copilot mit anderem Inhalt, und der Umzug hat es überschrieben", "umzug_konflikt",
+           ziel_vorher=[ALT])
+fall_umzug("abbruch", "der gescheiterte Umzug lässt postinst mit einem Fehler enden (Entscheidung 7 verbietet das)", "umzug_abbruch",
+           quelle_nachher=Q2, ziel_nachher=[], journal=UMZUG_ZEILE + "\n", rc=21)
+fall_umzug("code-falsch", "der Umzug gelingt, aber das Journal meldet Code 21", "umzug_code_falsch", journal=UMZUG_ZEILE + "\n")
+fall_umzug("form-name", "ein Name mit Schrägstrich ist keine Kennung", "umzug_form", quelle_vorher=[geheim("../anmeldung.copilot")])
+
+# remove in Schritt II: Ablage, Konto und Gruppen bleiben (Form `remove`, Feld `schritt` 2)
+ANM2 = "datei:/var/lib/wb-halter/geheim/anmeldung.copilot"
+WIKI2 = "datei:/var/lib/wb-halter/geheim/mcp.wiki"
+ABL2 = ["ordner:/var/lib/wb-halter", "ordner:/var/lib/wb-halter/geheim"]
+INST2 = VOR + [SCHL, ANM2, WIKI2] + ABL2 + SYS_KONTEN
+MELD2 = "Entferne werkbank ...\n" + REST + "\n" + CREST + "\n"
+
+
+def fall_remove2(name, beschreibung, code=None, **abweichung):
+    f = {"schritt": 2, "nach_installation": list(INST2), "nach_remove": list(INST2), "meldung": MELD2,
+         "journal": "werkbank: " + REST + "\nwerkbank: " + CREST + "\n"}
+    f.update(abweichung)
+    fall_remove("konto-" + name, beschreibung, code, **f)
+
+
+fall_remove2("gueltig", "Schritt II: nach `apt remove` liegen Ablage, Konto und Gruppen noch da, und die Meldung nennt beide Reste")
+fall_remove2("verloren", "Schritt II: `remove` hat das Konto wb-halter gelöscht", "remove_konto_verloren", nach_remove=[e for e in INST2 if e != "konto:wb-halter"])
+fall_remove2("gruppe-verloren", "Schritt II: `remove` hat die Rollengruppe wb-oberflaeche gelöscht", "remove_konto_verloren",
+             nach_remove=[e for e in INST2 if e != "gruppe:wb-oberflaeche"])
+fall_remove2("ablage-verloren", "Schritt II: `remove` hat anmeldung.copilot unter /var/lib/wb-halter gelöscht", "remove_schluessel_verloren",
+             nach_remove=[e for e in INST2 if e != ANM2])
+fall_remove2("anderes-geheimnis-verloren", "Schritt II: `remove` hat ein anderes Geheimnis der Ablage gelöscht", "remove_schluessel_verloren",
+             nach_remove=[e for e in INST2 if e != WIKI2])
+fall_remove2("hinweis-fehlt", "Schritt II: die Anmeldung liegt da, aber die Meldung nennt `pruef.copilot_rest` nicht", "remove_hinweis_fehlt",
+             meldung="Entferne werkbank ...\n" + REST + "\n")
+fall_remove2("reihenfolge-ablage-vor-konto", "Schritt II: Ablage und Konto gelöscht: `remove_schluessel_verloren` zuerst", "remove_schluessel_verloren",
+             nach_remove=[e for e in INST2 if e not in (ANM2, "konto:wb-halter")])
+
+# purge in Schritt II, Weg a (Form `entfernen`, Feld `schritt` 2, `rest` und `journal`)
+KONTO_REST = "werkbank: Konto wb-halter und Rollengruppen bleiben, Code 23"
+REST_DATEI = "/srv/beispiel/daten/bericht.txt"
+
+
+def fall_purge2(name, beschreibung, nachher, code=None, rest=None, journal="", **mounts):
+    eintrag = {"beschreibung": beschreibung, "form": "entfernen", "schritt": 2, "nutzer": NUTZER, "heimwurzel": "/srv/beispiel/heim",
+               "ergebnisdatei": ERGEBNIS, "vorher": list(VOR), "nachher": nachher,
+               "rest": {"dateien": [], "prozesse": []} if rest is None else rest, "journal": journal}
+    eintrag.update(mounts)  # nur die Fälle `entfernen-konto-mount-*` tragen einhaengepunkte, findmnt_fehler und alte_regel
+    fall("entfernen-konto-" + name, eintrag, {"gueltig": True} if code is None else {"gueltig": False, "code": "paket." + code})
+
+
+fall_purge2("gueltig-weg", "Schritt II: ohne Rest löscht `purge` Ablage, Konto und Gruppen; es bleibt nichts", list(VOR))
+fall_purge2("bleibt-ohne-rest", "Schritt II: ohne Rest steht das Konto wb-halter nach `purge` noch da", VOR + ["konto:wb-halter"], "entfernen_rueckstand")
+fall_purge2("gruppe-bleibt-ohne-rest", "Schritt II: ohne Rest steht die Rollengruppe wb-hub nach `purge` noch da", VOR + ["gruppe:wb-hub"], "entfernen_rueckstand")
+fall_purge2("ablage-bleibt", "Schritt II: `/var/lib/wb-halter` steht nach `purge` noch da", VOR + ["ordner:/var/lib/wb-halter"], "entfernen_rueckstand")
+fall_purge2("ablage-geheimnis-bleibt", "Schritt II: ein Geheimnis unter `/var/lib/wb-halter/geheim` steht nach `purge` noch da",
+            VOR + ["ordner:/var/lib/wb-halter", "ordner:/var/lib/wb-halter/geheim", ANM2], "entfernen_rueckstand")
+fall_purge2("einheit-bleibt", "Schritt II: die System-Einheit wb-halter.service ist nach `purge` noch bekannt", VOR + ["einheit:wb-halter.service"], "entfernen_rueckstand")
+fall_purge2("rest-datei-bleibt", "Schritt II, Weg a mit Rest: eine Datei mit der uid von wb-halter liegt außerhalb der Ablage; Konto und Gruppen bleiben, Code 23 im Journal",
+            VOR + SYS_KONTEN + ["datei:" + REST_DATEI], rest={"dateien": [REST_DATEI], "prozesse": []}, journal=KONTO_REST + "\n")
+fall_purge2("rest-prozess-bleibt", "Schritt II, Weg a mit Rest: ein fremder Prozess läuft unter wb-halter; Konto und Gruppen bleiben, Code 23 im Journal",
+            VOR + SYS_KONTEN + ["prozess:sleep"], rest={"dateien": [], "prozesse": ["sleep"]}, journal=KONTO_REST + "\n")
+fall_purge2("trotz-rest-geloescht", "Schritt II, Weg a: es gibt eine Datei mit der uid, aber `purge` hat das Konto gelöscht (die uid würde neu vergeben)",
+            VOR + ["datei:" + REST_DATEI], "entfernen_konto_trotz_rest", rest={"dateien": [REST_DATEI], "prozesse": []}, journal=KONTO_REST + "\n")
+fall_purge2("gruppe-trotz-rest-geloescht", "Schritt II, Weg a: es gibt einen Rest, aber `purge` hat die Rollengruppe wb-bruecke gelöscht",
+            VOR + [e for e in SYS_KONTEN if e != "gruppe:wb-bruecke"] + ["datei:" + REST_DATEI], "entfernen_konto_trotz_rest",
+            rest={"dateien": [REST_DATEI], "prozesse": []}, journal=KONTO_REST + "\n")
+fall_purge2("rest-ohne-meldung", "Schritt II, Weg a: Konto und Gruppen bleiben wegen eines Rests, aber das Journal nennt Code 23 nicht",
+            VOR + SYS_KONTEN + ["datei:" + REST_DATEI], "entfernen_rest_ohne_meldung", rest={"dateien": [REST_DATEI], "prozesse": []})
+fall_purge2("rest-halter-prozess", "Schritt II: der Halter selbst läuft noch; das ist ein Rückstand, kein Rest", VOR + SYS_KONTEN + ["prozess:werkbank-halter"],
+            "entfernen_rueckstand", rest={"dateien": [], "prozesse": ["werkbank-halter"]}, journal=KONTO_REST + "\n")
+fall_purge2("rest-in-ablage", "Schritt II: eine Datei mit der uid liegt noch in der Ablage; das ist ein Rückstand, kein Rest",
+            VOR + SYS_KONTEN + ["datei:/var/lib/wb-halter/geheim/anmeldung.copilot"], "entfernen_rueckstand",
+            rest={"dateien": ["/var/lib/wb-halter/geheim/anmeldung.copilot"], "prozesse": []}, journal=KONTO_REST + "\n")
+fall_purge2("rest-zweite-datei", "Schritt II, Weg a: nur die gemeldeten Reste bleiben; eine zweite, nicht gemeldete Datei ist ein Rückstand",
+            VOR + SYS_KONTEN + ["datei:" + REST_DATEI, "datei:/srv/beispiel/daten/zweite.txt"], "entfernen_rueckstand",
+            rest={"dateien": [REST_DATEI], "prozesse": []}, journal=KONTO_REST + "\n")
+fall_purge2("rest-form", "Schritt II: ein Rest mit relativem Pfad", VOR + SYS_KONTEN, "entfernen_form", rest={"dateien": ["relativ"], "prozesse": []})
+
+
+# purge in Schritt II: die Suche nach Resten geht über jeden lokalen Einhängepunkt (Teil A2, `purge` Schritt 3; Felder einhaengepunkte, findmnt_fehler, alte_regel)
+def punkt(pfad, typ, dateien=(), lesbar=True):
+    return {"pfad": pfad, "typ": typ, "lesbar": lesbar, "dateien": list(dateien)}
+
+
+M_WURZEL = punkt("/", "ext4")
+M_PSEUDO = [punkt("/proc", "proc"), punkt("/sys", "sysfs"), punkt("/dev", "devtmpfs"), punkt("/run", "tmpfs"), punkt("/sys/fs/cgroup", "cgroup2"),
+            punkt("/srv/beispiel/snap/kern", "squashfs"), punkt("/srv/beispiel/netz", "nfs4"), punkt("/srv/beispiel/freigabe", "cifs"),
+            punkt("/srv/beispiel/lauf/sitzung/doc", "fuse.portal", lesbar=False), punkt("/boot/efi", "vfat")]
+M_ZWEITE = punkt("/srv/beispiel/daten", "ext4", [REST_DATEI])
+M_OHNE_REST = [M_WURZEL] + M_PSEUDO + [punkt("/srv/beispiel/daten", "ext4")]
+fall_purge2("mount-rest-zweite-partition", "Schritt II, Weg a: die Datei mit der uid liegt auf einer zweiten Partition; die Suche über jeden Einhängepunkt findet sie, Konto und Gruppen bleiben, Code 23",
+            VOR + SYS_KONTEN + ["datei:" + REST_DATEI], journal=KONTO_REST + "\n", einhaengepunkte=[M_WURZEL] + M_PSEUDO[:5] + [M_ZWEITE], alte_regel="rot")
+fall_purge2("mount-rest-zweite-partition-nur-wurzel-geloescht", "Gegenprobe: dieselbe Lage, aber `purge` suchte nur mit `find / -xdev`, fand nichts und löschte Konto und Gruppen; die ersetzte Regel urteilt diesen Fall grün",
+            VOR + ["datei:" + REST_DATEI], "entfernen_konto_trotz_rest", einhaengepunkte=[M_WURZEL] + M_PSEUDO[:5] + [M_ZWEITE], alte_regel="gruen")
+fall_purge2("mount-rest-zweite-partition-ohne-meldung", "Schritt II: Rest auf der zweiten Partition, Konto und Gruppen bleiben, aber das Journal nennt Code 23 nicht",
+            VOR + SYS_KONTEN + ["datei:" + REST_DATEI], "entfernen_rest_ohne_meldung", einhaengepunkte=[M_WURZEL, M_ZWEITE])
+fall_purge2("mount-rest-auf-zwei-partitionen", "Schritt II: je eine Datei mit der uid auf zwei Partitionen; beide sind gemeldet, Konto und Gruppen bleiben",
+            VOR + SYS_KONTEN + ["datei:" + REST_DATEI, "datei:/srv/beispiel/ablage/nutzer2/notiz.txt"], journal=KONTO_REST + "\n",
+            einhaengepunkte=[M_WURZEL, M_ZWEITE, punkt("/srv/beispiel/ablage", "xfs", ["/srv/beispiel/ablage/nutzer2/notiz.txt"])], alte_regel="rot")
+fall_purge2("mount-rest-in-ablage-eigene-partition", "Schritt II: `/var/lib/wb-halter` liegt auf eigener Partition und enthält noch eine Datei; das ist ein Rückstand, kein Rest",
+            VOR + SYS_KONTEN + ["datei:/var/lib/wb-halter/geheim/anmeldung.copilot"], "entfernen_rueckstand", journal=KONTO_REST + "\n",
+            einhaengepunkte=[M_WURZEL, punkt("/var/lib/wb-halter", "ext4", ["/var/lib/wb-halter/geheim/anmeldung.copilot"])])
+fall_purge2("mount-nicht-lesbar-bleibt", "Schritt II: ein Einhängepunkt ist nicht lesbar; das gilt als Rest (fail closed), Konto und Gruppen bleiben, Code 23",
+            VOR + SYS_KONTEN, journal=KONTO_REST + "\n", einhaengepunkte=[M_WURZEL, punkt("/srv/beispiel/platte", "ext4", lesbar=False)], alte_regel="rot")
+fall_purge2("mount-nicht-lesbar-geloescht", "Schritt II: ein Einhängepunkt ist nicht lesbar, aber `purge` hat das Konto gelöscht",
+            list(VOR), "entfernen_konto_trotz_rest", einhaengepunkte=[M_WURZEL, punkt("/srv/beispiel/platte", "ext4", lesbar=False)], alte_regel="gruen")
+fall_purge2("mount-unbekannter-typ-bleibt", "Schritt II: ein Einhängepunkt mit einem Typ, der in keiner der beiden Listen steht; das gilt als Rest (fail closed)",
+            VOR + SYS_KONTEN, journal=KONTO_REST + "\n", einhaengepunkte=[M_WURZEL, punkt("/srv/beispiel/neu", "bcachefs")], alte_regel="rot")
+fall_purge2("mount-unbekannter-typ-geloescht", "Schritt II: ein Einhängepunkt mit unbekanntem Typ, aber `purge` hat das Konto gelöscht",
+            list(VOR), "entfernen_konto_trotz_rest", einhaengepunkte=[M_WURZEL, punkt("/srv/beispiel/neu", "bcachefs")], alte_regel="gruen")
+fall_purge2("mount-findmnt-fehler-bleibt", "Schritt II: `findmnt` scheitert, die Liste fehlt; das gilt als Rest (fail closed), Konto und Gruppen bleiben, Code 23",
+            VOR + SYS_KONTEN, journal=KONTO_REST + "\n", einhaengepunkte=[], findmnt_fehler=True, alte_regel="rot")
+fall_purge2("mount-findmnt-fehler-geloescht", "Schritt II: `findmnt` scheitert, aber `purge` hat das Konto gelöscht",
+            list(VOR), "entfernen_konto_trotz_rest", einhaengepunkte=[], findmnt_fehler=True, alte_regel="gruen")
+fall_purge2("mount-nur-pseudo-ohne-rest-weg", "Schritt II: neben der Wurzel nur Pseudo-, Netz- und Abbild-Dateisysteme und die Systempartition, kein Rest: Konto und Gruppen sind weg, kein Code 23",
+            list(VOR), einhaengepunkte=M_OHNE_REST, alte_regel="gruen")
+fall_purge2("mount-nur-pseudo-ohne-rest-konto-bleibt", "Schritt II: dieselbe Lage ohne Rest, aber Konto und Gruppen stehen noch da; das ist ein Rückstand",
+            VOR + SYS_KONTEN, "entfernen_rueckstand", einhaengepunkte=M_OHNE_REST)
+fall_purge2("mount-pseudo-nicht-lesbar-weg", "Schritt II: ein ausgenommener Typ (Sitzungsansicht von FUSE) ist nicht lesbar; das zählt nicht als Rest, Konto und Gruppen sind weg",
+            list(VOR), einhaengepunkte=[M_WURZEL, punkt("/srv/beispiel/lauf/sitzung/doc", "fuse.portal", lesbar=False), punkt("/srv/beispiel/lauf/sitzung/gvfs", "fuse.gvfsd-fuse", lesbar=False)])
+fall_purge2("mount-form-datei-auf-pseudo", "Schritt II: der Fall nennt eine Datei auf einem ausgenommenen Typ; `purge` kann sie nicht finden, der Fall darf sie nicht behaupten",
+            VOR + SYS_KONTEN, "entfernen_form", einhaengepunkte=[M_WURZEL, punkt("/srv/beispiel/ram", "tmpfs", ["/srv/beispiel/ram/x.txt"])])
+fall_purge2("mount-form-datei-ausserhalb", "Schritt II: die Datei liegt nicht unter ihrem Einhängepunkt", VOR + SYS_KONTEN, "entfernen_form",
+            einhaengepunkte=[M_WURZEL, punkt("/srv/beispiel/daten", "ext4", ["/srv/beispiel/andere/x.txt"])])
+fall_purge2("mount-form-wurzel-fehlt", "Schritt II: die Liste der Einhängepunkte hat keine Wurzel, obwohl `findmnt` nicht gescheitert ist", list(VOR), "entfernen_form",
+            einhaengepunkte=[punkt("/srv/beispiel/daten", "ext4")])
+fall_purge2("mount-form-doppelt", "Schritt II: derselbe Einhängepunkt steht zweimal in der Liste", list(VOR), "entfernen_form",
+            einhaengepunkte=[M_WURZEL, M_WURZEL])
+fall_purge2("mount-form-fehler-mit-liste", "Schritt II: `findmnt` ist gescheitert, aber der Fall bringt eine Liste mit", list(VOR), "entfernen_form",
+            einhaengepunkte=[M_WURZEL], findmnt_fehler=True)
+fall_purge2("mount-form-rest-dateien-doppelt", "Schritt II: Dateien stehen zugleich in `rest` und in der Liste der Einhängepunkte", VOR + SYS_KONTEN + ["datei:" + REST_DATEI],
+            "entfernen_form", rest={"dateien": [REST_DATEI], "prozesse": []}, journal=KONTO_REST + "\n", einhaengepunkte=[M_WURZEL, M_ZWEITE])
+
+
+# Fälle des Nachtrags Halter, die der heutige Code der Crates nicht besteht (Crate werkbank-pruefen liest `manifest-` und
+# `pruefung-linux-`). Sie liegen in `faelle-ausstehend/` und `erwartet-ausstehend/`, die kein Crate liest. Die Änderung, die den Code
+# bringt (README.md der Ordner), verschiebt sie im selben Merge nach `faelle/` und `erwartet/` und leert diese Liste.
+AUSSTEHEND = {
+    "manifest-pflichtdatei-linux-halter",
+    "manifest-pflichtdatei-linux-halter-andere-art",
+    "manifest-pflichtdatei-linux-einheit-halter",
+    "pruefung-linux-copilot-ablage",
+    "pruefung-linux-copilot-alter-ort",
+    "pruefung-linux-copilot-alter-ort-und-fehlt",
+    "pruefung-linux-dienst-bruecke-und-halter-reihenfolge",
+    "pruefung-linux-dienst-halter-fehlgeschlagen",
+    "pruefung-linux-dienst-halter-fehlt",
+    "pruefung-linux-dienst-halter-gruen",
+    "pruefung-linux-dienst-halter-inaktiv",
+    "pruefung-linux-dienst-halter-nicht-pruefbar",
+    "pruefung-linux-vor-entfernen-ablage",
+}
+
+
 def schreiben():
-    for ordner in ("faelle", "erwartet"):
+    paare = (("faelle", "erwartet"), ("faelle-ausstehend", "erwartet-ausstehend"))
+    for ordner in (o for paar in paare for o in paar):
         pfad = HIER / ordner
-        if pfad.exists():
+        if pfad.exists() and ordner in ("faelle", "erwartet"):
             shutil.rmtree(pfad)
-        pfad.mkdir()
+            pfad.mkdir()
+        elif pfad.exists():
+            # Die README.md dieser Ordner ist von Hand geschrieben und bleibt.
+            for alt in pfad.glob("*.json"):
+                alt.unlink()
+        else:
+            pfad.mkdir()
     namen = [n for n, _, _ in FAELLE]
     assert len(namen) == len(set(namen)), "doppelter Fallname"
+    assert AUSSTEHEND <= set(namen), f"ausstehend, aber kein Fall: {sorted(AUSSTEHEND - set(namen))}"
     for name, eintrag, erwartet in FAELLE:
-        (HIER / "faelle" / f"{name}.json").write_text(json.dumps(eintrag, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-        (HIER / "erwartet" / f"{name}.json").write_text(json.dumps(erwartet, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(f"{len(FAELLE)} Fälle geschrieben")
+        f_ordner, e_ordner = paare[1] if name in AUSSTEHEND else paare[0]
+        (HIER / f_ordner / f"{name}.json").write_text(json.dumps(eintrag, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        (HIER / e_ordner / f"{name}.json").write_text(json.dumps(erwartet, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"{len(FAELLE) - len(AUSSTEHEND)} Fälle geschrieben, {len(AUSSTEHEND)} ausstehend")
 
 
 if __name__ == "__main__":

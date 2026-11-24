@@ -1,5 +1,5 @@
 {
- "description": "serve --embed zusammen mit --vectors: Exit 2",
+ "description": "serve --embed zusammen mit --vectors: Exit 64",
  "ziele": [
   "aufruffehler"
  ],

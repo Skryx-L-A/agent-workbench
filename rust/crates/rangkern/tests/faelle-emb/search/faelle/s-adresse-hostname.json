@@ -1,5 +1,5 @@
 {
- "description": "Adresse mit einem Rechnernamen: Exit 2",
+ "description": "Adresse mit einem Rechnernamen: Exit 64",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

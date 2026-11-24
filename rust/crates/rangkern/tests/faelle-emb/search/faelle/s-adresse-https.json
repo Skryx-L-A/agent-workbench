@@ -1,5 +1,5 @@
 {
- "description": "Schema https statt http: Exit 2",
+ "description": "Schema https statt http: Exit 64",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

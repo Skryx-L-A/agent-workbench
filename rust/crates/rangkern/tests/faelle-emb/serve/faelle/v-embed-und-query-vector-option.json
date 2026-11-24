@@ -1,5 +1,5 @@
 {
- "description": "serve --embed mit der Option --query-vector (gibt es bei serve nicht): Exit 2",
+ "description": "serve --embed mit der Option --query-vector (gibt es bei serve nicht): Exit 64",
  "ziele": [
   "embed-mit-query-vector",
   "aufruffehler"

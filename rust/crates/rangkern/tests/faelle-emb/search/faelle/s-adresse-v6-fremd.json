@@ -1,5 +1,5 @@
 {
- "description": "IPv6-Adresse außerhalb von ::1: Exit 2",
+ "description": "IPv6-Adresse außerhalb von ::1: Exit 64",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

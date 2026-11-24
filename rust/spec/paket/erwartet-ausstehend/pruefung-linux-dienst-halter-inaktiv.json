@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.dienst_inaktiv: Der Dienst wb-halter.service ist nicht aktiv.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

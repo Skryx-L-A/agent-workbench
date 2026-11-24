@@ -509,6 +509,30 @@ fn under_macos_a_relative_path_a_path_of_104_bytes_and_a_folder_that_is_not_0700
     fs::set_permissions(&welt.root, fs::Permissions::from_mode(0o700)).expect("mode");
 }
 
+/// Review B7 (23.11.2026): under Linux the process checks the folder of the socket as under macOS, also with
+/// `--socket-rechte 0666`. A folder that is not 0700 ends the start with 74 and leaves the path empty; the positive control is
+/// the same start with the folder 0700.
+#[cfg(target_os = "linux")]
+#[test]
+fn under_linux_a_socket_folder_that_is_not_0700_ends_the_start_with_74_also_with_0666() {
+    let welt = Welt::new();
+    for modus in [0o755, 0o750, 0o711] {
+        fs::set_permissions(&welt.root, fs::Permissions::from_mode(modus)).expect("mode");
+        for rechte in ["0600", "0666"] {
+            assert_eq!(
+                welt.scheitert(&welt.args("cloud", &["--socket-rechte", rechte])),
+                74,
+                "{modus:o} {rechte}"
+            );
+            assert!(!welt.sock().exists(), "nothing is made");
+        }
+    }
+    fs::set_permissions(&welt.root, fs::Permissions::from_mode(0o700)).expect("mode");
+    let lauf = welt.starten("cloud", &["--socket-rechte", "0666"]);
+    assert!(welt.sock().exists());
+    drop(lauf);
+}
+
 #[cfg(target_os = "linux")]
 #[test]
 fn the_process_is_not_dumpable() {
@@ -541,12 +565,12 @@ fn the_exit_codes_of_the_start() {
         neu
     };
     let gut = welt.args("cloud", &[]);
-    // Exit 2: a usage error.
+    // Exit 64: a usage error.
     let mut kurz = gut.clone();
     kurz.extend(["--rout".to_string(), "cloud".to_string()]);
     assert_eq!(welt.scheitert(&kurz), 64, "short form");
     assert_eq!(welt.scheitert(&["sitzung".to_string()]), 64, "no arguments");
-    assert_eq!(welt.scheitert(&["tor".to_string()]), 2, "unknown command");
+    assert_eq!(welt.scheitert(&["tor".to_string()]), 64, "unknown command");
     assert_eq!(welt.scheitert(&ohne(&gut, "--sitzung")), 64, "no session");
     assert_eq!(welt.scheitert(&ohne(&gut, "--route")), 64, "no route");
     assert_eq!(welt.scheitert(&ohne(&gut, "--socket")), 64, "no socket");
@@ -1374,6 +1398,71 @@ fn the_start_of_the_probe_run_ends_with_78_when_the_count_file_cannot_be_written
     assert!(!welt.sock().exists(), "the socket is removed again");
 }
 
+/// The count file belongs to 78, and 78 comes before 74 (contract 4, table of the start; decision of 23.11.2026): with a taken
+/// socket path and a count file that cannot be written the start ends with 78, makes no socket, writes no line and leaves the
+/// file at the socket path as it is. The positive control: the same start with a free socket path and a usable count file
+/// starts.
+#[test]
+fn the_count_file_is_checked_before_the_socket_and_ends_with_78() {
+    let welt = Welt::new();
+    let mit_zaehlung = |rel: &str| {
+        let mut args = welt.args("cloud", &probe_args());
+        let at = args.iter().position(|a| a == "ZAEHL").expect("placeholder");
+        args[at] = welt.pfad(rel).to_string_lossy().to_string();
+        args
+    };
+    fs::write(welt.sock(), "fremd").expect("a file at the socket path");
+    // The folder of the count file is missing.
+    assert_eq!(
+        welt.scheitert(&mit_zaehlung("fehlt/zaehlung.json")),
+        78,
+        "missing folder"
+    );
+    // The folder is a link to a usable folder.
+    fs::create_dir_all(welt.pfad("echt")).expect("folder");
+    symlink(welt.pfad("echt"), welt.pfad("verweis")).expect("link");
+    assert_eq!(
+        welt.scheitert(&mit_zaehlung("verweis/zaehlung.json")),
+        78,
+        "linked folder"
+    );
+    // At the name stands a link.
+    fs::create_dir_all(welt.pfad("zaehl")).expect("folder");
+    symlink(
+        welt.pfad("echt/ziel.json"),
+        welt.pfad("zaehl/zaehlung.json"),
+    )
+    .expect("link");
+    assert_eq!(
+        welt.scheitert(&mit_zaehlung("zaehl/zaehlung.json")),
+        78,
+        "link at the name"
+    );
+    fs::remove_file(welt.pfad("zaehl/zaehlung.json")).expect("remove the link");
+    // The folder cannot be written (not as root: root writes anyway).
+    fs::set_permissions(welt.pfad("zaehl"), fs::Permissions::from_mode(0o500)).expect("chmod");
+    if fs::write(welt.pfad("zaehl/probe"), "x").is_err() {
+        assert_eq!(
+            welt.scheitert(&mit_zaehlung("zaehl/zaehlung.json")),
+            78,
+            "folder not writable"
+        );
+    }
+    fs::set_permissions(welt.pfad("zaehl"), fs::Permissions::from_mode(0o755)).expect("chmod");
+    let _ = fs::remove_file(welt.pfad("zaehl/probe"));
+    assert_eq!(fs::read_to_string(welt.sock()).expect("untouched"), "fremd");
+    assert!(
+        welt.protokoll().is_empty(),
+        "no line for a start that failed"
+    );
+    assert!(!welt.pfad("echt/zaehlung.json").exists() && !welt.pfad("echt/ziel.json").exists());
+    // The positive control: a free socket path and a usable count file start.
+    fs::remove_file(welt.sock()).expect("free the socket path");
+    let lauf = welt.starten_probe("cloud");
+    assert!(welt.sock().exists());
+    drop(lauf);
+}
+
 #[test]
 fn the_usage_errors_of_the_probe_run() {
     let welt = Welt::new();
@@ -1409,7 +1498,7 @@ fn the_usage_errors_of_the_probe_run() {
 // ---- the clarifications of 20.11. ---------------------------------------------------------------------------------
 
 #[test]
-fn an_empty_value_ends_with_2_before_any_look_at_a_file_or_the_socket() {
+fn an_empty_value_ends_with_64_before_any_look_at_a_file_or_the_socket() {
     let welt = Welt::new();
     // The settings are missing and the socket path is taken: 78 and 74 would follow, but the empty value comes first.
     fs::remove_file(welt.pfad("aux/einstellungen.json")).expect("remove");
@@ -1503,7 +1592,7 @@ fn a_failed_log_line_after_the_counting_leaves_the_count_and_sends_an_error() {
 }
 
 #[test]
-fn a_marker_twice_in_the_option_ends_with_2() {
+fn a_marker_twice_in_the_option_ends_with_64() {
     let welt = Welt::new();
     fs::create_dir_all(welt.pfad("zaehl")).expect("folder");
     let datei = welt

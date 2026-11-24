@@ -1,0 +1,42 @@
+{
+ "beschreibung": "Ein gesperrter und ein erlaubter Nachfolger: nur der erlaubte steht in abgeloest_durch, status bleibt",
+ "herkunft": "vertrag4:t-nachfolger-gemischt",
+ "orte": [
+  "mac"
+ ],
+ "files": {
+  "vault/projekte/regel-alt.md": "---\ntitle: \"Regel alt\"\ntype: \"note\"\ndatenklasse: \"intern\"\nstatus: \"superseded\"\nsuperseded-by: [\"[[regel-qkx35]]\", \"[[regel-neu]]\"]\n---\n\nDie Regel Torzeit gilt bis Herbst. Torzeit.\n",
+  "vault/kunden/nord/regel-qkx35.md": "---\ntitle: \"Regel QKX35\"\ntype: \"note\"\ndatenklasse: \"kundendaten\"\nkunde: \"k-nord\"\n---\n\nNachfolgetext QKX35.\n",
+  "vault/projekte/regel-neu.md": "---\ntitle: \"Regel neu\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nDie neue Regel.\n",
+  "aux/einstellungen.json": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-nord\",\n   \"erlaubt\": [\n    \"lokal\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+ },
+ "dirs": [
+  "home",
+  "protokoll"
+ ],
+ "args": [
+  "sitzung",
+  "{root}/vault",
+  "--socket",
+  "{sock}",
+  "--route",
+  "cloud",
+  "--sitzung",
+  "s-test-1",
+  "--einstellungen",
+  "{root}/aux/einstellungen.json",
+  "--protokoll",
+  "{root}/protokoll"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "search",
+    "query": "Torzeit"
+   }
+  }
+ ],
+ "verboten": [
+  "qkx35"
+ ]
+}

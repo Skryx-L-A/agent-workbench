@@ -1,5 +1,5 @@
 {
- "description": "--embed zusammen mit --vectors (ohne --index-db): Exit 2",
+ "description": "--embed zusammen mit --vectors (ohne --index-db): Exit 64",
  "program": "rangkern",
  "ziele": [
   "aufruffehler"

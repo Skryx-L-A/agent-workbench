@@ -1,0 +1,37 @@
+{
+ "start": "bereit",
+ "responses": [
+  {
+   "fallback": true,
+   "rels": [
+    "a/pumpe-mmm.md"
+   ],
+   "gesperrt": 0
+  }
+ ],
+ "protokoll": [
+  {
+   "aktionsname": "probelauf.zaehlung",
+   "anzahl": 1,
+   "ergebnis": "an",
+   "fassung": 2,
+   "programm": "suche",
+   "sitzung": "s-test-1"
+  }
+ ],
+ "ende": {
+  "pipe_weg": true,
+  "exit_attrappe": 0
+ },
+ "marker_zaehlung": {
+  "datei": "zaehl/zaehlung.json",
+  "inhalt": {
+   "antworten": 1,
+   "marker": {
+    "MM": 3
+   },
+   "sitzung": "s-test-1"
+  }
+ },
+ "stderr_zeile": "such.probelauf: Marker werden gezählt"
+}

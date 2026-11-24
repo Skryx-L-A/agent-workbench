@@ -1,5 +1,5 @@
 {
- "description": "Adresse mit Benutzerteil (user@): Exit 2",
+ "description": "Adresse mit Benutzerteil (user@): Exit 64",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

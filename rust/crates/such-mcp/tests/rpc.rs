@@ -543,19 +543,43 @@ fn the_answer_line_comes_back_unchanged_as_text() {
         r#"{"fallback":true,"hits":[],"gesperrt":1}"#,
         r#"{"hits":[{"rel":"a\"b","titel":"Größe ä"}],"gesperrt":0,"fallback":false}"#,
         r#"{ "ok" : true }"#,
-        "[1,2]",
-        "5",
-        "kein json",
-        "",
-        "mit \\ und \" und \t",
         r#"{"x":{"error":"nur verschachtelt"}}"#,
         r#"{"errors":1}"#,
-        r#"[{"error":"in einer Liste"}]"#,
-        r#""error""#,
     ] {
         let attrappe = Attrappe::mit(antwort);
         let ergebnis = lauf(&attrappe, &aufruf(r#"{"query":"x"}"#)).expect("an answer");
         text_ergebnis(&ergebnis, antwort, false);
+        assert_eq!(attrappe.gefragt.borrow().len(), 1);
+    }
+}
+
+/// JSON that is no object is marked as an error as well (fail closed, decision of 23.11.2026); its text comes back unchanged.
+/// Until 23.11.2026 these four answers stood in `the_answer_line_comes_back_unchanged_as_text` with `isError: false`.
+#[test]
+fn json_that_is_no_object_comes_back_unchanged_and_is_marked_as_an_error() {
+    for antwort in [
+        "[1,2]",
+        "5",
+        r#"[{"error":"in einer Liste"}]"#,
+        r#""error""#,
+        "null",
+        "true",
+    ] {
+        let attrappe = Attrappe::mit(antwort);
+        let ergebnis = lauf(&attrappe, &aufruf(r#"{"query":"x"}"#)).expect("an answer");
+        text_ergebnis(&ergebnis, antwort, true);
+        assert_eq!(attrappe.gefragt.borrow().len(), 1);
+    }
+}
+
+/// An answer without valid JSON is marked as an error (fail closed, decision of 23.11.2026); its text comes back unchanged. Until
+/// 23.11.2026 these three answers stood in `the_answer_line_comes_back_unchanged_as_text` with `isError: false`.
+#[test]
+fn an_answer_without_valid_json_comes_back_unchanged_and_is_marked_as_an_error() {
+    for antwort in ["kein json", "", "mit \\ und \" und \t", r#"{"hits":["#] {
+        let attrappe = Attrappe::mit(antwort);
+        let ergebnis = lauf(&attrappe, &aufruf(r#"{"query":"x"}"#)).expect("an answer");
+        text_ergebnis(&ergebnis, antwort, true);
         assert_eq!(attrappe.gefragt.borrow().len(), 1);
     }
 }

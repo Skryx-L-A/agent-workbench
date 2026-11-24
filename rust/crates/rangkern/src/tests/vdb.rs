@@ -810,7 +810,7 @@ fn the_database_options_go_with_each_other_and_not_with_the_vector_file() {
     for options in bad {
         let mut args = vec!["search", &vault, "beet"];
         args.extend_from_slice(options);
-        assert_eq!(call(&args), (2, String::new()), "{options:?}");
+        assert_eq!(call(&args), (64, String::new()), "{options:?}");
     }
     // `search` keeps `argparse`: a repeated option counts with its last value.
     assert_eq!(
@@ -833,7 +833,7 @@ fn the_database_options_go_with_each_other_and_not_with_the_vector_file() {
     for options in [["--index", index.as_str()], ["--query", q.as_str()]] {
         assert_eq!(
             call(&["search", &vault, "beet", options[0], options[1]]),
-            (2, String::new())
+            (64, String::new())
         );
     }
     assert_eq!(
@@ -985,7 +985,7 @@ fn serve_takes_the_database_options_by_the_same_rules() {
     for options in bad {
         let mut args = vec!["serve", vault.as_str()];
         args.extend_from_slice(options);
-        assert_eq!(serve_call(&args, ping), (2, String::new()), "{options:?}");
+        assert_eq!(serve_call(&args, ping), (64, String::new()), "{options:?}");
     }
     // Each option at most once.
     let twice: [&[&str]; 5] = [
@@ -1005,7 +1005,7 @@ fn serve_takes_the_database_options_by_the_same_rules() {
     for options in twice {
         let mut args = vec!["serve", vault.as_str()];
         args.extend_from_slice(options);
-        assert_eq!(serve_call(&args, ping), (2, String::new()), "{options:?}");
+        assert_eq!(serve_call(&args, ping), (64, String::new()), "{options:?}");
     }
 }
 

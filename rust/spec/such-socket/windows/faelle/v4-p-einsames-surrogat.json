@@ -1,0 +1,45 @@
+{
+ "beschreibung": "Escape \\ud800 ohne zweite Hälfte: bad_request ohne id; ein gültiges Paar geht",
+ "herkunft": "vertrag4:p-einsames-surrogat",
+ "files": {
+  "vault/projekte/lieferplan.md": "---\ntitle: \"Lieferplan Lager\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nDer Lieferplan regelt die Termine im Lager.\n",
+  "vault/kunden/nord/lieferplan-qkx1.md": "---\ntitle: \"Lieferplan QKX1\"\ntype: \"note\"\ndatenklasse: \"kundendaten\"\nkunde: \"k-nord\"\n---\n\nLieferplan QKX1: Lieferplan und Preise des Kunden. Lieferplan QKX1 bleibt intern.\n",
+  "vault/handbuch/lieferplan-lesen.md": "---\ntitle: \"Lieferplan lesen\"\ntype: \"note\"\ndatenklasse: \"oeffentlich\"\n---\n\nWie man einen Lieferplan liest.\n",
+  "vault/eingang/lieferplan-qkx2.md": "---\ntitle: \"Lieferplan QKX2\"\ntype: \"note\"\n---\n\nLieferplan QKX2 kam ohne Klasse an.\n",
+  "vault/sonst/wetter.md": "---\ntitle: \"Wetter\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nSonne und Regen im Herbst.\n",
+  "aux/einstellungen.json": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-nord\",\n   \"erlaubt\": [\n    \"lokal\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+ },
+ "dirs": [
+  "home",
+  "protokoll"
+ ],
+ "args": [
+  "sitzung",
+  "{root}/vault",
+  "--socket",
+  "{pipe}",
+  "--paket-sid",
+  "{paket_sid}",
+  "--route",
+  "cloud",
+  "--sitzung",
+  "s-test-1",
+  "--einstellungen",
+  "{root}/aux/einstellungen.json",
+  "--protokoll",
+  "{root}/protokoll"
+ ],
+ "steps": [
+  {
+   "line": "{\"op\":\"ping\",\"id\":\"\\ud800\"}"
+  },
+  {
+   "line": "{\"op\":\"ping\",\"id\":\"\\ud83d\\ude00\"}"
+  }
+ ],
+ "verboten": [],
+ "orte": [
+  "attrappe",
+  "vm-container"
+ ]
+}

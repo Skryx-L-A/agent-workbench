@@ -1,0 +1,8 @@
+{
+ "start": {
+  "exit": 74
+ },
+ "nachher_fehlt": [
+  "zaehl/zaehlung.json"
+ ]
+}

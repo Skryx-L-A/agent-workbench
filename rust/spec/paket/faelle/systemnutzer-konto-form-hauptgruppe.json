@@ -1,0 +1,82 @@
+{
+ "beschreibung": "das Konto wb-halter hat nogroup statt der eigenen Gruppe",
+ "form": "systemnutzer",
+ "vorher": {
+  "konten": [
+   {
+    "name": "nutzer1",
+    "uid": 1000,
+    "gruppe": "nutzer1",
+    "heim": "/srv/beispiel/heim/nutzer1",
+    "shell": "/bin/bash"
+   }
+  ],
+  "gruppen": [
+   {
+    "name": "nutzer1",
+    "gid": 1000,
+    "mitglieder": []
+   },
+   {
+    "name": "sudo",
+    "gid": 27,
+    "mitglieder": [
+     "nutzer1"
+    ]
+   }
+  ]
+ },
+ "nachher": {
+  "konten": [
+   {
+    "name": "nutzer1",
+    "uid": 1000,
+    "gruppe": "nutzer1",
+    "heim": "/srv/beispiel/heim/nutzer1",
+    "shell": "/bin/bash"
+   },
+   {
+    "name": "wb-halter",
+    "uid": 998,
+    "gruppe": "nogroup",
+    "heim": "/nonexistent",
+    "shell": "/usr/sbin/nologin"
+   }
+  ],
+  "gruppen": [
+   {
+    "name": "nutzer1",
+    "gid": 1000,
+    "mitglieder": []
+   },
+   {
+    "name": "sudo",
+    "gid": 27,
+    "mitglieder": [
+     "nutzer1"
+    ]
+   },
+   {
+    "name": "wb-halter",
+    "gid": 998,
+    "mitglieder": []
+   },
+   {
+    "name": "wb-hub",
+    "gid": 997,
+    "mitglieder": []
+   },
+   {
+    "name": "wb-bruecke",
+    "gid": 996,
+    "mitglieder": []
+   },
+   {
+    "name": "wb-oberflaeche",
+    "gid": 995,
+    "mitglieder": []
+   }
+  ]
+ },
+ "preinst_rc": 0
+}

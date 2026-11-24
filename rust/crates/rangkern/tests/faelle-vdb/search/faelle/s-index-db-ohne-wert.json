@@ -1,5 +1,5 @@
 {
- "description": "--index-db ohne Wert am Ende: Aufruffehler, Exit 2",
+ "description": "--index-db ohne Wert am Ende: Aufruffehler, Exit 64",
  "program": "rangkern",
  "ziele": [
   "aufruf"

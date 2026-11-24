@@ -1,5 +1,5 @@
 {
- "description": "-k 0: Aufruffehler, Exit 2",
+ "description": "-k 0: Aufruffehler, Exit 64",
  "program": "rangkern",
  "args": [
   "search",

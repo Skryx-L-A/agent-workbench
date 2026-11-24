@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Nachtrag Halter: .local/state ist ein Verweis; nie verfolgt, nichts angelegt",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "erfolg",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "ebene-verweis",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

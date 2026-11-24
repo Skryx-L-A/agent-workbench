@@ -15,7 +15,7 @@
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io;
-use std::os::fd::{AsFd, OwnedFd};
+use std::os::fd::{AsFd, BorrowedFd, OwnedFd};
 use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 
@@ -74,6 +74,14 @@ impl Kennung {
 #[derive(Debug)]
 pub struct Ordner {
     fd: OwnedFd,
+}
+
+/// The descriptor of the folder, for a check by `fstat` or `faccessat` on the folder that is held (review B6, 23.11.2026):
+/// read only, nothing in this file deletes through it.
+impl AsFd for Ordner {
+    fn as_fd(&self) -> BorrowedFd<'_> {
+        self.fd.as_fd()
+    }
 }
 
 impl Ordner {

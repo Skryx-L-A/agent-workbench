@@ -1,5 +1,5 @@
 {
- "description": "serve mit einem Rechnernamen als --embed: Exit 2",
+ "description": "serve mit einem Rechnernamen als --embed: Exit 64",
  "ziele": [
   "adresse-nicht-loopback"
  ],

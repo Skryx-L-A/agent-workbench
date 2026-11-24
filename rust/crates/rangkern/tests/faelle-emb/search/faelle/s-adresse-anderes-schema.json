@@ -1,5 +1,5 @@
 {
- "description": "Schema ftp mit Loopback: Exit 2",
+ "description": "Schema ftp mit Loopback: Exit 64",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

@@ -65,10 +65,25 @@ def ersetze_arg(args: list[str], option: str, wert: str | None) -> list[str]:
     return args[:i] + args[i + 2:] if wert is None else args[:i + 1] + [wert] + args[i + 2:]
 
 
+# Erweiterungen von ../pruefe.py vom 23.11.2026, die dieser Läufer nicht kennt. Solche Fälle übernimmt der Bauer nicht; sie
+# laufen unter macOS über `pruefe_macos.py --vertrag4` direkt aus ../sichtbar (wie r-*).
+V4_SCHRITT_GRUNDFORM = {"request", "line", "write", "chmod", "verbindung"}
+V4_ERWEITERT = {"env_extra", "vorher_rechte", "ende_signal"}
+
+
+def nur_v4(fall: dict, erw: dict) -> bool:
+    """True, wenn der Fall eine Erweiterung von ../pruefe.py braucht (Schritt, Feld des Falls oder der Erwartung)."""
+    if V4_ERWEITERT & set(fall) or "nachher_fehlt" in erw:
+        return True
+    return any(not set(s) <= V4_SCHRITT_GRUNDFORM | {"antwort"} or s.get("ohne_lf") for s in fall["steps"])
+
+
 def v4_faelle() -> dict[str, tuple[dict, dict]]:
     aus: dict[str, tuple[dict, dict]] = {}
     for p in sorted((V4 / "sichtbar/faelle").glob("*.json")):
-        if p.stem in WEG_V4:
+        if p.stem in WEG_V4 or p.stem.startswith("r-") or nur_v4(lade(p), lade(V4 / "sichtbar/erwartet" / p.name)):
+            # r-*: Rückfall der Einbettung (Attrappe, Datenbank); unter macOS fährt sie pruefe_macos.py --vertrag4
+            # direkt aus ../sichtbar, unter Windows schreibt der Such-Prozess die Zeile noch nicht.
             continue
         fall = lade(p)
         erw = lade(V4 / "sichtbar/erwartet" / p.name)

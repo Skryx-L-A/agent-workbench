@@ -1,0 +1,41 @@
+{
+ "beschreibung": "Schritt II: Ablage und Konto gelöscht: `remove_schluessel_verloren` zuerst",
+ "form": "remove",
+ "nutzer": "nutzer1",
+ "marke": "SCHLUESSEL-PRUEFMARKE-0001",
+ "nach_installation": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "datei:/var/lib/werkbank/nutzer1/modellweg.schluessel",
+  "datei:/var/lib/wb-halter/geheim/anmeldung.copilot",
+  "datei:/var/lib/wb-halter/geheim/mcp.wiki",
+  "ordner:/var/lib/wb-halter",
+  "ordner:/var/lib/wb-halter/geheim",
+  "konto:wb-halter",
+  "gruppe:wb-halter",
+  "gruppe:wb-hub",
+  "gruppe:wb-bruecke",
+  "gruppe:wb-oberflaeche"
+ ],
+ "nach_remove": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "datei:/var/lib/werkbank/nutzer1/modellweg.schluessel",
+  "datei:/var/lib/wb-halter/geheim/mcp.wiki",
+  "ordner:/var/lib/wb-halter",
+  "ordner:/var/lib/wb-halter/geheim",
+  "gruppe:wb-halter",
+  "gruppe:wb-hub",
+  "gruppe:wb-bruecke",
+  "gruppe:wb-oberflaeche"
+ ],
+ "meldung": "Entferne werkbank ...\npruef.schluessel_rest: Eine Schluesseldatei liegt noch da; apt purge loescht sie.\npruef.copilot_rest: Eine Anmeldedatei der Copilot CLI liegt noch da; apt purge loescht sie.\n",
+ "journal": "werkbank: pruef.schluessel_rest: Eine Schluesseldatei liegt noch da; apt purge loescht sie.\nwerkbank: pruef.copilot_rest: Eine Anmeldedatei der Copilot CLI liegt noch da; apt purge loescht sie.\n",
+ "schritt": 2
+}

@@ -1,0 +1,18 @@
+{
+ "start": "bereit",
+ "socket_rechte": "0600",
+ "responses": [
+  {
+   "fallback": true,
+   "rels": [
+    "sonst/wetter.md"
+   ],
+   "gesperrt": 0,
+   "id": 1
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "exit": 0
+ }
+}

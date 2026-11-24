@@ -10,13 +10,39 @@ use std::path::Path;
 use std::sync::{Mutex, PoisonError};
 
 use formate::kette::kanonisch;
-use rustix::fs::Mode;
+use rustix::fs::{Access, AtFlags, FileType, Mode};
 use serde_json::{Map, Value, json};
 
 use super::loeschen::{Kennung, Ordner};
 
 /// The fixed line on the error output before the readiness line.
 pub const STDERR_ZEILE: &str = "such.probelauf: Marker werden gezählt";
+
+/// The check of the count file before the socket (contract 4, table of the start: 78 comes before 74; decision of 23.11.2026,
+/// W3): its folder exists and is no link, the process may write into it, and at the name stands nothing or a plain file, no
+/// link. The file itself is written only after the socket.
+///
+/// # Errors
+///
+/// The folder is missing, a link or not writable, or the name shows a link, a folder or anything else but a plain file.
+pub fn zaehldatei_pruefen(datei: &Path) -> io::Result<()> {
+    let (ordner, name) = Ordner::von(datei)?;
+    if ordner
+        .kennung(&name)
+        .is_some_and(|da| !da.ist(FileType::RegularFile))
+    {
+        return Err(io::Error::other(
+            "the count file is no plain file (a link does not count)",
+        ));
+    }
+    rustix::fs::accessat(
+        &ordner,
+        ".",
+        Access::WRITE_OK.union(Access::EXEC_OK),
+        AtFlags::EACCESS,
+    )?;
+    Ok(())
+}
 
 /// How often `marker` stands in `puffer`, from the left, with no overlap.
 #[must_use]
@@ -41,6 +67,8 @@ pub fn zaehle(puffer: &[u8], marker: &[u8]) -> u64 {
 struct Stand {
     antworten: u64,
     anzahl: Vec<u64>,
+    /// Kind, device and inode of the file this process wrote last: only that file is removed again (review B8).
+    datei: Option<Kennung>,
 }
 
 /// The counting of one process.
@@ -68,6 +96,7 @@ impl Zaehlung {
         let stand = Stand {
             antworten: 0,
             anzahl: vec![0; marker.len()],
+            datei: None,
         };
         let (ordner, name) = Ordner::von(datei.as_ref())?;
         let zaehlung = Self {
@@ -77,8 +106,22 @@ impl Zaehlung {
             sitzung,
             stand: Mutex::new(stand),
         };
-        zaehlung.schreiben(&zaehlung.stand())?;
+        {
+            let mut stand = zaehlung.stand();
+            stand.datei = Some(zaehlung.schreiben(&stand)?);
+        }
         Ok(zaehlung)
+    }
+
+    /// Removes the count file if its name still shows the file this process wrote last; `true` if it was removed. For a start
+    /// that fails after the file was written (review B8): nothing of the failed start stays. Anything else under the name stays.
+    #[must_use]
+    pub fn entfernen(&self) -> bool {
+        let stand = self.stand();
+        stand
+            .datei
+            .as_ref()
+            .is_some_and(|soll| self.ordner.entfernen_wenn(&self.name, soll))
     }
 
     /// The number of markers.
@@ -99,7 +142,7 @@ impl Zaehlung {
     /// The error of the write.
     pub fn zaehlen(&self, puffer: &[u8]) -> io::Result<()> {
         let mut stand = self.stand();
-        let neu = Stand {
+        let mut neu = Stand {
             antworten: stand.antworten + 1,
             anzahl: self
                 .marker
@@ -107,8 +150,9 @@ impl Zaehlung {
                 .zip(&stand.anzahl)
                 .map(|(marker, bisher)| bisher + zaehle(puffer, marker.as_bytes()))
                 .collect(),
+            datei: None,
         };
-        self.schreiben(&neu)?;
+        neu.datei = Some(self.schreiben(&neu)?);
         *stand = neu;
         Ok(())
     }
@@ -130,8 +174,9 @@ impl Zaehlung {
     }
 
     /// Writes the file atomically: a file beside it with mode 0600, then rename. Everything goes relative to the open
-    /// folder; on a failure the file beside it is deleted only if it is still the one this call made.
-    fn schreiben(&self, stand: &Stand) -> io::Result<()> {
+    /// folder; on a failure the file beside it is deleted only if it is still the one this call made. Returns the kind, device
+    /// and inode of the file now under the name.
+    fn schreiben(&self, stand: &Stand) -> io::Result<Kennung> {
         let text = self.text(stand)?;
         let daneben = daneben(&self.name);
         let mut datei = self
@@ -145,7 +190,7 @@ impl Zaehlung {
         if geschrieben.is_err() {
             let _ = self.ordner.entfernen_wenn(&daneben, &soll);
         }
-        geschrieben
+        geschrieben.map(|()| soll)
     }
 }
 

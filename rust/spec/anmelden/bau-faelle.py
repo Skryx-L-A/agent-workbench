@@ -97,7 +97,27 @@ FAELLE = {
 }
 
 
-def erwartet(f):
+# Fälle des Nachtrags Halter, die der heutige Code des Crates `anmelden` nicht besteht (der Test kennt die neuen Werte von `ziel` nicht,
+# und `ordner-fehlt` endet dort noch mit `ziel_nicht_schreibbar`). Sie liegen in `faelle-ausstehend/` und `erwartet-ausstehend/`, die kein
+# Crate liest. Die Änderung, die den Code bringt (README.md der Ordner), verschiebt sie im selben Merge nach `faelle/` und `erwartet/`; die
+# beiden gleichnamigen Fälle ersetzen dann die heutigen. `ziel-schreibgeschuetzt` ist nur anders beschrieben (gleiche Erwartung).
+FAELLE_AUSSTEHEND = {
+    "ziel-ordner-fehlt": fall("Nachtrag Halter: keine Ebene der Ablage ab .local ist da; der Befehl legt alle mit 0700 an und speichert (alt: ziel_nicht_schreibbar)", ziel="ordner-fehlt"),
+    "ziel-heim-fehlt": fall("Nachtrag Halter: das Heim aus passwd gibt es nicht", ziel="heim-fehlt"),
+    "ziel-ebene-verweis": fall("Nachtrag Halter: .local/state ist ein Verweis; nie verfolgt, nichts angelegt", ziel="ebene-verweis"),
+    "ziel-ebene-geteilt": fall("Nachtrag Halter: agent-workbench ist für die Gruppe schreibbar", ziel="ebene-geteilt"),
+    "erfolg-alte-datei-bleibt": fall("Nachtrag Halter: die Datei des früheren Ziels unter /var/lib/werkbank wird weder gelesen noch geändert", ziel="alte-datei"),
+    "ziel-schreibgeschuetzt": fall("Ordner geheim der Ablage mit Modus 0500 statt 0700", ziel="schreibgeschuetzt"),
+}
+
+# Ziele, an denen der Zielordner den Befehl mit `ziel_nicht_schreibbar` enden lässt. Heute: ein fehlender oder ein nicht schreibbarer
+# Zielordner. Seit dem Nachtrag Halter (Ablage des Halters, Abschnitt 2): `ordner-fehlt` gehört nicht mehr dazu (der Befehl legt fehlende
+# Ebenen an); dafür gehören die Verstöße gegen die Regeln der Ebenen dazu.
+ZIEL_KAPUTT_HEUTE = ("ordner-fehlt", "schreibgeschuetzt")
+ZIEL_KAPUTT = ("schreibgeschuetzt", "heim-fehlt", "ebene-verweis", "ebene-geteilt")
+
+
+def erwartet(f, kaputt):
     a = f["args"]
     gueltig = a in (["copilot"], ["copilot", "--neu"])
     neu = a == ["copilot", "--neu"]
@@ -127,7 +147,7 @@ def erwartet(f):
         vor = HINWEIS_REST % 1
     if f["ziel"] == "datei-da" and not neu:
         return fehler("anmelden.datei_da")
-    if f["ziel"] in ("ordner-fehlt", "schreibgeschuetzt"):
+    if f["ziel"] in kaputt:
         return fehler("anmelden.ziel_nicht_schreibbar")
     if f["attrappe"] == "fehlt":
         return fehler("anmelden.cli_fehlt")
@@ -236,13 +256,22 @@ FAELLE_UEB = {
     "ueb-reste-verweis-bleibt": ueb("Verweis mit dem Namen einer Temp-Datei bleibt, sein Ziel wird nicht berührt", reste="verweis"),
 }
 
+
+# Wie FAELLE_AUSSTEHEND, für die Übernahme (`faelle-uebernehmen-ausstehend/`, `erwartet-uebernehmen-ausstehend/`).
+FAELLE_UEB_AUSSTEHEND = {
+    "ueb-ziel-ordner-fehlt": ueb("Nachtrag Halter: keine Ebene der Ablage ab .local ist da; der Befehl legt alle an und übernimmt (alt: ziel_nicht_schreibbar)", ziel="ordner-fehlt"),
+    "ueb-ziel-schreibgeschuetzt": ueb("Ordner geheim der Ablage mit Modus 0500 statt 0700", ziel="schreibgeschuetzt"),
+    "ueb-ziel-heim-fehlt": ueb("Nachtrag Halter: das Heim aus passwd gibt es nicht; config.json bleibt unverändert", ziel="heim-fehlt"),
+    "ueb-ziel-ebene-verweis": ueb("Nachtrag Halter: .local/state ist ein Verweis; nie verfolgt, config.json bleibt unverändert", ziel="ebene-verweis"),
+}
+
 QUELLE_UNSICHER = ("verweis", "hardlink", "zu-gross", "fifo", "ordner")
 QUELLE_OHNE_TOKEN = ("ohne-config", "kein-json", "ohne-feld", "zwei-tokens", "weitere-anmeldung",
                       "token-ausserhalb", "token-andere-tiefe", "kommentar-mitte", "blockkommentar", "komma-vor-klammer", "alte-form")
 RESTE_TOT = {"keine": 0, "schluessel-temp": 1, "config-temp": 1, "beide": 2, "lebend": 0, "verweis": 0}
 
 
-def erwartet_ueb(f):
+def erwartet_ueb(f, kaputt):
     a = f["args"]
     neu = a == UEB_NEU
     e = {"exit": 0, "code": None, "stdout": "", "stderr": "", "ziel_datei": "keine", "config": "unveraendert",
@@ -277,7 +306,7 @@ def erwartet_ueb(f):
         return fehler("anmelden.quelle_ohne_token")
     if not form_ok(f["token"]):
         return fehler("anmelden.form_falsch")
-    if f["ziel"] in ("ordner-fehlt", "schreibgeschuetzt"):
+    if f["ziel"] in kaputt:
         return fehler("anmelden.ziel_nicht_schreibbar")
     if f["ziel"] == "datei-da" and not neu:
         return fehler("anmelden.datei_da")
@@ -297,14 +326,20 @@ def erwartet_ueb(f):
 
 
 def main():
-    for faelle, erw, menge, rechne in (("faelle", "erwartet", FAELLE, erwartet),
-                                       ("faelle-uebernehmen", "erwartet-uebernehmen", FAELLE_UEB, erwartet_ueb)):
+    # (Ordner der Fälle, Ordner der Antworten, Fälle, Antwort je Fall). Die ausstehenden Ordner enthalten außer den Fällen eine
+    # von Hand geschriebene README.md; sie bleibt, die JSON-Dateien werden neu erzeugt.
+    for faelle, erw, menge, rechne in (
+        ("faelle", "erwartet", FAELLE, lambda f: erwartet(f, ZIEL_KAPUTT_HEUTE)),
+        ("faelle-uebernehmen", "erwartet-uebernehmen", FAELLE_UEB, lambda f: erwartet_ueb(f, ZIEL_KAPUTT_HEUTE)),
+        ("faelle-ausstehend", "erwartet-ausstehend", FAELLE_AUSSTEHEND, lambda f: erwartet(f, ZIEL_KAPUTT)),
+        ("faelle-uebernehmen-ausstehend", "erwartet-uebernehmen-ausstehend", FAELLE_UEB_AUSSTEHEND, lambda f: erwartet_ueb(f, ZIEL_KAPUTT)),
+    ):
         for ordner in (faelle, erw):
             (HIER / ordner).mkdir(exist_ok=True)
         for name, f in menge.items():
             (HIER / faelle / (name + ".json")).write_text(json.dumps(f, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
             (HIER / erw / (name + ".json")).write_text(json.dumps(rechne(f), ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print("%d Fälle, %d Fälle der Übernahme" % (len(FAELLE), len(FAELLE_UEB)))
+    print("%d Fälle, %d Fälle der Übernahme, ausstehend: %d und %d" % (len(FAELLE), len(FAELLE_UEB), len(FAELLE_AUSSTEHEND), len(FAELLE_UEB_AUSSTEHEND)))
 
 
 if __name__ == "__main__":

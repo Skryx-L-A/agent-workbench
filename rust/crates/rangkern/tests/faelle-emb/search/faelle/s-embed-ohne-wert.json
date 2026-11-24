@@ -1,5 +1,5 @@
 {
- "description": "--embed als letztes Argument ohne Wert: Exit 2",
+ "description": "--embed als letztes Argument ohne Wert: Exit 64",
  "program": "rangkern",
  "ziele": [
   "aufruffehler"

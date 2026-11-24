@@ -29,6 +29,9 @@ impl Welt {
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(root.join("vault")).expect("vault");
         fs::create_dir_all(root.join("protokoll")).expect("log folder");
+        // The folder of the socket is 0700: `rangkern sitzung` checks it under Linux too (review B7, 23.11.2026).
+        fs::set_permissions(&root, std::os::unix::fs::PermissionsExt::from_mode(0o700))
+            .expect("mode of the folder");
         fs::write(
             root.join("vault/a.md"),
             "---\ntitle: Eine Notiz\n---\nText der Notiz.\n",
@@ -293,7 +296,7 @@ fn an_inherited_hard_limit_0_gives_exit_5_with_a_pipe_pattern_and_a_note_with_a_
         let ende = laufen_lassen(welt.befehl(true, &["serve".to_string()]));
         assert_eq!(
             ende.code,
-            Some(2),
+            Some(64),
             "usage error after the note: {}",
             ende.stderr
         );
@@ -361,7 +364,7 @@ fn an_inherited_hard_limit_0_gives_exit_5_with_a_pipe_pattern_and_a_note_with_a_
 }
 
 /// The step comes before the other arguments: `sitzung` without arguments ends with 64 only when the step passed, and `serve` without a
-/// vault ends with 2 only then. With a pipe pattern and the hard limit 0 both end with 5 first.
+/// vault ends with 64 only then. With a pipe pattern and the hard limit 0 both end with 5 first.
 #[test]
 fn the_step_comes_before_the_arguments_are_read() {
     let welt = Welt::new("reihenfolge");
@@ -373,7 +376,7 @@ fn the_step_comes_before_the_arguments_are_read() {
         ohne.stderr
     );
     let ohne = laufen_lassen(welt.befehl(false, &["serve".to_string()]));
-    assert_eq!(ohne.code, Some(2), "{}", ohne.stderr);
+    assert_eq!(ohne.code, Some(64), "{}", ohne.stderr);
     if muster_des_wirts().is_some_and(|m| ist_pipe(&m)) {
         for befehl in ["sitzung", "serve"] {
             let ende = laufen_lassen(welt.befehl(true, &[befehl.to_string()]));

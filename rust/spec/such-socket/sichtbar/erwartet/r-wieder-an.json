@@ -1,0 +1,92 @@
+{
+ "start": "bereit",
+ "socket_rechte": "0600",
+ "responses": [
+  {
+   "fallback": false,
+   "rels": [
+    "sonst/wetter.md",
+    "projekte/lieferplan.md",
+    "handbuch/lieferplan-lesen.md"
+   ],
+   "gesperrt": 2,
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "rels": [
+    "sonst/wetter.md"
+   ],
+   "gesperrt": 0,
+   "id": 2
+  },
+  {
+   "fallback": false,
+   "rels": [
+    "sonst/wetter.md",
+    "projekte/lieferplan.md",
+    "handbuch/lieferplan-lesen.md"
+   ],
+   "gesperrt": 2,
+   "id": 3
+  }
+ ],
+ "protokoll": [
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": "k-nord",
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  },
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": null,
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  },
+  {
+   "aktionsname": "suche.rueckfall",
+   "ergebnis": "lexikalisch",
+   "fassung": 2,
+   "grund": "keine_verbindung",
+   "route": "cloud",
+   "sitzung": "s-test-1"
+  },
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": "k-nord",
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  },
+  {
+   "aktionsname": "ausgabe.gesperrt",
+   "ergebnis": "gesperrt",
+   "fassung": 2,
+   "route": "cloud",
+   "sitzung": "s-test-1",
+   "klasse": "kundendaten",
+   "kunde": null,
+   "grund": "klasse-ueber-route",
+   "anzahl": 1
+  }
+ ],
+ "ende": {
+  "exit": 0
+ },
+ "einbettung_aufrufe": 2
+}

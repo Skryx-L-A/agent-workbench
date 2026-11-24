@@ -443,7 +443,7 @@ fn wrong_usage_is_exit_2_without_output() {
             .stdin(Stdio::null())
             .output()
             .expect("program runs");
-        assert_eq!(output.status.code(), Some(2), "{args:?}");
+        assert_eq!(output.status.code(), Some(64), "{args:?}");
         assert!(output.stdout.is_empty(), "{args:?}");
     }
 }

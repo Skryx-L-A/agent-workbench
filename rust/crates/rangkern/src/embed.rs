@@ -42,13 +42,70 @@ const CONNECT_MS: u64 = 250;
 /// The deadline is at most this long (about 49 days), so that adding it to the clock cannot overflow.
 const TIMEOUT_MAX_MS: u64 = 4_294_967_295;
 
-/// One try failed: no connection, deadline over, a reply that is not what the call needs.
-struct Failed;
+/// Why the embedding of a question gave no vector: the failure of its last try (contract 4, section "Rückfall der
+/// Einbettung"). The three reasons split every failure of a try.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Grund {
+    /// No TCP connection to any address of the endpoint: refused, or `CONNECT_MS` (or the smaller rest of the deadline)
+    /// ran out.
+    KeineVerbindung,
+    /// After the connect the deadline of the try ran out: a write or read ended with `TimedOut` or `WouldBlock`, or the
+    /// rest was zero and the socket refused it as a timeout.
+    Frist,
+    /// Any other failure after the connect: a status other than 200, a head or body over its limit, a connection closed
+    /// before the end, another input or output error, no JSON, no vector (`first_vector`).
+    AntwortUngueltig,
+}
+
+impl Grund {
+    /// The value of the field `grund` of the log line `suche.rueckfall` (contract 5, section 6.5).
+    #[must_use]
+    pub const fn text(self) -> &'static str {
+        match self {
+            Self::KeineVerbindung => "keine_verbindung",
+            Self::Frist => "frist",
+            Self::AntwortUngueltig => "antwort_ungueltig",
+        }
+    }
+}
+
+/// The reason of an input or output error after the connect: the deadline for `TimedOut` and `WouldBlock` (the socket
+/// timeout of Linux and macOS ends a read or write with `EAGAIN`), an invalid answer for every other kind.
+pub(crate) fn grund_des_fehlers(kind: io::ErrorKind) -> Grund {
+    match kind {
+        io::ErrorKind::TimedOut | io::ErrorKind::WouldBlock => Grund::Frist,
+        _ => Grund::AntwortUngueltig,
+    }
+}
+
+/// The reason when the socket refuses the timeout `left`: a zero rest is the end of the deadline, anything else an
+/// invalid answer.
+pub(crate) fn grund_der_frist(left: Duration) -> Grund {
+    if left.is_zero() {
+        Grund::Frist
+    } else {
+        Grund::AntwortUngueltig
+    }
+}
+
+/// One try failed, with its reason.
+struct Failed(Grund);
+
+/// A failure after the connect that is no input or output error: the answer is not what the call needs.
+const INVALID: Failed = Failed(Grund::AntwortUngueltig);
 
 impl From<io::Error> for Failed {
-    fn from(_: io::Error) -> Self {
-        Failed
+    fn from(error: io::Error) -> Self {
+        Failed(grund_des_fehlers(error.kind()))
     }
+}
+
+/// Sets the timeout `left` with `set`; a refusal counts by [`grund_der_frist`].
+fn frist_setzen(
+    left: Duration,
+    set: impl FnOnce(Option<Duration>) -> io::Result<()>,
+) -> Result<(), Failed> {
+    set(Some(left)).map_err(|_| Failed(grund_der_frist(left)))
 }
 
 /// The loopback address of the call: where to connect (in this order) and what to write as `Host`.
@@ -174,7 +231,9 @@ impl Wire {
     /// Reads what is there into the buffer; `Ok(false)` at the end of the stream.
     fn fill(&mut self) -> Result<bool, Failed> {
         let mut chunk = [0_u8; 8192];
-        self.stream.set_read_timeout(Some(self.deadline.left()))?;
+        frist_setzen(self.deadline.left(), |left| {
+            self.stream.set_read_timeout(left)
+        })?;
         let count = self.stream.read(&mut chunk)?;
         self.buf.extend_from_slice(&chunk[..count]);
         Ok(count > 0)
@@ -197,11 +256,11 @@ impl Wire {
                 return Ok(line);
             }
             if window - self.used > HEAD_LINE_MAX {
-                return Err(Failed);
+                return Err(INVALID);
             }
             from = window;
             if !self.fill()? {
-                return Err(Failed);
+                return Err(INVALID);
             }
         }
     }
@@ -221,14 +280,14 @@ struct Head {
 /// Reads the status line and the header lines; `Err` unless the status is 200.
 fn read_head(wire: &mut Wire) -> Result<Head, Failed> {
     let status = wire.line()?;
-    let status = std::str::from_utf8(&status).map_err(|_| Failed)?;
+    let status = std::str::from_utf8(&status).map_err(|_| INVALID)?;
     let mut parts = status.splitn(3, ' ');
     let version = parts.next().unwrap_or_default();
     if version != "HTTP/1.1" && version != "HTTP/1.0" {
-        return Err(Failed);
+        return Err(INVALID);
     }
     if parts.next() != Some("200") {
-        return Err(Failed);
+        return Err(INVALID);
     }
     let mut head = Head {
         chunked: false,
@@ -239,36 +298,36 @@ fn read_head(wire: &mut Wire) -> Result<Head, Failed> {
         if line.is_empty() {
             return Ok(head);
         }
-        let line = std::str::from_utf8(&line).map_err(|_| Failed)?;
-        let (name, value) = line.split_once(':').ok_or(Failed)?;
+        let line = std::str::from_utf8(&line).map_err(|_| INVALID)?;
+        let (name, value) = line.split_once(':').ok_or(INVALID)?;
         let value = value.trim_matches([' ', '\t']);
         if name.eq_ignore_ascii_case("transfer-encoding") {
             if !value.eq_ignore_ascii_case("chunked") {
-                return Err(Failed);
+                return Err(INVALID);
             }
             head.chunked = true;
         } else if name.eq_ignore_ascii_case("content-length") {
             if !all_digits(value, u8::is_ascii_digit) {
-                return Err(Failed);
+                return Err(INVALID);
             }
-            let length: usize = value.parse().map_err(|_| Failed)?;
+            let length: usize = value.parse().map_err(|_| INVALID)?;
             if head.length.is_some_and(|before| before != length) {
-                return Err(Failed);
+                return Err(INVALID);
             }
             head.length = Some(length);
         }
     }
-    Err(Failed)
+    Err(INVALID)
 }
 
 /// Reads `count` bytes of the body.
 fn take(wire: &mut Wire, count: usize) -> Result<Vec<u8>, Failed> {
     if count > BODY_MAX {
-        return Err(Failed);
+        return Err(INVALID);
     }
     while wire.buf.len() - wire.used < count {
         if !wire.fill()? {
-            return Err(Failed);
+            return Err(INVALID);
         }
     }
     let part = wire.buf[wire.used..wire.used + count].to_vec();
@@ -282,30 +341,30 @@ fn read_chunked(wire: &mut Wire) -> Result<Vec<u8>, Failed> {
     let mut body = Vec::new();
     loop {
         let line = wire.line()?;
-        let size = std::str::from_utf8(&line).map_err(|_| Failed)?;
+        let size = std::str::from_utf8(&line).map_err(|_| INVALID)?;
         let size = size
             .split(';')
             .next()
             .unwrap_or_default()
             .trim_matches([' ', '\t']);
         if !all_digits(size, u8::is_ascii_hexdigit) {
-            return Err(Failed);
+            return Err(INVALID);
         }
-        let size = usize::from_str_radix(size, 16).map_err(|_| Failed)?;
+        let size = usize::from_str_radix(size, 16).map_err(|_| INVALID)?;
         if size == 0 {
             for _ in 0..HEAD_LINES_MAX {
                 if wire.line()?.is_empty() {
                     return Ok(body);
                 }
             }
-            return Err(Failed);
+            return Err(INVALID);
         }
         if body.len() + size > BODY_MAX {
-            return Err(Failed);
+            return Err(INVALID);
         }
         body.extend_from_slice(&take(wire, size)?);
         if !wire.line()?.is_empty() {
-            return Err(Failed);
+            return Err(INVALID);
         }
     }
 }
@@ -321,7 +380,7 @@ fn read_body(wire: &mut Wire, head: &Head) -> Result<Vec<u8>, Failed> {
     }
     while wire.fill()? {
         if wire.buf.len() - wire.used > BODY_MAX {
-            return Err(Failed);
+            return Err(INVALID);
         }
     }
     Ok(wire.buf[wire.used..].to_vec())
@@ -353,8 +412,27 @@ impl Embedder {
     /// The vector of `question`: the first try and, after a failure, one more. `None` when both fail.
     #[must_use]
     pub fn embed(&self, question: &str) -> Option<Vec<f64>> {
+        self.einbetten(question).ok()
+    }
+
+    /// As [`Embedder::embed`], with the reason of the last try when both fail. The tries are the same.
+    ///
+    /// # Errors
+    ///
+    /// The [`Grund`] of the last try when no try gives a vector.
+    pub fn einbetten(&self, question: &str) -> Result<Vec<f64>, Grund> {
         let body = request_body(&self.model, question, &self.keep_alive);
-        (0..=RETRIES).find_map(|_| first_vector(&self.exchange(&body).ok()?))
+        let mut grund = Grund::AntwortUngueltig;
+        for _ in 0..=RETRIES {
+            match self
+                .exchange(&body)
+                .and_then(|answer| first_vector(&answer).ok_or(INVALID))
+            {
+                Ok(vector) => return Ok(vector),
+                Err(Failed(last)) => grund = last,
+            }
+        }
+        Err(grund)
     }
 
     /// One try: connects, writes the request, reads the answer, closes the connection. The body of
@@ -374,7 +452,7 @@ impl Embedder {
             buf: Vec::new(),
             used: 0,
         };
-        wire.stream.set_write_timeout(Some(deadline.left()))?;
+        frist_setzen(deadline.left(), |left| wire.stream.set_write_timeout(left))?;
         wire.stream.write_all(request.as_bytes())?;
         // The connection is closed when `wire` goes out of scope, after every answer and every failure.
         read_head(&mut wire).and_then(|head| read_body(&mut wire, &head))
@@ -388,6 +466,6 @@ impl Embedder {
                 return Ok(stream);
             }
         }
-        Err(Failed)
+        Err(Failed(Grund::KeineVerbindung))
     }
 }

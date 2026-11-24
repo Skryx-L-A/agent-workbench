@@ -1,0 +1,8 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.dienst_fehlt: Der Dienst wb-halter.service ist nicht eingetragen.",
+  "pruef.rot: 1 Befunde."
+ ]
+}

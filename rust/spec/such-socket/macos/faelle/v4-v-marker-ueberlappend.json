@@ -1,0 +1,44 @@
+{
+ "beschreibung": "Marker MM in MMM und MMMM: von links ohne Überlappung gezählt",
+ "herkunft": "vertrag4:v-marker-ueberlappend",
+ "orte": [
+  "mac"
+ ],
+ "files": {
+  "vault/a/pumpe-mmm.md": "---\ntitle: \"Pumpe MMM\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nPumpe MMMM im Keller.\n",
+  "aux/einstellungen.json": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-nord\",\n   \"erlaubt\": [\n    \"lokal\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+ },
+ "dirs": [
+  "home",
+  "protokoll",
+  "zaehl"
+ ],
+ "args": [
+  "sitzung",
+  "{root}/vault",
+  "--socket",
+  "{sock}",
+  "--route",
+  "cloud",
+  "--sitzung",
+  "s-test-1",
+  "--einstellungen",
+  "{root}/aux/einstellungen.json",
+  "--protokoll",
+  "{root}/protokoll",
+  "--probelauf",
+  "--marker",
+  "MM",
+  "--marker-zaehlung",
+  "{root}/zaehl/zaehlung.json"
+ ],
+ "steps": [
+  {
+   "request": {
+    "op": "search",
+    "query": "Pumpe"
+   }
+  }
+ ],
+ "verboten": []
+}

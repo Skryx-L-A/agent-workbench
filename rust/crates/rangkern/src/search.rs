@@ -9,7 +9,7 @@ use std::path::Path;
 use notiz_kern::text::strip;
 
 use crate::bm25::LexKorpus;
-use crate::embed::Embedder;
+use crate::embed::{Embedder, Grund};
 use crate::fulltext::fulltext_rels;
 use crate::hit::{
     SearchHit, demote_derived, fuse_hybrid_with, hybrid_pool, pool_trim, semantic_ranking,
@@ -173,6 +173,9 @@ pub fn rank(
 /// goes to `embedder`. If both tries fail, the lexical way is taken, as when the model's own call
 /// raises `OllamaError`. Without a note vector of the corpus the hybrid way runs with no semantic
 /// list, and Ollama is not asked.
+///
+/// Returns the hits, whether the lexical way was taken, and the reason of the last try when the embedding failed
+/// (contract 4, "Rückfall der Einbettung"). An empty vector because no note vector is in the corpus is no failure.
 pub fn rank_embedding(
     root: &Path,
     korpus: &LexKorpus,
@@ -180,18 +183,23 @@ pub fn rank_embedding(
     query: &str,
     params: &Params<'_>,
     (embedder, notes): (&Embedder, &[(String, Vec<f64>)]),
-) -> (Vec<SearchHit>, bool) {
+) -> (Vec<SearchHit>, bool, Option<Grund>) {
     let lookup = Lookup::new(korpus.notes());
     let vector = if notes.iter().any(|(rel, _)| lookup.note(rel).is_some()) {
-        embedder.embed(query)
+        embedder.einbetten(query)
     } else {
-        Some(Vec::new())
+        Ok(Vec::new())
     };
+    let ausfall = vector.as_ref().err().copied();
     let params = Params {
-        vectors: vector.as_deref().map(|query| VectorView { query, notes }),
+        vectors: vector
+            .as_deref()
+            .ok()
+            .map(|query| VectorView { query, notes }),
         ..*params
     };
-    rank_with(root, korpus, &lookup, analyzer, query, &params)
+    let (hits, fallback) = rank_with(root, korpus, &lookup, analyzer, query, &params);
+    (hits, fallback, ausfall)
 }
 
 fn rank_with(
@@ -271,14 +279,9 @@ pub fn search_embedding(
     let notes = load_search_notes(root)?;
     let mut analyzer = Analyzer::new();
     let korpus = LexKorpus::new(notes, &mut analyzer);
-    Ok(rank_embedding(
-        root,
-        &korpus,
-        &mut analyzer,
-        query,
-        params,
-        embedding,
-    ))
+    let (hits, fallback, _) =
+        rank_embedding(root, &korpus, &mut analyzer, query, params, embedding);
+    Ok((hits, fallback))
 }
 
 /// The search of the vault at `root`: loads and indexes the notes, then ranks them.

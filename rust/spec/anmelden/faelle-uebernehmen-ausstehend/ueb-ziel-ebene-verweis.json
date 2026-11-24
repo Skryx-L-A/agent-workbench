@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Nachtrag Halter: .local/state ist ein Verweis; nie verfolgt, config.json bleibt unverändert",
+ "args": [
+  "copilot",
+  "--uebernehmen"
+ ],
+ "quelle": "erfolg",
+ "quellordner": "ok",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "U",
+  "laenge": 40
+ },
+ "ziel": "ebene-verweis",
+ "bundtool": "leer",
+ "reste": "keine",
+ "probe": null
+}

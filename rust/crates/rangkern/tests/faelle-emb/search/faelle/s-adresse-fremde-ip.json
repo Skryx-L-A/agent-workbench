@@ -1,5 +1,5 @@
 {
- "description": "Adresse mit einer IP außerhalb von Loopback (10.x): Exit 2",
+ "description": "Adresse mit einer IP außerhalb von Loopback (10.x): Exit 64",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

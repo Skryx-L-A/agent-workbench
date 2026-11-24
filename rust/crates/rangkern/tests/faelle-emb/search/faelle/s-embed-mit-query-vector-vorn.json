@@ -1,5 +1,5 @@
 {
- "description": "Dasselbe in anderer Reihenfolge der Optionen: Exit 2, kein Aufruf",
+ "description": "Dasselbe in anderer Reihenfolge der Optionen: Exit 64, kein Aufruf",
  "program": "rangkern",
  "ziele": [
   "embed-mit-query-vector"

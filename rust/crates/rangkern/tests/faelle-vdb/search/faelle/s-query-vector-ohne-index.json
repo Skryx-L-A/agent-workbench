@@ -1,5 +1,5 @@
 {
- "description": "--query-vector ohne --index-db: Aufruffehler, Exit 2",
+ "description": "--query-vector ohne --index-db: Aufruffehler, Exit 64",
  "program": "rangkern",
  "ziele": [
   "aufruf"

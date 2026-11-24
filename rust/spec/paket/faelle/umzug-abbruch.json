@@ -1,0 +1,37 @@
+{
+ "beschreibung": "der gescheiterte Umzug lässt postinst mit einem Fehler enden (Entscheidung 7 verbietet das)",
+ "form": "umzug",
+ "nutzer": "nutzer1",
+ "quelle_vorher": [
+  {
+   "name": "anmeldung.copilot",
+   "sha256": "c72878a3768ce8b32236d54c1343683c86d476845b2d7f42f505fda2700eb4a8",
+   "modus": "0600",
+   "eigentuemer": "nutzer1"
+  },
+  {
+   "name": "mcp.wiki",
+   "sha256": "72d76cb5240904285ac46c3c27c8be8d8e25fde85a0e5e98e248644e6c3ba59c",
+   "modus": "0600",
+   "eigentuemer": "nutzer1"
+  }
+ ],
+ "quelle_nachher": [
+  {
+   "name": "anmeldung.copilot",
+   "sha256": "c72878a3768ce8b32236d54c1343683c86d476845b2d7f42f505fda2700eb4a8",
+   "modus": "0600",
+   "eigentuemer": "nutzer1"
+  },
+  {
+   "name": "mcp.wiki",
+   "sha256": "72d76cb5240904285ac46c3c27c8be8d8e25fde85a0e5e98e248644e6c3ba59c",
+   "modus": "0600",
+   "eigentuemer": "nutzer1"
+  }
+ ],
+ "ziel_vorher": [],
+ "ziel_nachher": [],
+ "journal": "werkbank: Umzug der Ablage gescheitert, Code 21\n",
+ "postinst_rc": 21
+}

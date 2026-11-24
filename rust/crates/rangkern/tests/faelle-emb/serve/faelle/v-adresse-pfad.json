@@ -1,5 +1,5 @@
 {
- "description": "serve mit Pfad in der Adresse: Exit 2",
+ "description": "serve mit Pfad in der Adresse: Exit 64",
  "ziele": [
   "adresse-nicht-loopback"
  ],

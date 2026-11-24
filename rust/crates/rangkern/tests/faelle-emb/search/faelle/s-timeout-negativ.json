@@ -1,5 +1,5 @@
 {
- "description": "--embed-timeout-ms mit negativer Zahl: Exit 2, kein Aufruf",
+ "description": "--embed-timeout-ms mit negativer Zahl: Exit 64, kein Aufruf",
  "program": "rangkern",
  "ziele": [
   "aufruffehler"

@@ -73,8 +73,10 @@ impl UnixSocket {
 impl Befrager for UnixSocket {
     fn frage(&self, zeile: &str) -> Result<String, Unerreichbar> {
         // The whole exchange runs in its own thread so that even a connect that blocks (a full queue of the
-        // socket) ends the call at the deadline. The thread ends by itself at its own deadline or when the
-        // connect returns; the program never waits for it.
+        // socket) ends the call at the deadline. After the connect the thread ends at its own deadline; the connect
+        // itself has none (`UnixStream::connect` has no timeout), so a connect that blocks for ever keeps its thread
+        // (review B13). The program never waits for it: the call ends at the deadline all the same. `rangkern sitzung`
+        // takes every connection and closes the ones over its limit at once, so its queue does not stay full.
         let (sender, empfaenger) = std::sync::mpsc::channel();
         let pfad = self.pfad.clone();
         let zeile = zeile.to_owned();

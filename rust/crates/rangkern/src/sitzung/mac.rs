@@ -1,7 +1,8 @@
 //! The rules of `rangkern sitzung` for macOS (addendum to contract 4, `rust/spec/VERTRAEGE.md`).
 //!
 //! Every rule is a pure function with the platform as a parameter, so that the tests run under Linux with `MacOs`; the
-//! program calls them with [`Plattform::AKTUELL`]. Under Linux nothing changes: every function lets it through.
+//! program calls them with [`Plattform::AKTUELL`]. Under Linux the other functions let everything through; the rule for the
+//! parent folder of the socket holds there too (review B7, 23.11.2026).
 //! Only the measurement of the peer ([`gemessene_euid`]) exists for macOS alone.
 
 use std::fs;
@@ -47,31 +48,41 @@ pub fn aufruf_ok(plattform: Plattform, socket: &Path, rechte: u32) -> bool {
     }
 }
 
-/// The check of the parent folder before `bind` (section 3, point 1): a folder and no link, owned by `euid`, with exactly the
-/// mode 0700. The error is the text for the error output; the start ends with exit 74 and leaves the path as it is.
+/// The rule for the parent folder of the socket (section 3, point 1), on the values of `fstat`: a folder, owned by `euid`, with
+/// exactly the mode 0700. Since 23.11.2026 (review B7) it holds under Linux too, also with `--socket-rechte 0666`: contract 4
+/// asks the starter for this folder, and the process checks it as a second line. The error is the text for the error output;
+/// the start ends with exit 74 and leaves the path as it is.
+///
+/// # Errors
+/// No folder, owned by another user or not exactly 0700.
+pub fn ordner_regel(ist_ordner: bool, uid: u32, modus: u32, euid: u32) -> Result<(), String> {
+    if !ist_ordner {
+        return Err("the parent folder is not a folder (a link does not count)".to_owned());
+    }
+    if uid != euid {
+        return Err("the parent folder belongs to another user".to_owned());
+    }
+    if modus & 0o7777 != 0o700 {
+        return Err("the parent folder has not exactly the mode 0700".to_owned());
+    }
+    Ok(())
+}
+
+/// The check of the parent folder through its path: a folder and no link, then [`ordner_regel`]. The start itself checks the
+/// folder it holds open (`lauf::socket_anlegen`, review B6); this function is the same rule for a path. Under macOS a bare name
+/// has no parent folder (the path must be absolute there); under Linux it lies in the current folder.
 ///
 /// # Errors
 /// The parent folder is missing, a link or no folder, owned by another user or not 0700.
 pub fn ordner_pruefen(plattform: Plattform, socket: &Path, euid: u32) -> Result<(), String> {
-    if plattform == Plattform::Linux {
-        return Ok(());
-    }
-    let eltern = socket
-        .parent()
-        .filter(|eltern| !eltern.as_os_str().is_empty())
-        .ok_or("the socket has no parent folder")?;
+    let eltern = match socket.parent() {
+        Some(eltern) if !eltern.as_os_str().is_empty() => eltern,
+        _ if plattform == Plattform::Linux => Path::new("."),
+        _ => return Err("the socket has no parent folder".to_owned()),
+    };
     let meta = fs::symlink_metadata(eltern)
         .map_err(|fehler| format!("the parent folder cannot be read: {fehler}"))?;
-    if !meta.is_dir() {
-        return Err("the parent folder is not a folder (a link does not count)".to_owned());
-    }
-    if meta.uid() != euid {
-        return Err("the parent folder belongs to another user".to_owned());
-    }
-    if meta.mode() & 0o7777 != 0o700 {
-        return Err("the parent folder has not exactly the mode 0700".to_owned());
-    }
-    Ok(())
+    ordner_regel(meta.is_dir(), meta.uid(), meta.mode(), euid)
 }
 
 /// The decision about a peer (section 4): `None` accepts, `Some(grund)` turns the connection away with the reason of the log

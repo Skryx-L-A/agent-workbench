@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Läufer für den Nachtrag „Such-Socket unter macOS“ zu Vertrag 4. Nur Standardbibliothek.
 
-Aufruf: RANGKERN_BIN=<programm> MCP_BIN=<programm> python3 pruefe_macos.py [--vertrag4] [fall ...]
+Aufruf: RANGKERN_BIN=<programm> MCP_BIN=<programm> python3 pruefe_macos.py [--vertrag4] [--aus-erlaubt] [fall ...]
 
 Er fährt die Fälle mit `orte` `mac` (README Abschnitt 7) aus `faelle/`, `erwartet/`, `mcp_faelle.json` und
 `signatur_faelle.json`, dazu die Fälle mit Ort `mac-profil`, wenn `/usr/bin/sandbox-exec` und der Python der Command Line Tools
@@ -11,7 +11,12 @@ nie als grün. Mit `--vertrag4` fährt er zusätzlich die Läufer von Vertrag 4
 Jeder Fall hat einen eigenen Ordner mit 0700 unter SOCKET_BASIS (Vorgabe /tmp). Der Socket liegt in dessen Ordner `s`
 (0700); sein Pfad hat höchstens 103 Byte, außer in den Fällen, die genau das prüfen.
 Umgebung des Prüflings: nur PATH, LANG=C.UTF-8, TZ=UTC, HOME=<root>/home.
-Exit 0: kein Fall rot. Exit 1: mindestens ein Fall rot. Exit 2: Aufruffehler (beide Programme fehlen).
+Exit 0: kein Fall rot und keiner übersprungen, oder keiner rot und `--aus-erlaubt` gesetzt. Exit 1: mindestens ein Fall rot.
+Exit 2: Aufruffehler (beide Programme fehlen, unbekannte Option oder unbekannter Fall). Exit 3: kein Fall rot, aber mindestens
+einer übersprungen, ohne `--aus-erlaubt` (seit 23.11.2026, B12; bis dahin Exit 0). Ein Tor, das nur den Exit liest, sieht
+übersprungene Fälle so nie als grün. Lief kein Fall, ist der Exit 1.
+Die Fälle von Vertrag 4 prüft er mit denselben Prüfungen wie `../pruefe.py` (Bereitschaftszeile byte-genau, stdout danach
+leer, `stderr_zeile` vor der Bereitschaftszeile, Feld `zeit`), die MCP-Fälle wie `../mcp/pruefe_mcp.py`.
 """
 from __future__ import annotations
 
@@ -26,6 +31,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 HIER = Path(__file__).resolve().parent
@@ -163,6 +169,7 @@ def fall_laufen(prog: str, fall: dict, erw: dict) -> None:
         auf.nach_dateien()
         vorher = zustand(auf.sock)
         argv = [prog] + [ersetzen(a, auf) for a in fall["args"]]
+        t_start = time.time()
         proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                 env=umgebung(root), cwd=root)
         start = erw["start"]
@@ -182,8 +189,8 @@ def fall_laufen(prog: str, fall: dict, erw: dict) -> None:
             nachher_pruefen(erw, auf)
             return
         zeile = V4P.zeile_lesen(proc.stdout, FRIST)
-        if zeile is None or not V4P.gleich(json.loads(zeile or b"null"), {"bereit": True}):
-            raise Rot(f"Start: Bereitschaftszeile {{\"bereit\": true}} erwartet, bekommen {zeile!r}")
+        V4P.bereitschaft_pruefen(zeile)
+        stderr_vor = V4P.schon_da(proc.stderr)
         modus = os.lstat(auf.sock).st_mode
         if not stat.S_ISSOCK(modus):
             raise Rot("Start: am Socketpfad liegt kein Socket")
@@ -243,22 +250,24 @@ def fall_laufen(prog: str, fall: dict, erw: dict) -> None:
             code = proc.wait(FRIST)
         except subprocess.TimeoutExpired:
             raise Rot(f"Ende: nach SIGTERM läuft der Prozess nach {FRIST} s noch")
+        t_ende = time.time()
         if code != erw["ende"]["exit"]:
             raise Rot(f"Ende: Exit {code}, erwartet {erw['ende']['exit']}")
+        V4P.stdout_nach_bereitschaft_pruefen(V4P.rest_lesen(proc.stdout))
         if erw["ende"].get("socket_weg") and os.path.lexists(auf.sock):
             raise Rot("Ende: Socket liegt nach dem Ende noch da")
         if erw["ende"].get("ordner_bleibt") and not auf.ordner.is_dir():
             raise Rot("Ende: der Ordner des Sockets ist weg; ihn räumt der Starter auf")
-        V4P.protokoll_pruefen(root, erw["protokoll"])
+        V4P.protokoll_pruefen(root, erw["protokoll"], fenster=(t_start, t_ende))
         for name in erw.get("ohne_aktionsname", []):
             for datei in (root / "protokoll").glob("brain-*.jsonl"):
                 if f'"aktionsname":"{name}"' in datei.read_text(encoding="utf-8"):
                     raise Rot(f"Protokoll: Zeile {name}, die es hier nicht geben darf")
-        stderr = proc.stderr.read().decode("utf-8", "replace").splitlines()
+        stderr_nach = V4P.rest_lesen(proc.stderr)
+        stderr = (stderr_vor + stderr_nach).decode("utf-8", "replace").splitlines()
         if "stderr_ohne_praefix" in erw and any(z.startswith(erw["stderr_ohne_praefix"]) for z in stderr):
             raise Rot(f"stderr: Zeile mit {erw['stderr_ohne_praefix']!r}, die es hier nicht geben darf")
-        if "stderr_zeile" in erw and stderr.count(erw["stderr_zeile"]) != 1:
-            raise Rot(f"stderr: die Zeile {erw['stderr_zeile']!r} steht {stderr.count(erw['stderr_zeile'])}-mal da, erwartet 1-mal")
+        V4P.stderr_pruefen(erw, stderr_vor, stderr_nach)
         if "marker_zaehlung" in erw:
             mz = erw["marker_zaehlung"]
             datei = root / mz["datei"]
@@ -510,8 +519,7 @@ def mcp_laufen(prog: str, fall: dict, werkzeug: dict) -> None:
         if "start_exit" in fall:
             lauf = subprocess.run([prog] + argv, stdin=subprocess.DEVNULL, capture_output=True, env=umgebung(root),
                                   cwd=root, timeout=FRIST)
-            if lauf.returncode != fall["start_exit"] or lauf.stdout:
-                raise Rot(f"Start: Exit {lauf.returncode} und stdout {lauf.stdout[:80]!r}, erwartet Exit {fall['start_exit']}")
+            V4M.start_pruefen(fall, lauf)
             return
         stand_in = None
         if not fall.get("kein_socket"):
@@ -540,10 +548,7 @@ def mcp_laufen(prog: str, fall: dict, werkzeug: dict) -> None:
         rest = proc.stdout.read()
         if code != 0 or rest:
             raise Rot(f"Ende: Exit {code}, übrige Ausgabe {rest[:120]!r}")
-        if "socket_zeilen" in fall:
-            got = stand_in.zeilen if stand_in else []
-            if not V4M.gleich(got, fall["socket_zeilen"]):
-                raise Rot(f"Socket: empfangen {got}, erwartet {fall['socket_zeilen']}")
+        V4M.socket_zeilen_pruefen(fall, stand_in)
     finally:
         if proc and proc.poll() is None:
             proc.kill()
@@ -579,7 +584,8 @@ def lauf(z: Zaehler, name: str, orte: list[str], prog: str, var: str, fn) -> Non
         try:
             fn()
             z.melden("grün", name)
-        except (Rot, OSError, ValueError, subprocess.TimeoutExpired) as exc:
+        # V4M.Rot: ein roter MCP-Fall aus pruefe_mcp.py (bis 23.11.2026 brach der Läufer daran ab)
+        except (Rot, V4M.Rot, OSError, ValueError, subprocess.TimeoutExpired) as exc:
             z.melden("ROT", name, str(exc))
 
 
@@ -601,9 +607,10 @@ def vertrag4(z: Zaehler, rang: str, mcp: str) -> None:
 def main() -> int:
     args = sys.argv[1:]
     mit_v4 = "--vertrag4" in args
-    namen = [a for a in args if a != "--vertrag4"]
+    aus_erlaubt = "--aus-erlaubt" in args
+    namen = [a for a in args if a not in ("--vertrag4", "--aus-erlaubt")]
     if any(a.startswith("-") for a in namen):
-        print("Aufruf: pruefe_macos.py [--vertrag4] [fall ...]", file=sys.stderr)
+        print("Aufruf: pruefe_macos.py [--vertrag4] [--aus-erlaubt] [fall ...]", file=sys.stderr)
         return 2
     rang, mcp = os.environ.get("RANGKERN_BIN", ""), os.environ.get("MCP_BIN", "")
     if not rang and not mcp:
@@ -635,7 +642,12 @@ def main() -> int:
     if mit_v4 and not namen:
         vertrag4(z, rang, mcp)
     print(f"{z.gruen} grün, {z.rot} rot, {z.aus} übersprungen von {z.gruen + z.rot + z.aus}")
-    return 1 if z.rot else 0
+    if z.rot or not z.gruen:
+        return 1
+    if z.aus and not aus_erlaubt:
+        print(f"pruefe_macos.py: {z.aus} Fälle übersprungen, ohne --aus-erlaubt nicht grün (Exit 3)", file=sys.stderr)
+        return 3
+    return 0
 
 
 if __name__ == "__main__":

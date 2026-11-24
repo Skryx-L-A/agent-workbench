@@ -1,0 +1,21 @@
+{
+ "start": "bereit",
+ "socket_rechte": "0600",
+ "responses": [
+  {
+   "error": "bad_request"
+  },
+  {
+   "ok": true,
+   "id": 2
+  },
+  {
+   "ok": true,
+   "id": 3
+  }
+ ],
+ "protokoll": [],
+ "ende": {
+  "exit": 0
+ }
+}

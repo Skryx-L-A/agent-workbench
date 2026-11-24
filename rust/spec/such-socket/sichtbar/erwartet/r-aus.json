@@ -1,0 +1,56 @@
+{
+ "start": "bereit",
+ "socket_rechte": "0600",
+ "responses": [
+  {
+   "ok": true,
+   "id": 1
+  },
+  {
+   "fallback": true,
+   "rels": [
+    "sonst/wetter.md"
+   ],
+   "gesperrt": 0,
+   "id": 2
+  },
+  {
+   "error": "bad_request",
+   "id": 3
+  },
+  {
+   "error": "bad_request"
+  },
+  {
+   "fallback": true,
+   "rels": [
+    "sonst/wetter.md"
+   ],
+   "gesperrt": 0,
+   "id": 4
+  }
+ ],
+ "protokoll": [
+  {
+   "aktionsname": "suche.rueckfall",
+   "ergebnis": "lexikalisch",
+   "fassung": 2,
+   "grund": "keine_verbindung",
+   "route": "cloud",
+   "sitzung": "s-test-1"
+  },
+  {
+   "aktionsname": "suche.rueckfall",
+   "ergebnis": "lexikalisch",
+   "fassung": 2,
+   "grund": "keine_verbindung",
+   "route": "cloud",
+   "sitzung": "s-test-1"
+  }
+ ],
+ "ende": {
+  "exit": 0
+ },
+ "einbettung_aufrufe": 0,
+ "stderr_leer": true
+}

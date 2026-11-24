@@ -1,0 +1,80 @@
+{
+ "beschreibung": "Schritt II, Weg a: die Datei mit der uid liegt auf einer zweiten Partition; die Suche über jeden Einhängepunkt findet sie, Konto und Gruppen bleiben, Code 23",
+ "form": "entfernen",
+ "schritt": 2,
+ "nutzer": "nutzer1",
+ "heimwurzel": "/srv/beispiel/heim",
+ "ergebnisdatei": "/srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+ "vorher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1"
+ ],
+ "nachher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "konto:wb-halter",
+  "gruppe:wb-halter",
+  "gruppe:wb-hub",
+  "gruppe:wb-bruecke",
+  "gruppe:wb-oberflaeche",
+  "datei:/srv/beispiel/daten/bericht.txt"
+ ],
+ "rest": {
+  "dateien": [],
+  "prozesse": []
+ },
+ "journal": "werkbank: Konto wb-halter und Rollengruppen bleiben, Code 23\n",
+ "einhaengepunkte": [
+  {
+   "pfad": "/",
+   "typ": "ext4",
+   "lesbar": true,
+   "dateien": []
+  },
+  {
+   "pfad": "/proc",
+   "typ": "proc",
+   "lesbar": true,
+   "dateien": []
+  },
+  {
+   "pfad": "/sys",
+   "typ": "sysfs",
+   "lesbar": true,
+   "dateien": []
+  },
+  {
+   "pfad": "/dev",
+   "typ": "devtmpfs",
+   "lesbar": true,
+   "dateien": []
+  },
+  {
+   "pfad": "/run",
+   "typ": "tmpfs",
+   "lesbar": true,
+   "dateien": []
+  },
+  {
+   "pfad": "/sys/fs/cgroup",
+   "typ": "cgroup2",
+   "lesbar": true,
+   "dateien": []
+  },
+  {
+   "pfad": "/srv/beispiel/daten",
+   "typ": "ext4",
+   "lesbar": true,
+   "dateien": [
+    "/srv/beispiel/daten/bericht.txt"
+   ]
+  }
+ ],
+ "alte_regel": "rot"
+}

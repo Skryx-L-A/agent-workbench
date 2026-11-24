@@ -1,5 +1,5 @@
 {
- "description": "Adresse localhost.<domain>: Exit 2 (nur der Name localhost)",
+ "description": "Adresse localhost.<domain>: Exit 64 (nur der Name localhost)",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

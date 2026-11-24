@@ -1,5 +1,5 @@
 {
- "description": "serve mit 127.0.0.2: Exit 2",
+ "description": "serve mit 127.0.0.2: Exit 64",
  "ziele": [
   "adresse-nicht-loopback"
  ],

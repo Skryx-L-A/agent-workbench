@@ -4,6 +4,9 @@
 Aufruf: python3 -I rust/spec/anmelden/pruefen.py
 Exit 0, wenn jeder Punkt stimmt. Die Fälle selbst (Läufe des Programms) prüft tests/faelle.rs des Crates.
 Jeder Code der Tabelle in README.md Abschnitt 5 braucht mindestens einen Fall; jeder Fall nennt einen Code der Tabelle oder keinen.
+Zwei Gruppen: die gelesenen Ordner (faelle/, erwartet/, faelle-uebernehmen/, erwartet-uebernehmen/; der heutige Code besteht sie)
+und die ausstehenden (faelle-ausstehend/, erwartet-ausstehend/, faelle-uebernehmen-ausstehend/, erwartet-uebernehmen-ausstehend/; Nachtrag
+Halter, kein Crate liest sie). Ein ausstehender Fall darf einen gelesenen gleichen Namens ersetzen, wenn der Code ihn bringt.
 """
 import importlib.util
 import json
@@ -22,6 +25,9 @@ WERTE = {
     "wegwerf_wurzel": {"ok", "fehlt"},
     "reste": {"keine", "tot", "lebend", "verweis", "nicht-loeschbar"},
 }
+# Zusätzliche Werte von `ziel` in den ausstehenden Fällen (Nachtrag Halter).
+ZIEL_AUSSTEHEND = {"heim-fehlt", "ebene-verweis", "ebene-geteilt", "alte-datei"}
+ZIEL_UEB_AUSSTEHEND = {"heim-fehlt", "ebene-verweis"}
 SIGNAL_EXIT = {"INT": 130, "TERM": 143, "HUP": 129}
 ZIEL_DATEI = {"neu", "ersetzt", "unveraendert", "nicht-angelegt"}
 # Muster eines echten Tokens: kein Fall und kein Text des Vertrags darf eines als Text tragen.
@@ -67,18 +73,20 @@ ZIEL_UEB = {"token", "alt", "keine"}
 CONFIG_UEB = {"ohne-token", "unveraendert"}
 
 
-def uebernahme_pruefen(mod, codes, fehler):
-    """Prüft die Fälle der Übernahme (Abschnitt 3b) wie die des Geräteflusses. Gibt die benutzten Codes zurück."""
+def uebernahme_pruefen(mod, codes, fehler, f_ordner="faelle-uebernehmen", e_ordner="erwartet-uebernehmen", menge=None, kaputt=None, ziel_mehr=frozenset()):
+    """Prüft die Fälle der Übernahme (Abschnitt 3b) wie die des Geräteflusses. Gibt die benutzten Codes und die Namen zurück."""
+    menge = mod.FAELLE_UEB if menge is None else menge
+    kaputt = mod.ZIEL_KAPUTT_HEUTE if kaputt is None else kaputt
     benutzt = set()
-    namen_f = {p.stem for p in (HIER / "faelle-uebernehmen").glob("*.json")}
-    namen_e = {p.stem for p in (HIER / "erwartet-uebernehmen").glob("*.json")}
+    namen_f = {p.stem for p in (HIER / f_ordner).glob("*.json")}
+    namen_e = {p.stem for p in (HIER / e_ordner).glob("*.json")}
     if namen_f != namen_e:
-        fehler.append("Übernahme, Paarung: nur in faelle %s, nur in erwartet %s" % (sorted(namen_f - namen_e), sorted(namen_e - namen_f)))
-    if namen_f != set(mod.FAELLE_UEB):
-        fehler.append("Übernahme: die Fälle weichen von bau-faelle.py ab (neu erzeugen)")
+        fehler.append("%s, Paarung: nur in faelle %s, nur in erwartet %s" % (f_ordner, sorted(namen_f - namen_e), sorted(namen_e - namen_f)))
+    if namen_f != set(menge):
+        fehler.append("%s: die Fälle weichen von bau-faelle.py ab (neu erzeugen)" % f_ordner)
     for name in sorted(namen_f & namen_e):
-        roh_f = (HIER / "faelle-uebernehmen" / (name + ".json")).read_text(encoding="utf-8")
-        roh_e = (HIER / "erwartet-uebernehmen" / (name + ".json")).read_text(encoding="utf-8")
+        roh_f = (HIER / f_ordner / (name + ".json")).read_text(encoding="utf-8")
+        roh_e = (HIER / e_ordner / (name + ".json")).read_text(encoding="utf-8")
         if TOKEN_MUSTER.search(roh_f) or TOKEN_MUSTER.search(roh_e):
             fehler.append("%s: ein Text hat die Form eines Tokens" % name)
         f, e = json.loads(roh_f), json.loads(roh_e)
@@ -86,7 +94,7 @@ def uebernahme_pruefen(mod, codes, fehler):
             fehler.append("%s: Felder des Falls oder der Antwort" % name)
             continue
         for feld, erlaubt in WERTE_UEB.items():
-            if f[feld] not in erlaubt:
+            if f[feld] not in (erlaubt | ziel_mehr if feld == "ziel" else erlaubt):
                 fehler.append("%s: %s=%r" % (name, feld, f[feld]))
         if "--uebernehmen" not in f["args"]:
             fehler.append("%s: ein Fall der Übernahme ruft --uebernehmen" % name)
@@ -107,27 +115,25 @@ def uebernahme_pruefen(mod, codes, fehler):
                 fehler.append("%s: bei einem Fehler bleibt config.json unverändert" % name)
             if code not in ("anmelden.echte_anmeldung",) and e["ziel_datei"] == "token" and f["ziel"] != "datei-gleich":
                 fehler.append("%s: bei einem Fehler entsteht keine Schlüsseldatei" % name)
-        if name in mod.FAELLE_UEB and (mod.FAELLE_UEB[name] != f or mod.erwartet_ueb(f) != e):
+        if name in menge and (menge[name] != f or mod.erwartet_ueb(f, kaputt) != e):
             fehler.append("%s: weicht von bau-faelle.py ab (neu erzeugen)" % name)
-    return benutzt
+    return benutzt, namen_f
 
 
-def main():
-    fehler = []
-    codes = tabelle()
-    if len(codes) != 15:
-        fehler.append("Tabelle in README.md hat %d statt 15 Codes" % len(codes))
-    mod = bauer()
-    if {k: v for k, v in mod.CODES.items()} != codes:
-        fehler.append("CODES in bau-faelle.py weicht von der Tabelle in README.md ab")
-    namen_f = {p.stem for p in (HIER / "faelle").glob("*.json")}
-    namen_e = {p.stem for p in (HIER / "erwartet").glob("*.json")}
+def geraet_pruefen(mod, codes, fehler, f_ordner="faelle", e_ordner="erwartet", menge=None, kaputt=None, ziel_mehr=frozenset()):
+    """Prüft die Fälle des Geräteflusses in einem Ordnerpaar. Gibt die benutzten Codes und die Namen zurück."""
+    menge = mod.FAELLE if menge is None else menge
+    kaputt = mod.ZIEL_KAPUTT_HEUTE if kaputt is None else kaputt
+    namen_f = {p.stem for p in (HIER / f_ordner).glob("*.json")}
+    namen_e = {p.stem for p in (HIER / e_ordner).glob("*.json")}
     if namen_f != namen_e:
-        fehler.append("Paarung: nur in faelle %s, nur in erwartet %s" % (sorted(namen_f - namen_e), sorted(namen_e - namen_f)))
+        fehler.append("%s, Paarung: nur in faelle %s, nur in erwartet %s" % (f_ordner, sorted(namen_f - namen_e), sorted(namen_e - namen_f)))
+    if namen_f != set(menge):
+        fehler.append("%s: die Fälle weichen von bau-faelle.py ab (neu erzeugen)" % f_ordner)
     benutzt = set()
     for name in sorted(namen_f & namen_e):
-        roh_f = (HIER / "faelle" / (name + ".json")).read_text(encoding="utf-8")
-        roh_e = (HIER / "erwartet" / (name + ".json")).read_text(encoding="utf-8")
+        roh_f = (HIER / f_ordner / (name + ".json")).read_text(encoding="utf-8")
+        roh_e = (HIER / e_ordner / (name + ".json")).read_text(encoding="utf-8")
         for roh in (roh_f, roh_e):
             if TOKEN_MUSTER.search(roh):
                 fehler.append("%s: ein Text hat die Form eines Tokens" % name)
@@ -139,7 +145,7 @@ def main():
             fehler.append("%s: Felder der Antwort %s" % (name, sorted(set(e) ^ FELDER_ERWARTET)))
             continue
         for feld, erlaubt in WERTE.items():
-            if f[feld] not in erlaubt:
+            if f[feld] not in (erlaubt | ziel_mehr if feld == "ziel" else erlaubt):
                 fehler.append("%s: %s=%r" % (name, feld, f[feld]))
         if f["signal"] not in (None, "INT", "TERM", "HUP"):
             fehler.append("%s: signal=%r" % (name, f["signal"]))
@@ -176,9 +182,29 @@ def main():
         if f["signal"] and f["attrappe"] != "haengt":
             fehler.append("%s: ein Signal braucht die Attrappe haengt" % name)
         # Die Antwort stimmt mit dem Erzeuger überein (kein von Hand geänderter Fall).
-        if name in mod.FAELLE and (mod.FAELLE[name] != f or mod.erwartet(f) != e):
+        if name in menge and (menge[name] != f or mod.erwartet(f, kaputt) != e):
             fehler.append("%s: weicht von bau-faelle.py ab (neu erzeugen)" % name)
-    benutzt |= uebernahme_pruefen(mod, codes, fehler)
+    return benutzt, namen_f
+
+
+def main():
+    fehler = []
+    codes = tabelle()
+    if len(codes) != 15:
+        fehler.append("Tabelle in README.md hat %d statt 15 Codes" % len(codes))
+    mod = bauer()
+    if {k: v for k, v in mod.CODES.items()} != codes:
+        fehler.append("CODES in bau-faelle.py weicht von der Tabelle in README.md ab")
+    benutzt, namen_f = geraet_pruefen(mod, codes, fehler)
+    b2, namen_u = uebernahme_pruefen(mod, codes, fehler)
+    # Ausstehende Fälle (Nachtrag Halter): eigene Ordner, je mit einer README.md, welcher Code sie aktiv macht.
+    b3, namen_a = geraet_pruefen(mod, codes, fehler, "faelle-ausstehend", "erwartet-ausstehend", mod.FAELLE_AUSSTEHEND, mod.ZIEL_KAPUTT, ZIEL_AUSSTEHEND)
+    b4, namen_ua = uebernahme_pruefen(mod, codes, fehler, "faelle-uebernehmen-ausstehend", "erwartet-uebernehmen-ausstehend",
+                                      mod.FAELLE_UEB_AUSSTEHEND, mod.ZIEL_KAPUTT, ZIEL_UEB_AUSSTEHEND)
+    for ordner in ("faelle-ausstehend", "erwartet-ausstehend", "faelle-uebernehmen-ausstehend", "erwartet-uebernehmen-ausstehend"):
+        if not (HIER / ordner / "README.md").is_file():
+            fehler.append("%s: die README.md fehlt (welcher Code die Fälle aktiv macht)" % ordner)
+    benutzt = benutzt | b2 | b3 | b4
     for code in codes:
         if code not in benutzt and code not in OHNE_FALL:
             fehler.append("kein Fall für %s" % code)
@@ -189,8 +215,8 @@ def main():
         for z in fehler:
             sys.stderr.write("FEHLER: %s\n" % z)
         sys.exit(1)
-    sys.stdout.write("anmelden: %d Fälle, %d Fälle der Übernahme, %d Codes, alles stimmt\n"
-                     % (len(namen_f), len(mod.FAELLE_UEB), len(codes)))
+    sys.stdout.write("anmelden: %d Fälle, %d Fälle der Übernahme, %d Codes, ausstehend %d und %d, alles stimmt\n"
+                     % (len(namen_f), len(namen_u), len(codes), len(namen_a), len(namen_ua)))
 
 
 if __name__ == "__main__":

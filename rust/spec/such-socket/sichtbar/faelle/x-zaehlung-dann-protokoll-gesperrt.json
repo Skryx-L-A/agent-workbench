@@ -1,0 +1,49 @@
+{
+ "description": "Klarstellung 5: Zählung gelingt, die Zeile „Ausgabe gesperrt“ scheitert: Antwort protokoll, gezählt ist die Inhaltsantwort",
+ "files": {
+  "vault/a/pumpe-mi1a.md": "---\ntitle: \"Pumpe MI-1A\"\ntype: \"note\"\ndatenklasse: \"intern\"\n---\n\nDie Pumpe MI-1A läuft im Keller.\n",
+  "vault/k/pumpe-mk1b.md": "---\ntitle: \"Pumpe MK-1B\"\ntype: \"note\"\ndatenklasse: \"kundendaten\"\nkunde: \"k-nord\"\n---\n\nPumpe MK-1B des Kunden, Pumpe MK-1B.\n",
+  "aux/einstellungen.json": "{\n \"fassung\": 1,\n \"klassen\": [\n  \"oeffentlich\",\n  \"intern\",\n  \"kundendaten\"\n ],\n \"vorgabestufe\": \"kundendaten\",\n \"routen\": [\n  {\n   \"schluessel\": \"cloud\",\n   \"art\": \"cloud\",\n   \"klasse\": \"intern\"\n  },\n  {\n   \"schluessel\": \"lokal\",\n   \"art\": \"lokal\",\n   \"klasse\": \"kundendaten\"\n  }\n ],\n \"kunden\": [\n  {\n   \"schluessel\": \"k-nord\",\n   \"erlaubt\": [\n    \"lokal\"\n   ],\n   \"verboten\": []\n  }\n ],\n \"kundendaten_an_cloud\": {\n  \"vorgabe\": \"nie\",\n  \"freigaben\": []\n }\n}\n"
+ },
+ "dirs": [
+  "home",
+  "protokoll",
+  "zaehl"
+ ],
+ "args": [
+  "sitzung",
+  "{root}/vault",
+  "--socket",
+  "{sock}",
+  "--route",
+  "cloud",
+  "--sitzung",
+  "s-test-1",
+  "--einstellungen",
+  "{root}/aux/einstellungen.json",
+  "--protokoll",
+  "{root}/protokoll",
+  "--probelauf",
+  "--marker",
+  "MI-1A,MK-1B",
+  "--marker-zaehlung",
+  "{root}/zaehl/zaehlung.json"
+ ],
+ "steps": [
+  {
+   "chmod": {
+    "protokoll": "000"
+   }
+  },
+  {
+   "request": {
+    "op": "search",
+    "query": "Pumpe",
+    "id": 1
+   }
+  }
+ ],
+ "verboten": [
+  "MK-1B"
+ ]
+}

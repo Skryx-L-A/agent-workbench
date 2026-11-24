@@ -48,12 +48,13 @@ PFLICHTDATEIEN = {
     "ubuntu-26.04-x64": (
         ("usr/bin/werkbank-probelauf", "programm"), ("usr/bin/werkbank-pruefen", "programm"), ("usr/bin/werkbank-ordnermarke", "programm"), ("usr/bin/werkbank-ca-zulassung", "programm"),
         ("usr/lib/werkbank/werkbank-lauf", "programm"), ("usr/lib/werkbank/werkbank-lauf-kind", "programm"), ("usr/lib/werkbank/werkbank-kern", "dienst"), ("usr/lib/werkbank/werkbank-bruecke", "dienst"),
-        ("usr/lib/werkbank/werkbank-modellweg", "dienst"), ("usr/lib/werkbank/rangkern", "programm"),
+        ("usr/lib/werkbank/werkbank-modellweg", "dienst"), ("usr/lib/werkbank/werkbank-halter", "dienst"), ("usr/lib/werkbank/rangkern", "programm"),
         ("usr/lib/werkbank/kette", "programm"), ("usr/lib/werkbank/such-mcp", "programm"), ("usr/lib/werkbank/probelauf/drehbuch.py", "programm"),
         *DREHBUCHLIB,
         ("usr/share/werkbank/probelauf/einstellungen.json", "daten"), ("usr/share/werkbank/probelauf/konfig.json", "daten"),
         ("usr/lib/systemd/user/werkbank-kern.service", "daten"),
-        ("usr/lib/systemd/user/werkbank-bruecke.service", "daten"), ("usr/share/werkbank/sbom.cdx.json", "daten"),
+        ("usr/lib/systemd/user/werkbank-bruecke.service", "daten"), ("usr/lib/systemd/user/wb-halter.service", "daten"),
+        ("usr/share/werkbank/sbom.cdx.json", "daten"),
     ),
 }
 
@@ -272,7 +273,30 @@ def liste_code(fall):
     if any(z not in set(baum) for z in ziele):
         return "fehlt_im_baum"
     # Stufe 9: `modi` ist optional (Pfad oder `<ordner>/` mit Modus als Oktaltext); ein Eintrag mit Schreibrecht für Gruppe oder Welt ist verboten.
+    if fall.get("schritt") == 2:
+        return modus_code(fall.get("modi", {})) or setgid_code(fall.get("modi", {}), fall.get("gruppen", {}))
     return modus_code(fall.get("modi", {}))
+
+
+# Schritt II (Systemnutzer wb-halter): die feste setgid-Liste der Rollenprogramme. Pfad im Baum -> Rollengruppe.
+# Annahme bis Zug 3 (Halter 2.3 Fassung 2): nur die Rolle `bruecke` hat heute ein Rollenprogramm unter Linux (Halter 2.3,
+# `werkbank-modellweg`); die Programme der Rollen `hub` und `oberflaeche` trägt erst Zug 3 nach.
+SETGID_LISTE = {"usr/lib/werkbank/werkbank-modellweg": "wb-bruecke"}
+ROLLENGRUPPEN = ("wb-hub", "wb-bruecke", "wb-oberflaeche")
+
+
+def setgid_code(modi, gruppen):
+    """Stufe 9 in Schritt II, zweiter Teil: setuid und sticky nie; setgid nur an Pfaden der festen Liste, dort genau 2755 mit der
+    Rollengruppe der Liste; ein Pfad der Liste im Baum ohne setgid ist ebenso falsch. Gibt `modus_setgid` oder None zurück."""
+    for pfad, m in modi.items():
+        wert = int(m, 8)
+        if wert & 0o5000:
+            return "modus_setgid"
+        if wert & 0o2000 and (pfad not in SETGID_LISTE or m != "2755" or gruppen.get(pfad) != SETGID_LISTE[pfad]):
+            return "modus_setgid"
+        if pfad in SETGID_LISTE and not wert & 0o2000:
+            return "modus_setgid"
+    return None
 
 
 # ---------------------------------------------------------------------------------------------------- Stückliste
@@ -653,18 +677,119 @@ def werkbank_profil(eintrag):
     return art == "profil" and (wert.startswith("werkbank-") or wert.startswith("/usr/lib/werkbank/"))
 
 
-def entfernen_code(fall):
-    """Fall der Form `entfernen`: Zustand `vorher` (vor der Installation) und `nachher` (nach `apt purge`)."""
+def entfernen_code(fall, suche="einhaengepunkte"):
+    """Fall der Form `entfernen`: Zustand `vorher` (vor der Installation) und `nachher` (nach `apt purge`).
+
+    `suche` wählt die Regel der Suche nach Resten in Schritt II. `einhaengepunkte` ist die geltende (Teil A2, `purge` Schritt 3: jeder lokale
+    Einhängepunkt, fail closed). `wurzel` ist die ersetzte Regel (`find / -xdev`) und nur Gegenprobe: sie kennt nur das Wurzel-Dateisystem."""
     vorher, nachher = set(fall["vorher"]), set(fall["nachher"])
-    if any(not EINTRAG.match(e) for e in vorher | nachher):
+    zwei = fall.get("schritt") == 2
+    rest = fall.get("rest", {"dateien": [], "prozesse": []}) if zwei else {"dateien": [], "prozesse": []}
+    punkte = fall.get("einhaengepunkte")
+    if punkte is not None and not zwei:
         return "entfernen_form"
-    if any(e not in vorher and not purge_freigestellt(e, fall) for e in nachher):
+    if zwei and punkte is not None:
+        if rest["dateien"] or not einhaengepunkte_form(punkte, fall.get("findmnt_fehler", False)):
+            return "entfernen_form"
+        if suche == "wurzel":
+            vorher, nachher = ({e for e in menge if not unter_fremdem_punkt(e, punkte)} for menge in (vorher, nachher))
+        gefunden, ungesucht = mount_rest(punkte, fall.get("findmnt_fehler", False), suche)
+        rest = {"dateien": gefunden, "prozesse": rest["prozesse"]}
+    else:
+        ungesucht = False
+    if any(not EINTRAG.match(e) for e in vorher | nachher | set(rest_eintraege(rest))):
+        return "entfernen_form"
+    frei = set()
+    hat_rest = bool(rest["dateien"] or rest["prozesse"] or ungesucht)
+    if zwei and hat_rest:
+        # Weg a mit Rest: Konto und Gruppen bleiben, ebenso genau der gemeldete Rest außerhalb der Ablage.
+        frei = set(SYSTEMNUTZER_EINTRAEGE) | {e for e in rest_eintraege(rest)
+                                              if not e.startswith(("datei:" + HALTER_SYSTEM_ABLAGE + "/", "prozess:werkbank-"))}
+    if any(e not in vorher and e not in frei and not purge_freigestellt(e, fall) for e in nachher):
         return "entfernen_rueckstand"
     if any(werkbank_profil(e) for e in nachher):
         return "entfernen_rueckstand"
     if any(e not in nachher for e in vorher):
         return "entfernen_verloren"
+    if frei and any(e not in nachher for e in SYSTEMNUTZER_EINTRAEGE):
+        return "entfernen_konto_trotz_rest"
+    if frei and KONTO_RESTZEILE not in fall.get("journal", ""):
+        return "entfernen_rest_ohne_meldung"
     return None
+
+
+# Schritt II: Systemnutzer und Gruppen, die preinst anlegt (Entscheid des Betreibers, 23.11.2026), und der Ort ihrer Ablage.
+SYSTEMNUTZER = "wb-halter"
+SYSTEMNUTZER_EINTRAEGE = ("konto:wb-halter", "gruppe:wb-halter") + tuple("gruppe:" + g for g in ROLLENGRUPPEN)
+HALTER_SYSTEM_ABLAGE = "/var/lib/wb-halter"
+KONTO_RESTZEILE = "werkbank: Konto wb-halter und Rollengruppen bleiben, Code 23"
+
+
+def rest_eintraege(rest):
+    """Der Rest beim purge (Weg a): Dateien, die `find -uid`/`-gid` fand, und Prozesse des Nutzers, als Einträge der Form `entfernen`."""
+    return ["datei:" + p for p in rest["dateien"]] + ["prozess:" + p for p in rest["prozesse"]]
+
+
+# Suche nach Resten in Schritt II (Teil A2, `purge` Schritt 3): die Liste der Einhängepunkte kommt aus `findmnt`; je Punkt läuft `find -xdev`.
+# Typen, die nie durchsucht werden: Kernel-Schnittstellen, Arbeitsspeicher, Netz, Abbilder. Jeder Typ steht in der README mit Grund.
+MOUNT_AUSGENOMMEN = frozenset({
+    "proc", "sysfs", "devtmpfs", "devpts", "tmpfs", "ramfs", "cgroup", "cgroup2", "securityfs", "debugfs", "tracefs", "configfs", "fusectl",
+    "pstore", "bpf", "mqueue", "hugetlbfs", "binfmt_misc", "efivarfs", "autofs", "rpc_pipefs", "nsfs", "overlay",
+    "fuse.gvfsd-fuse", "fuse.portal", "squashfs", "erofs", "iso9660", "udf",
+    "nfs", "nfs4", "cifs", "smb3", "9p", "fuse.sshfs",
+})
+# Typen lokaler Datenträger, die durchsucht werden. Jeder andere Typ gilt als unbekannt und zählt als Rest (fail closed).
+MOUNT_DURCHSUCHT = frozenset({"ext2", "ext3", "ext4", "xfs", "btrfs", "f2fs", "jfs", "zfs", "vfat", "exfat", "ntfs3", "fuseblk"})
+MOUNT_PFAD = re.compile(r"^/([A-Za-z0-9._@+-]+(/[A-Za-z0-9._@+-]+)*)?$")
+MOUNT_TYP = re.compile(r"^[a-z0-9][a-z0-9._-]{0,31}$")
+
+
+def einhaengepunkte_form(punkte, findmnt_fehler):
+    """Die Liste der Einhängepunkte hat Form: Pfade absolut und einmalig, Typ ein Dateisystemname, `lesbar` ein Wahrheitswert, `dateien` absolute Pfade
+    unter dem Punkt und nur auf einem durchsuchten, lesbaren Punkt (andere kann `purge` nicht finden und der Fall darf sie nicht behaupten).
+    Die Wurzel steht immer da, außer `findmnt` ist gescheitert (dann ist die Liste leer)."""
+    if not isinstance(punkte, list) or not isinstance(findmnt_fehler, bool):
+        return False
+    pfade = [p.get("pfad") for p in punkte if isinstance(p, dict)]
+    if len(pfade) != len(punkte) or len(set(pfade)) != len(pfade) or bool(punkte) == findmnt_fehler or (punkte and "/" not in pfade):
+        return False
+    for p in punkte:
+        if set(p) != {"pfad", "typ", "lesbar", "dateien"}:
+            return False
+        if not isinstance(p["pfad"], str) or not MOUNT_PFAD.match(p["pfad"]) or not isinstance(p["typ"], str) or not MOUNT_TYP.match(p["typ"]):
+            return False
+        if not isinstance(p["lesbar"], bool) or not isinstance(p["dateien"], list):
+            return False
+        for d in p["dateien"]:
+            if not isinstance(d, str) or not MOUNT_PFAD.match(d) or d == p["pfad"] or not (p["pfad"] == "/" or d.startswith(p["pfad"] + "/")):
+                return False
+        if p["dateien"] and (p["typ"] not in MOUNT_DURCHSUCHT or not p["lesbar"]):
+            return False
+    return True
+
+
+def mount_rest(punkte, findmnt_fehler, suche="einhaengepunkte"):
+    """Was die Suche nach Resten ergibt: (gefundene Dateien, ob etwas nicht durchsuchbar war). Nicht durchsuchbar (fail closed) sind: ein Fehler von
+    `findmnt`, ein Punkt mit unbekanntem Typ, ein nicht lesbarer Punkt. Ausgenommene Typen zählen nie. Regel `wurzel`: nur der Punkt `/`, nie ein Fehler."""
+    if suche == "wurzel":
+        return [d for p in punkte if p["pfad"] == "/" for d in p["dateien"]], False
+    gefunden, ungesucht = [], bool(findmnt_fehler)
+    for p in punkte:
+        if p["typ"] in MOUNT_AUSGENOMMEN:
+            continue
+        if p["typ"] not in MOUNT_DURCHSUCHT or not p["lesbar"]:
+            ungesucht = True
+            continue
+        gefunden += p["dateien"]
+    return gefunden, ungesucht
+
+
+def unter_fremdem_punkt(eintrag, punkte):
+    """Ein Eintrag `datei:`/`ordner:` liegt unter einem Einhängepunkt außer der Wurzel."""
+    art, _, wert = eintrag.partition(":")
+    if art not in ("datei", "ordner"):
+        return False
+    return any(p["pfad"] != "/" and (wert == p["pfad"] or wert.startswith(p["pfad"] + "/")) for p in punkte)
 
 
 # ---------------------------------------------------------------------------------------------------- Entfernen mit `remove`
@@ -673,15 +798,31 @@ RESTZEILE = "pruef.schluessel_rest: Eine Schluesseldatei liegt noch da; apt purg
 COPILOT_RESTZEILE = "pruef.copilot_rest: Eine Anmeldedatei der Copilot CLI liegt noch da; apt purge loescht sie."
 
 
+ABLAGE_REL = ".local/state/agent-workbench/halter/geheim"  # the store of the holder below the home (halter README 2.3, Nachtrag Halter)
+
+
 def remove_code(fall):
-    """Fall der Form `remove`: Zustände nach der Installation und nach `apt remove`, dazu die Ausgabe des Entfernens."""
-    schluessel = f"datei:/var/lib/werkbank/{fall['nutzer']}/modellweg.schluessel"
-    if schluessel in fall["nach_installation"] and schluessel not in fall["nach_remove"]:
-        return "remove_schluessel_verloren"
-    if schluessel in fall["nach_remove"] and RESTZEILE not in fall["meldung"]:
-        return "remove_hinweis_fehlt"
+    """Fall der Form `remove`: Zustände nach der Installation und nach `apt remove`, dazu die Ausgabe des Entfernens.
+    With `heimwurzel` (optional, Nachtrag Halter) the same two rules hold for `anmeldung.copilot` in the store of the holder."""
+    paare = [(f"datei:/var/lib/werkbank/{fall['nutzer']}/modellweg.schluessel", RESTZEILE)]
+    zwei = fall.get("schritt") == 2
+    if zwei:
+        # Schritt II: die Ablage liegt unter /var/lib/wb-halter; jede Datei dort ist Nutzerdaten und bleibt.
+        paare.append((f"datei:{HALTER_SYSTEM_ABLAGE}/geheim/anmeldung.copilot", COPILOT_RESTZEILE))
+        paare += [(e, None) for e in fall["nach_installation"]
+                  if e.startswith((f"datei:{HALTER_SYSTEM_ABLAGE}/", f"ordner:{HALTER_SYSTEM_ABLAGE}/")) or e == f"ordner:{HALTER_SYSTEM_ABLAGE}"]
+    elif "heimwurzel" in fall:
+        paare.append((f"datei:{fall['heimwurzel']}/{fall['nutzer']}/{ABLAGE_REL}/anmeldung.copilot", COPILOT_RESTZEILE))
+    for eintrag, _ in paare:
+        if eintrag in fall["nach_installation"] and eintrag not in fall["nach_remove"]:
+            return "remove_schluessel_verloren"
+    for eintrag, zeile in paare:
+        if zeile is not None and eintrag in fall["nach_remove"] and zeile not in fall["meldung"]:
+            return "remove_hinweis_fehlt"
     if fall["marke"] in fall["meldung"] or fall["marke"] in fall["journal"]:
         return "remove_hinweis_inhalt"
+    if zwei and any(e in fall["nach_installation"] and e not in fall["nach_remove"] for e in SYSTEMNUTZER_EINTRAEGE):
+        return "remove_konto_verloren"
     return None
 
 
@@ -748,7 +889,7 @@ EINSCHLUSS_SATZ = {
     "probelauf": "pruef.einschluss_probelauf: Der Probelauf des Einschlusses scheitert.",
     "nicht_pruefbar": "pruef.einschluss_nicht_pruefbar: Der Einschluss war nicht pruefbar.",
 }
-DIENSTE_LINUX = ("werkbank-kern.service", "werkbank-bruecke.service")
+DIENSTE_LINUX = ("werkbank-kern.service", "werkbank-bruecke.service", "wb-halter.service")  # the holder since the Nachtrag Halter, last
 DIENST_SATZ = {
     "fehlt": "pruef.dienst_fehlt: Der Dienst {n} ist nicht eingetragen.",
     "inaktiv": "pruef.dienst_inaktiv: Der Dienst {n} ist nicht aktiv.",
@@ -803,6 +944,7 @@ HARNESS_HINWEIS = {
     "nicht_eingetragen": "pruef.hinweis_harness_nicht_eingetragen: {n} liegt an einem gesuchten Ort, steht aber nicht in lauf.json; sudo dpkg-reconfigure werkbank.",
 }
 COPILOT_SATZ = {
+    "ablage": "pruef.copilot_ablage: Die Ablage des Halters hat falsche Rechte, einen falschen Eigentuemer oder einen Verweis.",
     "fehlt": "pruef.copilot_fehlt: Die Anmeldedatei der Copilot CLI fehlt.",
     "art": "pruef.copilot_art: Die Anmeldedatei der Copilot CLI ist keine gewoehnliche Datei.",
     "eigentuemer": "pruef.copilot_eigentuemer: Die Anmeldedatei der Copilot CLI gehoert nicht dem Nutzer.",
@@ -811,6 +953,8 @@ COPILOT_SATZ = {
     "form": "pruef.copilot_form: Die Anmeldedatei der Copilot CLI hat falsche Form.",
     "nicht_pruefbar": "pruef.copilot_nicht_pruefbar: Die Anmeldedatei der Copilot CLI war nicht pruefbar.",
 }
+# Nachtrag Halter: the file of the former target /var/lib/werkbank/<nutzer>/copilot.schluessel is still there (field `copilot_alt` of the `lage`).
+COPILOT_ALTER_ORT = "pruef.copilot_alter_ort: Am frueheren Ort liegt noch eine Anmeldedatei der Copilot CLI; sie wird nicht mehr gelesen und muss weg."
 SCHLUESSEL_SATZ = {
     "fehlt": "pruef.schluessel_fehlt: Die Schluesseldatei fehlt.",
     "art": "pruef.schluessel_art: Die Schluesseldatei ist keine gewoehnliche Datei.",
@@ -883,6 +1027,8 @@ def pruefbefehl(aufruf, lage):
         befunde.append(SCHLUESSEL_SATZ[lage["schluessel"]])
     if linux and lage["copilot"] != "ok":
         befunde.append(COPILOT_SATZ[lage["copilot"]])
+    if linux and lage.get("copilot_alt", False):
+        befunde.append(COPILOT_ALTER_ORT)
 
     v = lage["vault"]
     if v != "ok":
@@ -962,4 +1108,114 @@ def bauwerkzeuge_code(fall):
         return "bauwerkzeug_ausgeliefert"
     if any(n not in namen for n in BAUWERKZEUG_PFLICHT[fall["plattform"]]):
         return "bauwerkzeug_fehlt"
+    return None
+
+
+# ---------------------------------------------------------------------------------------------------- Schritt II: Systemnutzer (preinst)
+
+SYS_UID_MIN, SYS_UID_MAX = 100, 999  # Bereich der Systemkonten nach adduser (FIRST_SYSTEM_UID, LAST_SYSTEM_UID); Annahme bis AL-15
+SYSTEMNUTZER_HEIM = "/nonexistent"
+SYSTEMNUTZER_SHELL = "/usr/sbin/nologin"
+SYSTEMGRUPPEN = ("wb-halter",) + ROLLENGRUPPEN
+PREINST_FREMD = 24
+
+
+def _konto_gut(k):
+    return (SYS_UID_MIN <= k["uid"] <= SYS_UID_MAX and k["gruppe"] == SYSTEMNUTZER and k["heim"] == SYSTEMNUTZER_HEIM
+            and k["shell"] == SYSTEMNUTZER_SHELL)
+
+
+def _gruppe_gut(g):
+    return SYS_UID_MIN <= g["gid"] <= SYS_UID_MAX and g["mitglieder"] == []
+
+
+def _systemnutzer_form(stand):
+    if not isinstance(stand, dict) or set(stand) != {"konten", "gruppen"}:
+        return False
+    for k in stand["konten"]:
+        if not isinstance(k, dict) or set(k) != {"name", "uid", "gruppe", "heim", "shell"} or not ist_ganz(k["uid"]):
+            return False
+    for g in stand["gruppen"]:
+        if not isinstance(g, dict) or set(g) != {"name", "gid", "mitglieder"} or not ist_ganz(g["gid"]) \
+                or not isinstance(g["mitglieder"], list):
+            return False
+    namen_k = [k["name"] for k in stand["konten"]]
+    namen_g = [g["name"] for g in stand["gruppen"]]
+    return len(set(namen_k)) == len(namen_k) and len(set(namen_g)) == len(namen_g)
+
+
+def systemnutzer_code(fall):
+    """Fall der Form `systemnutzer`: Konten und Gruppen vor und nach `preinst install|upgrade` und dessen Rückgabe."""
+    vorher, nachher = fall["vorher"], fall["nachher"]
+    if not _systemnutzer_form(vorher) or not _systemnutzer_form(nachher) or not ist_ganz(fall["preinst_rc"]):
+        return "systemnutzer_form"
+    vk = {k["name"]: k for k in vorher["konten"]}
+    vg = {g["name"]: g for g in vorher["gruppen"]}
+    nk = {k["name"]: k for k in nachher["konten"]}
+    ng = {g["name"]: g for g in nachher["gruppen"]}
+    fremd = (SYSTEMNUTZER in vk and not _konto_gut(vk[SYSTEMNUTZER])) or any(n in vg and not _gruppe_gut(vg[n]) for n in SYSTEMGRUPPEN)
+    if fremd:
+        # fail closed: ein fremdes Konto oder eine fremde Gruppe dieses Namens wird nie übernommen und nie geändert
+        return None if (fall["preinst_rc"] == PREINST_FREMD and nachher == vorher) else "konto_fremd"
+    if fall["preinst_rc"] != 0 or SYSTEMNUTZER not in nk or any(n not in ng for n in SYSTEMGRUPPEN):
+        return "konto_fehlt"
+    if not _konto_gut(nk[SYSTEMNUTZER]) or any(not SYS_UID_MIN <= ng[n]["gid"] <= SYS_UID_MAX for n in SYSTEMGRUPPEN):
+        return "konto_form"
+    if any(ng[n]["mitglieder"] for n in SYSTEMGRUPPEN):
+        return "rollengruppe_mitglied"
+    if any(nk.get(n) != k for n, k in vk.items()) or any(ng.get(n) != g for n, g in vg.items()):
+        return "konto_verloren"
+    return None
+
+
+# ---------------------------------------------------------------------------------------------------- Schritt II: Umzug der Ablage (postinst, Update)
+
+UMZUG_ZEILE = "werkbank: Umzug der Ablage gescheitert, Code 21"
+UMZUG_FORM_SCHLUESSEL = {"name", "sha256", "modus", "eigentuemer"}
+
+
+def _ablage_form(liste):
+    if not isinstance(liste, list):
+        return False
+    for d in liste:
+        if not isinstance(d, dict) or set(d) != UMZUG_FORM_SCHLUESSEL or not KENNUNG.match(d["name"]) or not SHA.match(d["sha256"]):
+            return False
+    namen = [d["name"] for d in liste]
+    return len(set(namen)) == len(namen)
+
+
+def umzug_code(fall):
+    """Fall der Form `umzug`: die Ablage der Person (Schritt I) und die Ablage unter /var/lib/wb-halter vor und nach `postinst configure`
+    beim Update auf Schritt II, dazu Journal und Rückgabe."""
+    teile = ("quelle_vorher", "quelle_nachher", "ziel_vorher", "ziel_nachher")
+    if any(not _ablage_form(fall[t]) for t in teile) or not ist_ganz(fall["postinst_rc"]) or not isinstance(fall["journal"], str):
+        return "umzug_form"
+    if fall["postinst_rc"] != 0:
+        return "umzug_abbruch"  # Entscheidung 7: ein gescheiterter Umzug bricht die Installation nicht ab
+    qv = {d["name"]: d for d in fall["quelle_vorher"]}
+    zv = {d["name"]: d for d in fall["ziel_vorher"]}
+    zn = {d["name"]: d for d in fall["ziel_nachher"]}
+    sortiert = lambda l: sorted(l, key=lambda d: d["name"])  # noqa: E731
+    unberuehrt = sortiert(fall["quelle_nachher"]) == sortiert(fall["quelle_vorher"]) and sortiert(fall["ziel_nachher"]) == sortiert(fall["ziel_vorher"])
+    # Ein Name, der im Ziel schon mit anderem Inhalt liegt, ist ein Konflikt: dann bleibt alles, wie es war.
+    konflikt = any(n in zv and zv[n]["sha256"] != d["sha256"] for n, d in qv.items())
+    erwartet = dict(zv)
+    for n, d in qv.items():
+        erwartet[n] = {"name": n, "sha256": d["sha256"], "modus": "0600", "eigentuemer": SYSTEMNUTZER}
+    fertig = not konflikt and zn == erwartet
+    if konflikt and not unberuehrt:
+        return "umzug_konflikt"
+    for n, d in qv.items():
+        z = zn.get(n)
+        if z is not None and n not in zv and (z["sha256"] != d["sha256"] or z["modus"] != "0600" or z["eigentuemer"] != SYSTEMNUTZER):
+            return "umzug_inhalt"
+    if not fertig and not unberuehrt:
+        return "umzug_halb"
+    if fertig and fall["quelle_nachher"]:
+        return "umzug_quelle_bleibt"
+    gescheitert = unberuehrt and bool(qv) and not fertig
+    if gescheitert and UMZUG_ZEILE not in fall["journal"]:
+        return "umzug_code_fehlt"
+    if not gescheitert and UMZUG_ZEILE in fall["journal"]:
+        return "umzug_code_falsch"
     return None

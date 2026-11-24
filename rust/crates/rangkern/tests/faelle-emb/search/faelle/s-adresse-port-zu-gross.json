@@ -1,5 +1,5 @@
 {
- "description": "Port 65536: Exit 2",
+ "description": "Port 65536: Exit 64",
  "program": "rangkern",
  "ziele": [
   "adresse-nicht-loopback"

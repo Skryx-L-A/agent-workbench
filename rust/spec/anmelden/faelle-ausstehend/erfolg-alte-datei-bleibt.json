@@ -1,0 +1,18 @@
+{
+ "beschreibung": "Nachtrag Halter: die Datei des früheren Ziels unter /var/lib/werkbank wird weder gelesen noch geändert",
+ "args": [
+  "copilot"
+ ],
+ "attrappe": "erfolg",
+ "token": {
+  "praefix": "gho_",
+  "fuell": "A",
+  "laenge": 40
+ },
+ "ziel": "alte-datei",
+ "echtes_heim": "leer",
+ "bundtool": "leer",
+ "wegwerf_wurzel": "ok",
+ "signal": null,
+ "reste": "keine"
+}

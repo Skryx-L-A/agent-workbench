@@ -13,6 +13,7 @@ mod fulltext;
 mod hit;
 mod notes;
 mod pystr;
+mod rueckfall;
 mod search;
 mod serve;
 #[cfg(unix)]

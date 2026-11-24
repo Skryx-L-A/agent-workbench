@@ -113,8 +113,10 @@ fn a_write_error_of_stdout_exits_with_74() {
     stdin
         .write_all(b"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}\n")
         .expect("request");
-    let ausgang = kind.wait_with_output().expect("wait");
+    // stdin is closed before the wait: a program that ignored the write error would end at the end of stdin with 0 (red)
+    // instead of waiting for more input for ever (review B13).
     drop(stdin);
+    let ausgang = kind.wait_with_output().expect("wait");
     assert_eq!(ausgang.status.code(), Some(74));
 }
 
@@ -444,19 +446,51 @@ fn the_scan_finds_what_it_looks_for() {
     );
 }
 
+/// The names of the dependency section `kopf` of the manifest (until the next section).
+fn abhaengigkeiten<'a>(manifest: &'a str, kopf: &str) -> Vec<&'a str> {
+    manifest
+        .split(kopf)
+        .skip(1)
+        .flat_map(|abschnitt| {
+            abschnitt
+                .split("\n[")
+                .next()
+                .expect("section")
+                .lines()
+                .filter(|z| !z.trim().is_empty() && !z.trim_start().starts_with('#'))
+                .map(|z| z.split('=').next().expect("a name").trim())
+        })
+        .collect()
+}
+
+/// Until 23.11.2026 this test was `the_manifest_names_serde_json_as_the_only_dependency` and read only `[dependencies]`; a
+/// dependency in a target section went unseen (review B13). Now every dependency section counts: `serde_json` on every system,
+/// `nix` only under macOS, nothing else.
 #[test]
-fn the_manifest_names_serde_json_as_the_only_dependency() {
+fn the_manifest_names_serde_json_everywhere_and_nix_only_under_macos() {
     let manifest =
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml")).expect("read");
-    let abschnitt = manifest
-        .split("[dependencies]")
-        .nth(1)
-        .expect("a dependency section");
-    let abschnitt = abschnitt.split("\n[").next().expect("section");
-    let namen: Vec<&str> = abschnitt
+    assert_eq!(
+        abhaengigkeiten(&manifest, "\n[dependencies]"),
+        ["serde_json"]
+    );
+    assert_eq!(
+        abhaengigkeiten(
+            &manifest,
+            "\n[target.'cfg(target_os = \"macos\")'.dependencies]"
+        ),
+        ["nix"]
+    );
+    let abschnitte: Vec<&str> = manifest
         .lines()
-        .filter(|z| !z.trim().is_empty() && !z.trim_start().starts_with('#'))
-        .map(|z| z.split('=').next().expect("a name").trim())
+        .filter(|z| z.starts_with('[') && z.contains("dependencies"))
         .collect();
-    assert_eq!(namen, ["serde_json"]);
+    assert_eq!(
+        abschnitte,
+        [
+            "[dependencies]",
+            "[target.'cfg(target_os = \"macos\")'.dependencies]"
+        ],
+        "no other dependency section"
+    );
 }

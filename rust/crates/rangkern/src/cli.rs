@@ -22,11 +22,12 @@ use crate::vdb::{DbPaths, load_db_vectors, load_merged};
 
 /// Success.
 pub const EXIT_OK: u8 = 0;
-/// Wrong usage: unknown command or option, missing argument, abbreviation, `-k` below 1.
-pub const EXIT_USAGE: u8 = 2;
-/// A usage error of `rangkern sitzung` (`EX_USAGE` of `sysexits.h`; contract 4 since 21.11.2026). The other commands keep
-/// [`EXIT_USAGE`]. It lives here because the Windows build has the command (as a refusal) but not the module `sitzung`.
-pub const EXIT_USAGE_SITZUNG: u8 = 64;
+/// Wrong usage of any command: no or an unknown command, unknown option, missing argument, abbreviation, `-k` below 1,
+/// an argument that is no UTF-8 (`EX_USAGE` of `sysexits.h`; one code for the whole program since 23.11.2026, before
+/// that 2 outside `sitzung`).
+pub const EXIT_USAGE: u8 = 64;
+/// The usage error of `rangkern sitzung`: the same code as [`EXIT_USAGE`], kept as a name for the module `sitzung`.
+pub const EXIT_USAGE_SITZUNG: u8 = EXIT_USAGE;
 /// The vault, a file or the vector file cannot be read.
 pub const EXIT_UNREADABLE: u8 = 3;
 
@@ -490,6 +491,14 @@ fn serve_command<I: BufRead, O: Write>(args: &[String], input: &mut I, out: &mut
     serve_lines(&mut server, input, out)
 }
 
+/// The error output that `main` hands to [`run_with_input`]: the handle without a lock. `Stderr` locks per write; a lock held by
+/// `main` would live as long as `sitzung` runs, and a connection thread that writes to the error output would wait for ever
+/// (review B1, 23.11.2026).
+#[must_use]
+pub fn fehlerausgabe() -> std::io::Stderr {
+    std::io::stderr()
+}
+
 /// Runs the program with the arguments after the program name, `serve` reading no request.
 /// Returns the exit code.
 pub fn run<O: Write, E: Write>(args: &[String], out: &mut O, err: &mut E) -> u8 {
@@ -526,11 +535,11 @@ pub fn run_with_input<I: BufRead, O: Write, E: Write>(
         && command == "sitzung"
     {
         // The search socket needs Unix sockets; the named pipe for Windows follows with its own part of the contract.
-        // Until then the command ends with exit 64 (the usage error of `sitzung`) and one line, and does not print the usage text.
+        // Until then the command ends with exit 64 (the usage error) and one line, and does not print the usage text.
         #[cfg(unix)]
         let code = {
             let code = crate::sitzung::run(rest, out, err);
-            if code == EXIT_USAGE_SITZUNG {
+            if code == EXIT_USAGE {
                 let _ = writeln!(err, "{USAGE}");
             }
             code
@@ -542,7 +551,7 @@ pub fn run_with_input<I: BufRead, O: Write, E: Write>(
                 err,
                 "rangkern sitzung: unter Windows noch nicht unterstützt"
             );
-            EXIT_USAGE_SITZUNG
+            EXIT_USAGE
         };
         return code;
     }

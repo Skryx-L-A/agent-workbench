@@ -1,0 +1,11 @@
+{
+ "beschreibung": "frische Installation oder keine Ablage der Person: nichts zu tun, keine Journalzeile",
+ "form": "umzug",
+ "nutzer": "nutzer1",
+ "quelle_vorher": [],
+ "quelle_nachher": [],
+ "ziel_vorher": [],
+ "ziel_nachher": [],
+ "journal": "",
+ "postinst_rc": 0
+}

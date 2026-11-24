@@ -1,5 +1,5 @@
 {
- "description": "serve --embed ohne --index-db: Exit 2",
+ "description": "serve --embed ohne --index-db: Exit 64",
  "ziele": [
   "aufruffehler"
  ],

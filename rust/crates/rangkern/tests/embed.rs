@@ -1977,18 +1977,18 @@ fn the_options_set_model_keep_alive_and_deadline() {
 }
 
 #[test]
-fn every_address_but_a_loopback_address_and_every_clash_of_options_is_exit_2() {
+fn every_address_but_a_loopback_address_and_every_clash_of_options_is_exit_64() {
     watchdog();
     let scratch = scratch_with_vectors("usage");
     let index = scratch.index();
     let bad = |rest: &[&str]| {
         let mut args = strings(&["search", &scratch.vault(), "beet"]);
         args.extend(strings(rest));
-        assert_eq!(call(&args), (2, String::new()), "search {rest:?}");
+        assert_eq!(call(&args), (64, String::new()), "search {rest:?}");
         // `serve` knows no `--query-vector`; that is a usage error there anyway.
         let mut args = strings(&["serve", &scratch.vault()]);
         args.extend(strings(rest));
-        assert_eq!(call_serve(&args, ""), (2, String::new()), "serve {rest:?}");
+        assert_eq!(call_serve(&args, ""), (64, String::new()), "serve {rest:?}");
     };
     for url in [
         "http://example.com:1",
@@ -2070,7 +2070,7 @@ fn serve_takes_each_embedding_option_once() {
         ]));
         assert_eq!(
             call_serve(&args, "{\"op\":\"quit\"}\n"),
-            (2, String::new()),
+            (64, String::new()),
             "{option}"
         );
     }

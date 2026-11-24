@@ -14,7 +14,8 @@ name = "such-mcp"
 path = "src/main.rs"
 
 # serde_json: reads the JSON-RPC line and the arguments of the call, writes the escaped strings of the answer.
-# No other dependency: the socket is std::os::unix::net, the deadline is std::sync::mpsc.
+# No other dependency on every system: the socket is std::os::unix::net, the deadline is std::sync::mpsc. Under macOS `nix`
+# comes in (below), nothing else (test `the_manifest_names_serde_json_everywhere_and_nix_only_under_macos`).
 [dependencies]
 serde_json = "1"
 

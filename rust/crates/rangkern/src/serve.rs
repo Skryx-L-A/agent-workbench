@@ -19,7 +19,7 @@ use serde_json::value::RawValue;
 use serde_json::{Map, Value, json};
 
 use crate::cli::{EXIT_OK, EXIT_UNREADABLE, hit_json, is_date, today};
-use crate::embed::Embedder;
+use crate::embed::{Embedder, Grund};
 use crate::hit::SearchHit;
 use crate::notes::NoteRec;
 use crate::search::{Params, rank, rank_embedding};
@@ -510,6 +510,22 @@ impl Server {
         request: &SearchRequest,
         now: i128,
     ) -> Result<(Vec<SearchHit>, bool), Unreadable> {
+        self.search_hits_ausfall(request, now)
+            .map(|(hits, fallback, _)| (hits, fallback))
+    }
+
+    /// As [`Server::search_hits`], and the reason of the last try when the embedding of `--embed` failed for this
+    /// request (contract 4, "Rückfall der Einbettung"). There is none without `--embed`, for a request with
+    /// `query_vector`, and when no note vector is in the corpus (Ollama is not asked then).
+    ///
+    /// # Errors
+    ///
+    /// As [`Server::search_hits`].
+    pub fn search_hits_ausfall(
+        &mut self,
+        request: &SearchRequest,
+        now: i128,
+    ) -> Result<(Vec<SearchHit>, bool, Option<Grund>), Unreadable> {
         let today_text = request.today.clone().unwrap_or_else(today);
         self.warm.refresh(&self.root, &mut self.analyzer, now)?;
         let mut params = Params {
@@ -532,13 +548,14 @@ impl Server {
                 (embedder, notes),
             ));
         }
-        Ok(rank(
+        let (hits, fallback) = rank(
             &self.root,
             self.warm.korpus(),
             &mut self.analyzer,
             &request.query,
             &params,
-        ))
+        );
+        Ok((hits, fallback, None))
     }
 
     /// The answer to one line, and whether the process ends after it.

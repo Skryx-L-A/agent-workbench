@@ -1,5 +1,5 @@
 {
- "description": "--vectors zusammen mit --index-db: Aufruffehler, Exit 2",
+ "description": "--vectors zusammen mit --index-db: Aufruffehler, Exit 64",
  "program": "rangkern",
  "ziele": [
   "vectors-mit-index"
