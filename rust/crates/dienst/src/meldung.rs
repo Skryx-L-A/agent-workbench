@@ -474,7 +474,14 @@ mod tests {
                 drop(c);
             } else {
                 drop(c);
+                // A test running at the same time can hold a copy of `c` between its `fork` and `exec` (CLOEXEC); the end then comes
+                // when that copy goes. The service must see it within the deadline, never miss it.
+                let frist = std::time::Instant::now() + std::time::Duration::from_secs(10);
                 m.abfragen();
+                while m.strom.is_some() && std::time::Instant::now() < frist {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                    m.abfragen();
+                }
                 assert!(m.strom.is_none(), "the end of the connection is seen");
                 assert!(m.verbunden);
                 assert_eq!(m.auswerten_am_ende(), Ende::Starter);
