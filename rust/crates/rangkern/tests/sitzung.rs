@@ -276,9 +276,14 @@ impl Lauf {
 
     fn verbinden(&self) -> Verbindung {
         let strom = UnixStream::connect(&self.sock).expect("the socket accepts");
-        strom
-            .set_read_timeout(Some(Duration::from_secs(15)))
-            .expect("timeout");
+        // macOS refuses `setsockopt` (EINVAL) once the process has closed its end, as it does at once for a 17th connection.
+        // A closed end cannot hold a read up, so the failure is ignored there; every other error still fails the test.
+        if let Err(fehler) = strom.set_read_timeout(Some(Duration::from_secs(15))) {
+            assert!(
+                cfg!(target_os = "macos") && fehler.kind() == std::io::ErrorKind::InvalidInput,
+                "timeout: {fehler}"
+            );
+        }
         Verbindung {
             lesen: BufReader::new(strom.try_clone().expect("clone")),
             schreiben: strom,

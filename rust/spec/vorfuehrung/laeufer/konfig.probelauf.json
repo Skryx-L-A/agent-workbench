@@ -68,6 +68,7 @@
     "/commands"
    ],
    "vertrauensfrage_muster": "Confirmfoldertrust",
+   "arbeit_muster": "(?i)esc to|thinking|running",
    "ohne_anmeldung_muster": "Pleaseuse/login",
    "zaehlt_als_start": true
   },
@@ -175,13 +176,14 @@
   "befehl": "Kennung {np}, Zug T{n}. Führe in der Shell genau einmal diesen Befehl aus, ohne ihn zu ändern: `{arg}; echo RC=$?` Gib danach die vollständige Ausgabe unverändert in einem Codeblock wieder, ohne Kommentar. Schreibe zuletzt eine eigene Zeile aus dem Wort FERTIG, einem Leerzeichen und T{n}.",
   "suche": "Kennung {np}, Zug T{n}. Rufe das Werkzeug such-mcp-brain_suche genau einmal mit dieser Frage auf: {arg} Fasse danach in höchstens zwei Sätzen zusammen, was die Treffer sagen. Schreibe zuletzt eine eigene Zeile aus dem Wort FERTIG, einem Leerzeichen und T{n}.",
   "zaehlen": "Kennung {np}, Zug T{n}. Rufe kein Werkzeug auf. Antworte nur mit einer eigenen Zeile aus dem Wort FERTIG, einem Leerzeichen und T{n}.",
-  "buendel": "Kennung {np}, Zug T{n}. Führe in der Shell genau einmal dieses Skript aus, ohne es zu ändern: `{arg}` Gib danach die vollständige Ausgabe unverändert in einem Codeblock wieder, ohne Kommentar. Schreibe zuletzt eine eigene Zeile aus dem Wort FERTIG, einem Leerzeichen und T{n}.",
+  "buendel": "!{arg}; echo \"FERTIG T$(({n}))\"",
   "suche_lokal": "Zug T{n}. Rufe das Such-Werkzeug brain_suche genau einmal mit dieser Frage auf: {arg} Fasse danach in höchstens zwei Sätzen zusammen, was die Treffer sagen. Schreibe zuletzt eine eigene Zeile aus dem Wort FERTIG, einem Leerzeichen und T{n}."
  },
  "grenzen": {
   "start_s": 30.0,
   "turn_s": 120,
-  "baum_s": 120
+  "baum_s": 120,
+  "still_s": 20
  },
  "such_prozess": {
   "name_im_einschluss": "rangkern",

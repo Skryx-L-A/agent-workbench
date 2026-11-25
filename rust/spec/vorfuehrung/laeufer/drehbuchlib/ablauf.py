@@ -66,7 +66,8 @@ def zaehldateien_entfernen(k, sitzungen):
 def ausnahme_code(kennung, e):
     """Fester Code fuer eine Ausnahme in einem Schritt (Entscheidung vom 21.11.2026): bekannte Ausnahmen mit eigenem Code, sonst None
     (dann `<schritt>.ausnahme`). `kein_eingabefeld`: der Laeufer hat nichts gesendet, weil das Eingabefeld beim Start ausblieb;
-    `harness_beendet`: dabei war die Sitzung schon beendet; `zug_frist`: ein Zug kam nicht binnen seiner Frist zu FERTIG; `nicht_abgesendet`: der Text eines Zugs
+    `harness_beendet`: dabei war die Sitzung schon beendet; `zug_frist`: ein Zug kam nicht binnen seiner Frist zu FERTIG; `antwort_ohne_merkmal`: die CLI war vor der Frist fertig, ohne FERTIG (Bild
+    still, Feld ohne den Text, keine Arbeitsanzeige); `nicht_abgesendet`: der Text eines Zugs
     stand nie im Raster oder nach dem Enter noch im Eingabefeld."""
     k = kennung.lower()
     if isinstance(e, lauf.ZaehlDateiFehler):
@@ -77,6 +78,8 @@ def ausnahme_code(kennung, e):
         return "copilot.start-limit"
     if isinstance(e, lauf.KeinEingabefeld):
         return "%s.%s" % (k, "harness_beendet" if e.zustand == "beendet" else "kein_eingabefeld")
+    if isinstance(e, lauf.AntwortOhneMerkmal):  # vor Zeitueberschreitung (Unterklasse)
+        return "%s.antwort_ohne_merkmal" % k
     if isinstance(e, lauf.Zeitueberschreitung):
         return "%s.zug_frist" % k
     if isinstance(e, lauf.NichtAbgesendet):

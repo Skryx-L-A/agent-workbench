@@ -435,6 +435,25 @@ mod tests {
         assert_eq!(modus_setzen(&w.0.join("fehlt")), Err(()));
     }
 
+    /// A link in place of the report socket that points to another socket: the call fails and the other socket keeps its mode.
+    /// Under Linux this needs `O_NOFOLLOW` on the open (mutant `PATH | NOFOLLOW & CLOEXEC`, 25.11.2026).
+    #[test]
+    fn ein_link_auf_einen_anderen_socket_aendert_dessen_modus_nicht() {
+        let w = Wegwerf::neu("link-socket");
+        let ziel = w.0.join("anderer.sock");
+        let _anderer = UnixListener::bind(&ziel).expect("bind");
+        fs::set_permissions(&ziel, fs::Permissions::from_mode(0o644)).expect("chmod");
+        let link = w.0.join(SOCKET_NAME);
+        std::os::unix::fs::symlink(&ziel, &link).expect("link");
+        assert_eq!(modus_setzen(&link), Err(()));
+        let modus = fs::symlink_metadata(&ziel)
+            .expect("target")
+            .permissions()
+            .mode()
+            & 0o7777;
+        assert_eq!(modus, 0o644, "the other socket keeps its mode");
+    }
+
     /// The child writes its line and ends before the service looks at the socket: the end reads the socket empty first.
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     #[test]

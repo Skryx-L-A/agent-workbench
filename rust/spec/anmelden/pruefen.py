@@ -4,9 +4,8 @@
 Aufruf: python3 -I rust/spec/anmelden/pruefen.py
 Exit 0, wenn jeder Punkt stimmt. Die Fälle selbst (Läufe des Programms) prüft tests/faelle.rs des Crates.
 Jeder Code der Tabelle in README.md Abschnitt 5 braucht mindestens einen Fall; jeder Fall nennt einen Code der Tabelle oder keinen.
-Zwei Gruppen: die gelesenen Ordner (faelle/, erwartet/, faelle-uebernehmen/, erwartet-uebernehmen/; der heutige Code besteht sie)
-und die ausstehenden (faelle-ausstehend/, erwartet-ausstehend/, faelle-uebernehmen-ausstehend/, erwartet-uebernehmen-ausstehend/; Nachtrag
-Halter, kein Crate liest sie). Ein ausstehender Fall darf einen gelesenen gleichen Namens ersetzen, wenn der Code ihn bringt.
+Die Ordner faelle/, erwartet/, faelle-uebernehmen/ und erwartet-uebernehmen/ liest der Code des Crates. Ausstehende Ordner gibt es seit
+dem Zug des Nachtrags Halter nicht mehr; liegt wieder einer da, ist das ein Fehler.
 """
 import importlib.util
 import json
@@ -19,15 +18,14 @@ FELDER_FALL = {"beschreibung", "args", "attrappe", "token", "ziel", "echtes_heim
 FELDER_ERWARTET = {"exit", "code", "stdout", "stderr", "ziel_datei", "login_gestartet", "reste_geloescht", "reste_uebrig"}
 WERTE = {
     "attrappe": {"erfolg", "abbruch", "ohne-config", "config-ohne-feld", "zwei-tokens", "config-defekt", "alte-form", "haengt", "fehlt"},
-    "ziel": {"frei", "datei-da", "ordner-fehlt", "schreibgeschuetzt"},
+    "ziel": {"frei", "datei-da", "ordner-fehlt", "schreibgeschuetzt", "heim-fehlt", "ebene-verweis", "ebene-geteilt", "alte-datei"},
     "echtes_heim": {"leer", "config-mit-token", "config-defekt"},
     "bundtool": {"keins", "leer", "gefunden"},
     "wegwerf_wurzel": {"ok", "fehlt"},
     "reste": {"keine", "tot", "lebend", "verweis", "nicht-loeschbar"},
 }
-# Zusätzliche Werte von `ziel` in den ausstehenden Fällen (Nachtrag Halter).
-ZIEL_AUSSTEHEND = {"heim-fehlt", "ebene-verweis", "ebene-geteilt", "alte-datei"}
-ZIEL_UEB_AUSSTEHEND = {"heim-fehlt", "ebene-verweis"}
+# Ordner der ausstehenden Fälle des Nachtrags Halter; seit dessen Zug gibt es sie nicht mehr.
+AUSSTEHEND_ORDNER = ("faelle-ausstehend", "erwartet-ausstehend", "faelle-uebernehmen-ausstehend", "erwartet-uebernehmen-ausstehend")
 SIGNAL_EXIT = {"INT": 130, "TERM": 143, "HUP": 129}
 ZIEL_DATEI = {"neu", "ersetzt", "unveraendert", "nicht-angelegt"}
 # Muster eines echten Tokens: kein Fall und kein Text des Vertrags darf eines als Text tragen.
@@ -64,7 +62,7 @@ WERTE_UEB = {
                "weitere-anmeldung", "token-ausserhalb", "token-andere-tiefe", "kommentar-mitte", "blockkommentar",
                "komma-vor-klammer", "alte-form", "verweis", "hardlink", "zu-gross", "fifo", "ordner"},
     "quellordner": {"ok", "fehlt", "verweis", "gruppe-schreibbar"},
-    "ziel": {"frei", "datei-da", "datei-gleich", "ordner-fehlt", "schreibgeschuetzt"},
+    "ziel": {"frei", "datei-da", "datei-gleich", "ordner-fehlt", "schreibgeschuetzt", "heim-fehlt", "ebene-verweis"},
     "bundtool": {"keins", "leer", "gefunden"},
     "reste": {"keine", "schluessel-temp", "config-temp", "beide", "lebend", "verweis"},
     "probe": {None, "config-stoeren"},
@@ -76,7 +74,7 @@ CONFIG_UEB = {"ohne-token", "unveraendert"}
 def uebernahme_pruefen(mod, codes, fehler, f_ordner="faelle-uebernehmen", e_ordner="erwartet-uebernehmen", menge=None, kaputt=None, ziel_mehr=frozenset()):
     """Prüft die Fälle der Übernahme (Abschnitt 3b) wie die des Geräteflusses. Gibt die benutzten Codes und die Namen zurück."""
     menge = mod.FAELLE_UEB if menge is None else menge
-    kaputt = mod.ZIEL_KAPUTT_HEUTE if kaputt is None else kaputt
+    kaputt = mod.ZIEL_KAPUTT if kaputt is None else kaputt
     benutzt = set()
     namen_f = {p.stem for p in (HIER / f_ordner).glob("*.json")}
     namen_e = {p.stem for p in (HIER / e_ordner).glob("*.json")}
@@ -123,7 +121,7 @@ def uebernahme_pruefen(mod, codes, fehler, f_ordner="faelle-uebernehmen", e_ordn
 def geraet_pruefen(mod, codes, fehler, f_ordner="faelle", e_ordner="erwartet", menge=None, kaputt=None, ziel_mehr=frozenset()):
     """Prüft die Fälle des Geräteflusses in einem Ordnerpaar. Gibt die benutzten Codes und die Namen zurück."""
     menge = mod.FAELLE if menge is None else menge
-    kaputt = mod.ZIEL_KAPUTT_HEUTE if kaputt is None else kaputt
+    kaputt = mod.ZIEL_KAPUTT if kaputt is None else kaputt
     namen_f = {p.stem for p in (HIER / f_ordner).glob("*.json")}
     namen_e = {p.stem for p in (HIER / e_ordner).glob("*.json")}
     if namen_f != namen_e:
@@ -197,14 +195,13 @@ def main():
         fehler.append("CODES in bau-faelle.py weicht von der Tabelle in README.md ab")
     benutzt, namen_f = geraet_pruefen(mod, codes, fehler)
     b2, namen_u = uebernahme_pruefen(mod, codes, fehler)
-    # Ausstehende Fälle (Nachtrag Halter): eigene Ordner, je mit einer README.md, welcher Code sie aktiv macht.
-    b3, namen_a = geraet_pruefen(mod, codes, fehler, "faelle-ausstehend", "erwartet-ausstehend", mod.FAELLE_AUSSTEHEND, mod.ZIEL_KAPUTT, ZIEL_AUSSTEHEND)
-    b4, namen_ua = uebernahme_pruefen(mod, codes, fehler, "faelle-uebernehmen-ausstehend", "erwartet-uebernehmen-ausstehend",
-                                      mod.FAELLE_UEB_AUSSTEHEND, mod.ZIEL_KAPUTT, ZIEL_UEB_AUSSTEHEND)
-    for ordner in ("faelle-ausstehend", "erwartet-ausstehend", "faelle-uebernehmen-ausstehend", "erwartet-uebernehmen-ausstehend"):
-        if not (HIER / ordner / "README.md").is_file():
-            fehler.append("%s: die README.md fehlt (welcher Code die Fälle aktiv macht)" % ordner)
-    benutzt = benutzt | b2 | b3 | b4
+    # Die ausstehenden Fälle des Nachtrags Halter sind verschoben: keine Menge, kein Ordner.
+    if mod.FAELLE_AUSSTEHEND or mod.FAELLE_UEB_AUSSTEHEND:
+        fehler.append("bau-faelle.py: FAELLE_AUSSTEHEND und FAELLE_UEB_AUSSTEHEND sind leer")
+    for ordner in AUSSTEHEND_ORDNER:
+        if (HIER / ordner).exists():
+            fehler.append("%s: der Ordner ist entfernt, seine Fälle stehen in den gelesenen Ordnern" % ordner)
+    benutzt = benutzt | b2
     for code in codes:
         if code not in benutzt and code not in OHNE_FALL:
             fehler.append("kein Fall für %s" % code)
@@ -215,8 +212,8 @@ def main():
         for z in fehler:
             sys.stderr.write("FEHLER: %s\n" % z)
         sys.exit(1)
-    sys.stdout.write("anmelden: %d Fälle, %d Fälle der Übernahme, %d Codes, ausstehend %d und %d, alles stimmt\n"
-                     % (len(namen_f), len(namen_u), len(codes), len(namen_a), len(namen_ua)))
+    sys.stdout.write("anmelden: %d Fälle, %d Fälle der Übernahme, %d Codes, alles stimmt\n"
+                     % (len(namen_f), len(namen_u), len(codes)))
 
 
 if __name__ == "__main__":

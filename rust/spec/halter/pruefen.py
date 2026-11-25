@@ -7,7 +7,9 @@ Ohne jsonschema prüft es alles außer dem Schema und meldet das Schema als nich
 Geprüft wird: Paarung faelle/erwartet, Größe, strenges JSON-Lesen, RFC 8785 der Bytes, die Rollentabelle,
 Stufe 7a gegen den offenen Strom der Lage, das Schema (Stufen 8 bis 12 als Gruppe) und die Stufen 13 bis 27 gegen
 die Lage des Falls (mit Pfadprüfung und Teilbaum-Regeln aus dem Nachtrag B05), einschließlich
-Ed25519-Signatur, digest, Frist und Einmal-Kennung des Scheins. Welcher Code innerhalb der Schema-Stufen
+Ed25519-Signatur, digest, Frist und Einmal-Kennung des Scheins. Fälle der Form `konfig` (Abschnitt 2.3a, Nachtrag Rolle
+aus der Gruppe): strenges Lesen, Größe, `$defs/konfig`, eigene uid in `konten` und die Regeln der Rollengruppen gegen
+`/etc/group` und `/etc/passwd` der `umgebung`. Welcher Code innerhalb der Schema-Stufen
 fällt, die Ausführung (Stufen 28 bis 31 mit 28a) und alles an Pipe, Socket und Strom sind erst mit dem Bau prüfbar.
 """
 import base64
@@ -148,8 +150,69 @@ def nach_schema(a, lage):
     return schein_stufen(a, lage, eintrag) if braucht else None
 
 
+KONFIG_GRENZE = 1048576
+GRUPPE_PASSWORT_OK = ("x", "!", "*", "")
+
+
+def felder(text, n):
+    """Zeilen einer Datei im Format von /etc/group oder /etc/passwd mit genau n Feldern; andere Zeilen zählen nicht."""
+    return [z.split(":") for z in text.split("\n") if z and len(z.split(":")) == n]
+
+
+def rollengruppen(k, umgebung):
+    """Abschnitt 2.3a, Rollengruppen beim Start: None, wenn alle Regeln halten, sonst der Text der verletzten Regel."""
+    gruppen = felder(umgebung["group"], 4)
+    hauptgruppen = {}
+    for f in felder(umgebung["passwd"], 7):
+        if f[2].isdigit() and f[3].isdigit():
+            hauptgruppen[int(f[2])] = int(f[3])
+    konten = {int(u) for u in k["konten"]}
+    gids = set()
+    for rolle, name in k["rollen"].items():
+        treffer = [f for f in gruppen if f[0] == name]
+        if len(treffer) != 1:
+            return f"{rolle}: Gruppe nicht genau einmal"
+        _, passwort, gid, mitglieder = treffer[0]
+        if not gid.isdigit() or not gid.isascii() or int(gid) == 0 or int(gid) > 4294967295:
+            return f"{rolle}: gid"
+        gid = int(gid)
+        if gid in gids:
+            return f"{rolle}: gid doppelt"
+        gids.add(gid)
+        if mitglieder != "":
+            return f"{rolle}: Mitglied"
+        if passwort not in GRUPPE_PASSWORT_OK:
+            return f"{rolle}: Passwort"
+        if any(hauptgruppen.get(u) == gid for u in konten):
+            return f"{rolle}: Hauptgruppe eines Kontos"
+    return None
+
+
+def konfig_referenz(fall, roh, pruefer):
+    """Fall der Form `konfig`: None für gültig, 'halter.konfig' für Exit 78, 'BAU' ohne jsonschema."""
+    if len(roh) > KONFIG_GRENZE:
+        return "halter.konfig"
+    try:
+        k = w.streng_lesen(roh)
+    except (ValueError, UnicodeDecodeError):
+        return "halter.konfig"
+    if pruefer is None:
+        return "BAU"
+    if not pruefer["konfig"].is_valid(k):
+        return "halter.konfig"
+    if len(set(k["rollen"].values())) != len(k["rollen"]):
+        return "halter.konfig"
+    if str(fall["umgebung"]["uid"]) not in k["konten"]:
+        return "halter.konfig"
+    if rollengruppen(k, fall["umgebung"]) is not None:
+        return "halter.konfig"
+    return None
+
+
 def referenz(fall, roh, pruefer):
     """Code nach der Prüfreihenfolge, 'SCHEMA' für die Stufen 8 bis 12, 'BAU' wenn nicht prüfbar, None für gültig."""
+    if fall["form"] == "konfig":
+        return konfig_referenz(fall, roh, pruefer)
     if len(roh) > GRENZE:
         return "halter.zu_gross"
     lage = fall.get("lage")
@@ -195,7 +258,7 @@ def main():
         schema = json.loads(SCHEMA_DATEI.read_text(encoding="utf-8"))
         jsonschema.Draft202012Validator.check_schema(schema)
         pruefer = {form: jsonschema.Draft202012Validator(dict(schema, **{"$ref": f"#/$defs/{form}"}))
-                   for form in ("anfrage", "antwort")}
+                   for form in ("anfrage", "antwort", "konfig")}
     except ImportError:
         pruefer = None
     fehler, nur_bau, zahl = [], [], 0

@@ -2,7 +2,7 @@
 """Prüft die sichtbaren Fälle des Vertrags Paketbau und Prüfbefehl.
 
 Aufruf: <python mit jsonschema> -I rust/spec/paket/pruefen.py
-Geprüft wird: Paarung von faelle/ und erwartet/ sowie von faelle-ausstehend/ und erwartet-ausstehend/ (kein Crate liest diese), die Form jedes Falls, der erwartete Code oder die erwarteten Zeilen
+Geprüft wird: Paarung von faelle/ und erwartet/ (die ausstehenden Ordner des Nachtrags Halter sind entfernt; liegt wieder einer da, ist das ein Fehler), die Form jedes Falls, der erwartete Code oder die erwarteten Zeilen
 gegen den Referenzprüfer (referenz.py) und, für Manifeste, das Schema gegen die Fälle. Ohne jsonschema endet es mit Exit 2
 und einer Zeile auf stderr; mit --ohne-schema bleibt das Schema bewusst ungeprüft und die Ausgabe meldet es. Exit 0, wenn jeder prüfbare Punkt stimmt.
 Nicht prüfbar vor dem Bau: die Rust-Umsetzung, der Windows-Installer und jeder Außentest auf Windows (README.md).
@@ -18,7 +18,9 @@ sys.path.insert(0, str(HIER))
 import referenz  # noqa: E402
 
 SCHEMA_DATEI = HIER / "manifest.schema.json"
-PAARE = (("faelle", "erwartet"), ("faelle-ausstehend", "erwartet-ausstehend"))
+PAARE = (("faelle", "erwartet"),)
+# Die Ordner der ausstehenden Fälle des Nachtrags Halter; seit dessen Zug gibt es sie nicht mehr.
+AUSSTEHEND_ORDNER = ("faelle-ausstehend", "erwartet-ausstehend")
 PRAEFIX = {"manifest": "paket.", "liste": "paket.", "stueckliste": "paket.", "steuerdatei": "paket.", "entfernen": "paket.", "remove": "paket.", "einrichten": "einricht.", "profil": "paket.", "bauwerkzeuge": "paket.", "statisch": "paket.", "laufkonfig": "paket.", "dienstkonfig": "paket.", "kerneinheit": "paket.", "systemnutzer": "paket.", "umzug": "paket."}
 # Codes, die das Schema allein erkennt; die übrigen prüft erst die Umsetzung (und hier die Referenz).
 SCHEMA_CODES = {
@@ -51,9 +53,11 @@ def main():
             return 2
         pruefer = None
     fehler, zahl, je_form = [], 0, {}
-    # Zwei Ordnerpaare: die gelesenen (faelle/, erwartet/) und die ausstehenden (faelle-ausstehend/, erwartet-ausstehend/, README.md dort).
-    # Beide prüft derselbe Referenzprüfer; kein Fallname steht in beiden Paaren.
+    # Ein Ordnerpaar: die gelesenen (faelle/, erwartet/). Die ausstehenden des Nachtrags Halter sind verschoben und entfernt.
     eintraege, ausstehend = [], 0
+    for ordner in AUSSTEHEND_ORDNER:
+        if (HIER / ordner).exists():
+            fehler.append(f"{ordner}: der Ordner ist entfernt, seine Fälle stehen in faelle/ und erwartet/")
     for f_ordner, e_ordner in PAARE:
         faelle = {p.name for p in (HIER / f_ordner).glob("*.json")}
         erwartet = {p.name for p in (HIER / e_ordner).glob("*.json")}

@@ -14,23 +14,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
-/// The text of a hex string as bytes; an odd length or a character that is no hex digit gives no bytes.
-pub(crate) fn unhex(text: &str) -> Vec<u8> {
-    let ziffer = |b: u8| match b {
-        b'0'..=b'9' => Some(b - b'0'),
-        b'a'..=b'f' => Some(b - b'a' + 10),
-        b'A'..=b'F' => Some(b - b'A' + 10),
-        _ => None,
-    };
-    let roh = text.as_bytes();
-    if !roh.len().is_multiple_of(2) {
-        return Vec::new();
-    }
-    roh.chunks(2)
-        .map(|p| Some((ziffer(p[0])? << 4) + ziffer(p[1])?))
-        .collect::<Option<Vec<u8>>>()
-        .unwrap_or_default()
-}
+use crate::json::unhex;
 
 /// The hex text of bytes, lower case.
 pub(crate) fn hex(bytes: &[u8]) -> String {

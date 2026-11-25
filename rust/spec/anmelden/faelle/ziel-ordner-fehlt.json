@@ -1,5 +1,5 @@
 {
- "beschreibung": "Zielordner fehlt",
+ "beschreibung": "Nachtrag Halter: keine Ebene der Ablage ab .local ist da; der Befehl legt alle mit 0700 an und speichert (alt: ziel_nicht_schreibbar)",
  "args": [
   "copilot"
  ],

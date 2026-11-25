@@ -928,8 +928,8 @@ class DienstJson(unittest.TestCase):
             for zeile in text.split("\n"):
                 if zeile.startswith("EINHEITEN="):
                     self.assertNotIn("modellweg", zeile)
-        self.assertIn('EINHEITEN="werkbank-kern.service werkbank-bruecke.service"', lesen(os.path.join(HIER, PLATTFORM, "postinst")))
-        self.assertIn("for e in werkbank-bruecke.service werkbank-kern.service; do", lesen(os.path.join(HIER, PLATTFORM, "prerm")))
+        self.assertIn('EINHEITEN="werkbank-kern.service werkbank-bruecke.service wb-halter.service"', lesen(os.path.join(HIER, PLATTFORM, "postinst")))
+        self.assertIn("for e in wb-halter.service werkbank-bruecke.service werkbank-kern.service; do", lesen(os.path.join(HIER, PLATTFORM, "prerm")))
 
     def test_reconfigure_leaves_the_units_running_and_upgrade_starts_them_again(self):
         prerm = lesen(os.path.join(HIER, PLATTFORM, "prerm"))
@@ -1386,6 +1386,256 @@ class CaFrage(unittest.TestCase):
         self.assertEqual(self.lauf('{\n\t"ca_zulassung" :\r\n "abgelehnt"\n}\n', seen=False), ["SET werkbank/ca_zulassung abgelehnt"])
         for text in ('{"ca_zulassung":"zugelassen","fassung":1,"ca_zulassung":"zugelassen"}\n', '{"ca_zulassung":"zugelassen","x":"ca_zulassung"}\n'):
             self.assertEqual(self.lauf(text, seen=False), [], text)
+
+
+def _journal_kopf(journal):
+    """A logger that writes to a file instead of the journal, and stubs for the root-only steps."""
+    return (f"logger() {{ shift 2; printf '%s\\n' \"$*\" >> {shlex.quote(journal)}; }}\n"
+            "log() { logger -t werkbank-installation \"$1\"; return 0; }\n"
+            'install() { while [ $# -gt 0 ]; do case "$1" in -d) ;; -m) m=$2; shift ;; -o|-g) shift ;; *) l=$1 ;; esac; shift; done; mkdir -p "$l"; chmod "$m" "$l"; }\n'
+            "chown() { :; }\n")
+
+
+def _journal(pfad):
+    if not os.path.exists(pfad):
+        return []
+    with open(pfad, encoding="utf-8") as d:
+        return d.read().splitlines()
+
+
+class HalterJson(unittest.TestCase):
+    """Addendum "Rolle aus der Gruppe": step 2c of postinst writes halter.json in the form $defs/konfig of the holder, from the template."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, os.path.join(RUST, "spec", "paket"))
+        import referenz
+        cls.ref = referenz
+        text = open(os.path.join(HIER, PLATTFORM, "postinst"), encoding="utf-8").read()
+        cls.block = text[text.index("# --- halter.json begin"):text.index("# --- halter.json end")]
+        with open(os.path.join(RUST, "spec", "einstellungen", "vorfuehrung.json"), encoding="utf-8") as d:
+            cls.vorlage = json.load(d)
+
+    def schreiben(self, vorlage, uid="1000"):
+        with tempfile.TemporaryDirectory() as t0:
+            t = os.path.realpath(t0)
+            etc = os.path.join(t, "etc")
+            vl = os.path.join(t, "vorlage")
+            os.makedirs(vl)
+            with open(os.path.join(vl, "einstellungen.json"), "w", encoding="utf-8") as d:
+                json.dump(vorlage, d)
+            journal = os.path.join(t, "journal")
+            kopf = _journal_kopf(journal) + f"id() {{ printf '%s\\n' {shlex.quote(uid)}; }}\nETCW={shlex.quote(etc)}\nVORLAGE={shlex.quote(vl)}\nnutzer=nutzer1\n"
+            r = subprocess.run(["sh", "-c", kopf + self.block + "halter_json"], capture_output=True, text=True, check=False)
+            self.journal = _journal(journal)
+            if r.returncode != 0:
+                self.assertFalse(os.path.exists(os.path.join(etc, "halter.json")))
+                return None, r.returncode
+            pfad = os.path.join(etc, "halter.json")
+            self.assertEqual(os.stat(pfad).st_mode & 0o7777, 0o644)
+            self.assertEqual(sorted(os.listdir(etc)), ["halter.json"], "no temporary file stays behind")
+            with open(pfad, "rb") as d:
+                return d.read(), 0
+
+    def test_the_file_is_the_reference_in_canonical_form(self):
+        roh, rc = self.schreiben(self.vorlage)
+        self.assertEqual(rc, 0)
+        wert, weg = self.ref.halter_konfig(self.vorlage, 1000)
+        self.assertEqual(weg, 0)
+        self.assertEqual(roh, (json.dumps(wert, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode())
+        self.assertEqual(self.journal, [])
+
+    def test_the_rules_of_the_template_stay_unchanged(self):
+        # F12: the path rules (also those of api.github.com) come from the template as they are; this step changes none
+        wert = json.loads(self.schreiben(self.vorlage)[0])
+        for route in self.vorlage["routen"]:
+            for nz in route["netzziele"]:
+                if route["art"] != "cloud" or nz["schluessel"] is not True:
+                    self.assertNotIn(nz["host"], wert["ziele"])
+                    continue
+                z = wert["ziele"][nz["host"]]
+                self.assertEqual(z["pfade"], [f"{r['methode']} {r['pfad']}" for r in nz["pfade"]])
+                self.assertEqual(z["schluessel"], "anmeldung." + route["schluessel"])
+        self.assertEqual(wert["rollen"], {"bruecke": "wb-bruecke"})
+        self.assertEqual(wert["konten"], {"1000": {"person": None}})
+        self.assertEqual((wert["server"], wert["kids"]), ({}, {}))
+
+    def test_the_file_passes_the_contract_of_the_holder(self):
+        sys.path.insert(0, os.path.join(RUST, "spec", "halter"))
+        import importlib
+        pruefen = importlib.import_module("pruefen")
+        roh, _ = self.schreiben(self.vorlage)
+        group = "root:x:0:\nnutzer1:x:1000:\nwb-bruecke:x:991:\n"
+        passwd = "root:x:0:0:root:/root:/bin/sh\nnutzer1:x:1000:1000::/srv/beispiel/heim/nutzer1:/bin/sh\n"
+        fall = {"form": "konfig", "umgebung": {"uid": 1000, "group": group, "passwd": passwd}}
+        try:
+            import jsonschema
+        except ImportError:
+            pruefer = None
+        else:
+            schema = json.loads(open(os.path.join(RUST, "spec", "halter", "halter.schema.json"), encoding="utf-8").read())
+            pruefer = {"konfig": jsonschema.Draft202012Validator(dict(schema, **{"$ref": "#/$defs/konfig"}))}
+        ist = pruefen.konfig_referenz(fall, roh, pruefer)
+        if pruefer is None:
+            self.assertEqual(ist, "BAU")
+            self.assertIsNone(pruefen.rollengruppen(json.loads(roh), fall["umgebung"]))
+        else:
+            self.assertIsNone(ist)
+
+    def test_a_target_without_identifier_or_rule_is_left_out_with_a_line(self):
+        v = json.loads(json.dumps(self.vorlage))
+        nz = v["routen"][0]["netzziele"]
+        nz.append({"host": "Gross.Example", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": True,
+                   "pfade": [{"methode": "GET", "pfad": "/a"}]})
+        nz.append({"host": "nur-put.example", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": True,
+                   "pfade": [{"methode": "PUT", "pfad": "/a"}]})
+        roh, rc = self.schreiben(v)
+        self.assertEqual(rc, 0)
+        wert = json.loads(roh)
+        self.assertNotIn("Gross.Example", wert["ziele"])
+        self.assertNotIn("nur-put.example", wert["ziele"])
+        self.assertEqual(wert, self.ref.halter_konfig(v, 1000)[0])
+        self.assertEqual(self.journal, ["werkbank: halter.json: Netzziele ausgelassen: 2"])
+
+    def test_a_broken_template_or_uid_writes_no_file(self):
+        self.assertEqual(self.schreiben({"routen": "kaputt"})[1], 1)
+        self.assertEqual(self.schreiben(self.vorlage, uid="10a")[1], 1)
+
+
+class Rollengruppe(unittest.TestCase):
+    """Addendum "Rolle aus der Gruppe": step 1b of postinst (the group wb-bruecke and dpkg-statoverride) and its part in postrm purge."""
+
+    @classmethod
+    def setUpClass(cls):
+        text = open(os.path.join(HIER, PLATTFORM, "postinst"), encoding="utf-8").read()
+        cls.block = text[text.index("# --- rollengruppe begin"):text.index("# --- rollengruppe end")]
+        rm = open(os.path.join(HIER, PLATTFORM, "postrm"), encoding="utf-8").read()
+        cls.rm_block = rm[rm.index("# --- rolle begin"):rm.index("# --- rolle end")]
+        cls.raeumen = rm[rm.index("ABLAGE_RAEUMEN='") + len("ABLAGE_RAEUMEN='"):rm.index("\nexit 0'") + len("\nexit 0")]
+
+    def lauf(self, group, passwd="root:x:0:0:root:/root:/bin/sh\nnutzer1:x:1000:1000::/srv/beispiel/heim/nutzer1:/bin/sh\n",
+             override="", override_rc=0):
+        """Runs step 1b against made-up files; returns (calls, journal, group afterwards, mark there)."""
+        with tempfile.TemporaryDirectory() as t0:
+            t = os.path.realpath(t0)
+            g, p, aufrufe, journal = (os.path.join(t, n) for n in ("group", "passwd", "aufrufe", "journal"))
+            daten = os.path.join(t, "daten")
+            with open(g, "w") as d:
+                d.write(group)
+            with open(p, "w") as d:
+                d.write(passwd)
+            kopf = _journal_kopf(journal) + (
+                f"addgroup() {{ echo \"addgroup $*\" >> {shlex.quote(aufrufe)}; printf 'wb-bruecke:x:990:\\n' >> {shlex.quote(g)}; }}\n"
+                f"dpkg_statoverride() {{ echo \"dpkg-statoverride $*\" >> {shlex.quote(aufrufe)}; "
+                f"if [ \"$1\" = --list ]; then printf '%s' {shlex.quote(override)}; return 0; fi; return {override_rc}; }}\n"
+                f"DATEN={shlex.quote(daten)}\n")
+            block = self.block.replace("GROUP_DATEI=/etc/group", f"GROUP_DATEI={shlex.quote(g)}") \
+                .replace("PASSWD_DATEI=/etc/passwd", f"PASSWD_DATEI={shlex.quote(p)}") \
+                .replace("dpkg-statoverride", "dpkg_statoverride")
+            r = subprocess.run(["sh", "-c", kopf + block + "rollengruppe"], capture_output=True, text=True, check=False)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            with open(g) as d:
+                nachher = d.read()
+            marke = os.path.join(daten, "rollengruppe-angelegt")
+            marke_text = open(marke).read() if os.path.exists(marke) else None
+            return _journal(aufrufe), _journal(journal), nachher, marke_text
+
+    def test_a_missing_group_is_made_marked_and_the_program_set(self):
+        aufrufe, journal, nachher, marke = self.lauf("root:x:0:\n")
+        self.assertEqual(aufrufe, ["addgroup --system wb-bruecke", "dpkg-statoverride --list /usr/lib/werkbank/werkbank-modellweg",
+                                   "dpkg-statoverride --update --add root wb-bruecke 2755 /usr/lib/werkbank/werkbank-modellweg"])
+        self.assertEqual((journal, marke), ([], "wb-bruecke\n"))
+        self.assertIn("wb-bruecke:x:990:", nachher)
+
+    def test_a_good_existing_group_is_taken_without_a_mark(self):
+        aufrufe, journal, _, marke = self.lauf("root:x:0:\nwb-bruecke:!:991:\n")
+        self.assertNotIn("addgroup --system wb-bruecke", aufrufe)
+        self.assertIn("dpkg-statoverride --update --add root wb-bruecke 2755 /usr/lib/werkbank/werkbank-modellweg", aufrufe)
+        self.assertEqual((journal, marke), ([], None))
+
+    def test_a_group_of_another_form_is_refused_with_code_25_and_nothing_set(self):
+        passwd = "root:x:0:0:root:/root:/bin/sh\nnutzer1:x:1000:1000::/srv/beispiel/heim/nutzer1:/bin/sh\n"
+        for group, pw, grund in (("wb-bruecke:x:991:nutzer1\n", passwd, "member"),
+                                 ("wb-bruecke:$6$a$b:991:\n", passwd, "password"),
+                                 ("wb-bruecke:x:1000:\n", passwd, "gid outside 100 to 999"),
+                                 ("wb-bruecke:x:0991:\n", passwd, "leading zero"),
+                                 ("wb-bruecke:x:991:\nwb-bruecke:x:992:\n", passwd, "twice"),
+                                 ("wb-bruecke:x:991:\n", passwd + "dienst:x:1002:991::/srv/beispiel/d:/usr/sbin/nologin\n", "primary group")):
+            with self.subTest(grund):
+                aufrufe, journal, nachher, marke = self.lauf("root:x:0:\n" + group, pw)
+                self.assertEqual(aufrufe, [])
+                self.assertEqual(journal, ["werkbank: Rollengruppe wb-bruecke abgelehnt, Code 25"])
+                self.assertEqual((nachher, marke), ("root:x:0:\n" + group, None))
+
+    def test_the_entry_of_statoverride_is_kept_replaced_or_reported(self):
+        gut = "root wb-bruecke 2755 /usr/lib/werkbank/werkbank-modellweg"
+        aufrufe, journal, _, _ = self.lauf("wb-bruecke:x:991:\n", override=gut)
+        self.assertEqual(aufrufe, ["dpkg-statoverride --list /usr/lib/werkbank/werkbank-modellweg"])
+        aufrufe, journal, _, _ = self.lauf("wb-bruecke:x:991:\n", override="root root 0755 /usr/lib/werkbank/werkbank-modellweg")
+        self.assertEqual(aufrufe[1:], ["dpkg-statoverride --remove /usr/lib/werkbank/werkbank-modellweg",
+                                       "dpkg-statoverride --update --add root wb-bruecke 2755 /usr/lib/werkbank/werkbank-modellweg"])
+        _, journal, _, _ = self.lauf("wb-bruecke:x:991:\n", override_rc=2)
+        self.assertEqual(journal, ["werkbank: Rollenprogramm nicht gesetzt, Code 26"])
+
+    def entfernen(self, marke, override, delgroup_rc=0):
+        with tempfile.TemporaryDirectory() as t0:
+            t = os.path.realpath(t0)
+            aufrufe, journal = os.path.join(t, "aufrufe"), os.path.join(t, "journal")
+            daten = os.path.join(t, "daten")
+            os.makedirs(daten)
+            if marke is not None:
+                with open(os.path.join(daten, "rollengruppe-angelegt"), "w") as d:
+                    d.write(marke)
+            kopf = (f"logger() {{ shift 2; printf '%s\\n' \"$*\" >> {shlex.quote(journal)}; }}\n"
+                    f"dpkg_statoverride() {{ echo \"dpkg-statoverride $*\" >> {shlex.quote(aufrufe)}; [ \"$1\" = --list ] && printf '%s' {shlex.quote(override)}; return 0; }}\n"
+                    "getent() { return 0; }\n"
+                    f"delgroup() {{ echo \"delgroup $*\" >> {shlex.quote(aufrufe)}; return {delgroup_rc}; }}\n"
+                    f"DATEN={shlex.quote(daten)}\n")
+            block = self.rm_block.replace("DATEN=/var/lib/werkbank\n", "").replace("dpkg-statoverride", "dpkg_statoverride")
+            r = subprocess.run(["sh", "-c", kopf + block + "rolle_entfernen"], capture_output=True, text=True, check=False)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            return _journal(aufrufe), _journal(journal)
+
+    def test_purge_removes_the_own_entry_and_the_marked_group_only(self):
+        gut = "root wb-bruecke 2755 /usr/lib/werkbank/werkbank-modellweg"
+        aufrufe, journal = self.entfernen("wb-bruecke\n", gut)
+        self.assertEqual(aufrufe, ["dpkg-statoverride --list /usr/lib/werkbank/werkbank-modellweg",
+                                   "dpkg-statoverride --remove /usr/lib/werkbank/werkbank-modellweg",
+                                   "delgroup --system --only-if-empty wb-bruecke"])
+        self.assertEqual(journal, [])
+        # a foreign entry and a group from before the installation (no mark) stay
+        aufrufe, _ = self.entfernen(None, "root root 0755 /usr/lib/werkbank/werkbank-modellweg")
+        self.assertEqual(aufrufe, ["dpkg-statoverride --list /usr/lib/werkbank/werkbank-modellweg"])
+        # a group with a member stays, with code 27
+        _, journal = self.entfernen("wb-bruecke\n", gut, delgroup_rc=1)
+        self.assertEqual(journal, ["werkbank: Rollengruppe wb-bruecke bleibt, Code 27"])
+
+    def test_purge_clears_the_chain_folder_of_the_holder(self):
+        # F16: protokoll/ goes with the store, and with it halter/ and agent-workbench/; something foreign under .local/state stays
+        with tempfile.TemporaryDirectory() as t0:
+            heim = os.path.join(os.path.realpath(t0), "heim")
+            h = os.path.join(heim, ".local", "state", "agent-workbench", "halter")
+            for o in ("geheim", "protokoll"):
+                os.makedirs(os.path.join(h, o))
+                os.chmod(os.path.join(h, o), 0o700)
+            for n, inhalt in (("geheim/anmeldung.copilot", "hgx-marke\n"), ("protokoll/halter-2026-11.jsonl", "{}\n"),
+                              ("protokoll/halter.anker.jsonl", "{}\n")):
+                with open(os.path.join(h, n), "w") as d:
+                    d.write(inhalt)
+            os.makedirs(os.path.join(heim, ".local", "state", "fremd"))
+            r = subprocess.run(["sh", "-c", self.raeumen, "sh", heim], capture_output=True, text=True, check=False)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertEqual(sorted(os.listdir(os.path.join(heim, ".local", "state"))), ["fremd"])
+            # counter-check: a link instead of protokoll is not followed, and halter/ stays
+            os.makedirs(os.path.join(h, "geheim"))
+            ziel = os.path.join(os.path.realpath(t0), "ziel")
+            os.makedirs(ziel)
+            with open(os.path.join(ziel, "datei"), "w") as d:
+                d.write("bleibt\n")
+            os.symlink(ziel, os.path.join(h, "protokoll"))
+            subprocess.run(["sh", "-c", self.raeumen, "sh", heim], capture_output=True, text=True, check=False)
+            self.assertEqual(os.listdir(ziel), ["datei"])
+            self.assertTrue(os.path.islink(os.path.join(h, "protokoll")))
 
 
 if __name__ == "__main__":

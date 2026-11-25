@@ -1,0 +1,17 @@
+# User unit of the holder (program werkbank-halter of the crate halter; contract rust/spec/paket, part A, "Dienste", addendum holder,
+# and rust/spec/halter, section 2.3). It reads /etc/werkbank/halter.json (written by postinst, root 0644) and holds anmeldung.copilot in
+# the store below the home. No Environment, EnvironmentFile or PassEnvironment and no option that carries a secret. No socket unit: the
+# holder makes its socket itself and exclusively. PR_SET_DUMPABLE and RLIMIT_CORE are set by the holder itself.
+# Exit 5, 64, 74 and 78 (shield, call, endpoint, configuration or store) do not restart in a loop.
+[Unit]
+Description=Werkbank holder of the keys
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/werkbank/werkbank-halter
+UMask=0077
+Restart=on-failure
+RestartPreventExitStatus=5 64 74 78
+
+[Install]
+WantedBy=default.target

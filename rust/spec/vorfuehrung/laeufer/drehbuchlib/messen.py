@@ -502,7 +502,7 @@ FESTER_CODE = re.compile(r"^[a-z][a-z0-9._-]{0,63}$")  # Form eines festen Codes
 _DIAGNOSE_MASKE = {"\\": "\\\\", "\n": "\\n", "\r": "\\r"}
 _diagnose_zeilen = []
 _diagnose_stand = {"zuletzt": None}  # "angelegt", "nicht angelegt" oder None (nichts zu schreiben)
-# Teilzeiten (an earlier work item, 23.11.): feste Namen und Sekunden. Sie stehen in einer eigenen Liste und kommen nur mit in die
+# Teilzeiten (23.11.2026): feste Namen und Sekunden. Sie stehen in einer eigenen Liste und kommen nur mit in die
 # Diagnosedatei, wenn es dort ohnehin andere Zeilen gibt; ein gruener Lauf legt deshalb weiter keine Datei an. Nie in Ergebnisdatei,
 # Bericht oder Konsole.
 _teilzeiten = []

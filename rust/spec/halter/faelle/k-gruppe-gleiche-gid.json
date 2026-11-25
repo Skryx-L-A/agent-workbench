@@ -1,0 +1,10 @@
+{
+ "beschreibung": "zwei Rollengruppen mit derselben gid",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"konten\": {\n  \"1000\": {\n   \"person\": null\n  }\n },\n \"rollen\": {\n  \"hub\": \"wb-hub\",\n  \"bruecke\": \"wb-bruecke\"\n },\n \"ziele\": {\n  \"copilot\": {\n   \"host\": \"api.githubcopilot.example\",\n   \"port\": 443,\n   \"tls\": true,\n   \"praefix\": \"\",\n   \"kopf\": \"authorization\",\n   \"vorsatz\": \"Bearer \",\n   \"schluessel\": \"anmeldung.copilot\",\n   \"pfade\": [\n    \"GET /copilot_internal/*\",\n    \"GET /responses\",\n    \"POST /chat/completions\",\n    \"GET /models\"\n   ]\n  }\n },\n \"server\": {},\n \"kids\": {}\n}",
+ "umgebung": {
+  "uid": 1000,
+  "group": "root:x:0:\nperson:x:1000:\nanders:x:1001:\nwb-hub:x:991:\nwb-bruecke:x:991:\nwb-oberflaeche:x:992:\n",
+  "passwd": "root:x:0:0:root:/root:/bin/sh\nperson:x:1000:1000::/srv/beispiel/person:/bin/sh\nanders:x:1001:1001::/srv/beispiel/anders:/bin/sh\n"
+ }
+}

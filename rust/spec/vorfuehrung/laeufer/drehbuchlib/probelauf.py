@@ -45,7 +45,8 @@ VORAUSSETZUNGEN = ["bruecke.dateien-fehlen", "bruecke.nicht-erreichbar", "copilo
 # `<schritt>.ausnahme`, `<schritt>.offen`, `<schritt>.uebersprungen`, dazu Sonderfaelle
 FEHLERCODES = ({"%s.teil%d" % (s.lower(), n) for s in SCHRITTE for n in range(1, 41)}
                | {"%s.%s" % (s.lower(), w) for s in SCHRITTE for w in ("ausnahme", "offen", "uebersprungen", "nicht-gelaufen", "nicht-angemeldet",
-                                                                          "kein_eingabefeld", "harness_beendet", "zug_frist", "nicht_abgesendet")}
+                                                                          "kein_eingabefeld", "harness_beendet", "zug_frist", "nicht_abgesendet",
+                                                                          "antwort_ohne_merkmal")}
                | {"s1.kontrolle_blind", "e4-cloud.kontrolle_blind", "e4-lokal.kontrolle_blind"}
                | {"copilot.start-limit", "cloud.eingaben-limit", "zaehldatei.inhalt", "ca.cli_abgelehnt", "ca.ausgang_blockiert"}
                | {"%s.%s" % (s.lower(), w) for s in ("E4-lokal", "E4-cloud") for w in ("schluessel_suche_unlesbar", "schluessel_suche_fehler")}

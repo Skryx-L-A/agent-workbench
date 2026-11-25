@@ -26,6 +26,7 @@ mod sitzung_konfig;
 mod sitzung_loeschen;
 #[cfg(unix)]
 mod sitzung_mac;
+mod sitzung_plattform;
 #[cfg(unix)]
 mod sitzung_probelauf;
 #[cfg(unix)]

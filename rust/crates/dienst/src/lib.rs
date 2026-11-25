@@ -29,6 +29,7 @@ mod dienst;
 mod fehler;
 mod huelle;
 mod json;
+#[cfg(feature = "pruefbau")]
 mod kindprogramm;
 mod loeschen;
 mod markerdatei;
@@ -46,6 +47,7 @@ use std::path::Path;
 
 pub use dienst::{Anhalter, Dienst, Optionen, signale_anmelden};
 pub use fehler::StartFehler;
+#[cfg(feature = "pruefbau")]
 pub use kindprogramm::lauf as kindprogramm;
 pub use rechte::{ORDNER_MODUS, SOCKET_MODUS, rechte_pruefen, socket_binden};
 pub use startdatei::{
@@ -55,7 +57,7 @@ pub use startdatei::{
 
 /// The whole program with the arguments after the program name; returns the exit code.
 ///
-/// `--kind <name> [arguments]` runs a fixed child program (DI8); `--exec` is the cover of the child. One argument is the start file: the checks run in the order
+/// `--kind <name> [arguments]` runs a fixed child program (DI8; test build only, feature `pruefbau`); `--exec` is the cover of the child. One argument is the start file: the checks run in the order
 /// 2 (file), 3 (rights), 4 (child), 1 (socket); each error is one line `wb-dienst: ...` on stderr, nothing on stdout, and
 /// nothing stays behind. Otherwise the exit code is 2 with one line of usage. Before the signals and everything else the program shields
 /// its memory from core images (`kernabbild`); when it cannot, the exit code is 5 with one line `wb-dienst: Kernabbild nicht abschirmbar: ...`.
@@ -69,6 +71,9 @@ pub fn programm(args: &[OsString]) -> i32 {
             .collect();
         return huelle::ausfuehren(&rest);
     }
+    // the fixed child programs of the tests exist in the test build only (feature `pruefbau`); the delivered build treats `--kind`
+    // like any other argument
+    #[cfg(feature = "pruefbau")]
     if args.first().is_some_and(|a| a == "--kind") {
         let rest: Vec<String> = args[1..]
             .iter()

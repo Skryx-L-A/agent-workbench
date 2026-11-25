@@ -15,11 +15,15 @@ pub enum Plattform {
     Linux,
     /// macOS: the addendum.
     MacOs,
+    /// Windows: the addendum for Windows (a named pipe, `crate::pipe`).
+    Windows,
 }
 
 impl Plattform {
     /// The platform this program was built for.
-    pub const AKTUELL: Self = if cfg!(target_os = "macos") {
+    pub const AKTUELL: Self = if cfg!(windows) {
+        Self::Windows
+    } else if cfg!(target_os = "macos") {
         Self::MacOs
     } else {
         Self::Linux
@@ -29,22 +33,26 @@ impl Plattform {
 /// The longest socket path under macOS: `sun_path` holds 104 bytes, the NUL counts.
 pub const SOCKET_MAX_MACOS: usize = 103;
 
-/// Whether the socket path is usable for the platform: under macOS it is absolute and at most 103 bytes long.
+/// Whether the socket path is usable for the platform: under macOS it is absolute and at most 103 bytes long; under Windows it
+/// is a pipe name of the form of the addendum (`crate::pipe::name_ok`).
 #[must_use]
 pub fn pfad_ok(plattform: Plattform, pfad: &Path) -> bool {
     match plattform {
         Plattform::Linux => true,
         Plattform::MacOs => pfad.is_absolute() && pfad.as_os_str().len() <= SOCKET_MAX_MACOS,
+        Plattform::Windows => pfad.to_str().is_some_and(crate::pipe::name_ok),
     }
 }
 
 /// Whether the server may be asked (section 6): under macOS its euid, measured after `connect`, is the own euid. A failed
-/// measurement or another euid is `false`. Under Linux the server is not checked.
+/// measurement or another euid is `false`. Under Linux the server is not checked. Under Windows there is no euid: `peerkanal`
+/// checks the owner of the pipe instance, so this rule says no.
 #[must_use]
 pub fn server_ok<F>(plattform: Plattform, gemessen: Result<u32, F>, eigene: u32) -> bool {
     match plattform {
         Plattform::Linux => true,
         Plattform::MacOs => gemessen.is_ok_and(|euid| euid == eigene),
+        Plattform::Windows => false,
     }
 }
 

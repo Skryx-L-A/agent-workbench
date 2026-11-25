@@ -19,6 +19,12 @@ class Zeitueberschreitung(Exception):
     pass
 
 
+class AntwortOhneMerkmal(Zeitueberschreitung):
+    """Die CLI war mit dem Zug fertig, aber ohne `FERTIG T<n>`: Das Bild stand `grenzen.still_s` Sekunden unveraendert, der Text des Zugs
+    stand nicht mehr im Eingabefeld, und keine Arbeitsanzeige (`harness.<h>.arbeit_muster`) war zu sehen. Der Zug endet dann vor seiner
+    Frist mit eigenem Code (`<schritt>.antwort_ohne_merkmal`); eine laengere Frist braechte kein Merkmal mehr."""
+
+
 # Feste Fehlertexte, die im letzten Bild einer Sitzung ohne Eingabefeld gezaehlt werden (Diagnose bei Sitzungsende).
 ENDE_TEXTE = ("Failed to extract bundled package", "Failed to find the platform package", "ENOSPC", "EROFS", "EACCES", "Permission denied",
               "No such file", "Traceback")
@@ -150,6 +156,41 @@ def im_eingabefeld(zeilen, merk):
     return merk in _flach("".join(feld))
 
 
+STILL_LESEN_S = 0.5  # so oft liest die fruehe Erkennung das Raster
+
+
+class _Stillstand:
+    """Fruehe Erkennung einer Antwort ohne Merkmal (siehe `AntwortOhneMerkmal`). `pruefe(zeilen)` ist wahr, wenn das Bild seit `still_s`
+    Sekunden gleich ist, der Text des Zugs (`merk`) nicht im Eingabefeld steht (Feld erkannt) und keine Arbeitsanzeige zu sehen ist."""
+
+    def __init__(self, still_s, merk, arbeit_muster):
+        self.still_s, self.merk = still_s, merk
+        self.arbeit = re.compile(arbeit_muster) if arbeit_muster else None
+        self.aktiv = bool(still_s)
+        self.bild, self.seit, self.naechst = None, None, 0.0
+
+    def faellig(self):
+        jetzt = time.monotonic()
+        if jetzt < self.naechst:
+            return False
+        self.naechst = jetzt + STILL_LESEN_S
+        return True
+
+    def dauer(self):
+        return 0.0 if self.seit is None else time.monotonic() - self.seit
+
+    def pruefe(self, zeilen):
+        bild = "\n".join(str(z) for z in zeilen)
+        if not zeilen or bild != self.bild:
+            self.bild, self.seit = bild, time.monotonic()
+            return False
+        if self.dauer() < self.still_s:
+            return False
+        if im_eingabefeld(zeilen, self.merk) is not False:  # Text noch im Feld oder kein Feld im Bild: nicht fertig oder nicht feststellbar
+            return False
+        return not (self.arbeit and self.arbeit.search(bild))
+
+
 class EingabeLimit(Exception):
     """Eine weitere Eingabe an eine Cloud-Sitzung ueberschritte die Grenze `probelauf.cloud_eingaben_max` (jede Eingabe kostet Kontingent)."""
 
@@ -229,6 +270,7 @@ class Lauf:
         self.gegenprobe = {"weg": None, "neue_sitzungen": None, "neue_kinder": None}  # Gegenprobe von S1 (Messweg und zwei Zahlen)
         self.buendel = None  # Ergebnis des einen Shell-Buendels der Cloud-Sitzung (Name -> (Zahl, RC)), gesetzt von S1
         self.buendel_zug = None
+        self.zug1 = None  # Zug 1 der Cloud-Sitzung im knappen Lauf (die gezaehlte Modellanfrage), gesetzt von S1
         self.start_marker = {}  # Sitzung -> Befund der Markerliste in start.json
         self.ziel0 = None  # Zaehler am Ziel der Cloud-Route vor den Eingaben von S1 (knapper Lauf)
         self.gateway_schluessel = None
@@ -255,6 +297,9 @@ class Lauf:
         self.np = k["marker"].get("np")  # erlaubter Marker ohne Kundenbezug: steht im Prompt an den Cloud-Agenten (Nachtrag 20.11., 9)
         self.frage = k["frage"]
         self.turn_s = float(k["grenzen"].get("turn_s", 10))
+        self._lauf_t0 = time.monotonic()  # Bezug der Zeiten in der Zaehlzeile der Diagnose (Sekunden seit Beginn des Laufs)
+        # Fruehe Erkennung einer Antwort ohne Merkmal: so lange muss das Bild still stehen (None: aus, der Zug wartet bis zur Frist)
+        self.still_s = float(k["grenzen"]["still_s"]) if k["grenzen"].get("still_s") else None
 
     # --- Einstellungen --------------------------------------------------------------------------------
     def einstellungen_schreiben(self, variante):
@@ -443,6 +488,46 @@ class Lauf:
             return []
         return r.get("zeilen", []) if isinstance(r, dict) else []
 
+    def _arbeit_muster(self, sid):
+        """Muster der Arbeitsanzeige des Harness dieser Sitzung (`harness.<h>.arbeit_muster`), sonst None."""
+        try:
+            return self.k["harness"][self.start_dict(self.art_von.get(sid, "cloud"))["harness"]].get("arbeit_muster")
+        except Exception:
+            return None
+
+    def _zaehlzeile(self, sid, token, verlauf, zeilen=None, w0=None, still_s=None):
+        """Zwei Zeilen fuer die Diagnosedatei, wenn ein Zug ohne Merkmal endet (Frist oder fruehe Erkennung). Nur Zahlen, nie Inhalt:
+        1. `verlauf_fertig=<n> raster_fertig=<n>`: Treffer des Merkmals im Verlauf des Zugs und im aktuellen Raster; trennt ein Merkmal, das
+           nur im Bild stand, von einem, das nie kam.
+        2. `zug=<n> beginn_s=<s> enter_s=<s|-> ende_s=<s> still_s=<s|-> weiterreicher_anfragen=<n|-> weiterreicher_antworten=<n|->
+           verlauf_zeilen=<n>`: Beginn, Enter und Ende des Zugs in monotonen Sekunden seit Beginn des Laufs, die Dauer des stillen Bilds,
+           der Zuwachs der Zaehldatei des Weiterreichers im Zug und die Zahl der nichtleeren Zeilen im Verlauf des Zugs. So laesst sich der
+           Zug spaeter neben das Protokoll des Modellwegs legen (etwa Ablehnungen 429 im selben Zeitfenster)."""
+        if zeilen is None:
+            zeilen = self._zeilen(sid)
+        messen.diagnose_notiere("lauf.zug", "verlauf_fertig=%d raster_fertig=%d" % (
+            len(token.findall(verlauf or "")), len(token.findall("\n".join(str(z) for z in zeilen)))))
+        jetzt = time.monotonic()
+        beginn = None if self._zug_t0 is None else self._zug_t0 - self._lauf_t0
+        enter = self.zugzeiten.get("enter")
+        dw = None
+        try:
+            w1 = self.zaehlstand(sid, "modellweg") if w0 is not None else None
+            if isinstance(w1, dict):
+                dw = {n: (w1[n] - w0[n] if isinstance(w1.get(n), int) and isinstance(w0.get(n), int) else None) for n in ("anfragen", "antworten")}
+        except Exception:
+            dw = None
+
+        def zahl(x, form="%.3f"):
+            return "-" if x is None else form % x
+        messen.diagnose_notiere("lauf.zug", "zug=%d beginn_s=%s enter_s=%s ende_s=%.3f still_s=%s weiterreicher_anfragen=%s "
+                                "weiterreicher_antworten=%s verlauf_zeilen=%d" % (
+                                    self.turn, zahl(beginn), zahl(None if enter is None or beginn is None else beginn + enter),
+                                    jetzt - self._lauf_t0, zahl(still_s, "%.1f"),
+                                    zahl(dw.get("anfragen") if isinstance(dw, dict) else None, "%d"),
+                                    zahl(dw.get("antworten") if isinstance(dw, dict) else None, "%d"),
+                                    sum(1 for z in (verlauf or "").splitlines() if z.strip())))
+
     def _zugzeit(self, name):
         if self._zug_t0 is not None:
             self.zugzeiten[name] = round(time.monotonic() - self._zug_t0, 3)
@@ -562,11 +647,23 @@ class Lauf:
         token = TOKEN(n)
         erwartet = 1 + len(token.findall(text))
         ende = time.monotonic() + (frist_s or self.turn_s)
+        still = _Stillstand(self.still_s, merkmal(text), self._arbeit_muster(sid))
         while True:
             laenge, t = self.b.verlauf(sid, ab)
             if len(token.findall(t)) >= erwartet:
                 self._zugzeit("fertig")
                 break
+            if still.aktiv and still.faellig():
+                zeilen = self._zeilen(sid)
+                if still.pruefe(zeilen) and not token.search("\n".join(str(z) for z in zeilen)):
+                    laenge, t = self.b.verlauf(sid, ab)  # noch einmal: das Merkmal kann zwischen den beiden Lesungen gekommen sein
+                    if len(token.findall(t)) >= erwartet:
+                        self._zugzeit("fertig")
+                        break
+                    messen.diagnose_notiere("lauf.zug", "Zug %d: Antwort ohne FERTIG T%d, Bild %.0f s still" % (n, n, still.dauer()))
+                    self._zaehlzeile(sid, token, t, zeilen, w0=w0, still_s=still.dauer())
+                    self.diagnose_bild(sid)
+                    raise AntwortOhneMerkmal("Zug %d: Antwort ohne FERTIG T%d" % (n, n))
             abgelehnt = self.b.ablehnungen_seit(marke)
             if abgelehnt:
                 messen.diagnose_notiere("lauf.zug", "Eingabe vom Dienst abgelehnt: %s" % ", ".join(g or c or "?" for g, c in abgelehnt))
@@ -576,6 +673,7 @@ class Lauf:
             if time.monotonic() > ende:
                 # Bild und Verlauf sind Inhalt der Sitzung: nur in die Diagnosedatei, nie in die Meldung der Ausnahme
                 messen.diagnose_notiere("lauf.zug", "Zug %d: kein FERTIG T%d" % (n, n))
+                self._zaehlzeile(sid, token, t, w0=w0)
                 self.diagnose_bild(sid)
                 raise Zeitueberschreitung("Zug %d: kein FERTIG T%d nach %.0f s" % (n, n, frist_s or self.turn_s))
             time.sleep(0.03)

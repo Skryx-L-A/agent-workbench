@@ -4,6 +4,7 @@
 use std::ffi::{OsStr, OsString};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
+use std::os::fd::OwnedFd;
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -13,8 +14,12 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use crate::fehler::Fehler;
 use crate::form::{CONFIG_GRENZE, Fund, config_hat_anmeldung, token_aus_config, token_form_ok};
 
-/// Name of the key file in the folder of the user.
-pub const SCHLUESSELDATEI: &str = "copilot.schluessel";
+/// Name of the key file in the store of the holder: the secret `anmeldung.copilot` (contract of the holder, section 4).
+pub const SCHLUESSELDATEI: &str = "anmeldung.copilot";
+
+/// The levels of the store of the holder below the home: `<home>/.local/state/agent-workbench/halter/geheim`. Each is
+/// opened relative to the one before, never as a joined path.
+pub const ABLAGE: [&str; 5] = [".local", "state", "agent-workbench", "halter", "geheim"];
 
 /// Variables of the caller that the CLI may keep (network of the firm). Nothing else passes.
 const DURCHREICHEN: [&str; 14] = [
@@ -44,8 +49,9 @@ const TAKT: Duration = Duration::from_millis(20);
 /// Everything the run needs from its surroundings. `main` builds it from the real environment; the tests build it
 /// by hand (the seams of `main` exist only in the test build, feature `pruefbau`, and are valid only with `WB_TESTUMGEBUNG=1`).
 pub struct Umgebung {
-    /// Folder of the user, `/var/lib/werkbank/<user>`. It exists, is ours and is writable.
-    pub ziel_ordner: PathBuf,
+    /// Home of the user: field 6 of the own entry in `/etc/passwd`, an absolute path. The store of the holder lies
+    /// below it (`ABLAGE`).
+    pub heim: PathBuf,
     /// Value of PATH of the caller: where `copilot`, `secret-tool` and `security` are looked up.
     pub suchpfad: OsString,
     /// Folder `.copilot` of the real home (`COPILOT_HOME`, or `<HOME>/.copilot`).
@@ -149,7 +155,15 @@ pub(crate) fn lauf_lebt(pid: rustix::process::Pid, eigene_pid: u32) -> bool {
     if u32::try_from(pid.as_raw_pid()).is_ok_and(|p| p == eigene_pid) {
         return false;
     }
-    match rustix::process::test_kill_process(pid) {
+    lebt_nach_signaltest(rustix::process::test_kill_process(pid))
+}
+
+/// The answer of the signal test (signal 0) as living or dead: no such process (`ESRCH`) and a process we may not
+/// signal (`EPERM`) are dead for us; success and every other error count as living. Separate from the signal itself,
+/// so a test can give it `EPERM`: an own pid namespace (the enclosure of the mutation gate) has no process the user
+/// may not signal.
+fn lebt_nach_signaltest(antwort: rustix::io::Result<()>) -> bool {
+    match antwort {
         Ok(()) => true,
         Err(e) => e != rustix::io::Errno::SRCH && e != rustix::io::Errno::PERM,
     }
@@ -187,7 +201,7 @@ pub fn reste_raeumen(wurzel: &Path, uid: u32, eigene_pid: u32) -> Result<usize, 
 /// temp file of the new `config.json` in the folder of the CLI (`--uebernehmen`). Each carries the pid of its run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TempArt {
-    /// `.copilot.schluessel.<pid>.tmp` in the target folder; it may hold a token.
+    /// `.anmeldung.copilot.<pid>.tmp` in the store of the holder; it may hold a token.
     Schluessel,
     /// `.config.json.wb-anmelden-<pid>.tmp` in the folder of the CLI; it holds `config.json` without the token.
     Config,
@@ -196,7 +210,7 @@ pub enum TempArt {
 impl TempArt {
     fn teile(self) -> (&'static str, &'static str) {
         match self {
-            TempArt::Schluessel => (".copilot.schluessel.", ".tmp"),
+            TempArt::Schluessel => (".anmeldung.copilot.", ".tmp"),
             TempArt::Config => (".config.json.wb-anmelden-", ".tmp"),
         }
     }
@@ -229,7 +243,7 @@ pub fn einfacher_name(name: &str) -> bool {
 }
 
 /// Opens a folder without following a link at its last part.
-pub(crate) fn ordner_oeffnen(pfad: &Path) -> rustix::io::Result<std::os::fd::OwnedFd> {
+pub(crate) fn ordner_oeffnen(pfad: &Path) -> rustix::io::Result<OwnedFd> {
     use rustix::fs::{Mode, OFlags};
     rustix::fs::open(
         pfad,
@@ -253,11 +267,24 @@ pub fn temp_reste_raeumen(
     uid: u32,
     eigene_pid: u32,
 ) -> Result<usize, Fehler> {
-    use rustix::fs::{AtFlags, Dir, FileType};
     let Ok(fd) = ordner_oeffnen(ordner) else {
         return Ok(0);
     };
-    let Ok(mut liste) = Dir::read_from(&fd) else {
+    temp_reste_in(&fd, art, uid, eigene_pid)
+}
+
+/// As `temp_reste_raeumen`, in a folder that is already open (the store of the holder, found by `ablage_suchen`).
+///
+/// # Errors
+/// `RestNichtLoeschbar` when a matching temp file cannot be deleted.
+pub fn temp_reste_in(
+    fd: &OwnedFd,
+    art: TempArt,
+    uid: u32,
+    eigene_pid: u32,
+) -> Result<usize, Fehler> {
+    use rustix::fs::{AtFlags, Dir, FileType};
+    let Ok(mut liste) = Dir::read_from(fd) else {
         return Ok(0);
     };
     let mut kandidaten = Vec::new();
@@ -271,7 +298,7 @@ pub fn temp_reste_raeumen(
     }
     let mut geloescht = 0;
     for (name, pid) in kandidaten {
-        let Ok(st) = rustix::fs::statat(&fd, name.as_str(), AtFlags::SYMLINK_NOFOLLOW) else {
+        let Ok(st) = rustix::fs::statat(fd, name.as_str(), AtFlags::SYMLINK_NOFOLLOW) else {
             continue;
         };
         if FileType::from_raw_mode(st.st_mode) != FileType::RegularFile
@@ -280,7 +307,7 @@ pub fn temp_reste_raeumen(
         {
             continue;
         }
-        rustix::fs::unlinkat(&fd, name.as_str(), AtFlags::empty())
+        rustix::fs::unlinkat(fd, name.as_str(), AtFlags::empty())
             .map_err(|_| Fehler::RestNichtLoeschbar)?;
         geloescht += 1;
     }
@@ -308,13 +335,76 @@ pub fn pfad_ohne_gh(suchpfad: &OsStr) -> OsString {
     std::env::join_paths(behalten).unwrap_or_default()
 }
 
-fn ziel_pruefen(umg: &Umgebung) -> Result<(), Fehler> {
-    let meta = fs::metadata(&umg.ziel_ordner).map_err(|_| Fehler::ZielNichtSchreibbar)?;
-    if meta.is_dir() && meta.uid() == umg.uid && meta.permissions().mode() & 0o200 != 0 {
+/// Opens the level `name` relative to `ordner`: a folder, never following a link.
+fn ebene_oeffnen(ordner: &OwnedFd, name: &str) -> rustix::io::Result<OwnedFd> {
+    use rustix::fs::{Mode, OFlags};
+    rustix::fs::openat(
+        ordner,
+        name,
+        OFlags::RDONLY
+            .union(OFlags::DIRECTORY)
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC),
+        Mode::empty(),
+    )
+}
+
+/// The store of the holder as it is, without making or checking a level (left-overs and the look for the key file
+/// before step 3): `None` when the home or a level is missing, a link or no folder.
+#[must_use]
+pub fn ablage_suchen(heim: &Path) -> Option<OwnedFd> {
+    let mut fd = ordner_oeffnen(heim).ok()?;
+    for name in ABLAGE {
+        fd = ebene_oeffnen(&fd, name).ok()?;
+    }
+    Some(fd)
+}
+
+/// A level of the store (or the home): owned by `uid` and not writable by group or others; `geheim` has exactly 0700.
+fn ebene_pruefen(fd: &OwnedFd, uid: u32, geheim: bool) -> Result<(), Fehler> {
+    let st = rustix::fs::fstat(fd).map_err(|_| Fehler::ZielNichtSchreibbar)?;
+    if st.st_uid == uid && st.st_mode & 0o022 == 0 && (!geheim || st.st_mode & 0o7777 == 0o700) {
         Ok(())
     } else {
         Err(Fehler::ZielNichtSchreibbar)
     }
+}
+
+/// Makes the missing level `name` with 0700 under the umask 077, whatever the umask of the caller is.
+fn ebene_anlegen(ordner: &OwnedFd, name: &str) -> rustix::io::Result<()> {
+    use rustix::fs::Mode;
+    let alt = rustix::process::umask(Mode::from_raw_mode(0o077));
+    let ergebnis = rustix::fs::mkdirat(ordner, name, Mode::from_raw_mode(0o700));
+    rustix::process::umask(alt);
+    ergebnis
+}
+
+/// Step 3 (and step 6 of the takeover): opens the store of the holder below `heim` level by level without following
+/// a link, checks the home and every level (`ebene_pruefen`) before it goes one deeper, and makes a missing level with
+/// 0700. Made at the same time by another process (`EEXIST`): the check of the present level holds. A level that
+/// breaks a rule stops the walk before anything below it is made.
+///
+/// # Errors
+/// `ZielNichtSchreibbar`.
+pub fn ziel_oeffnen(heim: &Path, uid: u32) -> Result<OwnedFd, Fehler> {
+    let mut fd = ordner_oeffnen(heim).map_err(|_| Fehler::ZielNichtSchreibbar)?;
+    ebene_pruefen(&fd, uid, false)?;
+    for (i, name) in ABLAGE.iter().enumerate() {
+        let naechste = match ebene_oeffnen(&fd, name) {
+            Err(rustix::io::Errno::NOENT) => {
+                match ebene_anlegen(&fd, name) {
+                    Ok(()) | Err(rustix::io::Errno::EXIST) => {}
+                    Err(_) => return Err(Fehler::ZielNichtSchreibbar),
+                }
+                ebene_oeffnen(&fd, name)
+            }
+            anders => anders,
+        }
+        .map_err(|_| Fehler::ZielNichtSchreibbar)?;
+        ebene_pruefen(&naechste, uid, i + 1 == ABLAGE.len())?;
+        fd = naechste;
+    }
+    Ok(fd)
 }
 
 /// Runs the whole command.
@@ -322,17 +412,20 @@ fn ziel_pruefen(umg: &Umgebung) -> Result<(), Fehler> {
 /// # Errors
 /// Every `Fehler` of contract 9. On `EchteAnmeldung` the key file is already stored.
 pub fn anmelden(umg: &Umgebung, neu: bool, signal: &AtomicUsize) -> Result<Erfolg, Fehler> {
-    let ziel = umg.ziel_ordner.join(SCHLUESSELDATEI);
-    if !neu && fs::symlink_metadata(&ziel).is_ok() {
+    if !neu
+        && ablage_suchen(&umg.heim).is_some_and(|fd| {
+            rustix::fs::statat(&fd, SCHLUESSELDATEI, rustix::fs::AtFlags::SYMLINK_NOFOLLOW).is_ok()
+        })
+    {
         return Err(Fehler::DateiDa);
     }
-    ziel_pruefen(umg)?;
+    let ablage = ziel_oeffnen(&umg.heim, umg.uid)?;
     let cli = finde(&umg.suchpfad, "copilot").ok_or(Fehler::CliFehlt)?;
     let wegwerf = Wegwerf::neu(&umg.wegwerf_wurzel)?;
     login_laufen_lassen(umg, &cli, &wegwerf, signal)?;
     let token = token_lesen(&wegwerf)?;
     signal_pruefen(signal)?;
-    ablegen(&umg.ziel_ordner, &ziel, &token, neu)?;
+    ablegen(&ablage, &token, neu)?;
     drop(wegwerf);
     echtes_heim_pruefen(umg)
 }
@@ -390,7 +483,7 @@ fn beenden(kind: &mut Child) {
         let _ = rustix::process::kill_process(pid, rustix::process::Signal::TERM);
     }
     let ende = Instant::now() + NACHSPIELZEIT;
-    while Instant::now() < ende {
+    while ende.checked_duration_since(Instant::now()).is_some() {
         if matches!(kind.try_wait(), Ok(Some(_))) {
             return;
         }
@@ -417,44 +510,40 @@ fn token_lesen(wegwerf: &Wegwerf) -> Result<crate::form::Token, Fehler> {
     }
 }
 
-/// Temp file 0600 with `O_EXCL` in the target folder, then rename (`--neu`) or hard link (no replace).
-fn ablegen(
-    ordner: &Path,
-    ziel: &Path,
-    token: &crate::form::Token,
-    neu: bool,
-) -> Result<(), Fehler> {
-    let temp = ordner.join(TempArt::Schluessel.name(std::process::id()));
-    let ergebnis = temp_schreiben(&temp, token).and_then(|()| {
-        if neu {
-            fs::rename(&temp, ziel).map_err(|_| Fehler::ZielNichtSchreibbar)
-        } else {
-            match fs::hard_link(&temp, ziel) {
-                Ok(()) => Ok(()),
-                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Err(Fehler::DateiDa),
-                Err(_) => Err(Fehler::ZielNichtSchreibbar),
-            }
+/// Step 9: temp file `.anmeldung.copilot.<pid>.tmp` (0600, `O_EXCL`, synced) in the open store, then rename (`--neu`)
+/// or hard link (no replace), all relative to the store; the temp name goes in every case, then fsync of the store.
+fn ablegen(ablage: &OwnedFd, token: &crate::form::Token, neu: bool) -> Result<(), Fehler> {
+    use rustix::fs::AtFlags;
+    let (temp, _) = crate::uebernehmen::schluessel_temp_schreiben(ablage, token)?;
+    let ergebnis = if neu {
+        rustix::fs::renameat(ablage, temp.name.as_str(), ablage, SCHLUESSELDATEI)
+            .map_err(|_| Fehler::ZielNichtSchreibbar)
+    } else {
+        match rustix::fs::linkat(
+            ablage,
+            temp.name.as_str(),
+            ablage,
+            SCHLUESSELDATEI,
+            AtFlags::empty(),
+        ) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(fehler_des_verweises(e)),
         }
-    });
-    let _ = fs::remove_file(&temp);
+    };
+    drop(temp);
+    let _ = rustix::fs::fsync(ablage);
     ergebnis
 }
 
-fn temp_schreiben(temp: &Path, token: &crate::form::Token) -> Result<(), Fehler> {
-    let mut datei = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .mode(0o600)
-        .open(temp)
-        .map_err(|_| Fehler::ZielNichtSchreibbar)?;
-    datei
-        .set_permissions(fs::Permissions::from_mode(0o600))
-        .map_err(|_| Fehler::ZielNichtSchreibbar)?;
-    datei
-        .write_all(token.as_str().as_bytes())
-        .and_then(|()| datei.write_all(b"\n"))
-        .and_then(|()| datei.sync_all())
-        .map_err(|_| Fehler::ZielNichtSchreibbar)
+/// The error of the hard link to the key file: a name that is taken (`EEXIST`) is `DateiDa`, any other error
+/// `ZielNichtSchreibbar`. Separate, so a test can give it an error other than `EEXIST`: no test without root can make
+/// the link fail otherwise once the temp file is written in the same store.
+fn fehler_des_verweises(e: rustix::io::Errno) -> Fehler {
+    if e == rustix::io::Errno::EXIST {
+        Fehler::DateiDa
+    } else {
+        Fehler::ZielNichtSchreibbar
+    }
 }
 
 /// After the key is stored: no login of the CLI may lie in the real home. Reads `config.json` of the real home and
@@ -526,7 +615,7 @@ fn tool_laufen_lassen(pfad: &Path, args: &[&str]) -> Option<bool> {
         .spawn()
         .ok()?;
     let ende = Instant::now() + BUND_FRIST;
-    while Instant::now() < ende {
+    while ende.checked_duration_since(Instant::now()).is_some() {
         match kind.try_wait() {
             Ok(Some(status)) => return Some(status.success()),
             Ok(None) => std::thread::sleep(TAKT),
@@ -538,31 +627,53 @@ fn tool_laufen_lassen(pfad: &Path, args: &[&str]) -> Option<bool> {
     None
 }
 
-/// Finds the account name of `uid` in the text of `/etc/passwd`. Only plain names pass: `[a-z_][a-z0-9_-]*`,
-/// at most 32 characters, so that the name cannot leave `/var/lib/werkbank`.
+/// The home of `uid` in the text of `/etc/passwd`: field 6 of the first entry with this user id, only if it is an
+/// absolute path. `HOME` and `XDG_STATE_HOME` are never read (contract 9, section 2).
 #[must_use]
-pub fn name_aus_passwd(text: &str, uid: u32) -> Option<String> {
-    text.lines().find_map(|zeile| {
-        let mut teile = zeile.split(':');
-        let name = teile.next()?;
-        let _kennwort = teile.next()?;
-        let nummer: u32 = teile.next()?.parse().ok()?;
-        (nummer == uid && name_ok(name)).then(|| name.to_owned())
-    })
+pub fn heim_aus_passwd(text: &str, uid: u32) -> Option<PathBuf> {
+    text.lines()
+        .find_map(|zeile| {
+            let mut teile = zeile.split(':');
+            let nummer: u32 = teile.nth(2)?.parse().ok()?;
+            let heim = teile.nth(2)?;
+            (nummer == uid).then_some(heim)
+        })
+        .map(PathBuf::from)
+        .filter(|heim| heim.is_absolute())
 }
 
-fn name_ok(name: &str) -> bool {
-    let mut zeichen = name.bytes();
-    let Some(erstes) = zeichen.next() else {
-        return false;
-    };
-    name.len() <= 32
-        && (erstes.is_ascii_lowercase() || erstes == b'_')
-        && zeichen.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_' || b == b'-')
-}
+#[cfg(test)]
+mod tests {
+    use super::{fehler_des_verweises, lebt_nach_signaltest};
+    use crate::fehler::Fehler;
+    use rustix::io::Errno;
 
-/// The folder of the user below `ort`: `<ort>/<name>`, the name from the text of `/etc/passwd` by `uid`.
-#[must_use]
-pub fn nutzer_ordner(ort: &Path, passwd: &str, uid: u32) -> Option<PathBuf> {
-    name_aus_passwd(passwd, uid).map(|name| ort.join(name))
+    #[test]
+    fn a_taken_name_is_dateida_and_any_other_link_error_is_not_writable() {
+        assert_eq!(fehler_des_verweises(Errno::EXIST), Fehler::DateiDa);
+        for e in [Errno::ACCESS, Errno::NOENT, Errno::NOSPC, Errno::MLINK] {
+            assert_eq!(
+                fehler_des_verweises(e),
+                Fehler::ZielNichtSchreibbar,
+                "{e:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_answer_of_the_signal_test_is_living_or_dead() {
+        assert!(
+            lebt_nach_signaltest(Ok(())),
+            "a process we may signal lives"
+        );
+        assert!(!lebt_nach_signaltest(Err(Errno::SRCH)), "no such process");
+        assert!(
+            !lebt_nach_signaltest(Err(Errno::PERM)),
+            "a process we may not signal is not ours"
+        );
+        assert!(
+            lebt_nach_signaltest(Err(Errno::INVAL)),
+            "an unclear answer counts as living"
+        );
+    }
 }

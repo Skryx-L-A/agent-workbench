@@ -2,7 +2,8 @@
 //!
 //! Every rule is a pure function with the platform as a parameter, so that the tests run under Linux with `MacOs`; the
 //! program calls them with [`Plattform::AKTUELL`]. Under Linux the other functions let everything through; the rule for the
-//! parent folder of the socket holds there too (review B7, 23.11.2026).
+//! parent folder of the socket holds there too (review B7, 23.11.2026). The platform and the rules of the arguments live in
+//! `super::plattform`, because they hold for Windows too; this module repeats them for its callers.
 //! Only the measurement of the peer ([`gemessene_euid`]) exists for macOS alone.
 
 use std::fs;
@@ -10,43 +11,12 @@ use std::os::unix::fs::MetadataExt;
 use std::os::unix::net::UnixStream;
 use std::path::Path;
 
-/// The system whose rules apply.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Plattform {
-    /// Linux and every other Unix: the rules of contract 4 only.
-    Linux,
-    /// macOS: the addendum.
-    MacOs,
-}
-
-impl Plattform {
-    /// The platform this program was built for.
-    pub const AKTUELL: Self = if cfg!(target_os = "macos") {
-        Self::MacOs
-    } else {
-        Self::Linux
-    };
-}
-
-/// The longest socket path under macOS: `sun_path` holds 104 bytes, the NUL counts.
-pub const SOCKET_MAX_MACOS: usize = 103;
+pub use super::plattform::{Plattform, SOCKET_MAX_MACOS, aufruf_ok};
 
 /// The reason of the log line when `getpeereid` fails.
 pub const GRUND_UNMESSBAR: &str = "such.kennung_unmessbar";
 /// The reason of the log line when the euid of the peer is not the own one.
 pub const GRUND_FREMD: &str = "such.kennung_fremd";
-
-/// Whether the arguments are usable for the platform (section 2): under macOS the socket path is absolute and at most 103
-/// bytes long, and the rights are `0600`. Anything else is a usage error (exit 64).
-#[must_use]
-pub fn aufruf_ok(plattform: Plattform, socket: &Path, rechte: u32) -> bool {
-    match plattform {
-        Plattform::Linux => true,
-        Plattform::MacOs => {
-            socket.is_absolute() && socket.as_os_str().len() <= SOCKET_MAX_MACOS && rechte == 0o600
-        }
-    }
-}
 
 /// The rule for the parent folder of the socket (section 3, point 1), on the values of `fstat`: a folder, owned by `euid`, with
 /// exactly the mode 0700. Since 23.11.2026 (review B7) it holds under Linux too, also with `--socket-rechte 0666`: contract 4

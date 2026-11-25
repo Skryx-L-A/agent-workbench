@@ -11,7 +11,8 @@ use std::process::{Command, Stdio};
 use std::time::Duration;
 
 use gemeinsam::{
-    Ausgang, BIN, attrappe_text, aufbau, ausgang, befehl, dateien, skript_schreiben, token_text,
+    Ausgang, BIN, ablage_ebenen, attrappe_text, aufbau, ausgang, befehl, dateien, skript_schreiben,
+    token_text,
 };
 use serde_json::json;
 
@@ -44,7 +45,7 @@ fn modes_are_exact_under_a_hostile_umask() {
             .expect("spawn"),
     );
     assert_eq!(aus.exit, 0, "{}", aus.stderr);
-    let datei = a.ziel.join("copilot.schluessel");
+    let datei = a.ziel.join("anmeldung.copilot");
     assert_eq!(
         fs::metadata(&datei).expect("meta").permissions().mode() & 0o7777,
         0o600
@@ -61,6 +62,53 @@ fn modes_are_exact_under_a_hostile_umask() {
 }
 
 #[test]
+fn missing_levels_of_the_store_are_0700_under_a_hostile_umask() {
+    let a = aufbau();
+    skript_schreiben(&a.skript, &attrappe_text(&a, "erfolg", &token()));
+    fs::remove_dir_all(a.heim.join(".local")).expect("remove");
+    let b = befehl(&a, &["copilot".to_owned()]);
+    let mut c = Command::new("/bin/sh");
+    c.arg("-c")
+        .arg("umask 0277; exec \"$0\" \"$@\"")
+        .arg(BIN)
+        .arg("copilot")
+        .env_clear();
+    for (k, v) in b.get_envs() {
+        if let Some(v) = v {
+            c.env(k, v);
+        }
+    }
+    let aus: Ausgang = ausgang(
+        c.stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("spawn"),
+    );
+    assert_eq!(aus.exit, 0, "{}", aus.stderr);
+    for ebene in ablage_ebenen(&a.heim) {
+        assert_eq!(
+            fs::symlink_metadata(&ebene)
+                .expect("level")
+                .permissions()
+                .mode()
+                & 0o7777,
+            0o700,
+            "{}",
+            ebene.display()
+        );
+    }
+    assert_eq!(
+        fs::metadata(a.ziel.join("anmeldung.copilot"))
+            .expect("key")
+            .permissions()
+            .mode()
+            & 0o7777,
+        0o600
+    );
+}
+
+#[test]
 fn a_second_call_without_neu_leaves_the_first_key_and_does_not_start_the_cli() {
     let a = aufbau();
     let t = token();
@@ -72,7 +120,7 @@ fn a_second_call_without_neu_leaves_the_first_key_and_does_not_start_the_cli() {
     assert_eq!(zweit.exit, 15);
     assert!(!a.log.exists(), "the CLI did not start");
     assert_eq!(
-        fs::read_to_string(a.ziel.join("copilot.schluessel")).expect("read"),
+        fs::read_to_string(a.ziel.join("anmeldung.copilot")).expect("read"),
         format!("{t}\n")
     );
     let dritt = gemeinsam::laufen(&a, &["copilot".to_owned(), "--neu".to_owned()]);
@@ -85,7 +133,7 @@ fn a_link_at_the_target_counts_as_a_file_and_is_never_followed() {
     skript_schreiben(&a.skript, &attrappe_text(&a, "erfolg", &token()));
     let fremd = a.wurzel.join("fremd.txt");
     fs::write(&fremd, "fremd\n").expect("file");
-    std::os::unix::fs::symlink(&fremd, a.ziel.join("copilot.schluessel")).expect("link");
+    std::os::unix::fs::symlink(&fremd, a.ziel.join("anmeldung.copilot")).expect("link");
     let aus = gemeinsam::laufen(&a, &["copilot".to_owned()]);
     assert_eq!(aus.exit, 15);
     let neu = gemeinsam::laufen(&a, &["copilot".to_owned(), "--neu".to_owned()]);
@@ -95,7 +143,7 @@ fn a_link_at_the_target_counts_as_a_file_and_is_never_followed() {
         "fremd\n",
         "the link target is untouched"
     );
-    let meta = fs::symlink_metadata(a.ziel.join("copilot.schluessel")).expect("meta");
+    let meta = fs::symlink_metadata(a.ziel.join("anmeldung.copilot")).expect("meta");
     assert!(meta.is_file(), "--neu replaces the link by a regular file");
 }
 
@@ -144,7 +192,7 @@ fn sigterm_ends_the_cli_and_cleans_up() {
         .expect("n");
     gemeinsam::signal_senden("TERM", kind.id());
     gemeinsam::warte_auf_ende(&mut kind, Duration::from_secs(15));
-    let aus = ausgang(kind);
+    let aus = gemeinsam::ausgang_beendet(kind);
     assert_eq!(aus.exit, 143);
     assert!(!gemeinsam::prozess_lebt(pid));
     assert!(fs::read_dir(&a.wegwerf).expect("dir").next().is_none());
@@ -171,7 +219,7 @@ fn a_cli_that_ignores_sigterm_is_killed_after_the_grace_time() {
         .expect("n");
     gemeinsam::signal_senden("INT", kind.id());
     gemeinsam::warte_auf_ende(&mut kind, Duration::from_secs(15));
-    let aus = ausgang(kind);
+    let aus = gemeinsam::ausgang_beendet(kind);
     assert_eq!(aus.exit, 130);
     for _ in 0..100 {
         if !gemeinsam::prozess_lebt(pid) {
@@ -190,7 +238,7 @@ fn a_file_that_appears_during_the_login_is_never_replaced_without_neu() {
     let aus = gemeinsam::laufen(&a, &["copilot".to_owned()]);
     assert_eq!(aus.exit, 15, "{}", aus.stderr);
     assert_eq!(
-        fs::read_to_string(a.ziel.join("copilot.schluessel")).expect("read"),
+        fs::read_to_string(a.ziel.join("anmeldung.copilot")).expect("read"),
         "fremd\n"
     );
     assert_eq!(dateien(&a.ziel).len(), 1, "no temp file is left");
@@ -218,7 +266,7 @@ fn sigterm_gives_the_cli_its_grace_time_before_the_kill() {
         start.elapsed() < Duration::from_millis(1900),
         "no waiting for the full grace time"
     );
-    assert_eq!(ausgang(kind).exit, 143);
+    assert_eq!(gemeinsam::ausgang_beendet(kind).exit, 143);
     assert!(
         marke.exists(),
         "the CLI ended itself on SIGTERM and was not killed at once"
@@ -340,7 +388,7 @@ fn an_inherited_hard_limit_0_follows_the_core_pattern() {
                 aus.stderr
             );
             assert_eq!(
-                fs::read_to_string(a.ziel.join("copilot.schluessel")).expect("read"),
+                fs::read_to_string(a.ziel.join("anmeldung.copilot")).expect("read"),
                 format!("{t}\n")
             );
             if cfg!(target_os = "linux") {

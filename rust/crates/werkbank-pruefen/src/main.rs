@@ -13,16 +13,18 @@
 #[path = "main/unix.rs"]
 mod unix;
 
-#[cfg(unix)]
+// One `main` with the platform choice inside: cargo-mutants reads the source as text and does not evaluate `cfg`, so a
+// second `main` for another platform would be a function no test on this machine can reach.
 fn main() -> std::process::ExitCode {
-    unix::main()
-}
-
-/// Not available: the checks read a Linux machine.
-#[cfg(not(unix))]
-fn main() -> std::process::ExitCode {
-    use std::io::Write;
-    let _ =
-        std::io::stderr().write_all(b"werkbank-pruefen: nicht verfuegbar: only on Unix systems\n");
-    std::process::ExitCode::from(2)
+    #[cfg(unix)]
+    let code = unix::main();
+    // Not available: the checks read a Linux machine.
+    #[cfg(not(unix))]
+    let code = {
+        use std::io::Write;
+        let _ = std::io::stderr()
+            .write_all(b"werkbank-pruefen: nicht verfuegbar: only on Unix systems\n");
+        std::process::ExitCode::from(2)
+    };
+    code
 }

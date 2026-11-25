@@ -1,0 +1,32 @@
+{
+ "beschreibung": "Nachtrag Rolle aus der Gruppe: ohne root ist /etc/gshadow nicht lesbar: nicht_pruefbar und der Hinweis auf sudo",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   }
+  ],
+  "apparmor": "ok",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "ok",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok",
+  "ohne_root": true,
+  "rollengruppe": "nicht_pruefbar"
+ }
+}

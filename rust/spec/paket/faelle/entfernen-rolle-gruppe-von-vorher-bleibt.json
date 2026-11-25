@@ -1,0 +1,23 @@
+{
+ "beschreibung": "Nachtrag Rolle aus der Gruppe: eine Gruppe wb-bruecke von vor der Installation (keine Marke) bleibt",
+ "form": "entfernen",
+ "nutzer": "nutzer1",
+ "heimwurzel": "/srv/beispiel/heim",
+ "ergebnisdatei": "/srv/beispiel/heim/nutzer1/probelauf-ergebnis.json",
+ "vorher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "gruppe:wb-bruecke"
+ ],
+ "nachher": [
+  "datei:/etc/hostname",
+  "datei:/srv/beispiel/heim/nutzer1/.bashrc",
+  "ordner:/var/lib/apt",
+  "datei:/var/log/dpkg.log",
+  "konto:nutzer1",
+  "gruppe:wb-bruecke"
+ ]
+}

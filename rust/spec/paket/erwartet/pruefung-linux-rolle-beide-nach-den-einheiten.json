@@ -1,0 +1,11 @@
+{
+ "rc": 1,
+ "strom": "stdout",
+ "zeilen": [
+  "pruef.dienst_fehlgeschlagen: Der Dienst wb-halter.service ist fehlgeschlagen.",
+  "pruef.rollengruppe_mitglied: Die Rollengruppe wb-bruecke hat ein Mitglied, ein Passwort oder eine falsche Form; ein Prozess eines Kontos koennte die Rolle bruecke annehmen.",
+  "pruef.rollenprogramm_modus: Das Rollenprogramm /usr/lib/werkbank/werkbank-modellweg hat nicht root:wb-bruecke mit Modus 2755.",
+  "pruef.apparmor_nicht_geladen: Das AppArmor-Profil ist nicht geladen.",
+  "pruef.rot: 4 Befunde."
+ ]
+}

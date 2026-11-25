@@ -8,9 +8,9 @@
 //!
 //! The corpus and every exclusion rule come from `notiz-kern`; nothing here lists a vault itself.
 //! The crate only reads the vault: it never writes a note and starts no process. The program `rangkern` prints
-//! every result as one JSON line. `rangkern sitzung` (Unix) is the search of one session behind a socket, with the data
-//! gate `datentor` in front of the output; its only writes are its socket and, for blocked hits, the log line of
-//! `formate`.
+//! every result as one JSON line. `rangkern sitzung` is the search of one session behind a socket (under Windows a
+//! named pipe through `peerkanal`), with the data gate `datentor` in front of the output; its only writes are its socket
+//! and, for blocked hits, the log line of `formate`.
 
 pub mod abschirmung;
 pub mod bm25;
@@ -22,7 +22,6 @@ pub mod notes;
 pub mod pystr;
 pub mod search;
 pub mod serve;
-#[cfg(unix)]
 pub mod sitzung;
 pub mod snippet;
 pub mod stamp;

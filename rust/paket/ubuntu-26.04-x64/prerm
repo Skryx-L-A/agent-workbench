@@ -1,6 +1,6 @@
 #!/bin/sh
 # prerm of the package werkbank: on remove, say whether a key file stays (`werkbank-pruefen --vor-entfernen`, contract
-# "Skripte des Pakets"); stop the user units of the user (on `upgrade` it notes the ones that ran, for postinst step 4b; not on `dpkg-reconfigure`); on remove and deconfigure unload the profile of the starter with
+# "Skripte des Pakets"); stop the user units of the user (core, bridge and holder) (on `upgrade` it notes the ones that ran, for postinst step 4b; not on `dpkg-reconfigure`); on remove and deconfigure unload the profile of the starter with
 # `apparmor_parser -R` while its file is still there (it unloads all three profiles of the file). Never stops the removal.
 case "$1" in
     remove | upgrade | deconfigure) ;;
@@ -30,7 +30,7 @@ NEUSTART=/run/werkbank-paket-neustart
 rm -f "$NEUSTART" 2>/dev/null || true
 if [ -n "$nutzer" ] && command -v systemctl >/dev/null 2>&1; then
     notiz=""
-    for e in werkbank-bruecke.service werkbank-kern.service; do
+    for e in wb-halter.service werkbank-bruecke.service werkbank-kern.service; do
         [ -f "/usr/lib/systemd/user/$e" ] || continue
         if [ "$1" = upgrade ] && systemctl --user --machine="$nutzer@" is-active --quiet "$e" >/dev/null 2>&1; then
             notiz="$notiz $e"

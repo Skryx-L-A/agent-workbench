@@ -2,6 +2,7 @@
 //! `Starten`, `Beenden` with SIGKILL for a child that ignores SIGHUP, the folders of the sessions and their removal (also after the
 //! crash of a session), the rebuild of one core, and no listener. The visible outside cases (`di12_*`) run in `faelle.rs`.
 #![cfg(unix)] // the crate is Unix only (see `src/lib.rs`)
+#![cfg(feature = "pruefbau")] // the fixed child programs `--kind` exist in the test build only; `naht.rs` runs in both builds
 
 mod gemeinsam;
 

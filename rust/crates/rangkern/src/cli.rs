@@ -455,7 +455,8 @@ const USAGE: &str = "usage: rangkern tokens <text> | snippet <file> <question> |
      (requests on standard input, one JSON line each) \
      | sitzung <vault> --socket PATH --route KEY --sitzung KEY --einstellungen FILE --protokoll FOLDER \
      [--socket-rechte 0600|0666] [--vectors FILE | --index-db DB [--extra-db DB] [--embed URL \
-     [--embed-timeout-ms MS]]] (requests on the socket, Unix only) | --licenses";
+     [--embed-timeout-ms MS]]] (requests on the socket; under Windows PATH is the pipe \\\\.\\pipe\\wb-such-<32 hex>, \
+     --paket-sid SID is required and --socket-rechte is refused) | --licenses";
 
 /// `serve <vault> [--vectors <file> | --index-db <db> [--extra-db <db>] [--embed <url>]]`: answers the request lines
 /// of `input` until its end or `quit`.
@@ -534,25 +535,11 @@ pub fn run_with_input<I: BufRead, O: Write, E: Write>(
     if let Some((command, rest)) = args.split_first()
         && command == "sitzung"
     {
-        // The search socket needs Unix sockets; the named pipe for Windows follows with its own part of the contract.
-        // Until then the command ends with exit 64 (the usage error) and one line, and does not print the usage text.
-        #[cfg(unix)]
-        let code = {
-            let code = crate::sitzung::run(rest, out, err);
-            if code == EXIT_USAGE {
-                let _ = writeln!(err, "{USAGE}");
-            }
-            code
-        };
-        #[cfg(not(unix))]
-        let code = {
-            let _ = (rest, &out);
-            let _ = writeln!(
-                err,
-                "rangkern sitzung: unter Windows noch nicht unterstützt"
-            );
-            EXIT_USAGE
-        };
+        // A Unix socket under Linux and macOS, a named pipe through `peerkanal` under Windows (addendum for Windows).
+        let code = crate::sitzung::run(rest, out, err);
+        if code == EXIT_USAGE {
+            let _ = writeln!(err, "{USAGE}");
+        }
         return code;
     }
     let (code, value) = match args.split_first() {

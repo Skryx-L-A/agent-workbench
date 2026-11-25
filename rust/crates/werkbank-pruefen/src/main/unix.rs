@@ -78,20 +78,19 @@ fn programmordner_aufruf(mut args: impl Iterator<Item = std::ffi::OsString>) -> 
     ExitCode::SUCCESS
 }
 
-/// Test build (feature `pruefbau`): the file of the seam, only with `WB_TESTUMGEBUNG=1`.
-#[cfg(feature = "pruefbau")]
+/// The file of the seam. Test build (feature `pruefbau`): only with `WB_TESTUMGEBUNG=1`. Delivered build: no seam, the
+/// environment is not read for it. One function with the choice inside, so that the mutation run with the feature
+/// reaches all of it (cargo-mutants does not evaluate `cfg`).
 fn lage_naht() -> Option<String> {
-    if std::env::var("WB_TESTUMGEBUNG").is_ok_and(|v| v == "1") {
+    #[cfg(feature = "pruefbau")]
+    let wert = if std::env::var("WB_TESTUMGEBUNG").is_ok_and(|v| v == "1") {
         std::env::var("WB_PRUEFEN_LAGE").ok()
     } else {
         None
-    }
-}
-
-/// Delivered build: no seam, the environment is not read for it.
-#[cfg(not(feature = "pruefbau"))]
-fn lage_naht() -> Option<String> {
-    None
+    };
+    #[cfg(not(feature = "pruefbau"))]
+    let wert = None;
+    wert
 }
 
 pub fn main() -> ExitCode {

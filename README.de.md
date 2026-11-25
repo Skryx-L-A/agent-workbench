@@ -112,18 +112,10 @@ Pull Request braucht die einmalige Zustimmung zur Beitragsvereinbarung (CLA). Ei
 
 ## Lizenz
 
-Quelltext verfügbar unter der [Business Source License 1.1](LICENSE) mit einer zusätzlichen
-Nutzungserlaubnis (deutsche Lesefassung: [LICENSE-de.md](LICENSE-de.md)). Jede Version steht zwei
-Jahre nach ihrer ersten Veröffentlichung zusätzlich unter der Apache License 2.0.
+Die eigene Arbeit des Lizenzgebers steht unter der [Apache License 2.0](LICENSE); fremde Bestandteile
+und die Namensnennung stehen in [NOTICE.md](NOTICE.md). Es gilt nur der englische Lizenztext. Namen
+und Logos sind nicht mitlizenziert; siehe [TRADEMARKS.md](TRADEMARKS.md). Einrichtung, Support und
+Schulung gibt es als bezahlte Leistung; siehe [SUPPORT.md](SUPPORT.md).
 
-- **Frei nutzbar für alle**, auch für Firmen: bei der Arbeit, im Betrieb, innerhalb einer
-  Organisation und für bezahlte Arbeit, die Sie damit erledigen.
-- **Frei weitergeben an Ihre Kunden**, auch angepasst und gegen Bezahlung; Einrichten, Hosten,
-  Betreiben, Betreuen und Schulen für Kunden ist für alle frei, auch gegen Bezahlung.
-- **Ein Partnervertrag ist nur nötig**, um es mehr als einem Kunden unter einem eigenen
-  Produktnamen oder eingebaut in ein Produkt unter einem anderen Namen anzubieten; ohne ihn darf ein
-  solches Angebot weder betrieben noch gehostet werden, und seine Kunden dürfen es nicht im Betrieb
-  nutzen. Angebote an mehr als einen Kunden tragen den Herkunftshinweis aus COMMERCIAL-LICENSE.md.
-  Einzelheiten:
-  [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).
-- Verbindlich ist allein der Text in [LICENSE](LICENSE).
+Frühere Stände behalten die Lizenz, unter der sie veröffentlicht wurden; siehe
+[CHANGELOG.md](CHANGELOG.md).

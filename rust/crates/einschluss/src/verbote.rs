@@ -246,6 +246,45 @@ mod tests {
     }
 
     #[test]
+    fn a_project_root_in_or_over_the_store_of_the_holder_is_refused() {
+        // The checks of the profile for a working folder (`profil::verbote_pruefen`): first the system rule, then the login stores.
+        let heim = p("/srv/beispiel/heim");
+        let abgelehnt = |pfad: &str, harness: &str| {
+            arbeitsordner_verboten(p(pfad), heim)
+                || beruehrt_anmeldespeicher(p(pfad), heim, harness)
+        };
+        for harness in ["copilot", "pi", "claude", "attrappe"] {
+            for wurzel in [
+                "/srv/beispiel/heim/.local/state/agent-workbench/halter/projekt",
+                "/srv/beispiel/heim/.local/state/agent-workbench/halter/geheim",
+                "/srv/beispiel/heim/.local/state/agent-workbench/halter",
+                "/srv/beispiel/heim/.local/state/agent-workbench",
+                "/srv/beispiel/heim/.local",
+            ] {
+                assert!(abgelehnt(wurzel, harness), "{harness} {wurzel}");
+            }
+            assert!(
+                !arbeitsordner_verboten(
+                    p("/srv/beispiel/heim/.local/state/agent-workbench/halter/projekt"),
+                    heim
+                ),
+                "the store is refused as a login store, not as a system path"
+            );
+            assert!(
+                !abgelehnt("/srv/beispiel/heim/projekt", harness),
+                "{harness}"
+            );
+            assert!(
+                !abgelehnt(
+                    "/srv/beispiel/heim/.local/state/agent-workbench/andere",
+                    harness
+                ),
+                "{harness}"
+            );
+        }
+    }
+
+    #[test]
     fn the_own_harness_keeps_its_login_files_and_the_others_do_not() {
         let heim = p("/home/u");
         assert!(!beruehrt_anmeldespeicher(

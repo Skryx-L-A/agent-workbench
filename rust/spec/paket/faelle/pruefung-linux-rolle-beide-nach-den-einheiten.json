@@ -1,0 +1,36 @@
+{
+ "beschreibung": "Nachtrag Rolle aus der Gruppe: Einheit des Halters, Gruppe und Programm rot: erst die Einheit, dann die Gruppe, dann das Programm, dann AppArmor",
+ "form": "pruefung",
+ "aufruf": [],
+ "lage": {
+  "plattform": "linux",
+  "konten": 1,
+  "dienste": [
+   {
+    "name": "werkbank-kern.service",
+    "zustand": "ok"
+   },
+   {
+    "name": "wb-halter.service",
+    "zustand": "fehlgeschlagen"
+   }
+  ],
+  "apparmor": "nicht_geladen",
+  "einstellungen": {
+   "zustand": "ok"
+  },
+  "nutzerordner": "ok",
+  "schluessel": "ok",
+  "copilot": "ok",
+  "vault": "ok",
+  "paketstand": {
+   "manifest": "ok",
+   "bau": "auslieferung",
+   "version": "gleich",
+   "dateien": []
+  },
+  "stelle": "ok",
+  "rollengruppe": "mitglied",
+  "rollenprogramm": "modus"
+ }
+}

@@ -29,9 +29,47 @@ pub const DIENST: &[(&str, &str)] = &[
     ),
 ];
 
-/// The units of the package, in the order of the output. The model path is no unit of the package: `werkbank-lauf` starts it
-/// for each session (contract part A, "Start der Dienste").
-pub const DIENSTE: [&str; 2] = ["werkbank-kern.service", "werkbank-bruecke.service"];
+/// The units of the package, in the order of the output: core, bridge and, since the addendum holder, the holder after the
+/// bridge. The model path is no unit of the package: `werkbank-lauf` starts it for each session (contract part A, "Dienste").
+pub const DIENSTE: [&str; 3] = [
+    "werkbank-kern.service",
+    "werkbank-bruecke.service",
+    "wb-halter.service",
+];
+
+/// The state of the role group `wb-bruecke` and the sentence for it (addendum "Rolle aus der Gruppe": part of the check of
+/// the units, after their lines).
+pub const ROLLENGRUPPE: &[(&str, &str)] = &[
+    (
+        "fehlt",
+        "pruef.rollengruppe_fehlt: Die Rollengruppe wb-bruecke fehlt; der Modellweg bekommt beim Halter keine Rolle.",
+    ),
+    (
+        "mitglied",
+        "pruef.rollengruppe_mitglied: Die Rollengruppe wb-bruecke hat ein Mitglied, ein Passwort oder eine falsche Form; ein Prozess eines Kontos koennte die Rolle bruecke annehmen.",
+    ),
+    (
+        "nicht_pruefbar",
+        "pruef.rollengruppe_nicht_pruefbar: Die Rollengruppe wb-bruecke war nicht pruefbar.",
+    ),
+];
+
+/// The state of the role program `/usr/lib/werkbank/werkbank-modellweg` (setgid `root:wb-bruecke` 2755) and the sentence
+/// for it (addendum "Rolle aus der Gruppe"; after the line of the role group).
+pub const ROLLENPROGRAMM: &[(&str, &str)] = &[
+    (
+        "fehlt",
+        "pruef.rollenprogramm_fehlt: Das Rollenprogramm /usr/lib/werkbank/werkbank-modellweg fehlt.",
+    ),
+    (
+        "modus",
+        "pruef.rollenprogramm_modus: Das Rollenprogramm /usr/lib/werkbank/werkbank-modellweg hat nicht root:wb-bruecke mit Modus 2755.",
+    ),
+    (
+        "nicht_pruefbar",
+        "pruef.rollenprogramm_nicht_pruefbar: Das Rollenprogramm war nicht pruefbar.",
+    ),
+];
 
 /// The state of the `AppArmor` profile and the sentence for it.
 pub const APPARMOR: &[(&str, &str)] = &[
@@ -125,6 +163,10 @@ pub const SCHLUESSEL: &[(&str, &str)] = &[
 /// form are ever read, never the content, the length or the path.
 pub const COPILOT: &[(&str, &str)] = &[
     (
+        "ablage",
+        "pruef.copilot_ablage: Die Ablage des Halters hat falsche Rechte, einen falschen Eigentuemer oder einen Verweis.",
+    ),
+    (
         "fehlt",
         "pruef.copilot_fehlt: Die Anmeldedatei der Copilot CLI fehlt.",
     ),
@@ -153,6 +195,10 @@ pub const COPILOT: &[(&str, &str)] = &[
         "pruef.copilot_nicht_pruefbar: Die Anmeldedatei der Copilot CLI war nicht pruefbar.",
     ),
 ];
+
+/// The finding for the file of the former target `/var/lib/werkbank/<user>/copilot.schluessel` (addendum holder): it may
+/// hold a token that nobody reads any more.
+pub const COPILOT_ALTER_ORT: &str = "pruef.copilot_alter_ort: Am frueheren Ort liegt noch eine Anmeldedatei der Copilot CLI; sie wird nicht mehr gelesen und muss weg.";
 
 /// The state of the vault folder and the sentence for it.
 pub const VAULT: &[(&str, &str)] = &[
@@ -287,6 +333,10 @@ pub struct Lage {
     pub konten: u32,
     /// The state of each unit, by name; a unit not named here is `ok`.
     pub dienste: Vec<(String, String)>,
+    /// State of the role group `wb-bruecke` (field `rollengruppe`; absent gives `ok`).
+    pub rollengruppe: String,
+    /// State of the role program `werkbank-modellweg` (field `rollenprogramm`; absent gives `ok`).
+    pub rollenprogramm: String,
     /// State of the `AppArmor` profile.
     pub apparmor: String,
     /// The settings file.
@@ -295,8 +345,11 @@ pub struct Lage {
     pub nutzerordner: String,
     /// State of the key file.
     pub schluessel: String,
-    /// State of the sign-in file of the route `copilot`.
+    /// State of the sign-in file of the route `copilot` (`anmeldung.copilot` in the store of the holder).
     pub copilot: String,
+    /// `true` when the file of the former target `/var/lib/werkbank/<user>/copilot.schluessel` is still there (field
+    /// `copilot_alt`; absent gives `false`).
+    pub copilot_alt: bool,
     /// `gesperrt` or `ubuntu`: the system `bwrap` is open only through the profile Ubuntu ships (a note, not a finding).
     pub system_bwrap: String,
     /// `""` (not shown), `geladen` or `entladen`: Ubuntu's own profile `bwrap-userns-restrict` is loaded or not (a note, not a finding).
@@ -329,6 +382,8 @@ impl Lage {
         let np = "nicht_pruefbar";
         self.dienste.iter().any(|(_, z)| z == np)
             || [
+                &self.rollengruppe,
+                &self.rollenprogramm,
                 &self.apparmor,
                 &self.einstellungen.zustand,
                 &self.nutzerordner,
@@ -452,6 +507,44 @@ fn harness_aus(wert: &Value) -> Result<Vec<(String, String)>, String> {
     Ok(aus)
 }
 
+/// The field `dienste`: a list of `{name, zustand}` with a unit of [`DIENSTE`] and a state of [`DIENST`].
+fn dienste_aus(wert: &Value) -> Result<Vec<(String, String)>, String> {
+    let mut dienste = Vec::new();
+    for d in wert
+        .get("dienste")
+        .and_then(Value::as_array)
+        .ok_or("dienste missing")?
+    {
+        let name = text(d, "name")?;
+        if !DIENSTE.contains(&name) {
+            return Err(format!("unknown unit {name:?}"));
+        }
+        dienste.push((
+            name.to_owned(),
+            zustand_pruefen(DIENST, text(d, "zustand")?, "dienste")?,
+        ));
+    }
+    Ok(dienste)
+}
+
+/// An optional state field of the addendum "Rolle aus der Gruppe": `ok` when absent, else a state of `tabelle`.
+fn optional_aus(wert: &Value, feld: &str, tabelle: &[(&str, &str)]) -> Result<String, String> {
+    match wert.get(feld) {
+        None => Ok(OK.to_owned()),
+        Some(Value::String(z)) => zustand_pruefen(tabelle, z, feld),
+        Some(_) => Err(format!("{feld} is not a text")),
+    }
+}
+
+/// The optional field `copilot_alt`: `false` when absent, else a boolean.
+fn copilot_alt_aus(wert: &Value) -> Result<bool, String> {
+    match wert.get("copilot_alt") {
+        None => Ok(false),
+        Some(Value::Bool(b)) => Ok(*b),
+        Some(_) => Err("copilot_alt is not a boolean".to_owned()),
+    }
+}
+
 /// The optional field `ohne_root`: `false` when absent, else a boolean.
 fn ohne_root_aus(wert: &Value) -> Result<bool, String> {
     match wert.get("ohne_root") {
@@ -489,21 +582,7 @@ impl Lage {
             .and_then(Value::as_u64)
             .and_then(|n| u32::try_from(n).ok())
             .ok_or("konten missing or not a number")?;
-        let mut dienste = Vec::new();
-        for d in wert
-            .get("dienste")
-            .and_then(Value::as_array)
-            .ok_or("dienste missing")?
-        {
-            let name = text(d, "name")?;
-            if !DIENSTE.contains(&name) {
-                return Err(format!("unknown unit {name:?}"));
-            }
-            dienste.push((
-                name.to_owned(),
-                zustand_pruefen(DIENST, text(d, "zustand")?, "dienste")?,
-            ));
-        }
+        let dienste = dienste_aus(wert)?;
         let e = wert.get("einstellungen").ok_or("einstellungen missing")?;
         let ez = text(e, "zustand")?;
         let code = e.get("code").and_then(Value::as_str).map(str::to_owned);
@@ -541,6 +620,8 @@ impl Lage {
         Ok(Self {
             konten,
             dienste,
+            rollengruppe: optional_aus(wert, "rollengruppe", ROLLENGRUPPE)?,
+            rollenprogramm: optional_aus(wert, "rollenprogramm", ROLLENPROGRAMM)?,
             apparmor: zustand_pruefen(APPARMOR, text(wert, "apparmor")?, "apparmor")?,
             einstellungen: Einstellungen {
                 zustand: ez.to_owned(),
@@ -553,6 +634,7 @@ impl Lage {
             )?,
             schluessel: zustand_pruefen(SCHLUESSEL, text(wert, "schluessel")?, "schluessel")?,
             copilot: zustand_pruefen(COPILOT, text(wert, "copilot")?, "copilot")?,
+            copilot_alt: copilot_alt_aus(wert)?,
             system_bwrap: system_bwrap_aus(wert)?,
             ubuntu_profil: ubuntu_profil_aus(wert)?,
             vault: zustand_pruefen(VAULT, text(wert, "vault")?, "vault")?,

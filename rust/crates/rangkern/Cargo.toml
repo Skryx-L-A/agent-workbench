@@ -50,6 +50,12 @@ serde_json = { version = "1", features = ["raw_value", "float_roundtrip"] }
 signal-hook = "0.4"
 rustix = { version = "1", default-features = false, features = ["std", "process", "fs"] }
 
+# peerkanal (path, crate of the workspace; no new package; Windows only): the named pipe of `rangkern sitzung` under Windows
+# (addendum to contract 4 for Windows), with the check of each client. This crate keeps `unsafe_code = "forbid"`; the Win32 calls
+# live in `peerkanal` alone (decision E1 of the Windows build plan).
+[target.'cfg(windows)'.dependencies]
+peerkanal = { path = "../peerkanal" }
+
 # nix (macOS only; `socket` and `user` carry `getpeereid`, nothing else): the measurement of the peer of a connection under
 # macOS (addendum to contract 4, section 4). `unsafe_code` is forbidden here, so there is no FFI of our own. Version 0.28 is
 # already in the graph (portable-pty); `socket` adds memoffset.

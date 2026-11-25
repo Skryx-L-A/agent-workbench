@@ -79,8 +79,12 @@ FAELLE = {
     "form-falsch-platzhalter": fall("der feste Platzhalter ist nie ein Schlüssel", token={"praefix": "gho_", "fuell": "0", "laenge": 40}),
     "form-falsch-zu-kurz": fall("Token zu kurz", token={"praefix": "gho_", "fuell": "E", "laenge": 12}),
     "form-falsch-zeichen": fall("Token mit Leerzeichen", token={"praefix": "gho_", "fuell": "F G", "laenge": 40}),
-    "ziel-ordner-fehlt": fall("Zielordner fehlt", ziel="ordner-fehlt"),
-    "ziel-schreibgeschuetzt": fall("Zielordner ohne Schreibrecht", ziel="schreibgeschuetzt"),
+    "ziel-ordner-fehlt": fall("Nachtrag Halter: keine Ebene der Ablage ab .local ist da; der Befehl legt alle mit 0700 an und speichert (alt: ziel_nicht_schreibbar)", ziel="ordner-fehlt"),
+    "ziel-heim-fehlt": fall("Nachtrag Halter: das Heim aus passwd gibt es nicht", ziel="heim-fehlt"),
+    "ziel-ebene-verweis": fall("Nachtrag Halter: .local/state ist ein Verweis; nie verfolgt, nichts angelegt", ziel="ebene-verweis"),
+    "ziel-ebene-geteilt": fall("Nachtrag Halter: agent-workbench ist für die Gruppe schreibbar", ziel="ebene-geteilt"),
+    "erfolg-alte-datei-bleibt": fall("Nachtrag Halter: die Datei des früheren Ziels unter /var/lib/werkbank wird weder gelesen noch geändert", ziel="alte-datei"),
+    "ziel-schreibgeschuetzt": fall("Ordner geheim der Ablage mit Modus 0500 statt 0700", ziel="schreibgeschuetzt"),
     "datei-da-ohne-neu": fall("Datei da, kein --neu: die CLI startet nicht", ziel="datei-da"),
     "echte-anmeldung-config": fall("echtes Heim hat config.json mit Token", echtes_heim="config-mit-token"),
     "echte-anmeldung-config-defekt": fall("echtes Heim hat unlesbare config.json: fail closed", echtes_heim="config-defekt"),
@@ -97,23 +101,12 @@ FAELLE = {
 }
 
 
-# Fälle des Nachtrags Halter, die der heutige Code des Crates `anmelden` nicht besteht (der Test kennt die neuen Werte von `ziel` nicht,
-# und `ordner-fehlt` endet dort noch mit `ziel_nicht_schreibbar`). Sie liegen in `faelle-ausstehend/` und `erwartet-ausstehend/`, die kein
-# Crate liest. Die Änderung, die den Code bringt (README.md der Ordner), verschiebt sie im selben Merge nach `faelle/` und `erwartet/`; die
-# beiden gleichnamigen Fälle ersetzen dann die heutigen. `ziel-schreibgeschuetzt` ist nur anders beschrieben (gleiche Erwartung).
-FAELLE_AUSSTEHEND = {
-    "ziel-ordner-fehlt": fall("Nachtrag Halter: keine Ebene der Ablage ab .local ist da; der Befehl legt alle mit 0700 an und speichert (alt: ziel_nicht_schreibbar)", ziel="ordner-fehlt"),
-    "ziel-heim-fehlt": fall("Nachtrag Halter: das Heim aus passwd gibt es nicht", ziel="heim-fehlt"),
-    "ziel-ebene-verweis": fall("Nachtrag Halter: .local/state ist ein Verweis; nie verfolgt, nichts angelegt", ziel="ebene-verweis"),
-    "ziel-ebene-geteilt": fall("Nachtrag Halter: agent-workbench ist für die Gruppe schreibbar", ziel="ebene-geteilt"),
-    "erfolg-alte-datei-bleibt": fall("Nachtrag Halter: die Datei des früheren Ziels unter /var/lib/werkbank wird weder gelesen noch geändert", ziel="alte-datei"),
-    "ziel-schreibgeschuetzt": fall("Ordner geheim der Ablage mit Modus 0500 statt 0700", ziel="schreibgeschuetzt"),
-}
+# Ausstehende Fälle des Nachtrags Halter: keine mehr. Der Code des Crates `anmelden` schreibt in die Ablage des Halters; die Fälle
+# stehen seitdem in FAELLE (`faelle/`, `erwartet/`). Eine neue Menge hier hieße wieder ein Ordnerpaar `*-ausstehend/` mit README.md.
+FAELLE_AUSSTEHEND = {}
 
-# Ziele, an denen der Zielordner den Befehl mit `ziel_nicht_schreibbar` enden lässt. Heute: ein fehlender oder ein nicht schreibbarer
-# Zielordner. Seit dem Nachtrag Halter (Ablage des Halters, Abschnitt 2): `ordner-fehlt` gehört nicht mehr dazu (der Befehl legt fehlende
-# Ebenen an); dafür gehören die Verstöße gegen die Regeln der Ebenen dazu.
-ZIEL_KAPUTT_HEUTE = ("ordner-fehlt", "schreibgeschuetzt")
+# Ziele, an denen die Ablage des Halters den Befehl mit `ziel_nicht_schreibbar` enden lässt (Abschnitt 2, Regeln für die Ablage).
+# `ordner-fehlt` gehört nicht dazu: der Befehl legt fehlende Ebenen an (alt: auch `ordner-fehlt`).
 ZIEL_KAPUTT = ("schreibgeschuetzt", "heim-fehlt", "ebene-verweis", "ebene-geteilt")
 
 
@@ -244,8 +237,10 @@ FAELLE_UEB = {
     "ueb-unsicher-zu-gross": ueb("config.json ist größer als 1 MiB", quelle="zu-gross"),
     "ueb-unsicher-fifo": ueb("config.json ist keine reguläre Datei (FIFO); kein Hängen", quelle="fifo"),
     "ueb-unsicher-ordner-statt-datei": ueb("config.json ist ein Ordner", quelle="ordner"),
-    "ueb-ziel-ordner-fehlt": ueb("Zielordner fehlt", ziel="ordner-fehlt"),
-    "ueb-ziel-schreibgeschuetzt": ueb("Zielordner ohne Schreibrecht", ziel="schreibgeschuetzt"),
+    "ueb-ziel-ordner-fehlt": ueb("Nachtrag Halter: keine Ebene der Ablage ab .local ist da; der Befehl legt alle an und übernimmt (alt: ziel_nicht_schreibbar)", ziel="ordner-fehlt"),
+    "ueb-ziel-schreibgeschuetzt": ueb("Ordner geheim der Ablage mit Modus 0500 statt 0700", ziel="schreibgeschuetzt"),
+    "ueb-ziel-heim-fehlt": ueb("Nachtrag Halter: das Heim aus passwd gibt es nicht; config.json bleibt unverändert", ziel="heim-fehlt"),
+    "ueb-ziel-ebene-verweis": ueb("Nachtrag Halter: .local/state ist ein Verweis; nie verfolgt, config.json bleibt unverändert", ziel="ebene-verweis"),
     "ueb-config-nicht-ersetzbar": ueb("das Ersetzen von config.json scheitert nach der Schlüsseldatei: beides zurück", probe="config-stoeren"),
     "ueb-config-nicht-ersetzbar-mit-neu": ueb("wie ueb-config-nicht-ersetzbar, mit --neu über eine alte Datei: die alte kommt zurück", args=UEB_NEU, ziel="datei-da", probe="config-stoeren"),
     "ueb-echte-anmeldung-bund": ueb("der Schlüsselbund hat einen Eintrag: Schlüsseldatei steht, config.json ist ohne Token, Code", bundtool="gefunden"),
@@ -257,13 +252,8 @@ FAELLE_UEB = {
 }
 
 
-# Wie FAELLE_AUSSTEHEND, für die Übernahme (`faelle-uebernehmen-ausstehend/`, `erwartet-uebernehmen-ausstehend/`).
-FAELLE_UEB_AUSSTEHEND = {
-    "ueb-ziel-ordner-fehlt": ueb("Nachtrag Halter: keine Ebene der Ablage ab .local ist da; der Befehl legt alle an und übernimmt (alt: ziel_nicht_schreibbar)", ziel="ordner-fehlt"),
-    "ueb-ziel-schreibgeschuetzt": ueb("Ordner geheim der Ablage mit Modus 0500 statt 0700", ziel="schreibgeschuetzt"),
-    "ueb-ziel-heim-fehlt": ueb("Nachtrag Halter: das Heim aus passwd gibt es nicht; config.json bleibt unverändert", ziel="heim-fehlt"),
-    "ueb-ziel-ebene-verweis": ueb("Nachtrag Halter: .local/state ist ein Verweis; nie verfolgt, config.json bleibt unverändert", ziel="ebene-verweis"),
-}
+# Wie FAELLE_AUSSTEHEND, für die Übernahme: keine mehr, die Fälle des Nachtrags Halter stehen in FAELLE_UEB.
+FAELLE_UEB_AUSSTEHEND = {}
 
 QUELLE_UNSICHER = ("verweis", "hardlink", "zu-gross", "fifo", "ordner")
 QUELLE_OHNE_TOKEN = ("ohne-config", "kein-json", "ohne-feld", "zwei-tokens", "weitere-anmeldung",
@@ -326,20 +316,17 @@ def erwartet_ueb(f, kaputt):
 
 
 def main():
-    # (Ordner der Fälle, Ordner der Antworten, Fälle, Antwort je Fall). Die ausstehenden Ordner enthalten außer den Fällen eine
-    # von Hand geschriebene README.md; sie bleibt, die JSON-Dateien werden neu erzeugt.
+    # (Ordner der Fälle, Ordner der Antworten, Fälle, Antwort je Fall).
     for faelle, erw, menge, rechne in (
-        ("faelle", "erwartet", FAELLE, lambda f: erwartet(f, ZIEL_KAPUTT_HEUTE)),
-        ("faelle-uebernehmen", "erwartet-uebernehmen", FAELLE_UEB, lambda f: erwartet_ueb(f, ZIEL_KAPUTT_HEUTE)),
-        ("faelle-ausstehend", "erwartet-ausstehend", FAELLE_AUSSTEHEND, lambda f: erwartet(f, ZIEL_KAPUTT)),
-        ("faelle-uebernehmen-ausstehend", "erwartet-uebernehmen-ausstehend", FAELLE_UEB_AUSSTEHEND, lambda f: erwartet_ueb(f, ZIEL_KAPUTT)),
+        ("faelle", "erwartet", FAELLE, lambda f: erwartet(f, ZIEL_KAPUTT)),
+        ("faelle-uebernehmen", "erwartet-uebernehmen", FAELLE_UEB, lambda f: erwartet_ueb(f, ZIEL_KAPUTT)),
     ):
         for ordner in (faelle, erw):
             (HIER / ordner).mkdir(exist_ok=True)
         for name, f in menge.items():
             (HIER / faelle / (name + ".json")).write_text(json.dumps(f, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
             (HIER / erw / (name + ".json")).write_text(json.dumps(rechne(f), ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print("%d Fälle, %d Fälle der Übernahme, ausstehend: %d und %d" % (len(FAELLE), len(FAELLE_UEB), len(FAELLE_AUSSTEHEND), len(FAELLE_UEB_AUSSTEHEND)))
+    print("%d Fälle, %d Fälle der Übernahme" % (len(FAELLE), len(FAELLE_UEB)))
 
 
 if __name__ == "__main__":

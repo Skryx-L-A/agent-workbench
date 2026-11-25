@@ -465,9 +465,10 @@ fn abhaengigkeiten<'a>(manifest: &'a str, kopf: &str) -> Vec<&'a str> {
 
 /// Until 23.11.2026 this test was `the_manifest_names_serde_json_as_the_only_dependency` and read only `[dependencies]`; a
 /// dependency in a target section went unseen (review B13). Now every dependency section counts: `serde_json` on every system,
-/// `nix` only under macOS, nothing else.
+/// `nix` only under macOS, `peerkanal` only under Windows (since the named pipe), nothing else.
 #[test]
-fn the_manifest_names_serde_json_everywhere_and_nix_only_under_macos() {
+fn the_manifest_names_serde_json_everywhere_nix_only_under_macos_and_peerkanal_only_under_windows()
+{
     let manifest =
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml")).expect("read");
     assert_eq!(
@@ -481,6 +482,10 @@ fn the_manifest_names_serde_json_everywhere_and_nix_only_under_macos() {
         ),
         ["nix"]
     );
+    assert_eq!(
+        abhaengigkeiten(&manifest, "\n[target.'cfg(windows)'.dependencies]"),
+        ["peerkanal"]
+    );
     let abschnitte: Vec<&str> = manifest
         .lines()
         .filter(|z| z.starts_with('[') && z.contains("dependencies"))
@@ -489,7 +494,8 @@ fn the_manifest_names_serde_json_everywhere_and_nix_only_under_macos() {
         abschnitte,
         [
             "[dependencies]",
-            "[target.'cfg(target_os = \"macos\")'.dependencies]"
+            "[target.'cfg(target_os = \"macos\")'.dependencies]",
+            "[target.'cfg(windows)'.dependencies]"
         ],
         "no other dependency section"
     );

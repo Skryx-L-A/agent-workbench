@@ -1,6 +1,6 @@
-//! Under Windows there is no socket way yet (the named pipe follows with variant B): the tool answers every
-//! `brain_suche` call with "Suche nicht erreichbar" and `isError: true`, and asks nobody.
-//! The tests run only under `cfg(windows)`; the cross build compiles them.
+//! Under Windows the tool reaches the search through the named pipe of `--socket` (addendum for Windows, section 6). Without a
+//! server at the name, or with a name of another form, every `brain_suche` call is "Suche nicht erreichbar" with `isError:
+//! true`, at once. The tests run only under `cfg(windows)`; the cases with a server are in `rust/spec/such-socket/windows/`.
 #![cfg(windows)]
 
 use std::io::Write;
@@ -12,14 +12,12 @@ use such_mcp::suche::{Befrager, Unerreichbar, UnixSocket};
 
 const PROGRAMM: &str = env!("CARGO_BIN_EXE_such-mcp");
 
+/// A pipe name of the right form that nobody serves (the random part is fixed, so no session of this machine uses it).
+const LEER: &str = r"\\.\pipe\wb-such-00000000000000000000000000000000";
+
 #[test]
-fn every_question_is_unreachable_and_without_waiting() {
-    for pfad in [
-        "C:\\nicht\\da.sock",
-        "\\\\.\\pipe\\such",
-        "/run/brain/such.sock",
-        "",
-    ] {
+fn every_question_without_a_server_is_unreachable_and_without_waiting() {
+    for pfad in [LEER, "C:\\nicht\\da.sock", "\\\\.\\pipe\\such", ""] {
         let socket = UnixSocket::mit_grenzen(pfad, Duration::from_secs(5), 1000);
         let start = Instant::now();
         assert_eq!(
@@ -32,13 +30,14 @@ fn every_question_is_unreachable_and_without_waiting() {
 }
 
 #[test]
-fn the_program_answers_brain_suche_with_the_fixed_text() {
+fn the_program_answers_brain_suche_with_the_fixed_text_without_a_server() {
     let eingabe = concat!(
         "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\"}}\n",
         "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"brain_suche\",\"arguments\":{\"query\":\"x\"}}}\n",
         "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"brain_suche\",\"arguments\":{\"query\":\"x\",\"route\":\"lokal\"}}}\n",
     );
     let mut kind = Command::new(PROGRAMM)
+        .args(["--socket", LEER])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -71,11 +70,18 @@ fn the_program_answers_brain_suche_with_the_fixed_text() {
 
 #[test]
 fn a_wrong_call_exits_with_64_under_windows_too() {
-    let ausgang = Command::new(PROGRAMM)
-        .args(["--route", "lokal"])
-        .stdin(Stdio::null())
-        .output()
-        .expect("run");
-    assert_eq!(ausgang.status.code(), Some(64));
-    assert!(ausgang.stdout.is_empty() && ausgang.stderr.is_empty());
+    for argumente in [
+        &["--route", "lokal"][..],
+        &[],
+        &["--socket", "C:\\nicht\\da.sock"],
+        &["--socket", "\\\\.\\pipe\\wb-plattform"],
+    ] {
+        let ausgang = Command::new(PROGRAMM)
+            .args(argumente)
+            .stdin(Stdio::null())
+            .output()
+            .expect("run");
+        assert_eq!(ausgang.status.code(), Some(64), "{argumente:?}");
+        assert!(ausgang.stdout.is_empty() && ausgang.stderr.is_empty());
+    }
 }

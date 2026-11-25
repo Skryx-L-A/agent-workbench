@@ -3,6 +3,8 @@
 //! Before, every ended session kept two `/dev/ptmx` descriptors and a thread until the end of the service, and macOS (511 PTYs
 //! for the whole system) refused new starts after about 400 to 450 of them.
 
+#![cfg(feature = "pruefbau")] // the fixed child programs `--kind` exist in the test build only
+
 mod gemeinsam;
 
 use std::os::unix::fs::PermissionsExt;

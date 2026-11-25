@@ -812,6 +812,382 @@
           "type": "null"
         }
       ]
+    },
+    "konfig": {
+      "description": "halter.json unter Linux, Fassung 1 (Abschnitt 2.3a, Nachtrag Rolle aus der Gruppe). Die Regeln zu /etc/group und /etc/passwd, die eigene uid in konten und die Grenze von 1048576 Byte prüft erst der Start (Schritt 2).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fassung",
+        "konten",
+        "rollen",
+        "ziele",
+        "server",
+        "kids"
+      ],
+      "properties": {
+        "fassung": {
+          "const": 1
+        },
+        "konten": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^(0|[1-9][0-9]{0,9})$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "person"
+            ],
+            "properties": {
+              "person": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/person"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "rollen": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "hub": {
+              "$ref": "#/$defs/gruppe"
+            },
+            "bruecke": {
+              "$ref": "#/$defs/gruppe"
+            },
+            "oberflaeche": {
+              "$ref": "#/$defs/gruppe"
+            }
+          }
+        },
+        "ziele": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/kennung"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "host",
+              "port",
+              "tls",
+              "praefix",
+              "kopf",
+              "vorsatz",
+              "schluessel",
+              "pfade"
+            ],
+            "properties": {
+              "host": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 253,
+                "pattern": "^[A-Za-z0-9.:-]+$"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "tls": {
+                "type": "boolean"
+              },
+              "kopf": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,64}$",
+                "anyOf": [
+                  {
+                    "enum": [
+                      "authorization",
+                      "x-api-key",
+                      "api-key"
+                    ]
+                  },
+                  {
+                    "not": {
+                      "enum": [
+                        "authorization",
+                        "proxy-authorization",
+                        "x-api-key",
+                        "api-key",
+                        "cookie",
+                        "set-cookie",
+                        "host",
+                        "content-length",
+                        "transfer-encoding",
+                        "connection",
+                        "upgrade",
+                        "te",
+                        "trailer",
+                        "keep-alive",
+                        "proxy-connection",
+                        "forwarded",
+                        "x-forwarded-for",
+                        "x-forwarded-host",
+                        "accept-encoding",
+                        "sec-websocket-extensions"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "vorsatz": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[ -~]*$"
+              },
+              "praefix": {
+                "anyOf": [
+                  {
+                    "const": ""
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^/[A-Za-z0-9._~/-]{0,511}$",
+                    "not": {
+                      "anyOf": [
+                        {
+                          "pattern": "//"
+                        },
+                        {
+                          "pattern": "/\\.\\.?(/|$)"
+                        },
+                        {
+                          "pattern": "/$"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "schluessel": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/name"
+                  },
+                  {
+                    "pattern": "^(modell|anmeldung)\\."
+                  }
+                ]
+              },
+              "pfade": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "string",
+                  "pattern": "^(GET|POST) (?=/.{0,511}$)/(\\*|([A-Za-z0-9._~-]+/)*([A-Za-z0-9._~-]+|\\*)?)$",
+                  "not": {
+                    "pattern": "/\\.\\.?(/|$)"
+                  }
+                }
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "tls": {
+                      "const": false
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "host": {
+                      "enum": [
+                        "127.0.0.1",
+                        "::1",
+                        "localhost"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "server": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/kennung"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "host",
+              "port",
+              "tls",
+              "pfad",
+              "kopf",
+              "vorsatz",
+              "schluessel",
+              "freigabe",
+              "werkzeuge",
+              "lokal"
+            ],
+            "properties": {
+              "host": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 253,
+                "pattern": "^[A-Za-z0-9.:-]+$"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "tls": {
+                "type": "boolean"
+              },
+              "kopf": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,64}$",
+                "anyOf": [
+                  {
+                    "enum": [
+                      "authorization",
+                      "x-api-key",
+                      "api-key"
+                    ]
+                  },
+                  {
+                    "not": {
+                      "enum": [
+                        "authorization",
+                        "proxy-authorization",
+                        "x-api-key",
+                        "api-key",
+                        "cookie",
+                        "set-cookie",
+                        "host",
+                        "content-length",
+                        "transfer-encoding",
+                        "connection",
+                        "upgrade",
+                        "te",
+                        "trailer",
+                        "keep-alive",
+                        "proxy-connection",
+                        "forwarded",
+                        "x-forwarded-for",
+                        "x-forwarded-host",
+                        "accept-encoding",
+                        "sec-websocket-extensions"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "vorsatz": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[ -~]*$"
+              },
+              "pfad": {
+                "type": "string",
+                "pattern": "^/[A-Za-z0-9._~/-]{0,511}$",
+                "not": {
+                  "anyOf": [
+                    {
+                      "pattern": "//"
+                    },
+                    {
+                      "pattern": "/\\.\\.?(/|$)"
+                    }
+                  ]
+                }
+              },
+              "schluessel": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/name"
+                  },
+                  {
+                    "pattern": "^mcp\\."
+                  }
+                ]
+              },
+              "freigabe": {
+                "type": "boolean"
+              },
+              "werkzeuge": {
+                "type": "object",
+                "additionalProperties": {
+                  "enum": [
+                    "lesend",
+                    "schreibend"
+                  ]
+                }
+              },
+              "lokal": {
+                "const": false
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "tls": {
+                      "const": false
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "host": {
+                      "enum": [
+                        "127.0.0.1",
+                        "::1",
+                        "localhost"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "kids": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/kennung"
+          },
+          "additionalProperties": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/b64"
+              },
+              {
+                "minLength": 44,
+                "maxLength": 44,
+                "pattern": "=$"
+              },
+              {
+                "not": {
+                  "pattern": "==$"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "gruppe": {
+      "type": "string",
+      "pattern": "^[a-z_][a-z0-9_-]{0,31}$"
     }
   }
 }

@@ -78,15 +78,32 @@ pub fn vor_dem_kind() -> Result<(), Fehler> {
     kind_pruefen(stand, kernabbild::lage)
 }
 
-#[cfg(target_os = "linux")]
+/// May this process be read as a core image or by `ptrace` (Linux: `PR_GET_DUMPABLE`)? Other systems: no. One function
+/// with the choice inside, so the mutation run on Linux reaches all of it (cargo-mutants does not evaluate `cfg`).
+#[cfg_attr(
+    not(target_os = "linux"),
+    allow(clippy::unnecessary_wraps, clippy::let_and_return)
+)]
 fn abzugsfaehig() -> Result<bool, Fehler> {
-    rustix::process::dumpable_behavior()
+    #[cfg(target_os = "linux")]
+    let antwort = rustix::process::dumpable_behavior()
         .map(|b| b != rustix::process::DumpableBehavior::NotDumpable)
-        .map_err(|_| Fehler::Abschirmung)
+        .map_err(|_| Fehler::Abschirmung);
+    #[cfg(not(target_os = "linux"))]
+    let antwort = Ok(false);
+    antwort
 }
 
-#[cfg(not(target_os = "linux"))]
-#[allow(clippy::unnecessary_wraps)]
-fn abzugsfaehig() -> Result<bool, Fehler> {
-    Ok(false)
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use rustix::process::{DumpableBehavior, set_dumpable_behavior};
+
+    /// The answer follows the flag of the process. The test ends with the process not dumpable.
+    #[test]
+    fn the_answer_follows_the_dumpable_flag_of_the_process() {
+        set_dumpable_behavior(DumpableBehavior::Dumpable).expect("dumpable");
+        assert_eq!(super::abzugsfaehig(), Ok(true));
+        set_dumpable_behavior(DumpableBehavior::NotDumpable).expect("not dumpable");
+        assert_eq!(super::abzugsfaehig(), Ok(false));
+    }
 }

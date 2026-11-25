@@ -12,7 +12,8 @@ use werkbank_pruefen::bewerte::{bewerte, kuerzen};
 use werkbank_pruefen::lage::{Abweichung, Lage};
 use werkbank_pruefen::manifest::{PFLICHT, PROFIL_A, PROFIL_B, STARTER};
 use werkbank_pruefen::sammeln::{
-    Ausgabe, System, Umgebung, anhang_trifft, aufrufer, nutzer_gut, reale_uid,
+    Ausgabe, Echt, Kennwerte, System, Umgebung, anhang_trifft, aufrufer, nutzer_gut, reale_uid,
+    rollengruppe_zustand, rollenprogramm_zustand,
 };
 
 /// One answer: the program, a part of its command line, and what it returns (`None` = did not run).
@@ -42,6 +43,29 @@ impl System for Attrappe {
                 },
                 stdout,
             })
+    }
+
+    /// A file of root with setgid cannot be made by a test: an answer `("kennwerte", <end of the path>, Some((0, "<uid>
+    /// <gid> <octal mode> datei|anders")))` stands in for the look at that path; any other path is looked at for real.
+    fn kennwerte(&self, pfad: &Path) -> std::io::Result<Option<Kennwerte>> {
+        let text = pfad.to_string_lossy();
+        let Some((_, _, antwort)) = self
+            .antworten
+            .iter()
+            .find(|(p, teil, _)| *p == "kennwerte" && text.ends_with(teil))
+        else {
+            return Echt.kennwerte(pfad);
+        };
+        let Some((_, w)) = antwort else {
+            return Err(std::io::Error::other("look failed"));
+        };
+        let f: Vec<&str> = w.split(' ').collect();
+        Ok(Some(Kennwerte {
+            uid: f[0].parse().expect("uid"),
+            gid: f[1].parse().expect("gid"),
+            modus: u32::from_str_radix(f[2], 8).expect("mode"),
+            datei: f[3] == "datei",
+        }))
     }
 }
 
@@ -100,6 +124,30 @@ fn baum(wurzel: &Path, version: &str, testbau: bool) {
         text.as_bytes(),
         0o644,
     );
+    // the role group of the bridge (addendum "Rolle aus der Gruppe"): no member, no password
+    schreiben(
+        wurzel,
+        "etc/group",
+        b"root:x:0:\nanna:x:1000:\nwb-bruecke:x:991:\n",
+        0o644,
+    );
+    if !wurzel.join("etc/passwd").exists() {
+        schreiben(
+            wurzel,
+            "etc/passwd",
+            b"root:x:0:0:root:/root:/bin/bash\n",
+            0o644,
+        );
+    }
+}
+
+/// The look at the role program as the package leaves it: root, the group `wb-bruecke` (991), 2755.
+fn rollenprogramm_gut() -> Antwort {
+    (
+        "kennwerte",
+        "usr/lib/werkbank/werkbank-modellweg",
+        Some((0, "0 991 2755 datei".to_owned())),
+    )
 }
 
 fn nutzerdaten(wurzel: &Path, uid_modus_ok: bool) {
@@ -120,13 +168,34 @@ fn nutzerdaten(wurzel: &Path, uid_modus_ok: bool) {
         b"x",
         0o600,
     );
+    // The store of the holder below the home from `passwd` (addendum holder), every level 0700.
     schreiben(
         wurzel,
-        "var/lib/werkbank/anna/copilot.schluessel",
-        b"abc123-Zeichen\n",
-        0o600,
+        "etc/passwd",
+        b"root:x:0:0:root:/root:/bin/bash\nanna:x:1000:1000:Anna:/srv/beispiel/anna:/bin/bash\n",
+        0o644,
     );
+    let mut ebene = wurzel.join("srv/beispiel/anna");
+    fs::create_dir_all(&ebene).expect("home");
+    for name in [".local", "state", "agent-workbench", "halter", "geheim"] {
+        ebene.push(name);
+        fs::create_dir_all(&ebene).expect("level");
+        fs::set_permissions(&ebene, fs::Permissions::from_mode(0o700)).expect("mode");
+    }
+    schreiben(wurzel, ANMELDUNG, b"abc123-Zeichen\n", 0o600);
 }
+
+/// The sign-in file in the store of the holder of the made-up tree.
+const ANMELDUNG: &str =
+    "srv/beispiel/anna/.local/state/agent-workbench/halter/geheim/anmeldung.copilot";
+/// The levels of the store, from `.local` to `geheim`.
+const EBENEN: [&str; 5] = [
+    "srv/beispiel/anna/.local",
+    "srv/beispiel/anna/.local/state",
+    "srv/beispiel/anna/.local/state/agent-workbench",
+    "srv/beispiel/anna/.local/state/agent-workbench/halter",
+    "srv/beispiel/anna/.local/state/agent-workbench/halter/geheim",
+];
 
 fn attrappe_ok(uid: u32) -> Attrappe {
     let u: &'static str = Box::leak(format!("{uid}\n").into_boxed_str());
@@ -137,10 +206,11 @@ fn attrappe_ok(uid: u32) -> Attrappe {
             ("dpkg-query", "werkbank", Some((0, "1.2.3".to_owned()))),
             (
                 "systemctl",
-                "werkbank",
+                ".service",
                 Some((0, "LoadState=loaded\nActiveState=active\n".to_owned())),
             ),
             ("setpriv", "bwrap", Some((0, String::new()))),
+            rollenprogramm_gut(),
         ],
         aufrufe: RefCell::new(Vec::new()),
     }
@@ -245,22 +315,124 @@ fn der_schluessel_wird_nach_art_eigentuemer_modus_und_leere_beurteilt_nie_nach_i
 }
 
 #[test]
-fn die_anmeldedatei_der_copilot_cli_wird_nach_art_eigentuemer_modus_leere_und_form_beurteilt() {
-    let w = eigener_ordner("copilot");
+fn die_ebenen_der_ablage_werden_ohne_verweis_vor_der_anmeldedatei_beurteilt() {
+    let w = eigener_ordner("ablage");
     nutzerdaten(&w, true);
-    let pfad = w.join("var/lib/werkbank/anna/copilot.schluessel");
     let uid = eigene_uid();
     let sys = attrappe_ok(uid);
     let z = |w: &Path| lage_mit(w, &sys, Some("anna")).copilot;
     assert_eq!(z(&w), "ok");
-    // The form: one line of 1 to 4096 characters from `!` to `~`, with or without the final LF.
-    let lang = "a".repeat(4096);
+    // A level writable by group or others, and `geheim` not exactly 0700.
+    for ebene in EBENEN {
+        for modus in [0o720, 0o702] {
+            fs::set_permissions(w.join(ebene), fs::Permissions::from_mode(modus)).expect("mode");
+            assert_eq!(z(&w), "ablage", "{ebene} {modus:o}");
+        }
+        fs::set_permissions(w.join(ebene), fs::Permissions::from_mode(0o700)).expect("mode");
+    }
+    for modus in [0o750, 0o500, 0o1700] {
+        fs::set_permissions(w.join(EBENEN[4]), fs::Permissions::from_mode(modus)).expect("mode");
+        assert_eq!(z(&w), "ablage", "geheim {modus:o}");
+    }
+    fs::set_permissions(w.join(EBENEN[4]), fs::Permissions::from_mode(0o700)).expect("mode");
+    fs::set_permissions(w.join(EBENEN[3]), fs::Permissions::from_mode(0o750)).expect("mode");
+    assert_eq!(z(&w), "ok", "only geheim needs exactly 0700");
+    fs::set_permissions(w.join(EBENEN[3]), fs::Permissions::from_mode(0o700)).expect("mode");
+    // A level that is a link to a good store elsewhere is never followed; a level that is a file is no store.
+    let state = w.join(EBENEN[1]);
+    let anders = w.join("anderswo-state");
+    fs::rename(&state, &anders).expect("move");
+    symlink(&anders, &state).expect("link");
+    assert_eq!(z(&w), "ablage", "a link level");
+    fs::remove_file(&state).expect("link away");
+    fs::write(&state, b"x").expect("file");
+    assert_eq!(z(&w), "ablage", "a file level");
+    fs::remove_file(&state).expect("file away");
+    // A missing level is a missing sign-in, and nothing is made.
+    assert_eq!(z(&w), "fehlt");
+    assert!(!state.exists(), "the check makes no level");
+    fs::rename(&anders, &state).expect("back");
+    assert_eq!(z(&w), "ok");
+    // The home comes from `passwd`: an entry without an absolute home or without the user is not checkable.
+    schreiben(
+        &w,
+        "etc/passwd",
+        b"anna:x:1000:1000::srv/beispiel/anna:/bin/sh\n",
+        0o644,
+    );
+    assert_eq!(z(&w), "nicht_pruefbar");
+    schreiben(
+        &w,
+        "etc/passwd",
+        b"bert:x:1000:1000::/srv/beispiel/anna:/bin/sh\n",
+        0o644,
+    );
+    assert_eq!(z(&w), "nicht_pruefbar");
+    schreiben(
+        &w,
+        "etc/passwd",
+        b"anna:x:1000:1000::/srv/beispiel/fehlt:/bin/sh\n",
+        0o644,
+    );
+    assert_eq!(z(&w), "fehlt", "a home that is not there");
+    fs::remove_dir_all(&w).ok();
+}
+
+#[test]
+fn der_alte_ort_der_anmeldung_wird_gemeldet_und_nie_gelesen() {
+    let w = eigener_ordner("alter-ort");
+    nutzerdaten(&w, true);
+    let uid = eigene_uid();
+    let sys = attrappe_ok(uid);
+    assert!(!lage_mit(&w, &sys, Some("anna")).copilot_alt);
+    let alt = "var/lib/werkbank/anna/copilot.schluessel";
+    schreiben(&w, alt, b"x\n", 0o000);
+    let lage = lage_mit(&w, &sys, Some("anna"));
+    assert!(lage.copilot_alt, "in any state, also unreadable");
+    assert_eq!(
+        lage.copilot, "ok",
+        "the new place counts for the check copilot"
+    );
+    let r = bewerte(&lage);
+    assert!(
+        r.zeilen
+            .iter()
+            .any(|z| z.starts_with("pruef.copilot_alter_ort: ")),
+        "{:?}",
+        r.zeilen
+    );
+    fs::remove_file(w.join(alt)).expect("remove");
+    symlink(w.join("nirgends"), w.join(alt)).expect("link");
+    assert!(
+        lage_mit(&w, &sys, Some("anna")).copilot_alt,
+        "a dangling link counts"
+    );
+    assert!(
+        !lage_mit(&w, &sys, None).copilot_alt,
+        "without a user there is no place"
+    );
+    fs::remove_dir_all(&w).ok();
+}
+
+#[test]
+fn die_anmeldedatei_der_copilot_cli_wird_nach_art_eigentuemer_modus_leere_und_form_beurteilt() {
+    let w = eigener_ordner("copilot");
+    nutzerdaten(&w, true);
+    let pfad = w.join(ANMELDUNG);
+    let uid = eigene_uid();
+    let sys = attrappe_ok(uid);
+    let z = |w: &Path| lage_mit(w, &sys, Some("anna")).copilot;
+    assert_eq!(z(&w), "ok");
+    // The form (finding F11, the form of the holder): the value of 1 to 12288 characters from `!` to `~` and exactly one LF.
+    let lang = "a".repeat(12_288);
     for (inhalt, erwartet) in [
-        (b"x".to_vec(), "ok"),
         (b"x\n".to_vec(), "ok"),
-        (lang.clone().into_bytes(), "ok"),
+        (b"x".to_vec(), "form"),
         (format!("{lang}\n").into_bytes(), "ok"),
-        (format!("{lang}b").into_bytes(), "form"),
+        (lang.clone().into_bytes(), "form"),
+        (format!("{lang}b\n").into_bytes(), "form"),
+        ("a".repeat(4097).into_bytes(), "form"),
+        (format!("{}\n", "a".repeat(4097)).into_bytes(), "ok"),
         (b"zwei\nzeilen\n".to_vec(), "form"),
         (b"mit leerzeichen".to_vec(), "form"),
         (b"\n".to_vec(), "form"),
@@ -272,7 +444,7 @@ fn die_anmeldedatei_der_copilot_cli_wird_nach_art_eigentuemer_modus_leere_und_fo
         fs::write(&pfad, &inhalt).expect("write");
         assert_eq!(z(&w), erwartet, "{:?}", String::from_utf8_lossy(&inhalt));
     }
-    fs::write(&pfad, b"x").expect("write");
+    fs::write(&pfad, b"x\n").expect("write");
     fs::set_permissions(&pfad, fs::Permissions::from_mode(0o644)).expect("mode");
     assert_eq!(z(&w), "modus");
     fs::set_permissions(&pfad, fs::Permissions::from_mode(0o600)).expect("mode");
@@ -283,10 +455,11 @@ fn die_anmeldedatei_der_copilot_cli_wird_nach_art_eigentuemer_modus_leere_und_fo
     fs::create_dir(&pfad).expect("dir");
     assert_eq!(z(&w), "art");
     fs::remove_dir(&pfad).expect("dir");
-    schreiben(&w, "var/lib/werkbank/anna/copilot.schluessel", b"x", 0o600);
+    schreiben(&w, ANMELDUNG, b"x", 0o600);
     assert_eq!(
         lage_mit(&w, &attrappe_ok(uid + 1), Some("anna")).copilot,
-        "eigentuemer"
+        "ablage",
+        "a store of another owner is refused before the file"
     );
     assert_eq!(
         lage_mit(&w, &sys, None).copilot,
@@ -425,7 +598,7 @@ fn die_dienste_werden_aus_loadstate_und_activestate_gelesen() {
     let w = eigener_ordner("dienste");
     let zustand = |stdout: &str, rc: i32| {
         let s = Attrappe {
-            antworten: vec![("systemctl", "werkbank", Some((rc, stdout.to_owned())))],
+            antworten: vec![("systemctl", ".service", Some((rc, stdout.to_owned())))],
             aufrufe: RefCell::new(Vec::new()),
         };
         let l = lage_mit(&w, &s, Some("anna"));
@@ -437,6 +610,30 @@ fn die_dienste_werden_aus_loadstate_und_activestate_gelesen() {
             .cloned()
             .expect("call");
         assert!(aufruf.contains("--user --machine=anna@ show"), "{aufruf}");
+        let namen: Vec<&str> = l.dienste.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(
+            namen,
+            [
+                "werkbank-kern.service",
+                "werkbank-bruecke.service",
+                "wb-halter.service"
+            ],
+            "three units, the holder after the bridge"
+        );
+        assert_eq!(
+            s.aufrufe
+                .borrow()
+                .iter()
+                .filter(|a| a.starts_with("systemctl"))
+                .count(),
+            3
+        );
+        assert!(
+            s.aufrufe
+                .borrow()
+                .iter()
+                .any(|a| a.ends_with("-- wb-halter.service"))
+        );
         l.dienste[0].1.clone()
     };
     assert_eq!(zustand("LoadState=loaded\nActiveState=active\n", 0), "ok");
@@ -789,6 +986,109 @@ fn mehr_als_zwanzig_dateizeilen_werden_gezaehlt_und_sortiert() {
 }
 
 #[test]
+fn genau_zwanzig_dateizeilen_stehen_alle_ohne_weitere_zeile() {
+    let d: Vec<serde_json::Value> = (0..20)
+        .map(|i| serde_json::json!({"pfad": format!("usr/lib/werkbank/f{i:02}"), "art": "fremd"}))
+        .collect();
+    let lage = serde_json::json!({
+        "plattform": "linux", "konten": 1, "dienste": [], "apparmor": "ok", "einstellungen": {"zustand": "ok"},
+        "nutzerordner": "ok", "schluessel": "ok", "copilot": "ok", "vault": "ok", "stelle": "ok",
+        "paketstand": {"manifest": "ok", "bau": "auslieferung", "version": "gleich", "dateien": d}
+    });
+    let r = bewerte(&Lage::aus_json(&lage).expect("lage"));
+    assert_eq!(r.zeilen.len(), 21, "{:?}", r.zeilen);
+    assert_eq!(
+        r.zeilen[19],
+        "pruef.paketstand_datei_fremd: Die Datei usr/lib/werkbank/f19 steht nicht im Manifest."
+    );
+    assert_eq!(r.zeilen[20], "pruef.rot: 20 Befunde.");
+}
+
+#[test]
+fn nicht_pruefbare_einstellungen_haben_ihren_satz() {
+    let lage = serde_json::json!({
+        "plattform": "linux", "konten": 1, "dienste": [], "apparmor": "ok",
+        "einstellungen": {"zustand": "nicht_pruefbar"},
+        "nutzerordner": "ok", "schluessel": "ok", "copilot": "ok", "vault": "ok", "stelle": "ok",
+        "paketstand": {"manifest": "ok", "bau": "auslieferung", "version": "gleich", "dateien": []}
+    });
+    let r = bewerte(&Lage::aus_json(&lage).expect("lage"));
+    assert!(
+        r.zeilen.iter().any(|z| z
+            == "pruef.einstellungen_nicht_pruefbar: Die Einstellungsdatei war nicht pruefbar."),
+        "{:?}",
+        r.zeilen
+    );
+}
+
+#[test]
+fn der_code_ungueltiger_einstellungen_hat_die_form_einst_kleinbuchstaben() {
+    let lage = |code: &str| {
+        Lage::aus_json(&serde_json::json!({
+            "plattform": "linux", "konten": 1, "dienste": [], "apparmor": "ok",
+            "einstellungen": {"zustand": "ungueltig", "code": code},
+            "nutzerordner": "ok", "schluessel": "ok", "copilot": "ok", "vault": "ok", "stelle": "ok",
+            "paketstand": {"manifest": "ok", "bau": "auslieferung", "version": "gleich", "dateien": []}
+        }))
+        .is_ok()
+    };
+    assert!(lage("einst.json_ungueltig"));
+    assert!(lage(&format!("einst.{}", "a".repeat(64))));
+    for falsch in [
+        "einst.".to_owned(),
+        "einst.Gross".to_owned(),
+        "einst.a-b".to_owned(),
+        format!("einst.{}", "a".repeat(65)),
+        "json_ungueltig".to_owned(),
+    ] {
+        assert!(!lage(&falsch), "{falsch:?}");
+    }
+}
+
+#[test]
+fn das_echte_system_gibt_code_und_beide_ausgaben_eines_beendeten_programms() {
+    let aus = Echt
+        .befehl(
+            "sh",
+            &["-c", "printf aus; printf fehler >&2; exit 3"],
+            Duration::from_secs(10),
+        )
+        .expect("the program ended");
+    assert_eq!(
+        aus,
+        Ausgabe {
+            rc: Some(3),
+            stdout: "aus".to_owned(),
+            stderr: "fehler".to_owned(),
+        }
+    );
+}
+
+#[test]
+fn das_echte_system_beendet_ein_programm_nach_der_frist() {
+    let start = std::time::Instant::now();
+    assert_eq!(
+        Echt.befehl("sleep", &["5"], Duration::from_millis(200)),
+        None
+    );
+    assert!(
+        start.elapsed() < Duration::from_secs(3),
+        "the limit ends the program"
+    );
+    assert_eq!(
+        Echt.befehl("programm-das-es-nicht-gibt", &[], Duration::from_secs(1)),
+        None
+    );
+}
+
+#[test]
+fn die_abweichungen_haben_die_namen_der_faelle() {
+    assert_eq!(Abweichung::Fehlt.name(), "fehlt");
+    assert_eq!(Abweichung::Abweichend.name(), "abweichend");
+    assert_eq!(Abweichung::Fremd.name(), "fremd");
+}
+
+#[test]
 fn eine_lage_mit_unbekanntem_zustand_wird_abgelehnt() {
     let gut = serde_json::json!({
         "plattform": "linux", "konten": 1, "dienste": [], "apparmor": "ok", "einstellungen": {"zustand": "ok"},
@@ -995,9 +1295,10 @@ fn attrappe_ohne_root(system: Vec<Antwort>) -> Attrappe {
         ("dpkg-query", "werkbank", Some((0, "1.2.3".to_owned()))),
         (
             "systemctl",
-            "werkbank",
+            ".service",
             Some((0, "LoadState=loaded\nActiveState=active\n".to_owned())),
         ),
+        rollenprogramm_gut(),
     ];
     antworten.extend(system);
     Attrappe {
@@ -1097,7 +1398,7 @@ fn ohne_root_bleibt_eine_nicht_lesbare_pruefung_rot_mit_dem_hinweis_auf_sudo() {
             ("id", "-u", Some((0, format!("{}\n", eigene_uid())))),
             ("id", "-g", Some((0, "1000\n".to_owned()))),
             ("dpkg-query", "werkbank", Some((0, "1.2.3".to_owned()))),
-            ("systemctl", "werkbank", None),
+            ("systemctl", ".service", None),
         ],
         aufrufe: RefCell::new(Vec::new()),
     };
@@ -1883,4 +2184,369 @@ fn die_lage_nimmt_abgelehnte_programmordner_nur_in_der_vertragsform() {
     ] {
         assert!(mit(schlecht).is_err(), "{name}");
     }
+}
+
+#[test]
+fn eine_datei_gleicher_groesse_mit_anderem_inhalt_weicht_ab() {
+    let w = eigener_ordner("gleiche-groesse");
+    baum(&w, "1.2.3", false);
+    let pfad = "usr/bin/werkbank-pruefen";
+    let mut inhalt = format!("inhalt von {pfad}").into_bytes();
+    inhalt[0] = b'X';
+    schreiben(&w, pfad, &inhalt, 0o755);
+    let sys = Attrappe {
+        antworten: vec![("dpkg-query", "werkbank", Some((0, "1.2.3".to_owned())))],
+        aufrufe: RefCell::new(Vec::new()),
+    };
+    let p = lage_mit(&w, &sys, None).paketstand;
+    assert_eq!(p.dateien, vec![(pfad.to_owned(), Abweichung::Abweichend)]);
+    fs::remove_dir_all(&w).ok();
+}
+
+#[test]
+fn ein_verweis_auf_ein_gueltiges_manifest_oder_gueltige_einstellungen_zaehlt_nicht() {
+    let w = eigener_ordner("verweise");
+    baum(&w, "1.2.3", false);
+    nutzerdaten(&w, true);
+    let sys = attrappe_ok(eigene_uid());
+    let vorher = lage_mit(&w, &sys, Some("anna"));
+    assert_eq!(
+        (
+            vorher.paketstand.manifest.as_str(),
+            vorher.einstellungen.zustand.as_str()
+        ),
+        ("ok", "ok"),
+        "counter-check: the real files are valid"
+    );
+    for rel in [
+        "usr/share/werkbank/manifest.json",
+        "var/lib/werkbank/anna/einstellungen.json",
+    ] {
+        let echt = w.join(rel);
+        let ziel = w.join(format!("{rel}.echt"));
+        fs::rename(&echt, &ziel).expect("move");
+        symlink(&ziel, &echt).expect("link");
+    }
+    let lage = lage_mit(&w, &sys, Some("anna"));
+    assert_eq!(lage.paketstand.manifest, "ungueltig");
+    assert_eq!(lage.einstellungen.zustand, "fehlt");
+    fs::remove_dir_all(&w).ok();
+}
+
+/// The ids of the user count only from a successful `id` with digits; otherwise the probe runs as `nobody`.
+#[test]
+fn die_ids_des_nutzers_gelten_nur_aus_einem_erfolgreichen_id_mit_ziffern() {
+    let w = eigener_ordner("ids");
+    apparmor_baum(&w, false, true, EIGENE_A);
+    schreiben(&w, STARTER, b"starter", 0o755);
+    let reuid = |u: Option<(i32, String)>| {
+        let s = Attrappe {
+            antworten: vec![
+                ("id", "-u", u),
+                ("id", "-g", Some((0, "1000\n".to_owned()))),
+                ("setpriv", "/usr/bin/bwrap", Some((1, String::new()))),
+            ],
+            aufrufe: RefCell::new(Vec::new()),
+        };
+        let _ = lage_mit(&w, &s, Some("anna"));
+        let aufrufe = s.aufrufe.borrow();
+        let probe = aufrufe
+            .iter()
+            .find(|z| z.starts_with("setpriv ") && z.contains("/usr/bin/bwrap"))
+            .expect("the probe of the system bwrap ran")
+            .clone();
+        probe
+            .split_whitespace()
+            .skip_while(|t| *t != "--reuid")
+            .nth(1)
+            .expect("--reuid")
+            .to_owned()
+    };
+    assert_eq!(reuid(Some((0, "4321\n".to_owned()))), "4321");
+    assert_eq!(reuid(Some((1, "4321\n".to_owned()))), "65534");
+    assert_eq!(reuid(Some((0, "\n".to_owned()))), "65534");
+    assert_eq!(reuid(Some((0, "43a1\n".to_owned()))), "65534");
+    fs::remove_dir_all(&w).ok();
+}
+
+/// The names of the own profile: `profile <name> ... {` and `/path ... {`; a nested block (a hat) is no profile.
+#[test]
+fn die_profilnamen_kommen_aus_profile_und_pfadzeilen() {
+    let w = eigener_ordner("profilnamen");
+    let scheitert = ("setpriv", "/usr/bin/bwrap", Some((1, String::new())));
+    let probe_ok = (
+        "setpriv",
+        "/usr/lib/werkbank/bwrap",
+        Some((0, String::new())),
+    );
+    for (text, geladen) in [
+        (
+            "/usr/lib/werkbank/bwrap {\n  userns,\n}\n",
+            "/usr/lib/werkbank/bwrap (enforce)\n",
+        ),
+        (
+            "profile werkbank-bwrap /usr/lib/werkbank/bwrap {\n  userns,\n  ^kind {\n  }\n}\n",
+            "werkbank-bwrap (enforce)\n",
+        ),
+    ] {
+        apparmor_baum(&w, true, true, geladen);
+        schreiben(&w, PROFIL_B, text.as_bytes(), 0o644);
+        schreiben(&w, "usr/lib/werkbank/bwrap", b"bwrap", 0o755);
+        assert_eq!(
+            apparmor(&w, vec![scheitert.clone(), probe_ok.clone()]),
+            "ok",
+            "{text}"
+        );
+    }
+    fs::remove_dir_all(&w).ok();
+}
+
+/// Accounts: lines of `etc/passwd` with seven fields, a uid from 1000 to 59999 and a shell that is not `nologin` or `false`.
+#[test]
+fn die_konten_sind_die_anmeldbaren_nutzer_aus_passwd() {
+    let w = eigener_ordner("konten");
+    let sys = attrappe_ok(eigene_uid());
+    assert_eq!(
+        lage_mit(&w, &sys, None).konten,
+        1,
+        "no passwd counts as one"
+    );
+    schreiben(
+        &w,
+        "etc/passwd",
+        concat!(
+            "root:x:0:0:root:/root:/bin/bash\n",
+            "anna:x:1000:1000::/srv/beispiel/anna:/bin/bash\n",
+            "bert:x:59999:1000::/srv/beispiel/bert:/bin/sh\n",
+            "nobody:x:65534:65534::/nonexistent:/usr/sbin/nologin\n",
+            "dienst:x:999:999::/var/lib/dienst:/bin/bash\n",
+            "hoch:x:60000:1000::/srv/beispiel/hoch:/bin/bash\n",
+            "gesperrt:x:1001:1000::/srv/beispiel/gesperrt:/usr/sbin/nologin\n",
+            "falsch:x:1002:1000::/srv/beispiel/falsch:/bin/false\n",
+            "kurz:x:1003:1000::/srv/beispiel/kurz\n",
+            "zahl:x:abc:1000::/srv/beispiel/zahl:/bin/bash\n",
+        )
+        .as_bytes(),
+        0o644,
+    );
+    assert_eq!(lage_mit(&w, &sys, None).konten, 2);
+    schreiben(
+        &w,
+        "etc/passwd",
+        b"root:x:0:0:root:/root:/bin/bash\n",
+        0o644,
+    );
+    assert_eq!(lage_mit(&w, &sys, None).konten, 1, "at least one");
+    fs::remove_dir_all(&w).ok();
+}
+
+#[test]
+fn ein_anhang_ohne_stern_vorn_beginnt_am_anfang_des_pfads() {
+    assert!(!anhang_trifft("/usr/bin/bw*", "/x/usr/bin/bwrap"));
+    assert!(anhang_trifft("/usr/*/bwrap", "/usr/bin/bwrap"));
+    assert!(anhang_trifft("/usr/*/*rap", "/usr/bin/bwrap"));
+}
+
+/// Addendum "Rolle aus der Gruppe": the rules of the role group, each with its counter-check.
+#[test]
+fn die_rollengruppe_hat_kein_mitglied_kein_passwort_und_ist_keine_hauptgruppe() {
+    let g = "root:x:0:\nwb-bruecke:x:991:\n";
+    let p = "root:x:0:0:root:/root:/bin/bash\nanna:x:1000:1000::/srv/beispiel/anna:/bin/bash\n";
+    assert_eq!(rollengruppe_zustand(g, p, None), ("ok", Some(991)));
+    for pw in ["!", "*", ""] {
+        let g = g.replace("wb-bruecke:x:", &format!("wb-bruecke:{pw}:"));
+        assert_eq!(rollengruppe_zustand(&g, p, None).0, "ok", "{pw}");
+    }
+    assert_eq!(
+        rollengruppe_zustand("root:x:0:\n", p, None),
+        ("fehlt", None)
+    );
+    assert_eq!(
+        rollengruppe_zustand("wb-bruecke:x\n", p, None),
+        ("fehlt", None),
+        "a line of another form is no entry"
+    );
+    for (group, passwd, grund) in [
+        (format!("{g}wb-bruecke:x:992:\n"), p.to_owned(), "twice"),
+        (g.replace(":991:", ":0:"), p.to_owned(), "gid 0"),
+        (g.replace(":991:", ":9x1:"), p.to_owned(), "gid no number"),
+        (g.replace(":991:", "::"), p.to_owned(), "gid empty"),
+        (g.replace(":991:", ":991:anna"), p.to_owned(), "member"),
+        (
+            g.replace("wb-bruecke:x:", "wb-bruecke:$6$a$b:"),
+            p.to_owned(),
+            "password",
+        ),
+        (
+            g.to_owned(),
+            p.replace("1000:1000:", "1000:991:"),
+            "primary group of the person",
+        ),
+        (
+            g.to_owned(),
+            format!("{p}dienst:x:1002:991::/srv/beispiel/d:/usr/sbin/nologin\n"),
+            "primary group of any account",
+        ),
+    ] {
+        assert_eq!(
+            rollengruppe_zustand(&group, &passwd, None).0,
+            "mitglied",
+            "{grund}"
+        );
+    }
+    // /etc/gshadow: locked or empty password and no one named is fine; a password, an administrator or a member is not
+    for s in [
+        "wb-bruecke:!::\n",
+        "wb-bruecke:!*::\n",
+        "wb-bruecke:*::\n",
+        "wb-bruecke:::\n",
+        "anders:$6$x::anna\n",
+    ] {
+        assert_eq!(rollengruppe_zustand(g, p, Some(s)).0, "ok", "{s}");
+    }
+    for s in [
+        "wb-bruecke:$6$a$b::\n",
+        "wb-bruecke:!:anna:\n",
+        "wb-bruecke:!::anna\n",
+    ] {
+        assert_eq!(rollengruppe_zustand(g, p, Some(s)).0, "mitglied", "{s}");
+    }
+}
+
+/// Addendum "Rolle aus der Gruppe": the role program is an ordinary file of root with the group of the role group and
+/// exactly 2755; every other look is `modus`, nothing is `fehlt`, a failed look `nicht_pruefbar`.
+#[test]
+fn das_rollenprogramm_ist_genau_root_wb_bruecke_2755() {
+    let k = |uid, gid, modus, datei| {
+        Ok(Some(Kennwerte {
+            uid,
+            gid,
+            modus,
+            datei,
+        }))
+    };
+    assert_eq!(
+        rollenprogramm_zustand(&k(0, 991, 0o2755, true), Some(991)),
+        "ok"
+    );
+    for (blick, gid, grund) in [
+        (k(0, 991, 0o755, true), Some(991), "without setgid"),
+        (k(0, 991, 0o6755, true), Some(991), "with setuid"),
+        (k(0, 991, 0o2775, true), Some(991), "writable for the group"),
+        (
+            k(0, 991, 0o2750, true),
+            Some(991),
+            "not executable for others",
+        ),
+        (k(1000, 991, 0o2755, true), Some(991), "not root"),
+        (k(0, 0, 0o2755, true), Some(991), "group root"),
+        (k(0, 991, 0o2755, false), Some(991), "a link or no file"),
+        (k(0, 991, 0o2755, true), None, "the group is missing"),
+    ] {
+        assert_eq!(rollenprogramm_zustand(&blick, gid), "modus", "{grund}");
+    }
+    assert_eq!(rollenprogramm_zustand(&Ok(None), Some(991)), "fehlt");
+    assert_eq!(
+        rollenprogramm_zustand(&Err(std::io::Error::other("x")), Some(991)),
+        "nicht_pruefbar"
+    );
+}
+
+/// The collection reads the role group from the tree and the program through the look of the system: the healthy tree is
+/// green; a member, a missing group, a real program file of the test user (no setgid) and an unreadable `/etc/gshadow`
+/// give their lines after the lines of the units.
+#[test]
+fn rollengruppe_und_rollenprogramm_im_baum() {
+    let w = eigener_ordner("rolle");
+    baum(&w, "1.2.3", false);
+    nutzerdaten(&w, true);
+    schreiben(&w, "usr/bin/bwrap", b"bwrap", 0o755);
+    let sys = attrappe_ok(eigene_uid());
+    let lage = lage_mit(&w, &sys, Some("anna"));
+    assert_eq!(
+        (lage.rollengruppe.as_str(), lage.rollenprogramm.as_str()),
+        ("ok", "ok")
+    );
+    // a member: the group line and still the program checked against its gid
+    schreiben(
+        &w,
+        "etc/group",
+        b"root:x:0:\nwb-bruecke:x:991:anna\n",
+        0o644,
+    );
+    let lage = lage_mit(&w, &sys, Some("anna"));
+    assert_eq!(
+        (lage.rollengruppe.as_str(), lage.rollenprogramm.as_str()),
+        ("mitglied", "ok")
+    );
+    let r = bewerte(&lage);
+    assert_eq!(r.rc, 1);
+    assert!(
+        r.zeilen[0].starts_with("pruef.rollengruppe_mitglied: "),
+        "{:?}",
+        r.zeilen
+    );
+    // the group is missing: the program cannot have its group either
+    schreiben(&w, "etc/group", b"root:x:0:\n", 0o644);
+    let lage = lage_mit(&w, &sys, Some("anna"));
+    assert_eq!(
+        (lage.rollengruppe.as_str(), lage.rollenprogramm.as_str()),
+        ("fehlt", "modus")
+    );
+    // the real file of the made-up tree: owned by the test user, 0644
+    schreiben(&w, "etc/group", b"root:x:0:\nwb-bruecke:x:991:\n", 0o644);
+    let echt = Attrappe {
+        antworten: attrappe_ok(eigene_uid())
+            .antworten
+            .into_iter()
+            .filter(|(p, _, _)| *p != "kennwerte")
+            .collect(),
+        aufrufe: RefCell::new(Vec::new()),
+    };
+    assert_eq!(lage_mit(&w, &echt, Some("anna")).rollenprogramm, "modus");
+    fs::remove_file(w.join("usr/lib/werkbank/werkbank-modellweg")).expect("rm");
+    assert_eq!(lage_mit(&w, &echt, Some("anna")).rollenprogramm, "fehlt");
+    // a failed look
+    let kaputt = Attrappe {
+        antworten: vec![("kennwerte", "usr/lib/werkbank/werkbank-modellweg", None)],
+        aufrufe: RefCell::new(Vec::new()),
+    };
+    assert_eq!(
+        lage_mit(&w, &kaputt, Some("anna")).rollenprogramm,
+        "nicht_pruefbar"
+    );
+    // /etc/gshadow with a password; then not readable (only when this process cannot read a file of mode 0)
+    schreiben(&w, "etc/gshadow", b"wb-bruecke:$6$a$b::\n", 0o640);
+    assert_eq!(lage_mit(&w, &sys, Some("anna")).rollengruppe, "mitglied");
+    schreiben(&w, "etc/gshadow", b"wb-bruecke:!::\n", 0o000);
+    if fs::read(w.join("etc/gshadow")).is_err() {
+        let lage = lage_mit(&w, &sys, Some("anna"));
+        assert_eq!(
+            (lage.rollengruppe.as_str(), lage.rollenprogramm.as_str()),
+            ("nicht_pruefbar", "ok")
+        );
+    }
+    fs::set_permissions(w.join("etc/gshadow"), fs::Permissions::from_mode(0o600)).expect("mode");
+    assert_eq!(lage_mit(&w, &sys, Some("anna")).rollengruppe, "ok");
+    // no file of the groups at all
+    fs::remove_file(w.join("etc/group")).expect("rm");
+    assert_eq!(
+        lage_mit(&w, &sys, Some("anna")).rollengruppe,
+        "nicht_pruefbar"
+    );
+    fs::remove_dir_all(&w).ok();
+}
+
+/// The real look of the system: the mode bits without the kind of the file, `Ok(None)` for nothing there and an error for a
+/// look that fails (a path below an ordinary file).
+#[test]
+fn der_echte_blick_auf_eine_datei() {
+    let w = eigener_ordner("blick");
+    schreiben(&w, "f", b"x", 0o640);
+    let k = Echt.kennwerte(&w.join("f")).expect("look").expect("there");
+    assert_eq!((k.modus, k.datei, k.uid), (0o640, true, eigene_uid()));
+    assert!(!Echt.kennwerte(&w).expect("look").expect("there").datei);
+    assert!(Echt.kennwerte(&w.join("fehlt")).expect("look").is_none());
+    assert!(Echt.kennwerte(&w.join("f/unter")).is_err(), "below a file");
+    fs::remove_dir_all(&w).ok();
 }

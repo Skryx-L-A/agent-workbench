@@ -7,6 +7,7 @@
 //! The test needs `python3` and `lsof` (the client counts the network sockets of the service with it); without them it is red,
 //! not skipped. The cases run in several runners at once, each in its own base folder.
 #![cfg(unix)] // the crate is Unix only (see `src/lib.rs`)
+#![cfg(feature = "pruefbau")] // the fixed child programs `--kind` exist in the test build only; `naht.rs` runs in both builds
 
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};

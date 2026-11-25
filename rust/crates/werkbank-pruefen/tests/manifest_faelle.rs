@@ -95,3 +95,113 @@ fn jeder_sichtbare_manifestfall() {
         "only {gleich_geprueft} cases were compared exactly"
     );
 }
+
+/// A valid Ubuntu manifest with the required files, the given features and one extra file at `extra`.
+fn manifest_mit(merkmale: &[&str], extra: &str) -> Vec<u8> {
+    manifest_mit_dateien(merkmale, &[extra])
+}
+
+/// A valid Ubuntu manifest with the required files, the given features and the extra files.
+fn manifest_mit_dateien(merkmale: &[&str], extra: &[&str]) -> Vec<u8> {
+    use werkbank_pruefen::manifest::{PFLICHT, PROFIL_A, STARTER};
+    let leer = "0".repeat(64);
+    let mut dateien: Vec<String> = PFLICHT
+        .iter()
+        .copied()
+        .chain([(PROFIL_A, "daten"), (STARTER, "programm")])
+        .chain(extra.iter().map(|p| (*p, "daten")))
+        .map(|(pfad, art)| {
+            format!(r#"{{"pfad":"{pfad}","groesse":0,"sha256":"{leer}","art":"{art}"}}"#)
+        })
+        .collect();
+    dateien.sort();
+    let merkmale: Vec<String> = merkmale.iter().map(|k| format!("\"{k}\"")).collect();
+    format!(
+        r#"{{"fassung":1,"paket":"werkbank","version":"1.2.3","plattform":"ubuntu-26.04-x64","bau":"test","merkmale":[{}],"dateien":[{}],"bibliotheken":3}}"#,
+        merkmale.join(","),
+        dateien.join(",")
+    )
+    .into_bytes()
+}
+
+#[test]
+fn ein_merkmal_hat_die_form_einer_kennung() {
+    assert_eq!(
+        pruefen(&manifest_mit(&[], "usr/share/werkbank/x")).err(),
+        None
+    );
+    let lang = "a".repeat(64);
+    assert_eq!(
+        pruefen(&manifest_mit(&[&lang], "usr/share/werkbank/x")).err(),
+        None
+    );
+    let zu_lang = "a".repeat(65);
+    assert_eq!(
+        pruefen(&manifest_mit(&[&zu_lang], "usr/share/werkbank/x")).err(),
+        Some("kennung_form")
+    );
+    assert_eq!(
+        pruefen(&manifest_mit(&[""], "usr/share/werkbank/x")).err(),
+        Some("kennung_form")
+    );
+}
+
+#[test]
+fn ein_manifest_hat_hoechstens_16_merkmale() {
+    let namen: Vec<String> = (0..17).map(|i| format!("merkmal{i:02}")).collect();
+    let mut merkmale: Vec<&str> = namen.iter().map(String::as_str).collect();
+    merkmale.pop();
+    assert_eq!(
+        pruefen(&manifest_mit(&merkmale, "usr/share/werkbank/x")).err(),
+        None
+    );
+    merkmale.push(&namen[16]);
+    assert_eq!(
+        pruefen(&manifest_mit(&merkmale, "usr/share/werkbank/x")).err(),
+        Some("anzahl")
+    );
+}
+
+#[test]
+fn nur_com_und_lpt_mit_genau_einer_ziffer_von_1_bis_9_sind_reserviert() {
+    for name in ["com1", "lpt9", "com1.txt"] {
+        assert_eq!(
+            pruefen(&manifest_mit(&[], &format!("usr/share/werkbank/{name}"))).err(),
+            Some("pfad_form"),
+            "{name}"
+        );
+    }
+    for name in ["com12", "comx", "lpt0", "com"] {
+        assert_eq!(
+            pruefen(&manifest_mit(&[], &format!("usr/share/werkbank/{name}"))).err(),
+            None,
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn ein_manifest_von_genau_der_grenze_ist_gueltig_ein_byte_mehr_zu_gross() {
+    use werkbank_pruefen::manifest::GRENZE;
+    let mut roh = manifest_mit(&[], "usr/share/werkbank/x");
+    roh.resize(GRENZE, b' ');
+    assert_eq!(pruefen(&roh).err(), None);
+    roh.push(b' ');
+    assert_eq!(pruefen(&roh).err(), Some("zu_gross"));
+}
+
+#[test]
+fn ein_manifest_hat_hoechstens_2000_dateien() {
+    use werkbank_pruefen::manifest::PFLICHT;
+    // The required files, the profile and the starter come first; the rest are extra files.
+    let pfade: Vec<String> = (0..2000 - PFLICHT.len() - 2)
+        .map(|i| format!("usr/share/werkbank/f{i:04}"))
+        .collect();
+    let mut extra: Vec<&str> = pfade.iter().map(String::as_str).collect();
+    assert_eq!(pruefen(&manifest_mit_dateien(&[], &extra)).err(), None);
+    extra.push("usr/share/werkbank/eine-mehr");
+    assert_eq!(
+        pruefen(&manifest_mit_dateien(&[], &extra)).err(),
+        Some("anzahl")
+    );
+}

@@ -26,7 +26,8 @@ pub trait Befrager {
     fn frage(&self, zeile: &str) -> Result<String, Unerreichbar>;
 }
 
-/// The Unix socket of the session. Every question opens its own connection.
+/// The socket of the session: a Unix socket, under Windows the named pipe of that name. Every question opens its own
+/// connection.
 #[derive(Debug, Clone)]
 pub struct UnixSocket {
     pfad: PathBuf,
@@ -86,8 +87,10 @@ impl Befrager for UnixSocket {
         std::thread::spawn(move || {
             #[cfg(unix)]
             let ergebnis = tausch::austausch(&pfad, &zeile, frist, max, &server);
-            // Without Unix sockets (Windows) the search is not reachable until the named pipe of variant B comes.
-            #[cfg(not(unix))]
+            // Windows: the named pipe through `peerkanal` (addendum for Windows, section 6).
+            #[cfg(windows)]
+            let ergebnis = crate::pipe::tausch::austausch(&pfad, &zeile, frist, max);
+            #[cfg(not(any(unix, windows)))]
             let ergebnis: Result<String, Unerreichbar> = {
                 let _ = (&pfad, &zeile, frist, max);
                 Err(Unerreichbar)

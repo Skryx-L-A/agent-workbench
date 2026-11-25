@@ -1,6 +1,7 @@
 //! `rangkern sitzung <vault> --socket <path> --route <key> --sitzung <key> --einstellungen <file> --protokoll <folder>`:
 //! the knowledge search of one session behind a Unix socket, with the data gate in front of the output (contract 4 of the
-//! walking skeleton, `rust/spec/VERTRAEGE.md`).
+//! walking skeleton, `rust/spec/VERTRAEGE.md`). Under Windows the socket is a named pipe through the crate
+//! `peerkanal` (addendum `rust/spec/VERTRAEGE.md`); the answers are the same (module `kern`).
 //!
 //! The route comes from the start, never from a request. The process runs outside the confinement of the agent; only its
 //! socket is bound into it. Before the readiness line it checks its start in a fixed order and ends with exit 64 (usage),
@@ -9,13 +10,21 @@
 //! SIGINT, which remove the socket and end it with exit 0.
 
 pub mod anfrage;
+pub mod dienst;
 pub mod einst;
+pub(crate) mod kern;
 pub mod konfig;
+#[cfg(unix)]
 pub mod lauf;
+#[cfg(unix)]
 pub mod loeschen;
+#[cfg(unix)]
 pub mod mac;
+pub mod plattform;
 pub mod probelauf;
 pub mod tor;
+#[cfg(windows)]
+pub mod windows;
 
 use std::io::Write;
 
@@ -37,10 +46,14 @@ pub fn run<O: Write, E: Write>(args: &[String], out: &mut O, err: &mut E) -> u8 
     let Some(konfig) = Konfig::lesen(args) else {
         return EXIT_USAGE_SITZUNG;
     };
-    lauf::starten(konfig, out, err)
+    #[cfg(unix)]
+    let code = lauf::starten(konfig, out, err);
+    #[cfg(windows)]
+    let code = windows::starten(konfig, out, err);
+    code
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use std::fs;

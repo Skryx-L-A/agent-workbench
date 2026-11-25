@@ -444,8 +444,96 @@ def bauen():
             {"art": "antwort", "code": "halter.intern", "fassung": 1, "grund": "a\nb", "id": 7, "ok": False}, False)
 
 
+# ---------- halter.json unter Linux (Abschnitt 2.3a, Nachtrag Rolle aus der Gruppe) ----------
+
+K_UID = 1000
+K_PASSWD = "root:x:0:0:root:/root:/bin/sh\nperson:x:1000:1000::/srv/beispiel/person:/bin/sh\nanders:x:1001:1001::/srv/beispiel/anders:/bin/sh\n"
+K_GROUP = ("root:x:0:\nperson:x:1000:\nanders:x:1001:\nwb-hub:x:990:\nwb-bruecke:x:991:\nwb-oberflaeche:x:992:\n")
+K_ZIEL = {"host": "api.githubcopilot.example", "port": 443, "tls": True, "praefix": "", "kopf": "authorization",
+          "vorsatz": "Bearer ", "schluessel": "anmeldung.copilot",
+          "pfade": ["GET /copilot_internal/*", "GET /responses", "POST /chat/completions", "GET /models"]}
+K_SERVER = {"host": "mcp.example", "port": 443, "tls": True, "pfad": "/mcp", "kopf": "authorization", "vorsatz": "Bearer ",
+            "schluessel": "mcp.tickets", "freigabe": True, "werkzeuge": {"update": "schreibend", "get": "lesend"},
+            "lokal": False}
+
+
+def k_wert(**aenderung):
+    k = {"fassung": 1, "konten": {str(K_UID): {"person": None}}, "rollen": {"bruecke": "wb-bruecke"},
+         "ziele": {"copilot": copy.deepcopy(K_ZIEL)}, "server": {}, "kids": {}}
+    k.update(copy.deepcopy(aenderung))
+    return k
+
+
+def konfig(name, beschreibung, wert=None, *, text=None, group=K_GROUP, passwd=K_PASSWD, uid=K_UID, gueltig=True):
+    f = {"beschreibung": beschreibung, "form": "konfig",
+         "text": text if text is not None else json.dumps(wert, ensure_ascii=False, indent=1),
+         "umgebung": {"uid": uid, "group": group, "passwd": passwd}}
+    erw = {"gueltig": True} if gueltig else {"gueltig": False, "code": "halter.konfig"}
+    assert name not in FAELLE, name
+    FAELLE[name] = (f, erw)
+
+
+def konfig_faelle():
+    konfig("k-gut-schritt-i", "Schritt I: ein Konto, Rolle bruecke an der Gruppe wb-bruecke, ein Copilot-Ziel", k_wert())
+    konfig("k-gut-rollen-leer", "keine Rolle: niemand bekommt eine Rolle, der Start gelingt", k_wert(rollen={}))
+    konfig("k-gut-drei-rollen", "drei Rollen an drei Gruppen",
+           k_wert(rollen={"hub": "wb-hub", "bruecke": "wb-bruecke", "oberflaeche": "wb-oberflaeche"}))
+    konfig("k-gut-gruppe-passwort-gesperrt", "Passwortfeld der Gruppe ist gesperrt (!)", k_wert(),
+           group=K_GROUP.replace("wb-bruecke:x:991:", "wb-bruecke:!:991:"))
+    konfig("k-gut-hauptgruppe-fremdes-konto", "Hauptgruppe eines Kontos ausserhalb von konten: kein Konto aus konten",
+           k_wert(), passwd=K_PASSWD + "dienst:x:1002:991::/srv/beispiel/dienst:/usr/sbin/nologin\n")
+    konfig("k-gut-mit-server-und-kid", "ein entfernter MCP-Server und ein Schluessel der Stelle",
+           k_wert(server={"tickets": K_SERVER}, kids={"stelle-mcp-1": base64.b64encode(w.oeffentlich(STELLE)).decode()},
+                  konten={str(K_UID): {"person": PERSON_A}}))
+    konfig("k-gut-nicht-kanonisch", "Leerraum und Reihenfolge beliebig, die Datei muss nicht kanonisch sein",
+           text='{ "kids":{}, "server":{}, "fassung":1, "ziele":{}, "rollen":{"bruecke":"wb-bruecke"},\n "konten":{"1000":{"person":null}} }\n')
+
+    konfig("k-rollen-als-pfade", "alte Form: Rolle an einer Liste von Rollenprogrammen",
+           k_wert(rollen={"bruecke": ["/usr/lib/werkbank/werkbank-modellweg"]}), gueltig=False)
+    konfig("k-rolle-unbekannt", "Rolle ausserhalb von hub, bruecke, oberflaeche", k_wert(rollen={"agent": "wb-bruecke"}),
+           gueltig=False)
+    konfig("k-gruppe-form", "Gruppenname mit Grossbuchstaben", k_wert(rollen={"bruecke": "WB-bruecke"}), gueltig=False)
+    konfig("k-gruppe-zwei-rollen", "zwei Rollen an derselben Gruppe",
+           k_wert(rollen={"hub": "wb-bruecke", "bruecke": "wb-bruecke"}), gueltig=False)
+    konfig("k-gruppe-fehlt", "Gruppe steht nicht in /etc/group", k_wert(),
+           group=K_GROUP.replace("wb-bruecke:x:991:\n", ""), gueltig=False)
+    konfig("k-gruppe-zweimal", "Gruppe steht zweimal in /etc/group", k_wert(),
+           group=K_GROUP + "wb-bruecke:x:993:\n", gueltig=False)
+    konfig("k-gruppe-gid-null", "Rollengruppe mit gid 0", k_wert(), group=K_GROUP.replace("wb-bruecke:x:991:", "wb-bruecke:x:0:"),
+           gueltig=False)
+    konfig("k-gruppe-gid-keine-zahl", "gid der Rollengruppe ist keine Zahl", k_wert(),
+           group=K_GROUP.replace("wb-bruecke:x:991:", "wb-bruecke:x:99a:"), gueltig=False)
+    konfig("k-gruppe-gleiche-gid", "zwei Rollengruppen mit derselben gid",
+           k_wert(rollen={"hub": "wb-hub", "bruecke": "wb-bruecke"}),
+           group=K_GROUP.replace("wb-hub:x:990:", "wb-hub:x:991:"), gueltig=False)
+    konfig("k-gruppe-mitglied", "die Person ist Mitglied der Rollengruppe", k_wert(),
+           group=K_GROUP.replace("wb-bruecke:x:991:", "wb-bruecke:x:991:person"), gueltig=False)
+    konfig("k-gruppe-mitglied-fremd", "ein anderes Konto ist Mitglied der Rollengruppe", k_wert(),
+           group=K_GROUP.replace("wb-bruecke:x:991:", "wb-bruecke:x:991:anders"), gueltig=False)
+    konfig("k-gruppe-passwort", "die Rollengruppe hat ein Passwort in /etc/group", k_wert(),
+           group=K_GROUP.replace("wb-bruecke:x:991:", "wb-bruecke:$6$beispiel$abc:991:"), gueltig=False)
+    konfig("k-hauptgruppe-konto", "die Rollengruppe ist die Hauptgruppe eines Kontos aus konten", k_wert(),
+           passwd=K_PASSWD.replace("person:x:1000:1000:", "person:x:1000:991:"), gueltig=False)
+    konfig("k-eigene-uid-fehlt", "die eigene uid des Halters steht nicht in konten",
+           k_wert(konten={"1001": {"person": None}}), gueltig=False)
+    konfig("k-konto-fuehrende-null", "uid mit fuehrender Null", k_wert(konten={"01000": {"person": None}}), gueltig=False)
+    konfig("k-lokaler-server", "lokaler MCP-Server mit Token (Linux: verboten)",
+           k_wert(server={"tickets": dict(K_SERVER, host="127.0.0.1", tls=False, lokal=True)}), gueltig=False)
+    konfig("k-tls-aus-ohne-loopback", "tls false an einem entfernten Ziel", k_wert(ziele={"copilot": dict(K_ZIEL, tls=False)}),
+           gueltig=False)
+    konfig("k-regel-punktsegment", "Pfadregel mit Segment ..",
+           k_wert(ziele={"copilot": dict(K_ZIEL, pfade=["GET /copilot_internal/../user"])}), gueltig=False)
+    konfig("k-kid-kurz", "Schluessel der Stelle nicht 32 Byte", k_wert(kids={"stelle-mcp-1": "AAAA"}), gueltig=False)
+    konfig("k-zusatzfeld", "Feld ausserhalb der geschlossenen Form", k_wert(zusatz=1), gueltig=False)
+    konfig("k-fassung-2", "Fassung 2", k_wert(fassung=2), gueltig=False)
+    konfig("k-doppelter-schluessel", "doppelter Schluessel rollen",
+           text='{"fassung":1,"konten":{"1000":{"person":null}},"rollen":{},"rollen":{"bruecke":"wb-bruecke"},'
+                '"ziele":{},"server":{},"kids":{}}', gueltig=False)
+
+
 def main():
     bauen()
+    konfig_faelle()
     for ordner in ("faelle", "erwartet"):
         ziel = HIER / ordner
         if ziel.exists():

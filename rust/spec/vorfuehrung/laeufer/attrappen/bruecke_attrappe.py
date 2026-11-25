@@ -57,6 +57,8 @@ FEHLER = {
     "s1-route-akzeptiert": "ein Start mit unbekannter Route wird angenommen",
     "s1-kind-trotz-ablehnung": "die Ablehnung kommt, aber das Startprogramm ist schon gelaufen",
     "s1-eingabefeld-spaet": "das Eingabefeld erscheint spaeter als die Grenze",
+    "modell-429": "der Modellweg lehnt jede Anfrage der Cloud-Sitzung mit 429 ab (wie mw.ausgelastet), die CLI zeigt einen Fehler ohne Merkmal",
+    "shell-eingabe-an-modell": "die CLI kennt keine Shell-Eingabe: ein Text mit ! geht als Frage an das Modell, die Antwort traegt kein FERTIG",
     "s2-datei-lesbar": "der Einschluss laesst die Notiz lesen",
     "s2-netz-offen": "der Einschluss laesst die fremde Adresse erreichen",
     "e2-notizen-sichtbar": "der Vault liegt im sichtbaren Dateibaum",
@@ -817,6 +819,8 @@ class Kern:
         """Fragt das Modell der Sitzung. Cloud-Art: Anthropic-Form, lokale Art: OpenAI-kompatibel (chat/completions).
         Gibt (Liste von Bloecken, wieder_aufrufen) mit Bloecken ("text", s) und ("tool_use", id, name, eingabe)."""
         lokal = self._art(s) == "lokal"
+        if "modell-429" in self.fehler and not lokal:  # nur die Attrappe: Ablehnung am Modellweg, keine Anfrage geht weiter
+            raise RuntimeError("HTTP 429")
         url = urlparse(self.k["modell_url_lokal"] if lokal else self.k["modell_url"])
         c = http.client.HTTPConnection(url.hostname, url.port, timeout=15)
         werkzeuge = [self.k["mcp_werkzeug"], "Bash"]
@@ -841,7 +845,27 @@ class Kern:
             [("tool_use", t["id"], t["function"]["name"], json.loads(t["function"]["arguments"])) for t in m.get("tool_calls", [])]
         return blocks, m, antwort["choices"][0]["finish_reason"] == "tool_calls"
 
+    def _shell_eingabe(self, s, text):
+        """Eingabe mit `!` am Anfang (wie die Shell-Eingabe der CLI): Der Agent fuehrt den Rest selbst in der Shell des Einschlusses aus und
+        fragt das Modell nicht. Ein angehaengtes `; echo "FERTIG T$((<n>))"` (Form des Laeufers) schreibt das Merkmal."""
+        befehl = text[1:]
+        m = re.search(r'; echo "FERTIG T\$\(\((\d+)\)\)"$', befehl)
+        if m:
+            befehl = befehl[:m.start()]
+        rc, out = self._einschluss(s, befehl)
+        # eigene Zeile: endet die umgebrochene Eingabe genau am Rand, haengte die erste Ausgabezeile sonst an ihr
+        s.schreibe("\n" + out + ("" if out.endswith("\n") or not out else "\n"))
+        if m:
+            s.schreibe("FERTIG T%d\n" % int(m.group(1)))
+
     def _zug(self, s, text):
+        if text.startswith("!") and "shell-eingabe-an-modell" not in self.fehler:
+            try:
+                self._shell_eingabe(s, text)
+            except Exception as e:  # der Agent der Attrappe darf nie den Dienst beenden
+                s.schreibe("Fehler im Agenten: %s\n" % e)
+            self._feld_neu(s)
+            return
         try:
             lokal = self._art(s) == "lokal"
             nachrichten = [{"role": "user", "content": text}]  # je Zug ein frischer Kontext (siehe README)
@@ -868,7 +892,16 @@ class Kern:
                         {"type": "tool_result", "tool_use_id": i, "content": o, "is_error": f} for i, o, f in ergebnisse]}]
         except Exception as e:  # der Agent der Attrappe darf nie den Dienst beenden
             s.schreibe("Fehler im Agenten: %s\n" % e)
+        self._feld_neu(s)
+
+    def _feld_neu(self, s):
+        """Nach einem Zug: die Zeile des Harness. Nur mit `shell-eingabe-an-modell` oder `modell-429` (eine CLI, die ohne Merkmal antwortet) danach ein
+        neues, leeres Eingabefeld mit Promptzeichen, wie die echte CLI nach einer Antwort: daran misst der Laeufer die fruehe Erkennung. Sonst
+        bleibt das Bild wie bisher (die Zeilenrechnung des Felds nach mehreren gescrollten Zuegen bildet die Attrappe nicht nach)."""
         s.schreibe("\n" + self.k["harness"][s.start["harness"]]["sim_zeile"])
+        if "shell-eingabe-an-modell" in self.fehler or "modell-429" in self.fehler:
+            s.schreibe("\n\u276f ")
+            s.feld_setzen()
 
     def _werkzeug(self, s, name, eingabe):
         if name == self.k["mcp_werkzeug"]:

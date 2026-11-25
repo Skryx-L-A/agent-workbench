@@ -309,6 +309,20 @@ class CopilotAttrappe(unittest.TestCase):
         self.assertRegex(t.text[ab:], r"(?m)^c=0 RC=1\s*$")
         self.assertEqual(len(self.neue_anfragen()), 1)
 
+    def test_shell_eingabe_ohne_anfrage_an_das_ziel(self):
+        """Zug 2 des knappen Laufs: `!<buendel>; echo "FERTIG T$((n))"` laeuft in der Shell, ohne Anfrage an das Ziel (kein Modell)."""
+        t = self.starte()
+        t.warte(r"Confirm folder trust")
+        t.sende("\r")
+        t.warte(r"/ commands")
+        ab = len(t.text)
+        skript = 'z=$(echo 7); echo "a_b=$z RC=$?"; z=$(echo 0 | grep -c 1); echo "c=$z RC=$?"'
+        t.sende('!%s; echo "FERTIG T$((2))"\r' % skript)
+        t.warte(r"FERTIG T2(?!\d)", ab=ab)
+        self.assertRegex(t.text[ab:], r"(?m)^a_b=7 RC=0\s*$")
+        self.assertRegex(t.text[ab:], r"(?m)^c=0 RC=1\s*$")
+        self.assertEqual(len(self.neue_anfragen()), 0, "die Shell-Eingabe geht nicht an das Ziel")
+
     def test_eingabe_des_probelaufs_mit_skript_zwischen_gravis(self):
         t = self.starte()
         t.warte(r"Confirm folder trust")

@@ -464,6 +464,24 @@ mod tests {
         assert_eq!(meta.mode() & 0o7777, 0o600);
     }
 
+    /// A link in place of the service socket that points to another socket: the call fails and the other socket keeps its mode.
+    /// Under Linux this needs `O_NOFOLLOW` on the open; without it the open follows the link and the mode of the target changes,
+    /// and only the check afterwards fails (mutant `PATH | NOFOLLOW & CLOEXEC`, 25.11.2026).
+    #[test]
+    fn ein_link_auf_einen_anderen_socket_aendert_dessen_modus_nicht() {
+        let w = Wegwerf::neu("link-socket");
+        let o = w.ordner("o", 0o700);
+        let wurzel = ordner_oeffnen(&o, euid()).expect("open");
+        let ziel = w.unter("anderer.sock");
+        let _anderer = UnixListener::bind(&ziel).expect("bind");
+        fs::set_permissions(&ziel, fs::Permissions::from_mode(0o644)).expect("chmod");
+        let link = o.join("s.sock");
+        symlink(&ziel, &link).expect("link");
+        assert_eq!(socket_modus_setzen(&link, wurzel.as_fd()), Err(()));
+        let modus = fs::symlink_metadata(&ziel).expect("target").mode() & 0o7777;
+        assert_eq!(modus, 0o644, "the other socket keeps its mode");
+    }
+
     #[test]
     fn der_socket_wird_bei_exec_geschlossen() {
         use rustix::io::{FdFlags, fcntl_getfd};

@@ -6,6 +6,7 @@
 //! namespace, the blind setup). The same through the Python check client of the contract (`tests/werkzeug`, the runner `test_aussen.py`).
 //! The tests need `python3`, `lsof` and, under Linux, `unshare` and `setpriv`; without them they are red, not skipped.
 #![cfg(unix)] // the crate is Unix only (see `src/lib.rs`)
+#![cfg(feature = "pruefbau")] // the fixed child programs `--kind` exist in the test build only; `naht.rs` runs in both builds
 
 mod gemeinsam;
 

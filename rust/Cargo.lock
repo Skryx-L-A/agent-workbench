@@ -868,6 +868,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "halter"
+version = "0.1.0"
+dependencies = [
+ "formate",
+ "kernabbild",
+ "native-tls",
+ "rustix",
+ "serde",
+ "serde_json",
+ "signal-hook",
+]
+
+[[package]]
 name = "hermit-abi"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1410,6 +1423,7 @@ dependencies = [
  "kernabbild",
  "nix",
  "notiz-kern",
+ "peerkanal",
  "regex",
  "rusqlite",
  "rustix",
@@ -1791,6 +1805,7 @@ name = "such-mcp"
 version = "0.1.0"
 dependencies = [
  "nix",
+ "peerkanal",
  "serde_json",
 ]
 

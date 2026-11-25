@@ -1,4 +1,5 @@
-//! The command line: `such-mcp` or `such-mcp --socket <path>`. Every other call is a usage error (exit 64).
+//! The command line: `such-mcp` or `such-mcp --socket <path>` (under macOS and Windows only the second form; under Windows the
+//! path is a pipe name). Every other call is a usage error (exit 64).
 
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -22,12 +23,13 @@ pub fn socket_pfad(args: &[OsString]) -> Option<PathBuf> {
 }
 
 /// [`socket_pfad`] for a platform. Under macOS the option is required (there is no fixed path), and its path is absolute and at
-/// most 103 bytes long; every other call is a usage error. Linux is unchanged.
+/// most 103 bytes long; under Windows the option is required too, with a pipe name of the form of the addendum for Windows
+/// (section 6). Every other call is a usage error. Linux is unchanged.
 #[must_use]
 pub fn socket_pfad_fuer(plattform: Plattform, args: &[OsString]) -> Option<PathBuf> {
     match plattform {
         Plattform::Linux => socket_pfad(args),
-        Plattform::MacOs => match args {
+        Plattform::MacOs | Plattform::Windows => match args {
             [option, pfad] if option == "--socket" => {
                 Some(PathBuf::from(pfad)).filter(|pfad| pfad_ok(plattform, pfad))
             }

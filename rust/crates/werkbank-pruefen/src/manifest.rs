@@ -35,7 +35,7 @@ const DATEI: [&str; 4] = ["pfad", "groesse", "sha256", "art"];
 const RESERVIERT: [&str; 4] = ["con", "prn", "aux", "nul"];
 
 /// The files every Ubuntu manifest must list, with their kind.
-pub const PFLICHT: [(&str, &str); 31] = [
+pub const PFLICHT: [(&str, &str); 33] = [
     ("usr/bin/werkbank-probelauf", "programm"),
     ("usr/bin/werkbank-pruefen", "programm"),
     ("usr/bin/werkbank-ordnermarke", "programm"),
@@ -45,6 +45,7 @@ pub const PFLICHT: [(&str, &str); 31] = [
     ("usr/lib/werkbank/werkbank-kern", "dienst"),
     ("usr/lib/werkbank/werkbank-bruecke", "dienst"),
     ("usr/lib/werkbank/werkbank-modellweg", "dienst"),
+    ("usr/lib/werkbank/werkbank-halter", "dienst"),
     ("usr/lib/werkbank/rangkern", "programm"),
     ("usr/lib/werkbank/kette", "programm"),
     ("usr/lib/werkbank/such-mcp", "programm"),
@@ -99,6 +100,7 @@ pub const PFLICHT: [(&str, &str); 31] = [
     ("usr/share/werkbank/probelauf/konfig.json", "daten"),
     ("usr/lib/systemd/user/werkbank-kern.service", "daten"),
     ("usr/lib/systemd/user/werkbank-bruecke.service", "daten"),
+    ("usr/lib/systemd/user/wb-halter.service", "daten"),
     ("usr/share/werkbank/sbom.cdx.json", "daten"),
 ];
 

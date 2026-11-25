@@ -15,6 +15,8 @@ use rustix::io::Errno;
 
 use crate::fehler::Fehler;
 use crate::form::{CONFIG_GRENZE, Fund, Token, ohne_token, token_aus_config, token_form_ok};
+/// The store of the holder (step 6), opened and checked level by level; it lives in `lauf`, both ways use it.
+pub use crate::lauf::ziel_oeffnen;
 use crate::lauf::{
     Erfolg, SCHLUESSELDATEI, TempArt, Umgebung, echtes_heim_pruefen, einfacher_name, ordner_oeffnen,
 };
@@ -92,9 +94,9 @@ enum Zusage {
 
 /// A temp name that is deleted (relative to its folder) when the value goes away. After a rename or an unlink the
 /// name is already gone and the delete does nothing; after an exchange it removes the old key.
-struct Temp<'a> {
+pub(crate) struct Temp<'a> {
     ordner: &'a OwnedFd,
-    name: String,
+    pub(crate) name: String,
 }
 
 impl Drop for Temp<'_> {
@@ -123,8 +125,8 @@ pub fn uebernehmen(
         return Err(Fehler::FormFalsch);
     }
     let neu_text = ohne_token(&text, &token).ok_or(Fehler::QuelleOhneToken)?;
-    // Steps 5 and 6: the target folder and the key file that is there.
-    let ziel = ziel_oeffnen(&umg.ziel_ordner, umg.uid)?;
+    // Steps 5 and 6: the store of the holder (missing levels are made) and the key file that is there.
+    let ziel = ziel_oeffnen(&umg.heim, umg.uid)?;
     let vorher = match rustix::fs::statat(&ziel, SCHLUESSELDATEI, AtFlags::SYMLINK_NOFOLLOW) {
         Err(Errno::NOENT) => Vorhanden::Nein,
         Err(_) => return Err(Fehler::ZielNichtSchreibbar),
@@ -273,20 +275,7 @@ pub fn config_lesen(quelle: &OwnedFd, uid: u32) -> Result<(Stat, Vec<u8>), Fehle
     Ok((st, text))
 }
 
-/// The target folder: no link at its last part, a folder of `uid` with the write bit of the owner.
-///
-/// # Errors
-/// `ZielNichtSchreibbar`.
-pub fn ziel_oeffnen(pfad: &std::path::Path, uid: u32) -> Result<OwnedFd, Fehler> {
-    let fd = ordner_oeffnen(pfad).map_err(|_| Fehler::ZielNichtSchreibbar)?;
-    let st = rustix::fs::fstat(&fd).map_err(|_| Fehler::ZielNichtSchreibbar)?;
-    if st.st_uid != uid || st.st_mode & 0o200 == 0 {
-        return Err(Fehler::ZielNichtSchreibbar);
-    }
-    Ok(fd)
-}
-
-/// Is the key file at `st` (the stat of `copilot.schluessel` in `ziel`, without following a link) exactly the token
+/// Is the key file at `st` (the stat of `anmeldung.copilot` in `ziel`, without following a link) exactly the token
 /// and LF, a regular file of `uid` with one name and mode 0600?
 #[must_use]
 pub fn schluessel_ist_token(ziel: &OwnedFd, st: &Stat, token: &Token, uid: u32) -> bool {
@@ -369,7 +358,7 @@ fn config_temp_schreiben<'a>(
 }
 
 /// Writes the token and LF into the temp file of the key (0600, `O_EXCL`), synced. Returns it and its stat.
-fn schluessel_temp_schreiben<'a>(
+pub(crate) fn schluessel_temp_schreiben<'a>(
     ziel: &'a OwnedFd,
     token: &Token,
 ) -> Result<(Temp<'a>, Stat), Fehler> {

@@ -73,11 +73,12 @@ On `main`, the window in `app/` is built as described in the installation guide 
 
 ## Contributor License Agreement
 
-This project is licensed under the Business Source License 1.1 with an additional use grant (see
-[LICENSE](LICENSE) and, in plain words, [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)). It is
-also offered under partner agreements. To keep both possible, every contributor accepts the
-[Contributor License Agreement](CLA.md) once. It gives the maintainer the exclusive right to use
-your contribution, while you keep the right to use your own contribution for any purpose.
+This project is licensed under the [Apache License 2.0](LICENSE). Contributions are accepted
+under the [Contributor License Agreement](CLA.md), which every contributor accepts once. As a
+separate agreement, it takes precedence over section 5 of the License (see the second sentence of
+that section). It gives the maintainer the right to use your contribution, while you keep the
+right to use your own contribution for any purpose. The maintainer publishes accepted
+contributions under the Apache License 2.0.
 
 To accept it, comment on your pull request with exactly this sentence:
 
@@ -171,13 +172,12 @@ Auf `main` wird das Fenster in `app/` gebaut, wie es die Installationsanleitung 
 
 ## Beitragsvereinbarung
 
-Dieses Projekt steht unter der Business Source License 1.1 mit einer zusätzlichen
-Nutzungserlaubnis (siehe [LICENSE](LICENSE) und, in einfachen Worten,
-[COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)). Es wird zusätzlich unter Partnerverträgen
-angeboten. Damit beides möglich bleibt, stimmt jede beitragende Person einmal der
-[Beitragsvereinbarung](CLA.md) zu (deutsche Lesefassung: [CLA-de.md](CLA-de.md)). Sie gibt dem
-Maintainer das ausschließliche Nutzungsrecht an Ihrem Beitrag, und Sie behalten das Recht, Ihren
-eigenen Beitrag für jeden Zweck zu nutzen.
+Dieses Projekt steht unter der [Apache License 2.0](LICENSE). Beiträge werden unter der
+[Beitragsvereinbarung](CLA.md) angenommen, der jede beitragende Person einmal zustimmt (deutsche
+Lesefassung: [CLA-de.md](CLA-de.md)). Als gesonderte Vereinbarung geht sie Abschnitt 5 der Lizenz
+vor (siehe dessen zweiten Satz). Sie gibt dem Maintainer das Nutzungsrecht an Ihrem Beitrag, und
+Sie behalten das Recht, Ihren eigenen Beitrag für jeden Zweck zu nutzen. Der Maintainer
+veröffentlicht angenommene Beiträge unter der Apache License 2.0.
 
 Zur Zustimmung schreiben Sie in Ihren Pull Request als Kommentar genau diesen Satz:
 

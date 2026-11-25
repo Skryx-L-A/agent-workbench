@@ -1,4 +1,4 @@
-"""Teilzeiten von S1 in der Diagnosedatei (an earlier work item, 23.11.).
+"""Teilzeiten von S1 in der Diagnosedatei (23.11.2026).
 
 S1 misst seine Teile mit `time.monotonic()` unter festen Namen (`s1.bruecke_bereit`, `s1.start_gesamt`, `s1.start_eingabefeld`,
 `s1.vertrauensfrage`, `s1.zug<n>.sichtbar|enter|abgesendet|fertig|gesamt`, `s1.ausgang_ca`). Sie stehen nur in der Diagnosedatei und nur,

@@ -4,8 +4,9 @@
 //! The command names the code and the sentence and nothing more: no path outside the manifest, no content.
 
 use crate::lage::{
-    ABGELEHNT_SATZ, APPARMOR, Abweichung, COPILOT, DIENST, DIENSTE, HARNESS_HINWEIS, Lage,
-    MANIFEST, NUTZERORDNER, OK, PROGRAMMORDNER, SCHLUESSEL, VAULT,
+    ABGELEHNT_SATZ, APPARMOR, Abweichung, COPILOT, COPILOT_ALTER_ORT, DIENST, DIENSTE,
+    HARNESS_HINWEIS, Lage, MANIFEST, NUTZERORDNER, OK, PROGRAMMORDNER, ROLLENGRUPPE,
+    ROLLENPROGRAMM, SCHLUESSEL, VAULT,
 };
 
 /// The stream a result goes to.
@@ -157,6 +158,9 @@ pub fn befunde(lage: &Lage) -> Vec<String> {
             b.push(s.replace("{n}", name));
         }
     }
+    // addendum "Rolle aus der Gruppe": part of the check of the units, the group before the program
+    b.extend(satz(ROLLENGRUPPE, &lage.rollengruppe));
+    b.extend(satz(ROLLENPROGRAMM, &lage.rollenprogramm));
     b.extend(satz(APPARMOR, &lage.apparmor));
     match lage.einstellungen.zustand.as_str() {
         "fehlt" => b.push(
@@ -187,6 +191,9 @@ pub fn befunde(lage: &Lage) -> Vec<String> {
     }
     b.extend(satz(SCHLUESSEL, &lage.schluessel));
     b.extend(satz(COPILOT, &lage.copilot));
+    if lage.copilot_alt {
+        b.push(COPILOT_ALTER_ORT.to_owned());
+    }
     b.extend(satz(VAULT, &lage.vault));
     let p = &lage.paketstand;
     if p.manifest == OK {

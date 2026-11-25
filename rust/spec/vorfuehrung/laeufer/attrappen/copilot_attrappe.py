@@ -17,6 +17,8 @@ Was sie tut:
      (`#T<n> [MARKER] BEFEHL <befehl>`, `... BUENDEL <skript>`, `... ZAEHLEN`) und die der Konfiguration des Probelaufs (`Zug T<n>` und ein
      Skript zwischen Gravis). `SUCHE` fuehrt sie nicht aus (keine Wissenssuche). Sie laeuft nur auf Eingaben des Laeufers: Der Text wird in
      einer Shell ausgefuehrt, das ist Absicht und gilt nur im Einschluss der Wegwerf-VM.
+     Eine Eingabe mit `!` am Anfang ist eine Shell-Eingabe: Die Attrappe fuehrt den Rest in einer Shell aus und schickt KEINE Anfrage an
+     das Ziel (wie die Shell-Eingabe der echten CLI, die das Modell nicht fragt). Das Merkmal `FERTIG T<n>` schreibt dann nur der Befehl selbst.
   5. Paketform: Sie hat die Form des Plattformpakets der echten CLI (Programm `copilot`, Fassung `0.0.88` im Paket und im
      Cache-Pfad; Aufbau und Werkzeug `paket_legen.py`, siehe README). Das Produkt bereitet den Cache-Ordner der CLI vor, mit `<harness.copilot>
      --version`. Darum legt sie mit genau diesem Aufruf, wenn eine der vier Dateien unter `$HOME/.cache/copilot/pkg/linux-x64/0.0.88` fehlt, die
@@ -237,6 +239,11 @@ def _lauf(argv, env, ein, aus):
         if text is None:
             return 0
         if not text.strip():
+            continue
+        if text.startswith("!"):  # Shell-Eingabe: die CLI fuehrt den Rest selbst in ihrer Shell aus, ohne Anfrage an das Ziel
+            fuehre_aus(text[1:], aus)
+            eingabefeld(aus)
+            aus.flush()
             continue
         status = 0
         if proxy:

@@ -10,10 +10,10 @@ use std::fs;
 use anmelden::fehler::Fehler;
 use anmelden::form::{Fund, config_hat_anmeldung, platzhalter, token_aus_config, token_form_ok};
 use anmelden::lauf::{
-    Bund, bund_pruefen, finde, name_aus_passwd, nutzer_ordner, pfad_ohne_gh, pid_aus_name,
-    reste_raeumen,
+    ABLAGE, Bund, TempArt, ablage_suchen, bund_pruefen, finde, heim_aus_passwd, pfad_ohne_gh,
+    pid_aus_name, reste_raeumen, temp_reste_in, ziel_oeffnen,
 };
-use gemeinsam::{aufbau, rest_anlegen, rest_name, skript_schreiben, tote_pid};
+use gemeinsam::{ablage_ebenen, aufbau, rest_anlegen, rest_name, skript_schreiben, tote_pid};
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
 fn tok(praefix: &str, laenge: usize) -> String {
@@ -165,6 +165,34 @@ fn config_gives_one_token_none_or_many() {
     ));
 }
 
+/// The skip of the comment lines must move forward: a skip that stays in place never ends. The read runs in a
+/// thread with a deadline. A hang ends the whole test program with a failure, because the other tests of this file
+/// that read comment lines would hang as well and the test run would never finish.
+#[test]
+fn the_skip_of_the_comment_lines_ends() {
+    let t = tok("gho_", 40);
+    let text = gemessen(&t);
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send((
+            config_hat_anmeldung(text.as_bytes()),
+            matches!(token_aus_config(text.as_bytes()), Fund::Eins(_)),
+        ));
+    });
+    let Ok(antwort) = rx.recv_timeout(std::time::Duration::from_secs(10)) else {
+        let _ = std::io::Write::write_all(
+            &mut std::io::stderr(),
+            b"the read of a config.json with comment lines did not end within 10 s\n",
+        );
+        std::process::exit(101);
+    };
+    assert_eq!(
+        antwort,
+        (true, true),
+        "the read of a config.json with comment lines must find the token"
+    );
+}
+
 #[test]
 fn a_login_in_the_real_home_is_found_fail_closed() {
     let t = tok("gho_", 40);
@@ -220,26 +248,26 @@ fn a_login_in_the_real_home_is_found_fail_closed() {
 }
 
 #[test]
-fn the_account_name_comes_from_passwd_by_uid_and_must_be_plain() {
-    let text = "root:x:0:0:root:/root:/bin/sh\nnutzer:x:1000:1000::/srv/beispiel:/bin/sh\nbad/name:x:1001:1::/h:/bin/sh\n_dienst:x:1002:1::/h:/bin/sh\nGross:x:1003:1::/h:/bin/sh\n9ab:x:1004:1::/h:/bin/sh\nkurz\n";
-    assert_eq!(name_aus_passwd(text, 1000).as_deref(), Some("nutzer"));
-    assert_eq!(name_aus_passwd(text, 0).as_deref(), Some("root"));
-    assert_eq!(name_aus_passwd(text, 1002).as_deref(), Some("_dienst"));
-    assert_eq!(name_aus_passwd(text, 1001), None);
-    assert_eq!(name_aus_passwd(text, 1003), None);
-    assert_eq!(name_aus_passwd(text, 1004), None);
-    assert_eq!(name_aus_passwd(text, 4242), None);
-    let lang = format!("{}:x:7:7::/h:/bin/sh\n", "a".repeat(33));
-    assert_eq!(name_aus_passwd(&lang, 7), None);
-    let grenze = format!("{}:x:7:7::/h:/bin/sh\n", "a".repeat(32));
-    assert!(name_aus_passwd(&grenze, 7).is_some());
-    assert_eq!(name_aus_passwd(":x:7:7::/h:/bin/sh\n", 7), None);
+fn the_home_comes_from_field_six_of_passwd_by_uid_and_must_be_absolute() {
+    let text = "root:x:0:0:root:/root:/bin/sh\nnutzer:x:1000:1000::/srv/beispiel:/bin/sh\nrel:x:1001:1::srv/rel:/bin/sh\nleer:x:1002:1:::/bin/sh\nkurz:x:1003:1:\nzwei:x:1004:1::/srv/erst:/bin/sh\nzwei:x:1004:1::/srv/zweit:/bin/sh\n";
+    let h = |uid| heim_aus_passwd(text, uid);
+    assert_eq!(h(1000), Some(std::path::PathBuf::from("/srv/beispiel")));
+    assert_eq!(h(0), Some(std::path::PathBuf::from("/root")));
+    assert_eq!(h(1001), None, "a relative home is refused");
+    assert_eq!(h(1002), None, "an empty home is refused");
+    assert_eq!(h(1003), None, "an entry without field 6");
     assert_eq!(
-        name_aus_passwd("a-b_c9:x:7:7:\n", 7).as_deref(),
-        Some("a-b_c9")
+        h(1004),
+        Some(std::path::PathBuf::from("/srv/erst")),
+        "the first entry wins"
     );
-    assert_eq!(name_aus_passwd("a.b:x:7:7:\n", 7), None);
-    assert_eq!(name_aus_passwd("a:x:zahl:7:\n", 7), None);
+    assert_eq!(h(4242), None);
+    assert_eq!(heim_aus_passwd("a:x:zahl:7::/srv/a:/bin/sh\n", 7), None);
+    assert_eq!(
+        heim_aus_passwd("a:x:7:7::/srv/a/b:/bin/sh", 7),
+        Some(std::path::PathBuf::from("/srv/a/b")),
+        "the last line without LF"
+    );
 }
 
 #[test]
@@ -405,16 +433,130 @@ fn every_error_has_its_code_exit_and_sentence() {
 }
 
 #[test]
-fn the_folder_of_the_user_is_the_place_plus_the_name() {
-    let text = "nutzer:x:1000:1000::/srv/beispiel:/bin/sh\n";
+fn the_store_has_five_levels_below_the_home() {
     assert_eq!(
-        nutzer_ordner(std::path::Path::new("/srv/ort"), text, 1000),
-        Some(std::path::PathBuf::from("/srv/ort/nutzer"))
+        ABLAGE,
+        [".local", "state", "agent-workbench", "halter", "geheim"]
     );
+}
+
+#[test]
+fn missing_levels_of_the_store_are_made_with_0700() {
+    let a = aufbau();
+    fs::remove_dir_all(a.heim.join(".local")).expect("remove");
+    assert!(ablage_suchen(&a.heim).is_none(), "the search makes nothing");
+    assert!(!a.heim.join(".local").exists());
+    let uid = uid_von(&a.wurzel);
+    assert!(ziel_oeffnen(&a.heim, uid).is_ok());
+    for ebene in ablage_ebenen(&a.heim) {
+        let m = fs::symlink_metadata(&ebene).expect("level");
+        assert!(m.is_dir(), "{}", ebene.display());
+        assert_eq!(
+            m.permissions().mode() & 0o7777,
+            0o700,
+            "{}",
+            ebene.display()
+        );
+    }
+    assert!(ablage_suchen(&a.heim).is_some());
+    assert!(
+        ziel_oeffnen(&a.heim, uid).is_ok(),
+        "a second call finds the levels"
+    );
+}
+
+#[test]
+fn every_rule_of_a_level_of_the_store_is_checked() {
+    let a = aufbau();
+    let uid = uid_von(&a.wurzel);
+    assert!(ziel_oeffnen(&a.heim, uid).is_ok());
     assert_eq!(
-        nutzer_ordner(std::path::Path::new("/srv/ort"), text, 1),
-        None
+        ziel_oeffnen(&a.heim, uid + 1).err(),
+        Some(Fehler::ZielNichtSchreibbar),
+        "the home of another owner"
     );
+    let ebenen = ablage_ebenen(&a.heim);
+    let mut alle = vec![a.heim.clone()];
+    alle.extend(ebenen.iter().cloned());
+    for ebene in &alle {
+        let alt = fs::metadata(ebene).expect("meta").permissions().mode() & 0o7777;
+        for modus in [0o720, 0o702] {
+            fs::set_permissions(ebene, fs::Permissions::from_mode(modus)).expect("mode");
+            assert_eq!(
+                ziel_oeffnen(&a.heim, uid).err(),
+                Some(Fehler::ZielNichtSchreibbar),
+                "{} with {modus:o}",
+                ebene.display()
+            );
+        }
+        fs::set_permissions(ebene, fs::Permissions::from_mode(alt)).expect("mode");
+    }
+    let geheim = ebenen.last().expect("geheim");
+    for modus in [0o750, 0o705, 0o500, 0o1700] {
+        fs::set_permissions(geheim, fs::Permissions::from_mode(modus)).expect("mode");
+        assert_eq!(
+            ziel_oeffnen(&a.heim, uid).err(),
+            Some(Fehler::ZielNichtSchreibbar),
+            "geheim with {modus:o}"
+        );
+    }
+    fs::set_permissions(geheim, fs::Permissions::from_mode(0o700)).expect("mode");
+    let halter = &ebenen[3];
+    fs::set_permissions(halter, fs::Permissions::from_mode(0o750)).expect("mode");
+    assert!(
+        ziel_oeffnen(&a.heim, uid).is_ok(),
+        "only geheim needs exactly 0700"
+    );
+    fs::set_permissions(halter, fs::Permissions::from_mode(0o700)).expect("mode");
+    // A level that is a file or a link, also at the home itself.
+    let local = &ebenen[0];
+    fs::rename(local, a.wurzel.join("local-weg")).expect("move");
+    fs::write(local, "x").expect("file");
+    assert_eq!(
+        ziel_oeffnen(&a.heim, uid).err(),
+        Some(Fehler::ZielNichtSchreibbar)
+    );
+    assert!(ablage_suchen(&a.heim).is_none());
+    fs::remove_file(local).expect("remove");
+    std::os::unix::fs::symlink(a.wurzel.join("local-weg"), local).expect("link");
+    assert_eq!(
+        ziel_oeffnen(&a.heim, uid).err(),
+        Some(Fehler::ZielNichtSchreibbar)
+    );
+    assert!(
+        ablage_suchen(&a.heim).is_none(),
+        "the search never follows a link"
+    );
+    let heim_verweis = a.wurzel.join("heim-verweis");
+    std::os::unix::fs::symlink(&a.heim, &heim_verweis).expect("link");
+    assert_eq!(
+        ziel_oeffnen(&heim_verweis, uid).err(),
+        Some(Fehler::ZielNichtSchreibbar)
+    );
+    assert!(ablage_suchen(&heim_verweis).is_none());
+    assert_eq!(
+        ziel_oeffnen(&a.wurzel.join("kein-heim"), uid).err(),
+        Some(Fehler::ZielNichtSchreibbar)
+    );
+}
+
+#[test]
+fn the_temp_left_overs_of_the_key_are_found_in_the_open_store() {
+    let a = aufbau();
+    let uid = uid_von(&a.wurzel);
+    let rest = a.ziel.join(TempArt::Schluessel.name(tote_pid()));
+    fs::write(&rest, "rest\n").expect("temp");
+    let ablage = ablage_suchen(&a.heim).expect("store");
+    assert_eq!(
+        temp_reste_in(&ablage, TempArt::Schluessel, uid + 1, eigene_pid()),
+        Ok(0)
+    );
+    assert!(rest.exists());
+    assert_eq!(
+        temp_reste_in(&ablage, TempArt::Schluessel, uid, eigene_pid()),
+        Ok(1)
+    );
+    assert!(!rest.exists());
 }
 
 fn eigene_pid() -> u32 {
@@ -566,6 +708,11 @@ fn a_folder_with_the_own_pid_is_old_at_the_start_and_deleted() {
 fn a_folder_of_a_process_the_user_may_not_signal_is_deleted() {
     if rustix::process::getuid().as_raw() == 0 {
         // pid 1 belongs to root; as root itself the signal test passes and the folder would stay.
+        return;
+    }
+    if fs::metadata("/proc/1").is_ok_and(|m| m.uid() == rustix::process::getuid().as_raw()) {
+        // In an own pid namespace (the enclosure of the mutation gate), pid 1 is the user's own init: the user may
+        // signal it, so there is no process here that the user may not signal.
         return;
     }
     let a = aufbau();

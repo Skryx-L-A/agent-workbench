@@ -26,7 +26,8 @@ fail() {
 
 DATEN=/var/lib/werkbank
 VORLAGE=/usr/share/werkbank/probelauf
-EINHEITEN="werkbank-kern.service werkbank-bruecke.service"
+# The holder (addendum holder) comes after the bridge; step 4b starts the units in this order.
+EINHEITEN="werkbank-kern.service werkbank-bruecke.service wb-halter.service"
 
 # Step 1: the user is the one who called sudo.
 nutzer=""
@@ -88,6 +89,61 @@ sitzungsordner() {
 if [ -n "$nutzer" ]; then
     sitzungsordner
 fi
+
+# Step 1b (addendum "Rolle aus der Gruppe"): the system group wb-bruecke and the setgid role program of the bridge. The holder takes the
+# role of a peer from its effective gid (contract rust/spec/halter, 2.3 and 2.3a). A missing group is made with `addgroup --system`, and the
+# mark $DATEN/rollengruppe-angelegt (root:root 0644) says that purge may remove it again. An existing group is taken only in this form: one
+# entry, gid 100 to 999, no member, password field x, !, * or empty, and the primary group of no account; else nothing changes and the
+# journal gets code 25. Then dpkg-statoverride sets /usr/lib/werkbank/werkbank-modellweg to root:wb-bruecke 2755 (the archive stays
+# root:root 0755); a failure is code 26. Neither stops the installation, and no account ever becomes a member of the group.
+# --- rollengruppe begin
+ROLLENGRUPPE=wb-bruecke
+ROLLENPROGRAMM=/usr/lib/werkbank/werkbank-modellweg
+GROUP_DATEI=/etc/group
+PASSWD_DATEI=/etc/passwd
+
+# rg_form: succeeds when the group has exactly the form above
+rg_form() {
+    [ "$(grep -c "^$ROLLENGRUPPE:" "$GROUP_DATEI" 2>/dev/null)" = 1 ] || return 1
+    rg_zeile=$(grep "^$ROLLENGRUPPE:" "$GROUP_DATEI")
+    rg_pw=$(printf '%s' "$rg_zeile" | cut -d: -f2)
+    rg_gid=$(printf '%s' "$rg_zeile" | cut -d: -f3)
+    rg_mitglieder=$(printf '%s' "$rg_zeile" | cut -d: -f4-)
+    case "$rg_gid" in "" | *[!0-9]* | 0*) return 1 ;; esac
+    [ "$rg_gid" -ge 100 ] && [ "$rg_gid" -le 999 ] || return 1
+    [ -z "$rg_mitglieder" ] || return 1
+    case "$rg_pw" in x | "!" | "*" | "") ;; *) return 1 ;; esac
+    # the primary group of an account (field 4 of passwd)
+    ! cut -d: -f4 "$PASSWD_DATEI" 2>/dev/null | grep -qx "$rg_gid"
+}
+
+rg_statoverride() {
+    command -v dpkg-statoverride >/dev/null 2>&1 || return 1
+    rg_eintrag=$(dpkg-statoverride --list "$ROLLENPROGRAMM" 2>/dev/null)
+    case "$rg_eintrag" in
+        "root $ROLLENGRUPPE 2755 $ROLLENPROGRAMM") return 0 ;;
+        "") ;;
+        *) dpkg-statoverride --remove "$ROLLENPROGRAMM" >/dev/null 2>&1 || return 1 ;;
+    esac
+    dpkg-statoverride --update --add root "$ROLLENGRUPPE" 2755 "$ROLLENPROGRAMM" >/dev/null 2>&1
+}
+
+rollengruppe() {
+    if ! grep -q "^$ROLLENGRUPPE:" "$GROUP_DATEI" 2>/dev/null; then
+        addgroup --system "$ROLLENGRUPPE" >/dev/null 2>&1 || { log "werkbank: Rollengruppe wb-bruecke abgelehnt, Code 25"; return 0; }
+        if install -d -m 0755 -o root -g root "$DATEN"; then
+            printf '%s\n' "$ROLLENGRUPPE" >"$DATEN/rollengruppe-angelegt" && chmod 0644 "$DATEN/rollengruppe-angelegt"
+        fi
+    fi
+    if ! rg_form; then
+        log "werkbank: Rollengruppe wb-bruecke abgelehnt, Code 25"
+        return 0
+    fi
+    rg_statoverride || log "werkbank: Rollenprogramm nicht gesetzt, Code 26"
+    return 0
+}
+# --- rollengruppe end
+rollengruppe
 
 # Step 2: the folder of the user with its sub folders; copy the templates once (never over an existing file).
 nutzerordner() {
@@ -519,6 +575,59 @@ if [ -n "$nutzer" ]; then
     dienst_json || log "werkbank: kern.json oder bruecke.json nicht geschrieben"
 fi
 
+# Step 2c (addendum holder, form since the addendum "Rolle aus der Gruppe"): /etc/werkbank/halter.json for the user of step 1, root:root 0644,
+# atomically, canonical JSON (RFC 8785) and LF, in the form $defs/konfig of rust/spec/halter: the uid of `id -u` with person null, the role
+# bruecke at the group wb-bruecke, one target per network target with "schluessel": true of a route of the kind cloud in the template (never the
+# working copy of the user): name and host are the host (a host that is no identifier is skipped, one journal line), port, tls true, praefix "",
+# kopf authorization, vorsatz "Bearer ", schluessel anmeldung.<route>, the rules "<METHOD> <path>" of the methods GET and POST as the template
+# has them; no server, no kid. Reference: rust/spec/paket/referenz.py `halter_konfig`.
+# --- halter.json begin
+HALTER_PY='import json, re, sys
+vorlage = json.load(open(sys.argv[1], encoding="utf-8"))
+kennung = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
+ziele, weg = {}, 0
+for route in vorlage.get("routen", []):
+    if route.get("art") != "cloud":
+        continue
+    for nz in route.get("netzziele", []):
+        if nz.get("schluessel") is not True:
+            continue
+        regeln = [r["methode"] + " " + r["pfad"] for r in nz.get("pfade", []) if r.get("methode") in ("GET", "POST")]
+        host = nz.get("host", "")
+        if not kennung.match(host) or not regeln or host in ziele:
+            weg += 1
+            continue
+        ziele[host] = {"host": host, "port": nz["port"], "tls": True, "praefix": "", "kopf": "authorization", "vorsatz": "Bearer ",
+                       "schluessel": "anmeldung." + route["schluessel"], "pfade": regeln}
+wert = {"fassung": 1, "konten": {sys.argv[2]: {"person": None}}, "rollen": {"bruecke": "wb-bruecke"}, "ziele": ziele, "server": {}, "kids": {}}
+sys.stdout.write(json.dumps(wert, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n")
+sys.stderr.write(str(weg))'
+
+halter_json() {
+    hj_uid=$(id -u "$nutzer" 2>/dev/null) || return 1
+    case "$hj_uid" in "" | *[!0-9]*) return 1 ;; esac
+    [ -f "$VORLAGE/einstellungen.json" ] || return 1
+    install -d -m 0755 -o root -g root "$ETCW" || return 1
+    hj_tmp=$(mktemp "$ETCW/.halter.json.XXXXXX") || return 1
+    hj_weg=$(python3 -I -c "$HALTER_PY" "$VORLAGE/einstellungen.json" "$hj_uid" 2>&1 >"$hj_tmp") || { rm -f "$hj_tmp"; return 1; }
+    case "$hj_weg" in
+        0) ;;
+        *[!0-9]*) rm -f "$hj_tmp"; return 1 ;;
+        *) log "werkbank: halter.json: Netzziele ausgelassen: $hj_weg" ;;
+    esac
+    if chmod 0644 "$hj_tmp" && chown root:root "$hj_tmp" && mv -f "$hj_tmp" "$ETCW/halter.json"; then
+        return 0
+    fi
+    rm -f "$hj_tmp"
+    return 1
+}
+# --- halter.json end
+if [ -n "$nutzer" ]; then
+    halter_json || log "werkbank: halter.json nicht geschrieben"
+else
+    log "werkbank: kein sudo-Nutzer, halter.json nicht geschrieben"
+fi
+
 # Step 3: the AppArmor profile of the fixed starter and the trial run of the enclosure (decision V1: only the starter
 # `werkbank-einschluss` carries the profile; never a profile with the attachment /usr/bin/bwrap, never `unconfined`).
 # Form B only: the own copy of bwrap first. This is the one step that stops the installation, with a fixed code:
@@ -573,7 +682,8 @@ fi
 rm -f /etc/systemd/user/default.target.wants/werkbank-modellweg.service /usr/lib/systemd/user/werkbank-modellweg.service 2>/dev/null || true
 
 # Step 4b: the units that prerm stopped for an upgrade or a reinstall run again (note /run/werkbank-paket-neustart: the user and the units that ran;
-# contract "Skripte des Pakets"). Only the user of step 1 and only the two fixed units are taken from the note; it is removed in every case.
+# contract "Skripte des Pakets"). Only the user of step 1 and only the three fixed units (core, bridge, holder) are taken from the note; it is
+# removed in every case.
 # `dpkg-reconfigure` stops nothing (prerm), so it leaves no note and this step does nothing.
 NEUSTART=/run/werkbank-paket-neustart
 if [ -f "$NEUSTART" ] && [ ! -L "$NEUSTART" ]; then

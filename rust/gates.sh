@@ -11,7 +11,8 @@
 #                         a file under crates/*/src with a foreign licence head that no row lists is red;
 #                         a crate with a bin target and a row runs each bin with `--licenses`: exit 0, and
 #                         each notice file of its rows appears in the output byte for byte
-#   ./gates.sh mutants    cargo-mutants; red if a mutant survives or no mutant was caught
+#   ./gates.sh mutants    cargo-mutants; red if a mutant survives or no mutant was caught; a second run covers
+#                         the crates with seams (NAHT_CRATES) with the feature `pruefbau`
 #   ./gates.sh all        every gate in this order; prints one line per gate
 #   ./gates.sh tools      not a gate: checks the tool folder (~/.local/share/wb-rust-werkzeuge), the toolchain
 #                         and the three tools in their pinned versions; every gate makes the same checks first
@@ -173,7 +174,7 @@ gate_clippy() {
 
 # Crates whose program has seams of the test build (feature `pruefbau`); `tests/naht.rs` of each also runs without
 # the feature and proves that the delivered program reads no seam.
-NAHT_CRATES="anmelden werkbank-pruefen"
+NAHT_CRATES="anmelden werkbank-pruefen dienst halter"
 
 gate_test() {
   need cargo || return
@@ -236,15 +237,19 @@ gate_licenses() {
 #      cargo-cyclonedx 0.5.10), so it cannot prove anything about a notice; the package listing is what cargo
 #      ships, and it names the file.
 # Reverse direction: a file under crates/*/src whose head (NOTICE_HEAD_LINES lines) carries a foreign licence
-# marker and that no row covers is red. A file whose SPDX-License-Identifier lines all name an own licence
-# (OWN_SPDX) is own code and is skipped.
+# marker and that no row covers is red. A file is own code, and is skipped, only if its head carries the licensor's
+# copyright line (after the comment marker exactly OWN_COPYRIGHT, an optional full stop allowed), every line of the head
+# that contains "Copyright" is such a line, and every SPDX-License-Identifier line names the own licence
+# (OWN_SPDX, at least one). Since 2026-11-24 the own licence is Apache-2.0, the licence of much third-party code; an
+# Apache head without the licensor's copyright line, or with a further copyright holder, stays foreign.
 # A missing README.md, a missing section, a malformed header or no data row is red, never green.
 # Output direction (notices_bins): a crate that has a bin target (cargo metadata, --locked) and a row is
 # built with `cargo build --bins`; each of its bins must exit 0 on `--licenses`, and its output must contain
 # every notice file of the crate's rows byte for byte. A library crate gets no run; its check is the listing.
 
 NOTICE_HEAD_LINES=40
-OWN_SPDX="BUSL-1.1"
+OWN_SPDX="Apache-2.0"
+OWN_COPYRIGHT="Copyright Skryx-L-A"
 NOTICE_SECTION="Code taken from other projects"
 NOTICE_HEADER="Where|What|Origin|Licence|Notice"
 FOREIGN_HEAD_PATTERN='SPDX-License-Identifier|Copyright[[:space:]]*(\(c\)|\(C\)|©|[0-9])|Licensed under|Redistribution and use in source|Permission is hereby granted|This Source Code Form|GNU (Lesser |Affero )?General Public|Apache License|MIT License|BSD [0-9]-Clause'
@@ -392,7 +397,7 @@ notices_row() {
 
 # Reverse direction: files under crates/*/src with a foreign licence head that no row covers.
 notices_reverse() {
-  local tmp="$1" rc=0 f hit id own
+  local tmp="$1" rc=0 f hit id own line
   find crates -mindepth 3 -path 'crates/*/src/*' -type f 2>/dev/null | LC_ALL=C sort > "$tmp/srcfiles"
   while IFS= read -r f; do
     grep -qI . "$f" 2>/dev/null || continue
@@ -405,6 +410,12 @@ notices_reverse() {
     while IFS= read -r id; do
       [ "$id" = "$OWN_SPDX" ] || own=0
     done < "$tmp/ids"
+    # Copyright lines: each one must be exactly the own line after the comment marker (an optional final full stop).
+    grep -F -- "Copyright" "$tmp/head" | sed 's/^[[:space:]/*#!;-]*//; s/[[:space:]]*$//' > "$tmp/copy" || true
+    [ -s "$tmp/copy" ] || own=0
+    while IFS= read -r line; do
+      [ "$line" = "$OWN_COPYRIGHT" ] || [ "$line" = "$OWN_COPYRIGHT." ] || own=0
+    done < "$tmp/copy"
     [ "$own" -eq 1 ] && continue
     echo "notices: $f carries a foreign licence head ($(printf '%s' "$hit" | cut -c1-60)) and no row of \"$NOTICE_SECTION\" in README.md lists it" >&2
     rc=1
@@ -529,6 +540,22 @@ gate_mutants() {
     return 1
   fi
   echo "gates.sh: $caught mutants caught, none missed"
+  # The run above has no features, so the seam tests of NAHT_CRATES are not built. A second run over those
+  # crates with the feature `pruefbau` lets their seam tests catch mutants too (decision of 24.11.2026). Its
+  # output goes below target/.
+  local pakete=() crate
+  for crate in $NAHT_CRATES; do
+    pakete+=(-p "$crate")
+  done
+  # cargo-mutants does not create the parent of its output folder, and target/ may not exist yet.
+  mkdir -p target/mutants-naht || return
+  cargo mutants "${pakete[@]}" --features pruefbau --no-shuffle --output target/mutants-naht || return
+  caught="$(grep -c . target/mutants-naht/mutants.out/caught.txt 2>/dev/null)" || caught=0
+  if [ "$caught" -lt 1 ]; then
+    echo "gates.sh: no mutant caught with the feature pruefbau; the second mutation run proved nothing" >&2
+    return 1
+  fi
+  echo "gates.sh: $caught mutants caught with the feature pruefbau, none missed"
 }
 
 run_gate() {

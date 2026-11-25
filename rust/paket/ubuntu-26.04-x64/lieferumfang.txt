@@ -10,7 +10,10 @@
 # werkbank-ca-zulassung (shell script, root): the explicit step that sets `ca_zulassung` of lauf.json without a question (contract, "Zulassung der CA").
 # /etc/werkbank/lauf.json is not in this list: postinst writes it for the user (contract, "lauf.json").
 #
-# werkbank-anmelden (crate anmelden): the sign-in of the route `copilot`; its folder /var/lib/werkbank/<user> is made by postinst.
+# werkbank-anmelden (crate anmelden): the sign-in of the route `copilot`; it writes anmeldung.copilot into the store of the holder in the home
+# and makes missing levels itself (postinst makes nothing in the home).
+# werkbank-halter (crate halter) and its user unit wb-halter.service (addendum holder): the holder keeps anmeldung.copilot and answers the
+# model path.
 #
 # The enclosure (decision V1, 20.11.2026): only the fixed starter werkbank-einschluss carries the AppArmor profile
 # (usr.lib.werkbank.werkbank-einschluss). werkbank-lauf has NO profile, so no profile line names its path. No profile of
@@ -33,6 +36,7 @@ programm usr/lib/werkbank/kette bin:formate:kette
 dienst usr/lib/werkbank/werkbank-kern bin:dienst:wb-dienst
 dienst usr/lib/werkbank/werkbank-bruecke bin:bruecke:wb-bruecke
 dienst usr/lib/werkbank/werkbank-modellweg bin:modellweg:modellweg
+dienst usr/lib/werkbank/werkbank-halter bin:halter:werkbank-halter
 programm usr/lib/werkbank/rangkern bin:rangkern:rangkern
 programm usr/lib/werkbank/such-mcp bin:such-mcp:such-mcp
 programm usr/lib/werkbank/probelauf/drehbuch.py datei:spec/vorfuehrung/laeufer/drehbuch.py
@@ -74,5 +78,6 @@ daten usr/share/werkbank/probelauf/vorfuehr-vault/projekte/neue-presse-angebote.
 daten usr/share/werkbank/probelauf/vorfuehr-vault/projekte/umbau-kantine.md datei:spec/such-socket/vorfuehr-vault/projekte/umbau-kantine.md
 daten usr/lib/systemd/user/werkbank-kern.service datei:paket/ubuntu-26.04-x64/werkbank-kern.service
 daten usr/lib/systemd/user/werkbank-bruecke.service datei:paket/ubuntu-26.04-x64/werkbank-bruecke.service
+daten usr/lib/systemd/user/wb-halter.service datei:paket/ubuntu-26.04-x64/wb-halter.service
 daten usr/share/werkbank/sbom.cdx.json erzeugt:sbom
 daten etc/apparmor.d/usr.lib.werkbank.werkbank-einschluss datei:paket/ubuntu-26.04-x64/usr.lib.werkbank.werkbank-einschluss

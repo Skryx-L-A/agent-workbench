@@ -13,7 +13,7 @@ unused-allowed-license = "allow"
 
 # ---- BEGIN LICENCE LIST ---------------------------------------------------
 # Licence policy of 16.11.2026 (proposal checked against the toolkit licence review of 15.11.2026).
-# Distribution: BUSL 1.1 with a commercial licence, shipped as a binary. Everything not listed here is rejected.
+# Distribution: Apache-2.0, shipped as a binary. Everything not listed here is rejected.
 # Allowed without asking: MIT, Apache-2.0 and their OR forms (ISC only appears inside an OR choice that MIT satisfies).
 # Never allowed: GPL, AGPL, and LGPL when linked statically; copyleft would reach the shipped program.
 # Further SPDX ids of indirect dependencies (BSD-2-Clause, BSD-3-Clause, Zlib, Unicode-3.0 are common) are decided

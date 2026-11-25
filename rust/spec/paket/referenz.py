@@ -955,6 +955,19 @@ COPILOT_SATZ = {
 }
 # Nachtrag Halter: the file of the former target /var/lib/werkbank/<nutzer>/copilot.schluessel is still there (field `copilot_alt` of the `lage`).
 COPILOT_ALTER_ORT = "pruef.copilot_alter_ort: Am frueheren Ort liegt noch eine Anmeldedatei der Copilot CLI; sie wird nicht mehr gelesen und muss weg."
+# Nachtrag Rolle aus der Gruppe (25.11.2026): die Rollengruppe wb-bruecke und das setgid-Rollenprogramm, Teil der Prüfung `dienste`. Beide
+# Lagefelder sind optional (fehlt eines, gilt `ok`); ihre Zeilen stehen nach den Zeilen der Einheiten, die Gruppe zuerst.
+ROLLENGRUPPE_SATZ = {
+    "fehlt": "pruef.rollengruppe_fehlt: Die Rollengruppe wb-bruecke fehlt; der Modellweg bekommt beim Halter keine Rolle.",
+    "mitglied": "pruef.rollengruppe_mitglied: Die Rollengruppe wb-bruecke hat ein Mitglied, ein Passwort oder eine falsche Form; "
+                "ein Prozess eines Kontos koennte die Rolle bruecke annehmen.",
+    "nicht_pruefbar": "pruef.rollengruppe_nicht_pruefbar: Die Rollengruppe wb-bruecke war nicht pruefbar.",
+}
+ROLLENPROGRAMM_SATZ = {
+    "fehlt": "pruef.rollenprogramm_fehlt: Das Rollenprogramm /usr/lib/werkbank/werkbank-modellweg fehlt.",
+    "modus": "pruef.rollenprogramm_modus: Das Rollenprogramm /usr/lib/werkbank/werkbank-modellweg hat nicht root:wb-bruecke mit Modus 2755.",
+    "nicht_pruefbar": "pruef.rollenprogramm_nicht_pruefbar: Das Rollenprogramm war nicht pruefbar.",
+}
 SCHLUESSEL_SATZ = {
     "fehlt": "pruef.schluessel_fehlt: Die Schluesseldatei fehlt.",
     "art": "pruef.schluessel_art: Die Schluesseldatei ist keine gewoehnliche Datei.",
@@ -970,7 +983,7 @@ HINWEIS_SUDO = "pruef.hinweis_sudo: Ohne root waren nicht alle Pruefungen moegli
 
 def _nicht_pruefbar(lage):
     """Ubuntu: meldet irgendeine der acht Prüfungen `nicht_pruefbar`?"""
-    zustaende = [d["zustand"] for d in lage["dienste"]] + [lage["apparmor"], lage["einstellungen"]["zustand"], lage["nutzerordner"],
+    zustaende = [d["zustand"] for d in lage["dienste"]] + [lage.get("rollengruppe", "ok"), lage.get("rollenprogramm", "ok"), lage["apparmor"], lage["einstellungen"]["zustand"], lage["nutzerordner"],
                                                            lage["schluessel"], lage["copilot"], lage["vault"], lage["paketstand"]["manifest"]]
     return "nicht_pruefbar" in zustaende
 
@@ -1005,6 +1018,9 @@ def pruefbefehl(aufruf, lage):
             if z == "ok":
                 continue
             befunde.append(DIENST_SATZ[z].format(n=n))
+        for feld, tabelle in (("rollengruppe", ROLLENGRUPPE_SATZ), ("rollenprogramm", ROLLENPROGRAMM_SATZ)):
+            if lage.get(feld, "ok") != "ok":
+                befunde.append(tabelle[lage[feld]])
         if lage["apparmor"] != "ok":
             befunde.append(APPARMOR_SATZ[lage["apparmor"]])
 
@@ -1219,3 +1235,31 @@ def umzug_code(fall):
     if not gescheitert and UMZUG_ZEILE in fall["journal"]:
         return "umzug_code_falsch"
     return None
+
+
+# ---------------------------------------------------------------------------------------------------- Nachtrag Rolle aus der Gruppe: halter.json
+
+HALTER_ROLLEN = {"bruecke": "wb-bruecke"}
+HALTER_KENNUNG = KENNUNG
+
+
+def halter_konfig(vorlage, uid):
+    """Der Inhalt von /etc/werkbank/halter.json, den `postinst` Schritt 2c für die uid schreibt (Abschnitt „halter.json“): ein Ziel je Netzziel
+    mit `schluessel: true` einer Route der Art `cloud`, Name = Host (nur in Kennungsform), Regeln nur GET und POST. Gibt (wert, weggelassen) zurück;
+    `weggelassen` zählt die Netzziele ohne Kennungsform oder ohne Regel (je eine Journalzeile)."""
+    ziele, weg = {}, 0
+    for route in vorlage.get("routen", []):
+        if route.get("art") != "cloud":
+            continue
+        for nz in route.get("netzziele", []):
+            if nz.get("schluessel") is not True:
+                continue
+            regeln = [f"{r['methode']} {r['pfad']}" for r in nz.get("pfade", []) if r.get("methode") in ("GET", "POST")]
+            host = nz.get("host", "")
+            if not HALTER_KENNUNG.match(host) or not regeln or host in ziele:
+                weg += 1
+                continue
+            ziele[host] = {"host": host, "port": nz["port"], "tls": True, "praefix": "", "kopf": "authorization", "vorsatz": "Bearer ",
+                           "schluessel": "anmeldung." + route["schluessel"], "pfade": regeln}
+    wert = {"fassung": 1, "konten": {str(uid): {"person": None}}, "rollen": dict(HALTER_ROLLEN), "ziele": ziele, "server": {}, "kids": {}}
+    return wert, weg

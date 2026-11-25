@@ -2,7 +2,7 @@
 
 **`wb-dienst` is the core service of the trial run (the Kern-Dienst).** The package ships it as `/usr/lib/werkbank/werkbank-kern`; it runs as a service of
 the user (`systemd --user`, `RuntimeDirectory=werkbank` with mode 0700, `NoNewPrivileges=yes`, start file `/etc/werkbank/kern.json` written by `postinst`).
-The same program also serves as the check program of the contract cases (`--kind` runs fixed child programs of the tests). The person stands in the start
+In the test build (feature `pruefbau`) the same program also serves as the check program of the contract cases (`--kind` runs fixed child programs of the tests); the delivered build does not know `--kind` and holds no code of them (`tests/naht.rs`). The person stands in the start
 file; the socket has only folder and file rights and **no check of the peer**: the boundary is the folder with mode 0700, and who may enter it may speak.
 The check of the peer comes from the platform layer (contract `dienst`, section 1).
 
@@ -17,7 +17,7 @@ The contract is `rust/spec/VERTRAEGE.md` (rules DI1 to DI12, addenda of 20.11.20
 ```
 wb-dienst <start.json>           runs until SIGTERM or SIGINT; then it closes the viewers, removes the socket file, ends the child
                                  (SIGHUP, up to 1 s, SIGKILL, wait) and exits with 0
-wb-dienst --kind <name> [args]   a fixed child program of the tests (ausgabe, geteilt, ausgabewarte, ende, signal, zeilen, klammer,
+wb-dienst --kind <name> [args]   test build only (feature `pruefbau`): a fixed child program of the tests (ausgabe, geteilt, ausgabewarte, ende, signal, zeilen, klammer,
                                  eingabe, bilder, groesse, umgebung, titel, warte, still, stufen, fuellen, osc52viele, lauf)
 wb-dienst --exec <flag> <prog>   the cover the service starts its child through (see Security points)
 ```
@@ -100,7 +100,7 @@ to the wake socket. The loop wakes for each readable connection and at least eve
 
 ## Tests
 
-`cargo test -p dienst`: unit tests in `src/`, `tests/dienst.rs` (start errors, end, steady load, limit of the core, threads),
+`cargo test -p dienst --all-features` (the feature `pruefbau` carries the child programs the cases need; the files that run a child program are empty without it; `cargo test -p dienst --test naht` proves that the delivered build knows no `--kind`): unit tests in `src/`, `tests/dienst.rs` (start errors, end, steady load, limit of the core, threads),
 `tests/mehrere.rs` (DI12: numbers and identifiers, `Beenden` with SIGKILL for a child that ignores SIGHUP, folders and their
 removal also after the crash of a session, the rebuild of one core, no listener), `tests/meldung.rs` (section 18, Linux and macOS: the option `--meldung`, the
 line of `lauf` and its borders, a foreign connection, a path too long), `tests/faelle.rs` (the 275 visible outside cases

@@ -2,6 +2,7 @@
 //! bound of the queue under a steady load (DI5), the error of the core and its rebuild (DI6), and the order of events with
 //! several threads at work (section 11 of the contract). The 97 visible outside cases run in `faelle.rs`.
 #![cfg(unix)] // the crate is Unix only (see `src/lib.rs`)
+#![cfg(feature = "pruefbau")] // the fixed child programs `--kind` exist in the test build only; `naht.rs` runs in both builds
 
 mod gemeinsam;
 

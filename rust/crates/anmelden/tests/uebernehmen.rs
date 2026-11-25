@@ -24,13 +24,13 @@ use anmelden::uebernehmen::{
     Punkt, config_lesen, quelle_oeffnen, schluessel_ist_token, uebernehmen, ziel_oeffnen,
 };
 use gemeinsam::{
-    Aufbau, attrappe_text, aufbau, befehl, dateien, eigene_uid, fall_ordner, json_lesen,
-    skript_schreiben, token_text, tote_pid,
+    Aufbau, attrappe_text, aufbau, baum, befehl, dateien, eigene_uid, fall_ordner, json_lesen,
+    skript_schreiben, token_text, tote_pid, ziel_bauen,
 };
 use serde_json::{Value, json};
 
 const MARKE: &str = "@EINTRAG@";
-const KEY_TEMP: &str = ".copilot.schluessel.";
+const KEY_TEMP: &str = ".anmeldung.copilot.";
 const CONFIG_TEMP: &str = ".config.json.wb-anmelden-";
 
 /// A `config.json` with further fields: the template (with the mark where the entry stands) and the entry.
@@ -197,7 +197,7 @@ fn laufen_mit(a: &Aufbau, args: &[String], probe: Option<&str>) -> Output {
 }
 
 fn schluessel(a: &Aufbau) -> PathBuf {
-    a.ziel.join("copilot.schluessel")
+    a.ziel.join("anmeldung.copilot")
 }
 
 fn reste_bauen(a: &mut Aufbau, reste: &str) {
@@ -269,11 +269,7 @@ fn fall_laufen(name: &str) {
             fs::write(schluessel(&a), format!("{token}\n")).expect("same");
             fs::set_permissions(schluessel(&a), fs::Permissions::from_mode(0o600)).expect("mode");
         }
-        "ordner-fehlt" => fs::remove_dir(&a.ziel).expect("remove"),
-        "schreibgeschuetzt" => {
-            fs::set_permissions(&a.ziel, fs::Permissions::from_mode(0o500)).expect("mode");
-        }
-        andere => panic!("unknown target {andere}"),
+        andere => ziel_bauen(&a, andere),
     }
     reste_bauen(&mut a, fall["reste"].as_str().expect("left-overs"));
     match fall["quellordner"].as_str().expect("folder") {
@@ -290,6 +286,7 @@ fn fall_laufen(name: &str) {
         andere => panic!("unknown folder {andere}"),
     }
     let args = args_von(&fall);
+    let ebenen_vorher = (baum(&a.heim), baum(&a.aussen));
     let aus = laufen_mit(&a, &args, fall["probe"].as_str());
     assert_eq!(
         aus.status.code(),
@@ -309,6 +306,17 @@ fn fall_laufen(name: &str) {
         erwartet["stderr"].as_str().expect("stderr"),
         "{name}: stderr"
     );
+    if erwartet["code"] == "anmelden.ziel_nicht_schreibbar" {
+        assert_eq!(
+            (baum(&a.heim), baum(&a.aussen)),
+            ebenen_vorher,
+            "{name}: no level is new, no mode changed, the target of a link is unchanged"
+        );
+        assert!(
+            !a.wurzel.join("kein-heim").exists(),
+            "{name}: no home is made"
+        );
+    }
     let _ = fs::set_permissions(&a.ziel, fs::Permissions::from_mode(0o700));
     match erwartet["ziel_datei"].as_str().expect("state") {
         "token" => {
@@ -423,7 +431,7 @@ fn namen() -> Vec<String> {
 #[test]
 fn every_visible_takeover_case_runs_as_the_contract_says() {
     let namen = namen();
-    assert!(namen.len() >= 41, "the case set shrank: {}", namen.len());
+    assert!(namen.len() >= 49, "the case set shrank: {}", namen.len());
     for name in &namen {
         fall_laufen(name);
     }
@@ -603,7 +611,7 @@ fn signal_bei(punkt: &str, signal: &str) -> (Aufbau, String, Output) {
     );
     gemeinsam::signal_senden(signal, kind.id());
     gemeinsam::warte_auf_ende(&mut kind, Duration::from_secs(15));
-    let aus = kind.wait_with_output().expect("output");
+    let aus = gemeinsam::ausgabe_beendet(kind);
     (a, token, aus)
 }
 
@@ -835,9 +843,9 @@ fn a_folder_a_config_json_or_a_target_of_another_owner_is_refused() {
         config_lesen(&quelle, fremde_uid(&a)).err(),
         Some(Fehler::QuelleUnsicher)
     );
-    assert!(ziel_oeffnen(&a.ziel, eigen).is_ok());
+    assert!(ziel_oeffnen(&a.heim, eigen).is_ok());
     assert_eq!(
-        ziel_oeffnen(&a.ziel, fremde_uid(&a)).err(),
+        ziel_oeffnen(&a.heim, fremde_uid(&a)).err(),
         Some(Fehler::ZielNichtSchreibbar)
     );
     let mut umg = umgebung(&a);
@@ -857,10 +865,10 @@ fn a_key_file_of_another_owner_is_no_restart() {
     let Fund::Eins(token) = token_aus_config(&text) else {
         panic!("one token");
     };
-    let ziel = ziel_oeffnen(&a.ziel, eigene_uid(&a)).expect("target");
+    let ziel = ziel_oeffnen(&a.heim, eigene_uid(&a)).expect("target");
     let st = rustix::fs::statat(
         &ziel,
-        "copilot.schluessel",
+        "anmeldung.copilot",
         rustix::fs::AtFlags::SYMLINK_NOFOLLOW,
     )
     .expect("stat");
@@ -870,7 +878,7 @@ fn a_key_file_of_another_owner_is_no_restart() {
 
 fn umgebung(a: &Aufbau) -> Umgebung {
     Umgebung {
-        ziel_ordner: a.ziel.clone(),
+        heim: a.heim.clone(),
         suchpfad: a.bin.clone().into_os_string(),
         echtes_copilot_heim: a.echt.clone(),
         wegwerf_wurzel: a.wegwerf.clone(),
@@ -908,7 +916,7 @@ fn the_takeover_through_the_library_reports_a_restart() {
 
 #[test]
 fn the_temp_names_have_exactly_the_form_with_a_pid() {
-    assert_eq!(TempArt::Schluessel.name(42), ".copilot.schluessel.42.tmp");
+    assert_eq!(TempArt::Schluessel.name(42), ".anmeldung.copilot.42.tmp");
     assert_eq!(TempArt::Config.name(42), ".config.json.wb-anmelden-42.tmp");
     for art in [TempArt::Schluessel, TempArt::Config] {
         assert_eq!(
@@ -1131,7 +1139,7 @@ fn mit_eingriff(a: &Aufbau, args: &[&str], punkt: &str, dazwischen: impl FnOnce(
     dazwischen();
     gemeinsam::signal_senden("TERM", kind.id());
     gemeinsam::warte_auf_ende(&mut kind, Duration::from_secs(15));
-    kind.wait_with_output().expect("output")
+    gemeinsam::ausgabe_beendet(kind)
 }
 
 /// Writes `config.json` anew in place with the same size; only the nanoseconds of the time of the last change
@@ -1236,7 +1244,22 @@ fn a_key_file_that_appears_during_the_run_is_never_replaced_without_neu() {
 fn the_wait_of_the_probe_ends_at_once_with_the_signal() {
     let (a, _token) = wiederanlauf_aufbau(false);
     let start = std::time::Instant::now();
+    // A wait that does not end with the signal makes every test of this file with a probe wait as well, and the
+    // whole test program would outlast its time limit. So the watch ends the test program with a failure at 5 s.
+    let fertig = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let wache = std::sync::Arc::clone(&fertig);
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_secs(5));
+        if !wache.load(std::sync::atomic::Ordering::SeqCst) {
+            let _ = std::io::Write::write_all(
+                &mut std::io::stderr(),
+                b"the wait of the probe did not end with the signal within 5 s\n",
+            );
+            std::process::exit(101);
+        }
+    });
     let aus = mit_eingriff(&a, &["copilot", "--uebernehmen"], "config-temp", || {});
+    fertig.store(true, std::sync::atomic::Ordering::SeqCst);
     assert_eq!(aus.status.code(), Some(0));
     assert!(
         start.elapsed() < Duration::from_secs(5),
@@ -1249,7 +1272,7 @@ fn a_target_without_the_write_bit_of_the_owner_is_refused() {
     let a = aufbau();
     fs::set_permissions(&a.ziel, fs::Permissions::from_mode(0o500)).expect("mode");
     assert_eq!(
-        ziel_oeffnen(&a.ziel, eigene_uid(&a)).err(),
+        ziel_oeffnen(&a.heim, eigene_uid(&a)).err(),
         Some(Fehler::ZielNichtSchreibbar)
     );
     fs::set_permissions(&a.ziel, fs::Permissions::from_mode(0o700)).expect("mode");

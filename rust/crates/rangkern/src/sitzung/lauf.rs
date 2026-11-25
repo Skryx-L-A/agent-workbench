@@ -1,57 +1,32 @@
 //! The run of `rangkern sitzung`: the start in its fixed order, the socket, the connections and the end on a signal.
 
-use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::io::{BufReader, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::path::Path;
+use std::sync::atomic::AtomicUsize;
+use std::sync::{Arc, Mutex, PoisonError};
 use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
-use formate::kette::{
-    Abgewiesen, Gesperrt, Probelauf, anhaengen_abgewiesen, anhaengen_gesperrt_in,
-    anhaengen_probelauf, anhaengen_zeile,
-};
 use rustix::fs::{FileType, Mode, RawMode};
-use serde_json::{Value, json};
 use signal_hook::consts::{SIGINT, SIGTERM};
 use signal_hook::iterator::Signals;
 
-use super::anfrage::{self, Op};
-use super::einst;
-use super::konfig::{Konfig, Probelauf as ProbeKonfig, Vektoren};
+use super::kern::{LEERLAUF, Platz, Sitzung, probelauf_starten, vor_dem_kanal};
+use super::konfig::{Konfig, Vektoren};
 use super::loeschen::{Eigene, Ordner};
 use super::mac::{self, Plattform};
-use super::probelauf::{STDERR_ZEILE, Zaehlung, zaehldatei_pruefen};
-use super::tor::{Gruppe, Tor};
+use super::tor::Tor;
 use super::{BEREIT, EXIT_CONFIG, EXIT_SOCKET};
-use crate::cli::hit_json;
-use crate::embed::Grund;
-use crate::serve::{Line, SearchRequest, Server, bad_request, next_line};
-use crate::stamp::now_ns;
-use crate::vault::contradiction_pairs;
+use crate::serve::{Server, next_line};
 
 /// The socket while the process owns it (its folder, name and identity), for the end on a signal.
 type SocketPfad = Arc<Mutex<Option<Eigene>>>;
 
-/// Everything a connection needs to answer.
-struct Sitzung {
-    server: Mutex<Server>,
-    tor: Tor,
-    route: String,
-    kennung: String,
-    protokoll: PathBuf,
-    /// The counting of the markers, only in the probe-run mode.
-    zaehlung: Option<Zaehlung>,
-    /// The check of the peer of each connection (macOS only).
-    peer: Peerpruefung,
-}
-
 /// The check of the peer before the first byte (addendum to contract 4, section 4): the platform, the own euid and the
 /// measurement. Under Linux it lets every connection through and measures nothing.
-struct Peerpruefung {
+pub(crate) struct Peerpruefung {
     plattform: Plattform,
     euid: u32,
     messen: fn(&UnixStream) -> std::io::Result<u32>,
@@ -67,6 +42,16 @@ impl Peerpruefung {
         }
     }
 
+    /// A check that turns nobody away (the rules of Linux), for the tests of the shared part of the session.
+    #[cfg(test)]
+    pub(crate) fn ohne_pruefung() -> Self {
+        Self {
+            plattform: Plattform::Linux,
+            euid: 0,
+            messen: |_| Err(std::io::Error::from(std::io::ErrorKind::Unsupported)),
+        }
+    }
+
     /// The reason to turn the connection away, or `None` to accept it.
     fn abweisen(&self, strom: &UnixStream) -> Option<&'static str> {
         if self.plattform == Plattform::Linux {
@@ -75,15 +60,6 @@ impl Peerpruefung {
         mac::peer_entscheiden(self.plattform, (self.messen)(strom).ok(), self.euid)
     }
 }
-
-/// The most connections the process serves at the same time. A fixed number, no option: a further connection is accepted
-/// and closed at once without a byte, and the connections that are open stay served.
-pub const MAX_VERBINDUNGEN: usize = 16;
-
-/// How long a connection may stay silent (clarification 13 of contract 4, decision of 24.11.2026): when no byte arrives for this
-/// long, the process closes the connection without an answer and without a log line, and its place is free. The time counts from
-/// the last received byte, also inside a line, and it does not run while the process works on an answer.
-pub const LEERLAUF: Duration = Duration::from_secs(10);
 
 /// Removes the socket of the process, if it has made one.
 fn socket_loeschen(pfad: &SocketPfad) {
@@ -244,26 +220,6 @@ fn socket_anlegen_gemerkt(
     Ok(listener)
 }
 
-/// A place among the open connections: it counts as long as it lives.
-struct Platz(Arc<AtomicUsize>);
-
-impl Platz {
-    /// Takes a place, or `None` if `MAX_VERBINDUNGEN` connections are open.
-    fn nehmen(offen: &Arc<AtomicUsize>) -> Option<Self> {
-        if offen.fetch_add(1, Ordering::SeqCst) >= MAX_VERBINDUNGEN {
-            offen.fetch_sub(1, Ordering::SeqCst);
-            return None;
-        }
-        Some(Self(Arc::clone(offen)))
-    }
-}
-
-impl Drop for Platz {
-    fn drop(&mut self) {
-        self.0.fetch_sub(1, Ordering::SeqCst);
-    }
-}
-
 /// The start after the arguments are valid: settings, route, log folder, count file (probe run), socket, notes, readiness line, then the answers.
 /// Returns an exit code only when the start fails; after the readiness line only a signal ends the process (review B9: a failed
 /// `accept` is reported and the loop goes on).
@@ -273,28 +229,10 @@ pub fn starten<O: Write, E: Write>(konfig: Konfig, out: &mut O, err: &mut E) -> 
         let _ = writeln!(err, "rangkern sitzung: signals: {fehler}");
         return EXIT_SOCKET;
     }
-    let einst = match einst::lesen_datei(&konfig.einstellungen) {
+    let einst = match vor_dem_kanal(&konfig, err) {
         Ok(einst) => einst,
-        Err(fehler) => {
-            let _ = writeln!(err, "rangkern sitzung: settings: {fehler}");
-            return EXIT_CONFIG;
-        }
+        Err(code) => return code,
     };
-    if !einst.routen.contains(&konfig.route) {
-        let _ = writeln!(err, "rangkern sitzung: the route is not in the settings");
-        return EXIT_CONFIG;
-    }
-    if !konfig.protokoll.is_dir() {
-        let _ = writeln!(err, "rangkern sitzung: the log folder is not a folder");
-        return EXIT_CONFIG;
-    }
-    // The count file belongs to 78, and 78 comes before 74: it is checked before the socket (W3).
-    if let Some(probe) = &konfig.probelauf
-        && let Err(fehler) = zaehldatei_pruefen(&probe.zaehlung)
-    {
-        let _ = writeln!(err, "rangkern sitzung: probe run: {fehler}");
-        return EXIT_CONFIG;
-    }
     let listener = match socket_anlegen_gemerkt(
         &pfad,
         &konfig.socket,
@@ -379,39 +317,6 @@ impl Annahmefehler {
     }
 }
 
-/// The start of the probe-run mode: the file of the counts with the count 0 first, then the log line `probelauf.zaehlung`, then
-/// the fixed line on the error output. `None` without the mode. A failure of the file or of the log line ends the start (the
-/// caller removes the socket); a failed log line removes the file again, so nothing of the failed start stays (review B8). The
-/// line on the error output comes after the log line and its failure ends nothing: the line is in the chain then, and a closed
-/// error output leaves nobody to tell (review B8: no failed start with a line in the chain).
-fn probelauf_starten<E: Write>(konfig: &Konfig, err: &mut E) -> std::io::Result<Option<Zaehlung>> {
-    let Some(ProbeKonfig { marker, zaehlung }) = &konfig.probelauf else {
-        return Ok(None);
-    };
-    let zaehlung = Zaehlung::anlegen(zaehlung.clone(), konfig.sitzung.clone(), marker.clone())?;
-    if let Err(fehler) =
-        probelauf_zeile(&konfig.protokoll, &konfig.sitzung, zaehlung.anzahl_marker())
-    {
-        let _ = zaehlung.entfernen();
-        return Err(fehler);
-    }
-    let _ = writeln!(err, "{STDERR_ZEILE}");
-    Ok(Some(zaehlung))
-}
-
-/// The log line `probelauf.zaehlung` of the start: `anhaengen_probelauf` of `formate` writes it into the log of the month.
-fn probelauf_zeile(ordner: &Path, sitzung: &str, anzahl: usize) -> std::io::Result<()> {
-    let zeile = Probelauf {
-        zeit_ms: jetzt_ms(),
-        programm: "suche".to_owned(),
-        sitzung: sitzung.to_owned(),
-        anzahl: u32::try_from(anzahl).unwrap_or(u32::MAX),
-    };
-    anhaengen_probelauf(ordner, "brain", &zeile)
-        .map(|_| ())
-        .map_err(|fehler| std::io::Error::other(fehler.code()))
-}
-
 /// One connection with the idle time of [`LEERLAUF`].
 fn verbindung(strom: UnixStream, sitzung: &Sitzung) {
     verbindung_mit(strom, sitzung, LEERLAUF);
@@ -445,157 +350,18 @@ fn verbindung_mit(strom: UnixStream, sitzung: &Sitzung, leerlauf: Duration) {
     }
 }
 
-/// The current time in milliseconds since 1970.
-fn jetzt_ms() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .ok()
-        .and_then(|dauer| i64::try_from(dauer.as_millis()).ok())
-        .unwrap_or_default()
-}
-
-/// The buffer of an answer: one JSON line with its line feed.
-fn zeile_von(antwort: &Value) -> Vec<u8> {
-    let mut bytes = serde_json::to_vec(antwort).unwrap_or_default();
-    bytes.push(b'\n');
-    bytes
-}
-
-/// The answer with the `id` of the request, if it had one.
-fn mit_id(mut antwort: Value, id: Option<Value>) -> Value {
-    if let (Some(id), Some(objekt)) = (id, antwort.as_object_mut()) {
-        objekt.insert("id".to_owned(), id);
-    }
-    antwort
-}
-
-impl Sitzung {
-    fn server(&self) -> MutexGuard<'_, Server> {
-        self.server.lock().unwrap_or_else(PoisonError::into_inner)
-    }
-
-    /// The answer to one line, as the buffer that goes to the socket: one JSON line with its line feed.
-    fn antworten(&self, zeile: &Line) -> Vec<u8> {
-        if zeile.too_long {
-            return zeile_von(&bad_request(None));
-        }
-        let anfrage = match anfrage::lesen(&zeile.bytes) {
-            Ok(anfrage) => anfrage,
-            Err(id) => return zeile_von(&bad_request(id)),
-        };
-        match anfrage.op {
-            Op::Ping => zeile_von(&mit_id(json!({"ok": true}), anfrage.id)),
-            Op::Search { query, k, space } => self.suchen(query, k, space, anfrage.id),
-        }
-    }
-
-    /// A search: the whole list, the gate, then the counting of the markers (probe run only), then the log lines for the
-    /// blocked hits, then the line `suche.rueckfall` when the embedding of `--embed` failed, then the buffer of the answer.
-    /// If the counting or a line of a blocked hit cannot be written, the answer is `{"error":"protokoll"}` with no hit; a
-    /// failed counting writes no log line. A failed line `suche.rueckfall` changes nothing of the answer.
-    fn suchen(&self, query: String, k: usize, space: Option<String>, id: Option<Value>) -> Vec<u8> {
-        let mut server = self.server();
-        // The whole list: the prefix property makes `L[..k]` the answer of `rangkern serve` for `k`.
-        let frage = SearchRequest {
-            query,
-            k: usize::MAX,
-            space,
-            today: None,
-            query_vector: None,
-        };
-        let (antwort, gruppen, ausfall) = match server.search_hits_ausfall(&frage, now_ns()) {
-            Err(_) => (json!({"error": "unreadable"}), Vec::new(), None),
-            Ok((liste, fallback, ausfall)) => {
-                let notes: HashMap<_, _> = server.notes_by_rel();
-                let paare = contradiction_pairs(server.root());
-                let durch = self.tor.durchlassen(liste, k, &notes, &paare);
-                let antwort = json!({
-                    "fallback": fallback,
-                    "hits": durch.hits.iter().map(hit_json).collect::<Vec<_>>(),
-                    "gesperrt": durch.gesperrt(),
-                });
-                (antwort, durch.gruppen, ausfall)
-            }
-        };
-        let puffer = zeile_von(&mit_id(antwort, id.clone()));
-        let gezaehlt = self
-            .zaehlung
-            .as_ref()
-            .is_none_or(|zaehlung| zaehlung.zaehlen(&puffer).is_ok());
-        if !gezaehlt || self.protokollieren(&gruppen).is_err() {
-            return zeile_von(&mit_id(json!({"error": "protokoll"}), id));
-        }
-        if let Some(grund) = ausfall {
-            self.rueckfall(grund);
-        }
-        puffer
-    }
-
-    /// The log line `suche.rueckfall` (contract 5, section 6.5): the search answers lexically because the embedding of
-    /// `--embed` failed. A call of its own after the lines of the blocked hits. A failure is dropped: no second try, no
-    /// buffer, no text on the error output, no field in the answer (contract 4, "Rückfall der Einbettung").
-    fn rueckfall(&self, grund: Grund) {
-        let _ = anhaengen_zeile(
-            &self.protokoll,
-            "brain",
-            jetzt_ms(),
-            &json!({
-                "aktionsname": "suche.rueckfall",
-                "ergebnis": "lexikalisch",
-                "grund": grund.text(),
-                "route": self.route,
-                "sitzung": self.kennung,
-            }),
-        );
-    }
-
-    /// The log line `kanal.abgewiesen` for a connection turned away: channel `such`, route and session from the start, no uid.
-    /// If it cannot be written, one line without content goes to the error output; the process goes on.
-    fn abgewiesen(&self, grund: &str) {
-        let zeile = Abgewiesen {
-            zeit_ms: jetzt_ms(),
-            grund: grund.to_owned(),
-            kanal: "such".to_owned(),
-            route: Some(self.route.clone()),
-            sitzung: Some(self.kennung.clone()),
-        };
-        if anhaengen_abgewiesen(&self.protokoll, "brain", &zeile).is_err() {
-            let _ = writeln!(
-                std::io::stderr(),
-                "rangkern sitzung: kanal.abgewiesen: the line could not be written"
-            );
-        }
-    }
-
-    /// Writes one line per group to the chain `brain`, with the time of now. Every line of the process goes through the
-    /// functions with folder and source, which lock the source (contract 5, section 5.3: "beide Wege nie mischen"); until
-    /// 23.11.2026 these lines locked only the file of the month (`anhaengen_gesperrt`), while the other lines locked the source.
-    fn protokollieren(&self, gruppen: &[Gruppe]) -> Result<(), formate::kette::Fehler> {
-        let zeit_ms = jetzt_ms();
-        for gruppe in gruppen {
-            anhaengen_gesperrt_in(
-                &self.protokoll,
-                "brain",
-                &Gesperrt {
-                    zeit_ms,
-                    route: self.route.clone(),
-                    sitzung: self.kennung.clone(),
-                    grund: gruppe.grund.to_owned(),
-                    klasse: gruppe.klasse.clone(),
-                    kunde: gruppe.kunde.clone(),
-                    anzahl: gruppe.anzahl,
-                },
-            )?;
-        }
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sitzung::einst;
+    use crate::sitzung::kern::MAX_VERBINDUNGEN;
+    use crate::sitzung::konfig::Probelauf as ProbeKonfig;
+    use crate::sitzung::probelauf::STDERR_ZEILE;
+    use serde_json::Value;
     use std::fs;
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    use std::path::PathBuf;
+    use std::sync::atomic::Ordering;
     use std::time::Instant;
 
     fn ordner(name: &str) -> PathBuf {
@@ -1100,6 +866,7 @@ mod tests {
                 marker: vec!["MI-1A".to_owned()],
                 zaehlung: ordner.join("zaehl/zaehlung.json"),
             }),
+            paket_sid: None,
         }
     }
 

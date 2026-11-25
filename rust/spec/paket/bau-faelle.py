@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Erzeugt die sichtbaren Fälle des Vertrags Paketbau und Prüfbefehl (faelle/, erwartet/; ausstehend: faelle-ausstehend/, erwartet-ausstehend/).
+"""Erzeugt die sichtbaren Fälle des Vertrags Paketbau und Prüfbefehl (faelle/, erwartet/).
 
 Aufruf: python3 -I rust/spec/paket/bau-faelle.py
 Die erwarteten Codes und Zeilen stehen hier von Hand, unabhängig von referenz.py; pruefen.py vergleicht beide.
@@ -991,6 +991,31 @@ fall_pruef("linux-dienst-bruecke-und-halter-reihenfolge", "Nachtrag Halter: Brü
                 "pruef.dienst_fehlgeschlagen: Der Dienst wb-halter.service ist fehlgeschlagen."]), halter_einheit("fehlgeschlagen", "inaktiv"))
 fall_pruef("linux-copilot-ablage", "Nachtrag Halter: eine Ebene der Ablage ist ein Verweis oder geheim/ ist nicht 0700; die Zeile nennt keinen Pfad", 1,
            rot(["pruef.copilot_ablage: Die Ablage des Halters hat falsche Rechte, einen falschen Eigentuemer oder einen Verweis."]), lx(lambda o: o.update(copilot="ablage")))
+# Nachtrag Rolle aus der Gruppe (25.11.): Rollengruppe wb-bruecke und Rollenprogramm, Teil der Prüfung `dienste`, nach den Zeilen der Einheiten.
+RG = {"fehlt": "pruef.rollengruppe_fehlt: Die Rollengruppe wb-bruecke fehlt; der Modellweg bekommt beim Halter keine Rolle.",
+      "mitglied": "pruef.rollengruppe_mitglied: Die Rollengruppe wb-bruecke hat ein Mitglied, ein Passwort oder eine falsche Form; "
+                  "ein Prozess eines Kontos koennte die Rolle bruecke annehmen.",
+      "nicht_pruefbar": "pruef.rollengruppe_nicht_pruefbar: Die Rollengruppe wb-bruecke war nicht pruefbar."}
+RP = {"fehlt": "pruef.rollenprogramm_fehlt: Das Rollenprogramm /usr/lib/werkbank/werkbank-modellweg fehlt.",
+      "modus": "pruef.rollenprogramm_modus: Das Rollenprogramm /usr/lib/werkbank/werkbank-modellweg hat nicht root:wb-bruecke mit Modus 2755.",
+      "nicht_pruefbar": "pruef.rollenprogramm_nicht_pruefbar: Das Rollenprogramm war nicht pruefbar."}
+fall_pruef("linux-rolle-gruen-mit-feldern", "Nachtrag Rolle aus der Gruppe: beide Felder ausdrücklich ok: grün, acht Prüfungen", 0, [OK7],
+           lx(lambda o: o.update(rollengruppe="ok", rollenprogramm="ok")))
+for z in ("fehlt", "mitglied", "nicht_pruefbar"):
+    fall_pruef("linux-rolle-gruppe-" + z.replace("_", "-"), f"Nachtrag Rolle aus der Gruppe: Rollengruppe im Zustand {z}", 1, rot([RG[z]]),
+               lx(lambda o, z=z: o.update(rollengruppe=z)))
+for z in ("fehlt", "modus", "nicht_pruefbar"):
+    fall_pruef("linux-rolle-programm-" + z.replace("_", "-"), f"Nachtrag Rolle aus der Gruppe: Rollenprogramm im Zustand {z}", 1, rot([RP[z]]),
+               lx(lambda o, z=z: o.update(rollenprogramm=z)))
+fall_pruef("linux-rolle-beide-nach-den-einheiten", "Nachtrag Rolle aus der Gruppe: Einheit des Halters, Gruppe und Programm rot: erst die Einheit, dann die Gruppe, dann das Programm, dann AppArmor", 1,
+           rot(["pruef.dienst_fehlgeschlagen: Der Dienst wb-halter.service ist fehlgeschlagen.", RG["mitglied"], RP["modus"],
+                "pruef.apparmor_nicht_geladen: Das AppArmor-Profil ist nicht geladen."]),
+           lx(lambda o: (o["dienste"].append({"name": "wb-halter.service", "zustand": "fehlgeschlagen"}),
+                         o.update(rollengruppe="mitglied", rollenprogramm="modus", apparmor="nicht_geladen"))))
+fall_pruef("linux-rolle-ohne-root-nicht-pruefbar-mit-hinweis", "Nachtrag Rolle aus der Gruppe: ohne root ist /etc/gshadow nicht lesbar: nicht_pruefbar und der Hinweis auf sudo", 1,
+           [RG["nicht_pruefbar"], HINWEIS_SUDO, "pruef.rot: 1 Befunde."], lx(lambda o: o.update(ohne_root=True, rollengruppe="nicht_pruefbar")))
+fall_pruef("linux-rolle-vor-entfernen-still", "Nachtrag Rolle aus der Gruppe: `prerm` sagt zu Gruppe und Programm nichts", 0, [],
+           lx(lambda o: o.update(schluessel="fehlt", copilot="fehlt", rollengruppe="mitglied", rollenprogramm="modus")), aufruf=["--vor-entfernen"])
 ALTER_ORT = "pruef.copilot_alter_ort: Am frueheren Ort liegt noch eine Anmeldedatei der Copilot CLI; sie wird nicht mehr gelesen und muss weg."
 fall_pruef("linux-copilot-alter-ort", "Nachtrag Halter: anmeldung.copilot ist in Ordnung, die Datei am früheren Ort liegt noch da: ein eigener Befund", 1,
            rot([ALTER_ORT]), lx(lambda o: o.update(copilot_alt=True)))
@@ -1296,6 +1321,15 @@ fall_purge("gueltig-mit-anmeldung", "ausdrückliche Ausnahme 2: die Anmeldung de
            VOR + ["ordner:/srv/beispiel/heim/nutzer1/.copilot", "datei:/srv/beispiel/heim/nutzer1/.copilot/anmeldung.json"])
 fall_purge("gueltig-systemprotokolle", "ausdrückliche Ausnahme 3: Protokolle von `dpkg`, `apt` und dem Journal",
            VOR + ["datei:/var/log/apt/history.log", "datei:/var/log/apt/term.log", "datei:/var/log/journal/abc/system.journal"])
+fall_purge("rolle-gruppe-weg", "Nachtrag Rolle aus der Gruppe: `purge` entfernt die angelegte Gruppe wb-bruecke", list(VOR))
+fall_purge("rolle-gruppe-bleibt", "Nachtrag Rolle aus der Gruppe: die Gruppe wb-bruecke steht nach `purge` noch da", VOR + ["gruppe:wb-bruecke"],
+           "entfernen_rueckstand")
+fall_purge("rolle-gruppe-von-vorher-bleibt", "Nachtrag Rolle aus der Gruppe: eine Gruppe wb-bruecke von vor der Installation (keine Marke) bleibt",
+           VOR + ["gruppe:wb-bruecke"], vorher=VOR + ["gruppe:wb-bruecke"])
+fall_purge("rolle-gruppe-von-vorher-geloescht", "Nachtrag Rolle aus der Gruppe: `purge` löscht eine Gruppe wb-bruecke, die vorher schon da war",
+           list(VOR), "entfernen_verloren", vorher=VOR + ["gruppe:wb-bruecke"])
+fall_purge("rolle-marke-bleibt", "Nachtrag Rolle aus der Gruppe: die Marke /var/lib/werkbank/rollengruppe-angelegt bleibt nach `purge`",
+           VOR + ["datei:/var/lib/werkbank/rollengruppe-angelegt"], "entfernen_rueckstand")
 fall_purge("lauf-json-bleibt", "`/etc/werkbank/lauf.json` bleibt nach `purge` liegen", VOR + ["datei:/etc/werkbank/lauf.json"], "entfernen_rueckstand")
 fall_purge("kern-json-bleibt", "`/etc/werkbank/kern.json` bleibt nach `purge` liegen", VOR + ["datei:/etc/werkbank/kern.json"], "entfernen_rueckstand")
 fall_purge("bruecke-json-bleibt", "`/etc/werkbank/bruecke.json` bleibt nach `purge` liegen", VOR + ["datei:/etc/werkbank/bruecke.json"], "entfernen_rueckstand")
@@ -1841,39 +1875,19 @@ fall_purge2("mount-form-rest-dateien-doppelt", "Schritt II: Dateien stehen zugle
             "entfernen_form", rest={"dateien": [REST_DATEI], "prozesse": []}, journal=KONTO_REST + "\n", einhaengepunkte=[M_WURZEL, M_ZWEITE])
 
 
-# Fälle des Nachtrags Halter, die der heutige Code der Crates nicht besteht (Crate werkbank-pruefen liest `manifest-` und
-# `pruefung-linux-`). Sie liegen in `faelle-ausstehend/` und `erwartet-ausstehend/`, die kein Crate liest. Die Änderung, die den Code
-# bringt (README.md der Ordner), verschiebt sie im selben Merge nach `faelle/` und `erwartet/` und leert diese Liste.
-AUSSTEHEND = {
-    "manifest-pflichtdatei-linux-halter",
-    "manifest-pflichtdatei-linux-halter-andere-art",
-    "manifest-pflichtdatei-linux-einheit-halter",
-    "pruefung-linux-copilot-ablage",
-    "pruefung-linux-copilot-alter-ort",
-    "pruefung-linux-copilot-alter-ort-und-fehlt",
-    "pruefung-linux-dienst-bruecke-und-halter-reihenfolge",
-    "pruefung-linux-dienst-halter-fehlgeschlagen",
-    "pruefung-linux-dienst-halter-fehlt",
-    "pruefung-linux-dienst-halter-gruen",
-    "pruefung-linux-dienst-halter-inaktiv",
-    "pruefung-linux-dienst-halter-nicht-pruefbar",
-    "pruefung-linux-vor-entfernen-ablage",
-}
+# Ausstehende Fälle: keine mehr. Die Fälle des Nachtrags Halter, die erst der Code der Crates bestand, stehen seit dessen Zug in
+# `faelle/` und `erwartet/`; die Ordner `faelle-ausstehend/` und `erwartet-ausstehend/` sind entfernt. Ein Name hier hieße wieder ein
+# solches Ordnerpaar mit README.md.
+AUSSTEHEND = set()
 
 
 def schreiben():
     paare = (("faelle", "erwartet"), ("faelle-ausstehend", "erwartet-ausstehend"))
-    for ordner in (o for paar in paare for o in paar):
+    for ordner in paare[0]:
         pfad = HIER / ordner
-        if pfad.exists() and ordner in ("faelle", "erwartet"):
+        if pfad.exists():
             shutil.rmtree(pfad)
-            pfad.mkdir()
-        elif pfad.exists():
-            # Die README.md dieser Ordner ist von Hand geschrieben und bleibt.
-            for alt in pfad.glob("*.json"):
-                alt.unlink()
-        else:
-            pfad.mkdir()
+        pfad.mkdir()
     namen = [n for n, _, _ in FAELLE]
     assert len(namen) == len(set(namen)), "doppelter Fallname"
     assert AUSSTEHEND <= set(namen), f"ausstehend, aber kein Fall: {sorted(AUSSTEHEND - set(namen))}"

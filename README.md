@@ -103,17 +103,9 @@ needs the Contributor License Agreement (CLA) to be accepted once. Details:
 
 ## License
 
-Source-available under the [Business Source License 1.1](LICENSE) with an additional use grant.
-Each version also becomes available under the Apache License 2.0 two years after it is first
-published.
+The licensor's own work is licensed under the [Apache License 2.0](LICENSE); third-party parts and
+the attribution are listed in [NOTICE.md](NOTICE.md). The names and logos are not licensed; see
+[TRADEMARKS.md](TRADEMARKS.md). Setup, support and training are offered as a paid service; see
+[SUPPORT.md](SUPPORT.md).
 
-- **Free to use for everyone**, including companies: at work, in production, within an
-  organization and for paid work you do with its help.
-- **Free to pass on to your customers**, also adapted and for payment; setting it up, hosting,
-  operating, supporting and teaching it for customers is free for everyone, also for payment.
-- **Partner agreement required** only for offering it to more than one customer under your own
-  product name or built into a product under another name; without one, such an offering may not
-  be run or hosted, and its customers may not use it in production. Offers to more than one
-  customer carry the attribution that COMMERCIAL-LICENSE.md gives. Details: [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md),
-  German reading version of the license: [LICENSE-de.md](LICENSE-de.md).
-- Only the text in [LICENSE](LICENSE) is binding.
+Earlier states keep the license they were published under; see [CHANGELOG.md](CHANGELOG.md).

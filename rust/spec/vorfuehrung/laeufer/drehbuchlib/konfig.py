@@ -11,6 +11,11 @@ PFLICHT = ("ziel", "bruecke", "modell", "fremd", "einstellungen", "protokoll", "
            "routen", "routen_klassen", "klassen", "harness", "kunde", "kunde2", "gateway", "erwartet", "start", "marker", "notiz_nk", "frage", "befehle", "prompts", "grenzen", "such_prozess")
 
 
+# Zug 2 des knappen Cloud-Laufs (das Buendel): Eingaben mit diesem Zeichen am Anfang fuehrt die CLI selbst in ihrer Shell aus, ohne Anfrage
+# an das Modell. So bekommt das Modell keinen Auftrag, nach Zugangsdaten zu suchen; das Buendel laeuft trotzdem im Einschluss der Sitzung.
+SHELL_EINGABE = "!"
+
+
 class KonfigFehler(Exception):
     pass
 
@@ -42,6 +47,10 @@ def lade(pfad, hier, arbeit, nutzer=None):
         raise KonfigFehler("Schluessel fehlen: " + ", ".join(fehlt))
     if k["ziel"] not in ("attrappe", "echt"):
         raise KonfigFehler("ziel muss attrappe oder echt sein")
+    bv = k["prompts"].get("buendel")
+    if bv is not None and not (isinstance(bv, str) and bv.startswith(SHELL_EINGABE)):
+        # Zug 2 des knappen Cloud-Laufs ist eine Shell-Eingabe der CLI: Das Buendel geht nie als Auftrag an das Modell.
+        raise KonfigFehler("prompts.buendel muss eine Shell-Eingabe der CLI sein (beginnt mit %s)" % SHELL_EINGABE)
     pl = k.get("copilot", {}).get("platzhalter")
     if isinstance(pl, dict):  # der Platzhalter steht nicht als Text in der Datei: Vorsatz, Unterstrich und n Nullen
         k["copilot"]["platzhalter"] = pl["vorsatz"] + "_" + "0" * int(pl["nullen"])

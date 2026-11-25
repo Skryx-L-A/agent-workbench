@@ -1,0 +1,10 @@
+{
+ "beschreibung": "ein entfernter MCP-Server und ein Schluessel der Stelle",
+ "form": "konfig",
+ "text": "{\n \"fassung\": 1,\n \"konten\": {\n  \"1000\": {\n   \"person\": \"ps_a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\"\n  }\n },\n \"rollen\": {\n  \"bruecke\": \"wb-bruecke\"\n },\n \"ziele\": {\n  \"copilot\": {\n   \"host\": \"api.githubcopilot.example\",\n   \"port\": 443,\n   \"tls\": true,\n   \"praefix\": \"\",\n   \"kopf\": \"authorization\",\n   \"vorsatz\": \"Bearer \",\n   \"schluessel\": \"anmeldung.copilot\",\n   \"pfade\": [\n    \"GET /copilot_internal/*\",\n    \"GET /responses\",\n    \"POST /chat/completions\",\n    \"GET /models\"\n   ]\n  }\n },\n \"server\": {\n  \"tickets\": {\n   \"host\": \"mcp.example\",\n   \"port\": 443,\n   \"tls\": true,\n   \"pfad\": \"/mcp\",\n   \"kopf\": \"authorization\",\n   \"vorsatz\": \"Bearer \",\n   \"schluessel\": \"mcp.tickets\",\n   \"freigabe\": true,\n   \"werkzeuge\": {\n    \"update\": \"schreibend\",\n    \"get\": \"lesend\"\n   },\n   \"lokal\": false\n  }\n },\n \"kids\": {\n  \"stelle-mcp-1\": \"qvy5SgFhefK2a9hsceqk+MJ5evYpEJTTdGpqO3O85VY=\"\n }\n}",
+ "umgebung": {
+  "uid": 1000,
+  "group": "root:x:0:\nperson:x:1000:\nanders:x:1001:\nwb-hub:x:990:\nwb-bruecke:x:991:\nwb-oberflaeche:x:992:\n",
+  "passwd": "root:x:0:0:root:/root:/bin/sh\nperson:x:1000:1000::/srv/beispiel/person:/bin/sh\nanders:x:1001:1001::/srv/beispiel/anders:/bin/sh\n"
+ }
+}

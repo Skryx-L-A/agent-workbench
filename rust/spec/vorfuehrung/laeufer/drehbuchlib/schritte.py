@@ -245,6 +245,27 @@ def _zug_gemessen(L, nr, fn, *a, **kw):
         messen.teilzeit_notiere("s1.zug%d.gesamt" % nr, round(time.monotonic() - t0, 3))
 
 
+def _ca_vorpruefung(L, sid, z):
+    """Vorpruefung der Sitzungs-CA (Nachtrag 5), ohne zweiten Start. Sie braucht nur Zug 1 (`z`) und laeuft deshalb direkt nach ihm, vor
+    dem Buendel: Endet Zug 2 ohne Merkmal, ist das Ergebnis der CA trotzdem gemessen. (a) Die CLI nimmt den Abschluss an: Die erste
+    Anfrage kam am Weiterreicher an, und im Terminal steht kein Zertifikatsfehler. (b) Der Ausgang kommt durch: der Wirt erreicht das Ziel."""
+    ca_k = L.k.get("ca", {})
+    start_text = L.b.verlauf(sid, 0)[1] + z.verlauf
+    mw = L.zaehlstand(sid, "modellweg")
+    if mw is None:
+        L.ca["cli_nimmt_an"] = None
+    else:
+        L.ca["cli_nimmt_an"] = mw.get("anfragen", 0) >= 1 and not any(re.search(m, start_text, re.I) for m in ca_k.get("fehlermuster", []))
+    if ca_k.get("ausgang_befehl") and ca_k.get("ausgang_ziel"):
+        t_aus = time.monotonic()
+        try:
+            rc_a, out_a = messen.aussen_shell(_fmt(ca_k["ausgang_befehl"], ziel=ca_k["ausgang_ziel"]), frist_s=20)
+        finally:
+            messen.teilzeit_notiere("s1.ausgang_ca", time.monotonic() - t_aus)
+        cd = re.findall(r"\d{3}", out_a)
+        L.ca["ausgang"] = rc_a == 0 and bool(cd) and cd[0] != "000"
+
+
 def s1(L):
     s = Schritt("S1", "Sitzung mit Cloud-Modell starten")
     k = L.k
@@ -280,17 +301,20 @@ def s1(L):
     route = (info.get("start") or {}).get("route") if isinstance(info, dict) else None
     s.haupt("Start-Struktur nennt die Route cloud", route == L.cloud, start_route=_fest_aus(route, (L.cloud, L.lokal)))
     if L.knapp:
-        # Knapper Cloud-Lauf: Eingabe 1 ist die gezaehlte Anfrage ohne Werkzeug, Eingabe 2 das eine Buendel Shell-Befehle.
+        # Knapper Cloud-Lauf: Eingabe 1 ist die gezaehlte Anfrage ohne Werkzeug, Eingabe 2 das eine Buendel Shell-Befehle als Shell-Eingabe
+        # der CLI (`prompts.buendel`, beginnt mit `!`): Die CLI fuehrt es selbst in ihrer Shell im Einschluss aus, das Modell bekommt es nicht.
         L.ziel0 = L.zinfo["ziel_zaehler"]() if L.zinfo.get("ziel_zaehler") else None  # fuer E4-cloud: Zaehler vor den Eingaben
         z = _zug_gemessen(L, 1, L.zug, sid, "zaehlen", "")
         s.haupt("Eingabezeile nimmt Text an, die Anfrage ohne Werkzeug wird beantwortet (FERTIG)", True)
         s.haupt("Kopf-Tausch: eine Antwort kam, obwohl im Einschluss nur der Platzhalter steht (Anfrage am Weiterreicher gezaehlt)",
                 z.mw is None or z.mw.get("antworten", 0) >= 1, anfragen_eingabe1=None if z.mw is None else z.mw.get("antworten", 0))
         _zaehlung_cloud(s, z, "S1", L)
+        L.zug1 = z
+        _ca_vorpruefung(L, sid, z)  # vor dem Buendel: die CA braucht nur Zug 1
         zb = _zug_gemessen(L, 2, L.zug, sid, "buendel", cloud_buendel(L), frist_s=float(k["grenzen"].get("baum_s", 30)))
         L.buendel, L.buendel_zug = buendel_lesen(zb), zb
         erwartet = 5 + len(TOKENPRUEFUNGEN)
-        s.haupt("Das Shell-Werkzeug laeuft ohne Rueckfrage: das Buendel liefert alle Zeilen", len(L.buendel) >= erwartet,
+        s.haupt("Die Shell der CLI fuehrt das Buendel ohne Rueckfrage aus: es liefert alle Zeilen", len(L.buendel) >= erwartet,
                 buendel_zeilen=len(L.buendel), buendel_erwartet=erwartet)
         bn, bw = L.buendel.get("s1_route_namen"), L.buendel.get("s1_route_wert")
         s.haupt("Umgebung des Agenten ohne Routenwert", bn is not None and bw is not None and bn[0] == 0 and bw[0] == 0,
@@ -304,25 +328,9 @@ def s1(L):
         route_namen = [n for n in namen if "route" in n.lower()]
         s.haupt("Eingabezeile nimmt Text an", z.rc == 0, rc_env=z.rc)
         _zaehlung_cloud(s, z, "S1", L)
+        _ca_vorpruefung(L, sid, z)
         s.haupt("Umgebung des Agenten ohne Routenwert", not route_namen and L.cloud not in werte,
                 umgebung_variablen=len(namen), route_variablen=len(route_namen))  # Zahl, nie die Namen aus der Sitzung
-    # Vorpruefung der Sitzungs-CA (Nachtrag 5), ohne zweiten Start: (a) die CLI nimmt den Abschluss an. Die erste Anfrage kam am
-    # Weiterreicher an, und im Terminal steht kein Zertifikatsfehler. (b) Der Ausgang kommt durch: der Wirt erreicht das Ziel.
-    ca_k = k.get("ca", {})
-    start_text = L.b.verlauf(sid, 0)[1] + z.verlauf
-    mw = L.zaehlstand(sid, "modellweg")
-    if mw is None:
-        L.ca["cli_nimmt_an"] = None
-    else:
-        L.ca["cli_nimmt_an"] = mw.get("anfragen", 0) >= 1 and not any(re.search(m, start_text, re.I) for m in ca_k.get("fehlermuster", []))
-    if ca_k.get("ausgang_befehl") and ca_k.get("ausgang_ziel"):
-        t_aus = time.monotonic()
-        try:
-            rc_a, out_a = messen.aussen_shell(_fmt(ca_k["ausgang_befehl"], ziel=ca_k["ausgang_ziel"]), frist_s=20)
-        finally:
-            messen.teilzeit_notiere("s1.ausgang_ca", time.monotonic() - t_aus)
-        cd = re.findall(r"\d{3}", out_a)
-        L.ca["ausgang"] = rc_a == 0 and bool(cd) and cd[0] != "000"
     if k["bruecke"].get("pruefe_token", True):
         code, _, _ = L.starten(L.start_dict("cloud"), ohne_token=True, ablehnung=True)
         s.haupt("Anfrage ohne Token abgelehnt", code in (401, 403), status_ohne_token=code)
@@ -1087,6 +1095,11 @@ def e4_cloud(L):
         s.offen.append("ca.ausgang_blockiert: der Ausgang des Wirts zum Ziel ist gesperrt")
         s.code_fest = "ca.ausgang_blockiert"
         return s
+    if L.knapp and L.buendel is None:
+        # S1 endete vor dem Buendel (etwa s1.zug_frist oder s1.antwort_ohne_merkmal). Der Grund ist das fehlende Buendel; eine CA, deren
+        # Vorpruefung (nach Zug 1) nicht lief, waere hier eine irrefuehrende Meldung.
+        s.offen.append("e4-cloud.offen: das Buendel der Cloud-Sitzung aus S1 liegt nicht vor")
+        return s
     if L.ca["cli_nimmt_an"] is None or L.ca["ausgang"] is None:
         s.offen.append("ca: Vorpruefung nicht gelaufen (keine Zaehldatei des Weiterreichers oder kein Ausgangsbefehl)")
         return s
@@ -1095,9 +1108,6 @@ def e4_cloud(L):
     vorlagen = TOKENPRUEFUNGEN
     zaehler, zuege = {}, []
     if L.knapp:  # die Pruefungen liefen im einen Buendel von S1 (Eingabe 2)
-        if L.buendel is None:
-            s.offen.append("e4-cloud.offen: das Buendel der Cloud-Sitzung aus S1 liegt nicht vor")
-            return s
         for n in vorlagen:
             v = L.buendel.get("e4c_" + n)
             zaehler[n] = v[0] if v else None
@@ -1110,7 +1120,13 @@ def e4_cloud(L):
                          frist_s=float(k["grenzen"].get("baum_s", 30)) if n == "token_dateien" else None)
             zaehler[n] = _zahl(z)
             zuege.append(z)
-    _zaehlung_cloud(s, zuege[-1], "E4-cloud", L)
+    if L.knapp:
+        # Zug 2 ist eine Shell-Eingabe der CLI ohne Modellanfrage: Die Route der Cloud-Sitzung belegt die Zaehlung von Zug 1 (die eine
+        # Modellanfrage der Sitzung). Fuer Zug 2 gilt weiter: Kundenmarker 0 am Weiterreicher. Die Zahl seiner Anfragen im Zug 2 steht als
+        # Messwert da (erwartet 0: das Buendel ging nicht an das Modell).
+        _zaehlung_cloud(s, L.zug1, "E4-cloud", L)
+    else:
+        _zaehlung_cloud(s, zuege[-1], "E4-cloud", L)
     if not L.knapp:  # voller Lauf: die Positivkontrolle ist eine eigene Eingabe; im knappen Lauf kam sie im Buendel von S1
         kontrolle = _zahl(L.befehl(sid, _fmt(k["befehle"][KONTROLLE_ENV], platzhalter=ohne_tokenpraefix(c["platzhalter"]))))
         kontrolle_proc = _zahl(L.befehl(sid, _fmt(k["befehle"][KONTROLLE_PROC], platzhalter=ohne_tokenpraefix(c["platzhalter"]))))
@@ -1172,6 +1188,11 @@ def e4_cloud(L):
                 ziel_ohne_token=direkt, weiterreicher=ueber)
     else:
         s.offen.append("copilot.weiterreicher_url: Gegenprobe ausserhalb des Einschlusses nicht moeglich")
+    zb = L.buendel_zug if L.knapp else None
+    if zb is not None and zb.mw is not None:  # als letzter Teil: die Nummern der Teile davor bleiben wie vorher
+        mk2 = {"nk": _zw(zb, L.nk), "ns": _zw(zb, L.ns)}
+        s.haupt("Am Weiterreicher im Zug des Buendels: Marker der Kunden 0", _null(*mk2.values()), marker_weiterreicher_buendel=mk2)
+        s.messwerte.update(buendel_anfragen_weiterreicher=_fest_zahl(zb.mw.get("antworten", 0)))
     return s
 
 

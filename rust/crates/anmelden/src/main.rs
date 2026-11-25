@@ -1,17 +1,17 @@
 //! `werkbank-anmelden copilot [--uebernehmen] [--neu]`: process shell. Arguments, signals and output; the logic is
-//! in the library. Seams for tests (`WB_ANMELDEN_ZIEL`, `WB_ANMELDEN_COPILOT_HEIM`, `WB_ANMELDEN_WURZEL`, and the
-//! probe `WB_ANMELDEN_PROBE` with `WB_ANMELDEN_PROBE_MARKE`, and `grenze-weich-0` for the check before the child) exist
-//! only in the test build (feature `pruefbau`) and count there only with `WB_TESTUMGEBUNG=1`. The delivered build has no
+//! in the library. Seams for tests (`WB_ANMELDEN_PASSWD`, a file read in place of `/etc/passwd` that names the home,
+//! `WB_ANMELDEN_COPILOT_HEIM`, `WB_ANMELDEN_WURZEL`, and the probe `WB_ANMELDEN_PROBE` with `WB_ANMELDEN_PROBE_MARKE`,
+//! and `grenze-weich-0` for the check before the child) exist only in the test build (feature `pruefbau`) and count there only with `WB_TESTUMGEBUNG=1`. The delivered build has no
 //! seam: it never reads these variables, the paths are fixed and there is no probe.
 
-#[cfg(unix)]
+// One `main` with the platform choice inside: cargo-mutants reads the source as text and does not evaluate `cfg`, so a
+// second `main` for another platform would be a function no test on this machine can reach.
 fn main() -> std::process::ExitCode {
-    unix::lauf()
-}
-
-#[cfg(not(unix))]
-fn main() -> std::process::ExitCode {
-    std::process::ExitCode::from(64)
+    #[cfg(unix)]
+    let code = unix::lauf();
+    #[cfg(not(unix))]
+    let code = std::process::ExitCode::from(64);
+    code
 }
 
 #[cfg(unix)]
@@ -24,12 +24,10 @@ mod unix {
 
     use anmelden::fehler::Fehler;
     use anmelden::lauf::{
-        TempArt, Umgebung, anmelden, durchreichen_aus_umgebung, nutzer_ordner, reste_raeumen,
-        temp_reste_raeumen,
+        TempArt, Umgebung, ablage_suchen, anmelden, durchreichen_aus_umgebung, heim_aus_passwd,
+        reste_raeumen, temp_reste_in, temp_reste_raeumen,
     };
     use anmelden::uebernehmen::{Probe, Punkt, uebernehmen};
-
-    const NUTZER_ORT: &str = "/var/lib/werkbank";
 
     pub fn lauf() -> ExitCode {
         // Before anything is read: no core image may hold a token (contract 9, section 3c).
@@ -132,7 +130,10 @@ mod unix {
     fn reste(umg: &Umgebung, uebernahme: bool) -> Result<usize, Fehler> {
         let pid = std::process::id();
         let mut n = reste_raeumen(&umg.wegwerf_wurzel, umg.uid, pid)?;
-        n += temp_reste_raeumen(&umg.ziel_ordner, TempArt::Schluessel, umg.uid, pid)?;
+        // The search never makes a level of the store: a missing store has no left-overs.
+        if let Some(ablage) = ablage_suchen(&umg.heim) {
+            n += temp_reste_in(&ablage, TempArt::Schluessel, umg.uid, pid)?;
+        }
         if uebernahme {
             n += temp_reste_raeumen(&umg.echtes_copilot_heim, TempArt::Config, umg.uid, pid)?;
         }
@@ -163,50 +164,52 @@ mod unix {
     /// The seams of the tests. Only the test build knows their names.
     #[derive(Clone, Copy)]
     enum Naht {
-        Ziel,
+        Passwd,
         CopilotHeim,
         Wurzel,
         Probe,
         ProbeMarke,
     }
 
-    /// Test build (feature `pruefbau`): the value of the seam, only with `WB_TESTUMGEBUNG=1`.
-    #[cfg(feature = "pruefbau")]
+    /// The value of the seam. Test build (feature `pruefbau`): only with `WB_TESTUMGEBUNG=1`. Delivered build: no seam,
+    /// the environment is not read for it. One function with the choice inside, so that the mutation run with the
+    /// feature reaches all of it (cargo-mutants does not evaluate `cfg`).
     fn seam(naht: Naht) -> Option<PathBuf> {
-        let name = match naht {
-            Naht::Ziel => "WB_ANMELDEN_ZIEL",
-            Naht::CopilotHeim => "WB_ANMELDEN_COPILOT_HEIM",
-            Naht::Wurzel => "WB_ANMELDEN_WURZEL",
-            Naht::Probe => "WB_ANMELDEN_PROBE",
-            Naht::ProbeMarke => "WB_ANMELDEN_PROBE_MARKE",
+        #[cfg(feature = "pruefbau")]
+        let wert = {
+            let name = match naht {
+                Naht::Passwd => "WB_ANMELDEN_PASSWD",
+                Naht::CopilotHeim => "WB_ANMELDEN_COPILOT_HEIM",
+                Naht::Wurzel => "WB_ANMELDEN_WURZEL",
+                Naht::Probe => "WB_ANMELDEN_PROBE",
+                Naht::ProbeMarke => "WB_ANMELDEN_PROBE_MARKE",
+            };
+            if std::env::var_os("WB_TESTUMGEBUNG").is_some_and(|v| v == "1") {
+                std::env::var_os(name).map(PathBuf::from)
+            } else {
+                None
+            }
         };
-        if std::env::var_os("WB_TESTUMGEBUNG").is_some_and(|v| v == "1") {
-            std::env::var_os(name).map(PathBuf::from)
-        } else {
+        #[cfg(not(feature = "pruefbau"))]
+        let wert = {
+            let _ = naht;
             None
-        }
-    }
-
-    /// Delivered build: no seam, the environment is not read for it.
-    #[cfg(not(feature = "pruefbau"))]
-    fn seam(_naht: Naht) -> Option<PathBuf> {
-        None
+        };
+        wert
     }
 
     fn umgebung() -> Option<Umgebung> {
         let uid = rustix::process::getuid().as_raw();
-        let ziel_ordner = if let Some(p) = seam(Naht::Ziel) {
-            p
-        } else {
-            let passwd = std::fs::read_to_string("/etc/passwd").ok()?;
-            nutzer_ordner(std::path::Path::new(NUTZER_ORT), &passwd, uid)?
-        };
+        // The home comes from `passwd` only (never `HOME`): the holder, this command and `postrm` see the same path.
+        let passwd_pfad = seam(Naht::Passwd).unwrap_or_else(|| PathBuf::from("/etc/passwd"));
+        let passwd = std::fs::read_to_string(passwd_pfad).ok()?;
+        let heim = heim_aus_passwd(&passwd, uid)?;
         let echtes = seam(Naht::CopilotHeim)
             .or_else(|| std::env::var_os("COPILOT_HOME").map(PathBuf::from))
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".copilot")))?;
         let wurzel = seam(Naht::Wurzel).unwrap_or_else(|| PathBuf::from("/var/tmp"));
         Some(Umgebung {
-            ziel_ordner,
+            heim,
             suchpfad: std::env::var_os("PATH").unwrap_or_default(),
             echtes_copilot_heim: echtes,
             wegwerf_wurzel: wurzel,

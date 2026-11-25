@@ -2,6 +2,7 @@
 //! finds no terminal and does nothing, the rest of the program does not care. Every child writes `BEREIT\r\n` first and reads one
 //! start byte; the rest of the input feeds what it reads next. Nothing here depends on the time of day.
 #![cfg(unix)] // the crate is Unix only (see `src/lib.rs`)
+#![cfg(feature = "pruefbau")] // the fixed child programs `--kind` exist in the test build only; `naht.rs` runs in both builds
 
 use std::fmt::Write as _;
 use std::io::{Read, Write};

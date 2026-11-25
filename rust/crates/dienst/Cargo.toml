@@ -13,6 +13,11 @@ path = "src/lib.rs"
 name = "wb-dienst"
 path = "src/main.rs"
 
+[features]
+# Test build only, never in the delivered build (the package builds without it): the fixed child programs `wb-dienst --kind <name>`
+# of the contract cases (`src/kindprogramm.rs`). Without the feature the program does not know `--kind` and holds no code of them.
+pruefbau = []
+
 # traeger, zustandskern, rasterauszug (path): the three building blocks. The service only translates between them and the
 # socket; it decides nothing that belongs to one of them.
 # rustix 1.1.6 (direct, features `process` and `event`, see below): `geteuid`. DI2 point 2 needs the effective user of the service to compare it with

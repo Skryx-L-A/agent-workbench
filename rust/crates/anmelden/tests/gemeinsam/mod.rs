@@ -41,7 +41,16 @@ pub fn token_text(t: &Value) -> String {
 /// One run: all folders below one temp folder, removed (with permissions restored) at the end.
 pub struct Aufbau {
     pub wurzel: PathBuf,
+    /// The home that the test `passwd` names; the store of the holder lies below it.
+    pub heim: PathBuf,
+    /// The test `passwd` (seam `WB_ANMELDEN_PASSWD`): one entry of the own user id with `heim`.
+    pub passwd: PathBuf,
+    /// The store of the holder, `<heim>/.local/state/agent-workbench/halter/geheim`.
     pub ziel: PathBuf,
+    /// A folder of the user outside the home (target of a link level).
+    pub aussen: PathBuf,
+    /// The key file of the former target `/var/lib/werkbank/<user>/copilot.schluessel`, below the test folder.
+    pub alt: PathBuf,
     pub echt: PathBuf,
     pub bin: PathBuf,
     pub gh: PathBuf,
@@ -61,7 +70,9 @@ impl Drop for Aufbau {
             let _ = k.kill();
             let _ = k.wait();
         }
-        let _ = fs::set_permissions(&self.ziel, fs::Permissions::from_mode(0o700));
+        for ebene in ablage_ebenen(&self.heim) {
+            let _ = fs::set_permissions(ebene, fs::Permissions::from_mode(0o700));
+        }
         if let Ok(liste) = fs::read_dir(&self.wegwerf) {
             for e in liste.flatten() {
                 if let Ok(unter) = fs::read_dir(e.path()) {
@@ -78,8 +89,13 @@ impl Drop for Aufbau {
 pub fn aufbau() -> Aufbau {
     let n = ZAEHLER.fetch_add(1, Ordering::SeqCst);
     let wurzel = std::env::temp_dir().join(format!("anmelden-test-{}-{n}", std::process::id()));
+    let heim = wurzel.join("heim");
     let a = Aufbau {
-        ziel: wurzel.join("var/nutzer"),
+        ziel: ablage_ebenen(&heim).pop().expect("levels"),
+        passwd: wurzel.join("passwd"),
+        aussen: wurzel.join("aussen"),
+        alt: wurzel.join("var/lib/werkbank/nutzer/copilot.schluessel"),
+        heim,
         echt: wurzel.join("echt/.copilot"),
         bin: wurzel.join("bin"),
         gh: wurzel.join("ghbin"),
@@ -94,9 +110,63 @@ pub fn aufbau() -> Aufbau {
     for ordner in [&a.ziel, &a.echt, &a.bin, &a.gh, &a.wegwerf] {
         fs::create_dir_all(ordner).expect("folder");
     }
-    fs::set_permissions(&a.ziel, fs::Permissions::from_mode(0o700)).expect("mode");
+    for ebene in ablage_ebenen(&a.heim) {
+        fs::set_permissions(ebene, fs::Permissions::from_mode(0o700)).expect("mode");
+    }
+    fs::set_permissions(&a.heim, fs::Permissions::from_mode(0o755)).expect("mode");
+    passwd_schreiben(&a, &a.heim);
     skript_schreiben(&a.gh.join("gh"), "#!/bin/sh\nexit 1\n");
     a
+}
+
+/// The levels of the store below `heim`, from `.local` to `geheim`.
+pub fn ablage_ebenen(heim: &Path) -> Vec<PathBuf> {
+    let mut ort = heim.to_path_buf();
+    [".local", "state", "agent-workbench", "halter", "geheim"]
+        .iter()
+        .map(|n| {
+            ort = ort.join(n);
+            ort.clone()
+        })
+        .collect()
+}
+
+/// The test `passwd`: an unrelated entry, then the own user id with `heim` as field 6.
+pub fn passwd_schreiben(a: &Aufbau, heim: &Path) {
+    let uid = eigene_uid(a);
+    fs::write(
+        &a.passwd,
+        format!(
+            "root:x:0:0:root:/root:/bin/sh
+nutzer:x:{uid}:{uid}:Nutzer:{}:/bin/sh
+",
+            heim.display()
+        ),
+    )
+    .expect("passwd");
+}
+
+/// Every entry below `ordner` with its mode and whether it is a link; a link is listed, never followed.
+pub fn baum(ordner: &Path) -> Vec<(PathBuf, u32, bool)> {
+    let mut aus = Vec::new();
+    if let Ok(liste) = fs::read_dir(ordner) {
+        for e in liste.flatten() {
+            let p = e.path();
+            let Ok(m) = fs::symlink_metadata(&p) else {
+                continue;
+            };
+            aus.push((
+                p.clone(),
+                m.permissions().mode(),
+                m.file_type().is_symlink(),
+            ));
+            if m.is_dir() {
+                aus.extend(baum(&p));
+            }
+        }
+    }
+    aus.sort();
+    aus
 }
 
 /// Writes an executable script from a child process. A write descriptor opened in this process can leak into the fork
@@ -146,7 +216,7 @@ pub fn attrappe_text(a: &Aufbau, modus: &str, token: &str) -> String {
              \"reasoningSummariesCleanupDone\": true\n}}\n"
         )),
         "wettlauf" => format!(
-            "echo fremd > '{}/copilot.schluessel'\n{}",
+            "echo fremd > '{}/anmeldung.copilot'\n{}",
             a.ziel.display(),
             konfig(&format!(
                 "{{\"authTokens\":{{\"h\":{{\"a\":\"{token}\"}}}}}}"
@@ -185,15 +255,11 @@ pub fn fall_aufbauen(fall: &Value) -> (Aufbau, String) {
     match fall["ziel"].as_str().expect("target") {
         "frei" => {}
         "datei-da" => {
-            let datei = a.ziel.join("copilot.schluessel");
+            let datei = a.ziel.join("anmeldung.copilot");
             fs::write(&datei, "alt-inhalt\n").expect("old file");
             fs::set_permissions(&datei, fs::Permissions::from_mode(0o600)).expect("mode");
         }
-        "ordner-fehlt" => fs::remove_dir(&a.ziel).expect("remove"),
-        "schreibgeschuetzt" => {
-            fs::set_permissions(&a.ziel, fs::Permissions::from_mode(0o500)).expect("mode");
-        }
-        andere => panic!("unknown target {andere}"),
+        andere => ziel_bauen(&a, andere),
     }
     match fall["echtes_heim"].as_str().expect("real home") {
         "leer" => {}
@@ -238,6 +304,46 @@ pub fn fall_aufbauen(fall: &Value) -> (Aufbau, String) {
     (a, token)
 }
 
+/// The values of `ziel` that both ways share (contract 9, section 7, "Ziel der Fälle"); `frei` and the key file
+/// cases are built by the caller.
+pub fn ziel_bauen(a: &Aufbau, ziel: &str) {
+    match ziel {
+        "frei" => {}
+        "ordner-fehlt" => fs::remove_dir_all(a.heim.join(".local")).expect("remove"),
+        "schreibgeschuetzt" => {
+            fs::set_permissions(&a.ziel, fs::Permissions::from_mode(0o500)).expect("mode");
+        }
+        "heim-fehlt" => passwd_schreiben(a, &a.wurzel.join("kein-heim")),
+        "ebene-verweis" => {
+            let state = a.heim.join(".local/state");
+            fs::remove_dir_all(&state).expect("remove");
+            fs::create_dir_all(a.aussen.join("agent-workbench/halter/geheim")).expect("outside");
+            for ebene in [
+                a.aussen.clone(),
+                a.aussen.join("agent-workbench"),
+                a.aussen.join("agent-workbench/halter"),
+                a.aussen.join("agent-workbench/halter/geheim"),
+            ] {
+                fs::set_permissions(ebene, fs::Permissions::from_mode(0o700)).expect("mode");
+            }
+            std::os::unix::fs::symlink(&a.aussen, &state).expect("link");
+        }
+        "ebene-geteilt" => {
+            fs::set_permissions(
+                a.heim.join(".local/state/agent-workbench"),
+                fs::Permissions::from_mode(0o770),
+            )
+            .expect("mode");
+        }
+        "alte-datei" => {
+            fs::create_dir_all(a.alt.parent().expect("folder")).expect("old folder");
+            fs::write(&a.alt, "alter-schluessel\n").expect("old key");
+            fs::set_permissions(&a.alt, fs::Permissions::from_mode(0o600)).expect("mode");
+        }
+        andere => panic!("unknown target {andere}"),
+    }
+}
+
 /// The pid of a process that has ended and is reaped.
 pub fn tote_pid() -> u32 {
     let mut k = Command::new("true").spawn().expect("true");
@@ -279,7 +385,7 @@ pub fn befehl(a: &Aufbau, args: &[String]) -> Command {
         .env("PATH", format!("{}:{}", a.bin.display(), a.gh.display()))
         .env("HOME", a.wurzel.join("echt"))
         .env("WB_TESTUMGEBUNG", "1")
-        .env("WB_ANMELDEN_ZIEL", &a.ziel)
+        .env("WB_ANMELDEN_PASSWD", &a.passwd)
         .env("WB_ANMELDEN_COPILOT_HEIM", &a.echt)
         .env("WB_ANMELDEN_WURZEL", &a.wegwerf)
         .env("HTTPS_PROXY", PROXY)
@@ -308,8 +414,46 @@ pub fn ausgang(kind: Child) -> Ausgang {
     }
 }
 
+/// The output of a program that has already ended (after [`warte_auf_ende`]). Its pipes must close at once; a child
+/// that outlives it (the CLI after a signal) would hold them open. Fails after 5 s instead of hanging.
+pub fn ausgabe_beendet(kind: Child) -> std::process::Output {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(kind.wait_with_output());
+    });
+    rx.recv_timeout(Duration::from_secs(5))
+        .expect("the output of the ended program stays open: a child of it lives on")
+        .expect("output")
+}
+
+/// [`ausgabe_beendet`] as an [`Ausgang`].
+pub fn ausgang_beendet(kind: Child) -> Ausgang {
+    let aus = ausgabe_beendet(kind);
+    Ausgang {
+        exit: aus.status.code().expect("normal exit"),
+        stdout: String::from_utf8(aus.stdout).expect("utf-8"),
+        stderr: String::from_utf8(aus.stderr).expect("utf-8"),
+    }
+}
+
 pub fn laufen(a: &Aufbau, args: &[String]) -> Ausgang {
-    ausgang(befehl(a, args).spawn().expect("spawn"))
+    laufen_benannt(a, args, "")
+}
+
+/// [`laufen`] with a deadline of 20 s: a program that does not end is killed by its pid and the test fails with
+/// `name` instead of hanging.
+pub fn laufen_benannt(a: &Aufbau, args: &[String], name: &str) -> Ausgang {
+    let kind = befehl(a, args).spawn().expect("spawn");
+    let pid = kind.id();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(ausgang(kind));
+    });
+    let Ok(aus) = rx.recv_timeout(Duration::from_secs(20)) else {
+        signal_senden("KILL", pid);
+        panic!("{name}: the program did not end within 20 s");
+    };
+    aus
 }
 
 /// Waits for a file, at most `frist`.

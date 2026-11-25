@@ -11,7 +11,7 @@ use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::time::Duration;
 
 use gemeinsam::{
-    Aufbau, PROXY, VERBOTEN, ausgang, befehl, dateien, eigene_uid, fall_aufbauen, fall_ordner,
+    Aufbau, PROXY, VERBOTEN, baum, befehl, dateien, eigene_uid, fall_aufbauen, fall_ordner,
     json_lesen, log_lesen, prozess_lebt, signal_senden, warte_auf, warte_auf_ende,
 };
 use serde_json::Value;
@@ -45,6 +45,8 @@ fn fall_laufen(name: &str) {
     let fall = json_lesen(&fall_ordner().join("faelle").join(format!("{name}.json")));
     let erwartet = json_lesen(&fall_ordner().join("erwartet").join(format!("{name}.json")));
     let (a, token) = fall_aufbauen(&fall);
+    let vorher = (baum(&a.heim), baum(&a.aussen));
+    let alt_vorher = fs::read(&a.alt).ok();
     let args = args_von(&fall);
     let aus = if let Some(sig) = fall["signal"].as_str() {
         let mut kind = befehl(&a, &args).spawn().expect("spawn");
@@ -59,7 +61,7 @@ fn fall_laufen(name: &str) {
             .expect("pid number");
         signal_senden(sig, kind.id());
         warte_auf_ende(&mut kind, Duration::from_secs(15));
-        let aus = ausgang(kind);
+        let aus = gemeinsam::ausgang_beendet(kind);
         for _ in 0..150 {
             if !prozess_lebt(pid) {
                 break;
@@ -72,7 +74,7 @@ fn fall_laufen(name: &str) {
         );
         aus
     } else {
-        gemeinsam::laufen(&a, &args)
+        gemeinsam::laufen_benannt(&a, &args, name)
     };
     assert_eq!(aus.exit, erwartet["exit"], "{name}: exit");
     assert_eq!(
@@ -96,6 +98,22 @@ fn fall_laufen(name: &str) {
         erwartet["login_gestartet"].as_bool().expect("flag"),
         "{name}: login_gestartet"
     );
+    if erwartet["code"] == "anmelden.ziel_nicht_schreibbar" {
+        assert_eq!(
+            (baum(&a.heim), baum(&a.aussen)),
+            vorher,
+            "{name}: no level is new, no mode changed, the target of a link is unchanged"
+        );
+        assert!(
+            !a.wurzel.join("kein-heim").exists(),
+            "{name}: no home is made"
+        );
+    }
+    assert_eq!(
+        fs::read(&a.alt).ok(),
+        alt_vorher,
+        "{name}: the file of the former target"
+    );
     wegwerf_pruefen(name, &a, &erwartet);
     if let Some(log) = log_lesen(&a) {
         umgebung_der_cli_pruefen(name, &a, &log);
@@ -104,7 +122,7 @@ fn fall_laufen(name: &str) {
 }
 
 fn schluesseldatei_pruefen(name: &str, a: &Aufbau, token: &str, stand: &str) {
-    let datei = a.ziel.join("copilot.schluessel");
+    let datei = a.ziel.join("anmeldung.copilot");
     match stand {
         "neu" | "ersetzt" => {
             let meta = fs::metadata(&datei).expect("key file");
@@ -249,7 +267,7 @@ fn keine_marke(name: &str, a: &Aufbau, token: &str, stdout: &str, stderr: &str, 
             "{name}: token in argv or environment of the CLI"
         );
     }
-    let schluessel = a.ziel.join("copilot.schluessel");
+    let schluessel = a.ziel.join("anmeldung.copilot");
     for datei in dateien(&a.wurzel) {
         if datei == schluessel || datei == a.skript {
             continue;
@@ -267,7 +285,7 @@ fn keine_marke(name: &str, a: &Aufbau, token: &str, stdout: &str, stderr: &str, 
 #[test]
 fn every_visible_case_runs_as_the_contract_says() {
     let namen = namen();
-    assert!(namen.len() >= 36, "the case set shrank: {}", namen.len());
+    assert!(namen.len() >= 41, "the case set shrank: {}", namen.len());
     for name in &namen {
         fall_laufen(name);
     }

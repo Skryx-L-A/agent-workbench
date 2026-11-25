@@ -56,6 +56,8 @@ GENERIC_READ, FILE_WRITE_DATA, READ_CONTROL = 0x80000000, 0x2, 0x20000
 OPEN_EXISTING = 3
 SQOS_IDENTIFIKATION = 0x00100000 | 0x00010000      # SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION
 PIPE_ACCESS_DUPLEX, FIRST_PIPE_INSTANCE = 0x3, 0x00080000
+FILE_FLAG_OVERLAPPED, ERROR_MORE_DATA = 0x40000000, 234
+PIPE_ZU = (109, 232, 233)       # ERROR_BROKEN_PIPE, ERROR_NO_DATA, ERROR_PIPE_NOT_CONNECTED
 
 
 def starten(argv, **kw) -> subprocess.Popen:
@@ -137,16 +139,31 @@ def unix_kanal(pfad: Path) -> Kanal:
 
 
 def win_kanal(pipe: str, zugriff: int = GENERIC_READ | FILE_WRITE_DATA) -> Kanal:
+    # Überlappt geöffnet: Auf einem synchronen Handle wartet ein WriteFile hinter dem ReadFile des Lesefadens, das Hallo
+    # käme erst nach dem Ende der Verbindung an (gemessen in der VM: der Server trennt nach 2 s ohne Hallo, das späte
+    # WriteFile scheitert mit 233).
     import _winapi
-    h = _winapi.CreateFile(pipe, zugriff, 0, 0, OPEN_EXISTING, SQOS_IDENTIFIKATION, 0)
+    h = _winapi.CreateFile(pipe, zugriff, 0, 0, OPEN_EXISTING, SQOS_IDENTIFIKATION | FILE_FLAG_OVERLAPPED, 0)
 
     def lesen():
         try:
-            daten, _ = _winapi.ReadFile(h, 65536)
-            return daten
-        except BrokenPipeError:
+            ov, _ = _winapi.ReadFile(h, 65536, overlapped=True)
+            _, fehler = ov.GetOverlappedResult(True)
+        except OSError:
+            return b""      # Ende der Verbindung (109, 232, 233) oder ein anderer Fehler: kein Byte mehr
+        if fehler not in (0, ERROR_MORE_DATA):
             return b""
-    return Kanal(lesen, lambda d: _winapi.WriteFile(h, d), lambda: _winapi.CloseHandle(h))
+        return bytes(ov.getbuffer())
+
+    def schreiben(daten: bytes) -> None:
+        try:
+            ov, _ = _winapi.WriteFile(h, daten, overlapped=True)
+            ov.GetOverlappedResult(True)
+        except OSError as exc:
+            # Hat der Server schon getrennt, zeigt das der Lesefaden als Ende; jeder andere Fehler bleibt einer.
+            if exc.winerror not in PIPE_ZU:
+                raise
+    return Kanal(lesen, schreiben, lambda: _winapi.CloseHandle(h))
 
 
 def prozess_kanal(befehl: list[str], pipe: str) -> tuple[Kanal | None, int | None, subprocess.Popen]:
@@ -329,7 +346,8 @@ def eigene_sid() -> str:
     k32 = ctypes.WinDLL("kernel32", use_last_error=True)
     k32.GetCurrentProcess.restype = wintypes.HANDLE
     tok = wintypes.HANDLE()
-    if not adv.OpenProcessToken(k32.GetCurrentProcess(), 0x8, ctypes.byref(tok)):
+    # Der Pseudo-Handle -1 kommt als Python-Zahl zurück; ohne Typ scheitert ctypes daran (gemessen mit Python 3.15).
+    if not adv.OpenProcessToken(wintypes.HANDLE(k32.GetCurrentProcess()), 0x8, ctypes.byref(tok)):
         raise ctypes.WinError(ctypes.get_last_error())
     groesse = wintypes.DWORD()
     adv.GetTokenInformation(tok, 1, None, 0, ctypes.byref(groesse))
@@ -411,6 +429,14 @@ def sicherheit_pruefen(ort: Ort, erw: dict) -> None:
 
 
 # ---------------------------------------------------------------- Protokoll
+
+def protokoll_zeilen(root: Path) -> int:
+    """Die Zahl der Zeilen in den Monatsdateien; 0, solange eine Datei nicht lesbar ist."""
+    try:
+        return sum(len(d.read_bytes().splitlines()) for d in (root / "protokoll").glob("brain-*.jsonl"))
+    except OSError:
+        return 0
+
 
 def protokoll_pruefen(root: Path, erwartet: list[dict]) -> None:
     roh: list[str] = []
@@ -596,6 +622,12 @@ def such_fall(prog: str, fall: dict, erw: dict) -> None:
             else:
                 antwort_pruefen(nr, e, got)
         if WINDOWS:
+            # Unter Windows endet der Prozess ohne Signal (TerminateProcess). Eine Zeile zu einer Abweisung schreibt er erst,
+            # nachdem peerkanal die Verbindung geschlossen hat; der Läufer wartet darum bis zu 3 s auf die erwarteten Zeilen,
+            # bevor er den Prozess beendet. Fehlt eine Zeile, bleibt der Fall rot.
+            bis = time.monotonic() + 3
+            while time.monotonic() < bis and protokoll_zeilen(root) < len(erw["protokoll"]):
+                time.sleep(0.1)
             proc.terminate()
             proc.wait(FRIST)
         else:

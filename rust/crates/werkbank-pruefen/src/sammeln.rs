@@ -48,10 +48,41 @@ pub struct Ausgabe {
     pub stderr: String,
 }
 
-/// Starts programs. A test replaces it.
+/// Owner, group, mode and kind of a file, looked at without following a link.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Kennwerte {
+    /// Owner (uid).
+    pub uid: u32,
+    /// Group (gid).
+    pub gid: u32,
+    /// The mode bits `0o7777` (with setuid, setgid and sticky).
+    pub modus: u32,
+    /// `true` for an ordinary file.
+    pub datei: bool,
+}
+
+/// Starts programs and looks at files whose owner a test cannot make. A test replaces it.
 pub trait System {
     /// Runs `programm` with `args` and waits at most `frist`. `None` when it did not start or did not end in time.
     fn befehl(&self, programm: &str, args: &[&str], frist: Duration) -> Option<Ausgabe>;
+
+    /// Owner, group, mode and kind of `pfad` without following a link: `Ok(None)` when nothing is there, `Err` when the
+    /// look fails. A test stands in for a file of root with setgid, which it cannot make itself.
+    ///
+    /// # Errors
+    /// The error of `lstat` other than "not found".
+    fn kennwerte(&self, pfad: &Path) -> std::io::Result<Option<Kennwerte>> {
+        match fs::symlink_metadata(pfad) {
+            Ok(m) => Ok(Some(Kennwerte {
+                uid: m.uid(),
+                gid: m.gid(),
+                modus: m.mode() & 0o7777,
+                datei: m.file_type().is_file(),
+            })),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
 }
 
 /// The real system: a child process with a time limit, no shell, no standard input.
@@ -71,7 +102,8 @@ impl System for Echt {
             if let Some(s) = kind.try_wait().ok()? {
                 break s;
             }
-            if start.elapsed() > frist {
+            // Past the limit (no comparison operator: the moment of equality is not observable).
+            if frist.checked_sub(start.elapsed()).is_none() {
                 kind.kill().ok();
                 kind.wait().ok();
                 return None;
@@ -182,6 +214,120 @@ fn lesen_bis(pfad: &Path, grenze: usize) -> std::io::Result<Vec<u8>> {
 
 fn mode_von(pfad: &Path) -> Option<fs::Metadata> {
     fs::symlink_metadata(pfad).ok()
+}
+
+/// The role group of the bridge (addendum "Rolle aus der Gruppe").
+pub const ROLLENGRUPPE: &str = "wb-bruecke";
+/// The role program of the bridge, relative to the root.
+pub const ROLLENPROGRAMM: &str = "usr/lib/werkbank/werkbank-modellweg";
+/// The largest `/etc/group`, `/etc/passwd` or `/etc/gshadow` that is read for the role group, in bytes.
+pub const KONTEN_GRENZE: usize = 1 << 24;
+
+/// The fields of the lines of a file in the form of `/etc/group` with `n` fields; other lines do not count.
+fn zeilen(text: &str, n: usize) -> impl Iterator<Item = Vec<&str>> {
+    text.split('\n')
+        .filter(|z| !z.is_empty())
+        .map(|z| z.split(':').collect::<Vec<_>>())
+        .filter(move |f| f.len() == n)
+}
+
+/// The state of the role group from the texts of `/etc/group`, `/etc/passwd` and `/etc/gshadow` (`None`: not there):
+/// `fehlt` without an entry; `mitglied` for a second entry, a gid that is no number or 0, a member, a password in
+/// `/etc/group` (not `x`, `!`, `*` or empty), an account of `/etc/passwd` with it as primary group, or a password, an
+/// administrator or a member in `/etc/gshadow`; else `ok` with the gid.
+#[must_use]
+pub fn rollengruppe_zustand(
+    group: &str,
+    passwd: &str,
+    gshadow: Option<&str>,
+) -> (&'static str, Option<u32>) {
+    let mut treffer = zeilen(group, 4).filter(|f| f[0] == ROLLENGRUPPE);
+    let Some(f) = treffer.next() else {
+        return ("fehlt", None);
+    };
+    if treffer.next().is_some() {
+        return ("mitglied", None);
+    }
+    let Some(gid) = Some(f[2])
+        .filter(|g| !g.is_empty() && g.bytes().all(|c| c.is_ascii_digit()))
+        .and_then(|g| g.parse::<u32>().ok())
+        .filter(|g| *g != 0)
+    else {
+        return ("mitglied", None);
+    };
+    let hauptgruppe = zeilen(passwd, 7).any(|p| p[3].parse::<u32>().ok() == Some(gid));
+    let schatten = gshadow.is_some_and(|s| {
+        zeilen(s, 4).filter(|g| g[0] == ROLLENGRUPPE).any(|g| {
+            !(g[1].is_empty() || g[1].starts_with('!') || g[1].starts_with('*'))
+                || !g[2].is_empty()
+                || !g[3].is_empty()
+        })
+    });
+    if !f[3].is_empty() || !["x", "!", "*", ""].contains(&f[1]) || hauptgruppe || schatten {
+        return ("mitglied", Some(gid));
+    }
+    (OK, Some(gid))
+}
+
+/// The state of the role program from its look (`Ok(None)`: nothing there) and the gid of the role group (`None`: the
+/// group is missing or broken): `fehlt`; `modus` unless an ordinary file of uid 0 with the group of the role group and
+/// exactly the mode 2755; `nicht_pruefbar` when the look failed.
+#[must_use]
+pub fn rollenprogramm_zustand(
+    blick: &std::io::Result<Option<Kennwerte>>,
+    gid: Option<u32>,
+) -> &'static str {
+    match blick {
+        Err(_) => "nicht_pruefbar",
+        Ok(None) => "fehlt",
+        Ok(Some(k)) if k.datei && k.uid == 0 && Some(k.gid) == gid && k.modus == 0o2755 => OK,
+        Ok(Some(_)) => "modus",
+    }
+}
+
+/// The levels of the store of the holder below the home (contract rust/spec/halter, section 2.3).
+pub const ABLAGE: [&str; 5] = [".local", "state", "agent-workbench", "halter", "geheim"];
+
+/// Reads at most `grenze` + 1 bytes of `pfad`, but only if the open file is still the one `vorher` describes (same device
+/// and inode): a link or another file put in its place between the look and the read is refused.
+fn datei_ohne_tausch(
+    pfad: &Path,
+    vorher: &fs::Metadata,
+    grenze: usize,
+) -> std::io::Result<Vec<u8>> {
+    let datei = fs::File::open(pfad)?;
+    let jetzt = datei.metadata()?;
+    if jetzt.dev() != vorher.dev() || jetzt.ino() != vorher.ino() {
+        return Err(std::io::Error::other("replaced"));
+    }
+    let mut puffer = Vec::new();
+    datei
+        .take(u64::try_from(grenze).unwrap_or(u64::MAX).saturating_add(1))
+        .read_to_end(&mut puffer)?;
+    Ok(puffer)
+}
+
+/// The finding on the sign-in file from its look (kind, owner, mode with the type bits, size) for the user `uid`; `None`
+/// when it may be read. Separate from the file system, so a test can give it another owner: without root no test can
+/// put a file of another owner into folders of the user.
+fn anmeldedatei_befund(
+    ist_datei: bool,
+    eigentuemer: u32,
+    modus: u32,
+    laenge: u64,
+    uid: u32,
+) -> Option<&'static str> {
+    if !ist_datei {
+        Some("art")
+    } else if eigentuemer != uid {
+        Some("eigentuemer")
+    } else if modus & 0o7777 != 0o600 {
+        Some("modus")
+    } else if laenge == 0 {
+        Some("leer")
+    } else {
+        None
+    }
 }
 
 impl Umgebung<'_> {
@@ -478,25 +624,95 @@ impl Umgebung<'_> {
         }
     }
 
-    /// The sign-in file of the route `copilot`: kind, owner, mode, emptiness and form (one line of 1 to 4096 printable ASCII
-    /// characters without a space, with or without the final line feed). The content never leaves this function.
+    /// The home of the user: field 6 of its entry in `etc/passwd` below the root, an absolute path (never `HOME`; contract
+    /// rust/spec/halter, section 2.3). `None` without a user or without such an entry.
+    fn heim(&self) -> Option<String> {
+        let nutzer = self.nutzer.as_deref()?;
+        let text = fs::read_to_string(self.pfad("etc/passwd")).ok()?;
+        text.lines().find_map(|z| {
+            let f: Vec<&str> = z.split(':').collect();
+            (f.len() >= 7 && f[0] == nutzer && f[5].starts_with('/')).then(|| f[5].to_owned())
+        })
+    }
+
+    /// The sign-in file of the route `copilot`, `anmeldung.copilot` in the store of the holder below the home (addendum
+    /// holder): first the levels `.local`, `.local/state`, `agent-workbench`, `halter` and `geheim`, each looked at without
+    /// following a link (`ablage`: a link, no folder, not the user's, writable by group or others, or `geheim` not exactly
+    /// 0700; a missing level is `fehlt`), then kind, owner, mode, emptiness and form of the file (the form of the holder,
+    /// finding F11: a value of 1 to 12288 printable ASCII characters without a space and exactly one final line feed). Nothing is made. The content never
+    /// leaves this function.
     fn copilot(&self, uid: Option<u32>) -> &'static str {
-        let (Some(o), Some(uid)) = (self.nutzer_ordner(), uid) else {
+        let (Some(heim), Some(uid)) = (self.heim(), uid) else {
             return "nicht_pruefbar";
         };
-        let pfad = self.pfad(&format!("{o}/copilot.schluessel"));
-        match mode_von(&pfad) {
-            None => "fehlt",
-            Some(m) if !m.file_type().is_file() => "art",
-            Some(m) if m.uid() != uid => "eigentuemer",
-            Some(m) if m.mode() & 0o7777 != 0o600 => "modus",
-            Some(m) if m.len() == 0 => "leer",
-            Some(_) => match lesen_bis(&pfad, 4098) {
-                Ok(b) if copilot_form(&b) => OK,
-                Ok(_) => "form",
-                Err(_) => "nicht_pruefbar",
-            },
+        let mut ort = self.pfad(heim.trim_start_matches('/'));
+        for (i, ebene) in ABLAGE.iter().enumerate() {
+            ort.push(ebene);
+            match mode_von(&ort) {
+                None => return "fehlt",
+                Some(m)
+                    if !m.file_type().is_dir()
+                        || m.uid() != uid
+                        || m.mode() & 0o022 != 0
+                        || (i + 1 == ABLAGE.len() && m.mode() & 0o7777 != 0o700) =>
+                {
+                    return "ablage";
+                }
+                Some(_) => {}
+            }
         }
+        let pfad = ort.join("anmeldung.copilot");
+        let Some(m) = mode_von(&pfad) else {
+            return "fehlt";
+        };
+        if let Some(befund) =
+            anmeldedatei_befund(m.file_type().is_file(), m.uid(), m.mode(), m.len(), uid)
+        {
+            return befund;
+        }
+        match datei_ohne_tausch(&pfad, &m, COPILOT_MAX + 1) {
+            Ok(b) if copilot_form(&b) => OK,
+            Ok(_) => "form",
+            Err(_) => "nicht_pruefbar",
+        }
+    }
+
+    /// The role group and the role program (addendum "Rolle aus der Gruppe"): `(rollengruppe, rollenprogramm)`.
+    /// `/etc/gshadow` counts only when it is there; there but not readable (without root) is `nicht_pruefbar`.
+    fn rolle(&self) -> (&'static str, &'static str) {
+        let lesen = |rel: &str| {
+            lesen_bis(&self.pfad(rel), KONTEN_GRENZE)
+                .ok()
+                .filter(|b| b.len() <= KONTEN_GRENZE)
+                .and_then(|b| String::from_utf8(b).ok())
+        };
+        let gshadow = match mode_von(&self.pfad("etc/gshadow")) {
+            None => Ok(None),
+            Some(_) => lesen("etc/gshadow").map(Some).ok_or(()),
+        };
+        let (gruppe, gid) = match (lesen("etc/group"), lesen("etc/passwd"), &gshadow) {
+            (Some(g), Some(p), Ok(s)) => rollengruppe_zustand(&g, &p, s.as_deref()),
+            _ => ("nicht_pruefbar", None),
+        };
+        // the gid of the program is compared even when the group has a member: only its form decides the program
+        let gid = gid.or_else(|| {
+            lesen("etc/group").and_then(|g| {
+                let mut t = zeilen(&g, 4).filter(|f| f[0] == ROLLENGRUPPE);
+                match (t.next(), t.next()) {
+                    (Some(f), None) => f[2].parse::<u32>().ok().filter(|g| *g != 0),
+                    _ => None,
+                }
+            })
+        });
+        let blick = self.system.kennwerte(&self.pfad(ROLLENPROGRAMM));
+        (gruppe, rollenprogramm_zustand(&blick, gid))
+    }
+
+    /// `true` when the file of the former target `/var/lib/werkbank/<user>/copilot.schluessel` is still there, in any state
+    /// (it is never read).
+    fn copilot_alt(&self) -> bool {
+        self.nutzer_ordner()
+            .is_some_and(|o| mode_von(&self.pfad(&format!("{o}/copilot.schluessel"))).is_some())
     }
 
     /// The manifest and what it says about the files. `Err` holds the state of the manifest.
@@ -865,18 +1081,22 @@ impl Umgebung<'_> {
         let schluessel = self.schluessel(uid);
         let apparmor = self.apparmor(&m);
         let (programmordner, harness) = self.programmordner_und_harness();
+        let (rollengruppe, rollenprogramm) = self.rolle();
         Lage {
             konten: self.konten(),
             dienste: DIENSTE
                 .iter()
                 .map(|n| ((*n).to_owned(), self.dienst(n).to_owned()))
                 .collect(),
+            rollengruppe: rollengruppe.to_owned(),
+            rollenprogramm: rollenprogramm.to_owned(),
             apparmor: apparmor.0.to_owned(),
             system_bwrap: if apparmor.1 { "ubuntu" } else { "gesperrt" }.to_owned(),
             einstellungen: self.einstellungen(),
             nutzerordner: self.nutzerordner(uid).to_owned(),
             schluessel: schluessel.to_owned(),
             copilot: self.copilot(uid).to_owned(),
+            copilot_alt: self.copilot_alt(),
             ubuntu_profil: self.ubuntu_profil().to_owned(),
             vault: self.vault(uid).to_owned(),
             ca_zulassung: self.ca_zulassung().to_owned(),
@@ -922,11 +1142,17 @@ pub fn bwrap_label(ausgabe: &str) -> Label {
     Label::Fremd
 }
 
-/// The form of the sign-in file: exactly one line of 1 to 4096 characters from `!` to `~`, with or without a final LF.
+/// The longest value of the sign-in file in bytes (contract rust/spec/halter, section 2.3; the file holds one LF more).
+pub const COPILOT_MAX: usize = 12_288;
+
+/// The form of the sign-in file, the same as the holder reads (finding F11): a value of 1 to [`COPILOT_MAX`] characters
+/// from `!` to `~` and exactly one final LF.
 #[must_use]
 pub fn copilot_form(bytes: &[u8]) -> bool {
-    let zeile = bytes.strip_suffix(b"\n").unwrap_or(bytes);
-    (1..=4096).contains(&zeile.len()) && zeile.iter().all(|b| (0x21..=0x7e).contains(b))
+    let Some(zeile) = bytes.strip_suffix(b"\n") else {
+        return false;
+    };
+    (1..=COPILOT_MAX).contains(&zeile.len()) && zeile.iter().all(|b| (0x21..=0x7e).contains(b))
 }
 
 /// A coarse counterpart of an `AppArmor` attachment: `*` and `**` stand for any text. Enough to see a foreign profile on `bwrap`.
@@ -944,4 +1170,46 @@ pub fn anhang_trifft(muster: &str, pfad: &str) -> bool {
         }
     }
     muster.ends_with('*') || rest.is_empty()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{anmeldedatei_befund, datei_ohne_tausch};
+    use std::fs;
+
+    #[test]
+    fn der_befund_der_anmeldedatei_folgt_art_eigentuemer_modus_und_groesse() {
+        let datei = 0o100_600;
+        assert_eq!(
+            anmeldedatei_befund(false, 1000, datei, 5, 1000),
+            Some("art")
+        );
+        assert_eq!(
+            anmeldedatei_befund(true, 1001, datei, 5, 1000),
+            Some("eigentuemer")
+        );
+        assert_eq!(
+            anmeldedatei_befund(true, 1000, 0o100_644, 5, 1000),
+            Some("modus")
+        );
+        assert_eq!(
+            anmeldedatei_befund(true, 1000, datei, 0, 1000),
+            Some("leer")
+        );
+        assert_eq!(anmeldedatei_befund(true, 1000, datei, 5, 1000), None);
+    }
+
+    /// The read refuses a file that is not the one looked at, even on the same device.
+    #[test]
+    fn eine_andere_datei_als_die_angesehene_wird_nicht_gelesen() {
+        let o = std::env::temp_dir().join(format!("wb-pruefen-tausch-{}", std::process::id()));
+        fs::create_dir_all(&o).expect("folder");
+        let (a, b) = (o.join("a"), o.join("b"));
+        fs::write(&a, b"eins").expect("a");
+        fs::write(&b, b"zwei").expect("b");
+        let vorher = fs::symlink_metadata(&a).expect("look at a");
+        assert_eq!(datei_ohne_tausch(&a, &vorher, 100).expect("a"), b"eins");
+        assert!(datei_ohne_tausch(&b, &vorher, 100).is_err());
+        fs::remove_dir_all(&o).ok();
+    }
 }

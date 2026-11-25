@@ -30,7 +30,7 @@ use zustandskern::Wirkungen;
 use crate::bereit::Bereitschaft;
 use crate::betrachter::{Betrachter, json_rahmen};
 use crate::fehler::StartFehler;
-use crate::kindprogramm::unhex;
+use crate::json::unhex;
 use crate::meldung::{Meldung, SOCKET_NAME};
 use crate::rahmen::{
     A_ABLEHNUNG, A_EREIGNIS, A_FEHLER, A_KERNFEHLER, A_NACHRICHT, A_RASTER, A_STUMM, A_UHR,

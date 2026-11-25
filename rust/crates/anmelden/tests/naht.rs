@@ -2,24 +2,23 @@
 //! build (without the feature) must ignore every seam, also with `WB_TESTUMGEBUNG=1`; the test build must follow them.
 //!
 //! What a seam changes is seen through the left-overs: the program clears stale left-overs first, in the folder of the
-//! key (`WB_ANMELDEN_ZIEL`), below the root of the throw-away homes (`WB_ANMELDEN_WURZEL`) and, with `--uebernehmen`, in
+//! key (the store below the home that the test `passwd` of `WB_ANMELDEN_PASSWD` names), below the root of the throw-away homes (`WB_ANMELDEN_WURZEL`) and, with `--uebernehmen`, in
 //! the folder of the CLI (`WB_ANMELDEN_COPILOT_HEIM`). One stale left-over lies in each of the three throw-away folders.
 #![cfg(unix)] // the crate is Unix only (see `src/lib.rs`)
 
 mod gemeinsam;
 
-use std::fs;
-use std::path::Path;
-
+use anmelden::lauf::heim_aus_passwd;
 use gemeinsam::{BIN, aufbau, ausgang, befehl, rest_anlegen, tote_pid};
+use std::fs;
 
-const KEY_TEMP: &str = ".copilot.schluessel.";
+const KEY_TEMP: &str = ".anmeldung.copilot.";
 const CONFIG_TEMP: &str = ".config.json.wb-anmelden-";
 
 /// The names of the seams; none of them may stand in the delivered program.
 const NAMEN: [&str; 6] = [
     "WB_TESTUMGEBUNG",
-    "WB_ANMELDEN_ZIEL",
+    "WB_ANMELDEN_PASSWD",
     "WB_ANMELDEN_COPILOT_HEIM",
     "WB_ANMELDEN_WURZEL",
     "WB_ANMELDEN_PROBE",
@@ -40,7 +39,7 @@ fn the_seams_count_only_in_the_test_build() {
     let rest_echt = a.echt.join(format!("{CONFIG_TEMP}{tot}.tmp"));
     fs::write(&rest_echt, "{}").expect("left-over of config.json");
     // HOME points away from the folder of the seam, so that only the seam can lead the program to `a.echt`.
-    let heim = a.wurzel.join("heim");
+    let heim = a.wurzel.join("ein-heim");
     fs::create_dir_all(&heim).expect("home");
     let mut c = befehl(&a, &["copilot".to_owned(), "--uebernehmen".to_owned()]);
     c.env("HOME", &heim);
@@ -62,9 +61,11 @@ fn the_seams_count_only_in_the_test_build() {
     } else {
         // The delivered build never looks into the folders of the seams.
         assert_eq!(liegen, [true, true, true], "{}", aus.stderr);
-        if !Path::new("/var/lib/werkbank").exists() && cfg!(target_os = "linux") {
-            // Linux knows the user in `/etc/passwd`, so the fixed target stands; the source is the folder of the CLI below
-            // HOME (empty), not the folder of the seam with its left-over: the call ends there.
+        // The home of the delivered build comes from `/etc/passwd`. Where the own user id stands there (Linux), the
+        // source is the folder of the CLI below HOME (empty), not the folder of the seam: the call ends with exit 19
+        // before the store is opened. Without an entry (macOS keeps users elsewhere) there is no home: exit 14.
+        let passwd = fs::read_to_string("/etc/passwd").unwrap_or_default();
+        if heim_aus_passwd(&passwd, gemeinsam::eigene_uid(&a)).is_some() {
             assert_eq!(aus.exit, 19, "{}", aus.stderr);
             assert!(
                 aus.stderr.ends_with(
@@ -73,8 +74,7 @@ fn the_seams_count_only_in_the_test_build() {
                 "{}",
                 aus.stderr
             );
-        } else if !Path::new("/var/lib/werkbank").exists() {
-            // Without the folder of the package there is no target: the fixed path is used, not the seam.
+        } else {
             assert_eq!(aus.exit, 14, "{}", aus.stderr);
             assert_eq!(
                 aus.stderr,

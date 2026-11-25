@@ -1,0 +1,41 @@
+[package]
+name = "halter"
+version = "0.1.0"
+description = "werkbank-halter (contract rust/spec/halter, version 1, Linux step I): holds keys and tokens outside every agent session and only uses them for a model call, a stream or a search; no operation gives a value out."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "werkbank-halter"
+path = "src/main.rs"
+
+[features]
+# Test build only, never in the delivered build: the seams `WB_HALTER_*` of `main` (paths of the configuration, the home,
+# the runtime folder, the expected owner of the configuration and the root of the role programs), valid only with
+# `WB_TESTUMGEBUNG=1`. Without the feature the program never reads them and every path is fixed.
+pruefbau = []
+
+# All dependencies are already in Cargo.lock; none adds a package to the graph.
+# formate (path): RFC 8785 (`kette::kanonisch`), sha256 and the chain of the protocol (contract 5, source `halter`).
+# kernabbild (path): step 0, the shielding against a core image (`PR_SET_DUMPABLE` 0, `RLIMIT_CORE` 1/1).
+# serde (no default features but std): the visitor of the strict reader that refuses a duplicate key.
+# serde_json (feature `float_roundtrip`, as formate): JSON values of requests, answers and `halter.json`.
+# rustix (features fs, process, net, event, time, std): `O_NOFOLLOW` and `openat` along the store, `SO_PEERCRED`, `pidfd_open`,
+#   `poll` on the pidfd, the own uid, all without `unsafe` (the workspace forbids it).
+# native-tls: TLS to a model target or a remote MCP server with the truststore of the system (as modellweg).
+# signal-hook (flag module only): SIGTERM and SIGINT end the accept loop, so the own socket is removed.
+[dependencies]
+formate = { path = "../formate" }
+kernabbild = { path = "../kernabbild" }
+serde = { version = "1", default-features = false, features = ["std"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+rustix = { version = "1", features = ["fs", "process", "net", "event", "time", "std"] }
+native-tls = "0.2"
+signal-hook = "0.4"
+
+[lints]
+workspace = true

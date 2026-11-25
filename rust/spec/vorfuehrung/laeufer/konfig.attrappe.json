@@ -158,14 +158,15 @@
   "befehl": "#T{n} {np} BEFEHL {arg}",
   "suche": "#T{n} {np} SUCHE {arg}",
   "zaehlen": "#T{n} {np} ZAEHLEN",
-  "buendel": "#T{n} {np} BUENDEL {arg}",
+  "buendel": "!{arg}; echo \"FERTIG T$(({n}))\"",
   "suche_lokal": "#T{n} SUCHE {arg}"
  },
  "marker_start_datei": "$ARBEIT/sitzungen/{sitzung}/start.json",
  "grenzen": {
   "start_s": 2.0,
   "turn_s": 10,
-  "baum_s": 30
+  "baum_s": 30,
+  "still_s": 3
  },
  "such_prozess": {
   "name_im_einschluss": "rangkern",

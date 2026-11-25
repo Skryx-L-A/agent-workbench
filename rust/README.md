@@ -25,7 +25,7 @@ All gates run through one script. Each gate has its own exit code.
 | `./gates.sh test` | `cargo test --workspace --all-targets --all-features --locked --no-fail-fast` | a test fails |
 | `./gates.sh licenses` | `cargo deny check licenses bans sources`, then one CycloneDX SBOM per crate in `sbom/` | a licence is not allowed, a source is not crates.io, a crate is duplicated, or an SBOM is missing |
 | `./gates.sh notices` | every row of "Code taken from other projects" below: the notice file or file head exists, names the licence and the source file, and both are in `cargo package --list`; a file under `crates/*/src` with a foreign licence head must have a row; a crate with a bin target and a row builds its bins and runs each with `--licenses`: exit 0, and each notice file of its rows is in the output byte for byte | a notice is missing, names another licence, is not packaged, or foreign code has no row; a program exits non-zero on `--licenses` or its output lacks a notice |
-| `./gates.sh mutants` | `cargo mutants --workspace` (one exclusion in `.cargo/mutants.toml`, see `rangkern serve` below) | a mutant survives, times out, the baseline fails, or no mutant was caught |
+| `./gates.sh mutants` | `cargo mutants --workspace` (one exclusion in `.cargo/mutants.toml`, see `rangkern serve` below), then `cargo mutants -p anmelden -p werkbank-pruefen --features pruefbau` for the seam tests | a mutant survives, times out, the baseline fails, or no mutant was caught |
 | `./gates.sh all` | all six in this order | any gate is red (exit 1) |
 
 Exit codes: 0 green; for a single gate the exit code of the failing tool; 64 usage error; 127 a required
@@ -133,7 +133,7 @@ and need no exception in `deny.toml`; the row above carries the public-domain no
 `crates/dienst` is the service of the new session view and the program `wb-dienst`. **`wb-dienst` is the core service of the trial run**: the
 package ships it as `/usr/lib/werkbank/werkbank-kern`, it runs as a service of the user (`systemd --user`, `RuntimeDirectory=werkbank` with mode 0700,
 `NoNewPrivileges=yes`, start file `/etc/werkbank/kern.json` from `postinst`); it makes no check of the peer, the boundary is the folder with mode 0700.
-The same program is the check program of the contract cases (`--kind`). One session per service, or with the key `lauf` in the start file
+The same program, built with the feature `pruefbau`, is the check program of the contract cases (`--kind`); the delivered build knows no `--kind`. One session per service, or with the key `lauf` in the start file
 several (at most 8 at the same time, DI12): per session a child in a PTY (`traeger`) and a state core (`zustandskern`), per viewer
 one extract (`rasterauszug`), plus a room core without a session, a clock and one Unix socket. `Starten` and `Beenden` are events of
 the service itself. It only translates between the blocks and the socket; the structure of a start is checked by the crate `start` and the settings file is

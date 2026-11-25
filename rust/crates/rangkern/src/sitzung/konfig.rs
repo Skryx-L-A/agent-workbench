@@ -8,7 +8,7 @@ use crate::embed::Embedder;
 use crate::notes::is_key;
 use crate::vdb::DbPaths;
 
-use super::mac::{Plattform, aufruf_ok};
+use super::plattform::{Plattform, aufruf_ok, paket_sid_ok};
 
 /// The options of the process; each stands at most once and only in full.
 const OPTIONS: [&str; 13] = [
@@ -26,6 +26,12 @@ const OPTIONS: [&str; 13] = [
     "--marker",
     "--marker-zaehlung",
 ];
+
+/// The option of the package SID: required under Windows, unknown elsewhere (addendum for Windows, section 2).
+const PAKET_SID: &str = "--paket-sid";
+
+/// The option of the rights of the socket: under Windows a usage error, because the DACL alone sets the rights.
+const SOCKET_RECHTE: &str = "--socket-rechte";
 
 /// The five options that are required.
 const REQUIRED: [&str; 5] = [
@@ -92,6 +98,8 @@ pub struct Konfig {
     pub embedder: Option<Embedder>,
     /// The probe-run mode with its markers, none without `--probelauf`.
     pub probelauf: Option<Probelauf>,
+    /// The `AppContainer` SID of the project (`--paket-sid`): always set under Windows, never elsewhere.
+    pub paket_sid: Option<String>,
 }
 
 impl Konfig {
@@ -104,7 +112,8 @@ impl Konfig {
     }
 
     /// [`Konfig::lesen`] for a platform: under macOS the socket path must also be absolute and at most 103 bytes long, and the
-    /// rights must be `0600` (addendum to contract 4, section 2).
+    /// rights must be `0600` (addendum to contract 4, section 2). Under Windows the socket is a pipe name, `--paket-sid` is
+    /// required and `--socket-rechte` is a usage error (addendum for Windows, section 2); elsewhere `--paket-sid` is unknown.
     #[must_use]
     pub fn lesen_fuer(plattform: Plattform, args: &[String]) -> Option<Self> {
         // `--probelauf` is a switch, not an option with a value: it stands at most once, in full.
@@ -114,15 +123,31 @@ impl Konfig {
             .filter(|arg| *arg != "--probelauf")
             .cloned()
             .collect();
-        let parsed = parse_args(&uebrige, &OPTIONS, 1)?;
-        // An option stands at most once, the five are required, and no option has an empty value (before any look at a
-        // file, a folder or the socket).
-        if OPTIONS.iter().any(|name| parsed.count(name) > 1)
-            || REQUIRED.iter().any(|name| parsed.count(name) == 0)
-            || OPTIONS.iter().any(|name| parsed.option(name) == Some(""))
+        let windows = plattform == Plattform::Windows;
+        let mut optionen = OPTIONS.to_vec();
+        let mut pflicht = REQUIRED.to_vec();
+        if windows {
+            optionen.push(PAKET_SID);
+            pflicht.push(PAKET_SID);
+        }
+        let parsed = parse_args(&uebrige, &optionen, 1)?;
+        // An option stands at most once, the five (Windows: six) are required, and no option has an empty value (before any
+        // look at a file, a folder or the socket).
+        if optionen.iter().any(|name| parsed.count(name) > 1)
+            || pflicht.iter().any(|name| parsed.count(name) == 0)
+            || optionen.iter().any(|name| parsed.option(name) == Some(""))
         {
             return None;
         }
+        // Under Windows an option that would silently do nothing is refused, also with the value 0600.
+        if windows && parsed.count(SOCKET_RECHTE) > 0 {
+            return None;
+        }
+        let paket_sid = match parsed.option(PAKET_SID) {
+            Some(sid) if paket_sid_ok(sid) => Some(sid.to_owned()),
+            Some(_) => return None,
+            None => None,
+        };
         let vault = PathBuf::from(&parsed.positional[0]);
         if !vault.is_dir() {
             return None;
@@ -132,7 +157,7 @@ impl Konfig {
         if !is_key(route) || !is_key(sitzung) {
             return None;
         }
-        let rechte = match parsed.option("--socket-rechte") {
+        let rechte = match parsed.option(SOCKET_RECHTE) {
             None | Some("0600") => 0o600,
             Some("0666") => 0o666,
             Some(_) => return None,
@@ -171,6 +196,7 @@ impl Konfig {
             vektoren,
             embedder,
             probelauf,
+            paket_sid,
         })
     }
 }
