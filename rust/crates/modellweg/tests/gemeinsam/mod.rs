@@ -32,6 +32,7 @@ pub struct Halterattrappe {
     pfad: PathBuf,
     antwort: Vec<String>,
     empfangen: Arc<Mutex<Vec<String>>>,
+    schluss: Arc<Mutex<Option<Vec<String>>>>,
 }
 
 impl Halterattrappe {
@@ -53,11 +54,14 @@ impl Halterattrappe {
         let empfangen = Arc::new(Mutex::new(Vec::new()));
         let e = Arc::clone(&empfangen);
         let a = antwort.clone();
+        let schluss: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
+        let s = Arc::clone(&schluss);
         std::thread::spawn(move || {
             for strom in horcher.incoming() {
                 let Ok(mut strom) = strom else { break };
                 let e = Arc::clone(&e);
                 let a = a.clone();
+                let s = Arc::clone(&s);
                 std::thread::spawn(move || {
                     let _ = strom.set_read_timeout(Some(FRIST));
                     let mut leser = BufReader::new(strom.try_clone().expect("clone"));
@@ -91,12 +95,18 @@ impl Halterattrappe {
                             let _ = strom.flush();
                         } else if ende {
                             // The holder answers `strom.ende` of the bridge with his own `ende` (holder contract,
-                            // section 4): after it the connection takes requests again.
-                            let z = format!(r#"{{"art":"ende","fassung":1,"id":{id},"ok":true}}"#);
-                            if strom.write_all(z.as_bytes()).is_err()
-                                || strom.write_all(b"\n").is_err()
-                            {
-                                return;
+                            // section 4): after it the connection takes requests again. A test may set the lines
+                            // he sends instead (`schluss_setzen`), such as the last parts of the target before `ende`.
+                            let schluss = s.lock().expect("lock").clone().unwrap_or_else(|| {
+                                vec![r#"{"art":"ende","fassung":1,"id":<ID>,"ok":true}"#.to_owned()]
+                            });
+                            for z in &schluss {
+                                let z = z.replace("<ID>", &id);
+                                if strom.write_all(z.as_bytes()).is_err()
+                                    || strom.write_all(b"\n").is_err()
+                                {
+                                    return;
+                                }
                             }
                             let _ = strom.flush();
                         }
@@ -108,7 +118,13 @@ impl Halterattrappe {
             pfad,
             antwort,
             empfangen,
+            schluss,
         }
+    }
+
+    /// The lines the stand-in sends after `strom.ende`, in place of the single `ende` (with `<ID>` for the `id`).
+    pub fn schluss_setzen(&self, zeilen: Vec<String>) {
+        *self.schluss.lock().expect("lock") = Some(zeilen);
     }
 
     /// A stand-in that answers nothing at all (a holder that keeps the connection and stays silent).

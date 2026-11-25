@@ -1307,6 +1307,7 @@ function baueKopf() {
     ['strom_chunked_ungebunden', 'ungebundenes Ziel ohne Laenge: an den Harness chunked, Bytes gleich', { status: 200, gebunden: false, kopf: [['Content-Type', 'text/event-stream'], ['Transfer-Encoding', 'chunked']], laenge: null, teile: ['data: {"a":1}\n\n', 'data: [DONE]\n\n'] }, 'antwort'],
     ['fehler_401_ungebunden', '401 des Dienstes unveraendert', { status: 401, gebunden: false, kopf: [['Content-Type', 'application/json'], ['Content-Length', '28']], laenge: 28, teile: ['{"message":"Bad credentials"}'.slice(0, 28)] }, 'antwort'],
     ['gzip_ungebunden', 'ein ungebundenes Ziel antwortet komprimiert: ungelesen und unveraendert durch', { status: 200, gebunden: false, kopf: [['Content-Encoding', 'gzip'], ['Content-Length', '3']], laenge: 3, teile: ['\x1f\x8b\x08'] }, 'antwort'],
+    ['erweiterung_ungebunden', 'ungebundenes Ziel ohne Umstellung: ein Kopf sec-websocket-extensions geht wie jeder andere Kopf mit, W2 gilt nur fuer eine durchgereichte 101', { status: 200, gebunden: false, kopf: [['Content-Type', 'application/json'], ['Sec-WebSocket-Extensions', 'permessage-deflate'], ['Content-Length', '2']], laenge: 2, teile: ['{}'] }, 'antwort'],
   ];
   const antworten = [];
   for (const [name, beschreibung, h] of HANT) {
@@ -1324,6 +1325,7 @@ function baueKopf() {
     if (ist.art !== art) abbruch(`antwort2 ${name}: ${ist.art} gegen ${art}`);
     if (ist.art === 'antwort' && ist.koerper !== ziel.teile.join('')) abbruch(`antwort2 ${name}: Koerper veraendert`);
     if (name === 'gzip_ungebunden' && !ist.kopf.some(([k, v]) => k === 'Content-Encoding' && v === 'gzip')) abbruch('gzip: Content-Encoding fehlt');
+    if (name === 'erweiterung_ungebunden' && !ist.kopf.some(([k]) => k === 'Sec-WebSocket-Extensions')) abbruch('erweiterung: Sec-WebSocket-Extensions fehlt');
     if (ist.art === 'antwort' && ist.kopf.some(([k]) => k.toLowerCase() === 'set-cookie')) abbruch(`antwort2 ${name}: set-cookie`);
     const ergebnis = ist.grund === null ? 'weitergereicht' : ist.grund === 'mw.leck_gesperrt' ? 'leck_gesperrt' : 'ziel_fehler';
     antworten.push({ name, beschreibung, ziel_antwort: ziel, erwartet: { an_harness: { art: ist.art, status: ist.status, kopf: ist.kopf, ...(ist.koerper !== undefined ? { koerper: ist.koerper } : { gesendet: ist.gesendet }) }, zeile: { ergebnis, grund: ist.grund, status: ist.status } } });

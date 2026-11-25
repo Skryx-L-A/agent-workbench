@@ -517,14 +517,21 @@ pub fn lauf(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> u8 {
-    let mut frage = |ziel: &str, pfade: &[String]| halter_suche(ziel, pfade, eigene_uid);
+    let pfad = halter::fester_pfad(eigene_uid);
+    let mut frage = |ziel: &str, pfade: &[String]| halter_suche(&pfad, ziel, pfade, eigene_uid);
     lauf_mit_halter(args, eigene_uid, puffer, &mut frage, stdout, stderr)
 }
 
-/// One `modell.suche` at the holder for `ziel`; `None` on every failure and on a target without a secret.
+/// One `modell.suche` for `ziel` at the holder at `pfad` (in the program always [`halter::fester_pfad`], see [`lauf`]);
+/// `None` on every failure and on a target without a secret.
 #[cfg(target_os = "linux")]
-fn halter_suche(ziel: &str, pfade: &[String], eigene_uid: u32) -> Option<halter::Suche> {
-    let mut k = halter::Klient::verbinde(&halter::fester_pfad(eigene_uid), eigene_uid).ok()?;
+fn halter_suche(
+    pfad: &Path,
+    ziel: &str,
+    pfade: &[String],
+    eigene_uid: u32,
+) -> Option<halter::Suche> {
+    let mut k = halter::Klient::verbinde(pfad, eigene_uid).ok()?;
     let id = k.naechste_id();
     k.frist(Some(halter::FRIST_KOPF)).ok()?;
     k.senden(&halter::modell_suche(id, ziel, pfade).ok()?)
@@ -541,7 +548,12 @@ fn halter_suche(ziel: &str, pfade: &[String], eigene_uid: u32) -> Option<halter:
 
 /// Mode 2 and with it the holder path are built under Linux only; on another system there is no bound target.
 #[cfg(not(target_os = "linux"))]
-fn halter_suche(_ziel: &str, _pfade: &[String], _eigene_uid: u32) -> Option<halter::Suche> {
+fn halter_suche(
+    _pfad: &Path,
+    _ziel: &str,
+    _pfade: &[String],
+    _eigene_uid: u32,
+) -> Option<halter::Suche> {
     None
 }
 
@@ -549,7 +561,7 @@ fn halter_suche(_ziel: &str, _pfade: &[String], _eigene_uid: u32) -> Option<halt
 mod tests {
     use super::{
         Aufruf, Ergebnis, PFAD_MAX, Quelle, Suchfehler, TIEFE_MAX, Zaehler, aufruf_lesen,
-        durchsuchen, finde, lauf,
+        durchsuchen, finde, halter_suche, lauf,
     };
     use crate::schluessel::Schluessel;
     use std::ffi::OsString;
@@ -939,5 +951,113 @@ mod tests {
         let exit = lauf(&a, crate::os::eigene_uid(), 8, &mut Kaputt, &mut fehler);
         assert_eq!(exit, 70);
         assert_eq!(fehler, b"mw.intern: interner Fehler\n");
+    }
+
+    fn uid() -> u32 {
+        rustix::process::getuid().as_raw()
+    }
+
+    /// Without a holder at the path there is no count, on every system: the search then says `mw.schluessel_fehlt`
+    /// and never a green result (S2, step 3a).
+    #[test]
+    fn without_a_holder_the_question_has_no_count() {
+        let o = Ordner::neu("ohne-halter");
+        let pfade = vec!["/srv/beispiel".to_owned()];
+        assert_eq!(
+            halter_suche(&o.0.join("halter.sock"), "a.b", &pfade, uid()),
+            None
+        );
+    }
+
+    /// A stand-in of the holder in `ordner` (folder 0700, socket 0600): it takes one line and answers `antwort` with the
+    /// `id` of that line in place of `<ID>`. Returns the socket and a channel that hands over the line it got; a test
+    /// waits for it with a deadline, so a question that never comes fails the test instead of holding it.
+    #[cfg(target_os = "linux")]
+    fn halter_attrappe(
+        ordner: &Path,
+        antwort: &'static str,
+    ) -> (PathBuf, std::sync::mpsc::Receiver<String>) {
+        use std::io::{BufRead as _, Write as _};
+
+        let h = ordner.join("h");
+        std::fs::create_dir(&h).expect("folder");
+        std::fs::set_permissions(&h, std::fs::Permissions::from_mode(0o700)).expect("chmod");
+        let sock = h.join("halter.sock");
+        let horcher = std::os::unix::net::UnixListener::bind(&sock).expect("bind");
+        std::fs::set_permissions(&sock, std::fs::Permissions::from_mode(0o600)).expect("chmod");
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let Ok((mut strom, _)) = horcher.accept() else {
+                return;
+            };
+            let mut zeile = String::new();
+            std::io::BufReader::new(strom.try_clone().expect("clone"))
+                .read_line(&mut zeile)
+                .expect("line");
+            let v: serde_json::Value = serde_json::from_str(zeile.trim_end()).expect("json");
+            let a = antwort.replace("<ID>", &v["id"].to_string());
+            strom.write_all(a.as_bytes()).expect("answer");
+            strom.write_all(b"\n").expect("answer");
+            let _ = tx.send(zeile);
+        });
+        (sock, rx)
+    }
+
+    /// The line the stand-in got, at most 5 s later.
+    #[cfg(target_os = "linux")]
+    fn frage_am_halter(rx: &std::sync::mpsc::Receiver<String>) -> serde_json::Value {
+        let zeile = rx
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .expect("the holder got the question");
+        serde_json::from_str(zeile.trim_end()).expect("json")
+    }
+
+    /// S2, step 3a: the question goes to the holder at the path as one `modell.suche` with the target and the paths, and
+    /// his four counts are the answer.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn the_holder_answers_the_question_with_his_counts() {
+        let o = Ordner::neu("halter-zahlen");
+        let (sock, rx) = halter_attrappe(
+            &o.0,
+            r#"{"art":"antwort","fassung":1,"id":<ID>,"ok":true,"suche":{"dateien":3,"nicht_lesbar":1,"treffer":2,"uebersprungen":4}}"#,
+        );
+        let pfade = vec!["/srv/beispiel".to_owned()];
+        assert_eq!(
+            halter_suche(&sock, "a.b", &pfade, uid()),
+            Some(crate::halter::Suche {
+                dateien: 3,
+                nicht_lesbar: 1,
+                treffer: 2,
+                uebersprungen: 4,
+            })
+        );
+        let zeile = frage_am_halter(&rx);
+        assert_eq!(
+            (&zeile["op"], &zeile["ziel"], &zeile["pfade"]),
+            (
+                &serde_json::json!("modell.suche"),
+                &serde_json::json!("a.b"),
+                &serde_json::json!(["/srv/beispiel"])
+            )
+        );
+    }
+
+    /// A holder that answers with a code holds no secret for the target or refused: no count.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_code_of_the_holder_gives_no_count() {
+        let o = Ordner::neu("halter-code");
+        let (sock, rx) = halter_attrappe(
+            &o.0,
+            r#"{"art":"antwort","code":"halter.kein_schluessel","fassung":1,"grund":"Grund","id":<ID>,"ok":false}"#,
+        );
+        let pfade = vec!["/srv/beispiel".to_owned()];
+        assert_eq!(halter_suche(&sock, "a.b", &pfade, uid()), None);
+        // the None is the answer of the holder, not a question that never went out
+        assert_eq!(
+            frage_am_halter(&rx)["op"],
+            serde_json::json!("modell.suche")
+        );
     }
 }

@@ -693,6 +693,58 @@
      "status": 200
     }
    }
+  },
+  {
+   "name": "erweiterung_ungebunden",
+   "beschreibung": "ungebundenes Ziel ohne Umstellung: ein Kopf sec-websocket-extensions geht wie jeder andere Kopf mit, W2 gilt nur fuer eine durchgereichte 101",
+   "ziel_antwort": {
+    "status": 200,
+    "gebunden": false,
+    "kopf": [
+     [
+      "Content-Type",
+      "application/json"
+     ],
+     [
+      "Sec-WebSocket-Extensions",
+      "permessage-deflate"
+     ],
+     [
+      "Content-Length",
+      "2"
+     ]
+    ],
+    "laenge": 2,
+    "teile": [
+     "{}"
+    ]
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 200,
+     "kopf": [
+      [
+       "Content-Type",
+       "application/json"
+      ],
+      [
+       "Sec-WebSocket-Extensions",
+       "permessage-deflate"
+      ],
+      [
+       "content-length",
+       "2"
+      ]
+     ],
+     "koerper": "{}"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200
+    }
+   }
   }
  ]
 }

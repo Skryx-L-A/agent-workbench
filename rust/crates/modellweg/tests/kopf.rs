@@ -1106,12 +1106,16 @@ fn antwort_fall(fall: &Value) {
         .map(|k| (text(&k[0]).to_owned(), text(&k[1]).to_owned()))
         .collect();
     assert_eq!(antwort.kopf, kopf_soll, "{name}");
-    match text(&h["art"]) {
-        "abgerissen" => {
-            assert_eq!(antwort.koerper, latin1(text(&h["gesendet"])), "{name}");
-            assert!(!antwort.ganz || umstellen, "{name}");
-        }
-        _ => assert_eq!(antwort.koerper, latin1(text(&h["koerper"])), "{name}"),
+    if text(&h["art"]) == "abgerissen" {
+        assert_eq!(antwort.koerper, latin1(text(&h["gesendet"])), "{name}");
+        assert!(!antwort.ganz || umstellen, "{name}");
+    } else {
+        assert_eq!(antwort.koerper, latin1(text(&h["koerper"])), "{name}");
+        // a whole answer ends by its framing: a length that fits, or the last chunk `0`
+        assert!(
+            antwort.ganz,
+            "{name}: the answer does not end by its framing"
+        );
     }
     assert!(
         !gemeinsam::enthaelt(&antwort.koerper, MARKE.as_bytes()),
@@ -1613,4 +1617,212 @@ fn only_a_requested_upgrade_with_101_is_bridged() {
         "{:?}",
         b.kopf
     );
+}
+
+/// The request of the harness to the unbound target `copilot-exp` that the answer cases use.
+const EXP_ANFRAGE: &[u8] = b"POST /api/v1/assignments HTTP/1.1\r\nHost: exp.individual.githubcopilot.com\r\nContent-Length: 2\r\n\r\n{}";
+
+/// Section 13.3: the status and the head of an unbound target go to the harness as they came, also when its body breaks
+/// before the first byte. The harness gets the head and then the end, never an answer of its own and never nothing; the
+/// line says `weitergereicht` with the status that went out.
+#[test]
+fn a_body_that_breaks_before_its_first_byte_keeps_the_head() {
+    let a = aufbau(
+        &vorfuehrung(),
+        &[
+            b"HTTP/1.1 200 X\r\nContent-Type: application/json\r\nContent-Length: 10\r\n\r\n"
+                .to_vec(),
+        ],
+    );
+    let antwort = im_tunnel(&a, "copilot-exp", EXP_ANFRAGE);
+    assert_eq!(antwort.status, 200);
+    assert_eq!(
+        antwort.kopf,
+        vec![
+            ("Content-Type".to_owned(), "application/json".to_owned()),
+            ("content-length".to_owned(), "10".to_owned()),
+        ]
+    );
+    assert_eq!(
+        (antwort.koerper.as_slice(), antwort.ganz),
+        (&b""[..], false)
+    );
+    let z = letzte_zeile(&a, "broken body");
+    assert_eq!(
+        (&z["ergebnis"], &z["grund"], &z["status"]),
+        (
+            &Value::from("weitergereicht"),
+            &Value::Null,
+            &Value::from(200)
+        )
+    );
+}
+
+/// Opens the switched stream to the bound plan target: CONNECT, TLS, the upgrade request and the head of the 101.
+fn strom_oeffnen(a: &Aufbau) -> (SslStream<UnixStream>, std::thread::JoinHandle<()>) {
+    let plan = plan_host(a);
+    let (mut h, faden) = a.verbinden();
+    let connect = format!("CONNECT {plan}:443 HTTP/1.1\r\n\r\n");
+    assert!(Aufbau::connect(&mut h, connect.as_bytes()).starts_with(b"HTTP/1.1 200 "));
+    let mut t = a.tls(h, Some(&plan)).expect("tls");
+    t.write_all(upgrade_anfrage(&plan).as_bytes())
+        .expect("send");
+    assert!(lies_kopf(&mut t).starts_with(b"HTTP/1.1 101 "));
+    (t, faden)
+}
+
+/// A line `teil` of the holder with `daten`.
+fn teil_zeile(daten: &[u8]) -> String {
+    format!(
+        r#"{{"art":"teil","daten_b64":"{}","fassung":1,"id":<ID>}}"#,
+        modellweg::b64::kodieren(daten)
+    )
+}
+
+/// Waits up to 5 s for the end of the thread of the service, so that a stream that never ends fails the test.
+fn faden_endet(faden: std::thread::JoinHandle<()>, name: &str) {
+    let ende = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while !faden.is_finished() {
+        assert!(
+            std::time::Instant::now() < ende,
+            "{name}: the stream still runs"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    faden.join().expect("thread");
+}
+
+/// The line of the stream: result, reason and status.
+fn strom_zeile(a: &Aufbau, name: &str) -> (Value, Value, Value) {
+    let z = letzte_zeile(a, name);
+    (
+        z["ergebnis"].clone(),
+        z["grund"].clone(),
+        z["status"].clone(),
+    )
+}
+
+/// Section 5.1: after the harness closed its way, `strom.ende` goes to the holder, and every part he still sends before
+/// his `ende` goes to the harness, in order. The stream then ends as `weitergereicht` with status 101.
+#[test]
+fn after_the_harness_closed_the_last_parts_of_the_holder_still_reach_it() {
+    let name = "last parts";
+    let a = aufbau_mit_halter(&vorfuehrung(), halter_101());
+    a.halter.schluss_setzen(vec![
+        teil_zeile(b"eins"),
+        teil_zeile(b"zwei"),
+        r#"{"art":"ende","fassung":1,"id":<ID>,"ok":true}"#.to_owned(),
+    ]);
+    let (mut t, faden) = strom_oeffnen(&a);
+    t.shutdown().expect("close_notify");
+    let mut rest = Vec::new();
+    let _ = t.read_to_end(&mut rest);
+    faden_endet(faden, name);
+    assert_eq!(rest, b"einszwei", "{name}");
+    assert!(
+        a.halter
+            .empfangen()
+            .last()
+            .is_some_and(|z| z.contains(r#""op":"strom.ende""#)),
+        "{name}"
+    );
+    assert_eq!(
+        strom_zeile(&a, name),
+        (Value::from("weitergereicht"), Value::Null, Value::from(101))
+    );
+}
+
+/// Section 5.1: a code of the holder after the harness closed its way is mapped like every other code of his:
+/// `halter.ziel_komprimiert` becomes `mw.antwort_komprimiert`, with status 101 in the line.
+#[test]
+fn a_code_of_the_holder_after_the_harness_closed_is_mapped_too() {
+    let name = "late code";
+    let a = aufbau_mit_halter(&vorfuehrung(), halter_101());
+    a.halter.schluss_setzen(vec![
+        teil_zeile(b"eins"),
+        r#"{"art":"ende","code":"halter.ziel_komprimiert","fassung":1,"grund":"Grund","id":<ID>,"ok":false}"#
+            .to_owned(),
+    ]);
+    let (mut t, faden) = strom_oeffnen(&a);
+    t.shutdown().expect("close_notify");
+    let mut rest = Vec::new();
+    let _ = t.read_to_end(&mut rest);
+    faden_endet(faden, name);
+    assert_eq!(rest, b"eins", "{name}");
+    assert_eq!(
+        strom_zeile(&a, name),
+        (
+            Value::from("ziel_fehler"),
+            Value::from("mw.antwort_komprimiert"),
+            Value::from(101)
+        )
+    );
+}
+
+/// A harness that is quiet for a while keeps its stream: a passed read deadline of one round is no end, and the bytes
+/// that come later still go to the holder as `strom.teil`, without a `strom.ende` before them.
+#[test]
+fn a_quiet_harness_keeps_its_stream_open() {
+    let name = "quiet harness";
+    let a = aufbau_mit_halter(&vorfuehrung(), halter_101());
+    let (mut t, faden) = strom_oeffnen(&a);
+    // many rounds of polling pass without a byte of the harness
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    let rahmen = b"\x81\x82abcdXY";
+    t.write_all(rahmen).expect("send");
+    t.flush().expect("flush");
+    assert_eq!(warte_an_ziel(&a, rahmen.len(), name), rahmen, "{name}");
+    assert!(
+        !a.halter
+            .empfangen()
+            .iter()
+            .any(|z| z.contains(r#""op":"strom.ende""#)),
+        "{name}: the stream ended before the harness did"
+    );
+    drop(t);
+    faden_endet(faden, name);
+}
+
+/// A way of the harness that breaks (here a TLS record that is longer than the protocol allows) is an end of that way,
+/// not a passed deadline: `strom.ende` goes to the holder, and the stream ends with his `ende`.
+#[test]
+fn a_broken_way_of_the_harness_ends_the_stream() {
+    let name = "broken way";
+    let a = aufbau_mit_halter(&vorfuehrung(), halter_101());
+    let (mut t, faden) = strom_oeffnen(&a);
+    t.get_mut()
+        .write_all(b"\x17\x03\x03\xff\xff")
+        .expect("send");
+    faden_endet(faden, name);
+    assert!(
+        a.halter
+            .empfangen()
+            .last()
+            .is_some_and(|z| z.contains(r#""op":"strom.ende""#)),
+        "{name}"
+    );
+    assert_eq!(
+        strom_zeile(&a, name),
+        (Value::from("weitergereicht"), Value::Null, Value::from(101))
+    );
+}
+
+/// The end of the service tears every connection down: a stream over the holder ends too. From then on every read of the
+/// way of the harness fails; that is an end of that way, never a passed deadline, so `strom.ende` goes to the holder and
+/// the thread of the stream ends.
+#[test]
+fn a_tear_down_ends_a_stream_over_the_holder() {
+    let name = "tear-down";
+    let a = aufbau_mit_halter(&vorfuehrung(), halter_101());
+    let (t, faden) = strom_oeffnen(&a);
+    a.dienst.betrieb().abreissen_alle();
+    faden_endet(faden, name);
+    assert!(
+        a.halter
+            .empfangen()
+            .last()
+            .is_some_and(|z| z.contains(r#""op":"strom.ende""#)),
+        "{name}"
+    );
+    drop(t);
 }

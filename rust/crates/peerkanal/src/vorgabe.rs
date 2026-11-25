@@ -544,4 +544,86 @@ mod tests {
         c.unix_ordner = None;
         assert!(c.pruefen(System::Linux).is_err());
     }
+
+    #[test]
+    fn socket_modus_bits_und_text() {
+        for (text, modus, bits) in [
+            ("0600", SocketModus::M0600, 0o600),
+            ("0660", SocketModus::M0660, 0o660),
+            ("0666", SocketModus::M0666, 0o666),
+        ] {
+            assert_eq!(SocketModus::aus_text(text), Some(modus));
+            assert_eq!(modus.bits(), bits);
+        }
+        assert_eq!(SocketModus::aus_text("0644"), None);
+    }
+
+    /// The edges: uid `2^32 - 2` holds and `2^32 - 1` not, 64 permissions hold and 65 not, and a folder must be absolute at the
+    /// client and at the server.
+    #[test]
+    fn grenzen_unter_unix() {
+        let ordner = || Some(PathBuf::from("/srv/beispiel"));
+        let mut c = ClientVorgabe {
+            name: Kennung::neu("k").expect("form"),
+            erwartet: Erwartet::Unix { uid: UNIX_ID_MAX },
+            frist: Duration::from_secs(2),
+            unix_ordner: ordner(),
+        };
+        assert!(c.pruefen(System::Linux).is_ok());
+        c.erwartet = Erwartet::Unix { uid: u32::MAX };
+        assert!(c.pruefen(System::Linux).is_err());
+        c.erwartet = Erwartet::Unix { uid: 5 };
+        c.unix_ordner = Some(PathBuf::from("srv/beispiel"));
+        assert!(c.pruefen(System::Linux).is_err(), "relativer Ordner");
+        let liste = |n: u32| -> Vec<Erlaubnis> {
+            (1..=n)
+                .map(|uid| Erlaubnis::Unix { uid, gid: None })
+                .collect()
+        };
+        let mut v = ServerVorgabe::neu(Kennung::neu("k").expect("form"), liste(64), 1);
+        v.unix = Some(UnixOrt {
+            ordner: PathBuf::from("/srv/beispiel"),
+            modus: SocketModus::M0600,
+        });
+        assert!(v.pruefen(System::Linux).is_ok());
+        v.erlaubt = liste(65);
+        assert!(v.pruefen(System::Linux).is_err());
+        v.erlaubt = liste(1);
+        v.unix = Some(UnixOrt {
+            ordner: PathBuf::from("srv/beispiel"),
+            modus: SocketModus::M0600,
+        });
+        assert!(v.pruefen(System::Linux).is_err(), "relativer Ordner");
+    }
+
+    /// The JSON form: a key outside the schema is invalid even when every mandatory key is there; the uid is read as given;
+    /// each socket mode of the schema holds.
+    #[test]
+    fn json_fremder_schluessel_uid_und_modus() {
+        let ungueltig = Some(Fehler::neu(Code::VorgabeUngueltig));
+        let gut = serde_json::json!({
+            "name": "k", "erwartet": {"uid": 5}, "frist_ms": 100, "unix_ordner": "/srv/beispiel"
+        });
+        let c = client_json_lesen(&gut, System::Linux).expect("gültig");
+        assert_eq!(c.erwartet, Erwartet::Unix { uid: 5 });
+        let mut fremd = gut.clone();
+        fremd["weiter"] = serde_json::json!(1);
+        assert_eq!(client_json_lesen(&fremd, System::Linux).err(), ungueltig);
+        for (modus, ok) in [
+            ("0600", true),
+            ("0660", true),
+            ("0666", true),
+            ("0644", false),
+        ] {
+            let server = serde_json::json!({
+                "name": "k", "erlaubt": [{"uid": 7, "gid": 8}], "instanzen": 1,
+                "unix": {"ordner": "/srv/beispiel", "modus": modus}
+            });
+            assert_eq!(
+                server_json_pruefen(&server, System::Linux).is_ok(),
+                ok,
+                "{modus}"
+            );
+        }
+    }
 }

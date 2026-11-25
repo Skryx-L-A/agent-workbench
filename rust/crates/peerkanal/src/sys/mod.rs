@@ -79,6 +79,34 @@ mod ohne {
             None
         }
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        /// Each call of the stand-in refuses with its fixed answer: error 0, time 0, no measurement.
+        #[test]
+        fn jeder_aufruf_verweigert() {
+            let os = Os;
+            assert_eq!(os.eigene_sid(), Err(0));
+            assert_eq!(os.instanz_anlegen("k-beispiel", true, 1, "O:"), Err(0));
+            assert_eq!(os.auf_client_warten(&()), Err(0));
+            assert_eq!(os.jetzt(), 0);
+            assert_eq!(os.client_pid(&()), None);
+            assert_eq!(os.prozess_oeffnen(4242), None);
+            assert_eq!(os.programm(&()), None);
+            assert_eq!(os.lebt(&()), None);
+            assert_eq!(os.kennung_messen(&()), Err(0));
+            os.trennen(&());
+            os.leeren(&());
+            os.warten("k-beispiel", Duration::ZERO);
+            assert_eq!(os.lesen(&(), &mut [0u8; 4], None), Lesen::Fehler(0));
+            assert_eq!(os.schreiben(&(), b"x"), Err(0));
+            assert_eq!(os.oeffnen("k-beispiel"), Err(0));
+            assert_eq!(os.besitzer(&()), Err(0));
+            assert_eq!(os.server_pid(&()), None);
+        }
+    }
 }
 
 #[cfg(not(windows))]

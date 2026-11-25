@@ -499,7 +499,7 @@ fall("d-flush-vor-trennen-windows", "der Server lässt die Verbindung direkt nac
          gemessen=["Teil 1: Der rohe Client bekommt die vier Byte pk1 und LF (100 von 100 Läufen)",
                    "Teil 2: Der Client der Bibliothek bekommt pk1 und verbindet ohne Fehler, peer.pid ist in jedem Lauf die pid des Servers (100 von 100 Läufen)",
                    "Die Bibliothek ruft vor DisconnectNamedPipe FlushFileBuffers auf (Beleg: Teil 1, obwohl der Server sofort trennt)",
-                   "Bau noch offen: Ohne den Flush ist der Fall rot (Teil 1)"]))
+                   "Ohne den Flush ist der Fall rot (Teil 1)"]))
 FAELLE["d-flush-vor-trennen-windows"][0]["roh"] = {"warte_ms": 300, "anzahl": 100}
 fall("d-flush-frist-windows", "der Client liest nie: der Server trennt nach der Frist", "aussentest", WIN, KW, None, None,
      ["Server unter person, hallo_frist_ms 2000", "Roher Client sendet das Hallo und liest danach nie"],
@@ -507,7 +507,7 @@ fall("d-flush-frist-windows", "der Client liest nie: der Server trennt nach der 
      erw("annehmen", gemessen=["Das Fallenlassen kehrt nach 2000 ms zurück (bis 2700 ms), nicht früher und nicht später",
                                "Danach ist die Instanz getrennt und frei: Der zweite Client verbindet",
                                "Ohne Ablauf der Frist (der Client liest) kehrt das Fallenlassen sofort zurück (unter 500 ms)",
-                               "Bau noch offen: Ohne Frist hinge das Fallenlassen unbegrenzt, ohne Flush kehrte es sofort zurück"]))
+                               "Ohne Frist hinge das Fallenlassen unbegrenzt, ohne Flush kehrte es sofort zurück"]))
 
 
 def main():

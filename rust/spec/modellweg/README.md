@@ -982,13 +982,13 @@ Schlüssel, Marke und Platzhalter in den Fällen sind erfundene Testwerte.
 | `faelle/zeile.json` | A, B | 25 Fälle für die Zeile der Betriebsart 1 und 2 Ketten mit der Ausgabe von `kette pruefe` (Abschnitte 8 und 11) |
 | `faelle/probelauf.json` | A | 16 Fälle für die Probelauf-Optionen, eine Folge von 5 Anfragen mit dem Inhalt der Zähldatei danach, 8 Fälle für die Startzeile und 4 Startfolgen mit stdout, stderr und angehängten Bytes (Abschnitt 9) |
 | `faelle/probelauf-websocket.json` | C | 27 Fälle für die Zählung der Rahmen vom Harness zum Ziel im Probelauf: gezählte Marker, geteilte Marker, Steuerrahmen, ohne Probelauf, nicht lesbare Rahmen, nicht schreibbare Zähldatei, abgeschnittene Rahmen (Abschnitt 9, Nachtrag 17) |
-| `faelle/suche.json` | A | 43 Fälle für die Suche nach dem Schlüssel (Abschnitt 9a, Nachtrag 18): Dateibaum, Aufruf, Zielliste und erwartete Ausgabe samt Exit |
-| `faelle/umgebung.json` | A | 24 Fälle, je 12 für beide Betriebsarten, für die Stufe 0 des Starts (Abschnitte 3 und 4, F1) |
-| `faelle/kopf-ziele.json` | C | 30 Fälle für die Zielliste samt Zulassung der CA und erwartetem Start (Abschnitt 12) |
+| `faelle/suche.json` | A | 47 Fälle für die Suche nach dem Schlüssel (Abschnitt 9a, Nachtrag 18): Dateibaum, Aufruf, Zielliste und erwartete Ausgabe samt Exit |
+| `faelle/umgebung.json` | A | 34 Fälle, je 17 für beide Betriebsarten, für die Stufe 0 des Starts (Abschnitte 3 und 4, F1) |
+| `faelle/kopf-ziele.json` | C | 37 Fälle für die Zielliste samt Zulassung der CA und erwartetem Start (Abschnitt 12) |
 | `faelle/kopf-tunnel.json` | C | 15 Fälle für CONNECT und SNI, dazu ein ungebundenes Ziel ohne Adresse (Abschnitt 13.1) |
-| `faelle/kopf-anfragen.json` | C | 29 Fälle für Anfragen im Tunnel mit den Bytes an das Ziel, mit den gemessenen Kopfnamen (Abschnitt 13.2) |
-| `faelle/kopf-antworten.json` | C | 11 Fälle für Antworten im Tunnel samt WebSocket und Kompression (Abschnitt 13.3) |
-| `faelle/kopf-websocket.json` | C | 3 Upgrade-Anfragen, 22 Antworten mit Rahmen des Dienstes und 2 Fälle für die Richtung vom Harness (Abschnitte 13.2 und 13.3, Nachtrag 16) |
+| `faelle/kopf-anfragen.json` | C | 41 Fälle für Anfragen im Tunnel mit den Bytes an das Ziel, mit den gemessenen Kopfnamen (Abschnitt 13.2) |
+| `faelle/kopf-antworten.json` | C | 18 Fälle für Antworten im Tunnel samt WebSocket und Kompression (Abschnitt 13.3) |
+| `faelle/kopf-websocket.json` | C | 3 Upgrade-Anfragen, 9 Antworten über die Zeilen des Halters und 2 Fälle für die Richtung vom Harness (Abschnitte 13.2 und 13.3, Nachtrag 16) |
 | `faelle/kopf-zeile.json` | C | 22 Fälle für die Zeile der Betriebsart 2 und 27 Fälle für das Feld `pfad` in beiden Formen (Abschnitte 8 und 13.4) |
 | `faelle/kopf-aufruf.json` | C | 7 Fälle für argv der Betriebsart 2, gültig ab deren Bau (Abschnitt 13.5) |
 | `faelle/kopf-gegenprobe.json` | C | E5: Basis, Gegenprobe und die 5 Mutanten (Abschnitt 14) |

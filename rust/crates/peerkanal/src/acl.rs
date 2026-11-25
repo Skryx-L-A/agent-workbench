@@ -55,24 +55,28 @@ pub(crate) const NIE_IN_DER_DACL: [&str; 9] = [
 
 /// The open mode of an instance. Only the first instance carries `FILE_FLAG_FIRST_PIPE_INSTANCE` (B4); every further instance
 /// joins the pipe the server already holds.
+///
+/// The flags in this module are separate bits, so `+` gives their OR. With `|` the operator `^` would give the same value,
+/// so a changed operator would not show in any test.
 pub(crate) fn oeffnungsmodus(erste: bool) -> u32 {
-    let modus = PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED;
+    let modus = PIPE_ACCESS_DUPLEX + FILE_FLAG_OVERLAPPED;
     if erste {
-        modus | FILE_FLAG_FIRST_PIPE_INSTANCE
+        modus + FILE_FLAG_FIRST_PIPE_INSTANCE
     } else {
         modus
     }
 }
 
-/// The pipe mode: bytes, local only (B5).
-pub(crate) const PIPE_MODUS: u32 = PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_REJECT_REMOTE_CLIENTS;
+/// The pipe mode: bytes, local only (B5). `PIPE_TYPE_BYTE` and `PIPE_READMODE_BYTE` are 0, so the mode is the one flag
+/// `PIPE_REJECT_REMOTE_CLIENTS`; the test `flags_der_instanz` checks both zeros.
+pub(crate) const PIPE_MODUS: u32 = PIPE_REJECT_REMOTE_CLIENTS;
 
 /// The access of the client (B7): `GENERIC_READ | FILE_WRITE_DATA`, never `GENERIC_WRITE`.
-pub(crate) const CLIENT_ZUGRIFF: u32 = GENERIC_READ | FILE_WRITE_DATA;
+pub(crate) const CLIENT_ZUGRIFF: u32 = GENERIC_READ + FILE_WRITE_DATA;
 
 /// The flags of the client (B7): identification only, so the server may read the identity but not act in its name.
 pub(crate) const CLIENT_FLAGS: u32 =
-    SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION | FILE_FLAG_OVERLAPPED;
+    SECURITY_SQOS_PRESENT + SECURITY_IDENTIFICATION + FILE_FLAG_OVERLAPPED;
 
 /// The security descriptor of the pipe as SDDL (B1 to B3).
 ///
@@ -210,6 +214,11 @@ mod tests {
             assert_ne!(oeffnungsmodus(erste) & FILE_FLAG_OVERLAPPED, 0);
         }
         assert_ne!(PIPE_MODUS & PIPE_REJECT_REMOTE_CLIENTS, 0, "B5");
+        // The exact values: duplex and overlapped, the first instance with its flag; the byte mode is 0.
+        assert_eq!(oeffnungsmodus(true), 0x4008_0003);
+        assert_eq!(oeffnungsmodus(false), 0x4000_0003);
+        assert_eq!((PIPE_TYPE_BYTE, PIPE_READMODE_BYTE), (0, 0));
+        assert_eq!(PIPE_MODUS, 0x0000_0008);
     }
 
     #[test]
@@ -225,5 +234,7 @@ mod tests {
             CLIENT_FLAGS & (SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION),
             SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION
         );
+        assert_eq!(CLIENT_ZUGRIFF, 0x8000_0002);
+        assert_eq!(CLIENT_FLAGS, 0x4011_0000);
     }
 }

@@ -117,9 +117,10 @@ fn sha1(daten: &[u8]) -> [u8; 20] {
     let mut nachricht = daten.to_vec();
     let bits = (daten.len() as u64).wrapping_mul(8);
     nachricht.push(0x80);
-    while nachricht.len() % 64 != 56 {
-        nachricht.push(0);
-    }
+    // Zeros up to 56 bytes modulo 64, in closed form: in a loop `while len % 64 != 56` a changed `%` never ends and grows
+    // the message without a limit.
+    let nullen = (119 - daten.len() % 64) % 64;
+    nachricht.resize(nachricht.len() + nullen, 0);
     nachricht.extend_from_slice(&bits.to_be_bytes());
     for block in nachricht.as_chunks::<64>().0 {
         let mut w = [0u32; 80];
@@ -130,11 +131,13 @@ fn sha1(daten: &[u8]) -> [u8; 20] {
             w[i] = (w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]).rotate_left(1);
         }
         let [mut a, mut b, mut c, mut d, mut e] = h;
+        // Ch and Maj of FIPS 180-4 as sums of two terms without a common bit: the sum is their OR. With `|` the operator `^`
+        // would give the same value, so a changed operator would not show.
         for (i, wi) in w.iter().enumerate() {
             let (f, k) = match i {
-                0..=19 => ((b & c) | (!b & d), 0x5A82_7999),
+                0..=19 => ((b & c) + (!b & d), 0x5A82_7999),
                 20..=39 => (b ^ c ^ d, 0x6ED9_EBA1),
-                40..=59 => ((b & c) | (b & d) | (c & d), 0x8F1B_BCDC),
+                40..=59 => ((b & c) + (d & (b ^ c)), 0x8F1B_BCDC),
                 _ => (b ^ c ^ d, 0xCA62_C1D6),
             };
             let t = a
@@ -316,6 +319,30 @@ mod tests {
                 b"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
             )),
             "84983e441c3bd26ebaae4aa1f95129e5e54670f1"
+        );
+        // Each length around the edges of the padding; values of Python `hashlib` over the bytes `(7 * i + 1) mod 256`.
+        for (n, soll) in [
+            (55, "04bb34aef4880b625e6b1564a014abd25fc02bfe"),
+            (64, "54305ee7e4c7bc5a96afc6d1994fc52d9bcb665f"),
+            (119, "6839d6c27f22ed884ac43ae6bd3bfcee9e04b938"),
+            (120, "8c40517a14ab8b78fd4b8958f4e31254a34c3fb0"),
+        ] {
+            let daten: Vec<u8> = (0..n)
+                .map(|i: u8| i.wrapping_mul(7).wrapping_add(1))
+                .collect();
+            assert_eq!(hex(sha1(&daten)), soll, "{n}");
+        }
+    }
+
+    #[test]
+    fn anzeige_ist_der_text() {
+        let sid = "S-1-5-21-1000000001-1000000002-1000000003-1001";
+        let paket = "S-1-15-2-1-2-3-4-5-6-7";
+        assert_eq!(Sid::neu(sid).expect("form").to_string(), sid);
+        assert_eq!(PackageSid::neu(paket).expect("form").to_string(), paket);
+        assert_eq!(
+            Kennung::neu("k-beispiel").expect("form").to_string(),
+            "k-beispiel"
         );
     }
 

@@ -344,3 +344,41 @@ impl Ereignis {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn texte_der_codes_fehler_und_systeme() {
+        assert_eq!(Code::NameBelegt.to_string(), "pk.name_belegt");
+        assert_eq!(Fehler::neu(Code::Io).to_string(), "pk.io");
+        assert_eq!(
+            Fehler::os(Code::NameBelegt, 5).to_string(),
+            "pk.name_belegt (os 5)"
+        );
+        assert_eq!(System::Windows.als_str(), "windows");
+        assert_eq!(System::Linux.als_str(), "linux");
+        assert_eq!(System::Macos.als_str(), "macos");
+    }
+
+    #[test]
+    fn peer_als_json_mit_jedem_feld() {
+        let mut p = Peer::leer(System::Macos);
+        p.uid = Some(501);
+        p.signatur = Some(Signatur {
+            kennung: "beispiel".to_owned(),
+            team_id: None,
+            gueltig: true,
+        });
+        assert_eq!(
+            p.als_json(),
+            json!({
+                "system": "macos", "sid": null, "appcontainer_sid": null, "uid": 501, "gid": null, "pid": null,
+                "startzeit": null, "im_job": null, "programm": null,
+                "signatur": {"kennung": "beispiel", "team_id": null, "gueltig": true},
+                "eingeschraenkt": null, "sandbox": null
+            })
+        );
+    }
+}

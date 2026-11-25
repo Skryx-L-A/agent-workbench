@@ -838,6 +838,45 @@ mod tests {
         let _ = schreiber.join();
     }
 
+    /// A line of exactly `ZEILE_MAX` bytes before its LF is still a line, as at the holder, whose reader takes the same
+    /// limit: the limit cuts off only what lies above it, also while the LF has not come yet.
+    #[test]
+    fn a_line_of_exactly_the_limit_is_still_read() {
+        use std::io::Write as _;
+
+        let kopf = br#"{"art":"ende","code":""#;
+        let fuss = br#"","fassung":1,"ok":false}"#;
+        let code = super::ZEILE_MAX - kopf.len() - fuss.len();
+        let mut zeile = Vec::with_capacity(super::ZEILE_MAX + 1);
+        zeile.extend_from_slice(kopf);
+        zeile.resize(kopf.len() + code, b'x');
+        zeile.extend_from_slice(fuss);
+        assert_eq!(zeile.len(), super::ZEILE_MAX);
+        let (a, mut b) = std::os::unix::net::UnixStream::pair().expect("pair");
+        let schreiber = std::thread::spawn(move || {
+            if b.write_all(&zeile).is_err() {
+                return;
+            }
+            // The reader holds all bytes of the line and waits past its deadline before the LF comes.
+            std::thread::sleep(Duration::from_secs(1));
+            let _ = b.write_all(b"\n");
+            std::thread::sleep(Duration::from_secs(1));
+        });
+        let mut k = Klient::auf(a);
+        k.frist(Some(Duration::from_millis(200))).expect("deadline");
+        let ende = std::time::Instant::now() + Duration::from_secs(20);
+        let gelesen = loop {
+            match k.zeile_oder_nichts() {
+                Ok(Some(gelesen)) => break gelesen,
+                Ok(None) => assert!(std::time::Instant::now() < ende, "no line"),
+                Err(fehler) => panic!("a line of exactly the limit: {fehler}"),
+            }
+        };
+        assert!(matches!(gelesen, Zeile::Ende(Some(wert)) if wert.len() == code));
+        drop(k);
+        let _ = schreiber.join();
+    }
+
     #[test]
     fn the_lines_of_the_holder_are_read_in_their_closed_form() {
         let b = |s: &str| Zeile::lies(s.as_bytes());

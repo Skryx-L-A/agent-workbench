@@ -264,3 +264,96 @@ pub mod testnaht {
         Server::anlegen_mit(v, &zusatz, nach_verbinden)
     }
 }
+
+// The interface on a system without the pipe: the answers of `Server::anlegen` and the wrappers over the order. The values
+// come from constructors of the module `ablauf` without any system call.
+#[cfg(test)]
+#[cfg(not(windows))]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    fn kanal() -> Kennung {
+        Kennung::neu("k-beispiel").expect("form")
+    }
+
+    fn bindung() -> Prozessbindung {
+        Prozessbindung {
+            pid: 4242,
+            startzeit: Some(50),
+        }
+    }
+
+    /// Valid settings of this system: `pk.anlegen_fehlgeschlagen` without `os_fehler`, before any system call.
+    #[test]
+    fn anlegen_ohne_pipe_ohne_os_fehler() {
+        let mut v = ServerVorgabe::neu(kanal(), vec![Erlaubnis::Unix { uid: 1, gid: None }], 1);
+        v.unix = Some(UnixOrt {
+            ordner: "/srv/beispiel".into(),
+            modus: SocketModus::M0600,
+        });
+        assert_eq!(
+            Server::anlegen(v).err(),
+            Some(Fehler::neu(Code::AnlegenFehlgeschlagen))
+        );
+    }
+
+    #[test]
+    fn haken_wird_gesetzt() {
+        let mut s = Server {
+            kern: ServerKern::ohne_instanz(Arc::new(Os), kanal()),
+        };
+        assert!(s.kern.haken.is_none());
+        let gerufen = Arc::new(AtomicUsize::new(0));
+        let g = Arc::clone(&gerufen);
+        s.bei_abweisung(move |_| {
+            g.fetch_add(1, Ordering::SeqCst);
+        });
+        let e = Ereignis {
+            kanal: kanal(),
+            grund: Grund::HalloFehlt,
+            peer: None,
+        };
+        (s.kern.haken.as_ref().expect("gesetzt"))(&e);
+        assert_eq!(gerufen.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn vorlaeufig_nennt_peer_und_prozess() {
+        let s = ServerKern::ohne_instanz(Arc::new(Os), kanal());
+        let peer = Peer::leer(System::Windows);
+        let v = Vorlaeufig {
+            kern: s.vorlaeufig_ohne_griff(Some(bindung()), peer.clone()),
+        };
+        assert_eq!(v.prozess(), Some(&bindung()));
+        assert_eq!(v.peer(), &peer);
+    }
+
+    /// The wrappers of `Verbindung` pass the binding, the time limit and the errors of the system through.
+    #[test]
+    fn verbindung_reicht_durch() {
+        let mut v = Verbindung {
+            kern: VerbindungKern::mit_griff(
+                Arc::new(Os),
+                (),
+                Some(bindung()),
+                Peer::leer(System::Windows),
+            ),
+        };
+        assert_eq!(v.prozess(), Some(&bindung()));
+        assert_eq!(v.kern.frist_der_lesen(), None);
+        v.lesefrist(Some(Duration::from_millis(5)));
+        assert_eq!(v.kern.frist_der_lesen(), Some(Duration::from_millis(5)));
+        let os_fehler = |e: &io::Error| {
+            e.get_ref()
+                .and_then(|f| f.downcast_ref::<Fehler>())
+                .copied()
+        };
+        let mut puffer = [0u8; 4];
+        let e = v.read(&mut puffer).expect_err("ohne System");
+        assert_eq!(os_fehler(&e), Some(Fehler::os(Code::Io, 0)));
+        let e = v.write(b"x").expect_err("ohne System");
+        assert_eq!(os_fehler(&e), Some(Fehler::os(Code::Io, 0)));
+        assert!(v.flush().is_ok());
+    }
+}

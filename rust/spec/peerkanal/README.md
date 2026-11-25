@@ -6,8 +6,8 @@ Diese Datei beschreibt Fassung 1; ihre Fälle und ihr Schema bleiben unveränder
 **Nachtrag 25.11.2026 (Projektentscheid, 25.11.2026): sechs Entscheide.** Eigene SID (`eigene_sid`), Lesefrist, Client ohne
 Hallo (`verbinden_ohne_hallo`, `Sid::dienst`), Ereignis vor dem Trennen (`bei_abweisung`), Ende vor vier Byte des Hallos
 und Flush vor dem Trennen. Jeder Entscheid steht an seiner Stelle im Text und trägt die Kennzeichnung „Projektentscheid,
-25.11.2026“. Wo sich ein Satz ändert, stehen „alt:“ und „neu:“. Die ersten fünf beschreiben, was die Bibliothek schon tut; der
-sechste (Flush) ist noch nicht gebaut und trägt den Vermerk „OPEN“. 17 neue Fälle gehören dazu (Abschnitt Fälle und Prüfer);
+25.11.2026“. Wo sich ein Satz ändert, stehen „alt:“ und „neu:“. Die Bibliothek tut alle sechs; der
+sechste (Flush) ist am 25.11.2026 gebaut und gemergt und trägt keinen OPEN-Vermerk mehr. 17 neue Fälle gehören dazu (Abschnitt Fälle und Prüfer);
 kein bestehender Fall und keine bestehende Erwartung ändert sich.
 
 Stand 20.11.2026. Auftrag: Projektentscheid, 20.11.2026, Nachtrag 1
@@ -158,7 +158,7 @@ Sicherheitsbeschreibung:
 - **Der Name bleibt belegt.** Bevor eine verbundene Instanz an den Aufrufer geht, legt die Bibliothek die nächste
   wartende Instanz an, solange `instanzen` es zulässt. Ist die Grenze erreicht, bleibt die verbundene Instanz der Halter des
   Namens. Weitere Instanzen darf nur die eigene SID anlegen (die DACL gibt anderen kein `FILE_CREATE_PIPE_INSTANCE`).
-- **Flush vor dem Trennen** (Projektentscheid, 25.11.2026; **OPEN: noch nicht gebaut**). Vor jedem `DisconnectNamedPipe` ruft die
+- **Flush vor dem Trennen** (Projektentscheid, 25.11.2026; gebaut am 25.11.2026, Windows). Vor jedem `DisconnectNamedPipe` ruft die
   Bibliothek `FlushFileBuffers` auf dem Handle der Instanz auf, mit einer Frist. Die Frist ist die `hallo_frist` der
   Server-Vorgabe (Vorgabe 2000 ms; sie entspricht der üblichen `frist` des Clients von 2000 ms in den Fällen). Läuft die
   Frist ab, trennt die Bibliothek trotzdem. Wie sie die Frist umsetzt, bleibt ihr überlassen; der Aufrufer wartet höchstens
@@ -169,7 +169,9 @@ Sicherheitsbeschreibung:
   zurück. Unter Unix gibt es keinen Flush (hergeleitet: `close` liefert bereits gesendete Bytes noch aus). Fall und Gegenprobe:
   `d-flush-vor-trennen-windows` (der Server lässt sofort fallen, der Client bekommt `pk1`; Teil 1 mit einem rohen Client, der
   erst 300 ms nach dem Hallo liest, ist ohne den Flush rot) und `d-flush-frist-windows` (der Client liest nie, der Server
-  trennt nach der Frist).
+  trennt nach der Frist). Gemessen auf einer Windows-VM am 25.11.2026: `d-flush-vor-trennen-windows` Teil 1 100 von 100 Läufen
+  grün, Teil 2 100 von 100, `peer.pid` null in 0 Läufen; `d-flush-frist-windows` trennt nach 2006 ms. Mit dem Mutanten ohne
+  Leeren sind Teil 1 (0 von 100) und `d-flush-frist-windows` (0 ms) rot; mit dem Mutanten ohne Frist trennt er nach 3999 ms und ist rot.
 
 **Zugriffsmaske des Clients.** Der Client öffnet mit `GENERIC_READ | FILE_WRITE_DATA`, nie mit `GENERIC_WRITE`.
 Grund: Er fordert nur die Rechte an, die er braucht; `GENERIC_WRITE` enthält `FILE_APPEND_DATA` (0x4, an der Pipe
@@ -422,14 +424,14 @@ Seite und zu keinem Ereignis; das Schema führt ihn nicht gesondert, weil `erwar
 | S15 | Lehnt der Haken ab, bekommt der Client kein Byte zurück, auch kein Hallo; die Prozessbindung gilt während des Hakens | `n-haken-lehnt-ab`, `n-haken-bindung-windows` |
 | S16 | Auch ohne Hallo prüft der Client den Besitzer der Instanz vor jedem Byte; ein falscher Besitzer ergibt `pk.falscher_server` und 0 Byte (Nachtrag 25.11.2026) | `c-ohne-hallo-*` |
 | S17 | Das Ereignis liegt beim Aufrufer, bevor die Verbindung getrennt wird; der Client sieht das Ende erst danach (Nachtrag 25.11.2026) | `n-ereignis-vor-dem-trennen*` |
-| S18 | Unter Windows geht ein bestätigtes Hallo nicht durch das Trennen verloren, und das Trennen wartet höchstens die Frist (Nachtrag 25.11.2026; noch nicht gebaut) | `d-flush-vor-trennen-windows`, `d-flush-frist-windows` |
+| S18 | Unter Windows geht ein bestätigtes Hallo nicht durch das Trennen verloren, und das Trennen wartet höchstens die Frist (Nachtrag 25.11.2026; gebaut am 25.11.2026) | `d-flush-vor-trennen-windows`, `d-flush-frist-windows` |
 
 ## Fälle und Prüfer
 
 | Datei | Zweck |
 |---|---|
 | `peerkanal.schema.json` | Form der Vorgaben, des Peers, des Ereignisses und der Fälle (JSON Schema 2020-12) |
-| `faelle/<name>.json` | `beschreibung`, `art` (`vorgabe` oder `aussentest`), `ort`, `konten`, `server`, `client`, `aufbau`, `handlung` |
+| `faelle/<name>.json` | `beschreibung`, `art` (`vorgabe` oder `aussentest`), `ort`, `konten`, `server`, `client`, `aufbau`, `handlung`; optional `roh` (`warte_ms`, `anzahl`, je ganze Zahl ab 1; nur bei `d-flush-vor-trennen-windows`, der rohe Client für Teil 1) |
 | `erwartet/<name>.json` | `seite` (`vorgabe`, `anlegen`, `annehmen`, `verbinden`, `auskunft`), `ergebnis`, `code`, `ereignisse`, `peer`, `gemessen` |
 | `bau-faelle.py` | erzeugt beide Ordner |
 | `pruefen.py` | Paarung, JSON, Schema, Codes je Seite, Beispielkennungen |
@@ -508,9 +510,9 @@ einer anderen SID als `TokenUser` (`k-eigene-sid-windows`); Trennen ohne `FlushF
    ist zu prüfen. Fällt es weg, ist `sandbox` `null`.
 8. Startet ein Aufrufer Dienste in Session 0, brauchen Fensterstation und Desktop `READ_CONTROL` für den Client (sonst
    `0xC0000142`, gemessen 18.11.). Das gehört zum Starter, nicht zu dieser Bibliothek.
-9. **OPEN (Nachtrag 25.11.2026): Flush vor dem Trennen ist noch nicht gebaut.** Die Pflicht steht im Abschnitt Windows; die
-   Bibliothek ruft heute `DisconnectNamedPipe` ohne `FlushFileBuffers` auf. `d-flush-vor-trennen-windows` und
-   `d-flush-frist-windows` sind bis zum Bau nicht erfüllbar. Der Entscheid nennt die „Hallo-Frist des Clients“ als Frist; der
+9. (erledigt, 25.11.2026) Flush vor dem Trennen ist gebaut. Die Pflicht steht im Abschnitt Windows; die Bibliothek ruft vor
+   `DisconnectNamedPipe` `FlushFileBuffers` auf. `d-flush-vor-trennen-windows` und `d-flush-frist-windows` sind erfüllt
+   (Messung im Abschnitt Windows). Der Entscheid nennt die „Hallo-Frist des Clients“ als Frist; der
    Server kennt die `frist` des Clients nicht. Der Vertrag setzt darum die `hallo_frist` der Server-Vorgabe (Vorgabe 2000 ms) ein.
    Soll eine andere Frist gelten, ist dieser Satz zu ändern.
 10. Die Fälle `c-ohne-hallo-unix` und `c-ohne-hallo-falscher-besitzer-unix` beschreiben die Unix-Seite von `verbinden_ohne_hallo`

@@ -707,6 +707,84 @@ pub(crate) fn verbinden<P: Plattform>(
     Ok(client_verbindung(plattform, g, besitzer, pid))
 }
 
+// Values of the order without any system call, for the tests of the interface in `lib.rs` on a system without the pipe.
+#[cfg(test)]
+#[cfg(not(windows))]
+impl<P: Plattform> ServerKern<P> {
+    /// A server with an empty pool.
+    pub(crate) fn ohne_instanz(plattform: Arc<P>, kanal: Kanalname) -> Self {
+        let pool = Arc::new(Pool {
+            plattform: Arc::clone(&plattform),
+            name: kanal.als_str().to_owned(),
+            sddl: String::new(),
+            max: 1,
+            leer_frist: Duration::from_millis(1),
+            zustand: Mutex::new(PoolZustand {
+                frisch: Vec::new(),
+                getrennt: Vec::new(),
+                vorhanden: 0,
+                offen: true,
+            }),
+            frei: Condvar::new(),
+        });
+        Self {
+            plattform,
+            pool,
+            kanal,
+            erlaubt: Vec::new(),
+            hallo_frist: Duration::from_millis(1),
+            prozess_pflicht: false,
+            job: None,
+            nach_verbinden: None,
+            haken: None,
+        }
+    }
+
+    /// A provisional connection of this server without an instance.
+    pub(crate) fn vorlaeufig_ohne_griff(
+        &self,
+        bindung: Option<Prozessbindung>,
+        peer: Peer,
+    ) -> VorlaeufigKern<P> {
+        VorlaeufigKern {
+            plattform: Arc::clone(&self.plattform),
+            pool: Arc::clone(&self.pool),
+            kanal: self.kanal.clone(),
+            haken: None,
+            griff: None,
+            prozess: None,
+            bindung,
+            peer,
+        }
+    }
+}
+
+#[cfg(test)]
+#[cfg(not(windows))]
+impl<P: Plattform> VerbindungKern<P> {
+    /// A connection of the client side over the given handle.
+    pub(crate) fn mit_griff(
+        plattform: Arc<P>,
+        griff: P::Griff,
+        bindung: Option<Prozessbindung>,
+        peer: Peer,
+    ) -> Self {
+        Self {
+            plattform,
+            seite: Seite::Client { griff },
+            gehalten: None,
+            bindung,
+            peer,
+            lesefrist: None,
+        }
+    }
+
+    /// The time limit of the next read.
+    pub(crate) fn frist_der_lesen(&self) -> Option<Duration> {
+        self.lesefrist
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::many_single_char_names, clippy::assert_is_empty)]
 mod tests {
@@ -754,6 +832,12 @@ mod tests {
         verbunden: bool,
         /// The client never reads: `leeren` returns only after `trennen` (at most after 3 s, so that a test never hangs).
         liest_nie: bool,
+        /// The error of `instanz_anlegen` for the first instance (the one with the flag), if any.
+        erste_fehler: Option<i32>,
+        /// The error of `instanz_anlegen` for every further instance, if any.
+        weitere_fehler: Option<i32>,
+        /// Every read returns `Lesen::Daten(0)`.
+        null_lesen: bool,
     }
 
     impl Attrappe {
@@ -788,6 +872,9 @@ mod tests {
                     eigene_fehler: None,
                     verbunden: false,
                     liest_nie: false,
+                    erste_fehler: None,
+                    weitere_fehler: None,
+                    null_lesen: false,
                 }),
                 cv: Condvar::new(),
             })
@@ -823,6 +910,13 @@ mod tests {
             let mut z = self.z();
             if erste && z.belegt {
                 return Err(OS_ZUGRIFF);
+            }
+            if let Some(e) = if erste {
+                z.erste_fehler
+            } else {
+                z.weitere_fehler
+            } {
+                return Err(e);
             }
             z.angelegt.push((erste, sddl.to_owned()));
             z.protokoll.push("anlegen");
@@ -889,6 +983,9 @@ mod tests {
             let mut z = self.z();
             z.protokoll.push("lesen");
             z.fristen.push(frist);
+            if z.null_lesen {
+                return Lesen::Daten(0);
+            }
             if let Some(b) = z.von_client.pop_front() {
                 puffer[0] = b;
                 return Lesen::Daten(1);
@@ -964,6 +1061,28 @@ mod tests {
             AnnahmeKern::Vorlaeufig(v) => v,
             AnnahmeKern::Abgewiesen(e) => panic!("abgewiesen: {}", e.als_json()),
         }
+    }
+
+    /// Every instance of the server waits in the pool: none is held and none was lost. Checked before the next `annehmen`,
+    /// so that a lost instance fails the test at once instead of letting `holen` wait for it without end.
+    fn alle_warten(s: &ServerKern<Attrappe>) {
+        let z = sperren(&s.pool.zustand);
+        assert_eq!(
+            z.frisch.len() + z.getrennt.len(),
+            z.vorhanden,
+            "jede Instanz wartet wieder"
+        );
+    }
+
+    /// `holen` on its own thread; the result comes through the channel. A mutant that waits without end lets the test fail
+    /// at its `recv_timeout` instead of hanging it.
+    fn holen_starten(pool: &Arc<Pool<Attrappe>>) -> std::sync::mpsc::Receiver<Result<u32, Fehler>> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let pool = Arc::clone(pool);
+        std::thread::spawn(move || {
+            let _ = tx.send(pool.holen());
+        });
+        rx
     }
 
     #[test]
@@ -1109,10 +1228,12 @@ mod tests {
         a.z().client_sendet.clear();
         let s = server(&a, vec![person(None)], 4);
         assert_eq!(abgewiesen(s.annehmen()).grund, Grund::HalloFehlt);
+        alle_warten(&s);
         // Decision 5: the end of the connection after a fitting start is `pk.hallo_fehlt`.
         a.z().client_sendet = b"pk".to_vec();
         a.z().client_schliesst = true;
         assert_eq!(abgewiesen(s.annehmen()).grund, Grund::HalloFehlt);
+        alle_warten(&s);
         a.z().client_sendet = b"pk2\n".to_vec();
         let e = abgewiesen(s.annehmen());
         assert_eq!(e.grund, Grund::HalloFalsch);
@@ -1144,6 +1265,7 @@ mod tests {
             let e = abgewiesen(s.annehmen());
             assert_eq!(e.grund, grund, "{bytes:?}");
             assert_eq!(e.code(), Code::HalloUngueltig);
+            alle_warten(&s);
         }
         // Without an end the time limit ends the wait: also `pk.hallo_fehlt`.
         a.z().client_schliesst = false;
@@ -1207,10 +1329,14 @@ mod tests {
         let a = Attrappe::neu();
         let s = server(&a, vec![person(None)], 4);
         drop(vorlaeufig(s.annehmen()).bestaetigen().expect("bestätigen"));
+        alle_warten(&s);
         drop(vorlaeufig(s.annehmen()));
+        alle_warten(&s);
         let _ = vorlaeufig(s.annehmen()).ablehnen(Kennung::neu("sitzung-fremd").expect("form"));
+        alle_warten(&s);
         a.z().client_sendet = b"GET /\n".to_vec();
         abgewiesen(s.annehmen());
+        alle_warten(&s);
         let z = a.z();
         assert_eq!(z.getrennt, 4);
         assert_eq!(
@@ -1610,5 +1736,163 @@ mod tests {
             Some(Code::NichtErreichbar)
         );
         assert!(start.elapsed() < Duration::from_secs(5));
+    }
+
+    /// `holen` takes a waiting instance first, creates a new one below the limit and at the limit waits for a returned one
+    /// without creating any.
+    #[test]
+    fn holen_bis_zur_grenze_dann_warten() {
+        let a = Attrappe::neu();
+        let s = server(&a, vec![person(None)], 2);
+        let frist = Duration::from_secs(2);
+        let erste = holen_starten(&s.pool)
+            .recv_timeout(frist)
+            .expect("wartende Instanz");
+        assert_eq!(erste, Ok(1));
+        let zweite = holen_starten(&s.pool)
+            .recv_timeout(frist)
+            .expect("unter der Grenze neu");
+        assert_eq!(zweite, Ok(2));
+        assert_eq!(sperren(&s.pool.zustand).vorhanden, 2);
+        assert_eq!(a.z().angelegt.len(), 2);
+        let dritte = holen_starten(&s.pool);
+        assert!(
+            dritte.recv_timeout(Duration::from_millis(100)).is_err(),
+            "an der Grenze wartet holen"
+        );
+        assert_eq!(a.z().angelegt.len(), 2, "keine dritte Instanz");
+        s.pool.ablegen(1, false);
+        assert_eq!(dritte.recv_timeout(frist).expect("zurückgegeben"), Ok(1));
+        assert_eq!(sperren(&s.pool.zustand).vorhanden, 2);
+    }
+
+    /// An instance the system does not create counts not: `vorhanden` falls back, and the limit allows it again later.
+    #[test]
+    fn fehlgeschlagene_instanz_zaehlt_nicht() {
+        let a = Attrappe::neu();
+        let s = server(&a, vec![person(None)], 2);
+        let frist = Duration::from_secs(2);
+        assert_eq!(
+            holen_starten(&s.pool).recv_timeout(frist).expect("Instanz"),
+            Ok(1)
+        );
+        a.z().weitere_fehler = Some(1450);
+        s.pool.bereitstellen();
+        assert_eq!(sperren(&s.pool.zustand).vorhanden, 1, "bereitstellen");
+        assert_eq!(
+            holen_starten(&s.pool)
+                .recv_timeout(frist)
+                .expect("kehrt zurück"),
+            Err(Fehler::os(Code::Io, 1450))
+        );
+        assert_eq!(sperren(&s.pool.zustand).vorhanden, 1, "holen");
+        a.z().weitere_fehler = None;
+        assert_eq!(
+            holen_starten(&s.pool).recv_timeout(frist).expect("Instanz"),
+            Ok(2)
+        );
+        assert_eq!(sperren(&s.pool.zustand).vorhanden, 2);
+    }
+
+    /// The end of the server closes the waiting instances; an instance that comes back later is closed as well.
+    #[test]
+    fn ende_des_servers_schliesst_jede_instanz() {
+        let a = Attrappe::neu();
+        let s = server(&a, vec![person(None)], 4);
+        let v = vorlaeufig(s.annehmen()).bestaetigen().expect("bestätigen");
+        let pool = Arc::clone(&s.pool);
+        assert_eq!(
+            sperren(&pool.zustand).vorhanden,
+            2,
+            "eine verbunden, eine wartet"
+        );
+        drop(s);
+        {
+            let z = sperren(&pool.zustand);
+            assert!(!z.offen);
+            assert!(z.frisch.is_empty() && z.getrennt.is_empty());
+            assert_eq!(z.vorhanden, 1, "nur die verbundene");
+        }
+        drop(v);
+        let z = sperren(&pool.zustand);
+        assert_eq!(z.vorhanden, 0);
+        assert!(z.getrennt.is_empty(), "geschlossen, nicht zurückgelegt");
+    }
+
+    /// `ERROR_PIPE_BUSY` at the first instance is a taken name as well; any other error is `pk.anlegen_fehlgeschlagen`.
+    #[test]
+    fn fehler_der_ersten_instanz() {
+        for (os, code) in [
+            (OS_BELEGT, Code::NameBelegt),
+            (OS_ZUGRIFF, Code::NameBelegt),
+            (1450, Code::AnlegenFehlgeschlagen),
+        ] {
+            let a = Attrappe::neu();
+            a.z().erste_fehler = Some(os);
+            let r = ServerKern::anlegen(Arc::clone(&a), vorgabe(vec![person(None)], 4), None, &[]);
+            assert_eq!(r.err(), Some(Fehler::os(code, os)), "{os}");
+        }
+    }
+
+    /// A read of 0 bytes ends the wait for the hello at once, at the server and at the client.
+    #[test]
+    fn null_byte_beenden_das_hallo() {
+        let lesen = |a: &Attrappe| a.z().protokoll.iter().filter(|p| **p == "lesen").count();
+        let a = Attrappe::neu();
+        a.z().null_lesen = true;
+        let s = server(&a, vec![person(None)], 4);
+        assert_eq!(abgewiesen(s.annehmen()).grund, Grund::HalloFehlt);
+        assert_eq!(lesen(&a), 1, "kein zweites Lesen");
+        let b = Attrappe::fuer_client();
+        b.z().null_lesen = true;
+        assert_eq!(
+            verbinden(Arc::clone(&b), &client(DIENST)).err(),
+            Some(Fehler::neu(Code::Abgewiesen))
+        );
+        assert_eq!(lesen(&b), 1, "kein zweites Lesen");
+    }
+
+    /// The peer carries the program, the connection the binding, and a write returns the number of bytes, at the server and
+    /// at the client; the client has no binding and is not restricted.
+    #[test]
+    fn verbindung_mit_programm_bindung_und_schreiben() {
+        let a = Attrappe::neu();
+        let s = server(&a, vec![person(None)], 4);
+        let v = vorlaeufig(s.annehmen());
+        assert_eq!(v.peer.programm.as_deref(), Some("C:\\p.exe"));
+        let w = v.bestaetigen().expect("bestätigen");
+        assert_eq!(
+            w.prozess(),
+            Some(&Prozessbindung {
+                pid: 4242,
+                startzeit: Some(50)
+            })
+        );
+        assert_eq!(w.schreiben(b"abc").ok(), Some(3));
+        assert!(a.z().an_client.ends_with(b"abc"));
+        for ohne_hallo in [false, true] {
+            let b = Attrappe::fuer_client();
+            let c = if ohne_hallo {
+                verbinden_ohne_hallo(Arc::clone(&b), &client(DIENST))
+            } else {
+                verbinden(Arc::clone(&b), &client(DIENST))
+            }
+            .expect("verbinden");
+            assert_eq!(c.peer.eingeschraenkt, Some(false));
+            assert_eq!(c.prozess(), None);
+            assert_eq!(c.schreiben(b"xy").ok(), Some(2));
+        }
+    }
+
+    /// Without the hello the client waits for a free instance within its time limit as well.
+    #[test]
+    fn ohne_hallo_wartet_auf_eine_freie_instanz() {
+        let a = Attrappe::fuer_client();
+        a.z().oeffnen = [OS_BELEGT, OS_BELEGT].into();
+        assert!(verbinden_ohne_hallo(Arc::clone(&a), &client(DIENST)).is_ok());
+        assert_eq!(
+            a.z().protokoll.iter().filter(|p| **p == "warten").count(),
+            2
+        );
     }
 }

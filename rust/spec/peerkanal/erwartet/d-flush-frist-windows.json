@@ -8,6 +8,6 @@
   "Das Fallenlassen kehrt nach 2000 ms zurück (bis 2700 ms), nicht früher und nicht später",
   "Danach ist die Instanz getrennt und frei: Der zweite Client verbindet",
   "Ohne Ablauf der Frist (der Client liest) kehrt das Fallenlassen sofort zurück (unter 500 ms)",
-  "Bau noch offen: Ohne Frist hinge das Fallenlassen unbegrenzt, ohne Flush kehrte es sofort zurück"
+  "Ohne Frist hinge das Fallenlassen unbegrenzt, ohne Flush kehrte es sofort zurück"
  ]
 }

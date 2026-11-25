@@ -130,7 +130,8 @@
     "server": {"anyOf": [{"type": "null"}, {"type": "object"}]},
     "client": {"anyOf": [{"type": "null"}, {"type": "object"}]},
     "aufbau": {"type": "array", "items": {"type": "string"}},
-    "handlung": {"type": "array", "items": {"type": "string"}}
+    "handlung": {"type": "array", "items": {"type": "string"}},
+    "roh": {"type": "object", "additionalProperties": false, "required": ["warte_ms", "anzahl"], "properties": {"warte_ms": {"type": "integer", "minimum": 1}, "anzahl": {"type": "integer", "minimum": 1}}}
    }
   },
   "erwartet": {
