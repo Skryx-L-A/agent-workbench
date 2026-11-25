@@ -15,8 +15,8 @@
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::io::{ErrorKind, Read, Write};
-use std::os::fd::{AsFd, OwnedFd};
-use std::os::unix::net::{UnixListener, UnixStream};
+#[cfg(unix)]
+use std::os::fd::AsFd;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -46,6 +46,7 @@ use crate::starten::{
     Abgelehnt, SITZUNGEN_MAX, einstellungen_laden, meta_von, nummer_vergebbar, ordner_anlegen,
     rahmennummer, start_form, start_pruefen, starten_form, startwahl_von,
 };
+use crate::sys::{Ordner, UnixListener, UnixStream};
 use crate::waisen::{Waisen, kinder_verwerfen, start_verwerfen};
 
 /// The kinds of event a viewer may give (DI3): the lines `Ansicht` of `VT` section 4 without `Verbinden` and `Trennen`.
@@ -259,7 +260,7 @@ pub struct Dienst {
     kern_grenze: usize,
     huelle: Option<PathBuf>,
     /// The socket folder, opened once after the check of its rights; every removal below it goes through this descriptor (`loeschen.rs`).
-    wurzel: Arc<OwnedFd>,
+    wurzel: Arc<Ordner>,
     /// The markers of a trial run, read once from `lauf.marker_datei` at the start; they go into every `start.json` and nowhere else.
     marker: Option<start::Marker>,
     /// The identifiers `Starten` handed out so far (`s-<n>`, never used again, DI12 point 4); not the raster number.
@@ -322,10 +323,7 @@ impl Dienst {
         if !crate::waisen::kinder_lesbar() {
             return Err(StartFehler::neu(1, crate::waisen::KINDER_FEHLT));
         }
-        let wurzel = Arc::new(ordner_oeffnen(
-            Path::new(&cfg.ordner),
-            rustix::process::geteuid().as_raw(),
-        )?);
+        let wurzel = Arc::new(ordner_oeffnen(Path::new(&cfg.ordner), crate::sys::euid())?);
         let marker = marker_lesen(&cfg)?;
         let mut sitzungen = Vec::new();
         if cfg.lauf.is_some() {
@@ -434,6 +432,7 @@ impl Dienst {
     ///
     /// The signals are caught before, with [`signale_anmelden`] and before anything becomes visible to the outside; a signal
     /// that came during the start ends the loop at once and cleanly.
+    #[cfg(unix)]
     pub fn laufen(&mut self, mut signale: signal_hook::iterator::Signals) -> i32 {
         let handle = signale.handle();
         let anhalter = self.anhalter();
@@ -444,6 +443,29 @@ impl Dienst {
         });
         let code = self.schleife();
         handle.close();
+        let _ = faden.join();
+        code
+    }
+
+    /// Windows (Nachtrag 25.11.2026, contract section 21): the loop until one of the console events `CTRL_C_EVENT` or
+    /// `CTRL_BREAK_EVENT` comes (`SIGINT` and `SIGBREAK` of the C runtime, which stand for SIGINT and SIGTERM); then the same end as
+    /// under Unix. A thread looks at the flag of the handler every 5 ms and calls [`Anhalter::anhalten`].
+    #[cfg(windows)]
+    pub fn laufen(&mut self, signale: Signale) -> i32 {
+        let anhalter = self.anhalter();
+        let fertig = Arc::new(AtomicBool::new(false));
+        let fertig_faden = Arc::clone(&fertig);
+        let faden = std::thread::spawn(move || {
+            while !fertig_faden.load(Ordering::SeqCst) {
+                if signale.0.load(Ordering::SeqCst) {
+                    anhalter.anhalten();
+                    return;
+                }
+                std::thread::sleep(Duration::from_millis(5));
+            }
+        });
+        let code = self.schleife();
+        fertig.store(true, Ordering::SeqCst);
         let _ = faden.join();
         code
     }
@@ -1687,9 +1709,29 @@ fn lesen_endet(ohne_ereignis: bool, daten_gelesen: bool) -> bool {
 ///
 /// # Errors
 /// The error of the system when a handler cannot be set.
+#[cfg(unix)]
 pub fn signale_anmelden() -> std::io::Result<signal_hook::iterator::Signals> {
     use signal_hook::consts::{SIGINT, SIGTERM};
     signal_hook::iterator::Signals::new([SIGTERM, SIGINT])
+}
+
+/// The caught console events under Windows: the flag that the handler of `SIGINT`, `SIGTERM` and `SIGBREAK` sets.
+#[cfg(windows)]
+pub struct Signale(Arc<AtomicBool>);
+
+/// Windows: catches `SIGINT` (`CTRL_C_EVENT`), `SIGBREAK` (`CTRL_BREAK_EVENT`) and `SIGTERM` (only raised inside the process) with
+/// the safe API of `signal-hook` (Nachtrag 25.11.2026, contract section 21).
+///
+/// # Errors
+/// The error of the system when a handler cannot be set.
+#[cfg(windows)]
+pub fn signale_anmelden() -> std::io::Result<Signale> {
+    use signal_hook::consts::{SIGBREAK, SIGINT, SIGTERM};
+    let flagge = Arc::new(AtomicBool::new(false));
+    for s in [SIGINT, SIGTERM, SIGBREAK] {
+        signal_hook::flag::register(s, Arc::clone(&flagge))?;
+    }
+    Ok(Signale(flagge))
 }
 
 /// The wake socket pair of the loop, both ends non-blocking.
@@ -1705,7 +1747,7 @@ fn kinder_der(sitzungen: &[Sitzung]) -> Vec<u32> {
     sitzungen.iter().filter_map(Sitzung::eigenes_kind).collect()
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use std::os::unix::net::UnixStream;

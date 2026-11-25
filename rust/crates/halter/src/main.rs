@@ -95,17 +95,18 @@ mod linux {
         let orte = orte();
         // files and folders of the holder are its own only
         rustix::process::umask(rustix::fs::Mode::from_raw_mode(0o077));
+        // SIGTERM and SIGINT are taken over before the socket exists: a signal the moment the socket is there ends the
+        // holder through the loop below, which removes the socket, never by the signal with the socket left
+        let halt = Arc::new(AtomicBool::new(false));
+        for sig in [signal_hook::consts::SIGTERM, signal_hook::consts::SIGINT] {
+            if signal_hook::flag::register(sig, Arc::clone(&halt)).is_err() {
+                return ende(Startfehler::Intern);
+            }
+        }
         let bereit = match start::starten(&orte, uid) {
             Ok(b) => b,
             Err(f) => return ende(f),
         };
-        let halt = Arc::new(AtomicBool::new(false));
-        for sig in [signal_hook::consts::SIGTERM, signal_hook::consts::SIGINT] {
-            if signal_hook::flag::register(sig, Arc::clone(&halt)).is_err() {
-                start::socket_entfernen(&bereit.ordner, bereit.socket_id);
-                return ende(Startfehler::Intern);
-            }
-        }
         if bereit.hoerer.set_nonblocking(true).is_err() {
             start::socket_entfernen(&bereit.ordner, bereit.socket_id);
             return ende(Startfehler::Intern);

@@ -1,12 +1,15 @@
 //! One session of the service: the state core, the carrier with its child and what the service keeps of them. The service holds
 //! its sessions in a table by identifier (`Dienst::sitzungen`); with the start file of today the table has one entry.
 
-use std::os::fd::{AsFd, OwnedFd};
+#[cfg(unix)]
+use std::os::fd::AsFd;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+#[cfg(unix)]
 use rustix::process::{Pid, Signal, kill_process};
 use serde_json::{Value, json};
 use traeger::{Kind, Raster, Start};
@@ -165,13 +168,18 @@ pub(crate) fn kind_vorpruefen(start: &KindStart) -> Result<(), StartFehler> {
     }
     let programm = start.argv.first().map_or("", String::as_str);
     match std::fs::metadata(programm) {
+        #[cfg(unix)]
         Ok(m) if m.is_file() && m.permissions().mode() & 0o111 != 0 => Ok(()),
+        // Windows has no execute bit: a file is a program (section 21)
+        #[cfg(windows)]
+        Ok(m) if m.is_file() => Ok(()),
         Ok(_) => Err(kein_kind("Programm nicht ausfuehrbar")),
         Err(_) => Err(kein_kind("Programm fehlt")),
     }
 }
 
 /// The argv of the carrier: the program of the start file behind the cover of [`crate::huelle`] (the same program as `wb-dienst`).
+#[cfg(unix)]
 pub(crate) fn kind_argv(start: &KindStart, huelle: &str) -> Vec<String> {
     let mit_shell = start.env.iter().any(|(n, _)| n == "SHELL");
     let mut argv = vec![
@@ -181,6 +189,14 @@ pub(crate) fn kind_argv(start: &KindStart, huelle: &str) -> Vec<String> {
     ];
     argv.extend(start.argv.iter().cloned());
     argv
+}
+
+/// Windows (section 21): the argv of the start file as it is. `portable-pty` adds `SHELL` only under Unix, and the carrier clears
+/// the environment, so the child gets exactly `kind.env` without the cover; the process of the carrier is the program itself, as
+/// after `exec` under Unix.
+#[cfg(windows)]
+pub(crate) fn kind_argv(start: &KindStart, _huelle: &str) -> Vec<String> {
+    start.argv.clone()
 }
 
 /// Starts the child of the start file in a PTY.
@@ -229,7 +245,7 @@ pub(crate) struct Sitzung {
     /// The reason the report gave (or [`GRUND_UNGUELTIG`]), once the child has ended; the list shows it.
     pub(crate) grund: Option<String>,
     /// The open socket folder through which the folder above is removed (`loeschen.rs`).
-    wurzel: Option<Arc<OwnedFd>>,
+    wurzel: Option<Arc<crate::sys::Ordner>>,
     /// Pid and start time of the child at the start of the session, for the protection of the pid files at the end.
     pub(crate) kind_zeit: KindZeit,
     /// The moment after which `Beenden` sends SIGKILL to a child that is still there.
@@ -273,7 +289,7 @@ impl Sitzung {
         kind: Kind,
         eintrag: Value,
         meta: [String; 4],
-        ordner: (PathBuf, Arc<OwnedFd>, Meldung),
+        ordner: (PathBuf, Arc<crate::sys::Ordner>, Meldung),
     ) -> Self {
         let kind_zeit = KindZeit::von(kind.pid());
         let mut s = Self::mit(Some(sid), Some(nr), kern, Some(kind));
@@ -377,6 +393,8 @@ impl Sitzung {
 
     /// Sends SIGHUP to a child that is still there and sets the moment of SIGKILL (`Beenden`, DI12 point 6).
     pub(crate) fn beenden_anstossen(&mut self) {
+        // Windows: no signal (section 21); the child ends when its pseudo console closes
+        #[cfg(unix)]
         if let Some(kind) = self.kind.as_ref().filter(|k| !k.ist_zu_ende())
             && let Some(pid) = pid_von(kind)
         {
@@ -395,6 +413,7 @@ impl Sitzung {
         if ende {
             self.kill_ab = None;
         } else if jetzt >= ab {
+            #[cfg(unix)]
             if let Some(pid) = self.kind.as_ref().and_then(pid_von) {
                 let _ = kill_process(pid, Signal::KILL);
             }
@@ -403,6 +422,7 @@ impl Sitzung {
     }
 }
 
+#[cfg(unix)]
 fn pid_von(kind: &Kind) -> Option<Pid> {
     kind.pid()
         .and_then(|p| i32::try_from(p).ok())
@@ -412,6 +432,7 @@ fn pid_von(kind: &Kind) -> Option<Pid> {
 /// Ends children (DI8): SIGHUP to all, up to 1 s of waiting for all together, then (in `Kind::drop`) SIGKILL, then the wait for
 /// the processes. A child that has ended already gets no signal. No child survives.
 pub(crate) fn kinder_beenden(mut kinder: Vec<Kind>) {
+    #[cfg(unix)]
     for kind in kinder.iter().filter(|k| !k.ist_zu_ende()) {
         if let Some(pid) = pid_von(kind) {
             let _ = kill_process(pid, Signal::HUP);
@@ -433,7 +454,7 @@ pub(crate) fn kinder_beenden(mut kinder: Vec<Kind>) {
     drop(kinder);
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
 

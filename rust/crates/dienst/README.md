@@ -22,6 +22,11 @@ wb-dienst --kind <name> [args]   test build only (feature `pruefbau`): a fixed c
 wb-dienst --exec <flag> <prog>   the cover the service starts its child through (see Security points)
 ```
 
+**Windows (addendum of 25.11.2026, contract section 21, not accepted yet):** the same program for `x86_64-pc-windows-gnu`. The socket is
+`AF_UNIX`, the rights of the folder and the socket are access lists (owner and a protected list of the own user, the counterpart of
+0700 and 0600), SIGTERM and SIGINT are the console events `CTRL_BREAK_EVENT` and `CTRL_C_EVENT`, the child runs in a pseudo console
+(`ConPTY`) and starts without the cover. `src/sys/windows.rs` is the only file with `unsafe`; the deviations are listed in section 21.
+
 Exit codes at the start, in the order of the checks: 2 start file (DI1), 3 rights (DI2), 4 child (DI8), 1 socket. Each error is one
 line `wb-dienst: ...` on stderr, nothing on stdout, and nothing stays behind (no child, no socket file).
 

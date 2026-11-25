@@ -1,9 +1,9 @@
 //! One viewer: a connection with its queue of frames, its extract (`rasterauszug`) and what the service remembers of it.
 
+use crate::sys::UnixStream;
 use std::collections::{BTreeMap, VecDeque};
 use std::io::{ErrorKind, Write};
 use std::net::Shutdown;
-use std::os::unix::net::UnixStream;
 
 use rasterauszug::{Fehler, RAHMEN_MAX, Verbindung};
 use serde_json::Value;

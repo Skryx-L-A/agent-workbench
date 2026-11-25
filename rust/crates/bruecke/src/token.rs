@@ -1,6 +1,7 @@
 //! The token (BR2): randomness from `/dev/urandom`, the hex form and the comparison in constant time.
 
 use std::fmt::Write as _;
+#[cfg(unix)]
 use std::fs::File;
 use std::io::{self, Read};
 
@@ -39,6 +40,7 @@ pub(crate) fn hex(bytes: &[u8]) -> String {
 }
 
 /// Reads exactly `n` bytes from `quelle`; a short source is an error.
+#[cfg_attr(windows, allow(dead_code))]
 pub(crate) fn zufall_aus(quelle: &mut impl Read, n: usize) -> io::Result<Vec<u8>> {
     let mut puffer = vec![0u8; n];
     quelle.read_exact(&mut puffer)?;
@@ -46,8 +48,16 @@ pub(crate) fn zufall_aus(quelle: &mut impl Read, n: usize) -> io::Result<Vec<u8>
 }
 
 /// `n` bytes from `/dev/urandom`.
+#[cfg(unix)]
 pub(crate) fn zufall(n: usize) -> io::Result<Vec<u8>> {
     zufall_aus(&mut File::open("/dev/urandom")?, n)
+}
+
+/// Windows has no `/dev/urandom`: the random bytes come from the preferred generator of the system (`BCryptGenRandom`,
+/// `sys/windows.rs`; Nachtrag 25.11.2026).
+#[cfg(windows)]
+pub(crate) fn zufall(n: usize) -> io::Result<Vec<u8>> {
+    crate::sys::zufall(n)
 }
 
 /// A new token: 64 lower-case hex characters (ASCII bytes).

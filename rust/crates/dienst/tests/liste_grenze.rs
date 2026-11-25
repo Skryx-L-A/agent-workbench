@@ -2,6 +2,7 @@
 //! smaller). A later end that raises the count above the limit takes out the entry that ended longest ago and that no viewer
 //! subscribes; the end itself takes nothing out for its own session.
 
+#![cfg(unix)] // the Windows build runs the outside cases in the VM (contract section 21), not these tests
 #![cfg(feature = "pruefbau")] // the fixed child programs `--kind` exist in the test build only
 
 mod gemeinsam;

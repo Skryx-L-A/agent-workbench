@@ -453,6 +453,8 @@ fn socket_lesen(wert: &Value) -> Result<(String, String), StartFehler> {
         || name.len() > 64
         || name.contains('/')
         || name.starts_with("..")
+        // Windows (section 21): a backslash separates folders and a colon names a stream; neither belongs in a plain name
+        || (cfg!(windows) && name.contains(['\\', ':']))
     {
         return ungueltig("socket.name");
     }

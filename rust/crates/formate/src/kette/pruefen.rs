@@ -617,7 +617,7 @@ const REGISTER_ANGEMELDET: [&str; 3] = ["regel.geaendert", "regel.abgelehnt", "s
 
 /// Kinds of version 2 whose form another contract lays down (register group „in anderen Verträgen festgelegt",
 /// contract 5, section 3). This check only knows that they exist, so a chain that holds them stays whole.
-const REGISTER_FREMD: [&str; 13] = [
+const REGISTER_FREMD: [&str; 14] = [
     "hersteller.zugang",
     "hersteller.zugriff",
     "pflicht.aenderung",
@@ -626,6 +626,7 @@ const REGISTER_FREMD: [&str; 13] = [
     "modell.aufruf",
     "fall.freitext",
     "mcp.schein_abgelehnt",
+    "halter.leck_gesperrt",
     "wissen.geschrieben",
     "wissen.schreiben.abgelehnt",
     "klasse.erlaubt",
@@ -888,6 +889,7 @@ mod tests {
 
     use super::{
         LESE_GRENZE, ZEILE_MAX, jahr_monat, modellweg_form, name_ohne_fassung, pfad_feld_ok,
+        zeilenart_ok,
     };
 
     /// A line `modellweg.aufruf` of mode 1 with the 15 fields of the closed form.
@@ -1109,5 +1111,20 @@ mod tests {
         ] {
             assert!(!name_ohne_fassung(falsch), "{falsch}");
         }
+    }
+
+    /// The kind of a hit of the leak lock of the holder is in the register (its form stands in the holder contract,
+    /// section 9); a kind with a typo stays `form_falsch` in version 2, and version 1 lines pass without a register.
+    #[test]
+    fn die_art_des_leck_treffers_des_halters_steht_im_register() {
+        let zeile = |art: &str| {
+            json!({"aktionsname": art, "fassung": 2})
+                .as_object()
+                .expect("object")
+                .clone()
+        };
+        assert!(zeilenart_ok(&zeile("halter.leck_gesperrt"), true));
+        assert!(!zeilenart_ok(&zeile("halter.leck_gesperr"), true));
+        assert!(zeilenart_ok(&zeile("halter.leck_gesperr"), false));
     }
 }

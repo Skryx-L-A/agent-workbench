@@ -231,7 +231,7 @@ const ST_ARTEN = ['mcp.schreibaufruf', 'sitzung.gestartet', 'sitzung.abgelehnt',
 // Gruppe "angemeldet": Vertrag 5 nennt die Art, ihre Form prueft noch kein Arm. Gruppe "fremd": die Form steht in einem anderen Vertrag.
 const REG_ANGEMELDET = ['regel.geaendert', 'regel.abgelehnt', 'suche.rueckfall'];
 const REG_FREMD = ['hersteller.zugang', 'hersteller.zugriff', 'pflicht.aenderung', 'protokoll.einsicht', 'vorgang.gedrosselt',
-  'modell.aufruf', 'fall.freitext', 'mcp.schein_abgelehnt', 'wissen.geschrieben', 'wissen.schreiben.abgelehnt',
+  'modell.aufruf', 'fall.freitext', 'mcp.schein_abgelehnt', 'halter.leck_gesperrt', 'wissen.geschrieben', 'wissen.schreiben.abgelehnt',
   'klasse.erlaubt', 'lauf.melden', 'sitzung.abgemeldet'];
 const REG_MIT_FORM = ['ausgabe.gesperrt', 'kanal.abgewiesen', 'probelauf.zaehlung', 'ordnermarke.geloest', 'ordnermarke.gesenkt',
   'person.geloescht', 'person.auskunft', 'modellweg.aufruf', ...ST_ARTEN];

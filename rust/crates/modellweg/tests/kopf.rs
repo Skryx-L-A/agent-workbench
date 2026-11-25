@@ -581,13 +581,21 @@ fn kopf_zeile_cases() {
 fn die_zeile_im_tunnel_traegt_pfad_und_host() {
     let antwort = vec![b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}".to_vec()];
     let a = aufbau(&vorfuehrung(), &antwort);
-    let host = a.liste.ziele[0].host.clone();
-    let anfrage = format!("GET /copilot_internal/v2/token?x=1 HTTP/1.1\r\nHost: {host}\r\n\r\n");
-    im_tunnel(&a, "github-api", anfrage.as_bytes());
+    // The plan target carries the rule `*` `/*`; `api.github.com` carries only exact paths of one and two segments.
+    let host = a
+        .liste
+        .ziele
+        .iter()
+        .find(|z| z.name == "copilot-plan")
+        .expect("plan target")
+        .host
+        .clone();
+    let anfrage = format!("GET /agents/sessions/eins?x=1 HTTP/1.1\r\nHost: {host}\r\n\r\n");
+    im_tunnel(&a, "copilot-plan", anfrage.as_bytes());
     let z = letzte_zeile(&a, "pfad_und_host");
     assert_eq!(z["ergebnis"], "weitergereicht");
     assert_eq!(z["methode"], "GET");
-    assert_eq!(z["pfad"], "/copilot_internal/v2");
+    assert_eq!(z["pfad"], "/agents/sessions");
     assert_eq!(z["host"], host.as_str());
 
     let b = aufbau_voll(
@@ -598,9 +606,9 @@ fn die_zeile_im_tunnel_traegt_pfad_und_host() {
         None,
         true,
     );
-    im_tunnel(&b, "github-api", anfrage.as_bytes());
+    im_tunnel(&b, "copilot-plan", anfrage.as_bytes());
     let zb = letzte_zeile(&b, "pfad_voll");
-    assert_eq!(zb["pfad"], "/copilot_internal/v2/token");
+    assert_eq!(zb["pfad"], "/agents/sessions/eins");
     assert_eq!(zb["host"], host.as_str());
 }
 

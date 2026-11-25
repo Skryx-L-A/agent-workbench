@@ -4,6 +4,10 @@
 
 The contract is `rust/spec/VERTRAEGE.md` (state 20.11.2026). The bridge knows no event of the view. It checks a request (form, `Host`, `Origin`, token), translates two routes into frames of the service and passes everything else on unchanged.
 
+**Windows (addendum of 25.11.2026, contract section 17, not accepted yet):** the same program for `x86_64-pc-windows-gnu`, with the
+`AF_UNIX` socket of the service, access lists instead of the modes 0700 and 0600, `BCryptGenRandom` for the token and the console
+events for SIGTERM and SIGINT. `src/sys/windows.rs` is the only file with `unsafe`.
+
 ## Call
 
 ```

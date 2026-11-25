@@ -1,20 +1,22 @@
 //! The program `wb-bruecke <startdatei.json>`; see `programm.rs` in the library.
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 use std::process::ExitCode;
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 use std::sync::Arc;
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 use bruecke::Halt;
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args_os()
         .skip(1)
         .map(|a| a.to_string_lossy().into_owned())
         .collect();
-    // the first step: the memory of the process is shielded from core images (exit code 5 when it cannot be)
+    // the first step: the memory of the process is shielded from core images (exit code 5 when it cannot be); Unix only,
+    // `kernabbild` has no shield under Windows (a deviation of the contract, section of the platforms)
+    #[cfg(unix)]
     if let Some(code) = bruecke::abschirmen(kernabbild::abschirmen(), &mut std::io::stderr()) {
         return ExitCode::from(code);
     }
@@ -36,8 +38,8 @@ fn main() -> ExitCode {
     ExitCode::from(code)
 }
 
-/// Not available: the program runs on Unix systems only (the crate is empty elsewhere).
-#[cfg(not(unix))]
+/// Not available: the program runs on Unix systems and Windows only (the crate is empty elsewhere).
+#[cfg(not(any(unix, windows)))]
 fn main() -> std::process::ExitCode {
     use std::io::Write;
     let _ = std::io::stderr().write_all(b"wb-bruecke: nicht verfuegbar: only on Unix systems\n");

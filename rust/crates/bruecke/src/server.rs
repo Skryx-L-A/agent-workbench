@@ -234,5 +234,33 @@ fn behandeln(g: &Gemeinsam, mut s: TcpStream, eintrag: OffenEintrag<'_>) {
 fn antworten(s: &mut TcpStream, a: &Antwort) {
     let _ = s.set_write_timeout(Some(Duration::from_secs(5)));
     let _ = s.write_all(&a.bytes());
+    #[cfg(windows)]
+    auslaufen(s);
     let _ = s.shutdown(Shutdown::Both);
+}
+
+/// Windows (Nachtrag 25.11.2026, contract section 17): a socket that is closed while the client still sends (the rest of a body
+/// over the limit, the request of a connection over `verbindungen_max`) ends with a reset, and the client loses the answer that
+/// was already sent (measured in the Windows VM: no status, only the end of the connection). So the bridge closes its writing
+/// half first and reads what still comes, at most 64 KiB and 200 ms, and throws it away; only then the socket closes.
+#[cfg(windows)]
+fn auslaufen(s: &mut TcpStream) {
+    use std::io::Read;
+    let _ = s.shutdown(Shutdown::Write);
+    let _ = s.set_read_timeout(Some(Duration::from_millis(20)));
+    let ende = std::time::Instant::now() + Duration::from_millis(200);
+    let mut puffer = [0_u8; 8192];
+    let mut gelesen = 0;
+    while std::time::Instant::now() < ende && gelesen < 65_536 {
+        match s.read(&mut puffer) {
+            Ok(0) => break,
+            Ok(n) => gelesen += n,
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut
+                ) => {}
+            Err(_) => break,
+        }
+    }
 }

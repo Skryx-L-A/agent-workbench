@@ -25,11 +25,14 @@
 
 use std::fs::{File, Metadata};
 use std::io::Read;
-use std::os::fd::BorrowedFd;
+#[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
+#[cfg(unix)]
 use rustix::process::{Pid, Signal, kill_process_group};
+
+use crate::sys::BorrowedFd;
 
 /// The two files of a session folder whose pid is signalled.
 const PID_DATEIEN: [&str; 2] = ["suche.pid", "modellweg.pid"];
@@ -110,8 +113,16 @@ fn pid_text(roh: &[u8]) -> Option<u32> {
     (pid >= 2 && i32::try_from(pid).is_ok()).then_some(pid)
 }
 
+#[cfg(unix)]
 fn gleiche_datei(a: &Metadata, b: &Metadata) -> bool {
     a.dev() == b.dev() && a.ino() == b.ino()
+}
+
+/// Windows has no device and inode in `Metadata` of `std` (section 21): two files never count as the same, so no pid file is read
+/// and no signal goes out (as there is no signal under Windows anyway).
+#[cfg(windows)]
+fn gleiche_datei(_a: &Metadata, _b: &Metadata) -> bool {
+    false
 }
 
 /// Reads the pid file `name` of the session folder. SECURITY: the file must be a regular file (checked with `lstat`, a link is refused),
@@ -144,6 +155,7 @@ fn pid_lesen(ordner: &Path, name: &str) -> Option<u32> {
 /// which no machine does in 10 ms, so in one tick the larger pid is the later start. A start before the tick of the child, or in its
 /// tick with the smaller pid, is not "after" (the process may be older than the child: no signal).
 #[cfg(any(target_os = "linux", test))]
+#[cfg_attr(windows, allow(dead_code))]
 fn spaeter_gestartet(start: u64, pid: u32, kind_start: u64, kind_pid: u32) -> bool {
     start > kind_start || (start == kind_start && pid > kind_pid)
 }
@@ -154,6 +166,7 @@ fn spaeter_gestartet(start: u64, pid: u32, kind_start: u64, kind_pid: u32) -> bo
 /// it leads its own session (session and group equal its pid), and it was started after the child of the session
 /// ([`spaeter_gestartet`]). The start time and the pid of the child must be known. In doubt `false`.
 #[cfg(any(target_os = "linux", test))]
+#[cfg_attr(windows, allow(dead_code))]
 fn stand_zulaessig(pid: u32, stand: &ProzessStand, kind: KindZeit, eigene: &[u32]) -> bool {
     let (Some(kind_start), Some(kind_pid)) = (kind.start, kind.pid) else {
         return false;
@@ -213,12 +226,24 @@ fn signalisieren(ordner: &Path, name: &str, kind: KindZeit, eigene: &[u32]) -> b
     let Some(_pidfd) = pidfd else {
         return false;
     };
+    gruppe_beenden(pid)
+}
+
+/// SIGTERM to the process group `pid` (the leader passed the check).
+#[cfg(unix)]
+fn gruppe_beenden(pid: u32) -> bool {
     // `pid_text` kept the pid within `i32`, so `from_raw` gives a pid
     let Some(gruppe) = i32::try_from(pid).ok().and_then(Pid::from_raw) else {
         return false;
     };
     // the group of the leader that passed the check: see the module text for why the number names no other group meanwhile
     kill_process_group(gruppe, Signal::TERM).is_ok()
+}
+
+/// Windows: no process group and no signal (section 21).
+#[cfg(windows)]
+fn gruppe_beenden(_pid: u32) -> bool {
+    false
 }
 
 /// `true` when the last part of the path is `s-` and digits: the form of the folder the service makes for a session.
@@ -263,7 +288,7 @@ pub(crate) fn sitzung_ende_raeumt_auf(
     gesendet
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use std::os::unix::fs::symlink;

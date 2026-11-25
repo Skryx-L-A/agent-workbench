@@ -57,5 +57,19 @@ zustandskern = { path = "../zustandskern" }
 [target.'cfg(target_os = "macos")'.dependencies]
 nix = { version = "0.28", default-features = false, features = ["socket"] }
 
-[lints]
-workspace = true
+# The lints of the workspace, with one change (Nachtrag 25.11.2026, contract section 21): `unsafe_code` is `deny` instead of
+# `forbid`, so that the module `src/sys/windows.rs` alone can allow it (the pattern of the crate `peerkanal`). Every other module
+# stays without `unsafe`; under Unix the crate has no `unsafe` at all.
+[lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+unused_qualifications = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+dbg_macro = "warn"
+todo = "warn"
+unwrap_used = "warn"
+print_stdout = "warn"
+print_stderr = "warn"

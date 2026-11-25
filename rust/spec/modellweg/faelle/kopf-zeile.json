@@ -12,7 +12,7 @@
     "sitzung": "s-1",
     "ziel": "github-api",
     "methode": "GET",
-    "pfadregel": "/copilot_internal/*",
+    "pfadregel": "/copilot_internal/user",
     "kopf": "ersetzt",
     "ergebnis": "weitergereicht",
     "grund": null,
@@ -22,8 +22,8 @@
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":\"api.github.com\",\"kopf\":\"ersetzt\",\"methode\":\"GET\",\"pfad\":null,\"pfadregel\":\"/copilot_internal/*\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"github-api\"}",
-    "sha256": "e456eeee03c84124f6098755323844054d4d0c9236f47e26552474b9a3267f57"
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":\"api.github.com\",\"kopf\":\"ersetzt\",\"methode\":\"GET\",\"pfad\":null,\"pfadregel\":\"/copilot_internal/user\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"github-api\"}",
+    "sha256": "b3cc1781f8c7f0d55ba96ddf8ecb65ec4561fdbbf845cbbe932bba3de862332d"
    }
   },
   {
@@ -156,7 +156,7 @@
     "sitzung": "s-1",
     "ziel": "github-api",
     "methode": "GET",
-    "pfadregel": "/copilot_internal/*",
+    "pfadregel": "/copilot_internal/user",
     "kopf": "ersetzt",
     "ergebnis": "leck_gesperrt",
     "grund": "mw.leck_gesperrt",
@@ -166,8 +166,8 @@
    },
    "vorher": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"leck_gesperrt\",\"fassung\":2,\"grund\":\"mw.leck_gesperrt\",\"host\":\"api.github.com\",\"kopf\":\"ersetzt\",\"methode\":\"GET\",\"pfad\":null,\"pfadregel\":\"/copilot_internal/*\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":502,\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"github-api\"}",
-    "sha256": "5af07d7c17c47cf81dbfa4cbf18d36e91cd495d2f209217feb9272655366d0b5"
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"leck_gesperrt\",\"fassung\":2,\"grund\":\"mw.leck_gesperrt\",\"host\":\"api.github.com\",\"kopf\":\"ersetzt\",\"methode\":\"GET\",\"pfad\":null,\"pfadregel\":\"/copilot_internal/user\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":502,\"vorher\":\"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"github-api\"}",
+    "sha256": "75d4adce0e8d8230947328ea7032405eb4a1a5b08383dcc01f95631dd8a9a342"
    }
   },
   {
@@ -180,7 +180,7 @@
     "sitzung": "s-1",
     "ziel": "github-api",
     "methode": "GET",
-    "pfadregel": "/copilot_internal/*",
+    "pfadregel": "/copilot_internal/user",
     "kopf": "ersetzt",
     "ergebnis": "weitergereicht",
     "grund": null,
@@ -190,8 +190,8 @@
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":\"api.github.com\",\"kopf\":\"ersetzt\",\"methode\":\"GET\",\"pfad\":\"/copilot_internal/v2\",\"pfadregel\":\"/copilot_internal/*\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"github-api\"}",
-    "sha256": "a9d9ffbc1470a6d5329999e7c41aa7e62583ab95992c048e9b3ad61c1201beb5"
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":\"api.github.com\",\"kopf\":\"ersetzt\",\"methode\":\"GET\",\"pfad\":\"/copilot_internal/v2\",\"pfadregel\":\"/copilot_internal/user\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"github-api\"}",
+    "sha256": "2e4ae3d154da4c1d51e669567b4a1e57da553dc2bdfaa3d959813b22f2ad56bb"
    }
   },
   {
@@ -276,7 +276,7 @@
     "sitzung": "s-1",
     "ziel": "github-api",
     "methode": "GET",
-    "pfadregel": "/copilot_internal/*",
+    "pfadregel": "/copilot_internal/user",
     "kopf": "ersetzt",
     "ergebnis": "weitergereicht",
     "grund": null,
@@ -286,8 +286,8 @@
    },
    "vorher": "0000000000000000000000000000000000000000000000000000000000000000",
    "erwartet": {
-    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":\"api.github.com\",\"kopf\":\"ersetzt\",\"methode\":\"GET\",\"pfad\":\"/a/b/c\",\"pfadregel\":\"/copilot_internal/*\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"github-api\"}",
-    "sha256": "06517fdee3033a5c196a8b8039e41985dba73f3c77d124ae68b912776ac2f8fd"
+    "zeile": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":\"api.github.com\",\"kopf\":\"ersetzt\",\"methode\":\"GET\",\"pfad\":\"/a/b/c\",\"pfadregel\":\"/copilot_internal/user\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T16:00:00.000Z\",\"ziel\":\"github-api\"}",
+    "sha256": "f8c95ef3c3d19a824c2d709045624cedee6cfd661ea548617c2e4245cd79dc83"
    }
   },
   {
@@ -300,7 +300,7 @@
     "sitzung": "s-1",
     "ziel": "github-api",
     "methode": "POST",
-    "pfadregel": "/copilot_internal/*",
+    "pfadregel": "/copilot_internal/user",
     "kopf": "ersetzt",
     "ergebnis": "weitergereicht",
     "grund": null,
@@ -346,7 +346,7 @@
     "sitzung": "s-1",
     "ziel": "github-api",
     "methode": "GET",
-    "pfadregel": "/copilot_internal/*",
+    "pfadregel": "/copilot_internal/user",
     "kopf": "ersetzt",
     "ergebnis": "weitergereicht",
     "grund": null,
@@ -369,7 +369,7 @@
     "sitzung": "s-1",
     "ziel": "github-api",
     "methode": "GET",
-    "pfadregel": "/copilot_internal/*",
+    "pfadregel": "/copilot_internal/user",
     "kopf": "ersetzt",
     "ergebnis": "weitergereicht",
     "grund": null,
@@ -415,7 +415,7 @@
     "sitzung": "s-1",
     "ziel": "github-api",
     "methode": "GET",
-    "pfadregel": "/copilot_internal/*",
+    "pfadregel": "/copilot_internal/user",
     "kopf": "ersetzt",
     "ergebnis": "weitergereicht",
     "grund": null,
@@ -438,7 +438,7 @@
     "sitzung": "s-1",
     "ziel": "github-api",
     "methode": "PROPFIND",
-    "pfadregel": "/copilot_internal/*",
+    "pfadregel": "/copilot_internal/user",
     "kopf": "ersetzt",
     "ergebnis": "weitergereicht",
     "grund": null,
@@ -484,7 +484,7 @@
     "sitzung": "s-1",
     "ziel": "github-api",
     "methode": "GET",
-    "pfadregel": "/copilot_internal/*",
+    "pfadregel": "/copilot_internal/user",
     "kopf": "abgewiesen",
     "ergebnis": "weitergereicht",
     "grund": null,
@@ -507,7 +507,7 @@
     "sitzung": "s-1",
     "ziel": "github-api",
     "methode": "GET",
-    "pfadregel": "/copilot_internal/*",
+    "pfadregel": "/copilot_internal/user",
     "kopf": "ersetzt",
     "ergebnis": "weitergereicht",
     "grund": null,

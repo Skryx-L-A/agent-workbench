@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::thread;
 
 use signal_hook::consts::{SIGINT, SIGTERM};
+#[cfg(unix)]
 use signal_hook::iterator::Signals;
 
 use crate::fehler::StartFehler;
@@ -19,12 +20,38 @@ use crate::verbindung::Protokoll;
 /// # Errors
 ///
 /// The handlers or the thread cannot be made.
+#[cfg(unix)]
 pub fn signale_anmelden(halt: &Arc<Halt>) -> io::Result<()> {
     let mut signale = Signals::new([SIGTERM, SIGINT])?;
     let halt = Arc::clone(halt);
     thread::Builder::new().spawn(move || {
         for _ in signale.forever() {
             halt.anhalten();
+        }
+    })?;
+    Ok(())
+}
+
+/// Windows (Nachtrag 25.11.2026): `CTRL_C_EVENT` (`SIGINT`), `CTRL_BREAK_EVENT` (`SIGBREAK`) and `SIGTERM` (raised inside the
+/// process only) set a flag through the safe API of `signal-hook`; a thread looks at it every 5 ms and sets the stop `halt`.
+///
+/// # Errors
+///
+/// The handlers or the thread cannot be made.
+#[cfg(windows)]
+pub fn signale_anmelden(halt: &Arc<Halt>) -> io::Result<()> {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    let flagge = Arc::new(AtomicBool::new(false));
+    for s in [SIGINT, SIGTERM, signal_hook::consts::SIGBREAK] {
+        signal_hook::flag::register(s, Arc::clone(&flagge))?;
+    }
+    let halt = Arc::clone(halt);
+    thread::Builder::new().spawn(move || {
+        loop {
+            if flagge.swap(false, Ordering::SeqCst) {
+                halt.anhalten();
+            }
+            thread::sleep(std::time::Duration::from_millis(5));
         }
     })?;
     Ok(())
@@ -63,7 +90,7 @@ pub fn lauf(
     0
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use crate::pruefstand::{Ordner, anfrage};

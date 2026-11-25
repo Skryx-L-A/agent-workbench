@@ -6,9 +6,9 @@
 //! the order of the array; the array is sorted by key, so the order is fixed, but it is the order of the keys, not of the arrival.
 //! Both come from `rustix` (feature `event`), safe API only.
 
+use crate::sys::{AsFd, OwnedFd};
 use std::collections::BTreeMap;
 use std::io;
-use std::os::fd::{AsFd, OwnedFd};
 use std::time::Duration;
 
 use rustix::event::Timespec;
@@ -41,7 +41,11 @@ pub(crate) struct Bereitschaft {
 fn zeit(frist: Duration) -> Timespec {
     Timespec {
         tv_sec: i64::try_from(frist.as_secs()).unwrap_or(i64::MAX),
+        #[cfg(unix)]
         tv_nsec: frist.subsec_nanos().into(),
+        // Windows: the nanoseconds are an `i32` in `rustix` (below 10^9, so they fit)
+        #[cfg(windows)]
+        tv_nsec: i32::try_from(frist.subsec_nanos()).unwrap_or(0),
     }
 }
 
@@ -142,8 +146,8 @@ impl Abfrage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sys::UnixStream;
     use std::io::Write;
-    use std::os::unix::net::UnixStream;
 
     fn paar() -> (UnixStream, UnixStream) {
         UnixStream::pair().expect("pair")

@@ -156,7 +156,7 @@ fn pruefen(obj: &Map<String, Value>) -> Result<Config, StartFehler> {
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
 

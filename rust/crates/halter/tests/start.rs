@@ -6,7 +6,7 @@
 #![cfg(all(target_os = "linux", feature = "pruefbau"))]
 
 use std::io::{Read, Write};
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::os::unix::fs::{DirBuilderExt, MetadataExt, PermissionsExt};
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -36,28 +36,44 @@ fn root_uid() -> u32 {
 }
 
 fn ordner() -> PathBuf {
-    let n = ZAEHLER.fetch_add(1, Ordering::Relaxed);
-    let p =
-        PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("hs-{}-{n}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&p);
-    std::fs::create_dir_all(&p).expect("folder");
-    std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o700)).expect("mode");
-    p
+    neuer_ordner(Path::new(env!("CARGO_TARGET_TMPDIR")))
 }
 
 /// A short folder for the socket (a Unix socket path has at most 107 bytes): below `TMPDIR` if that is short (the
 /// enclosure sets it), else below `$HOME/.cache`, as the suites with a socket do.
 fn kurzer_ordner() -> PathBuf {
-    let n = ZAEHLER.fetch_add(1, Ordering::Relaxed);
     let basis = std::env::var_os("TMPDIR")
         .map(PathBuf::from)
         .filter(|p| p.is_absolute() && p.as_os_str().len() <= 48)
         .unwrap_or_else(|| PathBuf::from(std::env::var_os("HOME").expect("HOME")).join(".cache"));
-    let p = basis.join(format!("hs-{}-{n}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&p);
-    std::fs::create_dir_all(&p).expect("short folder");
-    modus(&p, 0o700);
-    p
+    neuer_ordner(&basis)
+}
+
+/// A new folder of its own below `basis` (mode 0700), like `mkdtemp`: the name carries pid, counter and 32 random bits,
+/// and `mkdir` fails on an existing name, so a folder of another test or run is never taken over or removed; a taken
+/// name draws again.
+fn neuer_ordner(basis: &Path) -> PathBuf {
+    for _ in 0..16 {
+        let n = ZAEHLER.fetch_add(1, Ordering::Relaxed);
+        let mut z = [0u8; 4];
+        std::fs::File::open("/dev/urandom")
+            .and_then(|mut f| f.read_exact(&mut z))
+            .expect("urandom");
+        let p = basis.join(format!(
+            "hs-{}-{n}-{:08x}",
+            std::process::id(),
+            u32::from_ne_bytes(z)
+        ));
+        match std::fs::DirBuilder::new().mode(0o700).create(&p) {
+            Ok(()) => {
+                modus(&p, 0o700);
+                return p;
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(e) => panic!("folder {}: {e}", p.display()),
+        }
+    }
+    panic!("no free folder name below {}", basis.display());
 }
 
 fn modus(p: &Path, m: u32) {
@@ -388,13 +404,21 @@ fn l2_belegter_endpunkt_ist_74_und_bleibt_gleich() {
 /// F2: the rest of a holder ended hard (a socket of the own uid without a listener) does not keep the holder from
 /// starting: the start removes it and serves. Counter-check: a living holder at the path stays, and the second start
 /// ends with 74 (also in `l2_belegter_endpunkt_ist_74_und_bleibt_gleich`).
+///
+/// The dead socket is the rest of a real holder killed with SIGKILL. A listener bound and dropped in this process is
+/// not dead for sure: a child that another test thread forks in that moment holds a copy of the descriptor until its
+/// `exec`, and a connect in that window succeeds (measured under load: 3 of 200 runs of this binary).
 #[test]
 fn f2_toter_socket_wird_geraeumt_lebender_halter_bleibt() {
     let a = Aufbau::neu(&standard());
-    std::fs::create_dir(a.laufzeit.join("wb-halter")).expect("dir");
-    modus(&a.laufzeit.join("wb-halter"), 0o700);
-    // a listener that ends without removing its socket, as after SIGKILL
-    drop(std::os::unix::net::UnixListener::bind(a.socket()).expect("bind"));
+    // a holder that ends without removing its socket: SIGKILL
+    let mut tot = a.laufend();
+    rustix::process::kill_process(
+        rustix::process::Pid::from_child(&tot),
+        rustix::process::Signal::KILL,
+    )
+    .expect("KILL");
+    let _ = tot.wait().expect("wait");
     let alt = std::fs::symlink_metadata(a.socket())
         .expect("dead socket")
         .ino();
@@ -434,6 +458,20 @@ fn socket_0600_und_sigterm_raeumt_nur_den_eigenen() {
     );
     assert_eq!(beenden(kind), 0);
     assert!(!a.socket().exists(), "the own socket is removed at the end");
+}
+
+/// SIGTERM the moment the socket is there ends the holder with 0 and removes the socket: the holder takes over
+/// SIGTERM before it makes the socket. Before, the socket came first, and a SIGTERM in between ended the holder by the
+/// signal with the socket left (measured under load: 2 of 400 runs of `socket_0600_und_sigterm_raeumt_nur_den_eigenen`).
+/// Twenty rounds, each with its own set-up, widen the window of the race; none is tried again.
+#[test]
+fn sigterm_gleich_nach_dem_socket_endet_mit_0_und_raeumt() {
+    for runde in 0..20 {
+        let a = Aufbau::neu(&standard());
+        let kind = a.laufend();
+        assert_eq!(beenden(kind), 0, "round {runde}");
+        assert!(!a.socket().exists(), "round {runde}: the socket is removed");
+    }
 }
 
 #[test]

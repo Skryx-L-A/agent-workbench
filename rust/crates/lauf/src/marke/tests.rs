@@ -1,7 +1,7 @@
 //! Tests of the folder mark: the form of the file, the decision (codes, order, rising mark), and the file under the
 //! lock with real folders, also with starts at the same time.
 
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -554,6 +554,134 @@ fn starts_at_the_same_time_lose_no_mark() {
     let mut soll: Vec<String> = (0..16).map(|i| format!("/arbeit/{i}")).collect();
     soll.sort();
     assert_eq!(ordner, soll);
+}
+
+/// Names of the new files left in the state folder.
+fn neue_dateien(o: &Ordner) -> Vec<String> {
+    std::fs::read_dir(&o.0)
+        .expect("dir")
+        .filter_map(Result::ok)
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .filter(|n| Path::new(n).extension().is_some_and(|e| e == "neu"))
+        .collect()
+}
+
+/// A start whose new file is slow to reach the disk (it waits in `nach_datei` until `los` is sent) does not hold the
+/// lock meanwhile: a second start at that moment gets the lock within its short time limit. Before, the `fsync` ran
+/// under the lock, and a second start on a busy disk gave up with `lauf.ordner_marke_kaputt` (measured under load).
+fn langsamer_start_und_zweiter(zweiter: &str) -> (Result<(), Fehler>, Result<(), Fehler>, Ordner) {
+    let o = Ordner::neu();
+    let (geschrieben_tx, geschrieben) = std::sync::mpsc::channel();
+    let (los, los_rx) = std::sync::mpsc::channel::<()>();
+    let (erster, zweiter) = std::thread::scope(|s| {
+        let pfad = o.0.clone();
+        let erster = s.spawn(move || {
+            pruefen_und_markieren_mit(
+                &pfad,
+                a("/p", None, "intern"),
+                &klassen(),
+                Duration::from_millis(300),
+                || {
+                    geschrieben_tx.send(()).expect("send");
+                    los_rx.recv().expect("go");
+                },
+            )
+        });
+        geschrieben.recv().expect("the first wrote its new file");
+        let zweiter = markieren(&o, zweiter, None, "intern");
+        los.send(()).expect("go");
+        (erster.join().expect("first"), zweiter)
+    });
+    (erster, zweiter, o)
+}
+
+#[test]
+fn a_slow_new_file_does_not_hold_the_lock_and_no_mark_is_lost() {
+    let (erster, zweiter, o) = langsamer_start_und_zweiter("/q");
+    assert_eq!((erster, zweiter), (Ok(()), Ok(())));
+    let mut ordner: Vec<String> = inhalt(&o).into_iter().map(|m| m.ordner).collect();
+    ordner.sort();
+    assert_eq!(
+        ordner,
+        ["/p", "/q"],
+        "the first decided again on the changed list"
+    );
+    assert_eq!(neue_dateien(&o), Vec::<String>::new());
+}
+
+#[test]
+fn two_slow_starts_of_the_same_folder_make_one_mark() {
+    let (erster, zweiter, o) = langsamer_start_und_zweiter("/p");
+    assert_eq!((erster, zweiter), (Ok(()), Ok(())));
+    let marken = inhalt(&o);
+    assert_eq!(marken.len(), 1, "{marken:?}");
+    assert_eq!(marken[0].ordner, "/p");
+    assert_eq!(neue_dateien(&o), Vec::<String>::new());
+}
+
+/// The list unchanged between the two holds: the new file of the first round is renamed, nothing is decided again.
+#[test]
+fn an_unchanged_list_takes_the_new_file_of_the_first_round() {
+    let o = Ordner::neu();
+    let mut gesehen = None;
+    pruefen_und_markieren_mit(
+        &o.0,
+        a("/p", Some("k"), "intern"),
+        &klassen(),
+        Duration::from_millis(300),
+        || {
+            let namen = neue_dateien(&o);
+            assert_eq!(namen.len(), 1, "one new file before the rename: {namen:?}");
+            gesehen = Some(std::fs::metadata(o.0.join(&namen[0])).expect("new").ino());
+        },
+    )
+    .expect("mark");
+    assert_eq!(
+        Some(
+            std::fs::metadata(o.0.join(MARKEN_DATEI))
+                .expect("list")
+                .ino()
+        ),
+        gesehen,
+        "the very file of the first round became the list"
+    );
+    let marken = inhalt(&o);
+    assert_eq!(
+        (
+            marken.len(),
+            marken[0].ordner.as_str(),
+            marken[0].kunde.as_deref()
+        ),
+        (1, "/p", Some("k"))
+    );
+    assert_eq!(neue_dateien(&o), Vec::<String>::new());
+}
+
+/// A taken name of a new file (the rest of a process ended hard with the same PID) is never opened, written or
+/// removed: the next name is drawn, and when every drawn name is taken the write fails and leaves them all alone.
+#[test]
+fn a_taken_name_of_a_new_file_is_left_alone_and_never_written() {
+    let o = Ordner::neu();
+    let ordner = ordner_oeffnen(&o.0).expect("folder");
+    // far more taken names than any write of the other tests of this process draws in the meantime
+    let ab = NEU_ZAEHLER.load(Ordering::Relaxed);
+    let fremd = b"rest of another process, longer than a list of one mark, never to be touched";
+    let namen: Vec<PathBuf> = (ab..ab + 1000)
+        .map(|n| {
+            o.0.join(format!("{MARKEN_DATEI}.{}.{n}.neu", std::process::id()))
+        })
+        .collect();
+    for n in &namen {
+        std::fs::write(n, fremd).expect("taken");
+    }
+    assert_eq!(
+        neue_datei(&ordner, &[m("/p", None, "intern")]),
+        Err(Schreibfehler::Datei)
+    );
+    for n in &namen {
+        assert_eq!(std::fs::read(n).expect("still there"), fremd);
+    }
+    assert!(!o.0.join(MARKEN_DATEI).exists(), "no list was made");
 }
 
 #[test]

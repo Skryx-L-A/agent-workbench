@@ -45,6 +45,7 @@ pub(crate) fn base64(bytes: &[u8]) -> String {
 }
 
 /// `stty` with the arguments; its standard input is the terminal of the child. Returns the standard output.
+#[cfg(unix)]
 fn stty(argumente: &[&str]) -> String {
     for pfad in ["/bin/stty", "/usr/bin/stty"] {
         if Path::new(pfad).exists() {
@@ -58,6 +59,38 @@ fn stty(argumente: &[&str]) -> String {
         }
     }
     String::new()
+}
+
+/// Windows (contract section 21): the two uses of `stty` through the console (`sys/windows.rs`): `raw -echo` and `size` (rows and
+/// columns, as `stty size` prints them).
+#[cfg(windows)]
+fn stty(argumente: &[&str]) -> String {
+    match argumente {
+        ["raw", "-echo"] => {
+            crate::sys::konsole_roh();
+            String::new()
+        }
+        ["size"] => crate::sys::konsole_groesse()
+            .map(|(zeilen, spalten)| format!("{zeilen} {spalten}"))
+            .unwrap_or_default(),
+        _ => String::new(),
+    }
+}
+
+/// A path as the report writes it. Unix: as it is. Windows (section 21): in the form of the start file, without the drive and with
+/// `/` (`C:\\t\\o` is `/t/o`), the way the service reads a path of the start file on the drive of the working folder.
+fn pfad_text(p: &Path) -> String {
+    #[cfg(windows)]
+    {
+        let text = p.display().to_string();
+        let ohne = text.get(1..2) == Some(":");
+        let rest = if ohne { &text[2..] } else { text.as_str() };
+        rest.replace('\\', "/")
+    }
+    #[cfg(unix)]
+    {
+        p.display().to_string()
+    }
 }
 
 fn schreibe(bytes: &[u8]) {
@@ -272,6 +305,7 @@ fn lauf_kind(a: &[String]) -> i32 {
         "scheitern" => return scheitern(a),
         "raeumen" => return raeumen(a, &p),
         "warte" => {
+            #[cfg(unix)]
             let _ = signal_hook::flag::register(
                 signal_hook::consts::SIGHUP,
                 Arc::new(AtomicBool::new(false)),
@@ -308,6 +342,7 @@ fn scheitern(a: &[String]) -> i32 {
 fn zeuge(a: &[String]) -> i32 {
     let term = Arc::new(AtomicBool::new(false));
     let _ = signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&term));
+    #[cfg(unix)]
     let _ = signal_hook::flag::register(
         signal_hook::consts::SIGHUP,
         Arc::new(AtomicBool::new(false)),
@@ -365,10 +400,14 @@ fn zeuge_starten(ordner: &Path, art: &str) -> Option<u32> {
         std::mem::forget(kind);
         pid
     } else {
+        #[cfg(unix)]
         use std::os::unix::process::CommandExt as _;
-        let kind = Command::new(&exe)
-            .args(&argv)
-            .process_group(0)
+        let mut befehl = Command::new(&exe);
+        befehl.args(&argv);
+        // Windows has no process group of Unix (section 21)
+        #[cfg(unix)]
+        befehl.process_group(0);
+        let kind = befehl
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -389,7 +428,17 @@ fn zeuge_starten(ordner: &Path, art: &str) -> Option<u32> {
 /// stays `sek` seconds, ends with `code`.
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)] // the plan holds small whole numbers
 fn raeumen(a: &[String], p: &serde_json::Value) -> i32 {
+    #[cfg(unix)]
     use std::os::unix::fs::symlink;
+    // Windows (section 21): a link to a folder and a link to a file are two calls
+    #[cfg(windows)]
+    fn symlink(ziel: impl AsRef<Path>, name: impl AsRef<Path>) -> std::io::Result<()> {
+        if ziel.as_ref().is_dir() {
+            std::os::windows::fs::symlink_dir(ziel, name)
+        } else {
+            std::os::windows::fs::symlink_file(ziel, name)
+        }
+    }
     let ordner = Path::new(text(a, 1)).parent().unwrap_or(Path::new("/"));
     let o = ordner.parent().unwrap_or(Path::new("/"));
     let wort = |k: &str, vorgabe: &'static str| {
@@ -451,10 +500,15 @@ fn raeumen(a: &[String], p: &serde_json::Value) -> i32 {
 /// number of the arguments, the environment (without `KIND_PLAN` and the five variables of the Xcode Python), the working
 /// directory.
 fn lauf_bericht(a: &[String], start: Option<&serde_json::Value>) {
+    #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
     let datei = Path::new(text(a, 1));
+    #[cfg(unix)]
     let modus =
         |p: &Path| std::fs::metadata(p).map(|m| format!("{:04o}", m.permissions().mode() & 0o7777));
+    // Windows (section 21): the mode the access list stands for
+    #[cfg(windows)]
+    let modus = |p: &Path| std::fs::metadata(p).map(|_| crate::sys::modus_text(p));
     let (modi, name) = match (modus(datei), datei.parent().map(modus)) {
         (Ok(d), Some(Ok(o))) => (
             format!("{d}/{o}"),
@@ -488,7 +542,13 @@ fn lauf_bericht(a: &[String], start: Option<&serde_json::Value>) {
     let name0 = Path::new(text(a, 0))
         .file_name()
         .map_or(String::new(), |n| n.to_string_lossy().into_owned());
-    let cwd = std::env::current_dir().map_or_else(|_| String::new(), |p| p.display().to_string());
+    // Windows (section 21): a program carries `.exe`; the report names it without, as the name of the program under Unix
+    #[cfg(windows)]
+    let name0 = match name0.strip_suffix(".exe") {
+        Some(ohne) => ohne.to_owned(),
+        None => name0,
+    };
+    let cwd = std::env::current_dir().map_or_else(|_| String::new(), |p| pfad_text(&p));
     for z in [
         format!("START={start_text}"),
         format!("MODI={modi}"),
@@ -549,6 +609,7 @@ fn osc52viele(a: &[String]) {
 }
 
 /// `signal <nr>`: sends itself the signal and waits; the default action ends the child.
+#[cfg(unix)]
 fn signal_an_sich(a: &[String]) {
     let nummer = i32::try_from(zahl(a, 0)).unwrap_or(0);
     if let Some(signal) = rustix::process::Signal::from_named_raw(nummer) {
@@ -557,8 +618,15 @@ fn signal_an_sich(a: &[String]) {
     std::thread::sleep(Duration::from_secs(5));
 }
 
+/// Windows: no signal to itself (section 21); the child ends after 5 s by itself.
+#[cfg(windows)]
+fn signal_an_sich(_a: &[String]) {
+    std::thread::sleep(Duration::from_secs(5));
+}
+
 /// `warte <s>`: ignores SIGHUP, writes its process id and waits; only SIGKILL ends it, so the service must see to it.
 fn warte(a: &[String]) {
+    #[cfg(unix)]
     let _ = signal_hook::flag::register(
         signal_hook::consts::SIGHUP,
         Arc::new(AtomicBool::new(false)),
@@ -602,8 +670,7 @@ fn umgebung(a: &[String]) {
             .map_or_else(|| "-".to_owned(), |w| w.to_string_lossy().into_owned());
         schreibe(format!("{name}={wert}\r\n").as_bytes());
     }
-    let ordner =
-        std::env::current_dir().map_or_else(|_| "-".to_owned(), |p| p.display().to_string());
+    let ordner = std::env::current_dir().map_or_else(|_| "-".to_owned(), |p| pfad_text(&p));
     schreibe(format!("CWD={ordner}\r\n").as_bytes());
     let anzahl = std::env::vars_os()
         .filter(|(k, _)| !AUSGENOMMEN.iter().any(|a| k == a))
@@ -611,7 +678,7 @@ fn umgebung(a: &[String]) {
     schreibe(format!("ANZAHL={anzahl}\r\n").as_bytes());
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
 

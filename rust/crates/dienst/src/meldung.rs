@@ -11,11 +11,15 @@
 //! credentials without `unsafe`; there only the mode of the socket (0600) and of the folder of the session (0700) keep others out; the
 //! contract names this as a limit.
 
+#[cfg(unix)]
 use std::fs;
 use std::io::Read;
+#[cfg(unix)]
 use std::os::fd::OwnedFd;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
-use std::os::unix::net::{UnixListener, UnixStream};
+
+use crate::sys::{UnixListener, UnixStream};
 use std::path::Path;
 
 use crate::dienst::{Annahme, Gelesen, annahme, gelesen};
@@ -33,6 +37,7 @@ pub(crate) const CODE_UNGUELTIG: u32 = 70;
 /// The longest reason of a line.
 const GRUND_MAX: usize = 64;
 /// The backlog of the socket: one connection counts, a second is closed at once.
+#[cfg(unix)]
 const WARTESCHLANGE: i32 = 4;
 
 /// Sets the mode 0600 on the name `pfad` without following a link, and checks afterwards with `lstat` that the name is a socket
@@ -43,6 +48,7 @@ const WARTESCHLANGE: i32 = 4;
 /// is set through `/proc/self/fd/<n>`, which names exactly that inode (the way glibc does `fchmodat` with `AT_SYMLINK_NOFOLLOW`;
 /// `rustix` 1.1.6 refuses that flag under Linux). Elsewhere `fchmodat` with `AT_SYMLINK_NOFOLLOW` changes a link itself, never
 /// its target.
+#[cfg(unix)]
 fn modus_setzen(pfad: &Path) -> Result<(), ()> {
     use std::os::unix::fs::FileTypeExt;
     #[cfg(target_os = "linux")]
@@ -178,6 +184,7 @@ impl Meldung {
     /// # Errors
     /// The path is longer than [`SOCKET_PFAD_MAX`] bytes (too long for `sun_path`), or the socket cannot be made, bound, set or listened on. The caller refuses the start and removes
     /// the folder of the session, with the socket in it.
+    #[cfg(unix)]
     pub(crate) fn binden(pfad: &Path) -> Result<Self, ()> {
         use rustix::net::{SocketAddrUnix, SocketType, bind, listen};
         // the same limit as the socket of the service (the `sun_path` of the Mac): a path that fits under Linux only is refused too
@@ -198,6 +205,27 @@ impl Meldung {
             puffer: Vec::new(),
             pid: 0,
             euid: rustix::process::geteuid().as_raw(),
+        })
+    }
+
+    /// Windows (section 21): the same socket as `AF_UNIX` with the protected list of the own user alone (the counterpart of 0600)
+    /// before `listen`; the peer is checked by its process (`SIO_AF_UNIX_GETPEERPID`), the list keeps other users out.
+    ///
+    /// # Errors
+    /// The path is longer than [`SOCKET_PFAD_MAX`] bytes, or the socket cannot be made, bound, set or listened on.
+    #[cfg(windows)]
+    pub(crate) fn binden(pfad: &Path) -> Result<Self, ()> {
+        if pfad.as_os_str().len() > SOCKET_PFAD_MAX {
+            return Err(());
+        }
+        let hoerer = crate::sys::socket_binden_pfad(pfad).map_err(|_| ())?;
+        Ok(Self {
+            hoerer: Some(hoerer),
+            strom: None,
+            verbunden: false,
+            puffer: Vec::new(),
+            pid: 0,
+            euid: 0,
         })
     }
 
@@ -235,7 +263,14 @@ impl Meldung {
                 Err(_) => false,
             }
         }
-        #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+        // Windows (section 21): the process of the peer must be the child of the session; the user is checked by the list of
+        // the socket (only the own user may connect). A failed query refuses the connection (fail closed).
+        #[cfg(windows)]
+        {
+            let _ = self.euid;
+            strom.peer_pid().is_ok_and(|p| p == self.pid)
+        }
+        #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
         {
             let _ = (strom, self.euid, self.pid);
             true
@@ -301,7 +336,7 @@ impl Meldung {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
 

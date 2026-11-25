@@ -8,10 +8,16 @@
 //! The paths that this module reads and writes come from the start file of the service only: the folder of the sessions is
 //! `socket.ordner`, the settings file is `lauf.einstellungen`. No request, no environment variable and no argument names a path.
 
-use std::fs::{DirBuilder, File, OpenOptions};
-use std::io::{Read, Write};
-use std::os::fd::BorrowedFd;
+use std::fs::File;
+#[cfg(unix)]
+use std::fs::{DirBuilder, OpenOptions};
+use std::io::Read;
+#[cfg(unix)]
+use std::io::Write;
+#[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
+
+use crate::sys::BorrowedFd;
 use std::path::{Path, PathBuf};
 
 use einstellungen::Einstellungen;
@@ -249,6 +255,7 @@ fn zielliste_name(n: usize) -> String {
 /// the own user; the entry is looked at with `statat(AT_SYMLINK_NOFOLLOW)` relative to that descriptor and removed with `unlinkat` relative
 /// to it. Only a regular file of the own user is removed; a link, a folder or a foreign file stays and keeps the number taken. Every
 /// other entry of the number must be missing (`NotFound`); in doubt nothing is removed.
+#[cfg(unix)]
 pub(crate) fn alte_zielliste_raeumen(lauf: &Lauf, n: usize) -> bool {
     use rustix::fs::{AtFlags, CWD, FileType, Mode, fstat, openat, statat, unlinkat};
     let Some(ordner) = lauf.ziellisten.as_deref() else {
@@ -278,6 +285,26 @@ pub(crate) fn alte_zielliste_raeumen(lauf: &Lauf, n: usize) -> bool {
     regulaer_eigen && unlinkat(&fd, &name, AtFlags::empty()).is_ok()
 }
 
+/// Windows (section 21): the same rule. The folder `lauf.ziellisten` must be a folder of the own user (no reparse point); only a
+/// file of the own user (no reparse point, no folder) is removed. As under Unix the owner counts, not the list.
+/// The removal goes by the path (`DeleteFileW` removes a reparse point itself, never its target).
+#[cfg(windows)]
+pub(crate) fn alte_zielliste_raeumen(lauf: &Lauf, n: usize) -> bool {
+    let Some(ordner) = lauf.ziellisten.as_deref() else {
+        return false;
+    };
+    let liste = Path::new(ordner).join(zielliste_name(n));
+    let andere_frei = eintraege_der_nummer(lauf, n)
+        .iter()
+        .filter(|p| **p != liste)
+        .all(|p| matches!(std::fs::symlink_metadata(p), Err(e) if e.kind() == std::io::ErrorKind::NotFound));
+    if !andere_frei || !crate::sys::eigen_besitz(Path::new(ordner), true) {
+        return false;
+    }
+    let eigene_datei = crate::sys::eigen_besitz(&liste, false);
+    eigene_datei && std::fs::remove_file(&liste).is_ok()
+}
+
 /// The answer of [`kennung_belegt`] after DI12 point 15a: called only for a number above every number this run of the service handed out,
 /// so a target list that alone takes it was left by an earlier run; [`alte_zielliste_raeumen`] removes it and the number is asked again.
 /// `Ok(true)`: taken, `Ok(false)`: free, `Err(())`: refuse the start.
@@ -294,6 +321,7 @@ pub(crate) fn nummer_vergebbar(lauf: &Lauf, n: usize) -> Result<bool, ()> {
 ///
 /// # Errors
 /// The folder exists, cannot be made, or the file cannot be written.
+#[cfg(unix)]
 pub(crate) fn ordner_anlegen(
     ordner: &Path,
     wurzel: BorrowedFd<'_>,
@@ -333,7 +361,38 @@ pub(crate) fn ordner_anlegen(
     }
 }
 
-#[cfg(test)]
+/// Windows (section 21): the same folder and file with access lists: the folder new, with the protected list of the own user
+/// (0700), `start.json` new (`CREATE_NEW`) with the protected list of the own user (0600). A folder that exists is never replaced or
+/// deleted; a folder this call made and could not fill is removed again.
+///
+/// # Errors
+/// The folder exists, cannot be made, or the file cannot be written.
+#[cfg(windows)]
+pub(crate) fn ordner_anlegen(
+    ordner: &Path,
+    wurzel: BorrowedFd<'_>,
+    kennung: &str,
+    start: &Startanfrage,
+    marker: Option<&start::Marker>,
+) -> Result<(PathBuf, PathBuf), ()> {
+    let inhalt = start::schreiben(
+        &start
+            .clone()
+            .mit_sitzung(kennung, marker.cloned())
+            .map_err(|_| ())?,
+    );
+    let sitzung = ordner.join(kennung);
+    crate::sys::ordner_anlegen_eigen(&sitzung).map_err(|_| ())?;
+    let datei = sitzung.join("start.json");
+    if crate::sys::datei_anlegen_eigen(&datei, &inhalt).is_ok() {
+        Ok((sitzung, datei))
+    } else {
+        crate::loeschen::sitzung_entfernen(wurzel, kennung);
+        Err(())
+    }
+}
+
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
 

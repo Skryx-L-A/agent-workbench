@@ -17,39 +17,49 @@
 //! - [`programm`] is the whole program: `wb-dienst <start.json>`, `wb-dienst --kind <name> ...` (a fixed child program) and
 //!   `wb-dienst --exec ...` (the cover the service starts its child through, see `huelle.rs`).
 
-// Unix only: the product runs on Linux; the code uses Unix sockets, permissions and signals. On another system the crate
-// is empty and the program says that it is not available.
-#![cfg(unix)]
+// Unix and Windows (Nachtrag 25.11.2026, contract section 21): the product runs on Linux; under Windows the socket is `AF_UNIX`,
+// the rights are access lists and the signals are the console events (`sys/windows.rs`, the only place with `unsafe`). On
+// another system the crate is empty and the program says that it is not available.
+#![cfg(any(unix, windows))]
 
+#[cfg(unix)]
 mod abschirmung;
 mod aufraeumen;
 mod bereit;
 mod betrachter;
 mod dienst;
 mod fehler;
+#[cfg(unix)]
 mod huelle;
 mod json;
 #[cfg(feature = "pruefbau")]
 mod kindprogramm;
+#[cfg_attr(windows, path = "loeschen_windows.rs")]
 mod loeschen;
 mod markerdatei;
 mod meldung;
 mod rahmen;
+#[cfg_attr(windows, path = "rechte_windows.rs")]
 mod rechte;
 mod sitzung;
 mod startdatei;
 mod starten;
+mod sys;
 mod waisen;
 
 use std::ffi::OsString;
 use std::io::Write;
 use std::path::Path;
 
+#[cfg(windows)]
+pub use dienst::Signale;
 pub use dienst::{Anhalter, Dienst, Optionen, signale_anmelden};
 pub use fehler::StartFehler;
 #[cfg(feature = "pruefbau")]
 pub use kindprogramm::lauf as kindprogramm;
-pub use rechte::{ORDNER_MODUS, SOCKET_MODUS, rechte_pruefen, socket_binden};
+#[cfg(unix)]
+pub use rechte::socket_binden;
+pub use rechte::{ORDNER_MODUS, SOCKET_MODUS, rechte_pruefen};
 pub use startdatei::{
     KENNUNG_MAX, KLEINSTE_SPALTEN, Lauf, MAX_START, NUMMER_MAX, SOCKET_PFAD_MAX, Startdatei,
     WARTESCHLANGE_MAX, lesen, pruefen,
@@ -64,6 +74,7 @@ pub use startdatei::{
 /// Right after that it becomes the child subreaper (Linux; exit code 1 with one line `wb-dienst: Subreaper: ...` when the call is refused).
 #[must_use]
 pub fn programm(args: &[OsString]) -> i32 {
+    #[cfg(unix)]
     if args.first().is_some_and(|a| a == "--exec") {
         let rest: Vec<String> = args[1..]
             .iter()
@@ -73,6 +84,18 @@ pub fn programm(args: &[OsString]) -> i32 {
     }
     // the fixed child programs of the tests exist in the test build only (feature `pruefbau`); the delivered build treats `--kind`
     // like any other argument
+    // Windows, test build (section 21): a copy of the program named `laufkind.exe` is the fixed child `lauf` with all its
+    // arguments; under Unix a small script does the same with `exec`, which Windows does not have
+    #[cfg(all(windows, feature = "pruefbau"))]
+    if std::env::current_exe()
+        .ok()
+        .and_then(|p| p.file_stem().map(|s| s.eq_ignore_ascii_case("laufkind")))
+        .unwrap_or(false)
+    {
+        let mut rest = vec!["lauf".to_owned()];
+        rest.extend(std::env::args_os().map(|a| a.to_string_lossy().into_owned()));
+        return kindprogramm::lauf(&rest) & 0xff;
+    }
     #[cfg(feature = "pruefbau")]
     if args.first().is_some_and(|a| a == "--kind") {
         let rest: Vec<String> = args[1..]
@@ -85,6 +108,8 @@ pub fn programm(args: &[OsString]) -> i32 {
         return melden(&StartFehler::neu(2, "Aufruf: wb-dienst <startdatei.json>"));
     };
     // the first step: the memory of the process is shielded from core images before anything else happens (exit code 5 when it cannot be)
+    // (Unix; under Windows `kernabbild` has no shield, a deviation of contract section 21)
+    #[cfg(unix)]
     if let Some(code) = abschirmung::abschirmen(kernabbild::abschirmen(), &mut std::io::stderr()) {
         return code;
     }

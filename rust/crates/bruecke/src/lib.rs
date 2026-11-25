@@ -5,9 +5,10 @@
 //! one fixed order (form, `Host`, `Origin`, token, method and route) before it passes anything on, and sends no CORS head.
 //! No `unsafe`, and no input panics.
 
-// Unix only: the product runs on Linux; the code uses Unix sockets, permissions and signals. On another system the crate
-// is empty and the program says that it is not available.
-#![cfg(unix)]
+// Unix and Windows (Nachtrag 25.11.2026, contract section of the platforms): the product runs on Linux; under Windows the
+// socket of the service is `AF_UNIX`, the rights are access lists and the signals are the console events (`sys/windows.rs`, the
+// only place with `unsafe`). On another system the crate is empty and the program says that it is not available.
+#![cfg(any(unix, windows))]
 // Test code only: long case tables, `format!` into a text and `assert!(x.is_empty())` read better than their replacements.
 #![cfg_attr(
     test,
@@ -26,16 +27,18 @@ mod fehler;
 mod form;
 mod programm;
 mod pruefung;
+#[cfg_attr(windows, path = "rechte_windows.rs")]
 mod rechte;
 mod seite;
 mod server;
 mod startdatei;
+mod sys;
 mod token;
 mod verbindung;
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod pruefstand;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests_bruecke;
 
 pub use abschirmung::{KERNABBILD_CODE, abschirmen};

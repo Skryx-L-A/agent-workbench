@@ -3,7 +3,8 @@
 
 use std::io::{Read, Write};
 use std::net::Shutdown;
-use std::os::unix::net::UnixStream;
+
+use crate::sys::UnixStream;
 use std::time::{Duration, Instant};
 
 use serde_json::{Map, Value, json};
@@ -207,7 +208,7 @@ fn antwort_zu(art: u8, nutzlast: &[u8]) -> Result<Option<Antwort>, Abgelehnt> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use crate::pruefstand::{FakeDienst, Ordner};

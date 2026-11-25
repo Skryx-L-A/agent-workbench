@@ -1,11 +1,16 @@
 //! The folder mark (contract 1, E6): `ordnermarken.json` in the state folder of the installation, read, checked and
 //! written under an exclusive `flock` on `ordnermarken.lock`, written atomically (new file, `fsync`, `rename`). The
 //! mark only rises. Every fault of the file or the folder is `lauf.ordner_marke_kaputt` (fail closed).
+//!
+//! A start holds the lock only to read, decide and `rename`: it writes and `fsync`s the new file between two holds and
+//! renames it only while the list is still the one it decided on (see [`pruefen_und_markieren`]). An `fsync` can take
+//! seconds on a busy disk; under the lock it made a second start at the same moment give up after [`SPERR_FRIST`].
 
 use std::fs::File;
 use std::io::{Read, Write};
 use std::os::fd::{AsFd, OwnedFd};
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use einstellungen::json::{Wert, lesen, text_schreiben};
@@ -312,6 +317,16 @@ fn sperren(ordner: &OwnedFd, frist: Duration) -> Result<OwnedFd, Fehler> {
 
 /// Reads the file under the lock: `ENOENT` is "no mark yet", every other fault is broken.
 fn datei_lesen(ordner: &OwnedFd, klassen: &[String]) -> Result<Vec<Marke>, Fehler> {
+    marken_aus(datei_bytes(ordner)?.as_deref(), klassen)
+}
+
+/// The marks of the bytes of the file; `None` (no file) is the empty list.
+fn marken_aus(bytes: Option<&[u8]>, klassen: &[String]) -> Result<Vec<Marke>, Fehler> {
+    bytes.map_or_else(|| Ok(Vec::new()), |b| lesen_marken(b, klassen))
+}
+
+/// The bytes of the file, `None` for `ENOENT`; every other fault and a file of the wrong kind, owner or mode is broken.
+fn datei_bytes(ordner: &OwnedFd) -> Result<Option<Vec<u8>>, Fehler> {
     let fd = match rustix::fs::openat(
         ordner,
         MARKEN_DATEI,
@@ -319,7 +334,7 @@ fn datei_lesen(ordner: &OwnedFd, klassen: &[String]) -> Result<Vec<Marke>, Fehle
         Mode::empty(),
     ) {
         Ok(fd) => fd,
-        Err(rustix::io::Errno::NOENT) => return Ok(Vec::new()),
+        Err(rustix::io::Errno::NOENT) => return Ok(None),
         Err(_) => return Err(Fehler::OrdnerMarkeKaputt),
     };
     let st = rustix::fs::fstat(&fd).map_err(kaputt)?;
@@ -337,7 +352,7 @@ fn datei_lesen(ordner: &OwnedFd, klassen: &[String]) -> Result<Vec<Marke>, Fehle
         .take(MARKEN_MAX + 1)
         .read_to_end(&mut text)
         .map_err(kaputt)?;
-    lesen_marken(&text, klassen)
+    Ok(Some(text))
 }
 
 /// Where a write of the list stopped (see [`datei_schreiben_mit`]).
@@ -361,30 +376,64 @@ fn datei_schreiben_mit(
     marken: &[Marke],
     zwischen: impl FnOnce() -> Result<(), Fehler>,
 ) -> Result<(), Schreibfehler> {
-    let neu = format!("{MARKEN_DATEI}.{}.neu", std::process::id());
-    let _ = rustix::fs::unlinkat(ordner, neu.as_str(), rustix::fs::AtFlags::empty());
-    let fd = rustix::fs::openat(
-        ordner,
-        neu.as_str(),
-        OFlags::WRONLY | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-        Mode::from_raw_mode(0o600),
-    )
-    .map_err(|_| Schreibfehler::Datei)?;
+    let neu = neue_datei(ordner, marken)?;
+    if zwischen().is_err() {
+        weg(ordner, &neu);
+        return Err(Schreibfehler::Zwischen);
+    }
+    umbenennen(ordner, &neu)?;
+    rustix::fs::fsync(ordner.as_fd()).map_err(|_| Schreibfehler::Ordner)
+}
+
+/// Counter of the new files of this process: with the PID it makes the name of a new file unique, also between
+/// threads that write at the same moment.
+static NEU_ZAEHLER: AtomicU64 = AtomicU64::new(0);
+
+/// How often a new name is drawn when the name is taken (the rest of a process ended hard with the same PID).
+const NAMEN_MAX: usize = 16;
+
+/// Makes the new file of the list beside the old one (`O_EXCL`, 0600), writes and `fsync`s it, and returns its name.
+/// A name that is taken is never removed: the next one is drawn. On a fault the new file is removed.
+fn neue_datei(ordner: &OwnedFd, marken: &[Marke]) -> Result<String, Schreibfehler> {
+    let (neu, fd) = (0..NAMEN_MAX)
+        .find_map(|_| {
+            let n = NEU_ZAEHLER.fetch_add(1, Ordering::Relaxed);
+            let neu = format!("{MARKEN_DATEI}.{}.{n}.neu", std::process::id());
+            match rustix::fs::openat(
+                ordner,
+                neu.as_str(),
+                OFlags::WRONLY | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+                Mode::from_raw_mode(0o600),
+            ) {
+                Err(rustix::io::Errno::EXIST) => None,
+                r => Some(r.map(|fd| (neu, fd))),
+            }
+        })
+        .ok_or(Schreibfehler::Datei)?
+        .map_err(|_| Schreibfehler::Datei)?;
     let mut datei = File::from(fd);
-    let ergebnis = datei
+    if datei
         .write_all(schreiben_marken(marken).as_bytes())
         .and_then(|()| datei.sync_all())
-        .map_err(|_| Schreibfehler::Datei)
-        .and_then(|()| zwischen().map_err(|_| Schreibfehler::Zwischen))
-        .and_then(|()| {
-            rustix::fs::renameat(ordner, neu.as_str(), ordner, MARKEN_DATEI)
-                .map_err(|_| Schreibfehler::Umbenennen)
-        });
-    if ergebnis.is_err() {
-        let _ = rustix::fs::unlinkat(ordner, neu.as_str(), rustix::fs::AtFlags::empty());
-        return ergebnis;
+        .is_err()
+    {
+        weg(ordner, &neu);
+        return Err(Schreibfehler::Datei);
     }
-    rustix::fs::fsync(ordner.as_fd()).map_err(|_| Schreibfehler::Ordner)
+    Ok(neu)
+}
+
+/// Renames the new file over the list; on a fault the new file is removed and the old list stands.
+fn umbenennen(ordner: &OwnedFd, neu: &str) -> Result<(), Schreibfehler> {
+    rustix::fs::renameat(ordner, neu, ordner, MARKEN_DATEI).map_err(|_| {
+        weg(ordner, neu);
+        Schreibfehler::Umbenennen
+    })
+}
+
+/// Removes the own new file `neu`, relative to the folder.
+fn weg(ordner: &OwnedFd, neu: &str) {
+    let _ = rustix::fs::unlinkat(ordner, neu, rustix::fs::AtFlags::empty());
 }
 
 /// The write of step 5b: no step in between; every fault is `lauf.ordner_marke_kaputt`.
@@ -448,7 +497,13 @@ impl Zustand {
     }
 }
 
-/// Step 5b: checks the marks for the request and writes the mark of the folder, all under the lock.
+/// Step 5b: checks the marks for the request and writes the mark of the folder.
+///
+/// The check and the decision run under the lock. A new list is written and `fsync`ed after the lock is given back,
+/// so a slow disk does not hold the lock; then the lock is taken again and the new file is renamed over the list only
+/// if the list is still byte for byte the one the decision read. Did another start change it in between, the new file
+/// is removed and the decision runs again on the new list, this time with the write under the lock (as before), so the
+/// second round always ends. The `fsync` of the folder follows the `rename` outside the lock.
 ///
 /// # Errors
 /// `lauf.ordner_marke_kaputt`, `lauf.ordner_anderer_kunde` or `lauf.ordner_hoeher_markiert`.
@@ -458,13 +513,56 @@ pub fn pruefen_und_markieren(
     klassen: &[String],
     frist: Duration,
 ) -> Result<(), Fehler> {
+    pruefen_und_markieren_mit(zustand, anfrage, klassen, frist, || {})
+}
+
+/// [`pruefen_und_markieren`] with `nach_datei`, which runs after the new file is on disk and before the lock is taken
+/// again (the place of a slow `fsync`; the tests wait there).
+fn pruefen_und_markieren_mit(
+    zustand: &Path,
+    anfrage: Anfrage<'_>,
+    klassen: &[String],
+    frist: Duration,
+    nach_datei: impl FnOnce(),
+) -> Result<(), Fehler> {
     let ordner = ordner_oeffnen(zustand)?;
-    let _sperre = sperren(&ordner, frist)?;
-    let marken = datei_lesen(&ordner, klassen)?;
-    if let Some(neu) = entscheiden(marken, anfrage, klassen, &mut zufall_kennung)? {
-        datei_schreiben(&ordner, &neu)?;
+    let (gelesen, neu) = {
+        let _sperre = sperren(&ordner, frist)?;
+        let gelesen = datei_bytes(&ordner)?;
+        let marken = marken_aus(gelesen.as_deref(), klassen)?;
+        match entscheiden(marken, anfrage, klassen, &mut zufall_kennung)? {
+            None => return Ok(()),
+            Some(neu) => (gelesen, neu),
+        }
+    };
+    let name = neue_datei(&ordner, &neu).map_err(kaputt)?;
+    nach_datei();
+    let sperre = match sperren(&ordner, frist) {
+        Ok(s) => s,
+        Err(f) => {
+            weg(&ordner, &name);
+            return Err(f);
+        }
+    };
+    let jetzt = match datei_bytes(&ordner) {
+        Ok(j) => j,
+        Err(f) => {
+            weg(&ordner, &name);
+            return Err(f);
+        }
+    };
+    if jetzt != gelesen {
+        // another start changed the list in between: decide again on it, all under the lock
+        weg(&ordner, &name);
+        let marken = marken_aus(jetzt.as_deref(), klassen)?;
+        if let Some(neu) = entscheiden(marken, anfrage, klassen, &mut zufall_kennung)? {
+            datei_schreiben(&ordner, &neu)?;
+        }
+        return Ok(());
     }
-    Ok(())
+    umbenennen(&ordner, &name).map_err(kaputt)?;
+    drop(sperre);
+    rustix::fs::fsync(ordner.as_fd()).map_err(kaputt)
 }
 
 #[cfg(test)]

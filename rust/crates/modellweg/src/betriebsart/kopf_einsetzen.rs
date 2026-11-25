@@ -24,6 +24,69 @@ const HOP: [&str; 6] = [
     "trailer",
     "upgrade",
 ];
+/// Every name the holder forbids (holder contract, section 4: 31 names). This is the list of the **holder path**
+/// (`modell.aufruf` and `modell.strom`, from step I): there the holder sets host and framing itself, so none of the
+/// names goes to it (contract 8, section 13.2, point 1). The holder path is not built yet; this constant is its named
+/// place, and `the_two_lists_of_forbidden_names` holds its length and its relation to the direct one.
+pub const HALTER_VERBOTEN: [&str; 31] = [
+    "authorization",
+    "proxy-authorization",
+    "x-api-key",
+    "api-key",
+    "cookie",
+    "set-cookie",
+    "host",
+    "content-length",
+    "transfer-encoding",
+    "connection",
+    "upgrade",
+    "te",
+    "trailer",
+    "keep-alive",
+    "proxy-connection",
+    "forwarded",
+    "x-forwarded-for",
+    "x-forwarded-host",
+    "accept-encoding",
+    "sec-websocket-extensions",
+    "x-http-method-override",
+    "x-http-method",
+    "x-method-override",
+    "x-original-method",
+    "x-original-url",
+    "x-original-uri",
+    "x-rewrite-url",
+    "x-forwarded-uri",
+    "x-forwarded-path",
+    "x-forwarded-prefix",
+    "x-envoy-original-path",
+];
+/// What the **direct** way to a bound target drops in addition (before step I, with the key from the file; decision of
+/// 25.11.2026): the names of `HALTER_VERBOTEN` without `host`, `content-length` and `transfer-encoding`, which the
+/// request needs there, and without the eight this module already drops above (`authorization`, `accept-encoding` and
+/// the six headers of one connection, whose exception for a handed-through upgrade stays).
+const DIREKT_VERBOTEN: [&str; 20] = [
+    "proxy-authorization",
+    "x-api-key",
+    "api-key",
+    "cookie",
+    "set-cookie",
+    "forwarded",
+    "x-forwarded-for",
+    "x-forwarded-host",
+    "sec-websocket-extensions",
+    "x-http-method-override",
+    "x-http-method",
+    "x-method-override",
+    "x-original-method",
+    "x-original-url",
+    "x-original-uri",
+    "x-rewrite-url",
+    "x-forwarded-uri",
+    "x-forwarded-path",
+    "x-forwarded-prefix",
+    "x-envoy-original-path",
+];
 
 /// The checked options of this mode: three session files of "Lauf starten".
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -275,21 +338,23 @@ pub fn pfad_sicher(pfad: &str) -> bool {
 
 /// The head to the target (section 13.2): the request line, the fields of the harness without `authorization`, the key
 /// header of the target, the headers of one connection (an upgrade handed through keeps `upgrade` and `connection`)
-/// and, at a bound target, `accept-encoding` and in an upgrade `sec-websocket-extensions` (W1: a negotiated compression
-/// would blind the leak lock); then `accept-encoding: identity` at a bound target, `connection: close`
-/// unless upgrading, and the key header of a bound target.
+/// and, at a bound target, `accept-encoding` and every name of `DIREKT_VERBOTEN` (among them
+/// `sec-websocket-extensions`; W1: a negotiated compression would blind the leak lock); then `accept-encoding: identity`
+/// at a bound target, `connection: close` unless upgrading, and the key header of a bound target.
+/// This is the direct way: `host`, `content-length` and `transfer-encoding` stay, because the request needs them here.
+/// The holder path drops those three as well (`HALTER_VERBOTEN`), and the holder sets them itself.
 #[must_use]
 pub fn an_ziel(ziel: &Ziel, k: &InnenKopf, umstellen: bool, schluessel: Option<&[u8]>) -> Vec<u8> {
     let weg = |name: &str| {
         let name = name.to_ascii_lowercase();
         name == "authorization"
-            || ziel
-                .bindung
-                .as_ref()
-                .is_some_and(|b| b.kopf == name || name == "accept-encoding")
+            || ziel.bindung.as_ref().is_some_and(|b| {
+                b.kopf == name
+                    || name == "accept-encoding"
+                    || DIREKT_VERBOTEN.contains(&name.as_str())
+            })
             || (HOP.contains(&name.as_str())
                 && !(umstellen && (name == "upgrade" || name == "connection")))
-            || (umstellen && ziel.bindung.is_some() && name == "sec-websocket-extensions")
     };
     let mut v = format!("{}\r\n", k.zeile).into_bytes();
     for (name, wert) in k.felder.iter().filter(|(n, _)| !weg(n)) {
@@ -329,8 +394,8 @@ pub fn antwortkopf_bleibt(name: &str, umgestellt: bool) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        Rahmen, ablehnung, an_ziel, antwort, antwortkopf_bleibt, dezimal, pfad_sicher, pruefe,
-        rahmen, zerlege,
+        DIREKT_VERBOTEN, HALTER_VERBOTEN, HOP, Rahmen, ablehnung, an_ziel, antwort,
+        antwortkopf_bleibt, dezimal, pfad_sicher, pruefe, rahmen, zerlege,
     };
     use crate::betriebsart::zielliste::{Bindung, Regel, Ziel};
 
@@ -390,6 +455,45 @@ mod tests {
                 .expect("ascii")
                 .starts_with("HTTP/1.1 500 ")
         );
+    }
+
+    /// The list of the holder path carries all 31 names; the direct one is it without the three the request needs
+    /// there and without the eight dropped elsewhere (decision of 25.11.2026).
+    #[test]
+    fn the_two_lists_of_forbidden_names() {
+        assert_eq!(HALTER_VERBOTEN.len(), 31);
+        assert_eq!(DIREKT_VERBOTEN.len(), 20);
+        for name in DIREKT_VERBOTEN {
+            assert!(HALTER_VERBOTEN.contains(&name), "{name}");
+        }
+        let fehlt: Vec<&str> = HALTER_VERBOTEN
+            .iter()
+            .filter(|n| !DIREKT_VERBOTEN.contains(n))
+            .copied()
+            .collect();
+        assert_eq!(
+            fehlt,
+            [
+                "authorization",
+                "host",
+                "content-length",
+                "transfer-encoding",
+                "connection",
+                "upgrade",
+                "te",
+                "trailer",
+                "keep-alive",
+                "proxy-connection",
+                "accept-encoding",
+            ]
+        );
+        // The eight dropped elsewhere; only the three in between belong to the request of the direct way.
+        for name in ["authorization", "accept-encoding"] {
+            assert!(HALTER_VERBOTEN.contains(&name), "{name}");
+        }
+        for name in HOP {
+            assert!(HALTER_VERBOTEN.contains(&name), "{name}");
+        }
     }
 
     #[test]
@@ -494,13 +598,30 @@ mod tests {
                 "GET /a HTTP/1.1\r\nHost: a.b\r\nConnection: Upgrade\r\nUpgrade: websocket{mit}\r\n\r\n"
             )
         );
-        // Without an upgrade the header is no negotiation and stays.
+        // Without an upgrade the header is no negotiation, but the holder forbids it at a bound target all the same.
         let n = kopf("\r\nSec-WebSocket-Extensions: permessage-deflate");
         let ohne =
             String::from_utf8(an_ziel(&ziel(true, true), &n, false, Some(b"S"))).expect("ascii");
         assert_eq!(
             ohne,
-            "GET /a HTTP/1.1\r\nHost: a.b\r\nSec-WebSocket-Extensions: permessage-deflate\r\naccept-encoding: identity\r\nconnection: close\r\nx-key: V S\r\n\r\n"
+            "GET /a HTTP/1.1\r\nHost: a.b\r\naccept-encoding: identity\r\nconnection: close\r\nx-key: V S\r\n\r\n"
+        );
+        // At a bound target every name of the direct list goes too, but `Host` and `Content-Length` stay: the
+        // request needs them on the direct way (decision of 25.11.2026, contract 8, section 13.2, point 1).
+        let v = kopf(
+            "\r\nContent-Length: 0\r\nCookie: a=b\r\nX-Original-Url: /anders\r\nX-Envoy-Original-Path: /anders\r\nX-A: 1",
+        );
+        let gebunden =
+            String::from_utf8(an_ziel(&ziel(true, true), &v, false, Some(b"S"))).expect("ascii");
+        assert_eq!(
+            gebunden,
+            "GET /a HTTP/1.1\r\nHost: a.b\r\nContent-Length: 0\r\nX-A: 1\r\naccept-encoding: identity\r\nconnection: close\r\nx-key: V S\r\n\r\n"
+        );
+        // An unbound target keeps them: there it never gets a key (contract 8, section 13.2, point 1).
+        let frei2 = String::from_utf8(an_ziel(&ziel(false, true), &v, false, None)).expect("ascii");
+        assert!(
+            frei2.contains("\r\nCookie: a=b\r\n")
+                && frei2.contains("\r\nX-Original-Url: /anders\r\n")
         );
     }
 

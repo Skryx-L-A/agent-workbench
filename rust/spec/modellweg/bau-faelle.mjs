@@ -647,7 +647,22 @@ const KOPF_NAME = /^[a-z0-9-]{1,64}$/;
 const KOPF_VERBOTEN = ['host', 'connection', 'content-length', 'transfer-encoding', 'te', 'trailer', 'upgrade', 'keep-alive', 'proxy-connection', 'accept-encoding'];
 // vorlaeufig (Entscheidung vom 20.11.2026): ausser Authorization wird nichts umgeschrieben; accept-encoding und Cookies gehen unveraendert
 const ANMELDEKOEPFE = ['authorization'];
+// Jeder Name, den der Halter verbietet (Halter-Vertrag, Abschnitt 4: 31 Namen). Das ist die Liste des HALTERWEGS
+// (modell.aufruf und modell.strom, ab Schritt I); dort setzt der Halter Host und Rahmung selbst. Der Weg ist noch
+// nicht gebaut; die Liste steht hier benannt, und die Pruefung unten haelt ihre Laenge fest.
+const HALTER_VERBOTEN = ['authorization', 'proxy-authorization', 'x-api-key', 'api-key', 'cookie', 'set-cookie', 'host', 'content-length',
+  'transfer-encoding', 'connection', 'upgrade', 'te', 'trailer', 'keep-alive', 'proxy-connection', 'forwarded', 'x-forwarded-for',
+  'x-forwarded-host', 'accept-encoding', 'sec-websocket-extensions', 'x-http-method-override', 'x-http-method', 'x-method-override',
+  'x-original-method', 'x-original-url', 'x-original-uri', 'x-rewrite-url', 'x-forwarded-uri', 'x-forwarded-path', 'x-forwarded-prefix',
+  'x-envoy-original-path'];
+// Was der DIREKTE Weg zu einem gebundenen Ziel zusaetzlich entfernt (vor Schritt I, Schluessel aus der Datei;
+// Entscheid des Betreibers, 25.11.2026): die Liste ohne host, content-length und transfer-encoding, die die Anfrage
+// dort braucht, und ohne die acht, die schon oben fallen (authorization, accept-encoding und die sechs Koepfe einer Verbindung).
+const DIREKT_BLEIBT = ['host', 'content-length', 'transfer-encoding'];
 const HOP = ['connection', 'keep-alive', 'proxy-connection', 'te', 'trailer', 'upgrade'];
+const DIREKT_VERBOTEN = HALTER_VERBOTEN.filter((h) => !DIREKT_BLEIBT.includes(h) && h !== 'authorization' && h !== 'accept-encoding' && !HOP.includes(h));
+if (HALTER_VERBOTEN.length !== 31) abbruch(`Halterweg-Liste hat ${HALTER_VERBOTEN.length} Namen statt 31`);
+if (DIREKT_VERBOTEN.length !== 20) abbruch(`direkte Liste hat ${DIREKT_VERBOTEN.length} Namen statt 20`);
 const ZL_MAX = 65536;
 const ZL_FORM = {
   oben: ['fassung', 'ca_zulassung', 'ziele'],
@@ -807,7 +822,8 @@ function innenPruefen(lage, ziel, roh) {
   if (cl.length === 1 && koerper.length !== Number(cl[0])) wirf('mw.anfrage_unlesbar');
   meldung.kopf = ziel.kopf === null ? 'keiner' : 'ersetzt';
   const wsDurch = upgrade && ziel.upgrade === 'durchreichen';
-  const weg = new Set([...ANMELDEKOEPFE, ...(ziel.kopf ? [ziel.kopf, 'accept-encoding'] : []), ...(ziel.kopf && wsDurch && !M('M-W1') ? ['sec-websocket-extensions'] : []), ...HOP.filter((h) => !(upgrade && ziel.upgrade === 'durchreichen' && (h === 'upgrade' || h === 'connection')))]);
+  const verboten = DIREKT_VERBOTEN.filter((h) => h !== 'sec-websocket-extensions' || !M('M-W1'));   // M-W1: die Erweiterung bleibt am gebundenen Ziel
+  const weg = new Set([...ANMELDEKOEPFE, ...(ziel.kopf ? [ziel.kopf, 'accept-encoding', ...verboten] : []), ...HOP.filter((h) => !(upgrade && ziel.upgrade === 'durchreichen' && (h === 'upgrade' || h === 'connection')))]);
   const behalten = kopf.filter(([k]) => !weg.has(k.toLowerCase()));
   const schluessel = ziel.kopf === null ? null : lage.schluessel[ziel.name];
   if (ziel.kopf !== null && schluessel === undefined) wirf('mw.schluessel_fehlt');
@@ -956,7 +972,7 @@ const ZL_VORF = {
   ca_zulassung: 'zugelassen',
   ziele: [
     { name: 'github-api', host: 'api.github.com', port: 443, schluessel_datei: '/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel', kopf: 'authorization', wert_vorsatz: 'Bearer ',
-      regeln: [{ methode: 'GET', pfad: '/copilot_internal/*' }, { methode: 'GET', pfad: '/copilot/mcp_registry' }], upgrade: 'durchreichen' },
+      regeln: [{ methode: 'GET', pfad: '/copilot_internal/user' }, { methode: 'GET', pfad: '/copilot/mcp_registry' }], upgrade: 'durchreichen' },
     { name: 'copilot-api', host: 'api.githubcopilot.com', port: 443, schluessel_datei: '/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel', kopf: 'authorization', wert_vorsatz: 'Bearer ',
       regeln: [{ methode: '*', pfad: '/*' }], upgrade: 'durchreichen' },
     { name: 'copilot-plan', host: 'api.individual.githubcopilot.com', port: 443, schluessel_datei: '/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel', kopf: 'authorization', wert_vorsatz: 'Bearer ',
@@ -1064,20 +1080,20 @@ function baueKopf() {
   // Anfragen im Tunnel
   const H = 'api.github.com';
   const ANF = [
-    ['github_user', 'GET /copilot_internal/user mit den gemessenen Kopfnamen: Platzhalter verworfen, Marke eingesetzt, accept-encoding durch identity ersetzt, alle anderen Koepfe unveraendert', 'github-api', innen('GET', '/copilot_internal/user', H, COPILOT_KOEPFE), { kopf: 'ersetzt', pfadregel: '/copilot_internal/*', methode: 'GET' }],
+    ['github_user', 'GET /copilot_internal/user mit den gemessenen Kopfnamen: Platzhalter verworfen, Marke eingesetzt, accept-encoding durch identity ersetzt, alle anderen Koepfe unveraendert', 'github-api', innen('GET', '/copilot_internal/user', H, COPILOT_KOEPFE), { kopf: 'ersetzt', pfadregel: '/copilot_internal/user', methode: 'GET' }],
     ['github_registry', 'GET /copilot/mcp_registry (genaue Regel)', 'github-api', innen('GET', '/copilot/mcp_registry', H, COPILOT_KOEPFE), { kopf: 'ersetzt', pfadregel: '/copilot/mcp_registry', methode: 'GET' }],
-    ['github_abfrage', 'Abfrageteil bleibt, die Regel prueft nur den Pfad', 'github-api', innen('GET', '/copilot_internal/user?x=1', H, COPILOT_KOEPFE), { kopf: 'ersetzt', pfadregel: '/copilot_internal/*', methode: 'GET' }],
+    ['github_abfrage', 'Abfrageteil bleibt, die Regel prueft nur den Pfad', 'github-api', innen('GET', '/copilot_internal/user?x=1', H, COPILOT_KOEPFE), { kopf: 'ersetzt', pfadregel: '/copilot_internal/user', methode: 'GET' }],
     ['user_repos', 'GET /user/repos: nicht in der Pfadliste (Mutant 5 macht das gruen)', 'github-api', innen('GET', '/user/repos', H, COPILOT_KOEPFE), { code: 'mw.pfad_nicht_erlaubt' }],
-    ['github_post', 'POST /copilot_internal/user: Methode nicht erlaubt', 'github-api', innen('POST', '/copilot_internal/user', H, [...COPILOT_KOEPFE, ['Content-Length', '2']], '{}'), { code: 'mw.methode_falsch', pfadregel: '/copilot_internal/*', methode: 'POST' }],
+    ['github_post', 'POST /copilot_internal/user: Methode nicht erlaubt', 'github-api', innen('POST', '/copilot_internal/user', H, [...COPILOT_KOEPFE, ['Content-Length', '2']], '{}'), { code: 'mw.methode_falsch', pfadregel: '/copilot_internal/user', methode: 'POST' }],
     ['registry_unterpfad', 'GET /copilot/mcp_registry/x: die genaue Regel deckt keinen Unterpfad', 'github-api', innen('GET', '/copilot/mcp_registry/x', H, COPILOT_KOEPFE), { code: 'mw.pfad_nicht_erlaubt' }],
     ['punkt_segment', 'GET /copilot_internal/../user/repos', 'github-api', innen('GET', '/copilot_internal/../user/repos', H, COPILOT_KOEPFE), { code: 'mw.pfad_nicht_erlaubt' }],
     ['kodiert', 'GET /copilot_internal/%2e%2e/user', 'github-api', innen('GET', '/copilot_internal/%2e%2e/user', H, COPILOT_KOEPFE), { code: 'mw.pfad_nicht_erlaubt' }],
     ['doppelter_strich', 'GET /copilot_internal//user', 'github-api', innen('GET', '//copilot_internal/user', H, COPILOT_KOEPFE), { code: 'mw.pfad_nicht_erlaubt' }],
     ['host_falsch', 'Host im Tunnel nennt ein anderes Ziel der Liste', 'github-api', innen('GET', '/copilot_internal/user', 'api.githubcopilot.com', COPILOT_KOEPFE), { code: 'mw.host_falsch' }],
-    ['host_mit_port', 'Host mit :443 ist gueltig', 'github-api', innen('GET', '/copilot_internal/user', 'api.github.com:443', COPILOT_KOEPFE), { kopf: 'ersetzt', pfadregel: '/copilot_internal/*', methode: 'GET' }],
+    ['host_mit_port', 'Host mit :443 ist gueltig', 'github-api', innen('GET', '/copilot_internal/user', 'api.github.com:443', COPILOT_KOEPFE), { kopf: 'ersetzt', pfadregel: '/copilot_internal/user', methode: 'GET' }],
     ['plan_modelle', 'POST /chat/completions am Plan-Host: alle Pfade (bis der echte Lauf sie liefert)', 'copilot-plan',
       innen('POST', '/chat/completions', 'api.individual.githubcopilot.com', [...COPILOT_KOEPFE, ['Content-Type', 'application/json'], ['Content-Length', '2']], '{}'), { kopf: 'ersetzt', pfadregel: '/*', methode: 'POST' }],
-    ['plan_chunked', 'chunked im Tunnel geht unveraendert durch', 'copilot-plan',
+    ['plan_chunked', 'chunked im Tunnel geht unveraendert durch, auch der Kopf transfer-encoding (direkter Weg)', 'copilot-plan',
       innen('POST', '/responses', 'api.individual.githubcopilot.com', [...COPILOT_KOEPFE, ['Transfer-Encoding', 'chunked']], '2\r\n{}\r\n0\r\n\r\n'), { kopf: 'ersetzt', pfadregel: '/*', methode: 'POST' }],
     ['upgrade_durchgereicht', 'WebSocket-Upgrade am gebundenen Plan-Host: Upgrade und Connection bleiben, kein connection: close, Schluessel eingesetzt', 'copilot-plan',
       innen('GET', '/responses', 'api.individual.githubcopilot.com', [...COPILOT_KOEPFE, ['Connection', 'Upgrade'], ['Upgrade', 'websocket'], ['Sec-WebSocket-Key', 'dGhlIHNhbXBsZSBub25jZQ=='], ['Sec-WebSocket-Version', '13']]), { kopf: 'ersetzt', pfadregel: '/*', methode: 'GET' }],
@@ -1102,6 +1118,12 @@ function baueKopf() {
     ['zwei_laengen', 'Content-Length und Transfer-Encoding zugleich', 'copilot-plan',
       innen('POST', '/x', 'api.individual.githubcopilot.com', [['Content-Length', '2'], ['Transfer-Encoding', 'chunked']], '{}'), { code: 'mw.anfrage_unlesbar' }],
     ['zu_gross', 'Content-Length 33554433', 'copilot-plan', innen('POST', '/x', 'api.individual.githubcopilot.com', [['Content-Length', '33554433']]), { code: 'mw.koerper_zu_gross', pfadregel: '/*', methode: 'POST' }],
+    ['plan_methodenkopf', 'gebundenes Ziel mit X-Http-Method-Override und X-Original-Url: beide Koepfe fallen weg (der Halter verbietet sie)', 'copilot-plan',
+      innen('POST', '/chat/completions', 'api.individual.githubcopilot.com', [...COPILOT_KOEPFE, ['X-Http-Method-Override', 'DELETE'], ['X-Original-Url', '/user/repos'], ['Content-Type', 'application/json'], ['Content-Length', '2']], '{}'), { kopf: 'ersetzt', pfadregel: '/*', methode: 'POST' }],
+    ['plan_rahmung_bleibt', 'gebundenes Ziel auf dem direkten Weg: Host und Content-Length bleiben, Cookie faellt weg (Entscheid des Betreibers, 25.11.2026)', 'copilot-plan',
+      innen('POST', '/chat/completions', 'api.individual.githubcopilot.com', [['Cookie', 'a=b'], ['Content-Type', 'application/json'], ['Content-Length', '2']], '{}'), { kopf: 'ersetzt', pfadregel: '/*', methode: 'POST' }],
+    ['telemetrie_methodenkopf', 'ungebundenes Ziel mit X-Http-Method-Override: der Kopf geht unveraendert mit, kein Schluessel', 'copilot-telemetrie',
+      innen('POST', '/telemetry', 'telemetry.individual.githubcopilot.com', [['X-Http-Method-Override', 'DELETE'], ['Content-Length', '2']], '[]'), { kopf: 'keiner', pfadregel: '/telemetry', methode: 'POST' }],
   ];
   const anfragen = [];
   for (const [name, beschreibung, zielName, roh, erw] of ANF) {
@@ -1120,7 +1142,8 @@ function baueKopf() {
       if (mitMarke !== (ziel.kopf ? 1 : 0)) abbruch(`anfrage2 ${name}: Marke ${mitMarke}-mal`);
       if (ziel.kopf && (!/\r\naccept-encoding: identity\r\n/.test(ist.an_ziel) || /\r\nAccept-Encoding: /.test(ist.an_ziel))) abbruch(`anfrage2 ${name}: identity nicht gesetzt`);
       if (!ziel.kopf && /accept-encoding: identity/.test(ist.an_ziel)) abbruch(`anfrage2 ${name}: Kodierung am ungebundenen Ziel umgeschrieben`);
-      const rohKopf = roh.slice(0, roh.indexOf('\r\n\r\n')).split('\r\n').slice(1).filter((z) => !/^(authorization|connection|upgrade|keep-alive|te|trailer|proxy-connection):/i.test(z) && !(ziel.kopf && /^accept-encoding:/i.test(z)) || (/^(connection|upgrade):/i.test(z) && /upgrade/i.test(roh) && ziel.upgrade === 'durchreichen'));
+      const verbotenRe = new RegExp(`^(${DIREKT_VERBOTEN.join('|')}):`, 'i');
+      const rohKopf = roh.slice(0, roh.indexOf('\r\n\r\n')).split('\r\n').slice(1).filter((z) => !/^(authorization|connection|upgrade|keep-alive|te|trailer|proxy-connection):/i.test(z) && !(ziel.kopf && (/^accept-encoding:/i.test(z) || verbotenRe.test(z))) || (/^(connection|upgrade):/i.test(z) && /upgrade/i.test(roh) && ziel.upgrade === 'durchreichen'));
       for (const z of rohKopf) if (!ist.an_ziel.includes('\r\n' + z + '\r\n')) abbruch(`anfrage2 ${name}: Kopf ${z} fehlt`);
       if (!ist.an_ziel.startsWith(roh.split('\r\n')[0] + '\r\n')) abbruch(`anfrage2 ${name}: Anfragezeile veraendert`);
       if (!ist.an_ziel.endsWith('\r\n\r\n' + roh.slice(roh.indexOf('\r\n\r\n') + 4))) abbruch(`anfrage2 ${name}: Koerper veraendert`);
@@ -1162,8 +1185,9 @@ function baueKopf() {
   const WS_KOPF = [['Connection', 'Upgrade'], ['Upgrade', 'websocket'], ['Sec-WebSocket-Key', 'dGhlIHNhbXBsZSBub25jZQ=='], ['Sec-WebSocket-Version', '13']];
   const PLAN = 'api.individual.githubcopilot.com';
   const wsAnf = (extra) => innen('GET', '/responses', PLAN, [...COPILOT_KOEPFE, ...extra, ...WS_KOPF]);
-  // Hand gebildete Bytes an das Ziel: Koepfe in der Reihenfolge des Harness, ohne authorization, accept-encoding und Erweiterungen; dann identity und der Schluessel
-  const wsAnZiel = (extraBleibt) => `GET /responses HTTP/1.1\r\nHost: ${PLAN}\r\n${COPILOT_KOEPFE.filter(([k]) => k !== 'authorization' && k !== 'accept-encoding').map(([k, v]) => `${k}: ${v}\r\n`).join('')}${extraBleibt}Connection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\naccept-encoding: identity\r\nauthorization: Bearer ${MARKE}\r\n\r\n`;
+  // Hand gebildete Bytes an das Ziel: Koepfe in der Reihenfolge des Harness, ohne authorization, accept-encoding und jeden
+  // Namen der direkten Liste (darunter die Erweiterungen); Host bleibt, dann identity und der Schluessel
+  const wsAnZiel = (extraBleibt) => `GET /responses HTTP/1.1\r\nHost: ${PLAN}\r\n${COPILOT_KOEPFE.filter(([k]) => k !== 'authorization' && k !== 'accept-encoding' && !DIREKT_VERBOTEN.includes(k.toLowerCase())).map(([k, v]) => `${k}: ${v}\r\n`).join('')}${extraBleibt}Connection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\naccept-encoding: identity\r\nauthorization: Bearer ${MARKE}\r\n\r\n`;
   const WSA = [
     ['ws_erweiterung_entfernt', 'Upgrade-Anfrage mit Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits an das gebundene Ziel: geht ohne diesen Kopf hinaus, Schluessel eingesetzt (W1)',
       wsAnf([['Sec-WebSocket-Extensions', 'permessage-deflate; client_max_window_bits']]), wsAnZiel('')],
@@ -1265,7 +1289,7 @@ function baueKopf() {
 
   // Zeile
   const T0 = Date.UTC(2026, 10, 20, 16, 0, 0, 0);
-  const B2 = { zeit_ms: T0, betriebsart: 'kopf-einsetzen', route: 'cloud-beispiel', sitzung: 's-1', ziel: 'github-api', methode: 'GET', pfadregel: '/copilot_internal/*', kopf: 'ersetzt', ergebnis: 'weitergereicht', grund: null, status: 200, pfad: null, host: 'api.github.com' };
+  const B2 = { zeit_ms: T0, betriebsart: 'kopf-einsetzen', route: 'cloud-beispiel', sitzung: 's-1', ziel: 'github-api', methode: 'GET', pfadregel: '/copilot_internal/user', kopf: 'ersetzt', ergebnis: 'weitergereicht', grund: null, status: 200, pfad: null, host: 'api.github.com' };
   const Z2 = [
     ['erlaubt', 'erlaubte Anfrage, Kopf ersetzt', B2, NULL64, null],
     ['ungebunden', 'Telemetrie ohne Anmeldung', { ...B2, ziel: 'copilot-telemetrie', methode: 'POST', pfadregel: '/telemetry', kopf: 'keiner' }, NULL64, null],
@@ -1279,7 +1303,7 @@ function baueKopf() {
     ['abgelehnt_mit_pfad', 'Ablehnung: der begrenzte Pfad steht in der Zeile, pfadregel bleibt null', { ...B2, pfadregel: null, kopf: null, ergebnis: 'abgelehnt', grund: 'mw.pfad_nicht_erlaubt', status: 403, pfad: '/a/b' }, NULL64, null],
     ['pfad_stern', 'jedes Segment ausserhalb der Zeichenform steht als Stern', { ...B2, ergebnis: 'abgelehnt', grund: 'mw.pfad_nicht_erlaubt', pfadregel: null, kopf: null, status: 403, pfad: '/*' }, NULL64, null],
     ['pfad_voll_drei', 'mit --protokoll-pfad-voll stehen auch drei Segmente in der Zeile', { ...B2, pfad: '/a/b/c' }, NULL64, null],
-    ['pfad_bei_post_weiter', 'POST weitergereicht mit Pfad: abgewiesen', { ...B2, methode: 'POST', pfadregel: '/copilot_internal/*', pfad: '/a/b' }, NULL64, 'feld_ungueltig:pfad'],
+    ['pfad_bei_post_weiter', 'POST weitergereicht mit Pfad: abgewiesen', { ...B2, methode: 'POST', pfadregel: '/copilot_internal/user', pfad: '/a/b' }, NULL64, 'feld_ungueltig:pfad'],
     ['pfad_mit_abfrage', 'ein roher Pfad mit Abfrage im Feld pfad', { ...B2, ergebnis: 'abgelehnt', grund: 'mw.pfad_nicht_erlaubt', pfadregel: null, kopf: null, status: 403, pfad: '/a/b?x=1' }, NULL64, 'feld_ungueltig:pfad'],
     ['host_fehlt', 'Ziel gesetzt, host null', { ...B2, host: null }, NULL64, 'feld_ungueltig:host'],
     ['host_mit_port', 'host mit Port', { ...B2, host: 'api.github.com:443' }, NULL64, 'feld_ungueltig:host'],

@@ -12,17 +12,25 @@
 //! and JSON with exactly the key `liste`. A missing file or a missing folder is the normal case (no markers). Every other result is exit
 //! code 2 with the line `lauf.marker_datei ungueltig: <fixed reason>`; the line holds neither the path nor the content.
 
+#[cfg(unix)]
 use std::ffi::CString;
+#[cfg(unix)]
 use std::fs::File;
+#[cfg(unix)]
 use std::io::Read;
+#[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
+#[cfg(unix)]
 use std::path::Path;
 
+#[cfg(unix)]
 use rustix::fs::{CWD, Mode, openat};
+#[cfg(unix)]
 use rustix::io::Errno;
 use serde_json::Value;
 
 use crate::fehler::StartFehler;
+#[cfg(unix)]
 use crate::loeschen::{ORDNER_OFFEN, name_gut};
 
 /// The most bytes of the file.
@@ -34,6 +42,7 @@ const GUTER_ORDNER: &str = "/zaehlung";
 /// The flags to open the file without following a link. `O_NONBLOCK`: opening a FIFO for reading would wait for a writer, and a process of the user
 /// could hold the start of the service that way; with the flag the FIFO opens at once and `fstat` refuses it (`datei_art`). On a regular file it has no effect.
 /// (The folder is opened with `O_DIRECTORY`: a FIFO there is `ENOTDIR`, no wait.)
+#[cfg(unix)]
 const DATEI_OFFEN: rustix::fs::OFlags = rustix::fs::OFlags::RDONLY
     .union(rustix::fs::OFlags::NOFOLLOW)
     .union(rustix::fs::OFlags::CLOEXEC)
@@ -47,6 +56,7 @@ fn ungueltig(grund: &str) -> StartFehler {
 ///
 /// # Errors
 /// Exit code 2 for every file that is not as described above, and for a valid list without a usable `lauf.marker_ordner`.
+#[cfg(unix)]
 pub(crate) fn lesen(
     pfad: &str,
     ordner: Option<&str>,
@@ -56,6 +66,7 @@ pub(crate) fn lesen(
 }
 
 /// [`lesen`] with the owners to compare with: `euid_ordner` for the folder and `euid_datei` for the file (a test can name another user for either).
+#[cfg(unix)]
 pub(crate) fn lesen_mit(
     pfad: &str,
     ordner: Option<&str>,
@@ -108,8 +119,13 @@ pub(crate) fn lesen_mit(
     if roh.len() > DATEI_MAX {
         return Err(ungueltig("zu_gross"));
     }
+    inhalt_lesen(&roh, ordner)
+}
+
+/// Step 3 of [`lesen`]: the content of the file (at most [`DATEI_MAX`] bytes), the same under Unix and Windows.
+fn inhalt_lesen(roh: &[u8], ordner: Option<&str>) -> Result<Option<start::Marker>, StartFehler> {
     // 3. the content: UTF-8, JSON, exactly the key `liste`
-    let text = std::str::from_utf8(&roh).map_err(|_| ungueltig("kein_utf8"))?;
+    let text = std::str::from_utf8(roh).map_err(|_| ungueltig("kein_utf8"))?;
     let wert: Value = serde_json::from_str(text).map_err(|_| ungueltig("kein_json"))?;
     let liste = liste_lesen(&wert).ok_or_else(|| ungueltig("form"))?;
     // the list is checked by the crate `start` alone: first with a folder that is good, then with the folder of the start file
@@ -127,6 +143,55 @@ pub(crate) fn lesen_mit(
         .map_err(|_| StartFehler::neu(2, "lauf.marker_ordner ungueltig"))
 }
 
+/// Windows (section 21): the same steps with access lists. The folder must be a folder of the own user whose protected list
+/// allows only it and `SYSTEM` (0700), the file a file of the own user whose protected list allows only it (0600); a reparse point
+/// is never followed. A missing folder or file gives no markers.
+///
+/// # Errors
+/// Exit code 2 with the same grounds as under Unix.
+#[cfg(windows)]
+pub(crate) fn lesen(
+    pfad: &str,
+    ordner: Option<&str>,
+) -> Result<Option<start::Marker>, StartFehler> {
+    use std::io::Read;
+    use std::path::Path;
+
+    use crate::sys::Eigen;
+    let p = Path::new(pfad);
+    let (Some(eltern), Some(name)) = (p.parent(), p.file_name().and_then(|n| n.to_str())) else {
+        return Err(ungueltig("pfad"));
+    };
+    if !crate::loeschen::name_gut(name) {
+        return Err(ungueltig("pfad"));
+    }
+    let _eltern = match crate::sys::eigen_oeffnen(eltern, true, false) {
+        Ok(g) => g,
+        Err(Eigen::Fehlt) => return Ok(None),
+        Err(Eigen::Fremd) => return Err(ungueltig("ordner_eigentuemer")),
+        Err(Eigen::Offen) => return Err(ungueltig("ordner_modus")),
+        Err(_) => return Err(ungueltig("ordner")),
+    };
+    let datei = match crate::sys::eigen_oeffnen(p, false, true) {
+        Ok(g) => g,
+        Err(Eigen::Fehlt) => return Ok(None),
+        Err(Eigen::Link) => return Err(ungueltig("datei_verknuepfung")),
+        Err(Eigen::Art) => return Err(ungueltig("datei_art")),
+        Err(Eigen::Fremd) => return Err(ungueltig("datei_eigentuemer")),
+        Err(Eigen::Offen) => return Err(ungueltig("datei_modus")),
+        Err(Eigen::Unlesbar) => return Err(ungueltig("datei_unlesbar")),
+    };
+    let mut roh = Vec::new();
+    datei
+        .take(DATEI_MAX as u64 + 1)
+        .read_to_end(&mut roh)
+        .map_err(|_| ungueltig("datei_unlesbar"))?;
+    if roh.len() > DATEI_MAX {
+        return Err(ungueltig("zu_gross"));
+    }
+    inhalt_lesen(&roh, ordner)
+}
+
 /// The list of the object `{"liste": [...]}`: exactly that key, an array of texts.
 fn liste_lesen(wert: &Value) -> Option<Vec<String>> {
     let karte = wert.as_object()?;
@@ -141,7 +206,7 @@ fn liste_lesen(wert: &Value) -> Option<Vec<String>> {
         .collect()
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use std::fs;
