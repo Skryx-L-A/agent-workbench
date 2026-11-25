@@ -374,6 +374,135 @@ fall("d-daten-erst-nach-pruefung", "Nutzdaten fließen erst nach beiden Prüfung
      erw("verbinden", gemessen=["Byte 1 bis 4 vom Client: pk1 und LF; Byte 1 bis 4 vom Server: pk1 und LF",
                                 "die Nutzdaten kommen erst nach der Antwort des Servers an"]))
 
+# --- Nachtrag 25.11.2026 (Projektentscheid, 25.11.2026): sechs Entscheide ---------------------------------------------
+# Auskunft: eigene_sid und Sid::dienst (Entscheid 1 und Teil von 3). Seite "auskunft": Aufruf ohne Verbindung.
+fall("k-eigene-sid-windows", "eigene_sid liefert die SID des eigenen Tokens, ohne eine Erlaubnis zu schaffen", "aussentest", WIN,
+     {"person": PERSON}, None, None, ["Prozess unter person"],
+     ["Das Prüfprogramm ruft eigene_sid()", "dann Server::anlegen mit erlaubt = [person] und GetSecurityInfo auf die Instanz"],
+     erw("auskunft", gemessen=["Rückgabe ok; die SID ist gleich TokenUser des eigenen Prozess-Tokens (person) und von der Form Sid",
+                               "Besitzer der danach angelegten Instanz = dieselbe SID",
+                               "reine Auskunft: Der Aufruf legt kein Objekt an, ändert keine Liste und lässt kein Handle offen (Handle-Zahl vorher und nachher gleich)"]))
+fall("k-eigene-sid-andere-form-windows", "eigene_sid unter einem Konto, dessen SID nicht die Form Sid hat", "aussentest", WIN,
+     {}, None, None, ["Prozess unter LOCAL SERVICE (S-1-5-19), dessen SID keine Konten- oder Dienst-SID der Form Sid ist"],
+     ["Das Prüfprogramm ruft eigene_sid()"],
+     erw("auskunft", "pk.io",
+         gemessen=["Rückgabe pk.io ohne os_fehler (die Messung gelang, die SID passt nicht zur Form Sid)",
+                   "Gegenprobe: ein gescheiterter Systemaufruf gibt pk.io mit os_fehler (nur im Einheitstest der Bibliothek zu erzeugen)"]))
+fall("k-eigene-sid-unix", "eigene_sid unter Linux und macOS", "aussentest", UNIX, KU, None, None, [],
+     ["Das Prüfprogramm ruft eigene_sid()"],
+     erw("auskunft", "pk.nicht_unterstuetzt", gemessen=["Rückgabe pk.nicht_unterstuetzt ohne os_fehler", "kein Systemaufruf, kein Nebeneffekt"]))
+fall("k-dienst-sid", "Sid::dienst rechnet die SID eines virtuellen Dienstkontos", "aussentest", ALLE, {"dienst": DIENST}, None, None,
+     ["Ein Dienstname in Kennungsform, unter Windows der Name eines in der VM angelegten Dienstes"],
+     ["Das Prüfprogramm ruft Sid::dienst(<name>) auf jedem System", "unter Windows zusätzlich sc.exe showsid <name>"],
+     erw("auskunft", gemessen=["Rückgabe ok: S-1-5-80- und fünf Zahlen, gebildet aus SHA-1 des Namens in Großbuchstaben als UTF-16LE (je vier Byte little-endian)",
+                               "derselbe Wert auf allen drei Systemen (kein Systemaufruf)",
+                               "unter Windows gleich der Ausgabe von sc.exe showsid; die Form passt in erlaubt und erwartet",
+                               "zwei verschiedene Namen geben zwei verschiedene SIDs"]))
+fall("k-dienst-sid-form", "Sid::dienst mit einem Namen, der nicht die Kennungsform hat", "aussentest", ALLE, {}, None, None, [],
+     ["Das Prüfprogramm ruft Sid::dienst auf mit: leerem Namen, K-Beispiel (Großbuchstaben), a b (Leerzeichen), -a (führender Strich)"],
+     erw("auskunft", VU, gemessen=["jeder der vier Aufrufe: pk.vorgabe_ungueltig ohne os_fehler", "kein Wert, kein Teilergebnis"]))
+
+# Gegenrichtung ohne Hallo (Entscheid 3): gleiche Prüfung, gleiche Codes, 0 Byte vor der Prüfung, danach kein pk1.
+fall("c-ohne-hallo-windows", "verbinden_ohne_hallo prüft den Besitzer und sendet danach kein pk1", "aussentest", WIN,
+     {"person": PERSON, "dienst": DIENST}, None, cv_win(DIENST),
+     ["Dienst unter dienst hält die Pipe und spricht kein pk1; ein roher Hörer schreibt jedes empfangene Byte mit",
+      "dienst ist die SID, die Sid::dienst(<dienstname>) für diesen Dienst liefert"],
+     ["Die Person ruft verbinden_ohne_hallo", "danach schreibt sie 5 Byte Nutzdaten"],
+     erw("verbinden", peer=peer_win(DIENST, None, pid="=server", start=None, programm=None),
+         gemessen=["Rückgabe ok; Besitzer der Instanz = dienst (GetSecurityInfo, OWNER), geprüft wie bei verbinden",
+                   "der Hörer hat vor dem Ende der Prüfung 0 Byte empfangen",
+                   "das erste Byte beim Hörer ist das erste Nutzbyte der Person; es kommt kein pk1 und kein LF vom Client",
+                   "OpenProcess auf die Server-PID wird nicht verlangt (wie c-dienst-am-besitzer-windows)"]))
+fall("c-ohne-hallo-unix", "verbinden_ohne_hallo prüft die uid des Servers und sendet danach kein pk1", "aussentest", UNIX, KU,
+     None, cv_unix(UID),
+     ["Ordner 0700 der eigenen Kennung", "Ein roher Hörer unter uid_person am Socket spricht kein pk1 und schreibt jedes Byte mit"],
+     ["Der Client ruft verbinden_ohne_hallo", "danach schreibt er 5 Byte Nutzdaten"],
+     erw("verbinden", gemessen=["Rückgabe ok; uid des Servers aus SO_PEERCRED bzw. LOCAL_PEERCRED = uid_person, geprüft wie bei verbinden",
+                                "der Hörer hat vor dem Ende der Prüfung 0 Byte empfangen",
+                                "das erste Byte beim Hörer ist das erste Nutzbyte; es kommt kein pk1 und kein LF vom Client"]))
+fall("c-ohne-hallo-falscher-besitzer-windows", "verbinden_ohne_hallo gegen einen Server mit falschem Besitzer", "aussentest", WIN,
+     {"person": PERSON, "dienst": DIENST}, None, cv_win(DIENST),
+     ["Ein Prozess der Person hält \\\\.\\pipe\\k-beispiel und schreibt jedes empfangene Byte mit"],
+     ["Der Client ruft verbinden_ohne_hallo"],
+     erw("verbinden", "pk.falscher_server",
+         gemessen=["Rückgabe pk.falscher_server, dieselbe wie bei verbinden (c-falscher-server-windows)",
+                   "der Vorbeleger hat 0 Byte empfangen",
+                   "Gegenprobe: derselbe Aufruf gegen den Dienst als Besitzer gelingt (c-ohne-hallo-windows)"]))
+fall("c-ohne-hallo-falscher-besitzer-unix", "verbinden_ohne_hallo gegen einen Server unter anderer uid", "aussentest", UNIX,
+     dict(KU, uid_fremd=UID_FREMD), None, cv_unix(UID),
+     ["Ein Prozess unter uid_fremd hört am Socket und schreibt jedes Byte mit"], ["Der Client ruft verbinden_ohne_hallo"],
+     erw("verbinden", "pk.falscher_server",
+         gemessen=["Rückgabe pk.falscher_server, dieselbe wie bei verbinden (c-falscher-server-unix)", "0 Byte beim Hörer",
+                   "Gegenprobe: derselbe Aufruf gegen einen Hörer unter uid_person gelingt (c-ohne-hallo-unix)"]))
+
+# Hallo: Ende vor vier Byte (Entscheid 5).
+fall("n-hallo-ende-nach-pk", "Ende der Verbindung oder der Frist nach einem passenden Anfang des Hallos", "aussentest", ALLE,
+     dict(KW, **KU), None, None, ["Server mit hallo_frist_ms 2000 und erlaubter Kennung des Clients"],
+     ["Roher Client 1 sendet pk und schließt", "Roher Client 2 sendet pk und schweigt bis nach der Frist"],
+     erw("annehmen", "pk.hallo_ungueltig",
+         ereignisse=[ab("pk.hallo_ungueltig", "pk.hallo_fehlt", None), ab("pk.hallo_ungueltig", "pk.hallo_fehlt", None)],
+         gemessen=["zwei Ereignisse mit grund pk.hallo_fehlt, keines mit pk.hallo_falsch (pk ist ein Anfang von pk1 LF)",
+                   "Client 1: das Ereignis kommt vor Ablauf der Frist (der Server wartet nicht auf sie)",
+                   "Client 2: das Ereignis kommt nach 2000 ms (bis 2200 ms)",
+                   "die gesendeten Bytes stehen nicht im Ereignis; peer null unter Windows, unter Unix gemessen"]))
+fall("n-hallo-ende-ohne-byte", "Verbindung ohne ein Byte geschlossen", "aussentest", ALLE, dict(KW, **KU), None, None,
+     ["Server mit hallo_frist_ms 2000 und erlaubter Kennung des Clients"], ["Ein roher Client öffnet die Verbindung und schließt sie sofort"],
+     erw("annehmen", "pk.hallo_ungueltig", ereignisse=[ab("pk.hallo_ungueltig", "pk.hallo_fehlt", None)],
+         gemessen=["Ereignis mit grund pk.hallo_fehlt vor Ablauf der Frist (vor 1000 ms)", "kein Byte vom Server an den Client"]))
+fall("n-hallo-falscher-anfang", "Bytes, die kein Anfang von pk1 LF sind, gelten sofort als falsches Hallo", "aussentest", ALLE,
+     dict(KW, **KU), None, None, ["Server mit hallo_frist_ms 2000 und erlaubter Kennung des Clients"],
+     ["Roher Client 1 sendet pq und schließt", "Roher Client 2 sendet pk1 und CR (vier Byte) und schließt"],
+     erw("annehmen", "pk.hallo_ungueltig",
+         ereignisse=[ab("pk.hallo_ungueltig", "pk.hallo_falsch", None), ab("pk.hallo_ungueltig", "pk.hallo_falsch", None)],
+         gemessen=["zwei Ereignisse mit grund pk.hallo_falsch, keines mit pk.hallo_fehlt, auch weil die Verbindung nach den Bytes endet",
+                   "Client 1: schon nach zwei Byte, ohne auf vier Byte oder die Frist zu warten",
+                   "die gesendeten Bytes stehen nicht im Ereignis"]))
+
+# Ereignis vor dem Trennen (Entscheid 4).
+fall("n-ereignis-vor-dem-trennen", "der Haken bei_abweisung sieht das Ereignis, solange der Client noch verbunden ist", "aussentest",
+     ALLE, dict(KW, **KU), None, None,
+     ["Server mit bei_abweisung; der Haken vermerkt das Ereignis und wartet 300 ms", "Mitschnitt am Client (Testnaht des Läufers): Lesen ohne Blockieren"],
+     ["Ein roher Client sendet GET / und LF und liest in der Wartezeit des Hakens"],
+     erw("annehmen", "pk.hallo_ungueltig", ereignisse=[ab("pk.hallo_ungueltig", "pk.hallo_falsch", None)],
+         gemessen=["Der Haken wird genau einmal mit dem Ereignis gerufen, bevor die Verbindung getrennt ist",
+                   "Der Client sieht in den 300 ms des Hakens kein Ende der Verbindung und kein Byte",
+                   "Danach sieht der Client das Ende, und annehmen gibt dasselbe Ereignis zurück (gleicher Code, gleicher Grund)",
+                   "Gegenprobe ohne Haken: annehmen gibt das Ereignis zurück, der Client sieht das Ende, es wird kein Haken gerufen"]))
+fall("n-ereignis-vor-dem-trennen-aufrufer", "bei ablehnen kommt das Ereignis vor dem Ende ebenso", "aussentest", ALLE, dict(KW, **KU),
+     None, None, ["Server mit bei_abweisung wie oben; der Haken des Aufrufers (Stufe 7) lehnt mit aufrufer:sitzung-fremd ab"],
+     ["Client verbindet, sendet das Hallo und liest"],
+     erw("annehmen", "pk.aufrufer_abgewiesen", ereignisse=[ab("pk.aufrufer_abgewiesen", "aufrufer:sitzung-fremd", None)],
+         gemessen=["bei_abweisung wird mit dem Ereignis gerufen, solange der Client noch verbunden ist; danach das Ende",
+                   "ablehnen gibt dasselbe Ereignis zurück",
+                   "Der Client bekommt 0 Byte (auch kein Hallo) und sieht danach das Ende",
+                   "Gegenprobe: Wird Vorlaeufig ohne Entscheidung fallen gelassen, gibt es kein Ereignis und keinen Aufruf des Hakens"]))
+
+# Lesefrist (Entscheid 2).
+fall("d-lesefrist", "lesefrist begrenzt jedes folgende Lesen", "aussentest", ALLE, dict(KW, **KU), None, None,
+     ["Server und Client erlaubt", "Der Client schweigt 1500 ms, sendet dann ein Byte und bleibt verbunden"],
+     ["Der Server bestätigt, ruft lesefrist(Some(300 ms)) und liest zweimal", "dann lesefrist(None) und liest einmal"],
+     erw("annehmen", gemessen=["Erstes Lesen: Fehler der Art io::ErrorKind::TimedOut nach 300 ms (bis 700 ms)",
+                               "Zweites Lesen (Frist gilt für jedes folgende Lesen): wieder TimedOut nach 300 ms (bis 700 ms)",
+                               "Die Verbindung bleibt offen: Nach lesefrist(None) liefert das Lesen das eine Byte des Clients",
+                               "Endet der Client, liefert das Lesen 0 (Ende) und nicht TimedOut",
+                               "Ohne vorheriges lesefrist liest die Verbindung ohne Frist (Startwert None)"]))
+
+# Flush vor dem Trennen (Entscheid 6; noch nicht gebaut, Windows).
+fall("d-flush-vor-trennen-windows", "der Server lässt die Verbindung direkt nach bestaetigen fallen, der Client bekommt pk1", "aussentest",
+     WIN, KW, None, cv_win(PERSON), ["Server unter person, hallo_frist_ms 2000"],
+     ["Der Client verbindet", "Der Server ruft bestaetigen() und lässt die Verbindung sofort fallen, ohne zu warten"],
+     erw("verbinden", peer=peer_win(PERSON, None, pid="=server", start=None, programm=None),
+         gemessen=["Der Client bekommt die vier Byte pk1 und LF und verbindet ohne Fehler (100 von 100 Läufen)",
+                   "Die Bibliothek ruft vor DisconnectNamedPipe FlushFileBuffers auf (Beleg: der Client liest das Hallo, obwohl der Server sofort trennt)",
+                   "Bau noch offen: Der Fall ist ohne den Flush rot"]))
+fall("d-flush-frist-windows", "der Client liest nie: der Server trennt nach der Frist", "aussentest", WIN, KW, None, None,
+     ["Server unter person, hallo_frist_ms 2000", "Roher Client sendet das Hallo und liest danach nie"],
+     ["Der Server bestätigt, lässt die Verbindung fallen und misst die Zeit bis zum Ende des Fallenlassens", "dann verbindet ein zweiter Client"],
+     erw("annehmen", gemessen=["Das Fallenlassen kehrt nach 2000 ms zurück (bis 2700 ms), nicht früher und nicht später",
+                               "Danach ist die Instanz getrennt und frei: Der zweite Client verbindet",
+                               "Ohne Ablauf der Frist (der Client liest) kehrt das Fallenlassen sofort zurück (unter 500 ms)",
+                               "Bau noch offen: Ohne Frist hinge das Fallenlassen unbegrenzt, ohne Flush kehrte es sofort zurück"]))
+
 
 def main():
     for ordner in ("faelle", "erwartet"):

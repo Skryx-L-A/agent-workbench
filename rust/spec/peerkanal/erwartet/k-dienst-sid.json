@@ -1,0 +1,13 @@
+{
+ "seite": "auskunft",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe ok: S-1-5-80- und fünf Zahlen, gebildet aus SHA-1 des Namens in Großbuchstaben als UTF-16LE (je vier Byte little-endian)",
+  "derselbe Wert auf allen drei Systemen (kein Systemaufruf)",
+  "unter Windows gleich der Ausgabe von sc.exe showsid; die Form passt in erlaubt und erwartet",
+  "zwei verschiedene Namen geben zwei verschiedene SIDs"
+ ]
+}

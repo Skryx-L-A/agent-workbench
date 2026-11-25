@@ -1,0 +1,12 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "fehler",
+ "code": "pk.falscher_server",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe pk.falscher_server, dieselbe wie bei verbinden (c-falscher-server-windows)",
+  "der Vorbeleger hat 0 Byte empfangen",
+  "Gegenprobe: derselbe Aufruf gegen den Dienst als Besitzer gelingt (c-ohne-hallo-windows)"
+ ]
+}

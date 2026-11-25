@@ -1,0 +1,30 @@
+{
+ "beschreibung": "verbinden_ohne_hallo prüft die uid des Servers und sendet danach kein pk1",
+ "art": "aussentest",
+ "ort": [
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk"
+ },
+ "server": null,
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "uid": 1000000101
+  },
+  "frist_ms": 2000,
+  "unix_ordner": "/k-beispiel/lauf/pk"
+ },
+ "aufbau": [
+  "Ordner 0700 der eigenen Kennung",
+  "Ein roher Hörer unter uid_person am Socket spricht kein pk1 und schreibt jedes Byte mit"
+ ],
+ "handlung": [
+  "Der Client ruft verbinden_ohne_hallo",
+  "danach schreibt er 5 Byte Nutzdaten"
+ ]
+}

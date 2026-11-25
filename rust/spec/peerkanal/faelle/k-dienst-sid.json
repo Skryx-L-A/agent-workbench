@@ -1,0 +1,21 @@
+{
+ "beschreibung": "Sid::dienst rechnet die SID eines virtuellen Dienstkontos",
+ "art": "aussentest",
+ "ort": [
+  "windows",
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "dienst": "S-1-5-80-1000000011-1000000012-1000000013-1000000014-1000000015"
+ },
+ "server": null,
+ "client": null,
+ "aufbau": [
+  "Ein Dienstname in Kennungsform, unter Windows der Name eines in der VM angelegten Dienstes"
+ ],
+ "handlung": [
+  "Das Prüfprogramm ruft Sid::dienst(<name>) auf jedem System",
+  "unter Windows zusätzlich sc.exe showsid <name>"
+ ]
+}

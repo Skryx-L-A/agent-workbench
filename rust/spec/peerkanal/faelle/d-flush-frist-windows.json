@@ -1,0 +1,20 @@
+{
+ "beschreibung": "der Client liest nie: der Server trennt nach der Frist",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+ },
+ "server": null,
+ "client": null,
+ "aufbau": [
+  "Server unter person, hallo_frist_ms 2000",
+  "Roher Client sendet das Hallo und liest danach nie"
+ ],
+ "handlung": [
+  "Der Server bestätigt, lässt die Verbindung fallen und misst die Zeit bis zum Ende des Fallenlassens",
+  "dann verbindet ein zweiter Client"
+ ]
+}

@@ -1,0 +1,16 @@
+{
+ "beschreibung": "eigene_sid unter einem Konto, dessen SID nicht die Form Sid hat",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {},
+ "server": null,
+ "client": null,
+ "aufbau": [
+  "Prozess unter LOCAL SERVICE (S-1-5-19), dessen SID keine Konten- oder Dienst-SID der Form Sid ist"
+ ],
+ "handlung": [
+  "Das Prüfprogramm ruft eigene_sid()"
+ ]
+}

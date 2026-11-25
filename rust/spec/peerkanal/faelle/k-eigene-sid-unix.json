@@ -1,0 +1,19 @@
+{
+ "beschreibung": "eigene_sid unter Linux und macOS",
+ "art": "aussentest",
+ "ort": [
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk"
+ },
+ "server": null,
+ "client": null,
+ "aufbau": [],
+ "handlung": [
+  "Das Prüfprogramm ruft eigene_sid()"
+ ]
+}

@@ -1,0 +1,25 @@
+{
+ "beschreibung": "lesefrist begrenzt jedes folgende Lesen",
+ "art": "aussentest",
+ "ort": [
+  "windows",
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk"
+ },
+ "server": null,
+ "client": null,
+ "aufbau": [
+  "Server und Client erlaubt",
+  "Der Client schweigt 1500 ms, sendet dann ein Byte und bleibt verbunden"
+ ],
+ "handlung": [
+  "Der Server bestätigt, ruft lesefrist(Some(300 ms)) und liest zweimal",
+  "dann lesefrist(None) und liest einmal"
+ ]
+}

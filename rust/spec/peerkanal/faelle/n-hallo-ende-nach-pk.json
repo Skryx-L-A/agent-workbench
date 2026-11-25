@@ -1,0 +1,24 @@
+{
+ "beschreibung": "Ende der Verbindung oder der Frist nach einem passenden Anfang des Hallos",
+ "art": "aussentest",
+ "ort": [
+  "windows",
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk"
+ },
+ "server": null,
+ "client": null,
+ "aufbau": [
+  "Server mit hallo_frist_ms 2000 und erlaubter Kennung des Clients"
+ ],
+ "handlung": [
+  "Roher Client 1 sendet pk und schließt",
+  "Roher Client 2 sendet pk und schweigt bis nach der Frist"
+ ]
+}

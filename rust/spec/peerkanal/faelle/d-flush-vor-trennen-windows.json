@@ -1,0 +1,25 @@
+{
+ "beschreibung": "der Server lässt die Verbindung direkt nach bestaetigen fallen, der Client bekommt pk1",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+ },
+ "server": null,
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+  },
+  "frist_ms": 2000
+ },
+ "aufbau": [
+  "Server unter person, hallo_frist_ms 2000"
+ ],
+ "handlung": [
+  "Der Client verbindet",
+  "Der Server ruft bestaetigen() und lässt die Verbindung sofort fallen, ohne zu warten"
+ ]
+}

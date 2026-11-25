@@ -1,0 +1,27 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "fehler",
+ "code": "pk.hallo_ungueltig",
+ "ereignisse": [
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.hallo_ungueltig",
+   "grund": "pk.hallo_falsch",
+   "peer": null
+  },
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.hallo_ungueltig",
+   "grund": "pk.hallo_falsch",
+   "peer": null
+  }
+ ],
+ "peer": null,
+ "gemessen": [
+  "zwei Ereignisse mit grund pk.hallo_falsch, keines mit pk.hallo_fehlt, auch weil die Verbindung nach den Bytes endet",
+  "Client 1: schon nach zwei Byte, ohne auf vier Byte oder die Frist zu warten",
+  "die gesendeten Bytes stehen nicht im Ereignis"
+ ]
+}

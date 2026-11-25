@@ -1,0 +1,11 @@
+{
+ "seite": "auskunft",
+ "ergebnis": "fehler",
+ "code": "pk.vorgabe_ungueltig",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "jeder der vier Aufrufe: pk.vorgabe_ungueltig ohne os_fehler",
+  "kein Wert, kein Teilergebnis"
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "beschreibung": "eigene_sid liefert die SID des eigenen Tokens, ohne eine Erlaubnis zu schaffen",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001"
+ },
+ "server": null,
+ "client": null,
+ "aufbau": [
+  "Prozess unter person"
+ ],
+ "handlung": [
+  "Das Prüfprogramm ruft eigene_sid()",
+  "dann Server::anlegen mit erlaubt = [person] und GetSecurityInfo auf die Instanz"
+ ]
+}

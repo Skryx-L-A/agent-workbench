@@ -1,0 +1,12 @@
+{
+ "seite": "auskunft",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe ok; die SID ist gleich TokenUser des eigenen Prozess-Tokens (person) und von der Form Sid",
+  "Besitzer der danach angelegten Instanz = dieselbe SID",
+  "reine Auskunft: Der Aufruf legt kein Objekt an, ändert keine Liste und lässt kein Handle offen (Handle-Zahl vorher und nachher gleich)"
+ ]
+}

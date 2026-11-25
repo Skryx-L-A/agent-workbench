@@ -1,0 +1,27 @@
+{
+ "beschreibung": "verbinden_ohne_hallo prüft den Besitzer und sendet danach kein pk1",
+ "art": "aussentest",
+ "ort": [
+  "windows"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "dienst": "S-1-5-80-1000000011-1000000012-1000000013-1000000014-1000000015"
+ },
+ "server": null,
+ "client": {
+  "name": "k-beispiel",
+  "erwartet": {
+   "sid": "S-1-5-80-1000000011-1000000012-1000000013-1000000014-1000000015"
+  },
+  "frist_ms": 2000
+ },
+ "aufbau": [
+  "Dienst unter dienst hält die Pipe und spricht kein pk1; ein roher Hörer schreibt jedes empfangene Byte mit",
+  "dienst ist die SID, die Sid::dienst(<dienstname>) für diesen Dienst liefert"
+ ],
+ "handlung": [
+  "Die Person ruft verbinden_ohne_hallo",
+  "danach schreibt sie 5 Byte Nutzdaten"
+ ]
+}

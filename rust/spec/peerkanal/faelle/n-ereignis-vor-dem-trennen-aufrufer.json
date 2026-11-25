@@ -1,0 +1,23 @@
+{
+ "beschreibung": "bei ablehnen kommt das Ereignis vor dem Ende ebenso",
+ "art": "aussentest",
+ "ort": [
+  "windows",
+  "linux",
+  "mac"
+ ],
+ "konten": {
+  "person": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "uid_person": 1000000101,
+  "gid_person": 1000000201,
+  "ordner": "/k-beispiel/lauf/pk"
+ },
+ "server": null,
+ "client": null,
+ "aufbau": [
+  "Server mit bei_abweisung wie oben; der Haken des Aufrufers (Stufe 7) lehnt mit aufrufer:sitzung-fremd ab"
+ ],
+ "handlung": [
+  "Client verbindet, sendet das Hallo und liest"
+ ]
+}

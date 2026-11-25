@@ -1,0 +1,11 @@
+{
+ "seite": "auskunft",
+ "ergebnis": "fehler",
+ "code": "pk.io",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe pk.io ohne os_fehler (die Messung gelang, die SID passt nicht zur Form Sid)",
+  "Gegenprobe: ein gescheiterter Systemaufruf gibt pk.io mit os_fehler (nur im Einheitstest der Bibliothek zu erzeugen)"
+ ]
+}

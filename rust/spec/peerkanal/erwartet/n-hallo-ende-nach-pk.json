@@ -1,0 +1,28 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "fehler",
+ "code": "pk.hallo_ungueltig",
+ "ereignisse": [
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.hallo_ungueltig",
+   "grund": "pk.hallo_fehlt",
+   "peer": null
+  },
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.hallo_ungueltig",
+   "grund": "pk.hallo_fehlt",
+   "peer": null
+  }
+ ],
+ "peer": null,
+ "gemessen": [
+  "zwei Ereignisse mit grund pk.hallo_fehlt, keines mit pk.hallo_falsch (pk ist ein Anfang von pk1 LF)",
+  "Client 1: das Ereignis kommt vor Ablauf der Frist (der Server wartet nicht auf sie)",
+  "Client 2: das Ereignis kommt nach 2000 ms (bis 2200 ms)",
+  "die gesendeten Bytes stehen nicht im Ereignis; peer null unter Windows, unter Unix gemessen"
+ ]
+}

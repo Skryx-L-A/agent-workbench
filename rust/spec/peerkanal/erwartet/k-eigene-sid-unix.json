@@ -1,0 +1,11 @@
+{
+ "seite": "auskunft",
+ "ergebnis": "fehler",
+ "code": "pk.nicht_unterstuetzt",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe pk.nicht_unterstuetzt ohne os_fehler",
+  "kein Systemaufruf, kein Nebeneffekt"
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "fehler",
+ "code": "pk.hallo_ungueltig",
+ "ereignisse": [
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.hallo_ungueltig",
+   "grund": "pk.hallo_fehlt",
+   "peer": null
+  }
+ ],
+ "peer": null,
+ "gemessen": [
+  "Ereignis mit grund pk.hallo_fehlt vor Ablauf der Frist (vor 1000 ms)",
+  "kein Byte vom Server an den Client"
+ ]
+}

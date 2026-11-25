@@ -1,0 +1,21 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "fehler",
+ "code": "pk.aufrufer_abgewiesen",
+ "ereignisse": [
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.aufrufer_abgewiesen",
+   "grund": "aufrufer:sitzung-fremd",
+   "peer": null
+  }
+ ],
+ "peer": null,
+ "gemessen": [
+  "bei_abweisung wird mit dem Ereignis gerufen, solange der Client noch verbunden ist; danach das Ende",
+  "ablehnen gibt dasselbe Ereignis zurück",
+  "Der Client bekommt 0 Byte (auch kein Hallo) und sieht danach das Ende",
+  "Gegenprobe: Wird Vorlaeufig ohne Entscheidung fallen gelassen, gibt es kein Ereignis und keinen Aufruf des Hakens"
+ ]
+}

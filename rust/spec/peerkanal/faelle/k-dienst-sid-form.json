@@ -1,0 +1,16 @@
+{
+ "beschreibung": "Sid::dienst mit einem Namen, der nicht die Kennungsform hat",
+ "art": "aussentest",
+ "ort": [
+  "windows",
+  "linux",
+  "mac"
+ ],
+ "konten": {},
+ "server": null,
+ "client": null,
+ "aufbau": [],
+ "handlung": [
+  "Das Prüfprogramm ruft Sid::dienst auf mit: leerem Namen, K-Beispiel (Großbuchstaben), a b (Leerzeichen), -a (führender Strich)"
+ ]
+}

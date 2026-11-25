@@ -1,0 +1,12 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "fehler",
+ "code": "pk.falscher_server",
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Rückgabe pk.falscher_server, dieselbe wie bei verbinden (c-falscher-server-unix)",
+  "0 Byte beim Hörer",
+  "Gegenprobe: derselbe Aufruf gegen einen Hörer unter uid_person gelingt (c-ohne-hallo-unix)"
+ ]
+}

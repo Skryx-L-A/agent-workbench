@@ -528,7 +528,36 @@ gate_mutants() {
   need cargo || return
   need_subcommand mutants || return
   local rc=0
-  cargo mutants --workspace --no-shuffle --output . || rc=$?
+  # The first run builds the delivered state, without the feature `pruefbau`. cargo-mutants reads the source as
+  # text and does not evaluate `cfg`, so a mutant in code that stands only behind `cfg(feature = "pruefbau")` is not
+  # compiled here, no test can fail for it, and it would always survive. These places are left out of this run, and
+  # of this run only; the second run below covers them with the feature (no exclusion there). Code behind
+  # `cfg(not(feature = "pruefbau"))` and code without `cfg` stays in this run. Each entry has its reason. A pattern
+  # with a line number that no longer fits leaves its mutant in the run, which then reports it as missed (the
+  # run fails closed); the entry is then moved to the new line.
+  local erster=(
+    # dienst: the module `kindprogramm` (the fixed child programs `--kind`) is declared behind the feature.
+    --exclude crates/dienst/src/kindprogramm.rs
+    # dienst, `programm`: the branch `--kind` (comparison and mask of the exit code) stands behind the feature.
+    --exclude-re 'crates/dienst/src/lib.rs:77:39: replace == with != in programm'
+    --exclude-re 'crates/dienst/src/lib.rs:82:42: replace & with [|^] in programm'
+    # halter, `orte` of the test build: the whole function stands behind the feature (the line 77 one is the
+    # delivered build and stays in this run).
+    --exclude-re 'crates/halter/src/main.rs:52:9: replace linux::orte -> Orte with Default::default\(\)'
+    --exclude-re 'crates/halter/src/main.rs:54:59: replace != with == in linux::orte'
+    # anmelden, `seam`: the comparison with `WB_TESTUMGEBUNG` stands in the block behind the feature.
+    --exclude-re 'crates/anmelden/src/main.rs:187:70: replace == with != in unix::seam'
+    # werkbank-pruefen, `lage_naht`: the same comparison in the block behind the feature.
+    --exclude-re 'crates/werkbank-pruefen/src/main/unix.rs:86:68: replace == with != in lage_naht'
+    # Equivalent in the delivered build (decision of 25.11.2026, way a); each one the second run catches, measured.
+    # anmelden, `seam` -> None: without the feature `seam` already returns None.
+    --exclude-re 'crates/anmelden/src/main.rs:178:9: replace unix::seam -> Option<PathBuf> with None'
+    # werkbank-pruefen, `lage_naht` -> None: without the feature `lage_naht` already returns None.
+    --exclude-re 'crates/werkbank-pruefen/src/main/unix.rs:85:5: replace lage_naht -> Option<String> with None'
+    # anmelden, `lauf`: the block of the probe runs only when `seam` returns a value, that is only with the feature.
+    --exclude-re 'crates/anmelden/src/main.rs:51:60: replace == with != in unix::lauf'
+  )
+  cargo mutants --workspace --no-shuffle "${erster[@]}" --output . || rc=$?
   if [ "$rc" -ne 0 ]; then
     return "$rc"
   fi

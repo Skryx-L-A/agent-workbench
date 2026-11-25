@@ -1,0 +1,21 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "fehler",
+ "code": "pk.hallo_ungueltig",
+ "ereignisse": [
+  {
+   "ereignis": "abgewiesen",
+   "kanal": "k-beispiel",
+   "code": "pk.hallo_ungueltig",
+   "grund": "pk.hallo_falsch",
+   "peer": null
+  }
+ ],
+ "peer": null,
+ "gemessen": [
+  "Der Haken wird genau einmal mit dem Ereignis gerufen, bevor die Verbindung getrennt ist",
+  "Der Client sieht in den 300 ms des Hakens kein Ende der Verbindung und kein Byte",
+  "Danach sieht der Client das Ende, und annehmen gibt dasselbe Ereignis zurück (gleicher Code, gleicher Grund)",
+  "Gegenprobe ohne Haken: annehmen gibt das Ereignis zurück, der Client sieht das Ende, es wird kein Haken gerufen"
+ ]
+}

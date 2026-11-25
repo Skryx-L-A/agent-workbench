@@ -17,8 +17,10 @@ from pathlib import Path
 
 HIER = Path(__file__).resolve().parent
 
-# Feste Codes je Seite, in Prüfreihenfolge (README, Abschnitt Fehlercodes). Fassung 2 ändert sie nicht.
+# Feste Codes je Seite, in Prüfreihenfolge (README, Prüfreihenfolge je Seite; Seite "auskunft": Abschnitt Auskunft ohne
+# Verbindung, Nachtrag 25.11.2026). Fassung 2 ändert sie nicht.
 CODES = {
+    "auskunft": ["pk.vorgabe_ungueltig", "pk.nicht_unterstuetzt", "pk.io"],
     "vorgabe": ["pk.vorgabe_ungueltig"],
     "anlegen": ["pk.vorgabe_ungueltig", "pk.ordner_rechte", "pk.pfad_zu_lang", "pk.name_belegt",
                 "pk.anlegen_fehlgeschlagen"],

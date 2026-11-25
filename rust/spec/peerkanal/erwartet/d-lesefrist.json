@@ -1,0 +1,14 @@
+{
+ "seite": "annehmen",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": null,
+ "gemessen": [
+  "Erstes Lesen: Fehler der Art io::ErrorKind::TimedOut nach 300 ms (bis 700 ms)",
+  "Zweites Lesen (Frist gilt für jedes folgende Lesen): wieder TimedOut nach 300 ms (bis 700 ms)",
+  "Die Verbindung bleibt offen: Nach lesefrist(None) liefert das Lesen das eine Byte des Clients",
+  "Endet der Client, liefert das Lesen 0 (Ende) und nicht TimedOut",
+  "Ohne vorheriges lesefrist liest die Verbindung ohne Frist (Startwert None)"
+ ]
+}

@@ -1,0 +1,25 @@
+{
+ "seite": "verbinden",
+ "ergebnis": "ok",
+ "code": null,
+ "ereignisse": [],
+ "peer": {
+  "system": "windows",
+  "sid": "S-1-5-21-1000000001-1000000002-1000000003-1001",
+  "appcontainer_sid": null,
+  "uid": null,
+  "gid": null,
+  "pid": "=server",
+  "startzeit": null,
+  "im_job": null,
+  "programm": null,
+  "signatur": null,
+  "eingeschraenkt": false,
+  "sandbox": null
+ },
+ "gemessen": [
+  "Der Client bekommt die vier Byte pk1 und LF und verbindet ohne Fehler (100 von 100 Läufen)",
+  "Die Bibliothek ruft vor DisconnectNamedPipe FlushFileBuffers auf (Beleg: der Client liest das Hallo, obwohl der Server sofort trennt)",
+  "Bau noch offen: Der Fall ist ohne den Flush rot"
+ ]
+}
