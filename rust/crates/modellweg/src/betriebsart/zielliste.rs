@@ -18,6 +18,9 @@ const ZIEL: [&str; 6] = ["name", "host", "port", "halter_ziel", "regeln", "upgra
 /// The fields that fell away; named at stage 12.
 const WEGGEFALLEN: [&str; 3] = ["schluessel_datei", "kopf", "wert_vorsatz"];
 const REGEL: [&str; 2] = ["methode", "pfad"];
+/// The code of stage 12 when `halter_ziel` is not exactly the `host` of its target (contract 8, section 12). The start
+/// ends on it with `mw.ziel_halter_name` instead of `mw.ziele_ungueltig` (section 3a, duty 1).
+pub const HALTER_NAME: &str = "zl.halter_name";
 /// The methods a rule of a **bound** target may name: `halter.json` knows only these two, and `modell.aufruf` takes
 /// only them (contract 8, section 12, stage 11).
 pub const GEBUNDEN_METHODEN: [&str; 2] = ["GET", "POST"];
@@ -278,13 +281,17 @@ fn pruefe_ziele(ziele: &[Roh<'_>]) -> Result<(), &'static str> {
     if !regeln_gut {
         return Err("zl.regel_form");
     }
-    // Stage 12: `halter_ziel` is exactly the `host` of this target, so no caller with an own list sends a secret to
-    // another host; and no field that fell away stands there any more.
-    let bindung_gut = ziele
-        .iter()
-        .all(|z| !z.weggefallen && z.halter_ziel.is_none_or(|n| n == z.host));
-    if !bindung_gut {
-        return Err("zl.bindung");
+    // Stage 12, per target in the order of the list: no field that fell away stands there any more (`zl.bindung`), and
+    // `halter_ziel` is exactly the `host` of this target (`zl.halter_name`), so no caller with an own list sends a
+    // secret to another host (contract 8, section 3a, duty 1). The second case has its own code, because the start
+    // ends on it with its own code `mw.ziel_halter_name`.
+    for z in ziele {
+        if z.weggefallen {
+            return Err("zl.bindung");
+        }
+        if z.halter_ziel.is_some_and(|n| n != z.host) {
+            return Err(HALTER_NAME);
+        }
     }
     let upgrade_gut = ziele.iter().all(|z| match z.upgrade {
         "ablehnen" => true,
@@ -336,7 +343,7 @@ pub fn regel_pfad_ok(pfad: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{Regel, host_ok, lies, regel_pfad_ok};
+    use super::{HALTER_NAME, Regel, host_ok, lies, regel_pfad_ok};
 
     /// One target of the list; `halter_ziel` as it is written in JSON (`null` or a quoted name).
     fn ziel(name: &str, host: &str, halter_ziel: &str, methode: &str, upgrade: &str) -> String {
@@ -383,7 +390,7 @@ mod tests {
         // Stage 12: another name than the host, in either direction.
         for falsch in ["\"c.d\"", "\"a.b.\"", "\"A.B\"", "\"\"", "\"a.b:443\""] {
             let t = liste(&[ziel("a", "a.b", falsch, "GET", "ablehnen")]);
-            assert_eq!(lies(t.as_bytes()).err(), Some("zl.bindung"), "{falsch}");
+            assert_eq!(lies(t.as_bytes()).err(), Some(HALTER_NAME), "{falsch}");
         }
     }
 
@@ -401,6 +408,23 @@ mod tests {
             );
             assert_eq!(lies(null.as_bytes()).err(), Some("zl.bindung"), "{feld}");
         }
+        // Both cases of stage 12 per target in the order of the list: the first target decides.
+        let weg_dann_name = liste(&[
+            ziel("a", "a.b", "\"a.b\"", "GET", "ablehnen").replace(
+                r#""halter_ziel":"a.b""#,
+                r#""halter_ziel":"a.b","kopf":"x""#,
+            ),
+            ziel("c", "c.d", "\"x.y\"", "GET", "ablehnen"),
+        ]);
+        assert_eq!(lies(weg_dann_name.as_bytes()).err(), Some("zl.bindung"));
+        let name_dann_weg = liste(&[
+            ziel("c", "c.d", "\"x.y\"", "GET", "ablehnen"),
+            ziel("a", "a.b", "\"a.b\"", "GET", "ablehnen").replace(
+                r#""halter_ziel":"a.b""#,
+                r#""halter_ziel":"a.b","kopf":"x""#,
+            ),
+        ]);
+        assert_eq!(lies(name_dann_weg.as_bytes()).err(), Some(HALTER_NAME));
         // A key that never stood in the form stays stage 3.
         let t = gebunden().replace(r#""halter_ziel":"a.b""#, r#""halter_ziel":"a.b","x":1"#);
         assert_eq!(lies(t.as_bytes()).err(), Some("zl.schluessel_unbekannt"));

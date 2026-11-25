@@ -756,7 +756,10 @@ werkbank-ordnermarke senken <ordner> --klasse <klasse>
   anhängen, erst dann die neue Datei über die alte `rename`n. Scheitert ein Schritt vor dem `rename`, löscht der Befehl die
   neue Datei und ändert nichts; endet er mit 74 und `ordnermarke.protokoll`, wenn es die Zeile war. Scheitert der `rename`
   nach der Zeile, bleibt die Marke und der Befehl endet mit 74; dann steht eine Zeile ohne Wirkung im Protokoll. Das ist
-  die vorsichtige Seite: Zu viel Protokoll ist besser als eine Änderung ohne Zeile.
+  die vorsichtige Seite: Zu viel Protokoll ist besser als eine Änderung ohne Zeile. Den `fsync` der neuen Datei hält die
+  Sperre nicht: Der Befehl schreibt die neue Datei nach der ersten Sperre, hängt die Zeile an und `rename`t erst unter
+  einer zweiten, wenn die Liste noch Byte für Byte die gelesene ist; sonst löscht er die neue Datei und entscheidet unter
+  der Sperre neu, wie der Start (ein langsamer `fsync` ließ sonst einen zweiten Befehl nach 5 s scheitern).
 - **Fehler des Befehls.** `loesen` und `senken` ändern nur den Eintrag mit genau dem aufgelösten Pfad:
 
 | Code | Exit | Grund (fest, ASCII) | Bedingung |

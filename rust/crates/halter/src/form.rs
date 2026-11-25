@@ -429,7 +429,20 @@ fn mit_kopf(weitere: &[(&'static str, Pruefer)]) -> Vec<(&'static str, Pruefer)>
 /// The code of the lowest violated stage.
 pub fn pruefen(o: &Map<String, Value>, op: Op) -> Result<(), Code> {
     let (felder, pflicht): (Vec<(&str, Pruefer)>, &[&str]) = match op {
-        Op::Vorhanden => (mit_kopf(&[("name", p_name)]), &["id", "name"]),
+        Op::Vorhanden => {
+            // exactly one of `name` and `ziel` (section 4): both is an unknown key (stage 8), none a missing one (stage 9)
+            let eines = match (o.contains_key("name"), o.contains_key("ziel")) {
+                (true, true) => Err(Code::SchluesselUnbekannt),
+                (false, false) => Err(Code::SchluesselFehlt),
+                _ => Ok(()),
+            };
+            let felder = mit_kopf(&[("name", p_name), ("ziel", p_kennung)]);
+            return match (eines, objekt(o, &felder, &["id"])) {
+                (Err(a), Err(b)) => Err(a.min(b)),
+                (Err(a), Ok(())) | (Ok(()), Err(a)) => Err(a),
+                (Ok(()), Ok(())) => Ok(()),
+            };
+        }
         Op::ModellAufruf => (
             mit_kopf(&[
                 ("ziel", p_kennung),
@@ -539,6 +552,34 @@ mod tests {
         assert_eq!(pruefen(&o, Op::Vorhanden), Err(Code::WertForm));
         let o = obj(json!({"fassung":1,"id":1,"op":"strom.ende"}));
         assert_eq!(pruefen(&o, Op::StromEnde), Ok(()));
+        // vorhanden: exactly one of name and ziel
+        let v = |x: Value| obj(x);
+        let ok = v(json!({"fassung":1,"id":1,"op":"schluessel.vorhanden","ziel":"copilot"}));
+        assert_eq!(pruefen(&ok, Op::Vorhanden), Ok(()));
+        let ok = v(json!({"fassung":1,"id":1,"op":"schluessel.vorhanden","name":"mcp.a"}));
+        assert_eq!(pruefen(&ok, Op::Vorhanden), Ok(()));
+        let beide = v(
+            json!({"fassung":1,"id":1,"op":"schluessel.vorhanden","name":"mcp.a","ziel":"copilot"}),
+        );
+        assert_eq!(
+            pruefen(&beide, Op::Vorhanden),
+            Err(Code::SchluesselUnbekannt)
+        );
+        let keines = v(json!({"fassung":1,"id":1,"op":"schluessel.vorhanden"}));
+        assert_eq!(pruefen(&keines, Op::Vorhanden), Err(Code::SchluesselFehlt));
+        // the lower stage wins: none of both (stage 9) against an unknown key (stage 8), a bad ziel (stage 11) against
+        // both (stage 8), none of both (9) against a missing id (9) and a bad form of ziel alone (11)
+        let o = v(json!({"fassung":1,"id":1,"op":"schluessel.vorhanden","x":1}));
+        assert_eq!(pruefen(&o, Op::Vorhanden), Err(Code::SchluesselUnbekannt));
+        let o =
+            v(json!({"fassung":1,"id":1,"op":"schluessel.vorhanden","name":"mcp.a","ziel":"A"}));
+        assert_eq!(pruefen(&o, Op::Vorhanden), Err(Code::SchluesselUnbekannt));
+        let o = v(json!({"fassung":1,"id":1,"op":"schluessel.vorhanden","ziel":"A"}));
+        assert_eq!(pruefen(&o, Op::Vorhanden), Err(Code::WertForm));
+        let o = v(json!({"fassung":1,"op":"schluessel.vorhanden","ziel":"a"}));
+        assert_eq!(pruefen(&o, Op::Vorhanden), Err(Code::SchluesselFehlt));
+        let o = v(json!({"fassung":1,"id":1,"op":"schluessel.vorhanden","ziel":5}));
+        assert_eq!(pruefen(&o, Op::Vorhanden), Err(Code::TypFalsch));
         let o = obj(
             json!({"fassung":1,"id":1,"op":"modell.strom","ziel":"a","pfad":"/r","abfrage":null,
             "kopf":{"Host":"x","host":"y"}}),

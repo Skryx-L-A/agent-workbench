@@ -119,6 +119,9 @@ def nach_schema(a, lage):
             return "halter.bereich"
         return None if lage["nachweis_gueltig"] else "halter.nachweis"
     if op == "schluessel.vorhanden":
+        # nach ziel (Nachtrag 25.11.2026): das Ziel muss in halter.json stehen; ohne Geheimnis ist die Antwort false
+        if "ziel" in a and a["ziel"] not in konfig["ziele"]:
+            return "halter.ziel_unbekannt"
         return None
     if op in ("strom.teil", "strom.ende"):
         return None
@@ -237,6 +240,8 @@ def referenz(fall, roh, pruefer):
     if not isinstance(obj.get("op"), str) or obj["op"] not in OPS:
         return "halter.op_unbekannt"
     if obj["op"] not in ROLLEN[lage["aufrufer"]["rolle"]]:
+        return "halter.rolle"
+    if obj["op"] == "schluessel.vorhanden" and "ziel" in obj and lage["aufrufer"]["rolle"] != "bruecke":
         return "halter.rolle"
     offen = lage.get("strom")
     if obj["op"] in ("strom.teil", "strom.ende"):

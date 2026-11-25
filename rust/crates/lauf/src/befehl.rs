@@ -10,8 +10,9 @@
 //! start ([`crate::marke`]). Each change writes one line `ordnermarke.geloest` or `ordnermarke.gesenkt` into
 //! `<protokoll>/ordnermarke-<JJJJ-MM>.jsonl` (contract 5, section 6.4) with the key of the mark, customer and class
 //! before and after, and never a path or a hash of a path. The order is fixed: lock, read and check, write the new
-//! file and `fsync`, append the line, then `rename`. A fault before the `rename` removes the new file and changes
-//! nothing; the mark never changes without its line.
+//! file and `fsync`, append the line, then `rename`. The lock is not held over the `fsync` of the new file; the line
+//! and the `rename` run under the lock on the very list the change was decided on ([`Zustand::wechseln`]). A fault
+//! before the `rename` removes the new file and changes nothing; the mark never changes without its line.
 //!
 //! The command reads the own configuration of "Lauf starten" (`/etc/werkbank/lauf.json`; the test build the file next
 //! to the program): the fields `zustand`, `protokoll` and `einstellungen`.
@@ -22,7 +23,7 @@ use std::path::{Path, PathBuf};
 use formate::kette::{Ordnermarke, anhaengen_ordnermarke};
 
 use crate::fehler::Fehler;
-use crate::marke::{self, Marke, Schreibfehler, Zustand};
+use crate::marke::{self, Marke, Schreibfehler, Wechselfehler, Zustand};
 
 /// The source of the chain file of the lines.
 pub const QUELLE: &str = "ordnermarke";
@@ -224,13 +225,14 @@ fn jetzt_ms() -> Result<i64, BefehlFehler> {
 }
 
 /// The change of one entry. `senken` needs a class strictly below the mark (contract 1, open point of the contract).
+/// The time of the line is set when the line is written ([`ausfuehren`]); here it is 0.
 fn aendern(
     befehl: &Befehl,
     ordner: &str,
     marken: &[Marke],
     klassen: &[String],
-    zeit_ms: i64,
 ) -> Result<Aenderung, BefehlFehler> {
+    let zeit_ms = 0;
     let i = marken
         .iter()
         .position(|m| m.ordner == ordner)
@@ -297,22 +299,40 @@ pub fn ausfuehren(befehl: &Befehl, lage: &Lage) -> Result<String, BefehlFehler> 
             .ok_or(BefehlFehler::KeineMarke)?;
         return Ok(zeigen_text(m));
     }
-    let zustand =
-        Zustand::sperren(&lage.zustand, marke::SPERR_FRIST).map_err(|f| marke_fehler(&f))?;
-    let marken = zustand.lesen(&lage.klassen).map_err(|f| marke_fehler(&f))?;
-    let aenderung = aendern(befehl, &ordner, &marken, &lage.klassen, jetzt_ms()?)?;
-    let zeile = aenderung.zeile;
+    ausfuehren_mit(befehl, lage, &ordner, || {})
+}
+
+/// The change of [`ausfuehren`] with `nach_datei` of [`Zustand::wechseln`] (the tests wait there). The line takes its
+/// time right before it is appended, under the lock.
+fn ausfuehren_mit(
+    befehl: &Befehl,
+    lage: &Lage,
+    ordner: &str,
+    nach_datei: impl FnOnce(),
+) -> Result<String, BefehlFehler> {
+    let zustand = Zustand::ohne_sperre(&lage.zustand).map_err(|f| marke_fehler(&f))?;
     zustand
-        .ersetzen(&aenderung.neu, || {
-            anhaengen_ordnermarke(&lage.protokoll, QUELLE, &zeile)
-                .map(|_| ())
-                .map_err(|_| Fehler::Intern)
-        })
+        .wechseln(
+            &lage.klassen,
+            marke::SPERR_FRIST,
+            |marken| {
+                aendern(befehl, ordner, &marken, &lage.klassen).map(|a| Some((a.neu, a.zeile)))
+            },
+            |mut zeile| {
+                zeile.zeit_ms = jetzt_ms().map_err(|_| Fehler::Intern)?;
+                anhaengen_ordnermarke(&lage.protokoll, QUELLE, &zeile)
+                    .map(|_| ())
+                    .map_err(|_| Fehler::Intern)
+            },
+            nach_datei,
+        )
         .map_err(|f| match f {
-            Schreibfehler::Datei => BefehlFehler::MarkeKaputt,
-            Schreibfehler::Zwischen | Schreibfehler::Umbenennen | Schreibfehler::Ordner => {
-                BefehlFehler::Protokoll
-            }
+            Wechselfehler::Marke(f) => marke_fehler(&f),
+            Wechselfehler::Abgelehnt(b) => b,
+            Wechselfehler::Schreiben(Schreibfehler::Datei) => BefehlFehler::MarkeKaputt,
+            Wechselfehler::Schreiben(
+                Schreibfehler::Zwischen | Schreibfehler::Umbenennen | Schreibfehler::Ordner,
+            ) => BefehlFehler::Protokoll,
         })?;
     Ok(String::new())
 }

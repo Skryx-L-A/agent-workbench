@@ -2,9 +2,10 @@
 //! written under an exclusive `flock` on `ordnermarken.lock`, written atomically (new file, `fsync`, `rename`). The
 //! mark only rises. Every fault of the file or the folder is `lauf.ordner_marke_kaputt` (fail closed).
 //!
-//! A start holds the lock only to read, decide and `rename`: it writes and `fsync`s the new file between two holds and
-//! renames it only while the list is still the one it decided on (see [`pruefen_und_markieren`]). An `fsync` can take
-//! seconds on a busy disk; under the lock it made a second start at the same moment give up after [`SPERR_FRIST`].
+//! A start and the command hold the lock only to read, decide and `rename` (the command also to append its line): they
+//! write and `fsync` the new file between two holds and rename it only while the list is still the one they decided on
+//! (see [`Zustand::wechseln`]). An `fsync` can take seconds on a busy disk; under the lock it made a second start or
+//! command at the same moment give up after [`SPERR_FRIST`].
 
 use std::fs::File;
 use std::io::{Read, Write};
@@ -436,43 +437,34 @@ fn weg(ordner: &OwnedFd, neu: &str) {
     let _ = rustix::fs::unlinkat(ordner, neu, rustix::fs::AtFlags::empty());
 }
 
-/// The write of step 5b: no step in between; every fault is `lauf.ordner_marke_kaputt`.
-fn datei_schreiben(ordner: &OwnedFd, marken: &[Marke]) -> Result<(), Fehler> {
-    datei_schreiben_mit(ordner, marken, || Ok(())).map_err(kaputt)
-}
-
-/// The state folder with the lock held: the command `werkbank-ordnermarke` reads and writes the list through it. The
-/// lock ends with the value.
+/// The state folder of the marks: the command `werkbank-ordnermarke` reads and changes the list through it. The value
+/// holds no lock; [`Zustand::wechseln`] takes it for each of its two holds.
 #[derive(Debug)]
 pub struct Zustand {
     ordner: OwnedFd,
-    _sperre: Option<OwnedFd>,
+}
+
+/// Why [`Zustand::wechseln`] stopped.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Wechselfehler<E> {
+    /// The lock, the folder or the list: `lauf.ordner_marke_kaputt` or `lauf.ordner_marke_kennung`; nothing changed.
+    Marke(Fehler),
+    /// `aendern` refused the change; nothing changed.
+    Abgelehnt(E),
+    /// The write of the list stopped there (see [`Schreibfehler`]).
+    Schreiben(Schreibfehler),
 }
 
 impl Zustand {
-    /// Opens the state folder (a real folder of the own user, mode 0700) and takes the exclusive lock, waiting at most
-    /// `frist`.
-    ///
-    /// # Errors
-    /// `lauf.ordner_marke_kaputt`.
-    pub fn sperren(zustand: &Path, frist: Duration) -> Result<Zustand, Fehler> {
-        let ordner = ordner_oeffnen(zustand)?;
-        let sperre = sperren(&ordner, frist)?;
-        Ok(Zustand {
-            ordner,
-            _sperre: Some(sperre),
-        })
-    }
-
-    /// Opens the state folder without the lock, for a command that only reads: the list is replaced as a whole by a
-    /// `rename`, so a read sees the old or the new list, never a mixture, and no file is made.
+    /// Opens the state folder (a real folder of the own user, mode 0700) without the lock: a command that only reads
+    /// needs none, because the list is replaced as a whole by a `rename`, so a read sees the old or the new list, never
+    /// a mixture, and no file is made.
     ///
     /// # Errors
     /// `lauf.ordner_marke_kaputt`.
     pub fn ohne_sperre(zustand: &Path) -> Result<Zustand, Fehler> {
         Ok(Zustand {
             ordner: ordner_oeffnen(zustand)?,
-            _sperre: None,
         })
     }
 
@@ -484,20 +476,79 @@ impl Zustand {
         datei_lesen(&self.ordner, klassen)
     }
 
-    /// Replaces the list: new file, `fsync`, `zwischen`, `rename` (see [`datei_schreiben_mit`]).
+    /// Changes the list in the order of [`datei_schreiben_mit`] (new file, `fsync`, `zwischen`, `rename`), without
+    /// holding the lock over the `fsync` of the new file.
+    ///
+    /// Under the first hold the list is read and `aendern` decides on it: `Ok(None)` changes nothing, `Ok(Some((neu,
+    /// wert)))` is the new list and the value `zwischen` gets. The new file is written and `fsync`ed after the lock is
+    /// given back, so a slow disk does not hold it. Under the second hold, when the list is still byte for byte the one
+    /// `aendern` read, `zwischen` runs and the new file is renamed over the list; the `fsync` of the folder follows
+    /// outside the lock. Did another start or command change the list in between, the new file is removed and
+    /// `aendern` decides again on the new list, this time with the whole write under the lock, so the second round
+    /// always ends. `zwischen` thus always runs under the lock on the list it is about and right before its `rename`.
+    ///
+    /// `nach_datei` runs after the new file is on disk and before the lock is taken again (the place of a slow
+    /// `fsync`; the tests wait there).
     ///
     /// # Errors
-    /// The [`Schreibfehler`] that stopped it; with `Datei`, `Zwischen` and `Umbenennen` the old list stands.
-    pub fn ersetzen(
+    /// The [`Wechselfehler`] that stopped it; only `Schreiben(Schreibfehler::Ordner)` leaves the list changed.
+    pub(crate) fn wechseln<T, E>(
         &self,
-        marken: &[Marke],
-        zwischen: impl FnOnce() -> Result<(), Fehler>,
-    ) -> Result<(), Schreibfehler> {
-        datei_schreiben_mit(&self.ordner, marken, zwischen)
+        klassen: &[String],
+        frist: Duration,
+        mut aendern: impl FnMut(Vec<Marke>) -> Result<Option<(Vec<Marke>, T)>, E>,
+        zwischen: impl FnOnce(T) -> Result<(), Fehler>,
+        nach_datei: impl FnOnce(),
+    ) -> Result<(), Wechselfehler<E>> {
+        use Wechselfehler::{Abgelehnt, Marke, Schreiben};
+        let ordner = &self.ordner;
+        let (gelesen, neu, wert) = {
+            let _sperre = sperren(ordner, frist).map_err(Marke)?;
+            let gelesen = datei_bytes(ordner).map_err(Marke)?;
+            let marken = marken_aus(gelesen.as_deref(), klassen).map_err(Marke)?;
+            match aendern(marken).map_err(Abgelehnt)? {
+                None => return Ok(()),
+                Some((neu, wert)) => (gelesen, neu, wert),
+            }
+        };
+        let name = neue_datei(ordner, &neu).map_err(Schreiben)?;
+        nach_datei();
+        let sperre = match sperren(ordner, frist) {
+            Ok(s) => s,
+            Err(f) => {
+                weg(ordner, &name);
+                return Err(Marke(f));
+            }
+        };
+        let jetzt = match datei_bytes(ordner) {
+            Ok(j) => j,
+            Err(f) => {
+                weg(ordner, &name);
+                return Err(Marke(f));
+            }
+        };
+        if jetzt != gelesen {
+            // another start or command changed the list in between: decide again on it, all under the lock
+            weg(ordner, &name);
+            let marken = marken_aus(jetzt.as_deref(), klassen).map_err(Marke)?;
+            return match aendern(marken).map_err(Abgelehnt)? {
+                None => Ok(()),
+                Some((neu, wert)) => {
+                    datei_schreiben_mit(ordner, &neu, || zwischen(wert)).map_err(Schreiben)
+                }
+            };
+        }
+        if zwischen(wert).is_err() {
+            weg(ordner, &name);
+            return Err(Schreiben(Schreibfehler::Zwischen));
+        }
+        umbenennen(ordner, &name).map_err(Schreiben)?;
+        drop(sperre);
+        rustix::fs::fsync(ordner.as_fd()).map_err(|_| Schreiben(Schreibfehler::Ordner))
     }
 }
 
-/// Step 5b: checks the marks for the request and writes the mark of the folder.
+/// Step 5b: checks the marks for the request and writes the mark of the folder, through [`Zustand::wechseln`].
 ///
 /// The check and the decision run under the lock. A new list is written and `fsync`ed after the lock is given back,
 /// so a slow disk does not hold the lock; then the lock is taken again and the new file is renamed over the list only
@@ -516,8 +567,7 @@ pub fn pruefen_und_markieren(
     pruefen_und_markieren_mit(zustand, anfrage, klassen, frist, || {})
 }
 
-/// [`pruefen_und_markieren`] with `nach_datei`, which runs after the new file is on disk and before the lock is taken
-/// again (the place of a slow `fsync`; the tests wait there).
+/// [`pruefen_und_markieren`] with `nach_datei` of [`Zustand::wechseln`].
 fn pruefen_und_markieren_mit(
     zustand: &Path,
     anfrage: Anfrage<'_>,
@@ -525,44 +575,21 @@ fn pruefen_und_markieren_mit(
     frist: Duration,
     nach_datei: impl FnOnce(),
 ) -> Result<(), Fehler> {
-    let ordner = ordner_oeffnen(zustand)?;
-    let (gelesen, neu) = {
-        let _sperre = sperren(&ordner, frist)?;
-        let gelesen = datei_bytes(&ordner)?;
-        let marken = marken_aus(gelesen.as_deref(), klassen)?;
-        match entscheiden(marken, anfrage, klassen, &mut zufall_kennung)? {
-            None => return Ok(()),
-            Some(neu) => (gelesen, neu),
-        }
-    };
-    let name = neue_datei(&ordner, &neu).map_err(kaputt)?;
-    nach_datei();
-    let sperre = match sperren(&ordner, frist) {
-        Ok(s) => s,
-        Err(f) => {
-            weg(&ordner, &name);
-            return Err(f);
-        }
-    };
-    let jetzt = match datei_bytes(&ordner) {
-        Ok(j) => j,
-        Err(f) => {
-            weg(&ordner, &name);
-            return Err(f);
-        }
-    };
-    if jetzt != gelesen {
-        // another start changed the list in between: decide again on it, all under the lock
-        weg(&ordner, &name);
-        let marken = marken_aus(jetzt.as_deref(), klassen)?;
-        if let Some(neu) = entscheiden(marken, anfrage, klassen, &mut zufall_kennung)? {
-            datei_schreiben(&ordner, &neu)?;
-        }
-        return Ok(());
-    }
-    umbenennen(&ordner, &name).map_err(kaputt)?;
-    drop(sperre);
-    rustix::fs::fsync(ordner.as_fd()).map_err(kaputt)
+    Zustand::ohne_sperre(zustand)?
+        .wechseln(
+            klassen,
+            frist,
+            |marken| {
+                entscheiden(marken, anfrage, klassen, &mut zufall_kennung)
+                    .map(|neu| neu.map(|n| (n, ())))
+            },
+            |()| Ok(()),
+            nach_datei,
+        )
+        .map_err(|f| match f {
+            Wechselfehler::Marke(f) | Wechselfehler::Abgelehnt(f) => f,
+            Wechselfehler::Schreiben(_) => Fehler::OrdnerMarkeKaputt,
+        })
 }
 
 #[cfg(test)]

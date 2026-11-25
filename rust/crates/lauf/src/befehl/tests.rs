@@ -489,6 +489,64 @@ fn two_commands_at_the_same_time_do_not_overtake_each_other() {
     assert_eq!(roh.lines().count(), 2);
 }
 
+/// The measured fault of the command path: the `fsync` of the new file ran under the lock, and a second command on a
+/// busy disk gave up after the time limit with `b: MarkeKaputt` (measured under load). Here the first command waits
+/// after its new file is on disk until the second one has ended: the second gets the lock, the first decides again on
+/// the changed list, both entries are gone and each command wrote exactly its one line, the slow one last.
+#[test]
+fn a_slow_command_does_not_hold_the_lock_for_a_second_command() {
+    let w = Welt::neu("kundendaten", None);
+    let zweite = w.wurzel.join("zweit");
+    std::fs::create_dir_all(&zweite).expect("dir");
+    let z = zweite.to_string_lossy().into_owned();
+    let k2 = "e".repeat(32);
+    w.marken_datei(&format!(
+        "{{\"fassung\":1,\"marken\":[{{\"ordner\":\"{}\",\"kennung\":\"{KENNUNG}\",\"kunde\":null,\"klasse_hoch\":\"kundendaten\"}},{{\"ordner\":\"{z}\",\"kennung\":\"{k2}\",\"kunde\":null,\"klasse_hoch\":\"kundendaten\"}}]}}\n",
+        w.projekt
+    ));
+    let (geschrieben_tx, geschrieben) = std::sync::mpsc::channel();
+    let (los, los_rx) = std::sync::mpsc::channel::<()>();
+    let w = &w;
+    let (erster, zweiter) = std::thread::scope(|s| {
+        let erster = s.spawn(move || {
+            ausfuehren_mit(
+                &Befehl::Loesen(PathBuf::from(&w.projekt)),
+                &w.lage,
+                &w.projekt,
+                || {
+                    geschrieben_tx.send(()).expect("send");
+                    los_rx.recv().expect("go");
+                },
+            )
+        });
+        geschrieben.recv().expect("the first wrote its new file");
+        let zweiter = w.laufen(&Befehl::Loesen(zweite.clone()));
+        los.send(()).expect("go");
+        (erster.join().expect("first"), zweiter)
+    });
+    assert_eq!(zweiter, Ok(String::new()), "the second got the lock");
+    assert_eq!(erster, Ok(String::new()));
+    assert!(w.marken_text().contains("\"marken\":[]"), "both are gone");
+    let roh = w.protokoll_roh();
+    let marken: Vec<String> = roh
+        .lines()
+        .map(|z| {
+            let v: serde_json::Value = serde_json::from_str(z).expect("json");
+            v["marke"].as_str().expect("marke").to_owned()
+        })
+        .collect();
+    assert_eq!(
+        marken,
+        [k2, KENNUNG.to_owned()],
+        "one line each, in the order of the renames"
+    );
+    assert_eq!(
+        w.dateien_im_zustand(),
+        ["ordnermarken.json", "ordnermarken.lock"],
+        "no new file is left"
+    );
+}
+
 #[test]
 fn the_text_of_zeigen_names_no_path() {
     let m = Marke {

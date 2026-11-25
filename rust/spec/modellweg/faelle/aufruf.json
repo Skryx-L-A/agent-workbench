@@ -62,6 +62,10 @@
    78,
    "Zielliste ungueltig"
   ],
+  "mw.ziel_halter_name": [
+   78,
+   "Halterziel nicht der Host"
+  ],
   "mw.ca_ungueltig": [
    78,
    "CA-Datei ungueltig"

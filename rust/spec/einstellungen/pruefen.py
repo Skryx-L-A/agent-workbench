@@ -77,8 +77,23 @@ def pfad_trifft(muster, pfad):
     return muster == pfad
 
 
+# Gemessene Pfade am Wert von endpoints.api (Copilot CLI 1.0.88): GET /models (Vertrag 8), GET /responses (zweiter
+# angemeldeter Start, WebSocket), die fünf POST-Pfade (Messung zum Token der CLI vom 20.11.2026, Vertrag 2).
+GEMESSEN_MODELL_HOST = [("GET", "/models"), ("GET", "/responses"), ("POST", "/auto"), ("POST", "/models/session"),
+                        ("POST", "/models/session/intent"), ("POST", "/chat/completions"), ("POST", "/agents/sessions")]
+# Pfade außerhalb der Liste (Gegenprobe zu N1 und F1): das abgeleitete Token an api.github.com, ein beliebiger Pfad und ein
+# Unterpfad am Modell-Host, eine falsche Methode.
+AUSSERHALB = [("api.github.com", "GET", "/copilot_internal/v2/token"),
+              ("api.individual.githubcopilot.com", "GET", "/copilot_internal/v2/token"),
+              ("api.individual.githubcopilot.com", "POST", "/v1/fremd"),
+              ("api.individual.githubcopilot.com", "GET", "/models/x"),
+              ("api.individual.githubcopilot.com", "POST", "/models"),
+              ("api.individual.githubcopilot.com", "GET", "/chat/completions")]
+
+
 def vorfuehrung_pruefen(pruefer, fehler):
-    """Die Vorführdatei besteht das Schema und lässt GET /responses (WebSocket-Upgrade, gemessen im echten Lauf) zu."""
+    """Die Vorführdatei besteht das Schema, lässt die gemessenen Pfade am Modell-Host zu (auch GET /responses, das
+    WebSocket-Upgrade) und hat an Zielen mit Schlüssel nur genaue Pfade (N1); Pfade außerhalb der Liste sind abgelehnt."""
     obj = json.loads((HIER / "vorfuehrung.json").read_text(encoding="utf-8"))
     if pruefer is not None and not pruefer.is_valid(obj):
         fehler.append(f"vorfuehrung.json: Schema lehnt ab: {next(pruefer.iter_errors(obj)).message}")
@@ -86,6 +101,27 @@ def vorfuehrung_pruefen(pruefer, fehler):
              if z["host"] == "api.individual.githubcopilot.com"]
     if not any(q["methode"] == "GET" and pfad_trifft(q["pfad"], "/responses") for z in ziele for q in z["pfade"]):
         fehler.append("vorfuehrung.json: GET /responses an api.individual.githubcopilot.com nicht zugelassen")
+    # N1 (Entscheid der Leitung, 25.11.2026): an einem Ziel mit Schlüssel nur genaue Pfade, kein Teilbaum; ein Pfad, der
+    # ein Token ausgibt, steht nie in einer Regel (Halter-Vertrag, Abschnitt 4)
+    gebunden = [z for r in obj["routen"] for z in r["netzziele"] if z.get("schluessel")]
+    for z in gebunden:
+        for q in z["pfade"]:
+            if q["pfad"].endswith("*"):
+                fehler.append(f"vorfuehrung.json: Teilbaum {q['methode']} {q['pfad']} an {z['host']} mit Schlüssel")
+
+    def zugelassen(host, methode, pfad):
+        return any(q["methode"] == methode and pfad_trifft(q["pfad"], pfad)
+                   for z in gebunden if z["host"] == host for q in z["pfade"])
+
+    modell = "api.individual.githubcopilot.com"
+    # Fall: die gemessenen Pfade gehen durch
+    for methode, pfad in GEMESSEN_MODELL_HOST:
+        if not zugelassen(modell, methode, pfad):
+            fehler.append(f"vorfuehrung.json: gemessener Pfad {methode} {pfad} an {modell} nicht zugelassen")
+    # Gegenprobe: ein Pfad außerhalb der Liste ist abgelehnt, auch ein Unterpfad eines genauen Pfads
+    for host, methode, pfad in AUSSERHALB:
+        if zugelassen(host, methode, pfad):
+            fehler.append(f"vorfuehrung.json: {methode} {pfad} an {host} zugelassen, steht aber in keiner Regel")
 
 
 def main():

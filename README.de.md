@@ -96,11 +96,11 @@ die cargo-Befehle unten mit der Toolchain aus `rust/rust-toolchain.toml` aus. Ei
 | `./gates.sh test` | `cargo test --workspace --all-targets --all-features --locked --no-fail-fast` |
 | `./gates.sh licenses` | `cargo deny --locked --all-features check licenses bans sources` und eine CycloneDX-SBOM je Crate |
 | `./gates.sh notices` | jedes Stück Code aus einem anderen Projekt trägt seinen Hinweis und wird mit ihm ausgeliefert |
-| `./gates.sh mutants` | `cargo mutants --workspace`: keine Mutante überlebt |
+| `./gates.sh mutants` | `cargo mutants` je Crate einzeln: in den Sicherheits-Crates (`MUTANTS_PFLICHT`) überlebt keine Mutante; die übrigen Crates melden ihre |
 
 Die fortlaufende Integration führt die ersten fünf Tore unter Linux und macOS über das Skript aus
 und fmt, clippy, test und cargo-deny mit denselben Befehlen unter Windows. Alle sind Pflicht. Das
-Mutationstor dauert Stunden und läuft, bevor ein Stand veröffentlicht wird.
+Mutationstor läuft außerhalb der CI; [CONTRIBUTING.md](CONTRIBUTING.md) sagt, wie und wann.
 
 ## Mitmachen
 

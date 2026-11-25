@@ -28,6 +28,17 @@ setzt `PR_SET_DUMPABLE 0`; danach liest der Halter `/proc/<pid>/exe` nicht, und 
 die Abschnitte 2.1, 2.3, die Tabelle am Ende von 2.4, 9, 11 (L3, neu L10), 12, 13 und die OPEN 3, 18 und 21; neu sind Abschnitt 2.3a
 und die Fälle der Form `konfig`.
 
+**Nachtrag Socket, vorhanden nach Ziel und Kette (25.11.2026, Entscheide des Vertragsinhabers, 25.11.2026):** Unter Linux liegt
+der Socket immer unter `/run/user/<uid>`, nie unter `$XDG_RUNTIME_DIR` (Abschnitt 2.3, Fund F17). `schluessel.vorhanden` nimmt
+genau eines von `name` oder `ziel`; nach `ziel` fragt nur die Rolle `bruecke` (Abschnitte 2.1, 4 und 7). `kopf` ist ein Objekt;
+der Vertrag nennt das als Zusage (Abschnitt 4). Ein Treffer der Leck-Sperre schreibt die Kettenzeile `halter.leck_gesperrt`
+(Abschnitt 9, Fund F4). Abschnitt 13 nennt 31 verbotene Kopfnamen wie Abschnitt 4. Es ändern sich die Abschnitte 2.1, 2.3, 4,
+7, 9, 10, 12, 13 und OPEN 2; neu sind neun Fälle zu `schluessel.vorhanden`.
+
+**Nachtrag N1 (25.11.2026, Entscheid der Leitung nach der zweiten Sicherheitsprüfung):** Am Modell-Host stehen nur genaue
+Pfade (Abschnitt 4); jeder abgelehnte Pfad schreibt eine Kettenzeile `halter.pfad_verboten` mit Methode und Pfad (Abschnitt 9).
+Es ändern sich die Abschnitte 4, 9, 12, 13 und OPEN 2; neu sind vier Fälle.
+
 Der Vertrag steht vor dem Code. Dieser Stand enthält die sichtbaren Fälle. Verdeckte Fälle und Mutanten folgen mit dem
 Bau. Was nur auf einem System prüfbar ist, steht als Außentest in Abschnitt 11: W für die Windows-VM, L für den Linux-Baurechner, M für
 den Mac.
@@ -132,6 +143,9 @@ Schein und für `setzen` und `loeschen` der Menschen-Nachweis.
 
 alt: `bruecke` durfte `schluessel.vorhanden` und `modell.aufruf`. neu: dazu `modell.strom` mit `strom.teil` und
 `strom.ende` sowie `modell.suche` (Nachtrag B05).
+
+`schluessel.vorhanden` mit dem Feld `ziel` ist nur der Rolle `bruecke` erlaubt; `hub` und `oberflaeche` fragen weiter mit
+`name`. Eine andere Rolle mit `ziel` bekommt `halter.rolle` (Stufe 7, Nachtrag Socket, vorhanden nach Ziel und Kette).
 
 Ein Geheimnis im Bereich `person` trägt das Konto und das Pseudonym der Person, die es gesetzt hat. `mcp.aufruf` sucht es
 nach Name und `person` (Stufe 16). Ein Aufrufer erreicht nur Geheimnisse seines eigenen Kontos (Stufe 17). Ausnahme ist ein
@@ -292,7 +306,14 @@ ohne Nachweis setzt nichts), Abschnitt 11.
   sie sperren, auch wenn ein Pfad einer Sitzung (Projektwurzel, Programmordner) darüber liegt (Abschnitt 10). Gegenüber dem Stand vor B05 (Datei 0600
   `/var/lib/werkbank/<nutzer>/copilot.schluessel`, gelesen von drei Programmen) gewinnt Fassung 1 die Trennung vom
   Modellweg, nicht den Schutz gegen Prozesse der Person. Der Prüfbefehl des Halters nennt diesen Zustand wie in 2.1.
-- **Socket (über `peerkanal`):** Unix-Socket (Stream) `$XDG_RUNTIME_DIR/wb-halter/halter.sock`, Ordner 0700, Socket 0600. Liegt am Pfad schon
+- **Socket (über `peerkanal`):** Unix-Socket (Stream) `/run/user/<uid>/wb-halter/halter.sock` (`<uid>` die eigene, aus `getuid`),
+  Ordner 0700, Socket 0600. Der Pfad ist fest: Der Halter liest `XDG_RUNTIME_DIR` nicht, und eine gesetzte Umgebung verlegt den
+  Socket nie (Nachtrag Socket, vorhanden nach Ziel und Kette; Fund F17). alt: `$XDG_RUNTIME_DIR/wb-halter/halter.sock`, ohne
+  absoluten Wert `/run/user/<uid>`. Grund: Eine fremd gesetzte Umgebung der Einheit oder des Starts lenkte sonst den Halter an
+  einen Ort, den der Client nicht prüft. Unter der Benutzereinheit ist `XDG_RUNTIME_DIR` ohnehin `/run/user/<uid>` (hergeleitet aus
+  systemd, `pam_systemd`); die Einheit braucht darum keine Änderung. Nur der Prüfbau kennt die Naht `WB_HALTER_LAUFZEIT` hinter
+  `WB_TESTUMGEBUNG=1`. Test im Bau: `start::tests::xdg_runtime_dir_verlegt_den_socket_nie` (das Testprogramm startet sich mit
+  `XDG_RUNTIME_DIR` auf einem anderen Ordner und erwartet `/run/user/<uid>`). Liegt am Pfad schon
   etwas, endet der Halter mit Exit 74 und verändert nichts. **Ausnahme toter Socket (Fund F2, Projektentscheid, 25.11.2026):** Ist der
   Eintrag ein Socket der eigenen uid im eigenen Ordner 0700 und weist `connect` ihn mit `ECONNREFUSED` ab (Rest eines Halters, den
   `SIGKILL` oder der OOM-Killer beendet hat), entfernt der Halter ihn mit `unlinkat` relativ zum Ordner, nur solange Gerät und Inode
@@ -496,11 +517,33 @@ die gehaltenen Werte, nicht ein Token, das erst das Ziel erzeugt. alt: `GET /cop
 `s15-abgeleitetes-token` (`GET /copilot_internal/v2/token`, `halter.pfad_verboten`), Gegenproben
 `a-modell-genauer-pfad-user` und `a-modell-genauer-pfad-mcp-registry` (gültig).
 
+**Modell-Host nur mit genauen Pfaden (Nachtrag N1, Entscheid der Leitung, 25.11.2026).** Dieselbe Zusage gilt für den Wert von
+`endpoints.api` (`api.individual.githubcopilot.com`): Dort stehen nur die gemessenen genauen Pfade `GET /models`, `GET /responses`,
+`POST /auto`, `POST /models/session`, `POST /models/session/intent`, `POST /chat/completions` und `POST /agents/sessions`
+(Liste mit Herkunft im Einstellungsvertrag, `rust/spec/einstellungen/README.md`, Nachtrag N1). alt: `GET /*` und `POST /*`; ein
+Teilbaum kann die Zusage nicht halten, weil die Endpunkte des Hosts nicht gemessen sind. Jeden anderen Pfad lehnt der Halter mit
+`halter.pfad_verboten` ab (Stufe 15) und schreibt eine Kettenzeile mit Methode und Pfad, nie Inhalt (Abschnitt 9). **Die Leitung
+entscheidet beim ersten Start jede fehlende Regel einzeln anhand der Kette.** Fälle: `s15-modell-host-ausserhalb`
+(`POST /v1/fremd`, `halter.pfad_verboten`), `s15-modell-host-unterpfad` (`GET /models/x`, `halter.pfad_verboten`), Gegenproben
+`a-modell-host-chat` (`POST /chat/completions`) und `a-modell-host-modelle` (`GET /models`), beide gültig.
+
 ### `schluessel.vorhanden`
 
 | Feld | Typ | Grenzen |
 |---|---|---|
 | `name` | Text | Name eines Geheimnisses |
+| `ziel` | Kennung | ein Ziel aus `halter.json`; nur Rolle `bruecke` |
+
+Die Anfrage trägt **genau eines** von `name` und `ziel` (Nachtrag Socket, vorhanden nach Ziel und Kette; Entscheid des
+Vertragsinhabers, 25.11.2026). Beide Felder zugleich ergeben `halter.schluessel_unbekannt` (Stufe 8), keines von beiden
+`halter.schluessel_fehlt` (Stufe 9). Mit `ziel` löst der Halter den Namen des Geheimnisses selbst über `schluessel` des Ziels in
+`halter.json` auf; die Brücke kennt den Namen dann nicht. Ein Ziel, das nicht in `halter.json` steht, ergibt `halter.ziel_unbekannt`
+(Stufe 14), nicht `false`: So bleibt ein Fehler der Konfiguration vom fehlenden Schlüssel unterscheidbar. Ein bekanntes Ziel ohne
+Geheimnis ergibt `{"vorhanden": false}`. `ziel` darf nur die Rolle `bruecke` senden; jede andere Rolle bekommt `halter.rolle`
+(Stufe 7). alt: nur `name`. Fälle: `a-vorhanden-ziel-bruecke`, `a-vorhanden-ziel-anmeldung`, `a-vorhanden-ziel-ohne-geheimnis`
+(gültig), Gegenproben `s07-hub-vorhanden-ziel` und `s07-oberflaeche-vorhanden-ziel` (`halter.rolle`), `s08-vorhanden-name-und-ziel`,
+`s09-vorhanden-ohne-name-und-ziel`, `s11-vorhanden-ziel-gross` und `s14-vorhanden-ziel-unbekannt`. Dass die Antwort für ein Ziel ohne
+Geheimnis `false` ist, prüft der Bau (`tests/dienst.rs`), weil das Fallformat keine Antwort einer Anfrage kennt.
 
 Antwort: `vorhanden` (`true` oder `false`). Im Bereich `person` zählt nur ein Geheimnis des Kontos des Aufrufers; für
 einen Vertreter ist die Antwort im Bereich `person` immer `false`. Die Antwort
@@ -516,6 +559,12 @@ nennt keinen Wert, keine Länge, keinen Zeitpunkt und keinen Hash.
 | `abfrage` | Text oder `null` | der Abfrageteil ohne das `?`: `^[A-Za-z0-9._~!$&'()*+,;=:@/?%-]{1,1024}$`, nie `#`; `null` ohne Abfrageteil |
 | `kopf` | Objekt | höchstens 64 Einträge, Name `^[a-z0-9-]{1,64}$`, Wert druckbares ASCII ohne CR und LF, höchstens 8192 Zeichen |
 | `koerper_b64` | Text | Base64 mit Auffüllung, höchstens 32156332 Zeichen (Rohkörper höchstens 24117248 Byte); leer erlaubt |
+
+- **Zusage zu `kopf` (Nachtrag Socket, vorhanden nach Ziel und Kette; Entscheid des Vertragsinhabers, 25.11.2026).** `kopf` ist ein
+  JSON-Objekt, auch bei `modell.strom` und in der Zeile `beginn`. Daraus folgt: Die Reihenfolge der Köpfe geht nicht über den
+  Halter, und ein doppelter Name ist nicht darstellbar (ein doppelter Schlüssel ist schon `halter.json_ungueltig`, Stufe 3). Nicht
+  gemessen ist, dass die Copilot CLI einen Kopfnamen doppelt sendet. Das Verhalten ändert sich nicht; der Satz macht die Grenze
+  für Vertrag 8 sichtbar.
 
 - **Abfrageteil (Nachtrag B05).** alt: Ein Abfrageteil war nicht vorgesehen. neu: eigenes Pflichtfeld `abfrage`. Der Halter
   sendet `<pfad>?<abfrage>`. Ein `?` im Feld `pfad` bleibt `halter.wert_form` (Fall `s11-pfad-query` unverändert). Grund für
@@ -718,7 +767,7 @@ Brücke reichen nur den Code weiter.
 | 4 | `halter.nicht_kanonisch` | Bytes sind nicht RFC 8785 | `nicht kanonisch` |
 | 5 | `halter.fassung_unbekannt` | `fassung` fehlt oder ist nicht die Ganzzahl `1` | `Fassung unbekannt` |
 | 6 | `halter.op_unbekannt` | `op` fehlt, ist kein Text oder nicht in der Tabelle | `Op unbekannt` |
-| 7 | `halter.rolle` | Op nicht erlaubt für die Rolle | `Op fuer Rolle nicht erlaubt` |
+| 7 | `halter.rolle` | Op nicht erlaubt für die Rolle, oder `schluessel.vorhanden` mit `ziel` ohne Rolle `bruecke` | `Op fuer Rolle nicht erlaubt` |
 | 7a | `halter.strom` | `strom.teil` oder `strom.ende` ohne offenen Strom dieser `id`, oder eine andere Op bei offenem Strom (Nachtrag B05) | `kein passender Strom` |
 | 8 | `halter.schluessel_unbekannt` | ein Schlüssel außerhalb der Form, auch im Schein | `unbekannter Schluessel` |
 | 9 | `halter.schluessel_fehlt` | ein Pflichtschlüssel fehlt | `Pflichtfeld fehlt` |
@@ -726,7 +775,7 @@ Brücke reichen nur den Code weiter.
 | 11 | `halter.wert_form` | Muster, Länge, Aufzählung oder Base64 verletzt | `Wert hat falsche Form` |
 | 12 | `halter.kopf_verboten` | verbotener Kopfname in `kopf` | `Kopf nicht erlaubt` |
 | 13 | `halter.bereich` | `setzen` oder `loeschen` für einen Namen im Bereich `maschine` | `Bereich nicht erlaubt` |
-| 14 | `halter.ziel_unbekannt` | `ziel` oder `server` nicht in `halter.json` | `Ziel unbekannt` |
+| 14 | `halter.ziel_unbekannt` | `ziel` oder `server` nicht in `halter.json` (auch `ziel` bei `schluessel.vorhanden`) | `Ziel unbekannt` |
 | 15 | `halter.pfad_verboten` | `pfad` unsicher (Abschnitt 4, Pfadprüfung), oder `methode` und `pfad` passen zu keiner Regel des Ziels | `Pfad nicht erlaubt` |
 | 16 | `halter.kein_schluessel` | kein Geheimnis für Ziel oder Server (im Bereich `person`: keines mit diesem Namen und dieser `person`; bei `anmeldung.*` keines mit diesem Namen und dem Konto des Aufrufers) | `kein Schluessel hinterlegt` |
 | 17 | `halter.person` | das Geheimnis gehört einem anderen Konto als dem des Aufrufers, und der Aufrufer ist kein Vertreter | `Person passt nicht` |
@@ -797,13 +846,34 @@ fehlt ein Grund in der Liste (OPEN 2). Der `digest` ist der selbst gerechnete. K
 und `mcp.aufruf`) schreibt ins Journal (stderr der Einheit, unter Windows das Ereignisprotokoll) genau die feste Zeile
 `halter.leck_gesperrt: Antwort enthielt einen Schluessel`, ohne Wert, Pfad, Kopf, Körper, `id`, `lauf` oder Argument. Grund: Ein
 Treffer ist ein Versuch, ein Geheimnis hinauszuziehen; ohne Spur bliebe er unbemerkt. alt: kein Journal und keine Kette.
-Der Grund der Kettenzeile ist `leck` (Stufe 30). Die Kettenzeile selbst schreibt der Halter erst, wenn Vertrag 5 ihre Art
-in sein Register aufnimmt; heute weist `formate` eine Zeile unbekannter Art in Fassung 2 ab. Vorschlag der Zeile (eigene Art,
-weil ein Treffer bei `modell.*` keinen Schein, keinen `digest` und keinen `lauf` hat; `ziel` ist der Name des Ziels oder
-Servers aus `halter.json`):
+Der Grund der Kettenzeile ist `leck` (Stufe 30). **Kettenzeile (Nachtrag Socket, vorhanden nach Ziel und Kette; Fund F4):** Jeder
+Treffer schreibt zusätzlich zur Journalzeile genau eine Zeile `halter.leck_gesperrt` in die Kette des Halters. Vertrag 5 führt die
+Art im Register (`formate`, `REGISTER_FREMD`, Gruppe „in anderen Verträgen festgelegt“); ihre Form steht nur hier. Felder genau:
+`aktionsname`, `ergebnis` (`abgelehnt`), `fassung` (2), `grund` (`leck`), `op` (`modell.aufruf`, `modell.strom` oder
+`mcp.aufruf`), `vorher`, `zeit` und `ziel` (der Name des Ziels oder Servers aus `halter.json`). Nie der Wert, nie ein Teil des
+Treffers, keine Form, kein Pfad, kein Kopf, kein Körper, kein `id`, kein `lauf`. Kann der Halter die Kette nicht fortschreiben,
+gilt die Regel aus Abschnitt 2.3 (eine feste Journalzeile je Lauf, die Antwort bleibt `halter.leck_gesperrt`). alt: „Die
+Kettenzeile selbst schreibt der Halter erst, wenn Vertrag 5 ihre Art in sein Register aufnimmt.“ Test im Bau:
+`kette::leck_tests::leck_schreibt_die_kettenzeile_mit_den_feldern_des_vertrags` liest die Zeile und prüft die Kette mit
+`formate::kette::pruefe_quelle` (Gegenprobe: eine Art mit Tippfehler bricht die Kette). Form der Zeile (eigene Art, weil ein
+Treffer bei `modell.*` keinen Schein, keinen `digest` und keinen `lauf` hat):
 
 ```
 {"aktionsname":"halter.leck_gesperrt","ergebnis":"abgelehnt","fassung":2,"grund":"leck","op":"modell.aufruf","vorher":"<64 hex>","zeit":"2026-11-20T13:00:00.000Z","ziel":"copilot"}
+```
+
+**Abgelehnter Pfad (Nachtrag N1, 25.11.2026).** Jede Ablehnung in Stufe 15 (`halter.pfad_verboten`) schreibt eine Zeile
+`halter.pfad_verboten` in die Kette. Felder genau: `aktionsname`, `ergebnis` (`abgelehnt`), `fassung` (2), `grund` (`pfad`),
+`methode` (`GET` oder `POST`, bei `modell.strom` `GET`), `op` (`modell.aufruf` oder `modell.strom`), `pfad` (das Feld `pfad`
+der Anfrage, ohne Abfrageteil), `vorher`, `zeit` und `ziel`. Nie `abfrage`, ein Kopf, der Körper, `id` oder ein Wert. Grund: Die
+Leitung entscheidet beim ersten Start jede fehlende Regel anhand der Kette (Abschnitt 4). Vertrag 5 führt die Art im Register
+(`formate`, `REGISTER_FREMD`); die Zeile kommt in die Kette ohne die feste Journalzeile `halter.kette: Kette nicht
+fortgeschrieben`, die nur ein Fehler der Kette auslöst (Abschnitt 2.3). Test im Bau: `kette::tests::die_zeile_eines_abgelehnten_pfads_traegt_methode_und_pfad`,
+`tests/dienst.rs` `n1_pfad_ausserhalb_der_regeln_geht_in_die_kette` und die Fallprüfung `tests/faelle.rs` (jede Ablehnung in Stufe 15
+trägt Methode und Pfad, keine andere).
+
+```
+{"aktionsname":"halter.pfad_verboten","ergebnis":"abgelehnt","fassung":2,"grund":"pfad","methode":"POST","op":"modell.aufruf","pfad":"/v1/fremd","vorher":"<64 hex>","zeit":"2026-11-20T13:00:00.000Z","ziel":"copilot"}
 ```
 
 Ort der Kette: unter Linux in Schritt I `<heim>/.local/state/agent-workbench/halter/protokoll/` (Abschnitt 2.3, Nachtrag Rolle aus
@@ -816,8 +886,8 @@ Der Halter baut keinen Einschluss. Er verlässt sich auf diese Eigenschaften und
 **Windows (Plattformschicht; A03, A117):** Der Agent läuft im AppContainer mit Job. Die Pipe hat keine ACE für
 AppContainer (gemessen, Frage 2: Fehler 5). Kein Prozess des Agenten läuft ohne Container.
 
-**Linux (bwrap):** Weder der Socket-Ordner noch die Ablage ist in den Einschluss eingebunden; `$XDG_RUNTIME_DIR`
-und `<heim>/.local/state/agent-workbench/halter` der Person sind im Einschluss nicht sichtbar. Die Ablage steht in der Verbotsliste
+**Linux (bwrap):** Weder der Socket-Ordner noch die Ablage ist in den Einschluss eingebunden; `/run/user/<uid>`
+(alt: `$XDG_RUNTIME_DIR`) und `<heim>/.local/state/agent-workbench/halter` der Person sind im Einschluss nicht sichtbar. Die Ablage steht in der Verbotsliste
 des Einschlusses wie ein Anmeldespeicher: Kein Pfad einer Sitzung darf sie decken, in ihr liegen oder sie berühren (alt:
 „`$XDG_STATE_HOME` der Person ist im Einschluss nicht sichtbar“; eine Verbotszeile war nicht verlangt). Der Einschluss hat eine eigene PID-Sicht, also kein
 `/proc` der Halterprozesse. Kein setgid wirkt im Einschluss: `bwrap` setzt `no_new_privs` und bindet jeden Pfad mit
@@ -905,6 +975,12 @@ Erst mit dem Bau prüfbar: welcher Code innerhalb der Stufen 8 bis 12 fällt (da
 31 mit 28a, der Ablauf eines Stroms (beide Richtungen, Rahmen, die Rahmenregeln, Zurückgehaltenes am Ende, Leck-Sperre; Außentests L6, L8, L9), alles an Pipe, Socket und Schlüsselbund (Abschnitt 11) und Gleitkommazahlen in `argumente` (RFC 8785 für Zahlen prüft dann `formate`).
 Die Schlüssel der Scheine in den Fällen entstehen in `bau-faelle.py` aus zwei festen Beispielsamen; sie sind Testschlüssel.
 
+**Fälle zu `schluessel.vorhanden` nach `ziel` (Nachtrag Socket, vorhanden nach Ziel und Kette).** Neun neue Anfragen (drei gültig,
+sechs mit Code, Abschnitt 4); keiner der bestehenden Fälle und keine Erwartung ändert sich. `pruefen.py` prüft Stufe 7 (`ziel` nur
+für `bruecke`) und Stufe 14 (`ziel` in `halter.json`); welcher Code bei beiden oder keinem Feld fällt (Stufe 8 oder 9), prüft der
+Bau, weil das Schema die Stufen nicht trennt. Dazu kommen vier Fälle des Nachtrags N1 (zwei gültig, zwei mit
+`halter.pfad_verboten`, Abschnitt 4). Heute sind es 188 Fälle.
+
 **Fälle der Form `konfig` (Nachtrag Rolle aus der Gruppe).** 29 Fälle `k-*` (7 gültig, 22 mit `halter.konfig`) prüfen
 `halter.json` mit der `umgebung` des Starts: `uid` des Halters und die Texte von `/etc/group` und `/etc/passwd`. `pruefen.py` prüft
 strenges Lesen, Größe, `$defs/konfig`, verschiedene Gruppen je Rolle, die eigene uid in `konten` und die fünf Regeln der
@@ -921,9 +997,9 @@ python3 -I rust/spec/halter/bau-faelle.py              # Fälle neu erzeugen
 | Bauteil | liest oder liefert | Annahme dieses Vertrags |
 |---|---|---|
 | Stelle | liefert Schein (`daten`, `signatur`), `kid`, öffentlichen Schlüssel, Menschen-Nachweis; nimmt `mcp.ausgefuehrt` an | Schein mit genau den Feldern aus Abschnitt 6, `art` `mcp-schein`, Ed25519 über RFC 8785 von `daten`, Zeiten in ms, Frist höchstens 300 s |
-| Formate, Vertrag 5 | Quelle `halter` steht schon in `abschnitt()`; die Zeile `mcp.schein_abgelehnt` fehlt | Vorschlag Abschnitt 9; neuer Grund für Stufe 18 und Leck (OPEN 2) |
+| Formate, Vertrag 5 | Quelle `halter` steht schon in `abschnitt()`; die Zeile `mcp.schein_abgelehnt` fehlt; die Art `halter.leck_gesperrt` steht im Register (`REGISTER_FREMD`, Nachtrag Socket, vorhanden nach Ziel und Kette); ebenso `halter.pfad_verboten` (Nachtrag N1) | Vorschlag Abschnitt 9; neuer Grund für Stufe 18 (OPEN 2) |
 | `peerkanal` | liefert Endpunkt, Vorbelegungssperre, Peer-Wert und Server-Prüfung auf allen drei Systemen | Peer-Wert mit den Feldern aus Abschnitt 2.1 (`sid`, `uid`, `gid`, `appcontainer_sid`, `eingeschraenkt`, `programm`, `signatur`, `sandbox`); unter Linux ist `gid` die effektive gid aus `SO_PEERCRED` und die Quelle der Rolle (Nachtrag Rolle aus der Gruppe; alt: `programm`); Server-Prüfung unter Windows am Besitzer der Pipe-Instanz (im Stand vom 20.11.2026 so festgelegt); unter Linux erkennt der Client den Halter nur an Socket-Ordner und uid |
-| Plattformschicht, Modellweg | liefert die Brücke (A121) und unter Windows AppContainer und Job; Vertrag 8 Abschnitt 5 (Halterweg, Nachtrag B05) | Brücke läuft unter Windows als Dienst mit eigener Dienst-SID, die in `halter.json` steht; unter Linux ist sie das Rollenprogramm `/usr/lib/werkbank/werkbank-modellweg`, ein eigener Prozess neben dem Halter (alt: „unter Linux sind Brücke und Halter ein Prozess“), gestartet über dieses setgid-Programm mit der Gruppe `wb-bruecke` und im sicheren Modus (Abschnitt 2.3; der Satz dazu gehört in Vertrag 8); unter macOS ist sie ein signiertes Rollenprogramm. Sie kennt den Token nie, sendet nie einen der verbotenen Kopfnamen an den Halter (die Liste der verbotenen Kopfnamen in Abschnitt 4, 20 Namen, darunter `authorization`, `cookie`, `x-api-key`, `host`, `content-length`, `accept-encoding` und `sec-websocket-extensions`; die Brücke entfernt sie vorher, wie Vertrag 8, Abschnitt 13.2, Punkt 1), trennt den Abfrageteil in `abfrage`, sendet Körper höchstens 24117248 Byte und bildet die Codes des Halters auf eigene ab |
+| Plattformschicht, Modellweg | liefert die Brücke (A121) und unter Windows AppContainer und Job; Vertrag 8 Abschnitt 5 (Halterweg, Nachtrag B05) | Brücke fragt unter Linux `schluessel.vorhanden` nach `ziel` und erreicht den Halter am festen Socket `/run/user/<uid>/wb-halter/halter.sock` (nie über `$XDG_RUNTIME_DIR`; Abschnitt 2.3); Brücke läuft unter Windows als Dienst mit eigener Dienst-SID, die in `halter.json` steht; unter Linux ist sie das Rollenprogramm `/usr/lib/werkbank/werkbank-modellweg`, ein eigener Prozess neben dem Halter (alt: „unter Linux sind Brücke und Halter ein Prozess“), gestartet über dieses setgid-Programm mit der Gruppe `wb-bruecke` und im sicheren Modus (Abschnitt 2.3; der Satz dazu gehört in Vertrag 8); unter macOS ist sie ein signiertes Rollenprogramm. Sie kennt den Token nie, sendet nie einen der verbotenen Kopfnamen an den Halter (die Liste der verbotenen Kopfnamen in Abschnitt 4, 31 Namen, alt: 20, darunter `authorization`, `cookie`, `x-api-key`, `host`, `content-length`, `accept-encoding`, `sec-websocket-extensions`, `x-http-method-override` und `x-original-url`; die Brücke entfernt sie vorher, wie Vertrag 8, Abschnitt 13.2, Punkt 1), trennt den Abfrageteil in `abfrage`, sendet Körper höchstens 24117248 Byte und bildet die Codes des Halters auf eigene ab |
 | Anmelden, Paket | `werkbank-anmelden copilot` schreibt `anmeldung.copilot` in die Ablage (2.3); das deb liefert `/usr/lib/werkbank/werkbank-halter`, die Benutzereinheit `wb-halter.service` und `/etc/werkbank/halter.json` (`postinst`, Form nach 2.3a), legt die Systemgruppe `wb-bruecke` an und setzt `werkbank-modellweg` auf `root:wb-bruecke` 2755 (`dpkg-statoverride`); `werkbank-pruefen` prüft Einheit, Anmeldung, Rollengruppe ohne Mitglied und den Modus des Rollenprogramms (Nachtrag Rolle aus der Gruppe) | nachgetragen am 23.11. (Anmelde-Vertrag Abschnitt 2, Paketvertrag „Nachtrag Halter“); `apt remove` lässt die Ablage liegen, `apt purge` löscht `anmeldung.copilot` und die leeren Ebenen ab `geheim` bis `agent-workbench` als die Person. alt: „Pfade tragen Anmelde- und Paketvertrag in einem eigenen Zug nach; bis dahin gilt dort `copilot.schluessel`“ |
 | Hub | liefert `mcp.aufruf`, liest Antworten und Codes | Hub kennt `lauf`, `person` und die Vorschau; rechnet keinen eigenen `digest` für den Halter; läuft unter Windows als Dienst `NT SERVICE\wb-hub` (OPEN 11) |
 | Oberfläche | liefert `schluessel.setzen` und `schluessel.loeschen` mit Nachweis | Oberfläche ist ein Rollenprogramm; Eingabe des Tokens nur dort |
@@ -936,8 +1012,11 @@ python3 -I rust/spec/halter/bau-faelle.py              # Fälle neu erzeugen
 1. **Form des Menschen-Nachweises** für `setzen` und `loeschen`: liefert die Stelle. Bis dahin prüft nur der Bau, dass
    ein ungültiger Nachweis `halter.nachweis` ergibt.
 2. **Grund der Kettenzeile** für `schein_fehlt`: Vorschlag `fehlt` als Ergänzung der festen Liste; Projektentscheid. Für die
-   Leck-Sperre entschieden am 25.11.2026: Grund `leck` und die feste Journalzeile (Abschnitt 9). Offen: Vertrag 5 nimmt die
-   Art `halter.leck_gesperrt` in sein Register auf (`formate`, `REGISTER_FREMD`); erst dann schreibt der Halter die Kettenzeile.
+   Leck-Sperre entschieden am 25.11.2026: Grund `leck` und die feste Journalzeile (Abschnitt 9). Aufgelöst am 25.11.2026: Vertrag 5
+   führt die Art `halter.leck_gesperrt` im Register (`formate`, `REGISTER_FREMD`), und der Halter schreibt die Kettenzeile
+   (Abschnitt 9). alt: „Offen: Vertrag 5 nimmt die Art in sein Register auf; erst dann schreibt der Halter die Kettenzeile.“
+   Aufgelöst am 25.11.2026 (Nachtrag N1): Vertrag 5 führt auch die Art `halter.pfad_verboten` im Register, und der Halter
+   schreibt ihre Zeile (Abschnitt 9).
 3. **Wiederverwendung der PID:** Der Halter liest unter Windows weder `pid` noch `startzeit`. Die Rolle folgt aus der SID
    im impersonierten Token und hängt nicht an der PID. Unter Linux und macOS bindet `peerkanal` über pidfd und Audit-Token.
    Unter Linux entsteht die pidfd des Halters in Fassung 1 mit `pidfd_open` auf die pid aus `SO_PEERCRED`, weil die benutzte

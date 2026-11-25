@@ -721,7 +721,8 @@ function zieleLesen(text) {
   }
   for (const z of zl) {
     if (ZL_WEGGEFALLEN.some((k) => z.has(k))) throw fehler('zl.bindung');
-    if (z.get('halter_ziel') !== null && z.get('halter_ziel') !== z.get('host')) throw fehler('zl.bindung');
+    // Abschnitt 3a, Pflicht 1: ein halter_ziel, das nicht der host ist, hat einen eigenen Code; der Start endet darauf mit mw.ziel_halter_name.
+    if (z.get('halter_ziel') !== null && z.get('halter_ziel') !== z.get('host')) throw fehler('zl.halter_name');
   }
   for (const z of zl) if (!['ablehnen', 'durchreichen'].includes(z.get('upgrade')) || (z.get('halter_ziel') === null && z.get('upgrade') !== 'ablehnen')) throw fehler('zl.upgrade_wert');
   if (!['zugelassen', 'offen', 'abgelehnt'].includes(o.get('ca_zulassung'))) throw fehler('zl.ca_zulassung_wert');
@@ -1020,6 +1021,7 @@ function aufrufLesen2(argv) {
   return w;
 }
 START_CODES['mw.ziele_ungueltig'] = [78, 'Zielliste ungueltig'];
+START_CODES['mw.ziel_halter_name'] = [78, 'Halterziel nicht der Host'];
 START_CODES['mw.ca_ungueltig'] = [78, 'CA-Datei ungueltig'];
 START_CODES['mw.ca_nicht_zugelassen'] = [78, 'Lokale CA nicht zugelassen'];
 
@@ -1090,8 +1092,10 @@ function baueKopf() {
     ['regel_33', '33 Regeln', mit((o) => { o.ziele[1].regeln = Array.from({ length: 33 }, (_, i) => ({ methode: 'GET', pfad: `/p${i}` })); }), 'zl.anzahl'],
     ['regel_methode_gebunden', 'Methode PUT in einer Regel eines gebundenen Ziels', mit((o) => { o.ziele[1].regeln[0].methode = 'PUT'; }), 'zl.regel_form'],
     ['regel_methode_ungebunden', 'Methode PUT in einer Regel eines ungebundenen Ziels', mit((o) => { o.ziele[3].regeln[0].methode = 'PUT'; }), null],
-    ['bindung_fremder_host', 'halter_ziel ist nicht der host des Ziels', mit((o) => { o.ziele[0].halter_ziel = 'api.githubcopilot.com'; }), 'zl.bindung'],
-    ['bindung_host_mit_port', 'halter_ziel mit Port', mit((o) => { o.ziele[0].halter_ziel = 'api.github.com:443'; }), 'zl.bindung'],
+    ['bindung_fremder_host', 'halter_ziel ist nicht der host des Ziels', mit((o) => { o.ziele[0].halter_ziel = 'api.githubcopilot.com'; }), 'zl.halter_name'],
+    ['bindung_host_mit_port', 'halter_ziel mit Port', mit((o) => { o.ziele[0].halter_ziel = 'api.github.com:443'; }), 'zl.halter_name'],
+    ['bindung_weggefallen_vor_name', 'erst ein weggefallenes Feld, dann ein fremdes halter_ziel: das erste Ziel entscheidet', mit((o) => { o.ziele[0].kopf = 'x'; o.ziele[1].halter_ziel = 'api.github.com'; }), 'zl.bindung'],
+    ['bindung_name_vor_weggefallen', 'erst ein fremdes halter_ziel, dann ein weggefallenes Feld: das erste Ziel entscheidet', mit((o) => { o.ziele[0].halter_ziel = 'api.githubcopilot.com'; o.ziele[1].kopf = 'x'; }), 'zl.halter_name'],
     ['bindung_weggefallen', 'das weggefallene Feld schluessel_datei steht noch neben halter_ziel', mit((o) => { o.ziele[0].schluessel_datei = '/k'; }), 'zl.bindung'],
     ['bindung_weggefallen_null', 'das weggefallene Feld kopf steht als null noch da', mit((o) => { o.ziele[0].kopf = null; }), 'zl.bindung'],
     ['bindung_ohne_halter_ziel', 'ein Ziel ohne halter_ziel, mit der alten Schluesseldatei', mit((o) => { delete o.ziele[0].halter_ziel; o.ziele[0].schluessel_datei = '/k'; }), 'zl.schluessel_fehlt'],
@@ -1121,7 +1125,9 @@ function baueKopf() {
             ? { bis_schritt: 'halter', ohne_halter: { exit: 78, stderr: `mw.halter_fehlt: ${START_CODES['mw.halter_fehlt'][1]}\n`, stdout: '' } }
             : { bis_schritt: 'zielliste_gut' })
           : { exit: 78, stderr: `mw.ca_nicht_zugelassen: ${START_CODES['mw.ca_nicht_zugelassen'][1]}\n`, stdout: '' } }
-      : { gueltig: false, code, start: { exit: 78, stderr: 'mw.ziele_ungueltig: Zielliste ungueltig\n', stdout: '' } };
+      : { gueltig: false, code, start: code === 'zl.halter_name'
+          ? { exit: 78, stderr: `mw.ziel_halter_name: ${START_CODES['mw.ziel_halter_name'][1]}\n`, stdout: '' }
+          : { exit: 78, stderr: 'mw.ziele_ungueltig: Zielliste ungueltig\n', stdout: '' } };
     ziele.push(e);
   }
   if (ZL_TEXT.includes(MARKE)) abbruch('Marke in der Zielliste');
@@ -1536,7 +1542,7 @@ function baueKopf() {
     'faelle/kopf-websocket.json': websocket,
     'faelle/kopf-antworten.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.3. Ein Fall mit halter ist ein gebundenes Ziel ab Schritt I: Der Modellweg sieht nicht das Ziel, sondern die Zeilen des Halters (beginn mit status und kopf oder null, teile als latin1-Text je Zeile teil, ende null oder ein Code des Halters, upgrade durchreichen oder ablehnen). Daraus baut er die Antwort an den Harness, immer chunked, und bildet jeden Code nach Abschnitt 5.1 ab. Ein Fall mit ziel_antwort ist ein ungebundenes Ziel: dort gehen die Bytes des Dienstes durch, und ziel_antwort.laenge ist dessen Content-Length oder null (chunked oder bis zum Schliessen).', marke: MARKE, faelle: antworten },
     'faelle/kopf-zeile.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitte 8 und 13.4. zeilen: Felder der Zeile und ihre Bytes. pfade: das Feld pfad fuer eine Anfragezeile, voll ist der Admin-Schalter --protokoll-pfad-voll.', zeilen, pfade },
-    'faelle/kopf-aufruf.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.5. Gilt, wo Betriebsart 2 gebaut ist (im Durchstich nur Linux); sonst gilt in aufruf.json das Feld erwartet der Faelle betriebsart_kopf_einsetzen und betriebsart_vor_form.', codes: { 'mw.ziele_ungueltig': START_CODES['mw.ziele_ungueltig'], 'mw.ca_nicht_zugelassen': START_CODES['mw.ca_nicht_zugelassen'], 'mw.ca_ungueltig': START_CODES['mw.ca_ungueltig'] }, aufruf },
+    'faelle/kopf-aufruf.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.5. Gilt, wo Betriebsart 2 gebaut ist (im Durchstich nur Linux); sonst gilt in aufruf.json das Feld erwartet der Faelle betriebsart_kopf_einsetzen und betriebsart_vor_form.', codes: { 'mw.ziele_ungueltig': START_CODES['mw.ziele_ungueltig'], 'mw.ziel_halter_name': START_CODES['mw.ziel_halter_name'], 'mw.ca_nicht_zugelassen': START_CODES['mw.ca_nicht_zugelassen'], 'mw.ca_ungueltig': START_CODES['mw.ca_ungueltig'] }, aufruf },
     'faelle/kopf-gegenprobe.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 14. Modell der Gegenprobe E5 als Ausseentest in der VM: funde zaehlt Treffer der Marke im Einschluss; user_repos ist das Ergebnis von GET /user/repos ueber den Weiterreicher. test rot heisst: dieser Aufbau muss den Ausseentest rot machen.', marke: MARKE, faelle: gegenprobe },
   };
 }
@@ -1545,7 +1551,7 @@ function baueKopf() {
 // --- Umgebung beim Start (Abschnitt 3 und 4, Stufe 0, F1): Faelle ---
 
 // Stufe 0 vor jedem anderen Schritt, fuer beide Betriebsarten: OpenSSL folgt diesen drei Variablen; schon eine gesetzte, auch leere, beendet den Start.
-const UMG_CODE = { 'mw.umgebung_unsicher': [78, 'Umgebung unsicher'] };   // bewusst nicht in START_CODES: aufruf.json schreibt diese Tabelle und bleibt gleich
+const UMG_CODE = { 'mw.umgebung_unsicher': [78, 'Umgebung unsicher'], 'mw.umgebung_rest': [78, 'Umgebung nicht geleert'] };   // bewusst nicht in START_CODES: aufruf.json schreibt diese Tabelle und bleibt gleich
 const UMGEBUNG_LISTE = ['SSL_CERT_FILE', 'SSL_CERT_DIR', 'OPENSSL_CONF'];
 function umgebungPruefen(betriebsart, env) {
   const liste = M('M-F1c') ? UMGEBUNG_LISTE.filter((n) => n !== 'OPENSSL_CONF') : UMGEBUNG_LISTE;   // M-F1c: OPENSSL_CONF fehlt in der Liste
@@ -1555,6 +1561,21 @@ function umgebungPruefen(betriebsart, env) {
     if (M('M-F1b') && env[n] === '') continue;                                                      // M-F1b: eine leere Variable gilt als nicht gesetzt
     throw fehler('mw.umgebung_unsicher');
   }
+}
+// Abschnitt 3a, Pflicht 3 (nur Linux): nach Stufe 0 leert der Modellweg seine Umgebung, indem er sich selbst mit leerer
+// Umgebung neu ausfuehrt; argv[0] des neuen Abbilds ist die Marke GELEERT mit der ersten Ablesung des Elternprozesses. Ein
+// Abbild mit dieser Marke und noch einem Namen in der Umgebung endet mit mw.umgebung_rest. Die Positivliste ist leer.
+const GELEERT = 'wb-modellweg-geleert';
+function markeLesen(argv0) {
+  if (typeof argv0 !== 'string' || !argv0.startsWith(`${GELEERT}:`)) return null;
+  const rest = argv0.slice(GELEERT.length + 1);
+  if (rest === '-') return { eltern: null };
+  return /^[1-9][0-9]{0,9}$/.test(rest) && Number(rest) <= 2147483647 ? { eltern: Number(rest) } : null;
+}
+function umgebungLeeren(argv0, env) {
+  const leer = Object.keys(env).length === 0;
+  if (leer) return 'weiter';
+  return markeLesen(argv0) === null ? 'neu' : 'rest';
 }
 function baueUmgebung() {
   const WERT = '/srv/beispiel/openssl/x';
@@ -1581,8 +1602,25 @@ function baueUmgebung() {
       const e = code === null ? { bis_schritt: 'umgebung_gut' } : { exit: UMG_CODE[code][0], stderr: `${code}: ${UMG_CODE[code][1]}\n`, stdout: '' };
       faelle.push({ name: `${betriebsart}_${name}`, beschreibung, betriebsart, umgebung, ...(argv ? { argv: ['--betriebsart', betriebsart, ...argv] } : {}), erwartet: e });
     }
+    // Pflicht 3 (Abschnitt 3a): argv0 ist argv[0] des Starts. erwartet_linux gilt unter Linux, erwartet auf jedem anderen System.
+    const MARKE_FAELLE = [
+      // [name, beschreibung, argv0, umgebung, Code unter Linux oder null]
+      ['marke_mit_umgebung', 'ein Abbild nach dem Leeren mit noch einem Namen in der Umgebung', `${GELEERT}:1`, { PATH: '/usr/bin' }, 'mw.umgebung_rest'],
+      ['marke_ohne_elternzahl', 'die Marke ohne Elternprozess und noch ein Name', `${GELEERT}:-`, { LANG: 'C' }, 'mw.umgebung_rest'],
+      ['marke_leer', 'ein Abbild nach dem Leeren mit leerer Umgebung: der Start geht weiter (<ELTERN> ist die PID des startenden Prozesses)', `${GELEERT}:<ELTERN>`, {}, null],
+      ['marke_vor_stufe_0', 'Stufe 0 kommt vor dem Leeren: eine Variable von OpenSSL bleibt sichtbar', `${GELEERT}:1`, { SSL_CERT_FILE: WERT }, 'mw.umgebung_unsicher'],
+      ['keine_marke', 'ein falsches argv[0] ist keine Marke: das Programm leert und geht weiter', `${GELEERT}:0`, { PATH: '/usr/bin' }, null],
+    ];
+    for (const [name, beschreibung, argv0, umgebung, code] of MARKE_FAELLE) {
+      let ist = null;
+      try { umgebungPruefen(betriebsart, umgebung); if (umgebungLeeren(argv0, umgebung) === 'rest') throw fehler('mw.umgebung_rest'); } catch (x) { if (!(x instanceof Fehler)) throw x; ist = x.message; }
+      if (ist !== code) abbruch(`umgebung ${betriebsart} ${name}: Modell ${ist} gegen ${code}`);
+      let anderswo = null; try { umgebungPruefen(betriebsart, umgebung); } catch (x) { if (!(x instanceof Fehler)) throw x; anderswo = x.message; }
+      const zu = (c) => (c === null ? { bis_schritt: 'umgebung_gut' } : { exit: UMG_CODE[c][0], stderr: `${c}: ${UMG_CODE[c][1]}\n`, stdout: '' });
+      faelle.push({ name: `${betriebsart}_${name}`, beschreibung, betriebsart, argv0, umgebung, erwartet: zu(anderswo), erwartet_linux: zu(code) });
+    }
   }
-  return { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 4 (Stufe 0 vor Schritt 1, F1). umgebung ist die Umgebung des Weiterreichers beim Start (Name: Wert); argv gilt nur, wo es steht. bis_schritt umgebung_gut heisst: Stufe 0 besteht, der Start geht zu Schritt 1 weiter. Der Fehler nennt weder Namen noch Wert der Variablen, nur die feste Zeile.', faelle };
+  return { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 4 (Stufe 0 vor Schritt 1, F1). umgebung ist die Umgebung des Weiterreichers beim Start (Name: Wert); argv gilt nur, wo es steht; argv0 ist argv[0] des Starts, wo es steht (Abschnitt 3a, Pflicht 3; <ELTERN> ersetzt der Test durch die PID des Prozesses, der das Programm startet), und erwartet_linux gilt dann unter Linux, erwartet auf jedem anderen System. bis_schritt umgebung_gut heisst: Stufe 0 besteht, der Start geht zu Schritt 1 weiter. Der Fehler nennt weder Namen noch Wert der Variablen, nur die feste Zeile.', faelle };
 }
 
 // --- Marker-Zaehlung (Abschnitt 9): Faelle ---
@@ -1824,7 +1862,7 @@ function baueProbelaufWs() {
 // --- Suche nach dem Schluessel (Abschnitt 9a, Nachtrag 18): Faelle ---
 
 // Mutanten der Suche: M-S1 Verknuepfungen verfolgt, M-S2 nicht lesbare zaehlen als ohne Fund, M-S3 nur der erste Schluessel, M-S4 Fund ueber eine Lesegrenze zaehlt nicht.
-const SU_CODE = { 'mw.suche_aufruf': [64, 'Suchaufruf ungueltig'], 'mw.ziele_ungueltig': [78, 'Zielliste ungueltig'], 'mw.schluessel_fehlt': [78, 'Schluessel nicht lesbar'], ...UMG_CODE };
+const SU_CODE = { 'mw.suche_aufruf': [64, 'Suchaufruf ungueltig'], 'mw.ziele_ungueltig': [78, 'Zielliste ungueltig'], 'mw.ziel_halter_name': [78, 'Halterziel nicht der Host'], 'mw.schluessel_fehlt': [78, 'Schluessel nicht lesbar'], ...UMG_CODE };
 const SU_BLOCK = 4096;   // nur das Modell des Mutanten M-S4
 const SU_QUELLEN = ['--schluessel-datei', '--zielliste'];
 function sucheAufruf(argv) {
@@ -1844,7 +1882,7 @@ function sucheSchluessel(a, baum, zlText) {
   let dateien;
   if (a.quelle === '--schluessel-datei') dateien = [a.datei];
   else {
-    let liste; try { liste = zieleLesen(zlText); } catch (x) { if (x instanceof Fehler) throw fehler('mw.ziele_ungueltig'); throw x; }
+    let liste; try { liste = zieleLesen(zlText); } catch (x) { if (x instanceof Fehler) throw fehler(x.message === 'zl.halter_name' ? 'mw.ziel_halter_name' : 'mw.ziele_ungueltig'); throw x; }
     dateien = [...new Set(liste.filter((z) => z.schluessel_datei !== null).map((z) => z.schluessel_datei))];
     if (dateien.length === 0) throw fehler('mw.schluessel_fehlt');
   }
@@ -1893,7 +1931,8 @@ function sucheLaufen(argv, env, baumListe, zlText, halter = null) {
 // einen Code (dann ist das mw.schluessel_fehlt, und der Laeufer meldet E4 als offen, nie als gruen). Erreicht die Suche
 // den Halter nicht (halter.erreichbar === false), gilt dasselbe.
 function halterSuche(a, zlText, halter) {
-  let liste; try { liste = zieleLesen(zlText); } catch { throw fehler('mw.ziele_ungueltig'); }
+  // Abschnitt 3a, Pflicht 1: ein fremdes halter_ziel hat auch in der Suche den Code des Starts
+  let liste; try { liste = zieleLesen(zlText); } catch (x) { if (!(x instanceof Fehler)) throw x; throw fehler(x.message === 'zl.halter_name' ? 'mw.ziel_halter_name' : 'mw.ziele_ungueltig'); }
   const ziele = liste.map((z) => z.halter_ziel).filter((n) => n !== null);
   if (!ziele.length) throw fehler('mw.schluessel_fehlt');
   if (halter.erreichbar === false) throw fehler('mw.schluessel_fehlt');
@@ -1935,6 +1974,8 @@ function baueSuche() {
   const hz = (dateien, nicht_lesbar, treffer, uebersprungen) => ({ dateien, nicht_lesbar, treffer, uebersprungen });
   const ZL_NUR_UNGEBUNDEN = ZL([uz('telemetrie', 'telemetry.beispiel.test')]);
   const ZL_KAPUTT = '{"fassung":1,"ca_zulassung":"zugelassen","ziele":[]}\n';
+  const ZL_FREMD = ZL([{ ...gz('api-a', H1), halter_ziel: H2 }, uz('telemetrie', 'telemetry.beispiel.test')]);
+  if (ZL_FREMD === ZL_EINS) abbruch('ZL_FREMD gleich ZL_EINS');
   const lang = (n, wert, rest = 'x') => 'a'.repeat(n) + wert + rest;
   const E = (exit, z) => ({ exit, ...z });
   // [name, beschreibung, argv, baum, erwartet, extra]; erwartet: {exit, dateien, nicht_lesbar, treffer, uebersprungen} oder {exit, code}
@@ -1992,6 +2033,7 @@ function baueSuche() {
     ['schluessel_verknuepfung', 'der Pfad der Schluesseldatei ist eine Verknuepfung (O_NOFOLLOW)', lokal(...IN), mitP(schl(`${SK}/echt.schluessel`, K1), v(KD1, `${SK}/echt.schluessel`)), { exit: 78, code: 'mw.schluessel_fehlt' }],
     ['schluessel_zwei_zeilen', 'die Schluesseldatei hat zwei Zeilen', lokal(...IN), mitP(d(KD1, `${K1}\n${K2}\n`, { eigen: true, modus: '0600' }), d(`${ARB}/leck.txt`, K1)), { exit: 78, code: 'mw.schluessel_fehlt' }],
     ['zielliste_ungueltig', 'die Zielliste ist ungueltig (keine Ziele): Abschnitt 12', cloud(...IN), mitP(), { exit: 78, code: 'mw.ziele_ungueltig' }, { zielliste: ZL_KAPUTT }],
+    ['zielliste_halter_name', 'ein halter_ziel, das nicht der host seines Ziels ist: derselbe Code wie im Start (Abschnitt 3a, Pflicht 1)', cloud(...IN), mitP(), { exit: 78, code: 'mw.ziel_halter_name' }, { zielliste: ZL_FREMD }],
     ['zielliste_ohne_gebundenes_ziel', 'gueltige Zielliste ohne gebundenes Ziel: nichts zu suchen, kein Gruen', cloud(...IN), mitP(), { exit: 78, code: 'mw.schluessel_fehlt' }, { zielliste: ZL_NUR_UNGEBUNDEN }],
     ['umgebung_ssl_cert_file', 'Stufe 0 gilt auch hier: SSL_CERT_FILE gesetzt, der Aufruf ist sonst gueltig', lokal(...IN), mitP(schl(KD1, K1)), { exit: 78, code: 'mw.umgebung_unsicher' }, { umgebung: { SSL_CERT_FILE: '/srv/beispiel/openssl/x' } }],
     ['umgebung_vor_aufruf', 'Stufe 0 vor dem Aufruf: ungueltiger Aufruf und OPENSSL_CONF leer gesetzt ergeben mw.umgebung_unsicher', ['suche'], mitP(schl(KD1, K1)), { exit: 78, code: 'mw.umgebung_unsicher' }, { umgebung: { OPENSSL_CONF: '' } }],

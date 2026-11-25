@@ -106,8 +106,13 @@ pub enum Startfehler {
     ZaehlungFehler,
     /// `mw.protokoll_fehlt`, exit 74 (trial run: the start line cannot be appended).
     ProtokollFehlt,
+    /// `mw.umgebung_rest`, exit 78 (section 3a, duty 3: after the emptying a name of the environment is still there,
+    /// or the emptying itself failed).
+    UmgebungRest,
     /// `mw.ziele_ungueltig`, exit 78 (mode 2: the target list).
     ZieleUngueltig,
+    /// `mw.ziel_halter_name`, exit 78 (mode 2, section 3a, duty 1: a `halter_ziel` is not the `host` of its target).
+    ZielHalterName,
     /// `mw.ca_nicht_zugelassen`, exit 78 (mode 2: the company has not approved the local CA).
     CaNichtZugelassen,
     /// `mw.ca_ungueltig`, exit 78 (mode 2: the throw-away CA).
@@ -124,6 +129,8 @@ pub enum Startfehler {
     SocketBelegt,
     /// `mw.intern`, exit 70.
     Intern,
+    /// `mw.kind_verboten`, exit 70 (section 3a, duty 5: the process has a child).
+    KindVerboten,
     /// `mw.kernabbild`, exit 5 (step 1: `kernabbild::abschirmen` refuses; default of the Werkbank, 21.11.2026).
     Kernabbild,
     /// `mw.eltern_weg`, exit 69 (step 1: the parent ended before the death signal was set, so no signal comes).
@@ -144,7 +151,9 @@ impl Startfehler {
             Self::SchluesselDatei => "mw.schluessel_datei",
             Self::SchluesselForm => "mw.schluessel_form",
             Self::ProtokollOrdner => "mw.protokoll_ordner",
+            Self::UmgebungRest => "mw.umgebung_rest",
             Self::ZieleUngueltig => "mw.ziele_ungueltig",
+            Self::ZielHalterName => "mw.ziel_halter_name",
             Self::CaNichtZugelassen => "mw.ca_nicht_zugelassen",
             Self::CaUngueltig => "mw.ca_ungueltig",
             Self::HalterFehlt => "mw.halter_fehlt",
@@ -153,6 +162,7 @@ impl Startfehler {
             Self::ZielUnaufloesbar => "mw.ziel_unaufloesbar",
             Self::SocketBelegt => "mw.socket_belegt",
             Self::Intern => "mw.intern",
+            Self::KindVerboten => "mw.kind_verboten",
             Self::Kernabbild => "mw.kernabbild",
             Self::ElternWeg => "mw.eltern_weg",
         }
@@ -171,7 +181,9 @@ impl Startfehler {
             Self::SchluesselDatei => "Schluesseldatei nicht eigen, nicht 0600 oder keine Datei",
             Self::SchluesselForm => "Schluessel hat falsche Form",
             Self::ProtokollOrdner => "Protokollordner fehlt oder ist kein Ordner",
+            Self::UmgebungRest => "Umgebung nicht geleert",
             Self::ZieleUngueltig => "Zielliste ungueltig",
+            Self::ZielHalterName => "Halterziel nicht der Host",
             Self::CaNichtZugelassen => "Lokale CA nicht zugelassen",
             Self::CaUngueltig => "CA-Datei ungueltig",
             Self::HalterFehlt => "Halter nicht erreichbar",
@@ -180,6 +192,7 @@ impl Startfehler {
             Self::ZielUnaufloesbar => "Ziel nicht aufloesbar",
             Self::SocketBelegt => "Socket belegt oder nicht anlegbar",
             Self::Intern => "interner Fehler",
+            Self::KindVerboten => "Kindprozess verboten",
             Self::Kernabbild => "Kernabbild nicht abschirmbar",
             Self::ElternWeg => "Elternprozess beendet",
         }
@@ -194,7 +207,9 @@ impl Startfehler {
             | Self::SchluesselDatei
             | Self::SchluesselForm
             | Self::ProtokollOrdner
+            | Self::UmgebungRest
             | Self::ZieleUngueltig
+            | Self::ZielHalterName
             | Self::CaNichtZugelassen
             | Self::CaUngueltig
             | Self::HalterFehlt
@@ -202,7 +217,7 @@ impl Startfehler {
             | Self::HalterKeinSchluessel => 78,
             Self::ZielUnaufloesbar | Self::ElternWeg => 69,
             Self::SocketBelegt | Self::ZaehlungFehler | Self::ProtokollFehlt => 74,
-            Self::Intern => 70,
+            Self::Intern | Self::KindVerboten => 70,
             Self::Kernabbild => 5,
         }
     }
@@ -237,6 +252,80 @@ pub const UMGEBUNG_UNSICHER: [&str; 3] = ["SSL_CERT_FILE", "SSL_CERT_DIR", "OPEN
 #[must_use]
 pub fn umgebung_sicher(wert: impl Fn(&'static str) -> Option<OsString>) -> bool {
     UMGEBUNG_UNSICHER.iter().all(|n| wert(n).is_none())
+}
+
+/// argv\[0\] of the image after the emptying of duty 3 (section 3a): this prefix, a colon and the first reading of the
+/// parent (`-` for none). The new image takes that reading as its own first one, so the check after the death signal
+/// still compares against the parent before the `execve`.
+///
+/// A caller may set the mark himself; it gives him nothing: with a non-empty environment the start ends with
+/// `mw.umgebung_rest`, and a wrong number only ends his own start with `mw.eltern_weg` or does not.
+pub const GELEERT: &str = "wb-modellweg-geleert";
+
+/// The mark of [`GELEERT`] for the reading `eltern`.
+#[must_use]
+pub fn marke(eltern: Option<i32>) -> OsString {
+    match eltern {
+        Some(p) => format!("{GELEERT}:{p}").into(),
+        None => format!("{GELEERT}:-").into(),
+    }
+}
+
+/// The reading of the parent in a mark of [`GELEERT`]; `None` if `name` is no such mark (then this image is the first
+/// one).
+#[must_use]
+pub fn marke_lesen(name: &std::ffi::OsStr) -> Option<Option<i32>> {
+    let rest = name.to_str()?.strip_prefix(GELEERT)?.strip_prefix(':')?;
+    if rest == "-" {
+        return Some(None);
+    }
+    let p: i32 = rest.parse().ok()?;
+    (p > 0 && rest == p.to_string()).then_some(Some(p))
+}
+
+/// What duty 3 (section 3a) does after stage 0.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Leeren {
+    /// The environment is empty: go on.
+    Weiter,
+    /// The first image with names in the environment: replace the program by itself with an empty environment.
+    Neu,
+    /// The image after the emptying still has a name: `mw.umgebung_rest`.
+    Rest,
+}
+
+/// Duty 3: `geleert` says whether this image came from the emptying (argv\[0\] is a mark), `leer` whether the own
+/// environment is empty. The positive list of version 1 is empty, so every name is a rest.
+#[must_use]
+pub fn leeren(geleert: bool, leer: bool) -> Leeren {
+    match (leer, geleert) {
+        (true, _) => Leeren::Weiter,
+        (false, false) => Leeren::Neu,
+        (false, true) => Leeren::Rest,
+    }
+}
+
+/// Duty 5 (section 3a): the process has no child. Read in two places, before the ready line and before each accepted
+/// connection is served; a child ends the process with `mw.kind_verboten`, and files of the threads that cannot be
+/// read end it with `mw.intern` (fail closed). Only Linux has the files; elsewhere the duty is not built (section 3a,
+/// scope).
+#[cfg(target_os = "linux")]
+fn ohne_kind() -> Result<(), Startfehler> {
+    match os::hat_kinder() {
+        Ok(false) => Ok(()),
+        Ok(true) => Err(Startfehler::KindVerboten),
+        Err(_) => Err(Startfehler::Intern),
+    }
+}
+
+/// Only Linux carries the duties of section 3a.
+#[cfg(not(target_os = "linux"))]
+#[allow(
+    clippy::unnecessary_wraps,
+    reason = "the same form as the Linux function"
+)]
+fn ohne_kind() -> Result<(), Startfehler> {
+    Ok(())
 }
 
 /// The name of the program in the start line of a trial run.
@@ -369,7 +458,15 @@ fn vorbereiten_zwei(
 ) -> Result<Bereit, Startfehler> {
     let text = crate::ca::lies_datei(&optionen.zielliste, eigene_uid)
         .ok_or(Startfehler::ZieleUngueltig)?;
-    let liste = zielliste::lies(&text).map_err(|_| Startfehler::ZieleUngueltig)?;
+    // Duty 1 (section 3a): a `halter_ziel` that is not the `host` of its target has its own code, in every start and
+    // not only under setgid: one code for one thing.
+    let liste = zielliste::lies(&text).map_err(|c| {
+        if c == zielliste::HALTER_NAME {
+            Startfehler::ZielHalterName
+        } else {
+            Startfehler::ZieleUngueltig
+        }
+    })?;
     if liste.zulassung != zielliste::Zulassung::Zugelassen {
         return Err(Startfehler::CaNichtZugelassen);
     }
@@ -623,6 +720,9 @@ fn binden(gemerkt: Option<i32>) -> Result<(), Startfehler> {
 /// failure the stderr line is written and the exit code returned. The handlers of SIGTERM and SIGINT stand before
 /// this (step 1, [`haupt`]).
 ///
+/// This is the entry of the library for a start inside another process, such as a test: it does not read duty 5 of
+/// section 3a, because the children it would see are those of that other process. The program ([`haupt`]) reads it.
+///
 /// # Errors
 /// The exit code of the first failing step.
 pub fn starten(
@@ -634,8 +734,45 @@ pub fn starten(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> Result<Bereit, u8> {
+    starten_mit(
+        args,
+        eigene_uid,
+        aufloeser,
+        fristen,
+        uhr,
+        stdout,
+        stderr,
+        || Ok(()),
+    )
+}
+
+/// [`starten`] with the check of duty 5 (section 3a) before the ready line: `ohne_kind` fails if the process has a
+/// child, and the start then ends with its code (and deletes its socket). The program passes the reading of its own
+/// threads; a test passes its own answer.
+///
+/// # Errors
+/// The exit code of the first failing step.
+#[allow(
+    clippy::too_many_arguments,
+    reason = "the arguments of starten and the one check"
+)]
+pub fn starten_mit(
+    args: &[OsString],
+    eigene_uid: u32,
+    aufloeser: &Aufloeser,
+    fristen: Fristen,
+    uhr: Uhr,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    ohne_kind: impl FnOnce() -> Result<(), Startfehler>,
+) -> Result<Bereit, u8> {
     let bereit =
         vorbereiten(args, eigene_uid, aufloeser, fristen, uhr).map_err(|f| fehler(stderr, f))?;
+    // duty 5 (section 3a): no child before the ready line
+    if let Err(f) = ohne_kind() {
+        loeschen_socket(bereit.eigener_socket.as_deref());
+        return Err(fehler(stderr, f));
+    }
     // before the two lines: from here on the end tears running requests down, whatever a signal interrupts
     ENDE.dienst_merken(&bereit.dienst);
     if bereit.probelauf {
@@ -692,10 +829,34 @@ pub fn abschirmen(
 /// of a failure before readiness; after readiness the process ends in [`Ende::beenden`].
 pub fn haupt(args: &[OsString], stdout: &mut dyn Write, stderr: &mut dyn Write) -> u8 {
     // the first line of the program (only the argv of `main` runs before it): the check after the death signal compares
-    // against this number, so it must be read before the parent can end
-    let eltern = os::eltern();
+    // against this number, so it must be read before the parent can end. After the emptying of duty 3 the reading of
+    // the first image comes in argv[0].
+    let erste = os::eltern();
+    // only Linux empties by the re-exec, so only there argv[0] can carry the mark
+    let geleert = if cfg!(target_os = "linux") {
+        std::env::args_os().next().as_deref().and_then(marke_lesen)
+    } else {
+        None
+    };
+    let eltern = geleert.unwrap_or(erste);
     if !umgebung_sicher(std::env::var_os) {
         return fehler(stderr, Startfehler::UmgebungUnsicher);
+    }
+    // Section 3a (safe mode) under Linux, in every start and not only under setgid (`AT_SECURE`): duty 3 empties the
+    // environment before any file is read and any connection opened, duty 4 sets the umask before the first entry is
+    // made. Stage 0 stays in front, so an attempt with a variable of OpenSSL is seen and not silently emptied.
+    #[cfg(target_os = "linux")]
+    {
+        match leeren(geleert.is_some(), std::env::vars_os().next().is_none()) {
+            Leeren::Weiter => {}
+            Leeren::Neu => {
+                // returns only on a failure: the environment was not emptied
+                let _ = os::neu_ohne_umgebung(&marke(erste), args);
+                return fehler(stderr, Startfehler::UmgebungRest);
+            }
+            Leeren::Rest => return fehler(stderr, Startfehler::UmgebungRest),
+        }
+        os::umask_sicher();
     }
     if let Err(exit) = abschirmen(kernabbild::abschirmen(), stderr) {
         return exit;
@@ -728,7 +889,7 @@ pub fn haupt(args: &[OsString], stdout: &mut dyn Write, stderr: &mut dyn Write) 
     if waechter.is_err() {
         return fehler(stderr, Startfehler::Intern);
     }
-    let gestartet = starten(
+    let gestartet = starten_mit(
         args,
         os::eigene_uid(),
         &ziel::system_aufloeser,
@@ -736,6 +897,7 @@ pub fn haupt(args: &[OsString], stdout: &mut dyn Write, stderr: &mut dyn Write) 
         Box::new(jetzt_ms),
         stdout,
         stderr,
+        ohne_kind,
     );
     let bereit = match gestartet {
         Ok(b) => b,
@@ -752,13 +914,21 @@ fn loeschen_socket(socket: Option<&Eigene>) {
     }
 }
 
-/// The loop over connections; each one gets its own thread.
+/// The loop over connections; each one gets its own thread. Before a connection is served, duty 5 (section 3a) is read
+/// again: a child that an earlier request left behind ends the process (the end of section 3, then the line of
+/// [`Startfehler::KindVerboten`] and exit 70).
 fn dienen(bereit: &Bereit) -> ! {
     loop {
         let Ok((strom, _)) = bereit.listener.accept() else {
             std::thread::sleep(Duration::from_millis(10));
             continue;
         };
+        if let Err(f) = ohne_kind() {
+            drop(strom);
+            ENDE.aufraeumen();
+            let _ = fehler(&mut std::io::stderr(), f);
+            std::process::exit(i32::from(f.exit()));
+        }
         let faden = Faden::nimm(Arc::clone(&bereit.dienst));
         let _ = std::thread::Builder::new().spawn(move || {
             faden.bediene(strom);
@@ -769,8 +939,8 @@ fn dienen(bereit: &Bereit) -> ! {
 #[cfg(test)]
 mod tests {
     use super::{
-        Startfehler, UMGEBUNG_UNSICHER, binden_mit, eltern_weg, loeschen_socket, socket_binden_mit,
-        umgebung_sicher,
+        GELEERT, Leeren, Startfehler, UMGEBUNG_UNSICHER, binden_mit, eltern_weg, leeren,
+        loeschen_socket, marke, marke_lesen, socket_binden_mit, umgebung_sicher,
     };
     use std::cell::Cell;
     use std::ffi::OsString;
@@ -778,6 +948,21 @@ mod tests {
     use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
     use std::os::unix::net::UnixListener;
     use std::path::PathBuf;
+
+    /// Duty 5 (section 3a): a child of this process ends the start with `mw.kind_verboten`. (That none lets it pass is
+    /// checked from outside, on the program: other tests of this binary start children of their own at any moment.)
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_child_is_forbidden() {
+        let mut kind = std::process::Command::new("sleep")
+            .arg("30")
+            .spawn()
+            .expect("sleep");
+        let gesehen = super::ohne_kind();
+        let _ = kind.kill();
+        let _ = kind.wait();
+        assert_eq!(gesehen, Err(Startfehler::KindVerboten));
+    }
 
     #[test]
     fn stage_0_refuses_each_variable_also_empty() {
@@ -868,6 +1053,140 @@ mod tests {
         );
         assert_eq!(r, Err(Startfehler::Intern));
         assert!(!gelaufen.get(), "the check stays unrun");
+    }
+
+    #[test]
+    fn the_lines_of_the_safe_mode() {
+        for (f, zeile, exit) in [
+            (
+                Startfehler::UmgebungRest,
+                "mw.umgebung_rest: Umgebung nicht geleert\n",
+                78,
+            ),
+            (
+                Startfehler::ZielHalterName,
+                "mw.ziel_halter_name: Halterziel nicht der Host\n",
+                78,
+            ),
+            (
+                Startfehler::KindVerboten,
+                "mw.kind_verboten: Kindprozess verboten\n",
+                70,
+            ),
+        ] {
+            assert_eq!(f.zeile(), zeile);
+            assert_eq!(f.exit(), exit);
+            assert!(f.zeile().is_ascii() && f.zeile().len() <= 200);
+        }
+    }
+
+    #[test]
+    fn duty_3_empties_once_and_refuses_a_rest() {
+        assert_eq!(leeren(false, true), Leeren::Weiter);
+        assert_eq!(leeren(true, true), Leeren::Weiter);
+        assert_eq!(leeren(false, false), Leeren::Neu);
+        assert_eq!(leeren(true, false), Leeren::Rest);
+    }
+
+    #[test]
+    fn the_mark_carries_the_first_reading_of_the_parent() {
+        for e in [Some(1), Some(4242), Some(i32::MAX), None] {
+            assert_eq!(marke_lesen(&marke(e)), Some(e), "{e:?}");
+        }
+        assert_eq!(marke(Some(7)), OsString::from("wb-modellweg-geleert:7"));
+        assert_eq!(marke(None), OsString::from("wb-modellweg-geleert:-"));
+        assert_eq!(GELEERT, "wb-modellweg-geleert");
+        // anything else is no mark: this image is the first one
+        for kein in [
+            "modellweg",
+            "/usr/lib/werkbank/werkbank-modellweg",
+            "wb-modellweg-geleert",
+            "wb-modellweg-geleert:",
+            "wb-modellweg-geleert:0",
+            "wb-modellweg-geleert:-1",
+            "wb-modellweg-geleert:+7",
+            "wb-modellweg-geleert:07",
+            "wb-modellweg-geleert:7 ",
+            "wb-modellweg-geleert:x",
+            "wb-modellweg-geleert:--",
+            "wb-modellweg-geleert:99999999999",
+            "xwb-modellweg-geleert:7",
+            "wb-modellweg-geleert;7",
+        ] {
+            assert_eq!(marke_lesen(std::ffi::OsStr::new(kein)), None, "{kein}");
+        }
+    }
+
+    /// The product part of a source file: the text before its module of tests, without the lines of comments.
+    fn produkt_von(p: &std::path::Path) -> String {
+        let text = fs::read_to_string(p).expect("source");
+        let vor = text.split("\nmod tests {").next().expect("text");
+        vor.lines()
+            .filter(|z| !z.trim_start().starts_with("//"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    /// Duty 5 (section 3a): no product file starts a process. The test reads every source file of the crate up to its
+    /// module of tests and finds the calls that start or replace a process; the one replacement of duty 3
+    /// (`os::neu_ohne_umgebung`) is the only hit, and it starts no child. `spawn(` stands only for threads.
+    #[test]
+    fn no_product_code_starts_a_process() {
+        let wurzel = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut dateien = vec![wurzel.clone()];
+        let mut funde = Vec::new();
+        while let Some(p) = dateien.pop() {
+            if p.is_dir() {
+                for e in fs::read_dir(&p).expect("folder") {
+                    dateien.push(e.expect("entry").path());
+                }
+                continue;
+            }
+            if p.extension().is_none_or(|e| e != "rs") {
+                continue;
+            }
+            let produkt = produkt_von(&p);
+            let name = p
+                .strip_prefix(&wurzel)
+                .expect("below src")
+                .to_string_lossy()
+                .into_owned();
+            for muster in [
+                "Command",
+                "fork",
+                "posix_spawn",
+                "execv",
+                "exec(",
+                "system(",
+                "libc::",
+                "nix::unistd",
+                "nix::spawn",
+                "rustix::runtime",
+            ] {
+                let n = produkt.matches(muster).count();
+                if n > 0 {
+                    funde.push((name.clone(), muster, n));
+                }
+            }
+            // `spawn(` only for threads: within its statement, before the hit, stands `thread::`
+            for (i, _) in produkt.match_indices("spawn(") {
+                let anfang = produkt[..i].rfind(';').map_or(0, |n| n + 1);
+                assert!(
+                    produkt[anfang..i].contains("thread::"),
+                    "{name}: {}",
+                    &produkt[anfang..i]
+                );
+            }
+        }
+        funde.sort_unstable();
+        assert_eq!(
+            funde,
+            vec![
+                ("os.rs".to_owned(), "Command", 2),
+                ("os.rs".to_owned(), "exec(", 1)
+            ],
+            "{funde:?}"
+        );
     }
 
     #[test]

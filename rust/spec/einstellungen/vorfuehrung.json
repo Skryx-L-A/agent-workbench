@@ -49,11 +49,11 @@
      "pfade": [
       {
        "methode": "GET",
-       "pfad": "/*"
+       "pfad": "/models"
       },
       {
-       "methode": "POST",
-       "pfad": "/*"
+       "methode": "GET",
+       "pfad": "/responses"
       },
       {
        "methode": "POST",

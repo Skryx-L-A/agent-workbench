@@ -4275,6 +4275,99 @@
    }
   },
   {
+   "name": "zielliste_halter_name",
+   "beschreibung": "ein halter_ziel, das nicht der host seines Ziels ist: derselbe Code wie im Start (Abschnitt 3a, Pflicht 1)",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"plan.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.ziel_halter_name: Halterziel nicht der Host\n"
+   }
+  },
+  {
    "name": "zielliste_ohne_gebundenes_ziel",
    "beschreibung": "gueltige Zielliste ohne gebundenes Ziel: nichts zu suchen, kein Gruen",
    "argv": [

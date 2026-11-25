@@ -351,6 +351,161 @@ fn vorhanden_nur_fuer_das_eigene_konto() {
     assert_eq!(c.marken(), 0);
 }
 
+/// `schluessel.vorhanden` by `ziel` (section 4): the holder takes the name from `halter.json`; a known target with its
+/// secret is `true`, without it `false`, an unknown target `halter.ziel_unbekannt`; another role than `bruecke` with
+/// `ziel` gets `halter.rolle`, and `name` keeps working for it.
+#[test]
+fn vorhanden_nach_ziel() {
+    let frage =
+        |ziel: &str| json!({"fassung": 1, "id": "q-1", "op": "schluessel.vorhanden", "ziel": ziel});
+    let mit = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst("bruecke", 9, &mit, START);
+    let mut c = verbinden(&d);
+    c.senden(&frage("copilot"));
+    assert_eq!(c.bis_schluss()[0]["vorhanden"], json!(true));
+    c.senden(&frage("fremd"));
+    assert_eq!(
+        letzte_code(&c.bis_schluss()).as_deref(),
+        Some("halter.ziel_unbekannt")
+    );
+    c.senden(&json!({"fassung": 1, "id": "q-1", "name": "anmeldung.copilot", "op": "schluessel.vorhanden",
+        "ziel": "copilot"}));
+    assert_eq!(
+        letzte_code(&c.bis_schluss()).as_deref(),
+        Some("halter.schluessel_unbekannt")
+    );
+    c.senden(&json!({"fassung": 1, "id": "q-1", "op": "schluessel.vorhanden"}));
+    assert_eq!(
+        letzte_code(&c.bis_schluss()).as_deref(),
+        Some("halter.schluessel_fehlt")
+    );
+    assert_eq!(c.marken(), 0);
+    let ohne = heim_mit(&[("mcp.tickets", MARKE)]);
+    let d = dienst("bruecke", 9, &ohne, START);
+    let mut c = verbinden(&d);
+    c.senden(&frage("copilot"));
+    let z = c.bis_schluss();
+    assert_eq!(z[0]["ok"], json!(true));
+    assert_eq!(
+        z[0]["vorhanden"],
+        json!(false),
+        "a known target without its secret"
+    );
+    for rolle in ["hub", "oberflaeche"] {
+        let d = dienst(rolle, 9, &mit, START);
+        let mut c = verbinden(&d);
+        c.senden(&frage("copilot"));
+        assert_eq!(
+            letzte_code(&c.bis_schluss()).as_deref(),
+            Some("halter.rolle"),
+            "{rolle}"
+        );
+        c.senden(&json!({"fassung": 1, "id": "q-1", "name": "anmeldung.copilot", "op": "schluessel.vorhanden"}));
+        assert_eq!(
+            c.bis_schluss()[0]["vorhanden"],
+            json!(true),
+            "{rolle} by name"
+        );
+    }
+}
+
+/// N1: a path outside the rules of the target ends with `halter.pfad_verboten`, reaches no target and writes the chain
+/// line `halter.pfad_verboten` with method and path, without the fixed journal line; a path inside the rules is the
+/// counter-check and reaches the target.
+#[test]
+fn n1_pfad_ausserhalb_der_regeln_geht_in_die_kette() {
+    let a = attrappe(vec![vec![http("200 OK", "", b"ok")]]);
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst("bruecke", a.port, &heim, START);
+    let mut c = verbinden(&d);
+    assert!(!d.kette_gemeldet());
+    c.senden(&aufruf("GET", "/user/repos", b""));
+    assert_eq!(
+        letzte_code(&c.bis_schluss()).as_deref(),
+        Some("halter.pfad_verboten")
+    );
+    assert_eq!(
+        a.anfragen.lock().expect("lock").len(),
+        0,
+        "nothing reached the target"
+    );
+    let k = kette_text(&heim);
+    let zeile = k
+        .lines()
+        .map(|z| serde_json::from_str::<Value>(z).expect("line"))
+        .find(|z| z["aktionsname"] == "halter.pfad_verboten");
+    // the register of contract 5 holds the kind: the line is in the chain, and the fixed journal line "Kette nicht
+    // fortgeschrieben" does not come
+    let z = zeile.expect("the chain line halter.pfad_verboten");
+    let mut felder: Vec<&str> = z
+        .as_object()
+        .expect("object")
+        .keys()
+        .map(String::as_str)
+        .collect();
+    felder.sort_unstable();
+    assert_eq!(
+        felder,
+        [
+            "aktionsname",
+            "ergebnis",
+            "fassung",
+            "grund",
+            "methode",
+            "op",
+            "pfad",
+            "vorher",
+            "zeit",
+            "ziel"
+        ]
+    );
+    assert_eq!(z["methode"], "GET");
+    assert_eq!(z["op"], "modell.aufruf");
+    assert_eq!(z["pfad"], "/user/repos");
+    assert_eq!(z["ziel"], "copilot");
+    assert!(
+        !d.kette_gemeldet(),
+        "no journal line of a chain that cannot be continued"
+    );
+    let p = formate::kette::pruefe_quelle(
+        &heim.join("kette"),
+        "halter",
+        formate::kette::NULL_HASH,
+        None,
+    )
+    .expect("source");
+    assert!(p.ok(), "{:?}", p.bruch);
+    assert_eq!(zaehlen(k.as_bytes(), MARKE.as_bytes()), 0);
+    c.senden(&aufruf("POST", "/chat/completions", b"{}"));
+    let z = c.bis_schluss();
+    assert_eq!(
+        z.last().expect("end")["ok"],
+        json!(true),
+        "a path in the rules goes through"
+    );
+    assert_eq!(a.anfragen.lock().expect("lock").len(), 1);
+}
+
+/// Counter-check to `n1_pfad_ausserhalb_der_regeln_geht_in_die_kette`: with a broken anchor the chain cannot take the
+/// line of a refused path, and the server notes the fixed journal line (F16) once.
+#[test]
+fn n1_kaputte_kette_meldet_die_feste_journalzeile() {
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst("bruecke", 9, &heim, START);
+    std::fs::write(heim.join("kette").join("halter.anker.jsonl"), b"kaputt\n").expect("anchor");
+    let mut c = verbinden(&d);
+    assert!(!d.kette_gemeldet());
+    c.senden(&aufruf("GET", "/user/repos", b""));
+    assert_eq!(
+        letzte_code(&c.bis_schluss()).as_deref(),
+        Some("halter.pfad_verboten")
+    );
+    assert!(
+        d.kette_gemeldet(),
+        "the fixed journal line of a broken chain"
+    );
+}
+
 #[test]
 fn aufruf_traegt_schluessel_und_identity_und_gibt_alles_weiter() {
     // L9 (c): a body of 40 bytes arrives whole, then `ende` without a code
@@ -436,6 +591,59 @@ fn w3_leck_im_koerper_im_kopf_und_ueber_teilgrenzen() {
     let k = kette_text(&heim);
     assert_eq!(zaehlen(k.as_bytes(), marke), 0, "no value in the chain");
     assert_eq!(d.leck_treffer(), 3, "one journal line per hit");
+    // F4: one chain line per hit, with the op and the target only
+    leck_zeilen_pruefen(&heim, 3, "modell.aufruf", "copilot");
+}
+
+/// The chain of `heim` holds exactly `n` lines `halter.leck_gesperrt`, each with the fields of the contract (section 9),
+/// `op` and `ziel` as given, no mark of the value, and the chain is whole for `formate` (the kind is in its register).
+fn leck_zeilen_pruefen(heim: &Path, n: usize, op: &str, ziel: &str) {
+    let k = kette_text(heim);
+    assert_eq!(
+        zaehlen(k.as_bytes(), MARKE.as_bytes()),
+        0,
+        "no value in the chain"
+    );
+    let zeilen: Vec<Value> = k
+        .lines()
+        .map(|z| serde_json::from_str::<Value>(z).expect("line"))
+        .filter(|z| z["aktionsname"] == "halter.leck_gesperrt")
+        .collect();
+    assert_eq!(zeilen.len(), n, "one chain line per hit");
+    for z in &zeilen {
+        let mut felder: Vec<&str> = z
+            .as_object()
+            .expect("object")
+            .keys()
+            .map(String::as_str)
+            .collect();
+        felder.sort_unstable();
+        assert_eq!(
+            felder,
+            [
+                "aktionsname",
+                "ergebnis",
+                "fassung",
+                "grund",
+                "op",
+                "vorher",
+                "zeit",
+                "ziel"
+            ]
+        );
+        assert_eq!(z["ergebnis"], "abgelehnt");
+        assert_eq!(z["grund"], "leck");
+        assert_eq!(z["op"], op);
+        assert_eq!(z["ziel"], ziel);
+    }
+    let p = formate::kette::pruefe_quelle(
+        &heim.join("kette"),
+        "halter",
+        formate::kette::NULL_HASH,
+        None,
+    )
+    .expect("source");
+    assert!(p.ok(), "{:?}", p.bruch);
 }
 
 fn prozent(bytes: &[u8], gross: bool) -> String {
@@ -770,7 +978,14 @@ fn strom_lauf(nach_101: Vec<Vec<u8>>) -> (Vec<Value>, usize, Attrappe, u64) {
     c.senden(&strom_anfrage());
     let z = c.bis_schluss();
     let m = c.marken();
-    (z, m, a, d.leck_treffer())
+    let treffer = d.leck_treffer();
+    leck_zeilen_pruefen(
+        &heim,
+        usize::try_from(treffer).expect("count"),
+        "modell.strom",
+        "copilot",
+    );
+    (z, m, a, treffer)
 }
 
 #[test]
@@ -1108,6 +1323,7 @@ fn mcp_leck_im_ergebnis_wird_gesperrt_und_gezaehlt() {
         Some("halter.ziel_fehler")
     );
     assert_eq!(d.leck_treffer(), 1, "another error is no hit");
+    leck_zeilen_pruefen(&heim, 1, "mcp.aufruf", "tickets");
 }
 
 #[test]

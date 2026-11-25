@@ -180,6 +180,30 @@ def bauen():
     fall("a-vorhanden-hub", "Hub fragt, ob sein Token vorhanden ist", zeile(vorhanden()))
     fall("a-vorhanden-oberflaeche", "Oberfläche fragt nach einem Schlüssel", zeile(vorhanden()), lage_=lage("oberflaeche"))
     fall("a-vorhanden-id-zahl", "id als ganze Zahl", zeile(vorhanden(id=9007199254740991)))
+    # vorhanden nach ziel (Nachtrag 25.11.2026): genau eines von name und ziel, ziel nur für die Rolle bruecke
+    def nach_ziel(ziel="cloud-beispiel"):
+        return ohne(vorhanden(id="q-2", ziel=ziel), "name")
+
+    ohne_geheimnis = lage("bruecke")
+    ohne_geheimnis["konfig"]["ziele"]["leer-beispiel"] = {"pfade": ["POST /v1/messages"], "schluessel": "modell.leer-beispiel"}
+    fall("a-vorhanden-ziel-bruecke", "Brücke fragt nach dem Geheimnis eines Ziels; der Halter löst den Namen über halter.json auf",
+         zeile(nach_ziel()), lage_=lage("bruecke"))
+    fall("a-vorhanden-ziel-anmeldung", "Brücke fragt nach dem Ziel, dessen Geheimnis die Anmeldung des eigenen Kontos ist",
+         zeile(nach_ziel(KONTO_ZIEL)), lage_=lage_konto())
+    fall("a-vorhanden-ziel-ohne-geheimnis", "bekanntes Ziel ohne Geheimnis: gültig, die Antwort ist vorhanden false (nicht ziel_unbekannt)",
+         zeile(nach_ziel("leer-beispiel")), lage_=ohne_geheimnis)
+    fall("s07-hub-vorhanden-ziel", "Gegenprobe zu a-vorhanden-ziel-bruecke: der Hub darf nicht nach ziel fragen", zeile(nach_ziel()),
+         code="halter.rolle")
+    fall("s07-oberflaeche-vorhanden-ziel", "die Oberfläche darf nicht nach ziel fragen", zeile(nach_ziel()), code="halter.rolle",
+         lage_=lage("oberflaeche"))
+    fall("s08-vorhanden-name-und-ziel", "vorhanden mit name und ziel zugleich", zeile(vorhanden(ziel="cloud-beispiel")),
+         code="halter.schluessel_unbekannt", lage_=lage("bruecke"))
+    fall("s09-vorhanden-ohne-name-und-ziel", "vorhanden ohne name und ohne ziel", zeile(ohne(vorhanden(), "name")),
+         code="halter.schluessel_fehlt", lage_=lage("bruecke"))
+    fall("s11-vorhanden-ziel-gross", "ziel mit Großbuchstaben ist keine Kennung", zeile(nach_ziel("Cloud-beispiel")),
+         code="halter.wert_form", lage_=lage("bruecke"))
+    fall("s14-vorhanden-ziel-unbekannt", "vorhanden nach einem Ziel, das nicht in halter.json steht: Fehler, nicht false",
+         zeile(nach_ziel("cloud-fremd")), code="halter.ziel_unbekannt", lage_=lage("bruecke"))
     fall("a-modell-gueltig", "Brücke ruft das Modell über ein bekanntes Ziel", zeile(modell()), lage_=lage("bruecke"))
     fall("a-mcp-lesend", "lesender MCP-Aufruf ohne Schein", zeile(mcp("get", {"id": "t-1"}, None)))
     fall("a-mcp-schreibend", "schreibender Aufruf mit gültigem Schein", zeile(mcp()))
@@ -409,6 +433,19 @@ def bauen():
          zeile(konto_modell(pfad="/copilot_internal/v2/token")), code="halter.pfad_verboten", lage_=g)
     fall("a-modell-genauer-pfad-user", "Gegenprobe zu s15-abgeleitetes-token: der genaue Pfad /copilot_internal/user geht",
          zeile(konto_modell(pfad="/copilot_internal/user")), lage_=g)
+    # Nachtrag N1 (Entscheid der Leitung, 25.11.2026): am Modell-Host nur die gemessenen genauen Pfade
+    n1 = lage_konto()
+    n1["konfig"]["ziele"][KONTO_ZIEL]["pfade"] = ["GET /models", "GET /responses", "POST /auto", "POST /models/session",
+                                                 "POST /models/session/intent", "POST /chat/completions",
+                                                 "POST /agents/sessions"]
+    fall("s15-modell-host-ausserhalb", "Pfad außerhalb der genauen Liste des Modell-Hosts (N1)",
+         zeile(konto_modell(methode="POST", pfad="/v1/fremd")), code="halter.pfad_verboten", lage_=n1)
+    fall("s15-modell-host-unterpfad", "Unterpfad eines genauen Pfads des Modell-Hosts (N1)",
+         zeile(konto_modell(pfad="/models/x")), code="halter.pfad_verboten", lage_=n1)
+    fall("a-modell-host-chat", "Gegenprobe zu s15-modell-host-ausserhalb: POST /chat/completions steht in der Liste",
+         zeile(konto_modell(methode="POST", pfad="/chat/completions")), lage_=n1)
+    fall("a-modell-host-modelle", "Gegenprobe zu s15-modell-host-unterpfad: GET /models steht in der Liste",
+         zeile(konto_modell(pfad="/models")), lage_=n1)
     fall("a-modell-genauer-pfad-mcp-registry", "Gegenprobe: der genaue Pfad /copilot/mcp_registry geht",
          zeile(konto_modell(pfad="/copilot/mcp_registry")), lage_=g)
     fall("s16-anmeldung-anderes-konto", "Anmeldung gehört einem anderen Konto als dem der Brücke", zeile(konto_modell()),

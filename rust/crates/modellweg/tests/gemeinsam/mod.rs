@@ -38,7 +38,12 @@ impl Halterattrappe {
     /// A stand-in in the folder `halter` of `w`. `antwort` are the lines it sends per request, with `<ID>` where the
     /// `id` of the request goes.
     pub fn neu(w: &Wegwerf, antwort: Vec<String>) -> Self {
-        let ordner = w.pfad("halter");
+        Self::neu_in(&w.pfad("halter"), antwort)
+    }
+
+    /// A stand-in in the folder `ordner` (made 0700 if it is missing), as `halter.sock`.
+    pub fn neu_in(ordner: &Path, antwort: Vec<String>) -> Self {
+        let ordner = ordner.to_path_buf();
         fs::create_dir_all(&ordner).expect("holder folder");
         fs::set_permissions(&ordner, fs::Permissions::from_mode(0o700)).expect("chmod");
         let pfad = ordner.join("halter.sock");

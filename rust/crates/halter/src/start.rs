@@ -27,7 +27,7 @@ pub struct Orte {
     pub passwd: PathBuf,
     /// The file of the groups (`/etc/group`), for the role groups (section 2.3a).
     pub gruppen: PathBuf,
-    /// The runtime folder, `None`: `$XDG_RUNTIME_DIR` or `/run/user/<uid>`.
+    /// The runtime folder, `None`: always `/run/user/<uid>`, never `$XDG_RUNTIME_DIR` (section 2.3).
     pub laufzeit: Option<PathBuf>,
 }
 
@@ -287,23 +287,13 @@ fn toter_eigener_socket(st: &rustix::fs::Stat, uid: u32, pfad: &Path) -> bool {
         )
 }
 
-/// The runtime folder: the seam, else `$XDG_RUNTIME_DIR` if absolute, else `/run/user/<uid>`.
+/// The runtime folder: the seam of the test build, else the fixed `/run/user/<uid>`. The environment is never read: a
+/// foreign `XDG_RUNTIME_DIR` must not move the socket (section 2.3, finding F17).
 #[must_use]
 pub fn laufzeit_ordner(orte: &Orte, uid: u32) -> PathBuf {
-    laufzeit_aus(orte, uid, std::env::var_os("XDG_RUNTIME_DIR"))
-}
-
-/// [`laufzeit_ordner`] with the value of `XDG_RUNTIME_DIR` given (a test cannot change the environment of its process
-/// without `unsafe`).
-#[must_use]
-pub fn laufzeit_aus(orte: &Orte, uid: u32, xdg: Option<OsString>) -> PathBuf {
-    if let Some(p) = &orte.laufzeit {
-        return p.clone();
-    }
-    match xdg.map(PathBuf::from) {
-        Some(p) if p.is_absolute() => p,
-        _ => PathBuf::from(format!("/run/user/{uid}")),
-    }
+    orte.laufzeit
+        .clone()
+        .unwrap_or_else(|| PathBuf::from(format!("/run/user/{uid}")))
 }
 
 /// Steps 2 to 4.
@@ -415,30 +405,52 @@ mod tests {
     }
 
     #[test]
-    fn laufzeit_aus_naht_xdg_oder_run_user() {
-        use super::laufzeit_aus;
+    fn laufzeit_aus_naht_oder_run_user() {
         let mit = Orte {
             laufzeit: Some(PathBuf::from("/srv/beispiel/lz")),
             ..Orte::fest()
         };
         assert_eq!(
-            laufzeit_aus(&mit, 5, Some(OsString::from("/srv/beispiel/xdg"))),
-            PathBuf::from("/srv/beispiel/lz")
-        );
-        assert_eq!(
             super::laufzeit_ordner(&mit, 5),
             PathBuf::from("/srv/beispiel/lz")
         );
-        let fest = Orte::fest();
         assert_eq!(
-            laufzeit_aus(&fest, 5, Some(OsString::from("/srv/beispiel/xdg"))),
-            PathBuf::from("/srv/beispiel/xdg")
-        );
-        assert_eq!(
-            laufzeit_aus(&fest, 5, Some(OsString::from("relativ/xdg"))),
+            super::laufzeit_ordner(&Orte::fest(), 5),
             PathBuf::from("/run/user/5")
         );
-        assert_eq!(laufzeit_aus(&fest, 5, None), PathBuf::from("/run/user/5"));
+        assert_eq!(
+            super::laufzeit_ordner(&Orte::fest(), 1000),
+            PathBuf::from("/run/user/1000")
+        );
+    }
+
+    /// F17: a foreign `XDG_RUNTIME_DIR` does not move the socket. The test runs itself once more with the variable set
+    /// to another folder (a test cannot set the environment of its own process without `unsafe`); in that child the
+    /// fixed folder must still come out, and the child checks that the variable really is set.
+    #[test]
+    fn xdg_runtime_dir_verlegt_den_socket_nie() {
+        const FREMD: &str = "/srv/beispiel/fremd-xdg";
+        let kind =
+            std::env::var_os("XDG_RUNTIME_DIR").as_deref() == Some(std::ffi::OsStr::new(FREMD));
+        assert_eq!(
+            super::laufzeit_ordner(&Orte::fest(), 5),
+            PathBuf::from("/run/user/5")
+        );
+        if kind {
+            return;
+        }
+        let aus = std::process::Command::new(std::env::current_exe().expect("test binary"))
+            .args([
+                "--exact",
+                "start::tests::xdg_runtime_dir_verlegt_den_socket_nie",
+                "--test-threads=1",
+            ])
+            .env("XDG_RUNTIME_DIR", FREMD)
+            .output()
+            .expect("child");
+        let text = String::from_utf8_lossy(&aus.stdout);
+        assert!(aus.status.success(), "{text}");
+        assert!(text.contains("1 passed"), "{text}");
     }
 
     #[test]

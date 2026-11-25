@@ -174,6 +174,22 @@ pub struct Abgelehnt {
     pub id: Option<Value>,
     /// Set if a ticket was refused in stages 18 to 26.
     pub schein: Option<ScheinAbgelehnt>,
+    /// Set if a path was refused in stage 15 (`halter.pfad_verboten`), for the chain line of section 9.
+    pub pfad: Option<PfadAbgelehnt>,
+}
+
+/// What the chain line of a refused path carries (section 9): the op, the target, the method and the path of the
+/// request, never the query, a head or a body.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PfadAbgelehnt {
+    /// `modell.aufruf` or `modell.strom`.
+    pub op: String,
+    /// `ziel` of the request (a target in `halter.json`).
+    pub ziel: String,
+    /// `GET` or `POST` (`GET` for `modell.strom`).
+    pub methode: String,
+    /// `pfad` of the request, without the query.
+    pub pfad: String,
 }
 
 fn ab(code: Code, id: Option<&Value>) -> Abgelehnt {
@@ -181,6 +197,7 @@ fn ab(code: Code, id: Option<&Value>) -> Abgelehnt {
         code,
         id: id.cloned(),
         schein: None,
+        pfad: None,
     }
 }
 
@@ -317,7 +334,13 @@ fn nach_form(
             }
             Ok(fertig(None, None))
         }
-        Op::Vorhanden | Op::StromTeil | Op::StromEnde => Ok(fertig(None, None)),
+        Op::Vorhanden => match o.get("ziel") {
+            Some(z) if !sicht.ziele.contains_key(z.as_str().unwrap_or("")) => {
+                Err((Code::ZielUnbekannt, None))
+            }
+            _ => Ok(fertig(None, None)),
+        },
+        Op::StromTeil | Op::StromEnde => Ok(fertig(None, None)),
         Op::ModellAufruf | Op::ModellStrom | Op::ModellSuche => {
             let ziel = sicht
                 .ziele
@@ -420,7 +443,10 @@ pub fn pruefen(zeile: &[u8], sicht: &Sicht) -> Result<Geprueft, Abgelehnt> {
     let Some(op) = o.get("op").and_then(Value::as_str).and_then(Op::aus_text) else {
         return Err(ab(Code::OpUnbekannt, id));
     };
-    if !rolle.erlaubt(op) {
+    // `schluessel.vorhanden` by `ziel` is for the role `bruecke` only (section 4)
+    if !rolle.erlaubt(op)
+        || (op == Op::Vorhanden && o.contains_key("ziel") && rolle != Rolle::Bruecke)
+    {
         return Err(ab(Code::Rolle, id));
     }
     match (&sicht.strom, op) {
@@ -433,6 +459,17 @@ pub fn pruefen(zeile: &[u8], sicht: &Sicht) -> Result<Geprueft, Abgelehnt> {
         code,
         id: id.cloned(),
         schein,
+        pfad: (code == Code::PfadVerboten).then(|| PfadAbgelehnt {
+            op: s(o, "op").to_owned(),
+            ziel: s(o, "ziel").to_owned(),
+            methode: if op == Op::ModellStrom {
+                "GET"
+            } else {
+                s(o, "methode")
+            }
+            .to_owned(),
+            pfad: s(o, "pfad").to_owned(),
+        }),
     })
 }
 

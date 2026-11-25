@@ -43,9 +43,14 @@ VORFUEHRDATEI = {
                        {"methode": "GET", "pfad": "/copilot/mcp_registry"}]},
             {"host": "api.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": True,
              "pfade": [{"methode": "GET", "pfad": "/agents/swe/internal/memory/v0/enabled"}]},
-            # Wert von endpoints.api (gemessen im echten Lauf mit dem Testkonto).
+            # Wert von endpoints.api (gemessen im echten Lauf mit dem Testkonto). Nur genaue Pfade, kein Teilbaum
+            # (Entscheid der Leitung, 25.11.2026, Sicherheitsprüfung N1): Ein Pfad, der ein Token ausgibt, steht nie in
+            # einer Regel eines gebundenen Ziels (Halter-Vertrag, Abschnitt 4). alt: GET /* und POST /* dazu.
             {"host": "api.individual.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": True,
-             "pfade": [{"methode": "GET", "pfad": ALLE}, {"methode": "POST", "pfad": ALLE},
+             "pfade": [# gemessen (Vertrag 8, Messung der Copilot CLI 1.0.88 am Wert von endpoints.api): Modellliste
+                       {"methode": "GET", "pfad": "/models"},
+                       # gemessen im zweiten angemeldeten Start (1.0.88): Modellaufruf als WebSocket, Upgrade 101
+                       {"methode": "GET", "pfad": "/responses"},
                        # gemessen mit 1.0.88 (Messung zum Token der CLI): Modellaufrufe, per CONNECT am Proxy
                        {"methode": "POST", "pfad": "/auto"}, {"methode": "POST", "pfad": "/models/session"},
                        {"methode": "POST", "pfad": "/models/session/intent"},

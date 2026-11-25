@@ -88,11 +88,11 @@ below with the toolchain of `rust/rust-toolchain.toml`. Details: `rust/README.md
 | `./gates.sh test` | `cargo test --workspace --all-targets --all-features --locked --no-fail-fast` |
 | `./gates.sh licenses` | `cargo deny --locked --all-features check licenses bans sources` and one CycloneDX SBOM per crate |
 | `./gates.sh notices` | every piece of code taken from another project carries its notice and ships with it |
-| `./gates.sh mutants` | `cargo mutants --workspace`: no mutant survives |
+| `./gates.sh mutants` | `cargo mutants` one crate at a time: no mutant survives in the security crates (`MUTANTS_PFLICHT`); the other crates report theirs |
 
 The continuous integration runs the first five gates through the script on Linux and macOS, and
 fmt, clippy, test and cargo-deny with the same commands on Windows. All of them are required. The
-mutation gate takes hours and runs before a state is published.
+mutation gate runs outside the CI; [CONTRIBUTING.md](CONTRIBUTING.md) says how and when.
 
 ## Contributing
 

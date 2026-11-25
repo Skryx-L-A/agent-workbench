@@ -3,8 +3,8 @@
 # accepts no other cargo). That installer has pinned checksums for x86_64 Linux and arm64 macOS
 # only, so Windows runs the same cargo commands with the toolchain of rust/rust-toolchain.toml.
 #
-# fmt, clippy, test and cargo-deny are required on all three systems. The mutation gate (./gates.sh mutants) takes hours and runs in the source tree before a
-# state is published, not here.
+# fmt, clippy, test and cargo-deny are required on all three systems. The mutation gate (./gates.sh mutants) runs one crate at a time outside the CI (see
+# CONTRIBUTING.md), not here.
 name: ci
 
 on:

@@ -1337,3 +1337,66 @@ fn a_broken_answer_keeps_its_head_and_drops_the_held_bytes() {
     );
     assert_eq!(roh.windows(8).filter(|w| *w == b"HTTP/1.1").count(), 1);
 }
+
+/// Duty 5 of section 3a: a child before the ready line ends the start with exit 70 `mw.kind_verboten`, writes nothing on
+/// stdout and deletes the socket it made. The program reads its own threads for this (`tests/sicherer_modus.rs`,
+/// MW-L5); here the answer of that reading comes from the test.
+#[test]
+fn a_child_before_the_ready_line_ends_the_start() {
+    let w = Wegwerf::neu("kind");
+    let schluessel = w.schluessel(format!("{SCHLUESSEL}\n").as_bytes());
+    let a = argv(
+        &w.pfad("m.sock"),
+        "http://127.0.0.1:9/v1",
+        &schluessel,
+        &w.protokoll(),
+    );
+    let aufloeser = |_: &str, p: u16| -> io::Result<Vec<SocketAddr>> {
+        Ok(vec![SocketAddr::from(([127, 0, 0, 1], p))])
+    };
+    let gefragt = std::cell::Cell::new(0);
+    let (mut out, mut err) = (Vec::new(), Vec::new());
+    let ergebnis = modellweg::start::starten_mit(
+        &a,
+        rustix::process::getuid().as_raw(),
+        &aufloeser,
+        FRISTEN,
+        Box::new(|| gemeinsam::ZEIT),
+        &mut out,
+        &mut err,
+        || {
+            gefragt.set(gefragt.get() + 1);
+            Err(Startfehler::KindVerboten)
+        },
+    );
+    assert_eq!(ergebnis.err(), Some(70));
+    assert_eq!(gefragt.get(), 1);
+    assert_eq!(out, b"");
+    assert_eq!(err, b"mw.kind_verboten: Kindprozess verboten\n");
+    assert!(!w.pfad("m.sock").exists());
+
+    // the same start with the answer "no child" is ready
+    let w = Wegwerf::neu("kindlos");
+    let schluessel = w.schluessel(format!("{SCHLUESSEL}\n").as_bytes());
+    let a = argv(
+        &w.pfad("m.sock"),
+        "http://127.0.0.1:9/v1",
+        &schluessel,
+        &w.protokoll(),
+    );
+    let (mut out, mut err) = (Vec::new(), Vec::new());
+    let ergebnis = modellweg::start::starten_mit(
+        &a,
+        rustix::process::getuid().as_raw(),
+        &aufloeser,
+        FRISTEN,
+        Box::new(|| gemeinsam::ZEIT),
+        &mut out,
+        &mut err,
+        || Ok(()),
+    );
+    assert!(ergebnis.is_ok());
+    assert_eq!(out, b"{\"bereit\":true}\n");
+    assert_eq!(err, b"");
+    assert!(w.pfad("m.sock").exists());
+}

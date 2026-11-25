@@ -742,17 +742,48 @@ fn a_file_of_one_mebibyte_is_read_and_one_byte_more_is_broken() {
     );
 }
 
+/// The change of the command through [`Zustand::wechseln`]: the list becomes `neu` whatever it was, `zwischen` is
+/// the step between.
+fn ersetzen(
+    z: &Zustand,
+    neu: &[Marke],
+    zwischen: impl FnOnce() -> Result<(), Fehler>,
+) -> Result<(), Wechselfehler<()>> {
+    z.wechseln(
+        &klassen(),
+        SPERR_FRIST,
+        |_| Ok(Some((neu.to_vec(), ()))),
+        |()| zwischen(),
+        || {},
+    )
+}
+
+/// Whether another holder could take the lock right now (it is free).
+fn sperre_frei(o: &Ordner) -> bool {
+    let fd = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(o.0.join(SPERR_DATEI))
+        .expect("lock file");
+    match rustix::fs::flock(&fd, FlockOperation::NonBlockingLockExclusive) {
+        Ok(()) => true,
+        Err(rustix::io::Errno::WOULDBLOCK) => false,
+        Err(e) => panic!("flock: {e:?}"),
+    }
+}
+
 #[test]
-fn the_step_between_runs_after_the_new_file_and_before_the_rename() {
+fn the_step_between_runs_after_the_new_file_and_before_the_rename_under_the_lock() {
     let o = Ordner::neu();
-    let z = Zustand::sperren(&o.0, SPERR_FRIST).expect("lock");
+    let z = Zustand::ohne_sperre(&o.0).expect("open");
     let alt = vec![m("/a", None, "intern")];
     let neu = vec![m("/a", None, "intern"), m("/b", None, "intern")];
-    z.ersetzen(&alt, || Ok(())).expect("first");
+    ersetzen(&z, &alt, || Ok(())).expect("first");
     let alter_text = schreiben_marken(&alt);
     let neuer_text = schreiben_marken(&neu);
     let mut gesehen = Vec::new();
-    z.ersetzen(&neu, || {
+    let mut frei = None;
+    ersetzen(&z, &neu, || {
         gesehen.push(std::fs::read_to_string(o.0.join(MARKEN_DATEI)).expect("old"));
         gesehen.push(
             std::fs::read_dir(&o.0)
@@ -762,18 +793,21 @@ fn the_step_between_runs_after_the_new_file_and_before_the_rename() {
                 .map(|e| std::fs::read_to_string(e.path()).expect("new"))
                 .collect::<String>(),
         );
+        frei = Some(sperre_frei(&o));
         Ok(())
     })
     .expect("second");
     assert_eq!(gesehen, [alter_text.clone(), neuer_text.clone()]);
+    assert_eq!(frei, Some(false), "the step between runs under the lock");
+    assert!(sperre_frei(&o), "the lock is given back");
     assert_eq!(
         std::fs::read_to_string(o.0.join(MARKEN_DATEI)).expect("now"),
         neuer_text
     );
     // a failing step: the old list stands and the new file is gone
     assert_eq!(
-        z.ersetzen(&alt, || Err(Fehler::Intern)),
-        Err(Schreibfehler::Zwischen)
+        ersetzen(&z, &alt, || Err(Fehler::Intern)),
+        Err(Wechselfehler::Schreiben(Schreibfehler::Zwischen))
     );
     assert_eq!(
         std::fs::read_to_string(o.0.join(MARKEN_DATEI)).expect("kept"),
@@ -786,6 +820,195 @@ fn the_step_between_runs_after_the_new_file_and_before_the_rename() {
         .collect();
     namen.sort();
     assert_eq!(namen, [MARKEN_DATEI, SPERR_DATEI]);
+}
+
+/// The command `loesen` of `/p` as [`Zustand::wechseln`] sees it: `Err(())` when there is no entry, the value of the
+/// step between is the number of the entries before.
+fn loesen_p(marken: Vec<Marke>) -> Result<Option<(Vec<Marke>, usize)>, ()> {
+    let vorher = marken.len();
+    let neu: Vec<Marke> = marken.into_iter().filter(|m| m.ordner != "/p").collect();
+    if neu.len() == vorher {
+        return Err(());
+    }
+    Ok(Some((neu, vorher)))
+}
+
+/// A command whose new file is slow to reach the disk (it waits in `nach_datei` until `los` is sent) while `zweiter`
+/// runs. Returns the result of the command, the values its step between saw, and what `zweiter` returned.
+fn langsamer_befehl_und<R: Send>(
+    o: &Ordner,
+    zweiter: impl FnOnce() -> R + Send,
+) -> (Result<(), Wechselfehler<()>>, Vec<usize>, R) {
+    let (geschrieben_tx, geschrieben) = std::sync::mpsc::channel();
+    let (los, los_rx) = std::sync::mpsc::channel::<()>();
+    std::thread::scope(|s| {
+        let erster = s.spawn(move || {
+            let mut zeilen = Vec::new();
+            let z = Zustand::ohne_sperre(&o.0).expect("open");
+            let r = z.wechseln(
+                &klassen(),
+                Duration::from_millis(300),
+                loesen_p,
+                |vorher| {
+                    zeilen.push(vorher);
+                    Ok(())
+                },
+                || {
+                    geschrieben_tx.send(()).expect("send");
+                    los_rx.recv().expect("go");
+                },
+            );
+            (r, zeilen)
+        });
+        geschrieben.recv().expect("the command wrote its new file");
+        let zweiter = zweiter();
+        los.send(()).expect("go");
+        let (r, zeilen) = erster.join().expect("command");
+        (r, zeilen, zweiter)
+    })
+}
+
+/// The command path had the `fsync` of the new file under the lock: a second start or command on a busy disk gave
+/// up after the time limit (measured: `b: MarkeKaputt` under load). Now a start at that moment gets the lock within
+/// its short limit, and the command decides again on the changed list: no mark and no change is lost, one line.
+#[test]
+fn a_slow_command_does_not_hold_the_lock_and_no_mark_is_lost() {
+    let o = Ordner::neu();
+    let z = Zustand::ohne_sperre(&o.0).expect("open");
+    ersetzen(
+        &z,
+        &[m("/p", None, "intern"), m("/r", None, "intern")],
+        || Ok(()),
+    )
+    .expect("list");
+    let (befehl, zeilen, start) = langsamer_befehl_und(&o, || markieren(&o, "/q", None, "intern"));
+    assert_eq!((befehl, start), (Ok(()), Ok(())));
+    let mut ordner: Vec<String> = inhalt(&o).into_iter().map(|m| m.ordner).collect();
+    ordner.sort();
+    assert_eq!(
+        ordner,
+        ["/q", "/r"],
+        "the start's mark stays, /p is released"
+    );
+    assert_eq!(
+        zeilen,
+        [3],
+        "one line, about the list with the start's mark"
+    );
+    assert_eq!(neue_dateien(&o), Vec::<String>::new());
+}
+
+/// Two commands on the same entry: the one that was faster wins, the slow one finds no entry any more in its second
+/// round and changes nothing and writes no line.
+#[test]
+fn a_slow_command_whose_entry_is_gone_in_between_changes_nothing_and_writes_no_line() {
+    let o = Ordner::neu();
+    let z = Zustand::ohne_sperre(&o.0).expect("open");
+    ersetzen(
+        &z,
+        &[m("/p", None, "intern"), m("/r", None, "intern")],
+        || Ok(()),
+    )
+    .expect("list");
+    let (befehl, zeilen, zweiter) = langsamer_befehl_und(&o, || {
+        let mut zeilen = Vec::new();
+        let r = Zustand::ohne_sperre(&o.0).expect("open").wechseln(
+            &klassen(),
+            Duration::from_millis(300),
+            loesen_p,
+            |vorher| {
+                zeilen.push(vorher);
+                Ok(())
+            },
+            || {},
+        );
+        (r, zeilen)
+    });
+    assert_eq!(
+        zweiter,
+        (Ok(()), vec![2]),
+        "the second command got the lock"
+    );
+    assert_eq!(
+        (befehl, zeilen),
+        (Err(Wechselfehler::Abgelehnt(())), vec![])
+    );
+    assert_eq!(
+        inhalt(&o).into_iter().map(|m| m.ordner).collect::<Vec<_>>(),
+        ["/r"]
+    );
+    assert_eq!(neue_dateien(&o), Vec::<String>::new());
+}
+
+/// The second round, all under the lock, also puts its step between under the lock and right before its rename, on
+/// the list it decided on.
+#[test]
+fn the_second_round_runs_the_step_between_under_the_lock_on_the_new_list() {
+    let o = Ordner::neu();
+    let z = Zustand::ohne_sperre(&o.0).expect("open");
+    ersetzen(&z, &[m("/p", None, "intern")], || Ok(())).expect("list");
+    let (geschrieben_tx, geschrieben) = std::sync::mpsc::channel();
+    let (los, los_rx) = std::sync::mpsc::channel::<()>();
+    let o = &o;
+    let (start, (r, gesehen)) = std::thread::scope(|s| {
+        let erster = s.spawn(move || {
+            let mut gesehen = Vec::new();
+            let r = Zustand::ohne_sperre(&o.0).expect("open").wechseln(
+                &klassen(),
+                Duration::from_millis(300),
+                loesen_p,
+                |vorher| {
+                    gesehen.push((
+                        vorher,
+                        sperre_frei(o),
+                        inhalt(o).len(),
+                        neue_dateien(o).len(),
+                    ));
+                    Ok(())
+                },
+                || {
+                    geschrieben_tx.send(()).expect("send");
+                    los_rx.recv().expect("go");
+                },
+            );
+            (r, gesehen)
+        });
+        geschrieben.recv().expect("new file");
+        let start = markieren(o, "/q", None, "intern");
+        los.send(()).expect("go");
+        (start, erster.join().expect("command"))
+    });
+    assert_eq!(start, Ok(()), "the start got the lock");
+    assert_eq!(r, Ok(()));
+    // two entries before, lock held, the list still the old one, exactly the new file of the second round beside it
+    assert_eq!(gesehen, [(2, false, 2, 1)]);
+    assert_eq!(
+        inhalt(o).into_iter().map(|m| m.ordner).collect::<Vec<_>>(),
+        ["/q"]
+    );
+    assert_eq!(neue_dateien(o), Vec::<String>::new());
+}
+
+/// Nothing to change: no new file, no step between, no lock left behind.
+#[test]
+fn no_change_writes_nothing_and_runs_no_step_between() {
+    let o = Ordner::neu();
+    let z = Zustand::ohne_sperre(&o.0).expect("open");
+    let mut schritt = false;
+    let r: Result<(), Wechselfehler<()>> = z.wechseln(
+        &klassen(),
+        SPERR_FRIST,
+        |_| Ok(None::<(Vec<Marke>, ())>),
+        |()| {
+            schritt = true;
+            Ok(())
+        },
+        || panic!("no new file"),
+    );
+    assert_eq!(r, Ok(()));
+    assert!(!schritt);
+    assert!(!o.0.join(MARKEN_DATEI).exists());
+    assert!(sperre_frei(&o));
 }
 
 #[test]

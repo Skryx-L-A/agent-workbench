@@ -160,7 +160,7 @@ fn braucht_unlesbares(fall: &Value) -> bool {
 fn faelle() -> Vec<Value> {
     let f = fall_datei("suche.json");
     let faelle = f["faelle"].as_array().expect("cases").clone();
-    assert_eq!(faelle.len(), 46);
+    assert_eq!(faelle.len(), 47);
     faelle
 }
 

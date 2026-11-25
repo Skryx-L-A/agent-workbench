@@ -187,8 +187,17 @@
           },
           "then": {
             "additionalProperties": false,
-            "required": [
-              "name"
+            "oneOf": [
+              {
+                "required": [
+                  "name"
+                ]
+              },
+              {
+                "required": [
+                  "ziel"
+                ]
+              }
             ],
             "properties": {
               "fassung": true,
@@ -198,6 +207,9 @@
               "op": true,
               "name": {
                 "$ref": "#/$defs/name"
+              },
+              "ziel": {
+                "$ref": "#/$defs/kennung"
               }
             }
           }

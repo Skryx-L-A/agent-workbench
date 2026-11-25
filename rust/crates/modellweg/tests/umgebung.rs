@@ -8,6 +8,7 @@ mod gemeinsam;
 use std::ffi::OsString;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
+use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
 
 use gemeinsam::{SCHLUESSEL, Wegwerf, argv, fall_datei, programm, text};
@@ -15,7 +16,19 @@ use serde_json::Value;
 
 /// Runs the program with an empty environment plus `umgebung`; returns exit code, stdout and stderr.
 fn lauf(args: &[OsString], umgebung: &[(String, String)]) -> (i32, Vec<u8>, Vec<u8>) {
+    lauf_als(None, args, umgebung)
+}
+
+/// [`lauf`] with `name` as argv\[0\] where it is given (section 3a, duty 3: the mark of the image after the emptying).
+fn lauf_als(
+    name: Option<&str>,
+    args: &[OsString],
+    umgebung: &[(String, String)],
+) -> (i32, Vec<u8>, Vec<u8>) {
     let mut cmd = Command::new(programm());
+    if let Some(n) = name {
+        cmd.arg0(n);
+    }
     cmd.args(args).env_clear().stdin(Stdio::null());
     for (k, v) in umgebung {
         cmd.env(k, v);
@@ -50,7 +63,9 @@ fn schritt_1(art: &str) -> &'static [u8] {
 fn umgebung_cases() {
     let f = fall_datei("umgebung.json");
     let faelle = f["faelle"].as_array().expect("cases");
-    assert_eq!(faelle.len(), 24);
+    assert_eq!(faelle.len(), 34);
+    let mit_marke = faelle.iter().filter(|f| f.get("argv0").is_some()).count();
+    assert_eq!(mit_marke, 10);
     for fall in faelle {
         let name = text(&fall["name"]);
         let art = text(&fall["betriebsart"]);
@@ -59,8 +74,15 @@ fn umgebung_cases() {
             None => vec!["--betriebsart".into(), art.into()],
         };
         let env = umgebung(fall);
-        let (exit, out, err) = lauf(&args, &env);
-        let e = &fall["erwartet"];
+        let name0 = fall
+            .get("argv0")
+            .map(|n| text(n).replace("<ELTERN>", &std::process::id().to_string()));
+        let (exit, out, err) = lauf_als(name0.as_deref(), &args, &env);
+        // duty 3 of section 3a holds under Linux only; a case with argv0 says what it expects there
+        let e = match fall.get("erwartet_linux") {
+            Some(linux) if cfg!(target_os = "linux") => linux,
+            _ => &fall["erwartet"],
+        };
         if e["bis_schritt"] == "umgebung_gut" {
             assert_eq!(exit, 64, "{name}");
             assert_eq!(err, schritt_1(art), "{name}");

@@ -210,14 +210,36 @@ fn alle_faelle() {
         } else {
             match pruefung::pruefen(&roh, &sicht(&fall["lage"])) {
                 Ok(_) => None,
-                Err(a) => Some(a.code.code().to_owned()),
+                Err(a) => {
+                    // N1: a refused path (stage 15) carries op, target, method and path for its chain line; no other
+                    // refusal does
+                    let anfrage: Value = serde_json::from_slice(&roh).unwrap_or(Value::Null);
+                    let erwartet = (a.code == halter::code::Code::PfadVerboten).then(|| {
+                        let strom = anfrage["op"] == "modell.strom";
+                        pruefung::PfadAbgelehnt {
+                            op: anfrage["op"].as_str().unwrap_or("").to_owned(),
+                            ziel: anfrage["ziel"].as_str().unwrap_or("").to_owned(),
+                            methode: if strom {
+                                "GET"
+                            } else {
+                                anfrage["methode"].as_str().unwrap_or("")
+                            }
+                            .to_owned(),
+                            pfad: anfrage["pfad"].as_str().unwrap_or("").to_owned(),
+                        }
+                    });
+                    if a.pfad != erwartet {
+                        fehler.push(format!("{name}: path of the chain line {:?}", a.pfad));
+                    }
+                    Some(a.code.code().to_owned())
+                }
             }
         };
         if ist != soll {
             fehler.push(format!("{name}: {ist:?}, expected {soll:?}"));
         }
     }
-    assert_eq!(namen.len(), 175, "number of cases");
+    assert_eq!(namen.len(), 188, "number of cases");
     assert_eq!(
         namen.iter().filter(|n| n.starts_with("k-")).count(),
         29,

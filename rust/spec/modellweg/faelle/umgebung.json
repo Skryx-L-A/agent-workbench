@@ -1,6 +1,6 @@
 {
  "fassung": 1,
- "hinweis": "Vertrag 8, Abschnitt 4 (Stufe 0 vor Schritt 1, F1). umgebung ist die Umgebung des Weiterreichers beim Start (Name: Wert); argv gilt nur, wo es steht. bis_schritt umgebung_gut heisst: Stufe 0 besteht, der Start geht zu Schritt 1 weiter. Der Fehler nennt weder Namen noch Wert der Variablen, nur die feste Zeile.",
+ "hinweis": "Vertrag 8, Abschnitt 4 (Stufe 0 vor Schritt 1, F1). umgebung ist die Umgebung des Weiterreichers beim Start (Name: Wert); argv gilt nur, wo es steht; argv0 ist argv[0] des Starts, wo es steht (Abschnitt 3a, Pflicht 3; <ELTERN> ersetzt der Test durch die PID des Prozesses, der das Programm startet), und erwartet_linux gilt dann unter Linux, erwartet auf jedem anderen System. bis_schritt umgebung_gut heisst: Stufe 0 besteht, der Start geht zu Schritt 1 weiter. Der Fehler nennt weder Namen noch Wert der Variablen, nur die feste Zeile.",
  "faelle": [
   {
    "name": "openai-lokal_ssl_cert_file",
@@ -156,6 +156,87 @@
    }
   },
   {
+   "name": "openai-lokal_marke_mit_umgebung",
+   "beschreibung": "ein Abbild nach dem Leeren mit noch einem Namen in der Umgebung",
+   "betriebsart": "openai-lokal",
+   "argv0": "wb-modellweg-geleert:1",
+   "umgebung": {
+    "PATH": "/usr/bin"
+   },
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   },
+   "erwartet_linux": {
+    "exit": 78,
+    "stderr": "mw.umgebung_rest: Umgebung nicht geleert\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "openai-lokal_marke_ohne_elternzahl",
+   "beschreibung": "die Marke ohne Elternprozess und noch ein Name",
+   "betriebsart": "openai-lokal",
+   "argv0": "wb-modellweg-geleert:-",
+   "umgebung": {
+    "LANG": "C"
+   },
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   },
+   "erwartet_linux": {
+    "exit": 78,
+    "stderr": "mw.umgebung_rest: Umgebung nicht geleert\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "openai-lokal_marke_leer",
+   "beschreibung": "ein Abbild nach dem Leeren mit leerer Umgebung: der Start geht weiter (<ELTERN> ist die PID des startenden Prozesses)",
+   "betriebsart": "openai-lokal",
+   "argv0": "wb-modellweg-geleert:<ELTERN>",
+   "umgebung": {},
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   },
+   "erwartet_linux": {
+    "bis_schritt": "umgebung_gut"
+   }
+  },
+  {
+   "name": "openai-lokal_marke_vor_stufe_0",
+   "beschreibung": "Stufe 0 kommt vor dem Leeren: eine Variable von OpenSSL bleibt sichtbar",
+   "betriebsart": "openai-lokal",
+   "argv0": "wb-modellweg-geleert:1",
+   "umgebung": {
+    "SSL_CERT_FILE": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   },
+   "erwartet_linux": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "openai-lokal_keine_marke",
+   "beschreibung": "ein falsches argv[0] ist keine Marke: das Programm leert und geht weiter",
+   "betriebsart": "openai-lokal",
+   "argv0": "wb-modellweg-geleert:0",
+   "umgebung": {
+    "PATH": "/usr/bin"
+   },
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   },
+   "erwartet_linux": {
+    "bis_schritt": "umgebung_gut"
+   }
+  },
+  {
    "name": "kopf-einsetzen_ssl_cert_file",
    "beschreibung": "SSL_CERT_FILE allein gesetzt",
    "betriebsart": "kopf-einsetzen",
@@ -305,6 +386,87 @@
     "OPENSSL_CONFX": "/srv/beispiel/openssl/x"
    },
    "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   }
+  },
+  {
+   "name": "kopf-einsetzen_marke_mit_umgebung",
+   "beschreibung": "ein Abbild nach dem Leeren mit noch einem Namen in der Umgebung",
+   "betriebsart": "kopf-einsetzen",
+   "argv0": "wb-modellweg-geleert:1",
+   "umgebung": {
+    "PATH": "/usr/bin"
+   },
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   },
+   "erwartet_linux": {
+    "exit": 78,
+    "stderr": "mw.umgebung_rest: Umgebung nicht geleert\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "kopf-einsetzen_marke_ohne_elternzahl",
+   "beschreibung": "die Marke ohne Elternprozess und noch ein Name",
+   "betriebsart": "kopf-einsetzen",
+   "argv0": "wb-modellweg-geleert:-",
+   "umgebung": {
+    "LANG": "C"
+   },
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   },
+   "erwartet_linux": {
+    "exit": 78,
+    "stderr": "mw.umgebung_rest: Umgebung nicht geleert\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "kopf-einsetzen_marke_leer",
+   "beschreibung": "ein Abbild nach dem Leeren mit leerer Umgebung: der Start geht weiter (<ELTERN> ist die PID des startenden Prozesses)",
+   "betriebsart": "kopf-einsetzen",
+   "argv0": "wb-modellweg-geleert:<ELTERN>",
+   "umgebung": {},
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   },
+   "erwartet_linux": {
+    "bis_schritt": "umgebung_gut"
+   }
+  },
+  {
+   "name": "kopf-einsetzen_marke_vor_stufe_0",
+   "beschreibung": "Stufe 0 kommt vor dem Leeren: eine Variable von OpenSSL bleibt sichtbar",
+   "betriebsart": "kopf-einsetzen",
+   "argv0": "wb-modellweg-geleert:1",
+   "umgebung": {
+    "SSL_CERT_FILE": "/srv/beispiel/openssl/x"
+   },
+   "erwartet": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   },
+   "erwartet_linux": {
+    "exit": 78,
+    "stderr": "mw.umgebung_unsicher: Umgebung unsicher\n",
+    "stdout": ""
+   }
+  },
+  {
+   "name": "kopf-einsetzen_keine_marke",
+   "beschreibung": "ein falsches argv[0] ist keine Marke: das Programm leert und geht weiter",
+   "betriebsart": "kopf-einsetzen",
+   "argv0": "wb-modellweg-geleert:0",
+   "umgebung": {
+    "PATH": "/usr/bin"
+   },
+   "erwartet": {
+    "bis_schritt": "umgebung_gut"
+   },
+   "erwartet_linux": {
     "bis_schritt": "umgebung_gut"
    }
   }

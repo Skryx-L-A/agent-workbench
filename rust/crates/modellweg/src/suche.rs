@@ -45,6 +45,9 @@ pub enum Suchfehler {
     Aufruf,
     /// `mw.ziele_ungueltig`, exit 78 (the target list).
     ZieleUngueltig,
+    /// `mw.ziel_halter_name`, exit 78 (the target list: a `halter_ziel` is not the `host` of its target; the same code as
+    /// the start, contract 8, section 3a, duty 1).
+    ZielHalterName,
     /// `mw.schluessel_fehlt`, exit 78 (no key to search, or a key file breaks section 5).
     SchluesselFehlt,
     /// `mw.intern`, exit 70 (the line on stdout cannot be written).
@@ -58,6 +61,7 @@ impl Suchfehler {
         match self {
             Self::Aufruf => "mw.suche_aufruf",
             Self::ZieleUngueltig => "mw.ziele_ungueltig",
+            Self::ZielHalterName => "mw.ziel_halter_name",
             Self::SchluesselFehlt => "mw.schluessel_fehlt",
             Self::Intern => "mw.intern",
         }
@@ -69,6 +73,7 @@ impl Suchfehler {
         match self {
             Self::Aufruf => "Suchaufruf ungueltig",
             Self::ZieleUngueltig => "Zielliste ungueltig",
+            Self::ZielHalterName => "Halterziel nicht der Host",
             Self::SchluesselFehlt => "Schluessel nicht lesbar",
             Self::Intern => "interner Fehler",
         }
@@ -79,7 +84,7 @@ impl Suchfehler {
     pub fn exit(self) -> u8 {
         match self {
             Self::Aufruf => 64,
-            Self::ZieleUngueltig | Self::SchluesselFehlt => 78,
+            Self::ZieleUngueltig | Self::ZielHalterName | Self::SchluesselFehlt => 78,
             Self::Intern => 70,
         }
     }
@@ -210,7 +215,14 @@ fn halter_ziele(
     frage: Halterfrage<'_>,
 ) -> Result<Ergebnis, Suchfehler> {
     let text = liste_lesen(pfad, eigene_uid).ok_or(Suchfehler::ZieleUngueltig)?;
-    let liste = zielliste::lies(&text).map_err(|_| Suchfehler::ZieleUngueltig)?;
+    // one code for one thing: the search answers a foreign holder target as the start does (section 3a, duty 1)
+    let liste = zielliste::lies(&text).map_err(|c| {
+        if c == zielliste::HALTER_NAME {
+            Suchfehler::ZielHalterName
+        } else {
+            Suchfehler::ZieleUngueltig
+        }
+    })?;
     let ziele: Vec<String> = liste
         .ziele
         .iter()
@@ -742,6 +754,11 @@ mod tests {
             (
                 Suchfehler::ZieleUngueltig,
                 "mw.ziele_ungueltig: Zielliste ungueltig\n",
+                78,
+            ),
+            (
+                Suchfehler::ZielHalterName,
+                "mw.ziel_halter_name: Halterziel nicht der Host\n",
                 78,
             ),
             (

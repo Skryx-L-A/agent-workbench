@@ -89,7 +89,7 @@ Notiz von `k-beispiel`, weil sie dort erlaubt ist.
    {"host": "api.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": true,
     "pfade": [{"methode": "GET", "pfad": "/agents/swe/internal/memory/v0/enabled"}]},
    {"host": "api.individual.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": true,
-    "pfade": [{"methode": "GET", "pfad": "/*"}, {"methode": "POST", "pfad": "/*"}, {"methode": "POST", "pfad": "/auto"},
+    "pfade": [{"methode": "GET", "pfad": "/models"}, {"methode": "GET", "pfad": "/responses"}, {"methode": "POST", "pfad": "/auto"},
      {"methode": "POST", "pfad": "/models/session"}, {"methode": "POST", "pfad": "/models/session/intent"},
      {"methode": "POST", "pfad": "/chat/completions"}, {"methode": "POST", "pfad": "/agents/sessions"}]},
    {"host": "telemetry.individual.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": false,
@@ -135,12 +135,33 @@ Der echte Lauf (Copilot CLI 1.0.88, the test account, 20.11.2026) hat bestätigt
 Ein Lauf mit Modellaufrufen (1.0.88, Messung zum Token der CLI) hat an `api.individual.githubcopilot.com` die Pfade
 `POST /auto`, `POST /models/session`, `POST /models/session/intent`, `POST /chat/completions` und
 `POST /agents/sessions` gemessen. Alle Aufrufe kamen per `CONNECT` am Proxy an (Nachmessung). Die Pfade stehen
-ausdrücklich in `pfade` (Projektentscheid). Bis zur Entscheidung über eine engere Liste deckt `POST /*` sie weiter
-mit ab (OPEN 5).
+ausdrücklich in `pfade` (Projektentscheid).
+
+**Nur genaue Pfade am Modell-Host (Nachtrag N1, Entscheid der Leitung, 25.11.2026).** An `api.individual.githubcopilot.com`
+stehen nur noch genaue Pfade, kein Teilbaum. Grund: Ein Pfad, der ein Token ausgibt, steht nie in einer Regel eines gebundenen
+Ziels (Halter-Vertrag, Abschnitt 4, „Abgeleitete Tokens“); ein Teilbaum `/*` kann das nicht halten. alt: `GET /*` und `POST /*`
+dazu. Die Liste und die Herkunft jedes Pfads, alle gemessen mit der Copilot CLI 1.0.88 am Wert von `endpoints.api`:
+
+| Methode und Pfad | Zweck | Herkunft |
+|---|---|---|
+| `GET /models` | Modellliste | gemessen (Vertrag 8, Abschnitt zu den Copilot-Zielen) |
+| `GET /responses` | Modellaufruf als WebSocket (101) | gemessen im zweiten angemeldeten Start (Projektentscheid, 20.11.2026) |
+| `POST /auto`, `POST /models/session`, `POST /models/session/intent` | Modellwahl und Sitzung | gemessen (Messung zum Token der CLI, per `CONNECT` am Proxy) |
+| `POST /chat/completions` | Chat | gemessen (ebenda und im zweiten Start) |
+| `POST /agents/sessions` | Sitzung des Agenten | gemessen (Messung zum Token der CLI) |
+
+Nicht aufgenommen, weil die Methode nicht gemessen oder nur ein Teilbaum bekannt ist: `/mcp/readonly` (entfällt mit
+`--disable-builtin-mcps`) und `/.well-known/*` (Vertrag 8). Ein öffentlicher Endpunkt kam nicht dazu: Keiner ist für diesen
+Host belegt, der über die gemessenen hinausgeht. Einen Pfad außerhalb der Liste lehnt der Halter mit `halter.pfad_verboten` ab
+und schreibt eine Kettenzeile mit Methode und Pfad, nie Inhalt (Halter-Vertrag, Abschnitt 9). Die Leitung entscheidet beim
+ersten Start jede fehlende Regel einzeln anhand der Kette. `pruefen.py` prüft: kein Teilbaum an einem Ziel mit Schlüssel,
+jeder gemessene Pfad geht durch, und Pfade außerhalb der Liste (`GET /copilot_internal/v2/token` an beiden Hosts,
+`POST /v1/fremd`, der Unterpfad `GET /models/x`, die falsche Methode `POST /models` und `GET /chat/completions`) gehen nicht
+durch. Gegenprobe gemessen: Mit der alten Liste meldet `pruefen.py` 7 Fehler.
 
 Der echte Lauf hat an `api.individual.githubcopilot.com` zusätzlich `GET /responses` gemessen, ein
-WebSocket-Upgrade. `GET /*` in der Pfadliste dieses Ziels trifft den Pfad; die Vorführdatei braucht darum keinen neuen
-Eintrag, und `pruefen.py` prüft, dass die Datei ihn zulässt. Ziel und Modell der Route `lokal` zeigen
+WebSocket-Upgrade. Der Pfad steht seit dem Nachtrag N1 als genauer Pfad in der Liste (alt: `GET /*` traf ihn), und
+`pruefen.py` prüft, dass die Datei ihn zulässt. Ziel und Modell der Route `lokal` zeigen
 bis zum Bau des Gateway-Wegs auf ein kleines Modell über Ollama auf dem Vorführrechner. Am Ende werden nur diese zwei Werte
 getauscht: die Basis-URL eines OpenAI-kompatiblen Modell-Gateways (`https`, im Firmennetz) und sein Modellname (Form
 `namensraum/modell:groesse`). Der Schlüssel des Gateways steht nie in dieser Datei (OPEN 8).
@@ -416,9 +437,10 @@ python3 -I rust/spec/einstellungen/bau-faelle.py            # Fälle neu erzeuge
 4. **Regelebenen, Konsole, Zonen (A26 bis A30, A45, A127)** folgen in einer späteren Fassung mit neuer `fassung`. Die
    Zonen stehen bis dahin im Teilvertrag `rust/spec/datentor/zonen/VERTRAG.md`, die Regelebenen in
    `rust/spec/regelebenen/README.md`; `vorgabestufe` ist schon Feld dieser Fassung (Tabelle der Felder).
-5. **Copilot-Ziele.** Die gemessenen `POST`-Pfade am Modell-Host stehen in `pfade`. `GET /*` und `POST /*` bleiben,
-   bis jemand entscheidet, ob die Liste auf die gemessenen Pfade schrumpft; dann ergibt jeder andere Pfad 403 mit
-   Protokollzeile. Der WebSocket-Bedarf ist nicht gemessen. Für einen anderen Plan ist der Plan im Namen nicht gemessen.
+5. **Copilot-Ziele.** Entschieden (Nachtrag N1, 25.11.2026): Am Modell-Host stehen nur die gemessenen genauen Pfade;
+   jeder andere Pfad endet beim Halter mit `halter.pfad_verboten` und einer Kettenzeile. Offen: ob die CLI im Betrieb
+   weitere Pfade braucht; die Leitung entscheidet jede fehlende Regel einzeln anhand der Kette. alt: „`GET /*` und `POST /*`
+   bleiben, bis jemand entscheidet“. Für einen anderen Plan ist der Plan im Namen nicht gemessen.
 6. **Weitere Ziele einer lokalen Route.** Fassung 2 erlaubt einer lokalen Route nur ihr Ziel. Braucht die Organisation
    mehr (etwa einen Paketspiegel), folgt das mit einer neuen Fassung.
 7. **Firmennetz-Host.** Die Hostregel prüft nur die Form: Ein Name mit `https` gilt als Firmennetz-Host. Ob er

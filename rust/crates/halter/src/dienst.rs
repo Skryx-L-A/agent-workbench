@@ -186,10 +186,27 @@ impl Dienst {
         }
     }
 
-    /// A hit of the leak lock: the fixed journal line on stderr (section 9), counted.
-    fn leck(&self) {
+    /// A hit of the leak lock for the request `g`: the fixed journal line on stderr and the line `halter.leck_gesperrt`
+    /// in the chain (section 9), counted. The chain line names only the op and the target (`ziel` or `server` from
+    /// `halter.json`), never a value or a part of the hit.
+    fn leck(&self, g: &Geprueft) {
         self.leck_treffer.fetch_add(1, Ordering::Relaxed);
         kette::leck_gesperrt(&mut io::stderr());
+        let Some(k) = &self.kette else {
+            return;
+        };
+        let o = &g.anfrage;
+        let ziel = o
+            .get("ziel")
+            .or_else(|| o.get("server"))
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        if let Err(z) = kette::leck_zeile(k, (self.uhr)(), s(o, "op"), ziel)
+            && self.erste_meldung()
+        {
+            let mut e = io::stderr();
+            let _ = writeln!(e, "{z}");
+        }
     }
 
     /// How many hits of the leak lock wrote their journal line since the start.
@@ -270,6 +287,12 @@ impl Dienst {
         true
     }
 
+    /// Whether the fixed journal line of a chain that cannot be continued was written in this run (F16).
+    #[must_use]
+    pub fn kette_gemeldet(&self) -> bool {
+        self.kette_gemeldet.load(Ordering::Relaxed)
+    }
+
     /// `true` only the first time in a run: the fixed line of a chain that cannot be continued is written once (F16).
     fn erste_meldung(&self) -> bool {
         !self.kette_gemeldet.swap(true, Ordering::Relaxed)
@@ -282,6 +305,20 @@ impl Dienst {
             return;
         };
         if let Err(z) = kette::schein_abgelehnt(k, (self.uhr)(), code, sch)
+            && self.erste_meldung()
+        {
+            let mut e = io::stderr();
+            let _ = writeln!(e, "{z}");
+        }
+    }
+
+    /// Writes the line `halter.pfad_verboten` of a refused path to the chain (section 9); a chain that cannot be
+    /// continued gives the fixed journal line once per run, as for a refused ticket.
+    fn pfad_schreiben(&self, p: &pruefung::PfadAbgelehnt) {
+        let Some(k) = &self.kette else {
+            return;
+        };
+        if let Err(z) = kette::pfad_zeile(k, (self.uhr)(), p)
             && self.erste_meldung()
         {
             let mut e = io::stderr();
@@ -346,6 +383,9 @@ impl Dienst {
                 if let Some(sch) = &a.schein {
                     self.kette_schreiben(a.code, sch);
                 }
+                if let Some(p) = &a.pfad {
+                    self.pfad_schreiben(p);
+                }
                 let weiter = a.code != Code::Peer;
                 return senden(strom, &antwort::fehler(a.id.as_ref(), a.code)).is_ok() && weiter;
             }
@@ -358,7 +398,15 @@ impl Dienst {
         let o = &g.anfrage;
         match g.op {
             Op::Vorhanden => {
-                let name = s(o, "name");
+                // by `ziel` the holder takes the name of the secret from `halter.json` (stage 14 knows the target)
+                let name = match o.get("ziel").and_then(Value::as_str) {
+                    Some(z) => self
+                        .konfig
+                        .ziele
+                        .get(z)
+                        .map_or("", |z| z.regel.schluessel.as_str()),
+                    None => s(o, "name"),
+                };
                 let da = if name.starts_with("modell.") {
                     sicht
                         .geheimnisse
@@ -451,7 +499,7 @@ impl Dienst {
             Ok(mcp::Ausgang::Fehler(n)) => antwort::mcp_fehler(&g.id, n),
             Err(c) => {
                 if c == Code::LeckGesperrt {
-                    self.leck();
+                    self.leck(g);
                 }
                 antwort::fehler(Some(&g.id), c)
             }
@@ -538,7 +586,7 @@ impl Dienst {
             Err(c) => return geschlossen(strom, c),
         };
         if kopf_leck(werte, &weiter) {
-            self.leck();
+            self.leck(g);
             return geschlossen(strom, Code::LeckGesperrt);
         }
         if senden(strom, &antwort::beginn(&g.id, k.status, weiter)).is_err() {
@@ -556,7 +604,7 @@ impl Dienst {
             match koerper.naechstes() {
                 Ok(Some(b)) => {
                     let Ok(frei) = sperre.schieben(&b) else {
-                        self.leck();
+                        self.leck(g);
                         return senden(strom, &antwort::ende_fehler(&g.id, Code::LeckGesperrt))
                             .is_ok();
                     };
@@ -593,7 +641,7 @@ impl Dienst {
         let mut rahmen = Rahmenleser::neu(werte);
         let abriss = |strom: &mut UnixStream, c: Code| {
             if c == Code::LeckGesperrt {
-                self.leck();
+                self.leck(g);
             }
             senden(strom, &antwort::ende_fehler(id, c)).is_ok()
         };
