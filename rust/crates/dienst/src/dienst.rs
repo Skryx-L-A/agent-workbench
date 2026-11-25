@@ -30,7 +30,7 @@ use zustandskern::Wirkungen;
 use crate::bereit::Bereitschaft;
 use crate::betrachter::{Betrachter, json_rahmen};
 use crate::fehler::StartFehler;
-use crate::json::unhex;
+use crate::json::{ereignis_lesen, unhex};
 use crate::meldung::{Meldung, SOCKET_NAME};
 use crate::rahmen::{
     A_ABLEHNUNG, A_EREIGNIS, A_FEHLER, A_KERNFEHLER, A_NACHRICHT, A_RASTER, A_STUMM, A_UHR,
@@ -1186,10 +1186,20 @@ impl Dienst {
         wert
     }
 
+    /// The payload of a frame `Ereignis` as a JSON value; `None` after the error `json_ungueltig`. The event `Starten` may be one level
+    /// deeper than other payloads (see [`ereignis_lesen`]).
+    fn ereignis_nutzlast(&mut self, nr: u64, nutzlast: &[u8]) -> Option<Value> {
+        let wert = ereignis_lesen(nutzlast);
+        if wert.is_none() {
+            self.fehler(nr, "json_ungueltig");
+        }
+        wert
+    }
+
     /// A frame `Ereignis` (DI3): checks in the order of the contract, then gives the event to the core with `betrachter` and `t`.
     /// With `lauf` the events `Starten` and `Beenden` are the service's own and the others go to the core of their session.
     fn ereignis_rahmen(&mut self, nr: u64, nutzlast: &[u8]) {
-        let Some(wert) = self.json_nutzlast(nr, nutzlast) else {
+        let Some(wert) = self.ereignis_nutzlast(nr, nutzlast) else {
             return;
         };
         let Some(objekt) = wert.as_object() else {

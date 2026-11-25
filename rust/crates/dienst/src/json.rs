@@ -2,7 +2,76 @@
 //! (the form of `json.dumps(sort_keys=True, ensure_ascii=False)` of the reference). The size of a frame in the queue depends
 //! on these bytes, and the outside cases compare the number of bytes in the queue.
 
-use serde_json::Value;
+use serde_json::{Map, Value};
+
+/// The payload of a frame `Ereignis` as a JSON value; `None` if it is no UTF-8 or no JSON (the error `json_ungueltig`).
+///
+/// `serde_json` reads at most 127 levels. The bridge passes on a body of up to 127 levels inside the event
+/// `{"art": "Starten", "start": ...}`, one level deeper (bridge contract, section 6 and section 14 point 2). Only for this case the event is
+/// read member by member: each member value on its own again has at most 127 levels, so the event has at most 128. Every other payload
+/// that is too deep stays `json_ungueltig`, as before; the bound stays a bound and the stack depth stays the one of `serde_json`.
+pub(crate) fn ereignis_lesen(nutzlast: &[u8]) -> Option<Value> {
+    let text = std::str::from_utf8(nutzlast).ok()?;
+    match serde_json::from_str::<Value>(text) {
+        Ok(wert) => Some(wert),
+        Err(e) if e.to_string().starts_with("recursion limit exceeded") => {
+            let karte = objekt_je_glied(text)?;
+            (karte.get("art").and_then(Value::as_str) == Some("Starten"))
+                .then_some(Value::Object(karte))
+        }
+        Err(_) => None,
+    }
+}
+
+/// The position of the first byte from `p` on that is no JSON whitespace.
+fn leer(b: &[u8], mut p: usize) -> usize {
+    while matches!(b.get(p), Some(b' ' | b'\n' | b'\t' | b'\r')) {
+        p += 1;
+    }
+    p
+}
+
+/// One JSON value from byte `p` on, read by `serde_json` on its own (with its own depth); the value and the position after it.
+fn glied(text: &str, p: usize) -> Option<(Value, usize)> {
+    let mut strom = serde_json::Deserializer::from_str(text.get(p..)?).into_iter::<Value>();
+    let wert = strom.next()?.ok()?;
+    Some((wert, p + strom.byte_offset()))
+}
+
+/// A JSON object read member by member: whitespace, `{`, members `"key": value` separated by `,`, `}`, whitespace, nothing else
+/// (the syntax of `serde_json`; a later duplicate key replaces the earlier one as there).
+fn objekt_je_glied(text: &str) -> Option<Map<String, Value>> {
+    let b = text.as_bytes();
+    let mut p = leer(b, 0);
+    if b.get(p) != Some(&b'{') {
+        return None;
+    }
+    let mut karte = Map::new();
+    p = leer(b, p + 1);
+    if b.get(p) == Some(&b'}') {
+        return (leer(b, p + 1) == b.len()).then_some(karte);
+    }
+    loop {
+        if b.get(p) != Some(&b'"') {
+            return None;
+        }
+        let (Value::String(schluessel), q) = glied(text, p)? else {
+            return None;
+        };
+        p = leer(b, q);
+        if b.get(p) != Some(&b':') {
+            return None;
+        }
+        let (wert, q) = glied(text, p + 1)?;
+        karte.insert(schluessel, wert);
+        p = leer(b, q);
+        match b.get(p) {
+            Some(b',') => p = leer(b, p + 1),
+            Some(b'}') => return (leer(b, p + 1) == b.len()).then_some(karte),
+            _ => return None,
+        }
+    }
+}
 
 /// The text of a hex string as bytes; an odd length or a character that is no hex digit gives no bytes.
 pub(crate) fn unhex(text: &str) -> Vec<u8> {
@@ -71,10 +140,10 @@ fn schreiben(wert: &Value, aus: &mut String) {
 
 #[cfg(test)]
 mod tests {
-    use super::bytes;
-    use serde_json::json;
+    use super::{bytes, ereignis_lesen};
+    use serde_json::{Value, json};
 
-    fn s(v: &serde_json::Value) -> String {
+    fn s(v: &Value) -> String {
         String::from_utf8(bytes(v)).unwrap_or_default()
     }
 
@@ -103,5 +172,120 @@ mod tests {
             "\"a\\\"b\\\\c\\n\\u0001é\u{1f600}\""
         );
         assert_eq!(s(&json!({"k\n": "v"})), "{\"k\\n\": \"v\"}");
+    }
+
+    /// A JSON array with `n` levels: `[[...]]`.
+    fn tief(n: usize) -> String {
+        format!("{}{}", "[".repeat(n), "]".repeat(n))
+    }
+
+    fn starten_mit(start: &str) -> Vec<u8> {
+        format!(r#"{{"art": "Starten", "start": {start}}}"#).into_bytes()
+    }
+
+    /// The bridge passes on a body of 127 levels (its bound) as `{"art": "Starten", "start": <body>}`: 128 levels for the service. The
+    /// service reads it and refuses the structure as the check of the crate `start` does (stage 2, a structure that is no object), instead of
+    /// ending the connection with `json_ungueltig` (outside case `br_starten_tiefe_127` of the bridge).
+    #[test]
+    fn starten_mit_einem_koerper_von_127_ebenen_wird_gelesen_und_als_start_abgelehnt() {
+        let roh = starten_mit(&tief(127));
+        assert!(
+            serde_json::from_slice::<Value>(&roh).is_err(),
+            "serde_json alone stops at 128 levels"
+        );
+        let wert = ereignis_lesen(&roh).expect("the event Starten with 128 levels is read");
+        assert_eq!(wert["art"], json!("Starten"));
+        let mut start = &wert["start"];
+        let mut ebenen = 0;
+        while let Some(innen) = start.as_array() {
+            ebenen += 1;
+            start = innen.first().unwrap_or(&Value::Null);
+        }
+        assert_eq!(ebenen, 127, "the structure is kept whole");
+        let a = crate::starten::start_form(&wert["start"]).expect_err("no object");
+        assert_eq!(
+            (a.grund.as_str(), a.code.as_str()),
+            ("start_pruefung", "start.json_ungueltig")
+        );
+        // an object as the deepest level, with whitespace around every member
+        let roh = format!(
+            " \n{{ \"start\" :\t{{\"a\": {} }} ,\r\"art\":\"Starten\" }} ",
+            tief(126)
+        );
+        let wert = ereignis_lesen(roh.as_bytes()).expect("128 levels with an object");
+        assert!(wert["start"]["a"].is_array());
+    }
+
+    /// The bound stays a bound: one level more, or a deep event of another kind, stays `json_ungueltig`.
+    #[test]
+    fn tiefer_oder_ein_anderes_ereignis_bleibt_json_ungueltig() {
+        assert!(
+            ereignis_lesen(&starten_mit(&tief(128))).is_none(),
+            "129 levels"
+        );
+        assert!(
+            ereignis_lesen(&starten_mit(&tief(10_000))).is_none(),
+            "very deep"
+        );
+        let eingabe = format!(
+            r#"{{"art": "Eingabe", "sitzung": "s-1", "x": {}}}"#,
+            tief(127)
+        );
+        assert!(ereignis_lesen(eingabe.as_bytes()).is_none(), "another kind");
+        let ohne_art = format!(r#"{{"start": {}}}"#, tief(127));
+        assert!(ereignis_lesen(ohne_art.as_bytes()).is_none(), "no art");
+        let art_kein_text = format!(r#"{{"art": ["Starten"], "start": {}}}"#, tief(127));
+        assert!(
+            ereignis_lesen(art_kein_text.as_bytes()).is_none(),
+            "art no text"
+        );
+        assert!(ereignis_lesen(tief(129).as_bytes()).is_none(), "no object");
+    }
+
+    /// Read member by member, the syntax is the one of `serde_json`: what it refuses stays refused.
+    #[test]
+    fn je_glied_gilt_die_syntax_von_serde_json() {
+        let t = tief(127);
+        for falsch in [
+            format!(r#"{{"art": "Starten", "start": {t},}}"#),
+            format!(r#"{{"art": "Starten" "start": {t}}}"#),
+            format!(r#"{{"art": "Starten", "start" {t}}}"#),
+            format!(r#"{{"art": "Starten", "start": {t}}} x"#),
+            format!(r#"{{"art": "Starten", "start": {t}}}{{}}"#),
+            format!(r#"{{"art": "Starten", start: {t}}}"#),
+            format!(r#"{{"art": "Starten", 1: {t}}}"#),
+            format!(r#"{{"art": "Starten", "start": {t}, "n": NaN}}"#),
+            format!(r#"{{"art": "Starten", "start": {t}, "n": 1x}}"#),
+            format!(r#"{{"art": "Starten", "start": {t}, "n": "\ud800"}}"#),
+            format!(r#"{{"art": "Starten", "start": {t}"#),
+            format!(r#"[{{"art": "Starten", "start": {t}}}]"#),
+            format!("\u{feff}{{\"art\": \"Starten\", \"start\": {t}}}"),
+            format!("{{\"art\": \"Starten\",\u{a0}\"start\": {t}}}"),
+        ] {
+            assert!(ereignis_lesen(falsch.as_bytes()).is_none(), "{falsch:.60}");
+        }
+        let mut kaputt = starten_mit(&t);
+        kaputt.push(0xff);
+        assert!(ereignis_lesen(&kaputt).is_none(), "no UTF-8");
+        // a later duplicate key replaces the earlier one, as in `serde_json`
+        let doppelt =
+            format!(r#"{{"art": "Eingabe", "start": 1, "art": "Starten", "start": {t}}}"#);
+        let wert = ereignis_lesen(doppelt.as_bytes()).expect("duplicate key");
+        assert_eq!(wert.as_object().map(serde_json::Map::len), Some(2));
+        assert!(wert["start"].is_array());
+        // shallow payloads are the ones of `serde_json`
+        for flach in [
+            r#"{"art": "Starten", "start": {"a": [1, 2.5, null]}}"#,
+            "[1]",
+            "3",
+        ] {
+            assert_eq!(
+                ereignis_lesen(flach.as_bytes()),
+                serde_json::from_str::<Value>(flach).ok()
+            );
+        }
+        for kein in ["", "{", "{\"a\": NaN}", "{} {}"] {
+            assert!(ereignis_lesen(kein.as_bytes()).is_none(), "{kein}");
+        }
     }
 }
