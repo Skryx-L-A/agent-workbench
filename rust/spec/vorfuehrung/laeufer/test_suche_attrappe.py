@@ -172,6 +172,7 @@ ZIEL_T = {"name": "telemetrie", "host": "telemetry.beispiel.test", "port": 443, 
 SUCHE_LEER = {"dateien": 1, "nicht_lesbar": 0, "treffer": 0, "uebersprungen": 0}
 FEHLT = (78, "", "mw.schluessel_fehlt: Schluessel nicht lesbar\n")
 UNGUELTIG = (78, "", "mw.ziele_ungueltig: Zielliste ungueltig\n")
+HALTER_NAME = (78, "", "mw.ziel_halter_name: Halterziel nicht der Host\n")
 
 
 class ZiellisteHalter(unittest.TestCase):
@@ -227,11 +228,33 @@ class ZiellisteHalter(unittest.TestCase):
         self.assertEqual(self.suche(h), UNGUELTIG)
 
     def test_halter_ziel_ist_genau_der_host(self):
+        """Ein `halter_ziel`, das nicht genau der `host` ist, endet mit Exit 78 `mw.ziel_halter_name` (Vertrag 8, Abschnitt 3a, Pflicht 1; Fall
+        `zielliste_halter_name`), nicht mit `mw.ziele_ungueltig`. Gegenprobe: `halter_ziel` gleich dem `host` laeuft."""
         h = self.halter({"antworten": {"api.beispiel.test": SUCHE_LEER, "anderes.beispiel.test": SUCHE_LEER}})
         self.liste(dict(ZIEL_A, halter_ziel="anderes.beispiel.test"), ZIEL_T)
-        self.assertEqual(self.suche(h), UNGUELTIG)
+        self.assertEqual(self.suche(h), HALTER_NAME)
         self.liste(ZIEL_A, ZIEL_T)  # Gegenprobe
         self.assertEqual(self.suche(h)[0], 0)
+
+    def test_stufe_12_je_ziel_in_der_reihenfolge_und_vor_den_spaeten_stufen(self):
+        """Stufe 12 (Abschnitt 12): das erste Ziel mit einem Fehler entscheidet. Ein weggefallenes Feld ist `mw.ziele_ungueltig`, ein fremdes
+        Halterziel `mw.ziel_halter_name`. Die Stufe 13 (`upgrade`) und die Stufe 15 (Doppel) kommen danach, die Stufen bis 11 davor."""
+        h = self.halter({"antworten": {"api.beispiel.test": SUCHE_LEER}})
+        fremd = dict(ZIEL_A, name="api-b", host="b.beispiel.test", halter_ziel="x.beispiel.test")
+        weg = dict(ZIEL_A, kopf="x")
+        folgen = [
+            ("weg_dann_name", [weg, fremd], UNGUELTIG),
+            ("name_dann_weg", [fremd, weg], HALTER_NAME),
+            ("name_vor_upgrade", [dict(fremd, upgrade="falsch"), ZIEL_T], HALTER_NAME),
+            ("name_vor_ungebundenem_upgrade", [fremd, dict(ZIEL_T, upgrade="durchreichen")], HALTER_NAME),
+            ("name_vor_doppelt", [ZIEL_A, dict(fremd, name="api-c", host="api.beispiel.test", port=444, halter_ziel="x.beispiel.test")], HALTER_NAME),
+            ("regelform_vor_name", [dict(fremd, regeln=[{"methode": "DELETE", "pfad": "/*"}])], UNGUELTIG),
+            ("upgrade_ohne_name", [dict(ZIEL_A, upgrade="falsch"), ZIEL_T], UNGUELTIG),
+        ]
+        for name, ziele, erwartet in folgen:
+            with self.subTest(fall=name):
+                self.liste(*ziele)
+                self.assertEqual(self.suche(h), erwartet)
 
     def test_halter_fehlt_ergibt_78(self):
         """(c) Ohne Halter: Exit 78, `mw.schluessel_fehlt`, nie gruen. Gegenprobe: mit Halter am selben Pfad Exit 0."""

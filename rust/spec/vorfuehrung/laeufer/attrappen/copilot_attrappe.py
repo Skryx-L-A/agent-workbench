@@ -11,7 +11,8 @@ Was sie tut:
   2. Fehlt `COPILOT_GITHUB_TOKEN`, zeigt sie `Please use /login` und wartet. Sonst zeigt sie die Vertrauensfrage (`Confirm folder trust`),
      wartet auf Enter und zeigt dann das Eingabefeld: ein `❯` zwischen zwei Linien aus `─` und die Fusszeile `/ commands` (wie 1.0.88).
   3. Je Eingabe schickt sie EINE HTTPS-Anfrage ueber `HTTPS_PROXY` (CONNECT) an das Ziel der Route, mit dem Platzhalter im Kopf
-     `Authorization` und dem Text der Eingabe im Koerper. Ziel: Umgebung `COPILOT_ATTRAPPE_ZIEL` (`host:port`), sonst
+     `Authorization` und dem Text der Eingabe im Koerper. Pfad: Steht `--model gpt-6-luna` in argv (die Startform des Probelaufs), geht sie
+     an `POST /chat/completions` mit `{"model": "gpt-6-luna", "messages": [...]}`; bei jedem anderen Modell bleibt es `POST /v1/messages`. Ziel: Umgebung `COPILOT_ATTRAPPE_ZIEL` (`host:port`), sonst
      `copilot-attrappe.test:443`; Zertifikate prueft sie gegen `COPILOT_ATTRAPPE_CA` (Datei), sonst gegen das Bundle des Systems.
   4. Danach fuehrt sie die Befehle der Eingabe aus und schreibt `FERTIG T<n>`. Verstanden werden die Eingaben der Attrappen-Konfiguration
      (`#T<n> [MARKER] BEFEHL <befehl>`, `... BUENDEL <skript>`, `... ZAEHLEN`) und die der Konfiguration des Probelaufs (`Zug T<n>` und ein
@@ -40,6 +41,9 @@ import subprocess
 import sys
 from urllib.parse import urlparse
 
+CHAT_MODELL = "gpt-6-luna"  # das Modell der Startform des Probelaufs (Route der Cloud-Sitzung): dieses geht an die Chat-Schnittstelle des Ziels
+PFAD_MESSAGES = "/v1/messages"
+PFAD_CHAT = "/chat/completions"
 PLATZHALTER = re.compile(r"^gho_0{36}$")
 TOKEN_FORM = re.compile(r"^gho_[0-9A-Za-z]{36}$")
 ZUG = re.compile(r"^\s*#T(\d+)\s+(?:[A-Z]{2}-[0-9A-Z]{3}\s+)?(BEFEHL|BUENDEL|SUCHE|ZAEHLEN)(?:\s+(.*))?$", re.S)
@@ -52,6 +56,25 @@ PLATTFORM = "linux-x64"
 CACHE_DATEIEN = ("index.js", "app.js", "prebuilds/%s/runtime.node" % PLATTFORM, ".extraction-complete")  # die vier Pfade; der letzte zuletzt
 ENTPACKFEHLER = "Failed to extract bundled package\n"
 ABBRUCH_ZEILE = "Unexpected error in the CLI attrappe\n"  # feste erste Zeile jedes anderen Abbruchs vor dem ersten Bild (Ausnahme in Python), Exit 70
+
+
+def modell_aus_argv(argv):
+    """Das Modell der Startform: der Wert nach `--model` (oder `--model=<wert>`); None, wenn keiner steht."""
+    for i, a in enumerate(argv):
+        if a == "--model" and i + 1 < len(argv):
+            return argv[i + 1]
+        if a.startswith("--model="):
+            return a[len("--model="):]
+    return None
+
+
+def anfrage_form(argv, text):
+    """Pfad und Koerper der Anfrage einer Eingabe. Ist das Modell `gpt-6-luna`, geht sie wie bei der echten CLI an `POST /chat/completions`
+    mit `model` und `messages` im Koerper; jedes andere Modell (auch `auto`) bleibt bei `POST /v1/messages` ohne `model`."""
+    nachrichten = [{"role": "user", "content": text}]
+    if modell_aus_argv(argv) == CHAT_MODELL:
+        return PFAD_CHAT, {"model": CHAT_MODELL, "messages": nachrichten}
+    return PFAD_MESSAGES, {"messages": nachrichten}
 
 
 def token_format(wert):
@@ -248,8 +271,9 @@ def _lauf(argv, env, ein, aus):
         status = 0
         if proxy:
             try:
-                status = https_anfrage(proxy, ziel, "/v1/messages", {"Authorization": "Bearer " + platzhalter, "Content-Type": "application/json"},
-                                       json.dumps({"messages": [{"role": "user", "content": text}]}).encode("utf-8"), ca)
+                pfad_anfrage, koerper = anfrage_form(argv, text)
+                status = https_anfrage(proxy, ziel, pfad_anfrage, {"Authorization": "Bearer " + platzhalter, "Content-Type": "application/json"},
+                                       json.dumps(koerper).encode("utf-8"), ca)
             except (OSError, ssl.SSLError):
                 status = 0
         anfragen.append({"status": status})

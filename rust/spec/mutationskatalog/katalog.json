@@ -168,20 +168,20 @@
       "regel": "R-ORDNER-MACOS",
       "anforderung": "A25",
       "datei": "rust/crates/rangkern/src/sitzung/mac.rs",
-      "funktion": "ordner_pruefen",
-      "anker": "if meta.mode() & 0o7777 != 0o700 {",
-      "mutant": "Der Vergleich wird zu `meta.mode() & 0o700 != 0o700`: ein Ordner mit 0707 oder mit setgid wird angenommen.",
-      "roter_test": "rangkern: sitzung/mac.rs, Test des Elternordners mit 0707 unter Plattform::MacOs"
+      "funktion": "ordner_regel",
+      "anker": "if modus & 0o7777 != 0o700 {",
+      "mutant": "Der Vergleich wird zu `modus & 0o700 != 0o700`: ein Ordner mit 0701, 0777 oder mit setgid wird angenommen.",
+      "roter_test": "rangkern: a_parent_folder_with_another_mode_is_refused_and_stays_as_it_is"
     },
     {
       "id": "K13",
       "regel": "R-ORDNER-MACOS",
       "anforderung": "A25",
       "datei": "rust/crates/rangkern/src/sitzung/mac.rs",
-      "funktion": "ordner_pruefen",
-      "anker": "if meta.uid() != euid {",
+      "funktion": "ordner_regel",
+      "anker": "if uid != euid {",
       "mutant": "Der Block wird entfernt: ein Elternordner fremden Eigentuemers wird angenommen.",
-      "roter_test": "rangkern: sitzung/mac.rs, Test des Elternordners fremden Eigentuemers"
+      "roter_test": "rangkern: a_parent_folder_of_another_owner_is_refused"
     },
     {
       "id": "K14",

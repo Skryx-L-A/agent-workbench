@@ -46,6 +46,7 @@ FEST = {
     "mw.suche_aufruf": (64, "Suchaufruf ungueltig"),
     "mw.umgebung_unsicher": (78, "Umgebung unsicher"),
     "mw.ziele_ungueltig": (78, "Zielliste ungueltig"),
+    "mw.ziel_halter_name": (78, "Halterziel nicht der Host"),
     "mw.schluessel_datei": (78, "Schluesseldatei nicht eigen, nicht 0600 oder keine Datei"),
     "mw.schluessel_form": (78, "Schluessel hat falsche Form"),
     "mw.schluessel_fehlt": (78, "Schluessel nicht lesbar"),
@@ -243,7 +244,10 @@ WEGGEFALLEN = ("schluessel_datei", "kopf", "wert_vorsatz")  # bis 22.11.2026 in 
 
 def zielliste_lesen(pfad):
     """Teilmenge des Laders (Abschnitt 12). Gibt die Liste der `halter_ziel` der gebundenen Ziele (ohne Doppel, in Reihenfolge).
-    Die weggefallenen Felder `schluessel_datei`, `kopf` und `wert_vorsatz` machen die Liste ungueltig, auch mit dem Wert `null`."""
+    Die Stufen bis 11 enden sofort mit `mw.ziele_ungueltig`. Stufe 12 gilt je Ziel in der Reihenfolge der Liste, das erste Ziel mit einem Fehler
+    entscheidet: eines der weggefallenen Felder `schluessel_datei`, `kopf`, `wert_vorsatz` (auch mit dem Wert `null`) ist `zl.bindung`, also
+    `mw.ziele_ungueltig`; ein `halter_ziel`, das nicht genau der `host` seines Ziels ist, ist `zl.halter_name`, also Exit 78 `mw.ziel_halter_name`
+    (Vertrag 8, Abschnitt 3a, Pflicht 1). Die Stufen 13 bis 15 (`upgrade`, `ca_zulassung`, Doppel) kommen erst nach Stufe 12."""
     try:
         with open(pfad, "rb") as f:
             roh = f.read(65537)
@@ -252,33 +256,45 @@ def zielliste_lesen(pfad):
         d = json.loads(roh.decode("utf-8"), object_pairs_hook=_doppelt)
         if not isinstance(d, dict) or set(d) != {"fassung", "ca_zulassung", "ziele"} or not _ganz(d["fassung"]) or d["fassung"] != 1:
             raise ValueError
-        if d["ca_zulassung"] not in ("zugelassen", "offen", "abgelehnt") or not isinstance(d["ziele"], list) or not 1 <= len(d["ziele"]) <= 16:
+        if not isinstance(d["ziele"], list) or not 1 <= len(d["ziele"]) <= 16:
             raise ValueError
         namen, hostports, gebunden = set(), set(), []
+        grundfelder = {"name", "host", "port", "halter_ziel", "regeln", "upgrade"}
+        stufe12 = None  # Code des ersten Ziels mit einem Fehler der Stufe 12
+        spaet = not isinstance(d["ca_zulassung"], str) or d["ca_zulassung"] not in ("zugelassen", "offen", "abgelehnt")  # Stufe 14
         for z in d["ziele"]:
-            if not isinstance(z, dict) or set(z) != {"name", "host", "port", "halter_ziel", "regeln", "upgrade"}:
-                raise ValueError  # ein unbekanntes, ein fehlendes oder ein weggefallenes Feld
+            if not isinstance(z, dict) or not grundfelder <= set(z) or not set(z) - grundfelder <= set(WEGGEFALLEN):
+                raise ValueError  # ein unbekanntes oder ein fehlendes Feld (Stufen 3 und 4); die weggefallenen Felder sind Stufe 12
             if not isinstance(z["name"], str) or not KENNUNG.match(z["name"]) or z["name"] in namen:
                 raise ValueError
             namen.add(z["name"])
             if not isinstance(z["host"], str) or not z["host"] or not _ganz(z["port"]) or not 1 <= z["port"] <= 65535:
                 raise ValueError
-            if (z["host"], z["port"]) in hostports:
-                raise ValueError
-            hostports.add((z["host"], z["port"]))
             if not isinstance(z["regeln"], list) or not 1 <= len(z["regeln"]) <= 32 \
                     or any(not isinstance(r, dict) or set(r) != {"methode", "pfad"} for r in z["regeln"]):
                 raise ValueError
             hz = z["halter_ziel"]
+            if hz is not None and not isinstance(hz, str):
+                raise ValueError
+            if hz is not None and any(r["methode"] not in ("GET", "POST", "*") for r in z["regeln"]):
+                raise ValueError  # Stufe 11: der Halter traegt nur GET und POST
+            if stufe12 is None:
+                if set(z) - grundfelder:
+                    stufe12 = "mw.ziele_ungueltig"  # zl.bindung
+                elif hz is not None and hz != z["host"]:
+                    stufe12 = "mw.ziel_halter_name"  # zl.halter_name
+            if (z["host"], z["port"]) in hostports:
+                spaet = True  # Stufe 15
+            hostports.add((z["host"], z["port"]))
             if hz is None:
-                if z["upgrade"] != "ablehnen":
-                    raise ValueError
+                spaet = spaet or z["upgrade"] != "ablehnen"  # Stufe 13
             else:
-                if hz != z["host"] or z["upgrade"] not in ("durchreichen", "ablehnen") or hz in gebunden:
-                    raise ValueError  # Stufe 12: der Name ist genau der Host; Stufe 15: kein Doppel
-                if any(r["methode"] not in ("GET", "POST", "*") for r in z["regeln"]):
-                    raise ValueError  # Stufe 11: der Halter traegt nur GET und POST
+                spaet = spaet or z["upgrade"] not in ("durchreichen", "ablehnen") or hz in gebunden  # Stufen 13 und 15
                 gebunden.append(hz)
+        if stufe12:
+            raise Ende(stufe12)
+        if spaet:
+            raise ValueError
     except (OSError, ValueError, UnicodeDecodeError, TypeError):
         raise Ende("mw.ziele_ungueltig")
     if not gebunden:

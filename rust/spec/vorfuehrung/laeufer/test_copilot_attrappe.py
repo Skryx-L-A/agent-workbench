@@ -83,8 +83,14 @@ class Pruefziel(threading.Thread):
                 while len(rest) < n:
                     rest += s.recv(4096)
                 auth = re.search(rb"(?im)^authorization: (.*)\r?$", kopf)
+                zeile = kopf.split(b"\r\n", 1)[0].decode("ascii", "replace")  # `POST <pfad> HTTP/1.1`
+                try:
+                    modell = json.loads(rest.decode("utf-8", "replace")).get("model")
+                except (ValueError, AttributeError):
+                    modell = None
                 with self.lock:
-                    self.anfragen.append({"platzhalter": bool(auth and auth.group(1).strip() == ("Bearer " + PLATZHALTER).encode()),
+                    self.anfragen.append({"pfad": zeile.split(" ")[1] if zeile.count(" ") >= 2 else None, "modell": modell,
+                                          "platzhalter": bool(auth and auth.group(1).strip() == ("Bearer " + PLATZHALTER).encode()),
                                           "marker": rest.count(self.marker.encode())})
                 if self.offen:
                     s.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}")
@@ -174,9 +180,9 @@ def baum(wurzel):
 class Terminal:
     """Die Attrappe an einem Pseudoterminal; `warte` liest, bis ein Muster im neuen Text steht."""
 
-    def __init__(self, env):
+    def __init__(self, env, argv=None):
         self.master, slave = pty.openpty()
-        self.p = subprocess.Popen([sys.executable, "-I", "-B", ATTRAPPE] + ARGV, stdin=slave, stdout=slave, stderr=subprocess.DEVNULL, env=env,
+        self.p = subprocess.Popen([sys.executable, "-I", "-B", ATTRAPPE] + (ARGV if argv is None else argv), stdin=slave, stdout=slave, stderr=subprocess.DEVNULL, env=env,
                                   close_fds=True)
         os.close(slave)
         self.text = ""
@@ -254,9 +260,45 @@ class CopilotAttrappe(unittest.TestCase):
         with self.ziel.lock:
             return self.ziel.anfragen[self.vorher:]
 
-    def starte(self, env=None):
-        self.t = Terminal(env or self.env)
+    def starte(self, env=None, argv=None):
+        self.t = Terminal(env or self.env, argv)
         return self.t
+
+    def eine_eingabe(self, argv):
+        """Startet mit `argv`, bestaetigt die Vertrauensfrage, sendet eine Eingabe und gibt die eine neue Anfrage am Ziel."""
+        t = self.starte(argv=argv)
+        t.warte(r"Confirm folder trust")
+        t.sende("\r")
+        t.warte(r"/ commands")
+        ab = len(t.text)
+        t.sende("#T1 MP-2C5 ZAEHLEN\r")
+        t.warte(r"FERTIG T1", ab=ab)
+        a = self.neue_anfragen()
+        self.assertEqual(len(a), 1, "genau eine Anfrage je Eingabe")
+        return a[0]
+
+    def test_modell_gpt_6_luna_geht_an_chat_completions_mit_modell_im_koerper(self):
+        a = self.eine_eingabe(["--model", "gpt-6-luna"] + ARGV[2:])
+        self.assertEqual(a["pfad"], "/chat/completions")
+        self.assertEqual(a["modell"], "gpt-6-luna", "der Koerper traegt `model`")
+        self.assertEqual(a["marker"], 1, "der Text der Eingabe steht in `messages`")
+        self.assertTrue(a["platzhalter"])
+
+    def test_modell_gpt_6_luna_in_der_form_mit_gleichheitszeichen(self):
+        a = self.eine_eingabe(["--model=gpt-6-luna"] + ARGV[2:])
+        self.assertEqual(a["pfad"], "/chat/completions")
+        self.assertEqual(a["modell"], "gpt-6-luna")
+
+    def test_anderes_modell_bleibt_bei_v1_messages_ohne_modell(self):
+        for modell in ("auto", "gpt-6-luna-x", "gpt-5"):
+            with self.subTest(modell=modell):
+                a = self.eine_eingabe(["--model", modell] + ARGV[2:])
+                self.assertEqual(a["pfad"], "/v1/messages")
+                self.assertIsNone(a["modell"], "der alte Koerper hat kein `model`")
+            self.t.schliesse()
+            self.t = None
+            with self.ziel.lock:
+                self.vorher = len(self.ziel.anfragen)
 
     def test_vertrauensfrage_enter_eingabefeld_und_eine_anfrage_je_eingabe(self):
         t = self.starte()
@@ -271,6 +313,7 @@ class CopilotAttrappe(unittest.TestCase):
         t.warte(r"FERTIG T1", ab=ab)
         a = self.neue_anfragen()
         self.assertEqual(len(a), 1, "genau eine Anfrage je Eingabe")
+        self.assertEqual(a[0]["pfad"], "/v1/messages", "Modell `auto`: der alte Pfad")
         self.assertTrue(a[0]["platzhalter"], "der Kopf Authorization traegt den Platzhalter")
         self.assertEqual(a[0]["marker"], 1, "der Text der Eingabe steht im Koerper: MP-2C5 zaehlbar")
         self.assertEqual(self.proxy.ziele[-1], HOST + ":443", "ueber HTTPS_PROXY an das Ziel der Route")
@@ -400,6 +443,41 @@ class CopilotAttrappe(unittest.TestCase):
         t.warte(r"FERTIG T1", ab=ab)
         self.assertIn("HTTP 0", t.text, "eine fremde CA nimmt die Attrappe nicht an")
         self.assertEqual(len(self.neue_anfragen()), 0)
+
+
+class ZielZaehler(unittest.TestCase):
+    """Das Pruefziel des Laeufers (`drehbuchlib/modell.py`, Zaehler `copilot.ziel_zaehler`) zaehlt den Chat-Pfad der Attrappe mit."""
+
+    def post(self, port, pfad, koerper, schluessel):
+        import http.client
+        c = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+        try:
+            c.request("POST", pfad, json.dumps(koerper).encode("utf-8"),
+                      {"Content-Type": "application/json", "Authorization": "Bearer " + schluessel})
+            r = c.getresponse()
+            r.read()
+            return r.status
+        finally:
+            c.close()
+
+    def test_zaehler_am_ziel_zaehlt_den_chat_pfad(self):
+        sys.path.insert(0, HIER)
+        try:
+            from drehbuchlib import modell
+        finally:
+            sys.path.pop(0)
+        srv = modell.starte(modell.Mitschnitt(), "such-mcp-brain_suche", schluessel="S")
+        try:
+            kopf = {"model": "gpt-6-luna", "messages": [{"role": "user", "content": "x"}]}
+            self.assertEqual(self.post(srv.server_address[1], "/chat/completions", kopf, "S"), 200)
+            self.assertEqual(srv.autorisiert, 1, "der Chat-Pfad steigert den Zaehler")
+            self.assertEqual(self.post(srv.server_address[1], "/v1/messages", {"messages": kopf["messages"]}, "S"), 200)
+            self.assertEqual(srv.autorisiert, 2, "der alte Pfad auch")
+            self.assertEqual(self.post(srv.server_address[1], "/chat/completions", kopf, "falsch"), 401)
+            self.assertEqual(srv.autorisiert, 2, "ein falscher Schluessel zaehlt nicht")
+        finally:
+            srv.shutdown()
+            srv.server_close()
 
 
 class Paketform(unittest.TestCase):
