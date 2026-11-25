@@ -225,5 +225,89 @@ class ZiellisteNachSuche(unittest.TestCase):
         self.assertEqual(ergebnisse["ohne"][3], [])
 
 
+class VerweisHalter(unittest.TestCase):
+    """Ziel der Gegenprobe auf der Cloud-Route (Vertrag 8, 9a S2a, 25.11.2026): die Datei des Geheimnisses in der Ablage des Halters.
+    Alles unter einem eigenen `mkdtemp`, nie unter dem echten Heimordner."""
+
+    def setUp(self):
+        self.basis = os.path.realpath(tempfile.mkdtemp(prefix="verweis-test-"))
+        self.addCleanup(shutil.rmtree, self.basis, True)
+        self.ablage = os.path.join(self.basis, "halter", "geheim")
+        os.makedirs(self.ablage, mode=0o700)
+        self.geheim = os.path.join(self.ablage, "anmeldung.copilot")
+        schreibe(self.geheim, "wert-der-nie-gelesen-wird")
+        self.konfig = os.path.join(self.basis, "halter", "halter.json")
+        self.halter_json({"api.beispiel.test": {"schluessel": "anmeldung.copilot"}})
+        self.zl = os.path.join(self.basis, "zielliste.json")
+        schreibe(self.zl, json.dumps({"fassung": 1, "ca_zulassung": "zugelassen", "ziele": [
+            {"name": "t", "host": "telemetry.beispiel.test", "port": 443, "halter_ziel": None, "regeln": [], "upgrade": "ablehnen"},
+            {"name": "a", "host": "api.beispiel.test", "port": 443, "halter_ziel": "api.beispiel.test", "regeln": [], "upgrade": "durchreichen"}]}))
+        self.halter = {"konfig": self.konfig, "ablage": self.ablage}
+
+    def halter_json(self, ziele):
+        schreibe(self.konfig, json.dumps({"fassung": 1, "ziele": ziele}))
+
+    def test_zielt_auf_die_datei_in_der_ablage(self):
+        self.assertEqual(schritte.verweis_halter(self.zl, self.halter), self.geheim)
+        self.assertFalse(self.geheim.startswith(os.path.expanduser("~") + os.sep), "nie unter dem echten Heimordner")
+
+    def test_liest_die_datei_des_geheimnisses_nie(self):
+        """Der Laeufer oeffnet Zielliste und `halter.json`, nie die Datei des Geheimnisses. Gegenprobe: der Spion sieht die zwei Dateien."""
+        geoeffnet = []
+        echt_open = open
+
+        def spion(pfad, *a, **kw):
+            geoeffnet.append(os.path.realpath(pfad))
+            return echt_open(pfad, *a, **kw)
+        with mock.patch("builtins.open", side_effect=spion), mock.patch("os.open", side_effect=AssertionError("os.open")):
+            self.assertEqual(schritte.verweis_halter(self.zl, self.halter), self.geheim)
+        self.assertEqual(geoeffnet, [self.zl, self.konfig])
+        self.assertNotIn(self.geheim, geoeffnet)
+
+    def test_name_ausserhalb_der_form_gibt_keinen_verweis(self):
+        for name in ("../anmeldung.copilot", "anmeldung.copilot/../../x", "/etc/passwd", "geheim", "", None, "anmeldung." + "x" * 60):
+            with self.subTest(name=name):
+                self.halter_json({"api.beispiel.test": {"schluessel": name}})
+                self.assertIsNone(schritte.verweis_halter(self.zl, self.halter))
+        self.halter_json({"api.beispiel.test": {"schluessel": "anmeldung.copilot"}})  # Gegenprobe
+        self.assertEqual(schritte.verweis_halter(self.zl, self.halter), self.geheim)
+
+    def test_fehlender_teil_gibt_keinen_verweis(self):
+        self.assertIsNone(schritte.verweis_halter(self.zl, None))
+        self.assertIsNone(schritte.verweis_halter(self.zl, {"konfig": "OFFEN", "ablage": self.ablage}))
+        self.assertIsNone(schritte.verweis_halter(self.zl, {"konfig": self.konfig, "ablage": "OFFEN"}))
+        self.assertIsNone(schritte.verweis_halter(os.path.join(self.basis, "fehlt.json"), self.halter))
+        self.halter_json({"anderes.beispiel.test": {"schluessel": "anmeldung.copilot"}})
+        self.assertIsNone(schritte.verweis_halter(self.zl, self.halter))
+
+    def test_alte_zielliste_gibt_keinen_verweis(self):
+        """Eine Zielliste der alten Form (`schluessel_datei` statt `halter_ziel`) liefert kein Ziel der Gegenprobe mehr."""
+        schreibe(self.zl, json.dumps({"fassung": 1, "ca_zulassung": "zugelassen", "ziele": [
+            {"name": "a", "host": "api.beispiel.test", "port": 443, "schluessel_datei": self.geheim, "kopf": "authorization",
+             "wert_vorsatz": "Bearer ", "regeln": [], "upgrade": "durchreichen"}]}))
+        self.assertIsNone(schritte.verweis_halter(self.zl, self.halter))
+
+    def test_gegenprobe_legt_den_verweis_auf_die_ablage(self):
+        """`_suche_route` legt den Verweis auf die Datei der Ablage in einem eigenen Ordner an und gibt der Suche nur diesen Ordner.
+        Gruen nur mit 0 Dateien und 1 uebersprungen; folgt die Suche dem Verweis (1 Treffer), ist die Gegenprobe rot."""
+        for folgt in (False, True):
+            with self.subTest(folgt=folgt):
+                gesehen = []
+
+                def suche(programm, quelle_option, quelle, ins, frist_s=60):
+                    if len(ins) == 1 and os.path.islink(os.path.join(ins[0], "verweis")):
+                        gesehen.append(os.readlink(os.path.join(ins[0], "verweis")))
+                        z = {"dateien": 1, "nicht_lesbar": 0, "treffer": 1, "uebersprungen": 0} if folgt else \
+                            {"dateien": 0, "nicht_lesbar": 0, "treffer": 0, "uebersprungen": 1}
+                        return ("rot" if folgt else "gruen"), z
+                    return "gruen", {"dateien": 3, "nicht_lesbar": 0, "treffer": 0, "uebersprungen": 0}
+                s = schritte.Schritt("E4-cloud", "Das Token der CLI bleibt draussen (cloud)")
+                with mock.patch.object(messen, "schluessel_suche", side_effect=suche):
+                    schritte._suche_route(FakeL(ziel="attrappe"), s, "cloud", "--zielliste", self.zl, [self.basis],
+                                          schritte.verweis_halter(self.zl, self.halter), ["prog"], "E4-cloud")
+                self.assertEqual(gesehen, [self.geheim])
+                self.assertEqual(s.gegenprobe(), "rot" if folgt else "gruen")
+
+
 if __name__ == "__main__":
     unittest.main()

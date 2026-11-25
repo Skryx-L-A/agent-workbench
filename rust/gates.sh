@@ -11,8 +11,13 @@
 #                         a file under crates/*/src with a foreign licence head that no row lists is red;
 #                         a crate with a bin target and a row runs each bin with `--licenses`: exit 0, and
 #                         each notice file of its rows appears in the output byte for byte
-#   ./gates.sh mutants    cargo-mutants; red if a mutant survives or no mutant was caught; a second run covers
-#                         the crates with seams (NAHT_CRATES) with the feature `pruefbau`
+#   ./gates.sh mutants    cargo-mutants, one run per crate (`-p`), one after the other; red if a mutant of a security
+#                         crate (MUTANTS_PFLICHT) survives or times out, a run fails, or a security crate caught no
+#                         mutant; the other crates only report (target/mutants/bericht.tsv). A second run covers the
+#                         crates with seams (NAHT_CRATES) with the feature `pruefbau`. WB_MUTANTS_BASIS=<git ref> runs
+#                         only the crates changed against it; without it every security crate runs
+#   ./gates.sh mutants-plan  not a gate: prints which crates `mutants` would run, starts no cargo-mutants
+#   ./gates.sh mutants-list  not a gate: `cargo mutants --list` for each run of the plan, with its count
 #   ./gates.sh all        every gate in this order; prints one line per gate
 #   ./gates.sh tools      not a gate: checks the tool folder (~/.local/share/wb-rust-werkzeuge), the toolchain
 #                         and the three tools in their pinned versions; every gate makes the same checks first
@@ -20,7 +25,7 @@
 # Exit codes: 0 green; the exit code of the failing tool for a single gate (at least 1);
 # 1 for `all` when any gate is red; 64 usage error; 127 the tool folder, the toolchain or a required tool
 # is missing or has another version than pinned.
-# The script works from its own directory and writes only below it (target/, mutants.out/, sbom/).
+# The script works from its own directory and writes only below it (target/, sbom/).
 # The notices gate writes only its cargo build (target/) there; its scratch files live in a mktemp directory.
 # Runs on bash 3.2 (macOS) and current bash; no associative arrays.
 
@@ -524,9 +529,206 @@ gate_notices() {
   return "$rc"
 }
 
+# ---- mutation gate ----------------------------------------------------------
+# The frame of the mutation gate (decision of 25.11.2026):
+# - MUTANTS_PFLICHT are the security crates. Each of their runs must end with 0 missed, 0 timeouts and at least one
+#   caught mutant; otherwise the gate is red. Every other workspace crate is a report crate: its missed mutants go into
+#   target/mutants/bericht.tsv and the log, and the gate stays green. The report crates come from `cargo metadata`, never
+#   from a list by hand, so a new crate lands among them and the log names it. A security crate that `cargo metadata`
+#   does not know (renamed, removed) is red.
+# - Never one run over the whole workspace: one `cargo mutants -p <crate>` per crate, one after the other, each with its
+#   own output folder target/mutants/<crate> (the seam run: target/mutants-naht/<crate>). This script never starts two
+#   mutation runs at the same time. On peer the board (wb-tafel) holds the one mutation run of the machine; whoever
+#   starts the gate there takes the place first.
+# - Only changed crates run. WB_MUTANTS_BASIS names a git ref; the crates are those whose folder holds a file that
+#   differs from that ref (working tree against the ref, untracked files included), together with every crate that uses
+#   one of them (a path dependency in its Cargo.toml, or a text `../<folder>/` in one of its files, as with
+#   `include_str!`). A changed file below this folder but outside every crate folder (Cargo.lock, Cargo.toml, .cargo/,
+#   spec/, ansicht/, gates.sh, ...) selects every security crate. Files outside this folder are not in the copy that
+#   cargo-mutants tests, so they select nothing.
+# - Without WB_MUTANTS_BASIS every security crate runs: this is the run before a state is published. When the change
+#   cannot be determined (no git, an unknown ref, a failing diff), every security crate runs as well (fail closed).
+#   Report crates run only when they changed against a base.
+# - Windows code is left out in .cargo/mutants.toml; its mutants run on the Windows test machine, before every delivery
+#   under Windows.
+MUTANTS_PFLICHT="anmelden einschluss stelle datentor modellweg halter dienst peerkanal werkbank-pruefen lauf"
+
+# argv: cargo metadata (JSON), then `alle` or a file with the changed paths (relative to this folder), then
+# MUTANTS_PFLICHT. Prints FEHLT <crate> per unknown security crate, LISTE <crate> per report crate, then
+# WAHL <crate> <reason> per crate to run: security crates in the order of MUTANTS_PFLICHT, then report crates.
+MUTANTS_PLAN_PY='import json, os, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+mode = sys.argv[2]
+pflicht = sys.argv[3].split()
+root = os.path.realpath(m["workspace_root"])
+ids = set(m["workspace_members"])
+pakete = [p for p in m["packages"] if p["id"] in ids]
+crates = {}
+for p in pakete:
+    crates[p["name"]] = os.path.relpath(os.path.realpath(os.path.dirname(p["manifest_path"])), root)
+for n in pflicht:
+    if n not in crates:
+        print("FEHLT\t" + n)
+bericht = sorted(n for n in crates if n not in pflicht)
+for n in bericht:
+    print("LISTE\t" + n)
+reihe = [n for n in pflicht if n in crates] + bericht
+if mode == "alle":
+    for n in pflicht:
+        if n in crates:
+            print("WAHL\t" + n + "\tno base: every security crate")
+    sys.exit(0)
+grund = {}
+alle = None
+for f in open(mode, encoding="utf-8").read().splitlines():
+    if not f:
+        continue
+    treffer = [n for n, d in crates.items() if f.startswith(d + "/")]
+    for n in treffer:
+        grund.setdefault(n, "changed: " + f)
+    if not treffer and alle is None:
+        alle = f
+uses = {n: set() for n in crates}
+for p in pakete:
+    for d in p["dependencies"]:
+        if d.get("path"):
+            dp = os.path.relpath(os.path.realpath(d["path"]), root)
+            for q, qd in crates.items():
+                if qd == dp and q != p["name"]:
+                    uses[p["name"]].add(q)
+for n, d in crates.items():
+    marken = [(q, "../" + os.path.basename(qd) + "/") for q, qd in crates.items() if q != n]
+    for ordner, unter, dateien in os.walk(os.path.join(root, d)):
+        unter[:] = [u for u in unter if u != "target"]
+        for datei in dateien:
+            try:
+                text = open(os.path.join(ordner, datei), encoding="utf-8", errors="replace").read()
+            except OSError:
+                continue
+            for q, marke in marken:
+                if marke in text:
+                    uses[n].add(q)
+neu = True
+while neu:
+    neu = False
+    for n in crates:
+        if n in grund:
+            continue
+        for q in sorted(uses[n]):
+            if q in grund:
+                grund[n] = "uses " + q
+                neu = True
+                break
+if alle is not None:
+    for n in pflicht:
+        if n in crates:
+            grund.setdefault(n, "shared file changed: " + alle)
+for n in reihe:
+    if n in grund:
+        print("WAHL\t" + n + "\t" + grund[n])'
+
+# Writes the plan to $1/plan (lines of MUTANTS_PLAN_PY). Returns 1 when the crates cannot be listed.
+mutants_plan() {
+  local tmp="$1" basis="${WB_MUTANTS_BASIS:-}" mode=alle
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "gates.sh: python3 not found (see README.md, section Tools)" >&2
+    return 127
+  fi
+  if ! cargo metadata --no-deps --format-version 1 --locked > "$tmp/meta.json" 2> "$tmp/meta.err"; then
+    echo "gates.sh: cargo metadata failed: $(tail -n 1 "$tmp/meta.err")" >&2
+    return 1
+  fi
+  if [ -z "$basis" ]; then
+    echo "gates.sh: mutants: no WB_MUTANTS_BASIS, every security crate runs"
+  elif ! git rev-parse --verify --quiet "$basis^{commit}" > /dev/null 2>&1; then
+    echo "gates.sh: mutants: WB_MUTANTS_BASIS '$basis' does not resolve to a commit; every security crate runs (fail closed)"
+  elif ! { git diff --name-only --no-renames --relative "$basis" -- && git ls-files --others --exclude-standard; } \
+      > "$tmp/changed" 2> "$tmp/changed.err"; then
+    echo "gates.sh: mutants: the change against '$basis' cannot be determined ($(tail -n 1 "$tmp/changed.err")); every security crate runs (fail closed)"
+  else
+    mode="$tmp/changed"
+    echo "gates.sh: mutants: base $basis, $(grep -c . "$tmp/changed") changed files below rust/"
+  fi
+  if ! python3 -I -c "$MUTANTS_PLAN_PY" "$tmp/meta.json" "$mode" "$MUTANTS_PFLICHT" > "$tmp/plan" 2> "$tmp/plan.err"; then
+    echo "gates.sh: cargo metadata cannot be read: $(tail -n 1 "$tmp/plan.err")" >&2
+    return 1
+  fi
+}
+
+# Keeps the first non-zero exit code in rc of gate_mutants.
+mutants_keep() {
+  [ "$rc" -ne 0 ] || rc="$1"
+}
+
+mutants_is_pflicht() {
+  case " $MUTANTS_PFLICHT " in *" $1 "*) return 0 ;; esac
+  return 1
+}
+
+mutants_is_naht() {
+  case " $NAHT_CRATES " in *" $1 "*) return 0 ;; esac
+  return 1
+}
+
+# One run: $1 crate, $2 output folder, $3 mode (run|list), then the arguments for cargo-mutants. Returns its exit code.
+mutants_one() {
+  local crate="$1" out="$2" mode="$3"
+  shift 3
+  # cargo-mutants does not create the parent of its output folder, and target/ may not exist yet.
+  mkdir -p "$out" || return
+  if [ "$mode" = list ]; then
+    cargo mutants -p "$crate" --no-shuffle "$@" --list > "$out/liste.txt" || return
+    echo "gates.sh: list: $crate $out $(grep -c . "$out/liste.txt") mutants"
+    return 0
+  fi
+  cargo mutants -p "$crate" --no-shuffle "$@" --output "$out"
+}
+
+# The result of the run of a security crate: $1 crate, $2 output folder, $3 exit code of the run, $4 label.
+mutants_pflicht_result() {
+  local crate="$1" out="$2" code="$3" label="$4" caught missed timeout
+  caught="$(grep -c . "$out/mutants.out/caught.txt" 2>/dev/null)" || caught=0
+  missed="$(grep -c . "$out/mutants.out/missed.txt" 2>/dev/null)" || missed=0
+  timeout="$(grep -c . "$out/mutants.out/timeout.txt" 2>/dev/null)" || timeout=0
+  if [ "$code" -ne 0 ]; then
+    echo "gates.sh: mutants: security crate $crate$label red: exit $code, $missed missed, $timeout timeouts ($out/mutants.out)" >&2
+    return "$code"
+  fi
+  # A green run must have caught at least one mutant; otherwise it proved nothing.
+  if [ "$caught" -lt 1 ]; then
+    echo "gates.sh: mutants: security crate $crate$label: no mutant caught; the run proved nothing" >&2
+    return 1
+  fi
+  echo "gates.sh: mutants: security crate $crate$label: $caught mutants caught, none missed"
+}
+
+# The result of the run of a report crate: missed mutants and timeouts go into the report; only a failed run is red.
+mutants_bericht_result() {
+  local crate="$1" out="$2" code="$3" bericht="$4" art datei zeile n=0
+  case "$code" in
+    0|2|3) ;;
+    *) echo "gates.sh: mutants: the run of report crate $crate failed: exit $code ($out/mutants.out)" >&2; return "$code" ;;
+  esac
+  for art in missed timeout; do
+    datei="$out/mutants.out/$art.txt"
+    [ -f "$datei" ] || continue
+    while IFS= read -r zeile; do
+      [ -n "$zeile" ] || continue
+      printf '%s\t%s\t%s\n' "$crate" "$art" "$zeile" >> "$bericht"
+      echo "gates.sh: mutants: report $crate $art: $zeile"
+      n=$((n + 1))
+    done < "$datei"
+  done
+  echo "gates.sh: mutants: report crate $crate: $n missed or timed out (not blocking)"
+}
+
+# $1 is `run` (the gate), `plan` (prints the plan, starts no cargo-mutants) or `list` (cargo mutants --list per run).
 gate_mutants() {
+  local mode="${1:-run}"
   need cargo || return
-  need_subcommand mutants || return
+  if [ "$mode" != plan ]; then
+    need_subcommand mutants || return
+  fi
   local rc=0
   # The first run builds the delivered state, without the feature `pruefbau`. cargo-mutants reads the source as
   # text and does not evaluate `cfg`, so a mutant in code that stands only behind `cfg(feature = "pruefbau")` is not
@@ -585,34 +787,77 @@ gate_mutants() {
     # dienst, `starten`: `rahmen_waehlen(n, ...)` is only checked for `None`, which does not depend on `n`.
     --exclude-re 'crates/dienst/src/dienst.rs:1394:43: replace [+] with [*] in Dienst::starten'
   )
-  cargo mutants --workspace --no-shuffle "${erster[@]}" "${gleichwertig[@]}" --output . || rc=$?
-  if [ "$rc" -ne 0 ]; then
+  local tmp code crate grund bericht=target/mutants/bericht.tsv pflicht_wahl="" bericht_wahl="" liste="" aus=""
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/gates-mutants.XXXXXX")" || return 64
+  mutants_plan "$tmp" || code=$?
+  if [ "${code:-0}" -ne 0 ]; then
+    case "$tmp" in */gates-mutants.??????) rm -rf -- "$tmp" ;; esac
+    return "$code"
+  fi
+  while IFS=$'\t' read -r art crate grund; do
+    case "$art" in
+      FEHLT)
+        echo "gates.sh: mutants: security crate $crate is not in the workspace (cargo metadata); red" >&2
+        rc=1 ;;
+      LISTE) liste="$liste $crate" ;;
+      WAHL)
+        echo "gates.sh: mutants: run $crate ($grund)"
+        if mutants_is_pflicht "$crate"; then pflicht_wahl="$pflicht_wahl $crate"; else bericht_wahl="$bericht_wahl $crate"; fi ;;
+    esac
+  done < "$tmp/plan"
+  case "$tmp" in */gates-mutants.??????) rm -rf -- "$tmp" ;; esac
+  echo "gates.sh: mutants: security crates:$(printf ' %s' $MUTANTS_PFLICHT)"
+  echo "gates.sh: mutants: report crates (cargo metadata):${liste:- none}"
+  for crate in $MUTANTS_PFLICHT $liste; do
+    case " $pflicht_wahl $bericht_wahl " in *" $crate "*) ;; *) aus="$aus $crate" ;; esac
+  done
+  echo "gates.sh: mutants: not run:${aus:- none}"
+  if [ "$mode" = plan ]; then
+    for crate in $pflicht_wahl; do
+      echo "plan: security $crate"
+      if mutants_is_naht "$crate"; then echo "plan: security $crate --features pruefbau"; fi
+    done
+    for crate in $bericht_wahl; do echo "plan: report $crate"; done
     return "$rc"
   fi
-  # A green run must have caught at least one mutant; otherwise it proved nothing.
-  local caught
-  caught="$(grep -c . mutants.out/caught.txt 2>/dev/null)" || caught=0
-  if [ "$caught" -lt 1 ]; then
-    echo "gates.sh: no mutant caught; the mutation run proved nothing" >&2
-    return 1
-  fi
-  echo "gates.sh: $caught mutants caught, none missed"
-  # The run above has no features, so the seam tests of NAHT_CRATES are not built. A second run over those
-  # crates with the feature `pruefbau` lets their seam tests catch mutants too (decision of 24.11.2026). Its
-  # output goes below target/.
-  local pakete=() crate
-  for crate in $NAHT_CRATES; do
-    pakete+=(-p "$crate")
+  mkdir -p target/mutants || return
+  : > "$bericht" || return
+  # One run after the other; never two at the same time.
+  for crate in $pflicht_wahl; do
+    code=0
+    mutants_one "$crate" "target/mutants/$crate" "$mode" "${erster[@]}" "${gleichwertig[@]}" || code=$?
+    if [ "$mode" = list ]; then
+      [ "$code" -eq 0 ] || rc="$code"
+    else
+      mutants_pflicht_result "$crate" "target/mutants/$crate" "$code" "" || mutants_keep "$?"
+    fi
+    mutants_is_naht "$crate" || continue
+    # The run above has no features, so the seam tests of the crate are not built. A second run with the feature
+    # `pruefbau` lets its seam tests catch mutants too (decision of 24.11.2026).
+    code=0
+    mutants_one "$crate" "target/mutants-naht/$crate" "$mode" --features pruefbau "${gleichwertig[@]}" || code=$?
+    if [ "$mode" = list ]; then
+      [ "$code" -eq 0 ] || rc="$code"
+    else
+      mutants_pflicht_result "$crate" "target/mutants-naht/$crate" "$code" " with the feature pruefbau" || mutants_keep "$?"
+    fi
   done
-  # cargo-mutants does not create the parent of its output folder, and target/ may not exist yet.
-  mkdir -p target/mutants-naht || return
-  cargo mutants "${pakete[@]}" --features pruefbau --no-shuffle "${gleichwertig[@]}" --output target/mutants-naht || return
-  caught="$(grep -c . target/mutants-naht/mutants.out/caught.txt 2>/dev/null)" || caught=0
-  if [ "$caught" -lt 1 ]; then
-    echo "gates.sh: no mutant caught with the feature pruefbau; the second mutation run proved nothing" >&2
-    return 1
+  for crate in $bericht_wahl; do
+    code=0
+    mutants_one "$crate" "target/mutants/$crate" "$mode" "${erster[@]}" "${gleichwertig[@]}" || code=$?
+    if [ "$mode" = list ]; then
+      [ "$code" -eq 0 ] || rc="$code"
+    else
+      mutants_bericht_result "$crate" "target/mutants/$crate" "$code" "$bericht" || mutants_keep "$?"
+    fi
+  done
+  if [ "$mode" = run ]; then
+    echo "gates.sh: mutants: report of the report crates: $bericht ($(grep -c . "$bericht") lines)"
+    if [ "$rc" -eq 0 ]; then
+      echo "gates.sh: mutants green: security crates run:${pflicht_wahl:- none}"
+    fi
   fi
-  echo "gates.sh: $caught mutants caught with the feature pruefbau, none missed"
+  return "$rc"
 }
 
 run_gate() {
@@ -622,7 +867,9 @@ run_gate() {
     test) gate_test ;;
     licenses) gate_licenses ;;
     notices) gate_notices ;;
-    mutants) gate_mutants ;;
+    mutants) gate_mutants run ;;
+    mutants-plan) gate_mutants plan ;;
+    mutants-list) gate_mutants list ;;
     tools) gate_tools ;;
     *) echo "gates.sh: unknown gate '$1' (gates: $GATES all)" >&2; return 64 ;;
   esac

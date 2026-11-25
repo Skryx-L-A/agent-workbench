@@ -1,10 +1,11 @@
-"""Konfiguration des Laeufers: laden, `$ARBEIT`, `$HIER`, `$NUTZER`, `$DATEN`, `$XDG_RUNTIME_DIR` und `$PYTHON` einsetzen, pruefen, Einstellungsdatei des Drehbuchs bauen."""
+"""Konfiguration des Laeufers: laden, `$ARBEIT`, `$HIER`, `$NUTZER`, `$DATEN`, `$XDG_RUNTIME_DIR`, `$HEIM_PASSWD` und `$PYTHON` einsetzen, pruefen, Einstellungsdatei des Drehbuchs bauen."""
 from __future__ import annotations
 
 import copy
 import getpass
 import json
 import os
+import pwd
 import sys
 
 PFLICHT = ("ziel", "bruecke", "modell", "fremd", "einstellungen", "protokoll", "kette_befehl", "datentor_befehl", "vault",
@@ -41,7 +42,9 @@ def lade(pfad, hier, arbeit, nutzer=None):
     nutzer = nutzer or getpass.getuser()
     lauf = os.environ.get("XDG_RUNTIME_DIR") or "/run/user/%d" % os.getuid()  # Laufzeitordner des Nutzers (Bruecke: <lauf>/werkbank/)
     k = _setze(k, {"$ARBEIT": arbeit, "$HIER": hier, "$NUTZER": nutzer, "$DATEN": "/var/lib/werkbank/" + nutzer,
-                   "$XDG_RUNTIME_DIR": lauf, "$UID": str(os.getuid()), "$PYTHON": sys.executable})
+                   "$XDG_RUNTIME_DIR": lauf, "$UID": str(os.getuid()), "$PYTHON": sys.executable,
+                   # Heim wie der Halter es bestimmt: Feld 6 des eigenen Eintrags in /etc/passwd; HOME gilt nicht (Halter-Vertrag, Ablage)
+                   "$HEIM_PASSWD": pwd.getpwuid(os.getuid()).pw_dir})
     fehlt = [x for x in PFLICHT if x not in k]
     if fehlt:
         raise KonfigFehler("Schluessel fehlen: " + ", ".join(fehlt))

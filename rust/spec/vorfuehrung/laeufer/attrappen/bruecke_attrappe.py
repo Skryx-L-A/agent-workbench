@@ -91,8 +91,9 @@ FEHLER = {
     "schluessel-in-ausgabe": "der Schluessel des Gateways steht im Terminal einer lokalen Sitzung",
     "pruefinstanz-endet-vor-bereit": "die Pruefinstanz des Weiterreichers endet vor der Bereitschaft (Programm modellweg.py)",
     "pruefinstanz-haengt": "die Pruefinstanz reagiert nicht auf SIGTERM (Programm modellweg.py)",
-    "suche-unlesbar": "die Suche nach dem Schluessel meldet eine Wurzel als nicht lesbar (Programm modellweg.py)",
-    "suche-folgt-verknuepfung": "die Suche nach dem Schluessel folgt Verknuepfungen (Programm modellweg.py)",
+    "suche-unlesbar": "die Suche nach dem Schluessel meldet eine Wurzel als nicht lesbar (Programm modellweg.py, auf der Cloud-Route halter.py)",
+    "suche-folgt-verknuepfung": "die Suche nach dem Schluessel folgt Verknuepfungen (Programm modellweg.py, auf der Cloud-Route halter.py)",
+    "halter-fehlt": "die Attrappe des Halters laeuft nicht; die Suche der Cloud-Route erreicht ihn nicht (Exit 78, mw.schluessel_fehlt)",
     "e4-direkt-offen": "der Einschluss erreicht das Gateway direkt (das Gateway verlangt dann auch keinen Schluessel mehr)",
 }
 START_STUFEN = {

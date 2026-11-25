@@ -191,7 +191,11 @@
   "suche": {
    "programm": ["$PYTHON", "-I", "-B", "$HIER/attrappen/modellweg.py"],
    "schluessel_datei": "$ARBEIT/schluessel/modellweg.schluessel",
-   "zielliste": "$ARBEIT/schluessel/zielliste.json"
+   "zielliste": "$ARBEIT/schluessel/zielliste.json",
+   "halter": {
+    "konfig": "$ARBEIT/halter/halter.json",
+    "ablage": "$ARBEIT/halter/geheim"
+   }
   },
   "url": null,
   "weiterreicher_url": null

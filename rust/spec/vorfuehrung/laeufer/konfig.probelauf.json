@@ -129,7 +129,11 @@
     "/usr/lib/werkbank/werkbank-modellweg"
    ],
    "schluessel_datei": "$DATEN/modellweg.schluessel",
-   "zielliste": "$DATEN/sitzungen/{sitzung}.zielliste.json"
+   "zielliste": "$DATEN/sitzungen/{sitzung}.zielliste.json",
+   "halter": {
+    "konfig": "/etc/werkbank/halter.json",
+    "ablage": "$HEIM_PASSWD/.local/state/agent-workbench/halter/geheim"
+   }
   },
   "url": null,
   "weiterreicher_url": null

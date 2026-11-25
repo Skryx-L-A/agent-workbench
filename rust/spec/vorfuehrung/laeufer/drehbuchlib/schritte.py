@@ -952,6 +952,32 @@ def _zielliste_nach_suche(L, pfad, sid, art_):
     return [hinweis] if hinweis else []
 
 
+GEHEIMNIS_NAME = re.compile(r"^(modell|anmeldung|mcp|mail)\.[a-z0-9][a-z0-9._-]*$")  # Halter-Vertrag, Abschnitt 4 (dazu hoechstens 64 Zeichen)
+
+
+def verweis_halter(zielliste, halter):
+    """Ziel der Gegenprobe auf der Cloud-Route (Vertrag 8, 9a S2a, 25.11.2026): die Datei des Geheimnisses in der Ablage des Halters,
+    `<ablage>/<name>`. Den Namen nennt `halter.json` beim Ziel, das das erste gebundene Ziel der Zielliste in `halter_ziel` nennt
+    (Feld `ziele.<ziel>.schluessel`, Halter-Vertrag Abschnitt 2.3a). Der Laeufer liest Zielliste und `halter.json`, nie die Datei des
+    Geheimnisses; er prueft nicht einmal, ob sie da ist. `halter` ist `gateway.suche.halter` mit `konfig` und `ablage`. Gibt den Pfad,
+    oder None, wenn ein Teil fehlt, `OFFEN` ist oder die Form verletzt (dann gibt es keine Gegenprobe und E4-cloud wird nie gruen)."""
+    if not isinstance(halter, dict):
+        return None
+    konfig_pfad, ablage = halter.get("konfig"), halter.get("ablage")
+    if not all(isinstance(x, str) and x.startswith("/") for x in (konfig_pfad, ablage)):
+        return None  # auch `OFFEN...`
+    try:
+        with open(zielliste, encoding="utf-8") as f:
+            ziel = next(z["halter_ziel"] for z in json.load(f)["ziele"] if z.get("halter_ziel") is not None)
+        with open(konfig_pfad, encoding="utf-8") as f:
+            name = json.load(f)["ziele"][ziel]["schluessel"]
+    except (OSError, ValueError, StopIteration, KeyError, TypeError):
+        return None
+    if not isinstance(name, str) or len(name) > 64 or not GEHEIMNIS_NAME.match(name):
+        return None  # nie ein Name mit `/` oder `..`: der Verweis zeigt immer in die Ablage
+    return os.path.join(ablage, name)
+
+
 def _suche_route(L, s, art, quelle_option, quelle, ins, schluessel_datei_fuer_verweis, programm, kennung, nach_suche=None):
     """Eine Suche je Route und die Gegenprobe mit dem Verweis. Ergaenzt den Schritt `s` (E4-lokal oder E4-cloud). `nach_suche(art)` laeuft
     nach der Suche UND nach ihrer Gegenprobe, auch wenn die Gegenprobe mit einer Ausnahme endet: Die Gegenprobe ruft die Suche noch einmal
@@ -1058,12 +1084,10 @@ def suche_nachtrag(L, objekte):
                     s.offen.append("schluessel_suche: Ort der Zielliste der Cloud-Sitzung fehlt")  # Vertrag 8 nennt ihn nicht (OPEN)
                     s.code_offen = s.code_offen or "e4-cloud.schluessel_suche_fehler"
                     continue
-                verweis = None
-                try:  # Pfad einer Schluesseldatei aus der Zielliste (die Zielliste enthaelt keine Schluessel)
-                    with open(zl, encoding="utf-8") as f:
-                        verweis = next(z["schluessel_datei"] for z in json.load(f)["ziele"] if z.get("schluessel_datei"))
-                except (OSError, ValueError, StopIteration, KeyError, TypeError):
-                    pass
+                verweis = verweis_halter(zl, cfg.get("halter"))
+                if verweis is None:
+                    s.offen.append("schluessel_suche: Ziel der Gegenprobe in der Ablage des Halters fehlt")
+                    s.code_offen = s.code_offen or "e4-cloud.schluessel_suche_fehler"
                 _suche_route(L, s, "cloud", "--zielliste", zl, ins, verweis, programm, kennung,
                              nach_suche=lambda art_, zl=zl, sid_zl=sid_zl: hinweise.extend(_zielliste_nach_suche(L, zl, sid_zl, art_)))
     except OSError:

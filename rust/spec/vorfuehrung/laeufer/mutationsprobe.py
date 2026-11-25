@@ -34,6 +34,8 @@ FEHLER = [  # (Fehler, Schritt, der rot werden muss)
     # Suche nach dem genauen Schluessel (Vertrag 8, 9a): die Suche laeuft je Route, ein Programm fuer beide Routen
     ("schluessel-im-arbeitsordner", "E4-lokal"), ("schluessel-in-ausgabe", "E4-lokal"),
     ("suche-unlesbar", "E4-lokal,E4-cloud", "offen"), ("suche-folgt-verknuepfung", "E4-lokal,E4-cloud"),
+    # Halterweg (Vertrag 8, 9a S2 Punkt 3b): ohne Halter endet die Suche der Cloud-Route mit 78, E4-cloud ist offen, nie gruen
+    ("halter-fehlt", "E4-cloud", "offen"),
     ("ca-cli-lehnt-ab", "E4-cloud", "offen"), ("ausgang-blockiert", "E4-cloud", "offen"),
     # Cloud-Zaehlung am Weiterreicher: jeder Schritt, der eine Cloud-Sitzung misst (mehrere Schritte, durch Komma getrennt)
     ("cloud-zaehlung-unbelegt", "S1,S3,S5,E1,E2,E3,E4-cloud", "offen"), ("cloud-marker-am-weiterreicher", "S1,S3,S5,E1,E2,E3,E4-cloud"),

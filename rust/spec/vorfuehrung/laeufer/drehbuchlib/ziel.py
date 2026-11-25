@@ -22,6 +22,8 @@ SEITENORDNER_FEST = re.compile(r"^Seitenordner: Abbruch: (Seitenordner unvollsta
                                r"|Seitenordner fehlt: kein Ordner|Seitenordner: %s ist groesser als [0-9]{1,12} Bytes)$" % (_DATEI, _DATEI))
 
 HIER = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HALTER_ZIEL = "api.beispiel.test"  # gebundenes Ziel der Attrappe; `halter_ziel` ist genau der Host (Vertrag 8, Abschnitt 12, Stufe 12)
+HALTER_GEHEIMNIS = "anmeldung.copilot"  # Name des Geheimnisses in der Attrappe von `halter.json` (Halter-Vertrag, Abschnitt 4)
 
 
 def _bind(text):
@@ -41,6 +43,8 @@ class Ziel:
         self.fremd = None
         self.prozess = None
         self.bruecke_k = None
+        self.halter_prozess = None
+        self.halter_ordner = None
 
     def starten(self):
         k = self.k
@@ -104,8 +108,14 @@ class Ziel:
         return b
 
     def _schluesseldateien(self):
-        """Nur Attrappen: Schluesseldateien und Zielliste fuer die Pruefinstanz und die Suche (Vertrag 8, Abschnitte 5, 9a, 12). Ordner 0700,
-        Dateien 0600, Wert ohne LF, ausserhalb jedes Arbeitsordners. Im echten Lauf legt das Paket sie an; der Laeufer schreibt sie nie."""
+        """Nur Attrappen: Schluesseldatei der lokalen Route, Zielliste und Halter fuer die Pruefinstanz und die Suche (Vertrag 8,
+        Abschnitte 5, 9a, 12). Ordner 0700, Dateien 0600, Wert ohne LF, ausserhalb jedes Arbeitsordners. Im echten Lauf legt das Paket
+        sie an; der Laeufer schreibt sie nie.
+
+        Die Zielliste hat die Form vom 25.11.2026: ein gebundenes Ziel traegt `halter_ziel` (genau sein Host), ein ungebundenes
+        `null`; keine Schluesseldatei, kein Kopf, kein Vorsatz. Den Wert des gebundenen Ziels haelt nur die Attrappe des Halters
+        (`attrappen/halter.py`), in ihrer Ablage unter `$ARBEIT`, nie unter dem echten Heimordner. Die Suche erreicht sie ueber die
+        Naht `--attrappe-halter <socket>`; mit dem Fehler `halter-fehlt` startet sie nicht."""
         g = self.k["gateway"]
         ordner = os.path.dirname(g["suche"]["schluessel_datei"])
         os.makedirs(ordner, mode=0o700, exist_ok=True)
@@ -118,14 +128,38 @@ class Ziel:
             os.chmod(pfad, 0o600)
         schreibe(g["suche"]["schluessel_datei"], self.gateway_schluessel)
         zl = g["suche"].get("zielliste")
-        if zl and self.cloud_marke:
-            cloud = os.path.join(ordner, "cloud.schluessel")
-            schreibe(cloud, self.cloud_marke)
-            ziele = [{"name": "cloud-api", "host": "api.beispiel.test", "port": 443, "schluessel_datei": cloud, "kopf": "authorization",
-                      "wert_vorsatz": "Bearer ", "regeln": [{"methode": "*", "pfad": "/*"}], "upgrade": "durchreichen"},
-                     {"name": "cloud-telemetrie", "host": "telemetrie.beispiel.test", "port": 443, "schluessel_datei": None, "kopf": None,
-                      "wert_vorsatz": None, "regeln": [{"methode": "POST", "pfad": "/telemetry"}], "upgrade": "ablehnen"}]
+        h = g["suche"].get("halter") or {}
+        if zl and self.cloud_marke and h.get("konfig") and h.get("ablage"):
+            ziele = [{"name": "cloud-api", "host": HALTER_ZIEL, "port": 443, "halter_ziel": HALTER_ZIEL,
+                      "regeln": [{"methode": "*", "pfad": "/*"}], "upgrade": "durchreichen"},
+                     {"name": "cloud-telemetrie", "host": "telemetrie.beispiel.test", "port": 443, "halter_ziel": None,
+                      "regeln": [{"methode": "POST", "pfad": "/telemetry"}], "upgrade": "ablehnen"}]
             schreibe(zl, json.dumps({"fassung": 1, "ca_zulassung": "zugelassen", "ziele": ziele}, indent=1) + "\n")
+            for d in (os.path.dirname(h["konfig"]), h["ablage"]):
+                os.makedirs(d, mode=0o700, exist_ok=True)
+                os.chmod(d, 0o700)
+            schreibe(h["konfig"], json.dumps({"fassung": 1, "ziele": {HALTER_ZIEL: {"schluessel": HALTER_GEHEIMNIS}}}) + "\n")
+            schreibe(os.path.join(h["ablage"], HALTER_GEHEIMNIS), self.cloud_marke)
+            self._halter_starten(h)
+
+    def _halter_starten(self, h):
+        """Startet die Attrappe des Halters an einem Socket in einem eigenen kurzen Ordner 0700 (der Pfad eines Unix-Sockets hat unter
+        macOS hoechstens 104 Byte) und haengt die Naht an das Programm der Suche. `halter-fehlt`: die Naht zeigt auf einen Socket, den es
+        nicht gibt."""
+        g = self.k["gateway"]
+        self.halter_ordner = messen.neuer_tempordner(prefix="wbh-")
+        os.chmod(self.halter_ordner, 0o700)
+        sock = os.path.join(os.path.realpath(self.halter_ordner), "halter.sock")
+        g["suche"]["programm"] = list(g["suche"]["programm"]) + ["--attrappe-halter", sock]
+        if "halter-fehlt" in self.fehler:
+            return
+        fehler = [f for f in self.fehler if f in ("suche-unlesbar", "suche-folgt-verknuepfung")]
+        cmd = [sys.executable, "-I", "-B", os.path.join(HIER, "attrappen", "halter.py"), "--socket", sock, "--konfig", h["konfig"],
+               "--ablage", h["ablage"]] + (["--fehler", ",".join(fehler)] if fehler else [])
+        self.halter_prozess = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                               env={"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "LANG": "C.UTF-8"})
+        if self.halter_prozess.stdout.readline() != b'{"bereit":true}\n':
+            raise RuntimeError("ziel.halter-attrappe")
 
     def _echt(self, b):
         """Adresse und Token der Bruecke aus den Dateien der Bruecke (`port_datei`, `token_datei`) oder aus der Konfiguration."""
@@ -238,6 +272,21 @@ class Ziel:
                     meld.append("Bruecken-Attrappe musste mit SIGKILL beendet werden")
             if self.prozess.poll() is None:
                 meld.append("Bruecken-Attrappe laeuft noch")
+        if self.halter_prozess is not None:
+            if self.halter_prozess.poll() is None:
+                self.halter_prozess.terminate()
+                try:
+                    self.halter_prozess.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.halter_prozess.kill()
+                    self.halter_prozess.wait(timeout=5)
+                    meld.append("Halter-Attrappe musste mit SIGKILL beendet werden")
+            self.halter_prozess.stdout.close()
+            if self.halter_prozess.poll() is None:
+                meld.append("Halter-Attrappe laeuft noch")
+        if self.halter_ordner:
+            messen.sicher_loeschen(self.halter_ordner)
+            self.halter_ordner = None
         for srv in list(self.modell_srv.values()) + [x for x in (self.wr_srv, self.wr_cloud_srv) if x]:
             srv.shutdown()
             srv.server_close()

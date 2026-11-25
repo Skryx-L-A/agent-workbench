@@ -9,16 +9,22 @@ Zwei Aufrufe:
   modellweg.py [--fehler <name,...>] suche (--schluessel-datei <datei> | --zielliste <datei>) --in <pfad> [--in <pfad> ...]
       Suche nach dem genauen Schluessel (Abschnitt 9a, S1 bis S6): eine Zeile RFC 8785 auf stdout, Exit 0, 1, 3, 64 oder 78.
 
-`--fehler` steht nur in der Attrappe (vor allen anderen Argumenten) und schaltet Fehler fuer die Mutationsprobe ein:
+`--fehler` und `--attrappe-halter <socket>` stehen nur in der Attrappe (vor allen anderen Argumenten, in beliebiger Reihenfolge).
+`--attrappe-halter` ist die Naht fuer Tests aus Abschnitt 5.1: der Socket einer Attrappe des Halters statt des festen Pfads
+`/run/user/<uid>/wb-halter/halter.sock`. Das Programm im Paket hat dafuer keine Option. `--fehler` schaltet Fehler fuer die Mutationsprobe ein:
   gateway-nicht-erreichbar      die Pruefinstanz antwortet auf die Anfrage mit 502 `mw.ziel_nicht_erreichbar`
   gateway-modell-gesperrt       sie antwortet mit 403 `policy_model_blocked`
   pruefinstanz-endet-vor-bereit sie endet vor der Bereitschaft mit Exit 78 und `mw.schluessel_datei`
   pruefinstanz-haengt           sie reagiert nicht auf SIGTERM (nur SIGKILL beendet sie)
-  suche-unlesbar                die Suche gibt die erste Wurzel `--in` als nicht lesbar an (Exit 3 bei 0 Treffern)
-  suche-folgt-verknuepfung      die Suche folgt symbolischen Verknuepfungen (ein Verweis auf die Schluesseldatei zaehlt als Fund)
+  suche-unlesbar                die eigene Suche (`--schluessel-datei`) gibt die erste Wurzel `--in` als nicht lesbar an (Exit 3 bei 0 Treffern)
+  suche-folgt-verknuepfung      die eigene Suche folgt symbolischen Verknuepfungen (ein Verweis auf die Schluesseldatei zaehlt als Fund)
+Mit `--zielliste` sucht die Attrappe nichts selbst (Abschnitt 9a, S2 Punkte 3a und 3b): Sie ruft je `halter_ziel` einmal `modell.suche`
+beim Halter und gibt die Summe der Antworten. Dieselben zwei Fehler der Suche schaltet dort die Attrappe des Halters ein
+(`attrappen/halter.py --fehler`). Erreicht sie den Halter nicht, oder antwortet er mit einem Fehler: Exit 78, `mw.schluessel_fehlt`.
 
 Nur Standardbibliothek. Die Zielliste der Suche wird nur auf einer Teilmenge der Pruefungen des Laders (Abschnitt 12) geprueft: Form
-der Ebenen, Zahlen, Bindung, Doppel; Hostnamen, Regeln und Pfade der Regeln nur nach Typ.
+der Ebenen, Zahlen, Bindung (`halter_ziel` ist `null` oder genau der Host; die weggefallenen Felder `schluessel_datei`, `kopf` und
+`wert_vorsatz` machen sie ungueltig), Methoden gebundener Ziele, Doppel; Hostnamen und Pfade der Regeln nur nach Typ.
 """
 from __future__ import annotations
 
@@ -232,8 +238,12 @@ def _ganz(x):
     return isinstance(x, int) and not isinstance(x, bool)
 
 
+WEGGEFALLEN = ("schluessel_datei", "kopf", "wert_vorsatz")  # bis 22.11.2026 in der Zielliste; Abschnitt 12, Stufe 12
+
+
 def zielliste_lesen(pfad):
-    """Teilmenge des Laders (Abschnitt 12). Gibt die Liste der Schluesseldateien der gebundenen Ziele (ohne Doppel, in Reihenfolge)."""
+    """Teilmenge des Laders (Abschnitt 12). Gibt die Liste der `halter_ziel` der gebundenen Ziele (ohne Doppel, in Reihenfolge).
+    Die weggefallenen Felder `schluessel_datei`, `kopf` und `wert_vorsatz` machen die Liste ungueltig, auch mit dem Wert `null`."""
     try:
         with open(pfad, "rb") as f:
             roh = f.read(65537)
@@ -244,10 +254,10 @@ def zielliste_lesen(pfad):
             raise ValueError
         if d["ca_zulassung"] not in ("zugelassen", "offen", "abgelehnt") or not isinstance(d["ziele"], list) or not 1 <= len(d["ziele"]) <= 16:
             raise ValueError
-        namen, hostports, dateien = set(), set(), []
+        namen, hostports, gebunden = set(), set(), []
         for z in d["ziele"]:
-            if not isinstance(z, dict) or set(z) != {"name", "host", "port", "schluessel_datei", "kopf", "wert_vorsatz", "regeln", "upgrade"}:
-                raise ValueError
+            if not isinstance(z, dict) or set(z) != {"name", "host", "port", "halter_ziel", "regeln", "upgrade"}:
+                raise ValueError  # ein unbekanntes, ein fehlendes oder ein weggefallenes Feld
             if not isinstance(z["name"], str) or not KENNUNG.match(z["name"]) or z["name"] in namen:
                 raise ValueError
             namen.add(z["name"])
@@ -259,46 +269,86 @@ def zielliste_lesen(pfad):
             if not isinstance(z["regeln"], list) or not 1 <= len(z["regeln"]) <= 32 \
                     or any(not isinstance(r, dict) or set(r) != {"methode", "pfad"} for r in z["regeln"]):
                 raise ValueError
-            gebunden = [z["schluessel_datei"], z["kopf"], z["wert_vorsatz"]]
-            if all(x is None for x in gebunden):
+            hz = z["halter_ziel"]
+            if hz is None:
                 if z["upgrade"] != "ablehnen":
                     raise ValueError
             else:
-                if any(not isinstance(x, str) for x in gebunden) or not pfad_ok(z["schluessel_datei"]) or z["upgrade"] not in ("durchreichen", "ablehnen"):
-                    raise ValueError
-                if z["schluessel_datei"] not in dateien:
-                    dateien.append(z["schluessel_datei"])
-    except (OSError, ValueError, UnicodeDecodeError):
+                if hz != z["host"] or z["upgrade"] not in ("durchreichen", "ablehnen") or hz in gebunden:
+                    raise ValueError  # Stufe 12: der Name ist genau der Host; Stufe 15: kein Doppel
+                if any(r["methode"] not in ("GET", "POST", "*") for r in z["regeln"]):
+                    raise ValueError  # Stufe 11: der Halter traegt nur GET und POST
+                gebunden.append(hz)
+    except (OSError, ValueError, UnicodeDecodeError, TypeError):
         raise Ende("mw.ziele_ungueltig")
-    if not dateien:
+    if not gebunden:
         raise Ende("mw.schluessel_fehlt")  # wo nichts zu suchen ist, gibt es kein Gruen
-    return dateien
+    return gebunden
 
 
-def suche(argv, fehler):
-    if any(n in os.environ for n in UMGEBUNG_UNSICHER):
-        ende("mw.umgebung_unsicher")
+# --- Halter (Abschnitt 5.1 und 9a, S2 Punkte 3a und 3b) --------------------------------------------------------------
+ZAEHLER = ("dateien", "nicht_lesbar", "treffer", "uebersprungen")
+
+
+def halter_fester_pfad():
+    """Abschnitt 5.1: genau `/run/user/<uid>/wb-halter/halter.sock`, `XDG_RUNTIME_DIR` gilt nicht."""
+    return "/run/user/%d/wb-halter/halter.sock" % os.getuid()
+
+
+def kanonisch(wert):
+    """RFC 8785 fuer die Werte dieser Attrappe (Texte, ganze Zahlen, Listen, Objekte)."""
+    return json.dumps(wert, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def halter_pruefen(pfad):
+    """Gegenseite nach dem Halter-Vertrag, Abschnitt 2.3: Ordner 0700 und Socket 0600 der eigenen uid, ohne Verweis. Die uid des
+    Servers aus `SO_PEERCRED` prueft die Attrappe nur, wo Python sie kennt (Linux); unter macOS fehlt sie (hergeleitet: dort waere
+    es `getpeereid`, das die Standardbibliothek nicht anbietet)."""
+    ordner = os.path.dirname(pfad)
+    for p, modus, art in ((ordner, 0o700, stat.S_ISDIR), (pfad, 0o600, stat.S_ISSOCK)):
+        st = os.lstat(p)
+        if not art(st.st_mode) or st.st_uid != os.getuid() or stat.S_IMODE(st.st_mode) != modus:
+            raise OSError("Gegenseite unecht")
+
+
+def halter_suche(pfad, ziel, ins, kennung):
+    """Ein `modell.suche` je Verbindung (Festlegung des Baus: eine Verbindung je Anfrage). Gibt die vier Zaehler; jeder Fehler (Verbinden,
+    Pruefung, Fehlerantwort, falsche Form) ist `mw.schluessel_fehlt`."""
+    import socket
     try:
-        o = optionen(argv, {"--schluessel-datei", "--zielliste", "--in"}, "mw.suche_aufruf")
-        if ("--schluessel-datei" in o) == ("--zielliste" in o):
-            raise Ende("mw.suche_aufruf")
-        for n in ("--schluessel-datei", "--zielliste"):
-            if len(o.get(n, [])) > 1 or any(not pfad_ok(p) for p in o.get(n, [])):
-                raise Ende("mw.suche_aufruf")
-        ins = o.get("--in", [])
-        if not 1 <= len(ins) <= 16 or any(not pfad_ok(p) for p in ins):
-            raise Ende("mw.suche_aufruf")
-        dateien = zielliste_lesen(o["--zielliste"][0]) if "--zielliste" in o else o["--schluessel-datei"]
-        schluessel = []
-        for p in dateien:  # eine verletzte Datei: nichts wird gesucht, auch nicht mit den anderen
-            try:
-                schluessel.append(schluessel_lesen(p))
-            except Ende:
-                raise Ende("mw.schluessel_fehlt")
-        schluessel = sorted(set(schluessel))
-    except Ende as e:
-        ende(e.code)
-    folgt = "suche-folgt-verknuepfung" in fehler
+        halter_pruefen(pfad)
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            s.settimeout(30)
+            s.connect(pfad)
+            if hasattr(socket, "SO_PEERCRED"):
+                import struct
+                _, uid, _ = struct.unpack("3i", s.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i")))
+                if uid != os.getuid():
+                    raise OSError("Gegenseite unecht")
+            s.sendall(kanonisch({"fassung": 1, "id": kennung, "op": "modell.suche", "pfade": list(ins), "ziel": ziel}) + b"\n")
+            roh = b""
+            while not roh.endswith(b"\n"):
+                teil = s.recv(65536)
+                if not teil or len(roh) > 1 << 20:
+                    raise OSError("Antwort unvollstaendig")
+                roh += teil
+        finally:
+            s.close()
+        a = json.loads(roh[:-1].decode("utf-8"), object_pairs_hook=_doppelt)
+    except (OSError, ValueError, UnicodeDecodeError):
+        raise Ende("mw.schluessel_fehlt")
+    if not isinstance(a, dict) or a.get("art") != "antwort" or a.get("fassung") != 1 or a.get("id") != kennung or a.get("ok") is not True:
+        raise Ende("mw.schluessel_fehlt")
+    z = a.get("suche")
+    if not isinstance(z, dict) or set(z) != set(ZAEHLER) or any(not _ganz(z[n]) or not 0 <= z[n] <= 9007199254740991 for n in ZAEHLER):
+        raise Ende("mw.schluessel_fehlt")
+    return z
+
+
+def durchsuchen(ins, schluessel, folgt=False, erste_unlesbar=False):
+    """S3 und S4: die eigene Suche unter den Wurzeln `ins` nach den Werten `schluessel` (Bytes). Gibt die vier Zaehler. Die Attrappe
+    des Halters (`attrappen/halter.py`) nimmt dieselbe Funktion fuer `modell.suche`."""
     stand = {"dateien": 0, "nicht_lesbar": 0, "treffer": 0, "uebersprungen": 0}
     gesehen = set()
 
@@ -344,7 +394,7 @@ def suche(argv, fehler):
             stand["uebersprungen"] += 1
 
     for i, p in enumerate(ins):
-        if i == 0 and "suche-unlesbar" in fehler:
+        if i == 0 and erste_unlesbar:
             stand["nicht_lesbar"] += 1
             continue
         try:
@@ -365,19 +415,56 @@ def suche(argv, fehler):
             stand["nicht_lesbar"] += 1  # eine Wurzel, die nicht durchsucht wurde, ist kein "kein Fund"
             continue
         eintrag(p)
+    return stand
+
+
+def suche(argv, fehler, halter_pfad=None):
+    if any(n in os.environ for n in UMGEBUNG_UNSICHER):
+        ende("mw.umgebung_unsicher")
+    try:
+        o = optionen(argv, {"--schluessel-datei", "--zielliste", "--in"}, "mw.suche_aufruf")
+        if ("--schluessel-datei" in o) == ("--zielliste" in o):
+            raise Ende("mw.suche_aufruf")
+        for n in ("--schluessel-datei", "--zielliste"):
+            if len(o.get(n, [])) > 1 or any(not pfad_ok(p) for p in o.get(n, [])):
+                raise Ende("mw.suche_aufruf")
+        ins = o.get("--in", [])
+        if not 1 <= len(ins) <= 16 or any(not pfad_ok(p) for p in ins):
+            raise Ende("mw.suche_aufruf")
+        if "--zielliste" in o:
+            # S2 Punkte 3a und 3b: der Weiterreicher sucht nichts selbst; seine Zeile ist genau die Summe der Antworten des Halters
+            ziele = zielliste_lesen(o["--zielliste"][0])
+            pfad = halter_pfad or halter_fester_pfad()
+            stand = {n: 0 for n in ZAEHLER}
+            for i, ziel in enumerate(ziele, 1):
+                for n, v in halter_suche(pfad, ziel, ins, i).items():
+                    stand[n] += v
+        else:
+            schluessel = []
+            for p in o["--schluessel-datei"]:  # eine verletzte Datei: nichts wird gesucht, auch nicht mit den anderen
+                try:
+                    schluessel.append(schluessel_lesen(p))
+                except Ende:
+                    raise Ende("mw.schluessel_fehlt")
+            stand = durchsuchen(ins, sorted(set(schluessel)), "suche-folgt-verknuepfung" in fehler, "suche-unlesbar" in fehler)
+    except Ende as e:
+        ende(e.code)
     sys.stdout.write(json.dumps(stand, sort_keys=True, separators=(",", ":")) + "\n")
     sys.stdout.flush()
     sys.exit(1 if stand["treffer"] else (3 if stand["nicht_lesbar"] else 0))
 
 
 def main(argv):
-    fehler = []
-    if argv[:1] == ["--fehler"] and len(argv) > 1:
-        fehler = argv[1].split(",")
+    fehler, halter_pfad = [], None
+    while argv[:1] in (["--fehler"], ["--attrappe-halter"]) and len(argv) > 1:  # nur die Attrappe, vor allen anderen Argumenten
+        if argv[0] == "--fehler":
+            fehler += argv[1].split(",")
+        else:
+            halter_pfad = argv[1]
         argv = argv[2:]
     try:
         if argv[:1] == ["suche"]:
-            suche(argv[1:], fehler)
+            suche(argv[1:], fehler, halter_pfad)
         else:
             pruefinstanz(argv, fehler)
     except SystemExit:
