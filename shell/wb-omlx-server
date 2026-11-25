@@ -77,7 +77,12 @@ resolve() {
 }
 
 laeuft_pid() {  # gibt PID des omlx-serve auf PORT aus, sonst leer
-  lsof -nP -iTCP:$PORT -sTCP:LISTEN -t 2>/dev/null | head -1
+  # Ohne Pipe (23.11.2026): `lsof | head -1` gab unter pipefail 141, sobald lsof mehr
+  # schrieb, als head las, und `laeuft_pid | grep -q .` hielt den Port dann fuer frei.
+  local aus rc
+  aus="$(lsof -nP -iTCP:$PORT -sTCP:LISTEN -t 2>/dev/null)"; rc=$?
+  [ -n "$aus" ] && printf '%s\n' "${aus%%$'\n'*}"
+  return "$rc"
 }
 
 antwortet() {  # 0 wenn /v1/models antwortet
@@ -259,11 +264,11 @@ cmd_stop() {
   if [ -n "$pid" ]; then
     kill "$pid" 2>/dev/null
     local i
-    for i in $(seq 1 10); do laeuft_pid | grep -q . || break; sleep 1; done
-    if laeuft_pid | grep -q .; then
+    for i in $(seq 1 10); do [ -n "$(laeuft_pid)" ] || break; sleep 1; done
+    if [ -n "$(laeuft_pid)" ]; then
       kill -9 "$(laeuft_pid)" 2>/dev/null; sleep 1
     fi
-    if laeuft_pid | grep -q .; then
+    if [ -n "$(laeuft_pid)" ]; then
       err "WARNUNG: omlx serve auf Port $PORT laeuft trotz kill weiter (PID $(laeuft_pid))."
     else
       err "wb-omlx-server: gestoppt (Port $PORT frei)."

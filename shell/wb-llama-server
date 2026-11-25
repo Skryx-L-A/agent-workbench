@@ -143,7 +143,12 @@ find_pid() {
 
 is_ours() {
   local pid="$1"
-  [ -n "$pid" ] && ps -o command= -p "$pid" 2>/dev/null | grep -q "llama-server"
+  [ -n "$pid" ] || return 1
+  # Ohne Pipe (23.11.2026): `ps | grep -q` gab unter pipefail 141, sobald ps nach dem
+  # Treffer weiterschrieb, und der eigene Server galt als fremd.
+  local befehl
+  befehl="$(ps -o command= -p "$pid" 2>/dev/null)" || return 1
+  grep -q "llama-server" <<<"$befehl"
 }
 
 # Das Modell, das GERADE unter dieser PID laeuft — aus dem lebenden

@@ -230,7 +230,7 @@ FILES=(
   ".claude/hooks/tests/test-guard-aufpasser.sh"
   # Absicht des Agenten im Freigabe-Marker (26.10.2026, task): derselbe Hook auf beiden Maschinen.
   ".claude/hooks/tests/test-guard-beschreibung.sh"
-  # Pane-Schreiber-Regel 4 (task), Snapshot-Waechter (task), Mailweg (q-mail-guard), 10.11.2026:
+  # Pane-Schreiber-Regel 4, Snapshot-Waechter und Mailweg, 10.11.2026:
   # dieselben Hooks auf beiden Maschinen.
   ".claude/hooks/tests/test-pane-schreiber.sh" ".claude/hooks/tests/test-pane-schreiber-kette.sh"
   ".claude/hooks/tests/test-snapshot-raeumen-waechter.sh" ".claude/hooks/tests/test-mailweg.sh"
@@ -504,7 +504,7 @@ done
 # Ziel muss ~/.claude/skills/<name> ein Link auf den Skill-Ordner neben der installierten Quelle
 # sein. Der Schreiber ist dort `wb-werkzeuge skills-anlegen` (dieselbe Logik wie wb-ausrollen hier);
 # eine fremde Fassung (auf peer lag eine lange) kommt dabei in dessen Snapshot und wird ersetzt
-# (Entscheidung WorkbenchOrchestrator 13.10.; nie ohne Snapshot, der Ersatz wird mit Snapshot-Pfad
+# (Projektentscheid, 13.10.2026; nie ohne Snapshot, der Ersatz wird mit Snapshot-Pfad
 # gemeldet). Ein Ziel ohne diesen Befehl (alte Fassung) liefert nichts; nach dem Uebertragen der neuen
 # Fassung laeuft er unten trotzdem. Fehler und unerwartete Ausgabe (etwa ein Traceback) bleiben
 # sichtbar (Review task, Fund 5): stderr wird mitgelesen, nur GLEICH-Zeilen entfallen.

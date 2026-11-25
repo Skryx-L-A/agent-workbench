@@ -13,12 +13,11 @@ sind Schnappschüsse eines privaten Quellbaums; ein Stand ist ein Commit auf `ma
 
 ### Changed
 
-- License: the Business Source License 1.1 with an additional use grant now covers both branches.
-  Use, also in companies and in production, passing it on to customers and paid services around
-  it are free; only offering it to more than one customer under your own product name, or built
-  into a product under another name, needs a partner agreement. Each version
-  also becomes available under the Apache License 2.0 two years after it was first published. See
-  [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).
+- License changed from BUSL 1.1 to Apache 2.0 on 24 November 2026. This state and every later
+  state are licensed under the Apache License 2.0 (see [LICENSE](LICENSE) and
+  [NOTICE.md](NOTICE.md)). The names and logos are not licensed; see
+  [TRADEMARKS.md](TRADEMARKS.md). `LICENSE-de.md` and `COMMERCIAL-LICENSE.md` are removed; only
+  the English license text applies. Contributions still need the Contributor License Agreement.
 - Branches: `main` carries the tested workbench and is updated only after a full test run of
   the source tree; `development` carries the product, the Rust rebuild in `rust/`, and is updated
   after the Rust gates.
@@ -34,6 +33,10 @@ sind Schnappschüsse eines privaten Quellbaums; ein Stand ist ein Commit auf `ma
 
 ## Earlier states
 
+- States published from 23 November 2026 up to and including the commits tagged `last-busl`
+  (`main`) and `last-busl-development` (`development`): Business Source License 1.1 with the
+  additional use grant published with them; for each of these versions, the change date and
+  change license named in its LICENSE still apply.
 - Up to and including the commit tagged `last-agpl`: GNU Affero General Public License v3.0 only.
 - Later states up to and including the commit tagged `last-polyform`: PolyForm Noncommercial
   License 1.0.0 with the additional permissions published with them.

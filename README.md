@@ -50,7 +50,7 @@ terminal panes replay an invented session, and nothing in them belongs to a real
 - `development` is the product being built: the Rust rebuild in `rust/` and what it needs to
   build, test, run and package. It is updated after the Rust gates have passed. It is a work in
   progress and not released for production use.
-- Both branches are licensed under the Business Source License 1.1, see [License](#license).
+- Both branches are licensed under the Apache License 2.0, see [License](#license).
   Pull requests go against `development`, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 The earlier repositories [agent-workbench-mac](https://github.com/Skryx-L-A/agent-workbench-mac)
@@ -63,7 +63,7 @@ and [agent-setup](https://github.com/Skryx-L-A/agent-setup) are no longer update
 - `development` ist das entstehende Produkt: der Neubau in Rust unter `rust/` und was er zum
   Bauen, Testen, Betreiben und Paketieren braucht. Er wird nach bestandenen Rust-Toren
   aktualisiert. Er ist in Arbeit und nicht für den Betrieb freigegeben.
-- Beide Zweige stehen unter der Business Source License 1.1, siehe [License](#license).
+- Beide Zweige stehen unter der Apache License 2.0, siehe [License](#license).
   Pull Requests gehen gegen `development`, siehe [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Die früheren Repositories agent-workbench-mac und agent-setup werden nicht mehr gepflegt.
@@ -180,21 +180,13 @@ the steps is a reasonable way to do it, and it is how the setup is meant to spre
 
 ## License
 
-Source-available under the [Business Source License 1.1](LICENSE) with an additional use grant.
-Each version also becomes available under the Apache License 2.0 two years after it is first
-published.
+The licensor's own work is licensed under the [Apache License 2.0](LICENSE); third-party parts and
+the attribution are listed in [NOTICE.md](NOTICE.md). The names and logos are not licensed; see
+[TRADEMARKS.md](TRADEMARKS.md). Setup, support and training are offered as a paid service; see
+[SUPPORT.md](SUPPORT.md).
 
-- **Free to use for everyone**, including companies: at work, in production, within an
-  organization and for paid work you do with its help.
-- **Free to pass on to your customers**, also adapted to a customer and also for payment.
-  Setting it up, hosting, operating, supporting and teaching it for customers is free for
-  everyone, also for payment.
-- **Partner agreement required** only for offering it to more than one customer under your own
-  product name or built into a product under another name; without one, such an offering may not
-  be run or hosted, and its customers may not use it in production. Offers to more than one
-  customer carry the attribution that COMMERCIAL-LICENSE.md gives. Details: [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md),
-  German reading version of the license: [LICENSE-de.md](LICENSE-de.md).
-- Earlier versions keep their license: up to the tag `last-agpl` they
-  remain available under AGPL-3.0-only, up to the tag `last-polyform` under PolyForm
-  Noncommercial 1.0.0 with additional permissions.
-- Only the text in [LICENSE](LICENSE) is binding.
+Earlier versions keep their license: up to the tag `last-agpl` they remain available under
+AGPL-3.0-only, up to the tag `last-polyform` under PolyForm Noncommercial 1.0.0 with additional
+permissions, and up to the tags `last-busl` and `last-busl-development` under the license
+published with them (see [CHANGELOG.md](CHANGELOG.md)). Only the text in [LICENSE](LICENSE) is
+binding.

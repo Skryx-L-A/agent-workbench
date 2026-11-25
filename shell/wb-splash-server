@@ -79,7 +79,7 @@ WBN="$HOME/.local/bin/wb-nohup"
 # Gewichte-Zeile von Splash zeigt. Eine zweite Zahl in wb-kontext wuerde still
 # von der Buchung abweichen. Bis Splash 1.0 waren es 14,6 GiB (20.09.2026).
 SPLASH_ARBEITSSATZ_GIB=28.0
-# BUCHUNG NACH KONTEXT (Nachtrag 4, WorkbenchOrchestrator 10.10.2026), dieselbe
+# BUCHUNG NACH KONTEXT (Nachtrag 10.10.2026), dieselbe
 # Rechnung wie fuer jedes andere Modell in wb-belegung: Gewichte plus KV je Token
 # mal angefordertem Kontext. Grundsatz = geladen und untaetig (gemessen 19,6 GiB);
 # der KV-Wert je Token steht als gemessener Eintrag SPLASH_KV_SCHLUESSEL im
@@ -248,7 +248,12 @@ resolve() {
 }
 
 laeuft_pid() {  # PID dessen, der auf PORT lauscht, sonst leer
-  lsof -nP -iTCP:$PORT -sTCP:LISTEN -t 2>/dev/null | head -1
+  # Ohne Pipe (23.11.2026): `lsof | head -1` gab unter pipefail 141, sobald lsof mehr
+  # schrieb, als head las, und `laeuft_pid | grep -q .` hielt den Port dann fuer frei.
+  local aus rc
+  aus="$(lsof -nP -iTCP:$PORT -sTCP:LISTEN -t 2>/dev/null)"; rc=$?
+  [ -n "$aus" ] && printf '%s\n' "${aus%%$'\n'*}"
+  return "$rc"
 }
 
 antwortet() {
@@ -616,11 +621,11 @@ cmd_stop() {
   if [ -n "$pid" ]; then
     kill "$pid" 2>/dev/null
     local i
-    for i in $(seq 1 10); do laeuft_pid | grep -q . || break; sleep 1; done
-    if laeuft_pid | grep -q .; then
+    for i in $(seq 1 10); do [ -n "$(laeuft_pid)" ] || break; sleep 1; done
+    if [ -n "$(laeuft_pid)" ]; then
       kill -9 "$(laeuft_pid)" 2>/dev/null; sleep 1
     fi
-    if laeuft_pid | grep -q .; then
+    if [ -n "$(laeuft_pid)" ]; then
       err "WARNUNG: Es lauscht weiterhin etwas auf Port $PORT (PID $(laeuft_pid))."
     else
       err "wb-splash-server: gestoppt (Port $PORT frei)."
@@ -661,7 +666,7 @@ cmd_status() {
 #   wb-splash-server probe [--darf] [<alias|id>]
 # Exit 0 bestanden (mit --darf: eine Probe ist jetzt moeglich), 75 jetzt nicht
 # pruefbar, sonst gescheitert.
-# WANN NICHT (Nachtrag 2, WorkbenchOrchestrator 10.10.2026): die Probe laedt ein
+# WANN NICHT (Nachtrag 10.10.2026): die Probe laedt ein
 # 27B-Modell und laeuft auch im automatischen Lauf beim App-Start. Sie laeuft nur,
 # wenn mac-gpu UND mac-ruhe auf der Tafel frei sind und kein fremdes grosses Modell
 # im Speicher liegt -- gemessen (Prozesse, Ollama-Ladungen) und gebucht

@@ -1536,7 +1536,12 @@ is_ours() {
   # veraltende Quelle. "mlx_vlm" (Unterstrich) trifft NICHT das Muster
   # "mlx_lm" (kein gemeinsamer Substring: 'mlx_lm' gegen 'mlx_vlm' --
   # nachgesehen), braucht also ein eigenes Muster.
-  [ -n "$pid" ] && ps -o command= -p "$pid" 2>/dev/null | grep -qE "mlx_lm|mlx_vlm|mlx-dspark|mtplx|vllm"
+  [ -n "$pid" ] || return 1
+  # Ohne Pipe (23.11.2026): `ps | grep -q` gab unter pipefail 141, sobald ps nach dem
+  # Treffer weiterschrieb, und der eigene Server galt als fremd.
+  local befehl
+  befehl="$(ps -o command= -p "$pid" 2>/dev/null)" || return 1
+  grep -qE "mlx_lm|mlx_vlm|mlx-dspark|mtplx|vllm" <<<"$befehl"
 }
 
 # Das Modell, das GERADE unter dieser PID laeuft — aus dem lebenden
@@ -2677,7 +2682,7 @@ cmd_status() {
     # bleibt aktuell.json auf dem VORHERIGEN Lauf stehen. Live nachgemessen:
     # die Buchung von PID 83488/Kennung e87c69 trug ueber `wb-belegung wer
     # --json` durchgehend den korrekten Kontext 8192, waehrend aktuell.json
-    # eine 21:08 Uhr alte 4096 aus einem frueheren Lauf zeigte -- "realisiert"
+    # eine aeltere 4096 aus einem frueheren Lauf zeigte -- "realisiert"
     # stand fuer dieselbe Kennung ebenfalls noch auf false, derselbe Beleg,
     # dass NUR die abschliessenden Schritte fehlten, nicht die Buchung
     # selbst. `aktuell.json`/`aktuell_schreiben()` bleiben fuer ihren
@@ -3479,7 +3484,7 @@ cmd_ensure() {
     fi
 
     # B11 STAND HIER (19.08.2026), ENTFERNT AM 21.08.2026 -- GEMESSENER
-    # Riegel, kein Schoenheitsfehler (Orchestrator, 05:07 Uhr): eine
+    # Riegel, kein Schoenheitsfehler (Befund 21.08.2026): eine
     # Speicherpruefung VOR dem Beenden fragt "ist genug frei, WAEHREND das
     # Alte noch resident ist" -- eine Frage, die bei jedem grossen Modell
     # IMMER mit "nein" beantwortet wird, weil genau der Speicher, der gleich
@@ -4450,7 +4455,7 @@ except Exception:
     fi
     # --model-discovery served (Auftrag (C) Punkt 3, nur ab 0.7.0, siehe
     # model_discovery_ok oben): ohne den Schalter listet /v1/models den
-    # GANZEN Hugging-Face-Cache dieser Maschine (gemessen 20:59 Uhr, siehe
+    # GANZEN Hugging-Face-Cache dieser Maschine (gemessen, siehe
     # SICHERHEIT weiter oben bei HF_HUB_OFFLINE) -- "served" begrenzt das auf
     # das wirklich geladene Modell.
     if [ "$model_discovery_ok" -eq 1 ]; then

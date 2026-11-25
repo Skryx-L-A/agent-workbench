@@ -1066,7 +1066,7 @@ def skills_anlegen(q, ordner, trocken=False, pruef_ordner=None):
     <ordner>/<quelle> an. Kriterium: nie ohne Snapshot ueberschrieben, Ersatz wird gemeldet. Steht dort
     etwas anderes (fremde Fassung, anderer Link), kommt es vorher nach
     ~/.local/trash-snapshots/<Datum>-skill-<name>/ (verschoben, nicht geloescht); die Zeile nennt den
-    Snapshot-Pfad. Der Name gehoert der Werkbank (Entscheidung WorkbenchOrchestrator 13.10.).
+    Snapshot-Pfad. Der Name gehoert der Werkbank (Projektentscheid, 13.10.2026).
     Fehlt <quelle>/SKILL.md, ist das auch im Trockenlauf ein FEHLER (Review task, Fund 4); geprueft
     wird unter pruef_ordner, wenn gesetzt (wb-ausrollen: Repo-Quelle, die installierte fehlt im
     Trockenlauf noch), sonst unter ordner. Ein Dateifehler (Snapshot, Link) wird als FEHLER gemeldet,

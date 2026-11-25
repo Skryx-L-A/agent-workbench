@@ -291,7 +291,9 @@ elif [ "$OS" = "Darwin" ]; then
   # Rechnung braucht, findet sie dort -- niemand muss sie nachbauen.
   PAGE="$(sysctl -n hw.pagesize)"; MEMSIZE="$(sysctl -n hw.memsize)"
   vms="$(vm_stat)"
-  getp() { printf '%s\n' "$vms" | awk -v k="$1" '$0 ~ k {gsub("[^0-9]","",$NF); print $NF; exit}'; }
+  # Ohne Pipe (23.11.2026): `printf | awk '...exit'` gab unter pipefail 141, sobald printf
+  # nach dem Treffer weiterschrieb, und set -e brach check-resources ab.
+  getp() { awk -v k="$1" '$0 ~ k {gsub("[^0-9]","",$NF); print $NF; exit}' <<<"$vms"; }
   FREEP="$(getp 'Pages free')";        : "${FREEP:=0}"
   INACT="$(getp 'Pages inactive')";    : "${INACT:=0}"
   SPEC="$(getp 'Pages speculative')";  : "${SPEC:=0}"

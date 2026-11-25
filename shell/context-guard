@@ -1452,11 +1452,44 @@ fi
 # Schleife, gemessen 0,05 s je Aufruf): ein Umschalten wirkt ab dem naechsten Poll, ohne die
 # laufenden Wachen neu zu starten. Bis dahin las nur der Start ihn, und ein Ausschalten
 # erreichte die laufenden Guards nicht.
+#
+# ABDRUCK STATT NEUER ABFRAGE (23.11.2026). Drei Abfragen je Poll starten
+# je einen Python-Prozess, obwohl sich ihre Eingabe fast nie aendert: dieser Schalter (0,10 CPU-s),
+# `wb-post lesen` (0,17) und `wb-state worker-machine` je bekanntem Worker (0,13, bei 17 Namen
+# 2,2 CPU-s je Poll; gemessen). Jede Antwort haengt nur an Dateien. Der Guard
+# merkt sich deshalb einen Abdruck dieser Dateien (Inode, Aenderungszeit in Nanosekunden, Groesse,
+# Name; ein einziges `stat`) und fragt neu, sobald der Abdruck sich aendert. Alle Schreiber
+# (wb-state, wb-post) schreiben per tempfile + os.replace, jede Aenderung wechselt also Inode und
+# Zeit. Als zweite Sicherung fragt er spaetestens alle ABFRAGE_NEU_TAKTE Polls neu, auch bei
+# gleichem Abdruck (etwa nach einem Ausrollen neuer Vorgaben in wb-state). Ein Fehlschlag der
+# Abfrage wird nie gemerkt; der naechste Poll fragt wieder.
+ABFRAGE_NEU_TAKTE="$(ganz_aufgerundet "${ABFRAGE_NEU_TAKTE:-10}")"
+(( ABFRAGE_NEU_TAKTE >= 1 )) || ABFRAGE_NEU_TAKTE=1
+case "$(uname -s)" in
+    Darwin) _CG_STAT_FORM=(-f '%i %Fm %z %N') ;;
+    *)      _CG_STAT_FORM=(-c '%i %y %s %n') ;;
+esac
+abdruck() {   # <pfad>... -> eine Zeile je vorhandenem Pfad; fehlende Pfade fehlen auch im Abdruck
+    stat "${_CG_STAT_FORM[@]}" "$@" 2>/dev/null
+    return 0
+}
 GUARD_MELDET_STATUS=0
+_CG_SET_ABDRUCK=""
+_CG_SET_TAKT=""
 guard_meldet_status_lesen() {   # [--start]: ohne Protokollzeile
-    local alt="$GUARD_MELDET_STATUS" neu=0
+    local alt="$GUARD_MELDET_STATUS" neu=0 abdr wert
     if (( ! WORKERS_ONLY )); then
-        [ "$("$HOME/.local/bin/wb-state" settings get guardMeldetWorkerStatus 2>/dev/null)" = "true" ] && neu=1
+        abdr="$(abdruck "${AWB_SETTINGS_FILE:-$HOME/.claude/workbench/settings.json}")"
+        if [[ -n "$_CG_SET_TAKT" && "$abdr" == "$_CG_SET_ABDRUCK" ]] \
+           && (( ${POLL_NR:-0} - _CG_SET_TAKT < ABFRAGE_NEU_TAKTE )); then
+            return 0
+        fi
+        if wert="$("$HOME/.local/bin/wb-state" settings get guardMeldetWorkerStatus 2>/dev/null)"; then
+            _CG_SET_ABDRUCK="$abdr"; _CG_SET_TAKT="${POLL_NR:-0}"
+        else
+            _CG_SET_TAKT=""
+        fi
+        [ "$wert" = "true" ] && neu=1
     fi
     GUARD_MELDET_STATUS=$neu
     [[ "${1:-}" == "--start" || "$alt" == "$neu" ]] && return 0
@@ -1654,12 +1687,37 @@ _CG_SERVER_WEG=0
 # Mac: "%0_323453"). Dann las die Schleife die ganze Zeile als Pane und merkte nie eine PID. Pane-Kennung und PID
 # enthalten kein '|'. Leerraum scheidet aus, weil die Testbruecke in
 # test-context-guard-paneid-exakt.sh Argumente an Leerraum zerlegt.
+# HCACHE VERFAELLT MIT DEM PANE-PROZESS (23.11.2026): Startet ein Pane neu (neue
+# pane_pid, etwa nach respawn-pane mit einem anderen Harness), faellt sein HCACHE-Eintrag, und der naechste
+# harness_info fragt neu. Verglichen wird mit dem letzten Poll DIESER Wache (_CG_PANE_PIDS), nicht mit
+# @wb_pane_pid: das setzen auch andere Wachen am selben Server. Seit anbieter_spinner_harness den Cache des
+# Wachprozesses fuellt, steht dort auch der Orchestrator ab dem ersten Poll; vorher las jeder Poll ihn in
+# einer Unterschale neu.
+_CG_PANE_PIDS=$'\n'
 pane_pids_merken() {
-    local p pid alt
+    local p pid alt neu=$'\n' vorher
     while IFS='|' read -r p pid alt; do
-        [[ -n "$p" && -n "$pid" && "$pid" != "$alt" ]] || continue
+        [[ -n "$p" ]] || continue
+        if [[ -z "$pid" ]]; then
+            # Toter Pane (tmux 3.8 leert pane_pid): die letzte bekannte PID bleibt stehen, damit ein
+            # respawn-pane danach als Wechsel erkannt wird.
+            if [[ "${_CG_PANE_PIDS:-}" == *$'\n'"$p|"* ]]; then
+                vorher="${_CG_PANE_PIDS#*$'\n'"$p|"}"; neu="$neu$p|${vorher%%$'\n'*}"$'\n'
+            fi
+            continue
+        fi
+        neu="$neu$p|$pid"$'\n'
+        # Mit Vorgaben: test-context-guard-panepid.sh zieht nur diese Funktion und laeuft mit set -u.
+        if [[ "${_CG_PANE_PIDS:-}" == *$'\n'"$p|"* ]]; then
+            vorher="${_CG_PANE_PIDS#*$'\n'"$p|"}"; vorher="${vorher%%$'\n'*}"
+            if [[ "$vorher" != "$pid" && -n "${HCACHE:-}" ]]; then
+                HCACHE="$(printf '%s\n' "$HCACHE" | awk -F"${HSEP:-$'\002'}" -v p="$p" '$1!=p')"
+            fi
+        fi
+        [[ "$pid" != "$alt" ]] || continue
         tmux set-option -p -t "$p" @wb_pane_pid "$pid" 2>/dev/null
     done < <(tmux list-panes -a -F '#{pane_id}|#{pane_pid}|#{@wb_pane_pid}' 2>/dev/null)
+    _CG_PANE_PIDS="$neu"
     return 0
 }
 
@@ -3089,7 +3147,13 @@ ANBIETER_DIR="$STATE_BASE/$GUARD_SLUG.anbieterfehler"
 mkdir -p "$ANBIETER_DIR" 2>/dev/null || true
 ANBIETER_MUSTER_CACHE=""   # je Zeile "<harness>\002<muster>"; ein leeres Muster ist auch ein Ergebnis
 
-anbieter_muster() {   # <harness> [feld] -> Muster aus der Registry (Vorgabe: anbieterfehlerPattern), leer wenn keins
+# OHNE UNTERSCHALE (23.11.2026): Das Ergebnis steht in _CG_MUSTER, nicht auf
+# stdout. Bis dahin riefen beide Aufrufer `muster="$(anbieter_muster ...)"`; der Cache fuellte sich nur in
+# der Unterschale und ging danach verloren. Je Worker und Poll liefen so zwei `wb-state harness get` samt
+# python3 (gemessen in der Test-Wache: 88 Aufrufe in 5 Polls bei 8 Workern). Muster und Entscheidungen
+# bleiben gleich; nur der Cache wirkt jetzt im Wachprozess. Ein leeres Muster ist ebenfalls ein Ergebnis.
+_CG_MUSTER=""
+anbieter_muster() {   # <harness> [feld] -> setzt _CG_MUSTER (Vorgabe-Feld: anbieterfehlerPattern), leer wenn keins
     local hid="$1" feld="${2:-anbieterfehlerPattern}" zeile m schluessel
     schluessel="$hid/$feld"
     zeile="$(printf '%s\n' "$ANBIETER_MUSTER_CACHE" | awk -F"$HSEP" -v h="$schluessel" '$1==h{print; f=1; exit} END{if(!f) print "\001"}')"
@@ -3101,10 +3165,10 @@ try:
 except Exception:
     pass' "$feld" 2>/dev/null)"
         ANBIETER_MUSTER_CACHE="$(printf '%s\n%s%s%s' "$ANBIETER_MUSTER_CACHE" "$schluessel" "$HSEP" "$m")"
-        printf '%s' "$m"
+        _CG_MUSTER="$m"
         return 0
     fi
-    printf '%s' "${zeile#*"$HSEP"}"
+    _CG_MUSTER="${zeile#*"$HSEP"}"
 }
 
 check_anbieterfehler() {   # <pane> <name> -> meldet dem Orchestrator, wenn noetig
@@ -3118,7 +3182,7 @@ check_anbieterfehler() {   # <pane> <name> -> meldet dem Orchestrator, wenn noet
     hid="$HID"
     HID="$s_hid"; HCTX="$s_hctx"; HCOMPACT="$s_hcompact"; HSESS="$s_hsess"; HWIN="$s_hwin"
     [[ -n "$hid" ]] || { rm -f "$stand" "$flag"; return 0; }
-    muster="$(anbieter_muster "$hid")"
+    anbieter_muster "$hid"; muster="$_CG_MUSTER"
     [[ -n "$muster" ]] || { rm -f "$stand" "$flag"; return 0; }
     cap="$(tmux capture-pane -p -t "$pane" 2>/dev/null)" || { rm -f "$stand" "$flag"; return 0; }
     tail="$(printf '%s\n' "$cap" | grep -v '^[[:space:]]*$' | tail -n "$ANBIETER_ZEILEN")"
@@ -3162,12 +3226,16 @@ check_anbieterfehler() {   # <pane> <name> -> meldet dem Orchestrator, wenn noet
 # vorbei, die Uhr beginnt beim naechsten Treffer neu. Die Wache tippt nichts und schickt dem Worker nichts.
 ANBIETER_SPINNER_S="${ANBIETER_SPINNER_S:-600}"
 
-anbieter_spinner_harness() {   # <pane> -> Harness-ID des Panes (harness_info ueberschreibt Globals; sie bleiben erhalten)
-    local s_hid="$HID" s_hctx="$HCTX" s_hcompact="$HCOMPACT" s_hsess="$HSESS" s_hwin="$HWIN" hid
+# OHNE UNTERSCHALE wie anbieter_muster (23.11.2026): das Ergebnis steht in _CG_ASH. Ein Fehlschlag im HCACHE
+# fuellt so den Cache des Wachprozesses. Betroffen war vor allem der Orchestrator-Pane: fuer ihn ruft im Poll
+# sonst niemand harness_info im Wachprozess (read_load laeuft selbst in einer Unterschale), und
+# check_konto_budget "$ORCH" fragte deshalb je Poll neu.
+_CG_ASH=""
+anbieter_spinner_harness() {   # <pane> -> setzt _CG_ASH auf die Harness-ID des Panes (harness_info ueberschreibt Globals; sie bleiben erhalten)
+    local s_hid="$HID" s_hctx="$HCTX" s_hcompact="$HCOMPACT" s_hsess="$HSESS" s_hwin="$HWIN"
     harness_info "$1"
-    hid="$HID"
+    _CG_ASH="$HID"
     HID="$s_hid"; HCTX="$s_hctx"; HCOMPACT="$s_hcompact"; HSESS="$s_hsess"; HWIN="$s_hwin"
-    printf '%s' "$hid"
 }
 
 check_anbieter_spinner() {   # <pane> <name> -> meldet dem Orchestrator, wenn der Spinner zu lange wiederholt
@@ -3176,9 +3244,9 @@ check_anbieter_spinner() {   # <pane> <name> -> meldet dem Orchestrator, wenn de
     case "$pane" in %[0-9]*) ;; *) return 0 ;; esac
     key="$(sanitize_name "$name")"
     stand="$ANBIETER_DIR/$key.spinner"; flag="$ANBIETER_DIR/$key.spinner-gemeldet"
-    hid="$(anbieter_spinner_harness "$pane")"
+    anbieter_spinner_harness "$pane"; hid="$_CG_ASH"
     [[ -n "$hid" ]] || { rm -f "$stand" "$flag"; return 0; }
-    muster="$(anbieter_muster "$hid" anbieterfehlerSpinnerPattern)"
+    anbieter_muster "$hid" anbieterfehlerSpinnerPattern; muster="$_CG_MUSTER"
     [[ -n "$muster" ]] || { rm -f "$stand" "$flag"; return 0; }
     cap="$(tmux capture-pane -p -t "$pane" 2>/dev/null)" || { rm -f "$stand" "$flag"; return 0; }
     treffer="$(printf '%s\n' "$cap" | grep -v '^[[:space:]]*$' | tail -n "$ANBIETER_ZEILEN" | grep -E "$muster" | tail -1)"
@@ -3245,7 +3313,7 @@ check_konto_limit() {   # <pane> <name> -> ruft wb-konto wechsel, wenn am Zugend
     treffer="$(printf '%s\n' "$tail" | grep -iE "$KONTO_LIMIT_RE" | tail -1)"
     [[ -n "$treffer" ]] || { rm -f "$flag" "$erneut"; return 0; }
     grep -qE "$BUSY_RE" <<<"$tail" && return 0
-    hid="$(anbieter_spinner_harness "$pane")"
+    anbieter_spinner_harness "$pane"; hid="$_CG_ASH"
     [[ "$hid" == claude ]] || return 0
     pid="$(tmux display -p -t "$pane" '#{pane_pid}' 2>/dev/null)"
     fp="$pid $(printf '%s' "$treffer" | cksum | tr -d ' ')"
@@ -3426,7 +3494,7 @@ check_konto_budget() {   # <pane> <name> -> ruft wb-konto budget hoechstens alle
     # Fund J (b): nach dem Limitwechsel kann die alte Limitzeile noch im Schirm stehen; sie sperrt dann nicht
     konto_nachwechsel_offen "${name:-$pane}" && tail="$(grep -viE "$KONTO_LIMIT_RE" <<<"$tail")"
     grep -qiE "$KONTO_LIMIT_RE" <<<"$tail" && return 0     # Limitmeldung: das ist check_konto_limit
-    hid="$(anbieter_spinner_harness "$pane")"
+    anbieter_spinner_harness "$pane"; hid="$_CG_ASH"
     [[ "$hid" == claude ]] || return 0
     grep -qE "$BUSY_RE" <<<"$tail" && return 0
     tool="$(konto_werkzeug)"
@@ -3505,16 +3573,58 @@ check_konto_fortsetzung() {   # einmal je Poll: faellige Fortsetzung nach dem Li
 # Genau EINMAL pro Worker: die DONE_DIR-Markierung wird erst nach ERFOLGREICHEM nudge()
 # gesetzt (Pane also nicht BUSY) -- bei BUSY bleibt der Worker unmarkiert und wird beim
 # naechsten Poll automatisch erneut versucht, bis es durchkommt.
+#
+# MASCHINE JE NAME GEMERKT (23.11.2026; Begruendung bei abdruck() oben). Die Antwort von
+# `wb-state worker-machine` haengt nur an ~/.claude/workbench/sessions/*.json: der juengste Eintrag
+# dieses Namens gewinnt. Sie aendert sich nach dem Start NICHT von selbst, wohl aber auf drei Wegen:
+# ein gleichnamiger Worker startet neu auf der anderen Maschine (add-worker, Umzug), eine
+# Wiederbelebung traegt ihn neu ein, oder wb-close nimmt ihn heraus (remove-worker, danach "lokal").
+# Jeder dieser Wege schreibt eine Datei in diesem Ordner, also aendert sich der Abdruck und der ganze
+# Merker verfaellt. Ein neuer Name fragt sofort (er steht nicht im Merker), ein verschwundener faellt
+# beim naechsten Durchgang heraus, weil der Merker je Durchgang nur die gerade gelesenen Namen behaelt.
+# Format wie HCACHE: je Zeile "<name>\002<maschine>", mit fuehrendem Zeilenumbruch.
+_CG_WM_MERKER=$'\n'
+_CG_WM_NEU=$'\n'
+_CG_WM_ABDRUCK=""
+_CG_WM_TAKT=""
+_CG_WM=""
+worker_machine_durchgang_beginnen() {
+    local ordner="$HOME/.claude/workbench/sessions" abdr
+    abdr="$(abdruck "$ordner" "$ordner"/*.json)"
+    if [[ -z "$_CG_WM_TAKT" || "$abdr" != "$_CG_WM_ABDRUCK" ]] \
+       || (( POLL_NR - _CG_WM_TAKT >= ABFRAGE_NEU_TAKTE )); then
+        _CG_WM_MERKER=$'\n'
+        _CG_WM_ABDRUCK="$abdr"; _CG_WM_TAKT="$POLL_NR"
+    fi
+    _CG_WM_NEU=$'\n'
+}
+worker_machine_gemerkt() {   # <name> -> setzt _CG_WM (leer = lokal oder unbekannt), ohne Unterprozess bei Treffer
+    local name="$1" rest
+    if [[ "$_CG_WM_MERKER" == *$'\n'"$name"$'\002'* ]]; then
+        rest="${_CG_WM_MERKER#*$'\n'"$name"$'\002'}"
+        _CG_WM="${rest%%$'\n'*}"
+    elif _CG_WM="$("$HOME/.local/bin/wb-state" worker-machine "$name" 2>/dev/null)"; then
+        :
+    else
+        _CG_WM=""
+        return 0   # Fehlschlag: nicht merken, der naechste Poll fragt erneut
+    fi
+    _CG_WM_NEU="$_CG_WM_NEU$name"$'\002'"$_CG_WM"$'\n'
+}
+worker_machine_durchgang_ende() { _CG_WM_MERKER="$_CG_WM_NEU"; }
+
 check_worker_results() {
     _cg_pane_liste_aktualisieren
     grep -qx "$ORCH" <<<"$_CG_PANES_CACHE" || return
     local name resfile donefile machine self msg
     case "$(uname -s)" in Darwin) self=mac ;; *) self=peer ;; esac
     local ident prev ziel
+    worker_machine_durchgang_beginnen
     while IFS= read -r name; do
         [ -n "$name" ] || continue
         donefile="$DONE_DIR/$(sanitize_name "$name")"
-        machine=$("$HOME/.local/bin/wb-state" worker-machine "$name" 2>/dev/null)
+        worker_machine_gemerkt "$name"
+        machine="$_CG_WM"
         if [ -z "$machine" ] || [ "$machine" = "$self" ]; then
             resfile="$HOME/.pi-workers/results/$name/latest.md"
             [ -s "$resfile" ] || continue
@@ -3659,6 +3769,7 @@ check_worker_results() {
         fi
         [ "$have_lock" = 1 ] && release_done_lock "$slug_name"
     done <"$KNOWN_WORKERS_FILE"
+    worker_machine_durchgang_ende
 }
 
 # --- Postfach: sagen, DASS etwas da ist, nie WAS ------------------------------------
@@ -3743,12 +3854,16 @@ except Exception:
 
 check_remote_view() {
     (( REMOTE_VIEW_AN )) || return 0
-    remote_view_maschine_pausiert "$REMOTE_VIEW_ZIEL" && return 0
     local rv now
     rv="${WB_REMOTE_VIEW:-$HOME/.local/bin/wb-remote-view}"
     [ -x "$rv" ] || return 0
     now=$(date +%s)
     (( now - REMOTE_VIEW_LAST < REMOTE_VIEW_EVERY )) && return 0
+    # ZEITSPERRE VOR DER PAUSENPRUEFUNG (23.11.2026): die Pruefung kostet
+    # `wb-state settings get` plus python3 und lief bis dahin in JEDEM Poll. Die Zeitpunkte bleiben
+    # gleich: eine pausierte Maschine setzt REMOTE_VIEW_LAST weiter nicht, also laeuft wb-remote-view
+    # nach dem Aufheben der Pause im naechsten Poll, genau wie vorher.
+    remote_view_maschine_pausiert "$REMOTE_VIEW_ZIEL" && return 0
     REMOTE_VIEW_LAST=$now
     # Ohne Argument nimmt wb-remote-view die jeweils ANDERE Maschine. Der Aufruf legt
     # den Spiegel an, belebt ihn wieder oder raeumt ihn ab -- je nachdem, was drueben
@@ -3761,6 +3876,13 @@ check_remote_view() {
     ( "$rv" --quiet --owned-only >/dev/null 2>&1 || true ) &
 }
 
+_CG_POST_ERLEDIGT=0
+_CG_POST_ABDRUCK=""
+_CG_POST_TAKT=0
+post_erledigt_merken() {   # <abdruck vor dem Lesen>: ohne WB_POST darf der naechste Poll bei gleichem Abdruck schweigen
+    [ -z "${WB_POST:-}" ] || return 0
+    _CG_POST_ERLEDIGT=1; _CG_POST_ABDRUCK="$1"; _CG_POST_TAKT="$POLL_NR"
+}
 check_post_mail() {
     # `an: false` fuer den Orchestrator heisst wirklich STILL (siehe die Begruendung
     # weiter unten im Poll): der Kontext-Guard ist der einzige Guard, der ueberhaupt in
@@ -3772,9 +3894,31 @@ check_post_mail() {
     [ -n "$GUARD_SESSION" ] || return 0
     _cg_pane_liste_aktualisieren
     grep -qx "$ORCH" <<<"$_CG_PANES_CACHE" || return 0
+    # ABDRUCK (23.11.2026; Begruendung bei abdruck()): `wb-post` legt jede Nachricht und
+    # jede Gelesen-Markierung per tempfile + os.replace in ~/.local/state/wb-post/<sitzung>/ ab, das
+    # aendert die Zeit dieses Ordners. Der Abdruck umfasst den Postfach-Wurzelordner und alle
+    # Sitzungsordner darin (kein Nachbau des Namens-Slugs aus wb-post). Uebersprungen wird nur, wenn
+    # der letzte Durchgang vollstaendig ERLEDIGT war (nichts Ungelesenes, oder alles angekuendigt) und
+    # sich seitdem nichts geaendert hat. War der Pane beschaeftigt (nudge scheiterte), fragt der
+    # naechste Poll wie bisher neu (Zusage d der Suite test-context-guard-postfach.sh). Mit
+    # WB_POST (fremdes Werkzeug, anderer Ablageort moeglich) gibt es keinen Abdruck, jeder Poll fragt.
+    local post_ordner="$HOME/.local/state/wb-post" abdr=""
+    if [ -z "${WB_POST:-}" ]; then
+        abdr="$(abdruck "$post_ordner" "$post_ordner"/*)"
+        if (( _CG_POST_ERLEDIGT )) && [[ "$abdr" == "$_CG_POST_ABDRUCK" ]] \
+           && (( POLL_NR - _CG_POST_TAKT < ABFRAGE_NEU_TAKTE )); then
+            return 0
+        fi
+    fi
+    _CG_POST_ERLEDIGT=0
     # `lesen --sitzung` fasst kein tmux an und ruft nichts nach aussen; es liest
     # Dateien. Exit 1 heisst schlicht "nichts Ungelesenes da".
-    roh="$("$werkzeug" lesen --sitzung "$GUARD_SESSION" --json 2>/dev/null)" || return 0
+    local post_rc=0
+    roh="$("$werkzeug" lesen --sitzung "$GUARD_SESSION" --json 2>/dev/null)" || post_rc=$?
+    if (( post_rc == 1 )) || { (( post_rc == 0 )) && [ -z "$roh" ]; }; then
+        post_erledigt_merken "$abdr"
+    fi
+    (( post_rc == 0 )) || return 0
     [ -n "$roh" ] || return 0
     zeilen="$(printf '%s' "$roh" | /usr/bin/python3 -c '
 import json, re, sys
@@ -3792,7 +3936,7 @@ for n in (d.get("nachrichten") or []):
     if kid:
         print(kid + "\t" + name)
 ' 2>/dev/null)" || return 0
-    [ -n "$zeilen" ] || return 0
+    [ -n "$zeilen" ] || { post_erledigt_merken "$abdr"; return 0; }
 
     neue=""; namen=""; anzahl=0
     while IFS=$'\t' read -r id von; do
@@ -3804,7 +3948,7 @@ for n in (d.get("nachrichten") or []):
     done <<EOF
 $zeilen
 EOF
-    (( anzahl > 0 )) || return 0
+    (( anzahl > 0 )) || { post_erledigt_merken "$abdr"; return 0; }
 
     # Hoechstens drei Absender in der Zeile, der Rest wird gezaehlt.
     local liste="" i=0
@@ -3819,6 +3963,7 @@ EOF
     GUARD_IM_SCHRITT=1
     if nudge "$ORCH" "$msg" 1; then
         for id in $neue; do : >"$POST_DIR/$id" 2>/dev/null || true; done
+        post_erledigt_merken "$abdr"
         echo "$(date +%H:%M) Postfach: $anzahl neue Nachricht(en) von $namen -> orchestrator benachrichtigt"
         log_orch_notify "POST: $anzahl neue Nachricht(en) von $namen"
     fi

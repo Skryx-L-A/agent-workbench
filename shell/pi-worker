@@ -591,6 +591,25 @@ WT_VORHER=0
 [ -e "$HOME/.pi-workers/worktrees/$NAME" ] && WT_VORHER=1
 # MIT --basis gibt es keinen Rueckfall: ensure bricht laut ab (Exit 2, stdout leer),
 # und dann startet kein Worker (noch ist kein Pane entstanden).
+#
+# liegt_in_git_spur ist eine wortgleiche Kopie aus wb-worktree: fehlt das Werkzeug,
+# entscheidet dieselbe Regel, ob $WORKDIR in einem Repo liegt. test-worktree-basis.sh
+# vergleicht die drei Fassungen Byte fuer Byte; Aenderungen nur in allen dreien.
+# liegt_in_git_spur <dir> — gibt es in <dir> oder einem Elternordner ein .git, oder
+# erkennt git dort ein Repo? Dann ist <dir> KEIN "Ordner ohne git", und ensure
+# darf nicht auf <dir> zurueckfallen, auch wenn git keinen Arbeitsbaum nennt.
+liegt_in_git_spur() {
+  local d
+  if command -v git >/dev/null 2>&1 && git -C "$1" rev-parse --git-dir >/dev/null 2>&1; then
+    return 0
+  fi
+  d="$(cd "$1" 2>/dev/null && pwd -P)" || return 0   # nicht lesbar: nicht bestaetigt, gilt als Repo
+  while :; do
+    [ -e "$d/.git" ] && return 0
+    [ "$d" = / ] && return 1
+    d="$(dirname "$d")"
+  done
+}
 if [ -n "$BASIS_GESETZT" ]; then
   [ -x "$HOME/.local/bin/wb-worktree" ] \
     || { echo "pi-worker: --basis '$BASIS' braucht wb-worktree, das fehlt hier. Kein Worker gestartet." >&2; exit 1; }
@@ -611,6 +630,14 @@ elif [ -x "$HOME/.local/bin/wb-worktree" ]; then
     exit 2
   fi
   WORKDIR="$WT_DIR"
+elif liegt_in_git_spur "$WORKDIR"; then
+  # Fail closed auch ohne Werkzeug (23.11.2026): fehlt wb-worktree, lief der Worker
+  # bis dahin still im uebergebenen Verzeichnis, also auch im Hauptbaum eines Repos.
+  echo "pi-worker: wb-worktree fehlt ($HOME/.local/bin/wb-worktree nicht vorhanden oder nicht ausfuehrbar), und '$WORKDIR' liegt in einem git-Repo oder ist nicht lesbar. Kein Worker gestartet." >&2
+  exit 2
+else
+  # Ordner ohne Repo: derselbe Rueckfall wie bei ensure, mit Meldung.
+  echo "pi-worker: wb-worktree fehlt — '$NAME' laeuft ohne Worktree in $WORKDIR." >&2
 fi
 case "${WT_DIR:-}" in
   "$HOME/.pi-workers/worktrees/$NAME"|"$HOME/.pi-workers/worktrees/$NAME"/*)

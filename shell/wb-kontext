@@ -430,8 +430,8 @@ def gewichte_gb(res):
 
 # ---------------------------------------------- schon laufender MLX-Server
 #
-# Nachtrag 2026-09-08 (Auftrag "kontextgewichte", gemessener Betriebsfehler
-# 19:09 Uhr): der MLX-Server fuer qwen38-27b lief bereits (wb-mlx-server, PID
+# Nachtrag 2026-09-08 (Auftrag "kontextgewichte", gemessener Betriebsfehler):
+# der MLX-Server fuer qwen38-27b lief bereits (wb-mlx-server, PID
 # 98588, Port 8081, 14,95 GiB Gewichte geladen, Belegung "realisiert"), aber
 # 'pi-worker unterkante qwen38' rechnete in seinem 'wb-kontext stufen --json'
 # die Gewichte trotzdem ERNEUT ein (bedarfGib 16,95 fuer 32k, "passt: nein")

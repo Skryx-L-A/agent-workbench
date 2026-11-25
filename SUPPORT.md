@@ -5,11 +5,13 @@
   questions; an answer that solved it can be marked there, so the next person finds it.
 - **Something does not work as documented:** open an issue with the bug report form.
 - **A security problem:** do not open an issue or a discussion. Follow [SECURITY.md](SECURITY.md).
-- **Licensing and partner agreements:** read [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md); it
-  also names the address for questions about a partner agreement.
+- **Licensing:** the code is under the Apache License 2.0 ([LICENSE](LICENSE), [NOTICE.md](NOTICE.md));
+  names and logos are covered by [TRADEMARKS.md](TRADEMARKS.md). No agreement is needed to use, change
+  or pass on the code under the License.
+- **Setup, support and training:** offered as a paid service. Write to licensing@prontea.de.
 
-This is a one-person project. Questions and issues are answered on a best-effort basis; there is
-no paid support and no guaranteed response time.
+This is a one-person project. Questions and issues here are answered on a best-effort basis, with
+no guaranteed response time.
 
 Please write in English or German, and remove secrets, access tokens and personal data from
 everything you paste.
@@ -24,11 +26,13 @@ everything you paste.
   Fehlerberichte.
 - **Ein Sicherheitsproblem:** eröffnen Sie weder ein Issue noch eine Diskussion. Folgen Sie
   [SECURITY.md](SECURITY.md).
-- **Lizenz und Partnerverträge:** lesen Sie [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md); dort
-  steht auch die Adresse für Fragen zu einem Partnervertrag.
+- **Lizenz:** der Code steht unter der Apache License 2.0 ([LICENSE](LICENSE), [NOTICE.md](NOTICE.md));
+  für Namen und Logos gilt [TRADEMARKS.md](TRADEMARKS.md). Zum Nutzen, Ändern und Weitergeben des
+  Codes nach der Lizenz braucht es keine Vereinbarung.
+- **Einrichtung, Support und Schulung:** als bezahlte Leistung. Schreiben Sie an licensing@prontea.de.
 
-Dies ist ein Ein-Personen-Projekt. Fragen und Issues werden nach bestem Vermögen beantwortet; es
-gibt keinen bezahlten Support und keine zugesagte Antwortzeit.
+Dies ist ein Ein-Personen-Projekt. Fragen und Issues werden hier nach bestem Vermögen beantwortet,
+ohne zugesagte Antwortzeit.
 
 Bitte schreiben Sie auf Englisch oder Deutsch, und entfernen Sie Geheimnisse, Zugangstoken und
 personenbezogene Daten aus allem, was Sie einfügen.

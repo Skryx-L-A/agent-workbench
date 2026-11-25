@@ -2373,7 +2373,7 @@ def baue_handler(proxy):
 # Proxy-Modus (task, decision 10-13.). Claude verweigert Remote Control, sobald
 # ANTHROPIC_BASE_URL auf einen lokalen Port zeigt. Stattdessen laeuft Claude mit
 # HTTPS_PROXY=http://127.0.0.1:8093 und NODE_EXTRA_CA_CERTS=<zustand>/ca.pem (derselbe
-# Port wie die Pfadrouten, mit --connect; abgenommen vom WorkbenchOrchestrator 13.10.):
+# Port wie die Pfadrouten, mit --connect; abgenommen 13.10.2026):
 #   - CONNECT zu einem Host aus MITM_HOSTS (nur api.anthropic.com) wird mit einem
 #     Blattzertifikat aus der lokalen CA aufgebrochen; die Anfragen darin laufen durch
 #     denselben Handler wie /anthropic/... auf 8093 (gleicher Filter, gleiche Tabelle,

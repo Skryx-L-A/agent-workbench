@@ -1111,7 +1111,7 @@ elif sys.platform.startswith("linux"):
     if roh and not roh.strip(b"\0"):
         # Electron 42 (Chromium setproctitle) nullt den Umgebungsbereich: /proc/X/environ
         # ist dann nur NUL (gemessen peer 2026-10-16, 374 Bytes). Ersatz NUR in diesem Fall
-        # (Entscheidung WorkbenchOrchestrator 16.10.): jede ausfuehrbare Abbildung in
+        # (Projektentscheid, 16.10.2026): jede ausfuehrbare Abbildung in
         # /proc/X/maps liegt im Kern-Electron-Ordner oder ist eine root-eigene Datei, deren
         # Ordnerkette bis / root-eigen und weder gruppen- noch weltschreibbar ist. Das faengt
         # eigenen Code ueber LD_PRELOAD, LD_LIBRARY_PATH, GTK_MODULES, GIO_EXTRA_MODULES.
@@ -1120,7 +1120,7 @@ elif sys.platform.startswith("linux"):
         # Im Kernordner zaehlen nur die Dateien der Electron-dist (gemessen peer 16.10.,
         # Electron 42), direkt im Ordner und mit genau einem Namen. Der Ordner ist vom
         # Benutzer beschreibbar; ohne Liste ginge ein LD_PRELOAD auf eine dort abgelegte
-        # .so durch (Befund WorkbenchOrchestrator 16.10.). app/tools/kern-electron.mjs
+        # .so durch (Befund 16.10.2026). app/tools/kern-electron.mjs
         # liest diese Zeile und bricht den Bau laut ab, wenn die dist eine Bibliothek
         # mitbringt, die hier fehlt (Electron-Update).
         KERN_DATEIEN_LINUX = ("electron", "libEGL.so", "libGLESv2.so", "libffmpeg.so", "libvk_swiftshader.so", "libvulkan.so.1")

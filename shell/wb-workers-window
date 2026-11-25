@@ -146,7 +146,11 @@ point_view_at_workers() {
   # tab (workers-2, ...) must not fight the primary one over which window the
   # worker tab currently shows (see header note).
   [ "$WNAME" = "workers" ] || return 0
-  tmux list-windows -t "=$S" -F '#{window_name}' 2>/dev/null | grep -qx workers || return 0
+  # Ohne Pipe (23.11.2026): `list-windows | grep -qx` und `| awk '...exit'` gaben unter
+  # pipefail 141, sobald tmux nach dem Treffer weiterschrieb (falsches Nein bzw. Abbruch).
+  local fenster sitzungen
+  fenster="$(tmux list-windows -t "=$S" -F '#{window_name}' 2>/dev/null)" || return 0
+  grep -qx workers <<<"$fenster" || return 0
   tmux has-session -t "=$S-view" 2>/dev/null || {
     # Die Existenzpruefung direkt davor ist der Kern der Sache: `new-session -t`
     # auf eine FEHLENDE Basis scheitert nicht, sondern legt eine leere Session an,
@@ -165,8 +169,8 @@ point_view_at_workers() {
 
     # Nachkontrolle: ist die Gruppe doch eine Zeichenkette geworden, war es eine
     # Streu-Session — die wird sofort wieder entfernt, statt im Grid stehenzubleiben.
-    grp="$(tmux list-sessions -F '#{session_name}|#{session_group}' 2>/dev/null \
-           | awk -F'|' -v v="$S-view" '$1==v{print $2; exit}')"
+    sitzungen="$(tmux list-sessions -F '#{session_name}|#{session_group}' 2>/dev/null)"
+    grp="$(awk -F'|' -v v="$S-view" '$1==v && !f{print $2; f=1}' <<<"$sitzungen")"
     case "${grp:-}" in
       =*) tmux kill-session -t "=$S-view" 2>/dev/null; return 0 ;;
     esac
@@ -180,8 +184,9 @@ point_view_at_workers() {
 # nachgeschlagen, und zwar mit einem exakten Vergleich in awk statt mit tmux'
 # Namensaufloesung.
 fenster_id() {   # <fenstername> -> window_id oder leer
-  tmux list-windows -t "=$S" -F '#{window_id}	#{window_name}' 2>/dev/null \
-    | awk -F'\t' -v n="$1" '$2==n{print $1; exit}'
+  local liste
+  liste="$(tmux list-windows -t "=$S" -F '#{window_id}	#{window_name}' 2>/dev/null)" || return
+  awk -F'\t' -v n="$1" '$2==n && !f{print $1; f=1}' <<<"$liste"
 }
 
 WID="$(fenster_id "$WNAME")"

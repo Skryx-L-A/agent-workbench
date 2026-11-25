@@ -175,8 +175,12 @@ fi
 # zwischen dem Poll der Extension und diesem Aufruf, oder ein veralteter
 # Aufrufer), faellt WNAME auf 'workers' zurueck statt auf ein leeres Fenster
 # zu zeigen: 'workers' existiert immer, siehe wb-workers-window oben.
-if [ "$WNAME" != workers ] \
-   && ! tmux list-windows -t "=$BASE" -F '#{window_name}' 2>/dev/null | grep -qx "$WNAME"; then
+# Ohne Pipe (23.11.2026): `list-windows | grep -qx` gab unter pipefail 141, sobald tmux
+# nach dem Treffer weiterschrieb, und ein vorhandenes Fenster galt als fehlend.
+if [ "$WNAME" != workers ]; then
+  FENSTER="$(tmux list-windows -t "=$BASE" -F '#{window_name}' 2>/dev/null)" || FENSTER=""
+fi
+if [ "$WNAME" != workers ] && ! grep -qx -- "$WNAME" <<<"$FENSTER"; then
   echo "wb-worker-tab: Fenster '$WNAME' gibt es (noch) nicht in '$BASE' — zeige stattdessen 'workers'." >&2
   WNAME=workers
 fi
