@@ -414,6 +414,85 @@ fn w3_leck_im_koerper_im_kopf_und_ueber_teilgrenzen() {
         3,
         "the target got every call"
     );
+    let k = kette_text(&heim);
+    assert_eq!(zaehlen(k.as_bytes(), marke), 0, "no value in the chain");
+    assert_eq!(d.leck_treffer(), 3, "one journal line per hit");
+}
+
+fn prozent(bytes: &[u8], gross: bool) -> String {
+    bytes
+        .iter()
+        .map(|b| {
+            if gross {
+                format!("%{b:02X}")
+            } else {
+                format!("%{b:02x}")
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn w3_b_kodierte_rueckgabe_wird_gesperrt_harmloses_geht_durch() {
+    let mit = b64::kodieren(format!("x{MARKE}").as_bytes());
+    let ohne_url = mit
+        .trim_end_matches('=')
+        .replace('+', "-")
+        .replace('/', "_");
+    let mut geteilt1 = b"HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n".to_vec();
+    let p = prozent(MARKE.as_bytes(), false);
+    let (vorne, hinten) = p.split_at(20);
+    geteilt1.extend_from_slice(format!("{:x}\r\n{vorne}\r\n", vorne.len()).as_bytes());
+    let geteilt2 = format!("{:x}\r\n{hinten}\r\n0\r\n\r\n", hinten.len()).into_bytes();
+    let harmlos = b"kein Schluessel hier, 100% harmlos, aGd4MS1n".to_vec();
+    let a = attrappe(vec![
+        vec![http(
+            "200 OK",
+            "",
+            format!("{{\"t\":\"{mit}\"}}").as_bytes(),
+        )],
+        vec![http("200 OK", &format!("x-echo: {ohne_url}\r\n"), b"")],
+        vec![http(
+            "200 OK",
+            &format!("x-echo: {}\r\n", prozent(MARKE.as_bytes(), true)),
+            b"",
+        )],
+        vec![geteilt1, geteilt2],
+        vec![http("200 OK", "x-echo: harmlos\r\n", &harmlos)],
+    ]);
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst("bruecke", a.port, &heim, START);
+    let mut c = verbinden(&d);
+    for fall in [
+        "base64 im koerper",
+        "base64url im kopf",
+        "prozent im kopf",
+        "prozent ueber teile",
+    ] {
+        c.senden(&aufruf("GET", "/copilot_internal/user", b""));
+        let z = c.bis_schluss();
+        assert_eq!(
+            letzte_code(&z).as_deref(),
+            Some("halter.leck_gesperrt"),
+            "{fall}"
+        );
+        let t = teil_bytes(&z);
+        assert_eq!(zaehlen(&t, &mit.as_bytes()[..20]), 0, "{fall}");
+        assert_eq!(
+            zaehlen(&t, vorne.as_bytes()),
+            0,
+            "the first part stayed back: {fall}"
+        );
+    }
+    c.senden(&aufruf("GET", "/copilot_internal/user", b""));
+    let z = c.bis_schluss();
+    assert_eq!(
+        z.last().expect("end")["ok"],
+        json!(true),
+        "harmless text goes through"
+    );
+    assert_eq!(teil_bytes(&z), harmlos);
+    assert_eq!(d.leck_treffer(), 4, "the harmless answer is no hit");
 }
 
 #[test]
@@ -661,7 +740,8 @@ fn l3_gleicher_peer_mit_und_ohne_rollengruppe() {
     eprintln!("measured: gid {eigene} -> halter.peer, gid {gruppe} ({name}) -> role bruecke");
 }
 
-fn strom_lauf(nach_101: Vec<Vec<u8>>) -> (Vec<Value>, usize, Attrappe) {
+/// One stream: the lines to the bridge, the marks in their bytes, the stand-in and the hits of the leak lock.
+fn strom_lauf(nach_101: Vec<Vec<u8>>) -> (Vec<Value>, usize, Attrappe, u64) {
     let mut teile = vec![ACHT_ZEHN_EINS.to_vec()];
     teile.extend(nach_101);
     let a = attrappe(vec![teile]);
@@ -671,13 +751,13 @@ fn strom_lauf(nach_101: Vec<Vec<u8>>) -> (Vec<Value>, usize, Attrappe) {
     c.senden(&strom_anfrage());
     let z = c.bis_schluss();
     let m = c.marken();
-    (z, m, a)
+    (z, m, a, d.leck_treffer())
 }
 
 #[test]
 fn l6_leck_im_strom_ueber_zwei_rahmen_mit_ping() {
     let (vorne, hinten) = MARKE.as_bytes().split_at(9);
-    let (z, m, _a) = strom_lauf(vec![
+    let (z, m, _a, t) = strom_lauf(vec![
         rahmen(false, 0x1, vorne),
         rahmen(true, 0x9, b"p"),
         rahmen(true, 0x0, hinten),
@@ -686,9 +766,19 @@ fn l6_leck_im_strom_ueber_zwei_rahmen_mit_ping() {
     assert!(z[0]["kopf"].get("upgrade").is_none() && z[0]["kopf"].get("connection").is_none());
     assert_eq!(letzte_code(&z).as_deref(), Some("halter.leck_gesperrt"));
     assert_eq!(m, 0);
-    let (z, m, _a) = strom_lauf(vec![rahmen(true, 0x1, format!("x {MARKE} y").as_bytes())]);
+    assert_eq!(t, 1, "one journal line per hit");
+    let (z, m, _a, t) = strom_lauf(vec![rahmen(true, 0x1, format!("x {MARKE} y").as_bytes())]);
     assert_eq!(letzte_code(&z).as_deref(), Some("halter.leck_gesperrt"));
     assert_eq!(m, 0);
+    assert_eq!(t, 1);
+    let kodiert = b64::kodieren(MARKE.as_bytes());
+    let (z, _m, _a, t) = strom_lauf(vec![rahmen(true, 0x1, kodiert.as_bytes())]);
+    assert_eq!(
+        letzte_code(&z).as_deref(),
+        Some("halter.leck_gesperrt"),
+        "Base64 in a frame"
+    );
+    assert_eq!(t, 1);
 }
 
 #[test]
@@ -712,7 +802,7 @@ fn l7_b_und_c_strom_komprimiert() {
     assert!(!anfrage.to_ascii_lowercase().contains("extensions"));
     let mut rsv = rahmen(true, 0x1, b"abcdef");
     rsv[0] |= 0x40;
-    let (z, _, _a) = strom_lauf(vec![rsv]);
+    let (z, _, _a, _) = strom_lauf(vec![rsv]);
     assert_eq!(letzte_code(&z).as_deref(), Some("halter.ziel_komprimiert"));
     assert!(teil_bytes(&z).is_empty(), "0 bytes of the frame");
 }
@@ -729,12 +819,13 @@ fn l8_rahmenregeln() {
     for (i, v) in verstoesse.into_iter().enumerate() {
         let vorher = rahmen(true, 0x2, b"gut");
         let gesendet = [vorher.clone(), v.clone()].concat();
-        let (z, _, a) = strom_lauf(vec![vorher.clone(), v]);
+        let (z, _, a, t) = strom_lauf(vec![vorher.clone(), v]);
         assert_eq!(
             letzte_code(&z).as_deref(),
             Some("halter.ziel_fehler"),
             "case {i}"
         );
+        assert_eq!(t, 0, "case {i}: a break is no hit of the leak lock");
         let bytes = teil_bytes(&z);
         // the payload "gut" is still kept back by the leak lock and is dropped with the break; at most the head of
         // the frame before the violation went out
@@ -761,23 +852,23 @@ fn l8_rahmenregeln() {
         rahmen(true, 0x0, b"def"),
     ]
     .concat();
-    let (z, _, _a) = strom_lauf(vec![f.clone()]);
+    let (z, _, _a, _) = strom_lauf(vec![f.clone()]);
     assert_eq!(z.last().expect("end")["ok"], json!(true));
     assert_eq!(teil_bytes(&z), f);
     let g = rahmen(true, 0x9, &[7u8; 125]);
-    let (z, _, _a) = strom_lauf(vec![g.clone()]);
+    let (z, _, _a, _) = strom_lauf(vec![g.clone()]);
     assert_eq!(teil_bytes(&z), g);
 }
 
 #[test]
 fn l9_zurueckgehaltenes_geht_am_ende_hinaus() {
     let r = rahmen(true, 0x1, &[b'n'; 40]);
-    let (z, _, _a) = strom_lauf(vec![r.clone()]);
+    let (z, _, _a, _) = strom_lauf(vec![r.clone()]);
     assert_eq!(teil_bytes(&z), r);
     assert_eq!(z.last().expect("end")["ok"], json!(true));
     let mut b = r.clone();
     b.extend_from_slice(&rahmen(true, 0x1, &[b'o'; 30])[..12]);
-    let (z, _, _a) = strom_lauf(vec![b.clone()]);
+    let (z, _, _a, _) = strom_lauf(vec![b.clone()]);
     assert_eq!(teil_bytes(&z), b, "everything the stand-in sent");
     assert!(z.last().expect("end").get("code").is_none());
 }
@@ -968,6 +1059,36 @@ fn w8_fremde_person_bekommt_keinen_token() {
         Some("halter.kein_schluessel")
     );
     assert_eq!(a.anfragen.lock().expect("lock").len(), 0);
+}
+
+#[test]
+fn mcp_leck_im_ergebnis_wird_gesperrt_und_gezaehlt() {
+    let a = attrappe(vec![
+        vec![http(
+            "200 OK",
+            "content-type: application/json\r\n",
+            format!(r#"{{"id":1,"jsonrpc":"2.0","result":{{"content":[{{"text":"{}","type":"text"}}]}}}}"#,
+                b64::kodieren(MARKE.as_bytes())).as_bytes(),
+        )],
+        vec![http("500 Internal Server Error", "", b"")],
+    ]);
+    let heim = heim_mit(&[("mcp.tickets", MARKE)]);
+    let d = dienst("hub", a.port, &heim, START);
+    let mut c = verbinden(&d);
+    let lesend = json!({"argumente": {"id": "t-1"}, "fassung": 1, "id": 8, "lauf": "l-beispiel", "op": "mcp.aufruf",
+        "person": PERSON, "server": "tickets", "vorschau_sha256": null, "werkzeug": "get"});
+    c.senden(&lesend);
+    assert_eq!(
+        letzte_code(&c.bis_schluss()).as_deref(),
+        Some("halter.leck_gesperrt")
+    );
+    assert_eq!(d.leck_treffer(), 1);
+    c.senden(&lesend);
+    assert_eq!(
+        letzte_code(&c.bis_schluss()).as_deref(),
+        Some("halter.ziel_fehler")
+    );
+    assert_eq!(d.leck_treffer(), 1, "another error is no hit");
 }
 
 #[test]

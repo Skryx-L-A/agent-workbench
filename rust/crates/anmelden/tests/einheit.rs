@@ -753,3 +753,17 @@ fn a_missing_or_unreadable_root_has_no_left_overs() {
         Ok(0)
     );
 }
+
+#[test]
+fn the_throw_away_homes_lie_in_the_folder_of_the_holder_above_the_store() {
+    let heim = std::path::Path::new("/srv/beispiel/heim");
+    assert_eq!(
+        anmelden::lauf::wegwerf_wurzel(heim),
+        std::path::Path::new("/srv/beispiel/heim/.local/state/agent-workbench/halter")
+    );
+    assert_eq!(
+        anmelden::lauf::wegwerf_wurzel(heim).join("geheim"),
+        ABLAGE.iter().fold(heim.to_path_buf(), |p, e| p.join(e)),
+        "the level right above the store"
+    );
+}

@@ -25,7 +25,7 @@ mod unix {
     use anmelden::fehler::Fehler;
     use anmelden::lauf::{
         TempArt, Umgebung, ablage_suchen, anmelden, durchreichen_aus_umgebung, heim_aus_passwd,
-        reste_raeumen, temp_reste_in, temp_reste_raeumen,
+        reste_raeumen, temp_reste_in, temp_reste_raeumen, wegwerf_wurzel,
     };
     use anmelden::uebernehmen::{Probe, Punkt, uebernehmen};
 
@@ -207,7 +207,7 @@ mod unix {
         let echtes = seam(Naht::CopilotHeim)
             .or_else(|| std::env::var_os("COPILOT_HOME").map(PathBuf::from))
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".copilot")))?;
-        let wurzel = seam(Naht::Wurzel).unwrap_or_else(|| PathBuf::from("/var/tmp"));
+        let wurzel = seam(Naht::Wurzel).unwrap_or_else(|| wegwerf_wurzel(&heim));
         Some(Umgebung {
             heim,
             suchpfad: std::env::var_os("PATH").unwrap_or_default(),

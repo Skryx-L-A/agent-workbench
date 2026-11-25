@@ -287,7 +287,8 @@ def versionen(k, hier):
 # Arbeitsordner an einem geschuetzten Ort, endet der echte Lauf vor dem ersten Start mit `probelauf.arbeitsordner_geschuetzt` statt
 # spaeter mit `s1.ausnahme` (Code 5 des Einschlusses). Massgeblich bleibt der Einschluss; dies ist eine Teilmenge seiner Regeln.
 GEHEIMNIS_TEILE = (".aws", ".config", ".docker", ".gnupg", ".kube", ".secrets-sync", ".ssh", "90-secrets", ".env")
-SYSTEM_VERBOTEN = ("/", "/dev", "/etc", "/home", "/proc", "/root", "/run", "/sys", "/tmp", "/var/run", "/var/lib/docker")
+# Nachtrag 25.11.2026: `/var/tmp` steht wie im Einschluss in der Liste (verbote.rs, SYSTEM_VERBOTEN, 12 Eintraege); Ordner darunter bleiben erlaubt.
+SYSTEM_VERBOTEN = ("/", "/dev", "/etc", "/home", "/proc", "/root", "/run", "/sys", "/tmp", "/var/tmp", "/var/run", "/var/lib/docker")
 SYSTEM_UNTER_VERBOTEN = ("/usr", "/run", "/proc", "/sys", "/dev", "/etc", "/opt")
 WERKBANK_ORTE = ("/var/lib/werkbank", "/etc/werkbank")
 ANMELDE_ORTE = (".copilot",)  # Anmeldespeicher der Harness im Heim (Teil von ANMELDE_ORDNER des Einschlusses)

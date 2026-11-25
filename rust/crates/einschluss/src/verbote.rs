@@ -19,8 +19,11 @@ pub const GEHEIMNIS_TEILE: [&str; 9] = [
     ".env",
 ];
 
-/// The working folder is none of these paths, and none of them lies below it.
-pub const SYSTEM_VERBOTEN: [&str; 11] = [
+/// The working folder is none of these paths, and none of them lies below it. `/tmp` and `/var/tmp` are the shared
+/// temp folders of all users and runs: as a working folder each would show every other temp folder of the user to the
+/// agent. A folder below them stays allowed: it shows only itself, and no throw-away home of `werkbank-anmelden`
+/// lies there any more (it lies in the folder of the holder, `ANMELDE_ORDNER`). alt: without `/var/tmp`.
+pub const SYSTEM_VERBOTEN: [&str; 12] = [
     "/",
     "/dev",
     "/etc",
@@ -30,6 +33,7 @@ pub const SYSTEM_VERBOTEN: [&str; 11] = [
     "/run",
     "/sys",
     "/tmp",
+    "/var/tmp",
     "/var/run",
     "/var/lib/docker",
 ];
@@ -349,6 +353,10 @@ mod tests {
             "/opt",
             "/opt/x",
             "/tmp",
+            "/tmp/",
+            "/var/tmp",
+            "/var/tmp/",
+            "/var",
             "/root",
             "/var/run",
             "/var/lib/docker",

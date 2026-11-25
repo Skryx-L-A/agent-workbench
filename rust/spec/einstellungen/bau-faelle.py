@@ -35,8 +35,11 @@ VORFUEHRDATEI = {
     "vorgabestufe": "customer",
     "routen": [
         {"schluessel": "copilot", "art": "cloud", "klasse": "internal", "netzziele": [
+            # Nur genaue Pfade an api.github.com, kein Teilbaum (Entscheid der Leitung, 25.11.2026, Sicherheitsprüfung
+            # F1): `GET /copilot_internal/v2/token` gäbe ein abgeleitetes Token aus, das die Leck-Sperre nicht kennt.
+            # alt: `GET /copilot_internal/*`.
             {"host": "api.github.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": True,
-             "pfade": [{"methode": "GET", "pfad": "/copilot_internal/*"},
+             "pfade": [{"methode": "GET", "pfad": "/copilot_internal/user"},
                        {"methode": "GET", "pfad": "/copilot/mcp_registry"}]},
             {"host": "api.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": True,
              "pfade": [{"methode": "GET", "pfad": "/agents/swe/internal/memory/v0/enabled"}]},

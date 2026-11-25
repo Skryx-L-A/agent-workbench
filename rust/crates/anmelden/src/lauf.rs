@@ -5,7 +5,7 @@ use std::ffi::{OsStr, OsString};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::os::fd::OwnedFd;
-use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -20,6 +20,17 @@ pub const SCHLUESSELDATEI: &str = "anmeldung.copilot";
 /// The levels of the store of the holder below the home: `<home>/.local/state/agent-workbench/halter/geheim`. Each is
 /// opened relative to the one before, never as a joined path.
 pub const ABLAGE: [&str; 5] = [".local", "state", "agent-workbench", "halter", "geheim"];
+
+/// The root of the throw-away homes: the folder of the holder above the store (`ABLAGE` without `geheim`),
+/// `<home>/.local/state/agent-workbench/halter`. The enclosure never mounts it (`ANMELDE_ORDNER`), for no harness, so no
+/// agent sees the token of a running or broken login; step 3 has made and checked its levels before the home is made.
+/// alt: `/var/tmp`, which an agent could mount as its working folder.
+#[must_use]
+pub fn wegwerf_wurzel(heim: &Path) -> PathBuf {
+    ABLAGE[..ABLAGE.len() - 1]
+        .iter()
+        .fold(heim.to_path_buf(), |p, ebene| p.join(ebene))
+}
 
 /// Variables of the caller that the CLI may keep (network of the firm). Nothing else passes.
 const DURCHREICHEN: [&str; 14] = [
@@ -80,9 +91,12 @@ pub fn durchreichen_aus_umgebung() -> Vec<(OsString, OsString)> {
         .collect()
 }
 
-/// The throw-away home. It is deleted when the value goes away, on every path, also on a panic.
+/// The throw-away home. It is deleted when the value goes away, on every path, also on a panic; the delete goes
+/// through the open folder above it (`baum_loeschen`), never through a joined path.
 struct Wegwerf {
     wurzel: PathBuf,
+    oben: OwnedFd,
+    name: String,
 }
 
 impl Wegwerf {
@@ -90,9 +104,16 @@ impl Wegwerf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_or(0, |d| d.as_nanos());
-        let wurzel = unter.join(format!("wb-anmelden-{}-{nanos}", std::process::id()));
-        ordner_0700(&wurzel)?;
-        let w = Wegwerf { wurzel };
+        let name = format!("wb-anmelden-{}-{nanos}", std::process::id());
+        let oben = ordner_oeffnen(unter).map_err(|_| Fehler::HeimNichtAnlegbar)?;
+        ebene_anlegen(&oben, &name).map_err(|_| Fehler::HeimNichtAnlegbar)?;
+        let w = Wegwerf {
+            wurzel: unter.join(&name),
+            oben,
+            name,
+        };
+        fs::set_permissions(&w.wurzel, fs::Permissions::from_mode(0o700))
+            .map_err(|_| Fehler::HeimNichtAnlegbar)?;
         ordner_0700(&w.heim())?;
         ordner_0700(&w.copilot_heim())?;
         let einstellungen = w.copilot_heim().join("settings.json");
@@ -129,8 +150,45 @@ fn ordner_0700(pfad: &Path) -> Result<(), Fehler> {
 
 impl Drop for Wegwerf {
     fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.wurzel);
+        let _ = baum_loeschen(&self.oben, self.name.as_str());
     }
+}
+
+/// Deletes the entry `name` of the open folder `ordner` with everything below it. Every level is opened relative to
+/// the one above with `O_NOFOLLOW`, every entry is looked at without following a link and removed relative to its
+/// open folder: a link is removed as a link, its target stays. Nothing is reached through a joined path.
+pub(crate) fn baum_loeschen<P: rustix::path::Arg + Copy>(
+    ordner: &OwnedFd,
+    name: P,
+) -> rustix::io::Result<()> {
+    use rustix::fs::{AtFlags, Dir, FileType, Mode, OFlags};
+    let st = rustix::fs::statat(ordner, name, AtFlags::SYMLINK_NOFOLLOW)?;
+    if FileType::from_raw_mode(st.st_mode) != FileType::Directory {
+        return rustix::fs::unlinkat(ordner, name, AtFlags::empty());
+    }
+    let fd = rustix::fs::openat(
+        ordner,
+        name,
+        OFlags::RDONLY
+            .union(OFlags::DIRECTORY)
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC),
+        Mode::empty(),
+    )?;
+    let mut namen = Vec::new();
+    let mut liste = Dir::read_from(&fd)?;
+    while let Some(eintrag) = liste.read() {
+        let eintrag = eintrag?;
+        let n = eintrag.file_name();
+        if n.to_bytes() != b"." && n.to_bytes() != b".." {
+            namen.push(n.to_owned());
+        }
+    }
+    drop(liste);
+    for n in &namen {
+        baum_loeschen(&fd, n.as_c_str())?;
+    }
+    rustix::fs::unlinkat(ordner, name, AtFlags::REMOVEDIR)
 }
 
 /// Prefix of the name of a throw-away home: `wb-anmelden-<pid>-<nanos>`.
@@ -170,28 +228,41 @@ fn lebt_nach_signaltest(antwort: rustix::io::Result<()>) -> bool {
 }
 
 /// Deletes the left-overs of earlier runs of this user under `wurzel`: a folder named `wb-anmelden-<pid>-<nanos>`,
-/// a real folder (never a link), owned by `uid`, whose run is dead. Others stay. Nothing is followed and nothing is
-/// shown. Returns how many were deleted.
+/// a real folder (never a link), owned by `uid`, whose run is dead. Others stay. `wurzel` is opened once without
+/// following a link at its last part; every look and every delete is relative to it (`baum_loeschen`). Nothing is
+/// followed and nothing is shown. Returns how many were deleted.
 ///
 /// # Errors
 /// `RestNichtLoeschbar` when a matching left-over cannot be deleted.
 pub fn reste_raeumen(wurzel: &Path, uid: u32, eigene_pid: u32) -> Result<usize, Fehler> {
-    let Ok(liste) = fs::read_dir(wurzel) else {
+    use rustix::fs::{AtFlags, Dir, FileType};
+    let Ok(fd) = ordner_oeffnen(wurzel) else {
         return Ok(0);
     };
+    let Ok(mut liste) = Dir::read_from(&fd) else {
+        return Ok(0);
+    };
+    let mut kandidaten = Vec::new();
+    while let Some(Ok(eintrag)) = liste.read() {
+        if let Ok(name) = eintrag.file_name().to_str()
+            && let Some(pid) = pid_aus_name(name)
+        {
+            kandidaten.push((name.to_owned(), pid));
+        }
+    }
+    drop(liste);
     let mut geloescht = 0;
-    for eintrag in liste.flatten() {
-        let Some(pid) = eintrag.file_name().to_str().and_then(pid_aus_name) else {
+    for (name, pid) in kandidaten {
+        let Ok(st) = rustix::fs::statat(&fd, name.as_str(), AtFlags::SYMLINK_NOFOLLOW) else {
             continue;
         };
-        let pfad = eintrag.path();
-        let Ok(meta) = fs::symlink_metadata(&pfad) else {
-            continue;
-        };
-        if !meta.file_type().is_dir() || meta.uid() != uid || lauf_lebt(pid, eigene_pid) {
+        if FileType::from_raw_mode(st.st_mode) != FileType::Directory
+            || st.st_uid != uid
+            || lauf_lebt(pid, eigene_pid)
+        {
             continue;
         }
-        fs::remove_dir_all(&pfad).map_err(|_| Fehler::RestNichtLoeschbar)?;
+        baum_loeschen(&fd, name.as_str()).map_err(|_| Fehler::RestNichtLoeschbar)?;
         geloescht += 1;
     }
     Ok(geloescht)

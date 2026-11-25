@@ -128,7 +128,8 @@ impl Code {
         self.paar().1
     }
 
-    /// The reason of a refused ticket in the protocol line (section 9), `None` where the fixed list has none (OPEN 2).
+    /// The reason of the protocol line (section 9): of a refused ticket, or `leck` for the leak lock; `None` where the
+    /// fixed list has none (stage 18, OPEN 2).
     #[must_use]
     pub fn kettengrund(self) -> Option<&'static str> {
         match self {
@@ -137,6 +138,7 @@ impl Code {
             Self::ScheinDigest => Some("digest"),
             Self::ScheinZeit | Self::ScheinAbgelaufen => Some("abgelaufen"),
             Self::ScheinBenutzt => Some("benutzt"),
+            Self::LeckGesperrt => Some("leck"),
             _ => None,
         }
     }
@@ -159,7 +161,8 @@ mod tests {
             (Code::ScheinBenutzt, Some("benutzt")),
             (Code::ScheinFehlt, None),
             (Code::ScheinUnerwartet, None),
-            (Code::LeckGesperrt, None),
+            (Code::LeckGesperrt, Some("leck")),
+            (Code::ZielFehler, None),
         ];
         for (c, g) in soll {
             assert_eq!(c.kettengrund(), g, "{c:?}");

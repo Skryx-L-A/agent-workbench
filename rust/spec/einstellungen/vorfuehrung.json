@@ -21,7 +21,7 @@
      "pfade": [
       {
        "methode": "GET",
-       "pfad": "/copilot_internal/*"
+       "pfad": "/copilot_internal/user"
       },
       {
        "methode": "GET",

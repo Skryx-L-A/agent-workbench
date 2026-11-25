@@ -20,8 +20,9 @@ pub const ID_MAX: u64 = 9_007_199_254_740_991;
 /// Largest time of a ticket in ms (9999-12-31T23:59:59.999Z).
 pub const MS_MAX: u64 = 253_402_300_799_999;
 
-/// Head names the bridge must never send (section 4); the holder sets them itself or refuses them.
-pub const KOPF_VERBOTEN: [&str; 20] = [
+/// Head names the bridge must never send (section 4); the holder sets them itself or refuses them. The last eleven
+/// carry another method or path past the check of stage 15 to a proxy in front of the target that heeds them.
+pub const KOPF_VERBOTEN: [&str; 31] = [
     "authorization",
     "proxy-authorization",
     "x-api-key",
@@ -42,6 +43,17 @@ pub const KOPF_VERBOTEN: [&str; 20] = [
     "x-forwarded-host",
     "accept-encoding",
     "sec-websocket-extensions",
+    "x-http-method-override",
+    "x-http-method",
+    "x-method-override",
+    "x-original-method",
+    "x-original-url",
+    "x-original-uri",
+    "x-rewrite-url",
+    "x-forwarded-uri",
+    "x-forwarded-path",
+    "x-forwarded-prefix",
+    "x-envoy-original-path",
 ];
 
 /// The operations of the table in section 2.1.
@@ -547,6 +559,35 @@ mod tests {
         assert_eq!(p_kopf(&json!({"a": "x".repeat(8193)})), Err(Code::WertForm));
         assert_eq!(p_kopf(&json!({"a": 1})), Err(Code::TypFalsch));
         assert_eq!(p_kopf(&json!({"cookie": "a"})), Err(Code::KopfVerboten));
+    }
+
+    #[test]
+    fn kopf_ueberschreibt_weder_methode_noch_pfad() {
+        for name in [
+            "x-http-method-override",
+            "x-http-method",
+            "x-method-override",
+            "x-original-method",
+            "x-original-url",
+            "x-original-uri",
+            "x-rewrite-url",
+            "x-forwarded-uri",
+            "x-forwarded-path",
+            "x-forwarded-prefix",
+            "x-envoy-original-path",
+        ] {
+            assert_eq!(
+                p_kopf(&json!({ name: "/user/repos" })),
+                Err(Code::KopfVerboten),
+                "{name}"
+            );
+        }
+        // Gegenprobe: an ordinary head of the CLI passes
+        assert_eq!(
+            p_kopf(&json!({"x-request-id": "a", "x-github-api-version": "2025-05-01"})),
+            Ok(())
+        );
+        assert_eq!(KOPF_VERBOTEN.len(), 31);
     }
 
     #[test]

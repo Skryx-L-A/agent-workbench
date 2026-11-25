@@ -737,6 +737,21 @@ class ArbeitsordnerOrte(unittest.TestCase):
         k["start"]["cloud"]["arbeitsordner"] = os.path.join(verweis, "o1")
         self.assertEqual(probelauf.arbeitsordner_befund(k, heim=self.heim), "system")
 
+    def test_var_tmp_ist_geschuetzt_ein_ordner_darunter_nicht(self):
+        """`/var/tmp` ist wie `/tmp` ein gemeinsamer Temp-Ordner (Nachtrag 25.11.2026, verbote.rs). Ein Ordner darunter bleibt erlaubt; ein
+        Verweis, der auf `/var/tmp` zeigt, ergibt denselben Grund. Nichts wird angelegt: die Pruefung liest nur Pfade."""
+        k = self.probelauf_konfig()
+        k["start"]["cloud"]["arbeitsordner"] = "/var/tmp"
+        self.assertEqual(probelauf.arbeitsordner_befund(k, heim=self.heim), "system")
+        k["start"]["cloud"]["arbeitsordner"] = "/var/tmp/wb-test-x/o1"
+        self.assertIsNone(probelauf.arbeitsordner_befund(k, heim=self.heim), "ein Ordner unter /var/tmp ist erlaubt")
+        basis = tempfile.mkdtemp(prefix="orte-")
+        self.addCleanup(shutil.rmtree, basis, True)
+        verweis = os.path.join(basis, "nach-var-tmp")
+        os.symlink("/var/tmp", verweis)
+        k["start"]["cloud"]["arbeitsordner"] = verweis
+        self.assertEqual(probelauf.arbeitsordner_befund(k, heim=self.heim), "system", "ueber einen Verweis gilt derselbe Grund")
+
     def test_probelauf_konfig_legt_die_arbeitsordner_unter_arbeit(self):
         k = self.probelauf_konfig()
         for art in ("cloud", "lokal"):
@@ -757,6 +772,7 @@ class ArbeitsordnerOrte(unittest.TestCase):
             os.path.join(self.heim, ".ssh"): "geheimnisteil",
             os.path.join(self.heim, ".copilot", "o1"): "geschuetzt",
             "/tmp": "system",
+            "/var/tmp": "system",
             "/usr/local/o1": "system",
             "/opt/o1": "system",
         }

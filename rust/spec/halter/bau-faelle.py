@@ -377,6 +377,17 @@ def bauen():
     fall("s12-strom-erweiterung", "Upgrade mit Erweiterungskopf",
          zeile(strom(kopf={"sec-websocket-extensions": "permessage-deflate", "sec-websocket-version": "13"})),
          code="halter.kopf_verboten", lage_=k)
+    # Nachtrag Method-Override (Sicherheitsprüfung, F6): Köpfe, mit denen ein Proxy vor dem Ziel Methode oder Pfad ersetzt
+    for name in ("x-http-method-override", "x-http-method", "x-method-override", "x-original-method", "x-original-url",
+                 "x-original-uri", "x-rewrite-url", "x-forwarded-uri", "x-forwarded-path", "x-forwarded-prefix",
+                 "x-envoy-original-path"):
+        wert = "DELETE" if name.endswith("method") or name.endswith("override") else "/user/repos"
+        fall(f"s12-kopf-{name}", f"Brücke ersetzt Methode oder Pfad über {name}",
+             zeile(modell(kopf={name: wert, "content-type": "application/json"})), code="halter.kopf_verboten",
+             lage_=lage("bruecke"))
+    fall("a-modell-kopf-gewoehnlich", "Gegenprobe zu den Method-Override-Köpfen: gewöhnliche Köpfe der CLI gehen durch",
+         zeile(modell(kopf={"content-type": "application/json", "x-github-api-version": "2025-05-01",
+                            "x-request-id": "r-1"})), lage_=lage("bruecke"))
     fall("s14-suche-ziel-unbekannt", "Suche für ein unbekanntes Ziel", zeile(suche(ziel="cloud-fremd")),
          code="halter.ziel_unbekannt", lage_=k)
     fall("s15-pfad-punktpunkt", "Teilbaum per .. verlassen", zeile(konto_modell(pfad="/copilot_internal/../user/repos")),
@@ -391,6 +402,15 @@ def bauen():
          zeile(konto_modell(methode="POST", pfad="/chat/completions/x")), code="halter.pfad_verboten", lage_=k)
     fall("s15-strom-nur-post", "Strom auf einem Pfad, der nur für POST erlaubt ist", zeile(strom(pfad="/chat/completions")),
          code="halter.pfad_verboten", lage_=k)
+    # Entscheid der Leitung vom 25.11.2026 (Sicherheitsprüfung F1, A93): an api.github.com nur genaue Pfade, kein Teilbaum
+    g = lage_konto()
+    g["konfig"]["ziele"][KONTO_ZIEL]["pfade"] = ["GET /copilot_internal/user", "GET /copilot/mcp_registry"]
+    fall("s15-abgeleitetes-token", "Pfad, der ein abgeleitetes Token ausgibt, steht in keiner Regel (A93)",
+         zeile(konto_modell(pfad="/copilot_internal/v2/token")), code="halter.pfad_verboten", lage_=g)
+    fall("a-modell-genauer-pfad-user", "Gegenprobe zu s15-abgeleitetes-token: der genaue Pfad /copilot_internal/user geht",
+         zeile(konto_modell(pfad="/copilot_internal/user")), lage_=g)
+    fall("a-modell-genauer-pfad-mcp-registry", "Gegenprobe: der genaue Pfad /copilot/mcp_registry geht",
+         zeile(konto_modell(pfad="/copilot/mcp_registry")), lage_=g)
     fall("s16-anmeldung-anderes-konto", "Anmeldung gehört einem anderen Konto als dem der Brücke", zeile(konto_modell()),
          code="halter.kein_schluessel", lage_=lage_konto(konto=SID_B))
     fall("s16-suche-ohne-anmeldung", "Suche ohne Anmeldung des eigenen Kontos", zeile(suche()),

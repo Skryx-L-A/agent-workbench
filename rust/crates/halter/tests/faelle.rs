@@ -217,7 +217,7 @@ fn alle_faelle() {
             fehler.push(format!("{name}: {ist:?}, expected {soll:?}"));
         }
     }
-    assert_eq!(namen.len(), 160, "number of cases");
+    assert_eq!(namen.len(), 175, "number of cases");
     assert_eq!(
         namen.iter().filter(|n| n.starts_with("k-")).count(),
         29,

@@ -2,8 +2,11 @@
 //! `halter-<JJJJ-MM>.jsonl`, anchor `halter.anker.jsonl`), written through `formate`. The line carries the own `digest`,
 //! `lauf`, `server`, `werkzeug` and a reason of the fixed list; never arguments, a person, an `id` or a value.
 //!
-//! Stage 18 and the leak lock have no reason in the fixed list (OPEN 2); for them no line is written.
+//! A hit of the leak lock writes the fixed line `halter.leck_gesperrt` to the journal (stderr of the unit). Its chain
+//! line (reason `leck`, OPEN 2) waits for the register of contract 5, which refuses an unknown kind of line; stage 18
+//! still has no reason in the fixed list. For both no chain line is written.
 
+use std::io::Write;
 use std::path::Path;
 
 use serde_json::json;
@@ -91,5 +94,39 @@ mod tests {
         for o in [gut, anker] {
             let _ = std::fs::remove_dir_all(o);
         }
+    }
+}
+
+/// The line of the journal for a hit of the leak lock: `<code>: <grund>` and LF, fixed text without any value.
+#[must_use]
+pub fn leck_journalzeile() -> String {
+    let (code, grund) = Code::LeckGesperrt.paar();
+    format!("{code}: {grund}\n")
+}
+
+/// A hit of the leak lock (section 9): writes [`leck_journalzeile`] to `journal`, never a value, a path, a head, a body,
+/// an `id` or an argument.
+pub fn leck_gesperrt(journal: &mut dyn Write) {
+    let _ = journal.write_all(leck_journalzeile().as_bytes());
+}
+
+#[cfg(test)]
+mod leck_tests {
+    use super::*;
+
+    #[test]
+    fn leck_schreibt_genau_die_feste_journalzeile() {
+        let mut journal = Vec::new();
+        leck_gesperrt(&mut journal);
+        assert_eq!(
+            journal,
+            b"halter.leck_gesperrt: Antwort enthielt einen Schluessel\n"
+        );
+        leck_gesperrt(&mut journal);
+        assert_eq!(
+            journal.len(),
+            2 * leck_journalzeile().len(),
+            "one line per hit"
+        );
     }
 }

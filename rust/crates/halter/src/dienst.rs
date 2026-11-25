@@ -7,6 +7,7 @@ use std::io::{self, Read, Write};
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use rustix::event::{PollFd, PollFlags, poll};
@@ -60,6 +61,7 @@ pub struct Dienst {
     /// The clock (ms since 1970); [`jetzt_ms`] in the delivered build.
     pub uhr: fn() -> i64,
     benutzt: Mutex<BTreeMap<String, i64>>,
+    leck_treffer: AtomicU64,
     /// Set after the first fixed line on a chain that cannot be continued (one line per run, F16).
     kette_gemeldet: std::sync::atomic::AtomicBool,
 }
@@ -166,8 +168,21 @@ impl Dienst {
             kette,
             uhr,
             benutzt: Mutex::new(BTreeMap::new()),
+            leck_treffer: AtomicU64::new(0),
             kette_gemeldet: std::sync::atomic::AtomicBool::new(false),
         }
+    }
+
+    /// A hit of the leak lock: the fixed journal line on stderr (section 9), counted.
+    fn leck(&self) {
+        self.leck_treffer.fetch_add(1, Ordering::Relaxed);
+        kette::leck_gesperrt(&mut io::stderr());
+    }
+
+    /// How many hits of the leak lock wrote their journal line since the start.
+    #[must_use]
+    pub fn leck_treffer(&self) -> u64 {
+        self.leck_treffer.load(Ordering::Relaxed)
     }
 
     fn eigenes_konto(&self) -> String {
@@ -249,9 +264,7 @@ impl Dienst {
             return;
         };
         if let Err(z) = kette::schein_abgelehnt(k, (self.uhr)(), code, sch)
-            && !self
-                .kette_gemeldet
-                .swap(true, std::sync::atomic::Ordering::Relaxed)
+            && !self.kette_gemeldet.swap(true, Ordering::Relaxed)
         {
             let mut e = io::stderr();
             let _ = writeln!(e, "{z}");
@@ -418,7 +431,12 @@ impl Dienst {
                 antwort::ok(&g.id, Some(("ergebnis", Value::Object(e))))
             }
             Ok(mcp::Ausgang::Fehler(n)) => antwort::mcp_fehler(&g.id, n),
-            Err(c) => antwort::fehler(Some(&g.id), c),
+            Err(c) => {
+                if c == Code::LeckGesperrt {
+                    self.leck();
+                }
+                antwort::fehler(Some(&g.id), c)
+            }
         };
         senden(strom, &zeile).is_ok()
     }
@@ -498,13 +516,14 @@ impl Dienst {
             Err(c) => return geschlossen(strom, c),
         };
         if kopf_leck(werte, &weiter) {
+            self.leck();
             return geschlossen(strom, Code::LeckGesperrt);
         }
         if senden(strom, &antwort::beginn(&g.id, k.status, weiter)).is_err() {
             return false;
         }
         if k.status == 101 {
-            return self.strom_offen(strom, leser, aufrufer, &g.id, l, &vorrat, werte);
+            return self.strom_offen(strom, leser, aufrufer, g, l, &vorrat, werte);
         }
         let mut koerper = match Koerper::neu(l.as_mut(), &k, vorrat, methode) {
             Ok(k) => k,
@@ -513,17 +532,16 @@ impl Dienst {
         let mut sperre = Sperre::neu(werte);
         loop {
             match koerper.naechstes() {
-                Ok(Some(b)) => match sperre.schieben(&b) {
-                    Ok(frei) => {
-                        if teile_senden(strom, &g.id, &frei).is_err() {
-                            return false;
-                        }
-                    }
-                    Err(_) => {
+                Ok(Some(b)) => {
+                    let Ok(frei) = sperre.schieben(&b) else {
+                        self.leck();
                         return senden(strom, &antwort::ende_fehler(&g.id, Code::LeckGesperrt))
                             .is_ok();
+                    };
+                    if teile_senden(strom, &g.id, &frei).is_err() {
+                        return false;
                     }
-                },
+                }
                 Ok(None) => {
                     let rest = sperre.ende();
                     return teile_senden(strom, &g.id, &rest).is_ok()
@@ -544,14 +562,19 @@ impl Dienst {
         strom: &mut UnixStream,
         leser: &mut Leser,
         aufrufer: &Aufrufer,
-        id: &Value,
+        g: &Geprueft,
         mut l: Box<dyn Leitung>,
         vorrat: &[u8],
         werte: &[Geheim],
     ) -> bool {
+        let id = &g.id;
         let mut rahmen = Rahmenleser::neu(werte);
-        let abriss =
-            |strom: &mut UnixStream, c: Code| senden(strom, &antwort::ende_fehler(id, c)).is_ok();
+        let abriss = |strom: &mut UnixStream, c: Code| {
+            if c == Code::LeckGesperrt {
+                self.leck();
+            }
+            senden(strom, &antwort::ende_fehler(id, c)).is_ok()
+        };
         match rahmen.schieben(vorrat) {
             Ok(frei) => {
                 if teile_senden(strom, id, &frei).is_err() {

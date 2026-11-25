@@ -376,11 +376,11 @@ mod tests {
             aus.extend(l.schieben(s).expect("ok"));
         }
         assert_eq!(aus, ping, "a complete control frame goes out at once");
-        let daten = rahmen(true, 0x2, &[b'q'; 40]);
+        let daten = rahmen(true, 0x2, &[b'q'; 80]);
         aus.extend(l.schieben(&daten).expect("ok"));
         assert_eq!(
             aus.len(),
-            ping.len() + daten.len() - 15,
+            ping.len() + daten.len() - Sperre::neu(&w).rueckhalt(),
             "only the hold-back of the lock is missing"
         );
         // cut inside a control frame: what came goes out, unless it holds a secret

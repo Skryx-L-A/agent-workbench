@@ -68,7 +68,18 @@
             "x-forwarded-for",
             "x-forwarded-host",
             "accept-encoding",
-            "sec-websocket-extensions"
+            "sec-websocket-extensions",
+            "x-http-method-override",
+            "x-http-method",
+            "x-method-override",
+            "x-original-method",
+            "x-original-url",
+            "x-original-uri",
+            "x-rewrite-url",
+            "x-forwarded-uri",
+            "x-forwarded-path",
+            "x-forwarded-prefix",
+            "x-envoy-original-path"
           ]
         }
       },
