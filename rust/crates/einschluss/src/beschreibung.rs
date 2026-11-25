@@ -128,7 +128,12 @@ impl System {
     /// # Errors
     /// As [`System::vom_host`].
     pub fn vom_host_mit(ordnermarke: &Path) -> Result<System, Fehler> {
-        let mut system = host::lesen()?;
+        // one body with a `cfg` block per system: cargo-mutants does not evaluate `cfg` (see `starter::selbsttest_lauf`)
+        #[cfg(target_os = "linux")]
+        let host = host_linux::lesen();
+        #[cfg(not(target_os = "linux"))]
+        let host: Result<System, Fehler> = Err(Fehler::NichtVerfuegbar);
+        let mut system = host?;
         if ordnermarke.exists() {
             system
                 .ro_binds
@@ -150,9 +155,6 @@ pub const ETC_DATEIEN: [&str; 5] = [
     "/etc/ld.so.cache",
     "/etc/localtime",
 ];
-
-#[cfg(target_os = "linux")]
-use host_linux as host;
 
 #[cfg(target_os = "linux")]
 mod host_linux {
@@ -194,19 +196,6 @@ mod host_linux {
             symlinks,
             ro_binds,
         })
-    }
-}
-
-#[cfg(not(target_os = "linux"))]
-use host_fremd as host;
-
-#[cfg(not(target_os = "linux"))]
-mod host_fremd {
-    use super::System;
-    use crate::fehler::Fehler;
-
-    pub(super) fn lesen() -> Result<System, Fehler> {
-        Err(Fehler::NichtVerfuegbar)
     }
 }
 

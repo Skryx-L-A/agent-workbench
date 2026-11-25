@@ -20,7 +20,8 @@
 //! [`Profil::befehl`]. The program "Lauf starten" (not part of this crate) calls these steps and replaces itself by the
 //! command, so the pseudo-terminal stays the terminal of the harness.
 //!
-//! The stand-in harness for the outside tests exists only in test builds (feature `attrappe`).
+//! The stand-in harness for the outside tests exists only in test builds (feature `attrappe`, and the unit tests of
+//! the crate).
 
 mod beschreibung;
 mod eingabe;
@@ -35,15 +36,9 @@ pub mod verbote;
 mod vorpruefung;
 #[cfg(unix)]
 pub mod weiter;
-#[cfg(not(unix))]
-mod weiter_fremd;
-#[cfg(not(unix))]
-pub mod weiter {
-    //! Not available on this system: the forwarder runs inside the Linux enclosure only.
-    pub use crate::weiter_fremd::starten_fremd as starten;
-}
 
-#[cfg(feature = "attrappe")]
+// the unit tests of the crate check the stand-in too: they run without the feature (and so in the mutation run)
+#[cfg(any(test, feature = "attrappe"))]
 pub mod attrappe;
 
 pub use beschreibung::{

@@ -1170,15 +1170,16 @@ fn a_starter_that_cannot_be_run_ends_with_the_code_of_lauf_harness_fehlt() {
 }
 
 /// A start may take longer than any fixed time and is still good: contract 1 gives each child up to `BEREIT_FRIST`
-/// (10 s) for its ready line. Here the search process and the model path take 9 s each and the starter 3 s more, so the
-/// harness runs only after at least 21 s. The tests wait for the ready signal of the harness, not for a time (a fixed
-/// 20 s failed this case).
+/// (10 s) for its ready line, and the starter has no deadline. Here the search process and the model path take 5 s each
+/// and the starter 12 s more, so the harness runs only after at least 22 s. The tests wait for the ready signal of the
+/// harness, not for a time (a fixed 20 s failed this case). Each child keeps 5 s to its deadline: with 9 s each, a
+/// loaded build host once missed the 10 s of the model path (`lauf.modellweg_nicht_bereit`).
 #[test]
 fn a_start_slower_than_twenty_seconds_still_reaches_the_harness() {
     let w = Welt::neu();
-    verzoegerter_bwrap(&w, 3);
-    w.verhalten("rangkern", "spaet:9000:bereit");
-    w.verhalten("modellweg", "spaet:9000:bereit");
+    verzoegerter_bwrap(&w, 12);
+    w.verhalten("rangkern", "spaet:5000:bereit");
+    w.verhalten("modellweg", "spaet:5000:bereit");
     let beginn = std::time::Instant::now();
     let (mut kind, pids, harness) = starten(&w, &w.lokal());
     let dauer = beginn.elapsed();

@@ -51,9 +51,23 @@ pub enum PaketMangel {
 /// `uid`, and each of the four paths of [`paket_pfade`] is a regular file of `uid` with a real path equal to its path.
 ///
 /// # Errors
-/// The first [`PaketMangel`] found, in the order: missing, link, foreign, incomplete.
-#[cfg(unix)]
+/// The first [`PaketMangel`] found, in the order: missing, link, foreign, incomplete. Without Unix the enclosure does not
+/// exist: always [`PaketMangel::Unvollstaendig`].
 pub fn paket_pruefen(ordner: &Path, plattform: &str, uid: u32) -> Result<(), PaketMangel> {
+    // one body with a `cfg` block per system: cargo-mutants does not evaluate `cfg` (see `starter::selbsttest_lauf`)
+    #[cfg(unix)]
+    {
+        unix_pruefen(ordner, plattform, uid)
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (ordner, plattform, uid);
+        Err(PaketMangel::Unvollstaendig)
+    }
+}
+
+#[cfg(unix)]
+fn unix_pruefen(ordner: &Path, plattform: &str, uid: u32) -> Result<(), PaketMangel> {
     use std::os::unix::fs::MetadataExt;
     let meta = match std::fs::symlink_metadata(ordner) {
         Ok(m) => m,
@@ -87,15 +101,6 @@ pub fn paket_pruefen(ordner: &Path, plattform: &str, uid: u32) -> Result<(), Pak
         }
     }
     Ok(())
-}
-
-/// Not available: the enclosure exists on Linux only.
-///
-/// # Errors
-/// Always [`PaketMangel::Unvollstaendig`].
-#[cfg(not(unix))]
-pub fn paket_pruefen(_ordner: &Path, _plattform: &str, _uid: u32) -> Result<(), PaketMangel> {
-    Err(PaketMangel::Unvollstaendig)
 }
 
 /// The small enclosure that extracts the package of the cloud harness into the cache folder.

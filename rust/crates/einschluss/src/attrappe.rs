@@ -1,6 +1,8 @@
 //! The stand-in harness and the stand-in search process of the outside tests. This module exists only in builds with
-//! the feature `attrappe`; the delivery build has neither it nor the program `einschluss-attrappe`
-//! (`tests/auslieferung.rs` builds without the feature and looks for the marker below).
+//! the feature `attrappe` and in the unit tests of the crate; the delivery build has neither it nor the program
+//! `einschluss-attrappe` (`tests/auslieferung.rs` builds without the feature and looks for the marker below). The
+//! unit tests below check the probes and stand-ins themselves, so that they run in the default build too (and in the
+//! mutation run, which builds without the feature).
 //!
 //! The stand-in harness makes one probe per call and writes one line `<probe>: <result>`. A result is `OK <detail>`
 //! or `ERR <errno name>`. Nothing here is a real harness: it reads, writes, connects and asks, and the test judges
@@ -344,7 +346,13 @@ fn umgebung() -> String {
 
 /// Tries to build an enclosure of its own with `bwrap` (the way out the contract names: a looser enclosure).
 fn bwrap_selbst() -> String {
-    let aus = Command::new("/usr/bin/bwrap")
+    selbst_einschliessen(Path::new("/usr/bin/bwrap"))
+}
+
+/// Runs `programm` with the arguments of a looser enclosure and says how it ended: `OK`, `ERR status=<code>` or the
+/// name of the error of the start.
+fn selbst_einschliessen(programm: &Path) -> String {
+    let aus = Command::new(programm)
         .args(["--unshare-user", "--ro-bind", "/", "/", "/usr/bin/true"])
         .env_clear()
         .output();
@@ -357,10 +365,8 @@ fn bwrap_selbst() -> String {
 
 /// Asks the socket in a child that has route variables of its own set to another route. The route of the answer
 /// shows whether a variable of the harness changes it.
-fn frage_mit_umgebung(socket: &str, zeile: &str) -> String {
-    let Ok(selbst) = std::env::current_exe() else {
-        return "ERR exe".to_owned();
-    };
+/// `selbst` is the program of the stand-in harness.
+fn frage_mit_umgebung(selbst: &Path, socket: &str, zeile: &str) -> String {
     let aus = Command::new(selbst)
         .args(["harness", "frage", socket, zeile])
         .env_clear()
@@ -440,16 +446,71 @@ pub fn lauf(args: &[String], aus: &mut dyn Write) -> Result<(), String> {
         "bwrap" => bwrap_selbst(),
         "bruecke" => ergebnis(bruecke(a(1)?, a(2)?, a(3)?), |antwort| antwort),
         "frage" => frage(a(1)?, a(2)?),
-        "frageumgebung" => frage_mit_umgebung(a(1)?, a(2)?),
+        "frageumgebung" => match std::env::current_exe() {
+            Ok(selbst) => frage_mit_umgebung(&selbst, a(1)?, a(2)?),
+            Err(_) => "ERR exe".to_owned(),
+        },
         andere => return Err(format!("unknown probe {andere}")),
     };
     writeln!(aus, "{name}: {zeile}").map_err(|e| e.to_string())
 }
 
+/// The program `einschluss-attrappe` without its streams: `args` are the arguments without the program name, `aus` is
+/// standard output, `fehler` standard error. Returns the exit code: 0 done, 1 the stand-in search process or a
+/// stand-in relay could not start, 2 a wrong call or an unknown probe. A stand-in search process or relay that starts
+/// runs until it is killed.
+pub fn programm(args: &[String], aus: &mut dyn Write, fehler: &mut dyn Write) -> u8 {
+    let mut meldung = |text: &str| {
+        let _ = writeln!(fehler, "einschluss-attrappe: {text}");
+    };
+    match args.first().map(String::as_str) {
+        Some("harness") => {
+            match lauf(&args[1..], aus).and_then(|()| aus.flush().map_err(|e| e.to_string())) {
+                Ok(()) => 0,
+                Err(text) => {
+                    meldung(&text);
+                    2
+                }
+            }
+        }
+        Some("such") if args.len() == 3 => match such_server(Path::new(&args[1]), &args[2]) {
+            Ok(()) => 0,
+            Err(e) => {
+                meldung(&format!("search: {e}"));
+                1
+            }
+        },
+        Some("cloud") if args.len() == 4 => {
+            match cloud_server(Path::new(&args[1]), &args[2], &args[3]) {
+                Ok(()) => 0,
+                Err(e) => {
+                    meldung(&format!("cloud relay: {e}"));
+                    1
+                }
+            }
+        }
+        Some("weiter") if args.len() == 3 => match weiter_server(Path::new(&args[1]), &args[2]) {
+            Ok(()) => 0,
+            Err(e) => {
+                meldung(&format!("relay: {e}"));
+                1
+            }
+        },
+        _ => {
+            meldung(
+                "usage: harness <probe> [argument ...] | such <socket> <route> | weiter <socket> <address> | cloud <socket> <placeholder> <mark>",
+            );
+            2
+        }
+    }
+}
+
 /// The stand-in of the Unix sockets on a system without them (Windows), so that the stand-in harness builds there.
 /// Binding and connecting fail with "not available": no value of these types can exist, so nothing else can run.
-/// The probes and stand-ins that need a socket then answer with that error, the others work as on Unix.
-#[cfg(not(unix))]
+/// The probes and stand-ins that need a socket then answer with that error, the others work as on Unix. The unit tests
+/// build it on every system, so that the mutation run (Linux) checks the two ways in.
+#[cfg(any(not(unix), test))]
+#[cfg_attr(unix, allow(dead_code))]
 mod fremd {
     use std::io::{self, Read, Write};
     use std::path::Path;
@@ -639,5 +700,315 @@ mod tests {
     fn the_cloud_probe_needs_the_proxy_and_the_token_of_its_environment() {
         // the test process has neither variable
         assert_eq!(cloud(), "ERR umgebung");
+    }
+}
+
+/// The probes and stand-ins with sockets, processes and files of this test process (Unix). Every wait has a limit.
+#[cfg(all(test, unix))]
+mod pruefungen_unix {
+    use super::*;
+    use std::time::Instant;
+
+    /// An own empty folder of this test below the temporary folder.
+    fn ordner(name: &str) -> PathBuf {
+        let p = std::env::temp_dir().join(format!("ei-at-{}-{name}", std::process::id()));
+        let _ = fs::remove_dir_all(&p);
+        fs::create_dir_all(&p).expect("folder");
+        p
+    }
+
+    /// Waits until the socket `pfad` takes a connection; a stand-in that never listens fails the test after 10 s.
+    fn warten(pfad: &Path) {
+        let ende = Instant::now() + Duration::from_secs(10);
+        while UnixStream::connect(pfad).is_err() {
+            assert!(
+                Instant::now() < ende,
+                "nobody listens on {}",
+                pfad.display()
+            );
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
+    fn text(pfad: &Path) -> String {
+        pfad.to_string_lossy().into_owned()
+    }
+
+    fn zeichen(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| (*s).to_owned()).collect()
+    }
+
+    #[test]
+    fn the_stand_in_search_answers_on_its_socket_and_refuses_a_taken_path() {
+        let o = ordner("such");
+        let socket = o.join("s");
+        let s = socket.clone();
+        std::thread::spawn(move || such_server(&s, "cloud-9"));
+        warten(&socket);
+        assert_eq!(
+            frage(&text(&socket), "{\"op\":\"ping\"}"),
+            "OK {\"ok\":true}"
+        );
+        assert_eq!(
+            frage(&text(&socket), "{\"op\":\"search\"}"),
+            "OK {\"route\":\"cloud-9\"}"
+        );
+        // the path is taken: a second stand-in does not start
+        assert!(such_server(&socket, "x").is_err());
+        assert_eq!(frage(&text(&o.join("fehlt")), "x"), "ERR ENOENT");
+        let _ = fs::remove_dir_all(&o);
+    }
+
+    #[test]
+    fn the_stand_in_relay_of_the_cloud_exit_answers_on_its_socket() {
+        let o = ordner("cloud");
+        let socket = o.join("c");
+        let s = socket.clone();
+        std::thread::spawn(move || cloud_server(&s, "gho_000", "gho_MARKE"));
+        warten(&socket);
+        assert_eq!(
+            frage(&text(&socket), "TOKEN gho_000"),
+            format!("OK tausch=1 laenge={}", "TOKEN gho_MARKE".len())
+        );
+        let _ = fs::remove_dir_all(&o);
+    }
+
+    /// A TCP listener on the own loopback that answers one line per connection with `echo:<line>`.
+    fn echo() -> String {
+        let hoerer = TcpListener::bind("127.0.0.1:0").expect("listener");
+        let adresse = hoerer.local_addr().expect("addr").to_string();
+        std::thread::spawn(move || {
+            // one thread per connection: the probe of `warten` reaches the listener as an empty request too
+            for verbindung in hoerer.incoming() {
+                let Ok(mut s) = verbindung else { continue };
+                std::thread::spawn(move || {
+                    let mut zeile = String::new();
+                    if BufReader::new(&s).read_line(&mut zeile).is_ok() {
+                        let _ = s.write_all(format!("echo:{zeile}").as_bytes());
+                    }
+                });
+            }
+        });
+        adresse
+    }
+
+    #[test]
+    fn the_stand_in_relay_passes_a_line_to_the_tcp_address_and_the_answer_back() {
+        let o = ordner("weiter");
+        let socket = o.join("w");
+        let s = socket.clone();
+        let ziel = echo();
+        std::thread::spawn(move || weiter_server(&s, &ziel));
+        warten(&socket);
+        assert_eq!(frage(&text(&socket), "hallo"), "OK echo:hallo");
+        let _ = fs::remove_dir_all(&o);
+    }
+
+    #[test]
+    fn the_bridge_passes_its_line_to_the_socket_and_returns_the_answer() {
+        let o = ordner("bruecke");
+        let socket = o.join("b");
+        let s = socket.clone();
+        std::thread::spawn(move || such_server(&s, "lokal-3"));
+        warten(&socket);
+        let mut aus = Vec::new();
+        lauf(
+            &zeichen(&["bruecke", &text(&socket), "0", "{\"op\":\"search\"}"]),
+            &mut aus,
+        )
+        .expect("probe");
+        assert_eq!(
+            String::from_utf8_lossy(&aus),
+            "bruecke: OK {\"route\":\"lokal-3\"}\n"
+        );
+        let _ = fs::remove_dir_all(&o);
+    }
+
+    #[test]
+    fn the_search_counts_files_hits_and_notes_without_links_and_big_files() {
+        let o = ordner("suche");
+        let nadel = "NADEL-5k2";
+        fs::write(o.join("a.md"), format!("x {nadel} y")).expect("a");
+        fs::write(o.join("b.txt"), "nichts").expect("b");
+        fs::create_dir_all(o.join("sub")).expect("sub");
+        fs::write(o.join("sub/c.md"), "nichts").expect("c");
+        let mut genau = vec![b' '; 1 << 20];
+        genau[..nadel.len()].copy_from_slice(nadel.as_bytes());
+        fs::write(o.join("sub/genau.txt"), &genau).expect("exactly the limit");
+        genau.push(b' ');
+        fs::write(o.join("sub/gross.txt"), &genau).expect("one byte over");
+        std::os::unix::fs::symlink(o.join("a.md"), o.join("verweis.md")).expect("link");
+        // five files: a.md and genau.txt hold the needle, gross.txt is over the limit, the link is not followed
+        assert_eq!(durchsuchen(&o, nadel), (5, 2, 2));
+        let mut aus = Vec::new();
+        lauf(&zeichen(&["suche", nadel, &text(&o)]), &mut aus).expect("probe");
+        assert_eq!(
+            String::from_utf8_lossy(&aus),
+            "suche: OK dateien=5 treffer=2 md=2\n"
+        );
+        // the system folders are skipped
+        assert_eq!(durchsuchen(Path::new("/dev"), nadel), (0, 0, 0));
+        let _ = fs::remove_dir_all(&o);
+    }
+
+    #[test]
+    fn the_search_for_a_needle_takes_only_a_true_part() {
+        assert!(contains(b"abc", b"bc"));
+        assert!(contains(b"abc", b"abc"));
+        assert!(!contains(b"abc", b"x"));
+        assert!(!contains(b"abc", b"abcd"));
+        assert!(!contains(b"abc", b""));
+    }
+
+    #[test]
+    fn the_connection_probes_name_their_end() {
+        let hoerer = TcpListener::bind("127.0.0.1:0").expect("listener");
+        let adresse = hoerer.local_addr().expect("addr").to_string();
+        assert_eq!(tcp(&adresse), "OK ");
+        assert_eq!(tcp("keine adresse"), "ERR adresse");
+        assert_eq!(tcpfrage("keine adresse", "x"), "ERR adresse");
+        drop(hoerer);
+        assert_eq!(dns("127.0.0.1"), "OK 1");
+        let mut aus = Vec::new();
+        lauf(&zeichen(&["dns", "127.0.0.1"]), &mut aus).expect("probe");
+        assert_eq!(String::from_utf8_lossy(&aus), "dns: OK 1\n");
+    }
+
+    #[test]
+    fn the_signal_probe_reaches_only_a_living_process() {
+        assert_eq!(signal(&std::process::id().to_string()), "OK");
+        assert_eq!(signal("999999999"), "ERR kill");
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn the_process_probe_lists_the_own_process() {
+        let zeile = prozesse();
+        let liste = zeile.strip_prefix("OK ").expect("OK");
+        let eigen = std::process::id().to_string();
+        assert!(liste.split(',').any(|n| n == eigen), "{zeile}");
+    }
+
+    #[test]
+    fn the_environment_probe_names_the_variables() {
+        let zeile = umgebung();
+        let namen = zeile.strip_prefix("OK ").expect("OK");
+        assert!(namen.split(',').any(|n| n == "PATH"), "{zeile}");
+    }
+
+    #[test]
+    fn the_probe_of_an_own_enclosure_says_how_it_ended() {
+        assert_eq!(selbst_einschliessen(Path::new("/usr/bin/true")), "OK");
+        assert_eq!(
+            selbst_einschliessen(Path::new("/usr/bin/false")),
+            "ERR status=1"
+        );
+        assert_eq!(
+            selbst_einschliessen(Path::new("/var/empty/kein-programm")),
+            "ERR ENOENT"
+        );
+        let bwrap = bwrap_selbst();
+        assert!(bwrap == "OK" || bwrap.starts_with("ERR "), "{bwrap}");
+    }
+
+    #[test]
+    fn the_question_with_route_variables_takes_the_line_of_the_child() {
+        // the child is not the stand-in here: its output has no line of the probe
+        assert_eq!(
+            frage_mit_umgebung(Path::new("/bin/echo"), "s", "z"),
+            "ERR ausgabe"
+        );
+        assert_eq!(
+            frage_mit_umgebung(Path::new("/var/empty/kein-programm"), "s", "z"),
+            "ERR ENOENT"
+        );
+    }
+
+    /// The program on the arguments `args`: exit code, standard output, standard error.
+    fn programm_mit(args: &[&str]) -> (u8, String, String) {
+        let (mut aus, mut fehler) = (Vec::new(), Vec::new());
+        let code = programm(&zeichen(args), &mut aus, &mut fehler);
+        (
+            code,
+            String::from_utf8_lossy(&aus).into_owned(),
+            String::from_utf8_lossy(&fehler).into_owned(),
+        )
+    }
+
+    #[test]
+    fn the_program_takes_exactly_its_four_calls() {
+        assert_eq!(
+            programm_mit(&["harness", "kennung"]),
+            (0, format!("kennung: OK {MARKER}\n"), String::new())
+        );
+        assert_eq!(
+            programm_mit(&["harness", "nichts"]),
+            (
+                2,
+                String::new(),
+                "einschluss-attrappe: unknown probe nichts\n".to_owned()
+            )
+        );
+        let fehlt = "/var/empty/kein-ordner/s";
+        // the three stand-ins with their number of arguments: a socket that cannot be made ends with 1
+        for (args, wort) in [
+            (&["such", fehlt, "r"][..], "search: "),
+            (&["cloud", fehlt, "p", "m"][..], "cloud relay: "),
+            (&["weiter", fehlt, "127.0.0.1:1"][..], "relay: "),
+        ] {
+            let (code, aus, fehler) = programm_mit(args);
+            assert_eq!((code, aus.as_str()), (1, ""), "{args:?}");
+            assert!(
+                fehler.starts_with(&format!("einschluss-attrappe: {wort}")),
+                "{args:?}: {fehler}"
+            );
+        }
+        // one argument more or less is the usage line
+        for args in [
+            &[][..],
+            &["such", fehlt][..],
+            &["such", fehlt, "r", "x"][..],
+            &["cloud", fehlt, "p"][..],
+            &["cloud", fehlt, "p", "m", "x"][..],
+            &["weiter", fehlt][..],
+            &["weiter", fehlt, "a", "x"][..],
+            &["anders"][..],
+        ] {
+            let (code, aus, fehler) = programm_mit(args);
+            assert_eq!((code, aus.as_str()), (2, ""), "{args:?}");
+            assert!(
+                fehler.starts_with("einschluss-attrappe: usage: harness <probe>"),
+                "{args:?}: {fehler}"
+            );
+        }
+    }
+
+    #[test]
+    fn more_error_names_are_stable() {
+        let e = |n| fehlername(&io::Error::from_raw_os_error(n));
+        assert_eq!(e(20), "ENOTDIR");
+        assert_eq!(e(30), "EROFS");
+        assert_eq!(e(97), "EAFNOSUPPORT");
+        assert_eq!(e(110), "ETIMEDOUT");
+        assert_eq!(e(113), "EHOSTUNREACH");
+    }
+}
+
+/// The stand-in of the Unix sockets refuses both ways in, on every system.
+#[cfg(test)]
+mod pruefungen_fremd {
+    use super::fremd;
+    use std::io;
+
+    #[test]
+    fn the_socket_stand_in_binds_and_connects_nothing() {
+        let e = fremd::UnixListener::bind("/srv/beispiel/s")
+            .err()
+            .map(|e| e.kind());
+        assert_eq!(e, Some(io::ErrorKind::Unsupported));
+        let e = fremd::UnixStream::connect("/srv/beispiel/s")
+            .err()
+            .map(|e| e.kind());
+        assert_eq!(e, Some(io::ErrorKind::Unsupported));
     }
 }

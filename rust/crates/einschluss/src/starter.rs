@@ -334,21 +334,22 @@ fn selbsttest() -> Result<(), Abbruch> {
     selbsttest_lauf(&system).map_err(Abbruch::Fehler)
 }
 
-#[cfg(unix)]
+// One body per function with a `cfg` block per system: cargo-mutants reads the text and does not evaluate `cfg`, so a
+// function that exists only for another system would be changed without a build that could notice it.
 fn selbsttest_lauf(system: &System) -> Result<(), Fehler> {
-    crate::vorpruefung::lauf_pruefen(
-        Path::new(BWRAP_PFAD),
-        &selbsttest_argumente(system),
-        crate::vorpruefung::PROBE_FRIST,
-    )
-}
-
-#[cfg(not(unix))]
-use selbsttest_lauf_fremd as selbsttest_lauf;
-
-#[cfg(not(unix))]
-fn selbsttest_lauf_fremd(_system: &System) -> Result<(), Fehler> {
-    Err(Fehler::NichtVerfuegbar)
+    #[cfg(unix)]
+    {
+        crate::vorpruefung::lauf_pruefen(
+            Path::new(BWRAP_PFAD),
+            &selbsttest_argumente(system),
+            crate::vorpruefung::PROBE_FRIST,
+        )
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = system;
+        Err(Fehler::NichtVerfuegbar)
+    }
 }
 
 /// Descriptor 3 read to its end: a pipe only, within the limit and the time.
@@ -392,53 +393,52 @@ fn vorentpacken() -> Result<std::convert::Infallible, Abbruch> {
     vorentpacken_ersetzen(&v, &args)
 }
 
-#[cfg(unix)]
 fn vorentpacken_ersetzen(
     v: &crate::Vorentpacken,
     args: &[String],
 ) -> Result<std::convert::Infallible, Abbruch> {
-    use std::os::unix::process::CommandExt;
-    crate::vorentpacken_pruefen(v, Path::new(BWRAP_PFAD)).map_err(Abbruch::Fehler)?;
-    let _fehler = Command::new(BWRAP_PFAD).args(args).env_clear().exec();
-    Err(Abbruch::Exec)
+    #[cfg(unix)]
+    let fehler = {
+        use std::os::unix::process::CommandExt;
+        crate::vorentpacken_pruefen(v, Path::new(BWRAP_PFAD)).map_err(Abbruch::Fehler)?;
+        let _fehler = Command::new(BWRAP_PFAD).args(args).env_clear().exec();
+        Abbruch::Exec
+    };
+    #[cfg(not(unix))]
+    let fehler = {
+        let _ = (v, args);
+        Abbruch::Fehler(Fehler::NichtVerfuegbar)
+    };
+    Err(fehler)
 }
 
-#[cfg(not(unix))]
-fn vorentpacken_ersetzen(
-    _v: &crate::Vorentpacken,
-    _args: &[String],
-) -> Result<std::convert::Infallible, Abbruch> {
-    Err(Abbruch::Fehler(Fehler::NichtVerfuegbar))
-}
-
-/// The descriptor is a pipe (a FIFO).
-#[cfg(unix)]
+/// The descriptor is a pipe (a FIFO). Without Unix there is none.
 fn is_rohr(meta: &std::fs::Metadata) -> bool {
-    meta.file_type().is_fifo()
+    #[cfg(unix)]
+    {
+        meta.file_type().is_fifo()
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = meta;
+        false
+    }
 }
 
-#[cfg(not(unix))]
-use is_rohr_fremd as is_rohr;
-
-#[cfg(not(unix))]
-fn is_rohr_fremd(_meta: &std::fs::Metadata) -> bool {
-    false
-}
-
-#[cfg(unix)]
 fn ersetzen(profil: &Profil) -> Result<std::convert::Infallible, Abbruch> {
-    use std::os::unix::process::CommandExt;
-    // `exec` returns only when it failed
-    let _fehler = profil.befehl().exec();
-    Err(Abbruch::Exec)
-}
-
-#[cfg(not(unix))]
-use ersetzen_fremd as ersetzen;
-
-#[cfg(not(unix))]
-fn ersetzen_fremd(_profil: &Profil) -> Result<std::convert::Infallible, Abbruch> {
-    Err(Abbruch::Fehler(Fehler::NichtVerfuegbar))
+    #[cfg(unix)]
+    let fehler = {
+        use std::os::unix::process::CommandExt;
+        // `exec` returns only when it failed
+        let _fehler = profil.befehl().exec();
+        Abbruch::Exec
+    };
+    #[cfg(not(unix))]
+    let fehler = {
+        let _ = profil;
+        Abbruch::Fehler(Fehler::NichtVerfuegbar)
+    };
+    Err(fehler)
 }
 
 #[cfg(test)]

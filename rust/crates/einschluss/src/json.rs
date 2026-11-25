@@ -24,37 +24,49 @@ pub(crate) enum Wert {
 pub(crate) fn lesen(bytes: &[u8]) -> Option<Wert> {
     let text = std::str::from_utf8(bytes).ok()?;
     let mut leser = Leser {
-        z: text.as_bytes(),
-        i: 0,
+        rest: text.as_bytes(),
     };
     leser.leer();
     let wert = leser.wert(0)?;
     leser.leer();
-    (leser.i == leser.z.len()).then_some(wert)
+    leser.rest.is_empty().then_some(wert)
 }
 
+/// The reader keeps the part of the text it has not read yet and only ever takes bytes off its front. There is no
+/// index that a changed addition could hold still or turn back: every step makes the rest shorter or ends the reading,
+/// so the reader cannot loop.
 struct Leser<'a> {
-    z: &'a [u8],
-    i: usize,
+    rest: &'a [u8],
 }
 
 impl Leser<'_> {
     fn leer(&mut self) {
-        while matches!(self.z.get(self.i), Some(b' ' | b'\t' | b'\n' | b'\r')) {
-            self.i += 1;
-        }
+        let n = self
+            .rest
+            .iter()
+            .take_while(|c| matches!(c, b' ' | b'\t' | b'\n' | b'\r'))
+            .count();
+        self.rest = &self.rest[n..];
     }
 
     fn naechstes(&self) -> Option<u8> {
-        self.z.get(self.i).copied()
+        self.rest.first().copied()
+    }
+
+    /// Takes the next byte off the rest.
+    fn eins(&mut self) -> Option<u8> {
+        let (&c, rest) = self.rest.split_first()?;
+        self.rest = rest;
+        Some(c)
     }
 
     fn wort(&mut self, wort: &str) -> bool {
-        if self.z[self.i..].starts_with(wort.as_bytes()) {
-            self.i += wort.len();
-            true
-        } else {
-            false
+        match self.rest.strip_prefix(wort.as_bytes()) {
+            Some(rest) => {
+                self.rest = rest;
+                true
+            }
+            None => false,
         }
     }
 
@@ -70,11 +82,10 @@ impl Leser<'_> {
     }
 
     fn zahl(&mut self) -> Option<Wert> {
-        let start = self.i;
-        while self.naechstes().is_some_and(|c| c.is_ascii_digit()) {
-            self.i += 1;
-        }
-        let ziffern = std::str::from_utf8(&self.z[start..self.i]).ok()?;
+        let n = self.rest.iter().take_while(|c| c.is_ascii_digit()).count();
+        let (ziffern, rest) = self.rest.split_at(n);
+        self.rest = rest;
+        let ziffern = std::str::from_utf8(ziffern).ok()?;
         if ziffern.len() > 1 && ziffern.starts_with('0') {
             return None;
         }
@@ -85,27 +96,24 @@ impl Leser<'_> {
     }
 
     fn hex4(&mut self) -> Option<u32> {
-        let teil = self.z.get(self.i..self.i + 4)?;
+        let teil = self.rest.get(..4)?;
         if !teil.iter().all(u8::is_ascii_hexdigit) {
             return None;
         }
-        self.i += 4;
+        self.rest = &self.rest[4..];
         u32::from_str_radix(std::str::from_utf8(teil).ok()?, 16).ok()
     }
 
     fn text(&mut self) -> Option<String> {
-        self.i += 1; // the opening quote
+        self.eins()?; // the opening quote
         let mut aus: Vec<u8> = Vec::new();
         loop {
-            let c = self.naechstes()?;
-            self.i += 1;
+            let c = self.eins()?;
             match c {
                 b'"' => return String::from_utf8(aus).ok(),
                 0..=0x1f => return None,
                 b'\\' => {
-                    let e = self.naechstes()?;
-                    self.i += 1;
-                    let zeichen = match e {
+                    let zeichen = match self.eins()? {
                         b'"' => '"',
                         b'\\' => '\\',
                         b'/' => '/',
@@ -142,34 +150,31 @@ impl Leser<'_> {
     }
 
     fn liste(&mut self, tiefe: usize) -> Option<Wert> {
-        self.i += 1;
+        self.eins()?; // the opening bracket
         let mut werte = Vec::new();
         self.leer();
         if self.naechstes()? == b']' {
-            self.i += 1;
+            self.eins()?;
             return Some(Wert::Liste(werte));
         }
         loop {
             self.leer();
             werte.push(self.wert(tiefe + 1)?);
             self.leer();
-            match self.naechstes()? {
-                b',' => self.i += 1,
-                b']' => {
-                    self.i += 1;
-                    return Some(Wert::Liste(werte));
-                }
+            match self.eins()? {
+                b',' => {}
+                b']' => return Some(Wert::Liste(werte)),
                 _ => return None,
             }
         }
     }
 
     fn objekt(&mut self, tiefe: usize) -> Option<Wert> {
-        self.i += 1;
+        self.eins()?; // the opening brace
         let mut felder = BTreeMap::new();
         self.leer();
         if self.naechstes()? == b'}' {
-            self.i += 1;
+            self.eins()?;
             return Some(Wert::Objekt(felder));
         }
         loop {
@@ -179,22 +184,18 @@ impl Leser<'_> {
             }
             let name = self.text()?;
             self.leer();
-            if self.naechstes()? != b':' {
+            if self.eins()? != b':' {
                 return None;
             }
-            self.i += 1;
             self.leer();
             let wert = self.wert(tiefe + 1)?;
             if felder.insert(name, wert).is_some() {
                 return None;
             }
             self.leer();
-            match self.naechstes()? {
-                b',' => self.i += 1,
-                b'}' => {
-                    self.i += 1;
-                    return Some(Wert::Objekt(felder));
-                }
+            match self.eins()? {
+                b',' => {}
+                b'}' => return Some(Wert::Objekt(felder)),
                 _ => return None,
             }
         }
