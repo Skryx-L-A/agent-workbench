@@ -573,6 +573,83 @@ fn start_mit_liste(name: &str, liste_text: &str, e: &Value) {
     }
 }
 
+/// Step 6 of the start (section 13.5): an unbound target whose resolution answers with an empty list has no address,
+/// the same as a resolution that fails. The start goes on, and a CONNECT to that target is refused at once with 502
+/// `mw.ziel_nicht_erreichbar` (stage 6), before any `200 Connection Established` and before TLS. A connector over an
+/// empty list of addresses would instead accept the CONNECT and fail only at the request inside the tunnel.
+#[test]
+fn an_empty_resolution_at_the_start_is_no_address() {
+    let w = Wegwerf::neu("leer-aufgeloest");
+    let host = "telemetry.beispiel.invalid";
+    let text = format!(
+        r#"{{"fassung":1,"ca_zulassung":"zugelassen","ziele":[{{"name":"tele","host":"{host}","port":443,"halter_ziel":null,"regeln":[{{"methode":"POST","pfad":"/telemetry"}}],"upgrade":"ablehnen"}}]}}"#
+    );
+    let liste = datei_0600(&w, "zielliste.json", text.as_bytes());
+    let (k, z) = ca_bauen(&[host], 0, 24, true);
+    let kp = datei_0600(&w, "ca.key", &k.private_key_to_pem_pkcs8().expect("pem"));
+    let zp = datei_0600(&w, "ca.crt", &z.to_pem().expect("pem"));
+    let args: Vec<OsString> = [
+        "--betriebsart",
+        "kopf-einsetzen",
+        "--socket",
+        w.pfad("m.sock").to_str().expect("utf8"),
+        "--socket-rechte",
+        "0600",
+        "--sitzung",
+        "s-1",
+        "--route",
+        "cloud-beispiel",
+        "--protokoll",
+        w.protokoll().to_str().expect("utf8"),
+        "--zielliste",
+        liste.to_str().expect("utf8"),
+        "--ca-schluessel",
+        kp.to_str().expect("utf8"),
+        "--ca-zertifikat",
+        zp.to_str().expect("utf8"),
+    ]
+    .iter()
+    .map(OsString::from)
+    .collect();
+    let gefragt = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let zaehler = Arc::clone(&gefragt);
+    let aufloeser = move |h: &str, _: u16| -> std::io::Result<Vec<std::net::SocketAddr>> {
+        assert_eq!(h, host);
+        zaehler.fetch_add(1, Ordering::SeqCst);
+        Ok(Vec::new())
+    };
+    let (mut out, mut err) = (Vec::new(), Vec::new());
+    let bereit = modellweg::start::starten(
+        &args,
+        rustix::process::getuid().as_raw(),
+        &aufloeser,
+        modellweg::ziel::FRISTEN,
+        Box::new(|| ZEIT),
+        &mut out,
+        &mut err,
+    )
+    .unwrap_or_else(|e| panic!("exit {e}: {}", String::from_utf8_lossy(&err)));
+    assert_eq!(gefragt.load(Ordering::SeqCst), 1);
+    assert_eq!(out, b"{\"bereit\":true}\n");
+    let (mut h, seite) = UnixStream::pair().expect("pair");
+    h.set_read_timeout(Some(LESEFRIST)).expect("timeout");
+    let d = Arc::clone(&bereit.dienst);
+    let faden = std::thread::spawn(move || d.bediene(seite));
+    let antwort = Aufbau::connect(
+        &mut h,
+        format!("CONNECT {host}:443 HTTP/1.1\r\n\r\n").as_bytes(),
+    );
+    assert_eq!(
+        antwort,
+        modellweg::betriebsart::kopf_einsetzen::antwort("mw.ziel_nicht_erreichbar")
+    );
+    faden.join().expect("thread");
+    let z = zeilen(&w.protokoll());
+    assert_eq!(z.len(), 1, "{z:?}");
+    assert_eq!(z[0]["grund"], "mw.ziel_nicht_erreichbar");
+    drop(bereit);
+}
+
 #[test]
 fn the_ca_check() {
     let w = Wegwerf::neu("ca");
@@ -668,8 +745,22 @@ fn kopf_zeile_cases() {
 #[test]
 fn die_zeile_im_tunnel_traegt_pfad_und_host() {
     let antwort = vec![b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}".to_vec()];
-    let a = aufbau(&vorfuehrung(), &antwort);
-    // The plan target carries the rule `*` `/*`; `api.github.com` carries only exact paths of one and two segments.
+    // The demonstration list carries only exact paths since N1, and none of its `GET` paths has three segments (a
+    // `POST` that goes through carries the path `null`). This test gives the plan target one exact rule more,
+    // `GET /agents/sessions/eins`, so that the limited path in the line is shorter than the whole path.
+    let mut liste: Value = serde_json::from_str(&vorfuehrung()).expect("list");
+    let plan = liste["ziele"]
+        .as_array_mut()
+        .expect("targets")
+        .iter_mut()
+        .find(|z| z["name"] == "copilot-plan")
+        .expect("plan target");
+    plan["regeln"]
+        .as_array_mut()
+        .expect("rules")
+        .push(serde_json::json!({"methode": "GET", "pfad": "/agents/sessions/eins"}));
+    let text = serde_json::to_string(&liste).expect("text");
+    let a = aufbau(&text, &antwort);
     let host = a
         .liste
         .ziele
@@ -686,18 +777,48 @@ fn die_zeile_im_tunnel_traegt_pfad_und_host() {
     assert_eq!(z["pfad"], "/agents/sessions");
     assert_eq!(z["host"], host.as_str());
 
-    let b = aufbau_voll(
-        Wegwerf::neu("kopfvoll"),
-        &vorfuehrung(),
-        &antwort,
-        &[],
-        None,
-        true,
-    );
+    let b = aufbau_voll(Wegwerf::neu("kopfvoll"), &text, &antwort, &[], None, true);
     im_tunnel(&b, "copilot-plan", anfrage.as_bytes());
     let zb = letzte_zeile(&b, "pfad_voll");
     assert_eq!(zb["pfad"], "/agents/sessions/eins");
     assert_eq!(zb["host"], host.as_str());
+}
+
+/// A subtree rule in the tunnel (section 13.2): the demonstration list carries only exact paths since N1, so this test
+/// gives the unbound exp target the rule `POST /api/v1/*`. A path below it goes through and names the rule in the line;
+/// the prefix itself without its `/` and a neighbour path with the same letters do not.
+#[test]
+fn a_subtree_rule_covers_the_paths_below_it() {
+    let mut liste: Value = serde_json::from_str(&vorfuehrung()).expect("list");
+    let exp = liste["ziele"]
+        .as_array_mut()
+        .expect("targets")
+        .iter_mut()
+        .find(|z| z["name"] == "copilot-exp")
+        .expect("exp target");
+    exp["regeln"] = serde_json::json!([{"methode": "POST", "pfad": "/api/v1/*"}]);
+    let text = serde_json::to_string(&liste).expect("text");
+    let antwort = vec![b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}".to_vec()];
+    let host = "exp.individual.githubcopilot.com";
+    for (pfad, status) in [
+        ("/api/v1/assignments", 200_u16),
+        ("/api/v1/assignments/x", 200),
+        ("/api/v1", 403),
+        ("/api/v10/assignments", 403),
+    ] {
+        let a = aufbau(&text, &antwort);
+        let anfrage =
+            format!("POST {pfad} HTTP/1.1\r\nHost: {host}\r\nContent-Length: 2\r\n\r\n{{}}");
+        let r = im_tunnel(&a, "copilot-exp", anfrage.as_bytes());
+        assert_eq!(r.status, status, "{pfad}");
+        let z = letzte_zeile(&a, pfad);
+        if status == 200 {
+            assert_eq!(z["ergebnis"], "weitergereicht", "{pfad}");
+            assert_eq!(z["pfadregel"], "/api/v1/*", "{pfad}");
+        } else {
+            assert_eq!(z["grund"], "mw.pfad_nicht_erlaubt", "{pfad}");
+        }
+    }
 }
 
 fn pruefe_zeile(name: &str, z: &Value, soll: &Value) {
@@ -968,7 +1089,7 @@ fn antwort_fall(fall: &Value) {
     } else {
         (
             "copilot-plan",
-            format!("GET /x HTTP/1.1\r\nHost: {plan}\r\n\r\n"),
+            format!("GET /models HTTP/1.1\r\nHost: {plan}\r\n\r\n"),
         )
     };
     let antwort = im_tunnel(&a, ziel_name, anfrage.as_bytes());
@@ -1374,7 +1495,7 @@ fn a_tunnel_takes_one_request_after_another() {
     assert!(Aufbau::connect(&mut h, connect.as_bytes()).starts_with(b"HTTP/1.1 200 "));
     let mut t = a.tls(h, Some(&plan)).expect("tls");
     for _ in 0..2 {
-        t.write_all(format!("GET /x HTTP/1.1\r\nHost: {plan}\r\n\r\n").as_bytes())
+        t.write_all(format!("GET /models HTTP/1.1\r\nHost: {plan}\r\n\r\n").as_bytes())
             .expect("send");
         let antwort = lies_antwort(&mut t);
         assert_eq!(
@@ -1425,7 +1546,7 @@ fn halter_antwort(status: u16, koerper: &str, ende: Option<&str>) -> Vec<String>
 /// target, so its leak lock does not run here (that lock is the holder's).
 #[test]
 fn a_broken_answer_keeps_one_head() {
-    let anfrage = "GET /x HTTP/1.1\r\nHost: PLAN\r\n\r\n";
+    let anfrage = "GET /models HTTP/1.1\r\nHost: PLAN\r\n\r\n";
     let (kurz, _a) = plan_antwort(halter_antwort(200, "", Some("halter.ziel_fehler")), anfrage);
     assert_eq!(
         (kurz.status, kurz.koerper.as_slice(), kurz.ganz),
@@ -1453,7 +1574,7 @@ fn a_broken_answer_keeps_one_head() {
 fn only_a_requested_upgrade_with_101_is_bridged() {
     let (a, aufbau_a) = plan_antwort(
         halter_antwort(200, "{}", None),
-        "GET /r HTTP/1.1\r\nHost: PLAN\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n",
+        "GET /responses HTTP/1.1\r\nHost: PLAN\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n",
     );
     assert_eq!((a.status, a.koerper.as_slice()), (200, &b"{}"[..]));
     assert!(
@@ -1476,7 +1597,7 @@ fn only_a_requested_upgrade_with_101_is_bridged() {
             z.push(r#"{"art":"ende","fassung":1,"id":<ID>,"ok":true}"#.to_owned());
             z
         },
-        "GET /r HTTP/1.1\r\nHost: PLAN\r\n\r\n",
+        "GET /responses HTTP/1.1\r\nHost: PLAN\r\n\r\n",
     );
     assert_eq!(b.status, 101);
     assert!(

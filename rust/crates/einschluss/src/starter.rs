@@ -23,6 +23,11 @@
 //! a search path, never taken from the input or the environment). The environment of `bwrap` is empty; the harness
 //! gets its variables from the allow list of the profile.
 //!
+//! `start` runs the session below the anchor ([`Profil::argumente_gebunden`]): the caller of the starter (its parent)
+//! puts the read end of the lifeline on descriptor [`crate::LEINE_FD`] and holds the only write end as long as it lives.
+//! The starter passes the descriptor on to `bwrap` and does not look at it; without it the anchor does not start the
+//! program (exit [`crate::ANKER_ABBRUCH`]). `selbsttest` and `vorentpacken` have no anchor.
+//!
 //! A failure writes the line `<code>: <reason>` on standard error (the fixed texts of [`Fehler::code`] and
 //! [`Fehler::grund`], never a path or a file content) and ends with the exit code of the table at [`Abbruch::exitcode`].
 //! When the code is `lauf.einschluss_fehlt`, a second fixed line follows: `lauf.einschluss_teil: <exit code> <word>`

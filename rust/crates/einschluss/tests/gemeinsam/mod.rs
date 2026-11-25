@@ -128,6 +128,36 @@ pub fn testort() -> PathBuf {
     std::env::var_os("EINSCHLUSS_TESTORT").map_or_else(|| PathBuf::from("/var/tmp"), PathBuf::from)
 }
 
+/// A named pipe at `pfad` (made once by `mkfifo`, mode 600).
+pub fn fifo(pfad: &Path) -> PathBuf {
+    if !pfad.exists() {
+        let status = Command::new("/usr/bin/mkfifo")
+            .arg("-m")
+            .arg("600")
+            .arg(pfad)
+            .status()
+            .expect("mkfifo");
+        assert!(status.success(), "mkfifo");
+    }
+    pfad.to_path_buf()
+}
+
+/// The lifeline of a starter as a named pipe (`<wurzel>/leine`): a shell puts it on descriptor `LEINE_FD`
+/// (`5<"$leine"`), and it reads end of file once no writer holds it any more ([`fifo_offen`]).
+pub fn leine(wurzel: &Path) -> PathBuf {
+    fifo(&wurzel.join("leine"))
+}
+
+/// Opens a named pipe for reading and writing (it does not block on Linux): while the handle is open this process is a
+/// writer, so a lifeline lives and a reader never sees end of file.
+pub fn fifo_offen(pfad: &Path) -> fs::File {
+    fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(pfad)
+        .expect("named pipe")
+}
+
 fn ordner(pfad: &Path, modus: u32) -> PathBuf {
     fs::create_dir_all(pfad).expect("folder");
     // The world of the outside tests exists on Linux only; elsewhere this helper is built but never called.

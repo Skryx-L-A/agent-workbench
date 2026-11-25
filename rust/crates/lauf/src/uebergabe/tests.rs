@@ -104,6 +104,9 @@ fn kind_fall() {
             "vererbt" => fall_vererbt(),
             "fremde" => fall_fremde(),
             "frei" => fall_frei(),
+            "leine" => fall_leine(),
+            "leine-vier" => fall_leine_vier(),
+            "leine-belegt" => fall_leine_belegt(),
             andere => panic!("unknown case {andere}"),
         }
         #[allow(clippy::print_stdout)]
@@ -193,7 +196,9 @@ fn fall_fremde() {
     // the shell handed down descriptor 4 (a file under /proc: not the listing of the descriptors) and closed 3 and 5 to 9
     let platz = Platz::reservieren();
     assert!(platz.da());
-    assert_eq!(fremde_deskriptoren(), Some(vec![4]));
+    // the place holds 5 itself (the lifeline): it is its own, not inherited
+    assert_eq!(platz.eigene(), vec![5]);
+    assert_eq!(fremde_deskriptoren(), Some(vec![4, 5]));
 }
 
 #[cfg(target_os = "linux")]
@@ -216,6 +221,91 @@ fn a_handed_down_descriptor_is_named_and_the_own_listing_is_not() {
 #[test]
 fn descriptor_3_is_taken_while_the_place_holds_it_and_free_after() {
     kind_gut("frei", "3>&-");
+}
+
+/// Reads descriptor 5 once without blocking (a new open of the pipe): `Some(true)` for end of file, `Some(false)` for
+/// "no data yet", `None` for anything else.
+#[cfg(target_os = "linux")]
+fn leine_zu() -> Option<bool> {
+    let fd = rustix::fs::open(
+        "/proc/self/fd/5",
+        rustix::fs::OFlags::RDONLY | rustix::fs::OFlags::NONBLOCK | rustix::fs::OFlags::CLOEXEC,
+        rustix::fs::Mode::empty(),
+    )
+    .ok()?;
+    let mut puffer = [0u8; 1];
+    match rustix::io::read(&fd, &mut puffer) {
+        Ok(0) => Some(true),
+        Err(rustix::io::Errno::AGAIN) => Some(false),
+        _ => None,
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn offen(n: i32) -> bool {
+    std::fs::symlink_metadata(format!("/proc/self/fd/{n}")).is_ok()
+}
+
+#[cfg(target_os = "linux")]
+fn fall_leine() {
+    // 3 and 4 are free at the start (no report): the place takes 3, the lifeline 5, and 4 is free again
+    let mut platz = Platz::reservieren();
+    assert!(platz.da());
+    assert!(platz.leine_da(), "descriptor 5 reserved");
+    assert_eq!(platz.eigene(), vec![einschluss::LEINE_FD]);
+    assert!(!offen(4), "the filler on 4 is closed again");
+    let vorher = rustix::io::fcntl_getfd(platz.1.as_ref().expect("lifeline")).expect("flags");
+    assert!(vorher.contains(rustix::io::FdFlags::CLOEXEC));
+    let schreiben = platz.leine_legen().expect("lifeline");
+    // 5 is the read end of a pipe without close-on-exec, the write end keeps close-on-exec
+    let flags = rustix::io::fcntl_getfd(platz.1.as_ref().expect("lifeline")).expect("flags");
+    assert!(!flags.contains(rustix::io::FdFlags::CLOEXEC));
+    assert!(
+        rustix::io::fcntl_getfd(&schreiben)
+            .expect("flags")
+            .contains(rustix::io::FdFlags::CLOEXEC)
+    );
+    assert_eq!(
+        leine_zu(),
+        Some(false),
+        "the lifeline lives while the writer is open"
+    );
+    drop(schreiben);
+    assert_eq!(
+        leine_zu(),
+        Some(true),
+        "end of file once the writer is gone"
+    );
+    platz.1 = None;
+    assert!(!offen(5));
+}
+
+#[cfg(target_os = "linux")]
+fn fall_leine_vier() {
+    // descriptor 4 is held (as by the report): the lifeline takes 5 and 4 stays open
+    let platz = Platz::reservieren();
+    assert!(platz.leine_da());
+    assert!(offen(4));
+    assert_eq!(platz.eigene(), vec![5]);
+}
+
+#[cfg(target_os = "linux")]
+fn fall_leine_belegt() {
+    // descriptor 5 was handed down: no lifeline, and the start refuses
+    let mut platz = Platz::reservieren();
+    assert!(platz.da());
+    assert!(!platz.leine_da());
+    assert_eq!(platz.eigene(), Vec::<i32>::new());
+    assert!(matches!(platz.leine_legen(), Err(Fehler::EinschlussFehlt)));
+    assert!(!offen(4), "the filler on 4 is closed again");
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn the_lifeline_takes_descriptor_5_and_reads_end_of_file_once_its_writer_is_gone() {
+    kind_gut("leine", "3>&-");
+    kind_gut("leine-vier", "3>&- 4</proc/version");
+    kind_gut("leine-belegt", "3>&- 5</proc/version");
 }
 
 #[test]

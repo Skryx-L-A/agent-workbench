@@ -641,19 +641,19 @@ fn umgebung_im_namensraum(pid: i32) -> Result<Vec<u8>, String> {
     }
 }
 
-/// The starter: the child of `lauf` whose program is `bwrap`, whose command after `--` is the forwarder (the cloud
-/// route) and that does not end with `/usr/bin/true`. Every other `bwrap` of the start is a child of `lauf` too: the
-/// extraction of the package, and the probe run of the profile, which carries the same command with `/usr/bin/true`
-/// appended. Measured: a choice by the name alone, or by the forwarder alone, took one of them; the start went on (a
-/// hang of the wait) or ended with `lauf.einschluss_fehlt`, and the starter was never hit.
+/// The starter: the child of `lauf` whose program is `bwrap`, whose command after `--` (or after the anchor) is the
+/// forwarder (the cloud route) and that does not end with `/usr/bin/true`. Every other `bwrap` of the start is a child
+/// of `lauf` too: the extraction of the package, and the probe run of the profile, which carries the same command with
+/// `/usr/bin/true` appended. Measured: a choice by the name alone, or by the forwarder alone, took one of them; the
+/// start went on (a hang of the wait) or ended with `lauf.einschluss_fehlt`, and the starter was never hit.
 fn starter_von(lauf: u32) -> Option<i32> {
     kind_namens(lauf, "bwrap").filter(|p| {
         std::fs::read(format!("/proc/{p}/cmdline")).is_ok_and(|c| {
             let teile: Vec<&[u8]> = c.split(|b| *b == 0).filter(|t| !t.is_empty()).collect();
-            teile
-                .windows(2)
-                .any(|f| f[0] == b"--" && f[1] == b"/run/brain/weiter")
-                && teile.last().is_some_and(|l| *l != b"/usr/bin/true")
+            teile.windows(2).any(|f| {
+                (f[0] == b"--" || f[0] == einschluss::ANKER_NAME.as_bytes())
+                    && f[1] == b"/run/brain/weiter"
+            }) && teile.last().is_some_and(|l| *l != b"/usr/bin/true")
         })
     })
 }

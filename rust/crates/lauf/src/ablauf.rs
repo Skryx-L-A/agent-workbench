@@ -312,8 +312,10 @@ fn starten(
         Ok(r) => r,
         Err(f) => return f,
     };
-    // step 6
-    let verteilung = match einschluss_pruefen(lage, route, platz, &meldung.eigene()) {
+    // step 6; descriptor 5 of the lifeline is the place's own too (without it the start ends at step 8, before the
+    // trampoline: `Platz::leine_legen`)
+    let eigene = [meldung.eigene(), platz.eigene()].concat();
+    let verteilung = match einschluss_pruefen(lage, route, platz, &eigene) {
         Ok(v) => v,
         Err(f) => return f,
     };

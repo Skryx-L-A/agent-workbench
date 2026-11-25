@@ -121,8 +121,14 @@ pub enum Startfehler {
     HalterFehlt,
     /// `mw.halter_unecht`, exit 78 (mode 2, step 3: the check of the counterparty fails).
     HalterUnecht,
-    /// `mw.halter_kein_schluessel`, exit 78 (mode 2, step 3: the holder holds no secret for a bound target).
+    /// `mw.halter_kein_schluessel`, exit 78 (mode 2, step 3: the holder holds no secret for a bound target, or does not
+    /// know the target).
     HalterKeinSchluessel,
+    /// `mw.halter_fehler`, exit 78 (mode 2, step 3: any other code of the holder, an unreadable line or a torn
+    /// connection in answer to `schluessel.vorhanden`).
+    HalterFehler,
+    /// `mw.halter_frist`, exit 78 (mode 2, step 3: no answer to `schluessel.vorhanden` within `FRIST_START`).
+    HalterFrist,
     /// `mw.ziel_unaufloesbar`, exit 69.
     ZielUnaufloesbar,
     /// `mw.socket_belegt`, exit 74.
@@ -159,6 +165,8 @@ impl Startfehler {
             Self::HalterFehlt => "mw.halter_fehlt",
             Self::HalterUnecht => "mw.halter_unecht",
             Self::HalterKeinSchluessel => "mw.halter_kein_schluessel",
+            Self::HalterFehler => "mw.halter_fehler",
+            Self::HalterFrist => "mw.halter_frist",
             Self::ZielUnaufloesbar => "mw.ziel_unaufloesbar",
             Self::SocketBelegt => "mw.socket_belegt",
             Self::Intern => "mw.intern",
@@ -189,6 +197,8 @@ impl Startfehler {
             Self::HalterFehlt => "Halter nicht erreichbar",
             Self::HalterUnecht => "Halter nicht echt",
             Self::HalterKeinSchluessel => "kein Schluessel beim Halter",
+            Self::HalterFehler => "Halter lehnte ab",
+            Self::HalterFrist => "Halter antwortete nicht",
             Self::ZielUnaufloesbar => "Ziel nicht aufloesbar",
             Self::SocketBelegt => "Socket belegt oder nicht anlegbar",
             Self::Intern => "interner Fehler",
@@ -214,7 +224,9 @@ impl Startfehler {
             | Self::CaUngueltig
             | Self::HalterFehlt
             | Self::HalterUnecht
-            | Self::HalterKeinSchluessel => 78,
+            | Self::HalterKeinSchluessel
+            | Self::HalterFehler
+            | Self::HalterFrist => 78,
             Self::ZielUnaufloesbar | Self::ElternWeg => 69,
             Self::SocketBelegt | Self::ZaehlungFehler | Self::ProtokollFehlt => 74,
             Self::Intern | Self::KindVerboten => 70,
@@ -434,15 +446,36 @@ fn vorbereiten_eins(
     })
 }
 
-/// Step 3 of mode 2 (section 5.1): the model path reaches the holder at his fixed endpoint and checks the
-/// counterparty before the first line. The path is never an option and never comes from the start request.
+/// Step 3 of mode 2 (section 13.5): for every bound target in `ziele` the model path reaches the holder at his fixed
+/// endpoint, checks the counterparty before the first line and asks `schluessel.vorhanden` with `ziel`, one connection
+/// per question (section 5.1). All answers together have to come before `bis`. Fail closed: the start goes on only if
+/// the holder answers `{"vorhanden": true}` for every target. The path is never an option and never comes from the
+/// start request.
+///
+/// # Errors
+/// `HalterFehlt` and `HalterUnecht` from the connection; `HalterKeinSchluessel` for `false` and
+/// `halter.ziel_unbekannt`; `HalterFrist` without an answer in time; `HalterFehler` for everything else.
 #[cfg(target_os = "linux")]
-fn halter_bereit(pfad: &Path, eigene_uid: u32) -> Result<(), Startfehler> {
-    match crate::halter::Klient::verbinde(pfad, eigene_uid) {
-        Ok(_) => Ok(()),
-        Err("mw.halter_unecht") => Err(Startfehler::HalterUnecht),
-        Err(_) => Err(Startfehler::HalterFehlt),
+pub fn halter_bereit(
+    pfad: &Path,
+    eigene_uid: u32,
+    ziele: &[&str],
+    bis: std::time::Instant,
+) -> Result<(), Startfehler> {
+    for ziel in ziele {
+        let mut k = match crate::halter::Klient::verbinde(pfad, eigene_uid) {
+            Ok(k) => k,
+            Err("mw.halter_unecht") => return Err(Startfehler::HalterUnecht),
+            Err(_) => return Err(Startfehler::HalterFehlt),
+        };
+        match crate::halter::schluessel_da(&mut k, ziel, bis) {
+            Ok(()) => {}
+            Err("mw.halter_kein_schluessel") => return Err(Startfehler::HalterKeinSchluessel),
+            Err("mw.halter_frist") => return Err(Startfehler::HalterFrist),
+            Err(_) => return Err(Startfehler::HalterFehler),
+        }
     }
+    Ok(())
 }
 
 /// Steps 2 to 7 of mode 2 (section 13.5): target list, approval of the CA, CA, the holder for the bound targets,
@@ -479,11 +512,18 @@ fn vorbereiten_zwei(
     )
     .ok_or(Startfehler::CaUngueltig)?;
     // Step 3 (section 13.5): a bound target carries no key file any more. The holder holds the token; the model path
-    // reaches him at his fixed endpoint, checks the counterparty and never falls back on a file. A list without a
-    // bound target skips the step: the holder is not needed then.
+    // reaches him at his fixed endpoint, checks the counterparty, asks him per bound target whether he holds its
+    // secret and never falls back on a file. A list without a bound target skips the step: the holder is not needed
+    // then.
     let halter_socket = crate::halter::fester_pfad(eigene_uid);
-    if liste.ziele.iter().any(zielliste::Ziel::gebunden) {
-        halter_bereit(&halter_socket, eigene_uid)?;
+    let gebunden: Vec<&str> = liste
+        .ziele
+        .iter()
+        .filter_map(|z| z.halter_ziel.as_deref())
+        .collect();
+    if !gebunden.is_empty() {
+        let bis = std::time::Instant::now() + crate::halter::FRIST_START;
+        halter_bereit(&halter_socket, eigene_uid, &gebunden, bis)?;
     }
     if !a.protokoll.is_dir() {
         return Err(Startfehler::ProtokollOrdner);

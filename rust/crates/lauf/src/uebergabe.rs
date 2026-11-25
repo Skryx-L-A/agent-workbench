@@ -7,7 +7,10 @@
 //! Why a parent and no `exec` (contract 1, "Lebensdauer"): `bwrap` sets the death signal of its inner process only after
 //! the set-up of the namespaces (bubblewrap 0.12.0, `do_init`), so a SIGKILL of the outer `bwrap` in its first
 //! milliseconds left the inner one running below PID 1 (measured 21.11.2026). As the parent and child subreaper this
-//! process adopts such an orphan and ends it.
+//! process adopts such an orphan and ends it. When this process itself dies during the set-up, the anchor in the
+//! enclosure does not start the program: it holds the read end of the lifeline on descriptor 5 (reserved at the start
+//! with 3, [`Platz::reservieren`]), and this process holds the only write end until it ends
+//! (`Platz::leine_legen`, Linux only; [`einschluss::ANKER_SKRIPT`]).
 //!
 //! The test build (feature `pruefbau`) builds the profile itself, checks the host and calls `bwrap` directly, through
 //! the same parent.
@@ -21,12 +24,17 @@ use crate::meldung::Meldung;
 /// The descriptor of the description (contract of the starter).
 pub const BESCHREIBUNG_FD: i32 = 3;
 
-/// The reserved descriptor 3, if it was the lowest free number at the start.
+/// [`einschluss::LEINE_FD`] as a count: the reservation opens at most this many fillers below it.
+const LEINE_FD_ZAHL: usize = einschluss::LEINE_FD.unsigned_abs() as usize;
+
+/// The reserved descriptor 3, if it was the lowest free number at the start, and the reserved descriptor 5 of the
+/// lifeline ([`Platz::leine_reservieren`]).
 #[derive(Debug)]
-pub struct Platz(Option<OwnedFd>);
+pub struct Platz(Option<OwnedFd>, Option<OwnedFd>);
 
 impl Platz {
-    /// Opens `/dev/null` (close-on-exec) and keeps it only when it got the number 3.
+    /// Opens `/dev/null` (close-on-exec) and keeps it only when it got the number 3, then reserves descriptor 5 of the
+    /// lifeline ([`Platz::leine_reservieren`]). Number 4 stays free for the report, reserved right after.
     #[must_use]
     pub fn reservieren() -> Platz {
         let fd = rustix::fs::open(
@@ -35,7 +43,71 @@ impl Platz {
             rustix::fs::Mode::empty(),
         )
         .ok();
-        Platz(fd.filter(|f| f.as_raw_fd() == BESCHREIBUNG_FD))
+        let mut platz = Platz(fd.filter(|f| f.as_raw_fd() == BESCHREIBUNG_FD), None);
+        platz.leine_reservieren();
+        platz
+    }
+
+    /// Reserves descriptor 5 for the lifeline ([`einschluss::LEINE_FD`]): opens `/dev/null` (close-on-exec) until it gets
+    /// the number 5 and keeps that one; the lower numbers it got on the way (4, and 3 when it was not the place) are
+    /// closed again. Part of [`Platz::reservieren`], before the first other file.
+    fn leine_reservieren(&mut self) {
+        let mut fueller = Vec::new();
+        while fueller.len() <= LEINE_FD_ZAHL {
+            // read-only is the flag 0, so close-on-exec alone opens it read-only
+            let Ok(fd) = rustix::fs::open(
+                "/dev/null",
+                rustix::fs::OFlags::CLOEXEC,
+                rustix::fs::Mode::empty(),
+            ) else {
+                break;
+            };
+            match fd.as_raw_fd().cmp(&einschluss::LEINE_FD) {
+                std::cmp::Ordering::Less => fueller.push(fd),
+                std::cmp::Ordering::Equal => {
+                    self.1 = Some(fd);
+                    break;
+                }
+                std::cmp::Ordering::Greater => break,
+            }
+        }
+    }
+
+    /// Whether descriptor 5 is held for the lifeline.
+    #[must_use]
+    pub fn leine_da(&self) -> bool {
+        self.1.is_some()
+    }
+
+    /// The descriptor of the lifeline this process holds (step 6 does not count it as inherited).
+    #[must_use]
+    pub fn eigene(&self) -> Vec<i32> {
+        self.1.iter().map(AsRawFd::as_raw_fd).collect()
+    }
+
+    /// Makes the lifeline right before the start of the trampoline: a new pipe, its read end laid over descriptor 5
+    /// without close-on-exec (the trampoline, the starter and `bwrap` pass it on to the anchor in the enclosure), its
+    /// write end kept with close-on-exec. The caller holds the write end until it ends: the anchor starts the program
+    /// only while it is open (see [`einschluss::ANKER_SKRIPT`]).
+    ///
+    /// # Errors
+    /// `lauf.einschluss_fehlt` when descriptor 5 is not held, the pipe cannot be made, or 5 is not the read end without
+    /// close-on-exec afterwards.
+    #[cfg(target_os = "linux")]
+    pub fn leine_legen(&mut self) -> Result<OwnedFd, Fehler> {
+        let ziel = self.1.as_mut().ok_or(Fehler::EinschlussFehlt)?;
+        let (lesen, schreiben) = rustix::pipe::pipe_with(rustix::pipe::PipeFlags::CLOEXEC)
+            .map_err(|_| Fehler::EinschlussFehlt)?;
+        rustix::io::dup2(&lesen, ziel).map_err(|_| Fehler::EinschlussFehlt)?;
+        drop(lesen);
+        if ziel.as_raw_fd() != einschluss::LEINE_FD {
+            return Err(Fehler::EinschlussFehlt);
+        }
+        let flags = rustix::io::fcntl_getfd(&*ziel).map_err(|_| Fehler::EinschlussFehlt)?;
+        if flags.contains(rustix::io::FdFlags::CLOEXEC) {
+            return Err(Fehler::EinschlussFehlt);
+        }
+        Ok(schreiben)
     }
 
     /// Whether descriptor 3 is held.
@@ -269,6 +341,11 @@ pub fn halten(
     else {
         return Fehler::Intern;
     };
+    // the write end of the lifeline stays in this process until it ends (close-on-exec: no child gets a copy)
+    let _leine = match platz.leine_legen() {
+        Ok(l) => l,
+        Err(f) => return f,
+    };
     let melden = match meldung.auf_vier_legen() {
         Ok(m) => m,
         Err(f) => return f,
@@ -291,8 +368,9 @@ pub fn halten(
     };
     // the trampoline holds the connection until its `exec`; the end of the last copy tells the service the starter runs
     meldung.schliessen();
-    // the description is in the starter now; this process needs descriptor 3 no more
+    // the description and the read end of the lifeline are in the starter now; this process needs neither any more
     platz.0 = None;
+    platz.1 = None;
     let pidfd = i32::try_from(starter.id())
         .ok()
         .and_then(rustix::process::Pid::from_raw)

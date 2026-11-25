@@ -132,7 +132,7 @@ fn the_command_has_an_empty_environment_and_the_fixed_path() {
         .get_args()
         .map(|a| a.to_string_lossy().into_owned())
         .collect();
-    assert_eq!(args, profil.argumente());
+    assert_eq!(args, profil.argumente_gebunden());
     let anders = profil.clone().mit_bwrap(PathBuf::from("/opt/x/bwrap"));
     assert_eq!(anders.bwrap(), Path::new("/opt/x/bwrap"));
     assert_eq!(anders.befehl().get_program(), "/opt/x/bwrap");
@@ -953,6 +953,43 @@ fn the_local_route_runs_the_harness_below_the_forwarder_on_11434() {
     let trenner = a.iter().position(|x| x == "--").expect("--");
     assert_eq!(a[trenner + 1], "/srv/bin/pi");
     assert!(!a.iter().any(|x| x == GAST_WEITER));
+}
+
+#[test]
+fn a_session_starts_below_the_anchor_and_the_anchor_below_nothing() {
+    for b in [muster(), pi_muster()] {
+        let profil = bauen(&b).expect("builds");
+        let ohne = profil.argumente();
+        let mit = profil.argumente_gebunden();
+        let trenner = ohne.iter().position(|x| x == "--").expect("--");
+        // the switches are the same, the anchor is the first program, the rest follows unchanged (forwarder included)
+        assert_eq!(mit[..=trenner], ohne[..=trenner]);
+        assert_eq!(
+            mit[trenner + 1..trenner + 5],
+            ["/usr/bin/sh", "-c", ANKER_SKRIPT, ANKER_NAME]
+        );
+        assert_eq!(mit[trenner + 5..], ohne[trenner + 1..]);
+        assert_eq!(mit.len(), ohne.len() + 4);
+    }
+}
+
+#[test]
+fn the_anchor_reads_the_lifeline_on_its_descriptor_and_closes_it() {
+    let fd = LEINE_FD.to_string();
+    assert!(ANKER_SKRIPT.contains(&format!(
+        "[ -p /proc/self/fd/{fd} ] || exit {ANKER_ABBRUCH}"
+    )));
+    assert!(ANKER_SKRIPT.contains(&format!("dd if=/proc/self/fd/{fd} iflag=nonblock")));
+    assert!(ANKER_SKRIPT.contains(&format!("\nexec {fd}<&-\n")));
+    assert!(ANKER_SKRIPT.ends_with("\nexec /usr/bin/env -u SHLVL -- \"$@\""));
+    // every way out before the `exec` of the program is the one code
+    assert_eq!(ANKER_SKRIPT.matches("exit ").count(), 6);
+    assert_eq!(
+        ANKER_SKRIPT
+            .matches(&format!("exit {ANKER_ABBRUCH}"))
+            .count(),
+        6
+    );
 }
 
 #[test]

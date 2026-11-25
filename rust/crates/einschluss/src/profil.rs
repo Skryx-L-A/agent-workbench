@@ -19,7 +19,8 @@
 //! | `--ro-bind /dev/null /usr/bin/werkbank-ordnermarke` | only when that file exists on the host: the command of the human is hidden inside (`/usr` is visible); the one bind of `/dev/null` the text check accepts |
 //! | `--ro-bind <package> <home>/.cache/copilot/pkg/<platform>/<version>` | only for the cloud harness with a package: the folder the CLI extracts itself into otherwise (see [`crate::paket`]); read-only, checked on the host before |
 //! | (`bwrap` itself) | `no_new_privs` and `nosuid` on every mount: a setgid program inside runs with the gid of the person, not with the group of its file, also below a read-only path like `/usr` (measured; the case `l1_no_setgid_acts_in_the_enclosure`, with the counter probe outside) |
-//! | `--die-with-parent` | when the starting process dies after the set-up of `bwrap`, the harness dies with it (measured; the case `elternbindung`, which kills the starter once the program inside runs). It works only after the set-up: `bwrap` 0.12.0 sets the death signal of its inner process late (`do_init`), and a starter killed during the set-up leaves the harness running (measured under load, 25.11.2026). Until the enclosure closes that window itself, the promise "the session ends with its starter" holds only through `werkbank-lauf` as the child subreaper of the starter (the case G1 of `lauf`). The kernel ties the signal to the thread that forked `bwrap`, so every starter forks it from a thread that lives until the end of the session (see [`Profil::argumente`]) |
+//! | `--die-with-parent` | when the starting process dies after the set-up of `bwrap`, the harness dies with it (measured; the case `elternbindung`, which kills the starter once the program inside runs). It works only after the set-up: `bwrap` 0.12.0 sets the death signal of its inner process late (`do_init`), and a starter killed during the set-up left the harness running (measured under load, 25.11.2026). The anchor closes that window (next row). The kernel ties the signal to the thread that forked `bwrap`, so every starter forks it from a thread that lives until the end of the session (see [`Profil::argumente`]) |
+//! | the anchor (`/usr/bin/sh -c` [`ANKER_SKRIPT`] in front of the program, [`Profil::argumente_gebunden`]) | the program never starts before the binding to the starter holds: the anchor waits until PID 1 inside has set its death signal, then checks once that the starter still lives (the lifeline on descriptor [`LEINE_FD`], whose only write end the starter holds), and only then replaces itself by the program; a starter dead before that leaves no program (exit [`ANKER_ABBRUCH`], and `bwrap` ends; the cases `aufbaufenster` and `elternbindung`). One limit: a starter dead before the outer `bwrap` released its child leaves the inner one waiting, without a program (see [`ANKER_SKRIPT`]) |
 //!
 //! There is no `seccomp` filter in this profile. A fault of the kernel breaks the enclosure; that is a follow-up, not
 //! a claim.
@@ -41,6 +42,78 @@ use crate::verbote::{
 /// The fixed path of `bwrap`. A tool found through `PATH` could be set by the user, and on Ubuntu the transition of the
 /// `AppArmor` profile of the starter (`werkbank-einschluss`) names this path only. No profile exists for `bwrap` itself.
 pub const BWRAP_PFAD: &str = "/usr/bin/bwrap";
+
+/// The descriptor of the lifeline in the starter and inside the enclosure: the read end of a pipe whose only write end
+/// the starter of `bwrap` holds (its parent: "Lauf starten", or the shell of a test). It reads end of file once the
+/// starter has died.
+pub const LEINE_FD: i32 = 5;
+
+/// The exit code of the anchor when it does not start the program: the starter died before the binding held, the
+/// lifeline is missing or no pipe, or the init process of the enclosure did not reach its wait (see [`ANKER_SKRIPT`]).
+pub const ANKER_ABBRUCH: i32 = 125;
+
+/// The name of the anchor (its `$0`).
+pub const ANKER_NAME: &str = "werkbank-anker";
+
+/// The anchor: the first program inside the enclosure, run by `/usr/bin/sh` (the `/usr` of the host). It starts the
+/// program only once the binding to the starter holds, and never before (fail closed: exit [`ANKER_ABBRUCH`], the
+/// program is never run, and `bwrap` ends with its init process).
+///
+/// Why: `bwrap` 0.12.0 sets the death signal of its init process (PID 1 inside, the child of the outer `bwrap`) in
+/// `do_init`, after the whole set-up and after it forked the program. A starter killed before that left the program
+/// running (measured 25.11.2026 under load: 23 of 23 assignable survivors in that window). The anchor closes the
+/// window in two steps:
+///
+/// 1. It waits until PID 1 sleeps in `do_wait` (`/proc/1/wchan`, readable for the same user; `/proc/1/syscall` is not,
+///    because of Yama). In `do_init` that wait comes right after the death signal is set, so from then on PID 1 is
+///    bound to the outer `bwrap`, if the outer `bwrap` was still alive when the signal was set. At most 3000 tries
+///    10 ms apart (`sleep` per try, so at least 30 s); after that it gives up.
+/// 2. Then it reads the lifeline once without blocking: "no data yet" (`EAGAIN`) means the starter lives now, so it
+///    lived when the signals of the outer `bwrap` and of PID 1 were set, and the chain starter, outer `bwrap`, PID 1,
+///    program holds. End of file (the starter died), data, a missing descriptor or any other answer ends the anchor.
+///
+/// Then it closes the lifeline and replaces itself by the program (`exec` through `/usr/bin/env -u SHLVL`), so the
+/// harness holds no part of it and gets the environment of the profile unchanged: `bash` as `/usr/bin/sh` exports
+/// `SHLVL` on every `exec` (measured on the Linux build host). A program path with `=` is refused,
+/// since `env` would read it as a variable.
+///
+/// What the anchor does not do: when the outer `bwrap` dies after its clone and before it released its child (an
+/// eventfd, `bubblewrap.c:3145` and `:3198`), the inner `bwrap` waits in that read for ever. It never forks the
+/// anchor, so no program starts, but the process stays (measured under load, 25.11.2026: 10 of 480 runs of the
+/// outside cases; held on purpose in the case `aufbaufenster_a_starter_dead_before_the_release_...`). While "Lauf
+/// starten" lives, it adopts the orphan as subreaper and ends it by SIGKILL. When "Lauf starten" itself is the starter
+/// that died, nothing in this crate or in "Lauf starten" ends it: one waiting process stays per such abort, with no
+/// program, waiting before its set-up (open for a decision).
+pub const ANKER_SKRIPT: &str = "i=0
+while :; do
+  w=
+  read -r w < /proc/1/wchan || :
+  [ \"$w\" = do_wait ] && break
+  i=$((i + 1))
+  [ \"$i\" -lt 3000 ] || exit 125
+  /usr/bin/sleep 0.01 || exit 125
+done
+[ -p /proc/self/fd/5 ] || exit 125
+e=$(LC_ALL=C /usr/bin/dd if=/proc/self/fd/5 iflag=nonblock bs=1 count=1 status=none 2>&1 >/dev/null) && exit 125
+case $e in
+  *'Resource temporarily unavailable'*) ;;
+  *) exit 125 ;;
+esac
+exec 5<&-
+case $1 in
+  *=*) exit 125 ;;
+esac
+exec /usr/bin/env -u SHLVL -- \"$@\"";
+
+/// The arguments of the anchor in front of the program.
+fn anker() -> [String; 4] {
+    [
+        "/usr/bin/sh".to_owned(),
+        "-c".to_owned(),
+        ANKER_SKRIPT.to_owned(),
+        ANKER_NAME.to_owned(),
+    ]
+}
 
 /// Size of the private `/tmp`.
 const TMP_BYTES: u64 = 256 * 1024 * 1024;
@@ -687,6 +760,9 @@ impl Profil {
     /// (`werkbank-lauf` forks the starter from its main thread). The case `elternbindung` holds both measurements, with
     /// the counter probes.
     ///
+    /// This list has no anchor: the program starts as soon as `bwrap` has built the enclosure, also when the starter
+    /// died during the set-up. It is the enclosure as such (the outside cases, the test run of the start). A session
+    /// starts with [`Profil::argumente_gebunden`] ([`Profil::befehl`]).
     #[must_use]
     pub fn argumente(&self) -> Vec<String> {
         self.argumente_mit(&self.beschreibung.argv)
@@ -716,13 +792,26 @@ impl Profil {
         alle
     }
 
-    /// The command to start. It has an empty environment: `bwrap` needs nothing, and the harness gets its five
-    /// variables from the profile. The caller sets the streams; the service later replaces its process by this command
+    /// The arguments of the start of a session: [`Profil::argumente`] with the anchor ([`ANKER_SKRIPT`]) in front of
+    /// the program (and in front of the forwarder): `... -- /usr/bin/sh -c <anchor> werkbank-anker <program> ...`.
+    /// The program starts only once the binding to the starter holds; the starter holds the write end of the lifeline
+    /// and puts its read end on descriptor [`LEINE_FD`].
+    #[must_use]
+    pub fn argumente_gebunden(&self) -> Vec<String> {
+        let mut alle = self.argumente();
+        let naht = self.kopf.len() + 1;
+        alle.splice(naht..naht, anker());
+        alle
+    }
+
+    /// The command of the start of a session ([`Profil::argumente_gebunden`]). It has an empty environment: `bwrap`
+    /// needs nothing, and the harness gets its five variables from the profile. The caller sets the streams and puts
+    /// the read end of the lifeline on descriptor [`LEINE_FD`]; the starter replaces its process by this command
     /// (`exec`), so the terminal stays the terminal of the harness.
     #[must_use]
     pub fn befehl(&self) -> Command {
         let mut c = Command::new(&self.bwrap);
-        c.args(self.argumente()).env_clear();
+        c.args(self.argumente_gebunden()).env_clear();
         c
     }
 }

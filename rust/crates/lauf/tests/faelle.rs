@@ -278,13 +278,17 @@ fn aufbauen_und_laufen(name: &str, lage: &Value) -> (Welt, gemeinsam::Lauf) {
     (w, lauf)
 }
 
-/// The arguments after the `--` of the final `bwrap` call, without the forwarder in front of the harness.
+/// The arguments after the `--` of the final `bwrap` call, without the anchor and the forwarder in front of the
+/// harness.
 fn harness_teil(args: &[String]) -> Vec<String> {
     let naht = args
         .iter()
         .position(|a| a == "--")
         .map_or(args.len(), |i| i + 1);
     let mut rest = &args[naht..];
+    if let Some(i) = rest.iter().position(|a| a == einschluss::ANKER_NAME) {
+        rest = &rest[i + 1..];
+    }
     if rest.first().map(String::as_str) == Some(einschluss::GAST_WEITER)
         && let Some(i) = rest.iter().position(|a| a == "--")
     {

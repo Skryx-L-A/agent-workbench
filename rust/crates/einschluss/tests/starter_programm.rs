@@ -56,33 +56,47 @@ enum Fd3<'a> {
 
 /// Runs the starter with `args`, the environment `env` (nothing else) and descriptor 3 as given. The shell puts the
 /// descriptor in place (`3<&0` from a pipe on standard input, or `3<file`): safe Rust cannot map a descriptor onto a
-/// number. Every wait has a limit.
+/// number. Descriptor 5 is the lifeline (a named pipe this process holds open as a writer). Every wait has a limit.
 fn starter(
     welt: &Welt,
     args: &[&str],
     fd3: &Fd3,
     env: &[(&str, &str)],
 ) -> (Option<i32>, String, String) {
+    // this process is the parent of the starter: it holds the lifeline until the starter has ended
+    let leine = gemeinsam::leine(&welt.wurzel);
+    let _halter = gemeinsam::fifo_offen(&leine);
     let mut c = match fd3 {
         Fd3::Keine => {
             // descriptor 3 is closed explicitly: the test runner may have handed a descriptor of its own down
             let mut c = Command::new("/bin/sh");
-            c.args(["-c", "exec \"$@\" 3<&-", "sh", STARTER]).args(args);
+            c.args(["-c", "l=$1; shift; exec \"$@\" 3<&- 5<\"$l\"", "sh"])
+                .arg(&leine)
+                .arg(STARTER)
+                .args(args);
             c
         }
         Fd3::Text(_) | Fd3::Bytes(_) | Fd3::Offen(_) => {
             let mut c = Command::new("/bin/sh");
-            c.args(["-c", "exec \"$@\" 3<&0", "sh", STARTER]).args(args);
+            c.args(["-c", "l=$1; shift; exec \"$@\" 3<&0 5<\"$l\"", "sh"])
+                .arg(&leine)
+                .arg(STARTER)
+                .args(args);
             c
         }
         Fd3::Datei(text) => {
             let datei = welt.wurzel.join("eingabe.json");
             fs::write(&datei, text).expect("input file");
             let mut c = Command::new("/bin/sh");
-            c.args(["-c", "f=$1; shift; exec \"$@\" 3<\"$f\"", "sh"])
-                .arg(&datei)
-                .arg(STARTER)
-                .args(args);
+            c.args([
+                "-c",
+                "f=$1; l=$2; shift 2; exec \"$@\" 3<\"$f\" 5<\"$l\"",
+                "sh",
+            ])
+            .arg(&datei)
+            .arg(&leine)
+            .arg(STARTER)
+            .args(args);
             c
         }
     };
@@ -232,6 +246,89 @@ fn descriptor_3_holds_nothing_in_the_harness() {
     let (status, aus, fehler) =
         starter(&welt, &START, &Fd3::Text(&beschreibung_schreiben(&b)), &[]);
     assert_eq!((status, aus.as_str(), fehler.as_str()), (Some(0), "", ""));
+}
+
+/// Runs the starter with `start` and `text` on descriptor 3, and with the lifeline set up by the shell text `leine`
+/// (its argument `$1` is the named pipe of the lifeline; this process holds no writer of it). Standard output and the
+/// exit code.
+fn start_mit_leine(welt: &Welt, text: &str, leine: &str) -> (Option<i32>, String) {
+    let pfad = gemeinsam::leine(&welt.wurzel);
+    let mut kind = Command::new("/bin/sh")
+        .args([
+            "-c",
+            &format!("l=$1; shift; {leine}; exec \"$@\" 3<&0"),
+            "sh",
+        ])
+        .arg(&pfad)
+        .arg(STARTER)
+        .args(START)
+        .env_clear()
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("starts");
+    let mut eingang = kind.stdin.take().expect("stdin");
+    eingang.write_all(text.as_bytes()).expect("input");
+    drop(eingang);
+    let ende = Instant::now() + FRIST;
+    let status = loop {
+        if let Some(s) = kind.try_wait().expect("wait") {
+            break s.code();
+        }
+        if Instant::now() > ende {
+            let _ = kind.kill();
+            let _ = kind.wait();
+            break None;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    };
+    let mut aus = String::new();
+    if let Some(mut s) = kind.stdout.take() {
+        let _ = s.read_to_string(&mut aus);
+    }
+    (status, aus)
+}
+
+#[test]
+fn the_harness_starts_only_while_the_lifeline_lives_and_never_holds_it() {
+    let welt = Welt::neu();
+    let mut b = welt.beschreibung();
+    b.programmordner.clear();
+    b.argv = vec![
+        "/usr/bin/sh".to_owned(),
+        "-c".to_owned(),
+        "if [ -e /proc/self/fd/5 ]; then echo offen; else echo zu; fi".to_owned(),
+    ];
+    let text = beschreibung_schreiben(&b);
+    // a living lifeline: the harness runs, and descriptor 5 is closed in it
+    let (status, aus, fehler) = starter(&welt, &START, &Fd3::Text(&text), &[]);
+    assert_eq!(
+        (status, aus.as_str(), fehler.as_str()),
+        (Some(0), "zu\n", "")
+    );
+    let abbruch = Some(einschluss::ANKER_ABBRUCH);
+    // no descriptor 5: the harness never starts
+    assert_eq!(
+        start_mit_leine(&welt, &text, "exec 5<&-"),
+        (abbruch, String::new())
+    );
+    // descriptor 5 is no pipe
+    assert_eq!(
+        start_mit_leine(&welt, &text, "exec 5</dev/null"),
+        (abbruch, String::new())
+    );
+    // a lifeline without a writer (the starter is gone): end of file, the harness never starts
+    assert_eq!(
+        start_mit_leine(&welt, &text, "exec 6<>\"$l\"; exec 5<\"$l\"; exec 6>&-"),
+        (abbruch, String::new())
+    );
+    // the counter probe of the last case: the same lifeline with the writer of the shell, which is the starter itself
+    // after its `exec`
+    assert_eq!(
+        start_mit_leine(&welt, &text, "exec 6<>\"$l\"; exec 5<\"$l\""),
+        (Some(0), "zu\n".to_owned())
+    );
 }
 
 #[test]

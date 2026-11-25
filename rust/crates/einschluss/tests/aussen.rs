@@ -5,8 +5,8 @@
 //!
 //! The cases follow the script of the demonstration: (a) a note outside is not readable, (b) a foreign address is not
 //! reachable, (c) the route stays the route of the start, (d) the search process is not visible (E3), (e) the socket
-//! is reachable at one place only. Further: the environment, and the lifetime of `bwrap` against its starter and the
-//! thread that started it.
+//! is reachable at one place only. Further: the environment, the lifetime of `bwrap` against its starter and the
+//! thread that started it, and the set-up window (a session never starts before the binding to its starter holds).
 #![cfg(all(target_os = "linux", feature = "attrappe"))]
 
 mod gemeinsam;
@@ -825,6 +825,297 @@ fn elternbindung_the_session_ends_with_its_starter_and_with_its_starting_thread(
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// the set-up window: the program of a session never starts before the binding to its starter holds
+
+/// The arguments of the start of a session as the starter runs them ([`Profil::befehl`]), with the program replaced by
+/// the waiting program of [`wartendes_programm`]. The program follows the anchor where the list has one, else `--`.
+fn sitzung_wartend(profil: &Profil) -> Vec<String> {
+    let args: Vec<String> = profil
+        .befehl()
+        .get_args()
+        .map(|a| a.to_string_lossy().into_owned())
+        .collect();
+    let naht = args
+        .iter()
+        .position(|a| a == "werkbank-anker")
+        .or_else(|| args.iter().position(|a| a == "--"))
+        .expect("--");
+    let mut alle: Vec<String> = args[..=naht].to_vec();
+    alle.extend([
+        "/usr/bin/sh".to_owned(),
+        "-c".to_owned(),
+        "echo lebt; read weiter; echo ende".to_owned(),
+    ]);
+    alle
+}
+
+/// What became of the program after a kill of its starter during the set-up.
+#[derive(Debug, PartialEq, Eq)]
+enum Fenster {
+    /// The program never ran, and every process of `bwrap` ended (its output closed).
+    NieGestartet,
+    /// The program ran although its starter was dead, and answered the test.
+    LiefOhneStarter,
+}
+
+/// How long the end of `bwrap` after the release may take, and how long the set-up may take before the info line.
+const FENSTER_FRIST: Duration = Duration::from_secs(60);
+
+/// The parent PID of `pid` (field 4 of `/proc/<pid>/stat`, after the name in brackets), `None` once it is gone.
+fn eltern(pid: u32) -> Option<u32> {
+    let stat = fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    stat.rsplit_once(')')?
+        .1
+        .split_whitespace()
+        .nth(1)?
+        .parse()
+        .ok()
+}
+
+/// Starts `bwrap` with `args` below a shell that is the starter: the shell holds the only writer of the lifeline and
+/// puts its read end on descriptor 5. `bwrap` gets `--info-fd 2` and `--block-fd 9` in front: the outer `bwrap` writes
+/// the PID of its child once its own death signal is set, and the inner one then waits on the block before it forks
+/// the program and sets the death signal of PID 1. Once the inner one sleeps in that read (`/proc/<pid>/wchan`), the
+/// test kills the shell (SIGKILL), with its own lifeline gone, waits until the outer one is gone (the inner one has
+/// another parent), then releases the block. No step depends on a clock:
+/// the kill lands in the window every time.
+fn im_aufbaufenster(welt: &Welt, args: &[String]) -> Fenster {
+    let leine = gemeinsam::leine(&welt.wurzel);
+    let block = gemeinsam::fifo(&welt.wurzel.join("block"));
+    let mut freigabe = gemeinsam::fifo_offen(&block);
+    let mut shell = std::process::Command::new("/bin/sh")
+        .args([
+            "-c",
+            "l=$1; b=$2; shift 2; exec 6<>\"$l\"; exec 5<\"$l\"; exec 3<&0; \
+             /usr/bin/bwrap --info-fd 2 --block-fd 9 \"$@\" <&3 3<&- 6>&- 9<\"$b\" & wait",
+            "sh",
+        ])
+        .arg(&leine)
+        .arg(&block)
+        .args(args)
+        .env_clear()
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("shell starts");
+    let mut ein = shell.stdin.take().expect("stdin");
+    let rx = zeilen(shell.stdout.take().expect("stdout"));
+    let info = zeilen(shell.stderr.take().expect("stderr"));
+    // the outer bwrap has written its info: its death signal is set
+    let ende = std::time::Instant::now() + FENSTER_FRIST;
+    let innen = loop {
+        let rest = ende.saturating_duration_since(std::time::Instant::now());
+        match info.recv_timeout(rest) {
+            Ok(zeile) if zeile.contains("child-pid") => {
+                break zeile
+                    .rsplit(':')
+                    .next()
+                    .and_then(|z| z.trim().trim_end_matches(',').parse::<u32>().ok())
+                    .expect("the PID of the inner bwrap");
+            }
+            Ok(_) => {}
+            Err(e) => panic!("no info line of bwrap: {e:?}"),
+        }
+    };
+    // ... and the inner one waits on the block (its wait sits in the read of a pipe). Killed before, while it still
+    // waits for the outer one in the read of an eventfd (`bubblewrap.c:3198`), it would hang there for ever: that wait
+    // has no end of file (measured under load: 10 inner bwrap left over with `do_wait_intr_irq`)
+    while !fs::read_to_string(format!("/proc/{innen}/wchan"))
+        .is_ok_and(|w| w.ends_with("pipe_read"))
+    {
+        assert!(
+            std::time::Instant::now() < ende,
+            "the inner bwrap did not reach the block"
+        );
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    // the outer bwrap is the parent of the inner one; it dies with the shell (its death signal), and only after its
+    // death is the block released: released earlier, PID 1 could still set its signal while the outer one lives
+    let aussen = eltern(innen).expect("the parent of the inner bwrap");
+    shell.kill().expect("kill the shell");
+    let _ = shell.wait();
+    while eltern(innen) == Some(aussen) {
+        assert!(
+            std::time::Instant::now() < ende,
+            "the outer bwrap did not die with its starter"
+        );
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    std::io::Write::write_all(&mut freigabe, b"x").expect("release the block");
+    drop(freigabe);
+    match rx.recv_timeout(FENSTER_FRIST) {
+        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => Fenster::NieGestartet,
+        Ok(zeile) => {
+            assert_eq!(zeile, "lebt", "unexpected line of the program");
+            std::io::Write::write_all(&mut ein, b"weiter\n").expect("the line for the program");
+            drop(ein);
+            assert_eq!(
+                rx.recv().ok().as_deref(),
+                Some("ende"),
+                "the program did not answer"
+            );
+            Fenster::LiefOhneStarter
+        }
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+            panic!("bwrap neither ended nor started the program")
+        }
+    }
+}
+
+/// The program `/proc/<pid>/wchan` names (where the process sleeps), empty once it is gone.
+fn wchan(pid: u32) -> String {
+    fs::read_to_string(format!("/proc/{pid}/wchan")).unwrap_or_default()
+}
+
+/// Waits until `bedingung` holds; red with `was` after [`FENSTER_FRIST`].
+fn warten_bis(was: &str, mut bedingung: impl FnMut() -> bool) {
+    let ende = std::time::Instant::now() + FENSTER_FRIST;
+    while !bedingung() {
+        assert!(std::time::Instant::now() < ende, "{was}");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+}
+
+/// The earlier kill: the starter dies after the outer `bwrap` set its own death signal and before it released its child
+/// (the eventfd of `bubblewrap.c:3145`). The outer one is held there on purpose: its status descriptor
+/// (`--json-status-fd`) is a pipe filled to its capacity, so its write of the child PID right before the release
+/// blocks. The test kills the shell once the outer one sleeps in that write. Returns the PID of the inner `bwrap`, whether
+/// the program ever wrote a line, and the place where the inner one sleeps once it has stopped moving.
+fn vor_der_freigabe(welt: &Welt, args: &[String]) -> (u32, bool, String) {
+    let leine = gemeinsam::leine(&welt.wurzel);
+    let status = gemeinsam::fifo(&welt.wurzel.join("status"));
+    let mut shell = std::process::Command::new("/bin/sh")
+        .args([
+            "-c",
+            "l=$1; j=$2; shift 2; exec 6<>\"$l\"; exec 5<\"$l\"; exec 7<>\"$j\"; \
+             /usr/bin/dd if=/dev/zero of=\"$j\" bs=4096 count=1024 oflag=nonblock 2>/dev/null; exec 3<&0; \
+             /usr/bin/bwrap --info-fd 2 --json-status-fd 7 \"$@\" <&3 3<&- 6>&- & wait",
+            "sh",
+        ])
+        .arg(&leine)
+        .arg(&status)
+        .args(args)
+        .env_clear()
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("shell starts");
+    let _ein = shell.stdin.take().expect("stdin");
+    let rx = zeilen(shell.stdout.take().expect("stdout"));
+    let info = zeilen(shell.stderr.take().expect("stderr"));
+    let innen = loop {
+        match info.recv_timeout(FENSTER_FRIST) {
+            Ok(zeile) if zeile.contains("child-pid") => {
+                break zeile
+                    .rsplit(':')
+                    .next()
+                    .and_then(|z| z.trim().trim_end_matches(',').parse::<u32>().ok())
+                    .expect("the PID of the inner bwrap");
+            }
+            Ok(_) => {}
+            Err(e) => panic!("no info line of bwrap: {e:?}"),
+        }
+    };
+    let aussen = eltern(innen).expect("the parent of the inner bwrap");
+    warten_bis("the outer bwrap did not block on its status", || {
+        wchan(aussen).ends_with("pipe_write")
+    });
+    shell.kill().expect("kill the shell");
+    let _ = shell.wait();
+    warten_bis("the outer bwrap did not die with its starter", || {
+        eltern(innen) != Some(aussen)
+    });
+    // the inner one either ends or comes to rest in a read: the read of the release (an eventfd) or the read of the
+    // lifeline by the anchor never ends by itself; the wait ends when it sleeps in one place twice in a row 100 ms apart
+    let mut vorher = String::new();
+    let ruhe = loop {
+        let jetzt = wchan(innen);
+        if jetzt.is_empty() || (jetzt == vorher && jetzt != "0") {
+            break jetzt;
+        }
+        vorher = jetzt;
+        std::thread::sleep(Duration::from_millis(100));
+    };
+    let zeile = rx.try_recv().is_ok();
+    (innen, zeile, ruhe)
+}
+
+#[test]
+fn aufbaufenster_a_starter_dead_before_the_release_leaves_no_program_but_a_waiting_bwrap() {
+    let welt = Welt::neu();
+    let (innen, zeile, ruhe) = vor_der_freigabe(&welt, &sitzung_wartend(&welt.profil()));
+    // clean-up first: the inner bwrap is ended here by its PID, whatever the verdict
+    let _ = std::process::Command::new("/usr/bin/kill")
+        .args(["-KILL", &innen.to_string()])
+        .status();
+    assert!(
+        !zeile,
+        "the program wrote a line although its starter was dead"
+    );
+    // the known limit of bubblewrap 0.12.0 (see `profil.rs`, the anchor): the inner one waits for ever in the read of
+    // the release, which has no end of file; it starts no program, but it does not end either
+    assert_eq!(
+        ruhe, "do_wait_intr_irq",
+        "the inner bwrap no longer waits in the read of the release; the limit in profil.rs is out of date"
+    );
+}
+
+/// Starts a session below a shell that holds the lifeline, kills the shell once the program said `lebt`, and says
+/// whether the program was ended with it ([`beendet`]).
+fn sitzung_endet_mit_dem_starter(welt: &Welt, args: &[String]) -> bool {
+    let leine = gemeinsam::leine(&welt.wurzel);
+    let mut shell = std::process::Command::new("/bin/sh")
+        .args([
+            "-c",
+            "l=$1; shift; exec 6<>\"$l\"; exec 5<\"$l\"; exec 3<&0; \
+             /usr/bin/bwrap \"$@\" <&3 3<&- 6>&- & wait",
+            "sh",
+        ])
+        .arg(&leine)
+        .args(args)
+        .env_clear()
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .expect("shell starts");
+    let ein = shell.stdin.take().expect("stdin");
+    let rx = zeilen(shell.stdout.take().expect("stdout"));
+    assert_eq!(
+        rx.recv().ok().as_deref(),
+        Some("lebt"),
+        "the session did not start while its starter lived"
+    );
+    shell.kill().expect("kill the shell");
+    let _ = shell.wait();
+    beendet(&rx, ein)
+}
+
+#[test]
+fn aufbaufenster_a_session_never_starts_when_its_starter_dies_during_the_set_up() {
+    let welt = Welt::neu();
+    let profil = welt.profil();
+    // the start of a session: the starter dies in the window, the program never runs, and bwrap ends
+    assert_eq!(
+        im_aufbaufenster(&welt, &sitzung_wartend(&profil)),
+        Fenster::NieGestartet,
+        "the program of the session started after its starter died during the set-up"
+    );
+    // the counter probe: the enclosure as such (no anchor) runs the program in the same window, so the case is not empty
+    assert_eq!(
+        im_aufbaufenster(&welt, &wartendes_programm(&profil.argumente())),
+        Fenster::LiefOhneStarter,
+        "without the anchor the window should let the program run"
+    );
+    // a living starter: the session starts, and it ends with its starter after the set-up
+    assert!(
+        sitzung_endet_mit_dem_starter(&welt, &sitzung_wartend(&profil)),
+        "the session outlived its starter"
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // (L1) no setgid acts in the enclosure: a program with the setgid bit does not get its group inside
 
 /// The effective gid and the supplementary groups of this process (`/proc/self/status`, lines `Gid:` and `Groups:`).
@@ -847,10 +1138,21 @@ fn eigene_gruppen() -> (u32, Vec<u32>) {
 
 /// A copy of `/usr/bin/id` in `ordner` with the group `gruppe` and the mode 2755 (setgid). The group is set first: a
 /// change of the group clears the setgid bit.
+///
+/// `cp` writes the copy in a process of its own. Written here, the descriptor of the new file would sit in this test
+/// process, and a child that another test thread forks at that moment holds a copy of it until its own `exec`; an
+/// `exec` of the copy in that time fails with `ETXTBSY` (seen once in the gates: "Text file busy"). The test process
+/// itself never opens the copy for writing, and `cp` has ended before the first start.
 fn setgid_kopie(ordner: &std::path::Path, gruppe: u32) -> std::path::PathBuf {
     use std::os::unix::fs::PermissionsExt;
     let kopie = ordner.join("id-sgid");
-    fs::copy("/usr/bin/id", &kopie).expect("copy of id");
+    let status = std::process::Command::new("/usr/bin/cp")
+        .arg("/usr/bin/id")
+        .arg(&kopie)
+        .env_clear()
+        .status()
+        .expect("cp");
+    assert!(status.success(), "copy of id: {status:?}");
     std::os::unix::fs::chown(&kopie, None, Some(gruppe)).expect("group of the copy");
     fs::set_permissions(&kopie, fs::Permissions::from_mode(0o2755)).expect("mode 2755");
     let modus = fs::metadata(&kopie).expect("metadata").permissions().mode();

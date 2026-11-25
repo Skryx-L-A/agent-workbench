@@ -244,13 +244,17 @@ fn argv_zwei(w: &Wegwerf, halter_ziel: &str) -> Vec<OsString> {
 }
 
 /// A folder for `/run/user` in the namespace, with a stand-in of the holder at `<run>/0/wb-halter/halter.sock` (uid 0
-/// in the namespace is this user outside).
+/// in the namespace is this user outside). The stand-in answers the question of step 3 (`schluessel.vorhanden` by
+/// `ziel`) with `true`, so that the start runs (contract 8, section 13.5).
 fn run_mit_halter(w: &Wegwerf) -> (PathBuf, Halterattrappe) {
     let run = w.pfad("run");
     fs::create_dir_all(run.join("0")).expect("run");
     fs::set_permissions(&run, fs::Permissions::from_mode(0o755)).expect("chmod");
     fs::set_permissions(run.join("0"), fs::Permissions::from_mode(0o700)).expect("chmod");
-    let h = Halterattrappe::neu_in(&run.join("0").join("wb-halter"), Vec::new());
+    let h = Halterattrappe::neu_in(
+        &run.join("0").join("wb-halter"),
+        vec![r#"{"art":"antwort","fassung":1,"id":<ID>,"ok":true,"vorhanden":true}"#.to_owned()],
+    );
     (run, h)
 }
 
@@ -278,9 +282,16 @@ fn mw_l1_the_holder_target_is_the_host() {
         assert!(!w.pfad("m.sock").exists(), "{falsch}");
     }
     let w = Wegwerf::neu("l1gut");
-    let (run, _h) = run_mit_halter(&w);
+    let (run, h) = run_mit_halter(&w);
     let l = starte(&argv_zwei(&w, HOST), &[], true, Some(&run));
     assert_eq!(l.erste_zeile(), "{\"bereit\":true}");
+    // Step 3 asked the holder at the fixed path by the bound target, which is the host, never by a name.
+    assert_eq!(
+        h.empfangen(),
+        vec![format!(
+            r#"{{"fassung":1,"id":1,"op":"schluessel.vorhanden","ziel":"{HOST}"}}"#
+        )]
+    );
 }
 
 /// MW-L2 (duty 2): `--halter-socket <pfad>` is a call failure (exit 64 `mw.aufruf`), also with a stand-in at that path;

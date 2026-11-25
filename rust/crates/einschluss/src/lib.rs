@@ -57,6 +57,6 @@ pub use fehler::Fehler;
 pub use paket::{
     PaketMangel, Vorentpacken, paket_pruefen, vorentpacken_lesen, vorentpacken_schreiben,
 };
-pub use profil::{BWRAP_PFAD, Profil};
+pub use profil::{ANKER_ABBRUCH, ANKER_NAME, ANKER_SKRIPT, BWRAP_PFAD, LEINE_FD, Profil};
 #[cfg(unix)]
 pub use vorpruefung::vorentpacken_pruefen;

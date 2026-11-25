@@ -17,7 +17,7 @@
      "grund": null,
      "ziel": "copilot-plan",
      "methode": "GET",
-     "pfadregel": "/*",
+     "pfadregel": "/responses",
      "kopf": "halter",
      "pfad": "/responses",
      "host": "api.individual.githubcopilot.com"
@@ -37,7 +37,7 @@
      "grund": null,
      "ziel": "copilot-plan",
      "methode": "GET",
-     "pfadregel": "/*",
+     "pfadregel": "/responses",
      "kopf": "halter",
      "pfad": "/responses",
      "host": "api.individual.githubcopilot.com"
@@ -57,7 +57,7 @@
      "grund": null,
      "ziel": "copilot-plan",
      "methode": "GET",
-     "pfadregel": "/*",
+     "pfadregel": "/responses",
      "kopf": "halter",
      "pfad": "/responses",
      "host": "api.individual.githubcopilot.com"

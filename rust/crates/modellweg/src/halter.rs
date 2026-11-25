@@ -191,12 +191,58 @@ pub fn modell_suche(id: u64, ziel: &str, pfade: &[String]) -> Result<String, &'s
     zeile(&json!({"fassung": 1, "id": id, "op": "modell.suche", "pfade": pfade, "ziel": ziel}))
 }
 
-/// The line `schluessel.vorhanden` for the secret `name` (holder contract, section 4).
+/// The line `schluessel.vorhanden` for the bound target `ziel` (holder contract, section 4): the field `ziel`, never
+/// `name`. The holder takes the name of the secret from `schluessel` of the target in his `halter.json`; the model path
+/// does not know it (contract 8, section 5.1).
 ///
 /// # Errors
 /// `mw.halter_fehler` (never reached for this line).
-pub fn schluessel_vorhanden(id: u64, name: &str) -> Result<String, &'static str> {
-    zeile(&json!({"fassung": 1, "id": id, "name": name, "op": "schluessel.vorhanden"}))
+pub fn schluessel_vorhanden(id: u64, ziel: &str) -> Result<String, &'static str> {
+    zeile(&json!({"fassung": 1, "id": id, "op": "schluessel.vorhanden", "ziel": ziel}))
+}
+
+/// How long step 3 of the start waits for all answers of `schluessel.vorhanden` together (contract 8, section 13.5):
+/// 5 s. "Lauf starten" waits 10 s for the ready line (contract 1, step 7a); a longer wait here would end unseen.
+pub const FRIST_START: Duration = Duration::from_secs(5);
+
+/// Step 3 of the start for one bound target (contract 8, section 13.5): asks the holder on `k` with
+/// `schluessel.vorhanden` and `ziel`, and waits for the answer at most until `bis`. Fail closed: only the answer
+/// `{"vorhanden": true}` lets the start go on.
+///
+/// # Errors
+/// `mw.halter_kein_schluessel` for `{"vorhanden": false}` and for `halter.ziel_unbekannt`; every other code of the
+/// holder after [`auf_mw`]; `mw.halter_frist` if no answer came before `bis`; `mw.halter_fehler` for a torn
+/// connection, a line outside the closed form or an answer without `vorhanden`.
+pub fn schluessel_da(
+    k: &mut Klient,
+    ziel: &str,
+    bis: std::time::Instant,
+) -> Result<(), &'static str> {
+    let rest = bis
+        .checked_duration_since(std::time::Instant::now())
+        .filter(|d| !d.is_zero())
+        .ok_or("mw.halter_frist")?;
+    k.frist(Some(rest)).map_err(|_| "mw.halter_fehler")?;
+    let id = k.naechste_id();
+    k.senden(&schluessel_vorhanden(id, ziel)?)?;
+    match k.naechste_zeile()? {
+        Zeile::Antwort {
+            code: None,
+            vorhanden: Some(true),
+            ..
+        } => Ok(()),
+        Zeile::Antwort {
+            code: None,
+            vorhanden: Some(false),
+            ..
+        } => Err("mw.halter_kein_schluessel"),
+        // An unknown target is an error of the configuration, not a missing key; the start ends the same way.
+        Zeile::Antwort { code: Some(c), .. } if c == "halter.ziel_unbekannt" => {
+            Err("mw.halter_kein_schluessel")
+        }
+        Zeile::Antwort { code: Some(c), .. } => Err(auf_mw(&c)),
+        _ => Err("mw.halter_fehler"),
+    }
 }
 
 /// The four counts of an answer `suche` (holder contract, section 4; contract 8, section 9a, S5).
@@ -639,9 +685,10 @@ mod tests {
         // A control character in a path never goes out (the form of the holder takes none).
         assert!(modell_suche(3, "a.b", &["/a\u{1}b".to_owned()]).is_err());
         assert!(modell_suche(3, "a.b", &["/a\nb".to_owned()]).is_err());
+        // The question goes by the target, never by the name of the secret (contract 8, section 13.5, step 3).
         assert_eq!(
-            schluessel_vorhanden(4, "anmeldung.copilot").expect("line"),
-            r#"{"fassung":1,"id":4,"name":"anmeldung.copilot","op":"schluessel.vorhanden"}"#
+            schluessel_vorhanden(4, "api.individual.githubcopilot.com").expect("line"),
+            r#"{"fassung":1,"id":4,"op":"schluessel.vorhanden","ziel":"api.individual.githubcopilot.com"}"#
         );
     }
 
