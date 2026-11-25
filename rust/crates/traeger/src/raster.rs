@@ -145,7 +145,9 @@ pub struct Raster {
     text_rest: Vec<u8>,
     /// W7 (TR16): the prelude title of `ConPTY`, which is no title of the program.
     vorspann: Vorspann,
-    /// `true` once any event went out (`Ausgabe` or another); after it the prelude title is no longer possible.
+    /// `true` once a row with content or another event than `Ausgabe` went out; after it the prelude title is no longer possible. An
+    /// `Ausgabe` that only moves or hides the cursor on an empty screen does not count: `ConPTY` repaints so before its prelude title
+    /// when the size changes before the prelude (section 21c of the contract `dienst`, measured 25.11.2026).
     gemeldet_etwas: bool,
     /// The session title: the last title of the program (TR8). The prelude title of `ConPTY` is never in it.
     titel: Option<String>,
@@ -288,7 +290,10 @@ impl Raster {
             return;
         }
         self.stand += 1;
-        self.gemeldet_etwas = true;
+        // W7: only a row with content closes the prelude; a cursor step alone (the repaint of `ConPTY`) does not
+        if !abweichend.is_empty() {
+            self.gemeldet_etwas = true;
+        }
         self.aus.push(Ereignis::Ausgabe {
             stand: self.stand,
             zeilen: abweichend,
@@ -689,5 +694,48 @@ mod tests {
         let ereignisse = raster.bytes(VORSPANN);
         assert_eq!(titel_von(&ereignisse), [r"C:\Work\tr.exe"]);
         assert_eq!(raster.titel(), Some(r"C:\Work\tr.exe"));
+    }
+
+    /// The repaint of `ConPTY` before its prelude title, measured in the Windows VM on 25.11.2026 (size changed 14 to 33 ms after the
+    /// start, before any byte; 8 of 8 rounds): it hides the cursor, clears every row and goes home. The `Ausgabe` of the hidden cursor
+    /// does not close the prelude, so the title is still dropped.
+    const NEUZEICHNEN: &[u8] = b"\x1b[?25l\x1b[m\x1b[K\r\n\x1b[K\r\n\x1b[K\r\n\x1b[K\r\n\x1b[K\x1b[H\x1b]0;C:\\Work\\tr.exe\x07\x1b[?25h";
+
+    #[test]
+    fn das_neuzeichnen_von_conpty_vor_dem_vorspann_laesst_den_titel_verwerfen() {
+        let mut raster = conpty();
+        let mut ereignisse = raster.bytes(b"\x1b[6n");
+        ereignisse.extend(raster.bytes(b"\x1b[?9001h\x1b[?1004h"));
+        ereignisse.extend(raster.bytes(NEUZEICHNEN));
+        assert!(titel_von(&ereignisse).is_empty(), "{ereignisse:?}");
+        assert_eq!(raster.titel(), None);
+        // the cursor steps still go out as `Ausgabe` without rows
+        assert_eq!(
+            ereignisse,
+            [
+                Ereignis::Ausgabe {
+                    stand: 1,
+                    zeilen: Vec::new(),
+                    cursor: (0, 0, false)
+                },
+                Ereignis::Ausgabe {
+                    stand: 2,
+                    zeilen: Vec::new(),
+                    cursor: (0, 0, true)
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn nach_einem_cursorschritt_bleibt_ein_anderer_titel_und_nach_inhalt_der_pfad_ein_ereignis() {
+        // a cursor step alone keeps the prelude open, but only the path of the program is dropped
+        let mut raster = conpty();
+        let ereignisse = raster.bytes(b"\x1b[?25l\x1b[3;4H\x1b]0;C:\\Other\\sh.exe\x07");
+        assert_eq!(titel_von(&ereignisse), [r"C:\Other\sh.exe"]);
+        // a row with content closes it, also when the cursor stepped first
+        let mut raster = conpty();
+        let ereignisse = raster.bytes(b"\x1b[?25l\x1b[2;1Hx\x1b]0;C:\\Work\\tr.exe\x07");
+        assert_eq!(titel_von(&ereignisse), [r"C:\Work\tr.exe"]);
     }
 }

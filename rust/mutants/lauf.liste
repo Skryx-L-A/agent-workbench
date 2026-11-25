@@ -1,0 +1,24 @@
+# Exclusions of the mutation gate for the crate lauf (gates.sh, gate mutants, reads every mutants/*.liste).
+# Format and rules: mutants/README.md. One entry per line: <list> <kind> <pattern>.
+
+# lauf, `lauf-attrappe`: the stand-in of the tests (search process, model path, harness probe). The binary has
+# `required-features = ["pruefbau"]`, so no delivery build compiles it (cargo build, also --release, skips it
+# without the feature; no build script of the delivery switches the feature on), and it is never shipped. Its mutants
+# test a test help, not the delivered program.
+testhilfe datei crates/lauf/src/bin/attrappe.rs
+
+# lauf, the modules of the same binary `lauf-attrappe`.
+testhilfe datei crates/lauf/src/bin/attrappe/**
+
+# lauf, `einthreadig`: each test case runs in a thread of libtest, so the run without the feature has no case with one
+# thread; only the test build puts in the way that counts the threads. Caught in the run with the feature pruefbau.
+erster re crates/lauf/src/kind.rs:148:5: replace einthreadig -> bool with false
+
+# lauf, `lesen_text`: the delivered build reads no configuration from the test path (`cfg!(feature = "pruefbau")` comes
+# first in the condition). Caught in the run with the feature pruefbau and by `tests/naht.rs`.
+erster re crates/lauf/src/konfig.rs:174:76: replace == with != in lesen_text
+
+# lauf, `bwrap_halten`: it is reached only once a real enclosure profile is built and the real `bwrap` holds the start;
+# no test of the run without the feature can get there, and with the feature pruefbau the mutant does not build. Open
+# point 25 of contract start: a catcher through a seam, a duty before step II (decision of 25.11.2026).
+erster re crates/lauf/src/uebergabe.rs:244:5: replace bwrap_halten -> Fehler with Default::default\(\)

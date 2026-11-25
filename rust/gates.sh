@@ -12,6 +12,10 @@
 #                         a file under crates/*/src with a foreign licence head that no row lists is red;
 #                         a crate with a bin target and a row runs each bin with `--licenses`: exit 0, and
 #                         each notice file of its rows appears in the output byte for byte
+#   ./gates.sh vertraege  the checkers and the case builders of every contract below spec/ (rust/spec/<name>/), one after
+#                         the other, in a mktemp copy: `pruefen.py` with jsonschema (uv, offline, pinned version), a
+#                         rebuild of the cases must give no difference, the mutation catalogue checks; no uv, no node or
+#                         no jsonschema in the uv cache is red (exit 127), never skipped
 #   ./gates.sh mutants    cargo-mutants, one run per crate (`-p`), one after the other; red if a mutant of a security
 #                         crate (MUTANTS_PFLICHT) survives or times out, a run fails, or a security crate caught no
 #                         mutant; the other crates only report (target/mutants/bericht.tsv). A second run covers the
@@ -38,6 +42,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)" || exit 64
 cd "$HERE" || exit 64
 
 GATES="fmt clippy test licenses notices mutants"
+# The gate `vertraege` follows `mutants` in `all`; it is added in its own line, so the line above keeps its form.
+GATES="$GATES vertraege"
 
 # ---- tool place -----------------------------------------------------------
 # The gates run only with the tools of one fixed folder, never with a cargo found in PATH (Homebrew, mise,
@@ -187,7 +193,7 @@ NAHT_CRATES="anmelden werkbank-pruefen dienst halter lauf"
 OHNE_NAHTTEST="lauf"
 
 # The test programs run side by side (25.11.2026). `cargo test` starts its test programs one after the other; that took
-# about 7.5 of the 9 to 14 minutes of a gate run (measured on peer: 175 programs, 449 s in sum, the longest
+# about 7.5 of the 9 to 14 minutes of a gate run (measured on the Linux build host: 175 programs, 449 s in sum, the longest
 # lauf/tests/einschluss.rs with 133 s, the build 28 s). Now cargo builds and starts every program as before, but through a
 # runner (CARGO_TARGET_<host>_RUNNER) that only writes down what cargo starts: the program, its arguments, its folder and
 # its environment. Then up to TEST_JOBS of these programs run at once, each in the folder and with the environment that
@@ -198,6 +204,10 @@ OHNE_NAHTTEST="lauf"
 TEST_JOBS="${WB_TEST_JOBS:-4}"
 # Started first, because they run longest (measured 25.11.2026); each as <folder of the package>/<program without hash>.
 TEST_ZUERST="lauf/einschluss"
+# Run alone, after the others, with nothing beside them (as before 25.11.2026), same names. Empty: rangkern/embed stood here
+# from 25.11.2026 until its port check counted only a listener of its own program (tests/embed.rs, `own_listener`); under the
+# parallel run another program had got the port of its stand-in from `bind 0` once (embed.rs:443).
+TEST_ALLEIN=""
 
 TEST_PARALLEL_PY='import json, os, re, subprocess, sys
 art = sys.argv[1]
@@ -216,8 +226,16 @@ elif art == "ordnen":
         l = json.load(open(os.path.join(d, n, "lauf.json"), encoding="utf-8"))
         return os.path.basename(l["ordner"]) + "/" + re.sub(r"-[0-9a-f]{16}$", "", os.path.basename(l["argv"][0]))
     namen = {n: name(n) for n in alle}
-    vorn = [n for z in sys.argv[3:] for n in alle if namen[n] == z]
-    for n in vorn + [n for n in alle if n not in vorn]:
+    # argv: the folder, `parallel` or `allein`, then the names of TEST_ZUERST, `--`, the names of TEST_ALLEIN.
+    rest = sys.argv[4:]
+    zuerst, allein = (rest[:rest.index("--")], rest[rest.index("--") + 1:]) if "--" in rest else (rest, [])
+    if sys.argv[3] == "allein":
+        wahl = [n for n in alle if namen[n] in allein]
+    else:
+        frei = [n for n in alle if namen[n] not in allein]
+        vorn = [n for z in zuerst for n in frei if namen[n] == z]
+        wahl = vorn + [n for n in frei if n not in vorn]
+    for n in wahl:
         print(os.path.join(d, n))
 elif art == "spielen":
     ohne, r = sys.argv[2], sys.argv[3]
@@ -265,7 +283,12 @@ test_parallel() {
     [ "$rc" -ne 0 ] || rc=1
   fi
   echo "gates.sh: test: $gemerkt programs, $TEST_JOBS at once"
-  python3 -I "$tmp/parallel.py" ordnen "$tmp" $TEST_ZUERST | xargs -n 1 -P "$TEST_JOBS" python3 -I "$tmp/parallel.py" spielen "$var"
+  python3 -I "$tmp/parallel.py" ordnen "$tmp" parallel $TEST_ZUERST -- $TEST_ALLEIN \
+    | xargs -n 1 -P "$TEST_JOBS" python3 -I "$tmp/parallel.py" spielen "$var"
+  if [ -n "$TEST_ALLEIN" ]; then
+    python3 -I "$tmp/parallel.py" ordnen "$tmp" allein $TEST_ZUERST -- $TEST_ALLEIN \
+      | xargs -n 1 -P 1 python3 -I "$tmp/parallel.py" spielen "$var"
+  fi
   for r in "$tmp"/l/*; do
     [ -f "$r/lauf.json" ] || continue
     kopf="$(python3 -I "$tmp/parallel.py" kopf "$r" "$HERE")"
@@ -661,7 +684,8 @@ gate_notices() {
 #   security crate runs (fail closed). Cargo.lock, Cargo.toml, gates.sh, deny.toml, rust-toolchain*, everything below
 #   .cargo/ and everything below crates/ that no crate of `cargo metadata` owns select every security crate at once,
 #   whatever a crate names. Files outside this folder are not in the copy that cargo-mutants tests, so they select
-#   nothing.
+#   nothing. A changed list of exclusions mutants/<folder>.liste selects the crate of that folder, in full (a list
+#   with no crate of its name selects every security crate).
 # - The base is meant as a fork point: the change is the working tree against `git merge-base HEAD <base>`, so newer
 #   commits of the base branch do not count. When there is no merge base, every security crate runs in full (fail closed).
 # - With a base, each chosen crate runs `cargo mutants -p <crate> --in-diff target/mutants-diff.patch`: only the mutants on
@@ -730,6 +754,16 @@ alle = None
 fremd = []
 for f in open(mode, encoding="utf-8").read().splitlines():
     if not f:
+        continue
+    # The exclusions of one crate (mutants/<folder>.liste): that crate runs, in full; an unknown name selects every
+    # security crate (gate_mutants then refuses the file).
+    liste = re.fullmatch(r"mutants/([A-Za-z0-9_-]+)\.liste", f)
+    if liste:
+        eigen = [n for n, d in crates.items() if d == "crates/" + liste.group(1)]
+        for n in eigen:
+            grund.setdefault(n, "exclusion list changed: " + f)
+        if not eigen and alle is None:
+            alle = "shared file changed: " + f + " (no crate of this name)"
         continue
     treffer = [n for n, d in crates.items() if f.startswith(d + "/")]
     for n in treffer:
@@ -1066,6 +1100,49 @@ mutants_diff_args() {
   DARGS=(--in-diff "$diff_datei")
 }
 
+# Reads every mutants/<crate>.liste into the lists erster, gleichwertig and testhilfe of gate_mutants (arrays of its
+# scope, extended by name). One entry per line, `<list> <kind> <pattern>`; `#` starts a comment line, empty lines are
+# skipped (mutants/README.md). Red (1), with file and line: a file whose name is no crate folder below crates/, an unknown
+# list or kind, an empty pattern, a pattern that does not start with crates/<crate>/ of its own file (also after `^`), or a
+# carriage return.
+mutants_listen_lesen() {
+  local datei crate nr zeile wahl rest art muster opt rc=0
+  for datei in mutants/*.liste; do
+    [ -f "$datei" ] || continue
+    crate="$(basename "$datei" .liste)"
+    if [ ! -d "crates/$crate" ]; then
+      echo "gates.sh: mutants: $datei names no crate folder crates/$crate" >&2
+      rc=1
+      continue
+    fi
+    nr=0
+    while IFS= read -r zeile || [ -n "$zeile" ]; do
+      nr=$((nr + 1))
+      case "$zeile" in '' | '#'*) continue ;; *$'\r'*) echo "gates.sh: mutants: $datei:$nr: carriage return" >&2; rc=1; continue ;; esac
+      wahl="${zeile%% *}"; rest="${zeile#* }"; art="${rest%% *}"; muster="${rest#* }"
+      if [ "$wahl" = "$zeile" ] || [ "$art" = "$rest" ] || [ -z "$muster" ]; then
+        echo "gates.sh: mutants: $datei:$nr: not <list> <kind> <pattern>" >&2; rc=1; continue
+      fi
+      case "$muster" in
+        crates/"$crate"/* | '^crates/'"$crate"/*) ;;
+        *) echo "gates.sh: mutants: $datei:$nr: the pattern does not start with crates/$crate/" >&2; rc=1; continue ;;
+      esac
+      case "$art" in
+        re) opt=--exclude-re ;;
+        datei) opt=--exclude ;;
+        *) echo "gates.sh: mutants: $datei:$nr: unknown kind '$art' (re, datei)" >&2; rc=1; continue ;;
+      esac
+      case "$wahl" in
+        erster) erster+=("$opt" "$muster") ;;
+        gleichwertig) gleichwertig+=("$opt" "$muster") ;;
+        testhilfe) testhilfe+=("$opt" "$muster") ;;
+        *) echo "gates.sh: mutants: $datei:$nr: unknown list '$wahl' (erster, gleichwertig, testhilfe)" >&2; rc=1 ;;
+      esac
+    done < "$datei"
+  done
+  return "$rc"
+}
+
 # $1 is `run` (the gate), `plan` (prints the plan, starts no cargo-mutants) or `list` (cargo mutants --list per run).
 gate_mutants() {
   local mode="${1:-run}"
@@ -1074,83 +1151,21 @@ gate_mutants() {
     need_subcommand mutants || return
   fi
   local rc=0
-  # The first run builds the delivered state, without the feature `pruefbau`. cargo-mutants reads the source as
-  # text and does not evaluate `cfg`, so a mutant in code that stands only behind `cfg(feature = "pruefbau")` is not
-  # compiled here, no test can fail for it, and it would always survive. These places are left out of this run, and
-  # of this run only; the second run below covers them with the feature (no exclusion there). Code behind
-  # `cfg(not(feature = "pruefbau"))` and code without `cfg` stays in this run. Each entry has its reason. A pattern
-  # with a line number that no longer fits leaves its mutant in the run, which then reports it as missed (the
+  # Three lists of exclusions. Their entries stand in mutants/<crate>.liste, one file per crate (since 25.11.2026: three
+  # branches met in this file on one day); mutants/README.md has the format. Each entry has its reason in its file.
+  # - erster: the first run builds the delivered state, without the feature `pruefbau`. cargo-mutants reads the source
+  #   as text and does not evaluate `cfg`, so a mutant in code that stands only behind `cfg(feature = "pruefbau")` is
+  #   not compiled here, no test can fail for it, and it would always survive. These places are left out of this run,
+  #   and of this run only; the second run below covers them with the feature (no exclusion there). Code behind
+  #   `cfg(not(feature = "pruefbau"))` and code without `cfg` stays in this run.
+  # - gleichwertig: equivalent mutants, left out of both runs (decision of 25.11.2026, list per place).
+  # - testhilfe: test help that is never delivered, left out of every run (also the second one).
+  # A pattern with a line number that no longer fits leaves its mutant in the run, which then reports it as missed (the
   # run fails closed); the entry is then moved to the new line.
-  local erster=(
-    # dienst: the module `kindprogramm` (the fixed child programs `--kind`) is declared behind the feature.
-    --exclude crates/dienst/src/kindprogramm.rs
-    # dienst, `programm`: the branch `--kind` (comparison and mask of the exit code) stands behind the feature.
-    --exclude-re 'crates/dienst/src/lib.rs:94:39: replace == with != in programm'
-    --exclude-re 'crates/dienst/src/lib.rs:99:42: replace & with [|^] in programm'
-    # halter, `orte` of the test build: the whole function stands behind the feature (the line 77 one is the
-    # delivered build and stays in this run).
-    --exclude-re 'crates/halter/src/main.rs:52:9: replace linux::orte -> Orte with Default::default\(\)'
-    --exclude-re 'crates/halter/src/main.rs:54:59: replace != with == in linux::orte'
-    # anmelden, `seam`: the comparison with `WB_TESTUMGEBUNG` stands in the block behind the feature.
-    --exclude-re 'crates/anmelden/src/main.rs:187:70: replace == with != in unix::seam'
-    # werkbank-pruefen, `lage_naht`: the same comparison in the block behind the feature.
-    --exclude-re 'crates/werkbank-pruefen/src/main/unix.rs:86:68: replace == with != in lage_naht'
-    # Equivalent in the delivered build (decision of 25.11.2026, way a); each one the second run catches, measured.
-    # anmelden, `seam` -> None: without the feature `seam` already returns None.
-    --exclude-re 'crates/anmelden/src/main.rs:178:9: replace unix::seam -> Option<PathBuf> with None'
-    # werkbank-pruefen, `lage_naht` -> None: without the feature `lage_naht` already returns None.
-    --exclude-re 'crates/werkbank-pruefen/src/main/unix.rs:85:5: replace lage_naht -> Option<String> with None'
-    # anmelden, `lauf`: the block of the probe runs only when `seam` returns a value, that is only with the feature.
-    --exclude-re 'crates/anmelden/src/main.rs:51:60: replace == with != in unix::lauf'
-    # peerkanal, `testnaht::anlegen`: the module `testnaht` (test seams of the outside runner) is declared behind the
-    # feature `testnaht` (`src/lib.rs:248`), which this run does not switch on. With the feature the mutant would not
-    # build, because `Server` has no `Default` (decision of 25.11.2026).
-    --exclude-re 'crates/peerkanal/src/lib.rs:263:9: replace testnaht::anlegen -> Result<Server, Fehler> with Ok\(Default::default\(\)\)'
-  )
-  # Equivalent mutants of dienst in both runs (decision of 25.11.2026, list per place). Each entry has its reason; the
-  # measurement is the mutant run of dienst with the feature `pruefbau` of 25.11.2026 (contract dienst, section 9). The same
-  # rule as above holds: a line number that no longer fits leaves the mutant in the run, which then fails closed.
-  local gleichwertig=(
-    # meldung, `modus_setzen`, and rechte, `socket_modus_setzen`: `|` -> `^` of separate `OFlags` bits gives the same flags.
-    --exclude-re 'crates/dienst/src/meldung.rs:61:26: replace [|] with [|^] in modus_setzen'
-    --exclude-re 'crates/dienst/src/meldung.rs:61:45: replace [|] with [|^] in modus_setzen'
-    --exclude-re 'crates/dienst/src/rechte.rs:192:26: replace [|] with [|^] in socket_modus_setzen'
-    --exclude-re 'crates/dienst/src/rechte.rs:192:45: replace [|] with [|^] in socket_modus_setzen'
-    # rechte, `socket_modus_setzen`: `RUSR` and `WUSR` are separate bits, so `|` -> `^` gives the same mode.
-    --exclude-re 'crates/dienst/src/rechte.rs:218:58: replace [|] with [|^] in socket_modus_setzen'
-    # meldung and rechte, the check after setting the mode: under Linux the descriptor is already checked as a socket and the
-    # mode is set through it, so `&&` -> `||` differs only in a race between setting and checking. Caught on the Mac.
-    --exclude-re 'crates/dienst/src/meldung.rs:87:37: replace && with [|][|] in modus_setzen'
-    --exclude-re 'crates/dienst/src/rechte.rs:218:9: replace && with [|][|] in socket_modus_setzen'
-    # rechte, `socket_modus_setzen`: the branch outside Linux is not compiled under Linux. Caught on the Mac (`&`);
-    # `^` is equivalent there (separate bits).
-    --exclude-re 'crates/dienst/src/rechte.rs:211:24: replace [|] with & in socket_modus_setzen'
-    --exclude-re 'crates/dienst/src/rechte.rs:211:24: replace [|] with [|^] in socket_modus_setzen'
-    # meldung, `gegenseite_gut`: the peer check of macOS is not compiled under Linux. Caught on the Mac.
-    --exclude-re 'crates/dienst/src/meldung.rs:247:27: replace != with == in Meldung::gegenseite_gut'
-    --exclude-re 'crates/dienst/src/meldung.rs:251:63: replace == with != in Meldung::gegenseite_gut'
-    # dienst, `entfernte_wegnehmen`: its only call stands at the end of the round, where `arbeit` is always empty, and with
-    # an empty `entfernt` the rest takes nothing away; `||` -> `&&` gives the same result.
-    --exclude-re 'crates/dienst/src/dienst.rs:791:36: replace [|][|] with && in Dienst::entfernte_wegnehmen'
-    # dienst, `starten`: `rahmen_waehlen(n, ...)` is only checked for `None`, which does not depend on `n`.
-    --exclude-re 'crates/dienst/src/dienst.rs:1378:43: replace [+] with [*] in Dienst::starten'
-    # peerkanal, `JobBezug` outside Windows: its only field is `nie: std::convert::Infallible`, so no value of the type
-    # exists (`src/vorgabe.rs:80`). `Debug::fmt` and `ohne::im_job` (it takes a `&JobBezug`) can never be called, and every
-    # replacement of their body behaves the same (decision of 25.11.2026).
-    --exclude-re 'crates/peerkanal/src/vorgabe.rs:107:9: replace <impl std::fmt::Debug for JobBezug>::fmt -> std::fmt::Result with Ok\(Default::default\(\)\)'
-    --exclude-re 'crates/peerkanal/src/sys/mod.rs:58:13: replace ohne::<impl Plattform for Os>::im_job -> Option<bool> with Some\((true|false)\)'
-  )
-  # Test help that is never delivered: excluded from every run (also the second one). Each entry has its reason.
-  local testhilfe=(
-    # lauf, `lauf-attrappe`: the stand-in of the tests (search process, model path, harness probe). The binary has
-    # `required-features = ["pruefbau"]`, so no delivery build compiles it (cargo build, also --release, skips it
-    # without the feature; no build script of the delivery switches the feature on), and it is never shipped. Its mutants
-    # test a test help, not the delivered program.
-    --exclude 'crates/lauf/src/bin/attrappe.rs'
-    --exclude 'crates/lauf/src/bin/attrappe/**'
-  )
+  local erster=() gleichwertig=() testhilfe=()
+  mutants_listen_lesen || return 1
   local tmp code crate grund bericht=target/mutants/bericht.tsv pflicht_wahl="" bericht_wahl="" liste="" aus=""
-  local voll_wahl="" diff_datei=target/mutants-diff.patch DARGS=() art_diff="" naht_extra=()
+  local voll_wahl="" diff_datei=target/mutants-diff.patch DARGS=() art_diff="" naht_extra=() weiter=""
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/gates-mutants.XXXXXX")" || return 64
   mutants_plan "$tmp" || code=$?
   if [ "${code:-0}" -ne 0 ]; then
@@ -1169,7 +1184,7 @@ gate_mutants() {
         art_diff=""
         if [ -n "$MUTANTS_GABEL" ]; then
           case "$grund" in
-            "shared file changed"*) voll_wahl="$voll_wahl $crate"; art_diff=" [full]" ;;
+            "shared file changed"* | "exclusion list changed"*) voll_wahl="$voll_wahl $crate"; art_diff=" [full]" ;;
             *) art_diff=" [in diff]" ;;
           esac
         fi
@@ -1207,7 +1222,7 @@ gate_mutants() {
   for crate in $pflicht_wahl; do
     code=0
     mutants_diff_args "$crate"
-    mutants_one "$crate" "target/mutants/$crate" "$mode" "${erster[@]}" "${gleichwertig[@]}" "${testhilfe[@]}" ${DARGS[@]+"${DARGS[@]}"} || code=$?
+    mutants_one "$crate" "target/mutants/$crate" "$mode" ${erster[@]+"${erster[@]}"} ${gleichwertig[@]+"${gleichwertig[@]}"} ${testhilfe[@]+"${testhilfe[@]}"} ${DARGS[@]+"${DARGS[@]}"} || code=$?
     if [ "$mode" = list ]; then
       [ "$code" -eq 0 ] || rc="$code"
     else
@@ -1218,12 +1233,33 @@ gate_mutants() {
     # `pruefbau` lets its seam tests catch mutants too (decision of 24.11.2026).
     code=0
     # lauf: tests/einschluss.rs and tests/paket.rs start the program `einschluss-weiter` of the crate einschluss, which
-    # `cargo test -p lauf` does not build (measured on peer: 15 failed tests, the baseline of the run would be red). The tests
-    # of einschluss are run with them, which builds its programs (measured: `cargo test -p lauf -p einschluss --features
-    # pruefbau` passes). Not yet confirmed by a mutation run.
+    # `cargo test -p lauf` does not build (measured on peer: 15 failed tests, the baseline of the run would be red). The
+    # `--test-package` arguments alone do not help: cargo-mutants 27.1.0 builds its baseline with `cargo test --no-run
+    # --package=lauf@0.1.0 --features=pruefbau`, and 7 tests in tests/einschluss.rs end with "build einschluss-weiter first"
+    # (measured on peer). So the gate builds the program first, in its own target folder, and names its absolute path in
+    # LAUF_TEST_WEITER, which both test files read when the program is not next to the test program (the copy of
+    # cargo-mutants). A failed build or a missing program is red, and the run does not start.
     naht_extra=()
+    weiter=""
     case "$crate" in lauf) naht_extra=(--test-package lauf --test-package einschluss) ;; esac
-    mutants_one "$crate" "target/mutants-naht/$crate" "$mode" --features pruefbau "${gleichwertig[@]}" "${testhilfe[@]}" ${naht_extra[@]+"${naht_extra[@]}"} ${DARGS[@]+"${DARGS[@]}"} || code=$?
+    if [ "$crate" = lauf ] && [ "$mode" != list ]; then
+      if ! cargo build --locked -p einschluss --bin einschluss-weiter; then
+        echo "gates.sh: mutants: security crate lauf with the feature pruefbau red: cargo build of einschluss-weiter failed" >&2
+        mutants_keep 1
+        continue
+      fi
+      weiter="${CARGO_TARGET_DIR:-target}/debug/einschluss-weiter"
+      case "$weiter" in /*) ;; *) weiter="$HERE/$weiter" ;; esac
+      if [ ! -x "$weiter" ]; then
+        echo "gates.sh: mutants: security crate lauf with the feature pruefbau red: $weiter is missing after the build" >&2
+        mutants_keep 1
+        continue
+      fi
+      echo "gates.sh: mutants: lauf with the feature pruefbau: LAUF_TEST_WEITER=$weiter"
+    fi
+    # The variable stands only in the subshell of this one run.
+    ( if [ -n "$weiter" ]; then export LAUF_TEST_WEITER="$weiter"; fi
+      mutants_one "$crate" "target/mutants-naht/$crate" "$mode" --features pruefbau ${gleichwertig[@]+"${gleichwertig[@]}"} ${testhilfe[@]+"${testhilfe[@]}"} ${naht_extra[@]+"${naht_extra[@]}"} ${DARGS[@]+"${DARGS[@]}"} ) || code=$?
     if [ "$mode" = list ]; then
       [ "$code" -eq 0 ] || rc="$code"
     else
@@ -1233,7 +1269,7 @@ gate_mutants() {
   for crate in $bericht_wahl; do
     code=0
     mutants_diff_args "$crate"
-    mutants_one "$crate" "target/mutants/$crate" "$mode" "${erster[@]}" "${gleichwertig[@]}" "${testhilfe[@]}" ${DARGS[@]+"${DARGS[@]}"} || code=$?
+    mutants_one "$crate" "target/mutants/$crate" "$mode" ${erster[@]+"${erster[@]}"} ${gleichwertig[@]+"${gleichwertig[@]}"} ${testhilfe[@]+"${testhilfe[@]}"} ${DARGS[@]+"${DARGS[@]}"} || code=$?
     if [ "$mode" = list ]; then
       [ "$code" -eq 0 ] || rc="$code"
     else
@@ -1249,6 +1285,153 @@ gate_mutants() {
   return "$rc"
 }
 
+# ---- vertraege gate ---------------------------------------------------------
+# The checkers and the case builders of every contract below spec/ (rust/spec/<name>/), one after the other, in the
+# order of the folder names (LC_ALL=C). Everything runs in a mktemp copy of rust/spec and spec; the work tree is never
+# written. What runs, found by file name in each folder:
+#   pruefen.py                 with jsonschema: `uv run --offline --no-project --with jsonschema==<pin> python -I -B`;
+#                              exit not 0 is red, and so is an output that says the schema was NOT checked
+#   bau-faelle.py, faelle_bauen.py, bau-faelle.mjs
+#                              rebuild in the copy; any difference to the folder is red (`diff -r`). A bau-faelle.mjs
+#                              that knows `--pruefen` is run with it instead (it compares byte for byte, exit 0 equal)
+#   katalog-pruefen.py, gegenprobe.sh   read-only checks of the mutation catalogue against the sources
+# No uv, no node, a jsonschema that is not in the uv cache (offline) or another version than the pin: red with exit 127,
+# never skipped. VERTRAEGE_AUSGENOMMEN names the folders that are not run, each with its reason; the gate prints them.
+# The .mjs builders import ../../../spec/protokoll: spec/ must lie next to rust/ (a copy of rust/ alone makes them red).
+VERTRAEGE_JSONSCHEMA="4.26.0"
+VERTRAEGE_AUSGENOMMEN="such-socket"
+
+vertraege_ausnahme() {
+  case "$1" in
+    such-socket) echo "needs the built program (RANGKERN_BIN) and the library braincli; the runner tests come as a second step" ;;
+    *) return 1 ;;
+  esac
+}
+
+vertraege_wurzel() {
+  (cd "$HERE/.." && pwd)
+}
+
+# vertraege_schritt <kind> <contract> <folder> <command ...>: runs the command in the folder, prints one line,
+# shows the last lines of the output when it is red, returns the exit code (1 when a zero exit says "schema not checked").
+vertraege_schritt() {
+  local art="$1" v="$2" dir="$3" log="$VT_TMP/schritt.log" rc=0 t0=$SECONDS
+  shift 3
+  ( cd "$dir" && "$@" ) > "$log" 2>&1 || rc=$?
+  if [ "$rc" -eq 0 ] && grep -q 'NICHT gepr' "$log"; then rc=1; echo "vertraege: $v: the output says the schema was not checked" >&2; fi
+  if [ "$rc" -eq 0 ]; then
+    echo "vertraege: $art $v ok ($((SECONDS - t0)) s)"
+  else
+    echo "vertraege: $art $v RED exit $rc ($((SECONDS - t0)) s)"
+    tail -n 15 "$log" | sed 's/^/    | /'
+    VT_ROT="$VT_ROT $art:$v"
+  fi
+  return "$rc"
+}
+
+vertraege_lauf() {
+  local root spec v d probe_out probe_ver t0=$SECONDS nmal=0 nbau=0 naus=0 grund
+  root="$(vertraege_wurzel)" || return 64
+  spec="$root/rust/spec"
+  if [ ! -d "$spec" ]; then
+    echo "gates.sh: vertraege: $spec not found" >&2
+    return 1
+  fi
+  if ! command -v uv > /dev/null 2>&1; then
+    echo "gates.sh: vertraege: uv not found in PATH; the checkers run with 'uv run --offline --no-project --with jsonschema==$VERTRAEGE_JSONSCHEMA'. Red, not skipped." >&2
+    return 127
+  fi
+  if ! command -v python3 > /dev/null 2>&1; then
+    echo "gates.sh: vertraege: python3 not found in PATH. Red, not skipped." >&2
+    return 127
+  fi
+  VT_TMP="$(mktemp -d "${TMPDIR:-/tmp}/gates-vertraege.XXXXXX")" || return 64
+  case "$VT_TMP" in */gates-vertraege.??????) ;; *) echo "gates.sh: vertraege: unexpected scratch folder $VT_TMP" >&2; return 64 ;; esac
+  VT_ROT=""
+  # The package must be in the uv cache in exactly the pinned version; one probe, before any checker.
+  probe_out="$( { uv run --offline --no-project --with "jsonschema==$VERTRAEGE_JSONSCHEMA" python -I -B -c 'import importlib.metadata as m; print(m.version("jsonschema"))' 2> "$VT_TMP/probe.err"; } )" || {
+    echo "gates.sh: vertraege: jsonschema==$VERTRAEGE_JSONSCHEMA is not available offline (uv cache). Fill the cache once with network: uv run --no-project --with jsonschema==$VERTRAEGE_JSONSCHEMA python -c pass. Red, not skipped." >&2
+    sed 's/^/    | /' "$VT_TMP/probe.err" >&2
+    rm -rf -- "$VT_TMP"
+    return 127
+  }
+  probe_ver="$(printf '%s\n' "$probe_out" | tail -n 1)"
+  if [ "$probe_ver" != "$VERTRAEGE_JSONSCHEMA" ]; then
+    echo "gates.sh: vertraege: uv gave jsonschema '$probe_ver', the pin is $VERTRAEGE_JSONSCHEMA. Red, not skipped." >&2
+    rm -rf -- "$VT_TMP"
+    return 127
+  fi
+  echo "vertraege: jsonschema $probe_ver from the uv cache, $(uv --version 2>&1 | head -n 1)"
+  # The copy: the checkers and the builders run here, never in the work tree.
+  mkdir -p "$VT_TMP/kopie/rust" || return 64
+  cp -R "$spec" "$VT_TMP/kopie/rust/spec" || return 64
+  [ -d "$root/spec" ] && { cp -R "$root/spec" "$VT_TMP/kopie/spec" || return 64; }
+  local kopie="$VT_TMP/kopie"
+  # Checkers first (all of them), then the rebuilds.
+  for d in "$spec"/*/; do
+    v="$(basename "$d")"
+    if grund="$(vertraege_ausnahme "$v")"; then
+      echo "vertraege: $v excluded, not run: $grund"; naus=$((naus + 1)); continue
+    fi
+    [ -f "$d/pruefen.py" ] || continue
+    nmal=$((nmal + 1))
+    vertraege_schritt pruefen "$v" "$kopie" uv run --offline --no-project --with "jsonschema==$VERTRAEGE_JSONSCHEMA" python -I -B "rust/spec/$v/pruefen.py" || true
+  done
+  for d in "$spec"/*/; do
+    v="$(basename "$d")"
+    vertraege_ausnahme "$v" > /dev/null && continue
+    if [ -f "$d/bau-faelle.mjs" ] && [ ! -d "$root/spec/protokoll" ]; then
+      echo "vertraege: $v RED: $root/spec/protokoll is missing, the builder imports it (archive rust and spec together)"
+      VT_ROT="$VT_ROT bau:$v"; nbau=$((nbau + 1)); continue
+    fi
+    if [ -f "$d/bau-faelle.mjs" ] && ! command -v node > /dev/null 2>&1; then
+      echo "gates.sh: vertraege: node not found in PATH; $v/bau-faelle.mjs needs it. Red, not skipped." >&2
+      VT_ROT="$VT_ROT bau:$v"; nbau=$((nbau + 1)); continue
+    fi
+    if [ -f "$d/bau-faelle.mjs" ] && grep -q -e '--pruefen' "$d/bau-faelle.mjs"; then
+      nbau=$((nbau + 1))
+      vertraege_schritt bau-pruefen "$v" "$kopie" node "rust/spec/$v/bau-faelle.mjs" --pruefen || true
+    elif [ -f "$d/bau-faelle.mjs" ] || [ -f "$d/bau-faelle.py" ] || [ -f "$d/faelle_bauen.py" ]; then
+      nbau=$((nbau + 1))
+      if [ -f "$d/bau-faelle.py" ]; then
+        vertraege_schritt bau "$v" "$kopie" python3 -I -B "rust/spec/$v/bau-faelle.py" || true
+      elif [ -f "$d/bau-faelle.mjs" ]; then
+        vertraege_schritt bau "$v" "$kopie" node "rust/spec/$v/bau-faelle.mjs" || true
+      else
+        vertraege_schritt bau "$v" "$kopie/rust/spec/$v" python3 -I -B faelle_bauen.py || true
+      fi
+      vertraege_schritt neubau-diff "$v" "$VT_TMP" diff -r -q -x __pycache__ "$spec/$v" "$kopie/rust/spec/$v" || true
+      # The next builder starts from the original again.
+      rm -rf -- "${kopie:?}/rust/spec/$v"
+      cp -R "$d" "$kopie/rust/spec/$v" || return 64
+    fi
+    if [ -f "$d/katalog-pruefen.py" ] && [ -f "$d/katalog.json" ]; then
+      nbau=$((nbau + 1))
+      vertraege_schritt katalog "$v" "$VT_TMP" python3 -I -B "$d/katalog-pruefen.py" "$d/katalog.json" --wurzel "$root" || true
+    fi
+    if [ -f "$d/gegenprobe.sh" ]; then
+      nbau=$((nbau + 1))
+      vertraege_schritt gegenprobe "$v" "$VT_TMP" bash "$d/gegenprobe.sh" || true
+    fi
+  done
+  # A builder that wrote outside its own folder shows here.
+  vertraege_schritt gesamt-diff rust/spec "$VT_TMP" diff -r -q -x __pycache__ "$spec" "$kopie/rust/spec" || true
+  if [ -d "$root/spec" ]; then
+    vertraege_schritt gesamt-diff spec "$VT_TMP" diff -r -q -x __pycache__ "$root/spec" "$kopie/spec" || true
+  fi
+  rm -rf -- "$VT_TMP"
+  if [ -z "$VT_ROT" ]; then
+    echo "gates.sh: vertraege green: $nmal checkers, $nbau rebuilds or checks, $naus not run (named above), $((SECONDS - t0)) s"
+    return 0
+  fi
+  echo "gates.sh: vertraege RED:$VT_ROT ($((SECONDS - t0)) s)" >&2
+  return 1
+}
+
+gate_vertraege() {
+  ( export LC_ALL=C; vertraege_lauf )
+}
+
 run_gate() {
   case "$1" in
     fmt) gate_fmt ;;
@@ -1257,6 +1440,7 @@ run_gate() {
     licenses) gate_licenses ;;
     notices) gate_notices ;;
     mutants) gate_mutants run ;;
+    vertraege) gate_vertraege ;;
     mutants-plan) gate_mutants plan ;;
     mutants-list) gate_mutants list ;;
     tools) gate_tools ;;

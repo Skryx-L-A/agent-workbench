@@ -67,6 +67,20 @@ fn the_architecture_comes_from_the_machine_and_needs_glibc() {
     assert_eq!(architektur("x86_64", false), None, "musl");
     assert_eq!(architektur("riscv64", true), None);
     assert_eq!(architektur("x86", true), None);
+    // this build: the machines of the gate are x86_64 or aarch64 with glibc
+    let erwartet = match std::env::consts::ARCH {
+        "x86_64" if cfg!(target_env = "gnu") => Some("x64"),
+        "aarch64" if cfg!(target_env = "gnu") => Some("arm64"),
+        _ => None,
+    };
+    assert_eq!(eigene_architektur(), erwartet);
+    if cfg!(all(
+        target_os = "linux",
+        target_env = "gnu",
+        target_arch = "x86_64"
+    )) {
+        assert_eq!(eigene_architektur(), Some("x64"));
+    }
 }
 
 #[test]
@@ -542,13 +556,19 @@ fn the_lock_gives_up_at_its_limit() {
     let gehalten = sperren(&fd, Duration::from_millis(10)).expect("first");
     let zweites = cache_bereit(&cache, &heim).expect("cache");
     let start = Instant::now();
+    // in a thread with a limit of its own: a lock that waits on past its limit fails the test instead of hanging it
+    let zweites = crate::testhilfe::mit_frist(Duration::from_secs(10), move || {
+        let r = sperren(&zweites, Duration::from_millis(200)).err();
+        (r, zweites)
+    });
     assert_eq!(
-        sperren(&zweites, Duration::from_millis(200)).err(),
+        zweites.0,
         Some(Fehler::PaketEntpacken {
             rc: None,
             wort: "sperre-frist"
         })
     );
+    let zweites = zweites.1;
     assert!(start.elapsed() >= Duration::from_millis(200));
     drop(gehalten);
     assert!(sperren(&zweites, Duration::from_millis(200)).is_ok());
@@ -556,10 +576,14 @@ fn the_lock_gives_up_at_its_limit() {
 
 #[test]
 fn the_measurement_of_an_extraction_names_the_cause_and_ends_a_hang() {
+    // each measurement in a thread with a limit of its own: a read that never ends fails the test instead of hanging it
     let lauf = |skript: &str, frist_ms: u64| {
-        let mut c = std::process::Command::new("/bin/sh");
-        c.args(["-c", skript]).env_clear();
-        lauf_messen(c, Duration::from_millis(frist_ms))
+        let skript = skript.to_owned();
+        crate::testhilfe::mit_frist(Duration::from_secs(12), move || {
+            let mut c = std::process::Command::new("/bin/sh");
+            c.args(["-c", &skript]).env_clear();
+            lauf_messen(c, Duration::from_millis(frist_ms))
+        })
     };
     assert_eq!(
         lauf("exit 0", 5000),
@@ -616,8 +640,15 @@ fn the_measurement_of_an_extraction_names_the_cause_and_ends_a_hang() {
         })
     );
     let start = Instant::now();
+    // in a thread with a limit of its own: a measurement that waits on past its limit fails the test instead of hanging
+    // it until the child ends by itself
+    let gehangen = crate::testhilfe::mit_frist(Duration::from_secs(10), move || {
+        let mut c = std::process::Command::new("/bin/sh");
+        c.args(["-c", "exec sleep 60"]).env_clear();
+        lauf_messen(c, Duration::from_millis(300))
+    });
     assert_eq!(
-        lauf("exec sleep 20", 300),
+        gehangen,
         Err(Fehler::PaketEntpacken {
             rc: None,
             wort: "frist"

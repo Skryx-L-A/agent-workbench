@@ -1,0 +1,9 @@
+# Exclusions of the mutation gate for the crate werkbank-pruefen (gates.sh, gate mutants, reads every mutants/*.liste).
+# Format and rules: mutants/README.md. One entry per line: <list> <kind> <pattern>.
+
+# werkbank-pruefen, `lage_naht`: the comparison with `WB_TESTUMGEBUNG` stands in the block behind the feature.
+erster re crates/werkbank-pruefen/src/main/unix.rs:86:68: replace == with != in lage_naht
+
+# Equivalent in the delivered build (decision of 25.11.2026, way a); the second run catches it, measured.
+# werkbank-pruefen, `lage_naht` -> None: without the feature `lage_naht` already returns None.
+erster re crates/werkbank-pruefen/src/main/unix.rs:85:5: replace lage_naht -> Option<String> with None

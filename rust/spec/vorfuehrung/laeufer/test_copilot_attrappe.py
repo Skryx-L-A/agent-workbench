@@ -28,6 +28,7 @@ VIER = ["index.js", "app.js", os.path.join("prebuilds", "linux-x64", "runtime.no
 ENTPACKFEHLER = "Failed to extract bundled package\n"
 PLATZHALTER = "gho_" + "0" * 36
 HOST = "copilot-attrappe.test"
+MODELL_HOST = "api.individual.githubcopilot.com"  # Vorgabeziel des Chat-Pfads (erststart.json)
 # argv nach dem Fall `aufruf-copilot-auto` (Vertrag 1) mit den drei erlaubten Werten aus `werkzeuge_ohne_rueckfrage`
 ARGV = ["--model", "auto", "--auto-tier", "efficiency", "--disable-builtin-mcps", "--additional-mcp-config", "@<heim>/.copilot/wb-mcp.json",
         "--allow-tool", "shell", "--allow-tool", "write", "--allow-tool", "such-mcp"]
@@ -40,7 +41,7 @@ def openssl(*args, cwd):
 def zertifikate(ordner):
     """Test-CA und ein Zertifikat fuer `copilot-attrappe.test` (SAN)."""
     with open(os.path.join(ordner, "san.cnf"), "w") as f:
-        f.write("[req]\ndistinguished_name=dn\n[dn]\n[ext]\nsubjectAltName=DNS:%s\nbasicConstraints=CA:FALSE\n" % HOST)
+        f.write("[req]\ndistinguished_name=dn\n[dn]\n[ext]\nsubjectAltName=DNS:%s,DNS:%s\nbasicConstraints=CA:FALSE\n" % (HOST, MODELL_HOST))
     openssl("req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", "ca.key", "-out", "ca.pem", "-days", "2", "-subj", "/CN=Test-CA", cwd=ordner)
     openssl("req", "-newkey", "rsa:2048", "-nodes", "-keyout", "ziel.key", "-out", "ziel.csr", "-subj", "/CN=" + HOST, cwd=ordner)
     openssl("x509", "-req", "-in", "ziel.csr", "-CA", "ca.pem", "-CAkey", "ca.key", "-CAcreateserial", "-out", "ziel.pem", "-days", "2",
@@ -288,6 +289,38 @@ class CopilotAttrappe(unittest.TestCase):
         a = self.eine_eingabe(["--model=gpt-6-luna"] + ARGV[2:])
         self.assertEqual(a["pfad"], "/chat/completions")
         self.assertEqual(a["modell"], "gpt-6-luna")
+
+    def test_vorgabeziel_beim_chat_pfad_ist_der_modell_host(self):
+        self.eine_eingabe(["--model", "gpt-6-luna"] + ARGV[2:])
+        self.assertEqual(self.proxy.ziele[-1], MODELL_HOST + ":443", "ohne `COPILOT_ATTRAPPE_ZIEL` geht der Chat-Pfad an den Modell-Host")
+
+    def test_vorgabeziel_bei_anderem_modell_bleibt_die_attrappe(self):
+        for modell in ("auto", "gpt-5"):
+            with self.subTest(modell=modell):
+                self.eine_eingabe(["--model", modell] + ARGV[2:])
+                self.assertEqual(self.proxy.ziele[-1], HOST + ":443")
+                self.t.schliesse()
+                self.t = None
+                with self.ziel.lock:
+                    self.vorher = len(self.ziel.anfragen)
+
+    def test_die_umgebung_schlaegt_beide_vorgaben(self):
+        for modell in ("gpt-6-luna", "auto"):
+            with self.subTest(modell=modell):
+                self.env["COPILOT_ATTRAPPE_ZIEL"] = "ziel-aus-umgebung.test:8443"
+                try:
+                    self.t = Terminal(self.env, ["--model", modell] + ARGV[2:])
+                finally:
+                    del self.env["COPILOT_ATTRAPPE_ZIEL"]
+                self.t.warte(r"Confirm folder trust")
+                self.t.sende("\r")
+                self.t.warte(r"/ commands")
+                ab = len(self.t.text)
+                self.t.sende("#T1 MP-2C5 ZAEHLEN\r")
+                self.t.warte(r"FERTIG T1", ab=ab)
+                self.assertEqual(self.proxy.ziele[-1], "ziel-aus-umgebung.test:8443")
+                self.t.schliesse()
+                self.t = None
 
     def test_anderes_modell_bleibt_bei_v1_messages_ohne_modell(self):
         for modell in ("auto", "gpt-6-luna-x", "gpt-5"):

@@ -1,0 +1,14 @@
+# Exclusions of the mutation gate for the crate peerkanal (gates.sh, gate mutants, reads every mutants/*.liste).
+# Format and rules: mutants/README.md. One entry per line: <list> <kind> <pattern>.
+
+# peerkanal, `testnaht::anlegen`: the module `testnaht` (test seams of the outside runner) is declared behind the
+# feature `testnaht` (`src/lib.rs:248`), which this run does not switch on. With the feature the mutant would not
+# build, because `Server` has no `Default` (decision of 25.11.2026).
+erster re crates/peerkanal/src/lib.rs:263:9: replace testnaht::anlegen -> Result<Server, Fehler> with Ok\(Default::default\(\)\)
+
+# peerkanal, `JobBezug` outside Windows: its only field is `nie: std::convert::Infallible`, so no value of the type
+# exists (`src/vorgabe.rs:80`). `Debug::fmt` and `ohne::im_job` (it takes a `&JobBezug`) can never be called, and every
+# replacement of their body behaves the same (decision of 25.11.2026).
+gleichwertig re crates/peerkanal/src/vorgabe.rs:107:9: replace <impl std::fmt::Debug for JobBezug>::fmt -> std::fmt::Result with Ok\(Default::default\(\)\)
+
+gleichwertig re crates/peerkanal/src/sys/mod.rs:58:13: replace ohne::<impl Plattform for Os>::im_job -> Option<bool> with Some\((true|false)\)

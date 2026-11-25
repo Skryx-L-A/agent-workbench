@@ -1698,5 +1698,111 @@ class Rollengruppe(unittest.TestCase):
             self.assertTrue(os.path.islink(os.path.join(h, "protokoll")))
 
 
+# --- The stand-ins of the tests are never delivered (decision of the line, 25.11.2026) ------------------------------
+# The programs `einschluss-attrappe` and `lauf-attrappe` exist only with the features `attrappe` and `pruefbau`. Three
+# conditions hold the delivery clean: (1) the positive list names no stand-in; (2) no call of the build scripts turns a
+# feature on; (3) no crate turns the features on by default or through a dependency, and every stand-in program has
+# `required-features`. Each check is a function on text, so the counter-checks below run it on a changed copy.
+MERKMALE = ("attrappe", "pruefbau")
+LIEFERBAU = ("paket.sh", os.path.join("paket", "bau.py"), os.path.join("paket", "bauhost.sh"))
+FLAGGE = re.compile(r"(^|\s)(--features|--all-features|-F)(\s|=|$)")
+
+
+def attrappen_in_liste(text):
+    """The lines of the positive list that name a stand-in program or a source with `attrappe`."""
+    return [z for z in text.splitlines() if not z.lstrip().startswith("#") and "attrappe" in z]
+
+
+def merkmale_im_skript(text):
+    """The non-comment lines of a build script that name a cargo feature option."""
+    return [z for z in text.splitlines() if not z.lstrip().startswith("#") and FLAGGE.search(z)]
+
+
+def merkmale_in_cargo_toml(text):
+    """Findings in one Cargo.toml: a stand-in feature in `default`, in the features of a delivery dependency, or a
+    stand-in program without `required-features`."""
+    funde = []
+    abschnitt = ""
+    block = None  # (name, hat required-features) of the current [[bin]]
+    for z in text.splitlines():
+        t = z.strip()
+        if t.startswith("["):
+            if block is not None and "attrappe" in block[0] and not block[1]:
+                funde.append(f"[[bin]] {block[0]} has no required-features")
+            block = None
+            abschnitt = t
+            if t == "[[bin]]":
+                block = ["", False]
+            continue
+        if block is not None:
+            if t.startswith("name") and "=" in t:
+                block[0] = t.split("=", 1)[1].strip().strip('"')
+            if t.startswith("required-features"):
+                block[1] = True
+        if t.startswith("#") or not any(m in t for m in MERKMALE):
+            continue
+        if abschnitt == "[features]" and t.startswith("default"):
+            funde.append(f"default feature: {t}")
+        elif "features" in t and "dependencies" in abschnitt and "dev-dependencies" not in abschnitt:
+            funde.append(f"dependency feature: {t}")
+    if block is not None and "attrappe" in block[0] and not block[1]:
+        funde.append(f"[[bin]] {block[0]} has no required-features")
+    return funde
+
+
+class OhneAttrappen(unittest.TestCase):
+    def test_die_positivliste_nennt_keine_attrappe(self):
+        text = lesen(os.path.join(HIER, PLATTFORM, "lieferumfang.txt"))
+        self.assertEqual(attrappen_in_liste(text), [])
+        self.assertIn("programm usr/lib/werkbank/werkbank-einschluss", text)  # the check reads a real list
+
+    def test_gegenprobe_der_eintrag_einer_attrappe_macht_die_pruefung_rot(self):
+        text = lesen(os.path.join(HIER, PLATTFORM, "lieferumfang.txt"))
+        for zeile in ("programm usr/lib/werkbank/einschluss-attrappe bin:einschluss:einschluss-attrappe",
+                      "programm usr/lib/werkbank/lauf-attrappe bin:lauf:lauf-attrappe"):
+            self.assertEqual(attrappen_in_liste(text + zeile + "\n"), [zeile])
+        # a comment that names the word stays free
+        self.assertEqual(attrappen_in_liste(text + "# the attrappe is never delivered\n"), [])
+
+    def test_kein_lieferbau_schaltet_ein_merkmal_ein(self):
+        for name in LIEFERBAU:
+            self.assertEqual(merkmale_im_skript(lesen(os.path.join(RUST, name))), [], name)
+
+    def test_gegenprobe_ein_cargo_aufruf_mit_merkmal_ist_rot(self):
+        for zeile in ("cargo build --release --locked --features pruefbau $CRATES",
+                      "cargo build --release --all-features",
+                      "RUSTFLAGS=x cargo build -F attrappe -p einschluss",
+                      "cargo build --features=attrappe"):
+            self.assertEqual(merkmale_im_skript(zeile + "\n"), [zeile])
+        self.assertEqual(merkmale_im_skript("# cargo build --features pruefbau\ncargo build --release --locked\n"), [])
+
+    def test_keine_kiste_schaltet_die_merkmale_ein_und_jede_attrappe_hat_required_features(self):
+        crates = os.path.join(RUST, "crates")
+        namen = sorted(os.listdir(crates))
+        self.assertIn("einschluss", namen)
+        self.assertIn("lauf", namen)
+        for n in namen:
+            toml = os.path.join(crates, n, "Cargo.toml")
+            if os.path.isfile(toml):
+                self.assertEqual(merkmale_in_cargo_toml(lesen(toml)), [], toml)
+        wurzel = os.path.join(RUST, "Cargo.toml")
+        self.assertEqual(merkmale_in_cargo_toml(lesen(wurzel)), [], wurzel)
+        # the two stand-in programs exist and are the ones the checks are about
+        for n, prog in (("einschluss", "einschluss-attrappe"), ("lauf", "lauf-attrappe")):
+            self.assertIn(f'name = "{prog}"', lesen(os.path.join(crates, n, "Cargo.toml")))
+
+    def test_gegenprobe_cargo_toml_mit_eingeschaltetem_merkmal_oder_ohne_required_features_ist_rot(self):
+        basis = '[package]\nname = "x"\n\n[[bin]]\nname = "x-attrappe"\npath = "src/bin/attrappe.rs"\nrequired-features = ["attrappe"]\n\n[features]\nattrappe = []\n'
+        self.assertEqual(merkmale_in_cargo_toml(basis), [])
+        self.assertEqual(len(merkmale_in_cargo_toml(basis.replace("attrappe = []", 'default = ["attrappe"]'))), 1)
+        self.assertEqual(len(merkmale_in_cargo_toml(basis + '\n[dependencies]\neinschluss = { path = "../einschluss", features = ["attrappe"] }\n')), 1)
+        self.assertEqual(merkmale_in_cargo_toml(basis + '\n[dev-dependencies]\neinschluss = { path = "../einschluss", features = ["attrappe"] }\n'), [])
+        ohne = basis.replace('required-features = ["attrappe"]\n', "")
+        self.assertEqual(len(merkmale_in_cargo_toml(ohne)), 1)
+        # a stand-in program as the last block of the file is checked too
+        letzter = '[package]\nname = "x"\n\n[[bin]]\nname = "x-attrappe"\npath = "src/bin/attrappe.rs"\n'
+        self.assertEqual(len(merkmale_in_cargo_toml(letzter)), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

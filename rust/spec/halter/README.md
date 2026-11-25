@@ -417,14 +417,16 @@ alt: Die Rollenprogramme wurden zur Laufzeit an Pfad, Eigentümer und Modus gepr
 Rollengruppe ist ein Fehler der Konfiguration (78), denn mit ihr hätte jeder Prozess eines Kontos die Rolle. Ein Konto aus `konten` als
 Mitglied einer Rollengruppe ist verboten (Projektentscheid, 25.11.2026); `werkbank-pruefen` meldet es als Befund (Paketvertrag).
 
-**Beispiel Schritt I** (uid 1000; Host und Pfadregeln kommen im Paket aus den `netzziele` der Vorlage):
+**Beispiel Schritt I** (uid 1000; Host und Pfadregeln kommen im Paket aus den `netzziele` der Vorlage, und der Name eines Ziels
+ist im Paket sein Host, siehe Paketvertrag, `halter_ziel`):
 
 ```json
 {"fassung": 1,
  "konten": {"1000": {"person": null}},
  "rollen": {"bruecke": "wb-bruecke"},
- "ziele": {"copilot": {"host": "api.githubcopilot.example", "port": 443, "tls": true, "praefix": "", "kopf": "authorization",
-                       "vorsatz": "Bearer ", "schluessel": "anmeldung.copilot", "pfade": ["GET /copilot_internal/*", "POST /chat/completions"]}},
+ "ziele": {"api.githubcopilot.example": {"host": "api.githubcopilot.example", "port": 443, "tls": true, "praefix": "",
+                                         "kopf": "authorization", "vorsatz": "Bearer ", "schluessel": "anmeldung.copilot",
+                                         "pfade": ["GET /copilot_internal/*", "POST /chat/completions"]}},
  "server": {},
  "kids": {}}
 ```

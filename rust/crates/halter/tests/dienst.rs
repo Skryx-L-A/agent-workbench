@@ -2031,9 +2031,10 @@ fn annahme_bedient_haelt_die_grenze_und_endet_mit_halt() {
     // a second one above the limit of 1 is closed without an answer
     let mut b = verbinden_mit(&pfad);
     b.ende_erwartet("the connection above the limit was not closed");
-    // after the end of the first one there is a place again
+    // after the end of the first one there is a place again; the test waits for that event, the bound is only against
+    // a real hang
     drop(a);
-    let ende = std::time::Instant::now() + Duration::from_secs(10);
+    let ende = std::time::Instant::now() + HAENGEGRENZE;
     loop {
         let mut c = verbinden_mit(&pfad);
         if bedient(&mut c) {
@@ -2041,14 +2042,14 @@ fn annahme_bedient_haelt_die_grenze_und_endet_mit_halt() {
         }
         assert!(
             std::time::Instant::now() < ende,
-            "no place within 10 s after the end of the first connection"
+            "no place within {HAENGEGRENZE:?} after the end of the first connection (bound against a hang)"
         );
         std::thread::sleep(Duration::from_millis(50));
     }
     halt.store(true, Ordering::Relaxed);
     assert!(
-        fertig_rx.recv_timeout(Duration::from_secs(5)).is_ok(),
-        "the accept loop did not end within 5 s after the stop flag"
+        fertig_rx.recv_timeout(HAENGEGRENZE).is_ok(),
+        "the accept loop did not end within {HAENGEGRENZE:?} after the stop flag (bound against a hang)"
     );
     schleife.join().expect("loop");
     let _ = std::fs::remove_dir_all(&o);

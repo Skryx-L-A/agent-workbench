@@ -632,6 +632,9 @@ impl Dienst {
         for p in &w.pty {
             let bytes = unhex(p.get("hex").and_then(Value::as_str).unwrap_or(""));
             if let Some(kind) = self.sitzungen.get_mut(k).and_then(|s| s.kind.as_mut()) {
+                // the record of the test build (contract section 21c)
+                #[cfg(all(windows, feature = "pruefbau"))]
+                crate::sys::mitschrift_eingabe(k, &bytes);
                 let _ = kind.schreibe(&bytes);
             }
         }
@@ -695,11 +698,18 @@ impl Dienst {
         let (Some(spalten), Some(zeilen)) = (zahl("spalten"), zahl("zeilen")) else {
             return Vec::new();
         };
-        self.sitzungen
+        // the record of the test build (contract section 21c)
+        #[cfg(all(windows, feature = "pruefbau"))]
+        crate::sys::mitschrift_groesse(k, spalten, zeilen);
+        let ereignisse = self
+            .sitzungen
             .get_mut(k)
             .and_then(|s| s.kind.as_mut())
             .and_then(|kind| kind.groesse(spalten, zeilen).ok())
-            .unwrap_or_default()
+            .unwrap_or_default();
+        #[cfg(all(windows, feature = "pruefbau"))]
+        crate::sys::mitschrift_ereignisse(k, &ereignisse);
+        ereignisse
     }
 
     /// An event of the carrier goes to the core with the session and the time (DI8). The end of the child makes the session
@@ -926,6 +936,9 @@ impl Dienst {
                     break;
                 };
                 let ereignisse = kind.lies(Duration::ZERO);
+                // the record of the test build (contract section 21c)
+                #[cfg(all(windows, feature = "pruefbau"))]
+                crate::sys::mitschrift_ereignisse(k, &ereignisse);
                 // a piece of output without an event (the bytes of an unfinished sequence, such as a long clipboard write) is no reason
                 // to stop: the next pieces are there already, and a stop would cost the beat of the loop for every piece
                 if lesen_endet(ereignisse.is_empty(), kind.daten_gelesen()) {

@@ -12,8 +12,8 @@ Was sie tut:
      wartet auf Enter und zeigt dann das Eingabefeld: ein `❯` zwischen zwei Linien aus `─` und die Fusszeile `/ commands` (wie 1.0.88).
   3. Je Eingabe schickt sie EINE HTTPS-Anfrage ueber `HTTPS_PROXY` (CONNECT) an das Ziel der Route, mit dem Platzhalter im Kopf
      `Authorization` und dem Text der Eingabe im Koerper. Pfad: Steht `--model gpt-6-luna` in argv (die Startform des Probelaufs), geht sie
-     an `POST /chat/completions` mit `{"model": "gpt-6-luna", "messages": [...]}`; bei jedem anderen Modell bleibt es `POST /v1/messages`. Ziel: Umgebung `COPILOT_ATTRAPPE_ZIEL` (`host:port`), sonst
-     `copilot-attrappe.test:443`; Zertifikate prueft sie gegen `COPILOT_ATTRAPPE_CA` (Datei), sonst gegen das Bundle des Systems.
+     an `POST /chat/completions` mit `{"model": "gpt-6-luna", "messages": [...]}`; bei jedem anderen Modell bleibt es `POST /v1/messages`. Ziel: Umgebung `COPILOT_ATTRAPPE_ZIEL` (`host:port`), sonst beim Chat-Pfad
+     `api.individual.githubcopilot.com:443` (der Modell-Host der Route) und bei jedem anderen Modell `copilot-attrappe.test:443`; Zertifikate prueft sie gegen `COPILOT_ATTRAPPE_CA` (Datei), sonst gegen das Bundle des Systems.
   4. Danach fuehrt sie die Befehle der Eingabe aus und schreibt `FERTIG T<n>`. Verstanden werden die Eingaben der Attrappen-Konfiguration
      (`#T<n> [MARKER] BEFEHL <befehl>`, `... BUENDEL <skript>`, `... ZAEHLEN`) und die der Konfiguration des Probelaufs (`Zug T<n>` und ein
      Skript zwischen Gravis). `SUCHE` fuehrt sie nicht aus (keine Wissenssuche). Sie laeuft nur auf Eingaben des Laeufers: Der Text wird in
@@ -44,6 +44,10 @@ from urllib.parse import urlparse
 CHAT_MODELL = "gpt-6-luna"  # das Modell der Startform des Probelaufs (Route der Cloud-Sitzung): dieses geht an die Chat-Schnittstelle des Ziels
 PFAD_MESSAGES = "/v1/messages"
 PFAD_CHAT = "/chat/completions"
+# Vorgabeziel ohne `COPILOT_ATTRAPPE_ZIEL`. Der Chat-Pfad geht an den Modell-Host, den das Erststart-Profil (`rust/spec/einstellungen/erststart.json`,
+# Route `copilot`, Eintrag `api.individual.githubcopilot.com`) und `/etc/werkbank/halter.json` fuer den Chat-Pfad erlauben; sonst lehnt der Modellweg mit `mw.ziel_nicht_erlaubt` ab.
+ZIEL_CHAT = "api.individual.githubcopilot.com:443"
+ZIEL_MESSAGES = "copilot-attrappe.test:443"
 PLATZHALTER = re.compile(r"^gho_0{36}$")
 TOKEN_FORM = re.compile(r"^gho_[0-9A-Za-z]{36}$")
 ZUG = re.compile(r"^\s*#T(\d+)\s+(?:[A-Z]{2}-[0-9A-Z]{3}\s+)?(BEFEHL|BUENDEL|SUCHE|ZAEHLEN)(?:\s+(.*))?$", re.S)
@@ -75,6 +79,11 @@ def anfrage_form(argv, text):
     if modell_aus_argv(argv) == CHAT_MODELL:
         return PFAD_CHAT, {"model": CHAT_MODELL, "messages": nachrichten}
     return PFAD_MESSAGES, {"messages": nachrichten}
+
+
+def vorgabe_ziel(argv):
+    """Das Ziel ohne `COPILOT_ATTRAPPE_ZIEL`: bei der Anfrageform `POST /chat/completions` (Modell `gpt-6-luna`) der Modell-Host, sonst `copilot-attrappe.test:443`."""
+    return ZIEL_CHAT if modell_aus_argv(argv) == CHAT_MODELL else ZIEL_MESSAGES
 
 
 def token_format(wert):
@@ -254,7 +263,7 @@ def _lauf(argv, env, ein, aus):
         return 0
     eingabefeld(aus)
     proxy = env.get("HTTPS_PROXY")
-    ziel = env.get("COPILOT_ATTRAPPE_ZIEL", "copilot-attrappe.test:443")
+    ziel = env["COPILOT_ATTRAPPE_ZIEL"] if "COPILOT_ATTRAPPE_ZIEL" in env else vorgabe_ziel(argv)
     ca = env.get("COPILOT_ATTRAPPE_CA")
     platzhalter = env.get("COPILOT_GITHUB_TOKEN", "")
     while True:

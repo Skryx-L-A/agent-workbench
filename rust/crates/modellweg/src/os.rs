@@ -59,18 +59,79 @@ pub(crate) fn neu_ohne_umgebung(name: &std::ffi::OsStr, args: &[std::ffi::OsStri
         .exec()
 }
 
-/// Duty 5 of the safe mode (contract 8, section 3a): whether one thread of this process has a child, from
-/// `/proc/self/task/<tid>/children` (the PIDs of the children of each thread, separated by spaces).
+/// Duty 5 of the safe mode (contract 8, section 3a): whether one thread of this process has a child. Two sources,
+/// and only both together may mean "no child": the files `/proc/self/task/<tid>/children` (the PIDs of the children
+/// of each thread, separated by spaces) and the answer of the kernel from [`kinder_aus_warten`]. The files name every
+/// child, whatever exit signal it carries, but the listing of `/proc/self/task` can break off early; the answer of
+/// the kernel comes from the list of children itself and knows no such gap.
 ///
 /// # Errors
-/// `/proc` cannot be read; the caller ends fail closed.
+/// `/proc` cannot be read, or the kernel refuses the question; the caller ends fail closed.
 #[cfg(target_os = "linux")]
 pub(crate) fn hat_kinder() -> io::Result<bool> {
+    hat_kinder_mit(lesungen_der_faeden()?)
+}
+
+/// The readings of the `children` files of all threads that the listing of `/proc/self/task` showed.
+#[cfg(target_os = "linux")]
+fn lesungen_der_faeden() -> io::Result<Vec<io::Result<String>>> {
     let mut lesungen = Vec::new();
     for eintrag in std::fs::read_dir("/proc/self/task")? {
         lesungen.push(std::fs::read_to_string(eintrag?.path().join("children")));
     }
-    kinder_aus(lesungen)
+    Ok(lesungen)
+}
+
+/// [`hat_kinder`] with the readings already taken: a reading that names a PID counts at once, and otherwise the
+/// kernel decides. So an incomplete reading never means "no child". The listing of `/proc/self/task` ends early when
+/// a thread ends between two of its steps: the kernel holds the thread it just named, and a thread that is gone has
+/// no next one, so the rest of the threads are never named (measured on Linux 7.2.5: of 1800 readings under ending
+/// threads, 16 missed a living thread and with it its child).
+#[cfg(target_os = "linux")]
+fn hat_kinder_mit(lesungen: Vec<io::Result<String>>) -> io::Result<bool> {
+    if kinder_aus(lesungen)? {
+        return Ok(true);
+    }
+    kinder_aus_warten()
+}
+
+/// The answer of the kernel: has any thread of this process a child that nobody has waited for? `waitid` reads the
+/// list of children of the thread group, not `/proc`; `NOHANG` returns at once, and `NOWAIT` leaves every child in
+/// its state, so the question takes nothing away from a caller that waits for its own children. Without a child the
+/// call fails with `ECHILD`.
+///
+/// # Errors
+/// The kernel refuses the question for another reason; the caller ends fail closed.
+#[cfg(target_os = "linux")]
+fn kinder_aus_warten() -> io::Result<bool> {
+    kinder_aus_antwort(
+        rustix::process::waitid(rustix::process::WaitId::All, WARTEN_OPTIONEN).map(|_| ()),
+    )
+}
+
+/// The options of the question of [`kinder_aus_warten`]. They stand as one constant, not as an expression in the
+/// function: which state of a child the kernel may report (`EXITED`, `STOPPED`, `CONTINUED`) does not change the
+/// answer, because every `Ok` means "there is a child"; only `NOHANG` (do not wait) and `NOWAIT` (take nothing away)
+/// carry a meaning of their own.
+#[cfg(target_os = "linux")]
+const WARTEN_OPTIONEN: rustix::process::WaitIdOptions = rustix::process::WaitIdOptions::NOHANG
+    .union(rustix::process::WaitIdOptions::NOWAIT)
+    .union(rustix::process::WaitIdOptions::EXITED)
+    .union(rustix::process::WaitIdOptions::STOPPED)
+    .union(rustix::process::WaitIdOptions::CONTINUED);
+
+/// The answer of the kernel as the duty reads it: `Ok` means a child, `ECHILD` means no child, and every other
+/// failure goes to the caller, who ends fail closed.
+///
+/// # Errors
+/// The kernel refused the question for another reason than "no child".
+#[cfg(target_os = "linux")]
+fn kinder_aus_antwort(antwort: Result<(), rustix::io::Errno>) -> io::Result<bool> {
+    match antwort {
+        Ok(()) => Ok(true),
+        Err(f) if f == rustix::io::Errno::CHILD => Ok(false),
+        Err(f) => Err(f.into()),
+    }
 }
 
 /// Whether the readings of the `children` files of the threads name a child; a failure other than an ended thread is
@@ -82,7 +143,8 @@ fn kinder_aus(lesungen: Vec<io::Result<String>>) -> io::Result<bool> {
         match lesung {
             Ok(t) => texte.push(t),
             // A thread that ended in between has no children any more: the kernel gave them to another thread of
-            // this process, whose file is read as well.
+            // this process. Whether the listing named that thread is not certain, so a reading without a PID is
+            // never the whole answer (see `hat_kinder_mit`).
             Err(f) if task_weg(&f) => {}
             Err(f) => return Err(f),
         }
@@ -105,7 +167,10 @@ pub(crate) fn kinder_in(texte: &[String]) -> bool {
 
 #[cfg(all(test, target_os = "linux"))]
 mod tests {
-    use super::{hat_kinder, kinder_aus, kinder_in, task_weg};
+    use super::{
+        hat_kinder, hat_kinder_mit, kinder_aus, kinder_aus_antwort, kinder_aus_warten, kinder_in,
+        lesungen_der_faeden, task_weg,
+    };
     use std::io;
 
     fn errno(e: rustix::io::Errno) -> io::Error {
@@ -176,5 +241,71 @@ mod tests {
         let _ = kind.kill();
         let _ = kind.wait();
         assert!(gesehen.expect("proc"));
+    }
+
+    /// The gap of the listing of `/proc/self/task`: an incomplete reading never means "no child". The extreme case of
+    /// an incomplete reading is the empty one; the files alone answer "no child" there, the whole check sees the child
+    /// anyway, because the kernel answers from the list of children.
+    #[test]
+    fn an_incomplete_reading_never_means_no_child() {
+        let mut kind = std::process::Command::new("sleep")
+            .arg("30")
+            .spawn()
+            .expect("sleep");
+        let aus_dateien = kinder_aus(Vec::new());
+        let gesehen = hat_kinder_mit(Vec::new());
+        let aus_warten = kinder_aus_warten();
+        let _ = kind.kill();
+        let _ = kind.wait();
+        assert!(!aus_dateien.expect("ok"));
+        assert!(gesehen.expect("warten"));
+        assert!(aus_warten.expect("warten"));
+    }
+
+    /// The readings really come from the files of the threads: with a child of this thread one of them names its PID.
+    /// The listing of `/proc/self/task` can break off (see `hat_kinder_mit`), so the reading is tried up to 20 times;
+    /// readings that never name the child mean that no file was read.
+    #[test]
+    fn the_readings_of_the_threads_name_the_child() {
+        let mut kind = std::process::Command::new("sleep")
+            .arg("30")
+            .spawn()
+            .expect("sleep");
+        let pid = kind.id().to_string();
+        let mut gefunden = false;
+        for _ in 0..20 {
+            let texte: Vec<String> = lesungen_der_faeden()
+                .expect("proc")
+                .into_iter()
+                .flatten()
+                .collect();
+            if texte.iter().any(|t| t.split_whitespace().any(|p| p == pid)) {
+                gefunden = true;
+                break;
+            }
+        }
+        let _ = kind.kill();
+        let _ = kind.wait();
+        assert!(gefunden, "keine Lesung nannte das Kind {pid}");
+    }
+
+    /// The answer of the kernel: only `ECHILD` means "no child"; every other failure goes to the caller, who ends
+    /// fail closed. A failure that counted as "no child" would be fail open for duty 5.
+    #[test]
+    fn only_echild_means_no_child() {
+        assert!(kinder_aus_antwort(Ok(())).expect("ok"));
+        assert!(!kinder_aus_antwort(Err(rustix::io::Errno::CHILD)).expect("ok"));
+        for f in [
+            rustix::io::Errno::ACCESS,
+            rustix::io::Errno::INVAL,
+            rustix::io::Errno::INTR,
+            rustix::io::Errno::AGAIN,
+        ] {
+            assert_eq!(
+                kinder_aus_antwort(Err(f)).expect_err("err").raw_os_error(),
+                Some(f.raw_os_error()),
+                "{f:?}"
+            );
+        }
     }
 }

@@ -1715,9 +1715,144 @@ pub(crate) fn laufkind() -> Option<i32> {
     if !ist_kopie {
         return None;
     }
+    konsolenereignis_mitschreiben();
     let mut rest = vec!["lauf".to_owned()];
     rest.extend(std::env::args_os().map(|a| a.to_string_lossy().into_owned()));
-    Some(crate::kindprogramm::lauf(&rest) & 0xff)
+    let code = crate::kindprogramm::lauf(&rest) & 0xff;
+    mitschrift_zeile(&format!("ende code={code}"));
+    Some(code)
+}
+
+/// `STATUS_CONTROL_C_EXIT`: the exit code of a process that the default action of a console event ended.
+#[cfg(feature = "pruefbau")]
+const STATUS_CONTROL_C_EXIT: u32 = 0xC000_013A;
+
+/// The record of the test build (diagnosis of section 21c): the folder `mitschrift` next to the program file, `None` when it does not
+/// exist. Only a test run that makes the folder gets a record; without it nothing is written and nothing changes.
+#[cfg(feature = "pruefbau")]
+fn mitschrift_datei(name: &str) -> Option<PathBuf> {
+    let ordner = std::env::current_exe().ok()?.parent()?.join("mitschrift");
+    ordner
+        .is_dir()
+        .then(|| ordner.join(format!("{name}-{}.txt", std::process::id())))
+}
+
+/// The start of the process, for the times of the record.
+#[cfg(feature = "pruefbau")]
+fn mitschrift_beginn() -> Instant {
+    static BEGINN: OnceLock<Instant> = OnceLock::new();
+    *BEGINN.get_or_init(Instant::now)
+}
+
+/// One line of the record of the child (`kind-<pid>.txt`) with the time since its start in milliseconds.
+#[cfg(feature = "pruefbau")]
+fn mitschrift_zeile(text: &str) {
+    if let Some(datei) = mitschrift_datei("kind") {
+        let ms = mitschrift_beginn().elapsed().as_secs_f64() * 1000.0;
+        if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(datei) {
+            let _ = writeln!(f, "+{ms:.1}ms {text}");
+        }
+    }
+}
+
+/// The console event that ends the child (diagnosis of `0xC000013A`, section 21c): the handlers of the C runtime for `SIGINT`
+/// (`CTRL_C_EVENT`) and `SIGBREAK` (`CTRL_BREAK_EVENT`, and also `CTRL_CLOSE_EVENT`, `CTRL_LOGOFF_EVENT`, `CTRL_SHUTDOWN_EVENT`) are
+/// set with the safe API of `signal-hook`, no new `unsafe`. A thread writes the signal into the record, waits 200 ms and ends the
+/// process with `0xC000013A`, the code of the default action, so the end looks the same to the service. A close event ends the
+/// process when the handler returns, so its record has no line `lebt`; a `CTRL_BREAK_EVENT` has one.
+#[cfg(feature = "pruefbau")]
+fn konsolenereignis_mitschreiben() {
+    use signal_hook::consts::{SIGBREAK, SIGINT};
+    if mitschrift_datei("kind").is_none() {
+        return;
+    }
+    mitschrift_beginn();
+    mitschrift_zeile(&format!("start pid={}", std::process::id()));
+    let c = Arc::new(AtomicBool::new(false));
+    let b = Arc::new(AtomicBool::new(false));
+    let angemeldet = signal_hook::flag::register(SIGINT, Arc::clone(&c)).is_ok()
+        && signal_hook::flag::register(SIGBREAK, Arc::clone(&b)).is_ok();
+    mitschrift_zeile(&format!("angemeldet={angemeldet}"));
+    std::thread::spawn(move || {
+        loop {
+            for (flagge, name) in [(&c, "SIGINT"), (&b, "SIGBREAK")] {
+                if flagge.swap(false, Ordering::SeqCst) {
+                    mitschrift_zeile(name);
+                    std::thread::sleep(Duration::from_millis(200));
+                    mitschrift_zeile("lebt nach 200ms");
+                    #[allow(clippy::cast_possible_wrap)]
+                    // the code of Windows as the `i32` of `exit`
+                    std::process::exit(STATUS_CONTROL_C_EXIT as i32);
+                }
+            }
+            std::thread::sleep(Duration::from_millis(1));
+        }
+    });
+}
+
+/// The record of the service (diagnosis of sections 21c points 2 and 4): per session `k` the size changes, the input bytes and the
+/// events of the carrier with the time since the start of the service, into `dienst-<pid>.txt` in the folder `mitschrift` of the
+/// working folder of the service. At most 400 lines per session; without the folder nothing is written.
+#[cfg(feature = "pruefbau")]
+fn dienst_zeile(k: usize, text: &str) {
+    static ZAHL: std::sync::Mutex<Vec<usize>> = std::sync::Mutex::new(Vec::new());
+    let Some(ordner) = std::env::current_dir()
+        .ok()
+        .map(|d| d.join("mitschrift"))
+        .filter(|d| d.is_dir())
+    else {
+        return;
+    };
+    {
+        let mut zahl = ZAHL
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if zahl.len() <= k {
+            zahl.resize(k + 1, 0);
+        }
+        zahl[k] += 1;
+        if zahl[k] > 400 {
+            return;
+        }
+    }
+    let ms = mitschrift_beginn().elapsed().as_secs_f64() * 1000.0;
+    let datei = ordner.join(format!("dienst-{}.txt", std::process::id()));
+    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(datei) {
+        let mut zeile = text.replace(['\r', '\n'], " ");
+        if zeile.len() > 300 {
+            let mut ende = 300;
+            while !zeile.is_char_boundary(ende) {
+                ende -= 1;
+            }
+            zeile.truncate(ende);
+        }
+        let _ = writeln!(f, "+{ms:.1}ms s{k} {zeile}");
+    }
+}
+
+/// The events of the carrier for session `k` into the record of the service.
+#[cfg(feature = "pruefbau")]
+pub(crate) fn mitschrift_ereignisse(k: usize, ereignisse: &[traeger::Ereignis]) {
+    for e in ereignisse {
+        dienst_zeile(k, &format!("ereignis {e:?}"));
+    }
+}
+
+/// A size change of session `k` into the record of the service.
+#[cfg(feature = "pruefbau")]
+pub(crate) fn mitschrift_groesse(k: usize, spalten: usize, zeilen: usize) {
+    dienst_zeile(k, &format!("groesse {spalten}x{zeilen}"));
+}
+
+/// Input bytes for the child of session `k` into the record of the service (hex).
+#[cfg(feature = "pruefbau")]
+pub(crate) fn mitschrift_eingabe(k: usize, bytes: &[u8]) {
+    use std::fmt::Write as _;
+    let hex = bytes.iter().take(64).fold(String::new(), |mut h, b| {
+        let _ = write!(h, "{b:02x}");
+        h
+    });
+    dienst_zeile(k, &format!("eingabe {} {hex}", bytes.len()));
 }
 
 // The cases of section 21a point 4 (moved from `dienst.rs` with the rule of section 21, point 17): test code of the Windows build.

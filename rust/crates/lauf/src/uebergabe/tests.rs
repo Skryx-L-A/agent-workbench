@@ -142,12 +142,14 @@ fn fall_gross() {
     use std::io::Read;
     let mut platz = Platz::reservieren();
     assert!(platz.da());
-    // one byte over the limit of the starter: refused before anything is written, no hang
+    // one byte over the limit of the starter: refused before anything is written, no hang (a write that blocks fails
+    // the case within its limit instead of hanging it)
     let zu_gross = vec![b'x'; einschluss::EINGABE_MAX + 1];
-    assert_eq!(
-        auf_drei_legen(&mut platz, &zu_gross),
-        Err(Fehler::EinschlussFehlt)
-    );
+    let (r, mut platz) = crate::testhilfe::mit_frist(Duration::from_secs(5), move || {
+        let r = auf_drei_legen(&mut platz, &zu_gross);
+        (r, platz)
+    });
+    assert_eq!(r, Err(Fehler::EinschlussFehlt));
     // the limit itself fits into the pipe
     let genau = vec![b'y'; einschluss::EINGABE_MAX];
     auf_drei_legen(&mut platz, &genau).expect("exactly the limit");
@@ -354,4 +356,106 @@ fn the_own_children_are_found_until_they_are_waited_for() {
     let _ = k.kill();
     let _ = k.wait();
     assert!(!eigene_kinder().contains(&k.id()), "a waited child is gone");
+}
+
+/// The helper process of the cases of the end (see `crate::testhilfe`): a case that ends the process never writes the
+/// line of success; its end is what the test checks.
+#[test]
+fn kind_ende() {
+    #[cfg(target_os = "linux")]
+    {
+        let Some(fall) = crate::testhilfe::fall() else {
+            return;
+        };
+        match fall.as_str() {
+            "code" => enden(Ausgang::Code(7)),
+            "term" => enden(Ausgang::Signal(signal_hook::consts::SIGTERM)),
+            "kill" => enden(Ausgang::Signal(signal_hook::consts::SIGKILL)),
+            "segv" => enden(Ausgang::Signal(signal_hook::consts::SIGSEGV)),
+            "fremde" => fall_fremde_beenden(),
+            "keine-fremden" => fall_keine_fremden(),
+            andere => panic!("unknown case {andere}"),
+        }
+        crate::testhilfe::fertig();
+    }
+}
+
+#[cfg(target_os = "linux")]
+const KIND_ENDE: &str = "uebergabe::tests::kind_ende";
+
+#[cfg(target_os = "linux")]
+#[test]
+fn the_process_ends_with_the_code_or_by_the_signal_of_the_starter() {
+    use std::os::unix::process::ExitStatusExt;
+    let lauf = |fall: &str| {
+        let (status, text) =
+            crate::testhilfe::helfer(KIND_ENDE, fall, "3>&-", Duration::from_secs(30));
+        let status = status.unwrap_or_else(|| panic!("{fall} did not end: {text}"));
+        (status.code(), status.signal())
+    };
+    assert_eq!(lauf("code"), (Some(7), None));
+    assert_eq!(lauf("term"), (None, Some(signal_hook::consts::SIGTERM)));
+    assert_eq!(lauf("kill"), (None, Some(signal_hook::consts::SIGKILL)));
+    // a signal whose default action cannot be called up here: the code 128 + n
+    assert_eq!(
+        lauf("segv"),
+        (Some(128 + signal_hook::consts::SIGSEGV), None)
+    );
+}
+
+/// Two children: one in the known list, one not. Only the second is ended and waited for, and at once.
+#[cfg(target_os = "linux")]
+fn fall_fremde_beenden() {
+    // without the output of the helper: a child left behind by a failed case must not hold the read of the test
+    let schlaf = || {
+        Command::new("sleep")
+            .arg("30")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("sleep")
+    };
+    let mut bekannt = schlaf();
+    let fremd = schlaf();
+    let fremd_pid = fremd.id();
+    // the foreign child is waited for by its pidfd, not through the handle
+    std::mem::forget(fremd);
+    let beginn = Instant::now();
+    fremde_beenden(&[bekannt.id()]);
+    assert!(
+        beginn.elapsed() < Duration::from_secs(3),
+        "{:?}",
+        beginn.elapsed()
+    );
+    let kinder = eigene_kinder();
+    assert!(
+        !kinder.contains(&fremd_pid),
+        "ended and waited for: {kinder:?}"
+    );
+    assert!(kinder.contains(&bekannt.id()), "the known child stays");
+    assert!(
+        std::fs::metadata(format!("/proc/{fremd_pid}")).is_err(),
+        "no zombie left"
+    );
+    let _ = bekannt.kill();
+    let _ = bekannt.wait();
+}
+
+/// Without a foreign child the end returns at once, not at its limit.
+#[cfg(target_os = "linux")]
+fn fall_keine_fremden() {
+    let beginn = Instant::now();
+    fremde_beenden(&[]);
+    assert!(
+        beginn.elapsed() < Duration::from_secs(3),
+        "{:?}",
+        beginn.elapsed()
+    );
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn the_foreign_children_are_ended_and_the_known_ones_stay() {
+    crate::testhilfe::helfer_gut(KIND_ENDE, "fremde", "3>&-");
+    crate::testhilfe::helfer_gut(KIND_ENDE, "keine-fremden", "3>&-");
 }

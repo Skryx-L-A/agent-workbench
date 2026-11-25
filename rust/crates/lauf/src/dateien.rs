@@ -37,7 +37,10 @@ pub fn start_modus_gut(art: FileType, eigner: u32, modus: u32, uid: u32) -> bool
 pub fn startdatei_lesen(pfad: &Path) -> Result<Vec<u8>, Fehler> {
     let fd = rustix::fs::open(
         pfad,
-        OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::CLOEXEC | OFlags::NONBLOCK,
+        OFlags::RDONLY
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC)
+            .union(OFlags::NONBLOCK),
         Mode::empty(),
     )
     .map_err(|e| match e {
@@ -85,7 +88,10 @@ pub fn zaehlordner_pruefen(pfad: &Path) -> Result<(), Fehler> {
 pub fn eigener_ordner_0700(pfad: &Path) -> bool {
     let Ok(fd) = rustix::fs::open(
         pfad,
-        OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::CLOEXEC | OFlags::DIRECTORY,
+        OFlags::RDONLY
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC)
+            .union(OFlags::DIRECTORY),
         Mode::empty(),
     ) else {
         return false;
@@ -167,7 +173,9 @@ pub fn ordner_entfernen(pfad: &Path) -> std::io::Result<()> {
         .map_err(|_| std::io::Error::from(std::io::ErrorKind::InvalidInput))?;
     let fd = rustix::fs::open(
         eltern,
-        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
+        OFlags::RDONLY
+            .union(OFlags::DIRECTORY)
+            .union(OFlags::CLOEXEC),
         Mode::empty(),
     )?;
     entfernen_in(&fd, &name, 0)
@@ -182,7 +190,10 @@ fn unterordner_oeffnen(
     rustix::fs::openat(
         eltern,
         name,
-        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+        OFlags::RDONLY
+            .union(OFlags::DIRECTORY)
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC),
         Mode::empty(),
     )
     .map_err(Into::into)

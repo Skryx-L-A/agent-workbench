@@ -560,3 +560,25 @@ fn the_text_of_zeigen_names_no_path() {
         format!("{{\"kennung\":\"{KENNUNG}\",\"kunde\":null,\"klasse_hoch\":\"intern\"}}\n")
     );
 }
+
+/// The configuration of this build is missing on the test machine (the delivered build reads a path below `/etc`, the
+/// test build one next to the test program): the command ends with its own code for that, after the arguments.
+#[test]
+fn without_the_configuration_the_command_ends_with_konfig_fehlt() {
+    let Some(pfad) = crate::konfig::pfad() else {
+        return;
+    };
+    if pfad.exists() {
+        return; // a machine with an installed configuration: nothing to say here
+    }
+    assert_eq!(lage_lesen().err(), Some(BefehlFehler::KonfigFehlt));
+    let args: Vec<OsString> = ["zeigen", "/srv/beispiel/projekt"]
+        .iter()
+        .map(OsString::from)
+        .collect();
+    assert_eq!(befehl(&args).err(), Some(BefehlFehler::KonfigFehlt));
+    assert!(
+        befehl(&[]).is_err(),
+        "a wrong call before the configuration"
+    );
+}

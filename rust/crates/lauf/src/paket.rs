@@ -248,7 +248,9 @@ pub fn lauf_messen(mut befehl: std::process::Command, frist: Duration) -> Result
         lesen_bis_leer(&mut meldung);
         match kind.try_wait() {
             Ok(Some(s)) => break s,
-            Ok(None) if Instant::now() < ende => std::thread::sleep(Duration::from_millis(10)),
+            Ok(None) if !ende.saturating_duration_since(Instant::now()).is_zero() => {
+                std::thread::sleep(Duration::from_millis(10));
+            }
             _ => {
                 // the own child, by its PID
                 let _ = kind.kill();
@@ -286,7 +288,10 @@ fn ordner_at_mit(
     let fd = rustix::fs::openat(
         eltern,
         name,
-        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+        OFlags::RDONLY
+            .union(OFlags::DIRECTORY)
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC),
         Mode::empty(),
     )
     .map_err(|_| Fehler::PaketCache("beiseite"))?;
@@ -359,7 +364,10 @@ fn cache_bereit_mit(
     zwischen();
     let fd = rustix::fs::open(
         cache,
-        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+        OFlags::RDONLY
+            .union(OFlags::DIRECTORY)
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC),
         Mode::empty(),
     )
     .map_err(|_| Fehler::PaketCache("verweis"))?;
@@ -387,7 +395,10 @@ pub fn sperren(
     let sperre = rustix::fs::openat(
         cache,
         SPERR_DATEI,
-        OFlags::RDWR | OFlags::CREATE | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+        OFlags::RDWR
+            .union(OFlags::CREATE)
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC),
         Mode::from_raw_mode(0o600),
     )
     .map_err(|_| Fehler::PaketCache("sperre"))?;
@@ -396,7 +407,7 @@ pub fn sperren(
         match rustix::fs::flock(&sperre, FlockOperation::NonBlockingLockExclusive) {
             Ok(()) => return Ok(sperre),
             Err(rustix::io::Errno::WOULDBLOCK | rustix::io::Errno::INTR)
-                if Instant::now() < ende =>
+                if !ende.saturating_duration_since(Instant::now()).is_zero() =>
             {
                 std::thread::sleep(Duration::from_millis(20));
             }

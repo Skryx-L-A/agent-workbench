@@ -39,7 +39,7 @@ impl Platz {
     pub fn reservieren() -> Platz {
         let fd = rustix::fs::open(
             "/dev/null",
-            rustix::fs::OFlags::RDONLY | rustix::fs::OFlags::CLOEXEC,
+            rustix::fs::OFlags::RDONLY.union(rustix::fs::OFlags::CLOEXEC),
             rustix::fs::Mode::empty(),
         )
         .ok();
@@ -159,12 +159,27 @@ pub fn fremde_deskriptoren() -> Option<Vec<i32>> {
     Some(fremd)
 }
 
-/// Puts `text` into a new pipe, closes the write end and lays the read end over descriptor 3.
+/// Puts `text` into a new pipe, closes the write end and lays the read end over descriptor 3 (Linux only).
+///
+/// One function for every platform, with a `cfg` on its body: cargo-mutants reads the text and would keep the mutants
+/// of a second function that the gate machine never builds. The same holds for [`halten`].
 ///
 /// # Errors
-/// `lauf.einschluss_fehlt` when the pipe cannot be made or written, or descriptor 3 is not the read end afterwards.
-#[cfg(target_os = "linux")]
+/// `lauf.einschluss_fehlt` when the pipe cannot be made or written, or descriptor 3 is not the read end afterwards;
+/// outside Linux always.
 pub fn auf_drei_legen(platz: &mut Platz, text: &[u8]) -> Result<(), Fehler> {
+    #[cfg(not(target_os = "linux"))]
+    let ergebnis = {
+        let _ = (platz, text);
+        Err(Fehler::EinschlussFehlt)
+    };
+    #[cfg(target_os = "linux")]
+    let ergebnis = auf_drei_legen_linux(platz, text);
+    ergebnis
+}
+
+#[cfg(target_os = "linux")]
+fn auf_drei_legen_linux(platz: &mut Platz, text: &[u8]) -> Result<(), Fehler> {
     use std::io::Write;
     // a longer description would block `write_all` (nobody reads yet) and the start would hang with running children;
     // the starter refuses it anyway
@@ -188,15 +203,6 @@ pub fn auf_drei_legen(platz: &mut Platz, text: &[u8]) -> Result<(), Fehler> {
         return Err(Fehler::EinschlussFehlt);
     }
     Ok(())
-}
-
-#[cfg(not(target_os = "linux"))]
-/// Not available: the hand-over exists on Linux only.
-///
-/// # Errors
-/// Always `lauf.einschluss_fehlt`.
-pub fn auf_drei_legen(_platz: &mut Platz, _text: &[u8]) -> Result<(), Fehler> {
-    Err(Fehler::EinschlussFehlt)
 }
 
 /// Step 8 of the delivered build: starts the starter as the child of this process and stays its parent
@@ -323,9 +329,28 @@ pub fn eigene_kinder() -> Vec<u32> {
 /// With a report ([`Meldung`]) the connection lies on descriptor 4 from right before the start of the trampoline
 /// (`--halten-melden`) until right after it; in between this process starts no other child, and no other thread runs
 /// (the thread of the signals starts after the close).
-#[cfg(target_os = "linux")]
+///
+/// Outside Linux the parent is not available: `lauf.einschluss_fehlt`.
 #[must_use]
 pub fn halten(
+    kind: &Path,
+    befehl: &std::process::Command,
+    platz: &mut Platz,
+    meldung: &mut Meldung,
+    bekannt: &[u32],
+) -> Fehler {
+    #[cfg(not(target_os = "linux"))]
+    let fehler = {
+        let _ = (kind, befehl, platz, meldung, bekannt);
+        Fehler::EinschlussFehlt
+    };
+    #[cfg(target_os = "linux")]
+    let fehler = halten_linux(kind, befehl, platz, meldung, bekannt);
+    fehler
+}
+
+#[cfg(target_os = "linux")]
+fn halten_linux(
     kind: &Path,
     befehl: &std::process::Command,
     platz: &mut Platz,
@@ -404,19 +429,6 @@ pub fn halten(
     }
 }
 
-/// Not available: the parent exists on Linux only.
-#[cfg(not(target_os = "linux"))]
-#[must_use]
-pub fn halten(
-    _kind: &Path,
-    _befehl: &std::process::Command,
-    _platz: &mut Platz,
-    _meldung: &mut Meldung,
-    _bekannt: &[u32],
-) -> Fehler {
-    Fehler::EinschlussFehlt
-}
-
 /// How long [`fremde_beenden`] keeps looking for adopted children.
 pub const FREMDE_FRIST: std::time::Duration = std::time::Duration::from_secs(5);
 
@@ -430,7 +442,11 @@ fn fremde_beenden(bekannt: &[u32]) {
     let ende = std::time::Instant::now() + FREMDE_FRIST;
     loop {
         let liste = fremde(&eigene_kinder(), bekannt);
-        if liste.is_empty() || std::time::Instant::now() >= ende {
+        if liste.is_empty()
+            || ende
+                .saturating_duration_since(std::time::Instant::now())
+                .is_zero()
+        {
             return;
         }
         for k in liste {

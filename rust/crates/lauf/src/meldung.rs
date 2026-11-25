@@ -26,7 +26,8 @@ pub const ZEILE_MAX: usize = 128;
 /// The longest key of a line.
 pub const GRUND_MAX: usize = 64;
 
-/// The connection to the service and the reserved descriptor 4; both empty without `--meldung`.
+/// The connection to the service and the reserved descriptor 4; both empty without `--meldung` (`Meldung::default()`:
+/// no report, the program behaves as before).
 #[derive(Debug, Default)]
 pub struct Meldung {
     verbindung: Option<UnixStream>,
@@ -34,19 +35,13 @@ pub struct Meldung {
 }
 
 impl Meldung {
-    /// No report (`--meldung` is missing): the program behaves as before.
-    #[must_use]
-    pub fn keine() -> Meldung {
-        Meldung::default()
-    }
-
     /// Opens `/dev/null` (close-on-exec) and keeps it only when it got the number 4: descriptor 4 stays free for the
     /// hand-over. Called after the reservation of descriptor 3 and before the first other file.
     #[must_use]
     pub fn reservieren() -> Option<OwnedFd> {
         rustix::fs::open(
             "/dev/null",
-            rustix::fs::OFlags::RDONLY | rustix::fs::OFlags::CLOEXEC,
+            rustix::fs::OFlags::RDONLY.union(rustix::fs::OFlags::CLOEXEC),
             rustix::fs::Mode::empty(),
         )
         .ok()
@@ -151,9 +146,8 @@ pub fn grund_gut(grund: &str) -> bool {
 /// The service checks the same; everything else is `lauf.meldung_ungueltig` there.
 #[must_use]
 pub fn zeile_gut(daten: &[u8]) -> bool {
-    if daten.len() > ZEILE_MAX {
-        return false;
-    }
+    // No check of the length of its own: the form below bounds a line at 3 + 1 + GRUND_MAX + 1 = 69 bytes, below
+    // ZEILE_MAX, so a longer `daten` always fails the form (a check `> ZEILE_MAX` could never refuse on its own).
     let Some(text) = daten.strip_suffix(b"\n") else {
         return false;
     };

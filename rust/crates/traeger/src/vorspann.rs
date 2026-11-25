@@ -6,8 +6,12 @@
 //! for it and does not change the session title. The other sequences of the prelude are treated like any other sequence (TR5, TR10, TR14).
 //!
 //! The prelude is told apart by two things together: the title is the path of the program file that was started, and it comes before
-//! anything else was reported (no `Ausgabe`, no other event). Only the first title of a session can be the prelude; a title the program
-//! writes itself stays an event, also when it reads the same.
+//! anything else was reported (no row with content, no other event). Only the first title of a session can be the prelude; a title the
+//! program writes itself stays an event, also when it reads the same.
+//!
+//! When the size of the pseudo console changes before the prelude, `ConPTY` repaints first: it hides the cursor, clears every row and
+//! goes home, then writes the title (measured 25.11.2026, contract `dienst` section 21c). That gives an `Ausgabe` with the cursor alone;
+//! it does not close the prelude, because no row has content yet (`Raster::ausgabe_melden`).
 
 /// Whether the next title may still be the prelude of `ConPTY`, and which program it names.
 #[derive(Debug, Default)]

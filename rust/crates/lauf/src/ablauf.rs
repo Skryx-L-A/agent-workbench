@@ -124,7 +124,7 @@ pub fn lauf(args: &[OsString], umgebung: &Umgebung) -> Fehler {
     // descriptor 3 (and with a report descriptor 4) is reserved before the first file is opened
     let mut platz = Platz::reservieren();
     let mut meldung = match meldung_pfad {
-        None => Meldung::keine(),
+        None => Meldung::default(),
         Some(p) => {
             let vier = Meldung::reservieren();
             // the first step after the arguments; without a connection only the line on standard error remains
@@ -190,8 +190,17 @@ fn pruefen_und_starten(
     fehler
 }
 
-/// Steps 1 to 5b.
+/// Steps 1 to 5b with the configuration of this build.
 fn pruefen(args: &[OsString]) -> Result<Lage, Fehler> {
+    pruefen_mit(args, crate::konfig::pfad)
+}
+
+/// Steps 1 to 5b. `konfig_pfad` names the configuration; it is asked for at step 3, after the start file was read. The
+/// unit tests pass a configuration of their own (the delivered build reads a fixed path below `/etc`).
+fn pruefen_mit(
+    args: &[OsString],
+    konfig_pfad: impl FnOnce() -> Option<PathBuf>,
+) -> Result<Lage, Fehler> {
     // step 1
     let [pfad] = args else {
         return Err(Fehler::Aufruf);
@@ -200,14 +209,14 @@ fn pruefen(args: &[OsString]) -> Result<Lage, Fehler> {
     // step 2
     let bytes = dateien::startdatei_lesen(pfad)?;
     // step 3
-    let konfig = crate::konfig::lesen_datei(&crate::konfig::pfad().ok_or(Fehler::KonfigFehlt)?)?;
+    let konfig = crate::konfig::lesen_datei(&konfig_pfad().ok_or(Fehler::KonfigFehlt)?)?;
     let einst = einstellungen_lesen(&konfig.einstellungen)?;
     // step 4
     let start = start::lesen_datei(&bytes).map_err(Fehler::Start)?;
     let art = start::pruefen(&start, &einst).map_err(Fehler::Start)?;
     let route = einst.route(start.route()).ok_or(Fehler::Intern)?;
-    // step 4a
-    if art == Routenart::Lokal && (route.ziel().is_none() || route.modell().is_none()) {
+    // step 4a: the settings give a local route both or neither (stage 18 of contract 2), so one check of the pair
+    if art == Routenart::Lokal && route.ziel().zip(route.modell()).is_none() {
         return Err(Fehler::ZielFehlt);
     }
     // step 5
@@ -315,7 +324,13 @@ fn starten(
     // step 6; descriptor 5 of the lifeline is the place's own too (without it the start ends at step 8, before the
     // trampoline: `Platz::leine_legen`)
     let eigene = [meldung.eigene(), platz.eigene()].concat();
-    let verteilung = match einschluss_pruefen(lage, route, platz, &eigene) {
+    let verteilung = match einschluss_pruefen(
+        lage,
+        route,
+        &einschluss_programm(&lage.konfig),
+        platz,
+        &eigene,
+    ) {
         Ok(v) => v,
         Err(f) => return f,
     };
@@ -330,6 +345,10 @@ fn starten(
         Err(f) => return f,
     };
     kinder.ordner = Some(sockel.clone());
+    // the fork condition, once before both children: between the two starts no thread begins
+    if let Err(f) = einthreadig_oder_intern() {
+        return f;
+    }
     match such_starten(lage, &sockel) {
         Ok(k) => kinder.suche = Some(k),
         Err(f) => return f,
@@ -382,7 +401,9 @@ fn bekannte(kinder: &mut Kinder) -> Vec<u32> {
     b
 }
 
-#[cfg(not(feature = "pruefbau"))]
+/// The hand-over of step 8: the delivered build starts the starter, the test build `bwrap` of the configuration. One
+/// function with a `cfg` on its body: cargo-mutants reads the text and would keep the mutants of a second function that
+/// the run without (or with) the feature never builds.
 fn uebergeben(
     lage: &Lage,
     platz: &mut Platz,
@@ -391,33 +412,25 @@ fn uebergeben(
     kinder: &mut Kinder,
 ) -> Fehler {
     let bekannt = bekannte(kinder);
-    uebergabe::starter_halten(
+    #[cfg(not(feature = "pruefbau"))]
+    let fehler = uebergabe::starter_halten(
         &lage.konfig.programme.kind,
         Path::new(einschluss::starter::STARTER_PFAD),
         platz,
         meldung,
         b,
         &bekannt,
-    )
-}
-
-#[cfg(feature = "pruefbau")]
-fn uebergeben(
-    lage: &Lage,
-    platz: &mut Platz,
-    meldung: &mut Meldung,
-    b: &einschluss::Beschreibung,
-    kinder: &mut Kinder,
-) -> Fehler {
-    let bekannt = bekannte(kinder);
-    uebergabe::bwrap_halten(
+    );
+    #[cfg(feature = "pruefbau")]
+    let fehler = uebergabe::bwrap_halten(
         &lage.konfig.programme.kind,
         lage.konfig.bwrap.as_deref(),
         platz,
         meldung,
         b,
         &bekannt,
-    )
+    );
+    fehler
 }
 
 /// Step 6: the platform has the enclosure, the starter (or in the test build `bwrap`) is an executable file, the
@@ -426,21 +439,14 @@ fn uebergeben(
 fn einschluss_pruefen(
     lage: &Lage,
     route: &Route,
+    programm: &Path,
     platz: &Platz,
     eigene: &[i32],
 ) -> Result<Option<einschluss::Verteilung>, Fehler> {
     if !cfg!(target_os = "linux") {
         return Err(Fehler::EinschlussFehlt);
     }
-    let programm: PathBuf = if cfg!(feature = "pruefbau") {
-        lage.konfig
-            .bwrap
-            .clone()
-            .unwrap_or_else(|| PathBuf::from(einschluss::BWRAP_PFAD))
-    } else {
-        PathBuf::from(einschluss::starter::STARTER_PFAD)
-    };
-    if !ausfuehrbar(&programm) {
+    if !ausfuehrbar(programm) {
         return Err(Fehler::EinschlussFehlt);
     }
     if !uebergabe::platz_gut(
@@ -459,6 +465,17 @@ fn einschluss_pruefen(
             .map_err(|_| Fehler::EinschlussFehlt);
     }
     Ok(None)
+}
+
+/// The program of step 6: the starter, in the test build `bwrap` (of the configuration, if it names one).
+fn einschluss_programm(k: &Konfig) -> PathBuf {
+    if cfg!(feature = "pruefbau") {
+        k.bwrap
+            .clone()
+            .unwrap_or_else(|| PathBuf::from(einschluss::BWRAP_PFAD))
+    } else {
+        PathBuf::from(einschluss::starter::STARTER_PFAD)
+    }
 }
 
 fn ausfuehrbar(pfad: &Path) -> bool {
@@ -506,44 +523,40 @@ fn paket_bereitstellen(
     }))
 }
 
-/// The extraction of the delivered build: the starter with the call `vorentpacken` and the text form on descriptor 3,
-/// as a child.
-#[cfg(not(feature = "pruefbau"))]
+/// The extraction of step 6a. The delivered build: the starter with the call `vorentpacken` and the text form on
+/// descriptor 3, as a child. The test build: `bwrap` of the configuration directly, with the same checked arguments.
+/// One function with a `cfg` on its body, for the same reason as [`uebergeben`].
 fn vorentpacken(
-    _lage: &Lage,
+    lage: &Lage,
     platz: &mut Platz,
     v: &einschluss::Vorentpacken,
 ) -> Result<crate::paket::Ende, Fehler> {
-    uebergabe::auf_drei_legen(platz, einschluss::vorentpacken_schreiben(v).as_bytes()).map_err(
-        |_| Fehler::PaketEntpacken {
+    #[cfg(not(feature = "pruefbau"))]
+    let befehl = {
+        let _ = lage;
+        uebergabe::auf_drei_legen(platz, einschluss::vorentpacken_schreiben(v).as_bytes())
+            .map_err(|_| Fehler::PaketEntpacken {
+                rc: None,
+                wort: "start",
+            })?;
+        einschluss::starter::vorentpacken_befehl(Path::new(einschluss::starter::STARTER_PFAD))
+    };
+    #[cfg(feature = "pruefbau")]
+    let befehl = {
+        let _ = platz;
+        let args = v.argumente().map_err(|_| Fehler::PaketEntpacken {
             rc: None,
             wort: "start",
-        },
-    )?;
-    crate::paket::lauf_messen(
-        einschluss::starter::vorentpacken_befehl(Path::new(einschluss::starter::STARTER_PFAD)),
-        crate::paket::ENTPACK_FRIST,
-    )
-}
-
-/// The extraction of the test build: `bwrap` of the configuration directly, with the same checked arguments.
-#[cfg(feature = "pruefbau")]
-fn vorentpacken(
-    lage: &Lage,
-    _platz: &mut Platz,
-    v: &einschluss::Vorentpacken,
-) -> Result<crate::paket::Ende, Fehler> {
-    let args = v.argumente().map_err(|_| Fehler::PaketEntpacken {
-        rc: None,
-        wort: "start",
-    })?;
-    let bwrap = lage
-        .konfig
-        .bwrap
-        .clone()
-        .unwrap_or_else(|| PathBuf::from(einschluss::BWRAP_PFAD));
-    let mut befehl = std::process::Command::new(bwrap);
-    befehl.args(args).env_clear();
+        })?;
+        let bwrap = lage
+            .konfig
+            .bwrap
+            .clone()
+            .unwrap_or_else(|| PathBuf::from(einschluss::BWRAP_PFAD));
+        let mut befehl = std::process::Command::new(bwrap);
+        befehl.args(args).env_clear();
+        befehl
+    };
     crate::paket::lauf_messen(befehl, crate::paket::ENTPACK_FRIST)
 }
 
@@ -609,7 +622,6 @@ fn einthreadig_oder_intern() -> Result<(), Fehler> {
 }
 
 fn such_starten(lage: &Lage, sockel: &Path) -> Result<Kind, Fehler> {
-    einthreadig_oder_intern()?;
     let args = such_argumente(lage, &sockel.join("such.sock"));
     kind::starten(
         &lage.konfig.programme.kind,
@@ -664,7 +676,6 @@ fn modellweg_starten(
     socket: &Path,
     spuren: &mut Spuren,
 ) -> Result<(Kind, Option<CloudTeile>), Fehler> {
-    einthreadig_oder_intern()?;
     let (mut args, cloud) = match route.art() {
         Routenart::Lokal => {
             let (Some(ziel), Some(modell)) = (route.ziel(), route.modell()) else {
@@ -706,8 +717,26 @@ fn modellweg_starten(
 
 /// The session files of the cloud route next to the start file: the target list, the key and the certificate of the
 /// CA and the bundle of the enclosure (the host bundle with the certificate of the CA appended).
-#[cfg(target_os = "linux")]
+///
+/// One function with a `cfg` on its body (Linux only, like the CA), for the same reason as [`uebergeben`].
 fn cloud_vorbereiten(
+    lage: &Lage,
+    route: &Route,
+    socket: &Path,
+    spuren: &mut Spuren,
+) -> Result<(Vec<String>, Option<CloudTeile>), Fehler> {
+    #[cfg(not(target_os = "linux"))]
+    let ergebnis = {
+        let _ = (lage, route, socket, spuren);
+        Err(Fehler::EinschlussFehlt)
+    };
+    #[cfg(target_os = "linux")]
+    let ergebnis = cloud_vorbereiten_linux(lage, route, socket, spuren);
+    ergebnis
+}
+
+#[cfg(target_os = "linux")]
+fn cloud_vorbereiten_linux(
     lage: &Lage,
     route: &Route,
     socket: &Path,
@@ -780,16 +809,6 @@ fn cloud_vorbereiten(
         text(&ca_zertifikat),
     ]);
     Ok((a, cloud))
-}
-
-#[cfg(not(target_os = "linux"))]
-fn cloud_vorbereiten(
-    _lage: &Lage,
-    _route: &Route,
-    _socket: &Path,
-    _spuren: &mut Spuren,
-) -> Result<(Vec<String>, Option<CloudTeile>), Fehler> {
-    Err(Fehler::EinschlussFehlt)
 }
 
 /// Step 8, last part: the watcher (contract 1, "Lebensdauer", point 3). It outlives this process, which becomes the

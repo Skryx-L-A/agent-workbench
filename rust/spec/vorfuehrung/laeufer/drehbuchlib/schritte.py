@@ -978,8 +978,19 @@ def verweis_halter(zielliste, halter):
     return os.path.join(ablage, name)
 
 
-def _suche_route(L, s, art, quelle_option, quelle, ins, schluessel_datei_fuer_verweis, programm, kennung, nach_suche=None):
-    """Eine Suche je Route und die Gegenprobe mit dem Verweis. Ergaenzt den Schritt `s` (E4-lokal oder E4-cloud). `nach_suche(art)` laeuft
+def gebundene_ziele(zielliste):
+    """Zahl der Eintraege der Zielliste mit `halter_ziel` ungleich null, oder None, wenn sie sich nicht lesen laesst. Der Modellweg fragt den
+    Halter je gebundenem Ziel einmal und summiert die Zaehler (Vertrag 8, 9a S2 Punkt 3a): Der Verweis der Gegenprobe zaehlt darum je
+    gebundenem Ziel einmal als `uebersprungen`, auch wenn alle dasselbe Geheimnis nennen."""
+    try:
+        with open(zielliste, encoding="utf-8") as f:
+            return sum(1 for z in json.load(f)["ziele"] if z.get("halter_ziel") is not None)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return None
+
+
+def _suche_route(L, s, art, quelle_option, quelle, ins, schluessel_datei_fuer_verweis, programm, kennung, nach_suche=None, uebersprungen=1):
+    """Eine Suche je Route und die Gegenprobe mit dem Verweis. Ergaenzt den Schritt `s` (E4-lokal oder E4-cloud). `uebersprungen` ist die Zahl, die die Gegenprobe erwartet (lokal 1, cloud die Zahl der gebundenen Ziele). `nach_suche(art)` laeuft
     nach der Suche UND nach ihrer Gegenprobe, auch wenn die Gegenprobe mit einer Ausnahme endet: Die Gegenprobe ruft die Suche noch einmal
     mit derselben Quelle auf (`--zielliste <datei>`), die Quelle muss bis dahin liegen bleiben (Testlauf vom 21.11.2026: in einer frueheren Fassung lief
     `nach_suche` vor der Gegenprobe; die Zielliste fehlte ihr, E4-cloud wurde `e4-cloud.schluessel_suche_fehler`)."""
@@ -987,13 +998,13 @@ def _suche_route(L, s, art, quelle_option, quelle, ins, schluessel_datei_fuer_ve
     frist = float(k["grenzen"].get("suche_s", 60))
     art_, zahlen = messen.schluessel_suche(programm, quelle_option, quelle, ins, frist)
     try:
-        _suche_werten(s, art, art_, zahlen, quelle_option, quelle, schluessel_datei_fuer_verweis, programm, kennung, frist)
+        _suche_werten(s, art, art_, zahlen, quelle_option, quelle, schluessel_datei_fuer_verweis, programm, kennung, frist, uebersprungen)
     finally:
         if nach_suche:
             nach_suche(art_)
 
 
-def _suche_werten(s, art, art_, zahlen, quelle_option, quelle, schluessel_datei_fuer_verweis, programm, kennung, frist):
+def _suche_werten(s, art, art_, zahlen, quelle_option, quelle, schluessel_datei_fuer_verweis, programm, kennung, frist, uebersprungen=1):
     """Urteil der Suche und die Gegenprobe mit dem Verweis (Teil von `_suche_route`)."""
     w = {"suche_%s_art" % art: art_}
     if zahlen:
@@ -1022,10 +1033,11 @@ def _suche_werten(s, art, art_, zahlen, quelle_option, quelle, schluessel_datei_
         gw = {"verweis_%s_art" % art: g_art}
         if g_z:
             gw.update({"verweis_%s_%s" % (art, n): v for n, v in g_z.items()})
-        if g_art == "gruen" and g_z["uebersprungen"] == 1 and g_z["dateien"] == 0:
-            s.gegen("Gegenprobe: ein Verweis auf die Schluesseldatei zaehlt nicht als Fund (0 Treffer, 1 uebersprungen)", True, **gw)
+        gname = "Gegenprobe: ein Verweis auf die Schluesseldatei zaehlt nicht als Fund (0 Treffer, %d uebersprungen)" % uebersprungen
+        if g_art == "gruen" and g_z["uebersprungen"] == uebersprungen and g_z["dateien"] == 0 and g_z["treffer"] == 0:
+            s.gegen(gname, True, **gw)
         elif g_art == "rot":
-            s.gegen("Gegenprobe: ein Verweis auf die Schluesseldatei zaehlt nicht als Fund (0 Treffer, 1 uebersprungen)", False, **gw)
+            s.gegen(gname, False, **gw)
         else:
             s.gegenwerte.update(gw)
             s.offen.append("schluessel_suche: die Gegenprobe mit dem Verweis ist nicht auswertbar (%s)" % art)
@@ -1088,7 +1100,7 @@ def suche_nachtrag(L, objekte):
                 if verweis is None:
                     s.offen.append("schluessel_suche: Ziel der Gegenprobe in der Ablage des Halters fehlt")
                     s.code_offen = s.code_offen or "e4-cloud.schluessel_suche_fehler"
-                _suche_route(L, s, "cloud", "--zielliste", zl, ins, verweis, programm, kennung,
+                _suche_route(L, s, "cloud", "--zielliste", zl, ins, verweis, programm, kennung, uebersprungen=gebundene_ziele(zl) or 1,
                              nach_suche=lambda art_, zl=zl, sid_zl=sid_zl: hinweise.extend(_zielliste_nach_suche(L, zl, sid_zl, art_)))
     except OSError:
         for kennung, s in ziele:

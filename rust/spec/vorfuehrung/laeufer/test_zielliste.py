@@ -308,6 +308,40 @@ class VerweisHalter(unittest.TestCase):
                 self.assertEqual(gesehen, [self.geheim])
                 self.assertEqual(s.gegenprobe(), "rot" if folgt else "gruen")
 
+    def test_gegenprobe_erwartet_je_gebundenem_ziel_ein_uebersprungen(self):
+        """Drei gebundene Ziele nennen alle `anmeldung.copilot`; der Modellweg summiert je Ziel, die Gegenprobe meldet 3 uebersprungen.
+        Gruen mit 3; folgt der Halter der Verknuepfung (Treffer), bleibt der Teil rot; 1 statt 3 ist nicht auswertbar (offen)."""
+        hosts = ["api.github.com", "api.githubcopilot.com", "api.individual.githubcopilot.com"]
+        self.halter_json({h: {"schluessel": "anmeldung.copilot"} for h in hosts})
+        schreibe(self.zl, json.dumps({"fassung": 1, "ca_zulassung": "zugelassen", "ziele": [
+            {"name": "n%d" % i, "host": h, "port": 443, "halter_ziel": h, "regeln": [], "upgrade": "durchreichen"} for i, h in enumerate(hosts)]
+            + [{"name": "t", "host": "telemetry.beispiel.test", "port": 443, "halter_ziel": None, "regeln": [], "upgrade": "ablehnen"}]}))
+        self.assertEqual(schritte.gebundene_ziele(self.zl), 3)
+        self.assertEqual(schritte.verweis_halter(self.zl, self.halter), self.geheim)
+        for fall, erwartet in (("gruen", "gruen"), ("folgt", "rot"), ("eins", "offen")):
+            with self.subTest(fall=fall):
+                def suche(programm, quelle_option, quelle, ins, frist_s=60):
+                    if len(ins) == 1 and os.path.islink(os.path.join(ins[0], "verweis")):
+                        if fall == "folgt":
+                            return "rot", {"dateien": 3, "nicht_lesbar": 0, "treffer": 3, "uebersprungen": 0}
+                        return "gruen", {"dateien": 0, "nicht_lesbar": 0, "treffer": 0, "uebersprungen": 1 if fall == "eins" else 3}
+                    return "gruen", {"dateien": 3, "nicht_lesbar": 0, "treffer": 0, "uebersprungen": 0}
+                s = schritte.Schritt("E4-cloud", "Das Token der CLI bleibt draussen (cloud)")
+                with mock.patch.object(messen, "schluessel_suche", side_effect=suche):
+                    schritte._suche_route(FakeL(ziel="attrappe"), s, "cloud", "--zielliste", self.zl, [self.basis],
+                                          schritte.verweis_halter(self.zl, self.halter), ["prog"], "E4-cloud",
+                                          uebersprungen=schritte.gebundene_ziele(self.zl))
+                if erwartet == "offen":
+                    self.assertTrue(any(o.startswith("schluessel_suche") for o in s.offen))
+                else:
+                    self.assertEqual(s.gegenprobe(), erwartet)
+                    self.assertFalse(any(o.startswith("schluessel_suche") for o in s.offen))
+
+    def test_zahl_gebundener_ziele(self):
+        schreibe(self.zl, json.dumps({"ziele": [{"halter_ziel": "a"}, {"halter_ziel": None}, {}]}))
+        self.assertEqual(schritte.gebundene_ziele(self.zl), 1)
+        self.assertIsNone(schritte.gebundene_ziele(os.path.join(self.basis, "fehlt.json")))
+
 
 if __name__ == "__main__":
     unittest.main()

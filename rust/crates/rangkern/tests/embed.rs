@@ -440,9 +440,15 @@ impl Fake {
                     Ok(count) => count > 0,
                     Err(e) => matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut),
                 };
+                // The listener that keeps it open may be one of another program, which got the port from `bind 0`
+                // after the stand-in gave it back: only a listener of this program or of a program it started counts
+                // (`own_listener`, measured while the connection is still open). Where the holders cannot be
+                // measured, the port counts as held.
+                let held = open && own_listener(self.addr) != Some(false);
                 assert!(
-                    !open,
-                    "the port of the stand-in is still open: {:?} reached {:?}",
+                    !held,
+                    "the port of the stand-in is still open: {:?} reached {:?} (a listener of this program or of a \
+                     program it started)",
                     stream.local_addr(),
                     stream.peer_addr()
                 );
@@ -490,6 +496,180 @@ fn program_starts() -> RwLockWriteGuard<'static, ()> {
 fn start_program(command: &mut std::process::Command) -> std::io::Result<std::process::Child> {
     let _start = program_starts();
     command.spawn()
+}
+
+/// Whether this test program, or a program it started, holds a listener on the port of `addr`.
+///
+/// A connection to a port that stays open shows only that some process listens there. Since the test programs of the
+/// workspace run side by side, that may be another program, which got the same port from `bind 0` after the stand-in had
+/// given it back (measured 25.11.2026 on the Linux build host: "the port of the stand-in is still open", while the
+/// stand-in of this program was closed). The check in `finish` is about the stand-in: only a listener of this process or
+/// of one of its descendants counts, including a copy of the descriptor in a program it started. `None`: the holders
+/// cannot be measured here (another system, or the tool of the measurement fails); the caller then counts the port as
+/// held, as before.
+fn own_listener(addr: SocketAddr) -> Option<bool> {
+    let own = own_processes()?;
+    let holders = listener_holders(addr.port())?;
+    Some(holders.iter().any(|pid| own.contains(pid)))
+}
+
+/// This process and every process below it (by the parent of each process).
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn own_processes() -> Option<std::collections::BTreeSet<u32>> {
+    let parents = process_parents()?;
+    let mut own = std::collections::BTreeSet::from([std::process::id()]);
+    loop {
+        let before = own.len();
+        for (pid, parent) in &parents {
+            if own.contains(parent) {
+                own.insert(*pid);
+            }
+        }
+        if own.len() == before {
+            return Some(own);
+        }
+    }
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+fn own_processes() -> Option<std::collections::BTreeSet<u32>> {
+    None
+}
+
+/// (pid, parent) of every process that can be read, from `/proc/<pid>/stat` (the parent is the second field after the
+/// name in parentheses; the name may itself hold a parenthesis, so the last one ends it).
+#[cfg(target_os = "linux")]
+fn process_parents() -> Option<Vec<(u32, u32)>> {
+    let mut out = Vec::new();
+    for entry in fs::read_dir("/proc").ok()? {
+        let Ok(entry) = entry else { continue };
+        let Some(pid) = entry
+            .file_name()
+            .to_str()
+            .and_then(|n| n.parse::<u32>().ok())
+        else {
+            continue;
+        };
+        let Ok(stat) = fs::read_to_string(entry.path().join("stat")) else {
+            continue;
+        };
+        let Some(rest) = stat.rfind(')').map(|i| &stat[i + 1..]) else {
+            continue;
+        };
+        if let Some(parent) = rest
+            .split_whitespace()
+            .nth(1)
+            .and_then(|p| p.parse::<u32>().ok())
+        {
+            out.push((pid, parent));
+        }
+    }
+    Some(out)
+}
+
+/// (pid, parent) of every process, from `ps -A -o pid= -o ppid=`.
+#[cfg(target_os = "macos")]
+fn process_parents() -> Option<Vec<(u32, u32)>> {
+    let text =
+        measure(std::process::Command::new("/bin/ps").args(["-A", "-o", "pid=", "-o", "ppid="]))?;
+    Some(
+        text.lines()
+            .filter_map(|line| {
+                let mut parts = line.split_whitespace();
+                Some((parts.next()?.parse().ok()?, parts.next()?.parse().ok()?))
+            })
+            .collect(),
+    )
+}
+
+/// The processes that hold a listening TCP socket on `port` (any address). Linux: the inodes of the sockets in state
+/// LISTEN (`0A`) of `/proc/net/tcp` and `/proc/net/tcp6`, then every readable `/proc/<pid>/fd/*` that names one of them.
+/// A process of another user cannot be read; it is not one of this program anyway.
+#[cfg(target_os = "linux")]
+fn listener_holders(port: u16) -> Option<Vec<u32>> {
+    let mut inodes = std::collections::BTreeSet::new();
+    for table in ["/proc/net/tcp", "/proc/net/tcp6"] {
+        let Ok(text) = fs::read_to_string(table) else {
+            continue;
+        };
+        for line in text.lines().skip(1) {
+            let fields: Vec<&str> = line.split_whitespace().collect();
+            let (Some(local), Some(state), Some(inode)) =
+                (fields.get(1), fields.get(3), fields.get(9))
+            else {
+                continue;
+            };
+            let on_port = local
+                .rsplit(':')
+                .next()
+                .and_then(|hex| u16::from_str_radix(hex, 16).ok())
+                == Some(port);
+            if on_port && *state == "0A" && *inode != "0" {
+                inodes.insert(format!("socket:[{inode}]"));
+            }
+        }
+    }
+    let mut holders = Vec::new();
+    if inodes.is_empty() {
+        return Some(holders);
+    }
+    for entry in fs::read_dir("/proc").ok()? {
+        let Ok(entry) = entry else { continue };
+        let Some(pid) = entry
+            .file_name()
+            .to_str()
+            .and_then(|n| n.parse::<u32>().ok())
+        else {
+            continue;
+        };
+        let Ok(fds) = fs::read_dir(entry.path().join("fd")) else {
+            continue;
+        };
+        for fd in fds.flatten() {
+            if fs::read_link(fd.path())
+                .is_ok_and(|link| inodes.contains(link.to_string_lossy().as_ref()))
+            {
+                holders.push(pid);
+                break;
+            }
+        }
+    }
+    Some(holders)
+}
+
+/// The processes that hold a listening TCP socket on `port`, from `lsof -nP -a -iTCP:<port> -sTCP:LISTEN -Fp`
+/// (exit 1 and no output when there is none; `None` only if lsof cannot start).
+#[cfg(target_os = "macos")]
+fn listener_holders(port: u16) -> Option<Vec<u32>> {
+    let filter = format!("-iTCP:{port}");
+    let text = measure(std::process::Command::new("/usr/sbin/lsof").args([
+        "-nP",
+        "-a",
+        &filter,
+        "-sTCP:LISTEN",
+        "-Fp",
+    ]))?;
+    Some(
+        text.lines()
+            .filter_map(|line| line.strip_prefix('p')?.parse().ok())
+            .collect(),
+    )
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+fn listener_holders(_port: u16) -> Option<Vec<u32>> {
+    None
+}
+
+/// The standard output of a measuring program, started with `start_program`; `None` if it cannot start.
+#[cfg(target_os = "macos")]
+fn measure(command: &mut std::process::Command) -> Option<String> {
+    command
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null());
+    let out = start_program(command).ok()?.wait_with_output().ok()?;
+    String::from_utf8(out.stdout).ok()
 }
 
 /// A claim on a port number: a folder in `claims_root`, made with one atomic call, so that of all the
@@ -2357,4 +2537,65 @@ fn the_program_on_pipes_embeds_every_request_and_leaves_no_connection_open() {
     drop(stdin);
     assert_eq!(wait_or_kill(&mut child, 8).code(), Some(0));
     assert_eq!(fake.finish().len(), 3);
+}
+
+/// The measurement behind the check of `finish`: a listener of this program counts, a copy of it in a program this one
+/// started counts, a listener of a program that is not below this one does not (the positive and the negative control of
+/// `own_listener`).
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[test]
+fn the_port_check_counts_only_a_listener_of_this_program_and_its_children() {
+    use rustix::io::{FdFlags, fcntl_setfd};
+    watchdog();
+    let start = no_program_starts();
+    let (listener, _claim) = bind_free(IpAddr::V4(Ipv4Addr::LOCALHOST)).expect("a free port");
+    drop(start);
+    let addr = listener.local_addr().expect("address");
+    assert_eq!(own_listener(addr), Some(true), "the own listener");
+
+    // A copy in a program this one started: the descriptor without close-on-exec, then `sleep` holds it.
+    fcntl_setfd(&listener, FdFlags::empty()).expect("flag");
+    let mut child =
+        start_program(std::process::Command::new("/bin/sleep").arg("30")).expect("sleep starts");
+    let start = no_program_starts();
+    drop(listener);
+    drop(start);
+    assert_eq!(own_listener(addr), Some(true), "the copy in the child");
+    child.kill().expect("kill");
+    child.wait().expect("wait");
+    assert_eq!(
+        own_listener(addr),
+        Some(false),
+        "no listener of this program is left"
+    );
+
+    // A listener of a program that is not below this one: `sh` starts it in the background and ends, so the listener
+    // goes to another parent. It names its port on its first line and ends by itself after ten seconds.
+    let mut sh = std::process::Command::new("/bin/sh");
+    sh.args([
+        "-c",
+        "/usr/bin/python3 -I -c 'import socket, time; s = socket.socket(); s.bind((\"127.0.0.1\", 0)); s.listen(); \
+         print(s.getsockname()[1], flush=True); time.sleep(10)' &",
+    ])
+    .stdin(std::process::Stdio::null())
+    .stdout(std::process::Stdio::piped());
+    let mut sh = start_program(&mut sh).expect("sh starts");
+    let mut line = String::new();
+    std::io::BufReader::new(sh.stdout.take().expect("stdout"))
+        .read_line(&mut line)
+        .expect("the port of the other program");
+    sh.wait().expect("sh ends");
+    let foreign = SocketAddr::from((
+        Ipv4Addr::LOCALHOST,
+        line.trim().parse::<u16>().expect("a port"),
+    ));
+    assert!(
+        TcpStream::connect_timeout(&foreign, Duration::from_secs(2)).is_ok(),
+        "the other program listens"
+    );
+    assert_eq!(
+        own_listener(foreign),
+        Some(false),
+        "a listener of another program"
+    );
 }

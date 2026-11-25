@@ -60,6 +60,18 @@ fn the_start_file_is_read_only_when_it_is_an_own_file_of_mode_0600() {
         Err(Fehler::DateiUnlesbar)
     );
     assert_eq!(startdatei_lesen(&o), Err(Fehler::DateiModus), "a folder");
+    // a FIFO without a writer: opened without waiting (O_NONBLOCK) and refused by its kind; a hang fails within the limit
+    let fifo = o.join("fifo.json");
+    let st = std::process::Command::new("mkfifo")
+        .args(["-m", "600"])
+        .arg(&fifo)
+        .status()
+        .expect("mkfifo");
+    assert!(st.success());
+    let r = crate::testhilfe::mit_frist(std::time::Duration::from_secs(10), move || {
+        startdatei_lesen(&fifo)
+    });
+    assert_eq!(r, Err(Fehler::DateiModus), "a FIFO");
     // a long file is cut after 4097 bytes, so stage 1 sees "too large"
     std::fs::write(&datei, vec![b' '; 10_000]).expect("write");
     assert_eq!(startdatei_lesen(&datei).map(|t| t.len()), Ok(4097));

@@ -1048,3 +1048,53 @@ fn a_lost_race_at_the_lock_file_is_tried_again_until_the_time_limit_and_then_fai
         "tried again until the limit"
     );
 }
+
+#[test]
+fn a_file_with_the_most_marks_is_read() {
+    let alle: Vec<Marke> = (0..ANZAHL_MAX)
+        .map(|i| m(&format!("/x/{i}"), None, "intern"))
+        .collect();
+    assert_eq!(
+        lesen_marken(schreiben_marken(&alle).as_bytes(), &klassen()).map(|l| l.len()),
+        Ok(ANZAHL_MAX)
+    );
+}
+
+#[test]
+fn only_a_lost_race_or_a_signal_is_tried_again_and_only_before_the_limit() {
+    use rustix::io::Errno;
+    assert!(wiederholen(Errno::NOENT, true));
+    assert!(wiederholen(Errno::INTR, true));
+    assert!(!wiederholen(Errno::NOENT, false));
+    assert!(!wiederholen(Errno::INTR, false));
+    assert!(!wiederholen(Errno::ACCESS, true));
+    assert!(!wiederholen(Errno::LOOP, true));
+}
+
+#[test]
+fn a_lock_file_that_cannot_be_made_ends_at_once_and_a_held_lock_at_the_limit() {
+    let o = Ordner::neu();
+    let ordner = ordner_oeffnen(&o.0).expect("folder");
+    let gehalten = sperren(&ordner, Duration::from_millis(10)).expect("lock");
+    // the lock waits at most its limit; a wait past it fails the test within the limit of the thread
+    let beginn = Instant::now();
+    let zweites = ordner_oeffnen(&o.0).expect("folder");
+    let r = crate::testhilfe::mit_frist(Duration::from_secs(10), move || {
+        sperren(&zweites, Duration::from_millis(200)).map(drop)
+    });
+    assert_eq!(r, Err(Fehler::OrdnerMarkeKaputt));
+    assert!(beginn.elapsed() >= Duration::from_millis(200));
+    drop(gehalten);
+    // a folder where the lock file cannot be made (no write right): no retry, the fault at once
+    if !rustix::process::geteuid().is_root() {
+        let o = Ordner::neu();
+        std::fs::set_permissions(&o.0, std::fs::Permissions::from_mode(0o500)).expect("mode");
+        let nur_lesen =
+            rustix::fs::open(&o.0, OFlags::RDONLY.union(OFlags::DIRECTORY), Mode::empty())
+                .expect("folder");
+        let r = crate::testhilfe::mit_frist(Duration::from_secs(10), move || {
+            sperren(&nur_lesen, Duration::from_secs(60)).map(drop)
+        });
+        assert_eq!(r, Err(Fehler::OrdnerMarkeKaputt));
+    }
+}

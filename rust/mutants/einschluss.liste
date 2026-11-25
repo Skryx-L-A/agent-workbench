@@ -1,0 +1,21 @@
+# Exclusions of the mutation gate for the crate einschluss (gates.sh, gate mutants, reads every mutants/*.liste).
+# Format and rules: mutants/README.md. One entry per line: <list> <kind> <pattern>.
+
+# einschluss, `einschluss-attrappe`: the stand-in harness and search process of the outside tests. The binary has
+# `required-features = ["attrappe"]`, so no delivery build compiles it (the package lists no stand-in, and no build
+# script turns the feature on: `rust/paket/test_bau.py` holds both). Its mutants test a test help, not the delivered
+# program.
+testhilfe datei crates/einschluss/src/bin/attrappe.rs
+
+# einschluss, `attrappe::fremd`: the stand-in of the Unix sockets on a system without them. `UnixListener` and
+# `UnixStream` are enums without a variant, and `bind` and `connect` always return `Err` (test
+# `the_socket_stand_in_binds_and_connects_nothing`), so no value of these types can exist. Every method with `self`
+# has the body `match *self {}` and can never run; a change of its body changes no behaviour (decision of 25.11.2026,
+# measured: these 11 and no other survive the full run of einschluss).
+gleichwertig re crates/einschluss/src/attrappe.rs:548:13: replace fremd::UnixStream::set_read_timeout -> io::Result<\(\)> with Ok\(\(\)\)
+gleichwertig re crates/einschluss/src/attrappe.rs:554:13: replace fremd::<impl Read for &UnixStream>::read -> io::Result<usize> with Ok\((0|1)\)
+gleichwertig re crates/einschluss/src/attrappe.rs:560:13: replace fremd::<impl Write for &UnixStream>::write -> io::Result<usize> with Ok\((0|1)\)
+gleichwertig re crates/einschluss/src/attrappe.rs:564:13: replace fremd::<impl Write for &UnixStream>::flush -> io::Result<\(\)> with Ok\(\(\)\)
+gleichwertig re crates/einschluss/src/attrappe.rs:570:13: replace fremd::<impl Read for UnixStream>::read -> io::Result<usize> with Ok\((0|1)\)
+gleichwertig re crates/einschluss/src/attrappe.rs:576:13: replace fremd::<impl Write for UnixStream>::write -> io::Result<usize> with Ok\((0|1)\)
+gleichwertig re crates/einschluss/src/attrappe.rs:580:13: replace fremd::<impl Write for UnixStream>::flush -> io::Result<\(\)> with Ok\(\(\)\)

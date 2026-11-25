@@ -13,7 +13,6 @@
 //! whatever the reason. The files next to the start file stay: they belong to the core service, which removes them at
 //! the end of the session (contract 1, "Dateien der Sitzung").
 
-use std::io::Read;
 use std::os::fd::AsFd;
 use std::path::Path;
 use std::process::{Child, ChildStdout, Command, Stdio};
@@ -68,7 +67,8 @@ impl Kind {
             let _ = rustix::process::kill_process(pid, rustix::process::Signal::TERM);
         }
         let ende = Instant::now() + Duration::from_secs(2);
-        while Instant::now() < ende {
+        // the rest of the time, not a comparison of two instants: the moment of equality is no case a test can meet
+        while !ende.saturating_duration_since(Instant::now()).is_zero() {
             if matches!(self.kind.try_wait(), Ok(Some(_))) {
                 return;
             }
@@ -92,48 +92,44 @@ pub const WACHE_GNADE: Duration = Duration::from_secs(2);
 /// of the watcher (the parent of the starter leaves it alone, [`crate::uebergabe::halten`]).
 ///
 /// # Errors
-/// A pidfd cannot be opened or the watcher does not start.
-#[cfg(target_os = "linux")]
+/// A pidfd cannot be opened or the watcher does not start; outside Linux always (the watcher exists on Linux only).
 pub fn wache_starten(
     kind: &Path,
     kinder: [&Kind; 2],
     ordner: &Path,
     sitzung: &Path,
 ) -> std::io::Result<u32> {
-    let pidfd = |k: &Kind| -> std::io::Result<std::os::fd::OwnedFd> {
-        let pid = i32::try_from(k.pid())
-            .ok()
-            .and_then(rustix::process::Pid::from_raw)
-            .ok_or(std::io::ErrorKind::InvalidInput)?;
-        rustix::process::pidfd_open(pid, rustix::process::PidfdFlags::empty())
-            .map_err(std::io::Error::from)
+    // one function for every platform: cargo-mutants reads the text and would keep the mutants of a second function
+    // that the gate machine never builds
+    #[cfg(not(target_os = "linux"))]
+    let ergebnis = {
+        let _ = (kind, kinder, ordner, sitzung);
+        Err(std::io::ErrorKind::Unsupported.into())
     };
-    let (a, b) = (pidfd(kinder[0])?, pidfd(kinder[1])?);
-    Command::new(kind)
-        .arg(WACHE)
-        .arg(std::process::id().to_string())
-        .arg(ordner)
-        .arg(sitzung)
-        .env_clear()
-        .stdin(Stdio::from(a))
-        .stdout(Stdio::from(b))
-        .stderr(Stdio::null())
-        .spawn()
-        .map(|w| w.id())
-}
-
-/// Not available: the watcher exists on Linux only.
-///
-/// # Errors
-/// Always.
-#[cfg(not(target_os = "linux"))]
-pub fn wache_starten(
-    _kind: &Path,
-    _kinder: [&Kind; 2],
-    _ordner: &Path,
-    _sitzung: &Path,
-) -> std::io::Result<u32> {
-    Err(std::io::ErrorKind::Unsupported.into())
+    #[cfg(target_os = "linux")]
+    let ergebnis = {
+        let pidfd = |k: &Kind| -> std::io::Result<std::os::fd::OwnedFd> {
+            let pid = i32::try_from(k.pid())
+                .ok()
+                .and_then(rustix::process::Pid::from_raw)
+                .ok_or(std::io::ErrorKind::InvalidInput)?;
+            rustix::process::pidfd_open(pid, rustix::process::PidfdFlags::empty())
+                .map_err(std::io::Error::from)
+        };
+        let (a, b) = (pidfd(kinder[0])?, pidfd(kinder[1])?);
+        Command::new(kind)
+            .arg(WACHE)
+            .arg(std::process::id().to_string())
+            .arg(ordner)
+            .arg(sitzung)
+            .env_clear()
+            .stdin(Stdio::from(a))
+            .stdout(Stdio::from(b))
+            .stderr(Stdio::null())
+            .spawn()
+            .map(|w| w.id())
+    };
+    ergebnis
 }
 
 /// The number of threads of this process (Linux: `/proc/self/status`). `None` where it cannot be read.
@@ -203,7 +199,7 @@ pub fn starten(
 /// The exit code of a child whose output ended, if it ends within 1 s.
 fn ende_abwarten(kind: &mut Child) -> Option<i32> {
     let ende = Instant::now() + Duration::from_secs(1);
-    while Instant::now() < ende {
+    while !ende.saturating_duration_since(Instant::now()).is_zero() {
         if let Ok(Some(status)) = kind.try_wait() {
             return status.code();
         }
@@ -247,7 +243,9 @@ fn bereit_lesen(aus: &mut ChildStdout, frist: Duration) -> Lesen {
             Err(_) => return Lesen::Anders,
         }
         let mut puffer = [0u8; 64];
-        match aus.read(&mut puffer) {
+        // EINTR repeats the read (a library loop: a match guard on the kind of the error would be a branch no test can
+        // reach, since the pipe is readable after `poll`)
+        match rustix::io::retry_on_intr(|| rustix::io::read(&*aus, &mut puffer)) {
             Ok(0) => {
                 return if zeile.is_empty() {
                     Lesen::Ende
@@ -271,7 +269,6 @@ fn bereit_lesen(aus: &mut ChildStdout, frist: Duration) -> Lesen {
                     return Lesen::Anders;
                 }
             }
-            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
             Err(_) => return Lesen::Anders,
         }
     }
@@ -335,137 +332,148 @@ pub fn trampolin(args: &[String]) -> i32 {
 }
 
 /// Sets close-on-exec on descriptor 4 (`nix`: `fcntl` on a number this process got from its parent; `rustix` and `std`
-/// take only descriptors they own, and the workspace forbids `unsafe`).
-#[cfg(target_os = "linux")]
+/// take only descriptors they own, and the workspace forbids `unsafe`). Outside Linux `false`.
+///
+/// Each of the functions below is one function for every platform, with a `cfg` on its body: cargo-mutants reads the
+/// text and would keep the mutants of a second function that the gate machine never builds.
 fn vier_bei_exec_schliessen() -> bool {
-    use nix::fcntl::{FcntlArg, FdFlag, fcntl};
-    fcntl(
-        crate::meldung::MELDUNG_FD,
-        FcntlArg::F_SETFD(FdFlag::FD_CLOEXEC),
-    )
-    .is_ok()
+    #[cfg(not(target_os = "linux"))]
+    let gesetzt = false;
+    #[cfg(target_os = "linux")]
+    let gesetzt = {
+        use nix::fcntl::{FcntlArg, FdFlag, fcntl};
+        fcntl(
+            crate::meldung::MELDUNG_FD,
+            FcntlArg::F_SETFD(FdFlag::FD_CLOEXEC),
+        )
+        .is_ok()
+    };
+    gesetzt
 }
 
-#[cfg(not(target_os = "linux"))]
-fn vier_bei_exec_schliessen() -> bool {
-    false
-}
-
-/// Writes the line of `f` to the service on descriptor 4 (best effort, no SIGPIPE) and gives the code of the line.
-#[cfg(target_os = "linux")]
+/// Writes the line of `f` to the service on descriptor 4 (best effort, no SIGPIPE; Linux only) and gives the code of the
+/// line.
 fn vier_melden(f: &crate::Fehler) -> i32 {
-    use nix::sys::socket::{MsgFlags, send};
-    let _ = send(
-        crate::meldung::MELDUNG_FD,
-        crate::meldung::zeile(f).as_bytes(),
-        MsgFlags::MSG_NOSIGNAL,
-    );
-    i32::from(f.exitcode())
-}
-
-#[cfg(not(target_os = "linux"))]
-fn vier_melden(f: &crate::Fehler) -> i32 {
+    #[cfg(target_os = "linux")]
+    {
+        use nix::sys::socket::{MsgFlags, send};
+        let _ = send(
+            crate::meldung::MELDUNG_FD,
+            crate::meldung::zeile(f).as_bytes(),
+            MsgFlags::MSG_NOSIGNAL,
+        );
+    }
     i32::from(f.exitcode())
 }
 
 /// `PR_SET_PDEATHSIG` (SIGTERM for a child, SIGKILL for the starter), then the parent check (the parent may have died
 /// before the signal was set), then `setsid` for a child only. Linux only; elsewhere the binding is not available and
 /// the trampoline refuses.
-#[cfg(target_os = "linux")]
 fn binden(ppid: i32, starter: bool) -> bool {
-    let signal = if starter {
-        rustix::process::Signal::KILL
-    } else {
-        rustix::process::Signal::TERM
+    #[cfg(not(target_os = "linux"))]
+    let gebunden = {
+        let _ = (ppid, starter);
+        false
     };
-    if rustix::process::set_parent_process_death_signal(Some(signal)).is_err() {
-        return false;
-    }
-    if rustix::process::getppid().map(rustix::process::Pid::as_raw_nonzero)
-        != rustix::process::Pid::from_raw(ppid).map(rustix::process::Pid::as_raw_nonzero)
-    {
-        return false;
-    }
-    starter || rustix::process::setsid().is_ok()
+    #[cfg(target_os = "linux")]
+    let gebunden = {
+        let signal = if starter {
+            rustix::process::Signal::KILL
+        } else {
+            rustix::process::Signal::TERM
+        };
+        if rustix::process::set_parent_process_death_signal(Some(signal)).is_err() {
+            return false;
+        }
+        if rustix::process::getppid().map(rustix::process::Pid::as_raw_nonzero)
+            != rustix::process::Pid::from_raw(ppid).map(rustix::process::Pid::as_raw_nonzero)
+        {
+            return false;
+        }
+        starter || rustix::process::setsid().is_ok()
+    };
+    gebunden
 }
 
 /// The watcher (arguments: the PID of "Lauf starten", the socket folder, the session folder). Waits until that process
 /// has ended, ends the two children named by the pidfds on its standard input and output (SIGTERM, after
 /// [`WACHE_GNADE`] SIGKILL), then removes the session folder and last the socket folder (best effort; the socket folder
 /// going last tells a waiting test that the watcher is done). The session folder is removed by its own name, never
-/// through a link ([`crate::dateien::ordner_entfernen`]). A parent that is already gone counts as ended.
-#[cfg(target_os = "linux")]
+/// through a link ([`crate::dateien::ordner_entfernen`]). A parent that is already gone counts as ended. Outside Linux
+/// the watcher refuses.
 fn wache(args: &[String]) -> i32 {
-    use rustix::event::{PollFd, PollFlags, Timespec};
-    use rustix::process::{Pid, PidfdFlags, Signal};
-    let (Some(lauf), Some(ordner), Some(sitzung)) = (
-        args.first().and_then(|p| p.parse::<i32>().ok()),
-        args.get(1),
-        args.get(2),
-    ) else {
-        return KIND_AUFRUF_FEHLER;
+    #[cfg(not(target_os = "linux"))]
+    let code = {
+        let _ = args;
+        KIND_AUFRUF_FEHLER
     };
-    let _ = rustix::process::setsid();
-    let eltern = Pid::from_raw(lauf)
-        .and_then(|p| rustix::process::pidfd_open(p, PidfdFlags::empty()).ok())
-        // a process that is not the parent (the parent ended, the watcher was adopted) is no parent
-        .filter(|_| {
-            rustix::process::getppid().map(Pid::as_raw_nonzero)
-                == Pid::from_raw(lauf).map(Pid::as_raw_nonzero)
-        });
-    if let Some(fd) = &eltern {
-        loop {
-            let mut fds = [PollFd::new(fd, PollFlags::IN)];
-            // without a time limit `poll` returns only when the parent has ended (or on a signal)
-            match rustix::event::poll(&mut fds, None) {
-                Err(rustix::io::Errno::INTR) => {}
-                _ => break,
+    #[cfg(target_os = "linux")]
+    let code = {
+        use rustix::event::{PollFd, PollFlags, Timespec};
+        use rustix::process::{Pid, PidfdFlags, Signal};
+        let (Some(lauf), Some(ordner), Some(sitzung)) = (
+            args.first().and_then(|p| p.parse::<i32>().ok()),
+            args.get(1),
+            args.get(2),
+        ) else {
+            return KIND_AUFRUF_FEHLER;
+        };
+        let _ = rustix::process::setsid();
+        let eltern = Pid::from_raw(lauf)
+            .and_then(|p| rustix::process::pidfd_open(p, PidfdFlags::empty()).ok())
+            // a process that is not the parent (the parent ended, the watcher was adopted) is no parent
+            .filter(|_| {
+                rustix::process::getppid().map(Pid::as_raw_nonzero)
+                    == Pid::from_raw(lauf).map(Pid::as_raw_nonzero)
+            });
+        if let Some(fd) = &eltern {
+            loop {
+                let mut fds = [PollFd::new(fd, PollFlags::IN)];
+                // without a time limit `poll` returns only when the parent has ended, or with EINTR on a signal that
+                // runs a handler; the watcher has none, so a stop and a continue restart the call in the kernel
+                if !matches!(
+                    rustix::event::poll(&mut fds, None),
+                    Err(rustix::io::Errno::INTR)
+                ) {
+                    break;
+                }
             }
         }
-    }
-    let kinder = [rustix::stdio::stdin(), rustix::stdio::stdout()];
-    for k in kinder {
-        let _ = rustix::process::pidfd_send_signal(k, Signal::TERM);
-    }
-    let ende = Instant::now() + WACHE_GNADE;
-    let fertig = |k: std::os::fd::BorrowedFd<'_>, frist: Option<&Timespec>| {
-        let mut fds = [PollFd::new(&k, PollFlags::IN)];
-        matches!(rustix::event::poll(&mut fds, frist), Ok(n) if n > 0)
-    };
-    for k in kinder {
-        loop {
-            let rest = ende.saturating_duration_since(Instant::now());
-            let zeit = Timespec {
-                tv_sec: i64::try_from(rest.as_secs()).unwrap_or(i64::MAX),
-                tv_nsec: i64::from(rest.subsec_nanos()),
-            };
-            if fertig(k, Some(&zeit)) || rest.is_zero() {
-                break;
+        let kinder = [rustix::stdio::stdin(), rustix::stdio::stdout()];
+        for k in kinder {
+            let _ = rustix::process::pidfd_send_signal(k, Signal::TERM);
+        }
+        let ende = Instant::now() + WACHE_GNADE;
+        let fertig = |k: std::os::fd::BorrowedFd<'_>, frist: Option<&Timespec>| {
+            let mut fds = [PollFd::new(&k, PollFlags::IN)];
+            matches!(rustix::event::poll(&mut fds, frist), Ok(n) if n > 0)
+        };
+        for k in kinder {
+            loop {
+                let rest = ende.saturating_duration_since(Instant::now());
+                let zeit = Timespec {
+                    tv_sec: i64::try_from(rest.as_secs()).unwrap_or(i64::MAX),
+                    tv_nsec: i64::from(rest.subsec_nanos()),
+                };
+                if fertig(k, Some(&zeit)) || rest.is_zero() {
+                    break;
+                }
+            }
+            if !fertig(
+                k,
+                Some(&Timespec {
+                    tv_sec: 0,
+                    tv_nsec: 0,
+                }),
+            ) {
+                let _ = rustix::process::pidfd_send_signal(k, Signal::KILL);
             }
         }
-        if !fertig(
-            k,
-            Some(&Timespec {
-                tv_sec: 0,
-                tv_nsec: 0,
-            }),
-        ) {
-            let _ = rustix::process::pidfd_send_signal(k, Signal::KILL);
-        }
-    }
-    let _ = crate::dateien::ordner_entfernen(Path::new(sitzung));
-    let _ = std::fs::remove_dir_all(ordner);
-    0
-}
-
-#[cfg(not(target_os = "linux"))]
-fn wache(_args: &[String]) -> i32 {
-    KIND_AUFRUF_FEHLER
-}
-
-#[cfg(not(target_os = "linux"))]
-fn binden(_ppid: i32, _starter: bool) -> bool {
-    false
+        let _ = crate::dateien::ordner_entfernen(Path::new(sitzung));
+        let _ = std::fs::remove_dir_all(ordner);
+        0
+    };
+    code
 }
 
 #[cfg(test)]

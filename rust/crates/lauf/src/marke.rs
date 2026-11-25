@@ -260,7 +260,10 @@ fn kaputt<T>(_: T) -> Fehler {
 fn ordner_oeffnen(zustand: &Path) -> Result<OwnedFd, Fehler> {
     let fd = rustix::fs::open(
         zustand,
-        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+        OFlags::RDONLY
+            .union(OFlags::DIRECTORY)
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC),
         Mode::empty(),
     )
     .map_err(kaputt)?;
@@ -285,7 +288,10 @@ fn sperr_datei(ordner: &OwnedFd) -> rustix::io::Result<OwnedFd> {
     rustix::fs::openat(
         ordner,
         SPERR_DATEI,
-        OFlags::RDWR | OFlags::CREATE | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+        OFlags::RDWR
+            .union(OFlags::CREATE)
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC),
         Mode::from_raw_mode(0o600),
     )
 }
@@ -297,7 +303,8 @@ fn sperren(ordner: &OwnedFd, frist: Duration) -> Result<OwnedFd, Fehler> {
     let sperre = loop {
         match sperr_datei(ordner) {
             Ok(fd) => break fd,
-            Err(e) if wiederholen(e, Instant::now() < ende) => {
+            // the rest of the time, not a comparison of two instants: the moment of equality is no case a test can meet
+            Err(e) if wiederholen(e, !ende.saturating_duration_since(Instant::now()).is_zero()) => {
                 std::thread::sleep(Duration::from_millis(1));
             }
             Err(_) => return Err(Fehler::OrdnerMarkeKaputt),
@@ -307,7 +314,7 @@ fn sperren(ordner: &OwnedFd, frist: Duration) -> Result<OwnedFd, Fehler> {
         match rustix::fs::flock(&sperre, FlockOperation::NonBlockingLockExclusive) {
             Ok(()) => return Ok(sperre),
             Err(rustix::io::Errno::WOULDBLOCK | rustix::io::Errno::INTR)
-                if Instant::now() < ende =>
+                if !ende.saturating_duration_since(Instant::now()).is_zero() =>
             {
                 std::thread::sleep(Duration::from_millis(10));
             }
@@ -331,7 +338,10 @@ fn datei_bytes(ordner: &OwnedFd) -> Result<Option<Vec<u8>>, Fehler> {
     let fd = match rustix::fs::openat(
         ordner,
         MARKEN_DATEI,
-        OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::CLOEXEC | OFlags::NONBLOCK,
+        OFlags::RDONLY
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC)
+            .union(OFlags::NONBLOCK),
         Mode::empty(),
     ) {
         Ok(fd) => fd,
@@ -403,7 +413,11 @@ fn neue_datei(ordner: &OwnedFd, marken: &[Marke]) -> Result<String, Schreibfehle
             match rustix::fs::openat(
                 ordner,
                 neu.as_str(),
-                OFlags::WRONLY | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+                OFlags::WRONLY
+                    .union(OFlags::CREATE)
+                    .union(OFlags::EXCL)
+                    .union(OFlags::NOFOLLOW)
+                    .union(OFlags::CLOEXEC),
                 Mode::from_raw_mode(0o600),
             ) {
                 Err(rustix::io::Errno::EXIST) => None,

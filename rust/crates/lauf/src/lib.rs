@@ -30,6 +30,9 @@ pub mod paket;
 pub mod uebergabe;
 pub mod ziele;
 
+#[cfg(test)]
+mod testhilfe;
+
 pub use fehler::Fehler;
 
 /// The variables of step 0: set, also empty, they end the start (contract 1, "Schritt 0").
@@ -50,8 +53,8 @@ where
 /// the root alone.
 #[must_use]
 pub fn ordner_form(text: &str) -> bool {
+    // no rule `len > 1` of its own: a text that starts and does not end with '/' has at least two bytes
     text.len() <= 1024
-        && text.len() > 1
         && text.starts_with('/')
         && !text.ends_with('/')
         && !text.contains("//")

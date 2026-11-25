@@ -38,4 +38,7 @@ pub(crate) use windows::{
 #[cfg(windows)]
 pub use windows::{Signale, signale_anmelden};
 #[cfg(all(windows, feature = "pruefbau"))]
-pub(crate) use windows::{laufkind, modus_von, ohne_exe, pfad_text, signal_an_sich, stty, symlink};
+pub(crate) use windows::{
+    laufkind, mitschrift_eingabe, mitschrift_ereignisse, mitschrift_groesse, modus_von, ohne_exe,
+    pfad_text, signal_an_sich, stty, symlink,
+};
