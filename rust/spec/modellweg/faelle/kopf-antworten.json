@@ -1,14 +1,516 @@
 {
  "fassung": 1,
- "hinweis": "Vertrag 8, Abschnitt 13.3. ziel_antwort.laenge ist Content-Length des Ziels oder null (chunked oder bis zum Schliessen).",
+ "hinweis": "Vertrag 8, Abschnitt 13.3. Ein Fall mit halter ist ein gebundenes Ziel ab Schritt I: Der Modellweg sieht nicht das Ziel, sondern die Zeilen des Halters (beginn mit status und kopf oder null, teile als latin1-Text je Zeile teil, ende null oder ein Code des Halters, upgrade durchreichen oder ablehnen). Daraus baut er die Antwort an den Harness, immer chunked, und bildet jeden Code nach Abschnitt 5.1 ab. Ein Fall mit ziel_antwort ist ein ungebundenes Ziel: dort gehen die Bytes des Dienstes durch, und ziel_antwort.laenge ist dessen Content-Length oder null (chunked oder bis zum Schliessen).",
  "marke": "wb-marke-echtes-token-7d1c0e",
  "faelle": [
   {
-   "name": "json_unveraendert",
-   "beschreibung": "Antwort mit Koepfen des Dienstes: alle ausser Rahmung und set-cookie gehen mit",
+   "name": "halter_json",
+   "beschreibung": "der Halter antwortet beginn, ein teil und ende: Status und Koepfe unveraendert, der Koerper chunked an den Harness",
+   "halter": {
+    "beginn": {
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ],
+      [
+       "x-github-request-id",
+       "A:B"
+      ]
+     ]
+    },
+    "teile": [
+     "{\"login\":1}"
+    ],
+    "ende": null,
+    "upgrade": "ablehnen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ],
+      [
+       "x-github-request-id",
+       "A:B"
+      ],
+      [
+       "transfer-encoding",
+       "chunked"
+      ]
+     ],
+     "koerper": "{\"login\":1}"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200
+    }
+   }
+  },
+  {
+   "name": "halter_mehrere_teile",
+   "beschreibung": "mehrere Zeilen teil: die Bytes gehen in ihrer Reihenfolge hinaus",
+   "halter": {
+    "beginn": {
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "text/event-stream"
+      ]
+     ]
+    },
+    "teile": [
+     "data: {\"a\":1}\n\n",
+     "data: [DONE]\n\n"
+    ],
+    "ende": null,
+    "upgrade": "ablehnen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "text/event-stream"
+      ],
+      [
+       "transfer-encoding",
+       "chunked"
+      ]
+     ],
+     "koerper": "data: {\"a\":1}\n\ndata: [DONE]\n\n"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 200
+    }
+   }
+  },
+  {
+   "name": "halter_ohne_teil",
+   "beschreibung": "beginn und ende ohne teil: die Antwort hat einen leeren Koerper",
+   "halter": {
+    "beginn": {
+     "status": 204,
+     "kopf": []
+    },
+    "teile": [],
+    "ende": null,
+    "upgrade": "ablehnen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 204,
+     "kopf": [
+      [
+       "transfer-encoding",
+       "chunked"
+      ]
+     ],
+     "koerper": ""
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 204
+    }
+   }
+  },
+  {
+   "name": "halter_fehler_401",
+   "beschreibung": "der Halter reicht die 401 des Ziels weiter: unveraendert an den Harness",
+   "halter": {
+    "beginn": {
+     "status": 401,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ]
+     ]
+    },
+    "teile": [
+     "{\"message\":\"Bad credentials\"}"
+    ],
+    "ende": null,
+    "upgrade": "ablehnen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 401,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ],
+      [
+       "transfer-encoding",
+       "chunked"
+      ]
+     ],
+     "koerper": "{\"message\":\"Bad credentials\"}"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 401
+    }
+   }
+  },
+  {
+   "name": "halter_kein_schluessel",
+   "beschreibung": "der Halter meldet halter.kein_schluessel vor der Zeile beginn: 503 mw.halter_kein_schluessel",
+   "halter": {
+    "beginn": null,
+    "teile": [],
+    "ende": "halter.kein_schluessel",
+    "upgrade": "ablehnen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "ersetzt",
+     "status": 503,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ],
+      [
+       "content-length",
+       "86"
+      ]
+     ],
+     "koerper": "{\"error\":{\"code\":\"mw.halter_kein_schluessel\",\"message\":\"kein Schluessel beim Halter\"}}"
+    },
+    "zeile": {
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.halter_kein_schluessel",
+     "status": 503
+    }
+   }
+  },
+  {
+   "name": "halter_komprimiert",
+   "beschreibung": "der Halter meldet halter.ziel_komprimiert: 502 mw.antwort_komprimiert, kein Byte des Ziels geht hinaus",
+   "halter": {
+    "beginn": null,
+    "teile": [],
+    "ende": "halter.ziel_komprimiert",
+    "upgrade": "ablehnen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "ersetzt",
+     "status": 502,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ],
+      [
+       "content-length",
+       "75"
+      ]
+     ],
+     "koerper": "{\"error\":{\"code\":\"mw.antwort_komprimiert\",\"message\":\"Antwort komprimiert\"}}"
+    },
+    "zeile": {
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.antwort_komprimiert",
+     "status": 502
+    }
+   }
+  },
+  {
+   "name": "halter_leck",
+   "beschreibung": "der Halter meldet halter.leck_gesperrt: sein Code geht nie an den Harness, dieser bekommt 502 mw.halter_fehler",
+   "halter": {
+    "beginn": null,
+    "teile": [],
+    "ende": "halter.leck_gesperrt",
+    "upgrade": "ablehnen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "ersetzt",
+     "status": 502,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ],
+      [
+       "content-length",
+       "66"
+      ]
+     ],
+     "koerper": "{\"error\":{\"code\":\"mw.halter_fehler\",\"message\":\"Halter lehnte ab\"}}"
+    },
+    "zeile": {
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.halter_fehler",
+     "status": 502
+    }
+   }
+  },
+  {
+   "name": "halter_pfad_verboten",
+   "beschreibung": "der Halter lehnt den Pfad als letzte Sperre ab: 502 mw.halter_fehler",
+   "halter": {
+    "beginn": null,
+    "teile": [],
+    "ende": "halter.pfad_verboten",
+    "upgrade": "ablehnen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "ersetzt",
+     "status": 502,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ],
+      [
+       "content-length",
+       "66"
+      ]
+     ],
+     "koerper": "{\"error\":{\"code\":\"mw.halter_fehler\",\"message\":\"Halter lehnte ab\"}}"
+    },
+    "zeile": {
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.halter_fehler",
+     "status": 502
+    }
+   }
+  },
+  {
+   "name": "halter_ziel_fehler",
+   "beschreibung": "der Halter erreicht das Ziel nicht: 502 mw.halter_fehler",
+   "halter": {
+    "beginn": null,
+    "teile": [],
+    "ende": "halter.ziel_fehler",
+    "upgrade": "ablehnen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "ersetzt",
+     "status": 502,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ],
+      [
+       "content-length",
+       "66"
+      ]
+     ],
+     "koerper": "{\"error\":{\"code\":\"mw.halter_fehler\",\"message\":\"Halter lehnte ab\"}}"
+    },
+    "zeile": {
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.halter_fehler",
+     "status": 502
+    }
+   }
+  },
+  {
+   "name": "halter_fehler_nach_teil",
+   "beschreibung": "der Halter bricht nach einem teil ab: die Antwort endet, der Status bleibt der, der hinausging",
+   "halter": {
+    "beginn": {
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "text/event-stream"
+      ]
+     ]
+    },
+    "teile": [
+     "data: {\"a\":1}\n\n"
+    ],
+    "ende": "halter.ziel_fehler",
+    "upgrade": "ablehnen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "abgerissen",
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "text/event-stream"
+      ],
+      [
+       "transfer-encoding",
+       "chunked"
+      ]
+     ],
+     "gesendet": "data: {\"a\":1}\n\n"
+    },
+    "zeile": {
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.halter_fehler",
+     "status": 200
+    }
+   }
+  },
+  {
+   "name": "halter_leck_nach_teil",
+   "beschreibung": "die Leck-Sperre des Halters trifft spaet: die Antwort endet mit mw.halter_fehler, nichts weiter geht hinaus",
+   "halter": {
+    "beginn": {
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "text/event-stream"
+      ]
+     ]
+    },
+    "teile": [
+     "data: {\"a\":1}\n\n"
+    ],
+    "ende": "halter.leck_gesperrt",
+    "upgrade": "ablehnen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "abgerissen",
+     "status": 200,
+     "kopf": [
+      [
+       "content-type",
+       "text/event-stream"
+      ],
+      [
+       "transfer-encoding",
+       "chunked"
+      ]
+     ],
+     "gesendet": "data: {\"a\":1}\n\n"
+    },
+    "zeile": {
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.halter_fehler",
+     "status": 200
+    }
+   }
+  },
+  {
+   "name": "halter_101",
+   "beschreibung": "Umstellung auf WebSocket: die 101 des Halters traegt upgrade und connection nicht, der Modellweg setzt beide selbst",
+   "halter": {
+    "beginn": {
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ]
+     ]
+    },
+    "teile": [
+     "\u0005Hallo"
+    ],
+    "ende": null,
+    "upgrade": "durchreichen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ],
+      [
+       "upgrade",
+       "websocket"
+      ],
+      [
+       "connection",
+       "Upgrade"
+      ]
+     ],
+     "koerper": "\u0005Hallo"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "halter_101_abriss",
+   "beschreibung": "der Halter reisst den Strom ab (Rahmen des Ziels gegen RFC 6455): mw.halter_fehler, Status 101",
+   "halter": {
+    "beginn": {
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ]
+     ]
+    },
+    "teile": [
+     "\u0005Hallo"
+    ],
+    "ende": "halter.ziel_fehler",
+    "upgrade": "durchreichen"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "abgerissen",
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ],
+      [
+       "upgrade",
+       "websocket"
+      ],
+      [
+       "connection",
+       "Upgrade"
+      ]
+     ],
+     "gesendet": "\u0005Hallo"
+    },
+    "zeile": {
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.halter_fehler",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "json_ungebunden",
+   "beschreibung": "ungebundenes Ziel: alle Koepfe ausser Rahmung und set-cookie gehen mit",
    "ziel_antwort": {
     "status": 200,
-    "gebunden": true,
+    "gebunden": false,
     "kopf": [
      [
       "Content-Type",
@@ -60,11 +562,11 @@
    }
   },
   {
-   "name": "strom_chunked",
-   "beschreibung": "SSE vom Plan-Host ohne Laenge: an den Harness chunked, Bytes gleich",
+   "name": "strom_chunked_ungebunden",
+   "beschreibung": "ungebundenes Ziel ohne Laenge: an den Harness chunked, Bytes gleich",
    "ziel_antwort": {
     "status": 200,
-    "gebunden": true,
+    "gebunden": false,
     "kopf": [
      [
       "Content-Type",
@@ -105,11 +607,11 @@
    }
   },
   {
-   "name": "fehler_401",
+   "name": "fehler_401_ungebunden",
    "beschreibung": "401 des Dienstes unveraendert",
    "ziel_antwort": {
     "status": 401,
-    "gebunden": true,
+    "gebunden": false,
     "kopf": [
      [
       "Content-Type",
@@ -145,50 +647,6 @@
      "ergebnis": "weitergereicht",
      "grund": null,
      "status": 401
-    }
-   }
-  },
-  {
-   "name": "gzip_gebunden",
-   "beschreibung": "ein gebundenes Ziel antwortet trotz identity komprimiert: verworfen, 502 mw.antwort_komprimiert",
-   "ziel_antwort": {
-    "status": 200,
-    "gebunden": true,
-    "kopf": [
-     [
-      "Content-Encoding",
-      "gzip"
-     ],
-     [
-      "Content-Length",
-      "3"
-     ]
-    ],
-    "laenge": 3,
-    "teile": [
-     "\u001f\b"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "ersetzt",
-     "status": 502,
-     "kopf": [
-      [
-       "content-type",
-       "application/json"
-      ],
-      [
-       "content-length",
-       "75"
-      ]
-     ],
-     "koerper": "{\"error\":{\"code\":\"mw.antwort_komprimiert\",\"message\":\"Antwort komprimiert\"}}"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.antwort_komprimiert",
-     "status": 502
     }
    }
   },
@@ -232,275 +690,6 @@
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
-     "status": 200
-    }
-   }
-  },
-  {
-   "name": "identity_gebunden",
-   "beschreibung": "ein gebundenes Ziel mit Content-Encoding identity: gelesen und durchgereicht",
-   "ziel_antwort": {
-    "status": 200,
-    "gebunden": true,
-    "kopf": [
-     [
-      "Content-Encoding",
-      "identity"
-     ],
-     [
-      "Content-Length",
-      "2"
-     ]
-    ],
-    "laenge": 2,
-    "teile": [
-     "{}"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "antwort",
-     "status": 200,
-     "kopf": [
-      [
-       "Content-Encoding",
-       "identity"
-      ],
-      [
-       "content-length",
-       "2"
-      ]
-     ],
-     "koerper": "{}"
-    },
-    "zeile": {
-     "ergebnis": "weitergereicht",
-     "grund": null,
-     "status": 200
-    }
-   }
-  },
-  {
-   "name": "leck_koerper",
-   "beschreibung": "der Dienst spiegelt die Marke im Koerper",
-   "ziel_antwort": {
-    "status": 200,
-    "gebunden": true,
-    "kopf": [
-     [
-      "Content-Type",
-      "application/json"
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "{\"token\":\"wb-marke-echtes-token-7d1c0e\"}"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "ersetzt",
-     "status": 502,
-     "kopf": [
-      [
-       "content-type",
-       "application/json"
-      ],
-      [
-       "content-length",
-       "76"
-      ]
-     ],
-     "koerper": "{\"error\":{\"code\":\"mw.leck_gesperrt\",\"message\":\"Antwort des Ziels gesperrt\"}}"
-    },
-    "zeile": {
-     "ergebnis": "leck_gesperrt",
-     "grund": "mw.leck_gesperrt",
-     "status": 502
-    }
-   }
-  },
-  {
-   "name": "leck_kopf",
-   "beschreibung": "der Dienst spiegelt die Marke in einem Kopf",
-   "ziel_antwort": {
-    "status": 200,
-    "gebunden": true,
-    "kopf": [
-     [
-      "X-Echo",
-      "Bearer wb-marke-echtes-token-7d1c0e"
-     ],
-     [
-      "Content-Length",
-      "2"
-     ]
-    ],
-    "laenge": 2,
-    "teile": [
-     "{}"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "ersetzt",
-     "status": 502,
-     "kopf": [
-      [
-       "content-type",
-       "application/json"
-      ],
-      [
-       "content-length",
-       "76"
-      ]
-     ],
-     "koerper": "{\"error\":{\"code\":\"mw.leck_gesperrt\",\"message\":\"Antwort des Ziels gesperrt\"}}"
-    },
-    "zeile": {
-     "ergebnis": "leck_gesperrt",
-     "grund": "mw.leck_gesperrt",
-     "status": 502
-    }
-   }
-  },
-  {
-   "name": "websocket_101",
-   "beschreibung": "Umstellung auf WebSocket am gebundenen Ziel: 101 mit Upgrade und Connection, danach die Rahmen Byte fuer Byte",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "\u0005Hallo",
-     "\u0002ok"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "antwort",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "koerper": "\u0005Hallo\u0002ok"
-    },
-    "zeile": {
-     "ergebnis": "weitergereicht",
-     "grund": null,
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "websocket_leck",
-   "beschreibung": "die Marke kommt in einem spaeteren WebSocket-Rahmen: Abriss",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "~\u0000@xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-     "\u001cwb-marke-echtes-token-7d1c0e"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ]
-     ],
-     "gesendet": "~\u0000@xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    },
-    "zeile": {
-     "ergebnis": "leck_gesperrt",
-     "grund": "mw.leck_gesperrt",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "leck_spaet",
-   "beschreibung": "die Marke kommt spaet im Strom: Abriss",
-   "ziel_antwort": {
-    "status": 200,
-    "gebunden": true,
-    "kopf": [
-     [
-      "Content-Type",
-      "text/event-stream"
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "data: {\"a\":1}\n\ndata: {\"b\":2}\n\ndata: {\"c\":3}\n\n",
-     "data: {\"k\":\"wb-marke-echtes-token-7d1c0e\"}\n\n"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 200,
-     "kopf": [
-      [
-       "Content-Type",
-       "text/event-stream"
-      ],
-      [
-       "transfer-encoding",
-       "chunked"
-      ]
-     ],
-     "gesendet": "data: {\"a\":1}\n\ndat"
-    },
-    "zeile": {
-     "ergebnis": "leck_gesperrt",
-     "grund": "mw.leck_gesperrt",
      "status": 200
     }
    }

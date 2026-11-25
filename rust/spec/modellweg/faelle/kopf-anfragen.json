@@ -1,24 +1,24 @@
 {
  "fassung": 1,
- "hinweis": "Vertrag 8, Abschnitt 13.2. Anfragen im Tunnel (latin1). Schluessel aller gebundenen Ziele ist die Marke wb-marke-echtes-token-7d1c0e, der Platzhalter wb-platzhalter-0000 (beide erfunden). zeile nennt die Felder der Protokollzeile.",
+ "hinweis": "Vertrag 8, Abschnitt 13.2. Anfragen im Tunnel (latin1). an_ziel sind die Bytes an ein ungebundenes Ziel; an_halter ist die Zeile modell.aufruf oder modell.strom an den Halter fuer ein gebundenes Ziel (RFC 8785, id 1). Der Modellweg haelt fuer ein gebundenes Ziel keinen Wert: weder die Marke wb-marke-echtes-token-7d1c0e noch der Platzhalter wb-platzhalter-0000 steht je in an_halter oder an_ziel (beide erfunden; die Marke ist das Geheimnis, das der Halter einsetzt). zeile nennt die Felder der Protokollzeile.",
  "marke": "wb-marke-echtes-token-7d1c0e",
  "platzhalter": "wb-platzhalter-0000",
  "faelle": [
   {
    "name": "github_user",
-   "beschreibung": "GET /copilot_internal/user mit den gemessenen Kopfnamen: Platzhalter verworfen, Marke eingesetzt, accept-encoding durch identity ersetzt, alle anderen Koepfe unveraendert",
+   "beschreibung": "GET /copilot_internal/user mit den gemessenen Kopfnamen: die Anfrage geht als modell.aufruf an den Halter, ohne authorization, ohne host und ohne accept-encoding; den Kopf mit dem Token setzt der Halter",
    "ziel": "github-api",
    "anfrage": "GET /copilot_internal/user HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
    "erwartet": {
     "ziel_beruehrt": true,
-    "an_ziel": "GET /copilot_internal/user HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "an_halter": "{\"abfrage\":null,\"fassung\":1,\"id\":1,\"koerper_b64\":\"\",\"kopf\":{\"accept\":\"application/json\",\"copilot-harness-id\":\"h-1\",\"copilot-integration-id\":\"copilot-developer-cli\",\"editor-version\":\"copilot/1.0.88\",\"openai-intent\":\"conversation-agent\",\"runtime-client-version\":\"1\",\"user-agent\":\"copilot/1.0.88\",\"x-client-machine-id\":\"m-1\",\"x-copilot-client-exp-assignment-context\":\"c-1\",\"x-copilot-exp-flight-names\":\"f-1\",\"x-github-api-version\":\"2025-05-01\",\"x-initiator\":\"user\",\"x-interaction-id\":\"i-1\"},\"methode\":\"GET\",\"op\":\"modell.aufruf\",\"pfad\":\"/copilot_internal/user\",\"ziel\":\"api.github.com\"}",
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": "/copilot_internal/user",
-     "kopf": "ersetzt",
+     "kopf": "halter",
      "pfad": "/copilot_internal/user",
      "host": "api.github.com"
     }
@@ -31,14 +31,14 @@
    "anfrage": "GET /copilot/mcp_registry HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
    "erwartet": {
     "ziel_beruehrt": true,
-    "an_ziel": "GET /copilot/mcp_registry HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "an_halter": "{\"abfrage\":null,\"fassung\":1,\"id\":1,\"koerper_b64\":\"\",\"kopf\":{\"accept\":\"application/json\",\"copilot-harness-id\":\"h-1\",\"copilot-integration-id\":\"copilot-developer-cli\",\"editor-version\":\"copilot/1.0.88\",\"openai-intent\":\"conversation-agent\",\"runtime-client-version\":\"1\",\"user-agent\":\"copilot/1.0.88\",\"x-client-machine-id\":\"m-1\",\"x-copilot-client-exp-assignment-context\":\"c-1\",\"x-copilot-exp-flight-names\":\"f-1\",\"x-github-api-version\":\"2025-05-01\",\"x-initiator\":\"user\",\"x-interaction-id\":\"i-1\"},\"methode\":\"GET\",\"op\":\"modell.aufruf\",\"pfad\":\"/copilot/mcp_registry\",\"ziel\":\"api.github.com\"}",
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": "/copilot/mcp_registry",
-     "kopf": "ersetzt",
+     "kopf": "halter",
      "pfad": "/copilot/mcp_registry",
      "host": "api.github.com"
     }
@@ -46,20 +46,108 @@
   },
   {
    "name": "github_abfrage",
-   "beschreibung": "Abfrageteil bleibt, die Regel prueft nur den Pfad",
+   "beschreibung": "Abfrageteil bleibt und geht als eigenes Feld abfrage an den Halter, nie im Feld pfad; die Regel prueft nur den Pfad",
    "ziel": "github-api",
    "anfrage": "GET /copilot_internal/user?x=1 HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
    "erwartet": {
     "ziel_beruehrt": true,
-    "an_ziel": "GET /copilot_internal/user?x=1 HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "an_halter": "{\"abfrage\":\"x=1\",\"fassung\":1,\"id\":1,\"koerper_b64\":\"\",\"kopf\":{\"accept\":\"application/json\",\"copilot-harness-id\":\"h-1\",\"copilot-integration-id\":\"copilot-developer-cli\",\"editor-version\":\"copilot/1.0.88\",\"openai-intent\":\"conversation-agent\",\"runtime-client-version\":\"1\",\"user-agent\":\"copilot/1.0.88\",\"x-client-machine-id\":\"m-1\",\"x-copilot-client-exp-assignment-context\":\"c-1\",\"x-copilot-exp-flight-names\":\"f-1\",\"x-github-api-version\":\"2025-05-01\",\"x-initiator\":\"user\",\"x-interaction-id\":\"i-1\"},\"methode\":\"GET\",\"op\":\"modell.aufruf\",\"pfad\":\"/copilot_internal/user\",\"ziel\":\"api.github.com\"}",
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": "/copilot_internal/user",
-     "kopf": "ersetzt",
+     "kopf": "halter",
      "pfad": "/copilot_internal/user",
+     "host": "api.github.com"
+    }
+   }
+  },
+  {
+   "name": "github_raute",
+   "beschreibung": "eine Raute im Anfrageziel: nicht lesbar (400), an jedem Ziel",
+   "ziel": "github-api",
+   "anfrage": "GET /copilot_internal/user#x HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.anfrage_unlesbar\",\"message\":\"Anfrage nicht lesbar\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 400,
+     "ziel": "github-api",
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null,
+     "pfad": "/copilot_internal/user",
+     "host": "api.github.com"
+    }
+   }
+  },
+  {
+   "name": "github_abfrage_leer",
+   "beschreibung": "leerer Abfrageteil am gebundenen Ziel: die Form des Feldes abfrage nimmt 1 bis 1024 Zeichen, also 400",
+   "ziel": "github-api",
+   "anfrage": "GET /copilot_internal/user? HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.anfrage_unlesbar\",\"message\":\"Anfrage nicht lesbar\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 400,
+     "ziel": "github-api",
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null,
+     "pfad": "/copilot_internal/user",
+     "host": "api.github.com"
+    }
+   }
+  },
+  {
+   "name": "github_abfrage_zu_lang",
+   "beschreibung": "Abfrageteil mit 1025 Zeichen am gebundenen Ziel: 400",
+   "ziel": "github-api",
+   "anfrage": "GET /copilot_internal/user?xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.anfrage_unlesbar\",\"message\":\"Anfrage nicht lesbar\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 400,
+     "ziel": "github-api",
+     "methode": null,
+     "pfadregel": null,
+     "kopf": null,
+     "pfad": "/copilot_internal/user",
+     "host": "api.github.com"
+    }
+   }
+  },
+  {
+   "name": "github_pfad_prozent",
+   "beschreibung": "ein prozentkodierter Pfad am gebundenen Ziel: die Form des Feldes pfad des Halters laesst ihn nicht zu (403)",
+   "ziel": "github-api",
+   "anfrage": "GET /copilot_internal/%41user HTTP/1.1\r\nHost: api.github.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 403,
+    "koerper": "{\"error\":{\"code\":\"mw.pfad_nicht_erlaubt\",\"message\":\"Pfad nicht erlaubt\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.pfad_nicht_erlaubt",
+     "status": 403,
+     "ziel": "github-api",
+     "methode": "GET",
+     "pfadregel": null,
+     "kopf": null,
+     "pfad": "/copilot_internal/*",
      "host": "api.github.com"
     }
    }
@@ -220,19 +308,19 @@
   },
   {
    "name": "host_mit_port",
-   "beschreibung": "Host mit :443 ist gueltig",
+   "beschreibung": "Host mit :443 ist gueltig; an den Halter geht der Kopf host nicht mit",
    "ziel": "github-api",
    "anfrage": "GET /copilot_internal/user HTTP/1.1\r\nHost: api.github.com:443\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\n\r\n",
    "erwartet": {
     "ziel_beruehrt": true,
-    "an_ziel": "GET /copilot_internal/user HTTP/1.1\r\nHost: api.github.com:443\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "an_halter": "{\"abfrage\":null,\"fassung\":1,\"id\":1,\"koerper_b64\":\"\",\"kopf\":{\"accept\":\"application/json\",\"copilot-harness-id\":\"h-1\",\"copilot-integration-id\":\"copilot-developer-cli\",\"editor-version\":\"copilot/1.0.88\",\"openai-intent\":\"conversation-agent\",\"runtime-client-version\":\"1\",\"user-agent\":\"copilot/1.0.88\",\"x-client-machine-id\":\"m-1\",\"x-copilot-client-exp-assignment-context\":\"c-1\",\"x-copilot-exp-flight-names\":\"f-1\",\"x-github-api-version\":\"2025-05-01\",\"x-initiator\":\"user\",\"x-interaction-id\":\"i-1\"},\"methode\":\"GET\",\"op\":\"modell.aufruf\",\"pfad\":\"/copilot_internal/user\",\"ziel\":\"api.github.com\"}",
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
      "ziel": "github-api",
      "methode": "GET",
      "pfadregel": "/copilot_internal/user",
-     "kopf": "ersetzt",
+     "kopf": "halter",
      "pfad": "/copilot_internal/user",
      "host": "api.github.com"
     }
@@ -245,14 +333,14 @@
    "anfrage": "POST /chat/completions HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}",
    "erwartet": {
     "ziel_beruehrt": true,
-    "an_ziel": "POST /chat/completions HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nContent-Type: application/json\r\nContent-Length: 2\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n{}",
+    "an_halter": "{\"abfrage\":null,\"fassung\":1,\"id\":1,\"koerper_b64\":\"e30=\",\"kopf\":{\"accept\":\"application/json\",\"content-type\":\"application/json\",\"copilot-harness-id\":\"h-1\",\"copilot-integration-id\":\"copilot-developer-cli\",\"editor-version\":\"copilot/1.0.88\",\"openai-intent\":\"conversation-agent\",\"runtime-client-version\":\"1\",\"user-agent\":\"copilot/1.0.88\",\"x-client-machine-id\":\"m-1\",\"x-copilot-client-exp-assignment-context\":\"c-1\",\"x-copilot-exp-flight-names\":\"f-1\",\"x-github-api-version\":\"2025-05-01\",\"x-initiator\":\"user\",\"x-interaction-id\":\"i-1\"},\"methode\":\"POST\",\"op\":\"modell.aufruf\",\"pfad\":\"/chat/completions\",\"ziel\":\"api.individual.githubcopilot.com\"}",
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
      "ziel": "copilot-plan",
      "methode": "POST",
      "pfadregel": "/*",
-     "kopf": "ersetzt",
+     "kopf": "halter",
      "pfad": null,
      "host": "api.individual.githubcopilot.com"
     }
@@ -260,19 +348,19 @@
   },
   {
    "name": "plan_chunked",
-   "beschreibung": "chunked im Tunnel geht unveraendert durch, auch der Kopf transfer-encoding (direkter Weg)",
+   "beschreibung": "chunked im Tunnel an ein gebundenes Ziel: der Koerper geht ohne Rahmung als koerper_b64 in einem Stueck an den Halter, und der Kopf transfer-encoding faellt (der Halter setzt die Rahmung)",
    "ziel": "copilot-plan",
    "anfrage": "POST /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nTransfer-Encoding: chunked\r\n\r\n2\r\n{}\r\n0\r\n\r\n",
    "erwartet": {
     "ziel_beruehrt": true,
-    "an_ziel": "POST /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nTransfer-Encoding: chunked\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n2\r\n{}\r\n0\r\n\r\n",
+    "an_halter": "{\"abfrage\":null,\"fassung\":1,\"id\":1,\"koerper_b64\":\"e30=\",\"kopf\":{\"accept\":\"application/json\",\"copilot-harness-id\":\"h-1\",\"copilot-integration-id\":\"copilot-developer-cli\",\"editor-version\":\"copilot/1.0.88\",\"openai-intent\":\"conversation-agent\",\"runtime-client-version\":\"1\",\"user-agent\":\"copilot/1.0.88\",\"x-client-machine-id\":\"m-1\",\"x-copilot-client-exp-assignment-context\":\"c-1\",\"x-copilot-exp-flight-names\":\"f-1\",\"x-github-api-version\":\"2025-05-01\",\"x-initiator\":\"user\",\"x-interaction-id\":\"i-1\"},\"methode\":\"POST\",\"op\":\"modell.aufruf\",\"pfad\":\"/responses\",\"ziel\":\"api.individual.githubcopilot.com\"}",
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
      "ziel": "copilot-plan",
      "methode": "POST",
      "pfadregel": "/*",
-     "kopf": "ersetzt",
+     "kopf": "halter",
      "pfad": null,
      "host": "api.individual.githubcopilot.com"
     }
@@ -280,19 +368,19 @@
   },
   {
    "name": "upgrade_durchgereicht",
-   "beschreibung": "WebSocket-Upgrade am gebundenen Plan-Host: Upgrade und Connection bleiben, kein connection: close, Schluessel eingesetzt",
+   "beschreibung": "WebSocket-Upgrade am gebundenen Plan-Host: die Anfrage geht als modell.strom an den Halter, ohne methode und ohne Koerper; upgrade, connection und den Kopf mit dem Token setzt der Halter",
    "ziel": "copilot-plan",
    "anfrage": "GET /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
    "erwartet": {
     "ziel_beruehrt": true,
-    "an_ziel": "GET /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\naccept-encoding: identity\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "an_halter": "{\"abfrage\":null,\"fassung\":1,\"id\":1,\"kopf\":{\"accept\":\"application/json\",\"copilot-harness-id\":\"h-1\",\"copilot-integration-id\":\"copilot-developer-cli\",\"editor-version\":\"copilot/1.0.88\",\"openai-intent\":\"conversation-agent\",\"runtime-client-version\":\"1\",\"sec-websocket-key\":\"dGhlIHNhbXBsZSBub25jZQ==\",\"sec-websocket-version\":\"13\",\"user-agent\":\"copilot/1.0.88\",\"x-client-machine-id\":\"m-1\",\"x-copilot-client-exp-assignment-context\":\"c-1\",\"x-copilot-exp-flight-names\":\"f-1\",\"x-github-api-version\":\"2025-05-01\",\"x-initiator\":\"user\",\"x-interaction-id\":\"i-1\"},\"op\":\"modell.strom\",\"pfad\":\"/responses\",\"ziel\":\"api.individual.githubcopilot.com\"}",
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
      "ziel": "copilot-plan",
      "methode": "GET",
      "pfadregel": "/*",
-     "kopf": "ersetzt",
+     "kopf": "halter",
      "pfad": "/responses",
      "host": "api.individual.githubcopilot.com"
     }
@@ -533,10 +621,10 @@
    }
   },
   {
-   "name": "zu_gross",
-   "beschreibung": "Content-Length 33554433",
+   "name": "zu_gross_gebunden",
+   "beschreibung": "Content-Length 24117249 an einem gebundenen Ziel: ueber der Grenze von 23 MiB (H6)",
    "ziel": "copilot-plan",
-   "anfrage": "POST /x HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\nContent-Length: 33554433\r\n\r\n",
+   "anfrage": "POST /x HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\nContent-Length: 24117249\r\n\r\n",
    "erwartet": {
     "ziel_beruehrt": false,
     "status": 413,
@@ -555,41 +643,107 @@
    }
   },
   {
+   "name": "zu_gross_ungebunden",
+   "beschreibung": "Content-Length 33554433 an einem ungebundenen Ziel: dort gilt die Grenze von 32 MiB",
+   "ziel": "copilot-telemetrie",
+   "anfrage": "POST /telemetry HTTP/1.1\r\nHost: telemetry.individual.githubcopilot.com\r\nContent-Length: 33554433\r\n\r\n",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 413,
+    "koerper": "{\"error\":{\"code\":\"mw.koerper_zu_gross\",\"message\":\"Koerper zu gross\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.koerper_zu_gross",
+     "status": 413,
+     "ziel": "copilot-telemetrie",
+     "methode": "POST",
+     "pfadregel": "/telemetry",
+     "kopf": null,
+     "pfad": "/telemetry",
+     "host": "telemetry.individual.githubcopilot.com"
+    }
+   }
+  },
+  {
    "name": "plan_methodenkopf",
    "beschreibung": "gebundenes Ziel mit X-Http-Method-Override und X-Original-Url: beide Koepfe fallen weg (der Halter verbietet sie)",
    "ziel": "copilot-plan",
    "anfrage": "POST /chat/completions HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nX-Http-Method-Override: DELETE\r\nX-Original-Url: /user/repos\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}",
    "erwartet": {
     "ziel_beruehrt": true,
-    "an_ziel": "POST /chat/completions HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nContent-Type: application/json\r\nContent-Length: 2\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n{}",
+    "an_halter": "{\"abfrage\":null,\"fassung\":1,\"id\":1,\"koerper_b64\":\"e30=\",\"kopf\":{\"accept\":\"application/json\",\"content-type\":\"application/json\",\"copilot-harness-id\":\"h-1\",\"copilot-integration-id\":\"copilot-developer-cli\",\"editor-version\":\"copilot/1.0.88\",\"openai-intent\":\"conversation-agent\",\"runtime-client-version\":\"1\",\"user-agent\":\"copilot/1.0.88\",\"x-client-machine-id\":\"m-1\",\"x-copilot-client-exp-assignment-context\":\"c-1\",\"x-copilot-exp-flight-names\":\"f-1\",\"x-github-api-version\":\"2025-05-01\",\"x-initiator\":\"user\",\"x-interaction-id\":\"i-1\"},\"methode\":\"POST\",\"op\":\"modell.aufruf\",\"pfad\":\"/chat/completions\",\"ziel\":\"api.individual.githubcopilot.com\"}",
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
      "ziel": "copilot-plan",
      "methode": "POST",
      "pfadregel": "/*",
-     "kopf": "ersetzt",
+     "kopf": "halter",
      "pfad": null,
      "host": "api.individual.githubcopilot.com"
     }
    }
   },
   {
-   "name": "plan_rahmung_bleibt",
-   "beschreibung": "gebundenes Ziel auf dem direkten Weg: Host und Content-Length bleiben, Cookie faellt weg (Entscheid des Betreibers, 25.11.2026)",
+   "name": "plan_rahmung_faellt",
+   "beschreibung": "gebundenes Ziel auf dem Halterweg: host, content-length und cookie fallen alle weg; nur content-type bleibt (der Halter setzt host und die Rahmung selbst)",
    "ziel": "copilot-plan",
    "anfrage": "POST /chat/completions HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\nCookie: a=b\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}",
    "erwartet": {
     "ziel_beruehrt": true,
-    "an_ziel": "POST /chat/completions HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\nContent-Type: application/json\r\nContent-Length: 2\r\naccept-encoding: identity\r\nconnection: close\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n{}",
+    "an_halter": "{\"abfrage\":null,\"fassung\":1,\"id\":1,\"koerper_b64\":\"e30=\",\"kopf\":{\"content-type\":\"application/json\"},\"methode\":\"POST\",\"op\":\"modell.aufruf\",\"pfad\":\"/chat/completions\",\"ziel\":\"api.individual.githubcopilot.com\"}",
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
      "ziel": "copilot-plan",
      "methode": "POST",
      "pfadregel": "/*",
-     "kopf": "ersetzt",
+     "kopf": "halter",
      "pfad": null,
+     "host": "api.individual.githubcopilot.com"
+    }
+   }
+  },
+  {
+   "name": "plan_kopf_zu_lang",
+   "beschreibung": "ein Kopfwert mit 8193 Zeichen an einem gebundenen Ziel: der Halter nimmt bis 8192, also 400",
+   "ziel": "copilot-plan",
+   "anfrage": "POST /chat/completions HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\nX-Lang: vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\r\nContent-Length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.anfrage_unlesbar\",\"message\":\"Anfrage nicht lesbar\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 400,
+     "ziel": "copilot-plan",
+     "methode": "POST",
+     "pfadregel": "/*",
+     "kopf": "halter",
+     "pfad": "/chat/completions",
+     "host": "api.individual.githubcopilot.com"
+    }
+   }
+  },
+  {
+   "name": "plan_65_koepfe",
+   "beschreibung": "65 Koepfe an einem gebundenen Ziel (host faellt, also bleiben 65): der Halter nimmt bis 64, also 400",
+   "ziel": "copilot-plan",
+   "anfrage": "POST /chat/completions HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\nX-0: v\r\nX-1: v\r\nX-2: v\r\nX-3: v\r\nX-4: v\r\nX-5: v\r\nX-6: v\r\nX-7: v\r\nX-8: v\r\nX-9: v\r\nX-10: v\r\nX-11: v\r\nX-12: v\r\nX-13: v\r\nX-14: v\r\nX-15: v\r\nX-16: v\r\nX-17: v\r\nX-18: v\r\nX-19: v\r\nX-20: v\r\nX-21: v\r\nX-22: v\r\nX-23: v\r\nX-24: v\r\nX-25: v\r\nX-26: v\r\nX-27: v\r\nX-28: v\r\nX-29: v\r\nX-30: v\r\nX-31: v\r\nX-32: v\r\nX-33: v\r\nX-34: v\r\nX-35: v\r\nX-36: v\r\nX-37: v\r\nX-38: v\r\nX-39: v\r\nX-40: v\r\nX-41: v\r\nX-42: v\r\nX-43: v\r\nX-44: v\r\nX-45: v\r\nX-46: v\r\nX-47: v\r\nX-48: v\r\nX-49: v\r\nX-50: v\r\nX-51: v\r\nX-52: v\r\nX-53: v\r\nX-54: v\r\nX-55: v\r\nX-56: v\r\nX-57: v\r\nX-58: v\r\nX-59: v\r\nX-60: v\r\nX-61: v\r\nX-62: v\r\nX-63: v\r\nX-64: v\r\nContent-Length: 2\r\n\r\n{}",
+   "erwartet": {
+    "ziel_beruehrt": false,
+    "status": 400,
+    "koerper": "{\"error\":{\"code\":\"mw.anfrage_unlesbar\",\"message\":\"Anfrage nicht lesbar\"}}",
+    "zeile": {
+     "ergebnis": "abgelehnt",
+     "grund": "mw.anfrage_unlesbar",
+     "status": 400,
+     "ziel": "copilot-plan",
+     "methode": "POST",
+     "pfadregel": "/*",
+     "kopf": "halter",
+     "pfad": "/chat/completions",
      "host": "api.individual.githubcopilot.com"
     }
    }

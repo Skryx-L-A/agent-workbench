@@ -127,7 +127,7 @@ fn mit_antwort(antwort: Vec<u8>) -> TcpStream {
         }
     });
     let s = TcpStream::connect(("127.0.0.1", port)).expect("connect");
-    s.set_read_timeout(Some(Duration::from_secs(10)))
+    s.set_read_timeout(Some(Duration::from_secs(3)))
         .expect("timeout");
     s
 }
@@ -138,7 +138,10 @@ fn lesen(antwort: &[u8], methode: &str) -> Result<(u16, Vec<u8>), Code> {
     let (k, vorrat) = ziel::kopf_lesen(l, Duration::from_secs(10))?;
     let mut koerper = Koerper::neu(l, &k, vorrat, methode)?;
     let mut alles = Vec::new();
+    let mut teile = 0;
     while let Some(b) = koerper.naechstes()? {
+        teile += 1;
+        assert!(teile < 100_000, "the body gives parts without end");
         alles.extend_from_slice(&b);
     }
     Ok((k.status, alles))
@@ -205,6 +208,69 @@ fn koerper_nach_laenge_stuecken_und_ende() {
     ]
     .concat();
     assert_eq!(lesen(&lange_zeile, "GET"), Err(Code::ZielFehler));
+}
+
+/// A body after its status: 1xx, 204 and 304 have none, every other status has one (also 201).
+#[test]
+fn koerper_nach_dem_status() {
+    assert_eq!(
+        lesen(
+            b"HTTP/1.1 201 Created\r\ncontent-length: 3\r\n\r\nabc",
+            "GET"
+        ),
+        Ok((201, b"abc".to_vec()))
+    );
+    assert_eq!(
+        lesen(b"HTTP/1.1 199 X\r\ncontent-length: 3\r\n\r\nabc", "GET"),
+        Ok((199, Vec::new()))
+    );
+}
+
+fn stueckweise(rumpf: &[u8]) -> Result<(u16, Vec<u8>), Code> {
+    lesen(
+        &[
+            b"HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n".to_vec(),
+            rumpf.to_vec(),
+        ]
+        .concat(),
+        "GET",
+    )
+}
+
+/// The limits of a chunked body, each at its border: 15 hex digits for a size, 1025 bytes for a size line before its
+/// LF, 65536 bytes for the trailer.
+#[test]
+fn grenzen_der_stuecke() {
+    assert_eq!(
+        stueckweise(b"000000000000001\r\na\r\n0\r\n\r\n"),
+        Ok((200, b"a".to_vec()))
+    );
+    assert_eq!(
+        stueckweise(b"0000000000000001\r\na\r\n0\r\n\r\n"),
+        Err(Code::ZielFehler)
+    );
+    // a size line of 1025 bytes before its LF (with an extension), then one byte more
+    let mut zeile = b"1;".to_vec();
+    zeile.resize(1024, b'x');
+    zeile.push(b'\r');
+    assert_eq!(zeile.len(), 1025);
+    let rumpf = [zeile.clone(), b"\na\r\n0\r\n\r\n".to_vec()].concat();
+    assert_eq!(stueckweise(&rumpf), Ok((200, b"a".to_vec())));
+    let mut lang = zeile[..1024].to_vec();
+    lang.extend_from_slice(b"x\r");
+    let rumpf = [lang, b"\na\r\n0\r\n\r\n".to_vec()].concat();
+    assert_eq!(stueckweise(&rumpf), Err(Code::ZielFehler));
+    // a trailer of exactly 65536 bytes with its end, then one byte more
+    let mut anhang = b"x: ".to_vec();
+    anhang.resize(65_536 - 4, b'a');
+    anhang.extend_from_slice(b"\r\n\r\n");
+    assert_eq!(anhang.len(), 65_536);
+    let rumpf = [b"1\r\nz\r\n0\r\n".to_vec(), anhang.clone()].concat();
+    assert_eq!(stueckweise(&rumpf), Ok((200, b"z".to_vec())));
+    let mut zu_lang = anhang[..anhang.len() - 4].to_vec();
+    zu_lang.extend_from_slice(b"a\r\n\r\n");
+    let rumpf = [b"1\r\nz\r\n0\r\n".to_vec(), zu_lang].concat();
+    assert_eq!(stueckweise(&rumpf), Err(Code::ZielFehler));
 }
 
 #[test]

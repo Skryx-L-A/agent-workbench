@@ -1,4 +1,4 @@
-//! The start file (contract 1, `rust/spec/VERTRAEGE.md`, stages 1 to 17).
+//! The start file (contract 1, `rust/spec/start/README.md`, stages 1 to 17).
 //!
 //! The crate `start` reads the request and the start file and checks them against the settings. This module
 //! maps the result to the code of the point and builds the values that may stand in a line.

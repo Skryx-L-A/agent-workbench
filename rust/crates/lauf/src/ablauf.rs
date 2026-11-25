@@ -723,11 +723,11 @@ fn cloud_vorbereiten(
         return Err(Fehler::Zielliste);
     }
     let gebunden = ziele.iter().any(|z| z.gebunden);
-    let schluessel = match lage.konfig.schluessel.get(route.schluessel()) {
-        Some(p) => text(p),
-        None if !gebunden => String::new(),
-        None => return Err(Fehler::ModellwegFehlt),
-    };
+    // The list names no key file any more: the key of a bound target lies with the holder. The route of a bound
+    // target still has to carry one in the configuration, so a route without it ends the start as before.
+    if gebunden && !lage.konfig.schluessel.contains_key(route.schluessel()) {
+        return Err(Fehler::ModellwegFehlt);
+    }
     // step 7a0: the target list in the state folder, before the model path starts; it stays after the session
     let sitzungen = lage.konfig.zustand.join("sitzungen");
     if !dateien::eigener_ordner_0700(&sitzungen) {
@@ -736,7 +736,7 @@ fn cloud_vorbereiten(
     let liste = sitzungen.join(format!("{}.zielliste.json", lage.start.sitzung()));
     dateien::datei_neu(
         &liste,
-        crate::ziele::text(&ziele, &schluessel, &lage.konfig.ca_zulassung).as_bytes(),
+        crate::ziele::text(&ziele, &lage.konfig.ca_zulassung).as_bytes(),
     )
     .map_err(|_| Fehler::Zielliste)?;
     let hosts: Vec<&str> = ziele.iter().map(|z| z.host.as_str()).collect();

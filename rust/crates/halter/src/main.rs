@@ -13,25 +13,26 @@ fn zeile(text: &str) {
     let _ = e.flush();
 }
 
-#[cfg(target_os = "linux")]
+// One `main` with the choice inside: cargo-mutants reads the source as text, so a second `main` for another platform
+// would give mutants that no test on the machine of the gate can catch.
 fn main() -> ExitCode {
-    linux::lauf()
-}
-
-#[cfg(not(target_os = "linux"))]
-fn main() -> ExitCode {
+    #[cfg(target_os = "linux")]
+    let code = linux::lauf();
     // version 1 is built for Linux step I only; macOS (keychain) and Windows (service, pipe) follow (OPEN)
-    let f = halter::code::Startfehler::Intern;
-    zeile(&f.zeile());
-    ExitCode::from(f.teile().0)
+    #[cfg(not(target_os = "linux"))]
+    let code = {
+        let f = halter::code::Startfehler::Intern;
+        zeile(&f.zeile());
+        ExitCode::from(f.teile().0)
+    };
+    code
 }
 
 #[cfg(target_os = "linux")]
 mod linux {
     use std::process::ExitCode;
     use std::sync::Arc;
-    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-    use std::time::Duration;
+    use std::sync::atomic::AtomicBool;
 
     use halter::code::Startfehler;
     use halter::dienst::{self, Dienst};
@@ -39,42 +40,20 @@ mod linux {
 
     use super::zeile;
 
-    /// Most connections at once (at least 32 of the role `bruecke`, section 3, besides hub and surface).
-    const VERBINDUNGEN_MAX: usize = 128;
-
     fn ende(f: Startfehler) -> ExitCode {
         zeile(&f.zeile());
         ExitCode::from(f.teile().0)
     }
 
-    #[cfg(feature = "pruefbau")]
+    // One `orte` with the choice inside, as in `main`: a function behind `cfg` would give mutants that the run without
+    // the feature cannot catch. The test build reads the seams through `Orte::aus_naht`; the delivered build never
+    // reads them.
     fn orte() -> Orte {
-        use std::path::PathBuf;
-        let mut o = Orte::fest();
-        if std::env::var_os("WB_TESTUMGEBUNG").as_deref() != Some(std::ffi::OsStr::new("1")) {
-            return o;
-        }
-        let pfad = |n: &str| std::env::var_os(n).map(PathBuf::from);
-        let zahl = |n: &str| std::env::var(n).ok().and_then(|v| v.parse::<u32>().ok());
-        if let Some(p) = pfad("WB_HALTER_KONFIG") {
-            o.konfig = p;
-        }
-        if let Some(u) = zahl("WB_HALTER_KONFIG_EIGNER") {
-            o.konfig_eigner = u;
-        }
-        if let Some(p) = pfad("WB_HALTER_PASSWD") {
-            o.passwd = p;
-        }
-        if let Some(p) = pfad("WB_HALTER_GROUP") {
-            o.gruppen = p;
-        }
-        o.laufzeit = pfad("WB_HALTER_LAUFZEIT");
+        #[cfg(feature = "pruefbau")]
+        let o = Orte::aus_naht(|n: &str| std::env::var_os(n));
+        #[cfg(not(feature = "pruefbau"))]
+        let o = Orte::fest();
         o
-    }
-
-    #[cfg(not(feature = "pruefbau"))]
-    fn orte() -> Orte {
-        Orte::fest()
     }
 
     pub fn lauf() -> ExitCode {
@@ -120,40 +99,7 @@ mod linux {
             bereit.kette,
             dienst::jetzt_ms,
         ));
-        let offen = Arc::new(AtomicUsize::new(0));
-        while !halt.load(Ordering::Relaxed) {
-            match bereit.hoerer.accept() {
-                Ok((strom, _)) => {
-                    if strom.set_nonblocking(false).is_err()
-                        || offen.load(Ordering::Relaxed) >= VERBINDUNGEN_MAX
-                    {
-                        continue; // closed unanswered
-                    }
-                    offen.fetch_add(1, Ordering::Relaxed);
-                    let d = Arc::clone(&d);
-                    let offen2 = Arc::clone(&offen);
-                    let gestartet = std::thread::Builder::new().spawn(move || {
-                        d.verbindung(strom);
-                        offen2.fetch_sub(1, Ordering::Relaxed);
-                    });
-                    if gestartet.is_err() {
-                        offen.fetch_sub(1, Ordering::Relaxed);
-                    }
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    let mut fds = [rustix::event::PollFd::new(
-                        &bereit.hoerer,
-                        rustix::event::PollFlags::IN,
-                    )];
-                    let t = rustix::time::Timespec {
-                        tv_sec: 0,
-                        tv_nsec: 200_000_000,
-                    };
-                    let _ = rustix::event::poll(&mut fds, Some(&t));
-                }
-                Err(_) => std::thread::sleep(Duration::from_millis(50)),
-            }
-        }
+        dienst::annehmen(&d, &bereit.hoerer, &halt, dienst::VERBINDUNGEN_MAX);
         start::socket_entfernen(&bereit.ordner, bereit.socket_id);
         ExitCode::SUCCESS
     }

@@ -422,7 +422,7 @@ pub(super) fn modellweg_form(map: &Map<String, Value>) -> bool {
             })
             && text_oder_null(map, "pfadregel", regel_pfad_feld_ok)
             && text_oder_null(map, "kopf", |k| {
-                ["ersetzt", "keiner", "abgewiesen"].contains(&k)
+                ["ersetzt", "keiner", "abgewiesen", "halter"].contains(&k)
             })
     };
     eigen
@@ -617,7 +617,7 @@ const REGISTER_ANGEMELDET: [&str; 3] = ["regel.geaendert", "regel.abgelehnt", "s
 
 /// Kinds of version 2 whose form another contract lays down (register group „in anderen Verträgen festgelegt",
 /// contract 5, section 3). This check only knows that they exist, so a chain that holds them stays whole.
-const REGISTER_FREMD: [&str; 14] = [
+const REGISTER_FREMD: [&str; 15] = [
     "hersteller.zugang",
     "hersteller.zugriff",
     "pflicht.aenderung",
@@ -627,6 +627,7 @@ const REGISTER_FREMD: [&str; 14] = [
     "fall.freitext",
     "mcp.schein_abgelehnt",
     "halter.leck_gesperrt",
+    "halter.pfad_verboten",
     "wissen.geschrieben",
     "wissen.schreiben.abgelehnt",
     "klasse.erlaubt",
@@ -990,6 +991,26 @@ mod tests {
         assert!(!modellweg_form(&weniger));
     }
 
+    /// The register of the field `kopf` takes `halter` since 25.11.2026: a bound target of mode 2 on the holder
+    /// path, whose header the holder sets (contract 8, section 13.4). A value outside the register stays refused, so
+    /// the register keeps failing closed.
+    #[test]
+    fn the_register_of_the_head_takes_the_holder() {
+        for wert in ["ersetzt", "keiner", "abgewiesen", "halter"] {
+            let mut map = mw2();
+            map.insert("kopf".to_owned(), json!(wert));
+            assert!(modellweg_form(&map), "{wert}");
+        }
+        let mut ohne = mw2();
+        ohne.insert("kopf".to_owned(), Value::Null);
+        assert!(modellweg_form(&ohne));
+        for wert in ["halters", "Halter", "halter ", "", "ersetz"] {
+            let mut map = mw2();
+            map.insert("kopf".to_owned(), json!(wert));
+            assert!(!modellweg_form(&map), "{wert}");
+        }
+    }
+
     #[test]
     fn an_older_line_without_path_and_host_keeps_its_form() {
         for mut map in [mw1(), mw2()] {
@@ -1126,5 +1147,20 @@ mod tests {
         assert!(zeilenart_ok(&zeile("halter.leck_gesperrt"), true));
         assert!(!zeilenart_ok(&zeile("halter.leck_gesperr"), true));
         assert!(zeilenart_ok(&zeile("halter.leck_gesperr"), false));
+    }
+
+    /// The kind of a request the holder refused for a path outside the rules is in the register (its form stands in
+    /// the holder contract, section 9); a kind with a typo stays `form_falsch` in version 2.
+    #[test]
+    fn die_art_des_verbotenen_pfads_des_halters_steht_im_register() {
+        let zeile = |art: &str| {
+            json!({"aktionsname": art, "fassung": 2})
+                .as_object()
+                .expect("object")
+                .clone()
+        };
+        assert!(zeilenart_ok(&zeile("halter.pfad_verboten"), true));
+        assert!(!zeilenart_ok(&zeile("halter.pfad_verbote"), true));
+        assert!(zeilenart_ok(&zeile("halter.pfad_verbote"), false));
     }
 }

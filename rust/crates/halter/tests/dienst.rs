@@ -112,18 +112,24 @@ struct Client {
     strom: UnixStream,
     vorrat: Vec<u8>,
     roh: Vec<u8>,
+    /// The start of the connection: a connection that sends lines without end (a stream that never ends) fails after
+    /// 12 s, well within the deadline of a mutant run.
+    seit: std::time::Instant,
 }
 
 fn verbinden(d: &Arc<Dienst>) -> Client {
     let (a, b) = UnixStream::pair().expect("pair");
     let d = Arc::clone(d);
     std::thread::spawn(move || d.verbindung(b));
-    a.set_read_timeout(Some(Duration::from_secs(30)))
+    // 5 s for every line: a line or an end that does not come fails the test (see `eine`) well within the deadline
+    // of a mutant run
+    a.set_read_timeout(Some(Duration::from_secs(5)))
         .expect("timeout");
     Client {
         strom: a,
         vorrat: Vec::new(),
         roh: Vec::new(),
+        seit: std::time::Instant::now(),
     }
 }
 
@@ -141,6 +147,10 @@ impl Client {
     fn eine(&mut self) -> Option<Value> {
         let mut buf = vec![0u8; 65_536];
         loop {
+            assert!(
+                self.seit.elapsed() < Duration::from_secs(12),
+                "the connection runs longer than 12 s"
+            );
             if let Some(p) = self.vorrat.iter().position(|b| *b == b'\n') {
                 let rest = self.vorrat.split_off(p + 1);
                 let z = std::mem::replace(&mut self.vorrat, rest);
@@ -151,6 +161,15 @@ impl Client {
                 return Some(serde_json::from_slice(&z).expect("json"));
             }
             match self.strom.read(&mut buf) {
+                // a deadline is no end: the holder neither answered nor closed the connection
+                Err(e)
+                    if matches!(
+                        e.kind(),
+                        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                    ) =>
+                {
+                    panic!("no line and no end of the connection within the deadline")
+                }
                 Ok(0) | Err(_) => return None,
                 Ok(n) => {
                     self.vorrat.extend_from_slice(&buf[..n]);
@@ -1206,4 +1225,98 @@ fn zu_grosse_zeile_schliesst_ohne_rest() {
     assert_eq!(letzte_code(&z).as_deref(), Some("halter.zu_gross"));
     assert!(c.eine().is_none());
     let _ = schreiber.join();
+}
+
+/// A short folder for a socket (a Unix socket path has at most 107 bytes): below `TMPDIR` if that is short (the
+/// enclosure sets it), else below `$HOME/.cache`.
+fn kurzer_ordner() -> PathBuf {
+    let n = ZAEHLER.fetch_add(1, Ordering::Relaxed);
+    let basis = std::env::var_os("TMPDIR")
+        .map(PathBuf::from)
+        .filter(|p| p.is_absolute() && p.as_os_str().len() <= 48)
+        .unwrap_or_else(|| PathBuf::from(std::env::var_os("HOME").expect("HOME")).join(".cache"));
+    let p = basis.join(format!("hd-{}-{n}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&p);
+    std::fs::create_dir_all(&p).expect("short folder");
+    std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o700)).expect("mode");
+    p
+}
+
+/// A client on the socket at `p` that waits at most 3 s for a line.
+fn verbinden_mit(p: &Path) -> Client {
+    let a = UnixStream::connect(p).expect("connect");
+    a.set_read_timeout(Some(Duration::from_secs(3)))
+        .expect("timeout");
+    Client {
+        strom: a,
+        vorrat: Vec::new(),
+        roh: Vec::new(),
+        seit: std::time::Instant::now(),
+    }
+}
+
+/// `true` if the connection was served: the answer to `schluessel.vorhanden` comes.
+fn bedient(c: &mut Client) -> bool {
+    // a connection closed unanswered may refuse the request already
+    let frage = json!({"fassung": 1, "id": "q-1", "name": "anmeldung.copilot", "op": "schluessel.vorhanden"});
+    if c.strom.write_all(&zeile(&frage)).is_err() {
+        return false;
+    }
+    c.bis_schluss()
+        .first()
+        .is_some_and(|z| z["vorhanden"] == json!(true))
+}
+
+/// The accept loop of the program (section 3): it serves a connection, closes one above the limit unanswered, serves
+/// again once a place is free and ends after the stop flag (SIGTERM and SIGINT set it in the program).
+#[test]
+fn annahme_bedient_haelt_die_grenze_und_endet_mit_halt() {
+    use std::os::unix::net::UnixListener;
+    use std::sync::atomic::AtomicBool;
+
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst("bruecke", 9, &heim, START);
+    let o = kurzer_ordner();
+    let pfad = o.join("h.sock");
+    let hoerer = UnixListener::bind(&pfad).expect("bind");
+    hoerer.set_nonblocking(true).expect("non-blocking");
+    let halt = Arc::new(AtomicBool::new(false));
+    let (fertig_tx, fertig_rx) = std::sync::mpsc::channel();
+    let halt2 = Arc::clone(&halt);
+    let schleife = std::thread::spawn(move || {
+        halter::dienst::annehmen(&d, &hoerer, &halt2, 1);
+        let _ = fertig_tx.send(());
+    });
+    // the first connection is served and stays open
+    let mut a = verbinden_mit(&pfad);
+    assert!(bedient(&mut a), "the first connection was not served");
+    // a second one above the limit of 1 is closed without an answer
+    let mut b = verbinden_mit(&pfad);
+    let mut buf = [0u8; 16];
+    assert_eq!(
+        b.strom.read(&mut buf).expect("closed, not waiting"),
+        0,
+        "the connection above the limit was not closed"
+    );
+    // after the end of the first one there is a place again
+    drop(a);
+    let ende = std::time::Instant::now() + Duration::from_secs(10);
+    loop {
+        let mut c = verbinden_mit(&pfad);
+        if bedient(&mut c) {
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < ende,
+            "no place within 10 s after the end of the first connection"
+        );
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    halt.store(true, Ordering::Relaxed);
+    assert!(
+        fertig_rx.recv_timeout(Duration::from_secs(5)).is_ok(),
+        "the accept loop did not end within 5 s after the stop flag"
+    );
+    schleife.join().expect("loop");
+    let _ = std::fs::remove_dir_all(&o);
 }

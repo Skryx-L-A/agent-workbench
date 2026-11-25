@@ -1,6 +1,6 @@
 {
  "fassung": 1,
- "hinweis": "Vertrag 8, Abschnitt 9a (Suche nach dem Schluessel, Nachtrag 18). argv ist der Aufruf des Programms ab dem Unterbefehl. baum ist der Dateibaum der Probe als Liste: pfad, art (datei, ordner, verknuepfung, fifo), inhalt (latin1-Text, nur datei), lesbar (false: nicht lesbar), ziel (nur verknuepfung); eigen und modus gelten fuer Schluesseldateien (Vorgabe: eigene Datei, 0600). Ordner stehen als eigene Eintraege. zielliste ist die Datei der Route Copilot (pfad und inhalt). erwartet: exit, stdout (eine Zeile RFC 8785 mit dateien, nicht_lesbar, treffer, uebersprungen, oder leer) und stderr (leer oder die feste Zeile mit Code). Die Schluessel sind erfundene Testwerte und nicht tokenfoermig; der Platzhalter im gho_-Format ist bewusst kuerzer als ein Token. Hinweis fuer den Bau: Der Fall fund_lesegrenze_4096 und die Grenzen bei kleinem Puffer gehoeren in dessen Tests.",
+ "hinweis": "Vertrag 8, Abschnitt 9a (Suche nach dem Schluessel, Nachtrag 18). argv ist der Aufruf des Programms ab dem Unterbefehl. baum ist der Dateibaum der Probe als Liste: pfad, art (datei, ordner, verknuepfung, fifo), inhalt (latin1-Text, nur datei), lesbar (false: nicht lesbar), ziel (nur verknuepfung); eigen und modus gelten fuer Schluesseldateien (Vorgabe: eigene Datei, 0600). Ordner stehen als eigene Eintraege. zielliste ist die Datei der Route Copilot (pfad und inhalt). halter gilt nur fuer die Route Copilot: erreichbar sagt, ob die Suche den Halter erreicht, und antworten nennt je halter_ziel die Antwort auf modell.suche, entweder die vier Zaehler oder einen code. Die Suche kennt den Wert eines gebundenen Ziels nicht und durchsucht fuer ein solches Ziel selbst nichts; ihre Zeile ist die Summe der Antworten. erwartet: exit, stdout (eine Zeile RFC 8785 mit dateien, nicht_lesbar, treffer, uebersprungen, oder leer) und stderr (leer oder die feste Zeile mit Code). Die Schluessel sind erfundene Testwerte und nicht tokenfoermig; der Platzhalter im gho_-Format ist bewusst kuerzer als ein Token. Hinweis fuer den Bau: Der Fall fund_lesegrenze_4096 und die Grenzen bei kleinem Puffer gehoeren in dessen Tests.",
  "faelle": [
   {
    "name": "kein_fund",
@@ -1763,8 +1763,8 @@
    }
   },
   {
-   "name": "zielliste_gleiche_datei",
-   "beschreibung": "Zielliste mit zwei gebundenen Zielen auf dieselbe Schluesseldatei und einem ungebundenen Ziel: ein Schluessel, ein Fund zaehlt einmal",
+   "name": "zielliste_ein_ziel_kein_fund",
+   "beschreibung": "Zielliste mit einem gebundenen und einem ungebundenen Ziel: ein modell.suche, der Halter findet nichts, gruen",
    "argv": [
     "suche",
     "--zielliste",
@@ -1843,376 +1843,22 @@
      "art": "datei",
      "inhalt": "sichtbare Ausgabe\n",
      "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0600"
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/zielliste.json",
-     "art": "datei",
-     "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/arbeit/leck.txt",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
-     "lesbar": true
     }
    ],
    "zielliste": {
     "pfad": "/srv/beispiel/lauf/zielliste.json",
-    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"api.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
    },
-   "erwartet": {
-    "exit": 1,
-    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":1,\"uebersprungen\":0}\n",
-    "stderr": ""
-   }
-  },
-  {
-   "name": "zielliste_zwei_schluessel_fund_zweiter",
-   "beschreibung": "Zielliste mit zwei verschiedenen Schluesseln: nur der zweite steht im Arbeitsordner, rot",
-   "argv": [
-    "suche",
-    "--zielliste",
-    "/srv/beispiel/lauf/zielliste.json",
-    "--in",
-    "/srv/beispiel/lauf/arbeit",
-    "--in",
-    "/srv/beispiel/lauf/protokoll",
-    "--in",
-    "/srv/beispiel/lauf/zaehlung",
-    "--in",
-    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
-   ],
-   "umgebung": {},
-   "baum": [
-    {
-     "pfad": "/srv",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/arbeit",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/protokoll",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/zaehlung",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/ausgabe",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
-     "art": "datei",
-     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
-     "art": "datei",
-     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
-     "art": "datei",
-     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
-     "art": "datei",
-     "inhalt": "sichtbare Ausgabe\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0600"
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-b.schluessel",
-     "art": "datei",
-     "inhalt": "wb-t-wb-z\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0600"
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/arbeit/leck.txt",
-     "art": "datei",
-     "inhalt": "wb-t-wb-z",
-     "lesbar": true
+   "halter": {
+    "erreichbar": true,
+    "antworten": {
+     "api.beispiel.test": {
+      "dateien": 4,
+      "nicht_lesbar": 0,
+      "treffer": 0,
+      "uebersprungen": 0
+     }
     }
-   ],
-   "zielliste": {
-    "pfad": "/srv/beispiel/lauf/zielliste.json",
-    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-b.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
-   },
-   "erwartet": {
-    "exit": 1,
-    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":1,\"uebersprungen\":0}\n",
-    "stderr": ""
-   }
-  },
-  {
-   "name": "zielliste_zwei_schluessel_beide",
-   "beschreibung": "beide Schluessel stehen je einmal: treffer ist die Summe, 2",
-   "argv": [
-    "suche",
-    "--zielliste",
-    "/srv/beispiel/lauf/zielliste.json",
-    "--in",
-    "/srv/beispiel/lauf/arbeit",
-    "--in",
-    "/srv/beispiel/lauf/protokoll",
-    "--in",
-    "/srv/beispiel/lauf/zaehlung",
-    "--in",
-    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
-   ],
-   "umgebung": {},
-   "baum": [
-    {
-     "pfad": "/srv",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/arbeit",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/protokoll",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/zaehlung",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/ausgabe",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
-     "art": "datei",
-     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
-     "art": "datei",
-     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
-     "art": "datei",
-     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
-     "art": "datei",
-     "inhalt": "sichtbare Ausgabe\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0600"
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-b.schluessel",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0600"
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/arbeit/a.txt",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-b52f60d1e8a7",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/protokoll/b.txt",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-4c8e1a7d93b0",
-     "lesbar": true
-    }
-   ],
-   "zielliste": {
-    "pfad": "/srv/beispiel/lauf/zielliste.json",
-    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-b.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
-   },
-   "erwartet": {
-    "exit": 1,
-    "stdout": "{\"dateien\":6,\"nicht_lesbar\":0,\"treffer\":2,\"uebersprungen\":0}\n",
-    "stderr": ""
-   }
-  },
-  {
-   "name": "zielliste_kein_fund",
-   "beschreibung": "Zielliste mit zwei Schluesseln, keiner steht irgendwo: gruen",
-   "argv": [
-    "suche",
-    "--zielliste",
-    "/srv/beispiel/lauf/zielliste.json",
-    "--in",
-    "/srv/beispiel/lauf/arbeit",
-    "--in",
-    "/srv/beispiel/lauf/protokoll",
-    "--in",
-    "/srv/beispiel/lauf/zaehlung",
-    "--in",
-    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
-   ],
-   "umgebung": {},
-   "baum": [
-    {
-     "pfad": "/srv",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/arbeit",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/protokoll",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/zaehlung",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/ausgabe",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
-     "art": "datei",
-     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
-     "art": "datei",
-     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
-     "art": "datei",
-     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
-     "art": "datei",
-     "inhalt": "sichtbare Ausgabe\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0600"
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-b.schluessel",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0600"
-    }
-   ],
-   "zielliste": {
-    "pfad": "/srv/beispiel/lauf/zielliste.json",
-    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-b.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
    },
    "erwartet": {
     "exit": 0,
@@ -2221,8 +1867,8 @@
    }
   },
   {
-   "name": "platzhalter_gho",
-   "beschreibung": "ein Platzhalter im gho_-Format steht im Arbeitsordner (zu kurz fuer ein Token, ausdruecklich nicht der Wert): kein Fund",
+   "name": "zielliste_ein_ziel_fund",
+   "beschreibung": "der Halter findet seinen Schluessel einmal: rot",
    "argv": [
     "suche",
     "--zielliste",
@@ -2301,38 +1947,647 @@
      "art": "datei",
      "inhalt": "sichtbare Ausgabe\n",
      "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"api.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "halter": {
+    "erreichbar": true,
+    "antworten": {
+     "api.beispiel.test": {
+      "dateien": 5,
+      "nicht_lesbar": 0,
+      "treffer": 1,
+      "uebersprungen": 0
+     }
+    }
+   },
+   "erwartet": {
+    "exit": 1,
+    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":1,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "zielliste_zwei_ziele_summe",
+   "beschreibung": "zwei gebundene Ziele: je ein modell.suche, und die Zaehler beider Antworten kommen in dieselbe Summe",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
     },
     {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0600"
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
     },
     {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-b.schluessel",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0600"
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
     },
     {
-     "pfad": "/srv/beispiel/lauf/arbeit/umgebung.txt",
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
      "art": "datei",
-     "inhalt": "COPILOT_GITHUB_TOKEN=gho_platzhalter-0000\n",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
      "lesbar": true
     }
    ],
    "zielliste": {
     "pfad": "/srv/beispiel/lauf/zielliste.json",
-    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-b.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"api.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"plan.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
+   },
+   "halter": {
+    "erreichbar": true,
+    "antworten": {
+     "api.beispiel.test": {
+      "dateien": 4,
+      "nicht_lesbar": 0,
+      "treffer": 1,
+      "uebersprungen": 1
+     },
+     "plan.beispiel.test": {
+      "dateien": 5,
+      "nicht_lesbar": 1,
+      "treffer": 1,
+      "uebersprungen": 1
+     }
+    }
    },
    "erwartet": {
-    "exit": 0,
-    "stdout": "{\"dateien\":5,\"nicht_lesbar\":0,\"treffer\":0,\"uebersprungen\":0}\n",
+    "exit": 1,
+    "stdout": "{\"dateien\":9,\"nicht_lesbar\":1,\"treffer\":2,\"uebersprungen\":2}\n",
     "stderr": ""
+   }
+  },
+  {
+   "name": "zielliste_nicht_lesbar_offen",
+   "beschreibung": "der Halter konnte eine Datei nicht lesen und fand nichts: offen (Exit 3), nie gruen",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"api.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "halter": {
+    "erreichbar": true,
+    "antworten": {
+     "api.beispiel.test": {
+      "dateien": 3,
+      "nicht_lesbar": 1,
+      "treffer": 0,
+      "uebersprungen": 0
+     }
+    }
+   },
+   "erwartet": {
+    "exit": 3,
+    "stdout": "{\"dateien\":3,\"nicht_lesbar\":1,\"treffer\":0,\"uebersprungen\":0}\n",
+    "stderr": ""
+   }
+  },
+  {
+   "name": "zielliste_halter_ohne_schluessel",
+   "beschreibung": "der Halter haelt zum Ziel kein Geheimnis (halter.kein_schluessel): kein Gruen",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"api.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "halter": {
+    "erreichbar": true,
+    "antworten": {
+     "api.beispiel.test": {
+      "code": "halter.kein_schluessel"
+     }
+    }
+   },
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.schluessel_fehlt: Schluessel nicht lesbar\n"
+   }
+  },
+  {
+   "name": "zielliste_halter_lehnt_ab",
+   "beschreibung": "der Halter lehnt den Aufruf ab (halter.rolle): kein Gruen",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"api.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "halter": {
+    "erreichbar": true,
+    "antworten": {
+     "api.beispiel.test": {
+      "code": "halter.rolle"
+     }
+    }
+   },
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.schluessel_fehlt: Schluessel nicht lesbar\n"
+   }
+  },
+  {
+   "name": "zielliste_halter_unerreichbar",
+   "beschreibung": "die Suche erreicht den Halter nicht: kein Gruen",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"api.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+   },
+   "halter": {
+    "erreichbar": false,
+    "antworten": {}
+   },
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.schluessel_fehlt: Schluessel nicht lesbar\n"
+   }
+  },
+  {
+   "name": "zielliste_zweites_ziel_ohne_schluessel",
+   "beschreibung": "das zweite Ziel hat kein Geheimnis, obwohl das erste gesucht wurde: kein Gruen",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"api.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"plan.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
+   },
+   "halter": {
+    "erreichbar": true,
+    "antworten": {
+     "api.beispiel.test": {
+      "dateien": 4,
+      "nicht_lesbar": 0,
+      "treffer": 0,
+      "uebersprungen": 0
+     },
+     "plan.beispiel.test": {
+      "code": "halter.kein_schluessel"
+     }
+    }
+   },
+   "erwartet": {
+    "exit": 78,
+    "stdout": "",
+    "stderr": "mw.schluessel_fehlt: Schluessel nicht lesbar\n"
    }
   },
   {
@@ -2614,7 +2869,102 @@
    ],
    "zielliste": {
     "pfad": "/srv/beispiel/lauf/zielliste.json",
-    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-b.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"api.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"plan.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
+   },
+   "erwartet": {
+    "exit": 64,
+    "stdout": "",
+    "stderr": "mw.suche_aufruf: Suchaufruf ungueltig\n"
+   }
+  },
+  {
+   "name": "aufruf_halter_socket",
+   "beschreibung": "--halter-socket gibt es nicht: der Endpunkt des Halters ist ein fester Pfad, kein Argument",
+   "argv": [
+    "suche",
+    "--zielliste",
+    "/srv/beispiel/lauf/zielliste.json",
+    "--in",
+    "/srv/beispiel/lauf/arbeit",
+    "--in",
+    "/srv/beispiel/lauf/protokoll",
+    "--in",
+    "/srv/beispiel/lauf/zaehlung",
+    "--in",
+    "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+    "--halter-socket",
+    "/run/user/1000/wb-halter/halter.sock"
+   ],
+   "umgebung": {},
+   "baum": [
+    {
+     "pfad": "/srv",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/schluessel",
+     "art": "ordner",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
+     "art": "datei",
+     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
+     "art": "datei",
+     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
+     "art": "datei",
+     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
+     "lesbar": true
+    },
+    {
+     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
+     "art": "datei",
+     "inhalt": "sichtbare Ausgabe\n",
+     "lesbar": true
+    }
+   ],
+   "zielliste": {
+    "pfad": "/srv/beispiel/lauf/zielliste.json",
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": \"api.beispiel.test\",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
    },
    "erwartet": {
     "exit": 64,
@@ -3832,121 +4182,6 @@
    }
   },
   {
-   "name": "zielliste_zweite_datei_schlecht",
-   "beschreibung": "Zielliste mit zwei Schluesseln, der zweite hat Modus 0644: keine Suche, obwohl der erste im Arbeitsordner steht",
-   "argv": [
-    "suche",
-    "--zielliste",
-    "/srv/beispiel/lauf/zielliste.json",
-    "--in",
-    "/srv/beispiel/lauf/arbeit",
-    "--in",
-    "/srv/beispiel/lauf/protokoll",
-    "--in",
-    "/srv/beispiel/lauf/zaehlung",
-    "--in",
-    "/srv/beispiel/lauf/ausgabe/sitzung.txt"
-   ],
-   "umgebung": {},
-   "baum": [
-    {
-     "pfad": "/srv",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/arbeit",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/protokoll",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/zaehlung",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/ausgabe",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel",
-     "art": "ordner",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/arbeit/notizen.txt",
-     "art": "datei",
-     "inhalt": "Notizen der Sitzung ohne Geheimnis.\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/protokoll/gateway-2026-11.jsonl",
-     "art": "datei",
-     "inhalt": "{\"aktionsname\":\"modellweg.aufruf\"}\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/zaehlung/zaehlung.json",
-     "art": "datei",
-     "inhalt": "{\"anfragen\":2,\"marker\":{},\"sitzung\":\"s-1\"}",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/ausgabe/sitzung.txt",
-     "art": "datei",
-     "inhalt": "sichtbare Ausgabe\n",
-     "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0600"
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-b.schluessel",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-4c8e1a7d93b0\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0644"
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/arbeit/leck.txt",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-b52f60d1e8a7",
-     "lesbar": true
-    }
-   ],
-   "zielliste": {
-    "pfad": "/srv/beispiel/lauf/zielliste.json",
-    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"api-a\",\n   \"host\": \"api.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-a.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  },\n  {\n   \"name\": \"api-b\",\n   \"host\": \"plan.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": \"/srv/beispiel/lauf/schluessel/copilot-b.schluessel\",\n   \"kopf\": \"authorization\",\n   \"wert_vorsatz\": \"Bearer \",\n   \"regeln\": [\n    {\n     \"methode\": \"*\",\n     \"pfad\": \"/*\"\n    }\n   ],\n   \"upgrade\": \"durchreichen\"\n  }\n ]\n}\n"
-   },
-   "erwartet": {
-    "exit": 78,
-    "stdout": "",
-    "stderr": "mw.schluessel_fehlt: Schluessel nicht lesbar\n"
-   }
-  },
-  {
    "name": "zielliste_ungueltig",
    "beschreibung": "die Zielliste ist ungueltig (keine Ziele): Abschnitt 12",
    "argv": [
@@ -4027,14 +4262,6 @@
      "art": "datei",
      "inhalt": "sichtbare Ausgabe\n",
      "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0600"
     }
    ],
    "zielliste": {
@@ -4128,19 +4355,11 @@
      "art": "datei",
      "inhalt": "sichtbare Ausgabe\n",
      "lesbar": true
-    },
-    {
-     "pfad": "/srv/beispiel/lauf/schluessel/copilot-a.schluessel",
-     "art": "datei",
-     "inhalt": "mw-suchschluessel-b52f60d1e8a7\n",
-     "lesbar": true,
-     "eigen": true,
-     "modus": "0600"
     }
    ],
    "zielliste": {
     "pfad": "/srv/beispiel/lauf/zielliste.json",
-    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"schluessel_datei\": null,\n   \"kopf\": null,\n   \"wert_vorsatz\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
+    "inhalt": "{\n \"fassung\": 1,\n \"ca_zulassung\": \"zugelassen\",\n \"ziele\": [\n  {\n   \"name\": \"telemetrie\",\n   \"host\": \"telemetry.beispiel.test\",\n   \"port\": 443,\n   \"halter_ziel\": null,\n   \"regeln\": [\n    {\n     \"methode\": \"POST\",\n     \"pfad\": \"/telemetry\"\n    }\n   ],\n   \"upgrade\": \"ablehnen\"\n  }\n ]\n}\n"
    },
    "erwartet": {
     "exit": 78,

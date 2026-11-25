@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prüft den Vorführ-Vault gegen das Drehbuch (`rust/spec/VERTRAEGE.md`, S3, S4, S5, E2).
+"""Prüft den Vorführ-Vault gegen das Drehbuch (`rust/spec/vorfuehrung/DREHBUCH.md`, S3, S4, S5, E2).
 
 Ohne Programm des Baus: Die Liste ohne Tor kommt aus der Referenz des Vertrags `rangkern`, das Tor aus `bauen.py`.
 Aufruf: REF_SICHER=1 <python mit braincli> -I -B pruefe_vorfuehrung.py <ordner mit rangkern_ref.py>

@@ -29,7 +29,7 @@ mod windows;
 pub(crate) use windows::modus_text;
 #[cfg(windows)]
 pub(crate) use windows::{
-    AsFd, BorrowedFd, Eigen, Ordner, OwnedFd, UnixListener, UnixStream, datei_anlegen_eigen,
+    AsFd, BorrowedFd, Eigen, Job, Ordner, OwnedFd, UnixListener, UnixStream, datei_anlegen_eigen,
     eigen_besitz, eigen_oeffnen, ordner_anlegen_eigen, ordner_oeffnen, socket_binden,
     socket_binden_pfad,
 };

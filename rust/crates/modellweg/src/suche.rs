@@ -25,6 +25,7 @@ use rustix::fs::{AtFlags, CWD, Dir, FileType, Mode, OFlags, openat, statat};
 
 use crate::aufruf;
 use crate::betriebsart::zielliste;
+use crate::halter;
 use crate::schluessel::{self, Schluessel};
 
 /// Size of one read of a file in bytes. A test sets a smaller one so that the border between two reads is hit often.
@@ -131,7 +132,8 @@ impl Ergebnis {
 enum Quelle {
     /// One key file (route local).
     Datei(PathBuf),
-    /// A target list (route Copilot): every key file of the bound targets.
+    /// A target list (route Copilot): from step I every bound target carries `halter_ziel` and no key file, so the
+    /// search asks the holder for it (S2, step 3a) and holds no value of its own.
     Liste(PathBuf),
 }
 
@@ -194,33 +196,49 @@ fn liste_lesen(pfad: &Path, eigene_uid: u32) -> Option<Vec<u8>> {
     Some(inhalt)
 }
 
-/// S2, steps 3 to 5: the target list (if given), then every key file after section 5. The value searched is the value the
-/// forwarder inserts. Two files with the same value make one key. A key file that breaks section 5 stops the whole call.
-fn schluessel_holen(quelle: &Quelle, eigene_uid: u32) -> Result<Vec<Schluessel>, Suchfehler> {
-    let pfade: Vec<PathBuf> = match quelle {
-        Quelle::Datei(p) => vec![p.clone()],
-        Quelle::Liste(p) => {
-            let text = liste_lesen(p, eigene_uid).ok_or(Suchfehler::ZieleUngueltig)?;
-            let liste = zielliste::lies(&text).map_err(|_| Suchfehler::ZieleUngueltig)?;
-            liste
-                .ziele
-                .iter()
-                .filter_map(|z| z.bindung.as_ref())
-                .map(|b| PathBuf::from(&b.schluessel_datei))
-                .collect()
-        }
-    };
-    if pfade.is_empty() {
+/// What the search asks the holder for one bound target (S2, step 3a): `modell.suche` with the `--in` paths.
+/// `None` means the connection, the check of the counterparty or the call failed, or the holder holds no secret for
+/// that target; every one of those is `mw.schluessel_fehlt` and never a green result.
+pub type Halterfrage<'a> = &'a mut dyn FnMut(&str, &[String]) -> Option<halter::Suche>;
+
+/// S2, step 3a for the whole list: one `modell.suche` per bound target. A valid list without a bound target is
+/// `mw.schluessel_fehlt`: where there is nothing to search, there is no green result.
+fn halter_ziele(
+    pfad: &Path,
+    eigene_uid: u32,
+    eingaenge: &[PathBuf],
+    frage: Halterfrage<'_>,
+) -> Result<Ergebnis, Suchfehler> {
+    let text = liste_lesen(pfad, eigene_uid).ok_or(Suchfehler::ZieleUngueltig)?;
+    let liste = zielliste::lies(&text).map_err(|_| Suchfehler::ZieleUngueltig)?;
+    let ziele: Vec<String> = liste
+        .ziele
+        .iter()
+        .filter_map(|z| z.halter_ziel.clone())
+        .collect();
+    if ziele.is_empty() {
         return Err(Suchfehler::SchluesselFehlt);
     }
-    let mut schluessel: Vec<Schluessel> = Vec::new();
-    for p in &pfade {
-        let k = schluessel::lies(p, eigene_uid).map_err(|_| Suchfehler::SchluesselFehlt)?;
-        if !schluessel.iter().any(|a| a.bytes() == k.bytes()) {
-            schluessel.push(k);
-        }
+    let pfade: Vec<String> = eingaenge
+        .iter()
+        .map(|p| p.to_string_lossy().into_owned())
+        .collect();
+    let mut summe = Ergebnis::default();
+    for z in &ziele {
+        let a = frage(z, &pfade).ok_or(Suchfehler::SchluesselFehlt)?;
+        summe.dateien = summe.dateien.saturating_add(a.dateien);
+        summe.nicht_lesbar = summe.nicht_lesbar.saturating_add(a.nicht_lesbar);
+        summe.treffer = summe.treffer.saturating_add(a.treffer);
+        summe.uebersprungen = summe.uebersprungen.saturating_add(a.uebersprungen);
     }
-    Ok(schluessel)
+    Ok(summe)
+}
+
+/// S2, steps 4 and 5 for one key file (route local): own file, 0600, `O_NOFOLLOW`, one line. The value searched is the
+/// value the forwarder inserts, without the closing line feed and without any change.
+fn schluessel_holen(pfad: &Path, eigene_uid: u32) -> Result<Vec<Schluessel>, Suchfehler> {
+    let k = schluessel::lies(pfad, eigene_uid).map_err(|_| Suchfehler::SchluesselFehlt)?;
+    Ok(vec![k])
 }
 
 /// The first place where `nadel` (at least one byte) starts in `heu`.
@@ -426,11 +444,22 @@ pub fn durchsuchen(schluessel: Vec<Schluessel>, eingaenge: &[PathBuf], puffer: u
     lauf.ergebnis
 }
 
-/// S2 and S3: the call, the keys, the search. The keys are dropped (zeroed) when this returns.
-fn suchen(args: &[OsString], eigene_uid: u32, puffer: usize) -> Result<Ergebnis, Suchfehler> {
+/// S2 and S3: the call, then the keys of a key file or the search of the holder per bound target. The keys are
+/// dropped (zeroed) when this returns.
+fn suchen(
+    args: &[OsString],
+    eigene_uid: u32,
+    puffer: usize,
+    frage: Halterfrage<'_>,
+) -> Result<Ergebnis, Suchfehler> {
     let aufruf = aufruf_lesen(args).ok_or(Suchfehler::Aufruf)?;
-    let schluessel = schluessel_holen(&aufruf.quelle, eigene_uid)?;
-    Ok(durchsuchen(schluessel, &aufruf.eingaenge, puffer))
+    match &aufruf.quelle {
+        Quelle::Datei(p) => {
+            let schluessel = schluessel_holen(p, eigene_uid)?;
+            Ok(durchsuchen(schluessel, &aufruf.eingaenge, puffer))
+        }
+        Quelle::Liste(p) => halter_ziele(p, eigene_uid, &aufruf.eingaenge, frage),
+    }
 }
 
 /// Writes the fixed line of a failure on stderr and returns its exit code.
@@ -440,16 +469,18 @@ fn fehler_ausgeben(stderr: &mut dyn Write, f: Suchfehler) -> u8 {
     f.exit()
 }
 
-/// The search for the arguments after `suche`: writes the line on stdout (exit 0, 1 or 3) or the fixed line on stderr
-/// (64, 78 or 70) and returns the exit code. Stage 0 and the shielding are done before (see [`crate::start::haupt`]).
-pub fn lauf(
+/// The search for the arguments after `suche`, with the question to the holder given: writes the line on stdout
+/// (exit 0, 1 or 3) or the fixed line on stderr (64, 78 or 70) and returns the exit code. Stage 0 and the shielding
+/// are done before (see [`crate::start::haupt`]).
+pub fn lauf_mit_halter(
     args: &[OsString],
     eigene_uid: u32,
     puffer: usize,
+    frage: Halterfrage<'_>,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> u8 {
-    match suchen(args, eigene_uid, puffer) {
+    match suchen(args, eigene_uid, puffer, frage) {
         Ok(e) => {
             if stdout
                 .write_all(e.zeile().as_bytes())
@@ -462,6 +493,44 @@ pub fn lauf(
         }
         Err(f) => fehler_ausgeben(stderr, f),
     }
+}
+
+/// The search of the program: the question to the holder goes over his fixed endpoint ([`halter::fester_pfad`]), one
+/// connection per target, never an option of the caller. S7: this is the only connection the search opens, and it is
+/// a local one to a role program of the same machine.
+pub fn lauf(
+    args: &[OsString],
+    eigene_uid: u32,
+    puffer: usize,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> u8 {
+    let mut frage = |ziel: &str, pfade: &[String]| halter_suche(ziel, pfade, eigene_uid);
+    lauf_mit_halter(args, eigene_uid, puffer, &mut frage, stdout, stderr)
+}
+
+/// One `modell.suche` at the holder for `ziel`; `None` on every failure and on a target without a secret.
+#[cfg(target_os = "linux")]
+fn halter_suche(ziel: &str, pfade: &[String], eigene_uid: u32) -> Option<halter::Suche> {
+    let mut k = halter::Klient::verbinde(&halter::fester_pfad(eigene_uid), eigene_uid).ok()?;
+    let id = k.naechste_id();
+    k.frist(Some(halter::FRIST_KOPF)).ok()?;
+    k.senden(&halter::modell_suche(id, ziel, pfade).ok()?)
+        .ok()?;
+    match k.naechste_zeile().ok()? {
+        halter::Zeile::Antwort {
+            code: None,
+            suche: Some(s),
+            ..
+        } => Some(s),
+        _ => None,
+    }
+}
+
+/// Mode 2 and with it the holder path are built under Linux only; on another system there is no bound target.
+#[cfg(not(target_os = "linux"))]
+fn halter_suche(_ziel: &str, _pfade: &[String], _eigene_uid: u32) -> Option<halter::Suche> {
+    None
 }
 
 #[cfg(test)]

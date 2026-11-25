@@ -1,4 +1,4 @@
-//! The rules of `such-mcp` for macOS (addendum to contract 4, `rust/spec/VERTRAEGE.md`, section 6).
+//! The rules of `such-mcp` for macOS (addendum to contract 4, `rust/spec/such-socket/macos/README.md`, section 6).
 //!
 //! As in `rangkern sitzung`, every rule is a pure function with the platform as a parameter, so that the tests run under Linux
 //! with `MacOs`; the program calls them with [`Plattform::AKTUELL`]. Under Linux nothing changes. Only the measurement of the

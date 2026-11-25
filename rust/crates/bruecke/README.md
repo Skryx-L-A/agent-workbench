@@ -2,7 +2,7 @@
 
 `wb-bruecke` is a program of the walking skeleton. It binds only `127.0.0.1` (the address is fixed in the code, there is no switch for another one and no listener on `::1`) and it carries no TLS. The browser of a viewer reaches it through an `ssh -L` tunnel; the bridge hands bytes on to the Unix socket of the service `wb-dienst`, which stays without TCP.
 
-The contract is `rust/spec/VERTRAEGE.md` (state 20.11.2026). The bridge knows no event of the view. It checks a request (form, `Host`, `Origin`, token), translates two routes into frames of the service and passes everything else on unchanged.
+The contract is `rust/spec/bruecke/VERTRAG.md` (state 20.11.2026). The bridge knows no event of the view. It checks a request (form, `Host`, `Origin`, token), translates two routes into frames of the service and passes everything else on unchanged.
 
 **Windows (addendum of 25.11.2026, contract section 17, not accepted yet):** the same program for `x86_64-pc-windows-gnu`, with the
 `AF_UNIX` socket of the service, access lists instead of the modes 0700 and 0600, `BCryptGenRandom` for the token and the console

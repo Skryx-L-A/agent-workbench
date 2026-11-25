@@ -1,5 +1,5 @@
 {
-  "quelle": "Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
+  "quelle": "Vertrag 5 (rust/spec/protokollzeile/README.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
   "faelle": [
     {
       "fall": "Ganzzahl-Schluessel: Sortierung nach UTF-16-Codeeinheiten, nicht numerisch",

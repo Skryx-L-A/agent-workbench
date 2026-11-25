@@ -19,7 +19,7 @@
 //! either way, because the protection is the limit that stays, not the death of the caller.
 //!
 //! **Order of the call.** The filter must be installed after the last change of an `AppArmor` profile, because a filter needs
-//! `PR_SET_NO_NEW_PRIVS` and that flag makes the kernel refuse such a change (measured 21.11.2026, see `rust/spec/VERTRAEGE.md`). It must also
+//! `PR_SET_NO_NEW_PRIVS` and that flag makes the kernel refuse such a change (measured 21.11.2026, see `spec/paket/README.md`). It must also
 //! be installed after `kernabbild::abschirmen`, whose own `setrlimit` the filter would otherwise refuse. The two seams and what they need
 //! stand in `rust/spec/VERTRAEGE.md`; this crate builds no seam.
 //!

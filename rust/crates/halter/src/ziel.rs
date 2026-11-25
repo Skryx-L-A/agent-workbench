@@ -362,9 +362,8 @@ impl<'a> Koerper<'a> {
                     let Some(mut b) = self.roh()? else {
                         return Err(Code::ZielFehler);
                     };
-                    if b.len() as u64 > rest_n {
-                        b.truncate(usize::try_from(rest_n).unwrap_or(usize::MAX));
-                    }
+                    // `truncate` keeps a shorter part as it is (a comparison before it could not be seen)
+                    b.truncate(usize::try_from(rest_n).unwrap_or(usize::MAX));
                     if let Art::Laenge(r) = &mut self.art {
                         *r -= b.len() as u64;
                     }
@@ -463,6 +462,139 @@ impl<'a> Koerper<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::VecDeque;
+    use std::net::TcpListener;
+
+    /// A way to a target with given reads (a real socket only for the deadlines): the parts in order, then the end.
+    struct Schein {
+        tcp: TcpStream,
+        _gegen: TcpStream,
+        teile: VecDeque<io::Result<Vec<u8>>>,
+    }
+
+    impl Schein {
+        fn neu(teile: Vec<io::Result<Vec<u8>>>) -> Self {
+            let l = TcpListener::bind("127.0.0.1:0").expect("bind");
+            let tcp = TcpStream::connect(l.local_addr().expect("addr")).expect("connect");
+            let (gegen, _) = l.accept().expect("accept");
+            Schein {
+                tcp,
+                _gegen: gegen,
+                teile: teile.into(),
+            }
+        }
+    }
+
+    impl Read for Schein {
+        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+            match self.teile.pop_front() {
+                None => Ok(0),
+                Some(Err(e)) => Err(e),
+                Some(Ok(mut t)) => {
+                    let n = t.len().min(buf.len());
+                    buf[..n].copy_from_slice(&t[..n]);
+                    if n < t.len() {
+                        self.teile.push_front(Ok(t.split_off(n)));
+                    }
+                    Ok(n)
+                }
+            }
+        }
+    }
+
+    impl Write for Schein {
+        fn write(&mut self, b: &[u8]) -> io::Result<usize> {
+            Ok(b.len())
+        }
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl Leitung for Schein {
+        fn tcp(&self) -> &TcpStream {
+            &self.tcp
+        }
+    }
+
+    fn koerper_von(teile: Vec<io::Result<Vec<u8>>>) -> Result<Vec<u8>, Code> {
+        let mut l = Schein::neu(teile);
+        let k = kopf_zerlegen(b"HTTP/1.1 200 OK").expect("head");
+        let mut koerper = Koerper::neu(&mut l, &k, Vec::new(), "GET")?;
+        let mut alles = Vec::new();
+        let mut teile = 0;
+        while let Some(b) = koerper.naechstes()? {
+            teile += 1;
+            assert!(teile < 1000, "the body gives parts without end");
+            alles.extend_from_slice(&b);
+        }
+        Ok(alles)
+    }
+
+    #[test]
+    fn eine_unterbrechung_liest_weiter_ein_anderer_fehler_bricht_ab() {
+        let unterbrochen = vec![
+            Ok(b"ab".to_vec()),
+            Err(io::Error::from(io::ErrorKind::Interrupted)),
+            Ok(b"c".to_vec()),
+        ];
+        assert_eq!(koerper_von(unterbrochen), Ok(b"abc".to_vec()));
+        let abgerissen = vec![
+            Ok(b"ab".to_vec()),
+            Err(io::Error::from(io::ErrorKind::ConnectionReset)),
+            Ok(b"c".to_vec()),
+        ];
+        assert_eq!(koerper_von(abgerissen), Err(Code::ZielFehler));
+    }
+
+    /// A head of exactly `KOPF_BYTES_MAX` bytes before its empty line is read on; one byte more is too big.
+    #[test]
+    fn kopf_genau_an_der_grenze() {
+        let mut vorn = b"HTTP/1.1 200 OK\r\nx: ".to_vec();
+        vorn.resize(KOPF_BYTES_MAX, b'a');
+        let mut l = Schein::neu(vec![Ok(vorn.clone()), Ok(b"\r\n\r\nrest".to_vec())]);
+        let (k, rest) = kopf_lesen(&mut l, Duration::from_secs(10)).expect("exactly the limit");
+        assert_eq!(k.status, 200);
+        assert_eq!(rest, b"rest");
+        vorn.push(b'a');
+        let mut l = Schein::neu(vec![Ok(vorn), Ok(b"\r\n\r\n".to_vec())]);
+        assert!(matches!(
+            kopf_lesen(&mut l, Duration::from_secs(10)),
+            Err(Code::ZielFehler)
+        ));
+    }
+
+    /// The name of a passed head: 1 to 64 of `a-z`, `0-9`, `-`; each rule alone.
+    #[test]
+    fn namen_der_weitergegebenen_koepfe() {
+        let weiter = |kopf: &str| {
+            kopf_zerlegen(format!("HTTP/1.1 200 OK\r\n{kopf}").as_bytes())
+                .expect("head")
+                .weiter()
+        };
+        assert!(weiter(&format!("{}: 1", "a".repeat(64))).is_ok());
+        assert_eq!(
+            weiter(&format!("{}: 1", "a".repeat(65))),
+            Err(Code::ZielFehler)
+        );
+        assert_eq!(weiter("x_y: 1"), Err(Code::ZielFehler));
+        assert_eq!(weiter("x.y: 1"), Err(Code::ZielFehler));
+        assert!(weiter("x-9: 1").is_ok());
+    }
+
+    /// The status: exactly three digits; `0200` is no status even though its number is.
+    #[test]
+    fn status_mit_genau_drei_ziffern() {
+        assert!(kopf_zerlegen(b"HTTP/1.1 200 OK").is_ok());
+        assert_eq!(
+            kopf_zerlegen(b"HTTP/1.1 0200 OK").map(|k| k.status),
+            Err(Code::ZielFehler)
+        );
+        assert_eq!(
+            kopf_zerlegen(b"HTTP/1.1 +20 OK").map(|k| k.status),
+            Err(Code::ZielFehler)
+        );
+    }
 
     #[test]
     fn kopf_und_weitergabe() {

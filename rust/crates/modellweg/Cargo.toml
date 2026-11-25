@@ -29,7 +29,7 @@ formate = { path = "../formate" }
 kernabbild = { path = "../kernabbild" }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 serde = { version = "1", default-features = false, features = ["std"] }
-rustix = { version = "1", features = ["fs", "process", "std"] }
+rustix = { version = "1", features = ["fs", "net", "process", "std"] }
 signal-hook = "0.4"
 native-tls = "0.2"
 
@@ -42,6 +42,12 @@ openssl = "0.10"
 
 [dev-dependencies]
 rustix = { version = "1", features = ["fs", "process", "std"] }
+
+# halter (path, crate of the workspace; no new package, every dependency of it is already in the lock): the holder path
+# of mode 2 is checked against the real holder, not only against a stand-in of him (`tests/halterweg.rs`). He runs in
+# the test with a test `halter.json` and a test secret; no test uses a real token. Linux only, like his server.
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+halter = { path = "../halter" }
 
 [lints]
 workspace = true

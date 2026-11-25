@@ -557,7 +557,35 @@ gate_mutants() {
     # anmelden, `lauf`: the block of the probe runs only when `seam` returns a value, that is only with the feature.
     --exclude-re 'crates/anmelden/src/main.rs:51:60: replace == with != in unix::lauf'
   )
-  cargo mutants --workspace --no-shuffle "${erster[@]}" --output . || rc=$?
+  # Equivalent mutants of dienst in both runs (decision of 25.11.2026, list per place). Each entry has its reason; the
+  # measurement is the mutant run of dienst with the feature `pruefbau` of 25.11.2026 (contract dienst, section 9). The same
+  # rule as above holds: a line number that no longer fits leaves the mutant in the run, which then fails closed.
+  local gleichwertig=(
+    # meldung, `modus_setzen`, and rechte, `socket_modus_setzen`: `|` -> `^` of separate `OFlags` bits gives the same flags.
+    --exclude-re 'crates/dienst/src/meldung.rs:60:26: replace [|] with [|^] in modus_setzen'
+    --exclude-re 'crates/dienst/src/meldung.rs:60:45: replace [|] with [|^] in modus_setzen'
+    --exclude-re 'crates/dienst/src/rechte.rs:192:26: replace [|] with [|^] in socket_modus_setzen'
+    --exclude-re 'crates/dienst/src/rechte.rs:192:45: replace [|] with [|^] in socket_modus_setzen'
+    # rechte, `socket_modus_setzen`: `RUSR` and `WUSR` are separate bits, so `|` -> `^` gives the same mode.
+    --exclude-re 'crates/dienst/src/rechte.rs:218:58: replace [|] with [|^] in socket_modus_setzen'
+    # meldung and rechte, the check after setting the mode: under Linux the descriptor is already checked as a socket and the
+    # mode is set through it, so `&&` -> `||` differs only in a race between setting and checking. Caught on the Mac.
+    --exclude-re 'crates/dienst/src/meldung.rs:86:37: replace && with [|][|] in modus_setzen'
+    --exclude-re 'crates/dienst/src/rechte.rs:218:9: replace && with [|][|] in socket_modus_setzen'
+    # rechte, `socket_modus_setzen`: the branch outside Linux is not compiled under Linux. Caught on the Mac (`&`);
+    # `^` is equivalent there (separate bits).
+    --exclude-re 'crates/dienst/src/rechte.rs:211:24: replace [|] with & in socket_modus_setzen'
+    --exclude-re 'crates/dienst/src/rechte.rs:211:24: replace [|] with [|^] in socket_modus_setzen'
+    # meldung, `gegenseite_gut`: the peer check of macOS is not compiled under Linux. Caught on the Mac.
+    --exclude-re 'crates/dienst/src/meldung.rs:257:27: replace != with == in Meldung::gegenseite_gut'
+    --exclude-re 'crates/dienst/src/meldung.rs:261:63: replace == with != in Meldung::gegenseite_gut'
+    # dienst, `entfernte_wegnehmen`: its only call stands at the end of the round, where `arbeit` is always empty, and with
+    # an empty `entfernt` the rest takes nothing away; `||` -> `&&` gives the same result.
+    --exclude-re 'crates/dienst/src/dienst.rs:807:36: replace [|][|] with && in Dienst::entfernte_wegnehmen'
+    # dienst, `starten`: `rahmen_waehlen(n, ...)` is only checked for `None`, which does not depend on `n`.
+    --exclude-re 'crates/dienst/src/dienst.rs:1394:43: replace [+] with [*] in Dienst::starten'
+  )
+  cargo mutants --workspace --no-shuffle "${erster[@]}" "${gleichwertig[@]}" --output . || rc=$?
   if [ "$rc" -ne 0 ]; then
     return "$rc"
   fi
@@ -578,7 +606,7 @@ gate_mutants() {
   done
   # cargo-mutants does not create the parent of its output folder, and target/ may not exist yet.
   mkdir -p target/mutants-naht || return
-  cargo mutants "${pakete[@]}" --features pruefbau --no-shuffle --output target/mutants-naht || return
+  cargo mutants "${pakete[@]}" --features pruefbau --no-shuffle "${gleichwertig[@]}" --output target/mutants-naht || return
   caught="$(grep -c . target/mutants-naht/mutants.out/caught.txt 2>/dev/null)" || caught=0
   if [ "$caught" -lt 1 ]; then
     echo "gates.sh: no mutant caught with the feature pruefbau; the second mutation run proved nothing" >&2

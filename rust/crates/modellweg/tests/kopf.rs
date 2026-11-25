@@ -20,7 +20,7 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 use formate::kette::sha256_hex;
-use gemeinsam::{Skript, Wegwerf, fall_datei, latin1, lauf_bis_ende, text, zeilen};
+use gemeinsam::{Halterattrappe, Skript, Wegwerf, fall_datei, latin1, lauf_bis_ende, text, zeilen};
 use modellweg::aufruf::{self, Aufruffehler};
 use modellweg::betrieb::{Betrieb, Server};
 use modellweg::betriebsart::zielliste;
@@ -44,7 +44,10 @@ const MARKE: &str = "wb-marke-echtes-token-7d1c0e";
 /// Read deadline of the harness in these tests: every answer comes at once, so a wrong program fails fast.
 const LESEFRIST: std::time::Duration = std::time::Duration::from_secs(3);
 const ZEIT: i64 = 1_795_190_400_000;
-const PFAD_IN_FAELLEN: &str = "/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel";
+/// The lines a stand-in holder answers when a test does not care: a plain answer 200 without a body.
+fn halter_ok() -> Vec<String> {
+    halter_antwort(200, "{}", None)
+}
 
 fn schluessel_ec() -> PKey<Private> {
     let gruppe = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).expect("curve");
@@ -123,10 +126,10 @@ fn datei_0600(w: &Wegwerf, name: &str, inhalt: &[u8]) -> PathBuf {
     p
 }
 
-/// The target list of the cases with the key path moved into the test folder (and the key file written).
-fn liste_lokal(w: &Wegwerf, text: &str) -> String {
-    let datei = datei_0600(w, "copilot.schluessel", format!("{MARKE}\n").as_bytes());
-    text.replace(PFAD_IN_FAELLEN, datei.to_str().expect("utf8"))
+/// The target list of the cases. From step I it names no path and no key: a bound target carries only `halter_ziel`,
+/// and the token lies with the holder.
+fn liste_lokal(_w: &Wegwerf, text: &str) -> String {
+    text.to_owned()
 }
 
 fn vorfuehrung() -> String {
@@ -141,6 +144,7 @@ struct Aufbau {
     skripte: Vec<Skript>,
     ca: X509,
     liste: zielliste::Zielliste,
+    halter: Halterattrappe,
 }
 
 fn aufbau(liste_text: &str, antwort: &[Vec<u8>]) -> Aufbau {
@@ -178,6 +182,75 @@ fn aufbau_voll(
     probelauf: Option<Zaehlung>,
     pfad_voll: bool,
 ) -> Aufbau {
+    aufbau_kern(
+        w,
+        liste_text,
+        antwort,
+        unaufgeloest,
+        probelauf,
+        pfad_voll,
+        halter_ok(),
+    )
+}
+
+/// As [`aufbau`], with the lines the stand-in holder answers (the way of every bound target).
+fn aufbau_mit_halter(liste_text: &str, halter: Vec<String>) -> Aufbau {
+    aufbau_kern(
+        Wegwerf::neu("kopf"),
+        liste_text,
+        &[],
+        &[],
+        None,
+        false,
+        halter,
+    )
+}
+
+/// As [`aufbau_mit_halter`] in the folder `w`, with the count of a trial run.
+fn aufbau_halter_probelauf(
+    w: Wegwerf,
+    liste_text: &str,
+    probelauf: Option<Zaehlung>,
+    halter: Vec<String>,
+) -> Aufbau {
+    aufbau_kern(w, liste_text, &[], &[], probelauf, false, halter)
+}
+
+/// The line `beginn` with status 101 of a stream, the only line a stand-in sends before the bridge.
+fn halter_101() -> Vec<String> {
+    vec![
+        r#"{"art":"beginn","fassung":1,"id":<ID>,"kopf":{"sec-websocket-accept":"s3pPLMBiTxaQ9kYGzzhZRbK+xOo="},"status":101}"#
+            .to_owned(),
+    ]
+}
+
+/// The bytes the model path sent into an open stream as `strom.teil` (the way from the harness to the target, W6).
+fn strom_bytes(a: &Aufbau) -> Vec<u8> {
+    let mut aus = Vec::new();
+    for z in a.halter.empfangen() {
+        let v: Value = serde_json::from_str(&z).expect("line");
+        if v["op"] == "strom.teil" {
+            aus.extend_from_slice(
+                &modellweg::b64::dekodieren(text(&v["daten_b64"])).expect("base64"),
+            );
+        }
+    }
+    aus
+}
+
+#[allow(
+    clippy::too_many_arguments,
+    reason = "one value per part of the start, each named"
+)]
+fn aufbau_kern(
+    w: Wegwerf,
+    liste_text: &str,
+    antwort: &[Vec<u8>],
+    unaufgeloest: &[&str],
+    probelauf: Option<Zaehlung>,
+    pfad_voll: bool,
+    halter_zeilen: Vec<String>,
+) -> Aufbau {
     let text = liste_lokal(&w, liste_text);
     let liste = zielliste::lies(text.as_bytes()).expect("valid list");
     let hosts: Vec<&str> = liste.ziele.iter().map(|z| z.host.as_str()).collect();
@@ -200,6 +273,7 @@ fn aufbau_voll(
                 .then(|| Box::new(s.clone()) as Box<dyn Verbinder>)
         })
         .collect();
+    let halter = Halterattrappe::neu(&w, halter_zeilen);
     let tunnel = Tunnel::neu(
         liste.clone(),
         ca,
@@ -210,6 +284,7 @@ fn aufbau_voll(
         probelauf,
         pfad_voll,
         uid,
+        halter.pfad(),
         Betrieb::neu(Box::new(|| ZEIT)),
     );
     Aufbau {
@@ -217,6 +292,7 @@ fn aufbau_voll(
         skripte,
         ca: z,
         liste,
+        halter,
         w,
     }
 }
@@ -474,6 +550,18 @@ fn start_mit_liste(name: &str, liste_text: &str, e: &Value) {
         &mut err,
     );
     match (ergebnis, e["exit"].as_i64()) {
+        // A list that passes and names a bound target leads into step 3: the model path reaches the holder at his
+        // fixed path. In a test there is none there, so the start ends with exit 78 `mw.halter_fehlt` — and exactly
+        // that is the proof that step 3 runs after step 2 and that there is no fall back on a file.
+        (Err(exit), None) if e["bis_schritt"] == "halter" => {
+            assert_eq!(i64::from(exit), 78, "{name}");
+            assert_eq!(
+                err,
+                latin1("mw.halter_fehlt: Halter nicht erreichbar\n"),
+                "{name}"
+            );
+            assert!(out.is_empty(), "{name}");
+        }
         (Ok(_), None) => assert_eq!(e["bis_schritt"], "zielliste_gut", "{name}"),
         (Err(exit), Some(soll)) => {
             assert_eq!(i64::from(exit), soll, "{name}");
@@ -729,7 +817,18 @@ fn anfrage_fall(fall: &Value) {
     );
     let antwort = im_tunnel(&a, text(&fall["ziel"]), &latin1(text(&fall["anfrage"])));
     let gesehen: Vec<Vec<u8>> = a.skripte.iter().flat_map(Skript::gesehen).collect();
-    if e["ziel_beruehrt"] == true {
+    // The line of the holder for a bound target; its `id` is not part of the expectation (it counts per connection).
+    let an_halter: Vec<String> = a.halter.empfangen().iter().map(|z| ohne_id(z)).collect();
+    if e["ziel_beruehrt"] == true && e.get("an_halter").is_some() {
+        // A bound target: the request goes to the holder as one line, and the model path opens no connection of its own
+        // to the target.
+        assert!(gesehen.is_empty(), "{name}: the target was touched");
+        assert_eq!(an_halter, vec![text(&e["an_halter"]).to_owned()], "{name}");
+        assert!(
+            !an_halter[0].contains("wb-platzhalter") && !an_halter[0].contains(MARKE),
+            "{name}: a value went to the holder"
+        );
+    } else if e["ziel_beruehrt"] == true {
         assert_eq!(gesehen, vec![latin1(text(&e["an_ziel"]))], "{name}");
         assert!(
             !gemeinsam::enthaelt(&gesehen[0], b"wb-platzhalter"),
@@ -737,6 +836,7 @@ fn anfrage_fall(fall: &Value) {
         );
     } else {
         assert!(gesehen.is_empty(), "{name}");
+        assert!(an_halter.is_empty(), "{name}: the holder was asked");
         assert_eq!(
             i64::from(antwort.status),
             e["status"].as_i64().expect("status"),
@@ -745,6 +845,46 @@ fn anfrage_fall(fall: &Value) {
         assert_eq!(antwort.koerper, latin1(text(&e["koerper"])), "{name}");
     }
     pruefe_zeile(name, &letzte_zeile(&a, name), &e["zeile"]);
+}
+
+/// A line of the holder with its `id` replaced by `1`, so a case names the fields and not the count of a connection.
+fn ohne_id(zeile: &str) -> String {
+    let mut v: Value = serde_json::from_str(zeile).expect("line of the holder");
+    if let Some(o) = v.as_object_mut() {
+        o.insert("id".to_owned(), Value::from(1));
+    }
+    formate::kette::kanonisch(&v).expect("canonical")
+}
+
+/// The lines a stand-in holder answers for a case of `halter` (`beginn`, `teile`, `ende`).
+fn halter_zeilen(h: &Value) -> Vec<String> {
+    let mut zeilen = Vec::new();
+    if let Some(b) = h["beginn"].as_object() {
+        let kopf: Vec<String> = b["kopf"]
+            .as_array()
+            .expect("head")
+            .iter()
+            .map(|k| format!("{:?}:{:?}", text(&k[0]), text(&k[1])))
+            .collect();
+        zeilen.push(format!(
+            r#"{{"art":"beginn","fassung":1,"id":<ID>,"kopf":{{{}}},"status":{}}}"#,
+            kopf.join(","),
+            b["status"].as_i64().expect("status")
+        ));
+    }
+    for t in h["teile"].as_array().into_iter().flatten() {
+        zeilen.push(format!(
+            r#"{{"art":"teil","daten_b64":"{}","fassung":1,"id":<ID>}}"#,
+            modellweg::b64::kodieren(&latin1(text(t)))
+        ));
+    }
+    match h["ende"].as_str() {
+        None => zeilen.push(r#"{"art":"ende","fassung":1,"id":<ID>,"ok":true}"#.to_owned()),
+        Some(code) => zeilen.push(format!(
+            r#"{{"art":"ende","code":"{code}","fassung":1,"grund":"Grund","id":<ID>,"ok":false}}"#
+        )),
+    }
+    zeilen
 }
 
 #[test]
@@ -807,10 +947,15 @@ fn upgrade_anfrage(plan: &str) -> String {
 /// One case of `kopf-antworten.json` or of the answers of `kopf-websocket.json`: what reaches the harness, and the line.
 fn antwort_fall(fall: &Value) {
     let name = text(&fall["name"]);
+    let gebunden = fall.get("halter").is_some();
+    let h_fall = &fall["halter"];
     let z = &fall["ziel_antwort"];
-    let a = aufbau(&vorfuehrung(), &ziel_teile(z));
-    let umstellen = z["status"] == 101;
-    let gebunden = z["gebunden"] != false;
+    let a = if gebunden {
+        aufbau_mit_halter(&vorfuehrung(), halter_zeilen(h_fall))
+    } else {
+        aufbau(&vorfuehrung(), &ziel_teile(z))
+    };
+    let umstellen = gebunden && h_fall["upgrade"] == "durchreichen";
     let plan = plan_host(&a);
     let (ziel_name, anfrage) = if !gebunden {
         (
@@ -876,7 +1021,7 @@ fn kopf_websocket_anfragen_cases() {
 fn kopf_websocket_antworten_cases() {
     let f = fall_datei("kopf-websocket.json");
     let faelle = f["antworten"].as_array().expect("cases");
-    assert_eq!(faelle.len(), 22);
+    assert_eq!(faelle.len(), 9);
     for fall in faelle {
         antwort_fall(fall);
     }
@@ -895,8 +1040,9 @@ fn lies_kopf<R: Read>(r: &mut R) -> Vec<u8> {
     kopf
 }
 
-/// W6: after a 101 of the bound plan target the bytes of the harness go to the service unchanged, without a check and
-/// without a line of their own.
+/// W6: after a 101 of the bound plan target the bytes of the harness go into the stream of the holder unchanged,
+/// without a check and without a line of their own. From step I they go as lines `strom.teil` with the `id` of the
+/// stream; the way out to the target belongs to the holder.
 #[test]
 fn kopf_websocket_von_harness_cases() {
     let f = fall_datei("kopf-websocket.json");
@@ -904,15 +1050,7 @@ fn kopf_websocket_von_harness_cases() {
     assert_eq!(faelle.len(), 2);
     for fall in faelle {
         let name = text(&fall["name"]);
-        let a = aufbau(
-            &vorfuehrung(),
-            &[b"HTTP/1.1 101 X\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n".to_vec()],
-        );
-        let tor: gemeinsam::Tor =
-            Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new()));
-        for s in &a.skripte {
-            *s.am_ende.lock().expect("lock") = Some(Arc::clone(&tor));
-        }
+        let a = aufbau_mit_halter(&vorfuehrung(), halter_101());
         let plan = plan_host(&a);
         let (mut h, faden) = a.verbinden();
         let connect = format!("CONNECT {plan}:443 HTTP/1.1\r\n\r\n");
@@ -926,29 +1064,21 @@ fn kopf_websocket_von_harness_cases() {
             t.flush().expect("flush");
         }
         let soll = latin1(text(&fall["erwartet"]["an_dienst"]));
-        let nach_kopf = |g: &[u8]| -> Vec<u8> {
-            let i = g
-                .windows(4)
-                .position(|w| w == b"\r\n\r\n")
-                .expect("request head");
-            g[i + 4..].to_vec()
-        };
         let ende = std::time::Instant::now() + std::time::Duration::from_secs(5);
         let gesehen = loop {
-            let g: Vec<Vec<u8>> = a.skripte.iter().flat_map(Skript::gesehen).collect();
-            if g.len() == 1 && nach_kopf(&g[0]).len() >= soll.len() {
+            let g = strom_bytes(&a);
+            if g.len() >= soll.len() {
                 break g;
             }
             assert!(std::time::Instant::now() < ende, "{name}: {g:?}");
             std::thread::sleep(std::time::Duration::from_millis(5));
         };
-        assert_eq!(nach_kopf(&gesehen[0]), soll, "{name}");
+        assert_eq!(gesehen, soll, "{name}");
         assert!(fall["erwartet"]["zeile"].is_null(), "{name}");
         assert!(
             zeilen(&a.w.protokoll()).is_empty(),
             "{name}: no line per message"
         );
-        *tor.0.lock().expect("lock") = true;
         drop(t);
         faden.join().expect("thread");
         let z = zeilen(&a.w.protokoll());
@@ -958,11 +1088,16 @@ fn kopf_websocket_von_harness_cases() {
             (&Value::from("weitergereicht"), &Value::from(101)),
             "{name}"
         );
+        // The stream ended on the side of the harness, so the model path sent `strom.ende` with its `id`.
+        let letzte = a.halter.empfangen();
+        assert!(
+            letzte.last().expect("line").contains("strom.ende"),
+            "{name}: {letzte:?}"
+        );
     }
 }
 
-/// The whole frames at the start of `b` (as the harness sends them, masked): their lengths and whether each is a data
-/// frame. Stops at the first frame that is not complete.
+/// The whole frames in `b`: their length in bytes and whether each is a data frame (opcode under 0x8).
 fn ganze_rahmen(b: &[u8]) -> Vec<(usize, bool)> {
     let mut v = Vec::new();
     let mut i = 0;
@@ -993,20 +1128,13 @@ fn ganze_rahmen(b: &[u8]) -> Vec<(usize, bool)> {
     v
 }
 
-/// The bytes the stand-in of the target got after the head of the upgrade request.
+/// The bytes that went towards the target after the upgrade request: from step I they are the payload of the lines
+/// `strom.teil` that the model path sent to the holder (the way out belongs to him).
 fn nach_kopf(a: &Aufbau) -> Vec<u8> {
-    let g: Vec<Vec<u8>> = a.skripte.iter().flat_map(Skript::gesehen).collect();
-    assert!(g.len() <= 1, "one connection to the target: {g:?}");
-    g.first().map_or_else(Vec::new, |g| {
-        let i = g
-            .windows(4)
-            .position(|w| w == b"\r\n\r\n")
-            .expect("request head");
-        g[i + 4..].to_vec()
-    })
+    strom_bytes(a)
 }
 
-/// Waits until the target got at least `n` bytes after the upgrade request.
+/// Waits until that many bytes went into the stream after the upgrade request.
 fn warte_an_ziel(a: &Aufbau, n: usize, name: &str) -> Vec<u8> {
     let ende = std::time::Instant::now() + std::time::Duration::from_secs(5);
     loop {
@@ -1047,17 +1175,7 @@ fn probelauf_ws_fall(fall: &Value) {
         z.anfang().expect("first state");
         z
     });
-    let a = aufbau_mit(
-        w,
-        &vorfuehrung(),
-        &[b"HTTP/1.1 101 X\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n".to_vec()],
-        &[],
-        zaehlung,
-    );
-    let tor: gemeinsam::Tor = Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new()));
-    for s in &a.skripte {
-        *s.am_ende.lock().expect("lock") = Some(Arc::clone(&tor));
-    }
+    let a = aufbau_halter_probelauf(w, &vorfuehrung(), zaehlung, halter_101());
     let plan = plan_host(&a);
     let (mut h, faden) = a.verbinden();
     let connect = format!("CONNECT {plan}:443 HTTP/1.1\r\n\r\n");
@@ -1128,13 +1246,11 @@ fn probelauf_ws_fall(fall: &Value) {
     }
     if e["abriss"].is_null() {
         std::thread::sleep(std::time::Duration::from_millis(60));
-        *tor.0.lock().expect("lock") = true;
         drop(t);
     } else {
         let mut rest = Vec::new();
         let _ = t.read_to_end(&mut rest);
         assert!(rest.is_empty(), "{name}: nothing more to the harness");
-        *tor.0.lock().expect("lock") = true;
         drop(t);
     }
     faden.join().expect("thread");
@@ -1222,16 +1338,18 @@ fn kopf_gegenprobe_user_repos() {
         let Some(soll) = fall["erwartet"]["user_repos"].as_str() else {
             continue;
         };
-        let a = aufbau(
+        // Das Ziel ist gebunden: der Weg nach aussen gehoert dem Halter, und gelungen heisst, dass die Anfrage ihn
+        // als eine Zeile erreicht hat.
+        let a = aufbau_mit_halter(
             text(&fall["aufbau"]["zielliste"]),
-            &[b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n[]".to_vec()],
+            halter_antwort(200, "[]", None),
         );
         let antwort = im_tunnel(
             &a,
             "github-api",
             b"GET /user/repos HTTP/1.1\r\nHost: api.github.com\r\n\r\n",
         );
-        let gelungen = antwort.status == 200 && a.verbunden() == 1;
+        let gelungen = antwort.status == 200 && a.halter.empfangen().len() == 1;
         assert_eq!(
             if gelungen { "gelingt" } else { "abgelehnt" },
             soll,
@@ -1242,10 +1360,7 @@ fn kopf_gegenprobe_user_repos() {
 
 #[test]
 fn a_tunnel_takes_one_request_after_another() {
-    let a = aufbau(
-        &vorfuehrung(),
-        &[b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}".to_vec()],
-    );
+    let a = aufbau_mit_halter(&vorfuehrung(), halter_antwort(200, "{}", None));
     let plan = a
         .liste
         .ziele
@@ -1269,64 +1384,98 @@ fn a_tunnel_takes_one_request_after_another() {
     }
     drop(t);
     faden.join().expect("thread");
-    assert_eq!(a.verbunden(), 2);
+    // The way out of a bound target belongs to the holder: the model path opened no connection of its own, and each of
+    // the two requests went to him as one line of its own.
+    assert_eq!(a.verbunden(), 0);
+    assert_eq!(a.halter.empfangen().len(), 2);
     assert_eq!(zeilen(&a.w.protokoll()).len(), 2);
 }
 
-/// One answer of the bound plan target to `anfrage` (`PLAN` stands for its host), the target answering with `teile`
-/// and, with `abbruch`, breaking after them.
-fn plan_antwort(teile: &[Vec<u8>], abbruch: bool, anfrage: &str) -> Antwort {
-    let mut a = aufbau(&vorfuehrung(), teile);
-    for s in &mut a.skripte {
-        s.abbruch_am_ende = abbruch;
-    }
-    let plan = a
-        .liste
-        .ziele
-        .iter()
-        .find(|z| z.name == "copilot-plan")
-        .expect("plan")
-        .host
-        .clone();
+/// One answer of the bound plan target to `anfrage` (`PLAN` stands for its host), the holder answering with `zeilen`.
+fn plan_antwort(zeilen: Vec<String>, anfrage: &str) -> (Antwort, Aufbau) {
+    let a = aufbau_mit_halter(&vorfuehrung(), zeilen);
+    let plan = plan_host(&a);
     let roh = anfrage.replace("PLAN", &plan);
-    im_tunnel(&a, "copilot-plan", roh.as_bytes())
+    let antwort = im_tunnel(&a, "copilot-plan", roh.as_bytes());
+    (antwort, a)
 }
 
+/// The lines of a plain answer of the holder: `beginn` with `status`, one `teil` with `koerper`, then `ende`.
+fn halter_antwort(status: u16, koerper: &str, ende: Option<&str>) -> Vec<String> {
+    let mut z = vec![format!(
+        r#"{{"art":"beginn","fassung":1,"id":<ID>,"kopf":{{"content-type":"application/json"}},"status":{status}}}"#
+    )];
+    if !koerper.is_empty() {
+        z.push(format!(
+            r#"{{"art":"teil","daten_b64":"{}","fassung":1,"id":<ID>}}"#,
+            modellweg::b64::kodieren(koerper.as_bytes())
+        ));
+    }
+    z.push(match ende {
+        None => r#"{"art":"ende","fassung":1,"id":<ID>,"ok":true}"#.to_owned(),
+        Some(code) => format!(
+            r#"{{"art":"ende","code":"{code}","fassung":1,"grund":"Grund","id":<ID>,"ok":false}}"#
+        ),
+    });
+    z
+}
+
+/// A stream of the holder that ends with a code after the head went out: the answer to the harness keeps the head and
+/// the bytes that came, and it never ends by its framing. Nothing is held back: the model path has no key for a bound
+/// target, so its leak lock does not run here (that lock is the holder's).
 #[test]
 fn a_broken_answer_keeps_one_head() {
-    let kopf = b"HTTP/1.1 200 OK\r\nContent-Length: 150\r\n\r\n".to_vec();
     let anfrage = "GET /x HTTP/1.1\r\nHost: PLAN\r\n\r\n";
-    let kurz = plan_antwort(&[kopf.clone(), b"abc".to_vec()], true, anfrage);
+    let (kurz, _a) = plan_antwort(halter_antwort(200, "", Some("halter.ziel_fehler")), anfrage);
     assert_eq!(
         (kurz.status, kurz.koerper.as_slice(), kurz.ganz),
-        (200, &b""[..], false)
+        (
+            502,
+            &b"{\"error\":{\"code\":\"mw.halter_fehler\",\"message\":\"Halter lehnte ab\"}}"[..],
+            true
+        ),
+        "no part went out yet, so the own answer comes"
     );
-    let a = plan_antwort(&[kopf, vec![b'x'; 100]], true, anfrage);
-    assert_eq!(a.status, 200);
-    assert!(!a.ganz);
-    assert_eq!(a.koerper, vec![b'x'; 100 - (MARKE.len() - 1)]);
+    let lang = "x".repeat(100);
+    let (b, _a) = plan_antwort(
+        halter_antwort(200, &lang, Some("halter.ziel_fehler")),
+        anfrage,
+    );
+    assert_eq!(b.status, 200);
+    assert!(!b.ganz);
+    assert_eq!(b.koerper, lang.as_bytes());
 }
 
+/// An upgrade that the holder answers with a plain status runs like a call; a 101 without a requested upgrade is no
+/// stream either. The body always goes chunked to the harness: the holder sends no `content-length` (it stands on his
+/// block list).
 #[test]
 fn only_a_requested_upgrade_with_101_is_bridged() {
-    let a = plan_antwort(
-        &[b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}".to_vec()],
-        false,
+    let (a, aufbau_a) = plan_antwort(
+        halter_antwort(200, "{}", None),
         "GET /r HTTP/1.1\r\nHost: PLAN\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n",
     );
     assert_eq!((a.status, a.koerper.as_slice()), (200, &b"{}"[..]));
     assert!(
         a.kopf
-            .contains(&("content-length".to_owned(), "2".to_owned())),
+            .contains(&("transfer-encoding".to_owned(), "chunked".to_owned())),
         "{:?}",
         a.kopf
     );
-    let b = plan_antwort(
-        &[
-            b"HTTP/1.1 101 X\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n".to_vec(),
-            b"daten".to_vec(),
-        ],
-        false,
+    // The upgrade went out as `modell.strom`, and the answer was no 101.
+    let erste = aufbau_a.halter.empfangen();
+    assert!(erste[0].contains(r#""op":"modell.strom""#), "{erste:?}");
+    // A 101 of the holder without a requested upgrade: no stream, the status goes out as it is.
+    let (b, _aufbau_b) = plan_antwort(
+        {
+            let mut z = halter_101();
+            z.push(format!(
+                r#"{{"art":"teil","daten_b64":"{}","fassung":1,"id":<ID>}}"#,
+                modellweg::b64::kodieren(b"daten")
+            ));
+            z.push(r#"{"art":"ende","fassung":1,"id":<ID>,"ok":true}"#.to_owned());
+            z
+        },
         "GET /r HTTP/1.1\r\nHost: PLAN\r\n\r\n",
     );
     assert_eq!(b.status, 101);

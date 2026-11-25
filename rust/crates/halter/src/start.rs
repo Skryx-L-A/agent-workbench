@@ -2,6 +2,7 @@
 //! order; the first violation ends the holder with its exit code and one line `<code>: <grund>`.
 
 use std::collections::BTreeMap;
+use std::ffi::{OsStr, OsString};
 use std::os::fd::OwnedFd;
 use std::os::unix::fs::MetadataExt;
 use std::os::unix::net::UnixListener;
@@ -42,6 +43,34 @@ impl Orte {
             laufzeit: None,
         }
     }
+
+    /// The places of the test build (feature `pruefbau`): the seams `WB_HALTER_KONFIG`, `WB_HALTER_KONFIG_EIGNER`,
+    /// `WB_HALTER_PASSWD`, `WB_HALTER_GROUP` and `WB_HALTER_LAUFZEIT` read through `lies`, valid only with
+    /// `WB_TESTUMGEBUNG=1`; a missing seam (or an owner that is no number) keeps the fixed place. Only the test build
+    /// calls it, with the environment; the delivered build uses [`Orte::fest`] only.
+    #[must_use]
+    pub fn aus_naht(lies: impl Fn(&str) -> Option<OsString>) -> Self {
+        let mut o = Orte::fest();
+        if lies("WB_TESTUMGEBUNG").as_deref() != Some(OsStr::new("1")) {
+            return o;
+        }
+        if let Some(p) = lies("WB_HALTER_KONFIG") {
+            o.konfig = PathBuf::from(p);
+        }
+        if let Some(u) =
+            lies("WB_HALTER_KONFIG_EIGNER").and_then(|v| v.to_str()?.parse::<u32>().ok())
+        {
+            o.konfig_eigner = u;
+        }
+        if let Some(p) = lies("WB_HALTER_PASSWD") {
+            o.passwd = PathBuf::from(p);
+        }
+        if let Some(p) = lies("WB_HALTER_GROUP") {
+            o.gruppen = PathBuf::from(p);
+        }
+        o.laufzeit = lies("WB_HALTER_LAUFZEIT").map(PathBuf::from);
+        o
+    }
 }
 
 /// What the start made.
@@ -64,14 +93,22 @@ pub struct Bereit {
     pub ordner: OwnedFd,
 }
 
-fn datei_ok(st: &rustix::fs::Stat, eigner: u32, art: FileType) -> bool {
-    FileType::from_raw_mode(st.st_mode) == art && st.st_uid == eigner && st.st_mode & 0o022 == 0
+/// The rule of `halter.json` and its folder after `stat`: of the kind `art`, owned by `eigner`, not writable for group
+/// and others. A pure function on the raw fields, so that a test can give every kind and owner (no test can make a file
+/// of another owner, and for another kind the open or the read fails too).
+#[must_use]
+pub fn datei_ok(modus: rustix::fs::RawMode, uid: u32, eigner: u32, art: FileType) -> bool {
+    FileType::from_raw_mode(modus) == art && uid == eigner && modus & 0o022 == 0
 }
 
 /// Largest `/etc/group` or `/etc/passwd` read for the role groups, in bytes.
 pub const KONTEN_MAX: u64 = 1 << 24;
 
-fn text_lesen(pfad: &Path) -> Result<String, Startfehler> {
+/// The file of the groups or of the accounts as text, at most [`KONTEN_MAX`] bytes.
+///
+/// # Errors
+/// [`Startfehler::Konfig`] if it cannot be read, is no UTF-8 or is bigger.
+pub fn text_lesen(pfad: &Path) -> Result<String, Startfehler> {
     let mut t = String::new();
     std::io::Read::read_to_string(
         &mut std::io::Read::take(
@@ -86,6 +123,9 @@ fn text_lesen(pfad: &Path) -> Result<String, Startfehler> {
     }
     Ok(t)
 }
+
+// In this file flags are joined with `union`: `|` and `^` give the same value for disjoint flags (a mutant no test
+// could see).
 
 /// Step 2: `halter.json`, owned by `eigner`, not writable for group and others, also its folder; strict and closed,
 /// no local server with a token, the own uid in `konten`, and every role group resolved in the file of the groups
@@ -103,18 +143,21 @@ pub fn konfig_lesen(
     let ordner = pfad.parent().ok_or(Startfehler::Konfig)?;
     let st = statat(rustix::fs::CWD, ordner, AtFlags::SYMLINK_NOFOLLOW)
         .map_err(|_| Startfehler::Konfig)?;
-    if !datei_ok(&st, eigner, FileType::Directory) {
+    if !datei_ok(st.st_mode, st.st_uid, eigner, FileType::Directory) {
         return Err(Startfehler::Konfig);
     }
     let fd: OwnedFd = openat(
         rustix::fs::CWD,
         pfad,
-        OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::CLOEXEC | OFlags::NONBLOCK,
+        OFlags::RDONLY
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC)
+            .union(OFlags::NONBLOCK),
         Mode::empty(),
     )
     .map_err(|_| Startfehler::Konfig)?;
     let st = fstat(&fd).map_err(|_| Startfehler::Konfig)?;
-    if !datei_ok(&st, eigner, FileType::RegularFile) {
+    if !datei_ok(st.st_mode, st.st_uid, eigner, FileType::RegularFile) {
         return Err(Startfehler::Konfig);
     }
     let mut inhalt = Vec::new();
@@ -150,7 +193,10 @@ pub fn ablage_pruefen(passwd: &Path, uid: u32) -> Result<(Ablage, Option<PathBuf
         Err(_) => openat(
             rustix::fs::CWD,
             &halter,
-            OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            OFlags::RDONLY
+                .union(OFlags::DIRECTORY)
+                .union(OFlags::NOFOLLOW)
+                .union(OFlags::CLOEXEC),
             Mode::empty(),
         )
         .ok()
@@ -175,7 +221,9 @@ pub fn endpunkt(
     let rt = openat(
         rustix::fs::CWD,
         laufzeit,
-        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
+        OFlags::RDONLY
+            .union(OFlags::DIRECTORY)
+            .union(OFlags::CLOEXEC),
         Mode::empty(),
     )
     .map_err(|_| Startfehler::PipeBelegt)?;
@@ -186,7 +234,10 @@ pub fn endpunkt(
     let ordner_fd = openat(
         &rt,
         "wb-halter",
-        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+        OFlags::RDONLY
+            .union(OFlags::DIRECTORY)
+            .union(OFlags::NOFOLLOW)
+            .union(OFlags::CLOEXEC),
         Mode::empty(),
     )
     .map_err(|_| Startfehler::PipeBelegt)?;
@@ -201,13 +252,13 @@ pub fn endpunkt(
             return Err(Startfehler::PipeBelegt);
         }
         // still the same dead socket: remove it relative to the folder, never by following a path
-        match statat(&ordner_fd, "halter.sock", AtFlags::SYMLINK_NOFOLLOW) {
-            Ok(jetzt) if crate::suche::geraet_inode(&jetzt) == crate::suche::geraet_inode(&alt) => {
-                rustix::fs::unlinkat(&ordner_fd, "halter.sock", AtFlags::empty())
-                    .map_err(|_| Startfehler::PipeBelegt)?;
-            }
-            _ => return Err(Startfehler::PipeBelegt),
+        let jetzt = statat(&ordner_fd, "halter.sock", AtFlags::SYMLINK_NOFOLLOW)
+            .map_err(|_| Startfehler::PipeBelegt)?;
+        if crate::suche::geraet_inode(&jetzt) != crate::suche::geraet_inode(&alt) {
+            return Err(Startfehler::PipeBelegt);
         }
+        rustix::fs::unlinkat(&ordner_fd, "halter.sock", AtFlags::empty())
+            .map_err(|_| Startfehler::PipeBelegt)?;
     }
     // the folder is 0700: between bind and chmod nobody else reaches the socket
     let hoerer = UnixListener::bind(&socket).map_err(|_| Startfehler::PipeBelegt)?;
@@ -239,10 +290,17 @@ fn toter_eigener_socket(st: &rustix::fs::Stat, uid: u32, pfad: &Path) -> bool {
 /// The runtime folder: the seam, else `$XDG_RUNTIME_DIR` if absolute, else `/run/user/<uid>`.
 #[must_use]
 pub fn laufzeit_ordner(orte: &Orte, uid: u32) -> PathBuf {
+    laufzeit_aus(orte, uid, std::env::var_os("XDG_RUNTIME_DIR"))
+}
+
+/// [`laufzeit_ordner`] with the value of `XDG_RUNTIME_DIR` given (a test cannot change the environment of its process
+/// without `unsafe`).
+#[must_use]
+pub fn laufzeit_aus(orte: &Orte, uid: u32, xdg: Option<OsString>) -> PathBuf {
     if let Some(p) = &orte.laufzeit {
         return p.clone();
     }
-    match std::env::var_os("XDG_RUNTIME_DIR").map(PathBuf::from) {
+    match xdg.map(PathBuf::from) {
         Some(p) if p.is_absolute() => p,
         _ => PathBuf::from(format!("/run/user/{uid}")),
     }
@@ -281,5 +339,115 @@ pub fn socket_entfernen(ordner: &OwnedFd, id: (u64, u64)) {
         && crate::suche::geraet_inode(&m) == id
     {
         let _ = rustix::fs::unlinkat(ordner, "halter.sock", AtFlags::empty());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ffi::OsString;
+    use std::path::PathBuf;
+
+    use super::Orte;
+
+    fn naht(test: Option<&'static str>) -> impl Fn(&str) -> Option<OsString> {
+        move |n: &str| {
+            let w = match n {
+                "WB_TESTUMGEBUNG" => test?,
+                "WB_HALTER_KONFIG" => "/srv/beispiel/halter.json",
+                "WB_HALTER_KONFIG_EIGNER" => "4321",
+                "WB_HALTER_PASSWD" => "/srv/beispiel/passwd",
+                "WB_HALTER_GROUP" => "/srv/beispiel/group",
+                "WB_HALTER_LAUFZEIT" => "/srv/beispiel/laufzeit",
+                _ => return None,
+            };
+            Some(OsString::from(w))
+        }
+    }
+
+    fn fest_gleich(o: &Orte) {
+        let f = Orte::fest();
+        assert_eq!(o.konfig, f.konfig);
+        assert_eq!(o.konfig_eigner, 0);
+        assert_eq!(o.passwd, f.passwd);
+        assert_eq!(o.gruppen, f.gruppen);
+        assert_eq!(o.laufzeit, None);
+    }
+
+    #[test]
+    fn die_naehte_gelten_nur_mit_der_testumgebung() {
+        let o = Orte::aus_naht(naht(Some("1")));
+        assert_eq!(o.konfig, PathBuf::from("/srv/beispiel/halter.json"));
+        assert_eq!(o.konfig_eigner, 4321);
+        assert_eq!(o.passwd, PathBuf::from("/srv/beispiel/passwd"));
+        assert_eq!(o.gruppen, PathBuf::from("/srv/beispiel/group"));
+        assert_eq!(o.laufzeit, Some(PathBuf::from("/srv/beispiel/laufzeit")));
+        fest_gleich(&Orte::aus_naht(naht(None)));
+        fest_gleich(&Orte::aus_naht(naht(Some("0"))));
+        fest_gleich(&Orte::aus_naht(naht(Some("11"))));
+        // only the marker, no seam: the fixed places
+        fest_gleich(&Orte::aus_naht(|n: &str| {
+            (n == "WB_TESTUMGEBUNG").then(|| OsString::from("1"))
+        }));
+    }
+
+    #[test]
+    fn regel_von_konfig_und_ordner() {
+        use rustix::fs::FileType;
+
+        use super::datei_ok;
+        let d = FileType::Directory;
+        let f = FileType::RegularFile;
+        assert!(datei_ok(0o040_755, 7, 7, d));
+        assert!(datei_ok(0o100_644, 7, 7, f));
+        assert!(datei_ok(0o100_600, 0, 0, f));
+        // the kind
+        assert!(!datei_ok(0o100_755, 7, 7, d));
+        assert!(!datei_ok(0o040_644, 7, 7, f));
+        assert!(!datei_ok(0o120_644, 7, 7, f));
+        // the owner
+        assert!(!datei_ok(0o100_644, 8, 7, f));
+        assert!(!datei_ok(0o040_755, 0, 7, d));
+        // writable for group or others
+        for m in [0o664, 0o646, 0o666, 0o775] {
+            assert!(!datei_ok(0o100_000 | m, 7, 7, f), "{m:o}");
+        }
+        assert!(datei_ok(0o100_444, 7, 7, f));
+    }
+
+    #[test]
+    fn laufzeit_aus_naht_xdg_oder_run_user() {
+        use super::laufzeit_aus;
+        let mit = Orte {
+            laufzeit: Some(PathBuf::from("/srv/beispiel/lz")),
+            ..Orte::fest()
+        };
+        assert_eq!(
+            laufzeit_aus(&mit, 5, Some(OsString::from("/srv/beispiel/xdg"))),
+            PathBuf::from("/srv/beispiel/lz")
+        );
+        assert_eq!(
+            super::laufzeit_ordner(&mit, 5),
+            PathBuf::from("/srv/beispiel/lz")
+        );
+        let fest = Orte::fest();
+        assert_eq!(
+            laufzeit_aus(&fest, 5, Some(OsString::from("/srv/beispiel/xdg"))),
+            PathBuf::from("/srv/beispiel/xdg")
+        );
+        assert_eq!(
+            laufzeit_aus(&fest, 5, Some(OsString::from("relativ/xdg"))),
+            PathBuf::from("/run/user/5")
+        );
+        assert_eq!(laufzeit_aus(&fest, 5, None), PathBuf::from("/run/user/5"));
+    }
+
+    #[test]
+    fn ein_eigner_ohne_zahl_laesst_root() {
+        let o = Orte::aus_naht(|n: &str| match n {
+            "WB_TESTUMGEBUNG" => Some(OsString::from("1")),
+            "WB_HALTER_KONFIG_EIGNER" => Some(OsString::from("x1")),
+            _ => None,
+        });
+        assert_eq!(o.konfig_eigner, 0);
     }
 }

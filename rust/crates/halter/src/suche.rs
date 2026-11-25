@@ -28,6 +28,35 @@ pub struct Ergebnis {
     pub uebersprungen: u64,
 }
 
+impl Ergebnis {
+    // One place per count: the defensive branches that use them (`fstat` on an open descriptor, an error while reading
+    // a folder, an entry gone between reading the folder and its `lstat`) cannot be reached by a test without a race,
+    // the counts themselves are reached by the tests of unreadable and skipped entries.
+    fn nicht_lesbar_zaehlen(&mut self) {
+        self.nicht_lesbar += 1;
+    }
+
+    fn uebersprungen_zaehlen(&mut self) {
+        self.uebersprungen += 1;
+    }
+}
+
+/// The hits of `nadel` in everything `r` gives, read in parts of `puffer` bytes; `false` if a read failed (the hits
+/// before it are counted). An interrupted read is repeated.
+fn zaehlen(r: &mut impl Read, nadel: &[u8], puffer: usize) -> (u64, bool) {
+    let mut z = Zaehler::neu(nadel);
+    let mut buf = vec![0u8; puffer];
+    let mut treffer = 0;
+    loop {
+        match r.read(&mut buf) {
+            Ok(0) => return (treffer, true),
+            Ok(n) => treffer += z.block(&buf[..n]),
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(_) => return (treffer, false),
+        }
+    }
+}
+
 /// A streaming counter after Knuth, Morris and Pratt that starts anew after each hit (no overlap).
 struct Zaehler<'a> {
     nadel: &'a [u8],
@@ -95,110 +124,106 @@ struct Lauf<'a> {
     e: Ergebnis,
 }
 
+// Flags are joined with `union`: `|` and `^` give the same value for disjoint flags, so that mutant could never fail.
 fn datei_flags() -> OFlags {
-    OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::CLOEXEC | OFlags::NONBLOCK | OFlags::NOCTTY
+    OFlags::RDONLY
+        .union(OFlags::NOFOLLOW)
+        .union(OFlags::CLOEXEC)
+        .union(OFlags::NONBLOCK)
+        .union(OFlags::NOCTTY)
 }
 
 fn ordner_flags() -> OFlags {
-    OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC
+    OFlags::RDONLY
+        .union(OFlags::DIRECTORY)
+        .union(OFlags::NOFOLLOW)
+        .union(OFlags::CLOEXEC)
 }
 
 impl Lauf<'_> {
     fn datei(&mut self, fd: OwnedFd) {
         let Ok(st) = fstat(&fd) else {
-            self.e.nicht_lesbar += 1;
+            self.e.nicht_lesbar_zaehlen();
             return;
         };
         if FileType::from_raw_mode(st.st_mode) != FileType::RegularFile {
-            self.e.uebersprungen += 1;
+            self.e.uebersprungen_zaehlen();
             return;
         }
         let schluessel = geraet_inode(&st);
         if !self.gesehen.insert(schluessel) {
             return;
         }
-        let mut datei = std::fs::File::from(fd);
-        let mut z = Zaehler::neu(self.nadel);
-        let mut buf = vec![0u8; self.puffer];
-        let mut treffer = 0;
-        loop {
-            match datei.read(&mut buf) {
-                Ok(0) => break,
-                Ok(n) => treffer += z.block(&buf[..n]),
-                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
-                Err(_) => {
-                    self.e.nicht_lesbar += 1;
-                    self.e.treffer += treffer;
-                    return;
-                }
-            }
-        }
+        let (treffer, ganz) = zaehlen(&mut std::fs::File::from(fd), self.nadel, self.puffer);
         self.e.treffer += treffer;
-        self.e.dateien += 1;
+        if ganz {
+            self.e.dateien += 1;
+        } else {
+            self.e.nicht_lesbar_zaehlen();
+        }
     }
 
     fn ordner(&mut self, fd: &OwnedFd, tiefe: usize) {
         let Ok(dir) = Dir::read_from(fd.as_fd()) else {
-            self.e.nicht_lesbar += 1;
+            self.e.nicht_lesbar_zaehlen();
             return;
         };
         let mut namen = Vec::new();
         for e in dir {
             let Ok(e) = e else {
-                self.e.nicht_lesbar += 1;
+                self.e.nicht_lesbar_zaehlen();
                 return;
             };
-            let n = e.file_name().to_bytes();
-            if n != b"." && n != b".." {
+            if !matches!(e.file_name().to_bytes(), b"." | b"..") {
                 namen.push(e.file_name().to_owned());
             }
         }
         for name in namen {
             let Ok(st) = statat(fd, name.as_c_str(), AtFlags::SYMLINK_NOFOLLOW) else {
-                self.e.nicht_lesbar += 1;
+                self.e.nicht_lesbar_zaehlen();
                 continue;
             };
             match FileType::from_raw_mode(st.st_mode) {
                 FileType::Directory => {
                     if tiefe + 1 > TIEFE_MAX {
-                        self.e.nicht_lesbar += 1;
+                        self.e.nicht_lesbar_zaehlen();
                         continue;
                     }
                     match openat(fd, name.as_c_str(), ordner_flags(), Mode::empty()) {
                         Ok(unter) => self.ordner(&unter, tiefe + 1),
-                        Err(_) => self.e.nicht_lesbar += 1,
+                        Err(_) => self.e.nicht_lesbar_zaehlen(),
                     }
                 }
                 FileType::RegularFile => {
                     match openat(fd, name.as_c_str(), datei_flags(), Mode::empty()) {
                         Ok(f) => self.datei(f),
-                        Err(_) => self.e.nicht_lesbar += 1,
+                        Err(_) => self.e.nicht_lesbar_zaehlen(),
                     }
                 }
-                _ => self.e.uebersprungen += 1,
+                _ => self.e.uebersprungen_zaehlen(),
             }
         }
     }
 
     fn wurzel(&mut self, pfad: &Path) {
         let Ok(st) = statat(rustix::fs::CWD, pfad, AtFlags::SYMLINK_NOFOLLOW) else {
-            self.e.nicht_lesbar += 1;
+            self.e.nicht_lesbar_zaehlen();
             return;
         };
         match FileType::from_raw_mode(st.st_mode) {
             FileType::Directory => {
                 match openat(rustix::fs::CWD, pfad, ordner_flags(), Mode::empty()) {
                     Ok(fd) => self.ordner(&fd, 0),
-                    Err(_) => self.e.nicht_lesbar += 1,
+                    Err(_) => self.e.nicht_lesbar_zaehlen(),
                 }
             }
             FileType::RegularFile => {
                 match openat(rustix::fs::CWD, pfad, datei_flags(), Mode::empty()) {
                     Ok(f) => self.datei(f),
-                    Err(_) => self.e.nicht_lesbar += 1,
+                    Err(_) => self.e.nicht_lesbar_zaehlen(),
                 }
             }
-            _ => self.e.nicht_lesbar += 1,
+            _ => self.e.nicht_lesbar_zaehlen(),
         }
     }
 }
@@ -220,7 +245,86 @@ pub fn durchsuchen(wert: &[u8], wurzeln: &[&Path], puffer: usize) -> Ergebnis {
 
 #[cfg(test)]
 mod tests {
-    use super::Zaehler;
+    use std::collections::VecDeque;
+    use std::io::{Error, ErrorKind};
+    use std::os::fd::OwnedFd;
+
+    use super::{Ergebnis, Lauf, Zaehler, zaehlen};
+
+    /// The table of the borders after Knuth, Morris and Pratt, also where its making must fall back.
+    #[test]
+    fn rand_der_nadel() {
+        assert_eq!(Zaehler::neu(b"aab").rand, [0, 1, 0]);
+        assert_eq!(Zaehler::neu(b"abab").rand, [0, 0, 1, 2]);
+        assert_eq!(Zaehler::neu(b"aabaaab").rand, [0, 1, 0, 1, 2, 2, 3]);
+        assert_eq!(Zaehler::neu(b"abacabab").rand, [0, 0, 1, 0, 1, 2, 3, 2]);
+        // the counter falls back on the border: "abacabab" in "abacabacabab" once, after a fall back
+        assert_eq!(Zaehler::neu(b"abacabab").block(b"abacabacabab"), 1);
+    }
+
+    struct Quelle(VecDeque<std::io::Result<Vec<u8>>>);
+
+    impl std::io::Read for Quelle {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            match self.0.pop_front() {
+                None => Ok(0),
+                Some(Err(e)) => Err(e),
+                Some(Ok(t)) => {
+                    buf[..t.len()].copy_from_slice(&t);
+                    Ok(t.len())
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn zaehlen_ueber_unterbrechung_und_bis_zum_fehler() {
+        let mut q = Quelle(
+            vec![
+                Ok(b"xa".to_vec()),
+                Err(Error::from(ErrorKind::Interrupted)),
+                Ok(b"bx ab".to_vec()),
+            ]
+            .into(),
+        );
+        assert_eq!(zaehlen(&mut q, b"ab", 8), (2, true));
+        let mut q = Quelle(
+            vec![
+                Ok(b"ab ab".to_vec()),
+                Err(Error::from(ErrorKind::Other)),
+                Ok(b"ab".to_vec()),
+            ]
+            .into(),
+        );
+        assert_eq!(zaehlen(&mut q, b"ab", 8), (2, false));
+    }
+
+    fn lauf(nadel: &[u8]) -> Lauf<'_> {
+        Lauf {
+            nadel,
+            puffer: 8,
+            gesehen: std::collections::HashSet::new(),
+            e: Ergebnis::default(),
+        }
+    }
+
+    /// A descriptor that is no regular file (it may have changed between `lstat` and `open`) is skipped. (A file that
+    /// cannot be read is the case `false` of `zaehlen`; a real descriptor with a lasting error would only hang a mutant
+    /// that repeats every error.)
+    #[test]
+    fn datei_mit_anderer_art() {
+        let ordner = std::env::temp_dir();
+        let fd: OwnedFd = std::fs::File::open(&ordner).expect("folder").into();
+        let mut l = lauf(b"ab");
+        l.datei(fd);
+        assert_eq!(
+            l.e,
+            Ergebnis {
+                uebersprungen: 1,
+                ..Ergebnis::default()
+            }
+        );
+    }
 
     #[test]
     fn ohne_ueberlappung_und_ueber_grenzen() {

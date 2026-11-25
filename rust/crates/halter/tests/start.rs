@@ -422,10 +422,13 @@ fn f2_toter_socket_wird_geraeumt_lebender_halter_bleibt() {
     let alt = std::fs::symlink_metadata(a.socket())
         .expect("dead socket")
         .ino();
-    assert!(
-        UnixStream::connect(a.socket()).is_err(),
-        "nobody listens at the dead socket"
-    );
+    // Another test of this binary may fork for a holder just between `bind` and `drop`: until its `exec` the child
+    // holds a copy of the listening descriptor, and a connection succeeds. The socket is dead once the refusal comes.
+    let ende = Instant::now() + Duration::from_secs(5);
+    while UnixStream::connect(a.socket()).is_ok() {
+        assert!(Instant::now() < ende, "nobody listens at the dead socket");
+        std::thread::sleep(Duration::from_millis(20));
+    }
     let kind = a.laufend_nach_neuem_socket(alt);
     let mut s = UnixStream::connect(a.socket()).expect("the new holder listens");
     s.write_all(b"{\"fassung\":1,\"id\":\"q-1\",\"name\":\"anmeldung.copilot\",\"op\":\"schluessel.vorhanden\"}\n")

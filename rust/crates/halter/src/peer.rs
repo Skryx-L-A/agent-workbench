@@ -1,4 +1,4 @@
-//! The measurement of the peer under Linux (section 2.3; `rust/spec/VERTRAEGE.md`, "Annehmen und Messen",
+//! The measurement of the peer under Linux (section 2.3; `rust/spec/peerkanal/README.md`, "Annehmen und Messen",
 //! steps 2, 4 and 5). A narrow interface, so that it can move into the crate `peerkanal` later:
 //!
 //! - [`messen`] takes the accepted stream and returns a [`Peer`]: `uid`, `gid` and `pid` from `SO_PEERCRED`, a pidfd
@@ -57,6 +57,13 @@ fn startzeit(pid: u32) -> Option<u64> {
     rest.split_whitespace().nth(19)?.parse().ok()
 }
 
+/// `true` if the start time was read before and after and did not change: still the same process behind the pid (a
+/// pure function, so that a test can give a changed start time, which no test can make a real process show).
+#[must_use]
+pub fn gleicher_prozess(vorher: Option<u64>, nachher: Option<u64>) -> bool {
+    vorher.is_some() && vorher == nachher
+}
+
 impl Peer {
     /// `true` while the process bound by the pidfd runs.
     #[must_use]
@@ -101,7 +108,7 @@ pub fn messen(strom: &UnixStream) -> Result<Peer, Messfehler> {
     if !peer.lebt() {
         return Err(Messfehler::Gewechselt);
     }
-    if vorher.is_none() || startzeit(pid) != vorher {
+    if !gleicher_prozess(vorher, startzeit(pid)) {
         return Err(Messfehler::Gewechselt);
     }
     Ok(peer)
@@ -133,6 +140,39 @@ mod tests {
         assert!(p.lebt());
         assert_eq!(p.programm, std::env::current_exe().ok());
         assert!(p.cgroup.is_some());
+    }
+
+    #[test]
+    fn gleich_nur_mit_derselben_gelesenen_startzeit() {
+        assert!(gleicher_prozess(Some(5), Some(5)));
+        assert!(!gleicher_prozess(Some(5), Some(6)));
+        assert!(!gleicher_prozess(Some(5), None));
+        assert!(!gleicher_prozess(None, Some(5)));
+        assert!(!gleicher_prozess(None, None));
+    }
+
+    /// The start time is field 22 of `/proc/<pid>/stat` (after the name in brackets), counted from the boot.
+    #[test]
+    fn startzeit_aus_feld_22() {
+        let stat = std::fs::read_to_string("/proc/self/stat").expect("stat");
+        let nach_name = stat.rsplit_once(')').expect("name").1;
+        let felder: Vec<&str> = nach_name.split_whitespace().collect();
+        // field 3 is the first after the name, so field 22 is the twentieth
+        let soll: u64 = felder[19].parse().expect("number");
+        assert_eq!(startzeit(std::process::id()), Some(soll));
+        assert!(
+            soll > 1,
+            "a test process does not start within the first tick after the boot"
+        );
+        let mut kind = std::process::Command::new("/bin/sleep")
+            .arg("5")
+            .spawn()
+            .expect("child");
+        let k = startzeit(kind.id());
+        let _ = kind.kill();
+        let _ = kind.wait();
+        assert!(k.is_some_and(|k| k >= soll), "{k:?}");
+        assert_eq!(startzeit(u32::MAX), None);
     }
 
     #[test]

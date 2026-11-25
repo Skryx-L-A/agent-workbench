@@ -44,6 +44,18 @@ fn aus_text(text: &str, sse: bool) -> Option<Value> {
     json::streng_lesen(daten.trim_end().as_bytes())
 }
 
+/// Appends one part of the body; more than [`ANTWORT_MAX`] bytes in all is `halter.ziel_fehler`.
+///
+/// # Errors
+/// [`Code::ZielFehler`] above the limit.
+pub fn anhaengen(alles: &mut Vec<u8>, teil: &[u8]) -> Result<(), Code> {
+    alles.extend_from_slice(teil);
+    if alles.len() > ANTWORT_MAX {
+        return Err(Code::ZielFehler);
+    }
+    Ok(())
+}
+
 /// The outcome of the body of an answer.
 #[must_use]
 pub fn auswerten(text: &str, sse: bool) -> Option<Ausgang> {
@@ -116,10 +128,7 @@ pub fn aufrufen(
     let mut koerper = Koerper::neu(l.as_mut(), &k, vorrat, "POST")?;
     let mut alles = Vec::new();
     while let Some(b) = koerper.naechstes()? {
-        alles.extend_from_slice(&b);
-        if alles.len() > ANTWORT_MAX {
-            return Err(Code::ZielFehler);
-        }
+        anhaengen(&mut alles, &b)?;
     }
     let text = String::from_utf8(alles).map_err(|_| Code::ZielFehler)?;
     let ausgang = auswerten(&text, sse).ok_or(Code::ZielFehler)?;
@@ -152,5 +161,45 @@ mod tests {
         assert!(matches!(s, Some(Ausgang::Ergebnis(_))));
         assert_eq!(auswerten(r#"{"id":1,"result":{}}"#, false), None);
         assert_eq!(auswerten(r#"{"jsonrpc":"2.0","result":[1]}"#, false), None);
+    }
+
+    /// Server-sent events: the data lines of one event form its data, also with another field between them; the first
+    /// event whose data is JSON counts; a blank line without data ends nothing.
+    #[test]
+    fn ereignisse_des_stroms() {
+        let zwischen =
+            "data: {\"id\":1,\"jsonrpc\":\"2.0\",\ndata: \"result\":{\"a\":1}}\nid: 7\ndata: \n\n";
+        assert_eq!(
+            aus_text("data: {\"a\":\nevent: x\ndata: 1}\n\n", true),
+            Some(serde_json::json!({"a": 1}))
+        );
+        assert!(matches!(
+            auswerten(zwischen, true),
+            Some(Ausgang::Ergebnis(_))
+        ));
+        assert_eq!(
+            aus_text("data: {\"x\":1}\n\ndata: {\"y\":2}\n\n", true),
+            Some(serde_json::json!({"x": 1}))
+        );
+        assert_eq!(
+            aus_text("\n\r\ndata: {\"x\":1}\r\n\r\n", true),
+            Some(serde_json::json!({"x": 1}))
+        );
+        assert_eq!(aus_text("data: kein json\n\n", true), None);
+    }
+
+    #[test]
+    fn antwort_bis_zur_grenze() {
+        let mut alles = Vec::new();
+        assert_eq!(anhaengen(&mut alles, &vec![b'x'; ANTWORT_MAX - 1]), Ok(()));
+        assert_eq!(anhaengen(&mut alles, b"y"), Ok(()));
+        assert_eq!(alles.len(), ANTWORT_MAX);
+        assert_eq!(anhaengen(&mut alles, b""), Ok(()));
+        assert_eq!(anhaengen(&mut alles, b"z"), Err(Code::ZielFehler));
+        let mut grob = Vec::new();
+        assert_eq!(
+            anhaengen(&mut grob, &vec![b'x'; ANTWORT_MAX + 5]),
+            Err(Code::ZielFehler)
+        );
     }
 }

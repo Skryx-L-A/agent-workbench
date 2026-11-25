@@ -1,4 +1,4 @@
-//! Model zones in the gate (partial contract `rust/spec/VERTRAEGE.md`).
+//! Model zones in the gate (partial contract `rust/spec/datentor/zonen/VERTRAG.md`).
 //!
 //! A zone is an entry of the admins with a key, a class set, a condition and a list of routes; every route belongs to at
 //! most one zone. [`darf_zonen`] adds a second check per route to [`darf`](crate::darf): with the option off it is exactly

@@ -1,4 +1,4 @@
-//! A local channel with a check of the other side (contract `rust/spec/VERTRAEGE.md`, version 1).
+//! A local channel with a check of the other side (contract `rust/spec/peerkanal/README.md`, version 1).
 //!
 //! A server offers a channel. For each connection the library measures the identity of the other side and lets only
 //! identities from the list of the caller through; the caller then decides in a hook ([`Vorlaeufig`]) before the first byte

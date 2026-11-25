@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Attrappe von Vertrag 5 (`rust/spec/VERTRAEGE.md`): Zeile `ausgabe.gesperrt`, Schreiber und `kette pruefe`.
+"""Attrappe von Vertrag 5 (`rust/spec/protokollzeile/README.md`): Zeile `ausgabe.gesperrt`, Schreiber und `kette pruefe`.
 
 Als Modul: `anhaengen_gesperrt(datei, felder, fehler=())` (Such-Attrappe).
 Als Programm `kette`: `kette.py pruefe [--vorher <64 hex>] [--letzte <64 hex>] [--fehler <name>] <datei>...`

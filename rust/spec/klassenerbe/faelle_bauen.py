@@ -4,7 +4,7 @@
 
 Writes sichtbar/faelle/<name>.json and sichtbar/erwartet/<name>.json. Every expectation is written out by hand in the
 tables below and checked against a small reference of rust/spec/VERTRAEGE.md, sections 3 and 4; a mismatch stops the script before
-anything is written. The effective class follows D5 of rust/spec/VERTRAEGE.md. All data is invented.
+anything is written. The effective class follows D5 of rust/spec/datentor/VERTRAG.md. All data is invented.
 """
 import json
 import re

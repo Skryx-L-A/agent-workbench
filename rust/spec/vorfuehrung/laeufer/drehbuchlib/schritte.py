@@ -1,4 +1,4 @@
-"""Die Schritte S1 bis S5 und die Ehrlichkeitspruefungen E1 bis E3 des Drehbuchs (`rust/spec/VERTRAEGE.md`).
+"""Die Schritte S1 bis S5 und die Ehrlichkeitspruefungen E1 bis E3 des Drehbuchs (`rust/spec/vorfuehrung/DREHBUCH.md`).
 
 Jede Funktion `s1(L)` bis `e3(L)` fuehrt einen Schritt aus und gibt ein `Schritt` zurueck. Ein Schritt sammelt
 Teilpruefungen (`haupt` fuer das Erwartete, `gegen` fuer die Gegenprobe). Gruen ist er nur, wenn jede Teilpruefung
@@ -885,7 +885,7 @@ def e4_lokal(L):
             return int(f[-1]) if f else None
         z_env = L.befehl(sid, _fmt(k["befehle"]["env_zaehle_schluessel"], muster=muster))
         z_ps = L.befehl(sid, _fmt(k["befehle"]["ps_zaehle_schluessel"], muster=muster))
-        # Positivkontrolle der Umgebungssuche: `PI_OFFLINE` setzt das Programm im Harness `pi` immer auf 1 (Vertrag 6 `rust/spec/VERTRAEGE.md`,
+        # Positivkontrolle der Umgebungssuche: `PI_OFFLINE` setzt das Programm im Harness `pi` immer auf 1 (Vertrag 6 `rust/spec/start/README.md`,
         # Abschnitt pi und Abschnitt Starter "Umgebung fuer pi"). Gezaehlt wird nur der Name, nie ein Wert. Erwartet >= 1.
         kontrolle = zahl(L.befehl(sid, k["befehle"]["kontrolle_lokal_env"]))
         s.messwerte.update(kontrolle_lokal_env=kontrolle)

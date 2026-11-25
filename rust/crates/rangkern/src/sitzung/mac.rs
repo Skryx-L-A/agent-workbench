@@ -1,4 +1,4 @@
-//! The rules of `rangkern sitzung` for macOS (addendum to contract 4, `rust/spec/VERTRAEGE.md`).
+//! The rules of `rangkern sitzung` for macOS (addendum to contract 4, `rust/spec/such-socket/macos/README.md`).
 //!
 //! Every rule is a pure function with the platform as a parameter, so that the tests run under Linux with `MacOs`; the
 //! program calls them with [`Plattform::AKTUELL`]. Under Linux the other functions let everything through; the rule for the

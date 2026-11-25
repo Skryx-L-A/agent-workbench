@@ -38,13 +38,22 @@ fn only_plain_targets_with_kopf_einsetzen_enter_the_list() {
 }
 
 #[test]
-fn the_text_names_the_key_file_only_at_bound_targets() {
+fn the_text_names_the_holder_target_only_at_bound_targets() {
     let e = einst();
     let z = ziele(e.route("cloud-beispiel").expect("route"));
-    let t = text(&z, "/srv/beispiel/k/cloud", "zugelassen");
+    let t = text(&z, "zugelassen");
+    // No key file, no header and no value prefix: the key of a bound target lies with the holder.
+    for weg in [
+        "schluessel_datei",
+        "wert_vorsatz",
+        "authorization",
+        "Bearer",
+    ] {
+        assert!(!t.contains(weg), "{weg} in {t}");
+    }
     assert_eq!(
         t,
-        "{\"fassung\":1,\"ca_zulassung\":\"zugelassen\",\"ziele\":[{\"name\":\"ziel-1\",\"host\":\"api.cloud.example\",\"port\":443,\"schluessel_datei\":\"/srv/beispiel/k/cloud\",\"kopf\":\"authorization\",\"wert_vorsatz\":\"Bearer \",\"regeln\":[{\"methode\":\"GET\",\"pfad\":\"/copilot_internal/*\"},{\"methode\":\"POST\",\"pfad\":\"/chat\"}],\"upgrade\":\"durchreichen\"},{\"name\":\"ziel-2\",\"host\":\"telemetry.cloud.example\",\"port\":443,\"schluessel_datei\":null,\"kopf\":null,\"wert_vorsatz\":null,\"regeln\":[{\"methode\":\"POST\",\"pfad\":\"/telemetry\"}],\"upgrade\":\"ablehnen\"}]}\n"
+        "{\"fassung\":1,\"ca_zulassung\":\"zugelassen\",\"ziele\":[{\"name\":\"ziel-1\",\"host\":\"api.cloud.example\",\"port\":443,\"halter_ziel\":\"api.cloud.example\",\"regeln\":[{\"methode\":\"GET\",\"pfad\":\"/copilot_internal/*\"},{\"methode\":\"POST\",\"pfad\":\"/chat\"}],\"upgrade\":\"durchreichen\"},{\"name\":\"ziel-2\",\"host\":\"telemetry.cloud.example\",\"port\":443,\"halter_ziel\":null,\"regeln\":[{\"methode\":\"POST\",\"pfad\":\"/telemetry\"}],\"upgrade\":\"ablehnen\"}]}\n"
     );
 }
 
@@ -55,7 +64,7 @@ fn the_model_path_accepts_the_list() {
     let e = einst();
     let z = ziele(e.route("cloud-beispiel").expect("route"));
     for zulassung in ["zugelassen", "offen", "abgelehnt"] {
-        let t = text(&z, "/srv/beispiel/k/cloud", zulassung);
+        let t = text(&z, zulassung);
         let liste = modellweg::betriebsart::zielliste::lies(t.as_bytes())
             .expect("the model path takes the list");
         assert_eq!(liste.ziele.len(), 2);

@@ -1,4 +1,4 @@
-//! The holder `werkbank-halter` (contract `rust/spec/VERTRAEGE.md`, version 1, Linux step I).
+//! The holder `werkbank-halter` (contract `rust/spec/halter/README.md`, version 1, Linux step I).
 //!
 //! The holder keeps keys and tokens outside every agent session. It never gives a value out; it only uses one for a
 //! model call (`modell.aufruf`, `modell.strom`), a search (`modell.suche`) or an MCP call. The library holds the pure

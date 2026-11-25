@@ -366,8 +366,9 @@ pub fn lesen(bytes: &[u8]) -> Result<Konfig, Fehler> {
             }
             _ => return Err(Fehler::Form),
         };
+        // at most 10 digits follows from the rest: without a leading zero, 11 digits are above u32::MAX (10 digits),
+        // so a rule of its own could never refuse a key the others let pass
         if k.is_empty()
-            || k.len() > 10
             || !k.bytes().all(|c| c.is_ascii_digit())
             || (k.len() > 1 && k.starts_with('0'))
             || k.parse::<u32>().is_err()
@@ -481,6 +482,9 @@ mod tests {
     fn jede_grenze_einzeln() {
         let gut = |alt: &str, neu: &str| assert!(mit(alt, neu).is_ok(), "{neu}");
         let schlecht = |alt: &str, neu: &str| assert_eq!(mit(alt, neu), Err(Fehler::Form), "{neu}");
+        // the uid of an account: digits only; `+5` would pass `parse::<u32>` alone
+        schlecht(r#""konten":{"1000""#, r#""konten":{"+1000""#);
+        schlecht(r#""konten":{"1000""#, r#""konten":{"+5""#);
         gut(r#""port":443"#, r#""port":65535"#);
         gut(r#""port":443"#, r#""port":1"#);
         schlecht(r#""port":443"#, r#""port":0"#);

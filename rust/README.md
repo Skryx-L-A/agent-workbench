@@ -137,7 +137,7 @@ The same program, built with the feature `pruefbau`, is the check program of the
 several (at most 8 at the same time, DI12): per session a child in a PTY (`traeger`) and a state core (`zustandskern`), per viewer
 one extract (`rasterauszug`), plus a room core without a session, a clock and one Unix socket. `Starten` and `Beenden` are events of
 the service itself. It only translates between the blocks and the socket; the structure of a start is checked by the crate `start` and the settings file is
-read by the crate `einstellungen` (both of the workspace, no new package). Contract: `rust/spec/VERTRAEGE.md`
+read by the crate `einstellungen` (both of the workspace, no new package). Contract: `rust/spec/dienst/VERTRAG.md`
 (rules DI1 to DI12); details in `crates/dienst/README.md`.
 The optional key `lauf.sitzungen` (an absolute path) makes `Starten` skip every number whose entry `<lauf.sitzungen>/s-<n>` still exists, so a restarted service
 does not hand out `s-1` again while its folder is left (DI12 point 13); the service creates and removes nothing there.
@@ -302,7 +302,7 @@ failure, the retry, the deadline, the connect deadline (a full listener queue as
 ## `zustandskern` (state core of the session view)
 
 `crates/zustandskern` is the state core of the session view: events go in, effects come out. It holds the
-rules R1 to R15 of the contract `rust/spec/VERTRAEGE.md` (for example R1 the bytes written to the PTY for text, keys and pasted text, R12
+rules R1 to R15 of the contract `rust/spec/zustandskern/VERTRAG.md` (for example R1 the bytes written to the PTY for text, keys and pasted text, R12
 the settings with their levels company, group and user, R14 the backlog limit per viewer, R15 the cursor). The reference
 implementation and the hidden cases are kept outside the repository; the visible cases below were made from them. The
 library (`src/lib.rs`) reads no file, starts no process, opens no socket and asks for neither the time nor a random
@@ -617,7 +617,7 @@ routes. The raster frames are read with `rasterauszug::Empfang`, so there is one
 
 `wb-bruecke <startdatei.json>` is a program of the walking skeleton: the one door the browser of a viewer reaches. It speaks HTTP/1.1 itself with `std`
 (no framework, no HTTP crate, no TLS), binds only `127.0.0.1` and hands bytes to the Unix socket of the service `wb-dienst`, which stays without TCP. The
-viewer reaches it through `ssh -L`. The contract is `rust/spec/VERTRAEGE.md` (BR1 to BR6); the crate README (`crates/bruecke/README.md`) holds the
+viewer reaches it through `ssh -L`. The contract is `rust/spec/bruecke/VERTRAG.md` (BR1 to BR6); the crate README (`crates/bruecke/README.md`) holds the
 start file, the routes and the layout.
 
 - **Security points.** (1) The token file and the port file: the folder is a real folder of the effective user with exactly the mode 0700 (`lstat`, no link),

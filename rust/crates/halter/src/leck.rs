@@ -70,19 +70,18 @@ pub fn prozent_dekodiert(daten: &[u8]) -> Option<Vec<u8>> {
         return None;
     }
     let mut aus = Vec::with_capacity(daten.len());
-    let mut i = 0;
-    while i < daten.len() {
-        if daten[i] == b'%'
-            && let (Some(h), Some(l)) = (
-                daten.get(i + 1).copied().and_then(hex),
-                daten.get(i + 2).copied().and_then(hex),
-            )
+    // walk along the rest instead of an index: a changed step of an index would only hang the loop
+    let mut rest = daten;
+    while let Some((&c, nach)) = rest.split_first() {
+        if c == b'%'
+            && let [h, l, ..] = nach
+            && let (Some(h), Some(l)) = (hex(*h), hex(*l))
         {
             aus.push(h * 16 + l);
-            i += 3;
+            rest = &nach[2..];
         } else {
-            aus.push(daten[i]);
-            i += 1;
+            aus.push(c);
+            rest = nach;
         }
     }
     Some(aus)
@@ -346,6 +345,24 @@ mod tests {
         assert_eq!(aus.len(), 40);
         assert_eq!(s.frei(), 40);
         assert_eq!(s.gesehen(), 40);
+    }
+
+    /// The counters add up over several parts: what went out and what was taken.
+    #[test]
+    fn zaehler_ueber_mehrere_teile() {
+        let werte = [g(b"zq")];
+        let mut sperre = Sperre::neu(&werte);
+        let halt = sperre.rueckhalt();
+        assert!(halt < 100, "{halt}");
+        let erste = sperre.schieben(&[b'x'; 100]).expect("no hit");
+        assert_eq!(erste.len(), 100 - halt);
+        assert_eq!(sperre.frei(), 100 - halt as u64);
+        let zweite = sperre.schieben(&[b'y'; 50]).expect("no hit");
+        assert_eq!(zweite.len(), 50);
+        assert_eq!(sperre.frei(), 150 - halt as u64);
+        assert_eq!(sperre.gesehen(), 150);
+        assert_eq!(sperre.ende().len(), halt);
+        assert_eq!(sperre.frei(), 150);
     }
 
     #[test]

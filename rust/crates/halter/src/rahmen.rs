@@ -187,13 +187,13 @@ impl<'a> Rahmenleser<'a> {
                         .schieben(&daten[..n])
                         .map_err(|_| Abriss::Leck)?;
                     self.frei.extend(frei);
-                    match self.warte.back_mut() {
-                        Some(Stueck::Daten(m)) => *m += n as u64,
-                        _ => self.warte.push_back(Stueck::Daten(n as u64)),
-                    }
+                    // one entry per part: `sammeln` gives them out in order, so a merge with the entry before would
+                    // change nothing that can be seen; the queue stays bounded by the bytes held back
+                    self.warte.push_back(Stueck::Daten(n as u64));
                     daten = &daten[n..];
-                    if rest > n as u64 {
-                        Zustand::Daten(rest - n as u64)
+                    // `n` is at most `rest`: the rest of the payload, or the next head when nothing is left
+                    if let r @ 1.. = rest - n as u64 {
+                        Zustand::Daten(r)
                     } else {
                         Zustand::Kopf(Vec::new())
                     }
@@ -205,10 +205,10 @@ impl<'a> Rahmenleser<'a> {
                     let n = usize::try_from(rest).unwrap_or(usize::MAX).min(daten.len());
                     kopf_und_nutz.extend_from_slice(&daten[..n]);
                     daten = &daten[n..];
-                    if rest > n as u64 {
+                    if let r @ 1.. = rest - n as u64 {
                         Zustand::Steuer {
                             kopf_und_nutz,
-                            rest: rest - n as u64,
+                            rest: r,
                         }
                     } else {
                         let kopf = kopflaenge(&kopf_und_nutz)?.unwrap_or(2);
@@ -233,7 +233,8 @@ impl<'a> Rahmenleser<'a> {
         let rest = self.sperre.ende();
         self.frei.extend(rest);
         match std::mem::replace(&mut self.zustand, Zustand::Kopf(Vec::new())) {
-            Zustand::Kopf(k) if !k.is_empty() => self.warte.push_back(Stueck::Roh(k)),
+            // an empty head adds nothing to the output
+            Zustand::Kopf(k) => self.warte.push_back(Stueck::Roh(k)),
             Zustand::Steuer { kopf_und_nutz, .. } => {
                 let kopf = kopflaenge(&kopf_und_nutz)
                     .ok()
@@ -245,7 +246,7 @@ impl<'a> Rahmenleser<'a> {
                 }
                 self.warte.push_back(Stueck::Roh(kopf_und_nutz));
             }
-            _ => {}
+            Zustand::Daten(_) => {}
         }
         Ok(self.sammeln())
     }

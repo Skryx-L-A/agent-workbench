@@ -8,21 +8,37 @@ fn quelle_liest_ausserhalb_des_pruefbaus_keine_umgebung() {
     let quelle = include_str!("../src/main.rs");
     let mut ausserhalb = String::new();
     let mut rest = quelle;
-    // drop every item that stands behind `#[cfg(feature = "pruefbau")]` (one function, up to its closing brace at
-    // the indentation of the item)
+    // drop every statement that stands behind `#[cfg(feature = "pruefbau")]` (one `let`, up to its `;` at the end
+    // of a line)
+    let mut weg = 0;
     while let Some(pos) = rest.find("#[cfg(feature = \"pruefbau\")]") {
         ausserhalb.push_str(&rest[..pos]);
         let nach = &rest[pos..];
-        let ende = nach.find("\n    }\n").map_or(nach.len(), |e| e + 7);
+        let ende = nach.find(";\n").map_or(nach.len(), |e| e + 2);
+        weg += 1;
         rest = &nach[ende..];
     }
     ausserhalb.push_str(rest);
+    assert_eq!(
+        weg, 1,
+        "one statement of the test build: the places from the seams"
+    );
     assert!(
         !ausserhalb.contains("env::var"),
         "a variable of the environment outside the test build"
     );
-    assert!(ausserhalb.contains("fn orte() -> Orte {\n        Orte::fest()\n    }"));
+    assert!(ausserhalb.contains(
+        "        #[cfg(not(feature = \"pruefbau\"))]\n        let o = Orte::fest();\n        o\n"
+    ));
     let start = include_str!("../src/start.rs");
+    // the seams are read only through the reader that the test build hands in, never from the environment directly
+    let naht = &start[start.find("pub fn aus_naht").expect("aus_naht")..];
+    let naht = &naht[..naht.find("\n    }\n").expect("end of aus_naht")];
+    assert!(
+        !naht.contains("env::"),
+        "aus_naht reads the environment itself"
+    );
+    assert!(naht.contains("lies(\"WB_TESTUMGEBUNG\")"));
     assert!(start.contains("PathBuf::from(\"/etc/werkbank/halter.json\")"));
     assert!(start.contains("PathBuf::from(\"/etc/passwd\")"));
     assert!(start.contains("PathBuf::from(\"/etc/group\")"));

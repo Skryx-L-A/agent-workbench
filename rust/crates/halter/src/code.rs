@@ -146,7 +146,91 @@ impl Code {
 
 #[cfg(test)]
 mod tests {
-    use super::Code;
+    use super::{Code, Startfehler};
+
+    /// The contract with the tables of section 2.1 ("Start und Exitcodes") and section 7.
+    const VERTRAG: &str = include_str!("../../../spec/halter/README.md");
+
+    const ALLE: [Code; 34] = [
+        Code::ZuGross,
+        Code::Peer,
+        Code::JsonUngueltig,
+        Code::NichtKanonisch,
+        Code::FassungUnbekannt,
+        Code::OpUnbekannt,
+        Code::Rolle,
+        Code::Strom,
+        Code::SchluesselUnbekannt,
+        Code::SchluesselFehlt,
+        Code::TypFalsch,
+        Code::WertForm,
+        Code::KopfVerboten,
+        Code::Bereich,
+        Code::ZielUnbekannt,
+        Code::PfadVerboten,
+        Code::KeinSchluessel,
+        Code::Person,
+        Code::ScheinFehlt,
+        Code::ScheinUnerwartet,
+        Code::ScheinKid,
+        Code::ScheinSignatur,
+        Code::ScheinArt,
+        Code::ScheinLauf,
+        Code::ScheinDigest,
+        Code::ScheinZeit,
+        Code::ScheinAbgelaufen,
+        Code::ScheinBenutzt,
+        Code::Nachweis,
+        Code::ZielFehler,
+        Code::ZielKomprimiert,
+        Code::McpFehler,
+        Code::LeckGesperrt,
+        Code::Intern,
+    ];
+
+    /// Code and reason of every code stand together in one row of the table of section 7.
+    #[test]
+    fn code_und_grund_wie_im_vertrag() {
+        for c in ALLE {
+            let (code, grund) = (c.code(), c.grund());
+            assert_eq!(c.paar(), (code, grund));
+            assert!(code.starts_with("halter."), "{c:?}");
+            assert!(
+                VERTRAG.lines().any(|z| z.starts_with("| ")
+                    && z.contains(&format!("`{code}`"))
+                    && z.contains(&format!("`{grund}`"))),
+                "{c:?}: {code} with {grund} is no row of the contract"
+            );
+        }
+        let codes: std::collections::BTreeSet<&str> = ALLE.iter().map(|c| c.code()).collect();
+        assert_eq!(codes.len(), ALLE.len(), "two variants with one code");
+    }
+
+    /// Exit code, code and reason of every failed start step as in the table of section 2.1, and the line of the
+    /// journal `<code>: <grund>`.
+    #[test]
+    fn startfehler_wie_im_vertrag() {
+        for (f, exit) in [
+            (Startfehler::Kernabbild, 5),
+            (Startfehler::Aufruf, 64),
+            (Startfehler::Konfig, 78),
+            (Startfehler::AblageRechte, 78),
+            (Startfehler::PipeBelegt, 74),
+            (Startfehler::Intern, 70),
+        ] {
+            let (e, code, grund) = f.teile();
+            assert_eq!(e, exit, "{f:?}");
+            assert!(
+                VERTRAG.contains(&format!("| {exit}, `{code}`, `{grund}` |")),
+                "{f:?}: {exit}, {code}, {grund} is no row of the contract"
+            );
+            assert_eq!(f.zeile(), format!("{code}: {grund}"));
+        }
+        assert_eq!(
+            Startfehler::Aufruf.zeile(),
+            "halter.aufruf: falscher Aufruf"
+        );
+    }
 
     #[test]
     fn gruende_der_kette() {

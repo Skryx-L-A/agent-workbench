@@ -81,7 +81,7 @@ ZEILENFELDER = {
 }
 NULL_HASH = "0" * 64
 BEREIT = b'{"bereit":true}\n'
-# Vertrag 5 (rust/spec/VERTRAEGE.md, Feld `zeit`)
+# Vertrag 5 (rust/spec/protokollzeile/README.md, Feld `zeit`)
 ZEIT_MUSTER = re.compile(r"^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\.[0-9]{3}Z$")
 ZEIT_SPIEL = 2.0
 DB_SCHEMA = "CREATE TABLE embeddings (rel TEXT PRIMARY KEY, hash TEXT NOT NULL, vector TEXT NOT NULL, updated REAL NOT NULL)"

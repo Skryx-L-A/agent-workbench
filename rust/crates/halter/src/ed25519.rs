@@ -13,7 +13,8 @@
 
 use crate::sha512::sha512;
 
-const MASKE: u64 = (1 << 51) - 1;
+/// 2^51 - 1, as a literal: an expression for it would give mutants that only hang the reduction loop.
+const MASKE: u64 = 0x7_ffff_ffff_ffff;
 
 #[derive(Clone, Copy)]
 struct Fe([u64; 5]);
@@ -32,11 +33,13 @@ impl Fe {
         for (i, teil) in b.as_chunks::<8>().0.iter().enumerate() {
             w[i] = u64::from_le_bytes(*teil);
         }
+        // the two parts of a limb have no bit in common, so `+` joins them like `|` (and, unlike `|` against `^`, a
+        // changed operator changes the value)
         Fe([
             w[0] & MASKE,
-            ((w[0] >> 51) | (w[1] << 13)) & MASKE,
-            ((w[1] >> 38) | (w[2] << 26)) & MASKE,
-            ((w[2] >> 25) | (w[3] << 39)) & MASKE,
+            ((w[0] >> 51) + (w[1] << 13)) & MASKE,
+            ((w[1] >> 38) + (w[2] << 26)) & MASKE,
+            ((w[2] >> 25) + (w[3] << 39)) & MASKE,
             (w[3] >> 12) & MASKE,
         ])
     }
@@ -121,10 +124,10 @@ impl Fe {
     }
 
     fn zu_bytes(self) -> [u8; 32] {
-        let mut h = self.tragen().0;
-        while h.iter().any(|x| x >> 51 != 0) {
-            h = Fe(h).tragen().0;
-        }
+        // Two rounds of carries leave every limb below 2^51 except limb 0, which may reach 2^51 + 18; a third round
+        // leaves all five below 2^51 (a carry out of limb 4 needs one out of limb 0, and then limb 0 is below 38).
+        // `tragen` makes two rounds, so twice is enough, without a loop that a changed condition would never end.
+        let mut h = self.tragen().tragen().0;
         // now h < 2^255; subtract p once if h >= p, i.e. if h + 19 reaches 2^255
         let mut t = h;
         t[0] += 19;
@@ -136,10 +139,11 @@ impl Fe {
             t[4] &= MASKE;
             h = t;
         }
-        let w0 = h[0] | (h[1] << 51);
-        let w1 = (h[1] >> 13) | (h[2] << 38);
-        let w2 = (h[2] >> 26) | (h[3] << 25);
-        let w3 = (h[3] >> 39) | (h[4] << 12);
+        // disjoint bits again: `+` joins like `|`
+        let w0 = h[0] + (h[1] << 51);
+        let w1 = (h[1] >> 13) + (h[2] << 38);
+        let w2 = (h[2] >> 26) + (h[3] << 25);
+        let w3 = (h[3] >> 39) + (h[4] << 12);
         let mut aus = [0u8; 32];
         for (i, w) in [w0, w1, w2, w3].iter().enumerate() {
             aus[i * 8..i * 8 + 8].copy_from_slice(&w.to_le_bytes());
@@ -299,8 +303,11 @@ const L: [u64; 4] = [
 
 fn ist_kleiner_l(w: &[u64; 4]) -> bool {
     for i in (0..4).rev() {
-        if w[i] != L[i] {
-            return w[i] < L[i];
+        // the order of the first different word decides (a comparison `<` against `<=` there could never differ)
+        match w[i].cmp(&L[i]) {
+            std::cmp::Ordering::Less => return true,
+            std::cmp::Ordering::Greater => return false,
+            std::cmp::Ordering::Equal => {}
         }
     }
     false
@@ -332,7 +339,8 @@ fn mod_l(zahl: &[u8; 64]) -> [u8; 32] {
         for bit in (0..8).rev() {
             let mut uebertrag = u64::from((byte >> bit) & 1);
             for wort in &mut r {
-                let neu = (*wort << 1) | uebertrag;
+                // the low bit of `*wort << 1` is zero: `+` joins like `|`
+                let neu = (*wort << 1) + uebertrag;
                 uebertrag = *wort >> 63;
                 *wort = neu;
             }
@@ -379,7 +387,88 @@ pub fn pruefen(oeffentlich: &[u8; 32], nachricht: &[u8], signatur: &[u8; 64]) ->
 
 #[cfg(test)]
 mod tests {
-    use super::pruefen;
+    use super::{Fe, pruefen};
+
+    /// `b` plus the small number `n` (little endian, 256 bits).
+    fn plus_klein(mut b: [u8; 32], n: u8) -> [u8; 32] {
+        let mut u = u16::from(n);
+        for o in &mut b {
+            let s = u16::from(*o) + u;
+            *o = s.to_le_bytes()[0];
+            u = s >> 8;
+        }
+        b
+    }
+
+    fn zahl(n: u8) -> [u8; 32] {
+        plus_klein([0; 32], n)
+    }
+
+    /// The sign bit of a key counts: the same key with the other sign is -A, under which the signature is invalid.
+    #[test]
+    fn das_vorzeichen_des_schluessels_zaehlt() {
+        let mut a1 =
+            bytes::<32>("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a");
+        let s1 = bytes::<64>(
+            "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b",
+        );
+        a1[31] ^= 0x80;
+        assert!(!pruefen(&a1, b"", &s1));
+    }
+
+    /// y = 1 has x = 0: without the sign bit the neutral point, with it the forbidden "-0".
+    #[test]
+    fn minus_null_dekodiert_nicht() {
+        let k = super::konstanten();
+        let mut eins = zahl(1);
+        assert!(super::Punkt::dekodieren(&eins, &k).is_some());
+        eins[31] |= 0x80;
+        assert!(super::Punkt::dekodieren(&eins, &k).is_none());
+    }
+
+    /// The check against the group order L: below, equal and above, decided in each of the four words.
+    #[test]
+    fn kleiner_als_l_wortweise() {
+        let l = super::L;
+        assert!(!super::ist_kleiner_l(&l));
+        for i in 0..4 {
+            let mut w = l;
+            if w[i] > 0 {
+                w[i] -= 1;
+                assert!(super::ist_kleiner_l(&w), "word {i} lower");
+            }
+            let mut w = l;
+            if w[i] < u64::MAX {
+                w[i] += 1;
+                assert!(!super::ist_kleiner_l(&w), "word {i} higher");
+            }
+        }
+    }
+
+    /// Values from p to 2^255 - 1 are encoded minus p, everything below p stays, bit 255 is not read.
+    #[test]
+    fn zu_bytes_zieht_p_genau_einmal_ab() {
+        let mut p = [0xffu8; 32];
+        p[0] = 0xed;
+        p[31] = 0x7f;
+        assert_eq!(Fe::aus_bytes(&p).zu_bytes(), zahl(0));
+        assert_eq!(Fe::aus_bytes(&plus_klein(p, 1)).zu_bytes(), zahl(1));
+        assert_eq!(Fe::aus_bytes(&plus_klein(p, 18)).zu_bytes(), zahl(18));
+        assert_eq!(Fe::aus_bytes(&[0xff; 32]).zu_bytes(), zahl(18));
+        let mut p_minus_1 = p;
+        p_minus_1[0] = 0xec;
+        assert_eq!(Fe::aus_bytes(&p_minus_1).zu_bytes(), p_minus_1);
+        let mut gemischt = [0u8; 32];
+        for (i, o) in gemischt.iter_mut().enumerate() {
+            *o = u8::try_from(i * 37 % 251).expect("byte");
+        }
+        gemischt[31] &= 0x7f;
+        assert_eq!(Fe::aus_bytes(&gemischt).zu_bytes(), gemischt);
+        assert!(Fe::aus_bytes(&p).ist_null());
+        assert!(!Fe::aus_bytes(&zahl(1)).ist_null());
+        assert!(Fe::aus_bytes(&plus_klein(p, 1)).ungerade());
+        assert!(!Fe::aus_bytes(&zahl(2)).ungerade());
+    }
 
     fn bytes<const N: usize>(hex: &str) -> [u8; N] {
         let mut aus = [0u8; N];

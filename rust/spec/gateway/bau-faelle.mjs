@@ -371,7 +371,7 @@ const EINST_FEHLER = { text: einstText(einstNull), fehler: 'einst.route_ohne_kla
 const einstOhneCloud = { ...EINST_BASIS, routen: EINST_BASIS.routen.filter((r) => r.art !== 'cloud') };
 const EINST_OHNE_CLOUD = { text: einstText(einstOhneCloud), routen: einstOhneCloud.routen };
 
-// Sicht des Tors auf die Modellzonen (A127 bis A129, rust/spec/VERTRAEGE.md): das Ergebnis der Laufpruefung
+// Sicht des Tors auf die Modellzonen (A127 bis A129, rust/spec/datentor/zonen/VERTRAG.md): das Ergebnis der Laufpruefung
 // (darf_zonen mit einheit null) je Route, das der Kern-Dienst dem Gateway in die Lage gibt. Das Gateway entscheidet nichts selbst.
 const ZONEN_LAGEN = {
   aus: { an: false },

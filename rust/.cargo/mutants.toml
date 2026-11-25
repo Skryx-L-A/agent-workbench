@@ -3,3 +3,7 @@
 # in it, and its mutants would always survive. The Windows build is checked by the cross build
 # (`rust-gates-<linux-host>.sh <worktree> windows`) and, later, by the Windows test machine.
 exclude_re = ["portable_key"]
+# For the same reason the modules `src/sys/windows.rs` are left out: they stand behind `cfg(windows)` and are never compiled
+# under Linux (decision of 25.11.2026). Their mutants run on the Windows test machine, before every delivery under Windows
+# (open point in the contracts dienst and bruecke, section of the platforms).
+exclude_globs = ["crates/*/src/sys/windows.rs"]

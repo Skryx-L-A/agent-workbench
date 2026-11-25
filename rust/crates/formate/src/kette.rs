@@ -1,4 +1,4 @@
-//! The audit line `ausgabe.gesperrt` (contract 5, `rust/spec/VERTRAEGE.md`): building a line,
+//! The audit line `ausgabe.gesperrt` (contract 5, `rust/spec/protokollzeile/README.md`): building a line,
 //! appending it to a chain file under an exclusive lock, and checking a chain. Over months: the writer of a
 //! source (`anhaengen_gesperrt_in`, `anhaengen_zeile`, `anhaengen_zeilen`) switches the month under one lock and
 //! writes the anchor of the closed month; `pruefe_quelle` checks the folder of a source against its anchors.

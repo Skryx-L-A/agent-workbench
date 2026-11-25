@@ -119,6 +119,36 @@ fn argv(fall: &Value, wurzel: &Path) -> Vec<OsString> {
         .collect()
 }
 
+/// The question to the holder of a case of the route Copilot (`halter` in the case): it answers per `halter_ziel`
+/// either the four counts or a code, and with `erreichbar` `false` it is not reachable at all. The search of the
+/// program takes the same question over the fixed endpoint of the holder; here the case stands in for him, because a
+/// test reaches no holder.
+fn halterfrage(
+    fall: &Value,
+) -> impl FnMut(&str, &[String]) -> Option<modellweg::halter::Suche> + use<> {
+    let h = fall["halter"].clone();
+    move |ziel: &str, pfade: &[String]| {
+        assert!((1..=16).contains(&pfade.len()), "1 to 16 paths");
+        assert!(pfade.iter().all(|p| p.starts_with('/')), "absolute paths");
+        if h["erreichbar"] == false {
+            return None;
+        }
+        let a = &h["antworten"][ziel];
+        let zahl = |n: &str| a[n].as_u64();
+        Some(modellweg::halter::Suche {
+            dateien: zahl("dateien")?,
+            nicht_lesbar: zahl("nicht_lesbar")?,
+            treffer: zahl("treffer")?,
+            uebersprungen: zahl("uebersprungen")?,
+        })
+    }
+}
+
+/// Whether the case asks the holder (route Copilot from step I).
+fn ueber_halter(fall: &Value) -> bool {
+    fall.get("halter").is_some()
+}
+
 fn braucht_unlesbares(fall: &Value) -> bool {
     fall["baum"]
         .as_array()
@@ -130,7 +160,7 @@ fn braucht_unlesbares(fall: &Value) -> bool {
 fn faelle() -> Vec<Value> {
     let f = fall_datei("suche.json");
     let faelle = f["faelle"].as_array().expect("cases").clone();
-    assert_eq!(faelle.len(), 43);
+    assert_eq!(faelle.len(), 46);
     faelle
 }
 
@@ -182,7 +212,7 @@ fn suche_cases_as_a_process() {
     let mut uebersprungen = Vec::new();
     for fall in faelle() {
         let name = text(&fall["name"]).to_owned();
-        if ist_root() && braucht_unlesbares(&fall) {
+        if (ist_root() && braucht_unlesbares(&fall)) || ueber_halter(&fall) {
             uebersprungen.push(name);
             continue;
         }
@@ -193,7 +223,9 @@ fn suche_cases_as_a_process() {
         drop(frei);
     }
     if !uebersprungen.is_empty() {
-        eprintln!("skipped as root (unreadable entries): {uebersprungen:?}");
+        eprintln!(
+            "skipped (unreadable entries as root, or a case that needs the holder): {uebersprungen:?}"
+        );
     }
 }
 
@@ -214,7 +246,12 @@ fn faelle_mit_puffer(puffer: usize) {
         let a = argv(&fall, w.ordner());
         let (mut out, mut err) = (Vec::new(), Vec::new());
         let uid = rustix::process::getuid().as_raw();
-        let exit = modellweg::suche::lauf(&a[1..], uid, puffer, &mut out, &mut err);
+        let exit = if ueber_halter(&fall) {
+            let mut frage = halterfrage(&fall);
+            modellweg::suche::lauf_mit_halter(&a[1..], uid, puffer, &mut frage, &mut out, &mut err)
+        } else {
+            modellweg::suche::lauf(&a[1..], uid, puffer, &mut out, &mut err)
+        };
         pruefe(
             &format!("{name} (puffer {puffer})"),
             &fall,

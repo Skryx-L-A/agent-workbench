@@ -59,9 +59,11 @@ pub fn ziele(route: &Route) -> Vec<Ziel> {
         .collect()
 }
 
-/// The text of the list file. `schluessel` is the key file of the route; it is named at every bound target.
+/// The text of the list file. A bound target names `halter_ziel`, the host that the holder knows (contract 8,
+/// section 12); the key of such a target never lies in a file of the model path any more, so the list names no key
+/// file, no header and no value prefix.
 #[must_use]
-pub fn text(ziele: &[Ziel], schluessel: &str, ca_zulassung: &str) -> String {
+pub fn text(ziele: &[Ziel], ca_zulassung: &str) -> String {
     let mut s = String::from("{\"fassung\":1,\"ca_zulassung\":");
     s.push_str(&text_schreiben(ca_zulassung));
     s.push_str(",\"ziele\":[");
@@ -75,12 +77,11 @@ pub fn text(ziele: &[Ziel], schluessel: &str, ca_zulassung: &str) -> String {
         s.push_str(&text_schreiben(&z.host));
         s.push_str(",\"port\":");
         s.push_str(&z.port.to_string());
+        s.push_str(",\"halter_ziel\":");
         if z.gebunden {
-            s.push_str(",\"schluessel_datei\":");
-            s.push_str(&text_schreiben(schluessel));
-            s.push_str(",\"kopf\":\"authorization\",\"wert_vorsatz\":\"Bearer \"");
+            s.push_str(&text_schreiben(&z.host));
         } else {
-            s.push_str(",\"schluessel_datei\":null,\"kopf\":null,\"wert_vorsatz\":null");
+            s.push_str("null");
         }
         s.push_str(",\"regeln\":[");
         for (j, (methode, pfad)) in z.regeln.iter().enumerate() {

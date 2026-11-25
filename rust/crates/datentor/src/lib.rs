@@ -1,4 +1,4 @@
-//! The data gate `datentor` (contract `rust/spec/VERTRAEGE.md`, contract 3 of the walking skeleton).
+//! The data gate `datentor` (contract `rust/spec/datentor/VERTRAG.md`, contract 3 of the walking skeleton).
 //!
 //! The gate is a pure library without input, output, clock or randomness. It gets a loaded [`Vorgabe`] and, per call, a
 //! unit, a route and a customer. It answers with an [`Antwort`]: allowed or not, and the reason. A unit is seen only by

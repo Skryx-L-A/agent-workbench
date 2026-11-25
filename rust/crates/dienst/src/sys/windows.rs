@@ -211,6 +211,14 @@ unsafe extern "system" {
     #[cfg(feature = "pruefbau")]
     fn GetConsoleScreenBufferInfo(griff: *mut c_void, info: *mut KonsolenInfo) -> i32;
     fn GetCurrentProcess() -> *mut c_void;
+    fn CreateJobObjectW(sicherheit: *const c_void, name: *const u16) -> *mut c_void;
+    fn SetInformationJobObject(
+        job: *mut c_void,
+        klasse: i32,
+        info: *const c_void,
+        laenge: u32,
+    ) -> i32;
+    fn AssignProcessToJobObject(job: *mut c_void, prozess: *mut c_void) -> i32;
     fn CloseHandle(griff: *mut c_void) -> i32;
     fn LocalFree(speicher: *mut c_void) -> *mut c_void;
     fn GetFileInformationByHandleEx(
@@ -219,6 +227,96 @@ unsafe extern "system" {
         info: *mut c_void,
         laenge: u32,
     ) -> i32;
+}
+
+/// `JobObjectExtendedLimitInformation` of `SetInformationJobObject`.
+const JOB_OBJECT_EXTENDED_LIMIT_INFORMATION: i32 = 9;
+/// Every process of the job ends when the last handle of the job is closed.
+const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: u32 = 0x2000;
+
+/// `JOBOBJECT_BASIC_LIMIT_INFORMATION` (`winnt.h`); `repr(C)` gives the same padding (64 bytes on 64 bit).
+#[repr(C)]
+#[derive(Default)]
+struct JobGrenzen {
+    zeit_prozess: i64,
+    zeit_job: i64,
+    flags: u32,
+    arbeitsmenge_min: usize,
+    arbeitsmenge_max: usize,
+    prozesse_max: u32,
+    affinitaet: usize,
+    prioritaet: u32,
+    planung: u32,
+}
+
+/// `JOBOBJECT_EXTENDED_LIMIT_INFORMATION`: the basic limits, `IO_COUNTERS` (six `u64`) and four sizes (144 bytes on 64 bit).
+#[repr(C)]
+#[derive(Default)]
+struct JobGrenzenErweitert {
+    grundlage: JobGrenzen,
+    ein_aus: [u64; 6],
+    speicher_prozess: usize,
+    speicher_job: usize,
+    spitze_prozess: usize,
+    spitze_job: usize,
+}
+
+/// The job object of one session (Nachtrag 25.11.2026, contract `dienst`, section 21): it holds the child, and every process the
+/// child starts after it joined is in it too. With `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` the system ends all of them when the handle
+/// closes: on drop (the end of the session or of the service) and when the service ends in any other way, because the system closes
+/// the handles of an ended process. The handle is not inheritable (no security attributes), so no child holds the job open. It is
+/// kept as a number (a kernel handle is valid in every thread), so the value is `Send` like the rest of the session.
+pub(crate) struct Job(usize);
+
+impl Job {
+    /// A new job that ends its processes when it closes, with the process of `griff` in it.
+    ///
+    /// # Errors
+    /// The job could not be made or set, or the process could not join it (for example because it has ended already).
+    pub(crate) fn fuer(griff: std::os::windows::io::RawHandle) -> io::Result<Self> {
+        // SAFETY: null security attributes (not inheritable) and no name are allowed; the result is checked below.
+        let roh = unsafe { CreateJobObjectW(std::ptr::null(), std::ptr::null()) };
+        if roh.is_null() {
+            return Err(io::Error::last_os_error());
+        }
+        // from here on, `Drop` closes the handle on every way out
+        let job = Self(roh.expose_provenance());
+        let mut grenzen = JobGrenzenErweitert::default();
+        grenzen.grundlage.flags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        // SAFETY: `job` holds the valid job from above; `grenzen` has the layout of `JOBOBJECT_EXTENDED_LIMIT_INFORMATION`, its size
+        // is passed, and it lives for the call.
+        let gesetzt = unsafe {
+            SetInformationJobObject(
+                job.griff(),
+                JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
+                (&raw const grenzen).cast(),
+                u32::try_from(size_of::<JobGrenzenErweitert>()).unwrap_or(u32::MAX),
+            )
+        };
+        if gesetzt == 0 {
+            return Err(io::Error::last_os_error());
+        }
+        // SAFETY: `job` holds the valid job; `griff` is the handle of the child that the carrier holds open while the caller borrows it.
+        if unsafe { AssignProcessToJobObject(job.griff(), griff.cast()) } == 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(job)
+    }
+
+    /// The handle of the job.
+    fn griff(&self) -> *mut c_void {
+        std::ptr::with_exposed_provenance_mut(self.0)
+    }
+}
+
+impl Drop for Job {
+    /// Closes the job: the system ends every process still in it.
+    fn drop(&mut self) {
+        // SAFETY: the handle came from `CreateJobObjectW`, belongs to this value alone and is closed once.
+        unsafe {
+            CloseHandle(self.griff());
+        }
+    }
 }
 
 /// `WSAStartup` once per process (version 2.2). `std` starts Winsock only for its own sockets.
@@ -1082,6 +1180,33 @@ pub(crate) fn konsole_groesse() -> Option<(u16, u16)> {
 #[allow(clippy::many_single_char_names)]
 mod tests {
     use super::*;
+
+    /// A job ends its process when the job closes; a process that has ended cannot join.
+    #[test]
+    fn ein_job_beendet_beim_schliessen_den_prozess() {
+        let mut kind = std::process::Command::new("cmd.exe")
+            .args(["/c", "ping -n 600 127.0.0.1 >NUL"])
+            .spawn()
+            .expect("cmd starts");
+        let job = Job::fuer(kind.as_raw_handle()).expect("the child joins the job");
+        std::thread::sleep(Duration::from_millis(500));
+        assert!(kind.try_wait().expect("asked").is_none(), "cmd runs");
+        drop(job);
+        let frist = std::time::Instant::now() + Duration::from_secs(10);
+        while kind.try_wait().expect("asked").is_none() {
+            assert!(std::time::Instant::now() < frist, "the job did not end cmd");
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        let mut fertig = std::process::Command::new("cmd.exe")
+            .args(["/c", "exit 0"])
+            .spawn()
+            .expect("cmd starts");
+        fertig.wait().expect("cmd ends");
+        assert!(
+            Job::fuer(fertig.as_raw_handle()).is_err(),
+            "an ended process does not join"
+        );
+    }
 
     fn wegwerf(name: &str) -> PathBuf {
         let p = std::env::temp_dir().join(format!("wbd-sys-{}-{name}", std::process::id()));

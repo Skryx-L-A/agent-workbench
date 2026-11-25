@@ -125,6 +125,12 @@ fn inhaltsregeln_und_groesse() {
     zu_gross.push(b'\n');
     datei(&h, "mcp.x", &zu_gross, 0o600);
     assert_eq!(wert(&a, "mcp.x"), None);
+    // a good value with its LF within the limit and one byte more after it: the file is too big, the reader may not
+    // stop at the limit and keep the front
+    let mut mit_rest = gross.clone();
+    mit_rest.push(b'b');
+    datei(&h, "mcp.x", &mit_rest, 0o600);
+    assert_eq!(wert(&a, "mcp.x"), None);
 }
 
 #[test]

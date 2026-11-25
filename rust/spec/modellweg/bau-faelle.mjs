@@ -364,7 +364,7 @@ function schluesselLesen(d) {
   if (!SCHLUESSEL.test(t)) throw fehler('mw.schluessel_form');
   return t;
 }
-const START_CODES = { 'mw.aufruf': [64, 'Aufruf ungueltig'], 'mw.betriebsart_unbekannt': [64, 'Betriebsart unbekannt oder nicht gebaut'], 'mw.probelauf_aufruf': [64, 'Probelauf-Optionen ungueltig'], 'mw.protokoll_fehlt': [74, 'Protokoll nicht schreibbar'], 'mw.zaehlung_fehler': [74, 'Zaehldatei nicht schreibbar'],'mw.schluessel_datei': [78, 'Schluesseldatei nicht eigen, nicht 0600 oder keine Datei'],
+const START_CODES = { 'mw.halter_fehlt': [78, 'Halter nicht erreichbar'], 'mw.halter_unecht': [78, 'Halter nicht echt'], 'mw.halter_kein_schluessel': [78, 'kein Schluessel beim Halter'], 'mw.aufruf': [64, 'Aufruf ungueltig'], 'mw.betriebsart_unbekannt': [64, 'Betriebsart unbekannt oder nicht gebaut'], 'mw.probelauf_aufruf': [64, 'Probelauf-Optionen ungueltig'], 'mw.protokoll_fehlt': [74, 'Protokoll nicht schreibbar'], 'mw.zaehlung_fehler': [74, 'Zaehldatei nicht schreibbar'],'mw.schluessel_datei': [78, 'Schluesseldatei nicht eigen, nicht 0600 oder keine Datei'],
   'mw.schluessel_form': [78, 'Schluessel hat falsche Form'], 'mw.protokoll_ordner': [78, 'Protokollordner fehlt oder ist kein Ordner'],
   'mw.ziel_unaufloesbar': [69, 'Ziel nicht aufloesbar'], 'mw.socket_belegt': [74, 'Socket belegt oder nicht anlegbar'], 'mw.intern': [70, 'interner Fehler'] };
 
@@ -664,11 +664,23 @@ const DIREKT_VERBOTEN = HALTER_VERBOTEN.filter((h) => !DIREKT_BLEIBT.includes(h)
 if (HALTER_VERBOTEN.length !== 31) abbruch(`Halterweg-Liste hat ${HALTER_VERBOTEN.length} Namen statt 31`);
 if (DIREKT_VERBOTEN.length !== 20) abbruch(`direkte Liste hat ${DIREKT_VERBOTEN.length} Namen statt 20`);
 const ZL_MAX = 65536;
+// Form des Feldes abfrage und des Feldes pfad des Halters (Halter-Vertrag, Abschnitt 4).
+const ABFRAGE_FORM = /^[A-Za-z0-9._~!$&'()*+,;=:@/?%-]{1,1024}$/;
+const HALTER_PFAD = /^\/[A-Za-z0-9._~/-]{0,511}$/;
+// Groesster Rohkoerper einer Anfrage an ein gebundenes Ziel (H6): 23 MiB, Base64 davon passt in eine Halterzeile.
+const KOERPER_MAX_GEBUNDEN = 24117248;
+const KOPF_GEBUNDEN = 'halter';
 const ZL_FORM = {
   oben: ['fassung', 'ca_zulassung', 'ziele'],
-  ziel: ['name', 'host', 'port', 'schluessel_datei', 'kopf', 'wert_vorsatz', 'regeln', 'upgrade'],
+  ziel: ['name', 'host', 'port', 'halter_ziel', 'regeln', 'upgrade'],
   regel: ['methode', 'pfad'],
 };
+// Die drei Felder, die mit dem direkten Weg zu einem gebundenen Ziel weggefallen sind. Sie bleiben in Stufe 3 bekannt,
+// damit eine Liste, die eines davon neben halter_ziel noch traegt, Stufe 12 nennt (zl.bindung) und nicht Stufe 3.
+const ZL_WEGGEFALLEN = ['schluessel_datei', 'kopf', 'wert_vorsatz'];
+// Ein gebundenes Ziel traegt nur diese Methoden (oder *): pfade in halter.json kennt keine andere, und modell.aufruf
+// nimmt keine andere an.
+const GEBUNDEN_METHODEN = ['GET', 'POST'];
 
 // Zielliste lesen (Abschnitt 11.2)
 function zieleLesen(text) {
@@ -682,7 +694,7 @@ function zieleLesen(text) {
     ebenen.push([z, ZL_FORM.ziel]);
     if (Array.isArray(z.get('regeln'))) for (const r of z.get('regeln')) if (istObj(r)) ebenen.push([r, ZL_FORM.regel]);
   }
-  for (const [e, f] of ebenen) for (const k of e.keys()) if (!f.includes(k)) throw fehler('zl.schluessel_unbekannt');
+  for (const [e, f] of ebenen) for (const k of e.keys()) if (!f.includes(k) && !(f === ZL_FORM.ziel && ZL_WEGGEFALLEN.includes(k))) throw fehler('zl.schluessel_unbekannt');
   for (const [e, f] of ebenen) for (const k of f) if (!e.has(k)) throw fehler('zl.schluessel_fehlt');
   const typ = (ok) => { if (!ok) throw fehler('zl.typ_falsch'); };
   const ganzZahl = (v) => v instanceof Zahl && v.ganz && Number.isSafeInteger(v.wert);
@@ -690,7 +702,7 @@ function zieleLesen(text) {
   for (const z of o.get('ziele')) {
     typ(istObj(z));
     typ(typeof z.get('name') === 'string' && typeof z.get('host') === 'string' && ganzZahl(z.get('port')) && typeof z.get('upgrade') === 'string');
-    for (const k of ['schluessel_datei', 'kopf', 'wert_vorsatz']) typ(z.get(k) === null || typeof z.get(k) === 'string');
+    typ(z.get('halter_ziel') === null || typeof z.get('halter_ziel') === 'string');
     typ(Array.isArray(z.get('regeln')));
     for (const r of z.get('regeln')) typ(istObj(r) && typeof r.get('methode') === 'string' && typeof r.get('pfad') === 'string');
   }
@@ -703,24 +715,22 @@ function zieleLesen(text) {
   for (const z of zl) if (z.get('port').wert < 1 || z.get('port').wert > 65535) throw fehler('zl.port_grenze');
   for (const z of zl) for (const r of z.get('regeln')) {
     const p = r.get('pfad');
-    if (!(r.get('methode') === '*' || METHODEN.includes(r.get('methode'))) || !REGEL_PFAD.test(p) || p.split('/').some((s) => s === '.' || s === '..')) throw fehler('zl.regel_form');
+    const m = r.get('methode');
+    if (!(m === '*' || METHODEN.includes(m)) || !REGEL_PFAD.test(p) || p.split('/').some((s) => s === '.' || s === '..')) throw fehler('zl.regel_form');
+    if (z.get('halter_ziel') !== null && m !== '*' && !GEBUNDEN_METHODEN.includes(m)) throw fehler('zl.regel_form');
   }
   for (const z of zl) {
-    const gebunden = [z.get('kopf'), z.get('wert_vorsatz'), z.get('schluessel_datei')].map((v) => v !== null);
-    if (gebunden.some((g) => g !== gebunden[0])) throw fehler('zl.bindung');
-    if (gebunden[0]) {
-      if (!KOPF_NAME.test(z.get('kopf')) || KOPF_VERBOTEN.includes(z.get('kopf'))) throw fehler('zl.bindung');
-      if (!/^[\x20-\x7e]{0,32}$/.test(z.get('wert_vorsatz'))) throw fehler('zl.bindung');
-      if (!PFAD_ABS(z.get('schluessel_datei'), 1024)) throw fehler('zl.bindung');
-    }
+    if (ZL_WEGGEFALLEN.some((k) => z.has(k))) throw fehler('zl.bindung');
+    if (z.get('halter_ziel') !== null && z.get('halter_ziel') !== z.get('host')) throw fehler('zl.bindung');
   }
-  for (const z of zl) if (!['ablehnen', 'durchreichen'].includes(z.get('upgrade')) || (z.get('kopf') === null && z.get('upgrade') !== 'ablehnen')) throw fehler('zl.upgrade_wert');
+  for (const z of zl) if (!['ablehnen', 'durchreichen'].includes(z.get('upgrade')) || (z.get('halter_ziel') === null && z.get('upgrade') !== 'ablehnen')) throw fehler('zl.upgrade_wert');
   if (!['zugelassen', 'offen', 'abgelehnt'].includes(o.get('ca_zulassung'))) throw fehler('zl.ca_zulassung_wert');
   const namen = zl.map((z) => z.get('name')); const hp = zl.map((z) => `${z.get('host')}:${z.get('port').wert}`);
-  if (new Set(namen).size !== namen.length || new Set(hp).size !== hp.length) throw fehler('zl.doppelt');
+  const hz = zl.map((z) => z.get('halter_ziel')).filter((n) => n !== null);
+  if (new Set(namen).size !== namen.length || new Set(hp).size !== hp.length || new Set(hz).size !== hz.length) throw fehler('zl.doppelt');
   const liste = zl.map((z) => ({
-    name: z.get('name'), host: z.get('host'), port: z.get('port').wert, schluessel_datei: z.get('schluessel_datei'), kopf: z.get('kopf'),
-    wert_vorsatz: z.get('wert_vorsatz'), upgrade: z.get('upgrade'), regeln: z.get('regeln').map((r) => ({ methode: r.get('methode'), pfad: r.get('pfad') })),
+    name: z.get('name'), host: z.get('host'), port: z.get('port').wert, halter_ziel: z.get('halter_ziel'),
+    upgrade: z.get('upgrade'), regeln: z.get('regeln').map((r) => ({ methode: r.get('methode'), pfad: r.get('pfad') })),
   }));
   liste.ca_zulassung = o.get('ca_zulassung');
   return liste;
@@ -739,7 +749,9 @@ const ABLEHNUNG2 = {
   'mw.upgrade_abgelehnt': [403, 'Upgrade nicht erlaubt'],
   'mw.anmeldung_an_ungebundenes_ziel': [403, 'Anmeldung an diesem Ziel nicht erlaubt'],
   'mw.koerper_zu_gross': [413, 'Koerper zu gross'],
-  'mw.schluessel_fehlt': [503, 'Schluessel nicht lesbar'],
+  'mw.halter_kein_schluessel': [503, 'kein Schluessel beim Halter'],
+  'mw.halter_fehler': [502, 'Halter lehnte ab'],
+  'mw.halter_frist': [504, 'Halter antwortete nicht'],
   'mw.ziel_nicht_erreichbar': [502, 'Ziel nicht erreichbar'],
   'mw.ziel_frist': [504, 'Ziel antwortet nicht'],
   'mw.antwort_komprimiert': [502, 'Antwort komprimiert'],
@@ -750,7 +762,7 @@ const GRUENDE2 = {
   weitergereicht: [null],
   abgelehnt: ['mw.anfrage_unlesbar', 'mw.ausgelastet', 'mw.nur_connect', 'mw.ziel_nicht_erlaubt', 'mw.sni_falsch', 'mw.host_falsch', 'mw.pfad_nicht_erlaubt',
     'mw.methode_falsch', 'mw.upgrade_abgelehnt', 'mw.anmeldung_an_ungebundenes_ziel', 'mw.koerper_zu_gross', 'mw.zaehlung_fehler'],
-  ziel_fehler: ['mw.schluessel_fehlt', 'mw.ziel_nicht_erreichbar', 'mw.ziel_frist', 'mw.antwort_komprimiert'],
+  ziel_fehler: ['mw.halter_kein_schluessel', 'mw.halter_fehler', 'mw.halter_frist', 'mw.ziel_nicht_erreichbar', 'mw.ziel_frist', 'mw.antwort_komprimiert'],
   leck_gesperrt: ['mw.leck_gesperrt'],
 };
 const fehlerKoerper2 = (code) => jcs({ error: { code, message: ABLEHNUNG2[code][1] } });
@@ -772,6 +784,19 @@ function tunnelPruefen(lage, roh) {
   if ((lage.unaufgeloest ?? []).includes(ziel.name)) { const e = fehler('mw.ziel_nicht_erreichbar'); e.ziel = ziel.name; throw e; }
   if (lage.sni !== ziel.host) throw fehler('mw.sni_falsch');
   return ziel;
+}
+
+// Die Daten eines Koerpers mit chunked, ohne die Rahmung (Abschnitt 13.2, Halterweg).
+function entRahmen(roh) {
+  let i = 0; let aus = '';
+  for (;;) {
+    const ende = roh.indexOf('\r\n', i);
+    if (ende < 0) return aus;
+    const n = parseInt(roh.slice(i, ende).split(';')[0].trim(), 16);
+    if (!(n > 0)) return aus;
+    aus += roh.slice(ende + 2, ende + 2 + n);
+    i = ende + 2 + n + 2;
+  }
 }
 
 // sicherer Pfad und passende Regel
@@ -803,12 +828,19 @@ function innenPruefen(lage, ziel, roh) {
   const te = werte('transfer-encoding'); const cl = werte('content-length');
   if (te.length > 1 || (te.length === 1 && te[0].toLowerCase() !== 'chunked') || (te.length && cl.length) || cl.length > 1
     || (cl.length === 1 && !/^(0|[1-9][0-9]{0,15})$/.test(cl[0]))) wirf('mw.anfrage_unlesbar');
+  // Stufe 1 fuer das Anfrageziel: nie ein #, und an einem gebundenen Ziel haelt der Abfrageteil die Form des Feldes
+  // abfrage des Halters (1 bis 1024 Zeichen seiner Menge; Abschnitt 5.1, H4).
+  const gebunden = ziel.halter_ziel !== null;
+  const teile = start[2].split('?');
+  const abfrage = teile.length > 1 ? teile.slice(1).join('?') : null;
+  if (start[2].includes('#')) wirf('mw.anfrage_unlesbar');
+  if (gebunden && abfrage !== null && !ABFRAGE_FORM.test(abfrage)) wirf('mw.anfrage_unlesbar');
   const koerper = b.subarray(ende + 4);
   const host = werte('host');
   if (host.length !== 1 || !(host[0] === ziel.host || host[0] === `${ziel.host}:${ziel.port}`)) wirf('mw.host_falsch');
   const methode = start[1]; const pfad = start[2].split('?')[0];
   if (METHODEN.includes(methode)) meldung.methode = methode;
-  if (!pfadSicher(pfad)) wirf('mw.pfad_nicht_erlaubt');
+  if (!pfadSicher(pfad) || (gebunden && !HALTER_PFAD.test(pfad))) wirf('mw.pfad_nicht_erlaubt');
   const passend = ziel.regeln.filter((r) => regelPasst(r, pfad));
   if (!passend.length) wirf('mw.pfad_nicht_erlaubt');
   const mitMethode = passend.filter((r) => r.methode === '*' ? METHODEN.includes(methode) : r.methode === methode);
@@ -817,18 +849,32 @@ function innenPruefen(lage, ziel, roh) {
   const upgrade = werte('upgrade').length > 0 || werte('connection').some((v) => v.toLowerCase().split(',').map((s) => s.trim()).includes('upgrade'));
   if (upgrade && ziel.upgrade === 'ablehnen') wirf('mw.upgrade_abgelehnt');
   const anmeldung = kopf.some(([k]) => ANMELDEKOEPFE.includes(k.toLowerCase()));
-  if (ziel.kopf === null && anmeldung) { meldung.kopf = 'abgewiesen'; wirf('mw.anmeldung_an_ungebundenes_ziel'); }
-  if (cl.length === 1 && Number(cl[0]) > KOERPER_MAX) wirf('mw.koerper_zu_gross');
+  if (!gebunden && anmeldung) { meldung.kopf = 'abgewiesen'; wirf('mw.anmeldung_an_ungebundenes_ziel'); }
+  const grenze = gebunden ? KOERPER_MAX_GEBUNDEN : KOERPER_MAX;
+  if (cl.length === 1 && Number(cl[0]) > grenze) wirf('mw.koerper_zu_gross');
   if (cl.length === 1 && koerper.length !== Number(cl[0])) wirf('mw.anfrage_unlesbar');
-  meldung.kopf = ziel.kopf === null ? 'keiner' : 'ersetzt';
+  // Vertrag 8, Abschnitt 13.4 nennt fuer ein gebundenes Ziel den Wert halter; das Register einer Zeile der Fassung 2
+  // nimmt ihn seit dem 25.11.2026 an (Vertrag 5, Abschnitt 6.7).
+  meldung.kopf = gebunden ? KOPF_GEBUNDEN : 'keiner';
   const wsDurch = upgrade && ziel.upgrade === 'durchreichen';
-  const verboten = DIREKT_VERBOTEN.filter((h) => h !== 'sec-websocket-extensions' || !M('M-W1'));   // M-W1: die Erweiterung bleibt am gebundenen Ziel
-  const weg = new Set([...ANMELDEKOEPFE, ...(ziel.kopf ? [ziel.kopf, 'accept-encoding', ...verboten] : []), ...HOP.filter((h) => !(upgrade && ziel.upgrade === 'durchreichen' && (h === 'upgrade' || h === 'connection')))]);
+  if (gebunden) {
+    // Der Koerper geht als koerper_b64 in einem Stueck; eine Rahmung mit chunked faellt dabei weg, denn der Halter
+    // setzt die Rahmung selbst (Abschnitt 13.2, Punkt 1, Halterweg).
+    const daten = te.length === 1 ? entRahmen(koerper.toString('latin1')) : koerper.toString('latin1');
+    // Halterweg: jeder der 31 Namen fehlt, die Namen klein, die Reihenfolge bleibt. host, die Rahmung,
+    // accept-encoding: identity, upgrade, connection und den Kopf mit dem Token setzt der Halter selbst.
+    const verboten = HALTER_VERBOTEN.filter((h) => h !== 'sec-websocket-extensions' || !M('M-W1'));
+    const halterkopf = kopf.map(([k, v]) => [k.toLowerCase(), v]).filter(([k]) => !verboten.includes(k));
+    if (halterkopf.length > 64 || halterkopf.some(([k, v]) => !/^[a-z0-9-]{1,64}$/.test(k) || v.length > 8192)) wirf('mw.anfrage_unlesbar');
+    const kopfObjekt = {}; for (const [k, v] of halterkopf) kopfObjekt[k] = v;
+    const an_halter = wsDurch
+      ? jcs({ abfrage, fassung: 1, id: 1, kopf: kopfObjekt, op: 'modell.strom', pfad, ziel: ziel.halter_ziel })
+      : jcs({ abfrage, fassung: 1, id: 1, koerper_b64: Buffer.from(daten, 'latin1').toString('base64'), kopf: kopfObjekt, methode, op: 'modell.aufruf', pfad, ziel: ziel.halter_ziel });
+    return { an_halter, meldung };
+  }
+  const weg = new Set([...ANMELDEKOEPFE, ...HOP]);
   const behalten = kopf.filter(([k]) => !weg.has(k.toLowerCase()));
-  const schluessel = ziel.kopf === null ? null : lage.schluessel[ziel.name];
-  if (ziel.kopf !== null && schluessel === undefined) wirf('mw.schluessel_fehlt');
-  const neu = [...behalten, ...(ziel.kopf ? [['accept-encoding', 'identity']] : []), ...(upgrade && ziel.upgrade === 'durchreichen' ? [] : [['connection', 'close']]),
-    ...(ziel.kopf && !(M('M-W6') && wsDurch) ? [[ziel.kopf, ziel.wert_vorsatz + schluessel]] : [])];
+  const neu = [...behalten, ['connection', 'close']];
   const an_ziel = [zeilen[0], ...neu.map(([k, v]) => `${k}: ${v}`)].join('\r\n') + '\r\n\r\n' + koerper.toString('latin1');
   return { an_ziel, meldung };
 }
@@ -905,6 +951,31 @@ function antwortDurch2(schluesselListe, ziel) {
   return { art: 'antwort', status: ziel.status, kopf: [...kopf, ...rahmen], koerper: gesendet.toString('latin1'), grund: null };
 }
 
+// Antwort eines gebundenen Ziels ab Schritt I (Abschnitt 5.1 und 13.3): Der Modellweg sieht nicht das Ziel, sondern die
+// Zeilen des Halters. Aus beginn, teil und ende setzt er die Antwort an den Harness zusammen. Die Koepfe der Zeile
+// beginn gehen unveraendert weiter (die Sperrliste des Halters ist die laengere und lief schon), und weil der Halter
+// weder content-length noch transfer-encoding sendet, geht der Koerper chunked hinaus. Eine Leck-Sperre und eine
+// Rahmenpruefung hat der Modellweg hier nicht: beide gehoeren dem Halter, und einen Wert dieses Ziels kennt er nicht.
+// halter: { beginn: {status, kopf}, teile: [...], ende: null | code des Halters }.
+function antwortVomHalter(h) {
+  const auf_mw = (code) => code === 'halter.ziel_komprimiert' ? 'mw.antwort_komprimiert'
+    : code === 'halter.kein_schluessel' ? 'mw.halter_kein_schluessel' : 'mw.halter_fehler';
+  const ersetzt = (code) => ({ art: 'ersetzt', status: ABLEHNUNG2[code][0], kopf: [['content-type', 'application/json'], ['content-length', String(Buffer.byteLength(fehlerKoerper2(code)))]], koerper: fehlerKoerper2(code), grund: code });
+  if (h.beginn === null) return ersetzt(auf_mw(h.ende));
+  const umgestellt = h.beginn.status === 101 && h.upgrade === 'durchreichen';
+  // Die 101 des Halters traegt upgrade und connection nicht (sie stehen auf seiner Sperrliste); beide setzt der
+  // Modellweg zum Harness selbst.
+  const kopf = umgestellt ? [...h.beginn.kopf, ['upgrade', 'websocket'], ['connection', 'Upgrade']] : [...h.beginn.kopf];
+  const rahmen = umgestellt ? [] : [['transfer-encoding', 'chunked']];
+  const gesendet = h.teile.join('');
+  if (h.ende === null) return { art: 'antwort', status: h.beginn.status, kopf: [...kopf, ...rahmen], koerper: gesendet, grund: null };
+  const code = auf_mw(h.ende);
+  // Ein Fehler des Halters nach der Zeile beginn: Steht noch kein Byte des Koerpers beim Harness, kommt die eigene
+  // Antwort; sonst endet die Antwort, und die Zeile traegt den Status, der hinausging.
+  if (!h.teile.length) return ersetzt(code);
+  return { art: 'abgerissen', status: h.beginn.status, kopf: [...kopf, ...rahmen], gesendet, grund: code };
+}
+
 // Protokollzeile der Betriebsart 2 (Abschnitt 13)
 const ZEILE2_FELDER = ['aktionsname', 'betriebsart', 'ergebnis', 'fassung', 'grund', 'host', 'kopf', 'methode', 'pfad', 'pfadregel', 'route', 'sitzung', 'status', 'vorher', 'zeit', 'ziel'];
 function zeileKopf(a, vorher) {
@@ -971,15 +1042,15 @@ const ZL_VORF = {
   fassung: 1,
   ca_zulassung: 'zugelassen',
   ziele: [
-    { name: 'github-api', host: 'api.github.com', port: 443, schluessel_datei: '/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel', kopf: 'authorization', wert_vorsatz: 'Bearer ',
+    { name: 'github-api', host: 'api.github.com', port: 443, halter_ziel: 'api.github.com',
       regeln: [{ methode: 'GET', pfad: '/copilot_internal/user' }, { methode: 'GET', pfad: '/copilot/mcp_registry' }], upgrade: 'durchreichen' },
-    { name: 'copilot-api', host: 'api.githubcopilot.com', port: 443, schluessel_datei: '/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel', kopf: 'authorization', wert_vorsatz: 'Bearer ',
+    { name: 'copilot-api', host: 'api.githubcopilot.com', port: 443, halter_ziel: 'api.githubcopilot.com',
       regeln: [{ methode: '*', pfad: '/*' }], upgrade: 'durchreichen' },
-    { name: 'copilot-plan', host: 'api.individual.githubcopilot.com', port: 443, schluessel_datei: '/srv/beispiel/.local/state/wb/modellweg/copilot.schluessel', kopf: 'authorization', wert_vorsatz: 'Bearer ',
+    { name: 'copilot-plan', host: 'api.individual.githubcopilot.com', port: 443, halter_ziel: 'api.individual.githubcopilot.com',
       regeln: [{ methode: '*', pfad: '/*' }], upgrade: 'durchreichen' },
-    { name: 'copilot-telemetrie', host: 'telemetry.individual.githubcopilot.com', port: 443, schluessel_datei: null, kopf: null, wert_vorsatz: null,
+    { name: 'copilot-telemetrie', host: 'telemetry.individual.githubcopilot.com', port: 443, halter_ziel: null,
       regeln: [{ methode: 'POST', pfad: '/telemetry' }], upgrade: 'ablehnen' },
-    { name: 'copilot-exp', host: 'exp.individual.githubcopilot.com', port: 443, schluessel_datei: null, kopf: null, wert_vorsatz: null,
+    { name: 'copilot-exp', host: 'exp.individual.githubcopilot.com', port: 443, halter_ziel: null,
       regeln: [{ methode: 'POST', pfad: '/api/v1/assignments' }], upgrade: 'ablehnen' },
   ],
 };
@@ -1017,9 +1088,13 @@ function baueKopf() {
     ['regel_stern_mitte', 'Stern mitten im Pfad', mit((o) => { o.ziele[0].regeln[0].pfad = '/copilot_*/user'; }), 'zl.regel_form'],
     ['regel_schraegstrich', 'Teilbaum mit / statt /* am Ende', mit((o) => { o.ziele[0].regeln[0].pfad = '/copilot_internal/'; }), 'zl.regel_form'],
     ['regel_33', '33 Regeln', mit((o) => { o.ziele[1].regeln = Array.from({ length: 33 }, (_, i) => ({ methode: 'GET', pfad: `/p${i}` })); }), 'zl.anzahl'],
-    ['bindung_halb', 'kopf gesetzt, schluessel_datei null', mit((o) => { o.ziele[0].schluessel_datei = null; }), 'zl.bindung'],
-    ['bindung_host', 'kopf host', mit((o) => { o.ziele[0].kopf = 'host'; }), 'zl.bindung'],
-    ['bindung_relativ', 'relative Schluesseldatei', mit((o) => { o.ziele[0].schluessel_datei = 'copilot.schluessel'; }), 'zl.bindung'],
+    ['regel_methode_gebunden', 'Methode PUT in einer Regel eines gebundenen Ziels', mit((o) => { o.ziele[1].regeln[0].methode = 'PUT'; }), 'zl.regel_form'],
+    ['regel_methode_ungebunden', 'Methode PUT in einer Regel eines ungebundenen Ziels', mit((o) => { o.ziele[3].regeln[0].methode = 'PUT'; }), null],
+    ['bindung_fremder_host', 'halter_ziel ist nicht der host des Ziels', mit((o) => { o.ziele[0].halter_ziel = 'api.githubcopilot.com'; }), 'zl.bindung'],
+    ['bindung_host_mit_port', 'halter_ziel mit Port', mit((o) => { o.ziele[0].halter_ziel = 'api.github.com:443'; }), 'zl.bindung'],
+    ['bindung_weggefallen', 'das weggefallene Feld schluessel_datei steht noch neben halter_ziel', mit((o) => { o.ziele[0].schluessel_datei = '/k'; }), 'zl.bindung'],
+    ['bindung_weggefallen_null', 'das weggefallene Feld kopf steht als null noch da', mit((o) => { o.ziele[0].kopf = null; }), 'zl.bindung'],
+    ['bindung_ohne_halter_ziel', 'ein Ziel ohne halter_ziel, mit der alten Schluesseldatei', mit((o) => { delete o.ziele[0].halter_ziel; o.ziele[0].schluessel_datei = '/k'; }), 'zl.schluessel_fehlt'],
     ['upgrade_wert', 'upgrade ja', mit((o) => { o.ziele[0].upgrade = 'ja'; }), 'zl.upgrade_wert'],
     ['upgrade_ungebunden_durch', 'ein ungebundenes Ziel mit upgrade durchreichen', mit((o) => { o.ziele[3].upgrade = 'durchreichen'; }), 'zl.upgrade_wert'],
     ['upgrade_gebunden_ablehnen', 'ein gebundenes Ziel darf ablehnen', mit((o) => { o.ziele[2].upgrade = 'ablehnen'; }), null],
@@ -1027,7 +1102,8 @@ function baueKopf() {
     ['zulassung_wert', 'ca_zulassung ja', mit((o) => { o.ca_zulassung = 'ja'; }), 'zl.ca_zulassung_wert'],
     ['zulassung_offen', 'die Firma hat noch nicht geantwortet: Liste gueltig, Start verweigert', mit((o) => { o.ca_zulassung = 'offen'; }), null],
     ['zulassung_abgelehnt', 'die Firma lehnt die lokale CA ab: Liste gueltig, Start verweigert', mit((o) => { o.ca_zulassung = 'abgelehnt'; }), null],
-    ['doppelt_host', 'derselbe Host und Port zweimal', mit((o) => { o.ziele[1].host = 'api.github.com'; }), 'zl.doppelt'],
+    ['doppelt_host', 'derselbe Host und Port zweimal (zwei ungebundene Ziele)', mit((o) => { o.ziele[4].host = o.ziele[3].host; }), 'zl.doppelt'],
+    ['doppelt_halter_ziel', 'derselbe Host auf zwei Ports, beide gebunden: dasselbe halter_ziel zweimal', mit((o) => { o.ziele[1].host = 'api.github.com'; o.ziele[1].halter_ziel = 'api.github.com'; o.ziele[1].port = 8443; }), 'zl.doppelt'],
     ['doppelt_name', 'derselbe Name zweimal', mit((o) => { o.ziele[1].name = 'github-api'; }), 'zl.doppelt'],
   ];
   const ziele = [];
@@ -1036,8 +1112,15 @@ function baueKopf() {
     if (ist !== code) abbruch(`zielliste ${name}: Modell ${ist} gegen ${code}`);
     const e = { name, beschreibung };
     if (Buffer.byteLength(text) > 4096) e.text_muster = { basis: 'vorfuehrung', zusatz: 'Schluessel x mit 65536 mal a auf oberster Ebene' }; else e.text = text;
+    // Eine gueltige und zugelassene Liste mit einem gebundenen Ziel fuehrt in Schritt 3: Der Modellweg verbindet sich
+    // zum Halter an dessen festem Pfad. Ohne Halter endet der Start dort mit Exit 78 mw.halter_fehlt, und einen
+    // Rueckfall auf eine Datei gibt es nicht (Abschnitt 5.1, "Kein Rueckweg").
     e.erwartet = code === null
-      ? { gueltig: true, ca_erlaubte_namen: [...new Set(gelesen.map((z) => z.host))].sort(), start: gelesen.ca_zulassung === 'zugelassen' ? { bis_schritt: 'zielliste_gut' } : { exit: 78, stderr: `mw.ca_nicht_zugelassen: ${START_CODES['mw.ca_nicht_zugelassen'][1]}\n`, stdout: '' } }
+      ? { gueltig: true, ca_erlaubte_namen: [...new Set(gelesen.map((z) => z.host))].sort(), start: gelesen.ca_zulassung === 'zugelassen'
+          ? (gelesen.some((z) => z.halter_ziel !== null)
+            ? { bis_schritt: 'halter', ohne_halter: { exit: 78, stderr: `mw.halter_fehlt: ${START_CODES['mw.halter_fehlt'][1]}\n`, stdout: '' } }
+            : { bis_schritt: 'zielliste_gut' })
+          : { exit: 78, stderr: `mw.ca_nicht_zugelassen: ${START_CODES['mw.ca_nicht_zugelassen'][1]}\n`, stdout: '' } }
       : { gueltig: false, code, start: { exit: 78, stderr: 'mw.ziele_ungueltig: Zielliste ungueltig\n', stdout: '' } };
     ziele.push(e);
   }
@@ -1080,9 +1163,13 @@ function baueKopf() {
   // Anfragen im Tunnel
   const H = 'api.github.com';
   const ANF = [
-    ['github_user', 'GET /copilot_internal/user mit den gemessenen Kopfnamen: Platzhalter verworfen, Marke eingesetzt, accept-encoding durch identity ersetzt, alle anderen Koepfe unveraendert', 'github-api', innen('GET', '/copilot_internal/user', H, COPILOT_KOEPFE), { kopf: 'ersetzt', pfadregel: '/copilot_internal/user', methode: 'GET' }],
-    ['github_registry', 'GET /copilot/mcp_registry (genaue Regel)', 'github-api', innen('GET', '/copilot/mcp_registry', H, COPILOT_KOEPFE), { kopf: 'ersetzt', pfadregel: '/copilot/mcp_registry', methode: 'GET' }],
-    ['github_abfrage', 'Abfrageteil bleibt, die Regel prueft nur den Pfad', 'github-api', innen('GET', '/copilot_internal/user?x=1', H, COPILOT_KOEPFE), { kopf: 'ersetzt', pfadregel: '/copilot_internal/user', methode: 'GET' }],
+    ['github_user', 'GET /copilot_internal/user mit den gemessenen Kopfnamen: die Anfrage geht als modell.aufruf an den Halter, ohne authorization, ohne host und ohne accept-encoding; den Kopf mit dem Token setzt der Halter', 'github-api', innen('GET', '/copilot_internal/user', H, COPILOT_KOEPFE), { kopf: KOPF_GEBUNDEN, pfadregel: '/copilot_internal/user', methode: 'GET' }],
+    ['github_registry', 'GET /copilot/mcp_registry (genaue Regel)', 'github-api', innen('GET', '/copilot/mcp_registry', H, COPILOT_KOEPFE), { kopf: KOPF_GEBUNDEN, pfadregel: '/copilot/mcp_registry', methode: 'GET' }],
+    ['github_abfrage', 'Abfrageteil bleibt und geht als eigenes Feld abfrage an den Halter, nie im Feld pfad; die Regel prueft nur den Pfad', 'github-api', innen('GET', '/copilot_internal/user?x=1', H, COPILOT_KOEPFE), { kopf: KOPF_GEBUNDEN, pfadregel: '/copilot_internal/user', methode: 'GET' }],
+    ['github_raute', 'eine Raute im Anfrageziel: nicht lesbar (400), an jedem Ziel', 'github-api', innen('GET', '/copilot_internal/user#x', H, COPILOT_KOEPFE), { code: 'mw.anfrage_unlesbar' }],
+    ['github_abfrage_leer', 'leerer Abfrageteil am gebundenen Ziel: die Form des Feldes abfrage nimmt 1 bis 1024 Zeichen, also 400', 'github-api', innen('GET', '/copilot_internal/user?', H, COPILOT_KOEPFE), { code: 'mw.anfrage_unlesbar' }],
+    ['github_abfrage_zu_lang', 'Abfrageteil mit 1025 Zeichen am gebundenen Ziel: 400', 'github-api', innen('GET', `/copilot_internal/user?${'x'.repeat(1025)}`, H, COPILOT_KOEPFE), { code: 'mw.anfrage_unlesbar' }],
+    ['github_pfad_prozent', 'ein prozentkodierter Pfad am gebundenen Ziel: die Form des Feldes pfad des Halters laesst ihn nicht zu (403)', 'github-api', innen('GET', '/copilot_internal/%41user', H, COPILOT_KOEPFE), { code: 'mw.pfad_nicht_erlaubt' }],
     ['user_repos', 'GET /user/repos: nicht in der Pfadliste (Mutant 5 macht das gruen)', 'github-api', innen('GET', '/user/repos', H, COPILOT_KOEPFE), { code: 'mw.pfad_nicht_erlaubt' }],
     ['github_post', 'POST /copilot_internal/user: Methode nicht erlaubt', 'github-api', innen('POST', '/copilot_internal/user', H, [...COPILOT_KOEPFE, ['Content-Length', '2']], '{}'), { code: 'mw.methode_falsch', pfadregel: '/copilot_internal/user', methode: 'POST' }],
     ['registry_unterpfad', 'GET /copilot/mcp_registry/x: die genaue Regel deckt keinen Unterpfad', 'github-api', innen('GET', '/copilot/mcp_registry/x', H, COPILOT_KOEPFE), { code: 'mw.pfad_nicht_erlaubt' }],
@@ -1090,13 +1177,13 @@ function baueKopf() {
     ['kodiert', 'GET /copilot_internal/%2e%2e/user', 'github-api', innen('GET', '/copilot_internal/%2e%2e/user', H, COPILOT_KOEPFE), { code: 'mw.pfad_nicht_erlaubt' }],
     ['doppelter_strich', 'GET /copilot_internal//user', 'github-api', innen('GET', '//copilot_internal/user', H, COPILOT_KOEPFE), { code: 'mw.pfad_nicht_erlaubt' }],
     ['host_falsch', 'Host im Tunnel nennt ein anderes Ziel der Liste', 'github-api', innen('GET', '/copilot_internal/user', 'api.githubcopilot.com', COPILOT_KOEPFE), { code: 'mw.host_falsch' }],
-    ['host_mit_port', 'Host mit :443 ist gueltig', 'github-api', innen('GET', '/copilot_internal/user', 'api.github.com:443', COPILOT_KOEPFE), { kopf: 'ersetzt', pfadregel: '/copilot_internal/user', methode: 'GET' }],
+    ['host_mit_port', 'Host mit :443 ist gueltig; an den Halter geht der Kopf host nicht mit', 'github-api', innen('GET', '/copilot_internal/user', 'api.github.com:443', COPILOT_KOEPFE), { kopf: KOPF_GEBUNDEN, pfadregel: '/copilot_internal/user', methode: 'GET' }],
     ['plan_modelle', 'POST /chat/completions am Plan-Host: alle Pfade (bis der echte Lauf sie liefert)', 'copilot-plan',
-      innen('POST', '/chat/completions', 'api.individual.githubcopilot.com', [...COPILOT_KOEPFE, ['Content-Type', 'application/json'], ['Content-Length', '2']], '{}'), { kopf: 'ersetzt', pfadregel: '/*', methode: 'POST' }],
-    ['plan_chunked', 'chunked im Tunnel geht unveraendert durch, auch der Kopf transfer-encoding (direkter Weg)', 'copilot-plan',
-      innen('POST', '/responses', 'api.individual.githubcopilot.com', [...COPILOT_KOEPFE, ['Transfer-Encoding', 'chunked']], '2\r\n{}\r\n0\r\n\r\n'), { kopf: 'ersetzt', pfadregel: '/*', methode: 'POST' }],
-    ['upgrade_durchgereicht', 'WebSocket-Upgrade am gebundenen Plan-Host: Upgrade und Connection bleiben, kein connection: close, Schluessel eingesetzt', 'copilot-plan',
-      innen('GET', '/responses', 'api.individual.githubcopilot.com', [...COPILOT_KOEPFE, ['Connection', 'Upgrade'], ['Upgrade', 'websocket'], ['Sec-WebSocket-Key', 'dGhlIHNhbXBsZSBub25jZQ=='], ['Sec-WebSocket-Version', '13']]), { kopf: 'ersetzt', pfadregel: '/*', methode: 'GET' }],
+      innen('POST', '/chat/completions', 'api.individual.githubcopilot.com', [...COPILOT_KOEPFE, ['Content-Type', 'application/json'], ['Content-Length', '2']], '{}'), { kopf: KOPF_GEBUNDEN, pfadregel: '/*', methode: 'POST' }],
+    ['plan_chunked', 'chunked im Tunnel an ein gebundenes Ziel: der Koerper geht ohne Rahmung als koerper_b64 in einem Stueck an den Halter, und der Kopf transfer-encoding faellt (der Halter setzt die Rahmung)', 'copilot-plan',
+      innen('POST', '/responses', 'api.individual.githubcopilot.com', [...COPILOT_KOEPFE, ['Transfer-Encoding', 'chunked']], '2\r\n{}\r\n0\r\n\r\n'), { kopf: KOPF_GEBUNDEN, pfadregel: '/*', methode: 'POST' }],
+    ['upgrade_durchgereicht', 'WebSocket-Upgrade am gebundenen Plan-Host: die Anfrage geht als modell.strom an den Halter, ohne methode und ohne Koerper; upgrade, connection und den Kopf mit dem Token setzt der Halter', 'copilot-plan',
+      innen('GET', '/responses', 'api.individual.githubcopilot.com', [...COPILOT_KOEPFE, ['Connection', 'Upgrade'], ['Upgrade', 'websocket'], ['Sec-WebSocket-Key', 'dGhlIHNhbXBsZSBub25jZQ=='], ['Sec-WebSocket-Version', '13']]), { kopf: KOPF_GEBUNDEN, pfadregel: '/*', methode: 'GET' }],
     ['upgrade_ungebunden', 'Upgrade am ungebundenen Telemetrie-Ziel: abgelehnt', 'copilot-telemetrie',
       innen('POST', '/telemetry', 'telemetry.individual.githubcopilot.com', [['Connection', 'Upgrade'], ['Upgrade', 'websocket'], ['Content-Length', '2']], '[]'), { code: 'mw.upgrade_abgelehnt', pfadregel: '/telemetry', methode: 'POST' }],
     ['telemetrie', 'POST /telemetry ohne Anmeldung an das ungebundene Ziel: kein Schluessel geht hinaus', 'copilot-telemetrie',
@@ -1117,11 +1204,16 @@ function baueKopf() {
     ['methode_fremd', 'unbekannte Methode PROPFIND: methode null in der Zeile', 'copilot-plan', innen('PROPFIND', '/x', 'api.individual.githubcopilot.com', COPILOT_KOEPFE), { code: 'mw.methode_falsch', pfadregel: '/*' }],
     ['zwei_laengen', 'Content-Length und Transfer-Encoding zugleich', 'copilot-plan',
       innen('POST', '/x', 'api.individual.githubcopilot.com', [['Content-Length', '2'], ['Transfer-Encoding', 'chunked']], '{}'), { code: 'mw.anfrage_unlesbar' }],
-    ['zu_gross', 'Content-Length 33554433', 'copilot-plan', innen('POST', '/x', 'api.individual.githubcopilot.com', [['Content-Length', '33554433']]), { code: 'mw.koerper_zu_gross', pfadregel: '/*', methode: 'POST' }],
+    ['zu_gross_gebunden', 'Content-Length 24117249 an einem gebundenen Ziel: ueber der Grenze von 23 MiB (H6)', 'copilot-plan', innen('POST', '/x', 'api.individual.githubcopilot.com', [['Content-Length', '24117249']]), { code: 'mw.koerper_zu_gross', pfadregel: '/*', methode: 'POST' }],
+    ['zu_gross_ungebunden', 'Content-Length 33554433 an einem ungebundenen Ziel: dort gilt die Grenze von 32 MiB', 'copilot-telemetrie', innen('POST', '/telemetry', 'telemetry.individual.githubcopilot.com', [['Content-Length', '33554433']]), { code: 'mw.koerper_zu_gross', pfadregel: '/telemetry', methode: 'POST' }],
     ['plan_methodenkopf', 'gebundenes Ziel mit X-Http-Method-Override und X-Original-Url: beide Koepfe fallen weg (der Halter verbietet sie)', 'copilot-plan',
-      innen('POST', '/chat/completions', 'api.individual.githubcopilot.com', [...COPILOT_KOEPFE, ['X-Http-Method-Override', 'DELETE'], ['X-Original-Url', '/user/repos'], ['Content-Type', 'application/json'], ['Content-Length', '2']], '{}'), { kopf: 'ersetzt', pfadregel: '/*', methode: 'POST' }],
-    ['plan_rahmung_bleibt', 'gebundenes Ziel auf dem direkten Weg: Host und Content-Length bleiben, Cookie faellt weg (Entscheid des Betreibers, 25.11.2026)', 'copilot-plan',
-      innen('POST', '/chat/completions', 'api.individual.githubcopilot.com', [['Cookie', 'a=b'], ['Content-Type', 'application/json'], ['Content-Length', '2']], '{}'), { kopf: 'ersetzt', pfadregel: '/*', methode: 'POST' }],
+      innen('POST', '/chat/completions', 'api.individual.githubcopilot.com', [...COPILOT_KOEPFE, ['X-Http-Method-Override', 'DELETE'], ['X-Original-Url', '/user/repos'], ['Content-Type', 'application/json'], ['Content-Length', '2']], '{}'), { kopf: KOPF_GEBUNDEN, pfadregel: '/*', methode: 'POST' }],
+    ['plan_rahmung_faellt', 'gebundenes Ziel auf dem Halterweg: host, content-length und cookie fallen alle weg; nur content-type bleibt (der Halter setzt host und die Rahmung selbst)', 'copilot-plan',
+      innen('POST', '/chat/completions', 'api.individual.githubcopilot.com', [['Cookie', 'a=b'], ['Content-Type', 'application/json'], ['Content-Length', '2']], '{}'), { kopf: KOPF_GEBUNDEN, pfadregel: '/*', methode: 'POST' }],
+    ['plan_kopf_zu_lang', 'ein Kopfwert mit 8193 Zeichen an einem gebundenen Ziel: der Halter nimmt bis 8192, also 400', 'copilot-plan',
+      innen('POST', '/chat/completions', 'api.individual.githubcopilot.com', [['X-Lang', 'v'.repeat(8193)], ['Content-Length', '2']], '{}'), { code: 'mw.anfrage_unlesbar' }],
+    ['plan_65_koepfe', '65 Koepfe an einem gebundenen Ziel (host faellt, also bleiben 65): der Halter nimmt bis 64, also 400', 'copilot-plan',
+      innen('POST', '/chat/completions', 'api.individual.githubcopilot.com', [...Array.from({ length: 65 }, (_, i) => [`X-${i}`, 'v']), ['Content-Length', '2']], '{}'), { code: 'mw.anfrage_unlesbar' }],
     ['telemetrie_methodenkopf', 'ungebundenes Ziel mit X-Http-Method-Override: der Kopf geht unveraendert mit, kein Schluessel', 'copilot-telemetrie',
       innen('POST', '/telemetry', 'telemetry.individual.githubcopilot.com', [['X-Http-Method-Override', 'DELETE'], ['Content-Length', '2']], '[]'), { kopf: 'keiner', pfadregel: '/telemetry', methode: 'POST' }],
   ];
@@ -1129,7 +1221,7 @@ function baueKopf() {
   for (const [name, beschreibung, zielName, roh, erw] of ANF) {
     const ziel = zielVon(zielName);
     let ist;
-    try { const r = innenPruefen(LAGE2, ziel, roh); ist = { an_ziel: r.an_ziel, meldung: r.meldung }; } catch (x) {
+    try { const r = innenPruefen(LAGE2, ziel, roh); ist = { an_ziel: r.an_ziel, an_halter: r.an_halter, meldung: r.meldung }; } catch (x) {
       if (!(x instanceof Fehler)) throw x; ist = { code: x.message, meldung: x.meldung };
     }
     const sollCode = erw.code;
@@ -1137,45 +1229,79 @@ function baueKopf() {
     const m = ist.meldung;
     for (const k of ['methode', 'pfadregel', 'kopf']) if (erw[k] !== undefined && m[k] !== erw[k]) abbruch(`anfrage2 ${name}: ${k} ${m[k]} gegen ${erw[k]}`);
     if (ist.an_ziel) {
+      // ungebundenes Ziel: die Bytes gehen Byte fuer Byte hinaus, ohne authorization und ohne die Koepfe einer
+      // Verbindung; cookie, x-api-key und accept-encoding bleiben, und ein Schluessel geht nie mit.
       if (ist.an_ziel.includes(PLATZ)) abbruch(`anfrage2 ${name}: Platzhalter geht hinaus`);
-      const mitMarke = ist.an_ziel.split(MARKE).length - 1;
-      if (mitMarke !== (ziel.kopf ? 1 : 0)) abbruch(`anfrage2 ${name}: Marke ${mitMarke}-mal`);
-      if (ziel.kopf && (!/\r\naccept-encoding: identity\r\n/.test(ist.an_ziel) || /\r\nAccept-Encoding: /.test(ist.an_ziel))) abbruch(`anfrage2 ${name}: identity nicht gesetzt`);
-      if (!ziel.kopf && /accept-encoding: identity/.test(ist.an_ziel)) abbruch(`anfrage2 ${name}: Kodierung am ungebundenen Ziel umgeschrieben`);
-      const verbotenRe = new RegExp(`^(${DIREKT_VERBOTEN.join('|')}):`, 'i');
-      const rohKopf = roh.slice(0, roh.indexOf('\r\n\r\n')).split('\r\n').slice(1).filter((z) => !/^(authorization|connection|upgrade|keep-alive|te|trailer|proxy-connection):/i.test(z) && !(ziel.kopf && (/^accept-encoding:/i.test(z) || verbotenRe.test(z))) || (/^(connection|upgrade):/i.test(z) && /upgrade/i.test(roh) && ziel.upgrade === 'durchreichen'));
+      if (ist.an_ziel.includes(MARKE)) abbruch(`anfrage2 ${name}: Marke geht hinaus`);
+      if (/accept-encoding: identity/.test(ist.an_ziel)) abbruch(`anfrage2 ${name}: Kodierung am ungebundenen Ziel umgeschrieben`);
+      const rohKopf = roh.slice(0, roh.indexOf('\r\n\r\n')).split('\r\n').slice(1).filter((z) => !/^(authorization|connection|upgrade|keep-alive|te|trailer|proxy-connection):/i.test(z));
       for (const z of rohKopf) if (!ist.an_ziel.includes('\r\n' + z + '\r\n')) abbruch(`anfrage2 ${name}: Kopf ${z} fehlt`);
       if (!ist.an_ziel.startsWith(roh.split('\r\n')[0] + '\r\n')) abbruch(`anfrage2 ${name}: Anfragezeile veraendert`);
       if (!ist.an_ziel.endsWith('\r\n\r\n' + roh.slice(roh.indexOf('\r\n\r\n') + 4))) abbruch(`anfrage2 ${name}: Koerper veraendert`);
     }
+    if (ist.an_halter) {
+      // gebundenes Ziel: die Zeile des Halters. Der Modellweg hat fuer dieses Ziel keinen Wert; weder Marke noch
+      // Platzhalter gehen hinaus, und kein verbotener Kopfname steht in der Zeile.
+      if (ist.an_halter.includes(PLATZ) || ist.an_halter.includes(MARKE)) abbruch(`anfrage2 ${name}: ein Wert geht an den Halter`);
+      const z = JSON.parse(ist.an_halter);
+      if (z.ziel !== ziel.halter_ziel || z.fassung !== 1) abbruch(`anfrage2 ${name}: Ziel oder Fassung falsch`);
+      if (z.pfad.includes('?')) abbruch(`anfrage2 ${name}: ein ? im Feld pfad`);
+      for (const k of Object.keys(z.kopf)) if (HALTER_VERBOTEN.includes(k)) abbruch(`anfrage2 ${name}: verbotener Kopf ${k}`);
+      if (Object.keys(z.kopf).some((k) => k !== k.toLowerCase())) abbruch(`anfrage2 ${name}: Kopfname nicht klein`);
+      const koerper = roh.slice(roh.indexOf('\r\n\r\n') + 4);
+      if (z.op === 'modell.aufruf') {
+        const erwKoerper = /transfer-encoding/i.test(roh.slice(0, roh.indexOf('\r\n\r\n'))) ? '{}' : koerper;
+        if (Buffer.from(z.koerper_b64, 'base64').toString('latin1') !== erwKoerper) abbruch(`anfrage2 ${name}: Koerper veraendert`);
+      } else if (z.op === 'modell.strom') {
+        if ('methode' in z || 'koerper_b64' in z) abbruch(`anfrage2 ${name}: modell.strom mit methode oder Koerper`);
+      } else abbruch(`anfrage2 ${name}: unbekannte Op ${z.op}`);
+    }
     const e = ist.code
       ? { ziel_beruehrt: false, status: ABLEHNUNG2[ist.code][0], koerper: fehlerKoerper2(ist.code), zeile: { ergebnis: 'abgelehnt', grund: ist.code, status: ABLEHNUNG2[ist.code][0], ziel: zielName, ...zeileM('abgelehnt', zielName, m) } }
-      : { ziel_beruehrt: true, an_ziel: ist.an_ziel, zeile: { ergebnis: 'weitergereicht', grund: null, ziel: zielName, ...zeileM('weitergereicht', zielName, m) } };
+      : { ziel_beruehrt: true, ...(ist.an_halter ? { an_halter: ist.an_halter } : { an_ziel: ist.an_ziel }), zeile: { ergebnis: 'weitergereicht', grund: null, ziel: zielName, ...zeileM('weitergereicht', zielName, m) } };
     anfragen.push({ name, beschreibung, ziel: zielName, anfrage: roh, erwartet: e });
   }
 
-  // Antworten im Tunnel
+  // Antworten im Tunnel: ein gebundenes Ziel ueber die Zeilen des Halters (halter), ein ungebundenes ueber die Bytes
+  // des Dienstes (ziel_antwort).
+  const hb = (status, kopf) => ({ status, kopf });
+  const HANT = [
+    ['halter_json', 'der Halter antwortet beginn, ein teil und ende: Status und Koepfe unveraendert, der Koerper chunked an den Harness', { beginn: hb(200, [['content-type', 'application/json'], ['x-github-request-id', 'A:B']]), teile: ['{"login":1}'], ende: null }],
+    ['halter_mehrere_teile', 'mehrere Zeilen teil: die Bytes gehen in ihrer Reihenfolge hinaus', { beginn: hb(200, [['content-type', 'text/event-stream']]), teile: ['data: {"a":1}\n\n', 'data: [DONE]\n\n'], ende: null }],
+    ['halter_ohne_teil', 'beginn und ende ohne teil: die Antwort hat einen leeren Koerper', { beginn: hb(204, []), teile: [], ende: null }],
+    ['halter_fehler_401', 'der Halter reicht die 401 des Ziels weiter: unveraendert an den Harness', { beginn: hb(401, [['content-type', 'application/json']]), teile: ['{"message":"Bad credentials"}'], ende: null }],
+    ['halter_kein_schluessel', 'der Halter meldet halter.kein_schluessel vor der Zeile beginn: 503 mw.halter_kein_schluessel', { beginn: null, ende: 'halter.kein_schluessel' }],
+    ['halter_komprimiert', 'der Halter meldet halter.ziel_komprimiert: 502 mw.antwort_komprimiert, kein Byte des Ziels geht hinaus', { beginn: null, ende: 'halter.ziel_komprimiert' }],
+    ['halter_leck', 'der Halter meldet halter.leck_gesperrt: sein Code geht nie an den Harness, dieser bekommt 502 mw.halter_fehler', { beginn: null, ende: 'halter.leck_gesperrt' }],
+    ['halter_pfad_verboten', 'der Halter lehnt den Pfad als letzte Sperre ab: 502 mw.halter_fehler', { beginn: null, ende: 'halter.pfad_verboten' }],
+    ['halter_ziel_fehler', 'der Halter erreicht das Ziel nicht: 502 mw.halter_fehler', { beginn: null, ende: 'halter.ziel_fehler' }],
+    ['halter_fehler_nach_teil', 'der Halter bricht nach einem teil ab: die Antwort endet, der Status bleibt der, der hinausging', { beginn: hb(200, [['content-type', 'text/event-stream']]), teile: ['data: {"a":1}\n\n'], ende: 'halter.ziel_fehler' }],
+    ['halter_leck_nach_teil', 'die Leck-Sperre des Halters trifft spaet: die Antwort endet mit mw.halter_fehler, nichts weiter geht hinaus', { beginn: hb(200, [['content-type', 'text/event-stream']]), teile: ['data: {"a":1}\n\n'], ende: 'halter.leck_gesperrt' }],
+    ['halter_101', 'Umstellung auf WebSocket: die 101 des Halters traegt upgrade und connection nicht, der Modellweg setzt beide selbst', { beginn: hb(101, [['sec-websocket-accept', 's3pPLMBiTxaQ9kYGzzhZRbK+xOo=']]), upgrade: 'durchreichen', teile: ['\x81\x05Hallo'], ende: null }],
+    ['halter_101_abriss', 'der Halter reisst den Strom ab (Rahmen des Ziels gegen RFC 6455): mw.halter_fehler, Status 101', { beginn: hb(101, [['sec-websocket-accept', 's3pPLMBiTxaQ9kYGzzhZRbK+xOo=']]), upgrade: 'durchreichen', teile: ['\x81\x05Hallo'], ende: 'halter.ziel_fehler' }],
+  ];
   const ANT = [
-    ['json_unveraendert', 'Antwort mit Koepfen des Dienstes: alle ausser Rahmung und set-cookie gehen mit', { status: 200, gebunden: true, kopf: [['Content-Type', 'application/json'], ['X-GitHub-Request-Id', 'A:B'], ['Set-Cookie', 's=1'], ['Content-Length', '11']], laenge: 11, teile: ['{"login":1}'] }, 'antwort'],
-    ['strom_chunked', 'SSE vom Plan-Host ohne Laenge: an den Harness chunked, Bytes gleich', { status: 200, gebunden: true, kopf: [['Content-Type', 'text/event-stream'], ['Transfer-Encoding', 'chunked']], laenge: null, teile: ['data: {"a":1}\n\n', 'data: [DONE]\n\n'] }, 'antwort'],
-    ['fehler_401', '401 des Dienstes unveraendert', { status: 401, gebunden: true, kopf: [['Content-Type', 'application/json'], ['Content-Length', '28']], laenge: 28, teile: ['{"message":"Bad credentials"}'.slice(0, 28)] }, 'antwort'],
-    ['gzip_gebunden', 'ein gebundenes Ziel antwortet trotz identity komprimiert: verworfen, 502 mw.antwort_komprimiert', { status: 200, gebunden: true, kopf: [['Content-Encoding', 'gzip'], ['Content-Length', '3']], laenge: 3, teile: ['\x1f\x8b\x08'] }, 'ersetzt'],
+    ['json_ungebunden', 'ungebundenes Ziel: alle Koepfe ausser Rahmung und set-cookie gehen mit', { status: 200, gebunden: false, kopf: [['Content-Type', 'application/json'], ['X-GitHub-Request-Id', 'A:B'], ['Set-Cookie', 's=1'], ['Content-Length', '11']], laenge: 11, teile: ['{"login":1}'] }, 'antwort'],
+    ['strom_chunked_ungebunden', 'ungebundenes Ziel ohne Laenge: an den Harness chunked, Bytes gleich', { status: 200, gebunden: false, kopf: [['Content-Type', 'text/event-stream'], ['Transfer-Encoding', 'chunked']], laenge: null, teile: ['data: {"a":1}\n\n', 'data: [DONE]\n\n'] }, 'antwort'],
+    ['fehler_401_ungebunden', '401 des Dienstes unveraendert', { status: 401, gebunden: false, kopf: [['Content-Type', 'application/json'], ['Content-Length', '28']], laenge: 28, teile: ['{"message":"Bad credentials"}'.slice(0, 28)] }, 'antwort'],
     ['gzip_ungebunden', 'ein ungebundenes Ziel antwortet komprimiert: ungelesen und unveraendert durch', { status: 200, gebunden: false, kopf: [['Content-Encoding', 'gzip'], ['Content-Length', '3']], laenge: 3, teile: ['\x1f\x8b\x08'] }, 'antwort'],
-    ['identity_gebunden', 'ein gebundenes Ziel mit Content-Encoding identity: gelesen und durchgereicht', { status: 200, gebunden: true, kopf: [['Content-Encoding', 'identity'], ['Content-Length', '2']], laenge: 2, teile: ['{}'] }, 'antwort'],
-    ['leck_koerper', 'der Dienst spiegelt die Marke im Koerper', { status: 200, gebunden: true, kopf: [['Content-Type', 'application/json']], laenge: null, teile: [`{"token":"${MARKE}"}`] }, 'ersetzt'],
-    ['leck_kopf', 'der Dienst spiegelt die Marke in einem Kopf', { status: 200, gebunden: true, kopf: [['X-Echo', `Bearer ${MARKE}`], ['Content-Length', '2']], laenge: 2, teile: ['{}'] }, 'ersetzt'],
-    ['websocket_101', 'Umstellung auf WebSocket am gebundenen Ziel: 101 mit Upgrade und Connection, danach die Rahmen Byte fuer Byte', { status: 101, gebunden: true, upgrade_ziel: 'durchreichen', kopf: [['Upgrade', 'websocket'], ['Connection', 'Upgrade'], ['Sec-WebSocket-Accept', 's3pPLMBiTxaQ9kYGzzhZRbK+xOo=']], laenge: null, teile: ['\x81\x05Hallo', '\x81\x02ok'] }, 'antwort'],
-    ['websocket_leck', 'die Marke kommt in einem spaeteren WebSocket-Rahmen: Abriss', { status: 101, gebunden: true, upgrade_ziel: 'durchreichen', kopf: [['Upgrade', 'websocket'], ['Connection', 'Upgrade']], laenge: null, teile: ['\x81\x7e\x00\x40' + 'x'.repeat(64), `\x81\x1c${MARKE}`] }, 'abgerissen'],
-    ['leck_spaet', 'die Marke kommt spaet im Strom: Abriss', { status: 200, gebunden: true, kopf: [['Content-Type', 'text/event-stream']], laenge: null, teile: ['data: {"a":1}\n\ndata: {"b":2}\n\ndata: {"c":3}\n\n', `data: {"k":"${MARKE}"}\n\n`] }, 'abgerissen'],
   ];
   const antworten = [];
-  for (const [name, beschreibung, ziel, art] of ANT) {
-    const ist = antwortDurch2([MARKE], ziel);
-    if (ist.art !== art) abbruch(`antwort2 ${name}: ${ist.art} gegen ${art}`);
+  for (const [name, beschreibung, h] of HANT) {
+    const ist = antwortVomHalter({ upgrade: 'ablehnen', teile: [], ...h });
     if (JSON.stringify(ist).includes(MARKE)) abbruch(`antwort2 ${name}: Marke zum Harness`);
+    if (/^halter\./.test(JSON.stringify(ist).replace(/[^a-z.]/g, ' ')) ) abbruch(`antwort2 ${name}: Code des Halters zum Harness`);
+    if (JSON.stringify(ist).includes('halter.')) abbruch(`antwort2 ${name}: Code des Halters zum Harness`);
+    if (ist.art === 'antwort' && ist.koerper !== (h.teile ?? []).join('')) abbruch(`antwort2 ${name}: Koerper veraendert`);
+    const ergebnis = ist.grund === null ? 'weitergereicht' : 'ziel_fehler';
+    antworten.push({ name, beschreibung, halter: { beginn: h.beginn, teile: h.teile ?? [], ende: h.ende, upgrade: h.upgrade ?? 'ablehnen' },
+      erwartet: { an_harness: { art: ist.art, status: ist.status, kopf: ist.kopf, ...(ist.koerper !== undefined ? { koerper: ist.koerper } : { gesendet: ist.gesendet }) }, zeile: { ergebnis, grund: ist.grund, status: ist.status } } });
+  }
+  for (const [name, beschreibung, ziel, art] of ANT) {
+    const ist = antwortDurch2([], ziel);
+    if (ist.art !== art) abbruch(`antwort2 ${name}: ${ist.art} gegen ${art}`);
     if (ist.art === 'antwort' && ist.koerper !== ziel.teile.join('')) abbruch(`antwort2 ${name}: Koerper veraendert`);
     if (name === 'gzip_ungebunden' && !ist.kopf.some(([k, v]) => k === 'Content-Encoding' && v === 'gzip')) abbruch('gzip: Content-Encoding fehlt');
-    if (name === 'gzip_gebunden' && ist.grund !== 'mw.antwort_komprimiert') abbruch('gzip gebunden nicht verworfen');
     if (ist.art === 'antwort' && ist.kopf.some(([k]) => k.toLowerCase() === 'set-cookie')) abbruch(`antwort2 ${name}: set-cookie`);
     const ergebnis = ist.grund === null ? 'weitergereicht' : ist.grund === 'mw.leck_gesperrt' ? 'leck_gesperrt' : 'ziel_fehler';
     antworten.push({ name, beschreibung, ziel_antwort: ziel, erwartet: { an_harness: { art: ist.art, status: ist.status, kopf: ist.kopf, ...(ist.koerper !== undefined ? { koerper: ist.koerper } : { gesendet: ist.gesendet }) }, zeile: { ergebnis, grund: ist.grund, status: ist.status } } });
@@ -1185,26 +1311,42 @@ function baueKopf() {
   const WS_KOPF = [['Connection', 'Upgrade'], ['Upgrade', 'websocket'], ['Sec-WebSocket-Key', 'dGhlIHNhbXBsZSBub25jZQ=='], ['Sec-WebSocket-Version', '13']];
   const PLAN = 'api.individual.githubcopilot.com';
   const wsAnf = (extra) => innen('GET', '/responses', PLAN, [...COPILOT_KOEPFE, ...extra, ...WS_KOPF]);
-  // Hand gebildete Bytes an das Ziel: Koepfe in der Reihenfolge des Harness, ohne authorization, accept-encoding und jeden
-  // Namen der direkten Liste (darunter die Erweiterungen); Host bleibt, dann identity und der Schluessel
-  const wsAnZiel = (extraBleibt) => `GET /responses HTTP/1.1\r\nHost: ${PLAN}\r\n${COPILOT_KOEPFE.filter(([k]) => k !== 'authorization' && k !== 'accept-encoding' && !DIREKT_VERBOTEN.includes(k.toLowerCase())).map(([k, v]) => `${k}: ${v}\r\n`).join('')}${extraBleibt}Connection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\naccept-encoding: identity\r\nauthorization: Bearer ${MARKE}\r\n\r\n`;
+  // Die Zeile an den Halter: modell.strom mit den Koepfen des Harness, klein und in ihrer Reihenfolge, ohne jeden der
+  // 31 Namen (darunter authorization, accept-encoding, host, die Erweiterungen, upgrade und connection). Methode und
+  // Koerper gibt es nicht; upgrade, connection, identity und den Kopf mit dem Token setzt der Halter selbst.
+  const wsAnHalter = () => {
+    const kopf = {};
+    for (const [k, v] of COPILOT_KOEPFE) if (!HALTER_VERBOTEN.includes(k.toLowerCase())) kopf[k.toLowerCase()] = v;
+    kopf['sec-websocket-key'] = 'dGhlIHNhbXBsZSBub25jZQ==';
+    kopf['sec-websocket-version'] = '13';
+    return jcs({ abfrage: null, fassung: 1, id: 1, kopf, op: 'modell.strom', pfad: '/responses', ziel: PLAN });
+  };
   const WSA = [
-    ['ws_erweiterung_entfernt', 'Upgrade-Anfrage mit Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits an das gebundene Ziel: geht ohne diesen Kopf hinaus, Schluessel eingesetzt (W1)',
-      wsAnf([['Sec-WebSocket-Extensions', 'permessage-deflate; client_max_window_bits']]), wsAnZiel('')],
+    ['ws_erweiterung_entfernt', 'Upgrade-Anfrage mit Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits an das gebundene Ziel: die Zeile modell.strom traegt diesen Kopf nicht (W1)',
+      wsAnf([['Sec-WebSocket-Extensions', 'permessage-deflate; client_max_window_bits']]), wsAnHalter()],
     ['ws_erweiterung_schreibweisen', 'zwei Erweiterungs-Koepfe in anderer Schreibweise und mit anderem Wert: beide entfernt, jeder Wert (W1)',
-      wsAnf([['SEC-WEBSOCKET-EXTENSIONS', 'x-webkit-deflate-frame'], ['sec-websocket-extensions', 'permessage-deflate']]), wsAnZiel('')],
-    ['ws_anfrage_tausch', 'Upgrade-Anfrage ohne Erweiterung: der Platzhalter wird gegen die Marke getauscht, Upgrade und Connection bleiben, kein connection: close (Kopf-Tausch in der Upgrade-Anfrage)',
-      wsAnf([]), wsAnZiel('')],
+      wsAnf([['SEC-WEBSOCKET-EXTENSIONS', 'x-webkit-deflate-frame'], ['sec-websocket-extensions', 'permessage-deflate']]), wsAnHalter()],
+    ['ws_anfrage_an_halter', 'Upgrade-Anfrage ohne Erweiterung: sie geht als modell.strom an den Halter, ohne methode, ohne Koerper, ohne upgrade und ohne connection; kein Wert geht mit',
+      wsAnf([]), wsAnHalter()],
   ];
   const wsAnfragen = [];
   for (const [name, beschreibung, anfrage, soll] of WSA) {
     const ziel = zielVon('copilot-plan');
     const r = innenPruefen(LAGE2, ziel, anfrage);
-    if (r.an_ziel !== soll) abbruch(`ws anfrage ${name}: Bytes an das Ziel weichen ab:\n${JSON.stringify(r.an_ziel)}\ngegen\n${JSON.stringify(soll)}`);
-    if (/sec-websocket-extensions/i.test(r.an_ziel) || r.an_ziel.includes(PLATZ) || r.an_ziel.split(MARKE).length !== 2 || /connection: close/i.test(r.an_ziel)) abbruch(`ws anfrage ${name}: Erweiterung, Platzhalter, Marke oder close`);
-    wsAnfragen.push({ name, beschreibung, ziel: 'copilot-plan', anfrage, erwartet: { ziel_beruehrt: true, an_ziel: soll, zeile: { ergebnis: 'weitergereicht', grund: null, ziel: 'copilot-plan', ...zeileM('weitergereicht', 'copilot-plan', r.meldung) } } });
+    if (r.an_halter !== soll) abbruch(`ws anfrage ${name}: Zeile an den Halter weicht ab:\n${JSON.stringify(r.an_halter)}\ngegen\n${JSON.stringify(soll)}`);
+    if (/sec-websocket-extensions/i.test(r.an_halter) || r.an_halter.includes(PLATZ) || r.an_halter.includes(MARKE) || /connection/i.test(r.an_halter)) abbruch(`ws anfrage ${name}: Erweiterung, Platzhalter, Wert oder connection`);
+    wsAnfragen.push({ name, beschreibung, ziel: 'copilot-plan', anfrage, erwartet: { ziel_beruehrt: true, an_halter: soll, zeile: { ergebnis: 'weitergereicht', grund: null, ziel: 'copilot-plan', ...zeileM('weitergereicht', 'copilot-plan', r.meldung) } } });
   }
 
+  // Ab Schritt I laeuft die Umstellung eines gebundenen Ziels ueber modell.strom. Dann prueft der Halter die Rahmen des
+  // Dienstes, fuehrt die Leck-Sperre ueber die Rahmengrenzen und gibt die Nutzdaten als Zeilen teil weiter; der
+  // Modellweg setzt daraus die Bytes an den Harness zusammen und prueft sie nicht noch einmal (Abschnitt 13.3,
+  // Nachtrag 22). Seine Pflicht hier ist darum: die Bytes jeder Zeile teil unveraendert und in ihrer Reihenfolge an den
+  // Harness, upgrade und connection selbst setzen, und jeden Code des Halters nach Abschnitt 5.1 abbilden. Die Rahmen-
+  // und Sperrfaelle (RSV, Maskenbit, Opcode, Laenge, die drei Regeln von RFC 6455 Abschnitt 5, die geteilte Marke)
+  // gehoeren seit diesem Nachtrag dem Halter-Vertrag; sie stehen in dessen Faellen und Aussentests (L6 bis L9).
+  const K101 = [['sec-websocket-accept', 's3pPLMBiTxaQ9kYGzzhZRbK+xOo=']];
+  const hs = (teile, ende = null) => ({ beginn: { status: 101, kopf: K101 }, upgrade: 'durchreichen', teile, ende });
   // Rahmen nach RFC 6455 Abschnitt 5.2, als latin1-Text; form 126 oder 127 erzwingt die lange Laengenform
   const fr = (opcode, nutz, o = {}) => {
     const n = Buffer.byteLength(nutz, 'latin1'); const form = o.form ?? (n < 126 ? 7 : n < 65536 ? 126 : 127);
@@ -1212,69 +1354,38 @@ function baueKopf() {
     const l = form === 7 ? String.fromCharCode(n) : form === 126 ? String.fromCharCode(0x7e, n >> 8, n & 255) : '\x7f\x00\x00\x00\x00' + String.fromCharCode((n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255);
     return b0 + l + nutz;
   };
-  const K101 = [['Upgrade', 'websocket'], ['Connection', 'Upgrade'], ['Sec-WebSocket-Accept', 's3pPLMBiTxaQ9kYGzzhZRbK+xOo=']];
-  const antw101 = (teile, extra = []) => ({ status: 101, gebunden: true, upgrade_ziel: 'durchreichen', kopf: [...K101, ...extra], laenge: null, teile });
-  const VOR = fr(1, 'a'.repeat(40));      // ein harmloser Rahmen davor: 40 Nutzdaten-Bytes, die letzten 27 (k1) bleiben zurueck
-  const VOR_AUS = VOR.slice(0, 2 + 40 - 27);
-  const M1 = MARKE.slice(0, 14); const M2 = MARKE.slice(14);
-  const T1 = fr(1, `xx${M1}`, { fin: false }); const T2 = fr(0, M2);
-  // [name, beschreibung, ziel_antwort, art, grund, gesendet oder Koerper]; art, grund und die Bytes sind von Hand gesetzt, das Modell rechnet nach
   const WSZ = [
-    ['ws_erweiterung_101', 'die 101 nennt Sec-WebSocket-Extensions: permessage-deflate: statt der 101 kommt 502 mw.antwort_komprimiert, nichts vom Strom geht hinaus (W2)',
-      antw101([fr(1, 'ok')], [['Sec-WebSocket-Extensions', 'permessage-deflate']]), 'ersetzt', 'mw.antwort_komprimiert', null],
-    ['ws_erweiterung_101_schreibweise', 'andere Schreibweise und anderer Wert der Erweiterung in der 101: ebenso 502 (W2)',
-      antw101([], [['sec-websocket-extensions', 'x-webkit-deflate-frame']]), 'ersetzt', 'mw.antwort_komprimiert', null],
-    ['ws_marke_geteilt', 'die Marke steht in zwei Teilen einer Textnachricht (erster Rahmen FIN=0, Fortfuehrung FIN=1): Abriss mw.leck_gesperrt; vom ersten Rahmen ging nur der Kopf hinaus (W3)',
-      antw101([T1, T2]), 'abgerissen', 'mw.leck_gesperrt', T1.slice(0, 2)],
-    ['ws_marke_geteilt_ping', 'dasselbe mit einem Ping zwischen den beiden Teilen und einem Schnitt mitten im zweiten Rahmen: Abriss, der Ping wartete hinter den zurueckgehaltenen Bytes (W3)',
-      antw101([T1, fr(9, 'p'), T2.slice(0, 5), T2.slice(5)]), 'abgerissen', 'mw.leck_gesperrt', T1.slice(0, 2)],
-    ['ws_marke_im_ping', 'die ganze Marke in einem Ping: Abriss; vom Rahmen davor ging nur alles ausser den letzten 27 Nutzdaten-Bytes hinaus (W3)',
-      antw101([VOR, fr(9, MARKE)]), 'abgerissen', 'mw.leck_gesperrt', VOR_AUS],
-    ['ws_marke_im_close', 'die ganze Marke im Grund eines Close-Rahmens: Abriss (W3, jeder Steuerrahmen fuer sich)',
-      antw101([VOR, fr(8, `\x03\xe8${MARKE}`)]), 'abgerissen', 'mw.leck_gesperrt', VOR_AUS],
-    ['ws_rsv1', 'ein Rahmen des Dienstes mit gesetztem RSV1: Abriss mw.antwort_komprimiert (W4)',
-      antw101([VOR, '\xc1\x02ab']), 'abgerissen', 'mw.antwort_komprimiert', VOR_AUS],
-    ['ws_rsv2', 'RSV2: Abriss mw.antwort_komprimiert (W4)', antw101([VOR, '\xa1\x02ab']), 'abgerissen', 'mw.antwort_komprimiert', VOR_AUS],
-    ['ws_rsv3', 'RSV3: Abriss mw.antwort_komprimiert (W4)', antw101([VOR, '\x91\x02ab']), 'abgerissen', 'mw.antwort_komprimiert', VOR_AUS],
-    ['ws_maske', 'ein Rahmen des Dienstes mit gesetztem Maskenbit: Abriss mw.ziel_nicht_erreichbar (W4)',
-      antw101([VOR, '\x81\x82\x01\x02\x03\x04ab']), 'abgerissen', 'mw.ziel_nicht_erreichbar', VOR_AUS],
-    ['ws_opcode_3', 'unbekannter Opcode 0x3: Abriss mw.ziel_nicht_erreichbar (W4)', antw101([VOR, '\x83\x01a']), 'abgerissen', 'mw.ziel_nicht_erreichbar', VOR_AUS],
-    ['ws_laenge_zu_gross', 'Laenge 33554433 in der 127-Form: Abriss mw.ziel_nicht_erreichbar, schon beim Kopf (W4)',
-      antw101([VOR, '\x82\x7f\x00\x00\x00\x00\x02\x00\x00\x01']), 'abgerissen', 'mw.ziel_nicht_erreichbar', VOR_AUS],
-    ['ws_ping_fin0', 'ein Ping mit FIN=0: Abriss mw.ziel_nicht_erreichbar (Nachtrag 2)', antw101([VOR, '\x09\x01p']), 'abgerissen', 'mw.ziel_nicht_erreichbar', VOR_AUS],
-    ['ws_ping_laenge_126', 'ein Ping mit der Laenge 126: Abriss mw.ziel_nicht_erreichbar (Nachtrag 2)', antw101([VOR, fr(9, 'p'.repeat(126))]), 'abgerissen', 'mw.ziel_nicht_erreichbar', VOR_AUS],
-    ['ws_fortsetzung_ohne_anfang', 'eine Fortsetzung ohne offene geteilte Nachricht: Abriss mw.ziel_nicht_erreichbar (Nachtrag 2)', antw101([VOR, fr(0, 'ab')]), 'abgerissen', 'mw.ziel_nicht_erreichbar', VOR_AUS],
-    ['ws_text_in_geteilter', 'ein neuer Textrahmen, waehrend eine geteilte Nachricht offen ist: Abriss mw.ziel_nicht_erreichbar (Nachtrag 2)',
-      antw101([fr(1, 'a'.repeat(40), { fin: false }), fr(1, 'cd')]), 'abgerissen', 'mw.ziel_nicht_erreichbar', fr(1, 'a'.repeat(40), { fin: false }).slice(0, 2 + 40 - 27)],
-    ['ws_abgeschnitten', 'der Rahmen am Ende der Verbindung ist abgeschnitten (Laenge 10, nur 4 Bytes da): alles geht hinaus, was die Sperre gesehen hat, kein Abriss (Nachtrag 2)',
-      antw101([VOR, '\x81\x0aabcd']), 'antwort', null, VOR + '\x81\x0aabcd'],
-    ['ws_abgeschnitten_kopf', 'das Ende der Verbindung mitten im Rahmenkopf (nur das erste Byte da): alles geht hinaus, kein Abriss (Nachtrag 2)',
-      antw101([VOR, '\x81']), 'antwort', null, VOR + '\x81'],
-    ['ws_laengen_126_127', 'Rahmen in der 126- und der 127-Laengenform ohne Marke: unveraendert durch, die Laenge ist richtig gelesen (W3)',
-      antw101([fr(1, 'a'.repeat(200)), fr(2, 'b'.repeat(300), { form: 127 })]), 'antwort', null, fr(1, 'a'.repeat(200)) + fr(2, 'b'.repeat(300), { form: 127 })],
-    ['ws_praefix_am_ende', 'ein Praefix der Marke am Ende eines Rahmens, danach Ende der Verbindung ohne den Rest: alle Bytes kommen an, nichts bleibt zurueck (W3)',
-      antw101([fr(1, `ok${MARKE.slice(0, 27)}`)]), 'antwort', null, fr(1, `ok${MARKE.slice(0, 27)}`)],
-    ['ws_praefix_dann_anderes', 'ein Praefix der Marke am Ende des ersten Teils, im zweiten Teil etwas anderes: kein Fund, alle Bytes kommen an (W3)',
-      antw101([fr(1, MARKE.slice(0, 20), { fin: false }), fr(0, 'XYZ')]), 'antwort', null, fr(1, MARKE.slice(0, 20), { fin: false }) + fr(0, 'XYZ')],
-    ['ws_steuer_dazwischen', 'Ping zwischen zwei Teilen einer Nachricht und ein Close ohne Marke: unveraendert durch (W3)',
-      antw101([fr(1, 'ab', { fin: false }), fr(9, 'p'), fr(0, 'cd'), fr(8, '\x03\xe8')]), 'antwort', null, fr(1, 'ab', { fin: false }) + fr(9, 'p') + fr(0, 'cd') + fr(8, '\x03\xe8')],
+    ['ws_strom_ein_teil', 'eine Zeile teil mit einem ganzen Textrahmen: die Bytes gehen unveraendert an den Harness',
+      hs([fr(1, 'Hallo')]), 'antwort', null, fr(1, 'Hallo')],
+    ['ws_strom_mehrere_teile', 'mehrere Zeilen teil: die Bytes gehen in ihrer Reihenfolge hinaus, auch wenn ein Rahmen ueber zwei Zeilen liegt',
+      hs([fr(1, 'ab', { fin: false }).slice(0, 2), fr(1, 'ab', { fin: false }).slice(2), fr(0, 'cd')]), 'antwort', null, fr(1, 'ab', { fin: false }) + fr(0, 'cd')],
+    ['ws_strom_steuer_dazwischen', 'Ping und Close zwischen den Teilen einer Nachricht: unveraendert durch, der Modellweg liest die Rahmen nicht',
+      hs([fr(1, 'ab', { fin: false }), fr(9, 'p'), fr(0, 'cd'), fr(8, '\x03\xe8')]), 'antwort', null, fr(1, 'ab', { fin: false }) + fr(9, 'p') + fr(0, 'cd') + fr(8, '\x03\xe8')],
+    ['ws_strom_laengen_126_127', 'Rahmen in der 126- und der 127-Laengenform: unveraendert durch',
+      hs([fr(1, 'a'.repeat(200)), fr(2, 'b'.repeat(300), { form: 127 })]), 'antwort', null, fr(1, 'a'.repeat(200)) + fr(2, 'b'.repeat(300), { form: 127 })],
+    ['ws_strom_erweiterung_statt_101', 'die 101 des Ziels traegt eine Erweiterung: der Halter sendet keine 101, sondern halter.ziel_komprimiert; der Modellweg antwortet 502 mw.antwort_komprimiert, und kein Byte des Stroms geht hinaus',
+      { beginn: null, upgrade: 'durchreichen', teile: [], ende: 'halter.ziel_komprimiert' }, 'ersetzt', 'mw.antwort_komprimiert', null],
+    ['ws_strom_rsv_nach_teil', 'dasselbe nach einem teil: der Status 101 ging schon hinaus, die Antwort endet',
+      hs([fr(1, 'ok')], 'halter.ziel_komprimiert'), 'abgerissen', 'mw.antwort_komprimiert', fr(1, 'ok')],
+    ['ws_strom_regelwidrig', 'ein Rahmen des Dienstes gegen RFC 6455 Abschnitt 5: der Halter reisst ab (halter.ziel_fehler), der Modellweg antwortet mw.halter_fehler',
+      hs([fr(1, 'ok')], 'halter.ziel_fehler'), 'abgerissen', 'mw.halter_fehler', fr(1, 'ok')],
+    ['ws_strom_leck', 'die Leck-Sperre des Halters trifft im Strom: sein Code geht nie an den Harness, dieser bekommt mw.halter_fehler',
+      hs([fr(1, 'ok')], 'halter.leck_gesperrt'), 'abgerissen', 'mw.halter_fehler', fr(1, 'ok')],
+    ['ws_strom_ende_ohne_teil', 'das Ziel schliesst ohne ein einziges teil: die Antwort hat einen leeren Strom',
+      hs([]), 'antwort', null, ''],
   ];
   const wsAntworten = [];
-  for (const [name, beschreibung, ziel, art, grund, bytes] of WSZ) {
-    const ist = antwortDurch2([MARKE], ziel);
+  for (const [name, beschreibung, h, art, grund, bytes] of WSZ) {
+    const ist = antwortVomHalter(h);
     if (ist.art !== art || ist.grund !== grund) abbruch(`ws antwort ${name}: ${ist.art} ${ist.grund} gegen ${art} ${grund}`);
     if (art === 'abgerissen' && ist.gesendet !== bytes) abbruch(`ws antwort ${name}: gesendet ${JSON.stringify(ist.gesendet)} gegen ${JSON.stringify(bytes)}`);
     if (art === 'antwort' && ist.koerper !== bytes) abbruch(`ws antwort ${name}: Koerper ${JSON.stringify(ist.koerper)} gegen ${JSON.stringify(bytes)}`);
-    if (art === 'antwort' && ist.koerper !== ziel.teile.join('')) abbruch(`ws antwort ${name}: Strom veraendert`);
-    if (JSON.stringify(ist).includes(MARKE)) abbruch(`ws antwort ${name}: Marke zum Harness`);
+    if (art === 'antwort' && ist.koerper !== h.teile.join('')) abbruch(`ws antwort ${name}: Strom veraendert`);
+    if (JSON.stringify(ist).includes(MARKE) || JSON.stringify(ist).includes('halter.')) abbruch(`ws antwort ${name}: Marke oder Code des Halters zum Harness`);
     if (art === 'ersetzt' && (ist.status !== 502 || ist.kopf.some(([k]) => /^(upgrade|connection)$/i.test(k)))) abbruch(`ws antwort ${name}: 101 geht trotz Erweiterung hinaus`);
-    const ergebnis = ist.grund === null ? 'weitergereicht' : ist.grund === 'mw.leck_gesperrt' ? 'leck_gesperrt' : 'ziel_fehler';
-    wsAntworten.push({ name, beschreibung, ziel_antwort: ziel, erwartet: { an_harness: { art: ist.art, status: ist.status, kopf: ist.kopf, ...(ist.koerper !== undefined ? { koerper: ist.koerper } : { gesendet: ist.gesendet }) }, zeile: { ergebnis, grund: ist.grund, status: ist.status } } });
-  }
-  // die zwei Fassungen im Altbestand rechnen mit dem Rahmenmodell dasselbe (die Dateien kopf-antworten.json bleiben gleich)
-  for (const n of ['websocket_101', 'websocket_leck']) {
-    const a = antworten.find((x) => x.name === n); const z = ANT.find((x) => x[0] === n)[2];
-    if (jcs(a.erwartet.an_harness) !== jcs({ art: ANT.find((x) => x[0] === n)[3], status: 101, kopf: z.kopf, ...(n === 'websocket_101' ? { koerper: z.teile.join('') } : { gesendet: '\x81\x7e\x00\x40' + 'x'.repeat(37) }) })) abbruch(`ws Altfall ${n} weicht ab`);
+    if (art !== 'ersetzt' && !(ist.kopf.some(([k, v]) => k === 'upgrade' && v === 'websocket') && ist.kopf.some(([k]) => k === 'connection'))) abbruch(`ws antwort ${name}: upgrade und connection fehlen`);
+    const ergebnis = ist.grund === null ? 'weitergereicht' : 'ziel_fehler';
+    wsAntworten.push({ name, beschreibung, halter: h, erwartet: { an_harness: { art: ist.art, status: ist.status, kopf: ist.kopf, ...(ist.koerper !== undefined ? { koerper: ist.koerper } : { gesendet: ist.gesendet }) }, zeile: { ergebnis, grund: ist.grund, status: ist.status } } });
   }
 
   // Richtung Harness -> Dienst (W6): Byte fuer Byte unveraendert, keine Pruefung der Rahmen
@@ -1285,7 +1396,7 @@ function baueKopf() {
     ['ws_harness_beliebig', 'beliebiger Inhalt in Richtung Dienst, auch RSV1, Opcode 0x3, kein Maskenbit und die Marke: unveraendert, keine Pruefung', [`\xc3\x1c${MARKE}`, '\x81\x82\x00\x00\x00\x00ab']],
   ];
   const wsHarness = WSH.map(([name, beschreibung, teile]) => ({ name, beschreibung, von_harness: teile, erwartet: { an_dienst: teile.join(''), zeile: null } }));
-  const websocket = { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.3 (WebSocket) und 13.2 (Upgrade-Anfrage). Teile und Rahmen sind latin1-Text. anfragen: Bytes an das Ziel wie in kopf-anfragen.json. antworten: wie kopf-antworten.json; bei abgerissen ist gesendet alles, was vor dem Abriss an den Harness ging. von_harness: Bytes unveraendert zum Dienst, ohne Zeile. Schluessel ist die Marke, der Platzhalter ' + PLATZ + ' (beide erfunden).', marke: MARKE, platzhalter: PLATZ, anfragen: wsAnfragen, antworten: wsAntworten, von_harness: wsHarness };
+  const websocket = { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.3 (WebSocket) und 13.2 (Upgrade-Anfrage). Teile und Rahmen sind latin1-Text. anfragen: Bytes an das Ziel wie in kopf-anfragen.json. antworten: wie kopf-antworten.json, mit halter (beginn, teile, ende) statt der Bytes des Dienstes; bei abgerissen ist gesendet alles, was vor dem Ende an den Harness ging. Die Rahmen- und Sperrfaelle des Dienstes gehoeren seit dem Nachtrag 22 dem Halter-Vertrag. von_harness: Bytes unveraendert zum Dienst, ohne Zeile. Schluessel ist die Marke, der Platzhalter ' + PLATZ + ' (beide erfunden).', marke: MARKE, platzhalter: PLATZ, anfragen: wsAnfragen, antworten: wsAntworten, von_harness: wsHarness };
 
   // Zeile
   const T0 = Date.UTC(2026, 10, 20, 16, 0, 0, 0);
@@ -1419,11 +1530,11 @@ function baueKopf() {
     gegenprobe.push({ name, beschreibung, zuordnung, aufbau, erwartet: { ...ist, fundorte: funde, test: rot ? 'rot' : 'gruen' } });
   }
   return {
-    'faelle/kopf-ziele.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 12 (Betriebsart kopf-einsetzen, noch nicht gebaut). text sind die Bytes der Zielliste.', faelle: ziele },
+    'faelle/kopf-ziele.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 12 (Betriebsart kopf-einsetzen; unter Linux gebaut). text sind die Bytes der Zielliste, text_muster beschreibt eine zu grosse Liste. erwartet.start sagt, wie weit der Start kommt: bis_schritt zielliste_gut heisst, die Liste besteht und kein gebundenes Ziel braucht den Halter; bis_schritt halter heisst, der Start geht in Schritt 3 zum Halter, und ohne_halter nennt das Ende ohne erreichbaren Halter (Exit 78, mw.halter_fehlt).', faelle: ziele },
     'faelle/kopf-tunnel.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.1. sni ist der Name im TLS-Gruss des Harness (null: keiner). lage.ziele ist die Vorfuehr-Zielliste aus kopf-ziele.json.', faelle: tunnel },
-    'faelle/kopf-anfragen.json': { fassung: 1, hinweis: `Vertrag 8, Abschnitt 13.2. Anfragen im Tunnel (latin1). Schluessel aller gebundenen Ziele ist die Marke ${MARKE}, der Platzhalter ${PLATZ} (beide erfunden). zeile nennt die Felder der Protokollzeile.`, marke: MARKE, platzhalter: PLATZ, faelle: anfragen },
+    'faelle/kopf-anfragen.json': { fassung: 1, hinweis: `Vertrag 8, Abschnitt 13.2. Anfragen im Tunnel (latin1). an_ziel sind die Bytes an ein ungebundenes Ziel; an_halter ist die Zeile modell.aufruf oder modell.strom an den Halter fuer ein gebundenes Ziel (RFC 8785, id 1). Der Modellweg haelt fuer ein gebundenes Ziel keinen Wert: weder die Marke ${MARKE} noch der Platzhalter ${PLATZ} steht je in an_halter oder an_ziel (beide erfunden; die Marke ist das Geheimnis, das der Halter einsetzt). zeile nennt die Felder der Protokollzeile.`, marke: MARKE, platzhalter: PLATZ, faelle: anfragen },
     'faelle/kopf-websocket.json': websocket,
-    'faelle/kopf-antworten.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.3. ziel_antwort.laenge ist Content-Length des Ziels oder null (chunked oder bis zum Schliessen).', marke: MARKE, faelle: antworten },
+    'faelle/kopf-antworten.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.3. Ein Fall mit halter ist ein gebundenes Ziel ab Schritt I: Der Modellweg sieht nicht das Ziel, sondern die Zeilen des Halters (beginn mit status und kopf oder null, teile als latin1-Text je Zeile teil, ende null oder ein Code des Halters, upgrade durchreichen oder ablehnen). Daraus baut er die Antwort an den Harness, immer chunked, und bildet jeden Code nach Abschnitt 5.1 ab. Ein Fall mit ziel_antwort ist ein ungebundenes Ziel: dort gehen die Bytes des Dienstes durch, und ziel_antwort.laenge ist dessen Content-Length oder null (chunked oder bis zum Schliessen).', marke: MARKE, faelle: antworten },
     'faelle/kopf-zeile.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitte 8 und 13.4. zeilen: Felder der Zeile und ihre Bytes. pfade: das Feld pfad fuer eine Anfragezeile, voll ist der Admin-Schalter --protokoll-pfad-voll.', zeilen, pfade },
     'faelle/kopf-aufruf.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.5. Gilt, wo Betriebsart 2 gebaut ist (im Durchstich nur Linux); sonst gilt in aufruf.json das Feld erwartet der Faelle betriebsart_kopf_einsetzen und betriebsart_vor_form.', codes: { 'mw.ziele_ungueltig': START_CODES['mw.ziele_ungueltig'], 'mw.ca_nicht_zugelassen': START_CODES['mw.ca_nicht_zugelassen'], 'mw.ca_ungueltig': START_CODES['mw.ca_ungueltig'] }, aufruf },
     'faelle/kopf-gegenprobe.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 14. Modell der Gegenprobe E5 als Ausseentest in der VM: funde zaehlt Treffer der Marke im Einschluss; user_repos ist das Ergebnis von GET /user/repos ueber den Weiterreicher. test rot heisst: dieser Aufbau muss den Ausseentest rot machen.', marke: MARKE, faelle: gegenprobe },
@@ -1751,10 +1862,14 @@ function sucheZaehlen(werte, inhalt) {
   for (const w of werte) for (const blk of bloecke) { const k = Buffer.from(w, 'latin1'); let i = 0; for (;;) { const j = blk.indexOf(k, i); if (j < 0) break; n++; i = j + k.length; } }
   return n;
 }
-function sucheLaufen(argv, env, baumListe, zlText) {
+function sucheLaufen(argv, env, baumListe, zlText, halter = null) {
   umgebungPruefen('openai-lokal', env);
   const a = sucheAufruf(argv);
   const baum = new Map(baumListe.map((e) => [e.pfad, e]));
+  // Route Copilot ab Schritt I: ein gebundenes Ziel traegt kein Schluessel_datei mehr. Die Suche fragt je gebundenes
+  // Ziel einmal modell.suche beim Halter und summiert dessen Zaehler (Abschnitt 9a, S2, Schritt 3a). Sie kennt den
+  // Wert nicht und durchsucht selbst nichts.
+  if (a.quelle === '--zielliste') return halterSuche(a, zlText, halter ?? {});
   const werte = sucheSchluessel(a, baum, zlText);
   const z = { dateien: 0, nicht_lesbar: 0, treffer: 0, uebersprungen: 0 };
   const gesehen = new Set();
@@ -1774,6 +1889,24 @@ function sucheLaufen(argv, env, baumListe, zlText) {
   const exit = z.treffer > 0 ? 1 : (z.nicht_lesbar > 0 && !M('M-S2') ? 3 : 0);   // M-S2: nicht lesbare zaehlen als ohne Fund
   return { exit, stdout: jcs(z) + '\n', stderr: '' };
 }
+// Route Copilot: je gebundenes Ziel ein modell.suche. halter nennt je Ziel die Antwort: entweder die vier Zaehler oder
+// einen Code (dann ist das mw.schluessel_fehlt, und der Laeufer meldet E4 als offen, nie als gruen). Erreicht die Suche
+// den Halter nicht (halter.erreichbar === false), gilt dasselbe.
+function halterSuche(a, zlText, halter) {
+  let liste; try { liste = zieleLesen(zlText); } catch { throw fehler('mw.ziele_ungueltig'); }
+  const ziele = liste.map((z) => z.halter_ziel).filter((n) => n !== null);
+  if (!ziele.length) throw fehler('mw.schluessel_fehlt');
+  if (halter.erreichbar === false) throw fehler('mw.schluessel_fehlt');
+  const z = { dateien: 0, nicht_lesbar: 0, treffer: 0, uebersprungen: 0 };
+  for (const name of ziele) {
+    const an = (halter.antworten ?? {})[name];
+    if (!an || an.code) throw fehler('mw.schluessel_fehlt');
+    for (const k of Object.keys(z)) z[k] += an[k];
+  }
+  const exit = z.treffer > 0 ? 1 : (z.nicht_lesbar > 0 && !M('M-S2') ? 3 : 0);
+  return { exit, stdout: jcs(z) + '\n', stderr: '' };
+}
+
 function baueSuche() {
   const LAUF = '/srv/beispiel/lauf'; const ARB = `${LAUF}/arbeit`; const PROT = `${LAUF}/protokoll`; const ZAEHL = `${LAUF}/zaehlung`; const AUS = `${LAUF}/ausgabe/sitzung.txt`;
   const SK = `${LAUF}/schluessel`;
@@ -1791,12 +1924,15 @@ function baueSuche() {
   const mitP = (...extra) => { const m = new Map(BASIS.map((e) => [e.pfad, e])); for (const e of extra) m.set(e.pfad, e); return [...m.values()]; };
   const lokal = (...ex) => ['suche', '--schluessel-datei', KD1, ...ex];
   const ZL = (ziele) => JSON.stringify({ fassung: 1, ca_zulassung: 'zugelassen', ziele }, null, 1) + '\n';
-  const gz = (name, host, datei) => ({ name, host, port: 443, schluessel_datei: datei, kopf: 'authorization', wert_vorsatz: 'Bearer ', regeln: [{ methode: '*', pfad: '/*' }], upgrade: 'durchreichen' });
-  const uz = (name, host) => ({ name, host, port: 443, schluessel_datei: null, kopf: null, wert_vorsatz: null, regeln: [{ methode: 'POST', pfad: '/telemetry' }], upgrade: 'ablehnen' });
+  const gz = (name, host) => ({ name, host, port: 443, halter_ziel: host, regeln: [{ methode: '*', pfad: '/*' }], upgrade: 'durchreichen' });
+  const uz = (name, host) => ({ name, host, port: 443, halter_ziel: null, regeln: [{ methode: 'POST', pfad: '/telemetry' }], upgrade: 'ablehnen' });
   const ZLD = `${LAUF}/zielliste.json`;
   const cloud = (...ex) => ['suche', '--zielliste', ZLD, ...ex];
-  const ZL_ZWEI_GLEICH = ZL([gz('api-a', 'api.beispiel.test', KD2), gz('api-b', 'plan.beispiel.test', KD2), uz('telemetrie', 'telemetry.beispiel.test')]);
-  const ZL_ZWEI = ZL([gz('api-a', 'api.beispiel.test', KD2), gz('api-b', 'plan.beispiel.test', KD3)]);
+  const H1 = 'api.beispiel.test'; const H2 = 'plan.beispiel.test';
+  const ZL_EINS = ZL([gz('api-a', H1), uz('telemetrie', 'telemetry.beispiel.test')]);
+  const ZL_ZWEI = ZL([gz('api-a', H1), gz('api-b', H2)]);
+  // die Antwort des Halters je Ziel
+  const hz = (dateien, nicht_lesbar, treffer, uebersprungen) => ({ dateien, nicht_lesbar, treffer, uebersprungen });
   const ZL_NUR_UNGEBUNDEN = ZL([uz('telemetrie', 'telemetry.beispiel.test')]);
   const ZL_KAPUTT = '{"fassung":1,"ca_zulassung":"zugelassen","ziele":[]}\n';
   const lang = (n, wert, rest = 'x') => 'a'.repeat(n) + wert + rest;
@@ -1823,18 +1959,26 @@ function baueSuche() {
     ['verschachtelte_in', '--in nennt dieselben Dateien mehrfach (Ordner, Unterordner und die Datei selbst): jede Datei einmal gelesen und gezaehlt', lokal('--in', ARB, '--in', `${ARB}/unter`, '--in', `${ARB}/unter/fund.txt`),
       mitP(schl(KD1, K1), o(`${ARB}/unter`), d(`${ARB}/unter/fund.txt`, K1)), E(1, { dateien: 2, nicht_lesbar: 0, treffer: 1, uebersprungen: 0 })],
     ['schluesseldatei_unter_in', 'die Schluesseldatei selbst liegt unter einem --in: sie zaehlt als Fund, rot (keine Ausnahme per Inode, Abschnitt 9a S4)', lokal('--in', SK), mitP(schl(KD1, K1)), E(1, { dateien: 1, nicht_lesbar: 0, treffer: 1, uebersprungen: 0 })],
-    ['zielliste_gleiche_datei', 'Zielliste mit zwei gebundenen Zielen auf dieselbe Schluesseldatei und einem ungebundenen Ziel: ein Schluessel, ein Fund zaehlt einmal', cloud(...IN),
-      mitP(schl(KD2, K2), d(ZLD, ZL_ZWEI_GLEICH), d(`${ARB}/leck.txt`, `${K2}\n`)), E(1, { dateien: 5, nicht_lesbar: 0, treffer: 1, uebersprungen: 0 }), { zielliste: ZL_ZWEI_GLEICH }],
-    ['zielliste_zwei_schluessel_fund_zweiter', 'Zielliste mit zwei verschiedenen Schluesseln: nur der zweite steht im Arbeitsordner, rot', cloud(...IN),
-      mitP(schl(KD2, K2), schl(KD3, `${K3}-z`), d(`${ARB}/leck.txt`, `${K3}-z`)), E(1, { dateien: 5, nicht_lesbar: 0, treffer: 1, uebersprungen: 0 }), { zielliste: ZL_ZWEI }],
-    ['zielliste_zwei_schluessel_beide', 'beide Schluessel stehen je einmal: treffer ist die Summe, 2', cloud(...IN),
-      mitP(schl(KD2, K2), schl(KD3, K1), d(`${ARB}/a.txt`, K2), d(`${PROT}/b.txt`, K1)), E(1, { dateien: 6, nicht_lesbar: 0, treffer: 2, uebersprungen: 0 }), { zielliste: ZL_ZWEI }],
-    ['zielliste_kein_fund', 'Zielliste mit zwei Schluesseln, keiner steht irgendwo: gruen', cloud(...IN), mitP(schl(KD2, K2), schl(KD3, K1)), E(0, { dateien: 4, nicht_lesbar: 0, treffer: 0, uebersprungen: 0 }), { zielliste: ZL_ZWEI }],
-    ['platzhalter_gho', 'ein Platzhalter im gho_-Format steht im Arbeitsordner (zu kurz fuer ein Token, ausdruecklich nicht der Wert): kein Fund', cloud(...IN),
-      mitP(schl(KD2, K2), schl(KD3, K1), d(`${ARB}/umgebung.txt`, 'COPILOT_GITHUB_TOKEN=gho_platzhalter-0000\n')), E(0, { dateien: 5, nicht_lesbar: 0, treffer: 0, uebersprungen: 0 }), { zielliste: ZL_ZWEI }],
+    ['zielliste_ein_ziel_kein_fund', 'Zielliste mit einem gebundenen und einem ungebundenen Ziel: ein modell.suche, der Halter findet nichts, gruen', cloud(...IN),
+      mitP(), E(0, { dateien: 4, nicht_lesbar: 0, treffer: 0, uebersprungen: 0 }), { zielliste: ZL_EINS, halter: { antworten: { [H1]: hz(4, 0, 0, 0) } } }],
+    ['zielliste_ein_ziel_fund', 'der Halter findet seinen Schluessel einmal: rot', cloud(...IN),
+      mitP(), E(1, { dateien: 5, nicht_lesbar: 0, treffer: 1, uebersprungen: 0 }), { zielliste: ZL_EINS, halter: { antworten: { [H1]: hz(5, 0, 1, 0) } } }],
+    ['zielliste_zwei_ziele_summe', 'zwei gebundene Ziele: je ein modell.suche, und die Zaehler beider Antworten kommen in dieselbe Summe', cloud(...IN),
+      mitP(), E(1, { dateien: 9, nicht_lesbar: 1, treffer: 2, uebersprungen: 2 }), { zielliste: ZL_ZWEI, halter: { antworten: { [H1]: hz(4, 0, 1, 1), [H2]: hz(5, 1, 1, 1) } } }],
+    ['zielliste_nicht_lesbar_offen', 'der Halter konnte eine Datei nicht lesen und fand nichts: offen (Exit 3), nie gruen', cloud(...IN),
+      mitP(), E(3, { dateien: 3, nicht_lesbar: 1, treffer: 0, uebersprungen: 0 }), { zielliste: ZL_EINS, halter: { antworten: { [H1]: hz(3, 1, 0, 0) } } }],
+    ['zielliste_halter_ohne_schluessel', 'der Halter haelt zum Ziel kein Geheimnis (halter.kein_schluessel): kein Gruen', cloud(...IN),
+      mitP(), { exit: 78, code: 'mw.schluessel_fehlt' }, { zielliste: ZL_EINS, halter: { antworten: { [H1]: { code: 'halter.kein_schluessel' } } } }],
+    ['zielliste_halter_lehnt_ab', 'der Halter lehnt den Aufruf ab (halter.rolle): kein Gruen', cloud(...IN),
+      mitP(), { exit: 78, code: 'mw.schluessel_fehlt' }, { zielliste: ZL_EINS, halter: { antworten: { [H1]: { code: 'halter.rolle' } } } }],
+    ['zielliste_halter_unerreichbar', 'die Suche erreicht den Halter nicht: kein Gruen', cloud(...IN),
+      mitP(), { exit: 78, code: 'mw.schluessel_fehlt' }, { zielliste: ZL_EINS, halter: { erreichbar: false, antworten: {} } }],
+    ['zielliste_zweites_ziel_ohne_schluessel', 'das zweite Ziel hat kein Geheimnis, obwohl das erste gesucht wurde: kein Gruen', cloud(...IN),
+      mitP(), { exit: 78, code: 'mw.schluessel_fehlt' }, { zielliste: ZL_ZWEI, halter: { antworten: { [H1]: hz(4, 0, 0, 0), [H2]: { code: 'halter.kein_schluessel' } } } }],
     ['aufruf_ohne_in', 'ohne --in', lokal(), mitP(schl(KD1, K1)), { exit: 64, code: 'mw.suche_aufruf' }],
     ['aufruf_ohne_quelle', 'ohne Schluesselquelle', ['suche', ...IN], mitP(schl(KD1, K1)), { exit: 64, code: 'mw.suche_aufruf' }],
     ['aufruf_beide_quellen', 'beide Schluesselquellen', ['suche', '--schluessel-datei', KD1, '--zielliste', ZLD, ...IN], mitP(schl(KD1, K1)), { exit: 64, code: 'mw.suche_aufruf' }, { zielliste: ZL_ZWEI }],
+    ['aufruf_halter_socket', '--halter-socket gibt es nicht: der Endpunkt des Halters ist ein fester Pfad, kein Argument', cloud(...IN, '--halter-socket', '/run/user/1000/wb-halter/halter.sock'), mitP(), { exit: 64, code: 'mw.suche_aufruf' }, { zielliste: ZL_EINS }],
     ['aufruf_quelle_doppelt', '--schluessel-datei zweimal', ['suche', '--schluessel-datei', KD1, '--schluessel-datei', KD1, ...IN], mitP(schl(KD1, K1)), { exit: 64, code: 'mw.suche_aufruf' }],
     ['aufruf_relativer_in', '--in als relativer Pfad', lokal('--in', 'arbeit'), mitP(schl(KD1, K1)), { exit: 64, code: 'mw.suche_aufruf' }],
     ['aufruf_relative_quelle', '--schluessel-datei als relativer Pfad', ['suche', '--schluessel-datei', 'lokal.schluessel', ...IN], mitP(schl(KD1, K1)), { exit: 64, code: 'mw.suche_aufruf' }],
@@ -1847,10 +1991,8 @@ function baueSuche() {
     ['schluessel_datei_fehlt', 'die Schluesseldatei gibt es nicht', lokal(...IN), ohneP(mitP(), KD1), { exit: 78, code: 'mw.schluessel_fehlt' }],
     ['schluessel_verknuepfung', 'der Pfad der Schluesseldatei ist eine Verknuepfung (O_NOFOLLOW)', lokal(...IN), mitP(schl(`${SK}/echt.schluessel`, K1), v(KD1, `${SK}/echt.schluessel`)), { exit: 78, code: 'mw.schluessel_fehlt' }],
     ['schluessel_zwei_zeilen', 'die Schluesseldatei hat zwei Zeilen', lokal(...IN), mitP(d(KD1, `${K1}\n${K2}\n`, { eigen: true, modus: '0600' }), d(`${ARB}/leck.txt`, K1)), { exit: 78, code: 'mw.schluessel_fehlt' }],
-    ['zielliste_zweite_datei_schlecht', 'Zielliste mit zwei Schluesseln, der zweite hat Modus 0644: keine Suche, obwohl der erste im Arbeitsordner steht', cloud(...IN),
-      mitP(schl(KD2, K2), schl(KD3, K1, { modus: '0644' }), d(`${ARB}/leck.txt`, K2)), { exit: 78, code: 'mw.schluessel_fehlt' }, { zielliste: ZL_ZWEI }],
-    ['zielliste_ungueltig', 'die Zielliste ist ungueltig (keine Ziele): Abschnitt 12', cloud(...IN), mitP(schl(KD2, K2)), { exit: 78, code: 'mw.ziele_ungueltig' }, { zielliste: ZL_KAPUTT }],
-    ['zielliste_ohne_gebundenes_ziel', 'gueltige Zielliste ohne gebundenes Ziel: nichts zu suchen, kein Gruen', cloud(...IN), mitP(schl(KD2, K2)), { exit: 78, code: 'mw.schluessel_fehlt' }, { zielliste: ZL_NUR_UNGEBUNDEN }],
+    ['zielliste_ungueltig', 'die Zielliste ist ungueltig (keine Ziele): Abschnitt 12', cloud(...IN), mitP(), { exit: 78, code: 'mw.ziele_ungueltig' }, { zielliste: ZL_KAPUTT }],
+    ['zielliste_ohne_gebundenes_ziel', 'gueltige Zielliste ohne gebundenes Ziel: nichts zu suchen, kein Gruen', cloud(...IN), mitP(), { exit: 78, code: 'mw.schluessel_fehlt' }, { zielliste: ZL_NUR_UNGEBUNDEN }],
     ['umgebung_ssl_cert_file', 'Stufe 0 gilt auch hier: SSL_CERT_FILE gesetzt, der Aufruf ist sonst gueltig', lokal(...IN), mitP(schl(KD1, K1)), { exit: 78, code: 'mw.umgebung_unsicher' }, { umgebung: { SSL_CERT_FILE: '/srv/beispiel/openssl/x' } }],
     ['umgebung_vor_aufruf', 'Stufe 0 vor dem Aufruf: ungueltiger Aufruf und OPENSSL_CONF leer gesetzt ergeben mw.umgebung_unsicher', ['suche'], mitP(schl(KD1, K1)), { exit: 78, code: 'mw.umgebung_unsicher' }, { umgebung: { OPENSSL_CONF: '' } }],
     ['umgebung_andere', 'andere Variablen stoeren nicht', lokal(...IN), mitP(schl(KD1, K1)), E(0, { dateien: 4, nicht_lesbar: 0, treffer: 0, uebersprungen: 0 }), { umgebung: { PATH: '/usr/bin', SSL_CERT_FILES: '/srv/beispiel/x' } }],
@@ -1858,15 +2000,16 @@ function baueSuche() {
   const faelle = [];
   for (const [name, beschreibung, argv, baum, erw, extra = {}] of F) {
     const umgebung = extra.umgebung ?? {};
-    let ist; try { ist = sucheLaufen(argv, umgebung, baum, extra.zielliste ?? ''); } catch (x) {
+    let ist; try { ist = sucheLaufen(argv, umgebung, baum, extra.zielliste ?? '', extra.halter ?? null); } catch (x) {
       if (!(x instanceof Fehler)) throw x;
       ist = { exit: SU_CODE[x.message][0], stdout: '', stderr: `${x.message}: ${SU_CODE[x.message][1]}\n` };
     }
     const soll = erw.code ? { exit: erw.exit, stdout: '', stderr: `${erw.code}: ${SU_CODE[erw.code][1]}\n` } : { exit: erw.exit, stdout: jcs({ dateien: erw.dateien, nicht_lesbar: erw.nicht_lesbar, treffer: erw.treffer, uebersprungen: erw.uebersprungen }) + '\n', stderr: '' };
     if (ist.exit !== soll.exit || ist.stdout !== soll.stdout || ist.stderr !== soll.stderr) abbruch(`suche ${name}: Modell ${JSON.stringify(ist)} gegen ${JSON.stringify(soll)}`);
-    faelle.push({ name, beschreibung, argv, umgebung, baum, ...(extra.zielliste ? { zielliste: { pfad: ZLD, inhalt: extra.zielliste } } : {}), erwartet: soll });
+    faelle.push({ name, beschreibung, argv, umgebung, baum, ...(extra.zielliste ? { zielliste: { pfad: ZLD, inhalt: extra.zielliste } } : {}),
+      ...(extra.halter ? { halter: { erreichbar: extra.halter.erreichbar !== false, antworten: extra.halter.antworten } } : {}), erwartet: soll });
   }
-  return { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 9a (Suche nach dem Schluessel, Nachtrag 18). argv ist der Aufruf des Programms ab dem Unterbefehl. baum ist der Dateibaum der Probe als Liste: pfad, art (datei, ordner, verknuepfung, fifo), inhalt (latin1-Text, nur datei), lesbar (false: nicht lesbar), ziel (nur verknuepfung); eigen und modus gelten fuer Schluesseldateien (Vorgabe: eigene Datei, 0600). Ordner stehen als eigene Eintraege. zielliste ist die Datei der Route Copilot (pfad und inhalt). erwartet: exit, stdout (eine Zeile RFC 8785 mit dateien, nicht_lesbar, treffer, uebersprungen, oder leer) und stderr (leer oder die feste Zeile mit Code). Die Schluessel sind erfundene Testwerte und nicht tokenfoermig; der Platzhalter im gho_-Format ist bewusst kuerzer als ein Token. Hinweis fuer den Bau: Der Fall fund_lesegrenze_4096 und die Grenzen bei kleinem Puffer gehoeren in dessen Tests.', faelle };
+  return { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 9a (Suche nach dem Schluessel, Nachtrag 18). argv ist der Aufruf des Programms ab dem Unterbefehl. baum ist der Dateibaum der Probe als Liste: pfad, art (datei, ordner, verknuepfung, fifo), inhalt (latin1-Text, nur datei), lesbar (false: nicht lesbar), ziel (nur verknuepfung); eigen und modus gelten fuer Schluesseldateien (Vorgabe: eigene Datei, 0600). Ordner stehen als eigene Eintraege. zielliste ist die Datei der Route Copilot (pfad und inhalt). halter gilt nur fuer die Route Copilot: erreichbar sagt, ob die Suche den Halter erreicht, und antworten nennt je halter_ziel die Antwort auf modell.suche, entweder die vier Zaehler oder einen code. Die Suche kennt den Wert eines gebundenen Ziels nicht und durchsucht fuer ein solches Ziel selbst nichts; ihre Zeile ist die Summe der Antworten. erwartet: exit, stdout (eine Zeile RFC 8785 mit dateien, nicht_lesbar, treffer, uebersprungen, oder leer) und stderr (leer oder die feste Zeile mit Code). Die Schluessel sind erfundene Testwerte und nicht tokenfoermig; der Platzhalter im gho_-Format ist bewusst kuerzer als ein Token. Hinweis fuer den Bau: Der Fall fund_lesegrenze_4096 und die Grenzen bei kleinem Puffer gehoeren in dessen Tests.', faelle };
 }
 
 // --- schreiben oder vergleichen ---

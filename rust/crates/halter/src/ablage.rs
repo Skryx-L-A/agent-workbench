@@ -34,8 +34,12 @@ pub struct Ablage {
     konto: u32,
 }
 
+// Flags are joined with `union`: `|` and `^` give the same value for disjoint flags, so that mutant could never fail.
 fn ordner_flags() -> OFlags {
-    OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC
+    OFlags::RDONLY
+        .union(OFlags::DIRECTORY)
+        .union(OFlags::NOFOLLOW)
+        .union(OFlags::CLOEXEC)
 }
 
 /// Field 6 (the home) of the entry of `uid` in a file of the form of `/etc/passwd`.
@@ -127,15 +131,15 @@ impl Ablage {
         let fd = openat(
             &ordner,
             name,
-            OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::CLOEXEC | OFlags::NONBLOCK,
+            OFlags::RDONLY
+                .union(OFlags::NOFOLLOW)
+                .union(OFlags::CLOEXEC)
+                .union(OFlags::NONBLOCK),
             Mode::empty(),
         )
         .ok()?;
         let st = fstat(&fd).ok()?;
-        if FileType::from_raw_mode(st.st_mode) != FileType::RegularFile
-            || st.st_uid != self.konto
-            || st.st_mode & 0o7777 != 0o600
-        {
+        if !datei_regel(st.st_mode, st.st_uid, self.konto) {
             return None;
         }
         let mut inhalt = Vec::new();
@@ -156,6 +160,15 @@ impl Ablage {
             .filter_map(|n| self.lesen(&n).map(|w| (n, w)))
             .collect()
     }
+}
+
+/// The rule of a file of the store after `fstat`: a regular file of the account `konto` with exactly 0600. A pure
+/// function, so that a test can give every kind of file (the read after it fails for every other kind anyway).
+#[must_use]
+pub fn datei_regel(modus: rustix::fs::RawMode, uid: u32, konto: u32) -> bool {
+    FileType::from_raw_mode(modus) == FileType::RegularFile
+        && uid == konto
+        && modus & 0o7777 == 0o600
 }
 
 /// The value of the content of a file of the store: exactly one LF at the end, every byte before it in `\x21`..`\x7e`.
@@ -180,6 +193,22 @@ mod tests {
         assert_eq!(wert_aus_datei(b"a c\n"), None);
         assert_eq!(wert_aus_datei(b"\n"), None);
         assert_eq!(wert_aus_datei(b"a\xc3\xa4\n"), None);
+    }
+
+    #[test]
+    fn regel_der_datei_mit_art_eigner_und_modus() {
+        assert!(datei_regel(0o100_600, 1000, 1000));
+        // another kind with 0600
+        for art in [0o040_000, 0o010_000, 0o140_000, 0o020_000, 0o120_000] {
+            assert!(!datei_regel(art | 0o600, 1000, 1000), "{art:o}");
+        }
+        // another owner
+        assert!(!datei_regel(0o100_600, 1001, 1000));
+        assert!(!datei_regel(0o100_600, 0, 1000));
+        // another mode, also with a bit above 0777
+        for m in [0o644, 0o400, 0o700, 0o4600, 0o1600, 0o000] {
+            assert!(!datei_regel(0o100_000 | m, 1000, 1000), "{m:o}");
+        }
     }
 
     #[test]

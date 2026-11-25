@@ -12,7 +12,7 @@ den Messweg absichtlich nichts sehen (Fehler der Attrappen `e4-cloud-env-blind`,
    /dev/null). Dieselbe Suche zaehlt den PLATZHALTER (`kontrolle_proc`, Messwert im Bericht). Erwartet >= 1, sonst fester Code
    `e4-cloud.kontrolle_blind`. Im knappen Lauf ist sie eine weitere Zeile im einen Buendel (jetzt 11 Zeilen), keine Eingabe.
 4. E4-lokal: Die Umgebungssuche zaehlt den NAMEN `PI_OFFLINE` (nie einen Wert), den das Programm im Harness `pi` immer setzt
-   (Vertrag 6, `rust/spec/VERTRAEGE.md`). Erwartet >= 1 (`kontrolle_lokal_env`), sonst fester Code `e4-lokal.kontrolle_blind`.
+   (Vertrag 6, `rust/spec/start/README.md`). Erwartet >= 1 (`kontrolle_lokal_env`), sonst fester Code `e4-lokal.kontrolle_blind`.
 Die Gegenprobe mit dem alten Laeufer: dieselben Tests muessen dort rot werden.
 
 Nur Standardbibliothek. Aufruf: python3 -I -B test_positivkontrollen.py   (startet die Attrappen, dauert einige Minuten: ueber die Tafel)

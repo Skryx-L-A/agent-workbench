@@ -408,7 +408,8 @@ fn a_cloud_route_without_a_key_file_starts_only_without_bound_targets() {
     assert_eq!(lauf.exit(), Some(0), "{}", lauf.stderr());
     let liste =
         std::fs::read_to_string(w.zustand.join("sitzungen/s-1.zielliste.json")).expect("list");
-    assert!(!liste.contains("\"schluessel_datei\":\""), "{liste}");
+    assert!(!liste.contains("schluessel_datei"), "{liste}");
+    assert!(liste.contains("\"halter_ziel\":null"), "{liste}");
 }
 
 /// One inherited descriptor right below the descriptor of the listing is found too.

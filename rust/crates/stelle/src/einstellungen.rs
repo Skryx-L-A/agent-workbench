@@ -1,4 +1,4 @@
-//! The settings file (contract 2, `rust/spec/VERTRAEGE.md`) with the block `mcp` of contract 6,
+//! The settings file (contract 2, `rust/spec/einstellungen/README.md`) with the block `mcp` of contract 6,
 //! section 2.
 //!
 //! The crate `einstellungen` reads the file and checks every stage. This module keeps the typed result of the

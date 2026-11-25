@@ -23,6 +23,109 @@ use modellweg::schluessel;
 use modellweg::ziel::{Verbinder, Verbindung, Ziel};
 use serde_json::Value;
 
+/// A stand-in of the holder: a Unix socket in a folder 0700, the socket 0600 of the own uid, so the check of the
+/// counterparty of the model path runs against it as against the real one. It takes one request per connection, answers
+/// it with scripted lines (each with the `id` of the request) and keeps every line it received.
+///
+/// It is the analogue of [`Attrappe`] for the holder path; the whole holder itself is driven in `halterweg.rs`.
+pub struct Halterattrappe {
+    pfad: PathBuf,
+    antwort: Vec<String>,
+    empfangen: Arc<Mutex<Vec<String>>>,
+}
+
+impl Halterattrappe {
+    /// A stand-in in the folder `halter` of `w`. `antwort` are the lines it sends per request, with `<ID>` where the
+    /// `id` of the request goes.
+    pub fn neu(w: &Wegwerf, antwort: Vec<String>) -> Self {
+        let ordner = w.pfad("halter");
+        fs::create_dir_all(&ordner).expect("holder folder");
+        fs::set_permissions(&ordner, fs::Permissions::from_mode(0o700)).expect("chmod");
+        let pfad = ordner.join("halter.sock");
+        let _ = fs::remove_file(&pfad);
+        let horcher = std::os::unix::net::UnixListener::bind(&pfad).expect("bind");
+        fs::set_permissions(&pfad, fs::Permissions::from_mode(0o600)).expect("chmod");
+        let empfangen = Arc::new(Mutex::new(Vec::new()));
+        let e = Arc::clone(&empfangen);
+        let a = antwort.clone();
+        std::thread::spawn(move || {
+            for strom in horcher.incoming() {
+                let Ok(mut strom) = strom else { break };
+                let e = Arc::clone(&e);
+                let a = a.clone();
+                std::thread::spawn(move || {
+                    let _ = strom.set_read_timeout(Some(FRIST));
+                    let mut leser = BufReader::new(strom.try_clone().expect("clone"));
+                    let mut erste = true;
+                    loop {
+                        let mut zeile = String::new();
+                        match leser.read_line(&mut zeile) {
+                            Ok(0) | Err(_) => break,
+                            Ok(_) => {}
+                        }
+                        let zeile = zeile.trim_end_matches('\n').to_owned();
+                        if zeile.is_empty() {
+                            break;
+                        }
+                        let id = serde_json::from_str::<Value>(&zeile)
+                            .ok()
+                            .and_then(|v| v.get("id").map(ToString::to_string))
+                            .unwrap_or_else(|| "1".to_owned());
+                        let ende = zeile.contains("\"op\":\"strom.ende\"");
+                        e.lock().expect("lock").push(zeile);
+                        if erste {
+                            erste = false;
+                            for z in &a {
+                                let z = z.replace("<ID>", &id);
+                                if strom.write_all(z.as_bytes()).is_err()
+                                    || strom.write_all(b"\n").is_err()
+                                {
+                                    return;
+                                }
+                            }
+                            let _ = strom.flush();
+                        } else if ende {
+                            // The holder answers `strom.ende` of the bridge with his own `ende` (holder contract,
+                            // section 4): after it the connection takes requests again.
+                            let z = format!(r#"{{"art":"ende","fassung":1,"id":{id},"ok":true}}"#);
+                            if strom.write_all(z.as_bytes()).is_err()
+                                || strom.write_all(b"\n").is_err()
+                            {
+                                return;
+                            }
+                            let _ = strom.flush();
+                        }
+                    }
+                });
+            }
+        });
+        Self {
+            pfad,
+            antwort,
+            empfangen,
+        }
+    }
+
+    /// A stand-in that answers nothing at all (a holder that keeps the connection and stays silent).
+    pub fn stumm(w: &Wegwerf) -> Self {
+        Self::neu(w, Vec::new())
+    }
+
+    pub fn pfad(&self) -> PathBuf {
+        self.pfad.clone()
+    }
+
+    /// Every line the stand-in received, in order.
+    pub fn empfangen(&self) -> Vec<String> {
+        self.empfangen.lock().expect("lock").clone()
+    }
+
+    /// The lines it answers with.
+    pub fn antwort(&self) -> &[String] {
+        &self.antwort
+    }
+}
+
 /// The invented test key of the cases.
 pub const SCHLUESSEL: &str = "mw-testschluessel-7f3a9c0e5b2d4618";
 /// The model of the cases.

@@ -1,24 +1,24 @@
 {
  "fassung": 1,
- "hinweis": "Vertrag 8, Abschnitt 13.3 (WebSocket) und 13.2 (Upgrade-Anfrage). Teile und Rahmen sind latin1-Text. anfragen: Bytes an das Ziel wie in kopf-anfragen.json. antworten: wie kopf-antworten.json; bei abgerissen ist gesendet alles, was vor dem Abriss an den Harness ging. von_harness: Bytes unveraendert zum Dienst, ohne Zeile. Schluessel ist die Marke, der Platzhalter wb-platzhalter-0000 (beide erfunden).",
+ "hinweis": "Vertrag 8, Abschnitt 13.3 (WebSocket) und 13.2 (Upgrade-Anfrage). Teile und Rahmen sind latin1-Text. anfragen: Bytes an das Ziel wie in kopf-anfragen.json. antworten: wie kopf-antworten.json, mit halter (beginn, teile, ende) statt der Bytes des Dienstes; bei abgerissen ist gesendet alles, was vor dem Ende an den Harness ging. Die Rahmen- und Sperrfaelle des Dienstes gehoeren seit dem Nachtrag 22 dem Halter-Vertrag. von_harness: Bytes unveraendert zum Dienst, ohne Zeile. Schluessel ist die Marke, der Platzhalter wb-platzhalter-0000 (beide erfunden).",
  "marke": "wb-marke-echtes-token-7d1c0e",
  "platzhalter": "wb-platzhalter-0000",
  "anfragen": [
   {
    "name": "ws_erweiterung_entfernt",
-   "beschreibung": "Upgrade-Anfrage mit Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits an das gebundene Ziel: geht ohne diesen Kopf hinaus, Schluessel eingesetzt (W1)",
+   "beschreibung": "Upgrade-Anfrage mit Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits an das gebundene Ziel: die Zeile modell.strom traegt diesen Kopf nicht (W1)",
    "ziel": "copilot-plan",
    "anfrage": "GET /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nSec-WebSocket-Extensions: permessage-deflate; client_max_window_bits\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
    "erwartet": {
     "ziel_beruehrt": true,
-    "an_ziel": "GET /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\naccept-encoding: identity\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "an_halter": "{\"abfrage\":null,\"fassung\":1,\"id\":1,\"kopf\":{\"accept\":\"application/json\",\"copilot-harness-id\":\"h-1\",\"copilot-integration-id\":\"copilot-developer-cli\",\"editor-version\":\"copilot/1.0.88\",\"openai-intent\":\"conversation-agent\",\"runtime-client-version\":\"1\",\"sec-websocket-key\":\"dGhlIHNhbXBsZSBub25jZQ==\",\"sec-websocket-version\":\"13\",\"user-agent\":\"copilot/1.0.88\",\"x-client-machine-id\":\"m-1\",\"x-copilot-client-exp-assignment-context\":\"c-1\",\"x-copilot-exp-flight-names\":\"f-1\",\"x-github-api-version\":\"2025-05-01\",\"x-initiator\":\"user\",\"x-interaction-id\":\"i-1\"},\"op\":\"modell.strom\",\"pfad\":\"/responses\",\"ziel\":\"api.individual.githubcopilot.com\"}",
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
      "ziel": "copilot-plan",
      "methode": "GET",
      "pfadregel": "/*",
-     "kopf": "ersetzt",
+     "kopf": "halter",
      "pfad": "/responses",
      "host": "api.individual.githubcopilot.com"
     }
@@ -31,34 +31,34 @@
    "anfrage": "GET /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nSEC-WEBSOCKET-EXTENSIONS: x-webkit-deflate-frame\r\nsec-websocket-extensions: permessage-deflate\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
    "erwartet": {
     "ziel_beruehrt": true,
-    "an_ziel": "GET /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\naccept-encoding: identity\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "an_halter": "{\"abfrage\":null,\"fassung\":1,\"id\":1,\"kopf\":{\"accept\":\"application/json\",\"copilot-harness-id\":\"h-1\",\"copilot-integration-id\":\"copilot-developer-cli\",\"editor-version\":\"copilot/1.0.88\",\"openai-intent\":\"conversation-agent\",\"runtime-client-version\":\"1\",\"sec-websocket-key\":\"dGhlIHNhbXBsZSBub25jZQ==\",\"sec-websocket-version\":\"13\",\"user-agent\":\"copilot/1.0.88\",\"x-client-machine-id\":\"m-1\",\"x-copilot-client-exp-assignment-context\":\"c-1\",\"x-copilot-exp-flight-names\":\"f-1\",\"x-github-api-version\":\"2025-05-01\",\"x-initiator\":\"user\",\"x-interaction-id\":\"i-1\"},\"op\":\"modell.strom\",\"pfad\":\"/responses\",\"ziel\":\"api.individual.githubcopilot.com\"}",
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
      "ziel": "copilot-plan",
      "methode": "GET",
      "pfadregel": "/*",
-     "kopf": "ersetzt",
+     "kopf": "halter",
      "pfad": "/responses",
      "host": "api.individual.githubcopilot.com"
     }
    }
   },
   {
-   "name": "ws_anfrage_tausch",
-   "beschreibung": "Upgrade-Anfrage ohne Erweiterung: der Platzhalter wird gegen die Marke getauscht, Upgrade und Connection bleiben, kein connection: close (Kopf-Tausch in der Upgrade-Anfrage)",
+   "name": "ws_anfrage_an_halter",
+   "beschreibung": "Upgrade-Anfrage ohne Erweiterung: sie geht als modell.strom an den Halter, ohne methode, ohne Koerper, ohne upgrade und ohne connection; kein Wert geht mit",
    "ziel": "copilot-plan",
    "anfrage": "GET /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\naccept-encoding: gzip, br\r\nauthorization: Bearer wb-platzhalter-0000\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
    "erwartet": {
     "ziel_beruehrt": true,
-    "an_ziel": "GET /responses HTTP/1.1\r\nHost: api.individual.githubcopilot.com\r\naccept: application/json\r\ncopilot-harness-id: h-1\r\ncopilot-integration-id: copilot-developer-cli\r\neditor-version: copilot/1.0.88\r\nopenai-intent: conversation-agent\r\nruntime-client-version: 1\r\nuser-agent: copilot/1.0.88\r\nx-client-machine-id: m-1\r\nx-copilot-client-exp-assignment-context: c-1\r\nx-copilot-exp-flight-names: f-1\r\nx-github-api-version: 2025-05-01\r\nx-initiator: user\r\nx-interaction-id: i-1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\naccept-encoding: identity\r\nauthorization: Bearer wb-marke-echtes-token-7d1c0e\r\n\r\n",
+    "an_halter": "{\"abfrage\":null,\"fassung\":1,\"id\":1,\"kopf\":{\"accept\":\"application/json\",\"copilot-harness-id\":\"h-1\",\"copilot-integration-id\":\"copilot-developer-cli\",\"editor-version\":\"copilot/1.0.88\",\"openai-intent\":\"conversation-agent\",\"runtime-client-version\":\"1\",\"sec-websocket-key\":\"dGhlIHNhbXBsZSBub25jZQ==\",\"sec-websocket-version\":\"13\",\"user-agent\":\"copilot/1.0.88\",\"x-client-machine-id\":\"m-1\",\"x-copilot-client-exp-assignment-context\":\"c-1\",\"x-copilot-exp-flight-names\":\"f-1\",\"x-github-api-version\":\"2025-05-01\",\"x-initiator\":\"user\",\"x-interaction-id\":\"i-1\"},\"op\":\"modell.strom\",\"pfad\":\"/responses\",\"ziel\":\"api.individual.githubcopilot.com\"}",
     "zeile": {
      "ergebnis": "weitergereicht",
      "grund": null,
      "ziel": "copilot-plan",
      "methode": "GET",
      "pfadregel": "/*",
-     "kopf": "ersetzt",
+     "kopf": "halter",
      "pfad": "/responses",
      "host": "api.individual.githubcopilot.com"
     }
@@ -67,893 +67,120 @@
  ],
  "antworten": [
   {
-   "name": "ws_erweiterung_101",
-   "beschreibung": "die 101 nennt Sec-WebSocket-Extensions: permessage-deflate: statt der 101 kommt 502 mw.antwort_komprimiert, nichts vom Strom geht hinaus (W2)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ],
-     [
-      "Sec-WebSocket-Extensions",
-      "permessage-deflate"
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "\u0002ok"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "ersetzt",
-     "status": 502,
-     "kopf": [
-      [
-       "content-type",
-       "application/json"
-      ],
-      [
-       "content-length",
-       "75"
-      ]
-     ],
-     "koerper": "{\"error\":{\"code\":\"mw.antwort_komprimiert\",\"message\":\"Antwort komprimiert\"}}"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.antwort_komprimiert",
-     "status": 502
-    }
-   }
-  },
-  {
-   "name": "ws_erweiterung_101_schreibweise",
-   "beschreibung": "andere Schreibweise und anderer Wert der Erweiterung in der 101: ebenso 502 (W2)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ],
-     [
-      "sec-websocket-extensions",
-      "x-webkit-deflate-frame"
-     ]
-    ],
-    "laenge": null,
-    "teile": []
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "ersetzt",
-     "status": 502,
-     "kopf": [
-      [
-       "content-type",
-       "application/json"
-      ],
-      [
-       "content-length",
-       "75"
-      ]
-     ],
-     "koerper": "{\"error\":{\"code\":\"mw.antwort_komprimiert\",\"message\":\"Antwort komprimiert\"}}"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.antwort_komprimiert",
-     "status": 502
-    }
-   }
-  },
-  {
-   "name": "ws_marke_geteilt",
-   "beschreibung": "die Marke steht in zwei Teilen einer Textnachricht (erster Rahmen FIN=0, Fortfuehrung FIN=1): Abriss mw.leck_gesperrt; vom ersten Rahmen ging nur der Kopf hinaus (W3)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "\u0001\u0010xxwb-marke-echte",
-     "\u000es-token-7d1c0e"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
+   "name": "ws_strom_ein_teil",
+   "beschreibung": "eine Zeile teil mit einem ganzen Textrahmen: die Bytes gehen unveraendert an den Harness",
+   "halter": {
+    "beginn": {
      "status": 101,
      "kopf": [
       [
-       "Upgrade",
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ]
+     ]
+    },
+    "upgrade": "durchreichen",
+    "teile": [
+     "\u0005Hallo"
+    ],
+    "ende": null
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ],
+      [
+       "upgrade",
        "websocket"
       ],
       [
-       "Connection",
+       "connection",
        "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
       ]
      ],
-     "gesendet": "\u0001\u0010"
+     "koerper": "\u0005Hallo"
     },
     "zeile": {
-     "ergebnis": "leck_gesperrt",
-     "grund": "mw.leck_gesperrt",
+     "ergebnis": "weitergereicht",
+     "grund": null,
      "status": 101
     }
    }
   },
   {
-   "name": "ws_marke_geteilt_ping",
-   "beschreibung": "dasselbe mit einem Ping zwischen den beiden Teilen und einem Schnitt mitten im zweiten Rahmen: Abriss, der Ping wartete hinter den zurueckgehaltenen Bytes (W3)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+   "name": "ws_strom_mehrere_teile",
+   "beschreibung": "mehrere Zeilen teil: die Bytes gehen in ihrer Reihenfolge hinaus, auch wenn ein Rahmen ueber zwei Zeilen liegt",
+   "halter": {
+    "beginn": {
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ]
      ]
-    ],
-    "laenge": null,
+    },
+    "upgrade": "durchreichen",
     "teile": [
-     "\u0001\u0010xxwb-marke-echte",
+     "\u0001\u0002",
+     "ab",
+     "\u0002cd"
+    ],
+    "ende": null
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "antwort",
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ],
+      [
+       "upgrade",
+       "websocket"
+      ],
+      [
+       "connection",
+       "Upgrade"
+      ]
+     ],
+     "koerper": "\u0001\u0002ab\u0002cd"
+    },
+    "zeile": {
+     "ergebnis": "weitergereicht",
+     "grund": null,
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_strom_steuer_dazwischen",
+   "beschreibung": "Ping und Close zwischen den Teilen einer Nachricht: unveraendert durch, der Modellweg liest die Rahmen nicht",
+   "halter": {
+    "beginn": {
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ]
+     ]
+    },
+    "upgrade": "durchreichen",
+    "teile": [
+     "\u0001\u0002ab",
      "\u0001p",
-     "\u000es-t",
-     "oken-7d1c0e"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "\u0001\u0010"
-    },
-    "zeile": {
-     "ergebnis": "leck_gesperrt",
-     "grund": "mw.leck_gesperrt",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_marke_im_ping",
-   "beschreibung": "die ganze Marke in einem Ping: Abriss; vom Rahmen davor ging nur alles ausser den letzten 27 Nutzdaten-Bytes hinaus (W3)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
+     "\u0002cd",
+     "\u0002\u0003è"
     ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "\u001cwb-marke-echtes-token-7d1c0e"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "(aaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "leck_gesperrt",
-     "grund": "mw.leck_gesperrt",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_marke_im_close",
-   "beschreibung": "die ganze Marke im Grund eines Close-Rahmens: Abriss (W3, jeder Steuerrahmen fuer sich)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "\u001e\u0003èwb-marke-echtes-token-7d1c0e"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "(aaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "leck_gesperrt",
-     "grund": "mw.leck_gesperrt",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_rsv1",
-   "beschreibung": "ein Rahmen des Dienstes mit gesetztem RSV1: Abriss mw.antwort_komprimiert (W4)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "Á\u0002ab"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "(aaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.antwort_komprimiert",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_rsv2",
-   "beschreibung": "RSV2: Abriss mw.antwort_komprimiert (W4)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "¡\u0002ab"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "(aaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.antwort_komprimiert",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_rsv3",
-   "beschreibung": "RSV3: Abriss mw.antwort_komprimiert (W4)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "\u0002ab"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "(aaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.antwort_komprimiert",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_maske",
-   "beschreibung": "ein Rahmen des Dienstes mit gesetztem Maskenbit: Abriss mw.ziel_nicht_erreichbar (W4)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "\u0001\u0002\u0003\u0004ab"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "(aaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.ziel_nicht_erreichbar",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_opcode_3",
-   "beschreibung": "unbekannter Opcode 0x3: Abriss mw.ziel_nicht_erreichbar (W4)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "\u0001a"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "(aaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.ziel_nicht_erreichbar",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_laenge_zu_gross",
-   "beschreibung": "Laenge 33554433 in der 127-Form: Abriss mw.ziel_nicht_erreichbar, schon beim Kopf (W4)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "\u0000\u0000\u0000\u0000\u0002\u0000\u0000\u0001"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "(aaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.ziel_nicht_erreichbar",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_ping_fin0",
-   "beschreibung": "ein Ping mit FIN=0: Abriss mw.ziel_nicht_erreichbar (Nachtrag 2)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "\t\u0001p"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "(aaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.ziel_nicht_erreichbar",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_ping_laenge_126",
-   "beschreibung": "ein Ping mit der Laenge 126: Abriss mw.ziel_nicht_erreichbar (Nachtrag 2)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "~\u0000~pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "(aaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.ziel_nicht_erreichbar",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_fortsetzung_ohne_anfang",
-   "beschreibung": "eine Fortsetzung ohne offene geteilte Nachricht: Abriss mw.ziel_nicht_erreichbar (Nachtrag 2)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "\u0002ab"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "(aaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.ziel_nicht_erreichbar",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_text_in_geteilter",
-   "beschreibung": "ein neuer Textrahmen, waehrend eine geteilte Nachricht offen ist: Abriss mw.ziel_nicht_erreichbar (Nachtrag 2)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "\u0001(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "\u0002cd"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "abgerissen",
-     "status": 101,
-     "kopf": [
-      [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-      ]
-     ],
-     "gesendet": "\u0001(aaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "ziel_fehler",
-     "grund": "mw.ziel_nicht_erreichbar",
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_abgeschnitten",
-   "beschreibung": "der Rahmen am Ende der Verbindung ist abgeschnitten (Laenge 10, nur 4 Bytes da): alles geht hinaus, was die Sperre gesehen hat, kein Abriss (Nachtrag 2)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     "\nabcd"
-    ]
+    "ende": null
    },
    "erwartet": {
     "an_harness": {
@@ -961,19 +188,19 @@
      "status": 101,
      "kopf": [
       [
-       "Upgrade",
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ],
+      [
+       "upgrade",
        "websocket"
       ],
       [
-       "Connection",
+       "connection",
        "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
       ]
      ],
-     "koerper": "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nabcd"
+     "koerper": "\u0001\u0002ab\u0001p\u0002cd\u0002\u0003è"
     },
     "zeile": {
      "ergebnis": "weitergereicht",
@@ -983,85 +210,24 @@
    }
   },
   {
-   "name": "ws_abgeschnitten_kopf",
-   "beschreibung": "das Ende der Verbindung mitten im Rahmenkopf (nur das erste Byte da): alles geht hinaus, kein Abriss (Nachtrag 2)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-     ""
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "antwort",
+   "name": "ws_strom_laengen_126_127",
+   "beschreibung": "Rahmen in der 126- und der 127-Laengenform: unveraendert durch",
+   "halter": {
+    "beginn": {
      "status": 101,
      "kopf": [
       [
-       "Upgrade",
-       "websocket"
-      ],
-      [
-       "Connection",
-       "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
+       "sec-websocket-accept",
        "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
       ]
-     ],
-     "koerper": "(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-    },
-    "zeile": {
-     "ergebnis": "weitergereicht",
-     "grund": null,
-     "status": 101
-    }
-   }
-  },
-  {
-   "name": "ws_laengen_126_127",
-   "beschreibung": "Rahmen in der 126- und der 127-Laengenform ohne Marke: unveraendert durch, die Laenge ist richtig gelesen (W3)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
      ]
-    ],
-    "laenge": null,
+    },
+    "upgrade": "durchreichen",
     "teile": [
      "~\u0000Èaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
      "\u0000\u0000\u0000\u0000\u0000\u0000\u0001,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-    ]
+    ],
+    "ende": null
    },
    "erwartet": {
     "an_harness": {
@@ -1069,16 +235,16 @@
      "status": 101,
      "kopf": [
       [
-       "Upgrade",
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ],
+      [
+       "upgrade",
        "websocket"
       ],
       [
-       "Connection",
+       "connection",
        "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
       ]
      ],
      "koerper": "~\u0000Èaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u0000\u0000\u0000\u0000\u0000\u0000\u0001,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
@@ -1091,140 +257,191 @@
    }
   },
   {
-   "name": "ws_praefix_am_ende",
-   "beschreibung": "ein Praefix der Marke am Ende eines Rahmens, danach Ende der Verbindung ohne den Rest: alle Bytes kommen an, nichts bleibt zurueck (W3)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "\u001dokwb-marke-echtes-token-7d1c0"
-    ]
+   "name": "ws_strom_erweiterung_statt_101",
+   "beschreibung": "die 101 des Ziels traegt eine Erweiterung: der Halter sendet keine 101, sondern halter.ziel_komprimiert; der Modellweg antwortet 502 mw.antwort_komprimiert, und kein Byte des Stroms geht hinaus",
+   "halter": {
+    "beginn": null,
+    "upgrade": "durchreichen",
+    "teile": [],
+    "ende": "halter.ziel_komprimiert"
    },
    "erwartet": {
     "an_harness": {
-     "art": "antwort",
+     "art": "ersetzt",
+     "status": 502,
+     "kopf": [
+      [
+       "content-type",
+       "application/json"
+      ],
+      [
+       "content-length",
+       "75"
+      ]
+     ],
+     "koerper": "{\"error\":{\"code\":\"mw.antwort_komprimiert\",\"message\":\"Antwort komprimiert\"}}"
+    },
+    "zeile": {
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.antwort_komprimiert",
+     "status": 502
+    }
+   }
+  },
+  {
+   "name": "ws_strom_rsv_nach_teil",
+   "beschreibung": "dasselbe nach einem teil: der Status 101 ging schon hinaus, die Antwort endet",
+   "halter": {
+    "beginn": {
      "status": 101,
      "kopf": [
       [
-       "Upgrade",
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ]
+     ]
+    },
+    "upgrade": "durchreichen",
+    "teile": [
+     "\u0002ok"
+    ],
+    "ende": "halter.ziel_komprimiert"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "abgerissen",
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ],
+      [
+       "upgrade",
        "websocket"
       ],
       [
-       "Connection",
+       "connection",
        "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
       ]
      ],
-     "koerper": "\u001dokwb-marke-echtes-token-7d1c0"
+     "gesendet": "\u0002ok"
     },
     "zeile": {
-     "ergebnis": "weitergereicht",
-     "grund": null,
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.antwort_komprimiert",
      "status": 101
     }
    }
   },
   {
-   "name": "ws_praefix_dann_anderes",
-   "beschreibung": "ein Praefix der Marke am Ende des ersten Teils, im zweiten Teil etwas anderes: kein Fund, alle Bytes kommen an (W3)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-     ]
-    ],
-    "laenge": null,
-    "teile": [
-     "\u0001\u0014wb-marke-echtes-toke",
-     "\u0003XYZ"
-    ]
-   },
-   "erwartet": {
-    "an_harness": {
-     "art": "antwort",
+   "name": "ws_strom_regelwidrig",
+   "beschreibung": "ein Rahmen des Dienstes gegen RFC 6455 Abschnitt 5: der Halter reisst ab (halter.ziel_fehler), der Modellweg antwortet mw.halter_fehler",
+   "halter": {
+    "beginn": {
      "status": 101,
      "kopf": [
       [
-       "Upgrade",
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ]
+     ]
+    },
+    "upgrade": "durchreichen",
+    "teile": [
+     "\u0002ok"
+    ],
+    "ende": "halter.ziel_fehler"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "abgerissen",
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ],
+      [
+       "upgrade",
        "websocket"
       ],
       [
-       "Connection",
+       "connection",
        "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
       ]
      ],
-     "koerper": "\u0001\u0014wb-marke-echtes-toke\u0003XYZ"
+     "gesendet": "\u0002ok"
     },
     "zeile": {
-     "ergebnis": "weitergereicht",
-     "grund": null,
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.halter_fehler",
      "status": 101
     }
    }
   },
   {
-   "name": "ws_steuer_dazwischen",
-   "beschreibung": "Ping zwischen zwei Teilen einer Nachricht und ein Close ohne Marke: unveraendert durch (W3)",
-   "ziel_antwort": {
-    "status": 101,
-    "gebunden": true,
-    "upgrade_ziel": "durchreichen",
-    "kopf": [
-     [
-      "Upgrade",
-      "websocket"
-     ],
-     [
-      "Connection",
-      "Upgrade"
-     ],
-     [
-      "Sec-WebSocket-Accept",
-      "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+   "name": "ws_strom_leck",
+   "beschreibung": "die Leck-Sperre des Halters trifft im Strom: sein Code geht nie an den Harness, dieser bekommt mw.halter_fehler",
+   "halter": {
+    "beginn": {
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ]
      ]
-    ],
-    "laenge": null,
+    },
+    "upgrade": "durchreichen",
     "teile": [
-     "\u0001\u0002ab",
-     "\u0001p",
-     "\u0002cd",
-     "\u0002\u0003è"
-    ]
+     "\u0002ok"
+    ],
+    "ende": "halter.leck_gesperrt"
+   },
+   "erwartet": {
+    "an_harness": {
+     "art": "abgerissen",
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ],
+      [
+       "upgrade",
+       "websocket"
+      ],
+      [
+       "connection",
+       "Upgrade"
+      ]
+     ],
+     "gesendet": "\u0002ok"
+    },
+    "zeile": {
+     "ergebnis": "ziel_fehler",
+     "grund": "mw.halter_fehler",
+     "status": 101
+    }
+   }
+  },
+  {
+   "name": "ws_strom_ende_ohne_teil",
+   "beschreibung": "das Ziel schliesst ohne ein einziges teil: die Antwort hat einen leeren Strom",
+   "halter": {
+    "beginn": {
+     "status": 101,
+     "kopf": [
+      [
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ]
+     ]
+    },
+    "upgrade": "durchreichen",
+    "teile": [],
+    "ende": null
    },
    "erwartet": {
     "an_harness": {
@@ -1232,19 +449,19 @@
      "status": 101,
      "kopf": [
       [
-       "Upgrade",
+       "sec-websocket-accept",
+       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+      ],
+      [
+       "upgrade",
        "websocket"
       ],
       [
-       "Connection",
+       "connection",
        "Upgrade"
-      ],
-      [
-       "Sec-WebSocket-Accept",
-       "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
       ]
      ],
-     "koerper": "\u0001\u0002ab\u0001p\u0002cd\u0002\u0003è"
+     "koerper": ""
     },
     "zeile": {
      "ergebnis": "weitergereicht",

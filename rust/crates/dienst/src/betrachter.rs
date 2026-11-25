@@ -262,6 +262,51 @@ mod tests {
         }
     }
 
+    /// DI3 outward: the bound is "at most `RAHMEN_MAX`". A raster frame of exactly `RAHMEN_MAX` bytes before Deflate goes out as it
+    /// is, one byte more is [`Fehler::RahmenZuGross`]. One line of plain text grows the frame by one byte per character.
+    #[test]
+    fn ein_rasterrahmen_von_genau_rahmen_max_geht_hinaus() {
+        let abzug = |n: usize| serde_json::json!({"art": "Abzug", "sitzung": "s", "stand": 1, "groesse": [80, 1], "invers": false, "zeilen": ["x".repeat(n)]});
+        let laenge = |n: usize| {
+            Verbindung::neu(false)
+                .nimm_roh(0, &abzug(n))
+                .expect("the crate takes it")
+                .expect("a frame")
+                .len()
+        };
+        let probe = RAHMEN_MAX - 4096;
+        let n = probe + (RAHMEN_MAX - laenge(probe));
+        assert_eq!(laenge(n), RAHMEN_MAX, "the frame is not at the bound");
+        // `matches!`, not `assert_eq!`: a red result would print a frame of 16 MB
+        let genau = Raster(Verbindung::neu(false)).nimm(0, &abzug(n));
+        assert!(
+            matches!(&genau, Ok(Some(v)) if v.len() == RAHMEN_MAX),
+            "{:?}",
+            genau.map(|o| o.map(|v| v.len()))
+        );
+        let drueber = Raster(Verbindung::neu(false)).nimm(0, &abzug(n + 1));
+        assert!(
+            matches!(drueber, Err(Fehler::RahmenZuGross)),
+            "{:?}",
+            drueber.map(|o| o.map(|v| v.len()))
+        );
+    }
+
+    /// P25 and P26 (RA R13): after `vergessen` the number has no model picture, so a change for it is `KeinAbzug`, as in the crate,
+    /// and is never computed against the picture of the session that held the number before.
+    #[test]
+    fn nach_vergessen_hat_die_nummer_kein_vorbild() {
+        let abzug = serde_json::json!({"art": "Abzug", "sitzung": "s", "stand": 1, "groesse": [4, 2], "invers": false, "zeilen": ["ab", ""]});
+        let aenderung = serde_json::json!({"art": "Rasteraenderung", "sitzung": "s", "von": 1, "stand": 2, "invers": false, "zeilen": {"0": "cd"}});
+        let mut mit_bild = Raster(Verbindung::neu(false));
+        mit_bild.nimm(3, &abzug).expect("ok");
+        assert!(mit_bild.nimm(3, &aenderung).expect("ok").is_some());
+        let mut r = Raster(Verbindung::neu(false));
+        r.nimm(3, &abzug).expect("ok");
+        r.vergessen(3);
+        assert_eq!(r.nimm(3, &aenderung), Err(Fehler::KeinAbzug));
+    }
+
     /// A message `Zwischenablage` whose frame `Nachricht` has exactly `ziel` bytes on the socket; `daten_b64` ends with `ende`.
     fn ablage_mit_rahmen(ziel: usize, ende: &str) -> Value {
         let mit = |daten: String| serde_json::json!({"t": 9, "art": "Zwischenablage", "sitzung": "s1", "daten_b64": daten});

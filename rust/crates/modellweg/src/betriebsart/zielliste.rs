@@ -3,7 +3,7 @@
 
 use serde_json::{Map, Value};
 
-use crate::aufruf::{PFAD_MAX, kennung_ok, pfad_ok};
+use crate::aufruf::kennung_ok;
 use crate::json::lies_streng;
 
 /// Largest target list in bytes.
@@ -11,30 +11,16 @@ pub const ZL_MAX: usize = 65_536;
 /// The known methods of a rule (besides `*`).
 pub const METHODEN: [&str; 7] = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
 const OBEN: [&str; 3] = ["fassung", "ca_zulassung", "ziele"];
-const ZIEL: [&str; 8] = [
-    "name",
-    "host",
-    "port",
-    "schluessel_datei",
-    "kopf",
-    "wert_vorsatz",
-    "regeln",
-    "upgrade",
-];
+/// The form of a target: six keys. The three fields that fell away on the way to the holder (`schluessel_datei`,
+/// `kopf` and `wert_vorsatz`) stay known here, so a list that still carries one of them next to `halter_ziel` names
+/// stage 12 (`zl.bindung`) and not stage 3 (contract 8, section 12).
+const ZIEL: [&str; 6] = ["name", "host", "port", "halter_ziel", "regeln", "upgrade"];
+/// The fields that fell away; named at stage 12.
+const WEGGEFALLEN: [&str; 3] = ["schluessel_datei", "kopf", "wert_vorsatz"];
 const REGEL: [&str; 2] = ["methode", "pfad"];
-/// Header names a bound target must not use for its key.
-const KOPF_VERBOTEN: [&str; 10] = [
-    "host",
-    "connection",
-    "content-length",
-    "transfer-encoding",
-    "te",
-    "trailer",
-    "upgrade",
-    "keep-alive",
-    "proxy-connection",
-    "accept-encoding",
-];
+/// The methods a rule of a **bound** target may name: `halter.json` knows only these two, and `modell.aufruf` takes
+/// only them (contract 8, section 12, stage 11).
+pub const GEBUNDEN_METHODEN: [&str; 2] = ["GET", "POST"];
 /// Largest JSON integer that JavaScript reads exactly (the reference model reads the list with it).
 const SICHER: u64 = 9_007_199_254_740_991;
 
@@ -79,17 +65,6 @@ impl Regel {
     }
 }
 
-/// The key of a bound target: where it is and how it goes out.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Bindung {
-    /// The key file (section 5).
-    pub schluessel_datei: String,
-    /// The lower-case name of the header with the key.
-    pub kopf: String,
-    /// The text before the key.
-    pub wert_vorsatz: String,
-}
-
 /// One target of the list.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ziel {
@@ -99,12 +74,21 @@ pub struct Ziel {
     pub host: String,
     /// Exactly one port.
     pub port: u16,
-    /// The key, for a bound target.
-    pub bindung: Option<Bindung>,
+    /// The name of the target in `halter.json` (exactly `host`), or `None` for an unbound target. Only the holder
+    /// knows its address, its header name and the **name** of its secret; the list never carries a key (section 5.1).
+    pub halter_ziel: Option<String>,
     /// The rules (1 to 32).
     pub regeln: Vec<Regel>,
     /// Whether an upgrade (WebSocket) is handed through.
     pub upgrade_durchreichen: bool,
+}
+
+impl Ziel {
+    /// Whether the target is bound: the holder holds its token and keeps its way out (section 5.1).
+    #[must_use]
+    pub fn gebunden(&self) -> bool {
+        self.halter_ziel.is_some()
+    }
 }
 
 /// A read target list.
@@ -130,13 +114,13 @@ pub fn lies(text: &[u8]) -> Result<Zielliste, &'static str> {
     let ebenen = ebenen(&oben);
     if ebenen
         .iter()
-        .any(|(o, form)| o.keys().any(|k| !form.contains(&k.as_str())))
+        .any(|(o, erlaubt, _)| o.keys().any(|k| !erlaubt.contains(&k.as_str())))
     {
         return Err("zl.schluessel_unbekannt");
     }
     if ebenen
         .iter()
-        .any(|(o, form)| form.iter().any(|k| !o.contains_key(*k)))
+        .any(|(o, _, pflicht)| pflicht.iter().any(|k| !o.contains_key(*k)))
     {
         return Err("zl.schluessel_fehlt");
     }
@@ -158,9 +142,11 @@ pub fn lies(text: &[u8]) -> Result<Zielliste, &'static str> {
     };
     let ziele: Vec<Ziel> = ziele.into_iter().map(Roh::ziel).collect();
     for (i, z) in ziele.iter().enumerate() {
-        let doppelt = ziele[..i]
-            .iter()
-            .any(|a| a.name == z.name || (a.host == z.host && a.port == z.port));
+        let doppelt = ziele[..i].iter().any(|a| {
+            a.name == z.name
+                || (a.host == z.host && a.port == z.port)
+                || (a.halter_ziel.is_some() && a.halter_ziel == z.halter_ziel)
+        });
         if doppelt {
             return Err("zl.doppelt");
         }
@@ -168,9 +154,17 @@ pub fn lies(text: &[u8]) -> Result<Zielliste, &'static str> {
     Ok(Zielliste { zulassung, ziele })
 }
 
-/// The objects whose keys are checked, with their form: the top, each target object, each rule object.
-fn ebenen(oben: &Map<String, Value>) -> Vec<(&Map<String, Value>, &'static [&'static str])> {
-    let mut v: Vec<(&Map<String, Value>, &'static [&'static str])> = vec![(oben, &OBEN)];
+/// The objects whose keys are checked, each with the keys it may carry and the keys it must carry: the top, each
+/// target object (a target may carry a field that fell away, so that stage 12 names it), each rule object.
+type Ebene<'a> = (
+    &'a Map<String, Value>,
+    Vec<&'static str>,
+    &'static [&'static str],
+);
+
+fn ebenen(oben: &Map<String, Value>) -> Vec<Ebene<'_>> {
+    let ziel_erlaubt: Vec<&'static str> = ZIEL.iter().chain(WEGGEFALLEN.iter()).copied().collect();
+    let mut v: Vec<Ebene<'_>> = vec![(oben, OBEN.to_vec(), &OBEN)];
     for z in oben
         .get("ziele")
         .and_then(Value::as_array)
@@ -178,7 +172,7 @@ fn ebenen(oben: &Map<String, Value>) -> Vec<(&Map<String, Value>, &'static [&'st
         .flatten()
     {
         let Value::Object(z) = z else { continue };
-        v.push((z, &ZIEL));
+        v.push((z, ziel_erlaubt.clone(), &ZIEL));
         for r in z
             .get("regeln")
             .and_then(Value::as_array)
@@ -186,7 +180,7 @@ fn ebenen(oben: &Map<String, Value>) -> Vec<(&Map<String, Value>, &'static [&'st
             .flatten()
         {
             if let Value::Object(r) = r {
-                v.push((r, &REGEL));
+                v.push((r, REGEL.to_vec(), &REGEL));
             }
         }
     }
@@ -199,26 +193,19 @@ struct Roh<'a> {
     host: &'a str,
     port: i64,
     upgrade: &'a str,
-    bindung: [Option<&'a str>; 3],
+    halter_ziel: Option<&'a str>,
+    /// Whether a field that fell away still stands in this target (stage 12).
+    weggefallen: bool,
     regeln: Vec<(&'a str, &'a str)>,
 }
 
 impl Roh<'_> {
     fn ziel(self) -> Ziel {
-        let [datei, kopf, vorsatz] = self.bindung;
-        let bindung = match (datei, kopf, vorsatz) {
-            (Some(d), Some(k), Some(v)) => Some(Bindung {
-                schluessel_datei: d.to_owned(),
-                kopf: k.to_owned(),
-                wert_vorsatz: v.to_owned(),
-            }),
-            _ => None,
-        };
         Ziel {
             name: self.name.to_owned(),
             host: self.host.to_owned(),
             port: u16::try_from(self.port).unwrap_or(0),
-            bindung,
+            halter_ziel: self.halter_ziel.map(str::to_owned),
             regeln: self
                 .regeln
                 .iter()
@@ -259,11 +246,8 @@ fn typen(oben: &Map<String, Value>) -> Option<(i64, &str, Vec<Roh<'_>>)> {
             host: z["host"].as_str()?,
             port: ganz(&z["port"])?,
             upgrade: z["upgrade"].as_str()?,
-            bindung: [
-                text_oder_null("schluessel_datei")?,
-                text_oder_null("kopf")?,
-                text_oder_null("wert_vorsatz")?,
-            ],
+            halter_ziel: text_oder_null("halter_ziel")?,
+            weggefallen: WEGGEFALLEN.iter().any(|k| z.contains_key(*k)),
             regeln,
         });
     }
@@ -281,19 +265,30 @@ fn pruefe_ziele(ziele: &[Roh<'_>]) -> Result<(), &'static str> {
     if !ziele.iter().all(|z| (1..=65_535).contains(&z.port)) {
         return Err("zl.port_grenze");
     }
-    let regeln_gut = ziele
-        .iter()
-        .flat_map(|z| z.regeln.iter())
-        .all(|(m, p)| (*m == "*" || METHODEN.contains(m)) && regel_pfad_ok(p));
+    let regeln_gut = ziele.iter().all(|z| {
+        z.regeln.iter().all(|(m, p)| {
+            let form = (*m == "*" || METHODEN.contains(m)) && regel_pfad_ok(p);
+            // A bound target carries only `GET`, `POST` or `*` (which means exactly those two there): `pfade` in
+            // `halter.json` knows no other method, and `modell.aufruf` takes none (stage 11).
+            let gebunden_gut =
+                z.halter_ziel.is_none() || *m == "*" || GEBUNDEN_METHODEN.contains(m);
+            form && gebunden_gut
+        })
+    });
     if !regeln_gut {
         return Err("zl.regel_form");
     }
-    if !ziele.iter().all(|z| bindung_ok(&z.bindung)) {
+    // Stage 12: `halter_ziel` is exactly the `host` of this target, so no caller with an own list sends a secret to
+    // another host; and no field that fell away stands there any more.
+    let bindung_gut = ziele
+        .iter()
+        .all(|z| !z.weggefallen && z.halter_ziel.is_none_or(|n| n == z.host));
+    if !bindung_gut {
         return Err("zl.bindung");
     }
     let upgrade_gut = ziele.iter().all(|z| match z.upgrade {
         "ablehnen" => true,
-        "durchreichen" => z.bindung[1].is_some(),
+        "durchreichen" => z.halter_ziel.is_some(),
         _ => false,
     });
     if !upgrade_gut {
@@ -339,62 +334,117 @@ pub fn regel_pfad_ok(pfad: &str) -> bool {
     })
 }
 
-/// All three set (valid forms) or all three null.
-fn bindung_ok(b: &[Option<&str>; 3]) -> bool {
-    match *b {
-        [None, None, None] => true,
-        [Some(datei), Some(kopf), Some(vorsatz)] => {
-            let kopf_gut = (1..=64).contains(&kopf.len())
-                && kopf
-                    .bytes()
-                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-')
-                && !KOPF_VERBOTEN.contains(&kopf);
-            let vorsatz_gut =
-                vorsatz.len() <= 32 && vorsatz.bytes().all(|c| (0x20..=0x7e).contains(&c));
-            kopf_gut && vorsatz_gut && pfad_ok(datei, PFAD_MAX)
-        }
-        _ => false,
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{Regel, bindung_ok, host_ok, lies, regel_pfad_ok};
+    use super::{Regel, host_ok, lies, regel_pfad_ok};
+
+    /// One target of the list; `halter_ziel` as it is written in JSON (`null` or a quoted name).
+    fn ziel(name: &str, host: &str, halter_ziel: &str, methode: &str, upgrade: &str) -> String {
+        format!(
+            r#"{{"name":"{name}","host":"{host}","port":443,"halter_ziel":{halter_ziel},"regeln":[{{"methode":"{methode}","pfad":"/*"}}],"upgrade":"{upgrade}"}}"#
+        )
+    }
+
+    fn liste(ziele: &[String]) -> String {
+        format!(
+            r#"{{"fassung":1,"ca_zulassung":"zugelassen","ziele":[{}]}}"#,
+            ziele.join(",")
+        )
+    }
+
+    fn gebunden() -> String {
+        ziele_text(&[ziel("a", "a.b", "\"a.b\"", "GET", "durchreichen")])
+    }
+
+    fn ziele_text(ziele: &[String]) -> String {
+        liste(ziele)
+    }
 
     #[test]
     fn a_list_of_exactly_65536_bytes_is_read() {
-        let mut text = br#"{"fassung":1,"ca_zulassung":"zugelassen","ziele":[{"name":"a","host":"a.b","port":443,"schluessel_datei":null,"kopf":null,"wert_vorsatz":null,"regeln":[{"methode":"GET","pfad":"/*"}],"upgrade":"ablehnen"}]}"#.to_vec();
-        text.resize(65_536, b' ');
+        let mut text = gebunden().into_bytes();
+        let fuellen = 65_536 - text.len();
+        text.resize(text.len() + fuellen, b' ');
+        assert_eq!(text.len(), 65_536);
         assert!(lies(&text).is_ok());
         text.push(b' ');
         assert_eq!(lies(&text).err(), Some("zl.zu_gross"));
     }
 
     #[test]
-    fn the_binding_of_a_target() {
-        assert!(bindung_ok(&[None, None, None]));
-        assert!(bindung_ok(&[
-            Some("/k"),
-            Some("x-api-key2"),
-            Some("Bearer ")
-        ]));
-        assert!(bindung_ok(&[Some("/k"), Some("a"), Some("")]));
-        assert!(!bindung_ok(&[Some("/k"), Some("X-Api"), Some("")]));
-        assert!(!bindung_ok(&[Some("/k"), Some("a_b"), Some("")]));
-        assert!(!bindung_ok(&[
-            Some("/k"),
-            Some("accept-encoding"),
-            Some("")
-        ]));
-        assert!(!bindung_ok(&[Some("/k"), Some(""), Some("")]));
-        assert!(bindung_ok(&[Some("/k"), Some(&"a".repeat(64)), Some("")]));
-        assert!(!bindung_ok(&[Some("/k"), Some(&"a".repeat(65)), Some("")]));
-        assert!(bindung_ok(&[Some("/k"), Some("a"), Some(&" ".repeat(32))]));
-        assert!(!bindung_ok(&[Some("/k"), Some("a"), Some(&" ".repeat(33))]));
-        assert!(!bindung_ok(&[Some("/k"), Some("a"), Some("\t")]));
-        assert!(!bindung_ok(&[Some("k"), Some("a"), Some("")]));
-        assert!(!bindung_ok(&[Some("/k"), None, None]));
-        assert!(!bindung_ok(&[None, Some("a"), Some("")]));
+    fn a_bound_target_carries_the_host_as_the_name_of_the_holder() {
+        let gut = lies(gebunden().as_bytes()).expect("list");
+        assert_eq!(gut.ziele[0].halter_ziel.as_deref(), Some("a.b"));
+        assert!(gut.ziele[0].gebunden());
+        let ungebunden = liste(&[ziel("a", "a.b", "null", "POST", "ablehnen")]);
+        let ungebunden = lies(ungebunden.as_bytes()).expect("list");
+        assert_eq!(ungebunden.ziele[0].halter_ziel, None);
+        assert!(!ungebunden.ziele[0].gebunden());
+        // Stage 12: another name than the host, in either direction.
+        for falsch in ["\"c.d\"", "\"a.b.\"", "\"A.B\"", "\"\"", "\"a.b:443\""] {
+            let t = liste(&[ziel("a", "a.b", falsch, "GET", "ablehnen")]);
+            assert_eq!(lies(t.as_bytes()).err(), Some("zl.bindung"), "{falsch}");
+        }
+    }
+
+    #[test]
+    fn a_field_that_fell_away_names_the_binding_and_not_an_unknown_key() {
+        for feld in ["schluessel_datei", "kopf", "wert_vorsatz"] {
+            let t = gebunden().replace(
+                r#""halter_ziel":"a.b""#,
+                &format!(r#""halter_ziel":"a.b","{feld}":"x""#),
+            );
+            assert_eq!(lies(t.as_bytes()).err(), Some("zl.bindung"), "{feld}");
+            let null = gebunden().replace(
+                r#""halter_ziel":"a.b""#,
+                &format!(r#""halter_ziel":"a.b","{feld}":null"#),
+            );
+            assert_eq!(lies(null.as_bytes()).err(), Some("zl.bindung"), "{feld}");
+        }
+        // A key that never stood in the form stays stage 3.
+        let t = gebunden().replace(r#""halter_ziel":"a.b""#, r#""halter_ziel":"a.b","x":1"#);
+        assert_eq!(lies(t.as_bytes()).err(), Some("zl.schluessel_unbekannt"));
+        // A list without `halter_ziel` misses a required key (stage 4), whatever else it carries.
+        let t = gebunden().replace(r#""halter_ziel":"a.b","#, r#""schluessel_datei":"/k","#);
+        assert_eq!(lies(t.as_bytes()).err(), Some("zl.schluessel_fehlt"));
+    }
+
+    #[test]
+    fn a_rule_of_a_bound_target_names_only_get_and_post() {
+        for gut in ["GET", "POST", "*"] {
+            let t = liste(&[ziel("a", "a.b", "\"a.b\"", gut, "ablehnen")]);
+            assert!(lies(t.as_bytes()).is_ok(), "{gut}");
+        }
+        for falsch in ["HEAD", "PUT", "PATCH", "DELETE", "OPTIONS"] {
+            let t = liste(&[ziel("a", "a.b", "\"a.b\"", falsch, "ablehnen")]);
+            assert_eq!(lies(t.as_bytes()).err(), Some("zl.regel_form"), "{falsch}");
+            // An unbound target keeps every one of the seven methods.
+            let frei = liste(&[ziel("a", "a.b", "null", falsch, "ablehnen")]);
+            assert!(lies(frei.as_bytes()).is_ok(), "{falsch}");
+        }
+    }
+
+    #[test]
+    fn a_name_of_the_holder_stands_only_once() {
+        let t = liste(&[
+            ziel("a", "a.b", "\"a.b\"", "GET", "ablehnen"),
+            ziel("b", "a.b", "\"a.b\"", "GET", "ablehnen"),
+        ]);
+        // Host and port are doubled here as well; both are stage 15.
+        assert_eq!(lies(t.as_bytes()).err(), Some("zl.doppelt"));
+        let zwei = liste(&[
+            ziel("a", "a.b", "null", "GET", "ablehnen"),
+            ziel("b", "c.d", "null", "GET", "ablehnen"),
+        ]);
+        assert!(lies(zwei.as_bytes()).is_ok());
+    }
+
+    #[test]
+    fn only_a_bound_target_hands_an_upgrade_through() {
+        let t = liste(&[ziel("a", "a.b", "null", "GET", "durchreichen")]);
+        assert_eq!(lies(t.as_bytes()).err(), Some("zl.upgrade_wert"));
+        let t = liste(&[ziel("a", "a.b", "\"a.b\"", "GET", "ja")]);
+        assert_eq!(lies(t.as_bytes()).err(), Some("zl.upgrade_wert"));
     }
 
     #[test]

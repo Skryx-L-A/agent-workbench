@@ -119,14 +119,16 @@ fn block(h: &mut [u64; 8], b: &[u8; 128]) {
     let mut v = *h;
     for i in 0..80 {
         let s1 = v[4].rotate_right(14) ^ v[4].rotate_right(18) ^ v[4].rotate_right(41);
-        let ch = (v[4] & v[5]) ^ (!v[4] & v[6]);
+        // the two parts have no bit in common: `+` joins like `^` or `|` (an `^` there could become `|` unseen)
+        let ch = (v[4] & v[5]) + (!v[4] & v[6]);
         let t1 = v[7]
             .wrapping_add(s1)
             .wrapping_add(ch)
             .wrapping_add(K[i])
             .wrapping_add(w[i]);
         let s0 = v[0].rotate_right(28) ^ v[0].rotate_right(34) ^ v[0].rotate_right(39);
-        let maj = (v[0] & v[1]) ^ (v[0] & v[2]) ^ (v[1] & v[2]);
+        // majority as two disjoint parts: where a and b agree, a & b; where they differ, c (`+` joins them)
+        let maj = (v[0] & v[1]) + (v[2] & (v[0] ^ v[1]));
         let t2 = s0.wrapping_add(maj);
         v[7] = v[6];
         v[6] = v[5];
@@ -158,9 +160,10 @@ pub fn sha512(teile: &[&[u8]]) -> [u8; 64] {
         rest.drain(..ganz);
     }
     rest.push(0x80);
-    while rest.len() % 128 != 112 {
-        rest.push(0);
-    }
+    // zeros up to 112 mod 128, counted at once (a loop on a changed condition would never end); `rest` holds 1 to 128
+    // bytes here, so 240 - its length is never below zero
+    let null = (240 - rest.len()) % 128;
+    rest.resize(rest.len() + null, 0);
     rest.extend_from_slice(&(laenge * 8).to_be_bytes());
     for b in rest.as_chunks::<128>().0 {
         block(&mut h, b);
@@ -200,6 +203,19 @@ mod tests {
             hex(&sha512(&[&m[..5], &m[5..77], &m[77..]])),
             "8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299aeadb6889018501d289e4900f7e4331b99dec4b5433ac7d329eeb6dd26545e96e55b874be909"
         );
+    }
+
+    /// Every length of a last block, also those without room for the length (the padding takes a second block): the
+    /// hash is the same in one piece and in parts.
+    #[test]
+    fn jede_laenge_des_letzten_blocks() {
+        let daten: Vec<u8> = (0..=255u8).collect();
+        for n in 0..=256 {
+            let ganz = sha512(&[&daten[..n]]);
+            let (a, b) = daten[..n].split_at(n / 3);
+            assert_eq!(ganz, sha512(&[a, b]), "{n}");
+        }
+        assert_ne!(sha512(&[&daten[..111]]), sha512(&[&daten[..112]]));
     }
 
     #[test]

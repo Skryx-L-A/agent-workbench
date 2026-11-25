@@ -2,6 +2,18 @@
  "fassung": 1,
  "hinweis": "Vertrag 8, Abschnitte 4, 5 und 10. aufruf: argv nach dem Programmnamen; bis_schritt aufruf_gut heisst, die Pruefung des Aufrufs besteht (die weiteren Schritte brauchen Dateien). schluesseldatei: art datei, link, ordner oder fehlt; eigen = Eigentuemer ist die eigene Kennung; inhalt latin1.",
  "codes": {
+  "mw.halter_fehlt": [
+   78,
+   "Halter nicht erreichbar"
+  ],
+  "mw.halter_unecht": [
+   78,
+   "Halter nicht echt"
+  ],
+  "mw.halter_kein_schluessel": [
+   78,
+   "kein Schluessel beim Halter"
+  ],
   "mw.aufruf": [
    64,
    "Aufruf ungueltig"

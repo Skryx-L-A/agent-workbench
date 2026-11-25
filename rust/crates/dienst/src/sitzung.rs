@@ -260,6 +260,10 @@ pub(crate) struct Sitzung {
     pub(crate) kind_ende: Option<u32>,
     /// A pidfd of the child from its start: its end is seen before the carrier collects it (`waisen.rs`).
     pub(crate) blick: Kindblick,
+    /// Windows: the job object of the child (section 21); closing it ends the child and every process the child started. `None` for the
+    /// room core and once the session has ended.
+    #[cfg(windows)]
+    job: Option<crate::sys::Job>,
     /// `true` once the hunt for the orphans of this session was started (once per session, `waisen.rs`).
     pub(crate) gejagt: bool,
     /// DEC mode 2004, from the events of the carrier.
@@ -305,6 +309,12 @@ impl Sitzung {
     fn mit(sid: Option<String>, nr: Option<u8>, kern: Sitzungskern, kind: Option<Kind>) -> Self {
         // the carrier has not been asked for the end of the child yet, so its pid is still the child
         let blick = Kindblick::von(kind.as_ref().and_then(Kind::pid));
+        // Windows: the child joins its job right after its start (section 21); without a job the session runs as before
+        #[cfg(windows)]
+        let job = kind
+            .as_ref()
+            .and_then(Kind::prozess_griff)
+            .and_then(|griff| crate::sys::Job::fuer(griff).ok());
         Self {
             sid,
             nr,
@@ -322,6 +332,8 @@ impl Sitzung {
             kind,
             kind_ende: None,
             blick,
+            #[cfg(windows)]
+            job,
             gejagt: false,
             bracketed_paste: false,
             invers: false,
@@ -352,6 +364,9 @@ impl Sitzung {
     /// children of the service that have not been collected (the children of the other sessions): never signalled. Once only; a second
     /// call finds no folder.
     pub(crate) fn ende_aufraeumen(&mut self, eigene: &[u32]) {
+        // Windows: closing the job ends what the child left behind (the counterpart of the orphans of section 17)
+        #[cfg(windows)]
+        self.job.take();
         if let (Some(ordner), Some(wurzel)) = (self.ordner.take(), self.wurzel.take()) {
             sitzung_ende_raeumt_auf(&ordner, wurzel.as_fd(), self.kind_zeit, eigene);
         }
@@ -391,9 +406,13 @@ impl Sitzung {
             .map(|k| Traegerstand::von(k.raster(), self.bracketed_paste, self.invers))
     }
 
-    /// Sends SIGHUP to a child that is still there and sets the moment of SIGKILL (`Beenden`, DI12 point 6).
+    /// Sends SIGHUP to a child that is still there and sets the moment of SIGKILL (`Beenden`, DI12 point 6). Windows (section 21):
+    /// the carrier ends the child at once (`Kind::beenden`, `TerminateProcess`, code 129).
     pub(crate) fn beenden_anstossen(&mut self) {
-        // Windows: no signal (section 21); the child ends when its pseudo console closes
+        #[cfg(windows)]
+        if let Some(kind) = self.kind.as_mut().filter(|k| !k.ist_zu_ende()) {
+            let _ = kind.beenden();
+        }
         #[cfg(unix)]
         if let Some(kind) = self.kind.as_ref().filter(|k| !k.ist_zu_ende())
             && let Some(pid) = pid_von(kind)
@@ -417,6 +436,11 @@ impl Sitzung {
             if let Some(pid) = self.kind.as_ref().and_then(pid_von) {
                 let _ = kill_process(pid, Signal::KILL);
             }
+            // Windows: once more through the carrier (it does nothing to a child that has ended)
+            #[cfg(windows)]
+            if let Some(kind) = self.kind.as_mut() {
+                let _ = kind.beenden();
+            }
             self.kill_ab = None;
         }
     }
@@ -430,8 +454,13 @@ fn pid_von(kind: &Kind) -> Option<Pid> {
 }
 
 /// Ends children (DI8): SIGHUP to all, up to 1 s of waiting for all together, then (in `Kind::drop`) SIGKILL, then the wait for
-/// the processes. A child that has ended already gets no signal. No child survives.
+/// the processes. A child that has ended already gets no signal. No child survives. Windows (section 21): the carrier ends every
+/// running child at once (`Kind::beenden`), the same wait follows; the jobs of the sessions end the rest when they close.
 pub(crate) fn kinder_beenden(mut kinder: Vec<Kind>) {
+    #[cfg(windows)]
+    for kind in kinder.iter_mut().filter(|k| !k.ist_zu_ende()) {
+        let _ = kind.beenden();
+    }
     #[cfg(unix)]
     for kind in kinder.iter().filter(|k| !k.ist_zu_ende()) {
         if let Some(pid) = pid_von(kind) {

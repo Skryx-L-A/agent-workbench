@@ -1,4 +1,4 @@
-"""Attrappe des Such-Prozesses je Sitzung (Vertrag 4, `rust/spec/VERTRAEGE.md`).
+"""Attrappe des Such-Prozesses je Sitzung (Vertrag 4, `rust/spec/such-socket/README.md`).
 
 Ein Unix-Socket je Sitzung, die Route kommt aus dem Start, nie aus der Anfrage. Tor `darf` vor dem Kuerzen, Zahl der
 gesperrten Treffer, Protokollzeile vor dem Absenden. Die Rangliste ist ein einfaches Wortzaehlen; sie genuegt fuer den

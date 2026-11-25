@@ -143,7 +143,7 @@ function geschlossenMw(w) {
   const eigen = w.betriebsart === 'openai-lokal'
     ? typeof w.modell === 'string' && w.modell.length >= 1 && w.modell.length <= 128 && u32(w.token_ein) && u32(w.token_aus) && (!neu || w.host === null)
     : (w.ziel === null || schl(w.ziel)) && (w.methode === null || MW_METHODEN.includes(w.methode))
-      && (w.pfadregel === null || text(w.pfadregel, MW_REGEL)) && [null, 'ersetzt', 'keiner', 'abgewiesen'].includes(w.kopf);
+      && (w.pfadregel === null || text(w.pfadregel, MW_REGEL)) && [null, 'ersetzt', 'keiner', 'abgewiesen', 'halter'].includes(w.kopf);
   const status = w.status === null ? w.betriebsart === 'kopf-einsetzen' : Number.isInteger(w.status) && w.status >= 100 && w.status <= 599;
   return w.aktionsname === 'modellweg.aufruf' && w.fassung === 2 && MW_ERGEBNIS.includes(w.ergebnis) && eigen && status
     && (w.grund === null || schl(w.grund)) && schl(w.route) && schl(w.sitzung)
@@ -231,7 +231,7 @@ const ST_ARTEN = ['mcp.schreibaufruf', 'sitzung.gestartet', 'sitzung.abgelehnt',
 // Gruppe "angemeldet": Vertrag 5 nennt die Art, ihre Form prueft noch kein Arm. Gruppe "fremd": die Form steht in einem anderen Vertrag.
 const REG_ANGEMELDET = ['regel.geaendert', 'regel.abgelehnt', 'suche.rueckfall'];
 const REG_FREMD = ['hersteller.zugang', 'hersteller.zugriff', 'pflicht.aenderung', 'protokoll.einsicht', 'vorgang.gedrosselt',
-  'modell.aufruf', 'fall.freitext', 'mcp.schein_abgelehnt', 'halter.leck_gesperrt', 'wissen.geschrieben', 'wissen.schreiben.abgelehnt',
+  'modell.aufruf', 'fall.freitext', 'mcp.schein_abgelehnt', 'halter.leck_gesperrt', 'halter.pfad_verboten', 'wissen.geschrieben', 'wissen.schreiben.abgelehnt',
   'klasse.erlaubt', 'lauf.melden', 'sitzung.abgemeldet'];
 const REG_MIT_FORM = ['ausgabe.gesperrt', 'kanal.abgewiesen', 'probelauf.zaehlung', 'ordnermarke.geloest', 'ordnermarke.gesenkt',
   'person.geloescht', 'person.auskunft', 'modellweg.aufruf', ...ST_ARTEN];
@@ -797,6 +797,10 @@ pFall('zusaetzliches Feld in der modellweg-Zeile: Form falsch', [datei(GATE, [jc
 const MW_BASIS_2 = { aktionsname: 'modellweg.aufruf', betriebsart: 'kopf-einsetzen', ergebnis: 'abgelehnt', fassung: 2, grund: 'mw.ziel_nicht_erlaubt', host: null,
   kopf: null, methode: null, pfad: null, pfadregel: null, route: 'cloud-beispiel', sitzung: 's-1', status: 403, vorher: NULL64, zeit: zeitText(T0), ziel: null };
 pFall('host mit Port: Form falsch', [datei(GATE, [jcs({ ...MW_BASIS_2, host: 'api.beispiel.invalid:443' })])], ['pruefe', `@${GATE}`], br(GATE, 1, 'form_falsch', 0));
+// kopf: halter (Nachtrag 25.11.2026) steht im Register; ein Wert ausserhalb des Registers bleibt abgewiesen.
+const MW_HALTER = jcs({ ...JSON.parse(MWZ2), kopf: 'halter', vorher: NULL64 });
+pFall('kopf halter auf dem Halterweg: gruen', [datei(GATE, [MW_HALTER])], ['pruefe', `@${GATE}`], { ...ok(1), letzte: sha(MW_HALTER) });
+pFall('kopf ausserhalb des Registers: Form falsch', [datei(GATE, [jcs({ ...JSON.parse(MWZ2), kopf: 'halters', vorher: NULL64 })])], ['pruefe', `@${GATE}`], br(GATE, 1, 'form_falsch', 0));
 // Register (Abschnitt 3): fail closed fuer die Fassung 2, kein Register fuer die Fassungen 1g und 1s.
 {
   const frei = (art, zusatz = {}) => jcs({ aktionsname: art, ergebnis: 'ok', fassung: 2, vorher: NULL64, zeit: zeitText(T0), ...zusatz });
@@ -1800,7 +1804,7 @@ const drei = anhaengenFaelle.find((f) => f.fall.startsWith('drei Aufrufe'));
 if (drei.ende !== `${L1}\n${L2}\n${L3}\n`) throw new Error('anhaengen ergibt nicht L1, L2, L3');
 if (!pruefe([{ name: BRAIN, inhalt: drei.ende }]).ok) throw new Error('Selbstprobe: geschriebene Kette prueft nicht gruen');
 
-const KOPF = 'Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.';
+const KOPF = 'Vertrag 5 (rust/spec/protokollzeile/README.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.';
 mkdirSync(AUS, { recursive: true });
 const schreibe = (name, inhalt) => writeFileSync(join(AUS, name), `${JSON.stringify({ quelle: KOPF, ...inhalt }, null, 2)}\n`);
 schreibe('kanonisch.json', { faelle: kanonischFaelle });

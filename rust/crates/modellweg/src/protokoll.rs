@@ -186,7 +186,8 @@ pub struct KopfZeile {
     pub methode: Option<String>,
     /// `pfad` of the rule that fitted, never the path of the request.
     pub pfadregel: Option<String>,
-    /// `ersetzt`, `keiner`, `abgewiesen`, or `None` if the request did not reach the binding.
+    /// `halter` (bound target on the holder path), `ersetzt` (bound target before step I), `keiner`,
+    /// `abgewiesen`, or `None` if the request did not reach the binding.
     pub kopf: Option<String>,
     /// `weitergereicht`, `abgelehnt`, `ziel_fehler` or `leck_gesperrt`.
     pub ergebnis: String,
@@ -219,7 +220,9 @@ fn gruende_kopf(ergebnis: &str) -> Option<&'static [Option<&'static str>]> {
             Some("mw.zaehlung_fehler"),
         ]),
         "ziel_fehler" => Some(&[
-            Some("mw.schluessel_fehlt"),
+            Some("mw.halter_kein_schluessel"),
+            Some("mw.halter_fehler"),
+            Some("mw.halter_frist"),
             Some("mw.ziel_nicht_erreichbar"),
             Some("mw.ziel_frist"),
             Some("mw.antwort_komprimiert"),
@@ -255,8 +258,11 @@ fn pruefe_kopf(z: &KopfZeile) -> Result<(), Fehler> {
         "pfadregel",
     )?;
     let kopf = z.kopf.as_deref();
-    let kopf_gut = matches!(kopf, None | Some("ersetzt" | "keiner" | "abgewiesen"))
-        && (z.ergebnis != "weitergereicht" || matches!(kopf, Some("ersetzt" | "keiner")))
+    let kopf_gut = matches!(
+        kopf,
+        None | Some("halter" | "ersetzt" | "keiner" | "abgewiesen")
+    ) && (z.ergebnis != "weitergereicht"
+        || matches!(kopf, Some("halter" | "ersetzt" | "keiner")))
         && (kopf != Some("abgewiesen")
             || z.grund.as_deref() == Some("mw.anmeldung_an_ungebundenes_ziel"));
     feld(kopf_gut, "kopf")?;
@@ -395,6 +401,29 @@ mod tests {
         pruefe_kopf(z).err().map(|f| f.code())
     }
 
+    /// A forwarded request to a bound target on the holder path carries `halter` (contract 8, section 13.4). The
+    /// register of a line of version 2 takes the value since 25.11.2026; a value outside the register stays refused,
+    /// and a line outside the register would never be appended.
+    #[test]
+    fn a_bound_target_on_the_holder_path_carries_halter() {
+        assert_eq!(code(&zeile("weitergereicht", None, Some("halter"))), None);
+        assert_eq!(
+            code(&zeile(
+                "ziel_fehler",
+                Some("mw.halter_fehler"),
+                Some("halter")
+            )),
+            None
+        );
+        for wert in ["halters", "Halter", "ersetz", ""] {
+            assert_eq!(
+                code(&zeile("weitergereicht", None, Some(wert))).as_deref(),
+                Some("feld_ungueltig:kopf"),
+                "{wert}"
+            );
+        }
+    }
+
     #[test]
     fn the_fields_of_mode_2_fit_together() {
         assert_eq!(code(&zeile("weitergereicht", None, Some("ersetzt"))), None);
@@ -419,13 +448,27 @@ mod tests {
             code(&zeile("ziel_fehler", Some("mw.antwort_komprimiert"), None)),
             None
         );
+        // Die drei Codes des Halterwegs sind Gruende eines Zielfehlers; mw.schluessel_fehlt ist mit der
+        // Schluesseldatei eines gebundenen Ziels weggefallen (Abschnitt 13.4).
+        for grund in [
+            "mw.halter_kein_schluessel",
+            "mw.halter_fehler",
+            "mw.halter_frist",
+        ] {
+            assert_eq!(
+                code(&zeile("ziel_fehler", Some(grund), Some("ersetzt"))),
+                None,
+                "{grund}"
+            );
+        }
         assert_eq!(
             code(&zeile(
                 "ziel_fehler",
                 Some("mw.schluessel_fehlt"),
                 Some("ersetzt")
-            )),
-            None
+            ))
+            .as_deref(),
+            Some("feld_ungueltig:grund")
         );
         assert_eq!(
             code(&zeile(

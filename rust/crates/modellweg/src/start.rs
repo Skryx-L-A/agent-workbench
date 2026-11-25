@@ -112,6 +112,12 @@ pub enum Startfehler {
     CaNichtZugelassen,
     /// `mw.ca_ungueltig`, exit 78 (mode 2: the throw-away CA).
     CaUngueltig,
+    /// `mw.halter_fehlt`, exit 78 (mode 2, step 3: the fixed endpoint of the holder does not answer).
+    HalterFehlt,
+    /// `mw.halter_unecht`, exit 78 (mode 2, step 3: the check of the counterparty fails).
+    HalterUnecht,
+    /// `mw.halter_kein_schluessel`, exit 78 (mode 2, step 3: the holder holds no secret for a bound target).
+    HalterKeinSchluessel,
     /// `mw.ziel_unaufloesbar`, exit 69.
     ZielUnaufloesbar,
     /// `mw.socket_belegt`, exit 74.
@@ -141,6 +147,9 @@ impl Startfehler {
             Self::ZieleUngueltig => "mw.ziele_ungueltig",
             Self::CaNichtZugelassen => "mw.ca_nicht_zugelassen",
             Self::CaUngueltig => "mw.ca_ungueltig",
+            Self::HalterFehlt => "mw.halter_fehlt",
+            Self::HalterUnecht => "mw.halter_unecht",
+            Self::HalterKeinSchluessel => "mw.halter_kein_schluessel",
             Self::ZielUnaufloesbar => "mw.ziel_unaufloesbar",
             Self::SocketBelegt => "mw.socket_belegt",
             Self::Intern => "mw.intern",
@@ -165,6 +174,9 @@ impl Startfehler {
             Self::ZieleUngueltig => "Zielliste ungueltig",
             Self::CaNichtZugelassen => "Lokale CA nicht zugelassen",
             Self::CaUngueltig => "CA-Datei ungueltig",
+            Self::HalterFehlt => "Halter nicht erreichbar",
+            Self::HalterUnecht => "Halter nicht echt",
+            Self::HalterKeinSchluessel => "kein Schluessel beim Halter",
             Self::ZielUnaufloesbar => "Ziel nicht aufloesbar",
             Self::SocketBelegt => "Socket belegt oder nicht anlegbar",
             Self::Intern => "interner Fehler",
@@ -184,7 +196,10 @@ impl Startfehler {
             | Self::ProtokollOrdner
             | Self::ZieleUngueltig
             | Self::CaNichtZugelassen
-            | Self::CaUngueltig => 78,
+            | Self::CaUngueltig
+            | Self::HalterFehlt
+            | Self::HalterUnecht
+            | Self::HalterKeinSchluessel => 78,
             Self::ZielUnaufloesbar | Self::ElternWeg => 69,
             Self::SocketBelegt | Self::ZaehlungFehler | Self::ProtokollFehlt => 74,
             Self::Intern => 70,
@@ -330,8 +345,19 @@ fn vorbereiten_eins(
     })
 }
 
-/// Steps 2 to 7 of mode 2 (section 13.5): target list, approval of the CA, CA, key files of the bound targets,
-/// protocol folder, trial run, one resolution per host, socket.
+/// Step 3 of mode 2 (section 5.1): the model path reaches the holder at his fixed endpoint and checks the
+/// counterparty before the first line. The path is never an option and never comes from the start request.
+#[cfg(target_os = "linux")]
+fn halter_bereit(pfad: &Path, eigene_uid: u32) -> Result<(), Startfehler> {
+    match crate::halter::Klient::verbinde(pfad, eigene_uid) {
+        Ok(_) => Ok(()),
+        Err("mw.halter_unecht") => Err(Startfehler::HalterUnecht),
+        Err(_) => Err(Startfehler::HalterFehlt),
+    }
+}
+
+/// Steps 2 to 7 of mode 2 (section 13.5): target list, approval of the CA, CA, the holder for the bound targets,
+/// protocol folder, trial run, one resolution per unbound host, socket.
 #[cfg(target_os = "linux")]
 fn vorbereiten_zwei(
     a: aufruf::Aufruf,
@@ -355,8 +381,12 @@ fn vorbereiten_zwei(
         &hosts,
     )
     .ok_or(Startfehler::CaUngueltig)?;
-    for b in liste.ziele.iter().filter_map(|z| z.bindung.as_ref()) {
-        schluessel::lies(Path::new(&b.schluessel_datei), eigene_uid).map_err(schluesselfehler)?;
+    // Step 3 (section 13.5): a bound target carries no key file any more. The holder holds the token; the model path
+    // reaches him at his fixed endpoint, checks the counterparty and never falls back on a file. A list without a
+    // bound target skips the step: the holder is not needed then.
+    let halter_socket = crate::halter::fester_pfad(eigene_uid);
+    if liste.ziele.iter().any(zielliste::Ziel::gebunden) {
+        halter_bereit(&halter_socket, eigene_uid)?;
     }
     if !a.protokoll.is_dir() {
         return Err(Startfehler::ProtokollOrdner);
@@ -364,12 +394,15 @@ fn vorbereiten_zwei(
     let zaehlung = probelauf_starten(&a, &uhr)?;
     let mut verbinder: Vec<Option<Box<dyn ziel::Verbinder>>> = Vec::new();
     for z in &liste.ziele {
+        // Step 6: a bound host is never resolved here. Its address stands only in `halter.json`, and a failure there
+        // is `mw.halter_fehler` in the session, not `mw.ziel_unaufloesbar` at the start.
+        if z.gebunden() {
+            verbinder.push(None);
+            continue;
+        }
         let adressen = aufloeser(&z.host, z.port).ok().filter(|v| !v.is_empty());
         let Some(adressen) = adressen else {
-            // A bound target without address ends the start; an unbound one blocks nothing (section 13.5).
-            if z.bindung.is_some() {
-                return Err(Startfehler::ZielUnaufloesbar);
-            }
+            // An unbound target without address blocks nothing (section 13.5).
             verbinder.push(None);
             continue;
         };
@@ -395,6 +428,7 @@ fn vorbereiten_zwei(
         zaehlung,
         a.pfad_voll,
         eigene_uid,
+        halter_socket,
         Betrieb::neu(uhr),
     );
     Ok(Bereit {

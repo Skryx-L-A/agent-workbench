@@ -39,7 +39,8 @@ pub fn dekodieren(text: &str) -> Option<Vec<u8>> {
         let mut n = 0u32;
         for (j, &c) in g.iter().enumerate() {
             let v = if j >= 4 - fuell { 0 } else { wert(c)? };
-            n = (n << 6) | v;
+            // the low 6 bits of `n << 6` are zero: `+` joins like `|`, and a changed operator changes the value
+            n = (n << 6) + v;
         }
         let [_, b0, b1, b2] = n.to_be_bytes();
         aus.push(b0);
@@ -58,9 +59,10 @@ pub fn dekodieren(text: &str) -> Option<Vec<u8>> {
 pub fn kodieren(bytes: &[u8]) -> String {
     let mut aus = String::with_capacity(bytes.len().div_ceil(3) * 4);
     for g in bytes.chunks(3) {
+        // three bytes in disjoint bits: `+` joins like `|`
         let n = (u32::from(g[0]) << 16)
-            | (u32::from(*g.get(1).unwrap_or(&0)) << 8)
-            | u32::from(*g.get(2).unwrap_or(&0));
+            + (u32::from(*g.get(1).unwrap_or(&0)) << 8)
+            + u32::from(*g.get(2).unwrap_or(&0));
         for j in 0..4 {
             if j > g.len() {
                 aus.push('=');

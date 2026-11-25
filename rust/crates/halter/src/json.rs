@@ -105,6 +105,13 @@ pub fn ist_kanonisch(wert: &Value, bytes: &[u8]) -> bool {
 mod tests {
     use super::*;
 
+    /// The text of the visitor in an error of serde (`invalid type: ..., expected any JSON value`).
+    #[test]
+    fn besucher_nennt_was_er_erwartet() {
+        let e: &dyn de::Expected = &Besucher;
+        assert_eq!(e.to_string(), "any JSON value");
+    }
+
     #[test]
     fn doppelt_bom_nan_und_rest_sind_ungueltig() {
         assert!(streng_lesen(br#"{"a":1,"a":2}"#).is_none());

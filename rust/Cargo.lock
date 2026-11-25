@@ -1114,6 +1114,7 @@ name = "modellweg"
 version = "0.1.0"
 dependencies = [
  "formate",
+ "halter",
  "kernabbild",
  "native-tls",
  "openssl",

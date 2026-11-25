@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Attrappe des Tors `darf(einheit, route, kunde)` nach Vertrag 3 (`rust/spec/VERTRAEGE.md`, Abschnitte 2 bis 5).
+"""Attrappe des Tors `darf(einheit, route, kunde)` nach Vertrag 3 (`rust/spec/datentor/VERTRAG.md`, Abschnitte 2 bis 5).
 
 Gleiche Regeln D2 bis D11 wie der Vertrag, nur Standardbibliothek. Zwei Nutzungen:
   - als Modul: `darf(vorgabe, einheit, route, kunde)` fuer die Such-Attrappe,

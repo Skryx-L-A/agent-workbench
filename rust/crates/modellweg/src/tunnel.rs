@@ -15,10 +15,10 @@ use crate::betrieb::{Abbruch, Betrieb, Huelle, Server, TUNNEL_MAX};
 use crate::betriebsart::kopf_einsetzen::{self, Meldung, Rahmen, an_ziel, antwortkopf_bleibt};
 use crate::betriebsart::zielliste::{Ziel, Zielliste};
 use crate::ca::Ca;
+use crate::halter;
 use crate::http::{self, Antwortkopf, KoerperLeser, Lesefehler, name_ok};
 use crate::probelauf::Zaehlung;
 use crate::protokoll::{self, KopfZeile};
-use crate::schluessel;
 use crate::sperre::{Sperre, enthaelt};
 use crate::websocket::{Abriss, Filter, Rahmensperre, Zaehlrahmen};
 use crate::ziel::Verbinder;
@@ -40,6 +40,7 @@ pub struct Tunnel {
     probelauf: Option<Zaehlung>,
     pfad_voll: bool,
     eigene_uid: u32,
+    halter_socket: PathBuf,
     betrieb: Betrieb,
 }
 
@@ -81,9 +82,19 @@ impl Ende {
         e
     }
 
+    /// A failure of the holder after the head of the answer already went to the harness: the status stays the one
+    /// that went out, and the line names the own code (section 13.4).
+    fn spaet(code: &'static str, status: u16, meldung: Meldung) -> Self {
+        let mut e = Self::ablehnung(code, meldung);
+        e.status = Some(status);
+        e
+    }
+
     fn ablehnung(code: &'static str, meldung: Meldung) -> Self {
         let ergebnis = match code {
-            "mw.schluessel_fehlt"
+            "mw.halter_kein_schluessel"
+            | "mw.halter_fehler"
+            | "mw.halter_frist"
             | "mw.ziel_nicht_erreichbar"
             | "mw.ziel_frist"
             | "mw.antwort_komprimiert" => "ziel_fehler",
@@ -118,8 +129,13 @@ impl Server for Tunnel {
 }
 
 impl Tunnel {
-    /// The service for a checked target list and CA; `verbinder` has one connector per target, in the order of the list
-    /// (`None` for an unbound target that got no address at the start).
+    /// The service for a checked target list and CA; `verbinder` has one connector per target, in the order of the
+    /// list (`None` for a bound target, whose way out belongs to the holder, and for an unbound target that got no
+    /// address at the start).
+    ///
+    /// `halter_socket` is the endpoint of the holder. The program itself always hands in the fixed path
+    /// ([`halter::fester_pfad`], the only call), never an option and never a value of the caller; a test hands in the
+    /// path of its own holder. The check of the counterparty runs on it as it does on the fixed one.
     #[must_use]
     #[allow(
         clippy::too_many_arguments,
@@ -135,6 +151,7 @@ impl Tunnel {
         probelauf: Option<Zaehlung>,
         pfad_voll: bool,
         eigene_uid: u32,
+        halter_socket: PathBuf,
         betrieb: Betrieb,
     ) -> Self {
         Self {
@@ -147,6 +164,7 @@ impl Tunnel {
             probelauf,
             pfad_voll,
             eigene_uid,
+            halter_socket,
             betrieb,
         }
     }
@@ -179,7 +197,9 @@ impl Tunnel {
             return self.abweisen(h, None, "mw.ziel_nicht_erlaubt");
         };
         let ziel = &self.zielliste.ziele[nummer];
-        if self.verbinder[nummer].is_none() {
+        // Stage 6 is for an unbound target that got no address at the start. A bound target has no connector of its
+        // own: its way out belongs to the holder (section 5.1).
+        if !ziel.gebunden() && self.verbinder[nummer].is_none() {
             return self.abweisen(h, Some(ziel), "mw.ziel_nicht_erreichbar");
         }
         if h.write_all(b"HTTP/1.1 200 Connection Established\r\n\r\n")
@@ -273,79 +293,52 @@ impl Tunnel {
             Err((code, m)) => return ablehnen(tls, code, m),
         };
         let mut meldung = g.meldung.clone();
-        let koerper = match lies_koerper(tls, rest, g.rahmen) {
+        // A bound target takes its body as `koerper_b64` in one piece: the holder sets the framing, so a chunked body
+        // is unchunked here. An unbound target gets the framing byte for byte as it came.
+        let koerper = match lies_koerper(tls, rest, g.rahmen, ziel.gebunden()) {
             Ok(k) => k,
             Err(code) => return ablehnen(tls, code, meldung),
         };
-        meldung.kopf = Some(if ziel.bindung.is_some() {
-            "ersetzt"
+        meldung.kopf = Some(if ziel.gebunden() {
+            kopf_einsetzen::KOPF_GEBUNDEN
         } else {
             "keiner"
         });
-        let schluessel = match &ziel.bindung {
-            Some(b) => {
-                match schluessel::lies(std::path::Path::new(&b.schluessel_datei), self.eigene_uid) {
-                    Ok(s) => Some(s),
-                    Err(_) => return ablehnen(tls, "mw.schluessel_fehlt", meldung),
-                }
-            }
-            None => None,
-        };
         if let Some(z) = &self.probelauf
             && z.zaehle(&koerper).is_err()
         {
             return ablehnen(tls, "mw.zaehlung_fehler", meldung);
         }
-        let mut anfrage = an_ziel(
-            ziel,
-            &k,
-            g.umstellen,
-            schluessel.as_ref().map(schluessel::Schluessel::bytes),
-        );
+        if ziel.gebunden() {
+            let Some((pfad, abfrage, kopf)) = kopf_einsetzen::an_halter(&k) else {
+                return ablehnen(tls, "mw.anfrage_unlesbar", meldung);
+            };
+            let auftrag = Halterauftrag {
+                ziel,
+                methode: &k.methode,
+                pfad: &pfad,
+                abfrage: abfrage.as_deref(),
+                kopf: &kopf,
+                koerper: &koerper,
+                umstellen: g.umstellen,
+            };
+            return Some(self.ueber_halter(tls, &auftrag, meldung));
+        }
+        let mut anfrage = an_ziel(&k);
         anfrage.extend_from_slice(&koerper);
-        let alle = self.alle_schluessel(schluessel);
-        let ende = self.weiterreichen(
-            tls,
-            nummer,
-            g.umstellen,
-            &mut anfrage,
-            &alle,
-            abbruch,
-            meldung,
-        );
+        let ende = self.weiterreichen(tls, nummer, g.umstellen, &mut anfrage, abbruch, meldung);
         anfrage.fill(0);
         Some(ende)
     }
 
-    /// The keys of every bound target that can be read now, for the leak lock.
-    fn alle_schluessel(
-        &self,
-        eigener: Option<schluessel::Schluessel>,
-    ) -> Vec<schluessel::Schluessel> {
-        let mut alle: Vec<schluessel::Schluessel> = eigener.into_iter().collect();
-        for z in &self.zielliste.ziele {
-            if let Some(b) = &z.bindung
-                && let Ok(s) =
-                    schluessel::lies(std::path::Path::new(&b.schluessel_datei), self.eigene_uid)
-            {
-                alle.push(s);
-            }
-        }
-        alle
-    }
-
-    /// The way to the target and the answer to the harness.
-    #[allow(
-        clippy::too_many_arguments,
-        reason = "the parts of one request, each named"
-    )]
+    /// The way to an **unbound** target and its answer to the harness. It never carries a key, so the leak lock runs
+    /// over an empty list of keys; a bound target does not come here (it goes to the holder).
     fn weiterreichen(
         &self,
         tls: &mut SslStream<Huelle>,
         nummer: usize,
         umstellen: bool,
         anfrage: &mut [u8],
-        schluessel: &[schluessel::Schluessel],
         abbruch: &Abbruch,
         meldung: Meldung,
     ) -> Ende {
@@ -373,10 +366,7 @@ impl Tunnel {
             Err(Lesefehler::Sonst) => return ablehnen(tls, "mw.ziel_nicht_erreichbar", meldung),
         };
         let umgestellt = kopf.status == 101 && umstellen && ziel.upgrade_durchreichen;
-        let schluessel: Vec<&[u8]> = schluessel
-            .iter()
-            .map(schluessel::Schluessel::bytes)
-            .collect();
+        let schluessel: Vec<&[u8]> = Vec::new();
         // W2: a negotiated extension would blind the lock; the 101 with one is replaced by 502. Only a bound target may
         // hand an upgrade through (section 12, `zl.upgrade_wert`), so every switch here is one of a bound target.
         if umgestellt
@@ -428,7 +418,7 @@ impl Tunnel {
             .felder
             .iter()
             .any(|(n, w)| n == "content-encoding" && !w.eq_ignore_ascii_case(b"identity"));
-        if komprimiert && ziel.bindung.is_some() {
+        if komprimiert && ziel.gebunden() {
             return ablehnen(tls, "mw.antwort_komprimiert", meldung);
         }
         let leser = KoerperLeser::neu(strom, rest, rahmung);
@@ -439,6 +429,82 @@ impl Tunnel {
             komprimiert,
         };
         koerper_durch(tls, leser, &schluessel, &antwort, meldung)
+    }
+
+    /// The way over the holder for a bound target (section 5.1): one connection per request, no hello, the checked
+    /// request as `modell.aufruf` or `modell.strom`, and the answer built out of `beginn`, `teil` and `ende`.
+    /// Fail closed at every place: a failure of the holder or a tear-down ends the request, never with a fall back on
+    /// a file. The model path holds no token for this target, so it runs no leak lock of its own here: that lock is
+    /// the holder's (`halter.leck_gesperrt`, which becomes `mw.halter_fehler`).
+    fn ueber_halter(
+        &self,
+        tls: &mut SslStream<Huelle>,
+        a: &Halterauftrag<'_>,
+        meldung: Meldung,
+    ) -> Ende {
+        let ablehnen = |tls: &mut SslStream<Huelle>, code: &'static str, m: Meldung| {
+            let _ = tls.write_all(&kopf_einsetzen::antwort(code));
+            Ende::ablehnung(code, m)
+        };
+        let name = a.ziel.halter_ziel.as_deref().unwrap_or_default();
+        // In the session a holder that is gone is `mw.halter_fehler`; `mw.halter_fehlt` belongs to the start.
+        let Ok(mut klient) = halter::Klient::verbinde(&self.halter_socket, self.eigene_uid) else {
+            return ablehnen(tls, "mw.halter_fehler", meldung);
+        };
+        if klient.frist(Some(halter::FRIST_KOPF)).is_err() {
+            return ablehnen(tls, "mw.halter_fehler", meldung);
+        }
+        let id = klient.naechste_id();
+        let zeile = if a.umstellen {
+            halter::modell_strom(id, name, a.pfad, a.abfrage, a.kopf)
+        } else {
+            halter::modell_aufruf(id, name, a.methode, a.pfad, a.abfrage, a.kopf, a.koerper)
+        };
+        let gesendet = zeile.and_then(|z| klient.senden(&z));
+        if let Err(code) = gesendet {
+            return ablehnen(tls, code, meldung);
+        }
+        let erste = match klient.naechste_zeile() {
+            Ok(z) => z,
+            Err(code) => return ablehnen(tls, code, meldung),
+        };
+        let (status, kopf) = match erste {
+            halter::Zeile::Beginn { status, kopf } => (status, kopf),
+            halter::Zeile::Ende(Some(code))
+            | halter::Zeile::Antwort {
+                code: Some(code), ..
+            } => {
+                return ablehnen(tls, halter::auf_mw(&code), meldung);
+            }
+            _ => return ablehnen(tls, "mw.halter_fehler", meldung),
+        };
+        let umgestellt = status == 101 && a.umstellen && a.ziel.upgrade_durchreichen;
+        // The head of the answer: the headers of the holder as they came (his block list is the longer one and
+        // already ran, section 13.3). He never sends `content-length` or `transfer-encoding`, so the body goes
+        // chunked to the harness; a switched answer gets `upgrade` and `connection` from the model path itself.
+        let mut antwortkopf = format!("HTTP/1.1 {status} \r\n").into_bytes();
+        for (n, w) in &kopf {
+            antwortkopf.extend_from_slice(format!("{n}: {w}\r\n").as_bytes());
+        }
+        if umgestellt {
+            antwortkopf.extend_from_slice(b"upgrade: websocket\r\nconnection: Upgrade\r\n\r\n");
+            if tls.write_all(&antwortkopf).is_err() {
+                return Ende::weiter(101, meldung, false);
+            }
+            let _ = tls.get_ref().set_read_timeout(Some(TAKT));
+            if klient.frist(Some(TAKT)).is_err() {
+                return Ende::spaet("mw.halter_fehler", 101, meldung);
+            }
+            // Only the model path sees the bytes of the harness, so only it counts them in a trial run (Z1 to Z3).
+            // The frames of the target are the holder's business (section 13.3).
+            let hin = self.probelauf.as_ref().map(Zaehlrahmen::neu);
+            return match bruecke_halter(tls, &mut klient, id, hin) {
+                Ok(()) => Ende::weiter(101, meldung, false),
+                Err(code) => Ende::spaet(code, 101, meldung),
+            };
+        }
+        antwortkopf.extend_from_slice(b"transfer-encoding: chunked\r\n\r\n");
+        koerper_vom_halter(tls, &mut klient, &antwortkopf, status, meldung)
     }
 
     /// Appends the line of a tunnel or a request; a failure blocks every further tunnel (`mw.protokoll_fehlt`).
@@ -469,6 +535,157 @@ impl Tunnel {
     }
 }
 
+/// The body of a plain answer of the holder: the lines `teil` as chunks to the harness, the line `ende` closes it.
+/// A failure after the head went out keeps the status that went out and names the own code (section 13.4).
+fn koerper_vom_halter(
+    tls: &mut SslStream<Huelle>,
+    klient: &mut halter::Klient,
+    antwortkopf: &[u8],
+    status: u16,
+    meldung: Meldung,
+) -> Ende {
+    let mut kopf_gesendet = false;
+    let schluss = |tls: &mut SslStream<Huelle>, code: &'static str, m: Meldung, gesendet: bool| {
+        if gesendet {
+            return Ende::spaet(code, status, m);
+        }
+        let _ = tls.write_all(&kopf_einsetzen::antwort(code));
+        Ende::ablehnung(code, m)
+    };
+    loop {
+        let z = match klient.naechste_zeile() {
+            Ok(z) => z,
+            Err(code) => return schluss(tls, code, meldung, kopf_gesendet),
+        };
+        match z {
+            halter::Zeile::Teil(daten) => {
+                if !kopf_gesendet {
+                    kopf_gesendet = true;
+                    if tls.write_all(antwortkopf).is_err() {
+                        return Ende::weiter(status, meldung, false);
+                    }
+                }
+                if stueck_senden(tls, &daten).is_err() {
+                    return Ende::weiter(status, meldung, false);
+                }
+            }
+            halter::Zeile::Ende(None) => {
+                let abschluss = (|| -> io::Result<()> {
+                    if !kopf_gesendet {
+                        tls.write_all(antwortkopf)?;
+                    }
+                    tls.write_all(b"0\r\n\r\n")?;
+                    tls.flush()
+                })();
+                return Ende::weiter(status, meldung, abschluss.is_ok());
+            }
+            halter::Zeile::Ende(Some(code)) => {
+                return schluss(tls, halter::auf_mw(&code), meldung, kopf_gesendet);
+            }
+            halter::Zeile::Beginn { .. } | halter::Zeile::Antwort { .. } => {
+                return schluss(tls, "mw.halter_fehler", meldung, kopf_gesendet);
+            }
+        }
+    }
+}
+
+/// One chunk of a chunked answer to the harness; an empty part writes nothing.
+fn stueck_senden(tls: &mut SslStream<Huelle>, bytes: &[u8]) -> io::Result<()> {
+    if bytes.is_empty() {
+        return Ok(());
+    }
+    tls.write_all(format!("{:x}\r\n", bytes.len()).as_bytes())?;
+    tls.write_all(bytes)?;
+    tls.write_all(b"\r\n")
+}
+
+/// The bridge of a switched connection over the holder (section 5.1): the bytes of the harness go as lines
+/// `strom.teil` with the `id` of the stream, at most `TEIL_MAX` per line, the lines `teil` of the holder go as bytes
+/// to the harness. The way from the harness is not checked (W6), only counted in a trial run. `Err` with the own code
+/// when the stream tore down; nothing more then goes either way.
+fn bruecke_halter(
+    tls: &mut SslStream<Huelle>,
+    klient: &mut halter::Klient,
+    id: u64,
+    mut hin: Option<Zaehlrahmen<'_>>,
+) -> Result<(), &'static str> {
+    let mut block = vec![0u8; BLOCK];
+    let mut harness_zu = false;
+    loop {
+        // The harness closed: `strom.ende` went out, and the holder answers `ende`. From here the model path waits for
+        // that line with the deadline of a head, so a silent holder ends the request instead of holding the thread.
+        if harness_zu {
+            return match klient.naechste_zeile()? {
+                halter::Zeile::Teil(daten) => {
+                    if tls.write_all(&daten).is_err() {
+                        return Ok(());
+                    }
+                    continue;
+                }
+                halter::Zeile::Ende(None) => {
+                    let _ = tls.flush();
+                    Ok(())
+                }
+                halter::Zeile::Ende(Some(code)) => Err(halter::auf_mw(&code)),
+                _ => Err("mw.halter_fehler"),
+            };
+        }
+        {
+            match tls.read(&mut block) {
+                Ok(0) => {
+                    harness_zu = true;
+                    klient.senden(&halter::strom_ende(id)?)?;
+                    klient.frist(Some(halter::FRIST_KOPF)).ok();
+                }
+                Ok(n) => {
+                    let (geprueft, abriss) = match hin.as_mut() {
+                        None => (None, None),
+                        Some(z) => {
+                            let (raus, abriss) = z.teil(&block[..n]);
+                            (Some(raus), abriss)
+                        }
+                    };
+                    let raus = geprueft.as_deref().unwrap_or(&block[..n]);
+                    for stueck in raus.chunks(halter::TEIL_MAX) {
+                        klient.senden(&halter::strom_teil(id, stueck)?)?;
+                    }
+                    if let Some(a) = abriss {
+                        return Err(a.code());
+                    }
+                }
+                Err(e) if frist_vorbei(&e) => {}
+                Err(_) => {
+                    harness_zu = true;
+                    klient.senden(&halter::strom_ende(id)?)?;
+                    klient.frist(Some(halter::FRIST_KOPF)).ok();
+                }
+            }
+        }
+        match klient.zeile_oder_nichts()? {
+            None => {}
+            Some(halter::Zeile::Teil(daten)) => {
+                if tls.write_all(&daten).is_err() {
+                    return Ok(());
+                }
+            }
+            Some(halter::Zeile::Ende(None)) => {
+                let _ = tls.flush();
+                return Ok(());
+            }
+            Some(halter::Zeile::Ende(Some(code))) => return Err(halter::auf_mw(&code)),
+            Some(_) => return Err("mw.halter_fehler"),
+        }
+    }
+}
+
+/// Whether a read ended because its deadline passed.
+fn frist_vorbei(e: &io::Error) -> bool {
+    matches!(
+        e.kind(),
+        io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut
+    )
+}
+
 /// The framing towards the harness: the length of the target if it had one, else chunked. Returns the header line
 /// and whether it is a length.
 fn rahmen_zum_harness(rahmung: Option<http::Rahmung>) -> (Vec<u8>, bool) {
@@ -476,6 +693,17 @@ fn rahmen_zum_harness(rahmung: Option<http::Rahmung>) -> (Vec<u8>, bool) {
         Some(http::Rahmung::Laenge(n)) => (format!("content-length: {n}\r\n").into_bytes(), true),
         _ => (b"transfer-encoding: chunked\r\n".to_vec(), false),
     }
+}
+
+/// One checked request to a bound target, as it goes to the holder (section 5.1).
+struct Halterauftrag<'a> {
+    ziel: &'a Ziel,
+    methode: &'a str,
+    pfad: &'a str,
+    abfrage: Option<&'a str>,
+    kopf: &'a [halter::Kopf],
+    koerper: &'a [u8],
+    umstellen: bool,
 }
 
 /// The head of an answer to the harness and how its body goes.
@@ -611,12 +839,15 @@ fn behaltene_felder(kopf: &Antwortkopf, umgestellt: bool) -> Vec<(String, Vec<u8
         .collect()
 }
 
-/// The body of a request: exactly `Content-Length` bytes (else `mw.anfrage_unlesbar`) or the chunked framing as sent
-/// (more than 33554432 bytes of data: `mw.koerper_zu_gross`).
+/// The body of a request: exactly `Content-Length` bytes (else `mw.anfrage_unlesbar`) or a chunked body. For an
+/// unbound target the chunked framing goes out as sent; for a bound one only the data go out, because the body goes
+/// to the holder as `koerper_b64` in one piece and he sets the framing. The limit of the data is the one of the
+/// target (stage 7): 23 MiB bound, 32 MiB unbound.
 fn lies_koerper<R: Read>(
     r: &mut R,
     rest: Vec<u8>,
     rahmen: Rahmen,
+    gebunden: bool,
 ) -> Result<Vec<u8>, &'static str> {
     match rahmen {
         Rahmen::Ohne => Ok(Vec::new()),
@@ -635,12 +866,31 @@ fn lies_koerper<R: Read>(
                 Err("mw.anfrage_unlesbar")
             }
         }
-        Rahmen::Stueckweise => stueckweise_roh(r, rest),
+        Rahmen::Stueckweise => {
+            let grenze = if gebunden {
+                kopf_einsetzen::KOERPER_MAX_GEBUNDEN
+            } else {
+                kopf_einsetzen::KOERPER_MAX
+            };
+            stueckweise(r, rest, grenze, gebunden)
+        }
     }
 }
 
-/// Reads a chunked body and returns its bytes with the framing as sent.
-fn stueckweise_roh<R: Read>(r: &mut R, mut puf: Vec<u8>) -> Result<Vec<u8>, &'static str> {
+/// Reads a chunked body and returns its bytes with the framing as sent, up to 32 MiB of data.
+#[cfg(test)]
+fn stueckweise_roh<R: Read>(r: &mut R, puf: Vec<u8>) -> Result<Vec<u8>, &'static str> {
+    stueckweise(r, puf, kopf_einsetzen::KOERPER_MAX, false)
+}
+
+/// Reads a chunked body: with `nur_daten` only the data of the chunks, else the framing as sent. More than `grenze`
+/// bytes of data is `mw.koerper_zu_gross`.
+fn stueckweise<R: Read>(
+    r: &mut R,
+    mut puf: Vec<u8>,
+    grenze: u64,
+    nur_daten: bool,
+) -> Result<Vec<u8>, &'static str> {
     let mut roh = Vec::new();
     let mut daten: u64 = 0;
     let mut block = vec![0u8; BLOCK];
@@ -675,7 +925,7 @@ fn stueckweise_roh<R: Read>(r: &mut R, mut puf: Vec<u8>) -> Result<Vec<u8>, &'st
                 .ok_or("mw.anfrage_unlesbar")?
         };
         daten = daten.saturating_add(groesse);
-        if daten > kopf_einsetzen::KOERPER_MAX {
+        if daten > grenze {
             return Err("mw.koerper_zu_gross");
         }
         let n = usize::try_from(groesse).map_err(|_| "mw.koerper_zu_gross")?;
@@ -685,11 +935,15 @@ fn stueckweise_roh<R: Read>(r: &mut R, mut puf: Vec<u8>) -> Result<Vec<u8>, &'st
             loop {
                 if let Some(i) = http::finde(&puf[zeile + 2..], b"\r\n\r\n").map(|i| i + zeile + 2)
                 {
-                    roh.extend_from_slice(&puf[..i + 4]);
+                    if !nur_daten {
+                        roh.extend_from_slice(&puf[..i + 4]);
+                    }
                     return Ok(roh);
                 }
                 if puf[zeile + 2..].starts_with(b"\r\n") {
-                    roh.extend_from_slice(&puf[..zeile + 4]);
+                    if !nur_daten {
+                        roh.extend_from_slice(&puf[..zeile + 4]);
+                    }
                     return Ok(roh);
                 }
                 if puf.len() > zeile + 4096 {
@@ -704,7 +958,11 @@ fn stueckweise_roh<R: Read>(r: &mut R, mut puf: Vec<u8>) -> Result<Vec<u8>, &'st
         if &puf[bis - 2..bis] != b"\r\n" {
             return Err("mw.anfrage_unlesbar");
         }
-        roh.extend_from_slice(&puf[..bis]);
+        if nur_daten {
+            roh.extend_from_slice(&puf[zeile + 2..bis - 2]);
+        } else {
+            roh.extend_from_slice(&puf[..bis]);
+        }
         puf.drain(..bis);
     }
 }
@@ -965,27 +1223,32 @@ mod pruefungen {
     #[test]
     fn a_body_by_its_length() {
         assert_eq!(
-            lies_koerper(&mut &b""[..], b"abcX".to_vec(), Rahmen::Laenge(3)),
+            lies_koerper(&mut &b""[..], b"abcX".to_vec(), Rahmen::Laenge(3), false),
             Ok(b"abc".to_vec())
         );
         assert_eq!(
-            lies_koerper(&mut &b"cdEXTRA"[..], b"ab".to_vec(), Rahmen::Laenge(4)),
+            lies_koerper(
+                &mut &b"cdEXTRA"[..],
+                b"ab".to_vec(),
+                Rahmen::Laenge(4),
+                false
+            ),
             Ok(b"abcd".to_vec())
         );
         assert_eq!(
-            lies_koerper(&mut &b"bcdefg"[..], b"a".to_vec(), Rahmen::Laenge(4)),
+            lies_koerper(&mut &b"bcdefg"[..], b"a".to_vec(), Rahmen::Laenge(4), false),
             Ok(b"abcd".to_vec())
         );
         assert_eq!(
-            lies_koerper(&mut &b""[..], b"ab".to_vec(), Rahmen::Laenge(2)),
+            lies_koerper(&mut &b""[..], b"ab".to_vec(), Rahmen::Laenge(2), false),
             Ok(b"ab".to_vec())
         );
         assert_eq!(
-            lies_koerper(&mut &b"c"[..], b"ab".to_vec(), Rahmen::Laenge(4)),
+            lies_koerper(&mut &b"c"[..], b"ab".to_vec(), Rahmen::Laenge(4), false),
             Err("mw.anfrage_unlesbar")
         );
         assert_eq!(
-            lies_koerper(&mut &b"x"[..], Vec::new(), Rahmen::Ohne),
+            lies_koerper(&mut &b"x"[..], Vec::new(), Rahmen::Ohne, false),
             Ok(Vec::new())
         );
     }

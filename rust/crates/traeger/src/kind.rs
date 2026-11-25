@@ -41,6 +41,15 @@ impl From<GroesseUngueltig> for Fehler {
 
 impl std::error::Error for Fehler {}
 
+/// Who asked for the end of the child.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Anstoss {
+    /// Nobody: the child ends by itself (or not yet).
+    Keiner,
+    /// [`Kind::beenden`] ended the running child.
+    Beenden,
+}
+
 /// How a child starts.
 #[derive(Debug, Clone)]
 pub struct Start {
@@ -93,6 +102,8 @@ pub struct Kind {
     beobachte_ende: bool,
     /// The last call of [`Kind::lies`] took a piece of output (it may have given no event).
     daten_gelesen: bool,
+    /// Whether [`Kind::beenden`] ended the running child (under Windows the code of `Kindende` is then [`CODE_BEENDET`]).
+    anstoss: Anstoss,
     leser: Option<JoinHandle<()>>,
 }
 
@@ -182,6 +193,7 @@ impl Kind {
             abschluss: Abschluss::default(),
             beobachte_ende: ENDE_BEOBACHTEN,
             daten_gelesen: false,
+            anstoss: Anstoss::Keiner,
             leser: Some(faden),
         })
     }
@@ -212,7 +224,7 @@ impl Kind {
                 let aktion = self.abschluss_schritt(true);
                 debug_assert_eq!(aktion, Aktion::Melden);
                 self.ende = true;
-                let code = kindcode(self.prozess.as_mut());
+                let code = kindcode(self.prozess.as_mut(), self.anstoss == Anstoss::Beenden);
                 self.raster.kindende(code)
             }
             Err(RecvTimeoutError::Timeout) => {
@@ -308,6 +320,51 @@ impl Kind {
     pub fn pid(&self) -> Option<u32> {
         self.prozess.process_id()
     }
+
+    /// Ends the child if it still runs, through `ChildKiller::kill` of `portable-pty` 0.9.0, and returns without waiting for the end of
+    /// the output: `Kindende` follows through [`Kind::lies`] as for any other end. A child that has ended already, or whose output has
+    /// ended, is left alone.
+    ///
+    /// - Unix (`lib.rs:340-373`, the child is a `std::process::Child`): SIGHUP, then up to 200 ms of asking, then SIGKILL; the call waits
+    ///   for these 200 ms at most. `Kindende` carries 128 plus the signal, as always (129 or 137).
+    /// - Windows (`win/mod.rs:41-57`): `TerminateProcess` with the code 1; no child can refuse it. `Kindende` then carries
+    ///   [`CODE_BEENDET`] (129, as for SIGHUP), so that an end asked for looks the same on every system. A child that ends by itself with
+    ///   the code 1 at the very moment of this call is reported with 129 as well; the case is not told apart.
+    ///
+    /// # Errors
+    /// The signal could not be sent (Unix). `portable-pty` gives no error from `TerminateProcess` under Windows.
+    pub fn beenden(&mut self) -> std::io::Result<()> {
+        if self.ende || matches!(self.prozess.try_wait(), Ok(Some(_))) {
+            return Ok(());
+        }
+        self.anstoss = Anstoss::Beenden;
+        self.prozess.kill()
+    }
+
+    /// The handle of the process of the child (Windows), for a job object of the service. It stays valid as long as this value lives,
+    /// also after the end of the child: `portable-pty` closes it on drop.
+    #[cfg(windows)]
+    #[must_use]
+    pub fn prozess_griff(&self) -> Option<std::os::windows::io::RawHandle> {
+        self.prozess.as_raw_handle()
+    }
+}
+
+/// The code of `Kindende` for a child that [`Kind::beenden`] ended under Windows: 128 plus 1, the code of an end by SIGHUP on Unix
+/// (TR12). `TerminateProcess` of `portable-pty` leaves the code 1, which a child could also give by itself.
+pub const CODE_BEENDET: u32 = 129;
+
+/// The code `TerminateProcess` of `portable-pty` 0.9.0 gives (`win/mod.rs:43`).
+const CODE_TERMINATE: u32 = 1;
+
+/// The code of `Kindende` from the exit code: under Windows a child ended by [`Kind::beenden`] has [`CODE_BEENDET`]; otherwise the
+/// code stays. A parameter for the system, so that a test under Linux reaches the rule.
+fn code_nach_beenden(code: u32, beendet: bool, windows: bool) -> u32 {
+    if windows && beendet && code == CODE_TERMINATE {
+        CODE_BEENDET
+    } else {
+        code
+    }
 }
 
 /// A64: where the output does not end when the child ends, the session watches the process itself. That is `ConPTY` (Windows); under Unix
@@ -380,7 +437,8 @@ fn befehl_bauen(
 /// ended the child (decision of 19.11.2026). The number comes from the wait status itself (`WIFSIGNALED`, `WTERMSIG`), not
 /// from the text `portable-pty` makes of it, which differs from system to system. `portable-pty` keeps only that text, so
 /// the child is taken back as the `std::process::Child` it is on Unix and waited for there. A wait that fails gives 255.
-fn kindcode(prozess: &mut (dyn Child + Send + Sync)) -> u32 {
+/// Under Windows the exit code is the code, except after [`Kind::beenden`] (see [`code_nach_beenden`]).
+fn kindcode(prozess: &mut (dyn Child + Send + Sync), beendet: bool) -> u32 {
     #[cfg(unix)]
     if let Some(kind) = (&mut *prozess as &mut dyn Child).downcast_mut::<std::process::Child>() {
         use std::os::unix::process::ExitStatusExt;
@@ -392,7 +450,8 @@ fn kindcode(prozess: &mut (dyn Child + Send + Sync)) -> u32 {
                 .unwrap_or(255),
         });
     }
-    prozess.wait().map_or(255, |status| status.exit_code())
+    let code = prozess.wait().map_or(255, |status| status.exit_code());
+    code_nach_beenden(code, beendet, cfg!(windows))
 }
 
 impl Drop for Kind {
@@ -592,6 +651,77 @@ mod tests {
         assert!(kind.freigegeben());
         assert_eq!(kind.lies(Duration::ZERO), Vec::<Ereignis>::new());
         assert!(kind.pid().is_some());
+    }
+
+    /// Waits for `Kindende` and gives its code.
+    #[cfg(unix)]
+    fn kindende_code(kind: &mut Kind) -> u32 {
+        let frist = Instant::now() + Duration::from_secs(10);
+        loop {
+            assert!(Instant::now() < frist, "Kindende did not come");
+            for e in kind.lies(Duration::from_millis(50)) {
+                if let Ereignis::Kindende { code } = e {
+                    return code;
+                }
+            }
+        }
+    }
+
+    /// `beenden` ends a running child: SIGHUP gives 129; a child that ignores SIGHUP gets SIGKILL after the grace of `portable-pty`
+    /// (137). `Kindende` follows through `lies`.
+    #[cfg(unix)]
+    #[test]
+    fn beenden_endet_das_kind_mit_sighup_und_wer_es_ignoriert_mit_sigkill() {
+        let mut kind = Kind::starten(start(&["/bin/sleep", "60"])).expect("sleep starts");
+        let t0 = Instant::now();
+        kind.beenden().expect("the signal is sent");
+        assert!(
+            t0.elapsed() < Duration::from_secs(2),
+            "beenden does not wait long"
+        );
+        assert_eq!(kindende_code(&mut kind), 129);
+
+        let mut stur = Kind::starten(start(&[
+            "/bin/sh",
+            "-c",
+            "trap '' HUP; echo bereit; while :; do sleep 1; done",
+        ]))
+        .expect("sh starts");
+        // the trap is set before `bereit` is written
+        let frist = Instant::now() + Duration::from_secs(10);
+        while !stur.raster().zeilen().join(" ").contains("bereit") {
+            assert!(Instant::now() < frist, "sh did not get ready");
+            let _ = stur.lies(Duration::from_millis(50));
+        }
+        stur.beenden().expect("the signal is sent");
+        assert_eq!(kindende_code(&mut stur), 137);
+    }
+
+    /// `beenden` after the end changes nothing: no signal, the code stays, a second call is no error.
+    #[cfg(unix)]
+    #[test]
+    fn beenden_nach_dem_ende_laesst_den_code() {
+        let mut kind = Kind::starten(start(&["/bin/sh", "-c", "exit 6"])).expect("sh starts");
+        assert_eq!(kindende_code(&mut kind), 6);
+        assert!(kind.beenden().is_ok());
+        assert_eq!(
+            kind.anstoss,
+            Anstoss::Keiner,
+            "an ended child is not marked"
+        );
+        assert!(kind.beenden().is_ok());
+    }
+
+    /// The code rule of Windows: only a child ended by `beenden` with the code of `TerminateProcess` gets 129; under Unix nothing changes.
+    #[test]
+    fn der_code_nach_beenden_ist_nur_unter_windows_129() {
+        use super::{CODE_BEENDET, code_nach_beenden};
+        assert_eq!(code_nach_beenden(1, true, true), CODE_BEENDET);
+        assert_eq!(CODE_BEENDET, 129);
+        assert_eq!(code_nach_beenden(1, false, true), 1);
+        assert_eq!(code_nach_beenden(0, true, true), 0);
+        assert_eq!(code_nach_beenden(7, true, true), 7);
+        assert_eq!(code_nach_beenden(1, true, false), 1);
     }
 
     /// The wiring of the prelude rule (W7): with `vorspann` on, the first title that names the started program is dropped; with it off

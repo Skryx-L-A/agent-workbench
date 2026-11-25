@@ -1,4 +1,4 @@
-//! The end of a session cleans up (contract `dienst`, DI12 "Sitzungsende räumt auf"; contract 1, `rust/spec/VERTRAEGE.md`
+//! The end of a session cleans up (contract `dienst`, DI12 "Sitzungsende räumt auf"; contract 1, `rust/spec/start/README.md`
 //! lines 696 to 704).
 //!
 //! At every end of a session (the child ended, also after a failed start of `Lauf starten`; `Beenden`; the end of the service) the

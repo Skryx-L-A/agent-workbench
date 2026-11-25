@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Laeufer `drehbuch`: fuehrt S1 bis S5 und E1 bis E3 aus `rust/spec/VERTRAEGE.md` nacheinander gegen eine
+"""Laeufer `drehbuch`: fuehrt S1 bis S5 und E1 bis E3 aus `rust/spec/vorfuehrung/DREHBUCH.md` nacheinander gegen eine
 Testinstallation aus und schreibt je Schritt eine Zeile mit Ergebnis, Messwerten und Gegenprobe.
 
 Aufruf (nur Standardbibliothek, Python 3.9 oder neuer):

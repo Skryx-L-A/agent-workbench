@@ -1,4 +1,4 @@
-//! `rangkern sitzung` under Windows (addendum to contract 4, `rust/spec/VERTRAEGE.md`): the named pipe
+//! `rangkern sitzung` under Windows (addendum to contract 4, `rust/spec/such-socket/windows/README.md`): the named pipe
 //! `\\.\pipe\wb-such-<32 hex>` through the crate `peerkanal`, never through Win32 directly (this crate forbids `unsafe`).
 //!
 //! The start checks the same things in the same order as under Unix (`kern::vor_dem_kanal`, exit 78), then creates the pipe

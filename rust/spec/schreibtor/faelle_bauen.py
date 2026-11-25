@@ -7,7 +7,7 @@ expected output). Every expectation is written out by hand in the tables below. 
 small reference of the rules in rust/spec/VERTRAEGE.md, sections 3 to 6, and each case against the form rules of section 7; a mismatch
 stops the script before anything is written. All data is invented.
 
-The reference of `darf` and of the effective class (D5) follows rust/spec/VERTRAEGE.md, section 4. If that contract
+The reference of `darf` and of the effective class (D5) follows rust/spec/datentor/VERTRAG.md, section 4. If that contract
 changes, adapt `darf` and `wirksam` here and rebuild.
 """
 import json

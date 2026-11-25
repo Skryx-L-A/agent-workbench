@@ -1,4 +1,4 @@
-//! Class depth in the gate (partial contract `rust/spec/VERTRAEGE.md`): inheritance by place or project
+//! Class depth in the gate (partial contract `rust/spec/datentor/klassen/VERTRAG.md`): inheritance by place or project
 //! (A32), splitting (A33) and lowering by the automatic (A39 to A41), with the log data of a lowering.
 //!
 //! [`wirksame_klasse`] computes, from the own class, the inherited class, the kind of the unit, the findings of the filter

@@ -1,4 +1,4 @@
-//! The thin decision point (contract 6, `rust/spec/VERTRAEGE.md`): session start and the release of each
+//! The thin decision point (contract 6, `rust/spec/stelle/README.md`): session start and the release of each
 //! MCP write call.
 //!
 //! The core is two functions without input and output, clock or randomness: [`laden`] checks the settings file

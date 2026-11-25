@@ -4,10 +4,10 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{self, Read, Write};
-use std::os::unix::net::UnixStream;
+use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use rustix::event::{PollFd, PollFlags, poll};
@@ -63,7 +63,7 @@ pub struct Dienst {
     benutzt: Mutex<BTreeMap<String, i64>>,
     leck_treffer: AtomicU64,
     /// Set after the first fixed line on a chain that cannot be continued (one line per run, F16).
-    kette_gemeldet: std::sync::atomic::AtomicBool,
+    kette_gemeldet: AtomicBool,
 }
 
 enum Zeile {
@@ -96,21 +96,34 @@ impl Leser {
 }
 
 impl Leser {
-    fn naechste(&mut self, strom: &mut UnixStream, frist: Duration) -> Zeile {
+    /// The next complete line of `vorrat` (or `ZuGross` if it or the bytes without LF are over [`ZEILE_MAX`]), `None`
+    /// if more bytes are needed. The reader of requests and the open stream share it, so one test holds both borders.
+    fn fertige(&mut self) -> Option<Zeile> {
+        if let Some(z) = self.aus_vorrat() {
+            if z.len() > ZEILE_MAX {
+                return Some(Zeile::ZuGross);
+            }
+            return Some(Zeile::Da(z));
+        }
+        (self.vorrat.len() > ZEILE_MAX).then_some(Zeile::ZuGross)
+    }
+
+    /// The next line from `strom` within `frist`; `setzen` sets the deadline of one read on `strom` (for a socket
+    /// `UnixStream::set_read_timeout`, which refuses a zero deadline).
+    fn naechste<Q: Read>(
+        &mut self,
+        strom: &mut Q,
+        frist: Duration,
+        setzen: impl Fn(&Q, Option<Duration>) -> io::Result<()>,
+    ) -> Zeile {
         let ende = Instant::now() + frist;
         let mut buf = vec![0u8; 65_536];
         loop {
-            if let Some(z) = self.aus_vorrat() {
-                if z.len() > ZEILE_MAX {
-                    return Zeile::ZuGross;
-                }
-                return Zeile::Da(z);
-            }
-            if self.vorrat.len() > ZEILE_MAX {
-                return Zeile::ZuGross;
+            if let Some(z) = self.fertige() {
+                return z;
             }
             let rest = ende.saturating_duration_since(Instant::now());
-            if rest.is_zero() || strom.set_read_timeout(Some(rest)).is_err() {
+            if rest.is_zero() || setzen(strom, Some(rest)).is_err() {
                 return Zeile::Ende;
             }
             match strom.read(&mut buf) {
@@ -169,7 +182,7 @@ impl Dienst {
             uhr,
             benutzt: Mutex::new(BTreeMap::new()),
             leck_treffer: AtomicU64::new(0),
-            kette_gemeldet: std::sync::atomic::AtomicBool::new(false),
+            kette_gemeldet: AtomicBool::new(false),
         }
     }
 
@@ -257,6 +270,11 @@ impl Dienst {
         true
     }
 
+    /// `true` only the first time in a run: the fixed line of a chain that cannot be continued is written once (F16).
+    fn erste_meldung(&self) -> bool {
+        !self.kette_gemeldet.swap(true, Ordering::Relaxed)
+    }
+
     /// Writes the line of a refused ticket to the chain. When the chain cannot be continued (a broken anchor or any
     /// other failure), the first such failure of the run writes one fixed line to the journal (F16), no path, no content.
     fn kette_schreiben(&self, code: Code, sch: &pruefung::ScheinAbgelehnt) {
@@ -264,7 +282,7 @@ impl Dienst {
             return;
         };
         if let Err(z) = kette::schein_abgelehnt(k, (self.uhr)(), code, sch)
-            && !self.kette_gemeldet.swap(true, Ordering::Relaxed)
+            && self.erste_meldung()
         {
             let mut e = io::stderr();
             let _ = writeln!(e, "{z}");
@@ -297,7 +315,7 @@ impl Dienst {
         };
         let mut frist = FRIST_ERSTE;
         loop {
-            let zeile = match leser.naechste(&mut strom, frist) {
+            let zeile = match leser.naechste(&mut strom, frist, UnixStream::set_read_timeout) {
                 Zeile::Da(z) => z,
                 Zeile::ZuGross => {
                     let _ = senden(&mut strom, &antwort::fehler(None, Code::ZuGross));
@@ -489,9 +507,13 @@ impl Dienst {
             Ok(l) => l,
             Err(c) => return senden(strom, &antwort::fehler(Some(&g.id), c)).is_ok(),
         };
-        if l.tcp().set_write_timeout(Some(FRIST_KOPF)).is_err()
-            || l.write_all(anfrage.bytes()).is_err()
-        {
+        // one result for both steps (a failed write would also fail the head that follows, so `||` against `&&` could
+        // never be seen)
+        let gesendet = l
+            .tcp()
+            .set_write_timeout(Some(FRIST_KOPF))
+            .and_then(|()| l.write_all(anfrage.bytes()));
+        if gesendet.is_err() {
             return senden(strom, &antwort::fehler(Some(&g.id), Code::ZielFehler)).is_ok();
         }
         drop(anfrage);
@@ -583,7 +605,11 @@ impl Dienst {
             }
             Err(a) => return abriss(strom, a.code()),
         }
-        if l.tcp().set_nonblocking(true).is_err() || strom.set_nonblocking(true).is_err() {
+        if l.tcp()
+            .set_nonblocking(true)
+            .and_then(|()| strom.set_nonblocking(true))
+            .is_err()
+        {
             return abriss(strom, Code::Intern);
         }
         let ergebnis = self.strom_schleife(strom, leser, aufrufer, id, l.as_mut(), &mut rahmen);
@@ -625,48 +651,38 @@ impl Dienst {
                         }
                         Err(a) => return Schluss::Abriss(a.code()),
                     },
-                    Err(e)
-                        if matches!(
-                            e.kind(),
-                            io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
-                        ) =>
-                    {
-                        break;
+                    Err(e) => {
+                        if nur_warten(e.kind()) {
+                            break;
+                        }
+                        return Schluss::Abriss(Code::ZielFehler);
                     }
-                    Err(_) => return Schluss::Abriss(Code::ZielFehler),
                 }
             }
             // then the lines of the bridge
             loop {
-                if let Some(z) = leser.aus_vorrat() {
-                    if z.len() > ZEILE_MAX {
+                match leser.fertige() {
+                    Some(Zeile::Da(z)) => match self.strom_zeile(strom, aufrufer, id, l, &z) {
+                        Some(s) => return s,
+                        None => continue,
+                    },
+                    Some(Zeile::ZuGross | Zeile::Ende) => {
                         let _ = blockierend(strom, |s| {
                             senden(s, &antwort::fehler(None, Code::ZuGross))
                         });
                         return Schluss::Weg;
                     }
-                    match self.strom_zeile(strom, aufrufer, id, l, &z) {
-                        Some(s) => return s,
-                        None => continue,
-                    }
-                }
-                if leser.vorrat.len() > ZEILE_MAX {
-                    let _ =
-                        blockierend(strom, |s| senden(s, &antwort::fehler(None, Code::ZuGross)));
-                    return Schluss::Weg;
+                    None => {}
                 }
                 match strom.read(&mut buf) {
                     Ok(0) => return Schluss::Weg,
                     Ok(n) => leser.vorrat.extend_from_slice(&buf[..n]),
-                    Err(e)
-                        if matches!(
-                            e.kind(),
-                            io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
-                        ) =>
-                    {
-                        break;
+                    Err(e) => {
+                        if nur_warten(e.kind()) {
+                            break;
+                        }
+                        return Schluss::Weg;
                     }
-                    Err(_) => return Schluss::Weg,
                 }
             }
             let mut fds = [
@@ -726,6 +742,71 @@ enum Schluss {
     Weg,
 }
 
+/// Most connections at once (at least 32 of the role `bruecke`, section 3, besides hub and surface).
+pub const VERBINDUNGEN_MAX: usize = 128;
+
+/// What the accept loop does after an `accept` without a connection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Pause {
+    /// Nothing waits (`WouldBlock`): wait in `poll` until a connection comes, at most 200 ms (then the stop flag is
+    /// looked at again).
+    Bereitschaft,
+    /// Another error (such as too many open files): rest 50 ms, so that the loop does not spin.
+    Ruhe,
+}
+
+/// The pause after an `accept` that failed with `art`.
+#[must_use]
+pub fn pause_nach(art: io::ErrorKind) -> Pause {
+    match art {
+        io::ErrorKind::WouldBlock => Pause::Bereitschaft,
+        _ => Pause::Ruhe,
+    }
+}
+
+/// The accept loop of the holder on the non-blocking `hoerer`: one thread per connection, at most `max` at once (a
+/// connection above that is closed unanswered), until `halt` is set.
+pub fn annehmen(d: &Arc<Dienst>, hoerer: &UnixListener, halt: &AtomicBool, max: usize) {
+    let offen = Arc::new(AtomicUsize::new(0));
+    while !halt.load(Ordering::Relaxed) {
+        match hoerer.accept() {
+            Ok((strom, _)) => {
+                if strom.set_nonblocking(false).is_err() || offen.load(Ordering::Relaxed) >= max {
+                    continue; // closed unanswered
+                }
+                offen.fetch_add(1, Ordering::Relaxed);
+                let d = Arc::clone(d);
+                let offen2 = Arc::clone(&offen);
+                let gestartet = std::thread::Builder::new().spawn(move || {
+                    d.verbindung(strom);
+                    offen2.fetch_sub(1, Ordering::Relaxed);
+                });
+                if gestartet.is_err() {
+                    offen.fetch_sub(1, Ordering::Relaxed);
+                }
+            }
+            Err(e) => match pause_nach(e.kind()) {
+                Pause::Bereitschaft => {
+                    let mut fds = [PollFd::new(hoerer, PollFlags::IN)];
+                    let t = rustix::time::Timespec {
+                        tv_sec: 0,
+                        tv_nsec: 200_000_000,
+                    };
+                    let _ = poll(&mut fds, Some(&t));
+                }
+                Pause::Ruhe => std::thread::sleep(Duration::from_millis(50)),
+            },
+        }
+    }
+}
+
+/// `true` for a read on a non-blocking socket that only has nothing yet (`WouldBlock`) or was interrupted: the open
+/// stream waits in `poll`; every other error ends it. A pure function, so that a test can give every kind of error.
+#[must_use]
+pub fn nur_warten(art: io::ErrorKind) -> bool {
+    matches!(art, io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted)
+}
+
 fn blockierend(
     strom: &mut UnixStream,
     f: impl FnOnce(&mut UnixStream) -> io::Result<()>,
@@ -738,6 +819,206 @@ fn blockierend(
 
 #[cfg(test)]
 mod tests {
+    /// A source of bytes for the reader: the parts in order, then the end (0 bytes).
+    struct Quelle(std::collections::VecDeque<std::io::Result<Vec<u8>>>);
+
+    impl std::io::Read for Quelle {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            match self.0.pop_front() {
+                None => Ok(0),
+                Some(Err(e)) => Err(e),
+                Some(Ok(mut t)) => {
+                    let n = t.len().min(buf.len());
+                    buf[..n].copy_from_slice(&t[..n]);
+                    if n < t.len() {
+                        self.0.push_front(Ok(t.split_off(n)));
+                    }
+                    Ok(n)
+                }
+            }
+        }
+    }
+
+    fn leser() -> super::Leser {
+        super::Leser {
+            vorrat: Vec::new(),
+            ohne_lf: 0,
+        }
+    }
+
+    fn lesen(teile: Vec<std::io::Result<Vec<u8>>>, frist: Duration) -> Vec<String> {
+        let mut q = Quelle(teile.into());
+        let mut l = leser();
+        let mut aus = Vec::new();
+        loop {
+            assert!(aus.len() < 1000, "the reader gives lines without end");
+            match l.naechste(&mut q, frist, |_, _| Ok(())) {
+                super::Zeile::Da(z) => aus.push(String::from_utf8(z).expect("utf-8")),
+                super::Zeile::ZuGross => {
+                    aus.push("<zu gross>".to_owned());
+                    return aus;
+                }
+                super::Zeile::Ende => return aus,
+            }
+        }
+    }
+
+    use std::io::{Error, ErrorKind};
+    use std::time::Duration;
+
+    const S: Duration = Duration::from_secs(10);
+
+    #[test]
+    fn der_vorrat_gibt_zeilen_ohne_lf_und_behaelt_den_rest() {
+        let mut l = leser();
+        assert_eq!(l.aus_vorrat(), None);
+        l.vorrat.extend_from_slice(b"ab\ncd\nef");
+        assert_eq!(l.aus_vorrat().as_deref(), Some(&b"ab"[..]));
+        assert_eq!(l.aus_vorrat().as_deref(), Some(&b"cd"[..]));
+        assert_eq!(l.aus_vorrat(), None);
+        assert_eq!(l.ohne_lf, 2);
+        l.vorrat.extend_from_slice(b"g\n\n");
+        assert_eq!(l.aus_vorrat().as_deref(), Some(&b"efg"[..]));
+        assert_eq!(l.aus_vorrat().as_deref(), Some(&b""[..]));
+        assert_eq!(l.aus_vorrat(), None);
+        assert_eq!(l.vorrat, Vec::<u8>::new());
+    }
+
+    #[test]
+    fn zeilen_ueber_teilgrenzen_und_das_ende() {
+        let teile = vec![Ok(b"a".to_vec()), Ok(b"b\nc".to_vec()), Ok(b"\n".to_vec())];
+        assert_eq!(lesen(teile, S), ["ab", "c"]);
+    }
+
+    #[test]
+    fn eine_unterbrechung_liest_weiter_ein_anderer_fehler_endet() {
+        let teile = vec![
+            Ok(b"a".to_vec()),
+            Err(Error::from(ErrorKind::Interrupted)),
+            Ok(b"\n".to_vec()),
+        ];
+        assert_eq!(lesen(teile, S), ["a"]);
+        let teile = vec![
+            Ok(b"a\n".to_vec()),
+            Err(Error::from(ErrorKind::ConnectionReset)),
+            Ok(b"b\n".to_vec()),
+        ];
+        assert_eq!(lesen(teile, S), ["a"]);
+    }
+
+    #[test]
+    fn eine_verstrichene_frist_liest_nicht_mehr() {
+        assert_eq!(
+            lesen(vec![Ok(b"a\n".to_vec())], Duration::ZERO),
+            Vec::<String>::new()
+        );
+        // the deadline that cannot be set ends the connection too
+        let mut q = Quelle(vec![Ok(b"a\n".to_vec())].into());
+        let r = leser().naechste(&mut q, S, |_, _| Err(Error::from(ErrorKind::InvalidInput)));
+        assert!(matches!(r, super::Zeile::Ende));
+    }
+
+    #[test]
+    fn genau_zeile_max_ohne_lf_wartet_auf_das_lf() {
+        let max = crate::pruefung::ZEILE_MAX;
+        // exactly ZEILE_MAX bytes without LF, then the LF: a line of ZEILE_MAX bytes
+        let mut l = leser();
+        let mut q = Quelle(vec![Ok(vec![b'x'; max]), Ok(b"\n".to_vec())].into());
+        match l.naechste(&mut q, S, |_, _| Ok(())) {
+            super::Zeile::Da(z) => assert_eq!(z.len(), max),
+            _ => panic!("no line of exactly ZEILE_MAX bytes"),
+        }
+        // one byte more without LF is too big, before the LF comes
+        let mut l = leser();
+        let mut q = Quelle(vec![Ok(vec![b'x'; max + 1]), Ok(b"\n".to_vec())].into());
+        assert!(matches!(
+            l.naechste(&mut q, S, |_, _| Ok(())),
+            super::Zeile::ZuGross
+        ));
+        // a line with LF but one byte too long is too big
+        let mut l = leser();
+        let mut z = vec![b'x'; max + 1];
+        z.push(b'\n');
+        let mut q = Quelle(vec![Ok(z)].into());
+        assert!(matches!(
+            l.naechste(&mut q, S, |_, _| Ok(())),
+            super::Zeile::ZuGross
+        ));
+    }
+
+    #[test]
+    fn der_strom_wartet_nur_ohne_daten_oder_nach_einer_unterbrechung() {
+        assert!(super::nur_warten(ErrorKind::WouldBlock));
+        assert!(super::nur_warten(ErrorKind::Interrupted));
+        for art in [
+            ErrorKind::ConnectionReset,
+            ErrorKind::BrokenPipe,
+            ErrorKind::TimedOut,
+            ErrorKind::UnexpectedEof,
+            ErrorKind::Other,
+        ] {
+            assert!(!super::nur_warten(art), "{art:?}");
+        }
+    }
+
+    static UHR: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(0);
+
+    fn uhr() -> i64 {
+        UHR.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    fn dienst_ohne_ziele() -> super::Dienst {
+        let k = crate::konfig::lesen(
+            br#"{"fassung":1,"konten":{"1000":{"person":null}},"rollen":{},"ziele":{},"server":{},"kids":{}}"#,
+        )
+        .expect("konfig");
+        super::Dienst::neu(
+            k,
+            crate::ablage::Ablage::neu(std::path::Path::new("/srv/beispiel/heim"), 1000),
+            1000,
+            0,
+            std::collections::BTreeMap::new(),
+            None,
+            uhr,
+        )
+    }
+
+    /// A redeemed `einmal` is kept while its `ablauf` lies after now: at `ablauf` itself it is gone.
+    #[test]
+    fn eingeloestes_gilt_bis_vor_dem_ablauf() {
+        let d = dienst_ohne_ziele();
+        UHR.store(1_000, std::sync::atomic::Ordering::Relaxed);
+        assert!(d.einloesen("e-1", 2_000));
+        assert!(!d.einloesen("e-1", 2_000));
+        UHR.store(1_999, std::sync::atomic::Ordering::Relaxed);
+        assert!(!d.einloesen("e-1", 3_000));
+        UHR.store(2_000, std::sync::atomic::Ordering::Relaxed);
+        assert!(d.einloesen("e-1", 3_000));
+    }
+
+    #[test]
+    fn die_kette_meldet_ihren_fehler_einmal() {
+        let d = dienst_ohne_ziele();
+        assert!(d.erste_meldung());
+        assert!(!d.erste_meldung());
+        assert!(!d.erste_meldung());
+    }
+
+    #[test]
+    fn nur_ein_leerer_hoerer_wartet_in_poll() {
+        use super::{Pause, pause_nach};
+        use std::io::ErrorKind;
+        assert_eq!(pause_nach(ErrorKind::WouldBlock), Pause::Bereitschaft);
+        for art in [
+            ErrorKind::Interrupted,
+            ErrorKind::ConnectionAborted,
+            ErrorKind::OutOfMemory,
+            ErrorKind::Other,
+        ] {
+            assert_eq!(pause_nach(art), Pause::Ruhe, "{art:?}");
+        }
+    }
+
     #[test]
     fn uhr_ist_die_echte() {
         let ms = super::jetzt_ms();

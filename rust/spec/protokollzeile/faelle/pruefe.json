@@ -1,5 +1,5 @@
 {
-  "quelle": "Vertrag 5 (rust/spec/VERTRAEGE.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
+  "quelle": "Vertrag 5 (rust/spec/protokollzeile/README.md). Erzeugt von bau-faelle.mjs; nicht von Hand aendern.",
   "faelle": [
     {
       "fall": "drei gesperrt-Zeilen: gruen",
@@ -453,6 +453,40 @@
         {
           "name": "gateway-2026-11.jsonl",
           "inhalt": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"abgelehnt\",\"fassung\":2,\"grund\":\"mw.ziel_nicht_erlaubt\",\"host\":\"api.beispiel.invalid:443\",\"kopf\":null,\"methode\":null,\"pfad\":null,\"pfadregel\":null,\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":403,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:00.000Z\",\"ziel\":null}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 1,
+        "stdout": "{\"bruch\":{\"datei\":\"gateway-2026-11.jsonl\",\"grund\":\"form_falsch\",\"zeile\":1},\"letzte\":null,\"ok\":false,\"zeilen\":0}\n"
+      }
+    },
+    {
+      "fall": "kopf halter auf dem Halterweg: gruen",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":\"api.beispiel.invalid\",\"kopf\":\"halter\",\"methode\":\"GET\",\"pfad\":\"/models/session\",\"pfadregel\":\"/models/*\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:01.000Z\",\"ziel\":\"ziel-1\"}\n"
+        }
+      ],
+      "aufruf": [
+        "pruefe",
+        "@gateway-2026-11.jsonl"
+      ],
+      "erwartet": {
+        "exit": 0,
+        "stdout": "{\"bruch\":null,\"letzte\":\"19155c3c9d9a27f5efaff2a1ae24445c09bf538574c5efdecd19b45345f438e8\",\"ok\":true,\"zeilen\":1}\n"
+      }
+    },
+    {
+      "fall": "kopf ausserhalb des Registers: Form falsch",
+      "dateien": [
+        {
+          "name": "gateway-2026-11.jsonl",
+          "inhalt": "{\"aktionsname\":\"modellweg.aufruf\",\"betriebsart\":\"kopf-einsetzen\",\"ergebnis\":\"weitergereicht\",\"fassung\":2,\"grund\":null,\"host\":\"api.beispiel.invalid\",\"kopf\":\"halters\",\"methode\":\"GET\",\"pfad\":\"/models/session\",\"pfadregel\":\"/models/*\",\"route\":\"cloud-beispiel\",\"sitzung\":\"s-1\",\"status\":200,\"vorher\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"zeit\":\"2026-11-20T13:00:01.000Z\",\"ziel\":\"ziel-1\"}\n"
         }
       ],
       "aufruf": [

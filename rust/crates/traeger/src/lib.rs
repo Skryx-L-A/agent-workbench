@@ -26,7 +26,7 @@ mod zeile;
 
 pub use ereignis::Ereignis;
 pub use fall::{EINGABE_MAX, Ungueltig, laufen, laufen_mit_frist};
-pub use kind::{Fehler, Kind, Start};
+pub use kind::{CODE_BEENDET, Fehler, Kind, Start};
 pub use kinder::lauf as kinderlauf;
 pub use raster::{
     GroesseUngueltig, RUECKLAUF_VORGABE, Raster, SPALTEN_MAX, SPALTEN_MIN, ZEILEN_MAX, ZEILEN_MIN,

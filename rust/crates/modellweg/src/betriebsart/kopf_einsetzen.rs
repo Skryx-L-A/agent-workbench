@@ -9,12 +9,20 @@ use std::path::PathBuf;
 use super::zielliste::{METHODEN, Ziel};
 #[cfg(target_os = "linux")]
 use crate::aufruf::{PFAD_MAX, pfad_ok};
+use crate::halter;
 use crate::http::name_ok;
 
 /// The options of this mode.
 pub const OPTIONEN: [&str; 3] = ["--zielliste", "--ca-schluessel", "--ca-zertifikat"];
-/// Largest `Content-Length` (and largest chunked body) of a request in the tunnel.
+/// Largest `Content-Length` (and largest chunked body) of a request to an **unbound** target.
 pub const KOERPER_MAX: u64 = 33_554_432;
+/// The value of the field `kopf` of the line for a **bound** target (contract 8, section 13.4). The register of a
+/// line of version 2 takes `halter` since 25.11.2026 (`rust/crates/formate/src/kette/pruefen.rs:425`); a line
+/// outside the register is not appended at all, so this one constant is the only place that names the value.
+pub const KOPF_GEBUNDEN: &str = "halter";
+/// Largest body of a request to a **bound** target (H6): it goes as `koerper_b64` in one line of the holder, so
+/// contract 8 lowers the limit instead of splitting the body (section 13.2, stage 7).
+pub const KOERPER_MAX_GEBUNDEN: u64 = halter::KOERPER_MAX;
 /// Headers of one connection (hop by hop).
 const HOP: [&str; 6] = [
     "connection",
@@ -25,9 +33,9 @@ const HOP: [&str; 6] = [
     "upgrade",
 ];
 /// Every name the holder forbids (holder contract, section 4: 31 names). This is the list of the **holder path**
-/// (`modell.aufruf` and `modell.strom`, from step I): there the holder sets host and framing itself, so none of the
-/// names goes to it (contract 8, section 13.2, point 1). The holder path is not built yet; this constant is its named
-/// place, and `the_two_lists_of_forbidden_names` holds its length and its relation to the direct one.
+/// (`modell.aufruf` and `modell.strom`, from step I): there the holder sets host, the framing and the header with the
+/// token itself, so none of the names goes to it (contract 8, section 13.2, point 1). From step I a bound target takes
+/// no other way, so the direct list of twenty names fell away with the direct way to a bound target.
 pub const HALTER_VERBOTEN: [&str; 31] = [
     "authorization",
     "proxy-authorization",
@@ -61,33 +69,6 @@ pub const HALTER_VERBOTEN: [&str; 31] = [
     "x-forwarded-prefix",
     "x-envoy-original-path",
 ];
-/// What the **direct** way to a bound target drops in addition (before step I, with the key from the file; decision of
-/// 25.11.2026): the names of `HALTER_VERBOTEN` without `host`, `content-length` and `transfer-encoding`, which the
-/// request needs there, and without the eight this module already drops above (`authorization`, `accept-encoding` and
-/// the six headers of one connection, whose exception for a handed-through upgrade stays).
-const DIREKT_VERBOTEN: [&str; 20] = [
-    "proxy-authorization",
-    "x-api-key",
-    "api-key",
-    "cookie",
-    "set-cookie",
-    "forwarded",
-    "x-forwarded-for",
-    "x-forwarded-host",
-    "sec-websocket-extensions",
-    "x-http-method-override",
-    "x-http-method",
-    "x-method-override",
-    "x-original-method",
-    "x-original-url",
-    "x-original-uri",
-    "x-rewrite-url",
-    "x-forwarded-uri",
-    "x-forwarded-path",
-    "x-forwarded-prefix",
-    "x-envoy-original-path",
-];
-
 /// The checked options of this mode: three session files of "Lauf starten".
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Optionen {
@@ -131,7 +112,9 @@ pub fn ablehnung(code: &str) -> Option<(u16, &'static str)> {
         "mw.upgrade_abgelehnt" => (403, "Upgrade nicht erlaubt"),
         "mw.anmeldung_an_ungebundenes_ziel" => (403, "Anmeldung an diesem Ziel nicht erlaubt"),
         "mw.koerper_zu_gross" => (413, "Koerper zu gross"),
-        "mw.schluessel_fehlt" => (503, "Schluessel nicht lesbar"),
+        "mw.halter_kein_schluessel" => (503, "kein Schluessel beim Halter"),
+        "mw.halter_fehler" => (502, "Halter lehnte ab"),
+        "mw.halter_frist" => (504, "Halter antwortete nicht"),
         "mw.ziel_nicht_erreichbar" => (502, "Ziel nicht erreichbar"),
         "mw.ziel_frist" => (504, "Ziel antwortet nicht"),
         "mw.leck_gesperrt" => (502, "Antwort des Ziels gesperrt"),
@@ -162,7 +145,7 @@ pub struct Meldung {
     pub methode: Option<&'static str>,
     /// The path of the rule that fitted.
     pub pfadregel: Option<String>,
-    /// `ersetzt`, `keiner` or `abgewiesen`.
+    /// [`KOPF_GEBUNDEN`], `keiner` or `abgewiesen`.
     pub kopf: Option<&'static str>,
 }
 
@@ -258,7 +241,9 @@ pub fn pruefe(
         pfad: Some(crate::pfad::pfad_feld(&k.ziel, pfad_voll)),
         ..Meldung::default()
     };
-    let rahmen = rahmen(k).ok_or_else(|| ("mw.anfrage_unlesbar", meldung.clone()))?;
+    let rahmen = rahmen(k)
+        .filter(|_| anfrageziel_ok(ziel, k))
+        .ok_or_else(|| ("mw.anfrage_unlesbar", meldung.clone()))?;
     let mut host = k.werte("host");
     let host_gut = match (host.next(), host.next()) {
         (Some(h), None) => h == ziel.host || h == format!("{}:{}", ziel.host, ziel.port),
@@ -269,7 +254,8 @@ pub fn pruefe(
     }
     meldung.methode = METHODEN.iter().copied().find(|m| *m == k.methode);
     let pfad = k.ziel.split('?').next().unwrap_or_default();
-    let passend: Vec<_> = if pfad_sicher(pfad) {
+    let form_gut = pfad_sicher(pfad) && (!ziel.gebunden() || halter_pfad_ok(pfad));
+    let passend: Vec<_> = if form_gut {
         ziel.regeln.iter().filter(|r| r.passt(pfad)).collect()
     } else {
         Vec::new()
@@ -291,11 +277,11 @@ pub fn pruefe(
         return Err(("mw.upgrade_abgelehnt", meldung));
     }
     let anmeldung = k.werte("authorization").next().is_some();
-    if ziel.bindung.is_none() && anmeldung {
+    if !ziel.gebunden() && anmeldung {
         meldung.kopf = Some("abgewiesen");
         return Err(("mw.anmeldung_an_ungebundenes_ziel", meldung));
     }
-    if matches!(rahmen, Rahmen::Laenge(n) if n > KOERPER_MAX) {
+    if matches!(rahmen, Rahmen::Laenge(n) if n > koerper_grenze(ziel)) {
         return Err(("mw.koerper_zu_gross", meldung));
     }
     Ok(Geprueft {
@@ -303,6 +289,42 @@ pub fn pruefe(
         umstellen: upgrade,
         rahmen,
     })
+}
+
+/// The largest body of a request to `ziel` (stage 7): 23 MiB at a bound target, 32 MiB at an unbound one.
+#[must_use]
+pub fn koerper_grenze(ziel: &Ziel) -> u64 {
+    if ziel.gebunden() {
+        KOERPER_MAX_GEBUNDEN
+    } else {
+        KOERPER_MAX
+    }
+}
+
+/// Stage 1 for the request target: never a `#`, and at a **bound** target a query that keeps the form of the field
+/// `abfrage` of the holder (at most 1024 characters of its set; contract 8, section 5.1, H4). The model path checks it
+/// itself, so a request outside the form never becomes a 502 at the holder.
+#[must_use]
+pub fn anfrageziel_ok(ziel: &Ziel, k: &InnenKopf) -> bool {
+    if k.ziel.contains('#') {
+        return false;
+    }
+    match (ziel.gebunden(), k.ziel.split_once('?')) {
+        (true, Some((_, abfrage))) => halter::abfrage_ok(abfrage),
+        _ => true,
+    }
+}
+
+/// Stage 3 at a bound target: the form `^/[A-Za-z0-9._~/-]{0,511}$` of the field `pfad` of the holder. A path with
+/// another character, also a percent-encoded one, or above 512 characters is `mw.pfad_nicht_erlaubt` (403), fail
+/// closed: the holder refused it with `halter.wert_form` anyway.
+#[must_use]
+pub fn halter_pfad_ok(pfad: &str) -> bool {
+    pfad.len() <= 512
+        && pfad.starts_with('/')
+        && pfad
+            .bytes()
+            .all(|c| c.is_ascii_alphanumeric() || b"._~/-".contains(&c))
 }
 
 /// Stage 1 for the framing: `Transfer-Encoding` only as exactly `chunked` and not together with `Content-Length`;
@@ -336,43 +358,47 @@ pub fn pfad_sicher(pfad: &str) -> bool {
         && !pfad.split('/').any(|s| s == "." || s == "..")
 }
 
-/// The head to the target (section 13.2): the request line, the fields of the harness without `authorization`, the key
-/// header of the target, the headers of one connection (an upgrade handed through keeps `upgrade` and `connection`)
-/// and, at a bound target, `accept-encoding` and every name of `DIREKT_VERBOTEN` (among them
-/// `sec-websocket-extensions`; W1: a negotiated compression would blind the leak lock); then `accept-encoding: identity`
-/// at a bound target, `connection: close` unless upgrading, and the key header of a bound target.
-/// This is the direct way: `host`, `content-length` and `transfer-encoding` stay, because the request needs them here.
-/// The holder path drops those three as well (`HALTER_VERBOTEN`), and the holder sets them itself.
+/// The head to an **unbound** target (section 13.2): the request line, the fields of the harness in their order and
+/// spelling — `cookie`, `x-api-key` and `accept-encoding` expressly among them — without `authorization` (stage 6
+/// refused it before) and without the headers of one connection, then `connection: close`. An unbound target never
+/// gets a key, and it never hands an upgrade through (section 12), so `upgrade` and `connection` always fall here.
+/// A **bound** target takes no byte of this way: it goes to the holder ([`an_halter`]).
 #[must_use]
-pub fn an_ziel(ziel: &Ziel, k: &InnenKopf, umstellen: bool, schluessel: Option<&[u8]>) -> Vec<u8> {
+pub fn an_ziel(k: &InnenKopf) -> Vec<u8> {
     let weg = |name: &str| {
         let name = name.to_ascii_lowercase();
-        name == "authorization"
-            || ziel.bindung.as_ref().is_some_and(|b| {
-                b.kopf == name
-                    || name == "accept-encoding"
-                    || DIREKT_VERBOTEN.contains(&name.as_str())
-            })
-            || (HOP.contains(&name.as_str())
-                && !(umstellen && (name == "upgrade" || name == "connection")))
+        name == "authorization" || HOP.contains(&name.as_str())
     };
     let mut v = format!("{}\r\n", k.zeile).into_bytes();
     for (name, wert) in k.felder.iter().filter(|(n, _)| !weg(n)) {
         v.extend_from_slice(format!("{name}: {wert}\r\n").as_bytes());
     }
-    if ziel.bindung.is_some() {
-        v.extend_from_slice(b"accept-encoding: identity\r\n");
-    }
-    if !umstellen {
-        v.extend_from_slice(b"connection: close\r\n");
-    }
-    if let (Some(b), Some(s)) = (&ziel.bindung, schluessel) {
-        v.extend_from_slice(format!("{}: {}", b.kopf, b.wert_vorsatz).as_bytes());
-        v.extend_from_slice(s);
-        v.extend_from_slice(b"\r\n");
-    }
+    v.extend_from_slice(b"connection: close\r\n");
     v.extend_from_slice(b"\r\n");
     v
+}
+
+/// Path, query and headers of a request to a **bound** target, for `modell.aufruf` and `modell.strom` (section 5.1).
+/// The model path splits the request target at the first `?`; a `?` never stands in the field `pfad`. Of the headers
+/// it drops **every** one of the 31 names the holder forbids and writes the rest small: the holder sets `host`, the
+/// framing, `accept-encoding: identity`, `upgrade`, `connection` and the header with the token itself.
+/// `connection: close` does not go to the holder either; the way out is his.
+/// The order of the headers is **not** kept and a doubled name keeps only its last value: the field `kopf` of the
+/// holder is an object and the line is canonical (contract 8, section 5.1, and its question F2).
+/// `None` if the headers do not keep the form the holder takes (`mw.anfrage_unlesbar`, 400).
+#[must_use]
+pub fn an_halter(k: &InnenKopf) -> Option<(String, Option<String>, Vec<halter::Kopf>)> {
+    let (pfad, abfrage) = match k.ziel.split_once('?') {
+        Some((p, a)) => (p.to_owned(), Some(a.to_owned())),
+        None => (k.ziel.clone(), None),
+    };
+    let kopf: Vec<halter::Kopf> = k
+        .felder
+        .iter()
+        .map(|(n, w)| (n.to_ascii_lowercase(), w.clone()))
+        .filter(|(n, _)| !HALTER_VERBOTEN.contains(&n.as_str()))
+        .collect();
+    halter::kopf_ok(&kopf).then_some((pfad, abfrage, kopf))
 }
 
 /// Whether a header of the answer goes to the harness: not the headers of one connection (a switch 101 keeps
@@ -394,27 +420,35 @@ pub fn antwortkopf_bleibt(name: &str, umgestellt: bool) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        DIREKT_VERBOTEN, HALTER_VERBOTEN, HOP, Rahmen, ablehnung, an_ziel, antwort,
-        antwortkopf_bleibt, dezimal, pfad_sicher, pruefe, rahmen, zerlege,
+        HALTER_VERBOTEN, HOP, KOERPER_MAX, KOERPER_MAX_GEBUNDEN, Rahmen, ablehnung, an_halter,
+        an_ziel, antwort, antwortkopf_bleibt, dezimal, halter_pfad_ok, koerper_grenze, pfad_sicher,
+        pruefe, rahmen, zerlege,
     };
-    use crate::betriebsart::zielliste::{Bindung, Regel, Ziel};
+    use crate::betriebsart::zielliste::{Regel, Ziel};
 
     fn ziel(gebunden: bool, upgrade: bool) -> Ziel {
         Ziel {
             name: "z".to_owned(),
             host: "a.b".to_owned(),
             port: 443,
-            bindung: gebunden.then(|| Bindung {
-                schluessel_datei: "/k".to_owned(),
-                kopf: "x-key".to_owned(),
-                wert_vorsatz: "V ".to_owned(),
-            }),
+            halter_ziel: gebunden.then(|| "a.b".to_owned()),
             regeln: vec![Regel {
                 methode: "*".to_owned(),
                 pfad: "/*".to_owned(),
             }],
             upgrade_durchreichen: upgrade,
         }
+    }
+
+    /// The headers of a request to the holder as one text, so a test reads them like a head.
+    fn halterkopf(k: &super::InnenKopf) -> String {
+        let (pfad, abfrage, kopf) = an_halter(k).expect("head");
+        let felder: Vec<String> = kopf.iter().map(|(n, w)| format!("{n}: {w}")).collect();
+        format!(
+            "{pfad}|{}|{}",
+            abfrage.unwrap_or_else(|| "-".to_owned()),
+            felder.join(" ")
+        )
     }
 
     fn kopf(felder: &str) -> super::InnenKopf {
@@ -439,7 +473,13 @@ mod tests {
                 "Anmeldung an diesem Ziel nicht erlaubt",
             ),
             ("mw.koerper_zu_gross", 413, "Koerper zu gross"),
-            ("mw.schluessel_fehlt", 503, "Schluessel nicht lesbar"),
+            (
+                "mw.halter_kein_schluessel",
+                503,
+                "kein Schluessel beim Halter",
+            ),
+            ("mw.halter_fehler", 502, "Halter lehnte ab"),
+            ("mw.halter_frist", 504, "Halter antwortete nicht"),
             ("mw.ziel_nicht_erreichbar", 502, "Ziel nicht erreichbar"),
             ("mw.ziel_frist", 504, "Ziel antwortet nicht"),
             ("mw.leck_gesperrt", 502, "Antwort des Ziels gesperrt"),
@@ -450,6 +490,8 @@ mod tests {
             assert_eq!(ablehnung(code), Some((status, text)), "{code}");
         }
         assert_eq!(ablehnung("mw.sni_falsch"), None);
+        // The key file of a bound target fell away with the direct way; its code is no answer of the tunnel any more.
+        assert_eq!(ablehnung("mw.schluessel_fehlt"), None);
         assert!(
             String::from_utf8(antwort("mw.x"))
                 .expect("ascii")
@@ -457,43 +499,26 @@ mod tests {
         );
     }
 
-    /// The list of the holder path carries all 31 names; the direct one is it without the three the request needs
-    /// there and without the eight dropped elsewhere (decision of 25.11.2026).
+    /// From step I a bound target takes only the holder path, and there every one of the 31 names falls.
     #[test]
-    fn the_two_lists_of_forbidden_names() {
+    fn the_list_of_forbidden_names_holds_all_thirty_one() {
         assert_eq!(HALTER_VERBOTEN.len(), 31);
-        assert_eq!(DIREKT_VERBOTEN.len(), 20);
-        for name in DIREKT_VERBOTEN {
-            assert!(HALTER_VERBOTEN.contains(&name), "{name}");
-        }
-        let fehlt: Vec<&str> = HALTER_VERBOTEN
-            .iter()
-            .filter(|n| !DIREKT_VERBOTEN.contains(n))
-            .copied()
-            .collect();
-        assert_eq!(
-            fehlt,
-            [
-                "authorization",
-                "host",
-                "content-length",
-                "transfer-encoding",
-                "connection",
-                "upgrade",
-                "te",
-                "trailer",
-                "keep-alive",
-                "proxy-connection",
-                "accept-encoding",
-            ]
-        );
-        // The eight dropped elsewhere; only the three in between belong to the request of the direct way.
-        for name in ["authorization", "accept-encoding"] {
+        for name in [
+            "authorization",
+            "host",
+            "content-length",
+            "transfer-encoding",
+        ] {
             assert!(HALTER_VERBOTEN.contains(&name), "{name}");
         }
         for name in HOP {
             assert!(HALTER_VERBOTEN.contains(&name), "{name}");
         }
+        let doppelt = HALTER_VERBOTEN
+            .iter()
+            .enumerate()
+            .any(|(i, n)| HALTER_VERBOTEN[..i].contains(n));
+        assert!(!doppelt);
     }
 
     #[test]
@@ -554,74 +579,142 @@ mod tests {
     }
 
     #[test]
-    fn the_head_to_the_target_drops_hop_headers() {
+    fn the_head_to_an_unbound_target_drops_hop_headers_and_keeps_the_rest() {
         let k = kopf(
-            "\r\nConnection: keep-alive\r\nKeep-Alive: 5\r\nAccept-Encoding: gzip\r\nX-A: 1\r\nX-Key: alt\r\nAuthorization: Bearer p",
+            "\r\nConnection: keep-alive\r\nKeep-Alive: 5\r\nAccept-Encoding: gzip\r\nX-A: 1\r\nCookie: a=b\r\nX-Api-Key: p",
         );
-        let gebunden =
-            String::from_utf8(an_ziel(&ziel(true, true), &k, false, Some(b"S"))).expect("ascii");
-        assert_eq!(
-            gebunden,
-            "GET /a HTTP/1.1\r\nHost: a.b\r\nX-A: 1\r\naccept-encoding: identity\r\nconnection: close\r\nx-key: V S\r\n\r\n"
-        );
-        let frei = String::from_utf8(an_ziel(&ziel(false, false), &k, false, None)).expect("ascii");
+        let frei = String::from_utf8(an_ziel(&k)).expect("ascii");
         assert_eq!(
             frei,
-            "GET /a HTTP/1.1\r\nHost: a.b\r\nAccept-Encoding: gzip\r\nX-A: 1\r\nX-Key: alt\r\nconnection: close\r\n\r\n"
+            "GET /a HTTP/1.1\r\nHost: a.b\r\nAccept-Encoding: gzip\r\nX-A: 1\r\nCookie: a=b\r\nX-Api-Key: p\r\nconnection: close\r\n\r\n"
         );
-        let u = kopf("\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nKeep-Alive: 5");
-        let um =
-            String::from_utf8(an_ziel(&ziel(true, true), &u, true, Some(b"S"))).expect("ascii");
-        assert_eq!(
-            um,
-            "GET /a HTTP/1.1\r\nHost: a.b\r\nConnection: Upgrade\r\nUpgrade: websocket\r\naccept-encoding: identity\r\nx-key: V S\r\n\r\n"
-        );
+        // Stage 6 refused `Authorization` at an unbound target before; the head drops it all the same.
+        let mit = kopf("\r\nAuthorization: Bearer p\r\nX-A: 1");
+        let ohne = String::from_utf8(an_ziel(&mit)).expect("ascii");
+        assert!(!ohne.contains("Authorization"), "{ohne}");
     }
 
     #[test]
-    fn an_upgrade_to_a_bound_target_loses_every_extension_header() {
-        let mit = "\r\nSec-WebSocket-Extensions: permessage-deflate\r\nSEC-WEBSOCKET-EXTENSIONS: x\r\nsec-websocket-extensions: y";
-        let u = kopf(&format!(
-            "\r\nConnection: Upgrade\r\nUpgrade: websocket{mit}"
-        ));
-        let um =
-            String::from_utf8(an_ziel(&ziel(true, true), &u, true, Some(b"S"))).expect("ascii");
+    fn the_request_to_the_holder_drops_every_forbidden_name_and_writes_the_rest_small() {
+        let mut felder = String::new();
+        for n in HALTER_VERBOTEN {
+            felder.push_str("\r\n");
+            felder.push_str(n);
+            felder.push_str(": x");
+        }
+        let k = zerlege(
+            format!("GET /a HTTP/1.1\r\nHost: a.b{felder}\r\nX-A: 1\r\nAccept: */*").as_bytes(),
+        )
+        .expect("head");
+        assert_eq!(halterkopf(&k), "/a|-|x-a: 1 accept: */*");
+        // The holder sets `upgrade` and `connection` itself, so an upgrade request keeps neither.
+        let u = kopf(
+            "\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: k\r\nSec-WebSocket-Extensions: permessage-deflate",
+        );
+        assert_eq!(halterkopf(&u), "/a|-|sec-websocket-key: k");
+    }
+
+    #[test]
+    fn path_and_query_go_apart_at_the_first_question_mark() {
+        let mit = zerlege(b"GET /a/b?x=1&y=2 HTTP/1.1\r\nHost: a.b").expect("head");
+        assert_eq!(halterkopf(&mit), "/a/b|x=1&y=2|");
+        let zwei = zerlege(b"GET /a?x=1?y=2 HTTP/1.1\r\nHost: a.b").expect("head");
+        assert_eq!(halterkopf(&zwei), "/a|x=1?y=2|");
+        let leer = zerlege(b"GET /a? HTTP/1.1\r\nHost: a.b").expect("head");
+        let (pfad, abfrage, _) = an_halter(&leer).expect("head");
+        assert_eq!((pfad.as_str(), abfrage.as_deref()), ("/a", Some("")));
+        // An empty query is stage 1 at a bound target: the form of the field takes 1 to 1024 characters.
         assert_eq!(
-            um,
-            "GET /a HTTP/1.1\r\nHost: a.b\r\nConnection: Upgrade\r\nUpgrade: websocket\r\naccept-encoding: identity\r\nx-key: V S\r\n\r\n"
+            pruefe(&ziel(true, false), &leer, false).map_err(|(c, _)| c),
+            Err("mw.anfrage_unlesbar")
         );
-        // An unbound target never gets a key: its upgrade keeps the extension (W1 is for bound targets).
-        let frei = String::from_utf8(an_ziel(&ziel(false, true), &u, true, None)).expect("ascii");
+        assert!(pruefe(&ziel(false, false), &leer, false).is_ok());
+    }
+
+    #[test]
+    fn a_head_outside_the_form_of_the_holder_is_unreadable() {
+        let mut viele = String::new();
+        for i in 0..65 {
+            viele.push_str("\r\nx-");
+            viele.push_str(&i.to_string());
+            viele.push_str(": v");
+        }
+        let k = zerlege(format!("GET /a HTTP/1.1\r\nHost: a.b{viele}").as_bytes()).expect("head");
+        // `host` falls, so 65 fields of the harness leave exactly 65 for the holder.
+        assert_eq!(an_halter(&k), None);
+        let lang = "v".repeat(8193);
+        let k = zerlege(format!("GET /a HTTP/1.1\r\nHost: a.b\r\nX-A: {lang}").as_bytes())
+            .expect("head");
+        assert_eq!(an_halter(&k), None);
+        let grenze = "v".repeat(8192);
+        let k = zerlege(format!("GET /a HTTP/1.1\r\nHost: a.b\r\nX-A: {grenze}").as_bytes())
+            .expect("head");
+        assert!(an_halter(&k).is_some());
+    }
+
+    #[test]
+    fn a_bound_target_takes_only_the_path_form_of_the_holder() {
+        assert!(halter_pfad_ok("/a/b.c~d-e_f"));
+        assert!(halter_pfad_ok("/"));
+        for p in ["/a%20b", "/a b", "/a+b", "/a:b", "/a,b", "/a@b"] {
+            assert!(!halter_pfad_ok(p), "{p}");
+        }
+        assert!(halter_pfad_ok(&format!("/{}", "a".repeat(511))));
+        assert!(!halter_pfad_ok(&format!("/{}", "a".repeat(512))));
+        let lang = zerlege(format!("GET /{} HTTP/1.1\r\nHost: a.b", "a".repeat(512)).as_bytes())
+            .expect("head");
         assert_eq!(
-            frei,
-            format!(
-                "GET /a HTTP/1.1\r\nHost: a.b\r\nConnection: Upgrade\r\nUpgrade: websocket{mit}\r\n\r\n"
-            )
+            pruefe(&ziel(true, false), &lang, false).map_err(|(c, _)| c),
+            Err("mw.pfad_nicht_erlaubt")
         );
-        // Without an upgrade the header is no negotiation, but the holder forbids it at a bound target all the same.
-        let n = kopf("\r\nSec-WebSocket-Extensions: permessage-deflate");
-        let ohne =
-            String::from_utf8(an_ziel(&ziel(true, true), &n, false, Some(b"S"))).expect("ascii");
+        // An unbound target keeps the wider form of the tunnel.
+        assert!(pruefe(&ziel(false, false), &lang, false).is_ok());
+        let prozent = zerlege(b"GET /a%41b HTTP/1.1\r\nHost: a.b").expect("head");
         assert_eq!(
-            ohne,
-            "GET /a HTTP/1.1\r\nHost: a.b\r\naccept-encoding: identity\r\nconnection: close\r\nx-key: V S\r\n\r\n"
+            pruefe(&ziel(true, false), &prozent, false).map_err(|(c, _)| c),
+            Err("mw.pfad_nicht_erlaubt")
         );
-        // At a bound target every name of the direct list goes too, but `Host` and `Content-Length` stay: the
-        // request needs them on the direct way (decision of 25.11.2026, contract 8, section 13.2, point 1).
-        let v = kopf(
-            "\r\nContent-Length: 0\r\nCookie: a=b\r\nX-Original-Url: /anders\r\nX-Envoy-Original-Path: /anders\r\nX-A: 1",
-        );
-        let gebunden =
-            String::from_utf8(an_ziel(&ziel(true, true), &v, false, Some(b"S"))).expect("ascii");
+        assert!(pruefe(&ziel(false, false), &prozent, false).is_ok());
+    }
+
+    #[test]
+    fn a_hash_in_the_request_target_is_unreadable_at_every_target() {
+        let k = zerlege(b"GET /a#b HTTP/1.1\r\nHost: a.b").expect("head");
+        for gebunden in [true, false] {
+            assert_eq!(
+                pruefe(&ziel(gebunden, false), &k, false).map_err(|(c, _)| c),
+                Err("mw.anfrage_unlesbar"),
+                "{gebunden}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_body_of_a_bound_target_stops_at_twenty_three_mebibytes() {
+        assert_eq!(koerper_grenze(&ziel(true, false)), KOERPER_MAX_GEBUNDEN);
+        assert_eq!(koerper_grenze(&ziel(false, false)), KOERPER_MAX);
+        assert_eq!(KOERPER_MAX_GEBUNDEN, 24_117_248);
+        let laenge = |n: u64| {
+            zerlege(format!("POST /a HTTP/1.1\r\nHost: a.b\r\nContent-Length: {n}").as_bytes())
+                .expect("head")
+        };
+        assert!(pruefe(&ziel(true, false), &laenge(KOERPER_MAX_GEBUNDEN), false).is_ok());
         assert_eq!(
-            gebunden,
-            "GET /a HTTP/1.1\r\nHost: a.b\r\nContent-Length: 0\r\nX-A: 1\r\naccept-encoding: identity\r\nconnection: close\r\nx-key: V S\r\n\r\n"
+            pruefe(&ziel(true, false), &laenge(KOERPER_MAX_GEBUNDEN + 1), false)
+                .map_err(|(c, _)| c),
+            Err("mw.koerper_zu_gross")
         );
-        // An unbound target keeps them: there it never gets a key (contract 8, section 13.2, point 1).
-        let frei2 = String::from_utf8(an_ziel(&ziel(false, true), &v, false, None)).expect("ascii");
         assert!(
-            frei2.contains("\r\nCookie: a=b\r\n")
-                && frei2.contains("\r\nX-Original-Url: /anders\r\n")
+            pruefe(
+                &ziel(false, false),
+                &laenge(KOERPER_MAX_GEBUNDEN + 1),
+                false
+            )
+            .is_ok()
+        );
+        assert_eq!(
+            pruefe(&ziel(false, false), &laenge(KOERPER_MAX + 1), false).map_err(|(c, _)| c),
+            Err("mw.koerper_zu_gross")
         );
     }
 

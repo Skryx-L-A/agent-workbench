@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Attrappe der Copilot CLI (Testfassung 0.0.88, Form der echten 1.0.88) fuer den Probelauf: Sie wird von "Lauf starten" wie die echte CLI gestartet (Vertrag 1, `rust/spec/VERTRAEGE.md`,
+"""Attrappe der Copilot CLI (Testfassung 0.0.88, Form der echten 1.0.88) fuer den Probelauf: Sie wird von "Lauf starten" wie die echte CLI gestartet (Vertrag 1, `rust/spec/start/README.md`,
 Harness-Tabelle und Abschnitt copilot; Faelle `aufruf-copilot-auto` und `aufruf-gueltig-copilot`), kostet aber nichts und braucht kein Konto.
 
 Nur Standardbibliothek, Python 3. Nicht ausgeliefert (nicht in der Lieferliste), wie alle Attrappen. Der Name im Wegwerf-Abbild ist `copilot`.

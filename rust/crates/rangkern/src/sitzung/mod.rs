@@ -1,7 +1,7 @@
 //! `rangkern sitzung <vault> --socket <path> --route <key> --sitzung <key> --einstellungen <file> --protokoll <folder>`:
 //! the knowledge search of one session behind a Unix socket, with the data gate in front of the output (contract 4 of the
-//! walking skeleton, `rust/spec/VERTRAEGE.md`). Under Windows the socket is a named pipe through the crate
-//! `peerkanal` (addendum `rust/spec/VERTRAEGE.md`); the answers are the same (module `kern`).
+//! walking skeleton, `rust/spec/such-socket/README.md`). Under Windows the socket is a named pipe through the crate
+//! `peerkanal` (addendum `rust/spec/such-socket/windows/README.md`); the answers are the same (module `kern`).
 //!
 //! The route comes from the start, never from a request. The process runs outside the confinement of the agent; only its
 //! socket is bound into it. Before the readiness line it checks its start in a fixed order and ends with exit 64 (usage),

@@ -12,7 +12,7 @@ session a child in a PTY (through `traeger`) and a state core (`zustandskern`, o
 `Anfragen` and `Agenten`, a clock and one Unix socket. The service only
 translates: events of the viewers into events of the core, effects of the core into bytes for the PTY and frames on the socket.
 Every rule of the core stays in the core, every rule of the extract in the extract, every rule of the screen in the carrier.
-The contract is `rust/spec/VERTRAEGE.md` (rules DI1 to DI12, addenda of 20.11.2026).
+The contract is `rust/spec/dienst/VERTRAG.md` (rules DI1 to DI12, addenda of 20.11.2026).
 
 ```
 wb-dienst <start.json>           runs until SIGTERM or SIGINT; then it closes the viewers, removes the socket file, ends the child
