@@ -109,9 +109,13 @@ impl Huelle {
 }
 
 impl Read for Huelle {
+    /// The lock is checked before and after the read: a tear-down while the read waits ends it with the shutdown,
+    /// and the system reports that as an end of the stream or a passed deadline. It is neither, so the read fails.
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.pruefen()?;
-        self.strom.read(buf)
+        let gelesen = self.strom.read(buf);
+        self.pruefen()?;
+        gelesen
     }
 }
 
@@ -381,6 +385,27 @@ mod tests {
         let mut gelesen = Vec::new();
         fern.read_to_end(&mut gelesen).expect("end");
         assert_eq!(gelesen, Vec::<u8>::new());
+    }
+
+    /// A tear-down while a read waits: the shutdown ends the read as an end of the stream, and the sheath turns it into
+    /// the refusal, so a reader never takes a tear-down for the end of the other side.
+    #[test]
+    fn a_tear_down_during_a_read_is_no_end_of_the_stream() {
+        let betrieb = Betrieb::neu(Box::new(|| 0));
+        let (nah, _fern) = UnixStream::pair().expect("pair");
+        nah.set_read_timeout(Some(Duration::from_secs(5)))
+            .expect("timeout");
+        let anm = betrieb.anmelden(&nah).expect("registered");
+        let mut huelle = anm.abbruch.huelle(nah.try_clone().expect("clone"));
+        let leser = std::thread::spawn(move || huelle.read(&mut [0; 4]).map_err(|e| e.kind()));
+        // the read waits in the system before the tear-down
+        std::thread::sleep(Duration::from_millis(200));
+        anm.abbruch.reissen();
+        assert_eq!(
+            leser.join().expect("reader"),
+            Err(std::io::ErrorKind::BrokenPipe)
+        );
+        drop((anm, nah));
     }
 
     #[test]

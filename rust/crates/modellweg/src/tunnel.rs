@@ -602,7 +602,9 @@ fn stueck_senden(tls: &mut SslStream<Huelle>, bytes: &[u8]) -> io::Result<()> {
 /// The bridge of a switched connection over the holder (section 5.1): the bytes of the harness go as lines
 /// `strom.teil` with the `id` of the stream, at most `TEIL_MAX` per line, the lines `teil` of the holder go as bytes
 /// to the harness. The way from the harness is not checked (W6), only counted in a trial run. `Err` with the own code
-/// when the stream tore down; nothing more then goes either way.
+/// when the stream tore down; nothing more then goes either way. A way of the harness that fails (a read that is no
+/// passed deadline, a write, a tear-down of the service) ends the stream with `strom.ende` at once
+/// ([`weg_gescheitert`]); a passed deadline of one round is no failure.
 fn bruecke_halter(
     tls: &mut SslStream<Huelle>,
     klient: &mut halter::Klient,
@@ -654,18 +656,14 @@ fn bruecke_halter(
                     }
                 }
                 Err(e) if frist_vorbei(&e) => {}
-                Err(_) => {
-                    harness_zu = true;
-                    klient.senden(&halter::strom_ende(id)?)?;
-                    klient.frist(Some(halter::FRIST_KOPF)).ok();
-                }
+                Err(_) => return weg_gescheitert(klient, id),
             }
         }
         match klient.zeile_oder_nichts()? {
             None => {}
             Some(halter::Zeile::Teil(daten)) => {
                 if tls.write_all(&daten).is_err() {
-                    return Ok(());
+                    return weg_gescheitert(klient, id);
                 }
             }
             Some(halter::Zeile::Ende(None)) => {
@@ -676,6 +674,14 @@ fn bruecke_halter(
             Some(_) => return Err("mw.halter_fehler"),
         }
     }
+}
+
+/// The way of the harness failed while the stream is open (section 5.1): `strom.ende` goes to the holder before the
+/// model path closes its connection to him, so that he sees the end of the stream as an end and not as a tear-down.
+/// Nothing can reach the harness any more, so the model path does not wait for the `ende` of the holder; the stream
+/// ends in every case.
+fn weg_gescheitert(klient: &mut halter::Klient, id: u64) -> Result<(), &'static str> {
+    klient.senden(&halter::strom_ende(id)?)
 }
 
 /// Whether a read ended because its deadline passed.

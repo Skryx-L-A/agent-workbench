@@ -983,12 +983,20 @@ fn the_anchor_reads_the_lifeline_on_its_descriptor_and_closes_it() {
     assert!(ANKER_SKRIPT.contains(&format!("\nexec {fd}<&-\n")));
     assert!(ANKER_SKRIPT.ends_with("\nexec /usr/bin/env -u SHLVL -- \"$@\""));
     // every way out before the `exec` of the program is the one code
-    assert_eq!(ANKER_SKRIPT.matches("exit ").count(), 6);
+    // the exit code of the read decides, never its text: only 1 (`EAGAIN`) goes on
+    assert!(ANKER_SKRIPT.contains(&format!(
+        "count=0 status=none >/dev/null 2>&1 || exit {ANKER_ABBRUCH}\n"
+    )));
+    assert!(ANKER_SKRIPT.contains(&format!("\n[ \"$?\" = 1 ] || exit {ANKER_ABBRUCH}\n")));
+    assert!(!ANKER_SKRIPT.contains("LC_ALL"));
+    // every way out before the `exec` of the program is the one code: two in the wait, one for the pipe, two for the
+    // probe, one for the open, one for the read, one for a program path with `=`
+    assert_eq!(ANKER_SKRIPT.matches("exit ").count(), 8);
     assert_eq!(
         ANKER_SKRIPT
             .matches(&format!("exit {ANKER_ABBRUCH}"))
             .count(),
-        6
+        8
     );
 }
 

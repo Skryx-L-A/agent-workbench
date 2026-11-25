@@ -9,6 +9,14 @@ exclude_re = [
   # its 14 mutants are left out by this pattern (decision of 25.11.2026). The module `tausch` in `src/suche.rs` is the
   # Unix one and stays in the run.
   '^crates/such-mcp/src/pipe.rs:[0-9]+:[0-9]+: .*tausch::',
+  # peerkanal: the files are compiled on every system, but these functions stand behind `cfg(windows)`: the method
+  # `Verbindung::prozess_griff` (`src/lib.rs:180`, it returns a `BorrowedHandle`), `VerbindungKern::prozess_roh`
+  # (`src/ablauf.rs:564`) and the `impl JobBezug` with `neu` and `oeffnen` (`src/vorgabe.rs:87`). Their 6 mutants are left
+  # out by these patterns (decision of 25.11.2026); the rest of the three files stays in the run. A pattern with a line
+  # that no longer fits leaves its mutant in the run, which then reports it as missed (the run fails closed).
+  '^crates/peerkanal/src/lib.rs:183:9: replace Verbindung::prozess_griff ',
+  '^crates/peerkanal/src/ablauf.rs:566:9: replace VerbindungKern<P>::prozess_roh ',
+  '^crates/peerkanal/src/vorgabe.rs:(92|100):9: replace JobBezug::(neu|oeffnen) ',
 ]
 # For the same reason the modules `src/sys/windows.rs` are left out: they stand behind `cfg(windows)` and are never compiled
 # under Linux (decision of 25.11.2026). Their mutants run on the Windows test machine, before every delivery under Windows

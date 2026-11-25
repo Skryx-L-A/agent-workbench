@@ -72,6 +72,27 @@ pub const ANKER_NAME: &str = "werkbank-anker";
 ///    lived when the signals of the outer `bwrap` and of PID 1 were set, and the chain starter, outer `bwrap`, PID 1,
 ///    program holds. End of file (the starter died), data, a missing descriptor or any other answer ends the anchor.
 ///
+/// The anchor tells `EAGAIN` by the exit code of `dd`, never by its error text: GNU coreutils says "Resource
+/// temporarily unavailable", uutils coreutils 0.10.0 (Ubuntu 26.04) says "IO error: Would block", both with exit
+/// code 1. The text check of the first form turned every start on Ubuntu 26.04 away (exit 125). Exit code 1 alone
+/// would also mean a usage error or a failed open, so two runs of `dd` come first, and each must succeed:
+///
+/// - a probe with the same operands on standard input: a here-document of the byte `x`, read through
+///   `/proc/self/fd/0`. It must print exactly `x` with exit code 0. That proves that this `dd` takes every operand
+///   (`iflag=nonblock` included) and reads through the link of a descriptor. The byte is there before `dd` starts:
+///   `dash` writes a here-document of up to one pipe buffer into its pipe before the command runs, `bash` writes it
+///   into a pipe or into a file in the private `/tmp` before the command runs. So the probe never depends on a time.
+///   A here-document that cannot be made ends the probe, and the anchor, with a code other than 0.
+/// - an open of the lifeline with `count=0`: it opens `/proc/self/fd/5` without blocking and reads nothing. Exit code
+///   0 proves that the open works; the shell holds the descriptor, so the open of the read that follows works too.
+///
+/// Then the read itself: one byte from the lifeline. Exit code 0 is data or end of file, both end the anchor. On a
+/// pipe opened with `O_NONBLOCK`, `read` fails only with `EAGAIN` (no data, a writer lives); `EINTR` is retried by
+/// `dd`, and a signal that ends `dd` gives a code above 128. With the operands and the open proven, exit code 1 is
+/// that `EAGAIN`, and only exit code 1 starts the program; 126, 127 (no `dd`), above 128 (a signal) and every other
+/// code end the anchor. Left: a `dd` that ends with code 1 for a reason of its own between the probes and the read,
+/// such as memory exhausted, would start the program without the proof (not measured, an open point).
+///
 /// Then it closes the lifeline and replaces itself by the program (`exec` through `/usr/bin/env -u SHLVL`), so the
 /// harness holds no part of it and gets the environment of the profile unchanged: `bash` as `/usr/bin/sh` exports
 /// `SHLVL` on every `exec` (measured on the Linux build host). A program path with `=` is refused,
@@ -86,11 +107,11 @@ pub const ANKER_NAME: &str = "werkbank-anker";
 /// program, waiting before its set-up. Decision of the operator, 25.11.2026: this is an open point of the contract,
 /// not a security finding (no program starts); measured 10 of 480 runs under load and 20 of 20 in the held case.
 ///
-/// Open, before every delivery: the anchor is measured only on the Linux build host (`bash` as `/usr/bin/sh`, GNU
-/// coreutils). It relies on `/usr/bin/sh`, `/usr/bin/dd` (`iflag=nonblock` and its error text under `LC_ALL=C`),
-/// `/usr/bin/sleep` and `/usr/bin/env -u`. Ubuntu 26.04 uses `dash` as `/usr/bin/sh` and may ship another coreutils,
-/// so the anchor and its cases are measured on Ubuntu 26.04 in the throwaway VM before every delivery (decision of the
-/// operator, 25.11.2026).
+/// Open, before every delivery: the anchor relies on `/usr/bin/sh`, `/usr/bin/dd` (`iflag=nonblock`, `count=0`,
+/// exit code 1 on `EAGAIN`), `/usr/bin/sleep` and `/usr/bin/env -u`, so the anchor and its cases are measured on
+/// Ubuntu 26.04 in the throwaway VM before every delivery (decision of the operator, 25.11.2026). Measured so far: the
+/// Linux build host (`bash` as `/usr/bin/sh`, GNU coreutils 9.11, bubblewrap 0.12.0) and Ubuntu 26.04.1 (`dash`
+/// 0.5.12 as `/usr/bin/sh`, uutils coreutils 0.10.0 as `dd`, `env` and `sleep`, bubblewrap 0.11.1), 25.11.2026.
 pub const ANKER_SKRIPT: &str = "i=0
 while :; do
   w=
@@ -101,11 +122,14 @@ while :; do
   /usr/bin/sleep 0.01 || exit 125
 done
 [ -p /proc/self/fd/5 ] || exit 125
-e=$(LC_ALL=C /usr/bin/dd if=/proc/self/fd/5 iflag=nonblock bs=1 count=1 status=none 2>&1 >/dev/null) && exit 125
-case $e in
-  *'Resource temporarily unavailable'*) ;;
-  *) exit 125 ;;
-esac
+p=$(/usr/bin/dd if=/proc/self/fd/0 iflag=nonblock bs=1 count=1 status=none 2>&1 <<'E'
+x
+E
+) || exit 125
+[ \"$p\" = x ] || exit 125
+/usr/bin/dd if=/proc/self/fd/5 iflag=nonblock count=0 status=none >/dev/null 2>&1 || exit 125
+e=$(/usr/bin/dd if=/proc/self/fd/5 iflag=nonblock bs=1 count=1 status=none 2>&1)
+[ \"$?\" = 1 ] || exit 125
 exec 5<&-
 case $1 in
   *=*) exit 125 ;;

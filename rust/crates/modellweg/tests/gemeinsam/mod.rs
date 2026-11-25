@@ -65,6 +65,19 @@ impl Halterattrappe {
                 std::thread::spawn(move || {
                     let _ = strom.set_read_timeout(Some(FRIST));
                     let mut leser = BufReader::new(strom.try_clone().expect("clone"));
+                    // The lines go out from a thread of their own, in order, so that the stand-in reads the next line
+                    // of the bridge (such as `strom.ende`) while many lines `teil` still wait to go out, as the holder
+                    // does.
+                    let (raus, schreiber) = mpsc::channel::<String>();
+                    std::thread::spawn(move || {
+                        for z in schreiber {
+                            if strom.write_all(z.as_bytes()).is_err()
+                                || strom.write_all(b"\n").is_err()
+                            {
+                                return;
+                            }
+                        }
+                    });
                     let mut erste = true;
                     loop {
                         let mut zeile = String::new();
@@ -85,14 +98,10 @@ impl Halterattrappe {
                         if erste {
                             erste = false;
                             for z in &a {
-                                let z = z.replace("<ID>", &id);
-                                if strom.write_all(z.as_bytes()).is_err()
-                                    || strom.write_all(b"\n").is_err()
-                                {
-                                    return;
-                                }
+                                // A writer that is gone means the bridge closed; the lines it
+                                // still sent before its end are read and kept all the same.
+                                let _ = raus.send(z.replace("<ID>", &id));
                             }
-                            let _ = strom.flush();
                         } else if ende {
                             // The holder answers `strom.ende` of the bridge with his own `ende` (holder contract,
                             // section 4): after it the connection takes requests again. A test may set the lines
@@ -101,14 +110,10 @@ impl Halterattrappe {
                                 vec![r#"{"art":"ende","fassung":1,"id":<ID>,"ok":true}"#.to_owned()]
                             });
                             for z in &schluss {
-                                let z = z.replace("<ID>", &id);
-                                if strom.write_all(z.as_bytes()).is_err()
-                                    || strom.write_all(b"\n").is_err()
-                                {
-                                    return;
-                                }
+                                // A writer that is gone means the bridge closed; the lines it
+                                // still sent before its end are read and kept all the same.
+                                let _ = raus.send(z.replace("<ID>", &id));
                             }
-                            let _ = strom.flush();
                         }
                     }
                 });

@@ -190,6 +190,10 @@ fn start_mit_ordner_und_socket_rechten() {
         &json!({}),
     );
     let mut p = Prozess::starten(&w, &start);
+    // `Prozess::starten` returns as soon as the socket file is there, that is right after `bind`; the service sets the mode 0600
+    // only after that and listens last (`rechte::socket_binden`). A connection succeeds only once it listens, so the mode is
+    // read after the first connection: the state a client finds, never the moment between `bind` and `chmod`.
+    let _c = Probe::neu(&w.socket(), false);
     let meta = std::fs::symlink_metadata(w.socket()).expect("socket");
     assert_eq!(meta.mode() & 0o7777, 0o600, "socket mode");
     assert_eq!(

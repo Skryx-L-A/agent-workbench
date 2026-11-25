@@ -1794,17 +1794,7 @@ fn a_broken_way_of_the_harness_ends_the_stream() {
         .write_all(b"\x17\x03\x03\xff\xff")
         .expect("send");
     faden_endet(faden, name);
-    assert!(
-        a.halter
-            .empfangen()
-            .last()
-            .is_some_and(|z| z.contains(r#""op":"strom.ende""#)),
-        "{name}"
-    );
-    assert_eq!(
-        strom_zeile(&a, name),
-        (Value::from("weitergereicht"), Value::Null, Value::from(101))
-    );
+    endet_mit_strom_ende(&a, name);
 }
 
 /// The end of the service tears every connection down: a stream over the holder ends too. From then on every read of the
@@ -1817,12 +1807,112 @@ fn a_tear_down_ends_a_stream_over_the_holder() {
     let (t, faden) = strom_oeffnen(&a);
     a.dienst.betrieb().abreissen_alle();
     faden_endet(faden, name);
+    endet_mit_strom_ende(&a, name);
+    drop(t);
+}
+
+/// The holder of these tests answers `strom.ende` with nothing at all: a model path that still waits for his `ende`
+/// after its way to the harness failed holds the thread, and `faden_endet` fails.
+fn halter_ohne_schluss(zeilen: Vec<String>) -> Aufbau {
+    let a = aufbau_mit_halter(&vorfuehrung(), zeilen);
+    a.halter.schluss_setzen(Vec::new());
+    a
+}
+
+/// The end of a failed way (section 5.1): `strom.ende` is the last line at the holder, and the stream ends as
+/// `weitergereicht` with status 101. The stand-in reads in a thread of its own, so the line may reach its list a little
+/// after the thread of the stream ended; the test waits up to 5 s for it.
+fn endet_mit_strom_ende(a: &Aufbau, name: &str) {
+    let ist_ende = |e: &[String]| e.last().is_some_and(|z| z.contains(r#""op":"strom.ende""#));
+    let ende = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while !ist_ende(&a.halter.empfangen()) && std::time::Instant::now() < ende {
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
     assert!(
-        a.halter
-            .empfangen()
-            .last()
-            .is_some_and(|z| z.contains(r#""op":"strom.ende""#)),
+        ist_ende(&a.halter.empfangen()),
+        "{name}: {:?}",
+        a.halter.empfangen().last()
+    );
+    assert_eq!(
+        strom_zeile(a, name),
+        (Value::from("weitergereicht"), Value::Null, Value::from(101)),
         "{name}"
     );
+}
+
+/// Section 5.1: a way of the harness that failed (a TLS record longer than the protocol allows) ends the stream with
+/// `strom.ende` at once. Nothing reaches the harness any more, so the model path does not wait for the `ende` of the
+/// holder; a model path that took the failure for a passed deadline reads on and then waits for that `ende`.
+#[test]
+fn a_failed_way_of_the_harness_does_not_wait_for_the_holder() {
+    let name = "failed way, silent holder";
+    let a = halter_ohne_schluss(halter_101());
+    let (mut t, faden) = strom_oeffnen(&a);
+    t.get_mut()
+        .write_all(b"\x17\x03\x03\xff\xff")
+        .expect("send");
+    faden_endet(faden, name);
+    endet_mit_strom_ende(&a, name);
+}
+
+/// Section 5.1: after the tear-down every read of the way of the harness fails, also one that the TLS layer reports
+/// as a passed deadline. `strom.ende` goes out at once, and the thread does not wait for the holder.
+#[test]
+fn a_tear_down_does_not_wait_for_the_holder() {
+    let name = "tear-down, silent holder";
+    let a = halter_ohne_schluss(halter_101());
+    let (t, faden) = strom_oeffnen(&a);
+    a.dienst.betrieb().abreissen_alle();
+    faden_endet(faden, name);
+    endet_mit_strom_ende(&a, name);
     drop(t);
+}
+
+/// The holder of these tests has 500 lines `teil` waiting behind his 101.
+fn halter_mit_500_teilen() -> Aufbau {
+    let mut zeilen = halter_101();
+    zeilen.extend((0..500).map(|_| teil_zeile(b"x")));
+    halter_ohne_schluss(zeilen)
+}
+
+/// Section 5.1, with 500 lines `teil` of the holder waiting: the tear-down may first show as a failed write to the
+/// harness. That is a failed way too, so `strom.ende` goes out before the model path closes its connection to the
+/// holder.
+#[test]
+fn a_tear_down_with_waiting_parts_ends_with_strom_ende() {
+    let name = "tear-down, 500 parts";
+    let a = halter_mit_500_teilen();
+    let (t, faden) = strom_oeffnen(&a);
+    a.dienst.betrieb().abreissen_alle();
+    faden_endet(faden, name);
+    endet_mit_strom_ende(&a, name);
+    drop(t);
+}
+
+/// Section 5.1, with 500 lines `teil` of the holder waiting: a harness that takes nothing more (it shut its reading
+/// half) fails the first write of a part, while every read of its way still only passes its deadline. That failed
+/// write ends the stream with `strom.ende` too.
+#[test]
+fn a_failed_write_to_the_harness_ends_with_strom_ende() {
+    let name = "failed write, 500 parts";
+    let a = halter_mit_500_teilen();
+    let (t, faden) = strom_oeffnen(&a);
+    t.get_ref()
+        .shutdown(std::net::Shutdown::Read)
+        .expect("half close");
+    faden_endet(faden, name);
+    endet_mit_strom_ende(&a, name);
+    drop(t);
+}
+
+/// Section 5.1, with 500 lines `teil` of the holder waiting: a harness that goes away without a word fails the way
+/// as well, by a read or by a write; either way `strom.ende` goes out.
+#[test]
+fn a_harness_gone_with_waiting_parts_ends_with_strom_ende() {
+    let name = "harness gone, 500 parts";
+    let a = halter_mit_500_teilen();
+    let (t, faden) = strom_oeffnen(&a);
+    drop(t);
+    faden_endet(faden, name);
+    endet_mit_strom_ende(&a, name);
 }
