@@ -81,6 +81,19 @@ const ACL_REVISION: u32 = 2;
 const ACCESS_ALLOWED_ACE_TYPE: u8 = 0;
 const ACCESS_DENIED_ACE_TYPE: u8 = 1;
 const TOKEN_QUERY: u32 = 0x0008;
+const TOKEN_DUPLICATE: u32 = 0x0002;
+const GROUP_SECURITY_INFORMATION: u32 = 0x2;
+/// `SecurityImpersonation` of `SECURITY_IMPERSONATION_LEVEL`.
+const SECURITY_IMPERSONATION: i32 = 2;
+
+/// `GENERIC_MAPPING` with the values of files and folders (`FILE_GENERIC_READ`, `_WRITE`, `_EXECUTE`, `FILE_ALL_ACCESS`).
+#[repr(C)]
+struct AbbildungAllgemein {
+    lesen: u32,
+    schreiben: u32,
+    ausfuehren: u32,
+    alles: u32,
+}
 const TOKEN_USER_KLASSE: i32 = 1;
 /// `S-1-5-18` (`SYSTEM`), in the binary form of a SID.
 const SID_SYSTEM: [u8; 12] = [1, 1, 0, 0, 0, 0, 0, 5, 18, 0, 0, 0];
@@ -191,6 +204,17 @@ unsafe extern "system" {
         sid: *const c_void,
     ) -> i32;
     fn OpenProcessToken(prozess: *mut c_void, zugriff: u32, token: *mut *mut c_void) -> i32;
+    fn DuplicateToken(token: *mut c_void, stufe: i32, kopie: *mut *mut c_void) -> i32;
+    fn AccessCheck(
+        beschreibung: *mut c_void,
+        token: *mut c_void,
+        gewuenscht: u32,
+        abbildung: *const AbbildungAllgemein,
+        rechte: *mut c_void,
+        rechte_laenge: *mut u32,
+        gewaehrt: *mut u32,
+        erlaubt: *mut i32,
+    ) -> i32;
     fn GetTokenInformation(
         token: *mut c_void,
         klasse: i32,
@@ -1065,6 +1089,111 @@ fn eigen_pruefen(pfad: &Path, ordner: bool, lesen: bool, liste: bool) -> Result<
     if gut { Ok(griff) } else { Err(Eigen::Offen) }
 }
 
+/// DI12 points 13 and 15 under Windows (addendum of 25.11.2026): whether the access list of the folder `ordner` lets the own user
+/// look into it (`FILE_TRAVERSE` and `FILE_LIST_DIRECTORY`, the counterpart of the search bit). A `lstat` alone does not tell:
+/// in a folder without an entry for the own user a missing name answers `NotFound` (measured as an ordinary user), and a process
+/// with `SeBackupPrivilege` enabled opens everything. So the folder is held open, its descriptor is read on the handle, and
+/// `AccessCheck` checks the two rights against the token of the process (groups, deny entries and owner rights included,
+/// backup privileges not). A link to the folder is followed, as the path of a `lstat` follows it.
+///
+/// # Errors
+/// `NotFound` when the folder is missing, `NotADirectory` when it is no folder, `PermissionDenied` when its list does not grant
+/// both rights, any other error of the open, of the descriptor or of the check.
+pub(crate) fn ordner_durchsuchbar(ordner: &Path) -> io::Result<()> {
+    const FILE_TRAVERSE: u32 = 0x0020;
+    let griff = OpenOptions::new()
+        .access_mode(READ_CONTROL | FILE_READ_ATTRIBUTES | SYNCHRONIZE)
+        .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE)
+        .custom_flags(FILE_FLAG_BACKUP_SEMANTICS)
+        .open(ordner)?;
+    if attribut_tag(&griff)?.attribute & FILE_ATTRIBUTE_DIRECTORY == 0 {
+        return Err(io::Error::from(io::ErrorKind::NotADirectory));
+    }
+    if zugriff_erlaubt(&griff, FILE_TRAVERSE | FILE_LIST_DIRECTORY)? {
+        Ok(())
+    } else {
+        Err(io::Error::from(io::ErrorKind::PermissionDenied))
+    }
+}
+
+/// Whether the descriptor of `griff` grants the token of this process every right of `gewuenscht` (`AccessCheck`).
+fn zugriff_erlaubt(griff: &File, gewuenscht: u32) -> io::Result<bool> {
+    let mut beschreibung: *mut c_void = std::ptr::null_mut();
+    // SAFETY: valid handle with READ_CONTROL; only the descriptor is asked for (owner, group and list lie inside it); the out
+    // pointer lives for the call, and the descriptor is freed below with LocalFree.
+    let rc = unsafe {
+        GetSecurityInfo(
+            griff.as_raw_handle(),
+            SE_FILE_OBJECT,
+            OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            &raw mut beschreibung,
+        )
+    };
+    if rc != 0 {
+        return Err(io::Error::from_raw_os_error(i32::try_from(rc).unwrap_or(0)));
+    }
+    let ergebnis = token_pruefen(beschreibung, gewuenscht);
+    // SAFETY: `beschreibung` was allocated by `GetSecurityInfo` and is freed once; nothing points into it after this.
+    unsafe { LocalFree(beschreibung) };
+    ergebnis
+}
+
+/// `AccessCheck` of the descriptor `beschreibung` (from `GetSecurityInfo`, with owner, group and list) for an impersonation copy
+/// of the token of this process.
+fn token_pruefen(beschreibung: *mut c_void, gewuenscht: u32) -> io::Result<bool> {
+    let mut token: *mut c_void = std::ptr::null_mut();
+    // SAFETY: the pseudo handle of this process; `token` receives a new handle that is closed below.
+    if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_DUPLICATE, &raw mut token) } == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let mut kopie: *mut c_void = std::ptr::null_mut();
+    // SAFETY: `token` is valid with TOKEN_DUPLICATE; `kopie` receives a new impersonation token that is closed below.
+    let kopiert = unsafe { DuplicateToken(token, SECURITY_IMPERSONATION, &raw mut kopie) } != 0;
+    let fehler = io::Error::last_os_error();
+    // SAFETY: `token` came from `OpenProcessToken` and is closed once.
+    unsafe { CloseHandle(token) };
+    if !kopiert {
+        return Err(fehler);
+    }
+    let abbildung = AbbildungAllgemein {
+        lesen: 0x0012_0089,
+        schreiben: 0x0012_0116,
+        ausfuehren: 0x0012_00A0,
+        alles: FILE_ALL_ACCESS,
+    };
+    // PRIVILEGE_SET: AccessCheck fills it only when a privilege grants a right; 64 bytes hold its head and several entries
+    let mut rechte = [0_u32; 16];
+    let mut laenge = u32::try_from(size_of_val(&rechte)).unwrap_or(0);
+    let mut gewaehrt: u32 = 0;
+    let mut erlaubt: i32 = 0;
+    // SAFETY: `beschreibung` is the valid descriptor from `GetSecurityInfo` with owner, group and list; `kopie` is an
+    // impersonation token with TOKEN_QUERY; the mapping, the buffer (DWORD aligned, its length passed) and the out values live
+    // for the call.
+    let geprueft = unsafe {
+        AccessCheck(
+            beschreibung,
+            kopie,
+            gewuenscht,
+            &raw const abbildung,
+            rechte.as_mut_ptr().cast(),
+            &raw mut laenge,
+            &raw mut gewaehrt,
+            &raw mut erlaubt,
+        )
+    } != 0;
+    let fehler = io::Error::last_os_error();
+    // SAFETY: `kopie` came from `DuplicateToken` and is closed once.
+    unsafe { CloseHandle(kopie) };
+    if !geprueft {
+        return Err(fehler);
+    }
+    Ok(erlaubt != 0 && gewaehrt & gewuenscht == gewuenscht)
+}
+
 /// The Unix mode the list of `pfad` stands for: `0700` (a folder of the own user that only it and `SYSTEM` reach), `0600` (a
 /// file only the own user reaches) or `offen`. For the report of the fixed child `lauf` (test build).
 #[cfg_attr(not(feature = "pruefbau"), allow(dead_code))]
@@ -1234,6 +1363,48 @@ mod tests {
         assert_eq!(modus_text(&d), "0600");
         assert_eq!(std::fs::read(&d).expect("read"), b"{}");
         assert_eq!(eigen_oeffnen(&d, true, false).map(|_| ()), Err(Eigen::Art));
+        let _ = std::fs::remove_dir_all(&o);
+    }
+
+    #[test]
+    fn ein_ordner_ohne_eintrag_des_eigenen_nutzers_ist_nicht_durchsuchbar() {
+        let o = wegwerf("durchsuchen");
+        assert_eq!(
+            ordner_durchsuchbar(&o).map_err(|e| e.kind()),
+            Err(io::ErrorKind::NotFound)
+        );
+        ordner_anlegen_eigen(&o).expect("folder");
+        std::fs::create_dir(o.join("s-1")).expect("entry");
+        assert_eq!(ordner_durchsuchbar(&o).map_err(|e| e.kind()), Ok(()));
+        // the counterpart of mode 0000: a protected list with `SYSTEM` alone; the owner keeps the right to change the list
+        let icacls = |a: &[&str]| {
+            std::process::Command::new("icacls")
+                .arg(&o)
+                .args(a)
+                .output()
+                .is_ok_and(|x| x.status.success())
+        };
+        let nutzer = std::env::var("USERNAME").expect("USERNAME");
+        assert!(icacls(&[
+            "/inheritance:r",
+            "/grant:r",
+            "*S-1-5-18:(OI)(CI)(F)"
+        ]));
+        assert!(icacls(&["/remove:g", &nutzer]));
+        // also with `SeBackupPrivilege` enabled (an elevated session over ssh): the list decides, not the privilege
+        assert_eq!(
+            ordner_durchsuchbar(&o).map_err(|e| e.kind()),
+            Err(io::ErrorKind::PermissionDenied)
+        );
+        let datei = o.with_extension("datei");
+        std::fs::write(&datei, b"x").expect("file");
+        assert_eq!(
+            ordner_durchsuchbar(&datei).map_err(|e| e.kind()),
+            Err(io::ErrorKind::NotADirectory)
+        );
+        let _ = std::fs::remove_file(&datei);
+        assert!(icacls(&["/grant", &format!("{nutzer}:(OI)(CI)(F)")]));
+        assert_eq!(ordner_durchsuchbar(&o).map_err(|e| e.kind()), Ok(()));
         let _ = std::fs::remove_dir_all(&o);
     }
 

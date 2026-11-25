@@ -232,6 +232,16 @@ pub(crate) fn rahmennummer(
 /// error (no rights, a name too long), the start is refused. The service creates, reads and removes nothing there. Without the keys no number is taken.
 pub(crate) fn kennung_belegt(lauf: &Lauf, n: usize) -> Result<bool, ()> {
     for pfad in eintraege_der_nummer(lauf, n) {
+        // Windows (section 21, addendum of 25.11.2026): every user may bypass the traverse check, so `lstat` in a folder without
+        // rights of the own user does not fail there. The folder must grant the own user the right to look into it (the counterpart
+        // of the search bit); a folder that is missing leaves the entry free as under Unix, any other error refuses the start.
+        #[cfg(windows)]
+        if let Some(ordner) = pfad.parent() {
+            match crate::sys::ordner_durchsuchbar(ordner) {
+                Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(()),
+                _ => {}
+            }
+        }
         match std::fs::symlink_metadata(&pfad) {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Ok(_) => return Ok(true),

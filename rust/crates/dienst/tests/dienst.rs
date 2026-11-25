@@ -303,7 +303,11 @@ fn dauerlast_trennt_den_betrachter_der_nie_liest() {
     traege.text("g");
     assert!(
         wach.warte_text_takt("ENDE", &mut t),
-        "the child wrote everything"
+        "the child wrote everything (end of the connection: {:?}, errors: {:?}, log: {:?}, service: {:?})",
+        wach.ende_grund,
+        wach.fehler,
+        p.stderr_zeilen(),
+        p.kind.try_wait()
     );
     let frist = std::time::Instant::now() + Duration::from_secs(10);
     let mut zeilen = p.stderr_zeilen();

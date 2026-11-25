@@ -356,7 +356,14 @@ fn ein_fremder_prozess_der_sich_zuerst_verbindet_wird_geschlossen_und_ein_zweite
         .expect("timeout");
     let _ = fremd.write_all(b"99 fremd.zeile\n");
     let mut puffer = [0_u8; 8];
-    match fremd.read(&mut puffer) {
+    // EINTR (a read with a timeout after the process was stopped and continued, Linux) is no answer: read again
+    let gelesen = loop {
+        match fremd.read(&mut puffer) {
+            Err(e) if e.kind() == ErrorKind::Interrupted => {}
+            r => break r,
+        }
+    };
+    match gelesen {
         Ok(0) => {}
         Err(res) if res.kind() != ErrorKind::WouldBlock && res.kind() != ErrorKind::TimedOut => {}
         r => panic!("the foreign connection was not closed: {r:?}"),
@@ -385,7 +392,14 @@ fn ein_fremder_prozess_der_sich_zuerst_verbindet_wird_geschlossen_und_ein_zweite
                 .expect("timeout");
             let _ = strom.write_all(b"99 zweite.zeile\n");
             let mut puf = [0_u8; 8];
-            match strom.read(&mut puf) {
+            // EINTR is no answer, as above: read again
+            let gelesen = loop {
+                match strom.read(&mut puf) {
+                    Err(e) if e.kind() == ErrorKind::Interrupted => {}
+                    r => break r,
+                }
+            };
+            match gelesen {
                 Ok(0) => {}
                 Err(e) if !matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut) => {}
                 r => panic!(

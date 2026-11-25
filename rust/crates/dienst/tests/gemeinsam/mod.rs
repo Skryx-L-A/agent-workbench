@@ -262,6 +262,8 @@ pub struct Probe {
     /// The raster number of every raster frame the receiver took, in order.
     pub rahmennummern: Vec<u8>,
     pub ende: bool,
+    /// Why the connection ended (`EOF` or the read error), empty while it is open.
+    pub ende_grund: String,
 }
 
 impl Probe {
@@ -297,6 +299,7 @@ impl Probe {
             rahmenfehler: 0,
             rahmennummern: Vec::new(),
             ende: false,
+            ende_grund: String::new(),
         }
     }
 
@@ -346,17 +349,27 @@ impl Probe {
         let mut stueck = vec![0_u8; 65536];
         while Instant::now() < ende && !self.ende {
             match self.strom.read(&mut stueck) {
-                Ok(0) => self.ende = true,
+                Ok(0) => {
+                    self.ende = true;
+                    "EOF".clone_into(&mut self.ende_grund);
+                }
                 Ok(n) => {
                     self.puffer.extend_from_slice(&stueck[..n]);
                     self.verarbeiten();
                 }
+                // Linux: a read with a timeout (`SO_RCVTIMEO`) ends with EINTR when the process was stopped and continued, also
+                // without a signal handler (`man 7 signal`); the connection is still open
                 Err(e)
                     if matches!(
                         e.kind(),
-                        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                        std::io::ErrorKind::WouldBlock
+                            | std::io::ErrorKind::TimedOut
+                            | std::io::ErrorKind::Interrupted
                     ) => {}
-                Err(_) => self.ende = true,
+                Err(e) => {
+                    self.ende = true;
+                    self.ende_grund = format!("{:?}: {e}", e.kind());
+                }
             }
         }
     }
@@ -444,7 +457,9 @@ impl Probe {
         self.zustand_fragen();
         assert!(
             self.warte(Duration::from_secs(10), |p| p.zustaende.len() > vorher),
-            "no answer to Zustand"
+            "no answer to Zustand (end of the connection: {:?}, errors: {:?})",
+            self.ende_grund,
+            self.fehler
         );
         self.zustaende[vorher].clone()
     }
