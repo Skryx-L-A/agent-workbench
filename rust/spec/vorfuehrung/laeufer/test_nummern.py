@@ -8,7 +8,7 @@ Laeufer (`drehbuchlib/bruecke.py`, gegen einen Prueftisch-Server aus test_strom.
 - Wiederverwendung: Sitzung A endet, B bekommt dieselbe Nummer. Der Verlauf von B traegt nichts von A, der von A bleibt; das Bild der Nummer ist
   vergessen (eine Aenderung ohne vollen Abzug ist danach ein Fehler des Stroms).
 - `nr: null`: `raster` liefert `rahmen` 0 und leere `zeilen`, ohne Ausnahme und ohne Abo.
-Gegenprobe: mit `drehbuchlib/bruecke.py` aus an earlier commit sind diese Tests rot.
+Gegenprobe: mit `drehbuchlib/bruecke.py` im Stand vom 22.11.2026 (vor dieser Aenderung) sind diese Tests rot.
 
 Attrappe (`attrappen/bruecke_attrappe.py`, ohne Netz, `kanaele` klein):
 - (a) Ein frueh beendeter Start (vor jedem Abo) bleibt ansehbar, bis seine Nummer neu vergeben ist; danach `nr: null` und das Abo wird abgelehnt.
@@ -17,7 +17,7 @@ Attrappe (`attrappen/bruecke_attrappe.py`, ohne Netz, `kanaele` klein):
 Gegenprobe: mit sofortiger Freigabe beim Ende ist (a) rot.
 
 E6 (`schritte._versuch`): Code und `grund` kommen aus der Sitzungsliste (`sitzung()`), nicht aus dem Verlauf (Projektentscheid, 23.11.2026). Der Verlauf ist
-hier leer. Ein Grund in anderer Form wird `abweichend`. Gegenprobe: mit `drehbuchlib/schritte.py` aus an earlier commit rot.
+hier leer. Ein Grund in anderer Form wird `abweichend`. Gegenprobe: mit `drehbuchlib/schritte.py` im Stand vom 22.11.2026 (vor dieser Aenderung) rot.
 
 Nur Standardbibliothek. Aufruf: python3 -I -B test_nummern.py
 """

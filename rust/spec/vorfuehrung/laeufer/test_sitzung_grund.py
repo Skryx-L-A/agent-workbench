@@ -7,7 +7,7 @@ gueltigen Zeile von `lauf` (oder als `lauf.meldung_ungueltig`); sonst fehlt der 
 - Gegen die Attrappen (`harness.copilot.sim_ende` mit `grund`): `ende_grund` in den Messwerten von S1 ist der feste Code; ein Grund in
   anderer Form wird `abweichend`, und sein Text steht nirgends im Bericht. Ohne `grund` ist `ende_grund` None.
 - Konsole von `drehbuch.py probelauf`: Die Zeile `<schritt> ende:` traegt `grund <code>`; die Ergebnisdatei bleibt Fassung 2 ohne den Grund.
-Gegenprobe: mit `drehbuchlib/bruecke.py` aus an earlier commit werden die Tests der Bruecke und der Attrappe rot (der Grund kommt nie an).
+Gegenprobe: mit `drehbuchlib/bruecke.py` im Stand vom 22.11.2026 (vor dieser Aenderung) werden die Tests der Bruecke und der Attrappe rot (der Grund kommt nie an).
 
 Nur Standardbibliothek. Aufruf: python3 -I -B test_sitzung_grund.py   (startet die Attrappen der Bruecke: einige Sekunden je Lauf)
 """
