@@ -13,8 +13,8 @@ mod gemeinsam;
 
 use std::fs;
 use std::net::TcpListener;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use einschluss::{GAST_MODELL_SOCKET, GAST_SUCH_SOCKET, Profil};
@@ -166,64 +166,175 @@ fn case_a_counter_probe_each_boundary_missing_turns_it_red() {
 // ---------------------------------------------------------------------------------------------------------------
 // (b) a foreign address is not reachable
 
-/// Counts the connections that reach a listener of the host.
+/// Counts the connections that reach a listener of the host and carry its mark.
+///
+/// The loopback of the host is shared by every process on the machine. A port from `bind 0` is free only while this
+/// listener holds it; before, another process may have held the same number and may still dial it (a test that takes a
+/// port, frees it and then polls it, or one that checks afterwards that an old port is closed). Measured under load on
+/// the build host: once in 240 runs the counter saw 44 connections while every probe of the enclosure had failed as it
+/// should. So the counter counts only a connection whose first line is its mark, a text of its own per counter (process,
+/// number in the process, time). The probes send the mark with `tcpfrage`. A connection of the enclosure carries the
+/// mark and counts; it also turns the probe itself red, since then the answer is not `ECONNREFUSED`. Any other
+/// connection is kept as a foreign one with its peer, its first line and, while the peer is still open, its process.
+/// A red counter names them in its error, and a measuring run writes them to a file (see `Drop`): the run shows where
+/// foreign traffic came from without counting it.
 struct Zaehler {
-    anzahl: Arc<AtomicUsize>,
-    stopp: Arc<std::sync::atomic::AtomicBool>,
+    treffer: Arc<AtomicUsize>,
+    fremde: Arc<Mutex<Vec<String>>>,
+    stopp: Arc<AtomicBool>,
     faden: Option<std::thread::JoinHandle<()>>,
     pub adresse: String,
+    pub marke: String,
 }
+
+/// How many foreign connections get the search for their process (it walks `/proc` and costs time under load).
+const EIGNER_SUCHEN: usize = 8;
 
 impl Zaehler {
     fn neu() -> Zaehler {
+        static NUMMER: AtomicUsize = AtomicUsize::new(0);
         let hoerer = TcpListener::bind("127.0.0.1:0").expect("listener");
         hoerer.set_nonblocking(true).expect("nonblocking");
-        let adresse = hoerer.local_addr().expect("addr").to_string();
-        let anzahl = Arc::new(AtomicUsize::new(0));
-        let stopp = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let (a, st) = (Arc::clone(&anzahl), Arc::clone(&stopp));
+        let eigen = hoerer.local_addr().expect("addr");
+        let adresse = eigen.to_string();
+        let zeit = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_nanos());
+        let marke = format!(
+            "zaehler-{}-{}-{zeit}",
+            std::process::id(),
+            NUMMER.fetch_add(1, Ordering::SeqCst)
+        );
+        let treffer = Arc::new(AtomicUsize::new(0));
+        let fremde = Arc::new(Mutex::new(Vec::new()));
+        let stopp = Arc::new(AtomicBool::new(false));
+        let (t, f, st, m) = (
+            Arc::clone(&treffer),
+            Arc::clone(&fremde),
+            Arc::clone(&stopp),
+            marke.clone(),
+        );
         let faden = std::thread::spawn(move || {
             while !st.load(Ordering::SeqCst) {
-                if let Ok((mut strom, _)) = hoerer.accept() {
-                    a.fetch_add(1, Ordering::SeqCst);
-                    // a service that answers a line: `dienst:<line>`
-                    let _ = strom.set_nonblocking(false);
-                    let _ = strom.set_read_timeout(Some(Duration::from_millis(300)));
-                    let mut zeile = String::new();
-                    if std::io::BufRead::read_line(&mut std::io::BufReader::new(&strom), &mut zeile)
-                        .is_ok_and(|n| n > 0)
-                    {
-                        let _ = std::io::Write::write_all(
-                            &mut strom,
-                            format!("dienst:{zeile}").as_bytes(),
-                        );
-                    }
-                } else {
+                let Ok((mut strom, gegen)) = hoerer.accept() else {
                     std::thread::sleep(Duration::from_millis(5));
+                    continue;
+                };
+                let bisher = f.lock().expect("lock").len();
+                // the process is searched before the line is read: a peer that closes after its line is gone then
+                let wer = if bisher < EIGNER_SUCHEN {
+                    eigner(gegen, eigen)
+                } else {
+                    "not searched".to_owned()
+                };
+                let _ = strom.set_nonblocking(false);
+                let _ = strom.set_read_timeout(Some(Duration::from_secs(2)));
+                let mut zeile = String::new();
+                let _ =
+                    std::io::BufRead::read_line(&mut std::io::BufReader::new(&strom), &mut zeile);
+                if zeile.trim_end() == m {
+                    t.fetch_add(1, Ordering::SeqCst);
+                    // a service that answers a line: `dienst:<line>`
+                    let _ =
+                        std::io::Write::write_all(&mut strom, format!("dienst:{zeile}").as_bytes());
+                } else {
+                    let zeile: String = zeile.chars().take(80).collect();
+                    f.lock()
+                        .expect("lock")
+                        .push(format!("peer {gegen}, first line {zeile:?}, process {wer}"));
                 }
             }
         });
         Zaehler {
-            anzahl,
+            treffer,
+            fremde,
             stopp,
             faden: Some(faden),
             adresse,
+            marke,
         }
     }
 
+    /// The connections that carried the mark.
     fn stand(&self) -> usize {
         std::thread::sleep(Duration::from_millis(100));
-        self.anzahl.load(Ordering::SeqCst)
+        self.treffer.load(Ordering::SeqCst)
+    }
+
+    fn fremde(&self) -> Vec<String> {
+        self.fremde.lock().expect("lock").clone()
+    }
+
+    /// The probe that dials the counter with its mark.
+    fn probe(&self) -> [&str; 3] {
+        ["tcpfrage", &self.adresse, &self.marke]
     }
 }
 
 impl Drop for Zaehler {
+    /// A measuring run names a file in `EINSCHLUSS_ZAEHLER_FREMD`: each foreign connection goes there as one line, so the
+    /// run shows foreign traffic also where the case stays green.
     fn drop(&mut self) {
         self.stopp.store(true, Ordering::SeqCst);
         if let Some(f) = self.faden.take() {
             let _ = f.join();
         }
+        if let Some(datei) = std::env::var_os("EINSCHLUSS_ZAEHLER_FREMD") {
+            let mut zeilen = String::new();
+            for f in self.fremde() {
+                let _ = std::fmt::Write::write_fmt(
+                    &mut zeilen,
+                    format_args!("zaehler {}: foreign connection: {f}\n", self.adresse),
+                );
+            }
+            if let Ok(mut d) = fs::OpenOptions::new().create(true).append(true).open(datei) {
+                let _ = std::io::Write::write_all(&mut d, zeilen.as_bytes());
+            }
+        }
     }
+}
+
+/// The process that holds the client side of a connection on the loopback: the socket in `/proc/net/tcp` whose local
+/// end is `gegen` and whose remote end is `eigen`, then the process that has that socket open. Best effort: a peer that
+/// is already closed has no socket left.
+fn eigner(gegen: std::net::SocketAddr, eigen: std::net::SocketAddr) -> String {
+    let ende = |a: std::net::SocketAddr| match a {
+        std::net::SocketAddr::V4(v4) => format!(
+            "{:08X}:{:04X}",
+            u32::from_le_bytes(v4.ip().octets()),
+            v4.port()
+        ),
+        std::net::SocketAddr::V6(_) => String::new(),
+    };
+    let (lokal, fern) = (ende(gegen), ende(eigen));
+    let Some(knoten) = fs::read_to_string("/proc/net/tcp")
+        .unwrap_or_default()
+        .lines()
+        .map(|z| z.split_whitespace().collect::<Vec<_>>())
+        .find(|f| f.len() > 9 && f[1] == lokal && f[2] == fern && f[9] != "0")
+        .map(|f| format!("socket:[{}]", f[9]))
+    else {
+        return "unknown (no open socket)".to_owned();
+    };
+    for e in fs::read_dir("/proc").into_iter().flatten().flatten() {
+        let pid = e.file_name().to_string_lossy().into_owned();
+        if pid.parse::<u32>().is_err() {
+            continue;
+        }
+        let offen = fs::read_dir(e.path().join("fd"))
+            .into_iter()
+            .flatten()
+            .flatten()
+            .any(|fd| fs::read_link(fd.path()).is_ok_and(|z| z.to_string_lossy() == knoten));
+        if offen {
+            let befehl = fs::read(e.path().join("cmdline"))
+                .map(|b| String::from_utf8_lossy(&b).replace('\0', " "))
+                .unwrap_or_default();
+            let befehl: String = befehl.trim_end().chars().take(160).collect();
+            return format!("pid={pid} {befehl:?}");
+        }
+    }
+    format!("unknown ({knoten} held by no readable process)")
 }
 
 /// With `fremd`, the case also tries the foreign addresses. Only the enclosure itself is sent there: a mutant that
@@ -232,8 +343,8 @@ fn fall_b(welt: &Welt, args: &[String], zaehler: &Zaehler, fremd: bool) -> Urtei
     let p = |probe: &[&str]| welt.probe(args, probe);
     gleich(
         "connect to the counter on the host loopback",
-        &p(&["tcp", &zaehler.adresse]),
-        "tcp: ERR ECONNREFUSED",
+        &p(&zaehler.probe()),
+        "tcpfrage: ERR ECONNREFUSED",
     )?;
     if fremd {
         gleich(
@@ -252,7 +363,9 @@ fn fall_b(welt: &Welt, args: &[String], zaehler: &Zaehler, fremd: bool) -> Urtei
             "dns: ERR lookup",
         )?;
     }
-    gleich("the counter on the host", &zaehler.stand().to_string(), "0")
+    let stand = zaehler.stand();
+    gleich("the counter on the host", &stand.to_string(), "0")
+        .map_err(|e| format!("{e}; foreign connections: {:?}", zaehler.fremde()))
 }
 
 #[test]
@@ -261,7 +374,10 @@ fn case_b_a_foreign_address_is_not_reachable() {
     {
         // the control: without an enclosure the same connect reaches a counter
         let kontrolle = Zaehler::neu();
-        assert_eq!(welt.probe_aussen(&["tcp", &kontrolle.adresse]), "tcp: OK");
+        assert_eq!(
+            welt.probe_aussen(&kontrolle.probe()),
+            format!("tcpfrage: OK dienst:{}", kontrolle.marke)
+        );
         assert_eq!(kontrolle.stand(), 1);
     }
     let zaehler = Zaehler::neu();
@@ -285,6 +401,49 @@ fn case_b_counter_probe_a_shared_network_turns_it_red() {
     assert_eq!(zaehler.stand(), 1, "the shared network reached the counter");
 }
 
+#[test]
+fn case_b_foreign_traffic_on_the_port_of_the_counter_does_not_count_and_is_named() {
+    // the measured failure: another process dials the port of the counter while the case runs. Here a thread of this
+    // test is that process: 44 connections without the mark, some with a wrong line, some with none. The case stays
+    // green, the counter names each one with this process as its owner, and a connection with the mark still counts.
+    let welt = Welt::neu();
+    let zaehler = Zaehler::neu();
+    let adresse: std::net::SocketAddr = zaehler.adresse.parse().expect("addr");
+    let stoerer = std::thread::spawn(move || {
+        for i in 0..44 {
+            let mut s = std::net::TcpStream::connect(adresse).expect("connect");
+            if i % 2 == 0 {
+                let _ = std::io::Write::write_all(&mut s, b"zaehler-fremd\n");
+            } else {
+                let _ = s.shutdown(std::net::Shutdown::Write);
+            }
+            // hold the connection until the counter has read and closed it
+            let _ = std::io::Read::read_to_end(&mut s, &mut Vec::new());
+        }
+    });
+    let urteil = fall_b(&welt, &welt.profil().argumente(), &zaehler, false);
+    stoerer.join().expect("disturber");
+    assert_eq!(urteil, Ok(()));
+    assert_eq!(zaehler.stand(), 0);
+    let fremde = zaehler.fremde();
+    assert_eq!(fremde.len(), 44, "{fremde:?}");
+    let eigen = format!("process pid={} ", std::process::id());
+    assert!(
+        fremde[..EIGNER_SUCHEN].iter().all(|f| f.contains(&eigen)),
+        "{fremde:?}"
+    );
+    assert!(
+        fremde[0].contains("first line \"zaehler-fremd\\n\""),
+        "{fremde:?}"
+    );
+    assert!(fremde[1].contains("first line \"\""), "{fremde:?}");
+    assert_eq!(
+        welt.probe_aussen(&zaehler.probe()),
+        format!("tcpfrage: OK dienst:{}", zaehler.marke)
+    );
+    assert_eq!(zaehler.stand(), 1);
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // (f) no loopback port of the host is reachable; only a forwarder handed in by a Unix socket is
 
@@ -292,14 +451,14 @@ fn fall_f(welt: &Welt, args: &[String], dienst: &Zaehler, bruecke: bool) -> Urte
     let p = |probe: &[&str]| welt.probe(args, probe);
     gleich(
         "connect to the service on the host loopback",
-        &p(&["tcp", &dienst.adresse]),
-        "tcp: ERR ECONNREFUSED",
+        &p(&dienst.probe()),
+        "tcpfrage: ERR ECONNREFUSED",
     )?;
     if bruecke {
         gleich(
             "ask through the handed-in forwarder",
-            &p(&["bruecke", GAST_MODELL_SOCKET, "18080", "hallo"]),
-            "bruecke: OK dienst:hallo",
+            &p(&["bruecke", GAST_MODELL_SOCKET, "18080", &dienst.marke]),
+            &format!("bruecke: OK dienst:{}", dienst.marke),
         )?;
     }
     gleich(
@@ -317,10 +476,14 @@ fn case_f_no_loopback_port_of_the_host_is_reachable_except_the_handed_in_forward
     fs::create_dir_all(&ordner).expect("folder");
     let weiter = Such::weiter(&ordner.join("weiter.sock"), &dienst.adresse);
     // the control: outside, the service answers directly and through the forwarder
-    assert_eq!(welt.probe_aussen(&["tcp", &dienst.adresse]), "tcp: OK");
+    let antwort = format!("dienst:{}", dienst.marke);
     assert_eq!(
-        welt.probe_aussen(&["frage", &s(&weiter.socket), "hallo"]),
-        "frage: OK dienst:hallo"
+        welt.probe_aussen(&dienst.probe()),
+        format!("tcpfrage: OK {antwort}")
+    );
+    assert_eq!(
+        welt.probe_aussen(&["frage", &s(&weiter.socket), &dienst.marke]),
+        format!("frage: OK {antwort}")
     );
     let vorher = dienst.stand();
     assert_eq!(vorher, 2);
@@ -331,16 +494,11 @@ fn case_f_no_loopback_port_of_the_host_is_reachable_except_the_handed_in_forward
     let basis = vorher;
     let urteil = {
         let p = |probe: &[&str]| welt.probe(&args, probe);
-        gleich(
-            "direct",
-            &p(&["tcp", &dienst.adresse]),
-            "tcp: ERR ECONNREFUSED",
-        )
-        .and_then(|()| {
+        gleich("direct", &p(&dienst.probe()), "tcpfrage: ERR ECONNREFUSED").and_then(|()| {
             gleich(
                 "through the forwarder",
-                &p(&["bruecke", GAST_MODELL_SOCKET, "18080", "hallo"]),
-                "bruecke: OK dienst:hallo",
+                &p(&["bruecke", GAST_MODELL_SOCKET, "18080", &dienst.marke]),
+                &format!("bruecke: OK {antwort}"),
             )
         })
     };
@@ -1267,7 +1425,7 @@ fn case_b_real_network_the_probe_reaches_it_without_the_boundary_and_not_with_it
 /// `modell:<line>`. It waits in `accept` and ends with `Drop` by a connection of its own.
 struct Modellsocket {
     anzahl: Arc<AtomicUsize>,
-    stopp: Arc<std::sync::atomic::AtomicBool>,
+    stopp: Arc<AtomicBool>,
     socket: std::path::PathBuf,
     faden: Option<std::thread::JoinHandle<()>>,
 }
@@ -1276,7 +1434,7 @@ impl Modellsocket {
     fn neu(socket: &std::path::Path) -> Modellsocket {
         let hoerer = std::os::unix::net::UnixListener::bind(socket).expect("socket");
         let anzahl = Arc::new(AtomicUsize::new(0));
-        let stopp = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let stopp = Arc::new(AtomicBool::new(false));
         let (a, st) = (Arc::clone(&anzahl), Arc::clone(&stopp));
         let faden = std::thread::spawn(move || {
             for strom in hoerer.incoming() {
@@ -1345,7 +1503,7 @@ fn case_f_the_local_route_reaches_its_model_path_on_11434_and_no_other_port() {
     // the refusals below come from the network of the enclosure itself, before any forwarder: nothing is on the way
     assert_eq!(p(&["tcp", "127.0.0.1:8402"]), "tcp: ERR ECONNREFUSED");
     assert_eq!(p(&["tcp", "127.0.0.1:11435"]), "tcp: ERR ECONNREFUSED");
-    assert_eq!(p(&["tcp", &dienst.adresse]), "tcp: ERR ECONNREFUSED");
+    assert_eq!(p(&dienst.probe()), "tcpfrage: ERR ECONNREFUSED");
     assert_eq!(
         dienst.stand(),
         0,

@@ -175,7 +175,7 @@ impl Welt {
         let _ = fs::remove_dir_all(&wurzel);
         ordner(&wurzel, 0o700);
         let programm = ordner(&wurzel.join("programm"), 0o755);
-        fs::copy(ATTRAPPE, programm.join("einschluss-attrappe")).expect("copy of the stand-in");
+        kopie_ausfuehrbar(Path::new(ATTRAPPE), &programm.join("einschluss-attrappe"));
         let arbeit = ordner(&wurzel.join("arbeit"), 0o755);
         fs::write(arbeit.join("arbeit.txt"), "arbeit").expect("file");
         let zustand = ordner(&wurzel.join("zustand"), 0o700);
@@ -453,4 +453,36 @@ pub fn ersetzt(args: &[String], alt: &[&str], neu: &[&str]) -> Vec<String> {
     r.extend(neu.iter().map(|n| (*n).to_owned()));
     r.extend_from_slice(&args[i + alt.len()..]);
     r
+}
+
+/// Copies a program that a test then runs, in a process of its own (`cp`).
+///
+/// Written by this test process, the descriptor of the new file would sit here open for writing, and a child that another
+/// test thread forks at that moment holds a copy of it until its own `exec`. An `exec` of the new file in that time fails
+/// with `ETXTBSY` (measured under load: "bwrap: execvp .../programm/einschluss-attrappe: Text file busy"). `cp` has ended
+/// before this function returns, and this process never opens the file for writing.
+pub fn kopie_ausfuehrbar(quelle: &Path, ziel: &Path) {
+    let status = Command::new("/usr/bin/cp")
+        .arg(quelle)
+        .arg(ziel)
+        .env_clear()
+        .status()
+        .expect("cp");
+    assert!(status.success(), "copy of {}: {status:?}", quelle.display());
+}
+
+/// Writes a script that a test then runs, in a process of its own (`sh` reads the text from a pipe), and makes it
+/// executable; for the reason see [`kopie_ausfuehrbar`].
+pub fn skript_schreiben(ziel: &Path, text: &str) {
+    let mut kind = Command::new("/bin/sh")
+        .args(["-c", "cat > \"$0\"", &ziel.to_string_lossy()])
+        .env_clear()
+        .stdin(Stdio::piped())
+        .spawn()
+        .expect("sh");
+    std::io::Write::write_all(&mut kind.stdin.take().expect("stdin"), text.as_bytes())
+        .expect("text of the script");
+    let status = kind.wait().expect("wait");
+    assert!(status.success(), "script {}: {status:?}", ziel.display());
+    fs::set_permissions(ziel, fs::Permissions::from_mode(0o755)).expect("mode");
 }

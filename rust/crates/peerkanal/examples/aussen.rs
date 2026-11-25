@@ -4,11 +4,15 @@
 //!
 //! ```text
 //! peerkanal-aussen server --log F --name N --erlaubt SID[:PAKET] ... [--instanzen n] [--hallo-ms n] [--pflicht]
-//!                         [--job NAME] [--zusatz PAKET] [--halt DATEI] [--haken bestaetigen|ablehnen:K|warte:DATEI]
-//!                         [--anzahl n]
+//!                         [--job NAME] [--zusatz PAKET] [--halt DATEI]
+//!                         [--haken bestaetigen|fallen|ablehnen:K|warte:DATEI] [--anzahl n]
 //! peerkanal-aussen client --log F --name N --erwartet SID [--vorher-ms n] [--frist-ms n] [--senden TEXT] [--halten-ms n] [--anzahl n]
-//! peerkanal-aussen roh    --log F --pfad P --zugriff HEX [--senden TEXT] [--lesen-ms n]
+//! peerkanal-aussen roh    --log F --pfad P --zugriff HEX [--senden TEXT] [--warte-ms n] [--lesen-ms n] [--oeffnen-ms n]
 //! ```
+//!
+//! `--haken fallen`: the server drops the connection right after `bestaetigen` and logs how long the drop took (cases
+//! `d-flush-vor-trennen-windows` and `d-flush-frist-windows`). `--warte-ms`: the raw client waits so long after its bytes
+//! before it reads.
 //!
 //! A test program, no part of a shipped build. It has no `unsafe`; the job of a case is opened by name through
 //! `JobBezug::oeffnen`.
@@ -217,24 +221,36 @@ mod windows {
                         log.zeile(json!({"schritt": "annahme", "ereignis": e.als_json()}));
                         continue;
                     }
-                    match vl.bestaetigen() {
-                        Err(f) => log.zeile(json!({"schritt": "bestaetigen", "ergebnis": "fehler", "code": f.code.als_str(), "os_fehler": f.os_fehler})),
-                        Ok(mut verbindung) => {
-                            log.zeile(json!({"schritt": "bestaetigen", "ergebnis": "ok", "peer": verbindung.peer().als_json()}));
-                            let log = Arc::clone(log);
-                            std::thread::spawn(move || {
-                                let mut daten = Vec::new();
-                                let r = verbindung.read_to_end(&mut daten);
-                                log.zeile(json!({"schritt": "daten", "text": String::from_utf8_lossy(&daten), "laenge": daten.len(), "lesefehler": r.err().map(|e| e.to_string())}));
-                            });
-                        }
-                    }
+                    uebergeben(vl, entscheid == "fallen", log);
                 }
             }
         }
         // The last connections finish their reads; the runner ends the process.
         std::thread::sleep(Duration::from_millis(a.zahl("nachlauf-ms", 1000)));
         0
+    }
+
+    /// `bestaetigen` and the connection after it: with `fallen` dropped at once (the time of the drop goes to the log), else
+    /// read to its end on a thread of its own.
+    fn uebergeben(vl: peerkanal::Vorlaeufig, fallen: bool, log: &Arc<Log>) {
+        match vl.bestaetigen() {
+            Err(f) => log.zeile(json!({"schritt": "bestaetigen", "ergebnis": "fehler", "code": f.code.als_str(), "os_fehler": f.os_fehler})),
+            Ok(mut verbindung) => {
+                log.zeile(json!({"schritt": "bestaetigen", "ergebnis": "ok", "peer": verbindung.peer().als_json()}));
+                if fallen {
+                    let start = Instant::now();
+                    drop(verbindung);
+                    log.zeile(json!({"schritt": "fallen", "dauer_ms": ms(start.elapsed())}));
+                    return;
+                }
+                let log = Arc::clone(log);
+                std::thread::spawn(move || {
+                    let mut daten = Vec::new();
+                    let r = verbindung.read_to_end(&mut daten);
+                    log.zeile(json!({"schritt": "daten", "text": String::from_utf8_lossy(&daten), "laenge": daten.len(), "lesefehler": r.err().map(|e| e.to_string())}));
+                });
+            }
+        }
     }
 
     fn client(a: &Args, log: &Arc<Log>) -> i32 {
@@ -280,12 +296,22 @@ mod windows {
             16,
         )
         .unwrap_or(0);
-        // SECURITY_IDENTIFICATION (with it the standard library sets SECURITY_SQOS_PRESENT).
-        let f = OpenOptions::new()
-            .access_mode(zugriff)
-            .share_mode(0)
-            .security_qos_flags(0x0001_0000)
-            .open(pfad);
+        // SECURITY_IDENTIFICATION (with it the standard library sets SECURITY_SQOS_PRESENT). `--oeffnen-ms`: while every
+        // instance is busy (231) or the server has none ready yet (2), try again until then.
+        let bis = Instant::now() + Duration::from_millis(a.zahl("oeffnen-ms", 0));
+        let f = loop {
+            let f = OpenOptions::new()
+                .access_mode(zugriff)
+                .share_mode(0)
+                .security_qos_flags(0x0001_0000)
+                .open(pfad);
+            match &f {
+                Err(e) if matches!(e.raw_os_error(), Some(2 | 231)) && Instant::now() < bis => {
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                _ => break f,
+            }
+        };
         let mut f = match f {
             Err(e) => {
                 log.zeile(json!({"schritt": "oeffnen", "ergebnis": "fehler", "os_fehler": e.raw_os_error()}));
@@ -297,8 +323,9 @@ mod windows {
         if let Some(t) = a.eins("senden") {
             let t = t.replace("\\n", "\n");
             let r = f.write_all(t.as_bytes());
-            log.zeile(json!({"schritt": "senden", "ok": r.is_ok(), "os_fehler": r.err().and_then(|e| e.raw_os_error())}));
+            log.zeile(json!({"schritt": "senden", "ok": r.is_ok(), "os_fehler": r.err().and_then(|e| e.raw_os_error()), "warte_ms": a.zahl("warte-ms", 0)}));
         }
+        std::thread::sleep(Duration::from_millis(a.zahl("warte-ms", 0)));
         let (tx, rx) = mpsc::channel();
         let Ok(mut lese) = f.try_clone() else {
             return 1;

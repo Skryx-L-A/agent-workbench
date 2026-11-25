@@ -96,7 +96,7 @@ fn dienst(rolle: &str, port: u16, heim: &Path, start_ms: i64) -> Arc<Dienst> {
     let konfig = konfig::lesen(k.to_string().as_bytes()).expect("konfig");
     let kette = heim.join("kette");
     std::fs::create_dir_all(&kette).expect("chain folder");
-    Arc::new(Dienst::neu(
+    let d = Arc::new(Dienst::neu(
         konfig,
         Ablage::neu(heim, uid()),
         uid(),
@@ -104,7 +104,65 @@ fn dienst(rolle: &str, port: u16, heim: &Path, start_ms: i64) -> Arc<Dienst> {
         eigene_gid_als(rolle),
         Some(kette),
         uhr,
-    ))
+    ));
+    if let Some(z) = ATTRAPPEN.lock().expect("lock").get(&port) {
+        DIENSTE
+            .lock()
+            .expect("lock")
+            .push((Arc::downgrade(&d), z.clone()));
+    }
+    d
+}
+
+/// How long a connection may go without a byte and without an end while the holder is busy (a chain line with
+/// `sync_data`, a call to the stand-in): only a bound for a real hang, never the signal of a test. Under load a line
+/// took longer than 5 s.
+const HAENGEGRENZE: Duration = Duration::from_secs(60);
+/// The bound of a whole connection (lines without end, a stream that never ends).
+const GESAMTGRENZE: Duration = Duration::from_secs(120);
+/// More lines than any test gets on one connection: a holder that sends lines without end fails at once.
+const ZEILEN_MAX: usize = 10_000;
+/// The step in which the reader looks whether the holder waits for this test.
+const TAKT: Duration = Duration::from_millis(100);
+
+/// The numbers of the system calls that read from a socket: `read`, `readv`, `recvfrom`, `recvmsg`.
+#[cfg(target_arch = "x86_64")]
+const LESEN: [u64; 4] = [0, 19, 45, 47];
+#[cfg(target_arch = "aarch64")]
+const LESEN: [u64; 4] = [63, 65, 207, 212];
+/// `poll` and `ppoll`.
+#[cfg(target_arch = "x86_64")]
+const POLL: [u64; 2] = [7, 271];
+#[cfg(target_arch = "aarch64")]
+const POLL: [u64; 1] = [73];
+
+/// What the reader sees of the stand-in of a server: its thread and, while it waits for the close of the holder
+/// after its last answer, the inode of that connection.
+#[derive(Clone)]
+struct ZielSicht {
+    faden: Arc<std::sync::OnceLock<PathBuf>>,
+    danach: Arc<Mutex<Option<u64>>>,
+}
+
+/// The stand-ins by port, and the servers built by `dienst` with the stand-in of their port.
+static ATTRAPPEN: Mutex<BTreeMap<u16, ZielSicht>> = Mutex::new(BTreeMap::new());
+static DIENSTE: Mutex<Vec<(std::sync::Weak<Dienst>, ZielSicht)>> = Mutex::new(Vec::new());
+
+fn ziel_von(d: &Arc<Dienst>) -> Option<ZielSicht> {
+    let mut l = DIENSTE.lock().expect("lock");
+    l.retain(|(w, _)| w.strong_count() > 0);
+    l.iter()
+        .find(|(w, _)| w.upgrade().is_some_and(|x| Arc::ptr_eq(&x, d)))
+        .map(|(_, z)| z.clone())
+}
+
+/// The end of a connection on the side of the holder, in this process.
+enum Gegenseite {
+    /// The other end of a socket pair: its inode.
+    Paar(u64),
+    /// The connection accepted on the listener at `pfad` (`/proc/net/unix` names it with the path) that was not yet
+    /// there before the connect (`vorher`); an accepted socket has an inode only after `accept`.
+    Hoerer { pfad: PathBuf, vorher: Vec<u64> },
 }
 
 /// One connection to the server.
@@ -112,25 +170,152 @@ struct Client {
     strom: UnixStream,
     vorrat: Vec<u8>,
     roh: Vec<u8>,
-    /// The start of the connection: a connection that sends lines without end (a stream that never ends) fails after
-    /// 12 s, well within the deadline of a mutant run.
+    gegen: Gegenseite,
+    /// The thread that serves the connection (`/proc/self/task/<tid>`), only for the diagnosis.
+    faden: Arc<std::sync::OnceLock<PathBuf>>,
+    /// The writers of the test on this connection that have not finished: while one writes, the holder may wait.
+    schreiber: Arc<AtomicUsize>,
+    /// The stand-in of the server, if the test built it with `attrappe` and `dienst`.
+    ziel: Option<ZielSicht>,
+    name: String,
+    zeilen: usize,
     seit: std::time::Instant,
+}
+
+fn inode(s: &impl std::os::fd::AsFd) -> u64 {
+    rustix::fs::fstat(s).expect("fstat").st_ino
+}
+
+fn neuer_client(strom: UnixStream, gegen: Gegenseite) -> Client {
+    strom.set_read_timeout(Some(TAKT)).expect("timeout");
+    let n = ZAEHLER.fetch_add(1, Ordering::Relaxed);
+    Client {
+        strom,
+        vorrat: Vec::new(),
+        roh: Vec::new(),
+        gegen,
+        faden: Arc::new(std::sync::OnceLock::new()),
+        schreiber: Arc::new(AtomicUsize::new(0)),
+        ziel: None,
+        name: format!(
+            "{} connection {n}",
+            std::thread::current()
+                .name()
+                .unwrap_or("a thread of the test")
+        ),
+        zeilen: 0,
+        seit: std::time::Instant::now(),
+    }
 }
 
 fn verbinden(d: &Arc<Dienst>) -> Client {
     let (a, b) = UnixStream::pair().expect("pair");
+    let mut c = neuer_client(a, Gegenseite::Paar(inode(&b)));
+    c.ziel = ziel_von(d);
     let d = Arc::clone(d);
-    std::thread::spawn(move || d.verbindung(b));
-    // 5 s for every line: a line or an end that does not come fails the test (see `eine`) well within the deadline
-    // of a mutant run
-    a.set_read_timeout(Some(Duration::from_secs(5)))
-        .expect("timeout");
-    Client {
-        strom: a,
-        vorrat: Vec::new(),
-        roh: Vec::new(),
-        seit: std::time::Instant::now(),
+    let faden = Arc::clone(&c.faden);
+    std::thread::spawn(move || {
+        if let Ok(p) = std::fs::read_link("/proc/thread-self") {
+            let _ = faden.set(Path::new("/proc").join(p));
+        }
+        d.verbindung(b);
+    });
+    c
+}
+
+/// The inodes of the connections accepted on the listener at `pfad`.
+fn angenommen(pfad: &Path) -> Vec<u64> {
+    let p = pfad.to_str().expect("path");
+    std::fs::read_to_string("/proc/net/unix")
+        .expect("/proc/net/unix")
+        .lines()
+        .filter_map(|z| {
+            let f: Vec<&str> = z.split_whitespace().collect();
+            // Num RefCount Protocol Flags Type St Inode Path; St 03: connected (the listener itself has 01)
+            (f.len() == 8 && f[7] == p && f[5] == "03")
+                .then(|| f[6].parse().ok())
+                .flatten()
+        })
+        .collect()
+}
+
+/// The system call and its first argument in which the thread at `task` sleeps (state `S`); `None` while it runs, is
+/// runnable (a woken thread may still show its system call) or is outside a system call.
+fn schlaeft_in(task: &Path) -> Option<(u64, u64)> {
+    let stat = std::fs::read_to_string(task.join("stat")).ok()?;
+    if !stat
+        .rsplit_once(") ")
+        .is_some_and(|(_, r)| r.starts_with('S'))
+    {
+        return None;
     }
+    // "<nr> <arg0> ...", "running" or "-1 ..." outside a system call
+    let s = std::fs::read_to_string(task.join("syscall")).ok()?;
+    let mut t = s.split_whitespace();
+    let nr = t.next()?.parse::<u64>().ok()?;
+    let a0 = u64::from_str_radix(t.next()?.strip_prefix("0x")?, 16).ok()?;
+    Some((nr, a0))
+}
+
+/// The socket inode behind the descriptor `fd` of this process.
+fn socket_von(fd: u64) -> Option<u64> {
+    let ziel = std::fs::read_link(format!("/proc/self/fd/{fd}")).ok()?;
+    ziel.to_str()?
+        .strip_prefix("socket:[")?
+        .strip_suffix(']')?
+        .parse()
+        .ok()
+}
+
+/// `true` if a thread of this process sleeps in a read on one of `inodes`: the holder waits for a request.
+fn liest_eines(inodes: &[u64]) -> bool {
+    let Ok(faeden) = std::fs::read_dir("/proc/self/task") else {
+        panic!("/proc/self/task cannot be read: the reader cannot see whether the holder waits")
+    };
+    faeden.flatten().any(|f| {
+        schlaeft_in(&f.path()).is_some_and(|(nr, fd)| {
+            LESEN.contains(&nr) && socket_von(fd).is_some_and(|i| inodes.contains(&i))
+        })
+    })
+}
+
+/// `true` if the stand-in of the server has sent all its answer and sleeps in the read of the same connection
+/// (it waits for the close of the holder), while the serving thread sleeps in `poll` or in a read on a socket: the
+/// holder waits for the target, which will not send again, and for the test.
+fn ziel_wartet(faden: Option<&PathBuf>, ziel: Option<&ZielSicht>) -> bool {
+    let (Some(f), Some(z)) = (faden, ziel) else {
+        return false;
+    };
+    let Some(inode) = *z.danach.lock().expect("lock") else {
+        return false;
+    };
+    let attrappe = z
+        .faden
+        .get()
+        .and_then(|a| schlaeft_in(a))
+        .is_some_and(|(nr, fd)| LESEN.contains(&nr) && socket_von(fd) == Some(inode));
+    attrappe
+        && schlaeft_in(f).is_some_and(|(nr, fd)| {
+            POLL.contains(&nr) || (LESEN.contains(&nr) && socket_von(fd).is_some())
+        })
+}
+
+/// What the serving thread does, for the diagnosis: state, wait channel and system call.
+fn zustand(faden: Option<&PathBuf>) -> String {
+    let Some(f) = faden else {
+        return "thread unknown".to_owned();
+    };
+    let lies = |n: &str| {
+        std::fs::read_to_string(f.join(n))
+            .map_or_else(|e| format!("({e})"), |s| s.trim().to_owned())
+    };
+    let stat = lies("stat");
+    let st = stat.rsplit_once(") ").map_or("?", |(_, r)| &r[..1]);
+    format!(
+        "state {st}, wchan {}, syscall {}",
+        lies("wchan"),
+        lies("syscall")
+    )
 }
 
 fn zeile(v: &Value) -> Vec<u8> {
@@ -144,12 +329,65 @@ impl Client {
         self.strom.write_all(&zeile(v)).expect("send");
     }
 
+    /// `true` if the holder waits in a read on this connection, or waits for its stand-in while that waits for the
+    /// holder ([`ziel_wartet`]), while no writer of the test is active.
+    fn wartet_auf_uns(&self) -> bool {
+        if self.schreiber.load(Ordering::SeqCst) != 0 {
+            return false;
+        }
+        if ziel_wartet(self.faden.get(), self.ziel.as_ref()) {
+            return true;
+        }
+        match &self.gegen {
+            Gegenseite::Paar(i) => liest_eines(&[*i]),
+            Gegenseite::Hoerer { pfad, vorher } => {
+                let neu: Vec<u64> = angenommen(pfad)
+                    .into_iter()
+                    .filter(|i| *i != 0 && !vorher.contains(i))
+                    .collect();
+                liest_eines(&neu)
+            }
+        }
+    }
+
+    /// Where the connection stands, for a failure.
+    fn diagnose(&self, was: &str) -> String {
+        let letzte = self
+            .roh
+            .rsplit(|b| *b == b'\n')
+            .find(|z| !z.is_empty())
+            .map(|z| String::from_utf8_lossy(&z[..z.len().min(200)]).into_owned())
+            .unwrap_or_default();
+        format!(
+            "{was}: {}, after {:.1} s, {} lines and {} bytes read, {} bytes of a line pending, last line {letzte:?}; \
+             holder: {}",
+            self.name,
+            self.seit.elapsed().as_secs_f64(),
+            self.zeilen,
+            self.roh.len(),
+            self.vorrat.len(),
+            zustand(self.faden.get())
+        )
+    }
+
+    /// The next line, or `None` at the end of the connection. The reader waits for an event: a line, the end, or the
+    /// holder waiting while nothing will come ([`Client::wartet_auf_uns`]: it holds the connection open while the test
+    /// waits for it; this fails at once, independent of the load). Time only bounds a real hang ([`HAENGEGRENZE`],
+    /// [`GESAMTGRENZE`]).
     fn eine(&mut self) -> Option<Value> {
         let mut buf = vec![0u8; 65_536];
+        let mut zuletzt = std::time::Instant::now();
+        let mut wartet = false;
         loop {
             assert!(
-                self.seit.elapsed() < Duration::from_secs(12),
-                "the connection runs longer than 12 s"
+                self.zeilen < ZEILEN_MAX,
+                "{}",
+                self.diagnose("more lines than any test gets")
+            );
+            assert!(
+                self.seit.elapsed() < GESAMTGRENZE,
+                "{}",
+                self.diagnose("the connection runs longer than the bound of a connection")
             );
             if let Some(p) = self.vorrat.iter().position(|b| *b == b'\n') {
                 let rest = self.vorrat.split_off(p + 1);
@@ -158,24 +396,63 @@ impl Client {
                     halter::antwort::gueltig(&z[..z.len() - 1]),
                     "line outside the form"
                 );
+                self.zeilen += 1;
                 return Some(serde_json::from_slice(&z).expect("json"));
             }
             match self.strom.read(&mut buf) {
-                // a deadline is no end: the holder neither answered nor closed the connection
                 Err(e)
                     if matches!(
                         e.kind(),
                         std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
                     ) =>
                 {
-                    panic!("no line and no end of the connection within the deadline")
+                    // The holder was seen in a read on this connection with nothing for it, and the read after
+                    // that found nothing either: it has sent all it will send and waits for the test.
+                    let jetzt = self.wartet_auf_uns();
+                    assert!(
+                        !(wartet && jetzt),
+                        "{}",
+                        self.diagnose(
+                            "the holder waits for a request, or for a stand-in that has sent all, while \
+                             the test waits for a line or the end (it holds the connection open)"
+                        )
+                    );
+                    wartet = jetzt;
+                    assert!(
+                        zuletzt.elapsed() < HAENGEGRENZE,
+                        "{}",
+                        self.diagnose(
+                            "no line and no end of the connection within the bound of a hang"
+                        )
+                    );
                 }
                 Ok(0) | Err(_) => return None,
                 Ok(n) => {
+                    wartet = false;
+                    zuletzt = std::time::Instant::now();
                     self.vorrat.extend_from_slice(&buf[..n]);
                     self.roh.extend_from_slice(&buf[..n]);
                 }
             }
+        }
+    }
+
+    /// Writes `bytes` from another thread (a line larger than the socket buffer); the reader does not take the
+    /// holder waiting for a read as a failure while the write runs.
+    fn nebenher_schreiben(&self, bytes: Vec<u8>) -> std::thread::JoinHandle<()> {
+        let mut s = self.strom.try_clone().expect("clone");
+        let aktiv = Arc::clone(&self.schreiber);
+        aktiv.fetch_add(1, Ordering::SeqCst);
+        std::thread::spawn(move || {
+            let _ = s.write_all(&bytes);
+            aktiv.fetch_sub(1, Ordering::SeqCst);
+        })
+    }
+
+    /// The end of the connection must come and no line before it.
+    fn ende_erwartet(&mut self, grund: &str) {
+        if let Some(v) = self.eine() {
+            panic!("{grund}: a line came instead of the end: {v}");
         }
     }
 
@@ -261,7 +538,15 @@ fn attrappe_mit(antworten: Vec<Vec<Vec<u8>>>, schliessen: bool) -> Attrappe {
     let anfragen = Arc::new(Mutex::new(Vec::new()));
     let danach = Arc::new(Mutex::new(Vec::new()));
     let (a2, d2) = (Arc::clone(&anfragen), Arc::clone(&danach));
+    let sicht = ZielSicht {
+        faden: Arc::new(std::sync::OnceLock::new()),
+        danach: Arc::new(Mutex::new(None)),
+    };
+    ATTRAPPEN.lock().expect("lock").insert(port, sicht.clone());
     std::thread::spawn(move || {
+        if let Ok(p) = std::fs::read_link("/proc/thread-self") {
+            let _ = sicht.faden.set(Path::new("/proc").join(p));
+        }
         for teile in antworten {
             let Ok((mut s, _)) = l.accept() else { return };
             s.set_read_timeout(Some(Duration::from_secs(5)))
@@ -280,8 +565,10 @@ fn attrappe_mit(antworten: Vec<Vec<Vec<u8>>>, schliessen: bool) -> Attrappe {
             }
             s.set_read_timeout(Some(Duration::from_secs(20)))
                 .expect("timeout");
+            *sicht.danach.lock().expect("lock") = Some(inode(&s));
             let mut rest = Vec::new();
             let _ = s.read_to_end(&mut rest);
+            *sicht.danach.lock().expect("lock") = None;
             d2.lock().expect("lock").push(rest);
         }
     });
@@ -995,16 +1282,7 @@ fn l3_rolle_nur_mit_der_gid_der_rollengruppe() {
     let z = c.bis_schluss();
     assert_eq!(letzte_code(&z).as_deref(), Some("halter.peer"));
     assert_eq!(z[0]["id"], Value::Null);
-    c.strom
-        .set_read_timeout(Some(Duration::from_secs(5)))
-        .expect("timeout");
-    let mut rest = [0u8; 16];
-    assert_eq!(
-        c.strom
-            .read(&mut rest)
-            .expect("the holder closes after halter.peer, no timeout"),
-        0
-    );
+    c.ende_erwartet("the holder closes after halter.peer");
     // no role group at all
     let mut c = verbinden(&mit(BTreeMap::new(), uid()));
     c.senden(&frage);
@@ -1088,18 +1366,28 @@ fn l3_gleicher_peer_mit_und_ohne_rollengruppe() {
     let skript = o.join("client.py");
     std::fs::write(
         &skript,
-        "import os, socket, sys\n\
+        "import os, select, socket, sys\n\
          s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)\ns.connect(sys.argv[1])\n\
          s.sendall(b'{\"fassung\":1,\"id\":\"q-1\",\"name\":\"anmeldung.copilot\",\"op\":\"schluessel.vorhanden\"}\\n')\n\
-         b = b''\nwhile not b.endswith(b'\\n'):\n    t = s.recv(4096)\n    if not t: break\n    b += t\n\
+         b = b''\nn = 0\nwhile not b.endswith(b'\\n'):\n\
+         \x20   if select.select([s], [], [], 0.1)[0]:\n\
+         \x20       t = s.recv(4096)\n        if not t: break\n        b += t\n\
+         \x20   else:\n        n += 1\n\
+         \x20       open(sys.argv[2] + '.neu', 'w').write('%d %d' % (n, len(b)))\n\
+         \x20       os.replace(sys.argv[2] + '.neu', sys.argv[2] + '.stand')\n\
          open(sys.argv[2], 'w').write(str(os.getegid()) + ' ' + b.decode())\n",
     )
     .expect("script");
     let lauf = |mit_gruppe: bool, aus: &Path| {
         let d = Arc::clone(&d);
         let h = hoerer.try_clone().expect("listener");
+        let faden = Arc::new(std::sync::OnceLock::new());
+        let f2 = Arc::clone(&faden);
         let server = std::thread::spawn(move || {
             let (s, _) = h.accept().expect("accept");
+            if let Ok(p) = std::fs::read_link("/proc/thread-self") {
+                let _ = f2.set((Path::new("/proc").join(p), inode(&s)));
+            }
             d.verbindung(s);
         });
         let mut kind = if mit_gruppe {
@@ -1133,7 +1421,8 @@ fn l3_gleicher_peer_mit_und_ohne_rollengruppe() {
                 .spawn()
                 .expect("python")
         };
-        let st = kind.wait().expect("wait");
+        let stand = PathBuf::from(format!("{}.stand", aus.display()));
+        let st = warten_auf_den_client(&mut kind, &faden, &stand);
         if !st.success() {
             // the client never connected; let the server thread go
             let _ = UnixStream::connect(&sock);
@@ -1158,6 +1447,54 @@ fn l3_gleicher_peer_mit_und_ohne_rollengruppe() {
         "with the role group as effective gid: {mit}"
     );
     eprintln!("measured: gid {eigene} -> halter.peer, gid {gruppe} ({name}) -> role bruecke");
+}
+
+/// Waits for the end of the client program of L3 across processes. After its one line the client waits for the
+/// answer in steps of 100 ms and writes `<step> <bytes received>` to `stand` after every empty step. It fails at once
+/// when the holder waits in a read on the connection and two steps of the client, both begun after that, found
+/// nothing: the holder has sent nothing and waits for a request, neither side will move. Time only bounds a real hang.
+fn warten_auf_den_client(
+    kind: &mut std::process::Child,
+    faden: &std::sync::OnceLock<(PathBuf, u64)>,
+    stand: &Path,
+) -> std::process::ExitStatus {
+    let lies = || -> Option<(u64, u64)> {
+        let t = std::fs::read_to_string(stand).ok()?;
+        let (n, b) = t.split_once(' ')?;
+        Some((n.parse().ok()?, b.parse().ok()?))
+    };
+    let beginn = std::time::Instant::now();
+    // the step of the client when the holder was first seen waiting
+    let mut seit: Option<u64> = None;
+    loop {
+        if let Some(st) = kind.try_wait().expect("wait") {
+            return st;
+        }
+        let wartet = faden.get().is_some_and(|(_, i)| liest_eines(&[*i]));
+        let schritt = lies();
+        let mut grund = "";
+        if wartet {
+            let jetzt = schritt.map_or(0, |(n, _)| n);
+            let erster = *seit.get_or_insert(jetzt);
+            if let Some((n, 0)) = schritt
+                && n >= erster + 2
+            {
+                grund = "the holder waits for a request after the client sent its line, without an answer";
+            }
+        } else {
+            seit = None;
+        }
+        if grund.is_empty() && beginn.elapsed() > HAENGEGRENZE {
+            grund = "the client did not end within the bound of a hang";
+        }
+        if !grund.is_empty() {
+            let z = zustand(faden.get().map(|(f, _)| f));
+            let _ = kind.kill();
+            let _ = kind.wait();
+            panic!("{grund}; client step {schritt:?}; holder: {z}");
+        }
+        std::thread::sleep(TAKT);
+    }
 }
 
 /// One stream: the lines to the bridge, the marks in their bytes, the stand-in and the hits of the leak lock.
@@ -1604,11 +1941,7 @@ fn zeile_genau_an_der_grenze_wird_gelesen() {
     let mut c = verbinden(&d);
     let mut z = vec![b'x'; halter::pruefung::ZEILE_MAX];
     z.push(b'\n');
-    let s = c.strom.try_clone().expect("clone");
-    let schreiber = std::thread::spawn(move || {
-        let mut s = s;
-        let _ = s.write_all(&z);
-    });
+    let schreiber = c.nebenher_schreiben(z);
     // exactly 32 MiB is no break of stage 1: the line is read and refused as JSON, and the connection stays
     assert_eq!(
         letzte_code(&c.bis_schluss()).as_deref(),
@@ -1625,14 +1958,10 @@ fn zu_grosse_zeile_schliesst_ohne_rest() {
     let d = dienst("bruecke", 9, &heim, START);
     let mut c = verbinden(&d);
     let gross = vec![b'x'; halter::pruefung::ZEILE_MAX + 10];
-    let s = c.strom.try_clone().expect("clone");
-    let schreiber = std::thread::spawn(move || {
-        let mut s = s;
-        let _ = s.write_all(&gross);
-    });
+    let schreiber = c.nebenher_schreiben(gross);
     let z = c.bis_schluss();
     assert_eq!(letzte_code(&z).as_deref(), Some("halter.zu_gross"));
-    assert!(c.eine().is_none());
+    c.ende_erwartet("the holder closes after halter.zu_gross");
     let _ = schreiber.join();
 }
 
@@ -1651,17 +1980,17 @@ fn kurzer_ordner() -> PathBuf {
     p
 }
 
-/// A client on the socket at `p` that waits at most 3 s for a line.
+/// A client on the socket at `p`; its end on the side of the holder is the connection accepted after the connect.
 fn verbinden_mit(p: &Path) -> Client {
+    let vorher = angenommen(p);
     let a = UnixStream::connect(p).expect("connect");
-    a.set_read_timeout(Some(Duration::from_secs(3)))
-        .expect("timeout");
-    Client {
-        strom: a,
-        vorrat: Vec::new(),
-        roh: Vec::new(),
-        seit: std::time::Instant::now(),
-    }
+    neuer_client(
+        a,
+        Gegenseite::Hoerer {
+            pfad: p.to_owned(),
+            vorher,
+        },
+    )
 }
 
 /// `true` if the connection was served: the answer to `schluessel.vorhanden` comes.
@@ -1701,12 +2030,7 @@ fn annahme_bedient_haelt_die_grenze_und_endet_mit_halt() {
     assert!(bedient(&mut a), "the first connection was not served");
     // a second one above the limit of 1 is closed without an answer
     let mut b = verbinden_mit(&pfad);
-    let mut buf = [0u8; 16];
-    assert_eq!(
-        b.strom.read(&mut buf).expect("closed, not waiting"),
-        0,
-        "the connection above the limit was not closed"
-    );
+    b.ende_erwartet("the connection above the limit was not closed");
     // after the end of the first one there is a place again
     drop(a);
     let ende = std::time::Instant::now() + Duration::from_secs(10);

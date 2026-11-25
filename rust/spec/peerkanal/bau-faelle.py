@@ -487,14 +487,20 @@ fall("d-lesefrist", "lesefrist begrenzt jedes folgende Lesen", "aussentest", ALL
                                "Endet der Client, liefert das Lesen 0 (Ende) und nicht TimedOut",
                                "Ohne vorheriges lesefrist liest die Verbindung ohne Frist (Startwert None)"]))
 
-# Flush vor dem Trennen (Entscheid 6; noch nicht gebaut, Windows).
+# Flush vor dem Trennen (Entscheid 6, Windows). Teil 1 trägt die Zusage "ohne den Flush rot": Ein roher Client liest die
+# Antwort erst nach roh.warte_ms; ohne Flush hätte DisconnectNamedPipe sie bis dahin verworfen. Teil 2 ist der Client der
+# Bibliothek, der sofort liest (am Zweig grün, ohne Rot-Zusage).
 fall("d-flush-vor-trennen-windows", "der Server lässt die Verbindung direkt nach bestaetigen fallen, der Client bekommt pk1", "aussentest",
      WIN, KW, None, cv_win(PERSON), ["Server unter person, hallo_frist_ms 2000"],
-     ["Der Client verbindet", "Der Server ruft bestaetigen() und lässt die Verbindung sofort fallen, ohne zu warten"],
+     ["Teil 1: Ein roher Client sendet pk1 und LF und liest die Antwort erst roh.warte_ms (300 ms) danach, roh.anzahl Läufe (100)",
+      "Teil 2: Der Client der Bibliothek verbindet, 100 Läufe",
+      "Der Server ruft bei jeder Verbindung bestaetigen() und lässt sie sofort fallen, ohne zu warten"],
      erw("verbinden", peer=peer_win(PERSON, None, pid="=server", start=None, programm=None),
-         gemessen=["Der Client bekommt die vier Byte pk1 und LF und verbindet ohne Fehler (100 von 100 Läufen)",
-                   "Die Bibliothek ruft vor DisconnectNamedPipe FlushFileBuffers auf (Beleg: der Client liest das Hallo, obwohl der Server sofort trennt)",
-                   "Bau noch offen: Der Fall ist ohne den Flush rot"]))
+         gemessen=["Teil 1: Der rohe Client bekommt die vier Byte pk1 und LF (100 von 100 Läufen)",
+                   "Teil 2: Der Client der Bibliothek bekommt pk1 und verbindet ohne Fehler, peer.pid ist in jedem Lauf die pid des Servers (100 von 100 Läufen)",
+                   "Die Bibliothek ruft vor DisconnectNamedPipe FlushFileBuffers auf (Beleg: Teil 1, obwohl der Server sofort trennt)",
+                   "Bau noch offen: Ohne den Flush ist der Fall rot (Teil 1)"]))
+FAELLE["d-flush-vor-trennen-windows"][0]["roh"] = {"warte_ms": 300, "anzahl": 100}
 fall("d-flush-frist-windows", "der Client liest nie: der Server trennt nach der Frist", "aussentest", WIN, KW, None, None,
      ["Server unter person, hallo_frist_ms 2000", "Roher Client sendet das Hallo und liest danach nie"],
      ["Der Server bestätigt, lässt die Verbindung fallen und misst die Zeit bis zum Ende des Fallenlassens", "dann verbindet ein zweiter Client"],

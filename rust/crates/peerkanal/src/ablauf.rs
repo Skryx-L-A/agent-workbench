@@ -73,8 +73,16 @@ pub(crate) trait Plattform: Send + Sync + 'static {
     fn im_job(&self, p: &Self::Prozess, job: &Self::Job) -> Option<bool>;
     /// Impersonation, `OpenThreadToken`, `RevertToSelf`, then `TokenUser`, `TokenAppContainerSid` and `IsTokenRestricted`.
     fn kennung_messen(&self, g: &Self::Griff) -> Result<Token, i32>;
-    /// `DisconnectNamedPipe`: closes the connection of the client; the instance stays.
+    /// `DisconnectNamedPipe`: closes the connection of the client; the instance stays. It also ends a pending [`leeren`]
+    /// of the same instance on another thread.
+    ///
+    /// [`leeren`]: Plattform::leeren
     fn trennen(&self, g: &Self::Griff);
+    /// `FlushFileBuffers`, blocking: returns when the client has read every byte of the server, when the connection ended
+    /// or when [`trennen`] of the same instance ran. Called only by [`leeren_und_trennen`], which bounds it in time.
+    ///
+    /// [`trennen`]: Plattform::trennen
+    fn leeren(&self, g: &Self::Griff);
     /// One read; with a time limit it returns [`Lesen::Frist`] when it passes.
     fn lesen(&self, g: &Self::Griff, puffer: &mut [u8], frist: Option<Duration>) -> Lesen;
     /// One write.
@@ -120,6 +128,8 @@ pub(crate) struct Pool<P: Plattform> {
     name: String,
     sddl: String,
     max: u8,
+    /// The limit of [`leeren_und_trennen`]: the hello limit of the settings.
+    leer_frist: Duration,
     zustand: Mutex<PoolZustand<P::Griff>>,
     frei: Condvar,
 }
@@ -164,9 +174,10 @@ impl<P: Plattform> Pool<P> {
         }
     }
 
-    /// Closes the connection of the client and keeps the instance for the next one.
+    /// Closes the connection of the client and keeps the instance for the next one. Own bytes reach the client first, within
+    /// the time limit of the pool ([`leeren_und_trennen`]).
     fn zurueck(&self, g: P::Griff) {
-        self.plattform.trennen(&g);
+        leeren_und_trennen(&*self.plattform, &g, self.leer_frist);
         self.ablegen(g, false);
     }
 
@@ -185,6 +196,26 @@ impl<P: Plattform> Pool<P> {
         }
         self.frei.notify_one();
     }
+}
+
+/// Decision of the holder of the contract (25.11.2026): the bytes of the server (the hello, an answer) reach the client before
+/// the instance is disconnected, because `DisconnectNamedPipe` discards bytes the client has not read. A helper thread empties
+/// the instance ([`Plattform::leeren`]); this thread waits for it at most `frist` (the hello limit of the settings) and then
+/// disconnects in any case, which also ends a flush still pending. A client that never reads costs at most `frist`.
+///
+/// The helper thread is scoped: the function joins it before it returns, so no thread uses the instance after it was handed on
+/// or closed. When the thread cannot start, the instance is disconnected at once.
+pub(crate) fn leeren_und_trennen<P: Plattform>(p: &P, g: &P::Griff, frist: Duration) {
+    let (fertig, geleert) = std::sync::mpsc::channel::<()>();
+    std::thread::scope(|s| {
+        // A failed start drops the sender, so the wait below ends at once.
+        let _helfer = std::thread::Builder::new().spawn_scoped(s, move || {
+            p.leeren(g);
+            let _ = fertig.send(());
+        });
+        let _ = geleert.recv_timeout(frist);
+        p.trennen(g);
+    });
 }
 
 /// A test seam of the outside runner (feature `testnaht`): called right after `ConnectNamedPipe` returned.
@@ -274,6 +305,7 @@ impl<P: Plattform> ServerKern<P> {
             name: v.name.als_str().to_owned(),
             sddl,
             max: v.instanzen,
+            leer_frist: v.hallo_frist,
             zustand: Mutex::new(PoolZustand {
                 frisch: vec![erste],
                 getrennt: Vec::new(),
@@ -570,12 +602,14 @@ impl<P: Plattform> Drop for VerbindungKern<P> {
 }
 
 /// "Client verbinden", steps 2 to 5: an instance whose owner is the expected SID, with no byte sent. The same for
-/// [`verbinden`] and [`verbinden_ohne_hallo`] (decision 3): same check, same codes.
+/// [`verbinden`] and [`verbinden_ohne_hallo`] (decision 3): same check, same codes. The process id of the server is read
+/// here as well, before any byte: a server that ends the connection right after its answer (decision 6) has then not yet
+/// left the instance, so the id is the one of the server and never missing because of that end.
 fn erreichen<P: Plattform>(
     p: &P,
     v: &ClientVorgabe,
     ende: Instant,
-) -> Result<(P::Griff, String), Fehler> {
+) -> Result<(P::Griff, String, Option<u32>), Fehler> {
     let Erwartet::Windows { sid: erwartet } = &v.erwartet else {
         return Err(Fehler::neu(Code::VorgabeUngueltig));
     };
@@ -605,17 +639,19 @@ fn erreichen<P: Plattform>(
     if besitzer != erwartet.als_str() {
         return Err(Fehler::neu(Code::FalscherServer));
     }
-    Ok((g, besitzer))
+    let pid = p.server_pid(&g);
+    Ok((g, besitzer, pid))
 }
 
 fn client_verbindung<P: Plattform>(
     plattform: Arc<P>,
     g: P::Griff,
     besitzer: String,
+    pid: Option<u32>,
 ) -> VerbindungKern<P> {
     let peer = Peer {
         sid: Some(besitzer),
-        pid: plattform.server_pid(&g),
+        pid,
         eingeschraenkt: Some(false),
         ..Peer::leer(System::Windows)
     };
@@ -636,8 +672,8 @@ pub(crate) fn verbinden_ohne_hallo<P: Plattform>(
     v: &ClientVorgabe,
 ) -> Result<VerbindungKern<P>, Fehler> {
     let ende = Instant::now() + v.frist;
-    let (g, besitzer) = erreichen(&*plattform, v, ende)?;
-    Ok(client_verbindung(plattform, g, besitzer))
+    let (g, besitzer, pid) = erreichen(&*plattform, v, ende)?;
+    Ok(client_verbindung(plattform, g, besitzer, pid))
 }
 
 /// "Client verbinden", steps 2 to 6; step 1 (the settings) is checked by the caller.
@@ -648,7 +684,7 @@ pub(crate) fn verbinden<P: Plattform>(
 ) -> Result<VerbindungKern<P>, Fehler> {
     let p = &*plattform;
     let ende = Instant::now() + v.frist;
-    let (g, besitzer) = erreichen(p, v, ende)?;
+    let (g, besitzer, pid) = erreichen(p, v, ende)?;
     // Step 6: the hello and its answer within the rest of the time limit.
     if alles_schreiben(p, &g, &HALLO).is_err() {
         return Err(Fehler::neu(Code::Abgewiesen));
@@ -668,7 +704,7 @@ pub(crate) fn verbinden<P: Plattform>(
     if antwort != HALLO {
         return Err(Fehler::neu(Code::Abgewiesen));
     }
-    Ok(client_verbindung(plattform, g, besitzer))
+    Ok(client_verbindung(plattform, g, besitzer, pid))
 }
 
 #[cfg(test)]
@@ -686,8 +722,11 @@ mod tests {
     /// A stand-in of the system with one client at a time.
     struct Attrappe {
         z: Mutex<Zustand>,
+        /// Wakes a pending `leeren` when the instance is disconnected.
+        cv: Condvar,
     }
 
+    #[allow(clippy::struct_excessive_bools)]
     struct Zustand {
         eigene: String,
         belegt: bool,
@@ -711,6 +750,10 @@ mod tests {
         protokoll: Vec<&'static str>,
         fristen: Vec<Option<Duration>>,
         eigene_fehler: Option<i32>,
+        /// A client is connected (from `auf_client_warten` to `trennen`).
+        verbunden: bool,
+        /// The client never reads: `leeren` returns only after `trennen` (at most after 3 s, so that a test never hangs).
+        liest_nie: bool,
     }
 
     impl Attrappe {
@@ -743,7 +786,10 @@ mod tests {
                     protokoll: Vec::new(),
                     fristen: Vec::new(),
                     eigene_fehler: None,
+                    verbunden: false,
+                    liest_nie: false,
                 }),
+                cv: Condvar::new(),
             })
         }
 
@@ -786,6 +832,7 @@ mod tests {
             let mut z = self.z();
             z.gewartet.push(*g);
             z.von_client = z.client_sendet.iter().copied().collect();
+            z.verbunden = true;
             z.protokoll.push("verbunden");
             Ok(())
         }
@@ -817,7 +864,26 @@ mod tests {
         fn trennen(&self, _g: &u32) {
             let mut z = self.z();
             z.getrennt += 1;
+            z.verbunden = false;
             z.protokoll.push("trennen");
+            self.cv.notify_all();
+        }
+        fn leeren(&self, _g: &u32) {
+            let mut z = self.z();
+            z.protokoll.push("leeren");
+            let ende = Instant::now() + Duration::from_secs(3);
+            while z.liest_nie && z.verbunden {
+                let rest = ende.saturating_duration_since(Instant::now());
+                if rest.is_zero() {
+                    break;
+                }
+                z = self
+                    .cv
+                    .wait_timeout(z, rest)
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .0;
+            }
+            z.protokoll.push("geleert");
         }
         fn lesen(&self, _g: &u32, puffer: &mut [u8], frist: Option<Duration>) -> Lesen {
             let mut z = self.z();
@@ -860,6 +926,7 @@ mod tests {
             z.besitzer.clone()
         }
         fn server_pid(&self, _g: &u32) -> Option<u32> {
+            self.z().protokoll.push("server_pid");
             Some(77)
         }
     }
@@ -1120,6 +1187,86 @@ mod tests {
         assert_eq!(b.z().getrennt, 1);
     }
 
+    /// Every `trennen` of a server instance in this log comes right after a finished `leeren`.
+    fn geleert_vor_jedem_trennen(protokoll: &[&str]) {
+        for (i, schritt) in protokoll.iter().enumerate() {
+            if *schritt == "trennen" {
+                assert!(
+                    i >= 2 && protokoll[i - 2..i] == ["leeren", "geleert"],
+                    "{protokoll:?}"
+                );
+            }
+        }
+    }
+
+    /// Decision of 25.11.2026: each way of the library to disconnect an instance empties it first. The drop of a confirmed
+    /// connection, the drop of a provisional one, the refusal by the caller, the refusal by the library and a client that left
+    /// before `ConnectNamedPipe` returned.
+    #[test]
+    fn leeren_vor_dem_trennen() {
+        let a = Attrappe::neu();
+        let s = server(&a, vec![person(None)], 4);
+        drop(vorlaeufig(s.annehmen()).bestaetigen().expect("bestätigen"));
+        drop(vorlaeufig(s.annehmen()));
+        let _ = vorlaeufig(s.annehmen()).ablehnen(Kennung::neu("sitzung-fremd").expect("form"));
+        a.z().client_sendet = b"GET /\n".to_vec();
+        abgewiesen(s.annehmen());
+        let z = a.z();
+        assert_eq!(z.getrennt, 4);
+        assert_eq!(
+            z.protokoll.iter().filter(|p| **p == "leeren").count(),
+            4,
+            "{:?}",
+            z.protokoll
+        );
+        geleert_vor_jedem_trennen(&z.protokoll);
+        drop(z);
+        // Before the first byte: the order of `bestaetigen` is hello, then nothing until the drop.
+        let b = Attrappe::neu();
+        let s2 = server(&b, vec![person(None)], 4);
+        let v = vorlaeufig(s2.annehmen()).bestaetigen().expect("bestätigen");
+        assert!(
+            !b.z().protokoll.contains(&"leeren"),
+            "kein Leeren vor dem Ende"
+        );
+        drop(v);
+        let z = b.z();
+        let schreiben = z.protokoll.iter().rposition(|p| *p == "schreiben");
+        let leeren = z.protokoll.iter().position(|p| *p == "leeren");
+        assert!(schreiben < leeren, "{:?}", z.protokoll);
+        geleert_vor_jedem_trennen(&z.protokoll);
+    }
+
+    /// A client that never reads: the instance is disconnected after the hello limit (50 ms here) in any case, and the drop
+    /// takes at most the limit plus a small span. The helper thread has ended when the drop returns: its `geleert` is in the
+    /// log, so no thread uses the instance after it went back to the pool.
+    #[test]
+    fn frist_laeuft_ab_trotzdem_getrennt() {
+        let a = Attrappe::neu();
+        a.z().liest_nie = true;
+        let s = server(&a, vec![person(None)], 4);
+        let v = vorlaeufig(s.annehmen()).bestaetigen().expect("bestätigen");
+        let start = Instant::now();
+        drop(v);
+        let dauer = start.elapsed();
+        assert!(
+            dauer >= Duration::from_millis(50) && dauer < Duration::from_millis(50 + 250),
+            "{dauer:?}"
+        );
+        let z = a.z();
+        assert_eq!(z.getrennt, 1);
+        let ende: Vec<&str> = z.protokoll.iter().rev().take(3).rev().copied().collect();
+        assert_eq!(ende, ["leeren", "trennen", "geleert"], "{:?}", z.protokoll);
+        drop(z);
+        assert_eq!(sperren(&s.pool.zustand).getrennt.len(), 1, "zurück im Pool");
+        // The next connection gets the instance and is emptied and disconnected the same way.
+        let w = vorlaeufig(s.annehmen()).bestaetigen().expect("bestätigen");
+        let start = Instant::now();
+        drop(w);
+        assert!(start.elapsed() < Duration::from_millis(50 + 250));
+        assert_eq!(a.z().getrennt, 2);
+    }
+
     #[test]
     fn eigene_sid_als_sid() {
         let a = Attrappe::neu();
@@ -1248,6 +1395,36 @@ mod tests {
             a.z().an_server.is_empty(),
             "0 Byte gesendet, auch kein Hallo"
         );
+    }
+
+    /// Decision 6: the server may end the connection right after its answer. The process id of the server is read before
+    /// the hello, while the server still holds the instance, and never after the answer.
+    #[test]
+    fn client_server_pid_vor_dem_hallo() {
+        for ohne_hallo in [false, true] {
+            let a = Attrappe::fuer_client();
+            let v = if ohne_hallo {
+                verbinden_ohne_hallo(Arc::clone(&a), &client(DIENST))
+            } else {
+                verbinden(Arc::clone(&a), &client(DIENST))
+            }
+            .expect("verbinden");
+            assert_eq!(v.peer.pid, Some(77));
+            let z = a.z();
+            let pos = |n: &str| z.protokoll.iter().position(|p| *p == n);
+            let pid = pos("server_pid").expect("gemessen");
+            assert_eq!(
+                z.protokoll.iter().filter(|p| **p == "server_pid").count(),
+                1
+            );
+            assert!(pos("besitzer").expect("geprüft") < pid);
+            for spaeter in ["schreiben", "lesen"] {
+                assert!(
+                    pos(spaeter).is_none_or(|s| pid < s),
+                    "{spaeter} vor server_pid"
+                );
+            }
+        }
     }
 
     #[test]

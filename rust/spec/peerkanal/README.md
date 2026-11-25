@@ -167,8 +167,9 @@ Sicherheitsbeschreibung:
   `bestaetigen()` die `Verbindung` fallen lässt, nähme dem Client sonst das Hallo `pk1` weg; `FlushFileBuffers` kehrt erst
   zurück, wenn der Client alles gelesen hat. Bei einer Ablehnung liegt kein Byte für den Client bereit, der Flush kehrt sofort
   zurück. Unter Unix gibt es keinen Flush (hergeleitet: `close` liefert bereits gesendete Bytes noch aus). Fall und Gegenprobe:
-  `d-flush-vor-trennen-windows` (der Server lässt sofort fallen, der Client bekommt `pk1`) und `d-flush-frist-windows` (der
-  Client liest nie, der Server trennt nach der Frist).
+  `d-flush-vor-trennen-windows` (der Server lässt sofort fallen, der Client bekommt `pk1`; Teil 1 mit einem rohen Client, der
+  erst 300 ms nach dem Hallo liest, ist ohne den Flush rot) und `d-flush-frist-windows` (der Client liest nie, der Server
+  trennt nach der Frist).
 
 **Zugriffsmaske des Clients.** Der Client öffnet mit `GENERIC_READ | FILE_WRITE_DATA`, nie mit `GENERIC_WRITE`.
 Grund: Er fordert nur die Rechte an, die er braucht; `GENERIC_WRITE` enthält `FILE_APPEND_DATA` (0x4, an der Pipe
@@ -352,7 +353,11 @@ Prüfreihenfolge:
 
 Windows öffnet mit `SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION`: Der Server darf die Kennung des Clients lesen, aber
 nicht in dessen Namen handeln. Der Peer am Client trägt die Besitzer-SID als `sid`, `pid` aus
-`GetNamedPipeServerProcessId`, `startzeit` und `programm` `null`. Unter Unix misst der Client den Server wie Schritt 2
+`GetNamedPipeServerProcessId`, `startzeit` und `programm` `null`. Die Bibliothek liest `pid` direkt nach der
+Besitzerprüfung, vor dem ersten Byte. Grund: Ein Server darf die Verbindung direkt nach seiner Antwort fallen lassen
+(Entscheid 6); läse der Client die `pid` erst nach dem Hallo, hätte der Server die Instanz unter Umständen schon verlassen,
+und `pid` wäre `null` (gemessen: 1 von 100 Läufen in `d-flush-vor-trennen-windows`, vor der Korrektur).
+Unter Unix misst der Client den Server wie Schritt 2
 (uid, pid, Startzeit, Programm, unter macOS die Signatur). Weitere Prüfungen (Programm, Signatur) macht der Aufrufer nach
 `verbinden` und vor dem ersten Nutzbyte.
 

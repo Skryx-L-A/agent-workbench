@@ -18,8 +18,9 @@
   "sandbox": null
  },
  "gemessen": [
-  "Der Client bekommt die vier Byte pk1 und LF und verbindet ohne Fehler (100 von 100 Läufen)",
-  "Die Bibliothek ruft vor DisconnectNamedPipe FlushFileBuffers auf (Beleg: der Client liest das Hallo, obwohl der Server sofort trennt)",
-  "Bau noch offen: Der Fall ist ohne den Flush rot"
+  "Teil 1: Der rohe Client bekommt die vier Byte pk1 und LF (100 von 100 Läufen)",
+  "Teil 2: Der Client der Bibliothek bekommt pk1 und verbindet ohne Fehler, peer.pid ist in jedem Lauf die pid des Servers (100 von 100 Läufen)",
+  "Die Bibliothek ruft vor DisconnectNamedPipe FlushFileBuffers auf (Beleg: Teil 1, obwohl der Server sofort trennt)",
+  "Bau noch offen: Ohne den Flush ist der Fall rot (Teil 1)"
  ]
 }

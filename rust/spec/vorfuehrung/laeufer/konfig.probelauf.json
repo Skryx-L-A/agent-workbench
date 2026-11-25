@@ -82,7 +82,7 @@
  "start": {
   "cloud": {
    "harness": "copilot",
-   "modell": "auto",
+   "modell": "gpt-6-luna",
    "kunde": null,
    "arbeitsordner": "$ARBEIT/ordner/b/o2"
   },

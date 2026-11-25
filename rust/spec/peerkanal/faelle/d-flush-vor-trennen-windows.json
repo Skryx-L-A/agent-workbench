@@ -19,7 +19,12 @@
   "Server unter person, hallo_frist_ms 2000"
  ],
  "handlung": [
-  "Der Client verbindet",
-  "Der Server ruft bestaetigen() und lässt die Verbindung sofort fallen, ohne zu warten"
- ]
+  "Teil 1: Ein roher Client sendet pk1 und LF und liest die Antwort erst roh.warte_ms (300 ms) danach, roh.anzahl Läufe (100)",
+  "Teil 2: Der Client der Bibliothek verbindet, 100 Läufe",
+  "Der Server ruft bei jeder Verbindung bestaetigen() und lässt sie sofort fallen, ohne zu warten"
+ ],
+ "roh": {
+  "warte_ms": 300,
+  "anzahl": 100
+ }
 }

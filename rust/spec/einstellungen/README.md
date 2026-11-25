@@ -171,6 +171,12 @@ Methode und Pfad in der Kette (Halter-Vertrag, Abschnitte 4 und 9). Für jeden w
 die Form der Antwort (Halter-Vertrag, Abschnitt 4, „Antwortform im Erststart“); enthält ein Feldname `token`, `secret`, `key`,
 `session` oder `credential`, bleibt der Pfad zu, bis die Leitung entscheidet.
 
+**Wer das Profil einsetzt (Entscheid der Leitung, 25.11.2026): das Paket.** Das deb liefert `erststart.json` als
+`/usr/share/werkbank/probelauf/erststart.json` neben der Vorführ-Vorlage. `postinst` baut daraus `/etc/werkbank/halter.json`
+(Schritt 2c: zwei Pfade am Modell-Host und der Schalter `erststart_antwortform` des Halters für genau diese zwei) und kopiert daraus
+die Arbeitskopie der Einstellungen, aus der „Lauf starten“ Route und Modell nimmt (Paketvertrag `rust/spec/paket/README.md`,
+Nachtrag Erststart und Abschnitt „halter.json“). Die Vorführdatei bleibt unverändert. Der Läufer setzt nichts ein.
+
 Das Profil ist die eigene Datei `erststart.json` neben `vorfuehrung.json`, ein Datensatz der Fassung 2 ohne neues Feld. Sie
 entsteht in `bau-faelle.py` (`ERSTSTARTDATEI`) aus der Vorführdatei und ändert genau zwei Stellen an der Route `copilot`:
 
@@ -479,8 +485,9 @@ python3 -I rust/spec/einstellungen/bau-faelle.py            # Fälle neu erzeuge
    bleiben, bis jemand entscheidet“. Für einen anderen Plan ist der Plan im Namen nicht gemessen. Für den ersten echten
    Start gilt das Erststart-Profil (`erststart.json`, Entscheid der Leitung, 25.11.2026): nur `GET /models` und
    `POST /chat/completions`, Modell `gpt-6-luna`. Offen: welche der fünf übrigen Pfade nach der Messung ihrer Antwortform
-   freigeschaltet werden; das entscheidet die Leitung je Pfad. Offen ist auch, wer `erststart.json` beim ersten Start statt
-   `vorfuehrung.json` einsetzt (Paket oder Läufer); dieser Vertrag legt nur die Datei fest.
+   freigeschaltet werden; das entscheidet die Leitung je Pfad. Entschieden (Leitung, 25.11.2026): Das Paket setzt
+   `erststart.json` ein (Abschnitt „Erststart-Profil“). alt: „Offen ist auch, wer `erststart.json` beim ersten Start statt
+   `vorfuehrung.json` einsetzt (Paket oder Läufer); dieser Vertrag legt nur die Datei fest.“
 6. **Weitere Ziele einer lokalen Route.** Fassung 2 erlaubt einer lokalen Route nur ihr Ziel. Braucht die Organisation
    mehr (etwa einen Paketspiegel), folgt das mit einer neuen Fassung.
 7. **Firmennetz-Host.** Die Hostregel prüft nur die Form: Ein Name mit `https` gilt als Firmennetz-Host. Ob er

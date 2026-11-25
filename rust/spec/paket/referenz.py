@@ -1241,11 +1241,18 @@ def umzug_code(fall):
 
 HALTER_ROLLEN = {"bruecke": "wb-bruecke"}
 HALTER_KENNUNG = KENNUNG
+# Nachtrag Erststart (Entscheid der Leitung, 25.11.2026): Vorlage von Schritt 2c ist das Erststart-Profil, nie die Vorführdatei.
+HALTER_VORLAGE = "/usr/share/werkbank/probelauf/erststart.json"
+# Der Schalter `erststart_antwortform` (Halter-Vertrag 2.3a und 4) am Modell-Host, genau diese Regeln, soweit `pfade` sie deckt.
+ANTWORTFORM_HOST = "api.individual.githubcopilot.com"
+ANTWORTFORM_REGELN = ("GET /models", "POST /chat/completions")
 
 
 def halter_konfig(vorlage, uid):
     """Der Inhalt von /etc/werkbank/halter.json, den `postinst` Schritt 2c für die uid schreibt (Abschnitt „halter.json“): ein Ziel je Netzziel
-    mit `schluessel: true` einer Route der Art `cloud`, Name = Host (nur in Kennungsform), Regeln nur GET und POST. Gibt (wert, weggelassen) zurück;
+    mit `schluessel: true` einer Route der Art `cloud`, Name = Host (nur in Kennungsform), Regeln nur GET und POST. Die Vorlage ist das
+    Erststart-Profil (`HALTER_VORLAGE`); am Modell-Host `ANTWORTFORM_HOST` trägt das Ziel den Schalter `erststart_antwortform` mit den Regeln
+    aus `ANTWORTFORM_REGELN`, die `pfade` genau enthält (keine: kein Feld). Gibt (wert, weggelassen) zurück;
     `weggelassen` zählt die Netzziele ohne Kennungsform oder ohne Regel (je eine Journalzeile)."""
     ziele, weg = {}, 0
     for route in vorlage.get("routen", []):
@@ -1261,5 +1268,8 @@ def halter_konfig(vorlage, uid):
                 continue
             ziele[host] = {"host": host, "port": nz["port"], "tls": True, "praefix": "", "kopf": "authorization", "vorsatz": "Bearer ",
                            "schluessel": "anmeldung." + route["schluessel"], "pfade": regeln}
+            schalter = [r for r in ANTWORTFORM_REGELN if r in regeln] if host == ANTWORTFORM_HOST else []
+            if schalter:
+                ziele[host]["erststart_antwortform"] = schalter
     wert = {"fassung": 1, "konten": {str(uid): {"person": None}}, "rollen": dict(HALTER_ROLLEN), "ziele": ziele, "server": {}, "kids": {}}
     return wert, weg

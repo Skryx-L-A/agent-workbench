@@ -671,8 +671,10 @@ class LaufJson(unittest.TestCase):
             daten, vorlage, bin_ = os.path.join(t, "daten"), os.path.join(t, "vorlage"), os.path.join(t, "bin")
             os.makedirs(vorlage)
             os.makedirs(bin_)
-            with open(os.path.join(vorlage, "einstellungen.json"), "w", encoding="utf-8") as d:
+            with open(os.path.join(vorlage, "erststart.json"), "w", encoding="utf-8") as d:
                 d.write('{"gateway":"vorlage"}\n')
+            with open(os.path.join(vorlage, "einstellungen.json"), "w", encoding="utf-8") as d:
+                d.write('{"gateway":"vorfuehrung"}\n')  # step I copies the first-start profile, never the demo settings
             # stand-ins: `install` without -o/-g (a test is no root) and `chown`
             with open(os.path.join(bin_, "install"), "w", encoding="utf-8") as d:
                 d.write('#!/bin/sh\nargs=""\nwhile [ $# -gt 0 ]; do case "$1" in -o|-g) shift 2;; *) args="$args $1"; shift;; esac; done\nexec /usr/bin/install $args\n')
@@ -1413,16 +1415,36 @@ class HalterJson(unittest.TestCase):
         cls.ref = referenz
         text = open(os.path.join(HIER, PLATTFORM, "postinst"), encoding="utf-8").read()
         cls.block = text[text.index("# --- halter.json begin"):text.index("# --- halter.json end")]
-        with open(os.path.join(RUST, "spec", "einstellungen", "vorfuehrung.json"), encoding="utf-8") as d:
+        # Addendum first start: the template of step 2c is the first-start profile; the demo settings are the counter-check
+        with open(os.path.join(RUST, "spec", "einstellungen", "erststart.json"), encoding="utf-8") as d:
             cls.vorlage = json.load(d)
+        with open(os.path.join(RUST, "spec", "einstellungen", "vorfuehrung.json"), encoding="utf-8") as d:
+            cls.vorfuehrung = json.load(d)
 
-    def schreiben(self, vorlage, uid="1000"):
+    MODELL_HOST = "api.individual.githubcopilot.com"
+    ZWEI = ["GET /models", "POST /chat/completions"]
+
+    def erststart_fehler(self, wert):
+        """The faults of a halter.json against the first start: at the model host exactly the two paths and the switch for exactly them,
+        no switch at any other target (empty: fine)."""
+        fehler = []
+        z = wert["ziele"].get(self.MODELL_HOST)
+        if z is None:
+            return ["kein Ziel am Modell-Host"]
+        if z["pfade"] != self.ZWEI:
+            fehler.append("pfade am Modell-Host: %d" % len(z["pfade"]))
+        if z.get("erststart_antwortform") != self.ZWEI:
+            fehler.append("Schalter am Modell-Host")
+        fehler += ["Schalter an " + n for n, x in wert["ziele"].items() if n != self.MODELL_HOST and "erststart_antwortform" in x]
+        return fehler
+
+    def schreiben(self, vorlage, uid="1000", name="erststart.json"):
         with tempfile.TemporaryDirectory() as t0:
             t = os.path.realpath(t0)
             etc = os.path.join(t, "etc")
             vl = os.path.join(t, "vorlage")
             os.makedirs(vl)
-            with open(os.path.join(vl, "einstellungen.json"), "w", encoding="utf-8") as d:
+            with open(os.path.join(vl, name), "w", encoding="utf-8") as d:
                 json.dump(vorlage, d)
             journal = os.path.join(t, "journal")
             kopf = _journal_kopf(journal) + f"id() {{ printf '%s\\n' {shlex.quote(uid)}; }}\nETCW={shlex.quote(etc)}\nVORLAGE={shlex.quote(vl)}\nnutzer=nutzer1\n"
@@ -1444,6 +1466,44 @@ class HalterJson(unittest.TestCase):
         self.assertEqual(weg, 0)
         self.assertEqual(roh, (json.dumps(wert, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode())
         self.assertEqual(self.journal, [])
+
+    def test_the_first_start_profile_gives_two_paths_and_the_switch(self):
+        # Addendum first start: from the profile in the package, two paths at the model host and the switch for exactly these two
+        wert = json.loads(self.schreiben(self.vorlage)[0])
+        self.assertEqual(self.erststart_fehler(wert), [])
+        self.assertEqual(sorted(wert["ziele"]), ["api.github.com", "api.githubcopilot.com", self.MODELL_HOST])
+        # counter-check: the demo settings as template give the seven paths at the model host, so the case is red
+        roh, rc = self.schreiben(self.vorfuehrung)
+        self.assertEqual(rc, 0)
+        gegen = json.loads(roh)
+        self.assertEqual(len(gegen["ziele"][self.MODELL_HOST]["pfade"]), 7)
+        self.assertEqual(self.erststart_fehler(gegen), ["pfade am Modell-Host: 7"])
+        self.assertEqual(gegen, self.ref.halter_konfig(self.vorfuehrung, 1000)[0])
+
+    def test_step_2c_reads_only_the_first_start_profile(self):
+        # the demo settings next to it are never the template of halter.json: without erststart.json no file is written
+        self.assertEqual(self.schreiben(self.vorlage, name="einstellungen.json")[1], 1)
+        self.assertIn('[ -f "$VORLAGE/erststart.json" ] || return 1', self.block)
+        self.assertNotIn("einstellungen.json", self.block)
+        self.assertEqual(self.ref.HALTER_VORLAGE, "/usr/share/werkbank/probelauf/erststart.json")
+
+    def test_the_switch_never_names_a_rule_outside_pfade(self):
+        # the switch opens no path: a model host without POST /chat/completions gets the switch only for GET /models, without rule no field
+        v = json.loads(json.dumps(self.vorlage))
+        nz = [x for x in v["routen"][0]["netzziele"] if x["host"] == self.MODELL_HOST][0]
+        nz["pfade"] = [{"methode": "GET", "pfad": "/models"}]
+        wert = json.loads(self.schreiben(v)[0])
+        self.assertEqual(wert["ziele"][self.MODELL_HOST]["erststart_antwortform"], ["GET /models"])
+        self.assertEqual(wert, self.ref.halter_konfig(v, 1000)[0])
+        nz["pfade"] = [{"methode": "GET", "pfad": "/anderes"}]
+        wert = json.loads(self.schreiben(v)[0])
+        self.assertNotIn("erststart_antwortform", wert["ziele"][self.MODELL_HOST])
+        self.assertEqual(wert, self.ref.halter_konfig(v, 1000)[0])
+
+    def test_the_package_delivers_the_first_start_profile(self):
+        liste = lesen(os.path.join(HIER, PLATTFORM, "lieferumfang.txt"))
+        self.assertIn("daten usr/share/werkbank/probelauf/erststart.json datei:spec/einstellungen/erststart.json\n", liste)
+        self.assertIn("daten usr/share/werkbank/probelauf/einstellungen.json datei:spec/einstellungen/vorfuehrung.json\n", liste)
 
     def test_the_rules_of_the_template_stay_unchanged(self):
         # F12: the path rules (also those of api.github.com) come from the template as they are; this step changes none

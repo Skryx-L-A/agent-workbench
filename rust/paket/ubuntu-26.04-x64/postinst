@@ -152,8 +152,9 @@ nutzerordner() {
     install -d -m 0700 -o "$nutzer" -g "$gruppe" "$o" || return 0
     install -d -m 0700 -o "$nutzer" -g "$gruppe" "$o/protokoll" || true
     install -d -m 0700 -o "$nutzer" -g "$gruppe" "$o/sitzungen" || true
-    if [ -f "$VORLAGE/einstellungen.json" ] && [ ! -e "$o/einstellungen.json" ]; then
-        install -m 0600 -o "$nutzer" -g "$gruppe" "$VORLAGE/einstellungen.json" "$o/einstellungen.json" || true
+    # Step I: the working copy comes from the first-start profile, the same template as halter.json (step 2c), so route, model and paths agree.
+    if [ -f "$VORLAGE/erststart.json" ] && [ ! -e "$o/einstellungen.json" ]; then
+        install -m 0600 -o "$nutzer" -g "$gruppe" "$VORLAGE/erststart.json" "$o/einstellungen.json" || true
     fi
     if [ -d "$VORLAGE/vorfuehr-vault" ] && [ ! -e "$o/vorfuehr-vault" ]; then
         cp -R "$VORLAGE/vorfuehr-vault" "$o/vorfuehr-vault" || true
@@ -580,7 +581,9 @@ fi
 # bruecke at the group wb-bruecke, one target per network target with "schluessel": true of a route of the kind cloud in the template (never the
 # working copy of the user): name and host are the host (a host that is no identifier is skipped, one journal line), port, tls true, praefix "",
 # kopf authorization, vorsatz "Bearer ", schluessel anmeldung.<route>, the rules "<METHOD> <path>" of the methods GET and POST as the template
-# has them; no server, no kid. Reference: rust/spec/paket/referenz.py `halter_konfig`.
+# has them; no server, no kid. The template is the first-start profile erststart.json (addendum first start), never the demo settings
+# einstellungen.json; at the model host api.individual.githubcopilot.com the target carries the switch erststart_antwortform with the rules
+# "GET /models" and "POST /chat/completions" that its pfade hold. Reference: rust/spec/paket/referenz.py `halter_konfig`.
 # --- halter.json begin
 HALTER_PY='import json, re, sys
 vorlage = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -599,6 +602,9 @@ for route in vorlage.get("routen", []):
             continue
         ziele[host] = {"host": host, "port": nz["port"], "tls": True, "praefix": "", "kopf": "authorization", "vorsatz": "Bearer ",
                        "schluessel": "anmeldung." + route["schluessel"], "pfade": regeln}
+        schalter = [r for r in ("GET /models", "POST /chat/completions") if r in regeln] if host == "api.individual.githubcopilot.com" else []
+        if schalter:
+            ziele[host]["erststart_antwortform"] = schalter
 wert = {"fassung": 1, "konten": {sys.argv[2]: {"person": None}}, "rollen": {"bruecke": "wb-bruecke"}, "ziele": ziele, "server": {}, "kids": {}}
 sys.stdout.write(json.dumps(wert, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n")
 sys.stderr.write(str(weg))'
@@ -606,10 +612,10 @@ sys.stderr.write(str(weg))'
 halter_json() {
     hj_uid=$(id -u "$nutzer" 2>/dev/null) || return 1
     case "$hj_uid" in "" | *[!0-9]*) return 1 ;; esac
-    [ -f "$VORLAGE/einstellungen.json" ] || return 1
+    [ -f "$VORLAGE/erststart.json" ] || return 1
     install -d -m 0755 -o root -g root "$ETCW" || return 1
     hj_tmp=$(mktemp "$ETCW/.halter.json.XXXXXX") || return 1
-    hj_weg=$(python3 -I -c "$HALTER_PY" "$VORLAGE/einstellungen.json" "$hj_uid" 2>&1 >"$hj_tmp") || { rm -f "$hj_tmp"; return 1; }
+    hj_weg=$(python3 -I -c "$HALTER_PY" "$VORLAGE/erststart.json" "$hj_uid" 2>&1 >"$hj_tmp") || { rm -f "$hj_tmp"; return 1; }
     case "$hj_weg" in
         0) ;;
         *[!0-9]*) rm -f "$hj_tmp"; return 1 ;;

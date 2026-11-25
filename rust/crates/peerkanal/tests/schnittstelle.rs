@@ -1,7 +1,7 @@
 //! The interface of the decisions of 25.11.2026 (own SID, read time limit, client without the hello, event before the end,
-//! end before 4 bytes). Outside Windows: the answers of a system without the Windows side. Under Windows: real pipes of this
-//! process, so the test program runs in the Windows VM (server and client are the same account; the server allows its own
-//! SID without a package SID).
+//! end before 4 bytes, own bytes arrive before the end). Outside Windows: the answers of a system without the Windows side.
+//! Under Windows: real pipes of this process, so the test program runs in the Windows VM (server and client are the same
+//! account; the server allows its own SID without a package SID).
 
 #[cfg(not(windows))]
 mod ohne_windows {
@@ -91,6 +91,25 @@ mod windows {
             .expect("roh öffnen")
     }
 
+    /// [`roh`], but waits up to 2 s while the instance is busy (`ERROR_PIPE_BUSY`): a disconnected instance takes a client only
+    /// after `annehmen` ran `ConnectNamedPipe` on it again.
+    fn roh_warten(name: &Kennung) -> std::fs::File {
+        let ende = Instant::now() + Duration::from_secs(2);
+        loop {
+            match std::fs::OpenOptions::new()
+                .access_mode(ZUGRIFF)
+                .security_qos_flags(IDENTIFIKATION)
+                .open(format!(r"\\.\pipe\{name}"))
+            {
+                Ok(f) => return f,
+                Err(e) if e.raw_os_error() == Some(231) && Instant::now() < ende => {
+                    thread::sleep(Duration::from_millis(20));
+                }
+                Err(e) => panic!("roh öffnen: {e}"),
+            }
+        }
+    }
+
     /// `annehmen` waits first; then `client` runs. A client that closes before `ConnectNamedPipe` would be skipped by the
     /// library (`ERROR_NO_DATA`), so the server must already wait. At most 10 s.
     fn abgewiesen_nach(s: &Arc<Server>, client: impl FnOnce()) -> peerkanal::Ereignis {
@@ -124,8 +143,8 @@ mod windows {
             panic!("abgewiesen");
         };
         assert_eq!(vl.peer().sid.as_deref(), Some(eigene.als_str()));
-        // The server keeps the connection until the client has read the answer: dropping it disconnects the instance,
-        // and `DisconnectNamedPipe` discards bytes the client has not read yet.
+        // The server keeps the connection until the client has read the answer. Dropping it at once is covered by
+        // `direkt_nach_bestaetigen_fallen_lassen`.
         let k = vl.bestaetigen().expect("bestätigen");
         assert_eq!(
             c.join().expect("faden").expect("verbinden"),
@@ -225,5 +244,107 @@ mod windows {
         let mut r = roh(&n);
         r.write_all(&HALLO).expect("hallo");
         assert!(a.join().expect("faden"), "Hallo angenommen");
+    }
+    /// Own bytes arrive: a server that drops the connection right after `bestaetigen` still gets the hello to the client.
+    /// 20 rounds with the client of the library.
+    #[test]
+    fn direkt_nach_bestaetigen_fallen_lassen() {
+        let eigene = eigene_sid().expect("eigene SID");
+        let n = name();
+        let s = server(&n, 2000);
+        for runde in 0..20 {
+            let v = client(&n, eigene.clone());
+            let c =
+                thread::spawn(move || verbinden(&v).map(|_| ()).map_err(|f| (f.code, f.os_fehler)));
+            let Annahme::Vorlaeufig(vl) = s.annehmen().expect("annehmen") else {
+                panic!("abgewiesen in Runde {runde}");
+            };
+            drop(vl.bestaetigen().expect("bestätigen"));
+            assert_eq!(c.join().expect("faden"), Ok(()), "Runde {runde}");
+        }
+    }
+
+    /// The same with a client that reads the answer only 300 ms after its hello: the server has dropped the connection by
+    /// then. Without emptying, `DisconnectNamedPipe` discards the 4 bytes.
+    #[test]
+    fn spaeter_leser_bekommt_pk1() {
+        let n = name();
+        let s = server(&n, 2000);
+        for runde in 0..5 {
+            let n2 = n.clone();
+            let c = thread::spawn(move || {
+                let mut r = roh_warten(&n2);
+                r.write_all(&HALLO).expect("hallo");
+                thread::sleep(Duration::from_millis(300));
+                let mut puffer = [0u8; 4];
+                r.read_exact(&mut puffer)
+                    .map(|()| puffer)
+                    .map_err(|e| e.raw_os_error())
+            });
+            let Annahme::Vorlaeufig(vl) = s.annehmen().expect("annehmen") else {
+                panic!("abgewiesen in Runde {runde}");
+            };
+            drop(vl.bestaetigen().expect("bestätigen"));
+            assert_eq!(c.join().expect("faden"), Ok(HALLO), "Runde {runde}");
+        }
+    }
+
+    /// Counter-check: a client that never reads. The drop of the connection returns after the hello limit of the server
+    /// (500 ms) plus a small span, the client sees the end instead of the hello, and the instance serves the next client.
+    /// The drop runs on its own thread with a limit of 10 s, so the test fails instead of hanging.
+    #[test]
+    #[allow(clippy::print_stderr)]
+    fn client_liest_nie_server_trennt_nach_der_frist() {
+        let eigene = eigene_sid().expect("eigene SID");
+        let n = name();
+        let s = server(&n, 500);
+        let (los, warte) = std::sync::mpsc::channel::<()>();
+        let n2 = n.clone();
+        let c = thread::spawn(move || {
+            let mut r = roh(&n2);
+            r.write_all(&HALLO).expect("hallo");
+            // No read until the server has disconnected.
+            let _ = warte.recv_timeout(Duration::from_secs(15));
+            let mut puffer = [0u8; 4];
+            r.read(&mut puffer).map_err(|e| e.raw_os_error())
+        });
+        let Annahme::Vorlaeufig(vl) = s.annehmen().expect("annehmen") else {
+            panic!("abgewiesen");
+        };
+        let k = vl.bestaetigen().expect("bestätigen");
+        let (fertig, dauer) = std::sync::mpsc::channel();
+        thread::spawn(move || {
+            let start = Instant::now();
+            drop(k);
+            let _ = fertig.send(start.elapsed());
+        });
+        let dauer = dauer
+            .recv_timeout(Duration::from_secs(10))
+            .expect("das Fallenlassen blockiert über 10 s");
+        eprintln!(
+            "Gegenprobe: Fallenlassen nach {} ms (Frist 500 ms)",
+            dauer.as_millis()
+        );
+        assert!(
+            // The limit of 500 ms plus a span of 500 ms.
+            dauer >= Duration::from_millis(450) && dauer < Duration::from_secs(1),
+            "{dauer:?}"
+        );
+        los.send(()).expect("client");
+        let gelesen = c.join().expect("faden");
+        // `ERROR_PIPE_NOT_CONNECTED` (233) or the end: the hello was discarded with the connection.
+        assert!(
+            matches!(gelesen, Ok(0) | Err(Some(233 | 109))),
+            "{gelesen:?}"
+        );
+        // The instance serves again.
+        let v = client(&n, eigene);
+        let c = thread::spawn(move || verbinden(&v).map(|_| ()).map_err(|f| f.code));
+        let Annahme::Vorlaeufig(vl) = s.annehmen().expect("annehmen") else {
+            panic!("abgewiesen");
+        };
+        let k = vl.bestaetigen().expect("bestätigen");
+        assert_eq!(c.join().expect("faden"), Ok(()));
+        drop(k);
     }
 }

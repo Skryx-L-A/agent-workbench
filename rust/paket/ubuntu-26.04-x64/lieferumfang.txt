@@ -9,6 +9,8 @@
 # werkbank-ordnermarke (crate lauf, src/bin/ordnermarke.rs): a mandatory file of the manifest (decision of the package owner, 21.11.2026).
 # werkbank-ca-zulassung (shell script, root): the explicit step that sets `ca_zulassung` of lauf.json without a question (contract, "Zulassung der CA").
 # /etc/werkbank/lauf.json is not in this list: postinst writes it for the user (contract, "lauf.json").
+# erststart.json (addendum first start): the first-start profile of contract 2 next to the demo settings einstellungen.json; postinst takes it
+# as template of halter.json (step 2c) and of the working copy of the settings (step 2). einstellungen.json keeps the demo file as source.
 #
 # werkbank-anmelden (crate anmelden): the sign-in of the route `copilot`; it writes anmeldung.copilot into the store of the holder in the home
 # and makes missing levels itself (postinst makes nothing in the home).
@@ -54,6 +56,7 @@ programm usr/lib/werkbank/probelauf/drehbuchlib/seite.py datei:spec/vorfuehrung/
 programm usr/lib/werkbank/probelauf/drehbuchlib/weiterreicher.py datei:spec/vorfuehrung/laeufer/drehbuchlib/weiterreicher.py
 programm usr/lib/werkbank/probelauf/drehbuchlib/ziel.py datei:spec/vorfuehrung/laeufer/drehbuchlib/ziel.py
 daten usr/share/werkbank/probelauf/einstellungen.json datei:spec/einstellungen/vorfuehrung.json
+daten usr/share/werkbank/probelauf/erststart.json datei:spec/einstellungen/erststart.json
 daten usr/share/werkbank/probelauf/konfig.json datei:spec/vorfuehrung/laeufer/konfig.probelauf.json
 daten usr/share/werkbank/probelauf/vorfuehr-vault/betrieb/mi-4f9-wartungsfenster-presslinie.md datei:spec/such-socket/vorfuehr-vault/betrieb/MI-4F9-wartungsfenster-presslinie.md
 daten usr/share/werkbank/probelauf/vorfuehr-vault/betrieb/besprechung-montag.md datei:spec/such-socket/vorfuehr-vault/betrieb/besprechung-montag.md

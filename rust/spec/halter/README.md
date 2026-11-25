@@ -582,7 +582,7 @@ das Feld; `werkbank-pruefen` soll ein gesetztes Feld als Befund melden (OPEN 24)
   bleibt eine Zeile. Die Zeile steht nicht in der Kette; es gibt keine neue Art im Register von Vertrag 5.
 
 ```
-halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["access_token","data","data[].id"],"pfad":"/auto","status":200,"ziel":"copilot","zu":true}
+halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["access_token","data","data[].id"],"pfad":"/auto","status":200,"ziel":"api.individual.githubcopilot.com","zu":true}
 ```
 
 Fälle der Form `konfig`: `k-gut-erststart-antwortform` (gültig, auch ein Pfad im Teilbaum von `pfade`), Gegenproben
@@ -927,7 +927,7 @@ Kettenzeile selbst schreibt der Halter erst, wenn Vertrag 5 ihre Art in sein Reg
 Treffer bei `modell.*` keinen Schein, keinen `digest` und keinen `lauf` hat):
 
 ```
-{"aktionsname":"halter.leck_gesperrt","ergebnis":"abgelehnt","fassung":2,"grund":"leck","op":"modell.aufruf","vorher":"<64 hex>","zeit":"2026-11-20T13:00:00.000Z","ziel":"copilot"}
+{"aktionsname":"halter.leck_gesperrt","ergebnis":"abgelehnt","fassung":2,"grund":"leck","op":"modell.aufruf","vorher":"<64 hex>","zeit":"2026-11-20T13:00:00.000Z","ziel":"api.individual.githubcopilot.com"}
 ```
 
 **Abgelehnter Pfad (Nachtrag N1, 25.11.2026).** Jede Ablehnung in Stufe 15 (`halter.pfad_verboten`) schreibt eine Zeile
@@ -941,7 +941,7 @@ fortgeschrieben`, die nur ein Fehler der Kette auslöst (Abschnitt 2.3). Test im
 trägt Methode und Pfad, keine andere).
 
 ```
-{"aktionsname":"halter.pfad_verboten","ergebnis":"abgelehnt","fassung":2,"grund":"pfad","methode":"POST","op":"modell.aufruf","pfad":"/v1/fremd","vorher":"<64 hex>","zeit":"2026-11-20T13:00:00.000Z","ziel":"copilot"}
+{"aktionsname":"halter.pfad_verboten","ergebnis":"abgelehnt","fassung":2,"grund":"pfad","methode":"POST","op":"modell.aufruf","pfad":"/v1/fremd","vorher":"<64 hex>","zeit":"2026-11-20T13:00:00.000Z","ziel":"api.individual.githubcopilot.com"}
 ```
 
 Ort der Kette: unter Linux in Schritt I `<heim>/.local/state/agent-workbench/halter/protokoll/` (Abschnitt 2.3, Nachtrag Rolle aus

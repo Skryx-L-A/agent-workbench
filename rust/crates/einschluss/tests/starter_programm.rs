@@ -338,12 +338,10 @@ fn bwrap_is_taken_from_the_fixed_path_never_from_a_search_path() {
     fs::create_dir_all(&falsch).expect("folder");
     let marke = welt.wurzel.join("falsch-gerufen");
     let skript = falsch.join("bwrap");
-    fs::write(
+    gemeinsam::skript_schreiben(
         &skript,
-        format!("#!/bin/sh\necho x > {}\nexit 0\n", marke.display()),
-    )
-    .expect("fake");
-    fs::set_permissions(&skript, fs::Permissions::from_mode(0o755)).expect("mode");
+        &format!("#!/bin/sh\necho x > {}\nexit 0\n", marke.display()),
+    );
     let pfad = falsch.to_string_lossy().into_owned();
     let env = [
         ("PATH", pfad.as_str()),
@@ -642,12 +640,10 @@ fn vorentpacken_welt(welt: &Welt) -> (einschluss::Vorentpacken, std::path::PathB
     fs::create_dir_all(&cache).expect("cache");
     fs::set_permissions(&cache, fs::Permissions::from_mode(0o700)).expect("mode");
     let skript = welt.programm.join("copilot-probe");
-    fs::write(
+    gemeinsam::skript_schreiben(
         &skript,
         "#!/bin/sh\n[ \"$*\" = --version ] || exit 9\necho inhalt > \"$HOME/.cache/copilot/geschrieben\" || exit 7\necho rest > \"$HOME/rest\" || exit 8\nexit 0\n",
-    )
-    .expect("script");
-    fs::set_permissions(&skript, fs::Permissions::from_mode(0o755)).expect("mode");
+    );
     let v = einschluss::Vorentpacken {
         heim: welt.heim.clone(),
         cache: cache.clone(),

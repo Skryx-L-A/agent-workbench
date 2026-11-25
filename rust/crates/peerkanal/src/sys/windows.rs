@@ -23,7 +23,7 @@ use windows_sys::Win32::Security::{
     TOKEN_QUERY, TOKEN_USER, TokenAppContainerSid, TokenUser,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    self as FS, CreateFileW, OPEN_EXISTING, ReadFile, WriteFile,
+    self as FS, CreateFileW, FlushFileBuffers, OPEN_EXISTING, ReadFile, WriteFile,
 };
 use windows_sys::Win32::System::IO::{CancelIoEx, GetOverlappedResult, OVERLAPPED};
 use windows_sys::Win32::System::JobObjects::{IsProcessInJob, OpenJobObjectW};
@@ -416,6 +416,17 @@ impl Plattform for Os {
         unsafe { DisconnectNamedPipe(roh(&g.0)) };
     }
 
+    fn leeren(&self, g: &Griff) {
+        #[cfg(test)]
+        tests::IM_LEEREN.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        // SAFETY: our own instance. The caller (`leeren_und_trennen`) runs this on a scoped thread and joins it before the
+        // instance is handed on or closed, so the handle is valid for the whole call; `DisconnectNamedPipe` on the caller's
+        // thread ends the call when the client does not read. An error (no client, disconnected) changes nothing.
+        unsafe { FlushFileBuffers(roh(&g.0)) };
+        #[cfg(test)]
+        tests::IM_LEEREN.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+    }
+
     fn lesen(&self, g: &Griff, puffer: &mut [u8], frist: Option<Duration>) -> Lesen {
         let h = roh(&g.0);
         let laenge = u32::try_from(puffer.len()).unwrap_or(u32::MAX);
@@ -503,5 +514,95 @@ impl Plattform for Os {
         let mut pid = 0u32;
         // SAFETY: our own handle; `pid` receives the id.
         (unsafe { GetNamedPipeServerProcessId(roh(&g.0), &raw mut pid) } != 0).then_some(pid)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::time::Instant;
+
+    use super::*;
+
+    /// Threads inside `FlushFileBuffers` of [`Os::leeren`] at this moment.
+    pub(super) static IM_LEEREN: AtomicUsize = AtomicUsize::new(0);
+
+    /// The tests of this module count the same threads, so they run one after the other.
+    static NACHEINANDER: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn nacheinander() -> std::sync::MutexGuard<'static, ()> {
+        NACHEINANDER
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// A client that never reads, with a real pipe: `leeren_und_trennen` returns after the limit plus a small span, no thread
+    /// is still inside `FlushFileBuffers` when it returns, and the client sees the end instead of the 4 bytes.
+    #[test]
+    fn kein_faden_nach_der_frist() {
+        let _n = nacheinander();
+        let os = Os;
+        let eigene = os.eigene_sid().expect("eigene SID");
+        let name = format!("wb-pk-leeren-{}", std::process::id());
+        let g = os
+            .instanz_anlegen(&name, true, 1, &acl::sddl(&eigene, &[], &[]))
+            .expect("anlegen");
+        let c = os.oeffnen(&name).expect("öffnen");
+        os.auf_client_warten(&g).expect("verbunden");
+        assert_eq!(os.schreiben(&g, b"pk1\n"), Ok(4));
+        let frist = Duration::from_millis(300);
+        let start = Instant::now();
+        crate::ablauf::leeren_und_trennen(&os, &g, frist);
+        let dauer = start.elapsed();
+        assert!(
+            dauer >= frist && dauer < frist + Duration::from_millis(500),
+            "{dauer:?}"
+        );
+        assert_eq!(
+            IM_LEEREN.load(Ordering::SeqCst),
+            0,
+            "kein Faden mehr im Leeren"
+        );
+        let mut puffer = [0u8; 4];
+        assert_eq!(
+            os.lesen(&c, &mut puffer, Some(Duration::from_millis(200))),
+            Lesen::Ende
+        );
+        drop(g);
+        assert_eq!(IM_LEEREN.load(Ordering::SeqCst), 0);
+    }
+
+    /// The counter-check: a client that reads. `leeren_und_trennen` returns once the client has the bytes, well before the
+    /// limit, and the client got all 4.
+    #[test]
+    fn leeren_wartet_auf_den_leser() {
+        let _n = nacheinander();
+        let os = Os;
+        let eigene = os.eigene_sid().expect("eigene SID");
+        let name = format!("wb-pk-leser-{}", std::process::id());
+        let g = os
+            .instanz_anlegen(&name, true, 1, &acl::sddl(&eigene, &[], &[]))
+            .expect("anlegen");
+        let c = os.oeffnen(&name).expect("öffnen");
+        os.auf_client_warten(&g).expect("verbunden");
+        assert_eq!(os.schreiben(&g, b"pk1\n"), Ok(4));
+        let leser = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(200));
+            let mut puffer = [0u8; 8];
+            let n = match Os.lesen(&c, &mut puffer, Some(Duration::from_secs(2))) {
+                Lesen::Daten(n) => n,
+                anders => panic!("{anders:?}"),
+            };
+            puffer[..n].to_vec()
+        });
+        let start = Instant::now();
+        crate::ablauf::leeren_und_trennen(&os, &g, Duration::from_secs(5));
+        let dauer = start.elapsed();
+        assert_eq!(leser.join().expect("leser"), b"pk1\n");
+        assert!(
+            dauer >= Duration::from_millis(150) && dauer < Duration::from_secs(2),
+            "{dauer:?}"
+        );
+        assert_eq!(IM_LEEREN.load(Ordering::SeqCst), 0);
     }
 }

@@ -61,6 +61,7 @@ mod ohne {
             Err(0)
         }
         fn trennen(&self, (): &()) {}
+        fn leeren(&self, (): &()) {}
         fn lesen(&self, (): &(), _puffer: &mut [u8], _frist: Option<Duration>) -> Lesen {
             Lesen::Fehler(0)
         }
