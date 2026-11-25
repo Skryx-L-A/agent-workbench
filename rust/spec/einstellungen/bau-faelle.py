@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Erzeugt die sichtbaren Fälle des Vertrags Einstellungsdatei (faelle/, erwartet/).
+"""Erzeugt die sichtbaren Fälle des Vertrags Einstellungsdatei (faelle/, erwartet/), vorfuehrung.json und erststart.json.
 
 Aufruf: python3 -I rust/spec/einstellungen/bau-faelle.py
 Jeder Fall trägt die Datei als Text (`text`) oder als Bytes in Base64 (`b64`).
@@ -77,6 +77,19 @@ VORFUEHRDATEI = {
 # Die Vorführung setzt alle drei Werte (Entscheidung vom 20.11.2026). `vorfuehrung.json` trägt sie; der Fall
 # `gueltig-vorfuehrung` bleibt mit dem alten Stand (ohne harness) unverändert, der neue Fall steht daneben.
 VORFUEHRDATEI_MIT_WERKZEUGEN = {**VORFUEHRDATEI, "harness": {"copilot": {"werkzeuge_ohne_rueckfrage": ["shell", "write", "such-mcp"]}}}
+
+# Erststart-Profil (Entscheid der Leitung, 25.11.2026): beim ersten echten Start am Modell-Host nur GET /models und
+# POST /chat/completions, das Modell fest gewählt (kein auto). Die übrigen fünf gemessenen Pfade der Vorführdatei sind nicht
+# freigeschaltet; ihre Anfragen enden beim Halter mit halter.pfad_verboten und stehen in der Kette. Alles andere wie in der
+# Vorführdatei. Das Modell gpt-6-luna wählte die Copilot CLI 1.0.88 mit `--model auto --auto-tier efficiency` (gemessen am
+# 20.11., Vertrag 1, rust/spec/start/README.md); es verbrauchte eine Chat-Einheit, kein Premium-Modell.
+ERSTSTART_MODELL = "gpt-6-luna"
+ERSTSTART_PFADE = [{"methode": "GET", "pfad": "/models"}, {"methode": "POST", "pfad": "/chat/completions"}]
+ERSTSTARTDATEI = copy.deepcopy(VORFUEHRDATEI_MIT_WERKZEUGEN)
+ERSTSTARTDATEI["routen"][0]["modell"] = ERSTSTART_MODELL
+for _z in ERSTSTARTDATEI["routen"][0]["netzziele"]:
+    if _z["host"] == "api.individual.githubcopilot.com":
+        _z["pfade"] = copy.deepcopy(ERSTSTART_PFADE)
 
 
 def text(obj):
@@ -594,6 +607,8 @@ fall("gueltig-harness-und-mcp", "harness und mcp zugleich: gültig",
      f2(lambda o: o.update(harness=cop(["such-mcp"]), mcp=MCP)))
 fall("gueltig-vorfuehrung-mit-werkzeugen",
      "Vorführdatei mit harness.copilot: shell, write und such-mcp ohne Rückfrage", VORFUEHRDATEI_MIT_WERKZEUGEN)
+fall("gueltig-erststart",
+     "Erststart-Profil: am Modell-Host nur GET /models und POST /chat/completions, Modell fest gpt-6-luna", ERSTSTARTDATEI)
 fall("harness-in-fassung-1", "Block harness in einer Datei der Fassung 1", harness(cop(["shell"]), fassung=1),
      "einst.schluessel_unbekannt")
 fall("harness-harness-unbekannt", "harness.claude: nur copilot hat in Fassung 2 einen Eintrag",
@@ -643,6 +658,7 @@ def main():
         (HIER / "faelle" / f"{name}.json").write_text(text(eintrag), encoding="utf-8")
         (HIER / "erwartet" / f"{name}.json").write_text(text(erwartet), encoding="utf-8")
     (HIER / "vorfuehrung.json").write_text(text(VORFUEHRDATEI_MIT_WERKZEUGEN), encoding="utf-8")
+    (HIER / "erststart.json").write_text(text(ERSTSTARTDATEI), encoding="utf-8")
     print(f"{len(FAELLE)} Fälle geschrieben")
 
 

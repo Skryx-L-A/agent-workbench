@@ -51,7 +51,13 @@ pub struct Ziel {
     pub praefix: String,
     /// Secret and path rules.
     pub regel: ZielRegel,
+    /// The switch of the first start (`erststart_antwortform`, section 4): exact rules `<METHODE> <pfad>` whose answer
+    /// form the holder writes to the journal ([`crate::antwortform`]); empty without the switch, then no diagnosis.
+    pub antwortform: Vec<String>,
 }
+
+/// Most rules in `erststart_antwortform` of a target.
+pub const ANTWORTFORM_MAX: usize = 8;
 
 /// A remote MCP server.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -148,20 +154,44 @@ fn regel_ok(r: &str) -> bool {
     })
 }
 
+const ZIEL_FELDER: [&str; 9] = [
+    "host",
+    "port",
+    "tls",
+    "praefix",
+    "kopf",
+    "vorsatz",
+    "schluessel",
+    "pfade",
+    "erststart_antwortform",
+];
+
+/// `erststart_antwortform` of a target: 1 to [`ANTWORTFORM_MAX`] exact rules (no `*`) without a double, each covered by
+/// a rule of `pfade`; the switch never opens a path.
+fn antwortform(v: &Value, pfade: &[String]) -> Option<Vec<String>> {
+    let liste = v.as_array()?;
+    let mut regeln: Vec<String> = Vec::new();
+    for r in liste {
+        let r = r.as_str()?;
+        let (m, p) = r.split_once(' ')?;
+        if !regel_ok(r)
+            || p.contains('*')
+            || regeln.iter().any(|x| x == r)
+            || !pfade.iter().any(|x| crate::pruefung::regel_passt(x, m, p))
+        {
+            return None;
+        }
+        regeln.push(r.to_owned());
+    }
+    (1..=ANTWORTFORM_MAX)
+        .contains(&regeln.len())
+        .then_some(regeln)
+}
+
 fn ziel(v: &Value) -> Option<Ziel> {
-    let o = obj(
-        v,
-        &[
-            "host",
-            "port",
-            "tls",
-            "praefix",
-            "kopf",
-            "vorsatz",
-            "schluessel",
-            "pfade",
-        ],
-    )?;
+    // the ninth field is the switch of the first start and optional; the other eight are required
+    let mit = v.get("erststart_antwortform").is_some();
+    let o = obj(v, &ZIEL_FELDER[..if mit { 9 } else { 8 }])?;
     let praefix = text(o, "praefix")?;
     let praefix_ok = praefix.is_empty()
         || (form::pfad_form(praefix)
@@ -178,6 +208,10 @@ fn ziel(v: &Value) -> Option<Ziel> {
     if !(praefix_ok && ist_name(schluessel) && art_ok && (1..=32).contains(&pfade.len())) {
         return None;
     }
+    let antwortform = match o.get("erststart_antwortform") {
+        Some(a) => antwortform(a, &pfade)?,
+        None => Vec::new(),
+    };
     Some(Ziel {
         adresse: adresse(o)?,
         praefix: praefix.to_owned(),
@@ -185,6 +219,7 @@ fn ziel(v: &Value) -> Option<Ziel> {
             schluessel: schluessel.to_owned(),
             pfade,
         },
+        antwortform,
     })
 }
 
@@ -648,6 +683,67 @@ mod tests {
         assert_eq!(lesen(t.as_bytes()), Err(Fehler::Lokal));
         let t = t.replacen(r#""lokal":true"#, r#""lokal":false"#, 1);
         assert!(lesen(t.as_bytes()).is_ok());
+    }
+
+    /// The switch of the first start: optional, exact rules covered by `pfade`, 1 to 8 without a double; it never opens
+    /// a path. Without it the list is empty (no diagnosis).
+    #[test]
+    fn erststart_antwortform_nur_genau_und_gedeckt() {
+        assert_eq!(
+            lesen(GUT.as_bytes()).expect("valid").ziele["copilot"]
+                .antwortform
+                .len(),
+            0
+        );
+        let mit = |liste: &str| {
+            let t = GUT.replacen(
+                r#""pfade":["#,
+                &format!(r#""erststart_antwortform":{liste},"pfade":["#),
+                1,
+            );
+            assert_ne!(t, GUT);
+            lesen(t.as_bytes())
+        };
+        let k = mit(r#"["POST /chat/completions","GET /models"]"#).expect("valid");
+        assert_eq!(
+            k.ziele["copilot"].antwortform,
+            ["POST /chat/completions", "GET /models"]
+        );
+        // a path in a subtree of `pfade` is covered
+        assert!(mit(r#"["GET /copilot_internal/user"]"#).is_ok());
+        let acht: Vec<String> = (0..ANTWORTFORM_MAX)
+            .map(|i| format!("\"GET /p{i}\""))
+            .collect();
+        assert!(mit(&format!("[{}]", acht.join(","))).is_ok());
+        for falsch in [
+            "[]".to_owned(),
+            format!("[{},\"GET /p9\"]", acht.join(",")),
+            r#"["POST /auto"]"#.to_owned(),
+            r#"["POST /models"]"#.to_owned(),
+            r#"["GET /*"]"#.to_owned(),
+            r#"["GET /copilot_internal/*"]"#.to_owned(),
+            r#"["GET /models","GET /models"]"#.to_owned(),
+            r#"["PUT /models"]"#.to_owned(),
+            r#"["GET models"]"#.to_owned(),
+            r#"["GET /a/../b"]"#.to_owned(),
+            r#"["GET"]"#.to_owned(),
+            "[1]".to_owned(),
+            r#""GET /models""#.to_owned(),
+            "null".to_owned(),
+        ] {
+            assert_eq!(mit(&falsch), Err(Fehler::Form), "{falsch}");
+        }
+        // only the first start knows the switch at a target, never at a server
+        let s = GUT.replacen(
+            r#""server":{}"#,
+            &SERVER.replacen(
+                r#""lokal":false"#,
+                r#""lokal":false,"erststart_antwortform":["GET /models"]"#,
+                1,
+            ),
+            1,
+        );
+        assert_eq!(lesen(s.as_bytes()), Err(Fehler::Form));
     }
 
     const GROUP: &str = "root:x:0:\nperson:x:1000:\nwb-hub:x:990:\nwb-bruecke:x:991:\n";

@@ -124,6 +124,52 @@ def vorfuehrung_pruefen(pruefer, fehler):
             fehler.append(f"vorfuehrung.json: {methode} {pfad} an {host} zugelassen, steht aber in keiner Regel")
 
 
+# Erststart-Profil (Entscheid der Leitung, 25.11.2026): am Modell-Host genau diese zwei Pfade, die fünf übrigen gemessenen
+# Pfade gesperrt, das Modell fest gewählt.
+ERSTSTART_FREI = [("GET", "/models"), ("POST", "/chat/completions")]
+ERSTSTART_GESPERRT = [("GET", "/responses"), ("POST", "/auto"), ("POST", "/models/session"),
+                      ("POST", "/models/session/intent"), ("POST", "/agents/sessions")]
+
+
+def erststart_pruefen(pruefer, fehler):
+    """erststart.json besteht das Schema, lässt am Modell-Host genau GET /models und POST /chat/completions zu, sperrt die
+    fünf übrigen gemessenen Pfade, legt an der Route copilot ein festes Modell fest (nicht auto) und gleicht sonst der
+    Vorführdatei."""
+    obj = json.loads((HIER / "erststart.json").read_text(encoding="utf-8"))
+    vor = json.loads((HIER / "vorfuehrung.json").read_text(encoding="utf-8"))
+    if pruefer is not None and not pruefer.is_valid(obj):
+        fehler.append(f"erststart.json: Schema lehnt ab: {next(pruefer.iter_errors(obj)).message}")
+    modell = "api.individual.githubcopilot.com"
+    route = next(r for r in obj["routen"] if r["schluessel"] == "copilot")
+    ziele = [z for z in route["netzziele"] if z["host"] == modell]
+    paare = sorted((q["methode"], q["pfad"]) for z in ziele for q in z["pfade"])
+    if paare != sorted(ERSTSTART_FREI):
+        fehler.append(f"erststart.json: am Modell-Host {paare}, erwartet genau {sorted(ERSTSTART_FREI)}")
+
+    def zugelassen(methode, pfad):
+        return any(q["methode"] == methode and pfad_trifft(q["pfad"], pfad) for z in ziele for q in z["pfade"])
+
+    for methode, pfad in ERSTSTART_GESPERRT:
+        if zugelassen(methode, pfad):
+            fehler.append(f"erststart.json: {methode} {pfad} am Modell-Host zugelassen, beim Erststart gesperrt")
+    for methode, pfad in ERSTSTART_FREI:
+        if not zugelassen(methode, pfad):
+            fehler.append(f"erststart.json: {methode} {pfad} am Modell-Host nicht zugelassen")
+    m = route.get("modell")
+    if not isinstance(m, str) or m == "auto":
+        fehler.append(f"erststart.json: Route copilot ohne festes Modell ({m!r})")
+    # sonst wie die Vorführdatei: dieselben Ziele außer den Pfaden am Modell-Host, keine weitere Änderung
+    gleich = json.loads(json.dumps(obj))
+    r = next(r for r in gleich["routen"] if r["schluessel"] == "copilot")
+    del r["modell"]
+    for z in r["netzziele"]:
+        if z["host"] == modell:
+            z["pfade"] = next(y for x in vor["routen"] if x["schluessel"] == "copilot"
+                              for y in [z2["pfade"] for z2 in x["netzziele"] if z2["host"] == modell])
+    if gleich != vor:
+        fehler.append("erststart.json: weicht außer Modell und Pfaden am Modell-Host von vorfuehrung.json ab")
+
+
 def main():
     try:
         import jsonschema
@@ -174,6 +220,7 @@ def main():
         elif code is not None and (code not in SCHEMA_CODES or name in SCHEMA_BLIND):
             nur_bau.append(f"{name} ({erw['code']}, Schema {'nimmt an' if nimmt_an else 'lehnt ab'})")
     vorfuehrung_pruefen(pruefer, fehler)
+    erststart_pruefen(pruefer, fehler)
     print(f"{zahl} Fälle, {len(fehler)} Fehler, Schema {'geprüft' if pruefer else 'NICHT geprüft (--ohne-schema, jsonschema fehlt)'}")
     for zeile in nur_bau:
         print(f"  erst mit dem Bau prüfbar: {zeile}")

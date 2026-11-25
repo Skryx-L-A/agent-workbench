@@ -34,6 +34,8 @@ pub(crate) use windows::{
     socket_binden, socket_binden_pfad,
 };
 
+#[cfg(all(test, windows, feature = "pruefbau"))]
+pub(crate) use windows::JOB_VERWEIGERN;
 #[cfg(all(windows, feature = "pruefbau"))]
 pub(crate) use windows::{konsole_groesse, konsole_roh};
 

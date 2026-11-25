@@ -39,6 +39,13 @@ der Vertrag nennt das als Zusage (Abschnitt 4). Ein Treffer der Leck-Sperre schr
 Pfade (Abschnitt 4); jeder abgelehnte Pfad schreibt eine Kettenzeile `halter.pfad_verboten` mit Methode und Pfad (Abschnitt 9).
 Es ändern sich die Abschnitte 4, 9, 12, 13 und OPEN 2; neu sind vier Fälle.
 
+**Nachtrag Erststart (25.11.2026, Entscheid der Leitung zum ersten echten Start):** Am Modell-Host gelten beim ersten Start nur
+`GET /models` und `POST /chat/completions` (Erststart-Profil, `rust/spec/einstellungen/erststart.json`). Für jeden weiteren Pfad
+misst der Halter vor der Freigabe die Form der Antwort: Hinter dem Schalter `erststart_antwortform` eines Ziels schreibt er für genau
+die genannten Regeln die Feldnamen der JSON-Antwort, nie Werte, in eine Journalzeile (Abschnitt 4, „Antwortform im Erststart“). Es
+ändern sich die Abschnitte 2.3a, 4, 8, 9, 12 und 14 (neu OPEN 24 und 25); neu sind sieben Anfragen und sieben Fälle der Form
+`konfig`. Kein bestehender Fall und keine Erwartung ändern sich.
+
 Der Vertrag steht vor dem Code. Dieser Stand enthält die sichtbaren Fälle. Verdeckte Fälle und Mutanten folgen mit dem
 Bau. Was nur auf einem System prüfbar ist, steht als Außentest in Abschnitt 11: W für die Windows-VM, L für den Linux-Baurechner, M für
 den Mac.
@@ -382,12 +389,15 @@ Wert. Die Datei muss nicht kanonisch sein.
 | `server` | Objekt | Schlüssel: Kennung; Wert: Server (unten). Leeres Objekt erlaubt; in Schritt I leer. |
 | `kids` | Objekt | Schlüssel: Kennung; Wert: Base64 mit Auffüllung von genau 32 Byte (öffentlicher Ed25519-Schlüssel der Stelle). In Schritt I leer. |
 
-**Ziel** (`ziele.<kennung>`), genau acht Felder, alle Pflicht: `host` (1 bis 253 Zeichen aus `[A-Za-z0-9.:-]`), `port` (1 bis 65535),
+**Ziel** (`ziele.<kennung>`), acht Pflichtfelder und ein optionales neuntes (`erststart_antwortform`, unten): `host` (1 bis 253 Zeichen aus `[A-Za-z0-9.:-]`), `port` (1 bis 65535),
 `tls` (`false` nur für `127.0.0.1`, `::1` oder `localhost`), `praefix` (`""` oder ein Pfad nach `^/[A-Za-z0-9._~/-]{0,511}$` ohne `/`
 am Ende und ohne die unsicheren Teile der Pfadprüfung aus Abschnitt 4), `kopf` (`^[a-z0-9-]{1,64}$`; `authorization`, `x-api-key`,
 `api-key` oder ein Name, der nicht auf der Liste der verbotenen Kopfnamen steht), `vorsatz` (höchstens 64 Zeichen `\x20` bis `\x7e`),
 `schluessel` (Name der Art `modell` oder `anmeldung`) und `pfade` (1 bis 32 Regeln nach Abschnitt 4, je höchstens 512 Zeichen nach der
-Methode).
+Methode). Optional `erststart_antwortform`, der Schalter des Erststarts (Abschnitt 4, „Antwortform im Erststart“): 1 bis 8 Regeln
+`<METHODE> <pfad>` mit genauem Pfad (kein `*`), ohne Doppel, und jede muss von einer Regel aus `pfade` desselben Ziels gedeckt sein.
+Sonst Exit 78. Der Schalter öffnet nie einen Pfad. Eine leere Liste ist ungültig; ohne Schalter fehlt das Feld. Am Server gibt es das
+Feld nicht. alt: genau acht Felder (Nachtrag Erststart).
 
 **Server** (`server.<kennung>`), genau zehn Felder, alle Pflicht: `host`, `port`, `tls`, `kopf`, `vorsatz` wie beim Ziel; `pfad` (Form
 wie `praefix`, nicht leer), `schluessel` (Name der Art `mcp`), `freigabe` (bool), `werkzeuge` (Werkzeugname auf `lesend` oder
@@ -526,6 +536,63 @@ Teilbaum kann die Zusage nicht halten, weil die Endpunkte des Hosts nicht gemess
 entscheidet beim ersten Start jede fehlende Regel einzeln anhand der Kette.** Fälle: `s15-modell-host-ausserhalb`
 (`POST /v1/fremd`, `halter.pfad_verboten`), `s15-modell-host-unterpfad` (`GET /models/x`, `halter.pfad_verboten`), Gegenproben
 `a-modell-host-chat` (`POST /chat/completions`) und `a-modell-host-modelle` (`GET /models`), beide gültig.
+
+**Erststart-Profil (Nachtrag Erststart, Entscheid der Leitung, 25.11.2026).** Beim ersten echten Start mit Token gelten am
+Modell-Host zuerst nur `GET /models` und `POST /chat/completions`, mit fest gewähltem Modell (kein `auto`;
+`rust/spec/einstellungen/README.md`, Abschnitt „Erststart-Profil“). Grund: „gemessen“ heißt bei den sieben Pfaden oben, dass die
+CLI sie ruft, nicht, dass ihre Antwort kein Token trägt. Die übrigen fünf (`GET /responses`, `POST /auto`, `POST /models/session`,
+`POST /models/session/intent`, `POST /agents/sessions`) sind beim ersten Start nicht freigeschaltet; die Anfragen der CLI dorthin
+enden mit `halter.pfad_verboten` (Stufe 15) und stehen mit Methode und Pfad in der Kette (Abschnitt 9). Fälle:
+`s15-erststart-responses` (`modell.strom`), `s15-erststart-auto`, `s15-erststart-models-session`,
+`s15-erststart-models-session-intent` und `s15-erststart-agents-sessions` (je `halter.pfad_verboten`), Gegenproben
+`a-erststart-modelle` und `a-erststart-chat` (gültig). Test im Bau: `tests/dienst.rs`
+`erststart_sperrt_die_fuenf_pfade_mit_kettenzeile` (fünf Kettenzeilen mit Op, Methode und Pfad, die Attrappe bekommt nichts, die
+Kette ist ganz; die zwei freien Pfade erreichen das Ziel).
+
+**Antwortform im Erststart (Nachtrag Erststart, Entscheid der Leitung, 25.11.2026).** Für jeden weiteren Pfad misst der Halter
+vor der Freigabe die Form der Antwort. Die Diagnose gibt es nur hinter dem ausdrücklichen Schalter des Erststarts, nie im
+Normalbetrieb: dem Feld `erststart_antwortform` eines Ziels in `halter.json` (Abschnitt 2.3a). Fehlt das Feld, schreibt der Halter
+keine Diagnose, im ausgelieferten Bau wie im Prüfbau; der Prüfbau hat dafür keine eigene Naht. Wer den Schalter setzt, braucht
+Schreibrecht an `/etc/werkbank/halter.json` (uid 0); die Sitzung des Agenten erreicht die Datei nicht. Für den Normalbetrieb fehlt
+das Feld; `werkbank-pruefen` soll ein gesetztes Feld als Befund melden (OPEN 24).
+
+- **Wann.** Nur bei `modell.aufruf`, wenn `<methode> <pfad>` der Anfrage genau gleich einer Regel des Schalters ist, und nur
+  nach einem vollständigen Körper (`ende` ohne Code). Ein Leck-Treffer, ein Fehler des Ziels oder ein abgebrochener Körper geben
+  keine Diagnose. `modell.strom` hat keine Diagnose (OPEN 25). Die Pfadprüfung (Stufe 15) läuft unverändert vorher: Der Schalter
+  macht keinen Pfad frei, die Regel muss in `pfade` stehen.
+- **Die Antwort geht weiter wie bisher.** Der Halter liest nur eine Kopie des Körpers; die Antwort selbst geht durch die
+  Leck-Sperre (Abschnitt 8) an die Brücke wie ohne Schalter. Ein abgeleitetes Token, das die Leck-Sperre nicht kennt, erreicht
+  damit im Messlauf die Brücke (OPEN 24).
+- **Namen.** Der Halter liest die Kopie als JSON und nimmt jeden Schlüssel eines Objekts, rekursiv. Pfadform: ein Schlüssel `k`
+  auf der obersten Ebene heißt `k`, unter einem Namen `p` heißt er `p.k`; die Elemente einer Liste unter `p` stehen unter `p[]`
+  (eine Liste auf der obersten Ebene unter `[]`). Beispiel: `{"data":[{"id":"x"}],"access_token":"y"}` ergibt `access_token`,
+  `data` und `data[].id`. Die Liste ist nach Bytes sortiert, jeder Name einmal. Nie ein Wert, keine Länge, kein Typ.
+- **Grenzen.** Höchstens 1048576 Byte Körper (darüber: Form `zu_gross`, keine Namen), höchstens 256 Namen, je Name höchstens
+  256 Byte, höchstens 32 Ebenen. Ein längerer Name bleibt weg; eine Überschreitung setzt `abgeschnitten`.
+- **Regel der Namen.** Enthält ein Name `token`, `secret`, `key`, `session` oder `credential` (ohne Groß- und Kleinschreibung,
+  auch als Teilwort, etwa `access_token`, `apiKey`, `monkey`), markiert die Zeile den Pfad mit `"zu":true`: Er bleibt zu, bis die
+  Leitung entscheidet. Ebenso `"zu":true` bei jeder Form außer `json`, bei `abgeschnitten` und bei einem gehaltenen Geheimnis in
+  einem Namen. Der Halter ändert dabei keine Regel; die Markierung ist ein Befund für die Leitung.
+- **Gehaltenes Geheimnis als Name.** Steht ein gehaltenes Geheimnis in einer der Formen der Leck-Sperre in einem Namen, nennt die
+  Zeile keine Namen und trägt die Form `geheimnis`.
+- **Zeile.** Genau eine Zeile im Journal (stderr der Einheit): `halter.antwortform: ` und das kanonische JSON-Objekt (RFC 8785)
+  mit genau `abgeschnitten` (bool), `form` (`json`, `kein_json`, `zu_gross` oder `geheimnis`), `methode`, `namen` (Liste),
+  `pfad` (das Feld `pfad` der Anfrage), `status` (HTTP-Status des Ziels), `ziel` (Name aus `halter.json`) und `zu` (bool). Nie
+  `abfrage`, ein Kopf, ein Wert, `id`, `lauf` oder eine Person. Ein Zeilenumbruch in einem Namen ist im JSON maskiert; die Zeile
+  bleibt eine Zeile. Die Zeile steht nicht in der Kette; es gibt keine neue Art im Register von Vertrag 5.
+
+```
+halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["access_token","data","data[].id"],"pfad":"/auto","status":200,"ziel":"copilot","zu":true}
+```
+
+Fälle der Form `konfig`: `k-gut-erststart-antwortform` (gültig, auch ein Pfad im Teilbaum von `pfade`), Gegenproben
+`k-erststart-antwortform-ungedeckt` (`POST /auto` ohne Regel in `pfade`), `-teilbaum`, `-leer`, `-doppelt`, `-neun` und
+`-server` (je `halter.konfig`). Tests im Bau: `antwortform::tests` (Namen ohne Werte mit Markenwert als Gegenprobe, jedes Wort
+in jeder Schreibweise, Grenzen genau und um eins darüber, gehaltenes Geheimnis als Name, Zeilenumbruch im Namen),
+`konfig::tests::erststart_antwortform_nur_genau_und_gedeckt`, `tests/dienst.rs` `antwortform_nennt_die_namen_ohne_werte` (die Antwort
+kommt unverändert an, die Zeile nennt `access_token`, `data`, `data[].id` und `"zu":true`, der Markenwert steht weder in der
+Zeile noch in der Kette) und `ohne_schalter_keine_antwortform` (dieselbe Antwort ohne Schalter: keine Zeile). Das Fallformat kennt
+keine Antwort des Ziels; die Zeile prüft darum nur der Bau.
 
 ### `schluessel.vorhanden`
 
@@ -825,7 +892,8 @@ Schein ist der Schein dann verbraucht. Client-seitig gibt es dazu `halter.dienst
 - **Nur unkomprimiert (Nachtrag B05).** An Modellziele sendet der Halter `accept-encoding: identity` und nie einen
   Erweiterungskopf; eine komprimierte Antwort endet mit `halter.ziel_komprimiert` (Stufe 28a), bevor ein Byte davon
   hinausgeht.
-- Der Halter schreibt keine Argumente, Vorschauen, Körper oder Antworten ins Protokoll.
+- Der Halter schreibt keine Argumente, Vorschauen, Körper oder Antworten ins Protokoll. Die Diagnose des Erststarts
+  (Abschnitt 4, „Antwortform im Erststart“) schreibt nur Feldnamen ins Journal, nie Werte, und nur hinter ihrem Schalter.
 - Der Halter setzt nie eine Umgebungsvariable für einen Prozess der Person.
 
 ## 9. Protokoll des Halters
@@ -979,12 +1047,15 @@ Die Schlüssel der Scheine in den Fällen entstehen in `bau-faelle.py` aus zwei 
 sechs mit Code, Abschnitt 4); keiner der bestehenden Fälle und keine Erwartung ändert sich. `pruefen.py` prüft Stufe 7 (`ziel` nur
 für `bruecke`) und Stufe 14 (`ziel` in `halter.json`); welcher Code bei beiden oder keinem Feld fällt (Stufe 8 oder 9), prüft der
 Bau, weil das Schema die Stufen nicht trennt. Dazu kommen vier Fälle des Nachtrags N1 (zwei gültig, zwei mit
-`halter.pfad_verboten`, Abschnitt 4). Heute sind es 188 Fälle.
+`halter.pfad_verboten`, Abschnitt 4). Der Nachtrag Erststart bringt sieben Anfragen dazu (fünf mit `halter.pfad_verboten`, zwei
+gültig, Abschnitt 4). Heute sind es 202 Fälle (alt: 188).
 
-**Fälle der Form `konfig` (Nachtrag Rolle aus der Gruppe).** 29 Fälle `k-*` (7 gültig, 22 mit `halter.konfig`) prüfen
+**Fälle der Form `konfig` (Nachtrag Rolle aus der Gruppe).** 36 Fälle `k-*` (8 gültig, 28 mit `halter.konfig`; alt: 29, davon 7
+gültig; neu sind die sieben Fälle zu `erststart_antwortform`, Nachtrag Erststart) prüfen
 `halter.json` mit der `umgebung` des Starts: `uid` des Halters und die Texte von `/etc/group` und `/etc/passwd`. `pruefen.py` prüft
-strenges Lesen, Größe, `$defs/konfig`, verschiedene Gruppen je Rolle, die eigene uid in `konten` und die fünf Regeln der
-Rollengruppen (Abschnitt 2.3a). alt: 131 Fälle der Formen `anfrage` und `antwort` (der Satz oben nannte 130); keiner davon und keine
+strenges Lesen, Größe, `$defs/konfig`, verschiedene Gruppen je Rolle, die eigene uid in `konten`, die fünf Regeln der
+Rollengruppen (Abschnitt 2.3a) und dass jede Regel von `erststart_antwortform` von `pfade` gedeckt ist (Gegenprobe gemessen: ohne
+diese Prüfung meldet `pruefen.py` 1 Fehler, `k-erststart-antwortform-ungedeckt`). alt: 131 Fälle der Formen `anfrage` und `antwort` (der Satz oben nannte 130); keiner davon und keine
 Erwartung ändert sich. Den Bau prüft `rust/crates/halter/tests/faelle.rs` gegen dieselben Fälle.
 
 ```sh
@@ -1095,6 +1166,14 @@ python3 -I rust/spec/halter/bau-faelle.py              # Fälle neu erzeugen
     LDAP oder SSSD mit demselben Namen oder derselben gid sieht keiner von beiden. Hergeleitet: Eine Mitgliedschaft über NSS gäbe einem
     Prozess die gid als supplementäre Gruppe; `newgrp` könnte sie dann zur effektiven machen. Messweg: Rechner einer Organisation mit
     zentraler Verwaltung (Außentest AL-16 im Paketvertrag).
+24. **Antwort im Messlauf und Befund des Prüfbefehls (Nachtrag Erststart).** Die Leitung hat entschieden, dass die Antwort auf einem
+    Pfad mit Schalter weiter durch die Leck-Sperre geht wie bisher. Trägt sie ein abgeleitetes Token (etwa `access_token`), kennt die
+    Leck-Sperre es nicht, und es erreicht im Messlauf die Brücke und die CLI; die Zeile meldet es nur. Vorschlag: Bei `"zu":true`
+    hält der Halter den Körper zurück und endet mit einem eigenen Code. Das braucht einen neuen Code in Abschnitt 7 und die
+    Entscheidung der Leitung. Ebenso offen: `werkbank-pruefen` meldet ein gesetztes `erststart_antwortform` als Befund (Paketvertrag).
+25. **Antwortform eines Stroms (Nachtrag Erststart).** `GET /responses` ist ein WebSocket (`modell.strom`); die Diagnose liest nur
+    Körper von `modell.aufruf`. Wie die Form der Nachrichten eines Stroms gemessen wird (je Textrahmen, Vereinigung der Namen), ist
+    nicht festgelegt. Bis dahin bleibt `GET /responses` zu.
 
 <!-- vom Bauvorgang angefuegt -->
 > Hinweis: Dieser Text nennt Werkzeuge, die in diesem Klon nicht liegen: `agent-workbench`.

@@ -285,6 +285,13 @@ struct JobGrenzenErweitert {
     spitze_job: usize,
 }
 
+#[cfg(feature = "pruefbau")]
+thread_local! {
+    /// Test build: while `true`, [`Job::neu`] of this thread fails before it makes a job. It reaches the refusal of a start without a
+    /// job (contract `dienst`, section 21a point 4) without an error of the system.
+    pub(crate) static JOB_VERWEIGERN: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
 /// The job object of one session (Nachtrag 25.11.2026, contract `dienst`, section 21): it holds the child, and every process the
 /// child starts after it joined is in it too. With `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` the system ends all of them when the handle
 /// closes: on drop (the end of the session or of the service) and when the service ends in any other way, because the system closes
@@ -293,11 +300,15 @@ struct JobGrenzenErweitert {
 pub(crate) struct Job(usize);
 
 impl Job {
-    /// A new job that ends its processes when it closes, with the process of `griff` in it.
+    /// A new job that ends its processes when it closes, still empty.
     ///
     /// # Errors
-    /// The job could not be made or set, or the process could not join it (for example because it has ended already).
-    pub(crate) fn fuer(griff: std::os::windows::io::RawHandle) -> io::Result<Self> {
+    /// The job could not be made or set (in the test build also while `JOB_VERWEIGERN` is set in this thread).
+    pub(crate) fn neu() -> io::Result<Self> {
+        #[cfg(feature = "pruefbau")]
+        if JOB_VERWEIGERN.with(std::cell::Cell::get) {
+            return Err(io::Error::other("job refused by the test build"));
+        }
         // SAFETY: null security attributes (not inheritable) and no name are allowed; the result is checked below.
         let roh = unsafe { CreateJobObjectW(std::ptr::null(), std::ptr::null()) };
         if roh.is_null() {
@@ -320,10 +331,29 @@ impl Job {
         if gesetzt == 0 {
             return Err(io::Error::last_os_error());
         }
-        // SAFETY: `job` holds the valid job; `griff` is the handle of the child that the carrier holds open while the caller borrows it.
-        if unsafe { AssignProcessToJobObject(job.griff(), griff.cast()) } == 0 {
+        Ok(job)
+    }
+
+    /// Puts the process of `griff` into the job.
+    ///
+    /// # Errors
+    /// The process could not join (for example because it has ended already).
+    pub(crate) fn aufnehmen(&self, griff: std::os::windows::io::RawHandle) -> io::Result<()> {
+        // SAFETY: `self` holds the valid job; `griff` is the handle of the child that the carrier holds open while the caller borrows it.
+        if unsafe { AssignProcessToJobObject(self.griff(), griff.cast()) } == 0 {
             return Err(io::Error::last_os_error());
         }
+        Ok(())
+    }
+
+    /// A new job with the process of `griff` in it ([`Job::neu`], then [`Job::aufnehmen`]).
+    ///
+    /// # Errors
+    /// See both.
+    #[cfg(test)]
+    pub(crate) fn fuer(griff: std::os::windows::io::RawHandle) -> io::Result<Self> {
+        let job = Self::neu()?;
+        job.aufnehmen(griff)?;
         Ok(job)
     }
 

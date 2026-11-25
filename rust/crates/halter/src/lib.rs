@@ -3,12 +3,14 @@
 //! The holder keeps keys and tokens outside every agent session. It never gives a value out; it only uses one for a
 //! model call (`modell.aufruf`, `modell.strom`), a search (`modell.suche`) or an MCP call. The library holds the pure
 //! order of checks ([`pruefung`]), the answer lines ([`antwort`]), the leak lock ([`leck`]), the frame reader of the
-//! stream ([`rahmen`]), the way to a target ([`ziel`], [`mcp`]) and, under Unix, the store ([`ablage`]) and the
+//! stream ([`rahmen`]), the diagnosis of the answer form of the first start ([`antwortform`]), the way to a target
+//! ([`ziel`], [`mcp`]) and, under Unix, the store ([`ablage`]) and the
 //! search ([`suche`]); under Linux the peer check ([`peer`]), the start ([`start`]) and the server ([`dienst`]).
 
 #[cfg(unix)]
 pub mod ablage;
 pub mod antwort;
+pub mod antwortform;
 pub mod b64;
 pub mod code;
 #[cfg(target_os = "linux")]

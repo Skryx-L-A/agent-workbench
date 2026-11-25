@@ -341,7 +341,7 @@ impl Dienst {
                     return Err(StartFehler::neu(2, &format!("anfang: {e}")));
                 }
             };
-            sitzungen.push(Sitzung::neu(cfg.sid.clone(), kern, kind));
+            sitzungen.push(mit_job(Sitzung::neu(cfg.sid.clone(), kern, kind))?);
         }
         let hoerer = match socket_binden(Path::new(&cfg.pfad), wurzel.as_fd()) {
             Ok(h) => h,
@@ -1449,9 +1449,7 @@ impl Dienst {
             crate::loeschen::sitzung_entfernen(self.wurzel.as_fd(), &kennung);
             return self.start_ablehnen(nr, &Abgelehnt::fest("programm_nicht_startbar"));
         };
-        self.naechste = n;
-        self.rahmen_nehmen(nummer);
-        self.sitzungen.push(Sitzung::gestartet(
+        let sitzung = Sitzung::gestartet(
             kennung.clone(),
             nummer,
             kern,
@@ -1459,7 +1457,10 @@ impl Dienst {
             eintrag,
             meta,
             (ordner, Arc::clone(&self.wurzel), meldung),
-        ));
+        );
+        if !self.gestartet_aufnehmen(sitzung, nr, n, nummer) {
+            return;
+        }
         let k = self.sitzungen.len() - 1;
         let t = self.jetzt();
         let nummern: Vec<u64> = self.betrachter.keys().copied().collect();
@@ -1472,6 +1473,29 @@ impl Dienst {
         self.liste_senden();
         let gestartet = json!({"t": self.jetzt(), "art": "Gestartet", "sitzung": kennung});
         self.nachricht_an(nr, &gestartet, None);
+    }
+
+    /// The new session of `Starten` takes its identifier `s-<n>` and the raster number `nummer` and joins the list. Under Windows a
+    /// child without a job is ended instead, the folder of the session removed, and the start refused (section 21a point 4, fail
+    /// closed); then `false`.
+    #[cfg_attr(not(windows), allow(unused_variables))]
+    fn gestartet_aufnehmen(&mut self, sitzung: Sitzung, nr: u64, n: usize, nummer: u8) -> bool {
+        #[cfg(windows)]
+        if sitzung.job_fehlt() {
+            let mut sitzung = sitzung;
+            let kennung = sitzung.sid.clone().unwrap_or_default();
+            for sid in kinder_verwerfen(Self::kinder_nehmen(std::slice::from_mut(&mut sitzung))) {
+                self.waisen.jagen(sid, Instant::now());
+            }
+            drop(sitzung);
+            crate::loeschen::sitzung_entfernen(self.wurzel.as_fd(), &kennung);
+            self.start_ablehnen(nr, &Abgelehnt::fest("programm_nicht_startbar"));
+            return false;
+        }
+        self.naechste = n;
+        self.rahmen_nehmen(nummer);
+        self.sitzungen.push(sitzung);
+        true
     }
 
     /// The socket of the report (section 18) and the child `lauf` of a session of `Starten`: the socket exists, listening, before the child starts. A path too
@@ -1742,6 +1766,21 @@ pub fn signale_anmelden() -> std::io::Result<Signale> {
         signal_hook::flag::register(s, Arc::clone(&flagge))?;
     }
     Ok(Signale(flagge))
+}
+
+/// The session of `kind` at the start of the service. Under Windows a child without a job is a start error (section 21a point 4, fail
+/// closed; DI8: exit code 4): the child is ended and nothing stays.
+#[cfg_attr(not(windows), allow(clippy::unnecessary_wraps))]
+fn mit_job(sitzung: Sitzung) -> Result<Sitzung, StartFehler> {
+    #[cfg(windows)]
+    if sitzung.job_fehlt() {
+        start_verwerfen(Dienst::kinder_nehmen(&mut [sitzung]));
+        return Err(StartFehler::neu(
+            4,
+            "Kind laesst sich nicht starten: kein Job-Objekt",
+        ));
+    }
+    Ok(sitzung)
 }
 
 /// The wake socket pair of the loop, both ends non-blocking.
@@ -2058,5 +2097,145 @@ mod tests {
         assert_eq!(ganz(Some(&json!(5.5))), None);
         assert_eq!(ganz(Some(&json!("5"))), None);
         assert_eq!(ganz(None), None);
+    }
+}
+
+/// Section 21a point 4 under Windows (fail closed): a child whose job cannot be made is ended, and its start is refused. The test
+/// build reaches the error through `JOB_VERWEIGERN`; each case also runs without it, so the same start goes through there.
+#[cfg(all(test, windows, feature = "pruefbau"))]
+mod tests_windows {
+    use super::*;
+
+    /// A new folder of the own user alone (DI2) under the temporary folder, as a path of the start file (no drive, `/`).
+    fn wegwerf(name: &str) -> (PathBuf, String) {
+        let p = std::env::temp_dir().join(format!("wbd-job-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&p);
+        crate::sys::ordner_anlegen_eigen(&p).expect("folder");
+        let text = p.to_string_lossy().replace('\\', "/");
+        let ohne_laufwerk = text
+            .split_once(':')
+            .map_or(text.as_str(), |(_, r)| r)
+            .to_owned();
+        (p, ohne_laufwerk)
+    }
+
+    /// The processes whose command line holds `marke` (the asking PowerShell left out).
+    fn prozesse_mit(marke: &str) -> usize {
+        let abfrage = format!(
+            "@(Get-CimInstance Win32_Process | Where-Object {{ $_.Name -ne 'powershell.exe' -and $_.CommandLine -like '*{marke}*' }}).Count"
+        );
+        let aus = std::process::Command::new("powershell.exe")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &abfrage])
+            .output()
+            .expect("powershell runs");
+        String::from_utf8_lossy(&aus.stdout)
+            .trim()
+            .parse()
+            .expect("a number")
+    }
+
+    /// Waits up to 10 s until `prozesse_mit(marke)` is `anzahl`.
+    fn warte_auf(marke: &str, anzahl: usize) -> bool {
+        let frist = Instant::now() + Duration::from_secs(10);
+        loop {
+            if prozesse_mit(marke) == anzahl {
+                return true;
+            }
+            if Instant::now() > frist {
+                return false;
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+    }
+
+    fn grundlage(ordner: &str) -> Value {
+        json!({
+            "socket": {"ordner": ordner},
+            "betrachter": {"person": "anna", "raum": "raum-nord", "ansicht": "fenster"},
+            "deflate": false,
+            "pruefmodus": true,
+            "anfang": {"personen": {"anna": {"art": "mensch", "rolle": "nutzer"}}, "sitzungen": []}
+        })
+    }
+
+    fn verweigern(an: bool) {
+        crate::sys::JOB_VERWEIGERN.with(|v| v.set(an));
+    }
+
+    /// The session of `kind`: without a job the service does not start (exit code 4, DI8), the child is ended and no socket is
+    /// left. Without the error the same start file starts the service with the child running.
+    #[test]
+    fn ohne_job_startet_der_dienst_nicht_und_das_kind_endet() {
+        let (p, ordner) = wegwerf("kind");
+        let marke = format!("wbdjob{}kind", std::process::id());
+        let mut start = grundlage(&ordner);
+        start["kind"] = json!({
+            "argv": ["/Windows/System32/cmd.exe", "/k", "rem", marke],
+            "env": {"SystemRoot": "C:\\Windows"},
+            "cwd": "/Windows"
+        });
+        start["groesse"] = json!([40, 10]);
+        start["anfang"]["sitzungen"] = json!([{"id": "s-alpha", "kundenraum": "raum-nord", "person": "anna", "route": "r1", "titel": "Alpha"}]);
+        let cfg = || crate::startdatei::pruefen(&start).expect("start file");
+        verweigern(true);
+        let fehler = Dienst::neu(cfg()).err().expect("refused without a job");
+        verweigern(false);
+        assert_eq!(fehler.code, 4, "{}", fehler.text);
+        assert!(!p.join("dienst.sock").exists(), "no socket is left");
+        assert!(warte_auf(&marke, 0), "the child has ended");
+        let dienst = Dienst::neu(cfg()).expect("the service starts with a job");
+        assert!(p.join("dienst.sock").exists(), "the socket is there");
+        assert!(warte_auf(&marke, 1), "the child runs");
+        drop(dienst);
+        assert!(
+            warte_auf(&marke, 0),
+            "the end of the service ends the child"
+        );
+        let _ = std::fs::remove_dir_all(&p);
+    }
+
+    /// A session of `Starten`: without a job the start is refused with `programm_nicht_startbar`, the child is ended and its
+    /// folder removed; no session and no number are taken. Without the error the same start makes the session `s-1`.
+    #[test]
+    fn ohne_job_lehnt_der_dienst_starten_ab_und_das_kind_endet() {
+        let (p, ordner) = wegwerf("lauf");
+        let marke = format!("wbd-job-{}-lauf", std::process::id());
+        let einst = p.join("einst.json");
+        std::fs::write(
+            &einst,
+            include_str!("../tests/werkzeug/einstellungen/vorfuehrung.json"),
+        )
+        .expect("settings");
+        let mut start = grundlage(&ordner);
+        start["lauf"] = json!({
+            "programm": "/Windows/System32/cmd.exe",
+            "env": {"SystemRoot": "C:\\Windows"},
+            "groesse": [40, 10],
+            "einstellungen": format!("{ordner}/einst.json"),
+        });
+        let mut dienst =
+            Dienst::neu(crate::startdatei::pruefen(&start).expect("start file")).expect("service");
+        let ereignis = json!({"art": "Starten", "start": {"fassung": 1, "harness": "claude", "modell": "m", "route": "cloud-beispiel", "kunde": "k-beispiel", "arbeitsordner": "/Windows"}});
+        let ereignis = ereignis.as_object().expect("object");
+        verweigern(true);
+        dienst.starten(1, ereignis);
+        verweigern(false);
+        assert_eq!(dienst.sitzungen.len(), 1, "only the room core");
+        assert_eq!(dienst.naechste, 0, "no identifier is taken");
+        assert!(
+            !p.join("s-1").exists(),
+            "the folder of the session is removed"
+        );
+        assert!(warte_auf(&marke, 0), "the child has ended");
+        dienst.starten(1, ereignis);
+        assert_eq!(dienst.sitzungen.len(), 2, "the session s-1 runs");
+        assert!(p.join("s-1").exists(), "its folder is there");
+        assert!(warte_auf(&marke, 1), "the child runs");
+        drop(dienst);
+        assert!(
+            warte_auf(&marke, 0),
+            "the end of the service ends the child"
+        );
+        let _ = std::fs::remove_dir_all(&p);
     }
 }

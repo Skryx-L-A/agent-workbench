@@ -15,9 +15,10 @@ Mutanten folgen mit dem Bau.
 | `README.md` | dieser Vertragstext |
 | `einstellungen.schema.json` | Form als JSON Schema 2020-12 |
 | `vorfuehrung.json` | die Vorführdatei des Durchstichs (Fassung 2) |
+| `erststart.json` | das Erststart-Profil für den ersten echten Start mit Token (Fassung 2, Abschnitt „Erststart-Profil“) |
 | `faelle/<name>.json` | Eingabe: `beschreibung` und die Datei als `text` (UTF-8) oder `b64` (rohe Bytes) |
 | `erwartet/<name>.json` | `{"gueltig": true}` oder `{"gueltig": false, "code": "einst.<code>"}` |
-| `bau-faelle.py` | erzeugt `faelle/`, `erwartet/` und `vorfuehrung.json` |
+| `bau-faelle.py` | erzeugt `faelle/`, `erwartet/`, `vorfuehrung.json` und `erststart.json` |
 | `pruefen.py` | prüft Paarung, Größe, JSON-Lesen und Schema gegen die Fälle |
 
 ## Form
@@ -158,6 +159,41 @@ ersten Start jede fehlende Regel einzeln anhand der Kette. `pruefen.py` prüft: 
 jeder gemessene Pfad geht durch, und Pfade außerhalb der Liste (`GET /copilot_internal/v2/token` an beiden Hosts,
 `POST /v1/fremd`, der Unterpfad `GET /models/x`, die falsche Methode `POST /models` und `GET /chat/completions`) gehen nicht
 durch. Gegenprobe gemessen: Mit der alten Liste meldet `pruefen.py` 7 Fehler.
+
+### Erststart-Profil (Entscheid der Leitung, 25.11.2026)
+
+**Die Leitung hat für den ersten echten Start mit Token entschieden: Am gebundenen Ziel `api.individual.githubcopilot.com`
+gelten zuerst nur `GET /models` und `POST /chat/completions`, und das Modell ist fest gewählt, nie `auto`.** Grund: „Gemessen“
+heißt bei den sieben Pfaden des Nachtrags N1 nur, dass die CLI sie ruft, nicht, dass ihre Antwort kein Token trägt. Die übrigen
+fünf Pfade (`GET /responses`, `POST /auto`, `POST /models/session`, `POST /models/session/intent`, `POST /agents/sessions`) sind
+beim ersten Start nicht freigeschaltet. Eine Anfrage der CLI dorthin endet beim Halter mit `halter.pfad_verboten` und steht mit
+Methode und Pfad in der Kette (Halter-Vertrag, Abschnitte 4 und 9). Für jeden weiteren Pfad misst der Halter vor der Freigabe
+die Form der Antwort (Halter-Vertrag, Abschnitt 4, „Antwortform im Erststart“); enthält ein Feldname `token`, `secret`, `key`,
+`session` oder `credential`, bleibt der Pfad zu, bis die Leitung entscheidet.
+
+Das Profil ist die eigene Datei `erststart.json` neben `vorfuehrung.json`, ein Datensatz der Fassung 2 ohne neues Feld. Sie
+entsteht in `bau-faelle.py` (`ERSTSTARTDATEI`) aus der Vorführdatei und ändert genau zwei Stellen an der Route `copilot`:
+
+| Stelle | Vorführdatei | Erststart-Profil |
+|---|---|---|
+| `pfade` am Ziel `api.individual.githubcopilot.com` | die sieben Pfade des Nachtrags N1 | nur `GET /models` und `POST /chat/completions` |
+| `modell` der Route | fehlt (der Harness wählt, im Start `auto`) | `gpt-6-luna` |
+
+Herkunft des Modellnamens: Die Copilot CLI 1.0.88 wählte mit `--model auto --auto-tier efficiency` das Modell `gpt-6-luna`
+und verbrauchte eine Chat-Einheit, kein Premium-Modell (gemessen am 20.11.2026, Vertrag 1, `rust/spec/start/README.md`,
+Abschnitt zu `copilot`; ebenso der Läufer der Vorführung, `rust/spec/vorfuehrung/laeufer/README.md`). Mit `modell` an der
+Route legt Vertrag 1 das Modell fest: Der Start muss `modell` gleich `gpt-6-luna` tragen (`start.modell_route`), und „Lauf
+starten“ hängt `--model gpt-6-luna` an, nie `--model auto`. Dass der Plan des Kontos beim ersten Start dieses Modell
+anbietet, ist nicht gemessen; fehlt es, scheitert der Modellaufruf sichtbar am Ziel. Alle anderen Ziele (`api.github.com` mit
+den zwei genauen Pfaden, `api.githubcopilot.com`, Telemetrie, `exp`), Klassen, Kunden und der Block `harness` sind wie in der
+Vorführdatei.
+
+Fall: `gueltig-erststart` (gültig). `pruefen.py` prüft zusätzlich (`erststart_pruefen`): Schema, genau die zwei Pfade am
+Modell-Host, jeder der fünf übrigen Pfade geht nicht durch, `modell` ist ein Text und nicht `auto`, und außer diesen zwei
+Stellen gleicht die Datei `vorfuehrung.json`. Gegenprobe gemessen: Mit `modell: auto`, einem zusätzlichen `POST /auto` und
+einer geänderten Kundenfreigabe meldet `pruefen.py` 4 Fehler. Dass jeder der fünf Pfade im Halter `halter.pfad_verboten` mit
+Kettenzeile ergibt, prüfen die Halter-Fälle `s15-erststart-*` und der Test
+`tests/dienst.rs` `erststart_sperrt_die_fuenf_pfade_mit_kettenzeile` im Crate `halter`.
 
 Der echte Lauf hat an `api.individual.githubcopilot.com` zusätzlich `GET /responses` gemessen, ein
 WebSocket-Upgrade. Der Pfad steht seit dem Nachtrag N1 als genauer Pfad in der Liste (alt: `GET /*` traf ihn), und
@@ -440,7 +476,11 @@ python3 -I rust/spec/einstellungen/bau-faelle.py            # Fälle neu erzeuge
 5. **Copilot-Ziele.** Entschieden (Nachtrag N1, 25.11.2026): Am Modell-Host stehen nur die gemessenen genauen Pfade;
    jeder andere Pfad endet beim Halter mit `halter.pfad_verboten` und einer Kettenzeile. Offen: ob die CLI im Betrieb
    weitere Pfade braucht; die Leitung entscheidet jede fehlende Regel einzeln anhand der Kette. alt: „`GET /*` und `POST /*`
-   bleiben, bis jemand entscheidet“. Für einen anderen Plan ist der Plan im Namen nicht gemessen.
+   bleiben, bis jemand entscheidet“. Für einen anderen Plan ist der Plan im Namen nicht gemessen. Für den ersten echten
+   Start gilt das Erststart-Profil (`erststart.json`, Entscheid der Leitung, 25.11.2026): nur `GET /models` und
+   `POST /chat/completions`, Modell `gpt-6-luna`. Offen: welche der fünf übrigen Pfade nach der Messung ihrer Antwortform
+   freigeschaltet werden; das entscheidet die Leitung je Pfad. Offen ist auch, wer `erststart.json` beim ersten Start statt
+   `vorfuehrung.json` einsetzt (Paket oder Läufer); dieser Vertrag legt nur die Datei fest.
 6. **Weitere Ziele einer lokalen Route.** Fassung 2 erlaubt einer lokalen Route nur ihr Ziel. Braucht die Organisation
    mehr (etwa einen Paketspiegel), folgt das mit einer neuen Fassung.
 7. **Firmennetz-Host.** Die Hostregel prüft nur die Form: Ein Name mit `https` gilt als Firmennetz-Host. Ob er

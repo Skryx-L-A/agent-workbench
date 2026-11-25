@@ -341,6 +341,14 @@ impl Kind {
         self.prozess.kill()
     }
 
+    /// Whether the process of the child has ended (Windows), asked without waiting (`Child::try_wait`, under Windows
+    /// `GetExitCodeProcess`); `Kindende` may not have come yet. For the service, when the child cannot join its job.
+    #[cfg(windows)]
+    #[must_use]
+    pub fn prozess_beendet(&mut self) -> bool {
+        matches!(self.prozess.try_wait(), Ok(Some(_)))
+    }
+
     /// The handle of the process of the child (Windows), for a job object of the service. It stays valid as long as this value lives,
     /// also after the end of the child: `portable-pty` closes it on drop.
     #[cfg(windows)]

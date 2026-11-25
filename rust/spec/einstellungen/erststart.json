@@ -1,0 +1,123 @@
+{
+ "fassung": 2,
+ "klassen": [
+  "public",
+  "internal",
+  "confidential",
+  "customer"
+ ],
+ "vorgabestufe": "customer",
+ "routen": [
+  {
+   "schluessel": "copilot",
+   "art": "cloud",
+   "klasse": "internal",
+   "netzziele": [
+    {
+     "host": "api.github.com",
+     "port": 443,
+     "zugriff": "kopf-einsetzen",
+     "schluessel": true,
+     "pfade": [
+      {
+       "methode": "GET",
+       "pfad": "/copilot_internal/user"
+      },
+      {
+       "methode": "GET",
+       "pfad": "/copilot/mcp_registry"
+      }
+     ]
+    },
+    {
+     "host": "api.githubcopilot.com",
+     "port": 443,
+     "zugriff": "kopf-einsetzen",
+     "schluessel": true,
+     "pfade": [
+      {
+       "methode": "GET",
+       "pfad": "/agents/swe/internal/memory/v0/enabled"
+      }
+     ]
+    },
+    {
+     "host": "api.individual.githubcopilot.com",
+     "port": 443,
+     "zugriff": "kopf-einsetzen",
+     "schluessel": true,
+     "pfade": [
+      {
+       "methode": "GET",
+       "pfad": "/models"
+      },
+      {
+       "methode": "POST",
+       "pfad": "/chat/completions"
+      }
+     ]
+    },
+    {
+     "host": "telemetry.individual.githubcopilot.com",
+     "port": 443,
+     "zugriff": "kopf-einsetzen",
+     "schluessel": false,
+     "pfade": [
+      {
+       "methode": "POST",
+       "pfad": "/telemetry"
+      }
+     ]
+    },
+    {
+     "host": "exp.individual.githubcopilot.com",
+     "port": 443,
+     "zugriff": "kopf-einsetzen",
+     "schluessel": false,
+     "pfade": [
+      {
+       "methode": "POST",
+       "pfad": "/api/v1/assignments"
+      }
+     ]
+    }
+   ],
+   "modell": "gpt-6-luna"
+  },
+  {
+   "schluessel": "lokal",
+   "art": "lokal",
+   "klasse": "customer",
+   "ziel": "http://127.0.0.1:11434/v1",
+   "modell": "qwen3:8b",
+   "netzziele": []
+  }
+ ],
+ "kunden": [
+  {
+   "schluessel": "k-nord",
+   "erlaubt": [
+    "lokal"
+   ],
+   "verboten": []
+  },
+  {
+   "schluessel": "k-sued",
+   "erlaubt": [],
+   "verboten": []
+  }
+ ],
+ "kundendaten_an_cloud": {
+  "vorgabe": "nie",
+  "freigaben": []
+ },
+ "harness": {
+  "copilot": {
+   "werkzeuge_ohne_rueckfrage": [
+    "shell",
+    "write",
+    "such-mcp"
+   ]
+  }
+ }
+}

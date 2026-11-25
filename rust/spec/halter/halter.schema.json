@@ -1014,6 +1014,20 @@
                     "pattern": "/\\.\\.?(/|$)"
                   }
                 }
+              },
+              "erststart_antwortform": {
+                "description": "Schalter des Erststarts (Abschnitt 4, Antwortform im Erststart): genaue Regeln ohne *, deren Antwortform der Halter ins Journal schreibt. Dass jede Regel von pfade gedeckt ist, prüft erst der Start (Schritt 2). Fehlt das Feld, gibt es keine Diagnose.",
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^(GET|POST) (?=/.{0,511}$)/(([A-Za-z0-9._~-]+/)*[A-Za-z0-9._~-]+)?$",
+                  "not": {
+                    "pattern": "/\\.\\.?(/|$)"
+                  }
+                }
               }
             },
             "allOf": [

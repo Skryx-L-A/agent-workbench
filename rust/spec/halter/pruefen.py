@@ -209,6 +209,13 @@ def konfig_referenz(fall, roh, pruefer):
         return "halter.konfig"
     if rollengruppen(k, fall["umgebung"]) is not None:
         return "halter.konfig"
+    # Schalter des Erststarts (Abschnitt 4): jede Regel von erststart_antwortform deckt eine Regel aus pfade desselben
+    # Ziels; der Schalter öffnet nie einen Pfad
+    for ziel in k["ziele"].values():
+        for regel in ziel.get("erststart_antwortform", []):
+            methode, pfad = regel.split(" ", 1)
+            if not any(regel_passt(r, methode, pfad) for r in ziel["pfade"]):
+                return "halter.konfig"
     return None
 
 

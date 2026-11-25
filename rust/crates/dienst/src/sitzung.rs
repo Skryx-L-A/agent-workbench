@@ -224,6 +224,20 @@ pub(crate) fn kind_starten(start: &KindStart, huelle: Option<&Path>) -> Result<K
     .map_err(|e| StartFehler::neu(4, &format!("Kind laesst sich nicht starten: {e}")))
 }
 
+/// Windows (section 21a point 4): the job of a new child. `Ok(None)`: the child had ended before it could join, so no process of it is
+/// left to hold (the session runs without a job and reports the end as usual). `Err`: the job could not be made or set, or a running
+/// child could not join; the start is refused (fail closed).
+#[cfg(windows)]
+fn job_fuer(kind: &mut Kind) -> Result<Option<crate::sys::Job>, ()> {
+    let job = crate::sys::Job::neu().map_err(drop)?;
+    let griff = kind.prozess_griff().ok_or(())?;
+    match job.aufnehmen(griff) {
+        Ok(()) => Ok(Some(job)),
+        Err(_) if kind.prozess_beendet() => Ok(None),
+        Err(_) => Err(()),
+    }
+}
+
 /// One core of the service: a session (carrier, child, core) or the room core without a session (DI12).
 pub(crate) struct Sitzung {
     /// The identifier; `None` for the room core.
@@ -260,10 +274,12 @@ pub(crate) struct Sitzung {
     pub(crate) kind_ende: Option<u32>,
     /// A pidfd of the child from its start: its end is seen before the carrier collects it (`waisen.rs`).
     pub(crate) blick: Kindblick,
-    /// Windows: the job object of the child (section 21); closing it ends the child and every process the child started. `None` for the
-    /// room core and once the session has ended.
+    /// Windows: the job object of the child (section 21); closing it ends the child and every process the child started. `Ok(None)` for
+    /// the room core, for a child that had ended before it could join, and once the session has ended. `Err`: the child runs, but its
+    /// job could not be made or the child could not join it (section 21a point 4); the caller ends the child and refuses the start
+    /// ([`Sitzung::job_fehlt`]).
     #[cfg(windows)]
-    job: Option<crate::sys::Job>,
+    job: Result<Option<crate::sys::Job>, ()>,
     /// `true` once the hunt for the orphans of this session was started (once per session, `waisen.rs`).
     pub(crate) gejagt: bool,
     /// DEC mode 2004, from the events of the carrier.
@@ -309,12 +325,11 @@ impl Sitzung {
     fn mit(sid: Option<String>, nr: Option<u8>, kern: Sitzungskern, kind: Option<Kind>) -> Self {
         // the carrier has not been asked for the end of the child yet, so its pid is still the child
         let blick = Kindblick::von(kind.as_ref().and_then(Kind::pid));
-        // Windows: the child joins its job right after its start (section 21); without a job the session runs as before
+        // Windows: the child joins its job right after its start (section 21a point 4); without a job the start is refused
         #[cfg(windows)]
-        let job = kind
-            .as_ref()
-            .and_then(Kind::prozess_griff)
-            .and_then(|griff| crate::sys::Job::fuer(griff).ok());
+        let mut kind = kind;
+        #[cfg(windows)]
+        let job = kind.as_mut().map_or(Ok(None), job_fuer);
         Self {
             sid,
             nr,
@@ -339,6 +354,13 @@ impl Sitzung {
             invers: false,
             zuletzt: 0,
         }
+    }
+
+    /// Windows (section 21a point 4, fail closed): `true` when the child runs without a job. The caller ends the child and refuses the
+    /// start: the session of `kind` with exit code 4, a session of `Starten` with `programm_nicht_startbar`.
+    #[cfg(windows)]
+    pub(crate) fn job_fehlt(&self) -> bool {
+        self.job.is_err()
     }
 
     /// The end of the child has come with `code`: the socket of the report is read empty first, then judged (section 18). Returns the
@@ -366,7 +388,9 @@ impl Sitzung {
     pub(crate) fn ende_aufraeumen(&mut self, eigene: &[u32]) {
         // Windows: closing the job ends what the child left behind (the counterpart of the orphans of section 17)
         #[cfg(windows)]
-        self.job.take();
+        {
+            self.job = Ok(None);
+        }
         if let (Some(ordner), Some(wurzel)) = (self.ordner.take(), self.wurzel.take()) {
             sitzung_ende_raeumt_auf(&ordner, wurzel.as_fd(), self.kind_zeit, eigene);
         }

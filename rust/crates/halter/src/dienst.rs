@@ -15,6 +15,7 @@ use serde_json::{Map, Value, json};
 
 use crate::ablage::Ablage;
 use crate::antwort;
+use crate::antwortform::Sammler;
 use crate::b64;
 use crate::code::Code;
 use crate::form::Op;
@@ -64,6 +65,10 @@ pub struct Dienst {
     leck_treffer: AtomicU64,
     /// Set after the first fixed line on a chain that cannot be continued (one line per run, F16).
     kette_gemeldet: AtomicBool,
+    /// How many journal lines of the answer form of the first start were written in this run.
+    antwortform_zahl: AtomicU64,
+    /// The last of them.
+    antwortform_letzte: Mutex<Option<String>>,
 }
 
 enum Zeile {
@@ -183,6 +188,8 @@ impl Dienst {
             benutzt: Mutex::new(BTreeMap::new()),
             leck_treffer: AtomicU64::new(0),
             kette_gemeldet: AtomicBool::new(false),
+            antwortform_zahl: AtomicU64::new(0),
+            antwortform_letzte: Mutex::new(None),
         }
     }
 
@@ -285,6 +292,29 @@ impl Dienst {
         }
         b.insert(einmal.to_owned(), ablauf);
         true
+    }
+
+    /// How many journal lines of the answer form (section 4, "Antwortform im Erststart") were written in this run;
+    /// 0 without the switch `erststart_antwortform`.
+    #[must_use]
+    pub fn antwortform_zahl(&self) -> u64 {
+        self.antwortform_zahl.load(Ordering::Relaxed)
+    }
+
+    /// The last journal line of the answer form of this run, `None` before the first.
+    #[must_use]
+    pub fn antwortform_letzte(&self) -> Option<String> {
+        self.antwortform_letzte.lock().ok().and_then(|z| z.clone())
+    }
+
+    /// Writes the journal line of the answer form to stderr, counts it and keeps it as the last one.
+    fn antwortform_schreiben(&self, zeile: String) {
+        let mut e = io::stderr();
+        let _ = e.write_all(zeile.as_bytes());
+        self.antwortform_zahl.fetch_add(1, Ordering::Relaxed);
+        if let Ok(mut z) = self.antwortform_letzte.lock() {
+            *z = Some(zeile);
+        }
     }
 
     /// Whether the fixed journal line of a chain that cannot be continued was written in this run (F16).
@@ -599,10 +629,32 @@ impl Dienst {
             Ok(k) => k,
             Err(c) => return senden(strom, &antwort::ende_fehler(&g.id, c)).is_ok(),
         };
+        // the switch of the first start names exactly this rule: a copy of the body for the answer form (section 4);
+        // the answer itself goes on through the leak lock
+        let regel = format!("{methode} {}", s(o, "pfad"));
+        let form = z.antwortform.contains(&regel).then(Sammler::neu);
+        self.koerper_senden(strom, g, &mut koerper, werte, form, k.status)
+    }
+
+    /// The body of an answer after `beginn`: every piece through the leak lock to the bridge, then `ende`. With `form`
+    /// (the switch of the first start) a copy of the body gives the journal line of the answer form after the last piece.
+    fn koerper_senden(
+        &self,
+        strom: &mut UnixStream,
+        g: &Geprueft,
+        koerper: &mut Koerper<'_>,
+        werte: &[Geheim],
+        mut form: Option<Sammler>,
+        status: u16,
+    ) -> bool {
+        let o = &g.anfrage;
         let mut sperre = Sperre::neu(werte);
         loop {
             match koerper.naechstes() {
                 Ok(Some(b)) => {
+                    if let Some(f) = &mut form {
+                        f.schieben(&b);
+                    }
                     let Ok(frei) = sperre.schieben(&b) else {
                         self.leck(g);
                         return senden(strom, &antwort::ende_fehler(&g.id, Code::LeckGesperrt))
@@ -613,6 +665,16 @@ impl Dienst {
                     }
                 }
                 Ok(None) => {
+                    if let Some(f) = &form {
+                        // only `modell.aufruf` reaches a body (a 101 opens the stream before)
+                        self.antwortform_schreiben(f.zeile(
+                            werte,
+                            s(o, "ziel"),
+                            s(o, "methode"),
+                            s(o, "pfad"),
+                            status,
+                        ));
+                    }
                     let rest = sperre.ende();
                     return teile_senden(strom, &g.id, &rest).is_ok()
                         && senden(strom, &antwort::ende(&g.id)).is_ok();

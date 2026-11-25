@@ -506,6 +506,199 @@ fn n1_kaputte_kette_meldet_die_feste_journalzeile() {
     );
 }
 
+/// A server with the role `bruecke` and one target `copilot` at `port` with the rules `pfade` and, if given, the switch
+/// of the first start `erststart_antwortform`.
+fn dienst_erststart(
+    port: u16,
+    heim: &Path,
+    pfade: &[&str],
+    antwortform: Option<&[&str]>,
+) -> Arc<Dienst> {
+    let mut ziel = json!({"host": "127.0.0.1", "port": port, "tls": false, "praefix": "", "kopf": "authorization",
+        "vorsatz": "Bearer ", "schluessel": "anmeldung.copilot", "pfade": pfade});
+    if let Some(a) = antwortform {
+        ziel["erststart_antwortform"] = json!(a);
+    }
+    let k = json!({"fassung": 1, "konten": {uid().to_string(): {"person": PERSON}}, "rollen": {"bruecke": "wb-test"},
+        "ziele": {"copilot": ziel}, "server": {}, "kids": {}});
+    let konfig = konfig::lesen(k.to_string().as_bytes()).expect("konfig");
+    let kette = heim.join("kette");
+    std::fs::create_dir_all(&kette).expect("chain folder");
+    Arc::new(Dienst::neu(
+        konfig,
+        Ablage::neu(heim, uid()),
+        uid(),
+        START,
+        eigene_gid_als("bruecke"),
+        Some(kette),
+        uhr,
+    ))
+}
+
+/// The rules of the profile of the first start at the model host (decision of the lead, 25.11.2026).
+const ERSTSTART: [&str; 2] = ["GET /models", "POST /chat/completions"];
+
+/// The profile of the first start: each of the five paths not released at the first start ends with
+/// `halter.pfad_verboten`, reaches no target and stands in the chain with method and path; the two released paths are
+/// the counter-check and reach the target.
+#[test]
+fn erststart_sperrt_die_fuenf_pfade_mit_kettenzeile() {
+    let a = attrappe(vec![
+        vec![http("200 OK", "", b"{}")],
+        vec![http("200 OK", "", b"{}")],
+    ]);
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst_erststart(a.port, &heim, &ERSTSTART, None);
+    let mut c = verbinden(&d);
+    let gesperrt = [
+        ("modell.strom", "GET", "/responses"),
+        ("modell.aufruf", "POST", "/auto"),
+        ("modell.aufruf", "POST", "/models/session"),
+        ("modell.aufruf", "POST", "/models/session/intent"),
+        ("modell.aufruf", "POST", "/agents/sessions"),
+    ];
+    for (op, methode, pfad) in gesperrt {
+        if op == "modell.strom" {
+            c.senden(&strom_anfrage());
+        } else {
+            c.senden(&aufruf(methode, pfad, b"{}"));
+        }
+        assert_eq!(
+            letzte_code(&c.bis_schluss()).as_deref(),
+            Some("halter.pfad_verboten"),
+            "{methode} {pfad}"
+        );
+    }
+    assert_eq!(
+        a.anfragen.lock().expect("lock").len(),
+        0,
+        "nothing reached the target"
+    );
+    let zeilen: Vec<Value> = kette_text(&heim)
+        .lines()
+        .map(|z| serde_json::from_str::<Value>(z).expect("line"))
+        .filter(|z| z["aktionsname"] == "halter.pfad_verboten")
+        .collect();
+    assert_eq!(zeilen.len(), gesperrt.len());
+    for (z, (op, methode, pfad)) in zeilen.iter().zip(gesperrt) {
+        assert_eq!(z["op"], op);
+        assert_eq!(z["methode"], methode);
+        assert_eq!(z["pfad"], pfad);
+        assert_eq!(z["ziel"], "copilot");
+        assert_eq!(z["grund"], "pfad");
+    }
+    assert!(!d.kette_gemeldet());
+    let p = formate::kette::pruefe_quelle(
+        &heim.join("kette"),
+        "halter",
+        formate::kette::NULL_HASH,
+        None,
+    )
+    .expect("source");
+    assert!(p.ok(), "{:?}", p.bruch);
+    // counter-check: the two released paths go through
+    c.senden(&aufruf("GET", "/models", b""));
+    assert_eq!(
+        c.bis_schluss().last().expect("end")["ok"],
+        json!(true),
+        "GET /models"
+    );
+    c.senden(&aufruf("POST", "/chat/completions", b"{}"));
+    assert_eq!(
+        c.bis_schluss().last().expect("end")["ok"],
+        json!(true),
+        "POST /chat/completions"
+    );
+    assert_eq!(a.anfragen.lock().expect("lock").len(), 2);
+    assert_eq!(d.antwortform_zahl(), 0, "no diagnosis without the switch");
+    assert_eq!(d.antwortform_letzte(), None);
+}
+
+/// The answer form of the first start (target 4 of the order): with the switch for `POST /auto`, the answer
+/// `{"data":[{"id":..}],"access_token":..}` gives the names `data`, `data[].id` and `access_token` and the mark "stays
+/// closed"; the mark value stands neither in the journal line nor in the chain. The answer itself reaches the bridge
+/// unchanged (the value is no held secret, so the leak lock lets it pass as before). A path in the rules without the
+/// switch gives no line.
+#[test]
+fn antwortform_nennt_die_namen_ohne_werte() {
+    const WERT: &str = "hgx9-antwortwert-0815";
+    let koerper = format!(r#"{{"access_token":"{WERT}","data":[{{"id":"{WERT}"}}]}}"#);
+    let a = attrappe(vec![
+        vec![http(
+            "200 OK",
+            "content-type: application/json\r\n",
+            koerper.as_bytes(),
+        )],
+        vec![http(
+            "200 OK",
+            "content-type: application/json\r\n",
+            koerper.as_bytes(),
+        )],
+        vec![http(
+            "200 OK",
+            "content-type: application/json\r\n",
+            koerper.as_bytes(),
+        )],
+    ]);
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst_erststart(
+        a.port,
+        &heim,
+        &["GET /models", "POST /auto", "POST /chat/completions"],
+        Some(&["POST /auto"]),
+    );
+    let mut c = verbinden(&d);
+    c.senden(&aufruf("POST", "/auto", b"{}"));
+    let z = c.bis_schluss();
+    assert_eq!(z.last().expect("end")["ok"], json!(true));
+    assert_eq!(
+        teil_bytes(&z),
+        koerper.as_bytes(),
+        "the answer goes on unchanged"
+    );
+    assert_eq!(d.antwortform_zahl(), 1);
+    let zeile = d.antwortform_letzte().expect("the journal line");
+    let text = zeile.strip_prefix("halter.antwortform: ").expect("prefix");
+    let v: Value = serde_json::from_str(text.trim_end()).expect("line");
+    assert_eq!(v["namen"], json!(["access_token", "data", "data[].id"]));
+    assert_eq!(v["zu"], json!(true));
+    assert_eq!(v["form"], "json");
+    assert_eq!(v["methode"], "POST");
+    assert_eq!(v["pfad"], "/auto");
+    assert_eq!(v["ziel"], "copilot");
+    assert_eq!(v["status"], 200);
+    assert_eq!(zaehlen(zeile.as_bytes(), WERT.as_bytes()), 0);
+    assert_eq!(zaehlen(zeile.as_bytes(), MARKE.as_bytes()), 0);
+    let k = kette_text(&heim);
+    assert_eq!(zaehlen(k.as_bytes(), WERT.as_bytes()), 0);
+    assert_eq!(c.marken(), 0);
+    // a path in the rules without the switch: no further line
+    c.senden(&aufruf("POST", "/chat/completions", b"{}"));
+    assert_eq!(c.bis_schluss().last().expect("end")["ok"], json!(true));
+    assert_eq!(d.antwortform_zahl(), 1);
+    // the same rule again: a second line, again without the value
+    c.senden(&aufruf("POST", "/auto", b"{}"));
+    assert_eq!(c.bis_schluss().last().expect("end")["ok"], json!(true));
+    assert_eq!(d.antwortform_zahl(), 2);
+    assert_eq!(d.antwortform_letzte().as_deref(), Some(zeile.as_str()));
+}
+
+/// Without the switch there is no diagnosis: the same answer on the same path gives no line, in every build.
+#[test]
+fn ohne_schalter_keine_antwortform() {
+    let koerper = br#"{"access_token":"x","data":[{"id":"y"}]}"#;
+    let a = attrappe(vec![vec![http("200 OK", "", koerper)]]);
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst_erststart(a.port, &heim, &["POST /auto"], None);
+    let mut c = verbinden(&d);
+    c.senden(&aufruf("POST", "/auto", b"{}"));
+    let z = c.bis_schluss();
+    assert_eq!(z.last().expect("end")["ok"], json!(true));
+    assert_eq!(teil_bytes(&z), koerper);
+    assert_eq!(d.antwortform_zahl(), 0);
+    assert_eq!(d.antwortform_letzte(), None);
+}
+
 #[test]
 fn aufruf_traegt_schluessel_und_identity_und_gibt_alles_weiter() {
     // L9 (c): a body of 40 bytes arrives whole, then `ende` without a code

@@ -448,6 +448,20 @@ def bauen():
          zeile(konto_modell(pfad="/models")), lage_=n1)
     fall("a-modell-genauer-pfad-mcp-registry", "Gegenprobe: der genaue Pfad /copilot/mcp_registry geht",
          zeile(konto_modell(pfad="/copilot/mcp_registry")), lage_=g)
+    # Erststart-Profil (Entscheid der Leitung, 25.11.2026): am Modell-Host zuerst nur GET /models und POST /chat/completions;
+    # die fünf übrigen gemessenen Pfade enden mit halter.pfad_verboten (und einer Kettenzeile, Abschnitt 9)
+    e1 = lage_konto()
+    e1["konfig"]["ziele"][KONTO_ZIEL]["pfade"] = ["GET /models", "POST /chat/completions"]
+    fall("s15-erststart-responses", "Erststart: GET /responses (Strom) ist beim ersten Start nicht freigeschaltet",
+         zeile(strom()), code="halter.pfad_verboten", lage_=e1)
+    for _pfad in ("/auto", "/models/session", "/models/session/intent", "/agents/sessions"):
+        fall("s15-erststart-" + _pfad.strip("/").replace("/", "-"),
+             f"Erststart: POST {_pfad} ist beim ersten Start nicht freigeschaltet",
+             zeile(konto_modell(methode="POST", pfad=_pfad)), code="halter.pfad_verboten", lage_=e1)
+    fall("a-erststart-modelle", "Gegenprobe zum Erststart: GET /models ist freigeschaltet",
+         zeile(konto_modell(pfad="/models")), lage_=e1)
+    fall("a-erststart-chat", "Gegenprobe zum Erststart: POST /chat/completions ist freigeschaltet",
+         zeile(konto_modell(methode="POST", pfad="/chat/completions")), lage_=e1)
     fall("s16-anmeldung-anderes-konto", "Anmeldung gehört einem anderen Konto als dem der Brücke", zeile(konto_modell()),
          code="halter.kein_schluessel", lage_=lage_konto(konto=SID_B))
     fall("s16-suche-ohne-anmeldung", "Suche ohne Anmeldung des eigenen Kontos", zeile(suche()),
@@ -583,6 +597,22 @@ def konfig_faelle():
     konfig("k-kid-kurz", "Schluessel der Stelle nicht 32 Byte", k_wert(kids={"stelle-mcp-1": "AAAA"}), gueltig=False)
     konfig("k-zusatzfeld", "Feld ausserhalb der geschlossenen Form", k_wert(zusatz=1), gueltig=False)
     konfig("k-fassung-2", "Fassung 2", k_wert(fassung=2), gueltig=False)
+    # Schalter des Erststarts (Abschnitt 4, Antwortform im Erststart): optional am Ziel, genaue Regeln aus pfade
+    konfig("k-gut-erststart-antwortform", "Schalter des Erststarts: Antwortform fuer GET /models und einen Pfad im Teilbaum",
+           k_wert(ziele={"copilot": dict(K_ZIEL, erststart_antwortform=["GET /models", "GET /copilot_internal/user"])}))
+    konfig("k-erststart-antwortform-ungedeckt", "Schalter nennt einen Pfad, den pfade nicht erlaubt (der Schalter oeffnet nie)",
+           k_wert(ziele={"copilot": dict(K_ZIEL, erststart_antwortform=["POST /auto"])}), gueltig=False)
+    konfig("k-erststart-antwortform-teilbaum", "Schalter mit einem Teilbaum statt eines genauen Pfads",
+           k_wert(ziele={"copilot": dict(K_ZIEL, erststart_antwortform=["GET /copilot_internal/*"])}), gueltig=False)
+    konfig("k-erststart-antwortform-leer", "Schalter mit leerer Liste (ohne Schalter fehlt das Feld)",
+           k_wert(ziele={"copilot": dict(K_ZIEL, erststart_antwortform=[])}), gueltig=False)
+    konfig("k-erststart-antwortform-doppelt", "Schalter nennt dieselbe Regel zweimal",
+           k_wert(ziele={"copilot": dict(K_ZIEL, erststart_antwortform=["GET /models", "GET /models"])}), gueltig=False)
+    konfig("k-erststart-antwortform-neun", "Schalter mit neun Regeln (hoechstens acht)",
+           k_wert(ziele={"copilot": dict(K_ZIEL, pfade=["GET /*"],
+                                         erststart_antwortform=[f"GET /p{i}" for i in range(9)])}), gueltig=False)
+    konfig("k-erststart-antwortform-server", "Schalter an einem MCP-Server (nur an einem Modellziel)",
+           k_wert(server={"tickets": dict(K_SERVER, erststart_antwortform=["GET /mcp"])}), gueltig=False)
     konfig("k-doppelter-schluessel", "doppelter Schluessel rollen",
            text='{"fassung":1,"konten":{"1000":{"person":null}},"rollen":{},"rollen":{"bruecke":"wb-bruecke"},'
                 '"ziele":{},"server":{},"kids":{}}', gueltig=False)

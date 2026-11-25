@@ -510,10 +510,11 @@ davon erst nach M1 oder mit dem Wort.
 
 ## Nachtrag 25.11.2026 (Windows): `Kind::beenden` und der Code eines beendeten Kindes
 
-Stand: Zweig, nicht abgenommen. Unter Windows gibt es kein SIGHUP; der Dienst kann ein Kind nur über den Träger beenden.
+Stand: abgenommen 25.11.2026. Unter Windows gibt es kein SIGHUP; der Dienst kann ein Kind nur über den Träger beenden.
 
 1. **`Kind::beenden`** (öffentlich, alle Systeme) beendet ein laufendes Kind über `ChildKiller::kill` von `portable-pty` 0.9.0 und wartet nicht auf das Ende der Ausgabe; `Kindende` folgt wie bei jedem anderen Ende über `lies` (TR2). Ein Kind, das schon geendet hat oder dessen Ausgabe zu Ende ist, bleibt unberührt. Das Crate bleibt ohne `unsafe`.
    - Unix: SIGHUP, bis zu 200 ms Nachfragen, dann SIGKILL (`portable-pty` `lib.rs:340-373`); `Kindende` trägt wie immer 128 plus das Signal (129 oder 137). Der Dienst nutzt unter Unix weiter seine eigene Folge (DI12 Punkt 6).
    - Windows: `TerminateProcess` mit dem Code 1 (`win/mod.rs:41-57`); ein Kind kann es nicht abfangen.
 2. **Code unter Windows (TR12).** Ein Kind, das `Kind::beenden` beendet hat und mit dem Code 1 von `TerminateProcess` endet, meldet `Kindende` mit dem Code 129 (128 plus 1, wie das Ende durch SIGHUP unter Unix). So sieht ein verlangtes Ende auf jedem System gleich aus, und die Fälle des Dienstes, die nach `Beenden` 129 erwarten, gelten unverändert. Ein Kind, das im selben Augenblick von selbst mit 1 endet, meldet ebenfalls 129; der Fall wird nicht unterschieden. Ohne `Kind::beenden` bleibt der Code der Exitcode.
 3. **`Kind::prozess_griff`** (nur Windows) gibt den Griff des Prozesses für ein Job-Objekt des Dienstes; er gilt, solange der Wert `Kind` lebt.
+4. **`Kind::prozess_beendet`** (nur Windows) fragt ohne Warten, ob der Prozess des Kindes geendet hat (`Child::try_wait`, unter Windows `GetExitCodeProcess`); `Kindende` kann noch ausstehen, und der Prozess wird dabei nicht eingesammelt. Der Dienst fragt es, wenn ein Kind nicht in seinen Job kommt (Vertrag `dienst`, Abschnitt 21a Punkt 4).
