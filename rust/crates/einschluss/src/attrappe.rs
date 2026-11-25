@@ -62,13 +62,31 @@ pub fn antwort(route: &str, zeile: &str) -> String {
     format!("{{\"route\":\"{route}\"}}")
 }
 
+/// Listens on `socket` and makes the path appear only once the socket listens. `UnixListener::bind` creates the path at
+/// `bind` and listens a moment later; a test that waits for the path and connects in that moment gets `ECONNREFUSED`
+/// (measured under load: `case_c` and `case_f` red with `frage: ERR ECONNREFUSED`). So the socket listens under a name
+/// of its own next to `socket` first, then gets `socket` as a hard link, which fails when the path is taken.
+fn hoeren(socket: &Path) -> io::Result<UnixListener> {
+    let name = socket
+        .file_name()
+        .ok_or_else(|| io::Error::from(io::ErrorKind::InvalidInput))?
+        .to_string_lossy()
+        .into_owned();
+    let vorlaeufig = socket.with_file_name(format!(".{name}.{}", std::process::id()));
+    let hoerer = UnixListener::bind(&vorlaeufig)?;
+    let verknuepft = fs::hard_link(&vorlaeufig, socket);
+    fs::remove_file(&vorlaeufig)?;
+    verknuepft?;
+    Ok(hoerer)
+}
+
 /// The stand-in search process: listens on `socket` and answers each line with [`antwort`]. It runs until it is
 /// killed. It fails when the socket path is taken.
 ///
 /// # Errors
 /// The socket cannot be created.
 pub fn such_server(socket: &Path, route: &str) -> io::Result<()> {
-    let hoerer = UnixListener::bind(socket)?;
+    let hoerer = hoeren(socket)?;
     for verbindung in hoerer.incoming() {
         let Ok(verbindung) = verbindung else { continue };
         let route = route.to_owned();
@@ -104,7 +122,7 @@ pub fn cloud_antwort(zeile: &str, platzhalter: &str, marke: &str) -> String {
 /// # Errors
 /// The socket cannot be created.
 pub fn cloud_server(socket: &Path, platzhalter: &str, marke: &str) -> io::Result<()> {
-    let hoerer = UnixListener::bind(socket)?;
+    let hoerer = hoeren(socket)?;
     for verbindung in hoerer.incoming() {
         let Ok(verbindung) = verbindung else { continue };
         let (platzhalter, marke) = (platzhalter.to_owned(), marke.to_owned());
@@ -127,7 +145,7 @@ pub fn cloud_server(socket: &Path, platzhalter: &str, marke: &str) -> io::Result
 /// # Errors
 /// The socket cannot be created.
 pub fn weiter_server(socket: &Path, ziel: &str) -> io::Result<()> {
-    let hoerer = UnixListener::bind(socket)?;
+    let hoerer = hoeren(socket)?;
     for verbindung in hoerer.incoming() {
         let Ok(verbindung) = verbindung else { continue };
         let ziel = ziel.to_owned();

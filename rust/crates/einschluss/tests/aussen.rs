@@ -5,7 +5,8 @@
 //!
 //! The cases follow the script of the demonstration: (a) a note outside is not readable, (b) a foreign address is not
 //! reachable, (c) the route stays the route of the start, (d) the search process is not visible (E3), (e) the socket
-//! is reachable at one place only. Further: the environment, and the lifetime of `bwrap` against the starting thread.
+//! is reachable at one place only. Further: the environment, and the lifetime of `bwrap` against its starter and the
+//! thread that started it.
 #![cfg(all(target_os = "linux", feature = "attrappe"))]
 
 mod gemeinsam;
@@ -681,82 +682,251 @@ fn the_environment_is_cleared_and_set_again() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// the lifetime of bwrap against the starting thread (why there is no --die-with-parent)
+// the lifetime of bwrap against its starter and against the thread that started it
 
-/// Starts `bwrap` from a thread that ends right after the start, and says whether it still lives 600 ms later. The
-/// program in the enclosure ends by itself after two seconds, so no process is left over and none is killed.
-fn lebt_nach_ende_des_startfadens(args: &[String]) -> bool {
-    let mut aufruf = vec!["/usr/bin/sleep".to_owned(), "2".to_owned()];
-    let naht = args.iter().position(|a| a == "--").expect("--");
-    let mut alle: Vec<String> = args[..=naht].to_vec();
-    alle.append(&mut aufruf);
-    let mut kind = std::thread::spawn(move || {
-        std::process::Command::new("/usr/bin/bwrap")
-            .args(alle)
-            .env_clear()
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .spawn()
-            .expect("bwrap starts")
-    })
-    .join()
-    .expect("the starting thread");
-    std::thread::sleep(Duration::from_millis(600));
-    let lebt = kind.try_wait().expect("wait").is_none();
-    let _ = kind.wait();
-    lebt
-}
-
-/// Starts `bwrap` below a shell, kills the shell with `SIGKILL` and says whether the program in the enclosure was ended
-/// with it. The program writes a file into the working folder after 1.5 seconds; no file after 2.5 seconds means it was
-/// ended. Nothing is left over: the program ends by itself.
-fn endet_mit_dem_starter(welt: &Welt, args: &[String]) -> bool {
-    let marke = welt.arbeit.join("ende");
-    let _ = fs::remove_file(&marke);
+/// The program in the enclosure for the two lifetime cases: it says `lebt` once it runs, then waits for a line on its
+/// standard input and says `ende`. It never ends by a clock: it ends when the test writes the line or drops the pipe, so
+/// no process is left over and a slow machine cannot end it early.
+fn wartendes_programm(args: &[String]) -> Vec<String> {
     let naht = args.iter().position(|a| a == "--").expect("--");
     let mut alle: Vec<String> = args[..=naht].to_vec();
     alle.extend([
         "/usr/bin/sh".to_owned(),
         "-c".to_owned(),
-        format!("sleep 1.5; echo x > {}", s(&marke)),
+        "echo lebt; read weiter; echo ende".to_owned(),
     ]);
+    alle
+}
+
+/// Reads the lines of `aus` in a thread of its own; the channel ends when every holder of the pipe is gone.
+fn zeilen(aus: impl std::io::Read + Send + 'static) -> std::sync::mpsc::Receiver<String> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        for zeile in std::io::BufRead::lines(std::io::BufReader::new(aus)) {
+            let Ok(zeile) = zeile else { break };
+            if tx.send(zeile).is_err() {
+                break;
+            }
+        }
+    });
+    rx
+}
+
+/// How long the death of the harness after the end of its starter may take. It bounds only the real case (death); the
+/// counter probe (no death) waits this long and then shows by an answer that the harness still runs.
+const TOD_FRIST: Duration = Duration::from_secs(10);
+
+/// The verdict after the end of the starter: `true` when the output of the program closes within `TOD_FRIST` without
+/// another line (the program was ended), `false` when the program still answers the line of the test with `ende`.
+fn beendet(rx: &std::sync::mpsc::Receiver<String>, mut ein: std::process::ChildStdin) -> bool {
+    match rx.recv_timeout(TOD_FRIST) {
+        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => return true,
+        Ok(zeile) => panic!("unexpected line {zeile:?} after the end of the starter"),
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+    }
+    std::io::Write::write_all(&mut ein, b"weiter\n").expect("the line for the program");
+    drop(ein);
+    assert_eq!(
+        rx.recv().ok().as_deref(),
+        Some("ende"),
+        "the program neither ended nor answered"
+    );
+    false
+}
+
+/// Starts `bwrap` below a shell, kills the shell with `SIGKILL` once the program in the enclosure said `lebt` (the set-up
+/// of `bwrap` is over), and says whether the program was ended with it ([`beendet`]). No step waits for a fixed time
+/// against the start of the enclosure, so a slow start cannot turn the answer around. A kill during the set-up is not
+/// this case: there the inner `bwrap` has no death signal yet (see `profil.rs`, the row of `--die-with-parent`).
+fn endet_mit_dem_starter(args: &[String]) -> bool {
+    // the shell keeps its standard input for bwrap (without it, sh gives a job in the background /dev/null)
     let mut shell = std::process::Command::new("/bin/sh")
-        .args(["-c", "/usr/bin/bwrap \"$@\" & wait", "sh"])
-        .args(alle)
+        .args([
+            "-c",
+            "exec 3<&0; /usr/bin/bwrap \"$@\" <&3 3<&- & wait",
+            "sh",
+        ])
+        .args(wartendes_programm(args))
         .env_clear()
-        .stdin(std::process::Stdio::null())
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
         .spawn()
         .expect("shell starts");
-    std::thread::sleep(Duration::from_millis(700));
+    let ein = shell.stdin.take().expect("stdin");
+    let rx = zeilen(shell.stdout.take().expect("stdout"));
+    assert_eq!(
+        rx.recv().ok().as_deref(),
+        Some("lebt"),
+        "the enclosure did not start"
+    );
     shell.kill().expect("kill the shell");
     let _ = shell.wait();
-    std::thread::sleep(Duration::from_millis(2500));
-    let beendet = !marke.exists();
-    let _ = fs::remove_file(&marke);
-    beendet
+    beendet(&rx, ein)
+}
+
+/// Starts `bwrap` from a thread, lets that thread end only after the program in the enclosure said `lebt`, and says
+/// whether the program was ended with the thread ([`beendet`]). The kernel ties the death signal to the thread that
+/// forked the child, so with `--die-with-parent` the end of that thread ends the session. The thread ends after the
+/// set-up on purpose: a thread that ended before `bwrap` set its signal would leave nothing to measure (that was the
+/// old form of this case, and under load the race turned around).
+fn endet_mit_dem_startfaden(args: &[String]) -> bool {
+    let alle = wartendes_programm(args);
+    let (mut kind, ein, rx) = std::thread::spawn(move || {
+        let mut kind = std::process::Command::new("/usr/bin/bwrap")
+            .args(alle)
+            .env_clear()
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .expect("bwrap starts");
+        let ein = kind.stdin.take().expect("stdin");
+        let rx = zeilen(kind.stdout.take().expect("stdout"));
+        assert_eq!(
+            rx.recv().ok().as_deref(),
+            Some("lebt"),
+            "the enclosure did not start"
+        );
+        (kind, ein, rx)
+    })
+    .join()
+    .expect("the starting thread");
+    let ende = beendet(&rx, ein);
+    let _ = kind.wait();
+    ende
 }
 
 #[test]
-fn elternbindung_the_session_ends_with_its_starter_and_survives_a_thread() {
+fn elternbindung_the_session_ends_with_its_starter_and_with_its_starting_thread() {
     let welt = Welt::neu();
     let args = welt.profil().argumente();
-    // the starter dies with SIGKILL: the session ends with it ...
+    // the starter dies with SIGKILL after the set-up: the session ends with it ...
     assert!(
-        endet_mit_dem_starter(&welt, &args),
+        endet_mit_dem_starter(&args),
         "the harness outlived its starter"
     );
     // ... and the counter probe: without --die-with-parent it stays behind as an orphan
     let mutant = ohne(&args, "--die-with-parent");
     assert!(
-        !endet_mit_dem_starter(&welt, &mutant),
+        !endet_mit_dem_starter(&mutant),
         "without --die-with-parent the harness should outlive its starter"
     );
-    // the measured fact that lets the flag stay in a service with a thread pool: bwrap does not die with the thread
+    // the rule a starter must follow: the thread that forks bwrap lives until the end (werkbank-lauf forks it from its
+    // main thread), because the session ends with that thread ...
     assert!(
-        lebt_nach_ende_des_startfadens(&args),
-        "bwrap died with the starting thread"
+        endet_mit_dem_startfaden(&args),
+        "the harness outlived the thread that started it"
     );
+    // ... and the counter probe: without --die-with-parent the end of the thread does not end it
+    assert!(
+        !endet_mit_dem_startfaden(&mutant),
+        "without --die-with-parent the harness should outlive the thread that started it"
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// (L1) no setgid acts in the enclosure: a program with the setgid bit does not get its group inside
+
+/// The effective gid and the supplementary groups of this process (`/proc/self/status`, lines `Gid:` and `Groups:`).
+fn eigene_gruppen() -> (u32, Vec<u32>) {
+    let status = fs::read_to_string("/proc/self/status").expect("status");
+    let zahlen = |name: &str| -> Vec<u32> {
+        status
+            .lines()
+            .find_map(|z| z.strip_prefix(name))
+            .map(|r| {
+                r.split_whitespace()
+                    .filter_map(|x| x.parse().ok())
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let egid = *zahlen("Gid:").get(1).expect("the effective gid");
+    (egid, zahlen("Groups:"))
+}
+
+/// A copy of `/usr/bin/id` in `ordner` with the group `gruppe` and the mode 2755 (setgid). The group is set first: a
+/// change of the group clears the setgid bit.
+fn setgid_kopie(ordner: &std::path::Path, gruppe: u32) -> std::path::PathBuf {
+    use std::os::unix::fs::PermissionsExt;
+    let kopie = ordner.join("id-sgid");
+    fs::copy("/usr/bin/id", &kopie).expect("copy of id");
+    std::os::unix::fs::chown(&kopie, None, Some(gruppe)).expect("group of the copy");
+    fs::set_permissions(&kopie, fs::Permissions::from_mode(0o2755)).expect("mode 2755");
+    let modus = fs::metadata(&kopie).expect("metadata").permissions().mode();
+    assert_eq!(modus & 0o7777, 0o2755, "the copy has no setgid bit");
+    kopie
+}
+
+/// The output of `programm -g` (the effective gid of that program), outside or with the arguments `args` of `bwrap`.
+fn egid_von(args: Option<&[String]>, programm: &std::path::Path) -> String {
+    let mut befehl = match args {
+        None => std::process::Command::new(programm),
+        Some(args) => {
+            let naht = args.iter().position(|a| a == "--").expect("--");
+            let mut b = std::process::Command::new("/usr/bin/bwrap");
+            b.args(&args[..=naht]).arg(programm);
+            b
+        }
+    };
+    let aus = befehl
+        .arg("-g")
+        .env_clear()
+        .stdin(std::process::Stdio::null())
+        .output()
+        .expect("the program runs");
+    assert!(aus.status.success(), "{}: {aus:?}", programm.display());
+    String::from_utf8_lossy(&aus.stdout).trim().to_owned()
+}
+
+#[test]
+// the one line of a case that cannot be measured on this host (no supplementary group)
+#[allow(clippy::print_stderr)]
+fn l1_no_setgid_acts_in_the_enclosure() {
+    let (egid, gruppen) = eigene_gruppen();
+    // a group that is not mapped into the user namespace of the test shows as the overflow gid and cannot be given
+    let ueberlauf: Option<u32> = fs::read_to_string("/proc/sys/kernel/overflowgid")
+        .ok()
+        .and_then(|t| t.trim().parse().ok());
+    let Some(gruppe) = gruppen
+        .into_iter()
+        .find(|g| *g != egid && Some(*g) != ueberlauf)
+    else {
+        // no group of its own to give a copy: the case cannot be measured on this host, and it says so
+        eprintln!(
+            "SKIPPED l1_no_setgid_acts_in_the_enclosure: the test process has no mapped supplementary group"
+        );
+        return;
+    };
+    let welt = Welt::neu();
+    let args = welt.profil().argumente();
+    // read-only in the enclosure (the program folder, like /usr) and writable (the working folder)
+    for ordner in [&welt.programm, &welt.arbeit] {
+        let kopie = setgid_kopie(ordner, gruppe);
+        // the counter probe outside: the bit works, the program runs with the group of the file
+        assert_eq!(
+            egid_von(None, &kopie),
+            gruppe.to_string(),
+            "outside, the setgid copy in {} should run with its group",
+            ordner.display()
+        );
+        // inside: the same gid as the plain id there (no_new_privs of bwrap, nosuid on each mount)
+        let ohne_bit = egid_von(Some(&args), std::path::Path::new("/usr/bin/id"));
+        let mit_bit = egid_von(Some(&args), &kopie);
+        assert_eq!(
+            mit_bit,
+            ohne_bit,
+            "the setgid copy in {} changed the gid inside the enclosure",
+            ordner.display()
+        );
+        assert_ne!(
+            mit_bit,
+            gruppe.to_string(),
+            "the setgid copy in {} got its group inside the enclosure",
+            ordner.display()
+        );
+        fs::remove_file(&kopie).expect("remove the copy");
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------

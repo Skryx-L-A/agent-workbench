@@ -110,6 +110,9 @@ Pull Request braucht die einmalige Zustimmung zur Beitragsvereinbarung (CLA). Ei
 [CONTRIBUTING.md](CONTRIBUTING.md). Fragen gehören in die Discussions, siehe
 [SUPPORT.md](SUPPORT.md).
 
+Kleine, gut beschriebene Aufgaben für den Einstieg sind offene Issues mit dem Label
+[`good first issue`](https://github.com/Skryx-L-A/agent-workbench/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+
 ## Lizenz
 
 Die eigene Arbeit des Lizenzgebers steht unter der [Apache License 2.0](LICENSE); fremde Bestandteile

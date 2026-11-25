@@ -28,6 +28,9 @@ change went. If the maintainer has to change your patch, the note says so.
 Keep a pull request to one topic. Write commit messages in English. Describe what changes and
 why, and how you tested it.
 
+Comment on the issue before you start. The maintainer may finish and close a `help wanted` issue
+that has no comment.
+
 ## Building and testing
 
 ### `development` (Rust)
@@ -58,6 +61,35 @@ bash tools/werkzeuge-installieren.sh --install --target "$HOME/.local/share/wb-r
 
 Details: `rust/README.md`, sections Dependencies and Gates. A new dependency must
 pass the licence list in `rust/deny.toml`.
+
+#### Continuous integration and local commands
+
+The workflow `.github/workflows/ci.yml` runs these steps on every push and pull request to
+`development`. Run the local command of a row in `rust/` before you push.
+
+| CI job and step | Gate | Local command |
+|---|---|---|
+| `gates` (Ubuntu and macOS): Tools | tool folder | `./gates.sh tools` |
+| `gates`: fmt | fmt | `./gates.sh fmt` |
+| `gates`: clippy | clippy | `./gates.sh clippy` |
+| `gates`: test | test | `./gates.sh test` |
+| `gates`: licenses | licenses | `./gates.sh licenses` |
+| `gates`: notices | notices | `./gates.sh notices` |
+| `windows`: fmt | fmt | `cargo fmt --all --check` |
+| `windows`: clippy | clippy | `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings` |
+| `windows`: test | test | `cargo test --workspace --all-targets --all-features --locked --no-fail-fast` |
+| `windows`: cargo-deny | licenses | `cargo deny --locked --all-features check licenses bans sources` |
+
+- The Windows job runs the cargo commands directly, without the tool folder. The installer has
+  pinned checksums only for x86_64 Linux and arm64 macOS. Windows installs the toolchain of
+  `rust/rust-toolchain.toml` and runs neither the SBOM step nor the notices gate.
+- The mutation gate (`./gates.sh mutants`) does not run in the CI. It takes hours; the maintainer
+  runs it in the source tree before a state is published.
+- The Linux tests need user namespaces. They call `unshare -Ur` and start a nested `bwrap`. On the
+  Ubuntu runners, the CI step `Linux test host` sets `kernel.apparmor_restrict_unprivileged_userns`
+  to `0`, unloads the AppArmor profile `bwrap-userns-restrict` and checks `unshare -Ur -- true`
+  before the tests. Locally, install `bubblewrap` and `lsof` first. Change the kernel setting only
+  on a machine that you use for tests, because the change applies to the whole host.
 
 ### `main` (workbench)
 
@@ -126,6 +158,9 @@ sagt der Hinweis das.
 Beschränken Sie einen Pull Request auf ein Thema. Schreiben Sie Commit-Nachrichten auf Englisch.
 Beschreiben Sie, was sich ändert, warum, und wie Sie es getestet haben.
 
+Kommentieren Sie das Issue, bevor Sie anfangen. Der Maintainer kann ein Issue mit dem Label
+`help wanted`, das keinen Kommentar hat, selbst erledigen und schließen.
+
 ## Bauen und testen
 
 ### `development` (Rust)
@@ -157,6 +192,36 @@ bash tools/werkzeuge-installieren.sh --install --target "$HOME/.local/share/wb-r
 
 Einzelheiten: `rust/README.md`, Abschnitte Dependencies und Gates. Eine neue
 Abhängigkeit muss die Lizenzliste in `rust/deny.toml` bestehen.
+
+#### Continuous Integration und lokale Befehle
+
+Die Datei `.github/workflows/ci.yml` führt diese Schritte bei jedem Push und jedem Pull Request auf
+`development` aus. Führen Sie den lokalen Befehl einer Zeile in `rust/` aus, bevor Sie pushen.
+
+| CI-Job und Schritt | Tor | Lokaler Befehl |
+|---|---|---|
+| `gates` (Ubuntu und macOS): Tools | Werkzeugordner | `./gates.sh tools` |
+| `gates`: fmt | fmt | `./gates.sh fmt` |
+| `gates`: clippy | clippy | `./gates.sh clippy` |
+| `gates`: test | test | `./gates.sh test` |
+| `gates`: licenses | licenses | `./gates.sh licenses` |
+| `gates`: notices | notices | `./gates.sh notices` |
+| `windows`: fmt | fmt | `cargo fmt --all --check` |
+| `windows`: clippy | clippy | `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings` |
+| `windows`: test | test | `cargo test --workspace --all-targets --all-features --locked --no-fail-fast` |
+| `windows`: cargo-deny | licenses | `cargo deny --locked --all-features check licenses bans sources` |
+
+- Der Windows-Job führt die cargo-Befehle direkt aus, ohne den Werkzeugordner. Der Installer hat
+  festgelegte Prüfsummen nur für x86_64 Linux und arm64 macOS. Unter Windows wird die Toolchain aus
+  `rust/rust-toolchain.toml` installiert; der SBOM-Schritt und das Tor notices laufen dort nicht.
+- Das Mutationstor (`./gates.sh mutants`) läuft nicht in der CI. Es dauert Stunden; der Maintainer
+  führt es im Quellbaum aus, bevor ein Stand veröffentlicht wird.
+- Die Linux-Tests brauchen Benutzer-Namensräume. Sie rufen `unshare -Ur` auf und starten ein
+  verschachteltes `bwrap`. Auf den Ubuntu-Runnern setzt der CI-Schritt `Linux test host`
+  `kernel.apparmor_restrict_unprivileged_userns` auf `0`, entlädt das AppArmor-Profil
+  `bwrap-userns-restrict` und prüft `unshare -Ur -- true`, bevor die Tests laufen. Lokal
+  installieren Sie zuerst `bubblewrap` und `lsof`. Ändern Sie die Kernel-Einstellung nur auf einem
+  Rechner, den Sie für Tests nutzen, denn die Änderung gilt für das ganze System.
 
 ### `main` (Werkbank)
 

@@ -855,6 +855,80 @@ fn lebende_der_welt(wurzel: &std::path::Path) -> Vec<(i32, String, String)> {
     gefunden
 }
 
+/// The hang guard of G1 while it waits for the start of a world. It is no measure: the claim of G1 begins when the
+/// starter has become `bwrap`, and a start may take long on a loaded machine (an `fsync` of the program waits for the
+/// disk). The wait ends on events: the thing awaited, or the end of the program, which is red with its status and its
+/// standard error.
+const START_GRENZE: std::time::Duration = std::time::Duration::from_secs(300);
+
+/// Waits until `gesucht` finds something, the program `kind` ends (red, with status and standard error from
+/// `fehler_datei`), or [`START_GRENZE`] has passed (red, with the threads of the program, their state, system call and
+/// `wchan`, and the processes of the world ended). `spin` polls without sleeping (for the first milliseconds).
+fn start_abwarten<T>(
+    kind: &mut std::process::Child,
+    w: &Welt,
+    fehler_datei: &std::path::Path,
+    was: &str,
+    spin: bool,
+    mut gesucht: impl FnMut(&mut std::process::Child) -> Option<T>,
+) -> T {
+    let anfang = std::time::Instant::now();
+    loop {
+        if let Some(t) = gesucht(kind) {
+            return t;
+        }
+        if let Ok(Some(status)) = kind.try_wait() {
+            let fehler = std::fs::read_to_string(fehler_datei).unwrap_or_default();
+            panic!(
+                "{was}: the program ended after {} ms: {status:?}, standard error {fehler:?}",
+                anfang.elapsed().as_millis()
+            );
+        }
+        if anfang.elapsed() >= START_GRENZE {
+            let faeden = faeden_von(kind.id());
+            let namen: Vec<String> = nachkommen(i32::try_from(kind.id()).expect("pid"))
+                .iter()
+                .map(|p| format!("{}:{}", p.pid, name_von(p.pid)))
+                .collect();
+            let _ = kind.kill();
+            let _ = kind.wait();
+            gemeinsam::prozesse_unter_beenden(&w.wurzel);
+            panic!("{was}: nothing in {START_GRENZE:?}; threads {faeden:?}, below it {namen:?}");
+        }
+        if spin {
+            std::hint::spin_loop();
+        } else {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+    }
+}
+
+/// Each thread of `pid`: its number, state, system call (number and first argument) and `wchan`.
+fn faeden_von(pid: u32) -> Vec<String> {
+    let Ok(liste) = std::fs::read_dir(format!("/proc/{pid}/task")) else {
+        return Vec::new();
+    };
+    liste
+        .filter_map(Result::ok)
+        .map(|t| {
+            let pfad = t.path();
+            let aufruf = std::fs::read_to_string(pfad.join("syscall")).unwrap_or_default();
+            let aufruf: Vec<&str> = aufruf.split_whitespace().take(2).collect();
+            let wchan = std::fs::read_to_string(pfad.join("wchan")).unwrap_or_default();
+            let stat = std::fs::read_to_string(pfad.join("stat")).unwrap_or_default();
+            let zustand = stat
+                .rsplit_once(')')
+                .and_then(|(_, r)| r.split_whitespace().next().map(str::to_owned))
+                .unwrap_or_default();
+            format!(
+                "{}:{zustand}:{}:{wchan}",
+                t.file_name().to_string_lossy(),
+                aufruf.join(",")
+            )
+        })
+        .collect()
+}
+
 /// G1 at the earliest moment. Positive control first: the scan finds the processes of a world that runs. Then the
 /// starter (the child of the program, which is `bwrap` after the exec of the trampoline) is ended by SIGKILL after a
 /// delay of 0 to 4 ms after it has become `bwrap`, 60 times, each in a world of its own; two seconds later nothing of
@@ -882,20 +956,20 @@ fn g1_the_enclosure_ends_also_when_the_starter_is_killed_in_its_first_millisecon
             .env("TERM", "xterm")
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
+            .stderr(std::fs::File::create(w.wurzel.join("lauf-stderr")).expect("stderr file"))
             .gesperrt_spawn()
             .expect("start");
-        let ende = std::time::Instant::now() + std::time::Duration::from_secs(30);
-        while !programm_laeuft(
-            &nachkommen(i32::try_from(kind.id()).expect("pid")),
-            "copilot",
-        ) {
-            assert!(
-                std::time::Instant::now() < ende,
-                "the control world did not start"
-            );
-            std::thread::sleep(std::time::Duration::from_millis(50));
-        }
+        start_abwarten(
+            &mut kind,
+            &w,
+            &w.wurzel.join("lauf-stderr"),
+            "the control world",
+            false,
+            |k| {
+                programm_laeuft(&nachkommen(i32::try_from(k.id()).expect("pid")), "copilot")
+                    .then_some(())
+            },
+        );
         assert!(
             !lebende_der_welt(&w.wurzel).is_empty(),
             "positive control: the scan finds nothing of a running world"
@@ -919,20 +993,17 @@ fn g1_the_enclosure_ends_also_when_the_starter_is_killed_in_its_first_millisecon
             .env("TERM", "xterm")
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
+            .stderr(std::fs::File::create(w.wurzel.join("lauf-stderr")).expect("stderr file"))
             .gesperrt_spawn()
             .expect("start");
-        let ende = std::time::Instant::now() + std::time::Duration::from_secs(30);
-        let kpid = loop {
-            if let Some(p) = starter_von(kind.id()) {
-                break p;
-            }
-            assert!(
-                std::time::Instant::now() < ende,
-                "round {runde}: the starter did not become bwrap"
-            );
-            std::hint::spin_loop();
-        };
+        let kpid = start_abwarten(
+            &mut kind,
+            &w,
+            &w.wurzel.join("lauf-stderr"),
+            &format!("round {runde}: the starter did not become bwrap"),
+            true,
+            |k| starter_von(k.id()),
+        );
         let t0 = std::time::Instant::now();
         while t0.elapsed() < std::time::Duration::from_micros(verzoegerung) {
             std::hint::spin_loop();

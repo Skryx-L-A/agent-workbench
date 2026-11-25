@@ -69,10 +69,21 @@ fn frage(port: u16, daten: &[u8]) -> Vec<u8> {
     c.set_read_timeout(Some(Duration::from_secs(10)))
         .expect("timeout");
     c.write_all(daten).expect("write");
-    c.shutdown(Shutdown::Write).expect("half close");
+    halb_schliessen(&c);
     let mut antwort = Vec::new();
     let _ = c.read_to_end(&mut antwort);
     antwort
+}
+
+/// The half close of the client. A forwarder that closed at once (no socket) may have reset the connection before it:
+/// macOS then answers ENOTCONN (measured: 40 of 40 with a pause between write and half close, 0 of 40 without). The
+/// answer decides, not that call; every other error of the half close stays an abort.
+fn halb_schliessen(c: &TcpStream) {
+    match c.shutdown(Shutdown::Write) {
+        Ok(()) => {}
+        Err(e) if e.kind() == io::ErrorKind::NotConnected => {}
+        Err(e) => panic!("half close: {e:?}"),
+    }
 }
 
 #[test]
@@ -133,6 +144,24 @@ fn a_missing_socket_closes_the_connection_without_an_answer() {
     let o = Ordner::neu();
     let port = mit_forwarder(&o.0.join("fehlt.sock"));
     assert_eq!(frage(port, b"hallo"), b"");
+}
+
+/// The order that a loaded machine makes by chance, made on purpose: the request is written, the forwarder (no socket)
+/// closes and resets the connection, and only then comes the half close. It must not abort the request, and there is
+/// still no answer.
+#[test]
+fn a_half_close_after_the_forwarder_closed_does_not_abort() {
+    let o = Ordner::neu();
+    let port = mit_forwarder(&o.0.join("fehlt.sock"));
+    let mut c = TcpStream::connect((Ipv4Addr::LOCALHOST, port)).expect("connect");
+    c.set_read_timeout(Some(Duration::from_secs(10)))
+        .expect("timeout");
+    c.write_all(b"hallo").expect("write");
+    // the end of the connection from the side of the forwarder: an end of file or a reset, never data
+    let mut antwort = Vec::new();
+    let _ = c.read_to_end(&mut antwort);
+    assert_eq!(antwort, b"");
+    halb_schliessen(&c);
 }
 
 #[test]

@@ -18,7 +18,8 @@
 //! | no `--new-session` | the harness keeps its terminal (size changes, Ctrl-C); the start checks that `TIOCSTI` is closed |
 //! | `--ro-bind /dev/null /usr/bin/werkbank-ordnermarke` | only when that file exists on the host: the command of the human is hidden inside (`/usr` is visible); the one bind of `/dev/null` the text check accepts |
 //! | `--ro-bind <package> <home>/.cache/copilot/pkg/<platform>/<version>` | only for the cloud harness with a package: the folder the CLI extracts itself into otherwise (see [`crate::paket`]); read-only, checked on the host before |
-//! | `--die-with-parent` | when the starting process dies, the harness dies with it (measured; the case `elternbindung`) |
+//! | (`bwrap` itself) | `no_new_privs` and `nosuid` on every mount: a setgid program inside runs with the gid of the person, not with the group of its file, also below a read-only path like `/usr` (measured; the case `l1_no_setgid_acts_in_the_enclosure`, with the counter probe outside) |
+//! | `--die-with-parent` | when the starting process dies after the set-up of `bwrap`, the harness dies with it (measured; the case `elternbindung`, which kills the starter once the program inside runs). It works only after the set-up: `bwrap` 0.12.0 sets the death signal of its inner process late (`do_init`), and a starter killed during the set-up leaves the harness running (measured under load, 25.11.2026). Until the enclosure closes that window itself, the promise "the session ends with its starter" holds only through `werkbank-lauf` as the child subreaper of the starter (the case G1 of `lauf`). The kernel ties the signal to the thread that forked `bwrap`, so every starter forks it from a thread that lives until the end of the session (see [`Profil::argumente`]) |
 //!
 //! There is no `seccomp` filter in this profile. A fault of the kernel breaks the enclosure; that is a follow-up, not
 //! a claim.
@@ -678,11 +679,13 @@ impl Profil {
     ///
     /// `--die-with-parent` is in the list. It ends the session when the process that started `bwrap` dies, also by
     /// `SIGKILL`; without it the harness stays behind as an orphan (measured on the case `elternbindung`, with the
-    /// counter probe). One doubt is measured away: the kernel ties the signal of a plain `PR_SET_PDEATHSIG` to the
-    /// *thread* that started the child, and a service that starts the session from a pool thread would lose it when
-    /// that thread ends. `bwrap` 0.12.0 does not behave like that: it survives the end of the starting thread (measured
-    /// with a Rust and a Python thread on the kernel 7.2.5). The same case holds that measurement, so a `bwrap` that
-    /// changes it turns the case red.
+    /// counter probe). The kernel ties this signal to the *thread* that forked `bwrap`: when that thread ends after
+    /// `bwrap` has set its signal, the session ends too (measured 25.11.2026 on the Linux build host: a thread that ended after the
+    /// program inside ran took `bwrap` with it by `SIGKILL`; without the switch `bwrap` lived on). An older note said
+    /// the opposite; it rested on a thread that ended before `bwrap` set its signal, and under load that race turned
+    /// around. Duty of every starter: it forks `bwrap` from a thread that lives until the end of the session
+    /// (`werkbank-lauf` forks the starter from its main thread). The case `elternbindung` holds both measurements, with
+    /// the counter probes.
     ///
     #[must_use]
     pub fn argumente(&self) -> Vec<String> {

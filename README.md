@@ -101,6 +101,9 @@ a patch and names you in the commit; the pull request is then closed with a note
 needs the Contributor License Agreement (CLA) to be accepted once. Details:
 [CONTRIBUTING.md](CONTRIBUTING.md). Questions go to Discussions, see [SUPPORT.md](SUPPORT.md).
 
+Small, well-described tasks for a first contribution are open issues with the label
+[`good first issue`](https://github.com/Skryx-L-A/agent-workbench/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+
 ## License
 
 The licensor's own work is licensed under the [Apache License 2.0](LICENSE); third-party parts and

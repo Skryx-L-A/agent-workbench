@@ -820,7 +820,11 @@ AppContainer (gemessen, Frage 2: Fehler 5). Kein Prozess des Agenten läuft ohne
 und `<heim>/.local/state/agent-workbench/halter` der Person sind im Einschluss nicht sichtbar. Die Ablage steht in der Verbotsliste
 des Einschlusses wie ein Anmeldespeicher: Kein Pfad einer Sitzung darf sie decken, in ihr liegen oder sie berühren (alt:
 „`$XDG_STATE_HOME` der Person ist im Einschluss nicht sichtbar“; eine Verbotszeile war nicht verlangt). Der Einschluss hat eine eigene PID-Sicht, also kein
-`/proc` der Halterprozesse.
+`/proc` der Halterprozesse. Kein setgid wirkt im Einschluss: `bwrap` setzt `no_new_privs` und bindet jeden Pfad mit
+`nosuid` ein, ein setgid-Programm (etwa ein Rollenprogramm unter `/usr/lib/werkbank`) läuft dort mit der gid der Person
+und nicht mit der seiner Datei (gemessen 25.11.2026 auf dem Linux-Bauhost: außen `egid` 992, im Einschluss 1000, `NoNewPrivs: 1`,
+Einbindung `ro,nosuid`; Außentest `l1_no_setgid_acts_in_the_enclosure` in `rust/crates/einschluss/tests/aussen.rs`,
+mit Gegenprobe außen, schreibgeschützt und schreibbar eingebunden).
 
 **macOS (Einschluss nach dem macOS-Einschluss-Vertrag).** Der Halter nimmt an:
 
