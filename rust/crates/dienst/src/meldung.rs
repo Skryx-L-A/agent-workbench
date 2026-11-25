@@ -23,6 +23,7 @@ use crate::sys::{UnixListener, UnixStream};
 use std::path::Path;
 
 use crate::dienst::{Annahme, Gelesen, annahme, gelesen};
+#[cfg(unix)]
 use crate::startdatei::SOCKET_PFAD_MAX;
 
 /// The name of the socket in the folder of the session.
@@ -165,17 +166,17 @@ pub(crate) enum Ende {
 /// The socket of one session and what came on it.
 pub(crate) struct Meldung {
     /// The listening socket until the one connection is accepted (non-blocking).
-    hoerer: Option<UnixListener>,
+    pub(crate) hoerer: Option<UnixListener>,
     /// The accepted connection (non-blocking); `None` before it comes and after its end.
-    strom: Option<UnixStream>,
+    pub(crate) strom: Option<UnixStream>,
     /// A connection that passed the check was accepted (it may be ended since).
-    verbunden: bool,
+    pub(crate) verbunden: bool,
     /// What was read, at most [`ZEILE_MAX`] bytes.
-    puffer: Vec<u8>,
+    pub(crate) puffer: Vec<u8>,
     /// The pid of the child of the session; set after its start. 0 matches no peer.
-    pid: u32,
+    pub(crate) pid: u32,
     /// The effective user of the service.
-    euid: u32,
+    pub(crate) euid: u32,
 }
 
 impl Meldung {
@@ -209,24 +210,13 @@ impl Meldung {
     }
 
     /// Windows (section 21): the same socket as `AF_UNIX` with the protected list of the own user alone (the counterpart of 0600)
-    /// before `listen`; the peer is checked by its process (`SIO_AF_UNIX_GETPEERPID`), the list keeps other users out.
+    /// before `listen` (`sys::meldung_binden`).
     ///
     /// # Errors
     /// The path is longer than [`SOCKET_PFAD_MAX`] bytes, or the socket cannot be made, bound, set or listened on.
     #[cfg(windows)]
     pub(crate) fn binden(pfad: &Path) -> Result<Self, ()> {
-        if pfad.as_os_str().len() > SOCKET_PFAD_MAX {
-            return Err(());
-        }
-        let hoerer = crate::sys::socket_binden_pfad(pfad).map_err(|_| ())?;
-        Ok(Self {
-            hoerer: Some(hoerer),
-            strom: None,
-            verbunden: false,
-            puffer: Vec::new(),
-            pid: 0,
-            euid: 0,
-        })
+        crate::sys::meldung_binden(pfad)
     }
 
     /// Names the child whose connection is the right one (0: none).
@@ -264,11 +254,10 @@ impl Meldung {
             }
         }
         // Windows (section 21): the process of the peer must be the child of the session; the user is checked by the list of
-        // the socket (only the own user may connect). A failed query refuses the connection (fail closed).
+        // the socket (only the own user may connect). A failed query refuses the connection (fail closed, `sys::gegenseite_gut`).
         #[cfg(windows)]
         {
-            let _ = self.euid;
-            strom.peer_pid().is_ok_and(|p| p == self.pid)
+            crate::sys::gegenseite_gut(strom, self.pid, self.euid)
         }
         #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
         {

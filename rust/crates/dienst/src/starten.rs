@@ -17,6 +17,7 @@ use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
 
+#[cfg(unix)]
 use crate::sys::BorrowedFd;
 use std::path::{Path, PathBuf};
 
@@ -187,7 +188,7 @@ pub(crate) fn meta_von(start: &Startanfrage) -> [String; 4] {
 /// | `<laufzeit>/s-<n>` | `lauf.laufzeit` | the socket folder of `werkbank-lauf` |
 /// | `<ziellisten>/s-<n>.zielliste.json` | `lauf.ziellisten` | the target list of `werkbank-lauf` |
 /// | `<marker_ordner>/s-<n>.suche.json` and `<marker_ordner>/s-<n>.modellweg.json` | `lauf.marker_ordner` | the count files of search and model path |
-fn eintraege_der_nummer(lauf: &Lauf, n: usize) -> Vec<PathBuf> {
+pub(crate) fn eintraege_der_nummer(lauf: &Lauf, n: usize) -> Vec<PathBuf> {
     let mut eintraege = Vec::new();
     let mut dazu = |ordner: &Option<String>, name: String| {
         if let Some(o) = ordner.as_deref() {
@@ -234,14 +235,10 @@ pub(crate) fn kennung_belegt(lauf: &Lauf, n: usize) -> Result<bool, ()> {
     for pfad in eintraege_der_nummer(lauf, n) {
         // Windows (section 21, addendum of 25.11.2026): every user may bypass the traverse check, so `lstat` in a folder without
         // rights of the own user does not fail there. The folder must grant the own user the right to look into it (the counterpart
-        // of the search bit); a folder that is missing leaves the entry free as under Unix, any other error refuses the start.
+        // of the search bit); a folder that is missing leaves the entry free as under Unix, any other error refuses the start
+        // (`sys::eintrag_durchsuchbar`).
         #[cfg(windows)]
-        if let Some(ordner) = pfad.parent() {
-            match crate::sys::ordner_durchsuchbar(ordner) {
-                Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(()),
-                _ => {}
-            }
-        }
+        crate::sys::eintrag_durchsuchbar(&pfad)?;
         match std::fs::symlink_metadata(&pfad) {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Ok(_) => return Ok(true),
@@ -252,7 +249,7 @@ pub(crate) fn kennung_belegt(lauf: &Lauf, n: usize) -> Result<bool, ()> {
 }
 
 /// The name of the target list of the number `n` in `lauf.ziellisten`.
-fn zielliste_name(n: usize) -> String {
+pub(crate) fn zielliste_name(n: usize) -> String {
     format!("s-{n}.zielliste.json")
 }
 
@@ -295,25 +292,9 @@ pub(crate) fn alte_zielliste_raeumen(lauf: &Lauf, n: usize) -> bool {
     regulaer_eigen && unlinkat(&fd, &name, AtFlags::empty()).is_ok()
 }
 
-/// Windows (section 21): the same rule. The folder `lauf.ziellisten` must be a folder of the own user (no reparse point); only a
-/// file of the own user (no reparse point, no folder) is removed. As under Unix the owner counts, not the list.
-/// The removal goes by the path (`DeleteFileW` removes a reparse point itself, never its target).
+// Windows: [`crate::sys::alte_zielliste_raeumen`] (the same rule with the owner of the access list, section 21).
 #[cfg(windows)]
-pub(crate) fn alte_zielliste_raeumen(lauf: &Lauf, n: usize) -> bool {
-    let Some(ordner) = lauf.ziellisten.as_deref() else {
-        return false;
-    };
-    let liste = Path::new(ordner).join(zielliste_name(n));
-    let andere_frei = eintraege_der_nummer(lauf, n)
-        .iter()
-        .filter(|p| **p != liste)
-        .all(|p| matches!(std::fs::symlink_metadata(p), Err(e) if e.kind() == std::io::ErrorKind::NotFound));
-    if !andere_frei || !crate::sys::eigen_besitz(Path::new(ordner), true) {
-        return false;
-    }
-    let eigene_datei = crate::sys::eigen_besitz(&liste, false);
-    eigene_datei && std::fs::remove_file(&liste).is_ok()
-}
+pub(crate) use crate::sys::alte_zielliste_raeumen;
 
 /// The answer of [`kennung_belegt`] after DI12 point 15a: called only for a number above every number this run of the service handed out,
 /// so a target list that alone takes it was left by an earlier run; [`alte_zielliste_raeumen`] removes it and the number is asked again.
@@ -371,36 +352,9 @@ pub(crate) fn ordner_anlegen(
     }
 }
 
-/// Windows (section 21): the same folder and file with access lists: the folder new, with the protected list of the own user
-/// (0700), `start.json` new (`CREATE_NEW`) with the protected list of the own user (0600). A folder that exists is never replaced or
-/// deleted; a folder this call made and could not fill is removed again.
-///
-/// # Errors
-/// The folder exists, cannot be made, or the file cannot be written.
+// Windows: [`crate::sys::ordner_anlegen`] (the same folder and file with access lists, section 21).
 #[cfg(windows)]
-pub(crate) fn ordner_anlegen(
-    ordner: &Path,
-    wurzel: BorrowedFd<'_>,
-    kennung: &str,
-    start: &Startanfrage,
-    marker: Option<&start::Marker>,
-) -> Result<(PathBuf, PathBuf), ()> {
-    let inhalt = start::schreiben(
-        &start
-            .clone()
-            .mit_sitzung(kennung, marker.cloned())
-            .map_err(|_| ())?,
-    );
-    let sitzung = ordner.join(kennung);
-    crate::sys::ordner_anlegen_eigen(&sitzung).map_err(|_| ())?;
-    let datei = sitzung.join("start.json");
-    if crate::sys::datei_anlegen_eigen(&datei, &inhalt).is_ok() {
-        Ok((sitzung, datei))
-    } else {
-        crate::loeschen::sitzung_entfernen(wurzel, kennung);
-        Err(())
-    }
-}
+pub(crate) use crate::sys::ordner_anlegen;
 
 #[cfg(all(test, unix))]
 mod tests {

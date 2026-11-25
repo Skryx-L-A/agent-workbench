@@ -14,7 +14,7 @@
 //!   the service runs (the counterpart of the descriptor of the folder on Unix).
 
 use std::ffi::c_void;
-use std::fs::{File, OpenOptions};
+use std::fs::{File, Metadata, OpenOptions};
 use std::io::{self, Read, Write};
 use std::net::Shutdown;
 use std::os::windows::fs::OpenOptionsExt;
@@ -22,11 +22,21 @@ use std::os::windows::io::{
     AsRawHandle, AsRawSocket, AsSocket, BorrowedSocket, FromRawSocket, OwnedSocket,
 };
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::Duration;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, OnceLock};
+use std::time::{Duration, Instant};
 
+use start::Startanfrage;
+use traeger::Kind;
+
+use crate::dienst::Dienst;
 use crate::fehler::StartFehler;
+use crate::markerdatei::{DATEI_MAX, inhalt_lesen, ungueltig};
+use crate::meldung::Meldung;
+use crate::sitzung::{KindStart, Sitzung};
+use crate::startdatei::{Lauf, SOCKET_PFAD_MAX};
+use crate::starten::{Abgelehnt, eintraege_der_nummer, zielliste_name};
+use crate::waisen::{kinder_verwerfen, start_verwerfen};
 
 /// A socket of the poll set (`bereit.rs`): the owned socket of `std`.
 pub(crate) type OwnedFd = OwnedSocket;
@@ -1334,6 +1344,524 @@ pub(crate) fn konsole_groesse() -> Option<(u16, u16)> {
     Some((zeilen, spalten))
 }
 
+// ---- Moved here from the other modules (decision of 25.11.2026) -------------------------------------------------------
+//
+// The other modules of the crate hold no Windows logic: where Windows needs another body than Unix, the body stands here and the
+// module only calls it behind `cfg(windows)` (the rule is checked by `tests/sys_regel.rs`). The mutation gate does not look into this
+// file (`rust/.cargo/mutants.toml`); its cases run on the Windows test machine. Nothing below holds `unsafe`.
+
+/// Windows (section 21a point 4): the state of the job of a session. `Ok(None)` for the room core, for a child that had ended before it
+/// could join, and once the session has ended. `Err`: the child runs, but its job could not be made or the child could not join it;
+/// the caller ends the child and refuses the start (fail closed).
+pub(crate) type JobStand = Result<Option<Job>, ()>;
+
+/// Windows: no number of the user (the owner is a SID, see [`eigene_sid`]).
+pub(crate) fn euid() -> u32 {
+    0
+}
+
+/// Windows has no device and inode in `Metadata` of `std` (section 21): two files never count as the same, so no pid file is read
+/// and no signal goes out (as there is no signal under Windows anyway).
+pub(crate) fn gleiche_datei(_a: &Metadata, _b: &Metadata) -> bool {
+    false
+}
+
+/// Windows: no process group and no signal (section 21).
+pub(crate) fn gruppe_beenden(_pid: u32) -> bool {
+    false
+}
+
+/// Windows: the nanoseconds of a wait are an `i32` in `rustix` (below 10^9, so they fit).
+pub(crate) fn nanosekunden(frist: Duration) -> i32 {
+    i32::try_from(frist.subsec_nanos()).unwrap_or(0)
+}
+
+/// The check of the program of the child (DI8): Windows has no execute bit, so a file is a program (section 21). Always `Some`; the
+/// match behind the call in `kind_vorpruefen` is the Unix check and is not reached.
+// the caller in `sitzung.rs` takes `Some` as the verdict and falls through to the Unix match on `None`; Windows always has a verdict
+#[allow(clippy::unnecessary_wraps)]
+pub(crate) fn programm_urteil(programm: &str) -> Option<Result<(), StartFehler>> {
+    let kein_kind =
+        |text: &str| StartFehler::neu(4, &format!("Kind laesst sich nicht starten: {text}"));
+    Some(match std::fs::metadata(programm) {
+        Ok(m) if m.is_file() => Ok(()),
+        Ok(_) => Err(kein_kind("Programm nicht ausfuehrbar")),
+        Err(_) => Err(kein_kind("Programm fehlt")),
+    })
+}
+
+/// Windows (section 21): the argv of the start file as it is. `portable-pty` adds `SHELL` only under Unix, and the carrier clears
+/// the environment, so the child gets exactly `kind.env` without the cover; the process of the carrier is the program itself, as
+/// after `exec` under Unix.
+pub(crate) fn kind_argv(start: &KindStart, _huelle: &str) -> Vec<String> {
+    start.argv.clone()
+}
+
+/// The job of a new child. `Ok(None)`: the child had ended before it could join, so no process of it is left to hold (the session
+/// runs without a job and reports the end as usual). `Err`: the job could not be made or set, or a running child could not join.
+fn job_fuer(kind: &mut Kind) -> JobStand {
+    let job = Job::neu().map_err(drop)?;
+    let griff = kind.prozess_griff().ok_or(())?;
+    match job.aufnehmen(griff) {
+        Ok(()) => Ok(Some(job)),
+        Err(_) if kind.prozess_beendet() => Ok(None),
+        Err(_) => Err(()),
+    }
+}
+
+/// The child of a new session joins its job right after its start (section 21a point 4); the room core has no child and no job.
+pub(crate) fn kind_mit_job(kind: Option<Kind>) -> (Option<Kind>, JobStand) {
+    let mut kind = kind;
+    let job = kind.as_mut().map_or(Ok(None), job_fuer);
+    (kind, job)
+}
+
+/// The end of the session closes the job: it ends what the child left behind (the counterpart of the orphans of section 17).
+pub(crate) fn job_schliessen(job: &mut JobStand) {
+    *job = Ok(None);
+}
+
+/// `Beenden` (section 21): the carrier ends a child that is still there at once (`TerminateProcess`, code 129).
+pub(crate) fn kind_beenden(kind: &mut Option<Kind>) {
+    if let Some(kind) = kind.as_mut().filter(|k| !k.ist_zu_ende()) {
+        let _ = kind.beenden();
+    }
+}
+
+/// The moment of SIGKILL of the Unix form: once more through the carrier (it does nothing to a child that has ended).
+pub(crate) fn kind_nochmal_beenden(kind: &mut Option<Kind>) {
+    if let Some(kind) = kind.as_mut() {
+        let _ = kind.beenden();
+    }
+}
+
+/// Ends children (DI8, section 21): the carrier ends every running child at once.
+pub(crate) fn kinder_beenden(kinder: &mut [Kind]) {
+    for kind in kinder.iter_mut().filter(|k| !k.ist_zu_ende()) {
+        let _ = kind.beenden();
+    }
+}
+
+/// The session of `kind` at the start of the service. A child without a job is a start error (section 21a point 4, fail closed; DI8:
+/// exit code 4): the child is ended and nothing stays.
+pub(crate) fn mit_job(sitzung: Sitzung) -> Result<Sitzung, StartFehler> {
+    if sitzung.job.is_err() {
+        start_verwerfen(Dienst::kinder_nehmen(&mut [sitzung]));
+        return Err(StartFehler::neu(
+            4,
+            "Kind laesst sich nicht starten: kein Job-Objekt",
+        ));
+    }
+    Ok(sitzung)
+}
+
+/// The new session of `Starten` (section 21a point 4, fail closed). A child without a job is ended, the folder of the session
+/// removed and the start refused; then `None`. Otherwise the session itself.
+pub(crate) fn sitzung_mit_job(dienst: &mut Dienst, sitzung: Sitzung, nr: u64) -> Option<Sitzung> {
+    if sitzung.job.is_ok() {
+        return Some(sitzung);
+    }
+    let mut sitzung = sitzung;
+    let kennung = sitzung.sid.clone().unwrap_or_default();
+    for sid in kinder_verwerfen(Dienst::kinder_nehmen(std::slice::from_mut(&mut sitzung))) {
+        dienst.waisen.jagen(sid, Instant::now());
+    }
+    drop(sitzung);
+    crate::loeschen::sitzung_entfernen(dienst.wurzel.as_fd(), &kennung);
+    dienst.start_ablehnen(nr, &Abgelehnt::fest("programm_nicht_startbar"));
+    None
+}
+
+/// The caught console events: the flag that the handler of `SIGINT`, `SIGTERM` and `SIGBREAK` sets.
+pub struct Signale(Arc<AtomicBool>);
+
+/// Catches `SIGINT` (`CTRL_C_EVENT`), `SIGBREAK` (`CTRL_BREAK_EVENT`) and `SIGTERM` (only raised inside the process) with the safe
+/// API of `signal-hook` (Nachtrag 25.11.2026, contract section 21).
+///
+/// # Errors
+/// The error of the system when a handler cannot be set.
+pub fn signale_anmelden() -> io::Result<Signale> {
+    use signal_hook::consts::{SIGBREAK, SIGINT, SIGTERM};
+    let flagge = Arc::new(AtomicBool::new(false));
+    for s in [SIGINT, SIGTERM, SIGBREAK] {
+        signal_hook::flag::register(s, Arc::clone(&flagge))?;
+    }
+    Ok(Signale(flagge))
+}
+
+/// The loop until one of the console events `CTRL_C_EVENT` or `CTRL_BREAK_EVENT` comes (`SIGINT` and `SIGBREAK` of the C runtime,
+/// which stand for SIGINT and SIGTERM); then the same end as under Unix. A thread looks at the flag of the handler every 5 ms and
+/// calls [`crate::Anhalter::anhalten`].
+pub(crate) fn laufen(dienst: &mut Dienst, signale: Signale) -> i32 {
+    let anhalter = dienst.anhalter();
+    let fertig = Arc::new(AtomicBool::new(false));
+    let fertig_faden = Arc::clone(&fertig);
+    let faden = std::thread::spawn(move || {
+        while !fertig_faden.load(Ordering::SeqCst) {
+            if signale.0.load(Ordering::SeqCst) {
+                anhalter.anhalten();
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    });
+    let code = dienst.schleife();
+    fertig.store(true, Ordering::SeqCst);
+    let _ = faden.join();
+    code
+}
+
+/// The same socket of the report as `AF_UNIX` with the protected list of the own user alone (the counterpart of 0600) before `listen`;
+/// the peer is checked by its process (`SIO_AF_UNIX_GETPEERPID`), the list keeps other users out.
+///
+/// # Errors
+/// The path is longer than `SOCKET_PFAD_MAX` bytes, or the socket cannot be made, bound, set or listened on.
+pub(crate) fn meldung_binden(pfad: &Path) -> Result<Meldung, ()> {
+    if pfad.as_os_str().len() > SOCKET_PFAD_MAX {
+        return Err(());
+    }
+    let hoerer = socket_binden_pfad(pfad).map_err(|_| ())?;
+    Ok(Meldung {
+        hoerer: Some(hoerer),
+        strom: None,
+        verbunden: false,
+        puffer: Vec::new(),
+        pid: 0,
+        euid: 0,
+    })
+}
+
+/// The process of the peer must be the child of the session; the user is checked by the list of the socket (only the own user may
+/// connect). A failed query refuses the connection (fail closed).
+pub(crate) fn gegenseite_gut(strom: &UnixStream, pid: u32, euid: u32) -> bool {
+    let _ = euid;
+    strom.peer_pid().is_ok_and(|p| p == pid)
+}
+
+/// The same steps as under Unix with access lists. The folder must be a folder of the own user whose protected list allows only it and
+/// `SYSTEM` (0700), the file a file of the own user whose protected list allows only it (0600); a reparse point is never followed. A
+/// missing folder or file gives no markers.
+///
+/// # Errors
+/// Exit code 2 with the same grounds as under Unix.
+pub(crate) fn marker_lesen(
+    pfad: &str,
+    ordner: Option<&str>,
+) -> Result<Option<start::Marker>, StartFehler> {
+    let p = Path::new(pfad);
+    let (Some(eltern), Some(name)) = (p.parent(), p.file_name().and_then(|n| n.to_str())) else {
+        return Err(ungueltig("pfad"));
+    };
+    if !crate::loeschen::name_gut(name) {
+        return Err(ungueltig("pfad"));
+    }
+    let _eltern = match eigen_oeffnen(eltern, true, false) {
+        Ok(g) => g,
+        Err(Eigen::Fehlt) => return Ok(None),
+        Err(Eigen::Fremd) => return Err(ungueltig("ordner_eigentuemer")),
+        Err(Eigen::Offen) => return Err(ungueltig("ordner_modus")),
+        Err(_) => return Err(ungueltig("ordner")),
+    };
+    let datei = match eigen_oeffnen(p, false, true) {
+        Ok(g) => g,
+        Err(Eigen::Fehlt) => return Ok(None),
+        Err(Eigen::Link) => return Err(ungueltig("datei_verknuepfung")),
+        Err(Eigen::Art) => return Err(ungueltig("datei_art")),
+        Err(Eigen::Fremd) => return Err(ungueltig("datei_eigentuemer")),
+        Err(Eigen::Offen) => return Err(ungueltig("datei_modus")),
+        Err(Eigen::Unlesbar) => return Err(ungueltig("datei_unlesbar")),
+    };
+    let mut roh = Vec::new();
+    datei
+        .take(DATEI_MAX as u64 + 1)
+        .read_to_end(&mut roh)
+        .map_err(|_| ungueltig("datei_unlesbar"))?;
+    if roh.len() > DATEI_MAX {
+        return Err(ungueltig("zu_gross"));
+    }
+    inhalt_lesen(&roh, ordner)
+}
+
+/// DI12 point 15a (section 21): the same rule as under Unix. The folder `lauf.ziellisten` must be a folder of the own user (no reparse
+/// point); only a file of the own user (no reparse point, no folder) is removed. As under Unix the owner counts, not the list. The
+/// removal goes by the path (`DeleteFileW` removes a reparse point itself, never its target).
+pub(crate) fn alte_zielliste_raeumen(lauf: &Lauf, n: usize) -> bool {
+    let Some(ordner) = lauf.ziellisten.as_deref() else {
+        return false;
+    };
+    let liste = Path::new(ordner).join(zielliste_name(n));
+    let andere_frei = eintraege_der_nummer(lauf, n)
+        .iter()
+        .filter(|p| **p != liste)
+        .all(|p| matches!(std::fs::symlink_metadata(p), Err(e) if e.kind() == io::ErrorKind::NotFound));
+    if !andere_frei || !eigen_besitz(Path::new(ordner), true) {
+        return false;
+    }
+    let eigene_datei = eigen_besitz(&liste, false);
+    eigene_datei && std::fs::remove_file(&liste).is_ok()
+}
+
+/// The folder `<ordner>/<kennung>` with `start.json` that holds the start structure with `sitzung` set, with access lists: the folder
+/// new, with the protected list of the own user (0700), `start.json` new (`CREATE_NEW`) with the protected list of the own user
+/// (0600). A folder that exists is never replaced or deleted; a folder this call made and could not fill is removed again.
+///
+/// # Errors
+/// The folder exists, cannot be made, or the file cannot be written.
+pub(crate) fn ordner_anlegen(
+    ordner: &Path,
+    wurzel: BorrowedFd<'_>,
+    kennung: &str,
+    start: &Startanfrage,
+    marker: Option<&start::Marker>,
+) -> Result<(PathBuf, PathBuf), ()> {
+    let inhalt = start::schreiben(
+        &start
+            .clone()
+            .mit_sitzung(kennung, marker.cloned())
+            .map_err(|_| ())?,
+    );
+    let sitzung = ordner.join(kennung);
+    ordner_anlegen_eigen(&sitzung).map_err(|_| ())?;
+    let datei = sitzung.join("start.json");
+    if datei_anlegen_eigen(&datei, &inhalt).is_ok() {
+        Ok((sitzung, datei))
+    } else {
+        crate::loeschen::sitzung_entfernen(wurzel, kennung);
+        Err(())
+    }
+}
+
+/// DI12 point 15a (section 21b): the folder of the entry `pfad` must grant the own user the right to look into it (the counterpart
+/// of the search bit). A folder that is missing leaves the entry free, as under Unix; any other error refuses the start.
+///
+/// # Errors
+/// The folder cannot be looked into for another reason than that it is missing.
+pub(crate) fn eintrag_durchsuchbar(pfad: &Path) -> Result<(), ()> {
+    if let Some(ordner) = pfad.parent() {
+        match ordner_durchsuchbar(ordner) {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(()),
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+// ---- The same for the fixed child programs of the tests (test build) ---------------------------------------------------
+
+/// The two uses of `stty` through the console: `raw -echo` and `size` (rows and columns, as `stty size` prints them).
+#[cfg(feature = "pruefbau")]
+pub(crate) fn stty(argumente: &[&str]) -> String {
+    match argumente {
+        ["raw", "-echo"] => {
+            konsole_roh();
+            String::new()
+        }
+        ["size"] => konsole_groesse()
+            .map(|(zeilen, spalten)| format!("{zeilen} {spalten}"))
+            .unwrap_or_default(),
+        _ => String::new(),
+    }
+}
+
+/// A path as the report writes it: in the form of the start file, without the drive and with `/` (`C:\\t\\o` is `/t/o`), the way the
+/// service reads a path of the start file on the drive of the working folder.
+#[cfg(feature = "pruefbau")]
+pub(crate) fn pfad_text(p: &Path) -> String {
+    let text = p.display().to_string();
+    let ohne = text.get(1..2) == Some(":");
+    let rest = if ohne { &text[2..] } else { text.as_str() };
+    rest.replace('\\', "/")
+}
+
+/// A link to a folder and a link to a file are two calls.
+#[cfg(feature = "pruefbau")]
+pub(crate) fn symlink(ziel: impl AsRef<Path>, name: impl AsRef<Path>) -> io::Result<()> {
+    if ziel.as_ref().is_dir() {
+        std::os::windows::fs::symlink_dir(ziel, name)
+    } else {
+        std::os::windows::fs::symlink_file(ziel, name)
+    }
+}
+
+/// The mode the access list of `p` stands for (see [`modus_text`]), `Err` when `p` cannot be read.
+#[cfg(feature = "pruefbau")]
+pub(crate) fn modus_von(p: &Path) -> io::Result<String> {
+    std::fs::metadata(p).map(|_| modus_text(p))
+}
+
+/// A program carries `.exe`; the report names it without, as the name of the program under Unix.
+#[cfg(feature = "pruefbau")]
+pub(crate) fn ohne_exe(name: String) -> String {
+    match name.strip_suffix(".exe") {
+        Some(ohne) => ohne.to_owned(),
+        None => name,
+    }
+}
+
+/// `signal <nr>`: no signal to itself; the child ends after 5 s by itself.
+#[cfg(feature = "pruefbau")]
+pub(crate) fn signal_an_sich(_a: &[String]) {
+    std::thread::sleep(Duration::from_secs(5));
+}
+
+/// A copy of the program named `laufkind.exe` is the fixed child `lauf` with all its arguments; under Unix a small script does the
+/// same with `exec`, which Windows does not have. `Some(code)` when this process is such a copy, with the exit code of the child.
+#[cfg(feature = "pruefbau")]
+pub(crate) fn laufkind() -> Option<i32> {
+    let ist_kopie = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.file_stem().map(|s| s.eq_ignore_ascii_case("laufkind")))
+        .unwrap_or(false);
+    if !ist_kopie {
+        return None;
+    }
+    let mut rest = vec!["lauf".to_owned()];
+    rest.extend(std::env::args_os().map(|a| a.to_string_lossy().into_owned()));
+    Some(crate::kindprogramm::lauf(&rest) & 0xff)
+}
+
+// The cases of section 21a point 4 (moved from `dienst.rs` with the rule of section 21, point 17): test code of the Windows build.
+/// Section 21a point 4 under Windows (fail closed): a child whose job cannot be made is ended, and its start is refused. The test
+/// build reaches the error through `JOB_VERWEIGERN`; each case also runs without it, so the same start goes through there.
+#[cfg(all(test, feature = "pruefbau"))]
+mod dienst_tests {
+    use super::*;
+    use serde_json::{Value, json};
+
+    /// A new folder of the own user alone (DI2) under the temporary folder, as a path of the start file (no drive, `/`).
+    fn wegwerf(name: &str) -> (PathBuf, String) {
+        let p = std::env::temp_dir().join(format!("wbd-job-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&p);
+        ordner_anlegen_eigen(&p).expect("folder");
+        let text = p.to_string_lossy().replace('\\', "/");
+        let ohne_laufwerk = text
+            .split_once(':')
+            .map_or(text.as_str(), |(_, r)| r)
+            .to_owned();
+        (p, ohne_laufwerk)
+    }
+
+    /// The processes whose command line holds `marke` (the asking PowerShell left out).
+    fn prozesse_mit(marke: &str) -> usize {
+        let abfrage = format!(
+            "@(Get-CimInstance Win32_Process | Where-Object {{ $_.Name -ne 'powershell.exe' -and $_.CommandLine -like '*{marke}*' }}).Count"
+        );
+        let aus = std::process::Command::new("powershell.exe")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &abfrage])
+            .output()
+            .expect("powershell runs");
+        String::from_utf8_lossy(&aus.stdout)
+            .trim()
+            .parse()
+            .expect("a number")
+    }
+
+    /// Waits up to 10 s until `prozesse_mit(marke)` is `anzahl`.
+    fn warte_auf(marke: &str, anzahl: usize) -> bool {
+        let frist = Instant::now() + Duration::from_secs(10);
+        loop {
+            if prozesse_mit(marke) == anzahl {
+                return true;
+            }
+            if Instant::now() > frist {
+                return false;
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+    }
+
+    fn grundlage(ordner: &str) -> Value {
+        json!({
+            "socket": {"ordner": ordner},
+            "betrachter": {"person": "anna", "raum": "raum-nord", "ansicht": "fenster"},
+            "deflate": false,
+            "pruefmodus": true,
+            "anfang": {"personen": {"anna": {"art": "mensch", "rolle": "nutzer"}}, "sitzungen": []}
+        })
+    }
+
+    fn verweigern(an: bool) {
+        JOB_VERWEIGERN.with(|v| v.set(an));
+    }
+
+    /// The session of `kind`: without a job the service does not start (exit code 4, DI8), the child is ended and no socket is
+    /// left. Without the error the same start file starts the service with the child running.
+    #[test]
+    fn ohne_job_startet_der_dienst_nicht_und_das_kind_endet() {
+        let (p, ordner) = wegwerf("kind");
+        let marke = format!("wbdjob{}kind", std::process::id());
+        let mut start = grundlage(&ordner);
+        start["kind"] = json!({
+            "argv": ["/Windows/System32/cmd.exe", "/k", "rem", marke],
+            "env": {"SystemRoot": "C:\\Windows"},
+            "cwd": "/Windows"
+        });
+        start["groesse"] = json!([40, 10]);
+        start["anfang"]["sitzungen"] = json!([{"id": "s-alpha", "kundenraum": "raum-nord", "person": "anna", "route": "r1", "titel": "Alpha"}]);
+        let cfg = || crate::startdatei::pruefen(&start).expect("start file");
+        verweigern(true);
+        let fehler = Dienst::neu(cfg()).err().expect("refused without a job");
+        verweigern(false);
+        assert_eq!(fehler.code, 4, "{}", fehler.text);
+        assert!(!p.join("dienst.sock").exists(), "no socket is left");
+        assert!(warte_auf(&marke, 0), "the child has ended");
+        let dienst = Dienst::neu(cfg()).expect("the service starts with a job");
+        assert!(p.join("dienst.sock").exists(), "the socket is there");
+        assert!(warte_auf(&marke, 1), "the child runs");
+        drop(dienst);
+        assert!(
+            warte_auf(&marke, 0),
+            "the end of the service ends the child"
+        );
+        let _ = std::fs::remove_dir_all(&p);
+    }
+
+    /// A session of `Starten`: without a job the start is refused with `programm_nicht_startbar`, the child is ended and its
+    /// folder removed; no session and no number are taken. Without the error the same start makes the session `s-1`.
+    #[test]
+    fn ohne_job_lehnt_der_dienst_starten_ab_und_das_kind_endet() {
+        let (p, ordner) = wegwerf("lauf");
+        let marke = format!("wbd-job-{}-lauf", std::process::id());
+        let einst = p.join("einst.json");
+        std::fs::write(
+            &einst,
+            include_str!("../../tests/werkzeug/einstellungen/vorfuehrung.json"),
+        )
+        .expect("settings");
+        let mut start = grundlage(&ordner);
+        start["lauf"] = json!({
+            "programm": "/Windows/System32/cmd.exe",
+            "env": {"SystemRoot": "C:\\Windows"},
+            "groesse": [40, 10],
+            "einstellungen": format!("{ordner}/einst.json"),
+        });
+        let mut dienst =
+            Dienst::neu(crate::startdatei::pruefen(&start).expect("start file")).expect("service");
+        let ereignis = json!({"art": "Starten", "start": {"fassung": 1, "harness": "claude", "modell": "m", "route": "cloud-beispiel", "kunde": "k-beispiel", "arbeitsordner": "/Windows"}});
+        let ereignis = ereignis.as_object().expect("object");
+        verweigern(true);
+        dienst.starten(1, ereignis);
+        verweigern(false);
+        assert_eq!(dienst.sitzungen.len(), 1, "only the room core");
+        assert_eq!(dienst.naechste, 0, "no identifier is taken");
+        assert!(
+            !p.join("s-1").exists(),
+            "the folder of the session is removed"
+        );
+        assert!(warte_auf(&marke, 0), "the child has ended");
+        dienst.starten(1, ereignis);
+        assert_eq!(dienst.sitzungen.len(), 2, "the session s-1 runs");
+        assert!(p.join("s-1").exists(), "its folder is there");
+        assert!(warte_auf(&marke, 1), "the child runs");
+        drop(dienst);
+        assert!(
+            warte_auf(&marke, 0),
+            "the end of the service ends the child"
+        );
+        let _ = std::fs::remove_dir_all(&p);
+    }
+}
+
 // test code: short names for folder, path, listener and the two ends read better here
 #[cfg(test)]
 #[allow(clippy::many_single_char_names)]
@@ -1351,9 +1879,9 @@ mod tests {
         std::thread::sleep(Duration::from_millis(500));
         assert!(kind.try_wait().expect("asked").is_none(), "cmd runs");
         drop(job);
-        let frist = std::time::Instant::now() + Duration::from_secs(10);
+        let frist = Instant::now() + Duration::from_secs(10);
         while kind.try_wait().expect("asked").is_none() {
-            assert!(std::time::Instant::now() < frist, "the job did not end cmd");
+            assert!(Instant::now() < frist, "the job did not end cmd");
             std::thread::sleep(Duration::from_millis(20));
         }
         let mut fertig = std::process::Command::new("cmd.exe")

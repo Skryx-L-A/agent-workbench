@@ -51,8 +51,6 @@ use std::ffi::OsString;
 use std::io::Write;
 use std::path::Path;
 
-#[cfg(windows)]
-pub use dienst::Signale;
 pub use dienst::{Anhalter, Dienst, Optionen, signale_anmelden};
 pub use fehler::StartFehler;
 #[cfg(feature = "pruefbau")]
@@ -64,6 +62,8 @@ pub use startdatei::{
     KENNUNG_MAX, KLEINSTE_SPALTEN, Lauf, MAX_START, NUMMER_MAX, SOCKET_PFAD_MAX, Startdatei,
     WARTESCHLANGE_MAX, lesen, pruefen,
 };
+#[cfg(windows)]
+pub use sys::Signale;
 
 /// The whole program with the arguments after the program name; returns the exit code.
 ///
@@ -87,14 +87,8 @@ pub fn programm(args: &[OsString]) -> i32 {
     // Windows, test build (section 21): a copy of the program named `laufkind.exe` is the fixed child `lauf` with all its
     // arguments; under Unix a small script does the same with `exec`, which Windows does not have
     #[cfg(all(windows, feature = "pruefbau"))]
-    if std::env::current_exe()
-        .ok()
-        .and_then(|p| p.file_stem().map(|s| s.eq_ignore_ascii_case("laufkind")))
-        .unwrap_or(false)
-    {
-        let mut rest = vec!["lauf".to_owned()];
-        rest.extend(std::env::args_os().map(|a| a.to_string_lossy().into_owned()));
-        return kindprogramm::lauf(&rest) & 0xff;
+    if let Some(code) = sys::laufkind() {
+        return code;
     }
     #[cfg(feature = "pruefbau")]
     if args.first().is_some_and(|a| a == "--kind") {

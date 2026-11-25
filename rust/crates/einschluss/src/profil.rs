@@ -83,7 +83,14 @@ pub const ANKER_NAME: &str = "werkbank-anker";
 /// outside cases; held on purpose in the case `aufbaufenster_a_starter_dead_before_the_release_...`). While "Lauf
 /// starten" lives, it adopts the orphan as subreaper and ends it by SIGKILL. When "Lauf starten" itself is the starter
 /// that died, nothing in this crate or in "Lauf starten" ends it: one waiting process stays per such abort, with no
-/// program, waiting before its set-up (open for a decision).
+/// program, waiting before its set-up. Decision of the operator, 25.11.2026: this is an open point of the contract,
+/// not a security finding (no program starts); measured 10 of 480 runs under load and 20 of 20 in the held case.
+///
+/// Open, before every delivery: the anchor is measured only on the Linux build host (`bash` as `/usr/bin/sh`, GNU
+/// coreutils). It relies on `/usr/bin/sh`, `/usr/bin/dd` (`iflag=nonblock` and its error text under `LC_ALL=C`),
+/// `/usr/bin/sleep` and `/usr/bin/env -u`. Ubuntu 26.04 uses `dash` as `/usr/bin/sh` and may ship another coreutils,
+/// so the anchor and its cases are measured on Ubuntu 26.04 in the throwaway VM before every delivery (decision of the
+/// operator, 25.11.2026).
 pub const ANKER_SKRIPT: &str = "i=0
 while :; do
   w=

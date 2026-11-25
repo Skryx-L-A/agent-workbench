@@ -205,6 +205,35 @@ pub fn schluessel_vorhanden(id: u64, ziel: &str) -> Result<String, &'static str>
 /// 5 s. "Lauf starten" waits 10 s for the ready line (contract 1, step 7a); a longer wait here would end unseen.
 pub const FRIST_START: Duration = Duration::from_secs(5);
 
+/// Whether `code` has the form `^halter\.[a-z_]{1,40}$`: the only form of a code of the holder that the start may
+/// repeat on stderr (contract 8, section 5.1). Nothing else of an answer goes there.
+#[must_use]
+pub fn halter_code_form(code: &str) -> bool {
+    code.strip_prefix("halter.").is_some_and(|rest| {
+        (1..=40).contains(&rest.len()) && rest.bytes().all(|c| c.is_ascii_lowercase() || c == b'_')
+    })
+}
+
+/// The refusal of step 3 for one target: the code of the model path and, if the holder answered with a code of the
+/// form [`halter_code_form`], that code.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Absage {
+    /// The code of the model path (`mw.halter_*`).
+    pub code: &'static str,
+    /// The code of the holder, only if the holder answered with one of the closed form; never any other part of the
+    /// answer.
+    pub halter_code: Option<String>,
+}
+
+impl From<&'static str> for Absage {
+    fn from(code: &'static str) -> Self {
+        Self {
+            code,
+            halter_code: None,
+        }
+    }
+}
+
 /// Step 3 of the start for one bound target (contract 8, section 13.5): asks the holder on `k` with
 /// `schluessel.vorhanden` and `ziel`, and waits for the answer at most until `bis`. Fail closed: only the answer
 /// `{"vorhanden": true}` lets the start go on.
@@ -218,6 +247,20 @@ pub fn schluessel_da(
     ziel: &str,
     bis: std::time::Instant,
 ) -> Result<(), &'static str> {
+    schluessel_da_mit_code(k, ziel, bis).map_err(|a| a.code)
+}
+
+/// [`schluessel_da`] with the code of the holder: if the holder answered with a code, the refusal carries it, but only
+/// in the form [`halter_code_form`]. For a torn connection, an unreadable line, an answer without `vorhanden`,
+/// `{"vorhanden": false}` and a deadline there is no code of the holder.
+///
+/// # Errors
+/// As [`schluessel_da`].
+pub fn schluessel_da_mit_code(
+    k: &mut Klient,
+    ziel: &str,
+    bis: std::time::Instant,
+) -> Result<(), Absage> {
     let rest = bis
         .checked_duration_since(std::time::Instant::now())
         .filter(|d| !d.is_zero())
@@ -235,13 +278,17 @@ pub fn schluessel_da(
             code: None,
             vorhanden: Some(false),
             ..
-        } => Err("mw.halter_kein_schluessel"),
-        // An unknown target is an error of the configuration, not a missing key; the start ends the same way.
-        Zeile::Antwort { code: Some(c), .. } if c == "halter.ziel_unbekannt" => {
-            Err("mw.halter_kein_schluessel")
-        }
-        Zeile::Antwort { code: Some(c), .. } => Err(auf_mw(&c)),
-        _ => Err("mw.halter_fehler"),
+        } => Err("mw.halter_kein_schluessel".into()),
+        Zeile::Antwort { code: Some(c), .. } => Err(Absage {
+            // An unknown target is an error of the configuration, not a missing key; the start ends the same way.
+            code: if c == "halter.ziel_unbekannt" {
+                "mw.halter_kein_schluessel"
+            } else {
+                auf_mw(&c)
+            },
+            halter_code: halter_code_form(&c).then_some(c),
+        }),
+        _ => Err("mw.halter_fehler".into()),
     }
 }
 

@@ -43,9 +43,9 @@ fn zeit(frist: Duration) -> Timespec {
         tv_sec: i64::try_from(frist.as_secs()).unwrap_or(i64::MAX),
         #[cfg(unix)]
         tv_nsec: frist.subsec_nanos().into(),
-        // Windows: the nanoseconds are an `i32` in `rustix` (below 10^9, so they fit)
+        // Windows: the nanoseconds are an `i32` in `rustix` (`sys::nanosekunden`)
         #[cfg(windows)]
-        tv_nsec: i32::try_from(frist.subsec_nanos()).unwrap_or(0),
+        tv_nsec: crate::sys::nanosekunden(frist),
     }
 }
 

@@ -113,7 +113,9 @@ mod schritt_drei {
     use std::time::{Duration, Instant};
 
     use modellweg::halter;
-    use modellweg::start::{Startfehler, halter_bereit};
+    use modellweg::start::{
+        Abbruch, Startfehler, abbruch_melden, halter_bereit, halter_bereit_mit_code,
+    };
 
     use super::{Halterattrappe, Wegwerf, uid};
 
@@ -221,6 +223,184 @@ mod schritt_drei {
             "mw.halter_fehler: Halter lehnte ab\n"
         );
         assert_eq!(Startfehler::HalterFehler.exit(), 78);
+    }
+
+    /// What the start writes on stderr for a failure of step 3 against `antwort`, with the exit code.
+    fn stderr_zu(antwort: &str) -> (u8, Vec<u8>) {
+        let w = Wegwerf::neu("s3-zeilen");
+        let a = Halterattrappe::neu(&w, vec![antwort.to_owned()]);
+        let abbruch =
+            halter_bereit_mit_code(&a.pfad(), uid(), &["a.b"], bald()).expect_err("no start");
+        let mut err = Vec::new();
+        let exit = abbruch_melden(&mut err, &abbruch);
+        (exit, err)
+    }
+
+    /// A code of the holder in the closed form goes on a second line `mw.halter_grund: <halter-code>`, after the
+    /// unchanged first line and with the unchanged exit code. `halter.ziel_unbekannt` is `mw.halter_kein_schluessel`
+    /// and carries its code too.
+    #[test]
+    fn a_code_of_the_holder_stands_on_a_second_line() {
+        for (code, erste) in [
+            ("halter.rolle", "mw.halter_fehler: Halter lehnte ab\n"),
+            ("halter.wert_form", "mw.halter_fehler: Halter lehnte ab\n"),
+            (
+                "halter.ziel_komprimiert",
+                "mw.halter_fehler: Halter lehnte ab\n",
+            ),
+            (
+                "halter.ziel_unbekannt",
+                "mw.halter_kein_schluessel: kein Schluessel beim Halter\n",
+            ),
+            (
+                "halter.kein_schluessel",
+                "mw.halter_kein_schluessel: kein Schluessel beim Halter\n",
+            ),
+            // the longest form: 40 characters after the dot
+            (
+                "halter.abcdefghijklmnopqrstuvwxyz_abcdefghijklm",
+                "mw.halter_fehler: Halter lehnte ab\n",
+            ),
+        ] {
+            let (exit, err) = stderr_zu(&fehler(code));
+            assert_eq!(exit, 78, "{code}");
+            assert_eq!(
+                String::from_utf8(err).expect("utf8"),
+                format!("{erste}mw.halter_grund: {code}\n"),
+                "{code}"
+            );
+        }
+    }
+
+    /// A code outside the form `^halter\.[a-z_]{1,40}$` is not repeated: only the first line stands. Nothing of the
+    /// answer (the reason `grund`, the text, a target) goes to stderr either.
+    #[test]
+    fn a_code_outside_the_form_gives_no_second_line() {
+        let zu_lang = format!("halter.{}", "a".repeat(41));
+        for code in [
+            "halter.ROLLE",
+            "halter.Rolle",
+            "HALTER.rolle",
+            "halter.",
+            "halter.a-b",
+            "halter.a b",
+            "halter.a1",
+            "halter.rolle:x",
+            "halter.\\u00e4",
+            "halter.a\\u0001b",
+            "halter.rolle\\n",
+            "halter.rolle\\u001b[31m",
+            "halter.rolle\\nmw.halter_grund: halter.x",
+            "x.rolle",
+            "mw.halter_fehler",
+            "",
+            zu_lang.as_str(),
+        ] {
+            let (exit, err) = stderr_zu(&fehler(code));
+            assert_eq!(exit, 78, "{code}");
+            assert_eq!(
+                String::from_utf8(err).expect("utf8"),
+                "mw.halter_fehler: Halter lehnte ab\n",
+                "{code}"
+            );
+        }
+        // an unknown target and the key code keep their first line and give no second one with a wrong form
+        let (exit, err) = stderr_zu(&fehler("halter.Ziel_unbekannt"));
+        assert_eq!(exit, 78);
+        assert_eq!(
+            err, b"mw.halter_fehler: Halter lehnte ab\n",
+            "a wrong form is another code, not the unknown target"
+        );
+    }
+
+    /// Without a code of the holder there is no second line: `{"vorhanden": false}`, an answer without `vorhanden`, a
+    /// line of another kind, an unreadable line, a torn connection and the deadline.
+    #[test]
+    fn no_code_of_the_holder_gives_no_second_line() {
+        for (antwort, erste) in [
+            (
+                NEIN.to_owned(),
+                "mw.halter_kein_schluessel: kein Schluessel beim Halter\n",
+            ),
+            (
+                r#"{"art":"antwort","fassung":1,"id":<ID>,"ok":true}"#.to_owned(),
+                "mw.halter_fehler: Halter lehnte ab\n",
+            ),
+            (
+                r#"{"art":"antwort","fassung":1,"id":<ID>,"ok":true,"vorhanden":"ja"}"#.to_owned(),
+                "mw.halter_fehler: Halter lehnte ab\n",
+            ),
+            (
+                r#"{"art":"ende","code":"halter.rolle","fassung":1,"id":<ID>,"ok":false}"#
+                    .to_owned(),
+                "mw.halter_fehler: Halter lehnte ab\n",
+            ),
+            (
+                "kein json halter.rolle".to_owned(),
+                "mw.halter_fehler: Halter lehnte ab\n",
+            ),
+            ("ZU".to_owned(), "mw.halter_fehler: Halter lehnte ab\n"),
+        ] {
+            let (exit, err) = stderr_zu(&antwort);
+            assert_eq!(exit, 78, "{antwort}");
+            assert_eq!(String::from_utf8(err).expect("utf8"), erste, "{antwort}");
+        }
+        let w = Wegwerf::neu("s3-zeilen-frist");
+        let a = Halterattrappe::stumm(&w);
+        let abbruch = halter_bereit_mit_code(
+            &a.pfad(),
+            uid(),
+            &["a.b"],
+            Instant::now() + Duration::from_millis(300),
+        )
+        .expect_err("deadline");
+        assert_eq!(abbruch, Abbruch::from(Startfehler::HalterFrist));
+        let mut err = Vec::new();
+        assert_eq!(abbruch_melden(&mut err, &abbruch), 78);
+        assert_eq!(err, b"mw.halter_frist: Halter antwortete nicht\n");
+    }
+
+    /// The second line belongs to `mw.halter_fehler` and `mw.halter_kein_schluessel` only, and only with the closed
+    /// form: a failure of another kind never writes it, even if a code is set by hand.
+    #[test]
+    fn the_second_line_is_written_for_two_failures_and_the_closed_form_only() {
+        let mit = |fehler, code: &str| Abbruch {
+            fehler,
+            halter_code: Some(code.to_owned()),
+        };
+        assert_eq!(
+            mit(Startfehler::HalterFehler, "halter.rolle").grundzeile(),
+            Some("mw.halter_grund: halter.rolle\n".to_owned())
+        );
+        assert_eq!(
+            mit(Startfehler::HalterKeinSchluessel, "halter.rolle").grundzeile(),
+            Some("mw.halter_grund: halter.rolle\n".to_owned())
+        );
+        for fehler in [
+            Startfehler::HalterFrist,
+            Startfehler::HalterFehlt,
+            Startfehler::HalterUnecht,
+            Startfehler::Intern,
+            Startfehler::ProtokollOrdner,
+        ] {
+            assert_eq!(mit(fehler, "halter.rolle").grundzeile(), None, "{fehler:?}");
+        }
+        assert_eq!(
+            mit(Startfehler::HalterFehler, "halter.Rolle").grundzeile(),
+            None
+        );
+        assert_eq!(
+            mit(Startfehler::HalterFehler, "halter.a\nb").grundzeile(),
+            None
+        );
+        assert_eq!(Abbruch::from(Startfehler::HalterFehler).grundzeile(), None);
+        // `halter_bereit` keeps its type: the failure without the code
+        let w = Wegwerf::neu("s3-alt");
+        let a = Halterattrappe::neu(&w, vec![fehler("halter.rolle")]);
+        assert_eq!(
+            halter_bereit(&a.pfad(), uid(), &["a.b"], bald()),
+            Err(Startfehler::HalterFehler)
+        );
     }
 
     /// A holder that reads the question and closes without an answer: `mw.halter_fehler`, never a start.
@@ -513,6 +693,37 @@ mod echt {
         assert!(
             gesehen.lock().expect("lock").is_empty(),
             "the target was touched"
+        );
+    }
+
+    /// The real holder with the role `hub` refuses the question with `halter.rolle`: the start writes the second line
+    /// `mw.halter_grund: halter.rolle` after the unchanged first line, exit 78. A target he does not know is
+    /// `mw.halter_kein_schluessel` with `halter.ziel_unbekannt`.
+    #[test]
+    fn the_real_holder_gives_his_code_on_the_second_line() {
+        use modellweg::start::{abbruch_melden, halter_bereit_mit_code};
+        let bald = || std::time::Instant::now() + std::time::Duration::from_secs(10);
+        let (port, _gesehen) = ziel_attrappe("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}");
+        let hub = halter_dienst("zg-hub", port, &["GET /models"], true, "hub");
+        let w = super::Wegwerf::neu("zg-hub");
+        let pfad = am_pfad(&hub, &w);
+        let a = halter_bereit_mit_code(&pfad, uid(), &["127.0.0.1"], bald()).expect_err("hub");
+        let mut err = Vec::new();
+        assert_eq!(abbruch_melden(&mut err, &a), 78);
+        assert_eq!(
+            String::from_utf8(err).expect("utf8"),
+            "mw.halter_fehler: Halter lehnte ab\nmw.halter_grund: halter.rolle\n"
+        );
+        let bruecke = halter_dienst("zg-bruecke", port, &["GET /models"], true, "bruecke");
+        let w = super::Wegwerf::neu("zg-bruecke");
+        let pfad = am_pfad(&bruecke, &w);
+        let a = halter_bereit_mit_code(&pfad, uid(), &["api.unbekannt.invalid"], bald())
+            .expect_err("unknown target");
+        let mut err = Vec::new();
+        assert_eq!(abbruch_melden(&mut err, &a), 78);
+        assert_eq!(
+            String::from_utf8(err).expect("utf8"),
+            "mw.halter_kein_schluessel: kein Schluessel beim Halter\nmw.halter_grund: halter.ziel_unbekannt\n"
         );
     }
 

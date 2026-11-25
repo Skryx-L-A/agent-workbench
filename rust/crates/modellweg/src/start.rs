@@ -241,6 +241,41 @@ impl Startfehler {
     }
 }
 
+/// A failure before readiness with, for step 3 of mode 2, the code the holder answered. [`Startfehler`] stays a plain
+/// code; only a refusal of the holder carries the second part.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Abbruch {
+    /// The failure.
+    pub fehler: Startfehler,
+    /// The code of the holder in the form `^halter\.[a-z_]{1,40}$`, only for [`Startfehler::HalterFehler`] and
+    /// [`Startfehler::HalterKeinSchluessel`]; never any other part of the answer.
+    pub halter_code: Option<String>,
+}
+
+impl From<Startfehler> for Abbruch {
+    fn from(fehler: Startfehler) -> Self {
+        Self {
+            fehler,
+            halter_code: None,
+        }
+    }
+}
+
+impl Abbruch {
+    /// The second line on stderr, `mw.halter_grund: <halter-code>` and a line feed, if there is a code of the holder
+    /// that fits the failure and the closed form; else `None`. The check stands here again, so a field set by hand
+    /// cannot bring any other text to stderr.
+    #[must_use]
+    pub fn grundzeile(&self) -> Option<String> {
+        let code = self.halter_code.as_deref()?;
+        (matches!(
+            self.fehler,
+            Startfehler::HalterFehler | Startfehler::HalterKeinSchluessel
+        ) && crate::halter::halter_code_form(code))
+        .then(|| format!("mw.halter_grund: {code}\n"))
+    }
+}
+
 /// The state after step 5: the service and its socket, ready for the line `{"bereit":true}`.
 pub struct Bereit {
     /// The service.
@@ -358,6 +393,20 @@ pub fn vorbereiten(
     fristen: Fristen,
     uhr: Uhr,
 ) -> Result<Bereit, Startfehler> {
+    vorbereiten_mit_code(args, eigene_uid, aufloeser, fristen, uhr).map_err(|a| a.fehler)
+}
+
+/// [`vorbereiten`] with the code of the holder in the failure of step 3 of mode 2.
+///
+/// # Errors
+/// The first failing step as [`Abbruch`].
+pub fn vorbereiten_mit_code(
+    args: &[OsString],
+    eigene_uid: u32,
+    aufloeser: &Aufloeser,
+    fristen: Fristen,
+    uhr: Uhr,
+) -> Result<Bereit, Abbruch> {
     let a = aufruf::lies(args).map_err(|f| match f {
         Aufruffehler::Aufruf => Startfehler::Aufruf,
         Aufruffehler::BetriebsartUnbekannt => Startfehler::BetriebsartUnbekannt,
@@ -366,7 +415,7 @@ pub fn vorbereiten(
     match &a.art {
         ArtOptionen::OpenaiLokal(o) => {
             let o = o.clone();
-            vorbereiten_eins(a, o, eigene_uid, aufloeser, fristen, uhr)
+            Ok(vorbereiten_eins(a, o, eigene_uid, aufloeser, fristen, uhr)?)
         }
         #[cfg(target_os = "linux")]
         ArtOptionen::KopfEinsetzen(o) => {
@@ -462,17 +511,37 @@ pub fn halter_bereit(
     ziele: &[&str],
     bis: std::time::Instant,
 ) -> Result<(), Startfehler> {
+    halter_bereit_mit_code(pfad, eigene_uid, ziele, bis).map_err(|a| a.fehler)
+}
+
+/// [`halter_bereit`] with the code of the holder: if the holder refused with a code, the failure carries it in the form
+/// `^halter\.[a-z_]{1,40}$` (section 13.5, step 3); in no other case there is a code.
+///
+/// # Errors
+/// As [`halter_bereit`], as [`Abbruch`].
+#[cfg(target_os = "linux")]
+pub fn halter_bereit_mit_code(
+    pfad: &Path,
+    eigene_uid: u32,
+    ziele: &[&str],
+    bis: std::time::Instant,
+) -> Result<(), Abbruch> {
     for ziel in ziele {
         let mut k = match crate::halter::Klient::verbinde(pfad, eigene_uid) {
             Ok(k) => k,
-            Err("mw.halter_unecht") => return Err(Startfehler::HalterUnecht),
-            Err(_) => return Err(Startfehler::HalterFehlt),
+            Err("mw.halter_unecht") => return Err(Startfehler::HalterUnecht.into()),
+            Err(_) => return Err(Startfehler::HalterFehlt.into()),
         };
-        match crate::halter::schluessel_da(&mut k, ziel, bis) {
-            Ok(()) => {}
-            Err("mw.halter_kein_schluessel") => return Err(Startfehler::HalterKeinSchluessel),
-            Err("mw.halter_frist") => return Err(Startfehler::HalterFrist),
-            Err(_) => return Err(Startfehler::HalterFehler),
+        if let Err(absage) = crate::halter::schluessel_da_mit_code(&mut k, ziel, bis) {
+            let fehler = match absage.code {
+                "mw.halter_kein_schluessel" => Startfehler::HalterKeinSchluessel,
+                "mw.halter_frist" => Startfehler::HalterFrist,
+                _ => Startfehler::HalterFehler,
+            };
+            return Err(Abbruch {
+                fehler,
+                halter_code: absage.halter_code,
+            });
         }
     }
     Ok(())
@@ -488,7 +557,7 @@ fn vorbereiten_zwei(
     aufloeser: &Aufloeser,
     fristen: Fristen,
     uhr: Uhr,
-) -> Result<Bereit, Startfehler> {
+) -> Result<Bereit, Abbruch> {
     let text = crate::ca::lies_datei(&optionen.zielliste, eigene_uid)
         .ok_or(Startfehler::ZieleUngueltig)?;
     // Duty 1 (section 3a): a `halter_ziel` that is not the `host` of its target has its own code, in every start and
@@ -501,7 +570,7 @@ fn vorbereiten_zwei(
         }
     })?;
     if liste.zulassung != zielliste::Zulassung::Zugelassen {
-        return Err(Startfehler::CaNichtZugelassen);
+        return Err(Startfehler::CaNichtZugelassen.into());
     }
     let hosts: Vec<&str> = liste.ziele.iter().map(|z| z.host.as_str()).collect();
     let ca = crate::ca::Ca::pruefe(
@@ -523,10 +592,10 @@ fn vorbereiten_zwei(
         .collect();
     if !gebunden.is_empty() {
         let bis = std::time::Instant::now() + crate::halter::FRIST_START;
-        halter_bereit(&halter_socket, eigene_uid, &gebunden, bis)?;
+        halter_bereit_mit_code(&halter_socket, eigene_uid, &gebunden, bis)?;
     }
     if !a.protokoll.is_dir() {
-        return Err(Startfehler::ProtokollOrdner);
+        return Err(Startfehler::ProtokollOrdner.into());
     }
     let zaehlung = probelauf_starten(&a, &uhr)?;
     let mut verbinder: Vec<Option<Box<dyn ziel::Verbinder>>> = Vec::new();
@@ -806,8 +875,8 @@ pub fn starten_mit(
     stderr: &mut dyn Write,
     ohne_kind: impl FnOnce() -> Result<(), Startfehler>,
 ) -> Result<Bereit, u8> {
-    let bereit =
-        vorbereiten(args, eigene_uid, aufloeser, fristen, uhr).map_err(|f| fehler(stderr, f))?;
+    let bereit = vorbereiten_mit_code(args, eigene_uid, aufloeser, fristen, uhr)
+        .map_err(|a| abbruch_melden(stderr, &a))?;
     // duty 5 (section 3a): no child before the ready line
     if let Err(f) = ohne_kind() {
         loeschen_socket(bereit.eigener_socket.as_deref());
@@ -835,6 +904,18 @@ fn fehler(stderr: &mut dyn Write, f: Startfehler) -> u8 {
     let _ = stderr.write_all(f.zeile().as_bytes());
     let _ = stderr.flush();
     f.exit()
+}
+
+/// Writes the stderr lines of a failure of the start and returns its exit code: the line `<code>: <grund>` and, if the
+/// holder refused in step 3 with a code of the closed form, the second line `mw.halter_grund: <halter-code>`. The exit
+/// code and the first line are those of [`fehler`].
+pub fn abbruch_melden(stderr: &mut dyn Write, a: &Abbruch) -> u8 {
+    let exit = fehler(stderr, a.fehler);
+    if let Some(z) = a.grundzeile() {
+        let _ = stderr.write_all(z.as_bytes());
+        let _ = stderr.flush();
+    }
+    exit
 }
 
 /// Step 1 (section 3): the result of `kernabbild::abschirmen` as the behaviour of the start. A note (the hard limit for core was 0 already and

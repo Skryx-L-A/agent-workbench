@@ -48,7 +48,7 @@ const DATEI_OFFEN: rustix::fs::OFlags = rustix::fs::OFlags::RDONLY
     .union(rustix::fs::OFlags::CLOEXEC)
     .union(rustix::fs::OFlags::NONBLOCK);
 
-fn ungueltig(grund: &str) -> StartFehler {
+pub(crate) fn ungueltig(grund: &str) -> StartFehler {
     StartFehler::neu(2, &format!("lauf.marker_datei ungueltig: {grund}"))
 }
 
@@ -123,7 +123,10 @@ pub(crate) fn lesen_mit(
 }
 
 /// Step 3 of [`lesen`]: the content of the file (at most [`DATEI_MAX`] bytes), the same under Unix and Windows.
-fn inhalt_lesen(roh: &[u8], ordner: Option<&str>) -> Result<Option<start::Marker>, StartFehler> {
+pub(crate) fn inhalt_lesen(
+    roh: &[u8],
+    ordner: Option<&str>,
+) -> Result<Option<start::Marker>, StartFehler> {
     // 3. the content: UTF-8, JSON, exactly the key `liste`
     let text = std::str::from_utf8(roh).map_err(|_| ungueltig("kein_utf8"))?;
     let wert: Value = serde_json::from_str(text).map_err(|_| ungueltig("kein_json"))?;
@@ -143,54 +146,9 @@ fn inhalt_lesen(roh: &[u8], ordner: Option<&str>) -> Result<Option<start::Marker
         .map_err(|_| StartFehler::neu(2, "lauf.marker_ordner ungueltig"))
 }
 
-/// Windows (section 21): the same steps with access lists. The folder must be a folder of the own user whose protected list
-/// allows only it and `SYSTEM` (0700), the file a file of the own user whose protected list allows only it (0600); a reparse point
-/// is never followed. A missing folder or file gives no markers.
-///
-/// # Errors
-/// Exit code 2 with the same grounds as under Unix.
+// Windows: [`crate::sys::marker_lesen`] (the same steps with access lists, section 21).
 #[cfg(windows)]
-pub(crate) fn lesen(
-    pfad: &str,
-    ordner: Option<&str>,
-) -> Result<Option<start::Marker>, StartFehler> {
-    use std::io::Read;
-    use std::path::Path;
-
-    use crate::sys::Eigen;
-    let p = Path::new(pfad);
-    let (Some(eltern), Some(name)) = (p.parent(), p.file_name().and_then(|n| n.to_str())) else {
-        return Err(ungueltig("pfad"));
-    };
-    if !crate::loeschen::name_gut(name) {
-        return Err(ungueltig("pfad"));
-    }
-    let _eltern = match crate::sys::eigen_oeffnen(eltern, true, false) {
-        Ok(g) => g,
-        Err(Eigen::Fehlt) => return Ok(None),
-        Err(Eigen::Fremd) => return Err(ungueltig("ordner_eigentuemer")),
-        Err(Eigen::Offen) => return Err(ungueltig("ordner_modus")),
-        Err(_) => return Err(ungueltig("ordner")),
-    };
-    let datei = match crate::sys::eigen_oeffnen(p, false, true) {
-        Ok(g) => g,
-        Err(Eigen::Fehlt) => return Ok(None),
-        Err(Eigen::Link) => return Err(ungueltig("datei_verknuepfung")),
-        Err(Eigen::Art) => return Err(ungueltig("datei_art")),
-        Err(Eigen::Fremd) => return Err(ungueltig("datei_eigentuemer")),
-        Err(Eigen::Offen) => return Err(ungueltig("datei_modus")),
-        Err(Eigen::Unlesbar) => return Err(ungueltig("datei_unlesbar")),
-    };
-    let mut roh = Vec::new();
-    datei
-        .take(DATEI_MAX as u64 + 1)
-        .read_to_end(&mut roh)
-        .map_err(|_| ungueltig("datei_unlesbar"))?;
-    if roh.len() > DATEI_MAX {
-        return Err(ungueltig("zu_gross"));
-    }
-    inhalt_lesen(&roh, ordner)
-}
+pub(crate) use crate::sys::marker_lesen as lesen;
 
 /// The list of the object `{"liste": [...]}`: exactly that key, an array of texts.
 fn liste_lesen(wert: &Value) -> Option<Vec<String>> {

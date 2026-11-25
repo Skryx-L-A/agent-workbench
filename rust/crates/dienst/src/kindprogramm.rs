@@ -61,31 +61,16 @@ fn stty(argumente: &[&str]) -> String {
     String::new()
 }
 
-/// Windows (contract section 21): the two uses of `stty` through the console (`sys/windows.rs`): `raw -echo` and `size` (rows and
-/// columns, as `stty size` prints them).
+// Windows: [`crate::sys::stty`] (the two uses of `stty` through the console: `raw -echo` and `size`, contract section 21).
 #[cfg(windows)]
-fn stty(argumente: &[&str]) -> String {
-    match argumente {
-        ["raw", "-echo"] => {
-            crate::sys::konsole_roh();
-            String::new()
-        }
-        ["size"] => crate::sys::konsole_groesse()
-            .map(|(zeilen, spalten)| format!("{zeilen} {spalten}"))
-            .unwrap_or_default(),
-        _ => String::new(),
-    }
-}
+use crate::sys::stty;
 
 /// A path as the report writes it. Unix: as it is. Windows (section 21): in the form of the start file, without the drive and with
 /// `/` (`C:\\t\\o` is `/t/o`), the way the service reads a path of the start file on the drive of the working folder.
 fn pfad_text(p: &Path) -> String {
     #[cfg(windows)]
     {
-        let text = p.display().to_string();
-        let ohne = text.get(1..2) == Some(":");
-        let rest = if ohne { &text[2..] } else { text.as_str() };
-        rest.replace('\\', "/")
+        crate::sys::pfad_text(p)
     }
     #[cfg(unix)]
     {
@@ -430,15 +415,9 @@ fn zeuge_starten(ordner: &Path, art: &str) -> Option<u32> {
 fn raeumen(a: &[String], p: &serde_json::Value) -> i32 {
     #[cfg(unix)]
     use std::os::unix::fs::symlink;
-    // Windows (section 21): a link to a folder and a link to a file are two calls
+    // Windows (section 21): a link to a folder and a link to a file are two calls (`sys::symlink`)
     #[cfg(windows)]
-    fn symlink(ziel: impl AsRef<Path>, name: impl AsRef<Path>) -> std::io::Result<()> {
-        if ziel.as_ref().is_dir() {
-            std::os::windows::fs::symlink_dir(ziel, name)
-        } else {
-            std::os::windows::fs::symlink_file(ziel, name)
-        }
-    }
+    use crate::sys::symlink;
     let ordner = Path::new(text(a, 1)).parent().unwrap_or(Path::new("/"));
     let o = ordner.parent().unwrap_or(Path::new("/"));
     let wort = |k: &str, vorgabe: &'static str| {
@@ -508,7 +487,7 @@ fn lauf_bericht(a: &[String], start: Option<&serde_json::Value>) {
         |p: &Path| std::fs::metadata(p).map(|m| format!("{:04o}", m.permissions().mode() & 0o7777));
     // Windows (section 21): the mode the access list stands for
     #[cfg(windows)]
-    let modus = |p: &Path| std::fs::metadata(p).map(|_| crate::sys::modus_text(p));
+    let modus = crate::sys::modus_von;
     let (modi, name) = match (modus(datei), datei.parent().map(modus)) {
         (Ok(d), Some(Ok(o))) => (
             format!("{d}/{o}"),
@@ -544,10 +523,7 @@ fn lauf_bericht(a: &[String], start: Option<&serde_json::Value>) {
         .map_or(String::new(), |n| n.to_string_lossy().into_owned());
     // Windows (section 21): a program carries `.exe`; the report names it without, as the name of the program under Unix
     #[cfg(windows)]
-    let name0 = match name0.strip_suffix(".exe") {
-        Some(ohne) => ohne.to_owned(),
-        None => name0,
-    };
+    let name0 = crate::sys::ohne_exe(name0);
     let cwd = std::env::current_dir().map_or_else(|_| String::new(), |p| pfad_text(&p));
     for z in [
         format!("START={start_text}"),
@@ -618,11 +594,9 @@ fn signal_an_sich(a: &[String]) {
     std::thread::sleep(Duration::from_secs(5));
 }
 
-/// Windows: no signal to itself (section 21); the child ends after 5 s by itself.
+// Windows: [`crate::sys::signal_an_sich`] (no signal to itself, section 21; the child ends after 5 s by itself).
 #[cfg(windows)]
-fn signal_an_sich(_a: &[String]) {
-    std::thread::sleep(Duration::from_secs(5));
-}
+use crate::sys::signal_an_sich;
 
 /// `warte <s>`: ignores SIGHUP, writes its process id and waits; only SIGKILL ends it, so the service must see to it.
 fn warte(a: &[String]) {

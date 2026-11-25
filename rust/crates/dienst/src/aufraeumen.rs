@@ -23,7 +23,9 @@
 //! The signal exists under Linux only (start times from `/proc/<pid>/stat`); under other systems only the files are removed (the signal
 //! is step II of the order and open in the contract).
 
-use std::fs::{File, Metadata};
+use std::fs::File;
+#[cfg(unix)]
+use std::fs::Metadata;
 use std::io::Read;
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
@@ -118,12 +120,9 @@ fn gleiche_datei(a: &Metadata, b: &Metadata) -> bool {
     a.dev() == b.dev() && a.ino() == b.ino()
 }
 
-/// Windows has no device and inode in `Metadata` of `std` (section 21): two files never count as the same, so no pid file is read
-/// and no signal goes out (as there is no signal under Windows anyway).
+// Windows: [`crate::sys::gleiche_datei`] (two files never count as the same, section 21).
 #[cfg(windows)]
-fn gleiche_datei(_a: &Metadata, _b: &Metadata) -> bool {
-    false
-}
+use crate::sys::gleiche_datei;
 
 /// Reads the pid file `name` of the session folder. SECURITY: the file must be a regular file (checked with `lstat`, a link is refused),
 /// the opened file must be the file `lstat` saw (device and inode, so that a swap between the check and the opening is seen), and at
@@ -240,11 +239,9 @@ fn gruppe_beenden(pid: u32) -> bool {
     kill_process_group(gruppe, Signal::TERM).is_ok()
 }
 
-/// Windows: no process group and no signal (section 21).
+// Windows: [`crate::sys::gruppe_beenden`] (no process group and no signal, section 21).
 #[cfg(windows)]
-fn gruppe_beenden(_pid: u32) -> bool {
-    false
-}
+use crate::sys::gruppe_beenden;
 
 /// `true` when the last part of the path is `s-` and digits: the form of the folder the service makes for a session.
 fn ist_sitzungsordner(ordner: &Path) -> bool {

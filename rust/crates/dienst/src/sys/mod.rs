@@ -25,22 +25,17 @@ pub(crate) fn euid() -> u32 {
 #[allow(unsafe_code)]
 mod windows;
 
-#[cfg(all(windows, feature = "pruefbau"))]
-pub(crate) use windows::modus_text;
+// Windows (decision of 25.11.2026): every line of Windows code of the crate stands in `windows.rs`, which the mutation gate leaves
+// out; the other modules only call what is named here (checked by `tests/sys_regel.rs`).
 #[cfg(windows)]
 pub(crate) use windows::{
-    AsFd, BorrowedFd, Eigen, Job, Ordner, OwnedFd, UnixListener, UnixStream, datei_anlegen_eigen,
-    eigen_besitz, eigen_oeffnen, ordner_anlegen_eigen, ordner_durchsuchbar, ordner_oeffnen,
-    socket_binden, socket_binden_pfad,
+    AsFd, BorrowedFd, JobStand, Ordner, OwnedFd, UnixListener, UnixStream, alte_zielliste_raeumen,
+    eintrag_durchsuchbar, euid, gegenseite_gut, gleiche_datei, gruppe_beenden, job_schliessen,
+    kind_argv, kind_beenden, kind_mit_job, kind_nochmal_beenden, kinder_beenden, laufen,
+    marker_lesen, meldung_binden, mit_job, nanosekunden, ordner_anlegen, ordner_oeffnen,
+    programm_urteil, sitzung_mit_job, socket_binden,
 };
-
-#[cfg(all(test, windows, feature = "pruefbau"))]
-pub(crate) use windows::JOB_VERWEIGERN;
-#[cfg(all(windows, feature = "pruefbau"))]
-pub(crate) use windows::{konsole_groesse, konsole_roh};
-
-/// Windows: no number of the user (the owner is a SID, see `windows::eigene_sid`).
 #[cfg(windows)]
-pub(crate) fn euid() -> u32 {
-    0
-}
+pub use windows::{Signale, signale_anmelden};
+#[cfg(all(windows, feature = "pruefbau"))]
+pub(crate) use windows::{laufkind, modus_von, ohne_exe, pfad_text, signal_an_sich, stty, symlink};
