@@ -190,6 +190,32 @@ impl<P: Plattform> Pool<P> {
 /// A test seam of the outside runner (feature `testnaht`): called right after `ConnectNamedPipe` returned.
 pub(crate) type Haltepunkt = Box<dyn Fn() + Send + Sync>;
 
+/// The hook of the caller for events (decision 4 of 25.11.2026): the library calls it with each event of a refusal before it
+/// disconnects the instance.
+pub(crate) type Ereignishaken = Arc<dyn Fn(&Ereignis) + Send + Sync>;
+
+/// Decision 4: the event first, then the end. The hook gets the event while the client still holds its connection; only
+/// then the instance is disconnected. The caller waits for nothing: no drop of a value of the caller ends the connection.
+fn melden_und_trennen<P: Plattform>(
+    pool: &Pool<P>,
+    haken: Option<&Ereignishaken>,
+    g: P::Griff,
+    ereignis: Ereignis,
+) -> Ereignis {
+    if let Some(haken) = haken {
+        haken(&ereignis);
+    }
+    pool.zurueck(g);
+    ereignis
+}
+
+/// The own `TokenUser` SID in the form of [`Sid`]; a SID of another form (such as `LOCAL SERVICE`) is `pk.io` without
+/// `os_fehler`, a failed call `pk.io` with it.
+pub(crate) fn eigene_sid<P: Plattform>(p: &P) -> Result<crate::kennung::Sid, Fehler> {
+    let text = p.eigene_sid().map_err(|e| Fehler::os(Code::Io, e))?;
+    crate::kennung::Sid::neu(&text).map_err(|_| Fehler::neu(Code::Io))
+}
+
 pub(crate) struct ServerKern<P: Plattform> {
     plattform: Arc<P>,
     pool: Arc<Pool<P>>,
@@ -199,6 +225,7 @@ pub(crate) struct ServerKern<P: Plattform> {
     prozess_pflicht: bool,
     job: Option<P::Job>,
     pub(crate) nach_verbinden: Option<Haltepunkt>,
+    pub(crate) haken: Option<Ereignishaken>,
 }
 
 impl<P: Plattform> Drop for ServerKern<P> {
@@ -264,16 +291,22 @@ impl<P: Plattform> ServerKern<P> {
             prozess_pflicht: v.prozess_pflicht,
             job,
             nach_verbinden: None,
+            haken: None,
         })
     }
 
     fn abweisen(&self, g: P::Griff, grund: Grund, peer: Option<Peer>) -> AnnahmeKern<P> {
-        self.pool.zurueck(g);
-        AnnahmeKern::Abgewiesen(Ereignis {
+        let ereignis = Ereignis {
             kanal: self.kanal.clone(),
             grund,
             peer,
-        })
+        };
+        AnnahmeKern::Abgewiesen(melden_und_trennen(
+            &self.pool,
+            self.haken.as_ref(),
+            g,
+            ereignis,
+        ))
     }
 
     /// "Annehmen und Messen", steps 1 to 7.
@@ -351,6 +384,7 @@ impl<P: Plattform> ServerKern<P> {
             plattform: Arc::clone(&self.plattform),
             pool: Arc::clone(&self.pool),
             kanal: self.kanal.clone(),
+            haken: self.haken.clone(),
             griff: Some(g),
             prozess: prozess.map(|(h, _)| h),
             bindung,
@@ -368,10 +402,13 @@ fn hallo_lesen<P: Plattform>(p: &P, g: &P::Griff, frist: Duration) -> Result<(),
         if rest.is_zero() {
             return Err(Grund::HalloFehlt);
         }
+        // Decision 5: bytes that are no start of the hello are `pk.hallo_falsch`, checked after each read; an end of the
+        // connection or of the time limit before 4 fitting bytes is `pk.hallo_fehlt`.
         match p.lesen(g, &mut puffer[n..], Some(rest)) {
             Lesen::Daten(k) if k > 0 => n += k,
-            Lesen::Frist => return Err(Grund::HalloFehlt),
-            Lesen::Daten(_) | Lesen::Ende | Lesen::Fehler(_) => return Err(Grund::HalloFalsch),
+            Lesen::Daten(_) | Lesen::Frist | Lesen::Ende | Lesen::Fehler(_) => {
+                return Err(Grund::HalloFehlt);
+            }
         }
         if puffer[..n] != HALLO[..n] {
             return Err(Grund::HalloFalsch);
@@ -396,6 +433,7 @@ pub(crate) struct VorlaeufigKern<P: Plattform> {
     plattform: Arc<P>,
     pool: Arc<Pool<P>>,
     kanal: Kanalname,
+    haken: Option<Ereignishaken>,
     griff: Option<P::Griff>,
     prozess: Option<P::Prozess>,
     bindung: Option<Prozessbindung>,
@@ -425,20 +463,23 @@ impl<P: Plattform> VorlaeufigKern<P> {
             gehalten: self.prozess.take(),
             bindung: self.bindung,
             peer: self.peer.clone(),
+            lesefrist: None,
         })
     }
 
-    /// Closes without an answer and gives the event `pk.aufrufer_abgewiesen`.
+    /// Gives the event `pk.aufrufer_abgewiesen` to the hook, then closes without an answer (decision 4).
     pub(crate) fn ablehnen(mut self, grund: Kennung) -> Ereignis {
-        if let Some(g) = self.griff.take() {
-            self.pool.zurueck(g);
-        }
-        self.prozess = None;
-        Ereignis {
+        let ereignis = Ereignis {
             kanal: self.kanal.clone(),
             grund: Grund::Aufrufer(grund),
             peer: Some(self.peer.clone()),
-        }
+        };
+        let ereignis = match self.griff.take() {
+            Some(g) => melden_und_trennen(&self.pool, self.haken.as_ref(), g, ereignis),
+            None => ereignis,
+        };
+        self.prozess = None;
+        ereignis
     }
 }
 
@@ -468,9 +509,15 @@ pub(crate) struct VerbindungKern<P: Plattform> {
     gehalten: Option<P::Prozess>,
     bindung: Option<Prozessbindung>,
     pub(crate) peer: Peer,
+    /// Decision 2: the time limit of each read; `None` reads without one.
+    lesefrist: Option<Duration>,
 }
 
 impl<P: Plattform> VerbindungKern<P> {
+    pub(crate) fn lesefrist(&mut self, frist: Option<Duration>) {
+        self.lesefrist = frist;
+    }
+
     fn griff(&self) -> Option<&P::Griff> {
         match &self.seite {
             Seite::Server { griff, .. } => griff.as_ref(),
@@ -491,10 +538,13 @@ impl<P: Plattform> VerbindungKern<P> {
         let Some(g) = self.griff() else {
             return Ok(0);
         };
-        match self.plattform.lesen(g, puffer, None) {
+        match self.plattform.lesen(g, puffer, self.lesefrist) {
             Lesen::Daten(n) => Ok(n),
             Lesen::Ende => Ok(0),
-            Lesen::Frist => Err(std::io::Error::other(Fehler::neu(Code::Io))),
+            Lesen::Frist => Err(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                Fehler::neu(Code::Io),
+            )),
             Lesen::Fehler(e) => Err(std::io::Error::other(Fehler::os(Code::Io, e))),
         }
     }
@@ -519,17 +569,16 @@ impl<P: Plattform> Drop for VerbindungKern<P> {
     }
 }
 
-/// "Client verbinden", steps 2 to 6; step 1 (the settings) is checked by the caller.
-#[allow(clippy::many_single_char_names)]
-pub(crate) fn verbinden<P: Plattform>(
-    plattform: Arc<P>,
+/// "Client verbinden", steps 2 to 5: an instance whose owner is the expected SID, with no byte sent. The same for
+/// [`verbinden`] and [`verbinden_ohne_hallo`] (decision 3): same check, same codes.
+fn erreichen<P: Plattform>(
+    p: &P,
     v: &ClientVorgabe,
-) -> Result<VerbindungKern<P>, Fehler> {
-    let p = &*plattform;
+    ende: Instant,
+) -> Result<(P::Griff, String), Fehler> {
     let Erwartet::Windows { sid: erwartet } = &v.erwartet else {
         return Err(Fehler::neu(Code::VorgabeUngueltig));
     };
-    let ende = Instant::now() + v.frist;
     let name = v.name.als_str();
     // Steps 2 and 3: reach an instance.
     let g = loop {
@@ -556,6 +605,50 @@ pub(crate) fn verbinden<P: Plattform>(
     if besitzer != erwartet.als_str() {
         return Err(Fehler::neu(Code::FalscherServer));
     }
+    Ok((g, besitzer))
+}
+
+fn client_verbindung<P: Plattform>(
+    plattform: Arc<P>,
+    g: P::Griff,
+    besitzer: String,
+) -> VerbindungKern<P> {
+    let peer = Peer {
+        sid: Some(besitzer),
+        pid: plattform.server_pid(&g),
+        eingeschraenkt: Some(false),
+        ..Peer::leer(System::Windows)
+    };
+    VerbindungKern {
+        plattform,
+        seite: Seite::Client { griff: g },
+        gehalten: None,
+        bindung: None,
+        peer,
+        lesefrist: None,
+    }
+}
+
+/// "Client verbinden" without the hello (decision 3): the check of the owner as in [`verbinden`], then the connection as it
+/// is. For a server that speaks no `pk1` (the control pipe of the platform service); there is no way without an expected owner.
+pub(crate) fn verbinden_ohne_hallo<P: Plattform>(
+    plattform: Arc<P>,
+    v: &ClientVorgabe,
+) -> Result<VerbindungKern<P>, Fehler> {
+    let ende = Instant::now() + v.frist;
+    let (g, besitzer) = erreichen(&*plattform, v, ende)?;
+    Ok(client_verbindung(plattform, g, besitzer))
+}
+
+/// "Client verbinden", steps 2 to 6; step 1 (the settings) is checked by the caller.
+#[allow(clippy::many_single_char_names)]
+pub(crate) fn verbinden<P: Plattform>(
+    plattform: Arc<P>,
+    v: &ClientVorgabe,
+) -> Result<VerbindungKern<P>, Fehler> {
+    let p = &*plattform;
+    let ende = Instant::now() + v.frist;
+    let (g, besitzer) = erreichen(p, v, ende)?;
     // Step 6: the hello and its answer within the rest of the time limit.
     if alles_schreiben(p, &g, &HALLO).is_err() {
         return Err(Fehler::neu(Code::Abgewiesen));
@@ -575,19 +668,7 @@ pub(crate) fn verbinden<P: Plattform>(
     if antwort != HALLO {
         return Err(Fehler::neu(Code::Abgewiesen));
     }
-    let peer = Peer {
-        sid: Some(besitzer),
-        pid: p.server_pid(&g),
-        eingeschraenkt: Some(false),
-        ..Peer::leer(System::Windows)
-    };
-    Ok(VerbindungKern {
-        plattform,
-        seite: Seite::Client { griff: g },
-        gehalten: None,
-        bindung: None,
-        peer,
-    })
+    Ok(client_verbindung(plattform, g, besitzer))
 }
 
 #[cfg(test)]
@@ -628,6 +709,8 @@ mod tests {
         besitzer: Result<String, i32>,
         antwort: Vec<u8>,
         protokoll: Vec<&'static str>,
+        fristen: Vec<Option<Duration>>,
+        eigene_fehler: Option<i32>,
     }
 
     impl Attrappe {
@@ -658,6 +741,8 @@ mod tests {
                     besitzer: Ok(DIENST.to_owned()),
                     antwort: HALLO.to_vec(),
                     protokoll: Vec::new(),
+                    fristen: Vec::new(),
+                    eigene_fehler: None,
                 }),
             })
         }
@@ -679,7 +764,8 @@ mod tests {
         type Job = ();
 
         fn eigene_sid(&self) -> Result<String, i32> {
-            Ok(self.z().eigene.clone())
+            let z = self.z();
+            z.eigene_fehler.map_or_else(|| Ok(z.eigene.clone()), Err)
         }
         fn instanz_anlegen(
             &self,
@@ -733,9 +819,10 @@ mod tests {
             z.getrennt += 1;
             z.protokoll.push("trennen");
         }
-        fn lesen(&self, _g: &u32, puffer: &mut [u8], _frist: Option<Duration>) -> Lesen {
+        fn lesen(&self, _g: &u32, puffer: &mut [u8], frist: Option<Duration>) -> Lesen {
             let mut z = self.z();
             z.protokoll.push("lesen");
+            z.fristen.push(frist);
             if let Some(b) = z.von_client.pop_front() {
                 puffer[0] = b;
                 return Lesen::Daten(1);
@@ -955,9 +1042,10 @@ mod tests {
         a.z().client_sendet.clear();
         let s = server(&a, vec![person(None)], 4);
         assert_eq!(abgewiesen(s.annehmen()).grund, Grund::HalloFehlt);
+        // Decision 5: the end of the connection after a fitting start is `pk.hallo_fehlt`.
         a.z().client_sendet = b"pk".to_vec();
         a.z().client_schliesst = true;
-        assert_eq!(abgewiesen(s.annehmen()).grund, Grund::HalloFalsch);
+        assert_eq!(abgewiesen(s.annehmen()).grund, Grund::HalloFehlt);
         a.z().client_sendet = b"pk2\n".to_vec();
         let e = abgewiesen(s.annehmen());
         assert_eq!(e.grund, Grund::HalloFalsch);
@@ -965,6 +1053,84 @@ mod tests {
             !e.als_json().to_string().contains("pk1"),
             "die Bytes stehen nie im Ereignis"
         );
+    }
+
+    /// Decision 5: wrong bytes give `pk.hallo_falsch` as soon as they come, also when the connection ends after them; an end
+    /// or the time limit before 4 fitting bytes gives `pk.hallo_fehlt`, also without any byte (the runner of
+    /// `w-pipe-sicherheit` opens and closes the pipe).
+    #[test]
+    fn ende_vor_vier_byte() {
+        let a = Attrappe::neu();
+        let s = server(&a, vec![person(None)], 4);
+        a.z().client_schliesst = true;
+        for (bytes, grund) in [
+            (&b""[..], Grund::HalloFehlt),
+            (b"p", Grund::HalloFehlt),
+            (b"pk", Grund::HalloFehlt),
+            (b"pk1", Grund::HalloFehlt),
+            (b"x", Grund::HalloFalsch),
+            (b"pq", Grund::HalloFalsch),
+            (b"pk1x", Grund::HalloFalsch),
+            (b"pk1\r", Grund::HalloFalsch),
+        ] {
+            a.z().client_sendet = bytes.to_vec();
+            let e = abgewiesen(s.annehmen());
+            assert_eq!(e.grund, grund, "{bytes:?}");
+            assert_eq!(e.code(), Code::HalloUngueltig);
+        }
+        // Without an end the time limit ends the wait: also `pk.hallo_fehlt`.
+        a.z().client_schliesst = false;
+        a.z().client_sendet = b"pk".to_vec();
+        assert_eq!(abgewiesen(s.annehmen()).grund, Grund::HalloFehlt);
+        assert!(a.z().an_client.is_empty());
+    }
+
+    /// Decision 4: the hook gets the event while the instance is still connected; the end comes after it, without a drop of
+    /// a value of the caller. For a refusal of the library and for one of the caller.
+    #[test]
+    fn ereignis_vor_dem_trennen() {
+        let a = Attrappe::neu();
+        let mut s = server(&a, vec![person(None)], 4);
+        let gesehen: Arc<Mutex<Vec<(String, usize)>>> = Arc::default();
+        let (a2, g2) = (Arc::clone(&a), Arc::clone(&gesehen));
+        s.haken = Some(Arc::new(move |e: &Ereignis| {
+            let getrennt = a2.z().getrennt;
+            sperren(&g2).push((e.grund.als_text(), getrennt));
+        }));
+        a.z().client_sendet = b"GET /\n".to_vec();
+        let e = abgewiesen(s.annehmen());
+        assert_eq!(a.z().getrennt, 1, "danach getrennt");
+        assert_eq!(*sperren(&gesehen), vec![("pk.hallo_falsch".to_owned(), 0)]);
+        assert_eq!(e.grund, Grund::HalloFalsch, "dasselbe Ereignis zurück");
+        a.z().client_sendet = HALLO.to_vec();
+        let v = vorlaeufig(s.annehmen());
+        let e = v.ablehnen(Kennung::neu("sitzung-fremd").expect("form"));
+        assert_eq!(e.als_json()["grund"], "aufrufer:sitzung-fremd");
+        assert_eq!(a.z().getrennt, 2);
+        assert_eq!(
+            sperren(&gesehen)[1],
+            ("aufrufer:sitzung-fremd".to_owned(), 1),
+            "der Haken sah die Verbindung noch offen"
+        );
+        // Without a hook nothing changes: the event comes back and the instance is disconnected.
+        let b = Attrappe::neu();
+        b.z().client_sendet.clear();
+        let s2 = server(&b, vec![person(None)], 4);
+        assert_eq!(abgewiesen(s2.annehmen()).grund, Grund::HalloFehlt);
+        assert_eq!(b.z().getrennt, 1);
+    }
+
+    #[test]
+    fn eigene_sid_als_sid() {
+        let a = Attrappe::neu();
+        assert_eq!(
+            eigene_sid(&*a).map(|s| s.als_str().to_owned()),
+            Ok(DIENST.to_owned())
+        );
+        a.z().eigene = "S-1-5-19".to_owned();
+        assert_eq!(eigene_sid(&*a), Err(Fehler::neu(Code::Io)), "LOCAL SERVICE");
+        a.z().eigene_fehler = Some(5);
+        assert_eq!(eigene_sid(&*a), Err(Fehler::os(Code::Io, 5)));
     }
 
     #[test]
@@ -1159,6 +1325,99 @@ mod tests {
                 .err()
                 .map(|f| f.code),
             Some(Code::Abgewiesen)
+        );
+    }
+
+    /// Decision 2: the time limit goes to every following read; when it passes the error has the kind `TimedOut`. `None`
+    /// reads without a limit again.
+    #[test]
+    fn lesefrist_jedes_folgende_lesen() {
+        let a = Attrappe::fuer_client();
+        let mut v = verbinden(Arc::clone(&a), &client(DIENST)).expect("verbinden");
+        a.z().fristen.clear();
+        let mut puffer = [0u8; 8];
+        assert!(v.lesen(&mut puffer).is_err());
+        assert_eq!(a.z().fristen, vec![None], "ohne Frist zu Beginn");
+        v.lesefrist(Some(Duration::from_millis(30)));
+        for _ in 0..2 {
+            let fehler = v.lesen(&mut puffer).expect_err("Frist");
+            assert_eq!(fehler.kind(), std::io::ErrorKind::TimedOut);
+        }
+        v.lesefrist(None);
+        let _ = v.lesen(&mut puffer);
+        assert_eq!(
+            a.z().fristen,
+            vec![
+                None,
+                Some(Duration::from_millis(30)),
+                Some(Duration::from_millis(30)),
+                None
+            ]
+        );
+        // Server side as well.
+        let b = Attrappe::neu();
+        let s = server(&b, vec![person(None)], 4);
+        let mut w = vorlaeufig(s.annehmen()).bestaetigen().expect("bestätigen");
+        b.z().antwort.clear();
+        w.lesefrist(Some(Duration::from_secs(10)));
+        let fehler = w.lesen(&mut puffer).expect_err("Frist");
+        assert_eq!(fehler.kind(), std::io::ErrorKind::TimedOut);
+        assert_eq!(b.z().fristen.last(), Some(&Some(Duration::from_secs(10))));
+    }
+
+    /// Decision 3: without the hello the client checks the owner the same way and sends no byte at all.
+    #[test]
+    fn ohne_hallo_prueft_den_besitzer_und_sendet_nichts() {
+        let a = Attrappe::fuer_client();
+        let v = verbinden_ohne_hallo(Arc::clone(&a), &client(DIENST)).expect("verbinden");
+        assert_eq!(v.peer.sid.as_deref(), Some(DIENST));
+        assert_eq!(v.peer.pid, Some(77));
+        let z = a.z();
+        assert!(z.an_server.is_empty(), "kein pk1");
+        assert!(z.protokoll.contains(&"besitzer"));
+        assert!(!z.protokoll.contains(&"schreiben"));
+        assert!(!z.protokoll.contains(&"lesen"));
+    }
+
+    /// Counter-check of decision 3: a wrong owner is `pk.falscher_server` with 0 bytes.
+    #[test]
+    fn ohne_hallo_falscher_server_kein_byte() {
+        let a = Attrappe::fuer_client();
+        a.z().besitzer = Ok(PERSON.to_owned());
+        let r = verbinden_ohne_hallo(Arc::clone(&a), &client(DIENST));
+        assert_eq!(r.err(), Some(Fehler::neu(Code::FalscherServer)));
+        assert!(a.z().an_server.is_empty(), "0 Byte gesendet");
+        assert!(!a.z().protokoll.contains(&"schreiben"));
+    }
+
+    /// Decision 3: the same codes as `verbinden` on every way of the check.
+    #[test]
+    fn ohne_hallo_gleiche_codes() {
+        type Einrichten = fn(&Attrappe);
+        let wege: [Einrichten; 5] = [
+            |a| a.z().besitzer = Err(5),
+            |a| a.z().besitzer = Ok(PERSON.to_owned()),
+            |a| a.z().oeffnen = [OS_NICHT_GEFUNDEN].into(),
+            |a| a.z().oeffnen = [OS_ZUGRIFF].into(),
+            |a| a.z().oeffnen = [1450].into(),
+        ];
+        for weg in wege {
+            let (a, b) = (Attrappe::fuer_client(), Attrappe::fuer_client());
+            weg(&a);
+            weg(&b);
+            let mit = verbinden(Arc::clone(&a), &client(DIENST)).err();
+            let ohne = verbinden_ohne_hallo(Arc::clone(&b), &client(DIENST)).err();
+            assert!(mit.is_some());
+            assert_eq!(mit, ohne);
+            assert!(b.z().an_server.is_empty());
+        }
+        let a = Attrappe::fuer_client();
+        a.z().oeffnen = std::iter::repeat_n(OS_BELEGT, 1_000_000).collect();
+        let mut c = client(DIENST);
+        c.frist = Duration::from_millis(20);
+        assert_eq!(
+            verbinden_ohne_hallo(Arc::clone(&a), &c).err(),
+            Some(Fehler::os(Code::NichtErreichbar, OS_BELEGT))
         );
     }
 

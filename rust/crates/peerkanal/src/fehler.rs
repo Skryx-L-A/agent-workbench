@@ -42,6 +42,8 @@ pub enum Code {
     Abgewiesen,
     /// An error while reading or writing after the handshake, with `os_fehler`.
     Io,
+    /// The call has no meaning on this system (for example [`crate::eigene_sid`] outside Windows).
+    NichtUnterstuetzt,
 }
 
 impl Code {
@@ -65,6 +67,7 @@ impl Code {
             Self::FalscherServer => "pk.falscher_server",
             Self::Abgewiesen => "pk.abgewiesen",
             Self::Io => "pk.io",
+            Self::NichtUnterstuetzt => "pk.nicht_unterstuetzt",
         }
     }
 }
@@ -114,9 +117,10 @@ impl std::error::Error for Fehler {}
 /// The fixed reason of a refusal, in the order of the contract table.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Grund {
-    /// The hello did not come within `hallo_frist`.
+    /// The connection or `hallo_frist` ended before 4 bytes came, and the bytes that came are a start of the hello (also no
+    /// byte at all).
     HalloFehlt,
-    /// Other bytes than the hello, or the end of the connection before 4 bytes.
+    /// The received bytes are no start of the hello `pk1` LF.
     HalloFalsch,
     /// Impersonation or reading the token failed.
     MessungGescheitert,

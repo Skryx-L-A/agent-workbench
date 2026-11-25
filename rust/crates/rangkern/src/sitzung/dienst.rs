@@ -3,8 +3,8 @@
 //! holds the process, and only the agent of this session gets an answer.
 //!
 //! The request and the decision are pure functions, so they are tested on every system. The question itself goes to
-//! `\\.\pipe\wb-plattform` (contract `windows-einschluss`, control pipe) and needs the check of the owner of that pipe before
-//! the first byte; see [`fragen`].
+//! `\\.\pipe\wb-plattform` (contract `windows-einschluss`, control pipe) after the check of the owner of that pipe before the
+//! first byte; see [`fragen`].
 
 use serde_json::Value;
 
@@ -83,11 +83,72 @@ pub fn entscheiden(
 /// Asks the platform service about the process `pid`: the answer line without its LF, or `None`.
 ///
 /// Before the first byte the owner of the pipe instance must be the SID of `NT SERVICE\wb-plattform` (A115); a server with
-/// another owner must not learn the pid and must not be able to name a session. `peerkanal` (version 1) checks the owner only
-/// inside `verbinden`, which also sends its hello, and the control pipe speaks no hello. Without that check the question is not
-/// asked: the answer is `None`, so every connection that reaches this step is turned away with [`GRUND_STUMM`] (fail
-/// closed) until `peerkanal` offers a check of the owner without its hello.
+/// another owner must not learn the pid and must not be able to name a session. Under Windows `peerkanal::verbinden_ohne_hallo`
+/// makes that check (the control pipe speaks no hello) with `Sid::dienst("wb-plattform")`; then the request line goes out and
+/// one answer line comes back, all within [`DIENST_FRIST_MS`]. Any failure (no service, wrong owner, no line in time, a line
+/// over [`ANTWORT_MAX`]) is `None`, so the connection is turned away with [`GRUND_STUMM`] (fail closed). Without Windows there is
+/// no service: `None`.
 #[must_use]
-pub fn fragen(_pid: u32) -> Option<Vec<u8>> {
-    None
+pub fn fragen(pid: u32) -> Option<Vec<u8>> {
+    #[cfg(windows)]
+    {
+        steuer::fragen(pid)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = pid;
+        None
+    }
+}
+
+/// The longest answer line the search process reads from the service.
+pub const ANTWORT_MAX: usize = 4096;
+
+#[cfg(windows)]
+mod steuer {
+    use std::io::{Read, Write};
+    use std::time::{Duration, Instant};
+
+    use peerkanal::{ClientVorgabe, Erwartet, Kennung, Sid};
+
+    use super::{ANTWORT_MAX, DIENST_FRIST_MS, anfrage};
+
+    /// The service name of `NT SERVICE\wb-plattform` and the name of its pipe.
+    const DIENST: &str = "wb-plattform";
+
+    pub(super) fn fragen(pid: u32) -> Option<Vec<u8>> {
+        let frist = Duration::from_millis(DIENST_FRIST_MS);
+        let ende = Instant::now() + frist;
+        let vorgabe = ClientVorgabe {
+            name: Kennung::neu(DIENST).ok()?,
+            erwartet: Erwartet::Windows {
+                sid: Sid::dienst(DIENST).ok()?,
+            },
+            frist,
+            unix_ordner: None,
+        };
+        let mut verbindung = peerkanal::verbinden_ohne_hallo(&vorgabe).ok()?;
+        verbindung.write_all(&anfrage(pid)).ok()?;
+        let mut antwort = Vec::new();
+        let mut stueck = [0u8; 512];
+        loop {
+            let rest = ende.checked_duration_since(Instant::now())?;
+            if rest.is_zero() {
+                return None;
+            }
+            verbindung.lesefrist(Some(rest));
+            let n = verbindung.read(&mut stueck).ok()?;
+            if n == 0 {
+                return None;
+            }
+            antwort.extend_from_slice(&stueck[..n]);
+            if let Some(lf) = antwort.iter().position(|&b| b == b'\n') {
+                antwort.truncate(lf);
+                return (antwort.len() <= ANTWORT_MAX).then_some(antwort);
+            }
+            if antwort.len() > ANTWORT_MAX {
+                return None;
+            }
+        }
+    }
 }

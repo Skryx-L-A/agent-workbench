@@ -52,7 +52,6 @@ pub const MAX_VERBINDUNGEN: usize = 16;
 /// How long a connection may stay silent (clarification 13 of contract 4, decision of 24.11.2026): when no byte arrives for this
 /// long, the process closes the connection without an answer and without a log line, and its place is free. The time counts from
 /// the last received byte, also inside a line, and it does not run while the process works on an answer.
-#[cfg_attr(windows, allow(dead_code))] // the pipe of `peerkanal` offers no read time limit yet (`windows`, module documentation)
 pub const LEERLAUF: Duration = Duration::from_secs(10);
 
 /// A place among the open connections: it counts as long as it lives.

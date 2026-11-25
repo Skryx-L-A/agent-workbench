@@ -9,20 +9,18 @@
 //! Windows has no SIGTERM: the process ends with the job of its starter or through `TerminateProcess`, and the pipe goes with
 //! its last handle (section 5). There is nothing to remove.
 //!
-//! Not yet here: the idle time of clarification 13 (10 s without a byte). `peerkanal` (version 1) reads a connection without a
-//! time limit and offers no way to set one, so a silent agent holds its instance until it closes it; the number of instances
-//! (4) bounds that.
+//! The idle time of clarification 13 (10 s without a byte) holds for the pipe as for the socket: `Verbindung::lesefrist` of
+//! `peerkanal` limits each read of an accepted connection ([`bedienen`]).
 
 use std::io::Write;
-use std::os::windows::fs::OpenOptionsExt;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 use peerkanal::{
-    Annahme, Aufrufergrund, Erlaubnis, HALLO, Kennung, PackageSid, Server, ServerVorgabe, Sid,
-    Vorlaeufig,
+    Annahme, Aufrufergrund, Ereignis, Erlaubnis, Grund, Kennung, PackageSid, Server, ServerVorgabe,
+    Verbindung, Vorlaeufig,
 };
 
 use super::dienst::{self, Messung};
@@ -38,17 +36,6 @@ pub const INSTANZEN: u8 = 4;
 /// line carries the reason `such.*` instead).
 const AUFRUFER: &str = "such-prozess";
 
-/// `GENERIC_READ | FILE_WRITE_DATA`: the access of a client (section 6); `GENERIC_WRITE` would ask for the right to create an
-/// instance.
-const CLIENT_ZUGRIFF: u32 = 0x8000_0000 | 0x0000_0002;
-
-/// `SECURITY_IDENTIFICATION` (`SecurityIdentification << 16`); `security_qos_flags` adds `SECURITY_SQOS_PRESENT`.
-const IDENTIFIKATION: u32 = 0x0001_0000;
-
-/// SYSTEM: the only entry of the list of the short pipe that measures the own SID, so that the own process is turned away and
-/// its measured identity comes back in the event.
-const SYSTEM: &str = "S-1-5-18";
-
 /// The start under Windows. Returns an exit code only when the start fails; after the readiness line the process runs until
 /// it is ended from outside.
 pub fn starten<O: Write, E: Write>(konfig: Konfig, out: &mut O, err: &mut E) -> u8 {
@@ -56,7 +43,7 @@ pub fn starten<O: Write, E: Write>(konfig: Konfig, out: &mut O, err: &mut E) -> 
         Ok(einst) => einst,
         Err(code) => return code,
     };
-    let server = match pipe_anlegen(&konfig) {
+    let mut server = match pipe_anlegen(&konfig) {
         Ok(server) => server,
         Err(fehler) => {
             let _ = writeln!(err, "rangkern sitzung: pipe: {fehler}");
@@ -73,6 +60,15 @@ pub fn starten<O: Write, E: Write>(konfig: Konfig, out: &mut O, err: &mut E) -> 
         }
     };
     let sitzung = Arc::new(kern::sitzung_bauen(konfig, einst, zaehlung));
+    // Decision 4 of `peerkanal`: the line of a refusal is written in the hook, before the library ends the connection, so a
+    // client that sees the end finds the line in the chain. Refusals of this process (`aufrufer:*`) have their line `such.*`
+    // already.
+    let fuer_haken = Arc::clone(&sitzung);
+    server.bei_abweisung(move |ereignis: &Ereignis| {
+        if !matches!(ereignis.grund, Grund::Aufrufer(_)) {
+            fuer_haken.abgewiesen(&ereignis.grund.als_text());
+        }
+    });
     // The starter may start the harness only after this line. A closed pipe leaves nobody to tell.
     let _ = out.write_all(BEREIT).and_then(|()| out.flush());
     let server = Arc::new(server);
@@ -111,7 +107,7 @@ fn pipe_anlegen(konfig: &Konfig) -> Result<Server, String> {
         .as_deref()
         .ok_or("no package SID")
         .and_then(|sid| PackageSid::neu(sid).map_err(|_| "the package SID has not the form"))?;
-    let eigene = eigene_sid()?;
+    let eigene = peerkanal::eigene_sid().map_err(|fehler| format!("own SID: {fehler}"))?;
     let mut vorgabe = ServerVorgabe::neu(
         kanal,
         vec![Erlaubnis::Windows {
@@ -124,64 +120,16 @@ fn pipe_anlegen(konfig: &Konfig) -> Result<Server, String> {
     Server::anlegen(vorgabe).map_err(|fehler| fehler.to_string())
 }
 
-/// The `TokenUser` SID of this process, measured by the kernel: a short pipe of its own (first instance, a list with SYSTEM
-/// only), a client of this process with identification only, and the identity that `peerkanal` measured for the refused
-/// client. `peerkanal` (version 1) has no call for the own SID; this way needs no `unsafe` and starts no process. A name that
-/// someone else holds already makes the creation fail, so no other server can answer.
-///
-/// # Errors
-/// The short pipe cannot be created or reached, or the measurement names no SID.
-fn eigene_sid() -> Result<Sid, String> {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|dauer| dauer.as_nanos())
-        .unwrap_or_default();
-    let name = format!("wb-sid-{}-{nanos}", std::process::id());
-    let kanal = Kennung::neu(&name).map_err(|fehler| fehler.to_string())?;
-    let system = Sid::neu(SYSTEM).map_err(|fehler| fehler.to_string())?;
-    let vorgabe = ServerVorgabe::neu(
-        kanal,
-        vec![Erlaubnis::Windows {
-            sid: system,
-            appcontainer_sid: None,
-        }],
-        1,
-    );
-    let server =
-        Server::anlegen(vorgabe).map_err(|fehler| format!("own SID: short pipe: {fehler}"))?;
-    // The instance exists from `anlegen` on, so the client connects before the server waits; a failed client never leaves
-    // `annehmen` waiting.
-    let mut client = std::fs::OpenOptions::new()
-        .access_mode(CLIENT_ZUGRIFF)
-        .security_qos_flags(IDENTIFIKATION)
-        .open(format!(r"\\.\pipe\{name}"))
-        .map_err(|fehler| format!("own SID: client: {fehler}"))?;
-    client
-        .write_all(&HALLO)
-        .map_err(|fehler| format!("own SID: hello: {fehler}"))?;
-    let peer = match server.annehmen() {
-        Ok(Annahme::Abgewiesen(ereignis)) => ereignis.peer,
-        // Only a process that runs as SYSTEM is on the list.
-        Ok(Annahme::Vorlaeufig(vorlaeufig)) => Some(vorlaeufig.peer().clone()),
-        Err(fehler) => return Err(format!("own SID: {fehler}")),
-    };
-    drop(client);
-    peer.and_then(|peer| peer.sid)
-        .ok_or_else(|| "own SID: the measurement names no SID".to_owned())
-        .and_then(|sid| Sid::neu(&sid).map_err(|fehler| fehler.to_string()))
-}
-
-/// One of the accepting threads. A client that `peerkanal` refused gets one log line with the reason of `peerkanal`, written
-/// after `peerkanal` has closed the connection (version 1 returns the event only then); an
-/// accepted one goes to a thread of its own, so the next `annehmen` waits at once. A failure of `annehmen` is reported once
+/// One of the accepting threads. A client that `peerkanal` refused has its log line from the hook of [`starten`], written
+/// before `peerkanal` ends the connection; an accepted one goes to a thread of its own, so the next `annehmen` waits at once. A failure of `annehmen` is reported once
 /// per run of failures (as `accept` under Unix, review B9).
 fn annehmen(server: &Server, sitzung: &Arc<Sitzung>, offen: &Arc<AtomicUsize>) {
     let mut in_folge = false;
     loop {
         match server.annehmen() {
-            Ok(Annahme::Abgewiesen(ereignis)) => {
+            Ok(Annahme::Abgewiesen(_)) => {
+                // The hook wrote the line.
                 in_folge = false;
-                sitzung.abgewiesen(&ereignis.grund.als_text());
             }
             Ok(Annahme::Vorlaeufig(vorlaeufig)) => {
                 in_folge = false;
@@ -235,5 +183,163 @@ fn verbindung(vorlaeufig: Vorlaeufig, sitzung: &Sitzung) {
     let Ok(verbindung) = vorlaeufig.bestaetigen() else {
         return;
     };
+    bedienen(verbindung, sitzung, kern::LEERLAUF);
+}
+
+/// An accepted connection with the idle time `leerlauf` (clarification 13; [`kern::LEERLAUF`], the seam of the tests): each
+/// read waits at most this long for a byte, counted from the last one, and never while the process answers. A read that runs
+/// out ends the loop like the end of the input: the connection closes without an answer and without a log line, and the
+/// instance is free again.
+fn bedienen(mut verbindung: Verbindung, sitzung: &Sitzung, leerlauf: Duration) {
+    verbindung.lesefrist(Some(leerlauf));
     kern::bedienen(verbindung, sitzung);
+}
+
+/// Real pipes of this process, so these tests run in the Windows VM (test program of the crate). Server and client are the same
+/// account; the server allows its own SID without a package SID.
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::io::{Read, Write};
+    use std::path::Path;
+    use std::sync::atomic::{AtomicU32, Ordering};
+    use std::sync::{Arc, Mutex, mpsc};
+    use std::thread;
+    use std::time::{Duration, Instant};
+
+    use peerkanal::{
+        Annahme, ClientVorgabe, Erlaubnis, Erwartet, Grund, Kennung, Server, ServerVorgabe,
+        eigene_sid,
+    };
+
+    use super::super::dienst;
+    use super::super::einst;
+    use super::super::kern::Sitzung;
+    use super::super::tor::Tor;
+    use crate::serve::Server as Suche;
+
+    fn ordner() -> std::path::PathBuf {
+        static N: AtomicU32 = AtomicU32::new(0);
+        let n = N.fetch_add(1, Ordering::SeqCst);
+        std::env::temp_dir().join(format!("rk-win-{}-{n}", std::process::id()))
+    }
+
+    fn sitzung(ordner: &Path) -> Sitzung {
+        fs::create_dir_all(ordner.join("vault")).expect("vault");
+        fs::create_dir_all(ordner.join("protokoll")).expect("log folder");
+        let datei = ordner.join("einst.json");
+        fs::write(
+            &datei,
+            r#"{"fassung":1,"klassen":["oeffentlich","intern"],"vorgabestufe":"intern","routen":[{"schluessel":"cloud","art":"cloud","klasse":"intern"}],"kunden":[],"kundendaten_an_cloud":{"vorgabe":"nie","freigaben":[]}}"#,
+        )
+        .expect("settings");
+        let einst = einst::lesen_datei(&datei).expect("settings are read");
+        Sitzung {
+            server: Mutex::new(Suche::start(ordner.join("vault"), None)),
+            tor: Tor::new(einst.vorgabe, "cloud".to_owned()),
+            route: "cloud".to_owned(),
+            kennung: "s-1".to_owned(),
+            protokoll: ordner.join("protokoll"),
+            zaehlung: None,
+        }
+    }
+
+    fn server(name: &str, hallo_ms: u64) -> Server {
+        let mut v = ServerVorgabe::neu(
+            Kennung::neu(name).expect("form"),
+            vec![Erlaubnis::Windows {
+                sid: eigene_sid().expect("own SID"),
+                appcontainer_sid: None,
+            }],
+            2,
+        );
+        v.hallo_frist = Duration::from_millis(hallo_ms);
+        Server::anlegen(v).expect("create")
+    }
+
+    /// Clarification 13 for the pipe: a client that answers a ping and then stays silent loses its connection after the idle
+    /// time, without an answer; it sees the end. Mutant "Lesefrist aus": the client waits for 5 s and the test fails.
+    #[test]
+    fn a_silent_client_loses_the_pipe_after_the_idle_time() {
+        let o = ordner();
+        let _ = fs::remove_dir_all(&o);
+        let sitzung = Arc::new(sitzung(&o));
+        let name = format!("wb-rk-leer-{}", std::process::id());
+        let s = server(&name, 2000);
+        let vorgabe = ClientVorgabe {
+            name: Kennung::neu(&name).expect("form"),
+            erwartet: Erwartet::Windows {
+                sid: eigene_sid().expect("own SID"),
+            },
+            frist: Duration::from_secs(2),
+            unix_ordner: None,
+        };
+        let client = thread::spawn(move || {
+            let mut k = peerkanal::verbinden(&vorgabe).expect("connect");
+            k.write_all(b"{\"op\":\"ping\",\"id\":1}\n").expect("write");
+            k.lesefrist(Some(Duration::from_secs(5)));
+            let mut gelesen = Vec::new();
+            let mut stueck = [0u8; 256];
+            let start = Instant::now();
+            let ende = loop {
+                match k.read(&mut stueck) {
+                    Ok(0) => break Ok(start.elapsed()),
+                    Ok(n) => gelesen.extend_from_slice(&stueck[..n]),
+                    Err(e) => break Err(e.kind()),
+                }
+            };
+            (String::from_utf8(gelesen).expect("text"), ende)
+        });
+        let Annahme::Vorlaeufig(vl) = s.annehmen().expect("accept") else {
+            panic!("refused");
+        };
+        let verbindung = vl.bestaetigen().expect("confirm");
+        let start = Instant::now();
+        super::bedienen(verbindung, &sitzung, Duration::from_millis(400));
+        let dauer = start.elapsed();
+        let (text, ende) = client.join().expect("thread");
+        assert_eq!(text, "{\"id\":1,\"ok\":true}\n");
+        assert!(
+            ende.is_ok(),
+            "the client sees the end, not its own limit: {ende:?}"
+        );
+        assert!(dauer < Duration::from_secs(3), "{dauer:?}");
+        assert!(
+            fs::read_dir(o.join("protokoll"))
+                .expect("log folder")
+                .next()
+                .is_none(),
+            "no log line"
+        );
+        drop(s);
+        let _ = fs::remove_dir_all(&o);
+    }
+
+    /// The question to the platform service: no service is no answer (fail closed); a server under the name of the service but
+    /// with another owner (this account) gets no byte and no answer counts (`pk.falscher_server` inside `fragen`).
+    #[test]
+    fn the_service_is_asked_only_at_its_own_owner() {
+        assert_eq!(dienst::fragen(4242), None, "no service");
+        let s = Arc::new(server("wb-plattform", 1000));
+        let gesehen = Arc::new(Mutex::new(Vec::new()));
+        let (tx, rx) = mpsc::channel();
+        let (s2, g2) = (Arc::clone(&s), Arc::clone(&gesehen));
+        thread::spawn(move || {
+            if let Ok(Annahme::Abgewiesen(e)) = s2.annehmen() {
+                g2.lock().expect("lock").push(e.grund.clone());
+            }
+            let _ = tx.send(());
+        });
+        thread::sleep(Duration::from_millis(300));
+        let start = Instant::now();
+        assert_eq!(dienst::fragen(4242), None, "wrong owner");
+        assert!(start.elapsed() < Duration::from_secs(2));
+        rx.recv_timeout(Duration::from_secs(10))
+            .expect("accept returned");
+        assert_eq!(
+            *gesehen.lock().expect("lock"),
+            vec![Grund::HalloFehlt],
+            "0 bytes reached the false service"
+        );
+    }
 }

@@ -33,6 +33,7 @@ mod vorgabe;
 
 use std::io::{self, Read, Write};
 use std::sync::Arc;
+use std::time::Duration;
 
 pub use ablauf::Prozessbindung;
 pub use fehler::{Code, Ereignis, Fehler, Grund, Peer, Signatur, System};
@@ -78,6 +79,14 @@ impl Server {
         let mut kern = ServerKern::anlegen(Arc::new(Os), v, job, zusatz)?;
         kern.nach_verbinden = halt;
         Ok(Self { kern })
+    }
+
+    /// Sets the hook for events (decision 4): for each refusal the library builds the [`Ereignis`], calls the hook with it and
+    /// only then disconnects the instance; afterwards it returns the same event ([`Annahme::Abgewiesen`] or
+    /// [`Vorlaeufig::ablehnen`]). A caller that writes its log line in the hook has the line before the client sees the end.
+    /// The hook runs on the thread of `annehmen` or `ablehnen` and should return soon. A later call replaces the hook.
+    pub fn bei_abweisung(&mut self, haken: impl Fn(&Ereignis) + Send + Sync + 'static) {
+        self.kern.haken = Some(Arc::new(haken));
     }
 
     /// "Annehmen und Messen": blocks until a client connects, then measures and checks it. Callable from up to `instanzen`
@@ -133,7 +142,8 @@ impl Vorlaeufig {
         self.kern.bestaetigen().map(|kern| Verbindung { kern })
     }
 
-    /// Closes without an answer and returns the event `pk.aufrufer_abgewiesen` with the reason `aufrufer:<kennung>`.
+    /// Closes without an answer and returns the event `pk.aufrufer_abgewiesen` with the reason `aufrufer:<kennung>`. The hook
+    /// of [`Server::bei_abweisung`] gets the event before the end of the connection.
     #[must_use]
     pub fn ablehnen(self, grund: Aufrufergrund) -> Ereignis {
         self.kern.ablehnen(grund.0)
@@ -157,6 +167,13 @@ impl Verbindung {
     #[must_use]
     pub fn prozess(&self) -> Option<&Prozessbindung> {
         self.kern.prozess()
+    }
+
+    /// Decision 2: the time limit of every following read. When it passes without a byte, the read returns an error of kind
+    /// [`io::ErrorKind::TimedOut`] (with `pk.io` inside); the connection stays and a later read may go on. `None` reads without a
+    /// limit (the start value). The same on every system.
+    pub fn lesefrist(&mut self, frist: Option<Duration>) {
+        self.kern.lesefrist(frist);
     }
 
     /// Windows, server side: the held handle of the process of the client, opened with `PROCESS_QUERY_LIMITED_INFORMATION`.
@@ -196,6 +213,35 @@ pub fn verbinden(v: &ClientVorgabe) -> Result<Verbindung, Fehler> {
         return Err(Fehler::neu(Code::NichtErreichbar));
     }
     ablauf::verbinden(Arc::new(Os), v).map(|kern| Verbindung { kern })
+}
+
+/// "Client verbinden" without the hello (decision 3), for a server that speaks no `pk1`: reaches an instance and checks its
+/// owner against the expected SID exactly as [`verbinden`] does (same check, same codes, no byte before the check), then hands
+/// the connection over without sending `pk1`. The expected owner is mandatory, as in every [`ClientVorgabe`]; for a service
+/// it is [`Sid::dienst`]. `frist` covers the wait for a free instance.
+///
+/// # Errors
+/// In this order: `pk.vorgabe_ungueltig`, `pk.nicht_erreichbar`, `pk.zugriff_verweigert`, `pk.server_unmessbar`,
+/// `pk.falscher_server` (no byte sent).
+pub fn verbinden_ohne_hallo(v: &ClientVorgabe) -> Result<Verbindung, Fehler> {
+    v.pruefen(System::aktuell())?;
+    if !cfg!(windows) {
+        return Err(Fehler::neu(Code::NichtErreichbar));
+    }
+    ablauf::verbinden_ohne_hallo(Arc::new(Os), v).map(|kern| Verbindung { kern })
+}
+
+/// The `TokenUser` SID of the own process token (decision 1). Pure information: it permits nothing; a caller may name it as
+/// the expected owner of a server of the same account.
+///
+/// # Errors
+/// Windows: `pk.io` with `os_fehler` when the token cannot be read, without it when the SID is not of the form [`Sid`] (such as
+/// `LOCAL SERVICE`). Linux and macOS: `pk.nicht_unterstuetzt`.
+pub fn eigene_sid() -> Result<Sid, Fehler> {
+    if !cfg!(windows) {
+        return Err(Fehler::neu(Code::NichtUnterstuetzt));
+    }
+    ablauf::eigene_sid(&Os)
 }
 
 /// Test seams of the outside runner. Never in a shipped build.

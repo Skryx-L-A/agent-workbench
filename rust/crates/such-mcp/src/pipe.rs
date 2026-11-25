@@ -3,8 +3,8 @@
 //!
 //! The rule of the name is a pure function, so it is tested on every system. The exchange exists for Windows alone:
 //! `peerkanal::verbinden` opens with `GENERIC_READ | FILE_WRITE_DATA` and identification only, waits for a free instance within
-//! the deadline, checks the owner of the instance against the own SID before any byte, sends the hello `pk1` and waits for
-//! the same hello; then one request line goes out and one answer line comes back.
+//! the deadline, checks the owner of the instance against the own SID (`peerkanal::eigene_sid`) before any byte, sends the
+//! hello `pk1` and waits for the same hello; then one request line goes out and one answer line comes back.
 
 /// The fixed start of the pipe name; 32 characters of `0-9a-f` follow.
 pub const PIPE_PRAEFIX: &str = r"\\.\pipe\wb-such-";
@@ -86,11 +86,10 @@ pub(crate) mod tausch {
         String::from_utf8(antwort).map_err(|_| Unerreichbar)
     }
 
-    /// The `TokenUser` SID of this process, the only owner the server may have (section 6). `peerkanal` (version 1) offers no
-    /// call for it, and this program reads it neither from argv nor from the environment, opens no file and starts no process
-    /// (test `the_source_calls_no_environment_file_process_or_network_function`). Without it no question is sent: every call is
-    /// "Suche nicht erreichbar" (fail closed) until `peerkanal` names the own SID.
+    /// The `TokenUser` SID of this process, the only owner the server may have (section 6), from `peerkanal::eigene_sid` (the
+    /// token of the own process, no argv, no environment, no file). Without it no question is sent: the call is "Suche nicht
+    /// erreichbar" (fail closed).
     fn eigene_sid() -> Option<Sid> {
-        None
+        peerkanal::eigene_sid().ok()
     }
 }

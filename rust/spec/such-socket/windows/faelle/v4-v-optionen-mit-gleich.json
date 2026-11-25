@@ -16,13 +16,13 @@
  "args": [
   "sitzung",
   "{root}/vault",
-  "--socket={sock}",
+  "--socket={pipe}",
+  "--paket-sid",
+  "{paket_sid}",
   "--route=cloud",
   "--sitzung=s-test-1",
   "--einstellungen={root}/aux/einstellungen.json",
-  "--protokoll={root}/protokoll",
-  "--paket-sid",
-  "{paket_sid}"
+  "--protokoll={root}/protokoll"
  ],
  "steps": [
   {

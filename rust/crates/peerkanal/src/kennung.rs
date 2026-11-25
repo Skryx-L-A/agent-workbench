@@ -73,11 +73,91 @@ impl Sid {
         }
     }
 
+    /// The SID of the virtual service account `NT SERVICE\<name>`: `S-1-5-80-` and the SHA-1 of the name in capitals as
+    /// UTF-16LE, read as five 32-bit numbers in little-endian order (the rule of `RtlCreateServiceSid`). The name has the form of
+    /// a [`Kennung`]; the value is computed and needs no system call, so it is the same on every system.
+    ///
+    /// # Errors
+    /// `pk.vorgabe_ungueltig` when the name is not in the form of a [`Kennung`].
+    pub fn dienst(name: &str) -> Result<Self, Fehler> {
+        let name = Kennung::neu(name)?;
+        let utf16: Vec<u8> = name
+            .als_str()
+            .to_ascii_uppercase()
+            .encode_utf16()
+            .flat_map(u16::to_le_bytes)
+            .collect();
+        let h = sha1(&utf16);
+        let teile: Vec<String> = h
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|c| u32::from_le_bytes(*c).to_string())
+            .collect();
+        Ok(Self(format!("S-1-5-80-{}", teile.join("-"))))
+    }
+
     /// The text.
     #[must_use]
     pub fn als_str(&self) -> &str {
         &self.0
     }
+}
+
+/// SHA-1 (FIPS 180-4), only for [`Sid::dienst`]: the system derives the SID of a service with it. No secret depends on it.
+#[allow(clippy::many_single_char_names)] // the names of FIPS 180-4
+fn sha1(daten: &[u8]) -> [u8; 20] {
+    let mut h: [u32; 5] = [
+        0x6745_2301,
+        0xEFCD_AB89,
+        0x98BA_DCFE,
+        0x1032_5476,
+        0xC3D2_E1F0,
+    ];
+    let mut nachricht = daten.to_vec();
+    let bits = (daten.len() as u64).wrapping_mul(8);
+    nachricht.push(0x80);
+    while nachricht.len() % 64 != 56 {
+        nachricht.push(0);
+    }
+    nachricht.extend_from_slice(&bits.to_be_bytes());
+    for block in nachricht.as_chunks::<64>().0 {
+        let mut w = [0u32; 80];
+        for (i, c) in block.as_chunks::<4>().0.iter().enumerate() {
+            w[i] = u32::from_be_bytes(*c);
+        }
+        for i in 16..80 {
+            w[i] = (w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]).rotate_left(1);
+        }
+        let [mut a, mut b, mut c, mut d, mut e] = h;
+        for (i, wi) in w.iter().enumerate() {
+            let (f, k) = match i {
+                0..=19 => ((b & c) | (!b & d), 0x5A82_7999),
+                20..=39 => (b ^ c ^ d, 0x6ED9_EBA1),
+                40..=59 => ((b & c) | (b & d) | (c & d), 0x8F1B_BCDC),
+                _ => (b ^ c ^ d, 0xCA62_C1D6),
+            };
+            let t = a
+                .rotate_left(5)
+                .wrapping_add(f)
+                .wrapping_add(e)
+                .wrapping_add(k)
+                .wrapping_add(*wi);
+            e = d;
+            d = c;
+            c = b.rotate_left(30);
+            b = a;
+            a = t;
+        }
+        for (x, y) in h.iter_mut().zip([a, b, c, d, e]) {
+            *x = x.wrapping_add(y);
+        }
+    }
+    let mut aus = [0u8; 20];
+    for (i, x) in h.iter().enumerate() {
+        aus[i * 4..i * 4 + 4].copy_from_slice(&x.to_be_bytes());
+    }
+    aus
 }
 
 impl fmt::Display for Sid {
@@ -213,6 +293,54 @@ mod tests {
             "",
         ] {
             assert!(Sid::neu(schlecht).is_err(), "{schlecht}");
+        }
+    }
+
+    #[test]
+    fn sha1_bekannte_werte() {
+        let hex = |b: [u8; 20]| {
+            b.iter().fold(String::new(), |mut t, x| {
+                use std::fmt::Write;
+                let _ = write!(t, "{x:02x}");
+                t
+            })
+        };
+        assert_eq!(hex(sha1(b"")), "da39a3ee5e6b4b0d3255bfef95601890afd80709");
+        assert_eq!(
+            hex(sha1(b"abc")),
+            "a9993e364706816aba3e25717850c26c9cd0d89d"
+        );
+        // Two blocks (56 bytes and more).
+        assert_eq!(
+            hex(sha1(
+                b"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
+            )),
+            "84983e441c3bd26ebaae4aa1f95129e5e54670f1"
+        );
+    }
+
+    /// The service SID of `TrustedInstaller` is documented and the same on every Windows; the name counts in capitals, so the
+    /// form of a `Kennung` gives the same value.
+    #[test]
+    fn dienst_sid() {
+        assert_eq!(
+            Sid::dienst("trustedinstaller").expect("form").als_str(),
+            "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464"
+        );
+        // Value of Python `hashlib` over "WB-PLATTFORM" as UTF-16LE (and `sc showsid wb-plattform` in the VM).
+        let wb = Sid::dienst("wb-plattform").expect("form");
+        assert_eq!(
+            wb.als_str(),
+            "S-1-5-80-3008460381-3285883375-3225195253-229837603-2978416923"
+        );
+        assert!(ist_konto_sid(wb.als_str()), "{wb}");
+        assert_ne!(wb, Sid::dienst("wb-plattform2").expect("form"));
+        for schlecht in ["", "TrustedInstaller", "a b", "-a", "ä"] {
+            assert_eq!(
+                Sid::dienst(schlecht).err(),
+                Some(Fehler::neu(Code::VorgabeUngueltig)),
+                "{schlecht}"
+            );
         }
     }
 

@@ -55,13 +55,14 @@ def basis() -> dict:
 
 
 def umstellen(args: list[str]) -> list[str]:
-    """{sock} wird {pipe}; direkt dahinter kommt --paket-sid."""
+    """{sock} wird {pipe}, als eigenes Argument und in der Form --socket={sock}; direkt dahinter kommt --paket-sid."""
     neu = []
     for a in args:
-        neu.append("{pipe}" if a == "{sock}" else a)
-        if a == "{sock}":
-            neu += ["--paket-sid", PAKET]
-    if "{pipe}" not in neu:
+        if a in ("{sock}", "--socket={sock}"):
+            neu += [a.replace("{sock}", "{pipe}"), "--paket-sid", PAKET]
+        else:
+            neu.append(a)
+    if not any("{pipe}" in a for a in neu):
         neu += ["--paket-sid", PAKET]
     return neu
 
@@ -283,7 +284,7 @@ def form_such(name: str, fall: dict, erw: dict) -> list[str]:
     a = fall["args"]
     if a.count("--paket-sid") > 1 and name != "w-e-paket-sid-doppelt":
         f.append(f"{name}: --paket-sid doppelt")
-    if "{sock}" in a:
+    if any("{sock}" in x for x in a):
         f.append(f"{name}: {{sock}} statt {{pipe}}")
     anfragen = 0
     for st in fall["steps"]:

@@ -255,10 +255,10 @@ fn no_answer_another_error_or_a_broken_answer_is_dienst_stumm() {
     }
 }
 
-/// Without a check of the owner of the control pipe the question is not asked: every client that reaches this step is turned
-/// away (fail closed).
+/// Without a running service (there is none yet; outside Windows there is never one) the question gets no answer: every client
+/// that reaches this step is turned away (fail closed).
 #[test]
-fn without_a_check_of_the_owner_the_service_is_not_asked() {
+fn without_a_running_service_the_question_gets_no_answer() {
     assert_eq!(dienst::fragen(4242), None);
     assert_eq!(
         entscheiden(dienst::fragen(4242).as_deref(), &messung(), "s-1"),
