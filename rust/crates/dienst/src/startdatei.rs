@@ -720,6 +720,21 @@ mod tests {
     }
 
     #[test]
+    fn socketname_mit_backslash_oder_doppelpunkt_nur_unter_windows_ungueltig() {
+        // section 21 point 10: only Windows forbids `\` and `:` in `socket.name`; elsewhere they are plain bytes of the name
+        for n in ["a\\b", "a:b", ":", "\\"] {
+            let r = mit(move |o| {
+                o.insert("socket".into(), json!({"ordner": "/tmp/x", "name": n}));
+            });
+            if cfg!(windows) {
+                rot(&r);
+            } else {
+                assert_eq!(r.map(|s| s.pfad), Ok(format!("/tmp/x/{n}")), "{n}");
+            }
+        }
+    }
+
+    #[test]
     fn pfad_grenze_100_byte() {
         // "/" + folder + "/" + name: exactly 100 bytes is valid, 101 is not
         let pfad = |n: usize| {

@@ -7,20 +7,18 @@ use serde_json::{Map, Value};
 /// The payload of a frame `Ereignis` as a JSON value; `None` if it is no UTF-8 or no JSON (the error `json_ungueltig`).
 ///
 /// `serde_json` reads at most 127 levels. The bridge passes on a body of up to 127 levels inside the event
-/// `{"art": "Starten", "start": ...}`, one level deeper (bridge contract, section 6 and section 14 point 2). Only for this case the event is
-/// read member by member: each member value on its own again has at most 127 levels, so the event has at most 128. Every other payload
-/// that is too deep stays `json_ungueltig`, as before; the bound stays a bound and the stack depth stays the one of `serde_json`.
+/// `{"art": "Starten", "start": ...}`, one level deeper (bridge contract, section 6 and section 14 point 2). For this case a payload that
+/// `serde_json` refuses is read member by member once more: each member value on its own again has at most 127 levels, so the event has at
+/// most 128. Only an object with `art` `Starten` is taken from there. Every other payload that is too deep stays `json_ungueltig`, as
+/// before; the bound stays a bound and the stack depth stays the one of `serde_json`. A payload refused for another reason than the depth
+/// fails member by member in the same place, because each member is read by `serde_json` again; so it stays `json_ungueltig` as well.
 pub(crate) fn ereignis_lesen(nutzlast: &[u8]) -> Option<Value> {
     let text = std::str::from_utf8(nutzlast).ok()?;
-    match serde_json::from_str::<Value>(text) {
-        Ok(wert) => Some(wert),
-        Err(e) if e.to_string().starts_with("recursion limit exceeded") => {
-            let karte = objekt_je_glied(text)?;
-            (karte.get("art").and_then(Value::as_str) == Some("Starten"))
-                .then_some(Value::Object(karte))
-        }
-        Err(_) => None,
+    if let Ok(wert) = serde_json::from_str::<Value>(text) {
+        return Some(wert);
     }
+    let karte = objekt_je_glied(text)?;
+    (karte.get("art").and_then(Value::as_str) == Some("Starten")).then_some(Value::Object(karte))
 }
 
 /// The position of the first byte from `p` on that is no JSON whitespace.
@@ -39,7 +37,8 @@ fn glied(text: &str, p: usize) -> Option<(Value, usize)> {
 }
 
 /// A JSON object read member by member: whitespace, `{`, members `"key": value` separated by `,`, `}`, whitespace, nothing else
-/// (the syntax of `serde_json`; a later duplicate key replaces the earlier one as there).
+/// (the syntax of `serde_json`; a later duplicate key replaces the earlier one as there). An object without members gives `None`: it
+/// has no `art`, so it is never the event `Starten`.
 fn objekt_je_glied(text: &str) -> Option<Map<String, Value>> {
     let b = text.as_bytes();
     let mut p = leer(b, 0);
@@ -48,9 +47,6 @@ fn objekt_je_glied(text: &str) -> Option<Map<String, Value>> {
     }
     let mut karte = Map::new();
     p = leer(b, p + 1);
-    if b.get(p) == Some(&b'}') {
-        return (leer(b, p + 1) == b.len()).then_some(karte);
-    }
     loop {
         if b.get(p) != Some(&b'"') {
             return None;
@@ -286,6 +282,25 @@ mod tests {
         }
         for kein in ["", "{", "{\"a\": NaN}", "{} {}"] {
             assert!(ereignis_lesen(kein.as_bytes()).is_none(), "{kein}");
+        }
+    }
+
+    /// A shallow payload that `serde_json` refuses for another reason than the depth stays refused, also with `art` `Starten`, and an
+    /// empty object is read as by `serde_json`.
+    #[test]
+    fn flacher_fehler_mit_art_starten_und_leeres_objekt() {
+        for falsch in [
+            r#"{"art": "Starten", "start": {},}"#,
+            r#"{"art": "Starten", "start": {}} x"#,
+            r#"{"art": "Starten", "start": {}, "n": 1x}"#,
+            r#"{"art": "Starten", "start": {"a": NaN}}"#,
+            "{} x",
+            " {\t} ]",
+        ] {
+            assert!(ereignis_lesen(falsch.as_bytes()).is_none(), "{falsch}");
+        }
+        for leer in ["{}", " {\n} ", "{ }"] {
+            assert_eq!(ereignis_lesen(leer.as_bytes()), Some(json!({})), "{leer:?}");
         }
     }
 }
