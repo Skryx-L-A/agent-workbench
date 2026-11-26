@@ -61,7 +61,8 @@
      "art": "oeffentliche-quelle",
      "erkannt_durch": [
       "typ:oeffentliche-quelle",
-      "filter:frei"
+      "filter:frei",
+      "modell:frei"
      ],
      "regel_ebene": "firma",
      "klasse_alt": "intern",
@@ -85,7 +86,8 @@
      "art": "leere-vorlage",
      "erkannt_durch": [
       "typ:leere-vorlage",
-      "filter:frei"
+      "filter:frei",
+      "modell:frei"
      ],
      "regel_ebene": "firma",
      "klasse_alt": "intern",

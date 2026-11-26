@@ -1,0 +1,218 @@
+{
+ "name": "k3-modell-pflicht",
+ "regeln": [
+  "K3",
+  "H9",
+  "H9b",
+  "A40"
+ ],
+ "beschreibung": "Nachtrag 26.11.: Öffentliche Quellen und leere Vorlagen sinken nur mit einem Urteil des lokalen Modells, weil der Filterkern eigene Bewertungen in einer Zusammenfassung und interne Abläufe in Vorlagenfeldern nicht sieht.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "oeffentliche-quelle",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "leere-vorlage",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": null
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "leere-vorlage",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "senken"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "oeffentliche-quelle",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "verhindert"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "oeffentliche-quelle",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": true,
+     "konfiguration": false,
+     "zweifel": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "leere-vorlage",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "kunde": "k-a"
+   },
+   "route": "r-kd"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "oeffentliche-quelle",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "senkung_nutzer": "aus"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "bedienwissen",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    }
+   },
+   "route": "r-oeff"
+  }
+ ],
+ "tiefe": {
+  "herabstufen": {
+   "an": true
+  }
+ }
+}

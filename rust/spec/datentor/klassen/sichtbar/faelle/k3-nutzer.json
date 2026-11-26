@@ -58,7 +58,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "senkung_nutzer": "aus"
    },
@@ -71,7 +76,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "bestaetigt": true,
     "senkung_nutzer": "aus"
@@ -85,7 +95,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "senkung_nutzer": "bestaetigung"
    },
@@ -98,7 +113,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "bestaetigt": false,
     "senkung_nutzer": "bestaetigung"
@@ -112,7 +132,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "bestaetigt": true,
     "senkung_nutzer": "bestaetigung"
@@ -126,7 +151,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "senkung_nutzer": "folgt"
    },
@@ -139,7 +169,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "bestaetigt": false,
     "senkung_nutzer": "folgt"
@@ -153,7 +188,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "senkung_nutzer": "bestaetigung"
    },

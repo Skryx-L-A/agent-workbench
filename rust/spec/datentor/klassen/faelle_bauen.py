@@ -27,10 +27,15 @@ SCHLUESSEL = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 ARTEN = ["regel", "bedienwissen", "oeffentliche-quelle", "leere-vorlage"]  # A39, default of the list
 # A40, fixed by the contract and not configurable (Nachtrag 20.11., F3)
 NIE = ["personenbezug", "kundendaten", "geheimnis", "zugangsdaten", "vertrag", "preis", "finanzen", "netz-und-system",
-       "gespraechsprotokoll", "sitzungsprotokoll", "entscheidung", "plan", "organisation", "quelltext", "entwurf"]
+       "gespraechsprotokoll", "sitzungsprotokoll", "entscheidung", "plan", "organisation", "quelltext", "entwurf",
+       # Nachtrag 26.11.2026: answer of the company to plan 10.7
+       "angebot", "schaetzung", "kalkulation", "ticket", "testfall", "fehlerbericht", "sicherheitsbefund", "konfiguration",
+       "lizenz", "kundenbezug", "vertragsregel"]
+NUR_MIT_MODELL = ["oeffentliche-quelle", "leere-vorlage"]  # H9b, Nachtrag 26.11.2026
 INHALT = {"klasse", "kunde", "art", "befund", "modell"}
 LAGE = {"geerbt", "gruppe", "senkung_nutzer", "bestaetigt"}
-BEFUND = {"geheimnis", "personenbezug", "interner_name"}
+BEFUND_PFLICHT = {"geheimnis", "personenbezug", "interner_name"}
+BEFUND_NEU = {"host", "pfad", "kundenkennung", "konfiguration", "zweifel"}  # Nachtrag 26.11.2026; missing = hit
 MODELL = {"frei", "verhindert", "senken"}
 NUTZER = {"folgt", "aus", "bestaetigung"}
 TEILE_MAX = 64
@@ -72,7 +77,9 @@ T_EIGENE_ART = {"herabstufen": {"an": True, "arten": ["regel", "glossar"],
 T_AN_TEILEN_AUS = {"aufteilen": False, "herabstufen": {"an": True}}
 T_NIE_ABWANDLUNG = {"herabstufen": {"an": True, "arten": ["vertraege", "kunden-daten", "vertrag."]}}  # Nachtrag 20.11., 2
 
-BEF0 = {"geheimnis": False, "personenbezug": False, "interner_name": False}
+BEF0 = {"geheimnis": False, "personenbezug": False, "interner_name": False,
+        "host": False, "pfad": False, "kundenkennung": False, "konfiguration": False, "zweifel": False}
+BEF_ALT = {"geheimnis": False, "personenbezug": False, "interner_name": False}  # the three findings of 20.11. only
 
 
 def bef(**wahr):
@@ -174,8 +181,8 @@ FAELLE = [
      V, T_AN, [
          (anf(senkbar(), "r-oeff"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
          (anf(senkbar(art="bedienwissen"), "r-oeff"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
-         (anf(senkbar(art="oeffentliche-quelle"), "r-oeff"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
-         (anf(senkbar(art="leere-vorlage"), "r-oeff"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
+         (anf(senkbar(art="oeffentliche-quelle", modell="frei"), "r-oeff"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
+         (anf(senkbar(art="leere-vorlage", modell="frei"), "r-oeff"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
          (anf(senkbar(modell="frei"), "r-oeff"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
          (anf(senkbar(modell="senken"), "cloud"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
          (anf(senkbar(modell=None), "r-intern"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
@@ -343,6 +350,50 @@ FAELLE = [
          (anf(senkbar(art="regel"), "r-oeff"), ("intern", "geerbt", "art-nicht-herabstufbar", "klasse-ueber-route")),
      ]),
     # K4: splitting (A33)
+    # Nachtrag 26.11.2026: answer of the company to plan 10.7 (art and content must fit)
+    ("k3-nie-arten-firma", ["K3", "H7", "A40"],
+     "Nachtrag 26.11.: Angebote, Schätzungen, Kalkulationen, Tickets, Testfälle, Fehlerberichte, Sicherheitsbefunde, "
+     "Konfigurationen, Lizenzen, indirekter Kundenbezug und Inhalte mit eigener Vertragsregel sinken nie, auch ohne Befund "
+     "und mit Zustimmung des Modells.",
+     V, T_AN, [
+         (anf(senkbar(art=a, modell="frei"), "r-oeff"), ("intern", "geerbt", "art-nicht-herabstufbar", "klasse-ueber-route"))
+         for a in ["angebot", "schaetzung", "kalkulation", "ticket", "testfall", "fehlerbericht", "sicherheitsbefund",
+                   "konfiguration", "lizenz", "kundenbezug", "vertragsregel"]
+     ]),
+    ("k3-befund-inhalt", ["K3", "H8", "A40"],
+     "Nachtrag 26.11.: Eine Einheit einer senkbaren Art sinkt nur, wenn der Filterkern auch keinen Host, keinen Pfad, keine "
+     "Kundenkennung, keine Konfiguration findet und nicht zweifelt; ein fehlender dieser Werte gilt als Treffer.",
+     V, T_AN, [
+         (anf(senkbar(befund=bef(host=1)), "r-oeff"), ("intern", "geerbt", "befund", "klasse-ueber-route")),
+         (anf(senkbar(art="bedienwissen", befund=bef(pfad=1)), "r-oeff"), ("intern", "geerbt", "befund", "klasse-ueber-route")),
+         (anf(senkbar(befund=bef(kundenkennung=1)), "r-oeff"), ("intern", "geerbt", "befund", "klasse-ueber-route")),
+         (anf(senkbar(art="bedienwissen", befund=bef(konfiguration=1)), "r-oeff"),
+          ("intern", "geerbt", "befund", "klasse-ueber-route")),
+         (anf(senkbar(befund=bef(zweifel=1), modell="frei"), "r-oeff"), ("intern", "geerbt", "befund", "klasse-ueber-route")),
+         (anf(senkbar(befund=BEF_ALT), "r-oeff"), ("intern", "geerbt", "befund", "klasse-ueber-route")),
+         (anf(senkbar(befund=dict(BEF_ALT, host=False, pfad=False, kundenkennung=False, konfiguration=False)), "r-oeff"),
+          ("intern", "geerbt", "befund", "klasse-ueber-route")),
+         (anf(senkbar(befund=dict(BEF0, zweifel=False)), "r-oeff"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
+         (anf(senkbar(befund=bef(host=1, pfad=1), modell="verhindert"), "r-oeff"),
+          ("intern", "geerbt", "befund", "klasse-ueber-route")),
+     ]),
+    ("k3-modell-pflicht", ["K3", "H9", "H9b", "A40"],
+     "Nachtrag 26.11.: Öffentliche Quellen und leere Vorlagen sinken nur mit einem Urteil des lokalen Modells, weil der "
+     "Filterkern eigene Bewertungen in einer Zusammenfassung und interne Abläufe in Vorlagenfeldern nicht sieht.",
+     V, T_AN, [
+         (anf(senkbar(art="oeffentliche-quelle"), "r-oeff"), ("intern", "geerbt", "modell-fehlt", "klasse-ueber-route")),
+         (anf(senkbar(art="leere-vorlage", modell=None), "r-oeff"), ("intern", "geerbt", "modell-fehlt", "klasse-ueber-route")),
+         (anf(senkbar(art="leere-vorlage", modell="senken"), "r-oeff"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
+         (anf(senkbar(art="oeffentliche-quelle", modell="verhindert"), "r-oeff"),
+          ("intern", "geerbt", "modell-verhindert", "klasse-ueber-route")),
+         (anf(senkbar(art="oeffentliche-quelle", befund=bef(kundenkennung=1)), "r-oeff"),
+          ("intern", "geerbt", "befund", "klasse-ueber-route")),
+         (anf(senkbar(art="leere-vorlage", kunde="k-a"), "r-kd"), ("kundendaten", "kunde", "kundendaten", "frei")),
+         (anf(senkbar(art="oeffentliche-quelle", nutzer="aus"), "r-oeff"),
+          ("intern", "geerbt", "modell-fehlt", "klasse-ueber-route")),
+         (anf(senkbar(art="regel"), "r-oeff"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
+         (anf(senkbar(art="bedienwissen"), "r-oeff"), ("oeffentlich", "gesenkt", "gesenkt", "frei")),
+     ]),
     ("k4-aufteilen", ["K4", "A33"],
      "Vorgabe an: Teil 1 (allgemein, geerbt) kommt über r-oeff, Teil 2 (Kundenangabe) nur über r-kd; die Reihenfolge bleibt.",
      V, None, [
@@ -474,7 +525,10 @@ UNGUELTIG = [
      fall(tiefe={"herabstufen": {"an": True, "arten": ["regel", art]}}))
     for art in ["personenbezug", "kundendaten", "geheimnis", "zugangsdaten", "vertrag", "preis", "finanzen",
                 "netz-und-system", "gespraechsprotokoll", "sitzungsprotokoll", "entscheidung", "plan", "organisation",
-                "quelltext", "entwurf"]  # written out by hand, not taken from NIE
+                "quelltext", "entwurf",
+                # Nachtrag 26.11.2026
+                "angebot", "schaetzung", "kalkulation", "ticket", "testfall", "fehlerbericht", "sicherheitsbefund",
+                "konfiguration", "lizenz", "kundenbezug", "vertragsregel"]  # written out by hand, not taken from NIE
 ] + [
     ("u-k-gruppe-form", ["D13"], "Ein Gruppenschlüssel hat nicht die Schlüsselform.",
      fall(tiefe={"herabstufen": {"gruppen": [{"schluessel": "G-A"}]}})),
@@ -494,6 +548,11 @@ UNGUELTIG = [
      mit_einheit(befund={"geheimnis": False, "personenbezug": False})),
     ("u-k-befund-feld", ["D13"], "befund mit einem unbekannten Feld.", mit_einheit(befund=dict(BEF0, kunde=False))),
     ("u-k-befund-text", ["D13"], "Ein Wert in befund ist kein Wahrheitswert.", mit_einheit(befund=dict(BEF0, geheimnis="nein"))),
+    ("u-k-befund-neu-text", ["D13"], "Nachtrag 26.11.: host ist kein Wahrheitswert.", mit_einheit(befund=dict(BEF0, host="nein"))),
+    ("u-k-befund-neu-null", ["D13"], "Nachtrag 26.11.: zweifel ist null; nur Fehlen gilt als Treffer.",
+     mit_einheit(befund=dict(BEF0, zweifel=None))),
+    ("u-k-befund-nur-neu", ["D13"], "Nachtrag 26.11.: die fünf neuen Werte ohne die drei Pflichtwerte.",
+     mit_einheit(befund={k: False for k in ["host", "pfad", "kundenkennung", "konfiguration", "zweifel"]})),
     ("u-k-befund-liste", ["D13"], "befund ist keine Liste und kein Objekt.", mit_einheit(befund=[])),
     ("u-k-modell-wert", ["D13"], "modell hat einen unbekannten Wert.", mit_einheit(modell="ja")),
     ("u-k-nutzer-wert", ["D13"], "senkung_nutzer hat einen unbekannten Wert.", mit_einheit(nutzer="an")),
@@ -573,7 +632,8 @@ def inhalt_gueltig(i):
     if not isinstance(i.get("kunde"), (str, type(None))) or not isinstance(i.get("art"), (str, type(None))):
         return False
     b = i.get("befund")
-    if b is not None and (not isinstance(b, dict) or set(b) != BEFUND or not all(isinstance(x, bool) for x in b.values())):
+    if b is not None and (not isinstance(b, dict) or not BEFUND_PFLICHT <= set(b) <= BEFUND_PFLICHT | BEFUND_NEU
+                          or not all(isinstance(x, bool) for x in b.values())):
         return False
     return i.get("modell") is None or (isinstance(i["modell"], str) and i["modell"] in MODELL)
 
@@ -639,7 +699,7 @@ def grundklasse(v, lage, inh):
 
 
 def senkgrund(v, t, lage, inh, i, herkunft):
-    """Reason by K3 (H1 to H11 in table order, H0 otherwise)."""
+    """Reason by K3 (H1 to H11 in table order with H9b after H9, H0 otherwise)."""
     _, an, arten, gruppen = optionen(t)
     if not an:
         return "aus"
@@ -658,10 +718,12 @@ def senkgrund(v, t, lage, inh, i, herkunft):
     if art not in [a for a in arten if g is None or a not in gruppen[g]]:
         return "art-nicht-herabstufbar"
     b = inh.get("befund")
-    if b is None or any(b.values()):
+    if b is None or any(b.get(k, True) for k in BEFUND_PFLICHT | BEFUND_NEU):
         return "befund"
     if inh.get("modell") == "verhindert":
         return "modell-verhindert"
+    if inh.get("modell") is None and art in NUR_MIT_MODELL:
+        return "modell-fehlt"
     n = lage.get("senkung_nutzer", "folgt")
     if n == "aus":
         return "nutzer-aus"

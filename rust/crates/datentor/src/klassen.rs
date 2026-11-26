@@ -16,7 +16,8 @@ pub const VORGABE_ARTEN: [&str; 4] = [
 ];
 
 /// The never list of A40: fixed and not configurable. A kind of this list in `arten` or `streicht` is a load error (T1).
-pub const NIE_ARTEN: [&str; 15] = [
+/// The last eleven kinds came with the addendum of 26.11.2026 (answer of the company to plan 10.7).
+pub const NIE_ARTEN: [&str; 26] = [
     "personenbezug",
     "kundendaten",
     "geheimnis",
@@ -32,7 +33,22 @@ pub const NIE_ARTEN: [&str; 15] = [
     "organisation",
     "quelltext",
     "entwurf",
+    "angebot",
+    "schaetzung",
+    "kalkulation",
+    "ticket",
+    "testfall",
+    "fehlerbericht",
+    "sicherheitsbefund",
+    "konfiguration",
+    "lizenz",
+    "kundenbezug",
+    "vertragsregel",
 ];
+
+/// The kinds that sink only with a verdict of a local model (H9b, addendum 26.11.2026): the filter core cannot see own
+/// assessments mixed into a summary of public sources, nor fields of a template that show internal procedures.
+pub const NUR_MIT_MODELL: [&str; 2] = ["oeffentliche-quelle", "leere-vorlage"];
 
 /// A group of the lowering options: it can only strike kinds (A41).
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -161,11 +177,11 @@ pub enum Angabe<'a> {
     KeinText,
 }
 
-/// The findings of the filter core.
+/// The findings of the filter core. A check that did not run counts as a hit: the caller sets `true` (fail closed).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(
     clippy::struct_excessive_bools,
-    reason = "the three findings of the contract"
+    reason = "the eight findings of the contract"
 )]
 pub struct Befund {
     /// A secret was found.
@@ -174,6 +190,31 @@ pub struct Befund {
     pub personenbezug: bool,
     /// An internal name was found.
     pub interner_name: bool,
+    /// A host name or an address of an own or customer system was found (addendum 26.11.2026).
+    pub host: bool,
+    /// A path of an own or customer system was found (addendum 26.11.2026).
+    pub pfad: bool,
+    /// A customer identifier was found: project key, customer number, product name of a customer (addendum 26.11.2026).
+    pub kundenkennung: bool,
+    /// A configuration, version, licence or access value of a system was found (addendum 26.11.2026).
+    pub konfiguration: bool,
+    /// The filter core could not check the content completely (addendum 26.11.2026).
+    pub zweifel: bool,
+}
+
+impl Befund {
+    /// Nothing found and nothing in doubt: the only state in which H8 lets a lowering pass.
+    #[must_use]
+    pub fn frei(&self) -> bool {
+        !(self.geheimnis
+            || self.personenbezug
+            || self.interner_name
+            || self.host
+            || self.pfad
+            || self.kundenkennung
+            || self.konfiguration
+            || self.zweifel)
+    }
 }
 
 /// The verdict of a local model.
@@ -261,7 +302,7 @@ impl Herkunft {
     }
 }
 
-/// The reason of the lowering: H0 to H11, an invalid class or a whole unit.
+/// The reason of the lowering: H0 to H11 with H9b, an invalid class or a whole unit.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Senkung {
     /// H0: lowered by one level.
@@ -284,6 +325,8 @@ pub enum Senkung {
     Befund,
     /// H9: the local model prevents it.
     ModellVerhindert,
+    /// H9b: the kind sinks only with a verdict of a local model, and none ran.
+    ModellFehlt,
     /// H10: the owner switched it off.
     NutzerAus,
     /// H11: the confirmation is missing.
@@ -309,6 +352,7 @@ impl Senkung {
             Self::ArtNichtHerabstufbar => "art-nicht-herabstufbar",
             Self::Befund => "befund",
             Self::ModellVerhindert => "modell-verhindert",
+            Self::ModellFehlt => "modell-fehlt",
             Self::NutzerAus => "nutzer-aus",
             Self::BestaetigungFehlt => "bestaetigung-fehlt",
             Self::KlasseUngueltig => "klasse-ungueltig",
@@ -400,7 +444,7 @@ fn grundklasse(v: &Vorgabe, lage: &Lage<'_>, inhalt: &Inhalt<'_>) -> Result<(usi
     })
 }
 
-/// K3: the reason of the lowering by H1 to H11 in table order, H0 otherwise; `i` is the base class.
+/// K3: the reason of the lowering by H1 to H11 in table order (H9b after H9), H0 otherwise; `i` is the base class.
 fn senkgrund(
     v: &Vorgabe,
     t: &Tiefe,
@@ -436,12 +480,14 @@ fn senkgrund(
     {
         return Senkung::ArtNichtHerabstufbar;
     }
-    match inhalt.befund {
-        Some(b) if !(b.geheimnis || b.personenbezug || b.interner_name) => {}
-        _ => return Senkung::Befund,
+    if !inhalt.befund.is_some_and(|b| b.frei()) {
+        return Senkung::Befund;
     }
     if inhalt.modell == Some(Modell::Verhindert) {
         return Senkung::ModellVerhindert;
+    }
+    if inhalt.modell.is_none() && NUR_MIT_MODELL.contains(&art) {
+        return Senkung::ModellFehlt;
     }
     match lage.nutzer {
         NutzerSenkung::Aus => Senkung::NutzerAus,

@@ -57,7 +57,12 @@
     "befund": {
      "geheimnis": true,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     }
    },
    "route": "r-oeff"
@@ -69,7 +74,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": true,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     }
    },
    "route": "r-oeff"
@@ -81,7 +91,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": true
+     "interner_name": true,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     }
    },
    "route": "r-oeff"
@@ -93,7 +108,12 @@
     "befund": {
      "geheimnis": true,
      "personenbezug": true,
-     "interner_name": true
+     "interner_name": true,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     }
    },
    "route": "r-oeff"
@@ -120,7 +140,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     }
    },
    "route": "r-oeff"

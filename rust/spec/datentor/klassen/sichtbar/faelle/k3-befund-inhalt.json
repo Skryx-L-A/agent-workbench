@@ -1,0 +1,208 @@
+{
+ "name": "k3-befund-inhalt",
+ "regeln": [
+  "K3",
+  "H8",
+  "A40"
+ ],
+ "beschreibung": "Nachtrag 26.11.: Eine Einheit einer senkbaren Art sinkt nur, wenn der Filterkern auch keinen Host, keinen Pfad, keine Kundenkennung, keine Konfiguration findet und nicht zweifelt; ein fehlender dieser Werte gilt als Treffer.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": true,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "bedienwissen",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": true,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": true,
+     "konfiguration": false,
+     "zweifel": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "bedienwissen",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": true,
+     "zweifel": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": true
+    },
+    "modell": "frei"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    }
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "regel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": true,
+     "pfad": true,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "verhindert"
+   },
+   "route": "r-oeff"
+  }
+ ],
+ "tiefe": {
+  "herabstufen": {
+   "an": true
+  }
+ }
+}

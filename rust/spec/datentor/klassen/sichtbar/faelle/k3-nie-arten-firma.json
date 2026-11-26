@@ -1,0 +1,257 @@
+{
+ "name": "k3-nie-arten-firma",
+ "regeln": [
+  "K3",
+  "H7",
+  "A40"
+ ],
+ "beschreibung": "Nachtrag 26.11.: Angebote, Schätzungen, Kalkulationen, Tickets, Testfälle, Fehlerberichte, Sicherheitsbefunde, Konfigurationen, Lizenzen, indirekter Kundenbezug und Inhalte mit eigener Vertragsregel sinken nie, auch ohne Befund und mit Zustimmung des Modells.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oeff",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-intern",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "cloud",
+    "art": "cloud",
+    "klasse": "intern"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-a",
+    "erlaubt": [
+     "r-kd"
+    ]
+   },
+   {
+    "schluessel": "k-b",
+    "erlaubt": [
+     "r-kd"
+    ]
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "angebot",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "frei"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "schaetzung",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "frei"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "kalkulation",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "frei"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "ticket",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "frei"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "testfall",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "frei"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "fehlerbericht",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "frei"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "sicherheitsbefund",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "frei"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "konfiguration",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "frei"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "lizenz",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "frei"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "kundenbezug",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "frei"
+   },
+   "route": "r-oeff"
+  },
+  {
+   "einheit": {
+    "geerbt": "intern",
+    "art": "vertragsregel",
+    "befund": {
+     "geheimnis": false,
+     "personenbezug": false,
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
+    },
+    "modell": "frei"
+   },
+   "route": "r-oeff"
+  }
+ ],
+ "tiefe": {
+  "herabstufen": {
+   "an": true
+  }
+ }
+}

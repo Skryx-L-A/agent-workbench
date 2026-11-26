@@ -19,6 +19,16 @@ const TEILE_MAX: usize = 64;
 const LAGE: [&str; 4] = ["geerbt", "gruppe", "senkung_nutzer", "bestaetigt"];
 /// The fields of the content of a unit or a part.
 const INHALT: [&str; 5] = ["klasse", "kunde", "art", "befund", "modell"];
+const BEFUND: [&str; 8] = [
+    "geheimnis",
+    "personenbezug",
+    "interner_name",
+    "host",
+    "pfad",
+    "kundenkennung",
+    "konfiguration",
+    "zweifel",
+];
 
 /// Checks one case of the class format and returns the output, or the reason the case is invalid.
 pub fn verarbeite(eingabe: &[u8]) -> Result<String, String> {
@@ -189,16 +199,19 @@ fn inhalt_lesen(i: &Map<String, Value>) -> Result<Inhalt<'_>, String> {
         None | Some(Value::Null) => None,
         Some(b) => {
             let b = objekt(b, "befund")?;
-            felder(
-                b,
-                &["geheimnis", "personenbezug", "interner_name"],
-                "befund",
-            )?;
+            felder(b, &BEFUND, "befund")?;
             let feld = |f: &str| wahr(pflicht(b, f, "befund")?, f);
+            // The five findings of the addendum of 26.11.2026 may be missing; a missing one counts as a hit.
+            let neu = |f: &str| b.get(f).map_or(Ok(true), |w| wahr(w, f));
             Some(Befund {
                 geheimnis: feld("geheimnis")?,
                 personenbezug: feld("personenbezug")?,
                 interner_name: feld("interner_name")?,
+                host: neu("host")?,
+                pfad: neu("pfad")?,
+                kundenkennung: neu("kundenkennung")?,
+                konfiguration: neu("konfiguration")?,
+                zweifel: neu("zweifel")?,
             })
         }
     };

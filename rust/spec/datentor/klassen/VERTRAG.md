@@ -1,6 +1,6 @@
 # Teilvertrag `datentor klassen`: Klassen-Tiefe
 
-Stand 20.11.2026. Teilvertrag zu Vertrag 3 (`rust/spec/VERTRAEGE.md`) für die Vererbung nach Ort oder Projekt (A32), das Aufteilen (A33) und das Herabstufen durch die Automatik (A39, A40, A41), mit den Protokollangaben einer Senkung (A39, A104).
+Stand 26.11.2026 (Nachtrag 26.11.2026 in Abschnitt 8a). Teilvertrag zu Vertrag 3 (`rust/spec/VERTRAEGE.md`) für die Vererbung nach Ort oder Projekt (A32), das Aufteilen (A33) und das Herabstufen durch die Automatik (A39, A40, A41), mit den Protokollangaben einer Senkung (A39, A104).
 „(V)“ heißt: in diesem Vertrag festgelegt. „(H)“ heißt: aus den Anforderungen hergeleitet. Die Fragen F1 bis F8 sind entschieden (Abschnitt 8, Nachtrag 20.11.2026).
 
 Dieser Stand enthält nur den Vertrag und die sichtbaren Fälle. Es gibt noch kein Programm; ohne Programm sind alle Fälle rot. Verdeckte Fälle und Mutanten folgen mit dem Bau.
@@ -35,6 +35,7 @@ Nachtrag 20.11.2026 (F1, F2, F3): Schalter und Liste sind zwei Optionen. Die Adm
 
 - **Arten** sind Schlüssel in der Schlüsselform von Vertrag 3. Die Vorgabe der Liste sind die vier Arten aus A39: `regel` (Regeln, Rollen, Skills und Arbeitsanweisungen), `bedienwissen` (Bedien- und Fehlerwissen zu allgemein verfügbarer Software), `oeffentliche-quelle` (Auszüge aus öffentlichen Quellen mit Quellenangabe) und `leere-vorlage` (leere Vorlagen). Eine Art, die nicht in der wirksamen Liste steht, sinkt nie.
 - **Nie-Liste (A40), fest und nicht einstellbar:** `personenbezug`, `kundendaten`, `geheimnis`, `zugangsdaten`, `vertrag`, `preis`, `finanzen`, `netz-und-system`, `gespraechsprotokoll`, `sitzungsprotokoll`, `entscheidung`, `plan`, `organisation`, `quelltext`, `entwurf`. Dazu sinkt nie eine Art, die nicht sicher erkannt ist (`art: null`, H5).
+- **Nie-Liste, Nachtrag 26.11.2026:** `angebot`, `schaetzung` und `kalkulation` (Angebote, Aufwandsschätzungen und Kalkulationen, auch ohne Preise), `ticket`, `testfall` und `fehlerbericht` (aus Kundenprojekten, auch mit reinem Bedienwissen), `sicherheitsbefund` (Schwachstellen, Prüfberichte, Hinweise auf den Ort eines Schlüssels oder Zugangs), `konfiguration` und `lizenz` (Konfigurationen und Lizenzangaben von Firmen- und Kundensystemen; Zugangsangaben sind `zugangsdaten`), `kundenbezug` (indirekter Kundenbezug: Projektkürzel, Produktnamen eines Kunden, fachliche Abläufe eines Kunden) und `vertragsregel` (Inhalte, für die ein Kundenvertrag eigene Regeln hat; sie folgen nur der Kundenachse, nie der Automatik). Für sie gilt T1 wie für die übrigen Nie-Arten.
 - **T1, Ladefehler (fail closed, wie A47):** Nennt `arten` oder `streicht` eine Art der Nie-Liste, ist `tiefe` ungültig und der Fall endet mit Exit 2. Das gilt auch bei Schalter aus. Ebenso ungültig ist eine Art, die nicht die Schlüsselform hat, oder eine Art doppelt in `arten`.
 - **Vergleich mit der Nie-Liste byte-genau wie D14** (Nachtrag 20.11.2026, 2): T1 vergleicht jede Art nach dem Dekodieren von JSON byte-genau mit den Schlüsseln der Nie-Liste. Abwandlungen wie `vertraege`, `vertrag.` oder `kunden-daten` sind andere Arten und bestehen T1. Die Einordnung (Typ und Ordner, Abschnitt 7) vergibt nur Arten aus ihrem eigenen Wortschatz; eine eigene Art der Admins wirkt also nur auf Einheiten, die die Einordnung mit genau diesem Schlüssel benennt. `\u0076ertrag` ist nach dem Dekodieren `vertrag` und ein Ladefehler.
 - `arten` darf leer sein; dann sinkt nichts.
@@ -48,7 +49,8 @@ Eine Einheit ohne Teile:
 
 ```json
 {"klasse": null, "geerbt": "intern", "kunde": null, "art": "regel",
- "befund": {"geheimnis": false, "personenbezug": false, "interner_name": false},
+ "befund": {"geheimnis": false, "personenbezug": false, "interner_name": false,
+            "host": false, "pfad": false, "kundenkennung": false, "konfiguration": false, "zweifel": false},
  "modell": "frei", "gruppe": "g-a", "senkung_nutzer": "folgt", "bestaetigt": false}
 ```
 
@@ -64,7 +66,7 @@ Die Felder teilen sich in die **Lage** der ganzen Einheit und den **Inhalt**. Mi
 | `klasse` | Inhalt | beliebiger JSON-Wert | `null` | eigene Klasse, von einem Menschen oder einer Admin-Regel gesetzt |
 | `kunde` | Inhalt | Text oder `null` | `null` | Kunde wie in Vertrag 3 |
 | `art` | Inhalt | Text oder `null` | `null` | Art nach Abschnitt 2; `null` heißt: nicht sicher erkannt |
-| `befund` | Inhalt | Objekt mit genau den drei Wahrheitswerten, oder `null` | `null` | Befunde des Filterkerns; `null` heißt: kein Befund vorhanden |
+| `befund` | Inhalt | Objekt mit den drei Pflichtwerten `geheimnis`, `personenbezug`, `interner_name` und den fünf Werten `host`, `pfad`, `kundenkennung`, `konfiguration`, `zweifel` (Nachtrag 26.11.2026), alle Wahrheitswerte; oder `null` | `null` | Befunde des Filterkerns (Abschnitt 7); `null` heißt: kein Befund vorhanden. Fehlt einer der fünf Werte, gilt er als `true`: eine Prüfung, die nicht lief, ist ein Treffer. `null` als Wert ist ungültig. |
 | `modell` | Inhalt | `frei`, `verhindert`, `senken` oder `null` | `null` | Urteil eines lokalen Modells; `null` heißt: kein Modell gelaufen |
 
 - `klasse` und `geerbt` dürfen jeden JSON-Wert haben. Ein Wert außer `null`, der kein Text in `klassen` ist, macht den Fall nicht ungültig; er ergibt die Herkunft `ungueltig` (K1), wie D4 in Vertrag 3.
@@ -79,7 +81,7 @@ Je Einheit (oder je Teil) laufen K1 bis K3 und K5, dann K2 und zuletzt `darf` (K
 |---|---|---|
 | K1 | **Grundklasse.** Sind `klasse` oder `geerbt` angegeben, aber kein Text in `klassen`, ist die Einheit ungültig: Klasse `null`, Herkunft `ungueltig`, Senkung `klasse-ungueltig`. Das gilt auch, wenn der andere Wert gültig ist (fail closed). Sonst gilt die eigene Klasse (Herkunft `eigen`), sonst die geerbte (`geerbt`), sonst die Vorgabestufe (`vorgabestufe`). Eine eigene Klasse geht der geerbten vor, auch wenn sie tiefer liegt. | A32, A35 |
 | K2 | **Kunde hebt.** Hat der Inhalt einen Kunden, ist die Klasse die höchste und die Herkunft `kunde`. Das gilt nach jeder Senkung; ein leerer Text ist ein Kunde. | D5 |
-| K3 | **Herabstufen.** Die Regeln H1 bis H11 laufen in der Reihenfolge der Tabelle unten; die erste zutreffende bestimmt den Grund der Senkung. Trifft keine zu, gilt H0: Die Klasse sinkt um genau eine Stufe unter die geerbte, Herkunft `gesenkt`. | A39, A40, A41 |
+| K3 | **Herabstufen.** Die Regeln H1 bis H11 laufen in der Reihenfolge der Tabelle unten (H9b direkt nach H9); die erste zutreffende bestimmt den Grund der Senkung. Trifft keine zu, gilt H0: Die Klasse sinkt um genau eine Stufe unter die geerbte, Herkunft `gesenkt`. | A39, A40, A41 |
 | K4 | **Aufteilen.** Siehe unten. | A33 |
 | K5 | **Protokollangaben** nur bei H0, siehe Abschnitt 5. | A39, A104 |
 | K6 | **Übergabe an `darf`.** Die Klasse aus K1 bis K4 und der Kunde gehen an `darf` aus Vertrag 3, mit der Route der Anfrage. Ist die Klasse `null`, geht ein leerer Text als Klasse an `darf`; `darf` sperrt dann nach seiner Reihenfolge, spätestens mit `einheit-ohne-klasse`. | Vertrag 3 |
@@ -93,8 +95,9 @@ Je Einheit (oder je Teil) laufen K1 bis K3 und K5, dann K2 und zuletzt `darf` (K
 | H5 | `art-unbekannt` | `art` ist `null`. | A40, „nicht sicher erkannt“ |
 | H6 | `gruppe-ohne-eintrag` | `gruppe` ist ein Text, der in `gruppen` nicht steht (fail closed; bestätigt, F7). | A41 |
 | H7 | `art-nicht-herabstufbar` | `art` steht nicht in `arten`, oder die Gruppe streicht sie. | A39, A40, A41 |
-| H8 | `befund` | `befund` ist `null`, oder einer der drei Werte ist `true`. | A40 |
+| H8 | `befund` | `befund` ist `null`, oder einer der acht Werte ist `true` oder fehlt (Nachtrag 26.11.2026). | A40 |
 | H9 | `modell-verhindert` | `modell` ist `verhindert`. Die Werte `frei` und `senken` lösen nichts aus. | A40 |
+| H9b | `modell-fehlt` | `art` ist `oeffentliche-quelle` oder `leere-vorlage`, und `modell` ist `null` (Nachtrag 26.11.2026). | A40, „bei Zweifel keine Senkung“ |
 | H10 | `nutzer-aus` | `senkung_nutzer` ist `aus`. | A41 |
 | H11 | `bestaetigung-fehlt` | `senkung_nutzer` ist `bestaetigung` und `bestaetigt` ist nicht `true`. Die Antwort nennt die Klasse nach der Senkung als `vorschlag`. | A41 |
 | H0 | `gesenkt` | sonst | A39 |
@@ -124,7 +127,7 @@ Mit Teilen und `aufteilen: true`: `{"teile": [<Antwort je Teil>], "ausgeliefert"
 
 - `klasse`: die Klasse, die an `darf` geht, als Schlüssel, oder `null` bei Herkunft `ungueltig`.
 - `herkunft`: `eigen`, `geerbt`, `vorgabestufe`, `gesenkt`, `kunde`, `teile` oder `ungueltig`. A32 verlangt die Herkunft der Klasse in der Abfrage.
-- `senkung.grund`: ein Code aus H0 bis H11, `klasse-ungueltig` oder `nicht-aufgeteilt`. Er steht auch, wenn K2 die Klasse danach hebt.
+- `senkung.grund`: ein Code aus H0 bis H11 und H9b, `klasse-ungueltig` oder `nicht-aufgeteilt`. Er steht auch, wenn K2 die Klasse danach hebt.
 - `senkung.vorschlag`: nur bei `bestaetigung-fehlt` die Klasse eine Stufe unter der geerbten, sonst `null`.
 - `protokoll`: nur bei `gesenkt`, sonst `null`. Felder (A39, A104):
   - `art`: die Art der Einheit;
@@ -163,7 +166,7 @@ Was der Einbettungslauf je Einheit liefern muss, damit `wirksame_klasse` rechnen
 | `geerbt` | Klasse des Ordners oder Projekts (A32) | ebenso | nein |
 | `kunde` | `kunde` im Frontmatter | kein Text → leerer Text, wie Vertrag 4 heute | ja |
 | `art` | Art aus Typ und Ordner, nur wenn beide zusammenpassen; Typ nur vom Anlegebefehl (Plan, Entscheidung 7) | `null` | nein |
-| `befund` | Filterkern beim Einbetten, je Teil | `null` | nein |
+| `befund` | Filterkern beim Einbetten, je Teil; die acht Werte nach Abschnitt 8a | `null` | nein |
 | `modell` | Urteil des lokalen Modells, falls gelaufen | `null` | nein |
 | `gruppe` | Gruppe des Besitzers aus den Regelebenen (Vertrag 2, spätere Fassung) | Text, der in `gruppen` nicht steht | nein |
 | `senkung_nutzer`, `bestaetigt` | Einstellung des Besitzers und gespeicherte Bestätigung | `bestaetigung` und `false` | nein |
@@ -184,6 +187,35 @@ Die Fragen F1 bis F3 und F7 entschied das Projekt am 20.11.2026, die Fragen F4 b
 - **F7, Gruppe ohne Eintrag:** H6 bleibt. Eine Gruppe ohne Eintrag sperrt die Senkung (fail closed).
 - **F8, Mehrere Kunden ohne Aufteilen:** Ja. Ohne Aufteilen ergeben zwei Kunden einen leeren Kunden, und die Einheit ist überall gesperrt (K4). Fall: `k4-aufteilen-aus`.
 
+## 8a. Nachtrag 26.11.2026: Art und Inhalt müssen passen
+
+Die Firma beantwortete Plan 10.7 am 26.11.2026. Die vier Arten allein reichen nicht; es kommt auf den Inhalt an. Der Nachtrag verschärft nur. Er macht keine Senkung möglich, die vorher nicht möglich war.
+
+- **Regel:** Eine Einheit sinkt nur, wenn ihre Art herabstufbar ist (H7) **und** der Filterkern ihren Inhalt geprüft hat und nichts findet (H8). Bei Treffer oder Zweifel sinkt sie nicht. Eine unklare Einstufung bleibt gesperrt (H5, H6). Gruppen und Nutzer dürfen nur verschärfen (A41, unverändert).
+- **Nie-Liste:** elf Arten mehr, Abschnitt 2.
+- **Befund des Filterkerns:** fünf Werte mehr (Abschnitt 3). Der Filterkern setzt sie je Teil:
+  - `host`: ein Rechnername, eine Adresse oder ein Dienstname eines Firmen- oder Kundensystems;
+  - `pfad`: ein Pfad eines Firmen- oder Kundensystems;
+  - `kundenkennung`: ein Projektkürzel, eine Kundennummer oder ein Produktname eines Kunden, aus der Admin-Liste wie die internen Namen (A37);
+  - `konfiguration`: ein Konfigurationswert, eine Version, eine Lizenz- oder eine Zugangsangabe eines Systems;
+  - `zweifel`: Der Filterkern konnte den Inhalt nicht ganz prüfen, etwa wegen eines unbekannten Formats oder einer Grenze.
+  Ein Filterkern, der nur die drei Werte vom 20.11. liefert, lässt nichts mehr sinken (Fall `k3-befund-inhalt`).
+- **H9b:** Für `oeffentliche-quelle` und `leere-vorlage` braucht die Senkung zusätzlich das Urteil eines lokalen Modells (`frei` oder `senken`). Der Filterkern sieht nicht, ob eine Zusammenfassung öffentlicher Quellen eigene Bewertungen, Pläne oder Entscheidungen enthält, oder ob die Felder einer Vorlage interne Abläufe zeigen. Ohne Modell bleibt dieser Zweifel; dann sinkt nichts. Das Modell darf weiter nur verhindern, nie auslösen (H9).
+- **Die Beispiele der Firma und die Regel, die sie sperrt:**
+
+| Beispiel der Firma | sperrt |
+|---|---|
+| Regel, Rolle oder Skill, der interne Systeme beschreibt (Projektschlüssel, Hostnamen) | H8 über `kundenkennung`, `host`, `interner_name` |
+| Projektregeln eines Kundenprojekts | H3 (Kunde), sonst H8 über `kundenkennung` |
+| Bedien- und Fehlerwissen mit eigenen Pfaden, Hosts, Versionen oder Konfigurationen | H8 über `pfad`, `host`, `konfiguration` |
+| leere Vorlage eines Kunden | H3 (Kunde), sonst H9b |
+| leere Vorlage, deren Felder interne Abläufe zeigen | H9b, das Modell entscheidet (`verhindert`) |
+| Zusammenfassung öffentlicher Quellen mit eigenen Bewertungen, Plänen oder Entscheidungen | H9b; mit Aufteilen sind Plan und Entscheidung eigene Teile der Nie-Liste |
+
+- **Grenze:** Feldnamen eines internen Ticketsystems erkennt der Filterkern nur, wenn sie in der Admin-Liste stehen. Ohne Eintrag sperrt sie nur ein Modell mit `verhindert`.
+- **Für die Anleitung:** Der Rückholbefehl nimmt die Einstufung zurück; schon ausgelieferte Inhalte holt er nicht zurück.
+- Fälle: `k3-nie-arten-firma`, `k3-befund-inhalt`, `k3-modell-pflicht`, `u-k-arten-nie-<art>` je neuer Nie-Art, `u-k-befund-neu-text`, `u-k-befund-neu-null`, `u-k-befund-nur-neu`. Geändert: In `k3-gesenkt` sinken `oeffentliche-quelle` und `leere-vorlage` nur noch mit `modell: frei`.
+
 ## 9. Fälle und Läufer
 
 | Pfad | Zweck |
@@ -192,7 +224,7 @@ Die Fragen F1 bis F3 und F7 entschied das Projekt am 20.11.2026, die Fragen F4 b
 | `aufruf.sh` | Hülle für den Läufer: ruft `datentor klassen`; `DATENTOR` nennt das Programm |
 | `sichtbar/` | die sichtbaren Fälle |
 
-Stand nach dem Nachtrag 20.11.2026, 2: 101 Fälle, davon 30 gültige mit 149 Anfragen und 71 ungültige.
+Stand nach dem Nachtrag 26.11.2026: 118 Fälle, davon 33 gültige mit 178 Anfragen und 85 ungültige.
 
 ```
 python3 -I -B faelle_bauen.py
@@ -214,7 +246,10 @@ impl Tiefe {
 impl Default for Tiefe { /* aufteilen an, herabstufen aus, alle vier Arten, keine Gruppe */ }
 pub struct Gruppe { pub schluessel: String, pub streicht: Vec<String> }
 pub enum Angabe<'a> { Keine, Text(&'a str), KeinText }
-pub struct Befund { pub geheimnis: bool, pub personenbezug: bool, pub interner_name: bool }
+pub struct Befund { pub geheimnis: bool, pub personenbezug: bool, pub interner_name: bool,
+                    pub host: bool, pub pfad: bool, pub kundenkennung: bool, pub konfiguration: bool, pub zweifel: bool }
+impl Befund { pub fn frei(&self) -> bool; }   // alle acht false; eine nicht gelaufene Prüfung setzt der Aufrufer auf true
+pub const NUR_MIT_MODELL: [&str; 2];           // H9b: oeffentliche-quelle, leere-vorlage
 pub enum Modell { Frei, Verhindert, Senken }
 pub enum NutzerSenkung { Folgt, Aus, Bestaetigung }
 pub struct Lage<'a> { pub geerbt: Angabe<'a>, pub gruppe: Option<&'a str>, pub nutzer: NutzerSenkung, pub bestaetigt: bool }
@@ -229,7 +264,7 @@ pub struct Klassenergebnis { pub klasse: Option<String>, pub kunde: Option<Strin
 impl Klassenergebnis { pub fn einheit(&self) -> Einheit<'_>; }   // K6: klasse, bei None Some("")
 pub enum Herkunft { Eigen, Geerbt, Vorgabestufe, Gesenkt, Kunde, Teile, Ungueltig }
 pub enum Senkung { Gesenkt, Aus, NichtGeerbt, Kundendaten, Niedrigste, ArtUnbekannt, GruppeOhneEintrag,
-                   ArtNichtHerabstufbar, Befund, ModellVerhindert, NutzerAus, BestaetigungFehlt,
+                   ArtNichtHerabstufbar, Befund, ModellVerhindert, ModellFehlt, NutzerAus, BestaetigungFehlt,
                    KlasseUngueltig, NichtAufgeteilt }
 pub enum Ebene { Firma, Gruppe }
 pub struct Senkungsangaben { pub art: String, pub erkannt_durch: Vec<String>, pub regel_ebene: Ebene,

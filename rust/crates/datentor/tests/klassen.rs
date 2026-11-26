@@ -7,8 +7,8 @@
 
 use datentor::klassen::{
     Angabe, Befund, Ebene, Gruppe, Herkunft, Inhalt, Klassenergebnis, Lage, Modell, NIE_ARTEN,
-    NutzerSenkung, Senkung, Senkungsangaben, Tiefe, TiefeFehler, VORGABE_ARTEN, ganze_klasse,
-    wirksame_klasse,
+    NUR_MIT_MODELL, NutzerSenkung, Senkung, Senkungsangaben, Tiefe, TiefeFehler, VORGABE_ARTEN,
+    ganze_klasse, wirksame_klasse,
 };
 use datentor::{Art, Einheit, Grund, Kunde, Route, Vorgabe, darf, wirksam};
 
@@ -48,6 +48,11 @@ const B0: Befund = Befund {
     geheimnis: false,
     personenbezug: false,
     interner_name: false,
+    host: false,
+    pfad: false,
+    kundenkennung: false,
+    konfiguration: false,
+    zweifel: false,
 };
 
 fn lage(geerbt: Angabe<'static>) -> Lage<'static> {
@@ -344,13 +349,29 @@ fn h8_bis_h11() {
             interner_name: true,
             ..B0
         },
+        Befund { host: true, ..B0 },
+        Befund { pfad: true, ..B0 },
+        Befund {
+            kundenkennung: true,
+            ..B0
+        },
+        Befund {
+            konfiguration: true,
+            ..B0
+        },
+        Befund {
+            zweifel: true,
+            ..B0
+        },
     ] {
+        assert!(!b.frei(), "{b:?}");
         assert_eq!(
             mit(&|_, i| i.befund = Some(b)).senkung,
             Senkung::Befund,
             "{b:?}"
         );
     }
+    assert!(B0.frei());
     assert_eq!(
         mit(&|_, i| i.modell = Some(Modell::Verhindert)).senkung,
         Senkung::ModellVerhindert
@@ -379,6 +400,52 @@ fn h8_bis_h11() {
         l.bestaetigt = true;
     });
     assert_eq!(e.senkung, Senkung::NutzerAus);
+}
+
+/// H9b (addendum 26.11.2026): the two kinds the filter core cannot judge sink only with a model verdict.
+#[test]
+fn h9b_modell_pflicht() {
+    let v = v4();
+    let t = an();
+    let mit = |f: &dyn Fn(&mut Inhalt<'static>)| {
+        let mut i = senkbar();
+        f(&mut i);
+        wirksame_klasse(&v, &t, &lage(S2), &i)
+    };
+    for art in NUR_MIT_MODELL {
+        assert_eq!(
+            mit(&|i| i.art = Some(art)).senkung,
+            Senkung::ModellFehlt,
+            "{art}"
+        );
+        for m in [Modell::Frei, Modell::Senken] {
+            assert_eq!(
+                mit(&|i| {
+                    i.art = Some(art);
+                    i.modell = Some(m);
+                })
+                .senkung,
+                Senkung::Gesenkt,
+                "{art} {m:?}"
+            );
+        }
+        assert_eq!(
+            mit(&|i| {
+                i.art = Some(art);
+                i.modell = Some(Modell::Verhindert);
+            })
+            .senkung,
+            Senkung::ModellVerhindert,
+            "{art}"
+        );
+    }
+    for art in ["regel", "bedienwissen"] {
+        assert_eq!(
+            mit(&|i| i.art = Some(art)).senkung,
+            Senkung::Gesenkt,
+            "{art}"
+        );
+    }
 }
 
 #[test]
@@ -457,8 +524,24 @@ fn t1_nie_art_ist_ladefehler() {
             "{art}"
         );
     }
-    assert_eq!(NIE_ARTEN.len(), 15);
+    assert_eq!(NIE_ARTEN.len(), 26);
     assert!(NIE_ARTEN.contains(&"personenbezug") && NIE_ARTEN.contains(&"entwurf"));
+    // Addendum 26.11.2026, written out by hand.
+    for art in [
+        "angebot",
+        "schaetzung",
+        "kalkulation",
+        "ticket",
+        "testfall",
+        "fehlerbericht",
+        "sicherheitsbefund",
+        "konfiguration",
+        "lizenz",
+        "kundenbezug",
+        "vertragsregel",
+    ] {
+        assert!(NIE_ARTEN.contains(&art), "{art}");
+    }
     assert!(Tiefe::neu(true, true, sv(&["glossar", "faq"]), vec![]).is_ok());
     // Byte for byte: variants of a never kind are other kinds (addendum 2).
     for art in ["vertraege", "vertrag.", "kunden-daten", "plan-a", "xplan"] {
@@ -561,6 +644,7 @@ fn codes() {
         (S::ArtNichtHerabstufbar, "art-nicht-herabstufbar"),
         (S::Befund, "befund"),
         (S::ModellVerhindert, "modell-verhindert"),
+        (S::ModellFehlt, "modell-fehlt"),
         (S::NutzerAus, "nutzer-aus"),
         (S::BestaetigungFehlt, "bestaetigung-fehlt"),
         (S::KlasseUngueltig, "klasse-ungueltig"),

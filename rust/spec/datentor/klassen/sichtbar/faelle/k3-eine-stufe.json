@@ -55,7 +55,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     }
    },
    "route": "r1"
@@ -67,7 +72,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     }
    },
    "route": "r0"
@@ -79,7 +89,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     }
    },
    "route": "r0"
@@ -91,7 +106,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     }
    },
    "route": "r0"
@@ -103,7 +123,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     }
    },
    "route": "r0"
@@ -115,7 +140,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     }
    },
    "route": "r2"
@@ -127,7 +157,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "klasse": "s1"
    },
@@ -140,7 +175,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "klasse": "s2"
    },

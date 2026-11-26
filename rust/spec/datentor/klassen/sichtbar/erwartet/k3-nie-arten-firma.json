@@ -1,0 +1,172 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   },
+   {
+    "klasse": "intern",
+    "herkunft": "geerbt",
+    "senkung": {
+     "grund": "art-nicht-herabstufbar",
+     "vorschlag": null
+    },
+    "protokoll": null,
+    "darf": {
+     "darf": false,
+     "grund": "klasse-ueber-route",
+     "klasse": "intern",
+     "meldung": "Klasse der Einheit liegt über Route r-oeff"
+    }
+   }
+  ]
+ }
+}

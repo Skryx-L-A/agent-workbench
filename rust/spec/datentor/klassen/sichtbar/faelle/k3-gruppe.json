@@ -59,7 +59,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "gruppe": "g-a"
    },
@@ -72,7 +77,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "gruppe": "g-a"
    },
@@ -85,7 +95,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "gruppe": "g-b"
    },
@@ -98,7 +113,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "gruppe": null
    },
@@ -111,7 +131,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "gruppe": "g-x"
    },
@@ -124,7 +149,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "gruppe": "G-A"
    },
@@ -137,7 +167,12 @@
     "befund": {
      "geheimnis": false,
      "personenbezug": false,
-     "interner_name": false
+     "interner_name": false,
+     "host": false,
+     "pfad": false,
+     "kundenkennung": false,
+     "konfiguration": false,
+     "zweifel": false
     },
     "gruppe": ""
    },
