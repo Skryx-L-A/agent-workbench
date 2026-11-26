@@ -7,6 +7,9 @@ Selektoren `data-testid` als Pflicht (SE7), Token im Fragment als `#t=<token>`, 
 Gebaut sind eine **Attrappe** der Seite und ein **Läufer**. Die echte Seite gilt als vertragstreu, wenn sie beide
 Fallsätze (sichtbar und verdeckt) im kopflosen Browser grün besteht.
 „(V)“ heißt im Vertrag festgelegt (Abschnitt 5); „(H)“ heißt hergeleitet, ohne eigene Messung.
+**Nachtrag 26.11.2026 (Entscheide des Betreibers, `rust/spec/VERTRAEGE.md` Fassung 2):** Das Startformular liegt im Fenster „Sitzungen“ hinter „+“. Die
+Eingabezeile ruht bis nach dem Pilot. F6 wechselt zwischen Bereichen. Die Regeln gelten auch für das App-Fenster (`rust/spec/VERTRAEGE.md` OF14). Geänderte
+Stellen tragen den Vermerk „(26.11.)“, die betroffenen Fälle stehen im Abschnitt „Nachtrag 26.11.2026“ am Ende.
 
 Quellen: `BR` = `rust/spec/bruecke/VERTRAG.md`, `AB` = Vertrag `abbild` (außerhalb des Repos),
 `VT` = `rust/spec/zustandskern/VERTRAG.md`, `RA` = `rust/spec/rasterauszug/VERTRAG.md`,
@@ -29,6 +32,8 @@ was ein Vorleser von ihr sieht**, nicht wie sie aussieht.
 - **Nicht Teil:** Aussehen, Farben, Schrift, Cursor-Darstellung, Markieren und Kopieren mit der Maus, Deflate (Abschnitt 8, Frage 1),
   mehrere sichtbare Terminals, Dialoge (`VT` R6), Routenanzeige (A46) und Zonenanzeige (A129). Diese kommen mit eigenen Fällen, sobald die Nachrichten
   im Strom des Durchstichs ankommen.
+  (26.11.) Die Ansicht „Worker“ braucht mehrere sichtbare Terminals (`rust/spec/VERTRAEGE.md` B27, B30, Lücke L2). Ihre Fälle kommen, sobald die Verträge
+  `zustandskern` und `dienst` mehrere Abos je Betrachter tragen. Bis dahin gilt dieser Vertrag für ein Terminal.
 
 ## 2. Aufruf des Läufers
 
@@ -123,19 +128,30 @@ Gilt, solange der Fokus im Terminal steht und eine Sitzung abonniert ist. `s` is
 10. **Einfügen** (`paste` im Terminal) geht als `{"art": "Einfuegen", "sitzung": s, "text": <text/plain>}` mit dem Text **unverändert**; Zeilenumbrüche,
     Klammermarken und Bracketed Paste macht der Kern (`VT` R1). Leeres Einfügen schickt nichts. Einfügen geht nie als `Text`.
 11. Die Seite schickt die Ereignisse **in der Reihenfolge der Eingabe, eins nach dem anderen** (V): das nächste `POST /eingabe` erst nach der Antwort auf das vorige.
-12. Steht der Fokus nicht im Terminal, schicken Tasten keine Ereignisse; die Eingabezeile (SE5) sammelt ihren Text selbst.
+12. Steht der Fokus nicht im Terminal, schicken Tasten keine Ereignisse. Felder sammeln ihren Text selbst. (26.11.) Die Eingabezeile (SE5 Punkt 3) ruht
+    bis nach dem Pilot.
 
 ### SE2 Fokus
 
 1. **Nach dem Laden** (V): Nennt die erste `Sitzungsliste` eine laufende Sitzung, abonniert die Seite die erste laufende und setzt den Fokus ins
-   Terminal. Nennt sie keine, steht der Fokus im ersten Feld des Startformulars (`Harness`). Danach bewegt die Seite den Fokus nur auf eine Handlung hin.
-2. **Tab-Stopps** außerhalb des Terminals, in dieser Reihenfolge (V): je Sitzung ein Knopf der Sitzungsliste (Listenfolge), das Terminal, die
-   Eingabezeile (`Eingabe`), der Knopf `Senden`, die Felder des Startformulars (`Harness`, `Modell`, `Route`, `Kunde` als Auswahlfelder, `Arbeitsordner`), der Knopf `Starten`.
+   Terminal. (26.11.) Nennt sie keine, steht der Fokus auf dem Knopf „+“ (`neue-sitzung`, Name `Neue Sitzung`). Danach bewegt die Seite den Fokus
+   nur auf eine Handlung hin.
+2. **Tab-Stopps** außerhalb des Terminals, in dieser Reihenfolge (V, 26.11.):
+   - die Knöpfe der Titelleiste von links nach rechts;
+   - der Knopf „+“, dann je Sitzung ein Knopf der Sitzungsliste (Listenfolge), dann das Zahnrad im Fuß der Leiste;
+   - das Terminal (in der Ansicht „Worker“ jedes sichtbare Pane in Kachelfolge);
+   - bei offenem Inspektor seine Reiter und danach sein Inhalt.
    Umschalt+Tab geht rückwärts. In das Terminal kommt man mit Tab und Umschalt+Tab wie in jeden anderen Halt.
+   **Fenster „Sitzungen“** (26.11., SE2 gilt ab dem Öffnen): Ist es offen, bleibt der Fokus in ihm. Tab und Umschalt+Tab laufen nur durch seine Halte,
+   in dieser Reihenfolge: die Liste der Sitzungen, `Name`, `Arbeitsordner`, `Harness`, `Modell`, `Effort`, `Route`, `Kunde`, der Knopf `Starten`,
+   die Knöpfe `Beenden` und `Fortsetzen` der gewählten Sitzung und der Knopf `Schließen`. Beim Öffnen über „+“ steht der Fokus im Feld `Name`.
+   Escape und `Schließen` schließen das Fenster, und der Fokus geht zurück auf „+“.
 3. **Im Terminal gehören Tab und Umschalt+Tab dem Programm** (SE1 Punkt 5); der Fokus bleibt.
-4. **Das Terminal verlassen** (V): **F6** setzt den Fokus auf den nächsten Halt nach dem Terminal (die Eingabezeile), **Umschalt+F6** auf den Halt davor
-   (den letzten Knopf der Sitzungsliste). F6 geht nie an das Programm. Das Terminal nennt das in seiner Beschreibung (`aria-describedby`).
-   Maus und Tippen gehen wie immer.
+4. **Bereiche wechseln** (V, 26.11.): Die Bereiche sind Titelleiste, Leiste, Terminal und Inspektor (wenn offen), in dieser Folge, im Kreis.
+   **F6** setzt den Fokus auf den ersten Halt des nächsten Bereichs, **Umschalt+F6** auf den des vorigen.
+   - Vom Terminal aus führt F6 in den Inspektor oder, wenn er zu ist, in die Titelleiste. Umschalt+F6 führt auf den Knopf der gewählten Sitzung.
+   - F6 geht nie an das Programm. Das Terminal nennt das in seiner Beschreibung (`aria-describedby`).
+   - Maus und Tippen gehen wie immer.
 5. **Wahl einer Sitzung** (Knopf der Liste, auch mit Enter): Die Seite schickt `{"art": "Abo", "sitzung": alt, "an": false}` für die bisherige,
    dann `Abo` an für die neue (mit Größe, SE5), zeigt deren Raster (Sitzungsnummer nach `DI` DI12 Punkt 5: das Feld `nr` ihres Eintrags der letzten `Sitzungsliste`; Nachtrag P25 23.11.2026: nie die Ziffern der Kennung. Bei `nr: null` gehört kein Rahmen zu ihr; bekommt eine Nummer eine andere Sitzung, vergisst die Seite das Bild darunter)
    und setzt den Fokus ins Terminal. Eingaben gehen danach an die neue Sitzung.
@@ -157,11 +173,12 @@ Gilt, solange der Fokus im Terminal steht und eine Sitzung abonniert ist. `s` is
 1. **Rollen und Namen** (gemessen im Barrierebaum von Chromium, `Accessibility.getFullAXTree`):
    - Sitzungsliste: Rolle `list` mit Namen `Sitzungen`, je Sitzung ein `listitem` mit einem `button`, dessen Name die Kennung und den Zustand nennt
      (`läuft` oder `beendet, Code <n>`).
-   - Startformular: Rolle `form` mit Namen `Sitzung starten`; `Harness`, `Modell`, `Route` und `Kunde` sind Auswahlfelder (Rolle `combobox`),
-     `Arbeitsordner` ist eine `textbox`; der Knopf heißt `Starten`.
+   - (26.11.) Fenster „Sitzungen“: Rolle `dialog` mit Namen `Sitzungen`, modal. Darin die Liste aller bekannten Sitzungen (Rolle `listbox`, Name
+     `Bekannte Sitzungen`) und das Startformular: Rolle `form` mit Namen `Sitzung starten`. `Name` und `Arbeitsordner` sind `textbox`, `Harness`,
+     `Modell`, `Effort`, `Route` und `Kunde` sind Auswahlfelder (Rolle `combobox`); der Knopf heißt `Starten`. Der Knopf „+“ heißt `Neue Sitzung`.
    - Terminal: genau ein fokussierbares Element der Rolle `textbox`, dessen Name mit `Terminal` beginnt und die Kennung der Sitzung enthält (Empfehlung:
      ein `textarea` mit `aria-roledescription="Terminal"`, Abschnitt 8 Frage 3). Die Zeilen liegen als Text im Barrierebaum (nicht `aria-hidden`).
-   - Eingabezeile: `textbox` `Eingabe` und `button` `Senden`.
+   - Eingabezeile: `textbox` `Eingabe` und `button` `Senden`. (26.11.) Ruht bis nach dem Pilot (SE5 Punkt 3).
    - Kein Bedienelement (Rollen `button`, `textbox`, `link`, `checkbox`, `combobox`, `listbox`, `option`, `radio`, `slider`, `spinbutton`, `switch`, `tab`,
      `menuitem`, `searchbox`) ohne Namen.
 2. **Live-Regionen:** eine oder zwei (V: eine höfliche für Ausgabe und Zustand, wahlweise eine dringliche für Ablehnungen). Das Terminal und seine Zeilen
@@ -209,7 +226,10 @@ Gilt, solange der Fokus im Terminal steht und eine Sitzung abonniert ist. `s` is
    `Groesse`“ (Nachtrag 22.11.2026).
 3. **Bildschirmtastatur:** Die Eingabezeile (`textbox` `Eingabe`, Knopf `Senden`) sammelt Text samt Komposition und schickt beim Absenden (Enter im Feld
    oder `Senden`) `Text` mit dem Inhalt (wenn nicht leer) und danach `Taste Enter`; dann ist sie leer. Vorher schickt sie nichts. Sie ist auf jeder Breite da.
-4. Eingabezeile und Terminal tragen `autocapitalize="off"` und `spellcheck="false"`; die Eingabezeile `enterkeyhint="send"`.
+   (26.11.) **Ruht bis nach dem Pilot.** Die Eingabezeile kommt mit der Chat-Ansicht (`rust/spec/VERTRAEGE.md` B37, B79, Entscheid F3). Dann gilt dieser Punkt
+   wieder unverändert.
+4. Eingabezeile und Terminal tragen `autocapitalize="off"` und `spellcheck="false"`; die Eingabezeile `enterkeyhint="send"`. (26.11.) Für das Terminal
+   gilt das weiter, für die Eingabezeile ab ihrer Rückkehr.
 5. **Bedienziele** außerhalb des Terminals sind bei schmaler Breite mindestens 44 mal 44 px (H: Richtwert der Plattformen für Tippziele).
 
 ### SE6 Netz und Start
@@ -221,6 +241,8 @@ Gilt, solange der Fokus im Terminal steht und eine Sitzung abonniert ist. `s` is
 3. **Startformular:** Absenden schickt `POST /starten` mit `{"fassung": 1, "harness", "modell", "route", "kunde", "arbeitsordner"}`: die gewählten Werte,
    der Text des Arbeitsordners, beim Eintrag „ohne Kunde“ `"kunde": null` (Form der Start-Struktur nach `DI` DI12 Punkt 3). Antwort und Ansage in SE3,
    Fehlerfeld in SE7. Ein Erfolg blendet das Fehlerfeld aus.
+   (26.11.) Sobald der Vertrag `dienst` die Felder `name` und `effort` trägt (`rust/spec/VERTRAEGE.md` Abschnitt 4, L10), schickt die Seite `"fassung": 2` mit
+   `name` (Text, leer erlaubt) und `effort` (der gewählte Eintrag von `effort-wahl`). Bis dahin bleibt es bei Fassung 1, und das Feld `Effort` fehlt.
 4. **`Startwahl` und Modell** (Nachtrag 20.11.2026): Die Nachricht `Startwahl` (Rahmen 0x06) trägt je Route `{"schluessel", "art", "klasse", "modell"}`;
    `modell` ist der Text der Route oder `null` (fehlt es oder ist es kein nicht leerer Text, gilt es wie `null`). Mit der ersten `Startwahl` füllt die Seite
    `harness-wahl` (die Namen der Harness), `route-wahl` (die Schlüssel), `kunde-wahl` (die Kunden, dazu **zuletzt** „ohne Kunde“ mit dem Wert `""`, auch wenn
@@ -239,9 +261,14 @@ Jedes `data-testid` steht **genau einmal** auf der Seite, ist unabhängig von Sp
    bei `beendet` dazu `data-code="<code>"` (bei `laeuft` fehlt `data-code`). Die Attribute folgen jeder neuen `Sitzungsliste`.
 2. Startformular: `harness-wahl`, `modell-wahl`, `route-wahl`, `kunde-wahl` (Auswahlfelder; `kunde-wahl` hat den Eintrag „ohne Kunde“, der `null` schickt),
    `arbeitsordner-eingabe`, `sitzung-start` (Knopf).
+   (26.11.) Dazu kommen `neue-sitzung` (Knopf „+“), `sitzungen-fenster` (das Fenster), `name-eingabe`, `effort-wahl` (sobald L10 gilt),
+   `sitzung-beenden` und `sitzung-fortsetzen` (Knöpfe für die gewählte Sitzung) und `sitzungen-schliessen`. Kennungen in einem Fenster oder einer Blase
+   stehen genau einmal, solange es offen ist, und fehlen, solange es zu ist.
+   Weitere neue Kennungen (26.11.): `inspektor` (der Bereich, nur wenn offen), `inspektor-umschalter`, `ansicht-umschalter` (Orchestrator/Worker),
+   `worker-liste` (Blase), `freigaben-blatt`, `ordner-blatt`, `einstellungen` und `admin-einstellungen` (nur für Admins).
 3. `terminal-raster`: das Raster als Text im DOM (kein Canvas), mit `data-cursor="<zeile>,<spalte>,<sichtbar>"` (V: `sichtbar` als `true` oder `false`;
    ohne Cursor im Abbild `0,0,false`), darin je Zeile `terminal-zeile-<n>`, n ab 0 in Zeilenfolge, genau so viele wie das Raster Zeilen hat.
-4. `eingabe` (Feld der Eingabezeile) und `eingabe-senden` (Knopf).
+4. `eingabe` (Feld der Eingabezeile) und `eingabe-senden` (Knopf). (26.11.) Ruhen mit der Eingabezeile bis nach dem Pilot.
 5. `fehler` mit den Kindern `fehler-code` (Code der Ablehnung, unverändert) und `fehler-text` (Text nach SE3 Punkt 3). Der Rahmen 0x08 `Fehler` `{"fehler": "<code>"}` setzt das Fehlerfeld ebenso: Code unverändert, Text
    „Verbindung mit Fehler beendet“. Vor der ersten Ablehnung ist
    `fehler` da, aber nicht sichtbar; nach einer Ablehnung sichtbar mit Code und Text der letzten.
@@ -254,13 +281,13 @@ Jedes `data-testid` steht **genau einmal** auf der Seite, ist unabhängig von Sp
 3. Reihenfolge der Umschalter `umschalt`, `strg`, `alt`.
 4. Meta, Strg+V und Strg+Umschalt+Buchstabe gehören dem Browser.
 5. Ereignisse der Reihe nach, eins nach dem anderen.
-6. Fokus nach dem Laden ins Terminal der ersten laufenden Sitzung, sonst ins erste Feld des Startformulars.
-7. Tab-Folge wie SE2 Punkt 2; F6 und Umschalt+F6 verlassen das Terminal.
+6. Fokus nach dem Laden ins Terminal der ersten laufenden Sitzung, sonst auf „+“ (26.11.).
+7. Tab-Folge wie SE2 Punkt 2, im Fenster „Sitzungen“ nur durch seine Halte; F6 und Umschalt+F6 wechseln die Bereiche (26.11.).
 8. Wechsel der Sitzung mit `Abo` aus (`an` false), dann `Abo` an.
 9. Ansagen wie SE3 Punkt 3; Sperrzeit 1000 ms; höchstens 5 Zeilen je Ansage; Texte der Gründe.
 10. Keine Normalisierung des Textes.
 11. Klemme 2 Spalten, keine doppelte Größe.
-12. Eingabezeile schickt `Text` und `Taste Enter` erst beim Absenden.
+12. Eingabezeile schickt `Text` und `Taste Enter` erst beim Absenden (ruht bis nach dem Pilot, 26.11.).
 13. Kein Abruf eines Symbols; nur drei Routen mit Token.
 14. Feste Selektoren SE7; `data-cursor` mit `true`/`false`; Fehlerfeld zeigt die letzte Ablehnung; „ohne Kunde“ schickt `null`.
 
@@ -332,14 +359,14 @@ Liste in `attrappe/seite.js` ist, dass die Attrappe beide Sätze grün besteht u
 Am Mac mit VoiceOver (Safari und Chrome), am Handy mit TalkBack (Chrome, Android) und VoiceOver (Safari, iOS). Je Punkt: gehört, gesehen, Abweichung.
 1. Laden mit einer laufenden Sitzung: VoiceOver nennt „Terminal <id>“ und die Beschreibung mit F6. Der Fokusrahmen ist sichtbar.
 2. Sitzungsliste mit dem Rotor (Mac) oder Wischen (Handy): „Sitzungen, Liste, 2 Objekte“; jeder Knopf nennt Kennung und „läuft“ oder „beendet, Code …“.
-3. Startformular: jedes Feld wird mit seiner Beschriftung angesagt; „Starten“ ist ein Knopf.
+3. Startformular (26.11.: im Fenster „Sitzungen“ hinter „+“): Das Fenster wird als Dialog „Sitzungen“ angesagt, jedes Feld mit seiner Beschriftung; „Starten“ ist ein Knopf; Escape schließt es, und der Fokus steht wieder auf „+“.
 4. Im Terminal tippen: Umlaute, `^` plus `e`, `´` plus `e`, AltGr/Wahltaste `@ € { } [ ] \ ~ |` kommen im Programm richtig an; VoiceOver liest das Echo
    nicht doppelt vor.
-5. Tab im Terminal bewegt den Fokus nicht; F6 führt zur Eingabezeile, Umschalt+F6 zur Liste. Prüfen, dass der Browser F6 an die Seite gibt (Safari, Chrome, Firefox).
+5. Tab im Terminal bewegt den Fokus nicht; F6 führt in den nächsten Bereich (Inspektor oder Titelleiste), Umschalt+F6 auf den Knopf der gewählten Sitzung (26.11.). Prüfen, dass der Browser F6 an die Seite gibt (Safari, Chrome, Firefox) und dass das App-Fenster F6 nie an das Programm gibt.
 6. Eine Ausgabe von 3 Zeilen wird einmal angesagt; eine Dauerausgabe von 30 s flutet nicht (höchstens eine Ansage je Sekunde) und unterbricht das Tippen nicht.
 7. Eine Ablehnung (unbekannte Taste) und „Sitzung … beendet“ werden angesagt.
 8. Handy: Die Eingabezeile öffnet die Bildschirmtastatur ohne Großschreibung; die Taste „Senden“ der Tastatur schickt; Diktat landet in der Eingabezeile;
-   keine waagerechte Leiste bei Hochformat; Tippziele lassen sich treffen.
+   keine waagerechte Leiste bei Hochformat; Tippziele lassen sich treffen. (26.11.) Ruht bis nach dem Pilot, außer „keine waagerechte Leiste“ und „Tippziele“.
 9. Der Text im Terminal ist im egui-Fenster und im Browser gleich (Beispiel `umlaute`, mit Auge verglichen).
 10. Vergrößern auf 200 % (Mac) und große Schrift (Handy): nichts wird abgeschnitten, keine waagerechte Leiste.
 
@@ -407,3 +434,35 @@ und 34 von 34 verdeckt. Zu ihren offenen Punkten:
    Nachtrag; `X-Deflate: 1` braucht dazu Deflate in der Attrappe des Läufers.
 4. **Kein selbsttätiges Neuverbinden** und **kein selbsttätiger Wechsel** in eine neu gestartete Sitzung: Beides gilt so. Der Fokus folgt nur einer
    Handlung (SE2.1). Ein Knopf „Neu verbinden“ ist nicht Teil des Durchstichs.
+
+## Nachtrag 26.11.2026: Folgen der Entscheide für Fälle und Mutanten
+
+Grundlage: `rust/spec/VERTRAEGE.md` Fassung 2 (Entscheide G1 bis G10, F1 bis F4, E1 bis E8). Kein Fall und kein Mutant wird gelöscht. Was ruht, bleibt
+im Fallsatz und läuft wieder, wenn sein Bedienweg kommt. Den Fallbau, den Läufer und die Attrappe der Seite (außerhalb des Repos) zieht the maintainers nach,
+bevor die umgebaute Browser-Ansicht gegen die Fälle läuft.
+
+**Fälle, die sich ändern** (sichtbarer Satz, der verdeckte entsprechend):
+
+| Fall | Änderung | Regel |
+|---|---|---|
+| `se2_start_ohne_sitzung` | Fokus nach dem Laden auf „+“ (`neue-sitzung`) statt auf `Harness` | SE2.1 |
+| `se2_tab_folge` | neue Tab-Folge ohne Eingabezeile und ohne festes Startformular; ein zweiter Teil prüft die Halte im Fenster „Sitzungen“ und die Rückkehr auf „+“ | SE2.2 |
+| `se2_wechsel` | F6 und Umschalt+F6 nach der Bereichsfolge, wo der Fall sie nutzt | SE2.4 |
+| `se3_baum` | Dialog `Sitzungen` mit `listbox` und `form`; keine Eingabezeile; Knopf `Neue Sitzung` | SE3.1 |
+| `se6_starten`, `se6_startwahl`, `se6_modell_auto` | vor dem Absenden „+“ klicken; Felder im Fenster; die Start-Struktur bleibt Fassung 1, bis L10 gilt | SE6.3, SE6.4 |
+| `se7_selektoren` | neue Kennungen aus SE7 Punkt 2; `eingabe` und `eingabe-senden` fehlen im Pilot | SE7.2, SE7.4 |
+
+**Fälle, die ruhen** (bis die Eingabezeile mit der Chat-Ansicht zurückkommt, B37 und B79): `se5_eingabezeile`. Von `se5_tastatur_attribute` ruht nur
+der Teil der Eingabezeile, der Teil des Terminals läuft weiter.
+
+**Mutanten, die ruhen**, mit ihren Fällen: `eingabezeile_sofort` (SE5.3) und der Teil von `autocapitalize_an` für die Eingabezeile (SE5.4).
+`f6_fehlt` (SE2.4) und `fokus_start_dokument` (SE2.1) bleiben und prüfen die neue Form.
+
+**Neue Fälle** (vor dem Bau als ausstehend geführt, erst nach dem Umbau grün):
+- `se2_sitzungen_fenster`: Öffnen über „+“, Fokus im Feld `Name`, Fokusfalle im Fenster, Escape schließt und der Fokus steht auf „+“.
+- `se2_bereiche`: F6 und Umschalt+F6 durch Titelleiste, Leiste, Terminal und Inspektor, mit offenem und geschlossenem Inspektor.
+- `se7_nur_angebunden`: keine Kennung eines Bedienwegs mit Umfang N im Baum (`rust/spec/VERTRAEGE.md` OF7, OF8).
+- Dazu die neuen Mutanten `fokusfalle_fehlt` (Tab verlässt das offene Fenster), `f6_ueberspringt_inspektor` (F6 vom Terminal springt am offenen Inspektor
+  vorbei) und `platzhalter_sichtbar` (ein Bedienweg mit Umfang N steht im Baum).
+
+Fälle für die Lücken L1 bis L11 (`rust/spec/VERTRAEGE.md` Abschnitt 4) kommen mit den Nachträgen der Verträge `zustandskern` und `dienst`.
