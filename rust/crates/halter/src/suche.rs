@@ -70,7 +70,11 @@ impl<'a> Zaehler<'a> {
         let mut k = 0;
         for i in 1..nadel.len() {
             while k > 0 && nadel[i] != nadel[k] {
-                k = rand[k - 1];
+                let zurueck = rand[k - 1];
+                // the border of a shorter prefix is shorter: each fall back shrinks k, so the loop ends; a test build
+                // that breaks this fails at once instead of looping (the delivered build has no check here)
+                debug_assert!(zurueck < k, "fall back of the table does not shrink");
+                k = zurueck;
             }
             if nadel[i] == nadel[k] {
                 k += 1;
@@ -251,13 +255,26 @@ mod tests {
 
     use super::{Ergebnis, Lauf, Zaehler, zaehlen};
 
+    /// The table of the needle, made in a thread of its own: a fall back that never ends (an index that does not
+    /// shrink) fails the test after 10 s instead of holding it until the outer limit. The bound is only against a
+    /// hang; the making takes microseconds.
+    fn rand_mit_frist(nadel: &'static [u8]) -> Vec<usize> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let _ = tx.send(Zaehler::neu(nadel).rand);
+        });
+        rx.recv_timeout(std::time::Duration::from_secs(10)).expect(
+            "the table of the needle was not made within 10 s (a fall back that never ends)",
+        )
+    }
+
     /// The table of the borders after Knuth, Morris and Pratt, also where its making must fall back.
     #[test]
     fn rand_der_nadel() {
-        assert_eq!(Zaehler::neu(b"aab").rand, [0, 1, 0]);
-        assert_eq!(Zaehler::neu(b"abab").rand, [0, 0, 1, 2]);
-        assert_eq!(Zaehler::neu(b"aabaaab").rand, [0, 1, 0, 1, 2, 2, 3]);
-        assert_eq!(Zaehler::neu(b"abacabab").rand, [0, 0, 1, 0, 1, 2, 3, 2]);
+        assert_eq!(rand_mit_frist(b"aab"), [0, 1, 0]);
+        assert_eq!(rand_mit_frist(b"abab"), [0, 0, 1, 2]);
+        assert_eq!(rand_mit_frist(b"aabaaab"), [0, 1, 0, 1, 2, 2, 3]);
+        assert_eq!(rand_mit_frist(b"abacabab"), [0, 0, 1, 0, 1, 2, 3, 2]);
         // the counter falls back on the border: "abacabab" in "abacabacabab" once, after a fall back
         assert_eq!(Zaehler::neu(b"abacabab").block(b"abacabacabab"), 1);
     }
