@@ -1,0 +1,35 @@
+# Exclusions of the mutation gate for the crate modellweg (gates.sh, gate mutants, reads every mutants/*.liste).
+# Format and rules: mutants/README.md. One entry per line: <list> <kind> <pattern>.
+
+# modellweg, `Ende::ablehnung`: mode 2 holds no key, so no way reaches `mw.leck_gesperrt` (unbound targets have none, bound ones lock at the holder).
+gleichwertig re crates/modellweg/src/tunnel.rs:101:13: delete match arm "mw.leck_gesperrt" in Ende::ablehnung
+# modellweg, `Tunnel::weiterreichen`: an unbound target never hands an upgrade through and never gets `umstellen`, so `umgestellt` is always false.
+gleichwertig re crates/modellweg/src/tunnel.rs:368:38: replace == with != in Tunnel::weiterreichen
+gleichwertig re crates/modellweg/src/tunnel.rs:368:45: replace && with [|][|] in Tunnel::weiterreichen
+gleichwertig re crates/modellweg/src/tunnel.rs:368:58: replace && with [|][|] in Tunnel::weiterreichen
+gleichwertig re crates/modellweg/src/tunnel.rs:376:33: replace == with != in Tunnel::weiterreichen
+# modellweg, `Tunnel::weiterreichen`: `komprimiert` only skips a lock over no keys, which holds nothing back, and the target here is never bound.
+gleichwertig re crates/modellweg/src/tunnel.rs:420:29: replace == with != in Tunnel::weiterreichen
+gleichwertig re crates/modellweg/src/tunnel.rs:420:51: replace && with [|][|] in Tunnel::weiterreichen
+gleichwertig re crates/modellweg/src/tunnel.rs:420:54: delete ! in Tunnel::weiterreichen
+# modellweg, b64: the operands of `|` share no bits, so `|` -> `^` gives the same value.
+gleichwertig re crates/modellweg/src/b64.rs:37:26: replace [|] with [|^] in dekodieren
+gleichwertig re crates/modellweg/src/b64.rs:57:13: replace [|] with [|^] in kodieren
+gleichwertig re crates/modellweg/src/b64.rs:58:13: replace [|] with [|^] in kodieren
+# modellweg, `ordner_ohne_verweis` outside Linux: a `Normal` part of a path is never empty, `.`, `..` or holds `/`, so the guard is always true.
+gleichwertig re crates/modellweg/src/loeschen.rs:82:37: replace match guard einfacher_name[(]n[)] with true in ordner_ohne_verweis
+# modellweg, `halter_suche` outside Linux: not compiled under Linux. Caught on the Mac (`without_a_holder_the_question_has_no_count`); derived, no Mac mutant run.
+gleichwertig re crates/modellweg/src/suche.rs:557:5: replace halter_suche -> Option<halter::Suche> with Some[(]Default::default[(][)][)]
+# modellweg, `main` outside Unix: compiled neither under Linux nor on the Mac; the crate is Unix only.
+gleichwertig re crates/modellweg/src/main.rs:20:5: replace main -> std::process::ExitCode with Default::default[(][)]
+# modellweg, outside Linux: not compiled under Linux; on the Mac not viable (`OwnedFd`, `Ordner` and `Bindung` have no `Default`).
+gleichwertig re crates/modellweg/src/loeschen.rs:68:5: replace ordner_ohne_verweis -> io::Result<OwnedFd> with Ok[(]Default::default[(][)][)]
+gleichwertig re crates/modellweg/src/loeschen.rs:167:9: replace Ordner::hier -> io::Result<Self> with Ok[(]Default::default[(][)][)]
+gleichwertig re crates/modellweg/src/start.rs:748:5: replace bind_im_ordner -> Bindung with Default::default[(][)]
+# modellweg, outside Linux: not compiled under Linux. Caught on the Mac (`a_link_anywhere_in_the_path_is_not_followed`, `suche_cases_as_a_process`);
+# derived, no Mac mutant run.
+gleichwertig re crates/modellweg/src/loeschen.rs:82:37: replace match guard einfacher_name[(]n[)] with false in ordner_ohne_verweis
+gleichwertig re crates/modellweg/src/start.rs:796:5: replace todessignal_setzen -> bool with false
+# modellweg, `socket_binden_mit` outside Linux: not compiled under Linux; on the Mac only reached when `fchdir` back fails: not testable without a
+# seam; derived, no Mac mutant run.
+gleichwertig re crates/modellweg/src/start.rs:685:30: replace == with != in socket_binden_mit
