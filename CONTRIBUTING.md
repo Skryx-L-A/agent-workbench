@@ -83,8 +83,12 @@ The workflow `.github/workflows/ci.yml` runs these steps on every push and pull 
 - The Windows job runs the cargo commands directly, without the tool folder. The installer has
   pinned checksums only for x86_64 Linux and arm64 macOS. Windows installs the toolchain of
   `rust/rust-toolchain.toml` and runs neither the SBOM step nor the notices gate.
-- The mutation gate (`./gates.sh mutants`) does not run in the CI. It takes hours; the maintainer
-  runs it in the source tree before a state is published.
+- The mutation gate (`./gates.sh mutants`) does not run in the CI. It runs one crate at a time and
+  blocks only on the security crates listed in `rust/gates.sh` (`MUTANTS_PFLICHT`); every other crate
+  only reports its surviving mutants. With `WB_MUTANTS_BASIS=<git ref>` it runs only the crates your
+  change touches; `./gates.sh mutants-plan` shows which. The maintainer runs it over all security
+  crates before a state is published, and the Windows mutants on a Windows machine before every
+  delivery under Windows.
 - The Linux tests need user namespaces. They call `unshare -Ur` and start a nested `bwrap`. On the
   Ubuntu runners, the CI step `Linux test host` sets `kernel.apparmor_restrict_unprivileged_userns`
   to `0`, unloads the AppArmor profile `bwrap-userns-restrict` and checks `unshare -Ur -- true`
@@ -214,8 +218,12 @@ Die Datei `.github/workflows/ci.yml` führt diese Schritte bei jedem Push und je
 - Der Windows-Job führt die cargo-Befehle direkt aus, ohne den Werkzeugordner. Der Installer hat
   festgelegte Prüfsummen nur für x86_64 Linux und arm64 macOS. Unter Windows wird die Toolchain aus
   `rust/rust-toolchain.toml` installiert; der SBOM-Schritt und das Tor notices laufen dort nicht.
-- Das Mutationstor (`./gates.sh mutants`) läuft nicht in der CI. Es dauert Stunden; der Maintainer
-  führt es im Quellbaum aus, bevor ein Stand veröffentlicht wird.
+- Das Mutationstor (`./gates.sh mutants`) läuft nicht in der CI. Es läuft je Crate einzeln und sperrt
+  nur bei den Sicherheits-Crates aus `rust/gates.sh` (`MUTANTS_PFLICHT`); alle anderen Crates melden
+  ihre überlebenden Mutanten nur. Mit `WB_MUTANTS_BASIS=<git-Ref>` laufen nur die Crates, die Ihre
+  Änderung berührt; `./gates.sh mutants-plan` zeigt welche. Der Maintainer lässt es vor jedem
+  veröffentlichten Stand über alle Sicherheits-Crates laufen, und die Windows-Mutanten vor jeder
+  Auslieferung unter Windows auf einem Windows-Rechner.
 - Die Linux-Tests brauchen Benutzer-Namensräume. Sie rufen `unshare -Ur` auf und starten ein
   verschachteltes `bwrap`. Auf den Ubuntu-Runnern setzt der CI-Schritt `Linux test host`
   `kernel.apparmor_restrict_unprivileged_userns` auf `0`, entlädt das AppArmor-Profil

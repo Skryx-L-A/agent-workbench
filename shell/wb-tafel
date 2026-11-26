@@ -1763,6 +1763,13 @@ def zustellen(nachrichten, me):
         if schluessel(h) == eigener:
             continue            # der Aufrufer liest die Antwort direkt
         an_text = halter_text(h)
+        # Wer mit `nimm --warte` selbst wartet, nimmt den Platz von allein (decision 2026-11-25, der Nutzer: Token sparen). Eine
+        # Pane-Nachricht "dran" oder "wartegrund" weckte dann nur die Sitzung mit ihrem ganzen Kontext. Verlauf und Gruppe
+        # tafel bekommen die Meldung weiter.
+        if n["anlass"] in ("dran", "wartegrund") and (h.get("warte_prozess") or {}).get("pid"):
+            verlauf_schreiben("nicht-zugestellt", anlass=n["anlass"], eintrag=n["eintrag"], an=an_text,
+                              grund="wartet selbst mit nimm --warte")
+            continue
         if aus:
             verlauf_schreiben("nicht-zugestellt", anlass=n["anlass"], eintrag=n["eintrag"], an=an_text,
                               grund="Zustellung an Panes abgeschaltet (%s)" % ZUSTELLUNG_AUS)
