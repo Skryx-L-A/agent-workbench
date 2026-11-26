@@ -3829,7 +3829,10 @@ def alter_stand_pruefen(a):
     if not a.lauf:
         return
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    cwd = os.getcwd()
+    try:
+        cwd = os.getcwd()
+    except OSError:                       # Arbeitsordner geloescht (26.11.2026): wie ausserhalb des Repos
+        return
 
     def git(*args):
         # Popen statt run: die drei ersten Aufrufe laufen nebeneinander (Messung 28.10.: ~40 statt ~70 ms).
