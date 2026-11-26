@@ -15,7 +15,9 @@
 #   ./gates.sh vertraege  the checkers and the case builders of every contract below spec/ (rust/spec/<name>/), one after
 #                         the other, in a mktemp copy: `pruefen.py` with jsonschema (uv, offline, pinned version), a
 #                         rebuild of the cases must give no difference, the mutation catalogue checks; no uv, no node or
-#                         no jsonschema in the uv cache is red (exit 127), never skipped
+#                         no jsonschema in the uv cache is red (exit 127), never skipped; as a second step the
+#                         unit tests of the runner (the previous implementation*.py) under `env -i` with their own
+#                         HOME, short TMPDIR and fixed PATH; every skipped test is counted and printed
 #   ./gates.sh mutants    cargo-mutants, one run per crate (`-p`), one after the other; red if a mutant of a security
 #                         crate (MUTANTS_PFLICHT) survives or times out, a run fails, or a security crate caught no
 #                         mutant; the other crates only report (target/mutants/bericht.tsv). A second run covers the
@@ -1414,6 +1416,8 @@ vertraege_lauf() {
       vertraege_schritt gegenprobe "$v" "$VT_TMP" bash "$d/gegenprobe.sh" || true
     fi
   done
+  # Second step: the unit tests of the runner, in the work tree (they read paths outside spec/), checked unchanged.
+  vertraege_laeufer "$spec" || true
   # A builder that wrote outside its own folder shows here.
   vertraege_schritt gesamt-diff rust/spec "$VT_TMP" diff -r -q -x __pycache__ "$spec" "$kopie/rust/spec" || true
   if [ -d "$root/spec" ]; then
@@ -1421,10 +1425,182 @@ vertraege_lauf() {
   fi
   rm -rf -- "$VT_TMP"
   if [ -z "$VT_ROT" ]; then
-    echo "gates.sh: vertraege green: $nmal checkers, $nbau rebuilds or checks, $naus not run (named above), $((SECONDS - t0)) s"
+    echo "gates.sh: vertraege green: $nmal checkers, $nbau rebuilds or checks, $naus not run (named above), runner tests: $LT_ZAHLEN, $((SECONDS - t0)) s"
     return 0
   fi
   echo "gates.sh: vertraege RED:$VT_ROT ($((SECONDS - t0)) s)" >&2
+  return 1
+}
+
+# ---- vertraege, second step: the unit tests of the runner ------------------------------------------------
+# Each file rust/spec/vorfuehrung/laeufer/test_*.py runs on its own, `python3 -I -B -m unittest discover -v -s .
+# -p <file>`, VERTRAEGE_LAEUFER_JOBS (4) files side by side (xargs -P). The tests read files outside spec/ (paket/,
+# seite/, crates/), so they run in the work tree, not in the copy; a checksum list of the runner folder before and
+# after must be equal (a test that writes there is red). Nothing is inherited: `env -i` with PATH, HOME, TMPDIR and
+# the locale only, and each file gets its own HOME and TMPDIR.
+#   PATH    a fresh bin/ with links to the python3 and the node found in the caller's PATH, then /usr/bin:/bin
+#           (fixed). The mock-ups start `#!/usr/bin/env python3`; test_sitzung_klick drives Playwright with node.
+#           openssl, sh and bash must be found in /usr/bin:/bin.
+#   HOME    a fresh folder per file, mode 0700; no test sees the caller's home. The exception are two links, made only
+#           when the caller has them: the Playwright package named by browser.playwright_pfad of konfig.attrappe.json
+#           (a path below ~) and the browser cache of Playwright (PLAYWRIGHT_BROWSERS_PATH of the caller, else macOS
+#           ~/Library/Caches/ms-playwright, Linux ~/.cache/ms-playwright), at the place Playwright looks in the fresh
+#           home. test_sitzung_klick passes only PATH, HOME and TMPDIR on, so a variable would not reach the browser.
+#           Without them that test is red.
+#   TMPDIR  a fresh folder per file below /tmp with a short path (/tmp/wbl.XXXXXX/<n>/t): the mock-ups bind Unix
+#           sockets below it, and sun_path holds about 104 bytes (macOS); drehbuch.py refuses a work folder deeper
+#           than 60 characters.
+# A trap removes the scratch folder. No python3, node, openssl, sh or bash is red with a reason, never skipped. One
+# line per file and a sum; a skipped test (unittest skip) is counted and printed with its reason. A file without the
+# line `Ran N tests`, with N = 0, with a summary that is not OK or with an exit code not 0 is red, and so is the step.
+# Tests that only mean something on Linux skip on macOS and are counted there.
+# mutationsprobe.py is not part of this step: it runs the whole script once per built-in fault (about 50 runs,
+# minutes in all); it is run by hand, as the runner README says.
+VERTRAEGE_LAEUFER="vorfuehrung/laeufer"
+VERTRAEGE_LAEUFER_JOBS=4
+# The longest files start first (peer, 26.11.2026: 124, 60, 57 and 52 s of about 550 s in all); a name that is no
+# longer there is ignored, every other file follows in name order.
+VERTRAEGE_LAEUFER_ZUERST="test_positivkontrollen.py test_sitzung_grund.py test_diagnose_ende.py test_sitzung_klick.py"
+LT_ZAHLEN="not run"
+
+# One file, called by xargs: <scratch> <runner folder> <PATH> <n> <file>. Writes <scratch>/<n>.log and
+# <scratch>/<n>.rc ("<exit code> <seconds>"); always exits 0, so xargs runs every file.
+LT_EINZEL='
+tmp="$1"; dir="$2"; fest="$3"; n="$4"; datei="$5"; w="$tmp/$n"
+if ! mkdir -m 700 "$w" "$w/t" || ! cp -R -P "$tmp/h" "$w/h" || ! chmod 700 "$w/h"; then
+  echo "64 0" > "$tmp/$n.rc"; exit 0
+fi
+t0=$(date +%s); rc=0
+( cd "$dir" && env -i PATH="$fest" HOME="$w/h" TMPDIR="$w/t" LANG=C.UTF-8 LC_ALL=C.UTF-8 \
+    python3 -I -B -m unittest discover -v -s . -p "$datei" ) > "$tmp/$n.log" 2>&1 || rc=$?
+echo "$rc $(( $(date +%s) - t0 ))" > "$tmp/$n.rc"
+exit 0
+'
+
+vertraege_laeufer_summe() {
+  find "$1" -name __pycache__ -prune -o -type f -exec cksum {} + | LC_ALL=C sort
+}
+
+vertraege_laeufer() {
+  local spec="$1" dir fest t0=$SECONDS rc=0 log werkzeug pfad ran zeile skips pw rel cache
+  local f b n frc fs ok nfiles=0 nrot=0 sran=0 sskip=0 liste="" vorn=""
+  dir="$spec/$VERTRAEGE_LAEUFER"
+  LT_ZAHLEN="RED"
+  if [ ! -d "$dir" ]; then
+    echo "vertraege: laeufer RED: $dir not found"; VT_ROT="$VT_ROT laeufer:fehlt"; return 1
+  fi
+  LT_TMP="$(mktemp -d /tmp/wbl.XXXXXX)" || { VT_ROT="$VT_ROT laeufer:mktemp"; return 64; }
+  case "$LT_TMP" in /tmp/wbl.??????) ;; *) echo "vertraege: laeufer RED: unexpected scratch folder $LT_TMP"; VT_ROT="$VT_ROT laeufer:mktemp"; return 64 ;; esac
+  trap 'rm -rf -- "$LT_TMP"' EXIT
+  trap 'rm -rf -- "$LT_TMP"; exit 130' INT TERM HUP
+  mkdir -m 700 "$LT_TMP/h" "$LT_TMP/bin" || { VT_ROT="$VT_ROT laeufer:mktemp"; rm -rf -- "$LT_TMP"; return 64; }
+  fest="$LT_TMP/bin:/usr/bin:/bin"
+  for werkzeug in python3 node; do
+    pfad="$(command -v "$werkzeug" 2> /dev/null)" || pfad=""
+    case "$pfad" in
+      /*) ln -s "$pfad" "$LT_TMP/bin/$werkzeug" ;;
+      *) echo "vertraege: laeufer RED: $werkzeug not found in PATH (as a file path). Red, not skipped."
+         VT_ROT="$VT_ROT laeufer:$werkzeug"; rm -rf -- "$LT_TMP"; return 127 ;;
+    esac
+  done
+  for werkzeug in openssl sh bash; do
+    if ! PATH="$fest" command -v "$werkzeug" > /dev/null 2>&1; then
+      echo "vertraege: laeufer RED: $werkzeug not found in the fixed PATH $fest. Red, not skipped."
+      VT_ROT="$VT_ROT laeufer:$werkzeug"; rm -rf -- "$LT_TMP"; return 127
+    fi
+  done
+  # The template of each HOME: the Playwright package below ~ as a link, the browsers from the caller's cache.
+  pw="$(python3 -I -B -c 'import json, sys; print(json.load(open(sys.argv[1]))["browser"]["playwright_pfad"])' "$dir/konfig.attrappe.json" 2> /dev/null)" || pw=""
+  case "$pw" in
+    "~/"*)
+      rel="${pw#\~/}"
+      if [ -n "${HOME:-}" ] && [ -d "$HOME/$rel" ]; then
+        mkdir -p "$LT_TMP/h/$(dirname "$rel")" && ln -s "$HOME/$rel" "$LT_TMP/h/$rel"
+      fi ;;
+  esac
+  case "$(uname -s)" in
+    Darwin) rel="Library/Caches/ms-playwright" ;;
+    *) rel=".cache/ms-playwright" ;;
+  esac
+  cache="${PLAYWRIGHT_BROWSERS_PATH:-}"
+  if [ -z "$cache" ] && [ -n "${HOME:-}" ]; then
+    case "$(uname -s)" in
+      Darwin) cache="$HOME/$rel" ;;
+      *) cache="${XDG_CACHE_HOME:-$HOME/.cache}/ms-playwright" ;;
+    esac
+  fi
+  if [ -n "$cache" ] && [ -d "$cache" ]; then
+    mkdir -p "$LT_TMP/h/$(dirname "$rel")" && ln -s "$cache" "$LT_TMP/h/$rel"
+  fi
+  # The files, numbered in name order (LC_ALL=C); the queue starts with VERTRAEGE_LAEUFER_ZUERST.
+  n=0
+  for f in "$dir"/test_*.py; do
+    [ -f "$f" ] || continue
+    n=$((n + 1)); b="$(basename "$f")"
+    case " $VERTRAEGE_LAEUFER_ZUERST " in
+      *" $b "*) vorn="$vorn $n $b" ;;
+      *) liste="$liste $n $b" ;;
+    esac
+  done
+  liste="$vorn$liste"
+  nfiles=$n
+  if [ "$nfiles" -eq 0 ]; then
+    echo "vertraege: laeufer RED: no file test_*.py in $dir"; VT_ROT="$VT_ROT laeufer:leer"; rm -rf -- "$LT_TMP"; trap - EXIT INT TERM HUP; return 1
+  fi
+  vertraege_laeufer_summe "$dir" > "$LT_TMP/vorher"
+  # shellcheck disable=SC2086 # $liste is "<n> <file> ..." without blanks inside a field
+  printf '%s\n' $liste | xargs -n 2 -P "$VERTRAEGE_LAEUFER_JOBS" bash -c "$LT_EINZEL" _ "$LT_TMP" "$dir" "$fest" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "vertraege: laeufer: xargs ended with exit $rc"
+  fi
+  vertraege_laeufer_summe "$dir" > "$LT_TMP/nachher"
+  n=0
+  for f in "$dir"/test_*.py; do
+    [ -f "$f" ] || continue
+    n=$((n + 1)); f="$(basename "$f")"; log="$LT_TMP/$n.log"
+    frc=1; fs="?"
+    [ -f "$LT_TMP/$n.rc" ] && read -r frc fs < "$LT_TMP/$n.rc"
+    ran=""; zeile=""; skips=0
+    if [ -f "$log" ]; then
+      ran="$(sed -n 's/^Ran \([0-9][0-9]*\) tests\{0,1\} in .*/\1/p' "$log" | tail -n 1)"
+      zeile="$(grep -E '^(OK|FAILED)( \(.*\))?$' "$log" | tail -n 1)"
+      skips="$(grep -c -E '\.\.\. skipped ' "$log")"
+      grep -E '\.\.\. skipped ' "$log" | sed "s/^/vertraege: laeufer skipped: $f: /"
+    fi
+    ok=0
+    if [ -n "$ran" ] && [ "$ran" -gt 0 ] && [ "$frc" = 0 ]; then
+      case "$zeile" in OK|OK\ \(*) ok=1 ;; esac
+    fi
+    if [ "$ok" -eq 1 ]; then
+      echo "vertraege: laeufer $f ok: $ran run, $skips skipped ($fs s)"
+    else
+      nrot=$((nrot + 1))
+      echo "vertraege: laeufer $f RED exit $frc: ${ran:-no line Ran} run, $skips skipped, ${zeile:-no summary line} ($fs s)"
+      if [ -f "$log" ]; then
+        # The report blocks of unittest (each failing test with its traceback), then the last lines.
+        awk '/^==========/ { an = 1 } /^Ran [0-9]+ tests? in / { an = 0 } an' "$log" | head -n 120 | sed 's/^/    | /'
+        tail -n 5 "$log" | sed 's/^/    | /'
+      else
+        echo "    | no output of this file"
+      fi
+    fi
+    sran=$((sran + ${ran:-0})); sskip=$((sskip + skips))
+  done
+  if ! cmp -s "$LT_TMP/vorher" "$LT_TMP/nachher"; then
+    echo "vertraege: laeufer: the runner folder changed during the tests:"
+    diff "$LT_TMP/vorher" "$LT_TMP/nachher" | head -n 20 | sed 's/^/    | /'
+    nrot=$((nrot + 1))
+  fi
+  [ "$rc" -ne 0 ] && nrot=$((nrot + 1))
+  LT_ZAHLEN="$sran run, $sskip skipped in $nfiles files"
+  rm -rf -- "$LT_TMP"
+  trap - EXIT INT TERM HUP
+  if [ "$nrot" -eq 0 ]; then
+    echo "vertraege: laeufer ok: $LT_ZAHLEN, $VERTRAEGE_LAEUFER_JOBS side by side ($((SECONDS - t0)) s)"
+    return 0
+  fi
+  echo "vertraege: laeufer RED: $nrot red ($LT_ZAHLEN, $((SECONDS - t0)) s)"
+  VT_ROT="$VT_ROT laeufer"
   return 1
 }
 
