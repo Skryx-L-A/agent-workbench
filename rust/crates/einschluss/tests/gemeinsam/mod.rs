@@ -484,5 +484,7 @@ pub fn skript_schreiben(ziel: &Path, text: &str) {
         .expect("text of the script");
     let status = kind.wait().expect("wait");
     assert!(status.success(), "script {}: {status:?}", ziel.display());
+    // As in `ordner`: the scripts run on Linux only; elsewhere this helper is built but never called.
+    #[cfg(unix)]
     fs::set_permissions(ziel, fs::Permissions::from_mode(0o755)).expect("mode");
 }
