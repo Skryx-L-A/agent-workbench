@@ -19,6 +19,6 @@ erster re crates/lauf/src/kind.rs:148:5: replace einthreadig -> bool with false
 erster re crates/lauf/src/konfig.rs:174:76: replace == with != in lesen_text
 
 # lauf, `bwrap_halten`: it is reached only once a real enclosure profile is built and the real `bwrap` holds the start;
-# no test of the run without the feature can get there, and with the feature pruefbau the mutant does not build. Open
-# point 25 of contract start: a catcher through a seam, a duty before step II (decision of 25.11.2026).
+# no test of the run without the feature can get there, and with the feature pruefbau the mutant does not build. The
+# function exists only in the test build, so it stays here for good (point 25 of contract start, closed 26.11.2026).
 erster re crates/lauf/src/uebergabe.rs:244:5: replace bwrap_halten -> Fehler with Default::default\(\)
