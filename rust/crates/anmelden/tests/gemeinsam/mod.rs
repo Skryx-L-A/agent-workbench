@@ -390,6 +390,8 @@ pub fn befehl(a: &Aufbau, args: &[String]) -> Command {
         .env("WB_ANMELDEN_WURZEL", &a.wegwerf)
         .env("HTTPS_PROXY", PROXY)
         .env("UNRELATED_VARIABLE", "bleibt-draussen")
+        // the caller's value never passes: the CLI gets exactly `1`
+        .env("NODE_USE_SYSTEM_CA", "0")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

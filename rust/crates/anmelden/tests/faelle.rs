@@ -251,6 +251,14 @@ fn umgebung_der_cli_pruefen(name: &str, a: &Aufbau, log: &str) {
             .any(|z| z == format!("HTTPS_PROXY={PROXY}")),
         "{name}: the proxy of the caller is kept"
     );
+    assert_eq!(
+        umgebung
+            .lines()
+            .filter(|z| z.starts_with("NODE_USE_SYSTEM_CA="))
+            .collect::<Vec<_>>(),
+        vec!["NODE_USE_SYSTEM_CA=1"],
+        "{name}: the CLI gets NODE_USE_SYSTEM_CA=1, never the value of the caller"
+    );
 }
 
 /// The token is in no output, no argument, no variable and in no file except the key file and the stand-in script.

@@ -522,6 +522,9 @@ fn login_laufen_lassen(
         .env("HOME", wegwerf.heim())
         .env("COPILOT_HOME", wegwerf.copilot_heim())
         .env("PATH", pfad_ohne_gh(&umg.suchpfad))
+        // Fixed, never from the caller (Schritt 6 of the contract): the CLI 1.0.88 uses rustls with the system truststore, the variable
+        // does no harm and holds if a later CLI moves to TLS of Node.
+        .env("NODE_USE_SYSTEM_CA", "1")
         .current_dir(wegwerf.heim());
     // The child holds the token: it inherits the shielded state (section 3c). Checked again right before it starts, fail closed.
     crate::schutz::vor_dem_kind()?;

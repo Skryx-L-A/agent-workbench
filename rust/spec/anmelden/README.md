@@ -1,6 +1,6 @@
 # Vertrag 9: Anmeldung der Copilot CLI (`werkbank-anmelden`)
 
-Stand 23.11.2026. Befehl `werkbank-anmelden copilot [--uebernehmen] [--neu]`. Crate `rust/crates/anmelden/`, Programm `werkbank-anmelden`.
+Stand 27.11.2026 (Nachtrag System-Truststore, Schritt 6). Befehl `werkbank-anmelden copilot [--uebernehmen] [--neu]`. Crate `rust/crates/anmelden/`, Programm `werkbank-anmelden`.
 Grundlage: Vertrag 1 (`rust/spec/start/`, Harness `copilot`, Schlüsselweg Option (a)), Vertrag 8
 (`rust/spec/modellweg/`, Abschnitt 5) und der Halter-Vertrag (`rust/spec/halter/README.md`, Abschnitt 2.3, Nachtrag B05).
 
@@ -80,6 +80,9 @@ Der Befehl führt diese Schritte in dieser Reihenfolge aus und bricht beim erste
    wie die Ablage allein aus `passwd`.
 6. `copilot login --device-code` mit leerer Umgebung außer:
    - `HOME` = `heim/`, `COPILOT_HOME` = `heim/.copilot/`;
+   - `NODE_USE_SYSTEM_CA` = `1`, fest gesetzt; ein Wert des Aufrufers gilt nie. Herkunft „Projektentscheid, 27.11.2026“: Die CLI
+     1.0.88 nutzt für Login und Anfragen rustls über ihre native Laufzeit mit dem System-Truststore. Die Variable schadet nicht und
+     hält, falls eine spätere CLI auf TLS von Node wechselt;
    - `PATH` des Aufrufers ohne jeden Ordner, der ein ausführbares `gh` enthält;
    - aus der Umgebung des Aufrufers nur `HTTPS_PROXY`, `HTTP_PROXY`, `ALL_PROXY`, `NO_PROXY` (je groß und klein),
      `SSL_CERT_FILE`, `SSL_CERT_DIR`, `NODE_EXTRA_CA_CERTS`, `TERM`, `LANG`, `LC_ALL`.
@@ -374,6 +377,9 @@ SIGKILL an einem Punkt zwischen den Schritten (`vor-schreiben`, `config-temp`, `
 Felder der Antwort: `exit`; `code` (oder `null`); `stdout`; `stderr`; `ziel_datei` (`neu`, `ersetzt`, `unveraendert`, `nicht-angelegt`);
 `login_gestartet`; `reste_geloescht` (Zahl der gelöschten Reste, gleich der Zahl im Hinweis); `reste_uebrig` (Zahl der Einträge in der Wurzel des Wegwerf-Heims nach dem Lauf).
 Das Wegwerf-Heim des Laufs selbst liegt nach jedem Fall nicht mehr dort; bei `verweis` ist das Ziel des Verweises unverändert.
+
+Bei jedem gestarteten Login prüfen die Tests, dass die CLI genau `NODE_USE_SYSTEM_CA=1` sieht, obwohl der Aufrufer `NODE_USE_SYSTEM_CA=0`
+setzt.
 
 Die Attrappe der CLI gibt die gemessenen Zeilen des Geräteflusses aus (`To authenticate, visit https://github.com/login/device and enter
 code ABCD-1234`, `Waiting for authorization...`), prüft in der Umgebung ihres Starts (HOME und COPILOT_HOME im Wegwerf-Heim, Modi 0700,
