@@ -21,8 +21,23 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Harness",
-    "rolle": "combobox"
+    "name": "Neue Sitzung",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "name": "Neue Sitzung",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Name",
+    "rolle": "textbox"
    }
   },
   {

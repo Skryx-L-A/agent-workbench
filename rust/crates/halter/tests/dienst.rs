@@ -986,6 +986,85 @@ fn ohne_schalter_keine_antwortform() {
     assert_eq!(d.antwortform_letzte(), None);
 }
 
+/// The values of the first start: with the switch for `GET /models` and `POST /chat/completions` the line of
+/// `GET /models` names the model ids, not the value of another field; an error answer names its `error.code`. The
+/// answers reach the bridge unchanged.
+#[test]
+fn antwortform_nennt_modellnamen_und_fehlercode() {
+    let modelle = br#"{"data":[{"id":"gpt-6-luna","name":"name-wert"},{"id":"claude-sonnet-5.5"},{"id":"gpt 6"}],"access_token":"tok-wert"}"#;
+    let fehler = br#"{"error":{"code":"model_not_supported","message":"nachricht-wert"}}"#;
+    let a = attrappe(vec![
+        vec![http(
+            "200 OK",
+            "content-type: application/json\r\n",
+            modelle,
+        )],
+        vec![http(
+            "400 Bad Request",
+            "content-type: application/json\r\n",
+            fehler,
+        )],
+    ]);
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst_erststart(a.port, &heim, &ERSTSTART, Some(&ERSTSTART));
+    let mut c = verbinden(&d);
+    c.senden(&aufruf("GET", "/models", b""));
+    let z = c.bis_schluss();
+    assert_eq!(z.last().expect("end")["ok"], json!(true));
+    assert_eq!(teil_bytes(&z), modelle);
+    let zeile = d.antwortform_letzte().expect("the journal line");
+    let v: Value = serde_json::from_str(
+        zeile
+            .strip_prefix("halter.antwortform: ")
+            .expect("prefix")
+            .trim_end(),
+    )
+    .expect("line");
+    assert_eq!(
+        v["werte"],
+        json!({"data[].id": ["claude-sonnet-5.5", "gpt-6-luna"], "error.code": null})
+    );
+    assert_eq!(v["wert_verworfen"], 1);
+    for fremd in ["name-wert", "tok-wert", "gpt 6"] {
+        assert_eq!(zaehlen(zeile.as_bytes(), fremd.as_bytes()), 0, "{fremd}");
+    }
+    c.senden(&aufruf("POST", "/chat/completions", b"{}"));
+    let z = c.bis_schluss();
+    assert_eq!(teil_bytes(&z), fehler);
+    assert_eq!(d.antwortform_zahl(), 2);
+    let zeile = d.antwortform_letzte().expect("the journal line");
+    assert!(
+        zeile.contains(r#""werte":{"data[].id":[],"error.code":"model_not_supported"}"#),
+        "{zeile}"
+    );
+    assert!(zeile.contains(r#""status":400"#), "{zeile}");
+    assert_eq!(zaehlen(zeile.as_bytes(), b"nachricht-wert"), 0);
+    let k = kette_text(&heim);
+    for wert in ["gpt-6-luna", "model_not_supported"] {
+        assert_eq!(
+            zaehlen(k.as_bytes(), wert.as_bytes()),
+            0,
+            "{wert} not in the chain"
+        );
+    }
+}
+
+/// Without the switch `GET /models` gives no line and no value.
+#[test]
+fn ohne_schalter_keine_modellnamen() {
+    let koerper = br#"{"data":[{"id":"gpt-6-luna"}]}"#;
+    let a = attrappe(vec![vec![http("200 OK", "", koerper)]]);
+    let heim = heim_mit(&[("anmeldung.copilot", MARKE)]);
+    let d = dienst_erststart(a.port, &heim, &ERSTSTART, None);
+    let mut c = verbinden(&d);
+    c.senden(&aufruf("GET", "/models", b""));
+    let z = c.bis_schluss();
+    assert_eq!(z.last().expect("end")["ok"], json!(true));
+    assert_eq!(teil_bytes(&z), koerper);
+    assert_eq!(d.antwortform_zahl(), 0);
+    assert_eq!(d.antwortform_letzte(), None);
+}
+
 #[test]
 fn aufruf_traegt_schluessel_und_identity_und_gibt_alles_weiter() {
     // L9 (c): a body of 40 bytes arrives whole, then `ende` without a code

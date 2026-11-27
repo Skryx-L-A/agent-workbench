@@ -1,5 +1,5 @@
 {
- "beschreibung": "Wahl einer anderen Sitzung: Abo aus für die alte, Abo an für die neue, Fokus ins Terminal, ihr Bild erscheint, Eingaben gehen an sie.",
+ "beschreibung": "Wahl einer anderen Sitzung: Umschalt+F6 führt auf die gewählte Sitzung; Abo aus für die alte, Abo an für die neue, Fokus ins Terminal, ihr Bild erscheint, Eingaben gehen an sie.",
  "datensatz": "A",
  "name": "se2_wechsel",
  "regeln": [
@@ -83,6 +83,20 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
+    "name_enthaelt": "s-1",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
     "name_enthaelt": "s-2",
     "rolle": "button"
    }
@@ -158,6 +172,22 @@
      "text": "a"
     }
    ]
+  },
+  {
+   "art": "Taste",
+   "code": "F6",
+   "key": "F6",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name_enthaelt": "s-2",
+    "rolle": "button"
+   }
   }
  ]
 }

@@ -74,6 +74,12 @@ pub struct Startform {
     pub modelle: Vec<(String, Option<String>)>,
     /// Whether a `Startwahl` came.
     pub startwahl_da: bool,
+    /// The name of the new session (window "Sitzungen", SE2 point 2); sent from version 2 of the start structure on (L10).
+    pub name: String,
+    /// The efforts of each route (L10): allowed ones and the default of the user; empty in today's form of `Startwahl`.
+    pub efforts: Vec<(String, Vec<String>, Option<String>)>,
+    /// The effort of the new session (L10); without efforts of the route the field `effort-wahl` is absent.
+    pub effort: Wahlfeld,
 }
 
 impl Default for Startform {
@@ -103,6 +109,9 @@ impl Default for Startform {
             arbeitsordner: String::new(),
             modelle: Vec::new(),
             startwahl_da: false,
+            name: String::new(),
+            efforts: Vec::new(),
+            effort: Wahlfeld::neu(Vec::new(), None),
         }
     }
 }
@@ -163,8 +172,50 @@ impl Startform {
             .into_iter()
             .map(|(s, m)| (s.to_owned(), m))
             .collect();
+        self.efforts = routen
+            .iter()
+            .filter_map(|r| {
+                let s = text(r.get("schluessel"))?;
+                let (e, v) = crate::ziel::efforts_lesen(r)?;
+                Some((s.to_owned(), e, v))
+            })
+            .collect();
         self.startwahl_da = true;
         self.modell_fuellen();
+    }
+
+    /// "+" opens the window with an empty form (decision F1): every choice on its first entry, the customer on "ohne Kunde",
+    /// name and folder empty, the effort on the default of the user. The entries stay.
+    pub fn leeren(&mut self) {
+        for f in [&mut self.harness, &mut self.route] {
+            f.wert = f
+                .eintraege
+                .first()
+                .map(|e| e.wert.clone())
+                .unwrap_or_default();
+        }
+        let ohne = self.kunde.eintraege.iter().any(|e| e.wert.is_empty());
+        self.kunde.wert = if ohne {
+            String::new()
+        } else {
+            self.kunde
+                .eintraege
+                .first()
+                .map(|e| e.wert.clone())
+                .unwrap_or_default()
+        };
+        self.name.clear();
+        self.arbeitsordner.clear();
+        if self.startwahl_da {
+            self.modell_fuellen();
+        } else {
+            self.modell.wert = self
+                .modell
+                .eintraege
+                .first()
+                .map(|e| e.wert.clone())
+                .unwrap_or_default();
+        }
     }
 
     /// The field `Modell` has exactly one entry after a `Startwahl`: the model of the chosen route, else `auto`.
@@ -176,6 +227,22 @@ impl Startform {
             .and_then(|(_, m)| m.clone())
             .unwrap_or_else(|| MODELL_AUTO.to_owned());
         self.modell = Wahlfeld::neu(vec![Eintrag::gleich(&m)], None);
+        let (erlaubt, vorgabe) = self
+            .efforts
+            .iter()
+            .find(|(r, _, _)| *r == self.route.wert)
+            .map(|(_, e, v)| (e.clone(), v.clone()))
+            .unwrap_or_default();
+        self.effort = Wahlfeld::neu(
+            erlaubt.iter().map(|e| Eintrag::gleich(e)).collect(),
+            vorgabe.as_deref(),
+        );
+    }
+
+    /// Whether the start structure has version 2 (L10: `Startwahl` carries efforts).
+    #[must_use]
+    pub fn mit_effort(&self) -> bool {
+        !self.effort.eintraege.is_empty()
     }
 
     /// A new choice of the route; after a `Startwahl` the model follows it.
@@ -189,14 +256,19 @@ impl Startform {
     /// The start structure (SE6 point 3).
     #[must_use]
     pub fn struktur(&self) -> Value {
-        json!({
+        let f1 = json!({
             "fassung": 1,
             "harness": self.harness.wert,
             "modell": self.modell.wert,
             "route": self.route.wert,
             "kunde": if self.kunde.wert.is_empty() { Value::Null } else { json!(self.kunde.wert) },
             "arbeitsordner": self.arbeitsordner,
-        })
+        });
+        if self.mit_effort() {
+            crate::ziel::struktur_fassung2(f1, &self.name, &self.effort.wert)
+        } else {
+            f1
+        }
     }
 }
 

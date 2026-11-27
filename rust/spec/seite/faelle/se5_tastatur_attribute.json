@@ -70,6 +70,7 @@
   {
    "art": "Attribut",
    "attribut": "autocapitalize",
+   "ruht": "B37",
    "wert": "off",
    "ziel": {
     "name": "Eingabe",
@@ -79,6 +80,7 @@
   {
    "art": "Attribut",
    "attribut": "enterkeyhint",
+   "ruht": "B37",
    "wert": "send",
    "ziel": {
     "name": "Eingabe",

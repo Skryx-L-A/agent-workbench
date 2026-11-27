@@ -1,5 +1,5 @@
 {
- "beschreibung": "Rollen und Namen: Liste Sitzungen mit Zustand, Startformular mit beschrifteten Feldern, Terminal mit Namen, keine unbenannten Bedienelemente, Terminal außerhalb jeder Live-Region.",
+ "beschreibung": "Rollen und Namen: Liste Sitzungen mit Zustand, Knopf Neue Sitzung, Terminal mit Namen, keine Eingabezeile; das Fenster Sitzungen ist ein modaler Dialog mit der Liste der bekannten Sitzungen und dem Startformular mit beschrifteten Feldern; keine unbenannten Bedienelemente, Terminal außerhalb jeder Live-Region.",
  "datensatz": "A",
  "name": "se3_baum",
  "regeln": [
@@ -74,36 +74,27 @@
   {
    "art": "Baum",
    "erwartet": {
-    "eingabezeile": {
-     "feld": "Eingabe",
-     "knopf": "Senden"
-    },
-    "formular": {
-     "felder": [
-      [
-       "Harness",
-       "combobox"
-      ],
-      [
-       "Modell",
-       "combobox"
-      ],
-      [
-       "Route",
-       "combobox"
-      ],
-      [
-       "Kunde",
-       "combobox"
-      ],
-      [
-       "Arbeitsordner",
-       "textbox"
-      ]
+    "fehlt": [
+     [
+      "textbox",
+      "Eingabe"
      ],
-     "knopf": "Starten",
-     "name": "Sitzung starten"
-    },
+     [
+      "button",
+      "Senden"
+     ],
+     [
+      "dialog",
+      "Sitzungen"
+     ],
+     [
+      "form",
+      "Sitzung starten"
+     ]
+    ],
+    "knoepfe": [
+     "Neue Sitzung"
+    ],
     "liste": {
      "eintraege": 2,
      "knopf_enthaelt": [
@@ -128,6 +119,111 @@
     },
     "terminal_ausserhalb_live": true,
     "unbenannt": 0
+   }
+  },
+  {
+   "art": "Ansagen",
+   "erwartet": []
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "name": "Neue Sitzung",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Name",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Baum",
+   "erwartet": {
+    "dialog": {
+     "listbox": "Bekannte Sitzungen",
+     "modal": true,
+     "name": "Sitzungen",
+     "option_enthaelt": [
+      [
+       "s-1",
+       "läuft"
+      ],
+      [
+       "s-2",
+       "beendet"
+      ]
+     ],
+     "optionen": 2
+    },
+    "fehlt": [
+     [
+      "textbox",
+      "Eingabe"
+     ],
+     [
+      "button",
+      "Senden"
+     ]
+    ],
+    "formular": {
+     "felder": [
+      [
+       "Name",
+       "textbox"
+      ],
+      [
+       "Arbeitsordner",
+       "textbox"
+      ],
+      [
+       "Harness",
+       "combobox"
+      ],
+      [
+       "Modell",
+       "combobox"
+      ],
+      [
+       "Route",
+       "combobox"
+      ],
+      [
+       "Kunde",
+       "combobox"
+      ]
+     ],
+     "im_dialog": "Sitzungen",
+     "knopf": "Starten",
+     "name": "Sitzung starten"
+    },
+    "knoepfe": [
+     "Beenden",
+     "Schließen"
+    ],
+    "live_regionen": [
+     1,
+     2
+    ],
+    "terminal_ausserhalb_live": true,
+    "unbenannt": 0
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Escape",
+   "key": "Escape",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Neue Sitzung",
+    "rolle": "button"
    }
   },
   {

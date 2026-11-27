@@ -1,5 +1,5 @@
 {
- "beschreibung": "Feste Selektoren: jedes data-testid genau einmal, Liste mit Zustand und Code, Zeilen ab 0 als Text, Cursor am Raster.",
+ "beschreibung": "Feste Selektoren: jedes data-testid genau einmal; Kennungen im Fenster Sitzungen und im Inspektor nur, solange sie offen sind; keine Eingabezeile im Pilot; Liste mit Zustand und Code, Zeilen ab 0 als Text, Cursor am Raster.",
  "datensatz": "A",
  "name": "se7_selektoren",
  "regeln": [
@@ -77,39 +77,15 @@
   },
   {
    "art": "Testid",
-   "testid": "sitzung-start"
+   "testid": "neue-sitzung"
   },
   {
    "art": "Testid",
-   "testid": "harness-wahl"
-  },
-  {
-   "art": "Testid",
-   "testid": "route-wahl"
-  },
-  {
-   "art": "Testid",
-   "testid": "modell-wahl"
-  },
-  {
-   "art": "Testid",
-   "testid": "kunde-wahl"
-  },
-  {
-   "art": "Testid",
-   "testid": "arbeitsordner-eingabe"
+   "testid": "inspektor-umschalter"
   },
   {
    "art": "Testid",
    "testid": "terminal-raster"
-  },
-  {
-   "art": "Testid",
-   "testid": "eingabe"
-  },
-  {
-   "art": "Testid",
-   "testid": "eingabe-senden"
   },
   {
    "art": "Testid",
@@ -124,11 +100,186 @@
    "testid": "fehler-text"
   },
   {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "eingabe"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "eingabe-senden"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "sitzungen-fenster"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "harness-wahl"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "sitzung-start"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "inspektor"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "worker-liste"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "einstellungen"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "neue-sitzung"
+   }
+  },
+  {
+   "art": "Testid",
+   "testid": "sitzungen-fenster"
+  },
+  {
+   "art": "Testid",
+   "testid": "name-eingabe"
+  },
+  {
+   "art": "Testid",
+   "testid": "arbeitsordner-eingabe"
+  },
+  {
+   "art": "Testid",
+   "testid": "harness-wahl"
+  },
+  {
+   "art": "Testid",
+   "testid": "modell-wahl"
+  },
+  {
+   "art": "Testid",
+   "testid": "route-wahl"
+  },
+  {
+   "art": "Testid",
+   "testid": "kunde-wahl"
+  },
+  {
+   "art": "Testid",
+   "testid": "sitzung-start"
+  },
+  {
+   "art": "Testid",
+   "testid": "sitzung-beenden"
+  },
+  {
+   "art": "Testid",
+   "testid": "sitzungen-schliessen"
+  },
+  {
    "art": "Testid",
    "optionen_enthaelt": [
     "ohne Kunde"
    ],
    "testid": "kunde-wahl"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzungen-schliessen"
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Neue Sitzung",
+    "rolle": "button"
+   }
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "sitzungen-fenster"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "name-eingabe"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "arbeitsordner-eingabe"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "harness-wahl"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "modell-wahl"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "route-wahl"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "kunde-wahl"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "sitzung-start"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "sitzung-beenden"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "sitzungen-schliessen"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "inspektor-umschalter"
+   }
+  },
+  {
+   "art": "Testid",
+   "testid": "inspektor"
+  },
+  {
+   "art": "Testid",
+   "testid": "freigaben-blatt"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "inspektor-umschalter"
+   }
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "inspektor"
   },
   {
    "art": "Testid",

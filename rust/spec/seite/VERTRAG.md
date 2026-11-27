@@ -63,6 +63,8 @@ node laeufer/se_lauf.mjs --seite <ordner mit index.html und seite.js> --faelle <
 ```
 `fenster` (Vorgabe 1024 mal 768, ohne Handy) und `starten` (Antworten der Attrappe auf `POST /starten` der Reihe nach; danach 422 `start_form`) sind
 freiwillig. Werte der Form `{"$zahl": [min, max]}` passen auf jede ganze Zahl in diesem Bereich (für Größen, die von der Schrift abhängen).
+`ruht` (Nachtrag 26.11.2026) ist freiwillig. Am Fall heißt es `{"bedienwege": […], "grund": …}`: Der Läufer überspringt den Fall und zählt ihn als ruhend.
+An einem Schritt nennt es den Bedienweg (etwa `"B37"`): Der Läufer überspringt nur diesen Schritt. Beides läuft wieder, wenn der Bedienweg kommt.
 
 | `art` | Felder | Wirkung oder Prüfung |
 |---|---|---|
@@ -80,15 +82,16 @@ freiwillig. Werte der Form `{"$zahl": [min, max]}` passen auf jede ganze Zahl in
 | `Waehle` | `testid`, `wert` | wählt im Auswahlfeld mit diesem `data-testid` die Option mit dieser Beschriftung |
 | `Uhr` | `ms` | die Seitenuhr läuft `ms` weiter |
 | `Warte` | `bis` `{"zeile": [i, text]}` | wartet (höchstens 4 s), bis Zeile i des Terminals diesen Text hat |
-| `Ereignisse` | `erwartet` | die Ereignisse an `/eingabe` seit der letzten Prüfung, genau diese in dieser Reihenfolge |
+| `Ereignisse` | `erwartet`, `ausser` (Nachtrag 26.11.2026) | die Ereignisse an `/eingabe` seit der letzten Prüfung, genau diese in dieser Reihenfolge; Ereignisse mit einer `art` aus `ausser` (etwa `Groesse`) zählen nicht |
 | `Starts` | `erwartet` | die Körper an `/starten` seit der letzten Prüfung |
 | `Fokus` | `erwartet` `{rolle, name, name_beginnt, name_enthaelt, im_terminal, rahmen}` | Rolle und Name des fokussierten Elements im Barrierebaum; ob es im Terminal liegt; sichtbarer Rahmen (Vorgabe: Pflicht) |
 | `Zeilen` | `erwartet` | Text jeder Zeile im DOM (`textContent`) **und** im Barrierebaum (Text der `StaticText`-Knoten unter der Zeile), genau diese Liste |
 | `Ansagen` | `erwartet` oder `hoechstens`, `mindestens`, `letzte_enthaelt` | die Ansagen der Live-Regionen seit der letzten Prüfung |
-| `Baum` | `erwartet` (Abschnitt 4, SE3) | Rollen, Namen, Live-Regionen |
+| `Baum` | `erwartet` (Abschnitt 4, SE3), darin seit dem Nachtrag 26.11.2026 `dialog` `{name, modal, listbox, optionen, option_enthaelt}`, `knoepfe`, `fehlt` `[[rolle, name]]`, `formular.im_dialog` | Rollen, Namen, Live-Regionen; genau ein Dialog dieses Namens mit Liste und Optionen; jeder Knopf aus `knoepfe` genau einmal; kein Element aus `fehlt`; das Formular liegt im Dialog |
 | `Layout` | `kein_waagerecht`, `ziele_mindestens` | Breite der Seite und Größe der Bedienziele |
 | `Attribut` | `ziel`, `attribut`, `wert` | ein Attribut eines Elements |
-| `Testid` | `testid`, `anzahl` (Vorgabe 1), `text`, `sichtbar`, `attribute` `{name: wert oder null}`, `optionen_enthaelt` | genau `anzahl` Elemente mit diesem `data-testid`; beim ersten Text (ohne Leerraum am Rand), Sichtbarkeit, Attribute (`null` heißt: fehlt), Optionen; wartet höchstens 3 s |
+| `Testid` | `testid`, `anzahl` (Vorgabe 1), `text`, `sichtbar`, `attribute` `{name: wert oder null}`, `optionen_enthaelt`, `wert` (Nachtrag 26.11.2026) | genau `anzahl` Elemente mit diesem `data-testid`; beim ersten Text (ohne Leerraum am Rand), Sichtbarkeit, Attribute (`null` heißt: fehlt), Optionen, Wert des Feldes; wartet höchstens 3 s |
+| `Bedienwege` | `fehlen`, `kein_text` (Nachtrag 26.11.2026, OF7, OF8) | kein Element mit `data-bw` aus `fehlen`; der Text `kein_text` steht weder im Text der Seite noch in `title`, `aria-label` oder `placeholder` |
 
 **Nach jedem Fall** prüft der Läufer immer (Netzregel, SE6): nur die Anfragen `GET /`, `GET /seite.js`, `GET /strom`, `POST /eingabe`, `POST /starten`,
 ohne Abfrage im Ziel, keine Anfrage an eine andere Adresse, das Token nur im Kopf; genau ein Strom je `Laden` mit Token; jeder POST mit `Origin` und
@@ -143,8 +146,8 @@ Gilt, solange der Fokus im Terminal steht und eine Sitzung abonniert ist. `s` is
    - bei offenem Inspektor seine Reiter und danach sein Inhalt.
    Umschalt+Tab geht rückwärts. In das Terminal kommt man mit Tab und Umschalt+Tab wie in jeden anderen Halt.
    **Fenster „Sitzungen“** (26.11., SE2 gilt ab dem Öffnen): Ist es offen, bleibt der Fokus in ihm. Tab und Umschalt+Tab laufen nur durch seine Halte,
-   in dieser Reihenfolge: die Liste der Sitzungen, `Name`, `Arbeitsordner`, `Harness`, `Modell`, `Effort`, `Route`, `Kunde`, der Knopf `Starten`,
-   die Knöpfe `Beenden` und `Fortsetzen` der gewählten Sitzung und der Knopf `Schließen`. Beim Öffnen über „+“ steht der Fokus im Feld `Name`.
+   in dieser Reihenfolge: die Liste der Sitzungen, `Name` (ab L10), `Arbeitsordner`, `Harness`, `Modell`, `Effort` (ab L10), `Route`, `Kunde`, der Knopf `Starten`,
+   die Knöpfe `Beenden` und `Fortsetzen` der gewählten Sitzung und der Knopf `Schließen`. Beim Öffnen über „+“ steht der Fokus im ersten Feld des Formulars (`Name`, vor L10 `Arbeitsordner`).
    Escape und `Schließen` schließen das Fenster, und der Fokus geht zurück auf „+“.
 3. **Im Terminal gehören Tab und Umschalt+Tab dem Programm** (SE1 Punkt 5); der Fokus bleibt.
 4. **Bereiche wechseln** (V, 26.11.): Die Bereiche sind Titelleiste, Leiste, Terminal und Inspektor (wenn offen), in dieser Folge, im Kreis.
@@ -174,8 +177,8 @@ Gilt, solange der Fokus im Terminal steht und eine Sitzung abonniert ist. `s` is
    - Sitzungsliste: Rolle `list` mit Namen `Sitzungen`, je Sitzung ein `listitem` mit einem `button`, dessen Name die Kennung und den Zustand nennt
      (`läuft` oder `beendet, Code <n>`).
    - (26.11.) Fenster „Sitzungen“: Rolle `dialog` mit Namen `Sitzungen`, modal. Darin die Liste aller bekannten Sitzungen (Rolle `listbox`, Name
-     `Bekannte Sitzungen`) und das Startformular: Rolle `form` mit Namen `Sitzung starten`. `Name` und `Arbeitsordner` sind `textbox`, `Harness`,
-     `Modell`, `Effort`, `Route` und `Kunde` sind Auswahlfelder (Rolle `combobox`); der Knopf heißt `Starten`. Der Knopf „+“ heißt `Neue Sitzung`.
+     `Bekannte Sitzungen`) und das Startformular: Rolle `form` mit Namen `Sitzung starten`. `Name` (ab L10) und `Arbeitsordner` sind `textbox`, `Harness`,
+     `Modell`, `Effort` (ab L10), `Route` und `Kunde` sind Auswahlfelder (Rolle `combobox`); der Knopf heißt `Starten`. Der Knopf „+“ heißt `Neue Sitzung`.
    - Terminal: genau ein fokussierbares Element der Rolle `textbox`, dessen Name mit `Terminal` beginnt und die Kennung der Sitzung enthält (Empfehlung:
      ein `textarea` mit `aria-roledescription="Terminal"`, Abschnitt 8 Frage 3). Die Zeilen liegen als Text im Barrierebaum (nicht `aria-hidden`).
    - Eingabezeile: `textbox` `Eingabe` und `button` `Senden`. (26.11.) Ruht bis nach dem Pilot (SE5 Punkt 3).
@@ -261,7 +264,7 @@ Jedes `data-testid` steht **genau einmal** auf der Seite, ist unabhängig von Sp
    bei `beendet` dazu `data-code="<code>"` (bei `laeuft` fehlt `data-code`). Die Attribute folgen jeder neuen `Sitzungsliste`.
 2. Startformular: `harness-wahl`, `modell-wahl`, `route-wahl`, `kunde-wahl` (Auswahlfelder; `kunde-wahl` hat den Eintrag „ohne Kunde“, der `null` schickt),
    `arbeitsordner-eingabe`, `sitzung-start` (Knopf).
-   (26.11.) Dazu kommen `neue-sitzung` (Knopf „+“), `sitzungen-fenster` (das Fenster), `name-eingabe`, `effort-wahl` (sobald L10 gilt),
+   (26.11.) Dazu kommen `neue-sitzung` (Knopf „+“), `sitzungen-fenster` (das Fenster), `name-eingabe` und `effort-wahl` (beide sobald L10 gilt; vorher fehlen sie nach `rust/spec/VERTRAEGE.md` OF8),
    `sitzung-beenden` und `sitzung-fortsetzen` (Knöpfe für die gewählte Sitzung) und `sitzungen-schliessen`. Kennungen in einem Fenster oder einer Blase
    stehen genau einmal, solange es offen ist, und fehlen, solange es zu ist.
    Weitere neue Kennungen (26.11.): `inspektor` (der Bereich, nur wenn offen), `inspektor-umschalter`, `ansicht-umschalter` (Orchestrator/Worker),
@@ -353,6 +356,11 @@ Liste in `attrappe/seite.js` ist, dass die Attrappe beide Sätze grün besteht u
 | `deflate_ignoriert` | SE6.5 | gepackte Rahmen werden als ungepackt gelesen |
 | `deflate_kontext_je_rahmen` | SE6.5 | der Deflate-Kontext beginnt mit jedem Rahmen neu |
 | `deflate_fehler_still` | SE6.5 | nach `inflate_fehler` bleiben Fehlerfeld und Abbruch aus |
+| `fokusfalle_fehlt` | SE2 | Tab verlässt das offene Fenster „Sitzungen“ (Nachtrag 26.11.2026) |
+| `f6_ueberspringt_inspektor` | SE2.4 | F6 vom Terminal springt am offenen Inspektor vorbei (Nachtrag 26.11.2026) |
+| `platzhalter_sichtbar` | OF8 | ein Bedienweg mit Umfang N steht im Baum (Nachtrag 26.11.2026) |
+
+`eingabezeile_sofort` ruht mit der Eingabezeile (Nachtrag 26.11.2026); `gegenprobe.sh` führt ihn in der Liste `RUHEND` und zählt ihn nicht als überlebt.
 
 ## 7. Prüfliste für die Abnahme am Auge (kein Lauf)
 
@@ -426,7 +434,7 @@ Die gebaute Seite (Zweig, Stand vom 20.11.2026) besteht beide Fallsätze im kopf
 und 34 von 34 verdeckt. Zu ihren offenen Punkten:
 
 1. **Modelle im Startformular:** `Startwahl` trägt heute keine Modelle, und die Einstellungsdatei der Fassung 1 kennt keine. Das Feld `modell-wahl`
-   bleibt ein Auswahlfeld mit Beispiel-Einträgen. Mit Fassung 2 von the maintainers Verträgen 1 und 2 (Modell je Route) bekommt `Startwahl` die Modelle je
+   bleibt ein Auswahlfeld mit Beispiel-Einträgen. Mit Fassung 2 der Verträge `start` und `einstellungen` (Modell je Route) bekommt `Startwahl` die Modelle je
    Route. Dann füllt die Seite `modell-wahl` daraus. Das kommt als ein Nachtrag zusammen mit dem Nachtrag der `start.*`-Codes.
 2. **Feste Beispiel-Einträge bis zur ersten `Startwahl`:** Sie bleiben, solange die Fälle keine `Startwahl` schicken. Der Nachtrag aus Punkt 1 ergänzt
    Fälle mit `Startwahl`. Danach fallen die festen Einträge weg.
@@ -438,7 +446,7 @@ und 34 von 34 verdeckt. Zu ihren offenen Punkten:
 ## Nachtrag 26.11.2026: Folgen der Entscheide für Fälle und Mutanten
 
 Grundlage: `rust/spec/VERTRAEGE.md` Fassung 2 (Entscheide G1 bis G10, F1 bis F4, E1 bis E8). Kein Fall und kein Mutant wird gelöscht. Was ruht, bleibt
-im Fallsatz und läuft wieder, wenn sein Bedienweg kommt. Den Fallbau, den Läufer und die Attrappe der Seite (außerhalb des Repos) zieht the maintainers nach,
+im Fallsatz und läuft wieder, wenn sein Bedienweg kommt. Fallbau, Läufer und Attrappe der Seite (außerhalb des Repos) werden nachgezogen,
 bevor die umgebaute Browser-Ansicht gegen die Fälle läuft.
 
 **Fälle, die sich ändern** (sichtbarer Satz, der verdeckte entsprechend):
@@ -459,7 +467,7 @@ der Teil der Eingabezeile, der Teil des Terminals läuft weiter.
 `f6_fehlt` (SE2.4) und `fokus_start_dokument` (SE2.1) bleiben und prüfen die neue Form.
 
 **Neue Fälle** (vor dem Bau als ausstehend geführt, erst nach dem Umbau grün):
-- `se2_sitzungen_fenster`: Öffnen über „+“, Fokus im Feld `Name`, Fokusfalle im Fenster, Escape schließt und der Fokus steht auf „+“.
+- `se2_sitzungen_fenster`: Öffnen über „+“, Fokus im ersten Feld des Formulars, Fokusfalle im Fenster, Escape schließt und der Fokus steht auf „+“.
 - `se2_bereiche`: F6 und Umschalt+F6 durch Titelleiste, Leiste, Terminal und Inspektor, mit offenem und geschlossenem Inspektor.
 - `se7_nur_angebunden`: keine Kennung eines Bedienwegs mit Umfang N im Baum (`rust/spec/VERTRAEGE.md` OF7, OF8).
 - Dazu die neuen Mutanten `fokusfalle_fehlt` (Tab verlässt das offene Fenster), `f6_ueberspringt_inspektor` (F6 vom Terminal springt am offenen Inspektor

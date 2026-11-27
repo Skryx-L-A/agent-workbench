@@ -114,7 +114,8 @@ Dieser Teil legt fest, **wie die Oberfläche aussieht, welche Bedienwege sie hat
    Knöpfe für fehlende Funktionen. Die Fassung vom 23.11.2026 (OF8, `.nna`, `NNA`) ist aufgehoben.
 2. Ein Knopf, der nur nach dem Zustand nicht geht, ist sichtbar und gesperrt. Beispiel: „Beenden“ einer beendeten Sitzung. Er trägt einen Hinweis
    mit dem Grund, etwa „Sitzung ist beendet“.
-3. Fehlt einer Ansicht eine Nachricht des Kerns, die ein Pilot-Bedienweg braucht (Abschnitt 4), so fehlt der Bedienweg im echten Lauf. Bilder zur
+3. Fehlt einer Ansicht eine Nachricht des Kerns, die ein Pilot-Bedienweg braucht (Abschnitt 4), so fehlt der Bedienweg im echten Lauf. Ausgenommen ist
+   die Grundform (Spalte „Grundform“ in Abschnitt 2): Sie erscheint, nur ihre Teile aus der Lücke fehlen. Bilder zur
    Abnahme entstehen dann mit der Attrappe der Brücke, die die künftigen Nachrichten schickt. Jedes solche Bild trägt die Beschriftung
    „Attrappe, Zielzustand“ (OF13).
 - Prüfmittel: Bilder, Abgleich gegen Abschnitt 2, Prüfung am Auge.
@@ -199,81 +200,84 @@ Dieser Teil legt fest, **wie die Oberfläche aussieht, welche Bedienwege sie hat
 
 ## 2. Bedienwege
 
-Umfang: **P** Pilot, **N** nach dem Pilot, **E** entfällt. „Daten“ nennt die Lücke aus Abschnitt 4, die der Bedienweg braucht.
+Umfang: **P** Pilot, **N** nach dem Pilot, **E** entfällt. „Daten“ nennt die Lücke aus Abschnitt 4, die der Bedienweg braucht. „Grundform“ heißt:
+Der Bedienweg erscheint schon vor seiner Lücke in der Form, die der Vertrag `seite` heute verlangt (SE2, SE3, SE6, SE7). Nur die Teile, die die Lücke
+braucht, fehlen bis dahin, etwa die Worker-Zahl in B10 oder der Ordner in B02. Beide Ansichten lesen diese Spalte (OF8 Punkt 3).
 
-| Nr | Bedienweg | Umfang | Gestalt und Verhalten | Daten | Entscheid |
-|---|---|---|---|---|---|
-| B01 | Umschalter Code / Agents | N | erscheint mit der Agents-Ansicht | – | G3, Pilot-Tabelle |
-| B02 | Titelleiste: Projektname mit Herkunft | P | Projektname fett, darunter „Harness · Modell · Ordner“ der gewählten Sitzung | L5 | G3 |
-| B03 | Freigabe-Abzeichen | P | nur bei offener Anfrage, mit Zahl; öffnet den Inspektor im Reiter Freigaben | – | G4 |
-| B04 | Inspektor ein- und ausklappen | P | Knopf rechts in der Titelleiste; Vorgabe zu; je Gerät gemerkt | L8 | G5 |
-| B05 | Warnleiste „Verbindung zum Kern fehlt“ | P | erscheint, wenn der Strom endet oder das Token fehlt | – | – |
-| B06 | Freigabeleiste | E | geht in B56 auf | – | G4 |
-| B07 | Meldung „Freigabe erteilt/abgelehnt“ | P | Zeile im Guard-Verlauf des Reiters Freigaben | L6 | G4 |
-| B08 | Kopf der Leiste mit „+“ | P | öffnet das Fenster „Sitzungen“ mit leerem Formular | – | F1 |
-| B09 | Projektzeile | P | Projektname als kleine graue Überschrift, Zahl der Sitzungen rechts | L5 | G8 |
-| B10 | Sitzungszeile | P | Punkt, Name, darunter „N Worker · Zustand“; gewählte Zeile grau; Klick schickt `Abo` | L1, L5 | G8 |
-| B11 | „Fortsetzen“ | P | Kontextmenü und Fenster „Sitzungen“; nur bei beendeter Sitzung | L3 | Pilot-Tabelle |
-| B12 | „Namen ändern …“ | P | Kontextmenü; Name auch im Formular beim Start | L3 | Pilot-Tabelle |
-| B14 | „Ordner im Finder zeigen“ | N | – | – | Pilot-Tabelle |
-| B15 | „Sitzung schließen“ | P | schickt `Beenden`; bei beendeter Sitzung gesperrt mit Grund | – | – |
-| B16 | „Endgültig löschen …“ | P | nur bei beendeter Sitzung, mit Rückfrage | L3 | Pilot-Tabelle |
-| B17 | „Wiederbeleben …“ | P | bei abgestürzter Sitzung | L3 | Pilot-Tabelle |
-| B18 | Gesprächszeile in der Leiste | E | – | – | decision 2026-11-23, G8 |
-| B19 | Umsortieren durch Ziehen | P | Reihenfolge der Sitzungen je Projekt, je Gerät gemerkt | L8 | Pilot-Tabelle |
-| B20 | Maschinenkarte | N | – | – | Pilot-Tabelle |
-| B21 | „heute“ im Fuß der Leiste | N | kommt mit der Verbrauchsansicht | – | F4, L7 |
-| B22 | Zahl laufender Worker | P | „N Worker laufen“ im Fuß, Zahl fett | L1 | G8 |
-| B23 | Zahnrad im Fuß der Leiste | P | öffnet die Einstellungen (B72) | – | G8 |
-| B24 | Breite der Leiste ziehen | P | OF2 Punkt 3 | L8 | Pilot-Tabelle |
-| B25 | Inhaltskopf | E | geht in B02 auf | – | G3 |
-| B26 | Statuspille „N laufen“ | P | in der Titelleiste, Punkt und Zahl; Klick öffnet die Worker-Liste (B29) als Blase | L1 | G3 |
-| B27 | Orchestrator / Worker | P | in der Titelleiste; „Worker“ zeigt die Panes der Worker gekachelt | L1, L2 | Pilot-Tabelle |
-| B28 | Zahnrad in der Titelleiste | P | öffnet die Einstellungen auf der Seite Sitzung | – | G3 |
-| B29 | Worker-Liste | P | Blase unter der Pille: Worker der gewählten Sitzung mit Rolle, Modell und Zustand | L1 | Pilot-Tabelle |
-| B30 | Worker-Tabs | P | erst, wenn mehr Worker laufen, als eine Kachelform fasst (6 je Tab) | L2 | G7 |
-| B31 | Übersicht / Gekachelt / Gezoomt | P | mit B30 | L2 | G7 |
-| B32 | Ordnen | P | mit B30 | L2 | G7 |
-| B33 | Hinweis zur Kachelform | P | mit B30 | L2 | G7 |
-| B34 | Leerzustand | P | Text ohne gewählte Sitzung, in Mitte und Leiste | – | – |
-| B35 | Terminalbild | P | `terminal-raster`, `terminal-zeile-{n}`, `data-cursor` | – | – |
-| B36 | Tastatur im Terminal | P | SE1, F6 nach SE2 Punkt 4 | – | – |
-| B37 | Eingabezeile mit „Senden“ | N | kommt mit der Chat-Ansicht; im Pilot tippt man direkt ins Terminal | – | F3 |
-| B38 | Kopieren und Einfügen | P | Einfügen schickt `Einfuegen`; Kopieren einer Auswahl im Terminal | – | – |
-| B39 | Größe an die Fläche anpassen | P | `Abo` und `Groesse` je sichtbarem Pane, Klemme 2 Spalten | L2 | – |
-| B40 | Rückblick | N | – | – | G9 |
-| B41 | Pane-Kopf | P | Punkt, Rolle in Akzentfarbe, Modell, rechts Vergrößern; Sprechblase und „Tokens“ nach dem Pilot | L1 | G9 |
-| B42 | Dialoge der Harnesses | P | Leiste „Dialog offen“, Klick schickt `Antwort` | – | – |
-| B51 | Reiter des Inspektors | P | Symbolreiter; im Pilot Freigaben und Ordner | – | G4, G10 |
-| B52 | Ordner-Blatt | P | wie heute: Pfad, darunter der Inhalt des Arbeitsordners | L9 | G10 |
-| B53 | Inhaltssuche | P | Feld „Im Inhalt suchen“ unter dem Pfad | L9 | G10 |
-| B54 | Aktivitäts-Blatt | N | – | – | Pilot-Tabelle |
-| B55 | Protokolle-Blatt | N | – | – | Pilot-Tabelle |
-| B56 | Freigaben-Blatt | P | wie heute: „Anträge“, „Angehaltene Worker“, „Guard-Verlauf“ mit Zahl; Freigeben, Ablehnen, Begründung, Zum Worker | L6 | G4 |
-| B57 | Breite des Inspektors ziehen | P | OF2 Punkt 3 | L8 | Pilot-Tabelle |
-| B58 | Editor-Tab-Zeile | N | erscheint erst mit offener Datei | – | G7 |
-| B59 | Datei öffnen | N | – | – | Pilot-Tabelle |
-| B60 | Datei speichern | N | – | – | Pilot-Tabelle |
-| B61 | An Orchestrator senden | N | – | – | Pilot-Tabelle |
-| B62 | Schnellöffner Cmd+P | N | – | – | Pilot-Tabelle |
-| B63 | Diff-Tab und Auftrag-Tab | N | – | – | Pilot-Tabelle |
-| B64 | Editor ein- und ausklappen | N | – | – | Pilot-Tabelle |
-| B66 | Meldung „Ergebnis da“ | N | – | – | Pilot-Tabelle |
-| B67 | Kurzmeldung | P | unten mittig über dem Terminal, 4 s; Ansage über die Live-Region | – | – |
-| B68 | Fenster „Sitzungen“ | P | wie heute, als Fenster in der Oberfläche: Liste aller bekannten Sitzungen nach Ordner, auch der beendeten; Formular mit Name, Arbeitsordner, Harness, Modell, Effort, Route, Kunde und „Starten“; unten „Beenden“ und „Fortsetzen“ für die gewählte Sitzung | L3, L5, L10 | F1 |
-| B69 | Modell und Effort beim Start | P | Modelle je Route aus `Startwahl`; Effort innerhalb der Grenzen der Admins, vorbelegt mit der Vorgabe des Nutzers; Kontextfenster nach dem Pilot | L10 | E2 |
-| B70 | Frühere Sitzungen | E | geht in B68 auf; „Modell wechseln“ nach dem Pilot | – | F1 |
-| B71 | Meldung bei abgelehntem Start | P | `fehler`, `fehler-code`, `fehler-text`, Ansage; im Fenster „Sitzungen“ unter „Starten“ | – | – |
-| B72 | Einstellungen des Nutzers | P | OF9 Punkt 3, 5, 6 | L4 | F2, E2, E3 |
-| B73 | Verbrauchsansicht | N | neu nach F4 und E4: Verlauf als Grafik mit Hochrechnung, je Konto und Grenze, je Sitzung und Worker mit Modell und Effort, Kosten je Modell, sortierbar, über mehr als 30 Tage | – | F4, E4 |
-| B75 | Anwendungsmenü | P | im App-Fenster das Menü des Systems; in der Browser-Ansicht kein eigener Knopf | – | G3 |
-| B76 | Escape schließt Fenster und Blase | P | Escape schließt das Fenster „Sitzungen“, die Worker-Liste und das Kontextmenü; im Terminal gehört Escape dem Programm | – | – |
-| B77 | Farbwahl | P | OF3 Punkt 2, Seite Aussehen | – | G2 |
-| B78 | Admin-Einstellungen | P | OF9 Punkt 4 bis 7; nur für Admins sichtbar | L4 | F2, E1, E2 |
-| B79 | Umschalter Chat / Terminal | N | Chat-Ansicht ähnlich Open WebUI; Vorgabe am PC Terminal, am Handy Chat, in den Einstellungen änderbar (A169) | – | F3 |
+| Nr | Bedienweg | Umfang | Gestalt und Verhalten | Daten | Grundform | Entscheid |
+|---|---|---|---|---|---|---|
+| B01 | Umschalter Code / Agents | N | erscheint mit der Agents-Ansicht | – | – | G3, Pilot-Tabelle |
+| B02 | Titelleiste: Projektname mit Herkunft | P | Projektname fett, darunter „Harness · Modell · Ordner“ der gewählten Sitzung | L5 | ja | G3 |
+| B03 | Freigabe-Abzeichen | P | nur bei offener Anfrage, mit Zahl; öffnet den Inspektor im Reiter Freigaben | – | – | G4 |
+| B04 | Inspektor ein- und ausklappen | P | Knopf rechts in der Titelleiste; Vorgabe zu; je Gerät gemerkt | L8 | ja | G5 |
+| B05 | Warnleiste „Verbindung zum Kern fehlt“ | P | erscheint, wenn der Strom endet oder das Token fehlt | – | – | – |
+| B06 | Freigabeleiste | E | geht in B56 auf | – | – | G4 |
+| B07 | Meldung „Freigabe erteilt/abgelehnt“ | P | Zeile im Guard-Verlauf des Reiters Freigaben | L6 | – | G4 |
+| B08 | Kopf der Leiste mit „+“ | P | öffnet das Fenster „Sitzungen“ mit leerem Formular | – | ja | F1 |
+| B09 | Projektzeile | P | Projektname als kleine graue Überschrift, Zahl der Sitzungen rechts | L5 | – | G8 |
+| B10 | Sitzungszeile | P | Punkt, Name, darunter „N Worker · Zustand“; gewählte Zeile grau; Klick schickt `Abo` | L1, L5 | ja | G8 |
+| B11 | „Fortsetzen“ | P | Kontextmenü und Fenster „Sitzungen“; nur bei beendeter Sitzung | L3 | – | Pilot-Tabelle |
+| B12 | „Namen ändern …“ | P | Kontextmenü; Name auch im Formular beim Start | L3 | – | Pilot-Tabelle |
+| B14 | „Ordner im Finder zeigen“ | N | – | – | – | Pilot-Tabelle |
+| B15 | „Sitzung schließen“ | P | schickt `Beenden`; bei beendeter Sitzung gesperrt mit Grund | – | – | – |
+| B16 | „Endgültig löschen …“ | P | nur bei beendeter Sitzung, mit Rückfrage | L3 | – | Pilot-Tabelle |
+| B17 | „Wiederbeleben …“ | P | bei abgestürzter Sitzung | L3 | – | Pilot-Tabelle |
+| B18 | Gesprächszeile in der Leiste | E | – | – | – | Projektentscheid 23.11., G8 |
+| B19 | Umsortieren durch Ziehen | P | Reihenfolge der Sitzungen je Projekt, je Gerät gemerkt | L8 | – | Pilot-Tabelle |
+| B20 | Maschinenkarte | N | – | – | – | Pilot-Tabelle |
+| B21 | „heute“ im Fuß der Leiste | N | kommt mit der Verbrauchsansicht | – | – | F4, L7 |
+| B22 | Zahl laufender Worker | P | „N Worker laufen“ im Fuß, Zahl fett | L1 | – | G8 |
+| B23 | Zahnrad im Fuß der Leiste | P | öffnet die Einstellungen (B72) | – | ja | G8 |
+| B24 | Breite der Leiste ziehen | P | OF2 Punkt 3 | L8 | – | Pilot-Tabelle |
+| B25 | Inhaltskopf | E | geht in B02 auf | – | – | G3 |
+| B26 | Statuspille „N laufen“ | P | in der Titelleiste, Punkt und Zahl; Klick öffnet die Worker-Liste (B29) als Blase | L1 | – | G3 |
+| B27 | Orchestrator / Worker | P | in der Titelleiste; „Worker“ zeigt die Panes der Worker gekachelt | L1, L2 | – | Pilot-Tabelle |
+| B28 | Zahnrad in der Titelleiste | P | öffnet die Einstellungen auf der Seite Sitzung | L4 | – | G3 |
+| B29 | Worker-Liste | P | Blase unter der Pille: Worker der gewählten Sitzung mit Rolle, Modell und Zustand | L1 | – | Pilot-Tabelle |
+| B30 | Worker-Tabs | P | erst, wenn mehr Worker laufen, als eine Kachelform fasst (6 je Tab) | L2 | – | G7 |
+| B31 | Übersicht / Gekachelt / Gezoomt | P | mit B30 | L2 | – | G7 |
+| B32 | Ordnen | P | mit B30 | L2 | – | G7 |
+| B33 | Hinweis zur Kachelform | P | mit B30 | L2 | – | G7 |
+| B34 | Leerzustand | P | Text ohne gewählte Sitzung, in Mitte und Leiste | – | – | – |
+| B35 | Terminalbild | P | `terminal-raster`, `terminal-zeile-{n}`, `data-cursor` | – | – | – |
+| B36 | Tastatur im Terminal | P | SE1, F6 nach SE2 Punkt 4 | – | – | – |
+| B37 | Eingabezeile mit „Senden“ | N | kommt mit der Chat-Ansicht; im Pilot tippt man direkt ins Terminal | – | – | F3 |
+| B38 | Kopieren und Einfügen | P | Einfügen schickt `Einfuegen`; Kopieren einer Auswahl im Terminal | – | – | – |
+| B39 | Größe an die Fläche anpassen | P | `Abo` und `Groesse` je sichtbarem Pane, Klemme 2 Spalten | L2 | ja | – |
+| B40 | Rückblick | N | – | – | – | G9 |
+| B41 | Pane-Kopf | P | Punkt, Rolle in Akzentfarbe, Modell, rechts Vergrößern; Sprechblase und „Tokens“ nach dem Pilot | L1 | ja | G9 |
+| B42 | Dialoge der Harnesses | P | Leiste „Dialog offen“, Klick schickt `Antwort` | – | – | – |
+| B51 | Reiter des Inspektors | P | Symbolreiter; im Pilot Freigaben und Ordner | – | ja | G4, G10 |
+| B52 | Ordner-Blatt | P | wie heute: Pfad, darunter der Inhalt des Arbeitsordners | L9 | – | G10 |
+| B53 | Inhaltssuche | P | Feld „Im Inhalt suchen“ unter dem Pfad | L9 | – | G10 |
+| B54 | Aktivitäts-Blatt | N | – | – | – | Pilot-Tabelle |
+| B55 | Protokolle-Blatt | N | – | – | – | Pilot-Tabelle |
+| B56 | Freigaben-Blatt | P | wie heute: „Anträge“, „Angehaltene Worker“, „Guard-Verlauf“ mit Zahl; Freigeben, Ablehnen, Begründung, Zum Worker | L6 | ja | G4 |
+| B57 | Breite des Inspektors ziehen | P | OF2 Punkt 3 | L8 | – | Pilot-Tabelle |
+| B58 | Editor-Tab-Zeile | N | erscheint erst mit offener Datei | – | – | G7 |
+| B59 | Datei öffnen | N | – | – | – | Pilot-Tabelle |
+| B60 | Datei speichern | N | – | – | – | Pilot-Tabelle |
+| B61 | An Orchestrator senden | N | – | – | – | Pilot-Tabelle |
+| B62 | Schnellöffner Cmd+P | N | – | – | – | Pilot-Tabelle |
+| B63 | Diff-Tab und Auftrag-Tab | N | – | – | – | Pilot-Tabelle |
+| B64 | Editor ein- und ausklappen | N | – | – | – | Pilot-Tabelle |
+| B66 | Meldung „Ergebnis da“ | N | – | – | – | Pilot-Tabelle |
+| B67 | Kurzmeldung | P | unten mittig über dem Terminal, 4 s; Ansage über die Live-Region | – | – | – |
+| B68 | Fenster „Sitzungen“ | P | wie heute, als Fenster in der Oberfläche: Liste aller bekannten Sitzungen nach Ordner, auch der beendeten; Formular mit Name und Effort (beide ab L10), Arbeitsordner, Harness, Modell, Route, Kunde und „Starten“; unten „Beenden“ und „Fortsetzen“ für die gewählte Sitzung | L3, L5, L10 | ja | F1 |
+| B69 | Modell und Effort beim Start | P | Modelle je Route aus `Startwahl`; Effort innerhalb der Grenzen der Admins, vorbelegt mit der Vorgabe des Nutzers; Kontextfenster nach dem Pilot | L10 | ja | E2 |
+| B70 | Frühere Sitzungen | E | geht in B68 auf; „Modell wechseln“ nach dem Pilot | – | – | F1 |
+| B71 | Meldung bei abgelehntem Start | P | `fehler`, `fehler-code`, `fehler-text`, Ansage; im Fenster „Sitzungen“ unter „Starten“ | – | ja | – |
+| B72 | Einstellungen des Nutzers | P | OF9 Punkt 3, 5, 6 | L4 | ja | F2, E2, E3 |
+| B73 | Verbrauchsansicht | N | neu nach F4 und E4: Verlauf als Grafik mit Hochrechnung, je Konto und Grenze, je Sitzung und Worker mit Modell und Effort, Kosten je Modell, sortierbar, über mehr als 30 Tage | – | – | F4, E4 |
+| B75 | Anwendungsmenü | P | im App-Fenster das Menü des Systems; in der Browser-Ansicht kein eigener Knopf | – | – | G3 |
+| B76 | Escape schließt Fenster und Blase | P | Escape schließt das Fenster „Sitzungen“, die Worker-Liste und das Kontextmenü; im Terminal gehört Escape dem Programm | – | – | – |
+| B77 | Farbwahl | P | OF3 Punkt 2, Seite Aussehen | – | – | G2 |
+| B78 | Admin-Einstellungen | P | OF9 Punkt 4 bis 7; nur für Admins sichtbar | L4 | – | F2, E1, E2 |
+| B79 | Umschalter Chat / Terminal | N | Chat-Ansicht ähnlich Open WebUI; Vorgabe am PC Terminal, am Handy Chat, in den Einstellungen änderbar (A169) | – | – | F3 |
+| B80 | Leiste ein- und ausblenden | P | Knopf links in der Titelleiste; je Gerät gemerkt | L8 | – | G3 |
 
-Zählung: **Pilot 46, nach dem Pilot 18, entfällt 4, zusammen 68.** Nicht vergeben: B13 und B43 bis B50 (Gesprächsansicht der alten App, A169),
-B65 (Startseite) und B74 (Erststart). Neu seit der Fassung vom 23.11.2026: B78 und B79.
+Zählung: **Pilot 47, nach dem Pilot 18, entfällt 4, zusammen 69**, davon 13 mit Grundform. Nicht vergeben: B13 und B43 bis B50 (Gesprächsansicht der alten App, A169),
+B65 (Startseite) und B74 (Erststart). Neu seit der Fassung vom 23.11.2026: B78, B79 und B80.
 
 ## 3. Prüfmittel
 
@@ -289,9 +293,9 @@ B65 (Startseite) und B74 (Erststart). Neu seit der Fassung vom 23.11.2026: B78 u
 
 ## 4. Was die Oberfläche vom Kern und vom Dienst braucht
 
-Diese Lücken hat the maintainers am 26.11.2026 im Code von `development` (`an earlier commit`) gefunden (`luecken-pilot-2a.md`, hergeleitet). Ergänzt hat sie the maintainers (L9 bis L11).
+Die Lücken L1 bis L8 sind am 26.11.2026 im Code von `development` gefunden worden (hergeleitet), L9 bis L11 kamen beim Schreiben dieser Fassung dazu.
 Die Namen und Felder unten sind ein **Vorschlag** dieses Vertrags. Festgelegt werden sie in den Verträgen `zustandskern` und `dienst`, und zwar vor
-dem Pilot (Weg a, decision 2026-11-26). Bis dahin zeigt der echte Lauf die betroffenen Bedienwege nicht (OF8 Punkt 3).
+dem Pilot (Projektentscheid, 26.11.2026). Bis dahin zeigt der echte Lauf die betroffenen Bedienwege nicht (OF8 Punkt 3).
 
 | Nr | Was fehlt | Vorschlag | Bedienwege |
 |---|---|---|---|
@@ -309,7 +313,7 @@ dem Pilot (Weg a, decision 2026-11-26). Bis dahin zeigt der echte Lauf die betro
 
 ## 5. Übergang von der Fassung vom 23.11.2026
 
-1. Die Browser-Ansicht von 2a wird nach dieser Fassung umgebaut (the maintainers). Bis dahin beschreibt die Fassung vom 23.11.2026 den gebauten Stand. Sie liegt
+1. Die Browser-Ansicht von 2a wird nach dieser Fassung umgebaut. Bis dahin beschreibt die Fassung vom 23.11.2026 den gebauten Stand. Sie liegt
    in der Geschichte des Repos.
 2. Die Fälle des Vertrags `seite`, die sich mit dieser Fassung ändern, nennt `rust/spec/VERTRAEGE.md` im Nachtrag vom 26.11.2026. Kein Fall wird gelöscht. Fälle
    für Bedienwege mit Umfang N bleiben erhalten und laufen erst wieder, wenn ihr Bedienweg kommt.

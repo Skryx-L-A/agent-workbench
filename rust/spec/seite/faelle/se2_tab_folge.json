@@ -1,5 +1,5 @@
 {
- "beschreibung": "Fokus nach dem Laden im Terminal; F6 und Umschalt+F6 verlassen es; Tab-Folge Liste, Terminal, Eingabezeile, Senden, Startformular; jeder Halt mit Rahmen.",
+ "beschreibung": "Fokus nach dem Laden im Terminal; F6 und Umschalt+F6 verlassen es; Tab-Folge Titelleiste, „+“, Sitzungen, Zahnrad, Terminal; im Fenster „Sitzungen“ nur seine Halte in fester Folge; Escape führt auf „+“ zurück; jeder Halt mit Rahmen.",
  "datensatz": "A",
  "name": "se2_tab_folge",
  "regeln": [
@@ -89,21 +89,7 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Eingabe",
-    "rolle": "textbox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": []
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
-    "name": "Senden",
+    "name": "Leiste ein- und ausblenden",
     "rolle": "button"
    }
   },
@@ -117,77 +103,7 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Harness",
-    "rolle": "combobox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": []
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
-    "name": "Modell",
-    "rolle": "combobox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": []
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
-    "name": "Route",
-    "rolle": "combobox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": []
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
-    "name": "Kunde",
-    "rolle": "combobox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": []
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
-    "name": "Arbeitsordner",
-    "rolle": "textbox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": []
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
-    "name": "Starten",
+    "name": "Inspektor ein- und ausblenden",
     "rolle": "button"
    }
   },
@@ -195,95 +111,13 @@
    "art": "Taste",
    "code": "Tab",
    "key": "Tab",
-   "umschalter": [
-    "umschalt"
-   ]
+   "umschalter": []
   },
   {
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Arbeitsordner",
-    "rolle": "textbox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": [
-    "umschalt"
-   ]
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
-    "name": "Kunde",
-    "rolle": "combobox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": [
-    "umschalt"
-   ]
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
-    "name": "Route",
-    "rolle": "combobox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": [
-    "umschalt"
-   ]
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
-    "name": "Modell",
-    "rolle": "combobox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": [
-    "umschalt"
-   ]
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
-    "name": "Harness",
-    "rolle": "combobox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": [
-    "umschalt"
-   ]
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
-    "name": "Senden",
+    "name": "Neue Sitzung",
     "rolle": "button"
    }
   },
@@ -291,25 +125,49 @@
    "art": "Taste",
    "code": "Tab",
    "key": "Tab",
-   "umschalter": [
-    "umschalt"
-   ]
+   "umschalter": []
   },
   {
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Eingabe",
-    "rolle": "textbox"
+    "name_enthaelt": "s-1",
+    "rolle": "button"
    }
   },
   {
    "art": "Taste",
    "code": "Tab",
    "key": "Tab",
-   "umschalter": [
-    "umschalt"
-   ]
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name_enthaelt": "s-2",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Einstellungen",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
   },
   {
    "art": "Fokus",
@@ -332,7 +190,7 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name_enthaelt": "s-2",
+    "name_enthaelt": "s-1",
     "rolle": "button"
    }
   },
@@ -348,7 +206,142 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name_enthaelt": "s-1",
+    "name": "Neue Sitzung",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Inspektor ein- und ausblenden",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Leiste ein- und ausblenden",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": []
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "name": "Neue Sitzung",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Name",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Arbeitsordner",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Harness",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Modell",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Route",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Kunde",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Starten",
     "rolle": "button"
    }
   },
@@ -362,7 +355,7 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name_enthaelt": "s-2",
+    "name": "Schließen",
     "rolle": "button"
    }
   },
@@ -375,11 +368,233 @@
   {
    "art": "Fokus",
    "erwartet": {
-    "im_terminal": true,
-    "name_beginnt": "Terminal",
-    "name_enthaelt": "s-1",
+    "im_terminal": false,
+    "name": "Bekannte Sitzungen",
+    "rolle": "listbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Name",
     "rolle": "textbox"
    }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Bekannte Sitzungen",
+    "rolle": "listbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "ArrowDown",
+   "key": "ArrowDown",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Bekannte Sitzungen",
+    "rolle": "listbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Schließen",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Beenden",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Starten",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Kunde",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Route",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Modell",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Harness",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Arbeitsordner",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Name",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Bekannte Sitzungen",
+    "rolle": "listbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Escape",
+   "key": "Escape",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Neue Sitzung",
+    "rolle": "button"
+   }
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "sitzungen-fenster"
   },
   {
    "art": "Ereignisse",

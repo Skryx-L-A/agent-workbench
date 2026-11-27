@@ -1,0 +1,212 @@
+{
+ "beschreibung": "Nur, was zum Pilot gehört und angebunden ist (rust/spec/VERTRAEGE.md OF7, OF8): kein Element eines Bedienwegs mit Umfang N oder E und keine Marke „noch nicht angebunden“, weder in der Hauptansicht noch im Fenster Sitzungen noch mit offenem Inspektor.",
+ "datensatz": "A",
+ "name": "se7_nur_angebunden",
+ "regeln": [
+  "SE7",
+  "SE3"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "nr": 1,
+      "route": "cloud",
+      "zustand": "laeuft"
+     },
+     {
+      "code": 0,
+      "harness": "claude",
+      "id": "s-2",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "nr": 2,
+      "route": "cloud",
+      "zustand": "beendet"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Bedienwege",
+   "fehlen": [
+    "B01",
+    "B14",
+    "B20",
+    "B21",
+    "B37",
+    "B40",
+    "B54",
+    "B55",
+    "B58",
+    "B59",
+    "B60",
+    "B61",
+    "B62",
+    "B63",
+    "B64",
+    "B66",
+    "B73",
+    "B79",
+    "B06",
+    "B18",
+    "B25",
+    "B70"
+   ],
+   "kein_text": "noch nicht angebunden"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "name": "Neue Sitzung",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Name",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Bedienwege",
+   "fehlen": [
+    "B01",
+    "B14",
+    "B20",
+    "B21",
+    "B37",
+    "B40",
+    "B54",
+    "B55",
+    "B58",
+    "B59",
+    "B60",
+    "B61",
+    "B62",
+    "B63",
+    "B64",
+    "B66",
+    "B73",
+    "B79",
+    "B06",
+    "B18",
+    "B25",
+    "B70"
+   ],
+   "kein_text": "noch nicht angebunden"
+  },
+  {
+   "art": "Taste",
+   "code": "Escape",
+   "key": "Escape",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Neue Sitzung",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "inspektor-umschalter"
+   }
+  },
+  {
+   "art": "Testid",
+   "testid": "inspektor"
+  },
+  {
+   "art": "Bedienwege",
+   "fehlen": [
+    "B01",
+    "B14",
+    "B20",
+    "B21",
+    "B37",
+    "B40",
+    "B54",
+    "B55",
+    "B58",
+    "B59",
+    "B60",
+    "B61",
+    "B62",
+    "B63",
+    "B64",
+    "B66",
+    "B73",
+    "B79",
+    "B06",
+    "B18",
+    "B25",
+    "B70"
+   ],
+   "kein_text": "noch nicht angebunden"
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "inspektor-umschalter"
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "ausser": [
+    "Groesse"
+   ],
+   "erwartet": []
+  }
+ ]
+}

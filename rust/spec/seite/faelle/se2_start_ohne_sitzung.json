@@ -1,5 +1,5 @@
 {
- "beschreibung": "Ohne Sitzung steht der Fokus nach dem Laden im ersten Feld des Startformulars.",
+ "beschreibung": "Ohne laufende Sitzung steht der Fokus nach dem Laden auf dem Knopf „+“ (Neue Sitzung).",
  "datensatz": "A",
  "name": "se2_start_ohne_sitzung",
  "regeln": [
@@ -20,8 +20,8 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Harness",
-    "rolle": "combobox"
+    "name": "Neue Sitzung",
+    "rolle": "button"
    }
   },
   {

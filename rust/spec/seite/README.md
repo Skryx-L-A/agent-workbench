@@ -7,8 +7,8 @@ ausliefert (Entscheide des Betreibers vom 26.11.2026, `rust/spec/VERTRAEGE.md` F
 | Datei | Inhalt |
 |---|---|
 | `rust/spec/VERTRAEGE.md` | Verhalten der Seite: Tastatur, Fokus, Vorleser, gleicher Text, Handy-Browser, Netz und Start, feste Selektoren (SE1 bis SE7). Kopie des Vertragspakets; nur die Verweise auf Ordner außerhalb des Repos sind Repo-Pfade oder „außerhalb des Repos“. |
-| `rust/spec/VERTRAEGE.md` | Aussehen und Bedienwege nach der heutigen Mac-App: Aufbau, flächig, Farbwahl, Breiten, Einstellungen von Nutzer und Admin, 68 Bedienwege mit Umfang Pilot, nach dem Pilot oder entfällt, App-Fenster (OF1 bis OF14), dazu die Lücken in Kern und Dienst (L1 bis L11). |
-| `faelle/` | Sichtbarer Fallsatz des Vertrags `seite` (Datensatz A, 41 Fälle `se1_*` bis `se7_*`). |
+| `rust/spec/VERTRAEGE.md` | Aussehen und Bedienwege nach der heutigen Mac-App: Aufbau, flächig, Farbwahl, Breiten, Einstellungen von Nutzer und Admin, 69 Bedienwege mit Umfang Pilot, nach dem Pilot oder entfällt, App-Fenster (OF1 bis OF14), dazu die Lücken in Kern und Dienst (L1 bis L11). |
+| `faelle/` | Sichtbarer Fallsatz des Vertrags `seite` (Datensatz A, 44 Fälle `se1_*` bis `se7_*`, einer davon ruht). |
 
 ## Anforderungen
 
@@ -27,7 +27,7 @@ Nicht aufgenommen, weil keine Regel sie trägt: A28, A37, A59, A90, A103, A105, 
 
 ## Wo was liegt
 
-- **Sichtbare Fälle:** `rust/spec/seite/faelle/` (41 Dateien). Vorher lagen sie nur im Vertragspaket; im Repo gab es sie nicht.
+- **Sichtbare Fälle:** `rust/spec/seite/faelle/` (44 Dateien). Vorher lagen sie nur im Vertragspaket; im Repo gab es sie nicht.
 - **Läufer:** `laeufer/se_lauf.mjs` liegt nicht im Repo, sondern im Vertragspaket (außerhalb des Repos). Ebenso die Attrappe der Seite,
   der Fallbau, die Gegenprobe und der verdeckte Satz.
 - **Gegenstand:** `rust/crates/ansicht/src/oberflaeche.rs` (Komponenten, `data-bw`), `rust/crates/ansicht/src/kern.rs` (Regeln ohne DOM),
@@ -42,6 +42,6 @@ Nicht aufgenommen, weil keine Regel sie trägt: A28, A37, A59, A90, A103, A105, 
    `node laeufer/se_lauf.mjs --seite <worktree>/rust/ansicht/ausgabe --faelle <worktree>/rust/spec/seite/faelle --bericht <datei.json>`.
    Für die Ansicht braucht der Läufer drei Änderungen (`/ansicht.js` und `/ansicht_bg.wasm` ausliefern und in der Netzregel erlauben,
    `'wasm-unsafe-eval'` in der CSP). Exit 0 heißt alle Fälle grün. Ein Lauf dauert rund 30 s; Läufe über 20 s nur auf einer ruhigen Messmaschine.
-3. **Bedienwege:** `grep -n 'data-bw' rust/crates/ansicht/src/oberflaeche.rs` gegen die Tabelle in `rust/spec/VERTRAEGE.md` Abschnitt 2 (46 Kennungen mit Umfang Pilot; bis zum Umbau zählt der gebaute Stand noch nach der Fassung vom 23.11.2026).
+3. **Bedienwege:** `grep -n 'data-bw' rust/crates/ansicht/src/oberflaeche.rs` gegen die Tabelle in `rust/spec/VERTRAEGE.md` Abschnitt 2 (47 Kennungen mit Umfang Pilot; bis zum Umbau zählt der gebaute Stand noch nach der Fassung vom 23.11.2026).
 4. **Bilder und Auge:** Bilder bei 1280 px und 375 px, hell und dunkel, aus einem echten Lauf mit `wb-dienst` und `wb-bruecke`; danach die Prüfliste
    `rust/spec/VERTRAEGE.md` Abschnitt 7. Die Abnahme am Auge steht aus (`rust/spec/VERTRAEGE.md` OF13).

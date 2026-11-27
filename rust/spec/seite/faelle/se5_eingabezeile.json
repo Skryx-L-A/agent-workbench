@@ -12,6 +12,13 @@
   "SE5",
   "SE1"
  ],
+ "ruht": {
+  "bedienwege": [
+   "B37",
+   "B79"
+  ],
+  "grund": "Die Eingabezeile ruht bis nach dem Pilot (Entscheid F3, rust/spec/VERTRAEGE.md Nachtrag 26.11.2026)."
+ },
  "schritte": [
   {
    "art": "Laden"

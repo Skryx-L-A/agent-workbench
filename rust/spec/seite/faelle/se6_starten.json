@@ -1,5 +1,5 @@
 {
- "beschreibung": "Das Startformular schickt die Start-Struktur an /starten (ohne Kunde als null); Erfolg und Ablehnung werden angesagt und stehen im Fehlerfeld.",
+ "beschreibung": "Das Startformular im Fenster Sitzungen hinter „+“ schickt die Start-Struktur Fassung 1 an /starten (ohne Kunde als null, ohne Feld Effort bis L10); Erfolg und Ablehnung werden angesagt und stehen im Fehlerfeld.",
  "datensatz": "A",
  "name": "se6_starten",
  "regeln": [
@@ -22,9 +22,29 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Harness",
-    "rolle": "combobox"
+    "name": "Neue Sitzung",
+    "rolle": "button"
    }
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "name": "Neue Sitzung",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Name",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "effort-wahl"
   },
   {
    "art": "Waehle",
@@ -55,6 +75,62 @@
   {
    "art": "Einsetzen",
    "text": "/srv/projekt-ä"
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Harness",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Modell",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Route",
+    "rolle": "combobox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name": "Kunde",
+    "rolle": "combobox"
+   }
   },
   {
    "art": "Taste",

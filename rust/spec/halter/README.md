@@ -42,9 +42,15 @@ Es ändern sich die Abschnitte 4, 9, 12, 13 und OPEN 2; neu sind vier Fälle.
 **Nachtrag Erststart (25.11.2026, Entscheid der Leitung zum ersten echten Start):** Am Modell-Host gelten beim ersten Start nur
 `GET /models` und `POST /chat/completions` (Erststart-Profil, `rust/spec/einstellungen/erststart.json`). Für jeden weiteren Pfad
 misst der Halter vor der Freigabe die Form der Antwort: Hinter dem Schalter `erststart_antwortform` eines Ziels schreibt er für genau
-die genannten Regeln die Feldnamen der JSON-Antwort, nie Werte, in eine Journalzeile (Abschnitt 4, „Antwortform im Erststart“). Es
+die genannten Regeln die Feldnamen der JSON-Antwort in eine Journalzeile, Werte nur von zwei Feldern (Nachtrag Werte der Antwortform) (Abschnitt 4, „Antwortform im Erststart“). Es
 ändern sich die Abschnitte 2.3a, 4, 8, 9, 12 und 14 (neu OPEN 24 und 25); neu sind sieben Anfragen und sieben Fälle der Form
 `konfig`. Kein bestehender Fall und keine Erwartung ändern sich.
+
+**Nachtrag Werte der Antwortform (Projektentscheid, 26.11.2026):** Das Konto bietet ein fest gewähltes Modell
+womöglich nicht an, und `auto` bleibt gesperrt (`POST /auto` trägt ein `access_token`). Darum nennt die Zeile der Antwortform
+zusätzlich die Werte genau zweier Felder: `data[].id` aus `GET /models` und `error.code` aus einer Fehlerantwort, nur in Wortform
+und nie tokenähnlich (Abschnitt 4, „Antwortform im Erststart“, Punkt „Werte“). Es ändern sich die Abschnitte 4 und 8; kein Fall
+der Formen `anfrage`, `antwort` und `konfig` ändert sich.
 
 Der Vertrag steht vor dem Code. Dieser Stand enthält die sichtbaren Fälle. Verdeckte Fälle und Mutanten folgen mit dem
 Bau. Was nur auf einem System prüfbar ist, steht als Außentest in Abschnitt 11: W für die Windows-VM, L für den Linux-Baurechner, M für
@@ -568,7 +574,27 @@ das Feld; `werkbank-pruefen` soll ein gesetztes Feld als Befund melden (OPEN 24)
 - **Namen.** Der Halter liest die Kopie als JSON und nimmt jeden Schlüssel eines Objekts, rekursiv. Pfadform: ein Schlüssel `k`
   auf der obersten Ebene heißt `k`, unter einem Namen `p` heißt er `p.k`; die Elemente einer Liste unter `p` stehen unter `p[]`
   (eine Liste auf der obersten Ebene unter `[]`). Beispiel: `{"data":[{"id":"x"}],"access_token":"y"}` ergibt `access_token`,
-  `data` und `data[].id`. Die Liste ist nach Bytes sortiert, jeder Name einmal. Nie ein Wert, keine Länge, kein Typ.
+  `data` und `data[].id`. Die Liste ist nach Bytes sortiert, jeder Name einmal. Kein Wert außer nach Punkt „Werte“, keine
+  Länge, kein Typ.
+- **Werte (Projektentscheid, 26.11.2026).** Grund: Das Erststart-Profil wählt das Modell fest und nie `auto`;
+  `POST /auto` bleibt gesperrt. Um ein angebotenes Modell zu wählen, braucht die Leitung die Modellnamen des Kontos. Die Zeile
+  trägt darum die Werte genau zweier Felder und keines anderen: `data[].id`, nur wenn Methode und Pfad genau `GET` und
+  `/models` sind (die Schlüssel `id` der Objekte in der Liste `data` auf der obersten Ebene), und `error.code`, nur bei einem
+  Status ab 400 (der Schlüssel `code` des Objekts `error` auf der obersten Ebene). Werte gibt es nur bei der Form `json`. Kein
+  anderes Feld, kein Kopf, kein Körper und kein Freitext stehen in der Zeile, auch nicht `data[].name` oder `access_token`.
+  Ein Wert steht nur in der Zeile, wenn beide Prüfungen in dieser Reihenfolge bestehen:
+  1. **Tokenmuster zuerst.** Tokenähnlich und damit verworfen ist ein Wert, der ohne Groß- und Kleinschreibung mit `gho_`,
+     `ghu_`, `ghp_`, `ghs_`, `ghr_`, `github_pat_` oder `sk-` beginnt, eines der Wörter der Regel der Namen enthält, ein Teilstück
+     zwischen `.`, `_` und `-` von mehr als 19 Byte hat oder ein gehaltenes Geheimnis in einer Form der Leck-Sperre enthält.
+     Ein tokenähnlicher Wert wird verworfen, auch wenn er auf das Wortmuster passt, etwa `gho_` mit 36 weiteren Zeichen.
+  2. **Wortmuster.** Der Wert ist ein Text und passt ganz auf `^[A-Za-z0-9._-]{1,64}$`.
+
+  Jeder andere Wert der zwei Felder, auch eine Zahl, eine Liste oder `null`, steht nicht in der Zeile; dort steht wie bisher
+  nur der Feldname in `namen`, und der Zähler `wert_verworfen` steigt um eins. Scheitert eine Prüfung, gibt es keinen Weg, der
+  den Wert trotzdem schreibt. Die Modellnamen sind nach Bytes sortiert, jeder einmal, höchstens 200 je Antwort. Bestehen mehr
+  als 200, stehen die ersten 200 in Bytefolge in der Zeile, die Zeile trägt `"abgeschnitten":true` und damit `"zu":true`, und
+  kein weiterer Name erscheint. Grund: Eine feste Grenze hält die Zeile kurz; `abgeschnitten` sagt der Leitung, dass die Liste
+  unvollständig ist und sie den Pfad nicht auf ihrer Grundlage beurteilen soll.
 - **Grenzen.** Höchstens 1048576 Byte Körper (darüber: Form `zu_gross`, keine Namen), höchstens 256 Namen, je Name höchstens
   256 Byte, höchstens 32 Ebenen. Ein längerer Name bleibt weg; eine Überschreitung setzt `abgeschnitten`.
 - **Regel der Namen.** Enthält ein Name `token`, `secret`, `key`, `session` oder `credential` (ohne Groß- und Kleinschreibung,
@@ -579,21 +605,28 @@ das Feld; `werkbank-pruefen` soll ein gesetztes Feld als Befund melden (OPEN 24)
   Zeile keine Namen und trägt die Form `geheimnis`.
 - **Zeile.** Genau eine Zeile im Journal (stderr der Einheit): `halter.antwortform: ` und das kanonische JSON-Objekt (RFC 8785)
   mit genau `abgeschnitten` (bool), `form` (`json`, `kein_json`, `zu_gross` oder `geheimnis`), `methode`, `namen` (Liste),
-  `pfad` (das Feld `pfad` der Anfrage), `status` (HTTP-Status des Ziels), `ziel` (Name aus `halter.json`) und `zu` (bool). Nie
-  `abfrage`, ein Kopf, ein Wert, `id`, `lauf` oder eine Person. Ein Zeilenumbruch in einem Namen ist im JSON maskiert; die Zeile
+  `pfad` (das Feld `pfad` der Anfrage), `status` (HTTP-Status des Ziels), `wert_verworfen` (Zahl, Punkt „Werte“), `werte`
+  (Objekt mit genau `data[].id`, einer Liste, und `error.code`, Text oder `null`), `ziel` (Name aus `halter.json`) und `zu`
+  (bool). Nie `abfrage`, ein Kopf, ein Wert außer nach Punkt „Werte“, `id`, `lauf` oder eine Person. Ein Zeilenumbruch in einem Namen ist im JSON maskiert; die Zeile
   bleibt eine Zeile. Die Zeile steht nicht in der Kette; es gibt keine neue Art im Register von Vertrag 5.
 
 ```
-halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["access_token","data","data[].id"],"pfad":"/auto","status":200,"ziel":"api.individual.githubcopilot.com","zu":true}
+halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["access_token","data","data[].id"],"pfad":"/auto","status":200,"wert_verworfen":0,"werte":{"data[].id":[],"error.code":null},"ziel":"api.individual.githubcopilot.com","zu":true}
+halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"GET","namen":["data","data[].id","data[].name","object"],"pfad":"/models","status":200,"wert_verworfen":1,"werte":{"data[].id":["claude-sonnet-5.5","gpt-6-luna"],"error.code":null},"ziel":"api.individual.githubcopilot.com","zu":false}
+halter.antwortform: {"abgeschnitten":false,"form":"json","methode":"POST","namen":["error","error.code","error.message"],"pfad":"/chat/completions","status":400,"wert_verworfen":0,"werte":{"data[].id":[],"error.code":"model_not_supported"},"ziel":"api.individual.githubcopilot.com","zu":false}
 ```
 
 Fälle der Form `konfig`: `k-gut-erststart-antwortform` (gültig, auch ein Pfad im Teilbaum von `pfade`), Gegenproben
 `k-erststart-antwortform-ungedeckt` (`POST /auto` ohne Regel in `pfade`), `-teilbaum`, `-leer`, `-doppelt`, `-neun` und
 `-server` (je `halter.konfig`). Tests im Bau: `antwortform::tests` (Namen ohne Werte mit Markenwert als Gegenprobe, jedes Wort
-in jeder Schreibweise, Grenzen genau und um eins darüber, gehaltenes Geheimnis als Name, Zeilenumbruch im Namen),
+in jeder Schreibweise, Grenzen genau und um eins darüber, gehaltenes Geheimnis als Name, Zeilenumbruch im Namen; zu den Werten:
+echte Modellnamen, ein anderes Feld ohne Wert, falsche Form mit 64 und 65 Byte, tokenähnlich vor dem Wortmuster je Regel, ein
+`error.code`, die Grenze 200 und 201, ohne Form `json` kein Wert),
 `konfig::tests::erststart_antwortform_nur_genau_und_gedeckt`, `tests/dienst.rs` `antwortform_nennt_die_namen_ohne_werte` (die Antwort
 kommt unverändert an, die Zeile nennt `access_token`, `data`, `data[].id` und `"zu":true`, der Markenwert steht weder in der
-Zeile noch in der Kette) und `ohne_schalter_keine_antwortform` (dieselbe Antwort ohne Schalter: keine Zeile). Das Fallformat kennt
+Zeile noch in der Kette), `antwortform_nennt_modellnamen_und_fehlercode` (Modellnamen aus `GET /models` und `error.code` aus einer
+Antwort mit Status 400, kein Wert eines anderen Felds, kein Wert in der Kette), `ohne_schalter_keine_antwortform` (dieselbe
+Antwort ohne Schalter: keine Zeile) und `ohne_schalter_keine_modellnamen` (`GET /models` ohne Schalter: keine Zeile). Das Fallformat kennt
 keine Antwort des Ziels; die Zeile prüft darum nur der Bau.
 
 ### `schluessel.vorhanden`
@@ -895,7 +928,8 @@ Schein ist der Schein dann verbraucht. Client-seitig gibt es dazu `halter.dienst
   Erweiterungskopf; eine komprimierte Antwort endet mit `halter.ziel_komprimiert` (Stufe 28a), bevor ein Byte davon
   hinausgeht.
 - Der Halter schreibt keine Argumente, Vorschauen, Körper oder Antworten ins Protokoll. Die Diagnose des Erststarts
-  (Abschnitt 4, „Antwortform im Erststart“) schreibt nur Feldnamen ins Journal, nie Werte, und nur hinter ihrem Schalter.
+  (Abschnitt 4, „Antwortform im Erststart“) schreibt nur Feldnamen ins Journal und Werte nur von `data[].id` aus `GET /models`
+  und `error.code` einer Fehlerantwort in Wortform, nie tokenähnlich, und nur hinter ihrem Schalter.
 - Der Halter setzt nie eine Umgebungsvariable für einen Prozess der Person.
 
 ## 9. Protokoll des Halters
