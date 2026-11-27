@@ -30,8 +30,9 @@ use std::process::Command;
 
 use crate::beschreibung::{
     Beschreibung, COPILOT_PLATZHALTER, Cloud, DATEI_ZIELE, GAST_MODELL_SOCKET, GAST_SUCH_SOCKET,
-    GAST_WEITER, HARNESS_COPILOT, HARNESS_PI, LOKAL_PORT, ORDNERMARKE_PFAD, PI_UMGEBUNG,
-    WEITER_PORT, gespraech_ort,
+    GAST_WEITER, HARNESS_COPILOT, HARNESS_OPENCODE, HARNESS_PI, LOKAL_PORT, OPENCODE_ORDNER,
+    OPENCODE_UMGEBUNG, OPENCODE_ZUSTAND, ORDNERMARKE_PFAD, PI_UMGEBUNG, WEITER_PORT, gespraech_ort,
+    opencode_ordner,
 };
 use crate::fehler::Fehler;
 use crate::pfad::{gast_pfad, innerhalb, normal, ueberlappt};
@@ -189,9 +190,11 @@ const EINBINDUNGEN: [&str; 7] = [
 ];
 
 /// The variables the profile may set, and no others (the allow list of the environment). The first five are the
-/// fixed base; the next four belong to the cloud harness and are set only with a [`Cloud`]; the last two belong to
-/// the harness [`HARNESS_PI`] only, with the fixed values of [`PI_UMGEBUNG`].
-const ERLAUBTE_VARIABLEN: [&str; 11] = [
+/// fixed base; the next four belong to the cloud harness and are set only with a [`Cloud`]; the next two belong to
+/// the harness [`HARNESS_PI`] only, with the fixed values of [`PI_UMGEBUNG`]; the last twelve belong to the harness
+/// [`HARNESS_OPENCODE`] only, with the fixed values of [`OPENCODE_UMGEBUNG`] and the folders of [`OPENCODE_ORDNER`]
+/// below the home.
+const ERLAUBTE_VARIABLEN: [&str; 23] = [
     "HOME",
     "PATH",
     "TERM",
@@ -203,6 +206,18 @@ const ERLAUBTE_VARIABLEN: [&str; 11] = [
     "COPILOT_MASCOT_BLINK",
     "PI_OFFLINE",
     "PI_TELEMETRY",
+    "OPENCODE_DISABLE_AUTOUPDATE",
+    "OPENCODE_DISABLE_MODELS_FETCH",
+    "OPENCODE_DISABLE_LSP_DOWNLOAD",
+    "OPENCODE_DISABLE_PROJECT_CONFIG",
+    "OPENCODE_PURE",
+    "OPENCODE_DISABLE_CLAUDE_CODE",
+    "OPENCODE_DISABLE_EXTERNAL_SKILLS",
+    "OPENCODE_DB",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME",
+    "XDG_STATE_HOME",
+    "XDG_CACHE_HOME",
 ];
 
 /// The value of `HTTPS_PROXY` of the cloud harness: the forwarder on the own loopback.
@@ -318,6 +333,10 @@ fn felder_pruefen(b: &Beschreibung) -> Result<(), Fehler> {
     let name = &b.zustand.name;
     if !text_ok(name) || name == "." || name == ".." || name.contains('/') || name.len() > 255 {
         return Err(ungueltig("zustand.name"));
+    }
+    // the XDG folders of opencode lie below this one name; another name would leave them outside the state folder
+    if b.harness == HARNESS_OPENCODE && name != OPENCODE_ZUSTAND {
+        return Err(ungueltig("zustand.name (opencode has a fixed one)"));
     }
     match &b.zustand.gespraech {
         Some(g) if !normal(g) => return Err(ungueltig("zustand.gespraech")),
@@ -651,6 +670,17 @@ fn umgebung_setzen(k: &mut Vec<String>, b: &Beschreibung) {
             zeichen(k, &["--setenv", name, wert]);
         }
     }
+    if b.harness == HARNESS_OPENCODE {
+        for (name, wert) in OPENCODE_UMGEBUNG {
+            zeichen(k, &["--setenv", name, wert]);
+        }
+        for (name, ordner) in OPENCODE_ORDNER {
+            zeichen(
+                k,
+                &["--setenv", name, &text(&opencode_ordner(&b.heim, ordner))],
+            );
+        }
+    }
     if b.cloud.is_some() {
         let proxy = proxy_wert();
         for (name, wert) in [
@@ -666,9 +696,14 @@ fn umgebung_setzen(k: &mut Vec<String>, b: &Beschreibung) {
 
 /// The environment as text: every `--setenv` names a variable of the allow list, and the cloud variables carry their
 /// fixed values (the placeholder, never a token). The bus, the runtime folder and the certificate paths of the host
-/// are not on the list, so none of them can be set.
+/// are not on the list, so none of them can be set. The variables of `opencode` belong to that harness only; the XDG
+/// folders are the ones below the `HOME` the profile sets, so none of them can point at a folder of the host.
 pub(crate) fn umgebung_pruefen(kopf: &[String], harness: &str) -> Result<(), Fehler> {
     let proxy = proxy_wert();
+    let heim = kopf
+        .windows(3)
+        .find(|w| w[0] == "--setenv" && w[1] == "HOME")
+        .map(|w| PathBuf::from(&w[2]));
     for (i, option) in kopf.iter().enumerate() {
         if option != "--setenv" {
             continue;
@@ -683,8 +718,23 @@ pub(crate) fn umgebung_pruefen(kopf: &[String], harness: &str) -> Result<(), Feh
         if pi.is_some() && harness != HARNESS_PI {
             return Err(Fehler::Verboten("variable of another harness"));
         }
+        let oc = OPENCODE_UMGEBUNG.iter().find(|(n, _)| n == name);
+        let oc_ordner = OPENCODE_ORDNER.iter().find(|(n, _)| n == name);
+        if (oc.is_some() || oc_ordner.is_some()) && harness != HARNESS_OPENCODE {
+            return Err(Fehler::Verboten("variable of another harness"));
+        }
+        if let Some((_, ordner)) = oc_ordner {
+            let soll = heim.as_deref().map(|h| text(&opencode_ordner(h, ordner)));
+            if soll.as_deref() != Some(wert.as_str()) {
+                return Err(Fehler::Verboten(
+                    "folder of opencode outside its state folder",
+                ));
+            }
+            continue;
+        }
         let soll = match name.as_str() {
             _ if pi.is_some() => pi.map(|(_, w)| *w),
+            _ if oc.is_some() => oc.map(|(_, w)| *w),
             "COPILOT_GITHUB_TOKEN" => Some(COPILOT_PLATZHALTER),
             "HTTPS_PROXY" => Some(proxy.as_str()),
             "COPILOT_AUTO_UPDATE" => Some("false"),

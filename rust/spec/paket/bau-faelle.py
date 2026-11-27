@@ -1244,6 +1244,11 @@ fall_lauf("pi-nvm", "pi unter einer nvm-Installation des Nutzers: die Paketwurze
           harness={"pi": PI_NPM})
 fall_lauf("copilot-usr-local", "Copilot unter /usr/local: nichts unter /usr braucht einen Programmordner, PATH bleibt fest", harness={"copilot": COPILOT_NPM})
 fall_lauf("beide-harness", "beide Harness gefunden: beide Einträge, Programmordner ohne Doppel, Reihenfolge copilot, pi", harness={"copilot": COPILOT_NPM, "pi": PI_NPM})
+OPENCODE_NPM = {"programm": "/srv/beispiel/heim/nutzer1/.npm-global/lib/node_modules/opencode-ai/bin/opencode.exe", "node": None}
+fall_lauf("opencode-npm", "opencode (eigenes Programm ohne node) unter dem npm-Prefix <heim>/.npm-global: die Paketwurzel opencode-ai ist der Programmordner, PATH bleibt fest",
+          harness={"opencode": OPENCODE_NPM})
+fall_lauf("drei-harness", "alle drei Harness gefunden: drei Einträge in der Reihenfolge copilot, pi, opencode, Programmordner ohne Doppel",
+          harness={"copilot": COPILOT_NPM, "pi": PI_NPM, "opencode": OPENCODE_NPM})
 fall_lauf("harness-einzelprogramm", "ein Harness als einzelnes Programm außerhalb von /usr ohne node: sein Ordner ist der Programmordner",
           harness={"pi": {"programm": "/opt/pi/bin/pi", "node": None}})
 fall_lauf("ordner-genestet", "Paketwurzel von pi und bin-Ordner von node (mit copilot) liegen nebeneinander, keiner im anderen: beide bleiben (vorher: ein Präfix umfasste beide)",

@@ -221,12 +221,14 @@ fn ohne_meldung(a: &[String]) -> Vec<String> {
 
 /// `lauf <argv des Kindes ...>` (DI12 point 9): the fixed child of the sessions that `Starten` starts; `argv` is `[program, start.json]`.
 /// What it does after `BEREIT` and the start byte is chosen by the plan in the environment (`KIND_PLAN`, a JSON object from the
-/// identifier in the `start.json` to an entry, `"*"` for all): `bericht` (the default), `marke`, `eingabe`, `ende`, `warte`,
+/// identifier in the `start.json` to an entry, `"*"` for all): `bericht` (the default), `marke`, `eingabe`, `ende`, `melden`, `warte`,
 /// `groesse`.
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)] // the plan holds small whole numbers; the range is checked
 fn lauf_kind(a: &[String]) -> i32 {
     // section 18: the service gives `--meldung <pfad>` before the start file; this check program has nothing to report and
     // leaves the pair out, so that what it reports of its arguments is that of the program without the report
+    let meldung =
+        (a.get(1).map(String::as_str) == Some("--meldung")).then(|| text(a, 2).to_owned());
     let a = &ohne_meldung(a);
     let roh = std::fs::read(text(a, 1)).unwrap_or_default();
     let start: Option<serde_json::Value> = serde_json::from_slice(&roh).ok();
@@ -287,6 +289,7 @@ fn lauf_kind(a: &[String]) -> i32 {
                 0
             };
         }
+        "melden" => return melden(meldung.as_deref(), &p),
         "scheitern" => return scheitern(a),
         "raeumen" => return raeumen(a, &p),
         "warte" => {
@@ -305,6 +308,28 @@ fn lauf_kind(a: &[String]) -> i32 {
         _ => {}
     }
     0
+}
+
+/// The plan `melden` (DI-L3 point 2, Nachtrag 27.11.2026): the child plays `lauf` that ends with its own reason before the harness. It
+/// writes the line `<code> <grund>\n` (section 18) to the report socket of the session, closes it and ends with `code` (1 to 255, else 1).
+/// Without the socket it writes nothing and ends with `code` as well.
+fn melden(pfad: Option<&str>, p: &serde_json::Value) -> i32 {
+    let code = p
+        .get("code")
+        .and_then(serde_json::Value::as_u64)
+        .and_then(|c| u8::try_from(c).ok())
+        .filter(|c| *c != 0)
+        .unwrap_or(1);
+    let grund = p
+        .get("grund")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("lauf.fehler");
+    if let Some(pfad) = pfad
+        && let Ok(mut s) = crate::sys::UnixStream::connect(pfad)
+    {
+        let _ = s.write_all(format!("{code} {grund}\n").as_bytes());
+    }
+    i32::from(code)
 }
 
 /// The plan `scheitern` (DI12 point 12): the child writes the files of the session and ends with 78.

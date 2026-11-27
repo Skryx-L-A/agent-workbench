@@ -32,6 +32,7 @@ use crate::bereit::Bereitschaft;
 use crate::betrachter::{Betrachter, json_rahmen};
 use crate::fehler::StartFehler;
 use crate::json::{ereignis_lesen, unhex};
+use crate::lokal::{Lokal, Neu, Wer};
 use crate::meldung::{Meldung, SOCKET_NAME};
 use crate::rahmen::{
     A_ABLEHNUNG, A_EREIGNIS, A_FEHLER, A_KERNFEHLER, A_NACHRICHT, A_RASTER, A_STUMM, A_UHR,
@@ -50,22 +51,8 @@ use crate::starten::{
 use crate::sys::{Ordner, UnixListener, UnixStream};
 use crate::verwaltung::worker_form;
 use crate::waisen::{Waisen, kinder_verwerfen, start_verwerfen};
-
-/// The kinds of event a viewer may give (DI3): the lines `Ansicht` of `VT` section 4 without `Verbinden` and `Trennen`.
-const ERLAUBT: [&str; 12] = [
-    "Abo",
-    "Groesse",
-    "Text",
-    "Taste",
-    "Einfuegen",
-    "Antwort",
-    "Freigabe",
-    "RouteWaehlen",
-    "EinstellungSetzen",
-    "RaumWechsel",
-    "OrdnerLesen",
-    "InhaltSuchen",
-];
+use crate::weck::{Botschaft, Post};
+use crate::weiche::{self, Urteil, Verbindungsart, Weg};
 
 /// How long the loop waits when nothing happens.
 const TAKT: Duration = Duration::from_millis(2);
@@ -80,6 +67,9 @@ const SCHLUESSEL_WECK: u64 = 0;
 const SCHLUESSEL_HOERER: u64 = u64::MAX;
 /// How many bytes the loop reads from one connection in one turn.
 const LESE_GROESSE: usize = 65536;
+/// The fields an event never has (DI3 and DI-L11 point 7): `t` and `betrachter` belong to the service, and an account comes only
+/// from the measured peer of the local way, never from the view. Each is the error `feld_verboten`, on both ways.
+const VERBOTEN: [&str; 7] = ["t", "betrachter", "konto", "wer", "person", "uid", "sid"];
 
 /// An event that waits for its step: the event, who gave it (for a rejection) and the index of the core.
 type Arbeit = (Value, Option<u64>, usize);
@@ -247,6 +237,10 @@ pub struct Dienst {
     bereit: Bereitschaft,
     /// The write end, for the handles of [`Anhalter`].
     weck_schreib: Arc<UnixStream>,
+    /// The messages of the threads behind the wake socket (`weck.rs`).
+    post: Post,
+    /// The local way (DI-L11), if the start file has `lokal`.
+    lokal: Option<Lokal>,
     halt: Arc<AtomicBool>,
     runden: Arc<AtomicU64>,
     /// The cores in the order of their start: the room core first (only with `lauf`), then the session of `kind` (number 0), then
@@ -370,42 +364,15 @@ impl Dienst {
                 return Err(f);
             }
         };
-        let hoerer = match socket_binden(Path::new(&cfg.pfad), wurzel.as_fd()) {
-            Ok(h) => h,
+        let Anschluss {
+            hoerer,
+            bereit,
+            post,
+            weck_schreib,
+            lokal,
+        } = match anschliessen(&cfg, &wurzel) {
+            Ok(a) => a,
             Err(f) => {
-                start_verwerfen(Self::kinder_nehmen(&mut sitzungen));
-                return Err(f);
-            }
-        };
-        if let Err(e) = hoerer.set_nonblocking(true) {
-            drop(hoerer);
-            crate::loeschen::datei_entfernen(wurzel.as_fd(), &cfg.name);
-            start_verwerfen(Self::kinder_nehmen(&mut sitzungen));
-            return Err(StartFehler::neu(1, &format!("nonblocking: {}", e.kind())));
-        }
-        let (weck_lese, weck_schreib) = match weckpaar() {
-            Ok(paar) => paar,
-            Err(e) => {
-                drop(hoerer);
-                crate::loeschen::datei_entfernen(wurzel.as_fd(), &cfg.name);
-                start_verwerfen(Self::kinder_nehmen(&mut sitzungen));
-                return Err(StartFehler::neu(1, &format!("wake socket: {}", e.kind())));
-            }
-        };
-        let bereit = Bereitschaft::neu()
-            .and_then(|mut b| {
-                b.hinzu(&weck_lese, SCHLUESSEL_WECK)?;
-                b.hinzu(&hoerer, SCHLUESSEL_HOERER)?;
-                Ok(b)
-            })
-            .map_err(|e| {
-                crate::loeschen::datei_entfernen(wurzel.as_fd(), &cfg.name);
-                StartFehler::neu(1, &format!("poll: {}", e.kind()))
-            });
-        let bereit = match bereit {
-            Ok(b) => b,
-            Err(f) => {
-                drop(hoerer);
                 start_verwerfen(Self::kinder_nehmen(&mut sitzungen));
                 return Err(f);
             }
@@ -420,7 +387,9 @@ impl Dienst {
             cfg,
             hoerer: Some(hoerer),
             bereit,
-            weck_schreib: Arc::new(weck_schreib),
+            weck_schreib,
+            post,
+            lokal,
             halt: Arc::new(AtomicBool::new(false)),
             runden: Arc::new(AtomicU64::new(0)),
             sitzungen,
@@ -591,7 +560,11 @@ impl Dienst {
             // the keys that are ready in the order of their readiness (a viewer number, or the key of the wake socket or the
             // listener, which no viewer has: `lesen_von` ignores it, the listener is accepted from below)
             for nr in self.bereit.warten(frist) {
-                self.lesen_von(nr, &mut puffer);
+                if nr == SCHLUESSEL_WECK {
+                    self.post_abholen();
+                } else {
+                    self.lesen_von(nr, &mut puffer);
+                }
             }
             self.annehmen();
             self.meldungen_abfragen();
@@ -608,6 +581,15 @@ impl Dienst {
         }
         self.aufraeumen();
         0
+    }
+
+    /// The messages of the threads (`weck.rs`), each handed on by its kind.
+    fn post_abholen(&mut self) {
+        for botschaft in self.post.abholen() {
+            match botschaft {
+                Botschaft::Lokal(neu) => self.lokal_aufnehmen(neu),
+            }
+        }
     }
 
     /// Reads once from the connection `nr` and handles what came; the end of the connection ends the viewer. What comes on a
@@ -860,12 +842,17 @@ impl Dienst {
         };
         // section 18: the code of the end is the one of the report when `lauf` gave one; the core gets the same code
         let mut gemeldet = None;
+        // DI-L3 point 2 (Nachtrag 27.11.2026): the old session of a continued one that `lauf` ended before its child
+        let mut frei_von = None;
         match x {
             Ereignis::Invers { an, .. } => s.invers = *an,
             Ereignis::KlammerPaste { an } => s.bracketed_paste = *an,
             Ereignis::Kindende { code } => {
                 let code = s.ende_auswerten(*code);
                 gemeldet = Some(Ereignis::Kindende { code });
+                if s.lauf_endete_vor_dem_kind() {
+                    frei_von.clone_from(&s.angaben.fortsetzung_von);
+                }
                 s.kind_ende = Some(code);
                 s.angaben.ende = Some(if s.angaben.beendet_von_uns {
                     crate::verwaltung::EndeArt::Beenden
@@ -886,6 +873,7 @@ impl Dienst {
         }
         let x = gemeldet.as_ref().unwrap_or(x);
         let sid = s.sid.clone();
+        self.fortsetzung_freigeben(frei_von.as_deref(), sid.as_deref());
         let mut e = x.zu_json();
         e["t"] = json!(self.jetzt());
         e["sitzung"] = json!(sid);
@@ -893,6 +881,21 @@ impl Dienst {
         if matches!(x, Ereignis::Kindende { .. }) && self.cfg.lauf.is_some() {
             self.beendete_begrenzen(k);
             self.liste_und_agenten();
+        }
+    }
+
+    /// DI-L3 point 2 (Nachtrag 27.11.2026): the session `neu` continued `alt` and ended with a reason of `lauf` before any child ran,
+    /// so the conversation is still that of `alt`. `alt` loses `fortgesetzt_als` (in the list and, with the next list, in the Bestand)
+    /// and can be continued again; `fortsetzung_von` of `neu` stays. Only when `alt` names exactly `neu`.
+    fn fortsetzung_freigeben(&mut self, alt: Option<&str>, neu: Option<&str>) {
+        let (Some(alt), Some(neu)) = (alt, neu) else {
+            return;
+        };
+        if let Some(v) = self.finde(alt) {
+            let a = &mut self.sitzungen[v].angaben;
+            if a.fortgesetzt_als.as_deref() == Some(neu) {
+                a.fortgesetzt_als = None;
+            }
         }
     }
 
@@ -1005,7 +1008,7 @@ impl Dienst {
                 continue;
             }
             let abo = sid.as_ref().and_then(|sid| b.abos.get(sid).copied());
-            let ev = self.verbinden_ereignis(t, &b.name);
+            let ev = self.verbinden_ereignis(t, nr);
             self.ereignis(idx, ev, None);
             if let (Some((spalten, zeilen)), Some(sid)) = (abo, &sid) {
                 let name = format!("b{nr}");
@@ -1018,10 +1021,17 @@ impl Dienst {
         self.neubau_tiefe -= 1;
     }
 
-    /// The event `Verbinden` of a viewer: the person, room and view of the start file are the only identity (DI4).
-    fn verbinden_ereignis(&self, t: i64, name: &str) -> Value {
-        json!({"t": t, "art": "Verbinden", "betrachter": name, "person": self.cfg.person,
-               "raum": self.cfg.raum, "ansicht": self.cfg.ansicht})
+    /// The event `Verbinden` of the viewer `nr`: the person and room of the start file are the only identity (DI4). The view is the
+    /// one of the start file, for a connection of the local way `fenster` (DI-L11 point 2).
+    fn verbinden_ereignis(&self, t: i64, nr: u64) -> Value {
+        let lokal = self.betrachter.get(&nr).is_some_and(|b| b.wer.is_some());
+        let ansicht = if lokal {
+            "fenster"
+        } else {
+            self.cfg.ansicht.as_str()
+        };
+        json!({"t": t, "art": "Verbinden", "betrachter": format!("b{nr}"), "person": self.cfg.person,
+               "raum": self.cfg.raum, "ansicht": ansicht})
     }
 
     // ---------------------------------------------------------------------------------------------- viewers (DI4)
@@ -1040,20 +1050,49 @@ impl Dienst {
             if strom.set_nonblocking(true).is_err() {
                 continue;
             }
-            self.folge += 1;
-            let nr = self.folge;
-            if self.bereit.hinzu(&strom, nr).is_err() {
-                continue;
-            }
-            let b = Betrachter::neu(nr, strom, self.cfg.deflate);
-            let name = b.name.clone();
-            self.betrachter.insert(b.nr, b);
-            let t = self.jetzt();
-            let e = self.verbinden_ereignis(t, &name);
-            self.an_alle_kerne(&e);
-            // the last message of the connect set (DI12 point 10)
-            self.startwahl_senden(Some(nr), false);
+            self.betrachter_aufnehmen(strom, None);
         }
+    }
+
+    /// A connection of the local way (DI-L11): its peer is measured and checked, `wer` is fixed. From here on it is a viewer like a
+    /// connection of `dienst.sock`, with the next number of the same count.
+    fn lokal_aufnehmen(&mut self, neu: Neu) {
+        if self.lokal.is_none() {
+            return;
+        }
+        self.betrachter_aufnehmen(neu.strom, Some(neu.wer));
+    }
+
+    /// A new viewer `b<n>` on the non-blocking stream `strom`; `wer` only for the local way. The cores get `Verbinden`, the viewer
+    /// the messages of the connect set.
+    fn betrachter_aufnehmen(&mut self, strom: UnixStream, wer: Option<Wer>) {
+        self.folge += 1;
+        let nr = self.folge;
+        if self.bereit.hinzu(&strom, nr).is_err() {
+            return;
+        }
+        let mut b = Betrachter::neu(nr, strom, self.cfg.deflate);
+        let weg = if wer.is_some() {
+            Weg::Lokal
+        } else {
+            Weg::Bruecke
+        };
+        b.wer = wer;
+        let art = Verbindungsart {
+            lauf: self.cfg.lauf.is_some(),
+            weg,
+            stelle: self.cfg.lauf.as_ref().is_some_and(|l| l.stelle.is_some()),
+        };
+        b.art = art;
+        self.betrachter.insert(b.nr, b);
+        // DI-E5 point 2: the list of the events of this connection is its first frame, before the cores get `Verbinden`; it is no
+        // message of a core, so no report `Socket` (no core knows the viewer yet)
+        self.senden(nr, json_rahmen(A_NACHRICHT, &weiche::ereignisliste(art)));
+        let t = self.jetzt();
+        let e = self.verbinden_ereignis(t, nr);
+        self.an_alle_kerne(&e);
+        // the last message of the connect set (DI12 point 10)
+        self.startwahl_senden(Some(nr), false);
     }
 
     /// The sockets of the reports of `lauf` (section 18): accepts the one connection and reads what came, without blocking.
@@ -1307,7 +1346,7 @@ impl Dienst {
                 if self.cfg.pruefmodus {
                     self.pruef_rahmen(nr, art, nutzlast);
                 } else {
-                    self.fehler(nr, "art_nicht_erlaubt");
+                    self.fehler(nr, weiche::NICHT_ERLAUBT);
                 }
             }
             _ => self.fehler(nr, "art_unbekannt"),
@@ -1348,18 +1387,23 @@ impl Dienst {
         let Some(art) = objekt.get("art").and_then(Value::as_str) else {
             return self.fehler(nr, "ereignis_ungueltig");
         };
-        let lauf = self.cfg.lauf.is_some();
-        let eigene = lauf
-            && matches!(
-                art,
-                "Starten" | "Beenden" | "Umbenennen" | "Fortsetzen" | "Wiederbeleben" | "Loeschen"
-            );
-        if !eigene && !ERLAUBT.contains(&art) {
-            return self.fehler(nr, "art_nicht_erlaubt");
+        let Some(verbindung) = self.betrachter.get(&nr).map(|b| b.art) else {
+            return;
+        };
+        // DI-E5 point 4: the first step of the switch is the check of the kind of DI3, its fixed refusals come right after
+        // `feld_verboten`
+        let urteil = weiche::weiche(art, verbindung);
+        if let Urteil::Fehler(code) = urteil {
+            return self.fehler(nr, code);
         }
-        if objekt.contains_key("t") || objekt.contains_key("betrachter") {
+        if VERBOTEN.iter().any(|k| objekt.contains_key(*k)) {
             return self.fehler(nr, "feld_verboten");
         }
+        if let Urteil::Ablehnung(grund) = urteil {
+            return self.ablehnen(nr, &json!({"grund": grund}));
+        }
+        let lauf = self.cfg.lauf.is_some();
+        let eigene = lauf && weiche::im_lauf(art);
         let art = art.to_owned();
         if arbeitsordner::ist_eigen(&art) {
             self.arbeitsordner_ereignis(nr, objekt);
@@ -1397,9 +1441,6 @@ impl Dienst {
             return;
         }
         let k = if lauf {
-            if matches!(art.as_str(), "RaumWechsel" | "EinstellungSetzen") {
-                return self.ablehnen(nr, &json!({"grund": "nicht_im_lauf"}));
-            }
             match e
                 .get("sitzung")
                 .and_then(Value::as_str)
@@ -1748,8 +1789,7 @@ impl Dienst {
         let t = self.jetzt();
         let nummern: Vec<u64> = self.betrachter.keys().copied().collect();
         for b in &nummern {
-            let name = format!("b{b}");
-            let e = self.verbinden_ereignis(t, &name);
+            let e = self.verbinden_ereignis(t, *b);
             self.ereignis(k, e, None);
         }
         // first the list to everyone (with `Agenten` behind it when the workers changed, DI-L1 point 4), then `Gestartet` to the
@@ -1893,7 +1933,7 @@ impl Dienst {
             _ => {
                 // with `lauf` the frame is not allowed (DI12 point 7); the rebuild per session stays a duty of the service
                 if self.cfg.lauf.is_some() {
-                    return self.fehler(nr, "art_nicht_erlaubt");
+                    return self.fehler(nr, weiche::NICHT_ERLAUBT);
                 }
                 self.kern_neu(0);
             }
@@ -1950,10 +1990,12 @@ impl Dienst {
             .betrachter
             .values()
             .map(|b| {
-                (
-                    b.name.clone(),
-                    json!({"warteschlange": b.laenge, "stumm": b.stumm}),
-                )
+                let mut eintrag = json!({"warteschlange": b.laenge, "stumm": b.stumm});
+                // DI-L11 point 4: only here, in the answer of the test mode, the account of a connection of the local way
+                if let Some(wer) = &b.wer {
+                    eintrag["wer"] = wer.json();
+                }
+                (b.name.clone(), eintrag)
             })
             .collect();
         let kernbau: u32 = self.sitzungen.iter().map(|s| s.kernbau).sum();
@@ -2019,6 +2061,7 @@ impl Dienst {
             crate::loeschen::datei_entfernen(self.wurzel.as_fd(), &self.cfg.name);
             self.socket_da = false;
         }
+        lokal_entfernen(&self.wurzel, self.lokal.take());
         let sids: Vec<u32> = self
             .sitzungen
             .iter()
@@ -2071,12 +2114,73 @@ fn mit_job(sitzung: Sitzung) -> Result<Sitzung, StartFehler> {
 #[cfg(windows)]
 use crate::sys::mit_job;
 
-/// The wake socket pair of the loop, both ends non-blocking.
-fn weckpaar() -> std::io::Result<(UnixStream, UnixStream)> {
-    let (lese, schreib) = UnixStream::pair()?;
-    lese.set_nonblocking(true)?;
-    schreib.set_nonblocking(true)?;
-    Ok((lese, schreib))
+/// What the start binds after the children: the socket of the bridge, the wake socket, the set the loop waits for and the local way.
+struct Anschluss {
+    hoerer: UnixListener,
+    bereit: Bereitschaft,
+    post: Post,
+    weck_schreib: Arc<UnixStream>,
+    lokal: Option<Lokal>,
+}
+
+/// Binds the local way (DI-L11 point 3), then the socket of the bridge, the wake socket and the set of the loop, and starts the threads
+/// of the local way. The local way comes first, so that a taken name of it leaves no socket of the bridge behind. On every error what
+/// this step made is removed again (the children are the caller's).
+fn anschliessen(cfg: &Startdatei, wurzel: &Ordner) -> Result<Anschluss, StartFehler> {
+    let lokal = match cfg.lokal.as_deref() {
+        None => None,
+        Some(kanal) => Some(Lokal::anlegen(kanal, Path::new(&cfg.ordner))?),
+    };
+    let hoerer = match socket_binden(Path::new(&cfg.pfad), wurzel.as_fd()) {
+        Ok(h) => h,
+        Err(f) => {
+            lokal_entfernen(wurzel, lokal);
+            return Err(f);
+        }
+    };
+    let gebaut = (|| {
+        hoerer
+            .set_nonblocking(true)
+            .map_err(|e| StartFehler::neu(1, &format!("nonblocking: {}", e.kind())))?;
+        let (wecker, post, weck_schreib) = crate::weck::paar()
+            .map_err(|e| StartFehler::neu(1, &format!("wake socket: {}", e.kind())))?;
+        let mut bereit =
+            Bereitschaft::neu().map_err(|e| StartFehler::neu(1, &format!("poll: {}", e.kind())))?;
+        bereit
+            .hinzu(post.strom(), SCHLUESSEL_WECK)
+            .and_then(|()| bereit.hinzu(&hoerer, SCHLUESSEL_HOERER))
+            .map_err(|e| StartFehler::neu(1, &format!("poll: {}", e.kind())))?;
+        if let Some(l) = &lokal {
+            l.starten(&wecker)?;
+        }
+        Ok((bereit, post, weck_schreib))
+    })();
+    match gebaut {
+        Ok((bereit, post, weck_schreib)) => Ok(Anschluss {
+            hoerer,
+            bereit,
+            post,
+            weck_schreib,
+            lokal,
+        }),
+        Err(f) => {
+            drop(hoerer);
+            crate::loeschen::datei_entfernen(wurzel.as_fd(), &cfg.name);
+            lokal_entfernen(wurzel, lokal);
+            Err(f)
+        }
+    }
+}
+
+/// The end of the local way: no thread hands a connection to the loop any more, and the socket file goes (Unix; a pipe under Windows
+/// ends with its handles).
+fn lokal_entfernen(wurzel: &Ordner, lokal: Option<Lokal>) {
+    if let Some(l) = lokal {
+        l.beenden();
+        if let Some(datei) = &l.datei {
+            crate::loeschen::datei_entfernen(wurzel.as_fd(), datei);
+        }
+    }
 }
 
 /// The pids of the own children of `sitzungen` that the carriers have not collected yet ([`Dienst::eigene_kinder`]).

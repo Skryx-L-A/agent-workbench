@@ -9,7 +9,9 @@ use rasterauszug::{Fehler, RAHMEN_MAX, Verbindung};
 use serde_json::Value;
 
 use crate::json;
+use crate::lokal::Wer;
 use crate::rahmen::{A_ABLEHNUNG, A_NACHRICHT, A_ZUSTAND, Eingang, rahmen};
+use crate::weiche::{Verbindungsart, Weg};
 
 /// A connection that the service accepted (DI4). The name is `b<nr>`; `nr` counts from 1 in the order of accepting and is
 /// never given again.
@@ -39,6 +41,12 @@ pub(crate) struct Betrachter {
     pub(crate) schliessen: bool,
     /// The core got `Trennen` for this viewer already (at most once, DI4).
     pub(crate) trennen_gemeldet: bool,
+    /// The account of the other side (DI-L11 point 4): measured once by `peerkanal` before the first frame of a connection of the local
+    /// way, never changed. `None` for a connection of the socket of the bridge, which has no measured peer (DI2 point 8).
+    pub(crate) wer: Option<Wer>,
+    /// What the switch of the events looks at (DI-E5): set once when the service takes the connection, never changed. Until then
+    /// the way of `dienst.sock` without `lauf`.
+    pub(crate) art: Verbindungsart,
 }
 
 /// The sender of the extract of one connection with the bound outward (contract `dienst`, DI3, Nachtrag 23.11.2026): a raster frame
@@ -134,6 +142,12 @@ impl Betrachter {
             stumm: false,
             schliessen: false,
             trennen_gemeldet: false,
+            wer: None,
+            art: Verbindungsart {
+                lauf: false,
+                weg: Weg::Bruecke,
+                stelle: false,
+            },
         }
     }
 

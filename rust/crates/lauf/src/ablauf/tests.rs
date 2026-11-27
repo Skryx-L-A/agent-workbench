@@ -1250,3 +1250,174 @@ fn step_7a_starts_the_model_path_of_each_kind_of_route() {
 fn step_6_takes_the_program_the_place_the_descriptors_and_the_distribution() {
     crate::testhilfe::helfer_gut(KIND_FALL, "einschluss", "3>&-");
 }
+
+/// The world `w` with the harness `opencode` in the own configuration.
+fn welt_opencode(w: &Path) -> PathBuf {
+    let konfig = welt(w);
+    programm_schreiben(&w.join("bin/opencode"), KIND);
+    let text = std::fs::read_to_string(&konfig).expect("configuration");
+    let mit = text.replacen(
+        r#""harness":{"#,
+        &format!(
+            r#""harness":{{"opencode":"{}","#,
+            w.join("bin/opencode").display()
+        ),
+        1,
+    );
+    schreiben(&konfig, &mit, 0o600);
+    konfig
+}
+
+fn start_text_opencode(w: &Path, fortsetzung_von: &str) -> String {
+    start_text_f2(w, fortsetzung_von).replacen(r#""harness":"pi""#, r#""harness":"opencode""#, 1)
+}
+
+#[test]
+fn a_new_start_of_opencode_keeps_its_conversation_without_a_key_and_its_file_with_the_model() {
+    let o = crate::testhilfe::Ordner::neu("opencode-neu");
+    let w = &o.0;
+    let konfig = welt_opencode(w);
+    let start = w.join("start/start.json");
+    schreiben(&start, &start_text_opencode(w, "null"), 0o600);
+    let args = [start.into_os_string()];
+    let lage = pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich()))
+        .unwrap_or_else(|f| panic!("{f:?}"));
+    let umgebung = Umgebung {
+        namen: Vec::new(),
+        term: None,
+        xdg_cache: None,
+    };
+    let mut angelegt = Kinder::default();
+    let b = beschreibung_bauen(
+        &lage,
+        &umgebung,
+        &w.join("laufzeit/s-4"),
+        None,
+        None,
+        None,
+        &mut angelegt,
+    )
+    .expect("description");
+    assert_eq!(b.harness, "opencode");
+    assert_eq!(b.zustand.name, ".opencode-sitzung");
+    assert_eq!(b.zustand.host, w.join("sitzungen/s-4/zustand"));
+    assert_eq!(
+        b.zustand.gespraech,
+        Some(w.join("zustand/gespraeche/s-4/zustand"))
+    );
+    assert!(w.join("zustand/gespraeche/s-4/zustand").is_dir());
+    // no key of a harness session: opencode takes none from outside, and no session option follows
+    let text =
+        std::fs::read_to_string(w.join("zustand/gespraeche/s-4/gespraech.json")).expect("file");
+    assert!(
+        text.contains(r#""harness":"opencode""#) && text.contains(r#""kennung":null"#),
+        "{text}"
+    );
+    assert_eq!(
+        b.argv,
+        [
+            w.join("bin/opencode").display().to_string(),
+            "--model".to_owned(),
+            "wb-lokal/qwen3:8b".to_owned()
+        ]
+    );
+    let datei = &b.dateien[..];
+    assert_eq!(datei.len(), 1);
+    assert_eq!(
+        datei[0].quelle,
+        w.join("sitzungen/s-4/konfig/opencode.json")
+    );
+    assert_eq!(
+        datei[0].ziel,
+        w.join("heim/.opencode-sitzung/config/opencode/opencode.json")
+    );
+    assert_eq!(
+        std::fs::read_to_string(&datei[0].quelle).expect("file"),
+        harness::opencode_konfig("qwen3:8b", None)
+    );
+}
+
+#[test]
+fn opencode_never_continues_a_conversation_and_never_restarts_silently() {
+    for kennung in ["null", r#""6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b""#] {
+        let o = crate::testhilfe::Ordner::neu("opencode-fort");
+        let w = &o.0;
+        let konfig = welt_opencode(w);
+        gespraech_legen(w, "s-1", kennung);
+        let g = w.join("zustand/gespraeche/s-1/gespraech.json");
+        let text = std::fs::read_to_string(&g).expect("file");
+        schreiben(
+            &g,
+            &text.replacen(r#""harness":"pi""#, r#""harness":"opencode""#, 1),
+            0o600,
+        );
+        let start = w.join("start/start.json");
+        schreiben(&start, &start_text_opencode(w, r#""s-1""#), 0o600);
+        let args = [start.into_os_string()];
+        assert_eq!(
+            pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich())).map(|_| ()),
+            Err(Fehler::FortsetzungUnmoeglich),
+            "{kennung}"
+        );
+    }
+}
+
+#[test]
+fn only_a_new_start_of_version_2_of_opencode_keeps_a_conversation_without_a_key() {
+    let umgebung = Umgebung {
+        namen: Vec::new(),
+        term: None,
+        xdg_cache: None,
+    };
+    // version 1 of opencode: no folder of the conversation, no session option (as every start of version 1)
+    let o = crate::testhilfe::Ordner::neu("opencode-f1");
+    let w = &o.0;
+    let konfig = welt_opencode(w);
+    let start = w.join("start/start.json");
+    let f1 = format!(
+        r#"{{"fassung":1,"sitzung":"s-4","harness":"opencode","modell":"qwen3:8b","route":"lokal-beispiel","kunde":"k-beispiel","arbeitsordner":"{}"}}"#,
+        w.join("arbeit").display()
+    );
+    schreiben(&start, &f1, 0o600);
+    let args = [start.into_os_string()];
+    let lage = pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich()))
+        .unwrap_or_else(|f| panic!("{f:?}"));
+    let mut angelegt = Kinder::default();
+    let b = beschreibung_bauen(
+        &lage,
+        &umgebung,
+        &w.join("laufzeit/s-4"),
+        None,
+        None,
+        None,
+        &mut angelegt,
+    )
+    .expect("description");
+    assert_eq!(b.zustand.gespraech, None);
+    assert!(!w.join("zustand/gespraeche/s-4/zustand").exists());
+    assert_eq!(b.argv.len(), 3, "{:?}", b.argv);
+    // version 2 of pi keeps its key and its session option: the branch of opencode is not taken
+    let o = crate::testhilfe::Ordner::neu("pi-f2-kennung");
+    let w = &o.0;
+    let konfig = welt(w);
+    let start = w.join("start/start.json");
+    schreiben(&start, &start_text_f2(w, "null"), 0o600);
+    let args = [start.into_os_string()];
+    let lage = pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich()))
+        .unwrap_or_else(|f| panic!("{f:?}"));
+    let mut angelegt = Kinder::default();
+    let b = beschreibung_bauen(
+        &lage,
+        &umgebung,
+        &w.join("laufzeit/s-4"),
+        None,
+        None,
+        None,
+        &mut angelegt,
+    )
+    .expect("description");
+    assert_eq!(b.argv[b.argv.len() - 2], "--session-id");
+    let text =
+        std::fs::read_to_string(w.join("zustand/gespraeche/s-4/gespraech.json")).expect("file");
+    assert!(!text.contains(r#""kennung":null"#), "{text}");
+}

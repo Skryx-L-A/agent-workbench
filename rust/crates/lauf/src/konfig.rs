@@ -151,7 +151,7 @@ pub fn lesen_text(bytes: &[u8]) -> Option<Konfig> {
     let harness = f.karte("harness")?;
     if harness
         .keys()
-        .any(|h| !matches!(h.as_str(), "claude" | "copilot" | "pi"))
+        .any(|h| !matches!(h.as_str(), "claude" | "copilot" | "pi" | "opencode"))
     {
         return None;
     }

@@ -733,6 +733,8 @@ EFFORTS = {
     "claude": ("low", "medium", "high", "xhigh", "max"),
     "copilot": ("none", "minimal", "low", "medium", "high", "xhigh", "max"),
     "pi": ("off", "minimal", "low", "medium", "high", "xhigh", "max"),
+    # opencode 1.19.5: Wert von options.reasoningEffort am Modell, im Anfragekörper als reasoning_effort (gemessen 27.11.2026)
+    "opencode": ("none", "minimal", "low", "medium", "high", "xhigh", "max"),
 }
 KENNUNG_E = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 MODELL_E = re.compile(r"^[A-Za-z0-9._:/@+-]{1,128}$")
@@ -867,6 +869,12 @@ fall_effort("effort-modell-form", "Modell mit Leerzeichen", eff([{"harness": "co
 fall_effort("effort-harness-unbekannt", "Harness, der nicht in der Harness-Tabelle von Vertrag 1 steht",
              eff([{"harness": "codex", "erlaubt": ["low"]}]), "einst.effort_harness")
 fall_effort("effort-wert-fremd", "none gibt es bei copilot, nicht bei pi", eff([{"harness": "pi", "erlaubt": ["none"]}]),
+             "einst.effort_wert")
+fall_effort("gueltig-effort-opencode", "opencode (Entscheid des Betreibers, 27.11.2026) in kundendaten mit none und high",
+             eff([{"harness": "opencode", "klasse": "kundendaten", "erlaubt": ["none", "high"]}]), None,
+             [(("opencode", "lokal-beispiel", "qwen3:8b"), ["none", "high"]),
+              (("pi", "lokal-beispiel", "qwen3:8b"), [])])
+fall_effort("effort-wert-fremd-opencode", "off gibt es bei pi, nicht bei opencode", eff([{"harness": "opencode", "erlaubt": ["off"]}]),
              "einst.effort_wert")
 fall_effort("effort-wert-gross", "Groß geschrieben", eff([{"harness": "claude", "erlaubt": ["High"]}]), "einst.effort_wert")
 fall_effort("effort-wert-ultra", "ein Wert, den kein Harness kennt", eff([{"harness": "copilot", "erlaubt": ["low", "ultra"]}]),

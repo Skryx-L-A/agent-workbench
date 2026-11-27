@@ -77,6 +77,7 @@ allein ist ungültig. Namen wie `.versteckt` oder `...x` sind gewöhnliche Segme
 | `claude` | Cloud-Harness | nur `cloud` | `claude --model <modell>` | nein, bleibt als Eintrag | `--resume <uuid>` |
 | `copilot` | Cloud-Harness | nur `cloud` | `copilot --model <modell>` (bei `modell` gleich `auto`: `copilot --model auto --auto-tier efficiency`) `--disable-builtin-mcps --additional-mcp-config @<heim>/.copilot/wb-mcp.json` und je Wert aus `harness.copilot.werkzeuge_ohne_rueckfrage` (Vertrag 2) `--allow-tool <wert>` | ja, Cloud-Route | `--resume=<uuid>` |
 | `pi` | lokaler Harness | nur `lokal` | `pi --provider wb-lokal --model <modell>` | ja, lokale Route | `--session <uuid>` |
+| `opencode` | lokaler Harness (Entscheid des Betreibers, 27.11.2026) | nur `lokal` | `opencode --model wb-lokal/<modell>` | ja, lokale Route (Pilot) | keine (Abschnitt „opencode“) |
 
 Ein Cloud-Harness läuft nur mit einer Cloud-Route, ein lokaler Harness nur mit einer lokalen Route. Sonst gilt
 `start.harness_route_unvertraeglich`. Grund: Die Route bestimmt die Klasse, die die Sitzung sehen darf. Ein lokaler
@@ -88,9 +89,10 @@ geprüften Wert aus der Startdatei; es gibt keine Shell und keine weiteren Optio
 Programms nimmt „Lauf starten“ aus seiner eigenen Konfiguration. Der Harness bekommt in seiner Umgebung `TERM`, ein
 festes `PATH` und `HOME` = `<heim>`. `<heim>` ist der Pfad des Heims des Nutzers auf dem Wirt, `heim` der eigenen Konfiguration des
 Programms. Im Einschluss ist `<heim>` ein leeres, privates tmpfs am selben Pfad. Der Zustandsordner der Sitzung liegt darunter und
-heißt je Harness `.pi` (`pi`), `.copilot` (`copilot`) oder `.claude` (`claude`); er ist beim Start leer. Sonst liegt unter `<heim>`
-nur, was der Vertrag nennt: bei `pi` die Datei `.pi/agent/models.json`, bei `copilot` die Datei `.copilot/wb-mcp.json`, beide nur lesend
-eingebunden. Das Heim des Wirts bleibt außerhalb.
+heißt je Harness `.pi` (`pi`), `.copilot` (`copilot`), `.opencode-sitzung` (`opencode`) oder `.claude` (`claude`); er ist beim Start
+leer. Sonst liegt unter `<heim>` nur, was der Vertrag nennt: bei `pi` die Datei `.pi/agent/models.json`, bei `copilot` die Datei
+`.copilot/wb-mcp.json`, bei `opencode` die Datei `.opencode-sitzung/config/opencode/opencode.json`, alle nur lesend eingebunden. Das Heim
+des Wirts bleibt außerhalb.
 
 - **pi** (gemessen: `pi --version` ergibt `1.5.2`; `pi --help` nennt `--provider`, `--model` und
   `PI_CODING_AGENT_DIR`, Vorgabe `~/.pi/agent`). Vor dem exec schreibt das Programm die Anbieter-Definition nach
@@ -106,6 +108,24 @@ eingebunden. Das Heim des Wirts bleibt außerhalb.
   gleich `modell` der Route sein (Stufe 15). `apiKey` ist ein fester Text und kein Schlüssel. Dazu setzt das
   Programm `PI_OFFLINE=1` und `PI_TELEMETRY=0`. Die Feldnamen stammen aus einer vorhandenen pi-Konfiguration auf dem
   Entwicklungsrechner (gelesen, ohne Schlüssel); ein Start damit ist noch nicht gemessen (OPEN 8).
+- **opencode** (Entscheid des Betreibers, 27.11.2026; feste Fassung `opencode-ai` 1.19.5, Programm `opencode-linux-x64` 1.19.5 mit
+  sha256 `7df4e4136301f16589b0f30bf91a61380fca5f8ef22dd36570f5ebe1d4ec802c`; Messung im Abschnitt „opencode: Messung und Startform“).
+  Vor dem exec schreibt das Programm die Konfigurationsdatei nach `<sitzungen>/<sitzung>/konfig/opencode.json`, Modus 0600; der
+  Einschluss bindet sie nur lesend als `<heim>/.opencode-sitzung/config/opencode/opencode.json` ein:
+
+  ```json
+  {"autoupdate": false, "share": "disabled", "model": "wb-lokal/<modell>",
+   "provider": {"wb-lokal": {"npm": "@ai-sdk/openai-compatible", "name": "wb-lokal",
+    "options": {"baseURL": "http://127.0.0.1:11434/v1"},
+    "models": {"<modell>": {"name": "<modell>", "tool_call": true, "options": {"reasoningEffort": "<effort>"}}}}}}
+  ```
+
+  `options` am Modell steht nur, wenn `effort` nicht `null` ist. Einen Schlüssel trägt die Datei nicht; ohne `apiKey` sendet opencode
+  keinen `Authorization`-Kopf (gemessen). `baseURL` ist der Gastpunkt des Modellwegs (E5). Der Starter setzt fest und nur für `opencode`:
+  `OPENCODE_DISABLE_AUTOUPDATE=1`, `OPENCODE_DISABLE_MODELS_FETCH=1`, `OPENCODE_DISABLE_LSP_DOWNLOAD=1`,
+  `OPENCODE_DISABLE_PROJECT_CONFIG=1`, `OPENCODE_PURE=1`, `OPENCODE_DISABLE_CLAUDE_CODE=1`, `OPENCODE_DISABLE_EXTERNAL_SKILLS=1`,
+  `OPENCODE_DB=gespraech/opencode.db` und `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `XDG_STATE_HOME`, `XDG_CACHE_HOME` als
+  `<heim>/.opencode-sitzung/config`, `…/data`, `…/state` und `…/cache`.
 - **copilot** (Schlüsselweg Option (a), Projektentscheid, 20.11.2026; Messung zum Token der Copilot CLI mit 1.0.88, der
   dort eingesetzten Version). Der Starter setzt in der Umgebung des Harness (aus dem Feld `cloud` der Beschreibung, nur wenn es gesetzt ist;
   `einschluss/src/profil.rs:513-522`):
@@ -268,7 +288,9 @@ nicht. In Fassung 1 sind `effort` und `name` unbekannte Schlüssel (`start.schlu
 - Ohne Block `effort` ist jeder Effort außer `null` `start.effort_grenze` (fail closed).
 - **Startform mit Effort.** Ist `effort` nicht `null`, hängt „Lauf starten“ genau ein Paar an den Startbefehl, direkt nach dem Modell:
   `claude --effort <wert>`, `copilot --reasoning-effort <wert>`, `pi --thinking <wert>`. `<wert>` ist ein eigenes argv-Element. Bei
-  `null` kommt keine Option dazu. Das ist aus `--help` hergeleitet (Vertrag 2, Werte je Harness) und nicht mit einem echten Start
+  `null` kommt keine Option dazu. `opencode` bekommt kein Paar: Seine Oberfläche hat keine Option dafür (`opencode --help`, 1.19.5).
+  Der Effort steht dort als `options.reasoningEffort` am Modell in der Konfigurationsdatei (Abschnitt „Startform“, opencode); opencode
+  sendet ihn als `reasoning_effort` (gemessen für alle sieben Werte, auch in der Oberfläche). Das ist aus `--help` hergeleitet (Vertrag 2, Werte je Harness) und nicht mit einem echten Start
   gemessen (OPEN 26). Gebaut am 27.11.2026 (`rust/crates/lauf/src/harness.rs`, `argv`); bei `copilot` mit `auto` steht das Paar vor
   `--auto-tier`. Fälle: `aufruf-f2-neu-pi`, `aufruf-f2-fortsetzen-copilot`, `aufruf-f2-fortsetzen-pi` (mit Effort) und
   `aufruf-f2-fortsetzen-claude` (ohne).
@@ -379,6 +401,7 @@ und Fortsetzen ohne Konto gemessen am 27.11.2026, siehe „Messung von Start und
 | `claude` | 2.1.332 | `--session-id <uuid>` | `--resume <uuid>` | `--session-id <uuid>  Use a specific session ID for the conversation (must be a valid UUID)`; `-r, --resume [value]  Resume a conversation by session ID or name, or pick from a list` |
 | `copilot` | 1.0.116 | `--session-id <uuid>` | `--resume=<uuid>` (ein argv-Element) | `--session-id <id>  Resume an existing session or task by ID, or set the UUID for a new session`; `-r, --resume [<value>]  Resume from a previous session (optionally specify existing session ID, …)`, Beispiel `copilot --resume=<session-id>` |
 | `pi` | 1.6.1 | `--session-id <uuid>` | `--session <uuid>` | `--session-id <id>  Use the current directory's existing session with the ID, creating it otherwise`; `--session <path\|id>  Open a session by file path or full/partial ID` |
+| `opencode` | 1.19.5 | keine | keine | `-s, --session  session id to continue`; `-c, --continue  continue the last session`; keine Option, die eine Kennung vorgibt (Abschnitt „opencode: Messung und Startform“) |
 
 - Die Sitzungsoption steht am Ende des Startbefehls, nach allen Optionen der Harness-Tabelle, nach dem Effort und nach `--allow-tool`.
   Fall `aufruf-f2-fortsetzen-copilot`: `copilot --model claude-sonnet-5.5 --reasoning-effort medium --disable-builtin-mcps
@@ -617,6 +640,7 @@ höchstens bis zum Ende dieser Sitzung.
 | `claude` | `.claude/projects` | `sitzungen/<sitzung>/zustand` an `<heim>/.claude` |
 | `copilot` | `.copilot/session-state` | `sitzungen/<sitzung>/zustand` an `<heim>/.copilot` |
 | `pi` | `.pi/agent/sessions` | `sitzungen/<sitzung>/zustand` an `<heim>/.pi` |
+| `opencode` | `.opencode-sitzung/data/opencode/gespraech` (nur die Datenbank, `OPENCODE_DB`) | `sitzungen/<sitzung>/zustand` an `<heim>/.opencode-sitzung` |
 
 **Messung (27.11.2026, ohne Konto).** Aufbau wie im Abschnitt „Messung von Start und Fortsetzen“: Wegwerf-VM auf dem
 Linux-Baurechner (Ubuntu 26.04.1, Kern 7.0.0-43, frisches Cloud-Abbild, eigene Platte, Drossel 20 Mbit/s), `nft` sperrt jeden neuen
@@ -662,6 +686,45 @@ die Datei der Installation und kann sie nicht schreiben. Unter `.pi/agent` liege
 `agent`. Das Gespräch liegt unter `.pi/agent/sessions` und ist schreibbar. Dazu `rust/crates/lauf/src/ablauf/tests.rs`,
 `continuing_binds_only_the_conversation_and_never_the_settings_of_the_predecessor`, und im Falltest die Prüfungen
 „gespraech aus gespraeche gebunden“ und „zustandsordner aus dem sitzungsordner“ zu jedem Fall mit `zustandsordner_beim_start`.
+
+### opencode: Messung und Startform (Entscheid des Betreibers, 27.11.2026)
+
+**Messung (27.11.2026, ohne Konto).** Wegwerf-VM auf dem Linux-Baurechner (Ubuntu 26.04, frisches Cloud-Abbild, Drossel 20 Mbit/s),
+`nft` sperrt jeden neuen ausgehenden Verkehr außer Loopback (Proben mit `curl` rc 28). Programm aus npm: `opencode-ai@1.19.5` und
+`opencode-linux-x64@1.19.5` (veröffentlicht 2026-10-28), `opencode --version` gibt `1.19.5`. Modell-Attrappe auf Loopback; je Lauf
+die Dateiliste vor und nach dem Start und `strace -f` der Datei-, Prozess- und Verbindungsaufrufe.
+
+- **Ohne Netz.** Mit den drei Schaltern `OPENCODE_DISABLE_AUTOUPDATE`, `OPENCODE_DISABLE_MODELS_FETCH` und `OPENCODE_DISABLE_LSP_DOWNLOAD`
+  antwortet `opencode run` nach 9,1 s; ohne sie erst nach 25,0 s mit der Logzeile `Failed to fetch models.dev`.
+- **Fortsetzen.** `--session <id>` setzt fort, in `run` und in der Oberfläche; eine unbekannte Kennung endet mit rc 1 und `Session not
+  found`, ohne neue Sitzung. Eine Kennung beim ersten Start vorgeben kann opencode nicht. `--continue` legt bei leerer Datenbank still
+  eine neue Sitzung an und nimmt sonst die jüngste. Darum hat `opencode` hier kein Fortsetzen: Ein neuer Start der Fassung 2 legt
+  `gespraeche/<sitzung>/` mit `"kennung": null` und dem Ordner `zustand` an und hängt keine Sitzungsoption an. Das Fortsetzen endet
+  in Schritt 5d mit `lauf.fortsetzung_unmoeglich` (69), nie mit einem stillen Neustart (OPEN 38). Fälle: `aufruf-f2-neu-opencode`,
+  `aufruf-f2-fortsetzen-opencode`.
+- **Gesprächsort.** opencode schreibt ins Datenverzeichnis `opencode.db` (SQLite), `log/`, `repos/` und `snapshot/`. `snapshot/` ist
+  ein Git-Ordner mit eigener `config`; ein dort abgelegtes `core.fsmonitor` lief beim nächsten Start als Befehl. Darum geht nur die
+  Datenbank über: `OPENCODE_DB=gespraech/opencode.db` legt sie in `data/opencode/gespraech/`, und nur dieser Ordner kommt aus
+  `gespraeche/<sitzung>/zustand`. Gemessen: Mit nur diesem Ordner setzt `--session <id>` das Gespräch fort.
+- **Einstellungen im Arbeitsordner.** `opencode.json`, `opencode.jsonc` und `.opencode/opencode.json` lenken ohne Schalter den Endpunkt
+  um, und `.opencode/plugin(s)/` bringt Code. Mit `OPENCODE_DISABLE_PROJECT_CONFIG=1` wirken sie nicht. `<heim>/.opencode/plugin/` bringt
+  Code auch dann; das stellt `OPENCODE_PURE=1` ab. Agenten in `.opencode/agent(s)/` und `.claude/agents/` (Modell, Werkzeuge, Rechte)
+  liest opencode auch mit allen vier Schaltern. Gemessen ändern sie dann weder das Modell (`--model` gilt) noch die Zahl der Werkzeuge,
+  auch nicht gegen `permission` der Installation. Hooks in `.claude/settings.json` liefen in keinem Fall. Text aus `AGENTS.md`,
+  `CLAUDE.md`, Agenten und Skills erreicht das Modell mit den Schaltern nicht (Marke im Anfragekörper fehlt).
+- **Effort.** Der Eintrag `options.reasoningEffort` am Modell erscheint als `reasoning_effort` im Anfragekörper, für `none`, `minimal`,
+  `low`, `medium`, `high`, `xhigh` und `max`.
+- **Kein Schlüssel im Einschluss.** Im Einschluss (bwrap, Heim als tmpfs) findet eine Probe weder in der Umgebung noch in einer Datei
+  den Platzhalter-Schlüssel der Messung; außen findet dieselbe Probe ihn. Über einen Proxy mit eigener Zertifizierungsstelle
+  (`HTTPS_PROXY`, `NODE_EXTRA_CA_CERTS`) erreicht opencode auch ein Cloud-Ziel, während der Schlüssel draußen eingesetzt wird; diese
+  Route ist für `opencode` nicht gebaut (OPEN 39).
+
+**Wirkung im Einschluss (Fälle).** `rust/crates/einschluss/src/profil/tests.rs`:
+`opencode_gets_its_fixed_variables_its_folders_its_file_and_its_conversation`,
+`the_environment_of_opencode_is_refused_with_any_other_value_or_for_another_harness`,
+`opencode_has_one_state_folder_and_one_place_for_its_file`. `rust/crates/lauf/src/ablauf/tests.rs`:
+`a_new_start_of_opencode_keeps_its_conversation_without_a_key_and_its_file_with_the_model`,
+`opencode_never_continues_a_conversation_and_never_restarts_silently`.
 
 Ohne Anmeldung nicht messbar (OPEN 37): copilot endet ohne Konto vor dem ersten Zug (rc 1, „No authentication information found.“);
 mit dem Platzhalter als Schlüssel endet es nach 60 s durch die Frist. Welche Pfade copilot mit Anmeldung zusätzlich liest (etwa eine
@@ -1710,11 +1773,15 @@ Die neuen Felder dieser Fassung:
   `modell_socket`: Ist `modell_socket` `null`, ist `lokal_weiter` `null`. Der Harness läuft dann hinter dem
   Weiterleiter und spricht den Modellweg auf `127.0.0.1:11434` an (Abschnitt „Modellweg je Sitzung“, lokale Route).
 - **`dateien`** ist eine Liste von Objekten `{"quelle": <text>, "ziel": <text>}`. Sie ist Pflicht und darf leer sein.
-  Die Ziele sind fest je Harness: bei `pi` `<heim>/.pi/agent/models.json`, bei `copilot` `<heim>/.copilot/wb-mcp.json`;
+  Die Ziele sind fest je Harness: bei `pi` `<heim>/.pi/agent/models.json`, bei `copilot` `<heim>/.copilot/wb-mcp.json`, bei `opencode`
+  `<heim>/.opencode-sitzung/config/opencode/opencode.json`;
   jedes andere Ziel ist Exit 5. Die Dateien sind **nur lesend** eingebunden. Die Quelle ist eine eigene reguläre Datei
   mit Modus 0600 und ohne Verweis, der außerhalb von Arbeitsordner und Zustandsordner endet; sonst ist es Exit 5.
 - **Umgebung für `pi`:** `PI_OFFLINE=1` und `PI_TELEMETRY=0` setzt der Starter fest und nur für `pi`; für `copilot` und
   `claude` setzt er sie nicht, und kein Feld der Beschreibung ändert sie.
+- **Umgebung für `opencode`:** Die acht festen Variablen und die vier XDG-Ordner aus „Startform“ setzt der Starter nur für `opencode`.
+  Die XDG-Ordner folgen aus `HOME` und liegen unter `<heim>/.opencode-sitzung`; jeder andere Wert ist Exit 5. Der Zustandsordner von
+  `opencode` heißt immer `.opencode-sitzung`.
 - **Umgebung für `copilot`:** Der Starter schreibt `--setenv` für `COPILOT_GITHUB_TOKEN` (Platzhalter), `HTTPS_PROXY`, `COPILOT_AUTO_UPDATE` und `COPILOT_MASCOT_BLINK`, und nur, wenn `cloud` gesetzt ist (`einschluss/src/profil.rs:513-522`).
 - **`paket`** (Nachtrag 21.11.2026) ist `null` oder `{"quelle": <text>, "plattform": "linux-x64"|"linux-arm64", "fassung":
   "<zahl>.<zahl>.<zahl>"}`, nur für den Harness `copilot` (sonst Exit 5). Die Quelle ist der Paketordner im Cache-Ordner
@@ -1826,6 +1893,17 @@ python3 -I rust/spec/start/bau-faelle.py            # Fälle neu erzeugen
 
 27. **Name in der Startdatei.** `lauf` braucht den Namen nicht. Er steht in der Datei, damit Dienst und Liste der Sitzungen (L5) eine
     Quelle haben. Empfehlung: so lassen; der Dienst führt den Namen beim Umbenennen (L3) selbst weiter.
+
+38. **Fortsetzen von opencode (27.11.2026).** opencode 1.19.5 nimmt keine Kennung von außen; `--continue` legt still neu an. Gemessen
+    ist ein Umweg: `opencode import` legt eine Sitzung mit einer gewählten Kennung an (`ses_` und 26 Zeichen), und `--session` setzt
+    sie fort. Ein Fortsetzen damit müsste „Lauf starten“ vor dem Start eine Sitzung importieren, etwa in einem kleinen Einschluss wie
+    beim Vorentpacken der Copilot CLI. Bis zu einem Entscheid endet das Fortsetzen mit `lauf.fortsetzung_unmoeglich`. Das Gespräch
+    bleibt in `gespraeche/<sitzung>/zustand`.
+39. **Zweite Routenart für opencode (27.11.2026).** Gemessen geht opencode über `HTTPS_PROXY` und `NODE_EXTRA_CA_CERTS` an ein Cloud-Ziel;
+    der Schlüssel bleibt draußen. Es versucht dabei auch `CONNECT registry.npmjs.org:443`. Gebaut ist nur die lokale Route; eine zweite
+    Routenart entscheidet der Betreiber.
+40. **Suche für opencode (27.11.2026).** Die Konfigurationsdatei nennt keinen MCP-Server; die Suche der Sitzung (Vertrag 4) erreicht
+    opencode darum nicht, wie bei `pi`.
 
 ### Erledigt
 

@@ -217,8 +217,14 @@ fn gespraeche_pruefen(
             ist.to_string(),
             soll_inhalt.to_string(),
         );
-        // a conversation of version 1 has no state folder of the harness
-        let soll_namen: &[&str] = if soll_inhalt["kennung"].is_null() {
+        // a conversation of version 1 has no state folder of the harness; one of version 2 always has, also without a
+        // key (a harness without an option to continue, `opencode`: the case names those sessions in
+        // `gespraech_mit_zustand`)
+        let mit_zustand = soll
+            .get("gespraech_mit_zustand")
+            .and_then(Value::as_array)
+            .is_some_and(|l| l.iter().any(|x| x.as_str() == Some(sitzung)));
+        let soll_namen: &[&str] = if soll_inhalt["kennung"].is_null() && !mit_zustand {
             &["gespraech.json"]
         } else {
             &["gespraech.json", "zustand"]
@@ -724,6 +730,7 @@ fn pruefen(name: &str, fall: &Value, soll: &Value) -> Result<(), String> {
         let name = match harness {
             "pi" => ".pi",
             "copilot" => ".copilot",
+            "opencode" => einschluss::OPENCODE_ZUSTAND,
             _ => ".claude",
         };
         let ort = einschluss::gespraech_ort(harness).unwrap_or("");

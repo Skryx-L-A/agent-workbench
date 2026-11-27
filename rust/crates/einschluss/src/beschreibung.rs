@@ -31,12 +31,56 @@ pub const HARNESS_PI: &str = "pi";
 /// the input never carries them.
 pub const PI_UMGEBUNG: [(&str, &str); 2] = [("PI_OFFLINE", "1"), ("PI_TELEMETRY", "0")];
 
+/// The local harness `opencode` (decision of the operator, 27.11.2026). Its environment gets the variables of
+/// [`OPENCODE_UMGEBUNG`] and [`OPENCODE_ORDNER`].
+pub const HARNESS_OPENCODE: &str = "opencode";
+
+/// The name of the state folder of [`HARNESS_OPENCODE`] below the home. opencode keeps its state in four XDG folders;
+/// the enclosure puts all four below this one folder ([`OPENCODE_ORDNER`]). It is not `.opencode`: opencode reads
+/// `<home>/.opencode` as a folder of settings (measured with opencode 1.19.5, contract 1).
+pub const OPENCODE_ZUSTAND: &str = ".opencode-sitzung";
+
+/// The XDG variables of [`HARNESS_OPENCODE`], as (variable, folder below `<home>/`[`OPENCODE_ZUSTAND`]). The values
+/// follow from the home; the input never carries them.
+pub const OPENCODE_ORDNER: [(&str, &str); 4] = [
+    ("XDG_CONFIG_HOME", "config"),
+    ("XDG_DATA_HOME", "data"),
+    ("XDG_STATE_HOME", "state"),
+    ("XDG_CACHE_HOME", "cache"),
+];
+
+/// The fixed variables of [`HARNESS_OPENCODE`] (contract 1, start form of `opencode`, measured with 1.19.5): no update,
+/// no model list and no language server from the net; no settings, plugins, agents, skills or instructions from the
+/// working folder or from the files of Claude Code; no external plugin at all; and the conversation in its own folder
+/// below the data folder (`gespraech`, the place of [`GESPRAECH_ORTE`]), apart from the snapshot of opencode, which
+/// runs git with its own configuration and so never passes to a later session.
+pub const OPENCODE_UMGEBUNG: [(&str, &str); 8] = [
+    ("OPENCODE_DISABLE_AUTOUPDATE", "1"),
+    ("OPENCODE_DISABLE_MODELS_FETCH", "1"),
+    ("OPENCODE_DISABLE_LSP_DOWNLOAD", "1"),
+    ("OPENCODE_DISABLE_PROJECT_CONFIG", "1"),
+    ("OPENCODE_PURE", "1"),
+    ("OPENCODE_DISABLE_CLAUDE_CODE", "1"),
+    ("OPENCODE_DISABLE_EXTERNAL_SKILLS", "1"),
+    ("OPENCODE_DB", "gespraech/opencode.db"),
+];
+
+/// The value of an XDG variable of [`HARNESS_OPENCODE`] for the home `heim`: `<heim>/.opencode-sitzung/<folder>`.
+#[must_use]
+pub fn opencode_ordner(heim: &Path, ordner: &str) -> PathBuf {
+    crate::pfad::gast_pfad(&crate::pfad::gast_pfad(heim, OPENCODE_ZUSTAND), ordner)
+}
+
 /// The configuration files of a harness that "Lauf starten" writes outside and that the enclosure binds read-only, as
 /// (harness, place below the home). The agent cannot change its own provider and MCP configuration. No other place
 /// and no other harness is allowed.
-pub const DATEI_ZIELE: [(&str, &str); 2] = [
+pub const DATEI_ZIELE: [(&str, &str); 3] = [
     ("pi", ".pi/agent/models.json"),
     ("copilot", ".copilot/wb-mcp.json"),
+    (
+        "opencode",
+        ".opencode-sitzung/config/opencode/opencode.json",
+    ),
 ];
 
 /// The fixed stand-in for the token of the cloud harness: `gho_` and 36 zeros (contract 1 of the cloud route). The
@@ -65,12 +109,14 @@ pub struct Zustand {
 }
 
 /// The place of the conversation of each harness below its state folder (measured 27.11.2026 with claude 2.1.332,
-/// copilot 1.0.116 and pi 1.6.1, contract 1, "Gespräch und Einstellungen im Zustandsordner"). No path a harness reads
-/// as a setting lies below these places.
-pub const GESPRAECH_ORTE: [(&str, &str); 3] = [
+/// copilot 1.0.116, pi 1.6.1 and opencode 1.19.5, contract 1, "Gespräch und Einstellungen im Zustandsordner"). No path
+/// a harness reads as a setting lies below these places. For `opencode` it is the folder of its database, which
+/// `OPENCODE_DB` of [`OPENCODE_UMGEBUNG`] names relative to the data folder.
+pub const GESPRAECH_ORTE: [(&str, &str); 4] = [
     ("claude", "projects"),
     ("copilot", "session-state"),
     ("pi", "agent/sessions"),
+    ("opencode", "data/opencode/gespraech"),
 ];
 
 /// The place of the conversation of `harness` below its state folder, if it has one.

@@ -321,6 +321,13 @@ fall("anfrage-copilot-lokale-route", A, "copilot mit lokaler Route",
 fall("anfrage-route-vor-vertraeglichkeit", A, "unbekannte Route geht vor der Verträglichkeit",
      mit(LOKAL, lambda o: o.update(route="cloud-anders")), "start.route_unbekannt")
 
+# opencode als lokaler Harness (Entscheid des Betreibers, 27.11.2026): nur mit lokaler Route. Beispielordner /heim/beispiel.
+OPENCODE = dict(LOKAL, harness="opencode", arbeitsordner="/heim/beispiel/projekt")
+fall("anfrage-gueltig-opencode", A, "opencode mit lokaler Route", OPENCODE, route_art="lokal")
+fall("datei-gueltig-opencode", D, "Startdatei zu opencode mit lokaler Route, Sitzung s-2", datei(OPENCODE, "s-2"), route_art="lokal")
+fall("anfrage-opencode-cloud-route", A, "opencode mit Cloud-Route",
+     mit(OPENCODE, lambda o: o.update(route="cloud-beispiel")), "start.harness_route_unvertraeglich")
+
 # Aufruf "Lauf starten": Ausgangslage und erwartetes Ende; erst mit dem Bau prüfbar.
 MARKE_LOKAL = {"ordner": "/home/beispiel/projekt", "kennung": "a1b2c3d4e5f60718293a4b5c6d7e8f90", "kunde": "k-beispiel",
                "klasse_hoch": "kundendaten"}
@@ -974,12 +981,13 @@ AUFRUFE += AUFRUFE_N2
 
 # Start-Struktur Fassung 2 (Nachtrag 26.11.2026, L10): Felder effort und name. Das Crate start liest Fassung 2 (27.11.2026);
 # die Fälle stehen in faelle/ und erwartet/. Jede Erwartung rechnet die Referenz unten.
-EFFORTS = {  # Vertrag 2, Block effort (gemessen 26.11.2026 mit --help)
+EFFORTS = {  # Vertrag 2, Block effort (gemessen 26.11.2026 mit --help; opencode 1.19.5 am 27.11.2026 im Anfragekörper)
     "claude": ("low", "medium", "high", "xhigh", "max"),
     "copilot": ("none", "minimal", "low", "medium", "high", "xhigh", "max"),
     "pi": ("off", "minimal", "low", "medium", "high", "xhigh", "max"),
+    "opencode": ("none", "minimal", "low", "medium", "high", "xhigh", "max"),
 }
-ROUTENART = {"claude": "cloud", "copilot": "cloud", "pi": "lokal"}
+ROUTENART = {"claude": "cloud", "copilot": "cloud", "pi": "lokal", "opencode": "lokal"}
 EFFORT_FORM = re.compile(r"^[a-z]{1,16}$")
 # Verboten im Namen: C0, C1, DEL, Zeilen- und Absatztrenner, Richtungszeichen (Bidi), BOM und Zeichen ohne Breite.
 NAME_VERBOTEN = re.compile("[\u0000-\u001f\u007f-\u009f\u2028\u2029\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
@@ -1175,8 +1183,13 @@ LAUF_GRUND = {
 }
 
 
+OHNE_FORTSETZEN = {"opencode"}  # nimmt keine Kennung von außen; --continue legt still neu an (gemessen 27.11.2026, 1.19.5)
+
+
 def sitzungsoption(harness, kennung, fortsetzen):
-    """Die Option zur Harness-Sitzung, ans Ende des Startbefehls gehängt."""
+    """Die Option zur Harness-Sitzung, ans Ende des Startbefehls gehängt; keine für einen Harness ohne Fortsetzen."""
+    if harness in OHNE_FORTSETZEN:
+        return []
     if not fortsetzen:
         return ["--session-id", kennung]
     return {"claude": ["--resume", kennung], "copilot": [f"--resume={kennung}"], "pi": ["--session", kennung]}[harness]
@@ -1185,8 +1198,8 @@ def sitzungsoption(harness, kennung, fortsetzen):
 def harness_argv_f2(start, kennung, fortsetzen):
     h, m, e = start["harness"], start["modell"], start["effort"]
     argv = {"claude": ["claude", "--model", m], "copilot": ["copilot", "--model", m],
-            "pi": ["pi", "--provider", "wb-lokal", "--model", m]}[h]
-    if e is not None:
+            "pi": ["pi", "--provider", "wb-lokal", "--model", m], "opencode": ["opencode", "--model", "wb-lokal/" + m]}[h]
+    if e is not None and h != "opencode":  # opencode: Effort als Eintrag der Konfigurationsdatei, nie im argv
         argv += [EFFORT_OPTION[h], e]
     if h == "copilot":
         argv += ["--disable-builtin-mcps", "--additional-mcp-config", "@<heim>/.copilot/wb-mcp.json"]
@@ -1206,10 +1219,13 @@ def lauf_f2(start, lage):
     gespraeche = lage.get("gespraeche", {})
     if alt is None:
         g = {"fassung": 1, "harness": h, "arbeitsordner": start["arbeitsordner"], "route": start["route"], "kunde": start["kunde"],
-             "kennung": NEU_KENNUNG}
-        return {"exec": h, "harness_argv": harness_argv_f2(start, NEU_KENNUNG, False), "stderr": "", "suche_gestartet": True,
-                "gespraeche_danach": {**gespraeche, neu: g}, "zustandsordner_beim_start": "leer"}
-    if lage.get("harness_fortsetzung", "ja") == "keine":
+             "kennung": None if h in OHNE_FORTSETZEN else NEU_KENNUNG}
+        aus = {"exec": h, "harness_argv": harness_argv_f2(start, NEU_KENNUNG, False), "stderr": "", "suche_gestartet": True,
+               "gespraeche_danach": {**gespraeche, neu: g}, "zustandsordner_beim_start": "leer"}
+        if h in OHNE_FORTSETZEN:
+            aus["gespraech_mit_zustand"] = [neu]
+        return aus
+    if lage.get("harness_fortsetzung", "ja") == "keine" or h in OHNE_FORTSETZEN:
         return abgewiesen("lauf.fortsetzung_unmoeglich")
     g = gespraeche.get(alt)
     if g is None:
@@ -1262,6 +1278,11 @@ for _start in (CL2, COP2, PI2):
     _h = _start["harness"]
     aufruf_f2(f"aufruf-f2-fortsetzen-{_h}", f"{_h} setzt das Gespräch von s-1 fort",
                       dict(_start, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(_start)}})
+OC2 = dict(LOKAL, harness="opencode", fassung=2, effort=None, name=None)
+aufruf_f2("aufruf-f2-neu-opencode", "neuer Start von opencode (Fassung 2): Gespräch ohne Kennung mit Zustandsordner, keine Sitzungsoption",
+          dict(OC2, fortsetzung_von=None), {}, sitzung="s-2")
+aufruf_f2("aufruf-f2-fortsetzen-opencode", "opencode setzt nie fort: Abbruch vor der Suche, kein stiller Neustart",
+          dict(OC2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(OC2, kennung=None)}}, "lauf.fortsetzung_unmoeglich")
 aufruf_f2("aufruf-f2-fortsetzen-ohne-fortsetzung", "der Harness kennt keine Fortsetzung: Abbruch vor der Suche, kein Neustart",
                   dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2)}, "harness_fortsetzung": "keine"},
                   "lauf.fortsetzung_unmoeglich")

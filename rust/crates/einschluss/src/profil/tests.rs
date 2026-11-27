@@ -1399,3 +1399,181 @@ fn the_conversation_folder_is_checked_like_the_state_folder() {
         Err(Fehler::Ueberlappt("socket lies inside a mounted folder"))
     );
 }
+
+fn opencode_muster() -> Beschreibung {
+    let mut b = pi_muster();
+    b.harness = HARNESS_OPENCODE.to_owned();
+    OPENCODE_ZUSTAND.clone_into(&mut b.zustand.name);
+    b.dateien = vec![crate::Datei {
+        quelle: PathBuf::from("/var/tmp/d/s-1/opencode.json"),
+        ziel: gast_pfad(&b.heim, ".opencode-sitzung/config/opencode/opencode.json"),
+    }];
+    b.zustand.gespraech = Some(PathBuf::from("/var/lib/wb/gespraeche/s-1/zustand"));
+    b.argv = worte("/srv/bin/opencode --model wb-lokal/m");
+    b
+}
+
+#[test]
+fn opencode_gets_its_fixed_variables_its_folders_its_file_and_its_conversation() {
+    let b = opencode_muster();
+    let heim = b.heim.to_string_lossy().into_owned();
+    let a = bauen(&b).expect("builds").argumente();
+    // the switches the measurement with opencode 1.19.5 needs (contract 1): without the first a file in the working folder
+    // redirects the endpoint, without the second a plugin in the home runs, without the last the snapshot passes on
+    for pflicht in [
+        "--setenv OPENCODE_DISABLE_PROJECT_CONFIG 1",
+        "--setenv OPENCODE_PURE 1",
+        "--setenv OPENCODE_DISABLE_CLAUDE_CODE 1",
+        "--setenv OPENCODE_DISABLE_EXTERNAL_SKILLS 1",
+        "--setenv OPENCODE_DISABLE_AUTOUPDATE 1",
+        "--setenv OPENCODE_DISABLE_MODELS_FETCH 1",
+        "--setenv OPENCODE_DISABLE_LSP_DOWNLOAD 1",
+        "--setenv OPENCODE_DB gespraech/opencode.db",
+    ] {
+        assert!(folge(&a, pflicht).is_some(), "{pflicht}");
+    }
+    assert_eq!(OPENCODE_UMGEBUNG.len(), 8);
+    for (name, wert) in OPENCODE_UMGEBUNG {
+        assert!(
+            folge(&a, &format!("--setenv {name} {wert}")).is_some(),
+            "{name}"
+        );
+    }
+    for (name, ordner) in OPENCODE_ORDNER {
+        assert!(
+            folge(
+                &a,
+                &format!("--setenv {name} {heim}/.opencode-sitzung/{ordner}")
+            )
+            .is_some(),
+            "{name}"
+        );
+    }
+    let zustand = folge(
+        &a,
+        &format!("--bind /var/tmp/z/s-1 {heim}/.opencode-sitzung"),
+    )
+    .expect("state folder");
+    let gespraech = folge(
+        &a,
+        &format!(
+            "--bind /var/lib/wb/gespraeche/s-1/zustand {heim}/.opencode-sitzung/data/opencode/gespraech"
+        ),
+    )
+    .expect("only the folder of the database passes on");
+    let datei = folge(
+        &a,
+        &format!(
+            "--ro-bind /var/tmp/d/s-1/opencode.json {heim}/.opencode-sitzung/config/opencode/opencode.json"
+        ),
+    )
+    .expect("the file of the installation, read-only");
+    assert!(zustand < gespraech && gespraech < datei, "{a:?}");
+    // the snapshot of opencode (git with its own configuration) never comes from the folder of the conversation
+    assert!(!a.iter().any(|x| x.contains("snapshot")));
+    // no other harness gets a variable of opencode, and opencode gets none of pi
+    for b in [muster(), pi_muster(), cloud_muster(Verteilung::Ubuntu)] {
+        let a = bauen(&b).expect("builds").argumente();
+        assert!(
+            !a.iter()
+                .any(|x| x.starts_with("OPENCODE_") || x.starts_with("XDG_")),
+            "{}",
+            b.harness
+        );
+    }
+    assert!(!a.iter().any(|x| x.starts_with("PI_")));
+}
+
+#[test]
+fn the_environment_of_opencode_is_refused_with_any_other_value_or_for_another_harness() {
+    let gut = kopf(&opencode_muster());
+    assert_eq!(umgebung_pruefen(&gut, "opencode"), Ok(()));
+    for fremd in ["pi", "claude", "copilot"] {
+        assert_eq!(
+            umgebung_pruefen(&gut, fremd),
+            Err(Fehler::Verboten("variable of another harness")),
+            "{fremd}"
+        );
+    }
+    let heim = opencode_muster().heim.to_string_lossy().into_owned();
+    let einsetzen = |name: &str, wert: &str| {
+        let mut k = gut.clone();
+        let i = k.iter().position(|x| x == "--chdir").expect("--chdir");
+        k.splice(
+            i..i,
+            [String::from("--setenv"), name.to_owned(), wert.to_owned()],
+        );
+        k
+    };
+    for (name, wert) in [
+        ("OPENCODE_DISABLE_PROJECT_CONFIG", "0"),
+        ("OPENCODE_PURE", ""),
+        ("OPENCODE_DB", "/srv/fremd/opencode.db"),
+        ("OPENCODE_DISABLE_CLAUDE_CODE", "false"),
+    ] {
+        assert_eq!(
+            umgebung_pruefen(&einsetzen(name, wert), "opencode"),
+            Err(Fehler::Verboten("cloud variable with a value of its own")),
+            "{name}={wert}"
+        );
+    }
+    for (name, wert) in [
+        ("XDG_CONFIG_HOME", format!("{heim}/.config")),
+        ("XDG_DATA_HOME", format!("{heim}/.opencode-sitzung/daten")),
+        ("XDG_STATE_HOME", "/srv/fremd".to_owned()),
+        ("XDG_CACHE_HOME", String::new()),
+    ] {
+        assert_eq!(
+            umgebung_pruefen(&einsetzen(name, &wert), "opencode"),
+            Err(Fehler::Verboten(
+                "folder of opencode outside its state folder"
+            )),
+            "{name}={wert}"
+        );
+    }
+    // a variable outside the list stays refused for opencode too
+    assert_eq!(
+        umgebung_pruefen(&einsetzen("OPENCODE_CONFIG", "/srv/x.json"), "opencode"),
+        Err(Fehler::Verboten("variable outside the allow list"))
+    );
+}
+
+#[test]
+fn opencode_has_one_state_folder_and_one_place_for_its_file() {
+    let ungueltig = Fehler::BeschreibungUngueltig;
+    let mut b = opencode_muster();
+    ".opencode".clone_into(&mut b.zustand.name);
+    assert_eq!(
+        bauen(&b).err(),
+        Some(ungueltig("zustand.name (opencode has a fixed one)"))
+    );
+    let mut b = opencode_muster();
+    b.dateien[0].ziel = gast_pfad(&b.heim, ".config/opencode/opencode.json");
+    assert_eq!(
+        bauen(&b).err(),
+        Some(ungueltig("dateien.ziel (not a fixed place of the harness)"))
+    );
+    // the place of the file of opencode is no place of pi
+    let mut p = pi_muster();
+    p.dateien[0].ziel = gast_pfad(&p.heim, ".opencode-sitzung/config/opencode/opencode.json");
+    assert_eq!(
+        bauen(&p).err(),
+        Some(ungueltig("dateien.ziel (not a fixed place of the harness)"))
+    );
+}
+
+#[test]
+fn the_folders_of_opencode_follow_the_home_wherever_it_stands_in_the_list() {
+    // another variable before `HOME`: the check still takes the home from `HOME` and nothing else
+    let mut k = kopf(&opencode_muster());
+    let i = k.iter().position(|x| x == "--setenv").expect("--setenv");
+    k.splice(
+        i..i,
+        [
+            String::from("--setenv"),
+            "LANG".to_owned(),
+            "C.UTF-8".to_owned(),
+        ],
+    );
+    assert_eq!(umgebung_pruefen(&k, "opencode"), Ok(()));
+}

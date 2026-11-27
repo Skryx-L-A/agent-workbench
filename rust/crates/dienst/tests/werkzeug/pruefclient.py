@@ -520,6 +520,9 @@ class Lauf:
                 v.fehler.append("json_vom_dienst")
                 continue
             if art == 0x06:
+                # Nachtrag 27.11.2026 (DI-E5): the Ereignisliste only in cases with the field `ereignisliste`; the frame counts for Verbinden
+                if o.get("art") == "Ereignisliste" and not self.fall.get("ereignisliste"):
+                    continue
                 v.nachrichten.append(o)
                 if o.get("art") == "Sitzungsliste":
                     v.liste = o

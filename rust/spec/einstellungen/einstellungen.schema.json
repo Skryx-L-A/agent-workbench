@@ -558,7 +558,8 @@
      "enum": [
       "claude",
       "copilot",
-      "pi"
+      "pi",
+      "opencode"
      ]
     },
     "klasse": {
@@ -653,6 +654,35 @@
         "items": {
          "enum": [
           "off",
+          "minimal",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+         ]
+        }
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "required": [
+       "harness"
+      ],
+      "properties": {
+       "harness": {
+        "const": "opencode"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "erlaubt": {
+        "items": {
+         "enum": [
+          "none",
           "minimal",
           "low",
           "medium",

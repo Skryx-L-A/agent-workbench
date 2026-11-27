@@ -23,6 +23,23 @@ fn a_valid_configuration_is_read_into_its_fields() {
 }
 
 #[test]
+fn the_harness_opencode_is_read_like_the_others() {
+    let mit = GUT.replacen(
+        "\"harness\":{",
+        "\"harness\":{\"opencode\":\"/srv/beispiel/bin/opencode\",",
+        1,
+    );
+    let k = lesen_text(mit.as_bytes()).expect("valid");
+    assert_eq!(
+        k.harness.get("opencode"),
+        Some(&PathBuf::from("/srv/beispiel/bin/opencode"))
+    );
+    assert_eq!(k.harness.len(), 3);
+    let anders = GUT.replacen("\"pi\":", "\"open-code\":", 1);
+    assert_eq!(lesen_text(anders.as_bytes()), None);
+}
+
+#[test]
 fn every_fault_is_refused() {
     let ersetzt = |alt: &str, neu: &str| {
         assert!(GUT.contains(alt), "{alt}");

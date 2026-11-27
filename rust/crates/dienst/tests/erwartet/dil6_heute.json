@@ -32,9 +32,9 @@
     "abbild": null,
     "abbild_fehler": [],
     "ablehnungen": [
-     "sitzung_unbekannt",
-     "nachweis_ungueltig",
-     "nachweis_fehlt"
+     "freigabe_nur_lokal",
+     "freigabe_nur_lokal",
+     "freigabe_nur_lokal"
     ],
     "antwort": {
      "dienst": {

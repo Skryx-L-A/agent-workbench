@@ -42,6 +42,7 @@ mod json;
 mod kindprogramm;
 #[cfg_attr(windows, path = "loeschen_windows.rs")]
 mod loeschen;
+mod lokal;
 mod markerdatei;
 mod meldung;
 mod rahmen;
@@ -53,6 +54,8 @@ mod starten;
 mod sys;
 mod verwaltung;
 mod waisen;
+mod weck;
+mod weiche;
 
 use std::ffi::OsString;
 use std::io::Write;

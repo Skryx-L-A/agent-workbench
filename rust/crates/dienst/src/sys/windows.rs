@@ -1,5 +1,5 @@
 //! Windows: `AF_UNIX` sockets and the access lists of the socket folder and of the socket entry (Nachtrag 25.11.2026, contract
-//! `dienst`, section 21). This file is the only place of the crate with `unsafe`; every block names what it relies on.
+//! `dienst`, section 21). This file holds every `unsafe` of the crate under Windows; every block names what it relies on.
 //!
 //! - The socket is `AF_UNIX` (Windows 10 and later): `bind` makes a file entry in the folder (a reparse point with the tag
 //!   `IO_REPARSE_TAG_AF_UNIX`), refuses a path that exists (`WSAEADDRINUSE`) and the entry stays after `closesocket` until it is
@@ -231,6 +231,16 @@ unsafe extern "system" {
         info: *mut c_void,
         laenge: u32,
         zurueck: *mut u32,
+    ) -> i32;
+    fn ConvertStringSidToSidW(text: *const u16, sid: *mut *mut c_void) -> i32;
+    fn LookupAccountSidW(
+        system: *const u16,
+        sid: *const c_void,
+        name: *mut u16,
+        name_laenge: *mut u32,
+        domaene: *mut u16,
+        domaene_laenge: *mut u32,
+        art: *mut i32,
     ) -> i32;
 }
 
@@ -1342,6 +1352,90 @@ pub(crate) fn konsole_groesse() -> Option<(u16, u16)> {
     let zeilen = u16::try_from(i32::from(unten) - i32::from(oben) + 1).ok()?;
     let spalten = u16::try_from(i32::from(rechts) - i32::from(links) + 1).ok()?;
     Some((zeilen, spalten))
+}
+
+// ---- The local way (contract `dienst`, DI-L11 points 2, 4 and 10) ------------------------------------------------------
+//
+// `peerkanal` holds every Win32 call of the named pipe; here stand only the permission, the name of the account of the client and
+// the answers that differ from Unix.
+
+/// DI-L11 point 2 under Windows: exactly one permission, the own SID (`TokenUser` of the own token) outside an `AppContainer`.
+pub(crate) fn lokal_erlaubnis() -> Result<peerkanal::Erlaubnis, StartFehler> {
+    let sid = peerkanal::eigene_sid()
+        .map_err(|f| StartFehler::neu(1, &format!("lokal: {}", f.code.als_str())))?;
+    Ok(peerkanal::Erlaubnis::Windows {
+        sid,
+        appcontainer_sid: None,
+    })
+}
+
+/// Windows has no Unix part of the settings: the pipe is `\\.\pipe\<kanal>`.
+pub(crate) fn lokal_ort(_ordner: &Path) -> Option<peerkanal::UnixOrt> {
+    None
+}
+
+/// DI-L11 point 5 under Windows: `peerkanal` refuses an `AppContainer` and restricting SIDs itself; the hook adds nothing here.
+pub(crate) fn lokal_einschluss(
+    _prozess: Option<&peerkanal::Prozessbindung>,
+    _dienst: u32,
+) -> Option<&'static str> {
+    None
+}
+
+/// DI-L11 point 4 under Windows: the SID of `TokenUser` of the client as `peerkanal` measured it, and its name `DOMAIN\name` from
+/// `LookupAccountSidW`. No SID, another system or no name: `None` (the hook refuses with `aufrufer:konto-unbekannt`).
+pub(crate) fn lokal_konto(peer: &peerkanal::Peer) -> Option<crate::lokal::Wer> {
+    if peer.system != peerkanal::System::Windows {
+        return None;
+    }
+    let sid = peer.sid.as_deref()?;
+    let name = konto_name(sid)?;
+    Some(crate::lokal::Wer::windows(sid.to_owned(), name))
+}
+
+/// The most UTF-16 units of the name and of the domain; a longer name gives no answer (`ERROR_INSUFFICIENT_BUFFER`), the hook refuses.
+const KONTO_LAENGE_MAX: u32 = 512;
+
+/// `DOMAIN\name` of the SID in text form (`S-1-5-…`), `None` when the system knows no account with it.
+fn konto_name(sid: &str) -> Option<String> {
+    let text: Vec<u16> = sid.encode_utf16().chain(std::iter::once(0)).collect();
+    let mut roh: *mut c_void = std::ptr::null_mut();
+    // SAFETY: `text` ends in NUL and lives for the call; `roh` receives a SID allocated by the system, freed with `LocalFree` below.
+    if unsafe { ConvertStringSidToSidW(text.as_ptr(), &raw mut roh) } == 0 || roh.is_null() {
+        return None;
+    }
+    let mut name = vec![0_u16; KONTO_LAENGE_MAX as usize];
+    let mut domaene = vec![0_u16; KONTO_LAENGE_MAX as usize];
+    let (mut name_laenge, mut domaene_laenge, mut art) =
+        (KONTO_LAENGE_MAX, KONTO_LAENGE_MAX, 0_i32);
+    // SAFETY: `roh` is a valid SID; both buffers hold the number of units given in their lengths; the local system (null) is asked.
+    let ok = unsafe {
+        LookupAccountSidW(
+            std::ptr::null(),
+            roh,
+            name.as_mut_ptr(),
+            &raw mut name_laenge,
+            domaene.as_mut_ptr(),
+            &raw mut domaene_laenge,
+            &raw mut art,
+        )
+    };
+    // SAFETY: `roh` came from `ConvertStringSidToSidW` and is freed once.
+    unsafe { LocalFree(roh) };
+    if ok == 0 {
+        return None;
+    }
+    // on success the lengths are the units without the NUL
+    let name = String::from_utf16(name.get(..name_laenge as usize)?).ok()?;
+    let domaene = String::from_utf16(domaene.get(..domaene_laenge as usize)?).ok()?;
+    if name.is_empty() {
+        return None;
+    }
+    Some(if domaene.is_empty() {
+        name
+    } else {
+        format!("{domaene}\\{name}")
+    })
 }
 
 // ---- Moved here from the other modules (decision of 25.11.2026) -------------------------------------------------------

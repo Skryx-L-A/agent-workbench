@@ -1,7 +1,7 @@
 //! The system calls that differ between Unix and Windows (Nachtrag 25.11.2026, contract `dienst`, section 21).
 //!
 //! Unix: only the names of `std` and `rustix` the service used before; nothing changes there. Windows: the submodule `windows`,
-//! the only place of the crate with `unsafe`. It declares the few Win32 calls itself (`ws2_32`, `advapi32`, `kernel32`, which
+//! with every `unsafe` of the crate under Windows; under macOS the submodule `macos` holds one call (`sandbox_check`, DI-L11). It declares the few Win32 calls itself (`ws2_32`, `advapi32`, `kernel32`, which
 //! every Windows build of `std` links already), so the crate needs no new package. The socket under Windows is `AF_UNIX`
 //! (Windows 10 and later): a file entry in the socket folder like on Unix, refused when the path exists, reachable only through
 //! the access list of the folder and the entry.
@@ -29,6 +29,16 @@ pub(crate) fn euid() -> u32 {
 #[allow(unsafe_code)]
 mod windows;
 
+/// macOS: the sandbox of the other side of the local way (DI-L11 point 5), the one call of the crate under Unix that needs `unsafe`.
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+mod macos;
+
+#[cfg(target_os = "macos")]
+pub(crate) use macos::einschluss as sandbox_einschluss;
+#[cfg(all(test, target_os = "macos"))]
+pub(crate) use macos::sandkasten;
+
 // Windows (decision of 25.11.2026): every line of Windows code of the crate stands in `windows.rs`, which the mutation gate leaves
 // out; the other modules only call what is named here (checked by `tests/sys_regel.rs`).
 #[cfg(windows)]
@@ -36,8 +46,9 @@ pub(crate) use windows::{
     AsFd, BorrowedFd, JobStand, Ordner, OwnedFd, UnixListener, UnixStream, alte_zielliste_raeumen,
     eintrag_durchsuchbar, euid, gegenseite_gut, gleiche_datei, gruppe_beenden, inhalt_suchen,
     job_schliessen, kind_argv, kind_beenden, kind_mit_job, kind_nochmal_beenden, kinder_beenden,
-    laufen, marker_lesen, meldung_binden, mit_job, nanosekunden, ordner_anlegen, ordner_lesen,
-    ordner_oeffnen, programm_urteil, sitzung_mit_job, socket_binden,
+    laufen, lokal_einschluss, lokal_erlaubnis, lokal_konto, lokal_ort, marker_lesen,
+    meldung_binden, mit_job, nanosekunden, ordner_anlegen, ordner_lesen, ordner_oeffnen,
+    programm_urteil, sitzung_mit_job, socket_binden,
 };
 #[cfg(windows)]
 pub use windows::{Signale, signale_anmelden};

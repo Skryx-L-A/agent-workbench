@@ -33,8 +33,8 @@ pub fn plattform() -> String {
     format!("linux-{arch}")
 }
 
-/// The three harnesses of the table.
-pub const HARNESSE: [&str; 3] = ["claude", "copilot", "pi"];
+/// The four harnesses of the table.
+pub const HARNESSE: [&str; 4] = ["claude", "copilot", "pi", "opencode"];
 
 pub struct Welt {
     pub wurzel: PathBuf,

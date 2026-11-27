@@ -288,8 +288,20 @@ lk_nvm_ordner() {
     done
 }
 
+# The fixed version of the harness opencode (decision of the operator, 27.11.2026): the program of the npm package opencode-ai 1.19.5
+# for linux-x64 (`opencode-linux-x64-1.19.5.tgz`, file `package/bin/opencode`; the postinstall of opencode-ai links it to
+# `bin/opencode.exe`). Only this file is entered; any other version or build of opencode is not.
+LK_OPENCODE_SHA256=7df4e4136301f16589b0f30bf91a61380fca5f8ef22dd36570f5ebe1d4ec802c
+
+# lk_summe <file>: the sha256 of the file as 64 hex digits, nothing on a fault.
+lk_summe() {
+    sha256sum "$1" 2>/dev/null | cut -c1-64
+}
+
 # lk_suche <name>: sets LK_<NAME> (real program) and LK_<NAME>_NODE (real node) when the harness is found for the user.
 # The search order: the nvm versions of the user (the highest version first), then the fixed folders; the first hit wins.
+# opencode is a program of its own without node: its real program must be the fixed version (LK_OPENCODE_SHA256), else it is
+# not entered and one fixed journal line says so (no path).
 lk_suche() {
     name=$1
     treffer=""
@@ -321,6 +333,13 @@ lk_suche() {
         copilot)
             LK_COPILOT=$echt
             LK_COPILOT_NODE=$knoten
+            ;;
+        opencode)
+            if [ "$(lk_summe "$LK_WURZEL$echt")" = "$LK_OPENCODE_SHA256" ]; then
+                LK_OPENCODE=$echt
+            else
+                log "werkbank: opencode nicht in der festen Fassung, nicht eingetragen"
+            fi
             ;;
     esac
 }
@@ -365,7 +384,7 @@ lk_ordner() {
 # binds /usr whole), no double, no folder inside another folder of the list (the enclosure refuses overlapping folders).
 lk_programmordner() {
     ordner=""
-    for h in "$LK_COPILOT|$LK_COPILOT_NODE" "$LK_PI|$LK_PI_NODE"; do
+    for h in "$LK_COPILOT|$LK_COPILOT_NODE" "$LK_PI|$LK_PI_NODE" "$LK_OPENCODE|"; do
         [ "${h%%|*}" = "" ] && continue
         for d in $(lk_ordner "${h%%|*}" "${h#*|}"); do
             case "$d" in /usr | /usr/*) continue ;; esac
@@ -403,6 +422,7 @@ lk_harness_pruefen() {
     case "$hn" in
         pi) hp=$LK_PI hk=$LK_PI_NODE ;;
         copilot) hp=$LK_COPILOT hk=$LK_COPILOT_NODE ;;
+        opencode) hp=$LK_OPENCODE hk="" ;;
         *) return 0 ;;
     esac
     [ -n "$hp" ] || return 0
@@ -416,6 +436,7 @@ lk_harness_pruefen() {
         case "$hn" in
             pi) LK_PI="" LK_PI_NODE="" ;;
             copilot) LK_COPILOT="" LK_COPILOT_NODE="" ;;
+            opencode) LK_OPENCODE="" ;;
         esac
         return 0
     done
@@ -430,6 +451,7 @@ lk_ordner_pruefen() {
     fi
     lk_harness_pruefen copilot
     lk_harness_pruefen pi
+    lk_harness_pruefen opencode
     # The state file (root:root 0644, only lines `<harness> <folder>`) is what `werkbank-pruefen` reads; it goes away with the next configuration
     # that finds no refused folder.
     if [ -z "$LK_ABGELEHNT_TEXT" ]; then
@@ -465,6 +487,7 @@ lk_text() {
     harness=""
     [ -n "$LK_COPILOT" ] && harness="\"copilot\":\"$LK_COPILOT\""
     [ -n "$LK_PI" ] && harness="$harness${harness:+,}\"pi\":\"$LK_PI\""
+    [ -n "$LK_OPENCODE" ] && harness="$harness${harness:+,}\"opencode\":\"$LK_OPENCODE\""
     printf '{"fassung":1,"einstellungen":"%s/einstellungen.json","vault":"%s/vorfuehr-vault","protokoll":"%s/protokoll","zustand":"%s",' "$o" "$o" "$o" "$o"
     printf '"laufzeit":"%s/l/%s","sitzungen":"%s/s/%s","gespraeche":"%s/gespraeche","heim":"%s","path":"%s",' "$DATEN" "$uid" "$DATEN" "$uid" "$o" "$heim" "$p"
     printf '"programme":{"rangkern":"/usr/lib/werkbank/rangkern","modellweg":"/usr/lib/werkbank/werkbank-modellweg","kind":"/usr/lib/werkbank/werkbank-lauf-kind","such_mcp":"/usr/lib/werkbank/such-mcp","weiter":"/usr/lib/werkbank/einschluss-weiter"},'
@@ -475,15 +498,16 @@ lk_text() {
 lauf_json() {
     uid=$(id -u "$nutzer" 2>/dev/null) || return 0
     heim=$(getent passwd "$nutzer" | cut -d: -f6)
-    LK_PI="" LK_PI_NODE="" LK_COPILOT="" LK_COPILOT_NODE=""
+    LK_PI="" LK_PI_NODE="" LK_COPILOT="" LK_COPILOT_NODE="" LK_OPENCODE=""
     lk_suche copilot
     lk_suche pi
+    lk_suche opencode
     lauf_schreiben
 }
 
 lauf_schreiben() {
     lk_form "$heim" || return 0
-    for w in "$LK_PI" "$LK_PI_NODE" "$LK_COPILOT" "$LK_COPILOT_NODE"; do
+    for w in "$LK_PI" "$LK_PI_NODE" "$LK_COPILOT" "$LK_COPILOT_NODE" "${LK_OPENCODE:-}"; do
         [ -z "$w" ] || lk_form "$w" || return 0
     done
     lk_ordner_pruefen

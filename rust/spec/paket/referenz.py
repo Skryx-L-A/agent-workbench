@@ -444,7 +444,7 @@ def statisch_code(fall):
 LAUF_JSON = "etc/werkbank/lauf.json"
 LAUF_DATEN = "/var/lib/werkbank"
 LAUF_PFAD_ZEICHEN = re.compile(r"^[A-Za-z0-9._/+@-]+$")
-LAUF_HARNESS = ("copilot", "pi")
+LAUF_HARNESS = ("copilot", "pi", "opencode")  # opencode: Entscheid des Betreibers, 27.11.2026
 LAUF_PATH_FEST = "/usr/local/bin:/usr/bin:/bin"
 # Where the enclosure sees a folder without a bind: everything below /usr (the system part is bound whole).
 SOCKET_ENDE = "/modell.sock"

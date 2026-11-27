@@ -847,6 +847,7 @@ mod tests {
             beendet_max: 256,
             bestand: None,
             gespraeche: None,
+            stelle: None,
         }
     }
 

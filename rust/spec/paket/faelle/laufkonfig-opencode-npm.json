@@ -1,0 +1,14 @@
+{
+ "beschreibung": "opencode (eigenes Programm ohne node) unter dem npm-Prefix <heim>/.npm-global: die Paketwurzel opencode-ai ist der Programmordner, PATH bleibt fest",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "opencode": {
+   "programm": "/srv/beispiel/heim/nutzer1/.npm-global/lib/node_modules/opencode-ai/bin/opencode.exe",
+   "node": null
+  }
+ },
+ "vorher": null
+}

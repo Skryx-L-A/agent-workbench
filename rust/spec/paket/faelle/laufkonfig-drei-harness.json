@@ -1,0 +1,22 @@
+{
+ "beschreibung": "alle drei Harness gefunden: drei Einträge in der Reihenfolge copilot, pi, opencode, Programmordner ohne Doppel",
+ "form": "laufkonfig",
+ "nutzer": "nutzer1",
+ "uid": 1000,
+ "heim": "/srv/beispiel/heim/nutzer1",
+ "harness": {
+  "copilot": {
+   "programm": "/usr/local/lib/node_modules/@github/copilot/index.js",
+   "node": "/usr/local/bin/node"
+  },
+  "pi": {
+   "programm": "/srv/beispiel/heim/nutzer1/.nvm/versions/node/v24.1.0/lib/node_modules/pi-coding-agent/dist/cli.js",
+   "node": "/srv/beispiel/heim/nutzer1/.nvm/versions/node/v24.1.0/bin/node"
+  },
+  "opencode": {
+   "programm": "/srv/beispiel/heim/nutzer1/.npm-global/lib/node_modules/opencode-ai/bin/opencode.exe",
+   "node": null
+  }
+ },
+ "vorher": null
+}

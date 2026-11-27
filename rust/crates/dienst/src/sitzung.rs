@@ -377,6 +377,13 @@ impl Sitzung {
         }
     }
 
+    /// `true` once the end came with a valid line of `lauf` (section 18): `lauf` ended by itself with its own reason, before it ran the
+    /// harness (a line is only written before the trampoline; after it the connection ends without data). A line that is not exactly
+    /// the form does not count (fail closed: the old session of a continuation stays used).
+    pub(crate) fn lauf_endete_vor_dem_kind(&self) -> bool {
+        self.grund.as_deref().is_some_and(|g| g != GRUND_UNGUELTIG)
+    }
+
     /// The end of the session cleans up (see `aufraeumen.rs`): signals first, then the folder. `eigene` are the pids of the own
     /// children of the service that have not been collected (the children of the other sessions): never signalled. Once only; a second
     /// call finds no folder.

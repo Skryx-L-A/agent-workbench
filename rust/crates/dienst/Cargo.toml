@@ -37,11 +37,15 @@ pruefbau = []
 # start, einstellungen (path, crates of the workspace; no new package): the check of the start structure of `Starten` (contract 1: `start::lesen_anfrage`,
 # `start::pruefen`, `start::schreiben`) and the settings file (contract 2: `einstellungen::lesen`). The service has no list of codes or stages of its own.
 # serde_json: the start file, the events and the messages as JSON values (default features, depth limit 128 stays on).
+# peerkanal (path, crate of the workspace; no new package): the local way for viewers without the bridge (DI-L11, Nachtrag 26.11.2026). The
+# server of `peerkanal` measures the account of the other side (uid or SID) and lets only the own account through; the service builds `wer`
+# from that measurement alone.
 # kernabbild (path, crate of the workspace; no new package): the first step of the program shields the memory of the process from core
 # images (`PR_SET_DUMPABLE 0`, `RLIMIT_CORE` 1/1; decision of 21.11.2026). The crate returns reasons; `src/abschirmung.rs` turns them into exit code 5.
 [dependencies]
 einstellungen = { path = "../einstellungen" }
 kernabbild = { path = "../kernabbild" }
+peerkanal = { path = "../peerkanal" }
 rasterauszug = { path = "../rasterauszug" }
 rustix = { version = "=1.1.6", features = ["process", "event", "fs", "net"] }
 serde_json = "1"
@@ -57,9 +61,15 @@ zustandskern = { path = "../zustandskern" }
 [target.'cfg(target_os = "macos")'.dependencies]
 nix = { version = "0.28", default-features = false, features = ["socket"] }
 
+# nix 0.28, feature `user` (Linux and macOS, the same version, no new package; the feature adds no dependency): the name of the account of
+# the other side of the local way, `getpwuid_r` through `User::from_uid` (DI-L11 point 4). `std` and `rustix` 1.1.6 have no call for it,
+# and `unsafe` is forbidden outside `src/sys`.
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.28", default-features = false, features = ["user"] }
+
 # The lints of the workspace, with one change (Nachtrag 25.11.2026, contract section 21): `unsafe_code` is `deny` instead of
-# `forbid`, so that the module `src/sys/windows.rs` alone can allow it (the pattern of the crate `peerkanal`). Every other module
-# stays without `unsafe`; under Unix the crate has no `unsafe` at all.
+# `forbid`, so that the modules `src/sys/windows.rs` and `src/sys/macos.rs` (one call of `sandbox_check`, DI-L11) alone can allow it
+# (the pattern of the crate `peerkanal`). Every other module stays without `unsafe`; under Linux the crate has no `unsafe` at all.
 [lints.rust]
 unsafe_code = "deny"
 missing_docs = "warn"

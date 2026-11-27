@@ -473,8 +473,9 @@ in Vertrag 1 genannten, siehe OPEN 10):
 | `claude` | `--effort <wert>` | `low`, `medium`, `high`, `xhigh`, `max` | `claude --help`, Version 2.1.332 |
 | `copilot` | `--reasoning-effort <wert>` | `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` | `copilot --help`, Version 1.0.116; „supported levels depend on the model“ |
 | `pi` | `--thinking <wert>` | `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` | `pi --help`, Version 1.6.1 |
+| `opencode` | kein argv-Paar; Eintrag `options.reasoningEffort` am Modell der Konfigurationsdatei (Vertrag 1) | `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` | gemessen am 27.11.2026 mit Version 1.19.5: jeder Wert erscheint als `reasoning_effort` im Anfragekörper (Entscheid des Betreibers, 27.11.2026) |
 
-Die Werte werden wörtlich verglichen. Es gibt keine gemeinsame Liste: `none` gilt nur für `copilot`, `off` nur für `pi`.
+Die Werte werden wörtlich verglichen. Es gibt keine gemeinsame Liste: `none` gilt nur für `copilot` und `opencode`, `off` nur für `pi`.
 
 **Erlaubte Efforts eines Starts.** Für Harness `h`, Route `r` mit Klasse `k` und Modell `m` des Starts gilt:
 - Passend ist jeder Eintrag mit `harness` gleich `h`, ohne `klasse` oder mit `klasse` gleich `k`, ohne `modell` oder mit `modell`

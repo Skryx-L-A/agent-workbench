@@ -1,0 +1,20 @@
+{
+ "gueltig": true,
+ "efforts": [
+  {
+   "harness": "opencode",
+   "route": "lokal-beispiel",
+   "modell": "qwen3:8b",
+   "erlaubt": [
+    "none",
+    "high"
+   ]
+  },
+  {
+   "harness": "pi",
+   "route": "lokal-beispiel",
+   "modell": "qwen3:8b",
+   "erlaubt": []
+  }
+ ]
+}

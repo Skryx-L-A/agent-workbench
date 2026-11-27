@@ -255,7 +255,8 @@ fn eine_zeile_gibt_den_code_und_den_grund_der_sitzung() {
 }
 
 /// Nachtrag 27.11.2026 (Fortsetzen, contract `start`, step 5d): the codes of `lauf` for a continued session that cannot go on come
-/// unchanged as the end of the new session, with code and reason; the old session names the new one.
+/// unchanged as the end of the new session, with code and reason. DI-L3 point 2 (Nachtrag 27.11.2026): `lauf` ended before any child,
+/// so the old session loses `fortgesetzt_als` and can be continued again; the new one keeps `fortsetzung_von`.
 #[test]
 fn die_codes_des_fortsetzens_von_lauf_sind_das_ende_der_neuen_sitzung() {
     let ort = Wegwerf::neu("meldung-fortsetzen");
@@ -281,8 +282,41 @@ fn die_codes_des_fortsetzens_von_lauf_sind_das_ende_der_neuen_sitzung() {
             "{res}"
         );
         assert_eq!(
+            eintrag(&mut ans, &alt).map(|e| e.get("fortgesetzt_als").cloned()),
+            Some(None)
+        );
+        // the old session can be continued again
+        spielen(&ort, "zeile", format!("{code} {grund}\n").as_bytes(), 1);
+        let zweite = gestartet(&mut ans, &json!({"art": "Fortsetzen", "sitzung": alt}));
+        assert_ne!(zweite, neu);
+        warte_beendet(&mut ans, &zweite);
+    }
+    beenden(proz);
+}
+
+/// DI-L3 point 2 (Nachtrag 27.11.2026), fail closed: without a valid line of `lauf` it is open whether a child ran, so the old session
+/// keeps `fortgesetzt_als` (a line not of the form, and an end after the `exec`, where the connection ends without data).
+#[test]
+fn ohne_gueltige_zeile_bleibt_die_alte_sitzung_fortgesetzt() {
+    let ort = Wegwerf::neu("meldung-fortgesetzt");
+    let (proz, mut ans) = dienst(&ort);
+    let f2 = json!({"fassung": 2, "harness": "claude", "modell": "m", "route": "cloud-beispiel", "kunde": "k-beispiel",
+                    "arbeitsordner": "/tmp", "effort": null, "name": null});
+    for (modus, zeile, code) in [
+        ("zeile", &b"66 Lauf.fortsetzung_fehlt\n"[..], 66),
+        ("exec", &b""[..], 3),
+    ] {
+        spielen(&ort, "zeile", b"0 lauf.ende\n", 0);
+        let alt = gestartet(&mut ans, &json!({"art": "Starten", "start": f2}));
+        warte_beendet(&mut ans, &alt);
+        spielen(&ort, modus, zeile, code);
+        let neu = gestartet(&mut ans, &json!({"art": "Fortsetzen", "sitzung": alt}));
+        let res = warte_beendet(&mut ans, &neu);
+        assert_eq!(res["fortsetzung_von"], json!(alt), "{res}");
+        assert_eq!(
             eintrag(&mut ans, &alt).map(|e| e["fortgesetzt_als"].clone()),
-            Some(json!(neu))
+            Some(json!(neu)),
+            "{modus}"
         );
     }
     beenden(proz);

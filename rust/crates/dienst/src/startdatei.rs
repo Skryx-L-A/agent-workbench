@@ -21,7 +21,7 @@ pub const WARTESCHLANGE_MAX: usize = 33_554_432;
 pub const KLEINSTE_SPALTEN: usize = traeger::SPALTEN_MIN;
 
 /// The keys on the top level of the start file; every other key is invalid.
-const OBERSTE_SCHLUESSEL: [&str; 10] = [
+const OBERSTE_SCHLUESSEL: [&str; 11] = [
     "socket",
     "betrachter",
     "kind",
@@ -32,6 +32,7 @@ const OBERSTE_SCHLUESSEL: [&str; 10] = [
     "anfang",
     "warteschlange_max",
     "lauf",
+    "lokal",
 ];
 
 /// The most raster numbers of the sessions of `Starten` at the same time (DI12 point 4, P25): the number is one byte in the raster
@@ -79,6 +80,18 @@ pub struct Lauf {
     /// The folder of the conversations of the harnesses (optional, absolute path, Nachtrag 27.11.2026, DI-E4 point 2 and DI12 point 15):
     /// `Loeschen` removes `<gespraeche>/<kennung>`, and a number whose entry `<gespraeche>/s-<n>` exists is not handed out again.
     pub gespraeche: Option<String>,
+    /// The channel to the decision point (optional, Nachtrag 26.11.2026, DI-L6 point 2). Only its form is read here; with it the local
+    /// way carries `Freigabe` (Nachtrag 27.11.2026, DI-E5 point 4).
+    pub stelle: Option<Stelle>,
+}
+
+/// The key `lauf.stelle` (DI-L6 point 2): `{"kanal": <name>, "ordner": "/abs/pfad"}`, `ordner` optional and only under Unix.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Stelle {
+    /// The channel of `peerkanal` (`^[a-z0-9][a-z0-9._-]{0,63}$`).
+    pub kanal: String,
+    /// The folder of the channel (absolute), `None` for the folder of `peerkanal`.
+    pub ordner: Option<String>,
 }
 
 /// What the start file says, checked.
@@ -121,6 +134,9 @@ pub struct Startdatei {
     pub mit_kind: bool,
     /// The key `lauf`: several sessions (DI12). `None`: the single mode.
     pub lauf: Option<Lauf>,
+    /// The channel name of the key `lokal` (DI-L11 point 1): the local way for viewers without the bridge, the Unix socket
+    /// `ordner/<kanal>.sock` (Windows: the named pipe `\\.\pipe\<kanal>`). `None`: no local way.
+    pub lokal: Option<String>,
 }
 
 fn ungueltig<T>(grund: &str) -> Result<T, StartFehler> {
@@ -245,6 +261,10 @@ pub fn pruefen(o: &Value) -> Result<Startdatei, StartFehler> {
             "Socket-Pfad ist laenger als {SOCKET_PFAD_MAX} Byte"
         ));
     }
+    let lokal = match o.get("lokal") {
+        None => None,
+        Some(l) => Some(lokal_lesen(l, &ordner, &name)?),
+    };
     let (person, raum, ansicht) = betrachter_lesen(&o["betrachter"])?;
     let (argv, env, cwd) = match o.get("kind") {
         Some(k) => kind_lesen(k)?,
@@ -299,6 +319,7 @@ pub fn pruefen(o: &Value) -> Result<Startdatei, StartFehler> {
         sid,
         mit_kind,
         lauf,
+        lokal,
     })
 }
 
@@ -341,6 +362,7 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
                 "marker_ordner",
                 "bestand",
                 "gespraeche",
+                "stelle",
             ]
             .contains(&k.as_str())
     }) || !pflicht.iter().all(|k| karte.contains_key(*k))
@@ -360,6 +382,7 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
     let marker_ordner = lauf_pfad_wahl(karte, "marker_ordner")?;
     let bestand = lauf_pfad_wahl(karte, "bestand")?;
     let gespraeche = lauf_pfad_wahl(karte, "gespraeche")?;
+    let stelle = karte.get("stelle").map(stelle_lesen).transpose()?;
     let Some(env) = env_ok(&karte["env"]) else {
         return ungueltig("lauf.env");
     };
@@ -398,6 +421,40 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
         beendet_max,
         bestand,
         gespraeche,
+        stelle,
+    })
+}
+
+/// The key `lauf.stelle` (DI-L6 point 2): an object with `kanal` (a channel name of `peerkanal`) and, only under Unix, `ordner` (an
+/// absolute path); no other key.
+fn stelle_lesen(wert: &Value) -> Result<Stelle, StartFehler> {
+    let Some(karte) = wert.as_object() else {
+        return ungueltig("lauf.stelle");
+    };
+    let erlaubt: &[&str] = if cfg!(unix) {
+        &["kanal", "ordner"]
+    } else {
+        &["kanal"]
+    };
+    if karte.keys().any(|k| !erlaubt.contains(&k.as_str())) {
+        return ungueltig("lauf.stelle");
+    }
+    let Some(kanal) = karte.get("kanal").and_then(Value::as_str) else {
+        return ungueltig("lauf.stelle");
+    };
+    if peerkanal::Kanalname::neu(kanal).is_err() {
+        return ungueltig("lauf.stelle.kanal");
+    }
+    let ordner = match karte.get("ordner") {
+        None => None,
+        Some(w) => match lauf_pfad(Some(w)) {
+            Some(p) => Some(p),
+            None => return ungueltig("lauf.stelle.ordner muss ein absoluter Pfad sein"),
+        },
+    };
+    Ok(Stelle {
+        kanal: kanal.to_owned(),
+        ordner,
     })
 }
 
@@ -457,6 +514,32 @@ fn socket_lesen(wert: &Value) -> Result<(String, String), StartFehler> {
         return ungueltig("socket.ordner muss ein absoluter Pfad sein");
     }
     Ok((ordner.to_owned(), name.to_owned()))
+}
+
+/// The key `lokal` (DI-L11 point 1): exactly `{"kanal": <name>}`, the name in the form of a channel of `peerkanal`
+/// (`^[a-z0-9][a-z0-9._-]{0,63}$`). The path `ordner/<kanal>.sock` has at most [`SOCKET_PFAD_MAX`] bytes and is not the path of
+/// `socket.name`. The rule holds on every system, so that one start file means the same everywhere.
+fn lokal_lesen(wert: &Value, ordner: &str, name: &str) -> Result<String, StartFehler> {
+    let Some(karte) = wert.as_object() else {
+        return ungueltig("lokal");
+    };
+    let kanal = match (karte.len(), karte.get("kanal")) {
+        (1, Some(Value::String(k))) => k.as_str(),
+        _ => return ungueltig("lokal"),
+    };
+    if peerkanal::Kanalname::neu(kanal).is_err() {
+        return ungueltig("lokal.kanal");
+    }
+    let datei = format!("{kanal}.sock");
+    if datei == name {
+        return ungueltig("lokal.kanal ist der Name des Sockets");
+    }
+    if format!("{}/{datei}", ordner.trim_end_matches('/')).len() > SOCKET_PFAD_MAX {
+        return ungueltig(&format!(
+            "Pfad von lokal ist laenger als {SOCKET_PFAD_MAX} Byte"
+        ));
+    }
+    Ok(kanal.to_owned())
 }
 
 fn betrachter_lesen(wert: &Value) -> Result<(String, String, String), StartFehler> {
@@ -666,6 +749,87 @@ mod tests {
         }
         rot(&pruefen(&json!([])));
         rot(&pruefen(&json!("x")));
+    }
+
+    /// DI-L11 point 1: `lokal` is optional, exactly `{"kanal": <name>}`, the name in the form of `peerkanal`, the path at most 100
+    /// bytes and not the path of `socket.name`; every other form is exit code 2.
+    #[test]
+    fn lokal() {
+        let Ok(s) = pruefen(&gut()) else {
+            panic!("valid start file");
+        };
+        assert_eq!(s.lokal, None);
+        let mit_lokal = |l: Value| {
+            mit(move |o| {
+                o.insert("lokal".into(), l);
+            })
+        };
+        let Ok(s) = mit_lokal(json!({"kanal": "fenster"})) else {
+            panic!("valid key lokal");
+        };
+        assert_eq!(s.lokal.as_deref(), Some("fenster"));
+        for gut in ["a", "0", "fenster.1", "a-b_c", &"k".repeat(64)] {
+            assert_eq!(
+                mit_lokal(json!({"kanal": gut})).ok().and_then(|s| s.lokal),
+                Some(gut.to_owned()),
+                "{gut}"
+            );
+        }
+        for schlecht in [
+            json!({"kanal": "Fenster"}),
+            json!({"kanal": ""}),
+            json!({"kanal": "-a"}),
+            json!({"kanal": ".a"}),
+            json!({"kanal": "a/b"}),
+            json!({"kanal": "k".repeat(65)}),
+            json!({"kanal": 1}),
+            json!({"kanal": "fenster", "x": 1}),
+            json!({}),
+            json!("fenster"),
+            json!(null),
+            // the same path as the socket of the bridge
+            json!({"kanal": "dienst"}),
+        ] {
+            rot(&mit_lokal(schlecht));
+        }
+        // the name of the socket counts, not the default
+        let anders = mit(|o| {
+            o.insert(
+                "socket".into(),
+                json!({"ordner": "/tmp/x", "name": "a.sock"}),
+            );
+            o.insert("lokal".into(), json!({"kanal": "dienst"}));
+        });
+        assert_eq!(anders.ok().and_then(|s| s.lokal).as_deref(), Some("dienst"));
+        rot(&mit(|o| {
+            o.insert(
+                "socket".into(),
+                json!({"ordner": "/tmp/x", "name": "a.sock"}),
+            );
+            o.insert("lokal".into(), json!({"kanal": "a"}));
+        }));
+        // 100 bytes are the limit of the path `<ordner>/<kanal>.sock`
+        let ordner = format!("/{}", "o".repeat(36));
+        let mit_ordner = |kanal: &str| {
+            let ordner = ordner.clone();
+            let kanal = kanal.to_owned();
+            mit(move |o| {
+                o.insert("socket".into(), json!({"ordner": ordner}));
+                o.insert("lokal".into(), json!({"kanal": kanal}));
+            })
+        };
+        // 37 + 1 + 57 + 5 = 100 bytes
+        assert!(mit_ordner(&"k".repeat(57)).is_ok());
+        rot(&mit_ordner(&"k".repeat(58)));
+        // a slash at the end of the folder does not count twice
+        let mit_strich = mit(|o| {
+            o.insert(
+                "socket".into(),
+                json!({"ordner": format!("/{}/", "o".repeat(36))}),
+            );
+            o.insert("lokal".into(), json!({"kanal": "k".repeat(57)}));
+        });
+        assert!(mit_strich.is_ok());
     }
 
     #[test]
@@ -1088,6 +1252,58 @@ mod tests {
         rot(&ohne_kind(|o| {
             o.remove("anfang");
         }));
+    }
+
+    /// DI-L6 point 2: `lauf.stelle` is optional, `kanal` a channel name of `peerkanal`, `ordner` (only under Unix) an absolute path,
+    /// no other key.
+    #[test]
+    fn lauf_stelle_form() {
+        let mit_stelle = |st: Value| {
+            ohne_kind(|o| {
+                let mut l = lauf_gut();
+                l["stelle"] = st.clone();
+                o.insert("lauf".into(), l);
+            })
+        };
+        let gut = mit_stelle(json!({"kanal": "stelle"})).expect("valid");
+        assert_eq!(
+            gut.lauf.and_then(|l| l.stelle),
+            Some(Stelle {
+                kanal: "stelle".to_owned(),
+                ordner: None
+            })
+        );
+        let ohne = ohne_kind(|o| {
+            o.insert("lauf".into(), lauf_gut());
+        })
+        .expect("valid");
+        assert_eq!(ohne.lauf.and_then(|l| l.stelle), None);
+        #[cfg(unix)]
+        {
+            let mit_ordner =
+                mit_stelle(json!({"kanal": "a.b-c", "ordner": "/run/x"})).expect("valid");
+            assert_eq!(
+                mit_ordner
+                    .lauf
+                    .and_then(|l| l.stelle)
+                    .and_then(|s| s.ordner),
+                Some("/run/x".to_owned())
+            );
+            rot(&mit_stelle(json!({"kanal": "stelle", "ordner": "relativ"})));
+            rot(&mit_stelle(json!({"kanal": "stelle", "ordner": 1})));
+        }
+        for schlecht in [
+            json!("stelle"),
+            json!({}),
+            json!({"kanal": "stelle", "x": 1}),
+            json!({"ordner": "/run/x"}),
+            json!({"kanal": 1}),
+            json!({"kanal": "Gross"}),
+            json!({"kanal": ""}),
+            json!({"kanal": "a/b"}),
+        ] {
+            rot(&mit_stelle(schlecht));
+        }
     }
 
     #[test]

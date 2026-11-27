@@ -144,7 +144,13 @@
        },
        "b2": {
         "stumm": false,
-        "warteschlange": 0
+        "warteschlange": 0,
+        "wer": {
+         "name": "@konto",
+         "sid": null,
+         "system": "@system",
+         "uid": "@uid"
+        }
        }
       },
       "kernbau": 1
@@ -300,7 +306,13 @@
        },
        "b2": {
         "stumm": false,
-        "warteschlange": 0
+        "warteschlange": 0,
+        "wer": {
+         "name": "@konto",
+         "sid": null,
+         "system": "@system",
+         "uid": "@uid"
+        }
        }
       },
       "kernbau": 1
@@ -365,7 +377,13 @@
        },
        "b2": {
         "stumm": false,
-        "warteschlange": 0
+        "warteschlange": 0,
+        "wer": {
+         "name": "@konto",
+         "sid": null,
+         "system": "@system",
+         "uid": "@uid"
+        }
        }
       },
       "kernbau": 1
@@ -425,7 +443,13 @@
       "betrachter": {
        "b2": {
         "stumm": false,
-        "warteschlange": 0
+        "warteschlange": 0,
+        "wer": {
+         "name": "@konto",
+         "sid": null,
+         "system": "@system",
+         "uid": "@uid"
+        }
        }
       },
       "kernbau": 1

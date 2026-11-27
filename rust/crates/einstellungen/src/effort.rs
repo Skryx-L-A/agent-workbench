@@ -18,9 +18,11 @@ const ERLAUBT_MAX: usize = 7;
 const CLAUDE: [&str; 5] = ["low", "medium", "high", "xhigh", "max"];
 const COPILOT: [&str; 7] = ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
 const PI: [&str; 7] = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+// opencode 1.19.5: the value of `options.reasoningEffort` of the model, sent as `reasoning_effort` (measured 27.11.2026)
+const OPENCODE: [&str; 7] = ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
 
 /// The effort values of a harness of the table of contract 1, in the order of contract 2; `None` for a
-/// harness outside the table. The values are compared literally: `none` exists only for `copilot`, `off`
+/// harness outside the table. The values are compared literally: `none` exists only for `copilot` and `opencode`, `off`
 /// only for `pi`.
 #[must_use]
 pub fn effort_werte(harness: &str) -> Option<&'static [&'static str]> {
@@ -28,6 +30,7 @@ pub fn effort_werte(harness: &str) -> Option<&'static [&'static str]> {
         "claude" => Some(&CLAUDE),
         "copilot" => Some(&COPILOT),
         "pi" => Some(&PI),
+        "opencode" => Some(&OPENCODE),
         _ => None,
     }
 }
@@ -237,6 +240,10 @@ mod tests {
         assert_eq!(
             effort_werte("pi"),
             Some(&["off", "minimal", "low", "medium", "high", "xhigh", "max"][..])
+        );
+        assert_eq!(
+            effort_werte("opencode"),
+            Some(&["none", "minimal", "low", "medium", "high", "xhigh", "max"][..])
         );
         assert_eq!(effort_werte("codex"), None);
         assert_eq!(effort_werte("Pi"), None);

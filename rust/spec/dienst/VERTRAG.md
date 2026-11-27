@@ -1094,6 +1094,18 @@ dahinter `Agenten`, wenn sich die Liste der Worker geändert hat (DI-L1 Punkt 4)
    In `start.json` stehen dazu `sitzung` (die neue Kennung) und **`fortsetzung_von`** (die alte Kennung). Den Harness auf das alte Gespräch zu
    setzen, ist Sache von „Lauf starten“ (Vertrag `start`). Die alte Sitzung bekommt `fortgesetzt_als`, die neue `fortsetzung_von` und den Namen der
    alten. Antwort wie bei `Starten`: die Liste an alle, dann `Gestartet` an den Sender.
+   **Nachtrag 27.11.2026 (Projektentscheid, 27.11.2026):** Endet die neue Sitzung mit einem Grund von `lauf` vor jedem Kind, nimmt der Dienst
+   `fortgesetzt_als` von der alten Sitzung in Liste und Bestand wieder weg. Ein Grund von `lauf` ist eine gültige Zeile auf `meldung.sock`
+   (Abschnitt 18 Punkt 5), etwa 66 `lauf.fortsetzung_fehlt`, 65 `lauf.fortsetzung_kaputt`, 65 `lauf.fortsetzung_fremd`,
+   69 `lauf.fortsetzung_unmoeglich`, 73 `lauf.sitzung_belegt` oder der vorübergehende Grund 69 `lauf.modellweg_nicht_bereit`. `lauf` schreibt eine
+   solche Zeile nur vor dem Trampolin; nach dem Start des Harness endet die Verbindung ohne Daten. Grund: Nach Vertrag `start` (Schritte 5d und 8)
+   liegt das Gespräch dann noch unter der alten Kennung, denn jeder Fehler vor dem Umbenennen endet davor, und nach dem Umbenennen benennt `lauf` vor
+   dem `exec` bestmöglich zurück. `fortsetzung_von` der neuen Sitzung bleibt. Die alte Sitzung lässt sich danach erneut fortsetzen. Eine ungültige
+   Zeile (`lauf.meldung_ungueltig`) und ein Ende ohne Zeile zählen nicht, denn dann ist offen, ob ein Kind lief: `fortgesetzt_als` bleibt (fail
+   closed). Endet die neue Sitzung, nachdem ihr Kind lief, bleibt alles wie zuvor. Für `Wiederbeleben` gilt dasselbe. Fall
+   `dil3_fortsetzen_ohne_kind` (sichtbar `Fortsetzen` mit 66, verdeckt `Wiederbeleben` mit 65), Mutant `fortgesetzt_bleibt_ohne_kind`. Prüfmittel:
+   der Plan `melden` des festen Kindes `lauf` (`code`, `grund`) schreibt die Zeile `<code> <grund>` auf `meldung.sock` und endet mit `code`. Die
+   Referenz hat keinen Meldekanal (Abschnitt 18 Punkt 7); sie nimmt den Grund aus demselben Plan, wenn der Code des Endes der Code des Plans ist.
 3. **`Wiederbeleben`** `{"art": "Wiederbeleben", "sitzung": "<id>"}`. Wie `Fortsetzen`, aber nur für eine abgestürzte Sitzung (`abgestuerzt` true,
    DI-L5 Punkt 2), sonst `nicht_abgestuerzt`. Prüffolge: Form, unbekannt, läuft (`sitzung_laeuft`), nicht abgestürzt, dann wie `Fortsetzen`.
 4. **`Loeschen`** `{"art": "Loeschen", "sitzung": "<id>", "bestaetigung": "<id>"}`. Prüffolge: Form (Schlüssel nur `art`, `sitzung` und
@@ -1106,6 +1118,8 @@ dahinter `Agenten`, wenn sich die Liste der Worker geändert hat (DI-L1 Punkt 4)
    **Was `Loeschen` nie entfernt:** den Arbeitsordner und alles darin; die Ordner und Dateien von „Lauf starten“ (`lauf.sitzungen`, `lauf.ziellisten`,
    `lauf.laufzeit`, Marker); die Protokollkette; den Zustand der Stelle und des Halters; Dateien außerhalb des Ordners des Dienstes, außer dem Gespräch
    nach DI-E4. Den Ordner der Sitzung im Ordner des Dienstes gibt es dann schon nicht mehr (DI12 Punkt 12). Die Kennung wird nie wieder vergeben.
+   **Nachtrag 27.11.2026:** Löscht `Loeschen` eine Folgesitzung, bleibt `fortgesetzt_als` an ihrer alten Sitzung stehen, auch mit der gelöschten
+   Kennung. Ein `Fortsetzen` der alten Sitzung ergibt weiter `schon_fortgesetzt`, denn ihr Gespräch ist mit der Folgesitzung entfernt (DI-E4).
    **Löschen ist endgültig:** Danach ergeben `Fortsetzen`, `Wiederbeleben`, `Umbenennen` und `Abo` `sitzung_unbekannt`.
    **Schutz gegen ein Versehen:** nur für beendete Sitzungen; die Bestätigung muss die Kennung wiederholen, die Ansicht schickt sie erst nach ihrer
    Rückfrage (Vertrag `seite`, B16); ein Ereignis löscht genau eine Sitzung, es gibt kein Sammellöschen.
@@ -1209,9 +1223,18 @@ Sicherheitsstelle: das Projekt liest sie selbst.
    Server doch (etwa als root, mit `SeBackupPrivilege` oder durch eine spätere Zugriffsliste), verwirft `peerkanal` ihn mit `pk.kennung_nicht_erlaubt`
    und dem Grund `pk.uid_nicht_erlaubt` (Unix) oder `pk.sid_nicht_erlaubt` (Windows); ein Prozess in einem AppContainer mit `pk.appcontainer_falsch`,
    ein Token mit Restricting SIDs mit `pk.eingeschraenkt`. Im Haken des Aufrufers (peerkanal Stufe 7) verwirft der Dienst außerdem mit
-   `aufrufer:konto-unbekannt` (kein Name zur uid oder SID), unter Linux mit `aufrufer:einschluss` (die Cgroup des Partners liegt in der Einheit eines
-   Laufs, peerkanal Fassung 2) und unter macOS mit `aufrufer:sandbox` (Seatbelt). Je Verwerfen schreibt der Dienst eine Zeile
+   `aufrufer:konto-unbekannt` (kein Name zur uid oder SID), unter Linux mit `aufrufer:einschluss` (der Partner liegt in der Einheit eines
+   Laufs, siehe unten) und unter macOS mit `aufrufer:sandbox` (Seatbelt). Je Verwerfen schreibt der Dienst eine Zeile
    `wb-dienst: lokal abgewiesen: <grund>` nach stderr, ohne Namen, uid oder SID.
+   **Einheit eines Laufs unter Linux** (Nachtrag 27.11.2026): Der Partner liegt in der Einheit eines Laufs, wenn eines davon gilt:
+   - Er ist ein Nachfahre des Dienstes. Die Kette folgt Feld 4 von `/proc/<pid>/stat` bis zum Elternwert 0. Weil der Dienst Subreaper ist
+     (Abschnitt 17), bleibt auch ein verwaister Helfer eines Laufs sein Nachfahre.
+   - Er lebt nicht im PID-Namensraum des Dienstes: Die Zeile `NSpid:` in `/proc/<pid>/status` hat nicht genau so viele Einträge wie die des
+     Dienstes. Jeder Einschluss startet mit eigenem PID-Namensraum (`--unshare-pid`, Vertrag `einschluss`) und hat einen Eintrag mehr.
+   - Seine Startzeit (Feld 22 von `/proc/<pid>/stat`) ist nach diesen Lesungen nicht mehr die, die `peerkanal` beim Verbinden gemessen hat.
+   Jeder unlesbare Wert, eine fehlende oder leere Zeile `NSpid:` und eine fehlende Startzeit zählen als „in der Einheit eines Laufs“ (fail closed).
+   Die Prüfung über die Cgroup (peerkanal Fassung 2) gilt erst, wenn jeder Lauf eine eigene Cgroup hat; das ist Schritt II. Heute gibt es keine
+   Cgroup je Lauf, und `/proc/<pid>/ns/cgroup` ist ohne das Recht zum Tracen nicht lesbar (gemessen unter `unshare -Ur`: `Permission denied`).
 6. **Fail closed.** Lässt sich der Partner nicht bestimmen (`pk.peer_unmessbar`, `pk.prozess_gewechselt`, ein ungültiges Hallo), gibt es keine
    Verbindung, kein `Verbinden` an den Kern und keine Nachricht. Ohne `wer` erreicht keine Verbindung des lokalen Wegs den Kern.
 7. **Wege, auf denen eine Angabe der Ansicht doch zum Konto würde, und ihr Schluss:**
@@ -1296,6 +1319,7 @@ Die Felder legen `rust/spec/regelebenen/README.md` Abschnitt 15 und `rust/spec/s
 | `fortsetzen_ohne_verweis` | DI-L3 | `start.json` trägt kein `fortsetzung_von` |
 | `wiederbeleben_ohne_absturz` | DI-L3 | eine Sitzung mit Code 0 lässt sich wiederbeleben |
 | `fortsetzen_fassung1_ok` | DI-L3 | eine Sitzung der Fassung 1 lässt sich fortsetzen (Nachtrag 27.11.2026) |
+| `fortgesetzt_bleibt_ohne_kind` | DI-L3 | endet eine Fortsetzung mit einem Grund von `lauf` vor jedem Kind, behält die alte Sitzung `fortgesetzt_als` (Nachtrag 27.11.2026) |
 | `liste_ohne_ordner` | DI-L5 | die Liste trägt `ordner` und `projekt` nicht |
 | `projekt_ganzer_pfad` | DI-L5 | `projekt` ist der ganze Pfad statt seines letzten Bestandteils |
 | `bestand_vergessen` | DI-L5 | der Dienst schreibt den Bestand nicht |

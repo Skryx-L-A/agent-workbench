@@ -357,7 +357,8 @@ class LaufJson(unittest.TestCase):
                      f"db_fset() {{ printf 'FSET %s %s %s\\n' \"$1\" \"$2\" \"$3\" >> {q(self.db)}; return 0; }}\n")
         werte = (f'nutzer={q(lage["nutzer"])}\ngruppe=g\nuid={lage["uid"]}\nheim={q(lage["heim"])}\n'
                  f'LK_PI={q(h.get("pi", {}).get("programm", ""))}\nLK_PI_NODE={q(h.get("pi", {}).get("node") or "")}\n'
-                 f'LK_COPILOT={q(h.get("copilot", {}).get("programm", ""))}\nLK_COPILOT_NODE={q(h.get("copilot", {}).get("node") or "")}\n')
+                 f'LK_COPILOT={q(h.get("copilot", {}).get("programm", ""))}\nLK_COPILOT_NODE={q(h.get("copilot", {}).get("node") or "")}\n'
+                 f'LK_OPENCODE={q(h.get("opencode", {}).get("programm", ""))}\n')
         if lage.get("vorher"):
             os.makedirs(etc, exist_ok=True)
             with open(os.path.join(etc, "lauf.json"), "w", encoding="utf-8") as d:
@@ -647,6 +648,35 @@ class LaufJson(unittest.TestCase):
             skript = 'heim=/srv/beispiel\nLK_PI=""\nlk_suche pi\nprintf "[%s]" "$LK_PI"\n'
             r = subprocess.run(["sh", "-c", block + skript], capture_output=True, text=True, check=False)
             self.assertEqual(r.stdout, "[]", r.stdout + r.stderr)
+
+    def test_opencode_is_entered_only_in_the_fixed_version(self):
+        """opencode (decision of the operator, 27.11.2026): the real program behind `<prefix>/bin/opencode` must have the sha256 of the fixed version
+        (`LK_OPENCODE_SHA256`); any other file is not entered and one fixed journal line without a path says so. The folder is the package root."""
+        wurzel = "/srv/beispiel/.npm-global/lib/node_modules/opencode-ai"
+        for fest in (False, True):
+            with self.subTest(fest=fest), tempfile.TemporaryDirectory() as t0:
+                t = os.path.realpath(t0)
+                programm = os.path.join(t, wurzel.lstrip("/"), "bin/opencode.exe")
+                os.makedirs(os.path.dirname(programm))
+                with open(programm, "w", encoding="utf-8") as d:
+                    d.write("#!/bin/sh\n")
+                os.chmod(programm, 0o755)
+                os.makedirs(os.path.join(t, "srv/beispiel/.npm-global/bin"))
+                os.symlink("../lib/node_modules/opencode-ai/bin/opencode.exe", os.path.join(t, "srv/beispiel/.npm-global/bin/opencode"))
+                block = self.block.replace('LK_WURZEL=""', f'LK_WURZEL={t}')
+                # the stand-in for the fixed file: the sum of this fake file is the one of the fixed version (only in the case `fest`)
+                stummel = 'lk_summe() { printf "%s\\n" "$LK_OPENCODE_SHA256"; }\n' if fest else ""
+                skript = (stummel + 'log() { printf "LOG %s\\n" "$*"; }\nheim=/srv/beispiel\nLK_OPENCODE=""\nLK_PI="" LK_PI_NODE="" LK_COPILOT="" LK_COPILOT_NODE=""\n'
+                          'lk_suche opencode\nlk_programmordner\nprintf "[%s][%s]\\n" "$LK_OPENCODE" "$LK_ORDNER"\n')
+                r = subprocess.run(["sh", "-c", block + skript], capture_output=True, text=True, check=False)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                if fest:
+                    self.assertEqual(r.stdout.strip(), f"[{wurzel}/bin/opencode.exe][ {wurzel}]", r.stdout)
+                else:
+                    self.assertEqual(r.stdout.strip().splitlines(), ["LOG werkbank: opencode nicht in der festen Fassung, nicht eingetragen", "[][]"], r.stdout)
+                    self.assertNotIn("/srv/", r.stdout.splitlines()[0])
+        # the fixed sum is the one of the program file of opencode-linux-x64 1.19.5 (measured: sha256 of package/bin/opencode of the tarball)
+        self.assertIn("LK_OPENCODE_SHA256=7df4e4136301f16589b0f30bf91a61380fca5f8ef22dd36570f5ebe1d4ec802c\n", self.block)
 
     def test_a_dirty_value_writes_no_file(self):
         with tempfile.TemporaryDirectory() as t:

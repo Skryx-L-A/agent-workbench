@@ -227,11 +227,36 @@ impl Startform for Startdatei {
     }
 }
 
-/// The table of harnesses (fassung 1 with the addendum of 20 November), with the one route kind each harness may use.
+/// The table of harnesses (fassung 1 with the addenda of 20 November and 27 November), with the one route kind each
+/// harness may use. `opencode` is a local harness for now (decision of the operator, 27.11.2026).
 pub(crate) fn harness_art(name: &str) -> Option<Routenart> {
     match name {
         "claude" | "copilot" => Some(Routenart::Cloud),
-        "pi" => Some(Routenart::Lokal),
+        "pi" | "opencode" => Some(Routenart::Lokal),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::harness_art;
+    use einstellungen::Routenart;
+
+    #[test]
+    fn each_harness_of_the_table_has_exactly_its_route_kind() {
+        assert_eq!(harness_art("claude"), Some(Routenart::Cloud));
+        assert_eq!(harness_art("copilot"), Some(Routenart::Cloud));
+        assert_eq!(harness_art("pi"), Some(Routenart::Lokal));
+        assert_eq!(harness_art("opencode"), Some(Routenart::Lokal));
+        for fremd in [
+            "",
+            "Opencode",
+            "opencode ",
+            "open-code",
+            "codex",
+            "attrappe",
+        ] {
+            assert_eq!(harness_art(fremd), None, "{fremd:?}");
+        }
     }
 }

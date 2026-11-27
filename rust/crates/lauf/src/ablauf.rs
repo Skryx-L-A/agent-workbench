@@ -929,7 +929,12 @@ fn beschreibung_bauen(
     let mut dateien_liste = Vec::new();
     if let (Some(ziel), Some(inhalt)) = (
         harness::datei_ziel(harness_name),
-        harness::datei_text(harness_name, lage.start.modell(), &k.programme.such_mcp),
+        harness::datei_text(
+            harness_name,
+            lage.start.modell(),
+            &k.programme.such_mcp,
+            lage.start.effort(),
+        ),
     ) {
         dateien::ordner_neu(&konfig_ordner).map_err(intern)?;
         let name = Path::new(ziel)
@@ -1014,6 +1019,8 @@ fn beschreibung_bauen(
 ///   old key in `umbenannt`, so a later fault renames it back); the option to continue with the key of step 5d.
 /// - New start of version 2: makes `gespraeche/<sitzung>` exclusively with `gespraech.json` (a new UUID v4) and the
 ///   empty folder of the conversation; `--session-id <uuid>`.
+/// - New start of version 2 of a harness without an option to continue (`opencode`): the same folder with
+///   `gespraech.json` without a key (`kennung` `null`) and the empty folder of the conversation; no session option.
 /// - Start of version 1: makes `gespraeche/<sitzung>` with `gespraech.json` (`kennung` `null`) only; no folder of the
 ///   conversation and no session option.
 fn gespraech_bereitstellen(
@@ -1038,6 +1045,12 @@ fn gespraech_bereitstellen(
         let ordner = gespraech::uebernehmen(&k.gespraeche, &f.alt, start.sitzung())?;
         *umbenannt = Some(f.alt.clone());
         return Ok((zustand, Some(ordner.join(gespraech::ZUSTAND)), optionen));
+    }
+    if start.fassung() == 2 && harness::fortsetzen_optionen(start.harness(), "").is_none() {
+        // a harness that takes no key from outside (opencode): its conversation is kept at its place, without a key and
+        // without a session option, so it cannot be continued (5d.3a) and never restarts silently
+        let ordner = gespraech::anlegen(&k.gespraeche, start.sitzung(), &neu(None), true)?;
+        return Ok((zustand, Some(ordner.join(gespraech::ZUSTAND)), Vec::new()));
     }
     if start.fassung() == 2 {
         let kennung = gespraech::neue_kennung().ok_or(Fehler::Intern)?;

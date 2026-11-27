@@ -143,16 +143,16 @@ fn the_files_are_the_provider_of_pi_and_the_mcp_file_of_copilot() {
         einstellungen::json::lesen(pi_anbieter("a\"b").as_bytes()).is_ok(),
         "escaped"
     );
-    assert_eq!(datei_text("claude", "m", Path::new("/x")), None);
+    assert_eq!(datei_text("claude", "m", Path::new("/x"), None), None);
     assert_eq!(datei_ziel("claude"), None);
     assert_eq!(datei_ziel("pi"), Some(".pi/agent/models.json"));
     assert_eq!(datei_ziel("copilot"), Some(".copilot/wb-mcp.json"));
     assert_eq!(
-        datei_text("pi", "m", Path::new("/x")),
+        datei_text("pi", "m", Path::new("/x"), None),
         Some(pi_anbieter("m"))
     );
     assert_eq!(
-        datei_text("copilot", "m", Path::new("/x")),
+        datei_text("copilot", "m", Path::new("/x"), None),
         Some(copilot_mcp(Path::new("/x")))
     );
     for (h, n) in [
@@ -259,4 +259,59 @@ fn each_harness_has_its_option_to_continue_and_never_the_option_of_a_new_start()
     ] {
         assert_eq!(effort_option(h), o);
     }
+}
+
+#[test]
+fn opencode_gets_its_model_of_the_provider_and_its_effort_only_in_its_file() {
+    let heim = PathBuf::from("/srv/beispiel/heim");
+    // the effort never reaches the argv of opencode (its interface has no option for it), the model is one element
+    for effort in [None, Some("high")] {
+        assert_eq!(
+            argv(
+                "opencode",
+                Path::new("/srv/bin/opencode"),
+                "qwen3:8b",
+                &heim,
+                &[einstellungen::Werkzeug::Shell],
+                effort,
+                &[]
+            ),
+            w(&["/srv/bin/opencode", "--model", "wb-lokal/qwen3:8b"])
+        );
+    }
+    assert!(!effort_im_argv("opencode"));
+    assert!(
+        ["claude", "copilot", "pi"]
+            .iter()
+            .all(|h| effort_im_argv(h))
+    );
+    assert_eq!(fortsetzen_optionen("opencode", "ses_x"), None);
+    assert_eq!(zustand_name("opencode"), ".opencode-sitzung");
+    assert_eq!(
+        datei_ziel("opencode"),
+        Some(".opencode-sitzung/config/opencode/opencode.json")
+    );
+    assert_eq!(
+        opencode_konfig("qwen3:8b", None),
+        "{\"autoupdate\":false,\"share\":\"disabled\",\"model\":\"wb-lokal/qwen3:8b\",\"provider\":{\"wb-lokal\":{\"npm\":\"@ai-sdk/openai-compatible\",\"name\":\"wb-lokal\",\"options\":{\"baseURL\":\"http://127.0.0.1:11434/v1\"},\"models\":{\"qwen3:8b\":{\"name\":\"qwen3:8b\",\"tool_call\":true}}}}}\n"
+    );
+    assert_eq!(
+        opencode_konfig("qwen3:8b", Some("low")),
+        "{\"autoupdate\":false,\"share\":\"disabled\",\"model\":\"wb-lokal/qwen3:8b\",\"provider\":{\"wb-lokal\":{\"npm\":\"@ai-sdk/openai-compatible\",\"name\":\"wb-lokal\",\"options\":{\"baseURL\":\"http://127.0.0.1:11434/v1\"},\"models\":{\"qwen3:8b\":{\"name\":\"qwen3:8b\",\"tool_call\":true,\"options\":{\"reasoningEffort\":\"low\"}}}}}}\n"
+    );
+    assert_eq!(
+        datei_text("opencode", "m", Path::new("/x"), Some("max")),
+        Some(opencode_konfig("m", Some("max")))
+    );
+    for text in [
+        opencode_konfig("a\"b", Some("x\"y")),
+        opencode_konfig("m", None),
+    ] {
+        assert!(
+            einstellungen::json::lesen(text.as_bytes()).is_ok(),
+            "{text}"
+        );
+    }
+    // no key of any kind in the file: the model path needs none (contract 1, E4)
+    assert!(!opencode_konfig("m", Some("low")).contains("apiKey"));
 }
