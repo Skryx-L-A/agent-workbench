@@ -647,31 +647,28 @@ fn vorbereiten_zwei(
 }
 
 /// Step 7, in this order: open the folder of the socket so that **no** part of the path is followed through a link,
-/// check that it is a folder of this user that no other user may write into, bind relative to that open folder with the
-/// umask 0177, then check the socket. Each of the three steps before the bind ends the start before the bind if it
-/// fails; there is no fallback that opens or binds. After the bind the code remembers the socket (kind, device, inode)
+/// check that it is a folder of this user that no other user may reach (0700), bind relative to that open folder, set the
+/// rights 0600 over that folder, then check the socket. Each of the three steps before the bind ends the start before
+/// the bind if it fails; there is no fallback that opens or binds. The umask of the process stays untouched: it is a
+/// setting of the whole process, and a mask of the bind once gave a folder that another thread made in that moment
+/// 0600 without `x`. After the bind the code remembers the socket (kind, device, inode)
 /// relative to the open folder, in the same step as it checks the kind (a socket) and the rights (exactly 0600). If
 /// anything differs, the socket is deleted again, but only over the descriptor of the folder and only if the name still
 /// shows that inode, and the start ends. Whatever already lies at the path stays untouched.
 fn socket_anlegen(pfad: &Path, eigene_uid: u32) -> Option<(UnixListener, Arc<Eigene>)> {
-    os::mit_umask(|| socket_binden(pfad, eigene_uid))
-}
-
-/// [`socket_anlegen`] without the umask (it is a setting of the whole process, so the tests of this file call this).
-fn socket_binden(pfad: &Path, eigene_uid: u32) -> Option<(UnixListener, Arc<Eigene>)> {
     socket_binden_mit(pfad, eigene_uid, || {})
 }
 
-/// [`socket_binden`]; `zwischen` runs between the bind and the check (a seam for the tests, empty in the program).
+/// [`socket_anlegen`]; `zwischen` runs between the rights and the check (a seam for the tests, empty in the program).
 fn socket_binden_mit(
     pfad: &Path,
     eigene_uid: u32,
     zwischen: impl FnOnce(),
 ) -> Option<(UnixListener, Arc<Eigene>)> {
     let (ordner, name) = Ordner::ohne_verweis(pfad).ok()?;
-    // Before the bind: only while no other user may write into this folder is the window between the bind and the
-    // check closed, because nobody else can put an entry under the name in between (section 7).
-    if !ordner.nur_eigen_schreibbar(eigene_uid) {
+    // Before the bind: only while no other user may reach this folder are the windows between the bind, the rights and
+    // the check closed, because nobody else can connect to the socket or put an entry under the name in between.
+    if !ordner.nur_eigen(eigene_uid) {
         return None;
     }
     let listener = match bind_im_ordner(&ordner, &name) {
@@ -680,15 +677,20 @@ fn socket_binden_mit(
         #[cfg(not(target_os = "linux"))]
         Bindung::Aufraeumen => {
             // The bind made the entry, but the step cannot be finished. The entry goes again, over the descriptor of
-            // the folder and only if the name still shows a socket with the rights of this bind.
-            if let Some(e) = Eigene::merken(ordner, name, rustix::fs::FileType::Socket)
-                && e.modus() == SOCKET_MODUS
-            {
+            // the folder and only if the name still shows a socket: only this user reaches the folder.
+            if let Some(e) = Eigene::merken(ordner, name, rustix::fs::FileType::Socket) {
                 e.entfernen();
             }
             return None;
         }
     };
+    if ordner.socket_rechte(&name, SOCKET_MODUS).is_err() {
+        // The rights cannot be set: the socket goes again over the descriptor of the folder, and the start ends.
+        if let Some(e) = Eigene::merken(ordner, name, rustix::fs::FileType::Socket) {
+            e.entfernen();
+        }
+        return None;
+    }
     zwischen();
     let eigene = Arc::new(Eigene::merken(ordner, name, rustix::fs::FileType::Socket)?);
     // in the same step as the remembering: from here on the end deletes this socket, also before readiness
@@ -741,7 +743,7 @@ static BIND_PLATZ: Mutex<()> = Mutex::new(());
 /// The working folder is therefore the only way to a bind without a path of names: `fchdir` to the descriptor, bind the
 /// bare name, `fchdir` back, the three of them under [`BIND_PLATZ`]. The restriction is named in the contract: the
 /// working folder of the whole process is this folder for the length of the bind, so no other thread may use a relative
-/// path in that moment (the umask of step 7 is a setting of the whole process in the same way). Cannot the code go
+/// path in that moment. Cannot the code go
 /// back, it binds nothing and the start ends.
 #[cfg(not(target_os = "linux"))]
 fn bind_im_ordner(ordner: &Ordner, name: &std::ffi::OsStr) -> Bindung {
@@ -762,7 +764,7 @@ fn bind_im_ordner(ordner: &Ordner, name: &std::ffi::OsStr) -> Bindung {
     }
 }
 
-/// The rights of the socket: exactly 0600 (the umask 0177 gives them).
+/// The rights of the socket: exactly 0600, set over the open folder ([`Ordner::socket_rechte`]).
 const SOCKET_MODUS: Mode = Mode::from_bits_retain(0o600);
 
 /// The system time in milliseconds since 1970; `i64::MIN` (no valid time, so the line fails closed) if the clock
@@ -1334,13 +1336,57 @@ mod tests {
         crate::os::eigene_uid()
     }
 
-    /// Binds like the program, but gives the socket 0600 in the seam: the umask is a setting of the whole process and
-    /// the tests run side by side, so they do not set it (the start of the program does, see `tests/aussen.rs`).
+    /// Binds like the program.
     fn binden(pfad: &std::path::Path) -> Option<(UnixListener, std::sync::Arc<super::Eigene>)> {
-        let p = pfad.to_path_buf();
-        socket_binden_mit(pfad, uid(), move || {
-            let _ = fs::set_permissions(&p, fs::Permissions::from_mode(0o600));
+        socket_binden_mit(pfad, uid(), || {})
+    }
+
+    #[test]
+    fn a_folder_made_beside_the_bind_can_be_written_into() {
+        // Until 27.11.2026 the bind set the umask 0177 of the whole process; a folder that another thread made in that
+        // moment got 0600 without `x`, and writing into it failed with `PermissionDenied` (a red test elsewhere). The
+        // seam lies inside the bind: here a second thread makes nested folders and writes into them.
+        let ordner = wegwerf("daneben");
+        let pfad = ordner.join("s");
+        let neben = ordner.join("neben");
+        let n = neben.clone();
+        let (_listener, eigene) = socket_binden_mit(&pfad, uid(), move || {
+            let faden = std::thread::spawn(move || {
+                let tief = n.join("a").join("b");
+                fs::create_dir_all(&tief)?;
+                fs::write(tief.join("f"), "x")
+            });
+            faden
+                .join()
+                .expect("thread")
+                .expect("a folder made beside the bind can be written into");
         })
+        .expect("socket");
+        assert_eq!(eigene.modus(), super::SOCKET_MODUS);
+        assert_eq!(
+            fs::read_to_string(neben.join("a").join("b").join("f")).expect("read"),
+            "x"
+        );
+        assert!(eigene.entfernen());
+        let _ = fs::remove_dir_all(&ordner);
+    }
+
+    #[test]
+    fn a_folder_others_may_enter_ends_the_start_before_the_bind() {
+        // Since 27.11.2026 the folder needs 0700: the socket has the rights of the process mask until the rights are
+        // set, so another user must not reach it in that moment.
+        for modus in [0o711, 0o755] {
+            let ordner = wegwerf("betretbar");
+            fs::set_permissions(&ordner, fs::Permissions::from_mode(modus)).expect("chmod");
+            let pfad = ordner.join("s");
+            assert!(binden(&pfad).is_none(), "{modus:o}");
+            assert!(
+                fs::symlink_metadata(&pfad).is_err(),
+                "{modus:o}: nothing was bound"
+            );
+            fs::set_permissions(&ordner, fs::Permissions::from_mode(0o700)).expect("chmod");
+            let _ = fs::remove_dir_all(&ordner);
+        }
     }
 
     #[test]
@@ -1426,6 +1472,8 @@ mod tests {
         let echt = ordner.join("echt");
         let unten = echt.join("unten");
         fs::create_dir_all(&unten).expect("folders");
+        // the folder of the socket needs 0700 (step 7, part b), so only the link can end the start
+        fs::set_permissions(&unten, fs::Permissions::from_mode(0o700)).expect("chmod");
         symlink(&echt, ordner.join("lnk")).expect("link");
         let pfad = ordner.join("lnk").join("unten").join("s");
         assert!(binden(&pfad).is_none(), "a link above the folder ends it");
@@ -1454,8 +1502,9 @@ mod tests {
                 fs::symlink_metadata(&pfad).is_err(),
                 "{modus:o}: nothing was bound"
             );
-            // The tight folder binds under the same path, so the test measures the rights and nothing else.
-            fs::set_permissions(&ordner, fs::Permissions::from_mode(0o750)).expect("chmod");
+            // The tight folder binds under the same path, so the test measures the rights and nothing else (0700 since
+            // 27.11.2026; before, 0750 counted as tight).
+            fs::set_permissions(&ordner, fs::Permissions::from_mode(0o700)).expect("chmod");
             let (_listener, eigene) = binden(&pfad).expect("socket");
             assert!(eigene.entfernen());
             let _ = fs::remove_dir_all(&ordner);

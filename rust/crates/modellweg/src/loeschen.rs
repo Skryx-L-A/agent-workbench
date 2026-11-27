@@ -12,7 +12,7 @@
 //! - Between the `fstatat` of [`Ordner::entfernen_wenn`] and its `unlinkat` lies a moment; whoever may write into the
 //!   folder can swap the entry in it, and then `unlinkat` hits the other entry. POSIX has no delete through the
 //!   descriptor of an entry, so the window cannot be closed here. It stays closed as long as only this user may write
-//!   into the folder ([`Ordner::nur_eigen_schreibbar`]).
+//!   into the folder ([`Ordner::nur_eigen`]).
 //! - [`Eigene`] holds no descriptor on its entry. For a socket the listener holds the inode as long as it is bound, so
 //!   the inode cannot be used again; for a regular file it could be, after a foreign delete. `merken` therefore takes
 //!   the kind it is used for, and today only `FileType::Socket` is used.
@@ -174,16 +174,57 @@ impl Ordner {
         self.fd.as_fd()
     }
 
-    /// Is this a folder of the user `uid` that no other user may write into (no `w` for group or others)? Only then is
-    /// the window between making an entry and looking at it closed: nobody else can put something under the name in
-    /// between. `root` is not covered by it.
-    pub(crate) fn nur_eigen_schreibbar(&self, uid: u32) -> bool {
+    /// Is this a folder of the user `uid` that no other user may enter, read or write (no right at all for group or
+    /// others, so 0700 or less)? Only then are the windows between making an entry, setting its rights and looking at
+    /// it closed: nobody else can reach the entry in between, nor put something under its name. `root` is not covered
+    /// by it.
+    pub(crate) fn nur_eigen(&self, uid: u32) -> bool {
         let Ok(st) = rustix::fs::fstat(&self.fd) else {
             return false;
         };
         FileType::from_raw_mode(st.st_mode) == FileType::Directory
             && st.st_uid == uid
-            && !Mode::from_raw_mode(st.st_mode).intersects(Mode::WGRP.union(Mode::WOTH))
+            && !Mode::from_raw_mode(st.st_mode).intersects(Mode::RWXG.union(Mode::RWXO))
+    }
+
+    /// Sets the rights of the socket `name` to `modus`, without following a link and without a path of names. Under
+    /// Linux over a descriptor `O_PATH` of the entry itself and its path `/proc/self/fd/<n>`: the kernel has no
+    /// `fchmodat` that leaves a link alone before 6.6, and `fchmod` refuses such a descriptor. Elsewhere `fchmodat` with
+    /// `AT_SYMLINK_NOFOLLOW`. Only a socket is touched; any other kind is `Err`, and its rights stay.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn socket_rechte(&self, name: &OsStr, modus: Mode) -> io::Result<()> {
+        use std::os::fd::AsRawFd;
+
+        if !einfacher_name(name) {
+            return Err(io::ErrorKind::InvalidInput.into());
+        }
+        let eintrag = rustix::fs::openat(
+            &self.fd,
+            name,
+            OFlags::PATH.union(OFlags::NOFOLLOW).union(OFlags::CLOEXEC),
+            Mode::empty(),
+        )?;
+        let st = rustix::fs::fstat(&eintrag)?;
+        if FileType::from_raw_mode(st.st_mode) != FileType::Socket {
+            return Err(io::ErrorKind::InvalidInput.into());
+        }
+        let pfad = format!("/proc/self/fd/{}", eintrag.as_raw_fd());
+        Ok(rustix::fs::chmod(pfad.as_str(), modus)?)
+    }
+
+    /// [`Ordner::socket_rechte`] on a system with `fchmodat` and `AT_SYMLINK_NOFOLLOW`.
+    #[cfg(not(target_os = "linux"))]
+    pub(crate) fn socket_rechte(&self, name: &OsStr, modus: Mode) -> io::Result<()> {
+        let st = self.stat(name).ok_or(io::ErrorKind::NotFound)?;
+        if FileType::from_raw_mode(st.st_mode) != FileType::Socket {
+            return Err(io::ErrorKind::InvalidInput.into());
+        }
+        Ok(rustix::fs::chmodat(
+            &self.fd,
+            name,
+            modus,
+            AtFlags::SYMLINK_NOFOLLOW,
+        )?)
     }
 
     /// Makes a new file `name` (`O_CREAT`, `O_EXCL`, `O_NOFOLLOW`) for writing with the rights `modus` (before the umask).
@@ -418,21 +459,24 @@ mod tests {
     }
 
     #[test]
-    fn only_a_folder_of_this_user_that_nobody_else_may_write_into_counts() {
+    fn only_a_folder_of_this_user_that_nobody_else_may_reach_counts() {
         let ordner = fs::canonicalize(wegwerf("rechte")).expect("resolve");
         let (o, _) = Ordner::ohne_verweis(&ordner.join("f")).expect("folder");
         let uid = crate::os::eigene_uid();
-        for modus in [0o700, 0o750, 0o755] {
+        for modus in [0o700, 0o500] {
             fs::set_permissions(&ordner, fs::Permissions::from_mode(modus)).expect("chmod");
-            assert!(o.nur_eigen_schreibbar(uid), "{modus:o}");
+            assert!(o.nur_eigen(uid), "{modus:o}");
         }
-        for modus in [0o770, 0o707, 0o777, 0o722] {
+        // since 27.11.2026 also a folder others may only enter or read: the socket in it has wider rights for a moment
+        for modus in [
+            0o750, 0o755, 0o710, 0o701, 0o704, 0o770, 0o707, 0o777, 0o722,
+        ] {
             fs::set_permissions(&ordner, fs::Permissions::from_mode(modus)).expect("chmod");
-            assert!(!o.nur_eigen_schreibbar(uid), "{modus:o}");
+            assert!(!o.nur_eigen(uid), "{modus:o}");
         }
         fs::set_permissions(&ordner, fs::Permissions::from_mode(0o700)).expect("chmod");
         assert!(
-            !o.nur_eigen_schreibbar(uid.wrapping_add(1)),
+            !o.nur_eigen(uid.wrapping_add(1)),
             "a folder of another user"
         );
         let _ = fs::remove_dir_all(&ordner);

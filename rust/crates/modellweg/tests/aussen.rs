@@ -769,9 +769,9 @@ fn a_link_above_the_folder_of_the_socket_ends_the_start_with_74() {
     // `…/lnk/unten/m.sock` the link stands above the folder of the socket (contract 8, step 7, part a).
     let echt = w.pfad("echt");
     let unten = echt.join("unten");
-    // Each folder gets its rights of its own: step 7 of another test sets the umask of the **whole** process to 0177
-    // for the length of its bind, and a folder made in that moment would have no `x` (measured 24.11.2026: the
-    // `create_dir_all` of this test ended with `EACCES` while another test was in step 7).
+    // Each folder gets its rights of its own: step 7 binds only in a folder 0700 (part b). Until 27.11.2026 step 7 of
+    // another test also set the umask of the whole process to 0177 for its bind, and a folder made in that moment had no
+    // `x` (measured 24.11.2026: the `create_dir_all` of this test ended with `EACCES` while another test was in step 7).
     for d in [&echt, &unten] {
         fs::create_dir(d).expect("folder");
         fs::set_permissions(d, fs::Permissions::from_mode(0o700)).expect("chmod");

@@ -198,7 +198,7 @@ impl Wegwerf {
     pub fn protokoll(&self) -> PathBuf {
         let p = self.pfad("protokoll");
         fs::create_dir_all(&p).expect("protocol folder");
-        // The umask is process-wide: a test that binds a socket sets it to 0177 for a moment.
+        // Rights of its own, whatever the umask of the process is (until 27.11.2026 a bind set it to 0177 for a moment).
         fs::set_permissions(&p, fs::Permissions::from_mode(0o700)).expect("chmod");
         p
     }
