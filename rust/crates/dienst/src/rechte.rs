@@ -43,11 +43,20 @@ pub(crate) fn modus_gut(mode: u32) -> bool {
 /// # Errors
 /// The folder is missing, a link, no folder, owned by another user or not exactly 0700, or the path of the socket exists.
 pub fn rechte_pruefen(start: &Startdatei) -> Result<(), StartFehler> {
-    ordner_pruefen(
-        Path::new(&start.ordner),
-        rustix::process::geteuid().as_raw(),
-    )?;
-    socket_pfad_pruefen(Path::new(&start.pfad))
+    let euid = rustix::process::geteuid().as_raw();
+    ordner_pruefen(Path::new(&start.ordner), euid)?;
+    socket_pfad_pruefen(Path::new(&start.pfad))?;
+    // Nachtrag 26.11.2026, DI-L5 point 3: the folder of `lauf.bestand` like points 1 to 3
+    match bestand_ordner(start) {
+        Some(ordner) => ordner_pruefen(ordner, euid),
+        None => Ok(()),
+    }
+}
+
+/// The folder of `lauf.bestand`, if the key is set (the path is absolute, so it has one; `/` for a file right below the root).
+pub(crate) fn bestand_ordner(start: &Startdatei) -> Option<&Path> {
+    let pfad = Path::new(start.lauf.as_ref()?.bestand.as_deref()?);
+    Some(pfad.parent().unwrap_or(pfad))
 }
 
 /// Points 1 to 3 for `ordner`, with `euid` as the effective user.

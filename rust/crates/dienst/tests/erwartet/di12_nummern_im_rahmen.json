@@ -369,7 +369,10 @@
         "id": "s-alpha",
         "kunde": "",
         "modell": "",
+        "name": "",
         "nr": 0,
+        "ordner": "",
+        "projekt": "",
         "route": "",
         "zustand": "laeuft"
        }
@@ -426,12 +429,16 @@
       "art": "Sitzungsliste",
       "sitzungen": [
        {
+        "abgestuerzt": false,
         "code": 0,
         "harness": "",
         "id": "s-alpha",
         "kunde": "",
         "modell": "",
+        "name": "",
         "nr": 0,
+        "ordner": "",
+        "projekt": "",
         "route": "",
         "zustand": "beendet"
        }
@@ -441,12 +448,16 @@
       "art": "Sitzungsliste",
       "sitzungen": [
        {
+        "abgestuerzt": false,
         "code": 0,
         "harness": "",
         "id": "s-alpha",
         "kunde": "",
         "modell": "",
+        "name": "",
         "nr": 0,
+        "ordner": "",
+        "projekt": "",
         "route": "",
         "zustand": "beendet"
        },
@@ -455,7 +466,10 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -469,12 +483,16 @@
       "art": "Sitzungsliste",
       "sitzungen": [
        {
+        "abgestuerzt": false,
         "code": 0,
         "harness": "",
         "id": "s-alpha",
         "kunde": "",
         "modell": "",
+        "name": "",
         "nr": 0,
+        "ordner": "",
+        "projekt": "",
         "route": "",
         "zustand": "beendet"
        },
@@ -483,7 +501,10 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -492,7 +513,10 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 2,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }

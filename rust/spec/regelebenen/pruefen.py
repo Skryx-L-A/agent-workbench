@@ -118,12 +118,19 @@ def pruefen_setzen(fehler):
     return zahl
 
 # Schreibweg der Firmenvorgabe und Konto in der Ansicht der Admins (README Abschnitte 15.12 und 15.13).
-CODES_SCHREIBEN = {"firmenvorgabe.datei_unsicher", "firmenvorgabe.veraltet", "firmenvorgabe.temp_fehlgeschlagen",
-                   "firmenvorgabe.fsync_fehlgeschlagen", "firmenvorgabe.rename_fehlgeschlagen",
-                   "firmenvorgabe.ordner_fsync_fehlgeschlagen", "firmenvorgabe.zustand_unklar"}
-FALL_SCHREIBEN = {"name", "anforderungen", "beschreibung", "firma", "zuordnung", "firmenvorgabe", "ordner", "schritte"}
-FEHLER_EIN = {"fremd_geaendert", "temp", "fsync", "rename", "ordner_fsync", "rueckweg"}
+HELFER = "werkbank-vorgabe"
+CODES_HELFER = {"firmenvorgabe.partner_unbekannt", "firmenvorgabe.partner_eingeschlossen", "firmenvorgabe.datei_unsicher",
+                "firmenvorgabe.ladefehler", "firmenvorgabe.partner_nicht_admin", "firmenvorgabe.anfrage_zu_gross",
+                "firmenvorgabe.anfrage_frist", "firmenvorgabe.anfrage_ungueltig", "firmenvorgabe.veraltet",
+                "firmenvorgabe.ausser_leseklassen", "firmenvorgabe.temp_fehlgeschlagen", "firmenvorgabe.fsync_fehlgeschlagen",
+                "firmenvorgabe.rename_fehlgeschlagen", "firmenvorgabe.ordner_fsync_fehlgeschlagen", "firmenvorgabe.zustand_unklar"}
+CODES_SCHREIBEN = CODES_HELFER | {"firmenvorgabe.helfer_nicht_erreichbar"}
+FALL_SCHREIBEN = {"name", "anforderungen", "beschreibung", "firma", "konten", "zuordnung", "firmenvorgabe", "ordner", "eltern",
+                  "schritte"}
+FEHLER_HELFER = {"eingeschlossen", "zu_gross", "frist", "temp", "fsync", "rename", "ordner_fsync", "rueckweg"}
+FEHLER_EIN = FEHLER_HELFER | {"fremd_geaendert", "helfer_weg", "antwort_fehlt"}
 DATEI_ERG = {"eigentuemer", "modus", "sha256", "inhalt"}
+SCHRITT_ARTEN = ("schreiben", "anfrage", "nachricht", "neuladen")
 
 
 def konten_in(obj, konten, pfad=""):
@@ -135,12 +142,34 @@ def konten_in(obj, konten, pfad=""):
     return [pfad] if isinstance(obj, str) and (obj in konten or obj.startswith("konto-")) else []
 
 
+def sha_inhalt(inhalt):
+    return hashlib.sha256((json.dumps(inhalt, ensure_ascii=False, indent=1, sort_keys=True) + "\n").encode("utf-8")).hexdigest()
+
+
+def admins_aus(inhalt, konten):
+    """uids der Admins nach der gerade gültigen Datei; ohne lesbare Kontenliste niemand (H4, H5)."""
+    a = inhalt.get("admins") if isinstance(inhalt, dict) else None
+    return {konten[k] for k in a if isinstance(k, str) and k in konten} if isinstance(a, list) else set()
+
+
+def pruefen_datei(wo, e, sha_vorher, fehler):
+    """Form der Datei im Ergebnis und S12. Gibt die sha256 danach zurück oder None bei Formfehler."""
+    d = e.get("datei")
+    if not isinstance(d, dict) or set(d) != DATEI_ERG or not HEX64.match(d["sha256"]) or d["sha256"] != sha_inhalt(d["inhalt"]):
+        fehler.append(f"{wo}: Datei im Ergebnis hat nicht die Form aus Abschnitt 15.12 oder sha256 passt nicht zum Inhalt")
+        return None
+    gleich = d["sha256"] == sha_vorher
+    if e["unveraendert"] != gleich or e["temp_bleibt"] is not False:
+        fehler.append(f"{wo}: unveraendert widerspricht der sha256, oder die Temp-Datei bleibt (S12)")
+    return d["sha256"]
+
+
 def pruefen_schreiben(fehler):
     faelle = {p.name for p in (HIER / "faelle-schreiben").glob("*.json")}
     erwartet = {p.name for p in (HIER / "erwartet-schreiben").glob("*.json")}
     for name in sorted(faelle ^ erwartet):
         fehler.append(f"schreiben {name}: ohne Gegenstück")
-    zahl, codes, arten = 0, set(), set()
+    zahl, codes, arten, wege = 0, set(), set(), set()
     for name in sorted(faelle & erwartet):
         zahl += 1
         try:
@@ -152,22 +181,32 @@ def pruefen_schreiben(fehler):
         if set(fall) != FALL_SCHREIBEN or fall["name"] + ".json" != name or len(erw["schritte"]) != len(fall["schritte"]):
             fehler.append(f"schreiben {name}: Felder des Falls, Name oder Zahl der Ergebnisse falsch")
             continue
-        zu = fall["zuordnung"]
-        konten = set(zu)
+        zu, uids = fall["zuordnung"], fall["konten"]
+        konten = set(zu) | set(uids)
         if any(not PSEUDONYM.match(p) for p in zu.values()) or len(set(zu.values())) != len(zu):
             fehler.append(f"schreiben {name}: zuordnung bildet nicht eindeutig auf Pseudonyme ab")
-        admins = {zu.get(k) for k in fall["firmenvorgabe"]["inhalt"]["admins"]}
-        sha_vorher = hashlib.sha256((json.dumps(fall["firmenvorgabe"]["inhalt"], ensure_ascii=False, indent=1, sort_keys=True)
-                                     + "\n").encode("utf-8")).hexdigest()
+        if any(type(u) is not int or u < 1 for u in uids.values()) or len(set(uids.values())) != len(uids) or set(uids) != set(zu):
+            fehler.append(f"schreiben {name}: konten bildet nicht eindeutig auf uids ab oder passt nicht zur zuordnung")
+        konto_von = {u: k for k, u in uids.items()}
+        inhalt = fall["firmenvorgabe"]["inhalt"]
+        admins = admins_aus(inhalt, uids)
+        sha_vorher = sha_inhalt(inhalt)
+        gesperrt = False
         for i, (s, e) in enumerate(zip(fall["schritte"], erw["schritte"])):
             wo = f"schreiben {name} Schritt {i}"
-            if len(s) != 1 or next(iter(s)) not in ("schreiben", "nachricht"):
-                fehler.append(f"{wo}: Schritt hat nicht genau schreiben oder nachricht")
+            if len(s) != 1 or next(iter(s)) not in SCHRITT_ARTEN:
+                fehler.append(f"{wo}: Schritt hat nicht genau schreiben, anfrage, nachricht oder neuladen")
                 continue
-            if "nachricht" in s:
+            art = next(iter(s))
+            if art == "neuladen":
+                if s["neuladen"] != {} or e != {"geladen": sha_vorher, "gesperrt": False}:
+                    fehler.append(f"{wo}: neuladen lädt nicht den Inhalt der Datei oder hebt die Sperre nicht auf")
+                gesperrt = False
+                continue
+            if art == "nachricht":
                 n = e["einstellungen"]
-                wer = zu.get(s["nachricht"]["partner"])
-                if set(n) != {"art", "fassung", "admin", "werte"} or n["admin"] != (wer in admins):
+                wer = zu.get(konto_von.get(s["nachricht"]["partner"]))
+                if set(n) != {"art", "fassung", "admin", "werte"} or n["admin"] != (s["nachricht"]["partner"] in admins) or wer is None:
                     fehler.append(f"{wo}: Nachricht Einstellungen hat nicht die Form aus Abschnitt 15.10")
                     continue
                 arten.add("admin" if n["admin"] else "nutzer")
@@ -177,40 +216,70 @@ def pruefen_schreiben(fehler):
                 if stellen != erlaubt:
                     fehler.append(f"{wo}: Konto außerhalb des einen Wegs (S10, Abschnitt 15.13): {sorted(set(stellen) - set(erlaubt))}")
                 continue
-            a = s["schreiben"]
-            if set(a) != {"partner", "wert", "fehler"} or not set(a["fehler"]) <= FEHLER_EIN:
-                fehler.append(f"{wo}: schreiben hat nicht genau partner, wert, fehler")
-            z = e["zeile"]
-            if set(z) != ZEILE or not HEX64.match(z["neu"]) or (z["alt"] is not None and not HEX64.match(z["alt"])):
-                fehler.append(f"{wo}: Zeile hat nicht die Form aus Vertrag 5, Abschnitt 6.6")
-            if konten_in(z, konten) or not PSEUDONYM.match(z["handelnd"]) or z["handelnd"] != zu.get(a["partner"]):
-                fehler.append(f"{wo}: Zeile nennt ein Konto oder handelnd ist nicht das Pseudonym des Partners (S10)")
-            if (e["code"] is None) != e["angenommen"] or z["code"] != e["code"] \
-                    or z["aktionsname"] != ("regel.geaendert" if e["angenommen"] else "regel.abgelehnt"):
-                fehler.append(f"{wo}: angenommen, code und Zeile widersprechen sich")
-            if e["code"] is not None and e["code"] not in CODES_SCHREIBEN | CODES_SETZEN:
-                fehler.append(f"{wo}: unbekannter Code {e['code']}")
-            if e["code"] is not None:
-                codes.add(e["code"])
-            d = e["datei"]
-            if set(d) != DATEI_ERG or not HEX64.match(d["sha256"]):
-                fehler.append(f"{wo}: Datei im Ergebnis hat nicht die Form aus Abschnitt 15.12")
+            a = s[art]
+            wege.add(art)
+            if art == "anfrage":
+                if set(a) != {"partner", "anfrage", "fehler"} or not set(a["fehler"]) <= FEHLER_HELFER:
+                    fehler.append(f"{wo}: anfrage hat nicht genau partner, anfrage, fehler oder einen Fehler des Dienstes")
+                ant = e.get("antwort")
+                if set(e) != {"antwort", "datei", "unveraendert", "temp_bleibt"} or not isinstance(ant, dict) \
+                        or set(ant) != {"code", "sha256"}:
+                    fehler.append(f"{wo}: Ergebnis der Anfrage hat nicht die Form aus Abschnitt 15.12")
+                    continue
+                c = ant["code"]
+                if c is not None and c not in CODES_HELFER:
+                    fehler.append(f"{wo}: Code {c} ist kein Code des Helfers")
+                if (c is None) != (ant["sha256"] is not None) or (c is None and ant["sha256"] != e["datei"]["sha256"]):
+                    fehler.append(f"{wo}: sha256 der Antwort steht nur beim Ersetzen und nennt dann die neue Datei")
+                angenommen = c is None
+            else:
+                if set(a) != {"partner", "wert", "fehler"} or not set(a["fehler"]) <= FEHLER_EIN:
+                    fehler.append(f"{wo}: schreiben hat nicht genau partner, wert, fehler")
+                z = e["zeile"]
+                c = e["code"]
+                if set(z) != ZEILE or not HEX64.match(z["neu"]) or (z["alt"] is not None and not HEX64.match(z["alt"])):
+                    fehler.append(f"{wo}: Zeile hat nicht die Form aus Vertrag 5, Abschnitt 6.6")
+                if konten_in(z, konten) or not PSEUDONYM.match(z["handelnd"]) or z["handelnd"] != zu.get(konto_von.get(a["partner"])):
+                    fehler.append(f"{wo}: Zeile nennt ein Konto oder handelnd ist nicht das Pseudonym des Partners (S10)")
+                if (c is None) != e["angenommen"] or z["code"] != c \
+                        or z["aktionsname"] != ("regel.geaendert" if e["angenommen"] else "regel.abgelehnt"):
+                    fehler.append(f"{wo}: angenommen, code und Zeile widersprechen sich")
+                if c is not None and c not in CODES_SCHREIBEN | CODES_SETZEN:
+                    fehler.append(f"{wo}: unbekannter Code {c}")
+                if gesperrt and c != "firmenvorgabe.zustand_unklar":
+                    fehler.append(f"{wo}: nach zustand_unklar nimmt der Dienst vor dem Neuladen eine Änderung an (Sperre)")
+                angenommen = c is None
+            if c is not None:
+                codes.add(c)
+            sha_nach = pruefen_datei(wo, e, sha_vorher, fehler)
+            if sha_nach is None:
                 continue
-            # S12: Jeder Fehler lässt die Datei byte-gleich, außer dem gemeldeten zweiten Fehler zustand_unklar.
-            gleich = d["sha256"] == sha_vorher
-            if e["unveraendert"] != gleich or (e["code"] not in (None, "firmenvorgabe.zustand_unklar") and not gleich) \
-                    or e["temp_bleibt"] is not False:
-                fehler.append(f"{wo}: Datei nach einem Fehler nicht byte-gleich oder Temp-Datei bleibt (S12)")
-            if e["code"] == "ebenen.nicht_befugt" and zu.get(a["partner"]) in admins:
-                fehler.append(f"{wo}: nicht_befugt für einen Admin")
-            if e["angenommen"] and zu.get(a["partner"]) not in admins:
-                fehler.append(f"{wo}: angenommen für einen Nichtadmin (S11)")
-            sha_vorher = d["sha256"]
-            admins = {zu.get(k) for k in d["inhalt"]["admins"]}
+            d = e["datei"]
+            # S12: Jeder Fehler lässt die Datei byte-gleich, außer zustand_unklar (der Ausgang ist unbekannt).
+            if c not in (None, "firmenvorgabe.zustand_unklar") and sha_nach != sha_vorher:
+                fehler.append(f"{wo}: Datei nach einem Fehler nicht byte-gleich (S12)")
+            if c in ("ebenen.nicht_befugt", "firmenvorgabe.partner_nicht_admin") and a["partner"] in admins:
+                fehler.append(f"{wo}: nicht befugt für einen Admin der gültigen Datei")
+            # S11: Nur ein Admin der gerade gültigen Datei ersetzt sie, nie einer, den erst die neue Datei nennt.
+            if (angenommen or sha_nach != sha_vorher) and a["partner"] not in admins:
+                fehler.append(f"{wo}: Datei ersetzt für einen Partner, der in der gültigen Datei kein Admin ist (S11)")
+            if sha_nach != sha_vorher:
+                alt_ohne = {k: v for k, v in inhalt.items() if k != "leseklassen"} if isinstance(inhalt, dict) else None
+                neu_ohne = {k: v for k, v in d["inhalt"].items() if k != "leseklassen"}
+                if alt_ohne != neu_ohne:
+                    fehler.append(f"{wo}: der Helfer ändert mehr als leseklassen, etwa die Kontenliste der Admins (S13)")
+                if (d["eigentuemer"], d["modus"]) != (HELFER, "0644"):
+                    fehler.append(f"{wo}: die ersetzte Datei gehört nicht {HELFER} mit Modus 0644")
+            if c == "firmenvorgabe.zustand_unklar" and art == "schreiben":
+                gesperrt = True
+            sha_vorher, inhalt = sha_nach, d["inhalt"]
+            admins = admins_aus(inhalt, uids)
     for c in sorted(CODES_SCHREIBEN - codes):
         fehler.append(f"schreiben: kein Fall für den Code {c}")
     for art in sorted({"admin", "nutzer"} - arten):
         fehler.append(f"schreiben: keine Nachricht an einen Betrachter der Art {art}")
+    for weg in sorted({"schreiben", "anfrage"} - wege):
+        fehler.append(f"schreiben: kein Fall für den Weg {weg}")
     return zahl
 
 

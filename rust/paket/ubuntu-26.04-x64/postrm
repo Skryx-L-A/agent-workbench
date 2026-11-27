@@ -133,10 +133,82 @@ rolle_entfernen() {
 }
 # --- rolle end
 
+# Part A3: the write helper of the company default. remove switches the socket off and leaves account, group, folder and file (a setting
+# of the company). purge stops and switches off socket and service, removes /run/werkbank-vorgabe, deletes every file in
+# /etc/werkbank/vorgabe without following a link and the folder, then checks for a rest of the account (way a, as part A2 step 3: every
+# mount point by its type, `find -xdev` with uid and gid, `pgrep -u`; what cannot be checked counts as a rest). Without a rest the account
+# and its group go; with a rest both stay, the rest stays untouched and the journal gets code 27. Reference: referenz.py `vorgabe_purge`.
+# --- vorgabe begin
+VG_ORDNER=/etc/werkbank/vorgabe
+VG_NAME=werkbank-vorgabe
+VG_REST_PY='import re, subprocess, sys
+AUSGENOMMEN = {"proc", "sysfs", "devtmpfs", "devpts", "tmpfs", "ramfs", "cgroup", "cgroup2", "securityfs", "debugfs", "tracefs",
+               "configfs", "fusectl", "pstore", "bpf", "mqueue", "hugetlbfs", "binfmt_misc", "efivarfs", "rpc_pipefs", "nsfs", "autofs",
+               "overlay", "fuse.gvfsd-fuse", "fuse.portal", "squashfs", "erofs", "iso9660", "udf", "nfs", "nfs4", "cifs", "smb3", "9p",
+               "fuse.sshfs"}
+DURCHSUCHT = {"ext2", "ext3", "ext4", "xfs", "btrfs", "f2fs", "jfs", "zfs", "vfat", "exfat", "ntfs3", "fuseblk"}
+uid, gid, name = sys.argv[1], sys.argv[2], sys.argv[3]
+def ausfuehren(befehl):
+    try:
+        return subprocess.run(befehl, capture_output=True, timeout=600, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+def rest():
+    r = ausfuehren(["findmnt", "--raw", "--noheadings", "--output", "TARGET,FSTYPE"])
+    if r is None or r.returncode != 0 or not r.stdout.strip():
+        return True
+    for zeile in r.stdout.splitlines():
+        teile = zeile.split(b" ")
+        if len(teile) != 2:
+            return True
+        ziel = re.sub(rb"\\x([0-9a-fA-F]{2})", lambda m: bytes([int(m.group(1), 16)]), teile[0])
+        typ = teile[1].decode("ascii", "replace")
+        if typ in AUSGENOMMEN:
+            continue
+        if typ not in DURCHSUCHT:
+            return True
+        f = ausfuehren(["find", ziel, "-xdev", "(", "-uid", uid, "-o", "-gid", gid, ")", "-print", "-quit"])
+        if f is None or f.returncode != 0 or f.stdout:
+            return True
+    p = ausfuehren(["pgrep", "-u", name])
+    return p is None or p.returncode != 1
+sys.exit(1 if rest() else 0)'
+
+vorgabe_purge() {
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl stop werkbank-vorgabe.socket werkbank-vorgabe.service >/dev/null 2>&1
+        systemctl disable werkbank-vorgabe.socket >/dev/null 2>&1
+    fi
+    rm -rf /run/werkbank-vorgabe 2>/dev/null
+    if [ -L "$VG_ORDNER" ]; then
+        rm -f "$VG_ORDNER" 2>/dev/null
+    elif [ -d "$VG_ORDNER" ]; then
+        find "$VG_ORDNER" -mindepth 1 -maxdepth 1 ! -type d -exec rm -f {} + 2>/dev/null
+        rmdir "$VG_ORDNER" 2>/dev/null
+    fi
+    vp_uid=$(getent passwd "$VG_NAME" 2>/dev/null | cut -d: -f3)
+    vp_gid=$(getent group "$VG_NAME" 2>/dev/null | cut -d: -f3)
+    [ -n "$vp_uid$vp_gid" ] || return 0
+    case "$vp_uid:$vp_gid" in
+        *[!0-9:]* | :* | *:) logger -t werkbank-paket "werkbank: Konto werkbank-vorgabe bleibt, Code 27" 2>/dev/null; return 0 ;;
+    esac
+    if python3 -I -c "$VG_REST_PY" "$vp_uid" "$vp_gid" "$VG_NAME" 2>/dev/null; then
+        deluser --system "$VG_NAME" >/dev/null 2>&1
+        if getent group "$VG_NAME" >/dev/null 2>&1; then
+            delgroup --system "$VG_NAME" >/dev/null 2>&1
+        fi
+    else
+        logger -t werkbank-paket "werkbank: Konto werkbank-vorgabe bleibt, Code 27" 2>/dev/null
+    fi
+    return 0
+}
+# --- vorgabe end
+
 case "$1" in
     remove)
         entladen
         abschalten
+        command -v systemctl >/dev/null 2>&1 && systemctl disable werkbank-vorgabe.socket >/dev/null 2>&1
         ;;
     purge)
         entladen
@@ -154,6 +226,7 @@ case "$1" in
             find /var/lib/werkbank -type f \( -name 'modellweg.schluessel' -o -name 'copilot.schluessel' \) -exec shred -u {} + 2>/dev/null
             rm -rf /var/lib/werkbank 2>/dev/null
         fi
+        vorgabe_purge
         rm -f /etc/werkbank/lauf.json /etc/werkbank/kern.json /etc/werkbank/bruecke.json /etc/werkbank/halter.json /etc/werkbank/vorgabe.json 2>/dev/null
         rmdir /etc/werkbank 2>/dev/null
         rmdir /usr/lib/werkbank /usr/share/werkbank 2>/dev/null

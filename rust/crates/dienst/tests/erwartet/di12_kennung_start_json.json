@@ -265,7 +265,10 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 2,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -279,12 +282,16 @@
       "art": "Sitzungsliste",
       "sitzungen": [
        {
+        "abgestuerzt": false,
         "code": 0,
         "harness": "claude",
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 2,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "beendet"
        }

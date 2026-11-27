@@ -275,6 +275,8 @@ pub(crate) struct Sitzung {
     pub(crate) invers: bool,
     /// The `t` of the last event given to the core; the next may not fall below it.
     pub(crate) zuletzt: i64,
+    /// Name, start structure, orchestrator, continuation and the kind of the end (Nachtrag 26.11.2026, DI-L1, DI-L3, DI-L5).
+    pub(crate) angaben: crate::verwaltung::Angaben,
 }
 
 impl Sitzung {
@@ -309,6 +311,19 @@ impl Sitzung {
         s
     }
 
+    /// An ended session of an earlier run, from the Bestand (DI-L5 point 4): no child, no folder, no raster number.
+    pub(crate) fn aus_bestand(
+        sid: String,
+        kern: Sitzungskern,
+        eintrag: Value,
+        meta: [String; 4],
+    ) -> Self {
+        let mut s = Self::mit(Some(sid), None, kern, None);
+        s.eintrag = Some(eintrag);
+        s.meta = meta;
+        s
+    }
+
     fn mit(sid: Option<String>, nr: Option<u8>, kern: Sitzungskern, kind: Option<Kind>) -> Self {
         // the carrier has not been asked for the end of the child yet, so its pid is still the child
         let blick = Kindblick::von(kind.as_ref().and_then(Kind::pid));
@@ -339,6 +354,7 @@ impl Sitzung {
             bracketed_paste: false,
             invers: false,
             zuletzt: 0,
+            angaben: crate::verwaltung::Angaben::default(),
         }
     }
 

@@ -1,0 +1,358 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "aussen_inhalt": [
+    "a.txt",
+    "unter/",
+    "unter/b.txt"
+   ],
+   "exitcode": 0,
+   "gespraech_protokoll": [],
+   "gespraeche_inhalt": [
+    "s-1"
+   ],
+   "kind_beendet": null,
+   "socket_entfernt": true,
+   "vorgabe_protokoll": []
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": {
+     "cursor": [
+      1,
+      0,
+      true
+     ],
+     "groesse": [
+      120,
+      14
+     ],
+     "invers": false,
+     "nr": 1,
+     "zeilen": [
+      "BEREIT",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    },
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "ablehnungen_voll": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "gestartet": 2,
+      "kernbau": 1,
+      "nummern": {}
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": []
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     {
+      "art": "Einstellungen",
+      "werte": {
+       "bildrate_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 63,
+        "wert": 63
+       },
+       "osc52_grenze": {
+        "herkunft": "vorgabe",
+        "vorgabe": 100000,
+        "wert": 100000
+       },
+       "osc52_schreiben": {
+        "herkunft": "vorgabe",
+        "vorgabe": "an",
+        "wert": "an"
+       },
+       "rueckstau_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 16384,
+        "wert": 16384
+       }
+      }
+     },
+     {
+      "art": "Routen",
+      "routen": []
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": []
+     },
+     {
+      "anfragen": [],
+      "art": "Anfragen"
+     },
+     {
+      "agenten": [],
+      "art": "Agenten"
+     },
+     {
+      "art": "Startwahl",
+      "fassung": 1,
+      "harness": [
+       {
+        "art": "cloud",
+        "name": "claude",
+        "routenart": "cloud"
+       },
+       {
+        "art": "cloud",
+        "name": "copilot",
+        "routenart": "cloud"
+       },
+       {
+        "art": "lokal",
+        "name": "pi",
+        "routenart": "lokal"
+       }
+      ],
+      "kunden": [
+       "k-beispiel",
+       null
+      ],
+      "routen": [
+       {
+        "art": "cloud",
+        "klasse": "intern",
+        "modell": null,
+        "schluessel": "cloud-beispiel"
+       },
+       {
+        "art": "lokal",
+        "klasse": "kundendaten",
+        "modell": null,
+        "schluessel": "lokal-beispiel"
+       }
+      ]
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "harness": "claude",
+        "id": "s-1",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "art": "Gestartet",
+      "sitzung": "s-1"
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "abgestuerzt": false,
+        "code": 0,
+        "harness": "claude",
+        "id": "s-1",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       }
+      ]
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "abgestuerzt": false,
+        "code": 0,
+        "fortgesetzt_als": "s-2",
+        "harness": "claude",
+        "id": "s-1",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       },
+       {
+        "fortsetzung_von": "s-1",
+        "harness": "claude",
+        "id": "s-2",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 2,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "art": "Gestartet",
+      "sitzung": "s-2"
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "abgestuerzt": false,
+        "code": 0,
+        "fortgesetzt_als": "s-2",
+        "harness": "claude",
+        "id": "s-1",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       },
+       {
+        "abgestuerzt": false,
+        "code": 129,
+        "fortsetzung_von": "s-1",
+        "harness": "claude",
+        "id": "s-2",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 2,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       }
+      ]
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "abgestuerzt": false,
+        "code": 129,
+        "fortsetzung_von": "s-1",
+        "harness": "claude",
+        "id": "s-2",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 2,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       }
+      ]
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": []
+     }
+    ],
+    "ok": true
+   }
+  ],
+  "start": {
+   "netz_sockets": 0,
+   "ok": true,
+   "ordner_modus": "0700",
+   "socket_modus": "0600"
+  }
+ },
+ "exit": 0
+}

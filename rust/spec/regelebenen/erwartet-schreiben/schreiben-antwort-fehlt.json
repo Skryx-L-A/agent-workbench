@@ -1,0 +1,51 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "firmenvorgabe.zustand_unklar",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "e479d0013c7c3fba8450c54998fcee876d891d00f1a2b3a28061c8617de081ad",
+    "antrag": null,
+    "code": "firmenvorgabe.zustand_unklar",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "e1ea28850a789aafdc733b06588cf933ddfd66ece9658835042fa0104268a968",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   },
+   "datei": {
+    "eigentuemer": "werkbank-vorgabe",
+    "modus": "0644",
+    "sha256": "2b8b8ef7c81f5f2245c361576f3cf9e945a7fd714a757b9830471f390c5290bf",
+    "inhalt": {
+     "admins": [
+      "konto-admin",
+      "konto-admin-zwei"
+     ],
+     "leseklassen": [
+      {
+       "ebene": "gruppe",
+       "wer": "g-eins",
+       "klasse": "intern"
+      },
+      {
+       "ebene": "nutzer",
+       "wer": "konto-nutzer",
+       "klasse": "kundendaten"
+      },
+      {
+       "ebene": "nutzer",
+       "wer": "konto-nutzer-zwei",
+       "klasse": "oeffentlich"
+      }
+     ]
+    }
+   },
+   "unveraendert": false,
+   "temp_bleibt": false
+  }
+ ]
+}

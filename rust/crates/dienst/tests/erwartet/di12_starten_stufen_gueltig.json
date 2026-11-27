@@ -566,7 +566,10 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "name": "",
         "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -584,7 +587,10 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "name": "",
         "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -593,7 +599,10 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 2,
+        "ordner": "/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/abc",
+        "projekt": "abc",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -611,7 +620,10 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "name": "",
         "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -620,7 +632,10 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 2,
+        "ordner": "/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/abc",
+        "projekt": "abc",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -629,7 +644,10 @@
         "id": "s-3",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 3,
+        "ordner": "/a b",
+        "projekt": "a b",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -647,7 +665,10 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "name": "",
         "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -656,7 +677,10 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 2,
+        "ordner": "/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/abc",
+        "projekt": "abc",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -665,7 +689,10 @@
         "id": "s-3",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 3,
+        "ordner": "/a b",
+        "projekt": "a b",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -674,7 +701,10 @@
         "id": "s-4",
         "kunde": "",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 4,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -692,7 +722,10 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "name": "",
         "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -701,7 +734,10 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 2,
+        "ordner": "/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/abc",
+        "projekt": "abc",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -710,7 +746,10 @@
         "id": "s-3",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 3,
+        "ordner": "/a b",
+        "projekt": "a b",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -719,7 +758,10 @@
         "id": "s-4",
         "kunde": "",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 4,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -728,7 +770,10 @@
         "id": "s-5",
         "kunde": "k-beispiel",
         "modell": "auto",
+        "name": "",
         "nr": 5,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }
@@ -746,7 +791,10 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "name": "",
         "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -755,7 +803,10 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 2,
+        "ordner": "/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/abc",
+        "projekt": "abc",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -764,7 +815,10 @@
         "id": "s-3",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 3,
+        "ordner": "/a b",
+        "projekt": "a b",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -773,7 +827,10 @@
         "id": "s-4",
         "kunde": "",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 4,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -782,7 +839,10 @@
         "id": "s-5",
         "kunde": "k-beispiel",
         "modell": "auto",
+        "name": "",
         "nr": 5,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -791,7 +851,10 @@
         "id": "s-6",
         "kunde": "k-beispiel",
         "modell": "qwen3:8b",
+        "name": "",
         "nr": 6,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "lokal-beispiel",
         "zustand": "laeuft"
        }
@@ -809,7 +872,10 @@
         "id": "s-1",
         "kunde": "k-beispiel",
         "modell": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "name": "",
         "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -818,7 +884,10 @@
         "id": "s-2",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 2,
+        "ordner": "/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/abc",
+        "projekt": "abc",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -827,7 +896,10 @@
         "id": "s-3",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 3,
+        "ordner": "/a b",
+        "projekt": "a b",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -836,7 +908,10 @@
         "id": "s-4",
         "kunde": "",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 4,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -845,7 +920,10 @@
         "id": "s-5",
         "kunde": "k-beispiel",
         "modell": "auto",
+        "name": "",
         "nr": 5,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        },
@@ -854,7 +932,10 @@
         "id": "s-6",
         "kunde": "k-beispiel",
         "modell": "qwen3:8b",
+        "name": "",
         "nr": 6,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "lokal-beispiel",
         "zustand": "laeuft"
        },
@@ -863,7 +944,10 @@
         "id": "s-7",
         "kunde": "k-beispiel",
         "modell": "gpt-5.6-sol",
+        "name": "",
         "nr": 7,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-fest",
         "zustand": "laeuft"
        }

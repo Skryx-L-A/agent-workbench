@@ -1,0 +1,76 @@
+{
+ "schritte": [
+  {
+   "antwort": {
+    "code": null,
+    "sha256": "2b8b8ef7c81f5f2245c361576f3cf9e945a7fd714a757b9830471f390c5290bf"
+   },
+   "datei": {
+    "eigentuemer": "werkbank-vorgabe",
+    "modus": "0644",
+    "sha256": "2b8b8ef7c81f5f2245c361576f3cf9e945a7fd714a757b9830471f390c5290bf",
+    "inhalt": {
+     "admins": [
+      "konto-admin",
+      "konto-admin-zwei"
+     ],
+     "leseklassen": [
+      {
+       "ebene": "gruppe",
+       "wer": "g-eins",
+       "klasse": "intern"
+      },
+      {
+       "ebene": "nutzer",
+       "wer": "konto-nutzer",
+       "klasse": "kundendaten"
+      },
+      {
+       "ebene": "nutzer",
+       "wer": "konto-nutzer-zwei",
+       "klasse": "oeffentlich"
+      }
+     ]
+    }
+   },
+   "unveraendert": false,
+   "temp_bleibt": false
+  },
+  {
+   "antwort": {
+    "code": "firmenvorgabe.veraltet",
+    "sha256": null
+   },
+   "datei": {
+    "eigentuemer": "werkbank-vorgabe",
+    "modus": "0644",
+    "sha256": "2b8b8ef7c81f5f2245c361576f3cf9e945a7fd714a757b9830471f390c5290bf",
+    "inhalt": {
+     "admins": [
+      "konto-admin",
+      "konto-admin-zwei"
+     ],
+     "leseklassen": [
+      {
+       "ebene": "gruppe",
+       "wer": "g-eins",
+       "klasse": "intern"
+      },
+      {
+       "ebene": "nutzer",
+       "wer": "konto-nutzer",
+       "klasse": "kundendaten"
+      },
+      {
+       "ebene": "nutzer",
+       "wer": "konto-nutzer-zwei",
+       "klasse": "oeffentlich"
+      }
+     ]
+    }
+   },
+   "unveraendert": true,
+   "temp_bleibt": false
+  }
+ ]
+}

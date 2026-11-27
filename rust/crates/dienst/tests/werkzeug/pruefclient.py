@@ -202,6 +202,8 @@ class Lauf:
         self.bestand_vorbereiten()
         self.marker_datei_vorbereiten()
         self.ziellisten_vorbereiten()
+        self.gespraeche_vorbereiten()
+        self.firmenvorgabe_vorbereiten()
         name = ((self.fall.get("start") or {}).get("socket") or {}).get("name", "dienst.sock")
         self.pfad_socket = os.path.join(pfad, name if isinstance(name, str) and "/" not in name and name else "dienst.sock")
 
@@ -244,6 +246,62 @@ class Lauf:
             else:
                 raise Ungueltig("sitzungen.vorher.art")
         os.chmod(self.sitz_dir, int(sp.get("modus", "0700"), 8))
+
+    def gespraeche_vorbereiten(self):
+        """Nachtrag 27.11.2026, DI-L3: the case field `gespraeche` {"vorher": [<Kennung>...]} makes `<base>/gespraeche` (0700), the folder of
+        lauf.gespraeche (placeholder `@gespraeche`), with one conversation per name: gespraech.json (0600) and a state folder of the harness with
+        nested files, a link to the folder `<base>/aussen` and a link to a file in it. `<base>/aussen` holds two files; nothing may touch them."""
+        sp = self.fall.get("gespraeche")
+        self.gs_dir = os.path.join(self.base, "gespraeche")
+        self.aussen_dir = os.path.join(self.base, "aussen")
+        if sp is None:
+            return
+        os.mkdir(self.aussen_dir, 0o700)
+        os.mkdir(os.path.join(self.aussen_dir, "unter"), 0o700)
+        for rel in ("a.txt", "unter/b.txt"):
+            with open(os.path.join(self.aussen_dir, rel), "w") as h:
+                h.write("aussen\n")
+        os.mkdir(self.gs_dir, 0o700)
+        for name in sp.get("vorher", []):
+            self.gespraech_anlegen(name)
+        os.chmod(self.gs_dir, int(sp.get("modus", "0700"), 8))       # `modus`: the mode of lauf.gespraeche after the entries
+
+    def gespraech_anlegen(self, name):
+        """One conversation `<base>/gespraeche/<name>` as the start of `lauf` makes it (case field `gespraeche`, step GespraechAnlegen)."""
+        g = os.path.join(self.gs_dir, name)
+        os.mkdir(g, 0o700)
+        with open(os.path.join(g, "gespraech.json"), "w") as h:
+            json.dump({"fassung": 1, "harness": "claude", "arbeitsordner": "/heim/beispiel/projekt",
+                       "kennung": "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b"}, h)
+        os.chmod(os.path.join(g, "gespraech.json"), 0o600)
+        os.makedirs(os.path.join(g, ".claude", "projects", "p"), 0o700)
+        with open(os.path.join(g, ".claude", "projects", "p", "verlauf.jsonl"), "w") as h:
+            h.write("{}\n")
+        os.symlink(self.aussen_dir, os.path.join(g, ".claude", "nach-aussen"))
+        os.symlink(os.path.join(self.aussen_dir, "a.txt"), os.path.join(g, ".claude", "datei-aussen"))
+
+    def firmenvorgabe_vorbereiten(self):
+        """Nachtrag 27.11.2026, Firmenvorgabe at the start: the case field `firmenvorgabe` {"inhalt": <JSON> | "text": <raw text>, "modus": "0644",
+        "ordner_modus": "0755", "art": "datei" | "verweis"} makes `<base>/vorgabe/firmenvorgabe.json` (placeholder `@firmenvorgabe`); `verweis` makes the
+        name a link to a valid file next to the folder. The step VorgabeAendern replaces the file while the service runs."""
+        sp = self.fall.get("firmenvorgabe")
+        self.fv_dir = os.path.join(self.base, "vorgabe")
+        self.fv_datei = os.path.join(self.fv_dir, "firmenvorgabe.json")
+        if sp is None:
+            return
+        os.mkdir(self.fv_dir, 0o700)
+        roh = sp["text"] if "text" in sp else json.dumps(sp.get("inhalt"), sort_keys=True, indent=1) + "\n"
+        if sp.get("art") == "verweis":
+            ziel = os.path.join(self.base, "vorgabe-ziel.json")
+            with open(ziel, "w", encoding="utf-8") as h:
+                h.write(roh)
+            os.chmod(ziel, 0o644)
+            os.symlink(ziel, self.fv_datei)
+        else:
+            with open(self.fv_datei, "w", encoding="utf-8") as h:
+                h.write(roh)
+            os.chmod(self.fv_datei, int(sp.get("modus", "0644"), 8))
+        os.chmod(self.fv_dir, int(sp.get("ordner_modus", "0755"), 8))
 
     def ziellisten_vorbereiten(self):
         """Ziellisten, Laufzeit, Zaehldateien (addendum of 21.11.2026): the case fields `ziellisten`, `laufzeit` and `marker_zaehl` each make a throw-away folder
@@ -338,6 +396,10 @@ class Lauf:
                 return os.environ.get("DI_EINST") or os.path.join(HIER, "einstellungen", "vorfuehrung.json")
             if x == "@bestand":
                 return self.bestand_datei
+            if x == "@gespraeche":
+                return self.gs_dir
+            if x == "@firmenvorgabe":
+                return self.fv_datei
             return x.replace("@ziellisten", self.zl_dir).replace("@laufzeit", self.lz_dir).replace("@marker_zaehl", self.mz_dir).replace("@marker_datei", self.mk_datei).replace("@sitzungen", self.sitz_dir).replace("@ordner", self.pfad_ordner)
         if isinstance(x, list):
             return [self.ersetze(v) for v in x]
@@ -671,6 +733,24 @@ class Lauf:
                 except OSError:
                     inhalte[n] = None
             return {"ok": True, "namen": namen, "inhalte": inhalte}
+        if art == "GespraechAnlegen":
+            # Nachtrag 27.11.2026: the conversation of a session after its start, as `lauf` makes it from stage B on (the number is handed out first;
+            # an entry before the start would take the number by DI12 point 15); the mode of lauf.gespraeche stays as the case set it
+            modus = os.stat(self.gs_dir).st_mode & 0o7777
+            os.chmod(self.gs_dir, 0o700)
+            try:
+                self.gespraech_anlegen(s["sitzung"])
+            finally:
+                os.chmod(self.gs_dir, modus)
+            return {"ok": True}
+        if art == "VorgabeAendern":
+            # Nachtrag 27.11.2026: replaces the Firmenvorgabe while the service runs (new file next to it, rename), as the helper or the IT would
+            neu = self.fv_datei + ".neu"
+            with open(neu, "w", encoding="utf-8") as h:
+                h.write(json.dumps(s["inhalt"], sort_keys=True, indent=1) + "\n")
+            os.chmod(neu, 0o644)
+            os.rename(neu, self.fv_datei)
+            return {"ok": True}
         if art == "Pause":
             t0 = time.monotonic()
             while time.monotonic() - t0 < s.get("sekunden", 0.1):
@@ -823,6 +903,26 @@ class Lauf:
                 r["bestand_rest"] = sorted(x for x in os.listdir(self.bestand_dir) if x != "bestand.json")
             except OSError:
                 r["bestand_rest"] = None
+        if self.fall.get("gespraeche") is not None:
+            # Nachtrag 27.11.2026, DI-L3: the conversations after the end, and everything under <base>/aussen (nothing may be gone there)
+            try:
+                r["gespraeche_inhalt"] = sorted(os.listdir(self.gs_dir))
+            except OSError:
+                r["gespraeche_inhalt"] = None
+            aussen = []
+            for wurzel, dirs, files in os.walk(self.aussen_dir):
+                rel = os.path.relpath(wurzel, self.aussen_dir)
+                aussen += [os.path.normpath(os.path.join(rel, x)) + "/" for x in dirs] + [os.path.normpath(os.path.join(rel, x)) for x in files]
+            r["aussen_inhalt"] = sorted(aussen) if os.path.isdir(self.aussen_dir) else None
+        if self.fall.get("firmenvorgabe") is not None or self.fall.get("gespraeche") is not None:
+            # Nachtrag 27.11.2026: the lines `wb-dienst: firmenvorgabe nicht geladen: <code>` and `wb-dienst: gespraech nicht geloescht: <code>`
+            try:
+                with open(os.path.join(self.base, "stderr"), "rb") as h:
+                    zz = h.read().decode("utf-8", "replace").split("\n")
+            except OSError:
+                zz = []
+            r["vorgabe_protokoll"] = [mo.group(1) for mo in (re.match(r"wb-dienst: firmenvorgabe nicht geladen: ([a-z0-9_.]+)$", z) for z in zz) if mo]
+            r["gespraech_protokoll"] = [mo.group(1) for mo in (re.match(r"wb-dienst: gespraech nicht geloescht: ([a-z0-9_.]+)$", z) for z in zz) if mo]
         if self.fall.get("kinder_pruefen"):
             # DI12: every child reported with PID= (any session) is gone after the end of the service
             time.sleep(0.3)
@@ -892,6 +992,10 @@ class Lauf:
                     os.chmod(os.path.join(self.base, k), 0o700)
             if os.path.isdir(os.path.join(self.base, "sitzungen")):
                 os.chmod(os.path.join(self.base, "sitzungen"), 0o700)
+            if os.path.isdir(os.path.join(self.base, "gespraeche")) and not os.path.islink(os.path.join(self.base, "gespraeche")):
+                os.chmod(os.path.join(self.base, "gespraeche"), 0o700)
+            if os.path.isdir(os.path.join(self.base, "vorgabe")) and not os.path.islink(os.path.join(self.base, "vorgabe")):
+                os.chmod(os.path.join(self.base, "vorgabe"), 0o700)
         except OSError:
             pass
         if self.proc and self.proc.poll() is None:

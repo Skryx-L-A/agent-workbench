@@ -17,6 +17,10 @@
 # werkbank-halter (crate halter) and its user unit wb-halter.service (addendum holder): the holder keeps anmeldung.copilot and answers the
 # model path.
 #
+# werkbank-vorgabe (crate vorgabe-helfer) and its system units werkbank-vorgabe.socket and .service (part A3): the write helper of the
+# company default under the system user werkbank-vorgabe; firmenvorgabe.json is the template of the first admin (postinst step 2d).
+# /etc/werkbank/vorgabe/ and the file in it are not in this list: their owner exists only after preinst, and an update never replaces them.
+#
 # The enclosure (decision V1, 20.11.2026): only the fixed starter werkbank-einschluss carries the AppArmor profile
 # (usr.lib.werkbank.werkbank-einschluss). werkbank-lauf has NO profile, so no profile line names its path. No profile of
 # this package is `unconfined`; the build stops on it (paket.profil_unconfined).
@@ -39,6 +43,7 @@ dienst usr/lib/werkbank/werkbank-kern bin:dienst:wb-dienst
 dienst usr/lib/werkbank/werkbank-bruecke bin:bruecke:wb-bruecke
 dienst usr/lib/werkbank/werkbank-modellweg bin:modellweg:modellweg
 dienst usr/lib/werkbank/werkbank-halter bin:halter:werkbank-halter
+dienst usr/lib/werkbank/werkbank-vorgabe bin:vorgabe-helfer:werkbank-vorgabe
 programm usr/lib/werkbank/rangkern bin:rangkern:rangkern
 programm usr/lib/werkbank/such-mcp bin:such-mcp:such-mcp
 programm usr/lib/werkbank/probelauf/drehbuch.py datei:spec/vorfuehrung/laeufer/drehbuch.py
@@ -82,5 +87,8 @@ daten usr/share/werkbank/probelauf/vorfuehr-vault/projekte/umbau-kantine.md date
 daten usr/lib/systemd/user/werkbank-kern.service datei:paket/ubuntu-26.04-x64/werkbank-kern.service
 daten usr/lib/systemd/user/werkbank-bruecke.service datei:paket/ubuntu-26.04-x64/werkbank-bruecke.service
 daten usr/lib/systemd/user/wb-halter.service datei:paket/ubuntu-26.04-x64/wb-halter.service
+daten usr/lib/systemd/system/werkbank-vorgabe.socket datei:paket/ubuntu-26.04-x64/werkbank-vorgabe.socket
+daten usr/lib/systemd/system/werkbank-vorgabe.service datei:paket/ubuntu-26.04-x64/werkbank-vorgabe.service
+daten usr/share/werkbank/vorgabe/firmenvorgabe.json datei:paket/ubuntu-26.04-x64/firmenvorgabe.json
 daten usr/share/werkbank/sbom.cdx.json erzeugt:sbom
 daten etc/apparmor.d/usr.lib.werkbank.werkbank-einschluss datei:paket/ubuntu-26.04-x64/usr.lib.werkbank.werkbank-einschluss

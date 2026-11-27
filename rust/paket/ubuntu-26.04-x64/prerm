@@ -24,6 +24,11 @@ esac
 if [ "$1" = upgrade ] && [ "${DEBCONF_RECONFIGURE:-}" = 1 ]; then
     exit 0
 fi
+# Part A3: the system units of the write helper of the company default stop on remove, upgrade and deconfigure; postinst starts the
+# socket again (`enable --now`), the helper comes with the next connection. Account, folder and file stay.
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl stop werkbank-vorgabe.socket werkbank-vorgabe.service >/dev/null 2>&1 || true
+fi
 # NEUSTART is the note for postinst (step 4b): the units that run now and that this script stops; postinst starts them again. A run of `remove`
 # or `deconfigure` leaves no note, so nothing starts again.
 NEUSTART=/run/werkbank-paket-neustart

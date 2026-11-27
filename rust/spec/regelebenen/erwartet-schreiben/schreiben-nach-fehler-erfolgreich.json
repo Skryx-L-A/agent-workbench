@@ -17,7 +17,7 @@
     "zweiter": null
    },
    "datei": {
-    "eigentuemer": "root",
+    "eigentuemer": "werkbank-vorgabe",
     "modus": "0644",
     "sha256": "febe7816e121c7930dde5e62967de0d1ad41755111df8f0942676879020a3ab2",
     "inhalt": {
@@ -59,7 +59,7 @@
     "zweiter": null
    },
    "datei": {
-    "eigentuemer": "root",
+    "eigentuemer": "werkbank-vorgabe",
     "modus": "0644",
     "sha256": "2b8b8ef7c81f5f2245c361576f3cf9e945a7fd714a757b9830471f390c5290bf",
     "inhalt": {

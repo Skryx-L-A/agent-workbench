@@ -31,6 +31,14 @@ Arbeitskopie der Einstellungen (Schritt 2); so tragen Route, Modell (`gpt-6-luna
 Paketwegs: In Schritt I ändert niemand `halter.json` (Abschnitt „Welche Felder der Admin setzt“); ein Weg von Hand widerspräche dem.
 Die Vorführ-Vorlage bleibt mit der Quelle `vorfuehrung.json` im Paket (Prüfung 5, `paket.vorfuehrung_einstellung`, Annahme 9).
 
+**Nachtrag Schreibhelfer (27.11.2026, Entscheid des Betreibers, 27.11.2026, Linux):** Das deb liefert den Schreibhelfer der
+Firmenvorgabe `/usr/lib/werkbank/werkbank-vorgabe` unter dem Systemnutzer `werkbank-vorgabe`, gestartet über
+`werkbank-vorgabe.socket`. Ordner und Datei der Firmenvorgabe gehören dem Helfernutzer (`/etc/werkbank/vorgabe/firmenvorgabe.json`,
+`0644`). Konto, Einheiten, Rechte, Erstausstattung und Entfernen stehen in Teil A3; Protokoll und Codes in
+`rust/spec/regelebenen/README.md`, Abschnitt 15.12. Nachtrag (Entscheid des Betreibers, 27.11.2026): Der Ordner des Helfers
+gehört dem Helfernutzer (OPEN 33 a geschlossen). `postinst` trägt das installierende Konto als ersten Admin ein, nur wenn noch keine
+Firmenvorgabe da ist (Teil A3, „Erster Admin“; OPEN 33 b geschlossen).
+
 Was dieser Vertrag nicht tut: Er baut kein Paket, schreibt keinen Rust-Code und ändert kein System. Die Sicherung und
 Wiederherstellung (A19) ist nur eine Schnittstelle mit Zusagen; der Bau folgt später.
 
@@ -993,6 +1001,312 @@ Die Entscheidung fällt erst nach L-1 bis L-3. Dieser Teil nennt nur die Folgen 
 6. Ein nicht lesbarer Punkt lässt sich in der VM kaum erzeugen (`root` liest jedes Dateisystem); ihn belegen nur die Fälle `mount-nicht-lesbar-*`.
 7. Nach dem Test: `umount /srv/beispiel/daten`, die Image-Datei und die VM verwerfen.
 
+## Teil A3: Linux-Paket, Schreibhelfer der Firmenvorgabe unter dem Systemnutzer `werkbank-vorgabe` (Nachtrag 27.11.2026, Entwurf)
+
+**Entscheid des Betreibers (27.11.2026):** Eine Änderung eines Admins an der Firmenvorgabe schreibt ein kleiner Helfer mit eigenem
+Systemnutzer, wie beim Halter. Er ist nicht root und startet über einen systemd-Socket. Er kann genau eine Sache: die Firmenvorgabe
+atomar ganz ersetzen. Vorher prüft er über `SO_PEERCRED`, ob der Partner Admin ist, gegen die gerade gültige Datei. Der Dienst des
+Nutzers reicht die Änderung nur weiter und schreibt nie selbst. Protokoll, Prüfreihenfolge und Codes legt
+`rust/spec/regelebenen/README.md`, Abschnitt 15.12, fest; dieser Teil legt Konto, Einheiten, Orte, Rechte, Erstausstattung und
+Entfernen fest. Entscheidung 4 aus Teil A („kein Konto, keine Gruppe“) ist damit auch für das Konto `werkbank-vorgabe` und seine
+Hauptgruppe aufgehoben.
+
+**Was gemessen ist:** nur eine Voraussetzung. Am 27.11.2026 am Mac: In einem Ordner mit Modus `0555` scheitern
+`open(O_CREAT|O_EXCL)` und `rename` mit errno 13 (`EACCES`), auch für den Eigentümer der Datei. Jede andere Aussage über Kernel,
+`dpkg`, `adduser` und systemd ist hergeleitet; die Annahmen stehen am Ende mit ihrer Messung.
+
+### Entscheidungen in Teil A3
+
+1. **Name.** Konto und Hauptgruppe heißen `werkbank-vorgabe`, ohne die alte Bedeutung der Namen `wb-*` (Team-Issue #11).
+2. **Ein Systemkonto, keine Rollengruppe.** `werkbank-vorgabe` mit eigener Hauptgruppe, Heim `/nonexistent`, Shell
+   `/usr/sbin/nologin`, uid im Bereich der Systemkonten. Kein Konto ist Mitglied der Gruppe. Die Admins stehen nur in der
+   Kontenliste der Firmenvorgabe; eine Gruppe der Admins gäbe es als zweite Quelle, und die ist verboten (regelebenen 15.2).
+3. **System-Einheiten** `werkbank-vorgabe.socket` und `werkbank-vorgabe.service`. Nur der Socket lauscht; der Helfer bindet nie
+   selbst und startet erst bei der ersten Verbindung.
+4. **Ordner des Helfers unter root-eigenen Eltern** (Entscheid des Betreibers, 27.11.2026; schließt OPEN 33 a). `/etc/werkbank/vorgabe/`
+   gehört `werkbank-vorgabe` mit Modus `0755`. Alle Eltern ab `/etc/werkbank` gehören root und haben nicht `& 022`. Der Ordner hat
+   kein Schreibrecht für eine Gruppe, und der Helfer hat kein `CAP_DAC_OVERRIDE`. Grund (gemessen, oben): In einem Ordner mit Modus
+   `0555` scheitern `open(O_CREAT|O_EXCL)` und `rename` mit errno 13, auch für den Eigentümer der Datei. In einem root-eigenen
+   Ordner könnte der Helfer also weder die Temp-Datei anlegen noch umbenennen.
+5. **Die IT pflegt die Datei weiter mit `sudo`.** Danach setzt sie Eigentümer und Modus zurück (regelebenen OPEN 27).
+6. Teil A gilt weiter, soweit dieser Teil nichts anderes sagt. Teil A3 hängt nicht an Teil A2; das deb kann ihn mit Schritt I oder
+   Schritt II tragen (OPEN 33 e).
+7. **Erster Admin** (Entscheid des Betreibers, 27.11.2026; schließt OPEN 33 b). `postinst` trägt das installierende Konto als ersten
+   Admin ein, nur wenn noch keine Firmenvorgabe da ist. Eine vorhandene Firmenvorgabe ändert `postinst` nie. Grund: Wer `sudo` hat,
+   kann die Datei ohnehin direkt ändern; der Eintrag gibt ihm keine neue Macht. Ablauf und Prüfpunkte stehen unter „Erster Admin“.
+
+### Orte und Rechte
+
+| Pfad | Art | Eigentümer | Modus | Wer legt an |
+|---|---|---|---|---|
+| `/usr/lib/werkbank/werkbank-vorgabe` | `dienst` | `root:root` | `0755` | Archiv, Quelle `bin:vorgabe:werkbank-vorgabe` |
+| `/usr/lib/systemd/system/werkbank-vorgabe.socket` | `daten` | `root:root` | `0644` | Archiv, Quelle `datei:paket/ubuntu-26.04-x64/werkbank-vorgabe.socket` |
+| `/usr/lib/systemd/system/werkbank-vorgabe.service` | `daten` | `root:root` | `0644` | Archiv, Quelle `datei:paket/ubuntu-26.04-x64/werkbank-vorgabe.service` |
+| `/usr/share/werkbank/vorgabe/firmenvorgabe.json` | `daten` | `root:root` | `0644` | Archiv, Vorlage der Erstausstattung |
+| `/etc/werkbank/` | Ordner | `root:root` | `0755` | Teil A |
+| `/etc/werkbank/vorgabe/` | Ordner | `werkbank-vorgabe:werkbank-vorgabe` | `0755` | `postinst`, nie das Archiv |
+| `/etc/werkbank/vorgabe/firmenvorgabe.json` | Datei | `werkbank-vorgabe:werkbank-vorgabe` | `0644` | `postinst` (Erstausstattung), danach Helfer oder IT |
+| `/run/werkbank-vorgabe/` | Ordner | `root:root` | `0755` | systemd (`DirectoryMode=` der Socket-Einheit) |
+| `/run/werkbank-vorgabe/vorgabe.sock` | Socket | `root:root` | `0666` | systemd |
+
+- Jeder Eintrag des Archivs bleibt `root:root`; Stufe 9 der Gegenprobe ändert sich nicht. Ordner und Datei unter `/etc/werkbank/vorgabe/`
+  stehen nicht im Archiv, denn ihr Eigentümer besteht erst nach `preinst`, und ein Update darf die Datei nie ersetzen.
+- **Warum der Socket `0666` hat:** Der Dienst jedes Nutzers muss ihn erreichen (DI2: der Dienst läuft unter dem Konto des Nutzers).
+  Eine Gruppe der Admins schiede aus (Entscheidung 2). Die Grenze ist die Prüfung des Partners im Helfer (regelebenen 15.12, H1 bis H5),
+  nicht das Recht am Socket. Ein Nutzer, der kein Admin ist, bekommt `firmenvorgabe.partner_nicht_admin`, bevor der Helfer ein Byte
+  der Anfrage liest.
+- **`/etc/werkbank/vorgabe.json` ist eine andere Datei.** Sie ist die Vorgabe der Netzziele nach Vertrag 2 (`root:root`, `0644`),
+  die `postinst` bei jedem `configure` atomar aus dem Erststart-Profil neu schreibt und gegen die `lauf` die Routentabelle prüft
+  (Konstante `VORGABE_PFAD` im Modul `ziele::vorgabe` von `lauf`, nur root als Eigentümer). Sie bleibt root-eigen. Der Helfer schreibt nur
+  `/etc/werkbank/vorgabe/firmenvorgabe.json`; `ReadWritePaths=` nennt nur seinen Ordner, also kann er `vorgabe.json` nicht ändern
+  (regelebenen 15.12.4).
+- Der Ordner des Dienstes wird nie in einen Einschluss gebunden (Vertrag `einschluss`); `/run/werkbank-vorgabe/` ebenso nicht. Der Helfer
+  prüft trotzdem die Cgroup des Partners (H2).
+
+### Konto und Gruppe (`preinst`)
+
+`preinst` (`install` und `upgrade`) legt das Konto vor dem Entpacken an, wie Teil A2 („Konto und Gruppen“):
+
+1. Besteht `werkbank-vorgabe` als Konto oder Gruppe schon, prüft `preinst` die Form: uid und gid von 100 bis 999, Hauptgruppe
+   `werkbank-vorgabe`, Heim `/nonexistent`, Shell `/usr/sbin/nologin`, Gruppe ohne Mitglieder. Weicht eine ab, endet `preinst` mit dem
+   **festen Code 25** und ändert nichts (fail closed). Ein fremdes Konto dieses Namens wird nie übernommen.
+2. Fehlt es, legt `preinst` es an: `adduser --system --group --no-create-home --home /nonexistent --shell /usr/sbin/nologin
+   werkbank-vorgabe`. Bestehendes in richtiger Form bleibt unverändert.
+3. Kein anderes Konto und keine andere Gruppe ändert sich.
+
+### Die Einheiten
+
+`werkbank-vorgabe.socket`:
+
+```ini
+[Unit]
+Description=Werkbank: Schreibhelfer der Firmenvorgabe (Socket)
+
+[Socket]
+ListenStream=/run/werkbank-vorgabe/vorgabe.sock
+SocketUser=root
+SocketGroup=root
+SocketMode=0666
+DirectoryMode=0755
+Accept=no
+Backlog=8
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target
+```
+
+`werkbank-vorgabe.service` (ohne `[Install]`; nur der Socket startet ihn):
+
+```ini
+[Unit]
+Description=Werkbank: Schreibhelfer der Firmenvorgabe
+Requires=werkbank-vorgabe.socket
+After=werkbank-vorgabe.socket
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/werkbank/werkbank-vorgabe
+User=werkbank-vorgabe
+Group=werkbank-vorgabe
+UMask=0077
+Restart=on-failure
+RestartPreventExitStatus=64 78
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ReadWritePaths=/etc/werkbank/vorgabe
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+IPAddressDeny=any
+RestrictAddressFamilies=AF_UNIX
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+RemoveIPC=yes
+```
+
+- Härtung wie beim Halter (Teil A2, „Die Einheit `wb-halter.service`“) und dazu ohne Netz: Der Helfer braucht nur den geerbten
+  Unix-Socket und den einen Ordner. Er startet nichts. Kein `SupplementaryGroups=`, keine Zeile `Environment`, `EnvironmentFile` oder
+  `PassEnvironment`. Den Socket bekommt er über `sd_listen_fds` (Variable `LISTEN_FDS` von systemd).
+- `ProtectProc=` bleibt auf der Vorgabe: Der Helfer liest `/proc/<pid>/cgroup` des Partners (H2). Mit `ProtectProc=invisible` sähe er
+  fremde Prozesse nicht, und H2 lehnte jeden ab (Annahme A3-3).
+- `Accept=no`: Ein Prozess nimmt eine Verbindung nach der anderen an. So laufen zwei Anfragen nie gleichzeitig (regelebenen 15.12.2).
+- Exitcodes des Helfers: 0 nach SIGTERM, 64 bei einem Aufruf mit Argumenten, 78 ohne geerbten Socket oder mit mehr als einem. Jede
+  Ablehnung einer Anfrage ist eine Antwort mit Code, kein Ende des Prozesses.
+
+### Erstausstattung (`postinst configure`)
+
+Der Schritt läuft bei jedem `configure` und ist wiederholbar. Reihenfolge:
+
+1. **Ordner.** Fehlt `/etc/werkbank/vorgabe/`, legt `postinst` ihn mit `mkdir` (Modus `0700`) an, setzt `chown
+   werkbank-vorgabe:werkbank-vorgabe` und dann `chmod 0755`. Besteht er, prüft `postinst` ihn mit `lstat`: ein Ordner, kein Verweis,
+   Eigentümer `werkbank-vorgabe`, Modus `0755`. Weicht er ab, ändert `postinst` nichts und schreibt die feste Journalzeile
+   `werkbank: Ordner der Firmenvorgabe in fremder Form, Code 26` (ohne Pfad). Die Installation bricht nicht ab (Entscheidung 7 aus
+   Teil A); der Helfer lehnt dann mit `firmenvorgabe.datei_unsicher` ab, also fail closed.
+2. **Datei mit dem ersten Admin, nur wenn sie fehlt.** Den Schritt legt der Abschnitt „Erster Admin“ fest. Er läuft nur, wenn
+   Schritt 1 den Ordner in der richtigen Form hat. Code 26 aus Schritt 1 überspringt ihn.
+3. **Einheiten.** `systemctl daemon-reload`, dann `systemctl enable --now werkbank-vorgabe.socket`. Der Dienst des Helfers startet
+   erst bei der ersten Verbindung.
+
+Die Vorlage im Archiv ist `{"admins": [], "leseklassen": []}` (JSON mit sortierten Schlüsseln, Einzug 1, ein Zeilenende).
+`postinst` schreibt sie nie unverändert, sondern immer mit genau einem Konto in `admins`. Mit leerer `leseklassen` liest niemand
+(regelebenen 15.11).
+
+### Erster Admin (`postinst configure`, Schritt 2; Entscheid des Betreibers, 27.11.2026)
+
+**Regel.** `postinst` legt die Firmenvorgabe nur an, wenn unter dem Namen `firmenvorgabe.json` im Ordner des Helfers kein Eintrag
+besteht (`lstat` meldet `ENOENT`). Dann trägt sie genau ein Konto in `admins`: das installierende Konto. Besteht der Eintrag in
+irgendeiner Form, ändert `postinst` ihn nie: weder Inhalt noch Eigentümer noch Modus. Das gilt bei der Erstinstallation, bei jedem
+Upgrade, bei `dpkg-reconfigure` und für eine Datei, die die IT vor der Installation abgelegt hat. `postinst` liest und prüft den
+Inhalt einer vorhandenen Datei nicht. Ist sie ungültig, bleibt sie unverändert; der Ladefehler bleibt fail closed (Dienst: kein Tor;
+Helfer: `firmenvorgabe.ladefehler`, regelebenen 15.12.3, H4).
+
+**Grund.** Wer `postinst` startet, hat root. Er kann die Datei ohnehin direkt schreiben. Der Eintrag gibt ihm also keine neue Macht.
+Er erspart der IT nur den ersten Schritt von Hand. Eine vorhandene Vorgabe ist dagegen eine Entscheidung der Firma; ein Paket
+überschreibt sie nie.
+
+**Das installierende Konto** bestimmt `postinst` wie beim Halter (Abschnitt „halter.json“, Schritt 1):
+
+1. `SUDO_USER` nennt einen Namen. `postinst` holt dazu die uid mit `id -u` und dann den Kontonamen aus `passwd` (`getent passwd
+   <uid>`, erstes Feld), nie aus der Umgebung.
+2. Kein installierendes Konto gibt es, wenn `SUDO_USER` fehlt oder leer ist (etwa `pkexec` oder `apt` als root ohne `sudo`), wenn das
+   Konto nicht in `passwd` steht, wenn die uid `0` ist oder wenn der Name nicht die Kontoform hat, die H4 für `admins` verlangt.
+   Grund für uid `0`: root braucht keinen Eintrag, um die Datei zu ändern, und ein Admin root wäre ein Konto, unter dem jeder Dienst mit
+   root den Helfer ansprechen könnte (hergeleitet).
+
+**Kein installierendes Konto.** `postinst` legt keine Datei an und schreibt die feste Journalzeile
+`werkbank: Firmenvorgabe nicht angelegt, kein Konto aus sudo, Code 28` (ohne Name und Pfad). Die Installation bricht nicht ab
+(Entscheidung 7 aus Teil A). Bis die IT die Datei pflegt, ist keine Änderung durch einen Admin möglich: Der Helfer lehnt mit
+`firmenvorgabe.datei_unsicher` ab (H3, keine reguläre Datei). Gründe für „keine Datei“ statt einer Datei mit leerer Kontenliste:
+
+- Eine leere Kontenliste wäre eine vorhandene Vorgabe. `postinst` änderte sie danach nie, und auch ein späteres
+  `sudo dpkg-reconfigure werkbank` trüge keinen ersten Admin mehr ein. Ohne Datei holt genau dieser Aufruf den Eintrag nach.
+- Eine Datei ohne Admin ist keine Entscheidung der Firma, sieht aber wie eine aus. Ohne Datei bleibt sichtbar, dass niemand
+  entschieden hat (Journalzeile, Code 28).
+- Beide Wege geben keine Macht: Mit leerer Kontenliste ist ebenso niemand Admin. Wie der Lader eine fehlende Firmenvorgabe
+  behandelt, legt regelebenen 15.12.4 fest (Entscheid des Betreibers, 27.11.2026; schließt regelebenen OPEN 30): Ohne Datei lädt er
+  keine Admins, und `setzen` lehnt jede Änderung eines Admins mit `ebenen.nicht_befugt` ab; die Regeln der Firma gelten weiter.
+
+**Ablauf (atomar, als root).** Nur nach Schritt 1 ohne Code 26 und nur mit installierendem Konto:
+
+1. Inhalt bilden: die Vorlage `/usr/share/werkbank/vorgabe/firmenvorgabe.json` lesen, `admins` auf genau `[<konto>]` setzen und als
+   JSON mit sortierten Schlüsseln, Einzug 1 und einem Zeilenende schreiben. Fehlt die Vorlage oder ist sie nicht
+   `{"admins": [], "leseklassen": []}`, entsteht keine Datei, und das Journal bekommt Code 26.
+2. Den Ordner mit `O_DIRECTORY|O_NOFOLLOW` öffnen und an diesem Griff Form, Eigentümer und Modus aus Schritt 1 wiederholen (`fstat`).
+   Jede weitere Handlung läuft relativ zu diesem Griff.
+3. Temp-Datei mit zufälligem Namen im selben Ordner anlegen: `O_CREAT|O_EXCL|O_NOFOLLOW`, Modus `0600`. Ganz schreiben, `fsync`.
+4. `fchown werkbank-vorgabe:werkbank-vorgabe`, dann `fchmod 0644`. Inhalt mit dem Inhalt aus Punkt 1 vergleichen.
+5. Auf `firmenvorgabe.json` bringen, **ohne zu überschreiben**: `renameat2` mit `RENAME_NOREPLACE` oder `linkat` mit danach
+   `unlinkat` der Temp-Datei. Beide scheitern mit `EEXIST`, wenn inzwischen eine Datei unter dem Namen liegt; dann bleibt diese
+   unverändert (hergeleitet). Ein einfaches `rename` ist verboten, denn es ersetzte eine Datei, die die IT gerade abgelegt hat.
+6. `fsync` des Ordners.
+
+Scheitert ein Punkt, entfernt `postinst` die Temp-Datei, ändert sonst nichts und schreibt die Journalzeile mit Code 26. Danach steht
+entweder keine Datei oder die vollständige neue Datei mit Eigentümer `werkbank-vorgabe:werkbank-vorgabe` und Modus `0644`, nie ein
+Teil. Der Name des Kontos steht nur in der Datei, nie im Journal.
+
+**Lage nach den Fällen.**
+
+| Lage vor `postinst configure` | Ergebnis |
+|---|---|
+| Erstinstallation mit `sudo` durch ein Konto in Kontoform | Datei mit `admins` genau `[<konto>]`, `leseklassen` leer, `werkbank-vorgabe:werkbank-vorgabe`, `0644` |
+| Upgrade mit vorhandener Vorgabe (auch durch ein anderes Konto mit `sudo`) | Datei byte-gleich, Eigentümer und Modus unverändert; kein neues Konto in `admins` |
+| Vorab von der IT abgelegte Vorgabe | unverändert, auch wenn sie root gehört. Liegt sie in einem Ordner, den die IT angelegt hat und der root gehört, meldet Schritt 1 Code 26; der Helfer lehnt dann mit `firmenvorgabe.datei_unsicher` ab, bis die IT Eigentümer und Modus nach Abschnitt „Orte und Rechte“ setzt (regelebenen OPEN 27) |
+| Kein installierendes Konto | keine Datei, Journal Code 28, `postinst` rc 0 |
+| Vorhandene Datei ungültig (kein JSON, keine Kontenliste, ein Verweis) | unverändert; kein Journal von `postinst`; Dienst: Ladefehler, kein Tor; Helfer: `firmenvorgabe.ladefehler` oder bei einem Verweis `firmenvorgabe.datei_unsicher` |
+
+### `remove` und `purge`
+
+- **`remove`:** `prerm` hält `werkbank-vorgabe.socket` und `werkbank-vorgabe.service` an, `postrm remove` schaltet den Socket ab.
+  Konto, Gruppe, Ordner und Datei bleiben. Grund: Die Firmenvorgabe ist eine Einstellung der Firma; ein Update über `remove` und
+  Installation darf sie nicht verlieren.
+- **`purge`:** zusätzlich zu Teil A, in dieser Reihenfolge:
+  1. Socket und Dienst anhalten und abschalten; `/run/werkbank-vorgabe` entfernen, falls `RemoveOnStop` ihn nicht entfernt hat.
+  2. `/etc/werkbank/vorgabe/firmenvorgabe.json` und jede andere Datei in `/etc/werkbank/vorgabe/` löschen, ohne einem Verweis zu
+     folgen; dann den Ordner entfernen. `/etc/werkbank` geht nach Teil A, wenn leer.
+  3. **Prüfung auf Rest nach Weg a** wie in Teil A2 („`purge` in Schritt II“, Schritt 3): `find` über jeden durchsuchten
+     Einhängepunkt mit der uid und der gid von `werkbank-vorgabe`, dieselbe Ausnahmeliste, dazu `pgrep -u werkbank-vorgabe`. Ohne Rest:
+     `deluser --system werkbank-vorgabe`, dann `delgroup --system werkbank-vorgabe`, falls die Gruppe noch besteht.
+  4. **Mit Rest:** Konto und Gruppe bleiben, die Reste bleiben unberührt, und das Journal bekommt die feste Zeile
+     `werkbank: Konto werkbank-vorgabe bleibt, Code 27`. `purge` bricht nicht ab.
+
+### Feste Codes in Teil A3
+
+| Code | Skript | Wirkung | Text |
+|---|---|---|---|
+| 25 | `preinst` | Abbruch vor dem Entpacken, nichts geändert | `werkbank: Konto werkbank-vorgabe besteht in fremder Form, Code 25` |
+| 26 | `postinst` | kein Abbruch, Journalzeile | `werkbank: Ordner der Firmenvorgabe in fremder Form, Code 26` |
+| 27 | `postrm purge` | kein Abbruch, Journalzeile | `werkbank: Konto werkbank-vorgabe bleibt, Code 27` |
+| 28 | `postinst` | kein Abbruch, Journalzeile, keine Firmenvorgabe | `werkbank: Firmenvorgabe nicht angelegt, kein Konto aus sudo, Code 28` |
+
+### Prüfpunkte für den Bau
+
+`rust/paket/test_bau.py` (Klasse `Vorgabe`) prüft jeden Punkt an den Blöcken der Skripte gegen `referenz.py` (`vorgabe_konto_code`,
+`vorgabe_einheit_code`, `vorgabe_erstausstattung`, `vorgabe_purge`, `vorgabe_block_code`). Fälle in `faelle/` gibt es dafür noch nicht;
+V-9 bis V-11 und die echten Rechte unter root misst AL-19 bis AL-22.
+
+**Umsetzung (Projektentscheid, 27.11.2026).** `preinst` trägt den Block `# --- vorgabe-konto begin/end`. `postinst` führt die
+Erstausstattung als Schritt 2e vor dem Einschluss (Schritt 3 von Teil A) aus, im Block `# --- firmenvorgabe begin/end`. Die Schritte am
+offenen Ordner laufen in `python3 -I` (Abhängigkeit `python3` aus Teil A): `os.open` mit `O_DIRECTORY|O_NOFOLLOW`, die Temp-Datei mit
+`O_EXCL|O_NOFOLLOW` relativ zum Griff, `fsync`, `fchown`, `fchmod 0644`, Vergleich mit `pread`, dann `os.link` mit
+`follow_symlinks=False` (`linkat` ohne Überschreiben) und `unlink` der Temp-Datei, zuletzt `fsync` des Ordners. Die Prüfung auf Rest von
+`purge` steht im Block `# --- vorgabe begin/end` von `postrm`; ihre Typlisten sind `referenz.MOUNT_AUSGENOMMEN` und
+`referenz.MOUNT_DURCHSUCHT`. Das Programm `werkbank-vorgabe` baut das Crate `rust/crates/vorgabe-helfer`.
+
+| Nr | Prüfpunkt | Erwartet |
+|---|---|---|
+| V-1 | Konto nach `preinst` | `werkbank-vorgabe` mit uid und gid von 100 bis 999, Heim `/nonexistent`, Shell `/usr/sbin/nologin`, Gruppe ohne Mitglied |
+| V-2 | fremdes Konto `werkbank-vorgabe` (etwa Shell `/bin/bash`) | `preinst` Code 25, kein Konto und keine Gruppe geändert |
+| V-3 | Socket-Einheit | genau die Zeilen oben; `SocketMode=0666`, `Accept=no`; kein zweiter `Listen*`-Eintrag |
+| V-4 | Dienst-Einheit | `User=werkbank-vorgabe`, kein `SupplementaryGroups=`, `ReadWritePaths=` genau `/etc/werkbank/vorgabe`, `PrivateNetwork=yes`, `RestrictAddressFamilies=AF_UNIX`, leeres `CapabilityBoundingSet=`, kein `[Install]`, kein `Environment*` |
+| V-5 | Archiv | jeder Eintrag `root:root`; kein Eintrag unter `etc/werkbank/vorgabe/` |
+| V-6 | Erstinstallation mit `SUDO_USER` eines Kontos in Kontoform, ohne Datei | Ordner `werkbank-vorgabe` `0755`; Datei `werkbank-vorgabe:werkbank-vorgabe` `0644`, Inhalt gleich der Referenz mit `admins` genau `[<konto>]` und leerer `leseklassen`; keine Temp-Datei im Ordner; Konto nicht im Journal |
+| V-7 | Upgrade mit vorhandener Vorgabe, `SUDO_USER` eines anderen Kontos | Datei byte-gleich, Eigentümer und Modus unverändert, auch wenn sie root gehört; das andere Konto steht nicht in `admins` |
+| V-12 | vorab von der IT abgelegte Vorgabe im Ordner des Helfers, danach Erstinstallation mit `SUDO_USER` | Datei byte-gleich, Eigentümer und Modus unverändert; das installierende Konto steht nicht in `admins`; kein Journal Code 28 |
+| V-13 | vorab von der IT angelegter Ordner `root:root` mit Vorgabe | Ordner und Datei unverändert, Journal Code 26, `postinst` rc 0 |
+| V-14 | kein installierendes Konto: `SUDO_USER` fehlt, ist leer, nennt uid `0`, ein Konto ohne Eintrag in `passwd` oder einen Namen außerhalb der Kontoform | keine Datei, Journal Code 28 ohne Name, `postinst` rc 0; ein späteres `dpkg-reconfigure` mit `SUDO_USER` legt die Datei nach V-6 an |
+| V-15 | vorhandene Datei ungültig: kein JSON, `admins` fehlt, ein Verweis auf eine andere Datei | Eintrag byte-gleich und nicht verfolgt (beim Verweis auch das Ziel unverändert); kein Journal von Schritt 2 |
+| V-16 | eine Datei erscheint zwischen `lstat` und Punkt 5 (eingeschleust) | die erschienene Datei bleibt byte-gleich; keine Temp-Datei; Journal Code 26 |
+| V-17 | Block `# --- firmenvorgabe begin/end` von `postinst` | `test_bau.py` vergleicht ihn mit der Referenz: kein `rename` und kein `mv` ohne Schutz vor dem Überschreiben, kein Lesen von `firmenvorgabe.json`, Konto nur aus `id -u` und `getent passwd` |
+| V-8 | Ordner als Verweis oder mit fremdem Eigentümer | nichts geändert, Journal Code 26, `postinst` rc 0 |
+| V-9 | `remove` | Konto, Gruppe, Ordner und Datei bleiben; Socket abgeschaltet |
+| V-10 | `purge` ohne Rest | Ordner, Datei, Konto und Gruppe weg |
+| V-11 | `purge` mit Rest (Datei der uid auf einer zweiten Partition oder ein Prozess) | Konto und Gruppe bleiben, Journal Code 27 |
+
+### Annahmen und die Messung dazu
+
+| Nr | Annahme | Messung |
+|---|---|---|
+| A3-1 | systemd legt `/run/werkbank-vorgabe/` mit `DirectoryMode=0755` als `root:root` an und den Socket mit `0666` | AL-19 |
+| A3-2 | `SO_PEERCRED` am Socket, den systemd übergibt, nennt die uid des verbindenden Prozesses, nicht die von systemd | AL-20 |
+| A3-3 | Der Helfer liest `/proc/<pid>/cgroup` eines fremden Partners unter `ProtectProc=` als Vorgabe | AL-20 |
+| A3-4 | `getpwnam_r` und `getpwuid_r` funktionieren unter `PrivateNetwork=yes` für lokale Konten; Konten aus LDAP ohne lokalen Zwischenspeicher fallen aus (dann fail closed: kein Admin) | AL-20 |
+| A3-5 | `rename` im Ordner des Helfers gelingt unter `ProtectSystem=strict` mit `ReadWritePaths=/etc/werkbank/vorgabe` | AL-21 |
+
+### Außentests Teil A3
+
+| Nr | Ausgangslage | Handlung | Erwartet | Gemessen |
+|---|---|---|---|---|
+| AL-19 | frische VM Ubuntu 26.04.1 | Installation; `getent passwd werkbank-vorgabe`, `stat` von Ordner, Datei und Socket, `systemctl show werkbank-vorgabe.service` | Werte der Tabelle „Orte und Rechte“; der Dienst läuft erst nach der ersten Verbindung | Zeilen von `getent`, `stat`, `systemctl` |
+| AL-20 | VM mit Paket und zwei Nutzern, einer davon in der Kontenliste | jeder Nutzer schickt eine gültige Anfrage; dazu ein Prozess des Admins in der Einheit eines Laufs | Admin: Antwort ohne Code; Nichtadmin: `firmenvorgabe.partner_nicht_admin`; im Lauf: `firmenvorgabe.partner_eingeschlossen`; Datei danach nur einmal geändert | Antworten, sha256 der Datei, Journalzeilen |
+| AL-21 | VM mit Paket | Anfrage eines Admins, dann `stat` | Datei `werkbank-vorgabe:werkbank-vorgabe` `0644`, im Ordner keine Temp-Datei | `stat`, `ls -la` |
+| AL-22 | VM mit Paket | `apt remove`, dann `apt purge`; Gegenprobe: vor `purge` eine Datei der uid unter `/srv/beispiel` | nach `remove` bleiben Konto und Datei; nach `purge` nichts; Gegenprobe: Konto bleibt, Journal Code 27 | `getent`, Listen, Journalzeilen |
+
 ## Teil B: Windows-Paket (MSI), folgt nach dem deb
 
 ### Entscheidung: MSI, gebaut mit WiX
@@ -1629,6 +1943,19 @@ python3 -I rust/spec/paket/bau-faelle.py             # Fälle neu erzeugen
     bei einem Update liegen (Schritt 2 überschreibt nie); sie trägt dann die Vorführ-Einstellungen. (d) Wann der Schalter
     `erststart_antwortform` wieder wegfällt, entscheidet die Leitung; `werkbank-pruefen` meldet ihn noch nicht als Befund
     (Halter-Vertrag OPEN 24).
+
+33. **Teil A3 (Schreibhelfer), offen.** (a) **Geschlossen (Entscheid des Betreibers, 27.11.2026):** Der Ordner
+    `/etc/werkbank/vorgabe/` gehört `werkbank-vorgabe` mit Modus `0755`, alle Eltern ab `/etc/werkbank` gehören root ohne `& 022`;
+    kein Gruppenschreibrecht, kein `CAP_DAC_OVERRIDE` (Teil A3, Entscheidung 4). (b) **Geschlossen (Entscheid des Betreibers,
+    27.11.2026):** `postinst` trägt das installierende Konto als ersten Admin ein, nur wenn noch keine Firmenvorgabe da ist; ohne
+    installierendes Konto entsteht keine Datei (Code 28; Teil A3, „Erster Admin“). Der Code steht in `postinst`; `test_bau.py` prüft
+    V-6, V-7 und V-12 bis V-17. (c) Die
+    Prüfung `dienste` von `werkbank-pruefen` kennt `werkbank-vorgabe.socket` noch nicht. (d) Die Positivliste trägt die vier neuen Pfade, das Manifest
+    entsteht aus ihr. Die Pflichtdateien des Manifests (`referenz.PFLICHTDATEIEN`) nennen sie noch nicht; das änderte die Fälle
+    `manifest-*`. Empfehlung: mit dem nächsten Zug der Fälle aufnehmen. (e) Ob das deb Teil A3 mit Schritt I oder erst mit Schritt II trägt, entscheidet der
+    Bau. (f) Zwei Dateien gleichen Namensstamms, `/etc/werkbank/vorgabe.json` und `/etc/werkbank/vorgabe/`, liegen nebeneinander.
+    Empfehlung: den Ordner des Helfers mit dem Bau in `/etc/werkbank/firmenvorgabe/` umbenennen, falls die Verwechslung stört; hier
+    bleibt der Name, damit Fälle und Vertrag zueinander passen.
 
 ## Quellen für Lizenz- und Formatfragen (Stand 20.11.2026)
 

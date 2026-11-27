@@ -1,0 +1,111 @@
+{
+ "name": "ohne-firmenvorgabe-keine-admins",
+ "anforderungen": [
+  "A05",
+  "E1"
+ ],
+ "beschreibung": "die Firmenvorgabe fehlt: niemand ist Admin, und setzen lehnt jede Änderung der Firmenebene und einer Gruppe mit ebenen.nicht_befugt ab, auch für ein Konto, das vorher Admin war; die Regeln der Firma gelten weiter, ein Nutzer setzt seine Nutzerebene, und leseklassen bleibt leer",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {
+    "effort.grenzen": [
+     {
+      "harness": "copilot",
+      "erlaubt": [
+       "low",
+       "medium",
+       "high"
+      ]
+     },
+     {
+      "harness": "copilot",
+      "klasse": "kundendaten",
+      "erlaubt": [
+       "low"
+      ]
+     },
+     {
+      "harness": "pi",
+      "modell": "qwen3:8b",
+      "erlaubt": [
+       "off",
+       "low",
+       "medium"
+      ]
+     }
+    ],
+    "leseklassen": []
+   },
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "leseklassen",
+    "wert": [
+     {
+      "ebene": "nutzer",
+      "wer": "ps_00000000000000000000000000000c01",
+      "klasse": "intern"
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "effort.grenzen",
+    "wert": []
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "gruppe g-eins",
+    "schluessel": "optionen.herabstufen",
+    "wert": true
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "aussehen.thema",
+    "wert": "hell"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000b01"
+   }
+  }
+ ]
+}

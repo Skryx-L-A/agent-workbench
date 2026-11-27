@@ -122,7 +122,7 @@ def modi_setzen(stufe, arten):
         for name in dateien:
             pfad = os.path.join(wurzel, name)
             rel = os.path.relpath(pfad, stufe)
-            programm = arten.get(rel) in ("programm", "dienst") or rel in ("DEBIAN/postinst", "DEBIAN/prerm", "DEBIAN/postrm", "DEBIAN/config")
+            programm = arten.get(rel) in ("programm", "dienst") or rel in ("DEBIAN/preinst", "DEBIAN/postinst", "DEBIAN/prerm", "DEBIAN/postrm", "DEBIAN/config")
             os.chmod(pfad, 0o755 if programm else 0o644)
 
 
@@ -276,7 +276,7 @@ def befehl_stufen(a):
     # A unit of a program that is not in the tree is left out too: it would start nothing.
     einheiten_weg = []
     for art, ziel, q in positiv:
-        if q in da and ziel.startswith("usr/lib/systemd/user/") and a.geruest:
+        if q in da and ziel.startswith(("usr/lib/systemd/user/", "usr/lib/systemd/system/")) and a.geruest:
             programm = [z for z in lesen(os.path.join(a.rust, q[len("datei:"):])).split("\n") if z.startswith("ExecStart=")]
             if programm and programm[0][len("ExecStart="):].split()[0].lstrip("/") in [z for _, z, qq in fehlend]:
                 einheiten_weg.append((art, ziel, q))
@@ -368,7 +368,7 @@ def befehl_stufen(a):
         fehler(f"paket.{code}", "Steuerdatei verletzt den Vertrag", control.split("\n")[:3])
     with open(os.path.join(debian, "control"), "w", encoding="ascii") as f:
         f.write(control)
-    for skript in ("postinst", "prerm", "postrm", "config"):
+    for skript in ("preinst", "postinst", "prerm", "postrm", "config"):
         shutil.copyfile(os.path.join(ordner, skript), os.path.join(debian, skript))
         os.chmod(os.path.join(debian, skript), 0o755)
     shutil.copyfile(os.path.join(ordner, "templates"), os.path.join(debian, "templates"))

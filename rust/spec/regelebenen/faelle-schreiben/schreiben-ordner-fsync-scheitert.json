@@ -3,7 +3,7 @@
  "anforderungen": [
   "A05"
  ],
- "beschreibung": "fsync des Ordners scheitert nach dem rename; der Dienst schreibt die alten Bytes auf demselben Weg zurück, die Datei ist danach byte-gleich",
+ "beschreibung": "fsync des Ordners scheitert nach dem rename; der Helfer schreibt die alten Bytes auf demselben Weg zurück, die Datei ist danach byte-gleich",
  "firma": {
   "klassen": [
    "oeffentlich",
@@ -19,6 +19,12 @@
    ]
   }
  },
+ "konten": {
+  "konto-admin": 1001,
+  "konto-admin-zwei": 1002,
+  "konto-nutzer": 1003,
+  "konto-nutzer-zwei": 1004
+ },
  "zuordnung": {
   "konto-admin": "ps_00000000000000000000000000000b01",
   "konto-admin-zwei": "ps_00000000000000000000000000000b02",
@@ -27,7 +33,7 @@
  },
  "firmenvorgabe": {
   "art": "datei",
-  "eigentuemer": "root",
+  "eigentuemer": "werkbank-vorgabe",
   "modus": "0644",
   "inhalt": {
    "admins": [
@@ -50,13 +56,18 @@
  },
  "ordner": {
   "art": "ordner",
+  "eigentuemer": "werkbank-vorgabe",
+  "modus": "0755"
+ },
+ "eltern": {
+  "art": "ordner",
   "eigentuemer": "root",
   "modus": "0755"
  },
  "schritte": [
   {
    "schreiben": {
-    "partner": "konto-admin",
+    "partner": 1001,
     "wert": [
      {
       "ebene": "gruppe",
@@ -81,7 +92,7 @@
   },
   {
    "nachricht": {
-    "partner": "konto-admin"
+    "partner": 1001
    }
   }
  ]

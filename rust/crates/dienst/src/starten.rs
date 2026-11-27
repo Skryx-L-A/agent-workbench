@@ -11,9 +11,7 @@
 use std::fs::File;
 #[cfg(unix)]
 use std::fs::{DirBuilder, OpenOptions};
-use std::io::Read;
-#[cfg(unix)]
-use std::io::Write;
+use std::io::{Read, Write};
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
 
@@ -77,6 +75,18 @@ pub(crate) fn text_zu(grund: &str) -> &'static str {
         "start_ordner" => "Ordner der Sitzung nicht anlegbar",
         "programm_nicht_startbar" => "Programm nicht startbar",
         "meldung_kanal" => "Meldekanal der Sitzung nicht anlegbar",
+        // Nachtrag 26.11.2026 (DI-L1, DI-L3)
+        "orchestrator_unbekannt" => "Orchestrator unbekannt",
+        "orchestrator_beendet" => "Orchestrator ist beendet",
+        "orchestrator_ist_worker" => "Orchestrator ist selbst ein Worker",
+        "orchestrator_fremder_kunde" => "Kunde weicht vom Orchestrator ab",
+        "fortsetzen_form" => "Fortsetzen hat falsche Form",
+        "wiederbeleben_form" => "Wiederbeleben hat falsche Form",
+        "sitzung_unbekannt" => "Sitzung unbekannt",
+        "sitzung_laeuft" => "Sitzung läuft",
+        "schon_fortgesetzt" => "Sitzung ist schon fortgesetzt",
+        "nicht_fortsetzbar" => "Sitzung lässt sich nicht fortsetzen",
+        "nicht_abgestuerzt" => "Sitzung ist nicht abgestürzt",
         _ => "",
     }
 }
@@ -108,11 +118,15 @@ pub(crate) fn start_pruefen(
         .map_err(|f| Abgelehnt::pruefung(&f))
 }
 
-/// The event `Starten` has exactly the keys `art` and `start` (the service sets `t` and `betrachter` before; a client may not).
+/// The event `Starten` has the keys `art` and `start`, with a worker also `orchestrator` and `rolle` (DI-L1 point 1; the service sets
+/// `t` and `betrachter` before; a client may not).
 pub(crate) fn starten_form(ereignis: &Map<String, Value>) -> Result<&Value, Abgelehnt> {
-    let nur_erlaubte = ereignis
-        .keys()
-        .all(|k| matches!(k.as_str(), "art" | "start" | "t" | "betrachter"));
+    let nur_erlaubte = ereignis.keys().all(|k| {
+        matches!(
+            k.as_str(),
+            "art" | "start" | "t" | "betrachter" | "orchestrator" | "rolle"
+        )
+    });
     match ereignis.get("start") {
         Some(s) if nur_erlaubte => Ok(s),
         _ => Err(Abgelehnt::fest("start_form")),
@@ -193,6 +207,7 @@ pub(crate) fn meta_von(start: &Startanfrage) -> [String; 4] {
 /// | `<laufzeit>/s-<n>` | `lauf.laufzeit` | the socket folder of `werkbank-lauf` |
 /// | `<ziellisten>/s-<n>.zielliste.json` | `lauf.ziellisten` | the target list of `werkbank-lauf` |
 /// | `<marker_ordner>/s-<n>.suche.json` and `<marker_ordner>/s-<n>.modellweg.json` | `lauf.marker_ordner` | the count files of search and model path |
+/// | `<gespraeche>/s-<n>` | `lauf.gespraeche` | the conversation of the harness (Nachtrag 27.11.2026) |
 pub(crate) fn eintraege_der_nummer(lauf: &Lauf, n: usize) -> Vec<PathBuf> {
     let mut eintraege = Vec::new();
     let mut dazu = |ordner: &Option<String>, name: String| {
@@ -205,6 +220,7 @@ pub(crate) fn eintraege_der_nummer(lauf: &Lauf, n: usize) -> Vec<PathBuf> {
     dazu(&lauf.ziellisten, zielliste_name(n));
     dazu(&lauf.marker_ordner, format!("s-{n}.suche.json"));
     dazu(&lauf.marker_ordner, format!("s-{n}.modellweg.json"));
+    dazu(&lauf.gespraeche, format!("s-{n}"));
     eintraege
 }
 
@@ -766,6 +782,36 @@ mod tests {
         let _ = std::fs::remove_dir_all(&o);
     }
 
+    /// The fixed texts of the reasons of the addendum of 26.11.2026 (DI-L1, DI-L3), as the contract names them.
+    #[test]
+    fn die_texte_der_neuen_gruende() {
+        for (grund, text) in [
+            ("orchestrator_unbekannt", "Orchestrator unbekannt"),
+            ("orchestrator_beendet", "Orchestrator ist beendet"),
+            (
+                "orchestrator_ist_worker",
+                "Orchestrator ist selbst ein Worker",
+            ),
+            (
+                "orchestrator_fremder_kunde",
+                "Kunde weicht vom Orchestrator ab",
+            ),
+            ("fortsetzen_form", "Fortsetzen hat falsche Form"),
+            ("wiederbeleben_form", "Wiederbeleben hat falsche Form"),
+            ("sitzung_unbekannt", "Sitzung unbekannt"),
+            ("sitzung_laeuft", "Sitzung läuft"),
+            ("schon_fortgesetzt", "Sitzung ist schon fortgesetzt"),
+            ("nicht_fortsetzbar", "Sitzung lässt sich nicht fortsetzen"),
+            ("nicht_abgestuerzt", "Sitzung ist nicht abgestürzt"),
+        ] {
+            assert_eq!(text_zu(grund), text, "{grund}");
+            assert_eq!(
+                Abgelehnt::fest(grund).nutzlast(),
+                json!({"grund": grund, "code": grund, "text": text})
+            );
+        }
+    }
+
     /// A `Lauf` with the folders of the keys `sitzungen`, `ziellisten`, `laufzeit` and `marker_ordner` (each optional).
     fn lauf_mit(
         sitzungen: Option<&Path>,
@@ -787,7 +833,33 @@ mod tests {
             nummer_max: 255,
             rahmen_max: 255,
             beendet_max: 256,
+            bestand: None,
+            gespraeche: None,
         }
+    }
+
+    /// DI12 point 15 (Nachtrag 27.11.2026): an entry `<gespraeche>/s-<n>` of any kind takes the number, also a dead link; only a
+    /// missing entry or a missing folder leaves it free, and without the key nothing there counts.
+    #[test]
+    fn ein_gespraech_belegt_seine_nummer() {
+        use std::os::unix::fs::symlink;
+        let o = temp("gespraech");
+        let g = o.join("g");
+        let mut lauf = lauf_mit(None, None, None, None);
+        lauf.gespraeche = Some(g.to_string_lossy().into_owned());
+        assert_eq!(kennung_belegt(&lauf, 1), Ok(false), "no folder");
+        std::fs::create_dir_all(g.join("s-1")).expect("dir");
+        symlink("/nirgends-xyz", g.join("s-2")).expect("dead link");
+        std::fs::write(g.join("s-3.zielliste.json"), b"x").expect("file");
+        assert_eq!(kennung_belegt(&lauf, 1), Ok(true));
+        assert_eq!(kennung_belegt(&lauf, 2), Ok(true));
+        assert_eq!(kennung_belegt(&lauf, 3), Ok(false), "another name");
+        assert_eq!(
+            kennung_belegt(&lauf_mit(None, None, None, None), 1),
+            Ok(false),
+            "without the key"
+        );
+        let _ = std::fs::remove_dir_all(&o);
     }
 
     /// DI12 point 4 (P25): first the number of the identifier while it was never handed out, then the smallest never handed out,

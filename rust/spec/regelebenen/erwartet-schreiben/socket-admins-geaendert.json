@@ -1,0 +1,97 @@
+{
+ "schritte": [
+  {
+   "antwort": {
+    "code": "firmenvorgabe.ausser_leseklassen",
+    "sha256": null
+   },
+   "datei": {
+    "eigentuemer": "werkbank-vorgabe",
+    "modus": "0644",
+    "sha256": "febe7816e121c7930dde5e62967de0d1ad41755111df8f0942676879020a3ab2",
+    "inhalt": {
+     "admins": [
+      "konto-admin",
+      "konto-admin-zwei"
+     ],
+     "leseklassen": [
+      {
+       "ebene": "gruppe",
+       "wer": "g-eins",
+       "klasse": "intern"
+      },
+      {
+       "ebene": "nutzer",
+       "wer": "konto-nutzer",
+       "klasse": "oeffentlich"
+      }
+     ]
+    }
+   },
+   "unveraendert": true,
+   "temp_bleibt": false
+  },
+  {
+   "antwort": {
+    "code": "firmenvorgabe.ausser_leseklassen",
+    "sha256": null
+   },
+   "datei": {
+    "eigentuemer": "werkbank-vorgabe",
+    "modus": "0644",
+    "sha256": "febe7816e121c7930dde5e62967de0d1ad41755111df8f0942676879020a3ab2",
+    "inhalt": {
+     "admins": [
+      "konto-admin",
+      "konto-admin-zwei"
+     ],
+     "leseklassen": [
+      {
+       "ebene": "gruppe",
+       "wer": "g-eins",
+       "klasse": "intern"
+      },
+      {
+       "ebene": "nutzer",
+       "wer": "konto-nutzer",
+       "klasse": "oeffentlich"
+      }
+     ]
+    }
+   },
+   "unveraendert": true,
+   "temp_bleibt": false
+  },
+  {
+   "antwort": {
+    "code": "firmenvorgabe.ausser_leseklassen",
+    "sha256": null
+   },
+   "datei": {
+    "eigentuemer": "werkbank-vorgabe",
+    "modus": "0644",
+    "sha256": "febe7816e121c7930dde5e62967de0d1ad41755111df8f0942676879020a3ab2",
+    "inhalt": {
+     "admins": [
+      "konto-admin",
+      "konto-admin-zwei"
+     ],
+     "leseklassen": [
+      {
+       "ebene": "gruppe",
+       "wer": "g-eins",
+       "klasse": "intern"
+      },
+      {
+       "ebene": "nutzer",
+       "wer": "konto-nutzer",
+       "klasse": "oeffentlich"
+      }
+     ]
+    }
+   },
+   "unveraendert": true,
+   "temp_bleibt": false
+  }
+ ]
+}

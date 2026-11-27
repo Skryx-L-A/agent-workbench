@@ -392,10 +392,16 @@ Die Brücke (`rust/spec/bruecke/`) ist der Gegenstand des Vertrags `bruecke`; si
       | `<lauf.laufzeit>/s-<n>` | `lauf.laufzeit` | `werkbank-lauf`, Socket-Ordner (Anlegen mit `exklusiv`: eine liegende Datei lässt die nächste Sitzung mit derselben Kennung mit Code 69 scheitern) |
       | `<lauf.ziellisten>/s-<n>.zielliste.json` | `lauf.ziellisten` | `werkbank-lauf`, Zielliste (bleibt mit Absicht liegen; Code 73) |
       | `<lauf.marker_ordner>/s-<n>.suche.json` und `<lauf.marker_ordner>/s-<n>.modellweg.json` | `lauf.marker_ordner` | die Zähldateien von Suche und Modellweg |
+      | `<lauf.gespraeche>/s-<n>` | `lauf.gespraeche` | `werkbank-lauf`, Gespräch des Harness (Nachtrag 27.11.2026) |
 
       Die Namen sind genau so (`s-<n>` ohne den Zusatz oder ein Teil davon belegt in `lauf.ziellisten` oder `lauf.marker_ordner` nichts). **Die Einträge stehen im Bau an genau einer Stelle** (`starten.rs`, die Funktion `eintraege_der_nummer`): Kommt später ein Eintrag dazu, ist das eine Zeile plus ein Fall.
       Die Einträge werden in der Reihenfolge der Tabelle gelesen; der erste Eintrag, der liegt, beantwortet (ein Fehler bei einem späteren Eintrag zählt dann nicht). `nummer_max` (und 255) gilt für jedes geprüfte `n`; `nummern_erschoepft` bleibt die Antwort, wenn keine Nummer frei ist. `naechste` wird wie bisher erst nach einem gelungenen Start gesetzt.
     - **Der Dienst legt in keinem dieser Ordner etwas an und liest dort keine Datei. Er entfernt dort nichts, außer der einen Zielliste nach Punkt 15a** (Regel 4 von DI12 Punkt 13 gilt sonst auch hier).
+    - **Gespräche (Nachtrag 27.11.2026).** Herkunft, gemessen: Nach einem Neustart des Dienstes bekam ein Start wieder `s-1` und endete mit 73 `lauf.sitzung_belegt`, weil `gespraeche/s-1` vom ersten Lauf noch lag. Ab Stufe B legt jeder Start von `werkbank-lauf` `gespraeche/<sitzung>/` an, auch mit Fassung 1.
+      Regel: `lauf.gespraeche` (optional, DI-E4 Punkt 2, geprüft wie `lauf.bestand`) ist die letzte Zeile der Tabelle. Besteht `<lauf.gespraeche>/s-<n>` in irgendeiner Art, auch als Verweis oder toter Verweis, ist `n` belegt und wird übersprungen wie eine liegende Zielliste. Der Dienst sieht nur mit `lstat` nach und folgt nie einem Verweis.
+      Punkt 15a räumt kein Gespräch; eine Zielliste neben einem Gespräch derselben Nummer bleibt liegen. Der Dienst legt unter `lauf.gespraeche` nichts an und liest dort nichts; er entfernt dort nur beim `Loeschen` nach DI-E4.
+      Fall `di12_gespraech_belegt` (Gespräche `s-1`, `s-3` und ein fremdes `s-9` liegen; vergeben werden `s-2`, `s-4` bis `s-8` und `s-10`, nichts dort ändert sich), Mutant `gespraeche_vergabe_ungeprueft`. Der neue Schritt `GespraechAnlegen {"sitzung"}` des Prüfclients legt ein Gespräch wie das Fall-Feld `gespraeche` an, aber erst im Lauf.
+      Die Fälle `die4_loeschen_gespraech`, `die4_loeschen_gespraeche_unsicher` und `die4_loeschen_gespraech_fortgesetzt` legen die Gespräche ihrer Sitzungen deshalb mit diesem Schritt nach `Gestartet` an, wie `werkbank-lauf` ab Stufe B. Vor dem Start bleibt nur der fremde Eintrag. Ihre Erwartungen ändern sich nur um die Ergebnisse der neuen Schritte.
 
 15a. **Die alte Zielliste der gesuchten Nummer räumt der Kern beim Vergeben** (Nachtrag 23.11.2026). Anlass: Nur der Läufer räumt eine Zielliste. Im Betrieb ohne Läufer bliebe je Cloud-Sitzung eine Liste liegen. Nach einem Neustart des Kerns würden die Listen Nummer um Nummer belegen, bis `nummern_erschoepft` jeden Start ablehnt.
     - **Der Projektentscheid vom 21.11.2026 gilt weiter:** Eine liegende Liste belegt ihre Nummer. Nur die eigene reguläre Liste einer früheren Nummer räumt der Kern beim Vergeben.
@@ -674,6 +680,7 @@ Zwei Mutanten sind wegen des Zeitverhaltens zu zwei Läufen gedacht und verlasse
 | `zaehldatei_nur_suche` | DI12 | nur `s-<n>.suche.json` belegt die Nummer, `s-<n>.modellweg.json` nicht (Nachtrag 2, Projektentscheid, 21.11.2026) |
 | `zaehldatei_ohne_marker_ordner` | DI12 | die Zähldateien werden in einem falschen Ordner gesucht (in `lauf.sitzungen` oder `lauf.ziellisten`) statt in `lauf.marker_ordner` (Nachtrag 2, Projektentscheid, 21.11.2026) |
 | `eintrag_fehlt_ist_frei` | DI12 | die Nummer gilt schon als frei, wenn ein Eintrag fehlt (UND und ODER vertauscht) statt erst, wenn alle fehlen (Nachtrag 2, Projektentscheid, 21.11.2026) |
+| `gespraeche_vergabe_ungeprueft` | DI12 | der Dienst prüft `lauf.gespraeche` bei der Vergabe nicht und vergibt `s-1`, auch wenn das Gespräch liegt (Nachtrag 27.11.2026) |
 | `laufzeit_ohne_pfadpruefung` | DI12 | `lauf.laufzeit` wird ohne Pfadprüfung angenommen (Nachtrag 2, Projektentscheid, 21.11.2026) |
 | `marker_ordner_aus_datei` | DI12 | der Zählordner darf aus der Marker-Datei kommen (Schlüssel `ordner` erlaubt und genutzt) statt aus `lauf.marker_ordner` (Nachtrag 21.11.2026, Auflage) |
 | `marker_nonblock_fehlt` | DI12 | die Marker-Datei wird ohne `O_NONBLOCK` geöffnet: eine FIFO an ihrer Stelle hält den Start des Dienstes an (der Fall endet rot durch die Zeitgrenze) (Nachtrag 21.11.2026, Nachtrag 3) |
@@ -1047,7 +1054,10 @@ Kern gehen.
    Änderung. Ohne Worker ändert sich nichts: Die Liste bleibt `[]` wie die des Raumkerns, kein bestehender Fall ändert sich durch diesen Punkt.
 5. `Agentenzustand` gibt es im Lauf nicht. Der Dienst schickt immer die ganze Liste.
 6. Ein Worker zählt zu den 8 laufenden Sitzungen (DI12 Punkt 3.3). Das Ende des Orchestrators beendet keinen Worker.
-7. Wer im Betrieb einen Worker anfordert, legt dieser Nachtrag nicht fest. Hier steht nur die Form, mit der ein Worker beim Dienst ankommt.
+7. **Wie ein Worker entsteht** (Nachtrag 27.11.2026, DI-E3): Im Pilot startet ein Mensch einen Worker im Fenster „Sitzungen“ mit Bezug auf
+   einen Orchestrator, also mit `Starten` samt `orchestrator` und `rolle`. Fordert später ein Agent im Einschluss einen Worker über den Meldeweg
+   von `lauf` an, ist das nur eine Anfrage an die Stelle; erst nach „frei“ startet der Dienst den Worker auf diesem Weg, und der Agent erreicht
+   den Dienst nie direkt (Nachtrag „Kanal zur Stelle (L6, Nr. 98)“).
 
 ### DI-L2 Mehrere Abos je Betrachter (L2)
 
@@ -1089,10 +1099,10 @@ dahinter `Agenten`, wenn sich die Liste der Worker geändert hat (DI-L1 Punkt 4)
    Workers: `worker_laeuft`.
 5. **Was `Loeschen` entfernt:** den Eintrag in der Liste und im Bestand mit Name, Ordner, Projekt, Code und gespeicherter Start-Struktur; den Kern und
    den Träger der Sitzung; jedes Abo auf sie (die Betrachter bekommen keinen Rahmen dieser Nummer mehr, die Nummer ist frei); die Einträge der beendeten
-   Worker dieses Orchestrators.
+   Worker dieses Orchestrators; das Gespräch des Harness unter `lauf.gespraeche` für jeden dieser Einträge (Nachtrag 27.11.2026, DI-E4).
    **Was `Loeschen` nie entfernt:** den Arbeitsordner und alles darin; die Ordner und Dateien von „Lauf starten“ (`lauf.sitzungen`, `lauf.ziellisten`,
-   `lauf.laufzeit`, Marker); das Gespräch des Harness; die Protokollkette; den Zustand der Stelle und des Halters; Dateien außerhalb des Ordners des
-   Dienstes. Den Ordner der Sitzung im Ordner des Dienstes gibt es dann schon nicht mehr (DI12 Punkt 12). Die Kennung wird nie wieder vergeben.
+   `lauf.laufzeit`, Marker); die Protokollkette; den Zustand der Stelle und des Halters; Dateien außerhalb des Ordners des Dienstes, außer dem Gespräch
+   nach DI-E4. Den Ordner der Sitzung im Ordner des Dienstes gibt es dann schon nicht mehr (DI12 Punkt 12). Die Kennung wird nie wieder vergeben.
    **Löschen ist endgültig:** Danach ergeben `Fortsetzen`, `Wiederbeleben`, `Umbenennen` und `Abo` `sitzung_unbekannt`.
    **Schutz gegen ein Versehen:** nur für beendete Sitzungen; die Bestätigung muss die Kennung wiederholen, die Ansicht schickt sie erst nach ihrer
    Rückfrage (Vertrag `seite`, B16); ein Ereignis löscht genau eine Sitzung, es gibt kein Sammellöschen.
@@ -1251,21 +1261,16 @@ Die Felder legen `rust/spec/regelebenen/README.md` Abschnitt 15 und `rust/spec/s
    die Vorgabe von `name` in der Liste (DI-L5 Punkt 1).
 5. Bestehende Fälle, die das ändert: `di12_lauf_ereignisse` (dort ist `EinstellungSetzen` im Lauf heute `nicht_im_lauf`) und die Fälle mit
    `Einstellungen` oder `Startwahl` im Lauf. Ihre neuen Erwartungen entstehen mit dem Bau von L4 und L10, nicht in diesem Nachtrag.
-6. **Schreibweg der Firmenvorgabe** nach `regelebenen` 15.12: ein `EinstellungSetzen` mit `ebene` `firma` und `schluessel` `leseklassen`. Nur der
-   Dienst schreibt die Datei, mit Systemrechten; die Ansicht schreibt sie nie. Stufe 0 nimmt das Konto aus `wer` des lokalen Wegs (DI-L11 Punkt 4),
+6. **Schreibweg der Firmenvorgabe** nach `regelebenen` 15.12: ein `EinstellungSetzen` mit `ebene` `firma` und `schluessel` `leseklassen`. Der
+   Dienst schreibt die Datei nie selbst; er reicht die Änderung an den Schreibhelfer weiter (Nachtrag 27.11.2026, DI-E1). Die Ansicht schreibt sie
+   nie. Stufe 0 nimmt das Konto aus `wer` des lokalen Wegs (DI-L11 Punkt 4),
    Stufe 1 prüft das Pseudonym gegen `stand.admins` vor jedem Zugriff auf die Datei. Ein Betrachter über `dienst.sock` scheitert an Stufe 1 mit
    `ebenen.nicht_befugt` (DI-L11 Punkt 4). Die Ablehnung ist `{"grund": <Code>}` mit genau einem Code der ersten verletzten Stufe, unverändert.
-   Zu den Ablehnungsgründen von DI12 Punkt 3 kommen damit die festen Codes aus `regelebenen` 15.12:
-   - `firmenvorgabe.datei_unsicher`
-   - `firmenvorgabe.veraltet`
-   - `firmenvorgabe.temp_fehlgeschlagen`
-   - `firmenvorgabe.fsync_fehlgeschlagen`
-   - `firmenvorgabe.rename_fehlgeschlagen`
-   - `firmenvorgabe.ordner_fsync_fehlgeschlagen`
-   - `firmenvorgabe.zustand_unklar`
+   Zu den Ablehnungsgründen von DI12 Punkt 3 kommen damit die festen Codes `firmenvorgabe.*` aus `regelebenen` 15.12; welcher Code wo entsteht,
+   steht in DI-E1 Punkt 6 (Nachtrag 27.11.2026).
    Nach `firmenvorgabe.zustand_unklar` sperrt der Dienst bis zum Neuladen der Firmenvorgabe: Jedes weitere `EinstellungSetzen` bekommt
-   `{"grund": "firmenvorgabe.zustand_unklar"}`, und es entsteht kein Tor. Andere Ereignisse bleiben unberührt. Ob die Sperre so bleibt, ist offen;
-   bis zur Entscheidung gilt diese Form. Die Fälle des Schreibwegs führt der Vertrag `regelebenen` (Abschnitt 15.12,
+   `{"grund": "firmenvorgabe.zustand_unklar"}`, und es entsteht kein Tor. Andere Ereignisse bleiben unberührt. Die Sperre bleibt so, und Neuladen
+   heißt im Pilot Neustart des Dienstes (Nachtrag 27.11.2026, DI-E2). Die Fälle des Schreibwegs führt der Vertrag `regelebenen` (Abschnitt 15.12,
    Ordner `faelle-schreiben`); der Bau des Dienstes übernimmt sie als Außentest.
 7. **Konto in `Einstellungen`** nach `regelebenen` 15.13: Der Dienst baut die Nachricht aus `sicht(stand, wer)`. Nur für einen Admin nach Punkt 6
    setzt er in `werte` das Konto aus der Zuordnung an die Stelle des Pseudonyms; für einen Nichtadmin ersetzt er nie etwas. Die Liste der Admins
@@ -1319,6 +1324,177 @@ von `peerkanal` (`pk.uid_nicht_erlaubt`, `pk.sid_nicht_erlaubt`) und einem Test 
 Feldern der `Sitzungsliste` (DI-L5 Punkt 1); `di12_lauf_ereignisse` bekommt für die `Freigabe` mit dem fremden Schlüssel `wahl` jetzt
 `ereignis_ungueltig` statt `sitzung_unbekannt` (DI-L6 Punkt 4). Gemessen mit der Referenz: Ohne diese Felder sind alte und neue Erwartung gleich.
 Die neuen Erwartungen liegen in `erwartet-ausstehend/`; `faelle/` und `erwartet/` bleiben, bis der Bau sie ersetzt.
+
+## Nachtrag 27.11.2026: Entscheide zu Firmenvorgabe, Sperre, Worker-Anforderung und Löschen
+
+Grundlage: Entscheide des Betreibers, 27.11.2026, zu vier offenen Fragen des Nachtrags „Oberfläche L1, L2, L3, L5, L6, L11“. Die neuen Regeln
+heißen DI-E1 bis DI-E4. Wo dieser Abschnitt nichts sagt, gilt jener Nachtrag unverändert. Stellen dort, die ein Entscheid ersetzt, tragen den
+Hinweis „(Nachtrag 27.11.2026)“; die Liste steht am Ende dieses Abschnitts. Die Fälle liegen wie dort in `faelle-ausstehend/` und
+`erwartet-ausstehend/`.
+
+### DI-E1 Schreibweg der Firmenvorgabe über den Schreibhelfer (Entscheid 1)
+
+1. **Wer schreibt.** Der Dienst bleibt unter dem Konto des Nutzers (DI2) und schreibt die Firmenvorgabe nie, auch nicht mit einem anderen
+   Werkzeug. Er reicht die Änderung eines Admins nur an den Schreibhelfer weiter. Der Helfer ist ein eigener kleiner Prozess mit eigenem
+   Systemnutzer, nicht root, und wird über einen systemd-Socket gestartet. Er kann genau eine Sache: die Firmenvorgabe atomar ganz ersetzen,
+   nachdem er über `SO_PEERCRED` geprüft hat, dass der Partner Admin der gerade gültigen Datei ist. Die Datei gehört dem Helfernutzer, hat
+   Modus 0644 und liegt in einem Ordner, dessen Eltern root gehören; die IT pflegt sie weiter mit `sudo`. Helfer, Datei, Rechte und Codes des
+   Helfers legen `regelebenen` Abschnitt 15.12 und der Vertrag `paket` fest. Dieser Abschnitt nennt nur den Weg des Dienstes zum Helfer.
+2. **Startdatei.** Zwei neue optionale Schlüssel in `lauf`, in beiden Betriebsarten, je ein absoluter Pfad, geprüft wie `lauf.bestand`
+   (Text von 1 bis 4096 Byte, ohne NUL; sonst Exitcode 2 mit der Zeile `lauf.<schlüssel> muss ein absoluter Pfad sein`):
+   - `firmenvorgabe`: die Datei der Firmenvorgabe (das Paket schreibt unter Linux `/etc/werkbank/vorgabe/firmenvorgabe.json`);
+   - `vorgabe_helfer`: der Socket des Helfers (das Paket schreibt unter Linux `/run/werkbank-vorgabe/vorgabe.sock`).
+   Der Dienst liest beide nur aus seiner Startdatei. Ohne `firmenvorgabe` gibt es keine Firmenvorgabe und keinen Admin. Ohne `vorgabe_helfer`
+   endet jede Änderung mit `firmenvorgabe.helfer_nicht_erreichbar`; das gilt auch unter macOS und Windows, solange es dort keinen Helfer gibt.
+3. **Ablauf im Dienst** für ein `EinstellungSetzen` mit `ebene` `firma` und `schluessel` `leseklassen` („L4 und L10 im Dienst“ Punkt 6,
+   `regelebenen` 15.12.3). Die erste verletzte Stufe gibt genau einen Code:
+   - Stufe 0: Konto aus `wer` des lokalen Wegs (DI-L11 Punkt 4), Pseudonym über die Stelle, Zuordnung jedes Kontos im Wert.
+   - Stufe 0a: Der Dienst ist gesperrt (DI-E2 Punkt 4): `firmenvorgabe.zustand_unklar`. Er spricht den Helfer nicht an.
+   - Stufe 1: Das Pseudonym steht nicht in `stand.admins`: `ebenen.nicht_befugt`. Er spricht den Helfer nicht an. Ein Betrachter über
+     `dienst.sock` endet immer hier (DI-L11 Punkt 4), ebenso jeder Betrachter, wenn die Firmenvorgabe beim Start nicht geladen ist (DI-E2).
+   - Stufe 2: `setzen` auf einer Kopie des Stands lehnt ab: dessen Code, etwa `ebenen.wert_ungueltig`.
+   - Stufe 3: `connect` an `lauf.vorgabe_helfer` scheitert: `firmenvorgabe.helfer_nicht_erreichbar`. Der Dienst hat nichts gesendet.
+   - Stufe 4: Anfrage und Antwort nach Punkt 4 und 5.
+4. **Was der Dienst an den Helfer gibt.** Eine Verbindung, ein JSON-Objekt, dann `shutdown(SHUT_WR)`:
+   `{"art": "Ersetzen", "fassung": 1, "basis": "<sha256 hex klein der zuletzt geladenen Bytes>", "inhalt": <die ganze neue Firmenvorgabe>}`.
+   `inhalt` ist der zuletzt geladene Inhalt, in dem nur `leseklassen` den neuen Wert in der Kontoform trägt, in der der Admin ihn eingegeben hat.
+   Der Dienst sendet nie ein Pseudonym, nie `wer` und nie das Konto des Partners: Der Helfer misst seinen Partner selbst und vertraut dem Dienst
+   nicht. Partner des Helfers ist der Prozess des Dienstes, also das Konto des Nutzers, das in der Kontenliste der gültigen Datei stehen muss.
+5. **Wie der Dienst die Antwort weiterreicht.** Er wartet höchstens 10 s ab dem Verbinden auf genau ein JSON-Objekt mit genau `code` und
+   `sha256`.
+   - `{"code": null, "sha256": "<64 Zeichen hex klein>"}`: Der Dienst übernimmt den gesendeten Inhalt als neuen Stand und `sha256` als neue
+     Basis. Er schreibt die Zeile `regel.geaendert` aus `setzen` und schickt jedem Betrachter, dessen `sicht` sich ändert, eine neue Nachricht
+     `Einstellungen` („L4 und L10 im Dienst“ Punkt 2). Erst dann wirkt die Änderung, auch im Tor.
+   - `{"code": "<Code>", "sha256": null}` mit einem Code der Form `firmenvorgabe.<name>` (`name` aus `[a-z_]`): `Ablehnung {"grund": <Code>}`
+     nur an den Sender, der Code unverändert. Der Stand bleibt; die Zeile heißt `regel.abgelehnt`. Bei `firmenvorgabe.zustand_unklar` sperrt der
+     Dienst zusätzlich (DI-E2 Punkt 4).
+   - Keine Antwort in der Frist, eine abgebrochene Verbindung nach dem Senden oder eine Antwort in anderer Form: Der Dienst kennt den Ausgang
+     nicht. Er antwortet `{"grund": "firmenvorgabe.zustand_unklar"}` und sperrt (DI-E2 Punkt 4).
+6. **Wo die Codes entstehen.**
+
+   | Ort | Codes |
+   |---|---|
+   | Dienst, bei der Änderung | `firmenvorgabe.zustand_unklar` (Stufe 0a, Stufe 4 ohne gültige Antwort), `ebenen.nicht_befugt` (Stufe 1), Codes von `setzen` (Stufe 2), `firmenvorgabe.helfer_nicht_erreichbar` (Stufe 3) |
+   | Dienst, beim Start (DI-E2), nur Zeile und Zustand, keine Ablehnung | `firmenvorgabe.datei_unsicher`, `firmenvorgabe.ladefehler` |
+   | Helfer, vom Dienst unverändert durchgereicht | `firmenvorgabe.partner_unbekannt`, `firmenvorgabe.partner_eingeschlossen`, `firmenvorgabe.datei_unsicher`, `firmenvorgabe.ladefehler`, `firmenvorgabe.partner_nicht_admin`, `firmenvorgabe.anfrage_zu_gross`, `firmenvorgabe.anfrage_frist`, `firmenvorgabe.anfrage_ungueltig`, `firmenvorgabe.veraltet`, `firmenvorgabe.ausser_leseklassen`, `firmenvorgabe.temp_fehlgeschlagen`, `firmenvorgabe.fsync_fehlgeschlagen`, `firmenvorgabe.rename_fehlgeschlagen`, `firmenvorgabe.ordner_fsync_fehlgeschlagen`, `firmenvorgabe.zustand_unklar` |
+
+   Nach `firmenvorgabe.veraltet` hat die IT die Datei geändert. Der Dienst lädt sie im Pilot nicht neu (DI-E2 Punkt 3): Jede weitere Änderung
+   endet mit demselben Code, bis der Dienst neu gestartet ist.
+7. **Protokoll.** Jede Stufe, auch eine Ablehnung, ergibt genau eine Zeile nach `regelebenen` 15.6 mit dem Pseudonym des Partners. Keine Zeile
+   und keine Nachricht an die Ansicht nennt ein Konto, einen Pfad oder den Inhalt der Datei.
+8. **Fälle.** Den Weg prüfen die Fälle `faelle-schreiben/` des Vertrags `regelebenen` (15.12.5); der Bau des Dienstes übernimmt sie als
+   Außentest. Eigene Fälle des Dienstes zu DI-E1 gibt es nicht, weil die Referenz des Dienstes `EinstellungSetzen` im Lauf nicht ausführt.
+
+### DI-E2 Firmenvorgabe beim Start, Sperre und Neuladen (Entscheid 2)
+
+1. **Prüfung beim Start.** Einmal beim Start, nach dem Lesen des Bestands (DI-L5 Punkt 4) und vor dem ersten Betrachter, prüft der Dienst die
+   Datei `lauf.firmenvorgabe` ganz. Ordner und Datei öffnet er nur über Deskriptoren: den Ordner mit `O_RDONLY | O_DIRECTORY | O_NOFOLLOW |
+   O_CLOEXEC`, die Datei relativ dazu mit `O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC`, dann `fstat` an beiden Griffen. Er prüft:
+   - Datei, Ordner und Eltern wie der Helfer in `regelebenen` 15.12.3 Stufe H3 (reguläre Datei, kein Verweis, Eigentümer, Modus ohne `& 022`,
+     Eltern bis `/` root-eigen ohne `& 022`). Eine fehlende Datei ist keine reguläre Datei. Code `firmenvorgabe.datei_unsicher`.
+   - Größe höchstens 1 048 576 Byte, Form wie Stufe H4 und die Zuordnung jedes Kontos zu einem Pseudonym (`regelebenen` 15.12.3, Ladefehler).
+     Code `firmenvorgabe.ladefehler`.
+2. **Ungültig heißt: kein Tor.** Scheitert eine Prüfung, startet der Dienst trotzdem, aber ohne Tor: kein `Personen::neu` („L4 und L10 im
+   Dienst“ Punkt 8), niemand ist Admin, jede Änderung der Firmenvorgabe endet an Stufe 1 (DI-E1 Punkt 3), und jede Prüfung, die das Tor braucht,
+   lehnt ab (fail closed). Er schreibt eine Zeile `wb-dienst: firmenvorgabe nicht geladen: <code>` nach stderr, ohne Pfad und Inhalt. Sitzungen,
+   Liste und Ansicht laufen weiter. Der Exitcode ändert sich nicht.
+3. **Neuladen heißt Neustart.** Der Dienst liest die Datei in einem Lauf genau einmal, beim Start. Eine Änderung von Hand mit `sudo` oder über
+   einen anderen Weg zum Helfer wirkt erst nach einem Neustart des Dienstes. Einen eigenen Weg zum Neuladen gibt es im Pilot nicht: kein Signal,
+   kein Ereignis, kein Beobachten der Datei. Übernimmt der Dienst nach DI-E1 Punkt 5 eine eigene Änderung, ist das kein Neuladen: Er kennt den
+   Inhalt, den er gesendet hat, und die Prüfsumme aus der Antwort.
+4. **Die Sperre bleibt.** Nach `firmenvorgabe.zustand_unklar` sperrt der Dienst bis zu seinem Ende. Jedes weitere `EinstellungSetzen` mit
+   `ebene` `firma` bekommt `{"grund": "firmenvorgabe.zustand_unklar"}`, ohne den Helfer anzusprechen (Stufe 0a). Der Dienst übernimmt keinen
+   neuen Stand und baut kein neues Tor; es gilt der Stand vor der gescheiterten Änderung. Andere Ereignisse bleiben unberührt. Die Sperre lebt nur
+   im Prozess. Nach dem Neustart prüft der Dienst die Datei nach Punkt 1 neu, ihr Inhalt ist die neue Basis, und die Sperre ist aufgehoben.
+5. **Zustand im Prüfmodus.** Mit `lauf.firmenvorgabe` trägt die Antwort auf `Zustand` `dienst.firmenvorgabe {"sha256", "code", "gesperrt"}`:
+   die Prüfsumme der geladenen Bytes oder `null`, der Code der Prüfung oder `null`, und ob der Dienst gesperrt ist. Ohne den Schlüssel fehlt das
+   Feld; kein bestehender Fall ändert sich.
+6. **Fälle.** `die2_vorgabe_start`: Eine gültige Datei ist geladen; nach einer Änderung der Datei im Lauf, einem `Starten` und einem zweiten
+   Betrachter nennt der Zustand weiter die Prüfsumme des Starts. `die2_vorgabe_start_unsicher` (Datei für Gruppe oder andere schreibbar),
+   `die2_vorgabe_start_verweis`, `die2_vorgabe_start_ordner_offen` und `die2_vorgabe_start_ladefehler`: die Zeile mit dem Code, `code` im Zustand,
+   `Starten` geht weiter. Die Referenz prüft Dateiart, Modus von Datei und Ordner, Größe und Form. Eigentümer und Eltern prüft der Bau mit einem
+   Einheitstest, denn ein Fall kann keine Datei eines anderen Kontos anlegen; die Zuordnung der Konten kommt mit dem Kanal zur Stelle. Die Sperre
+   prüft der Fall `schreiben-sperre-bis-neuladen` in `regelebenen` 15.12.5; dort heißt `neuladen` für den Dienst: Neustart.
+
+### DI-E3 Worker anfordern (Entscheid 3)
+
+Wie ein Worker im Pilot entsteht, steht in DI-L1 Punkt 7. Der Kanal, über den ein Agent einen Worker anfordert, und der Vorgang
+`worker.anfordern` stehen im Nachtrag „Kanal zur Stelle (L6, Nr. 98)“. Dieser Abschnitt legt keinen eigenen Kanal fest.
+
+### DI-E4 Löschen mit dem Gespräch (Entscheid 4)
+
+1. **Regel.** „Endgültig löschen“ in der Ansicht (Vertrag `seite`, B16), im Dienst das Ereignis `Loeschen` (DI-L3 Punkt 4), entfernt das Gespräch
+   der gelöschten Sitzung mit. Grund: Der Nutzer erwartet von „endgültig“, dass die Unterhaltung weg ist; sonst bliebe sie ohne Ende liegen.
+   Arbeitsordner, Protokollkette, Stelle und Halter entfernt `Loeschen` weiter nie.
+2. **Ort.** Nach dem Vertrag `start`, Fassung 2, Abschnitt „Fortsetzen in „Lauf starten““, Absatz „Ablage des Gesprächs“, liegt das Gespräch in
+   `<zustandsordner>/gespraeche/<sitzung>/` im Zustandsordner der Installation, mit `gespraech.json` und dem Zustandsordner des Harness. Neuer
+   optionaler Schlüssel **`lauf.gespraeche`** der Startdatei, in beiden Betriebsarten: der Ordner `gespraeche` dieses Zustandsordners, ein
+   absoluter Pfad, geprüft wie `lauf.bestand`. Das Paket schreibt ihn. Ohne den Schlüssel entfernt `Loeschen` kein Gespräch, wie vor diesem
+   Nachtrag. Der Dienst baut den Pfad nur aus `lauf.gespraeche` und der Kennung; er liest dafür keine Datei.
+3. **Welche Gespräche.** Für die Sitzung und für jeden beendeten Worker, dessen Eintrag mit ihr geht (DI-L3 Punkt 5), den Eintrag
+   `<lauf.gespraeche>/<kennung>` mit allem darin. Ausnahme: Eine Sitzung mit `fortgesetzt_als` hat kein eigenes Gespräch mehr. Es gehört der
+   Sitzung, die es fortsetzt, und „Lauf starten“ benennt es beim Start dieser Sitzung um; der Dienst entfernt für sie nichts. Sonst verlöre ein
+   Start, der noch umbenennt, sein Gespräch. Fehlt `lauf.gespraeche` oder der Eintrag, entfernt der Dienst nichts, und das ist kein Fehler
+   (eine Sitzung der Fassung 1, ein Start, der vor dem exec scheiterte, die alte Kennung nach dem Fortsetzen).
+4. **Nur über Deskriptoren.** Bei jedem `Loeschen` öffnet der Dienst `lauf.gespraeche` einmal mit `openat(AT_FDCWD, …, O_RDONLY | O_DIRECTORY |
+   O_NOFOLLOW | O_CLOEXEC)` und hält den Griff bis zum Ende des Ereignisses. `fstat` muss den effektiven Benutzer als Eigentümer und den Modus
+   genau 0700 zeigen; sonst entfernt er nichts. Darunter entfernt er jeden Eintrag wie den Ordner einer Sitzung (DI12 Punkt 12) mit
+   `loeschen::sitzung_entfernen` relativ zu diesem Griff: Name nur in der Form `s-<Ziffern>`, `statat` mit `AT_SYMLINK_NOFOLLOW`, ein Ordner nur
+   über `openat` mit `O_DIRECTORY | O_NOFOLLOW` und gleichem Gerät und Inode wie bei `statat`, `unlinkat` relativ zum offenen Ordner, ein Verweis
+   oder eine Datei als sie selbst und nie ihr Ziel, Tiefe höchstens `TIEFE_MAX`. Danach prüft er mit `statat` und `AT_SYMLINK_NOFOLLOW`, dass der
+   Eintrag fehlt. Kein Pfadtext erreicht einen Aufruf außer `lauf.gespraeche` selbst.
+5. **Reihenfolge und Fehler.** Der Dienst prüft zuerst DI-L3 Punkt 4 ganz. Dann entfernt er die Gespräche, erst danach Eintrag, Kern, Träger und
+   Abos. Scheitert das Öffnen oder die Prüfung von `lauf.gespraeche` oder liegt der Eintrag danach noch da, ist die Antwort
+   `Ablehnung {"grund": "gespraech_nicht_geloescht"}` nur an den Sender. Liste, Bestand, Kern und Abos bleiben dann unverändert; ein neues
+   `Loeschen` versucht es wieder. Ein Teil des Gesprächs kann dann schon fehlen. Ein `Fortsetzen` endet in „Lauf starten“ dann fail closed oder
+   im Harness, nie mit einem stillen Neustart (Vertrag `start`). Der Dienst schreibt eine Zeile `wb-dienst: gespraech nicht geloescht: <grund>`
+   nach stderr, ohne Pfad und Kennung, mit `grund` aus `gespraeche_unsicher` (kein Ordner, ein Verweis, fremder Eigentümer, Modus nicht 0700),
+   `oeffnen` (ein anderer Fehler beim Öffnen) und `rest` (der Eintrag liegt noch da). `gespraech_nicht_geloescht` ist ein neuer fester Grund von
+   DI-L3; `Loeschen` trägt in der Ablehnung weiter nur `grund`.
+6. **Was weiter nie entfernt wird:** der Arbeitsordner, die Protokollkette, der Zustand der Stelle und des Halters, die Ordner und Dateien von
+   „Lauf starten“ (`lauf.sitzungen`, `lauf.ziellisten`, `lauf.laufzeit`, Marker), die Gespräche anderer Sitzungen und jede Datei außerhalb des
+   Ordners des Dienstes außer `<lauf.gespraeche>/<kennung>` nach Punkt 3.
+7. **Grenze (hergeleitet).** Eine laufende Sitzung lässt sich nicht löschen (`sitzung_laeuft`); ihr Harness schreibt dann nicht mehr in das
+   Gespräch. Zwischen der Prüfung und dem Entfernen kann nur ein Prozess desselben Kontos außerhalb eines Einschlusses den Baum ändern; einen
+   Verweis, den er dabei setzt, entfernt der Dienst als Verweis. Der Zustandsordner liegt außerhalb jedes Einschlusses (Vertrag `start`).
+8. **Fälle.** `die4_loeschen_gespraech`: Das Gespräch eines Orchestrators und seines beendeten Workers ist danach weg, das einer laufenden
+   Sitzung und ein fremder Eintrag bleiben; in jedem Gespräch liegt ein Verweis auf einen Ordner und einer auf eine Datei außerhalb, beide Ziele
+   bleiben. `die4_loeschen_gespraech_fortgesetzt`: Löschen einer fortgesetzten Sitzung lässt ihr Gespräch liegen; eine Sitzung ohne Gespräch
+   löscht ohne Fehler. `die4_loeschen_gespraeche_unsicher`: `lauf.gespraeche` mit Modus 0755 ergibt `gespraech_nicht_geloescht`, die Zeile
+   `gespraeche_unsicher`, und die Sitzung bleibt. Ein Fehler mitten im Entfernen (`rest`) ist im Fall nicht herstellbar, weil der Prüfclient unter
+   Linux als root eines Nutzer-Namensraums läuft; ihn prüft der Bau mit einem Einheitstest neben denen von `loeschen.rs`.
+
+### Gegenproben des Nachtrags 27.11.2026
+
+| Mutant | Regel | Änderung |
+|---|---|---|
+| `loeschen_gespraech_bleibt` | DI-E4 | `Loeschen` entfernt kein Gespräch |
+| `loeschen_folgt_verweis` | DI-E4 | das Entfernen folgt einem Verweis im Gespräch und löscht sein Ziel außerhalb |
+| `loeschen_gespraeche_ganz` | DI-E4 | `Loeschen` entfernt jeden Eintrag unter `lauf.gespraeche`, auch die Gespräche anderer Sitzungen |
+| `loeschen_fortgesetzt_gespraech` | DI-E4 | `Loeschen` einer fortgesetzten Sitzung entfernt das Gespräch unter ihrer Kennung |
+| `vorgabe_start_ungeprueft` | DI-E2 | der Dienst nimmt beim Start jede lesbare Datei als Firmenvorgabe an |
+| `vorgabe_neu_geladen` | DI-E2 | der Dienst liest die Firmenvorgabe im Lauf neu |
+
+Mutanten des Löschcodes laufen nur in einem Einschluss auf dem Linux-Baurechner.
+
+### Prüfmittel des Nachtrags 27.11.2026
+
+Der Prüfclient kennt drei neue Angaben:
+- Fall-Feld `gespraeche` `{"vorher": [<Kennung>…], "modus": "0700"}`: Ordner `<base>/gespraeche` (Platzhalter `@gespraeche`) mit je einem Gespräch
+  (`gespraech.json` mit 0600, ein Zustandsordner des Harness mit Unterordnern, ein Verweis auf den Ordner `<base>/aussen` und einer auf eine Datei
+  darin). `ende.gespraeche_inhalt` nennt die Einträge danach, `ende.aussen_inhalt` alles unter `<base>/aussen`, `ende.gespraech_protokoll` die
+  Gründe der Zeilen `wb-dienst: gespraech nicht geloescht: <grund>`.
+- Fall-Feld `firmenvorgabe` `{"inhalt": <JSON>` oder `"text": <Text>, "modus": "0644", "ordner_modus": "0755", "art": "datei" | "verweis"}`:
+  `<base>/vorgabe/firmenvorgabe.json` (Platzhalter `@firmenvorgabe`); `verweis` macht den Namen zu einem Verweis auf eine gültige Datei.
+  `ende.vorgabe_protokoll` nennt die Codes der Zeilen `wb-dienst: firmenvorgabe nicht geladen: <code>`.
+- Schritt `VorgabeAendern {"inhalt": <JSON>}`: ersetzt die Datei im Lauf (neue Datei daneben, Umbenennen).
+
+### Ersetzte Stellen
+
+- DI-L1 Punkt 7: Wie ein Worker im Pilot entsteht (Entscheid 3).
+- DI-L3 Punkt 5: `Loeschen` entfernt das Gespräch mit; „das Gespräch des Harness“ fällt aus der Liste dessen, was es nie entfernt (Entscheid 4).
+- „L4 und L10 im Dienst“ Punkt 6: Der Dienst schreibt die Datei nicht selbst, sondern über den Helfer (Entscheid 1); die Sperre ist nicht mehr
+  vorläufig, und Neuladen heißt Neustart (Entscheid 2).
 
 <!-- vom Bauvorgang angefuegt -->
 > Hinweis: Dieser Text nennt Werkzeuge, die in diesem Klon nicht liegen: `pi`.

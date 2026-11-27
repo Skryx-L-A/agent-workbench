@@ -227,7 +227,10 @@
         "id": "s-3",
         "kunde": "k-beispiel",
         "modell": "claude-sonnet-5-5",
+        "name": "",
         "nr": 3,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
         "route": "cloud-beispiel",
         "zustand": "laeuft"
        }

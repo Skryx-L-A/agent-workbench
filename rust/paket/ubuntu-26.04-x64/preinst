@@ -1,0 +1,61 @@
+#!/bin/sh
+# preinst of the package werkbank (contract rust/spec/paket, part A3, "Konto und Gruppe (`preinst`)").
+# install and upgrade: the system account werkbank-vorgabe of the write helper of the company default, before the files are unpacked.
+# An existing account or group of that name in another form stops the installation with the fixed code 25 and changes nothing
+# (fail closed): a foreign account of this name is never taken over. No other account and no other group changes.
+case "$1" in
+    install | upgrade) ;;
+    *) exit 0 ;;
+esac
+
+# --- vorgabe-konto begin
+VK_NAME=werkbank-vorgabe
+PASSWD_DATEI=/etc/passwd
+GROUP_DATEI=/etc/group
+
+vk_fremd() {
+    echo "werkbank: Konto werkbank-vorgabe besteht in fremder Form, Code 25" >&2
+    logger -t werkbank-installation "werkbank: Konto werkbank-vorgabe besteht in fremder Form, Code 25" 2>/dev/null || true
+    exit 25
+}
+
+# The form of part A3: uid and gid from 100 to 999, main group werkbank-vorgabe, home /nonexistent, shell /usr/sbin/nologin, a group
+# without members. Returns 0 for the form, 1 for another form, 2 when neither the account nor the group exists.
+vk_form() {
+    vk_p=$(grep "^$VK_NAME:" "$PASSWD_DATEI" 2>/dev/null)
+    vk_g=$(grep "^$VK_NAME:" "$GROUP_DATEI" 2>/dev/null)
+    [ -z "$vk_p" ] && [ -z "$vk_g" ] && return 2
+    [ -n "$vk_p" ] && [ -n "$vk_g" ] || return 1
+    # exactly one line each
+    [ "$(printf '%s\n' "$vk_p" | wc -l)" -eq 1 ] && [ "$(printf '%s\n' "$vk_g" | wc -l)" -eq 1 ] || return 1
+    vk_uid=$(printf '%s' "$vk_p" | cut -d: -f3)
+    vk_pgid=$(printf '%s' "$vk_p" | cut -d: -f4)
+    vk_heim=$(printf '%s' "$vk_p" | cut -d: -f6)
+    vk_shell=$(printf '%s' "$vk_p" | cut -d: -f7-)
+    vk_gid=$(printf '%s' "$vk_g" | cut -d: -f3)
+    vk_mitglieder=$(printf '%s' "$vk_g" | cut -d: -f4-)
+    for z in "$vk_uid" "$vk_gid"; do
+        case "$z" in "" | *[!0-9]* | 0*) return 1 ;; esac
+        [ "$z" -ge 100 ] && [ "$z" -le 999 ] || return 1
+    done
+    [ "$vk_pgid" = "$vk_gid" ] && [ "$vk_heim" = /nonexistent ] && [ "$vk_shell" = /usr/sbin/nologin ] && [ -z "$vk_mitglieder" ] || return 1
+    return 0
+}
+
+vorgabe_konto() {
+    vk_form
+    case $? in
+        0) return 0 ;;
+        1) vk_fremd ;;
+    esac
+    adduser --system --group --no-create-home --home /nonexistent --shell /usr/sbin/nologin "$VK_NAME" >/dev/null 2>&1 || {
+        echo "werkbank: Konto werkbank-vorgabe nicht angelegt" >&2
+        exit 1
+    }
+    vk_form || vk_fremd
+    return 0
+}
+# --- vorgabe-konto end
+
+vorgabe_konto
+exit 0

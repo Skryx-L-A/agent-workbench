@@ -656,6 +656,133 @@ vorgabe_json() {
 # --- vorgabe.json end
 vorgabe_json || log "werkbank: vorgabe.json nicht geschrieben"
 
+# Step 2e (part A3, "Erstausstattung" and "Erster Admin"): the folder of the write helper and the company default with the first admin,
+# then its socket. Never stops the installation; a deviation is one fixed journal line without path and without name.
+#   1. /etc/werkbank/vorgabe: made with mode 0700, owner werkbank-vorgabe, then 0755; an existing one must be a folder (no link) of
+#      werkbank-vorgabe with 0755, else nothing changes and the journal gets code 26.
+#   2. firmenvorgabe.json only when lstat says ENOENT: the installing account (SUDO_USER, uid from `id -u`, name from `getent passwd
+#      <uid>`; never uid 0, only the account form of H4) as the only admin. No account: no file, code 28. An existing entry in any form
+#      stays byte for byte; its content is never read. The file comes atomically relative to the open folder (O_EXCL|O_NOFOLLOW, fsync,
+#      fchown, fchmod 0644, compare) and reaches its name without overwriting (link, then unlink of the temporary name); an error leaves
+#      no temporary file and gives code 26.
+#   3. daemon-reload and `enable --now werkbank-vorgabe.socket`; the helper starts with the first connection.
+# Reference: rust/spec/paket/referenz.py `vorgabe_erstausstattung`.
+# --- firmenvorgabe begin
+VG_ORDNER=/etc/werkbank/vorgabe
+VG_ELTERN=/etc/werkbank
+VG_VORLAGE=/usr/share/werkbank/vorgabe/firmenvorgabe.json
+VG_NAME=werkbank-vorgabe
+# the form of step 1 by lstat: a folder, no link, owner werkbank-vorgabe, mode 0755
+VG_FORM_PY='import os, stat, sys
+st = os.lstat(sys.argv[1])
+sys.exit(0 if stat.S_ISDIR(st.st_mode) and st.st_uid == int(sys.argv[2]) and stat.S_IMODE(st.st_mode) == 0o755 else 26)'
+VG_PY='import json, os, secrets, stat, sys
+ordner, vorlage, konto, uid, gid = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), int(sys.argv[5])
+name = "firmenvorgabe.json"
+try:
+    fd = os.open(ordner, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+except OSError:
+    sys.exit(26)
+st = os.fstat(fd)
+if not stat.S_ISDIR(st.st_mode) or st.st_uid != uid or stat.S_IMODE(st.st_mode) != 0o755:
+    sys.exit(26)
+try:
+    os.stat(name, dir_fd=fd, follow_symlinks=False)
+    sys.exit(3)
+except FileNotFoundError:
+    pass
+except OSError:
+    sys.exit(26)
+try:
+    with open(vorlage, encoding="utf-8") as f:
+        v = json.load(f)
+except (OSError, ValueError):
+    sys.exit(26)
+if v != {"admins": [], "leseklassen": []}:
+    sys.exit(26)
+daten = (json.dumps(dict(v, admins=[konto]), ensure_ascii=False, indent=1, sort_keys=True) + "\n").encode("utf-8")
+temp = ".firmenvorgabe.json." + secrets.token_hex(8) + ".neu"
+try:
+    t = os.open(temp, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600, dir_fd=fd)
+except OSError:
+    sys.exit(26)
+try:
+    rest = daten
+    while rest:
+        rest = rest[os.write(t, rest):]
+    os.fsync(t)
+    os.fchown(t, uid, gid)
+    os.fchmod(t, 0o644)
+    if os.pread(t, len(daten) + 1, 0) != daten:
+        raise OSError("compare")
+    os.close(t)
+    t = -1
+    os.link(temp, name, src_dir_fd=fd, dst_dir_fd=fd, follow_symlinks=False)
+    os.unlink(temp, dir_fd=fd)
+    os.fsync(fd)
+except OSError:
+    if t >= 0:
+        os.close(t)
+    try:
+        os.unlink(temp, dir_fd=fd)
+    except OSError:
+        pass
+    sys.exit(26)
+sys.exit(0)'
+
+vg_konto() {
+    vg_k=""
+    case "${SUDO_USER:-}" in "") return 1 ;; esac
+    vg_kuid=$(id -u "$SUDO_USER" 2>/dev/null) || return 1
+    case "$vg_kuid" in "" | *[!0-9]* | 0) return 1 ;; esac
+    vg_k=$(getent passwd "$vg_kuid" 2>/dev/null | head -n 1 | cut -d: -f1)
+    case "$vg_k" in
+        "" | *[!a-z0-9_-]* | [!a-z_]*) vg_k=""; return 1 ;;
+    esac
+    return 0
+}
+
+firmenvorgabe() {
+    vg_uid=$(getent passwd "$VG_NAME" 2>/dev/null | cut -d: -f3)
+    vg_gid=$(getent group "$VG_NAME" 2>/dev/null | cut -d: -f3)
+    case "$vg_uid$vg_gid" in "" | *[!0-9]*) log "werkbank: Ordner der Firmenvorgabe in fremder Form, Code 26"; return 0 ;; esac
+    if [ ! -e "$VG_ORDNER" ] && [ ! -L "$VG_ORDNER" ]; then
+        [ -d "$VG_ELTERN" ] || install -d -m 0755 -o root -g root "$VG_ELTERN" 2>/dev/null
+        if ! { mkdir -m 0700 "$VG_ORDNER" && chown "$vg_uid:$vg_gid" "$VG_ORDNER" && chmod 0755 "$VG_ORDNER"; } 2>/dev/null; then
+            log "werkbank: Ordner der Firmenvorgabe in fremder Form, Code 26"
+            return 0
+        fi
+    fi
+    if ! python3 -I -c "$VG_FORM_PY" "$VG_ORDNER" "$vg_uid" 2>/dev/null; then
+        log "werkbank: Ordner der Firmenvorgabe in fremder Form, Code 26"
+        return 0
+    fi
+    # an entry of any form under the name stays; the content is never read
+    if [ -e "$VG_ORDNER/firmenvorgabe.json" ] || [ -L "$VG_ORDNER/firmenvorgabe.json" ]; then
+        return 0
+    fi
+    if ! vg_konto; then
+        log "werkbank: Firmenvorgabe nicht angelegt, kein Konto aus sudo, Code 28"
+        return 0
+    fi
+    python3 -I -c "$VG_PY" "$VG_ORDNER" "$VG_VORLAGE" "$vg_k" "$vg_uid" "$vg_gid" 2>/dev/null
+    case $? in
+        0 | 3) ;;
+        *) log "werkbank: Ordner der Firmenvorgabe in fremder Form, Code 26" ;;
+    esac
+    return 0
+}
+
+vorgabe_einheiten() {
+    command -v systemctl >/dev/null 2>&1 || return 0
+    systemctl daemon-reload >/dev/null 2>&1 || true
+    systemctl enable --now werkbank-vorgabe.socket >/dev/null 2>&1 || log "werkbank: Einheit nicht aktiviert"
+    return 0
+}
+# --- firmenvorgabe end
+firmenvorgabe
+vorgabe_einheiten
+
 # Step 3: the AppArmor profile of the fixed starter and the trial run of the enclosure (decision V1: only the starter
 # `werkbank-einschluss` carries the profile; never a profile with the attachment /usr/bin/bwrap, never `unconfined`).
 # Form B only: the own copy of bwrap first. This is the one step that stops the installation, with a fixed code:

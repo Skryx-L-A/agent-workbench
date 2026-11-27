@@ -1585,7 +1585,9 @@ impl Fenster {
         }
         ui.scope_builder(UiBuilder::new().id_salt("terminal-bereich"), |ui| {
             if self.zeigt("B39") {
-                behaelter(ui, Role::GenericContainer, "Terminalfläche", Some("B39"));
+                // a group, not a generic container: AccessKit drops generic containers from the platform trees
+                // (AT-SPI, UI Automation), and B39 vanished there (real start under Xvfb, 27.11.2026)
+                behaelter(ui, Role::Group, "Terminalfläche", Some("B39"));
             }
             let id = self.terminal_id;
             let resp = ui.interact(flaeche, id, Sense::click_and_drag());

@@ -58,7 +58,7 @@ class Bau(unittest.TestCase):
         self.bindir = os.path.join(self.wurzel, "bin")
         os.makedirs(self.bindir)
         shutil.copy(os.path.join(RUST, "spec", "paket", "referenz.py"), os.path.join(self.rust, "spec", "paket"))
-        for datei in ("ausschluss.txt", "postinst", "prerm", "postrm", "config", "templates"):
+        for datei in ("ausschluss.txt", "preinst", "postinst", "prerm", "postrm", "config", "templates"):
             shutil.copy(os.path.join(HIER, PLATTFORM, datei), ordner)
         with open(os.path.join(ordner, "lieferumfang.txt"), "w", encoding="utf-8") as f:
             f.write(LISTE)
@@ -105,7 +105,7 @@ class Bau(unittest.TestCase):
         r = self.stufen("--geruest")
         self.assertEqual(r.returncode, 0, r.stderr)
         debian = os.path.join(self.stufe, "DEBIAN")
-        for name in ("config", "templates", "postinst", "prerm", "postrm", "control"):
+        for name in ("config", "templates", "preinst", "postinst", "prerm", "postrm", "control"):
             self.assertTrue(os.path.isfile(os.path.join(debian, name)), name)
         depends = [z for z in lesen(os.path.join(debian, "control")).split("\n") if z.startswith("Depends:")][0]
         self.assertEqual(depends.count("debconf"), 1)
@@ -230,7 +230,7 @@ class Bau(unittest.TestCase):
             if eintrag.endswith("/") or eintrag == "./":
                 self.assertEqual(modus, 0o755, eintrag)
             elif eintrag in ("usr/bin/werkbank-pruefen", "usr/lib/werkbank/werkbank-einschluss",
-                             "DEBIAN/postinst", "DEBIAN/prerm", "DEBIAN/postrm", "DEBIAN/config"):
+                             "DEBIAN/preinst", "DEBIAN/postinst", "DEBIAN/prerm", "DEBIAN/postrm", "DEBIAN/config"):
                 self.assertEqual(modus, 0o755, eintrag)
             else:
                 self.assertEqual(modus, 0o644, eintrag)
@@ -296,7 +296,7 @@ class Bau(unittest.TestCase):
         self.assertFalse([z for z in ziele if "test_werkbank_probelauf" in z])
         self.assertIsNone(referenz.profil_code({"text": lesen(PROFIL)}))
         self.assertIn(("programm", "usr/bin/werkbank-ca-zulassung", "datei:paket/ubuntu-26.04-x64/werkbank-ca-zulassung"), positiv)
-        for skript in ("postinst", "prerm", "postrm", "config", "werkbank-ca-zulassung"):
+        for skript in ("preinst", "postinst", "prerm", "postrm", "config", "werkbank-ca-zulassung"):
             r = subprocess.run(["sh", "-n", os.path.join(ordner, skript)], capture_output=True, text=True, check=False)
             self.assertEqual(r.returncode, 0, r.stderr)
 
@@ -1931,6 +1931,389 @@ class OhneAttrappen(unittest.TestCase):
         # a stand-in program as the last block of the file is checked too
         letzter = '[package]\nname = "x"\n\n[[bin]]\nname = "x-attrappe"\npath = "src/bin/attrappe.rs"\n'
         self.assertEqual(len(merkmale_in_cargo_toml(letzter)), 1)
+
+
+def _block(skript, name):
+    text = open(os.path.join(HIER, PLATTFORM, skript), encoding="utf-8").read()
+    return text[text.index(f"# --- {name} begin"):text.index(f"# --- {name} end")]
+
+
+def _referenz():
+    sys.path.insert(0, os.path.join(RUST, "spec", "paket"))
+    import referenz
+    return referenz
+
+
+class Vorgabe(unittest.TestCase):
+    """Part A3: the account werkbank-vorgabe (preinst), the units, step 2d of postinst (folder and first admin) and purge (postrm), checks V-1 to
+    V-17 against referenz.py. The blocks run against made-up files; the account of the helper is the user of the test."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.ref = _referenz()
+        cls.konto_block = _block("preinst", "vorgabe-konto")
+        cls.block = _block("postinst", "firmenvorgabe")
+        cls.rm_block = _block("postrm", "vorgabe")
+        cls.uid, cls.gid = os.getuid(), os.getgid()
+
+    # ---- V-1, V-2: preinst
+    def konto(self, passwd, group, adduser_neu=None):
+        with tempfile.TemporaryDirectory() as t0:
+            t = os.path.realpath(t0)
+            p, g, aufrufe, journal = (os.path.join(t, n) for n in ("passwd", "group", "aufrufe", "journal"))
+            for pfad, inhalt in ((p, passwd), (g, group)):
+                with open(pfad, "w") as d:
+                    d.write(inhalt)
+            neu = adduser_neu or ("werkbank-vorgabe:x:990:990::/nonexistent:/usr/sbin/nologin\n", "werkbank-vorgabe:x:990:\n")
+            kopf = _journal_kopf(journal) + (
+                f"adduser() {{ echo \"adduser $*\" >> {shlex.quote(aufrufe)}; printf '%s' {shlex.quote(neu[0])} >> {shlex.quote(p)}; "
+                f"printf '%s' {shlex.quote(neu[1])} >> {shlex.quote(g)}; }}\n")
+            block = self.konto_block.replace("PASSWD_DATEI=/etc/passwd", f"PASSWD_DATEI={shlex.quote(p)}") \
+                .replace("GROUP_DATEI=/etc/group", f"GROUP_DATEI={shlex.quote(g)}")
+            r = subprocess.run(["sh", "-c", kopf + block + "vorgabe_konto"], capture_output=True, text=True, check=False)
+            return r, _journal(aufrufe), _journal(journal), lesen(p), lesen(g)
+
+    def test_v1_a_missing_account_is_made_in_the_form(self):
+        basis_p, basis_g = "root:x:0:0:root:/root:/bin/sh\n", "root:x:0:\n"
+        r, aufrufe, journal, p, g = self.konto(basis_p, basis_g)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(aufrufe, ["adduser --system --group --no-create-home --home /nonexistent --shell /usr/sbin/nologin werkbank-vorgabe"])
+        self.assertIsNone(self.ref.vorgabe_konto_code(p, g))
+        self.assertTrue(p.startswith(basis_p) and g.startswith(basis_g), "no other account changes")
+        self.assertEqual(journal, [])
+        # an account in the form stays as it is
+        r, aufrufe, _, p2, g2 = self.konto(p, g)
+        self.assertEqual((r.returncode, aufrufe, p2, g2), (0, [], p, g))
+
+    def test_v2_a_foreign_account_stops_with_25_and_changes_nothing(self):
+        gut_p = "werkbank-vorgabe:x:990:990::/nonexistent:/usr/sbin/nologin\n"
+        gut_g = "werkbank-vorgabe:x:990:\n"
+        faelle = [
+            (gut_p.replace("/usr/sbin/nologin", "/bin/bash"), gut_g),
+            (gut_p.replace("/nonexistent", "/var/lib/werkbank-vorgabe"), gut_g),
+            (gut_p.replace(":990:990:", ":1000:1000:"), gut_g.replace("990", "1000")),
+            (gut_p.replace(":990:990:", ":99:99:"), gut_g.replace("990", "99")),
+            (gut_p.replace(":990:990:", ":990:991:"), gut_g),
+            (gut_p, gut_g.replace("990:", "990:nutzer1")),
+            (gut_p, ""),
+            ("", gut_g),
+            (gut_p + gut_p, gut_g),
+            (gut_p.replace(":990:990:", ":0990:0990:"), gut_g.replace(":990:", ":0990:")),
+        ]
+        for p, g in faelle:
+            with self.subTest(p=p, g=g):
+                r, aufrufe, journal, p2, g2 = self.konto(p, g)
+                self.assertEqual(r.returncode, 25, r.stderr)
+                self.assertEqual(r.stderr.strip(), self.ref.VORGABE_ZEILE_25)
+                self.assertEqual((aufrufe, p2, g2), ([], p, g))
+                self.assertEqual(journal, [self.ref.VORGABE_ZEILE_25])
+                self.assertEqual(self.ref.vorgabe_konto_code(p, g), "fremd")
+        # adduser that makes something of another form: 25 as well
+        r, _, _, _, _ = self.konto("", "", ("werkbank-vorgabe:x:990:990::/:/bin/sh\n", "werkbank-vorgabe:x:990:\n"))
+        self.assertEqual(r.returncode, 25)
+        self.assertIsNone(self.ref.vorgabe_konto_code(gut_p, gut_g))
+        self.assertEqual(self.ref.vorgabe_konto_code("", ""), "fehlt")
+
+    def test_preinst_runs_only_for_install_and_upgrade(self):
+        text = lesen(os.path.join(HIER, PLATTFORM, "preinst"))
+        self.assertIn('    install | upgrade) ;;\n    *) exit 0 ;;', text)
+        r = subprocess.run(["sh", os.path.join(HIER, PLATTFORM, "preinst"), "abort-upgrade"], capture_output=True, text=True, check=False)
+        self.assertEqual((r.returncode, r.stdout, r.stderr), (0, "", ""))
+
+    # ---- V-3, V-4, V-5: units and the list
+    def test_v3_v4_the_units_have_the_form_of_part_a3(self):
+        sock = lesen(os.path.join(HIER, PLATTFORM, "werkbank-vorgabe.socket"))
+        dienst = lesen(os.path.join(HIER, PLATTFORM, "werkbank-vorgabe.service"))
+        self.assertIsNone(self.ref.vorgabe_einheit_code(sock, dienst))
+        self.assertEqual([z for z in sock.splitlines() if z.startswith("Listen")], ["ListenStream=/run/werkbank-vorgabe/vorgabe.sock"])
+        self.assertEqual([z for z in dienst.splitlines() if z.startswith("ReadWritePaths")], ["ReadWritePaths=/etc/werkbank/vorgabe"])
+        # counter-checks: each deviation is found
+        for alt, neu in (("SocketMode=0666", "SocketMode=0660"), ("Accept=no", "Accept=yes"),
+                         ("WantedBy=sockets.target", "WantedBy=sockets.target\nListenStream=/tmp/x")):
+            self.assertEqual(self.ref.vorgabe_einheit_code(sock.replace(alt, neu), dienst), "socket", neu)
+        for alt, neu, code in (
+                ("ReadWritePaths=/etc/werkbank/vorgabe", "ReadWritePaths=/etc/werkbank", "pflicht:ReadWritePaths"),
+                ("PrivateNetwork=yes", "PrivateNetwork=no", "pflicht:PrivateNetwork"),
+                ("RestrictAddressFamilies=AF_UNIX", "RestrictAddressFamilies=AF_UNIX AF_INET", "pflicht:RestrictAddressFamilies"),
+                ("CapabilityBoundingSet=", "CapabilityBoundingSet=CAP_CHOWN", "pflicht:CapabilityBoundingSet"),
+                ("User=werkbank-vorgabe", "User=root", "pflicht:User"),
+                ("RemoveIPC=yes", "RemoveIPC=yes\nSupplementaryGroups=adm", "verboten:SupplementaryGroups"),
+                ("RemoveIPC=yes", "RemoveIPC=yes\nEnvironment=A=1", "verboten:Environment"),
+                ("RemoveIPC=yes", "RemoveIPC=yes\n[Install]\nWantedBy=multi-user.target", "install")):
+            self.assertEqual(self.ref.vorgabe_einheit_code(sock, dienst.replace(alt, neu)), code, neu)
+
+    def test_v5_the_list_has_the_four_paths_and_nothing_below_the_folder_of_the_helper(self):
+        positiv = self.ref.liste_lesen(lesen(os.path.join(HIER, PLATTFORM, "lieferumfang.txt")), PLATTFORM)
+        for eintrag in (("dienst", "usr/lib/werkbank/werkbank-vorgabe", "bin:vorgabe-helfer:werkbank-vorgabe"),
+                        ("daten", "usr/lib/systemd/system/werkbank-vorgabe.socket", "datei:paket/ubuntu-26.04-x64/werkbank-vorgabe.socket"),
+                        ("daten", "usr/lib/systemd/system/werkbank-vorgabe.service", "datei:paket/ubuntu-26.04-x64/werkbank-vorgabe.service"),
+                        ("daten", "usr/share/werkbank/vorgabe/firmenvorgabe.json", "datei:paket/ubuntu-26.04-x64/firmenvorgabe.json")):
+            self.assertIn(eintrag, positiv)
+        self.assertFalse([z for _, z, _ in positiv if z.startswith("etc/werkbank/vorgabe")])
+        self.assertEqual(json.loads(lesen(os.path.join(HIER, PLATTFORM, "firmenvorgabe.json"))), self.ref.VORGABE_VORLAGE)
+        self.assertEqual(lesen(os.path.join(HIER, PLATTFORM, "firmenvorgabe.json")).encode(),
+                         (json.dumps(self.ref.VORGABE_VORLAGE, indent=1, sort_keys=True) + "\n").encode())
+
+    # ---- V-6 to V-8, V-12 to V-17: postinst step 2d
+    def erst(self, *, ordner="fehlt", eintrag=None, sudo_user="nutzer1", konten=None, vg_uid=None, vorlage=None, erscheint=False):
+        """Runs step 2d against a folder of the test; returns what the folder holds afterwards and the journal."""
+        konten = {"nutzer1": 1000, "nutzer2": 1001, "root": 0} if konten is None else konten
+        vg_uid = self.uid if vg_uid is None else vg_uid
+        with tempfile.TemporaryDirectory() as t0:
+            t = os.path.realpath(t0)
+            eltern = os.path.join(t, "etc-werkbank")
+            os.mkdir(eltern)
+            vg = os.path.join(eltern, "vorgabe")
+            vorlage_pfad = os.path.join(t, "vorlage.json")
+            with open(vorlage_pfad, "w") as d:
+                d.write(lesen(os.path.join(HIER, PLATTFORM, "firmenvorgabe.json")) if vorlage is None else vorlage)
+            if ordner == "ordner":
+                os.mkdir(vg)
+                os.chmod(vg, 0o755)
+            elif ordner == "ordner-0775":
+                os.mkdir(vg)
+                os.chmod(vg, 0o775)
+            elif ordner == "verweis":
+                os.mkdir(os.path.join(t, "anderswo"))
+                os.symlink(os.path.join(t, "anderswo"), vg)
+            ziel = os.path.join(vg, "firmenvorgabe.json")
+            vorher = {"datei": b'{"admins": ["konto-it"], "leseklassen": []}', "kaputt": b"kein json",
+                      "ohne-liste": b'{"leseklassen": []}'}.get(eintrag)
+            if vorher is not None:
+                with open(ziel, "wb") as d:
+                    d.write(vorher)
+                os.chmod(ziel, 0o600)
+            if eintrag == "verweis":
+                with open(os.path.join(t, "andere.json"), "wb") as d:
+                    d.write(b"andere")
+                os.symlink(os.path.join(t, "andere.json"), ziel)
+            journal = os.path.join(t, "journal")
+            passwd = "".join(f"{n}:x:{u}:{u}::/x:/bin/sh\n" for n, u in konten.items())
+            getent = (
+                "getent() { case \"$1:$2\" in "
+                f"passwd:werkbank-vorgabe) echo 'werkbank-vorgabe:x:{vg_uid}:{self.gid}::/nonexistent:/usr/sbin/nologin' ;; "
+                f"group:werkbank-vorgabe) echo 'werkbank-vorgabe:x:{self.gid}:' ;; "
+                f"passwd:*) printf '%s' {shlex.quote(passwd)} | awk -F: -v u=\"$2\" '$3==u' ;; *) return 2 ;; esac; }}\n"
+                f"id() {{ [ \"$1\" = -u ] || return 1; printf '%s' {shlex.quote(passwd)} | awk -F: -v n=\"$2\" '$1==n {{print $3; f=1}} END {{exit !f}}'; }}\n")
+            block = self.block.replace("VG_ORDNER=/etc/werkbank/vorgabe", f"VG_ORDNER={shlex.quote(vg)}") \
+                .replace("VG_ELTERN=/etc/werkbank", f"VG_ELTERN={shlex.quote(eltern)}") \
+                .replace("VG_VORLAGE=/usr/share/werkbank/vorgabe/firmenvorgabe.json", f"VG_VORLAGE={shlex.quote(vorlage_pfad)}")
+            if erscheint:
+                block = block.replace("    os.link(temp, name,", "    open(os.path.join(ordner, name), \"wb\").write(b\"von der IT\")\n    os.link(temp, name,")
+                self.assertIn("von der IT", block)
+            umgebung = {k: v for k, v in os.environ.items() if k != "SUDO_USER"}
+            if sudo_user is not None:
+                umgebung["SUDO_USER"] = sudo_user
+            r = subprocess.run(["sh", "-c", _journal_kopf(journal) + getent + block + "firmenvorgabe"], capture_output=True, text=True,
+                               check=False, env=umgebung)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            inhalt, modus, namen, uid = None, None, None, None
+            if os.path.isdir(vg) and not os.path.islink(vg):
+                namen = sorted(os.listdir(vg))
+            if os.path.lexists(ziel):
+                if os.path.islink(ziel):
+                    inhalt = os.readlink(ziel).encode()
+                else:
+                    with open(ziel, "rb") as d:
+                        inhalt = d.read()
+                modus = os.lstat(ziel).st_mode & 0o7777
+                uid = os.lstat(ziel).st_uid
+            andere = None
+            if eintrag == "verweis":
+                with open(os.path.join(t, "andere.json"), "rb") as d:
+                    andere = d.read()
+            ordner_modus = os.lstat(vg).st_mode & 0o7777 if os.path.lexists(vg) else None
+            return {"journal": _journal(journal), "inhalt": inhalt, "modus": modus, "namen": namen, "vorher": vorher, "andere": andere,
+                    "ordner_modus": ordner_modus, "uid": uid}
+
+    def soll(self, **fall):
+        return self.ref.vorgabe_erstausstattung(fall)
+
+    def test_v6_a_fresh_install_makes_folder_and_file_with_the_installing_account(self):
+        e = self.erst()
+        self.assertEqual(e["ordner_modus"], 0o755)
+        self.assertEqual(e["inhalt"], self.ref.vorgabe_inhalt("nutzer1"))
+        self.assertEqual((e["modus"], e["uid"], e["namen"]), (0o644, self.uid, ["firmenvorgabe.json"]))
+        self.assertEqual(e["journal"], [])
+        s = self.soll(ordner=None, eintrag=None, sudo_user="nutzer1", uid_von={"nutzer1": 1000}, name_von={1000: "nutzer1"},
+                      vorlage=self.ref.VORGABE_VORLAGE)
+        self.assertEqual((s["datei"], s["journal"]), (e["inhalt"], e["journal"]))
+        # an existing folder in the form is taken as it is
+        e = self.erst(ordner="ordner")
+        self.assertEqual((e["inhalt"], e["journal"]), (self.ref.vorgabe_inhalt("nutzer1"), []))
+        # the name comes from passwd by the uid, never from the variable
+        e = self.erst(sudo_user="nutzer2", konten={"nutzer2": 1001, "nutzer1": 1001})
+        self.assertEqual(e["inhalt"], self.ref.vorgabe_inhalt("nutzer2"))
+
+    def test_v7_v12_an_existing_company_default_stays_byte_for_byte(self):
+        for sudo_user in ("nutzer2", "nutzer1", None):
+            e = self.erst(ordner="ordner", eintrag="datei", sudo_user=sudo_user)
+            self.assertEqual((e["inhalt"], e["modus"]), (e["vorher"], 0o600), sudo_user)
+            self.assertEqual(e["journal"], [], "no code 28 for an existing file")
+            self.assertNotIn(b"nutzer", e["inhalt"])
+        self.assertEqual(self.soll(ordner={"art": "ordner", "eigner_helfer": True, "modus": 0o755}, eintrag="datei", sudo_user="nutzer2"),
+                         {"datei": "unveraendert", "journal": []})
+
+    def test_v8_v13_a_folder_of_another_form_changes_nothing_and_gives_26(self):
+        fremd = {"verweis": {"art": "verweis", "eigner_helfer": True, "modus": 0o755},
+                 "ordner": {"art": "ordner", "eigner_helfer": False, "modus": 0o755},
+                 "ordner-0775": {"art": "ordner", "eigner_helfer": True, "modus": 0o775}}
+        for ordner, vg_uid, eintrag in (("verweis", None, None), ("ordner", self.uid + 1, None), ("ordner", self.uid + 1, "datei"),
+                                        ("ordner-0775", None, None)):
+            with self.subTest(ordner=ordner, eintrag=eintrag):
+                e = self.erst(ordner=ordner, vg_uid=vg_uid, eintrag=eintrag)
+                self.assertEqual(e["journal"], [self.ref.VORGABE_ZEILE_26])
+                self.assertEqual(e["inhalt"], e["vorher"])
+                self.assertEqual(self.soll(ordner=fremd[ordner], eintrag=eintrag, sudo_user="nutzer1")["journal"], [self.ref.VORGABE_ZEILE_26])
+        self.assertEqual(self.erst(ordner="ordner-0775")["ordner_modus"], 0o775, "nothing changed")
+
+    def test_v14_without_an_installing_account_no_file_and_code_28(self):
+        for sudo_user, konten in ((None, None), ("", None), ("root", None), ("fehlt", None), ("Nutzer1", {"Nutzer1": 1005}),
+                                  ("nutzer1", {"nutzer1": 0}), ("x", {"1nutzer": 1005, "x": 1005})):
+            with self.subTest(sudo_user=sudo_user):
+                e = self.erst(sudo_user=sudo_user, konten=konten)
+                self.assertEqual((e["inhalt"], e["journal"], e["namen"]), (None, [self.ref.VORGABE_ZEILE_28], []))
+        self.assertEqual(self.soll(ordner=None, sudo_user=""), {"datei": None, "journal": [self.ref.VORGABE_ZEILE_28]})
+        self.assertEqual(self.soll(ordner=None, sudo_user="root", uid_von={"root": 0}, name_von={0: "root"})["datei"], None)
+        # a later run with an account (dpkg-reconfigure) makes the file after V-6
+        self.assertEqual(self.erst(sudo_user="nutzer1")["inhalt"], self.ref.vorgabe_inhalt("nutzer1"))
+
+    def test_v15_an_invalid_existing_entry_stays_and_is_not_followed(self):
+        for eintrag in ("kaputt", "ohne-liste", "verweis"):
+            with self.subTest(eintrag=eintrag):
+                e = self.erst(ordner="ordner", eintrag=eintrag)
+                self.assertEqual(e["journal"], [])
+                if eintrag == "verweis":
+                    self.assertTrue(e["inhalt"].endswith(b"andere.json"))
+                    self.assertEqual(e["andere"], b"andere")
+                else:
+                    self.assertEqual(e["inhalt"], e["vorher"])
+
+    def test_v16_a_file_that_appears_before_the_link_stays_and_no_temporary_file(self):
+        e = self.erst(ordner="ordner", erscheint=True)
+        self.assertEqual(e["inhalt"], b"von der IT")
+        self.assertEqual(e["namen"], ["firmenvorgabe.json"])
+        self.assertEqual(e["journal"], [self.ref.VORGABE_ZEILE_26])
+        self.assertEqual(self.soll(ordner=None, sudo_user="nutzer1", uid_von={"nutzer1": 1000}, name_von={1000: "nutzer1"},
+                                   vorlage=self.ref.VORGABE_VORLAGE, erscheint=True)["journal"], [self.ref.VORGABE_ZEILE_26])
+
+    def test_a_wrong_template_gives_26_and_no_file(self):
+        for vorlage in ('{"admins": ["x"], "leseklassen": []}', "kein json", '{"admins": [], "leseklassen": [], "y": 1}'):
+            e = self.erst(vorlage=vorlage)
+            self.assertEqual((e["inhalt"], e["journal"], e["namen"]), (None, [self.ref.VORGABE_ZEILE_26], []))
+
+    def test_v17_the_block_never_overwrites_never_reads_and_takes_the_account_from_passwd(self):
+        self.assertIsNone(self.ref.vorgabe_block_code(self.block))
+        for alt, neu, code in (
+                ("os.link(temp, name,", "os.rename(temp, name,", "ueberschreiben"),
+                ("os.link(temp, name, src_dir_fd=fd, dst_dir_fd=fd, follow_symlinks=False)",
+                 "os.replace(temp, name, src_dir_fd=fd, dst_dir_fd=fd)", "ueberschreiben"),
+                ("os.O_EXCL | ", "", "verlinken"),
+                ("    return 0\n}\n\nvorgabe_einheiten", "    cat \"$VG_ORDNER/firmenvorgabe.json\" >/dev/null\n    return 0\n}\n\nvorgabe_einheiten",
+                 "lesen"),
+                ('vg_k=$(getent passwd "$vg_kuid"', 'vg_k=$(printf %s "$SUDO_USER"', "konto")):
+            self.assertIn(alt, self.block)
+            self.assertEqual(self.ref.vorgabe_block_code(self.block.replace(alt, neu)), code, neu)
+
+    def test_postinst_runs_step_2d_before_the_enclosure_and_enables_the_socket(self):
+        text = lesen(os.path.join(HIER, PLATTFORM, "postinst"))
+        self.assertLess(text.index("\nfirmenvorgabe\nvorgabe_einheiten\n"), text.index("\neinschluss\n"))
+        self.assertIn("systemctl enable --now werkbank-vorgabe.socket", self.block)
+        self.assertNotIn("werkbank-vorgabe.service", self.block, "only the socket starts the helper")
+
+    # ---- V-9 to V-11: remove and purge
+    def purge(self, findmnt="/ ext4\n", findmnt_rc=0, find_aus="", find_rc=0, pgrep_rc=1, konto=True):
+        with tempfile.TemporaryDirectory() as t0:
+            t = os.path.realpath(t0)
+            binordner = os.path.join(t, "bin")
+            os.mkdir(binordner)
+            aufrufe, journal = os.path.join(t, "aufrufe"), os.path.join(t, "journal")
+            for name, aus, rc in (("findmnt", findmnt, findmnt_rc), ("find", find_aus, find_rc), ("pgrep", "", pgrep_rc)):
+                with open(os.path.join(binordner, name), "w") as d:
+                    d.write(f"#!/bin/sh\necho \"{name} $*\" >> {shlex.quote(aufrufe)}\nprintf '%s' {shlex.quote(aus)}\nexit {rc}\n")
+                os.chmod(os.path.join(binordner, name), 0o755)
+            vg = os.path.join(t, "vorgabe")
+            os.mkdir(vg)
+            with open(os.path.join(vg, "firmenvorgabe.json"), "w") as d:
+                d.write("{}")
+            os.symlink(os.path.join(t, "ziel"), os.path.join(vg, "verweis"))
+            with open(os.path.join(t, "ziel"), "w") as d:
+                d.write("bleibt")
+            kopf = _journal_kopf(journal) + (
+                f"systemctl() {{ echo \"systemctl $*\" >> {shlex.quote(aufrufe)}; }}\n"
+                f"deluser() {{ echo \"deluser $*\" >> {shlex.quote(aufrufe)}; }}\n"
+                f"delgroup() {{ echo \"delgroup $*\" >> {shlex.quote(aufrufe)}; }}\n"
+                "getent() { case \"$1:$2\" in "
+                + ("passwd:werkbank-vorgabe) echo 'werkbank-vorgabe:x:990:990::/nonexistent:/usr/sbin/nologin' ;; "
+                   "group:werkbank-vorgabe) echo 'werkbank-vorgabe:x:990:' ;; " if konto else "")
+                + "*) return 2 ;; esac; }\n")
+            block = self.rm_block.replace("VG_ORDNER=/etc/werkbank/vorgabe", f"VG_ORDNER={shlex.quote(vg)}") \
+                .replace("rm -rf /run/werkbank-vorgabe", "true")
+            # step 2 uses the find of the system; the fake find in PATH answers only the rest check of python
+            block = block.replace("        find \"$VG_ORDNER\"", "        /usr/bin/find \"$VG_ORDNER\"")
+            self.assertIn("/usr/bin/find \"$VG_ORDNER\"", block)
+            umgebung = dict(os.environ, PATH=binordner + os.pathsep + "/usr/bin:/bin")
+            r = subprocess.run(["sh", "-c", kopf + block + "vorgabe_purge"], capture_output=True, text=True, check=False, env=umgebung)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            return {"aufrufe": _journal(aufrufe), "journal": _journal(journal), "ordner": os.path.exists(vg),
+                    "ziel": lesen(os.path.join(t, "ziel"))}
+
+    def test_v10_purge_without_a_rest_removes_folder_account_and_group(self):
+        e = self.purge(findmnt="/ ext4\n/boot/efi vfat\n/run tmpfs\n/proc proc\n")
+        self.assertFalse(e["ordner"])
+        self.assertEqual(e["ziel"], "bleibt", "a link in the folder is never followed")
+        self.assertEqual(e["journal"], [])
+        self.assertIn("deluser --system werkbank-vorgabe", e["aufrufe"])
+        self.assertIn("delgroup --system werkbank-vorgabe", e["aufrufe"])
+        self.assertIn("find / -xdev ( -uid 990 -o -gid 990 ) -print -quit", e["aufrufe"])
+        self.assertIn("find /boot/efi -xdev ( -uid 990 -o -gid 990 ) -print -quit", e["aufrufe"])
+        self.assertFalse([a for a in e["aufrufe"] if a.startswith(("find /run", "find /proc"))])
+        self.assertIn("pgrep -u werkbank-vorgabe", e["aufrufe"])
+        self.assertEqual(e["aufrufe"][:2], ["systemctl stop werkbank-vorgabe.socket werkbank-vorgabe.service",
+                                            "systemctl disable werkbank-vorgabe.socket"])
+        self.assertEqual(self.ref.vorgabe_purge({"punkte": [{"typ": "ext4"}, {"typ": "tmpfs"}]}), {"konto_bleibt": False, "journal": []})
+        # a mount point with a blank comes back from the escape of findmnt
+        e = self.purge(findmnt="/ ext4\n/mnt/mit\\x20leer ext4\n")
+        self.assertIn("find /mnt/mit leer -xdev ( -uid 990 -o -gid 990 ) -print -quit", e["aufrufe"])
+
+    def test_v11_purge_with_a_rest_keeps_account_and_group_with_code_27(self):
+        faelle = (
+            ({"find_aus": "/srv/beispiel/datei\n"}, {"punkte": [{"typ": "ext4", "treffer": True}]}),
+            ({"find_rc": 1}, {"punkte": [{"typ": "ext4", "find_fehler": True}]}),
+            ({"pgrep_rc": 0}, {"punkte": [{"typ": "ext4"}], "prozesse": True}),
+            ({"pgrep_rc": 2}, {"prozesse": True}),
+            ({"findmnt_rc": 1}, {"findmnt_fehler": True}),
+            ({"findmnt": ""}, {"findmnt_fehler": True}),
+            ({"findmnt": "/ ext4\n/daten neufs\n"}, {"punkte": [{"typ": "ext4"}, {"typ": "neufs"}]}),
+            ({"findmnt": "/ ext4 zuviel\n"}, {"findmnt_fehler": True}),
+        )
+        for lage, fall in faelle:
+            with self.subTest(lage=lage):
+                e = self.purge(**lage)
+                self.assertEqual(e["journal"], [self.ref.VORGABE_ZEILE_27])
+                self.assertFalse([a for a in e["aufrufe"] if a.startswith(("deluser", "delgroup"))])
+                self.assertEqual(self.ref.vorgabe_purge(fall), {"konto_bleibt": True, "journal": [self.ref.VORGABE_ZEILE_27]})
+        # without the account there is nothing to delete and no line
+        e = self.purge(konto=False)
+        self.assertEqual((e["journal"], [a for a in e["aufrufe"] if a.startswith(("deluser", "find"))]), ([], []))
+
+    def test_the_lists_of_the_rest_check_are_the_lists_of_the_reference(self):
+        text = self.rm_block
+        a = text.index("AUSGENOMMEN = {")
+        d = text.index("DURCHSUCHT = {")
+        aus = set(re.findall(r'"([a-z0-9._-]+)"', text[a:text.index("}", a)]))
+        durch = set(re.findall(r'"([a-z0-9._-]+)"', text[d:text.index("}", d)]))
+        self.assertEqual((aus, durch), (set(self.ref.MOUNT_AUSGENOMMEN), set(self.ref.MOUNT_DURCHSUCHT)))
+
+    def test_v9_remove_and_prerm_stop_the_units_and_keep_account_folder_and_file(self):
+        rm = lesen(os.path.join(HIER, PLATTFORM, "postrm"))
+        teil = rm[rm.index("    remove)\n"):rm.index("    purge)\n")]
+        self.assertIn("systemctl disable werkbank-vorgabe.socket", teil)
+        self.assertNotIn("vorgabe_purge", teil)
+        self.assertNotIn("deluser", teil)
+        self.assertIn("vorgabe_purge", rm[rm.index("    purge)\n"):])
+        pre = lesen(os.path.join(HIER, PLATTFORM, "prerm"))
+        self.assertIn("systemctl stop werkbank-vorgabe.socket werkbank-vorgabe.service", pre)
 
 
 if __name__ == "__main__":

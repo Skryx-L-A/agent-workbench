@@ -703,7 +703,7 @@ gate_notices() {
 #   Report crates run only when they changed against a base.
 # - Windows code is left out in .cargo/mutants.toml; its mutants run on the Windows test machine, before every delivery
 #   under Windows.
-MUTANTS_PFLICHT="anmelden einschluss stelle datentor modellweg halter dienst peerkanal werkbank-pruefen lauf"
+MUTANTS_PFLICHT="anmelden einschluss stelle datentor modellweg halter dienst peerkanal werkbank-pruefen lauf vorgabe-helfer"
 
 # The merge base of HEAD and WB_MUTANTS_BASIS, set by mutants_plan; empty means every run is a full run.
 MUTANTS_GABEL=""

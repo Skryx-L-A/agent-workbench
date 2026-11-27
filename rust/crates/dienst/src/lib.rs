@@ -29,9 +29,12 @@ mod arbeitsordner;
 mod arbeitsordner_fs;
 mod aufraeumen;
 mod bereit;
+mod bestand;
+mod bestand_datei;
 mod betrachter;
 mod dienst;
 mod fehler;
+mod gespraeche;
 #[cfg(unix)]
 mod huelle;
 mod json;
@@ -48,6 +51,7 @@ mod sitzung;
 mod startdatei;
 mod starten;
 mod sys;
+mod verwaltung;
 mod waisen;
 
 use std::ffi::OsString;

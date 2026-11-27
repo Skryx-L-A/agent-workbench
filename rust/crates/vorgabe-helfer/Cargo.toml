@@ -1,0 +1,42 @@
+[package]
+name = "vorgabe-helfer"
+version = "0.1.0"
+description = "werkbank-vorgabe (contract rust/spec/regelebenen, section 15.12, and rust/spec/paket, part A3): the write helper of the company default under its own system user; it checks the peer, the file and the request itself and replaces the file atomically, nothing else."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "werkbank-vorgabe"
+path = "src/main.rs"
+
+# formate (path): `sha256_hex` of the bytes of the file and of the request (no own hash code).
+# serde (no default features but std): the visitor of the strict reader that refuses a duplicate key.
+# serde_json (feature `float_roundtrip`, as formate): JSON values of the file and of the request.
+# rustix (Unix; features fs, process, net, event, time, std): `openat` relative to the open folder with `O_NOFOLLOW`,
+#   `O_EXCL`, `fstat`, `fchmod`, `fsync`, `renameat`, `unlinkat`; `SO_PEERCRED`, `pidfd_open` and `poll`; all without
+#   `unsafe` (the workspace forbids it).
+# nix 0.28 (Unix; default features off, feature `user` only; the version in Cargo.lock, no second version): `getpwuid_r`
+#   and `getpwnam_r` through `User::from_uid` and `User::from_name`, so accounts from NSS count as the contract says.
+# listenfd 1.0.2 (Linux only; Apache-2.0; new in the graph, its only Unix dependency is libc, already in Cargo.lock): the
+#   socket that systemd hands over (`LISTEN_FDS`, `LISTEN_PID`) as a `UnixListener`; the conversion of the inherited
+#   descriptor needs `unsafe`, which the workspace forbids in its own crates.
+# signal-hook (flag module only): SIGTERM and SIGINT end the accept loop with exit code 0.
+[dependencies]
+formate = { path = "../formate" }
+serde = { version = "1", default-features = false, features = ["std"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "1", features = ["fs", "process", "net", "event", "time", "std"] }
+nix = { version = "0.28", default-features = false, features = ["user"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+listenfd = "1.0.2"
+signal-hook = "0.4"
+
+[lints]
+workspace = true

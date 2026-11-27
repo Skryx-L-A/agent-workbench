@@ -1,0 +1,21 @@
+{
+ "schritte": [
+  {
+   "antwort": {
+    "code": "firmenvorgabe.ladefehler",
+    "sha256": null
+   },
+   "datei": {
+    "eigentuemer": "werkbank-vorgabe",
+    "modus": "0644",
+    "sha256": "2dabaef400904b89dab86df6b769846105811a7f7bad3d3fb78841b548bd04f2",
+    "inhalt": {
+     "admins": "konto-admin",
+     "leseklassen": []
+    }
+   },
+   "unveraendert": true,
+   "temp_bleibt": false
+  }
+ ]
+}

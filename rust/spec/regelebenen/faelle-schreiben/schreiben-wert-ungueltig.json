@@ -4,7 +4,7 @@
   "A05",
   "A12"
  ],
- "beschreibung": "ein Admin nennt ein Konto, das der Dienst nicht zuordnen kann, und ein Pseudonym statt eines Kontos; setzen lehnt ab, und weder Konto noch Pseudonym aus der Eingabe steht in der Zeile",
+ "beschreibung": "ein Admin nennt ein Konto, das der Dienst nicht zuordnen kann, und ein Pseudonym statt eines Kontos; setzen lehnt ab, der Helfer wird nicht angesprochen, und weder Konto noch Pseudonym aus der Eingabe steht in der Zeile",
  "firma": {
   "klassen": [
    "oeffentlich",
@@ -20,6 +20,12 @@
    ]
   }
  },
+ "konten": {
+  "konto-admin": 1001,
+  "konto-admin-zwei": 1002,
+  "konto-nutzer": 1003,
+  "konto-nutzer-zwei": 1004
+ },
  "zuordnung": {
   "konto-admin": "ps_00000000000000000000000000000b01",
   "konto-admin-zwei": "ps_00000000000000000000000000000b02",
@@ -28,7 +34,7 @@
  },
  "firmenvorgabe": {
   "art": "datei",
-  "eigentuemer": "root",
+  "eigentuemer": "werkbank-vorgabe",
   "modus": "0644",
   "inhalt": {
    "admins": [
@@ -51,13 +57,18 @@
  },
  "ordner": {
   "art": "ordner",
+  "eigentuemer": "werkbank-vorgabe",
+  "modus": "0755"
+ },
+ "eltern": {
+  "art": "ordner",
   "eigentuemer": "root",
   "modus": "0755"
  },
  "schritte": [
   {
    "schreiben": {
-    "partner": "konto-admin",
+    "partner": 1001,
     "wert": [
      {
       "ebene": "nutzer",
@@ -70,7 +81,7 @@
   },
   {
    "schreiben": {
-    "partner": "konto-admin",
+    "partner": 1001,
     "wert": [
      {
       "ebene": "nutzer",

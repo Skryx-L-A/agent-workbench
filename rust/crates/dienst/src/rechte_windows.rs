@@ -27,7 +27,18 @@ pub fn rechte_pruefen(start: &Startdatei) -> Result<(), StartFehler> {
         Path::new(&start.ordner),
         crate::sys::euid(),
     )?);
-    socket_pfad_pruefen(Path::new(&start.pfad))
+    socket_pfad_pruefen(Path::new(&start.pfad))?;
+    // Nachtrag 26.11.2026, DI-L5 point 3: the folder of `lauf.bestand` like the folder of the service
+    if let Some(ordner) = start
+        .lauf
+        .as_ref()
+        .and_then(|l| l.bestand.as_deref())
+        .map(Path::new)
+        .and_then(Path::parent)
+    {
+        drop(ordner_oeffnen(ordner, crate::sys::euid())?);
+    }
+    Ok(())
 }
 
 /// DI2 point 4: no entry of any kind at the socket path (also a link or a reparse point that points nowhere).

@@ -48,6 +48,7 @@ use crate::starten::{
     ordner_anlegen, rahmennummer, start_form, start_pruefen, starten_form, startwahl_von,
 };
 use crate::sys::{Ordner, UnixListener, UnixStream};
+use crate::verwaltung::worker_form;
 use crate::waisen::{Waisen, kinder_verwerfen, start_verwerfen};
 
 /// The kinds of event a viewer may give (DI3): the lines `Ansicht` of `VT` section 4 without `Verbinden` and `Trennen`.
@@ -240,7 +241,7 @@ fn waehle(wert: &Value, namen: &[&str]) -> Value {
 
 /// The service.
 pub struct Dienst {
-    cfg: Startdatei,
+    pub(crate) cfg: Startdatei,
     hoerer: Option<UnixListener>,
     /// What the loop waits for: the wake socket, the listener and every connection.
     bereit: Bereitschaft,
@@ -249,9 +250,10 @@ pub struct Dienst {
     halt: Arc<AtomicBool>,
     runden: Arc<AtomicU64>,
     /// The cores in the order of their start: the room core first (only with `lauf`), then the session of `kind` (number 0), then
-    /// the sessions of `Starten` (DI12). An index stays valid: cores are only added.
+    /// the sessions of the Bestand (DI-L5 point 4), then the sessions of `Starten` (DI12). An index stays valid while a step
+    /// waits: a session leaves only at the end of a turn (P26) or by `Loeschen`, between two events (DI-L3 point 5).
     pub(crate) sitzungen: Vec<Sitzung>,
-    betrachter: BTreeMap<u64, Betrachter>,
+    pub(crate) betrachter: BTreeMap<u64, Betrachter>,
     folge: u64,
     start: Instant,
     t_zuletzt: i64,
@@ -274,9 +276,13 @@ pub struct Dienst {
     enden: u64,
     /// P26: the sessions out of the `Sitzungsliste` (more than `lauf.beendet_max` ended), by identifier; they are dropped at the end
     /// of the turn of the loop ([`Self::entfernte_wegnehmen`]).
-    entfernt: BTreeSet<String>,
+    pub(crate) entfernt: BTreeSet<String>,
     /// The content of the last `Startwahl` that went out (without `t`).
     startwahl_letzt: Option<Value>,
+    /// The list of the workers that went to everyone last (DI-L1 point 4).
+    pub(crate) agenten_letzt: Vec<Value>,
+    /// The raster numbers of deleted sessions with the place of their end (DI-L3 point 5): free, like the number of an ended session.
+    pub(crate) frei_geloescht: Vec<(u64, u8)>,
     /// The adopted children and the hunts for the orphans of ended sessions (Linux, `waisen.rs`).
     pub(crate) waisen: Waisen,
 }
@@ -318,6 +324,7 @@ impl Dienst {
     ///
     /// # Errors
     /// See [`Dienst::neu`].
+    #[allow(clippy::too_many_lines)] // the order of the start (DI8, DI-L5 point 4) reads in one place
     pub fn neu_mit(cfg: Startdatei, optionen: &Optionen) -> Result<Self, StartFehler> {
         let kern_grenze = optionen
             .kern_grenze
@@ -328,6 +335,13 @@ impl Dienst {
         }
         let wurzel = Arc::new(ordner_oeffnen(Path::new(&cfg.ordner), crate::sys::euid())?);
         let marker = marker_lesen(&cfg)?;
+        // DI-L5 point 4: the Bestand is read once, after the rights and before any child starts
+        let belegt: Vec<&str> = if cfg.mit_kind {
+            vec![cfg.sid.as_str()]
+        } else {
+            Vec::new()
+        };
+        let bestand = crate::bestand::lesen(&cfg, &belegt)?;
         let mut sitzungen = Vec::new();
         if cfg.lauf.is_some() {
             let kern = zustandskern::Sitzungskern::neu_mit(&anfang_raum(&cfg.anfang), kern_grenze)
@@ -348,6 +362,14 @@ impl Dienst {
             sitzung.arbeitsordner = Some(PathBuf::from(&cfg.cwd));
             sitzungen.push(mit_job(sitzung)?);
         }
+        let aus_bestand = sitzungen.len();
+        let gestartet = match Self::bestand_aufnehmen(&cfg, bestand, kern_grenze, &mut sitzungen) {
+            Ok(n) => n,
+            Err(f) => {
+                start_verwerfen(Self::kinder_nehmen(&mut sitzungen));
+                return Err(f);
+            }
+        };
         let hoerer = match socket_binden(Path::new(&cfg.pfad), wurzel.as_fd()) {
             Ok(h) => h,
             Err(f) => {
@@ -388,7 +410,13 @@ impl Dienst {
                 return Err(f);
             }
         };
-        Ok(Self {
+        // the ends of the sessions of the Bestand come first in the order of the ends
+        let enden = sitzungen
+            .iter()
+            .filter_map(|s| s.beendet_als)
+            .max()
+            .unwrap_or_default();
+        let mut dienst = Self {
             cfg,
             hoerer: Some(hoerer),
             bereit,
@@ -410,12 +438,107 @@ impl Dienst {
             huelle: optionen.huelle.clone(),
             wurzel,
             marker,
-            naechste: 0,
+            naechste: gestartet,
             vergeben: [false; 256],
-            enden: 0,
+            enden,
             startwahl_letzt: None,
+            agenten_letzt: Vec::new(),
+            frei_geloescht: Vec::new(),
             waisen: Waisen::default(),
-        })
+        };
+        dienst.bestand_beenden(aus_bestand);
+        Ok(dienst)
+    }
+
+    /// The sessions of the Bestand join the list after the session of `kind` (DI-L5 point 4); returns `gestartet`.
+    fn bestand_aufnehmen(
+        cfg: &Startdatei,
+        bestand: Option<crate::bestand::Bestand>,
+        kern_grenze: usize,
+        sitzungen: &mut Vec<Sitzung>,
+    ) -> Result<usize, StartFehler> {
+        let (Some(b), Some(lauf)) = (bestand, cfg.lauf.as_ref()) else {
+            return Ok(0);
+        };
+        for (ende, x) in (1_u64..).zip(&b.eintraege) {
+            sitzungen.push(Self::sitzung_aus_bestand(cfg, lauf, x, ende, kern_grenze)?);
+        }
+        Ok(b.gestartet)
+    }
+
+    /// DI-L5 point 4: the core of a session of the Bestand (from index `ab` on) has ended and refuses every input with
+    /// `sitzung_beendet`; the list of the workers counts as sent.
+    fn bestand_beenden(&mut self, ab: usize) {
+        for k in ab..self.sitzungen.len() {
+            let s = &self.sitzungen[k];
+            let e = json!({"t": 0, "art": "Kindende", "sitzung": s.sid, "code": s.kind_ende.unwrap_or(0)});
+            self.ereignis(k, e, None);
+        }
+        self.agenten_letzt = self.agenten_liste();
+    }
+
+    /// One entry of the Bestand as an ended session without a raster number (DI-L5 point 4): the core is built from its entry like a
+    /// session of `Starten`; an entry that still ran is `beendet` with `abgestuerzt` and the reason `dienst.neustart`, without a code.
+    fn sitzung_aus_bestand(
+        cfg: &Startdatei,
+        lauf: &crate::startdatei::Lauf,
+        x: &Map<String, Value>,
+        ende: u64,
+        kern_grenze: usize,
+    ) -> Result<Sitzung, StartFehler> {
+        let text = |k: &str| {
+            x.get(k)
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_owned()
+        };
+        let wahl = |k: &str| x.get(k).and_then(Value::as_str).map(str::to_owned);
+        let sid = text("id");
+        let meta = [
+            text("harness"),
+            text("modell"),
+            text("route"),
+            text("kunde"),
+        ];
+        let eintrag = eintrag_fuer(&sid, &meta[2], &cfg.raum, &cfg.person, lauf.groesse);
+        let anfang = anfang_fuer(
+            &cfg.anfang,
+            Some(&eintrag),
+            &Traegerstand::anfang(lauf.groesse),
+        );
+        let kern = zustandskern::Sitzungskern::neu_mit(&anfang, kern_grenze)
+            .map_err(|_| StartFehler::neu(2, "lauf.bestand ungueltig"))?;
+        let mut s = Sitzung::aus_bestand(sid, kern, eintrag, meta);
+        let a = &mut s.angaben;
+        a.name = text("name");
+        a.ordner = text("ordner");
+        a.start = x.get("start").cloned();
+        a.orchestrator = wahl("orchestrator");
+        a.rolle = wahl("rolle");
+        a.fortsetzung_von = wahl("fortsetzung_von");
+        a.fortgesetzt_als = wahl("fortgesetzt_als");
+        let code = x
+            .get("code")
+            .and_then(Value::as_u64)
+            .and_then(|c| u32::try_from(c).ok());
+        if x.get("zustand").and_then(Value::as_str) == Some("laeuft") {
+            a.ende = Some(crate::verwaltung::EndeArt::Neustart);
+            s.grund = Some("dienst.neustart".to_owned());
+            s.kind_ende = Some(0);
+            s.angaben.ohne_code = true;
+        } else {
+            a.ende = Some(if x.get("abgestuerzt") == Some(&Value::Bool(true)) {
+                crate::verwaltung::EndeArt::Selbst
+            } else {
+                crate::verwaltung::EndeArt::Beenden
+            });
+            s.grund = wahl("grund");
+            s.kind_ende = Some(code.unwrap_or(0));
+            s.angaben.ohne_code = code.is_none();
+        }
+        s.arbeitsordner = Some(PathBuf::from(&s.angaben.ordner));
+        s.beendet_als = Some(ende);
+        Ok(s)
     }
 
     /// Takes the children out of the sessions.
@@ -509,7 +632,7 @@ impl Dienst {
     // ---------------------------------------------------------------------------------------------- time (DI7)
 
     /// The clock: in test mode what the frames `Uhr` set, else the milliseconds since the start, never falling.
-    fn jetzt(&mut self) -> i64 {
+    pub(crate) fn jetzt(&mut self) -> i64 {
         if self.cfg.pruefmodus {
             return self.t_ein;
         }
@@ -664,6 +787,12 @@ impl Dienst {
                             continue;
                         }
                         Some("Sitzungsliste") => continue,
+                        // DI-L1 point 3: the room core has no workers; the service's own list takes the place of its message
+                        Some("Agenten") if raum => {
+                            let agenten = self.agenten_nachricht();
+                            self.nachricht_an(*nr, &agenten, None);
+                            continue;
+                        }
                         Some("Einstellungen" | "Routen" | "Anfragen" | "Agenten" | "Leeren")
                             if !raum =>
                         {
@@ -689,7 +818,7 @@ impl Dienst {
     }
 
     /// The frame `Ablehnung` to one viewer.
-    fn ablehnen(&mut self, nr: u64, nutzlast: &Value) {
+    pub(crate) fn ablehnen(&mut self, nr: u64, nutzlast: &Value) {
         self.senden(nr, json_rahmen(A_ABLEHNUNG, nutzlast));
     }
 
@@ -738,6 +867,11 @@ impl Dienst {
                 let code = s.ende_auswerten(*code);
                 gemeldet = Some(Ereignis::Kindende { code });
                 s.kind_ende = Some(code);
+                s.angaben.ende = Some(if s.angaben.beendet_von_uns {
+                    crate::verwaltung::EndeArt::Beenden
+                } else {
+                    crate::verwaltung::EndeArt::Selbst
+                });
                 s.kill_ab = None;
                 self.enden += 1;
                 s.beendet_als = Some(self.enden);
@@ -758,7 +892,7 @@ impl Dienst {
         self.ereignis(k, e, None);
         if matches!(x, Ereignis::Kindende { .. }) && self.cfg.lauf.is_some() {
             self.beendete_begrenzen(k);
-            self.liste_senden();
+            self.liste_und_agenten();
         }
     }
 
@@ -995,7 +1129,7 @@ impl Dienst {
     /// free one whose session ended longest ago. The session that gave it shows `nr: null` from then on, and every connection forgets
     /// the number (RA R13), so the first frame of the new session is a full picture. A subscribed number is never taken.
     fn rahmen_waehlen(&self, n: usize, max: usize) -> Option<u8> {
-        let frei: Vec<(u64, u8)> = self
+        let mut frei: Vec<(u64, u8)> = self
             .sitzungen
             .iter()
             .filter(|s| s.eintrag.is_some())
@@ -1005,6 +1139,8 @@ impl Dienst {
                 (!abonniert).then_some((ende, nr))
             })
             .collect();
+        // DI-L3 point 5: the number of a deleted session is free in the same way
+        frei.extend_from_slice(&self.frei_geloescht);
         rahmennummer(n, max, &self.vergeben, &frei)
     }
 
@@ -1019,6 +1155,7 @@ impl Dienst {
             b.raster.vergessen(nummer);
         }
         self.vergeben[usize::from(nummer)] = true;
+        self.frei_geloescht.retain(|&(_, n)| n != nummer);
     }
 
     fn trennen_melden(&mut self, name: &str) {
@@ -1051,7 +1188,7 @@ impl Dienst {
 
     /// A message of the core `k` for a viewer: a raster frame (with the number of the session) or a JSON frame; then the report
     /// `Socket`. Messages that belong to no core (`k` is `None`) are JSON frames.
-    fn nachricht_an(&mut self, nr: u64, nachricht: &Value, k: Option<usize>) {
+    pub(crate) fn nachricht_an(&mut self, nr: u64, nachricht: &Value, k: Option<usize>) {
         let art = nachricht.get("art").and_then(Value::as_str);
         if let (Some(k), Some("Abzug" | "Rasteraenderung")) = (k, art) {
             // a session without a raster number sends no frame (DI12 point 4, P25): its number belongs to another session now
@@ -1157,7 +1294,7 @@ impl Dienst {
     // ---------------------------------------------------------------------------------------------- frames (DI3, DI9)
 
     /// The index of the session with this identifier; the room core has none.
-    fn finde(&self, sid: &str) -> Option<usize> {
+    pub(crate) fn finde(&self, sid: &str) -> Option<usize> {
         self.sitzungen
             .iter()
             .position(|s| s.sid.as_deref() == Some(sid))
@@ -1199,7 +1336,8 @@ impl Dienst {
     }
 
     /// A frame `Ereignis` (DI3): checks in the order of the contract, then gives the event to the core with `betrachter` and `t`.
-    /// With `lauf` the events `Starten` and `Beenden` are the service's own and the others go to the core of their session.
+    /// With `lauf` the events `Starten`, `Beenden`, `Umbenennen`, `Fortsetzen`, `Wiederbeleben` and `Loeschen` are the service's own
+    /// (Nachtrag 26.11.2026, DI-L3) and the others go to the core of their session.
     fn ereignis_rahmen(&mut self, nr: u64, nutzlast: &[u8]) {
         let Some(wert) = self.ereignis_nutzlast(nr, nutzlast) else {
             return;
@@ -1211,7 +1349,11 @@ impl Dienst {
             return self.fehler(nr, "ereignis_ungueltig");
         };
         let lauf = self.cfg.lauf.is_some();
-        let eigene = lauf && matches!(art, "Starten" | "Beenden");
+        let eigene = lauf
+            && matches!(
+                art,
+                "Starten" | "Beenden" | "Umbenennen" | "Fortsetzen" | "Wiederbeleben" | "Loeschen"
+            );
         if !eigene && !ERLAUBT.contains(&art) {
             return self.fehler(nr, "art_nicht_erlaubt");
         }
@@ -1229,8 +1371,14 @@ impl Dienst {
             self.flush_alle();
             return;
         }
-        if lauf && art == "Beenden" {
-            self.beenden_ereignis(nr, objekt);
+        if eigene {
+            match art.as_str() {
+                "Beenden" => self.beenden_ereignis(nr, objekt),
+                "Umbenennen" => self.umbenennen(nr, objekt),
+                "Fortsetzen" => self.fortsetzen(nr, objekt, false),
+                "Wiederbeleben" => self.fortsetzen(nr, objekt, true),
+                _ => self.loeschen(nr, objekt),
+            }
             self.flush_alle();
             return;
         }
@@ -1368,14 +1516,16 @@ impl Dienst {
             .filter_map(|s| {
                 let sid = s.sid.as_ref()?;
                 let mut x = json!({"id": sid, "harness": s.meta[0], "modell": s.meta[1], "route": s.meta[2],
-                                   "kunde": s.meta[3], "zustand": if s.kind_ende.is_some() { "beendet" } else { "laeuft" },
+                                   "kunde": s.meta[3], "zustand": if s.ist_beendet() { "beendet" } else { "laeuft" },
                                    "nr": s.nr});
-                if let Some(code) = s.kind_ende {
+                if let Some(code) = s.ende_code() {
                     x["code"] = json!(code);
                 }
                 if let Some(grund) = &s.grund {
                     x["grund"] = json!(grund);
                 }
+                // Nachtrag 26.11.2026, DI-L5 point 1
+                s.listenfelder(&mut x);
                 Some(x)
             })
             .collect();
@@ -1383,7 +1533,7 @@ impl Dienst {
     }
 
     /// The list to every viewer that can take it (after a start and after the end of a child).
-    fn liste_senden(&mut self) {
+    pub(crate) fn liste_senden(&mut self) {
         let nummern: Vec<u64> = self.betrachter.keys().copied().collect();
         for nr in nummern {
             if sendbar(self.betrachter.get(&nr)) {
@@ -1442,19 +1592,41 @@ impl Dienst {
 
     /// `Starten` (DI12 point 3). The first violation answers and nothing starts. The core never sees the event.
     pub(crate) fn starten(&mut self, nr: u64, ereignis: &Map<String, Value>) {
-        let Some(lauf) = self.cfg.lauf.clone() else {
-            return;
-        };
         let start = match starten_form(ereignis) {
             Ok(s) => s.clone(),
             Err(a) => return self.start_ablehnen(nr, &a),
         };
+        // DI-L1 point 2: the form of `orchestrator` and `rolle` is checked after stages 1 to 13 (in `starten_mit`)
+        let worker = worker_form(ereignis);
+        self.starten_mit(nr, &start, worker);
+    }
+
+    /// The way of `Starten` from DI12 point 3.1 on. `worker` is the orchestrator and the role (DI-L1).
+    #[allow(clippy::too_many_lines)] // the checks of DI12 point 3 in the order of the contract
+    pub(crate) fn starten_mit(
+        &mut self,
+        nr: u64,
+        start: &Value,
+        worker: Result<Option<(String, String)>, Abgelehnt>,
+    ) {
+        let Some(lauf) = self.cfg.lauf.clone() else {
+            return;
+        };
         // SECURITY: the one place of the check of the structure (see `starten.rs`): stages 1 to 13 of the crate `start`, then the settings file
         // (`einstellungen`), then stages 14 to 17; the first violation answers and nothing starts
-        let anfrage = match start_form(&start) {
+        let anfrage = match start_form(start) {
             Ok(a) => a,
             Err(a) => return self.start_ablehnen(nr, &a),
         };
+        let worker = match worker {
+            Ok(w) => w,
+            Err(a) => return self.start_ablehnen(nr, &a),
+        };
+        if let Some((orchestrator, _)) = &worker
+            && let Err(a) = self.orchestrator_pruefen(orchestrator, &meta_von(&anfrage)[3])
+        {
+            return self.start_ablehnen(nr, &a);
+        }
         let Some(einst) = einstellungen_laden(&lauf.einstellungen) else {
             return self.start_ablehnen(nr, &Abgelehnt::fest("einst_unlesbar"));
         };
@@ -1536,6 +1708,7 @@ impl Dienst {
             (ordner, Arc::clone(&self.wurzel), meldung),
         );
         sitzung.arbeitsordner = Some(PathBuf::from(arbeitsordner_von(&anfrage)));
+        angaben_setzen(&mut sitzung, &anfrage, start, worker);
         if !self.gestartet_aufnehmen(sitzung, nr, n, nummer) {
             return;
         }
@@ -1547,10 +1720,30 @@ impl Dienst {
             let e = self.verbinden_ereignis(t, &name);
             self.ereignis(k, e, None);
         }
-        // first the list to everyone, then `Gestartet` to the sender alone (DI12 point 3.7)
-        self.liste_senden();
+        // first the list to everyone (with `Agenten` behind it when the workers changed, DI-L1 point 4), then `Gestartet` to the
+        // sender alone (DI12 point 3.7)
+        self.liste_und_agenten();
         let gestartet = json!({"t": self.jetzt(), "art": "Gestartet", "sitzung": kennung});
         self.nachricht_an(nr, &gestartet, None);
+    }
+
+    /// DI-L1 point 2: the orchestrator is a running session of `Starten` in the list, no worker itself, with the same customer.
+    fn orchestrator_pruefen(&self, orchestrator: &str, kunde: &str) -> Result<(), Abgelehnt> {
+        let o = self
+            .finde(orchestrator)
+            .and_then(|k| self.sitzungen.get(k))
+            .filter(|o| o.eintrag.is_some())
+            .ok_or_else(|| Abgelehnt::fest("orchestrator_unbekannt"))?;
+        if o.ist_beendet() {
+            return Err(Abgelehnt::fest("orchestrator_beendet"));
+        }
+        if o.angaben.orchestrator.is_some() {
+            return Err(Abgelehnt::fest("orchestrator_ist_worker"));
+        }
+        if o.meta[3] != kunde {
+            return Err(Abgelehnt::fest("orchestrator_fremder_kunde"));
+        }
+        Ok(())
     }
 
     /// The new session of `Starten` takes its identifier `s-<n>` and the raster number `nummer` and joins the list. Under Windows a
@@ -1604,9 +1797,10 @@ impl Dienst {
         let Some(k) = self.finde(sid) else {
             return self.ablehnen(nr, &json!({"grund": "sitzung_unbekannt"}));
         };
-        if self.sitzungen[k].kind_ende.is_some() {
+        if self.sitzungen[k].ist_beendet() {
             return self.ablehnen(nr, &json!({"grund": "sitzung_beendet"}));
         }
+        self.sitzungen[k].angaben.beendet_von_uns = true;
         self.sitzungen[k].beenden_anstossen();
     }
 
@@ -1769,6 +1963,17 @@ impl Dienst {
     /// Closes the viewers, removes the socket file, ends every child and removes the folders of `Starten` (DI2 point 7, DI8,
     /// DI12 point 8). Can be called again. SECURITY: no child survives; only folders the service made itself are removed.
     fn aufraeumen(&mut self) {
+        // DI-L5 point 2: every running session is `beendet` with `dienst.ende` in the Bestand before the children are ended
+        // (a second call, from `drop`, writes the same content again)
+        if self.cfg.lauf.as_ref().is_some_and(|l| l.bestand.is_some()) {
+            for s in &mut self.sitzungen {
+                if s.eintrag.is_some() && !s.ist_beendet() {
+                    s.angaben.ende = Some(crate::verwaltung::EndeArt::Dienstende);
+                    s.grund = Some("dienst.ende".to_owned());
+                }
+            }
+            self.bestand_schreiben();
+        }
         for b in self.betrachter.values() {
             b.schliessen_strom();
         }
@@ -1845,6 +2050,22 @@ fn weckpaar() -> std::io::Result<(UnixStream, UnixStream)> {
 /// The pids of the own children of `sitzungen` that the carriers have not collected yet ([`Dienst::eigene_kinder`]).
 fn kinder_der(sitzungen: &[Sitzung]) -> Vec<u32> {
     sitzungen.iter().filter_map(Sitzung::eigenes_kind).collect()
+}
+
+/// Nachtrag 26.11.2026: the fields of the list and of the Bestand of a new session (DI-L1, DI-L5).
+fn angaben_setzen(
+    sitzung: &mut Sitzung,
+    anfrage: &start::Startanfrage,
+    start: &Value,
+    worker: Option<(String, String)>,
+) {
+    let a = &mut sitzung.angaben;
+    arbeitsordner_von(anfrage).clone_into(&mut a.ordner);
+    a.start = Some(start.clone());
+    if let Some((orchestrator, rolle)) = worker {
+        a.orchestrator = Some(orchestrator);
+        a.rolle = Some(rolle);
+    }
 }
 
 #[cfg(all(test, unix))]

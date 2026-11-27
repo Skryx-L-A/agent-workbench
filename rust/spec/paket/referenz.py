@@ -1288,3 +1288,134 @@ def halter_konfig(vorlage, uid):
                 ziele[host]["erststart_antwortform"] = schalter
     wert = {"fassung": 1, "konten": {str(uid): {"person": None}}, "rollen": dict(HALTER_ROLLEN), "ziele": ziele, "server": {}, "kids": {}}
     return wert, weg
+
+
+# ---------------------------------------------------------------------------------------------------- Teil A3: Schreibhelfer der Firmenvorgabe
+# Konto `werkbank-vorgabe` (`preinst`), Einheiten, Erstausstattung mit dem ersten Admin (`postinst` Schritt 2e) und `purge` (`postrm`).
+# Die Prüfpunkte V-1 bis V-17 der README prüft `rust/paket/test_bau.py` gegen diese Referenz.
+
+VORGABE_KONTO = "werkbank-vorgabe"
+VORGABE_ORDNER = "etc/werkbank/vorgabe"
+VORGABE_NAME = "firmenvorgabe.json"
+VORGABE_VORLAGE = {"admins": [], "leseklassen": []}
+VORGABE_KONTOFORM = re.compile(r"^[a-z_][a-z0-9_-]*$")
+VORGABE_ZEILE_25 = "werkbank: Konto werkbank-vorgabe besteht in fremder Form, Code 25"
+VORGABE_ZEILE_26 = "werkbank: Ordner der Firmenvorgabe in fremder Form, Code 26"
+VORGABE_ZEILE_27 = "werkbank: Konto werkbank-vorgabe bleibt, Code 27"
+VORGABE_ZEILE_28 = "werkbank: Firmenvorgabe nicht angelegt, kein Konto aus sudo, Code 28"
+VORGABE_SOCKET = (
+    "[Unit]", "Description=Werkbank: Schreibhelfer der Firmenvorgabe (Socket)", "", "[Socket]",
+    "ListenStream=/run/werkbank-vorgabe/vorgabe.sock", "SocketUser=root", "SocketGroup=root", "SocketMode=0666", "DirectoryMode=0755",
+    "Accept=no", "Backlog=8", "RemoveOnStop=yes", "", "[Install]", "WantedBy=sockets.target",
+)
+# Schlüssel der Dienst-Einheit mit genau diesem Wert (V-4); dazu kein `[Install]`, kein `SupplementaryGroups=`, kein `Environment*`.
+VORGABE_DIENST_PFLICHT = {
+    "ExecStart": "/usr/lib/werkbank/werkbank-vorgabe", "User": VORGABE_KONTO, "Group": VORGABE_KONTO, "UMask": "0077",
+    "ReadWritePaths": "/etc/werkbank/vorgabe", "PrivateNetwork": "yes", "RestrictAddressFamilies": "AF_UNIX",
+    "CapabilityBoundingSet": "", "AmbientCapabilities": "", "NoNewPrivileges": "yes", "ProtectSystem": "strict", "IPAddressDeny": "any",
+}
+VORGABE_DIENST_VERBOTEN = ("SupplementaryGroups", "Environment", "EnvironmentFile", "PassEnvironment", "ProtectProc", "BindPaths",
+                           "BindReadOnlyPaths", "AmbientCapabilities=CAP")
+
+
+def vorgabe_konto_code(passwd, group):
+    """V-1 und V-2: `None` für ein Konto in der Form von Teil A3, `"fehlt"` ohne Konto und Gruppe, `"fremd"` (Code 25) für jede andere Lage.
+    `passwd` und `group` sind die Texte der beiden Dateien."""
+    p = [z for z in passwd.splitlines() if z.split(":")[0] == VORGABE_KONTO]
+    g = [z for z in group.splitlines() if z.split(":")[0] == VORGABE_KONTO]
+    if not p and not g:
+        return "fehlt"
+    if len(p) != 1 or len(g) != 1:
+        return "fremd"
+    pf, gf = p[0].split(":"), g[0].split(":")
+    if len(pf) != 7 or len(gf) != 4:
+        return "fremd"
+    def zahl(t):
+        return t.isdigit() and not t.startswith("0") and 100 <= int(t) <= 999
+    if not (zahl(pf[2]) and zahl(gf[2]) and pf[3] == gf[2] and pf[5] == "/nonexistent" and pf[6] == "/usr/sbin/nologin" and gf[3] == ""):
+        return "fremd"
+    return None
+
+
+def vorgabe_einheit_code(socket_text, dienst_text):
+    """V-3 und V-4: `None`, wenn beide Einheiten die Form von Teil A3 haben; sonst der Name der ersten Abweichung."""
+    if tuple(socket_text.splitlines()) != VORGABE_SOCKET:
+        return "socket"
+    zeilen = dienst_text.splitlines()
+    if "[Install]" in zeilen:
+        return "install"
+    werte = {}
+    for z in zeilen:
+        if "=" in z and not z.startswith("#"):
+            k, _, v = z.partition("=")
+            if k in werte and k not in ("SystemCallFilter",):
+                return "doppelt:" + k
+            werte[k] = v
+    for k, v in VORGABE_DIENST_PFLICHT.items():
+        if werte.get(k) != v:
+            return "pflicht:" + k
+    for k in VORGABE_DIENST_VERBOTEN:
+        if any(z.startswith(k) for z in zeilen):
+            return "verboten:" + k
+    return None
+
+
+def vorgabe_inhalt(konto):
+    """Die Bytes der Firmenvorgabe mit dem ersten Admin: JSON mit sortierten Schlüsseln, Einzug 1 und einem Zeilenende."""
+    return (json.dumps(dict(VORGABE_VORLAGE, admins=[konto]), ensure_ascii=False, indent=1, sort_keys=True) + "\n").encode("utf-8")
+
+
+def vorgabe_erstausstattung(fall):
+    """`postinst` Schritt 2e (Teil A3, „Erstausstattung“ und „Erster Admin“). `fall` nennt:
+    `ordner` (`None`: fehlt; sonst `{"art": "ordner"|"verweis", "eigner_helfer": bool, "modus": int}`), `eintrag` (`None` oder die Art des
+    vorhandenen Eintrags unter dem Namen: `datei`, `verweis` usw.), `sudo_user`, `uid_von` (Name zu uid, wie `id -u`), `name_von` (uid zu
+    Name, wie `getent passwd`), `vorlage` (der gelesene Inhalt) und `erscheint` (zwischen `lstat` und dem Verlinken erscheint eine Datei).
+    Gibt `{"datei": <bytes oder "unveraendert" oder None>, "journal": [...]}` zurück; ein Konto steht nie im Journal."""
+    o = fall.get("ordner")
+    if o is not None and not (o["art"] == "ordner" and o["eigner_helfer"] and o["modus"] == 0o755):
+        return {"datei": "unveraendert" if fall.get("eintrag") else None, "journal": [VORGABE_ZEILE_26]}
+    if fall.get("eintrag") is not None:
+        return {"datei": "unveraendert", "journal": []}
+    konto = None
+    su = fall.get("sudo_user") or ""
+    uid = fall.get("uid_von", {}).get(su) if su else None
+    if isinstance(uid, int) and uid != 0:
+        name = fall.get("name_von", {}).get(uid)
+        if isinstance(name, str) and VORGABE_KONTOFORM.match(name):
+            konto = name
+    if konto is None:
+        return {"datei": None, "journal": [VORGABE_ZEILE_28]}
+    if fall.get("vorlage") != VORGABE_VORLAGE:
+        return {"datei": None, "journal": [VORGABE_ZEILE_26]}
+    if fall.get("erscheint"):
+        return {"datei": "unveraendert", "journal": [VORGABE_ZEILE_26]}
+    return {"datei": vorgabe_inhalt(konto), "journal": []}
+
+
+def vorgabe_purge(fall):
+    """`postrm purge` Teil A3, Schritt 3 und 4 (Weg a): `fall` mit `findmnt_fehler`, `punkte` (je `{"typ", "treffer": bool, "find_fehler": bool}`)
+    und `prozesse` (bool). Gibt `{"konto_bleibt": bool, "journal": [...]}` zurück."""
+    rest = bool(fall.get("findmnt_fehler")) or bool(fall.get("prozesse"))
+    for p in fall.get("punkte", []):
+        if p["typ"] in MOUNT_AUSGENOMMEN:
+            continue
+        if p["typ"] not in MOUNT_DURCHSUCHT or p.get("treffer") or p.get("find_fehler"):
+            rest = True
+    return {"konto_bleibt": rest, "journal": [VORGABE_ZEILE_27] if rest else []}
+
+
+def vorgabe_block_code(text):
+    """V-17: der Block `# --- firmenvorgabe begin/end` von `postinst`. `None`, wenn er kein `rename`/`os.replace`/`mv` nutzt, nicht ohne
+    Schutz vor dem Überschreiben verlinkt (`os.link` mit `O_EXCL` der Temp-Datei), `firmenvorgabe.json` nie öffnet oder liest und das Konto nur
+    aus `id -u` und `getent passwd` holt; sonst der Name des Verstoßes."""
+    if re.search(r"\brename|os\.replace|\bmv\b|\bln\b", text):
+        return "ueberschreiben"
+    if "os.link(" not in text or "os.O_EXCL" not in text or "follow_symlinks=False" not in text:
+        return "verlinken"
+    if re.search(r"(open|cat|head|read|json\.load)\([^)]*firmenvorgabe\.json|(cat|head|grep|sed)\s+[^\n]*firmenvorgabe\.json", text):
+        return "lesen"
+    if re.search(r"open\(\s*name|os\.open\(\s*name", text):
+        return "lesen"
+    if 'id -u "$SUDO_USER"' not in text or 'getent passwd "$vg_kuid"' not in text or "$SUDO_USER" in text.replace('id -u "$SUDO_USER"', "").replace('"${SUDO_USER:-}"', ""):
+        return "konto"
+    return None

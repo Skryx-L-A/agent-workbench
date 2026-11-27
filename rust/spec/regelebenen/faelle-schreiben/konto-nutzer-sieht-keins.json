@@ -20,6 +20,12 @@
    ]
   }
  },
+ "konten": {
+  "konto-admin": 1001,
+  "konto-admin-zwei": 1002,
+  "konto-nutzer": 1003,
+  "konto-nutzer-zwei": 1004
+ },
  "zuordnung": {
   "konto-admin": "ps_00000000000000000000000000000b01",
   "konto-admin-zwei": "ps_00000000000000000000000000000b02",
@@ -28,7 +34,7 @@
  },
  "firmenvorgabe": {
   "art": "datei",
-  "eigentuemer": "root",
+  "eigentuemer": "werkbank-vorgabe",
   "modus": "0644",
   "inhalt": {
    "admins": [
@@ -51,18 +57,23 @@
  },
  "ordner": {
   "art": "ordner",
+  "eigentuemer": "werkbank-vorgabe",
+  "modus": "0755"
+ },
+ "eltern": {
+  "art": "ordner",
   "eigentuemer": "root",
   "modus": "0755"
  },
  "schritte": [
   {
    "nachricht": {
-    "partner": "konto-nutzer"
+    "partner": 1003
    }
   },
   {
    "nachricht": {
-    "partner": "konto-nutzer-zwei"
+    "partner": 1004
    }
   }
  ]

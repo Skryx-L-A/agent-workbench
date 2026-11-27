@@ -1,0 +1,39 @@
+[Unit]
+Description=Werkbank: Schreibhelfer der Firmenvorgabe
+Requires=werkbank-vorgabe.socket
+After=werkbank-vorgabe.socket
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/werkbank/werkbank-vorgabe
+User=werkbank-vorgabe
+Group=werkbank-vorgabe
+UMask=0077
+Restart=on-failure
+RestartPreventExitStatus=64 78
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ReadWritePaths=/etc/werkbank/vorgabe
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+IPAddressDeny=any
+RestrictAddressFamilies=AF_UNIX
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+RemoveIPC=yes

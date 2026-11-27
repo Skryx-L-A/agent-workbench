@@ -179,6 +179,8 @@ pub(crate) enum AnfrageZustand {
     Offen,
     /// Granted.
     Erteilt,
+    /// Refused (R-L6).
+    Abgelehnt,
     /// Run out.
     Abgelaufen,
 }
@@ -189,6 +191,7 @@ impl AnfrageZustand {
         match self {
             Self::Offen => "offen",
             Self::Erteilt => "erteilt",
+            Self::Abgelehnt => "abgelehnt",
             Self::Abgelaufen => "abgelaufen",
         }
     }
@@ -208,6 +211,8 @@ pub(crate) struct Anfrage {
     pub frist: i64,
     /// State.
     pub zustand: AnfrageZustand,
+    /// The reason of a refusal (R-L6), if one was given.
+    pub begruendung: Option<String>,
     /// The timer that lets it run out.
     pub timer: Option<Handle>,
 }
@@ -508,8 +513,9 @@ impl Kern {
             .iter()
             .filter_map(|(wid, w)| w.stand.as_ref().map(|st| (wid, w, st)))
             .filter(|(_, w, _)| self.raum_des_workers(w) == Some(raum))
-            .map(|(wid, _, st)| {
-                json!({"worker": wid, "zustand": st.zustand, "gesehen_um": st.gesehen_um, "quelle": st.quelle})
+            .map(|(wid, w, st)| {
+                json!({"worker": wid, "sitzung": w.sitzung, "zustand": st.zustand, "gesehen_um": st.gesehen_um,
+                    "quelle": st.quelle})
             })
             .collect();
         Value::Array(liste)
@@ -847,9 +853,12 @@ impl Kern {
             return;
         };
         let bild = Self::anfrage_bild(a);
-        let nachricht = json!({"t": self.t, "art": "Anfrage", "id": bild["id"], "sitzung": bild["sitzung"],
+        let mut nachricht = json!({"t": self.t, "art": "Anfrage", "id": bild["id"], "sitzung": bild["sitzung"],
             "werkzeug": bild["werkzeug"], "vorschau": bild["vorschau"], "frist": bild["frist"],
             "zustand": bild["zustand"]});
+        if let (Some(grund), Some(m)) = (a.begruendung.as_ref(), nachricht.as_object_mut()) {
+            m.insert("begruendung".to_owned(), json!(grund));
+        }
         let ziele = self.im_raum(&raum);
         self.an_alle(&ziele, &nachricht);
     }

@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use serde_json::Value;
+use serde_json::{Map, Value};
 use zustandskern::Sitzungskern;
 
 use crate::fehler::StartFehler;
@@ -74,6 +74,11 @@ pub struct Lauf {
     pub rahmen_max: usize,
     /// The most ended sessions in the list; [`BEENDET_MAX`] unless the start file lowers it (test mode only).
     pub beendet_max: usize,
+    /// The file of the Bestand (optional, absolute path, Nachtrag 26.11.2026, DI-L5 point 3): the list of the sessions across a restart.
+    pub bestand: Option<String>,
+    /// The folder of the conversations of the harnesses (optional, absolute path, Nachtrag 27.11.2026, DI-E4 point 2 and DI12 point 15):
+    /// `Loeschen` removes `<gespraeche>/<kennung>`, and a number whose entry `<gespraeche>/s-<n>` exists is not handed out again.
+    pub gespraeche: Option<String>,
 }
 
 /// What the start file says, checked.
@@ -303,6 +308,20 @@ fn lauf_pfad(wert: Option<&Value>) -> Option<String> {
     t.starts_with('/').then(|| t.to_owned())
 }
 
+/// An optional path of the key `lauf`: missing gives `None`, otherwise it must be a path of [`lauf_pfad`].
+fn lauf_pfad_wahl(
+    karte: &Map<String, Value>,
+    schluessel: &str,
+) -> Result<Option<String>, StartFehler> {
+    match karte.get(schluessel) {
+        None => Ok(None),
+        Some(w) => match lauf_pfad(Some(w)) {
+            Some(p) => Ok(Some(p)),
+            None => ungueltig(&format!("lauf.{schluessel} muss ein absoluter Pfad sein")),
+        },
+    }
+}
+
 /// The key `lauf` (DI12): exactly `programm`, `env`, `groesse`, `einstellungen`; `nummer_max`, `rahmen_max` and `beendet_max` only in test mode.
 fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
     let Some(karte) = wert.as_object() else {
@@ -320,6 +339,8 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
                 "laufzeit",
                 "marker_datei",
                 "marker_ordner",
+                "bestand",
+                "gespraeche",
             ]
             .contains(&k.as_str())
     }) || !pflicht.iter().all(|k| karte.contains_key(*k))
@@ -332,41 +353,13 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
     let Some(einstellungen) = lauf_pfad(karte.get("einstellungen")) else {
         return ungueltig("lauf.einstellungen muss ein absoluter Pfad sein");
     };
-    let sitzungen = match karte.get("sitzungen") {
-        None => None,
-        Some(w) => match lauf_pfad(Some(w)) {
-            Some(p) => Some(p),
-            None => return ungueltig("lauf.sitzungen muss ein absoluter Pfad sein"),
-        },
-    };
-    let ziellisten = match karte.get("ziellisten") {
-        None => None,
-        Some(w) => match lauf_pfad(Some(w)) {
-            Some(p) => Some(p),
-            None => return ungueltig("lauf.ziellisten muss ein absoluter Pfad sein"),
-        },
-    };
-    let laufzeit = match karte.get("laufzeit") {
-        None => None,
-        Some(w) => match lauf_pfad(Some(w)) {
-            Some(p) => Some(p),
-            None => return ungueltig("lauf.laufzeit muss ein absoluter Pfad sein"),
-        },
-    };
-    let marker_datei = match karte.get("marker_datei") {
-        None => None,
-        Some(w) => match lauf_pfad(Some(w)) {
-            Some(p) => Some(p),
-            None => return ungueltig("lauf.marker_datei muss ein absoluter Pfad sein"),
-        },
-    };
-    let marker_ordner = match karte.get("marker_ordner") {
-        None => None,
-        Some(w) => match lauf_pfad(Some(w)) {
-            Some(p) => Some(p),
-            None => return ungueltig("lauf.marker_ordner muss ein absoluter Pfad sein"),
-        },
-    };
+    let sitzungen = lauf_pfad_wahl(karte, "sitzungen")?;
+    let ziellisten = lauf_pfad_wahl(karte, "ziellisten")?;
+    let laufzeit = lauf_pfad_wahl(karte, "laufzeit")?;
+    let marker_datei = lauf_pfad_wahl(karte, "marker_datei")?;
+    let marker_ordner = lauf_pfad_wahl(karte, "marker_ordner")?;
+    let bestand = lauf_pfad_wahl(karte, "bestand")?;
+    let gespraeche = lauf_pfad_wahl(karte, "gespraeche")?;
     let Some(env) = env_ok(&karte["env"]) else {
         return ungueltig("lauf.env");
     };
@@ -403,6 +396,8 @@ fn lauf_lesen(wert: &Value, pruefmodus: bool) -> Result<Lauf, StartFehler> {
         nummer_max,
         rahmen_max,
         beendet_max,
+        bestand,
+        gespraeche,
     })
 }
 
@@ -617,7 +612,7 @@ mod tests {
         })
     }
 
-    fn mit(f: impl FnOnce(&mut serde_json::Map<String, Value>)) -> Result<Startdatei, StartFehler> {
+    fn mit(f: impl FnOnce(&mut Map<String, Value>)) -> Result<Startdatei, StartFehler> {
         let mut v = gut();
         if let Some(o) = v.as_object_mut() {
             f(o);
@@ -822,8 +817,7 @@ mod tests {
         rot(&e(json!({"A": "b\u{0}"})));
         rot(&e(json!({"A": 1})));
         rot(&e(json!([])));
-        let genau: serde_json::Map<String, Value> =
-            (0..256).map(|i| (format!("V{i}"), json!("x"))).collect();
+        let genau: Map<String, Value> = (0..256).map(|i| (format!("V{i}"), json!("x"))).collect();
         assert!(e(Value::Object(genau.clone())).is_ok());
         let mut zu_viel = genau;
         zu_viel.insert("V256".into(), json!("x"));
@@ -1034,9 +1028,7 @@ mod tests {
     }
 
     /// A start file with `lauf` and without `kind` and `groesse`.
-    fn ohne_kind(
-        f: impl FnOnce(&mut serde_json::Map<String, Value>),
-    ) -> Result<Startdatei, StartFehler> {
+    fn ohne_kind(f: impl FnOnce(&mut Map<String, Value>)) -> Result<Startdatei, StartFehler> {
         mit(|o| {
             o.remove("kind");
             o.remove("groesse");

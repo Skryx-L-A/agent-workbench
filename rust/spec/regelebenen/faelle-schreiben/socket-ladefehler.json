@@ -1,0 +1,89 @@
+{
+ "name": "socket-ladefehler",
+ "anforderungen": [
+  "A05"
+ ],
+ "beschreibung": "die gültige Datei hat nicht die Form (Kontenliste kein Feld aus Konten); ohne lesbare Kontenliste ist niemand Admin",
+ "firma": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  }
+ },
+ "konten": {
+  "konto-admin": 1001,
+  "konto-admin-zwei": 1002,
+  "konto-nutzer": 1003,
+  "konto-nutzer-zwei": 1004
+ },
+ "zuordnung": {
+  "konto-admin": "ps_00000000000000000000000000000b01",
+  "konto-admin-zwei": "ps_00000000000000000000000000000b02",
+  "konto-nutzer": "ps_00000000000000000000000000000c01",
+  "konto-nutzer-zwei": "ps_00000000000000000000000000000c02"
+ },
+ "firmenvorgabe": {
+  "art": "datei",
+  "eigentuemer": "werkbank-vorgabe",
+  "modus": "0644",
+  "inhalt": {
+   "admins": "konto-admin",
+   "leseklassen": []
+  }
+ },
+ "ordner": {
+  "art": "ordner",
+  "eigentuemer": "werkbank-vorgabe",
+  "modus": "0755"
+ },
+ "eltern": {
+  "art": "ordner",
+  "eigentuemer": "root",
+  "modus": "0755"
+ },
+ "schritte": [
+  {
+   "anfrage": {
+    "partner": 1001,
+    "anfrage": {
+     "art": "Ersetzen",
+     "fassung": 1,
+     "basis": "febe7816e121c7930dde5e62967de0d1ad41755111df8f0942676879020a3ab2",
+     "inhalt": {
+      "admins": [
+       "konto-admin",
+       "konto-admin-zwei"
+      ],
+      "leseklassen": [
+       {
+        "ebene": "gruppe",
+        "wer": "g-eins",
+        "klasse": "intern"
+       },
+       {
+        "ebene": "nutzer",
+        "wer": "konto-nutzer",
+        "klasse": "kundendaten"
+       },
+       {
+        "ebene": "nutzer",
+        "wer": "konto-nutzer-zwei",
+        "klasse": "oeffentlich"
+       }
+      ]
+     }
+    },
+    "fehler": []
+   }
+  }
+ ]
+}

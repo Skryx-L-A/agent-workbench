@@ -252,6 +252,8 @@ pub struct Probe {
     empfang: Empfang,
     pub nachrichten: Vec<Value>,
     pub ablehnungen: Vec<String>,
+    /// The whole payload of every refusal, in order (with `code` and `text` where the service gives them).
+    pub ablehnungen_voll: Vec<Value>,
     pub fehler: Vec<String>,
     pub zeilen: Vec<String>,
     pub zustaende: Vec<Value>,
@@ -291,6 +293,7 @@ impl Probe {
             empfang: Empfang::neu(deflate),
             nachrichten: Vec::new(),
             ablehnungen: Vec::new(),
+            ablehnungen_voll: Vec::new(),
             fehler: Vec::new(),
             zeilen: Vec::new(),
             zustaende: Vec::new(),
@@ -402,9 +405,11 @@ impl Probe {
                     let wert: Value = serde_json::from_slice(&nutzlast).unwrap_or(Value::Null);
                     match art {
                         0x06 => self.nachrichten.push(wert),
-                        0x07 => self
-                            .ablehnungen
-                            .push(wert["grund"].as_str().unwrap_or("").to_owned()),
+                        0x07 => {
+                            self.ablehnungen
+                                .push(wert["grund"].as_str().unwrap_or("").to_owned());
+                            self.ablehnungen_voll.push(wert);
+                        }
                         0x08 => self
                             .fehler
                             .push(wert["fehler"].as_str().unwrap_or("").to_owned()),

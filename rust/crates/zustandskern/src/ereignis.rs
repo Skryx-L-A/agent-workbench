@@ -29,6 +29,28 @@ enum Eingabe {
     Antwort,
 }
 
+/// The form of `begruendung` (R-L6 point 2): a text, only with a refusal, 1 to 500 scalar values, no control character.
+fn begruendung_pruefen(
+    e: &Map<String, Value>,
+    ablehnen: bool,
+) -> Result<Option<String>, Abgelehnt> {
+    let Some(wert) = e.get("begruendung") else {
+        return Ok(None);
+    };
+    let grund = wert.as_str().ok_or(UNGUELTIG)?;
+    if !ablehnen {
+        return Err(Abgelehnt("begruendung_nur_bei_ablehnen"));
+    }
+    let steuer = |c: char| c < '\u{20}' || ('\u{7f}'..='\u{9f}').contains(&c);
+    if grund.is_empty() || grund.chars().count() > BEGRUENDUNG_MAX || grund.chars().any(steuer) {
+        return Err(Abgelehnt("begruendung_ungueltig"));
+    }
+    Ok(Some(grund.to_owned()))
+}
+
+/// The longest reason of a refusal in Unicode scalar values (R-L6 point 2).
+const BEGRUENDUNG_MAX: usize = 500;
+
 impl Kern {
     /// Runs one event. A rejection leaves the state as it was, except where a rule names a notice.
     pub(crate) fn ereignis(&mut self, e: &Map<String, Value>) -> Ergebnis {
@@ -57,6 +79,7 @@ impl Kern {
             Some("Anfrage") => self.e_anfrage(e),
             Some("Nachweis") => self.e_nachweis(e),
             Some("Freigabe") => self.e_freigabe(e),
+            Some("AnfrageStand") => self.e_anfrage_stand(e),
             Some("RouteWaehlen") => self.e_route_waehlen(e),
             Some("AgentAbfrage") => self.e_agent_abfrage(e),
             Some("Nachricht") => self.e_nachricht(e),
@@ -611,6 +634,7 @@ impl Kern {
                     } else {
                         AnfrageZustand::Offen
                     },
+                    begruendung: None,
                     timer,
                 },
             );
@@ -648,6 +672,13 @@ impl Kern {
             .map(Value::as_str)
             .collect::<Option<_>>()
             .ok_or(UNGUELTIG)?;
+        let ablehnen = match e.get("entscheidung") {
+            None => false,
+            Some(Value::String(w)) if w == "erteilen" => false,
+            Some(Value::String(w)) if w == "ablehnen" => true,
+            Some(_) => return Err(UNGUELTIG),
+        };
+        let begruendung = begruendung_pruefen(e, ablehnen)?;
         let [aid] = ids.as_slice() else {
             return Err(Abgelehnt("sammelfreigabe"));
         };
@@ -683,25 +714,70 @@ impl Kern {
         }
         match a.zustand {
             AnfrageZustand::Abgelaufen => return Err(Abgelehnt("abgelaufen")),
-            AnfrageZustand::Erteilt => return Err(Abgelehnt("nicht_offen")),
+            AnfrageZustand::Erteilt | AnfrageZustand::Abgelehnt => {
+                return Err(Abgelehnt("nicht_offen"));
+            }
             AnfrageZustand::Offen => {}
         }
-        let timer = a.timer;
         if let Some(n) = self.nachweise.get_mut(nid) {
             n.benutzt = true;
         }
-        if let Some(a) = self.anfragen.get_mut(*aid) {
-            a.zustand = AnfrageZustand::Erteilt;
-            a.timer = None;
+        let mut eintrag = json!({"t": self.t, "anfrage": aid, "person": pid, "nachweis": nid});
+        let zustand = if ablehnen {
+            if let Some(m) = eintrag.as_object_mut() {
+                m.insert("entscheidung".to_owned(), json!("ablehnen"));
+                if let Some(grund) = &begruendung {
+                    m.insert("begruendung".to_owned(), json!(grund));
+                }
+            }
+            AnfrageZustand::Abgelehnt
+        } else {
+            AnfrageZustand::Erteilt
+        };
+        self.anfrage_schliessen(aid, zustand, begruendung);
+        self.aus.an_stelle.push(eintrag);
+        self.anfrage_melden(aid);
+        Ok(())
+    }
+
+    /// The decision of the decision point (R-L6 point 6): no proof is used, `an_stelle` stays empty.
+    fn e_anfrage_stand(&mut self, e: &Map<String, Value>) -> Ergebnis {
+        let zustand = match text(e, "zustand") {
+            Some("erteilt") => AnfrageZustand::Erteilt,
+            Some("abgelehnt") => AnfrageZustand::Abgelehnt,
+            Some("abgelaufen") => AnfrageZustand::Abgelaufen,
+            _ => return Err(UNGUELTIG),
+        };
+        let aid = text(e, "id").ok_or(UNGUELTIG)?;
+        let begruendung = begruendung_pruefen(e, zustand == AnfrageZustand::Abgelehnt)?;
+        let a = self
+            .anfragen
+            .get(aid)
+            .ok_or(Abgelehnt("anfrage_unbekannt"))?;
+        if a.zustand != AnfrageZustand::Offen {
+            return Err(Abgelehnt("nicht_offen"));
+        }
+        self.anfrage_schliessen(aid, zustand, begruendung);
+        self.anfrage_melden(aid);
+        Ok(())
+    }
+
+    /// Ends an open request: the new state, the reason, no timer any more.
+    fn anfrage_schliessen(
+        &mut self,
+        aid: &str,
+        zustand: AnfrageZustand,
+        begruendung: Option<String>,
+    ) {
+        let mut timer = None;
+        if let Some(a) = self.anfragen.get_mut(aid) {
+            a.zustand = zustand;
+            a.begruendung = begruendung;
+            timer = a.timer.take();
         }
         if let Some(handle) = timer {
             self.timer.remove(&handle);
         }
-        self.aus
-            .an_stelle
-            .push(json!({"t": self.t, "anfrage": aid, "person": pid, "nachweis": nid}));
-        self.anfrage_melden(aid);
-        Ok(())
     }
 
     // ---------- routes ----------
@@ -756,8 +832,9 @@ impl Kern {
             gesehen_um: self.t,
             quelle: e.get("quelle").cloned().unwrap_or(Value::Null),
         };
-        let nachricht = json!({"t": self.t, "art": "Agentenzustand", "worker": wid, "zustand": stand.zustand,
-            "gesehen_um": stand.gesehen_um, "quelle": stand.quelle});
+        let sitzung = self.worker.get(wid).map(|w| w.sitzung.clone());
+        let nachricht = json!({"t": self.t, "art": "Agentenzustand", "worker": wid, "sitzung": sitzung,
+            "zustand": stand.zustand, "gesehen_um": stand.gesehen_um, "quelle": stand.quelle});
         let Some(w) = self.worker.get_mut(wid) else {
             return Ok(());
         };

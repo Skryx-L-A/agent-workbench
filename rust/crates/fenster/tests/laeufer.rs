@@ -24,6 +24,8 @@ struct Lauf {
     fokus: Option<NodeId>,
     gesehen: BTreeSet<String>,
     verboten: Vec<String>,
+    /// Ids Bnn on nodes the platform adapters of AccessKit drop (generic container, text run, hidden).
+    unsichtbar: BTreeSet<String>,
 }
 
 impl Lauf {
@@ -43,6 +45,7 @@ impl Lauf {
             fokus: None,
             gesehen: BTreeSet::new(),
             verboten: Vec::new(),
+            unsichtbar: BTreeSet::new(),
         };
         l.bilder(3);
         l
@@ -69,6 +72,10 @@ impl Lauf {
                 && a.len() == 3
                 && a.starts_with('B')
             {
+                // accesskit_consumer (filters.rs, common_filter) excludes these nodes from AT-SPI and UI Automation
+                if matches!(n.role(), Role::GenericContainer | Role::TextRun) || n.is_hidden() {
+                    self.unsichtbar.insert(a.to_owned());
+                }
                 match bedienwege::finde(a) {
                     Some(b) if b.umfang == Umfang::P => {
                         self.gesehen.insert(a.to_owned());
@@ -299,6 +306,7 @@ fn heute_abfahren() -> Lauf {
     let leer = Lauf::neu(Form::Heute, |g| g.borrow_mut().nur_beendete());
     l.gesehen.extend(leer.gesehen);
     l.verboten.extend(leer.verboten);
+    l.unsichtbar.extend(leer.unsichtbar);
     l
 }
 
@@ -315,6 +323,11 @@ fn the_target_state_shows_every_built_pilot_path_and_nothing_else() {
     let l = ziel_abfahren();
     let (fehlend, ueberzaehlig) = abgleich(&l.gesehen, &bedienwege::alle_sichtbaren(Luecken::ALLE));
     assert!(
+        l.unsichtbar.is_empty(),
+        "Kennungen auf Knoten, die AT-SPI und UI Automation nicht zeigen: {:?}",
+        l.unsichtbar
+    );
+    assert!(
         l.verboten.is_empty(),
         "Kennungen mit Umfang N oder E im Baum: {:?}",
         l.verboten
@@ -330,6 +343,11 @@ fn today_the_paths_without_a_gap_and_the_base_forms_show() {
     let l = heute_abfahren();
     let (fehlend, ueberzaehlig) =
         abgleich(&l.gesehen, &bedienwege::alle_sichtbaren(Luecken::KEINE));
+    assert!(
+        l.unsichtbar.is_empty(),
+        "Kennungen auf Knoten, die AT-SPI und UI Automation nicht zeigen: {:?}",
+        l.unsichtbar
+    );
     assert!(
         l.verboten.is_empty(),
         "Kennungen mit Umfang N oder E im Baum: {:?}",

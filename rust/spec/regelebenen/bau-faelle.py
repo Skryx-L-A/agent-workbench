@@ -1316,6 +1316,20 @@ fall_s("leseklassen-sicht-nutzer", ["A05", "A12", "E3"],
         (1, feld(_L, "wert"), [LE("gruppe", "g-zwei", "intern")]),
         (2, feld(_L, "wert"), [LE("nutzer", W, "kundendaten")]),
         (3, feld(_L, "aenderbar"), True), (3, lambda e: len(e["einstellungen"][_L]["wert"]), 4)])
+# Fehlende Firmenvorgabe (Entscheid des Betreibers, 27.11.2026; schließt OPEN 30): ohne Datei lädt der Lader keine Admins und
+# eine leere leseklassen. Die Regeln der Firma gelten weiter; jede Änderung eines Admins lehnt setzen ab.
+_STAND_OHNE_VORGABE = dict(stand_lauf(firma={"effort.grenzen": GRENZEN, _L: []}), admins=[])
+fall_s("ohne-firmenvorgabe-keine-admins", ["A05", "E1"],
+       "die Firmenvorgabe fehlt: niemand ist Admin, und setzen lehnt jede Änderung der Firmenebene und einer Gruppe mit "
+       "ebenen.nicht_befugt ab, auch für ein Konto, das vorher Admin war; die Regeln der Firma gelten weiter, ein Nutzer "
+       "setzt seine Nutzerebene, und leseklassen bleibt leer",
+       _STAND_OHNE_VORGABE,
+       [S(ADM, "admin", "firma", _L, [LE("nutzer", U, "intern")]), S(ADM, "admin", "firma", "effort.grenzen", []),
+        S(ADM, "admin", "gruppe g-eins", "optionen.herabstufen", True), S(U, "nutzer", "nutzer", "aussehen.thema", "hell"),
+        SI(U), SI(ADM)],
+       [(0, code, "ebenen.nicht_befugt"), (1, code, "ebenen.nicht_befugt"), (2, code, "ebenen.nicht_befugt"),
+        (3, angenommen, True), (4, feld("effort.grenzen", "wert"), GRENZEN), (4, feld("effort.grenzen", "herkunft"), "firma"),
+        (4, feld(_L, "wert"), []), (5, feld(_L, "aenderbar"), False), (5, feld("aussehen.thema", "wert"), "system")])
 
 
 def bauen_setzen():
@@ -1334,13 +1348,19 @@ def bauen_setzen():
 
 
 # --- Schreibweg der Firmenvorgabe und Konto in der Ansicht der Admins (Entscheid des Betreibers, 27.11.2026) ----------
-# README Abschnitte 15.12 und 15.13. Die Referenz beschreibt Pflichten des Dienstes, keine Funktion von regelebenen.
-# Die Fälle stehen in faelle-schreiben/ und erwartet-schreiben/. Konten sind Platzhalter der Form konto-*.
+# README Abschnitte 15.12 und 15.13. Die Referenz beschreibt Pflichten des Dienstes und des Schreibhelfers, keine Funktion
+# von regelebenen. Die Fälle stehen in faelle-schreiben/ und erwartet-schreiben/. Konten sind Platzhalter der Form konto-*,
+# uids sind Beispielzahlen. Der Helfer läuft unter dem Systemnutzer HELFER (rust/spec/paket/README.md, Teil A3).
+HELFER = "werkbank-vorgabe"
 UNSICHER = 0o022  # Schreibrecht für Gruppe oder andere
+GRENZE_ANFRAGE = 1048576  # Bytes einer Anfrage, höchstens
 SCHRITTE_SCHREIBEN = ("temp", "fsync", "rename", "ordner_fsync")
-FEHLER_EIN = {"fremd_geaendert", "rueckweg"} | set(SCHRITTE_SCHREIBEN)
+FEHLER_HELFER = {"eingeschlossen", "zu_gross", "frist", "rueckweg"} | set(SCHRITTE_SCHREIBEN)
+FEHLER_DIENST = {"fremd_geaendert", "helfer_weg", "antwort_fehlt"}
 CODE_SCHRITT = {"temp": "firmenvorgabe.temp_fehlgeschlagen", "fsync": "firmenvorgabe.fsync_fehlgeschlagen",
                 "rename": "firmenvorgabe.rename_fehlgeschlagen", "ordner_fsync": "firmenvorgabe.ordner_fsync_fehlgeschlagen"}
+KONTO_FORM = re.compile(r"^[a-z_][a-z0-9_-]*$")
+HEX64_W = re.compile(r"^[0-9a-f]{64}$")
 
 
 def bytes_der(inhalt):
@@ -1351,9 +1371,70 @@ def sha(inhalt):
     return hashlib.sha256(bytes_der(inhalt)).hexdigest()
 
 
-def sicher(ort):
-    # Regulär (kein Verweis), Eigentümer root, kein Schreibrecht für Gruppe oder andere.
-    return ort.get("art", "datei") in ("datei", "ordner") and ort["eigentuemer"] == "root" and int(ort["modus"], 8) & UNSICHER == 0
+def sicher(ort, eigentuemer):
+    # Regulär (kein Verweis), der verlangte Eigentümer, kein Schreibrecht für Gruppe oder andere.
+    return ort.get("art") in ("datei", "ordner") and ort["eigentuemer"] == eigentuemer and int(ort["modus"], 8) & UNSICHER == 0
+
+
+def form_vorgabe(inhalt):
+    # Form der Firmenvorgabe, soweit der Helfer sie prüft (15.12, Stufe H4 und H8): Kontenliste und leseklassen.
+    # Klassen und Gruppen prüft der Helfer nicht; das tut setzen im Dienst.
+    if not isinstance(inhalt, dict) or not {"admins", "leseklassen"} <= set(inhalt):
+        return False
+    a, l = inhalt["admins"], inhalt["leseklassen"]
+    if not isinstance(a, list) or not all(isinstance(k, str) and KONTO_FORM.match(k) for k in a) or len(set(a)) != len(a):
+        return False
+    if not isinstance(l, list) or len(l) > 4096:
+        return False
+    paare = set()
+    for e in l:
+        if not isinstance(e, dict) or set(e) != {"ebene", "wer", "klasse"} or not all(isinstance(v, str) for v in e.values()):
+            return False
+        if e["ebene"] not in ("nutzer", "gruppe") or (e["ebene"], e["wer"]) in paare:
+            return False
+        paare.add((e["ebene"], e["wer"]))
+    return True
+
+
+def helfer(zustand, partner, anfrage, fehler):
+    """Der Schreibhelfer: genau eine Anfrage, genau eine Antwort (README 15.12, Stufen H1 bis H12).
+
+    zustand hält datei, ordner, eltern und konten (Konto zu uid, wie getpwnam_r). partner ist die uid aus SO_PEERCRED
+    oder None. Gibt den Code zurück; None heißt: ersetzt. Ändert zustand["datei"] nur beim Ersetzen und bei zustand_unklar.
+    """
+    datei = zustand["datei"]
+    if partner is None or partner not in zustand["konten"].values():
+        return "firmenvorgabe.partner_unbekannt"                              # H1
+    if "eingeschlossen" in fehler:
+        return "firmenvorgabe.partner_eingeschlossen"                         # H2
+    if not (sicher(datei, HELFER) and sicher(zustand["ordner"], HELFER) and sicher(zustand["eltern"], "root")):
+        return "firmenvorgabe.datei_unsicher"                                 # H3
+    if not form_vorgabe(datei["inhalt"]):
+        return "firmenvorgabe.ladefehler"                                     # H4
+    admins = {zustand["konten"][k] for k in datei["inhalt"]["admins"] if k in zustand["konten"]}
+    if partner not in admins:
+        return "firmenvorgabe.partner_nicht_admin"                            # H5, gegen die gültige Datei
+    if "zu_gross" in fehler:
+        return "firmenvorgabe.anfrage_zu_gross"                               # H6
+    if "frist" in fehler:
+        return "firmenvorgabe.anfrage_frist"                                  # H7
+    if not (isinstance(anfrage, dict) and set(anfrage) == {"art", "fassung", "basis", "inhalt"}
+            and anfrage["art"] == "Ersetzen" and anfrage["fassung"] == 1
+            and isinstance(anfrage["basis"], str) and HEX64_W.match(anfrage["basis"]) and form_vorgabe(anfrage["inhalt"])):
+        return "firmenvorgabe.anfrage_ungueltig"                              # H8
+    if anfrage["basis"] != sha(datei["inhalt"]):
+        return "firmenvorgabe.veraltet"                                       # H9
+    neu = anfrage["inhalt"]
+    if {k: v for k, v in neu.items() if k != _L} != {k: v for k, v in datei["inhalt"].items() if k != _L}:
+        return "firmenvorgabe.ausser_leseklassen"                             # H10, auch die Kontenliste der Admins
+    for schritt in SCHRITTE_SCHREIBEN:                                        # H11 bis H12
+        if schritt in fehler:
+            if schritt == "ordner_fsync" and "rueckweg" in fehler:
+                datei["inhalt"] = copy.deepcopy(neu)  # der neue Inhalt steht ganz, nie ein Teil
+                return "firmenvorgabe.zustand_unklar"
+            return CODE_SCHRITT[schritt]
+    datei["inhalt"] = copy.deepcopy(neu)
+    return None
 
 
 def in_pseudonyme(liste, zuordnung):
@@ -1369,22 +1450,37 @@ def in_pseudonyme(liste, zuordnung):
     return aus
 
 
+def datei_erg(datei, vorher):
+    return {"datei": {"eigentuemer": datei["eigentuemer"], "modus": datei["modus"], "sha256": sha(datei["inhalt"]),
+                      "inhalt": copy.deepcopy(datei["inhalt"])},
+            "unveraendert": sha(datei["inhalt"]) == vorher, "temp_bleibt": False}
+
+
 def lauf_schreiben(fall):
     zu = fall["zuordnung"]
-    datei = copy.deepcopy(fall["firmenvorgabe"])
-    ordner = fall["ordner"]
+    zustand = {"datei": copy.deepcopy(fall["firmenvorgabe"]), "ordner": fall["ordner"], "eltern": fall["eltern"],
+               "konten": fall["konten"]}
+    datei = zustand["datei"]
+    konto_von = {u: k for k, u in fall["konten"].items()}
+    geladen = copy.deepcopy(datei["inhalt"])  # was der Dienst zuletzt geladen hat
+    gesperrt = False
 
     def stand_aus():
-        werte = {"firma": {"leseklassen": in_pseudonyme(datei["inhalt"]["leseklassen"], zu)}, "gruppen": {}, "nutzer": {}}
-        return {"klassen": fall["firma"]["klassen"], "admins": [zu[k] for k in datei["inhalt"]["admins"]],
+        werte = {"firma": {_L: in_pseudonyme(geladen[_L], zu)}, "gruppen": {}, "nutzer": {}}
+        return {"klassen": fall["firma"]["klassen"], "admins": [zu[k] for k in geladen["admins"]],
                 "gruppen": fall["firma"]["gruppen"], "werte": werte}
 
     zurueck = {p: k for k, p in zu.items()}
     erg = []
     for s in fall["schritte"]:
+        if "neuladen" in s:
+            # Der Dienst lädt die Firmenvorgabe neu; das hebt die Sperre nach zustand_unklar auf.
+            geladen, gesperrt = copy.deepcopy(datei["inhalt"]), False
+            erg.append({"geladen": sha(geladen), "gesperrt": gesperrt})
+            continue
         if "nachricht" in s:
             stand = stand_aus()
-            wer = zu[s["nachricht"]["partner"]]
+            wer = zu[konto_von[s["nachricht"]["partner"]]]
             admin = wer in stand["admins"]
             werte = sicht(stand, wer)["einstellungen"]
             if admin:
@@ -1393,174 +1489,265 @@ def lauf_schreiben(fall):
                                      for x in werte[_L]["wert"]]
             erg.append({"einstellungen": {"art": "Einstellungen", "fassung": 2, "admin": admin, "werte": werte}})
             continue
+        vorher = sha(datei["inhalt"])
+        if "anfrage" in s:
+            # Ein Prozess spricht den Socket des Helfers direkt an, ohne Dienst.
+            a = s["anfrage"]
+            code = helfer(zustand, a["partner"], a["anfrage"], set(a["fehler"]))
+            erg.append(dict({"antwort": {"code": code, "sha256": sha(datei["inhalt"]) if code is None else None}},
+                            **datei_erg(datei, vorher)))
+            continue
         a = s["schreiben"]
         fehler = set(a["fehler"])
-        vorher = sha(datei["inhalt"])
         stand = stand_aus()
-        wer = zu[a["partner"]]
+        wer = zu[konto_von[a["partner"]]]   # Stufe 0: uid des lokalen Wegs, dann Pseudonym über die Stelle
         wert_ps = in_pseudonyme(a["wert"], zu)
-        probe = copy.deepcopy(stand)
-        code = None
-        if wer not in stand["admins"]:
-            code = "ebenen.nicht_befugt"                        # Stufe 1, vor jedem Zugriff auf die Datei
+        if gesperrt:
+            code = "firmenvorgabe.zustand_unklar"                         # Sperre bis zum Neuladen
+        elif wer not in stand["admins"]:
+            code = "ebenen.nicht_befugt"                                  # Stufe 1, vor jedem Kontakt zum Helfer
         else:
-            p = setzen(probe, wer, "admin", "firma", _L, wert_ps)  # Stufe 2, auf einer Kopie des Stands
-            code = p["code"]
-        if code is None and not (sicher(datei) and sicher(ordner)):
-            code = "firmenvorgabe.datei_unsicher"               # Stufe 3
-        if code is None and "fremd_geaendert" in fehler:
-            code = "firmenvorgabe.veraltet"                     # Stufe 4
-        temp_bleibt = False
+            code = setzen(copy.deepcopy(stand), wer, "admin", "firma", _L, wert_ps)["code"]  # Stufe 2, auf einer Kopie
+        if code is None and "helfer_weg" in fehler:
+            code = "firmenvorgabe.helfer_nicht_erreichbar"                # Stufe 3, nichts gesendet
         if code is None:
-            for schritt in SCHRITTE_SCHREIBEN:                  # Stufen 5 bis 8
-                if schritt in fehler:
-                    code = CODE_SCHRITT[schritt]
-                    break
+            basis = sha(geladen) if "fremd_geaendert" not in fehler else sha({"veraltet": geladen})
+            anfrage = {"art": "Ersetzen", "fassung": 1, "basis": basis, "inhalt": dict(geladen, **{_L: copy.deepcopy(a["wert"])})}
+            code = helfer(zustand, a["partner"], anfrage, fehler & FEHLER_HELFER)  # Stufe 4: Code des Helfers unverändert
+            if "antwort_fehlt" in fehler:
+                code = "firmenvorgabe.zustand_unklar"                     # gesendet, aber keine Antwort: Ausgang unbekannt
             if code is None:
-                datei["inhalt"] = dict(datei["inhalt"], leseklassen=copy.deepcopy(a["wert"]))
-            elif code == CODE_SCHRITT["ordner_fsync"] and "rueckweg" in fehler:
-                # Rückweg gescheitert: der neue Inhalt steht, der Dienst sperrt (Stufe 8, zweiter Fehler).
-                code = "firmenvorgabe.zustand_unklar"
-                datei["inhalt"] = dict(datei["inhalt"], leseklassen=copy.deepcopy(a["wert"]))
-        alt = (True, stand["werte"]["firma"][_L])
-        zeile = zeile_setzen(wer, "firma", None, _L, alt, wert_ps, code)
-        erg.append({"angenommen": code is None, "code": code, "zeile": zeile,
-                    "datei": {"eigentuemer": datei["eigentuemer"], "modus": datei["modus"], "sha256": sha(datei["inhalt"]),
-                              "inhalt": copy.deepcopy(datei["inhalt"])},
-                    "unveraendert": sha(datei["inhalt"]) == vorher, "temp_bleibt": temp_bleibt})
+                geladen = copy.deepcopy(datei["inhalt"])
+            if code == "firmenvorgabe.zustand_unklar":
+                gesperrt = True
+        zeile = zeile_setzen(wer, "firma", None, _L, (True, stand["werte"]["firma"][_L]), wert_ps, code)
+        erg.append(dict({"angenommen": code is None, "code": code, "zeile": zeile}, **datei_erg(datei, vorher)))
     return {"schritte": erg}
 
 
 KA, KA2, KU, KV = "konto-admin", "konto-admin-zwei", "konto-nutzer", "konto-nutzer-zwei"
 ZU = {KA: ADM, KA2: ADM2, KU: U, KV: V}
+UID = {KA: 1001, KA2: 1002, KU: 1003, KV: 1004}
+UA, UA2, UU, UV = UID[KA], UID[KA2], UID[KU], UID[KV]
+UID_FREMD = 1999  # eine uid ohne Konto
 ALT_LISTE = [LE("gruppe", "g-eins", "intern"), LE("nutzer", KU, "oeffentlich")]
 NEU_LISTE = [LE("gruppe", "g-eins", "intern"), LE("nutzer", KU, "kundendaten"), LE("nutzer", KV, "oeffentlich")]
 
 
-def vorgabe(eigentuemer="root", modus="0644", art="datei", leseklassen=None):
-    return {"art": art, "eigentuemer": eigentuemer, "modus": modus,
-            "inhalt": {"admins": [KA, KA2], "leseklassen": copy.deepcopy(ALT_LISTE if leseklassen is None else leseklassen)}}
+def inhalt_alt(leseklassen=None, admins=None):
+    return {"admins": list(admins or [KA, KA2]), "leseklassen": copy.deepcopy(ALT_LISTE if leseklassen is None else leseklassen)}
+
+
+def vorgabe(eigentuemer=HELFER, modus="0644", art="datei", inhalt=None):
+    return {"art": art, "eigentuemer": eigentuemer, "modus": modus, "inhalt": inhalt or inhalt_alt()}
 
 
 def SW(partner, wert, *fehler):
     return {"schreiben": {"partner": partner, "wert": wert, "fehler": list(fehler)}}
 
 
+def AN(partner, inhalt, *fehler, basis=None, roh=None):
+    # Eine Anfrage direkt an den Socket des Helfers; roh ersetzt die ganze Anfrage (für Formfehler).
+    anfrage = roh if roh is not None else {"art": "Ersetzen", "fassung": 1, "basis": basis or SHA_ALT, "inhalt": inhalt}
+    return {"anfrage": {"partner": partner, "anfrage": anfrage, "fehler": list(fehler)}}
+
+
 def NA(partner):
     return {"nachricht": {"partner": partner}}
 
 
+NL = {"neuladen": {}}
 FAELLE_SCHREIBEN = []
+ORDNER = {"art": "ordner", "eigentuemer": HELFER, "modus": "0755"}
+ELTERN = {"art": "ordner", "eigentuemer": "root", "modus": "0755"}
 
 
-def fall_w(name, anforderungen, beschreibung, schritte, kern, datei=None, ordner=None):
+def fall_w(name, anforderungen, beschreibung, schritte, kern, datei=None, ordner=None, eltern=None):
     FAELLE_SCHREIBEN.append({"name": name, "anforderungen": anforderungen, "beschreibung": beschreibung,
                              "firma": {"klassen": ["oeffentlich", "intern", "kundendaten"], "gruppen": {"g-eins": [U], "g-zwei": [V]}},
-                             "zuordnung": ZU, "firmenvorgabe": datei or vorgabe(),
-                             "ordner": ordner or {"art": "ordner", "eigentuemer": "root", "modus": "0755"},
+                             "konten": UID, "zuordnung": ZU, "firmenvorgabe": datei or vorgabe(),
+                             "ordner": ordner or ORDNER, "eltern": eltern or ELTERN,
                              "schritte": schritte, "_kern": kern})
 
 
-SHA_ALT = sha(vorgabe()["inhalt"])
-SHA_NEU = sha(dict(vorgabe()["inhalt"], leseklassen=NEU_LISTE))
+SHA_ALT = sha(inhalt_alt())
+SHA_NEU = sha(inhalt_alt(NEU_LISTE))
 
 
 def unveraendert(e):
     return (e["unveraendert"], e["datei"]["sha256"])
 
 
+def antwort(e):
+    return e["antwort"]["code"]
+
+
+def unsicher(name, beschreibung, **ort):
+    fall_w(name, ["A05"], beschreibung, [SW(UA, NEU_LISTE)],
+           [(0, code, "firmenvorgabe.datei_unsicher"), (0, unveraendert, (True, SHA_ALT))], **ort)
+
+
+# Weg über die Ansicht: der Dienst prüft, ruft setzen und reicht die Datei an den Helfer.
 fall_w("schreiben-admin-erfolgreich", ["A05", "A27"],
-       "ein Admin ändert die Leseklassen aus der Ansicht; der Dienst prüft den Partner, ruft setzen und schreibt die "
-       "Firmenvorgabe atomar. Die Datei trägt Konten, die Zeile nur Pseudonyme",
-       [SW(KA, NEU_LISTE), NA(KA)],
+       "ein Admin ändert die Leseklassen aus der Ansicht; der Dienst prüft den Partner, ruft setzen und reicht die neue "
+       "Datei an den Helfer, der sie atomar ersetzt. Die Datei trägt Konten, die Zeile nur Pseudonyme",
+       [SW(UA, NEU_LISTE), NA(UA)],
        [(0, angenommen, True), (0, code, None), (0, lambda e: e["zeile"]["aktionsname"], "regel.geaendert"),
         (0, lambda e: e["datei"]["sha256"], SHA_NEU), (0, lambda e: e["datei"]["inhalt"]["leseklassen"], NEU_LISTE),
-        (0, lambda e: (e["datei"]["eigentuemer"], e["datei"]["modus"]), ("root", "0644")),
+        (0, lambda e: (e["datei"]["eigentuemer"], e["datei"]["modus"]), (HELFER, "0644")),
         (1, lambda e: e["einstellungen"]["werte"][_L]["wert"], NEU_LISTE)])
 fall_w("schreiben-nichtadmin", ["A05", "A27"],
-       "ein Nutzer, der kein Admin ist, schreibt die Leseklassen: abgelehnt vor jedem Zugriff auf die Datei, auch wenn er "
-       "sich selbst eintragen will; die Datei bleibt byte-gleich",
-       [SW(KU, NEU_LISTE), SW(KU, [LE("nutzer", KU, "kundendaten")])],
+       "ein Nutzer, der kein Admin ist, schreibt die Leseklassen aus der Ansicht: der Dienst lehnt ab, bevor er den Helfer "
+       "anspricht, auch wenn der Nutzer sich selbst eintragen will; die Datei bleibt byte-gleich",
+       [SW(UU, NEU_LISTE), SW(UU, [LE("nutzer", KU, "kundendaten")])],
        [(i, code, "ebenen.nicht_befugt") for i in range(2)]
        + [(i, unveraendert, (True, SHA_ALT)) for i in range(2)]
        + [(0, lambda e: e["zeile"]["aktionsname"], "regel.abgelehnt"), (0, lambda e: e["zeile"]["handelnd"], U)])
-fall_w("schreiben-datei-nicht-root", ["A05"],
-       "die Firmenvorgabe gehört nicht root; der Dienst schreibt nicht, die Datei bleibt byte-gleich",
-       [SW(KA, NEU_LISTE)],
-       [(0, code, "firmenvorgabe.datei_unsicher"), (0, unveraendert, (True, SHA_ALT))],
-       datei=vorgabe(eigentuemer="konto-nutzer"))
-fall_w("schreiben-datei-gruppe-schreibbar", ["A05"],
-       "die Firmenvorgabe ist für die Gruppe schreibbar (0664)",
-       [SW(KA, NEU_LISTE)],
-       [(0, code, "firmenvorgabe.datei_unsicher"), (0, unveraendert, (True, SHA_ALT))],
-       datei=vorgabe(modus="0664"))
-fall_w("schreiben-datei-andere-schreibbar", ["A05"],
-       "die Firmenvorgabe ist für andere schreibbar (0646)",
-       [SW(KA, NEU_LISTE)],
-       [(0, code, "firmenvorgabe.datei_unsicher"), (0, unveraendert, (True, SHA_ALT))],
-       datei=vorgabe(modus="0646"))
-fall_w("schreiben-datei-verweis", ["A05"],
-       "die Firmenvorgabe ist ein symbolischer Verweis; der Dienst folgt ihm nicht",
-       [SW(KA, NEU_LISTE)],
-       [(0, code, "firmenvorgabe.datei_unsicher"), (0, unveraendert, (True, SHA_ALT))],
-       datei=vorgabe(art="verweis"))
-fall_w("schreiben-ordner-schreibbar", ["A05"],
-       "der Ordner der Firmenvorgabe ist für andere schreibbar (0777); ein Fremder könnte die Datei ersetzen",
-       [SW(KA, NEU_LISTE)],
-       [(0, code, "firmenvorgabe.datei_unsicher"), (0, unveraendert, (True, SHA_ALT))],
-       ordner={"art": "ordner", "eigentuemer": "root", "modus": "0777"})
+unsicher("schreiben-datei-fremder-eigentuemer", "die Firmenvorgabe gehört einem Nutzerkonto, nicht dem Helfernutzer; "
+         "der Helfer schreibt nicht, die Datei bleibt byte-gleich", datei=vorgabe(eigentuemer=KU))
+unsicher("schreiben-datei-root-eigen", "die Firmenvorgabe gehört root, etwa nach einer Änderung von Hand ohne chown; "
+         "der Helfer schreibt nicht, bis die IT den Eigentümer zurücksetzt", datei=vorgabe(eigentuemer="root"))
+unsicher("schreiben-datei-gruppe-schreibbar", "die Firmenvorgabe ist für die Gruppe schreibbar (0664)", datei=vorgabe(modus="0664"))
+unsicher("schreiben-datei-andere-schreibbar", "die Firmenvorgabe ist für andere schreibbar (0646)", datei=vorgabe(modus="0646"))
+unsicher("schreiben-datei-verweis", "die Firmenvorgabe ist ein symbolischer Verweis; der Helfer folgt ihm nicht",
+         datei=vorgabe(art="verweis"))
+unsicher("schreiben-ordner-schreibbar", "der Ordner der Firmenvorgabe ist für andere schreibbar (0777); ein Fremder "
+         "könnte die Datei ersetzen", ordner=dict(ORDNER, modus="0777"))
+unsicher("schreiben-ordner-fremder-eigentuemer", "der Ordner der Firmenvorgabe gehört einem Nutzerkonto",
+         ordner=dict(ORDNER, eigentuemer=KU))
+unsicher("schreiben-ordner-verweis", "der Ordner der Firmenvorgabe ist ein symbolischer Verweis",
+         ordner=dict(ORDNER, art="verweis"))
+unsicher("schreiben-eltern-nicht-root", "der Elternordner gehört nicht root; sein Eigentümer könnte den Ordner der "
+         "Firmenvorgabe austauschen", eltern=dict(ELTERN, eigentuemer=KU))
+unsicher("schreiben-eltern-schreibbar", "der Elternordner ist für die Gruppe schreibbar (0775)", eltern=dict(ELTERN, modus="0775"))
 fall_w("schreiben-veraltet", ["A05", "A27"],
-       "root hat die Firmenvorgabe nach dem Laden geändert; der Dienst überschreibt diese Änderung nicht",
-       [SW(KA, NEU_LISTE, "fremd_geaendert")],
+       "root hat die Firmenvorgabe nach dem Laden geändert; die Basis der Anfrage stimmt nicht, der Helfer überschreibt "
+       "diese Änderung nicht",
+       [SW(UA, NEU_LISTE, "fremd_geaendert")],
        [(0, code, "firmenvorgabe.veraltet"), (0, unveraendert, (True, SHA_ALT))])
 fall_w("schreiben-wert-ungueltig", ["A05", "A12"],
        "ein Admin nennt ein Konto, das der Dienst nicht zuordnen kann, und ein Pseudonym statt eines Kontos; "
-       "setzen lehnt ab, und weder Konto noch Pseudonym aus der Eingabe steht in der Zeile",
-       [SW(KA, [LE("nutzer", "konto-unbekannt", "intern")]), SW(KA, [LE("nutzer", U, "intern")])],
+       "setzen lehnt ab, der Helfer wird nicht angesprochen, und weder Konto noch Pseudonym aus der Eingabe steht in der Zeile",
+       [SW(UA, [LE("nutzer", "konto-unbekannt", "intern")]), SW(UA, [LE("nutzer", U, "intern")])],
        [(i, code, "ebenen.wert_ungueltig") for i in range(2)] + [(i, unveraendert, (True, SHA_ALT)) for i in range(2)])
+fall_w("schreiben-helfer-nicht-erreichbar", ["A05"],
+       "der Socket des Helfers fehlt oder nimmt keine Verbindung an; der Dienst sendet nichts, die Datei bleibt byte-gleich",
+       [SW(UA, NEU_LISTE, "helfer_weg")],
+       [(0, code, "firmenvorgabe.helfer_nicht_erreichbar"), (0, unveraendert, (True, SHA_ALT))])
 fall_w("schreiben-temp-scheitert", ["A05"],
        "die Temp-Datei lässt sich nicht anlegen oder nicht ganz schreiben (etwa ENOSPC)",
-       [SW(KA, NEU_LISTE, "temp")],
+       [SW(UA, NEU_LISTE, "temp")],
        [(0, code, "firmenvorgabe.temp_fehlgeschlagen"), (0, unveraendert, (True, SHA_ALT)),
         (0, lambda e: e["temp_bleibt"], False)])
 fall_w("schreiben-fsync-scheitert", ["A05"],
-       "fsync der Temp-Datei scheitert (EIO); der Dienst entfernt die Temp-Datei und benennt nichts um",
-       [SW(KA, NEU_LISTE, "fsync")],
+       "fsync der Temp-Datei scheitert (EIO); der Helfer entfernt die Temp-Datei und benennt nichts um",
+       [SW(UA, NEU_LISTE, "fsync")],
        [(0, code, "firmenvorgabe.fsync_fehlgeschlagen"), (0, unveraendert, (True, SHA_ALT))])
 fall_w("schreiben-rename-scheitert", ["A05"],
        "rename scheitert; die alte Datei bleibt, die Temp-Datei ist entfernt",
-       [SW(KA, NEU_LISTE, "rename")],
+       [SW(UA, NEU_LISTE, "rename")],
        [(0, code, "firmenvorgabe.rename_fehlgeschlagen"), (0, unveraendert, (True, SHA_ALT))])
 fall_w("schreiben-ordner-fsync-scheitert", ["A05"],
-       "fsync des Ordners scheitert nach dem rename; der Dienst schreibt die alten Bytes auf demselben Weg zurück, "
+       "fsync des Ordners scheitert nach dem rename; der Helfer schreibt die alten Bytes auf demselben Weg zurück, "
        "die Datei ist danach byte-gleich",
-       [SW(KA, NEU_LISTE, "ordner_fsync"), NA(KA)],
+       [SW(UA, NEU_LISTE, "ordner_fsync"), NA(UA)],
        [(0, code, "firmenvorgabe.ordner_fsync_fehlgeschlagen"), (0, unveraendert, (True, SHA_ALT)),
         (1, lambda e: e["einstellungen"]["werte"][_L]["wert"], ALT_LISTE)])
 fall_w("schreiben-rueckweg-scheitert", ["A05"],
        "fsync des Ordners scheitert, und der Rückweg scheitert auch; der neue Inhalt steht ganz, nie halb, "
        "und der Dienst sperrt bis zum Neuladen",
-       [SW(KA, NEU_LISTE, "ordner_fsync", "rueckweg")],
+       [SW(UA, NEU_LISTE, "ordner_fsync", "rueckweg")],
        [(0, code, "firmenvorgabe.zustand_unklar"), (0, unveraendert, (False, SHA_NEU)), (0, angenommen, False)])
+fall_w("schreiben-antwort-fehlt", ["A05"],
+       "der Helfer ersetzt die Datei, aber die Verbindung bricht vor der Antwort ab (Frist des Dienstes); der Dienst kennt "
+       "den Ausgang nicht, meldet zustand_unklar und sperrt",
+       [SW(UA, NEU_LISTE, "antwort_fehlt")],
+       [(0, code, "firmenvorgabe.zustand_unklar"), (0, unveraendert, (False, SHA_NEU))])
+fall_w("schreiben-sperre-bis-neuladen", ["A05"],
+       "nach zustand_unklar lehnt der Dienst jede weitere Änderung ab, ohne den Helfer anzusprechen; nach dem Neuladen "
+       "gelingt die nächste Änderung auf der Basis des geladenen Inhalts",
+       [SW(UA, NEU_LISTE, "ordner_fsync", "rueckweg"), SW(UA2, ALT_LISTE), NL, SW(UA2, ALT_LISTE)],
+       [(0, code, "firmenvorgabe.zustand_unklar"), (1, code, "firmenvorgabe.zustand_unklar"),
+        (1, unveraendert, (True, SHA_NEU)), (2, lambda e: e["gesperrt"], False), (2, lambda e: e["geladen"], SHA_NEU),
+        (3, angenommen, True), (3, lambda e: e["datei"]["sha256"], SHA_ALT)])
 fall_w("schreiben-nach-fehler-erfolgreich", ["A05"],
-       "nach einem gescheiterten rename gelingt der nächste Versuch; der Stand des ersten Versuchs wirkt nie",
-       [SW(KA, NEU_LISTE, "rename"), SW(KA2, NEU_LISTE)],
+       "nach einem gescheiterten rename gelingt der nächste Versuch eines anderen Admins; der Stand des ersten Versuchs "
+       "wirkt nie",
+       [SW(UA, NEU_LISTE, "rename"), SW(UA2, NEU_LISTE)],
        [(0, unveraendert, (True, SHA_ALT)), (1, angenommen, True), (1, lambda e: e["datei"]["sha256"], SHA_NEU)])
+# Weg direkt über den Socket des Helfers: ein beliebiger Prozess am Rechner verbindet sich ohne Dienst.
+fall_w("socket-admin-erfolgreich", ["A05"],
+       "ein Prozess eines Admins spricht den Helfer direkt an; der Helfer prüft selbst und ersetzt die Datei",
+       [AN(UA, inhalt_alt(NEU_LISTE))],
+       [(0, antwort, None), (0, lambda e: e["antwort"]["sha256"], SHA_NEU), (0, unveraendert, (False, SHA_NEU)),
+        (0, lambda e: (e["datei"]["eigentuemer"], e["datei"]["modus"]), (HELFER, "0644"))])
+fall_w("socket-nichtadmin", ["A05"],
+       "ein Prozess eines Nutzers, der kein Admin ist, spricht den Helfer direkt an, auch für einen eigenen Eintrag",
+       [AN(UU, inhalt_alt(NEU_LISTE)), AN(UV, inhalt_alt([LE("nutzer", KV, "kundendaten")]))],
+       [(i, antwort, "firmenvorgabe.partner_nicht_admin") for i in range(2)]
+       + [(i, unveraendert, (True, SHA_ALT)) for i in range(2)])
+fall_w("socket-partner-unbekannt", ["A05"],
+       "der Partner ist nicht feststellbar (SO_PEERCRED scheitert) oder seine uid hat kein Konto",
+       [AN(None, inhalt_alt(NEU_LISTE)), AN(UID_FREMD, inhalt_alt(NEU_LISTE))],
+       [(i, antwort, "firmenvorgabe.partner_unbekannt") for i in range(2)]
+       + [(i, unveraendert, (True, SHA_ALT)) for i in range(2)])
+fall_w("socket-admin-nur-in-neuer-datei", ["A05"],
+       "ein Nutzer reicht eine Datei ein, die ihn als Admin nennt; befugt macht nur die gültige Datei, nicht die neue",
+       [AN(UU, inhalt_alt(NEU_LISTE, admins=[KA, KA2, KU])), AN(UU, inhalt_alt(admins=[KU]))],
+       [(i, antwort, "firmenvorgabe.partner_nicht_admin") for i in range(2)]
+       + [(i, unveraendert, (True, SHA_ALT)) for i in range(2)])
+fall_w("socket-admins-geaendert", ["A05"],
+       "ein Admin reicht eine Datei mit geänderter Kontenliste der Admins ein; der Helfer ändert nur leseklassen, die "
+       "Admins ändern sich nur von Hand mit Systemrechten",
+       [AN(UA, inhalt_alt(admins=[KA, KA2, KU])), AN(UA, inhalt_alt(admins=[KA])),
+        AN(UA, dict(inhalt_alt(), weiteres=True))],
+       [(i, antwort, "firmenvorgabe.ausser_leseklassen") for i in range(3)]
+       + [(i, unveraendert, (True, SHA_ALT)) for i in range(3)])
+fall_w("socket-eingeschlossen", ["A05", "A12"],
+       "ein Prozess eines Admins in der Einheit eines Laufs (etwa ein Agent) spricht den Helfer an; abgelehnt, bevor der "
+       "Helfer die Datei liest",
+       [AN(UA, inhalt_alt(NEU_LISTE), "eingeschlossen")],
+       [(0, antwort, "firmenvorgabe.partner_eingeschlossen"), (0, unveraendert, (True, SHA_ALT))])
+fall_w("socket-anfrage-zu-gross", ["A05"],
+       "die Anfrage ist länger als 1048576 Bytes; der Helfer liest nicht weiter",
+       [AN(UA, inhalt_alt(NEU_LISTE), "zu_gross")],
+       [(0, antwort, "firmenvorgabe.anfrage_zu_gross"), (0, unveraendert, (True, SHA_ALT))])
+fall_w("socket-anfrage-frist", ["A05"],
+       "die Anfrage ist 2 s nach der Annahme der Verbindung nicht vollständig",
+       [AN(UA, inhalt_alt(NEU_LISTE), "frist")],
+       [(0, antwort, "firmenvorgabe.anfrage_frist"), (0, unveraendert, (True, SHA_ALT))])
+fall_w("socket-anfrage-ungueltig", ["A05"],
+       "die Anfrage hat nicht die Form: Basis keine Prüfsumme, Inhalt keine Firmenvorgabe, ein Eintrag mit fremdem Feld, "
+       "unbekannte Art",
+       [AN(UA, inhalt_alt(NEU_LISTE), basis="alt"), AN(UA, ["kein", "objekt"]),
+        AN(UA, inhalt_alt([dict(LE("nutzer", KU, "intern"), kunden=[])])),
+        AN(UA, None, roh={"art": "Lesen", "fassung": 1, "basis": SHA_ALT, "inhalt": inhalt_alt()})],
+       [(i, antwort, "firmenvorgabe.anfrage_ungueltig") for i in range(4)]
+       + [(i, unveraendert, (True, SHA_ALT)) for i in range(4)])
+fall_w("socket-veraltet", ["A05"],
+       "die Basis der Anfrage ist die Prüfsumme eines älteren Inhalts",
+       [AN(UA, inhalt_alt(NEU_LISTE)), AN(UA2, inhalt_alt([]))],
+       [(0, antwort, None), (1, antwort, "firmenvorgabe.veraltet"), (1, unveraendert, (True, SHA_NEU))])
+fall_w("socket-ladefehler", ["A05"],
+       "die gültige Datei hat nicht die Form (Kontenliste kein Feld aus Konten); ohne lesbare Kontenliste ist niemand Admin",
+       [AN(UA, inhalt_alt(NEU_LISTE))],
+       [(0, antwort, "firmenvorgabe.ladefehler"), (0, unveraendert, (True, sha({"admins": "konto-admin", "leseklassen": []})))],
+       datei=vorgabe(inhalt={"admins": "konto-admin", "leseklassen": []}))
 # Konto in der Ansicht der Admins (15.13): ein Fall je Richtung und die Zeile.
 fall_w("konto-admin-sieht", ["A12", "A27", "E3"],
        "ein Admin sieht in der Nachricht Einstellungen das Konto an der Stelle des Pseudonyms; sicht selbst liefert Pseudonyme",
-       [NA(KA)],
+       [NA(UA)],
        [(0, lambda e: e["einstellungen"]["admin"], True), (0, lambda e: e["einstellungen"]["werte"][_L]["wert"], ALT_LISTE)])
 fall_w("konto-nutzer-sieht-keins", ["A12", "E3"],
        "ein Nutzer, der kein Admin ist, sieht seinen Eintrag mit dem Pseudonym, nie mit einem Konto",
-       [NA(KU), NA(KV)],
+       [NA(UU), NA(UV)],
        [(0, lambda e: e["einstellungen"]["admin"], False),
         (0, lambda e: e["einstellungen"]["werte"][_L]["wert"], [LE("gruppe", "g-eins", "intern"), LE("nutzer", U, "oeffentlich")]),
         (1, lambda e: e["einstellungen"]["werte"][_L]["wert"], [])])
 fall_w("konto-zeile-ohne-konto", ["A12", "A27"],
        "die Zeile einer Änderung, die ein Admin mit Konten eingibt, nennt nur Pseudonyme: handelnd, und in alt und neu "
        "die Prüfsumme über die Liste mit Pseudonymen",
-       [SW(KA, NEU_LISTE)],
+       [SW(UA, NEU_LISTE)],
        [(0, lambda e: e["zeile"]["handelnd"], ADM),
         (0, lambda e: e["zeile"]["neu"], kanonisch_hash({"schluessel": _L, "wert": in_pseudonyme(NEU_LISTE, ZU)})),
         (0, lambda e: e["zeile"]["alt"], kanonisch_hash({"schluessel": _L, "wert": in_pseudonyme(ALT_LISTE, ZU)}))])

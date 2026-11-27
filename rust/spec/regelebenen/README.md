@@ -12,6 +12,13 @@ Nachtrag 27.11.2026 (Fassung 2, Projektentscheid, 27.11.2026): das Admin-Feld `l
 Gruppe (Abschnitte 15.1, 15.2 und 15.11). Die Wirkung legt `rust/spec/datentor/person/VERTRAG.md` fest.
 Nachtrag 27.11.2026 (Fassung 2, Entscheid des Betreibers, 27.11.2026): der Schreibweg der Firmenvorgabe nur über den Dienst
 (Abschnitt 15.12) und das Konto in der Ansicht der Admins (Abschnitt 15.13). OPEN 22 und 23 sind geschlossen.
+Nachtrag 27.11.2026 (Fassung 2, Entscheid des Betreibers, 27.11.2026): der Schreibhelfer mit eigenem Systemnutzer schreibt die
+Firmenvorgabe, der Dienst reicht nur weiter (Abschnitt 15.12, S13). OPEN 25 ist geschlossen; neu sind OPEN 26 bis 29.
+Nachtrag 27.11.2026 (Fassung 2, Entscheid des Betreibers, 27.11.2026): der Ordner des Helfers gehört dem Helfernutzer, und `postinst`
+trägt das installierende Konto als ersten Admin ein, nur wenn noch keine Firmenvorgabe da ist (Abschnitt 15.12.4). OPEN 28 ist
+geschlossen; neu ist OPEN 30.
+Nachtrag 27.11.2026 (Fassung 2, Entscheid des Betreibers, 27.11.2026): ohne Firmenvorgabe lädt der Lader keine Admins, und `setzen`
+lehnt jede Änderung eines Admins ab; die Regeln der Firma gelten weiter (Abschnitt 15.12.4). OPEN 30 ist geschlossen.
 Grundlage sind A26, A27, A28, A41, A45, A103 sowie A30, A35, A39, A102, A128, A134, A135 und A139 der
 Anforderungsliste. „(V)“ heißt: in diesem Vertrag festgelegt. „(H)“ heißt: aus den Anforderungen hergeleitet.
 
@@ -330,7 +337,7 @@ auf stderr, bei einem Lesefehler mit 2, sonst mit 0 (V; A26: „Ablehnung mit R�
 | `pruefen.py` | prüft Paarung, Codes, Schema der Dateien und jede erwartete `einstellung` gegen das Schema von Vertrag 2 |
 | `faelle/<name>.json`, `erwartet/<name>.json` | sichtbare Fälle |
 | `faelle-setzen/<name>.json`, `erwartet-setzen/<name>.json` | Fälle zu `setzen` und `sicht` (Fassung 2, Abschnitt 15.8); die Referenz steht in `bau-faelle.py` |
-| `faelle-schreiben/<name>.json`, `erwartet-schreiben/<name>.json` | Fälle zum Schreibweg der Firmenvorgabe und zum Konto in der Ansicht der Admins (Abschnitte 15.12 und 15.13); Pflichten des Dienstes, die Referenz steht in `bau-faelle.py` |
+| `faelle-schreiben/<name>.json`, `erwartet-schreiben/<name>.json` | Fälle zum Schreibweg der Firmenvorgabe und zum Konto in der Ansicht der Admins (Abschnitte 15.12 und 15.13); Pflichten des Dienstes und des Schreibhelfers, die Referenz steht in `bau-faelle.py` |
 
 ```sh
 python3 -I rust/spec/regelebenen/bau-faelle.py               # Fälle neu erzeugen und Erwartungen prüfen
@@ -423,9 +430,10 @@ der Ort der Dateien je Betriebssystem (OPEN 1) wird mit seinem Lader zum Außent
 21. **`optionen.herstellerzugang` und der Block `stelle`.** Vertrag 2 hat den Block `stelle` noch nicht; er ist für Fassung 3
     vorgeschlagen. Feld folgt mit dem Bau. Empfehlung: Der Lader schreibt im Pilot immer `hersteller.fall: kein`, unabhängig vom
     Stand der Ebenen.
-22. **Geschlossen (Entscheid des Betreibers, 27.11.2026): Schreibweg der Firmenvorgabe.** Die Firmenvorgabe bleibt root-eigen und
-    für Nutzer nicht schreibbar. Eine Änderung eines Admins aus der Ansicht schreibt nur der Dienst mit Systemrechten, nach der Prüfung
-    des Partners am lokalen Socket, atomar und fail closed (Abschnitt 15.12, Fälle `schreiben-*`).
+22. **Geschlossen (Entscheid des Betreibers, 27.11.2026): Schreibweg der Firmenvorgabe.** Die Firmenvorgabe bleibt für Nutzer nicht
+    schreibbar. Eine Änderung eines Admins aus der Ansicht reicht der Dienst an den Schreibhelfer mit eigenem Systemnutzer weiter. Der
+    Helfer prüft den Partner selbst über `SO_PEERCRED` und ersetzt die Datei atomar und fail closed (Abschnitt 15.12, Fälle
+    `schreiben-*` und `socket-*`; Entscheid des Betreibers, 27.11.2026).
 23. **Geschlossen (Entscheid des Betreibers, 27.11.2026): Konto in der Ansicht.** Admins sehen das Konto, ins Protokoll kommt nur das
     Pseudonym. `sicht` bleibt bei Pseudonymen; der Dienst setzt für einen Admin das Konto ein (Abschnitt 15.13, Fälle `konto-*`).
     Der Teil zum Laden ist in OPEN 25 entschieden.
@@ -435,6 +443,27 @@ der Ort der Dateien je Betriebssystem (OPEN 1) wird mit seinem Lader zum Außent
     `leseklassen` der Firmenvorgabe nicht zuordnen (etwa ein Konto mit `_` am Anfang, OPEN 11), gibt er die Liste nicht weiter. Das ist
     ein Ladefehler der Firmenvorgabe, und es entsteht kein Tor (fail closed, wie datentor Abschnitt 3). Für eine Änderung aus der
     Ansicht gilt Abschnitt 15.12, Stufe 0.
+26. **Schreibhelfer unter macOS und Windows.** Teil A3 des Paketvertrags legt den Helfer nur für Linux fest. Unter macOS fehlt ein
+    Systemnutzer und eine `launchd`-Einheit mit Socket, unter Windows ein Dienst mit Named Pipe und Prüfung des Tokens. Bis dahin gibt
+    es dort keinen Schreibweg aus der Ansicht; der Dienst meldet `firmenvorgabe.helfer_nicht_erreichbar`. Empfehlung: dieselben Stufen
+    H1 bis H12, die Kennung aus `getpeereid` und `TokenUser` wie DI-L11 Punkt 4.
+27. **Eigentümer nach einer Änderung von Hand.** Ändert die IT die Datei mit `sudo`, gehört sie danach oft root. Der Helfer lehnt dann
+    mit `firmenvorgabe.datei_unsicher` ab, bis jemand den Eigentümer zurücksetzt (Fall `schreiben-datei-root-eigen`). Ob der Lader des
+    Dienstes eine root-eigene Datei annimmt, legt dieser Vertrag nicht fest. Empfehlung: Der Lader nimmt Eigentümer root oder
+    `werkbank-vorgabe` an; das Paket liefert eine Zeile für die Anleitung (`sudo install -o werkbank-vorgabe -g werkbank-vorgabe -m 0644`).
+28. **Geschlossen (Entscheid des Betreibers, 27.11.2026): Ordner des Helfers.** `/etc/werkbank/vorgabe/` gehört `werkbank-vorgabe`
+    mit Modus `0755`. Alle Eltern ab `/etc/werkbank` gehören root und haben nicht `& 022`. Der Ordner hat kein Schreibrecht für eine
+    Gruppe, und der Helfer hat kein `CAP_DAC_OVERRIDE`. Grund: In einem Ordner mit Modus `0555` scheitern `open(O_CREAT|O_EXCL)` und
+    `rename` mit errno 13, auch für den Eigentümer der Datei (gemessen, Abschnitt 15.12.4). Ein Helfer ohne root könnte in einem
+    root-eigenen Ordner also nicht atomar ersetzen.
+29. **Optionen der Firma und `/etc/werkbank/vorgabe.json`.** Die beiden Dateien sind getrennt (Abschnitt 15.12.4). Die Optionen
+    der Ebene `firma` (Abschnitt 15.1.1) bildet der Lader auf Felder von Vertrag 2 ab, etwa `routen[].netzziele`. `lauf` prüft aber
+    nur gegen `vorgabe.json`, die `postinst` aus dem Erststart-Profil schreibt. Empfehlung: Der Lader wendet die Optionen auf die
+    Arbeitskopie an und schreibt nie in `vorgabe.json`; eine Option kann so nur verschärfen, was `vorgabe.json` erlaubt.
+30. **Geschlossen (Entscheid des Betreibers, 27.11.2026): Fehlende Firmenvorgabe beim Laden.** Ohne Datei lädt der Lader keine
+    Admins und eine leere `leseklassen`. `setzen` lehnt jede Änderung eines Admins mit dem festen Code `ebenen.nicht_befugt` ab. Die
+    Regeln der Firma gelten weiter. Für das Schreiben ist das fail closed. Eine vorhandene, aber ungültige Datei bleibt ein
+    Ladefehler. Regel: Abschnitt 15.12.4, „Fehlende Firmenvorgabe“; Fall `faelle-setzen/ohne-firmenvorgabe-keine-admins.json`.
 
 ## 15. Fassung 2: Einstellungen im Lauf (Nachtrag 26.11.2026)
 
@@ -511,7 +540,8 @@ Rechner oder die Anmeldung, nicht für eine Person. Eine Gruppe oder ein Nutzer 
 
 - Die **Kontenliste der Admins** steht in der **Firmenvorgabe**. Sie nennt Konten am Rechner (Benutzernamen), damit die IT sie
   pflegen kann. Die Firmenvorgabe ist eine Datei des Systems. Ändern lässt sie sich nur mit Systemrechten (unter Linux root, unter
-  Windows ein Administrator, unter macOS ein Administrator mit `sudo`). Ihr Ort je Betriebssystem ist OPEN 1. Sie ist keine Datei der
+  Windows ein Administrator, unter macOS ein Administrator mit `sudo`) und, nur für `leseklassen`, über den Schreibhelfer
+  (Abschnitt 15.12). Ihr Ort je Betriebssystem ist OPEN 1. Sie ist keine Datei der
   Ebenen und steht nie in `stand.firma`.
 - **Das Konto des Betrachters** liest der Dienst aus dem Verbindungspartner des lokalen Sockets oder der Named Pipe (L11; die Form
   legt der Vertrag `dienst` fest). Nie aus einer Angabe der Ansicht, nie aus einer Datei der Ebenen, nie vom Agenten.
@@ -636,10 +666,13 @@ Vertrag 5. Der Schlüssel steht nur in der Prüfsumme; ein eigenes Feld braucht 
   nur ein Pseudonym an; `pruefen.py` prüft das für jede Annahme und jede Sicht. Erlaubt ist genau ein Weg eines Kontos zur Ansicht:
   Der Dienst setzt es in `Einstellungen` für einen Admin an die Stelle des Pseudonyms (Abschnitt 15.13). Jeder andere Weg bleibt
   verboten, auch in jeder Zeile und in jeder Nachricht an einen Nichtadmin; `pruefen.py` prüft das in `faelle-schreiben/`.
-- **S11 Firmenvorgabe nur über den Dienst:** Nur der Dienst schreibt die Firmenvorgabe, und nur für einen Partner in `stand.admins`
-  (Abschnitt 15.12). Die Ansicht und das Konto des Nutzers schreiben sie nie.
-- **S12 Kein Teilschreiben:** Jeder Fehler auf dem Schreibweg lässt die Firmenvorgabe byte-gleich und ergibt eine Zeile
-  `regel.abgelehnt`. Einzige Ausnahme ist der gemeldete zweite Fehler `firmenvorgabe.zustand_unklar`; auch dann steht ein ganzer Inhalt.
+- **S11 Firmenvorgabe nur über den Schreibhelfer:** Außer root schreibt nur der Schreibhelfer die Firmenvorgabe, und nur für einen
+  Partner, dessen uid in der gerade gültigen Datei Admin ist (Abschnitt 15.12, H5). Der Dienst reicht nur weiter und schreibt sie nie
+  selbst. Die Ansicht, das Konto des Nutzers und ein Agent schreiben sie nie.
+- **S12 Kein Teilschreiben:** Jeder Fehler auf dem Schreibweg lässt die Firmenvorgabe byte-gleich und ergibt im Dienst eine Zeile
+  `regel.abgelehnt`. Einzige Ausnahme ist `firmenvorgabe.zustand_unklar`; auch dann steht ein ganzer Inhalt, und der Dienst sperrt.
+- **S13 Nur `leseklassen`:** Der Schreibhelfer ändert nie etwas außerhalb von `leseklassen`, auch nicht die Kontenliste der Admins
+  (H10). Nach dem Ersetzen gehört die Datei `werkbank-vorgabe` und hat Modus `0644`.
 - S3 und S7 gelten auch für `setzen` und `sicht`.
 
 ### 15.8 Fälle
@@ -658,7 +691,8 @@ die Form der Zeile und der Sicht, dass `admins` nur Pseudonyme nennt und dass es
 aus OF9 heißen `of9-nutzer-lockert` und `of9-nichtadmin-schreibt-adminwert`. Die Admins stehen nur in `stand.admins` (eine Quelle,
 Abschnitt 15.2). Je Option des Katalogs gibt es einen Fall „Nutzer setzt: abgelehnt“ und einen Fall „Admin setzt: angenommen“,
 für den Herstellerzugang den Fall `option-herstellerzugang-fest` (Abschnitt 15.1.1). Die Fälle zu `leseklassen` heißen
-`leseklassen-*` (Abschnitt 15.11). Die Fälle zum Schreibweg und zum Konto in der Ansicht der Admins stehen in `faelle-schreiben/`
+`leseklassen-*` (Abschnitt 15.11). Der Fall `ohne-firmenvorgabe-keine-admins` belegt die fehlende Firmenvorgabe (Abschnitt
+15.12.4). Die Fälle zum Schreibweg und zum Konto in der Ansicht der Admins stehen in `faelle-schreiben/`
 (Abschnitte 15.12 und 15.13).
 
 ### 15.9 Ereignis `EinstellungSetzen` (Ansicht an Dienst)
@@ -718,7 +752,8 @@ Abschnitte 2 bis 4), weder `setzen` noch `sicht` noch der Dienst.
 
 - `ebene: gruppe`: `wer` ist ein Schlüssel aus `gruppen` der Firmengrundregel.
 - `ebene: nutzer`: In der Firmenvorgabe ist `wer` das Konto, wie bei der Kontenliste der Admins. Die Firmenvorgabe ist nur mit
-  Systemrechten änderbar. Der Dienst ordnet das Konto dem Pseudonym zu, bevor er die Liste weitergibt (Abschnitt 15.2). Im Stand und in
+  Systemrechten oder über den Schreibhelfer änderbar (Abschnitt 15.12). Der Dienst ordnet das Konto dem Pseudonym zu, bevor er
+  die Liste weitergibt (Abschnitt 15.2). Im Stand und in
   `setzen` steht darum das Pseudonym: `{"ebene": "nutzer", "wer": "ps_00000000000000000000000000000c01", "klasse": "oeffentlich"}`.
 - `klasse` ist ein Schlüssel aus `klassen` der Firmengrundregel, byte-genau (D14).
 - Höchstens 4096 Einträge. Die leere Liste ist gültig.
@@ -760,86 +795,247 @@ Liste mit Pseudonymen; ein Konto steht nie in der Zeile.
 | `leseklassen-form-ungueltig` | Platzhalter-Konto `konto-beispiel` statt Pseudonym, unbekannte Gruppe, Ebene `rolle` |
 | `leseklassen-sicht-nutzer` | Sicht für drei Nutzer und einen Admin |
 
-**Offen** sind OPEN 24 und 25 in Abschnitt 14. OPEN 22 und 23 sind geschlossen (Abschnitte 15.12 und 15.13).
+**Offen** ist OPEN 24 in Abschnitt 14. OPEN 22, 23 und 25 sind geschlossen (Abschnitte 15.12 und 15.13).
 
-### 15.12 Schreibweg der Firmenvorgabe (Entscheid des Betreibers, 27.11.2026; schließt OPEN 22)
+### 15.12 Schreibweg der Firmenvorgabe (Entscheid des Betreibers, 27.11.2026; schließt OPEN 22; Schreibhelfer, Entscheid des Betreibers, 27.11.2026)
 
-Die Firmenvorgabe bleibt eine Datei des Systems: Eigentümer root, für Gruppe und andere nicht schreibbar (Abschnitt 15.2). Eine
-Änderung eines Admins aus der Ansicht schreibt nur der Dienst, auf seinem eigenen Weg mit Systemrechten. Die Ansicht schreibt die Datei
-nie, das Konto des Nutzers schreibt sie nie, und kein Agent schreibt sie. Der Weg gilt für ein `EinstellungSetzen` mit `ebene`
-`firma` und `schluessel` `leseklassen`, im Pilot der einzige Schlüssel der Firmenvorgabe, den die Ansicht ändert. Die Kontenliste der
-Admins ändert sich nie über die Ansicht, nur mit Systemrechten von Hand (eine Quelle, Abschnitt 15.2).
+Die Firmenvorgabe bleibt eine Datei des Systems, die kein Nutzerkonto schreiben kann. Der Dienst läuft unter dem Konto des Nutzers
+(Vertrag `dienst`, DI2) und kann sie darum nicht schreiben. Eine Änderung eines Admins aus der Ansicht schreibt deshalb ein kleiner
+**Schreibhelfer** mit eigenem Systemnutzer. Der Helfer ist nicht root. Er kann genau eine Sache: die Firmenvorgabe atomar ganz
+ersetzen. Die Ansicht schreibt die Datei nie, das Konto des Nutzers schreibt sie nie, und kein Agent schreibt sie. Die IT pflegt die
+Datei weiter von Hand mit `sudo`. Der Weg gilt für ein `EinstellungSetzen` mit `ebene` `firma` und `schluessel` `leseklassen`, im Pilot
+der einzige Schlüssel der Firmenvorgabe, den die Ansicht ändert. Die Kontenliste der Admins ändert sich nie über die Ansicht und nie
+über den Helfer, nur mit Systemrechten von Hand (eine Quelle, Abschnitt 15.2). Konto, Einheiten und Rechte unter Linux legt
+`rust/spec/paket/README.md`, Teil A3, fest. Für macOS und Windows gibt es den Helfer noch nicht (OPEN 26).
 
-**Schritte und Prüfreihenfolge.** Genau ein Code, der der ersten verletzten Stufe. Jeder Fehler endet fail closed: Der Dienst schreibt
-nichts und lässt die Datei byte-gleich. Jede Stufe, auch eine Ablehnung, ergibt genau eine Zeile in der Form von Abschnitt 15.6 mit
-`ebene` `firma`, `ziel` `null` und dem Pseudonym des Partners als `handelnd`. Bei einem Fehler heißt sie `regel.abgelehnt` und trägt
-den Code.
+#### 15.12.1 Rollen
+
+| Rolle | Tut | Tut nie |
+|---|---|---|
+| Dienst (Konto des Nutzers) | Prüft das Ereignis (Stufen 0 bis 2), baut die ganze neue Datei aus dem zuletzt geladenen Inhalt und dem neuen Wert von `leseklassen` und reicht sie an den Helfer. Gibt den Code der Antwort unverändert als `grund` weiter, schreibt die Zeile und übernimmt den neuen Stand erst nach der Antwort ohne Code. | Schreibt die Firmenvorgabe nie selbst, auch nicht mit einem anderen Werkzeug. |
+| Schreibhelfer (Systemnutzer `werkbank-vorgabe`) | Prüft Partner, Datei und Anfrage selbst (Stufen H1 bis H10) und ersetzt die Datei atomar (Stufen H11 und H12). Vertraut dem Dienst nicht: Jeder Prozess am Rechner kann den Socket erreichen. | Liest keine Ebene, keine Stelle und kein Pseudonym. Ändert nie etwas außer `leseklassen`. Startet nichts, hat kein Netz. |
+| IT (root) | Legt Konten der Admins an und ändert die Datei von Hand. Setzt danach Eigentümer und Modus zurück (OPEN 27). | |
+| `postinst` (root) | Legt die Datei nur an, wenn sie fehlt, mit dem installierenden Konto als einzigem Admin (Abschnitt 15.12.4). | Ändert eine vorhandene Datei nie, auch nicht beim Upgrade und auch keine ungültige. |
+
+#### 15.12.2 Protokoll des Sockets
+
+- Unix-Socket `/run/werkbank-vorgabe/vorgabe.sock` (Typ `SOCK_STREAM`). Er gehört systemd; nur der Socket lauscht, der Helfer
+  bindet nie selbst (Paket, Teil A3). Jeder Nutzer kann sich verbinden. Die Grenze ist die Prüfung des Partners, nicht das Recht am
+  Socket.
+- **Eine Verbindung, eine Anfrage, eine Antwort.** Der Client schickt genau ein JSON-Objekt in UTF-8 und schließt seine Schreibseite
+  (`shutdown(SHUT_WR)`). Der Helfer antwortet mit genau einem JSON-Objekt und einem Zeilenende und schließt die Verbindung. Eine
+  zweite Anfrage auf derselben Verbindung gibt es nicht. Der Helfer bearbeitet eine Verbindung nach der anderen; Anfragen laufen
+  nie gleichzeitig.
+- **Grenzen.** Die Anfrage hat höchstens 1048576 Bytes (1 MiB). Grund: 4096 Einträge von `leseklassen` mit langen Kontonamen passen
+  hinein (hergeleitet). Der Helfer liest höchstens 1048577 Bytes; eine längere Anfrage ist `firmenvorgabe.anfrage_zu_gross`, und er
+  liest nicht weiter.
+- **Fristen.** Die Anfrage muss 2 s nach der Annahme der Verbindung vollständig sein (wie `hallo_frist` in `peerkanal`), sonst
+  `firmenvorgabe.anfrage_frist`. Der Dienst wartet höchstens 10 s auf die Antwort, vom Verbinden an. Hat er bis dahin keine Antwort
+  oder bricht die Verbindung nach dem Senden ab, kennt er den Ausgang nicht: `firmenvorgabe.zustand_unklar` mit Sperre (unten).
+  Scheitert schon `connect` (Socket fehlt, `ECONNREFUSED`, `EACCES`), hat er nichts gesendet: `firmenvorgabe.helfer_nicht_erreichbar`.
+- **Ablehnung vor dem Lesen.** Lehnt der Helfer in H1 bis H5 ab, schreibt er die Antwort, schließt seine Schreibseite und verwirft
+  danach den Rest der Anfrage bis zur Grenze und zur Frist, ohne ihn als Anfrage zu lesen. „Bevor ein Byte gelesen wird“ gilt für die
+  Entscheidung, nicht für dieses Verwerfen. Grund (gemessen in einer Wegwerf-VM): Schließt der Helfer mit ungelesenen Bytes, setzt der
+  Kernel die Verbindung zurück, und der Client bekommt `ECONNRESET` statt der Antwort.
+
+Anfrage (Dienst oder ein anderer Prozess an den Helfer):
+
+```json
+{"art": "Ersetzen", "fassung": 1, "basis": "<sha256 hex klein der Bytes, die der Client zuletzt gelesen hat>",
+ "inhalt": {"admins": ["konto-admin"], "leseklassen": [{"ebene": "nutzer", "wer": "konto-nutzer", "klasse": "intern"}]}}
+```
+
+Antwort (Helfer an den Client):
+
+```json
+{"code": null, "sha256": "<sha256 hex klein der neuen Bytes>"}
+{"code": "firmenvorgabe.partner_nicht_admin", "sha256": null}
+```
+
+- Genau diese vier Felder der Anfrage und diese zwei Felder der Antwort. `sha256` steht nur bei `code` `null`.
+- `inhalt` ist die ganze neue Firmenvorgabe. Der Helfer schreibt sie als JSON mit sortierten Schlüsseln, Einzug 1 und einem
+  Zeilenende. Die Form einer Änderung von Hand bleibt darum nicht erhalten.
+- Je Anfrage schreibt der Helfer eine Zeile nach stderr (Journal): `werkbank-vorgabe: ersetzt` oder `werkbank-vorgabe: abgelehnt:
+  <code>`. Sie nennt kein Konto, keine uid und keinen Inhalt (wie DI-L11 Punkt 5).
+
+#### 15.12.3 Prüfreihenfolge und Codes
+
+Genau ein Code, der der ersten verletzten Stufe. Jeder Fehler endet fail closed: Niemand schreibt etwas, und die Datei bleibt
+byte-gleich. Einzige Ausnahme ist `firmenvorgabe.zustand_unklar` (unten).
+
+**Im Dienst.** Jede Stufe, auch eine Ablehnung, ergibt genau eine Zeile in der Form von Abschnitt 15.6 mit `ebene` `firma`, `ziel`
+`null` und dem Pseudonym des Partners als `handelnd`. Bei einem Fehler heißt sie `regel.abgelehnt` und trägt den Code.
 
 | Stufe | Code | Schritt und Verletzung |
 |---|---|---|
-| 0 | (kein Code) | Der Dienst liest das Konto aus dem Verbindungspartner des lokalen Sockets oder der Named Pipe (L11), bildet das Pseudonym (Abschnitt 15.2) und ordnet jedes Konto im Wert zu. Ein Konto ohne Zuordnung und ein Pseudonym im Wert werden zu `wer: null`. Ohne Partner nimmt der Dienst kein Ereignis an (Vertrag `dienst`). |
-| 1 | `ebenen.nicht_befugt` | Das Pseudonym des Partners steht nicht in `stand.admins`. Der Dienst prüft das vor jedem Zugriff auf die Datei. |
+| 0 | (kein Code) | Der Dienst nimmt das Konto aus `wer` des lokalen Wegs (DI-L11 Punkt 4), bildet das Pseudonym (Abschnitt 15.2) und ordnet jedes Konto im Wert zu. Ein Konto ohne Zuordnung und ein Pseudonym im Wert werden zu `wer: null`. Ohne Partner nimmt der Dienst kein Ereignis an (DI-L11 Punkt 6). |
+| 0a | `firmenvorgabe.zustand_unklar` | Der Dienst ist nach einem früheren `zustand_unklar` gesperrt und hat die Firmenvorgabe seitdem nicht neu geladen. Er spricht den Helfer nicht an. |
+| 1 | `ebenen.nicht_befugt` | Das Pseudonym des Partners steht nicht in `stand.admins`. Der Dienst spricht den Helfer dann nicht an. |
 | 2 | Codes aus Abschnitt 15.4 | `setzen(stand, wer, "admin", "firma", "leseklassen", wert)` auf einer Kopie des Stands lehnt ab, etwa mit `ebenen.wert_ungueltig`. |
-| 3 | `firmenvorgabe.datei_unsicher` | Die Datei ist keine reguläre Datei (etwa ein Verweis; `lstat`, `O_NOFOLLOW`), gehört nicht root oder ist für Gruppe oder andere schreibbar (Modus `& 022`). Dasselbe gilt für ihren Ordner. Unter Windows: Eigentümer ist nicht Administratoren oder SYSTEM, oder eine andere Gruppe hat Schreibrecht. |
-| 4 | `firmenvorgabe.veraltet` | Die Bytes der Datei weichen vom zuletzt geladenen Stand ab (sha256). Root hat sie inzwischen geändert; der Dienst überschreibt das nicht und lädt neu. |
-| 5 | `firmenvorgabe.temp_fehlgeschlagen` | Die Temp-Datei im selben Ordner lässt sich nicht exklusiv anlegen (`O_CREAT \| O_EXCL \| O_NOFOLLOW`, Modus `0600`) oder nicht ganz schreiben. Eigentümer und Modus der alten Datei setzt der Dienst mit `fchown` und `fchmod` an der offenen Datei. |
-| 6 | `firmenvorgabe.fsync_fehlgeschlagen` | `fsync` der Temp-Datei scheitert. |
-| 7 | `firmenvorgabe.rename_fehlgeschlagen` | `rename` der Temp-Datei auf den Namen der Firmenvorgabe scheitert. Unter Windows `MoveFileExW` mit `MOVEFILE_REPLACE_EXISTING` und `MOVEFILE_WRITE_THROUGH`. |
-| 8 | `firmenvorgabe.ordner_fsync_fehlgeschlagen` | `fsync` des Ordners nach dem `rename` scheitert. Der Dienst schreibt die alten Bytes auf demselben Weg zurück (Stufen 5 bis 8); danach ist die Datei byte-gleich. |
-| 8 | `firmenvorgabe.zustand_unklar` | Stufe 8 scheitert, und der Rückweg scheitert auch. Durch `rename` steht der alte oder der neue Inhalt ganz, nie ein Teil. Der Dienst sperrt: Er nimmt keine Änderung mehr an und baut kein Tor, bis er die Firmenvorgabe neu geladen hat. |
+| 3 | `firmenvorgabe.helfer_nicht_erreichbar` | `connect` an den Socket des Helfers scheitert. Der Dienst hat nichts gesendet. |
+| 4 | Code der Antwort | Der Dienst schickt die Anfrage mit `basis` gleich der sha256 der zuletzt geladenen Bytes und gibt den Code der Antwort unverändert weiter. Ohne Antwort in der Frist: `firmenvorgabe.zustand_unklar`. |
 
-- In den Stufen 5 bis 7 entfernt der Dienst die Temp-Datei, bevor er ablehnt. Die alte Datei berührt er dabei nicht.
-- Erst nach Stufe 8 übernimmt der Dienst den neuen Stand. Er schreibt die Zeile `regel.geaendert` aus `setzen` und schickt jedem
-  betroffenen Betrachter eine neue Nachricht `Einstellungen`. Vorher wirkt die Änderung nirgends, auch nicht nach einem Fehler.
-- Die Datei trägt Konten: Der Dienst schreibt `leseklassen` in der Kontoform, in der der Admin sie eingegeben hat. In der Zeile stehen
+**Im Helfer.** Stufen H1 bis H5 laufen, bevor der Helfer ein Byte der Anfrage liest.
+
+| Stufe | Code | Schritt und Verletzung |
+|---|---|---|
+| H1 | `firmenvorgabe.partner_unbekannt` | Der Partner ist nicht feststellbar: `SO_PEERCRED` scheitert oder liefert keine uid, oder zur uid gibt es kein Konto (`getpwuid_r`). |
+| H2 | `firmenvorgabe.partner_eingeschlossen` | Der Partner läuft in der Einheit eines Laufs (Cgroup, wie `aufrufer:einschluss` in DI-L11 Punkt 5). Ein Agent schreibt die Firmenvorgabe so nie, auch nicht unter der uid eines Admins. |
+| H3 | `firmenvorgabe.datei_unsicher` | Die Datei ist keine reguläre Datei (etwa ein Verweis; `lstat`, `O_NOFOLLOW`), gehört nicht dem Helfernutzer `werkbank-vorgabe` oder ist für Gruppe oder andere schreibbar (Modus `& 022`). Ihr Ordner ist kein Ordner, gehört nicht dem Helfernutzer oder hat `& 022`. Jeder Elternordner bis `/` ist ein Ordner, gehört root und hat nicht `& 022`. |
+| H4 | `firmenvorgabe.ladefehler` | Die gerade gültige Datei hat nicht die Form: kein JSON-Objekt, keine Kontenliste `admins` aus Konten, oder `leseklassen` nicht in der Form von Abschnitt 15.11 (Konto statt Pseudonym). Ohne lesbare Kontenliste ist niemand Admin. |
+| H5 | `firmenvorgabe.partner_nicht_admin` | Die uid des Partners ist keine uid eines Kontos der Kontenliste in der **gerade gültigen** Datei (je Konto `getpwnam_r`). Eine eingereichte Datei, die jemanden als Admin nennt, macht ihn nicht befugt. |
+| H6 | `firmenvorgabe.anfrage_zu_gross` | Die Anfrage hat mehr als 1048576 Bytes. |
+| H7 | `firmenvorgabe.anfrage_frist` | Die Anfrage ist 2 s nach der Annahme nicht vollständig. |
+| H8 | `firmenvorgabe.anfrage_ungueltig` | Die Anfrage ist kein JSON-Objekt mit genau `art` `Ersetzen`, `fassung` `1`, `basis` (64 Zeichen hex klein) und `inhalt`, oder `inhalt` hat nicht die Form von H4. Klassen und Gruppen prüft der Helfer nicht; das tut `setzen` im Dienst. |
+| H9 | `firmenvorgabe.veraltet` | `basis` ist nicht die sha256 der Bytes der Datei. Root hat sie inzwischen geändert; der Helfer überschreibt das nicht. Der Dienst lädt die Datei neu, im Pilot erst bei seinem Neustart (Vertrag `dienst`, DI-E1 Punkt 6 und DI-E2); bis dahin bekommt jede weitere Änderung wieder H9. |
+| H10 | `firmenvorgabe.ausser_leseklassen` | `inhalt` weicht außerhalb von `leseklassen` von der gültigen Datei ab, etwa in der Kontenliste der Admins oder durch einen weiteren Schlüssel. |
+| H11 | `firmenvorgabe.temp_fehlgeschlagen` | Die Temp-Datei im selben Ordner lässt sich nicht exklusiv anlegen (`O_CREAT \| O_EXCL \| O_NOFOLLOW`, Modus `0600`) oder nicht ganz schreiben. Danach setzt der Helfer Modus `0644` mit `fchmod` an der offenen Datei. Eigentümer ist er selbst; ein `fchown` braucht er nicht. |
+| H11 | `firmenvorgabe.fsync_fehlgeschlagen` | `fsync` der Temp-Datei scheitert. |
+| H11 | `firmenvorgabe.rename_fehlgeschlagen` | `rename` der Temp-Datei auf den Namen der Firmenvorgabe scheitert. |
+| H12 | `firmenvorgabe.ordner_fsync_fehlgeschlagen` | `fsync` des Ordners nach dem `rename` scheitert. Der Helfer schreibt die alten Bytes auf demselben Weg zurück (H11 und H12); danach ist die Datei byte-gleich. |
+| H12 | `firmenvorgabe.zustand_unklar` | H12 scheitert, und der Rückweg scheitert auch. Durch `rename` steht der alte oder der neue Inhalt ganz, nie ein Teil. |
+
+- In H11 entfernt der Helfer die Temp-Datei, bevor er antwortet. Die alte Datei berührt er dabei nicht.
+- H3 wiederholt der Helfer an den offenen Griffen (`fstat` von Ordner und Datei, Dateien relativ zum offenen Ordner mit
+  `openat`). Ein Austausch zwischen Prüfung und Schreiben greift so nicht.
+- Erst nach der Antwort ohne Code übernimmt der Dienst den neuen Stand. Er schreibt die Zeile `regel.geaendert` aus `setzen` und
+  schickt jedem betroffenen Betrachter eine neue Nachricht `Einstellungen`. Vorher wirkt die Änderung nirgends, auch nicht nach einem
+  Fehler.
+- Die Datei trägt Konten: Der Dienst schickt `leseklassen` in der Kontoform, in der der Admin sie eingegeben hat. In der Zeile stehen
   nur Pseudonyme; `alt` und `neu` sind Prüfsummen über die Liste mit Pseudonymen (Abschnitt 15.6).
 - Die Codes `firmenvorgabe.*` sind fest. Der Dienst reicht sie als `grund` der `Ablehnung` durch (Abschnitt 15.9).
-- Einzige Ausnahme von „byte-gleich“ ist `firmenvorgabe.zustand_unklar` (Entscheid des Betreibers, 27.11.2026). Dort meldet der Fall,
-  dass der neue Inhalt steht und der Dienst sperrt. Die Datei trägt einen ganzen Inhalt und nie einen Teil, das bleibt fail closed.
+- **`firmenvorgabe.zustand_unklar` mit Sperre (Entscheid des Betreibers, 27.11.2026).** Er entsteht im Helfer (H12, Rückweg
+  gescheitert) oder im Dienst (keine Antwort in der Frist). Die Datei trägt einen ganzen Inhalt und nie einen Teil; das bleibt
+  fail closed. Der Dienst sperrt: Jedes weitere `EinstellungSetzen` auf diesem Weg bekommt `firmenvorgabe.zustand_unklar` (Stufe 0a),
+  und er baut kein Tor, bis er die Firmenvorgabe neu geladen hat. Nach dem Neuladen gilt der geladene Inhalt als Basis.
+  Neu laden heißt im Pilot: Der Dienst liest die Firmenvorgabe bei seinem Neustart (Vertrag `dienst`, DI-E1 Punkt 6 und DI-E2;
+  Projektentscheid, 27.11.2026). Der Schritt `neuladen` der Fälle steht für diesen Neustart.
+- **Ladefehler (OPEN 25, geschlossen).** Ein Konto in `leseklassen`, das der Dienst beim Laden nicht zuordnen kann, ist ein Ladefehler
+  der Firmenvorgabe, und es entsteht kein Tor. Der Helfer prüft Konten nicht auf ein Pseudonym; er kennt die Stelle nicht.
+- **Rest, den der Helfer nicht trennt (hergeleitet).** Jeder Prozess eines Admins außerhalb eines Laufs erreicht den Helfer und kann
+  `leseklassen` ersetzen, auch ohne Dienst. Er erzeugt dann keine Zeile nach Vertrag 5, nur die Zeile im Journal. Das ist dieselbe
+  Grenze wie eine weitergereichte Verbindung in DI-L11 Punkt 7.
 
-**Fälle** in `faelle-schreiben/<name>.json` mit `erwartet-schreiben/<name>.json`. Die Referenz steht in `bau-faelle.py`
-(`lauf_schreiben`), die Prüfung in `pruefen.py`. Kein Crate liest diesen Ordner; der Bau des Dienstes übernimmt die Fälle.
+#### 15.12.4 Datei, Ordner und Rechte (Linux)
+
+| Pfad | Eigentümer | Modus |
+|---|---|---|
+| `/etc/werkbank` (und jeder Elternordner bis `/`) | root | `0755`, nie `& 022` |
+| `/etc/werkbank/vorgabe/` | `werkbank-vorgabe:werkbank-vorgabe` | `0755` |
+| `/etc/werkbank/vorgabe/firmenvorgabe.json` | `werkbank-vorgabe:werkbank-vorgabe` | `0644` |
+
+- **Ordner des Helfers (Entscheid des Betreibers, 27.11.2026; schließt OPEN 28).** Der Ordner `vorgabe/` gehört dem Helfernutzer
+  mit Modus `0755`, und die Eltern ab `/etc/werkbank` gehören root ohne `& 022`. Es gibt kein Schreibrecht für eine Gruppe und kein
+  `CAP_DAC_OVERRIDE`. Grund, gemessen am 27.11.2026 am Mac: In einem Ordner mit Modus `0555` scheitern `open(O_CREAT|O_EXCL)` und
+  `rename` mit errno 13 (`EACCES`), auch für den Eigentümer der Datei. In einem root-eigenen Ordner könnte der Helfer also weder die
+  Temp-Datei anlegen noch umbenennen. Der Helfernutzer könnte die Datei ohnehin ersetzen; der eigene Ordner gibt ihm nur das Recht,
+  dort weitere Dateien anzulegen. Der Lader liest nur den einen Namen.
+- **Erster Admin (Entscheid des Betreibers, 27.11.2026).** `postinst` legt die Firmenvorgabe nur an, wenn sie fehlt. Dann trägt sie
+  das installierende Konto (aus `SUDO_USER`, wie beim Halter) als einzigen Eintrag in `admins` und eine leere `leseklassen`. Eine
+  vorhandene Firmenvorgabe ändert `postinst` nie, auch nicht beim Upgrade und auch nicht, wenn die IT sie vor der Installation
+  abgelegt hat. Grund: Wer `sudo` hat, kann die Datei ohnehin direkt ändern; der Eintrag gibt keine neue Macht. Ohne installierendes
+  Konto entsteht keine Datei, und bis die IT sie pflegt, ist keine Änderung durch einen Admin möglich (unten, „Fehlende
+  Firmenvorgabe“). Eine vorhandene,
+  ungültige Datei überschreibt `postinst` nicht; der Ladefehler bleibt fail closed. Ablauf und Prüfpunkte: Paket, Teil A3,
+  „Erster Admin“.
+- **Fehlende Firmenvorgabe (Entscheid des Betreibers, 27.11.2026; schließt OPEN 30).** Fehlt die Datei (`lstat` meldet `ENOENT`),
+  lädt der Lader keine Admins: `stand.admins` ist leer, und `leseklassen` ist leer, also liest niemand (Abschnitt 15.11). `setzen`
+  lehnt darum jede Änderung eines Admins mit dem festen Code `ebenen.nicht_befugt` ab (Abschnitt 15.4, Stufe 6), auch für ein Konto,
+  das vorher Admin war. Der Dienst spricht den Helfer dann nicht an; ein Prozess, der den Helfer direkt anspricht, bekommt
+  `firmenvorgabe.datei_unsicher` (H3, keine reguläre Datei). Die Regeln der Firma ohne Firmenvorgabe gelten weiter: die Firmendatei
+  (Abschnitt 3.1) und die Werte der Ebene `firma` im Stand. Ein Nutzer setzt seine Nutzerebene wie sonst. Für das Schreiben ist das
+  fail closed. Eine vorhandene, aber ungültige Datei bleibt ein Ladefehler, und es entsteht kein Tor (Abschnitt 15.12.3). Fall:
+  `faelle-setzen/ohne-firmenvorgabe-keine-admins.json`.
+- Die IT ändert die Datei mit `sudo` und setzt danach `chown werkbank-vorgabe:werkbank-vorgabe` und `chmod 0644`. Bis dahin lehnt der
+  Helfer mit `firmenvorgabe.datei_unsicher` ab (Fall `schreiben-datei-root-eigen`, OPEN 27).
+- Unter Windows liegt die Firmenvorgabe in `%ProgramData%\Werkbank\admin\` (Paket, Teil B). Ein Helfer dort fehlt noch (OPEN 26).
+- **Zwei Dateien, nicht eine (Projektentscheid, 27.11.2026).** Neben der Firmenvorgabe dieses Abschnitts schreibt das Paket
+  `/etc/werkbank/vorgabe.json` (`root:root`, `0644`, Ordner `/etc/werkbank` `root:root` `0755`). Das ist eine Einstellungsdatei nach
+  Vertrag 2 mit Routen und Netzzielen, eine Kopie des Erststart-Profils. `postinst` schreibt sie bei jedem `configure` neu, und `lauf`
+  prüft die Routentabelle dagegen und verlangt einen root-eigenen Eigentümer (Modul `ziele::vorgabe` von `lauf`, Konstante
+  `VORGABE_PFAD`). Die Firmenvorgabe dieses Abschnitts trägt die Kontenliste der Admins und `leseklassen` und liegt in
+  `/etc/werkbank/vorgabe/firmenvorgabe.json` (`werkbank-vorgabe`, `0644`). Der Helfer schreibt nur diese Datei. `vorgabe.json` bleibt
+  root-eigen; der Helfer öffnet sie nie, und `ReadWritePaths=` seiner Einheit nennt nur `/etc/werkbank/vorgabe` (Paket, Teil A3).
+  Gründe: `postinst` würde eine Änderung eines Admins in `vorgabe.json` beim nächsten `configure` überschreiben, und `lauf` lehnte
+  eine Datei des Helfernutzers ab. Wie die Optionen der Firma (Abschnitt 15.1.1) auf Felder von `vorgabe.json` wirken, ist OPEN 29.
+
+#### 15.12.5 Fälle
+
+Fälle in `faelle-schreiben/<name>.json` mit `erwartet-schreiben/<name>.json`. Die Referenz steht in `bau-faelle.py`
+(`lauf_schreiben` für den Dienst, `helfer` für den Helfer), die Prüfung in `pruefen.py`. Kein Crate liest diesen Ordner; der Bau von
+Dienst und Helfer übernimmt die Fälle.
 
 ```json
 {"name": "…", "anforderungen": ["A05"], "beschreibung": "…",
  "firma": {"klassen": ["oeffentlich", "intern", "kundendaten"], "gruppen": {"g-eins": ["ps_…c01"]}},
+ "konten": {"konto-admin": 1001, "konto-nutzer": 1003},
  "zuordnung": {"konto-admin": "ps_…b01", "konto-nutzer": "ps_…c01"},
- "firmenvorgabe": {"art": "datei", "eigentuemer": "root", "modus": "0644",
+ "firmenvorgabe": {"art": "datei", "eigentuemer": "werkbank-vorgabe", "modus": "0644",
                    "inhalt": {"admins": ["konto-admin"], "leseklassen": [{"ebene": "nutzer", "wer": "konto-nutzer", "klasse": "intern"}]}},
- "ordner": {"art": "ordner", "eigentuemer": "root", "modus": "0755"},
- "schritte": [{"schreiben": {"partner": "konto-admin", "wert": […], "fehler": ["rename"]}},
-              {"nachricht": {"partner": "konto-admin"}}]}
+ "ordner": {"art": "ordner", "eigentuemer": "werkbank-vorgabe", "modus": "0755"},
+ "eltern": {"art": "ordner", "eigentuemer": "root", "modus": "0755"},
+ "schritte": [{"schreiben": {"partner": 1001, "wert": […], "fehler": ["rename"]}},
+              {"anfrage": {"partner": 1003, "anfrage": {"art": "Ersetzen", …}, "fehler": []}},
+              {"neuladen": {}},
+              {"nachricht": {"partner": 1001}}]}
 ```
 
-- `zuordnung` steht für die Stelle (Vertrag 9 Personenbezug): Konto zu Pseudonym. Konten sind Platzhalter der Form `konto-*`.
-- `firmenvorgabe` und `ordner` sind der Zustand als Eingabe: `art` (`datei`, `ordner` oder `verweis`), Eigentümer und Modus.
-  `fehler` schleust Fehler ein: `fremd_geaendert` (Stufe 4), `temp`, `fsync`, `rename`, `ordner_fsync` (Stufen 5 bis 8) und
-  `rueckweg` (der Rückweg nach Stufe 8 scheitert).
+- `konten` steht für das System: Konto zu uid (`getpwnam_r`). `zuordnung` steht für die Stelle (Vertrag 9 Personenbezug): Konto zu
+  Pseudonym. Konten sind Platzhalter der Form `konto-*`, uids Beispielzahlen.
+- `partner` ist die uid aus `SO_PEERCRED`, `null` heißt: nicht feststellbar.
+- `firmenvorgabe`, `ordner` und `eltern` sind der Zustand als Eingabe: `art` (`datei`, `ordner` oder `verweis`), Eigentümer und Modus.
+  `eltern` steht für jeden Elternordner bis `/`.
+- `schreiben` ist der Weg über die Ansicht und den Dienst, `anfrage` eine Anfrage direkt an den Socket, ohne Dienst. `neuladen` lädt
+  im Dienst die Firmenvorgabe neu und hebt die Sperre auf.
+- `fehler` schleust Fehler ein. Im Helfer: `eingeschlossen` (H2), `zu_gross` (H6), `frist` (H7), `temp`, `fsync`, `rename`,
+  `ordner_fsync` (H11 und H12) und `rueckweg` (der Rückweg nach H12 scheitert). Nur im Dienst: `fremd_geaendert` (die geladenen
+  Bytes sind veraltet, H9), `helfer_weg` (Stufe 3) und `antwort_fehlt` (der Helfer ersetzt, aber die Antwort kommt nicht an).
 - Ergebnis je `schreiben`: `angenommen`, `code`, `zeile`, `datei` (Eigentümer, Modus, sha256 der Bytes und Inhalt danach),
   `unveraendert` (sha256 gleich wie vorher) und `temp_bleibt` (immer `false`). Die Bytes sind JSON mit sortierten Schlüsseln, Einzug 1
-  und einem Zeilenende.
-- Ergebnis je `nachricht`: die Nachricht `Einstellungen` an diesen Partner (Abschnitt 15.13).
+  und einem Zeilenende. Ergebnis je `anfrage`: `antwort`, `datei`, `unveraendert`, `temp_bleibt`. Ergebnis je `neuladen`: `geladen`
+  (sha256) und `gesperrt`. Ergebnis je `nachricht`: die Nachricht `Einstellungen` an diesen Partner (Abschnitt 15.13).
 - `pruefen.py` prüft: Paarung; die Zeile ohne Konto, mit dem Pseudonym des Partners; nach jedem Fehler dieselbe sha256 wie vorher
-  (S12); keine Annahme für einen Nichtadmin (S11); ein Konto in einer Nachricht nur auf dem einen Weg (S10); je Code mindestens einen
-  Fall und je Art des Betrachters mindestens eine Nachricht.
+  (S12); keine ersetzte Datei für einen Partner, der in der gültigen Datei kein Admin ist (S11); keine Änderung außerhalb von
+  `leseklassen` und nach dem Ersetzen Eigentümer `werkbank-vorgabe` mit `0644` (S13); die Sperre nach `zustand_unklar`; ein Konto in
+  einer Nachricht nur auf dem einen Weg (S10); je Code mindestens einen Fall, je Weg einen Fall und je Art des Betrachters eine
+  Nachricht.
 
 | Fall | Inhalt |
 |---|---|
-| `schreiben-admin-erfolgreich` | Ein Admin schreibt; die Datei trägt die neue Liste mit Konten, Eigentümer root, Modus `0644`. |
-| `schreiben-nichtadmin` | Ein Nichtadmin schreibt, auch für sich selbst: `ebenen.nicht_befugt`, Datei byte-gleich. |
-| `schreiben-datei-nicht-root` | Eigentümer ist ein Nutzerkonto: `firmenvorgabe.datei_unsicher`. |
+| `schreiben-admin-erfolgreich` | Ein Admin schreibt aus der Ansicht; die Datei trägt die neue Liste mit Konten, Eigentümer `werkbank-vorgabe`, Modus `0644`. |
+| `schreiben-nichtadmin` | Ein Nichtadmin schreibt aus der Ansicht, auch für sich selbst: `ebenen.nicht_befugt`, der Helfer wird nicht angesprochen. |
+| `schreiben-datei-fremder-eigentuemer` | Eigentümer ist ein Nutzerkonto: `firmenvorgabe.datei_unsicher`. |
+| `schreiben-datei-root-eigen` | Eigentümer ist root, etwa nach einer Änderung von Hand: `firmenvorgabe.datei_unsicher`. |
 | `schreiben-datei-gruppe-schreibbar` | Modus `0664`: `firmenvorgabe.datei_unsicher`. |
 | `schreiben-datei-andere-schreibbar` | Modus `0646`: `firmenvorgabe.datei_unsicher`. |
 | `schreiben-datei-verweis` | Die Datei ist ein Verweis: `firmenvorgabe.datei_unsicher`. |
 | `schreiben-ordner-schreibbar` | Der Ordner hat Modus `0777`: `firmenvorgabe.datei_unsicher`. |
+| `schreiben-ordner-fremder-eigentuemer` | Der Ordner gehört einem Nutzerkonto: `firmenvorgabe.datei_unsicher`. |
+| `schreiben-ordner-verweis` | Der Ordner ist ein Verweis: `firmenvorgabe.datei_unsicher`. |
+| `schreiben-eltern-nicht-root` | Ein Elternordner gehört nicht root: `firmenvorgabe.datei_unsicher`. |
+| `schreiben-eltern-schreibbar` | Ein Elternordner hat Modus `0775`: `firmenvorgabe.datei_unsicher`. |
 | `schreiben-veraltet` | Root hat die Datei nach dem Laden geändert: `firmenvorgabe.veraltet`. |
 | `schreiben-wert-ungueltig` | Ein Konto ohne Zuordnung und ein Pseudonym statt eines Kontos: `ebenen.wert_ungueltig`. |
+| `schreiben-helfer-nicht-erreichbar` | `connect` scheitert: `firmenvorgabe.helfer_nicht_erreichbar`. |
 | `schreiben-temp-scheitert` | `firmenvorgabe.temp_fehlgeschlagen`, Temp-Datei entfernt. |
 | `schreiben-fsync-scheitert` | `firmenvorgabe.fsync_fehlgeschlagen`. |
 | `schreiben-rename-scheitert` | `firmenvorgabe.rename_fehlgeschlagen`. |
 | `schreiben-ordner-fsync-scheitert` | `firmenvorgabe.ordner_fsync_fehlgeschlagen`; der Rückweg gelingt, die Sicht zeigt die alte Liste. |
 | `schreiben-rueckweg-scheitert` | `firmenvorgabe.zustand_unklar`; der neue Inhalt steht ganz, der Dienst sperrt. |
+| `schreiben-antwort-fehlt` | Der Helfer ersetzt, die Antwort kommt nicht an: `firmenvorgabe.zustand_unklar`, Sperre. |
+| `schreiben-sperre-bis-neuladen` | Nach `zustand_unklar` lehnt der Dienst ab, ohne den Helfer; nach dem Neuladen gelingt die Änderung. |
 | `schreiben-nach-fehler-erfolgreich` | Nach einem gescheiterten `rename` gelingt der nächste Versuch eines anderen Admins. |
+| `socket-admin-erfolgreich` | Ein Prozess eines Admins ersetzt die Datei direkt über den Socket. |
+| `socket-nichtadmin` | Ein Nichtadmin direkt über den Socket: `firmenvorgabe.partner_nicht_admin`. |
+| `socket-partner-unbekannt` | Partner nicht feststellbar und uid ohne Konto: `firmenvorgabe.partner_unbekannt`. |
+| `socket-admin-nur-in-neuer-datei` | Ein Nutzer reicht eine Datei ein, die ihn als Admin nennt: `firmenvorgabe.partner_nicht_admin`. |
+| `socket-admins-geaendert` | Ein Admin ändert die Kontenliste oder fügt einen Schlüssel hinzu: `firmenvorgabe.ausser_leseklassen`. |
+| `socket-eingeschlossen` | Ein Prozess eines Admins in einem Lauf: `firmenvorgabe.partner_eingeschlossen`. |
+| `socket-anfrage-zu-gross` | `firmenvorgabe.anfrage_zu_gross`. |
+| `socket-anfrage-frist` | `firmenvorgabe.anfrage_frist`. |
+| `socket-anfrage-ungueltig` | Basis keine Prüfsumme, Inhalt keine Firmenvorgabe, fremdes Feld, falsche Art: `firmenvorgabe.anfrage_ungueltig`. |
+| `socket-veraltet` | Die zweite Anfrage nennt die Basis vor der ersten: `firmenvorgabe.veraltet`. |
+| `socket-ladefehler` | Die gültige Datei hat keine lesbare Kontenliste: `firmenvorgabe.ladefehler`. |
 
 ### 15.13 Konto in der Ansicht der Admins (Entscheid des Betreibers, 27.11.2026; schließt OPEN 23)
 
