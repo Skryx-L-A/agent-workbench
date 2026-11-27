@@ -1,0 +1,178 @@
+{
+ "schritte": [
+  {
+   "angenommen": true,
+   "code": null,
+   "zeile": {
+    "aktionsname": "regel.geaendert",
+    "alt": "e479d0013c7c3fba8450c54998fcee876d891d00f1a2b3a28061c8617de081ad",
+    "antrag": null,
+    "code": null,
+    "ebene": "firma",
+    "ergebnis": "geaendert",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "e1ea28850a789aafdc733b06588cf933ddfd66ece9658835042fa0104268a968",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   },
+   "datei": {
+    "eigentuemer": "root",
+    "modus": "0644",
+    "sha256": "2b8b8ef7c81f5f2245c361576f3cf9e945a7fd714a757b9830471f390c5290bf",
+    "inhalt": {
+     "admins": [
+      "konto-admin",
+      "konto-admin-zwei"
+     ],
+     "leseklassen": [
+      {
+       "ebene": "gruppe",
+       "wer": "g-eins",
+       "klasse": "intern"
+      },
+      {
+       "ebene": "nutzer",
+       "wer": "konto-nutzer",
+       "klasse": "kundendaten"
+      },
+      {
+       "ebene": "nutzer",
+       "wer": "konto-nutzer-zwei",
+       "klasse": "oeffentlich"
+      }
+     ]
+    }
+   },
+   "unveraendert": false,
+   "temp_bleibt": false
+  },
+  {
+   "einstellungen": {
+    "art": "Einstellungen",
+    "fassung": 2,
+    "admin": true,
+    "werte": {
+     "aussehen.thema": {
+      "wert": "system",
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "aussehen.farbsatz": {
+      "wert": "grau",
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "aussehen.terminal": {
+      "wert": "dunkel",
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "terminal.schriftgroesse": {
+      "wert": 13,
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "sitzung.harness": {
+      "wert": null,
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "sitzung.modell": {
+      "wert": null,
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "sitzung.effort": {
+      "wert": null,
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "harnesses": {
+      "wert": {},
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "modelle": {
+      "wert": {},
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "effort.grenzen": {
+      "wert": [],
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "optionen.copilot_ohne_rueckfrage": {
+      "wert": false,
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "optionen.herabstufen": {
+      "wert": false,
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "optionen.lokale_ca": {
+      "wert": false,
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "optionen.copilot_telemetrie": {
+      "wert": false,
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "optionen.copilot_eingeschraenktes_token": {
+      "wert": false,
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     },
+     "optionen.herstellerzugang": {
+      "wert": false,
+      "herkunft": "firma",
+      "aenderbar": false,
+      "grund": "fest"
+     },
+     "leseklassen": {
+      "wert": [
+       {
+        "ebene": "gruppe",
+        "wer": "g-eins",
+        "klasse": "intern"
+       },
+       {
+        "ebene": "nutzer",
+        "wer": "konto-nutzer",
+        "klasse": "kundendaten"
+       },
+       {
+        "ebene": "nutzer",
+        "wer": "konto-nutzer-zwei",
+        "klasse": "oeffentlich"
+       }
+      ],
+      "herkunft": "firma",
+      "aenderbar": true,
+      "grund": null
+     }
+    }
+   }
+  }
+ ]
+}

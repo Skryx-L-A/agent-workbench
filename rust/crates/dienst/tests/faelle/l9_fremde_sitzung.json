@@ -1,0 +1,124 @@
+{
+ "beschreibung": "eine Sitzung in einem anderen Kundenraum ist fremd; nach RaumWechsel in ihren Raum greift die Klasse",
+ "datensatz": "A",
+ "name": "l9_fremde_sitzung",
+ "regeln": [
+  "DI3",
+  "L9"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "OrdnerLesen",
+    "pfad": "",
+    "sitzung": "s-alpha"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "InhaltSuchen",
+    "muster": "x",
+    "sitzung": "s-alpha"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "OrdnerLesen",
+    "pfad": "../x",
+    "sitzung": "s-alpha"
+   }
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1",
+   "ohne_nachrichten": true
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "RaumWechsel",
+    "raum": "raum-sued"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "OrdnerLesen",
+    "pfad": "",
+    "sitzung": "s-alpha"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "InhaltSuchen",
+    "muster": "x",
+    "sitzung": "s-alpha"
+   }
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1",
+   "ohne_nachrichten": true
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-sued",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   40,
+   10
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "ausgabe",
+    "0d0a"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

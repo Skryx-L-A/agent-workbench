@@ -1,0 +1,46 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "firmenvorgabe.fsync_fehlgeschlagen",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "e479d0013c7c3fba8450c54998fcee876d891d00f1a2b3a28061c8617de081ad",
+    "antrag": null,
+    "code": "firmenvorgabe.fsync_fehlgeschlagen",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "e1ea28850a789aafdc733b06588cf933ddfd66ece9658835042fa0104268a968",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   },
+   "datei": {
+    "eigentuemer": "root",
+    "modus": "0644",
+    "sha256": "febe7816e121c7930dde5e62967de0d1ad41755111df8f0942676879020a3ab2",
+    "inhalt": {
+     "admins": [
+      "konto-admin",
+      "konto-admin-zwei"
+     ],
+     "leseklassen": [
+      {
+       "ebene": "gruppe",
+       "wer": "g-eins",
+       "klasse": "intern"
+      },
+      {
+       "ebene": "nutzer",
+       "wer": "konto-nutzer",
+       "klasse": "oeffentlich"
+      }
+     ]
+    }
+   },
+   "unveraendert": true,
+   "temp_bleibt": false
+  }
+ ]
+}

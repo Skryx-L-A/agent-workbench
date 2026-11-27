@@ -27,6 +27,7 @@ use serde_json::{Map, Value, json};
 use traeger::Ereignis;
 use zustandskern::Wirkungen;
 
+use crate::arbeitsordner;
 use crate::bereit::Bereitschaft;
 use crate::betrachter::{Betrachter, json_rahmen};
 use crate::fehler::StartFehler;
@@ -43,14 +44,14 @@ use crate::sitzung::{
 };
 use crate::startdatei::{KLEINSTE_SPALTEN, Startdatei};
 use crate::starten::{
-    Abgelehnt, SITZUNGEN_MAX, einstellungen_laden, meta_von, nummer_vergebbar, ordner_anlegen,
-    rahmennummer, start_form, start_pruefen, starten_form, startwahl_von,
+    Abgelehnt, SITZUNGEN_MAX, arbeitsordner_von, einstellungen_laden, meta_von, nummer_vergebbar,
+    ordner_anlegen, rahmennummer, start_form, start_pruefen, starten_form, startwahl_von,
 };
 use crate::sys::{Ordner, UnixListener, UnixStream};
 use crate::waisen::{Waisen, kinder_verwerfen, start_verwerfen};
 
 /// The kinds of event a viewer may give (DI3): the lines `Ansicht` of `VT` section 4 without `Verbinden` and `Trennen`.
-const ERLAUBT: [&str; 10] = [
+const ERLAUBT: [&str; 12] = [
     "Abo",
     "Groesse",
     "Text",
@@ -61,6 +62,8 @@ const ERLAUBT: [&str; 10] = [
     "RouteWaehlen",
     "EinstellungSetzen",
     "RaumWechsel",
+    "OrdnerLesen",
+    "InhaltSuchen",
 ];
 
 /// How long the loop waits when nothing happens.
@@ -341,7 +344,9 @@ impl Dienst {
                     return Err(StartFehler::neu(2, &format!("anfang: {e}")));
                 }
             };
-            sitzungen.push(mit_job(Sitzung::neu(cfg.sid.clone(), kern, kind))?);
+            let mut sitzung = Sitzung::neu(cfg.sid.clone(), kern, kind);
+            sitzung.arbeitsordner = Some(PathBuf::from(&cfg.cwd));
+            sitzungen.push(mit_job(sitzung)?);
         }
         let hoerer = match socket_binden(Path::new(&cfg.pfad), wurzel.as_fd()) {
             Ok(h) => h,
@@ -1214,6 +1219,11 @@ impl Dienst {
             return self.fehler(nr, "feld_verboten");
         }
         let art = art.to_owned();
+        if arbeitsordner::ist_eigen(&art) {
+            self.arbeitsordner_ereignis(nr, objekt);
+            self.flush_alle();
+            return;
+        }
         if lauf && art == "Starten" {
             self.starten(nr, objekt);
             self.flush_alle();
@@ -1274,6 +1284,76 @@ impl Dienst {
             self.kern_neu(k);
         }
         self.flush_alle();
+    }
+
+    // ---------------------------------------------------------------------------------------------- working folder (L9)
+
+    /// `OrdnerLesen` and `InhaltSuchen` (contract, "Nachtrag 26.11.2026: Ordner lesen und durchsuchen (L9)"): the answer goes to the
+    /// sender alone, as a message `Ordnerinhalt` or `Suchtreffer` or as an `Ablehnung` with a fixed reason. The core sees neither.
+    fn arbeitsordner_ereignis(&mut self, nr: u64, ereignis: &Map<String, Value>) {
+        match self.arbeitsordner_antwort(nr, ereignis) {
+            Ok(mut antwort) => {
+                antwort["t"] = json!(self.jetzt());
+                self.nachricht_an(nr, &antwort, None);
+            }
+            Err(grund) => self.ablehnen(nr, &json!({"grund": grund})),
+        }
+    }
+
+    /// The order of the checks: the form, the session, its room, then the text, the class and the file system (`arbeitsordner.rs`).
+    fn arbeitsordner_antwort(
+        &mut self,
+        nr: u64,
+        ereignis: &Map<String, Value>,
+    ) -> Result<Value, &'static str> {
+        let anfrage = arbeitsordner::form(ereignis)?;
+        let k = self
+            .finde(anfrage.sitzung())
+            .ok_or(arbeitsordner::SITZUNG_UNBEKANNT)?;
+        if !self.im_raum(nr, k) {
+            return Err(arbeitsordner::FREMDER_KUNDENRAUM);
+        }
+        let wurzel = self.sitzungen.get(k).and_then(|s| s.arbeitsordner.clone());
+        // the clock of the service (DI7): in test mode it stands still, so the limit of the run time never ends a search there
+        let pruefmodus = self.cfg.pruefmodus;
+        let beginn = self.start;
+        let mut uhr = move || {
+            if pruefmodus {
+                0
+            } else {
+                u64::try_from(beginn.elapsed().as_millis()).unwrap_or(u64::MAX)
+            }
+        };
+        arbeitsordner::beantworten(
+            &anfrage,
+            wurzel.as_deref(),
+            &arbeitsordner::GRENZEN,
+            &mut uhr,
+        )
+    }
+
+    /// Whether the viewer `nr` is in the customer room of the session `k`, as its core knows both (the core refuses `Abo` with
+    /// `fremder_kundenraum` by the same comparison). A viewer or a session the core does not name is not in the room.
+    fn im_raum(&self, nr: u64, k: usize) -> bool {
+        let (Some(b), Some(s)) = (self.betrachter.get(&nr), self.sitzungen.get(k)) else {
+            return false;
+        };
+        let zustand = s.kern.zustand();
+        let raum = zustand
+            .get("betrachter")
+            .and_then(|x| x.get(&b.name))
+            .and_then(|x| x.get("raum"))
+            .and_then(Value::as_str);
+        let kundenraum = zustand
+            .get("sitzungen")
+            .and_then(Value::as_array)
+            .and_then(|l| {
+                l.iter()
+                    .find(|x| x.get("id").and_then(Value::as_str) == s.sid.as_deref())
+            })
+            .and_then(|x| x.get("kundenraum"))
+            .and_then(Value::as_str);
+        raum.is_some() && raum == kundenraum
     }
 
     // ---------------------------------------------------------------------------------------------- Starten, Beenden (DI12)
@@ -1446,7 +1526,7 @@ impl Dienst {
             crate::loeschen::sitzung_entfernen(self.wurzel.as_fd(), &kennung);
             return self.start_ablehnen(nr, &Abgelehnt::fest("programm_nicht_startbar"));
         };
-        let sitzung = Sitzung::gestartet(
+        let mut sitzung = Sitzung::gestartet(
             kennung.clone(),
             nummer,
             kern,
@@ -1455,6 +1535,7 @@ impl Dienst {
             meta,
             (ordner, Arc::clone(&self.wurzel), meldung),
         );
+        sitzung.arbeitsordner = Some(PathBuf::from(arbeitsordner_von(&anfrage)));
         if !self.gestartet_aufnehmen(sitzung, nr, n, nummer) {
             return;
         }

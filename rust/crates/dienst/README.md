@@ -108,7 +108,7 @@ to the wake socket. The loop wakes for each readable connection and at least eve
 `cargo test -p dienst --all-features` (the feature `pruefbau` carries the child programs the cases need; the files that run a child program are empty without it; `cargo test -p dienst --test naht` proves that the delivered build knows no `--kind`): unit tests in `src/`, `tests/dienst.rs` (start errors, end, steady load, limit of the core, threads),
 `tests/mehrere.rs` (DI12: numbers and identifiers, `Beenden` with SIGKILL for a child that ignores SIGHUP, folders and their
 removal also after the crash of a session, the rebuild of one core, no listener), `tests/meldung.rs` (section 18, Linux and macOS: the option `--meldung`, the
-line of `lauf` and its borders, a foreign connection, a path too long), `tests/faelle.rs` (the 275 visible outside cases
+line of `lauf` and its borders, a foreign connection, a path too long), `tests/faelle.rs` (the 280 visible outside cases
 through the Python runner in `tests/werkzeug/`; needs `python3` and `lsof`). The runner repeats nothing: a red case ends its
 runner, and the test is red.
 

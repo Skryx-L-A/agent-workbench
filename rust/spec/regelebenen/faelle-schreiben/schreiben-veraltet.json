@@ -1,0 +1,84 @@
+{
+ "name": "schreiben-veraltet",
+ "anforderungen": [
+  "A05",
+  "A27"
+ ],
+ "beschreibung": "root hat die Firmenvorgabe nach dem Laden geändert; der Dienst überschreibt diese Änderung nicht",
+ "firma": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  }
+ },
+ "zuordnung": {
+  "konto-admin": "ps_00000000000000000000000000000b01",
+  "konto-admin-zwei": "ps_00000000000000000000000000000b02",
+  "konto-nutzer": "ps_00000000000000000000000000000c01",
+  "konto-nutzer-zwei": "ps_00000000000000000000000000000c02"
+ },
+ "firmenvorgabe": {
+  "art": "datei",
+  "eigentuemer": "root",
+  "modus": "0644",
+  "inhalt": {
+   "admins": [
+    "konto-admin",
+    "konto-admin-zwei"
+   ],
+   "leseklassen": [
+    {
+     "ebene": "gruppe",
+     "wer": "g-eins",
+     "klasse": "intern"
+    },
+    {
+     "ebene": "nutzer",
+     "wer": "konto-nutzer",
+     "klasse": "oeffentlich"
+    }
+   ]
+  }
+ },
+ "ordner": {
+  "art": "ordner",
+  "eigentuemer": "root",
+  "modus": "0755"
+ },
+ "schritte": [
+  {
+   "schreiben": {
+    "partner": "konto-admin",
+    "wert": [
+     {
+      "ebene": "gruppe",
+      "wer": "g-eins",
+      "klasse": "intern"
+     },
+     {
+      "ebene": "nutzer",
+      "wer": "konto-nutzer",
+      "klasse": "kundendaten"
+     },
+     {
+      "ebene": "nutzer",
+      "wer": "konto-nutzer-zwei",
+      "klasse": "oeffentlich"
+     }
+    ],
+    "fehler": [
+     "fremd_geaendert"
+    ]
+   }
+  }
+ ]
+}

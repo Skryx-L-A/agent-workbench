@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Erzeugt die sichtbaren Fälle des Vertrags Regelebenen (faelle/, erwartet/).
+Dazu die Fälle zu setzen und sicht (faelle-setzen/) und zum Schreibweg der Firmenvorgabe (faelle-schreiben/).
 
 Aufruf: python3 -I rust/spec/regelebenen/bau-faelle.py
 Jede Erwartung rechnet eine kleine Referenz der Abschnitte 5 bis 7 des README. Jeder Fall trägt zusätzlich
@@ -1332,6 +1333,253 @@ def bauen_setzen():
     return fehler, ausgabe
 
 
+# --- Schreibweg der Firmenvorgabe und Konto in der Ansicht der Admins (Entscheid des Betreibers, 27.11.2026) ----------
+# README Abschnitte 15.12 und 15.13. Die Referenz beschreibt Pflichten des Dienstes, keine Funktion von regelebenen.
+# Die Fälle stehen in faelle-schreiben/ und erwartet-schreiben/. Konten sind Platzhalter der Form konto-*.
+UNSICHER = 0o022  # Schreibrecht für Gruppe oder andere
+SCHRITTE_SCHREIBEN = ("temp", "fsync", "rename", "ordner_fsync")
+FEHLER_EIN = {"fremd_geaendert", "rueckweg"} | set(SCHRITTE_SCHREIBEN)
+CODE_SCHRITT = {"temp": "firmenvorgabe.temp_fehlgeschlagen", "fsync": "firmenvorgabe.fsync_fehlgeschlagen",
+                "rename": "firmenvorgabe.rename_fehlgeschlagen", "ordner_fsync": "firmenvorgabe.ordner_fsync_fehlgeschlagen"}
+
+
+def bytes_der(inhalt):
+    return (json.dumps(inhalt, ensure_ascii=False, indent=1, sort_keys=True) + "\n").encode("utf-8")
+
+
+def sha(inhalt):
+    return hashlib.sha256(bytes_der(inhalt)).hexdigest()
+
+
+def sicher(ort):
+    # Regulär (kein Verweis), Eigentümer root, kein Schreibrecht für Gruppe oder andere.
+    return ort.get("art", "datei") in ("datei", "ordner") and ort["eigentuemer"] == "root" and int(ort["modus"], 8) & UNSICHER == 0
+
+
+def in_pseudonyme(liste, zuordnung):
+    # Pflicht des Dienstes (15.2): Konto zu Pseudonym. Ein Konto ohne Zuordnung und ein Pseudonym aus der Ansicht
+    # werden zu wer null, das setzen mit ebenen.wert_ungueltig ablehnt; so steht kein Konto in der Zeile.
+    if not isinstance(liste, list):
+        return liste
+    aus = []
+    for x in liste:
+        if isinstance(x, dict) and x.get("ebene") == "nutzer":
+            x = dict(x, wer=zuordnung.get(x.get("wer")) if isinstance(x.get("wer"), str) else None)
+        aus.append(x)
+    return aus
+
+
+def lauf_schreiben(fall):
+    zu = fall["zuordnung"]
+    datei = copy.deepcopy(fall["firmenvorgabe"])
+    ordner = fall["ordner"]
+
+    def stand_aus():
+        werte = {"firma": {"leseklassen": in_pseudonyme(datei["inhalt"]["leseklassen"], zu)}, "gruppen": {}, "nutzer": {}}
+        return {"klassen": fall["firma"]["klassen"], "admins": [zu[k] for k in datei["inhalt"]["admins"]],
+                "gruppen": fall["firma"]["gruppen"], "werte": werte}
+
+    zurueck = {p: k for k, p in zu.items()}
+    erg = []
+    for s in fall["schritte"]:
+        if "nachricht" in s:
+            stand = stand_aus()
+            wer = zu[s["nachricht"]["partner"]]
+            admin = wer in stand["admins"]
+            werte = sicht(stand, wer)["einstellungen"]
+            if admin:
+                # Der eine Weg eines Kontos zur Ansicht: für einen Admin an der Stelle des Pseudonyms (15.13).
+                werte[_L]["wert"] = [dict(x, wer=zurueck.get(x["wer"], x["wer"])) if x["ebene"] == "nutzer" else x
+                                     for x in werte[_L]["wert"]]
+            erg.append({"einstellungen": {"art": "Einstellungen", "fassung": 2, "admin": admin, "werte": werte}})
+            continue
+        a = s["schreiben"]
+        fehler = set(a["fehler"])
+        vorher = sha(datei["inhalt"])
+        stand = stand_aus()
+        wer = zu[a["partner"]]
+        wert_ps = in_pseudonyme(a["wert"], zu)
+        probe = copy.deepcopy(stand)
+        code = None
+        if wer not in stand["admins"]:
+            code = "ebenen.nicht_befugt"                        # Stufe 1, vor jedem Zugriff auf die Datei
+        else:
+            p = setzen(probe, wer, "admin", "firma", _L, wert_ps)  # Stufe 2, auf einer Kopie des Stands
+            code = p["code"]
+        if code is None and not (sicher(datei) and sicher(ordner)):
+            code = "firmenvorgabe.datei_unsicher"               # Stufe 3
+        if code is None and "fremd_geaendert" in fehler:
+            code = "firmenvorgabe.veraltet"                     # Stufe 4
+        temp_bleibt = False
+        if code is None:
+            for schritt in SCHRITTE_SCHREIBEN:                  # Stufen 5 bis 8
+                if schritt in fehler:
+                    code = CODE_SCHRITT[schritt]
+                    break
+            if code is None:
+                datei["inhalt"] = dict(datei["inhalt"], leseklassen=copy.deepcopy(a["wert"]))
+            elif code == CODE_SCHRITT["ordner_fsync"] and "rueckweg" in fehler:
+                # Rückweg gescheitert: der neue Inhalt steht, der Dienst sperrt (Stufe 8, zweiter Fehler).
+                code = "firmenvorgabe.zustand_unklar"
+                datei["inhalt"] = dict(datei["inhalt"], leseklassen=copy.deepcopy(a["wert"]))
+        alt = (True, stand["werte"]["firma"][_L])
+        zeile = zeile_setzen(wer, "firma", None, _L, alt, wert_ps, code)
+        erg.append({"angenommen": code is None, "code": code, "zeile": zeile,
+                    "datei": {"eigentuemer": datei["eigentuemer"], "modus": datei["modus"], "sha256": sha(datei["inhalt"]),
+                              "inhalt": copy.deepcopy(datei["inhalt"])},
+                    "unveraendert": sha(datei["inhalt"]) == vorher, "temp_bleibt": temp_bleibt})
+    return {"schritte": erg}
+
+
+KA, KA2, KU, KV = "konto-admin", "konto-admin-zwei", "konto-nutzer", "konto-nutzer-zwei"
+ZU = {KA: ADM, KA2: ADM2, KU: U, KV: V}
+ALT_LISTE = [LE("gruppe", "g-eins", "intern"), LE("nutzer", KU, "oeffentlich")]
+NEU_LISTE = [LE("gruppe", "g-eins", "intern"), LE("nutzer", KU, "kundendaten"), LE("nutzer", KV, "oeffentlich")]
+
+
+def vorgabe(eigentuemer="root", modus="0644", art="datei", leseklassen=None):
+    return {"art": art, "eigentuemer": eigentuemer, "modus": modus,
+            "inhalt": {"admins": [KA, KA2], "leseklassen": copy.deepcopy(ALT_LISTE if leseklassen is None else leseklassen)}}
+
+
+def SW(partner, wert, *fehler):
+    return {"schreiben": {"partner": partner, "wert": wert, "fehler": list(fehler)}}
+
+
+def NA(partner):
+    return {"nachricht": {"partner": partner}}
+
+
+FAELLE_SCHREIBEN = []
+
+
+def fall_w(name, anforderungen, beschreibung, schritte, kern, datei=None, ordner=None):
+    FAELLE_SCHREIBEN.append({"name": name, "anforderungen": anforderungen, "beschreibung": beschreibung,
+                             "firma": {"klassen": ["oeffentlich", "intern", "kundendaten"], "gruppen": {"g-eins": [U], "g-zwei": [V]}},
+                             "zuordnung": ZU, "firmenvorgabe": datei or vorgabe(),
+                             "ordner": ordner or {"art": "ordner", "eigentuemer": "root", "modus": "0755"},
+                             "schritte": schritte, "_kern": kern})
+
+
+SHA_ALT = sha(vorgabe()["inhalt"])
+SHA_NEU = sha(dict(vorgabe()["inhalt"], leseklassen=NEU_LISTE))
+
+
+def unveraendert(e):
+    return (e["unveraendert"], e["datei"]["sha256"])
+
+
+fall_w("schreiben-admin-erfolgreich", ["A05", "A27"],
+       "ein Admin ändert die Leseklassen aus der Ansicht; der Dienst prüft den Partner, ruft setzen und schreibt die "
+       "Firmenvorgabe atomar. Die Datei trägt Konten, die Zeile nur Pseudonyme",
+       [SW(KA, NEU_LISTE), NA(KA)],
+       [(0, angenommen, True), (0, code, None), (0, lambda e: e["zeile"]["aktionsname"], "regel.geaendert"),
+        (0, lambda e: e["datei"]["sha256"], SHA_NEU), (0, lambda e: e["datei"]["inhalt"]["leseklassen"], NEU_LISTE),
+        (0, lambda e: (e["datei"]["eigentuemer"], e["datei"]["modus"]), ("root", "0644")),
+        (1, lambda e: e["einstellungen"]["werte"][_L]["wert"], NEU_LISTE)])
+fall_w("schreiben-nichtadmin", ["A05", "A27"],
+       "ein Nutzer, der kein Admin ist, schreibt die Leseklassen: abgelehnt vor jedem Zugriff auf die Datei, auch wenn er "
+       "sich selbst eintragen will; die Datei bleibt byte-gleich",
+       [SW(KU, NEU_LISTE), SW(KU, [LE("nutzer", KU, "kundendaten")])],
+       [(i, code, "ebenen.nicht_befugt") for i in range(2)]
+       + [(i, unveraendert, (True, SHA_ALT)) for i in range(2)]
+       + [(0, lambda e: e["zeile"]["aktionsname"], "regel.abgelehnt"), (0, lambda e: e["zeile"]["handelnd"], U)])
+fall_w("schreiben-datei-nicht-root", ["A05"],
+       "die Firmenvorgabe gehört nicht root; der Dienst schreibt nicht, die Datei bleibt byte-gleich",
+       [SW(KA, NEU_LISTE)],
+       [(0, code, "firmenvorgabe.datei_unsicher"), (0, unveraendert, (True, SHA_ALT))],
+       datei=vorgabe(eigentuemer="konto-nutzer"))
+fall_w("schreiben-datei-gruppe-schreibbar", ["A05"],
+       "die Firmenvorgabe ist für die Gruppe schreibbar (0664)",
+       [SW(KA, NEU_LISTE)],
+       [(0, code, "firmenvorgabe.datei_unsicher"), (0, unveraendert, (True, SHA_ALT))],
+       datei=vorgabe(modus="0664"))
+fall_w("schreiben-datei-andere-schreibbar", ["A05"],
+       "die Firmenvorgabe ist für andere schreibbar (0646)",
+       [SW(KA, NEU_LISTE)],
+       [(0, code, "firmenvorgabe.datei_unsicher"), (0, unveraendert, (True, SHA_ALT))],
+       datei=vorgabe(modus="0646"))
+fall_w("schreiben-datei-verweis", ["A05"],
+       "die Firmenvorgabe ist ein symbolischer Verweis; der Dienst folgt ihm nicht",
+       [SW(KA, NEU_LISTE)],
+       [(0, code, "firmenvorgabe.datei_unsicher"), (0, unveraendert, (True, SHA_ALT))],
+       datei=vorgabe(art="verweis"))
+fall_w("schreiben-ordner-schreibbar", ["A05"],
+       "der Ordner der Firmenvorgabe ist für andere schreibbar (0777); ein Fremder könnte die Datei ersetzen",
+       [SW(KA, NEU_LISTE)],
+       [(0, code, "firmenvorgabe.datei_unsicher"), (0, unveraendert, (True, SHA_ALT))],
+       ordner={"art": "ordner", "eigentuemer": "root", "modus": "0777"})
+fall_w("schreiben-veraltet", ["A05", "A27"],
+       "root hat die Firmenvorgabe nach dem Laden geändert; der Dienst überschreibt diese Änderung nicht",
+       [SW(KA, NEU_LISTE, "fremd_geaendert")],
+       [(0, code, "firmenvorgabe.veraltet"), (0, unveraendert, (True, SHA_ALT))])
+fall_w("schreiben-wert-ungueltig", ["A05", "A12"],
+       "ein Admin nennt ein Konto, das der Dienst nicht zuordnen kann, und ein Pseudonym statt eines Kontos; "
+       "setzen lehnt ab, und weder Konto noch Pseudonym aus der Eingabe steht in der Zeile",
+       [SW(KA, [LE("nutzer", "konto-unbekannt", "intern")]), SW(KA, [LE("nutzer", U, "intern")])],
+       [(i, code, "ebenen.wert_ungueltig") for i in range(2)] + [(i, unveraendert, (True, SHA_ALT)) for i in range(2)])
+fall_w("schreiben-temp-scheitert", ["A05"],
+       "die Temp-Datei lässt sich nicht anlegen oder nicht ganz schreiben (etwa ENOSPC)",
+       [SW(KA, NEU_LISTE, "temp")],
+       [(0, code, "firmenvorgabe.temp_fehlgeschlagen"), (0, unveraendert, (True, SHA_ALT)),
+        (0, lambda e: e["temp_bleibt"], False)])
+fall_w("schreiben-fsync-scheitert", ["A05"],
+       "fsync der Temp-Datei scheitert (EIO); der Dienst entfernt die Temp-Datei und benennt nichts um",
+       [SW(KA, NEU_LISTE, "fsync")],
+       [(0, code, "firmenvorgabe.fsync_fehlgeschlagen"), (0, unveraendert, (True, SHA_ALT))])
+fall_w("schreiben-rename-scheitert", ["A05"],
+       "rename scheitert; die alte Datei bleibt, die Temp-Datei ist entfernt",
+       [SW(KA, NEU_LISTE, "rename")],
+       [(0, code, "firmenvorgabe.rename_fehlgeschlagen"), (0, unveraendert, (True, SHA_ALT))])
+fall_w("schreiben-ordner-fsync-scheitert", ["A05"],
+       "fsync des Ordners scheitert nach dem rename; der Dienst schreibt die alten Bytes auf demselben Weg zurück, "
+       "die Datei ist danach byte-gleich",
+       [SW(KA, NEU_LISTE, "ordner_fsync"), NA(KA)],
+       [(0, code, "firmenvorgabe.ordner_fsync_fehlgeschlagen"), (0, unveraendert, (True, SHA_ALT)),
+        (1, lambda e: e["einstellungen"]["werte"][_L]["wert"], ALT_LISTE)])
+fall_w("schreiben-rueckweg-scheitert", ["A05"],
+       "fsync des Ordners scheitert, und der Rückweg scheitert auch; der neue Inhalt steht ganz, nie halb, "
+       "und der Dienst sperrt bis zum Neuladen",
+       [SW(KA, NEU_LISTE, "ordner_fsync", "rueckweg")],
+       [(0, code, "firmenvorgabe.zustand_unklar"), (0, unveraendert, (False, SHA_NEU)), (0, angenommen, False)])
+fall_w("schreiben-nach-fehler-erfolgreich", ["A05"],
+       "nach einem gescheiterten rename gelingt der nächste Versuch; der Stand des ersten Versuchs wirkt nie",
+       [SW(KA, NEU_LISTE, "rename"), SW(KA2, NEU_LISTE)],
+       [(0, unveraendert, (True, SHA_ALT)), (1, angenommen, True), (1, lambda e: e["datei"]["sha256"], SHA_NEU)])
+# Konto in der Ansicht der Admins (15.13): ein Fall je Richtung und die Zeile.
+fall_w("konto-admin-sieht", ["A12", "A27", "E3"],
+       "ein Admin sieht in der Nachricht Einstellungen das Konto an der Stelle des Pseudonyms; sicht selbst liefert Pseudonyme",
+       [NA(KA)],
+       [(0, lambda e: e["einstellungen"]["admin"], True), (0, lambda e: e["einstellungen"]["werte"][_L]["wert"], ALT_LISTE)])
+fall_w("konto-nutzer-sieht-keins", ["A12", "E3"],
+       "ein Nutzer, der kein Admin ist, sieht seinen Eintrag mit dem Pseudonym, nie mit einem Konto",
+       [NA(KU), NA(KV)],
+       [(0, lambda e: e["einstellungen"]["admin"], False),
+        (0, lambda e: e["einstellungen"]["werte"][_L]["wert"], [LE("gruppe", "g-eins", "intern"), LE("nutzer", U, "oeffentlich")]),
+        (1, lambda e: e["einstellungen"]["werte"][_L]["wert"], [])])
+fall_w("konto-zeile-ohne-konto", ["A12", "A27"],
+       "die Zeile einer Änderung, die ein Admin mit Konten eingibt, nennt nur Pseudonyme: handelnd, und in alt und neu "
+       "die Prüfsumme über die Liste mit Pseudonymen",
+       [SW(KA, NEU_LISTE)],
+       [(0, lambda e: e["zeile"]["handelnd"], ADM),
+        (0, lambda e: e["zeile"]["neu"], kanonisch_hash({"schluessel": _L, "wert": in_pseudonyme(NEU_LISTE, ZU)})),
+        (0, lambda e: e["zeile"]["alt"], kanonisch_hash({"schluessel": _L, "wert": in_pseudonyme(ALT_LISTE, ZU)}))])
+
+
+def bauen_schreiben():
+    fehler, ausgabe = [], []
+    for f in FAELLE_SCHREIBEN:
+        erg = lauf_schreiben(f)
+        for i, prob, soll in f["_kern"]:
+            try:
+                ist = prob(erg["schritte"][i])
+            except (KeyError, TypeError, IndexError) as e:
+                ist = f"<{type(e).__name__}: {e}>"
+            if ist != soll:
+                fehler.append(f"{f['name']} Schritt {i}: Referenz {ist!r}, Tabelle {soll!r}")
+        ausgabe.append((f["name"], {k: v for k, v in f.items() if not k.startswith("_")}, erg))
+    return fehler, ausgabe
+
 
 def main():
     fehler = []
@@ -1349,6 +1597,8 @@ def main():
         ausgabe.append((f["name"], sichtbar, erg))
     fehler_s, ausgabe_s = bauen_setzen()
     fehler += fehler_s
+    fehler_w, ausgabe_w = bauen_schreiben()
+    fehler += fehler_w
     if fehler:
         for z in fehler:
             print("FEHLER", z)
@@ -1359,13 +1609,20 @@ def main():
     for name, sichtbar, erg in ausgabe_s:
         (HIER / "faelle-setzen" / f"{name}.json").write_text(json.dumps(sichtbar, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
         (HIER / "erwartet-setzen" / f"{name}.json").write_text(json.dumps(erg, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    for ordner in ("faelle-schreiben", "erwartet-schreiben"):
+        shutil.rmtree(HIER / ordner, ignore_errors=True)
+        (HIER / ordner).mkdir()
+    for name, sichtbar, erg in ausgabe_w:
+        (HIER / "faelle-schreiben" / f"{name}.json").write_text(json.dumps(sichtbar, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        (HIER / "erwartet-schreiben" / f"{name}.json").write_text(json.dumps(erg, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     for ordner in ("faelle", "erwartet"):
         shutil.rmtree(HIER / ordner, ignore_errors=True)
         (HIER / ordner).mkdir()
     for name, sichtbar, erg in ausgabe:
         (HIER / "faelle" / f"{name}.json").write_text(json.dumps(sichtbar, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
         (HIER / "erwartet" / f"{name}.json").write_text(json.dumps(erg, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(f"{len(ausgabe)} Fälle und {len(ausgabe_s)} Fälle zu setzen und sicht geschrieben, Kernwerte stimmen")
+    print(f"{len(ausgabe)} Fälle, {len(ausgabe_s)} Fälle zu setzen und sicht und {len(ausgabe_w)} Fälle zum Schreibweg "
+          "geschrieben, Kernwerte stimmen")
     return 0
 
 

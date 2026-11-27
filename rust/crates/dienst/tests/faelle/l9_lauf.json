@@ -1,0 +1,161 @@
+{
+ "beschreibung": "mit lauf: vor dem Start ist s-1 unbekannt (der Raumkern hat keine Kennung), danach ist die gestartete Sitzung klasse_gesperrt",
+ "datensatz": "A",
+ "einstellungen_inhalt": {
+  "fassung": 1,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "kunden": [
+   {
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "schluessel": "k-beispiel",
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "freigaben": [],
+   "vorgabe": "nie"
+  },
+  "routen": [
+   {
+    "art": "cloud",
+    "klasse": "intern",
+    "schluessel": "cloud-beispiel"
+   },
+   {
+    "art": "lokal",
+    "klasse": "kundendaten",
+    "schluessel": "lokal-beispiel"
+   }
+  ],
+  "vorgabestufe": "kundendaten"
+ },
+ "name": "l9_lauf",
+ "regeln": [
+  "DI12",
+  "L9"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "OrdnerLesen",
+    "pfad": "",
+    "sitzung": "s-1"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/srv/beispiel/projekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "nachricht": {
+     "art": "Gestartet",
+     "sitzung": "s-1"
+    }
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "OrdnerLesen",
+    "pfad": "",
+    "sitzung": "s-1"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "OrdnerLesen",
+    "pfad": "src",
+    "sitzung": "s-1"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "InhaltSuchen",
+    "muster": "x",
+    "sitzung": "s-1"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "OrdnerLesen",
+    "pfad": "",
+    "sitzung": "s-2"
+   }
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1",
+   "ohne_nachrichten": true
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "nummer_max": 1,
+   "programm": "@laufkind"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

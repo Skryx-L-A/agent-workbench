@@ -10,6 +10,8 @@ Nachtrag 27.11.2026 (Fassung 2, Entscheid des Betreibers, 27.11.2026): sechs Opt
 Datenklasse (OPEN 15). OPEN 10, 14 und 15 sind geschlossen.
 Nachtrag 27.11.2026 (Fassung 2, Projektentscheid, 27.11.2026): das Admin-Feld `leseklassen` für die Leseklasse je Person oder
 Gruppe (Abschnitte 15.1, 15.2 und 15.11). Die Wirkung legt `rust/spec/datentor/person/VERTRAG.md` fest.
+Nachtrag 27.11.2026 (Fassung 2, Entscheid des Betreibers, 27.11.2026): der Schreibweg der Firmenvorgabe nur über den Dienst
+(Abschnitt 15.12) und das Konto in der Ansicht der Admins (Abschnitt 15.13). OPEN 22 und 23 sind geschlossen.
 Grundlage sind A26, A27, A28, A41, A45, A103 sowie A30, A35, A39, A102, A128, A134, A135 und A139 der
 Anforderungsliste. „(V)“ heißt: in diesem Vertrag festgelegt. „(H)“ heißt: aus den Anforderungen hergeleitet.
 
@@ -328,6 +330,7 @@ auf stderr, bei einem Lesefehler mit 2, sonst mit 0 (V; A26: „Ablehnung mit R�
 | `pruefen.py` | prüft Paarung, Codes, Schema der Dateien und jede erwartete `einstellung` gegen das Schema von Vertrag 2 |
 | `faelle/<name>.json`, `erwartet/<name>.json` | sichtbare Fälle |
 | `faelle-setzen/<name>.json`, `erwartet-setzen/<name>.json` | Fälle zu `setzen` und `sicht` (Fassung 2, Abschnitt 15.8); die Referenz steht in `bau-faelle.py` |
+| `faelle-schreiben/<name>.json`, `erwartet-schreiben/<name>.json` | Fälle zum Schreibweg der Firmenvorgabe und zum Konto in der Ansicht der Admins (Abschnitte 15.12 und 15.13); Pflichten des Dienstes, die Referenz steht in `bau-faelle.py` |
 
 ```sh
 python3 -I rust/spec/regelebenen/bau-faelle.py               # Fälle neu erzeugen und Erwartungen prüfen
@@ -420,16 +423,18 @@ der Ort der Dateien je Betriebssystem (OPEN 1) wird mit seinem Lader zum Außent
 21. **`optionen.herstellerzugang` und der Block `stelle`.** Vertrag 2 hat den Block `stelle` noch nicht; er ist für Fassung 3
     vorgeschlagen. Feld folgt mit dem Bau. Empfehlung: Der Lader schreibt im Pilot immer `hersteller.fall: kein`, unabhängig vom
     Stand der Ebenen.
-22. **Wo eine Änderung von `leseklassen` landet.** Die Firmenvorgabe ist nur mit Systemrechten änderbar, `setzen` nimmt eine Änderung
-    eines Admins aus der Ansicht an. Empfehlung: Die Firmenvorgabe bleibt die eine Quelle. Der Dienst schreibt eine angenommene Liste
-    nur zurück, wenn er dafür Systemrechte hat; sonst gilt sie wie die anderen Werte nach OPEN 1 und 4. Das entscheidet der Bau des
-    Dienstes zusammen mit dem Paketvertrag.
-23. **Konto ohne Pseudonym in `leseklassen`.** Kann der Dienst ein Konto nicht zuordnen (etwa ein Konto mit `_` am Anfang, OPEN 11),
-    gibt er die Liste nicht weiter. Empfehlung: ein Ladefehler der Firmenvorgabe, also entsteht kein Tor (fail closed, wie datentor
-    Abschnitt 3). In der Ansicht sieht ein Admin Pseudonyme statt Konten, weil keine Nachricht an die Ansicht ein Konto nennt. Wie
-    die Ansicht einen Eintrag lesbar macht, ist mit der Seite zu klären.
+22. **Geschlossen (Entscheid des Betreibers, 27.11.2026): Schreibweg der Firmenvorgabe.** Die Firmenvorgabe bleibt root-eigen und
+    für Nutzer nicht schreibbar. Eine Änderung eines Admins aus der Ansicht schreibt nur der Dienst mit Systemrechten, nach der Prüfung
+    des Partners am lokalen Socket, atomar und fail closed (Abschnitt 15.12, Fälle `schreiben-*`).
+23. **Geschlossen (Entscheid des Betreibers, 27.11.2026): Konto in der Ansicht.** Admins sehen das Konto, ins Protokoll kommt nur das
+    Pseudonym. `sicht` bleibt bei Pseudonymen; der Dienst setzt für einen Admin das Konto ein (Abschnitt 15.13, Fälle `konto-*`).
+    Der Teil zum Laden ist in OPEN 25 entschieden.
 24. **`leseklassen` in Vertrag 2.** Vertrag 2 hat das Feld noch nicht; der Vorschlag steht in `rust/spec/einstellungen/README.md`,
     OPEN 13. Bis zum Bau gibt der Dienst die Liste direkt an `Personen::neu`.
+25. **Geschlossen (Entscheid des Betreibers, 27.11.2026): Konto ohne Pseudonym beim Laden.** Kann der Dienst ein Konto in
+    `leseklassen` der Firmenvorgabe nicht zuordnen (etwa ein Konto mit `_` am Anfang, OPEN 11), gibt er die Liste nicht weiter. Das ist
+    ein Ladefehler der Firmenvorgabe, und es entsteht kein Tor (fail closed, wie datentor Abschnitt 3). Für eine Änderung aus der
+    Ansicht gilt Abschnitt 15.12, Stufe 0.
 
 ## 15. Fassung 2: Einstellungen im Lauf (Nachtrag 26.11.2026)
 
@@ -512,8 +517,9 @@ Rechner oder die Anmeldung, nicht für eine Person. Eine Gruppe oder ein Nutzer 
   legt der Vertrag `dienst` fest). Nie aus einer Angabe der Ansicht, nie aus einer Datei der Ebenen, nie vom Agenten.
 - **Die Zuordnung von Konto zu Pseudonym liegt nur beim Dienst.** Er bildet das Pseudonym über die Stelle (Vertrag 9 Personenbezug,
   `person(kennung, …)`, `rust/spec/personenbezug/README.md` Abschnitt 4). Er gibt `setzen` und `sicht` nur das Pseudonym als `wer`.
-  Ebenso bildet er aus der Kontenliste die Menge `stand.admins` der Pseudonyme. Kein Konto steht in einer Datei der Ebenen, in einer
-  Nachricht an die Ansicht oder in einer Protokollzeile. In einem Fall steht kein echtes Konto; der Platzhalter `konto-beispiel` steht
+  Ebenso bildet er aus der Kontenliste die Menge `stand.admins` der Pseudonyme. Kein Konto steht in einer Datei der Ebenen oder in
+  einer Protokollzeile. In einer Nachricht an die Ansicht steht ein Konto nur auf einem Weg: in `Einstellungen` an einen Admin, an der
+  Stelle des Pseudonyms (Entscheid des Betreibers, 27.11.2026; Abschnitt 15.13). In einem Fall steht kein echtes Konto; der Platzhalter `konto-beispiel` steht
   nur als abgelehnte Eingabe (Abschnitt 15.11).
 - **Eine Quelle (Entscheid des Betreibers, 27.11.2026; schließt OPEN 10).** Der Dienst leitet auch `rollen` aus der Kontenliste der
   Firmenvorgabe ab: Die Rolle `admin` in `rollen` der gespeicherten Firmendatei hat genau, wer in `stand.admins` steht. Eine zweite
@@ -530,7 +536,8 @@ Rechner oder die Anmeldung, nicht für eine Person. Eine Gruppe oder ein Nutzer 
   datentor (`Personen::neu`). Dasselbe gilt für eine Liste, die ein Admin in der Ansicht eingibt. Ein Konto erreicht datentor nie und
   steht nie in einer Protokollzeile, auch nicht in den Prüfsummen `alt` und `neu`. `setzen` lehnt ein Konto an der Stelle eines
   Pseudonyms mit `ebenen.wert_ungueltig` ab (Fall `leseklassen-form-ungueltig`). Ein Konto, das der Dienst nicht zuordnen kann,
-  gibt er nicht weiter (OPEN 23).
+  gibt er nicht weiter. In einer Änderung aus der Ansicht wird es zu `wer: null`, das `setzen` ablehnt (Abschnitt 15.12, Stufe 0);
+  beim Laden ist es ein Ladefehler der Firmenvorgabe, und es entsteht kein Tor (OPEN 25, geschlossen).
 - Vertrag 9 Anmeldung (`rust/spec/anmelden/README.md`) steht nicht dagegen. Er regelt nur die Anmeldung der Copilot CLI und kennt
   weder Pseudonyme noch Admins; den Kontonamen liest er aus `/etc/passwd` (Zeile 44, alte Fassung). Offen bleibt die Kennungsform
   (OPEN 11).
@@ -626,7 +633,13 @@ Vertrag 5. Der Schlüssel steht nur in der Prüfsumme; ein eigenes Feld braucht 
 - **S9 Nutzer nur strenger:** Für jede angenommene Änderung auf der Nutzerebene ist der wirksame Wert jedes Schlüssels mit Richtung
   `schnitt` oder `aus_strenger` gleich oder strenger als vorher.
 - **S10 Kein Konto:** Kein Ergebnis von `setzen` oder `sicht` enthält ein Konto. Für `leseklassen` nimmt `setzen` bei `ebene: nutzer`
-  nur ein Pseudonym an; `pruefen.py` prüft das für jede Annahme und jede Sicht.
+  nur ein Pseudonym an; `pruefen.py` prüft das für jede Annahme und jede Sicht. Erlaubt ist genau ein Weg eines Kontos zur Ansicht:
+  Der Dienst setzt es in `Einstellungen` für einen Admin an die Stelle des Pseudonyms (Abschnitt 15.13). Jeder andere Weg bleibt
+  verboten, auch in jeder Zeile und in jeder Nachricht an einen Nichtadmin; `pruefen.py` prüft das in `faelle-schreiben/`.
+- **S11 Firmenvorgabe nur über den Dienst:** Nur der Dienst schreibt die Firmenvorgabe, und nur für einen Partner in `stand.admins`
+  (Abschnitt 15.12). Die Ansicht und das Konto des Nutzers schreiben sie nie.
+- **S12 Kein Teilschreiben:** Jeder Fehler auf dem Schreibweg lässt die Firmenvorgabe byte-gleich und ergibt eine Zeile
+  `regel.abgelehnt`. Einzige Ausnahme ist der gemeldete zweite Fehler `firmenvorgabe.zustand_unklar`; auch dann steht ein ganzer Inhalt.
 - S3 und S7 gelten auch für `setzen` und `sicht`.
 
 ### 15.8 Fälle
@@ -645,7 +658,8 @@ die Form der Zeile und der Sicht, dass `admins` nur Pseudonyme nennt und dass es
 aus OF9 heißen `of9-nutzer-lockert` und `of9-nichtadmin-schreibt-adminwert`. Die Admins stehen nur in `stand.admins` (eine Quelle,
 Abschnitt 15.2). Je Option des Katalogs gibt es einen Fall „Nutzer setzt: abgelehnt“ und einen Fall „Admin setzt: angenommen“,
 für den Herstellerzugang den Fall `option-herstellerzugang-fest` (Abschnitt 15.1.1). Die Fälle zu `leseklassen` heißen
-`leseklassen-*` (Abschnitt 15.11).
+`leseklassen-*` (Abschnitt 15.11). Die Fälle zum Schreibweg und zum Konto in der Ansicht der Admins stehen in `faelle-schreiben/`
+(Abschnitte 15.12 und 15.13).
 
 ### 15.9 Ereignis `EinstellungSetzen` (Ansicht an Dienst)
 
@@ -679,10 +693,11 @@ für den Herstellerzugang den Fall `option-herstellerzugang-fest` (Abschnitt 15.
 |---|---|---|
 | `fassung` | Ganzzahl `2` | Form dieses Abschnitts |
 | `admin` | Wahrheitswert | `wer` steht in `stand.admins`; nur dann zeigt die Ansicht den Bereich B78 |
-| `werte` | Objekt | genau das Ergebnis von `sicht(stand, wer)`, je Schlüssel des Katalogs |
+| `werte` | Objekt | das Ergebnis von `sicht(stand, wer)`, je Schlüssel des Katalogs; für einen Admin mit Konten an der Stelle der Pseudonyme (Abschnitt 15.13) |
 
 - Der Dienst schickt sie beim Verbinden und nach jeder angenommenen Änderung, die den Betrachter betrifft.
-- Die Nachricht nennt nie ein Konto und nie die Liste der Admins.
+- Die Nachricht nennt nie die Liste der Admins. Ein Konto nennt sie nur einem Admin, an der Stelle des Pseudonyms (Entscheid des
+  Betreibers, 27.11.2026; Abschnitt 15.13). Einem Betrachter, der kein Admin ist, nennt sie nie ein Konto.
 - `admin` ist eine Anzeige. Die Befugnis prüft `setzen` bei jeder Änderung neu.
 - Vertrag `zustandskern` nennt für `Einstellungen` heute `wert`, `vorgabe` und `herkunft` mit `vorgabe` als Herkunft
   (`rust/spec/zustandskern/VERTRAG.md:142`). Dieser Abschnitt ersetzt das für Fassung 2. Die Angleichung dort gehört dem Vertrag
@@ -745,7 +760,110 @@ Liste mit Pseudonymen; ein Konto steht nie in der Zeile.
 | `leseklassen-form-ungueltig` | Platzhalter-Konto `konto-beispiel` statt Pseudonym, unbekannte Gruppe, Ebene `rolle` |
 | `leseklassen-sicht-nutzer` | Sicht für drei Nutzer und einen Admin |
 
-**Offen** sind OPEN 22 bis 24 in Abschnitt 14.
+**Offen** sind OPEN 24 und 25 in Abschnitt 14. OPEN 22 und 23 sind geschlossen (Abschnitte 15.12 und 15.13).
+
+### 15.12 Schreibweg der Firmenvorgabe (Entscheid des Betreibers, 27.11.2026; schließt OPEN 22)
+
+Die Firmenvorgabe bleibt eine Datei des Systems: Eigentümer root, für Gruppe und andere nicht schreibbar (Abschnitt 15.2). Eine
+Änderung eines Admins aus der Ansicht schreibt nur der Dienst, auf seinem eigenen Weg mit Systemrechten. Die Ansicht schreibt die Datei
+nie, das Konto des Nutzers schreibt sie nie, und kein Agent schreibt sie. Der Weg gilt für ein `EinstellungSetzen` mit `ebene`
+`firma` und `schluessel` `leseklassen`, im Pilot der einzige Schlüssel der Firmenvorgabe, den die Ansicht ändert. Die Kontenliste der
+Admins ändert sich nie über die Ansicht, nur mit Systemrechten von Hand (eine Quelle, Abschnitt 15.2).
+
+**Schritte und Prüfreihenfolge.** Genau ein Code, der der ersten verletzten Stufe. Jeder Fehler endet fail closed: Der Dienst schreibt
+nichts und lässt die Datei byte-gleich. Jede Stufe, auch eine Ablehnung, ergibt genau eine Zeile in der Form von Abschnitt 15.6 mit
+`ebene` `firma`, `ziel` `null` und dem Pseudonym des Partners als `handelnd`. Bei einem Fehler heißt sie `regel.abgelehnt` und trägt
+den Code.
+
+| Stufe | Code | Schritt und Verletzung |
+|---|---|---|
+| 0 | (kein Code) | Der Dienst liest das Konto aus dem Verbindungspartner des lokalen Sockets oder der Named Pipe (L11), bildet das Pseudonym (Abschnitt 15.2) und ordnet jedes Konto im Wert zu. Ein Konto ohne Zuordnung und ein Pseudonym im Wert werden zu `wer: null`. Ohne Partner nimmt der Dienst kein Ereignis an (Vertrag `dienst`). |
+| 1 | `ebenen.nicht_befugt` | Das Pseudonym des Partners steht nicht in `stand.admins`. Der Dienst prüft das vor jedem Zugriff auf die Datei. |
+| 2 | Codes aus Abschnitt 15.4 | `setzen(stand, wer, "admin", "firma", "leseklassen", wert)` auf einer Kopie des Stands lehnt ab, etwa mit `ebenen.wert_ungueltig`. |
+| 3 | `firmenvorgabe.datei_unsicher` | Die Datei ist keine reguläre Datei (etwa ein Verweis; `lstat`, `O_NOFOLLOW`), gehört nicht root oder ist für Gruppe oder andere schreibbar (Modus `& 022`). Dasselbe gilt für ihren Ordner. Unter Windows: Eigentümer ist nicht Administratoren oder SYSTEM, oder eine andere Gruppe hat Schreibrecht. |
+| 4 | `firmenvorgabe.veraltet` | Die Bytes der Datei weichen vom zuletzt geladenen Stand ab (sha256). Root hat sie inzwischen geändert; der Dienst überschreibt das nicht und lädt neu. |
+| 5 | `firmenvorgabe.temp_fehlgeschlagen` | Die Temp-Datei im selben Ordner lässt sich nicht exklusiv anlegen (`O_CREAT \| O_EXCL \| O_NOFOLLOW`, Modus `0600`) oder nicht ganz schreiben. Eigentümer und Modus der alten Datei setzt der Dienst mit `fchown` und `fchmod` an der offenen Datei. |
+| 6 | `firmenvorgabe.fsync_fehlgeschlagen` | `fsync` der Temp-Datei scheitert. |
+| 7 | `firmenvorgabe.rename_fehlgeschlagen` | `rename` der Temp-Datei auf den Namen der Firmenvorgabe scheitert. Unter Windows `MoveFileExW` mit `MOVEFILE_REPLACE_EXISTING` und `MOVEFILE_WRITE_THROUGH`. |
+| 8 | `firmenvorgabe.ordner_fsync_fehlgeschlagen` | `fsync` des Ordners nach dem `rename` scheitert. Der Dienst schreibt die alten Bytes auf demselben Weg zurück (Stufen 5 bis 8); danach ist die Datei byte-gleich. |
+| 8 | `firmenvorgabe.zustand_unklar` | Stufe 8 scheitert, und der Rückweg scheitert auch. Durch `rename` steht der alte oder der neue Inhalt ganz, nie ein Teil. Der Dienst sperrt: Er nimmt keine Änderung mehr an und baut kein Tor, bis er die Firmenvorgabe neu geladen hat. |
+
+- In den Stufen 5 bis 7 entfernt der Dienst die Temp-Datei, bevor er ablehnt. Die alte Datei berührt er dabei nicht.
+- Erst nach Stufe 8 übernimmt der Dienst den neuen Stand. Er schreibt die Zeile `regel.geaendert` aus `setzen` und schickt jedem
+  betroffenen Betrachter eine neue Nachricht `Einstellungen`. Vorher wirkt die Änderung nirgends, auch nicht nach einem Fehler.
+- Die Datei trägt Konten: Der Dienst schreibt `leseklassen` in der Kontoform, in der der Admin sie eingegeben hat. In der Zeile stehen
+  nur Pseudonyme; `alt` und `neu` sind Prüfsummen über die Liste mit Pseudonymen (Abschnitt 15.6).
+- Die Codes `firmenvorgabe.*` sind fest. Der Dienst reicht sie als `grund` der `Ablehnung` durch (Abschnitt 15.9).
+- Einzige Ausnahme von „byte-gleich“ ist `firmenvorgabe.zustand_unklar` (Entscheid des Betreibers, 27.11.2026). Dort meldet der Fall,
+  dass der neue Inhalt steht und der Dienst sperrt. Die Datei trägt einen ganzen Inhalt und nie einen Teil, das bleibt fail closed.
+
+**Fälle** in `faelle-schreiben/<name>.json` mit `erwartet-schreiben/<name>.json`. Die Referenz steht in `bau-faelle.py`
+(`lauf_schreiben`), die Prüfung in `pruefen.py`. Kein Crate liest diesen Ordner; der Bau des Dienstes übernimmt die Fälle.
+
+```json
+{"name": "…", "anforderungen": ["A05"], "beschreibung": "…",
+ "firma": {"klassen": ["oeffentlich", "intern", "kundendaten"], "gruppen": {"g-eins": ["ps_…c01"]}},
+ "zuordnung": {"konto-admin": "ps_…b01", "konto-nutzer": "ps_…c01"},
+ "firmenvorgabe": {"art": "datei", "eigentuemer": "root", "modus": "0644",
+                   "inhalt": {"admins": ["konto-admin"], "leseklassen": [{"ebene": "nutzer", "wer": "konto-nutzer", "klasse": "intern"}]}},
+ "ordner": {"art": "ordner", "eigentuemer": "root", "modus": "0755"},
+ "schritte": [{"schreiben": {"partner": "konto-admin", "wert": […], "fehler": ["rename"]}},
+              {"nachricht": {"partner": "konto-admin"}}]}
+```
+
+- `zuordnung` steht für die Stelle (Vertrag 9 Personenbezug): Konto zu Pseudonym. Konten sind Platzhalter der Form `konto-*`.
+- `firmenvorgabe` und `ordner` sind der Zustand als Eingabe: `art` (`datei`, `ordner` oder `verweis`), Eigentümer und Modus.
+  `fehler` schleust Fehler ein: `fremd_geaendert` (Stufe 4), `temp`, `fsync`, `rename`, `ordner_fsync` (Stufen 5 bis 8) und
+  `rueckweg` (der Rückweg nach Stufe 8 scheitert).
+- Ergebnis je `schreiben`: `angenommen`, `code`, `zeile`, `datei` (Eigentümer, Modus, sha256 der Bytes und Inhalt danach),
+  `unveraendert` (sha256 gleich wie vorher) und `temp_bleibt` (immer `false`). Die Bytes sind JSON mit sortierten Schlüsseln, Einzug 1
+  und einem Zeilenende.
+- Ergebnis je `nachricht`: die Nachricht `Einstellungen` an diesen Partner (Abschnitt 15.13).
+- `pruefen.py` prüft: Paarung; die Zeile ohne Konto, mit dem Pseudonym des Partners; nach jedem Fehler dieselbe sha256 wie vorher
+  (S12); keine Annahme für einen Nichtadmin (S11); ein Konto in einer Nachricht nur auf dem einen Weg (S10); je Code mindestens einen
+  Fall und je Art des Betrachters mindestens eine Nachricht.
+
+| Fall | Inhalt |
+|---|---|
+| `schreiben-admin-erfolgreich` | Ein Admin schreibt; die Datei trägt die neue Liste mit Konten, Eigentümer root, Modus `0644`. |
+| `schreiben-nichtadmin` | Ein Nichtadmin schreibt, auch für sich selbst: `ebenen.nicht_befugt`, Datei byte-gleich. |
+| `schreiben-datei-nicht-root` | Eigentümer ist ein Nutzerkonto: `firmenvorgabe.datei_unsicher`. |
+| `schreiben-datei-gruppe-schreibbar` | Modus `0664`: `firmenvorgabe.datei_unsicher`. |
+| `schreiben-datei-andere-schreibbar` | Modus `0646`: `firmenvorgabe.datei_unsicher`. |
+| `schreiben-datei-verweis` | Die Datei ist ein Verweis: `firmenvorgabe.datei_unsicher`. |
+| `schreiben-ordner-schreibbar` | Der Ordner hat Modus `0777`: `firmenvorgabe.datei_unsicher`. |
+| `schreiben-veraltet` | Root hat die Datei nach dem Laden geändert: `firmenvorgabe.veraltet`. |
+| `schreiben-wert-ungueltig` | Ein Konto ohne Zuordnung und ein Pseudonym statt eines Kontos: `ebenen.wert_ungueltig`. |
+| `schreiben-temp-scheitert` | `firmenvorgabe.temp_fehlgeschlagen`, Temp-Datei entfernt. |
+| `schreiben-fsync-scheitert` | `firmenvorgabe.fsync_fehlgeschlagen`. |
+| `schreiben-rename-scheitert` | `firmenvorgabe.rename_fehlgeschlagen`. |
+| `schreiben-ordner-fsync-scheitert` | `firmenvorgabe.ordner_fsync_fehlgeschlagen`; der Rückweg gelingt, die Sicht zeigt die alte Liste. |
+| `schreiben-rueckweg-scheitert` | `firmenvorgabe.zustand_unklar`; der neue Inhalt steht ganz, der Dienst sperrt. |
+| `schreiben-nach-fehler-erfolgreich` | Nach einem gescheiterten `rename` gelingt der nächste Versuch eines anderen Admins. |
+
+### 15.13 Konto in der Ansicht der Admins (Entscheid des Betreibers, 27.11.2026; schließt OPEN 23)
+
+Admins sehen in der Ansicht das Konto; ins Protokoll kommt nur das Pseudonym. `sicht` liefert weiter nur Pseudonyme (S10). Die
+Ersetzung ist eine Pflicht des Dienstes, kein Ergebnis von `sicht`:
+
+- Der Dienst baut die Nachricht `Einstellungen` aus `sicht(stand, wer)`. Ist `wer` Admin (`stand.admins`), setzt er in `werte` an
+  jede Stelle eines Pseudonyms das Konto aus seiner Zuordnung. Im Pilot sind das nur die Einträge von `leseklassen` mit
+  `ebene: nutzer`. Ein Pseudonym ohne Konto in der Zuordnung bleibt stehen.
+- Für einen Betrachter, der kein Admin ist, ersetzt der Dienst nie etwas. Er sieht seinen eigenen Eintrag mit seinem Pseudonym.
+- Die Liste der Admins steht in keiner Nachricht, auch nicht in der an einen Admin.
+- Ein Admin gibt in der Ansicht Konten ein. Der Dienst ordnet sie vor `setzen` zu (Abschnitt 15.2, Stufe 0 in Abschnitt 15.12).
+- Zeile, Prüfsummen, Stand, `setzen` und `sicht` nennen nie ein Konto.
+
+Beispiel: Die Firmenvorgabe enthält `{"ebene": "nutzer", "wer": "konto-nutzer", "klasse": "oeffentlich"}`, die Zuordnung
+`konto-nutzer` zu `ps_00000000000000000000000000000c01`. `sicht` liefert für jeden Betrachter
+`{"ebene": "nutzer", "wer": "ps_00000000000000000000000000000c01", "klasse": "oeffentlich"}`. Der Admin `konto-admin` erhält in
+`Einstellungen` `"wer": "konto-nutzer"`. Der Nutzer `konto-nutzer` erhält `"wer": "ps_00000000000000000000000000000c01"`.
+
+| Fall in `faelle-schreiben/` | Inhalt |
+|---|---|
+| `konto-admin-sieht` | Ein Admin erhält in `Einstellungen` das Konto an der Stelle des Pseudonyms, `admin: true`. |
+| `konto-nutzer-sieht-keins` | Zwei Nutzer erhalten ihren Eintrag mit Pseudonym oder eine leere Liste, `admin: false`. |
+| `konto-zeile-ohne-konto` | Ein Admin schreibt eine Liste mit Konten; `handelnd`, `alt` und `neu` der Zeile nennen nur Pseudonyme. |
 
 <!-- vom Bauvorgang angefuegt -->
 > Hinweis: Dieser Text nennt Werkzeuge, die in diesem Klon nicht liegen: `pi`.

@@ -1,7 +1,7 @@
 {
  "beschreibung": "Startdatei der Fassung 2 mit Effort und Namen, Sitzung s-1",
  "form": "datei",
- "text": "{\n \"fassung\": 2,\n \"sitzung\": \"s-1\",\n \"harness\": \"copilot\",\n \"modell\": \"claude-sonnet-5.5\",\n \"route\": \"cloud-beispiel\",\n \"kunde\": \"k-beispiel\",\n \"arbeitsordner\": \"/heim/beispiel/projekt\",\n \"effort\": \"medium\",\n \"name\": \"Auswertung Q4\"\n}\n",
+ "text": "{\n \"fassung\": 2,\n \"sitzung\": \"s-1\",\n \"fortsetzung_von\": null,\n \"harness\": \"copilot\",\n \"modell\": \"claude-sonnet-5.5\",\n \"route\": \"cloud-beispiel\",\n \"kunde\": \"k-beispiel\",\n \"arbeitsordner\": \"/heim/beispiel/projekt\",\n \"effort\": \"medium\",\n \"name\": \"Auswertung Q4\"\n}\n",
  "einstellungen": {
   "fassung": 2,
   "klassen": [

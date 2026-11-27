@@ -1,0 +1,115 @@
+{
+ "beschreibung": "das Gespräch gehört zu claude, der Start nennt copilot",
+ "form": "aufruf",
+ "lage": {
+  "argv": [
+   "<programm>",
+   "<start>"
+  ],
+  "datei_modus": "0600",
+  "datei_art": "datei",
+  "ordner_vorhanden": true,
+  "einschluss": true,
+  "suche": "bereit",
+  "harness_vorhanden": true,
+  "einstellungen": {
+   "fassung": 2,
+   "klassen": [
+    "oeffentlich",
+    "intern",
+    "kundendaten"
+   ],
+   "vorgabestufe": "kundendaten",
+   "routen": [
+    {
+     "schluessel": "cloud-beispiel",
+     "art": "cloud",
+     "klasse": "intern",
+     "netzziele": [
+      {
+       "host": "api.cloud.example",
+       "port": 443,
+       "zugriff": "kopf-einsetzen",
+       "schluessel": true,
+       "pfade": [
+        {
+         "methode": "GET",
+         "pfad": "/copilot_internal/*"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "schluessel": "lokal-beispiel",
+     "art": "lokal",
+     "klasse": "kundendaten",
+     "ziel": "http://127.0.0.1:11434/v1",
+     "modell": "qwen3:8b",
+     "netzziele": []
+    }
+   ],
+   "kunden": [
+    {
+     "schluessel": "k-beispiel",
+     "erlaubt": [
+      "lokal-beispiel"
+     ],
+     "verboten": []
+    }
+   ],
+   "kundendaten_an_cloud": {
+    "vorgabe": "nie",
+    "freigaben": []
+   },
+   "effort": {
+    "grenzen": [
+     {
+      "harness": "copilot",
+      "erlaubt": [
+       "low",
+       "medium",
+       "high"
+      ]
+     },
+     {
+      "harness": "copilot",
+      "modell": "gpt-6-luna",
+      "erlaubt": [
+       "low",
+       "medium"
+      ]
+     },
+     {
+      "harness": "pi",
+      "klasse": "kundendaten",
+      "erlaubt": [
+       "off",
+       "low"
+      ]
+     }
+    ]
+   }
+  },
+  "start": {
+   "fassung": 2,
+   "sitzung": "s-4",
+   "harness": "copilot",
+   "modell": "claude-sonnet-5.5",
+   "route": "cloud-beispiel",
+   "kunde": "k-beispiel",
+   "arbeitsordner": "/heim/beispiel/projekt",
+   "effort": "medium",
+   "name": "Auswertung Q4",
+   "fortsetzung_von": "s-1"
+  },
+  "gespraeche": {
+   "s-1": {
+    "fassung": 1,
+    "harness": "claude",
+    "arbeitsordner": "/heim/beispiel/projekt",
+    "kennung": "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b"
+   }
+  }
+ }
+}

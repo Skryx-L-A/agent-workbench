@@ -1858,6 +1858,27 @@ pub(crate) fn mitschrift_eingabe(k: usize, bytes: &[u8]) {
 // The cases of section 21a point 4 (moved from `dienst.rs` with the rule of section 21, point 17): test code of the Windows build.
 /// Section 21a point 4 under Windows (fail closed): a child whose job cannot be made is ended, and its start is refused. The test
 /// build reaches the error through `JOB_VERWEIGERN`; each case also runs without it, so the same start goes through there.
+/// Reading the working folder of a session (contract `dienst`, "Nachtrag 26.11.2026: Ordner lesen und durchsuchen (L9)"): refused
+/// under Windows. SECURITY: `std` opens a file only by its whole path, and the walk member by member relative to a held handle (with
+/// `FILE_FLAG_OPEN_REPARSE_POINT` and a check for a reparse point at every member) is not built yet. There is no fallback by path.
+pub(crate) fn ordner_lesen(
+    _wurzel: &Path,
+    _glieder: &[&str],
+    _g: &crate::arbeitsordner::Grenzen,
+) -> Result<crate::arbeitsordner::Inhalt, &'static str> {
+    Err(crate::arbeitsordner::PLATTFORM_GESPERRT)
+}
+
+/// Searching the working folder of a session: refused under Windows, as [`ordner_lesen`].
+pub(crate) fn inhalt_suchen(
+    _wurzel: &Path,
+    _muster: &str,
+    _g: &crate::arbeitsordner::Grenzen,
+    _uhr: &mut dyn FnMut() -> u64,
+) -> Result<crate::arbeitsordner::Suche, &'static str> {
+    Err(crate::arbeitsordner::PLATTFORM_GESPERRT)
+}
+
 #[cfg(all(test, feature = "pruefbau"))]
 mod dienst_tests {
     use super::*;

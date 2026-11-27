@@ -1,4 +1,4 @@
-//! Case tests: the visible outside cases of the contract `dienst` (275, `tests/faelle` and `tests/erwartet`, copies from the
+//! Case tests: the visible outside cases of the contract `dienst` (280, `tests/faelle` and `tests/erwartet`, copies from the
 //! contract package, with the cases `di12_*`) run against the program `wb-dienst`.
 //!
 //! The runner and the check client are the Python files of the contract (`tests/werkzeug/`, standard library only, copies from the
@@ -103,7 +103,7 @@ fn laeufer(namen: &[String], basis: &Path, erstrot: bool) -> (Option<i32>, Strin
 #[test]
 fn sichtbare_faelle() {
     let namen = fall_namen();
-    assert!(namen.len() >= 275, "only {} cases found", namen.len());
+    assert!(namen.len() >= 280, "only {} cases found", namen.len());
     assert_eq!(
         std::fs::read_dir(tests().join("erwartet"))
             .expect("expected folder")

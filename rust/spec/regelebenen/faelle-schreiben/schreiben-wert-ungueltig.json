@@ -1,0 +1,85 @@
+{
+ "name": "schreiben-wert-ungueltig",
+ "anforderungen": [
+  "A05",
+  "A12"
+ ],
+ "beschreibung": "ein Admin nennt ein Konto, das der Dienst nicht zuordnen kann, und ein Pseudonym statt eines Kontos; setzen lehnt ab, und weder Konto noch Pseudonym aus der Eingabe steht in der Zeile",
+ "firma": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  }
+ },
+ "zuordnung": {
+  "konto-admin": "ps_00000000000000000000000000000b01",
+  "konto-admin-zwei": "ps_00000000000000000000000000000b02",
+  "konto-nutzer": "ps_00000000000000000000000000000c01",
+  "konto-nutzer-zwei": "ps_00000000000000000000000000000c02"
+ },
+ "firmenvorgabe": {
+  "art": "datei",
+  "eigentuemer": "root",
+  "modus": "0644",
+  "inhalt": {
+   "admins": [
+    "konto-admin",
+    "konto-admin-zwei"
+   ],
+   "leseklassen": [
+    {
+     "ebene": "gruppe",
+     "wer": "g-eins",
+     "klasse": "intern"
+    },
+    {
+     "ebene": "nutzer",
+     "wer": "konto-nutzer",
+     "klasse": "oeffentlich"
+    }
+   ]
+  }
+ },
+ "ordner": {
+  "art": "ordner",
+  "eigentuemer": "root",
+  "modus": "0755"
+ },
+ "schritte": [
+  {
+   "schreiben": {
+    "partner": "konto-admin",
+    "wert": [
+     {
+      "ebene": "nutzer",
+      "wer": "konto-unbekannt",
+      "klasse": "intern"
+     }
+    ],
+    "fehler": []
+   }
+  },
+  {
+   "schreiben": {
+    "partner": "konto-admin",
+    "wert": [
+     {
+      "ebene": "nutzer",
+      "wer": "ps_00000000000000000000000000000c01",
+      "klasse": "intern"
+     }
+    ],
+    "fehler": []
+   }
+  }
+ ]
+}

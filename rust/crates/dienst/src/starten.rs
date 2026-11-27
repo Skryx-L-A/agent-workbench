@@ -170,6 +170,11 @@ pub(crate) fn startwahl_von(einst: &Einstellungen) -> Value {
 }
 
 /// The meta data of a session for the list: the four texts of the start structure, `""` for a session without a customer.
+/// The working folder of a session of `Starten`: `arbeitsordner` of the start structure (absolute and normalized, crate `start`).
+pub(crate) fn arbeitsordner_von(start: &Startanfrage) -> &str {
+    start.arbeitsordner()
+}
+
 pub(crate) fn meta_von(start: &Startanfrage) -> [String; 4] {
     [
         start.harness().to_owned(),
@@ -522,6 +527,12 @@ mod tests {
                 json!({"grund": "start_pruefung", "code": code, "text": text})
             );
         }
+    }
+
+    #[test]
+    fn der_arbeitsordner_kommt_aus_der_start_struktur() {
+        let a = start_form(&gut()).expect("form");
+        assert_eq!(arbeitsordner_von(&a), "/tmp/p");
     }
 
     #[test]

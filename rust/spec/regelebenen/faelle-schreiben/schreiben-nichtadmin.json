@@ -1,0 +1,95 @@
+{
+ "name": "schreiben-nichtadmin",
+ "anforderungen": [
+  "A05",
+  "A27"
+ ],
+ "beschreibung": "ein Nutzer, der kein Admin ist, schreibt die Leseklassen: abgelehnt vor jedem Zugriff auf die Datei, auch wenn er sich selbst eintragen will; die Datei bleibt byte-gleich",
+ "firma": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  }
+ },
+ "zuordnung": {
+  "konto-admin": "ps_00000000000000000000000000000b01",
+  "konto-admin-zwei": "ps_00000000000000000000000000000b02",
+  "konto-nutzer": "ps_00000000000000000000000000000c01",
+  "konto-nutzer-zwei": "ps_00000000000000000000000000000c02"
+ },
+ "firmenvorgabe": {
+  "art": "datei",
+  "eigentuemer": "root",
+  "modus": "0644",
+  "inhalt": {
+   "admins": [
+    "konto-admin",
+    "konto-admin-zwei"
+   ],
+   "leseklassen": [
+    {
+     "ebene": "gruppe",
+     "wer": "g-eins",
+     "klasse": "intern"
+    },
+    {
+     "ebene": "nutzer",
+     "wer": "konto-nutzer",
+     "klasse": "oeffentlich"
+    }
+   ]
+  }
+ },
+ "ordner": {
+  "art": "ordner",
+  "eigentuemer": "root",
+  "modus": "0755"
+ },
+ "schritte": [
+  {
+   "schreiben": {
+    "partner": "konto-nutzer",
+    "wert": [
+     {
+      "ebene": "gruppe",
+      "wer": "g-eins",
+      "klasse": "intern"
+     },
+     {
+      "ebene": "nutzer",
+      "wer": "konto-nutzer",
+      "klasse": "kundendaten"
+     },
+     {
+      "ebene": "nutzer",
+      "wer": "konto-nutzer-zwei",
+      "klasse": "oeffentlich"
+     }
+    ],
+    "fehler": []
+   }
+  },
+  {
+   "schreiben": {
+    "partner": "konto-nutzer",
+    "wert": [
+     {
+      "ebene": "nutzer",
+      "wer": "konto-nutzer",
+      "klasse": "kundendaten"
+     }
+    ],
+    "fehler": []
+   }
+  }
+ ]
+}

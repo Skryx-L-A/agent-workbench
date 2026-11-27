@@ -18,7 +18,7 @@ Abgleich mit der Anforderungsliste: 22.11.2026; die Zuordnung von A43 und A149 i
 
 ## Sichtbare Fälle im Repo
 
-`rust/crates/dienst/tests/faelle/` (275 Fälle, Namen `di1_*` bis `di12_*`) mit den Erwartungen in `rust/crates/dienst/tests/erwartet/`; der Läufer ist `rust/crates/dienst/tests/faelle.rs`. Prüfclient, Läufer und Python-Referenz des Betrachters liegen unter `rust/crates/dienst/tests/werkzeug/`. Weitere Prüfungen des Crates: `abschirmung.rs`, `beobachtung.rs`, `dienst.rs`, `groessenwechsel.rs`, `kinder.rs`, `mehrere.rs`.
+`rust/crates/dienst/tests/faelle/` (280 Fälle, Namen `di1_*` bis `di12_*` und `l9_*`) mit den Erwartungen in `rust/crates/dienst/tests/erwartet/`; der Läufer ist `rust/crates/dienst/tests/faelle.rs`. Prüfclient, Läufer und Python-Referenz des Betrachters liegen unter `rust/crates/dienst/tests/werkzeug/`. Weitere Prüfungen des Crates: `abschirmung.rs`, `beobachtung.rs`, `dienst.rs`, `groessenwechsel.rs`, `kinder.rs`, `mehrere.rs`.
 
 ## Gegen den Bau fahren
 

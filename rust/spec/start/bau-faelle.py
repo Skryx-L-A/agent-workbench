@@ -997,15 +997,28 @@ def erlaubte_efforts(einst, harness, route, modell):
     return [w for w in EFFORTS[harness] if all(w in e["erlaubt"] for e in passend)]
 
 
-def code_f2(start, einst):
-    """Referenz der Stufen von Fassung 2 für Starts, deren übrige Felder gültig sind (Stufen 5 bis 18)."""
+def code_f2(start, einst, form=None):
+    """Referenz der Stufen von Fassung 2 für Starts, deren übrige Felder gültig sind (Stufen 3 bis 18).
+
+    `form` ist A oder D; ohne Angabe prüft die Referenz nur die Felder effort und name (wie vor `fortsetzung_von`)."""
+    if form == A and "sitzung" in start:
+        return "start.sitzung_nicht_erlaubt"
+    if form == A and "fortsetzung_von" in start:
+        return "start.fortsetzung_nicht_erlaubt"
     if start.get("fassung") == 1:
-        return "start.schluessel_unbekannt" if ("effort" in start or "name" in start) else None
-    if "effort" not in start or "name" not in start:
+        neu = ("effort", "name", "fortsetzung_von")
+        return "start.schluessel_unbekannt" if any(k in start for k in neu) else None
+    if "effort" not in start or "name" not in start or (form == D and "fortsetzung_von" not in start):
         return "start.schluessel_fehlt"
     e, n = start["effort"], start["name"]
-    if not (e is None or isinstance(e, str)) or not (n is None or isinstance(n, str)):
+    f = start.get("fortsetzung_von")
+    if not (e is None or isinstance(e, str)) or not (n is None or isinstance(n, str)) \
+            or not (f is None or isinstance(f, str)):
         return "start.typ_falsch"
+    if f is not None and not KENNUNG.match(f):
+        return "start.kennung_form"
+    if f is not None and f == start["sitzung"]:
+        return "start.fortsetzung_selbst"
     if not name_gueltig(n):
         return "start.name_form"
     if e is not None and not EFFORT_FORM.match(e):
@@ -1034,6 +1047,8 @@ EINST_EFFORT["effort"] = {"grenzen": [
     {"harness": "copilot", "erlaubt": ["low", "medium", "high"]},
     {"harness": "copilot", "modell": "gpt-6-luna", "erlaubt": ["low", "medium"]},
     {"harness": "pi", "klasse": "kundendaten", "erlaubt": ["off", "low"]}]}
+KENNUNG = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
+OHNE = object()  # Marke für einen Schlüssel, der in der Datei fehlen soll
 COP2 = dict(COPILOT, fassung=2, effort="medium", name="Auswertung Q4")
 PI2 = dict(LOKAL, fassung=2, effort="low", name=None)
 AUSSTEHEND = []
@@ -1051,12 +1066,17 @@ def heim(start):
     return start
 
 
-def ausstehend(name, form, beschreibung, start, soll, einst=EINST_EFFORT):
+def ausstehend(name, form, beschreibung, start, soll, einst=EINST_EFFORT, sitzung="s-1"):
     start = heim(start)
-    ist = code_f2(start, einst)
+    inhalt = datei(start, sitzung) if form == D else start
+    if form == D and inhalt["fassung"] == 2 and "fortsetzung_von" not in start:
+        # Fassung 2 der Datei trägt fortsetzung_von immer; ein neuer Start nennt null (Nachtrag 27.11.2026).
+        inhalt = {"fassung": 2, "sitzung": sitzung, "fortsetzung_von": None,
+                  **{k: v for k, v in inhalt.items() if k not in ("fassung", "sitzung")}}
+    inhalt = {k: v for k, v in inhalt.items() if v is not OHNE}
+    ist = code_f2(inhalt, einst, form)
     if ist != soll:
         raise SystemExit(f"FEHLER {name}: Referenz {ist!r}, Tabelle {soll!r}")
-    inhalt = datei(start) if form == D else start
     eintrag = {"beschreibung": beschreibung, "form": form, "text": text(inhalt), "einstellungen": einst}
     erwartet = ({"gueltig": True, "route_art": ROUTENART[start["harness"]]} if soll is None
                 else {"gueltig": False, "code": soll})
@@ -1106,6 +1126,140 @@ ausstehend("anfrage-f2-effort-grenze-pi", A, "pi in kundendaten mit medium: erla
            "start.effort_grenze")
 ausstehend("anfrage-f2-vertraeglich-vor-grenze", A, "Harness und Route unverträglich geht vor der Grenze (17 vor 18)",
            dict(PI2, route="cloud-beispiel", modell="qwen3:8b", effort="max"), "start.harness_route_unvertraeglich")
+
+
+# Fortsetzen (Nachtrag 27.11.2026, Vertrag dienst DI-L3): Feld fortsetzung_von der Startdatei der Fassung 2. Der Starter prüft
+# nur die Eingaben (Form, ungleich der eigenen Sitzung); ob die Vorgängersitzung bekannt ist, prüft der Dienst.
+ausstehend("datei-f2-fortsetzung-gueltig", D, "Startdatei s-4 setzt s-1 fort", dict(COP2, fortsetzung_von="s-1"), None, sitzung="s-4")
+ausstehend("datei-f2-fortsetzung-null", D, "neuer Start: fortsetzung_von steht als null", PI2, None, sitzung="s-2")
+ausstehend("datei-f2-fortsetzung-fehlt", D, "Startdatei der Fassung 2 ohne fortsetzung_von", dict(COP2, fortsetzung_von=OHNE),
+           "start.schluessel_fehlt")
+ausstehend("datei-f2-fortsetzung-zahl", D, "fortsetzung_von als Zahl", dict(COP2, fortsetzung_von=1), "start.typ_falsch")
+for _n, _wert, _was in [("gross", "S-1", "Großbuchstabe"), ("leer", "", "leerer Text"), ("65", "s" * 65, "65 Zeichen"),
+                        ("pfad", "../s-1", "Pfad statt Kennung")]:
+    ausstehend(f"datei-f2-fortsetzung-form-{_n}", D, f"fortsetzung_von: {_was}", dict(COP2, fortsetzung_von=_wert),
+               "start.kennung_form", sitzung="s-4")
+ausstehend("datei-f2-fortsetzung-selbst", D, "fortsetzung_von nennt die eigene Sitzung", dict(COP2, fortsetzung_von="s-4"),
+           "start.fortsetzung_selbst", sitzung="s-4")
+ausstehend("datei-f2-fortsetzung-form-vor-name", D, "Form von fortsetzung_von geht vor dem Namen (Stufe 9 vor 11a)",
+           dict(COP2, fortsetzung_von="S-1", name=""), "start.kennung_form", sitzung="s-4")
+ausstehend("datei-f2-fortsetzung-selbst-vor-name", D, "eigene Kennung geht vor dem Namen (Stufe 9a vor 11a)",
+           dict(COP2, fortsetzung_von="s-4", name=""), "start.fortsetzung_selbst", sitzung="s-4")
+ausstehend("anfrage-f2-fortsetzung-nicht-erlaubt", A, "die Ansicht schickt fortsetzung_von mit",
+           dict(COP2, fortsetzung_von="s-1"), "start.fortsetzung_nicht_erlaubt")
+ausstehend("anfrage-f2-fortsetzung-null-nicht-erlaubt", A, "auch null ist in der Anfrage verboten",
+           dict(COP2, fortsetzung_von=None), "start.fortsetzung_nicht_erlaubt")
+ausstehend("anfrage-f2-sitzung-vor-fortsetzung", A, "sitzung geht vor fortsetzung_von (Stufe 3 vor 4a)",
+           dict(COP2, sitzung="s-4", fortsetzung_von="s-1"), "start.sitzung_nicht_erlaubt")
+ausstehend("anfrage-f2-fortsetzung-vor-unbekannt", A, "fortsetzung_von geht vor einem unbekannten Schlüssel (Stufe 4a vor 5)",
+           dict(COP2, fortsetzung_von="s-1", klasse="intern"), "start.fortsetzung_nicht_erlaubt")
+ausstehend("datei-f1-mit-fortsetzung", D, "Fassung 1 kennt fortsetzung_von nicht", dict(CLOUD, fortsetzung_von="s-1"),
+           "start.schluessel_unbekannt", sitzung="s-4")
+
+
+# Fortsetzen in „Lauf starten“: Referenz der Schritte 5d und 8 (Fassung 2). Die Optionen stammen aus `--help` der Fassungen
+# claude 2.1.332, copilot 1.0.116 und pi 1.6.1 (gelesen 27.11.2026); ein Start damit ist nicht gemessen (OPEN 28).
+HARNESS_KENNUNG = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+NEU_KENNUNG = "<harness-kennung>"  # UUID v4, die „Lauf starten“ beim neuen Start würfelt
+GESPRAECH_KENNUNG = "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b"
+EFFORT_OPTION = {"claude": "--effort", "copilot": "--reasoning-effort", "pi": "--thinking"}
+LAUF_GRUND = {
+    "lauf.fortsetzung_unmoeglich": (69, "Harness kann nicht fortsetzen"),
+    "lauf.fortsetzung_fehlt": (66, "Gespraech der Vorgaengersitzung fehlt"),
+    "lauf.fortsetzung_kaputt": (65, "Gespraech der Vorgaengersitzung unbrauchbar"),
+    "lauf.fortsetzung_fremd": (65, "Gespraech gehoert zu anderem Harness oder Ordner"),
+    "lauf.sitzung_belegt": (73, "Sitzung wurde schon gestartet"),
+}
+
+
+def sitzungsoption(harness, kennung, fortsetzen):
+    """Die Option zur Harness-Sitzung, ans Ende des Startbefehls gehängt."""
+    if not fortsetzen:
+        return ["--session-id", kennung]
+    return {"claude": ["--resume", kennung], "copilot": [f"--resume={kennung}"], "pi": ["--session", kennung]}[harness]
+
+
+def harness_argv_f2(start, kennung, fortsetzen):
+    h, m, e = start["harness"], start["modell"], start["effort"]
+    argv = {"claude": ["claude", "--model", m], "copilot": ["copilot", "--model", m],
+            "pi": ["pi", "--provider", "wb-lokal", "--model", m]}[h]
+    if e is not None:
+        argv += [EFFORT_OPTION[h], e]
+    if h == "copilot":
+        argv += ["--disable-builtin-mcps", "--additional-mcp-config", "@<heim>/.copilot/wb-mcp.json"]
+    return argv + sitzungsoption(h, kennung, fortsetzen)
+
+
+def abgewiesen(code):
+    exit_, grund = LAUF_GRUND[code]
+    return {"exit": exit_, "stderr": f"{code}: {grund}", "suche_gestartet": False, "modellweg_gestartet": False}
+
+
+def lauf_f2(start, lage):
+    """Referenz für einen gültigen Start der Fassung 2: Schritt 5d (nur mit fortsetzung_von) und die Sitzungsoption in Schritt 8."""
+    if code_f2(start, lage["einstellungen"], D) is not None:
+        raise SystemExit(f"FEHLER: Aufruf-Fall mit ungültigem Start {start}")
+    alt, neu, h = start["fortsetzung_von"], start["sitzung"], start["harness"]
+    gespraeche = lage.get("gespraeche", {})
+    if alt is None:
+        g = {"fassung": 1, "harness": h, "arbeitsordner": start["arbeitsordner"], "kennung": NEU_KENNUNG}
+        return {"exec": h, "harness_argv": harness_argv_f2(start, NEU_KENNUNG, False), "stderr": "", "suche_gestartet": True,
+                "gespraeche_danach": {**gespraeche, neu: g}, "zustandsordner_beim_start": "leer"}
+    if lage.get("harness_fortsetzung", "ja") == "keine":
+        return abgewiesen("lauf.fortsetzung_unmoeglich")
+    g = gespraeche.get(alt)
+    if g is None:
+        return abgewiesen("lauf.fortsetzung_fehlt")
+    if not isinstance(g, dict) or g.get("fassung") != 1 or not HARNESS_KENNUNG.match(str(g.get("kennung"))):
+        return abgewiesen("lauf.fortsetzung_kaputt")
+    if g["harness"] != h or g["arbeitsordner"] != start["arbeitsordner"]:
+        return abgewiesen("lauf.fortsetzung_fremd")
+    if neu in gespraeche:
+        return abgewiesen("lauf.sitzung_belegt")
+    danach = {k: v for k, v in gespraeche.items() if k != alt}
+    return {"exec": h, "harness_argv": harness_argv_f2(start, g["kennung"], True), "stderr": "", "suche_gestartet": True,
+            "gespraeche_danach": {**danach, neu: g}, "zustandsordner_beim_start": "gespraech der vorgaengersitzung"}
+
+
+LAGE_GRUND = {"argv": ["<programm>", "<start>"], "datei_modus": "0600", "datei_art": "datei", "ordner_vorhanden": True,
+              "einschluss": True, "suche": "bereit", "harness_vorhanden": True}
+
+
+def ausstehend_aufruf(name, beschreibung, start, lage_mehr, soll_code=None, sitzung="s-4"):
+    start = heim(start)
+    inhalt = {"fassung": 2, "sitzung": sitzung, **{k: v for k, v in start.items() if k != "fassung"}}
+    lage = {**LAGE_GRUND, "einstellungen": EINST_EFFORT, "start": inhalt, **lage_mehr}
+    erwartet = lauf_f2(inhalt, lage)
+    ist_code = erwartet["stderr"].split(":")[0] if "exit" in erwartet else None
+    if ist_code != soll_code:
+        raise SystemExit(f"FEHLER {name}: Referenz {ist_code!r}, Tabelle {soll_code!r}")
+    AUSSTEHEND.append((name, {"beschreibung": beschreibung, "form": "aufruf", "lage": lage}, erwartet))
+
+
+def gespraech(start, kennung=GESPRAECH_KENNUNG, **anders):
+    return {"fassung": 1, "harness": start["harness"], "arbeitsordner": heim(start)["arbeitsordner"], "kennung": kennung, **anders}
+
+
+CL2 = dict(CLOUD, fassung=2, effort=None, name=None)
+ausstehend_aufruf("aufruf-f2-neu-pi", "neuer Start der Fassung 2: der Harness bekommt eine neue Sitzungskennung",
+                  dict(PI2, fortsetzung_von=None), {}, sitzung="s-2")
+for _start in (CL2, COP2, PI2):
+    _h = _start["harness"]
+    ausstehend_aufruf(f"aufruf-f2-fortsetzen-{_h}", f"{_h} setzt das Gespräch von s-1 fort",
+                      dict(_start, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(_start)}})
+ausstehend_aufruf("aufruf-f2-fortsetzen-ohne-fortsetzung", "der Harness kennt keine Fortsetzung: Abbruch vor der Suche, kein Neustart",
+                  dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2)}, "harness_fortsetzung": "keine"},
+                  "lauf.fortsetzung_unmoeglich")
+ausstehend_aufruf("aufruf-f2-fortsetzen-gespraech-fehlt", "zur Vorgängersitzung liegt kein Gespräch: kein stiller Neustart",
+                  dict(COP2, fortsetzung_von="s-1"), {}, "lauf.fortsetzung_fehlt")
+ausstehend_aufruf("aufruf-f2-fortsetzen-kennung-kaputt", "gespraech.json trägt keine UUID v4",
+                  dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2, kennung="--yolo")}},
+                  "lauf.fortsetzung_kaputt")
+ausstehend_aufruf("aufruf-f2-fortsetzen-fremder-harness", "das Gespräch gehört zu claude, der Start nennt copilot",
+                  dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(CL2)}}, "lauf.fortsetzung_fremd")
+ausstehend_aufruf("aufruf-f2-fortsetzen-neu-belegt", "zur neuen Sitzung liegt schon ein Gespräch",
+                  dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2), "s-4": gespraech(COP2)}},
+                  "lauf.sitzung_belegt")
 
 
 def main():

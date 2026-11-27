@@ -1,0 +1,21 @@
+{
+ "exec": "claude",
+ "harness_argv": [
+  "claude",
+  "--model",
+  "claude-sonnet-5-5",
+  "--resume",
+  "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b"
+ ],
+ "stderr": "",
+ "suche_gestartet": true,
+ "gespraeche_danach": {
+  "s-4": {
+   "fassung": 1,
+   "harness": "claude",
+   "arbeitsordner": "/heim/beispiel/projekt",
+   "kennung": "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b"
+  }
+ },
+ "zustandsordner_beim_start": "gespraech der vorgaengersitzung"
+}

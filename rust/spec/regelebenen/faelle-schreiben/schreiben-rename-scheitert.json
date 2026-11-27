@@ -1,0 +1,83 @@
+{
+ "name": "schreiben-rename-scheitert",
+ "anforderungen": [
+  "A05"
+ ],
+ "beschreibung": "rename scheitert; die alte Datei bleibt, die Temp-Datei ist entfernt",
+ "firma": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  }
+ },
+ "zuordnung": {
+  "konto-admin": "ps_00000000000000000000000000000b01",
+  "konto-admin-zwei": "ps_00000000000000000000000000000b02",
+  "konto-nutzer": "ps_00000000000000000000000000000c01",
+  "konto-nutzer-zwei": "ps_00000000000000000000000000000c02"
+ },
+ "firmenvorgabe": {
+  "art": "datei",
+  "eigentuemer": "root",
+  "modus": "0644",
+  "inhalt": {
+   "admins": [
+    "konto-admin",
+    "konto-admin-zwei"
+   ],
+   "leseklassen": [
+    {
+     "ebene": "gruppe",
+     "wer": "g-eins",
+     "klasse": "intern"
+    },
+    {
+     "ebene": "nutzer",
+     "wer": "konto-nutzer",
+     "klasse": "oeffentlich"
+    }
+   ]
+  }
+ },
+ "ordner": {
+  "art": "ordner",
+  "eigentuemer": "root",
+  "modus": "0755"
+ },
+ "schritte": [
+  {
+   "schreiben": {
+    "partner": "konto-admin",
+    "wert": [
+     {
+      "ebene": "gruppe",
+      "wer": "g-eins",
+      "klasse": "intern"
+     },
+     {
+      "ebene": "nutzer",
+      "wer": "konto-nutzer",
+      "klasse": "kundendaten"
+     },
+     {
+      "ebene": "nutzer",
+      "wer": "konto-nutzer-zwei",
+      "klasse": "oeffentlich"
+     }
+    ],
+    "fehler": [
+     "rename"
+    ]
+   }
+  }
+ ]
+}

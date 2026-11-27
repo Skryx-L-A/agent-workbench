@@ -238,6 +238,9 @@ pub(crate) struct Sitzung {
     pub(crate) meta: [String; 4],
     /// The folder `<ordner>/<kennung>` the service made for `Starten`; removed at the end.
     pub(crate) ordner: Option<PathBuf>,
+    /// The working folder of the session: `kind.cwd` of the start file for the session of `kind`, `arbeitsordner` of the start
+    /// structure for a session of `Starten`, `None` for the room core. `OrdnerLesen` and `InhaltSuchen` read only below it.
+    pub(crate) arbeitsordner: Option<PathBuf>,
     /// The socket of the report of `lauf` (section 18); `None` for the session of `kind`, for the room core and after the end.
     pub(crate) meldung: Option<Meldung>,
     /// The reason the report gave (or [`GRUND_UNGUELTIG`]), once the child has ended; the list shows it.
@@ -319,6 +322,7 @@ impl Sitzung {
             eintrag: None,
             meta: Default::default(),
             ordner: None,
+            arbeitsordner: None,
             meldung: None,
             grund: None,
             wurzel: None,

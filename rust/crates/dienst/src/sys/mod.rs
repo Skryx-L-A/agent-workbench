@@ -11,6 +11,10 @@ pub(crate) use std::os::fd::{AsFd, BorrowedFd, OwnedFd};
 #[cfg(unix)]
 pub(crate) use std::os::unix::net::{UnixListener, UnixStream};
 
+/// Reading and searching the working folder of a session (`arbeitsordner_fs.rs`; under Windows refused, `windows.rs`).
+#[cfg(unix)]
+pub(crate) use crate::arbeitsordner_fs::{inhalt_suchen, ordner_lesen};
+
 /// The open socket folder: every removal below it goes through it (`loeschen.rs`).
 #[cfg(unix)]
 pub(crate) type Ordner = OwnedFd;
@@ -30,10 +34,10 @@ mod windows;
 #[cfg(windows)]
 pub(crate) use windows::{
     AsFd, BorrowedFd, JobStand, Ordner, OwnedFd, UnixListener, UnixStream, alte_zielliste_raeumen,
-    eintrag_durchsuchbar, euid, gegenseite_gut, gleiche_datei, gruppe_beenden, job_schliessen,
-    kind_argv, kind_beenden, kind_mit_job, kind_nochmal_beenden, kinder_beenden, laufen,
-    marker_lesen, meldung_binden, mit_job, nanosekunden, ordner_anlegen, ordner_oeffnen,
-    programm_urteil, sitzung_mit_job, socket_binden,
+    eintrag_durchsuchbar, euid, gegenseite_gut, gleiche_datei, gruppe_beenden, inhalt_suchen,
+    job_schliessen, kind_argv, kind_beenden, kind_mit_job, kind_nochmal_beenden, kinder_beenden,
+    laufen, marker_lesen, meldung_binden, mit_job, nanosekunden, ordner_anlegen, ordner_lesen,
+    ordner_oeffnen, programm_urteil, sitzung_mit_job, socket_binden,
 };
 #[cfg(windows)]
 pub use windows::{Signale, signale_anmelden};
