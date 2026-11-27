@@ -50,6 +50,18 @@ exceptions = [
     { allow = ["Zlib"], crate = "konst_macro_rules" },
     { allow = ["Zlib"], crate = "slotmap" },
     { allow = ["ISC"], crate = "libloading" },
+    # Entered on 27.11.2026 for these crates only, on order for the app window `fenster` (eframe 0.37.0, egui 0.37.0).
+    # Measured with `cargo deny --locked --all-features check licenses` on 26.11.2026 and 27.11.2026. clipboard-win 5.4.3
+    # and error-code 3.4.0 are BSL-1.0 (permissive, OSI approved), the clipboard of Windows through arboard 3.7.0.
+    # epaint_default_fonts 0.37.0 is "(MIT OR Apache-2.0) AND OFL-1.1 AND Ubuntu-font-1.0": the fonts that come with egui
+    # (Hack, Ubuntu-Light, emoji). foldhash 0.1.5 and 0.2.0 are Zlib, through hashbrown 0.15.5 (petgraph 0.8.3,
+    # egui-winit 0.37.0) and hashbrown 0.17.2. unicode-properties 0.1.5 is "(MIT OR Apache-2.0) AND Unicode-3.0".
+    # Licence texts into the bill of materials. Never one of these licences for all crates.
+    { allow = ["BSL-1.0"], crate = "clipboard-win" },
+    { allow = ["BSL-1.0"], crate = "error-code" },
+    { allow = ["OFL-1.1", "Ubuntu-font-1.0"], crate = "epaint_default_fonts" },
+    { allow = ["Zlib"], crate = "foldhash" },
+    { allow = ["Unicode-3.0"], crate = "unicode-properties" },
 ]
 # ---- END LICENCE LIST -----------------------------------------------------
 
@@ -77,6 +89,30 @@ skip = [
     { crate = "rustc-hash@1.1.0", reason = "sledgehammer_utils 0.3.1 (dioxus-interpreter-js 0.7.10) uses rustc-hash 1; dioxus-core 0.7.10 uses rustc-hash 2" },
     { crate = "getrandom@0.3.4", reason = "rand_core 0.9.5 (rand 0.9.5, tungstenite 0.28.0, dioxus-devtools 0.7.10) uses getrandom 0.3; tempfile 3.27.0 uses 0.4. Host build only, not in the wasm build" },
     { crate = "r-efi@5.3.0", reason = "getrandom 0.3.4 uses r-efi 5; getrandom 0.4.3 uses 6. UEFI only, not compiled on macOS or Linux" },
+    # Duplicates that the app window `fenster` brings in through eframe 0.37.0 (order of 27.11.2026). Each entry skips the
+    # version that winit 0.30.13 or egui-winit 0.37.0 under eframe 0.37 pulls in. Measured with `cargo deny check bans`
+    # and `cargo tree --all-features --target all -i <crate>@<version>` on 27.11.2026.
+    { crate = "block2@0.5.1", reason = "winit 0.30 unter eframe 0.37: objc2-foundation 0.2.2 (winit 0.30.13) uses block2 0.5; egui-winit 0.37.0 and arboard 3.7.0 use 0.6. Apple only" },
+    { crate = "calloop@0.13.0", reason = "winit 0.30 unter eframe 0.37: calloop-wayland-source 0.3.0 (smithay-client-toolkit 0.19.2, winit 0.30.13) uses calloop 0.13; smithay-clipboard 0.7.3 uses 0.14. Linux only" },
+    { crate = "calloop-wayland-source@0.3.0", reason = "winit 0.30 unter eframe 0.37: smithay-client-toolkit 0.19.2 (winit 0.30.13) uses 0.3; smithay-client-toolkit 0.20.0 (smithay-clipboard) uses 0.4. Linux only" },
+    { crate = "cfg_aliases@0.2.2", reason = "winit 0.30 unter eframe 0.37: winit 0.30.13 and glutin 0.32.3 build with cfg_aliases 0.2; the crates of the workspace build with 0.1 (build dependency only)" },
+    { crate = "core-foundation@0.9.4", reason = "winit 0.30 unter eframe 0.37: core-graphics 0.23.2 (winit 0.30.13) uses core-foundation 0.9; security-framework 3.7.0 uses 0.10. Apple only" },
+    { crate = "foldhash@0.1.5", reason = "winit 0.30 unter eframe 0.37: hashbrown 0.15.5 (petgraph 0.8.3, egui-winit 0.37.0) uses foldhash 0.1; hashbrown 0.17.2 uses 0.2" },
+    { crate = "foreign-types@0.5.0", reason = "winit 0.30 unter eframe 0.37: core-graphics 0.23.2 (winit 0.30.13) uses foreign-types 0.5; openssl 0.10.82 uses 0.3. Apple only" },
+    { crate = "foreign-types-shared@0.3.1", reason = "winit 0.30 unter eframe 0.37: foreign-types 0.5.0 (core-graphics 0.23.2, winit 0.30.13) uses 0.3; foreign-types 0.3.2 (openssl) uses 0.1. Apple only" },
+    { crate = "hashbrown@0.15.5", reason = "winit 0.30 unter eframe 0.37: petgraph 0.8.3 (egui-winit 0.37.0) uses hashbrown 0.15; indexmap 2.14.2 uses 0.17" },
+    { crate = "jni-sys@0.3.1", reason = "winit 0.30 unter eframe 0.37: ndk 0.9.0 (winit 0.30.13) uses jni-sys 0.3; jni 0.22.4 uses 0.4. Android only, not compiled on macOS, Linux or Windows" },
+    { crate = "linux-raw-sys@0.4.15", reason = "winit 0.30 unter eframe 0.37: rustix 0.38.44 (calloop 0.13.0, winit 0.30.13) uses linux-raw-sys 0.4; rustix 1.1.6 uses 0.12. Linux only" },
+    { crate = "miniz_oxide@0.8.9", reason = "winit 0.30 unter eframe 0.37: png 0.18.1 (egui-winit 0.37.0, eframe 0.37.0) uses miniz_oxide 0.8; flate2 1.1.11 uses 0.9" },
+    { crate = "objc2@0.5.3", reason = "winit 0.30 unter eframe 0.37: accesskit_macos 0.27.2, accesskit_ios 0.2.2 and winit 0.30.13 use objc2 0.5; egui-winit 0.37.0 and arboard 3.7.0 use 0.6. Apple only" },
+    { crate = "objc2-app-kit@0.2.2", reason = "winit 0.30 unter eframe 0.37: accesskit_macos 0.27.2 and winit 0.30.13 use objc2-app-kit 0.2; arboard 3.7.0 uses 0.3. macOS only" },
+    { crate = "objc2-foundation@0.2.2", reason = "winit 0.30 unter eframe 0.37: accesskit_ios 0.2.2 and winit 0.30.13 use objc2-foundation 0.2; arboard 3.7.0 uses 0.3. Apple only" },
+    { crate = "objc2-ui-kit@0.2.2", reason = "winit 0.30 unter eframe 0.37: accesskit_ios 0.2.2 (winit 0.30.13) uses objc2-ui-kit 0.2; egui-winit 0.37.0 uses 0.3. iOS only, not compiled on macOS, Linux or Windows" },
+    { crate = "redox_syscall@0.4.1", reason = "winit 0.30 unter eframe 0.37: winit 0.30.13 uses redox_syscall 0.4; parking_lot_core 0.9.12 uses 0.5. Redox only, not compiled on macOS, Linux or Windows" },
+    { crate = "redox_syscall@0.9.5", reason = "winit 0.30 unter eframe 0.37: libredox 0.1.25 (winit 0.30.13) uses redox_syscall 0.9; parking_lot_core 0.9.12 uses 0.5. Redox only, not compiled on macOS, Linux or Windows" },
+    { crate = "rustix@0.38.44", reason = "winit 0.30 unter eframe 0.37: calloop 0.13.0 (winit 0.30.13) uses rustix 0.38; alacritty_terminal 0.26.0 and the rest use 1.1. Linux only" },
+    { crate = "smithay-client-toolkit@0.19.2", reason = "winit 0.30 unter eframe 0.37: winit 0.30.13 uses smithay-client-toolkit 0.19; smithay-clipboard 0.7.3 (arboard 3.7.0) uses 0.20. Linux only" },
+    { crate = "windows-sys@0.52.0", reason = "winit 0.30 unter eframe 0.37: glutin 0.32.3 (eframe 0.37.0) uses windows-sys 0.52; alacritty_terminal 0.26.0 uses 0.59, the rest 0.61. Windows only, not compiled on macOS or Linux" },
 ]
 
 [sources]

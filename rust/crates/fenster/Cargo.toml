@@ -1,0 +1,32 @@
+[package]
+name = "fenster"
+version = "0.1.0"
+description = "App window of the pilot (egui): the terminal view over the stream of the service, with the same messages and events as the browser view."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "werkbank-fenster"
+path = "src/main.rs"
+
+# ansicht, rasterauszug (path, crates of the workspace): the view core of the browser view (state, keys, start form,
+# announcements) and the decoder of the raster frames; the window has no second copy of either.
+# egui and eframe 0.37.0 (MIT OR Apache-2.0), exact as in the egui probe of the surface (decision of the operator E5,
+# 26.11.2026): glow instead of wgpu (smaller, no WebGPU), AccessKit for the accessibility tree (OF7, OF14 point 6), the
+# clipboard (B38), the default fonts (a monospace font with umlauts and box characters, OF4 point 2), X11 and Wayland.
+# flate2 (already in the graph through rasterauszug, same features): the Deflate of the PNG pictures (OF13).
+# serde_json: the messages of the stream and the file of the user (L8).
+[dependencies]
+ansicht = { path = "../ansicht" }
+eframe = { version = "=0.37.0", default-features = false, features = ["accesskit", "clipboard", "default_fonts", "glow", "wayland", "x11"] }
+egui = "=0.37.0"
+flate2 = { version = "1.1.11", default-features = false, features = ["rust_backend"] }
+rasterauszug = { path = "../rasterauszug" }
+serde_json = "1"
+
+[lints]
+workspace = true
