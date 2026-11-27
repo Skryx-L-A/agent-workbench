@@ -605,8 +605,19 @@ impl Stand {
                 self.liste();
             }
             "Freigabe" if ziel => {
-                let id = e.get("id").and_then(Value::as_str).unwrap_or("");
-                let erteilt = e.get("erteilt").and_then(Value::as_bool).unwrap_or(false);
+                // the form of the view core (R-L6 point 1): one id in `anfragen`; without `entscheidung` nothing is released
+                let id = e
+                    .get("anfragen")
+                    .and_then(Value::as_array)
+                    .and_then(|l| l.first())
+                    .and_then(Value::as_str)
+                    .unwrap_or("");
+                let erteilt = match e.get("entscheidung") {
+                    None | Some(Value::Null) => return self.ablehnen("entscheidung_fehlt"),
+                    Some(w) if *w == "erteilen" => true,
+                    Some(w) if *w == "ablehnen" => false,
+                    Some(_) => return self.ablehnen("ereignis_ungueltig"),
+                };
                 if let Some(pos) = self
                     .anfragen
                     .iter()
@@ -751,5 +762,70 @@ impl Weg for Attrappe {
 
     fn ist_attrappe(&self) -> bool {
         true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ablehnungen(a: &mut Attrappe) -> Vec<String> {
+        a.abholen()
+            .into_iter()
+            .filter(|r| r.art == ABLEHNUNG)
+            .map(|r| String::from_utf8_lossy(&r.nutz).into_owned())
+            .collect()
+    }
+
+    /// R-L6 point 1: without `entscheidung` nothing is released; with it the request leaves the list and enters the history.
+    #[test]
+    fn freigabe_nur_mit_entscheidung() {
+        let (mut a, griff) = Attrappe::neu(Form::Ziel);
+        a.abholen();
+        a.senden(&json!({"art": "Freigabe", "anfragen": ["a-1"]}));
+        a.senden(&json!({"art": "Freigabe", "anfragen": ["a-1"], "entscheidung": null}));
+        a.senden(&json!({"art": "Freigabe", "anfragen": ["a-1"], "entscheidung": "vielleicht"}));
+        assert_eq!(
+            ablehnungen(&mut a),
+            [
+                r#"{"grund":"entscheidung_fehlt"}"#,
+                r#"{"grund":"entscheidung_fehlt"}"#,
+                r#"{"grund":"ereignis_ungueltig"}"#
+            ]
+        );
+        assert_eq!(griff.borrow().anfragen.len(), 2);
+        let verlauf = griff.borrow().verlauf.len();
+        a.senden(&json!({"art": "Freigabe", "anfragen": ["a-1"], "entscheidung": "erteilen"}));
+        a.senden(
+            &json!({"art": "Freigabe", "anfragen": ["a-2"], "entscheidung": "ablehnen", "begruendung": "nein"}),
+        );
+        assert_eq!(ablehnungen(&mut a), Vec::<String>::new());
+        let s = griff.borrow();
+        assert_eq!(s.anfragen.len(), 0);
+        assert_eq!(s.verlauf.len(), verlauf + 2);
+        assert_eq!(s.verlauf[1]["erteilt"], json!(true));
+        assert_eq!(s.verlauf[0]["erteilt"], json!(false));
+        assert_eq!(s.verlauf[0]["begruendung"], json!("nein"));
+    }
+
+    /// The form of the view core reaches the mock-up: the sender of the inspector and `ansicht::ziel::freigabe` agree.
+    #[test]
+    fn form_der_ansicht() {
+        let (mut a, griff) = Attrappe::neu(Form::Ziel);
+        a.abholen();
+        a.senden(&ansicht::ziel::freigabe("a-2", true, ""));
+        assert_eq!(ablehnungen(&mut a), Vec::<String>::new());
+        assert_eq!(griff.borrow().anfragen.len(), 1);
+        a.senden(&json!({"art": "Freigabe", "anfragen": ["a-1"], "entscheidung": "erteilen"}));
+        assert_eq!(griff.borrow().anfragen.len(), 0);
+    }
+
+    /// In the base form the mock-up decides nothing.
+    #[test]
+    fn heute_ohne_freigabe() {
+        let (mut a, griff) = Attrappe::neu(Form::Heute);
+        let vorher = griff.borrow().anfragen.len();
+        a.senden(&json!({"art": "Freigabe", "anfragen": ["a-1"], "entscheidung": "erteilen"}));
+        assert_eq!(griff.borrow().anfragen.len(), vorher);
     }
 }

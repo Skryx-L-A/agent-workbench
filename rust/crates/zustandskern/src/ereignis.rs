@@ -672,8 +672,9 @@ impl Kern {
             .map(Value::as_str)
             .collect::<Option<_>>()
             .ok_or(UNGUELTIG)?;
+        // R-L6 point 1: a missing field never leads to a release, so it is rejected before any other form check.
         let ablehnen = match e.get("entscheidung") {
-            None => false,
+            None | Some(Value::Null) => return Err(Abgelehnt("entscheidung_fehlt")),
             Some(Value::String(w)) if w == "erteilen" => false,
             Some(Value::String(w)) if w == "ablehnen" => true,
             Some(_) => return Err(UNGUELTIG),

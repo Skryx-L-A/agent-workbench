@@ -374,7 +374,7 @@ fn m9_the_name_is_resolved_once_and_only_its_first_addresses_are_used() {
     let b = vorbereiten(
         &args,
         rustix::process::getuid().as_raw(),
-        &aufloeser,
+        &modellweg::ziel::geteilt(aufloeser),
         fristen,
         Box::new(|| gemeinsam::ZEIT),
     )
@@ -555,7 +555,7 @@ fn a_target_that_cannot_be_reached_or_answers_late() {
     let b = vorbereiten(
         &args,
         rustix::process::getuid().as_raw(),
-        &gemeinsam_aufloeser,
+        &modellweg::ziel::geteilt(gemeinsam_aufloeser),
         fristen,
         Box::new(|| gemeinsam::ZEIT),
     )
@@ -635,7 +635,7 @@ fn the_steps_before_readiness() {
     let f = vorbereiten(
         &a,
         rustix::process::getuid().as_raw(),
-        &nie,
+        &modellweg::ziel::geteilt(nie),
         FRISTEN,
         Box::new(|| 0),
     )
@@ -1359,7 +1359,7 @@ fn a_child_before_the_ready_line_ends_the_start() {
     let ergebnis = modellweg::start::starten_mit(
         &a,
         rustix::process::getuid().as_raw(),
-        &aufloeser,
+        &modellweg::ziel::geteilt(aufloeser),
         FRISTEN,
         Box::new(|| gemeinsam::ZEIT),
         &mut out,
@@ -1388,7 +1388,7 @@ fn a_child_before_the_ready_line_ends_the_start() {
     let ergebnis = modellweg::start::starten_mit(
         &a,
         rustix::process::getuid().as_raw(),
-        &aufloeser,
+        &modellweg::ziel::geteilt(aufloeser),
         FRISTEN,
         Box::new(|| gemeinsam::ZEIT),
         &mut out,

@@ -165,7 +165,7 @@ fn kind_bis_zum_ziel() {
     let b = vorbereiten(
         &args,
         rustix::process::getuid().as_raw(),
-        &aufloeser,
+        &modellweg::ziel::geteilt(aufloeser),
         Fristen {
             verbinden: Duration::from_secs(5),
             kopf: Duration::from_secs(5),
@@ -250,7 +250,7 @@ fn a_silent_handshake_ends_within_the_deadline() {
     let b = vorbereiten(
         &args,
         rustix::process::getuid().as_raw(),
-        &aufloeser,
+        &modellweg::ziel::geteilt(aufloeser),
         fristen,
         Box::new(|| gemeinsam::ZEIT),
     )

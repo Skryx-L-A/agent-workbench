@@ -364,7 +364,7 @@ function schluesselLesen(d) {
   if (!SCHLUESSEL.test(t)) throw fehler('mw.schluessel_form');
   return t;
 }
-const START_CODES = { 'mw.halter_fehlt': [78, 'Halter nicht erreichbar'], 'mw.halter_unecht': [78, 'Halter nicht echt'], 'mw.halter_kein_schluessel': [78, 'kein Schluessel beim Halter'], 'mw.aufruf': [64, 'Aufruf ungueltig'], 'mw.betriebsart_unbekannt': [64, 'Betriebsart unbekannt oder nicht gebaut'], 'mw.probelauf_aufruf': [64, 'Probelauf-Optionen ungueltig'], 'mw.protokoll_fehlt': [74, 'Protokoll nicht schreibbar'], 'mw.zaehlung_fehler': [74, 'Zaehldatei nicht schreibbar'],'mw.schluessel_datei': [78, 'Schluesseldatei nicht eigen, nicht 0600 oder keine Datei'],
+const START_CODES = { 'mw.halter_fehlt': [75, 'Halter nicht erreichbar'], 'mw.halter_unecht': [78, 'Halter nicht echt'], 'mw.halter_kein_schluessel': [78, 'kein Schluessel beim Halter'], 'mw.aufruf': [64, 'Aufruf ungueltig'], 'mw.betriebsart_unbekannt': [64, 'Betriebsart unbekannt oder nicht gebaut'], 'mw.probelauf_aufruf': [64, 'Probelauf-Optionen ungueltig'], 'mw.protokoll_fehlt': [74, 'Protokoll nicht schreibbar'], 'mw.zaehlung_fehler': [74, 'Zaehldatei nicht schreibbar'],'mw.schluessel_datei': [78, 'Schluesseldatei nicht eigen, nicht 0600 oder keine Datei'],
   'mw.schluessel_form': [78, 'Schluessel hat falsche Form'], 'mw.protokoll_ordner': [78, 'Protokollordner fehlt oder ist kein Ordner'],
   'mw.ziel_unaufloesbar': [69, 'Ziel nicht aufloesbar'], 'mw.socket_belegt': [74, 'Socket belegt oder nicht anlegbar'], 'mw.intern': [70, 'interner Fehler'] };
 
@@ -1123,12 +1123,12 @@ function baueKopf() {
     const e = { name, beschreibung };
     if (Buffer.byteLength(text) > 4096) e.text_muster = { basis: 'vorfuehrung', zusatz: 'Schluessel x mit 65536 mal a auf oberster Ebene' }; else e.text = text;
     // Eine gueltige und zugelassene Liste mit einem gebundenen Ziel fuehrt in Schritt 3: Der Modellweg verbindet sich
-    // zum Halter an dessen festem Pfad. Ohne Halter endet der Start dort mit Exit 78 mw.halter_fehlt, und einen
+    // zum Halter an dessen festem Pfad. Ohne Halter endet der Start dort mit Exit 75 mw.halter_fehlt, und einen
     // Rueckfall auf eine Datei gibt es nicht (Abschnitt 5.1, "Kein Rueckweg").
     e.erwartet = code === null
       ? { gueltig: true, ca_erlaubte_namen: [...new Set(gelesen.map((z) => z.host))].sort(), start: gelesen.ca_zulassung === 'zugelassen'
           ? (gelesen.some((z) => z.halter_ziel !== null)
-            ? { bis_schritt: 'halter', ohne_halter: { exit: 78, stderr: `mw.halter_fehlt: ${START_CODES['mw.halter_fehlt'][1]}\n`, stdout: '' } }
+            ? { bis_schritt: 'halter', ohne_halter: { exit: START_CODES['mw.halter_fehlt'][0], stderr: `mw.halter_fehlt: ${START_CODES['mw.halter_fehlt'][1]}\n`, stdout: '' } }
             : { bis_schritt: 'zielliste_gut' })
           : { exit: 78, stderr: `mw.ca_nicht_zugelassen: ${START_CODES['mw.ca_nicht_zugelassen'][1]}\n`, stdout: '' } }
       : { gueltig: false, code, start: code === 'zl.halter_name'
@@ -1554,7 +1554,7 @@ function baueKopf() {
     gegenprobe.push({ name, beschreibung, zuordnung, aufbau, erwartet: { ...ist, fundorte: funde, test: rot ? 'rot' : 'gruen' } });
   }
   return {
-    'faelle/kopf-ziele.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 12 (Betriebsart kopf-einsetzen; unter Linux gebaut). text sind die Bytes der Zielliste, text_muster beschreibt eine zu grosse Liste. erwartet.start sagt, wie weit der Start kommt: bis_schritt zielliste_gut heisst, die Liste besteht und kein gebundenes Ziel braucht den Halter; bis_schritt halter heisst, der Start geht in Schritt 3 zum Halter, und ohne_halter nennt das Ende ohne erreichbaren Halter (Exit 78, mw.halter_fehlt).', faelle: ziele },
+    'faelle/kopf-ziele.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 12 (Betriebsart kopf-einsetzen; unter Linux gebaut). text sind die Bytes der Zielliste, text_muster beschreibt eine zu grosse Liste. erwartet.start sagt, wie weit der Start kommt: bis_schritt zielliste_gut heisst, die Liste besteht und kein gebundenes Ziel braucht den Halter; bis_schritt halter heisst, der Start geht in Schritt 3 zum Halter, und ohne_halter nennt das Ende ohne erreichbaren Halter (Exit 75, mw.halter_fehlt).', faelle: ziele },
     'faelle/kopf-tunnel.json': { fassung: 1, hinweis: 'Vertrag 8, Abschnitt 13.1. sni ist der Name im TLS-Gruss des Harness (null: keiner). lage.ziele ist die Vorfuehr-Zielliste aus kopf-ziele.json.', faelle: tunnel },
     'faelle/kopf-anfragen.json': { fassung: 1, hinweis: `Vertrag 8, Abschnitt 13.2. Anfragen im Tunnel (latin1). an_ziel sind die Bytes an ein ungebundenes Ziel; an_halter ist die Zeile modell.aufruf oder modell.strom an den Halter fuer ein gebundenes Ziel (RFC 8785, id 1). Der Modellweg haelt fuer ein gebundenes Ziel keinen Wert: weder die Marke ${MARKE} noch der Platzhalter ${PLATZ} steht je in an_halter oder an_ziel (beide erfunden; die Marke ist das Geheimnis, das der Halter einsetzt). zeile nennt die Felder der Protokollzeile.`, marke: MARKE, platzhalter: PLATZ, faelle: anfragen },
     'faelle/kopf-websocket.json': websocket,

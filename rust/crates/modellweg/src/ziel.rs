@@ -122,8 +122,16 @@ fn praefix_ok(pfad: &str) -> bool {
         })
 }
 
-/// A resolver: host and port to addresses (in production [`system_aufloeser`]).
-pub type Aufloeser = dyn Fn(&str, u16) -> io::Result<Vec<SocketAddr>>;
+/// A resolver: host and port to addresses (in production [`system_aufloeser`]). `Send` and `Sync`, because mode 2
+/// resolves an unbound target only on its first CONNECT, in the thread of that connection ([`SpaeterVerbinder`]).
+pub type Aufloeser = dyn Fn(&str, u16) -> io::Result<Vec<SocketAddr>> + Send + Sync;
+
+/// A resolver as the start takes it, shared with the connectors of mode 2.
+pub fn geteilt(
+    f: impl Fn(&str, u16) -> io::Result<Vec<SocketAddr>> + Send + Sync + 'static,
+) -> std::sync::Arc<Aufloeser> {
+    std::sync::Arc::new(f)
+}
 
 /// Step 4 of the start: the addresses of the target, resolved once; `None` is `mw.ziel_unaufloesbar`.
 /// `127.0.0.1` and `[::1]` are not resolved.
@@ -160,6 +168,101 @@ pub struct Verbindung {
 pub trait Verbinder: Send + Sync {
     /// One new connection for one request.
     fn verbinde(&self) -> Option<Verbindung>;
+
+    /// Whether the target has addresses (stage 6 of mode 2 at the CONNECT). A connector made from resolved addresses
+    /// always has them.
+    fn erreichbar(&self) -> bool {
+        true
+    }
+}
+
+/// Mode 2, step 6 (section 13.5): the connector of an unbound target that resolves its host once, at the first need
+/// and not before readiness. A name that cannot be resolved, for example behind a blocked network, therefore never
+/// holds up the start; the first CONNECT to it gets `mw.ziel_nicht_erreichbar`. The first result counts for the whole
+/// session, a failure as well: one resolution per host, as before. The resolution waits at most the deadline for
+/// connecting; a resolver still running after it ends on its own, and its late result is dropped.
+pub struct SpaeterVerbinder {
+    host: String,
+    port: u16,
+    aufloeser: std::sync::Arc<Aufloeser>,
+    tls: std::sync::Mutex<Option<Box<dyn Tls>>>,
+    fristen: Fristen,
+    netz: std::sync::OnceLock<Option<NetzVerbinder>>,
+}
+
+impl SpaeterVerbinder {
+    /// A connector for `host` and `port` that resolves with `aufloeser` at the first need; `tls` for an `https` target.
+    #[must_use]
+    pub fn neu(
+        host: String,
+        port: u16,
+        aufloeser: std::sync::Arc<Aufloeser>,
+        tls: Option<Box<dyn Tls>>,
+        fristen: Fristen,
+    ) -> Self {
+        Self {
+            host,
+            port,
+            aufloeser,
+            tls: std::sync::Mutex::new(tls),
+            fristen,
+            netz: std::sync::OnceLock::new(),
+        }
+    }
+
+    /// The connector of the resolved addresses; resolves on the first call only. `None` if the host has no address.
+    fn netz(&self) -> Option<&NetzVerbinder> {
+        self.netz
+            .get_or_init(|| {
+                let adressen = aufloesen_bis(
+                    &self.aufloeser,
+                    &self.host,
+                    self.port,
+                    self.fristen.verbinden,
+                )?;
+                let tls = self.tls.lock().ok()?.take();
+                Some(NetzVerbinder::neu(
+                    adressen,
+                    self.host.clone(),
+                    tls,
+                    self.fristen,
+                ))
+            })
+            .as_ref()
+    }
+}
+
+impl Verbinder for SpaeterVerbinder {
+    fn verbinde(&self) -> Option<Verbindung> {
+        self.netz()?.verbinde()
+    }
+
+    fn erreichbar(&self) -> bool {
+        self.netz().is_some()
+    }
+}
+
+/// One resolution of `host` and `port` in a thread of its own, waited for at most `frist`. `None` without an address,
+/// with an error of the resolver or after the deadline.
+fn aufloesen_bis(
+    aufloeser: &std::sync::Arc<Aufloeser>,
+    host: &str,
+    port: u16,
+    frist: Duration,
+) -> Option<Vec<SocketAddr>> {
+    let (senden, empfangen) = std::sync::mpsc::channel();
+    let aufloeser = std::sync::Arc::clone(aufloeser);
+    let host = host.to_owned();
+    std::thread::Builder::new()
+        .spawn(move || {
+            let _ = senden.send(aufloeser(&host, port));
+        })
+        .ok()?;
+    empfangen
+        .recv_timeout(frist)
+        .ok()?
+        .ok()
+        .filter(|adressen| !adressen.is_empty())
 }
 
 /// The deadlines of section 6.

@@ -58,6 +58,7 @@
      "a-1"
     ],
     "art": "Freigabe",
+    "entscheidung": "erteilen",
     "nachweis": "n-1"
    }
   },
@@ -69,6 +70,7 @@
      "a-1"
     ],
     "art": "Freigabe",
+    "entscheidung": "erteilen",
     "nachweis": "n-1",
     "sitzung": "s-1"
    }
@@ -81,6 +83,7 @@
      "a-1"
     ],
     "art": "Freigabe",
+    "entscheidung": "erteilen",
     "sitzung": "s-1"
    }
   },

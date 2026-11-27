@@ -25,6 +25,10 @@ besteht. `rust/crates/zustandskern/tests/faelle-ausstehend/` mit `erwartet-ausst
 sechs neue (`rl1_*`, `rl6_*`) und 103 bestehende Fälle mit neuer Erwartung unter demselben Namen (nur das Feld `sitzung` in `Agenten` und
 `Agentenzustand` kommt dazu). Der Läufer liest den Ordner nicht. Der Bau verschiebt die Fälle nach `faelle/` und `erwartet/`.
 
+Nachtrag 27.11.2026 (Projektentscheid, R-L6 Punkt 1): `faelle/` hat 545 Fälle. Jede `Freigabe` der bestehenden Fälle sendet
+`"entscheidung": "erteilen"`; keine Erwartung ändert sich. Neu ist `rl6_entscheidung_fehlt`: Ohne `entscheidung` oder mit `null` lehnt der Kern
+mit `entscheidung_fehlt` ab, auch mit gültigem Nachweis.
+
 ## Gegen den Bau fahren
 
 Aus dem Ordner `rust/`: `cargo test -p zustandskern --test faelle`.

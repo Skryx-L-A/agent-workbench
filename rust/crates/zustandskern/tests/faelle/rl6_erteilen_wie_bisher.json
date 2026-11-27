@@ -4,7 +4,7 @@
   "R-L6",
   "R7"
  ],
- "beschreibung": "Erteilen mit und ohne Feld gleich wie bisher; eine erteilte Anfrage lässt sich nicht mehr ablehnen",
+ "beschreibung": "Erteilen mit Feld wie bisher; eine erteilte Anfrage lässt sich nicht mehr ablehnen",
  "anfang": {
   "personen": {
    "nutzer-1": {
@@ -157,7 +157,8 @@
    "anfragen": [
     "a-4"
    ],
-   "nachweis": "nw-12"
+   "nachweis": "nw-12",
+   "entscheidung": "erteilen"
   },
   {
    "t": 22,

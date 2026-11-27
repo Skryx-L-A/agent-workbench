@@ -197,9 +197,14 @@ impl Tunnel {
             return self.abweisen(h, None, "mw.ziel_nicht_erlaubt");
         };
         let ziel = &self.zielliste.ziele[nummer];
-        // Stage 6 is for an unbound target that got no address at the start. A bound target has no connector of its
-        // own: its way out belongs to the holder (section 5.1).
-        if !ziel.gebunden() && self.verbinder[nummer].is_none() {
+        // Stage 6 is for an unbound target without address: its host is resolved here, at the first CONNECT, and the
+        // first result counts for the session (section 13.5). A bound target has no connector of its own: its way out
+        // belongs to the holder (section 5.1).
+        if !ziel.gebunden()
+            && !self.verbinder[nummer]
+                .as_ref()
+                .is_some_and(|v| v.erreichbar())
+        {
             return self.abweisen(h, Some(ziel), "mw.ziel_nicht_erreichbar");
         }
         if h.write_all(b"HTTP/1.1 200 Connection Established\r\n\r\n")

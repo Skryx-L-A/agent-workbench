@@ -543,7 +543,7 @@ fn start_mit_liste(name: &str, liste_text: &str, e: &Value) {
     let ergebnis = modellweg::start::starten(
         &args,
         rustix::process::getuid().as_raw(),
-        &aufloeser,
+        &modellweg::ziel::geteilt(aufloeser),
         modellweg::ziel::FRISTEN,
         Box::new(|| ZEIT),
         &mut out,
@@ -551,10 +551,10 @@ fn start_mit_liste(name: &str, liste_text: &str, e: &Value) {
     );
     match (ergebnis, e["exit"].as_i64()) {
         // A list that passes and names a bound target leads into step 3: the model path reaches the holder at his
-        // fixed path. In a test there is none there, so the start ends with exit 78 `mw.halter_fehlt` — and exactly
+        // fixed path. In a test there is none there, so the start ends with exit 75 `mw.halter_fehlt` — and exactly
         // that is the proof that step 3 runs after step 2 and that there is no fall back on a file.
         (Err(exit), None) if e["bis_schritt"] == "halter" => {
-            assert_eq!(i64::from(exit), 78, "{name}");
+            assert_eq!(i64::from(exit), 75, "{name}");
             assert_eq!(
                 err,
                 latin1("mw.halter_fehlt: Halter nicht erreichbar\n"),
@@ -573,21 +573,21 @@ fn start_mit_liste(name: &str, liste_text: &str, e: &Value) {
     }
 }
 
-/// Step 6 of the start (section 13.5): an unbound target whose resolution answers with an empty list has no address,
-/// the same as a resolution that fails. The start goes on, and a CONNECT to that target is refused at once with 502
-/// `mw.ziel_nicht_erreichbar` (stage 6), before any `200 Connection Established` and before TLS. A connector over an
-/// empty list of addresses would instead accept the CONNECT and fail only at the request inside the tunnel.
-#[test]
-fn an_empty_resolution_at_the_start_is_no_address() {
-    let w = Wegwerf::neu("leer-aufgeloest");
-    let host = "telemetry.beispiel.invalid";
+/// The start of mode 2 with one unbound target `host` and the resolver `aufloeser`; returns the ready state, the output
+/// on stdout, the time to readiness and the certificate of the CA.
+fn ungebunden_starten(
+    w: &Wegwerf,
+    host: &str,
+    aufloeser: &Arc<modellweg::ziel::Aufloeser>,
+    fristen: modellweg::ziel::Fristen,
+) -> (modellweg::start::Bereit, Vec<u8>, std::time::Duration, X509) {
     let text = format!(
         r#"{{"fassung":1,"ca_zulassung":"zugelassen","ziele":[{{"name":"tele","host":"{host}","port":443,"halter_ziel":null,"regeln":[{{"methode":"POST","pfad":"/telemetry"}}],"upgrade":"ablehnen"}}]}}"#
     );
-    let liste = datei_0600(&w, "zielliste.json", text.as_bytes());
+    let liste = datei_0600(w, "zielliste.json", text.as_bytes());
     let (k, z) = ca_bauen(&[host], 0, 24, true);
-    let kp = datei_0600(&w, "ca.key", &k.private_key_to_pem_pkcs8().expect("pem"));
-    let zp = datei_0600(&w, "ca.crt", &z.to_pem().expect("pem"));
+    let kp = datei_0600(w, "ca.key", &k.private_key_to_pem_pkcs8().expect("pem"));
+    let zp = datei_0600(w, "ca.crt", &z.to_pem().expect("pem"));
     let args: Vec<OsString> = [
         "--betriebsart",
         "kopf-einsetzen",
@@ -611,26 +611,23 @@ fn an_empty_resolution_at_the_start_is_no_address() {
     .iter()
     .map(OsString::from)
     .collect();
-    let gefragt = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-    let zaehler = Arc::clone(&gefragt);
-    let aufloeser = move |h: &str, _: u16| -> std::io::Result<Vec<std::net::SocketAddr>> {
-        assert_eq!(h, host);
-        zaehler.fetch_add(1, Ordering::SeqCst);
-        Ok(Vec::new())
-    };
     let (mut out, mut err) = (Vec::new(), Vec::new());
+    let vorher = std::time::Instant::now();
     let bereit = modellweg::start::starten(
         &args,
         rustix::process::getuid().as_raw(),
-        &aufloeser,
-        modellweg::ziel::FRISTEN,
+        aufloeser,
+        fristen,
         Box::new(|| ZEIT),
         &mut out,
         &mut err,
     )
     .unwrap_or_else(|e| panic!("exit {e}: {}", String::from_utf8_lossy(&err)));
-    assert_eq!(gefragt.load(Ordering::SeqCst), 1);
-    assert_eq!(out, b"{\"bereit\":true}\n");
+    (bereit, out, vorher.elapsed(), z)
+}
+
+/// One CONNECT to `host:443` against the started service; returns the answer up to the end of its head.
+fn verbinde_ungebunden(bereit: &modellweg::start::Bereit, host: &str) -> Vec<u8> {
     let (mut h, seite) = UnixStream::pair().expect("pair");
     h.set_read_timeout(Some(LESEFRIST)).expect("timeout");
     let d = Arc::clone(&bereit.dienst);
@@ -639,14 +636,164 @@ fn an_empty_resolution_at_the_start_is_no_address() {
         &mut h,
         format!("CONNECT {host}:443 HTTP/1.1\r\n\r\n").as_bytes(),
     );
+    faden.join().expect("thread");
+    antwort
+}
+
+/// Step 6 of the start (section 13.5): an unbound target whose resolution answers with an empty list has no address,
+/// the same as a resolution that fails. The host is resolved once, at the first CONNECT and not before readiness
+/// (Projektentscheid, 27.11.2026). That CONNECT is refused at once with 502 `mw.ziel_nicht_erreichbar` (stage 6),
+/// before any `200 Connection Established` and before TLS. A second CONNECT does not resolve again. A connector over
+/// an empty list of addresses would instead accept the CONNECT and fail only at the request inside the tunnel.
+#[test]
+fn an_empty_resolution_at_the_start_is_no_address() {
+    let w = Wegwerf::neu("leer-aufgeloest");
+    let host = "telemetry.beispiel.invalid";
+    let gefragt = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let zaehler = Arc::clone(&gefragt);
+    let aufloeser = move |h: &str, _: u16| -> std::io::Result<Vec<std::net::SocketAddr>> {
+        assert_eq!(h, host);
+        zaehler.fetch_add(1, Ordering::SeqCst);
+        Ok(Vec::new())
+    };
+    let (bereit, out, _, _) = ungebunden_starten(
+        &w,
+        host,
+        &modellweg::ziel::geteilt(aufloeser),
+        modellweg::ziel::FRISTEN,
+    );
+    assert_eq!(out, b"{\"bereit\":true}\n");
     assert_eq!(
-        antwort,
+        gefragt.load(Ordering::SeqCst),
+        0,
+        "no resolution before readiness"
+    );
+    let nicht_erreichbar =
+        modellweg::betriebsart::kopf_einsetzen::antwort("mw.ziel_nicht_erreichbar");
+    assert_eq!(verbinde_ungebunden(&bereit, host), nicht_erreichbar);
+    assert_eq!(gefragt.load(Ordering::SeqCst), 1);
+    assert_eq!(verbinde_ungebunden(&bereit, host), nicht_erreichbar);
+    assert_eq!(gefragt.load(Ordering::SeqCst), 1, "one resolution per host");
+    let z = zeilen(&w.protokoll());
+    assert_eq!(z.len(), 2, "{z:?}");
+    assert_eq!(z[0]["grund"], "mw.ziel_nicht_erreichbar");
+    drop(bereit);
+}
+
+/// The way of an unbound target that has an address (section 13.5, step 6; Projektentscheid, 27.11.2026): the host is
+/// resolved at the first CONNECT, the CONNECT gets `200 Connection Established`, and a request inside the tunnel opens
+/// a TCP connection to exactly the resolved address. The stand-in target does not speak TLS, so the request itself
+/// fails afterwards; what counts here is the connection. A connector of resolved addresses (the stand-in of the other
+/// cases) is reachable as well.
+#[test]
+fn a_resolved_unbound_target_is_reached_after_the_connect() {
+    let host = "telemetry.beispiel.invalid";
+    let liste = format!(
+        r#"{{"fassung":1,"ca_zulassung":"zugelassen","ziele":[{{"name":"tele","host":"{host}","port":443,"halter_ziel":null,"regeln":[{{"methode":"POST","pfad":"/telemetry"}}],"upgrade":"ablehnen"}}]}}"#
+    );
+    let a = aufbau(&liste, &[]);
+    let (mut h, f) = a.verbinden();
+    assert!(
+        Aufbau::connect(
+            &mut h,
+            format!("CONNECT {host}:443 HTTP/1.1\r\n\r\n").as_bytes()
+        )
+        .starts_with(b"HTTP/1.1 200 ")
+    );
+    drop(h);
+    f.join().expect("thread");
+
+    let ziel = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
+    ziel.set_nonblocking(true).expect("nonblocking");
+    let adresse = ziel.local_addr().expect("addr");
+    let gefragt = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let zaehler = Arc::clone(&gefragt);
+    let aufloeser = move |h: &str, p: u16| -> std::io::Result<Vec<std::net::SocketAddr>> {
+        assert_eq!((h, p), (host, 443));
+        zaehler.fetch_add(1, Ordering::SeqCst);
+        Ok(vec![adresse])
+    };
+    let fristen = modellweg::ziel::Fristen {
+        verbinden: std::time::Duration::from_secs(2),
+        kopf: std::time::Duration::from_secs(2),
+    };
+    let w = Wegwerf::neu("aufgeloest");
+    let (bereit, out, _, ca) =
+        ungebunden_starten(&w, host, &modellweg::ziel::geteilt(aufloeser), fristen);
+    assert_eq!(out, b"{\"bereit\":true}\n");
+    assert_eq!(
+        gefragt.load(Ordering::SeqCst),
+        0,
+        "no resolution before readiness"
+    );
+    let (mut h, seite) = UnixStream::pair().expect("pair");
+    h.set_read_timeout(Some(LESEFRIST)).expect("timeout");
+    let d = Arc::clone(&bereit.dienst);
+    let faden = std::thread::spawn(move || d.bediene(seite));
+    assert!(
+        Aufbau::connect(
+            &mut h,
+            format!("CONNECT {host}:443 HTTP/1.1\r\n\r\n").as_bytes()
+        )
+        .starts_with(b"HTTP/1.1 200 ")
+    );
+    assert_eq!(gefragt.load(Ordering::SeqCst), 1);
+    let mut b = SslConnector::builder(SslMethod::tls_client()).expect("connector");
+    b.cert_store_mut().add_cert(ca).expect("trust the CA");
+    b.set_alpn_protos(b"\x08http/1.1").expect("alpn");
+    let mut tls = b.build().connect(host, h).expect("tls to the model path");
+    tls.write_all(
+        format!("POST /telemetry HTTP/1.1\r\nHost: {host}\r\nContent-Length: 0\r\n\r\n").as_bytes(),
+    )
+    .expect("request");
+    let ende = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    let angenommen = loop {
+        match ziel.accept() {
+            Ok(_) => break true,
+            Err(_) if std::time::Instant::now() < ende => {
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            Err(_) => break false,
+        }
+    };
+    assert!(angenommen, "no connection to the resolved address");
+    drop(tls);
+    faden.join().expect("thread");
+    assert_eq!(gefragt.load(Ordering::SeqCst), 1, "one resolution per host");
+    drop(bereit);
+}
+
+/// A resolution that hangs, as behind a blocked network, holds up neither readiness nor the start (section 13.5,
+/// Projektentscheid, 27.11.2026): the ready line comes in under 1 s without any network, although the resolver would
+/// answer only after 5 s. The first CONNECT waits at most the deadline for connecting and then gets 502
+/// `mw.ziel_nicht_erreichbar`, the existing failure of the target.
+#[test]
+fn a_hanging_resolution_does_not_hold_up_readiness() {
+    let w = Wegwerf::neu("haengt");
+    let host = "api.beispiel.invalid";
+    let aufloeser = |_: &str, _: u16| -> std::io::Result<Vec<std::net::SocketAddr>> {
+        std::thread::sleep(std::time::Duration::from_secs(5));
+        Err(std::io::Error::other("no network"))
+    };
+    let fristen = modellweg::ziel::Fristen {
+        verbinden: std::time::Duration::from_millis(300),
+        kopf: std::time::Duration::from_secs(1),
+    };
+    let (bereit, out, dauer, _) =
+        ungebunden_starten(&w, host, &modellweg::ziel::geteilt(aufloeser), fristen);
+    assert_eq!(out, b"{\"bereit\":true}\n");
+    assert!(
+        dauer < std::time::Duration::from_secs(1),
+        "readiness after {dauer:?}"
+    );
+    let vorher = std::time::Instant::now();
+    assert_eq!(
+        verbinde_ungebunden(&bereit, host),
         modellweg::betriebsart::kopf_einsetzen::antwort("mw.ziel_nicht_erreichbar")
     );
-    faden.join().expect("thread");
-    let z = zeilen(&w.protokoll());
-    assert_eq!(z.len(), 1, "{z:?}");
-    assert_eq!(z[0]["grund"], "mw.ziel_nicht_erreichbar");
+    let dauer = vorher.elapsed();
+    assert!(dauer >= std::time::Duration::from_millis(250), "{dauer:?}");
+    assert!(dauer < std::time::Duration::from_secs(3), "{dauer:?}");
     drop(bereit);
 }
 

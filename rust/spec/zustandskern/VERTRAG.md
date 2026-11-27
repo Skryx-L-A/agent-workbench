@@ -89,7 +89,7 @@ höchstens `t` ab, in Reihenfolge ihrer Zeit, bei gleicher Zeit in Reihenfolge i
 | Ansicht | `Taste` | `betrachter`, `sitzung`, `taste`, `umschalter` (Liste aus `umschalt`, `strg`, `alt`) |
 | Ansicht | `Einfuegen` | `betrachter`, `sitzung`, `text` |
 | Ansicht | `Antwort` | `betrachter`, `sitzung`, `dialog` (ID), `wahl` (1 bis 9) |
-| Ansicht | `Freigabe` | `betrachter`, `anfragen` (Liste von IDs), `nachweis` |
+| Ansicht | `Freigabe` | `betrachter`, `anfragen` (Liste von IDs), `nachweis`, `entscheidung` (Pflicht, R-L6 Punkt 1) |
 | Ansicht | `RouteWaehlen` | `betrachter`, `sitzung`, `route` |
 | Ansicht | `EinstellungSetzen` | `betrachter`, `schluessel`, `ebene` (`firma`, `gruppe`, `nutzer`), `wert` |
 | Träger | `Ausgabe` | `sitzung`, `stand` (ganze Zahl, steigend), `zeilen` (Objekt Zeilenindex → Text), optional `cursor` (`[zeile, spalte, sichtbar]`, R15) |
@@ -580,9 +580,12 @@ Die Ansicht „Worker“ zeigt mehrere Terminals zugleich. Ein Raster ist eine S
 Der Inspektor bietet Freigeben, Ablehnen mit Begründung und den Guard-Verlauf (Vertrag `seite`, B07 und B56). Im Lauf entscheidet die
 Entscheidungsstelle (Vertrag `stelle`); der Kern zeigt dann nur ihren Stand (Punkt 6, Vertrag `dienst` DI-L6).
 
-1. **Form.** `Freigabe` hat zwei neue Felder, beide optional: `entscheidung` (`erteilen` oder `ablehnen`; fehlt das Feld, gilt `erteilen`) und
-   `begruendung` (Text). Die alte Form ohne beide Felder bleibt gültig und wirkt wie bisher.
+1. **Form.** `Freigabe` hat zwei neue Felder: `entscheidung` (`erteilen` oder `ablehnen`) und `begruendung` (Text, optional).
+   **Projektentscheid, 27.11.2026:** `entscheidung` ist Pflicht. Fehlt das Feld oder ist es `null`, lehnt der Kern mit `entscheidung_fehlt` ab
+   und gilt nie `erteilen`. Grund: Ein fehlendes Feld darf nie zu einer Freigabe führen. Die alte Form ohne `entscheidung` ist ungültig.
 2. **Prüffolge.** Vor R7 prüft der Kern die Form, in dieser Reihenfolge:
+   - `entscheidung` fehlt oder ist `null`: `entscheidung_fehlt` (Projektentscheid, 27.11.2026). Diese Prüfung kommt vor allen anderen dieses
+     Punkts. Die Ablehnung ändert keinen Zustand, verbraucht keinen Nachweis und schreibt nichts nach `an_stelle`, auch mit gültigem Nachweis.
    - `entscheidung` ist kein Text oder keines der beiden Wörter, oder `begruendung` ist kein Text: `ereignis_ungueltig`.
    - `begruendung` steht bei `erteilen`: `begruendung_nur_bei_ablehnen`.
    - `begruendung` ist leer, hat mehr als 500 Zeichen (Unicode-Skalarwerte) oder ein Zeichen unter 0x20 oder von 0x7f bis 0x9f:
@@ -603,7 +606,9 @@ Entscheidungsstelle (Vertrag `stelle`); der Kern zeigt dann nur ihren Stand (Pun
    Wirkung: Die Anfrage bekommt den Zustand, ihr Zeitgeber entfällt, der Raum bekommt die Nachricht `Anfrage` wie in Punkt 3. Kein Nachweis wird
    verbraucht, `an_stelle` bleibt leer: Die Stelle hat schon entschieden. Grund: Im Lauf prüft die Stelle den Nachweis selbst (Vertrag `stelle`,
    Abschnitt 6); der Kern kennt dort keinen Nachweis und darf nicht über die Stelle hinweg entscheiden.
-7. Kein bestehender Fall und keine bestehende Erwartung ändert sich durch R-L6.
+7. Kein bestehender Fall und keine bestehende Erwartung ändert sich durch R-L6. Nachtrag Projektentscheid, 27.11.2026: Jeder bestehende Fall
+   mit einer `Freigabe` ohne `entscheidung` sendet jetzt `"entscheidung": "erteilen"`; seine Erwartung bleibt gleich. Der Fall
+   `rl6_entscheidung_fehlt` prüft Punkt 1.
 
 ### N4 L3, L5 und L11 ohne Änderung am Kern
 
@@ -641,3 +646,4 @@ Entscheidungsstelle (Vertrag `stelle`); der Kern zeigt dann nur ihren Stand (Pun
 | `abgelehnt_wieder_offen` | R-L6 | nach `ablehnen` ist die Anfrage wieder offen und lässt sich erteilen |
 | `anfragestand_ignoriert` | R-L6 | `AnfrageStand` ändert nichts |
 | `anfragestand_verbraucht_nachweis` | R-L6 | `AnfrageStand` verlangt einen Nachweis und wird ohne ihn mit `nachweis_fehlt` abgelehnt |
+| `entscheidung_fehlt_gilt_erteilen` | R-L6 | eine `Freigabe` ohne `entscheidung` gilt als `erteilen` (Projektentscheid, 27.11.2026) |

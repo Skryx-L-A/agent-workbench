@@ -10,7 +10,7 @@ Run with Python 3.15 (Python 3.9 reads Base64 differently):
 Written: the outside cases of the package (compacted, names `r*` and `x_*`), the 200 random cases `g_2000` to `g_2199`
 (seed = number), the 150 random cases with cursors `c_3000` to `c_3149` (the older kind plus cursors from a second
 generator), the scenario cases `h_r14_*` and `h_r15_*`; the expectation of every case in `faelle/` (also the older `h_*`,
-whose input stays as it is). The generator reads neither the clock nor the date and uses no randomness besides
+whose input stays as it is). Every `Freigabe` of a random case carries `entscheidung` (R-L6 point 1); a hand case `h_*` carries it in its file. The generator reads neither the clock nor the date and uses no randomness besides
 `random.Random(seed)`: the same call writes the same files.
 """
 import importlib.util
@@ -264,7 +264,11 @@ def zufall_fall(seed: int, mangeln: bool) -> dict:
                  "route": r.choice(["r-frei", "r-g", "r-e", "r-x"])}
         else:
             e = {"t": t, "art": "Unbekannt", "sitzung": wahl_s()}
-        ereignisse.append(fehler(e))
+        e = fehler(e)
+        if art == "Freigabe" and "entscheidung" not in e:
+            # R-L6 point 1: `entscheidung` is required; added after `fehler` so the random sequence stays the same.
+            e["entscheidung"] = "erteilen"
+        ereignisse.append(e)
     t += r.choice([2000, 5000])
     ereignisse.append({"t": t, "art": "Takt"})
     return {"name": f"g_{seed}", "regeln": [], "beschreibung": "random case, expected from the reference",

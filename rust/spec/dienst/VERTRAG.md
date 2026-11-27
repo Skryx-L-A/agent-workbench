@@ -1564,8 +1564,11 @@ Die neue Regel heißt DI-E5. Wo dieser Abschnitt nichts sagt, gelten DI1 bis DI1
    `rust/spec/VERTRAEGE.md` Abschnitt 4 schließt.
 10. **Geänderte Erwartungen.** Drei bestehende Fälle schicken eine `Freigabe` über `dienst.sock`. Ihre neuen Erwartungen liegen in
     `erwartet-ausstehend/`, gemessen mit der Referenz:
-    - `di12_lauf_ereignisse`: Die `Freigabe` mit dem fremden Schlüssel `wahl` ergibt `freigabe_nur_lokal` statt `ereignis_ungueltig`.
-    - `dil6_heute`: Alle drei `Freigabe` ergeben `freigabe_nur_lokal` statt `anfrage_unbekannt`, `ereignis_ungueltig` und `ereignis_ungueltig`.
+    - `di12_lauf_ereignisse`: Die `Freigabe` mit dem fremden Schlüssel `wahl` ergibt `freigabe_nur_lokal` statt `sitzung_unbekannt`.
+    - `dil6_heute`: Alle drei `Freigabe` ergeben `freigabe_nur_lokal` statt `sitzung_unbekannt`, `nachweis_ungueltig` und `nachweis_fehlt`.
+    Nachtrag 27.11.2026: Die alten Gründe dieser zwei Sätze sind die Erwartungen in `erwartet/` vor DI-E5. Die früher hier genannten Gründe
+    (`ereignis_ungueltig` bei `di12_lauf_ereignisse`; `anfrage_unbekannt`, `ereignis_ungueltig` und `ereignis_ungueltig` bei `dil6_heute`) standen nur
+    in den ausstehenden Erwartungen des Nachtrags „Oberfläche L1, L2, L3, L5, L6, L11“ in `erwartet-ausstehend/`, nie in `erwartet/`.
     - `dil6_freigabe_lauf`: Alle neun `Freigabe` ergeben `freigabe_nur_lokal` statt der Gründe der Prüffolge von DI-L6 Punkt 4
       (`ereignis_ungueltig`, `begruendung_nur_bei_ablehnen`, `begruendung_ungueltig`, `sammelfreigabe`, `nachweis_fehlt`, `nachweis_ungueltig`,
       `anfrage_unbekannt`, `ereignis_ungueltig`, `anfrage_unbekannt`).

@@ -356,7 +356,7 @@ mod schritt_drei {
         .expect_err("deadline");
         assert_eq!(abbruch, Abbruch::from(Startfehler::HalterFrist));
         let mut err = Vec::new();
-        assert_eq!(abbruch_melden(&mut err, &abbruch), 78);
+        assert_eq!(abbruch_melden(&mut err, &abbruch), 75);
         assert_eq!(err, b"mw.halter_frist: Halter antwortete nicht\n");
     }
 
@@ -429,7 +429,7 @@ mod schritt_drei {
         );
     }
 
-    /// A silent holder: the step ends at its deadline with `mw.halter_frist`, exit 78. The deadline of the start is
+    /// A silent holder: the step ends at its deadline with `mw.halter_frist`, exit 75. The deadline of the start is
     /// `FRIST_START`; the test sets a short one on the same code. A deadline that has passed already sends nothing.
     #[test]
     fn a_silent_holder_ends_the_start_at_the_deadline() {
@@ -453,7 +453,7 @@ mod schritt_drei {
             Startfehler::HalterFrist.zeile(),
             "mw.halter_frist: Halter antwortete nicht\n"
         );
-        assert_eq!(Startfehler::HalterFrist.exit(), 78);
+        assert_eq!(Startfehler::HalterFrist.exit(), 75);
         // The deadline is one for the whole step: past it, the next question does not go out.
         let w = Wegwerf::neu("s3-vorbei");
         let a = Halterattrappe::neu(&w, vec![JA.to_owned()]);
@@ -480,6 +480,30 @@ mod schritt_drei {
             Err(Startfehler::HalterUnecht)
         );
         assert_eq!(a.empfangen(), Vec::<String>::new());
+    }
+
+    /// A missing or silent holder has an exit of its own, 75, and its line names the holder; every other end of step
+    /// 3 stays 78 (Projektentscheid, 27.11.2026). Without a holder the start ends at once, not at a deadline.
+    #[test]
+    fn a_missing_holder_has_its_own_exit_and_names_the_holder() {
+        let w = Wegwerf::neu("s3-fehlt");
+        let vorher = Instant::now();
+        let abbruch = halter_bereit_mit_code(&w.pfad("gibt-es-nicht"), uid(), &["a.b"], bald())
+            .expect_err("no holder");
+        assert!(vorher.elapsed() < Duration::from_secs(1));
+        let mut err = Vec::new();
+        assert_eq!(abbruch_melden(&mut err, &abbruch), 75);
+        assert_eq!(err, b"mw.halter_fehlt: Halter nicht erreichbar\n");
+        for (f, exit) in [
+            (Startfehler::HalterFehlt, 75),
+            (Startfehler::HalterFrist, 75),
+            (Startfehler::HalterUnecht, 78),
+            (Startfehler::HalterKeinSchluessel, 78),
+            (Startfehler::HalterFehler, 78),
+        ] {
+            assert_eq!(f.exit(), exit, "{}", f.code());
+            assert!(f.zeile().contains("Halter"), "{}", f.code());
+        }
     }
 }
 

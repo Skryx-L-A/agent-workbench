@@ -1,6 +1,6 @@
 {
  "fassung": 1,
- "hinweis": "Vertrag 8, Abschnitt 12 (Betriebsart kopf-einsetzen; unter Linux gebaut). text sind die Bytes der Zielliste, text_muster beschreibt eine zu grosse Liste. erwartet.start sagt, wie weit der Start kommt: bis_schritt zielliste_gut heisst, die Liste besteht und kein gebundenes Ziel braucht den Halter; bis_schritt halter heisst, der Start geht in Schritt 3 zum Halter, und ohne_halter nennt das Ende ohne erreichbaren Halter (Exit 78, mw.halter_fehlt).",
+ "hinweis": "Vertrag 8, Abschnitt 12 (Betriebsart kopf-einsetzen; unter Linux gebaut). text sind die Bytes der Zielliste, text_muster beschreibt eine zu grosse Liste. erwartet.start sagt, wie weit der Start kommt: bis_schritt zielliste_gut heisst, die Liste besteht und kein gebundenes Ziel braucht den Halter; bis_schritt halter heisst, der Start geht in Schritt 3 zum Halter, und ohne_halter nennt das Ende ohne erreichbaren Halter (Exit 75, mw.halter_fehlt).",
  "faelle": [
   {
    "name": "vorfuehrung",
@@ -18,7 +18,7 @@
     "start": {
      "bis_schritt": "halter",
      "ohne_halter": {
-      "exit": 78,
+      "exit": 75,
       "stderr": "mw.halter_fehlt: Halter nicht erreichbar\n",
       "stdout": ""
      }
@@ -296,7 +296,7 @@
     "start": {
      "bis_schritt": "halter",
      "ohne_halter": {
-      "exit": 78,
+      "exit": 75,
       "stderr": "mw.halter_fehlt: Halter nicht erreichbar\n",
       "stdout": ""
      }
@@ -445,7 +445,7 @@
     "start": {
      "bis_schritt": "halter",
      "ohne_halter": {
-      "exit": 78,
+      "exit": 75,
       "stderr": "mw.halter_fehlt: Halter nicht erreichbar\n",
       "stdout": ""
      }

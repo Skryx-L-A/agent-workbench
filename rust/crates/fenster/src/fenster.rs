@@ -2246,11 +2246,12 @@ impl Fenster {
                     ui.label(RichText::new(herkunft).size(MASSE.schrift_klein).color(r.gedaempft));
                     ui.horizontal(|ui| {
                         if ui.button("Freigeben").clicked() {
-                            self.senden(&json!({"art": "Freigabe", "id": a.id, "erteilt": true}));
+                            // `anfragen` and always `entscheidung` (R-L6 point 1), as `ansicht::ziel::freigabe` builds it
+                            self.senden(&json!({"art": "Freigabe", "anfragen": [a.id], "entscheidung": "erteilen"}));
                         }
                         if ui.button("Ablehnen").clicked() {
                             let b = std::mem::take(&mut self.b.begruendung);
-                            self.senden(&json!({"art": "Freigabe", "id": a.id, "erteilt": false, "begruendung": b}));
+                            self.senden(&ansicht::ziel::freigabe(&a.id, false, &b));
                         }
                         if self.zeigt("B27") && !worker.is_empty() && ui.button("Zum Worker").clicked() {
                             self.b.mitte = Mitte::Worker;

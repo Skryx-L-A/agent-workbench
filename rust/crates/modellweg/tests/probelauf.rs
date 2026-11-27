@@ -176,7 +176,7 @@ fn startfolge_cases() {
         let ergebnis = starten(
             &args,
             rustix::process::getuid().as_raw(),
-            &aufloeser,
+            &modellweg::ziel::geteilt(aufloeser),
             FRISTEN,
             Box::new(move || zeit),
             &mut out,

@@ -324,7 +324,7 @@ fn mw_l2_the_holder_socket_is_a_fixed_path() {
     assert_eq!(
         l.stderr_bis_ende(),
         (
-            Some(78),
+            Some(75),
             "mw.halter_fehlt: Halter nicht erreichbar\n".to_owned()
         )
     );

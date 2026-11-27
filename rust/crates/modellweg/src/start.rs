@@ -117,7 +117,7 @@ pub enum Startfehler {
     CaNichtZugelassen,
     /// `mw.ca_ungueltig`, exit 78 (mode 2: the throw-away CA).
     CaUngueltig,
-    /// `mw.halter_fehlt`, exit 78 (mode 2, step 3: the fixed endpoint of the holder does not answer).
+    /// `mw.halter_fehlt`, exit 75 (mode 2, step 3: the fixed endpoint of the holder does not answer).
     HalterFehlt,
     /// `mw.halter_unecht`, exit 78 (mode 2, step 3: the check of the counterparty fails).
     HalterUnecht,
@@ -127,7 +127,7 @@ pub enum Startfehler {
     /// `mw.halter_fehler`, exit 78 (mode 2, step 3: any other code of the holder, an unreadable line or a torn
     /// connection in answer to `schluessel.vorhanden`).
     HalterFehler,
-    /// `mw.halter_frist`, exit 78 (mode 2, step 3: no answer to `schluessel.vorhanden` within `FRIST_START`).
+    /// `mw.halter_frist`, exit 75 (mode 2, step 3: no answer to `schluessel.vorhanden` within `FRIST_START`).
     HalterFrist,
     /// `mw.ziel_unaufloesbar`, exit 69.
     ZielUnaufloesbar,
@@ -222,11 +222,12 @@ impl Startfehler {
             | Self::ZielHalterName
             | Self::CaNichtZugelassen
             | Self::CaUngueltig
-            | Self::HalterFehlt
             | Self::HalterUnecht
             | Self::HalterKeinSchluessel
-            | Self::HalterFehler
-            | Self::HalterFrist => 78,
+            | Self::HalterFehler => 78,
+            // The holder is missing or silent (section 5.1, table of the holder way): an exit of its own, so that "Lauf
+            // starten" can name the holder without reading stderr (Projektentscheid, 27.11.2026).
+            Self::HalterFehlt | Self::HalterFrist => 75,
             Self::ZielUnaufloesbar | Self::ElternWeg => 69,
             Self::SocketBelegt | Self::ZaehlungFehler | Self::ProtokollFehlt => 74,
             Self::Intern | Self::KindVerboten => 70,
@@ -389,7 +390,7 @@ pub const PROBELAUF_ZEILE: &str = "mw.probelauf: Marker werden gezählt\n";
 pub fn vorbereiten(
     args: &[OsString],
     eigene_uid: u32,
-    aufloeser: &Aufloeser,
+    aufloeser: &Arc<Aufloeser>,
     fristen: Fristen,
     uhr: Uhr,
 ) -> Result<Bereit, Startfehler> {
@@ -403,7 +404,7 @@ pub fn vorbereiten(
 pub fn vorbereiten_mit_code(
     args: &[OsString],
     eigene_uid: u32,
-    aufloeser: &Aufloeser,
+    aufloeser: &Arc<Aufloeser>,
     fristen: Fristen,
     uhr: Uhr,
 ) -> Result<Bereit, Abbruch> {
@@ -455,7 +456,7 @@ fn vorbereiten_eins(
     a: aufruf::Aufruf,
     optionen: Optionen,
     eigene_uid: u32,
-    aufloeser: &Aufloeser,
+    aufloeser: &Arc<Aufloeser>,
     fristen: Fristen,
     uhr: Uhr,
 ) -> Result<Bereit, Startfehler> {
@@ -466,7 +467,7 @@ fn vorbereiten_eins(
     }
     let zaehlung = probelauf_starten(&a, &uhr)?;
     let adressen =
-        ziel::aufloesen(&optionen.ziel, aufloeser).ok_or(Startfehler::ZielUnaufloesbar)?;
+        ziel::aufloesen(&optionen.ziel, &**aufloeser).ok_or(Startfehler::ZielUnaufloesbar)?;
     let tls: Option<Box<dyn Tls>> = if optionen.ziel.tls {
         Some(Box::new(SystemTls::neu().map_err(|_| Startfehler::Intern)?))
     } else {
@@ -554,7 +555,7 @@ fn vorbereiten_zwei(
     a: aufruf::Aufruf,
     optionen: &kopf_einsetzen::Optionen,
     eigene_uid: u32,
-    aufloeser: &Aufloeser,
+    aufloeser: &Arc<Aufloeser>,
     fristen: Fristen,
     uhr: Uhr,
 ) -> Result<Bereit, Abbruch> {
@@ -606,16 +607,13 @@ fn vorbereiten_zwei(
             verbinder.push(None);
             continue;
         }
-        let adressen = aufloeser(&z.host, z.port).ok().filter(|v| !v.is_empty());
-        let Some(adressen) = adressen else {
-            // An unbound target without address blocks nothing (section 13.5).
-            verbinder.push(None);
-            continue;
-        };
+        // An unbound host is resolved once, at its first CONNECT and not here (Projektentscheid, 27.11.2026): a name
+        // without address, also behind a blocked network, holds up neither readiness nor the start (section 13.5).
         let tls: Box<dyn Tls> = Box::new(SystemTls::neu().map_err(|_| Startfehler::Intern)?);
-        verbinder.push(Some(Box::new(NetzVerbinder::neu(
-            adressen,
+        verbinder.push(Some(Box::new(ziel::SpaeterVerbinder::neu(
             z.host.clone(),
+            z.port,
+            Arc::clone(aufloeser),
             Some(tls),
             fristen,
         ))));
@@ -839,7 +837,7 @@ fn binden(gemerkt: Option<i32>) -> Result<(), Startfehler> {
 pub fn starten(
     args: &[OsString],
     eigene_uid: u32,
-    aufloeser: &Aufloeser,
+    aufloeser: &Arc<Aufloeser>,
     fristen: Fristen,
     uhr: Uhr,
     stdout: &mut dyn Write,
@@ -870,7 +868,7 @@ pub fn starten(
 pub fn starten_mit(
     args: &[OsString],
     eigene_uid: u32,
-    aufloeser: &Aufloeser,
+    aufloeser: &Arc<Aufloeser>,
     fristen: Fristen,
     uhr: Uhr,
     stdout: &mut dyn Write,
@@ -1015,7 +1013,7 @@ pub fn haupt(args: &[OsString], stdout: &mut dyn Write, stderr: &mut dyn Write) 
     let gestartet = starten_mit(
         args,
         os::eigene_uid(),
-        &ziel::system_aufloeser,
+        &(Arc::new(ziel::system_aufloeser) as Arc<Aufloeser>),
         ziel::FRISTEN,
         Box::new(jetzt_ms),
         stdout,
