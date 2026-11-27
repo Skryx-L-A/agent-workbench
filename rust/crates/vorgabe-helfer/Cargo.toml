@@ -14,7 +14,8 @@ name = "werkbank-vorgabe"
 path = "src/main.rs"
 
 # formate (path): `sha256_hex` of the bytes of the file and of the request (no own hash code).
-# serde (no default features but std): the visitor of the strict reader that refuses a duplicate key.
+# regelebenen (path): the stages H3 and H4 (`vorgabe::sicher`, `vorgabe::laden`) and the strict reader, the same rules
+#   as the service; the crate is pure and adds no crate to the graph.
 # serde_json (feature `float_roundtrip`, as formate): JSON values of the file and of the request.
 # rustix (Unix; features fs, process, net, event, time, std): `openat` relative to the open folder with `O_NOFOLLOW`,
 #   `O_EXCL`, `fstat`, `fchmod`, `fsync`, `renameat`, `unlinkat`; `SO_PEERCRED`, `pidfd_open` and `poll`; all without
@@ -27,7 +28,7 @@ path = "src/main.rs"
 # signal-hook (flag module only): SIGTERM and SIGINT end the accept loop with exit code 0.
 [dependencies]
 formate = { path = "../formate" }
-serde = { version = "1", default-features = false, features = ["std"] }
+regelebenen = { path = "../regelebenen" }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 
 [target.'cfg(unix)'.dependencies]

@@ -4,23 +4,8 @@
 
 use serde_json::{Map, Value};
 
-/// Name of the only key the helper may change.
-pub const LESEKLASSEN: &str = "leseklassen";
-/// Name of the list of the admin accounts.
-pub const ADMINS: &str = "admins";
-/// Most entries of `leseklassen`.
-pub const LESEKLASSEN_MAX: usize = 4096;
-
-/// `true` for an account name of the form `[a-z_][a-z0-9_-]*` (as `KONTO_FORM` of the reference, without a line end).
-#[must_use]
-pub fn ist_konto(s: &str) -> bool {
-    let mut zeichen = s.bytes();
-    let Some(erstes) = zeichen.next() else {
-        return false;
-    };
-    (erstes.is_ascii_lowercase() || erstes == b'_')
-        && zeichen.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_' || b == b'-')
-}
+pub use regelebenen::katalog::{LESEKLASSEN, LESEKLASSEN_MAX};
+pub use regelebenen::vorgabe::{ADMINS, ist_konto};
 
 /// `true` for 64 lower-case hex digits.
 #[must_use]
@@ -30,57 +15,13 @@ pub fn ist_hex64(s: &str) -> bool {
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
-fn liste_der_admins(a: &Value) -> Option<Vec<&str>> {
-    let liste = a.as_array()?;
-    let mut namen: Vec<&str> = Vec::with_capacity(liste.len());
-    for k in liste {
-        let k = k.as_str()?;
-        if !ist_konto(k) || namen.contains(&k) {
-            return None;
-        }
-        namen.push(k);
-    }
-    Some(namen)
-}
-
-fn leseklassen_gut(l: &Value) -> bool {
-    let Some(liste) = l.as_array() else {
-        return false;
-    };
-    if liste.len() > LESEKLASSEN_MAX {
-        return false;
-    }
-    let mut paare: Vec<(&str, &str)> = Vec::with_capacity(liste.len());
-    for e in liste {
-        let Some(e) = e.as_object() else {
-            return false;
-        };
-        if e.len() != 3 {
-            return false;
-        }
-        let (Some(ebene), Some(wer), Some(_)) = (
-            e.get("ebene").and_then(Value::as_str),
-            e.get("wer").and_then(Value::as_str),
-            e.get("klasse").and_then(Value::as_str),
-        ) else {
-            return false;
-        };
-        if !matches!(ebene, "nutzer" | "gruppe") || paare.contains(&(ebene, wer)) {
-            return false;
-        }
-        paare.push((ebene, wer));
-    }
-    true
-}
-
 /// The admin accounts of `inhalt` if it has the form of the company default (H4): an object with at least `admins`
 /// (distinct accounts) and `leseklassen` (at most 4096 objects with exactly `ebene` `nutzer` or `gruppe`, `wer` and
-/// `klasse` as strings, each pair of `ebene` and `wer` once). `None` otherwise.
+/// `klasse` as strings, each pair of `ebene` and `wer` once). `None` otherwise. The rule is the one of the library
+/// (`regelebenen::vorgabe::admins_der_form`), the same for the helper and the service.
 #[must_use]
 pub fn admins_der_vorgabe(inhalt: &Value) -> Option<Vec<&str>> {
-    let o = inhalt.as_object()?;
-    let admins = liste_der_admins(o.get(ADMINS)?)?;
-    leseklassen_gut(o.get(LESEKLASSEN)?).then_some(admins)
+    regelebenen::vorgabe::admins_der_form(inhalt)
 }
 
 /// A request in the form of H8.

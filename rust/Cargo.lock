@@ -3382,6 +3382,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "regelebenen"
+version = "0.1.0"
+dependencies = [
+ "formate",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "regex"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4253,8 +4262,8 @@ dependencies = [
  "formate",
  "listenfd",
  "nix",
+ "regelebenen",
  "rustix 1.1.6",
- "serde",
  "serde_json",
  "signal-hook",
 ]

@@ -1,0 +1,22 @@
+[package]
+name = "regelebenen"
+version = "0.1.0"
+description = "Rule levels, version 2 (contract rust/spec/regelebenen, section 15): the pure functions setzen and sicht, the loading of the company default and the check of its file, folder and parents; no file, no network, no clock, no randomness."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+# formate (path): `sha256_hex` and `kanonisch` (RFC 8785) for the audit line of 15.6 and the hash of the loaded bytes.
+# serde (no default features but std): the visitor of the strict reader that refuses a duplicate key.
+# serde_json (feature `float_roundtrip`, as formate): the JSON values of the state, of a change and of the file.
+# All three are in Cargo.lock already, in the same versions; the crate adds no crate to the graph.
+[dependencies]
+formate = { path = "../formate" }
+serde = { version = "1", default-features = false, features = ["std"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+
+[lints]
+workspace = true

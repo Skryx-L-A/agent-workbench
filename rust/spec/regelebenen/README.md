@@ -677,7 +677,19 @@ Vertrag 5. Der Schlüssel steht nur in der Prüfsumme; ein eigenes Feld braucht 
 
 ### 15.8 Fälle
 
-`faelle-setzen/<name>.json` mit `erwartet-setzen/<name>.json`. Kein Crate liest diesen Ordner; es gibt noch keine Umsetzung.
+`faelle-setzen/<name>.json` mit `erwartet-setzen/<name>.json`. Das Crate `rust/crates/regelebenen` setzt `setzen` und `sicht` um und
+liest diesen Ordner in seinem Außentest (`tests/faelle.rs`), dazu aus `faelle-schreiben/` die Teile der Bibliothek.
+
+Öffentliche Form von `laden` und der Prüfung H3 (Projektentscheid, 27.11.2026). `vorgabe::laden(bytes)` prüft H4 an den Bytes der
+Firmenvorgabe (höchstens 1 048 576 Byte, strenges JSON, Form wie der Helfer) und gibt die Kontenliste der Admins und `leseklassen` mit
+Konten zurück, dazu den Inhalt und die sha256 der Bytes; sonst `firmenvorgabe.ladefehler`. `Firmenvorgabe::stand(klassen, gruppen,
+werte, pseudonym)` baut daraus den Stand nach Abschnitt 15.3. `pseudonym` ist die Zuordnung Konto zu Pseudonym als Funktion des
+Aufrufers. Grund: Die Zuordnung liegt nur beim Dienst (Abschnitt 15.2, DI-L11 Punkt 4), die Prüfung danach soll für jeden Aufrufer
+gleich sein. Ein Admin-Konto ohne Pseudonym ist kein Admin; ein Konto in `leseklassen` ohne Pseudonym und eine Liste, die danach
+Abschnitt 15.11 verletzt, sind `firmenvorgabe.ladefehler`. `vorgabe::h3(lage)` nimmt je Elternordner, Ordner und Datei Art, Eigentümer
+und Modus aus `lstat` oder `fstat`; ein gescheiterter Aufruf steht als fehlende Angabe. Ergebnis ist `firmenvorgabe.datei_unsicher`
+oder kein Code. Die Größe prüft `laden` an den gelesenen Bytes, nicht `h3`. Die Systemaufrufe bleiben beim Aufrufer. Der Schreibhelfer
+nutzt dieselben Regeln für H3 und H4.
 
 ```json
 {"name": "…", "anforderungen": ["A26"], "beschreibung": "…", "stand": {…Abschnitt 15.3…},
@@ -962,8 +974,8 @@ byte-gleich. Einzige Ausnahme ist `firmenvorgabe.zustand_unklar` (unten).
 #### 15.12.5 Fälle
 
 Fälle in `faelle-schreiben/<name>.json` mit `erwartet-schreiben/<name>.json`. Die Referenz steht in `bau-faelle.py`
-(`lauf_schreiben` für den Dienst, `helfer` für den Helfer), die Prüfung in `pruefen.py`. Kein Crate liest diesen Ordner; der Bau von
-Dienst und Helfer übernimmt die Fälle.
+(`lauf_schreiben` für den Dienst, `helfer` für den Helfer), die Prüfung in `pruefen.py`. Die Crates `vorgabe-helfer` (Teil `helfer`) und
+`regelebenen` (H3 und H4 der Bibliothek) lesen diesen Ordner; der Bau des Dienstes übernimmt den Teil `lauf_schreiben`.
 
 ```json
 {"name": "…", "anforderungen": ["A05"], "beschreibung": "…",

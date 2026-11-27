@@ -12,18 +12,8 @@ use std::path::Path;
 
 use rustix::fs::{AtFlags, CWD, FileType, Mode, OFlags};
 
-/// The kind of a directory entry.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Art {
-    /// A regular file.
-    Datei,
-    /// A folder.
-    Ordner,
-    /// A symbolic link.
-    Verweis,
-    /// Anything else (socket, FIFO, device).
-    Andere,
-}
+/// The kind of a directory entry (the type of the library, so that H3 is checked by its rule).
+pub use regelebenen::vorgabe::Art;
 
 /// What the helper reads of an entry: kind, owner, mode and inode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,6 +29,16 @@ pub struct Meta {
 }
 
 impl Meta {
+    /// What H3 of the library needs of this entry: kind, owner and permission bits.
+    #[must_use]
+    pub fn angabe(&self) -> regelebenen::vorgabe::Angabe {
+        regelebenen::vorgabe::Angabe {
+            art: self.art,
+            uid: self.uid,
+            modus: self.modus,
+        }
+    }
+
     // `mode_t` is `u16` under macOS and `u32` under Linux
     #[allow(clippy::useless_conversion)]
     fn aus(st: &rustix::fs::Stat) -> Meta {

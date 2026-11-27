@@ -21,11 +21,11 @@ pub const HELFERNUTZER: &str = "werkbank-vorgabe";
 /// Most bytes of a request (H6).
 pub const GRENZE_ANFRAGE: usize = 1_048_576;
 /// Most bytes of the valid file; a longer file is a load error (H4).
-pub const GRENZE_DATEI: usize = 1_048_576;
-/// Write permission for group or others (H3).
-pub const UNSICHER: u32 = 0o022;
+pub use regelebenen::vorgabe::GRENZE_DATEI;
 /// uid of root, the owner of every parent folder.
-pub const ROOT: u32 = 0;
+pub use regelebenen::vorgabe::ROOT;
+/// Write permission for group or others (H3).
+pub use regelebenen::vorgabe::UNSICHER;
 
 /// Where the file lies and who owns it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -112,8 +112,9 @@ impl Ergebnis {
     }
 }
 
+/// H3 for one entry, by the rule of the library (`regelebenen::vorgabe::sicher`).
 fn sicher(m: &Meta, art: Art, eigner: u32) -> bool {
-    m.art == art && m.uid == eigner && m.modus & UNSICHER == 0
+    regelebenen::vorgabe::sicher(&m.angabe(), art, eigner)
 }
 
 /// H3: every parent, the folder and the file, the last two at their open descriptors. Returns the open folder and the
@@ -167,13 +168,9 @@ where
         .lesen(datei.as_fd(), GRENZE_DATEI + 1)
         .map_err(|_| Code::Ladefehler)?;
     drop(datei);
-    if alt.len() > GRENZE_DATEI {
-        return Err(Code::Ladefehler);
-    }
-    let alt_wert = json::streng_lesen(&alt).ok_or(Code::Ladefehler)?;
-    let admins = form::admins_der_vorgabe(&alt_wert).ok_or(Code::Ladefehler)?;
+    let geladen = regelebenen::vorgabe::laden(&alt).map_err(|_| Code::Ladefehler)?;
     // H5, against the valid file
-    if !admins.iter().any(|a| k.uid(a) == Some(uid)) {
+    if !geladen.admins.iter().any(|a| k.uid(a) == Some(uid)) {
         return Err(Code::PartnerNichtAdmin);
     }
     // H6 to H8: only now the first byte of the request
@@ -193,7 +190,7 @@ where
         return Err(Code::Veraltet);
     }
     // H10
-    if !form::nur_leseklassen_anders(&alt_wert, &anfrage.inhalt) {
+    if !form::nur_leseklassen_anders(&geladen.inhalt, &anfrage.inhalt) {
         return Err(Code::AusserLeseklassen);
     }
     // H11 and H12
