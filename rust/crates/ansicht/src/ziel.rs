@@ -4,6 +4,7 @@
 //! The names and fields are those of the contracts:
 //! - `zustandskern` and `dienst`, section "Nachtrag 26.11.2026: Oberfläche L1, L2, L3, L5, L6, L11" (R-L1, R-L2, R-L6, DI-L1 to DI-L6);
 //! - `dienst`, section "Nachtrag 26.11.2026: Ordner lesen und durchsuchen (L9)";
+//! - `dienst`, section "Nachtrag 27.11.2026: Ereignisse des Dienstes beim Verbinden" (DI-E5, the message `Ereignisliste`);
 //! - `regelebenen` section 15 (L4) and `start` "Fassung 2" with the message `Startwahl` with efforts (L10).
 //!
 //! A message in the form before these addenda gives `None` here. By which field the view knows that a gap is closed, and which
@@ -37,6 +38,32 @@ fn nummer(v: &Value, name: &str) -> Option<u8> {
 
 fn wahr(v: &Value, name: &str) -> bool {
     v.get(name).and_then(Value::as_bool) == Some(true)
+}
+
+// ---- DI-E5: the events this connection carries (`dienst`, addendum of 27.11.2026) ----
+
+/// The events of L3 (DI-L3): rename, continue, revive, delete.
+pub const L3_EREIGNISSE: [&str; 4] = ["Umbenennen", "Fortsetzen", "Wiederbeleben", "Loeschen"];
+/// The events of L9 (addendum L9): read the working folder and search its content.
+pub const L9_EREIGNISSE: [&str; 2] = ["OrdnerLesen", "InhaltSuchen"];
+/// The event of deciding a request (DI-L6); only the local path carries it (DI-E5 point 5).
+pub const FREIGABE: &str = "Freigabe";
+/// The most entries a list may have (DI-E5 point 3).
+const EREIGNISSE_MAX: usize = 64;
+
+/// The message `Ereignisliste {fassung: 1, ereignisse}` (DI-E5 point 1): the kinds of event the switch of this connection takes.
+/// `Some` only in version 1 with a list of at most 64 texts; any other form is `None`, and the view then counts no event as carried
+/// (DI-E5 point 9). Unknown names stay in the list; the view asks only for the names it knows.
+#[must_use]
+pub fn ereignisliste_lesen(n: &Value) -> Option<Vec<String>> {
+    if n.get("fassung").and_then(Value::as_u64) != Some(1) {
+        return None;
+    }
+    let a = n.get("ereignisse")?.as_array()?;
+    if a.len() > EREIGNISSE_MAX {
+        return None;
+    }
+    a.iter().map(|x| x.as_str().map(str::to_owned)).collect()
 }
 
 // ---- L1: workers with their session (`Agenten`, `zustandskern` R-L1 and `dienst` DI-L1) ----
@@ -322,14 +349,14 @@ pub fn anfrage_lesen(n: &Value) -> Option<Anfragestand> {
     })
 }
 
-/// `Freigabe {anfragen, nachweis, entscheidung, (begruendung)}` (R-L6 point 1, DI-L6 point 4): `erteilen` or `ablehnen`; a reason only
-/// with `ablehnen` and only when not empty (R-L6 point 2), never with `sitzung`.
+/// `Freigabe {anfragen, entscheidung, (begruendung)}` (R-L6 point 1, DI-L6 point 4): `erteilen` or `ablehnen`; a reason only with
+/// `ablehnen` and only when not empty (R-L6 point 2), never with `sitzung` and never with `nachweis` (the service takes the person from
+/// the partner of the local path; a field `nachweis` is `feld_verboten`). One id per event: more are `sammelfreigabe`.
 #[must_use]
-pub fn freigabe(anfrage: &str, nachweis: &str, erteilen: bool, begruendung: &str) -> Value {
+pub fn freigabe(anfrage: &str, erteilen: bool, begruendung: &str) -> Value {
     let mut o = Map::new();
     o.insert("art".into(), json!("Freigabe"));
     o.insert("anfragen".into(), json!([anfrage]));
-    o.insert("nachweis".into(), json!(nachweis));
     o.insert(
         "entscheidung".into(),
         json!(if erteilen { "erteilen" } else { "ablehnen" }),
@@ -548,14 +575,50 @@ mod tests {
             json!({"art": "Loeschen", "sitzung": "s-2", "bestaetigung": "s-2"})
         );
         assert_eq!(
-            freigabe("a1", "n1", true, "egal"),
-            json!({"art": "Freigabe", "anfragen": ["a1"], "nachweis": "n1", "entscheidung": "erteilen"})
+            freigabe("a1", true, "egal"),
+            json!({"art": "Freigabe", "anfragen": ["a1"], "entscheidung": "erteilen"})
         );
         assert_eq!(
-            freigabe("a1", "n1", false, "zu breit"),
-            json!({"art": "Freigabe", "anfragen": ["a1"], "nachweis": "n1", "entscheidung": "ablehnen", "begruendung": "zu breit"})
+            freigabe("a1", false, "zu breit"),
+            json!({"art": "Freigabe", "anfragen": ["a1"], "entscheidung": "ablehnen", "begruendung": "zu breit"})
         );
-        assert_eq!(freigabe("a1", "n1", false, "").get("begruendung"), None);
+        assert_eq!(freigabe("a1", false, "").get("begruendung"), None);
+    }
+
+    /// DI-E5 points 1, 3 and 9: version 1 with at most 64 texts, any other form says nothing.
+    #[test]
+    fn the_list_of_events_in_version_1_only() {
+        let l = ereignisliste_lesen(
+            &json!({"art": "Ereignisliste", "fassung": 1, "ereignisse": ["Abo", "Loeschen", "Neu"]}),
+        );
+        assert_eq!(
+            l,
+            Some(vec![
+                "Abo".to_owned(),
+                "Loeschen".to_owned(),
+                "Neu".to_owned()
+            ])
+        );
+        assert_eq!(
+            ereignisliste_lesen(&json!({"fassung": 1, "ereignisse": []})),
+            Some(Vec::new())
+        );
+        let voll: Vec<String> = (0..64).map(|i| format!("A{i}")).collect();
+        assert_eq!(
+            ereignisliste_lesen(&json!({"fassung": 1, "ereignisse": voll})).map(|v| v.len()),
+            Some(64)
+        );
+        let zu_viele: Vec<String> = (0..65).map(|i| format!("A{i}")).collect();
+        for n in [
+            json!({"fassung": 2, "ereignisse": ["Abo"]}),
+            json!({"ereignisse": ["Abo"]}),
+            json!({"fassung": 1}),
+            json!({"fassung": 1, "ereignisse": "Abo"}),
+            json!({"fassung": 1, "ereignisse": ["Abo", 3]}),
+            json!({"fassung": 1, "ereignisse": zu_viele}),
+        ] {
+            assert_eq!(ereignisliste_lesen(&n), None, "{n}");
+        }
     }
 
     #[test]

@@ -1359,6 +1359,8 @@ fn freigaben_blatt(a: A) -> Element {
     let verlauf = k.verlauf.clone();
     let b07 = k.zeigt("B07") && !verlauf.is_empty();
     let angehalten: Option<Vec<Agent>> = k.angehaltene_worker();
+    // deciding only where the connection carries `Freigabe` (DI-E5 point 5): in the browser requests are only read
+    let entscheiden = k.traegt(ziel::FREIGABE);
     drop(k);
     let n = anfragen.len();
     rsx! {
@@ -1370,8 +1372,6 @@ fn freigaben_blatt(a: A) -> Element {
                 {
                     let id = f.id.clone();
                     let id2 = f.id.clone();
-                    let nachweis = f.nachweis.clone();
-                    let nachweis2 = f.nachweis.clone();
                     let sitzung = f.sitzung.clone();
                     let feld_id = format!("begruendung-{}", f.id);
                     let feld_id2 = feld_id.clone();
@@ -1380,14 +1380,14 @@ fn freigaben_blatt(a: A) -> Element {
                         div { key: "{f.id}", class: "antrag",
                             div { class: "antrag-kopf", span { class: "antrag-werkzeug", "{f.werkzeug}" } span { class: "antrag-wer", "{f.sitzung}" } }
                             code { class: "antrag-vorschau", "{f.vorschau}" }
-                            if nachweis.is_some() {
+                            if entscheiden {
                                 input { r#type: "text", class: "feld", id: "{feld_anzeige}", placeholder: "Begründung (freiwillig)", "aria-label": "Begründung" }
                                 div { class: "antrag-knoepfe",
                                     button { r#type: "button", class: "knopf-rand", onclick: move |_| waehle(a, &sitzung), "Zum Worker" }
                                     button { r#type: "button", class: "knopf-rand", "data-bw": "B07",
-                                        onclick: move |_| freigabe_senden(&id, nachweis.as_deref(), false, &feld_id), "Ablehnen" }
+                                        onclick: move |_| freigabe_senden(&id, false, &feld_id), "Ablehnen" }
                                     button { r#type: "button", class: "knopf-voll", "data-bw": "B07",
-                                        onclick: move |_| freigabe_senden(&id2, nachweis2.as_deref(), true, &feld_id2), "Freigeben" }
+                                        onclick: move |_| freigabe_senden(&id2, true, &feld_id2), "Freigeben" }
                                 }
                             }
                         }
@@ -1425,13 +1425,13 @@ fn verlauf_text(zustand: &str) -> &'static str {
     }
 }
 
-fn freigabe_senden(id: &str, nachweis: Option<&str>, erteilt: bool, feld: &str) {
-    let Some(n) = nachweis else { return };
+/// Sends `Freigabe` (DI-L6 point 4) without `nachweis`; the buttons show only when the connection carries it (DI-E5 point 5).
+fn freigabe_senden(id: &str, erteilt: bool, feld: &str) {
     let begruendung = element(feld)
         .and_then(|e| e.dyn_into::<web_sys::HtmlInputElement>().ok())
         .map(|e| e.value())
         .unwrap_or_default();
-    senden(&ziel::freigabe(id, n, erteilt, &begruendung));
+    senden(&ziel::freigabe(id, erteilt, &begruendung));
 }
 
 fn ordner_blatt(a: A) -> Element {

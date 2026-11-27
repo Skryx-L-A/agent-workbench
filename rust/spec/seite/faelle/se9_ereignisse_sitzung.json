@@ -1,0 +1,302 @@
+{
+ "beschreibung": "Ereignisliste mit den Ereignissen von L3 und ohne Freigabe (Vertrag dienst DI-E5): das Menü der beendeten Sitzung nennt Fortsetzen, Namen ändern und Endgültig löschen; Löschen schickt Loeschen mit Bestätigung erst nach der Rückfrage; ein Antrag steht ohne Knöpfe.",
+ "datensatz": "A",
+ "name": "se9_ereignisse_sitzung",
+ "regeln": [
+  "OF8",
+  "SE2"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Ereignisliste",
+    "ereignisse": [
+     "Abo",
+     "Antwort",
+     "Beenden",
+     "Einfuegen",
+     "Fortsetzen",
+     "Groesse",
+     "InhaltSuchen",
+     "Loeschen",
+     "OrdnerLesen",
+     "RouteWaehlen",
+     "Starten",
+     "Taste",
+     "Text",
+     "Umbenennen",
+     "Wiederbeleben"
+    ],
+    "fassung": 1
+   }
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "nr": 1,
+      "route": "cloud",
+      "zustand": "laeuft"
+     },
+     {
+      "code": 0,
+      "harness": "claude",
+      "id": "s-2",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "nr": 2,
+      "route": "cloud",
+      "zustand": "beendet"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzung-s-1"
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": true,
+    "name_beginnt": "Terminal",
+    "name_enthaelt": "s-1",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "F6",
+   "key": "F6",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name_enthaelt": "s-1",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name_enthaelt": "s-2",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "F10",
+   "key": "F10",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Baum",
+   "erwartet": {
+    "fehlt": [
+     [
+      "menuitem",
+      "Wiederbeleben …"
+     ]
+    ]
+   }
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "name": "Fortsetzen",
+    "rolle": "menuitem"
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "art": "Fortsetzen",
+     "sitzung": "s-2"
+    }
+   ]
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzung-s-1"
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": true,
+    "name_beginnt": "Terminal",
+    "name_enthaelt": "s-1",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "F6",
+   "key": "F6",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name_enthaelt": "s-1",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name_enthaelt": "s-2",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "F10",
+   "key": "F10",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "name": "Endgültig löschen …",
+    "rolle": "menuitem"
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "ausser": [
+    "Groesse"
+   ],
+   "erwartet": []
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "name": "Endgültig löschen",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "ausser": [
+    "Groesse"
+   ],
+   "erwartet": [
+    {
+     "art": "Loeschen",
+     "bestaetigung": "s-2",
+     "sitzung": "s-2"
+    }
+   ]
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "inspektor-umschalter"
+   }
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "anfragen": [
+     {
+      "id": "a-1",
+      "sitzung": "s-1",
+      "vorschau": "ls",
+      "werkzeug": "bash"
+     }
+    ],
+    "art": "Anfragen"
+   }
+  },
+  {
+   "art": "Baum",
+   "erwartet": {
+    "fehlt": [
+     [
+      "button",
+      "Freigeben"
+     ],
+     [
+      "button",
+      "Ablehnen"
+     ]
+    ]
+   }
+  }
+ ]
+}

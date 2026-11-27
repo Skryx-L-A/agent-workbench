@@ -47,6 +47,10 @@ class Attrappe:
         self.kpfad, self.port = os.path.join(wurzel, "k.json"), os.path.join(wurzel, "bruecke.port")
         with open(self.kpfad, "w") as f:
             json.dump(konf, f)
+        # Eine Portdatei eines frueheren Starts im selben Ordner (test_ohne_seite_ordner_wie_heute startet zweimal) nennt den
+        # Port des beendeten Prozesses; das Warten darunter endete sofort, und unter Last kam ConnectionRefusedError (Tor 27.11.2026).
+        if os.path.exists(self.port):
+            os.unlink(self.port)
         self.p = subprocess.Popen([sys.executable, "-I", "-B", os.path.join(HIER, "attrappen", "bruecke_attrappe.py"), "--konfig", self.kpfad,
                                    "--portdatei", self.port], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         ende = time.monotonic() + 5

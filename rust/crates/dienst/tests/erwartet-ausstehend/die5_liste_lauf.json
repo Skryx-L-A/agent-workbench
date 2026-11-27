@@ -1,0 +1,561 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "kind_beendet": null,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "abbild": null,
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "gestartet": 0,
+      "kernbau": 1,
+      "nummern": {}
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": []
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     {
+      "art": "Ereignisliste",
+      "ereignisse": [
+       "Abo",
+       "Antwort",
+       "Beenden",
+       "Einfuegen",
+       "Fortsetzen",
+       "Groesse",
+       "InhaltSuchen",
+       "Loeschen",
+       "OrdnerLesen",
+       "RouteWaehlen",
+       "Starten",
+       "Taste",
+       "Text",
+       "Umbenennen",
+       "Wiederbeleben"
+      ],
+      "fassung": 1
+     },
+     {
+      "art": "Einstellungen",
+      "werte": {
+       "bildrate_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 63,
+        "wert": 63
+       },
+       "osc52_grenze": {
+        "herkunft": "vorgabe",
+        "vorgabe": 100000,
+        "wert": 100000
+       },
+       "osc52_schreiben": {
+        "herkunft": "vorgabe",
+        "vorgabe": "an",
+        "wert": "an"
+       },
+       "rueckstau_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 16384,
+        "wert": 16384
+       }
+      }
+     },
+     {
+      "art": "Routen",
+      "routen": []
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": []
+     },
+     {
+      "anfragen": [],
+      "art": "Anfragen"
+     },
+     {
+      "agenten": [],
+      "art": "Agenten"
+     },
+     {
+      "art": "Startwahl",
+      "fassung": 1,
+      "harness": [
+       {
+        "art": "cloud",
+        "name": "claude",
+        "routenart": "cloud"
+       },
+       {
+        "art": "cloud",
+        "name": "copilot",
+        "routenart": "cloud"
+       },
+       {
+        "art": "lokal",
+        "name": "pi",
+        "routenart": "lokal"
+       }
+      ],
+      "kunden": [
+       "k-beispiel",
+       null
+      ],
+      "routen": [
+       {
+        "art": "cloud",
+        "klasse": "intern",
+        "modell": null,
+        "schluessel": "cloud-beispiel"
+       },
+       {
+        "art": "lokal",
+        "klasse": "kundendaten",
+        "modell": null,
+        "schluessel": "lokal-beispiel"
+       }
+      ]
+     }
+    ],
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": null,
+    "abbild_fehler": [],
+    "ablehnungen": [
+     "sitzung_unbekannt",
+     "sitzung_unbekannt",
+     "sitzung_unbekannt",
+     "sitzung_unbekannt",
+     "sitzung_unbekannt",
+     "sitzung_unbekannt",
+     "freigabe_nur_lokal",
+     "sitzung_unbekannt",
+     "nicht_im_lauf",
+     "nicht_im_lauf",
+     "form_ungueltig",
+     "form_ungueltig",
+     "start_form",
+     "beenden_form",
+     "umbenennen_form",
+     "loeschen_form",
+     "fortsetzen_form",
+     "wiederbeleben_form"
+    ],
+    "ablehnungen_voll": [
+     {
+      "grund": "sitzung_unbekannt"
+     },
+     {
+      "grund": "sitzung_unbekannt"
+     },
+     {
+      "grund": "sitzung_unbekannt"
+     },
+     {
+      "grund": "sitzung_unbekannt"
+     },
+     {
+      "grund": "sitzung_unbekannt"
+     },
+     {
+      "grund": "sitzung_unbekannt"
+     },
+     {
+      "grund": "freigabe_nur_lokal"
+     },
+     {
+      "grund": "sitzung_unbekannt"
+     },
+     {
+      "grund": "nicht_im_lauf"
+     },
+     {
+      "grund": "nicht_im_lauf"
+     },
+     {
+      "grund": "form_ungueltig"
+     },
+     {
+      "grund": "form_ungueltig"
+     },
+     {
+      "code": "start_form",
+      "grund": "start_form",
+      "text": "Start hat falsche Form"
+     },
+     {
+      "grund": "beenden_form"
+     },
+     {
+      "grund": "umbenennen_form"
+     },
+     {
+      "grund": "loeschen_form"
+     },
+     {
+      "code": "fortsetzen_form",
+      "grund": "fortsetzen_form",
+      "text": "Fortsetzen hat falsche Form"
+     },
+     {
+      "code": "wiederbeleben_form",
+      "grund": "wiederbeleben_form",
+      "text": "Wiederbeleben hat falsche Form"
+     }
+    ],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "gestartet": 1,
+      "kernbau": 2,
+      "nummern": {
+       "s-1": 1
+      }
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         120,
+         14
+        ],
+        "id": "s-1",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": ""
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "harness": "claude",
+        "id": "s-1",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "art": "Gestartet",
+      "sitzung": "s-1"
+     }
+    ],
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": null,
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "gestartet": 1,
+      "kernbau": 2,
+      "nummern": {
+       "s-1": 1
+      }
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         120,
+         14
+        ],
+        "id": "s-1",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": ""
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [],
+    "ok": true
+   },
+   {
+    "abbild": null,
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": null,
+    "fehler": [
+     "art_nicht_erlaubt"
+    ],
+    "getrennt": true,
+    "nachrichten": [
+     {
+      "art": "Ereignisliste",
+      "ereignisse": [
+       "Abo",
+       "Antwort",
+       "Beenden",
+       "Einfuegen",
+       "Fortsetzen",
+       "Groesse",
+       "InhaltSuchen",
+       "Loeschen",
+       "OrdnerLesen",
+       "RouteWaehlen",
+       "Starten",
+       "Taste",
+       "Text",
+       "Umbenennen",
+       "Wiederbeleben"
+      ],
+      "fassung": 1
+     },
+     {
+      "art": "Einstellungen",
+      "werte": {
+       "bildrate_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 63,
+        "wert": 63
+       },
+       "osc52_grenze": {
+        "herkunft": "vorgabe",
+        "vorgabe": 100000,
+        "wert": 100000
+       },
+       "osc52_schreiben": {
+        "herkunft": "vorgabe",
+        "vorgabe": "an",
+        "wert": "an"
+       },
+       "rueckstau_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 16384,
+        "wert": 16384
+       }
+      }
+     },
+     {
+      "art": "Routen",
+      "routen": []
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "harness": "claude",
+        "id": "s-1",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "anfragen": [],
+      "art": "Anfragen"
+     },
+     {
+      "agenten": [],
+      "art": "Agenten"
+     },
+     {
+      "art": "Startwahl",
+      "fassung": 1,
+      "harness": [
+       {
+        "art": "cloud",
+        "name": "claude",
+        "routenart": "cloud"
+       },
+       {
+        "art": "cloud",
+        "name": "copilot",
+        "routenart": "cloud"
+       },
+       {
+        "art": "lokal",
+        "name": "pi",
+        "routenart": "lokal"
+       }
+      ],
+      "kunden": [
+       "k-beispiel",
+       null
+      ],
+      "routen": [
+       {
+        "art": "cloud",
+        "klasse": "intern",
+        "modell": null,
+        "schluessel": "cloud-beispiel"
+       },
+       {
+        "art": "lokal",
+        "klasse": "kundendaten",
+        "modell": null,
+        "schluessel": "lokal-beispiel"
+       }
+      ]
+     }
+    ],
+    "ok": true
+   }
+  ],
+  "start": {
+   "netz_sockets": 0,
+   "ok": true,
+   "ordner_modus": "0700",
+   "socket_modus": "0600"
+  }
+ },
+ "exit": 0
+}

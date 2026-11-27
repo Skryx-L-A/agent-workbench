@@ -1496,6 +1496,107 @@ Der Prüfclient kennt drei neue Angaben:
 - „L4 und L10 im Dienst“ Punkt 6: Der Dienst schreibt die Datei nicht selbst, sondern über den Helfer (Entscheid 1); die Sperre ist nicht mehr
   vorläufig, und Neuladen heißt Neustart (Entscheid 2).
 
+## Nachtrag 27.11.2026: Ereignisse des Dienstes beim Verbinden
+
+Grundlage: Projektentscheid, 27.11.2026: Der Dienst nennt beim Verbinden in einer Nachricht die Ereignisse, die er trägt. Die Ansicht zeigt einen
+Bedienweg nur, wenn sein Ereignis darin steht (Vertrag `seite`, `rust/spec/VERTRAEGE.md` OF8). Dazu Projektentscheide vom 27.11.2026: Die Liste gilt je
+Verbindung, nicht je Dienst. `Freigabe` steht nur in der Liste des lokalen Wegs, und nur mit dem Kanal zur Stelle. Über `dienst.sock` lehnt der
+Dienst jede Freigabe mit `freigabe_nur_lokal` ab; im Browser sind Anträge nur zu lesen, und eine Bindung des Menschen an die Brücke gibt es nicht.
+Die neue Regel heißt DI-E5. Wo dieser Abschnitt nichts sagt, gelten DI1 bis DI12 und die Nachträge davor unverändert. Die Fälle liegen in
+`faelle-ausstehend/` und `erwartet-ausstehend/`.
+
+### DI-E5 Ereignisliste je Verbindung
+
+1. **Nachricht.** `{"art": "Ereignisliste", "fassung": 1, "ereignisse": ["<Art>", …]}` im Rahmen `Nachricht` (0x06), gebaut über `json_rahmen`
+   (DI3). Sie hat genau diese drei Schlüssel und kein `t`. Sie kommt vom Dienst, nie von einem Kern.
+2. **Wann.** Genau einmal je Verbindung, als erster Rahmen des Dienstes an diesen Betrachter. Auf `dienst.sock` folgt sie direkt auf das
+   Annehmen, auf dem lokalen Weg direkt auf das Hallo (DI-L11 Punkt 2). In beiden Fällen schickt der Dienst sie, bevor er den Kernen `Verbinden`
+   gibt. Danach folgen die Nachrichten des Verbindens unverändert (DI4; im Lauf DI12 Punkt 10: `Einstellungen`, `Routen`, `Sitzungsliste`,
+   `Anfragen`, `Agenten`, `Startwahl`). Später kommt sie nie wieder, auch nicht nach einem Neubau des Kerns (DI6), nach `Starten` oder nach einer
+   neuen `Sitzungsliste`. Grund für die erste Stelle: Die Ansicht kennt die Liste, bevor sie etwas zeigt, und zeigt nie kurz einen Bedienweg, den
+   die Verbindung nicht trägt. Die Liste ändert sich während einer Verbindung nie, denn sie hängt nur von Betriebsart, Weg und Startdatei ab.
+   Für die Liste gibt der Dienst dem Kern keine Meldung `Socket` (DI5), denn kein Kern kennt den Betrachter zu dieser Zeit.
+3. **Inhalt und Grenzen.** `ereignisse` nennt genau die Arten des Rahmens `Ereignis` (0x01), die die Weiche dieser Verbindung annimmt (Punkt 4):
+   nie eine Art mehr und nie eine weniger. Die Einträge stehen in Bytefolge, jeder genau einmal. Es sind höchstens 64 Einträge, jeder ein Text der
+   Form `^[A-Z][A-Za-z]{0,31}$`. Nie in der Liste stehen die Rahmen des Prüfmodus (`Uhr`, `Stumm`, `Zustand`, `Kernfehler`), denn sie sind keine
+   Ereignisse (DI9), und nie die Arten anderer Absender (`Verbinden`, `Trennen`, Träger, Kern, Stelle, Gateway, Uhr; DI3).
+4. **Weiche.** Für jedes Ereignis gilt diese Prüffolge:
+   1. DI3 bis `feld_verboten`, unverändert, mit den Feldern von DI-L11 Punkt 7. Die Art-Prüfung von DI3 ist die erste Stufe der Weiche: Eine Art
+      außerhalb des Katalogs der Verbindung (Tabelle) ist der Fehler `art_nicht_erlaubt`, und die Verbindung endet.
+   2. Direkt nach `feld_verboten` die festen Ablehnungen der Weiche: Sie folgen allein aus Art, Betriebsart, Weg und Startdatei, ohne Blick auf
+      die übrigen Felder des Ereignisses und auf den Zustand. Es sind `nicht_im_lauf`, `freigabe_nur_lokal` und `stelle_nicht_erreichbar` nach der
+      Tabelle. Der Rahmen `Ablehnung` geht nur an den Sender, die Verbindung bleibt, kein Kern sieht das Ereignis.
+   3. Sonst ist das Ereignis **angenommen**: Es geht an seinen Empfänger (den Kern seiner Sitzung, den Raumkern oder einen Weg des Dienstes) und
+      durchläuft dort dessen Prüffolge.
+
+   | Art | ohne `lauf`, `dienst.sock` | ohne `lauf`, lokal | mit `lauf`, `dienst.sock` | mit `lauf`, lokal ohne `lauf.stelle` | mit `lauf`, lokal mit `lauf.stelle` |
+   |---|---|---|---|---|---|
+   | `Abo`, `Groesse`, `Text`, `Taste`, `Einfuegen`, `Antwort`, `RouteWaehlen`, `OrdnerLesen`, `InhaltSuchen` | angenommen | angenommen | angenommen | angenommen | angenommen |
+   | `RaumWechsel` | angenommen | angenommen | `nicht_im_lauf` | `nicht_im_lauf` | `nicht_im_lauf` |
+   | `EinstellungSetzen` | angenommen | angenommen | `nicht_im_lauf`, nach dem Bau von L4 und L10 angenommen | wie links | wie links |
+   | `Freigabe` | `freigabe_nur_lokal` | `stelle_nicht_erreichbar` | `freigabe_nur_lokal` | `stelle_nicht_erreichbar` | angenommen |
+   | `Starten`, `Beenden`, `Umbenennen`, `Loeschen`, `Fortsetzen`, `Wiederbeleben` | `art_nicht_erlaubt` | `art_nicht_erlaubt` | angenommen | angenommen | angenommen |
+   | jede andere Art | `art_nicht_erlaubt` | `art_nicht_erlaubt` | `art_nicht_erlaubt` | `art_nicht_erlaubt` | `art_nicht_erlaubt` |
+
+   Der Katalog einer Verbindung sind die Arten, die dort nicht `art_nicht_erlaubt` ergeben. `ERLAUBT` (DI3) bleibt die Liste der Arten, die zu
+   einem Kern oder zum Weg L9 gehen; die Ereignisse des Dienstes im Lauf kommen dazu (Nachtrag „Oberfläche L1, L2, L3, L5, L6, L11“).
+   `EinstellungSetzen` im Lauf fällt nach „L4 und L10 im Dienst“ Punkt 1 aus `nicht_im_lauf` heraus. Bis zu diesem Bau lehnt die Weiche es ab, und
+   die Liste nennt es nicht; die Liste folgt immer der Weiche des Baus, nie einem geplanten Stand.
+5. **Freigabe.** Über `dienst.sock` ergibt jede `Freigabe` in beiden Betriebsarten `freigabe_nur_lokal`, gleich was sie sonst trägt. Die Nachrichten
+   `Anfragen` und `Anfrage` gehen weiter an jeden Betrachter, auch über die Brücke: Der Browser liest Anträge, entscheidet sie aber nie. Auf dem
+   lokalen Weg ohne `lauf.stelle`, also auch ohne `lauf`, ergibt jede `Freigabe` an der Weiche `stelle_nicht_erreichbar`. Das ist derselbe Grund wie
+   in DI-L6 Punkt 5 für „`lauf.stelle` nicht gesetzt“; er steht jetzt vor der Prüffolge von DI-L6 Punkt 4. Nur auf dem lokalen Weg mit `lauf.stelle`
+   ist `Freigabe` angenommen. Dann gilt DI-L6 Punkt 4 mit dem Nachtrag „Kanal zur Stelle (L6, Nr. 98)“; ist die Stelle in diesem Augenblick nicht
+   erreichbar, bleibt die Antwort `stelle_nicht_erreichbar` nach DI-L6 Punkt 5. Ohne `lauf` erreicht eine `Freigabe` nie einen Kern.
+6. **Prüfmodus und Betrieb.** Die Liste hängt nicht von `pruefmodus` ab: Mit und ohne Prüfmodus ist sie für dieselbe Verbindung gleich, und sie
+   kommt in beiden. Ob die Rahmen des Prüfmodus gelten, sagt allein `pruefmodus` (DI9). Mit `lauf` gilt die Tabelle in den Spalten „mit `lauf`“.
+7. **Eine Stelle im Bau.** Die Liste entsteht aus derselben Funktion, die die Weiche für jedes Ereignis fragt: Die Liste ist die Menge der Arten
+   des Katalogs aller Betriebsarten, für die diese Funktion auf dieser Verbindung „angenommen“ sagt. Der Dienst führt keine zweite Liste. Eine neue
+   Art des Dienstes steht damit von selbst in der Liste, sobald die Weiche sie annimmt.
+8. **Was die Liste nicht zusagt.** Sie sagt, dass die Weiche eine Art annimmt, nicht, dass ein Ereignis gelingt. `OrdnerLesen` steht in der Liste
+   und ergibt heute `klasse_gesperrt` (Nachtrag L9 Punkt 6). `Loeschen` steht im Lauf in der Liste und lehnt eine laufende Sitzung ab.
+9. **Ansicht.** Die Ansicht liest die Nachricht an einer Stelle (Vertrag `seite`). Unbekannte Namen übergeht sie. Ohne die Nachricht oder bei
+   falscher Form (andere `fassung`, `ereignisse` keine Liste von Texten) gilt für sie keine Art als getragen, deren Bedienweg eine Lücke von
+   `rust/spec/VERTRAEGE.md` Abschnitt 4 schließt.
+10. **Geänderte Erwartungen.** Drei bestehende Fälle schicken eine `Freigabe` über `dienst.sock`. Ihre neuen Erwartungen liegen in
+    `erwartet-ausstehend/`, gemessen mit der Referenz:
+    - `di12_lauf_ereignisse`: Die `Freigabe` mit dem fremden Schlüssel `wahl` ergibt `freigabe_nur_lokal` statt `ereignis_ungueltig`.
+    - `dil6_heute`: Alle drei `Freigabe` ergeben `freigabe_nur_lokal` statt `anfrage_unbekannt`, `ereignis_ungueltig` und `ereignis_ungueltig`.
+    - `dil6_freigabe_lauf`: Alle neun `Freigabe` ergeben `freigabe_nur_lokal` statt der Gründe der Prüffolge von DI-L6 Punkt 4
+      (`ereignis_ungueltig`, `begruendung_nur_bei_ablehnen`, `begruendung_ungueltig`, `sammelfreigabe`, `nachweis_fehlt`, `nachweis_ungueltig`,
+      `anfrage_unbekannt`, `ereignis_ungueltig`, `anfrage_unbekannt`).
+    Sonst ändert sich in diesen drei Fällen nichts, im sichtbaren wie im verdeckten Satz.
+    Grund: Projektentscheid, 27.11.2026 (Punkt 5). Die Prüffolge von DI-L6 Punkt 4 ist damit über `dienst.sock` nicht mehr erreichbar; ihre Fälle
+    gehören auf den lokalen Weg mit `lauf.stelle` (Nachtrag „Kanal zur Stelle (L6, Nr. 98)“). Kein anderer Fall ändert sich: Der Prüfclient legt
+    `Ereignisliste` nur in Fällen mit dem Feld `ereignisliste` ab (Prüfmittel unten).
+11. **Fälle.** `die5_liste_einzel` (ohne `lauf`, beide Wege, mit und ohne Prüfmodus gleich), `die5_liste_lauf` (mit `lauf` über `dienst.sock`:
+    jede Art des Katalogs aller Betriebsarten einmal, die Antworten belegen die Tabelle), `die5_liste_lokal_stelle` (mit `lauf.stelle`: lokal mit
+    `Freigabe`, über `dienst.sock` ohne), `die5_liste_lokal_ohne_stelle` (lokal ohne `lauf.stelle`: `stelle_nicht_erreichbar`),
+    `die5_liste_einmal` (die Liste kommt als erster Rahmen und nach `Starten`, `Beenden` und einer neuen Verbindung nicht noch einmal) und
+    `die5_liste_betrieb` (ohne Prüfmodus dieselbe Liste wie mit). Jeder Fall hat einen verdeckten Zwilling mit anderen Namen und Werten.
+
+### Gegenproben des Nachtrags 27.11.2026: Ereignisliste
+
+| Mutant | Regel | Änderung |
+|---|---|---|
+| `ereignisliste_fehlt` | DI-E5 | der Dienst schickt keine `Ereignisliste` |
+| `ereignisliste_nicht_zuerst` | DI-E5 | die `Ereignisliste` kommt nach den Nachrichten des Verbindens statt davor |
+| `ereignisliste_wiederholt` | DI-E5 | die `Ereignisliste` kommt nach jeder neuen `Sitzungsliste` noch einmal |
+| `ereignisliste_mit_abgelehnter` | DI-E5 | die Liste über `dienst.sock` nennt `Freigabe`, die die Weiche dort ablehnt |
+| `ereignisliste_ohne_angenommene` | DI-E5 | die Liste nennt `OrdnerLesen` nicht, das die Weiche annimmt |
+| `ereignisliste_ohne_lauf_arten` | DI-E5 | die Liste nennt im Lauf nur `ERLAUBT`, ohne die Ereignisse des Dienstes |
+| `ereignisliste_je_dienst` | DI-E5 | die Liste hängt nicht vom Weg ab: der lokale Weg bekommt die Liste von `dienst.sock` |
+| `ereignisliste_unsortiert` | DI-E5 | die Einträge stehen in der Reihenfolge des Katalogs statt in Bytefolge |
+| `freigabe_ueber_bruecke` | DI-E5 | über `dienst.sock` geht eine `Freigabe` in die Prüffolge von DI-L6 statt `freigabe_nur_lokal` |
+| `freigabe_grund_falsch` | DI-E5 | über `dienst.sock` lautet die Ablehnung einer `Freigabe` `stelle_nicht_erreichbar` statt `freigabe_nur_lokal` |
+| `freigabe_lokal_ohne_stelle` | DI-E5 | auf dem lokalen Weg ohne `lauf.stelle` geht eine `Freigabe` in die Prüffolge von DI-L6 |
+
+### Prüfmittel des Nachtrags 27.11.2026: Ereignisliste
+
+Der Prüfclient kennt ein neues Fall-Feld `ereignisliste` (Wahrheitswert, Vorgabe false). Ohne das Feld legt er eine Nachricht `Ereignisliste` nicht
+unter `nachrichten` ab; er zählt sie wie jeden Rahmen für das Warten im Schritt `Verbinden`. So bleibt jede bestehende Erwartung gleich, und kein
+bestehender Fall prüft weniger als vorher. Mit dem Feld steht die Nachricht an ihrer Stelle in `nachrichten`. Die Fälle `die5_*` tragen das Feld.
+
 <!-- vom Bauvorgang angefuegt -->
 > Hinweis: Dieser Text nennt Werkzeuge, die in diesem Klon nicht liegen: `pi`.
 > Sie gehoeren zum Setup der Maschine, aus der dieser Baum stammt; hier fehlen

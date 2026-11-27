@@ -50,15 +50,15 @@
     "abbild": null,
     "abbild_fehler": [],
     "ablehnungen": [
-     "ereignis_ungueltig",
-     "begruendung_nur_bei_ablehnen",
-     "begruendung_ungueltig",
-     "sammelfreigabe",
-     "nachweis_fehlt",
-     "nachweis_ungueltig",
-     "anfrage_unbekannt",
-     "ereignis_ungueltig",
-     "anfrage_unbekannt"
+     "freigabe_nur_lokal",
+     "freigabe_nur_lokal",
+     "freigabe_nur_lokal",
+     "freigabe_nur_lokal",
+     "freigabe_nur_lokal",
+     "freigabe_nur_lokal",
+     "freigabe_nur_lokal",
+     "freigabe_nur_lokal",
+     "freigabe_nur_lokal"
     ],
     "antwort": {
      "dienst": {

@@ -1,0 +1,235 @@
+{
+ "beschreibung": "Ohne Ereignisliste oder mit einer Liste in anderer Form (fassung 2) trägt die Verbindung keines der Ereignisse: kein Fortsetzen, Namen ändern oder Löschen im Menü, kein Reiter Ordner, keine Knöpfe am Antrag.",
+ "datensatz": "A",
+ "name": "se9_ereignisse_fehlen",
+ "regeln": [
+  "OF8"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Ereignisliste",
+    "ereignisse": [
+     "Abo",
+     "Antwort",
+     "Beenden",
+     "Einfuegen",
+     "Fortsetzen",
+     "Freigabe",
+     "Groesse",
+     "InhaltSuchen",
+     "Loeschen",
+     "OrdnerLesen",
+     "RouteWaehlen",
+     "Starten",
+     "Taste",
+     "Text",
+     "Umbenennen",
+     "Wiederbeleben"
+    ],
+    "fassung": 2
+   }
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "name": "",
+      "nr": 1,
+      "ordner": "/srv/projekt-ä",
+      "projekt": "projekt-ä",
+      "route": "cloud",
+      "zustand": "laeuft"
+     },
+     {
+      "code": 0,
+      "harness": "claude",
+      "id": "s-2",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "nr": 2,
+      "route": "cloud",
+      "zustand": "beendet"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "sitzung-s-1"
+   }
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": true,
+    "name_beginnt": "Terminal",
+    "name_enthaelt": "s-1",
+    "rolle": "textbox"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "F6",
+   "key": "F6",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name_enthaelt": "s-1",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Tab",
+   "key": "Tab",
+   "umschalter": []
+  },
+  {
+   "art": "Fokus",
+   "erwartet": {
+    "im_terminal": false,
+    "name_enthaelt": "s-2",
+    "rolle": "button"
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "F10",
+   "key": "F10",
+   "umschalter": [
+    "umschalt"
+   ]
+  },
+  {
+   "art": "Baum",
+   "erwartet": {
+    "fehlt": [
+     [
+      "menuitem",
+      "Fortsetzen"
+     ],
+     [
+      "menuitem",
+      "Namen ändern …"
+     ],
+     [
+      "menuitem",
+      "Endgültig löschen …"
+     ]
+    ]
+   }
+  },
+  {
+   "art": "Taste",
+   "code": "Escape",
+   "key": "Escape",
+   "umschalter": []
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "inspektor-umschalter"
+   }
+  },
+  {
+   "art": "Testid",
+   "testid": "inspektor"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "anfragen": [
+     {
+      "id": "a-1",
+      "sitzung": "s-1",
+      "vorschau": "ls",
+      "werkzeug": "bash"
+     }
+    ],
+    "art": "Anfragen"
+   }
+  },
+  {
+   "art": "Testid",
+   "testid": "freigaben-blatt"
+  },
+  {
+   "art": "Baum",
+   "erwartet": {
+    "fehlt": [
+     [
+      "button",
+      "Freigeben"
+     ],
+     [
+      "button",
+      "Ablehnen"
+     ],
+     [
+      "tab",
+      "Ordner"
+     ]
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "ausser": [
+    "Groesse"
+   ],
+   "erwartet": []
+  }
+ ]
+}

@@ -287,7 +287,7 @@ pub(crate) fn loeschen(a: A, id: String) -> Element {
             onkeydown: move |e: KeyboardEvent| falle("frage", &e),
             onmounted: move |_| fokus("frage-nein"),
             h2 { "„{name}“ endgültig löschen?" }
-            p { class: "fenster-hinweis", "Die Sitzung verschwindet aus der Liste. Arbeitsordner und Gespräch bleiben erhalten." }
+            p { class: "fenster-hinweis", "Die Sitzung verschwindet aus der Liste. Ihr Gespräch wird mit entfernt. Arbeitsordner und Protokoll bleiben erhalten." }
             div { class: "form-fuss",
                 button { r#type: "button", id: "frage-nein", class: "knopf-rand", onclick: move |_| schliessen(a), "Abbrechen" }
                 button { r#type: "button", class: "knopf-voll gefahr", onclick: move |_| { senden(&ziel::loeschen(&id)); schliessen(a); }, "Endgültig löschen" }

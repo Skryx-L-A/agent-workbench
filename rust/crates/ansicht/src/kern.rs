@@ -164,9 +164,6 @@ pub struct Anfrage {
     pub werkzeug: String,
     /// Preview of the command.
     pub vorschau: String,
-    /// The proof of the person for `Freigabe`. No message of the contracts carries one to the view (the core takes it from the
-    /// gateway, `zustandskern` section 4); it stays `None`, and without it the request can only be shown.
-    pub nachweis: Option<String>,
 }
 
 /// One line of the guard history (B07): a message `Anfrage` with an end state (`zustandskern` R-L6 point 5), in the order of arrival.
@@ -231,6 +228,9 @@ pub struct Kern {
     pub pane: Option<String>,
     /// The sessions of the worker panes subscribed, with their last size (R-L2: one `Abo` per session).
     pub worker_abos: HashMap<String, (usize, usize)>,
+    /// The kinds of event this connection carries (`dienst` DI-E5, message `Ereignisliste`); `None` before the message, without it
+    /// or in another form. Each connection has its own list.
+    pub ereignisse: Option<Vec<String>>,
 }
 
 impl Default for Kern {
@@ -261,6 +261,7 @@ impl Default for Kern {
             treffer: None,
             pane: None,
             worker_abos: HashMap::new(),
+            ereignisse: None,
         }
     }
 }
@@ -306,6 +307,8 @@ impl Kern {
     pub fn offen(&mut self, deflate: bool) {
         self.empfang = Some(Empfang::neu(deflate));
         self.verbindung = Verbindung::Offen;
+        // a new connection brings its own list (DI-E5 point 2)
+        self.ereignisse = None;
     }
 
     /// The stream ended.
@@ -427,6 +430,10 @@ impl Kern {
                 self.start.startwahl(n);
                 Vec::new()
             }
+            Some("Ereignisliste") => {
+                self.ereignisse = ziel::ereignisliste_lesen(n);
+                Vec::new()
+            }
             Some("Hinweis") => self.hinweis(n),
             Some("Anfragen") => {
                 self.anfragen = n
@@ -439,7 +446,6 @@ impl Kern {
                                 sitzung: feld(x, "sitzung"),
                                 werkzeug: feld(x, "werkzeug"),
                                 vorschau: feld(x, "vorschau"),
-                                nachweis: None,
                             })
                             .filter(|x| !x.id.is_empty())
                             .collect()
@@ -552,7 +558,6 @@ impl Kern {
             sitzung: a.sitzung,
             werkzeug: a.werkzeug,
             vorschau: a.vorschau,
-            nachweis: None,
         };
         match self.anfragen.iter_mut().find(|x| x.id == neu.id) {
             Some(e) => *e = neu,
@@ -828,13 +833,13 @@ impl Kern {
     /// - L2: every entry of `Agenten` carries `nr` (DI-L1 point 3); the view then knows the raster of each worker and subscribes its session.
     /// - L4: `Einstellungen` with `fassung: 2` (`regelebenen` 15.10).
     /// - L5: an entry of `Sitzungsliste` carries `name`, `ordner` and `projekt` (DI-L5 point 1).
-    /// - L6: a message `Anfrage` with an end state came; it is a line of the guard history (R-L6 point 5). Deciding needs a proof of
-    ///   the person, which no message gives the view; the buttons stay away.
+    /// - L6: a message `Anfrage` with an end state came; it is a line of the guard history (R-L6 point 5). Deciding is a matter of
+    ///   [`Kern::traegt`] with `Freigabe`, which only the local path carries (DI-E5 point 5); in the browser requests are only read.
     /// - L10: `Startwahl` with `fassung: 2` (contract `start`, message `Startwahl` with efforts).
     /// - L8 needs no message.
-    /// - L3 and L9 have no field before a request: `Umbenennen`, `Fortsetzen`, `Wiederbeleben`, `Loeschen` and (L9) `OrdnerLesen`,
-    ///   `InhaltSuchen` say nothing until sent, and a service without them ends the connection (`art_nicht_erlaubt`, DI3). They stay
-    ///   open. L7 and L11 name no operating path of the browser.
+    /// - L3: the `Ereignisliste` of this connection names `Umbenennen`, `Fortsetzen`, `Wiederbeleben` and `Loeschen` (DI-E5).
+    /// - L9: it names `OrdnerLesen` and `InhaltSuchen`. Without the list both stay open: a service without these events ends the
+    ///   connection (`art_nicht_erlaubt`, DI3). L7 and L11 name no operating path of the browser.
     #[must_use]
     pub fn luecken(&self) -> crate::bedienwege::Luecken {
         let mut l = crate::bedienwege::Luecken::KEINE;
@@ -849,7 +854,18 @@ impl Kern {
         zu(5, self.sitzungen.iter().any(|s| s.herkunft.is_some()));
         zu(6, !self.verlauf.is_empty());
         zu(10, self.start.fassung2);
+        zu(3, ziel::L3_EREIGNISSE.iter().all(|a| self.traegt(a)));
+        zu(9, ziel::L9_EREIGNISSE.iter().all(|a| self.traegt(a)));
         l
+    }
+
+    /// Whether the switch of this connection takes the kind of event `art`: it stands in the `Ereignisliste` (DI-E5 point 3). Without
+    /// the list no kind counts as carried.
+    #[must_use]
+    pub fn traegt(&self, art: &str) -> bool {
+        self.ereignisse
+            .as_ref()
+            .is_some_and(|l| l.iter().any(|x| x == art))
     }
 
     /// Whether the browser view shows the operating path `nr` now (`bedienwege::im_browser` with [`Kern::luecken`]).
@@ -1212,7 +1228,60 @@ mod tests {
         assert!(l.hat(1) && l.hat(2) && l.hat(5));
         assert!(
             !l.hat(3) && !l.hat(9),
-            "L3 and L9 have no sign before a request"
+            "without an Ereignisliste L3 and L9 stay open"
+        );
+    }
+
+    /// DI-E5: L3 and L9 close only when the list of the connection names all their events; a new connection forgets the list, and
+    /// `Freigabe` is carried only when it stands in the list (the local path, DI-E5 point 5).
+    #[test]
+    fn the_list_of_events_closes_l3_and_l9() {
+        let mut k = Kern::default();
+        k.offen(false);
+        let mut alle: Vec<&str> = ziel::L3_EREIGNISSE.to_vec();
+        alle.extend(ziel::L9_EREIGNISSE);
+        liste(
+            &mut k,
+            &json!({"art": "Ereignisliste", "fassung": 1, "ereignisse": alle}),
+        );
+        let l = k.luecken();
+        assert!(l.hat(3) && l.hat(9));
+        assert!(!k.traegt(ziel::FREIGABE));
+        assert!(k.zeigt("B11") && k.zeigt("B12") && k.zeigt("B16") && k.zeigt("B17"));
+        assert!(k.zeigt("B52"));
+        // one event of a gap missing: the gap stays open
+        for weg in ["Loeschen", "InhaltSuchen"] {
+            let ohne: Vec<&str> = alle.iter().copied().filter(|a| *a != weg).collect();
+            liste(
+                &mut k,
+                &json!({"art": "Ereignisliste", "fassung": 1, "ereignisse": ohne}),
+            );
+            let l = k.luecken();
+            assert_eq!(
+                (l.hat(3), l.hat(9)),
+                (weg != "Loeschen", weg != "InhaltSuchen"),
+                "{weg}"
+            );
+        }
+        liste(
+            &mut k,
+            &json!({"art": "Ereignisliste", "fassung": 1, "ereignisse": ["Freigabe"]}),
+        );
+        assert!(k.traegt(ziel::FREIGABE));
+        // another form says nothing
+        liste(
+            &mut k,
+            &json!({"art": "Ereignisliste", "fassung": 2, "ereignisse": alle}),
+        );
+        assert!(!k.luecken().hat(3) && !k.traegt(ziel::FREIGABE));
+        liste(
+            &mut k,
+            &json!({"art": "Ereignisliste", "fassung": 1, "ereignisse": alle}),
+        );
+        k.offen(false);
+        assert!(
+            !k.luecken().hat(3) && !k.luecken().hat(9),
+            "a new connection brings its own list"
         );
     }
 

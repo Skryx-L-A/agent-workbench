@@ -1,0 +1,124 @@
+{
+ "beschreibung": "Ereignisliste mit OrdnerLesen und InhaltSuchen und eine Sitzung mit Ordner (L5): der Reiter Ordner steht und schickt OrdnerLesen mit leerem Pfad.",
+ "datensatz": "A",
+ "name": "se9_ereignisse_ordner",
+ "regeln": [
+  "OF8"
+ ],
+ "schritte": [
+  {
+   "art": "Laden"
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Ereignisliste",
+    "ereignisse": [
+     "Abo",
+     "Antwort",
+     "Beenden",
+     "Einfuegen",
+     "Groesse",
+     "InhaltSuchen",
+     "OrdnerLesen",
+     "RouteWaehlen",
+     "Starten",
+     "Taste",
+     "Text"
+    ],
+    "fassung": 1
+   }
+  },
+  {
+   "art": "Nachricht",
+   "nachricht": {
+    "art": "Sitzungsliste",
+    "sitzungen": [
+     {
+      "harness": "claude",
+      "id": "s-1",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "name": "",
+      "nr": 1,
+      "ordner": "/srv/projekt-ä",
+      "projekt": "projekt-ä",
+      "route": "cloud",
+      "zustand": "laeuft"
+     },
+     {
+      "code": 0,
+      "harness": "claude",
+      "id": "s-2",
+      "kunde": "",
+      "modell": "cloud-beispiel",
+      "nr": 2,
+      "route": "cloud",
+      "zustand": "beendet"
+     }
+    ]
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "erwartet": [
+    {
+     "an": true,
+     "art": "Abo",
+     "sitzung": "s-1",
+     "spalten": {
+      "$zahl": [
+       2,
+       1000
+      ]
+     },
+     "zeilen": {
+      "$zahl": [
+       1,
+       1000
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "art": "Raster",
+   "hex": "05010601280800020101000000010001000124"
+  },
+  {
+   "art": "Warte",
+   "bis": {
+    "zeile": [
+     0,
+     "$"
+    ]
+   }
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "testid": "inspektor-umschalter"
+   }
+  },
+  {
+   "art": "Klick",
+   "ziel": {
+    "name": "Ordner",
+    "rolle": "tab"
+   }
+  },
+  {
+   "art": "Ereignisse",
+   "ausser": [
+    "Groesse"
+   ],
+   "erwartet": [
+    {
+     "art": "OrdnerLesen",
+     "pfad": "",
+     "sitzung": "s-1"
+    }
+   ]
+  }
+ ]
+}

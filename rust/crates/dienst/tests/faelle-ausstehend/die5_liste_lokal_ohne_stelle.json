@@ -1,0 +1,95 @@
+{
+ "beschreibung": "lokaler Weg ohne lauf.stelle: die Liste nennt Freigabe nicht; die Weiche antwortet auf jede Freigabe stelle_nicht_erreichbar, vor der Prüffolge von DI-L6 (auch bei falscher Form und bei zwei Kennungen)",
+ "datensatz": "A",
+ "ereignisliste": true,
+ "name": "die5_liste_lokal_ohne_stelle",
+ "regeln": [
+  "DI-E5",
+  "DI-L11",
+  "DI-L6"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1",
+   "weg": "lokal"
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "anfragen": [
+     "a-1"
+    ],
+    "art": "Freigabe",
+    "entscheidung": "erteilen"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Freigabe",
+    "x": 1
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "anfragen": [
+     "a-1",
+     "a-2"
+    ],
+    "art": "Freigabe",
+    "entscheidung": "erteilen"
+   }
+  },
+  {
+   "ablehnungen_voll": true,
+   "art": "Zustand",
+   "betrachter": "c1"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind"
+  },
+  "lokal": {
+   "kanal": "fenster"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

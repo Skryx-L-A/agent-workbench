@@ -1,0 +1,474 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "kind_beendet": null,
+   "lokal_entfernt": true,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "abbild": null,
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "kernbau": 1
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         40,
+         10
+        ],
+        "id": "s-alpha",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": "Alpha"
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     {
+      "art": "Ereignisliste",
+      "ereignisse": [
+       "Abo",
+       "Antwort",
+       "Einfuegen",
+       "EinstellungSetzen",
+       "Groesse",
+       "InhaltSuchen",
+       "OrdnerLesen",
+       "RaumWechsel",
+       "RouteWaehlen",
+       "Taste",
+       "Text"
+      ],
+      "fassung": 1
+     },
+     {
+      "art": "Einstellungen",
+      "werte": {
+       "bildrate_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 63,
+        "wert": 63
+       },
+       "osc52_grenze": {
+        "herkunft": "vorgabe",
+        "vorgabe": 100000,
+        "wert": 100000
+       },
+       "osc52_schreiben": {
+        "herkunft": "vorgabe",
+        "vorgabe": "an",
+        "wert": "an"
+       },
+       "rueckstau_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 16384,
+        "wert": 16384
+       }
+      }
+     },
+     {
+      "art": "Routen",
+      "routen": []
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "code": null,
+        "groesse": [
+         40,
+         10
+        ],
+        "id": "s-alpha",
+        "route": "r1",
+        "titel": "Alpha",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "anfragen": [],
+      "art": "Anfragen"
+     },
+     {
+      "agenten": [],
+      "art": "Agenten"
+     }
+    ],
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": null,
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       },
+       "b2": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "kernbau": 1
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       },
+       "b2": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         40,
+         10
+        ],
+        "id": "s-alpha",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": "Alpha"
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     {
+      "art": "Ereignisliste",
+      "ereignisse": [
+       "Abo",
+       "Antwort",
+       "Einfuegen",
+       "EinstellungSetzen",
+       "Groesse",
+       "InhaltSuchen",
+       "OrdnerLesen",
+       "RaumWechsel",
+       "RouteWaehlen",
+       "Taste",
+       "Text"
+      ],
+      "fassung": 1
+     },
+     {
+      "art": "Einstellungen",
+      "werte": {
+       "bildrate_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 63,
+        "wert": 63
+       },
+       "osc52_grenze": {
+        "herkunft": "vorgabe",
+        "vorgabe": 100000,
+        "wert": 100000
+       },
+       "osc52_schreiben": {
+        "herkunft": "vorgabe",
+        "vorgabe": "an",
+        "wert": "an"
+       },
+       "rueckstau_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 16384,
+        "wert": 16384
+       }
+      }
+     },
+     {
+      "art": "Routen",
+      "routen": []
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "code": null,
+        "groesse": [
+         40,
+         10
+        ],
+        "id": "s-alpha",
+        "route": "r1",
+        "titel": "Alpha",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "anfragen": [],
+      "art": "Anfragen"
+     },
+     {
+      "agenten": [],
+      "art": "Agenten"
+     }
+    ],
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": null,
+    "abbild_fehler": [],
+    "ablehnungen": [
+     "freigabe_nur_lokal",
+     "form_ungueltig",
+     "klasse_gesperrt"
+    ],
+    "ablehnungen_voll": [
+     {
+      "grund": "freigabe_nur_lokal"
+     },
+     {
+      "grund": "form_ungueltig"
+     },
+     {
+      "grund": "klasse_gesperrt"
+     }
+    ],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       },
+       "b2": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "kernbau": 1
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       },
+       "b2": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         40,
+         10
+        ],
+        "id": "s-alpha",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": "Alpha"
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [],
+    "ok": true
+   },
+   {
+    "abbild": null,
+    "abbild_fehler": [],
+    "ablehnungen": [
+     "stelle_nicht_erreichbar"
+    ],
+    "ablehnungen_voll": [
+     {
+      "grund": "stelle_nicht_erreichbar"
+     }
+    ],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       },
+       "b2": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "kernbau": 1
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       },
+       "b2": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         40,
+         10
+        ],
+        "id": "s-alpha",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": "Alpha"
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [],
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": null,
+    "abbild_fehler": [],
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b2": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "kernbau": 1
+     },
+     "kern": {
+      "betrachter": {
+       "b2": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         40,
+         10
+        ],
+        "id": "s-alpha",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": "Alpha"
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [],
+    "ok": true
+   }
+  ],
+  "start": {
+   "netz_sockets": 0,
+   "ok": true,
+   "ordner_modus": "0700",
+   "socket_modus": "0600"
+  }
+ },
+ "exit": 0
+}

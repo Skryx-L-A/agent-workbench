@@ -1,0 +1,106 @@
+{
+ "beschreibung": "mit lauf.stelle: die Liste des lokalen Wegs nennt Freigabe, die Liste über dienst.sock nicht; über dienst.sock ergibt jede Freigabe freigabe_nur_lokal, auch eine mit falscher Form",
+ "datensatz": "A",
+ "ereignisliste": true,
+ "name": "die5_liste_lokal_stelle",
+ "regeln": [
+  "DI-E5",
+  "DI-L11",
+  "DI-L6"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1",
+   "weg": "lokal"
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c2"
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c2"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "anfragen": [
+     "a-1"
+    ],
+    "art": "Freigabe",
+    "entscheidung": "erteilen"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "anfragen": [
+     "a-1",
+     "a-2"
+    ],
+    "art": "Freigabe",
+    "entscheidung": "erteilen"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "art": "Freigabe",
+    "x": 1
+   }
+  },
+  {
+   "ablehnungen_voll": true,
+   "art": "Zustand",
+   "betrachter": "c2"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind",
+   "stelle": {
+    "kanal": "stelle"
+   }
+  },
+  "lokal": {
+   "kanal": "fenster"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

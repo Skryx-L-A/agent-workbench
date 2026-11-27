@@ -373,6 +373,14 @@ Liste in `attrappe/seite.js` ist, dass die Attrappe beide Sätze grün besteht u
 | `leiste_ohne_b80` | OF8 | der Knopf „Leiste ein- und ausblenden“ trägt kein `data-bw` `B80` (Nachtrag 27.11.2026) |
 | `umschalt_einfg_als_taste` | SE1.13 | Umschalt+Einfg geht als `Taste` statt als `Einfuegen` (Nachtrag 27.11.2026) |
 | `strg_einfg_sendet` | SE1.13 | Strg+Einfg schickt ein Ereignis an das Programm (Nachtrag 27.11.2026) |
+| `ereignisliste_ignoriert` | OF8 | die Seite liest die `Ereignisliste` nicht; Bedienwege von L3, L6 und L9 fehlen trotz Liste (Nachtrag 27.11.2026, Ereignisliste) |
+| `ereignisliste_fassung_egal` | OF8 | eine `Ereignisliste` mit anderer `fassung` gilt wie Fassung 1 (Nachtrag 27.11.2026, Ereignisliste) |
+| `l3_ohne_liste` | OF8 | Fortsetzen, Namen ändern und Endgültig löschen stehen im Menü ohne die Ereignisse von L3 in der Liste (Nachtrag 27.11.2026, Ereignisliste) |
+| `ordner_ohne_liste` | OF8 | der Reiter Ordner steht ohne `OrdnerLesen` und `InhaltSuchen` in der Liste (Nachtrag 27.11.2026, Ereignisliste) |
+| `freigabe_ohne_liste` | OF8 | Freigeben und Ablehnen stehen am Antrag ohne `Freigabe` in der Liste (Nachtrag 27.11.2026, Ereignisliste) |
+| `freigabe_mit_nachweis` | SE6 | das Ereignis `Freigabe` trägt ein Feld `nachweis` (Nachtrag 27.11.2026, Ereignisliste) |
+| `loeschen_ohne_rueckfrage` | OF8 | „Endgültig löschen …“ im Menü schickt `Loeschen` ohne die Rückfrage (Nachtrag 27.11.2026, Ereignisliste) |
+| `loeschen_ohne_bestaetigung` | SE6 | `Loeschen` trägt keine `bestaetigung` (Nachtrag 27.11.2026, Ereignisliste) |
 
 `eingabezeile_sofort` ruht mit der Eingabezeile (Nachtrag 26.11.2026); `gegenprobe.sh` führt ihn in der Liste `RUHEND` und zählt ihn nicht als überlebt.
 
@@ -488,3 +496,19 @@ der Teil der Eingabezeile, der Teil des Terminals läuft weiter.
   vorbei) und `platzhalter_sichtbar` (ein Bedienweg mit Umfang N steht im Baum).
 
 Fälle für die Lücken L1 bis L11 (`rust/spec/VERTRAEGE.md` Abschnitt 4) kommen mit den Nachträgen der Verträge `zustandskern` und `dienst`.
+
+## Nachtrag 27.11.2026: Fälle zur Ereignisliste der Verbindung
+
+Grundlage: Vertrag `dienst`, „Nachtrag 27.11.2026: Ereignisse des Dienstes beim Verbinden“ (DI-E5). Die Seite zeigt einen Bedienweg der Lücken
+L3, L6 (Entscheiden) und L9 nur, wenn die `Ereignisliste` der Verbindung sein Ereignis nennt (`rust/spec/VERTRAEGE.md` OF8). Kein Fall wird gelöscht; je Satz
+kommen vier Fälle dazu, die Mutanten stehen in Abschnitt 6.
+
+| Fall | Prüfung | Regel |
+|---|---|---|
+| `se9_ereignisse_sitzung` | Liste mit den Ereignissen von L3, ohne `Freigabe`: das Menü der beendeten Sitzung (Umschalt+F10) nennt Fortsetzen, Namen ändern und Endgültig löschen; `Loeschen` mit `bestaetigung` erst nach der Rückfrage; ein Antrag steht ohne Knöpfe | OF8, SE2 |
+| `se9_ereignisse_freigabe` | Liste mit `Freigabe`: Freigeben und Ablehnen stehen am Antrag; `Freigabe` ohne `nachweis`; ohne L3 fehlen Fortsetzen und Endgültig löschen | OF8, SE6 |
+| `se9_ereignisse_ordner` | Liste mit `OrdnerLesen` und `InhaltSuchen`, Sitzung mit `ordner`: der Reiter Ordner steht und schickt `OrdnerLesen` mit leerem `pfad` | OF8 |
+| `se9_ereignisse_fehlen` | ohne Liste (Satz B) oder mit `fassung: 2` (Satz A): kein Bedienweg von L3, kein Reiter Ordner, keine Knöpfe am Antrag | OF8 |
+
+Die Rückfrage beim Löschen sagt: „Die Sitzung verschwindet aus der Liste. Ihr Gespräch wird mit entfernt. Arbeitsordner und Protokoll bleiben
+erhalten.“ (Vertrag `dienst` DI-E4).

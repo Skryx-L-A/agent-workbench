@@ -1,0 +1,149 @@
+{
+ "beschreibung": "ohne lauf: die Ereignisliste ist der erste Rahmen jeder Verbindung, vor den Nachrichten des Verbindens; über dienst.sock und lokal ohne Freigabe und ohne die Ereignisse des Laufs; Freigabe ergibt über dienst.sock freigabe_nur_lokal und lokal stelle_nicht_erreichbar; eine Art außerhalb der Liste ist art_nicht_erlaubt",
+ "datensatz": "A",
+ "ereignisliste": true,
+ "name": "die5_liste_einzel",
+ "regeln": [
+  "DI-E5",
+  "DI3",
+  "DI-L11"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c2",
+   "weg": "lokal"
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c2"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "anfragen": [
+     "a-1"
+    ],
+    "art": "Freigabe",
+    "entscheidung": "erteilen"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "OrdnerLesen"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "OrdnerLesen",
+    "pfad": "",
+    "sitzung": "s-alpha"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "anfragen": [
+     "a-1"
+    ],
+    "art": "Freigabe",
+    "begruendung": "x",
+    "entscheidung": "erteilen"
+   }
+  },
+  {
+   "ablehnungen_voll": true,
+   "art": "Zustand",
+   "betrachter": "c1"
+  },
+  {
+   "ablehnungen_voll": true,
+   "art": "Zustand",
+   "betrachter": "c2"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "fehler": "art_nicht_erlaubt"
+   },
+   "frist": 5,
+   "takt": 0
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c2"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   40,
+   10
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "ausgabewarte",
+    "4f4b",
+    "30"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "lokal": {
+   "kanal": "fenster"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}
