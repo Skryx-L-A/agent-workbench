@@ -14,6 +14,7 @@ fn muster(cloud: bool) -> Beschreibung {
             host: PathBuf::from("/srv/beispiel/zustand"),
             name: ".claude".to_owned(),
             fortsetzen: false,
+            gespraech: None,
         },
         heim: PathBuf::from("/srv/beispiel/heim"),
         such_socket: PathBuf::from("/srv/beispiel/s/such.sock"),
@@ -354,4 +355,30 @@ fn the_kind_of_the_state_folder_round_trips_and_has_two_words() {
         );
     }
     assert_eq!(lesen_mit(&geaendert(",\"art\":\"neu\"", "")), None);
+}
+
+#[test]
+fn the_folder_of_the_conversation_round_trips_as_a_path_or_null() {
+    let mut b = muster(false);
+    let text = beschreibung_schreiben(&b);
+    assert!(
+        text.contains("\"art\":\"neu\",\"gespraech\":null}"),
+        "{text}"
+    );
+    b.zustand.gespraech = Some(PathBuf::from("/srv/beispiel/gespraeche/s-1/zustand"));
+    b.zustand.fortsetzen = true;
+    let text = beschreibung_schreiben(&b);
+    assert!(
+        text.contains("\"gespraech\":\"/srv/beispiel/gespraeche/s-1/zustand\"}"),
+        "{text}"
+    );
+    assert_eq!(lesen_mit(&text), Some(b));
+    for falsch in ["\"gespraech\":1", "\"gespraech\":[]", "\"gespraech\":{}"] {
+        assert_eq!(
+            lesen_mit(&geaendert("\"gespraech\":null", falsch)),
+            None,
+            "{falsch}"
+        );
+    }
+    assert_eq!(lesen_mit(&geaendert(",\"gespraech\":null", "")), None);
 }

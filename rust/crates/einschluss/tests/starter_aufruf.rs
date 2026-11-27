@@ -44,6 +44,7 @@ fn ohne_arbeitsordner() -> String {
             host: PathBuf::from("/srv/beispiel/zustand"),
             name: ".zustand".to_owned(),
             fortsetzen: false,
+            gespraech: None,
         },
         heim: PathBuf::from("/srv/beispiel/heim"),
         such_socket: PathBuf::from("/srv/beispiel/such/s"),

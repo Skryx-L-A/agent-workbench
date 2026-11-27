@@ -108,6 +108,8 @@
     "fassung": 1,
     "harness": "copilot",
     "arbeitsordner": "/heim/beispiel/projekt",
+    "route": "cloud-beispiel",
+    "kunde": "k-beispiel",
     "kennung": "--yolo"
    }
   }

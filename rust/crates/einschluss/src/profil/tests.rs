@@ -18,6 +18,7 @@ fn muster() -> Beschreibung {
             host: PathBuf::from("/var/tmp/z/s-1"),
             name: ".claude".to_owned(),
             fortsetzen: false,
+            gespraech: None,
         },
         heim: PathBuf::from("/home/u"),
         such_socket: PathBuf::from("/var/tmp/k/s-1/such.sock"),
@@ -1256,5 +1257,145 @@ fn a_bind_of_dev_null_over_a_file_of_usr_makes_it_empty_inside_a_real_enclosure(
         laeuft(&versteckt, "/usr/bin/true"),
         Some(false),
         "it cannot be started with the bind"
+    );
+}
+
+#[test]
+fn only_the_conversation_is_bound_into_the_empty_state_folder() {
+    let mut b = pi_muster();
+    b.zustand.gespraech = Some(PathBuf::from("/var/lib/wb/gespraeche/s-1/zustand"));
+    let a = bauen(&b).expect("builds").argumente();
+    let heim = b.heim.to_string_lossy().into_owned();
+    let zustand = folge(&a, &format!("--bind /var/tmp/z/s-1 {heim}/.pi")).expect("state");
+    let gespraech = folge(
+        &a,
+        &format!("--bind /var/lib/wb/gespraeche/s-1/zustand {heim}/.pi/agent/sessions"),
+    )
+    .expect("conversation");
+    let datei = folge(
+        &a,
+        &format!("--ro-bind /var/tmp/d/s-1/models.json {heim}/.pi/agent/models.json"),
+    )
+    .expect("file");
+    assert!(zustand < gespraech && gespraech < datei, "{a:?}");
+    // exactly one bind of the conversation, and none without the field
+    assert_eq!(
+        a.iter()
+            .filter(|x| x.as_str() == "/var/lib/wb/gespraeche/s-1/zustand")
+            .count(),
+        1
+    );
+    let ohne = bauen(&pi_muster()).expect("builds").argumente();
+    assert!(!ohne.iter().any(|x| x.ends_with("/.pi/agent/sessions")));
+    // the place of each harness
+    for (h, name, ort) in [
+        ("claude", ".claude", "projects"),
+        ("copilot", ".copilot", "session-state"),
+    ] {
+        let mut c = muster();
+        c.harness = h.to_owned();
+        c.zustand.name = name.to_owned();
+        c.zustand.gespraech = Some(PathBuf::from("/var/lib/wb/gespraeche/s-1/zustand"));
+        if h == "copilot" {
+            c.modell_socket = None;
+        }
+        let a = bauen(&c).expect("builds").argumente();
+        assert!(
+            folge(
+                &a,
+                &format!("--bind /var/lib/wb/gespraeche/s-1/zustand {heim}/{name}/{ort}")
+            )
+            .is_some(),
+            "{h}"
+        );
+    }
+}
+
+#[test]
+fn the_conversation_folder_is_checked_like_the_state_folder() {
+    let ungueltig = |name: &'static str| Fehler::BeschreibungUngueltig(name);
+    let mit = |aendern: &dyn Fn(&mut Beschreibung)| {
+        let mut b = pi_muster();
+        b.zustand.gespraech = Some(PathBuf::from("/var/lib/wb/gespraeche/s-1/zustand"));
+        aendern(&mut b);
+        bauen(&b).map(|_| ())
+    };
+    assert_eq!(mit(&|_| {}), Ok(()));
+    assert_eq!(
+        mit(&|b| b.zustand.gespraech = Some("/var/lib/wb/../x".into())),
+        Err(ungueltig("zustand.gespraech"))
+    );
+    assert_eq!(
+        mit(&|b| b.zustand.gespraech = Some("relativ".into())),
+        Err(ungueltig("zustand.gespraech"))
+    );
+    // continuing needs the conversation; a harness without a place has none
+    assert_eq!(
+        mit(&|b| {
+            b.zustand.gespraech = None;
+            b.zustand.fortsetzen = true;
+        }),
+        Err(ungueltig("zustand.art fortsetzen without gespraech"))
+    );
+    assert_eq!(mit(&|b| b.zustand.fortsetzen = true), Ok(()));
+    let mut fremd = muster();
+    fremd.harness = "attrappe".into();
+    fremd.zustand.name = ".zustand".into();
+    fremd.zustand.gespraech = Some("/var/lib/wb/gespraeche/s-1/zustand".into());
+    assert_eq!(
+        bauen(&fremd).map(|_| ()),
+        Err(ungueltig("zustand.gespraech (the harness has no place)"))
+    );
+    // never a protected folder or one that holds it, never in or over the other folders
+    let schutz = Err(Fehler::Ueberlappt("mount overlaps a protected folder"));
+    assert_eq!(
+        mit(&|b| b.zustand.gespraech = Some("/var/lib/wb/protokoll".into())),
+        schutz
+    );
+    assert_eq!(
+        mit(&|b| b.zustand.gespraech = Some("/var/lib".into())),
+        schutz
+    );
+    let zustand = Err(Fehler::Ueberlappt("state folder overlaps another mount"));
+    assert_eq!(
+        mit(&|b| b.zustand.gespraech = Some("/srv/arbeit/p/g".into())),
+        zustand
+    );
+    assert_eq!(
+        mit(&|b| {
+            b.programmordner.push("/srv/werkzeug".into());
+            b.zustand.gespraech = Some("/srv/werkzeug/g".into());
+        }),
+        zustand
+    );
+    let beide = Err(Fehler::Ueberlappt(
+        "conversation folder overlaps the state folder",
+    ));
+    assert_eq!(
+        mit(&|b| b.zustand.gespraech = Some("/var/tmp/z/s-1".into())),
+        beide
+    );
+    assert_eq!(
+        mit(&|b| b.zustand.gespraech = Some("/var/tmp/z/s-1/g".into())),
+        beide
+    );
+    assert_eq!(
+        mit(&|b| b.zustand.gespraech = Some("/var/tmp/z".into())),
+        beide
+    );
+    // a read-only file never lies in it, and no secret segment
+    assert_eq!(
+        mit(&|b| b.zustand.gespraech = Some("/var/tmp/d".into())),
+        Err(Fehler::Ueberlappt(
+            "a read-only file lies in a folder the harness can write"
+        ))
+    );
+    assert_eq!(
+        mit(&|b| b.zustand.gespraech = Some("/var/tmp/.aws/g".into())),
+        Err(Fehler::Verboten("path with a secret segment"))
+    );
+    assert_eq!(
+        mit(&|b| b.zustand.gespraech = Some("/var/tmp/k/s-1".into())),
+        Err(Fehler::Ueberlappt("socket lies inside a mounted folder"))
     );
 }

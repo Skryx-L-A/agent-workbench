@@ -43,9 +43,10 @@ pub mod attrappe;
 
 pub use beschreibung::{
     Beschreibung, COPILOT_PLATZHALTER, Cloud, DATEI_ZIELE, Datei, ETC_DATEIEN, GAST_MODELL_SOCKET,
-    GAST_SUCH_SOCKET, GAST_WEITER, HARNESS_COPILOT, HARNESS_PI, LOKAL_PORT, ORDNERMARKE_PFAD,
-    PAKET_GAST_CACHE, PAKET_MARKE, PAKET_PLATTFORMEN, PI_UMGEBUNG, Paket, System, Umgebung,
-    Verteilung, WEITER_PORT, Zustand, fassung_gut, paket_pfade, paket_ziel,
+    GAST_SUCH_SOCKET, GAST_WEITER, GESPRAECH_ORTE, HARNESS_COPILOT, HARNESS_PI, LOKAL_PORT,
+    ORDNERMARKE_PFAD, PAKET_GAST_CACHE, PAKET_MARKE, PAKET_PLATTFORMEN, PI_UMGEBUNG, Paket, System,
+    Umgebung, Verteilung, WEITER_PORT, Zustand, fassung_gut, gespraech_ort, paket_pfade,
+    paket_ziel,
 };
 pub use eingabe::{EINGABE_MAX, beschreibung_lesen, beschreibung_schreiben};
 pub use fehler::Fehler;

@@ -432,6 +432,7 @@ fn sitzung_muster() -> Beschreibung {
             host: PathBuf::from("/var/tmp/z/s-1"),
             name: ".copilot".to_owned(),
             fortsetzen: false,
+            gespraech: None,
         },
         heim: PathBuf::from("/srv/beispiel/heim"),
         such_socket: PathBuf::from("/var/tmp/k/s-1/such.sock"),

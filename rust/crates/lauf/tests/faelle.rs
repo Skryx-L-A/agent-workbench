@@ -717,21 +717,35 @@ fn pruefen(name: &str, fall: &Value, soll: &Value) -> Result<(), String> {
                 format!("GESPRAECH {alt}\n"),
             );
         }
-        // the state folder of the harness comes from the conversation, at its place below the home
-        let name = match lage["start"]["harness"].as_str() {
-            Some("pi") => ".pi",
-            Some("copilot") => ".copilot",
+        // only the conversation comes from `gespraeche`, at its place inside the empty state folder of the session;
+        // the state folder itself is the one of the session folder, so nothing else of the predecessor is bound
+        // (contract 1, "Gespräch und Einstellungen im Zustandsordner")
+        let harness = lage["start"]["harness"].as_str().unwrap_or("");
+        let name = match harness {
+            "pi" => ".pi",
+            "copilot" => ".copilot",
             _ => ".claude",
         };
+        let ort = einschluss::gespraech_ort(harness).unwrap_or("");
         let quelle = s_text(&w.gespraeche.join(sitzung).join("zustand"));
-        let ziel = s_text(&w.heim.join(name));
+        let ziel = s_text(&w.heim.join(name).join(ort));
         let a = w.bwrap_aufrufe().last().cloned().unwrap_or_default().1;
         gleich(
-            "zustandsordner aus gespraeche gebunden",
+            "gespraech aus gespraeche gebunden",
             a.windows(3)
                 .any(|f| f[0] == "--bind" && f[1] == quelle && f[2] == ziel)
                 .to_string(),
             "true".to_owned(),
+        );
+        let zustand_quelle: Vec<&String> = a
+            .windows(3)
+            .filter(|f| f[0] == "--bind" && f[2] == s_text(&w.heim.join(name)))
+            .map(|f| &f[1])
+            .collect();
+        gleich(
+            "zustandsordner aus dem sitzungsordner",
+            format!("{zustand_quelle:?}"),
+            format!("{:?}", [s_text(&w.sitzungen.join(sitzung).join("zustand"))]),
         );
         // no work after the start: the conversations are exactly as the starter found them
         gleich(

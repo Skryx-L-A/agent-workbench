@@ -1,0 +1,6 @@
+{
+ "exit": 65,
+ "stderr": "lauf.fortsetzung_fremd: Gespraech gehoert zu anderem Harness, Ordner, Route oder Kunde",
+ "suche_gestartet": false,
+ "modellweg_gestartet": false
+}

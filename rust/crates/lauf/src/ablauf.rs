@@ -963,7 +963,8 @@ fn beschreibung_bauen(
     let system = einschluss::System::vom_host()
         .unwrap_or_else(|_| einschluss::System::usr_merge(rustix::process::geteuid().as_raw()));
     // the last thing before the description: a conversation is never made for a start that fails before this point
-    let (zustand, sitzungsoption) = gespraech_bereitstellen(lage, &sitzung, &mut kinder.umbenannt)?;
+    let (zustand, gespraech_ordner, sitzungsoption) =
+        gespraech_bereitstellen(lage, &sitzung, &mut kinder.umbenannt)?;
     Ok(einschluss::Beschreibung {
         harness: harness_name.to_owned(),
         arbeitsordner: lage.ordner.clone(),
@@ -972,6 +973,7 @@ fn beschreibung_bauen(
             host: zustand,
             name: harness::zustand_name(harness_name).to_owned(),
             fortsetzen: lage.fortsetzung.is_some(),
+            gespraech: gespraech_ordner,
         },
         heim: k.heim.clone(),
         such_socket: sockel.join("such.sock"),
@@ -1001,33 +1003,41 @@ fn beschreibung_bauen(
     })
 }
 
-/// Step 8, the conversation (contract 1, "Ablage des Gesprächs"). Returns the state folder of the harness and the
-/// session option of the start form.
+/// Step 8, the conversation (contract 1, "Ablage des Gesprächs"). Returns the state folder of the harness, the folder of
+/// the conversation and the session option of the start form.
 ///
+/// The state folder of the harness is always the empty `zustand` in the session folder, which the watcher removes at
+/// the end: what a session writes there as a setting never reaches a later one (contract 1, "Gespräch und
+/// Einstellungen im Zustandsordner", OPEN 34). Only the folder of the conversation passes on; the enclosure binds it at
+/// the place of the conversation of the harness inside the state folder.
 /// - Continuing: renames `gespraeche/<fortsetzung_von>` to `gespraeche/<sitzung>` without replacing (and records the
 ///   old key in `umbenannt`, so a later fault renames it back); the option to continue with the key of step 5d.
 /// - New start of version 2: makes `gespraeche/<sitzung>` exclusively with `gespraech.json` (a new UUID v4) and the
-///   empty state folder; `--session-id <uuid>`.
-/// - Start of version 1: makes `gespraeche/<sitzung>` with `gespraech.json` (`kennung` `null`) only; the state folder
-///   stays the empty `zustand` in the session folder, which the watcher removes at the end; no session option.
+///   empty folder of the conversation; `--session-id <uuid>`.
+/// - Start of version 1: makes `gespraeche/<sitzung>` with `gespraech.json` (`kennung` `null`) only; no folder of the
+///   conversation and no session option.
 fn gespraech_bereitstellen(
     lage: &Lage,
     sitzung_ordner: &Path,
     umbenannt: &mut Option<String>,
-) -> Result<(PathBuf, Vec<String>), Fehler> {
+) -> Result<(PathBuf, Option<PathBuf>, Vec<String>), Fehler> {
     let k = &lage.konfig;
     let start = &lage.start;
     let neu = |kennung: Option<String>| gespraech::Gespraech {
         harness: start.harness().to_owned(),
         arbeitsordner: start.arbeitsordner().to_owned(),
+        route: start.route().to_owned(),
+        kunde: start.kunde().map(str::to_owned),
         kennung,
     };
+    let zustand = sitzung_ordner.join("zustand");
+    dateien::ordner_neu(&zustand).map_err(|_| Fehler::Intern)?;
     if let Some(f) = &lage.fortsetzung {
         let optionen =
             harness::fortsetzen_optionen(start.harness(), &f.kennung).ok_or(Fehler::Intern)?;
         let ordner = gespraech::uebernehmen(&k.gespraeche, &f.alt, start.sitzung())?;
         *umbenannt = Some(f.alt.clone());
-        return Ok((ordner.join(gespraech::ZUSTAND), optionen));
+        return Ok((zustand, Some(ordner.join(gespraech::ZUSTAND)), optionen));
     }
     if start.fassung() == 2 {
         let kennung = gespraech::neue_kennung().ok_or(Fehler::Intern)?;
@@ -1038,14 +1048,13 @@ fn gespraech_bereitstellen(
             true,
         )?;
         return Ok((
-            ordner.join(gespraech::ZUSTAND),
+            zustand,
+            Some(ordner.join(gespraech::ZUSTAND)),
             harness::neu_optionen(&kennung),
         ));
     }
     gespraech::anlegen(&k.gespraeche, start.sitzung(), &neu(None), false)?;
-    let zustand = sitzung_ordner.join("zustand");
-    dateien::ordner_neu(&zustand).map_err(|_| Fehler::Intern)?;
-    Ok((zustand, Vec::new()))
+    Ok((zustand, None, Vec::new()))
 }
 
 #[cfg(test)]

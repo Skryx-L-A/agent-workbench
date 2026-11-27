@@ -212,8 +212,15 @@ impl Profil {
         }
         let leer = "state folder is not an empty own folder";
         eigener_ordner(&b.zustand.host, uid, leer)?;
-        if !b.zustand.fortsetzen && !ordner_leer(&b.zustand.host) {
+        if !ordner_leer(&b.zustand.host) {
             return Err(Fehler::QuelleUnbrauchbar(leer));
+        }
+        if let Some(g) = &b.zustand.gespraech {
+            let leer = "conversation folder is not an empty own folder";
+            eigener_ordner(g, uid, leer)?;
+            if !b.zustand.fortsetzen && !ordner_leer(g) {
+                return Err(Fehler::QuelleUnbrauchbar(leer));
+            }
         }
         let relay = b.cloud.iter().map(|c| &c.weiterreicher);
         for socket in std::iter::once(&b.such_socket)

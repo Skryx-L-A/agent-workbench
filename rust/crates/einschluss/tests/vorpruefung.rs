@@ -49,6 +49,7 @@ impl Welt {
                 host: zustand,
                 name: ".zustand".to_owned(),
                 fortsetzen: false,
+                gespraech: None,
             },
             heim: heim.clone(),
             such_socket: such_pfad.clone(),

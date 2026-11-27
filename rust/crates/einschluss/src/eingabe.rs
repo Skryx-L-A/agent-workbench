@@ -8,7 +8,7 @@
 //!
 //! ```text
 //! { "harness": str, "arbeitsordner": str, "programmordner": [str],
-//!   "zustand": {"host": str, "name": str, "art": "neu"|"fortsetzen"},
+//!   "zustand": {"host": str, "name": str, "art": "neu"|"fortsetzen", "gespraech": str|null},
 //!   "heim": str, "such_socket": str, "modell_socket": str|null, "lokal_weiter": str|null,
 //!   "cloud": null | {"weiterreicher": str, "weiter_programm": str, "bundle": str, "verteilung": "ubuntu"|"arch"},
 //!   "paket": null | {"quelle": str, "plattform": str, "fassung": str},
@@ -163,6 +163,7 @@ pub fn beschreibung_lesen(bytes: &[u8], system: System) -> Option<Beschreibung> 
             "fortsetzen" => true,
             _ => return None,
         },
+        gespraech: z.pfad_oder_null("gespraech").ok()?,
     };
     z.fertig()?;
     let heim = f.pfad("heim")?;
@@ -234,6 +235,23 @@ fn zustand_art(fortsetzen: bool) -> &'static str {
     if fortsetzen { "fortsetzen" } else { "neu" }
 }
 
+/// The object `zustand` of the text form.
+fn zustand_schreiben(s: &mut String, z: &Zustand) {
+    s.push('{');
+    feld(s, "host", true);
+    pfad_text(s, &z.host);
+    feld(s, "name", false);
+    text_schreiben(s, &z.name);
+    feld(s, "art", false);
+    text_schreiben(s, zustand_art(z.fortsetzen));
+    feld(s, "gespraech", false);
+    match &z.gespraech {
+        Some(p) => pfad_text(s, p),
+        None => s.push_str("null"),
+    }
+    s.push('}');
+}
+
 /// The text form of a description (the field `system` is left out: the starter reads the host itself). The caller
 /// puts these bytes on the descriptor of the starter.
 #[must_use]
@@ -246,14 +264,7 @@ pub fn beschreibung_schreiben(b: &Beschreibung) -> String {
     feld(&mut s, "programmordner", false);
     liste_schreiben(&mut s, &b.programmordner, |a, p| pfad_text(a, p));
     feld(&mut s, "zustand", false);
-    s.push('{');
-    feld(&mut s, "host", true);
-    pfad_text(&mut s, &b.zustand.host);
-    feld(&mut s, "name", false);
-    text_schreiben(&mut s, &b.zustand.name);
-    feld(&mut s, "art", false);
-    text_schreiben(&mut s, zustand_art(b.zustand.fortsetzen));
-    s.push('}');
+    zustand_schreiben(&mut s, &b.zustand);
     feld(&mut s, "heim", false);
     pfad_text(&mut s, &b.heim);
     feld(&mut s, "such_socket", false);

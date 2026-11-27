@@ -31,7 +31,7 @@ use std::process::Command;
 use crate::beschreibung::{
     Beschreibung, COPILOT_PLATZHALTER, Cloud, DATEI_ZIELE, GAST_MODELL_SOCKET, GAST_SUCH_SOCKET,
     GAST_WEITER, HARNESS_COPILOT, HARNESS_PI, LOKAL_PORT, ORDNERMARKE_PFAD, PI_UMGEBUNG,
-    WEITER_PORT,
+    WEITER_PORT, gespraech_ort,
 };
 use crate::fehler::Fehler;
 use crate::pfad::{gast_pfad, innerhalb, normal, ueberlappt};
@@ -319,6 +319,16 @@ fn felder_pruefen(b: &Beschreibung) -> Result<(), Fehler> {
     if !text_ok(name) || name == "." || name == ".." || name.contains('/') || name.len() > 255 {
         return Err(ungueltig("zustand.name"));
     }
+    match &b.zustand.gespraech {
+        Some(g) if !normal(g) => return Err(ungueltig("zustand.gespraech")),
+        Some(_) if gespraech_ort(&b.harness).is_none() => {
+            return Err(ungueltig("zustand.gespraech (the harness has no place)"));
+        }
+        None if b.zustand.fortsetzen => {
+            return Err(ungueltig("zustand.art fortsetzen without gespraech"));
+        }
+        _ => {}
+    }
     let u = &b.umgebung;
     if Path::new(&u.home) != b.heim.as_path() {
         return Err(ungueltig("umgebung.home"));
@@ -354,6 +364,7 @@ fn verbote_pruefen(b: &Beschreibung) -> Result<(), Fehler> {
     }
     let zustand_ziel = gast_pfad(&b.heim, &b.zustand.name);
     let mut quellen: Vec<&Path> = vec![&b.arbeitsordner, &b.zustand.host, &b.such_socket];
+    quellen.extend(b.zustand.gespraech.as_deref());
     quellen.extend(b.programmordner.iter().map(PathBuf::as_path));
     quellen.extend(b.modell_socket.as_deref());
     quellen.extend(b.lokal_weiter.as_deref());
@@ -381,39 +392,7 @@ fn verbote_pruefen(b: &Beschreibung) -> Result<(), Fehler> {
             ));
         }
     }
-    // folders: working folder, program folders, state folder. They must not meet a protected folder or each other
-    // on the host, and the state folder must not meet them inside. The state folder may lie below a protected folder
-    // (the conversations lie in the state folder of the installation, contract 1, Fassung 2): only its own tree is
-    // mounted. It is never a protected folder and never holds one.
-    let ordner: Vec<&Path> = std::iter::once(b.arbeitsordner.as_path())
-        .chain(b.programmordner.iter().map(PathBuf::as_path))
-        .chain(std::iter::once(b.zustand.host.as_path()))
-        .collect();
-    for schutz in &b.geschuetzt {
-        if ordner[..ordner.len() - 1]
-            .iter()
-            .any(|o| ueberlappt(o, schutz))
-            || innerhalb(schutz, &b.zustand.host)
-        {
-            return Err(Fehler::Ueberlappt("mount overlaps a protected folder"));
-        }
-    }
-    if ueberlappt(&b.arbeitsordner, &b.zustand.host)
-        || b.programmordner
-            .iter()
-            .any(|p| ueberlappt(p, &b.zustand.host))
-    {
-        return Err(Fehler::Ueberlappt("state folder overlaps another mount"));
-    }
-    if ueberlappt(&zustand_ziel, &b.arbeitsordner)
-        || b.programmordner
-            .iter()
-            .any(|p| ueberlappt(p, &zustand_ziel))
-    {
-        return Err(Fehler::Ueberlappt(
-            "state folder place overlaps another mount",
-        ));
-    }
+    let ordner = ordner_pruefen(b, &zustand_ziel)?;
     let sockel: Vec<&Path> = std::iter::once(b.such_socket.as_path())
         .chain(b.modell_socket.as_deref())
         .chain(b.cloud.iter().map(|c| c.weiterreicher.as_path()))
@@ -441,12 +420,56 @@ fn verbote_pruefen(b: &Beschreibung) -> Result<(), Fehler> {
     Ok(())
 }
 
+/// The folders: working folder, program folders, state folder and folder of the conversation. They must not meet a
+/// protected folder or each other on the host, and the state folder must not meet them inside. The two writable
+/// folders may lie below a protected folder (the conversations lie in the state folder of the installation, contract
+/// 1, Fassung 2): only their own trees are mounted. They are never a protected folder and never hold one. Returns
+/// the folders.
+fn ordner_pruefen<'a>(b: &'a Beschreibung, zustand_ziel: &Path) -> Result<Vec<&'a Path>, Fehler> {
+    let schreibbar: Vec<&Path> = std::iter::once(b.zustand.host.as_path())
+        .chain(b.zustand.gespraech.as_deref())
+        .collect();
+    let ordner: Vec<&Path> = std::iter::once(b.arbeitsordner.as_path())
+        .chain(b.programmordner.iter().map(PathBuf::as_path))
+        .chain(schreibbar.iter().copied())
+        .collect();
+    let feste = &ordner[..ordner.len() - schreibbar.len()];
+    for schutz in &b.geschuetzt {
+        if feste.iter().any(|o| ueberlappt(o, schutz))
+            || schreibbar.iter().any(|z| innerhalb(schutz, z))
+        {
+            return Err(Fehler::Ueberlappt("mount overlaps a protected folder"));
+        }
+    }
+    for z in &schreibbar {
+        if feste.iter().any(|o| ueberlappt(o, z)) {
+            return Err(Fehler::Ueberlappt("state folder overlaps another mount"));
+        }
+    }
+    if let Some(g) = &b.zustand.gespraech
+        && ueberlappt(g, &b.zustand.host)
+    {
+        return Err(Fehler::Ueberlappt(
+            "conversation folder overlaps the state folder",
+        ));
+    }
+    if ueberlappt(zustand_ziel, &b.arbeitsordner)
+        || b.programmordner.iter().any(|p| ueberlappt(p, zustand_ziel))
+    {
+        return Err(Fehler::Ueberlappt(
+            "state folder place overlaps another mount",
+        ));
+    }
+    Ok(ordner)
+}
+
 /// The package of the cloud harness is bound read-only; its folder on the host must lie apart from every folder the
-/// harness can write (working folder, state folder), from the program folders and from the protected folders, and its
+/// harness can write (working folder, state folder, folder of the conversation), from the program folders and from the protected folders, and its
 /// place inside must meet neither the working folder nor the place of the state folder.
 fn paket_lage_pruefen(b: &Beschreibung, quelle: &Path, ziel: &Path) -> Result<(), Fehler> {
     let neben = [b.arbeitsordner.as_path(), b.zustand.host.as_path()]
         .into_iter()
+        .chain(b.zustand.gespraech.as_deref())
         .chain(b.programmordner.iter().map(PathBuf::as_path))
         .chain(b.geschuetzt.iter().map(PathBuf::as_path));
     for o in neben {
@@ -469,7 +492,8 @@ fn paket_lage_pruefen(b: &Beschreibung, quelle: &Path, ziel: &Path) -> Result<()
 /// The read-only files (the forwarder of the local route, the configuration files) must not lie in a folder the
 /// harness can write: it could change them there on the host.
 fn schreibbar_pruefen(b: &Beschreibung) -> Result<(), Fehler> {
-    let schreibbar = [b.arbeitsordner.as_path(), b.zustand.host.as_path()];
+    let mut schreibbar = vec![b.arbeitsordner.as_path(), b.zustand.host.as_path()];
+    schreibbar.extend(b.zustand.gespraech.as_deref());
     let dateien = b
         .lokal_weiter
         .iter()
@@ -488,7 +512,8 @@ fn schreibbar_pruefen(b: &Beschreibung) -> Result<(), Fehler> {
 /// folder the agent can write (working folder, state folder) could be changed through that folder on the host. The
 /// files must lie outside both and must not be the folders themselves.
 fn cloud_pruefen(b: &Beschreibung, c: &Cloud) -> Result<(), Fehler> {
-    let schreibbar = [b.arbeitsordner.as_path(), b.zustand.host.as_path()];
+    let mut schreibbar = vec![b.arbeitsordner.as_path(), b.zustand.host.as_path()];
+    schreibbar.extend(b.zustand.gespraech.as_deref());
     for datei in [&c.weiter_programm, &c.bundle] {
         if schreibbar.iter().any(|o| ueberlappt(datei, o)) {
             return Err(Fehler::Ueberlappt(
@@ -567,6 +592,11 @@ fn kopf_bauen(b: &Beschreibung) -> Vec<String> {
     }
     let zustand_ziel = text(&gast_pfad(&b.heim, &b.zustand.name));
     zeichen(&mut k, &["--bind", &text(&b.zustand.host), &zustand_ziel]);
+    // only the conversation passes from one session to the next, at its fixed place inside the empty state folder
+    if let (Some(g), Some(ort)) = (&b.zustand.gespraech, gespraech_ort(&b.harness)) {
+        let ziel = text(&gast_pfad(&gast_pfad(&b.heim, &b.zustand.name), ort));
+        zeichen(&mut k, &["--bind", &text(g), &ziel]);
+    }
     let arbeit = text(&b.arbeitsordner);
     zeichen(&mut k, &["--bind", &arbeit, &arbeit]);
     zeichen(

@@ -186,7 +186,9 @@ impl Fehler {
             Fehler::FortsetzungUnmoeglich => "Gespraech nicht fortsetzbar",
             Fehler::FortsetzungFehlt => "Gespraech der Vorgaengersitzung fehlt",
             Fehler::FortsetzungKaputt => "Gespraech der Vorgaengersitzung unbrauchbar",
-            Fehler::FortsetzungFremd => "Gespraech gehoert zu anderem Harness oder Ordner",
+            Fehler::FortsetzungFremd => {
+                "Gespraech gehoert zu anderem Harness, Ordner, Route oder Kunde"
+            }
             Fehler::SitzungBelegt => "Sitzung wurde schon gestartet",
             Fehler::EinschlussFehlt => "Einschluss nicht verfuegbar",
             Fehler::SucheFehlt => "Suche nicht startbar",
@@ -387,7 +389,7 @@ mod tests {
             ),
             (
                 65,
-                "lauf.fortsetzung_fremd: Gespraech gehoert zu anderem Harness oder Ordner\n",
+                "lauf.fortsetzung_fremd: Gespraech gehoert zu anderem Harness, Ordner, Route oder Kunde\n",
             ),
         ];
         for (f, (exit, zeile)) in alle.iter().zip(soll) {

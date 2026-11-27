@@ -713,13 +713,14 @@ fn the_description_names_the_harness_its_folders_and_the_exit() {
     assert_eq!(
         std::fs::read_to_string(w.join("zustand/gespraeche/s-1/gespraech.json")).expect("file"),
         format!(
-            "{{\"fassung\":1,\"harness\":\"pi\",\"arbeitsordner\":\"{}\",\"kennung\":null}}\n",
+            "{{\"fassung\":1,\"harness\":\"pi\",\"arbeitsordner\":\"{}\",\"route\":\"lokal-beispiel\",\"kunde\":\"k-beispiel\",\"kennung\":null}}\n",
             w.join("arbeit").display()
         )
     );
     assert!(!w.join("zustand/gespraeche/s-1/zustand").exists());
     assert_eq!(b.zustand.host, w.join("sitzungen/s-1/zustand"));
     assert!(!b.zustand.fortsetzen);
+    assert_eq!(b.zustand.gespraech, None);
     assert!(!b.argv.iter().any(|a| a.starts_with("--session")));
     assert_eq!(angelegt.umbenannt, None);
     assert_eq!(b.harness, "pi");
@@ -848,7 +849,7 @@ fn gespraech_legen(w: &Path, sitzung: &str, kennung: &str) {
     schreiben(
         &o.join("gespraech.json"),
         &format!(
-            r#"{{"fassung":1,"harness":"pi","arbeitsordner":"{}","kennung":{kennung}}}"#,
+            r#"{{"fassung":1,"harness":"pi","arbeitsordner":"{}","route":"lokal-beispiel","kunde":"k-beispiel","kennung":{kennung}}}"#,
             w.join("arbeit").display()
         ),
         0o600,
@@ -888,6 +889,102 @@ fn step_5d_ends_a_start_that_continues_without_a_conversation_with_66() {
     );
     assert!(w.join("zustand/gespraeche/s-1").is_dir());
     assert!(!w.join("zustand/gespraeche/s-4").exists());
+}
+
+#[test]
+fn continuing_binds_only_the_conversation_and_never_the_settings_of_the_predecessor() {
+    let o = crate::testhilfe::Ordner::neu("fortsetzen-dicht");
+    let w = &o.0;
+    let konfig = welt(w);
+    let kennung = "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b";
+    gespraech_legen(w, "s-1", &format!("\"{kennung}\""));
+    // the predecessor left its conversation and, at the place of a setting, a file of its own
+    let alt = w.join("zustand/gespraeche/s-1/zustand");
+    ordner_0700(&alt);
+    schreiben(&alt.join("verlauf"), "GESPRAECH", 0o600);
+    schreiben(&alt.join("settings.json"), "ABGELEGT", 0o600);
+    let start = w.join("start/start.json");
+    schreiben(&start, &start_text_f2(w, r#""s-1""#), 0o600);
+    let args = [start.into_os_string()];
+    let lage = pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich()))
+        .unwrap_or_else(|f| panic!("{f:?}"));
+    let umgebung = Umgebung {
+        namen: Vec::new(),
+        term: Some("xterm".to_owned()),
+        xdg_cache: None,
+    };
+    let mut angelegt = Kinder::default();
+    let b = beschreibung_bauen(
+        &lage,
+        &umgebung,
+        &w.join("laufzeit/s-4"),
+        None,
+        None,
+        None,
+        &mut angelegt,
+    )
+    .expect("description");
+    // the state folder of the harness is the empty one of the session folder, as for a new start
+    assert_eq!(b.zustand.host, w.join("sitzungen/s-4/zustand"));
+    assert!(
+        std::fs::read_dir(&b.zustand.host)
+            .expect("list")
+            .next()
+            .is_none()
+    );
+    assert!(b.zustand.fortsetzen);
+    // only the folder of the conversation comes from `gespraeche`, now under the new session
+    let neu = w.join("zustand/gespraeche/s-4/zustand");
+    assert_eq!(b.zustand.gespraech, Some(neu.clone()));
+    assert_eq!(
+        std::fs::read_to_string(neu.join("verlauf")).expect("conversation"),
+        "GESPRAECH"
+    );
+    assert_eq!(angelegt.umbenannt, Some("s-1".to_owned()));
+    assert_eq!(&b.argv[b.argv.len() - 2..], ["--session", kennung]);
+    // the configuration file of the installation stays the one of the session folder, read-only
+    assert_eq!(
+        b.dateien
+            .iter()
+            .map(|d| d.quelle.clone())
+            .collect::<Vec<_>>(),
+        [w.join("sitzungen/s-4/konfig/models.json")]
+    );
+}
+
+#[test]
+fn a_new_start_of_version_2_keeps_its_conversation_apart_from_the_state_folder() {
+    let o = crate::testhilfe::Ordner::neu("neu-dicht");
+    let w = &o.0;
+    let konfig = welt(w);
+    let start = w.join("start/start.json");
+    schreiben(&start, &start_text_f2(w, "null"), 0o600);
+    let args = [start.into_os_string()];
+    let l = pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich()))
+        .unwrap_or_else(|f| panic!("{f:?}"));
+    let umgebung = Umgebung {
+        namen: Vec::new(),
+        term: None,
+        xdg_cache: None,
+    };
+    let mut angelegt = Kinder::default();
+    let b = beschreibung_bauen(
+        &l,
+        &umgebung,
+        &w.join("laufzeit/s-4"),
+        None,
+        None,
+        None,
+        &mut angelegt,
+    )
+    .expect("description");
+    assert_eq!(b.zustand.host, w.join("sitzungen/s-4/zustand"));
+    assert!(!b.zustand.fortsetzen);
+    assert_eq!(
+        b.zustand.gespraech,
+        Some(w.join("zustand/gespraeche/s-4/zustand"))
+    );
+    assert!(w.join("zustand/gespraeche/s-4/zustand").is_dir());
 }
 
 #[cfg(feature = "pruefbau")]

@@ -390,35 +390,47 @@ und Fortsetzen ohne Konto gemessen am 27.11.2026, siehe „Messung von Start und
   bleibt bei einem Element; nur diese Form ist ohne Blick auf die übrigen Optionen eindeutig.
 - Die Harness-Tabelle bekommt damit eine Spalte „Fortsetzen“. Ein späterer Harness ohne Option zum Fortsetzen trägt dort „keine“.
 
-**Ablage des Gesprächs.** Der Zustandsordner des Harness (`.claude`, `.copilot` oder `.pi` unter `<heim>`) liegt in Fassung 2 nicht mehr im
-Sitzungsordner `sitzungen/<sitzung>`, den der Wächter am Ende entfernt. Er liegt in `<zustandsordner>/gespraeche/<sitzung>/` im
-Zustandsordner der Installation (Ordner 0700, eigene Kennung). Darin stehen `gespraech.json` (0600) und der Zustandsordner des Harness
-als Ordner `zustand` (0700).
+**Ablage des Gesprächs.** Das Gespräch einer Sitzung der Fassung 2 liegt in `<zustandsordner>/gespraeche/<sitzung>/` im Zustandsordner der
+Installation (Ordner 0700, eigene Kennung). Darin stehen `gespraech.json` (0600) und der Ordner `zustand` (0700). `zustand` trägt nur
+den Gesprächsort des Harness, nie seinen ganzen Zustandsordner (Abschnitt „Gespräch und Einstellungen im Zustandsordner“, Entscheid
+vom 27.11.2026). Der Zustandsordner des Harness (`.claude`, `.copilot` oder `.pi` unter `<heim>`) ist bei jedem Start der leere Ordner
+`sitzungen/<sitzung>/zustand`, den der Wächter am Ende mit dem Sitzungsordner entfernt; das gilt für Fassung 1 und 2, für einen neuen
+Start und für das Fortsetzen.
 
 - **Ort.** Den Ordner `gespraeche` nennt der Schlüssel `gespraeche` der eigenen Konfiguration (Abschnitt „Eigene Konfiguration“), nie
   die Startdatei, die Umgebung oder der Agent. Das Paket setzt `/var/lib/werkbank/<nutzer>/gespraeche`, also `<zustandsordner>/gespraeche`
   (Projektentscheid, 27.11.2026). Fehlt der Ordner beim Start, legt „Lauf starten“ ihn in Schritt 8 mit Modus 0700 an; sein
   Elternordner muss bestehen. Ist er ein Verweis, kein Ordner, fremd oder nicht 0700, endet Schritt 8 mit 70, `lauf.intern`, und
   Schritt 5d mit 65, `lauf.fortsetzung_kaputt`; fehlt er beim Fortsetzen, ist das 66, `lauf.fortsetzung_fehlt`.
-- **Einschluss.** Die Beschreibung des Einschlusses trägt am Zustandsordner das Feld `art`: `neu` (der Ordner ist leer, wie bisher
-  geprüft) oder `fortsetzen` (der Ordner trägt das Gespräch der Vorgängersitzung und darf Einträge haben). Der Zustandsordner darf
-  unter einem geschützten Ordner liegen, denn `gespraeche` liegt im Zustandsordner der Installation und eingebunden wird nur sein
-  eigener Baum. Er ist aber nie selbst ein geschützter Ordner und enthält keinen. `gespraeche` steht selbst in `geschuetzt`, so dass
+- **Einschluss.** Die Beschreibung des Einschlusses trägt am Zustandsordner die Felder `art` und `gespraech`. `gespraech` ist der Ordner
+  `gespraeche/<sitzung>/zustand` (Fassung 2) oder `null` (Fassung 1). Der Einschluss bindet ihn schreibbar an den festen Gesprächsort
+  des Harness im Zustandsordner (`GESPRAECH_ORTE` in `rust/crates/einschluss/src/beschreibung.rs`). `art` ist `neu` (der Gesprächsordner
+  ist leer) oder `fortsetzen` (er trägt das Gespräch der Vorgängersitzung und darf Einträge haben; nur mit `gespraech`). Der
+  Zustandsordner selbst ist immer leer, auch bei `fortsetzen` (`rust/crates/einschluss/src/vorpruefung.rs`, `quellen_pruefen`). Der
+  Gesprächsordner darf wie der Zustandsordner unter einem geschützten Ordner liegen, denn `gespraeche` liegt im Zustandsordner der
+  Installation und eingebunden wird nur sein eigener Baum. Beide sind aber nie selbst ein geschützter Ordner und enthalten keinen; sie
+  überlappen einander nicht und keinen anderen eingebundenen Ordner. `gespraeche` steht selbst in `geschuetzt`, so dass
   kein Arbeitsordner und kein Programmordner das Gespräch einer anderen Sitzung einbindet (`rust/crates/einschluss/src/profil.rs`,
   `verbote_pruefen`; Projektentscheid, 27.11.2026).
 
 `gespraech.json` ist geschlossen und hat genau diese Form:
 
 ```json
-{"fassung": 1, "harness": "copilot", "arbeitsordner": "/heim/beispiel/projekt", "kennung": "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b"}
+{"fassung": 1, "harness": "copilot", "arbeitsordner": "/heim/beispiel/projekt", "route": "cloud-beispiel", "kunde": "k-beispiel", "kennung": "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b"}
 ```
+
+- `harness`, `arbeitsordner` und `route` sind Texte, `kunde` ist ein Text oder `null`. „Lauf starten“ schreibt die vier Werte genau so,
+  wie sie in der Startdatei stehen; `kunde` ist `null` wie in der Startdatei (Projektentscheid, 27.11.2026).
+- `fassung` bleibt 1, auch mit `route` und `kunde`, und es gibt keinen Übergang von der Form ohne diese Felder. Grund: Es gibt noch keine
+  ausgelieferte Installation mit dieser Datei. Eine Datei ohne `route` oder ohne `kunde` ist nicht die geschlossene Form und damit 65,
+  `lauf.fortsetzung_kaputt` (Schritt 5d.3).
 
 - `kennung` passt auf `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$` oder ist `null`. `null` steht nur im
   Gespräch einer Sitzung der Fassung 1 (Absatz „Vorgänger der Fassung 1“). So gelangt nie ein Text, der wie eine Option aussieht, aus
   der Datei in den argv.
 - Der Wächter und das Programm entfernen `gespraeche/<sitzung>` nie, auch nicht nach einem Fehler; ein Lauf, der vor dem exec scheitert,
   legt den Ordner gar nicht erst an. Wer die Ordner räumt, regelt der Absatz „Räumen von `gespraeche/`“ unten.
-- Der Einschluss bindet den Zustandsordner des Harness aus `gespraeche/<sitzung>/` an seinen Platz unter `<heim>`; `gespraech.json` selbst
+- Der Einschluss bindet `gespraeche/<sitzung>/zustand` an den Gesprächsort des Harness unter `<heim>/<name>`; `gespraech.json` selbst
   ist im Einschluss nicht sichtbar.
 - Der Dienst prüft `gespraeche/` beim Vergeben einer Kennung nicht (Vertrag `dienst`, DI12 Punkt 15). `gespraeche/<sitzung>` legt nur
   „Lauf starten“ derselben Sitzung an. Besteht der Ordner schon, gab es einen früheren Start derselben Kennung oder einen Eingriff von
@@ -440,7 +452,12 @@ als Ordner `zustand` (0700).
      Form oben: sonst 65, `lauf.fortsetzung_kaputt`.
   3a. `kennung` ist nicht `null`: sonst 69, `lauf.fortsetzung_unmoeglich`. Der Vorgänger ist eine Sitzung der Fassung 1 und hat kein
      Gespräch, das ein Harness fortsetzen kann.
-  4. `harness` und `arbeitsordner` in `gespraech.json` sind genau gleich denen der Startdatei: sonst 65, `lauf.fortsetzung_fremd`.
+  4. `harness`, `arbeitsordner`, `route` und `kunde` in `gespraech.json` sind genau gleich denen der Startdatei: sonst 65,
+     `lauf.fortsetzung_fremd`. `kunde` `null` ist nur gleich `null`. Es gibt keinen Vergleich von Klassen, nur Gleichheit
+     (Projektentscheid, 27.11.2026). Grund: Der Harness legt die Art der Route fest, ein Wechsel zwischen lokal und Cloud ist darum
+     schon ausgeschlossen. Ohne diesen Vergleich könnte eine Sitzung aber das Gespräch einer anderen Route derselben Art mit anderer
+     Klasse fortsetzen, etwa ein Gespräch der Klasse `intern` auf einer Route der Klasse `oeffentlich`, oder das Gespräch eines
+     anderen Kunden.
   5. `gespraeche/<sitzung>` besteht noch nicht: sonst 73, `lauf.sitzung_belegt`.
 - **8** (Fassung 2): Bei einem neuen Start legt das Programm `gespraeche/<sitzung>` exklusiv an (besteht er, 73, `lauf.sitzung_belegt`),
   schreibt `gespraech.json` mit `O_EXCL` und hängt `--session-id <uuid>` an. Beim Fortsetzen benennt es `gespraeche/<fortsetzung_von>` in
@@ -467,8 +484,8 @@ hält seinen Zustandsordner im Sitzungsordner, den der Wächter am Ende entfernt
 Start-Struktur der Fassung 1 schreibt, ändert daran nichts. „Lauf starten“ erkennt den Vorgänger so:
 
 - Bei jedem Start der Fassung 1 legt das Programm in Schritt 8 `gespraeche/<sitzung>/` exklusiv an (Ordner 0700). Darin schreibt es nur
-  `gespraech.json` (0600, `O_EXCL`) mit `"kennung": null`, Harness und Arbeitsordner der Startdatei. Einen Zustandsordner des Harness legt
-  es dort nicht ab. Besteht der Ordner schon, endet der Start mit 73, `lauf.sitzung_belegt`. Das ist die einzige Änderung am Ablauf der
+  `gespraech.json` (0600, `O_EXCL`) mit `"kennung": null`, Harness, Arbeitsordner, Route und Kunde der Startdatei. Einen Ordner
+  `zustand` legt es dort nicht ab. Besteht der Ordner schon, endet der Start mit 73, `lauf.sitzung_belegt`. Das ist die einzige Änderung am Ablauf der
   Fassung 1; die Start-Struktur der Fassung 1, ihre Form und ihre Codes bleiben gleich.
 - Beim Fortsetzen findet Schritt 5d.3a `"kennung": null` und endet mit `lauf.fortsetzung_unmoeglich`. Das Gespräch bleibt unverändert
   liegen und wird nicht umbenannt.
@@ -488,8 +505,12 @@ der ausgelieferte Bau nicht kennt). Neue Felder der Erwartung: `gespraeche_danac
 mit `gespraech.json` 0600 dieses Inhalts, ohne `zustand` bei `"kennung": null`) und `zustandsordner_beim_start` (`leer` oder `gespraech
 der vorgaengersitzung`, gelesen aus einer Kopie von `gespraeche`, die das aufzeichnende `bwrap` bei seinem Start zieht).
 `<harness-kennung>` steht für die gewürfelte UUID; sie ist dieselbe in `gespraech.json` und hinter `--session-id`. Den Vorgänger der
-Fassung 1 prüft `aufruf-f2-fortsetzen-vorgaenger-fassung-1`. Zu jedem Fall mit `zustandsordner_beim_start` prüft der Läufer
-zusätzlich: Der Einschluss bindet `gespraeche/<sitzung>/zustand` an `<heim>/<name>`, und `gespraeche` ist nach dem Ende des Harness
+Fassung 1 prüft `aufruf-f2-fortsetzen-vorgaenger-fassung-1`. Schritt 5d.4 mit Route und Kunde prüfen
+`aufruf-f2-fortsetzen-andere-route` (Cloud-Route der Klasse `intern` gegen eine der Klasse `oeffentlich`),
+`aufruf-f2-fortsetzen-anderer-kunde`, `aufruf-f2-fortsetzen-kunde-null-im-gespraech` und `aufruf-f2-fortsetzen-kunde-null-im-start`, die
+Form ohne `route` prüft `aufruf-f2-fortsetzen-gespraech-ohne-route` (Projektentscheid, 27.11.2026). Zu jedem Fall mit `zustandsordner_beim_start` prüft der Läufer
+zusätzlich: Der Einschluss bindet `gespraeche/<sitzung>/zustand` an den Gesprächsort `<heim>/<name>/<ort>`, der Zustandsordner
+`<heim>/<name>` ist `sitzungen/<sitzung>/zustand`, und `gespraeche` ist nach dem Ende des Harness
 genau so, wie das `bwrap` es beim Start fand (Zusage 4). Ein Fall mit `exit` und `gespraeche` lässt die Gespräche unverändert.
 
 ### Räumen von `gespraeche/` (Entscheid des Betreibers, 27.11.2026)
@@ -565,6 +586,87 @@ Folgen für diesen Vertrag:
 Ohne Konto nicht messbar oder nicht gemessen (OPEN 31): bei copilot das Fortsetzen einer Sitzung mit mindestens einem Zug, auch nach dem
 Umbenennen; ein echter Modellaufruf bei allen drei; der Start im Einschluss mit dem eingebundenen Zustandsordner aus
 `gespraeche/<sitzung>/`; claude im Pseudoterminal (nach 20 s kein Bild, Ursache nicht geklärt).
+
+### Gespräch und Einstellungen im Zustandsordner (Projektentscheid, 27.11.2026, schließt OPEN 34)
+
+**Entscheid.** Aus dem Zustandsordner der Vorgängersitzung übernimmt „Lauf starten“ nur das Gespräch, nie die Konfiguration des
+Harness. Grund: Ein Agent darf nichts ablegen, das in einer späteren Sitzung als Einstellung wirkt (Hooks, Umgebung, Modell,
+Endpunkt, MCP-Server). Die Einstellungen kommen bei jedem Start neu aus der Installation, auch beim Fortsetzen. Was die Installation
+mitgibt (`.pi/agent/models.json`, `.copilot/wb-mcp.json`), ist für den Harness schreibgeschützt, wie in der Startform des neuen Starts.
+
+**Gewählter Weg: Bindung, keine Kopie.** Der Zustandsordner des Harness ist bei jedem Start der leere Ordner
+`sitzungen/<sitzung>/zustand`, den der Wächter am Ende entfernt. Nur der Gesprächsort des Harness kommt aus
+`gespraeche/<sitzung>/zustand` und wird schreibbar an genau diese Stelle im Zustandsordner gebunden (Feld `zustand.gespraech` der
+Beschreibung). Die Dateien der Installation bindet der Einschluss wie bisher nur lesend darüber (`dateien`). Grund nach dem Code:
+- Die Bindung braucht keinen neuen Weg. Der Einschluss bindet schon heute den Zustandsordner und darüber die Dateien der
+  Installation nur lesend; dazu kommt eine Bindung mit festem Ziel je Harness (`GESPRAECH_ORTE` in
+  `rust/crates/einschluss/src/beschreibung.rs`, `kopf_bauen` in `profil.rs`).
+- Eine Kopie vor dem Einschluss müsste im Zustandsordner der Vorgängersitzung jede Einstellungsdatei erkennen und entfernen oder
+  überschreiben. Das ist eine Sperrliste: Jede neue Fassung eines Harness kann einen weiteren Pfad lesen, den die Liste nicht kennt. Und
+  „Lauf starten“ entfernt in `gespraeche/` nie etwas (Zusage 4).
+- Die Bindung ist eine Erlaubnisliste: Nichts außer dem Gesprächsort gelangt von einer Sitzung in die nächste. Was eine Sitzung als
+  Einstellung schreibt, liegt im Zustandsordner ihres Sitzungsordners und verschwindet mit ihm.
+- Beim neuen Start der Fassung 2 gilt dasselbe: Das Gespräch liegt von Anfang an nur am Gesprächsort. `gespraeche/<sitzung>/zustand`
+  enthält darum nie eine Einstellungsdatei an ihrem Platz.
+
+Innerhalb derselben Sitzung kann der Harness Einstellungen in seinen Zustandsordner schreiben, wie beim neuen Start bisher. Sie wirken
+höchstens bis zum Ende dieser Sitzung.
+
+| harness | Gesprächsort im Zustandsordner (`zustand.gespraech`) | Zustandsordner |
+|---|---|---|
+| `claude` | `.claude/projects` | `sitzungen/<sitzung>/zustand` an `<heim>/.claude` |
+| `copilot` | `.copilot/session-state` | `sitzungen/<sitzung>/zustand` an `<heim>/.copilot` |
+| `pi` | `.pi/agent/sessions` | `sitzungen/<sitzung>/zustand` an `<heim>/.pi` |
+
+**Messung (27.11.2026, ohne Konto).** Aufbau wie im Abschnitt „Messung von Start und Fortsetzen“: Wegwerf-VM auf dem
+Linux-Baurechner (Ubuntu 26.04.1, Kern 7.0.0-43, frisches Cloud-Abbild, eigene Platte, Drossel 20 Mbit/s), `nft` sperrt jeden neuen
+ausgehenden Verkehr außer Loopback (Gegenprobe `curl`, rc 28). Harnesses aus npm: `@anthropic-ai/claude-code@2.1.332` (`claude
+--version`: `2.1.332 (Claude Code)`), `@github/copilot@1.0.116` (`GitHub Copilot CLI 1.0.116.`), `@earendil-works/pi-coding-agent@1.6.1`
+(`1.6.1`), Node 22.22.1, strace 6.19. Kein Konto, kein Login, kein Token. Je Harness ein frisches `HOME` und der Arbeitsordner
+`<projekt>`; claude und pi gegen die Modell-Attrappe auf `127.0.0.1:18080`, copilot ohne Anmeldung. Je Lauf: Dateiliste unter `HOME` vor
+und nach dem Start (`find -printf '%y %m %s %P'`) und `strace -f` der Datei- und Statusaufrufe (`openat`, `mkdir`, `rename`, `unlink`,
+`statx`, `newfstatat`, `access` und weitere). Befehle: `claude --model m -p --session-id <U> hallo`, danach `--resume <U>`; `pi --provider
+wb-lokal --model m -p --session-id <U> hallo`, danach `--session <U>`; `copilot --model claude-sonnet-5.5 --disable-builtin-mcps
+--additional-mcp-config @<heim>/.copilot/wb-mcp.json -p hallo --session-id <U>`, danach `--resume=<U>`, dazu einmal im Pseudoterminal.
+Eine Zeile zählt nur mit einem Aufruf auf genau diesen Pfad.
+
+Einstellungen, also Pfade, die ein Start liest oder auf Bestehen prüft und die nicht das Gespräch sind (gemessen):
+
+| harness | gelesen oder geprüft beim Start (Einstellungen, Anweisungen, Erweiterungen, Anmeldung) | beim Start geschrieben |
+|---|---|---|
+| `claude` | `.claude/settings.json`, `.claude/.config.json`, `.claude/.credentials.json`, `.claude/CLAUDE.md`, `.claude/agents`, `.claude/commands`, `.claude/rules`, `.claude/skills`, `.claude/output-styles`, `.claude/themes`, `.claude/workflows`, `.claude/plugins/` (`installed_plugins.json`, `installed_plugins_v2.json`, `known_marketplaces.json`, `flagged-plugins.json`, `cache`, `store/`, `data/`), `.claude/dev-mods/<U>`, `.claude/state/` (`hybrid-settings.json`, `unattended-serving-consent.json` und weitere), `.claude/cache/model-catalog/masked-ids.json`, `.claude/daemon/` und `.claude/daemon.json`, `.claude/mcp-needs-auth-cache.json` | `.claude/plugins/store/<eintrag>.json`, `.claude/sessions/<pid>.json`, `.claude/backups/`, `.claude/.last-cleanup`; außerhalb des Zustandsordners `<heim>/.claude.json` (im tmpfs des Heims) |
+| `copilot` | `.copilot/config.json`, `.copilot/settings.json`, `.copilot/hooks`, `.copilot/providers.json`, `.copilot/permissions-config.json`, `.copilot/installed-plugins`, `.copilot/pkg/linux-x64`, `.copilot/pkg/universal`, `.copilot/logs/extensions`, `.copilot/open-sessions-state.json`, `.copilot/wb-mcp.json` (aus der Installation) | `.copilot/config.json` (legt sie an und schreibt sie neu, auch über eine abgelegte), `.copilot/logs/`, `.copilot/settings.json.lock` |
+| `pi` | `.pi/agent/settings.json`, `.pi/agent/models.json` (aus der Installation), `.pi/agent/auth.json`, `.pi/agent/oauth.json`, `.pi/agent/models-store.json`, `.pi/agent/trust.json`, `.pi/agent/mcp.json`, `.pi/agent/keybindings.json`, `.pi/agent/AGENTS.md`, `.pi/agent/AGENTS.override.md`, `.pi/agent/CLAUDE.md`, `.pi/agent/SYSTEM.md`, `.pi/agent/APPEND_SYSTEM.md`, `.pi/agent/extensions`, `.pi/agent/hooks`, `.pi/agent/commands`, `.pi/agent/prompts`, `.pi/agent/skills`, `.pi/agent/themes`, `.pi/agent/tools` | `.pi/agent/auth.json`, `.pi/agent/models-store.json` (je 2 Byte) |
+
+Gespräch (gemessen): Diese Pfade schreibt der Start der Sitzung `<U>`, und das Fortsetzen liest sie wieder.
+
+| harness | Gespräch | darin außerdem gelesen |
+|---|---|---|
+| `claude` | `.claude/projects/<projekt-name>/<U>.jsonl` (wächst beim Fortsetzen) | `.claude/projects/<projekt-name>/<U>/` (`archived.json`, `remote-agents`), `.claude/projects/<projekt-name>/memory/` mit `MEMORY.md` (siehe OPEN 36), `cloud-snapshots`, `tiny_memory` |
+| `copilot` | `.copilot/session-state/<U>/` (`workspace.yaml`, `checkpoints/index.md`, `files/`, `research/`, Sperren `inuse.*`) | `.copilot/session-state/<U>/events.jsonl`, `plan.md`, `rewind-file-snapshots/`, `detached-shells`, `.copilot/session-state/.session-operation-locks/` |
+| `pi` | `.pi/agent/sessions/--<projekt-name>--/<zeit>_<U>.jsonl` (wächst beim Fortsetzen) | nichts sonst unter `sessions` |
+
+Kein Pfad der ersten Tabelle liegt unter einem Gesprächsort.
+
+**Wirkung einer abgelegten Datei (gemessen, ohne Einschluss).**
+- claude: Eine abgelegte `.claude/settings.json` mit `{"env":{"ANTHROPIC_BASE_URL":"http://127.0.0.1:18089"}}` lenkt das Fortsetzen
+  um. `--resume <U>` endet nach 60 s durch die Frist (rc 124) ohne Ausgabe, und die Attrappe bekommt keine Anfrage; die zwei Läufe davor
+  bekamen „ok“, zusammen 2 Anfragen. Die Datei wirkt also als Endpunkt.
+- pi: Eine abgelegte `.pi/agent/settings.json` liest pi beim Fortsetzen (`openat` ok, 49 Byte).
+- copilot: Eine abgelegte `.copilot/config.json` liest copilot und schreibt sie neu (41 auf 178 Byte).
+
+**Wirkung im Einschluss (Fall, Linux, echtes `bwrap`).** `rust/crates/einschluss/tests/starter_programm.rs`,
+`a_setting_left_by_the_predecessor_has_no_effect_when_the_session_continues`: Der Gesprächsordner der Vorgängersitzung trägt neben dem
+Gespräch eine `settings.json` und eine `agent/models.json` mit eigenem Inhalt. Das Fortsetzen von `pi` liest an `.pi/agent/models.json`
+die Datei der Installation und kann sie nicht schreiben. Unter `.pi/agent` liegen nur `models.json` und `sessions`, unter `.pi` nur
+`agent`. Das Gespräch liegt unter `.pi/agent/sessions` und ist schreibbar. Dazu `rust/crates/lauf/src/ablauf/tests.rs`,
+`continuing_binds_only_the_conversation_and_never_the_settings_of_the_predecessor`, und im Falltest die Prüfungen
+„gespraech aus gespraeche gebunden“ und „zustandsordner aus dem sitzungsordner“ zu jedem Fall mit `zustandsordner_beim_start`.
+
+Ohne Anmeldung nicht messbar (OPEN 37): copilot endet ohne Konto vor dem ersten Zug (rc 1, „No authentication information found.“);
+mit dem Platzhalter als Schlüssel endet es nach 60 s durch die Frist. Welche Pfade copilot mit Anmeldung zusätzlich liest (etwa eine
+MCP-Konfiguration, Agenten, Anweisungen), ist darum nicht gemessen. Ebenso nicht gemessen: claude und pi im interaktiven Start
+(gemessen ist nur `-p`) und ein echter Modellaufruf.
 
 ## Schnittstelle der Prüfstelle
 
@@ -664,7 +766,7 @@ verbietet den Start), 78 `EX_CONFIG` (auch die eigene Konfiguration fehlt oder i
 | `lauf.fortsetzung_unmoeglich` | `Gespraech nicht fortsetzbar` |
 | `lauf.fortsetzung_fehlt` | `Gespraech der Vorgaengersitzung fehlt` |
 | `lauf.fortsetzung_kaputt` | `Gespraech der Vorgaengersitzung unbrauchbar` |
-| `lauf.fortsetzung_fremd` | `Gespraech gehoert zu anderem Harness oder Ordner` |
+| `lauf.fortsetzung_fremd` | `Gespraech gehoert zu anderem Harness, Ordner, Route oder Kunde` |
 | `lauf.einschluss_fehlt` | `Einschluss nicht verfuegbar` |
 | `lauf.suche_fehlt` | `Suche nicht startbar` |
 | `lauf.suche_nicht_bereit` | `Suche nicht bereit` |
@@ -1596,7 +1698,7 @@ normal, also ohne `.`, `..`, doppelten Schrägstrich und Schrägstrich am Ende):
 
 Die Felder: `harness` (Name aus Vertrag 2), `arbeitsordner`, `programmordner` (Liste), `zustand` (`host` und `name` des
 Zustandsordners der Sitzung), `heim`, `such_socket`, `modell_socket` (Text oder `null`), `lokal_weiter` (Text oder
-`null`; `zustand` dazu `art`, Abschnitt „Ablage des Gesprächs“), `cloud` (`null` oder ein Objekt mit `weiterreicher`, `weiter_programm`, `bundle`, `verteilung` = `ubuntu` oder
+`null`; `zustand` dazu `art` und `gespraech`, Abschnitt „Ablage des Gesprächs“), `cloud` (`null` oder ein Objekt mit `weiterreicher`, `weiter_programm`, `bundle`, `verteilung` = `ubuntu` oder
 `arch`), `paket` (`null` oder ein Objekt mit `quelle`, `plattform`, `fassung`; nur Harness `copilot`), `umgebung` (`home`, `path`, `term`, `lang`, `tmpdir`), `geschuetzt` (Liste), `dateien` (Liste) und `argv`
 (`argv[0]` ist ein absoluter, normaler Pfad). Es gibt kein Feld `system`. Den Text erzeugt „Lauf starten“ mit der
 Funktion `beschreibung_schreiben` des Einschlusses; der Starter liest ihn nach denselben JSON-Regeln wie dieser Vertrag
@@ -1621,8 +1723,8 @@ Die neuen Felder dieser Fassung:
   `<heim>/.cache/copilot/pkg/<plattform>/<fassung>`, nach dem tmpfs des Heims, und prüft vorher auf dem Host: echter Pfad
   ohne Verweis, eigene Kennung, die vier Pfade als Dateien (sonst Exit 5, `quelle-unbrauchbar`).
 - **Der Zustandsordner bleibt beim Start leer.** Der Starter legt in ihn nichts; was der Harness braucht, kommt über
-  `dateien` (nur lesend) oder entsteht im Harness. Ausnahme (Nachtrag 27.11.2026): Beim Fortsetzen trägt er das Gespräch der
-  Vorgängersitzung aus `gespraeche/` (Abschnitt „Fassung 2: `fortsetzung_von` und Fortsetzen“); der Starter legt auch dann nichts hinein.
+  `dateien` (nur lesend) oder entsteht im Harness. Das gilt auch beim Fortsetzen (Entscheid vom 27.11.2026, OPEN 34 geschlossen): Das
+  Gespräch der Vorgängersitzung kommt nur über `zustand.gespraech` an den Gesprächsort, nie in den Zustandsordner selbst.
 
 Prüfbarkeit: Die Fälle `aufruf-starter-*` fixieren die Beschreibung, die „Lauf starten“ dem Starter gibt (Felder, `dateien`
 je Harness, `lokal_weiter` nur bei lokaler Route, Umgebung von `pi`). Das Verhalten des Starters selbst (Tabelle oben)
@@ -1709,14 +1811,27 @@ python3 -I rust/spec/start/bau-faelle.py            # Fälle neu erzeugen
     entfernt dort nichts außer beim Löschen der Sitzung. Dafür braucht er den Ort (`lauf.gespraeche` in `kern.json`, OPEN 33). Ohne das
     endet nach einem Neustart des Dienstes jeder Start einer früher vergebenen Nummer mit `lauf.sitzung_belegt` (Absatz „Ablage des
     Gesprächs“, Berichtigung). Der Kreuztest räumt `gespraeche/` darum bis dahin zwischen den beiden Läufen des Dienstes.
-34. **Zustand eines fortgesetzten Gesprächs.** Beim Fortsetzen bindet der Einschluss den Zustandsordner wieder ein, den der Harness der
-    Vorgängersitzung beschrieben hat; darin kann auch stehen, was der Agent dort abgelegt hat (etwa eine Einstellungsdatei des Harness).
-    Das wirkt nur im Einschluss derselben Sitzung. Ob der Einschluss beim Fortsetzen Teile davon ausblenden soll, ist nicht entschieden.
+
+36. **Gedächtnis von claude am Gesprächsort (27.11.2026, gemessen).** claude 2.1.332 liest beim Start
+    `.claude/projects/<projekt-name>/memory/MEMORY.md` und prüft `memory/proposals`. Der Ordner liegt unter dem Gesprächsort und geht
+    darum mit dem Gespräch in die fortgesetzte Sitzung über. Er ist keine Einstellung im Sinn des Entscheids (Hooks, Umgebung, Modell,
+    Endpunkt, MCP-Server); hergeleitet, nicht gemessen: Sein Inhalt wird zu Anweisungen an das Modell in der späteren Sitzung desselben
+    Arbeitsordners. Ob der Gesprächsort von claude enger werden soll (etwa nur `<projekt-name>/<U>.jsonl` und `<projekt-name>/<U>/`),
+    entscheidet das Projekt. Empfehlung: so lassen, denn ein fortgesetztes Gespräch soll sein Gedächtnis behalten, und der Ordner wirkt
+    nur auf das Modell, nicht auf den Harness.
+37. **Pfade von copilot mit Anmeldung (27.11.2026).** Ohne Konto endet copilot 1.0.116 vor dem ersten Zug. Die Liste der Pfade, die
+    copilot beim Start liest, ist darum nur bis dahin gemessen (Abschnitt „Gespräch und Einstellungen im Zustandsordner“). Für den Weg
+    der Bindung ist die Liste nicht tragend: Außer `session-state` gelangt nichts in die nächste Sitzung. Empfehlung: Der erste Start
+    mit dem Erststart-Profil misst die Dateiliste unter `.copilot` vor und nach einem Zug.
 
 27. **Name in der Startdatei.** `lauf` braucht den Namen nicht. Er steht in der Datei, damit Dienst und Liste der Sitzungen (L5) eine
     Quelle haben. Empfehlung: so lassen; der Dienst führt den Namen beim Umbenennen (L3) selbst weiter.
 
 ### Erledigt
+
+34. **Zustand eines fortgesetzten Gesprächs: geschlossen (Projektentscheid, 27.11.2026).** Aus dem Zustandsordner der Vorgängersitzung
+    kommt nur das Gespräch, nie die Konfiguration des Harness. Der Zustandsordner ist bei jedem Start leer, der Gesprächsort kommt über
+    `zustand.gespraech` (Abschnitt „Gespräch und Einstellungen im Zustandsordner“, mit der Messung je Harness).
 
 32. **Gespräch ohne Kennung bei Fassung 1: geschlossen (27.11.2026).** Fall `aufruf-f1-gespraech-ohne-kennung` (Start der Fassung 1,
     `gespraeche/s-2/gespraech.json` mit `"kennung": null`, kein Zustandsordner darin, keine Sitzungsoption) und der Unit-Test

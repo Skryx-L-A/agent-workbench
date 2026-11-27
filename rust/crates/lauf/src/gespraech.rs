@@ -27,14 +27,18 @@ pub const ZUSTAND: &str = "zustand";
 /// The largest `gespraech.json` in bytes.
 pub const DATEI_MAX: u64 = 4096;
 
-/// The content of `gespraech.json`: harness and working folder of the start file, the key of the harness session
-/// (`None` for the conversation of a session of version 1).
+/// The content of `gespraech.json`: harness, working folder, route and customer of the start file, the key of the harness
+/// session (`None` for the conversation of a session of version 1).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Gespraech {
     /// The harness of the start file.
     pub harness: String,
     /// The working folder of the start file, as written there.
     pub arbeitsordner: String,
+    /// The route of the start file.
+    pub route: String,
+    /// The customer of the start file, `None` for `null`.
+    pub kunde: Option<String>,
     /// The key of the harness session, a lower-case UUID v4, or `None` (version 1).
     pub kennung: Option<String>,
 }
@@ -88,9 +92,9 @@ pub fn neue_kennung() -> Option<String> {
     Some(kennung_aus(b))
 }
 
-/// Reads `gespraech.json`: a closed object with exactly `fassung` (the integer 1), `harness` and `arbeitsordner`
-/// (texts) and `kennung` (a key of [`ist_kennung`] or `null`), after the JSON rules of the contract. `None` for every
-/// other form.
+/// Reads `gespraech.json`: a closed object with exactly `fassung` (the integer 1), `harness`, `arbeitsordner` and
+/// `route` (texts), `kunde` (a text or `null`) and `kennung` (a key of [`ist_kennung`] or `null`), after the JSON rules
+/// of the contract. `None` for every other form.
 #[must_use]
 pub fn lesen_text(bytes: &[u8]) -> Option<Gespraech> {
     let Wert::Objekt(mut felder) = lesen(bytes).ok()? else {
@@ -103,10 +107,17 @@ pub fn lesen_text(bytes: &[u8]) -> Option<Gespraech> {
     if nehmen("fassung")? != Wert::Ganzzahl("1".to_owned()) {
         return None;
     }
-    let (Wert::Text(harness), Wert::Text(arbeitsordner)) =
-        (nehmen("harness")?, nehmen("arbeitsordner")?)
-    else {
+    let (Wert::Text(harness), Wert::Text(arbeitsordner), Wert::Text(route)) = (
+        nehmen("harness")?,
+        nehmen("arbeitsordner")?,
+        nehmen("route")?,
+    ) else {
         return None;
+    };
+    let kunde = match nehmen("kunde")? {
+        Wert::Null => None,
+        Wert::Text(k) => Some(k),
+        _ => return None,
     };
     let kennung = match nehmen("kennung")? {
         Wert::Null => None,
@@ -116,6 +127,8 @@ pub fn lesen_text(bytes: &[u8]) -> Option<Gespraech> {
     felder.is_empty().then_some(Gespraech {
         harness,
         arbeitsordner,
+        route,
+        kunde,
         kennung,
     })
 }
@@ -124,9 +137,13 @@ pub fn lesen_text(bytes: &[u8]) -> Option<Gespraech> {
 #[must_use]
 pub fn text(g: &Gespraech) -> String {
     format!(
-        "{{\"fassung\":1,\"harness\":{},\"arbeitsordner\":{},\"kennung\":{}}}\n",
+        "{{\"fassung\":1,\"harness\":{},\"arbeitsordner\":{},\"route\":{},\"kunde\":{},\"kennung\":{}}}\n",
         text_schreiben(&g.harness),
         text_schreiben(&g.arbeitsordner),
+        text_schreiben(&g.route),
+        g.kunde
+            .as_deref()
+            .map_or_else(|| "null".to_owned(), text_schreiben),
         g.kennung
             .as_deref()
             .map_or_else(|| "null".to_owned(), text_schreiben)
@@ -218,7 +235,7 @@ fn datei_lesen(ordner: &OwnedFd) -> Option<Gespraech> {
 /// # Errors
 /// `lauf.fortsetzung_unmoeglich` (5d.1, 5d.3a), `lauf.fortsetzung_fehlt` (5d.2, also without the folder
 /// `gespraeche`), `lauf.fortsetzung_kaputt` (5d.3, also for a folder `gespraeche` that is a link, foreign or not
-/// 0700), `lauf.fortsetzung_fremd` (5d.4), `lauf.sitzung_belegt` (5d.5).
+/// 0700), `lauf.fortsetzung_fremd` (5d.4: harness, working folder, route or customer not exactly equal), `lauf.sitzung_belegt` (5d.5).
 pub fn pruefen(
     gespraeche: &Path,
     start: &Startdatei,
@@ -247,8 +264,12 @@ pub fn pruefen(
     let g = datei_lesen(&ordner).ok_or(Fehler::FortsetzungKaputt)?;
     // 5d.3a
     let kennung = g.kennung.ok_or(Fehler::FortsetzungUnmoeglich)?;
-    // 5d.4
-    if g.harness != start.harness() || g.arbeitsordner != start.arbeitsordner() {
+    // 5d.4: equality only, no comparison of classes (a route of the same kind with another class is foreign too)
+    if g.harness != start.harness()
+        || g.arbeitsordner != start.arbeitsordner()
+        || g.route != start.route()
+        || g.kunde.as_deref() != start.kunde()
+    {
         return Err(Fehler::FortsetzungFremd);
     }
     // 5d.5: any entry of the new name, a link too

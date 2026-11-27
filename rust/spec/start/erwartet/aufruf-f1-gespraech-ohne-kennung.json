@@ -14,6 +14,8 @@
    "fassung": 1,
    "harness": "pi",
    "arbeitsordner": "/heim/beispiel/projekt",
+   "route": "lokal-beispiel",
+   "kunde": "k-beispiel",
    "kennung": null
   }
  }

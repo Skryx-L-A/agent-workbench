@@ -46,17 +46,40 @@ pub const DATEI_ZIELE: [(&str, &str); 2] = [
 pub const COPILOT_PLATZHALTER: &str =
     concat!("gho_", "000000000000", "000000000000", "000000000000");
 
-/// The state folder of the session: empty for a new start, the state of the conversation it continues otherwise. It is
-/// mounted below the home of the session; it is never the state of the operator.
+/// The state folder of the session: always empty at the start, mounted below the home of the session; it is never the
+/// state of the operator. Only the place of the conversation inside it ([`GESPRAECH_ORTE`]) may carry what an earlier
+/// session wrote: the settings of the harness never pass from one session to the next (contract 1, Fassung 2, OPEN 34).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Zustand {
-    /// The folder on the host: exists, belongs to the own user, and is empty unless `fortsetzen` is set.
+    /// The folder on the host: exists, belongs to the own user, and is empty.
     pub host: PathBuf,
     /// Its name below the home inside the enclosure, one plain segment (for example `.claude`).
     pub name: String,
-    /// The session continues the conversation of an earlier one (contract 1, Fassung 2): the folder holds its state and
-    /// need not be empty.
+    /// The session continues the conversation of an earlier one (contract 1, Fassung 2): the folder of the conversation
+    /// holds its state and need not be empty. Only together with `gespraech`.
     pub fortsetzen: bool,
+    /// The folder of the conversation on the host, if the session keeps one: it exists, belongs to the own user, is
+    /// empty unless `fortsetzen` is set, and is bound writable at the place of the harness in [`GESPRAECH_ORTE`] below
+    /// the state folder.
+    pub gespraech: Option<PathBuf>,
+}
+
+/// The place of the conversation of each harness below its state folder (measured 27.11.2026 with claude 2.1.332,
+/// copilot 1.0.116 and pi 1.6.1, contract 1, "Gespräch und Einstellungen im Zustandsordner"). No path a harness reads
+/// as a setting lies below these places.
+pub const GESPRAECH_ORTE: [(&str, &str); 3] = [
+    ("claude", "projects"),
+    ("copilot", "session-state"),
+    ("pi", "agent/sessions"),
+];
+
+/// The place of the conversation of `harness` below its state folder, if it has one.
+#[must_use]
+pub fn gespraech_ort(harness: &str) -> Option<&'static str> {
+    GESPRAECH_ORTE
+        .iter()
+        .find(|(h, _)| *h == harness)
+        .map(|(_, ort)| *ort)
 }
 
 /// The environment of the harness. Nothing else reaches it: the profile clears the environment first.

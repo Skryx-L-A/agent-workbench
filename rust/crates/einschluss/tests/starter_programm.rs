@@ -729,3 +729,115 @@ fn vorentpacken_refuses_a_wrong_input_and_a_wrong_cache_folder() {
         );
     }
 }
+
+/// A continued session of `pi` in a fresh state folder `zustand-<n>`, with the conversation folder `gespraech` and the
+/// configuration file of the installation; the probe of the stand-in as the program.
+fn fortsetzen_text(welt: &Welt, n: usize, probe: &[&str]) -> String {
+    let mut b = welt.beschreibung();
+    "pi".clone_into(&mut b.harness);
+    ".pi".clone_into(&mut b.zustand.name);
+    let zustand = welt.wurzel.join(format!("zustand-{n}"));
+    fs::create_dir(&zustand).expect("state folder");
+    fs::set_permissions(&zustand, fs::Permissions::from_mode(0o700)).expect("mode");
+    b.zustand.host = zustand;
+    b.zustand.gespraech = Some(welt.wurzel.join("gespraech"));
+    b.zustand.fortsetzen = true;
+    b.dateien = vec![einschluss::Datei {
+        quelle: welt.wurzel.join("installation/models.json"),
+        ziel: welt.heim.join(".pi/agent/models.json"),
+    }];
+    b.argv = vec![welt.attrappe_gast(), "harness".to_owned()];
+    b.argv.extend(probe.iter().map(|p| (*p).to_owned()));
+    beschreibung_schreiben(&b)
+}
+
+#[test]
+fn a_setting_left_by_the_predecessor_has_no_effect_when_the_session_continues() {
+    let welt = Welt::neu();
+    let ordner = |p: &std::path::Path| {
+        fs::create_dir_all(p).expect("folder");
+        fs::set_permissions(p, fs::Permissions::from_mode(0o700)).expect("mode");
+    };
+    let datei = |p: &std::path::Path, inhalt: &str| {
+        fs::write(p, inhalt).expect("file");
+        fs::set_permissions(p, fs::Permissions::from_mode(0o600)).expect("mode");
+    };
+    // the predecessor wrote its conversation and, as the whole state folder of an earlier layout would carry them, a
+    // provider file and a settings file of its own
+    let g = welt.wurzel.join("gespraech");
+    ordner(&g.join("--projekt--"));
+    datei(
+        &g.join("--projekt--/verlauf.jsonl"),
+        "GESPRAECH-DES-VORGAENGERS",
+    );
+    ordner(&g.join("agent"));
+    datei(&g.join("agent/models.json"), "ABGELEGT-VOM-AGENTEN");
+    datei(&g.join("settings.json"), "ABGELEGT-VOM-AGENTEN");
+    ordner(&welt.wurzel.join("installation"));
+    datei(
+        &welt.wurzel.join("installation/models.json"),
+        "AUS-DER-INSTALLATION",
+    );
+    let heim = welt.heim_text();
+    let lauf = |n: usize, probe: &[&str]| {
+        let (status, aus, fehler) = starter(
+            &welt,
+            &START,
+            &Fd3::Text(&fortsetzen_text(&welt, n, probe)),
+            &[],
+        );
+        assert_eq!(status, Some(0), "{probe:?}: stderr {fehler:?}");
+        aus.trim().to_owned()
+    };
+    // the harness reads the file of the installation at the place of its setting
+    let models = format!("{heim}/.pi/agent/models.json");
+    assert_eq!(
+        lauf(1, &["lesen", &models, "AUS-DER-INSTALLATION"]),
+        "lesen: OK len=20 marker=1"
+    );
+    // read-only: the session cannot change it either
+    assert!(
+        lauf(2, &["schreiben", &models]).starts_with("schreiben: ERR"),
+        "the file of the installation is read-only"
+    );
+    // nothing of the predecessor but the conversation: no settings file at the places the harness reads
+    assert_eq!(
+        lauf(3, &["liste", &format!("{heim}/.pi/agent")]),
+        "liste: OK models.json,sessions"
+    );
+    assert_eq!(
+        lauf(4, &["liste", &format!("{heim}/.pi")]),
+        "liste: OK agent"
+    );
+    // the conversation is there, at its place, and writable
+    assert_eq!(
+        lauf(
+            5,
+            &[
+                "lesen",
+                &format!("{heim}/.pi/agent/sessions/--projekt--/verlauf.jsonl"),
+                "GESPRAECH-DES-VORGAENGERS"
+            ]
+        ),
+        "lesen: OK len=25 marker=1"
+    );
+    assert_eq!(
+        lauf(
+            6,
+            &[
+                "schreiben",
+                &format!("{heim}/.pi/agent/sessions/--projekt--/verlauf.jsonl")
+            ]
+        ),
+        "schreiben: OK"
+    );
+    assert_eq!(
+        fs::read_to_string(g.join("--projekt--/verlauf.jsonl")).expect("conversation"),
+        "GESPRAECH-DES-VORGAENGERSx"
+    );
+    // what the predecessor left stays where it was, without effect
+    assert_eq!(
+        fs::read_to_string(g.join("settings.json")).expect("file"),
+        "ABGELEGT-VOM-AGENTEN"
+    );
+}

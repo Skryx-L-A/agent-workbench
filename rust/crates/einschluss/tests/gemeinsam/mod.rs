@@ -298,6 +298,7 @@ impl Welt {
                 host: self.zustand.clone(),
                 name: ".zustand".to_owned(),
                 fortsetzen: false,
+                gespraech: None,
             },
             heim: self.heim.clone(),
             such_socket: self.such.socket.clone(),

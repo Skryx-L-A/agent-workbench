@@ -20,6 +20,7 @@ fn muster() -> Beschreibung {
             host: "/srv/beispiel/zustand".into(),
             name: ".claude".to_owned(),
             fortsetzen: false,
+            gespraech: None,
         },
         heim: "/srv/beispiel/heim".into(),
         such_socket: "/srv/beispiel/s/such.sock".into(),

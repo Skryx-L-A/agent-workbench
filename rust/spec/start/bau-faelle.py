@@ -1164,12 +1164,13 @@ ausstehend("datei-f1-mit-fortsetzung", D, "Fassung 1 kennt fortsetzung_von nicht
 HARNESS_KENNUNG = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 NEU_KENNUNG = "<harness-kennung>"  # UUID v4, die „Lauf starten“ beim neuen Start würfelt
 GESPRAECH_KENNUNG = "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b"
+GESPRAECH_FELDER = {"fassung", "harness", "arbeitsordner", "route", "kunde", "kennung"}
 EFFORT_OPTION = {"claude": "--effort", "copilot": "--reasoning-effort", "pi": "--thinking"}
 LAUF_GRUND = {
     "lauf.fortsetzung_unmoeglich": (69, "Gespraech nicht fortsetzbar"),
     "lauf.fortsetzung_fehlt": (66, "Gespraech der Vorgaengersitzung fehlt"),
     "lauf.fortsetzung_kaputt": (65, "Gespraech der Vorgaengersitzung unbrauchbar"),
-    "lauf.fortsetzung_fremd": (65, "Gespraech gehoert zu anderem Harness oder Ordner"),
+    "lauf.fortsetzung_fremd": (65, "Gespraech gehoert zu anderem Harness, Ordner, Route oder Kunde"),
     "lauf.sitzung_belegt": (73, "Sitzung wurde schon gestartet"),
 }
 
@@ -1204,7 +1205,8 @@ def lauf_f2(start, lage):
     alt, neu, h = start["fortsetzung_von"], start["sitzung"], start["harness"]
     gespraeche = lage.get("gespraeche", {})
     if alt is None:
-        g = {"fassung": 1, "harness": h, "arbeitsordner": start["arbeitsordner"], "kennung": NEU_KENNUNG}
+        g = {"fassung": 1, "harness": h, "arbeitsordner": start["arbeitsordner"], "route": start["route"], "kunde": start["kunde"],
+             "kennung": NEU_KENNUNG}
         return {"exec": h, "harness_argv": harness_argv_f2(start, NEU_KENNUNG, False), "stderr": "", "suche_gestartet": True,
                 "gespraeche_danach": {**gespraeche, neu: g}, "zustandsordner_beim_start": "leer"}
     if lage.get("harness_fortsetzung", "ja") == "keine":
@@ -1212,13 +1214,18 @@ def lauf_f2(start, lage):
     g = gespraeche.get(alt)
     if g is None:
         return abgewiesen("lauf.fortsetzung_fehlt")
-    if not isinstance(g, dict) or g.get("fassung") != 1:
+    # Schritt 5d.3: genau die geschlossene Form (Projektentscheid, 27.11.2026: dazu route und kunde)
+    if not isinstance(g, dict) or set(g) != GESPRAECH_FELDER or g["fassung"] != 1:
+        return abgewiesen("lauf.fortsetzung_kaputt")
+    if not all(isinstance(g[f], str) for f in ("harness", "arbeitsordner", "route")) or not (
+            g["kunde"] is None or isinstance(g["kunde"], str)):
         return abgewiesen("lauf.fortsetzung_kaputt")
     if g.get("kennung") is not None and not HARNESS_KENNUNG.match(str(g.get("kennung"))):
         return abgewiesen("lauf.fortsetzung_kaputt")
     if g.get("kennung") is None:  # Schritt 5d.3a: Gespräch einer Sitzung der Fassung 1 (Entscheid des Betreibers, 27.11.2026)
         return abgewiesen("lauf.fortsetzung_unmoeglich")
-    if g["harness"] != h or g["arbeitsordner"] != start["arbeitsordner"]:
+    # Schritt 5d.4: nur Gleichheit, kein Vergleich von Klassen (Projektentscheid, 27.11.2026)
+    if any(g[f] != start[f] for f in ("harness", "arbeitsordner", "route", "kunde")):
         return abgewiesen("lauf.fortsetzung_fremd")
     if neu in gespraeche:
         return abgewiesen("lauf.sitzung_belegt")
@@ -1244,7 +1251,8 @@ def aufruf_f2(name, beschreibung, start, lage_mehr, soll_code=None, sitzung="s-4
 
 
 def gespraech(start, kennung=GESPRAECH_KENNUNG, **anders):
-    return {"fassung": 1, "harness": start["harness"], "arbeitsordner": heim(start)["arbeitsordner"], "kennung": kennung, **anders}
+    return {"fassung": 1, "harness": start["harness"], "arbeitsordner": heim(start)["arbeitsordner"], "route": start["route"],
+            "kunde": start["kunde"], "kennung": kennung, **anders}
 
 
 CL2 = dict(CLOUD, fassung=2, effort=None, name=None)
@@ -1268,6 +1276,31 @@ aufruf_f2("aufruf-f2-fortsetzen-kennung-kaputt", "gespraech.json trägt keine UU
                   "lauf.fortsetzung_kaputt")
 aufruf_f2("aufruf-f2-fortsetzen-fremder-harness", "das Gespräch gehört zu claude, der Start nennt copilot",
                   dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(CL2)}}, "lauf.fortsetzung_fremd")
+# Klasse beim Fortsetzen (Projektentscheid, 27.11.2026): Route und Kunde des Gesprächs müssen genau gleich denen der Startdatei
+# sein. Der Harness legt die Art der Route fest; offen war nur eine andere Route derselben Art mit anderer Klasse.
+EINST_ZWEI_CLOUD = copy.deepcopy(EINST_EFFORT)
+EINST_ZWEI_CLOUD["routen"].append({**copy.deepcopy(EINST_EFFORT["routen"][0]), "schluessel": "cloud-oeffentlich",
+                                   "klasse": "oeffentlich"})
+EINST_ZWEI_KUNDEN = copy.deepcopy(EINST_EFFORT)
+EINST_ZWEI_KUNDEN["kunden"].append({"schluessel": "k-anders", "erlaubt": ["lokal-beispiel"], "verboten": []})
+aufruf_f2("aufruf-f2-fortsetzen-andere-route",
+                  "das Gespräch lief auf der Cloud-Route der Klasse intern, der Start nennt eine Cloud-Route der Klasse oeffentlich",
+                  dict(COP2, route="cloud-oeffentlich", fortsetzung_von="s-1"),
+                  {"einstellungen": EINST_ZWEI_CLOUD, "gespraeche": {"s-1": gespraech(COP2)}}, "lauf.fortsetzung_fremd")
+aufruf_f2("aufruf-f2-fortsetzen-anderer-kunde", "das Gespräch gehört zum Kunden k-anders, der Start nennt k-beispiel",
+                  dict(COP2, fortsetzung_von="s-1"),
+                  {"einstellungen": EINST_ZWEI_KUNDEN, "gespraeche": {"s-1": gespraech(COP2, kunde="k-anders")}},
+                  "lauf.fortsetzung_fremd")
+aufruf_f2("aufruf-f2-fortsetzen-kunde-null-im-gespraech", "das Gespräch hat keinen Kunden, der Start nennt k-beispiel",
+                  dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2, kunde=None)}},
+                  "lauf.fortsetzung_fremd")
+aufruf_f2("aufruf-f2-fortsetzen-kunde-null-im-start", "das Gespräch gehört zu k-beispiel, der Start hat keinen Kunden",
+                  dict(COP2, kunde=None, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2)}},
+                  "lauf.fortsetzung_fremd")
+aufruf_f2("aufruf-f2-fortsetzen-gespraech-ohne-route", "gespraech.json ohne route: nicht die geschlossene Form",
+                  dict(COP2, fortsetzung_von="s-1"),
+                  {"gespraeche": {"s-1": {k: v for k, v in gespraech(COP2).items() if k != "route"}}},
+                  "lauf.fortsetzung_kaputt")
 aufruf_f2("aufruf-f2-fortsetzen-neu-belegt", "zur neuen Sitzung liegt schon ein Gespräch",
                   dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2), "s-4": gespraech(COP2)}},
                   "lauf.sitzung_belegt")
@@ -1281,7 +1314,7 @@ AUFRUFE.append(("aufruf-f1-gespraech-ohne-kennung",
                 {"exec": "pi", "harness_argv": ["pi", "--provider", "wb-lokal", "--model", "qwen3:8b"], "stderr": "",
                  "suche_gestartet": True,
                  "gespraeche_danach": {"s-2": {"fassung": 1, "harness": "pi", "arbeitsordner": heim(LOKAL)["arbeitsordner"],
-                                               "kennung": None}}}))
+                                               "route": "lokal-beispiel", "kunde": "k-beispiel", "kennung": None}}}))
 
 def main():
     for teil in ("faelle", "erwartet"):

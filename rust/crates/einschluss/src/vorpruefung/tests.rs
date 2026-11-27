@@ -73,6 +73,7 @@ fn profil_in(o: &Ordner) -> Profil {
             host: o.0.join("zustand"),
             name: ".zustand".to_owned(),
             fortsetzen: false,
+            gespraech: None,
         },
         heim: heim.clone(),
         such_socket: o.0.join("such").join("such.sock"),
@@ -328,6 +329,7 @@ fn cloud_profil(
             host: o.0.join("zustand"),
             name: ".zustand".to_owned(),
             fortsetzen: false,
+            gespraech: None,
         },
         heim: heim.clone(),
         such_socket: o.0.join("such").join("such.sock"),
@@ -419,6 +421,7 @@ fn lokal_profil(
             host: o.0.join("zustand"),
             name: ".pi".to_owned(),
             fortsetzen: false,
+            gespraech: None,
         },
         heim: heim.clone(),
         such_socket: o.0.join("such").join("such.sock"),
@@ -504,24 +507,36 @@ fn the_forwarder_of_the_local_route_must_be_an_executable_file() {
 }
 
 #[test]
-fn the_state_folder_of_a_continued_conversation_need_not_be_empty() {
+fn only_the_conversation_of_a_continued_session_need_not_be_empty() {
     let leer = Err(Fehler::QuelleUnbrauchbar(
         "state folder is not an empty own folder",
     ));
+    let gespraech_leer = Err(Fehler::QuelleUnbrauchbar(
+        "conversation folder is not an empty own folder",
+    ));
     let o = Ordner::neu();
     let (mut profil, _l) = lokal_profil(&o, 0o755, 0o600, false);
-    fs::write(o.0.join("zustand").join("verlauf"), "x").expect("file");
+    let g = o.0.join("gespraech");
+    fs::create_dir(&g).expect("folder");
+    profil.beschreibung.zustand.gespraech = Some(g.clone());
+    assert_eq!(profil.quellen_pruefen(), Ok(()), "both empty");
+    fs::write(g.join("verlauf"), "x").expect("file");
     assert_eq!(
         profil.quellen_pruefen(),
-        leer,
-        "a new start needs an empty one"
+        gespraech_leer,
+        "a new start needs an empty conversation"
     );
     profil.beschreibung.zustand.fortsetzen = true;
     assert_eq!(profil.quellen_pruefen(), Ok(()));
-    // it is still an own real folder
-    fs::remove_file(o.0.join("zustand").join("verlauf")).expect("remove");
-    fs::remove_dir(o.0.join("zustand")).expect("remove");
+    // the state folder itself is empty also when the session continues: nothing of the predecessor but its
+    // conversation is mounted
+    fs::write(o.0.join("zustand").join("settings.json"), "x").expect("file");
+    assert_eq!(profil.quellen_pruefen(), leer);
+    fs::remove_file(o.0.join("zustand").join("settings.json")).expect("remove");
+    // the conversation is an own real folder
+    fs::remove_file(g.join("verlauf")).expect("remove");
+    fs::remove_dir(&g).expect("remove");
     fs::create_dir(o.0.join("echt")).expect("folder");
-    std::os::unix::fs::symlink(o.0.join("echt"), o.0.join("zustand")).expect("link");
+    std::os::unix::fs::symlink(o.0.join("echt"), &g).expect("link");
     assert!(profil.quellen_pruefen().is_err());
 }

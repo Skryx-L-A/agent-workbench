@@ -23,20 +23,32 @@ fn modus(p: &Path) -> u32 {
     std::fs::symlink_metadata(p).expect("meta").mode() & 0o7777
 }
 
-/// A start file of version 2: session `s-4`, harness `pi`, working folder `/heim/beispiel/projekt`.
+/// A start file of version 2: session `s-4`, harness `pi`, route `lokal-beispiel`, customer `null`, working folder
+/// `/heim/beispiel/projekt`.
 fn start_f2(fortsetzung_von: &str) -> Startdatei {
+    start_mit(fortsetzung_von, "null")
+}
+
+/// The start file of [`start_f2`] with the customer `kunde` (a JSON value).
+fn start_mit(fortsetzung_von: &str, kunde: &str) -> Startdatei {
     start::lesen_datei(
         format!(
-            r#"{{"fassung":2,"sitzung":"s-4","fortsetzung_von":{fortsetzung_von},"harness":"pi","modell":"qwen3:8b","route":"lokal-beispiel","kunde":null,"arbeitsordner":"/heim/beispiel/projekt","effort":null,"name":null}}"#
+            r#"{{"fassung":2,"sitzung":"s-4","fortsetzung_von":{fortsetzung_von},"harness":"pi","modell":"qwen3:8b","route":"lokal-beispiel","kunde":{kunde},"arbeitsordner":"/heim/beispiel/projekt","effort":null,"name":null}}"#
         )
         .as_bytes(),
     )
     .expect("start file")
 }
 
+/// `gespraech.json` with the route and the customer of [`start_f2`].
 fn json(harness: &str, ordner: &str, kennung: &str) -> String {
+    json_mit(harness, ordner, "\"lokal-beispiel\"", "null", kennung)
+}
+
+/// `gespraech.json` of the contract; `route`, `kunde` and `kennung` are JSON values.
+fn json_mit(harness: &str, ordner: &str, route: &str, kunde: &str, kennung: &str) -> String {
     format!(
-        r#"{{"fassung":1,"harness":"{harness}","arbeitsordner":"{ordner}","kennung":{kennung}}}"#
+        r#"{{"fassung":1,"harness":"{harness}","arbeitsordner":"{ordner}","route":{route},"kunde":{kunde},"kennung":{kennung}}}"#
     )
 }
 
@@ -96,6 +108,8 @@ fn the_file_has_exactly_the_closed_form() {
         Gespraech {
             harness: "pi".to_owned(),
             arbeitsordner: "/heim/beispiel/projekt".to_owned(),
+            route: "lokal-beispiel".to_owned(),
+            kunde: None,
             kennung: Some(K.to_owned())
         }
     );
@@ -105,12 +119,33 @@ fn the_file_has_exactly_the_closed_form() {
         format!("{}\n", gut()),
         "the order of the contract"
     );
-    let ohne = Gespraech { kennung: None, ..g };
+    let ohne = Gespraech {
+        kennung: None,
+        ..g.clone()
+    };
     assert_eq!(
         text(&ohne),
         format!("{}\n", json("pi", "/heim/beispiel/projekt", "null"))
     );
     assert_eq!(lesen_text(text(&ohne).as_bytes()), Some(ohne));
+    let mit_kunde = Gespraech {
+        kunde: Some("k-beispiel".to_owned()),
+        ..g.clone()
+    };
+    assert_eq!(
+        text(&mit_kunde),
+        format!(
+            "{}\n",
+            json_mit(
+                "pi",
+                "/heim/beispiel/projekt",
+                "\"lokal-beispiel\"",
+                "\"k-beispiel\"",
+                &format!("\"{K}\"")
+            )
+        )
+    );
+    assert_eq!(lesen_text(text(&mit_kunde).as_bytes()), Some(mit_kunde));
     for schlecht in [
         String::new(),
         "[]".to_owned(),
@@ -128,6 +163,13 @@ fn the_file_has_exactly_the_closed_form() {
         gut().replace('}', ",\"harness\":\"pi\"}"),
         gut().replace(",\"harness\":\"pi\"", ""),
         gut().replace(",\"arbeitsordner\":\"/heim/beispiel/projekt\"", ""),
+        // without `route` or `kunde`, or of another type (`kunde` may be `null`, `route` never)
+        gut().replace(",\"route\":\"lokal-beispiel\"", ""),
+        gut().replace(",\"kunde\":null", ""),
+        gut().replace("\"route\":\"lokal-beispiel\"", "\"route\":null"),
+        gut().replace("\"route\":\"lokal-beispiel\"", "\"route\":1"),
+        gut().replace("\"kunde\":null", "\"kunde\":1"),
+        gut().replace("\"kunde\":null", "\"kunde\":[]"),
         gut().replace("{\"fassung\":1,", "{"),
     ] {
         assert_eq!(lesen_text(schlecht.as_bytes()), None, "{schlecht}");
@@ -262,12 +304,61 @@ fn step_5d_gives_each_code_of_the_contract() {
 }
 
 #[test]
+fn step_5d_4_wants_route_and_customer_exactly_equal() {
+    let o = Ordner::neu("g-klasse");
+    let g = o.0.join("gespraeche");
+    ordner_0700(&g);
+    legen(&g, "s-1", &gut());
+    let s = start_f2("\"s-1\"");
+    // 5d.4: another route (of the same kind), another customer, `null` against a customer: equality only
+    let k = format!("\"{K}\"");
+    let pfad = "/heim/beispiel/projekt";
+    for (route, kunde, start_kunde) in [
+        ("\"lokal-anders\"", "null", "null"),
+        ("\"lokal-beispiel \"", "null", "null"),
+        ("\"lokal-beispiel\"", "\"k-anders\"", "\"k-beispiel\""),
+        ("\"lokal-beispiel\"", "\"k-beispiel\"", "null"),
+        ("\"lokal-beispiel\"", "null", "\"k-beispiel\""),
+        ("\"lokal-beispiel\"", "\"\"", "null"),
+    ] {
+        datei(
+            &g.join("s-1").join(DATEI),
+            &json_mit("pi", pfad, route, kunde, &k),
+            0o600,
+        );
+        assert_eq!(
+            pruefen(&g, &start_mit("\"s-1\"", start_kunde), true),
+            Err(Fehler::FortsetzungFremd),
+            "{route} {kunde} {start_kunde}"
+        );
+    }
+    datei(
+        &g.join("s-1").join(DATEI),
+        &json_mit("pi", pfad, "\"lokal-beispiel\"", "\"k-beispiel\"", &k),
+        0o600,
+    );
+    assert!(
+        pruefen(&g, &start_mit("\"s-1\"", "\"k-beispiel\""), true).is_ok(),
+        "the same customer"
+    );
+    // 5d.3 before 5d.4: without `route` the file is broken, not foreign
+    datei(
+        &g.join("s-1").join(DATEI),
+        &gut().replace(",\"route\":\"lokal-beispiel\"", ""),
+        0o600,
+    );
+    assert_eq!(pruefen(&g, &s, true), Err(Fehler::FortsetzungKaputt));
+}
+
+#[test]
 fn a_new_start_makes_its_conversation_once_at_the_fixed_place() {
     let o = Ordner::neu("g-anlegen");
     let g = o.0.join("gespraeche");
     let neu = Gespraech {
         harness: "pi".to_owned(),
         arbeitsordner: "/heim/beispiel/projekt".to_owned(),
+        route: "lokal-beispiel".to_owned(),
+        kunde: Some("k-beispiel".to_owned()),
         kennung: Some(K.to_owned()),
     };
     // the folder `gespraeche` is made when it is missing, with mode 0700
