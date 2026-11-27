@@ -148,23 +148,108 @@ impl Menueleiste {
     }
 }
 
-/// The menu of `muda` for the list. The first menu is the application menu of macOS. "Werkbank beenden" keeps
-/// Command+Q, which the default menu of winit had; every other key stays with the window (SE1 point 8).
+/// The title of the application menu, as in [`crate::fenster::Fenster::anwendungsmenue`].
+#[cfg(target_os = "macos")]
+const WERKBANK: &str = "Werkbank";
+
+/// The fixed entries of the application menu of macOS (B75): the system entries of the menu bar. They need no operating
+/// path of a page and work without one; that is in line with OF8. Their order follows the convention of macOS: the
+/// entries of the window come first, then Services, then the hiding entries, then Quit.
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Fest {
+    /// A separator line.
+    Trenner,
+    /// The submenu Services of the system.
+    Dienste,
+    /// Hide the window, Command+H.
+    Ausblenden,
+    /// Hide the other applications.
+    AndereAusblenden,
+    /// Show all windows of the application.
+    AlleEinblenden,
+    /// Quit, Command+Q. The system ends the program here, as the button of the title row does: the remembered values
+    /// are written at exit (`Fenster::on_exit`).
+    Beenden,
+}
+
+#[cfg(target_os = "macos")]
+impl Fest {
+    /// The text of the entry, `None` for a separator.
+    #[must_use]
+    pub fn text(self) -> Option<&'static str> {
+        match self {
+            Fest::Trenner => None,
+            Fest::Dienste => Some("Dienste"),
+            Fest::Ausblenden => Some("Werkbank ausblenden"),
+            Fest::AndereAusblenden => Some("Andere ausblenden"),
+            Fest::AlleEinblenden => Some("Alle einblenden"),
+            Fest::Beenden => Some("Werkbank beenden"),
+        }
+    }
+}
+
+/// The fixed entries in their order, after the entries of the window. Without entries before them, the first separator
+/// is left out.
+#[cfg(target_os = "macos")]
+#[must_use]
+pub fn feste_reihe(vorher: bool) -> Vec<Fest> {
+    use Fest::{AlleEinblenden, AndereAusblenden, Ausblenden, Beenden, Dienste, Trenner};
+    let mut reihe = vec![
+        Trenner,
+        Dienste,
+        Trenner,
+        Ausblenden,
+        AndereAusblenden,
+        AlleEinblenden,
+        Trenner,
+        Beenden,
+    ];
+    if !vorher {
+        reihe.remove(0);
+    }
+    reihe
+}
+
+/// The menu of `muda` for the list. The first menu, "Werkbank", is the application menu of macOS: it holds the entries of
+/// the window and then the fixed entries of the system. The entry "Werkbank beenden" of the list is left out there, because
+/// the fixed entry Quit replaces it (B75); Windows and Linux keep it in the title row. Every other key stays with the
+/// window, and the system adds only the key equivalents of its own entries (Command+H, Command+Q; SE1 point 8).
 #[cfg(target_os = "macos")]
 fn bauen(liste: &[Untermenue]) -> muda::Result<muda::Menu> {
-    use muda::accelerator::{Accelerator, Code, Modifiers};
+    use muda::{MenuItem, PredefinedMenuItem, Submenu};
     let menu = muda::Menu::new();
-    for m in liste {
-        let sub = muda::Submenu::new(m.titel, true);
+    let (eigene, weitere) = match liste.first() {
+        Some(m) if m.titel == WERKBANK => (Some(m), &liste[1..]),
+        _ => (None, liste),
+    };
+    let app = Submenu::new(WERKBANK, true);
+    let mut vorher = false;
+    for e in eigene
+        .into_iter()
+        .flat_map(|m| &m.eintraege)
+        .filter(|e| e.tat != Tat::Beenden)
+    {
+        app.append(&MenuItem::with_id(e.tat.kennung(), e.text, e.an, None))?;
+        vorher = true;
+    }
+    // Fixed entries (B75, OF8): the system carries out each of them itself. They need no page and no operating path,
+    // so they work without one; the list above is the only part that depends on a page.
+    for f in feste_reihe(vorher) {
+        match f {
+            Fest::Trenner => app.append(&PredefinedMenuItem::separator())?,
+            Fest::Dienste => app.append(&PredefinedMenuItem::services(f.text()))?,
+            Fest::Ausblenden => app.append(&PredefinedMenuItem::hide(f.text()))?,
+            Fest::AndereAusblenden => app.append(&PredefinedMenuItem::hide_others(f.text()))?,
+            Fest::AlleEinblenden => app.append(&PredefinedMenuItem::show_all(f.text()))?,
+            Fest::Beenden => app.append(&PredefinedMenuItem::quit(f.text()))?,
+        }
+    }
+    menu.append(&app)?;
+    for m in weitere {
+        let sub = Submenu::new(m.titel, true);
         for e in &m.eintraege {
-            let taste =
-                (e.tat == Tat::Beenden).then(|| Accelerator::new(Modifiers::META, Code::KeyQ));
-            sub.append(&muda::MenuItem::with_id(
-                e.tat.kennung(),
-                e.text,
-                e.an,
-                taste,
-            ))?;
+            sub.append(&MenuItem::with_id(e.tat.kennung(), e.text, e.an, None))?;
         }
         menu.append(&sub)?;
     }
@@ -181,5 +266,31 @@ mod tests {
             assert_eq!(Tat::aus_kennung(&t.kennung()), Some(t));
         }
         assert_eq!(Tat::aus_kennung("werkbank-Nichts"), None);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn the_fixed_entries_keep_the_order_of_macos() {
+        use Fest::{AlleEinblenden, AndereAusblenden, Ausblenden, Beenden, Dienste, Trenner};
+        assert_eq!(
+            feste_reihe(true),
+            [
+                Trenner,
+                Dienste,
+                Trenner,
+                Ausblenden,
+                AndereAusblenden,
+                AlleEinblenden,
+                Trenner,
+                Beenden
+            ]
+        );
+        assert_eq!(feste_reihe(false).first(), Some(&Dienste));
+        assert_eq!(Trenner.text(), None);
+        assert_eq!(Ausblenden.text(), Some("Werkbank ausblenden"));
+        assert_eq!(AndereAusblenden.text(), Some("Andere ausblenden"));
+        assert_eq!(AlleEinblenden.text(), Some("Alle einblenden"));
+        assert_eq!(Dienste.text(), Some("Dienste"));
+        assert_eq!(Beenden.text(), Some("Werkbank beenden"));
     }
 }
