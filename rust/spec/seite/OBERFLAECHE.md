@@ -246,7 +246,7 @@ braucht, fehlen bis dahin, etwa die Worker-Zahl in B10 oder der Ordner in B02. B
 | B38 | Kopieren und Einfügen | P | Einfügen schickt `Einfuegen`; Kopieren einer Auswahl im Terminal | – | – | – |
 | B39 | Größe an die Fläche anpassen | P | `Abo` und `Groesse` je sichtbarem Pane, Klemme 2 Spalten | L2 | ja | – |
 | B40 | Rückblick | N | – | – | – | G9 |
-| B41 | Pane-Kopf | P | Punkt, Rolle in Akzentfarbe, Modell, rechts Vergrößern; Sprechblase und „Tokens“ nach dem Pilot | L1 | ja | G9 |
+| B41 | Pane-Kopf | P | Punkt, Rolle in Akzentfarbe, Modell, rechts Vergrößern und Sprechblase in jedem Pane-Kopf; Sprechblase gesperrt wie heute, Ziel nach dem Pilot (Projektentscheid, 27.11.2026); „Tokens“ nach dem Pilot | L1 | ja | G9 |
 | B42 | Dialoge der Harnesses | P | Leiste „Dialog offen“, Klick schickt `Antwort` | – | – | – |
 | B51 | Reiter des Inspektors | P | Symbolreiter; im Pilot Freigaben und Ordner | – | ja | G4, G10 |
 | B52 | Ordner-Blatt | P | wie heute: Pfad, darunter der Inhalt des Arbeitsordners | L9 | – | G10 |

@@ -134,6 +134,21 @@ fn fokus_auf(e: &HtmlElement) {
     let _ = e.focus_with_options(&o);
 }
 
+/// Focus that comes back after a window closed: it shows its ring (option `focusVisible`), also after a closing click; the
+/// ring of a button otherwise shows only with keyboard focus.
+fn fokus_zurueck(id: &str) {
+    if let Some(e) = element(id) {
+        let o = web_sys::FocusOptions::new();
+        o.set_prevent_scroll(true);
+        let _ = js_sys::Reflect::set(
+            o.as_ref(),
+            &wasm_bindgen::JsValue::from_str("focusVisible"),
+            &wasm_bindgen::JsValue::TRUE,
+        );
+        let _ = e.focus_with_options(&o);
+    }
+}
+
 /// The token of the address, once read.
 pub(crate) fn token() -> Option<String> {
     TOKEN.with(|t| t.borrow().clone())
@@ -541,9 +556,9 @@ pub fn app() -> Element {
 /// After a window closes, the focus goes back to its opener (SE2 point 2: "+" for the window "Sitzungen").
 pub(crate) fn nach_schliessen(war: &Ueber) {
     match war {
-        Ueber::Sitzungen => fokus("neue-sitzung"),
-        Ueber::Einstellungen(_) => fokus("zahnrad-fuss"),
-        Ueber::Workerliste => fokus("statuspille"),
+        Ueber::Sitzungen => fokus_zurueck("neue-sitzung"),
+        Ueber::Einstellungen(_) => fokus_zurueck("zahnrad-fuss"),
+        Ueber::Workerliste => fokus_zurueck("statuspille"),
         Ueber::Umbenennen(_) | Ueber::Loeschen(_) | Ueber::Nichts => {}
     }
 }
@@ -630,7 +645,7 @@ fn titelleiste(a: A) -> Element {
         .map(|w| w.iter().filter(|x| x.laeuft()).count());
     let blase = *a.ueber.read() == Ueber::Workerliste;
     rsx! {
-        header { id: "titelleiste",
+        header { id: "titelleiste", class: if au.leiste_offen { "mit-leiste" } else { "" },
             button { r#type: "button", id: "leiste-knopf", class: "knopf-symbol", "data-bw": "B80", "aria-label": "Leiste ein- und ausblenden",
                 "aria-expanded": if au.leiste_offen { "true" } else { "false" }, title: "Leiste ein- und ausblenden",
                 onclick: move |_| { let mut s = a.aussehen; let mut x = s.write(); x.leiste_offen = !x.leiste_offen; x.merken(); },
@@ -984,6 +999,12 @@ fn mitte(a: A, zeilenhoehe: usize) -> Element {
                         span { class: punkt_klasse(s.as_ref()) }
                         span { class: "pane-rolle", "Orchestrator" }
                         span { class: "pane-modell", "{modell}" }
+                        // one pane: enlarging has no effect, as in today's app
+                        // outside the tab order like the borderless buttons of today's app; the terminal follows the title row (SE2)
+                        button { r#type: "button", class: "pane-knopf", tabindex: "-1", "aria-label": "Kachel vergrößern", title: "Diese Kachel allein zeigen",
+                            {symbol_zoom()}
+                        }
+                        {sprechblase()}
                     }
                 }
                 {terminal(a, "terminal", "raster", "eingang", bild.as_ref(), &terminal_name, zeilenhoehe, None, true, ansicht == Ansicht::Worker)}
@@ -1183,11 +1204,12 @@ fn worker_flaeche(a: A, worker: Vec<Agent>, zeilenhoehe: usize) -> Element {
                                     span { class: "pane-rolle", "{w.rolle}" }
                                     span { class: "pane-modell", "{w.modell}" }
                                     button { r#type: "button", class: "pane-knopf", "data-bw": "B31",
-                                        "aria-label": if gezoomt == Some(nr) { "Verkleinern" } else { "Vergrößern" },
-                                        title: if gezoomt == Some(nr) { "Verkleinern" } else { "Vergrößern" },
+                                        "aria-label": if gezoomt == Some(nr) { "Alle Kacheln zeigen" } else { "Kachel vergrößern" },
+                                        title: if gezoomt == Some(nr) { "Alle Kacheln zeigen" } else { "Diese Kachel allein zeigen" },
                                         onclick: move |_| { let mut z = a.gezoomt; let v = *z.peek(); z.set(if v == Some(nr) { None } else { Some(nr) }); },
-                                        {symbol_zoom()}
+                                        if gezoomt == Some(nr) { {symbol_verkleinern()} } else { {symbol_zoom()} }
                                     }
+                                    {sprechblase()}
                                 }
                                 {terminal(a, &tid, &rid, &eid, b.as_ref(), &name, zeilenhoehe, Some(w.worker.clone()), false, false)}
                             }
@@ -1565,6 +1587,20 @@ fn symbol_zoom() -> Element {
 pub(crate) fn symbol_ordner() -> Element {
     rsx! { svg { width: "16", height: "16", "viewBox": "0 0 16 16", fill: "none", stroke: "currentColor", "stroke-width": "1.3", "stroke-linejoin": "round", "aria-hidden": "true",
     path { d: "M2 4.2h4l1.4 1.5H14v6.8H2z" } } }
+}
+fn symbol_verkleinern() -> Element {
+    rsx! { svg { width: "13", height: "13", "viewBox": "0 0 16 16", fill: "none", stroke: "currentColor", "stroke-width": "1.4", "stroke-linecap": "round", "aria-hidden": "true",
+    path { d: "M13.5 6.5h-4v-4M2.5 9.5h4v4M9.5 6.5L14 2M6.5 9.5L2 14" } } }
+}
+/// The chat bubble of a pane head (B41): locked as in today's app, its target comes with the chat view after the pilot.
+fn sprechblase() -> Element {
+    rsx! {
+        button { r#type: "button", class: "pane-knopf", disabled: true, "aria-label": "Als Gespräch zeigen, noch nicht verfügbar",
+            title: "Als Gespräch zeigen – kommt mit der Chat-Bühne",
+            svg { width: "14", height: "14", "viewBox": "0 0 16 16", fill: "none", stroke: "currentColor", "stroke-width": "1.3", "stroke-linejoin": "round", "aria-hidden": "true",
+                path { d: "M3 3h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H7.5L4.5 13.5V11H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" } }
+        }
+    }
 }
 fn symbol_datei() -> Element {
     rsx! { svg { width: "16", height: "16", "viewBox": "0 0 16 16", fill: "none", stroke: "currentColor", "stroke-width": "1.3", "stroke-linejoin": "round", "aria-hidden": "true",

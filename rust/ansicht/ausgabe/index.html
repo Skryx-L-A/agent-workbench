@@ -16,16 +16,16 @@
   color-scheme: light;
   /* grau hell (Vorlage haupt-*-hell.png, inspektor-*-hell.png) */
   --titel: #f5f5f5; --leiste: #f7f7f7; --grund: #ffffff; --insp: #ffffff; --erhoben: #ffffff; --karte: #ffffff;
-  --wahl: #dfdfde; --linie: #e2e2e2; --feldgrund: #ffffff; --segment: #e9e9e9; --segment-wahl: #ffffff;
+  --wahl: #dfdfde; --linie: #e2e2e2; --feldgrund: #ffffff; --segment: #e9e9e9; --segment-wahl: #ffffff; --reiter-wahl: #cccccc;
   --schrift: #1d1d1f; --gedaempft: #5c5c61; --pane-kopf: #e6e6e6; --pane-kopf-aktiv: #dae7fd;
   --akzent: #2d6de0; --akzent-tinte: #ffffff; --akzent-text: #0a5ad6; --punkt: #3a82f7;
-  --gut: #1f7a3e; --warn: #8d6017; --warn-tinte: #ffffff; --schalter-aus: #c7c7cc; --schlecht: #b3261e; --fehlergrund: #fdf0ef; --schatten: rgba(0, 0, 0, 0.18);
+  --gut: #1f7a3e; --warn: #8d6017; --warn-tinte: #ffffff; --schalter-aus: #8e8e93; --schlecht: #b3261e; --gefahr-flaeche: #b3261e; --fehlergrund: #fdf0ef; --schatten: rgba(0, 0, 0, 0.18); --schatten-weich: rgba(0, 0, 0, 0.12);
   /* Terminal dunkel in beiden Themen (Vorgabe wie heute) */
   --term-dunkel: #1e1e1e;
   /* Kacheln der Worker (Projektentscheid, 27.11.2026): Grund der Buehne und Rahmen der aktiven Kachel wie im App-Fenster */
   --buehne: #ffffff; --kachel-rahmen: #3478f6;
   /* Masse (gemessen an den Vorlagebildern, Punkte) */
-  --titelhoehe: 50px; --leiste-breite: 210px; --inspektor-breite: 320px; --zeilenhoehe: 40px; --panekopf: 22px;
+  --titelhoehe: 50px; --leiste-breite: 240px; --inspektor-breite: 320px; --zeilenhoehe: 40px; --panekopf: 22px;
   --r-klein: 6px; --r-mittel: 8px; --r-karte: 10px; --r-zeile: 8px;
   --kachel-radius: 8px; --kachel-fuge: 4px; --kachel-rahmenbreite: 2px; --kachel-kopf: 24px;
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace; --term-schrift: 13px; --term-zeile: 17px;
@@ -34,34 +34,34 @@
 :root[data-thema="dunkel"] {
   color-scheme: dark;
   --titel: #2c2d2d; --leiste: #292a2a; --grund: #1e1e1e; --insp: #323333; --erhoben: #2e2f2f; --karte: #262627;
-  --wahl: #434343; --linie: #3a3b3b; --feldgrund: #1f1f1f; --segment: #353636; --segment-wahl: #59595a;
+  --wahl: #434343; --linie: #3a3b3b; --feldgrund: #1f1f1f; --segment: #353636; --segment-wahl: #59595a; --reiter-wahl: #59595a;
   --schrift: #e8e8e8; --gedaempft: #b4b4b7; --pane-kopf: #353636; --pane-kopf-aktiv: #233047;
   --akzent: #2d6de0; --akzent-tinte: #ffffff; --akzent-text: #5f9cf8; --punkt: #639ff8;
-  --gut: #46b46a; --warn: #e0a33e; --warn-tinte: #1b1300; --schalter-aus: #59595a; --schlecht: #e07a7a; --fehlergrund: #3a2526; --schatten: rgba(0, 0, 0, 0.5);
+  --gut: #46b46a; --warn: #e0a33e; --warn-tinte: #1b1300; --schalter-aus: #59595a; --schlecht: #e07a7a; --fehlergrund: #3a2526; --schatten: rgba(0, 0, 0, 0.5); --schatten-weich: rgba(0, 0, 0, 0.3);
   --term-dunkel: #1e1e1e; --buehne: #292a2a; --kachel-rahmen: #5e94f8;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-thema="hell"]) {
     color-scheme: dark;
     --titel: #2c2d2d; --leiste: #292a2a; --grund: #1e1e1e; --insp: #323333; --erhoben: #2e2f2f; --karte: #262627;
-    --wahl: #434343; --linie: #3a3b3b; --feldgrund: #1f1f1f; --segment: #353636; --segment-wahl: #59595a;
+    --wahl: #434343; --linie: #3a3b3b; --feldgrund: #1f1f1f; --segment: #353636; --segment-wahl: #59595a; --reiter-wahl: #59595a;
     --schrift: #e8e8e8; --gedaempft: #b4b4b7; --pane-kopf: #353636; --pane-kopf-aktiv: #233047;
     --akzent: #2d6de0; --akzent-tinte: #ffffff; --akzent-text: #5f9cf8; --punkt: #639ff8;
-    --gut: #46b46a; --warn: #e0a33e; --warn-tinte: #1b1300; --schalter-aus: #59595a; --schlecht: #e07a7a; --fehlergrund: #3a2526; --schatten: rgba(0, 0, 0, 0.5);
+    --gut: #46b46a; --warn: #e0a33e; --warn-tinte: #1b1300; --schalter-aus: #59595a; --schlecht: #e07a7a; --fehlergrund: #3a2526; --schatten: rgba(0, 0, 0, 0.5); --schatten-weich: rgba(0, 0, 0, 0.3);
     --term-dunkel: #1e1e1e; --buehne: #292a2a; --kachel-rahmen: #5e94f8;
   }
 }
 /* blauschwarz (Fassung vom 23.11.2026), nur im dunklen Thema */
 :root[data-thema="dunkel"][data-farbsatz="blauschwarz"] {
   --titel: #171a20; --leiste: #171a20; --grund: #101216; --insp: #171a20; --erhoben: #1e232b; --karte: #1e232b;
-  --wahl: #212732; --linie: #262b34; --feldgrund: #0b0d10; --segment: #1e232b; --segment-wahl: #343b48;
+  --wahl: #212732; --linie: #262b34; --feldgrund: #0b0d10; --segment: #262b34; --segment-wahl: #343b48; --reiter-wahl: #343b48; --flaeche-rand: #343b48;
   --schrift: #d8dee9; --gedaempft: #8b93a1; --pane-kopf: #1e232b; --pane-kopf-aktiv: #1d2d48; --term-dunkel: #101216;
   --buehne: #1b1e22; --kachel-rahmen: #0070e0;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-thema="hell"])[data-farbsatz="blauschwarz"] {
     --titel: #171a20; --leiste: #171a20; --grund: #101216; --insp: #171a20; --erhoben: #1e232b; --karte: #1e232b;
-    --wahl: #212732; --linie: #262b34; --feldgrund: #0b0d10; --segment: #1e232b; --segment-wahl: #343b48;
+    --wahl: #212732; --linie: #262b34; --feldgrund: #0b0d10; --segment: #262b34; --segment-wahl: #343b48; --reiter-wahl: #343b48; --flaeche-rand: #343b48;
     --schrift: #d8dee9; --gedaempft: #8b93a1; --pane-kopf: #1e232b; --pane-kopf-aktiv: #1d2d48; --term-dunkel: #101216;
     --buehne: #1b1e22; --kachel-rahmen: #0070e0;
   }
@@ -98,7 +98,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 button:disabled { cursor: default; opacity: 0.45; }
 svg { display: block; }
 h2, h3, p { margin: 0; }
-:focus-visible, button:focus, input:focus, select:focus, [role="listbox"]:focus { outline: 2px solid var(--akzent); outline-offset: 1px; }
+:focus-visible, input:focus, select:focus, [role="listbox"]:focus { outline: 2px solid var(--akzent); outline-offset: 1px; }
 .versteckt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 #wurzel { height: 100%; }
@@ -119,7 +119,7 @@ h2, h3, p { margin: 0; }
 .knopf-rand:hover:not(:disabled) { background: var(--segment-wahl); }
 .knopf-voll { padding: 5px 14px; border-radius: var(--r-klein); background: var(--akzent); color: var(--akzent-tinte); font-size: 13px; font-weight: 500; }
 .knopf-voll.gefahr, .gefahr { color: var(--schlecht); }
-.knopf-voll.gefahr { background: var(--schlecht); color: #fff; }
+.knopf-voll.gefahr { background: var(--gefahr-flaeche); color: #fff; }
 .segment { display: inline-flex; gap: 2px; padding: 3px; border-radius: 16px; background: var(--segment); }
 .segment button { padding: 4px 13px; border-radius: 13px; color: var(--gedaempft); font-size: 13px; white-space: nowrap; }
 .segment button.gewaehlt { background: var(--segment-wahl); color: var(--schrift); }
@@ -135,6 +135,9 @@ h2, h3, p { margin: 0; }
 #titelleiste { flex: 0 0 var(--titelhoehe); display: flex; align-items: center; gap: 10px; padding: 0 12px; background: var(--titel);
   border-bottom: 1px solid var(--linie); box-sizing: border-box; min-width: 0; }
 #kopf-titel { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; margin-left: 4px; }
+/* mit offener Leiste beginnt der Titel 20 px nach dem Beginn der Mitte, wie die heutige App und das App-Fenster
+   (12 px Rand, 30 px Knopf, 10 px Abstand: 52 px vor dem Titel) */
+#titelleiste.mit-leiste #kopf-titel { margin-left: max(4px, calc(var(--leiste-breite) - 32px)); }
 .kt-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kt-herkunft { font-size: 11.5px; color: var(--gedaempft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #kopf-rechts { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
@@ -190,7 +193,8 @@ h2, h3, p { margin: 0; }
 .pane-kopf.aktiv .pane-rolle { color: var(--akzent-text); }
 .pane-modell { font-family: var(--mono); font-size: 11.5px; color: var(--gedaempft); }
 .pane-knopf { margin-left: auto; color: var(--gedaempft); width: 26px; height: 20px; display: grid; place-items: center; border-radius: 5px; }
-.pane-knopf:hover { background: var(--segment); }
+.pane-knopf + .pane-knopf { margin-left: 0; }
+.pane-knopf:hover:not(:disabled) { background: var(--segment); }
 .terminal { position: relative; flex: 1 1 auto; min-height: 0; background: var(--raster-grund); color: var(--raster-vorn); }
 .terminal[hidden] { display: none; }
 .terminal:focus-within { outline: 2px solid var(--akzent); outline-offset: -2px; }
@@ -245,7 +249,7 @@ h2, h3, p { margin: 0; }
 /* Inspektor (B51 bis B53, B56, B07) */
 .insp-reiter { flex: 0 0 auto; display: flex; justify-content: center; gap: 2px; padding: 10px 12px; border-bottom: 1px solid var(--linie); }
 .reiter { width: 34px; height: 28px; display: grid; place-items: center; border-radius: var(--r-klein); color: var(--schrift); }
-.reiter[aria-selected="true"] { background: var(--segment-wahl); }
+.reiter[aria-selected="true"] { background: var(--reiter-wahl); }
 .insp-blatt { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
 .blatt-titel { font-size: 14px; font-weight: 700; margin-top: 8px; }
 .blatt-titel:first-child { margin-top: 0; }
@@ -275,7 +279,7 @@ h2, h3, p { margin: 0; }
 .menue-grund, .fenster-grund { position: fixed; inset: 0; z-index: 30; }
 .fenster-grund { background: rgba(0, 0, 0, 0.28); }
 .blase { position: fixed; top: calc(var(--titelhoehe) + 6px); right: 170px; z-index: 31; box-sizing: border-box; max-width: calc(100% - 16px); width: 330px; padding: 12px 14px; border-radius: 12px;
-  background: var(--erhoben); box-shadow: 0 10px 30px var(--schatten); border: 1px solid var(--linie); display: flex; flex-direction: column; gap: 8px; }
+  background: var(--erhoben); box-shadow: 0 4px 16px var(--schatten-weich), 0 1px 2px var(--schatten-weich); border: 1px solid var(--linie); display: flex; flex-direction: column; gap: 8px; }
 .blase-kopf { display: flex; align-items: center; justify-content: space-between; }
 .blase-kopf h3 { font-size: 14px; }
 .blase-zeile { display: flex; gap: 10px; align-items: flex-start; }
@@ -313,7 +317,7 @@ h2, h3, p { margin: 0; }
 .form-fuss { display: flex; justify-content: flex-end; gap: 8px; padding-top: 10px; }
 .fenster-fuss { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-top: 1px solid var(--linie); background: var(--titel); }
 .fenster-info { margin-right: auto; color: var(--gedaempft); font-size: 12.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fenster.frage { width: min(420px, calc(100% - 40px)); padding: 18px; gap: 10px; }
+.fenster.frage { width: min(420px, calc(100% - 40px)); padding: 18px; gap: 10px; box-shadow: 0 8px 28px var(--schatten-weich), 0 1px 3px var(--schatten-weich); }
 .fenster.frage form { display: flex; flex-direction: column; gap: 6px; }
 
 .fenster.einstellungen { width: min(980px, calc(100% - 40px)); height: min(680px, calc(100% - 40px)); flex-direction: row; }
@@ -351,6 +355,7 @@ h2, h3, p { margin: 0; }
 .herkunft.gruppe { background: color-mix(in srgb, #8e6ff0 22%, transparent); color: #9a80f5; }
 .herkunft.nutzer { background: color-mix(in srgb, var(--gut) 20%, transparent); color: var(--gut); }
 .herkunft.geraet { background: var(--segment); color: var(--gedaempft); }
+.einst-inhalt .segment, .herkunft.geraet, .zeile-symbol { box-shadow: inset 0 0 0 1px var(--flaeche-rand, transparent); }
 .einst-zeile.gesperrt .zeile-name { color: var(--gedaempft); }
 .schalter { position: relative; width: 38px; height: 22px; border-radius: 11px; background: var(--schalter-aus); flex: 0 0 auto; }
 .schalter.an { background: var(--gut); }
@@ -364,6 +369,7 @@ h2, h3, p { margin: 0; }
   html, body { height: auto; overflow-x: hidden; overflow-y: auto; }
   #rahmen { height: auto; min-height: 100dvh; }
   #titelleiste { flex: 0 0 auto; height: auto; min-height: var(--titelhoehe); flex-wrap: wrap; padding: 4px 8px; }
+  #titelleiste.mit-leiste #kopf-titel { margin-left: 4px; }
   #kopf-rechts { flex-wrap: wrap; }
   #app { flex-direction: column; }
   #leiste { flex: 0 0 auto; width: auto; max-height: 45dvh; }

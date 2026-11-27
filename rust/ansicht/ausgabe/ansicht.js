@@ -1354,6 +1354,10 @@ function __wbg_get_imports() {
             const ret = arg0.setTimeout(arg1, arg2);
             return ret;
         }, arguments); },
+        __wbg_set_2793479888329cb6: function() { return handleError(function (arg0, arg1, arg2) {
+            const ret = Reflect.set(arg0, arg1, arg2);
+            return ret;
+        }, arguments); },
         __wbg_set_behavior_162aafb93f17509a: function(arg0, arg1) {
             arg0.behavior = __wbindgen_enum_ScrollBehavior[arg1];
         },

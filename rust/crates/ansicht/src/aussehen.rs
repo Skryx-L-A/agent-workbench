@@ -67,7 +67,7 @@ impl Default for Aussehen {
             farbsatz: "grau".into(),
             terminal: "dunkel".into(),
             schrift: 13,
-            leiste: 210.0,
+            leiste: 240.0,
             inspektor_breite: 320.0,
             inspektor_offen: false,
             leiste_offen: true,
