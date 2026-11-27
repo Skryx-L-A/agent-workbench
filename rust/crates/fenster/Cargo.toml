@@ -20,6 +20,7 @@ path = "src/main.rs"
 # clipboard (B38), the default fonts (a monospace font with umlauts and box characters, OF4 point 2), X11 and Wayland.
 # flate2 (already in the graph through rasterauszug, same features): the Deflate of the PNG pictures (OF13).
 # serde_json: the messages of the stream and the file of the user (L8).
+# The bold cut (Ubuntu, Ubuntu-font-1.0) is a file of this crate, `schriften/`, with its notice in `NOTICE`.
 [dependencies]
 ansicht = { path = "../ansicht" }
 eframe = { version = "=0.37.0", default-features = false, features = ["accesskit", "clipboard", "default_fonts", "glow", "wayland", "x11"] }
@@ -30,3 +31,8 @@ serde_json = "1"
 
 [lints]
 workspace = true
+
+# muda 0.22.0 (Apache-2.0 OR MIT), macOS only: the menu bar of the system for the application menu B75 (OF8). Windows and
+# Linux keep the menu in the title row. It brings keyboard-types 0.8 next to 0.7 of dioxus-html (skip in deny.toml).
+[target.'cfg(target_os = "macos")'.dependencies]
+muda = { version = "=0.22.0", default-features = false }

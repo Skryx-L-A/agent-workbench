@@ -18,8 +18,10 @@ use egui::{
 use rasterauszug::Empfang;
 use serde_json::{Value, json};
 
+use crate::Fett;
 use crate::bedienwege::{Luecken, sichtbar};
 use crate::gestalt::{self, Farbsatz, MASSE, Rollen, Terminalwahl, Thema, Wahl};
+use crate::menue::{Eintrag, Tat as MenueTat, Untermenue};
 use crate::merken::Merken;
 use crate::symbole::{self, Symbol};
 use crate::tasten::{self, Tat};
@@ -198,6 +200,9 @@ pub struct Fenster {
     pub system_dunkel: Option<bool>,
     wahl: Wahl,
     terminalschrift: f32,
+    /// The menu bar of macOS (B75), once the program has set it up.
+    #[cfg(target_os = "macos")]
+    menueleiste: Option<crate::menue::Menueleiste>,
     merken_geaendert: bool,
 }
 
@@ -400,6 +405,8 @@ impl Fenster {
             system_dunkel: None,
             wahl: Wahl::default(),
             terminalschrift: MASSE.schrift_terminal,
+            #[cfg(target_os = "macos")]
+            menueleiste: None,
             merken_geaendert: false,
         };
         // the look chosen on this device; the settings of the service (L4) come later and win
@@ -623,6 +630,8 @@ impl Fenster {
         let rollen = *self.rollen(ui);
         ctx.set_visuals(gestalt::visuals(&rollen));
         self.empfangen();
+        #[cfg(target_os = "macos")]
+        self.menueleiste_abgleichen(&ctx);
         if let Some(t) = self.wecker
             && self.jetzt >= t
         {
@@ -851,8 +860,9 @@ impl Fenster {
                                     self.b.leiste_offen = !self.b.leiste_offen;
                                 }
                             }
-                            if self.zeigt("B75") {
-                                self.menue(ui, r);
+                            // under macOS the menu bar of the system carries the same list (B75)
+                            if self.zeigt("B75") && !cfg!(target_os = "macos") {
+                                self.menue(ui);
                             }
                             ui.min_rect().right()
                         },
@@ -895,7 +905,7 @@ impl Fenster {
                                 ui.spacing_mut().item_spacing.y = 1.0;
                                 ui.add(
                                     egui::Label::new(
-                                        RichText::new(&projekt).strong().size(MASSE.schrift_titel),
+                                        RichText::new(&projekt).fett().size(MASSE.schrift_titel),
                                     )
                                     .truncate(),
                                 );
@@ -921,9 +931,9 @@ impl Fenster {
         );
     }
 
-    /// The application menu in the title row (B75; under macOS it would be the menu bar of the system). It holds only
-    /// entries whose operating path shows (OF8).
-    fn menue(&mut self, ui: &mut Ui, r: &Rollen) {
+    /// The application menu in the title row (B75, Windows and Linux; under macOS the menu bar of the system shows the
+    /// same list, see [`Fenster::anwendungsmenue`]).
+    fn menue(&mut self, ui: &mut Ui) {
         let k = symbole::knopf(ui, Symbol::Menue, "Menü", MASSE.kapsel_segment, false);
         kennung(ui, k.id, "B75");
         ui.ctx().accesskit_node_builder(k.id, |n| {
@@ -931,104 +941,220 @@ impl Fenster {
             n.set_class_name("anwendungsmenue");
         });
         self.halt(TITEL, &k);
-        let aktiv = self.kern.aktive_sitzung().cloned();
+        let liste = self.anwendungsmenue();
+        let mut gewaehlt = None;
         egui::Popup::menu(&k).show(|ui| {
             ui.set_min_width(220.0);
-            let eintrag = |ui: &mut Ui, text: &str, an: bool| -> bool {
-                let e = ui.add_enabled(
-                    an,
-                    egui::Button::new(text)
-                        .frame(false)
-                        .min_size(vec2(200.0, 22.0)),
-                );
-                rolle_setzen(ui, e.id, Role::MenuItem);
-                e.clicked()
-            };
-            ui.menu_button("Werkbank", |ui| {
-                if self.zeigt("B72") && eintrag(ui, "Einstellungen …", true) {
-                    self.b.einstellungen = Some(Seite::Aussehen);
-                }
-                if eintrag(ui, "Werkbank beenden", true) {
-                    ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
-                }
-            });
-            if self.zeigt("B68") {
-                ui.menu_button("Ablage", |ui| {
-                    if eintrag(ui, "Neue Sitzung …", true) {
-                        self.b.sitzungen = Some(Sitzungsfenster::default());
-                        self.fokus = Some(FokusZiel::Name);
-                    }
-                });
-            }
-            if self.zeigt("B38") {
-                ui.menu_button("Bearbeiten", |ui| {
-                    if eintrag(ui, "Kopieren", self.markierung.is_some())
-                        && let (Some(b), Some(m)) =
-                            (self.kern.bild.as_ref(), self.markierung.as_ref())
-                    {
-                        let t = terminal::markierter_text(b, m);
-                        if !t.is_empty() {
-                            ui.ctx().copy_text(t);
+            for m in &liste {
+                ui.menu_button(m.titel, |ui| {
+                    for e in &m.eintraege {
+                        let b = ui.add_enabled(
+                            e.an,
+                            egui::Button::new(e.text)
+                                .frame(false)
+                                .min_size(vec2(200.0, 22.0)),
+                        );
+                        rolle_setzen(ui, b.id, Role::MenuItem);
+                        if b.clicked() {
+                            gewaehlt = Some(e.tat);
                         }
                     }
-                    if eintrag(ui, "Einfügen", aktiv.is_some()) {
-                        self.fokus = Some(FokusZiel::Terminal);
-                        ui.ctx()
-                            .send_viewport_cmd(egui::ViewportCommand::RequestPaste);
-                    }
                 });
             }
-            if let Some(s) = &aktiv
-                && (self.zeigt("B11")
-                    || self.zeigt("B12")
-                    || self.zeigt("B15")
-                    || self.zeigt("B16"))
-            {
-                ui.menu_button("Sitzung", |ui| {
-                    if self.zeigt("B11") && eintrag(ui, "Fortsetzen", !s.laeuft) {
-                        self.senden(&json!({"art": "Fortsetzen", "sitzung": s.id}));
-                    }
-                    if self.zeigt("B12") && eintrag(ui, "Namen ändern …", true) {
-                        let alt = self
-                            .zusatz
-                            .sitzung(&s.id)
-                            .map(|x| x.name.clone())
-                            .unwrap_or_default();
-                        self.b.rueckfrage = Some(Rueckfrage::Umbenennen(s.id.clone(), alt));
-                    }
-                    if self.zeigt("B15") && eintrag(ui, "Sitzung schließen", s.laeuft) {
-                        let w = self.kern.beenden(&s.id);
-                        self.wirkungen(w);
-                    }
-                    if self.zeigt("B16") && eintrag(ui, "Endgültig löschen …", !s.laeuft) {
-                        self.b.rueckfrage = Some(Rueckfrage::Loeschen(s.id.clone()));
-                    }
-                });
-            }
-            ui.menu_button("Darstellung", |ui| {
-                if self.zeigt("B80") && eintrag(ui, "Leiste ein- oder ausblenden", true) {
-                    self.b.leiste_offen = !self.b.leiste_offen;
-                }
-                if self.zeigt("B04") && eintrag(ui, "Inspektor ein- oder ausblenden", true) {
-                    self.merken.inspektor_offen = !self.merken.inspektor_offen;
-                    self.merken_geaendert = true;
-                }
-                if self.zeigt("B27") {
-                    if eintrag(ui, "Orchestrator", self.b.mitte != Mitte::Orchestrator) {
-                        self.b.mitte = Mitte::Orchestrator;
-                        self.kachel_abo.clear();
-                    }
-                    if eintrag(ui, "Worker", self.b.mitte != Mitte::Worker) {
-                        self.b.mitte = Mitte::Worker;
-                        self.kachel_abo.clear();
-                    }
-                }
-                if self.zeigt("B29") && eintrag(ui, "Worker-Liste", true) {
-                    self.b.worker_liste = !self.b.worker_liste;
-                }
-            });
-            let _ = r;
         });
+        if let Some(t) = gewaehlt {
+            self.menue_tat(ui.ctx(), t);
+        }
+    }
+
+    /// The entries of the application menu (B75), for the menu in the title row and the menu bar of macOS alike. It
+    /// holds only entries whose operating path shows (OF8); a menu without entries is left out.
+    #[must_use]
+    pub fn anwendungsmenue(&self) -> Vec<Untermenue> {
+        if !self.zeigt("B75") {
+            return Vec::new();
+        }
+        let e = |tat, text, an, weg| Eintrag { tat, text, an, weg };
+        let aktiv = self.kern.aktive_sitzung();
+        let mut werkbank = Vec::new();
+        if self.zeigt("B72") {
+            werkbank.push(e(MenueTat::Einstellungen, "Einstellungen …", true, "B72"));
+        }
+        werkbank.push(e(MenueTat::Beenden, "Werkbank beenden", true, "B75"));
+        let mut ablage = Vec::new();
+        if self.zeigt("B68") {
+            ablage.push(e(MenueTat::NeueSitzung, "Neue Sitzung …", true, "B68"));
+        }
+        let mut bearbeiten = Vec::new();
+        if self.zeigt("B38") {
+            bearbeiten.push(e(
+                MenueTat::Kopieren,
+                "Kopieren",
+                self.markierung.is_some(),
+                "B38",
+            ));
+            bearbeiten.push(e(MenueTat::Einfuegen, "Einfügen", aktiv.is_some(), "B38"));
+        }
+        let mut sitzung = Vec::new();
+        if let Some(s) = aktiv {
+            if self.zeigt("B11") {
+                sitzung.push(e(MenueTat::Fortsetzen, "Fortsetzen", !s.laeuft, "B11"));
+            }
+            if self.zeigt("B12") {
+                sitzung.push(e(MenueTat::Umbenennen, "Namen ändern …", true, "B12"));
+            }
+            if self.zeigt("B15") {
+                sitzung.push(e(
+                    MenueTat::Schliessen,
+                    "Sitzung schließen",
+                    s.laeuft,
+                    "B15",
+                ));
+            }
+            if self.zeigt("B16") {
+                sitzung.push(e(
+                    MenueTat::Loeschen,
+                    "Endgültig löschen …",
+                    !s.laeuft,
+                    "B16",
+                ));
+            }
+        }
+        let mut darstellung = Vec::new();
+        if self.zeigt("B80") {
+            darstellung.push(e(
+                MenueTat::Leiste,
+                "Leiste ein- oder ausblenden",
+                true,
+                "B80",
+            ));
+        }
+        if self.zeigt("B04") {
+            darstellung.push(e(
+                MenueTat::Inspektor,
+                "Inspektor ein- oder ausblenden",
+                true,
+                "B04",
+            ));
+        }
+        if self.zeigt("B27") {
+            darstellung.push(e(
+                MenueTat::Orchestrator,
+                "Orchestrator",
+                self.b.mitte != Mitte::Orchestrator,
+                "B27",
+            ));
+            darstellung.push(e(
+                MenueTat::Worker,
+                "Worker",
+                self.b.mitte != Mitte::Worker,
+                "B27",
+            ));
+        }
+        if self.zeigt("B29") {
+            darstellung.push(e(MenueTat::WorkerListe, "Worker-Liste", true, "B29"));
+        }
+        [
+            ("Werkbank", werkbank),
+            ("Ablage", ablage),
+            ("Bearbeiten", bearbeiten),
+            ("Sitzung", sitzung),
+            ("Darstellung", darstellung),
+        ]
+        .into_iter()
+        .filter(|(_, l)| !l.is_empty())
+        .map(|(titel, eintraege)| Untermenue { titel, eintraege })
+        .collect()
+    }
+
+    /// Carries out an entry of the application menu, from the title row or the menu bar of macOS.
+    pub fn menue_tat(&mut self, ctx: &egui::Context, tat: MenueTat) {
+        let aktiv = self.kern.aktive_sitzung().cloned();
+        match tat {
+            MenueTat::Einstellungen => self.b.einstellungen = Some(Seite::Aussehen),
+            MenueTat::Beenden => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+            MenueTat::NeueSitzung => {
+                self.b.sitzungen = Some(Sitzungsfenster::default());
+                self.fokus = Some(FokusZiel::Name);
+            }
+            MenueTat::Kopieren => {
+                if let (Some(b), Some(m)) = (self.kern.bild.as_ref(), self.markierung.as_ref()) {
+                    let t = terminal::markierter_text(b, m);
+                    if !t.is_empty() {
+                        ctx.copy_text(t);
+                    }
+                }
+            }
+            MenueTat::Einfuegen => {
+                if aktiv.is_some() {
+                    self.fokus = Some(FokusZiel::Terminal);
+                    ctx.send_viewport_cmd(egui::ViewportCommand::RequestPaste);
+                }
+            }
+            MenueTat::Fortsetzen => {
+                if let Some(s) = aktiv.filter(|s| !s.laeuft) {
+                    self.senden(&json!({"art": "Fortsetzen", "sitzung": s.id}));
+                }
+            }
+            MenueTat::Umbenennen => {
+                if let Some(s) = aktiv {
+                    let alt = self
+                        .zusatz
+                        .sitzung(&s.id)
+                        .map(|x| x.name.clone())
+                        .unwrap_or_default();
+                    self.b.rueckfrage = Some(Rueckfrage::Umbenennen(s.id.clone(), alt));
+                }
+            }
+            MenueTat::Schliessen => {
+                if let Some(s) = aktiv.filter(|s| s.laeuft) {
+                    let w = self.kern.beenden(&s.id);
+                    self.wirkungen(w);
+                }
+            }
+            MenueTat::Loeschen => {
+                if let Some(s) = aktiv.filter(|s| !s.laeuft) {
+                    self.b.rueckfrage = Some(Rueckfrage::Loeschen(s.id.clone()));
+                }
+            }
+            MenueTat::Leiste => self.b.leiste_offen = !self.b.leiste_offen,
+            MenueTat::Inspektor => {
+                self.merken.inspektor_offen = !self.merken.inspektor_offen;
+                self.merken_geaendert = true;
+            }
+            MenueTat::Orchestrator | MenueTat::Worker => {
+                let m = if tat == MenueTat::Worker {
+                    Mitte::Worker
+                } else {
+                    Mitte::Orchestrator
+                };
+                if self.b.mitte != m {
+                    self.b.mitte = m;
+                    self.kachel_abo.clear();
+                }
+            }
+            MenueTat::WorkerListe => self.b.worker_liste = !self.b.worker_liste,
+        }
+    }
+
+    /// Builds the menu bar of macOS (B75) from [`Fenster::anwendungsmenue`]. Call it once, in the creator of eframe;
+    /// without it (tests, pictures) the window touches no menu of the system.
+    #[cfg(target_os = "macos")]
+    pub fn menueleiste_einrichten(&mut self, ctx: &egui::Context) {
+        self.menueleiste = Some(crate::menue::Menueleiste::neu(ctx));
+    }
+
+    /// Brings the menu bar of macOS to the list and carries out the entries chosen there.
+    #[cfg(target_os = "macos")]
+    fn menueleiste_abgleichen(&mut self, ctx: &egui::Context) {
+        let liste = self.anwendungsmenue();
+        let gewaehlt = match self.menueleiste.as_mut() {
+            Some(m) => m.abgleichen(&liste),
+            None => return,
+        };
+        for t in gewaehlt {
+            self.menue_tat(ctx, t);
+        }
     }
 
     fn herkunft(&self) -> (String, String) {
@@ -1191,7 +1317,7 @@ impl Fenster {
                     ui.add_space(MASSE.kopf_einzug);
                     ui.label(
                         RichText::new("Sitzungen")
-                            .strong()
+                            .fett()
                             .size(MASSE.schrift_klein)
                             .color(r.gedaempft),
                     );
@@ -1350,7 +1476,7 @@ impl Fenster {
                             ui.add_space(MASSE.kopf_einzug);
                             ui.label(
                                 RichText::new(&p)
-                                    .strong()
+                                    .fett()
                                     .size(MASSE.schrift_klein)
                                     .color(r.gedaempft),
                             );
@@ -1358,7 +1484,7 @@ impl Fenster {
                                 ui.add_space(MASSE.innen);
                                 ui.label(
                                     RichText::new(ids.len().to_string())
-                                        .strong()
+                                        .fett()
                                         .size(MASSE.schrift_klein)
                                         .color(r.gedaempft),
                                 );
@@ -1521,7 +1647,7 @@ impl Fenster {
                 .show(ui, |ui| {
                     ui.set_width(ui.available_width());
                     ui.horizontal(|ui| {
-                        ui.label(RichText::new("Dialog offen").strong());
+                        ui.label(RichText::new("Dialog offen").fett());
                         ui.label(RichText::new(&d.art).color(r.gedaempft));
                         for (i, o) in d.optionen.iter().enumerate() {
                             if ui.button(o).clicked() {
@@ -1608,8 +1734,12 @@ impl Fenster {
                 );
             });
             // mark with the mouse (B38)
+            // the marking starts where the button went down: egui reports the drag only after some movement, and a
+            // slow frame (llvmpipe under Xvfb, 27.11.2026) brings press and movement in one frame
             if resp.drag_started()
-                && let Some(p) = resp.interact_pointer_pos()
+                && let Some(p) = ui
+                    .input(|i| i.pointer.press_origin())
+                    .or_else(|| resp.interact_pointer_pos())
             {
                 let z = terminal::zelle_bei(p, flaeche, zw, zh);
                 self.markierung = Some(Markierung { von: z, bis: z });
@@ -1658,7 +1788,14 @@ impl Fenster {
             let _ = ui.interact(br, kopieren, Sense::hover());
             ui.ctx().accesskit_node_builder(kopieren, |n| {
                 n.set_role(Role::Label);
-                n.set_label("Kopieren mit Strg+Umschalt+C, Einfügen mit Strg+V".to_owned());
+                n.set_label(
+                    if cfg!(target_os = "macos") {
+                        "Kopieren mit Befehl+C, Einfügen mit Befehl+V"
+                    } else {
+                        "Kopieren mit Strg+Umschalt+C oder Strg+Einfg, Einfügen mit Strg+V oder Umschalt+Einfg"
+                    }
+                    .to_owned(),
+                );
                 n.set_author_id("B38".to_owned());
             });
             let _ = r;
@@ -1667,7 +1804,7 @@ impl Fenster {
 
     fn tasten(&mut self, ui: &Ui, resp: &Response) {
         let events = ui.input(|i| i.events.clone());
-        for t in tasten::lesen(&events, cfg!(windows)) {
+        for t in tasten::lesen(&events, tasten::System::HIER) {
             match t {
                 Tat::Deutung(Deutung::Fokus(richtung)) => self.bereich_wechseln(ui, richtung),
                 Tat::Deutung(d) => {
@@ -2070,7 +2207,7 @@ impl Fenster {
             ui.spacing_mut().item_spacing.x = MASSE.abstand + 2.0;
             ui.label(
                 RichText::new(text)
-                    .strong()
+                    .fett()
                     .size(MASSE.schrift_grund)
                     .color(r.schrift),
             );
@@ -2102,7 +2239,7 @@ impl Fenster {
                         .unwrap_or_default();
                     // flat like the rest of the inspector: no card, a line below each request (OF2 point 1)
                     ui.add_space(MASSE.abstand);
-                    ui.label(RichText::new(&a.werkzeug).strong());
+                    ui.label(RichText::new(&a.werkzeug).fett());
                     ui.add(egui::Label::new(RichText::new(&a.vorschau).monospace().size(MASSE.schrift_klein)).truncate());
                     // the worker of a request is a field of L1; the base form names the session only (OF8 point 3)
                     let herkunft = if worker.is_empty() { a.sitzung.clone() } else { format!("{} · {}", a.sitzung, worker) };
@@ -2284,8 +2421,7 @@ impl Fenster {
                                         n.set_class_name("worker-liste");
                                     });
                                     ui.label(
-                                        RichText::new(format!("Worker  {}", arbeiter.len()))
-                                            .strong(),
+                                        RichText::new(format!("Worker  {}", arbeiter.len())).fett(),
                                     );
                                     for w in &arbeiter {
                                         ui.horizontal(|ui| {
@@ -2566,7 +2702,7 @@ impl Fenster {
     }
 
     fn bekannte_sitzungen(&mut self, ui: &mut Ui, r: &Rollen, f: &mut Sitzungsfenster) {
-        ui.label(RichText::new("Bekannte Sitzungen").strong());
+        ui.label(RichText::new("Bekannte Sitzungen").fett());
         ui.scope_builder(UiBuilder::new().id_salt("bekannte"), |ui| {
             behaelter(ui, Role::ListBox, "Bekannte Sitzungen", None);
             let mut ordner: Vec<String> = Vec::new();
@@ -2616,7 +2752,7 @@ impl Fenster {
     }
 
     fn startformular(&mut self, ui: &mut Ui, r: &Rollen, f: &mut Sitzungsfenster) {
-        ui.label(RichText::new("Sitzung starten").strong());
+        ui.label(RichText::new("Sitzung starten").fett());
         ui.scope_builder(UiBuilder::new().id_salt("startformular"), |ui| {
             behaelter(ui, Role::Form, "Sitzung starten", None);
             let feld = |ui: &mut Ui, name: &str, text: &mut String, kennung: &str| -> Response {
@@ -2947,7 +3083,7 @@ impl Fenster {
             ui.add_space(MASSE.kopf_einzug);
             ui.label(
                 RichText::new(text)
-                    .strong()
+                    .fett()
                     .size(MASSE.schrift_klein)
                     .color(r.gedaempft),
             );
@@ -2997,7 +3133,7 @@ impl Fenster {
             ui.add_space(MASSE.innen);
             ui.label(
                 RichText::new(titel)
-                    .strong()
+                    .fett()
                     .size(MASSE.schrift_grund)
                     .color(r.schrift),
             );
@@ -3058,7 +3194,7 @@ impl Fenster {
         let schalter = z.wahlen.len() == 2 && z.wahlen[0].0 == "true";
         rechts.add_enabled_ui(aenderbar, |ui| {
             if z.wahlen.is_empty() {
-                ui.label(RichText::new(&wert).strong());
+                ui.label(RichText::new(&wert).fett());
             } else if schalter {
                 let an = wert == "true";
                 let k = schalter_malen(ui, r, an, z.name);
@@ -3196,7 +3332,7 @@ impl Fenster {
         };
         ui.horizontal(|ui| {
             ui.add_space(MASSE.innen);
-            ui.label(RichText::new(titel).strong().size(MASSE.schrift_seite));
+            ui.label(RichText::new(titel).fett().size(MASSE.schrift_seite));
         });
         let z = |schluessel, name, beschreibung, wahlen| Einstellungszeile {
             schluessel,

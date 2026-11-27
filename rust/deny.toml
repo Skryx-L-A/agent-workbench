@@ -89,6 +89,7 @@ skip = [
     { crate = "rustc-hash@1.1.0", reason = "sledgehammer_utils 0.3.1 (dioxus-interpreter-js 0.7.10) uses rustc-hash 1; dioxus-core 0.7.10 uses rustc-hash 2" },
     { crate = "getrandom@0.3.4", reason = "rand_core 0.9.5 (rand 0.9.5, tungstenite 0.28.0, dioxus-devtools 0.7.10) uses getrandom 0.3; tempfile 3.27.0 uses 0.4. Host build only, not in the wasm build" },
     { crate = "r-efi@5.3.0", reason = "getrandom 0.3.4 uses r-efi 5; getrandom 0.4.3 uses 6. UEFI only, not compiled on macOS or Linux" },
+    { crate = "keyboard-types@0.7.0", reason = "dioxus-html 0.7.10 (ansicht) uses keyboard-types 0.7; muda 0.22.0 uses 0.8" },
     # Duplicates that the app window `fenster` brings in through eframe 0.37.0 (order of 27.11.2026). Each entry skips the
     # version that winit 0.30.13 or egui-winit 0.37.0 under eframe 0.37 pulls in. Measured with `cargo deny check bans`
     # and `cargo tree --all-features --target all -i <crate>@<version>` on 27.11.2026.

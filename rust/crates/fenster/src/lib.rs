@@ -16,6 +16,7 @@ pub mod bedienwege;
 pub mod bild;
 pub mod fenster;
 pub mod gestalt;
+pub mod menue;
 pub mod merken;
 pub mod symbole;
 pub mod tasten;
@@ -23,15 +24,64 @@ pub mod terminal;
 pub mod weg;
 pub mod ziel;
 
-use egui::{FontId, TextStyle};
+use std::sync::Arc;
+
+use egui::{FontFamily, FontId, RichText, TextStyle};
 
 use crate::attrappe::{Attrappe, Form, Griff};
 use crate::fenster::{Fenster, Reiter, Seite, Szene};
 use crate::gestalt::MASSE;
 use crate::merken::Merken;
 
-/// Sets the text sizes and spacing of the window (OF4) on a context.
+/// The notice of the files taken into this crate (README.md, section "Code taken from other projects");
+/// `werkbank-fenster --licenses` prints it.
+pub const NOTICE: &str = include_str!("../NOTICE");
+
+/// The family of the bold cut: Ubuntu at weight 700, then the fonts of egui for the characters it lacks.
+pub const FETT: &str = "fett";
+
+/// The font file of the bold cut, `Ubuntu[wdth,wght].ttf` of the Ubuntu package `fonts-ubuntu` (Ubuntu-font-1.0,
+/// origin and checksums in `NOTICE`).
+///
+/// OF4 point 1: this is a fallback until the window loads the font of the system. The fonts of egui have no bold cut,
+/// so without it every bold text of the window would be regular. Once the window takes the font of the system, this
+/// file and its row in README.md go.
+const UBUNTU: &[u8] = include_bytes!("../schriften/Ubuntu-wdth-wght.ttf");
+
+/// The fonts of the window: those of egui and the bold family [`FETT`].
+#[must_use]
+pub fn schriften() -> egui::FontDefinitions {
+    let mut d = egui::FontDefinitions::default();
+    let mut fett = egui::FontData::from_static(UBUNTU);
+    fett.tweak.coords = egui::epaint::text::VariationCoords::new([(b"wght", 700.0)]);
+    d.font_data.insert("Ubuntu-Bold".to_owned(), Arc::new(fett));
+    let mut familie = vec!["Ubuntu-Bold".to_owned()];
+    familie.extend(
+        d.families
+            .get(&FontFamily::Proportional)
+            .cloned()
+            .unwrap_or_default(),
+    );
+    d.families.insert(FontFamily::Name(FETT.into()), familie);
+    d
+}
+
+/// Bold text in the window: the bold cut and the strong colour of egui.
+pub trait Fett {
+    /// This text in the bold cut.
+    #[must_use]
+    fn fett(self) -> Self;
+}
+
+impl Fett for RichText {
+    fn fett(self) -> Self {
+        self.strong().family(FontFamily::Name(FETT.into()))
+    }
+}
+
+/// Sets the fonts, text sizes and spacing of the window (OF4) on a context.
 pub fn einrichten(ctx: &egui::Context) {
+    ctx.set_fonts(schriften());
     ctx.all_styles_mut(|s| {
         s.text_styles
             .insert(TextStyle::Body, FontId::proportional(MASSE.schrift_grund));
@@ -142,4 +192,40 @@ pub fn bilder(ordner: &std::path::Path) -> std::io::Result<Vec<std::path::PathBu
         }
     }
     Ok(aus)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_bold_cut_is_wider_than_the_regular_one() {
+        let ctx = egui::Context::default();
+        einrichten(&ctx);
+        let mut breite = [0.0_f32; 2];
+        let mut aus = ctx.run_ui(egui::RawInput::default(), |ui| {
+            for (i, familie) in [FontFamily::Proportional, FontFamily::Name(FETT.into())]
+                .into_iter()
+                .enumerate()
+            {
+                let g = ui.painter().layout_no_wrap(
+                    "Werkbank Sitzung".to_owned(),
+                    FontId::new(14.0, familie),
+                    egui::Color32::WHITE,
+                );
+                breite[i] = g.size().x;
+            }
+        });
+        aus.textures_delta.clear();
+        // Ubuntu Light of egui against Ubuntu at weight 700: the bold cut is loaded and its axis takes effect
+        assert!(breite[1] > breite[0] * 1.05, "{breite:?}");
+    }
+
+    #[test]
+    fn the_notice_names_the_font_and_its_licence() {
+        assert!(NOTICE.contains("schriften/Ubuntu-wdth-wght.ttf"));
+        assert!(NOTICE.contains("Ubuntu-font-1.0"));
+        assert!(NOTICE.contains("UBUNTU FONT LICENCE Version 1.0"));
+        assert!(NOTICE.contains("Copyright: 2010–2022 Canonical Ltd"));
+    }
 }

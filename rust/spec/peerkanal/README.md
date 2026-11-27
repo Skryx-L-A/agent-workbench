@@ -518,3 +518,48 @@ einer anderen SID als `TokenUser` (`k-eigene-sid-windows`); Trennen ohne `FlushF
 10. Die Fälle `c-ohne-hallo-unix` und `c-ohne-hallo-falscher-besitzer-unix` beschreiben die Unix-Seite von `verbinden_ohne_hallo`
     (uid des Servers wie bei `verbinden`). Die Bibliothek baut die Unix-Seite noch nicht; der Entscheid nennt Unix nicht
     ausdrücklich.
+    Nachtrag 27.11.2026: Die erste Stufe der Unix-Seite ist gebaut (Abschnitt „Nachtrag 27.11.2026: Unix-Seite“).
+
+## Nachtrag 27.11.2026: Unix-Seite (Linux und macOS), erste Stufe
+
+Grundlage: die Abschnitte „Server anlegen“, „Annehmen und Messen“, „Peer“ und „Client verbinden“, je mit ihren Sätzen zu Unix
+(Projektentscheid, 27.11.2026). Gebaut ist die kleinste Unix-Seite; die Schnittstelle ist dieselbe wie unter Windows. Ein Ziel
+ohne Unix- und ohne Windows-Seite lehnt weiter jeden Aufruf ab (`pk.anlegen_fehlgeschlagen`, `pk.nicht_erreichbar`).
+
+1. **Server anlegen.** Nach Stufe 1 (Vorgabe) die Stufen 2 bis 4 wie oben: `pk.ordner_rechte` (Ordner fehlt, ist kein Ordner,
+   ist ein Link, gehört nicht der effektiven uid oder hat nicht genau 0700), `pk.pfad_zu_lang` (der Pfad hat mindestens so
+   viele Byte, wie `sun_path` fasst), `pk.name_belegt` (am Pfad liegt irgendetwas, auch ein verwaister Socket; nichts wird
+   gelöscht). Dann `socket` (unter Linux mit `SOCK_CLOEXEC`, unter macOS danach `FD_CLOEXEC`), `bind`, `chmod` auf den Modus
+   der Vorgabe, erst danach `listen`. `Drop` löscht den Socket nur, wenn Gerät und Inode noch die eigenen sind.
+2. **Annehmen und Messen.** Direkt nach `accept` misst der Kernel die Gegenseite: unter Linux `SO_PEERCRED` (uid, gid, pid),
+   unter macOS `LOCAL_PEERCRED` (uid, erste Gruppe als gid) und `LOCAL_PEERPID` (pid). Dann das Hallo binnen `hallo_frist`
+   (`pk.hallo_fehlt`, `pk.hallo_falsch` wie oben), dann:
+   - **Keine uid, kein Kanal (fail closed).** Scheitert die Messung, fehlt ein Wert oder hat das System keinen Weg, gilt
+     `pk.peer_unmessbar` mit `pk.messung_gescheitert`. Es gibt keinen Weg, der eine Verbindung ohne gemessene uid übergibt.
+   - `prozess_pflicht` ohne pid: `pk.peer_unmessbar` mit `pk.prozess_nicht_offen`.
+   - Stufe 6: `pk.uid_nicht_erlaubt` (keine Erlaubnis mit dieser uid), `pk.gid_falsch` (jede Erlaubnis mit der uid nennt eine
+     andere gid).
+   - Stufe 7, der Haken des Aufrufers, wie oben; jede Ablehnung ruft zuerst den Haken und schließt dann.
+3. **Peer.** `system` (`linux` oder `macos`), `uid`, `gid`, `pid`; unter Linux dazu `startzeit` (Feld 22 von `/proc/<pid>/stat`)
+   und `programm` (`/proc/<pid>/exe`), wo lesbar, sonst `null`. Unter macOS sind `startzeit`, `programm`, `signatur` und
+   `sandbox` in dieser Stufe `null`.
+4. **Client verbinden.** `connect` an `<unix_ordner>/<name>.sock` (`EACCES` ergibt `pk.zugriff_verweigert`, jeder andere Fehler `pk.nicht_erreichbar`; ein blockierender `connect` liefert kein `EAGAIN`, es gibt darum kein Warten bis `frist`); dann misst
+   der Client den Server am verbundenen Socket wie Punkt 2. Ohne uid gilt `pk.server_unmessbar`, mit einer anderen als
+   `erwartet` `pk.falscher_server`; in beiden Fällen geht kein Byte an den Server. Erst dann das Hallo (`verbinden`) oder kein
+   Hallo (`verbinden_ohne_hallo`). Antwortet der Server nicht binnen `frist` mit dem Hallo, gilt `pk.abgewiesen`.
+5. **Lesefrist** wie im Abschnitt „Lesefrist“: Läuft sie ab, endet das Lesen mit `TimedOut` (das System meldet `EAGAIN`; die
+   Bibliothek gibt es als `TimedOut` weiter); jeder andere Fehler beim Lesen und Schreiben ist `pk.io` mit `os_fehler`. Eine Frist
+   von 0 ist die kürzeste Frist, die das System nimmt, nie „ohne Frist“.
+6. **Ohne `unsafe`.** Die Aufrufe gehen über `rustix` 1.1.6 und unter macOS über `nix` 0.28 (Merkmal `socket`); beide stehen
+   schon in `Cargo.lock`. Es gibt kein neues Paket.
+7. **Nicht in dieser Stufe (offen):** ein `connect`, der unter Linux bei vollem Rückstau des Servers länger als `frist` wartet; die pidfd (`SO_PEERPIDFD`) und damit `pk.prozess_gewechselt` unter Linux, das
+   Audit-Token mit pidversion, die Code-Signatur und das Sandbox-Kennzeichen unter macOS. Bis dahin bindet die Bibliothek unter
+   Unix keinen Prozess über die pid hinaus; `Prozessbindung` trägt nur pid und Startzeit. Ein Aufrufer, der die Sitzung über
+   die pid erfragt, muss das wissen.
+8. **Prüfung.** Einheitstests in `rust/crates/peerkanal/src/unix.rs` decken die Fälle der Orte `linux` und `mac` ab, die mit
+   einem Konto herstellbar sind: gültige Verbindung in beiden Richtungen (`v-gueltig-unix`, `n-erlaubt-unix`), fremde uid und
+   falsche gid über die Erlaubnis (`n-fremd-unix`, `n-gid-falsch-unix`), falscher Server mit und ohne Hallo
+   (`c-falscher-server-unix`, `c-ohne-hallo-falscher-besitzer-unix`), Vorbeleger als Datei, Link und Socket
+   (`a-vorbeleger-unix`, `a-vorbeleger-datei-unix`), Ordnerrechte, Pfadgrenze (`a-pfad-grenze-linux`), Modus 0600
+   (`a-modus-unix`), Hallo, Haken, Lesefrist und die Messung ohne uid. Eine fremde Kennung als echtes zweites Konto ist mit
+   einem Konto nicht herstellbar; sie steht in den Tests als Erlaubnis einer anderen uid.

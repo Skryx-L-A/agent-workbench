@@ -26,6 +26,8 @@ struct Lauf {
     verboten: Vec<String>,
     /// Ids Bnn on nodes the platform adapters of AccessKit drop (generic container, text run, hidden).
     unsichtbar: BTreeSet<String>,
+    /// The commands to the viewport of the last frame (paste request, close).
+    befehle: Vec<egui::ViewportCommand>,
 }
 
 impl Lauf {
@@ -46,6 +48,7 @@ impl Lauf {
             gesehen: BTreeSet::new(),
             verboten: Vec::new(),
             unsichtbar: BTreeSet::new(),
+            befehle: Vec::new(),
         };
         l.bilder(3);
         l
@@ -63,6 +66,11 @@ impl Lauf {
         let f = &mut self.f;
         let mut aus = self.ctx.run_ui(eingabe, |ui| f.zeichnen(ui));
         aus.textures_delta.clear();
+        self.befehle = aus
+            .viewport_output
+            .values()
+            .flat_map(|v| v.commands.iter().cloned())
+            .collect();
         if let Some(u) = aus.platform_output.accesskit_update {
             self.baum = u.nodes.into_iter().collect();
             self.fokus = Some(u.focus);
@@ -83,6 +91,10 @@ impl Lauf {
                     _ => self.verboten.push(a.to_owned()),
                 }
             }
+        }
+        // under macOS B75 is the menu bar of the system: built from the same list, outside the tree of egui
+        if cfg!(target_os = "macos") && !self.f.anwendungsmenue().is_empty() {
+            self.gesehen.insert("B75".to_owned());
         }
     }
 
@@ -471,6 +483,81 @@ fn keys_in_the_terminal_go_out_as_events_of_the_view() {
     );
     // Tab and Escape stay with the program: the focus is still in the terminal (SE2 point 3)
     assert_eq!(l.fokus_kennung().as_deref(), Some("B35"));
+}
+
+#[test]
+fn shift_insert_asks_for_the_clipboard_outside_macos() {
+    let mut l = Lauf::neu(Form::Heute, |_| {});
+    l.aktion(l.mit_kennung("B35"), Action::Focus, "Terminal");
+    l.bild(vec![Event::Key {
+        key: Key::Insert,
+        physical_key: None,
+        pressed: true,
+        repeat: false,
+        modifiers: Modifiers::SHIFT,
+    }]);
+    let gefragt = l
+        .befehle
+        .iter()
+        .any(|b| matches!(b, egui::ViewportCommand::RequestPaste));
+    assert_eq!(gefragt, !cfg!(target_os = "macos"), "{:?}", l.befehle);
+    // the answer of the system goes out as Einfuegen, as after Control+V
+    let vorher = l.ereignisse().len();
+    l.bild(vec![Event::Paste("aus der Ablage".into())]);
+    assert!(
+        l.ereignisse()[vorher..]
+            .iter()
+            .any(|e| *e == json!({"art": "Einfuegen", "sitzung": "s-1", "text": "aus der Ablage"}))
+    );
+}
+
+#[test]
+fn the_application_menu_holds_only_entries_of_shown_paths() {
+    use fenster::menue::Tat;
+    for (form, l) in [("ziel", ziel_abfahren()), ("heute", heute_abfahren())] {
+        let liste = l.f.anwendungsmenue();
+        assert!(!liste.is_empty(), "{form}: Menü leer");
+        for m in &liste {
+            assert!(!m.eintraege.is_empty(), "{form}: {} ohne Einträge", m.titel);
+            for e in &m.eintraege {
+                assert!(
+                    l.f.zeigt(e.weg),
+                    "{form}: {} gehört zu {}, das nicht sichtbar ist",
+                    e.text,
+                    e.weg
+                );
+            }
+        }
+        let taten: Vec<Tat> = liste
+            .iter()
+            .flat_map(|m| m.eintraege.iter().map(|e| e.tat))
+            .collect();
+        assert!(taten.contains(&Tat::Beenden) && taten.contains(&Tat::Leiste));
+        if form == "heute" {
+            // the paths of L3 (continue, rename, delete), L1 and L2 (views) stay away today (OF8)
+            for t in [
+                Tat::Fortsetzen,
+                Tat::Umbenennen,
+                Tat::Loeschen,
+                Tat::Orchestrator,
+                Tat::WorkerListe,
+            ] {
+                assert!(!taten.contains(&t), "heute: {t:?}");
+            }
+        }
+    }
+}
+
+#[test]
+fn an_entry_of_the_menu_acts_like_its_button() {
+    let mut l = Lauf::neu(Form::Ziel, |_| {});
+    let offen = l.f.merken().inspektor_offen;
+    let ctx = l.ctx.clone();
+    l.f.menue_tat(&ctx, fenster::menue::Tat::Inspektor);
+    assert_eq!(l.f.merken().inspektor_offen, !offen);
+    l.f.menue_tat(&ctx, fenster::menue::Tat::Einstellungen);
+    l.bilder(2);
+    assert!(l.mit_kennung("B72").is_some(), "Einstellungen offen");
 }
 
 #[test]

@@ -3,6 +3,7 @@
 //! ```text
 //! werkbank-fenster --attrappe ziel|heute     the window on the mock-up of the local path (target state or today's messages)
 //! werkbank-fenster --bilder <ordner>          the pictures of OF13 without a window (1280 px, light and dark)
+//! werkbank-fenster --licenses                 the notice of the files taken into the crate (the bold font)
 //! ```
 //! Without `--attrappe` the window has no path to the service yet (gap L11) and ends with exit code 2.
 
@@ -14,7 +15,7 @@ use fenster::attrappe::{Attrappe, Form};
 use fenster::fenster::Fenster;
 use fenster::merken::{self, Merken};
 
-const HILFE: &str = "werkbank-fenster --attrappe ziel|heute | --bilder <ordner>\n";
+const HILFE: &str = "werkbank-fenster --attrappe ziel|heute | --bilder <ordner> | --licenses\n";
 
 fn melden(text: &str) {
     let _ = writeln!(std::io::stderr(), "{text}");
@@ -50,6 +51,16 @@ fn main() -> ExitCode {
                 }
             };
             fenster_zeigen(form)
+        }
+        ["--licenses"] => {
+            if std::io::stdout()
+                .write_all(fenster::NOTICE.as_bytes())
+                .is_ok()
+            {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            }
         }
         ["--hilfe" | "-h"] => {
             let _ = write!(std::io::stdout(), "{HILFE}");
@@ -87,7 +98,12 @@ fn fenster_zeigen(form: Form) -> ExitCode {
         optionen,
         Box::new(move |cc| {
             fenster::einrichten(&cc.egui_ctx);
-            Ok(Box::new(Fenster::neu(Box::new(attrappe), gemerkt, datei)))
+            #[allow(unused_mut)]
+            let mut f = Fenster::neu(Box::new(attrappe), gemerkt, datei);
+            // B75 under macOS: the menu bar of the system, now that the application exists
+            #[cfg(target_os = "macos")]
+            f.menueleiste_einrichten(&cc.egui_ctx);
+            Ok(Box::new(f))
         }),
     );
     match ergebnis {

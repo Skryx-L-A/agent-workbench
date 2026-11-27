@@ -5,6 +5,28 @@
 use ansicht::tasten::{Deutung, Taste};
 use egui::{Event, Key, Modifiers};
 
+/// The system the window runs on, as far as the keys differ.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum System {
+    /// Linux and the other Unix systems.
+    Linux,
+    /// Windows: the `AltGr` rule below.
+    Windows,
+    /// macOS: Command+C and Command+V copy and paste (SE1 point 8); Insert has no meaning.
+    MacOs,
+}
+
+impl System {
+    /// The system this program was built for.
+    pub const HIER: System = if cfg!(windows) {
+        System::Windows
+    } else if cfg!(target_os = "macos") {
+        System::MacOs
+    } else {
+        System::Linux
+    };
+}
+
 /// What one input event in the terminal does.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Tat {
@@ -12,9 +34,10 @@ pub enum Tat {
     Deutung(Deutung),
     /// Paste this text (`Einfuegen`, SE1 point 10).
     Einfuegen(String),
-    /// Ask the system for the clipboard (Control+V, Control+Shift+V); egui answers with a paste event.
+    /// Ask the system for the clipboard (Control+V, Control+Shift+V, Shift+Insert outside macOS); egui answers with a
+    /// paste event, which goes out as `Einfuegen`.
     EinfuegenAnfragen,
-    /// Copy the marked text (Control+Shift+C, B38).
+    /// Copy the marked text (Control+Shift+C, Control+Insert outside macOS, B38).
     Kopieren,
 }
 
@@ -69,10 +92,10 @@ fn altgr_windows(k: Key) -> Option<&'static str> {
     })
 }
 
-/// Reads the events of one frame while the terminal has the focus. `windows` says whether the `AltGr` rule of Windows
-/// applies (the caller passes `cfg!(windows)`; the tests pass both).
+/// Reads the events of one frame while the terminal has the focus. `system` says which rules of the system apply (the
+/// caller passes [`System::HIER`]; the tests pass each).
 #[must_use]
-pub fn lesen(events: &[Event], windows: bool) -> Vec<Tat> {
+pub fn lesen(events: &[Event], system: System) -> Vec<Tat> {
     let mut aus = Vec::new();
     // after a key that went out as `Taste`, egui may bring the same character as text: it must not go out twice
     let mut text_schlucken = false;
@@ -101,7 +124,7 @@ pub fn lesen(events: &[Event], windows: bool) -> Vec<Tat> {
                 ..
             } => {
                 text_schlucken = false;
-                if let Some(t) = taste(*key, *modifiers, windows) {
+                if let Some(t) = taste(*key, *modifiers, system) {
                     if matches!(t, Tat::Deutung(Deutung::Taste { .. })) {
                         text_schlucken = true;
                     }
@@ -114,9 +137,9 @@ pub fn lesen(events: &[Event], windows: bool) -> Vec<Tat> {
     aus
 }
 
-fn taste(key: Key, m: Modifiers, windows: bool) -> Option<Tat> {
+fn taste(key: Key, m: Modifiers, system: System) -> Option<Tat> {
     let strg = m.ctrl || (m.command && !m.mac_cmd);
-    if windows
+    if system == System::Windows
         && strg
         && m.alt
         && let Some(z) = altgr_windows(key)
@@ -128,6 +151,15 @@ fn taste(key: Key, m: Modifiers, windows: bool) -> Option<Tat> {
         match key {
             Key::V => return Some(Tat::EinfuegenAnfragen),
             Key::C => return Some(Tat::Kopieren),
+            _ => {}
+        }
+    }
+    // Linux and Windows: Shift+Insert pastes and Control+Insert copies, as in their terminals. The window turns the
+    // clipboard keys of egui off (`clipboard_shortcuts`), so Insert comes here as a key; under macOS it stays unread.
+    if system != System::MacOs && key == Key::Insert && !m.alt {
+        match (strg, m.shift) {
+            (false, true) => return Some(Tat::EinfuegenAnfragen),
+            (true, false) => return Some(Tat::Kopieren),
             _ => {}
         }
     }
@@ -203,7 +235,7 @@ mod tests {
             Event::Ime(egui::ImeEvent::Commit("é".into())),
         ];
         assert_eq!(
-            lesen(&ev, false),
+            lesen(&ev, System::Linux),
             vec![
                 Tat::Deutung(Deutung::Text("ä".into())),
                 Tat::Deutung(Deutung::Text("ê".into())),
@@ -221,7 +253,7 @@ mod tests {
             k(Key::ArrowLeft, Modifiers::CTRL),
         ];
         assert_eq!(
-            lesen(&ev, false),
+            lesen(&ev, System::Linux),
             vec![
                 taste_tat("c", &["strg"]),
                 taste_tat("Enter", &["umschalt"]),
@@ -234,7 +266,7 @@ mod tests {
     #[test]
     fn alt_with_a_letter_is_a_key_and_its_text_does_not_go_twice() {
         let ev = [k(Key::B, Modifiers::ALT), Event::Text("b".into())];
-        assert_eq!(lesen(&ev, false), vec![taste_tat("b", &["alt"])]);
+        assert_eq!(lesen(&ev, System::Linux), vec![taste_tat("b", &["alt"])]);
     }
 
     #[test]
@@ -250,7 +282,7 @@ mod tests {
             k(Key::E, altgr),
         ];
         assert_eq!(
-            lesen(&ev, true),
+            lesen(&ev, System::Windows),
             vec![
                 Tat::Deutung(Deutung::Text("@".into())),
                 Tat::Deutung(Deutung::Text("{".into())),
@@ -259,7 +291,7 @@ mod tests {
         );
         // outside Windows, Control+Alt+Q is a key (SE1 point 6)
         assert_eq!(
-            lesen(&[k(Key::Q, altgr)], false),
+            lesen(&[k(Key::Q, altgr)], System::Linux),
             vec![taste_tat("q", &["strg", "alt"])]
         );
     }
@@ -269,7 +301,7 @@ mod tests {
         let cmd = Modifiers::MAC_CMD | Modifiers::COMMAND;
         let ev = [k(Key::V, cmd), k(Key::C, cmd), k(Key::Q, cmd)];
         assert_eq!(
-            lesen(&ev, false),
+            lesen(&ev, System::MacOs),
             vec![Tat::EinfuegenAnfragen, Tat::Kopieren]
         );
     }
@@ -284,7 +316,7 @@ mod tests {
             k(Key::F6, Modifiers::SHIFT),
         ];
         assert_eq!(
-            lesen(&ev, false),
+            lesen(&ev, System::Linux),
             vec![
                 Tat::EinfuegenAnfragen,
                 Tat::Einfuegen("zwei\nZeilen".into()),
@@ -292,6 +324,38 @@ mod tests {
                 Tat::Deutung(Deutung::Fokus(1)),
                 Tat::Deutung(Deutung::Fokus(-1))
             ]
+        );
+    }
+
+    #[test]
+    fn shift_insert_pastes_and_control_insert_copies_outside_macos() {
+        let ev = [
+            k(Key::Insert, Modifiers::SHIFT),
+            Event::Paste("aus der Ablage".into()),
+            k(Key::Insert, Modifiers::CTRL),
+        ];
+        let erwartet = vec![
+            Tat::EinfuegenAnfragen,
+            Tat::Einfuegen("aus der Ablage".into()),
+            Tat::Kopieren,
+        ];
+        assert_eq!(lesen(&ev, System::Linux), erwartet);
+        assert_eq!(lesen(&ev, System::Windows), erwartet);
+        // under macOS Command+C and Command+V stay the only ones (SE1 point 8); the paste event itself still pastes
+        assert_eq!(
+            lesen(&ev, System::MacOs),
+            vec![Tat::Einfuegen("aus der Ablage".into())]
+        );
+        // Insert alone, with both modifiers or with Alt does neither
+        let anders = [
+            k(Key::Insert, Modifiers::NONE),
+            k(Key::Insert, Modifiers::CTRL | Modifiers::SHIFT),
+            k(Key::Insert, Modifiers::SHIFT | Modifiers::ALT),
+        ];
+        assert!(
+            lesen(&anders, System::Linux)
+                .iter()
+                .all(|t| !matches!(t, Tat::EinfuegenAnfragen | Tat::Kopieren))
         );
     }
 }

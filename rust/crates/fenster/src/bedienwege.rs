@@ -1,6 +1,7 @@
 //! The rule which operating paths of section 2 the window shows (OF7, OF8), over the table that the window shares with the
-//! browser view (`ansicht::bedienwege`). Only the rule is the window's own: the application menu B75 stands in the title
-//! row under Windows and Linux, and a base form shows before its gaps (OF8 point 3).
+//! browser view (`ansicht::bedienwege`). Only the rule is the window's own: the window has the application menu B75 (in
+//! the title row under Windows and Linux, the menu bar of the system under macOS), and a base form shows before its gaps
+//! (OF8 point 3).
 //!
 //! The runner of the window (`tests/laeufer.rs`) reads section 2 from the contract file and compares it with the shared
 //! table; a test below compares this rule with the rule of the browser view, so the two cannot drift.
@@ -9,16 +10,8 @@ pub use ansicht::bedienwege::{
     BEDIENWEGE, Bedienweg, LUECKE_MERKEN, Luecken, Umfang, finde, traeger,
 };
 
-/// Operating paths of scope P that the window does not build, with the reason. Under Windows and Linux the application
-/// menu stands in the title row; under macOS it would be the menu bar of the system.
-#[cfg(target_os = "macos")]
-pub const FEHLT: [(&str, &str); 1] = [(
-    "B75",
-    "die Menüleiste von macOS braucht muda; muda 0.22 bringt die Doppelversion keyboard-types 0.7 und 0.8",
-)];
-/// Operating paths of scope P that the window does not build, with the reason. Under Windows and Linux the application
-/// menu stands in the title row (B75).
-#[cfg(not(target_os = "macos"))]
+/// Operating paths of scope P that the window does not build, with the reason. None: the application menu B75 stands in
+/// the title row under Windows and Linux and is the menu bar of the system under macOS (`muda`).
 pub const FEHLT: [(&str, &str); 0] = [];
 
 /// Whether an operating path shows with the gaps `geschlossen` closed (OF7, OF8): scope P, built, every gap it needs
@@ -77,21 +70,18 @@ mod tests {
     fn the_target_state_shows_every_pilot_path_that_is_built() {
         let alle = alle_sichtbaren(Luecken::ALLE);
         assert_eq!(alle.len(), 47 - FEHLT.len());
-        assert_eq!(alle.contains(&"B75"), !cfg!(target_os = "macos"));
+        assert!(alle.contains(&"B75"));
     }
 
     #[test]
     fn today_the_paths_without_a_gap_and_the_base_forms_show() {
         let heute = alle_sichtbaren(Luecken::KEINE);
         // the paths without a gap, the base forms and what they carry (OF8 point 3)
-        let mut erwartet = vec![
+        let erwartet = vec![
             "B02", "B03", "B04", "B05", "B08", "B10", "B15", "B19", "B23", "B24", "B34", "B35",
             "B36", "B38", "B39", "B41", "B42", "B51", "B56", "B57", "B67", "B68", "B69", "B71",
             "B72", "B75", "B76", "B77", "B80",
         ];
-        if cfg!(target_os = "macos") {
-            erwartet.retain(|n| *n != "B75");
-        }
         assert_eq!(heute, erwartet);
     }
 

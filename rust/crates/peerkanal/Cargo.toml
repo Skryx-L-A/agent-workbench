@@ -26,6 +26,16 @@ testnaht = []
 [dependencies]
 serde_json = "1"
 
+# The Unix side (Linux and macOS), without `unsafe` in this crate: rustix 1.1.6 (already in Cargo.lock, the version of the
+# crate dienst) for `socket_with`, `bind`, `listen`, `chmodat`, `geteuid` and, under Linux, `SO_PEERCRED`; nix 0.28 (macOS
+# only, feature `socket`, already in Cargo.lock through the crate dienst) for `LOCAL_PEERCRED` and `LOCAL_PEERPID`. No new
+# package; both under `MIT OR Apache-2.0` (rustix) and MIT (nix).
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "=1.1.6", features = ["std", "fs", "net", "process"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+nix = { version = "0.28", default-features = false, features = ["socket"] }
+
 # windows-sys 0.61.2 (MIT OR Apache-2.0, already in Cargo.lock): the Win32 calls of the module `sys`. The contract lists every function
 # it needs in this version. Windows only; the module `sys` is the only place with `unsafe` (decision E1 of the Windows build plan).
 [target.'cfg(windows)'.dependencies]

@@ -8,9 +8,10 @@
 //! `FILE_FLAG_FIRST_PIPE_INSTANCE` and a protected DACL of the own SID, the allowed SIDs and package SIDs (build plan,
 //! blocks B1 to B9). The client checks the owner of the pipe instance and opens with identification only.
 //!
-//! **Linux and macOS**: the Unix side (contract sections "Unix") is not part of this version. The settings are checked as
-//! for every system; then [`Server::anlegen`] returns `pk.anlegen_fehlgeschlagen` and [`verbinden`] `pk.nicht_erreichbar`,
-//! both without `os_fehler`.
+//! **Linux and macOS**: a stream socket `<ordner>/<name>.sock` (module `unix`). The server measures uid and gid of each client
+//! from the kernel (Linux `SO_PEERCRED`, macOS `LOCAL_PEERCRED`); the client checks the uid of the server the same way before
+//! it sends a byte. When the kernel gives no uid, there is no connection (fail closed). Other targets keep the stand-in that
+//! refuses every call.
 //!
 //! The interface needs no `unsafe`; a caller may set `#![forbid(unsafe_code)]`. The crate itself has `unsafe` only in the
 //! Windows part of its module `sys` (decision E1). The library writes no log and no file, reads no environment variable and
@@ -29,6 +30,8 @@ mod fehler;
 mod kennung;
 mod pruefung;
 mod sys;
+#[cfg(unix)]
+mod unix;
 mod vorgabe;
 
 use std::io::{self, Read, Write};
@@ -52,7 +55,16 @@ pub const HALLO: [u8; 4] = ablauf::HALLO;
 
 /// A server of a channel.
 pub struct Server {
-    kern: ServerKern<Os>,
+    innen: ServerInnen,
+}
+
+/// The side of the system: the pipe side (Windows, and the stand-in that refuses every call on other targets) or the Unix
+/// side (Linux and macOS).
+enum ServerInnen {
+    #[cfg_attr(unix, allow(dead_code))]
+    Pipe(ServerKern<Os>),
+    #[cfg(unix)]
+    Unix(unix::Server),
 }
 
 impl Server {
@@ -61,24 +73,37 @@ impl Server {
     ///
     /// # Errors
     /// `pk.vorgabe_ungueltig`, `pk.name_belegt` or `pk.anlegen_fehlgeschlagen` (Unix: also `pk.ordner_rechte` and
-    /// `pk.pfad_zu_lang` once the Unix side exists).
+    /// `pk.pfad_zu_lang`).
     pub fn anlegen(v: ServerVorgabe) -> Result<Self, Fehler> {
         Self::anlegen_mit(v, &[], None)
     }
 
     fn anlegen_mit(
-        mut v: ServerVorgabe,
+        v: ServerVorgabe,
         zusatz: &[&str],
         halt: Option<ablauf::Haltepunkt>,
     ) -> Result<Self, Fehler> {
         v.pruefen(System::aktuell())?;
-        if !cfg!(windows) {
-            return Err(Fehler::neu(Code::AnlegenFehlgeschlagen));
+        #[cfg(unix)]
+        {
+            let _ = (zusatz, halt);
+            Ok(Self {
+                innen: ServerInnen::Unix(unix::Server::anlegen(v)?),
+            })
         }
-        let job = v.job.take();
-        let mut kern = ServerKern::anlegen(Arc::new(Os), v, job, zusatz)?;
-        kern.nach_verbinden = halt;
-        Ok(Self { kern })
+        #[cfg(not(unix))]
+        {
+            if !cfg!(windows) {
+                return Err(Fehler::neu(Code::AnlegenFehlgeschlagen));
+            }
+            let mut v = v;
+            let job = v.job.take();
+            let mut kern = ServerKern::anlegen(Arc::new(Os), v, job, zusatz)?;
+            kern.nach_verbinden = halt;
+            Ok(Self {
+                innen: ServerInnen::Pipe(kern),
+            })
+        }
     }
 
     /// Sets the hook for events (decision 4): for each refusal the library builds the [`Ereignis`], calls the hook with it and
@@ -86,7 +111,12 @@ impl Server {
     /// [`Vorlaeufig::ablehnen`]). A caller that writes its log line in the hook has the line before the client sees the end.
     /// The hook runs on the thread of `annehmen` or `ablehnen` and should return soon. A later call replaces the hook.
     pub fn bei_abweisung(&mut self, haken: impl Fn(&Ereignis) + Send + Sync + 'static) {
-        self.kern.haken = Some(Arc::new(haken));
+        let haken = Arc::new(haken);
+        match &mut self.innen {
+            ServerInnen::Pipe(kern) => kern.haken = Some(haken),
+            #[cfg(unix)]
+            ServerInnen::Unix(u) => u.haken = Some(haken),
+        }
     }
 
     /// "Annehmen und Messen": blocks until a client connects, then measures and checks it. Callable from up to `instanzen`
@@ -96,9 +126,20 @@ impl Server {
     /// `pk.io` with `os_fehler` when the system fails while waiting for a client. A refused client is no error but
     /// [`Annahme::Abgewiesen`].
     pub fn annehmen(&self) -> Result<Annahme, Fehler> {
-        Ok(match self.kern.annehmen()? {
-            AnnahmeKern::Vorlaeufig(v) => Annahme::Vorlaeufig(Vorlaeufig { kern: v }),
-            AnnahmeKern::Abgewiesen(e) => Annahme::Abgewiesen(e),
+        Ok(match &self.innen {
+            ServerInnen::Pipe(kern) => match kern.annehmen()? {
+                AnnahmeKern::Vorlaeufig(v) => Annahme::Vorlaeufig(Vorlaeufig {
+                    innen: VorlaeufigInnen::Pipe(v),
+                }),
+                AnnahmeKern::Abgewiesen(e) => Annahme::Abgewiesen(e),
+            },
+            #[cfg(unix)]
+            ServerInnen::Unix(u) => match u.annehmen()? {
+                unix::Annahme::Vorlaeufig(v) => Annahme::Vorlaeufig(Vorlaeufig {
+                    innen: VorlaeufigInnen::Unix(v),
+                }),
+                unix::Annahme::Abgewiesen(e) => Annahme::Abgewiesen(e),
+            },
         })
     }
 }
@@ -118,20 +159,35 @@ pub struct Aufrufergrund(pub Kennung);
 /// A connection in the hook of the caller (step 7): no byte has gone back to the client yet, and the library holds the
 /// binding of the process. Dropped without a decision, it closes without an answer and without an event.
 pub struct Vorlaeufig {
-    kern: VorlaeufigKern<Os>,
+    innen: VorlaeufigInnen,
+}
+
+enum VorlaeufigInnen {
+    #[cfg_attr(unix, allow(dead_code))]
+    Pipe(VorlaeufigKern<Os>),
+    #[cfg(unix)]
+    Unix(unix::Vorlaeufig),
 }
 
 impl Vorlaeufig {
     /// The measured peer.
     #[must_use]
     pub fn peer(&self) -> &Peer {
-        &self.kern.peer
+        match &self.innen {
+            VorlaeufigInnen::Pipe(k) => &k.peer,
+            #[cfg(unix)]
+            VorlaeufigInnen::Unix(u) => &u.peer,
+        }
     }
 
     /// The bound process: pid and start time. `None` when the pid could not be read.
     #[must_use]
     pub fn prozess(&self) -> Option<&Prozessbindung> {
-        self.kern.prozess()
+        match &self.innen {
+            VorlaeufigInnen::Pipe(k) => k.prozess(),
+            #[cfg(unix)]
+            VorlaeufigInnen::Unix(u) => u.prozess(),
+        }
     }
 
     /// Sends the hello back and hands the connection over.
@@ -139,41 +195,72 @@ impl Vorlaeufig {
     /// # Errors
     /// `pk.io` when the hello cannot be written (for example, the client has gone).
     pub fn bestaetigen(self) -> Result<Verbindung, Fehler> {
-        self.kern.bestaetigen().map(|kern| Verbindung { kern })
+        match self.innen {
+            VorlaeufigInnen::Pipe(k) => k.bestaetigen().map(|kern| Verbindung {
+                innen: VerbindungInnen::Pipe(kern),
+            }),
+            #[cfg(unix)]
+            VorlaeufigInnen::Unix(u) => u.bestaetigen().map(|v| Verbindung {
+                innen: VerbindungInnen::Unix(v),
+            }),
+        }
     }
 
     /// Closes without an answer and returns the event `pk.aufrufer_abgewiesen` with the reason `aufrufer:<kennung>`. The hook
     /// of [`Server::bei_abweisung`] gets the event before the end of the connection.
     #[must_use]
     pub fn ablehnen(self, grund: Aufrufergrund) -> Ereignis {
-        self.kern.ablehnen(grund.0)
+        match self.innen {
+            VorlaeufigInnen::Pipe(k) => k.ablehnen(grund.0),
+            #[cfg(unix)]
+            VorlaeufigInnen::Unix(u) => u.ablehnen(grund.0),
+        }
     }
 }
 
 /// A connection after both checks: a byte stream in both directions. Errors of reading and writing carry a [`Fehler`] with
 /// `pk.io` and `os_fehler`.
 pub struct Verbindung {
-    kern: VerbindungKern<Os>,
+    innen: VerbindungInnen,
+}
+
+enum VerbindungInnen {
+    #[cfg_attr(unix, allow(dead_code))]
+    Pipe(VerbindungKern<Os>),
+    #[cfg(unix)]
+    Unix(unix::Verbindung),
 }
 
 impl Verbindung {
     /// The peer: at the server the measured client, at the client the owner of the pipe instance.
     #[must_use]
     pub fn peer(&self) -> &Peer {
-        &self.kern.peer
+        match &self.innen {
+            VerbindungInnen::Pipe(k) => &k.peer,
+            #[cfg(unix)]
+            VerbindungInnen::Unix(u) => &u.peer,
+        }
     }
 
     /// The bound process of the client (server side only). The library holds it as long as the connection lives.
     #[must_use]
     pub fn prozess(&self) -> Option<&Prozessbindung> {
-        self.kern.prozess()
+        match &self.innen {
+            VerbindungInnen::Pipe(k) => k.prozess(),
+            #[cfg(unix)]
+            VerbindungInnen::Unix(u) => u.prozess(),
+        }
     }
 
     /// Decision 2: the time limit of every following read. When it passes without a byte, the read returns an error of kind
     /// [`io::ErrorKind::TimedOut`] (with `pk.io` inside); the connection stays and a later read may go on. `None` reads without a
     /// limit (the start value). The same on every system.
     pub fn lesefrist(&mut self, frist: Option<Duration>) {
-        self.kern.lesefrist(frist);
+        match &mut self.innen {
+            VerbindungInnen::Pipe(k) => k.lesefrist(frist),
+            #[cfg(unix)]
+            VerbindungInnen::Unix(u) => u.lesefrist(frist),
+        }
     }
 
     /// Windows, server side: the held handle of the process of the client, opened with `PROCESS_QUERY_LIMITED_INFORMATION`.
@@ -181,19 +268,29 @@ impl Verbindung {
     #[must_use]
     pub fn prozess_griff(&self) -> Option<std::os::windows::io::BorrowedHandle<'_>> {
         use std::os::windows::io::AsHandle;
-        self.kern.prozess_roh().map(AsHandle::as_handle)
+        match &self.innen {
+            VerbindungInnen::Pipe(k) => k.prozess_roh().map(AsHandle::as_handle),
+        }
     }
 }
 
 impl Read for Verbindung {
     fn read(&mut self, puffer: &mut [u8]) -> io::Result<usize> {
-        self.kern.lesen(puffer)
+        match &mut self.innen {
+            VerbindungInnen::Pipe(k) => k.lesen(puffer),
+            #[cfg(unix)]
+            VerbindungInnen::Unix(u) => u.lesen(puffer),
+        }
     }
 }
 
 impl Write for Verbindung {
     fn write(&mut self, daten: &[u8]) -> io::Result<usize> {
-        self.kern.schreiben(daten)
+        match &mut self.innen {
+            VerbindungInnen::Pipe(k) => k.schreiben(daten),
+            #[cfg(unix)]
+            VerbindungInnen::Unix(u) => u.schreiben(daten),
+        }
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -209,10 +306,21 @@ impl Write for Verbindung {
 /// `pk.falscher_server` (no byte sent), `pk.abgewiesen`.
 pub fn verbinden(v: &ClientVorgabe) -> Result<Verbindung, Fehler> {
     v.pruefen(System::aktuell())?;
-    if !cfg!(windows) {
-        return Err(Fehler::neu(Code::NichtErreichbar));
+    #[cfg(unix)]
+    {
+        unix::verbinden(v, true).map(|u| Verbindung {
+            innen: VerbindungInnen::Unix(u),
+        })
     }
-    ablauf::verbinden(Arc::new(Os), v).map(|kern| Verbindung { kern })
+    #[cfg(not(unix))]
+    {
+        if !cfg!(windows) {
+            return Err(Fehler::neu(Code::NichtErreichbar));
+        }
+        ablauf::verbinden(Arc::new(Os), v).map(|kern| Verbindung {
+            innen: VerbindungInnen::Pipe(kern),
+        })
+    }
 }
 
 /// "Client verbinden" without the hello (decision 3), for a server that speaks no `pk1`: reaches an instance and checks its
@@ -225,10 +333,21 @@ pub fn verbinden(v: &ClientVorgabe) -> Result<Verbindung, Fehler> {
 /// `pk.falscher_server` (no byte sent).
 pub fn verbinden_ohne_hallo(v: &ClientVorgabe) -> Result<Verbindung, Fehler> {
     v.pruefen(System::aktuell())?;
-    if !cfg!(windows) {
-        return Err(Fehler::neu(Code::NichtErreichbar));
+    #[cfg(unix)]
+    {
+        unix::verbinden(v, false).map(|u| Verbindung {
+            innen: VerbindungInnen::Unix(u),
+        })
     }
-    ablauf::verbinden_ohne_hallo(Arc::new(Os), v).map(|kern| Verbindung { kern })
+    #[cfg(not(unix))]
+    {
+        if !cfg!(windows) {
+            return Err(Fehler::neu(Code::NichtErreichbar));
+        }
+        ablauf::verbinden_ohne_hallo(Arc::new(Os), v).map(|kern| Verbindung {
+            innen: VerbindungInnen::Pipe(kern),
+        })
+    }
 }
 
 /// The `TokenUser` SID of the own process token (decision 1). Pure information: it permits nothing; a caller may name it as
@@ -268,7 +387,7 @@ pub mod testnaht {
 // The interface on a system without the pipe: the answers of `Server::anlegen` and the wrappers over the order. The values
 // come from constructors of the module `ablauf` without any system call.
 #[cfg(test)]
-#[cfg(not(windows))]
+#[cfg(unix)]
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -284,9 +403,10 @@ mod tests {
         }
     }
 
-    /// Valid settings of this system: `pk.anlegen_fehlgeschlagen` without `os_fehler`, before any system call.
+    /// Valid settings of this system and a folder that does not exist: `pk.ordner_rechte` without `os_fehler`, before the
+    /// socket (the Unix side, step 2 of "Server anlegen").
     #[test]
-    fn anlegen_ohne_pipe_ohne_os_fehler() {
+    fn anlegen_ohne_ordner_ohne_os_fehler() {
         let mut v = ServerVorgabe::neu(kanal(), vec![Erlaubnis::Unix { uid: 1, gid: None }], 1);
         v.unix = Some(UnixOrt {
             ordner: "/srv/beispiel".into(),
@@ -294,16 +414,20 @@ mod tests {
         });
         assert_eq!(
             Server::anlegen(v).err(),
-            Some(Fehler::neu(Code::AnlegenFehlgeschlagen))
+            Some(Fehler::neu(Code::OrdnerRechte))
         );
     }
 
     #[test]
     fn haken_wird_gesetzt() {
         let mut s = Server {
-            kern: ServerKern::ohne_instanz(Arc::new(Os), kanal()),
+            innen: ServerInnen::Pipe(ServerKern::ohne_instanz(Arc::new(Os), kanal())),
         };
-        assert!(s.kern.haken.is_none());
+        let haken = |s: &Server| match &s.innen {
+            ServerInnen::Pipe(k) => k.haken.clone(),
+            ServerInnen::Unix(u) => u.haken.clone(),
+        };
+        assert!(haken(&s).is_none());
         let gerufen = Arc::new(AtomicUsize::new(0));
         let g = Arc::clone(&gerufen);
         s.bei_abweisung(move |_| {
@@ -314,7 +438,7 @@ mod tests {
             grund: Grund::HalloFehlt,
             peer: None,
         };
-        (s.kern.haken.as_ref().expect("gesetzt"))(&e);
+        (haken(&s).expect("gesetzt"))(&e);
         assert_eq!(gerufen.load(Ordering::SeqCst), 1);
     }
 
@@ -323,7 +447,7 @@ mod tests {
         let s = ServerKern::ohne_instanz(Arc::new(Os), kanal());
         let peer = Peer::leer(System::Windows);
         let v = Vorlaeufig {
-            kern: s.vorlaeufig_ohne_griff(Some(bindung()), peer.clone()),
+            innen: VorlaeufigInnen::Pipe(s.vorlaeufig_ohne_griff(Some(bindung()), peer.clone())),
         };
         assert_eq!(v.prozess(), Some(&bindung()));
         assert_eq!(v.peer(), &peer);
@@ -333,17 +457,21 @@ mod tests {
     #[test]
     fn verbindung_reicht_durch() {
         let mut v = Verbindung {
-            kern: VerbindungKern::mit_griff(
+            innen: VerbindungInnen::Pipe(VerbindungKern::mit_griff(
                 Arc::new(Os),
                 (),
                 Some(bindung()),
                 Peer::leer(System::Windows),
-            ),
+            )),
+        };
+        let frist = |v: &Verbindung| match &v.innen {
+            VerbindungInnen::Pipe(k) => k.frist_der_lesen(),
+            VerbindungInnen::Unix(_) => None,
         };
         assert_eq!(v.prozess(), Some(&bindung()));
-        assert_eq!(v.kern.frist_der_lesen(), None);
+        assert_eq!(frist(&v), None);
         v.lesefrist(Some(Duration::from_millis(5)));
-        assert_eq!(v.kern.frist_der_lesen(), Some(Duration::from_millis(5)));
+        assert_eq!(frist(&v), Some(Duration::from_millis(5)));
         let os_fehler = |e: &io::Error| {
             e.get_ref()
                 .and_then(|f| f.downcast_ref::<Fehler>())
