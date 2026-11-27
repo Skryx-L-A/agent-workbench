@@ -1,8 +1,8 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "werkbank:start/fassung-1",
- "title": "Start-Struktur, Fassung 1",
- "description": "Zwei Formen: $defs/anfrage (Ansicht an Kern-Dienst, ohne sitzung) und $defs/datei (Kern-Dienst an 'Lauf starten', mit sitzung und optional marker). Nicht im Schema: Größe in Byte, BOM, doppelte JSON-Schlüssel, Pfadlänge in Byte, Harness-Tabelle, Querverweise auf die Einstellungsdatei und der Fehlercode. Siehe README.md.",
+ "$id": "werkbank:start/fassung-1-und-2",
+ "title": "Start-Struktur, Fassung 1 und 2",
+ "description": "Zwei Formen: $defs/anfrage (Ansicht an Kern-Dienst, ohne sitzung) und $defs/datei (Kern-Dienst an 'Lauf starten', mit sitzung und optional marker). Fassung 2 trägt dazu effort und name, die Datei auch fortsetzung_von; in Fassung 1 sind die drei unbekannte Schlüssel. Nicht im Schema: Größe in Byte, BOM, doppelte JSON-Schlüssel, Pfadlänge in Byte, Harness-Tabelle, Effort-Werte je Harness und Grenze (Stufen 13a und 18), fortsetzung_von gleich sitzung (Stufe 9a), Querverweise auf die Einstellungsdatei und der Fehlercode. Siehe README.md.",
  "$ref": "#/$defs/datei",
  "$defs": {
   "kennung": {
@@ -11,7 +11,10 @@
   },
   "felder": {
    "fassung": {
-    "const": 1
+    "enum": [
+     1,
+     2
+    ]
    },
    "harness": {
     "$ref": "#/$defs/kennung"
@@ -63,6 +66,43 @@
       "$ref": "#/$defs/felder/arbeitsordner"
      }
     }
+   },
+   "effort": {
+    "description": "Fassung 2, Pflicht: Effort der Sitzung oder null (Vorgabe des Harness).",
+    "anyOf": [
+     {
+      "type": "null"
+     },
+     {
+      "type": "string",
+      "pattern": "^[a-z]{1,16}$"
+     }
+    ]
+   },
+   "name": {
+    "description": "Fassung 2, Pflicht: Anzeigename oder null. 1 bis 64 Zeichen, kein Steuer-, Trenn-, Richtungs- oder breitenloses Zeichen, kein Leerraum am Rand.",
+    "anyOf": [
+     {
+      "type": "null"
+     },
+     {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029\\u200b-\\u200f\\u202a-\\u202e\\u2066-\\u2069\\ufeff](?:[^\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029\\u200b-\\u200f\\u202a-\\u202e\\u2066-\\u2069\\ufeff]*[^\\s\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029\\u200b-\\u200f\\u202a-\\u202e\\u2066-\\u2069\\ufeff])?$"
+     }
+    ]
+   },
+   "fortsetzung_von": {
+    "description": "Nur Datei der Fassung 2, Pflicht: Kennung der fortgesetzten Sitzung oder null (neuer Start).",
+    "anyOf": [
+     {
+      "type": "null"
+     },
+     {
+      "$ref": "#/$defs/kennung"
+     }
+    ]
    }
   },
   "anfrage": {
@@ -94,6 +134,34 @@
     },
     "arbeitsordner": {
      "$ref": "#/$defs/felder/arbeitsordner"
+    },
+    "effort": {
+     "$ref": "#/$defs/felder/effort"
+    },
+    "name": {
+     "$ref": "#/$defs/felder/name"
+    }
+   },
+   "if": {
+    "required": [
+     "fassung"
+    ],
+    "properties": {
+     "fassung": {
+      "const": 2
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "effort",
+     "name"
+    ]
+   },
+   "else": {
+    "properties": {
+     "effort": false,
+     "name": false
     }
    }
   },
@@ -133,6 +201,39 @@
     },
     "marker": {
      "$ref": "#/$defs/felder/marker"
+    },
+    "effort": {
+     "$ref": "#/$defs/felder/effort"
+    },
+    "name": {
+     "$ref": "#/$defs/felder/name"
+    },
+    "fortsetzung_von": {
+     "$ref": "#/$defs/felder/fortsetzung_von"
+    }
+   },
+   "if": {
+    "required": [
+     "fassung"
+    ],
+    "properties": {
+     "fassung": {
+      "const": 2
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "effort",
+     "name",
+     "fortsetzung_von"
+    ]
+   },
+   "else": {
+    "properties": {
+     "effort": false,
+     "name": false,
+     "fortsetzung_von": false
     }
    }
   }

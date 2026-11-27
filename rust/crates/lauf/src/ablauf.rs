@@ -195,9 +195,10 @@ fn pruefen(args: &[OsString]) -> Result<Lage, Fehler> {
     pruefen_mit(args, crate::konfig::pfad, crate::ziele::vorgabe::lesen)
 }
 
-/// Steps 1 to 5b. `konfig_pfad` names the configuration; it is asked for at step 3, after the start file was read. The
+/// Steps 1 to 5d. `konfig_pfad` names the configuration; it is asked for at step 3, after the start file was read. The
 /// unit tests pass a configuration of their own (the delivered build reads a fixed path below `/etc`). `vorgabe` reads
-/// the default of the firm at step 4b, for every route; the unit tests pass a default of their own.
+/// the default of the firm at step 4b, for every route; the unit tests pass a default of their own. Step 5d comes after
+/// steps 4b and 5c.
 fn pruefen_mit(
     args: &[OsString],
     konfig_pfad: impl FnOnce() -> Option<PathBuf>,
@@ -251,6 +252,12 @@ fn pruefen_mit(
     let startordner = startordner(pfad).ok_or(Fehler::Intern)?;
     // step 5c
     startordner_frei(&startordner)?;
+    // step 5d (Projektentscheid, 27.11.2026): until steps 5d and 8 of version 2 are built, a start that continues a
+    // conversation ends here, before the enclosure and before any child. It never becomes a new start without the old
+    // conversation.
+    if start.fortsetzung_von().is_some() {
+        return Err(Fehler::FortsetzungUnmoeglich);
+    }
     Ok(Lage {
         start,
         einst,

@@ -55,13 +55,40 @@ fn check_case(case_path: &Path, expected_path: &Path) -> Option<String> {
     let expected = read_json(expected_path);
     let ergebnis = lesen(&case_bytes(&case));
     match (expected["gueltig"].as_bool(), ergebnis) {
-        (Some(true), Ok(_)) => None,
+        (Some(true), Ok(einstellungen)) => efforts_abweichung(&einstellungen, &expected),
         (Some(true), Err(fehler)) => Some(format!("rejected with {fehler}, expected valid")),
         (Some(false), Ok(_)) => Some(format!("accepted, expected {}", expected["code"])),
         (Some(false), Err(fehler)) => (expected["code"].as_str() != Some(fehler.code()))
             .then(|| format!("code {}, expected {}", fehler.code(), expected["code"])),
         (None, _) => Some("expectation has no field gueltig".to_owned()),
     }
+}
+
+/// Compares the allowed efforts of a valid case (`efforts` of the expectation, block `effort`) with
+/// `Einstellungen::efforts`; `None` when every listed start matches or the expectation lists none.
+fn efforts_abweichung(
+    einstellungen: &einstellungen::Einstellungen,
+    expected: &Value,
+) -> Option<String> {
+    let liste = expected.get("efforts")?.as_array()?;
+    for eintrag in liste {
+        let text = |name: &str| {
+            eintrag[name]
+                .as_str()
+                .expect("efforts entry has text fields")
+        };
+        let soll: Vec<&str> = eintrag["erlaubt"]
+            .as_array()
+            .expect("erlaubt is a list")
+            .iter()
+            .map(|wert| wert.as_str().expect("effort is text"))
+            .collect();
+        let ist = einstellungen.efforts(text("harness"), text("route"), text("modell"));
+        if ist != soll {
+            return Some(format!("efforts {eintrag}: got {ist:?}"));
+        }
+    }
+    None
 }
 
 #[test]

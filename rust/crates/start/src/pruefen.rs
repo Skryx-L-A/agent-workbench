@@ -3,11 +3,11 @@ use einstellungen::{Einstellungen, Routenart};
 use crate::Fehler;
 use crate::form::{Startform, harness_art};
 
-/// Checks a start against the settings file: stages 14 to 17 of contract 1.
+/// Checks a start against the settings file: stages 14 to 18 of contract 1.
 ///
 /// # Errors
-/// Returns `start.route_unbekannt`, `start.modell_route`, `start.kunde_unbekannt` or
-/// `start.harness_route_unvertraeglich`, in this order, for the first violated stage.
+/// Returns `start.route_unbekannt`, `start.modell_route`, `start.kunde_unbekannt`,
+/// `start.harness_route_unvertraeglich` or `start.effort_grenze`, in this order, for the first violated stage.
 pub fn pruefen<S: Startform>(
     start: &S,
     einstellungen: &Einstellungen,
@@ -30,6 +30,13 @@ pub fn pruefen<S: Startform>(
     let art = harness_art(start.harness()).ok_or(Fehler::HarnessUnbekannt)?;
     if art != route.art() {
         return Err(Fehler::HarnessRouteUnvertraeglich);
+    }
+    if let Some(effort) = start.effort()
+        && !einstellungen
+            .efforts(start.harness(), start.route(), start.modell())
+            .contains(&effort)
+    {
+        return Err(Fehler::EffortGrenze);
     }
     Ok(art)
 }

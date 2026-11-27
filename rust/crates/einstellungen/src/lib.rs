@@ -1,7 +1,7 @@
 //! Reader of the settings file of contract 2: strict JSON, closed form, the stages `einst.*` and a
 //! typed view of the result.
 //!
-//! [`lesen`] runs the stages 1 to 34 in the order of the contract and returns the code of the first
+//! [`lesen`] runs the stages 1 to 36 in the order of the contract and returns the code of the first
 //! stage that the file violates. The typed view [`Einstellungen`] borrows nothing and copies nothing
 //! out of the reader; the rule checker `datentor` reads it through the accessors.
 //!
@@ -9,12 +9,14 @@
 //! contract 1 (the start structure) uses the same JSON rules.
 
 mod aufbau;
+mod effort;
 mod fehler;
 pub mod json;
 mod netz;
 mod typen;
 
 pub use aufbau::lesen;
+pub use effort::{EffortGrenze, effort_werte};
 pub use fehler::Fehler;
 pub use typen::{
     Einstellungen, Freigabe, Kunde, KundendatenAnCloud, McpServer, Netzziel, PfadRegel, Route,

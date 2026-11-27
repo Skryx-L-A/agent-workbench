@@ -1,3 +1,5 @@
+use crate::effort::EffortGrenze;
+
 /// The kind of a route. `cloud` sends data to a cloud service; `lokal` keeps it on the machine.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
@@ -382,6 +384,7 @@ pub struct Einstellungen {
     pub(crate) kundendaten_an_cloud: KundendatenAnCloud,
     pub(crate) copilot_ohne_rueckfrage: Vec<Werkzeug>,
     pub(crate) mcp: Vec<McpServer>,
+    pub(crate) effort: Vec<EffortGrenze>,
 }
 
 impl Einstellungen {

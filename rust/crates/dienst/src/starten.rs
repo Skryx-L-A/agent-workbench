@@ -459,7 +459,7 @@ mod tests {
                 "falscher Typ",
             ),
             (
-                mit(&gut(), json!({"fassung": 2})),
+                mit(&gut(), json!({"fassung": 3})),
                 &e1,
                 "start.fassung_unbekannt",
                 "Fassung unbekannt",

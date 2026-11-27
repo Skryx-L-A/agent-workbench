@@ -812,6 +812,49 @@ fn steps_1_to_5c_pass_a_valid_start_and_refuse_a_missing_folder() {
     }
 }
 
+/// The text of a start file of version 2 of the world `w` with the given `fortsetzung_von` (JSON text).
+fn start_text_f2(w: &Path, fortsetzung_von: &str) -> String {
+    format!(
+        r#"{{"fassung":2,"sitzung":"s-4","fortsetzung_von":{fortsetzung_von},"harness":"pi","modell":"qwen3:8b","route":"lokal-beispiel","kunde":"k-beispiel","arbeitsordner":"{}","effort":null,"name":null}}"#,
+        w.join("arbeit").display()
+    )
+}
+
+#[test]
+fn step_5d_refuses_every_start_that_continues_a_conversation_with_69() {
+    let o = crate::testhilfe::Ordner::neu("fortsetzung");
+    let w = &o.0;
+    let konfig = welt(w);
+    let start = w.join("start/start.json");
+    schreiben(&start, &start_text_f2(w, r#""s-1""#), 0o600);
+    let args = [start.into_os_string()];
+    let fehler = pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich()))
+        .map(|_| ())
+        .expect_err("a start that continues must end at step 5d");
+    assert_eq!(fehler, Fehler::FortsetzungUnmoeglich);
+    assert_eq!(
+        (fehler.exitcode(), fehler.zeile().as_str()),
+        (
+            69,
+            "lauf.fortsetzung_unmoeglich: Gespraech nicht fortsetzbar\n"
+        )
+    );
+}
+
+#[test]
+fn step_5d_lets_a_new_start_of_version_2_pass() {
+    let o = crate::testhilfe::Ordner::neu("neustart");
+    let w = &o.0;
+    let konfig = welt(w);
+    let start = w.join("start/start.json");
+    schreiben(&start, &start_text_f2(w, "null"), 0o600);
+    let args = [start.into_os_string()];
+    let l = pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich()))
+        .unwrap_or_else(|f| panic!("{f:?}"));
+    assert_eq!(l.start.fortsetzung_von(), None);
+    assert_eq!(l.start.sitzung(), "s-4");
+}
+
 /// The default of the firm equal to the settings of the world.
 fn vorgabe_gleich() -> Einstellungen {
     einstellungen::lesen(EINST.as_bytes()).expect("settings")

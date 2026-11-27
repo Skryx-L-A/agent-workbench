@@ -20,9 +20,8 @@ Mutanten folgen mit dem Bau.
 | `vorfuehrung.json` | die Vorführdatei des Durchstichs (Fassung 2) |
 | `erststart.json` | das Erststart-Profil für den ersten echten Start mit Token (Fassung 2, Abschnitt „Erststart-Profil“) |
 | `faelle/<name>.json` | Eingabe: `beschreibung` und die Datei als `text` (UTF-8) oder `b64` (rohe Bytes) |
-| `erwartet/<name>.json` | `{"gueltig": true}` oder `{"gueltig": false, "code": "einst.<code>"}` |
-| `faelle-ausstehend/<name>.json`, `erwartet-ausstehend/<name>.json` | Fälle für den Block `effort` (Nachtrag 26.11.2026); kein Crate liest sie, bis die Regel gebaut ist |
-| `bau-faelle.py` | erzeugt `faelle/`, `erwartet/`, `faelle-ausstehend/`, `erwartet-ausstehend/`, `vorfuehrung.json` und `erststart.json` |
+| `erwartet/<name>.json` | `{"gueltig": true}` oder `{"gueltig": false, "code": "einst.<code>"}`; ein gültiger Fall zum Block `effort` trägt dazu `efforts`, eine Liste von `{"harness", "route", "modell", "erlaubt"}` mit den erlaubten Efforts nach der Regel des Blocks |
+| `bau-faelle.py` | erzeugt `faelle/`, `erwartet/`, `vorfuehrung.json` und `erststart.json`. Die Fälle zum Block `effort` (Nachtrag 26.11.2026) standen bis zum Bau in `faelle-ausstehend/` und `erwartet-ausstehend/`; seit dem 27.11.2026 stehen sie in `faelle/` und `erwartet/` |
 | `pruefen.py` | prüft Paarung, Größe, JSON-Lesen und Schema gegen die Fälle |
 
 ## Form
@@ -497,10 +496,12 @@ bisherige Start (ohne `effort`) ebenso.
 - Wer den Block schreibt: Die Admins setzen `effort.grenzen` als Einstellung im Lauf auf der Ebene der Firma
   (`rust/spec/regelebenen/README.md`, Abschnitt 15). Der Lader der Ebenen übernimmt den Wert unverändert in diese Datei. Bis er gebaut
   ist, trägt die Datei der Firma den Block selbst (OPEN 11).
-- Typisierte Sicht (Crate `einstellungen`, noch nicht gebaut): `Einstellungen::efforts(harness, route, modell) -> Vec<&str>` liefert die
-  erlaubten Werte nach der Regel oben.
-- Fälle: `faelle-ausstehend/` (`gueltig-effort*`, `gueltig-ohne-effort`, `effort-*`). Sie ziehen nach `faelle/` um, wenn das Crate den
-  Block liest.
+- Typisierte Sicht (Crate `einstellungen`, gebaut 27.11.2026): `Einstellungen::efforts(harness, route, modell) -> Vec<&str>` liefert die
+  erlaubten Werte nach der Regel oben; `route` ist der Schlüssel der Route, eine unbekannte Route oder ein unbekannter Harness ergibt eine
+  leere Liste. `Einstellungen::effort_grenzen()` gibt die Grenzen in der Reihenfolge der Datei, `effort_werte(harness)` die Werte je
+  Harness (Tabelle oben; `None` außerhalb der Harness-Tabelle).
+- Fälle: `faelle/` (`gueltig-effort*`, `gueltig-ohne-effort`, `effort-*`); die gültigen Fälle nennen in `erwartet/` unter `efforts` die
+  erlaubten Werte für einige Starts, und der Falltest des Crates prüft sie.
 
 
 ## Vorgabe der Firma für die Netzziele (Nachtrag, 26.11.2026)
@@ -694,7 +695,7 @@ python3 -I rust/spec/einstellungen/bau-faelle.py            # Fälle neu erzeuge
     (5), `einst.typ_falsch` (6, auch `null`), `einst.anzahl` (8, mehr als 4096), `einst.kennung_form` (9, `wer` einer Gruppe),
     `einst.kennung_doppelt` (10, dasselbe Paar aus `ebene` und `wer`) und `einst.klasse_unbekannt` (12, byte-genau). Neu wären ein
     Code für eine Ebene außer `nutzer` und `gruppe` und einer für ein `wer` ohne Pseudonymform. Fehlt das Feld, liest niemand
-    (datentor P2). Fälle folgen mit der Fassung, wie beim Block `effort` in `faelle-ausstehend/`.
+    (datentor P2). Fälle folgen mit der Fassung, wie beim Block `effort` bis zu seinem Bau in `faelle-ausstehend/`.
 14. **Plan Business und eingeschränktes Token (Nachtrag Business, 26.11.2026).** Offen: welche Hosts und Pfade die CLI mit dem Plan
     Business wirklich ruft; die Ziele `api.business.githubcopilot.com` und `exp.business.githubcopilot.com` sind hergeleitet, nicht
     gemessen. Offen auch: wie ein Admin das eingeschränkte Token `anmeldung.<route>.eingeschraenkt` in die Ablage des Halters bringt
@@ -702,7 +703,9 @@ python3 -I rust/spec/einstellungen/bau-faelle.py            # Fälle neu erzeuge
     des Pakets, und das Profil setzt ihn nicht.
 15. **Felder der Admins außerhalb der Routentabelle (Nachtrag, 26.11.2026).** Schritt 4b vergleicht heute nur die Routentabelle mit
     der Vorgabe der Firma (Abschnitt „Vorgabe der Firma für die Netzziele“). Der Block `effort` (OPEN 11) und das Feld `leseklassen`
-    (OPEN 13) sind Werte der Admins. Sie stehen in der Datei des Nutzers und werden nicht verglichen. Das Crate liest beide heute nicht.
+    (OPEN 13) sind Werte der Admins. Sie stehen in der Datei des Nutzers und werden nicht verglichen. Das Crate liest den Block
+    `effort` seit dem 27.11.2026; Schritt 4b vergleicht ihn trotzdem nicht mit der Vorgabe. Das Feld `leseklassen` liest das Crate
+    heute nicht.
     Vorschlag: Sobald es sie liest, gilt für sie dieselbe Regel wie für die Routentabelle, also nur streichen oder verengen, nie
     erweitern.
 

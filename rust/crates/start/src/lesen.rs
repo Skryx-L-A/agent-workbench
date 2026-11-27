@@ -1,4 +1,5 @@
-//! Reads a start: stages 1 to 13 of contract 1, for the request and for the start file.
+//! Reads a start: stages 1 to 13 of contract 1 with the stages 4a, 9a, 11a, 11b and 13a of version 2, for the
+//! request and for the start file.
 //!
 //! As in the settings reader, every check records its violation and the lowest stage wins.
 
@@ -28,7 +29,32 @@ const DATEI: [&str; 8] = [
     "arbeitsordner",
     "marker",
 ];
+const ANFRAGE_2: [&str; 8] = [
+    "fassung",
+    "harness",
+    "modell",
+    "route",
+    "kunde",
+    "arbeitsordner",
+    "effort",
+    "name",
+];
+const DATEI_2: [&str; 11] = [
+    "fassung",
+    "sitzung",
+    "harness",
+    "modell",
+    "route",
+    "kunde",
+    "arbeitsordner",
+    "marker",
+    "effort",
+    "name",
+    "fortsetzung_von",
+];
 const MARKER: [&str; 2] = ["liste", "ordner"];
+const NAME_MAX: usize = 64;
+const EFFORT_MAX: usize = 16;
 
 /// Reads a request of the view. The bytes must not carry `sitzung`.
 ///
@@ -49,6 +75,7 @@ pub fn lesen_datei(bytes: &[u8]) -> Result<Startdatei, Fehler> {
         sitzung: roh.sitzung,
         felder: roh.felder,
         marker: roh.marker,
+        fortsetzung_von: roh.fortsetzung_von,
     })
 }
 
@@ -57,6 +84,7 @@ struct Roh {
     sitzung: String,
     felder: Felder,
     marker: Option<Marker>,
+    fortsetzung_von: Option<String>,
 }
 
 fn lesen(bytes: &[u8], datei: bool) -> Result<Roh, Fehler> {
@@ -98,7 +126,16 @@ fn formlesen(felder: &[(String, Wert)], datei: bool, befund: &mut Befund) -> Roh
     if !datei && feld(felder, "marker").is_some() {
         befund.melde(Fehler::MarkerNichtErlaubt);
     }
-    let erlaubt: &[&str] = if datei { &DATEI } else { &ANFRAGE };
+    if !datei && feld(felder, "fortsetzung_von").is_some() {
+        befund.melde(Fehler::FortsetzungNichtErlaubt);
+    }
+    let zwei = matches!(feld(felder, "fassung"), Some(Wert::Ganzzahl(zahl)) if zahl == "2");
+    let erlaubt: &[&str] = match (datei, zwei) {
+        (true, true) => &DATEI_2,
+        (true, false) => &DATEI,
+        (false, true) => &ANFRAGE_2,
+        (false, false) => &ANFRAGE,
+    };
     if felder
         .iter()
         .any(|(name, _)| !erlaubt.contains(&name.as_str()))
@@ -122,17 +159,91 @@ fn formlesen(felder: &[(String, Wert)], datei: bool, befund: &mut Befund) -> Roh
     let modell = modell(felder, befund).unwrap_or_default();
     let arbeitsordner = ordner(felder, befund).unwrap_or_default();
     let marker = if datei { marker(felder, befund) } else { None };
+    let mut fortsetzung_von = None;
+    let mut effort = None;
+    let mut name = None;
+    if zwei {
+        if datei {
+            fortsetzung_von = fortsetzung(felder, &sitzung, befund);
+        }
+        name = text_oder_null(felder, "name", befund);
+        if name.as_deref().is_some_and(|n| !ist_name(n)) {
+            befund.melde(Fehler::NameForm);
+        }
+        effort = text_oder_null(felder, "effort", befund);
+        if let Some(wert) = effort.as_deref() {
+            effort_pruefen(wert, harness, befund);
+        }
+    }
     Roh {
         marker,
         sitzung,
+        fortsetzung_von,
         felder: Felder {
+            fassung: if zwei { 2 } else { 1 },
             harness: harness.to_owned(),
             modell: modell.to_owned(),
             route: route.to_owned(),
             kunde,
             arbeitsordner: arbeitsordner.to_owned(),
+            effort,
+            name,
         },
     }
+}
+
+/// A required key of version 2 with a text or `null`: stage 6 when missing, stage 7 for another type.
+fn text_oder_null(felder: &[(String, Wert)], name: &str, befund: &mut Befund) -> Option<String> {
+    match pflicht(felder, name, befund)? {
+        Wert::Null => None,
+        Wert::Text(t) => Some(t.clone()),
+        _ => {
+            befund.melde(Fehler::TypFalsch);
+            None
+        }
+    }
+}
+
+/// `fortsetzung_von` of a start file of version 2: a key (stage 9) other than `sitzung` (stage 9a), or `null`.
+fn fortsetzung(felder: &[(String, Wert)], sitzung: &str, befund: &mut Befund) -> Option<String> {
+    let alt = text_oder_null(felder, "fortsetzung_von", befund)?;
+    if !einstellungen::ist_kennung(&alt) {
+        befund.melde(Fehler::KennungForm);
+    } else if alt == sitzung {
+        befund.melde(Fehler::FortsetzungSelbst);
+    }
+    Some(alt)
+}
+
+/// Stage 11b (`^[a-z]{1,16}$`) and stage 13a (a value of a harness of the table) for an effort that is a text.
+fn effort_pruefen(wert: &str, harness: &str, befund: &mut Befund) {
+    if !ist_effort(wert) {
+        befund.melde(Fehler::EffortForm);
+    }
+    if harness_art(harness).is_some()
+        && einstellungen::effort_werte(harness).is_none_or(|werte| !werte.contains(&wert))
+    {
+        befund.melde(Fehler::EffortUnbekannt);
+    }
+}
+
+/// One to 16 lower-case letters `a-z`.
+fn ist_effort(text: &str) -> bool {
+    (1..=EFFORT_MAX).contains(&text.len()) && text.bytes().all(|c| c.is_ascii_lowercase())
+}
+
+/// The name rule of version 2: 1 to 64 Unicode scalar values; no control character, no line or paragraph separator, no
+/// direction mark and no character without width; no white space at the start or the end.
+pub(crate) fn ist_name(text: &str) -> bool {
+    (1..=NAME_MAX).contains(&text.chars().count())
+        && !text.chars().any(|zeichen| {
+            ist_steuerzeichen(zeichen)
+                || matches!(
+                    u32::from(zeichen),
+                    0x2028 | 0x2029 | 0x202a..=0x202e | 0x2066..=0x2069 | 0x200b..=0x200f | 0xfeff
+                )
+        })
+        && text.trim() == text
 }
 
 /// A required key: records stage 6 when it is missing.
@@ -167,7 +278,7 @@ fn kennung<'a>(felder: &'a [(String, Wert)], name: &str, befund: &mut Befund) ->
 fn fassung(felder: &[(String, Wert)], befund: &mut Befund) {
     match pflicht(felder, "fassung", befund) {
         None => {}
-        Some(Wert::Ganzzahl(zahl)) if zahl == "1" => {}
+        Some(Wert::Ganzzahl(zahl)) if zahl == "1" || zahl == "2" => {}
         Some(Wert::Ganzzahl(_)) => befund.melde(Fehler::FassungUnbekannt),
         Some(_) => befund.melde(Fehler::TypFalsch),
     }
@@ -278,7 +389,47 @@ fn ist_steuerzeichen(zeichen: char) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{ist_modell, ist_ordner, ist_steuerzeichen};
+    use super::{ist_effort, ist_modell, ist_name, ist_ordner, ist_steuerzeichen};
+
+    #[test]
+    fn names_follow_the_name_rule() {
+        assert!(ist_name("a"));
+        assert!(ist_name("Auswertung Q4"));
+        assert!(ist_name(&"\u{e4}".repeat(64)));
+        assert!(ist_name("a\u{a0}b"));
+        assert!(!ist_name(&"\u{e4}".repeat(65)));
+        assert!(!ist_name(""));
+        assert!(!ist_name("   "));
+        assert!(!ist_name(" a"));
+        assert!(!ist_name("a "));
+        assert!(!ist_name("\u{3000}a"));
+        for verboten in [
+            0x0, 0x9, 0xa, 0x1f, 0x7f, 0x85, 0x9f, 0x2028, 0x2029, 0x202a, 0x202e, 0x2066, 0x2069,
+            0x200b, 0x200f, 0xfeff,
+        ] {
+            let zeichen = char::from_u32(verboten).expect("scalar value");
+            assert!(!ist_name(&format!("a{zeichen}b")), "{verboten:#x}");
+        }
+        for erlaubt in [
+            0x20, 0xa0, 0x2010, 0x2027, 0x202f, 0x2065, 0x206a, 0x200a, 0xfefe, 0xff00,
+        ] {
+            let zeichen = char::from_u32(erlaubt).expect("scalar value");
+            assert!(ist_name(&format!("a{zeichen}b")), "{erlaubt:#x}");
+        }
+    }
+
+    #[test]
+    fn efforts_have_one_to_16_lower_case_letters() {
+        assert!(ist_effort("a"));
+        assert!(ist_effort("xhigh"));
+        assert!(ist_effort(&"z".repeat(16)));
+        assert!(!ist_effort(&"z".repeat(17)));
+        assert!(!ist_effort(""));
+        assert!(!ist_effort("High"));
+        assert!(!ist_effort("--max"));
+        assert!(!ist_effort("x1"));
+        assert!(!ist_effort("\u{e4}"));
+    }
 
     #[test]
     fn model_names_follow_the_character_set_and_length() {

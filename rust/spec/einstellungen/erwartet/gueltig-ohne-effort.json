@@ -1,0 +1,11 @@
+{
+ "gueltig": true,
+ "efforts": [
+  {
+   "harness": "pi",
+   "route": "lokal-beispiel",
+   "modell": "qwen3:8b",
+   "erlaubt": []
+  }
+ ]
+}

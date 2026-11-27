@@ -73,6 +73,10 @@ pub enum Fehler {
     /// Stage 34: version 2, a value of `harness.copilot.werkzeuge_ohne_rueckfrage` is a text, but not
     /// `shell`, `write` or `such-mcp`.
     WerkzeugWert,
+    /// Stage 35: version 2, `harness` of a limit in `effort.grenzen` is not in the table of harnesses of contract 1.
+    EffortHarness,
+    /// Stage 36: version 2, a value in `erlaubt` of a limit is no effort value of its harness.
+    EffortWert,
     /// Stage 37: version 2, `eingeschraenktes_token: true` at a route without a target with `schluessel: true`.
     TokenOhneSchluessel,
 }
@@ -116,6 +120,8 @@ impl Fehler {
             Self::FristBereich => "einst.frist_bereich",
             Self::McpDoppelt => "einst.mcp_doppelt",
             Self::WerkzeugWert => "einst.werkzeug_wert",
+            Self::EffortHarness => "einst.effort_harness",
+            Self::EffortWert => "einst.effort_wert",
             Self::TokenOhneSchluessel => "einst.token_ohne_schluessel",
         }
     }
@@ -158,6 +164,8 @@ impl Fehler {
             Self::FristBereich => "Frist ausserhalb des Bereichs",
             Self::McpDoppelt => "Werkzeug in lesen und schreiben",
             Self::WerkzeugWert => "Werkzeugwert nicht erlaubt",
+            Self::EffortHarness => "Harness der Effort-Grenze unbekannt",
+            Self::EffortWert => "Effort-Wert nicht erlaubt",
             Self::TokenOhneSchluessel => "eingeschraenktes Token ohne Ziel mit Schluessel",
         }
     }
@@ -199,6 +207,8 @@ impl Fehler {
             Self::FristBereich => 32,
             Self::McpDoppelt => 33,
             Self::WerkzeugWert => 34,
+            Self::EffortHarness => 35,
+            Self::EffortWert => 36,
             Self::TokenOhneSchluessel => 37,
         }
     }
@@ -413,6 +423,18 @@ mod tests {
                 34,
                 "einst.werkzeug_wert",
                 "Werkzeugwert nicht erlaubt",
+            ),
+            (
+                Fehler::EffortHarness,
+                35,
+                "einst.effort_harness",
+                "Harness der Effort-Grenze unbekannt",
+            ),
+            (
+                Fehler::EffortWert,
+                36,
+                "einst.effort_wert",
+                "Effort-Wert nicht erlaubt",
             ),
             (
                 Fehler::TokenOhneSchluessel,

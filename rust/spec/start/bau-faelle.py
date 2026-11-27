@@ -258,7 +258,8 @@ fall("anfrage-typ-fassung-text", A, "fassung als Text", mit(CLOUD, lambda o: o.u
 fall("anfrage-typ-modell-zahl", A, "modell als Zahl", mit(CLOUD, lambda o: o.update(modell=5)), "start.typ_falsch")
 
 # start.fassung_unbekannt
-fall("anfrage-fassung-2", A, "fassung 2", mit(CLOUD, lambda o: o.update(fassung=2)), "start.fassung_unbekannt")
+fall("anfrage-fassung-3", A, "fassung 3 (bis zum Bau der Fassung 2 der Fall anfrage-fassung-2)",
+     mit(CLOUD, lambda o: o.update(fassung=3, arbeitsordner="/heim/beispiel/projekt")), "start.fassung_unbekannt")
 
 # start.kennung_form
 fall("datei-sitzung-65", D, "Sitzungskennung mit 65 Zeichen", datei(CLOUD, "s" * 65), "start.kennung_form")
@@ -970,8 +971,8 @@ AUFRUFE_N2 += [
 AUFRUFE += AUFRUFE_N2
 
 
-# Start-Struktur Fassung 2 (Nachtrag 26.11.2026, L10): Felder effort und name. Das Crate start kennt Fassung 2 noch nicht;
-# die Fälle stehen darum in faelle-ausstehend/ und erwartet-ausstehend/. Jede Erwartung rechnet die Referenz unten.
+# Start-Struktur Fassung 2 (Nachtrag 26.11.2026, L10): Felder effort und name. Das Crate start liest Fassung 2 (27.11.2026);
+# die Fälle stehen in faelle/ und erwartet/. Jede Erwartung rechnet die Referenz unten.
 EFFORTS = {  # Vertrag 2, Block effort (gemessen 26.11.2026 mit --help)
     "claude": ("low", "medium", "high", "xhigh", "max"),
     "copilot": ("none", "minimal", "low", "medium", "high", "xhigh", "max"),
@@ -1080,7 +1081,7 @@ def ausstehend(name, form, beschreibung, start, soll, einst=EINST_EFFORT, sitzun
     eintrag = {"beschreibung": beschreibung, "form": form, "text": text(inhalt), "einstellungen": einst}
     erwartet = ({"gueltig": True, "route_art": ROUTENART[start["harness"]]} if soll is None
                 else {"gueltig": False, "code": soll})
-    AUSSTEHEND.append((name, eintrag, erwartet))
+    FAELLE.append((name, eintrag, erwartet))
 
 
 ausstehend("anfrage-f2-gueltig-copilot", A, "Fassung 2: copilot mit Effort medium und Namen", COP2, None)

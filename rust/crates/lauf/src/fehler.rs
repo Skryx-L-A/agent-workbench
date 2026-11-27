@@ -55,6 +55,9 @@ pub enum Fehler {
     /// Step 5c: a file of an earlier session lies next to the start file (`suche.pid` or `modellweg.pid`, or a link of
     /// that name).
     StartordnerBelegt,
+    /// Step 5d: the start file of version 2 continues a conversation (`fortsetzung_von` not `null`). Until steps 5d
+    /// and 8 of version 2 are built, every such start ends here (Projektentscheid, 27.11.2026).
+    FortsetzungUnmoeglich,
     /// Step 8: the session folder of the session name exists already (the session ran before).
     SitzungBelegt,
     /// Step 6 and 8: the enclosure is not available.
@@ -121,6 +124,7 @@ impl Fehler {
             Fehler::OrdnerAndererKunde => "lauf.ordner_anderer_kunde",
             Fehler::OrdnerHoeherMarkiert => "lauf.ordner_hoeher_markiert",
             Fehler::StartordnerBelegt => "lauf.startordner_belegt",
+            Fehler::FortsetzungUnmoeglich => "lauf.fortsetzung_unmoeglich",
             Fehler::SitzungBelegt => "lauf.sitzung_belegt",
             Fehler::EinschlussFehlt => "lauf.einschluss_fehlt",
             Fehler::SucheFehlt => "lauf.suche_fehlt",
@@ -169,6 +173,7 @@ impl Fehler {
             Fehler::OrdnerAndererKunde => "Ordner gehoert einem anderen Kunden",
             Fehler::OrdnerHoeherMarkiert => "Ordner hoeher markiert als die Route",
             Fehler::StartordnerBelegt => "Startordner enthaelt Dateien einer fruehen Sitzung",
+            Fehler::FortsetzungUnmoeglich => "Gespraech nicht fortsetzbar",
             Fehler::SitzungBelegt => "Sitzung wurde schon gestartet",
             Fehler::EinschlussFehlt => "Einschluss nicht verfuegbar",
             Fehler::SucheFehlt => "Suche nicht startbar",
@@ -199,7 +204,8 @@ impl Fehler {
             | Fehler::ModellwegNichtBereit
             | Fehler::PaketEntpacken { .. }
             | Fehler::HarnessFehlt
-            | Fehler::MeldungFehlt => 69,
+            | Fehler::MeldungFehlt
+            | Fehler::FortsetzungUnmoeglich => 69,
             Fehler::Intern => 70,
             Fehler::MarkerOrdner
             | Fehler::Zielliste
@@ -287,8 +293,9 @@ mod tests {
             Fehler::HarnessFehlt,
             Fehler::MeldungFehlt,
             Fehler::Intern,
+            Fehler::FortsetzungUnmoeglich,
         ];
-        let soll: [(u8, &str); 27] = [
+        let soll: [(u8, &str); 28] = [
             (78, "lauf.tls_umgebung: TLS-Umgebung gesetzt\n"),
             (64, "lauf.aufruf: genau ein Pfad erwartet\n"),
             (66, "lauf.datei_unlesbar: Startdatei nicht lesbar\n"),
@@ -346,6 +353,10 @@ mod tests {
                 "lauf.meldung_fehlt: Meldung an den Dienst nicht moeglich\n",
             ),
             (70, "lauf.intern: interner Fehler\n"),
+            (
+                69,
+                "lauf.fortsetzung_unmoeglich: Gespraech nicht fortsetzbar\n",
+            ),
         ];
         for (f, (exit, zeile)) in alle.iter().zip(soll) {
             assert_eq!((f.exitcode(), f.zeile().as_str()), (exit, zeile));

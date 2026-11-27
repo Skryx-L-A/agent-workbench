@@ -60,7 +60,7 @@
     "art": "Starten",
     "start": {
      "arbeitsordner": "/home/beispiel/pröjekt",
-     "fassung": 2,
+     "fassung": 3,
      "harness": "claude",
      "kunde": "k-beispiel",
      "modell": "claude-sonnet-5-5",

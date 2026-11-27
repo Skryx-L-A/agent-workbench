@@ -247,24 +247,10 @@ def main():
             nur_bau.append(f"{name} ({erw['code']}, Schema {'nimmt an' if nimmt_an else 'lehnt ab'})")
     vorfuehrung_pruefen(pruefer, fehler)
     erststart_pruefen(pruefer, fehler)
-    # Ausstehende Fälle (Nachtrag 26.11.2026, Block effort): Paarung, JSON-Lesen und Präfix; das Schema kennt den Block
-    # noch nicht, und kein Crate liest den Ordner, bis die Regel gebaut ist.
-    aus_f = {p.name for p in (HIER / "faelle-ausstehend").glob("*.json")}
-    aus_e = {p.name for p in (HIER / "erwartet-ausstehend").glob("*.json")}
-    for name in sorted(aus_f ^ aus_e):
-        fehler.append(f"ausstehend {name}: ohne Gegenstück")
-    for name in sorted(aus_f & aus_e):
-        fall = json.loads((HIER / "faelle-ausstehend" / name).read_text(encoding="utf-8"))
-        erw = json.loads((HIER / "erwartet-ausstehend" / name).read_text(encoding="utf-8"))
-        try:
-            streng_lesen(fall["text"].encode("utf-8"))
-        except (ValueError, UnicodeDecodeError) as fehlerart:
-            fehler.append(f"ausstehend {name}: JSON ungültig ({fehlerart})")
-        if not erw["gueltig"] and not erw["code"].startswith(PRAEFIX + "."):
-            fehler.append(f"ausstehend {name}: Code ohne Präfix {PRAEFIX}.")
-        if (HIER / "faelle" / name).exists():
-            fehler.append(f"ausstehend {name}: steht auch in faelle/")
-    print(f"{len(aus_f & aus_e)} ausstehende Fälle (Block effort, erst mit dem Bau prüfbar)")
+    # Seit 27.11.2026 liest das Crate den Block effort; die Fälle stehen in faelle/. Ein Ordner faelle-ausstehend/ wäre ein Rest.
+    for teil in ("faelle-ausstehend", "erwartet-ausstehend"):
+        if (HIER / teil).exists():
+            fehler.append(f"{teil}/: Ordner besteht noch, die Fälle gehören nach {teil.removesuffix('-ausstehend')}/")
     print(f"{zahl} Fälle, {len(fehler)} Fehler, Schema {'geprüft' if pruefer else 'NICHT geprüft (--ohne-schema, jsonschema fehlt)'}")
     for zeile in nur_bau:
         print(f"  erst mit dem Bau prüfbar: {zeile}")

@@ -725,8 +725,8 @@ fall("eingeschraenktes-token-typ-vor-schalter", "falscher Typ des Schalters an d
      f2(schalter("ja", route=1)), "einst.typ_falsch")
 
 
-# Block effort (Nachtrag 26.11.2026, Fassung 2): Grenzen der Admins je Harness, Klasse und Modell. Das Crate kennt den Block
-# noch nicht; die Fälle stehen darum in faelle-ausstehend/ und erwartet-ausstehend/ (README, Abschnitt „Block effort“).
+# Block effort (Nachtrag 26.11.2026, Fassung 2): Grenzen der Admins je Harness, Klasse und Modell. Das Crate liest den Block;
+# die Fälle stehen in faelle/ und erwartet/, gültige Fälle mit der Liste `efforts` (README, Abschnitt „Block effort“).
 # Werte je Harness, wörtlich aus der Hilfe der Programme (gemessen 26.11.2026: claude 2.1.332 --effort,
 # copilot 1.0.116 --reasoning-effort, pi 1.6.1 --thinking).
 EFFORTS = {
@@ -810,11 +810,9 @@ def erlaubte_efforts(datei, harness, route, modell):
     return [w for w in EFFORTS[harness] if all(w in e["erlaubt"] for e in passend)]
 
 
-AUSSTEHEND = []
-
-
-def ausstehend(name, beschreibung, datei, soll, efforts=None):
-    """Ein Fall für eine ungebaute Regel; soll ist der ausgeschriebene Code, die Referenz muss ihn treffen."""
+def fall_effort(name, beschreibung, datei, soll, efforts=None):
+    """Ein Fall zum Block effort; soll ist der ausgeschriebene Code, die Referenz muss ihn treffen. `efforts` nennt
+    für gültige Fälle die erlaubten Efforts je (Harness, Route, Modell); sie stehen auch in der Erwartung."""
     ist = effort_code(datei)
     if ist != soll:
         raise SystemExit(f"FEHLER {name}: Referenz {ist!r}, Tabelle {soll!r}")
@@ -823,7 +821,9 @@ def ausstehend(name, beschreibung, datei, soll, efforts=None):
             if erlaubte_efforts(datei, h, r, m) != liste:
                 raise SystemExit(f"FEHLER {name}: erlaubte_efforts({h}, {r}, {m}) = {erlaubte_efforts(datei, h, r, m)!r}, Tabelle {liste!r}")
     erwartet = {"gueltig": True} if soll is None else {"gueltig": False, "code": soll}
-    AUSSTEHEND.append((name, {"beschreibung": beschreibung, "text": text(datei)}, erwartet))
+    if efforts:
+        erwartet["efforts"] = [{"harness": h, "route": r, "modell": m, "erlaubt": liste} for (h, r, m), liste in efforts]
+    FAELLE.append((name, {"beschreibung": beschreibung, "text": text(datei)}, erwartet))
 
 
 def eff(grenzen, **mehr):
@@ -835,47 +835,47 @@ def eff(grenzen, **mehr):
 GRENZEN = [{"harness": "copilot", "erlaubt": ["low", "medium", "high"]},
            {"harness": "copilot", "klasse": "intern", "modell": "gpt-6-luna", "erlaubt": ["low", "medium"]},
            {"harness": "pi", "klasse": "kundendaten", "erlaubt": ["off", "low"]}]
-ausstehend("gueltig-effort", "Grenzen für copilot allgemein, für copilot mit gpt-6-luna in intern enger, für pi in kundendaten",
-           eff(GRENZEN), None,
-           [(("copilot", "cloud-beispiel", "gpt-6-luna"), ["low", "medium"]),
+fall_effort("gueltig-effort", "Grenzen für copilot allgemein, für copilot mit gpt-6-luna in intern enger, für pi in kundendaten",
+             eff(GRENZEN), None,
+             [(("copilot", "cloud-beispiel", "gpt-6-luna"), ["low", "medium"]),
             (("copilot", "cloud-beispiel", "auto"), ["low", "medium", "high"]),
             (("pi", "lokal-beispiel", "qwen3:8b"), ["off", "low"]),
             (("claude", "cloud-beispiel", "claude-sonnet-5-5"), [])])
-ausstehend("gueltig-effort-leer", "leere Liste: gültig, kein Harness bekommt einen Effort", eff([]), None,
-           [(("copilot", "cloud-beispiel", "auto"), [])])
-ausstehend("gueltig-ohne-effort", "Fassung 2 ohne Block: gültig, kein Effort wählbar (fail closed)", f2(), None,
-           [(("pi", "lokal-beispiel", "qwen3:8b"), [])])
-ausstehend("effort-in-fassung-1", "Block effort in einer Datei der Fassung 1",
-           mit(lambda o: o.update(effort={"grenzen": []})), "einst.schluessel_unbekannt")
-ausstehend("effort-schluessel-unbekannt", "unbekannter Schlüssel im Block", eff([], vorgabe="low"), "einst.schluessel_unbekannt")
-ausstehend("effort-eintrag-unbekannt", "unbekannter Schlüssel in einer Grenze",
-           eff([{"harness": "pi", "erlaubt": ["low"], "route": "lokal-beispiel"}]), "einst.schluessel_unbekannt")
-ausstehend("effort-grenzen-fehlt", "Block ohne grenzen", f2(lambda o: o.update(effort={})), "einst.schluessel_fehlt")
-ausstehend("effort-erlaubt-fehlt", "Grenze ohne erlaubt", eff([{"harness": "pi"}]), "einst.schluessel_fehlt")
-ausstehend("effort-typ", "erlaubt als Text", eff([{"harness": "pi", "erlaubt": "low"}]), "einst.typ_falsch")
-ausstehend("effort-anzahl-leer", "erlaubt leer", eff([{"harness": "pi", "erlaubt": []}]), "einst.anzahl")
-ausstehend("effort-anzahl-65", "65 Grenzen",
-           eff([{"harness": "pi", "modell": f"m{i}", "erlaubt": ["low"]} for i in range(65)]), "einst.anzahl")
-ausstehend("effort-doppelt-wert", "derselbe Wert zweimal", eff([{"harness": "pi", "erlaubt": ["low", "low"]}]),
-           "einst.kennung_doppelt")
-ausstehend("effort-doppelt-eintrag", "zwei Grenzen für denselben Harness, dieselbe Klasse und dasselbe Modell",
-           eff([{"harness": "pi", "erlaubt": ["low"]}, {"harness": "pi", "erlaubt": ["high"]}]), "einst.kennung_doppelt")
-ausstehend("effort-klasse-unbekannt", "Klasse, die nicht in klassen steht",
-           eff([{"harness": "pi", "klasse": "geheim", "erlaubt": ["low"]}]), "einst.klasse_unbekannt")
-ausstehend("effort-modell-form", "Modell mit Leerzeichen", eff([{"harness": "copilot", "modell": "gpt 6", "erlaubt": ["low"]}]),
-           "einst.modell_form")
-ausstehend("effort-harness-unbekannt", "Harness, der nicht in der Harness-Tabelle von Vertrag 1 steht",
-           eff([{"harness": "codex", "erlaubt": ["low"]}]), "einst.effort_harness")
-ausstehend("effort-wert-fremd", "none gibt es bei copilot, nicht bei pi", eff([{"harness": "pi", "erlaubt": ["none"]}]),
-           "einst.effort_wert")
-ausstehend("effort-wert-gross", "Groß geschrieben", eff([{"harness": "claude", "erlaubt": ["High"]}]), "einst.effort_wert")
-ausstehend("effort-wert-ultra", "ein Wert, den kein Harness kennt", eff([{"harness": "copilot", "erlaubt": ["low", "ultra"]}]),
-           "einst.effort_wert")
-ausstehend("effort-harness-vor-wert", "unbekannter Harness geht vor dem Wert (Stufe 35 vor 36)",
-           eff([{"harness": "pi", "erlaubt": ["ultra"]}, {"harness": "codex", "erlaubt": ["low"]}]), "einst.effort_harness")
-ausstehend("effort-nach-werkzeug", "Werkzeugwert in harness (Stufe 34) geht vor dem Effort (Stufe 36)",
-           f2(lambda o: o.update(harness={"copilot": {"werkzeuge_ohne_rueckfrage": ["yolo"]}},
-                                 effort={"grenzen": [{"harness": "pi", "erlaubt": ["ultra"]}]})), "einst.werkzeug_wert")
+fall_effort("gueltig-effort-leer", "leere Liste: gültig, kein Harness bekommt einen Effort", eff([]), None,
+             [(("copilot", "cloud-beispiel", "auto"), [])])
+fall_effort("gueltig-ohne-effort", "Fassung 2 ohne Block: gültig, kein Effort wählbar (fail closed)", f2(), None,
+             [(("pi", "lokal-beispiel", "qwen3:8b"), [])])
+fall_effort("effort-in-fassung-1", "Block effort in einer Datei der Fassung 1",
+             mit(lambda o: o.update(effort={"grenzen": []})), "einst.schluessel_unbekannt")
+fall_effort("effort-schluessel-unbekannt", "unbekannter Schlüssel im Block", eff([], vorgabe="low"), "einst.schluessel_unbekannt")
+fall_effort("effort-eintrag-unbekannt", "unbekannter Schlüssel in einer Grenze",
+             eff([{"harness": "pi", "erlaubt": ["low"], "route": "lokal-beispiel"}]), "einst.schluessel_unbekannt")
+fall_effort("effort-grenzen-fehlt", "Block ohne grenzen", f2(lambda o: o.update(effort={})), "einst.schluessel_fehlt")
+fall_effort("effort-erlaubt-fehlt", "Grenze ohne erlaubt", eff([{"harness": "pi"}]), "einst.schluessel_fehlt")
+fall_effort("effort-typ", "erlaubt als Text", eff([{"harness": "pi", "erlaubt": "low"}]), "einst.typ_falsch")
+fall_effort("effort-anzahl-leer", "erlaubt leer", eff([{"harness": "pi", "erlaubt": []}]), "einst.anzahl")
+fall_effort("effort-anzahl-65", "65 Grenzen",
+             eff([{"harness": "pi", "modell": f"m{i}", "erlaubt": ["low"]} for i in range(65)]), "einst.anzahl")
+fall_effort("effort-doppelt-wert", "derselbe Wert zweimal", eff([{"harness": "pi", "erlaubt": ["low", "low"]}]),
+             "einst.kennung_doppelt")
+fall_effort("effort-doppelt-eintrag", "zwei Grenzen für denselben Harness, dieselbe Klasse und dasselbe Modell",
+             eff([{"harness": "pi", "erlaubt": ["low"]}, {"harness": "pi", "erlaubt": ["high"]}]), "einst.kennung_doppelt")
+fall_effort("effort-klasse-unbekannt", "Klasse, die nicht in klassen steht",
+             eff([{"harness": "pi", "klasse": "geheim", "erlaubt": ["low"]}]), "einst.klasse_unbekannt")
+fall_effort("effort-modell-form", "Modell mit Leerzeichen", eff([{"harness": "copilot", "modell": "gpt 6", "erlaubt": ["low"]}]),
+             "einst.modell_form")
+fall_effort("effort-harness-unbekannt", "Harness, der nicht in der Harness-Tabelle von Vertrag 1 steht",
+             eff([{"harness": "codex", "erlaubt": ["low"]}]), "einst.effort_harness")
+fall_effort("effort-wert-fremd", "none gibt es bei copilot, nicht bei pi", eff([{"harness": "pi", "erlaubt": ["none"]}]),
+             "einst.effort_wert")
+fall_effort("effort-wert-gross", "Groß geschrieben", eff([{"harness": "claude", "erlaubt": ["High"]}]), "einst.effort_wert")
+fall_effort("effort-wert-ultra", "ein Wert, den kein Harness kennt", eff([{"harness": "copilot", "erlaubt": ["low", "ultra"]}]),
+             "einst.effort_wert")
+fall_effort("effort-harness-vor-wert", "unbekannter Harness geht vor dem Wert (Stufe 35 vor 36)",
+             eff([{"harness": "pi", "erlaubt": ["ultra"]}, {"harness": "codex", "erlaubt": ["low"]}]), "einst.effort_harness")
+fall_effort("effort-nach-werkzeug", "Werkzeugwert in harness (Stufe 34) geht vor dem Effort (Stufe 36)",
+             f2(lambda o: o.update(harness={"copilot": {"werkzeuge_ohne_rueckfrage": ["yolo"]}},
+                                   effort={"grenzen": [{"harness": "pi", "erlaubt": ["ultra"]}]})), "einst.werkzeug_wert")
 
 
 def main():
@@ -888,16 +888,15 @@ def main():
         (HIER / "faelle" / f"{name}.json").write_text(text(eintrag), encoding="utf-8")
         (HIER / "erwartet" / f"{name}.json").write_text(text(erwartet), encoding="utf-8")
     for teil in ("faelle-ausstehend", "erwartet-ausstehend"):
+        # bis 27.11.2026 standen die Fälle zum Block effort hier; das Crate liest sie seitdem aus faelle/
         ordner = HIER / teil
-        ordner.mkdir(exist_ok=True)
-        for alt in ordner.glob("*.json"):
-            alt.unlink()
-    for name, eintrag, erwartet in AUSSTEHEND:
-        (HIER / "faelle-ausstehend" / f"{name}.json").write_text(text(eintrag), encoding="utf-8")
-        (HIER / "erwartet-ausstehend" / f"{name}.json").write_text(text(erwartet), encoding="utf-8")
+        if ordner.is_dir():
+            for alt in ordner.glob("*.json"):
+                alt.unlink()
+            ordner.rmdir()
     (HIER / "vorfuehrung.json").write_text(text(VORFUEHRDATEI_MIT_WERKZEUGEN), encoding="utf-8")
     (HIER / "erststart.json").write_text(text(ERSTSTARTDATEI), encoding="utf-8")
-    print(f"{len(FAELLE)} Fälle und {len(AUSSTEHEND)} ausstehende Fälle geschrieben")
+    print(f"{len(FAELLE)} Fälle geschrieben")
 
 
 if __name__ == "__main__":

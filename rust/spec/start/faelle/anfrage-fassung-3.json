@@ -1,7 +1,7 @@
 {
- "beschreibung": "fassung 2",
+ "beschreibung": "fassung 3 (bis zum Bau der Fassung 2 der Fall anfrage-fassung-2)",
  "form": "anfrage",
- "text": "{\n \"fassung\": 2,\n \"harness\": \"claude\",\n \"modell\": \"claude-sonnet-5-5\",\n \"route\": \"cloud-beispiel\",\n \"kunde\": \"k-beispiel\",\n \"arbeitsordner\": \"/home/beispiel/projekt\"\n}\n",
+ "text": "{\n \"fassung\": 3,\n \"harness\": \"claude\",\n \"modell\": \"claude-sonnet-5-5\",\n \"route\": \"cloud-beispiel\",\n \"kunde\": \"k-beispiel\",\n \"arbeitsordner\": \"/heim/beispiel/projekt\"\n}\n",
  "einstellungen": {
   "fassung": 1,
   "klassen": [

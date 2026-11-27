@@ -1,8 +1,9 @@
 //! Start structure of a session (contract 1): reads the request of the view and the start file of the
 //! service, and checks a start against the settings file.
 //!
-//! [`lesen_anfrage`] and [`lesen_datei`] check the form and the stages 1 to 13. [`pruefen`] adds the
-//! stages 14 to 17 against the settings file. [`copilot_argv`] builds the start command of `copilot`, [`ist_marken_kennung`] tests the key of a folder mark. [`schreiben`] writes the start file that the program
+//! [`lesen_anfrage`] and [`lesen_datei`] check the form and the stages 1 to 13 (with 4a, 9a, 11a, 11b and 13a of
+//! version 2). [`pruefen`] adds the stages 14 to 18 against the settings file. Version 2 carries `effort` and `name`, the
+//! start file also `fortsetzung_von` ([`Startanfrage::mit_fortsetzung`]). [`copilot_argv`] builds the start command of `copilot`, [`ist_marken_kennung`] tests the key of a folder mark. [`schreiben`] writes the start file that the program
 //! `Lauf starten` reads. The crate reads bytes and never touches the file system.
 
 mod fehler;

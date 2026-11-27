@@ -1,4 +1,4 @@
-//! Reads the settings file: stages 1 to 33 of contract 2.
+//! Reads the settings file: stages 1 to 36 of contract 2.
 //!
 //! Every check records the violation it finds. At the end the lowest stage wins, so the code is the
 //! one of the first stage in the order of the contract, whatever the position in the file.
@@ -7,6 +7,7 @@ use std::collections::HashSet;
 use std::hash::Hash;
 
 use crate::Fehler;
+use crate::effort::{self, EffortGrenze};
 use crate::ist_kennung;
 use crate::json::{self, Wert, feld};
 use crate::netz;
@@ -29,7 +30,7 @@ const OBEN: [&str; 6] = [
     "kunden",
     "kundendaten_an_cloud",
 ];
-const OBEN_2: [&str; 8] = [
+const OBEN_2: [&str; 9] = [
     "fassung",
     "klassen",
     "vorgabestufe",
@@ -38,6 +39,7 @@ const OBEN_2: [&str; 8] = [
     "kundendaten_an_cloud",
     "mcp",
     "harness",
+    "effort",
 ];
 const MCP_SERVER: [&str; 5] = [
     "lesen",
@@ -111,6 +113,7 @@ struct Roh {
     freigaben: Vec<Freigabe>,
     copilot_ohne_rueckfrage: Vec<Werkzeug>,
     mcp: Vec<McpServer>,
+    effort: Vec<EffortGrenze>,
 }
 
 impl Roh {
@@ -125,9 +128,11 @@ impl Roh {
         let freigaben = kundendaten(felder, befund);
         let mut copilot_ohne_rueckfrage = Vec::new();
         let mut mcp_server = Vec::new();
+        let mut effort = Vec::new();
         if zwei {
             mcp_server = mcp(felder, befund);
             copilot_ohne_rueckfrage = harness(felder, befund);
+            effort = effort::block(felder, befund);
         }
         Self {
             fassung: if zwei { 2 } else { 1 },
@@ -138,6 +143,7 @@ impl Roh {
             freigaben,
             copilot_ohne_rueckfrage,
             mcp: mcp_server,
+            effort,
         }
     }
 
@@ -180,6 +186,7 @@ impl Roh {
         {
             befund.melde(Fehler::VorgabestufeUnbekannt);
         }
+        effort::querverweise(&self.effort, &self.klassen, befund);
     }
 
     /// The typed view. Called only when no violation was recorded.
@@ -210,6 +217,7 @@ impl Roh {
             },
             copilot_ohne_rueckfrage: self.copilot_ohne_rueckfrage,
             mcp: self.mcp,
+            effort: self.effort,
         }
     }
 }
@@ -265,7 +273,7 @@ pub(crate) fn anzahl(anzahl: usize, von: usize, bis: usize, befund: &mut Befund)
 }
 
 /// Records stage 10 when a value occurs twice.
-fn ohne_doppel<T: Eq + Hash>(werte: impl Iterator<Item = T>, befund: &mut Befund) {
+pub(crate) fn ohne_doppel<T: Eq + Hash>(werte: impl Iterator<Item = T>, befund: &mut Befund) {
     let mut gesehen = HashSet::new();
     if werte.into_iter().any(|wert| !gesehen.insert(wert)) {
         befund.melde(Fehler::KennungDoppelt);

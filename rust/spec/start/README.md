@@ -32,8 +32,8 @@ Die Mutanten-Fälle werden noch nicht ausgeführt: Der Läufer `rust/crates/lauf
 | `start.schema.json` | Form als JSON Schema 2020-12: `$defs/anfrage` und `$defs/datei` |
 | `faelle/<name>.json` | `beschreibung`, `form` (`anfrage`, `datei` oder `aufruf`); bei `anfrage` und `datei` der Start als `text` (UTF-8) oder `b64` (rohe Bytes) und die Einstellungsdatei als `einstellungen`; bei `aufruf` die Ausgangslage als `lage` |
 | `erwartet/<name>.json` | `{"gueltig": true, "route_art": "cloud"}` oder `{"gueltig": false, "code": "start.<code>"}`; bei `aufruf` Exitcode und stderr-Zeile oder `exec` |
-| `faelle-ausstehend/<name>.json`, `erwartet-ausstehend/<name>.json` | Fälle der Fassung 2 (`effort`, `name`; Nachtrag 26.11.2026; `fortsetzung_von` und Aufruf-Fälle `aufruf-f2-*` zum Fortsetzen, Nachtrag 27.11.2026); kein Crate liest sie, bis die Regel gebaut ist. Ihr Beispielordner ist `/heim/beispiel/…` (Projektentscheid, 27.11.2026); `faelle/` behält seinen Ordner unverändert |
-| `bau-faelle.py` | erzeugt `faelle/`, `erwartet/`, `faelle-ausstehend/` und `erwartet-ausstehend/`; die ausstehenden Erwartungen rechnet eine Referenz (`code_f2` für Anfrage und Datei, `lauf_f2` für die Aufruf-Fälle zum Fortsetzen) |
+| `faelle-ausstehend/<name>.json`, `erwartet-ausstehend/<name>.json` | nur die Aufruf-Fälle `aufruf-f2-*` zum Fortsetzen (Nachtrag 27.11.2026); sie brauchen die Schritte 5d und 8 von „Lauf starten“, und kein Crate liest sie, bis diese gebaut sind. Die Fälle der Fassung 2 zu Anfrage und Datei (`anfrage-f2-*`, `datei-f2-*`, `anfrage-f1-mit-effort`, `datei-f1-mit-fortsetzung`) standen bis zum Bau des Crates `start` hier und stehen seit dem 27.11.2026 in `faelle/`. Der Beispielordner der Fälle der Fassung 2 ist `/heim/beispiel/…` (Projektentscheid, 27.11.2026); die älteren Fälle in `faelle/` behalten ihren Ordner |
+| `bau-faelle.py` | erzeugt `faelle/`, `erwartet/`, `faelle-ausstehend/` und `erwartet-ausstehend/`; die Erwartungen der Fassung 2 rechnet eine Referenz (`code_f2` für Anfrage und Datei, `lauf_f2` für die Aufruf-Fälle zum Fortsetzen) |
 | `pruefen.py` | prüft Paarung, Größe, JSON-Lesen und Schema gegen die Fälle |
 
 Die eingebettete Einstellungsdatei ist die Basis der Fälle aus Vertrag 2 (`VORFUEHRUNG` in
@@ -289,12 +289,18 @@ nicht. In Fassung 1 sind `effort` und `name` unbekannte Schlüssel (`start.schlu
   oder „keine Wahl“).
 - `fassung` ist `2`. Die übrigen Felder und Stufen sind die der Fassung 1.
 - **Leserinnen der Fassung 1.** Eine Prüfstelle, die nur Fassung 1 kennt, lehnt `fassung: 2` mit `start.fassung_unbekannt` ab, nie still
-  ohne Effort. Der Fall `anfrage-fassung-2` beschreibt diese Leserin. Mit dem Bau der Fassung 2 wird er zu `anfrage-fassung-3`.
-- **Schnittstelle** (Crate `start`, noch nicht gebaut): `Startanfrage` und `Startdatei` tragen `effort: Option<String>` und
-  `name: Option<String>`, die `Startdatei` dazu `fortsetzung_von: Option<String>`; `pruefen` bekommt Stufe 18 dazu; `schreiben`
-  schreibt die Fassung, die es gelesen hat. `Startanfrage::mit_sitzung` bekommt in Fassung 2 die alte Kennung oder `None` dazu.
-- **Fälle:** `faelle-ausstehend/` mit `erwartet-ausstehend/` (`anfrage-f2-*`, `datei-f2-*`, `anfrage-f1-mit-effort`). Die Einstellungen
-  darin sind die Basis der Fassung 2 mit einem Block `effort`. Sie ziehen nach `faelle/` um, wenn das Crate Fassung 2 liest.
+  ohne Effort. Bis zum Bau der Fassung 2 beschrieb der Fall `anfrage-fassung-2` diese Leserin. Seit dem Bau (27.11.2026) heißt er
+  `anfrage-fassung-3` und prüft `fassung: 3`.
+- **Schnittstelle** (Crate `start`, gebaut 27.11.2026): `Startanfrage` und `Startdatei` tragen `effort` und `name` (`Startform::effort()`,
+  `Startform::name()`, beide `Option<&str>`, dazu `Startform::fassung()`), die `Startdatei` dazu `fortsetzung_von`
+  (`Startdatei::fortsetzung_von() -> Option<&str>`); `pruefen` prüft Stufe 18; `schreiben` schreibt die Fassung, die es gelesen hat.
+  `Startanfrage::mit_sitzung(sitzung, marker)` behält seine Signatur und setzt `fortsetzung_von` auf `None`. Die alte Kennung kommt
+  über `Startanfrage::mit_fortsetzung(sitzung, marker, fortsetzung_von: Option<&str>)` dazu (Projektentscheid, 27.11.2026). Grund: Der
+  Kern-Dienst ruft `mit_sitzung` schon mit zwei Argumenten; die neue Methode kommt additiv dazu und bricht keinen Aufrufer.
+  `mit_fortsetzung` lehnt eine alte Kennung außerhalb der Kennungsform mit `start.kennung_form` ab, eine alte Kennung gleich `sitzung`
+  mit `start.fortsetzung_selbst` und eine alte Kennung an einer Anfrage der Fassung 1 mit `start.schluessel_unbekannt`.
+- **Fälle:** `faelle/` mit `erwartet/` (`anfrage-f2-*`, `datei-f2-*`, `anfrage-f1-mit-effort`). Die Einstellungen darin sind die Basis
+  der Fassung 2 mit einem Block `effort`. Bis zum Bau standen sie in `faelle-ausstehend/`.
 
 ### Nachricht `Startwahl` mit Efforts (Nachtrag 26.11.2026, L10)
 
@@ -347,7 +353,7 @@ Projektentscheid, 27.11.2026. Fassung 1 bleibt unverändert: Dort ist `fortsetzu
 - Stufe 4a gilt wie die Stufen 3 und 4 für jede Fassung. Eine Leserin der Fassung 1 meldet für eine Anfrage mit dem Schlüssel
   `start.schluessel_unbekannt`; beide lehnen ab.
 - Prüfreihenfolge der Datei: Stufe 6 (fehlt), Stufe 7 (kein Text und nicht `null`), Stufe 9 (Kennungsform), Stufe 9a (gleich `sitzung`),
-  danach die Stufen 11a, 11b und die übrigen. Der Kern-Dienst setzt das Feld mit `Startanfrage::mit_sitzung` ein.
+  danach die Stufen 11a, 11b und die übrigen. Der Kern-Dienst setzt das Feld mit `Startanfrage::mit_fortsetzung` ein.
 
 **Wer was prüft.** Die Prüfstelle (Crate `start`) und damit „Lauf starten“ in Schritt 4 prüfen nur, was in der Startdatei selbst steht:
 den Typ, die Kennungsform und die Ungleichheit zu `sitzung`. Ob die Vorgängersitzung bekannt ist, ob sie läuft, ob sie schon
@@ -398,6 +404,10 @@ Zustandsordner der Installation (Ordner 0700, eigene Kennung). Darin stehen `ges
   legt den Ordner gar nicht erst an. Wer die Ordner räumt, regelt der Absatz „Räumen von `gespraeche/`“ unten.
 - Der Einschluss bindet den Zustandsordner des Harness aus `gespraeche/<sitzung>/` an seinen Platz unter `<heim>`; `gespraech.json` selbst
   ist im Einschluss nicht sichtbar.
+- Der Dienst prüft `gespraeche/` beim Vergeben einer Kennung nicht (Vertrag `dienst`, DI12 Punkt 15). `gespraeche/<sitzung>` legt nur
+  „Lauf starten“ derselben Sitzung an. Besteht der Ordner schon, gab es einen früheren Start derselben Kennung, den der Dienst nie
+  wiederholt, oder einen Eingriff von außen. Dann ist 73, `lauf.sitzung_belegt`, der gewollte Abbruch ohne Überschreiben (Projektentscheid,
+  27.11.2026).
 
 **Schritte.** In der Tabelle „Ablauf vor dem exec“ kommen Schritt 5d dazu und eine Erweiterung von Schritt 8:
 
@@ -416,6 +426,10 @@ Zustandsordner der Installation (Ordner 0700, eigene Kennung). Darin stehen `ges
   `gespraeche/<sitzung>` um, ohne zu ersetzen (Linux: `renameat2` mit `RENAME_NOREPLACE`), und hängt die Option zum Fortsetzen an.
   Scheitert danach etwas vor dem exec, benennt es den Ordner bestmöglich zurück. Das Umbenennen macht das Gespräch zu dem der neuen Sitzung;
   ein zweites Fortsetzen derselben alten Kennung endet mit `lauf.fortsetzung_fehlt`.
+
+**Bis Schritt 5d gebaut ist** (Projektentscheid, 27.11.2026), endet jeder Start mit `fortsetzung_von` ungleich `null` an der Stelle von
+Schritt 5d mit 69, `lauf.fortsetzung_unmoeglich`, vor dem Einschluss und vor jedem Kind. Ein Start mit `fortsetzung_von` gleich `null`
+läuft weiter wie bisher.
 
 **Fail closed, kein stiller Neustart.** Jeder Fehler in Schritt 5d beendet den Lauf vor der Suche, ohne Kind und ohne Harness. Das
 Programm startet dann nie einen neuen Harness ohne das alte Gespräch. Scheitert das Fortsetzen erst im Harness (etwa weil seine Ablage
@@ -441,8 +455,9 @@ Start-Struktur der Fassung 1 schreibt, ändert daran nichts. „Lauf starten“ 
 Der Dienst lehnt das Fortsetzen einer Sitzung der Fassung 1 nach DI-L3 schon vorher ab (`nicht_fortsetzbar`). Schritt 5d.3a ist die
 zweite Linie, falls eine solche Startdatei doch geschrieben wird.
 
-**Fälle:** `faelle-ausstehend/` mit `erwartet-ausstehend/`: `datei-f2-fortsetzung-*`, `anfrage-f2-fortsetzung-*`,
-`anfrage-f2-sitzung-vor-fortsetzung`, `datei-f1-mit-fortsetzung` (Referenz `code_f2`) und `aufruf-f2-*` (Referenz `lauf_f2`). Neue
+**Fälle:** `faelle/` mit `erwartet/`: `datei-f2-fortsetzung-*`, `anfrage-f2-fortsetzung-*`, `anfrage-f2-sitzung-vor-fortsetzung` und
+`datei-f1-mit-fortsetzung` (Referenz `code_f2`, seit dem Bau des Crates `start` am 27.11.2026). In `faelle-ausstehend/` mit
+`erwartet-ausstehend/` bleiben die Aufruf-Fälle `aufruf-f2-*` (Referenz `lauf_f2`), bis „Lauf starten“ die Schritte 5d und 8 baut. Neue
 `lage`-Schlüssel der Aufruf-Fälle: `gespraeche` (Sitzung zu Inhalt von `gespraech.json`) und `harness_fortsetzung` (`keine` stellt einen
 Harness ohne Option zum Fortsetzen nach). Neue Felder der Erwartung: `gespraeche_danach` und `zustandsordner_beim_start`.
 `<harness-kennung>` steht für die gewürfelte UUID. Den Vorgänger der Fassung 1 prüft `aufruf-f2-fortsetzen-vorgaenger-fassung-1`.
@@ -524,13 +539,17 @@ Kern-Dienst ruft sie vor dem Start des Kindes und lehnt mit dem Code an die Ansi
 prüft mit derselben Bibliothek noch einmal (zweite Linie). Dieser Vertrag beschreibt die Schnittstelle; sie besteht in `rust/crates/start/src` (`lesen.rs`, `pruefen.rs`, `form.rs`,
 `schreiben.rs`).
 
-- `lesen_anfrage(bytes: &[u8]) -> Result<Startanfrage, Fehler>`: Stufen 1 bis 13 für die Anfrage.
-- `lesen_datei(bytes: &[u8]) -> Result<Startdatei, Fehler>`: Stufen 1 bis 13 für die Datei (ohne Stufen 3 und 4).
+- `lesen_anfrage(bytes: &[u8]) -> Result<Startanfrage, Fehler>`: Stufen 1 bis 13 für die Anfrage (mit 4a, 11a, 11b und 13a).
+- `lesen_datei(bytes: &[u8]) -> Result<Startdatei, Fehler>`: Stufen 1 bis 13 für die Datei (ohne Stufen 3, 4 und 4a; mit 9a, 11a, 11b
+  und 13a).
 - `pruefen(start: &Startdatei oder &Startanfrage, einstellungen: &Einstellungen) -> Result<Routenart, Fehler>`:
-  Stufen 14 bis 17; `Einstellungen` kommt aus dem Crate `einstellungen` (Vertrag 2).
+  Stufen 14 bis 18; `Einstellungen` kommt aus dem Crate `einstellungen` (Vertrag 2).
 - `Startanfrage::mit_sitzung(self, sitzung, marker: Option<Marker>) -> Result<Startdatei, Fehler>`: der Kern-Dienst
-  setzt die Kennung und, nur im Probelauf, die Marker ein.
-- `schreiben(&Startdatei) -> Vec<u8>`: Bytes der Startdatei, die `lesen_datei` wieder annimmt.
+  setzt die Kennung und, nur im Probelauf, die Marker ein; `fortsetzung_von` bleibt `None`.
+- `Startanfrage::mit_fortsetzung(self, sitzung, marker: Option<Marker>, fortsetzung_von: Option<&str>) -> Result<Startdatei, Fehler>`:
+  wie `mit_sitzung`, dazu die alte Kennung beim Fortsetzen und Wiederbeleben (Fassung 2).
+- `schreiben(&Startdatei) -> Vec<u8>`: Bytes der Startdatei, die `lesen_datei` wieder annimmt, in der gelesenen Fassung; in Fassung 2
+  stehen `effort`, `name` und `fortsetzung_von` immer, `null` wo nichts gesetzt ist.
 - `Fehler::code() -> &'static str` und `Fehler::grund() -> &'static str` geben Code und Grund aus der Tabelle.
 
 ## Aufruf „Lauf starten“
