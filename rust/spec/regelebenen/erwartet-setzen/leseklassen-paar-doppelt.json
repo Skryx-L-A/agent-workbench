@@ -1,0 +1,55 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "62ceab0e2d70910172867890d1dacfdb14e84ad391938c89a5986548b52470f8",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "68958f5b44fbc5b1e21c32f4539b9b8767c215aa28097084b7dd3ef5e6ffc885",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": true,
+   "code": null,
+   "zeile": {
+    "aktionsname": "regel.geaendert",
+    "alt": null,
+    "antrag": null,
+    "code": null,
+    "ebene": "firma",
+    "ergebnis": "geaendert",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "28819cc4de74f061dd69d7049e2de7c4374181f5a18241c4ab51950c2014f382",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  }
+ ]
+}

@@ -1,0 +1,184 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "d6120475187c20d3f3887625f6abf5ea8de9104f15a93c6b17c02eeeb5e06dd8",
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "7afa9154502a99fbf5869f756270156e834ff42613907473fd4c1d782e55ba14",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "d6120475187c20d3f3887625f6abf5ea8de9104f15a93c6b17c02eeeb5e06dd8",
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "4fee8e027d18eaa44095456e5b456e99403f82240c96d2ad7091ba5d9c706730",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "d6120475187c20d3f3887625f6abf5ea8de9104f15a93c6b17c02eeeb5e06dd8",
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "19452dd856da99890e1e78762e86332092f5e41ff2eb1594f93881780528e5ae",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "d6120475187c20d3f3887625f6abf5ea8de9104f15a93c6b17c02eeeb5e06dd8",
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "203fc14912df3b42fcb57a3617252b8b3980d0859a8f3d5cafaf71bda2e2a59b",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "einstellungen": {
+    "aussehen.thema": {
+     "wert": "system",
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "aussehen.farbsatz": {
+     "wert": "grau",
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "aussehen.terminal": {
+     "wert": "dunkel",
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "terminal.schriftgroesse": {
+     "wert": 13,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "sitzung.harness": {
+     "wert": null,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "sitzung.modell": {
+     "wert": null,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "sitzung.effort": {
+     "wert": null,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "harnesses": {
+     "wert": {},
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "modelle": {
+     "wert": {},
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "effort.grenzen": {
+     "wert": [],
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "optionen.copilot_ohne_rueckfrage": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "optionen.herabstufen": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "optionen.lokale_ca": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "optionen.copilot_telemetrie": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "optionen.copilot_eingeschraenktes_token": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "optionen.herstellerzugang": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "fest"
+    },
+    "leseklassen": {
+     "wert": [
+      {
+       "ebene": "gruppe",
+       "wer": "g-eins",
+       "klasse": "intern"
+      }
+     ],
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    }
+   }
+  }
+ ]
+}

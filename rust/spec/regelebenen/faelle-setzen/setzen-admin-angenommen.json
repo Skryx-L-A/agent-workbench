@@ -1,0 +1,89 @@
+{
+ "name": "setzen-admin-angenommen",
+ "anforderungen": [
+  "A27",
+  "A30",
+  "E1",
+  "E2"
+ ],
+ "beschreibung": "ein Admin setzt die Grenzen des Efforts und schaltet die Option an; ein Nutzer sieht beides mit Herkunft firma",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "effort.grenzen",
+    "wert": [
+     {
+      "harness": "copilot",
+      "erlaubt": [
+       "low",
+       "medium",
+       "high"
+      ]
+     },
+     {
+      "harness": "copilot",
+      "klasse": "kundendaten",
+      "erlaubt": [
+       "low"
+      ]
+     },
+     {
+      "harness": "pi",
+      "modell": "qwen3:8b",
+      "erlaubt": [
+       "off",
+       "low",
+       "medium"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "optionen.copilot_ohne_rueckfrage",
+    "wert": true
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000b01"
+   }
+  }
+ ]
+}

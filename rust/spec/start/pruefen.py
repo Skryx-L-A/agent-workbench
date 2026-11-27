@@ -124,6 +124,27 @@ def main():
             fehler.append(f"{name}: Schema nimmt an, erwartet {erw['code']}")
         elif code is not None and (code not in SCHEMA_CODES or name in SCHEMA_BLIND):
             nur_bau.append(f"{name} ({erw['code']}, Schema {'nimmt an' if nimmt_an else 'lehnt ab'})")
+    # Ausstehende Fälle (Nachtrag 26.11.2026, Fassung 2 mit effort und name): Paarung, Größe, JSON-Lesen, Präfix.
+    # Das Schema der Fassung 1 kennt die Felder nicht, und kein Crate liest den Ordner, bis die Regel gebaut ist.
+    aus_f = {p.name for p in (HIER / "faelle-ausstehend").glob("*.json")}
+    aus_e = {p.name for p in (HIER / "erwartet-ausstehend").glob("*.json")}
+    for name in sorted(aus_f ^ aus_e):
+        fehler.append(f"ausstehend {name}: ohne Gegenstück")
+    for name in sorted(aus_f & aus_e):
+        fall = json.loads((HIER / "faelle-ausstehend" / name).read_text(encoding="utf-8"))
+        erw = json.loads((HIER / "erwartet-ausstehend" / name).read_text(encoding="utf-8"))
+        roh = fall["text"].encode("utf-8")
+        if len(roh) > GRENZE:
+            fehler.append(f"ausstehend {name}: über {GRENZE} Byte")
+        try:
+            streng_lesen(roh)
+        except (ValueError, UnicodeDecodeError) as fehlerart:
+            fehler.append(f"ausstehend {name}: JSON ungültig ({fehlerart})")
+        if not erw["gueltig"] and not erw["code"].startswith(PRAEFIX + "."):
+            fehler.append(f"ausstehend {name}: Code ohne Präfix {PRAEFIX}.")
+        if (HIER / "faelle" / name).exists():
+            fehler.append(f"ausstehend {name}: steht auch in faelle/")
+    print(f"{len(aus_f & aus_e)} ausstehende Fälle (Fassung 2 mit effort und name, erst mit dem Bau prüfbar)")
     print(f"{zahl} Fälle, {len(fehler)} Fehler, Schema {'geprüft' if pruefer else 'NICHT geprüft (--ohne-schema, jsonschema fehlt)'}")
     for zeile in nur_bau:
         print(f"  erst mit dem Bau prüfbar: {zeile}")

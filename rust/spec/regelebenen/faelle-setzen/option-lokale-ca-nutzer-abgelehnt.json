@@ -1,0 +1,58 @@
+{
+ "name": "option-lokale-ca-nutzer-abgelehnt",
+ "anforderungen": [
+  "A30",
+  "A31",
+  "A26"
+ ],
+ "beschreibung": "ein Nutzer schaltet optionen.lokale_ca auf der Firmenebene an (nicht befugt) und auf seiner Ebene an (Ebene gesperrt); der Wert bleibt aus",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "optionen.lokale_ca",
+    "wert": true
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "nutzer",
+    "schluessel": "optionen.lokale_ca",
+    "wert": true
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  }
+ ]
+}

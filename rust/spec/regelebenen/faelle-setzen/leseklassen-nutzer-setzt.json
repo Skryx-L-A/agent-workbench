@@ -1,0 +1,84 @@
+{
+ "name": "leseklassen-nutzer-setzt",
+ "anforderungen": [
+  "A05",
+  "A27"
+ ],
+ "beschreibung": "ein Nutzer setzt die Leseklassen auf der Firmenebene (nicht befugt), für seine Gruppe und für sich (Ebene gesperrt); die Liste bleibt leer, also liest er nichts",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "leseklassen",
+    "wert": [
+     {
+      "ebene": "nutzer",
+      "wer": "ps_00000000000000000000000000000c01",
+      "klasse": "kundendaten"
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "gruppe g-eins",
+    "schluessel": "leseklassen",
+    "wert": [
+     {
+      "ebene": "nutzer",
+      "wer": "ps_00000000000000000000000000000c01",
+      "klasse": "kundendaten"
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "nutzer",
+    "schluessel": "leseklassen",
+    "wert": [
+     {
+      "ebene": "nutzer",
+      "wer": "ps_00000000000000000000000000000c01",
+      "klasse": "kundendaten"
+     }
+    ]
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  }
+ ]
+}

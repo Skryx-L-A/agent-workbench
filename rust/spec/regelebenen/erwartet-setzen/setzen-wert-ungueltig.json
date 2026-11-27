@@ -1,0 +1,123 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "nutzer",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000c01",
+    "neu": "2c2a438ce30d63b015e2ad77d933eab436a533e45ebd899826d24064bd70a0d4",
+    "pflicht": null,
+    "ziel": "ps_00000000000000000000000000000c01",
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "nutzer",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000c01",
+    "neu": "1ebf07da3da0037b1de9863954964b8ae9b61f14cab525922b384c0ccd15f37d",
+    "pflicht": null,
+    "ziel": "ps_00000000000000000000000000000c01",
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "008277699a3febc19ea9cdf7c6f33e8b83dcf218722126ba917104b2163fe428",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "9340c854d6240ff794bdb93714778d6fa73d3867bee36455b9b86e67134eae7c",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "d82342d050470fb4eae9396dc88f169d51b2256d04651eb5b1dbef8674bbb25f",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "73d4ea803c9aaddc3ff2352f0cd22e8e83e86ac5d0c870a205964b971839250d",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.wert_ungueltig",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.wert_ungueltig",
+    "ebene": "nutzer",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000c01",
+    "neu": "17acf46dc538370dc73f203bdb5c58dbf2904f187164bbb9bb964a65f929e2f5",
+    "pflicht": null,
+    "ziel": "ps_00000000000000000000000000000c01",
+    "zweiter": null
+   }
+  }
+ ]
+}

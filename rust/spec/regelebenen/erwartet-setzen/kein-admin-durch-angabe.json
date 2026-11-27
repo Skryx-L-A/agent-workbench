@@ -1,0 +1,55 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "ebenen.einstellung_unbekannt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.einstellung_unbekannt",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000c01",
+    "neu": "7cb66eb74d787e8f429d03f45431236dfa740fee8fc3f5176f790905d98dc5d5",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.einstellung_unbekannt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.einstellung_unbekannt",
+    "ebene": "nutzer",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000c01",
+    "neu": "17137a7c05b6ed0dc392f5d0334ca19073e6124dfa461c53a2d1e58c20ada7db",
+    "pflicht": null,
+    "ziel": "ps_00000000000000000000000000000c01",
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.nicht_befugt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.nicht_befugt",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000c01",
+    "neu": "2486c79bcb78323251d35e87f7f2c74f42cfc695da83cdf0ee3c8c2209039515",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  }
+ ]
+}

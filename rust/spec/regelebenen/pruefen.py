@@ -44,6 +44,79 @@ def gueltiger_code(c):
     return c in CODES or (isinstance(c, str) and c.startswith("einst."))
 
 
+# Fassung 2 (Nachtrag 26.11.2026, README Abschnitt 15): setzen() und sicht() in faelle-setzen/ und erwartet-setzen/.
+CODES_SETZEN = {"ebenen.einstellung_unbekannt", "ebenen.bereich_falsch", "ebenen.ebene_unbekannt", "ebenen.gruppe_unbekannt",
+                "ebenen.ebene_gesperrt", "ebenen.nicht_befugt", "ebenen.wert_ungueltig", "ebenen.lockerung",
+                "ebenen.ausser_grenze"}
+SICHT = {"wert", "herkunft", "aenderbar", "grund"}
+HERKUNFT = re.compile(r"^(firma|nutzer|gruppe [a-z0-9][a-z0-9._-]{0,63})$")
+STAND_LAUF = {"klassen", "admins", "gruppen", "werte"}
+PSEUDONYM = re.compile(r"^ps_[0-9a-f]{32}$")
+
+
+def nur_pseudonyme(liste):
+    """S10 für leseklassen: bei ebene nutzer steht nur ein Pseudonym, nie ein Konto (Abschnitt 15.11)."""
+    return isinstance(liste, list) and all(not (isinstance(x, dict) and x.get("ebene") == "nutzer")
+                                           or (isinstance(x.get("wer"), str) and PSEUDONYM.match(x["wer"])) for x in liste)
+
+
+def pruefen_setzen(fehler):
+    faelle = {p.name for p in (HIER / "faelle-setzen").glob("*.json")}
+    erwartet = {p.name for p in (HIER / "erwartet-setzen").glob("*.json")}
+    for name in sorted(faelle ^ erwartet):
+        fehler.append(f"setzen {name}: ohne Gegenstück")
+    zahl, codes = 0, set()
+    for name in sorted(faelle & erwartet):
+        zahl += 1
+        try:
+            fall = streng((HIER / "faelle-setzen" / name).read_text(encoding="utf-8"))
+            erw = streng((HIER / "erwartet-setzen" / name).read_text(encoding="utf-8"))
+        except ValueError as e:
+            fehler.append(f"setzen {name}: {e}")
+            continue
+        if "konto-" in (HIER / "erwartet-setzen" / name).read_text(encoding="utf-8"):
+            fehler.append(f"setzen {name}: ein Ergebnis nennt ein Konto (S10)")
+        if set(fall) != FALL_FELDER or fall["name"] + ".json" != name or set(fall["stand"]) != STAND_LAUF:
+            fehler.append(f"setzen {name}: Felder des Falls, des Stands oder Name falsch")
+            continue
+        if any(not re.match(r"^ps_[0-9a-f]{32}$", a) for a in fall["stand"]["admins"]):
+            fehler.append(f"setzen {name}: admins enthält etwas anderes als Pseudonyme")
+        if len(erw["schritte"]) != len(fall["schritte"]):
+            fehler.append(f"setzen {name}: Zahl der Ergebnisse passt nicht")
+            continue
+        for i, (s, e) in enumerate(zip(fall["schritte"], erw["schritte"])):
+            wo = f"setzen {name} Schritt {i}"
+            if len(s) != 1 or next(iter(s)) not in ("setzen", "sicht"):
+                fehler.append(f"{wo}: Schritt hat nicht genau setzen oder sicht")
+                continue
+            if "sicht" in s:
+                for k, v in e["einstellungen"].items():
+                    if set(v) != SICHT or not HERKUNFT.match(v["herkunft"]) or not isinstance(v["aenderbar"], bool) \
+                            or v["grund"] not in (None, "nur_admin", "nur_strenger", "fest") \
+                            or (v["grund"] in ("nur_admin", "fest")) == v["aenderbar"]:
+                        fehler.append(f"{wo}: Sicht von {k} hat nicht die Form aus Abschnitt 15.5")
+                if "leseklassen" in e["einstellungen"] and not nur_pseudonyme(e["einstellungen"]["leseklassen"]["wert"]):
+                    fehler.append(f"{wo}: Sicht von leseklassen nennt etwas anderes als ein Pseudonym (S10)")
+                continue
+            a = s["setzen"]
+            if set(a) != {"wer", "bereich", "ebene", "schluessel", "wert"}:
+                fehler.append(f"{wo}: setzen hat nicht genau wer, bereich, ebene, schluessel, wert")
+            z = e["zeile"]
+            if set(z) != ZEILE or not HEX64.match(z["neu"]) or (z["alt"] is not None and not HEX64.match(z["alt"])):
+                fehler.append(f"{wo}: Zeile hat nicht die Form aus Vertrag 5, Abschnitt 6.6")
+            if z["handelnd"] != a["wer"] or z["code"] != e["code"] or (e["code"] is None) != e["angenommen"]:
+                fehler.append(f"{wo}: handelnd, code und angenommen widersprechen sich")
+            if a.get("schluessel") == "leseklassen" and e["angenommen"] and not nur_pseudonyme(a["wert"]):
+                fehler.append(f"{wo}: angenommene leseklassen mit Konto statt Pseudonym (S10)")
+            if e["code"] is not None:
+                if e["code"] not in CODES_SETZEN:
+                    fehler.append(f"{wo}: unbekannter Code {e['code']}")
+                codes.add(e["code"])
+    for c in sorted(CODES_SETZEN - codes):
+        fehler.append(f"setzen: kein Fall für den Code {c}")
+    return zahl
+
+
 def main():
     try:
         import jsonschema
@@ -140,7 +213,8 @@ def main():
             else:
                 datei_pruefen(wo, a["datei"], True)
                 nur_bau += 1
-    print(f"{zahl} Fälle, {schritte_zahl} Schritte, {len(fehler)} Fehler, "
+    zahl_setzen = pruefen_setzen(fehler)
+    print(f"{zahl} Fälle und {zahl_setzen} Fälle zu setzen, {schritte_zahl} Schritte, {len(fehler)} Fehler, "
           f"Schema {'geprüft' if p_ebenen else 'NICHT geprüft (--ohne-schema, jsonschema fehlt)'}; "
           f"{nur_bau} Ablehnungen erst mit dem Bau prüfbar (Bezug, Befugnis, Lockerung, Ladefehler)")
     for zeile in fehler:

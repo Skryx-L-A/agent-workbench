@@ -1,0 +1,84 @@
+{
+ "name": "leseklassen-klasse-unbekannt",
+ "anforderungen": [
+  "A05",
+  "D14"
+ ],
+ "beschreibung": "eine Klasse, die nicht byte-genau in klassen steht: geheim, Intern und intern mit Leerzeichen",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "leseklassen",
+    "wert": [
+     {
+      "ebene": "gruppe",
+      "wer": "g-eins",
+      "klasse": "geheim"
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "leseklassen",
+    "wert": [
+     {
+      "ebene": "gruppe",
+      "wer": "g-eins",
+      "klasse": "Intern"
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "leseklassen",
+    "wert": [
+     {
+      "ebene": "nutzer",
+      "wer": "ps_00000000000000000000000000000c01",
+      "klasse": "intern "
+     }
+    ]
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000b01"
+   }
+  }
+ ]
+}

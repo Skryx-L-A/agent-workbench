@@ -1,0 +1,301 @@
+{
+ "schritte": [
+  {
+   "angenommen": false,
+   "code": "ebenen.ebene_gesperrt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "c2aff26d7952adb8ad0a73c774b778eefa31b0d391da676082344b622006e524",
+    "antrag": null,
+    "code": "ebenen.ebene_gesperrt",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "c2aff26d7952adb8ad0a73c774b778eefa31b0d391da676082344b622006e524",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.ebene_gesperrt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "c2aff26d7952adb8ad0a73c774b778eefa31b0d391da676082344b622006e524",
+    "antrag": null,
+    "code": "ebenen.ebene_gesperrt",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "d2ca6e36c78c2e2fbfc271f19b3a0b216141370f5a38811066f3d2052880c0f4",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.ebene_gesperrt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.ebene_gesperrt",
+    "ebene": "gruppe",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "d2ca6e36c78c2e2fbfc271f19b3a0b216141370f5a38811066f3d2052880c0f4",
+    "pflicht": null,
+    "ziel": "g-eins",
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.ebene_gesperrt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": null,
+    "antrag": null,
+    "code": "ebenen.ebene_gesperrt",
+    "ebene": "nutzer",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000c01",
+    "neu": "c2aff26d7952adb8ad0a73c774b778eefa31b0d391da676082344b622006e524",
+    "pflicht": null,
+    "ziel": "ps_00000000000000000000000000000c01",
+    "zweiter": null
+   }
+  },
+  {
+   "angenommen": false,
+   "code": "ebenen.ebene_gesperrt",
+   "zeile": {
+    "aktionsname": "regel.abgelehnt",
+    "alt": "c2aff26d7952adb8ad0a73c774b778eefa31b0d391da676082344b622006e524",
+    "antrag": null,
+    "code": "ebenen.ebene_gesperrt",
+    "ebene": "firma",
+    "ergebnis": "abgelehnt",
+    "handelnd": "ps_00000000000000000000000000000b01",
+    "neu": "33711d6a9ba444cb8ce8d22b9958d75ef9861c79ee66e10e75b7e357c269afa5",
+    "pflicht": null,
+    "ziel": null,
+    "zweiter": null
+   }
+  },
+  {
+   "einstellungen": {
+    "aussehen.thema": {
+     "wert": "system",
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "aussehen.farbsatz": {
+     "wert": "grau",
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "aussehen.terminal": {
+     "wert": "dunkel",
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "terminal.schriftgroesse": {
+     "wert": 13,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "sitzung.harness": {
+     "wert": null,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "sitzung.modell": {
+     "wert": null,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "sitzung.effort": {
+     "wert": null,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "harnesses": {
+     "wert": {},
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "modelle": {
+     "wert": {},
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "effort.grenzen": {
+     "wert": [],
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "optionen.copilot_ohne_rueckfrage": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "optionen.herabstufen": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "optionen.lokale_ca": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "optionen.copilot_telemetrie": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "optionen.copilot_eingeschraenktes_token": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "optionen.herstellerzugang": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "fest"
+    },
+    "leseklassen": {
+     "wert": [],
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    }
+   }
+  },
+  {
+   "einstellungen": {
+    "aussehen.thema": {
+     "wert": "system",
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "aussehen.farbsatz": {
+     "wert": "grau",
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "aussehen.terminal": {
+     "wert": "dunkel",
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "terminal.schriftgroesse": {
+     "wert": 13,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "sitzung.harness": {
+     "wert": null,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "sitzung.modell": {
+     "wert": null,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "sitzung.effort": {
+     "wert": null,
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": null
+    },
+    "harnesses": {
+     "wert": {},
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": "nur_strenger"
+    },
+    "modelle": {
+     "wert": {},
+     "herkunft": "firma",
+     "aenderbar": true,
+     "grund": "nur_strenger"
+    },
+    "effort.grenzen": {
+     "wert": [],
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "nur_admin"
+    },
+    "optionen.copilot_ohne_rueckfrage": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "nur_admin"
+    },
+    "optionen.herabstufen": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "nur_admin"
+    },
+    "optionen.lokale_ca": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "nur_admin"
+    },
+    "optionen.copilot_telemetrie": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "nur_admin"
+    },
+    "optionen.copilot_eingeschraenktes_token": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "nur_admin"
+    },
+    "optionen.herstellerzugang": {
+     "wert": false,
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "fest"
+    },
+    "leseklassen": {
+     "wert": [],
+     "herkunft": "firma",
+     "aenderbar": false,
+     "grund": "nur_admin"
+    }
+   }
+  }
+ ]
+}

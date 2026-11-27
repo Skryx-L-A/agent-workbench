@@ -1,0 +1,78 @@
+{
+ "name": "leseklassen-sicht-nutzer",
+ "anforderungen": [
+  "A05",
+  "A12",
+  "E3"
+ ],
+ "beschreibung": "die Sicht zeigt dem Nutzer nur die Einträge, die ihn nennen: seinen eigenen und den seiner Gruppe, unverändert und ohne Rangfolge; nicht änderbar, Grund nur_admin. Der Admin sieht die ganze Liste",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {
+    "leseklassen": [
+     {
+      "ebene": "gruppe",
+      "wer": "g-eins",
+      "klasse": "kundendaten"
+     },
+     {
+      "ebene": "nutzer",
+      "wer": "ps_00000000000000000000000000000c03",
+      "klasse": "kundendaten"
+     },
+     {
+      "ebene": "nutzer",
+      "wer": "ps_00000000000000000000000000000c01",
+      "klasse": "oeffentlich"
+     },
+     {
+      "ebene": "gruppe",
+      "wer": "g-zwei",
+      "klasse": "intern"
+     }
+    ]
+   },
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c02"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c03"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000b01"
+   }
+  }
+ ]
+}

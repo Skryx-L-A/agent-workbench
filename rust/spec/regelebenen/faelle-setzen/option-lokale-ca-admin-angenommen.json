@@ -1,0 +1,63 @@
+{
+ "name": "option-lokale-ca-admin-angenommen",
+ "anforderungen": [
+  "A30",
+  "A31",
+  "A27"
+ ],
+ "beschreibung": "ein Admin schaltet optionen.lokale_ca für die Firma an; der Nutzer sieht an mit Herkunft firma; ändern darf er ihn nicht",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "optionen.lokale_ca",
+    "wert": true
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000b01"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "nutzer",
+    "schluessel": "optionen.lokale_ca",
+    "wert": false
+   }
+  }
+ ]
+}

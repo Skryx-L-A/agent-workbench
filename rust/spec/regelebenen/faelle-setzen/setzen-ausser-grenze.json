@@ -1,0 +1,109 @@
+{
+ "name": "setzen-ausser-grenze",
+ "anforderungen": [
+  "E2",
+  "OF9"
+ ],
+ "beschreibung": "die Firma erlaubt in jeder Klasse nur copilot und pi; der Nutzer wählt claude als Vorgabe, dann pi; ein Modell außerhalb der Liste",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {
+    "harnesses": {
+     "oeffentlich": [
+      "copilot",
+      "pi"
+     ],
+     "intern": [
+      "copilot",
+      "pi"
+     ],
+     "kundendaten": [
+      "pi"
+     ]
+    },
+    "modelle": {
+     "oeffentlich": [
+      "gpt-6-luna"
+     ],
+     "intern": [
+      "gpt-6-luna"
+     ],
+     "kundendaten": [
+      "qwen3:8b"
+     ]
+    }
+   },
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "sitzung.harness",
+    "wert": "claude"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "sitzung.harness",
+    "wert": "pi"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "sitzung.modell",
+    "wert": "gpt-5.6-sol"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "sitzung.modell",
+    "wert": "qwen3:8b"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "sitzung.effort",
+    "wert": "medium"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  }
+ ]
+}

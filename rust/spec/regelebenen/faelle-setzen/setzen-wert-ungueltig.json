@@ -1,0 +1,116 @@
+{
+ "name": "setzen-wert-ungueltig",
+ "anforderungen": [
+  "OF3",
+  "OF4",
+  "E2"
+ ],
+ "beschreibung": "Schriftgröße 40, Thema blau, ein Effort ultra in den Grenzen, ein Effort none für pi, eine unbekannte Klasse, die Option als Text",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "terminal.schriftgroesse",
+    "wert": 40
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "aussehen.thema",
+    "wert": "blau"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "effort.grenzen",
+    "wert": [
+     {
+      "harness": "copilot",
+      "erlaubt": [
+       "ultra"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "effort.grenzen",
+    "wert": [
+     {
+      "harness": "pi",
+      "erlaubt": [
+       "none"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "harnesses",
+    "wert": {
+     "geheim": [
+      "pi"
+     ]
+    }
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "optionen.copilot_ohne_rueckfrage",
+    "wert": "an"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "terminal.schriftgroesse",
+    "wert": true
+   }
+  }
+ ]
+}

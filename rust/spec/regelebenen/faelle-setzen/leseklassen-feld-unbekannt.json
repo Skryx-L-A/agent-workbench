@@ -1,0 +1,82 @@
+{
+ "name": "leseklassen-feld-unbekannt",
+ "anforderungen": [
+  "A05"
+ ],
+ "beschreibung": "ein Eintrag mit dem unbekannten Feld kunden (Frage F4), ein Eintrag ohne klasse, die Liste als Objekt",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "leseklassen",
+    "wert": [
+     {
+      "ebene": "gruppe",
+      "wer": "g-eins",
+      "klasse": "intern",
+      "kunden": [
+       "k-a"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "leseklassen",
+    "wert": [
+     {
+      "ebene": "gruppe",
+      "wer": "g-eins"
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "leseklassen",
+    "wert": {
+     "leseklassen": [
+      {
+       "ebene": "gruppe",
+       "wer": "g-eins",
+       "klasse": "intern"
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

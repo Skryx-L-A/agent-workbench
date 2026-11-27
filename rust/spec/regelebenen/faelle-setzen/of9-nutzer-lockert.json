@@ -1,0 +1,79 @@
+{
+ "name": "of9-nutzer-lockert",
+ "anforderungen": [
+  "A26",
+  "OF9"
+ ],
+ "beschreibung": "die Firma erlaubt in intern nur copilot und lässt die Option aus; der Nutzer nimmt claude dazu und schaltet die Option an; danach verschärft er auf leer",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {
+    "harnesses": {
+     "intern": [
+      "copilot"
+     ]
+    }
+   },
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "nutzer",
+    "schluessel": "harnesses",
+    "wert": {
+     "intern": [
+      "copilot",
+      "claude"
+     ]
+    }
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "nutzer",
+    "schluessel": "optionen.copilot_ohne_rueckfrage",
+    "wert": true
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "nutzer",
+    "schluessel": "harnesses",
+    "wert": {
+     "intern": []
+    }
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  }
+ ]
+}

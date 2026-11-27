@@ -1,0 +1,417 @@
+{
+ "name": "admins-eine-quelle",
+ "anforderungen": [
+  "A27",
+  "E1",
+  "B09"
+ ],
+ "beschreibung": "der Stand nennt die Admins aus der Kontenliste; Admin 1 reicht eine Firmendatei mit einem dritten Admin und eine ohne Admin 2 ein: beide abgelehnt; mit denselben Admins und einer Rolle einsicht angenommen; der dritte ändert danach keine Gruppe",
+ "stand": {
+  "firma": {
+   "fassung": 1,
+   "ebene": "firma",
+   "einstellung": {
+    "fassung": 1,
+    "klassen": [
+     "oeffentlich",
+     "intern",
+     "kundendaten"
+    ],
+    "vorgabestufe": "kundendaten",
+    "routen": [
+     {
+      "schluessel": "cloud-r",
+      "art": "cloud",
+      "klasse": "intern"
+     },
+     {
+      "schluessel": "cloud-s",
+      "art": "cloud",
+      "klasse": "intern"
+     },
+     {
+      "schluessel": "lokal-l",
+      "art": "lokal",
+      "klasse": "kundendaten"
+     }
+    ],
+    "kunden": [
+     {
+      "schluessel": "k-beispiel",
+      "erlaubt": [
+       "cloud-r",
+       "lokal-l"
+      ],
+      "verboten": []
+     },
+     {
+      "schluessel": "k-zwei",
+      "erlaubt": [
+       "lokal-l"
+      ],
+      "verboten": []
+     }
+    ],
+    "kundendaten_an_cloud": {
+     "vorgabe": "nie",
+     "freigaben": [
+      {
+       "route": "cloud-r",
+       "kunde": "k-beispiel"
+      }
+     ]
+    }
+   },
+   "rollen": {
+    "ps_00000000000000000000000000000b01": [
+     "admin"
+    ],
+    "ps_00000000000000000000000000000b02": [
+     "admin"
+    ]
+   },
+   "gruppen": [
+    {
+     "schluessel": "g-eins",
+     "mitglieder": [
+      "ps_00000000000000000000000000000c01"
+     ]
+    },
+    {
+     "schluessel": "g-zwei",
+     "mitglieder": [
+      "ps_00000000000000000000000000000c02"
+     ]
+    }
+   ],
+   "nutzerregeln": [],
+   "senkung": {
+    "aus": false,
+    "bestaetigung": false,
+    "arten": [
+     "bedienwissen",
+     "quellenauszug",
+     "regeln",
+     "vorlagen"
+    ]
+   }
+  },
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ]
+ },
+ "schritte": [
+  {
+   "aendern": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "datei": {
+     "fassung": 1,
+     "ebene": "firma",
+     "einstellung": {
+      "fassung": 1,
+      "klassen": [
+       "oeffentlich",
+       "intern",
+       "kundendaten"
+      ],
+      "vorgabestufe": "kundendaten",
+      "routen": [
+       {
+        "schluessel": "cloud-r",
+        "art": "cloud",
+        "klasse": "intern"
+       },
+       {
+        "schluessel": "cloud-s",
+        "art": "cloud",
+        "klasse": "intern"
+       },
+       {
+        "schluessel": "lokal-l",
+        "art": "lokal",
+        "klasse": "kundendaten"
+       }
+      ],
+      "kunden": [
+       {
+        "schluessel": "k-beispiel",
+        "erlaubt": [
+         "cloud-r",
+         "lokal-l"
+        ],
+        "verboten": []
+       },
+       {
+        "schluessel": "k-zwei",
+        "erlaubt": [
+         "lokal-l"
+        ],
+        "verboten": []
+       }
+      ],
+      "kundendaten_an_cloud": {
+       "vorgabe": "nie",
+       "freigaben": [
+        {
+         "route": "cloud-r",
+         "kunde": "k-beispiel"
+        }
+       ]
+      }
+     },
+     "rollen": {
+      "ps_00000000000000000000000000000b01": [
+       "admin"
+      ],
+      "ps_00000000000000000000000000000b02": [
+       "admin"
+      ],
+      "ps_00000000000000000000000000000b03": [
+       "admin"
+      ]
+     },
+     "gruppen": [
+      {
+       "schluessel": "g-eins",
+       "mitglieder": [
+        "ps_00000000000000000000000000000c01"
+       ]
+      },
+      {
+       "schluessel": "g-zwei",
+       "mitglieder": [
+        "ps_00000000000000000000000000000c02"
+       ]
+      }
+     ],
+     "nutzerregeln": [],
+     "senkung": {
+      "aus": false,
+      "bestaetigung": false,
+      "arten": [
+       "bedienwissen",
+       "quellenauszug",
+       "regeln",
+       "vorlagen"
+      ]
+     }
+    }
+   }
+  },
+  {
+   "aendern": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "datei": {
+     "fassung": 1,
+     "ebene": "firma",
+     "einstellung": {
+      "fassung": 1,
+      "klassen": [
+       "oeffentlich",
+       "intern",
+       "kundendaten"
+      ],
+      "vorgabestufe": "kundendaten",
+      "routen": [
+       {
+        "schluessel": "cloud-r",
+        "art": "cloud",
+        "klasse": "intern"
+       },
+       {
+        "schluessel": "cloud-s",
+        "art": "cloud",
+        "klasse": "intern"
+       },
+       {
+        "schluessel": "lokal-l",
+        "art": "lokal",
+        "klasse": "kundendaten"
+       }
+      ],
+      "kunden": [
+       {
+        "schluessel": "k-beispiel",
+        "erlaubt": [
+         "cloud-r",
+         "lokal-l"
+        ],
+        "verboten": []
+       },
+       {
+        "schluessel": "k-zwei",
+        "erlaubt": [
+         "lokal-l"
+        ],
+        "verboten": []
+       }
+      ],
+      "kundendaten_an_cloud": {
+       "vorgabe": "nie",
+       "freigaben": [
+        {
+         "route": "cloud-r",
+         "kunde": "k-beispiel"
+        }
+       ]
+      }
+     },
+     "rollen": {
+      "ps_00000000000000000000000000000b01": [
+       "admin"
+      ],
+      "ps_00000000000000000000000000000b02": [
+       "einsicht"
+      ]
+     },
+     "gruppen": [
+      {
+       "schluessel": "g-eins",
+       "mitglieder": [
+        "ps_00000000000000000000000000000c01"
+       ]
+      },
+      {
+       "schluessel": "g-zwei",
+       "mitglieder": [
+        "ps_00000000000000000000000000000c02"
+       ]
+      }
+     ],
+     "nutzerregeln": [],
+     "senkung": {
+      "aus": false,
+      "bestaetigung": false,
+      "arten": [
+       "bedienwissen",
+       "quellenauszug",
+       "regeln",
+       "vorlagen"
+      ]
+     }
+    }
+   }
+  },
+  {
+   "aendern": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "datei": {
+     "fassung": 1,
+     "ebene": "firma",
+     "einstellung": {
+      "fassung": 1,
+      "klassen": [
+       "oeffentlich",
+       "intern",
+       "kundendaten"
+      ],
+      "vorgabestufe": "kundendaten",
+      "routen": [
+       {
+        "schluessel": "cloud-r",
+        "art": "cloud",
+        "klasse": "intern"
+       },
+       {
+        "schluessel": "cloud-s",
+        "art": "cloud",
+        "klasse": "intern"
+       },
+       {
+        "schluessel": "lokal-l",
+        "art": "lokal",
+        "klasse": "kundendaten"
+       }
+      ],
+      "kunden": [
+       {
+        "schluessel": "k-beispiel",
+        "erlaubt": [
+         "cloud-r",
+         "lokal-l"
+        ],
+        "verboten": []
+       },
+       {
+        "schluessel": "k-zwei",
+        "erlaubt": [
+         "lokal-l"
+        ],
+        "verboten": []
+       }
+      ],
+      "kundendaten_an_cloud": {
+       "vorgabe": "nie",
+       "freigaben": [
+        {
+         "route": "cloud-r",
+         "kunde": "k-beispiel"
+        }
+       ]
+      }
+     },
+     "rollen": {
+      "ps_00000000000000000000000000000b01": [
+       "admin",
+       "einsicht"
+      ],
+      "ps_00000000000000000000000000000b02": [
+       "admin"
+      ],
+      "ps_00000000000000000000000000000c02": [
+       "einsicht"
+      ]
+     },
+     "gruppen": [
+      {
+       "schluessel": "g-eins",
+       "mitglieder": [
+        "ps_00000000000000000000000000000c01"
+       ]
+      },
+      {
+       "schluessel": "g-zwei",
+       "mitglieder": [
+        "ps_00000000000000000000000000000c02"
+       ]
+      }
+     ],
+     "nutzerregeln": [],
+     "senkung": {
+      "aus": false,
+      "bestaetigung": false,
+      "arten": [
+       "bedienwissen",
+       "quellenauszug",
+       "regeln",
+       "vorlagen"
+      ]
+     }
+    }
+   }
+  },
+  {
+   "aendern": {
+    "wer": "ps_00000000000000000000000000000b03",
+    "datei": {
+     "fassung": 1,
+     "ebene": "gruppe",
+     "gruppe": "g-eins",
+     "regeln": {}
+    }
+   }
+  },
+  {
+   "aendern": {
+    "wer": "ps_00000000000000000000000000000b02",
+    "datei": {
+     "fassung": 1,
+     "ebene": "gruppe",
+     "gruppe": "g-eins",
+     "regeln": {}
+    }
+   }
+  }
+ ]
+}

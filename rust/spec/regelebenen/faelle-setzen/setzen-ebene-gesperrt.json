@@ -1,0 +1,101 @@
+{
+ "name": "setzen-ebene-gesperrt",
+ "anforderungen": [
+  "E2"
+ ],
+ "beschreibung": "die Grenzen des Efforts setzt nur die Firma: auf der Gruppe und beim Nutzer abgelehnt, auch für einen Admin",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "gruppe g-eins",
+    "schluessel": "effort.grenzen",
+    "wert": [
+     {
+      "harness": "copilot",
+      "erlaubt": [
+       "low",
+       "medium",
+       "high"
+      ]
+     },
+     {
+      "harness": "copilot",
+      "klasse": "kundendaten",
+      "erlaubt": [
+       "low"
+      ]
+     },
+     {
+      "harness": "pi",
+      "modell": "qwen3:8b",
+      "erlaubt": [
+       "off",
+       "low",
+       "medium"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "nutzer",
+    "schluessel": "effort.grenzen",
+    "wert": [
+     {
+      "harness": "copilot",
+      "erlaubt": [
+       "low",
+       "medium",
+       "high"
+      ]
+     },
+     {
+      "harness": "copilot",
+      "klasse": "kundendaten",
+      "erlaubt": [
+       "low"
+      ]
+     },
+     {
+      "harness": "pi",
+      "modell": "qwen3:8b",
+      "erlaubt": [
+       "off",
+       "low",
+       "medium"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

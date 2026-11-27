@@ -1,0 +1,84 @@
+{
+ "beschreibung": "Name: Richtungszeichen RLO",
+ "form": "anfrage",
+ "text": "{\n \"fassung\": 2,\n \"harness\": \"copilot\",\n \"modell\": \"claude-sonnet-5.5\",\n \"route\": \"cloud-beispiel\",\n \"kunde\": \"k-beispiel\",\n \"arbeitsordner\": \"/heim/beispiel/projekt\",\n \"effort\": \"medium\",\n \"name\": \"a‮b\"\n}\n",
+ "einstellungen": {
+  "fassung": 2,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "vorgabestufe": "kundendaten",
+  "routen": [
+   {
+    "schluessel": "cloud-beispiel",
+    "art": "cloud",
+    "klasse": "intern",
+    "netzziele": [
+     {
+      "host": "api.cloud.example",
+      "port": 443,
+      "zugriff": "kopf-einsetzen",
+      "schluessel": true,
+      "pfade": [
+       {
+        "methode": "GET",
+        "pfad": "/copilot_internal/*"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "schluessel": "lokal-beispiel",
+    "art": "lokal",
+    "klasse": "kundendaten",
+    "ziel": "http://127.0.0.1:11434/v1",
+    "modell": "qwen3:8b",
+    "netzziele": []
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-beispiel",
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": []
+  },
+  "effort": {
+   "grenzen": [
+    {
+     "harness": "copilot",
+     "erlaubt": [
+      "low",
+      "medium",
+      "high"
+     ]
+    },
+    {
+     "harness": "copilot",
+     "modell": "gpt-6-luna",
+     "erlaubt": [
+      "low",
+      "medium"
+     ]
+    },
+    {
+     "harness": "pi",
+     "klasse": "kundendaten",
+     "erlaubt": [
+      "off",
+      "low"
+     ]
+    }
+   ]
+  }
+ }
+}

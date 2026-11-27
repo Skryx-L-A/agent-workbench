@@ -1,4 +1,7 @@
-# Vertrag 1: Start-Struktur und Aufruf „Lauf starten“ (Fassung 1, Stand 23.11.2026)
+# Vertrag 1: Start-Struktur und Aufruf „Lauf starten“ (Fassung 1, Stand 23.11.2026; Fassung 2 als Nachtrag 26.11.2026)
+
+Nachtrag 26.11.2026: Fassung 2 der Start-Struktur mit `effort` und `name` und die Nachricht `Startwahl` mit Efforts (Abschnitt
+„Fassung 2: `effort` und `name`“). Grundlage sind die Entscheide des Betreibers vom 26.11.2026 (E2, F1; `rust/spec/seite/OBERFLAECHE.md` L10).
 
 Stand 23.11.2026 (Nachbesserung gegen den Code am Stand vom 23.11.2026), Durchstich Schritt 1. Der Text trägt Nachträge vom 20.11. bis 23.11. Nachtrag 2 vom 20.11. (nach Entscheidungen des Betreibers und der Leitung):
 `copilot` fragt vor Werkzeugen weiter zurück, außer für die Werte aus Vertrag 2, Block `harness`; die Ordnermarke trägt eine
@@ -24,7 +27,8 @@ Die Mutanten-Fälle werden noch nicht ausgeführt: Der Läufer `rust/crates/lauf
 | `start.schema.json` | Form als JSON Schema 2020-12: `$defs/anfrage` und `$defs/datei` |
 | `faelle/<name>.json` | `beschreibung`, `form` (`anfrage`, `datei` oder `aufruf`); bei `anfrage` und `datei` der Start als `text` (UTF-8) oder `b64` (rohe Bytes) und die Einstellungsdatei als `einstellungen`; bei `aufruf` die Ausgangslage als `lage` |
 | `erwartet/<name>.json` | `{"gueltig": true, "route_art": "cloud"}` oder `{"gueltig": false, "code": "start.<code>"}`; bei `aufruf` Exitcode und stderr-Zeile oder `exec` |
-| `bau-faelle.py` | erzeugt `faelle/` und `erwartet/` |
+| `faelle-ausstehend/<name>.json`, `erwartet-ausstehend/<name>.json` | Fälle der Fassung 2 (`effort`, `name`; Nachtrag 26.11.2026); kein Crate liest sie, bis die Regel gebaut ist. Ihr Beispielordner ist `/heim/beispiel/…` (Projektentscheid, 27.11.2026); `faelle/` behält seinen Ordner unverändert |
+| `bau-faelle.py` | erzeugt `faelle/`, `erwartet/`, `faelle-ausstehend/` und `erwartet-ausstehend/`; die ausstehenden Erwartungen rechnet eine Referenz (`code_f2`) |
 | `pruefen.py` | prüft Paarung, Größe, JSON-Lesen und Schema gegen die Fälle |
 
 Die eingebettete Einstellungsdatei ist die Basis der Fälle aus Vertrag 2 (`VORFUEHRUNG` in
@@ -214,6 +218,17 @@ Ansicht durch.
 | 16 | `start.kunde_unbekannt` | `kunde` ist nicht `null` und steht nicht in der Einstellungsdatei | `Kunde unbekannt` |
 | 17 | `start.harness_route_unvertraeglich` | Art der Route passt nicht zum Harness | `Harness passt nicht zur Route` |
 
+**Stufen der Fassung 2** (Nachtrag 26.11.2026). Sie stehen zwischen den vorhandenen Stufen; deren Nummern bleiben:
+
+| Stufe | Code | Verletzung | Grund (fest, ASCII) |
+|---|---|---|---|
+| 11a | `start.name_form` | `name` verletzt die Namensregel (Abschnitt „Fassung 2“) | `Name hat falsche Form` |
+| 11b | `start.effort_form` | `effort` ist ein Text, aber nicht `^[a-z]{1,16}$` | `Effort hat falsche Form` |
+| 13a | `start.effort_unbekannt` | `effort` ist kein Wert des Harness (Vertrag 2, Block `effort`, Werte je Harness) | `Effort fuer diesen Harness unbekannt` |
+| 18 | `start.effort_grenze` | `effort` steht nicht unter den erlaubten Efforts für Harness, Route und Modell (Vertrag 2, Block `effort`) | `Effort ausserhalb der Grenze` |
+
+In Fassung 2 nimmt Stufe 8 die Werte `1` und `2` an. Stufe 6 meldet ein fehlendes `effort` oder `name`, Stufe 7 einen falschen Typ.
+
 Die Stufen 1 bis 13 brauchen nur den Start. Die Stufen 14 bis 17 brauchen eine gültige Einstellungsdatei nach Vertrag 2.
 Der Nachtrag fügt die Stufen 4, 12 und 15 ein (Marker: Projektentscheid, 20.11.2026; Modell der Route: Projekt mit
 Projektentscheid, 20.11.2026). Die übrigen Stufen behalten ihre Codes und ihre Reihenfolge; nur ihre Nummern rücken. Ohne
@@ -222,6 +237,82 @@ Fassung 1 greift Stufe 15 nie,
 denn dort trägt keine Route ein Modell. Grund: Der Modellweg lässt nur das Modell der Route durch und prüft selbst nur
 gegen `--modell`. Ein anderes Modell im Start ergäbe eine Sitzung, deren
 Harness jede Anfrage abgewiesen bekäme.
+
+## Fassung 2: `effort` und `name` (Nachtrag 26.11.2026, Entscheide des Betreibers E2 und F1)
+
+Grundlage: `rust/spec/seite/OBERFLAECHE.md` B68, B69 und L10. Fassung 1 bleibt unverändert gültig; ihre Fälle und Codes ändern sich
+nicht. In Fassung 1 sind `effort` und `name` unbekannte Schlüssel (`start.schluessel_unbekannt`).
+
+### Feld `effort`
+
+| Form | Typ | Grenzen | Bedeutung |
+|---|---|---|---|
+| Anfrage und Datei der Fassung 2, Pflicht | Text oder `null` | Text: `^[a-z]{1,16}$` (Stufe 11b), ein Wert des Harness (Stufe 13a), innerhalb der Grenze (Stufe 18) | Effort der Sitzung; `null` heißt: der Harness nimmt seine eigene Vorgabe |
+
+- Die Werte je Harness und die Regel der erlaubten Efforts stehen in Vertrag 2, Block `effort`. Stufe 13a braucht nur die
+  Harness-Tabelle, Stufe 18 die Einstellungsdatei.
+- Ohne Block `effort` ist jeder Effort außer `null` `start.effort_grenze` (fail closed).
+- **Startform mit Effort.** Ist `effort` nicht `null`, hängt „Lauf starten“ genau ein Paar an den Startbefehl, direkt nach dem Modell:
+  `claude --effort <wert>`, `copilot --reasoning-effort <wert>`, `pi --thinking <wert>`. `<wert>` ist ein eigenes argv-Element. Bei
+  `null` kommt keine Option dazu. Das ist aus `--help` hergeleitet (Vertrag 2, Werte je Harness) und nicht mit einem echten Start
+  gemessen (OPEN 26). Fälle der Form `aufruf` dafür kommen mit dem Bau von `lauf`.
+
+### Feld `name`
+
+| Form | Typ | Grenzen | Bedeutung |
+|---|---|---|---|
+| Anfrage und Datei der Fassung 2, Pflicht | Text oder `null` | Namensregel (Stufe 11a) | Anzeigename der Sitzung (B12, B68); `null` heißt: die Ansicht zeigt die Kennung |
+
+- **Namensregel:** 1 bis 64 Zeichen (Unicode-Skalarwerte); kein Steuerzeichen (U+0000 bis U+001F, U+007F bis U+009F); kein Zeilen-
+  oder Absatztrenner (U+2028, U+2029); kein Richtungszeichen (U+202A bis U+202E, U+2066 bis U+2069); kein Zeichen ohne Breite (U+200B
+  bis U+200F, U+FEFF); kein Leerraum am Anfang oder Ende; nicht nur Leerraum.
+- Grund: Der Name steht in Leiste, Titelleiste und Vorleser. Steuer- und Richtungszeichen könnten dort einen anderen Namen vortäuschen.
+- Der Name geht nie in einen argv, eine Umgebung oder einen Pfad; „Lauf starten“ liest ihn nicht (OPEN 27).
+
+### Gemeinsame Regeln der Fassung 2
+
+- Beide Felder sind Pflicht, `null` muss ausdrücklich stehen (wie `kunde`). Grund: Ein fehlendes Feld wäre mehrdeutig („vergessen“
+  oder „keine Wahl“).
+- `fassung` ist `2`. Die übrigen Felder und Stufen sind die der Fassung 1.
+- **Leserinnen der Fassung 1.** Eine Prüfstelle, die nur Fassung 1 kennt, lehnt `fassung: 2` mit `start.fassung_unbekannt` ab, nie still
+  ohne Effort. Der Fall `anfrage-fassung-2` beschreibt diese Leserin. Mit dem Bau der Fassung 2 wird er zu `anfrage-fassung-3`.
+- **Schnittstelle** (Crate `start`, noch nicht gebaut): `Startanfrage` und `Startdatei` tragen `effort: Option<String>` und
+  `name: Option<String>`; `pruefen` bekommt Stufe 18 dazu; `schreiben` schreibt die Fassung, die es gelesen hat.
+- **Fälle:** `faelle-ausstehend/` mit `erwartet-ausstehend/` (`anfrage-f2-*`, `datei-f2-*`, `anfrage-f1-mit-effort`). Die Einstellungen
+  darin sind die Basis der Fassung 2 mit einem Block `effort`. Sie ziehen nach `faelle/` um, wenn das Crate Fassung 2 liest.
+
+### Nachricht `Startwahl` mit Efforts (Nachtrag 26.11.2026, L10)
+
+Der Dienst schickt `Startwahl` (Vertrag `dienst`, DI12 Punkt 10) und reicht die Felder unverändert durch. Mit Fassung 2 trägt jede
+Route zusätzlich `efforts`:
+
+```json
+{"art": "Startwahl", "fassung": 2,
+ "harness": [{"name": "claude", "art": "cloud", "routenart": "cloud"}, {"name": "copilot", "art": "cloud", "routenart": "cloud"},
+             {"name": "pi", "art": "lokal", "routenart": "lokal"}],
+ "routen": [{"schluessel": "copilot", "art": "cloud", "klasse": "intern", "modell": null,
+             "efforts": [{"harness": "claude", "modell": "auto", "erlaubt": [], "vorgabe": null},
+                         {"harness": "copilot", "modell": "auto", "erlaubt": ["low", "medium", "high"], "vorgabe": "medium"}]},
+            {"schluessel": "lokal", "art": "lokal", "klasse": "kundendaten", "modell": "qwen3:8b",
+             "efforts": [{"harness": "pi", "modell": "qwen3:8b", "erlaubt": ["off", "low"], "vorgabe": null}]}],
+ "kunden": ["k-nord", null]}
+```
+
+| Feld | Bedeutung |
+|---|---|
+| `fassung` | `2`, sobald `efforts` dabei ist |
+| `routen[].efforts` | je Harness, dessen Routenart zur Route passt, in der Reihenfolge der Harness-Tabelle, ein Eintrag |
+| `harness` | der Harness |
+| `modell` | das Modell, für das `erlaubt` gilt: `modell` der Route, sonst `auto` |
+| `erlaubt` | die erlaubten Efforts nach Vertrag 2, Block `effort`, für Harness, Klasse der Route und dieses Modell; leer heißt: nur `null` |
+| `vorgabe` | die Vorgabe des Nutzers (`sitzung.effort` aus `sicht`, `rust/spec/regelebenen/README.md` Abschnitt 15), wenn sie in `erlaubt` steht, sonst `null` |
+
+- Die Ansicht belegt das Feld `Effort` mit `vorgabe` vor (B69). Sie bietet nur `erlaubt` und „Vorgabe des Harness“ (`null`) an.
+- Wählt der Nutzer ein anderes Modell als `modell` des Eintrags (Cloud-Route ohne festes Modell), kann die Grenze eines Modells anders
+  sein. Die Prüfung im Start (Stufe 18) entscheidet; die Ansicht zeigt dann die Ablehnung (B71). Grund: `Startwahl` kennt die Liste der
+  Cloud-Modelle nicht.
+- `vorgabe` hängt vom Betrachter ab. Der Dienst schickt `Startwahl` darum je Betrachter, nicht einmal für alle (Bedarf an den Vertrag `dienst`).
+- Im Beispiel hat der Nutzer `sitzung.effort` gleich `medium`. Für `pi` steht `medium` nicht in `erlaubt`; dort ist `vorgabe` `null`.
 
 ## Schnittstelle der Prüfstelle
 
@@ -1331,6 +1422,12 @@ python3 -I rust/spec/start/bau-faelle.py            # Fälle neu erzeugen
 22. **Gleiche Grenze in Vertrag `dienst`.** `rust/spec/dienst/VERTRAG.md:832` (Punkt 6a) nennt wie dieser Vertrag nur SIGKILL (Review B2 vom 23.11.). Der Text gehört zum Vertrag `dienst`; dieser Vertrag ändert ihn nicht.
 23. **Vorhandene Zähldatei (B11, Rest).** Ein Lauf mit gleicher Kennung überschreibt die alte Zähldatei still (Befund 2 der Dateitabelle); niemand räumt sie. Ob eine vorhandene Zähldatei den Start scheitern lassen soll, ist nicht entschieden und bleibt offen.
 24. **Anker unter bubblewrap 0.11.1 (Ubuntu 26.04).** Der Anker (`ANKER_SKRIPT`, `rust/crates/einschluss/src/profil.rs`) wartet, bis PID 1 im Einschluss in `do_wait` schläft, weil `bwrap` 0.12.0 das Todessignal von PID 1 kurz davor setzt. Auf Ubuntu 26.04 ist `bwrap` 0.11.1 geliefert. Dort sind die Prüfung der Lebensleine und ihre Fälle gemessen (25.11.2026), der Fall des Aufbaufensters (Starter stirbt vor dem Todessignal von PID 1) nur auf dem Linux-Baurechner mit 0.12.0. Ob 0.11.1 das Todessignal ebenfalls vor `do_wait` setzt, wird vor Schritt II auf Ubuntu 26.04 gemessen (Projektentscheid, 25.11.2026). **Gemessen am 26.11.2026, Ergebnis ja.** Gemessen wurde auf Ubuntu 26.04.1 mit dem Paket `bubblewrap 0.11.1-1ubuntu0.3`, unter `strace -f`, mit `--unshare-pid --die-with-parent`, einmal mit einem schlichten Programm und einmal mit dem echten Anker. In 6 von 6 Läufen setzt PID 1 `prctl(PR_SET_PDEATHSIG, SIGKILL)` nach dem `clone` des Programms. Das geschieht 9 bis 26 µs vor dem ersten `wait4(-1, …)`. 0.12.0 zeigt auf dem Linux-Baurechner dieselbe Reihenfolge, ebenfalls 6 von 6. Die Fälle `aufbaufenster_*` (zwei) und `elternbindung_*` bestehen mit dem echten `bwrap` 0.11.1, je ein Lauf ohne Last. Offen bleibt zweierlei. Ob der Wartefall unter Last auf 0.11.1 ähnlich oft auftritt wie auf 0.12.0 (10 von 480), ist nicht gemessen. Ein Test mit einem Starter, der genau zwischen den beiden Aufrufen stirbt, fehlt.
+
+26. **Effort im echten Start (Nachtrag 26.11.2026).** Die Optionen `--effort`, `--reasoning-effort` und `--thinking` sind nur aus
+    `--help` gelesen (claude 2.1.332, copilot 1.0.116, pi 1.6.1). Ein Start damit im Einschluss ist nicht gemessen; ebenso nicht, ob
+    copilot einen Wert ablehnt, den das Modell nicht trägt. Empfehlung: Der Bau von `lauf` misst je Harness einen Start mit Effort.
+27. **Name in der Startdatei.** `lauf` braucht den Namen nicht. Er steht in der Datei, damit Dienst und Liste der Sitzungen (L5) eine
+    Quelle haben. Empfehlung: so lassen; der Dienst führt den Namen beim Umbenennen (L3) selbst weiter.
 
 ### Erledigt
 

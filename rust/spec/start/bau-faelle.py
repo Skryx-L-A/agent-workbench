@@ -8,6 +8,7 @@ und `aufruf` (das Programm "Lauf starten" als Ganzes; erst mit dem Bau prüfbar)
 import base64
 import copy
 import json
+import re
 from pathlib import Path
 
 HIER = Path(__file__).resolve().parent
@@ -969,6 +970,144 @@ AUFRUFE_N2 += [
 AUFRUFE += AUFRUFE_N2
 
 
+# Start-Struktur Fassung 2 (Nachtrag 26.11.2026, L10): Felder effort und name. Das Crate start kennt Fassung 2 noch nicht;
+# die Fälle stehen darum in faelle-ausstehend/ und erwartet-ausstehend/. Jede Erwartung rechnet die Referenz unten.
+EFFORTS = {  # Vertrag 2, Block effort (gemessen 26.11.2026 mit --help)
+    "claude": ("low", "medium", "high", "xhigh", "max"),
+    "copilot": ("none", "minimal", "low", "medium", "high", "xhigh", "max"),
+    "pi": ("off", "minimal", "low", "medium", "high", "xhigh", "max"),
+}
+ROUTENART = {"claude": "cloud", "copilot": "cloud", "pi": "lokal"}
+EFFORT_FORM = re.compile(r"^[a-z]{1,16}$")
+# Verboten im Namen: C0, C1, DEL, Zeilen- und Absatztrenner, Richtungszeichen (Bidi), BOM und Zeichen ohne Breite.
+NAME_VERBOTEN = re.compile("[\u0000-\u001f\u007f-\u009f\u2028\u2029\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
+
+
+def name_gueltig(n):
+    return n is None or (isinstance(n, str) and 1 <= len(n) <= 64 and not NAME_VERBOTEN.search(n)
+                         and n == n.strip() and n.strip() != "")
+
+
+def erlaubte_efforts(einst, harness, route, modell):
+    klasse = next(r["klasse"] for r in einst["routen"] if r["schluessel"] == route)
+    passend = [e for e in einst.get("effort", {}).get("grenzen", []) if e["harness"] == harness
+               and e.get("klasse", klasse) == klasse and e.get("modell", modell) == modell]
+    if not passend:
+        return []
+    return [w for w in EFFORTS[harness] if all(w in e["erlaubt"] for e in passend)]
+
+
+def code_f2(start, einst):
+    """Referenz der Stufen von Fassung 2 für Starts, deren übrige Felder gültig sind (Stufen 5 bis 18)."""
+    if start.get("fassung") == 1:
+        return "start.schluessel_unbekannt" if ("effort" in start or "name" in start) else None
+    if "effort" not in start or "name" not in start:
+        return "start.schluessel_fehlt"
+    e, n = start["effort"], start["name"]
+    if not (e is None or isinstance(e, str)) or not (n is None or isinstance(n, str)):
+        return "start.typ_falsch"
+    if not name_gueltig(n):
+        return "start.name_form"
+    if e is not None and not EFFORT_FORM.match(e):
+        return "start.effort_form"
+    if start["harness"] not in EFFORTS:
+        return "start.harness_unbekannt"
+    if e is not None and e not in EFFORTS[start["harness"]]:
+        return "start.effort_unbekannt"
+    routen = {r["schluessel"]: r for r in einst["routen"]}
+    if start["route"] not in routen:
+        return "start.route_unbekannt"
+    r = routen[start["route"]]
+    if "modell" in r and r["modell"] != start["modell"]:
+        return "start.modell_route"
+    if start["kunde"] is not None and start["kunde"] not in [k["schluessel"] for k in einst["kunden"]]:
+        return "start.kunde_unbekannt"
+    if ROUTENART[start["harness"]] != r["art"]:
+        return "start.harness_route_unvertraeglich"
+    if e is not None and e not in erlaubte_efforts(einst, start["harness"], start["route"], start["modell"]):
+        return "start.effort_grenze"
+    return None
+
+
+EINST_EFFORT = copy.deepcopy(EINSTELLUNGEN_2)
+EINST_EFFORT["effort"] = {"grenzen": [
+    {"harness": "copilot", "erlaubt": ["low", "medium", "high"]},
+    {"harness": "copilot", "modell": "gpt-6-luna", "erlaubt": ["low", "medium"]},
+    {"harness": "pi", "klasse": "kundendaten", "erlaubt": ["off", "low"]}]}
+COP2 = dict(COPILOT, fassung=2, effort="medium", name="Auswertung Q4")
+PI2 = dict(LOKAL, fassung=2, effort="low", name=None)
+AUSSTEHEND = []
+
+
+# Beispielordner der neuen Fälle (Projektentscheid, 27.11.2026): /heim/beispiel statt des Ordners unter home, damit die
+# Prüfung auf Pfade von Personen im Diff keinen Treffer findet. Die Fälle in faelle/ behalten ihren Ordner.
+BEISPIEL_ALT, BEISPIEL_NEU = "/home" + "/beispiel/", "/heim/beispiel/"
+
+
+def heim(start):
+    o = start.get("arbeitsordner")
+    if isinstance(o, str) and o.startswith(BEISPIEL_ALT):
+        return dict(start, arbeitsordner=BEISPIEL_NEU + o[len(BEISPIEL_ALT):])
+    return start
+
+
+def ausstehend(name, form, beschreibung, start, soll, einst=EINST_EFFORT):
+    start = heim(start)
+    ist = code_f2(start, einst)
+    if ist != soll:
+        raise SystemExit(f"FEHLER {name}: Referenz {ist!r}, Tabelle {soll!r}")
+    inhalt = datei(start) if form == D else start
+    eintrag = {"beschreibung": beschreibung, "form": form, "text": text(inhalt), "einstellungen": einst}
+    erwartet = ({"gueltig": True, "route_art": ROUTENART[start["harness"]]} if soll is None
+                else {"gueltig": False, "code": soll})
+    AUSSTEHEND.append((name, eintrag, erwartet))
+
+
+ausstehend("anfrage-f2-gueltig-copilot", A, "Fassung 2: copilot mit Effort medium und Namen", COP2, None)
+ausstehend("datei-f2-gueltig-copilot", D, "Startdatei der Fassung 2 mit Effort und Namen, Sitzung s-1", COP2, None)
+ausstehend("anfrage-f2-gueltig-pi", A, "Fassung 2: pi mit Effort low ohne Namen", PI2, None)
+ausstehend("anfrage-f2-gueltig-ohne-effort", A, "Fassung 2: effort null; der Harness nimmt seine eigene Vorgabe, auch ohne Block",
+           dict(COP2, effort=None), None, einst=EINSTELLUNGEN_2)
+ausstehend("anfrage-f2-gueltig-name-umlaut", A, "Name mit Umlaut, Leerzeichen und 64 Zeichen",
+           dict(COP2, name="Übung " + "ä" * 58), None)
+ausstehend("anfrage-f2-effort-fehlt", A, "Fassung 2 ohne effort", {k: v for k, v in COP2.items() if k != "effort"},
+           "start.schluessel_fehlt")
+ausstehend("anfrage-f2-name-fehlt", A, "Fassung 2 ohne name", {k: v for k, v in COP2.items() if k != "name"},
+           "start.schluessel_fehlt")
+ausstehend("anfrage-f1-mit-effort", A, "Fassung 1 kennt effort nicht", dict(COPILOT, effort="low"), "start.schluessel_unbekannt")
+ausstehend("anfrage-f2-effort-zahl", A, "effort als Zahl", dict(COP2, effort=2), "start.typ_falsch")
+ausstehend("anfrage-f2-name-liste", A, "name als Liste", dict(COP2, name=["a"]), "start.typ_falsch")
+for _n, _wert, _was in [("leer", "", "leerer Name"), ("65", "n" * 65, "65 Zeichen"), ("zeilenumbruch", "a\nb", "Zeilenumbruch"),
+                        ("tab", "a\tb", "Tabulator"), ("c1", "a\u0085b", "C1-Steuerzeichen NEL"),
+                        ("bidi", "a\u202eb", "Richtungszeichen RLO"), ("breitenlos", "a\u200bb", "Zeichen ohne Breite"),
+                        ("rand", " Name", "Leerzeichen am Anfang"), ("nur-leer", "   ", "nur Leerzeichen")]:
+    ausstehend(f"anfrage-f2-name-{_n}", A, f"Name: {_was}", dict(COP2, name=_wert), "start.name_form")
+ausstehend("anfrage-f2-effort-form-gross", A, "Effort groß geschrieben", dict(COP2, effort="High"), "start.effort_form")
+ausstehend("anfrage-f2-effort-form-option", A, "Effort mit Bindestrich wie eine Option", dict(COP2, effort="--max"),
+           "start.effort_form")
+ausstehend("anfrage-f2-effort-form-leer", A, "leerer Effort", dict(COP2, effort=""), "start.effort_form")
+ausstehend("anfrage-f2-name-vor-effort", A, "Name geht vor Effort (Stufe 11a vor 11b)", dict(COP2, name="", effort="High"),
+           "start.name_form")
+ausstehend("anfrage-f2-effort-unbekannt", A, "off ist ein Wert von pi, nicht von copilot", dict(COP2, effort="off"),
+           "start.effort_unbekannt")
+ausstehend("anfrage-f2-effort-unbekannt-claude", A, "none kennt claude nicht",
+           dict(CLOUD, fassung=2, effort="none", name=None), "start.effort_unbekannt")
+ausstehend("anfrage-f2-effort-unbekannt-vor-route", A, "unbekannter Effort geht vor unbekannter Route (13a vor 14)",
+           dict(COP2, effort="ultra", route="cloud-anders"), "start.effort_unbekannt")
+ausstehend("anfrage-f2-gueltig-effort-high", A, "copilot mit high: die Grenze erlaubt low, medium und high", dict(COP2, effort="high"),
+           None)
+ausstehend("anfrage-f2-effort-grenze-modell", A, "copilot mit gpt-6-luna: die Grenze dieses Modells erlaubt nur low und medium",
+           dict(COP2, effort="high", modell="gpt-6-luna"), "start.effort_grenze")
+ausstehend("anfrage-f2-effort-ohne-grenze", A, "claude hat keine Grenze: kein Effort wählbar",
+           dict(CLOUD, fassung=2, effort="low", name=None), "start.effort_grenze")
+ausstehend("anfrage-f2-effort-ohne-block", A, "Einstellungen ohne Block effort: kein Effort wählbar (fail closed)",
+           dict(COP2, effort="low"), "start.effort_grenze", einst=EINSTELLUNGEN_2)
+ausstehend("anfrage-f2-effort-grenze-pi", A, "pi in kundendaten mit medium: erlaubt sind off und low", dict(PI2, effort="medium"),
+           "start.effort_grenze")
+ausstehend("anfrage-f2-vertraeglich-vor-grenze", A, "Harness und Route unverträglich geht vor der Grenze (17 vor 18)",
+           dict(PI2, route="cloud-beispiel", modell="qwen3:8b", effort="max"), "start.harness_route_unvertraeglich")
+
+
 def main():
     for teil in ("faelle", "erwartet"):
         ordner = HIER / teil
@@ -985,7 +1124,15 @@ def main():
                             "suche": "bereit", "harness_vorhanden": True, **lage}}
         (HIER / "faelle" / f"{name}.json").write_text(text(eintrag), encoding="utf-8")
         (HIER / "erwartet" / f"{name}.json").write_text(text(erwartet), encoding="utf-8")
-    print(f"{len(FAELLE) + len(AUFRUFE)} Fälle geschrieben")
+    for teil in ("faelle-ausstehend", "erwartet-ausstehend"):
+        ordner = HIER / teil
+        ordner.mkdir(exist_ok=True)
+        for alt in ordner.glob("*.json"):
+            alt.unlink()
+    for name, eintrag, erwartet in AUSSTEHEND:
+        (HIER / "faelle-ausstehend" / f"{name}.json").write_text(text(eintrag), encoding="utf-8")
+        (HIER / "erwartet-ausstehend" / f"{name}.json").write_text(text(erwartet), encoding="utf-8")
+    print(f"{len(FAELLE) + len(AUFRUFE)} Fälle und {len(AUSSTEHEND)} ausstehende Fälle geschrieben")
 
 
 if __name__ == "__main__":

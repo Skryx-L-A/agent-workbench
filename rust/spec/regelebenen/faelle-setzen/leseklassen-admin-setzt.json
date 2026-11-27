@@ -1,0 +1,65 @@
+{
+ "name": "leseklassen-admin-setzt",
+ "anforderungen": [
+  "A05",
+  "A26",
+  "A27"
+ ],
+ "beschreibung": "ein Admin setzt die Leseklassen für zwei Gruppen und einen Nutzer auf der Firmenebene; die Admin-Sicht zeigt die ganze Liste",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "leseklassen",
+    "wert": [
+     {
+      "ebene": "gruppe",
+      "wer": "g-eins",
+      "klasse": "intern"
+     },
+     {
+      "ebene": "nutzer",
+      "wer": "ps_00000000000000000000000000000c01",
+      "klasse": "oeffentlich"
+     },
+     {
+      "ebene": "gruppe",
+      "wer": "g-zwei",
+      "klasse": "kundendaten"
+     }
+    ]
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000b01"
+   }
+  }
+ ]
+}

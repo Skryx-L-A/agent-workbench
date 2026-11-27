@@ -1,7 +1,15 @@
-# Vertrag `regelebenen`: Firma, Gruppe, Nutzer (Fassung 1)
+# Vertrag `regelebenen`: Firma, Gruppe, Nutzer (Fassung 1, Fassung 2 als Nachtrag 26.11.2026)
 
 Stand 20.11.2026, Meilenstein M3 (Meilensteinplanung, Abschnitt 5.7).
 Nachtrag 22.11.2026 (geschrieben, abgestimmt am 21.11.2026): Befunde B08, B09 und B13. Rollen mit Pseudonym statt `admins`, Personen nur als Pseudonym, `protokoll` ohne `einsicht`, die Zeile in der Form von Vertrag 5.
+Nachtrag 26.11.2026 (Fassung 2): Einstellungen im Lauf mit `setzen` und `sicht`, ein Katalog des Pilots und die Admins aus der
+Kontenliste der Firmenvorgabe (Abschnitt 15, Abschnitt 5.2). Grundlage sind die Entscheide des Betreibers vom 26.11.2026 (E1, E2, E3,
+A26, A27, A30, A31; `rust/spec/seite/OBERFLAECHE.md` OF9 und Abschnitt 4, L4 und L10). Fassung 1 bleibt unverändert gültig.
+Nachtrag 27.11.2026 (Fassung 2, Entscheid des Betreibers, 27.11.2026): sechs Optionen nach A30 im Katalog (Abschnitt 15.1 und
+15.1.1), die Feldart `fest` und der Grund `fest` (Abschnitte 5.2 und 15.5), eine Quelle der Admins (Abschnitt 15.2), „Stufe“ ist die
+Datenklasse (OPEN 15). OPEN 10, 14 und 15 sind geschlossen.
+Nachtrag 27.11.2026 (Fassung 2, Projektentscheid, 27.11.2026): das Admin-Feld `leseklassen` für die Leseklasse je Person oder
+Gruppe (Abschnitte 15.1, 15.2 und 15.11). Die Wirkung legt `rust/spec/datentor/person/VERTRAG.md` fest.
 Grundlage sind A26, A27, A28, A41, A45, A103 sowie A30, A35, A39, A102, A128, A134, A135 und A139 der
 Anforderungsliste. „(V)“ heißt: in diesem Vertrag festgelegt. „(H)“ heißt: aus den Anforderungen hergeleitet.
 
@@ -125,6 +133,27 @@ Weitere Regeln (V):
   Nutzerregeln). Eine Nutzerdatei wird gegen die wirksame Regel aus Firma, Nutzerregel der Firma und Gruppe geprüft,
   nicht gegen ihren eigenen alten Stand. Der Nutzer darf eigene Verschärfungen also zurücknehmen, nie unter die
   Ebenen darüber. Eine Nutzerregel der Firma wird gegen die Firmengrundregel derselben Datei geprüft.
+
+### 5.2 Neue Feldarten der Einstellungen im Lauf (Fassung 2, Nachtrag 26.11.2026)
+
+Diese Feldarten gelten für die Schlüssel des Katalogs (Abschnitt 15.1). Die Tabelle oben bleibt die Sicherheitsgrenze; das
+Lockerungsverbot gilt auch hier. „Oben“ heißt wieder: der wirksame Wert aller Ebenen über dem Platz der Änderung.
+
+| Feldart (`richtung`) | Strenger oder gleich (zulässig) | Lockerung (nie) | Wirkung |
+|---|---|---|---|
+| Wahl `frei` (Vorlieben: Aussehen, Schrift, Vorgaben für neue Sitzungen) | jeder erlaubte Wert | gibt es nicht; eine Wahl ist keine Regel | die tiefste Ebene mit Wert gilt |
+| Liste je Klasse `schnitt` (`harnesses`, `modelle`) | je Klasse eine Teilmenge von oben; eine Klasse, die oben fehlt, mit jeder Liste | ein Element, das oben in derselben Klasse fehlt | je Klasse der Schnitt aller Ebenen mit dieser Klasse; fehlt eine Klasse auf allen Ebenen, ist sie nicht eingeschränkt |
+| Schalter `aus_strenger` (Optionen nach A30) | `false`; `true`, wenn oben `true` | `true`, wenn oben `false` | `true` nur, wenn keine Ebene `false` sagt; Vorgabe `false` |
+| Grenzen `nur_firma` (`effort.grenzen`, `optionen.lokale_ca`, `optionen.copilot_eingeschraenktes_token`) | nur die Firma setzt sie | jeder Wert unterhalb der Firma (Code `ebenen.ebene_gesperrt`) | der Wert der Firma |
+| Fest `fest` (`optionen.herstellerzugang`; Nachtrag 27.11.2026) | nichts: keine Ebene setzt den Schlüssel, auch kein Admin | jeder Wert auf jeder Ebene (Code `ebenen.ebene_gesperrt`) | immer die Vorgabe; ein Wert im Stand wirkt nicht |
+
+- Ein Wert `null` in `setzen` nimmt den Eintrag der Ebene zurück. Das ist nie eine Lockerung: Es gilt danach der Wert von oben.
+- Gleichstand ist keine Lockerung. Die Herkunft bleibt dann bei der höheren Ebene (wie Abschnitt 5).
+- Eine Wahl `frei` kann trotzdem an eine Grenze der Admins gebunden sein. `sitzung.harness` und `sitzung.modell` müssen in mindestens
+  einer Klasse zur Wahl stehen (Code `ebenen.ausser_grenze`). Das ist keine Lockerung, sondern ein Bezug, wie die Stufen 17 bis 19.
+- Grund der Feldart `nur_firma`: Die Grenzen des Efforts werten in Vertrag 2 jeden passenden Eintrag als Schnitt. Ein Eintrag
+  einer Gruppe für einen Harness ohne Eintrag der Firma würde dort eine Wahl öffnen, die die Firma nie erlaubt hat. Grenzen je Gruppe
+  kommen nach dem Pilot (OPEN 12).
 
 ### 5.1 Künftige Blöcke (Annahme, noch nicht in Vertrag 2)
 
@@ -298,6 +327,7 @@ auf stderr, bei einem Lesefehler mit 2, sonst mit 0 (V; A26: „Ablehnung mit R�
 | `bau-faelle.py` | schreibt `faelle/` und `erwartet/`; rechnet jede Erwartung mit einer kleinen Referenz und prüft sie gegen die ausgeschriebenen Kernwerte der Tabelle |
 | `pruefen.py` | prüft Paarung, Codes, Schema der Dateien und jede erwartete `einstellung` gegen das Schema von Vertrag 2 |
 | `faelle/<name>.json`, `erwartet/<name>.json` | sichtbare Fälle |
+| `faelle-setzen/<name>.json`, `erwartet-setzen/<name>.json` | Fälle zu `setzen` und `sicht` (Fassung 2, Abschnitt 15.8); die Referenz steht in `bau-faelle.py` |
 
 ```sh
 python3 -I rust/spec/regelebenen/bau-faelle.py               # Fälle neu erzeugen und Erwartungen prüfen
@@ -356,3 +386,369 @@ der Ort der Dateien je Betriebssystem (OPEN 1) wird mit seinem Lader zum Außent
    Eintrag ist der Hauptzweig gesperrt. Ob Muster erlaubt sind, wird beim Entwurf entschieden. Verschärfung wie in
    Abschnitt 5: Tiefere Ebenen dürfen Zweige ergänzen, nie entfernen. Die Prüfung liegt im Endprodukt auf dem Server,
    nicht allein auf dem Rechner des Nutzers. Kommt als Feld in eine neue Fassung von Vertrag 2, mit Fällen.
+10. **Geschlossen (Entscheid des Betreibers, 27.11.2026): eine Quelle der Admins.** Der Dienst leitet `rollen` aus der Kontenliste
+    der Firmenvorgabe ab (E1). Eine zweite Quelle gibt es nicht (Abschnitt 15.2, Fall `admins-eine-quelle`).
+11. **Konto ohne Kennungsform.** Ein Kontoname darf mit `_` beginnen (`[a-z_][a-z0-9_-]*`, `rust/spec/anmelden/README.md:44`). Die
+    Kennung einer Person in Vertrag 9 Personenbezug darf das nicht (`rust/spec/personenbezug/README.md:47`). Empfehlung: Der Dienst
+    nimmt ein Konto mit `_` am Anfang nicht in die Admins auf und meldet es beim Laden der Firmenvorgabe; die IT benennt es um.
+12. **Grenzen des Efforts je Gruppe** gibt es im Pilot nicht (Abschnitt 5.2, `nur_firma`). Ein Weg dafür braucht eine Form, in der
+    ein Eintrag der Gruppe nur schneidet. Empfehlung: nach dem Pilot als Liste je Gruppe, die nur auf Einträge der Firma wirkt.
+13. **Harnesses und Modelle je Klasse im Start.** `harnesses` und `modelle` stehen im Katalog. Dass `Startwahl` und die Prüfung des
+    Starts sie anwenden, verlangt einen Block in Vertrag 2 wie `effort` (`rust/spec/einstellungen/README.md`, Abschnitt „Block
+    `effort`“). Empfehlung: Block `zulassung` in Vertrag 2 mit demselben Lader; bis dahin wirken die beiden Schlüssel
+    nur auf die Vorgaben für neue Sitzungen (`ebenen.ausser_grenze`).
+14. **Geschlossen (Entscheid des Betreibers, 27.11.2026): Optionen nach A30 im Pilot.** Es sind `copilot_ohne_rueckfrage`,
+    `herabstufen`, `lokale_ca`, `copilot_telemetrie`, `copilot_eingeschraenktes_token` und `herstellerzugang` (Abschnitt 15.1.1).
+    Weitere Optionen kommen nur auf Entscheid des Betreibers dazu. Die Abbildung von `copilot_ohne_rueckfrage` auf
+    `harness.copilot.werkzeuge_ohne_rueckfrage` bleibt hergeleitet: Bei „aus“ schreibt der Lader die leere Liste.
+15. **Geschlossen (Entscheid des Betreibers, 27.11.2026): „Stufe“ ist die Datenklasse,** also die Klasse der Route (`klassen` von
+    Vertrag 2). Grundlage ist der Entscheid des Betreibers vom 17.11.2026: Modelle je Stufe und Zone sind eine Betreibereinstellung.
+    `harnesses` und `modelle` sind darum Listen je Klasse.
+16. **Werte im Speicher.** `alt` und `neu` stehen als Prüfsumme in der Zeile (Abschnitt 15.6). Wo die Werte selbst liegen, ist OPEN 4.
+17. **`optionen.herabstufen` und Vertrag 2.** Vertrag 2 hat kein Feld dafür; das Gegenstück ist `herabstufen.an` im Teilvertrag
+    Klassen. Feld folgt mit dem Bau. Empfehlung: Der Lader schreibt den wirksamen Wert der Firma nach `herabstufen.an`. Die Liste der
+    Arten bleibt im Teilvertrag Klassen.
+18. **`optionen.lokale_ca` und `ca_zulassung`.** Vertrag 2 hat kein Feld dafür. `ca_zulassung` ändert sich nach dem Paketvertrag nur
+    durch einen Schritt eines Admins mit root. Feld folgt mit dem Bau. Empfehlung: Eine Cloud-Sitzung startet nur, wenn die Option an
+    ist und `ca_zulassung` `zugelassen` sagt. Die Option allein lässt die CA nie zu. `abgelehnt` bleibt eine Sache des Pakets.
+19. **`optionen.copilot_telemetrie` und das Erststart-Profil.** Die Abbildung auf `routen[].netzziele` ist hergeleitet. Das
+    Erststart-Profil (`rust/spec/einstellungen/erststart.json`) trägt das Telemetrie-Ziel heute ohne Schlüssel mit nur
+    `POST /telemetry`. Empfehlung: Bei „aus“ lässt der Lader den Eintrag weg. Gemessen ist, dass die CLI ohne erreichbares
+    Telemetrie-Ziel weiterläuft (NXDOMAIN, `rust/spec/einstellungen/README.md`, Abschnitt Vorführdatei).
+20. **`optionen.copilot_eingeschraenktes_token`.** Vertrag 2 und Vertrag 9 Anmeldung haben kein Feld für ein fein begrenztes Token.
+    Feld folgt mit dem Bau. Empfehlung: Vertrag 9 Anmeldung legt den Weg fest; der Lader wählt ihn nur bei „an“.
+21. **`optionen.herstellerzugang` und der Block `stelle`.** Vertrag 2 hat den Block `stelle` noch nicht; er ist für Fassung 3
+    vorgeschlagen. Feld folgt mit dem Bau. Empfehlung: Der Lader schreibt im Pilot immer `hersteller.fall: kein`, unabhängig vom
+    Stand der Ebenen.
+22. **Wo eine Änderung von `leseklassen` landet.** Die Firmenvorgabe ist nur mit Systemrechten änderbar, `setzen` nimmt eine Änderung
+    eines Admins aus der Ansicht an. Empfehlung: Die Firmenvorgabe bleibt die eine Quelle. Der Dienst schreibt eine angenommene Liste
+    nur zurück, wenn er dafür Systemrechte hat; sonst gilt sie wie die anderen Werte nach OPEN 1 und 4. Das entscheidet der Bau des
+    Dienstes zusammen mit dem Paketvertrag.
+23. **Konto ohne Pseudonym in `leseklassen`.** Kann der Dienst ein Konto nicht zuordnen (etwa ein Konto mit `_` am Anfang, OPEN 11),
+    gibt er die Liste nicht weiter. Empfehlung: ein Ladefehler der Firmenvorgabe, also entsteht kein Tor (fail closed, wie datentor
+    Abschnitt 3). In der Ansicht sieht ein Admin Pseudonyme statt Konten, weil keine Nachricht an die Ansicht ein Konto nennt. Wie
+    die Ansicht einen Eintrag lesbar macht, ist mit der Seite zu klären.
+24. **`leseklassen` in Vertrag 2.** Vertrag 2 hat das Feld noch nicht; der Vorschlag steht in `rust/spec/einstellungen/README.md`,
+    OPEN 13. Bis zum Bau gibt der Dienst die Liste direkt an `Personen::neu`.
+
+## 15. Fassung 2: Einstellungen im Lauf (Nachtrag 26.11.2026)
+
+Grundlage: Entscheide des Betreibers vom 26.11.2026 E1, E2 und E3, dazu A26, A27, A30 und A31 (`rust/spec/seite/OBERFLAECHE.md`
+OF9, Abschnitt 4, L4, L10 und L11). Fassung 1 bleibt gültig, auch `aendern` und alle Fälle in `faelle/`. Fassung 2 fügt zwei reine
+Funktionen hinzu, ohne Uhr, Zufall, Datei oder Netz:
+
+- `setzen(stand, wer, bereich, ebene, schluessel, wert) -> Pruefung`: prüft eine einzelne Einstellung und nimmt sie an oder lehnt sie
+  mit genau einem festen Code ab (Abschnitt 15.4). Jede Prüfung ergibt eine Protokollzeile (Abschnitt 15.6). Eine Ablehnung ändert
+  nichts (S3).
+- `sicht(stand, wer) -> Einstellungen`: je Schlüssel des Katalogs der wirksame Wert, seine Herkunft, ob `wer` ihn ändern darf, und ein
+  Grund für eine Sperre (Abschnitt 15.5).
+
+Der Dienst ruft beide für das Ereignis `EinstellungSetzen` und die Nachricht `Einstellungen` (Abschnitte 15.9 und 15.10). Er reicht
+Felder und Codes unverändert durch und erfindet keinen eigenen Code.
+
+### 15.1 Katalog des Pilots
+
+Jeder Schlüssel gehört zu genau einem Bereich: `nutzer` (Seite B72) oder `admin` (Seite B78). „Ebenen“ nennt die Plätze, auf denen
+der Schlüssel stehen darf. Aussehen und Effort sind Wahlen, keine Optionen (OF9 Punkt 7). Nur die Optionen haben die Vorgabe „aus“
+(A30, A31).
+
+| Schlüssel | Bereich | Ebenen | Typ | Vorgabe | Richtung (Abschnitt 5.2) | Entscheid |
+|---|---|---|---|---|---|---|
+| `aussehen.thema` | nutzer | firma, gruppe, nutzer | Wahl: `system`, `hell`, `dunkel` | `system` | frei | OF3 Punkt 2 |
+| `aussehen.farbsatz` | nutzer | firma, gruppe, nutzer | Wahl: `grau`, `blauschwarz` | `grau` | frei | OF3 Punkt 2 |
+| `aussehen.terminal` | nutzer | firma, gruppe, nutzer | Wahl: `dunkel`, `hell`, `thema` | `dunkel` | frei | OF3 Punkt 2 |
+| `terminal.schriftgroesse` | nutzer | firma, gruppe, nutzer | Ganzzahl 9 bis 32 (Pixel) | `13` | frei | OF4 Punkt 2 |
+| `sitzung.harness` | nutzer | firma, gruppe, nutzer | Wahl: `claude`, `copilot`, `pi` | `null` (keine Vorgabe) | frei, an `harnesses` gebunden | OF9 Punkt 3 |
+| `sitzung.modell` | nutzer | firma, gruppe, nutzer | Modellname (`^[A-Za-z0-9._:/@+-]{1,128}$`, Vertrag 1) | `null` | frei, an `modelle` gebunden | OF9 Punkt 3 |
+| `sitzung.effort` | nutzer | firma, gruppe, nutzer | Wahl aus allen Effort-Werten der Harnesses (Vertrag 2, Block `effort`) | `null` | frei | E2 |
+| `harnesses` | admin | firma, gruppe, nutzer | Objekt: Klasse → Liste von Harnesses, je höchstens 16, ohne Doppel | `{}` (keine Einschränkung) | schnitt | OF9 Punkt 4 |
+| `modelle` | admin | firma, gruppe, nutzer | Objekt: Klasse → Liste von Modellnamen, je höchstens 16, ohne Doppel | `{}` | schnitt | OF9 Punkt 4 |
+| `effort.grenzen` | admin | firma | Liste der Grenzen nach Vertrag 2, Block `effort` (höchstens 64) | `[]` (kein Effort wählbar) | nur_firma | E2 |
+| `optionen.copilot_ohne_rueckfrage` | admin | firma, gruppe, nutzer | Wahrheitswert | `false` („aus“) | aus_strenger | A30, A31 |
+| `optionen.herabstufen` | admin | firma, gruppe, nutzer | Wahrheitswert | `false` („aus“) | aus_strenger | A30, A39 |
+| `optionen.lokale_ca` | admin | firma | Wahrheitswert | `false` („aus“) | nur_firma | A30, B41 |
+| `optionen.copilot_telemetrie` | admin | firma, gruppe, nutzer | Wahrheitswert | `false` („aus“) | aus_strenger | A30; Team-Issue #56, Punkt 4 |
+| `optionen.copilot_eingeschraenktes_token` | admin | firma | Wahrheitswert | `false` („aus“) | nur_firma | A30; Team-Issue #56, Punkt 2 |
+| `optionen.herstellerzugang` | admin | keine | Wahrheitswert | `false` („aus“), fest | fest | A11, A30; Team-Issue #12 |
+| `leseklassen` | admin | firma | Liste von Einträgen `{"ebene", "wer", "klasse"}`, höchstens 4096 (Abschnitt 15.11) | `[]` (niemand liest) | nur_firma | A05, A34; Projektentscheid, 27.11.2026 |
+
+- Die Klassen in `harnesses` und `modelle` sind die `klassen` der Firmengrundregel. Eine andere Klasse ist `ebenen.wert_ungueltig`.
+- Einen Schlüssel für Admins, Rollen, Gruppen oder Routen gibt es im Katalog nicht. Ein solcher Schlüssel ist
+  `ebenen.einstellung_unbekannt`. So macht keine Einstellung jemanden zum Admin (Abschnitt 15.2).
+- `sitzung.effort` prüft nur die Form. Die Grenze gilt erst in `Startwahl` und beim Start (Vertrag 1, Stufe 18): Eine Vorgabe außerhalb
+  der Grenze wird dort `null`. Grund: Die Grenze hängt von Harness, Klasse und Modell ab, die Vorgabe nicht.
+- Neue Schlüssel kommen über eine neue Zeile dieser Tabelle und eine neue Fassung dieses Abschnitts. Weitere Optionen kommen nur auf
+  Entscheid des Betreibers dazu.
+
+#### 15.1.1 Optionen des Pilots (Entscheid des Betreibers, 27.11.2026)
+
+Jede Option hat die Vorgabe „aus“. Nur Admins stellen sie um (Bereich `admin`). Auf der Nutzerebene geht nur „aus“ (`aus_strenger`)
+oder nichts (`nur_firma`, `fest`). Grund für `nur_firma` bei `lokale_ca` und `copilot_eingeschraenktes_token`: Beide gelten für den
+Rechner oder die Anmeldung, nicht für eine Person. Eine Gruppe oder ein Nutzer hätte dort keinen eigenen Wert (hergeleitet).
+
+| Schlüssel | „aus“ heißt | „an“ heißt | Feld, auf das der Lader abbildet |
+|---|---|---|---|
+| `optionen.copilot_ohne_rueckfrage` | Die Copilot CLI fragt vor jedem Werkzeug. | Die Liste der Firmendatei gilt. | Vertrag 2 `harness.copilot.werkzeuge_ohne_rueckfrage`: bei „aus“ die leere Liste (hergeleitet) |
+| `optionen.herabstufen` | Die Automatik senkt keine Klasse (A39). | Die Automatik darf senken, nur Arten der Liste. | Kein Feld in Vertrag 2. Gegenstück ist `herabstufen.an` im Teilvertrag Klassen (`rust/spec/datentor/klassen/VERTRAG.md`, Abschnitt 2 „Optionen: Feld `tiefe`“). Feld folgt mit dem Bau (OPEN 17) |
+| `optionen.lokale_ca` | Die lokale CA gilt als `offen`. Eine Cloud-Sitzung startet ohne Freigabe nicht (B41). | Die Firma lässt die lokale CA zu. | Kein Feld in Vertrag 2. Gegenstück ist `ca_zulassung` in `/etc/werkbank/lauf.json` (`rust/spec/paket/README.md`, Abschnitt „lauf.json“). Feld folgt mit dem Bau (OPEN 18) |
+| `optionen.copilot_telemetrie` | Das Telemetrie-Ziel der Copilot CLI ist gesperrt. | Das Telemetrie-Ziel ist zugelassen; die Firma stellt es für sich an. | Vertrag 2 `routen[].netzziele`: bei „aus“ fehlt der Eintrag mit Host `telemetry.individual.githubcopilot.com` (hergeleitet, OPEN 19) |
+| `optionen.copilot_eingeschraenktes_token` | Die Copilot CLI meldet sich wie heute über die Geräte-Anmeldung an. | Ein fein begrenztes Token ersetzt die Geräte-Anmeldung. | Kein Feld in Vertrag 2. Feld folgt mit dem Bau (OPEN 20) |
+| `optionen.herstellerzugang` | Kein Herstellerzugang. | gibt es im Pilot nicht Kein Feld in Vertrag 2. Gegenstück ist `hersteller.fall` mit Wert `kein` im Block `stelle`, den `rust/spec/stelle/fassung2/README.md` (Abschnitt 2) für Fassung 3 von Vertrag 2 vorschlägt. Feld folgt mit dem Bau (OPEN 21) |
+
+- **`optionen.herstellerzugang` ist im Pilot fest „aus“** (Team-Issue #12). Er steht nur als Wert da. `sicht` zeigt ihn mit
+  `aenderbar: false` und dem Grund `fest`, auch für Admins. `setzen` lehnt jeden Wert auf jeder Ebene mit dem vorhandenen Code
+  `ebenen.ebene_gesperrt` ab (Stufe 5), auch `false` und `null`. Der Code passt, weil der Schlüssel auf keiner Ebene stehen darf. Ein
+  Wert, den ein Stand trotzdem trägt, wirkt nicht (Feldart `fest`, Abschnitt 5.2).
+- Die Fälle stehen in `faelle-setzen/option-<name>-nutzer-abgelehnt.json` und `option-<name>-admin-angenommen.json`, für den
+  Herstellerzugang in `option-herstellerzugang-fest.json`.
+
+### 15.2 Wer Admin ist (E1; Projektentscheid, 26.11.2026)
+
+- Die **Kontenliste der Admins** steht in der **Firmenvorgabe**. Sie nennt Konten am Rechner (Benutzernamen), damit die IT sie
+  pflegen kann. Die Firmenvorgabe ist eine Datei des Systems. Ändern lässt sie sich nur mit Systemrechten (unter Linux root, unter
+  Windows ein Administrator, unter macOS ein Administrator mit `sudo`). Ihr Ort je Betriebssystem ist OPEN 1. Sie ist keine Datei der
+  Ebenen und steht nie in `stand.firma`.
+- **Das Konto des Betrachters** liest der Dienst aus dem Verbindungspartner des lokalen Sockets oder der Named Pipe (L11; die Form
+  legt der Vertrag `dienst` fest). Nie aus einer Angabe der Ansicht, nie aus einer Datei der Ebenen, nie vom Agenten.
+- **Die Zuordnung von Konto zu Pseudonym liegt nur beim Dienst.** Er bildet das Pseudonym über die Stelle (Vertrag 9 Personenbezug,
+  `person(kennung, …)`, `rust/spec/personenbezug/README.md` Abschnitt 4). Er gibt `setzen` und `sicht` nur das Pseudonym als `wer`.
+  Ebenso bildet er aus der Kontenliste die Menge `stand.admins` der Pseudonyme. Kein Konto steht in einer Datei der Ebenen, in einer
+  Nachricht an die Ansicht oder in einer Protokollzeile. In einem Fall steht kein echtes Konto; der Platzhalter `konto-beispiel` steht
+  nur als abgelehnte Eingabe (Abschnitt 15.11).
+- **Eine Quelle (Entscheid des Betreibers, 27.11.2026; schließt OPEN 10).** Der Dienst leitet auch `rollen` aus der Kontenliste der
+  Firmenvorgabe ab: Die Rolle `admin` in `rollen` der gespeicherten Firmendatei hat genau, wer in `stand.admins` steht. Eine zweite
+  Quelle gibt es nicht. `aendern` liest die Admins darum aus `stand.admins`, sobald der Stand sie trägt (im Lauf immer). Eine
+  eingereichte Firmendatei, deren Rolle `admin` andere Pseudonyme nennt als `stand.admins`, lehnt `aendern` mit `ebenen.nicht_befugt`
+  ab: Die Admins ändern sich nur über die Kontenliste, also mit Systemrechten. Die Rolle `einsicht` bleibt in der Firmendatei (B09).
+  Ein Stand ohne `admins` (die Fälle von Fassung 1) liest `rollen` wie bisher. Fall: `faelle/admins-eine-quelle.json`.
+- **Admin** für `setzen` und `sicht` ist genau ein `wer` in `stand.admins`. Eine Angabe der Ansicht macht niemanden zum Admin: Das
+  Ereignis `EinstellungSetzen` hat kein Feld dafür (Abschnitt 15.9). Eine eingereichte Datei, die jemanden als Admin nennt, macht ihn
+  ebenfalls nicht dazu (Fall `befugnis-selbst-admin` für `aendern`; für `setzen` der Fall `kein-admin-durch-angabe`).
+- **Konten in `leseklassen` (Projektentscheid, 27.11.2026).** In der Firmenvorgabe nennt ein Eintrag mit `ebene: nutzer` in `wer`
+  das Konto, wie die Kontenliste der Admins. Es ist Pflicht des Dienstes, jedes solche Konto dem Pseudonym der Person
+  (`^ps_[0-9a-f]{32}$`) zuzuordnen, bevor er die Liste weitergibt: an `setzen` und `sicht` (im Stand und im Wert einer Änderung) und an
+  datentor (`Personen::neu`). Dasselbe gilt für eine Liste, die ein Admin in der Ansicht eingibt. Ein Konto erreicht datentor nie und
+  steht nie in einer Protokollzeile, auch nicht in den Prüfsummen `alt` und `neu`. `setzen` lehnt ein Konto an der Stelle eines
+  Pseudonyms mit `ebenen.wert_ungueltig` ab (Fall `leseklassen-form-ungueltig`). Ein Konto, das der Dienst nicht zuordnen kann,
+  gibt er nicht weiter (OPEN 23).
+- Vertrag 9 Anmeldung (`rust/spec/anmelden/README.md`) steht nicht dagegen. Er regelt nur die Anmeldung der Copilot CLI und kennt
+  weder Pseudonyme noch Admins; den Kontonamen liest er aus `/etc/passwd` (Zeile 44, alte Fassung). Offen bleibt die Kennungsform
+  (OPEN 11).
+
+### 15.3 Stand
+
+```json
+{"klassen": ["oeffentlich", "intern", "kundendaten"],
+ "admins": ["ps_00000000000000000000000000000b01"],
+ "gruppen": {"g-eins": ["ps_00000000000000000000000000000c01"]},
+ "werte": {"firma": {"aussehen.thema": "hell"},
+           "gruppen": {"g-eins": {"terminal.schriftgroesse": 15}},
+           "nutzer": {"ps_00000000000000000000000000000c01": {"aussehen.farbsatz": "blauschwarz"}}}}
+```
+
+- `klassen` und `gruppen` kommen aus der gespeicherten Firmendatei (Abschnitt 3.1), `admins` vom Dienst (Abschnitt 15.2).
+- `werte` hält je Platz die gesetzten Schlüssel. Ein fehlender Schlüssel heißt: Auf dieser Ebene steht kein Wert.
+- Wo `werte` gespeichert wird, ist OPEN 1. Die Speicherform ist frei; dieser Vertrag legt nur den Stand fest, den beide Funktionen sehen.
+
+### 15.4 `setzen`: Prüfreihenfolge und Codes
+
+`ebene` ist `firma`, `nutzer` oder `gruppe <schluessel>` (ein Leerzeichen, dann der Schlüssel der Gruppe in Kennungsform). `nutzer`
+heißt immer: der Platz von `wer` selbst. Einen Weg, die Nutzerebene eines anderen zu setzen, gibt es im Pilot nicht.
+`wert` `null` nimmt den Eintrag dieser Ebene zurück.
+
+Genau ein Code, der der ersten verletzten Stufe:
+
+| Stufe | Code | Verletzung |
+|---|---|---|
+| 1 | `ebenen.einstellung_unbekannt` | `schluessel` ist kein Text oder steht nicht im Katalog |
+| 2 | `ebenen.bereich_falsch` | `bereich` ist nicht der Bereich des Schlüssels (auch jeder andere Text als `nutzer` und `admin`) |
+| 3 | `ebenen.ebene_unbekannt` | `ebene` hat keine der drei Formen |
+| 4 | `ebenen.gruppe_unbekannt` | die Gruppe steht nicht in `gruppen` der Firma |
+| 5 | `ebenen.ebene_gesperrt` | der Schlüssel darf auf dieser Ebene nicht stehen (Spalte „Ebenen“) |
+| 6 | `ebenen.nicht_befugt` | Ebene `firma` oder `gruppe <schluessel>`, und `wer` steht nicht in `stand.admins` |
+| 7 | `ebenen.wert_ungueltig` | `wert` ist nicht `null` und verletzt Typ, Werte oder Grenzen des Katalogs; für `leseklassen` auch `wert` `null` (Abschnitt 15.11) |
+| 8 | `ebenen.lockerung` | `wert` ist nach Abschnitt 5.2 lockerer als oben; auf der Ebene `firma` nie |
+| 9 | `ebenen.ausser_grenze` | `sitzung.harness` oder `sitzung.modell` steht in keiner Klasse zur Wahl, nach `harnesses` oder `modelle` bis zu dieser Ebene |
+
+- Prüfbezug: Eine Gruppe wird gegen die Firma geprüft, der Nutzer gegen Firma und seine Gruppe, nie gegen seinen alten Wert (wie
+  Abschnitt 5). Ein Admin auf der Nutzerebene ist dort Nutzer: Er darf auch nur verschärfen.
+- Eine Ablehnung ändert den Stand nicht. Eine Annahme schreibt `wert` an den Platz oder entfernt den Eintrag bei `null`.
+- Mehr als ein Code je Prüfung gibt es nicht. Der Dienst reicht den Code als `grund` der `Ablehnung` durch (Abschnitt 15.9).
+
+### 15.5 `sicht`
+
+`sicht(stand, wer)` gibt ein Objekt mit genau einem Eintrag je Schlüssel des Katalogs:
+
+| Feld | Wert |
+|---|---|
+| `wert` | der wirksame Wert für `wer` über Firma, seine Gruppe und seine Nutzerebene (Abschnitt 5.2); ohne Eintrag die Vorgabe |
+| `herkunft` | `firma`, `gruppe <schluessel>` oder `nutzer`: die tiefste Ebene, die den Wert echt geändert hat. Die Vorgabe des Katalogs zählt als `firma` (wie Abschnitt 6.1) |
+| `aenderbar` | ob `wer` den Schlüssel ändern darf |
+| `grund` | `null`, `nur_strenger`, `nur_admin` oder `fest` |
+
+Für `leseklassen` zeigt `wert` einem Betrachter, der kein Admin ist, nur die Einträge, die ihn nennen: seinen eigenen Eintrag
+(`ebene: nutzer`, `wer` gleich `wer`) und den Eintrag seiner Gruppe, in der Reihenfolge der Liste und ohne Rangfolge. Ein Admin sieht
+die ganze Liste. Welche Klasse daraus wirkt, sagt `sicht` nicht (Abschnitt 15.11).
+
+Regeln für `aenderbar` und `grund`, in dieser Reihenfolge:
+
+0. Feldart `fest`: `false`, `fest`, auch für einen Admin (Nachtrag 27.11.2026).
+1. `wer` ist Admin: `true`, `null`.
+2. Bereich `nutzer`: `true`, `null`.
+3. Der Schlüssel darf nicht auf der Nutzerebene stehen: `false`, `nur_admin`.
+4. Schalter mit wirksamem Wert `false`: `false`, `nur_admin` (strenger geht es nicht).
+5. Sonst: `true`, `nur_strenger`.
+
+Die Ansicht zeigt den Grund mit einem festen kurzen Text (OF9 Punkt 6): `nur_admin` „Vorgabe der Firma“, `nur_strenger` „Nur strenger
+als die Vorgabe“, `fest` „Im Pilot fest aus“. Die Herkunft zeigt sie als „Firma“, „Gruppe <Anzeigename>“ oder „du“ (E3).
+
+### 15.6 Protokollzeile
+
+Jede Prüfung von `setzen` ergibt eine Zeile in der Form von Abschnitt 7.1 (Vertrag 5, Abschnitt 6.6). Die Felder:
+
+| Feld | Wert |
+|---|---|
+| `aktionsname`, `ergebnis` | wie Abschnitt 7.1 |
+| `ebene` | `firma`, `gruppe`, `nutzer`, oder `null`, wenn `ebene` keine der drei Formen hat |
+| `ziel` | Schlüssel der Gruppe, Pseudonym von `wer` bei `nutzer`, sonst `null` |
+| `handelnd` | `wer` (Pseudonym; nie ein Konto) |
+| `alt` | sha256 hex klein über RFC 8785 von `{"schluessel": <schluessel>, "wert": <alter Wert>}` des Platzes, `null`, wenn dort kein Wert stand oder der Platz unbekannt ist |
+| `neu` | sha256 hex klein über RFC 8785 von `{"schluessel": <schluessel>, "wert": <wert>}` |
+| `code` | `null` bei Annahme, sonst der Code aus Abschnitt 15.4 |
+| `antrag`, `pflicht`, `zweiter` | immer `null` |
+
+So stehen Admin (als Pseudonym), Ebene, alter und neuer Wert (als Prüfsumme) in der Zeile (A27). Die Zeit setzt die Bibliothek aus
+Vertrag 5. Der Schlüssel steht nur in der Prüfsumme; ein eigenes Feld braucht Vertrag 5 (Ergebnis an den Vertrag `stelle`).
+
+### 15.7 Sicherheitszusagen
+
+- **S8 Kein Admin aus der Ansicht:** Ob `wer` auf Firma oder Gruppe schreiben darf, entscheidet nur `stand.admins`.
+- **S9 Nutzer nur strenger:** Für jede angenommene Änderung auf der Nutzerebene ist der wirksame Wert jedes Schlüssels mit Richtung
+  `schnitt` oder `aus_strenger` gleich oder strenger als vorher.
+- **S10 Kein Konto:** Kein Ergebnis von `setzen` oder `sicht` enthält ein Konto. Für `leseklassen` nimmt `setzen` bei `ebene: nutzer`
+  nur ein Pseudonym an; `pruefen.py` prüft das für jede Annahme und jede Sicht.
+- S3 und S7 gelten auch für `setzen` und `sicht`.
+
+### 15.8 Fälle
+
+`faelle-setzen/<name>.json` mit `erwartet-setzen/<name>.json`. Kein Crate liest diesen Ordner; es gibt noch keine Umsetzung.
+
+```json
+{"name": "…", "anforderungen": ["A26"], "beschreibung": "…", "stand": {…Abschnitt 15.3…},
+ "schritte": [{"setzen": {"wer": "ps_…", "bereich": "nutzer", "ebene": "nutzer", "schluessel": "aussehen.farbsatz", "wert": "blauschwarz"}},
+              {"sicht": {"wer": "ps_…"}}]}
+```
+
+Ergebnis je Schritt: `{"angenommen", "code", "zeile"}` für `setzen`, `{"einstellungen": {…}}` für `sicht`. `bau-faelle.py` rechnet
+jede Erwartung mit der Referenz (`setzen`, `sicht`) und prüft sie gegen ausgeschriebene Kernwerte. `pruefen.py` prüft Paarung, Codes,
+die Form der Zeile und der Sicht, dass `admins` nur Pseudonyme nennt und dass es je Code mindestens einen Fall gibt. Die beiden Fälle
+aus OF9 heißen `of9-nutzer-lockert` und `of9-nichtadmin-schreibt-adminwert`. Die Admins stehen nur in `stand.admins` (eine Quelle,
+Abschnitt 15.2). Je Option des Katalogs gibt es einen Fall „Nutzer setzt: abgelehnt“ und einen Fall „Admin setzt: angenommen“,
+für den Herstellerzugang den Fall `option-herstellerzugang-fest` (Abschnitt 15.1.1). Die Fälle zu `leseklassen` heißen
+`leseklassen-*` (Abschnitt 15.11).
+
+### 15.9 Ereignis `EinstellungSetzen` (Ansicht an Dienst)
+
+```json
+{"art": "EinstellungSetzen", "schluessel": "aussehen.farbsatz", "wert": "blauschwarz", "bereich": "nutzer", "ebene": "nutzer"}
+```
+
+| Feld | Typ | Bedeutung |
+|---|---|---|
+| `schluessel` | Text | Schlüssel des Katalogs (Abschnitt 15.1) |
+| `wert` | JSON-Wert oder `null` | neuer Wert; `null` nimmt den Eintrag der Ebene zurück |
+| `bereich` | Text | `nutzer` oder `admin` |
+| `ebene` | Text | `firma`, `nutzer` oder `gruppe <schluessel>` |
+
+- Genau diese vier Felder neben `art`. Ein weiteres Feld, etwa `admin`, `konto` oder `wer`, lehnt der Dienst mit seinem Code für eine
+  falsche Form ab, bevor er `setzen` ruft.
+- Der Dienst ruft `setzen(stand, wer, bereich, ebene, schluessel, wert)` mit `wer` aus Abschnitt 15.2.
+- Angenommen: Der Dienst schickt jedem Betrachter, dessen `sicht` sich ändert, eine neue Nachricht `Einstellungen`.
+- Abgelehnt: Der Dienst schickt dem Absender eine `Ablehnung` mit `grund` gleich dem Code aus Abschnitt 15.4, unverändert.
+- Die Kurzfassung für den Vertrag `dienst` steht außerhalb des Repos (`dienst-vorschlag.md`).
+
+### 15.10 Nachricht `Einstellungen` (Dienst an Ansicht)
+
+```json
+{"art": "Einstellungen", "fassung": 2, "admin": false,
+ "werte": {"aussehen.farbsatz": {"wert": "blauschwarz", "herkunft": "nutzer", "aenderbar": true, "grund": null},
+           "effort.grenzen": {"wert": [], "herkunft": "firma", "aenderbar": false, "grund": "nur_admin"}}}
+```
+
+| Feld | Typ | Bedeutung |
+|---|---|---|
+| `fassung` | Ganzzahl `2` | Form dieses Abschnitts |
+| `admin` | Wahrheitswert | `wer` steht in `stand.admins`; nur dann zeigt die Ansicht den Bereich B78 |
+| `werte` | Objekt | genau das Ergebnis von `sicht(stand, wer)`, je Schlüssel des Katalogs |
+
+- Der Dienst schickt sie beim Verbinden und nach jeder angenommenen Änderung, die den Betrachter betrifft.
+- Die Nachricht nennt nie ein Konto und nie die Liste der Admins.
+- `admin` ist eine Anzeige. Die Befugnis prüft `setzen` bei jeder Änderung neu.
+- Vertrag `zustandskern` nennt für `Einstellungen` heute `wert`, `vorgabe` und `herkunft` mit `vorgabe` als Herkunft
+  (`rust/spec/zustandskern/VERTRAG.md:142`). Dieser Abschnitt ersetzt das für Fassung 2. Die Angleichung dort gehört dem Vertrag
+  `zustandskern`.
+
+### 15.11 Admin-Feld `leseklassen` (Projektentscheid, 27.11.2026)
+
+Das Feld legt fest, welche Datenklasse eine Person höchstens lesen darf. datentor nutzt es in P4, das Ordner-Blatt in L9. Dieser
+Vertrag legt nur Form, Prüfung und Befugnis fest. Die Wirkung rechnet nur datentor (`rust/spec/datentor/person/VERTRAG.md`,
+Abschnitte 2 bis 4), weder `setzen` noch `sicht` noch der Dienst.
+
+**Form.** Dieselbe wie in datentor, Abschnitt 3, damit der Lader die Liste 1:1 durchreicht:
+
+```json
+"leseklassen": [{"ebene": "gruppe", "wer": "g-eins", "klasse": "intern"},
+                {"ebene": "nutzer", "wer": "konto-beispiel", "klasse": "oeffentlich"}]
+```
+
+- `ebene: gruppe`: `wer` ist ein Schlüssel aus `gruppen` der Firmengrundregel.
+- `ebene: nutzer`: In der Firmenvorgabe ist `wer` das Konto, wie bei der Kontenliste der Admins. Die Firmenvorgabe ist nur mit
+  Systemrechten änderbar. Der Dienst ordnet das Konto dem Pseudonym zu, bevor er die Liste weitergibt (Abschnitt 15.2). Im Stand und in
+  `setzen` steht darum das Pseudonym: `{"ebene": "nutzer", "wer": "ps_00000000000000000000000000000c01", "klasse": "oeffentlich"}`.
+- `klasse` ist ein Schlüssel aus `klassen` der Firmengrundregel, byte-genau (D14).
+- Höchstens 4096 Einträge. Die leere Liste ist gültig.
+
+**Ungültig** ist der Wert, wenn eine dieser Bedingungen gilt. Ein ungültiger Wert ist ein Ladefehler; `setzen` meldet in jedem Fall den
+festen Code `ebenen.wert_ungueltig` (Stufe 7):
+
+- Dasselbe Paar aus `ebene` und `wer` steht zweimal, auch mit derselben Klasse.
+- `klasse` steht nicht byte-genau in `klassen`.
+- Ein Eintrag hat ein unbekanntes Feld (etwa `kunden`, Frage F4 in datentor) oder es fehlt eines der drei Felder.
+- `null` steht an irgendeiner Stelle. Für `leseklassen` ist `wert` `null` auch keine Rücknahme: „Niemand liest“ ist die leere Liste.
+- Die Liste hat mehr als 4096 Einträge.
+- Dazu: `ebene` ist weder `nutzer` noch `gruppe`; eine Gruppe steht nicht in `gruppen`; bei `ebene: nutzer` steht kein Pseudonym.
+
+**Wirkung (nur datentor).** Klassen sind nach ihrer Position in `klassen` geordnet, die niedrigste zuerst. Eine Person liest Klasse c
+genau dann, wenn Position(c) <= Position(Leseklasse). Der eigene Eintrag gilt vor den Gruppen, auch nach unten (F2). Sonst gilt die
+höchste Klasse der Gruppen (F1). **Fehlt jeder Eintrag, gilt keine Klasse:** Die Person liest nichts (P2 `person-ohne-leseklasse`, F3).
+Die Vorgabe `[]` heißt darum: Niemand liest. Soll eine Installation nicht leer starten, legt die Erstausstattung einen Gruppeneintrag
+an. Die Fälle zu F1, F2 und P2 stehen in `rust/spec/datentor/person/sichtbar/` und werden hier nicht gedoppelt.
+
+**Befugnis.** Nur Admins setzen das Feld: Bereich `admin`, Ebene `firma`, Feldart `nur_firma`. Auf einer Gruppe oder beim Nutzer ist
+es `ebenen.ebene_gesperrt`, auf der Firma für einen Nichtadmin `ebenen.nicht_befugt`. Der Nutzer setzt es nicht und lockert es nicht.
+`sicht` zeigt dem Nutzer seinen eigenen wirksamen Eintrag mit `aenderbar: false` und Grund `nur_admin` (Abschnitt 15.5).
+
+**Protokoll.** Jede Änderung ergibt eine Zeile wie in Abschnitt 15.6, auch jede Ablehnung. `alt` und `neu` sind Prüfsummen über die
+Liste mit Pseudonymen; ein Konto steht nie in der Zeile.
+
+**Fälle** in `faelle-setzen/`:
+
+| Fall | Inhalt |
+|---|---|
+| `leseklassen-admin-setzt` | Ein Admin setzt einen gültigen Eintrag je Gruppe und einen für einen Nutzer. |
+| `leseklassen-nutzer-setzt` | Ein Nutzer setzt das Feld auf Firma, Gruppe und Nutzerebene; alles abgelehnt. |
+| `leseklassen-klasse-unbekannt` | `geheim`, `Intern`, `intern ` |
+| `leseklassen-paar-doppelt` | dasselbe Paar mit anderer und mit gleicher Klasse; gleiches `wer` auf zwei Gruppen ist gültig |
+| `leseklassen-feld-unbekannt` | Feld `kunden`, fehlende `klasse`, Objekt statt Liste |
+| `leseklassen-null` | `null` als Wert, als `klasse`, als `wer` und als Eintrag |
+| `leseklassen-4097` | 4096 Einträge angenommen, 4097 abgelehnt |
+| `leseklassen-form-ungueltig` | Platzhalter-Konto `konto-beispiel` statt Pseudonym, unbekannte Gruppe, Ebene `rolle` |
+| `leseklassen-sicht-nutzer` | Sicht für drei Nutzer und einen Admin |
+
+**Offen** sind OPEN 22 bis 24 in Abschnitt 14.
+
+<!-- vom Bauvorgang angefuegt -->
+> Hinweis: Dieser Text nennt Werkzeuge, die in diesem Klon nicht liegen: `pi`.
+> Sie gehoeren zum Setup der Maschine, aus der dieser Baum stammt; hier fehlen
+> sie mit Absicht. Wer sie braucht, schreibt sich seine eigenen.
+> *Named here, not shipped here.*

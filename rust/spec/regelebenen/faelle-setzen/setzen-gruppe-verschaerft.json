@@ -1,0 +1,97 @@
+{
+ "name": "setzen-gruppe-verschaerft",
+ "anforderungen": [
+  "A26",
+  "A27"
+ ],
+ "beschreibung": "ein Admin verschärft die Gruppe g-eins gegen die Firma und versucht dann eine Lockerung; Gleichstand ist keine Lockerung",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {
+    "modelle": {
+     "intern": [
+      "gpt-6-luna",
+      "gpt-5.6-sol"
+     ]
+    },
+    "optionen.copilot_ohne_rueckfrage": true
+   },
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "gruppe g-eins",
+    "schluessel": "modelle",
+    "wert": {
+     "intern": [
+      "gpt-6-luna"
+     ]
+    }
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "gruppe g-eins",
+    "schluessel": "modelle",
+    "wert": {
+     "intern": [
+      "gpt-6-luna",
+      "claude-sonnet-5.5"
+     ]
+    }
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "gruppe g-eins",
+    "schluessel": "optionen.copilot_ohne_rueckfrage",
+    "wert": true
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "nutzer",
+    "schluessel": "optionen.copilot_ohne_rueckfrage",
+    "wert": false
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c02"
+   }
+  }
+ ]
+}

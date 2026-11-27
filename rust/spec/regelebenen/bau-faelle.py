@@ -293,10 +293,17 @@ def aendern(stand, wer, datei, form=None):
     code = form
     try:
         if code is None:
-            admins = [p for p, rollen in stand["firma"]["rollen"].items() if "admin" in rollen]
+            # Fassung 2 (README 15.2, Entscheid des Betreibers, 27.11.2026): Trägt der Stand admins, ist das die einzige
+            # Quelle. Der Dienst leitet daraus die Rolle admin in rollen ab; eine Datei ändert die Admins nie.
+            if "admins" in stand:
+                admins = list(stand["admins"])
+            else:
+                admins = [p for p, rollen in stand["firma"]["rollen"].items() if "admin" in rollen]
             if ebene == "firma":
                 firma_intern(datei)
                 if wer not in admins:
+                    raise Abgelehnt("ebenen.nicht_befugt")
+                if "admins" in stand and sorted(p for p, r in datei["rollen"].items() if "admin" in r) != sorted(admins):
                     raise Abgelehnt("ebenen.nicht_befugt")
                 for nr in datei["nutzerregeln"]:
                     Zustand(datei).anwenden(nr["regeln"], "firma", strikt=True)
@@ -686,6 +693,21 @@ fall("firma-ohne-admin", ["A27"], "ein Admin reicht eine Firmendatei ohne Admin 
       A("ps_00000000000000000000000000000b01", firma(rollen={}))],
      [(0, code, "ebenen.anzahl"), (1, angenommen, True), (2, code, "ebenen.anzahl")],
      form={0: "ebenen.anzahl", 2: "ebenen.anzahl"})
+# Fassung 2: eine Quelle der Admins (README 15.2; Entscheid des Betreibers, 27.11.2026). Der Stand trägt admins aus der
+# Kontenliste der Firmenvorgabe; die Rolle admin in rollen folgt ihr, eine eingereichte Datei ändert sie nie.
+_B = ["ps_00000000000000000000000000000b01", "ps_00000000000000000000000000000b02"]
+fall("admins-eine-quelle", ["A27", "E1", "B09"],
+     "der Stand nennt die Admins aus der Kontenliste; Admin 1 reicht eine Firmendatei mit einem dritten Admin und eine ohne Admin 2 ein: "
+     "beide abgelehnt; mit denselben Admins und einer Rolle einsicht angenommen; der dritte ändert danach keine Gruppe",
+     {"firma": FIRMA, "admins": _B},
+     [A("ps_00000000000000000000000000000b01", firma(rollen={_B[0]: ["admin"], _B[1]: ["admin"], "ps_00000000000000000000000000000b03": ["admin"]})),
+      A("ps_00000000000000000000000000000b01", firma(rollen={_B[0]: ["admin"], _B[1]: ["einsicht"]})),
+      A("ps_00000000000000000000000000000b01", firma(rollen={_B[0]: ["admin", "einsicht"], _B[1]: ["admin"],
+                                                              "ps_00000000000000000000000000000c02": ["einsicht"]})),
+      A("ps_00000000000000000000000000000b03", gruppe("g-eins", {})),
+      A("ps_00000000000000000000000000000b02", gruppe("g-eins", {}))],
+     [(0, code, "ebenen.nicht_befugt"), (1, code, "ebenen.nicht_befugt"), (2, angenommen, True),
+      (3, code, "ebenen.nicht_befugt"), (4, angenommen, True)])
 fall("rollen-form", ["A27", "A12"],
      "Rollen der Firmendatei: ein Name statt eines Pseudonyms, eine unbekannte Rolle, ein Doppel und das alte Feld admins sind Formfehler",
      ST,
@@ -711,6 +733,606 @@ fall("nutzer-senkung-arten", ["A41"], "der Nutzer versucht, die Arten zu setzen;
      form={0: "ebenen.schluessel_unbekannt"})
 
 
+# --- Fassung 2: Einstellungen im Lauf (Nachtrag 26.11.2026, README Abschnitt 15) --------------------------
+# Referenz von setzen() und sicht(). Die Fälle stehen in faelle-setzen/ und erwartet-setzen/.
+
+MODELL = re.compile(r"^[A-Za-z0-9._:/@+-]{1,128}$")
+GRUPPE_EBENE = re.compile(r"^gruppe ([a-z0-9][a-z0-9._-]{0,63})$")
+HARNESSES = ("claude", "copilot", "pi")
+# Werte je Harness, wörtlich aus der Hilfe der Programme (Vertrag 2, Abschnitt „Block effort“).
+EFFORTS = {
+    "claude": ("low", "medium", "high", "xhigh", "max"),
+    "copilot": ("none", "minimal", "low", "medium", "high", "xhigh", "max"),
+    "pi": ("off", "minimal", "low", "medium", "high", "xhigh", "max"),
+}
+ALLE_EFFORTS = tuple(sorted({w for ws in EFFORTS.values() for w in ws}))
+ALLE = ("firma", "gruppe", "nutzer")
+
+# Katalog des Pilots: Bereich, Ebenen, Typ, Vorgabe, Richtung
+KATALOG = {
+    "aussehen.thema": {"bereich": "nutzer", "ebenen": ALLE, "typ": ("wahl", ("system", "hell", "dunkel")),
+                       "vorgabe": "system", "richtung": "frei"},
+    "aussehen.farbsatz": {"bereich": "nutzer", "ebenen": ALLE, "typ": ("wahl", ("grau", "blauschwarz")),
+                          "vorgabe": "grau", "richtung": "frei"},
+    "aussehen.terminal": {"bereich": "nutzer", "ebenen": ALLE, "typ": ("wahl", ("dunkel", "hell", "thema")),
+                          "vorgabe": "dunkel", "richtung": "frei"},
+    "terminal.schriftgroesse": {"bereich": "nutzer", "ebenen": ALLE, "typ": ("ganzzahl", 9, 32),
+                                "vorgabe": 13, "richtung": "frei"},
+    "sitzung.harness": {"bereich": "nutzer", "ebenen": ALLE, "typ": ("wahl", HARNESSES),
+                        "vorgabe": None, "richtung": "frei"},
+    "sitzung.modell": {"bereich": "nutzer", "ebenen": ALLE, "typ": ("modell",),
+                       "vorgabe": None, "richtung": "frei"},
+    "sitzung.effort": {"bereich": "nutzer", "ebenen": ALLE, "typ": ("wahl", ALLE_EFFORTS),
+                       "vorgabe": None, "richtung": "frei"},
+    "harnesses": {"bereich": "admin", "ebenen": ALLE, "typ": ("klassenliste", "harness"),
+                  "vorgabe": {}, "richtung": "schnitt"},
+    "modelle": {"bereich": "admin", "ebenen": ALLE, "typ": ("klassenliste", "modell"),
+                "vorgabe": {}, "richtung": "schnitt"},
+    "effort.grenzen": {"bereich": "admin", "ebenen": ("firma",), "typ": ("grenzen",),
+                       "vorgabe": [], "richtung": "nur_firma"},
+    "optionen.copilot_ohne_rueckfrage": {"bereich": "admin", "ebenen": ALLE, "typ": ("schalter",),
+                                         "vorgabe": False, "richtung": "aus_strenger"},
+    # Optionen nach A30 für den Pilot (Entscheid des Betreibers, 27.11.2026), alle mit Vorgabe aus.
+    "optionen.herabstufen": {"bereich": "admin", "ebenen": ALLE, "typ": ("schalter",),
+                             "vorgabe": False, "richtung": "aus_strenger"},
+    "optionen.lokale_ca": {"bereich": "admin", "ebenen": ("firma",), "typ": ("schalter",),
+                           "vorgabe": False, "richtung": "nur_firma"},
+    "optionen.copilot_telemetrie": {"bereich": "admin", "ebenen": ALLE, "typ": ("schalter",),
+                                    "vorgabe": False, "richtung": "aus_strenger"},
+    "optionen.copilot_eingeschraenktes_token": {"bereich": "admin", "ebenen": ("firma",), "typ": ("schalter",),
+                                                "vorgabe": False, "richtung": "nur_firma"},
+    "optionen.herstellerzugang": {"bereich": "admin", "ebenen": (), "typ": ("schalter",),
+                                  "vorgabe": False, "richtung": "fest"},
+    # Leseklasse je Person oder Gruppe (Projektentscheid, 27.11.2026). Die Wirkung (P2, P4) rechnet nur datentor.
+    "leseklassen": {"bereich": "admin", "ebenen": ("firma",), "typ": ("leseklassen",),
+                    "vorgabe": [], "richtung": "nur_firma"},
+}
+OPTIONEN = [s for s in KATALOG if s.startswith("optionen.")]
+LESE_MAX = 4096
+PSEUDONYM = re.compile(r"^ps_[0-9a-f]{32}$")
+SCHLUESSEL = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
+GRUND_TEXT = {"nur_admin": "Vorgabe der Firma", "nur_strenger": "Nur strenger als die Vorgabe", "fest": "Im Pilot fest aus"}
+
+
+def ist_ganzzahl(w):
+    return isinstance(w, int) and not isinstance(w, bool)
+
+
+def wert_gueltig(eintrag, wert, klassen, gruppen=None):
+    art = eintrag["typ"][0]
+    if art == "wahl":
+        return isinstance(wert, str) and wert in eintrag["typ"][1]
+    if art == "ganzzahl":
+        return ist_ganzzahl(wert) and eintrag["typ"][1] <= wert <= eintrag["typ"][2]
+    if art == "modell":
+        return isinstance(wert, str) and bool(MODELL.match(wert))
+    if art == "schalter":
+        return isinstance(wert, bool)
+    if art == "klassenliste":
+        if not isinstance(wert, dict) or len(wert) > len(klassen):
+            return False
+        for k, liste in wert.items():
+            if k not in klassen or not isinstance(liste, list) or len(liste) > 16 or len(set(map(str, liste))) != len(liste):
+                return False
+            for x in liste:
+                if not isinstance(x, str):
+                    return False
+                if eintrag["typ"][1] == "harness" and x not in HARNESSES:
+                    return False
+                if eintrag["typ"][1] == "modell" and not MODELL.match(x):
+                    return False
+        return True
+    if art == "grenzen":
+        if not isinstance(wert, list) or len(wert) > 64:
+            return False
+        gesehen = set()
+        for g in wert:
+            if not isinstance(g, dict) or not {"harness", "erlaubt"} <= set(g) or not set(g) <= {"harness", "klasse", "modell", "erlaubt"}:
+                return False
+            h = g["harness"]
+            if h not in HARNESSES:
+                return False
+            if "klasse" in g and g["klasse"] not in klassen:
+                return False
+            if "modell" in g and not (isinstance(g["modell"], str) and MODELL.match(g["modell"])):
+                return False
+            e = g["erlaubt"]
+            if not isinstance(e, list) or not 1 <= len(e) <= 7 or len(set(map(str, e))) != len(e):
+                return False
+            if any(not isinstance(x, str) or x not in EFFORTS[h] for x in e):
+                return False
+            schl = (h, g.get("klasse"), g.get("modell"))
+            if schl in gesehen:
+                return False
+            gesehen.add(schl)
+        return True
+    if art == "leseklassen":
+        # Form wie datentor/person Abschnitt 3; bei ebene nutzer steht hier schon das Pseudonym (Abschnitt 15.2).
+        if not isinstance(wert, list) or len(wert) > LESE_MAX:
+            return False
+        paare = set()
+        for x in wert:
+            if not isinstance(x, dict) or set(x) != {"ebene", "wer", "klasse"}:
+                return False
+            if not all(isinstance(x[k], str) for k in x):
+                return False
+            if x["ebene"] == "gruppe":
+                if not SCHLUESSEL.match(x["wer"]) or x["wer"] not in (gruppen or {}):
+                    return False
+            elif x["ebene"] == "nutzer":
+                if not PSEUDONYM.match(x["wer"]):
+                    return False
+            else:
+                return False
+            if x["klasse"] not in klassen:
+                return False
+            if (x["ebene"], x["wer"]) in paare:
+                return False
+            paare.add((x["ebene"], x["wer"]))
+        return True
+    raise AssertionError(art)
+
+
+def gruppe_des(stand, wer):
+    for g, mitglieder in stand["gruppen"].items():
+        if wer in mitglieder:
+            return g
+    return None
+
+
+def ebenen_fuer(stand, ziel_art, ziel):
+    """Die Ebenen vom Platz firma bis zum Platz der Änderung, je (Herkunft, Werte)."""
+    w = stand["werte"]
+    kette = [("firma", w["firma"])]
+    if ziel_art == "gruppe":
+        kette.append((f"gruppe {ziel}", w["gruppen"].get(ziel, {})))
+    elif ziel_art == "nutzer":
+        g = gruppe_des(stand, ziel)
+        if g is not None:
+            kette.append((f"gruppe {g}", w["gruppen"].get(g, {})))
+        kette.append(("nutzer", w["nutzer"].get(ziel, {})))
+    return kette
+
+
+def zusammen(schluessel, kette, klassen):
+    """Wirksamer Wert und Herkunft über eine Kette von Ebenen (oben zuerst)."""
+    e = KATALOG[schluessel]
+    wert, herkunft = copy.deepcopy(e["vorgabe"]), "firma"
+    for name, werte in kette:
+        if schluessel not in werte:
+            continue
+        neu = werte[schluessel]
+        if e["richtung"] == "fest":
+            continue
+        if e["richtung"] == "frei":
+            wert, herkunft = neu, name
+        elif e["richtung"] == "nur_firma":
+            if name == "firma":
+                wert, herkunft = neu, name
+        elif e["richtung"] == "aus_strenger":
+            vorher = wert
+            wert = wert and neu if name != "firma" else neu
+            if wert != vorher:
+                herkunft = name
+        elif e["richtung"] == "schnitt":
+            vorher = copy.deepcopy(wert)
+            if name == "firma":
+                wert = copy.deepcopy(neu)
+            else:
+                for k, liste in neu.items():
+                    if k in wert:
+                        wert[k] = [x for x in wert[k] if x in liste]
+                    else:
+                        wert[k] = list(liste)
+            if wert != vorher:
+                herkunft = name
+    if e["richtung"] == "schnitt":
+        wert = {k: wert[k] for k in klassen if k in wert}
+    return wert, herkunft
+
+
+def ist_lockerung(schluessel, oben, neu):
+    r = KATALOG[schluessel]["richtung"]
+    if r == "aus_strenger":
+        return neu is True and oben is False
+    if r == "schnitt":
+        return any(k in oben and any(x not in oben[k] for x in liste) for k, liste in neu.items())
+    return False
+
+
+def zeile_setzen(wer, ebene, ziel, schluessel, alt, neu, code):
+    # Form aus Vertrag 5, Abschnitt 6.6, gefüllt nach README Abschnitt 15.6.
+    def h(wert):
+        return kanonisch_hash({"schluessel": schluessel, "wert": wert})
+    return {"aktionsname": "regel.abgelehnt" if code else "regel.geaendert",
+            "alt": h(alt[1]) if alt[0] else None, "antrag": None, "code": code, "ebene": ebene,
+            "ergebnis": "abgelehnt" if code else "geaendert", "handelnd": wer,
+            "neu": h(neu), "pflicht": None, "ziel": ziel, "zweiter": None}
+
+
+def setzen(stand, wer, bereich, ebene, schluessel, wert):
+    ziel_art, ziel, platz = None, None, None
+    if ebene == "firma":
+        ziel_art, platz = "firma", stand["werte"]["firma"]
+    elif ebene == "nutzer":
+        ziel_art, ziel = "nutzer", wer
+        platz = stand["werte"]["nutzer"].get(wer)
+    elif isinstance(ebene, str) and GRUPPE_EBENE.match(ebene):
+        ziel_art, ziel = "gruppe", GRUPPE_EBENE.match(ebene).group(1)
+        platz = stand["werte"]["gruppen"].get(ziel)
+    alt = (True, platz[schluessel]) if isinstance(platz, dict) and isinstance(schluessel, str) and schluessel in platz else (False, None)
+    code = None
+    try:
+        if not isinstance(schluessel, str) or schluessel not in KATALOG:
+            raise Abgelehnt("ebenen.einstellung_unbekannt")
+        e = KATALOG[schluessel]
+        if bereich != e["bereich"]:
+            raise Abgelehnt("ebenen.bereich_falsch")
+        if ziel_art is None:
+            raise Abgelehnt("ebenen.ebene_unbekannt")
+        if ziel_art == "gruppe" and ziel not in stand["gruppen"]:
+            raise Abgelehnt("ebenen.gruppe_unbekannt")
+        if ziel_art not in e["ebenen"]:
+            raise Abgelehnt("ebenen.ebene_gesperrt")
+        if ziel_art in ("firma", "gruppe") and wer not in stand["admins"]:
+            raise Abgelehnt("ebenen.nicht_befugt")
+        # leseklassen kennt kein null, auch nicht als Rücknahme; „niemand liest“ ist die leere Liste (Abschnitt 15.11).
+        if (wert is not None or e["typ"][0] == "leseklassen") and not wert_gueltig(e, wert, stand["klassen"], stand["gruppen"]):
+            raise Abgelehnt("ebenen.wert_ungueltig")
+        if wert is not None and ziel_art != "firma":
+            kette = ebenen_fuer(stand, ziel_art, ziel)[:-1]
+            oben, _ = zusammen(schluessel, kette, stand["klassen"])
+            if ist_lockerung(schluessel, oben, wert):
+                raise Abgelehnt("ebenen.lockerung")
+        if wert is not None and schluessel in ("sitzung.harness", "sitzung.modell"):
+            liste = "harnesses" if schluessel == "sitzung.harness" else "modelle"
+            kette = ebenen_fuer(stand, ziel_art, ziel)
+            grenze, _ = zusammen(liste, kette, stand["klassen"])
+            if not any(k not in grenze or wert in grenze[k] for k in stand["klassen"]):
+                raise Abgelehnt("ebenen.ausser_grenze")
+    except Abgelehnt as a:
+        code = a.code
+    zeile = zeile_setzen(wer, ziel_art, ziel, schluessel, alt, wert, code)
+    if code is None:
+        if ziel_art == "firma":
+            ort = stand["werte"]["firma"]
+        elif ziel_art == "gruppe":
+            ort = stand["werte"]["gruppen"].setdefault(ziel, {})
+        else:
+            ort = stand["werte"]["nutzer"].setdefault(ziel, {})
+        if wert is None:
+            ort.pop(schluessel, None)
+        else:
+            ort[schluessel] = copy.deepcopy(wert)
+    return {"angenommen": code is None, "code": code, "zeile": zeile}
+
+
+def sicht(stand, wer):
+    admin = wer in stand["admins"]
+    kette = ebenen_fuer(stand, "nutzer", wer)
+    aus = {}
+    for s, e in KATALOG.items():
+        wert, herkunft = zusammen(s, kette, stand["klassen"])
+        if e["richtung"] == "fest":
+            aenderbar, grund = False, "fest"
+        elif admin or (e["bereich"] == "nutzer" and "nutzer" in e["ebenen"]):
+            aenderbar, grund = True, None
+        elif "nutzer" not in e["ebenen"]:
+            aenderbar, grund = False, "nur_admin"
+        elif e["richtung"] == "aus_strenger" and wert is False:
+            aenderbar, grund = False, "nur_admin"
+        else:
+            aenderbar, grund = True, "nur_strenger"
+        if e["typ"][0] == "leseklassen" and not admin:
+            # Nur die Einträge, die den Betrachter nennen: sein eigener und der seiner Gruppe. Keine Rangfolge (datentor P4).
+            g = gruppe_des(stand, wer)
+            wert = [x for x in wert if (x["ebene"], x["wer"]) in (("nutzer", wer), ("gruppe", g))]
+        aus[s] = {"wert": wert, "herkunft": herkunft, "aenderbar": aenderbar, "grund": grund}
+    return {"einstellungen": aus}
+
+
+def ausfuehren_setzen(fall):
+    stand = copy.deepcopy(fall["stand"])
+    erg = []
+    for s in fall["schritte"]:
+        if "sicht" in s:
+            erg.append(sicht(stand, s["sicht"]["wer"]))
+        else:
+            a = s["setzen"]
+            erg.append(setzen(stand, a["wer"], a["bereich"], a["ebene"], a["schluessel"], a["wert"]))
+    return {"schritte": erg}
+
+
+ADM, ADM2, U, V = ("ps_00000000000000000000000000000b01", "ps_00000000000000000000000000000b02",
+                   "ps_00000000000000000000000000000c01", "ps_00000000000000000000000000000c02")
+
+
+def stand_lauf(firma=None, gruppen=None, nutzer=None):
+    # admins: vom Dienst aus der Kontenliste der Firmenvorgabe abgeleitet (Abschnitt 15.2); nur Pseudonyme.
+    return {"klassen": ["oeffentlich", "intern", "kundendaten"], "admins": [ADM, ADM2],
+            "gruppen": {"g-eins": [U], "g-zwei": [V]},
+            "werte": {"firma": firma or {}, "gruppen": gruppen or {}, "nutzer": nutzer or {}}}
+
+
+def S(wer, bereich, ebene, schluessel, wert):
+    return {"setzen": {"wer": wer, "bereich": bereich, "ebene": ebene, "schluessel": schluessel, "wert": wert}}
+
+
+def SI(wer):
+    return {"sicht": {"wer": wer}}
+
+
+def feld(schluessel, teil):
+    return lambda e: e["einstellungen"][schluessel][teil]
+
+
+FAELLE_SETZEN = []
+
+
+def fall_s(name, anforderungen, beschreibung, stand, schritte, kern):
+    FAELLE_SETZEN.append({"name": name, "anforderungen": anforderungen, "beschreibung": beschreibung,
+                          "stand": stand, "schritte": schritte, "_kern": kern})
+
+
+GRENZEN = [{"harness": "copilot", "erlaubt": ["low", "medium", "high"]},
+           {"harness": "copilot", "klasse": "kundendaten", "erlaubt": ["low"]},
+           {"harness": "pi", "modell": "qwen3:8b", "erlaubt": ["off", "low", "medium"]}]
+
+fall_s("setzen-nutzer-angenommen", ["A26", "E3"],
+       "der Nutzer wählt den Farbsatz blauschwarz und die Schriftgröße 15, dann nimmt er die Schriftgröße zurück (wert null)",
+       stand_lauf(),
+       [S(U, "nutzer", "nutzer", "aussehen.farbsatz", "blauschwarz"), S(U, "nutzer", "nutzer", "terminal.schriftgroesse", 15),
+        S(U, "nutzer", "nutzer", "terminal.schriftgroesse", None), SI(U), SI(V)],
+       [(0, angenommen, True), (1, angenommen, True), (2, angenommen, True),
+        (3, feld("aussehen.farbsatz", "wert"), "blauschwarz"), (3, feld("aussehen.farbsatz", "herkunft"), "nutzer"),
+        (3, feld("terminal.schriftgroesse", "wert"), 13), (3, feld("terminal.schriftgroesse", "herkunft"), "firma"),
+        (4, feld("aussehen.farbsatz", "wert"), "grau")])
+fall_s("setzen-admin-angenommen", ["A27", "A30", "E1", "E2"],
+       "ein Admin setzt die Grenzen des Efforts und schaltet die Option an; ein Nutzer sieht beides mit Herkunft firma",
+       stand_lauf(),
+       [S(ADM, "admin", "firma", "effort.grenzen", GRENZEN),
+        S(ADM, "admin", "firma", "optionen.copilot_ohne_rueckfrage", True), SI(U), SI(ADM)],
+       [(0, angenommen, True), (1, angenommen, True),
+        (2, feld("effort.grenzen", "wert"), GRENZEN), (2, feld("effort.grenzen", "herkunft"), "firma"),
+        (2, feld("effort.grenzen", "aenderbar"), False), (2, feld("effort.grenzen", "grund"), "nur_admin"),
+        (2, feld("optionen.copilot_ohne_rueckfrage", "wert"), True),
+        (2, feld("optionen.copilot_ohne_rueckfrage", "grund"), "nur_strenger"),
+        (3, feld("effort.grenzen", "aenderbar"), True), (3, feld("effort.grenzen", "grund"), None)])
+fall_s("herkunft-und-aenderbar", ["A28", "E3"],
+       "Thema von der Firma, Schriftgröße von der Gruppe, Farbsatz vom Nutzer; harnesses von der Gruppe verschärft; die Option ist aus",
+       stand_lauf(firma={"aussehen.thema": "hell", "harnesses": {"intern": ["copilot", "pi"]}},
+                  gruppen={"g-eins": {"terminal.schriftgroesse": 15, "harnesses": {"intern": ["copilot"]}}},
+                  nutzer={U: {"aussehen.farbsatz": "blauschwarz"}}),
+       [SI(U), SI(V), SI(ADM)],
+       [(0, feld("aussehen.thema", "herkunft"), "firma"), (0, feld("aussehen.thema", "wert"), "hell"),
+        (0, feld("terminal.schriftgroesse", "herkunft"), "gruppe g-eins"), (0, feld("terminal.schriftgroesse", "wert"), 15),
+        (0, feld("aussehen.farbsatz", "herkunft"), "nutzer"),
+        (0, feld("harnesses", "wert"), {"intern": ["copilot"]}), (0, feld("harnesses", "herkunft"), "gruppe g-eins"),
+        (0, feld("harnesses", "aenderbar"), True), (0, feld("harnesses", "grund"), "nur_strenger"),
+        (0, feld("aussehen.thema", "aenderbar"), True), (0, feld("aussehen.thema", "grund"), None),
+        (0, feld("optionen.copilot_ohne_rueckfrage", "aenderbar"), False),
+        (0, feld("optionen.copilot_ohne_rueckfrage", "grund"), "nur_admin"),
+        (0, feld("effort.grenzen", "aenderbar"), False),
+        (1, feld("terminal.schriftgroesse", "herkunft"), "firma"), (1, feld("harnesses", "wert"), {"intern": ["copilot", "pi"]}),
+        (2, feld("optionen.copilot_ohne_rueckfrage", "aenderbar"), True)])
+fall_s("of9-nutzer-lockert", ["A26", "OF9"],
+       "die Firma erlaubt in intern nur copilot und lässt die Option aus; der Nutzer nimmt claude dazu und schaltet die Option an; danach verschärft er auf leer",
+       stand_lauf(firma={"harnesses": {"intern": ["copilot"]}}),
+       [S(U, "admin", "nutzer", "harnesses", {"intern": ["copilot", "claude"]}),
+        S(U, "admin", "nutzer", "optionen.copilot_ohne_rueckfrage", True),
+        S(U, "admin", "nutzer", "harnesses", {"intern": []}), SI(U)],
+       [(0, code, "ebenen.lockerung"), (1, code, "ebenen.lockerung"), (2, angenommen, True),
+        (3, feld("harnesses", "wert"), {"intern": []}), (3, feld("harnesses", "herkunft"), "nutzer"),
+        (3, feld("optionen.copilot_ohne_rueckfrage", "wert"), False)])
+fall_s("of9-nichtadmin-schreibt-adminwert", ["A27", "E1", "OF9"],
+       "ein Nutzer schreibt die Grenzen des Efforts und die Liste der Harnesses auf der Ebene der Firma und seiner Gruppe; der Stand bleibt",
+       stand_lauf(),
+       [S(U, "admin", "firma", "harnesses", {"intern": ["claude"]}),
+        S(U, "admin", "gruppe g-eins", "optionen.copilot_ohne_rueckfrage", False),
+        S(U, "nutzer", "firma", "aussehen.thema", "dunkel"), SI(U)],
+       [(0, code, "ebenen.nicht_befugt"), (1, code, "ebenen.nicht_befugt"), (2, code, "ebenen.nicht_befugt"),
+        (3, feld("harnesses", "wert"), {}), (3, feld("aussehen.thema", "wert"), "system")])
+fall_s("kein-admin-durch-angabe", ["A27", "E1", "B09"],
+       "ein Nutzer versucht, sich über einen Schlüssel admins oder rollen zum Admin zu machen; danach bleibt die Firmenebene gesperrt",
+       stand_lauf(),
+       [S(U, "admin", "firma", "admins", [U]), S(U, "nutzer", "nutzer", "rollen", {U: ["admin"]}),
+        S(U, "admin", "firma", "effort.grenzen", GRENZEN)],
+       [(0, code, "ebenen.einstellung_unbekannt"), (1, code, "ebenen.einstellung_unbekannt"),
+        (2, code, "ebenen.nicht_befugt")])
+fall_s("setzen-bereich-falsch", ["OF9"],
+       "das Thema gehört zum Bereich nutzer, die Option zum Bereich admin; ein falscher oder unbekannter Bereich wird abgelehnt",
+       stand_lauf(),
+       [S(U, "admin", "nutzer", "aussehen.thema", "hell"), S(ADM, "nutzer", "firma", "optionen.copilot_ohne_rueckfrage", True),
+        S(U, "system", "nutzer", "aussehen.thema", "hell")],
+       [(0, code, "ebenen.bereich_falsch"), (1, code, "ebenen.bereich_falsch"), (2, code, "ebenen.bereich_falsch")])
+fall_s("setzen-ebene-unbekannt", ["A26"],
+       "Ebenen außerhalb von firma, nutzer und gruppe <schluessel>",
+       stand_lauf(),
+       [S(ADM, "nutzer", "abteilung", "aussehen.thema", "hell"), S(ADM, "nutzer", "gruppe", "aussehen.thema", "hell"),
+        S(ADM, "nutzer", "gruppe G-Eins", "aussehen.thema", "hell")],
+       [(0, code, "ebenen.ebene_unbekannt"), (1, code, "ebenen.ebene_unbekannt"), (2, code, "ebenen.ebene_unbekannt")])
+fall_s("setzen-gruppe-unbekannt", ["A27"], "ein Admin schreibt in eine Gruppe, die die Firma nicht kennt",
+       stand_lauf(), [S(ADM, "nutzer", "gruppe g-drei", "aussehen.thema", "hell")],
+       [(0, code, "ebenen.gruppe_unbekannt")])
+fall_s("setzen-ebene-gesperrt", ["E2"],
+       "die Grenzen des Efforts setzt nur die Firma: auf der Gruppe und beim Nutzer abgelehnt, auch für einen Admin",
+       stand_lauf(),
+       [S(ADM, "admin", "gruppe g-eins", "effort.grenzen", GRENZEN), S(U, "admin", "nutzer", "effort.grenzen", GRENZEN)],
+       [(0, code, "ebenen.ebene_gesperrt"), (1, code, "ebenen.ebene_gesperrt")])
+fall_s("setzen-wert-ungueltig", ["OF3", "OF4", "E2"],
+       "Schriftgröße 40, Thema blau, ein Effort ultra in den Grenzen, ein Effort none für pi, eine unbekannte Klasse, die Option als Text",
+       stand_lauf(),
+       [S(U, "nutzer", "nutzer", "terminal.schriftgroesse", 40), S(U, "nutzer", "nutzer", "aussehen.thema", "blau"),
+        S(ADM, "admin", "firma", "effort.grenzen", [{"harness": "copilot", "erlaubt": ["ultra"]}]),
+        S(ADM, "admin", "firma", "effort.grenzen", [{"harness": "pi", "erlaubt": ["none"]}]),
+        S(ADM, "admin", "firma", "harnesses", {"geheim": ["pi"]}),
+        S(ADM, "admin", "firma", "optionen.copilot_ohne_rueckfrage", "an"),
+        S(U, "nutzer", "nutzer", "terminal.schriftgroesse", True)],
+       [(i, code, "ebenen.wert_ungueltig") for i in range(7)])
+fall_s("setzen-ausser-grenze", ["E2", "OF9"],
+       "die Firma erlaubt in jeder Klasse nur copilot und pi; der Nutzer wählt claude als Vorgabe, dann pi; ein Modell außerhalb der Liste",
+       stand_lauf(firma={"harnesses": {"oeffentlich": ["copilot", "pi"], "intern": ["copilot", "pi"], "kundendaten": ["pi"]},
+                         "modelle": {"oeffentlich": ["gpt-6-luna"], "intern": ["gpt-6-luna"], "kundendaten": ["qwen3:8b"]}}),
+       [S(U, "nutzer", "nutzer", "sitzung.harness", "claude"), S(U, "nutzer", "nutzer", "sitzung.harness", "pi"),
+        S(U, "nutzer", "nutzer", "sitzung.modell", "gpt-5.6-sol"), S(U, "nutzer", "nutzer", "sitzung.modell", "qwen3:8b"),
+        S(U, "nutzer", "nutzer", "sitzung.effort", "medium"), SI(U)],
+       [(0, code, "ebenen.ausser_grenze"), (1, angenommen, True), (2, code, "ebenen.ausser_grenze"), (3, angenommen, True),
+        (4, angenommen, True), (5, feld("sitzung.harness", "wert"), "pi"), (5, feld("sitzung.effort", "wert"), "medium")])
+fall_s("setzen-einstellung-unbekannt", ["OF9"], "ein Schlüssel, den der Katalog nicht kennt",
+       stand_lauf(), [S(U, "nutzer", "nutzer", "aussehen.schrift", "gross"), S(U, "nutzer", "nutzer", 7, "x")],
+       [(0, code, "ebenen.einstellung_unbekannt"), (1, code, "ebenen.einstellung_unbekannt")])
+fall_s("setzen-gruppe-verschaerft", ["A26", "A27"],
+       "ein Admin verschärft die Gruppe g-eins gegen die Firma und versucht dann eine Lockerung; Gleichstand ist keine Lockerung",
+       stand_lauf(firma={"modelle": {"intern": ["gpt-6-luna", "gpt-5.6-sol"]}, "optionen.copilot_ohne_rueckfrage": True}),
+       [S(ADM, "admin", "gruppe g-eins", "modelle", {"intern": ["gpt-6-luna"]}),
+        S(ADM, "admin", "gruppe g-eins", "modelle", {"intern": ["gpt-6-luna", "claude-sonnet-5.5"]}),
+        S(ADM, "admin", "gruppe g-eins", "optionen.copilot_ohne_rueckfrage", True),
+        S(U, "admin", "nutzer", "optionen.copilot_ohne_rueckfrage", False), SI(U), SI(V)],
+       [(0, angenommen, True), (1, code, "ebenen.lockerung"), (2, angenommen, True), (3, angenommen, True),
+        (4, feld("modelle", "wert"), {"intern": ["gpt-6-luna"]}), (4, feld("modelle", "herkunft"), "gruppe g-eins"),
+        (4, feld("optionen.copilot_ohne_rueckfrage", "wert"), False),
+        (4, feld("optionen.copilot_ohne_rueckfrage", "herkunft"), "nutzer"),
+        (5, feld("optionen.copilot_ohne_rueckfrage", "herkunft"), "firma"),
+        (5, feld("modelle", "wert"), {"intern": ["gpt-6-luna", "gpt-5.6-sol"]})])
+
+
+# Optionen nach A30 (Entscheid des Betreibers, 27.11.2026): je Option ein Fall „Nutzer setzt: abgelehnt“ und ein Fall
+# „Admin setzt: angenommen“; der Herstellerzugang ist fest aus und nicht umstellbar, auch für Admins.
+for _o in OPTIONEN:
+    if KATALOG[_o]["richtung"] == "fest":
+        continue
+    _kurz = _o.split(".", 1)[1].replace("_", "-")
+    _nutzer = "nutzer" in KATALOG[_o]["ebenen"]
+    fall_s(f"option-{_kurz}-nutzer-abgelehnt", ["A30", "A31", "A26"],
+           f"ein Nutzer schaltet {_o} auf der Firmenebene an (nicht befugt) und auf seiner Ebene an "
+           + ("(Lockerung)" if _nutzer else "(Ebene gesperrt)") + "; der Wert bleibt aus",
+           stand_lauf(),
+           [S(U, "admin", "firma", _o, True), S(U, "admin", "nutzer", _o, True), SI(U)],
+           [(0, code, "ebenen.nicht_befugt"), (1, code, "ebenen.lockerung" if _nutzer else "ebenen.ebene_gesperrt"),
+            (2, feld(_o, "wert"), False), (2, feld(_o, "herkunft"), "firma"),
+            (2, feld(_o, "aenderbar"), False), (2, feld(_o, "grund"), "nur_admin")])
+    fall_s(f"option-{_kurz}-admin-angenommen", ["A30", "A31", "A27"],
+           f"ein Admin schaltet {_o} für die Firma an; der Nutzer sieht an mit Herkunft firma"
+           + ("; er schaltet für sich wieder aus (strenger)" if _nutzer else "; ändern darf er ihn nicht"),
+           stand_lauf(),
+           [S(ADM, "admin", "firma", _o, True), SI(U), SI(ADM)]
+           + ([S(U, "admin", "nutzer", _o, False), SI(U)] if _nutzer else [S(U, "admin", "nutzer", _o, False)]),
+           [(0, angenommen, True), (1, feld(_o, "wert"), True), (1, feld(_o, "herkunft"), "firma"),
+            (1, feld(_o, "aenderbar"), _nutzer), (1, feld(_o, "grund"), "nur_strenger" if _nutzer else "nur_admin"),
+            (2, feld(_o, "aenderbar"), True), (2, feld(_o, "grund"), None)]
+           + ([(3, angenommen, True), (4, feld(_o, "wert"), False), (4, feld(_o, "herkunft"), "nutzer")] if _nutzer
+              else [(3, code, "ebenen.ebene_gesperrt")]))
+
+_H = "optionen.herstellerzugang"
+fall_s("option-herstellerzugang-fest", ["A11", "A30", "A31"],
+       "der Herstellerzugang ist im Pilot fest aus: ein Admin setzt ihn auf Firma oder Gruppe an oder aus, ein Nutzer auf seiner Ebene; "
+       "alles abgelehnt, auch ein Wert, den der Stand schon trägt, wirkt nicht",
+       stand_lauf(firma={_H: True}),
+       [S(ADM, "admin", "firma", _H, True), S(ADM, "admin", "firma", _H, False), S(ADM, "admin", "gruppe g-eins", _H, False),
+        S(U, "admin", "nutzer", _H, True), S(ADM, "admin", "firma", _H, None), SI(ADM), SI(U)],
+       [(i, code, "ebenen.ebene_gesperrt") for i in range(5)]
+       + [(5, feld(_H, "wert"), False), (5, feld(_H, "herkunft"), "firma"), (5, feld(_H, "aenderbar"), False),
+          (5, feld(_H, "grund"), "fest"), (6, feld(_H, "aenderbar"), False), (6, feld(_H, "grund"), "fest")])
+
+# Admin-Feld leseklassen (Projektentscheid, 27.11.2026; README Abschnitt 15.11). Form wie rust/spec/datentor/person/VERTRAG.md
+# Abschnitt 3. Die Wirkfälle (F1, F2, P2) stehen in rust/spec/datentor/person/sichtbar/ und werden hier nicht gedoppelt.
+_L = "leseklassen"
+W = "ps_00000000000000000000000000000c03"
+
+
+def LE(ebene, wer, klasse):
+    return {"ebene": ebene, "wer": wer, "klasse": klasse}
+
+
+LISTE = [LE("gruppe", "g-eins", "intern"), LE("nutzer", U, "oeffentlich"), LE("gruppe", "g-zwei", "kundendaten")]
+
+fall_s("leseklassen-admin-setzt", ["A05", "A26", "A27"],
+       "ein Admin setzt die Leseklassen für zwei Gruppen und einen Nutzer auf der Firmenebene; die Admin-Sicht zeigt die ganze Liste",
+       stand_lauf(),
+       [S(ADM, "admin", "firma", _L, LISTE), SI(ADM)],
+       [(0, angenommen, True), (1, feld(_L, "wert"), LISTE), (1, feld(_L, "herkunft"), "firma"),
+        (1, feld(_L, "aenderbar"), True), (1, feld(_L, "grund"), None)])
+fall_s("leseklassen-nutzer-setzt", ["A05", "A27"],
+       "ein Nutzer setzt die Leseklassen auf der Firmenebene (nicht befugt), für seine Gruppe und für sich (Ebene gesperrt); "
+       "die Liste bleibt leer, also liest er nichts",
+       stand_lauf(),
+       [S(U, "admin", "firma", _L, [LE("nutzer", U, "kundendaten")]),
+        S(U, "admin", "gruppe g-eins", _L, [LE("nutzer", U, "kundendaten")]),
+        S(U, "admin", "nutzer", _L, [LE("nutzer", U, "kundendaten")]), SI(U)],
+       [(0, code, "ebenen.nicht_befugt"), (1, code, "ebenen.ebene_gesperrt"), (2, code, "ebenen.ebene_gesperrt"),
+        (3, feld(_L, "wert"), []), (3, feld(_L, "aenderbar"), False), (3, feld(_L, "grund"), "nur_admin")])
+fall_s("leseklassen-klasse-unbekannt", ["A05", "D14"],
+       "eine Klasse, die nicht byte-genau in klassen steht: geheim, Intern und intern mit Leerzeichen",
+       stand_lauf(),
+       [S(ADM, "admin", "firma", _L, [LE("gruppe", "g-eins", "geheim")]),
+        S(ADM, "admin", "firma", _L, [LE("gruppe", "g-eins", "Intern")]),
+        S(ADM, "admin", "firma", _L, [LE("nutzer", U, "intern ")]), SI(ADM)],
+       [(0, code, "ebenen.wert_ungueltig"), (1, code, "ebenen.wert_ungueltig"), (2, code, "ebenen.wert_ungueltig"),
+        (3, feld(_L, "wert"), [])])
+fall_s("leseklassen-paar-doppelt", ["A05", "A139"],
+       "dasselbe Paar aus ebene und wer zweimal, mit anderer und mit gleicher Klasse; gleiches wer auf verschiedener Ebene ist kein Doppel",
+       stand_lauf(),
+       [S(ADM, "admin", "firma", _L, [LE("nutzer", U, "intern"), LE("nutzer", U, "oeffentlich")]),
+        S(ADM, "admin", "firma", _L, [LE("gruppe", "g-eins", "intern"), LE("gruppe", "g-eins", "intern")]),
+        S(ADM, "admin", "firma", _L, [LE("gruppe", "g-eins", "intern"), LE("gruppe", "g-zwei", "intern")])],
+       [(0, code, "ebenen.wert_ungueltig"), (1, code, "ebenen.wert_ungueltig"), (2, angenommen, True)])
+fall_s("leseklassen-feld-unbekannt", ["A05"],
+       "ein Eintrag mit dem unbekannten Feld kunden (Frage F4), ein Eintrag ohne klasse, die Liste als Objekt",
+       stand_lauf(),
+       [S(ADM, "admin", "firma", _L, [dict(LE("gruppe", "g-eins", "intern"), kunden=["k-a"])]),
+        S(ADM, "admin", "firma", _L, [{"ebene": "gruppe", "wer": "g-eins"}]),
+        S(ADM, "admin", "firma", _L, {"leseklassen": [LE("gruppe", "g-eins", "intern")]})],
+       [(i, code, "ebenen.wert_ungueltig") for i in range(3)])
+fall_s("leseklassen-null", ["A05"],
+       "null ist für leseklassen kein Wert und keine Rücknahme, auch nicht als klasse oder wer; der gesetzte Wert bleibt",
+       stand_lauf(firma={_L: [LE("gruppe", "g-eins", "intern")]}),
+       [S(ADM, "admin", "firma", _L, None), S(ADM, "admin", "firma", _L, [LE("gruppe", "g-eins", None)]),
+        S(ADM, "admin", "firma", _L, [LE("nutzer", None, "intern")]), S(ADM, "admin", "firma", _L, [None]), SI(ADM)],
+       [(i, code, "ebenen.wert_ungueltig") for i in range(4)]
+       + [(4, feld(_L, "wert"), [LE("gruppe", "g-eins", "intern")])])
+fall_s("leseklassen-form-ungueltig", ["A05", "A12"],
+       "ein Konto statt eines Pseudonyms (der Dienst ordnet vorher zu), eine Gruppe, die die Firma nicht kennt, "
+       "und eine Ebene rolle; alles abgelehnt",
+       stand_lauf(),
+       [S(ADM, "admin", "firma", _L, [LE("nutzer", "konto-beispiel", "intern")]),
+        S(ADM, "admin", "firma", _L, [LE("gruppe", "g-drei", "intern")]),
+        S(ADM, "admin", "firma", _L, [LE("rolle", "g-eins", "intern")])],
+       [(i, code, "ebenen.wert_ungueltig") for i in range(3)])
+_VIELE = [LE("nutzer", "ps_%032x" % (0x100000 + i), "oeffentlich") for i in range(LESE_MAX + 1)]
+fall_s("leseklassen-4097", ["A05"],
+       "4096 Einträge sind die Grenze und werden angenommen; 4097 Einträge sind ungültig, und der Stand bleibt bei 4096",
+       stand_lauf(),
+       [S(ADM, "admin", "firma", _L, _VIELE[:LESE_MAX]), S(ADM, "admin", "firma", _L, _VIELE)],
+       [(0, angenommen, True), (1, code, "ebenen.wert_ungueltig")])
+fall_s("leseklassen-sicht-nutzer", ["A05", "A12", "E3"],
+       "die Sicht zeigt dem Nutzer nur die Einträge, die ihn nennen: seinen eigenen und den seiner Gruppe, unverändert und ohne Rangfolge; "
+       "nicht änderbar, Grund nur_admin. Der Admin sieht die ganze Liste",
+       stand_lauf(firma={_L: [LE("gruppe", "g-eins", "kundendaten"), LE("nutzer", W, "kundendaten"), LE("nutzer", U, "oeffentlich"),
+                              LE("gruppe", "g-zwei", "intern")]}),
+       [SI(U), SI(V), SI(W), SI(ADM)],
+       [(0, feld(_L, "wert"), [LE("gruppe", "g-eins", "kundendaten"), LE("nutzer", U, "oeffentlich")]),
+        (0, feld(_L, "herkunft"), "firma"), (0, feld(_L, "aenderbar"), False), (0, feld(_L, "grund"), "nur_admin"),
+        (1, feld(_L, "wert"), [LE("gruppe", "g-zwei", "intern")]),
+        (2, feld(_L, "wert"), [LE("nutzer", W, "kundendaten")]),
+        (3, feld(_L, "aenderbar"), True), (3, lambda e: len(e["einstellungen"][_L]["wert"]), 4)])
+
+
+def bauen_setzen():
+    fehler, ausgabe = [], []
+    for f in FAELLE_SETZEN:
+        erg = ausfuehren_setzen(f)
+        for i, prob, soll in f["_kern"]:
+            try:
+                ist = prob(erg["schritte"][i])
+            except (KeyError, TypeError, IndexError) as e:
+                ist = f"<{type(e).__name__}: {e}>"
+            if ist != soll:
+                fehler.append(f"{f['name']} Schritt {i}: Referenz {ist!r}, Tabelle {soll!r}")
+        ausgabe.append((f["name"], {k: v for k, v in f.items() if not k.startswith("_")}, erg))
+    return fehler, ausgabe
+
+
+
 def main():
     fehler = []
     ausgabe = []
@@ -725,17 +1347,25 @@ def main():
                 fehler.append(f"{f['name']} Schritt {i}: Referenz {ist!r}, Tabelle {soll!r}")
         sichtbar = {k: v for k, v in f.items() if not k.startswith("_")}
         ausgabe.append((f["name"], sichtbar, erg))
+    fehler_s, ausgabe_s = bauen_setzen()
+    fehler += fehler_s
     if fehler:
         for z in fehler:
             print("FEHLER", z)
         return 1
+    for ordner in ("faelle-setzen", "erwartet-setzen"):
+        shutil.rmtree(HIER / ordner, ignore_errors=True)
+        (HIER / ordner).mkdir()
+    for name, sichtbar, erg in ausgabe_s:
+        (HIER / "faelle-setzen" / f"{name}.json").write_text(json.dumps(sichtbar, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        (HIER / "erwartet-setzen" / f"{name}.json").write_text(json.dumps(erg, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     for ordner in ("faelle", "erwartet"):
         shutil.rmtree(HIER / ordner, ignore_errors=True)
         (HIER / ordner).mkdir()
     for name, sichtbar, erg in ausgabe:
         (HIER / "faelle" / f"{name}.json").write_text(json.dumps(sichtbar, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
         (HIER / "erwartet" / f"{name}.json").write_text(json.dumps(erg, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(f"{len(ausgabe)} Fälle geschrieben, Kernwerte stimmen")
+    print(f"{len(ausgabe)} Fälle und {len(ausgabe_s)} Fälle zu setzen und sicht geschrieben, Kernwerte stimmen")
     return 0
 
 

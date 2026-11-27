@@ -1,5 +1,8 @@
 # Vertrag 2: Einstellungsdatei (Fassung 1 und Fassung 2)
 
+Nachtrag 26.11.2026: Block `effort` in Fassung 2 mit den Grenzen der Admins und den Effort-Werten je Harness (Abschnitt „Fassung 2:
+Block `effort`“; Entscheid des Betreibers E2).
+
 Stand 20.11.2026, Durchstich Schritt 1; Fassung 2 als Nachtrag vom 20.11. (Abschnitt „Fassung 2: Ziel, Modell
 und Netzziele“). Das Produkt schreibt die Datei. Der Kern-Dienst, das Programm „Lauf starten“,
 die Wissenssuche und das Tor (`darf`) lesen sie. Es gibt nur diese eine Datei; das Tor der Suche und der Start lesen
@@ -18,7 +21,8 @@ Mutanten folgen mit dem Bau.
 | `erststart.json` | das Erststart-Profil für den ersten echten Start mit Token (Fassung 2, Abschnitt „Erststart-Profil“) |
 | `faelle/<name>.json` | Eingabe: `beschreibung` und die Datei als `text` (UTF-8) oder `b64` (rohe Bytes) |
 | `erwartet/<name>.json` | `{"gueltig": true}` oder `{"gueltig": false, "code": "einst.<code>"}` |
-| `bau-faelle.py` | erzeugt `faelle/`, `erwartet/`, `vorfuehrung.json` und `erststart.json` |
+| `faelle-ausstehend/<name>.json`, `erwartet-ausstehend/<name>.json` | Fälle für den Block `effort` (Nachtrag 26.11.2026); kein Crate liest sie, bis die Regel gebaut ist |
+| `bau-faelle.py` | erzeugt `faelle/`, `erwartet/`, `faelle-ausstehend/`, `erwartet-ausstehend/`, `vorfuehrung.json` und `erststart.json` |
 | `pruefen.py` | prüft Paarung, Größe, JSON-Lesen und Schema gegen die Fälle |
 
 ## Form
@@ -379,6 +383,64 @@ Erwartung eines bestehenden Falls ändert sich.
 - Die Vorführdatei (`vorfuehrung.json`) setzt alle drei Werte.
 - Fälle: `gueltig-harness*`, `gueltig-vorfuehrung-mit-werkzeugen`, `harness-*`.
 
+## Fassung 2: Block `effort` (Nachtrag 26.11.2026, Entscheid des Betreibers E2)
+
+Der Block trägt die **Grenzen des Efforts**, die die Admins setzen (E2, `rust/spec/seite/OBERFLAECHE.md` OF9 Punkt 4 und L10). Er ist
+**optional** und steht nur in Fassung 2. In Fassung 1 ist `effort` ein unbekannter Schlüssel. Den Effort einer Sitzung wählt der
+Nutzer im Start (Vertrag 1, Feld `effort`); seine Vorgabe ist eine Einstellung des Nutzers (`rust/spec/regelebenen/README.md`,
+Abschnitt 15.1, `sitzung.effort`) und steht nicht in dieser Datei.
+
+```json
+"effort": {"grenzen": [{"harness": "copilot", "erlaubt": ["low", "medium", "high"]},
+                       {"harness": "copilot", "klasse": "intern", "modell": "gpt-6-luna", "erlaubt": ["low", "medium"]},
+                       {"harness": "pi", "klasse": "kundendaten", "erlaubt": ["off", "low"]}]}
+```
+
+| Feld | Form | Bedeutung |
+|---|---|---|
+| `effort` | Objekt, geschlossen, nur der Schlüssel `grenzen` | Grenzen der Admins |
+| `effort.grenzen` | Liste, Pflicht im Block, 0 bis 64 Einträge | je Eintrag eine Grenze |
+| Eintrag `harness` | Kennung, Pflicht, aus der Harness-Tabelle von Vertrag 1 (`claude`, `copilot`, `pi`) | für welchen Harness |
+| Eintrag `klasse` | Kennung, optional, aus `klassen` | gilt nur für Routen dieser Klasse; fehlt sie, für jede Klasse |
+| Eintrag `modell` | Text nach der Regel von `modell` (Vertrag 1), optional | gilt nur für dieses Modell im Start; fehlt es, für jedes |
+| Eintrag `erlaubt` | Liste, Pflicht, 1 bis 7 Werte ohne Doppel | die erlaubten Werte; jeder muss ein Wert des Harness sein |
+
+**Werte je Harness** (gemessen am 26.11.2026 auf dem Entwicklungsrechner mit `<programm> --help`; die Versionen sind neuer als die
+in Vertrag 1 genannten, siehe OPEN 10):
+
+| Harness | Option im Startbefehl | Werte in dieser Reihenfolge | Quelle |
+|---|---|---|---|
+| `claude` | `--effort <wert>` | `low`, `medium`, `high`, `xhigh`, `max` | `claude --help`, Version 2.1.332 |
+| `copilot` | `--reasoning-effort <wert>` | `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` | `copilot --help`, Version 1.0.116; „supported levels depend on the model“ |
+| `pi` | `--thinking <wert>` | `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` | `pi --help`, Version 1.6.1 |
+
+Die Werte werden wörtlich verglichen. Es gibt keine gemeinsame Liste: `none` gilt nur für `copilot`, `off` nur für `pi`.
+
+**Erlaubte Efforts eines Starts.** Für Harness `h`, Route `r` mit Klasse `k` und Modell `m` des Starts gilt:
+- Passend ist jeder Eintrag mit `harness` gleich `h`, ohne `klasse` oder mit `klasse` gleich `k`, ohne `modell` oder mit `modell`
+  gleich `m`. Bei `modell` gleich `auto` passt nur ein Eintrag ohne `modell` oder mit `modell` `auto`.
+- Gibt es keinen passenden Eintrag, ist **kein Effort wählbar**. Fehlt der Block, gilt das für jeden Harness (fail closed). Der Start
+  bleibt ohne Effort gültig; der Harness nimmt dann seine eigene Vorgabe (Vertrag 1).
+- Sonst sind die Werte des Harness erlaubt, die in **jedem** passenden Eintrag stehen, in der Reihenfolge der Tabelle oben.
+  Jeder weitere Eintrag kann die Wahl also nur verengen.
+
+Grund für fail closed: Ohne Entscheid der Admins wählt niemand einen teuren Effort. Jede bisherige Datei bleibt gültig, und jeder
+bisherige Start (ohne `effort`) ebenso.
+
+- Codes in den vorhandenen Stufen: `einst.schluessel_unbekannt` (3), `einst.schluessel_fehlt` (5, `grenzen`, `harness` oder
+  `erlaubt` fehlt), `einst.typ_falsch` (6), `einst.anzahl` (8, `erlaubt` leer oder mit mehr als 7 Werten, mehr als 64 Einträge),
+  `einst.kennung_form` (9, `harness` oder `klasse`), `einst.kennung_doppelt` (10, ein Wert zweimal, oder zwei Einträge mit demselben
+  `harness`, derselben `klasse` und demselben `modell`), `einst.klasse_unbekannt` (12) und `einst.modell_form` (23).
+- Neu stehen nach allen anderen Stufen: 35 `einst.effort_harness` (ein `harness` steht nicht in der Harness-Tabelle) und 36
+  `einst.effort_wert` (ein Wert in `erlaubt` ist kein Wert dieses Harness).
+- Wer den Block schreibt: Die Admins setzen `effort.grenzen` als Einstellung im Lauf auf der Ebene der Firma
+  (`rust/spec/regelebenen/README.md`, Abschnitt 15). Der Lader der Ebenen übernimmt den Wert unverändert in diese Datei. Bis er gebaut
+  ist, trägt die Datei der Firma den Block selbst (OPEN 11).
+- Typisierte Sicht (Crate `einstellungen`, noch nicht gebaut): `Einstellungen::efforts(harness, route, modell) -> Vec<&str>` liefert die
+  erlaubten Werte nach der Regel oben.
+- Fälle: `faelle-ausstehend/` (`gueltig-effort*`, `gueltig-ohne-effort`, `effort-*`). Sie ziehen nach `faelle/` um, wenn das Crate den
+  Block liest.
+
 ## Fehlercodes und Prüfreihenfolge
 
 Die Prüfung meldet genau einen Code: den der ersten verletzten Stufe in dieser Reihenfolge. Innerhalb einer Stufe ist
@@ -421,6 +483,8 @@ sie unverändert an die Ansicht durch.
 | 32 | `einst.frist_bereich` | Fassung 2: `frist_ms` oder `einloesefrist_ms` eines Servers im Block `mcp` ist eine Ganzzahl außerhalb von 1 bis 86400000 | `Frist ausserhalb des Bereichs` |
 | 33 | `einst.mcp_doppelt` | Fassung 2: ein Werkzeugname steht in `lesen` und in `schreiben` desselben Servers | `Werkzeug in lesen und schreiben` |
 | 34 | `einst.werkzeug_wert` | Fassung 2: ein Wert in `harness.copilot.werkzeuge_ohne_rueckfrage` ist ein Text, aber nicht `shell`, `write` oder `such-mcp` | `Werkzeugwert nicht erlaubt` |
+| 35 | `einst.effort_harness` | Fassung 2 (Nachtrag 26.11.2026): `harness` einer Grenze in `effort.grenzen` steht nicht in der Harness-Tabelle von Vertrag 1 | `Harness der Effort-Grenze unbekannt` |
+| 36 | `einst.effort_wert` | Fassung 2 (Nachtrag 26.11.2026): ein Wert in `erlaubt` einer Grenze ist kein Effort-Wert dieses Harness | `Effort-Wert nicht erlaubt` |
 
 Dazu kommt ein Code, den nur das Programm „Lauf starten“ meldet, weil er den Dateizugriff betrifft:
 `lauf.einst_unlesbar` (Datei fehlt oder ist nicht lesbar). Siehe Vertrag 1, Abschnitt „Aufruf“.
@@ -430,7 +494,7 @@ Dazu kommt ein Code, den nur das Programm „Lauf starten“ meldet, weil er den
 Eine Bibliothek (künftig Crate `einstellungen` unter `rust/crates/einstellungen`) liest und prüft die Datei. Dieser
 Vertrag beschreibt nur die Schnittstelle; gebaut wird sie in einer späteren Fassung.
 
-- `lesen(bytes) -> Result<Einstellungen, Fehler>`: führt alle Stufen 1 bis 34 aus. Eine Leserin, die nur Fassung 1
+- `lesen(bytes) -> Result<Einstellungen, Fehler>`: führt alle Stufen 1 bis 34 aus (mit dem Block `effort` 1 bis 36). Eine Leserin, die nur Fassung 1
   kennt, führt die Stufen 1 bis 17 aus und meldet für `fassung: 2` den Code `einst.fassung_unbekannt`.
 - `Fehler::code() -> &'static str` gibt den Code aus der Tabelle; `Fehler::grund() -> &'static str` den festen
   Grund aus der Tabelle (ASCII, ohne Pfad und ohne Inhalt der Datei).
@@ -499,6 +563,25 @@ python3 -I rust/spec/einstellungen/bau-faelle.py            # Fälle neu erzeuge
    eigenen Konfiguration (Vertrag 1, `rust/spec/modellweg/`).
 9. **Zugriffsart ohne Angabe: entschieden.** `zugriff` ist Pflicht (A141, fail closed; Projektentscheid, 20.11.2026).
    Die frühere Vorgabe `verbinden` entfällt.
+10. **Neuere Versionen der Harnesses (Nachtrag 26.11.2026).** Die Werte des Blocks `effort` sind mit claude 2.1.332, copilot 1.0.116 und
+    pi 1.6.1 gemessen. Vertrag 1 nennt copilot 1.0.88 und pi 1.5.2. Ob die älteren Versionen dieselben Optionen kennen, ist nicht
+    gemessen. Empfehlung: das Paket legt die Versionen fest, und der Bau misst die Optionen dort neu.
+11. **Lader der Ebenen und Block `effort`.** Wer den Wert aus `regelebenen` in diese Datei schreibt, legt der Bau des Laders fest.
+    Empfehlung: der Lader, mit demselben Lesen wie heute; der Dienst liest weiter nur `lauf.einstellungen`.
+12. **Optionen des Pilots (Nachtrag 27.11.2026, Entscheid des Betreibers).** Der Katalog von `regelebenen` (Abschnitt 15.1.1) nennt
+    sechs Optionen mit Vorgabe „aus“. In diese Datei wirken heute nur zwei, beide hergeleitet: `optionen.copilot_ohne_rueckfrage` auf
+    `harness.copilot.werkzeuge_ohne_rueckfrage` und `optionen.copilot_telemetrie` auf den Eintrag mit Host
+    `telemetry.individual.githubcopilot.com` in `routen[].netzziele`. Für die übrigen vier hat Vertrag 2 kein Feld; es folgt mit dem
+    Bau (`regelebenen` OPEN 17, 18, 20 und 21). Empfehlung: dieselbe Lösung wie OPEN 11.
+13. **Feld `leseklassen` (Nachtrag 27.11.2026, Projektentscheid, 27.11.2026).** Die Admins setzen die Leseklasse je Person oder Gruppe
+    als Einstellung im Lauf (`rust/spec/regelebenen/README.md`, Abschnitt 15.11). Diese Datei hat das Feld noch nicht. Vorschlag für
+    eine neue Fassung: ein optionales Feld `leseklassen` in der Form von `rust/spec/datentor/person/VERTRAG.md`, Abschnitt 3, mit
+    höchstens 4096 Einträgen. Bei `ebene: nutzer` steht in `wer` das Pseudonym, nie ein Konto; die Zuordnung macht der Dienst vorher.
+    Ladefehler in den vorhandenen Stufen: `einst.schluessel_unbekannt` (3, unbekanntes Feld eines Eintrags), `einst.schluessel_fehlt`
+    (5), `einst.typ_falsch` (6, auch `null`), `einst.anzahl` (8, mehr als 4096), `einst.kennung_form` (9, `wer` einer Gruppe),
+    `einst.kennung_doppelt` (10, dasselbe Paar aus `ebene` und `wer`) und `einst.klasse_unbekannt` (12, byte-genau). Neu wären ein
+    Code für eine Ebene außer `nutzer` und `gruppe` und einer für ein `wer` ohne Pseudonymform. Fehlt das Feld, liest niemand
+    (datentor P2). Fälle folgen mit der Fassung, wie beim Block `effort` in `faelle-ausstehend/`.
 
 <!-- vom Bauvorgang angefuegt -->
 > Hinweis: Dieser Text nennt Werkzeuge, die in diesem Klon nicht liegen: `pi`.

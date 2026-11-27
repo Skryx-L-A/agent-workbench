@@ -1,0 +1,71 @@
+{
+ "name": "of9-nichtadmin-schreibt-adminwert",
+ "anforderungen": [
+  "A27",
+  "E1",
+  "OF9"
+ ],
+ "beschreibung": "ein Nutzer schreibt die Grenzen des Efforts und die Liste der Harnesses auf der Ebene der Firma und seiner Gruppe; der Stand bleibt",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "harnesses",
+    "wert": {
+     "intern": [
+      "claude"
+     ]
+    }
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "gruppe g-eins",
+    "schluessel": "optionen.copilot_ohne_rueckfrage",
+    "wert": false
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "firma",
+    "schluessel": "aussehen.thema",
+    "wert": "dunkel"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  }
+ ]
+}

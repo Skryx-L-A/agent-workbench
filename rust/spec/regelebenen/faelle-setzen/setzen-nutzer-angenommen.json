@@ -1,0 +1,71 @@
+{
+ "name": "setzen-nutzer-angenommen",
+ "anforderungen": [
+  "A26",
+  "E3"
+ ],
+ "beschreibung": "der Nutzer wählt den Farbsatz blauschwarz und die Schriftgröße 15, dann nimmt er die Schriftgröße zurück (wert null)",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {},
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "aussehen.farbsatz",
+    "wert": "blauschwarz"
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "terminal.schriftgroesse",
+    "wert": 15
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "nutzer",
+    "ebene": "nutzer",
+    "schluessel": "terminal.schriftgroesse",
+    "wert": null
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c02"
+   }
+  }
+ ]
+}

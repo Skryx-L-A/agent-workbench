@@ -7,6 +7,7 @@ Jeder Fall trägt die Datei als Text (`text`) oder als Bytes in Base64 (`b64`).
 import base64
 import copy
 import json
+import re
 from pathlib import Path
 
 HIER = Path(__file__).resolve().parent
@@ -648,6 +649,159 @@ fall("harness-doppelter-schluessel", "harness.copilot zweimal im Objekt harness 
          '"copilot": {', '"copilot": {"werkzeuge_ohne_rueckfrage": []},\n  "copilot": {', 1), "einst.json_ungueltig")
 
 
+# Block effort (Nachtrag 26.11.2026, Fassung 2): Grenzen der Admins je Harness, Klasse und Modell. Das Crate kennt den Block
+# noch nicht; die Fälle stehen darum in faelle-ausstehend/ und erwartet-ausstehend/ (README, Abschnitt „Block effort“).
+# Werte je Harness, wörtlich aus der Hilfe der Programme (gemessen 26.11.2026: claude 2.1.332 --effort,
+# copilot 1.0.116 --reasoning-effort, pi 1.6.1 --thinking).
+EFFORTS = {
+    "claude": ("low", "medium", "high", "xhigh", "max"),
+    "copilot": ("none", "minimal", "low", "medium", "high", "xhigh", "max"),
+    "pi": ("off", "minimal", "low", "medium", "high", "xhigh", "max"),
+}
+KENNUNG_E = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
+MODELL_E = re.compile(r"^[A-Za-z0-9._:/@+-]{1,128}$")
+
+
+def effort_code(datei):
+    """Referenz der Stufen für den Block effort; die übrige Datei ist in diesen Fällen gültig."""
+    if datei.get("fassung") != 2 and "effort" in datei:
+        return "einst.schluessel_unbekannt"
+    if "effort" not in datei:
+        return None
+    b = datei["effort"]
+    stufen = []  # (stufe, code)
+    if not isinstance(b, dict):
+        return "einst.typ_falsch"
+    if set(b) - {"grenzen"}:
+        stufen.append((3, "einst.schluessel_unbekannt"))
+    if "grenzen" not in b:
+        stufen.append((5, "einst.schluessel_fehlt"))
+        return min(stufen)[1]
+    g = b["grenzen"]
+    if not isinstance(g, list):
+        stufen.append((6, "einst.typ_falsch"))
+        return min(stufen)[1]
+    if len(g) > 64:
+        stufen.append((8, "einst.anzahl"))
+    gesehen = set()
+    klassen = datei["klassen"]
+    for e in g:
+        if not isinstance(e, dict):
+            stufen.append((6, "einst.typ_falsch"))
+            continue
+        if set(e) - {"harness", "klasse", "modell", "erlaubt"}:
+            stufen.append((3, "einst.schluessel_unbekannt"))
+        if not {"harness", "erlaubt"} <= set(e):
+            stufen.append((5, "einst.schluessel_fehlt"))
+            continue
+        if not isinstance(e["harness"], str) or ("klasse" in e and not isinstance(e["klasse"], str)) \
+                or ("modell" in e and not isinstance(e["modell"], str)) or not isinstance(e["erlaubt"], list) \
+                or any(not isinstance(x, str) for x in e["erlaubt"]):
+            stufen.append((6, "einst.typ_falsch"))
+            continue
+        if not 1 <= len(e["erlaubt"]) <= 7:
+            stufen.append((8, "einst.anzahl"))
+        if not KENNUNG_E.match(e["harness"]) or ("klasse" in e and not KENNUNG_E.match(e["klasse"])):
+            stufen.append((9, "einst.kennung_form"))
+        if len(set(e["erlaubt"])) != len(e["erlaubt"]):
+            stufen.append((10, "einst.kennung_doppelt"))
+        schl = (e["harness"], e.get("klasse"), e.get("modell"))
+        if schl in gesehen:
+            stufen.append((10, "einst.kennung_doppelt"))
+        gesehen.add(schl)
+        if "klasse" in e and e["klasse"] not in klassen:
+            stufen.append((12, "einst.klasse_unbekannt"))
+        if "modell" in e and not MODELL_E.match(e["modell"]):
+            stufen.append((23, "einst.modell_form"))
+        if e["harness"] not in EFFORTS:
+            stufen.append((35, "einst.effort_harness"))
+        elif any(x not in EFFORTS[e["harness"]] for x in e["erlaubt"]):
+            stufen.append((36, "einst.effort_wert"))
+    # Stufe 34 (harness.copilot.werkzeuge_ohne_rueckfrage) steht vor dem Effort; nur für den Fall der Reihenfolge.
+    werkzeuge = datei.get("harness", {}).get("copilot", {}).get("werkzeuge_ohne_rueckfrage", [])
+    if any(w not in ("shell", "write", "such-mcp") for w in werkzeuge):
+        stufen.append((34, "einst.werkzeug_wert"))
+    return min(stufen)[1] if stufen else None
+
+
+def erlaubte_efforts(datei, harness, route, modell):
+    """Die Efforts, die ein Start mit diesem Harness, dieser Route und diesem Modell wählen darf (Reihenfolge der Hilfe)."""
+    klasse = next(r["klasse"] for r in datei["routen"] if r["schluessel"] == route)
+    passend = [e for e in datei.get("effort", {}).get("grenzen", []) if e["harness"] == harness
+               and e.get("klasse", klasse) == klasse and e.get("modell", modell) == modell]
+    if not passend:
+        return []
+    return [w for w in EFFORTS[harness] if all(w in e["erlaubt"] for e in passend)]
+
+
+AUSSTEHEND = []
+
+
+def ausstehend(name, beschreibung, datei, soll, efforts=None):
+    """Ein Fall für eine ungebaute Regel; soll ist der ausgeschriebene Code, die Referenz muss ihn treffen."""
+    ist = effort_code(datei)
+    if ist != soll:
+        raise SystemExit(f"FEHLER {name}: Referenz {ist!r}, Tabelle {soll!r}")
+    if efforts:
+        for (h, r, m), liste in efforts:
+            if erlaubte_efforts(datei, h, r, m) != liste:
+                raise SystemExit(f"FEHLER {name}: erlaubte_efforts({h}, {r}, {m}) = {erlaubte_efforts(datei, h, r, m)!r}, Tabelle {liste!r}")
+    erwartet = {"gueltig": True} if soll is None else {"gueltig": False, "code": soll}
+    AUSSTEHEND.append((name, {"beschreibung": beschreibung, "text": text(datei)}, erwartet))
+
+
+def eff(grenzen, **mehr):
+    block = {"grenzen": grenzen}
+    block.update(mehr)
+    return f2(lambda o: o.update(effort=block))
+
+
+GRENZEN = [{"harness": "copilot", "erlaubt": ["low", "medium", "high"]},
+           {"harness": "copilot", "klasse": "intern", "modell": "gpt-6-luna", "erlaubt": ["low", "medium"]},
+           {"harness": "pi", "klasse": "kundendaten", "erlaubt": ["off", "low"]}]
+ausstehend("gueltig-effort", "Grenzen für copilot allgemein, für copilot mit gpt-6-luna in intern enger, für pi in kundendaten",
+           eff(GRENZEN), None,
+           [(("copilot", "cloud-beispiel", "gpt-6-luna"), ["low", "medium"]),
+            (("copilot", "cloud-beispiel", "auto"), ["low", "medium", "high"]),
+            (("pi", "lokal-beispiel", "qwen3:8b"), ["off", "low"]),
+            (("claude", "cloud-beispiel", "claude-sonnet-5-5"), [])])
+ausstehend("gueltig-effort-leer", "leere Liste: gültig, kein Harness bekommt einen Effort", eff([]), None,
+           [(("copilot", "cloud-beispiel", "auto"), [])])
+ausstehend("gueltig-ohne-effort", "Fassung 2 ohne Block: gültig, kein Effort wählbar (fail closed)", f2(), None,
+           [(("pi", "lokal-beispiel", "qwen3:8b"), [])])
+ausstehend("effort-in-fassung-1", "Block effort in einer Datei der Fassung 1",
+           mit(lambda o: o.update(effort={"grenzen": []})), "einst.schluessel_unbekannt")
+ausstehend("effort-schluessel-unbekannt", "unbekannter Schlüssel im Block", eff([], vorgabe="low"), "einst.schluessel_unbekannt")
+ausstehend("effort-eintrag-unbekannt", "unbekannter Schlüssel in einer Grenze",
+           eff([{"harness": "pi", "erlaubt": ["low"], "route": "lokal-beispiel"}]), "einst.schluessel_unbekannt")
+ausstehend("effort-grenzen-fehlt", "Block ohne grenzen", f2(lambda o: o.update(effort={})), "einst.schluessel_fehlt")
+ausstehend("effort-erlaubt-fehlt", "Grenze ohne erlaubt", eff([{"harness": "pi"}]), "einst.schluessel_fehlt")
+ausstehend("effort-typ", "erlaubt als Text", eff([{"harness": "pi", "erlaubt": "low"}]), "einst.typ_falsch")
+ausstehend("effort-anzahl-leer", "erlaubt leer", eff([{"harness": "pi", "erlaubt": []}]), "einst.anzahl")
+ausstehend("effort-anzahl-65", "65 Grenzen",
+           eff([{"harness": "pi", "modell": f"m{i}", "erlaubt": ["low"]} for i in range(65)]), "einst.anzahl")
+ausstehend("effort-doppelt-wert", "derselbe Wert zweimal", eff([{"harness": "pi", "erlaubt": ["low", "low"]}]),
+           "einst.kennung_doppelt")
+ausstehend("effort-doppelt-eintrag", "zwei Grenzen für denselben Harness, dieselbe Klasse und dasselbe Modell",
+           eff([{"harness": "pi", "erlaubt": ["low"]}, {"harness": "pi", "erlaubt": ["high"]}]), "einst.kennung_doppelt")
+ausstehend("effort-klasse-unbekannt", "Klasse, die nicht in klassen steht",
+           eff([{"harness": "pi", "klasse": "geheim", "erlaubt": ["low"]}]), "einst.klasse_unbekannt")
+ausstehend("effort-modell-form", "Modell mit Leerzeichen", eff([{"harness": "copilot", "modell": "gpt 6", "erlaubt": ["low"]}]),
+           "einst.modell_form")
+ausstehend("effort-harness-unbekannt", "Harness, der nicht in der Harness-Tabelle von Vertrag 1 steht",
+           eff([{"harness": "codex", "erlaubt": ["low"]}]), "einst.effort_harness")
+ausstehend("effort-wert-fremd", "none gibt es bei copilot, nicht bei pi", eff([{"harness": "pi", "erlaubt": ["none"]}]),
+           "einst.effort_wert")
+ausstehend("effort-wert-gross", "Groß geschrieben", eff([{"harness": "claude", "erlaubt": ["High"]}]), "einst.effort_wert")
+ausstehend("effort-wert-ultra", "ein Wert, den kein Harness kennt", eff([{"harness": "copilot", "erlaubt": ["low", "ultra"]}]),
+           "einst.effort_wert")
+ausstehend("effort-harness-vor-wert", "unbekannter Harness geht vor dem Wert (Stufe 35 vor 36)",
+           eff([{"harness": "pi", "erlaubt": ["ultra"]}, {"harness": "codex", "erlaubt": ["low"]}]), "einst.effort_harness")
+ausstehend("effort-nach-werkzeug", "Werkzeugwert in harness (Stufe 34) geht vor dem Effort (Stufe 36)",
+           f2(lambda o: o.update(harness={"copilot": {"werkzeuge_ohne_rueckfrage": ["yolo"]}},
+                                 effort={"grenzen": [{"harness": "pi", "erlaubt": ["ultra"]}]})), "einst.werkzeug_wert")
+
+
 def main():
     for teil in ("faelle", "erwartet"):
         ordner = HIER / teil
@@ -657,9 +811,17 @@ def main():
     for name, eintrag, erwartet in FAELLE:
         (HIER / "faelle" / f"{name}.json").write_text(text(eintrag), encoding="utf-8")
         (HIER / "erwartet" / f"{name}.json").write_text(text(erwartet), encoding="utf-8")
+    for teil in ("faelle-ausstehend", "erwartet-ausstehend"):
+        ordner = HIER / teil
+        ordner.mkdir(exist_ok=True)
+        for alt in ordner.glob("*.json"):
+            alt.unlink()
+    for name, eintrag, erwartet in AUSSTEHEND:
+        (HIER / "faelle-ausstehend" / f"{name}.json").write_text(text(eintrag), encoding="utf-8")
+        (HIER / "erwartet-ausstehend" / f"{name}.json").write_text(text(erwartet), encoding="utf-8")
     (HIER / "vorfuehrung.json").write_text(text(VORFUEHRDATEI_MIT_WERKZEUGEN), encoding="utf-8")
     (HIER / "erststart.json").write_text(text(ERSTSTARTDATEI), encoding="utf-8")
-    print(f"{len(FAELLE)} Fälle geschrieben")
+    print(f"{len(FAELLE)} Fälle und {len(AUSSTEHEND)} ausstehende Fälle geschrieben")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,92 @@
+{
+ "name": "option-herstellerzugang-fest",
+ "anforderungen": [
+  "A11",
+  "A30",
+  "A31"
+ ],
+ "beschreibung": "der Herstellerzugang ist im Pilot fest aus: ein Admin setzt ihn auf Firma oder Gruppe an oder aus, ein Nutzer auf seiner Ebene; alles abgelehnt, auch ein Wert, den der Stand schon trägt, wirkt nicht",
+ "stand": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "admins": [
+   "ps_00000000000000000000000000000b01",
+   "ps_00000000000000000000000000000b02"
+  ],
+  "gruppen": {
+   "g-eins": [
+    "ps_00000000000000000000000000000c01"
+   ],
+   "g-zwei": [
+    "ps_00000000000000000000000000000c02"
+   ]
+  },
+  "werte": {
+   "firma": {
+    "optionen.herstellerzugang": true
+   },
+   "gruppen": {},
+   "nutzer": {}
+  }
+ },
+ "schritte": [
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "optionen.herstellerzugang",
+    "wert": true
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "optionen.herstellerzugang",
+    "wert": false
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "gruppe g-eins",
+    "schluessel": "optionen.herstellerzugang",
+    "wert": false
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000c01",
+    "bereich": "admin",
+    "ebene": "nutzer",
+    "schluessel": "optionen.herstellerzugang",
+    "wert": true
+   }
+  },
+  {
+   "setzen": {
+    "wer": "ps_00000000000000000000000000000b01",
+    "bereich": "admin",
+    "ebene": "firma",
+    "schluessel": "optionen.herstellerzugang",
+    "wert": null
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000b01"
+   }
+  },
+  {
+   "sicht": {
+    "wer": "ps_00000000000000000000000000000c01"
+   }
+  }
+ ]
+}
