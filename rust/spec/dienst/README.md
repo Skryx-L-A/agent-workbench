@@ -20,6 +20,13 @@ Abgleich mit der Anforderungsliste: 22.11.2026; die Zuordnung von A43 und A149 i
 
 `rust/crates/dienst/tests/faelle/` (280 Fälle, Namen `di1_*` bis `di12_*` und `l9_*`) mit den Erwartungen in `rust/crates/dienst/tests/erwartet/`; der Läufer ist `rust/crates/dienst/tests/faelle.rs`. Prüfclient, Läufer und Python-Referenz des Betrachters liegen unter `rust/crates/dienst/tests/werkzeug/`. Weitere Prüfungen des Crates: `abschirmung.rs`, `beobachtung.rs`, `dienst.rs`, `groessenwechsel.rs`, `kinder.rs`, `mehrere.rs`.
 
+Nachtrag 26.11.2026 (Oberfläche L1 bis L11, `rust/spec/VERTRAEGE.md` am Ende): `faelle/` hat 278 Fälle; dazu kamen `dil2_zwei_panes_groesse`,
+`dil2_zwei_betrachter_zwei_panes` und `dil6_heute`, die der heutige Code besteht (`dil6_heute` misst den Weg der Freigabe vor dem Nachtrag).
+`rust/crates/dienst/tests/faelle-ausstehend/` mit `erwartet-ausstehend/` hält 84 Fälle, die erst der Bau des Nachtrags besteht: 25 neue
+(`dil*`) und 59 bestehende Fälle mit neuer Erwartung unter demselben Namen (58 mit den neuen Feldern der `Sitzungsliste`, dazu
+`di12_lauf_ereignisse` mit `ereignis_ungueltig` für eine `Freigabe` mit fremdem Schlüssel). Der Läufer liest den Ordner nicht. Der Prüfclient
+kennt die Angaben des Nachtrags (`bestand`, `weg: "lokal"`, `wer` im Zustand; `rust/spec/VERTRAEGE.md`, Abschnitt „Prüfmittel des Nachtrags“).
+
 ## Gegen den Bau fahren
 
 Aus dem Ordner `rust/`: `cargo test -p dienst --test faelle`. Der Lauf braucht `python3` und `lsof`; fehlt eines, ist er rot, nicht übersprungen. Die Fälle laufen in mehreren Läufern gleichzeitig, jeder in einem eigenen Grundordner.

@@ -1,0 +1,131 @@
+{
+ "beschreibung": "eine Datei s-1 (ohne .zielliste.json) unter lauf.ziellisten belegt keine Nummer: Starten vergibt s-1",
+ "datensatz": "A",
+ "name": "di12_zielliste_falscher_name",
+ "ordner_pruefen": true,
+ "regeln": [
+  "DI12"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "nachricht": {
+     "art": "Gestartet",
+     "sitzung": "s-1"
+    }
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "liste": {
+     "id": "s-1",
+     "zustand": "laeuft"
+    }
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-1",
+    "spalten": 120,
+    "zeilen": 14
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "nr": 1,
+    "text": "BEREIT"
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1",
+   "voll": true
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind",
+   "ziellisten": "@ziellisten"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ },
+ "ziellisten": {
+  "vorher": [
+   {
+    "art": "datei",
+    "name": "s-1"
+   },
+   {
+    "art": "datei",
+    "name": "s-1.json"
+   },
+   {
+    "art": "datei",
+    "name": "s-1.zielliste.json.alt"
+   }
+  ]
+ }
+}

@@ -1,0 +1,253 @@
+{
+ "beschreibung": "jede Ablehnung von Starten traegt grund, code (dasselbe Wort) und den festen Text",
+ "datensatz": "A",
+ "einstellungen_inhalt": {
+  "fassung": 1,
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "kunden": [
+   {
+    "erlaubt": [
+     "lokal-beispiel"
+    ],
+    "schluessel": "k-beispiel",
+    "verboten": []
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "freigaben": [],
+   "vorgabe": "nie"
+  },
+  "routen": [
+   {
+    "art": "cloud",
+    "klasse": "intern",
+    "schluessel": "cloud-beispiel"
+   },
+   {
+    "art": "lokal",
+    "klasse": "kundendaten",
+    "schluessel": "lokal-beispiel"
+   }
+  ],
+  "vorgabestufe": "kundendaten"
+ },
+ "name": "di12_ablehnung_text",
+ "regeln": [
+  "DI12"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": [
+     1,
+     2
+    ]
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel",
+     "sitzung": "s-1"
+    }
+   }
+  },
+  {
+   "art": "Einstellungen",
+   "inhalt": {
+    "fassung": 1,
+    "routen": 5
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "ablehnung": "einst_unlesbar"
+   },
+   "frist": 20,
+   "takt": 16
+  },
+  {
+   "art": "Einstellungen",
+   "inhalt": {
+    "fassung": 1,
+    "klassen": [
+     "oeffentlich",
+     "intern",
+     "kundendaten"
+    ],
+    "kunden": [
+     {
+      "erlaubt": [
+       "lokal-beispiel"
+      ],
+      "schluessel": "k-beispiel",
+      "verboten": []
+     }
+    ],
+    "kundendaten_an_cloud": {
+     "freigaben": [],
+     "vorgabe": "nie"
+    },
+    "routen": [
+     {
+      "art": "cloud",
+      "klasse": "intern",
+      "schluessel": "cloud-beispiel"
+     },
+     {
+      "art": "lokal",
+      "klasse": "kundendaten",
+      "schluessel": "lokal-beispiel"
+     }
+    ],
+    "vorgabestufe": "kundendaten"
+   }
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "nachricht": {
+     "art": "Gestartet",
+     "sitzung": "s-1"
+    }
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "liste": {
+     "id": "s-1",
+     "zustand": "laeuft"
+    }
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "ablehnung": "nummern_erschoepft"
+   },
+   "frist": 20,
+   "takt": 16
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten"
+   }
+  },
+  {
+   "ablehnungen_voll": true,
+   "art": "Zustand",
+   "betrachter": "c1"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "nummer_max": 1,
+   "programm": "@laufkind"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

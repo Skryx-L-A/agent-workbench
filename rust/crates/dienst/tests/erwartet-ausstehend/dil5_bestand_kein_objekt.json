@@ -1,0 +1,24 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "bestand": [
+    "x"
+   ],
+   "bestand_modus": "0600",
+   "bestand_rest": [],
+   "exitcode": 2,
+   "kind_beendet": null,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [],
+  "start": {
+   "exitcode": 2,
+   "ok": false,
+   "socket_da": false,
+   "stderr_beginn": true,
+   "stderr_zeilen": 1
+  }
+ },
+ "exit": 0
+}

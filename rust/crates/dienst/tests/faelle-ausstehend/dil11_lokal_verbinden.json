@@ -1,0 +1,140 @@
+{
+ "beschreibung": "lokaler Weg: Hallo von peerkanal, das Konto aus dem Verbindungspartner (wer mit uid und Namen dieses Kontos), dieselben Nachrichten wie über dienst.sock; ein falsches Hallo bekommt keine Verbindung; ein Feld konto ist feld_verboten",
+ "datensatz": "A",
+ "name": "dil11_lokal_verbinden",
+ "ordner_pruefen": true,
+ "protokoll": true,
+ "regeln": [
+  "DI-L11"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1",
+   "weg": "lokal"
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c2"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Starten",
+    "start": {
+     "arbeitsordner": "/home/beispiel/pröjekt",
+     "fassung": 1,
+     "harness": "claude",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "route": "cloud-beispiel"
+    }
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "nachricht": {
+     "art": "Gestartet",
+     "sitzung": "s-1"
+    }
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "liste": {
+     "id": "s-1",
+     "zustand": "laeuft"
+    }
+   },
+   "frist": 30,
+   "takt": 16
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c2"
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c3",
+   "hallo": "706b3278",
+   "weg": "lokal"
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c4",
+   "hallo": "706b",
+   "weg": "lokal"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Text",
+    "konto": "admin",
+    "sitzung": "s-1",
+    "text": "x"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "fehler": "feld_verboten"
+   },
+   "frist": 5,
+   "takt": 0
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c2"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind"
+  },
+  "lokal": {
+   "kanal": "fenster"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

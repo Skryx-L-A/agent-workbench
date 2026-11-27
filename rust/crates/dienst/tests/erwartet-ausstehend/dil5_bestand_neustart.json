@@ -1,0 +1,584 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "bestand": {
+    "fassung": 1,
+    "gestartet": 7,
+    "sitzungen": [
+     {
+      "abgestuerzt": false,
+      "code": 0,
+      "fortgesetzt_als": "s-6",
+      "harness": "claude",
+      "id": "s-3",
+      "kunde": "k-beispiel",
+      "modell": "claude-sonnet-5-5",
+      "name": "Alt EINS",
+      "ordner": "/home/beispiel/pröjekt",
+      "projekt": "pröjekt",
+      "route": "cloud-beispiel",
+      "start": {
+       "arbeitsordner": "/home/beispiel/pröjekt",
+       "fassung": 1,
+       "harness": "claude",
+       "kunde": "k-beispiel",
+       "modell": "claude-sonnet-5-5",
+       "route": "cloud-beispiel"
+      },
+      "zustand": "beendet"
+     },
+     {
+      "abgestuerzt": true,
+      "fortgesetzt_als": "s-7",
+      "grund": "dienst.neustart",
+      "harness": "claude",
+      "id": "s-4",
+      "kunde": "k-beispiel",
+      "modell": "claude-sonnet-5-5",
+      "name": "",
+      "ordner": "/home/beispiel/pröjekt",
+      "projekt": "pröjekt",
+      "route": "cloud-beispiel",
+      "start": {
+       "arbeitsordner": "/home/beispiel/pröjekt",
+       "fassung": 1,
+       "harness": "claude",
+       "kunde": "k-beispiel",
+       "modell": "claude-sonnet-5-5",
+       "route": "cloud-beispiel"
+      },
+      "zustand": "beendet"
+     },
+     {
+      "abgestuerzt": false,
+      "grund": "dienst.ende",
+      "harness": "claude",
+      "id": "s-5",
+      "kunde": "k-beispiel",
+      "modell": "claude-sonnet-5-5",
+      "name": "",
+      "ordner": "/home/beispiel/pröjekt",
+      "projekt": "pröjekt",
+      "route": "cloud-beispiel",
+      "start": {
+       "arbeitsordner": "/home/beispiel/pröjekt",
+       "fassung": 1,
+       "harness": "claude",
+       "kunde": "k-beispiel",
+       "modell": "claude-sonnet-5-5",
+       "route": "cloud-beispiel"
+      },
+      "zustand": "beendet"
+     },
+     {
+      "abgestuerzt": false,
+      "fortsetzung_von": "s-3",
+      "grund": "dienst.ende",
+      "harness": "claude",
+      "id": "s-6",
+      "kunde": "k-beispiel",
+      "modell": "claude-sonnet-5-5",
+      "name": "Alt EINS",
+      "ordner": "/home/beispiel/pröjekt",
+      "projekt": "pröjekt",
+      "route": "cloud-beispiel",
+      "start": {
+       "arbeitsordner": "/home/beispiel/pröjekt",
+       "fassung": 1,
+       "harness": "claude",
+       "kunde": "k-beispiel",
+       "modell": "claude-sonnet-5-5",
+       "route": "cloud-beispiel"
+      },
+      "zustand": "beendet"
+     },
+     {
+      "abgestuerzt": false,
+      "fortsetzung_von": "s-4",
+      "grund": "dienst.ende",
+      "harness": "claude",
+      "id": "s-7",
+      "kunde": "k-beispiel",
+      "modell": "claude-sonnet-5-5",
+      "name": "",
+      "ordner": "/home/beispiel/pröjekt",
+      "projekt": "pröjekt",
+      "route": "cloud-beispiel",
+      "start": {
+       "arbeitsordner": "/home/beispiel/pröjekt",
+       "fassung": 1,
+       "harness": "claude",
+       "kunde": "k-beispiel",
+       "modell": "claude-sonnet-5-5",
+       "route": "cloud-beispiel"
+      },
+      "zustand": "beendet"
+     }
+    ]
+   },
+   "bestand_modus": "0600",
+   "bestand_rest": [],
+   "exitcode": 0,
+   "kind_beendet": null,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": null,
+    "abbild_fehler": [],
+    "ablehnungen": [
+     "sitzung_ohne_nummer",
+     "kein_abo"
+    ],
+    "ablehnungen_voll": [
+     {
+      "grund": "sitzung_ohne_nummer"
+     },
+     {
+      "grund": "kein_abo"
+     }
+    ],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "gestartet": 7,
+      "kernbau": 6,
+      "nummern": {
+       "s-3": null,
+       "s-4": null,
+       "s-5": 5,
+       "s-6": 6,
+       "s-7": 7
+      }
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         120,
+         14
+        ],
+        "id": "s-3",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": ""
+       },
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         120,
+         14
+        ],
+        "id": "s-4",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": ""
+       },
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         120,
+         14
+        ],
+        "id": "s-5",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": ""
+       },
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         120,
+         14
+        ],
+        "id": "s-6",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": ""
+       },
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         120,
+         14
+        ],
+        "id": "s-7",
+        "invers": false,
+        "letzte_eingabe": null,
+        "titel": ""
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     {
+      "art": "Einstellungen",
+      "werte": {
+       "bildrate_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 63,
+        "wert": 63
+       },
+       "osc52_grenze": {
+        "herkunft": "vorgabe",
+        "vorgabe": 100000,
+        "wert": 100000
+       },
+       "osc52_schreiben": {
+        "herkunft": "vorgabe",
+        "vorgabe": "an",
+        "wert": "an"
+       },
+       "rueckstau_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 16384,
+        "wert": 16384
+       }
+      }
+     },
+     {
+      "art": "Routen",
+      "routen": []
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "abgestuerzt": false,
+        "code": 0,
+        "harness": "claude",
+        "id": "s-3",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "Alt EINS",
+        "nr": null,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       },
+       {
+        "abgestuerzt": true,
+        "grund": "dienst.neustart",
+        "harness": "claude",
+        "id": "s-4",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": null,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       }
+      ]
+     },
+     {
+      "anfragen": [],
+      "art": "Anfragen"
+     },
+     {
+      "agenten": [],
+      "art": "Agenten"
+     },
+     {
+      "art": "Startwahl",
+      "fassung": 1,
+      "harness": [
+       {
+        "art": "cloud",
+        "name": "claude",
+        "routenart": "cloud"
+       },
+       {
+        "art": "cloud",
+        "name": "copilot",
+        "routenart": "cloud"
+       },
+       {
+        "art": "lokal",
+        "name": "pi",
+        "routenart": "lokal"
+       }
+      ],
+      "kunden": [
+       "k-beispiel",
+       null
+      ],
+      "routen": [
+       {
+        "art": "cloud",
+        "klasse": "intern",
+        "modell": null,
+        "schluessel": "cloud-beispiel"
+       },
+       {
+        "art": "lokal",
+        "klasse": "kundendaten",
+        "modell": null,
+        "schluessel": "lokal-beispiel"
+       }
+      ]
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "abgestuerzt": false,
+        "code": 0,
+        "harness": "claude",
+        "id": "s-3",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "Alt EINS",
+        "nr": null,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       },
+       {
+        "abgestuerzt": true,
+        "grund": "dienst.neustart",
+        "harness": "claude",
+        "id": "s-4",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": null,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       },
+       {
+        "harness": "claude",
+        "id": "s-5",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 5,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "art": "Gestartet",
+      "sitzung": "s-5"
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "abgestuerzt": false,
+        "code": 0,
+        "fortgesetzt_als": "s-6",
+        "harness": "claude",
+        "id": "s-3",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "Alt EINS",
+        "nr": null,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       },
+       {
+        "abgestuerzt": true,
+        "grund": "dienst.neustart",
+        "harness": "claude",
+        "id": "s-4",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": null,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       },
+       {
+        "harness": "claude",
+        "id": "s-5",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 5,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       },
+       {
+        "fortsetzung_von": "s-3",
+        "harness": "claude",
+        "id": "s-6",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "Alt EINS",
+        "nr": 6,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "art": "Gestartet",
+      "sitzung": "s-6"
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "abgestuerzt": false,
+        "code": 0,
+        "fortgesetzt_als": "s-6",
+        "harness": "claude",
+        "id": "s-3",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "Alt EINS",
+        "nr": null,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       },
+       {
+        "abgestuerzt": true,
+        "fortgesetzt_als": "s-7",
+        "grund": "dienst.neustart",
+        "harness": "claude",
+        "id": "s-4",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": null,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "beendet"
+       },
+       {
+        "harness": "claude",
+        "id": "s-5",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 5,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       },
+       {
+        "fortsetzung_von": "s-3",
+        "harness": "claude",
+        "id": "s-6",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "Alt EINS",
+        "nr": 6,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       },
+       {
+        "fortsetzung_von": "s-4",
+        "harness": "claude",
+        "id": "s-7",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 7,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "art": "Gestartet",
+      "sitzung": "s-7"
+     }
+    ],
+    "ok": true
+   }
+  ],
+  "start": {
+   "netz_sockets": 0,
+   "ok": true,
+   "ordner_modus": "0700",
+   "socket_modus": "0600"
+  }
+ },
+ "exit": 0
+}

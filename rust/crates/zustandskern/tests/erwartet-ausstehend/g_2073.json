@@ -1,0 +1,931 @@
+{
+ "ausgabe": {
+  "abfragen": [
+   {
+    "t": 5908,
+    "worker": "w-b"
+   }
+  ],
+  "ablehnungen": [
+   {
+    "ereignis": 0,
+    "grund": "ereignis_unbekannt",
+    "t": 17
+   },
+   {
+    "ereignis": 1,
+    "grund": "betrachter_unbekannt",
+    "t": 17
+   },
+   {
+    "ereignis": 2,
+    "grund": "betrachter_unbekannt",
+    "t": 717
+   },
+   {
+    "ereignis": 4,
+    "grund": "betrachter_unbekannt",
+    "t": 728
+   },
+   {
+    "ereignis": 5,
+    "grund": "betrachter_unbekannt",
+    "t": 748
+   },
+   {
+    "ereignis": 6,
+    "grund": "betrachter_unbekannt",
+    "t": 749
+   },
+   {
+    "ereignis": 7,
+    "grund": "betrachter_unbekannt",
+    "t": 749
+   },
+   {
+    "ereignis": 8,
+    "grund": "betrachter_unbekannt",
+    "t": 749
+   },
+   {
+    "ereignis": 9,
+    "grund": "betrachter_unbekannt",
+    "t": 750
+   },
+   {
+    "ereignis": 10,
+    "grund": "betrachter_unbekannt",
+    "t": 765
+   },
+   {
+    "ereignis": 11,
+    "grund": "betrachter_unbekannt",
+    "t": 780
+   },
+   {
+    "ereignis": 12,
+    "grund": "betrachter_unbekannt",
+    "t": 795
+   },
+   {
+    "ereignis": 13,
+    "grund": "betrachter_unbekannt",
+    "t": 796
+   },
+   {
+    "ereignis": 18,
+    "grund": "kein_abo",
+    "t": 1330
+   },
+   {
+    "ereignis": 20,
+    "grund": "dialog_unbekannt",
+    "t": 1433
+   },
+   {
+    "ereignis": 21,
+    "grund": "kein_abo",
+    "t": 1442
+   },
+   {
+    "ereignis": 24,
+    "grund": "kein_abo",
+    "t": 1525
+   },
+   {
+    "ereignis": 27,
+    "grund": "zeile_ausserhalb",
+    "t": 2242
+   },
+   {
+    "ereignis": 33,
+    "grund": "route_gesperrt",
+    "t": 3394
+   },
+   {
+    "ereignis": 38,
+    "grund": "zeile_ausserhalb",
+    "t": 4344
+   },
+   {
+    "ereignis": 41,
+    "grund": "betrachter_unbekannt",
+    "t": 4389
+   },
+   {
+    "ereignis": 42,
+    "grund": "kein_abo",
+    "t": 4390
+   },
+   {
+    "ereignis": 43,
+    "grund": "route_gesperrt",
+    "t": 4491
+   },
+   {
+    "ereignis": 49,
+    "grund": "zeile_ausserhalb",
+    "t": 4594
+   },
+   {
+    "ereignis": 50,
+    "grund": "worker_unbekannt",
+    "t": 4596
+   },
+   {
+    "ereignis": 52,
+    "grund": "ereignis_unbekannt",
+    "t": 4598
+   },
+   {
+    "ereignis": 54,
+    "grund": "fremder_kundenraum",
+    "t": 4949
+   },
+   {
+    "ereignis": 58,
+    "grund": "kein_abo",
+    "t": 5923
+   },
+   {
+    "ereignis": 62,
+    "grund": "bereits_verbunden",
+    "t": 6698
+   },
+   {
+    "ereignis": 68,
+    "grund": "ereignis_ungueltig",
+    "t": 7758
+   },
+   {
+    "ereignis": 69,
+    "grund": "zeile_ausserhalb",
+    "t": 8008
+   }
+  ],
+  "an_stelle": [],
+  "groessen": [],
+  "nachrichten": {
+   "b1": [
+    {
+     "art": "Einstellungen",
+     "t": 4094,
+     "werte": {
+      "anzahl": {
+       "herkunft": "vorgabe",
+       "vorgabe": 5,
+       "wert": 5
+      },
+      "bildrate_max": {
+       "herkunft": "vorgabe",
+       "vorgabe": 63,
+       "wert": 63
+      },
+      "osc52_grenze": {
+       "herkunft": "vorgabe",
+       "vorgabe": 100000,
+       "wert": 100000
+      },
+      "osc52_schreiben": {
+       "herkunft": "vorgabe",
+       "vorgabe": "an",
+       "wert": "an"
+      },
+      "rueckstau_max": {
+       "herkunft": "vorgabe",
+       "vorgabe": 16384,
+       "wert": 16384
+      }
+     }
+    },
+    {
+     "art": "Routen",
+     "routen": [
+      {
+       "grund": null,
+       "name": "r-frei",
+       "status": "frei",
+       "waehlbar": true,
+       "zone": null
+      },
+      {
+       "grund": "g",
+       "name": "r-g",
+       "status": "gesperrt",
+       "waehlbar": false,
+       "zone": "z"
+      },
+      {
+       "grund": null,
+       "name": "r-e",
+       "status": "evaluierung",
+       "waehlbar": false,
+       "zone": null
+      }
+     ],
+     "t": 4094
+    },
+    {
+     "art": "Sitzungsliste",
+     "sitzungen": [
+      {
+       "code": null,
+       "groesse": [
+        5,
+        3
+       ],
+       "id": "s1",
+       "route": "r-frei",
+       "titel": null,
+       "zustand": "laeuft"
+      },
+      {
+       "code": null,
+       "groesse": [
+        80,
+        6
+       ],
+       "id": "s3",
+       "route": "r-frei",
+       "titel": "titel",
+       "zustand": "laeuft"
+      },
+      {
+       "code": null,
+       "groesse": [
+        20,
+        6
+       ],
+       "id": "s4",
+       "route": "r-frei",
+       "titel": "t",
+       "zustand": "laeuft"
+      }
+     ],
+     "t": 4094
+    },
+    {
+     "anfragen": [],
+     "art": "Anfragen",
+     "t": 4094
+    },
+    {
+     "agenten": [],
+     "art": "Agenten",
+     "t": 4094
+    },
+    {
+     "art": "Anfrage",
+     "frist": 4403,
+     "id": "a2",
+     "sitzung": "s3",
+     "t": 4373,
+     "vorschau": "v",
+     "werkzeug": "w",
+     "zustand": "offen"
+    },
+    {
+     "art": "Anfrage",
+     "frist": 4403,
+     "id": "a2",
+     "sitzung": "s3",
+     "t": 4403,
+     "vorschau": "v",
+     "werkzeug": "w",
+     "zustand": "abgelaufen"
+    },
+    {
+     "art": "Agentenzustand",
+     "gesehen_um": 4848,
+     "quelle": 5,
+     "sitzung": "s3",
+     "t": 4848,
+     "worker": "w-b",
+     "zustand": "wartet"
+    },
+    {
+     "art": "Abzug",
+     "groesse": [
+      80,
+      6
+     ],
+     "invers": false,
+     "sitzung": "s3",
+     "stand": 6,
+     "t": 6665,
+     "zeilen": [
+      "x",
+      "",
+      "yy",
+      "",
+      "",
+      ""
+     ]
+    },
+    {
+     "art": "Agentenzustand",
+     "gesehen_um": 7753,
+     "quelle": 5,
+     "sitzung": "s3",
+     "t": 7753,
+     "worker": "w-b",
+     "zustand": "laeuft"
+    }
+   ],
+   "b3": [
+    {
+     "art": "Einstellungen",
+     "t": 2694,
+     "werte": {
+      "anzahl": {
+       "herkunft": "vorgabe",
+       "vorgabe": 5,
+       "wert": 5
+      },
+      "bildrate_max": {
+       "herkunft": "vorgabe",
+       "vorgabe": 63,
+       "wert": 63
+      },
+      "osc52_grenze": {
+       "herkunft": "vorgabe",
+       "vorgabe": 100000,
+       "wert": 100000
+      },
+      "osc52_schreiben": {
+       "herkunft": "vorgabe",
+       "vorgabe": "an",
+       "wert": "an"
+      },
+      "rueckstau_max": {
+       "herkunft": "vorgabe",
+       "vorgabe": 16384,
+       "wert": 16384
+      }
+     }
+    },
+    {
+     "art": "Routen",
+     "routen": [
+      {
+       "grund": null,
+       "name": "r-frei",
+       "status": "frei",
+       "waehlbar": true,
+       "zone": null
+      },
+      {
+       "grund": "g",
+       "name": "r-g",
+       "status": "gesperrt",
+       "waehlbar": false,
+       "zone": "z"
+      },
+      {
+       "grund": null,
+       "name": "r-e",
+       "status": "evaluierung",
+       "waehlbar": false,
+       "zone": null
+      }
+     ],
+     "t": 2694
+    },
+    {
+     "art": "Sitzungsliste",
+     "sitzungen": [
+      {
+       "code": null,
+       "groesse": [
+        5,
+        3
+       ],
+       "id": "s1",
+       "route": "r-frei",
+       "titel": null,
+       "zustand": "laeuft"
+      },
+      {
+       "code": null,
+       "groesse": [
+        80,
+        6
+       ],
+       "id": "s3",
+       "route": "r-frei",
+       "titel": "titel",
+       "zustand": "laeuft"
+      },
+      {
+       "code": null,
+       "groesse": [
+        20,
+        6
+       ],
+       "id": "s4",
+       "route": "r-frei",
+       "titel": "t",
+       "zustand": "laeuft"
+      }
+     ],
+     "t": 2694
+    },
+    {
+     "anfragen": [],
+     "art": "Anfragen",
+     "t": 2694
+    },
+    {
+     "agenten": [],
+     "art": "Agenten",
+     "t": 2694
+    },
+    {
+     "art": "Anfrage",
+     "frist": 4403,
+     "id": "a2",
+     "sitzung": "s3",
+     "t": 4373,
+     "vorschau": "v",
+     "werkzeug": "w",
+     "zustand": "offen"
+    },
+    {
+     "art": "Anfrage",
+     "frist": 4403,
+     "id": "a2",
+     "sitzung": "s3",
+     "t": 4403,
+     "vorschau": "v",
+     "werkzeug": "w",
+     "zustand": "abgelaufen"
+    },
+    {
+     "art": "Agentenzustand",
+     "gesehen_um": 4848,
+     "quelle": 5,
+     "sitzung": "s3",
+     "t": 4848,
+     "worker": "w-b",
+     "zustand": "wartet"
+    },
+    {
+     "art": "Agentenzustand",
+     "gesehen_um": 7753,
+     "quelle": 5,
+     "sitzung": "s3",
+     "t": 7753,
+     "worker": "w-b",
+     "zustand": "laeuft"
+    }
+   ],
+   "b4": [
+    {
+     "art": "Einstellungen",
+     "t": 1296,
+     "werte": {
+      "anzahl": {
+       "herkunft": "vorgabe",
+       "vorgabe": 5,
+       "wert": 5
+      },
+      "bildrate_max": {
+       "herkunft": "vorgabe",
+       "vorgabe": 63,
+       "wert": 63
+      },
+      "osc52_grenze": {
+       "herkunft": "vorgabe",
+       "vorgabe": 100000,
+       "wert": 100000
+      },
+      "osc52_schreiben": {
+       "herkunft": "vorgabe",
+       "vorgabe": "an",
+       "wert": "an"
+      },
+      "rueckstau_max": {
+       "herkunft": "vorgabe",
+       "vorgabe": 16384,
+       "wert": 16384
+      }
+     }
+    },
+    {
+     "art": "Routen",
+     "routen": [
+      {
+       "grund": null,
+       "name": "r-frei",
+       "status": "frei",
+       "waehlbar": true,
+       "zone": null
+      },
+      {
+       "grund": "g",
+       "name": "r-g",
+       "status": "gesperrt",
+       "waehlbar": false,
+       "zone": "z"
+      },
+      {
+       "grund": null,
+       "name": "r-e",
+       "status": "evaluierung",
+       "waehlbar": false,
+       "zone": null
+      }
+     ],
+     "t": 1296
+    },
+    {
+     "art": "Sitzungsliste",
+     "sitzungen": [
+      {
+       "code": null,
+       "groesse": [
+        20,
+        3
+       ],
+       "id": "s2",
+       "route": "r-frei",
+       "titel": null,
+       "zustand": "laeuft"
+      }
+     ],
+     "t": 1296
+    },
+    {
+     "anfragen": [],
+     "art": "Anfragen",
+     "t": 1296
+    },
+    {
+     "agenten": [],
+     "art": "Agenten",
+     "t": 1296
+    },
+    {
+     "art": "Hinweis",
+     "grund": null,
+     "hinweis": "route_gesperrt",
+     "route": "r-e",
+     "t": 3394
+    },
+    {
+     "art": "Abzug",
+     "groesse": [
+      20,
+      3
+     ],
+     "invers": false,
+     "sitzung": "s2",
+     "stand": 1,
+     "t": 6797,
+     "zeilen": [
+      "yy",
+      "zwei",
+      ""
+     ]
+    }
+   ],
+   "b5": [
+    {
+     "art": "Einstellungen",
+     "t": 3995,
+     "werte": {
+      "anzahl": {
+       "herkunft": "vorgabe",
+       "vorgabe": 5,
+       "wert": 5
+      },
+      "bildrate_max": {
+       "herkunft": "vorgabe",
+       "vorgabe": 63,
+       "wert": 63
+      },
+      "osc52_grenze": {
+       "herkunft": "vorgabe",
+       "vorgabe": 100000,
+       "wert": 100000
+      },
+      "osc52_schreiben": {
+       "herkunft": "vorgabe",
+       "vorgabe": "an",
+       "wert": "an"
+      },
+      "rueckstau_max": {
+       "herkunft": "vorgabe",
+       "vorgabe": 16384,
+       "wert": 16384
+      }
+     }
+    },
+    {
+     "art": "Routen",
+     "routen": [
+      {
+       "grund": null,
+       "name": "r-frei",
+       "status": "frei",
+       "waehlbar": true,
+       "zone": null
+      },
+      {
+       "grund": "g",
+       "name": "r-g",
+       "status": "gesperrt",
+       "waehlbar": false,
+       "zone": "z"
+      },
+      {
+       "grund": null,
+       "name": "r-e",
+       "status": "evaluierung",
+       "waehlbar": false,
+       "zone": null
+      }
+     ],
+     "t": 3995
+    },
+    {
+     "art": "Sitzungsliste",
+     "sitzungen": [
+      {
+       "code": null,
+       "groesse": [
+        5,
+        3
+       ],
+       "id": "s1",
+       "route": "r-frei",
+       "titel": null,
+       "zustand": "laeuft"
+      },
+      {
+       "code": null,
+       "groesse": [
+        80,
+        6
+       ],
+       "id": "s3",
+       "route": "r-frei",
+       "titel": "titel",
+       "zustand": "laeuft"
+      },
+      {
+       "code": null,
+       "groesse": [
+        20,
+        6
+       ],
+       "id": "s4",
+       "route": "r-frei",
+       "titel": "t",
+       "zustand": "laeuft"
+      }
+     ],
+     "t": 3995
+    },
+    {
+     "anfragen": [],
+     "art": "Anfragen",
+     "t": 3995
+    },
+    {
+     "agenten": [],
+     "art": "Agenten",
+     "t": 3995
+    },
+    {
+     "art": "Anfrage",
+     "frist": 4403,
+     "id": "a2",
+     "sitzung": "s3",
+     "t": 4373,
+     "vorschau": "v",
+     "werkzeug": "w",
+     "zustand": "offen"
+    },
+    {
+     "art": "Anfrage",
+     "frist": 4403,
+     "id": "a2",
+     "sitzung": "s3",
+     "t": 4403,
+     "vorschau": "v",
+     "werkzeug": "w",
+     "zustand": "abgelaufen"
+    },
+    {
+     "art": "Hinweis",
+     "grund": null,
+     "hinweis": "route_gesperrt",
+     "route": "r-e",
+     "t": 4491
+    },
+    {
+     "art": "Leeren",
+     "raum": "rb",
+     "t": 4544
+    },
+    {
+     "art": "Sitzungsliste",
+     "sitzungen": [
+      {
+       "code": null,
+       "groesse": [
+        20,
+        3
+       ],
+       "id": "s2",
+       "route": "r-frei",
+       "titel": null,
+       "zustand": "laeuft"
+      }
+     ],
+     "t": 4544
+    },
+    {
+     "anfragen": [],
+     "art": "Anfragen",
+     "t": 4544
+    },
+    {
+     "agenten": [],
+     "art": "Agenten",
+     "t": 4544
+    },
+    {
+     "art": "Abzug",
+     "groesse": [
+      20,
+      3
+     ],
+     "invers": false,
+     "sitzung": "s2",
+     "stand": 1,
+     "t": 4596,
+     "zeilen": [
+      "yy",
+      "zwei",
+      ""
+     ]
+    }
+   ]
+  },
+  "protokoll": [],
+  "pty": [],
+  "zustand": {
+   "agenten": {
+    "w-a": null,
+    "w-b": {
+     "gesehen_um": 7753,
+     "quelle": 5,
+     "zustand": "laeuft"
+    }
+   },
+   "anfragen": {
+    "a2": "abgelaufen"
+   },
+   "betrachter": {
+    "b1": {
+     "abos": [
+      "s3"
+     ],
+     "ausstehend": 0,
+     "person": "n1",
+     "raum": "ra",
+     "rueckstand": {},
+     "verfallen": 0
+    },
+    "b3": {
+     "abos": [],
+     "ausstehend": 301,
+     "person": "n2",
+     "raum": "ra",
+     "rueckstand": {},
+     "verfallen": 0
+    },
+    "b4": {
+     "abos": [
+      "s2"
+     ],
+     "ausstehend": 301,
+     "person": "adm",
+     "raum": "rb",
+     "rueckstand": {},
+     "verfallen": 0
+    },
+    "b5": {
+     "abos": [
+      "s2"
+     ],
+     "ausstehend": 100,
+     "person": "n1",
+     "raum": "rb",
+     "rueckstand": {},
+     "verfallen": 0
+    }
+   },
+   "regeln": {
+    "anzahl": {
+     "firma": null,
+     "gruppe": null,
+     "nutzer": {}
+    },
+    "bildrate_max": {
+     "firma": null,
+     "gruppe": null,
+     "nutzer": {}
+    },
+    "osc52_grenze": {
+     "firma": null,
+     "gruppe": null,
+     "nutzer": {}
+    },
+    "osc52_schreiben": {
+     "firma": null,
+     "gruppe": null,
+     "nutzer": {}
+    },
+    "rueckstau_max": {
+     "firma": null,
+     "gruppe": null,
+     "nutzer": {}
+    }
+   },
+   "sitzungen": [
+    {
+     "bracketed_paste": true,
+     "code": null,
+     "dialog": null,
+     "groesse": [
+      5,
+      3
+     ],
+     "id": "s1",
+     "invers": false,
+     "kundenraum": "ra",
+     "letzte_eingabe": null,
+     "route": "r-frei",
+     "stand": 1,
+     "titel": null,
+     "zustand": "laeuft"
+    },
+    {
+     "bracketed_paste": false,
+     "code": null,
+     "dialog": null,
+     "groesse": [
+      20,
+      3
+     ],
+     "id": "s2",
+     "invers": false,
+     "kundenraum": "rb",
+     "letzte_eingabe": null,
+     "route": "r-frei",
+     "stand": 1,
+     "titel": null,
+     "zustand": "laeuft"
+    },
+    {
+     "bracketed_paste": false,
+     "code": null,
+     "dialog": null,
+     "groesse": [
+      80,
+      6
+     ],
+     "id": "s3",
+     "invers": false,
+     "kundenraum": "ra",
+     "letzte_eingabe": null,
+     "route": "r-frei",
+     "stand": 6,
+     "titel": "titel",
+     "zustand": "laeuft"
+    },
+    {
+     "bracketed_paste": true,
+     "code": null,
+     "dialog": null,
+     "groesse": [
+      20,
+      6
+     ],
+     "id": "s4",
+     "invers": false,
+     "kundenraum": "ra",
+     "letzte_eingabe": null,
+     "route": "r-frei",
+     "stand": 4,
+     "titel": "t",
+     "zustand": "laeuft"
+    }
+   ]
+  }
+ },
+ "exit": 0
+}

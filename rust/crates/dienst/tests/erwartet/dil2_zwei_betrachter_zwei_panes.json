@@ -1,0 +1,363 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "kind_beendet": null,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": {
+     "cursor": [
+      2,
+      0,
+      true
+     ],
+     "groesse": [
+      100,
+      8
+     ],
+     "invers": false,
+     "nr": 1,
+     "zeilen": [
+      "BEREIT",
+      "GROESSE 8 100",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    },
+    "abbild_fehler": [],
+    "abbilder": {
+     "1": {
+      "cursor": [
+       2,
+       0,
+       true
+      ],
+      "groesse": [
+       100,
+       8
+      ],
+      "invers": false,
+      "zeilen": [
+       "BEREIT",
+       "GROESSE 8 100",
+       "",
+       "",
+       "",
+       "",
+       "",
+       ""
+      ]
+     },
+     "2": {
+      "cursor": [
+       2,
+       0,
+       true
+      ],
+      "groesse": [
+       60,
+       4
+      ],
+      "invers": false,
+      "zeilen": [
+       "BEREIT",
+       "GROESSE 4 60",
+       "",
+       ""
+      ]
+     }
+    },
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       },
+       "b2": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "gestartet": 2,
+      "kernbau": 3,
+      "nummern": {
+       "s-1": 1,
+       "s-2": 2
+      }
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [
+         "s-1",
+         "s-2"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       },
+       "b2": {
+        "abos": [
+         "s-1",
+         "s-2"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         100,
+         8
+        ],
+        "id": "s-1",
+        "invers": false,
+        "letzte_eingabe": "b1",
+        "titel": ""
+       },
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         60,
+         4
+        ],
+        "id": "s-2",
+        "invers": false,
+        "letzte_eingabe": "b2",
+        "titel": ""
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": null,
+    "ok": true
+   },
+   {
+    "abbild": {
+     "cursor": [
+      2,
+      0,
+      true
+     ],
+     "groesse": [
+      100,
+      8
+     ],
+     "invers": false,
+     "nr": 1,
+     "zeilen": [
+      "BEREIT",
+      "GROESSE 8 100",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    },
+    "abbild_fehler": [],
+    "abbilder": {
+     "1": {
+      "cursor": [
+       2,
+       0,
+       true
+      ],
+      "groesse": [
+       100,
+       8
+      ],
+      "invers": false,
+      "zeilen": [
+       "BEREIT",
+       "GROESSE 8 100",
+       "",
+       "",
+       "",
+       "",
+       "",
+       ""
+      ]
+     },
+     "2": {
+      "cursor": [
+       2,
+       0,
+       true
+      ],
+      "groesse": [
+       60,
+       4
+      ],
+      "invers": false,
+      "zeilen": [
+       "BEREIT",
+       "GROESSE 4 60",
+       "",
+       ""
+      ]
+     }
+    },
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       },
+       "b2": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "gestartet": 2,
+      "kernbau": 3,
+      "nummern": {
+       "s-1": 1,
+       "s-2": 2
+      }
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [
+         "s-1",
+         "s-2"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       },
+       "b2": {
+        "abos": [
+         "s-1",
+         "s-2"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         100,
+         8
+        ],
+        "id": "s-1",
+        "invers": false,
+        "letzte_eingabe": "b1",
+        "titel": ""
+       },
+       {
+        "bracketed_paste": false,
+        "dialog": null,
+        "groesse": [
+         60,
+         4
+        ],
+        "id": "s-2",
+        "invers": false,
+        "letzte_eingabe": "b2",
+        "titel": ""
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": null,
+    "ok": true
+   }
+  ],
+  "start": {
+   "netz_sockets": 0,
+   "ok": true,
+   "ordner_modus": "0700",
+   "socket_modus": "0600"
+  }
+ },
+ "exit": 0
+}

@@ -20,6 +20,11 @@ Abgleich mit der Anforderungsliste: 22.11.2026; die Zuordnung von A03 und A53 is
 
 `rust/crates/zustandskern/tests/faelle/` (534 Fälle; `r*` und `x_*` sind die sichtbaren Fälle des Vertrags, `g_*` sind erzeugte Fälle mit Erwartung aus der Python-Referenz, `h_*` sind von Hand zu den Anmerkungen des Vertrags geschrieben) mit den Erwartungen in `rust/crates/zustandskern/tests/erwartet/`; der Läufer ist `rust/crates/zustandskern/tests/faelle.rs`. Der Erzeuger der `g_*`-Fälle ist `rust/crates/zustandskern/tests/werkzeug/erzeuge_faelle.py`, die Referenz `ra_ref.py` liegt daneben. Weitere Prüfungen des Crates: `grenzen.rs`, `nebenwirkung.rs`, `schritt.rs`.
 
+Nachtrag 26.11.2026 (Oberfläche L1, L2, L6, `rust/spec/VERTRAEGE.md` am Ende): `faelle/` hat 538 Fälle; dazu kamen vier Fälle `rl2_*`, die der heutige Code
+besteht. `rust/crates/zustandskern/tests/faelle-ausstehend/` mit `erwartet-ausstehend/` hält 109 Fälle, die erst der Bau von R-L1 und R-L6 besteht:
+sechs neue (`rl1_*`, `rl6_*`) und 103 bestehende Fälle mit neuer Erwartung unter demselben Namen (nur das Feld `sitzung` in `Agenten` und
+`Agentenzustand` kommt dazu). Der Läufer liest den Ordner nicht. Der Bau verschiebt die Fälle nach `faelle/` und `erwartet/`.
+
 ## Gegen den Bau fahren
 
 Aus dem Ordner `rust/`: `cargo test -p zustandskern --test faelle`.

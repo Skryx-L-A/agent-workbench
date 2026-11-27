@@ -1,0 +1,167 @@
+{
+ "beschreibung": "kein Konto aus der Ansicht: jedes Ereignis mit person, wer, uid oder sid ist feld_verboten, auf dienst.sock wie auf dem lokalen Weg",
+ "datensatz": "A",
+ "name": "dil11_feld_verboten",
+ "regeln": [
+  "DI-L11",
+  "DI3"
+ ],
+ "schritte": [
+  {
+   "art": "Verbinden",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c1",
+   "ereignis": {
+    "art": "Text",
+    "person": "anna",
+    "sitzung": "s-alpha",
+    "text": "x"
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c1",
+   "bis": {
+    "fehler": "feld_verboten"
+   },
+   "frist": 5,
+   "takt": 0
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c2"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c2",
+   "ereignis": {
+    "an": true,
+    "art": "Abo",
+    "sitzung": "s-alpha",
+    "spalten": 40,
+    "wer": "root",
+    "zeilen": 10
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c2",
+   "bis": {
+    "fehler": "feld_verboten"
+   },
+   "frist": 5,
+   "takt": 0
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c3",
+   "weg": "lokal"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c3",
+   "ereignis": {
+    "art": "Taste",
+    "sitzung": "s-alpha",
+    "taste": "Enter",
+    "uid": 0,
+    "umschalter": []
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c3",
+   "bis": {
+    "fehler": "feld_verboten"
+   },
+   "frist": 5,
+   "takt": 0
+  },
+  {
+   "art": "Verbinden",
+   "betrachter": "c4",
+   "weg": "lokal"
+  },
+  {
+   "art": "Ereignis",
+   "betrachter": "c4",
+   "ereignis": {
+    "art": "Groesse",
+    "sid": "S-1-5-18",
+    "sitzung": "s-alpha",
+    "spalten": 40,
+    "zeilen": 10
+   }
+  },
+  {
+   "art": "Warte",
+   "betrachter": "c4",
+   "bis": {
+    "fehler": "feld_verboten"
+   },
+   "frist": 5,
+   "takt": 0
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c1"
+  },
+  {
+   "art": "Zustand",
+   "betrachter": "c3"
+  }
+ ],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   },
+   "sitzungen": [
+    {
+     "id": "s-alpha",
+     "kundenraum": "raum-nord",
+     "person": "anna",
+     "route": "r1",
+     "titel": "Alpha"
+    }
+   ]
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "groesse": [
+   40,
+   10
+  ],
+  "kind": {
+   "argv": [
+    "@dienst",
+    "--kind",
+    "ausgabewarte",
+    "4f4b",
+    "30"
+   ],
+   "env": {
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   }
+  },
+  "lokal": {
+   "kanal": "fenster"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

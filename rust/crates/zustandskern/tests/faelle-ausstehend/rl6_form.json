@@ -1,0 +1,260 @@
+{
+ "name": "rl6_form",
+ "regeln": [
+  "R-L6"
+ ],
+ "beschreibung": "Form vor R7: falsche Entscheidung, Begründung bei erteilen, leer, zu lang, Steuerzeichen; genau 500 Zeichen gehen",
+ "anfang": {
+  "personen": {
+   "nutzer-1": {
+    "rolle": "nutzer",
+    "art": "mensch"
+   },
+   "nutzer-2": {
+    "rolle": "nutzer",
+    "art": "mensch"
+   },
+   "admin-1": {
+    "rolle": "admin",
+    "art": "mensch"
+   },
+   "agent-1": {
+    "rolle": "nutzer",
+    "art": "agent"
+   }
+  },
+  "nachweise": {
+   "nw-11": {
+    "person": "nutzer-1"
+   },
+   "nw-12": {
+    "person": "nutzer-1"
+   },
+   "nw-13": {
+    "person": "nutzer-1"
+   },
+   "nw-14": {
+    "person": "nutzer-1"
+   },
+   "nw-21": {
+    "person": "nutzer-2"
+   },
+   "nw-91": {
+    "person": "agent-1"
+   }
+  },
+  "routen": [
+   {
+    "name": "route-frei-1",
+    "status": "frei"
+   },
+   {
+    "name": "route-gesperrt-1",
+    "status": "gesperrt",
+    "grund": "Evaluierung läuft",
+    "zone": "Z2"
+   },
+   {
+    "name": "route-eval-1",
+    "status": "evaluierung",
+    "grund": "Evaluierung läuft"
+   }
+  ],
+  "sitzungen": [
+   {
+    "id": "s-nord",
+    "titel": "eins",
+    "route": "route-frei-1",
+    "kundenraum": "raum-a",
+    "person": "nutzer-1",
+    "groesse": [
+     80,
+     4
+    ],
+    "bracketed_paste": false,
+    "zeilen": []
+   },
+   {
+    "id": "s-mitte",
+    "titel": "drei",
+    "route": "route-frei-1",
+    "kundenraum": "raum-a",
+    "person": "nutzer-1",
+    "groesse": [
+     80,
+     4
+    ]
+   },
+   {
+    "id": "s-sued",
+    "titel": "zwei",
+    "route": "route-frei-1",
+    "kundenraum": "raum-b",
+    "person": "nutzer-1",
+    "groesse": [
+     80,
+     4
+    ]
+   }
+  ],
+  "worker": [
+   {
+    "id": "worker-a1",
+    "sitzung": "s-nord"
+   },
+   {
+    "id": "worker-a2",
+    "sitzung": "s-nord"
+   },
+   {
+    "id": "worker-b1",
+    "sitzung": "s-sued"
+   }
+  ]
+ },
+ "ereignisse": [
+  {
+   "t": 0,
+   "art": "Verbinden",
+   "betrachter": "fenster-1",
+   "person": "nutzer-1",
+   "raum": "raum-a",
+   "ansicht": "fenster"
+  },
+  {
+   "t": 5,
+   "art": "Anfrage",
+   "id": "a-5",
+   "sitzung": "s-nord",
+   "werkzeug": "ticket.update",
+   "vorschau": "- alt\n+ neu",
+   "frist": 60000
+  },
+  {
+   "t": 20,
+   "art": "Freigabe",
+   "betrachter": "fenster-1",
+   "anfragen": [
+    "a-5"
+   ],
+   "nachweis": "nw-11",
+   "entscheidung": "vielleicht"
+  },
+  {
+   "t": 21,
+   "art": "Freigabe",
+   "betrachter": "fenster-1",
+   "anfragen": [
+    "a-5"
+   ],
+   "nachweis": "nw-11",
+   "entscheidung": 1
+  },
+  {
+   "t": 22,
+   "art": "Freigabe",
+   "betrachter": "fenster-1",
+   "anfragen": [
+    "a-5"
+   ],
+   "nachweis": "nw-11",
+   "entscheidung": "ablehnen",
+   "begruendung": 5
+  },
+  {
+   "t": 23,
+   "art": "Freigabe",
+   "betrachter": "fenster-1",
+   "anfragen": [
+    "a-5"
+   ],
+   "nachweis": "nw-11",
+   "begruendung": "passt"
+  },
+  {
+   "t": 24,
+   "art": "Freigabe",
+   "betrachter": "fenster-1",
+   "anfragen": [
+    "a-5"
+   ],
+   "nachweis": "nw-11",
+   "entscheidung": "erteilen",
+   "begruendung": "passt"
+  },
+  {
+   "t": 25,
+   "art": "Freigabe",
+   "betrachter": "fenster-1",
+   "anfragen": [
+    "a-5"
+   ],
+   "nachweis": "nw-11",
+   "entscheidung": "ablehnen",
+   "begruendung": ""
+  },
+  {
+   "t": 26,
+   "art": "Freigabe",
+   "betrachter": "fenster-1",
+   "anfragen": [
+    "a-5"
+   ],
+   "nachweis": "nw-11",
+   "entscheidung": "ablehnen",
+   "begruendung": "äääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääää"
+  },
+  {
+   "t": 27,
+   "art": "Freigabe",
+   "betrachter": "fenster-1",
+   "anfragen": [
+    "a-5"
+   ],
+   "nachweis": "nw-11",
+   "entscheidung": "ablehnen",
+   "begruendung": "zwei\nZeilen"
+  },
+  {
+   "t": 28,
+   "art": "Freigabe",
+   "betrachter": "fenster-1",
+   "anfragen": [
+    "a-5"
+   ],
+   "nachweis": "nw-11",
+   "entscheidung": "ablehnen",
+   "begruendung": "x"
+  },
+  {
+   "t": 29,
+   "art": "Freigabe",
+   "betrachter": "fenster-1",
+   "anfragen": [],
+   "nachweis": "nw-11",
+   "entscheidung": "ablehnen",
+   "begruendung": ""
+  },
+  {
+   "t": 30,
+   "art": "Freigabe",
+   "betrachter": "fenster-1",
+   "anfragen": [
+    "a-5"
+   ],
+   "entscheidung": "ablehnen",
+   "begruendung": "ohne Nachweis"
+  },
+  {
+   "t": 31,
+   "art": "Freigabe",
+   "betrachter": "fenster-1",
+   "anfragen": [
+    "a-5"
+   ],
+   "nachweis": "nw-11",
+   "entscheidung": "ablehnen",
+   "begruendung": "ääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääääää"
+  }
+ ]
+}

@@ -1008,6 +1008,318 @@ Grundlage: Vertrag `seite`, `rust/spec/seite/OBERFLAECHE.md` Fassung 2, Abschnit
 9. **Fälle.** Außenfälle in `rust/crates/dienst/tests/faelle/` mit den Erwartungen in `tests/erwartet/`: `l9_klasse_gesperrt` (Lesen und Suche einer bekannten Sitzung im eigenen Raum, auch mit gutem `pfad`), `l9_pfad_und_muster` (die Gründe aus Punkt 3.4 und 3.5), `l9_form_und_sitzung` (`form_ungueltig`, `sitzung_unbekannt`), `l9_fremde_sitzung` (`fremder_kundenraum`) und `l9_lauf` (mit `lauf`: der Raumkern hat keine Kennung, eine gestartete Sitzung ist `klasse_gesperrt`). Einheitstests des Dateiteils in `rust/crates/dienst/src/arbeitsordner_fs.rs` (gutes Lesen, gute Suche, Link auf Datei und Ordner außerhalb, Link als Glied in der Mitte, Wurzel als Link, Rennen mit einem getauschten Ordner, harter Link, FIFO, Grenzen, unlesbare Einträge, Namen ohne UTF-8) und der Text- und Klassenprüfung in `arbeitsordner.rs`. Gutes Lesen und gute Suche gibt es nur als Einheitstest, weil Punkt 6 sie über den Socket sperrt.
 10. **Geänderte Erwartungen.** Keine: Bisher waren `OrdnerLesen` und `InhaltSuchen` `art_nicht_erlaubt`; kein bestehender Fall nennt sie (hergeleitet: `grep` über `tests/faelle`).
 
+## Nachtrag 26.11.2026: Oberfläche L1, L2, L3, L5, L6, L11
+
+Grundlage: Vertrag `seite`, `rust/spec/seite/OBERFLAECHE.md` Fassung 2, Abschnitt 4 (Lücken L1 bis L11), und der Nachtrag gleichen Namens im
+Vertrag `zustandskern` (R-L1, R-L2, R-L6). Die neuen Regeln heißen DI-L1, DI-L2, DI-L3, DI-L5, DI-L6 und DI-L11. Wo dieser Abschnitt nichts
+sagt, gelten DI1 bis DI12 und die Abschnitte 15 bis 21c unverändert. L4 und L10 legen die Verträge `regelebenen`, `einstellungen` und `start` fest;
+der Dienst reicht ihre Nachrichten nur durch. L9 steht in einem eigenen Nachtrag.
+
+**Ablage der Fälle.** Fälle, für die der Code noch fehlt, liegen in `rust/crates/dienst/tests/faelle-ausstehend/` mit den Erwartungen in
+`rust/crates/dienst/tests/erwartet-ausstehend/`. Der Läufer `faelle.rs` liest sie nicht. Der Bau einer Regel verschiebt ihre Fälle nach `faelle/`
+und `erwartet/`; ein Fall mit demselben Namen ersetzt dann den alten. Fälle, die der heutige Code besteht, liegen gleich in `faelle/`.
+
+**Ereignisse des Dienstes.** `Umbenennen`, `Loeschen`, `Fortsetzen` und `Wiederbeleben` sind wie `Starten` und `Beenden` Ereignisse des Dienstes
+(DI12 Punkt 3): Der Kern sieht sie nie, sie gibt es nur mit `lauf`. Ohne `lauf` ist jedes von ihnen der Fehler `art_nicht_erlaubt` (DI3), die
+Verbindung endet. Im Lauf ist auch `Freigabe` ein Ereignis des Dienstes (DI-L6). Die Liste `ERLAUBT` (DI3) bleibt die Liste der Ereignisse, die zum
+Kern gehen.
+
+### DI-L1 Worker (L1)
+
+1. **Was ein Worker ist.** Ein Worker ist eine Sitzung von `Starten`, die einen Orchestrator nennt. Das Ereignis `Starten` erlaubt dazu zwei
+   Schlüssel neben `start`: `orchestrator` (die Kennung einer Sitzung dieses Dienstes) und `rolle` (eine Kennung, Vorgabe `worker`; nur zusammen mit
+   `orchestrator`). Die Start-Struktur ändert sich dadurch nicht. Jeder andere Schlüssel bleibt `start_form`.
+2. **Prüfung** direkt nach Punkt 3.1 von DI12 (Form der Start-Struktur) und vor Punkt 3.2, in dieser Reihenfolge, jede Ablehnung mit `grund`, `code`
+   und `text` wie bei `Starten`:
+   - `orchestrator` ist kein Text in Kennungsform, oder `rolle` steht ohne `orchestrator` oder ist keine Kennung: `start_form`.
+   - Die Kennung steht nicht in der `Sitzungsliste`: `orchestrator_unbekannt` („Orchestrator unbekannt“).
+   - Die Sitzung ist beendet: `orchestrator_beendet` („Orchestrator ist beendet“).
+   - Die Sitzung ist selbst ein Worker: `orchestrator_ist_worker` („Orchestrator ist selbst ein Worker“). Es gibt nur eine Ebene.
+   - Der `kunde` der Start-Struktur ist ein anderer als der des Orchestrators (auch `null` gegen einen Kunden): `orchestrator_fremder_kunde`
+     („Kunde weicht vom Orchestrator ab“). Grund: kein Übertrag zwischen Kundenräumen (A53).
+3. **Nachricht `Agenten` im Lauf.** Der Raumkern hat keine Worker. Der Dienst schickt darum seine eigene Nachricht an der Stelle der des Raumkerns,
+   wie bei der `Sitzungsliste` (DI12 Punkt 2):
+   `{"art": "Agenten", "agenten": [{"worker", "sitzung", "rolle", "modell", "zustand", "nr", ("code")} …]}` in der Reihenfolge des Starts.
+   `worker` ist die Kennung der Sitzung des Workers, `sitzung` die des Orchestrators, `modell` der Text der Start-Struktur, `zustand` `laeuft`
+   oder `beendet` (mit `code` wie in der `Sitzungsliste`), `nr` die Rasternummer wie in der `Sitzungsliste`.
+4. **Wann.** Beim Verbinden an der Stelle der Nachricht des Raumkerns (nach `Anfragen`, vor `Startwahl`). Danach nur, wenn sich die Liste der Worker
+   geändert hat: Start oder Ende eines Workers, Löschen, Fortsetzen, neue Rasternummer. Sie kommt dann direkt nach der `Sitzungsliste` derselben
+   Änderung. Ohne Worker ändert sich nichts: Die Liste bleibt `[]` wie die des Raumkerns, kein bestehender Fall ändert sich durch diesen Punkt.
+5. `Agentenzustand` gibt es im Lauf nicht. Der Dienst schickt immer die ganze Liste.
+6. Ein Worker zählt zu den 8 laufenden Sitzungen (DI12 Punkt 3.3). Das Ende des Orchestrators beendet keinen Worker.
+7. Wer im Betrieb einen Worker anfordert, legt dieser Nachtrag nicht fest. Hier steht nur die Form, mit der ein Worker beim Dienst ankommt.
+
+### DI-L2 Mehrere Abos je Betrachter (L2)
+
+1. Ein `Abo` gilt je `sitzung`, nicht je Rasternummer. Grund: Die Rasternummer wird nach P25 neu vergeben, die Kennung nie. Die Rasterrahmen tragen
+   die Nummer; welche Sitzung sie meint, sagt das Feld `nr` der letzten `Sitzungsliste` (Abschnitt 19 Punkt 8).
+2. Ein Betrachter hält mehrere Abos zugleich, je sichtbarem Pane eines, jedes mit seiner Größe aus `Abo` und `Groesse`. So war es schon (DI12 Punkt 2
+   und 7); dieser Punkt schreibt es fest. Es gelten `zustandskern` R-L2 Punkte 1 bis 6 je Kern der Sitzung.
+3. **Die PTY einer Sitzung folgt nur dem Betrachter mit der letzten Eingabe in dieser Sitzung** (Vertrag `seite` SE2 Punkt 7). Eine Eingabe in einem
+   Pane setzt die PTY dieses Panes auf die Größe, die der Betrachter für dieses Pane gemeldet hat. Die anderen Panes behalten ihre Größe.
+4. **Je Raster:** Abzug, Folge der Stände, Bündelung, Rückstand, Dialog, Zwischenablage und Cursor, im Kern der Sitzung. **Je Betrachter
+   gemeinsam:** die eine Verbindung mit einem Deflate-Kontext (`RA`), die eine Warteschlange und ihre Obergrenze (DI5) und `ausstehend`.
+5. Eine eigene Obergrenze der Abos gibt es nicht. Sie ist durch die Rasternummern begrenzt: Ein `Abo` an auf eine Sitzung ohne Nummer ergibt
+   `sitzung_ohne_nummer` (Abschnitt 19 Punkt 6), also höchstens 256 Abos je Betrachter.
+6. `Loeschen` einer Sitzung beendet jedes Abo auf sie (DI-L3 Punkt 5).
+
+### DI-L3 Umbenennen, Fortsetzen, Wiederbeleben, Löschen (L3)
+
+Gemeinsam: Das Ereignis hat genau die genannten Schlüssel, `sitzung` ist Text. Sonst `Ablehnung <name>_form` (`umbenennen_form`, `loeschen_form`,
+`fortsetzen_form`, `wiederbeleben_form`). Eine unbekannte Sitzung ergibt `sitzung_unbekannt`. Die Antwort ist die neue `Sitzungsliste` an alle,
+dahinter `Agenten`, wenn sich die Liste der Worker geändert hat (DI-L1 Punkt 4). Eine Ablehnung geht nur an den Sender. `Umbenennen` und
+`Loeschen` tragen in der Ablehnung nur `grund` (wie `Beenden`), `Fortsetzen` und `Wiederbeleben` `grund`, `code` und `text` (wie `Starten`).
+
+1. **`Umbenennen`** `{"art": "Umbenennen", "sitzung": "<id>", "name": "<name>"}`. `name` ist ein Text mit 1 bis 64 Zeichen (Unicode-Skalarwerte),
+   ohne Zeichen unter 0x20 und von 0x7f bis 0x9f, ohne Leerraum am Anfang und am Ende. Sonst, auch bei einem `name`, der kein Text ist,
+   `name_ungueltig`. Erlaubt für laufende und beendete Sitzungen, auch für die Sitzung aus `kind`. Wirkung: `name` in der Liste und im Bestand
+   (DI-L5). Ein Name muss nicht eindeutig sein.
+2. **`Fortsetzen`** `{"art": "Fortsetzen", "sitzung": "<id>"}`. Prüffolge: Form; unbekannt: `sitzung_unbekannt`; die Sitzung läuft:
+   `sitzung_laeuft`; sie ist schon fortgesetzt (`fortgesetzt_als` steht): `schon_fortgesetzt`; der Dienst hat keine Start-Struktur für sie (die
+   Sitzung aus `kind`): `nicht_fortsetzbar`. Sonst gilt der Weg von `Starten` ab Punkt 3.1 mit der gespeicherten Start-Struktur und mit dem Orchestrator und der Rolle der
+   alten Sitzung: dieselben Prüfungen mit den Einstellungen von jetzt, dieselbe Zahl, eine neue Kennung `s-<n>`, ein neuer Ordner, ein neues Kind.
+   In `start.json` stehen dazu `sitzung` (die neue Kennung) und **`fortsetzung_von`** (die alte Kennung). Den Harness auf das alte Gespräch zu
+   setzen, ist Sache von „Lauf starten“ (Vertrag `start`). Die alte Sitzung bekommt `fortgesetzt_als`, die neue `fortsetzung_von` und den Namen der
+   alten. Antwort wie bei `Starten`: die Liste an alle, dann `Gestartet` an den Sender.
+3. **`Wiederbeleben`** `{"art": "Wiederbeleben", "sitzung": "<id>"}`. Wie `Fortsetzen`, aber nur für eine abgestürzte Sitzung (`abgestuerzt` true,
+   DI-L5 Punkt 2), sonst `nicht_abgestuerzt`. Prüffolge: Form, unbekannt, läuft (`sitzung_laeuft`), nicht abgestürzt, dann wie `Fortsetzen`.
+4. **`Loeschen`** `{"art": "Loeschen", "sitzung": "<id>", "bestaetigung": "<id>"}`. Prüffolge: Form (Schlüssel nur `art`, `sitzung` und
+   `bestaetigung`, `sitzung` ein Text); unbekannt: `sitzung_unbekannt`; die Sitzung aus `kind`: `nicht_loeschbar`; die Sitzung läuft:
+   `sitzung_laeuft`; `bestaetigung` fehlt oder ist nicht genau die Kennung: `bestaetigung_fehlt`; die Sitzung ist Orchestrator eines laufenden
+   Workers: `worker_laeuft`.
+5. **Was `Loeschen` entfernt:** den Eintrag in der Liste und im Bestand mit Name, Ordner, Projekt, Code und gespeicherter Start-Struktur; den Kern und
+   den Träger der Sitzung; jedes Abo auf sie (die Betrachter bekommen keinen Rahmen dieser Nummer mehr, die Nummer ist frei); die Einträge der beendeten
+   Worker dieses Orchestrators.
+   **Was `Loeschen` nie entfernt:** den Arbeitsordner und alles darin; die Ordner und Dateien von „Lauf starten“ (`lauf.sitzungen`, `lauf.ziellisten`,
+   `lauf.laufzeit`, Marker); das Gespräch des Harness; die Protokollkette; den Zustand der Stelle und des Halters; Dateien außerhalb des Ordners des
+   Dienstes. Den Ordner der Sitzung im Ordner des Dienstes gibt es dann schon nicht mehr (DI12 Punkt 12). Die Kennung wird nie wieder vergeben.
+   **Löschen ist endgültig:** Danach ergeben `Fortsetzen`, `Wiederbeleben`, `Umbenennen` und `Abo` `sitzung_unbekannt`.
+   **Schutz gegen ein Versehen:** nur für beendete Sitzungen; die Bestätigung muss die Kennung wiederholen, die Ansicht schickt sie erst nach ihrer
+   Rückfrage (Vertrag `seite`, B16); ein Ereignis löscht genau eine Sitzung, es gibt kein Sammellöschen.
+
+### DI-L5 Sitzungsliste und Bestand (L5)
+
+1. **Neue Felder** jedes Eintrags der `Sitzungsliste` im Lauf (DI12 Punkt 5):
+   - `name`: der Name aus `Umbenennen`, sonst der Name aus der Start-Struktur, sobald der Vertrag `start` ihn führt (L10), sonst `""`.
+   - `ordner`: `arbeitsordner` der Start-Struktur; `""` für die Sitzung aus `kind`.
+   - `projekt`: der Anzeigename, der letzte Bestandteil von `ordner` (`/home/a/kunde-x` ergibt `kunde-x`); `""`, wenn `ordner` leer oder `/` ist.
+   - `abgestuerzt` (Wahrheitswert): nur bei `beendet`, Regel in Punkt 2.
+   - `fortsetzung_von` und `fortgesetzt_als` (Kennungen): nur, wenn sie bestehen (DI-L3).
+   Die Reihenfolge der Einträge bleibt die des Starts; Einträge aus dem Bestand stehen vorn in ihrer gespeicherten Reihenfolge.
+2. **`abgestuerzt`** ist wahr, wenn die Sitzung von selbst endete (nicht durch `Beenden`, nicht durch das Dienstende) und ihr Code nicht 0 ist, oder
+   wenn sie beim Ende des vorigen Laufs des Dienstes noch lief (Punkt 4). Sonst ist es falsch. **Beim Dienstende** (SIGTERM, SIGINT) setzt der Dienst
+   jede laufende Sitzung im Bestand auf `beendet` mit `grund` `dienst.ende` und `abgestuerzt` false und schreibt den Bestand, bevor er die Kinder
+   beendet. Nur ein Dienst, der ohne geordnetes Ende stirbt, hinterlässt Einträge mit `laeuft`.
+3. **Bestand.** Neuer optionaler Schlüssel `lauf.bestand` der Startdatei: ein absoluter Pfad, geprüft wie `lauf.einstellungen`. Der Elternordner muss
+   beim Start nach DI2 Punkte 1 bis 3 geprüft sein (Ordner, kein Link, Besitzer der effektive Benutzer, Modus genau 0700), sonst Exitcode 3. Nach jeder
+   Änderung der Liste (Start, Ende, `Umbenennen`, `Fortsetzen`, `Wiederbeleben`, `Loeschen`, Wegfall nach P26) schreibt der Dienst die Datei neu:
+   eine neue Datei `<bestand>.neu.<pid>` exklusiv mit Modus 0600, ohne einem Link zu folgen, `fsync`, Umbenennen auf `<bestand>`, `fsync` des
+   Ordners. Ein Rest `<bestand>.neu.<pid>` eines abgestürzten Laufs stört nicht; der Dienst löscht ihn nicht.
+   Gelingt das nicht, bleibt die alte Datei, und der Dienst schreibt eine Zeile `wb-dienst: bestand nicht geschrieben: <code>` nach stderr, ohne
+   Inhalt. Inhalt: `{"fassung": 1, "gestartet": <Zahl der vergebenen Kennungen>, "sitzungen": [{"id", "harness", "modell", "route", "kunde",
+   "name", "ordner", "projekt", "zustand", ("code"), ("grund"), ("abgestuerzt"), ("orchestrator"), ("rolle"), ("fortsetzung_von"),
+   ("fortgesetzt_als"), "start"} …]}` mit `start` als Start-Struktur der Anfrage. Nie darin: Zeilen, Titel, Eingaben, Zwischenablage, Pfade der
+   Startdatei. Höchstens 256 beendete Einträge wie in der Liste (P26) und höchstens 4 194 304 Byte.
+4. **Nach einem Neustart** liest der Dienst den Bestand einmal beim Start. Er muss eine reguläre Datei sein, kein Link, mit Besitzer der effektive
+   Benutzer und Modus 0600, mit höchstens 4 194 304 Byte und gültiger Form; sonst Exitcode 2 mit einer Zeile (fail closed: der Dienst ersetzt nie eine
+   Datei, die er nicht lesen kann). Fehlt die Datei, ist die Liste leer. Jeder Eintrag kommt als `beendet` in die Liste, mit `nr` `null` (das Bild ist
+   weg; ein `Abo` ergibt `sitzung_ohne_nummer`). Ein Eintrag, der `laeuft` war, wird `beendet` mit `abgestuerzt` true, ohne `code`, mit `grund`
+   `dienst.neustart`. `dienst.gestartet` ist danach das Größere aus `gestartet` und der höchsten Nummer der Kennungen; DI12 Punkte 13 und 15 gelten
+   weiter. Eine Start-Struktur aus dem Bestand durchläuft bei `Fortsetzen` alle Prüfungen von `Starten`; der Bestand gibt keinem Inhalt mehr Recht als
+   eine neue Anfrage. Der Kern einer Sitzung aus dem Bestand gilt als beendet: Er lehnt Eingaben mit `sitzung_beendet` ab.
+   Reihenfolge der Exitcodes: Der Dienst liest den Bestand nach der Prüfung der Rechte (DI2). Ein ungültiger Bestand in einem Ordner mit falschen
+   Rechten ergibt also 3, nicht 2.
+
+### DI-L6 Freigabe im Lauf (L6)
+
+1. **Stand vor diesem Nachtrag (Fall `dil6_heute` in `faelle/`):** Im Lauf geht `Freigabe` an den Kern der genannten Sitzung (DI12 Punkt 7). Ohne `sitzung` antwortet
+   der Dienst `sitzung_unbekannt`. Der Kern einer Sitzung bekommt nie ein Ereignis `Anfrage`, denn der Dienst hat keine Verbindung zur Stelle, und er
+   gibt `an_stelle` nicht weiter (Abschnitt 5, letzter Punkt). Eine Freigabe erreicht also weder die Stelle noch den Hub noch den Halter.
+2. **Neuer Schlüssel `lauf.stelle`** der Startdatei: `{"kanal": "<Kanalname>", "ordner": "/abs/pfad"}` (`ordner` nur unter Unix). Der Dienst spricht
+   die Stelle als Client von `peerkanal` mit der erwarteten Kennung des eigenen Benutzers an und ist für sie der Aufrufer `mensch` (Vertrag `stelle`,
+   Abschnitt 3).
+3. **Anfragen holen.** Solange ein Betrachter verbunden ist, fragt der Dienst je Sekunde `mcp.offene`. Jede offene Anfrage, deren `sitzung` eine Sitzung
+   dieses Dienstes ist und die der Kern noch nicht kennt, gibt er dem Kern dieser Sitzung als Ereignis `Anfrage` mit `id`, `sitzung`, `werkzeug`,
+   `vorschau` und `frist` (die Frist in der Uhr des Dienstes: jetzt plus der Rest bis `frist_bis_ms`).
+4. **`Freigabe` im Lauf** `{"art": "Freigabe", "anfragen": [<id>], "nachweis", ("entscheidung"), ("begruendung")}`, ohne `sitzung`; jeder andere
+   Schlüssel, auch `sitzung`, und eine Liste `anfragen`, die nicht nur Texte trägt, ergeben `ereignis_ungueltig`. Prüffolge: die
+   Form nach `zustandskern` R-L6 Punkt 2 (dieselben Gründe); Anzahl (`sammelfreigabe`); Person mit `art: mensch` (`agent_kennung`); `nachweis` fehlt
+   (`nachweis_fehlt`) oder ist kein Text (`nachweis_ungueltig`); die Anfrage kennt kein Kern dieses Dienstes (`anfrage_unbekannt`); anderer
+   Kundenraum (`fremder_kundenraum`); nicht offen (`nicht_offen`, `abgelaufen`). Dann `mcp.entscheiden` mit `anfrage`, `entscheidung` und `nachweis`.
+   Die Begründung geht nicht an die Stelle; ihre Eingabe ist geschlossen (Vertrag `stelle`, Abschnitt 4).
+5. **Antwort der Stelle.** `erteilt` oder `abgelehnt`: Der Dienst gibt dem Kern der Sitzung `AnfrageStand` mit diesem Zustand und der Begründung des
+   Ereignisses (`zustandskern` R-L6 Punkt 6); der Raum bekommt die Nachricht `Anfrage`, das ist die Zeile im Guard-Verlauf. Eine Ablehnung der Stelle
+   geht als `Ablehnung {"grund": "stelle_abgelehnt", "code": "<code der Stelle>"}` nur an den Sender; der Kern bleibt unverändert. Ist `lauf.stelle`
+   nicht gesetzt oder die Stelle nicht erreichbar, ist die Antwort `stelle_nicht_erreichbar` (fail closed: nichts ändert sich).
+6. **Ende zu Ende** (Fall `dil6_ende_zu_ende`, ausstehend): Anfrage der Stelle, `Anfragen` an den Betrachter, `Freigabe` mit `erteilen`,
+   `mcp.entscheiden` an einer Attrappe der Stelle im Prüfclient, Nachricht `Anfrage` mit `erteilt`; eine zweite Anfrage mit `ablehnen` und
+   Begründung, Nachricht `Anfrage` mit `abgelehnt` und Begründung. Der Fall braucht die Form der Zeilen auf dem Kanal der Stelle. Die legt die
+   Transportschicht der Stelle fest (Vertrag `stelle`, Abschnitt 1, „Transportschicht“), und sie ist noch nicht geschrieben. Bis dahin prüft der
+   Fall `dil6_freigabe_lauf` die Prüffolge bis `anfrage_unbekannt`. Der Weg danach (Hub löst ein, Halter führt aus) gehört den Verträgen `stelle`
+   und `halter`.
+
+### DI-L11 Lokaler Weg für Betrachter ohne Brücke (L11)
+
+Sicherheitsstelle: das Projekt liest sie selbst.
+
+1. **Schlüssel `lokal`** der Startdatei, optional, in beiden Betriebsarten: `{"kanal": "<Kanalname>"}`, Kanalname nach `peerkanal`
+   (`^[a-z0-9][a-z0-9._-]{0,63}$`). Unter Linux und macOS ist der Weg der Unix-Socket `<socket.ordner>/<kanal>.sock` (höchstens 100 Byte wie DI1,
+   nicht gleich `socket.name`), unter Windows die Named Pipe `\\.\pipe\<kanal>`. Ohne `lokal` gibt es keinen lokalen Weg; alles bleibt wie bisher.
+2. **Bau auf `peerkanal` Fassung 1** (`rust/spec/peerkanal/README.md`), als Server mit genau einer Erlaubnis: unter Unix `{"uid": <effektive uid des
+   Dienstes>}` ohne `gid`, unter Windows `{"sid": <eigene SID>, "appcontainer_sid": null}`. Dazu `instanzen` 8, `hallo_frist` 2 s, `prozess_pflicht`
+   true, unter Unix Modus 0600. Nach dem Hallo spricht die Verbindung das Protokoll dieses Vertrags (DI3 bis DI12); jede Verbindung ist ein Betrachter
+   `b<n>` mit demselben Zähler wie `dienst.sock`, `ansicht` ist `fenster`.
+3. **Rechte.** Unix: der Ordner wie DI2 Punkte 1 bis 3 (0700, Besitzer der effektive Benutzer, kein Link); der Socket mit Modus genau 0600 und dem
+   Besitzer des Dienstes; besteht der Pfad schon, endet der Start mit Exitcode 3 (`pk.name_belegt`). Windows: Besitzer der Pipe ist die eigene SID,
+   die DACL ist geschützt und hat genau einen Eintrag `(A;;0x12019F;;;<eigene SID>)`; kein Eintrag für `Everyone`, `Authenticated Users`, `Users`,
+   `Administrators`, `INTERACTIVE`, `NETWORK`, `ANONYMOUS` oder einen AppContainer; kein Label; `PIPE_REJECT_REMOTE_CLIENTS` und
+   `FILE_FLAG_FIRST_PIPE_INSTANCE`. Ist der Name belegt, endet der Start mit Exitcode 3: Ein Prozess, der den Namen vorher anlegt, bekommt nie eine
+   Verbindung des Dienstes, und die Ansicht prüft den Server mit der erwarteten Kennung des eigenen Benutzers (peerkanal, Client).
+4. **Das Konto kommt allein aus dem Verbindungspartner.** Unix: die uid aus `SO_PEERCRED` (Linux) oder `LOCAL_PEERCRED`, also `getpeereid` (macOS),
+   gemessen vom Kernel beim `connect`. Windows: `TokenUser` des Tokens des Clients über `ImpersonateNamedPipeClient` und `OpenThreadToken`.
+   Der Dienst bildet daraus einmal je Verbindung, vor dem ersten Rahmen, den Wert **`wer`**: `{"system": "linux"|"macos"|"windows", "uid": <Zahl>
+   oder null, "sid": "<SID>" oder null, "name": "<Konto>"}`. `name` ist unter Unix `pw_name` aus `getpwuid_r(uid)`, unter Windows `DOMÄNE\name` aus
+   `LookupAccountSidW`. `wer` ändert sich während der Verbindung nie.
+   **Vom Konto zum Pseudonym (L4).** Die Prüfung auf Admin und `sicht` (Vertrag `regelebenen`, Abschnitt 15.2) bekommen nie das Konto, sondern dessen
+   Pseudonym. Der Dienst bildet aus `wer` die Kennung der Person: unter Unix `uid-<uid>` (Dezimalzahl), unter Windows `sid-<SID in Kleinbuchstaben>`;
+   beide haben die Form einer Kennung nach Vertrag 2. Mit dieser Kennung fragt er die Stelle nach dem Pseudonym (`person(kennung, …)`, Vertrag
+   `personenbezug` Abschnitt 4) und gibt `setzen` und `sicht` dieses Pseudonym als `wer`. Die Kontenliste der Admins aus der Firmenvorgabe löst er
+   beim Laden ebenso auf: Name zu uid oder SID über das System, dann Kennung, dann Pseudonym; die Menge ist `stand.admins`. Ein Name, den das System
+   nicht kennt, ergibt kein Pseudonym und keinen Admin (fail closed). Grund für uid und SID statt des Namens: Ein Name lässt sich umbenennen oder
+   doppelt vergeben, die Kennung des Systems nicht. `wer` steht in keiner Nachricht an die Ansicht, in keiner Datei der Ebenen und in keiner
+   Protokollzeile; nur die Antwort auf `Zustand` im Prüfmodus nennt `wer` (DI9). Konten, die ein Admin eingibt, stehen nur in der Firmenvorgabe und
+   in `Einstellungen` an einen Admin (`regelebenen` 15.12 und 15.13; Abschnitt „L4 und L10 im Dienst“ Punkt 6 und 7).
+   **Admin hängt allein am Verbindungspartner.** Ob ein Betrachter Admin ist, entscheidet der Dienst nur mit dem Pseudonym aus `wer` des lokalen Wegs.
+   Kein Feld eines Ereignisses, keine Startdatei und keine Angabe der Ansicht macht einen Betrachter zum Admin. Ein Betrachter über `dienst.sock`
+   hat keinen gemessenen Partner (DI2 Punkt 8, Punkt 7 unten); er ist nie Admin, auch wenn das eigene Konto des Dienstes in der Kontenliste steht.
+5. **Verwerfen eines fremden Nutzers.** Das System lässt ihn gar nicht verbinden (Ordner 0700, DACL); dann gibt es kein Ereignis. Erreicht er den
+   Server doch (etwa als root, mit `SeBackupPrivilege` oder durch eine spätere Zugriffsliste), verwirft `peerkanal` ihn mit `pk.kennung_nicht_erlaubt`
+   und dem Grund `pk.uid_nicht_erlaubt` (Unix) oder `pk.sid_nicht_erlaubt` (Windows); ein Prozess in einem AppContainer mit `pk.appcontainer_falsch`,
+   ein Token mit Restricting SIDs mit `pk.eingeschraenkt`. Im Haken des Aufrufers (peerkanal Stufe 7) verwirft der Dienst außerdem mit
+   `aufrufer:konto-unbekannt` (kein Name zur uid oder SID), unter Linux mit `aufrufer:einschluss` (die Cgroup des Partners liegt in der Einheit eines
+   Laufs, peerkanal Fassung 2) und unter macOS mit `aufrufer:sandbox` (Seatbelt). Je Verwerfen schreibt der Dienst eine Zeile
+   `wb-dienst: lokal abgewiesen: <grund>` nach stderr, ohne Namen, uid oder SID.
+6. **Fail closed.** Lässt sich der Partner nicht bestimmen (`pk.peer_unmessbar`, `pk.prozess_gewechselt`, ein ungültiges Hallo), gibt es keine
+   Verbindung, kein `Verbinden` an den Kern und keine Nachricht. Ohne `wer` erreicht keine Verbindung des lokalen Wegs den Kern.
+7. **Wege, auf denen eine Angabe der Ansicht doch zum Konto würde, und ihr Schluss:**
+   - Ein Feld im Ereignis: Nennt ein Ereignis `konto`, `wer`, `person`, `uid` oder `sid`, ist das der Fehler `feld_verboten` (DI3, wie `t` und
+     `betrachter`), auf beiden Wegen. `bereich` in `EinstellungSetzen` ist ein Wunsch, kein Recht; ob er gilt, entscheidet `regelebenen` mit `wer`.
+   - Die Startdatei: `betrachter.person` ist die Person des Kerns, nie das Konto. `wer` kommt nie aus der Startdatei, nie aus der Umgebung (`USER`,
+     `LOGNAME`, `USERNAME`) des Dienstes oder der Ansicht, nie aus dem Namen von Socket oder Pipe und nie aus dem Hallo.
+   - Eine Verbindung ohne echtes Token: Öffnet ein Client die Pipe mit `SECURITY_ANONYMOUS` oder `SECURITY_IDENTIFICATION` ohne Benutzer, scheitert
+     `OpenThreadToken` oder liefert keinen `TokenUser`; das ist `pk.peer_unmessbar`, keine Verbindung.
+   - Ein Name statt einer Kennung: Das Pseudonym entsteht aus uid oder SID, nie aus dem Namen; die Kontenliste der Admins wird beim Laden zu uid
+     oder SID aufgelöst (Punkt 4). So gibt ein zweiter Eintrag mit demselben Namen kein Recht.
+   - Ein Agent mit derselben uid (Linux unter `bwrap`): Der Ordner des Dienstes wird nie in einen Einschluss gebunden (Vertrag `einschluss`), und der
+     Haken verwirft einen Partner in der Einheit eines Laufs (Punkt 5). Unter macOS verwirft der Haken einen Partner unter Seatbelt, unter Windows
+     verwirft `peerkanal` einen AppContainer.
+   - Eine weitergereichte Verbindung: Die Kennung ist die des Prozesses, der `connect` aufrief. Reicht ein Prozess des Kontos seine Verbindung an einen
+     anderen Prozess weiter, handelt dieser als das Konto. Das kann nur das Konto selbst; der Dienst kann es nicht verhindern.
+   - Die Brücke: `dienst.sock` hat keine Peer-Prüfung (DI2 Punkt 8). Für Betrachter über `dienst.sock` ist `wer` das eigene Konto des Dienstes
+     (`geteuid` oder das eigene Token), denn nur dieses Konto erreicht den Socket. Wer über die Brücke kommt, handelt also als dieses Konto; die
+     Anmeldung an der Brücke ist dort die Grenze (Vertrag `bruecke`).
+8. **Starten über den lokalen Weg** (das Gegenstück zu `POST /starten` der Brücke, Vertrag `bruecke`): Das App-Fenster schickt auf seiner
+   Verbindung das Ereignis `Starten` von DI12 Punkt 3 mit der Start-Struktur in der Fassung, die das Crate `start` liest (Fassung 2 mit `effort`
+   und `name`, sobald der Vertrag `start` sie führt; Abschnitt „L4 und L10 im Dienst“). Die Antwort geht nur an den Sender:
+   - angenommen: erst die neue `Sitzungsliste` an alle, dann `Gestartet {"sitzung": "<id>"}` (Rahmen `Nachricht`); das entspricht 200
+     `{"sitzung": "<id>"}` der Brücke;
+   - abgelehnt: `Ablehnung {"grund", "code", "text"}` (Rahmen `Ablehnung`, DI12 Punkt 3); das entspricht 422 der Brücke mit denselben Werten.
+   Zuordnung ohne neues Feld: Der Dienst verarbeitet die Ereignisse einer Verbindung der Reihe nach, und jedes `Starten` bekommt genau eine Antwort.
+   Die Ansicht hält je Verbindung höchstens ein `Starten` offen; die nächste `Gestartet` oder die nächste `Ablehnung` mit `code` ist dann seine
+   Antwort. Andere Ablehnungen tragen kein `code` (DI12 Punkt 3). Fall: `dil11_lokal_starten`; Mutant `lokal_ohne_starten`.
+9. **`Abo` bekommt kein Feld `nr`** (DI-L2 Punkt 1). Das Fenster abonniert je `sitzung` und ordnet die Rasterrahmen über `nr` der letzten
+   `Sitzungsliste` zu. Ein `Abo` mit `nr` ist wie jedes `Abo` zu behandeln: Das Feld bleibt ohne Wirkung, wie jeder unbekannte Schlüssel eines
+   Ereignisses der Ansicht, den der Kern nicht liest (hergeleitet aus `VT` Abschnitt 4; kein Fall).
+10. Unter Windows steht der Code des Dienstes für den lokalen Weg in `src/sys/windows.rs` (Abschnitt 21 Punkt 17); `peerkanal` kapselt die Aufrufe von
+   Win32 selbst. Abschnitt 21 Punkt 2 (`dienst.sock` als `AF_UNIX`) gilt weiter. Grund für die Named Pipe beim lokalen Weg: Nur sie gibt das Token des
+   Clients; `SIO_AF_UNIX_GETPEERPID` nennt nur eine pid, und eine pid lässt sich neu vergeben.
+
+### L4 und L10 im Dienst (Verweis)
+
+Die Felder legen `rust/spec/regelebenen/README.md` Abschnitt 15 und `rust/spec/start/README.md` „Fassung 2: `effort` und `name`“ fest (Stand vom
+26.11.2026, bis zu ihrem Merge der Zweig der beiden Verträge). Der Dienst reicht sie unverändert durch; hier steht nur, wo er sie berührt.
+1. **`EinstellungSetzen` im Lauf** fällt aus `nicht_im_lauf` heraus (DI12 Punkt 7, Punkt 11 (4)) und bleibt in `ERLAUBT` (DI3). Es geht nicht an
+   einen Kern: Der Dienst prüft die Form nach `regelebenen` 15.9 und ruft `setzen` mit dem Pseudonym als `wer` (DI-L11 Punkt 4). Eine Ablehnung ist
+   `{"grund": <Code aus setzen>}`, unverändert; eine eigene Ablehnung je Ebene gibt es nicht. Ein Feld `konto`, `wer`, `person`, `uid` oder `sid`
+   ist vorher schon `feld_verboten` (DI-L11 Punkt 7). `RaumWechsel` bleibt im Lauf `nicht_im_lauf`.
+2. **`Einstellungen` im Lauf** ist Fassung 2 nach `regelebenen` 15.10 und kommt vom Dienst, nicht vom Raumkern (DI12 Punkt 2): beim Verbinden je
+   Betrachter an der Stelle der Nachricht des Raumkerns, nach einer angenommenen Änderung an jeden Betrachter, dessen `sicht` sich ändert.
+3. **`Startwahl`** ist Fassung 2 nach `start` „Nachricht `Startwahl` mit Efforts“ und kommt **je Betrachter**, weil `vorgabe` vom Betrachter
+   abhängt. DI12 Punkt 10 gilt so: Jeder Betrachter bekommt beim Verbinden seine `Startwahl` und danach eine neue, sobald sich sein eigener Inhalt
+   ändert, nicht mehr eine gemeinsame für alle.
+4. **Start-Struktur Fassung 2:** Der Dienst prüft weiter mit dem Crate `start`, dazu Stufe 18 (`start.effort_grenze`). `name` der Start-Struktur ist
+   die Vorgabe von `name` in der Liste (DI-L5 Punkt 1).
+5. Bestehende Fälle, die das ändert: `di12_lauf_ereignisse` (dort ist `EinstellungSetzen` im Lauf heute `nicht_im_lauf`) und die Fälle mit
+   `Einstellungen` oder `Startwahl` im Lauf. Ihre neuen Erwartungen entstehen mit dem Bau von L4 und L10, nicht in diesem Nachtrag.
+6. **Schreibweg der Firmenvorgabe** nach `regelebenen` 15.12: ein `EinstellungSetzen` mit `ebene` `firma` und `schluessel` `leseklassen`. Nur der
+   Dienst schreibt die Datei, mit Systemrechten; die Ansicht schreibt sie nie. Stufe 0 nimmt das Konto aus `wer` des lokalen Wegs (DI-L11 Punkt 4),
+   Stufe 1 prüft das Pseudonym gegen `stand.admins` vor jedem Zugriff auf die Datei. Ein Betrachter über `dienst.sock` scheitert an Stufe 1 mit
+   `ebenen.nicht_befugt` (DI-L11 Punkt 4). Die Ablehnung ist `{"grund": <Code>}` mit genau einem Code der ersten verletzten Stufe, unverändert.
+   Zu den Ablehnungsgründen von DI12 Punkt 3 kommen damit die festen Codes aus `regelebenen` 15.12:
+   - `firmenvorgabe.datei_unsicher`
+   - `firmenvorgabe.veraltet`
+   - `firmenvorgabe.temp_fehlgeschlagen`
+   - `firmenvorgabe.fsync_fehlgeschlagen`
+   - `firmenvorgabe.rename_fehlgeschlagen`
+   - `firmenvorgabe.ordner_fsync_fehlgeschlagen`
+   - `firmenvorgabe.zustand_unklar`
+   Nach `firmenvorgabe.zustand_unklar` sperrt der Dienst bis zum Neuladen der Firmenvorgabe: Jedes weitere `EinstellungSetzen` bekommt
+   `{"grund": "firmenvorgabe.zustand_unklar"}`, und es entsteht kein Tor. Andere Ereignisse bleiben unberührt. Ob die Sperre so bleibt, ist offen;
+   bis zur Entscheidung gilt diese Form. Die Fälle des Schreibwegs führt der Vertrag `regelebenen` (Abschnitt 15.12,
+   Ordner `faelle-schreiben`); der Bau des Dienstes übernimmt sie als Außentest.
+7. **Konto in `Einstellungen`** nach `regelebenen` 15.13: Der Dienst baut die Nachricht aus `sicht(stand, wer)`. Nur für einen Admin nach Punkt 6
+   setzt er in `werte` das Konto aus der Zuordnung an die Stelle des Pseudonyms; für einen Nichtadmin ersetzt er nie etwas. Die Liste der Admins
+   steht in keiner Nachricht. Eine Protokollzeile nennt nie ein Konto, nur Pseudonyme.
+8. **Bau des Tors:** Der Dienst übergibt `leseklassen` nach der Zuordnung Konto zu Pseudonym an `Personen::neu` (Vertrag `datentor`). Ein Konto
+   erreicht das Tor nie. Scheitert `Personen::neu`, entsteht kein Tor.
+
+### Gegenproben des Nachtrags
+
+| Mutant | Regel | Änderung |
+|---|---|---|
+| `worker_orchestrator_ungeprueft` | DI-L1 | ein unbekannter Orchestrator wird angenommen |
+| `worker_fremder_kunde` | DI-L1 | ein Worker mit anderem Kunden als sein Orchestrator wird angenommen |
+| `agenten_vom_raumkern` | DI-L1 | im Lauf geht die leere Liste des Raumkerns hinaus statt der Liste der Worker |
+| `umbenennen_ohne_pruefung` | DI-L3 | ein Name mit Steuerzeichen oder mehr als 64 Zeichen wird angenommen |
+| `loeschen_laufend` | DI-L3 | eine laufende Sitzung lässt sich löschen |
+| `loeschen_ohne_bestaetigung` | DI-L3 | `Loeschen` ohne passende Bestätigung löscht |
+| `loeschen_kennung_wieder` | DI-L3 | nach dem Löschen bekommt der nächste Start die gelöschte Kennung |
+| `fortsetzen_laufend` | DI-L3 | eine laufende Sitzung lässt sich fortsetzen |
+| `fortsetzen_ohne_verweis` | DI-L3 | `start.json` trägt kein `fortsetzung_von` |
+| `wiederbeleben_ohne_absturz` | DI-L3 | eine Sitzung mit Code 0 lässt sich wiederbeleben |
+| `liste_ohne_ordner` | DI-L5 | die Liste trägt `ordner` und `projekt` nicht |
+| `projekt_ganzer_pfad` | DI-L5 | `projekt` ist der ganze Pfad statt seines letzten Bestandteils |
+| `bestand_vergessen` | DI-L5 | der Dienst schreibt den Bestand nicht |
+| `bestand_laeuft_bleibt` | DI-L5 | ein laufender Eintrag des Bestands bleibt nach dem Neustart `laeuft` |
+| `konto_aus_ereignis` | DI-L11 | ein Feld `konto` im Ereignis wird angenommen statt `feld_verboten` |
+| `lokal_ohne_peerpruefung` | DI-L11 | der lokale Weg nimmt eine Verbindung an, deren Partner nicht gemessen ist |
+| `lokal_ohne_starten` | DI-L11 | `Starten` über den lokalen Weg ist der Fehler `art_nicht_erlaubt` |
+
+DI-L2 hat hier keinen Mutanten: Die Größe je Sitzung entscheidet der Kern, die Gegenproben dazu stehen im Vertrag `zustandskern` (R-L2).
+DI-L6 bekommt seinen Mutanten mit dem Fall `dil6_ende_zu_ende`.
+
+### Prüfmittel des Nachtrags
+
+Der Prüfclient kennt drei neue Angaben (Nachtrag 26.11.2026):
+- Fall-Feld `bestand` `{"vorher": <JSON>, "modus": "0600", "ordner_modus": "0700"}`: Ordner und Datei von `lauf.bestand` im Wegwerf-Ordner, Platzhalter
+  `@bestand`. `ende.bestand` ist die Datei nach dem Ende (Pfade des Wegwerf-Ordners als `@ordner`), dazu `bestand_modus` und `bestand_rest` (andere
+  Einträge im Ordner).
+- Schritt `Verbinden` mit `weg: "lokal"` und optional `hallo` (Hex, Vorgabe das Hallo von `peerkanal`): verbindet über den lokalen Weg; ohne Antwort
+  des Dienstes ist das Ergebnis `{"ok": false, "fehler": "abgewiesen"}`. `ende.lokal_entfernt` und `ende.lokal_protokoll` (die Gründe der Zeilen
+  `wb-dienst: lokal abgewiesen: <grund>`).
+- In der Antwort auf `Zustand` trägt ein Betrachter des lokalen Wegs `dienst.betrachter.<n>.wer`. Der Prüfclient setzt dort für das Konto des
+  Laufs `@uid`, `@konto` und `@system` ein, so dass die Erwartung auf jedem Rechner gilt. Unter Linux läuft der Dienst im Prüfclient in einem
+  Nutzer-Namensraum (Abschnitt 16 Punkt 6); dort ist das eigene Konto uid 0 mit dem Namen `root`, und der Prüfclient vergleicht damit (gemessen am
+  27.11.2026 auf dem Linux-Baurechner). Betrachter über `dienst.sock` haben kein `wer` im Zustand.
+
+Ein fremder Nutzer am lokalen Weg ist im Fall nicht herstellbar (er bräuchte ein zweites Konto). Diese Ablehnung prüft der Bau mit einem Einheitstest
+von `peerkanal` (`pk.uid_nicht_erlaubt`, `pk.sid_nicht_erlaubt`) und einem Test des Dienstes, der den Haken mit einem fremden Wert ruft.
+
+**Geänderte Erwartungen.** 59 sichtbare und 59 verdeckte Fälle bekommen eine neue Erwartung. 58 je Satz unterscheiden sich nur in den neuen
+Feldern der `Sitzungsliste` (DI-L5 Punkt 1); `di12_lauf_ereignisse` bekommt für die `Freigabe` mit dem fremden Schlüssel `wahl` jetzt
+`ereignis_ungueltig` statt `sitzung_unbekannt` (DI-L6 Punkt 4). Gemessen mit der Referenz: Ohne diese Felder sind alte und neue Erwartung gleich.
+Die neuen Erwartungen liegen in `erwartet-ausstehend/`; `faelle/` und `erwartet/` bleiben, bis der Bau sie ersetzt.
+
 <!-- vom Bauvorgang angefuegt -->
 > Hinweis: Dieser Text nennt Werkzeuge, die in diesem Klon nicht liegen: `pi`.
 > Sie gehoeren zum Setup der Maschine, aus der dieser Baum stammt; hier fehlen

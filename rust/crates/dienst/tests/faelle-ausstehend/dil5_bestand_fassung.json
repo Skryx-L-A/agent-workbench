@@ -1,0 +1,93 @@
+{
+ "beschreibung": "ungültiger Bestand (unbekannte Fassung): der Dienst startet nicht",
+ "bestand": {
+  "vorher": {
+   "fassung": 2,
+   "gestartet": 4,
+   "sitzungen": [
+    {
+     "abgestuerzt": false,
+     "code": 0,
+     "harness": "claude",
+     "id": "s-3",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "name": "Alt EINS",
+     "ordner": "/home/beispiel/pröjekt",
+     "projekt": "pröjekt",
+     "route": "cloud-beispiel",
+     "start": {
+      "arbeitsordner": "/home/beispiel/pröjekt",
+      "fassung": 1,
+      "harness": "claude",
+      "kunde": "k-beispiel",
+      "modell": "claude-sonnet-5-5",
+      "route": "cloud-beispiel"
+     },
+     "zustand": "beendet"
+    },
+    {
+     "harness": "claude",
+     "id": "s-4",
+     "kunde": "k-beispiel",
+     "modell": "claude-sonnet-5-5",
+     "name": "",
+     "ordner": "/home/beispiel/pröjekt",
+     "projekt": "pröjekt",
+     "route": "cloud-beispiel",
+     "start": {
+      "arbeitsordner": "/home/beispiel/pröjekt",
+      "fassung": 1,
+      "harness": "claude",
+      "kunde": "k-beispiel",
+      "modell": "claude-sonnet-5-5",
+      "route": "cloud-beispiel"
+     },
+     "zustand": "laeuft"
+    }
+   ]
+  }
+ },
+ "datensatz": "A",
+ "name": "dil5_bestand_fassung",
+ "regeln": [
+  "DI-L5",
+  "DI1"
+ ],
+ "schritte": [],
+ "start": {
+  "anfang": {
+   "personen": {
+    "anna": {
+     "art": "mensch",
+     "rolle": "nutzer"
+    }
+   }
+  },
+  "betrachter": {
+   "ansicht": "fenster",
+   "person": "anna",
+   "raum": "raum-nord"
+  },
+  "deflate": false,
+  "lauf": {
+   "bestand": "@bestand",
+   "einstellungen": "@einstellungen",
+   "env": {
+    "KIND_PLAN": "{\"*\": {\"modus\": \"marke\", \"sek\": 40, \"text\": \"EINS\"}, \"s-1\": {\"code\": 0, \"modus\": \"ende\"}}",
+    "LC_ALL": "C.UTF-8",
+    "PATH": "/usr/bin:/bin",
+    "TERM": "xterm-256color"
+   },
+   "groesse": [
+    120,
+    14
+   ],
+   "programm": "@laufkind"
+  },
+  "pruefmodus": true,
+  "socket": {
+   "ordner": "@ordner"
+  }
+ }
+}

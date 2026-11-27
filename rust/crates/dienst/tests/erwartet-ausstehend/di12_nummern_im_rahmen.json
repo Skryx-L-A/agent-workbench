@@ -1,0 +1,541 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "exitcode": 0,
+   "kind_beendet": null,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "ok": true
+   },
+   {
+    "abbild": {
+     "cursor": [
+      2,
+      0,
+      true
+     ],
+     "groesse": [
+      40,
+      10
+     ],
+     "invers": false,
+     "nr": 0,
+     "zeilen": [
+      "BEREIT",
+      "HALLO",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+     ]
+    },
+    "abbild_fehler": [],
+    "abbilder": {
+     "0": {
+      "cursor": [
+       2,
+       0,
+       true
+      ],
+      "groesse": [
+       40,
+       10
+      ],
+      "invers": false,
+      "zeilen": [
+       "BEREIT",
+       "HALLO",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       ""
+      ]
+     },
+     "1": {
+      "cursor": [
+       2,
+       0,
+       true
+      ],
+      "groesse": [
+       120,
+       14
+      ],
+      "invers": false,
+      "zeilen": [
+       "BEREIT",
+       "MARKE EINS",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       ""
+      ]
+     },
+     "2": {
+      "cursor": [
+       2,
+       0,
+       true
+      ],
+      "groesse": [
+       120,
+       14
+      ],
+      "invers": false,
+      "zeilen": [
+       "BEREIT",
+       "MARKE ZWEI",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       "",
+       ""
+      ]
+     }
+    },
+    "ablehnungen": [],
+    "antwort": {
+     "dienst": {
+      "betrachter": {
+       "b1": {
+        "stumm": false,
+        "warteschlange": 0
+       }
+      },
+      "gestartet": 2,
+      "kernbau": 4,
+      "kind": {
+       "s-1": {
+        "code": null,
+        "ende": false
+       },
+       "s-2": {
+        "code": null,
+        "ende": false
+       },
+       "s-alpha": {
+        "code": 0,
+        "ende": true
+       }
+      },
+      "nummern": {
+       "s-1": 1,
+       "s-2": 2,
+       "s-alpha": 0
+      },
+      "traeger_zeilen": {
+       "s-1": [
+        "BEREIT",
+        "MARKE EINS",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+       ],
+       "s-2": [
+        "BEREIT",
+        "MARKE ZWEI",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+       ],
+       "s-alpha": [
+        "BEREIT",
+        "HALLO",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+       ]
+      }
+     },
+     "kern": {
+      "betrachter": {
+       "b1": {
+        "abos": [
+         "s-alpha",
+         "s-1",
+         "s-2"
+        ],
+        "ausstehend": 0,
+        "person": "anna",
+        "raum": "raum-nord",
+        "rueckstand": {},
+        "verfallen": 0
+       }
+      },
+      "sitzungen": [
+       {
+        "bracketed_paste": false,
+        "code": 0,
+        "cursor": [
+         2,
+         0,
+         true
+        ],
+        "dialog": null,
+        "groesse": [
+         40,
+         10
+        ],
+        "id": "s-alpha",
+        "invers": false,
+        "letzte_eingabe": "b1",
+        "titel": "Alpha",
+        "zustand": "kindende"
+       },
+       {
+        "bracketed_paste": false,
+        "code": null,
+        "cursor": [
+         2,
+         0,
+         true
+        ],
+        "dialog": null,
+        "groesse": [
+         120,
+         14
+        ],
+        "id": "s-1",
+        "invers": false,
+        "letzte_eingabe": "b1",
+        "titel": "",
+        "zustand": "laeuft"
+       },
+       {
+        "bracketed_paste": false,
+        "code": null,
+        "cursor": [
+         2,
+         0,
+         true
+        ],
+        "dialog": null,
+        "groesse": [
+         120,
+         14
+        ],
+        "id": "s-2",
+        "invers": false,
+        "letzte_eingabe": "b1",
+        "titel": "",
+        "zustand": "laeuft"
+       }
+      ]
+     }
+    },
+    "fehler": [],
+    "getrennt": false,
+    "nachrichten": [
+     {
+      "art": "Einstellungen",
+      "werte": {
+       "bildrate_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 63,
+        "wert": 63
+       },
+       "osc52_grenze": {
+        "herkunft": "vorgabe",
+        "vorgabe": 100000,
+        "wert": 100000
+       },
+       "osc52_schreiben": {
+        "herkunft": "vorgabe",
+        "vorgabe": "an",
+        "wert": "an"
+       },
+       "rueckstau_max": {
+        "herkunft": "vorgabe",
+        "vorgabe": 16384,
+        "wert": 16384
+       }
+      }
+     },
+     {
+      "art": "Routen",
+      "routen": []
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "harness": "",
+        "id": "s-alpha",
+        "kunde": "",
+        "modell": "",
+        "name": "",
+        "nr": 0,
+        "ordner": "",
+        "projekt": "",
+        "route": "",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "anfragen": [],
+      "art": "Anfragen"
+     },
+     {
+      "agenten": [],
+      "art": "Agenten"
+     },
+     {
+      "art": "Startwahl",
+      "fassung": 1,
+      "harness": [
+       {
+        "art": "cloud",
+        "name": "claude",
+        "routenart": "cloud"
+       },
+       {
+        "art": "cloud",
+        "name": "copilot",
+        "routenart": "cloud"
+       },
+       {
+        "art": "lokal",
+        "name": "pi",
+        "routenart": "lokal"
+       }
+      ],
+      "kunden": [
+       "k-beispiel",
+       null
+      ],
+      "routen": [
+       {
+        "art": "cloud",
+        "klasse": "intern",
+        "modell": null,
+        "schluessel": "cloud-beispiel"
+       },
+       {
+        "art": "lokal",
+        "klasse": "kundendaten",
+        "modell": null,
+        "schluessel": "lokal-beispiel"
+       }
+      ]
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "abgestuerzt": false,
+        "code": 0,
+        "harness": "",
+        "id": "s-alpha",
+        "kunde": "",
+        "modell": "",
+        "name": "",
+        "nr": 0,
+        "ordner": "",
+        "projekt": "",
+        "route": "",
+        "zustand": "beendet"
+       }
+      ]
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "abgestuerzt": false,
+        "code": 0,
+        "harness": "",
+        "id": "s-alpha",
+        "kunde": "",
+        "modell": "",
+        "name": "",
+        "nr": 0,
+        "ordner": "",
+        "projekt": "",
+        "route": "",
+        "zustand": "beendet"
+       },
+       {
+        "harness": "claude",
+        "id": "s-1",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "art": "Gestartet",
+      "sitzung": "s-1"
+     },
+     {
+      "art": "Sitzungsliste",
+      "sitzungen": [
+       {
+        "abgestuerzt": false,
+        "code": 0,
+        "harness": "",
+        "id": "s-alpha",
+        "kunde": "",
+        "modell": "",
+        "name": "",
+        "nr": 0,
+        "ordner": "",
+        "projekt": "",
+        "route": "",
+        "zustand": "beendet"
+       },
+       {
+        "harness": "claude",
+        "id": "s-1",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 1,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       },
+       {
+        "harness": "claude",
+        "id": "s-2",
+        "kunde": "k-beispiel",
+        "modell": "claude-sonnet-5-5",
+        "name": "",
+        "nr": 2,
+        "ordner": "/home/beispiel/pröjekt",
+        "projekt": "pröjekt",
+        "route": "cloud-beispiel",
+        "zustand": "laeuft"
+       }
+      ]
+     },
+     {
+      "art": "Gestartet",
+      "sitzung": "s-2"
+     }
+    ],
+    "ok": true
+   }
+  ],
+  "start": {
+   "netz_sockets": 0,
+   "ok": true,
+   "ordner_modus": "0700",
+   "socket_modus": "0600"
+  }
+ },
+ "exit": 0
+}

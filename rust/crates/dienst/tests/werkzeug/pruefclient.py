@@ -199,10 +199,25 @@ class Lauf:
             os.chmod(self.o, modus)
         self.pfad_ordner = pfad
         self.sitzungen_vorbereiten()
+        self.bestand_vorbereiten()
         self.marker_datei_vorbereiten()
         self.ziellisten_vorbereiten()
         name = ((self.fall.get("start") or {}).get("socket") or {}).get("name", "dienst.sock")
         self.pfad_socket = os.path.join(pfad, name if isinstance(name, str) and "/" not in name and name else "dienst.sock")
+
+    def bestand_vorbereiten(self):
+        """Nachtrag 26.11.2026, DI-L5: the folder of lauf.bestand and, with `vorher`, the file of an earlier run."""
+        sp = self.fall.get("bestand")
+        self.bestand_dir = os.path.join(self.base, "bestand")
+        self.bestand_datei = os.path.join(self.bestand_dir, "bestand.json")
+        if sp is None:
+            return
+        os.mkdir(self.bestand_dir, 0o700)
+        if "vorher" in sp:
+            with open(self.bestand_datei, "w", encoding="utf-8") as h:
+                json.dump(sp["vorher"], h, ensure_ascii=False)
+            os.chmod(self.bestand_datei, int(sp.get("modus", "0600"), 8))
+        os.chmod(self.bestand_dir, int(sp.get("ordner_modus", "0700"), 8))
 
     def sitzungen_vorbereiten(self):
         """Kennung (addendum of 21.11.2026): the case field `sitzungen` makes `<base>/sitzungen`, the folder of `lauf.sitzungen`, a throw-away folder of the case.
@@ -321,6 +336,8 @@ class Lauf:
                             json.dump(self.fall["einstellungen_inhalt"], h)
                     return f
                 return os.environ.get("DI_EINST") or os.path.join(HIER, "einstellungen", "vorfuehrung.json")
+            if x == "@bestand":
+                return self.bestand_datei
             return x.replace("@ziellisten", self.zl_dir).replace("@laufzeit", self.lz_dir).replace("@marker_zaehl", self.mz_dir).replace("@marker_datei", self.mk_datei).replace("@sitzungen", self.sitz_dir).replace("@ordner", self.pfad_ordner)
         if isinstance(x, list):
             return [self.ersetze(v) for v in x]
@@ -515,17 +532,36 @@ class Lauf:
             if n in self.viewer:
                 raise Ungueltig("Betrachter doppelt")
             t0 = time.monotonic()
+            ziel = self.pfad_socket
+            if s.get("weg") == "lokal":       # Nachtrag 26.11.2026, DI-L11
+                kanal = (self.fall.get("start") or {}).get("lokal", {}).get("kanal", "")
+                ziel = os.path.join(self.pfad_ordner, kanal + ".sock")
             while True:
                 sk = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 sk.settimeout(10)
                 try:
-                    sk.connect(self.pfad_socket)
+                    sk.connect(ziel)
                     break
                 except (ConnectionRefusedError, FileNotFoundError):
                     sk.close()
                     if time.monotonic() - t0 > 5 or self.proc.poll() is not None:
                         raise
                     time.sleep(0.02)
+            if s.get("weg") == "lokal":
+                sk.settimeout(5)
+                try:
+                    sk.sendall(bytes.fromhex(s.get("hallo", "706b310a")))
+                    antwort = b""
+                    while len(antwort) < 4:
+                        d = sk.recv(4 - len(antwort))
+                        if not d:
+                            break
+                        antwort += d
+                except OSError:
+                    antwort = b""
+                if antwort != b"pk1\n":
+                    sk.close()
+                    return {"ok": False, "fehler": "abgewiesen"}
             sk.setblocking(False)
             v = Betrachter(sk, bool(s.get("deflate", self.deflate)))
             self.viewer[n] = v
@@ -697,6 +733,19 @@ class Lauf:
                     dienst["dienst"]["traeger_zeilen"] = [re.sub(r"PID=[0-9]+", "PID=#", z) for z in tz]
                 elif isinstance(tz, dict):
                     dienst["dienst"]["traeger_zeilen"] = {k: [re.sub(r"PID=[0-9]+", "PID=#", z) for z in zl] for k, zl in tz.items()}
+            if dienst is not None:
+                # Nachtrag 26.11.2026, DI-L11: the account of this run becomes a placeholder
+                import pwd
+                # under Linux the service runs in the user namespace of beobacht_praefix (section 16): there the own uid is 0
+                eigen_uid = 0 if beobacht_praefix() else os.geteuid()
+                eigen = {"uid": eigen_uid, "name": pwd.getpwuid(eigen_uid).pw_name,
+                         "system": "linux" if sys.platform.startswith("linux") else "macos"}
+                for b in (dienst.get("dienst", {}).get("betrachter") or {}).values():
+                    w = b.get("wer") if isinstance(b, dict) else None
+                    if isinstance(w, dict):
+                        for k, platz in (("uid", "@uid"), ("name", "@konto"), ("system", "@system")):
+                            if w.get(k) == eigen[k]:
+                                w[k] = platz
             if dienst is not None and not s.get("grenze"):
                 dienst = json.loads(json.dumps(dienst))
                 dienst.get("dienst", {}).pop("warteschlange_max", None)     # only shown when the step asks for it (grenze)
@@ -759,6 +808,21 @@ class Lauf:
             except PermissionError:
                 kind = False
         r = {"exitcode": rc, "socket_entfernt": not os.path.lexists(self.pfad_socket), "kind_beendet": kind}
+        lokal = (self.fall.get("start") or {}).get("lokal") if isinstance(self.fall.get("start"), dict) else None
+        if isinstance(lokal, dict) and isinstance(lokal.get("kanal"), str):
+            r["lokal_entfernt"] = not os.path.lexists(os.path.join(self.pfad_ordner, lokal["kanal"] + ".sock"))
+        if self.fall.get("bestand") is not None:
+            # Nachtrag 26.11.2026, DI-L5: the Bestand after the end; the throw-away paths become their placeholders
+            try:
+                with open(self.bestand_datei, encoding="utf-8") as h:
+                    r["bestand"] = json.loads(h.read().replace(self.pfad_ordner, "@ordner"))
+                r["bestand_modus"] = "%04o" % stat.S_IMODE(os.lstat(self.bestand_datei).st_mode)
+            except (OSError, ValueError):
+                r["bestand"] = None
+            try:
+                r["bestand_rest"] = sorted(x for x in os.listdir(self.bestand_dir) if x != "bestand.json")
+            except OSError:
+                r["bestand_rest"] = None
         if self.fall.get("kinder_pruefen"):
             # DI12: every child reported with PID= (any session) is gone after the end of the service
             time.sleep(0.3)
@@ -804,6 +868,10 @@ class Lauf:
                 zeilen = []
             r["protokoll"] = [{"betrachter": mo.group(1), "grund": mo.group(2)} for mo in
                               (re.match(r"wb-dienst: betrachter (b[0-9]+) getrennt: ([a-z_]+)", z) for z in zeilen) if mo]
+            # Nachtrag 26.11.2026, DI-L11 point 5: one line per rejection on the local way, only the reason
+            lokal_z = [mo.group(1) for mo in (re.match(r"wb-dienst: lokal abgewiesen: ([a-z0-9_.:-]+)$", z) for z in zeilen) if mo]
+            if lokal_z:
+                r["lokal_protokoll"] = lokal_z
             if self.fall.get("geheim"):
                 # the protocol line holds no content of the session (decision of 20.11.2026): none of the words, and none in Base64, stands in any line of stderr
                 import base64

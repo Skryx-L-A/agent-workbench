@@ -1,0 +1,168 @@
+{
+ "name": "rl1_agenten_mit_sitzung",
+ "regeln": [
+  "R-L1",
+  "R10"
+ ],
+ "beschreibung": "Agenten und Agentenzustand nennen die Sitzung des Workers; Raum B sieht nur seinen Worker",
+ "anfang": {
+  "personen": {
+   "nutzer-1": {
+    "rolle": "nutzer",
+    "art": "mensch"
+   },
+   "nutzer-2": {
+    "rolle": "nutzer",
+    "art": "mensch"
+   },
+   "admin-1": {
+    "rolle": "admin",
+    "art": "mensch"
+   },
+   "agent-1": {
+    "rolle": "nutzer",
+    "art": "agent"
+   }
+  },
+  "nachweise": {
+   "nw-11": {
+    "person": "nutzer-1"
+   },
+   "nw-12": {
+    "person": "nutzer-1"
+   },
+   "nw-13": {
+    "person": "nutzer-1"
+   },
+   "nw-14": {
+    "person": "nutzer-1"
+   },
+   "nw-21": {
+    "person": "nutzer-2"
+   },
+   "nw-91": {
+    "person": "agent-1"
+   }
+  },
+  "routen": [
+   {
+    "name": "route-frei-1",
+    "status": "frei"
+   },
+   {
+    "name": "route-gesperrt-1",
+    "status": "gesperrt",
+    "grund": "Evaluierung läuft",
+    "zone": "Z2"
+   },
+   {
+    "name": "route-eval-1",
+    "status": "evaluierung",
+    "grund": "Evaluierung läuft"
+   }
+  ],
+  "sitzungen": [
+   {
+    "id": "s-nord",
+    "titel": "eins",
+    "route": "route-frei-1",
+    "kundenraum": "raum-a",
+    "person": "nutzer-1",
+    "groesse": [
+     80,
+     4
+    ],
+    "bracketed_paste": false,
+    "zeilen": []
+   },
+   {
+    "id": "s-mitte",
+    "titel": "drei",
+    "route": "route-frei-1",
+    "kundenraum": "raum-a",
+    "person": "nutzer-1",
+    "groesse": [
+     80,
+     4
+    ]
+   },
+   {
+    "id": "s-sued",
+    "titel": "zwei",
+    "route": "route-frei-1",
+    "kundenraum": "raum-b",
+    "person": "nutzer-1",
+    "groesse": [
+     80,
+     4
+    ]
+   }
+  ],
+  "worker": [
+   {
+    "id": "worker-a1",
+    "sitzung": "s-nord"
+   },
+   {
+    "id": "worker-a2",
+    "sitzung": "s-nord"
+   },
+   {
+    "id": "worker-b1",
+    "sitzung": "s-sued"
+   }
+  ]
+ },
+ "ereignisse": [
+  {
+   "t": 0,
+   "art": "Verbinden",
+   "betrachter": "fenster-1",
+   "person": "nutzer-1",
+   "raum": "raum-a",
+   "ansicht": "fenster"
+  },
+  {
+   "t": 10,
+   "art": "AgentAbfrage",
+   "worker": "worker-a1",
+   "zustand": "laeuft",
+   "quelle": "tmux"
+  },
+  {
+   "t": 11,
+   "art": "AgentAbfrage",
+   "worker": "worker-a2",
+   "zustand": "wartet",
+   "quelle": "inbox"
+  },
+  {
+   "t": 12,
+   "art": "AgentAbfrage",
+   "worker": "worker-b1",
+   "zustand": "laeuft",
+   "quelle": "tmux"
+  },
+  {
+   "t": 20,
+   "art": "Trennen",
+   "betrachter": "fenster-1"
+  },
+  {
+   "t": 21,
+   "art": "Verbinden",
+   "betrachter": "fenster-1",
+   "person": "nutzer-1",
+   "raum": "raum-a",
+   "ansicht": "fenster"
+  },
+  {
+   "t": 22,
+   "art": "Verbinden",
+   "betrachter": "browser-2",
+   "person": "nutzer-2",
+   "raum": "raum-b",
+   "ansicht": "browser"
+  }
+ ]
+}

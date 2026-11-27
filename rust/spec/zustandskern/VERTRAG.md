@@ -533,3 +533,111 @@ Jeder Mutant schaltet sich in der Referenz mit `REF_GEGENPROBE=<name>` zu. `gege
 - Spalten 2 bis 1000, Zeilen 1 bis 1000 überall, wo der Kern eine Größe annimmt: `anfang` (ungültiger Fall), `Abo`, `Groesse` (`groesse_ungueltig`); die `Groesse` einer `GroessenFolge` bleibt nie wirksam. Der Kern gibt dem Träger und der PTY nie eine Größe mit einer Spalte.
 - Der Kern übernimmt den Cursor jeder `Ausgabe` des Trägers, auch den ersten nach einer Größenänderung (R15 Punkt 8).
 - Der Bau von `traeger` entfernt `schmal`, `schmal_rest`, `breite_entfernen` und `entbreiten`; `unicode-width` wird erst entfernt, wenn die cargo-Tore ohne sie grün sind, Stückliste und README ziehen nach (Auflage, 20.11.2026, `traeger` Abschnitt 11).
+
+## Nachtrag 26.11.2026: Oberfläche L1, L2, L3, L5, L6, L11
+
+Grundlage: Vertrag `seite`, `rust/spec/seite/OBERFLAECHE.md` Fassung 2, Abschnitt 4 (Lücken L1 bis L11). Dieser Nachtrag legt fest, was der
+Kern für L1, L2 und L6 tut. L3, L5 und L11 ändern den Kern nicht (Punkt N4); sie stehen im Vertrag `dienst`, Abschnitt „Nachtrag 26.11.2026:
+Oberfläche L1, L2, L3, L5, L6, L11“. Wo dieser Abschnitt nichts sagt, gelten R1 bis R15 unverändert. Die neuen Regeln heißen R-L1, R-L2 und R-L6.
+
+**Ablage der Fälle.** Fälle, für die der Code noch fehlt, liegen in `rust/crates/zustandskern/tests/faelle-ausstehend/` mit den Erwartungen in
+`rust/crates/zustandskern/tests/erwartet-ausstehend/`. Der Läufer `faelle.rs` liest sie nicht; so bleiben die Tore grün. Der Bau der Regel
+verschiebt sie nach `faelle/` und `erwartet/`. Ein Fall mit demselben Namen wie ein Fall in `faelle/` ersetzt diesen dann. Fälle, die der
+heutige Code schon besteht, liegen gleich in `faelle/`.
+
+### R-L1 Worker mit ihrer Sitzung (L1)
+
+1. Jeder Eintrag der Nachricht `Agenten` und jede Nachricht `Agentenzustand` trägt **`sitzung`**: die Kennung der Sitzung des Workers aus
+   `anfang.worker[].sitzung` (Abschnitt 3). Die Form ist `{"worker", "sitzung", "zustand", "gesehen_um", "quelle"}`.
+2. Sonst bleibt R10: Ein nie gesehener Worker erscheint in keiner Liste, `unbekannt` ändert nichts. Ein Worker ohne bestehende Sitzung hat keinen
+   Raum (R9) und erscheint nirgends, wie bisher.
+3. Rolle, Modell, Zustand der Sitzung und Rasternummer kennt der Kern nicht. Sie kommen aus dem Dienst (Vertrag `dienst`, DI-L1), der im Lauf die
+   Nachricht `Agenten` selbst schickt.
+4. Geänderte Erwartungen: Jede Erwartung mit einem nicht leeren `Agenten` oder einem `Agentenzustand` bekommt das Feld `sitzung`. Diese Fälle
+   liegen mit neuer Erwartung unter demselben Namen in `faelle-ausstehend/`; die Liste steht im Bericht des Nachtrags.
+
+### R-L2 Mehrere Abos je Betrachter (L2)
+
+Die Ansicht „Worker“ zeigt mehrere Terminals zugleich. Ein Raster ist eine Sitzung: Der Kern kennt keine Rasternummer, der Dienst ordnet sie zu
+(Vertrag `dienst`, DI12 Punkt 2 und DI-L2). Was R3 und R4 schon sagen, gilt je Sitzung; dieser Abschnitt schreibt es fest.
+
+1. **Ein Abo je Paar aus Betrachter und Sitzung.** Ein Betrachter hält beliebig viele Abos zugleich, höchstens eines je Sitzung. Ein zweites `Abo` an
+   auf dieselbe Sitzung legt kein zweites Abo an: Es ersetzt die gemeldete Größe dieses Abos und schickt einen neuen vollen `Abzug`.
+2. **Je Abo eine gemeldete Größe.** `Abo` und `Groesse` nennen die Sitzung; die Größe gilt nur für dieses Abo.
+3. **Die PTY folgt nur dem Betrachter mit der letzten Eingabe** (R3, Vertrag `seite` SE2 Punkt 7). Die letzte Eingabe gilt je Sitzung: Eine Eingabe in
+   Sitzung A setzt die Größe von A auf die gemeldete Größe dieses Betrachters für A. Sie ändert weder die Größe noch die letzte Eingabe von B.
+   Eine `Groesse` für B wirkt sofort nur, wenn derselbe Betrachter in B zuletzt eingegeben hat.
+4. **Je Raster gilt:** ein eigener `Abzug`, eine eigene Folge `von`/`stand`, eine eigene Bündelfrist (R5), ein eigener Rückstand (R14), ein eigener
+   Dialog (R6), eine eigene Zustellung der Zwischenablage an den Betrachter mit der letzten Eingabe dieser Sitzung (R2) und ein eigener Cursor (R15).
+5. **Je Betrachter gemeinsam:** `ausstehend` und die Grenze `rueckstau_max` gelten für die eine Leitung des Betrachters, über alle seine Abos;
+   `verfallen` zählt über alle Abos.
+6. **`Abo` aus** auf A löst nur A. Die letzte Eingabe dieses Betrachters in A erlischt (Abschnitt 7 Punkt 4); B bleibt. `Trennen` und `RaumWechsel`
+   lösen alle Abos (R4, R9).
+7. Der Kern hat keine Obergrenze der Abos. Die Zahl der Sitzungen begrenzt sie; im Lauf begrenzt der Dienst (DI-L2).
+
+### R-L6 Freigeben und Ablehnen (L6)
+
+Der Inspektor bietet Freigeben, Ablehnen mit Begründung und den Guard-Verlauf (Vertrag `seite`, B07 und B56). Im Lauf entscheidet die
+Entscheidungsstelle (Vertrag `stelle`); der Kern zeigt dann nur ihren Stand (Punkt 6, Vertrag `dienst` DI-L6).
+
+1. **Form.** `Freigabe` hat zwei neue Felder, beide optional: `entscheidung` (`erteilen` oder `ablehnen`; fehlt das Feld, gilt `erteilen`) und
+   `begruendung` (Text). Die alte Form ohne beide Felder bleibt gültig und wirkt wie bisher.
+2. **Prüffolge.** Vor R7 prüft der Kern die Form, in dieser Reihenfolge:
+   - `entscheidung` ist kein Text oder keines der beiden Wörter, oder `begruendung` ist kein Text: `ereignis_ungueltig`.
+   - `begruendung` steht bei `erteilen`: `begruendung_nur_bei_ablehnen`.
+   - `begruendung` ist leer, hat mehr als 500 Zeichen (Unicode-Skalarwerte) oder ein Zeichen unter 0x20 oder von 0x7f bis 0x9f:
+     `begruendung_ungueltig`.
+   Danach gilt R7 unverändert: Anzahl, Person, Nachweis, Anfrage. `ablehnen` braucht denselben Menschen-Nachweis wie `erteilen`.
+3. **Wirkung von `ablehnen`.** Der Nachweis ist verbraucht, die Anfrage ist `abgelehnt`, ihr Zeitgeber entfällt. `an_stelle` bekommt den Eintrag
+   `{"t", "anfrage", "person", "nachweis", "entscheidung": "ablehnen"}` und, wenn gegeben, `begruendung`. Der Raum bekommt die Nachricht
+   `Anfrage` mit `zustand` `abgelehnt` und, wenn gegeben, `begruendung`. Die Wirkung von `erteilen` bleibt Byte für Byte wie bisher: Der Eintrag in
+   `an_stelle` und die Nachricht `Anfrage` haben kein neues Feld.
+4. **`abgelehnt` ist ein Endzustand.** Eine weitere `Freigabe` auf diese Anfrage ergibt `nicht_offen`, wie bei `erteilt`. Die Frist läuft nicht mehr ab.
+   `zustand.anfragen` nennt `abgelehnt`.
+5. **Guard-Verlauf.** Eine Zeile des Verlaufs ist jede Nachricht `Anfrage` mit `zustand` ungleich `offen`, also `erteilt`, `abgelehnt` oder
+   `abgelaufen`, mit ihrem `t`. Es gibt kein eigenes Nachrichtenformat; die Ansicht führt die Zeilen in der Reihenfolge des Eintreffens.
+6. **Stand von der Stelle (neues Ereignis).** Die Tabelle in Abschnitt 4 bekommt die Zeile: Von `Stelle`, `art` `AnfrageStand`, Felder `id`,
+   `zustand` (`erteilt`, `abgelehnt` oder `abgelaufen`) und optional `begruendung`. Prüffolge: `id` kein Text, `zustand` kein erlaubtes Wort oder
+   `begruendung` kein Text: `ereignis_ungueltig`; `begruendung` bei einem anderen Zustand als `abgelehnt`: `begruendung_nur_bei_ablehnen`;
+   `begruendung` verletzt Punkt 2: `begruendung_ungueltig`; unbekannte `id`: `anfrage_unbekannt`; Anfrage nicht `offen`: `nicht_offen`.
+   Wirkung: Die Anfrage bekommt den Zustand, ihr Zeitgeber entfällt, der Raum bekommt die Nachricht `Anfrage` wie in Punkt 3. Kein Nachweis wird
+   verbraucht, `an_stelle` bleibt leer: Die Stelle hat schon entschieden. Grund: Im Lauf prüft die Stelle den Nachweis selbst (Vertrag `stelle`,
+   Abschnitt 6); der Kern kennt dort keinen Nachweis und darf nicht über die Stelle hinweg entscheiden.
+7. Kein bestehender Fall und keine bestehende Erwartung ändert sich durch R-L6.
+
+### N4 L3, L5 und L11 ohne Änderung am Kern
+
+1. **L3** (Fortsetzen, Wiederbeleben, Löschen, Umbenennen) und **L5** (Name, Ordner, Projekt, beendete Sitzungen früherer Läufe) gehören dem Dienst.
+   Der Kern einer Sitzung sieht diese Ereignisse nie. Eine fortgesetzte oder wiederbelebte Sitzung bekommt einen neuen Kern mit neuer Kennung.
+   Der Titel aus OSC 0 und 2 (`titel`) bleibt ein Feld des Kerns und ist nicht der Name aus L3.
+2. **L11** (lokaler Weg mit Konto aus dem Verbindungspartner): Der Kern nimmt `person` nur aus `Verbinden`. Dieses Ereignis gibt allein der Dienst
+   (Vertrag `dienst`, DI3). Kein Ereignis der Ansicht trägt eine Person oder ein Konto; der Dienst verwirft eines, das es versucht (DI-L11 Punkt 7).
+
+### N5 Einstellungen und Startwahl im Lauf (L4, L10; Verweis)
+
+1. Im Lauf ersetzen die Abschnitte 15.9 und 15.10 von `rust/spec/regelebenen/README.md` (Fassung 2) zwei Zeilen dieses Vertrags: die Zeile
+   `EinstellungSetzen` in Abschnitt 4 (dort `ebene` nur `firma`, `gruppe` oder `nutzer`, ohne Gruppenschlüssel) und die Zeile `Einstellungen` in
+   Abschnitt 5 (dort `herkunft` mit `vorgabe`). Die Felder stehen nur dort. Im Lauf schickt der Dienst `Einstellungen` und gibt `EinstellungSetzen`
+   nicht an den Kern (Vertrag `dienst`, Abschnitt L4 und L10 im Nachtrag). R12 und seine Fälle gelten für den Kern ohne Lauf unverändert.
+2. `Startwahl` ist keine Nachricht des Kerns. Der Dienst schickt sie je Betrachter, weil ihre `vorgabe` vom Betrachter abhängt (Vertrag `start`,
+   „Nachricht `Startwahl` mit Efforts“).
+3. `Starten` und `Gestartet` gehören ebenfalls dem Dienst (DI12 Punkt 3, DI-L11 Punkt 8 für den lokalen Weg). Der Kern sieht `Starten` nie; eine
+   neue Sitzung bekommt einen eigenen Kern. `Abo` bleibt je `sitzung` (R-L2) und hat kein Feld `nr`.
+
+### Gegenproben des Nachtrags
+
+| Mutant | Regel | Änderung |
+|---|---|---|
+| `agent_ohne_sitzung` | R-L1 | `Agenten` und `Agentenzustand` tragen kein Feld `sitzung` |
+| `agent_sitzung_falsch` | R-L1 | `sitzung` nennt die erste Sitzung des Falls statt der des Workers |
+| `abo_zweites_doppelt` | R-L2 | ein zweites `Abo` auf dieselbe Sitzung legt ein zweites Abo an (der Betrachter steht zweimal in `abos`) |
+| `eingabe_setzt_alle_groessen` | R-L2 | eine Eingabe setzt die gemeldete Größe in allen Sitzungen des Betrachters |
+| `abo_aus_loest_alle` | R-L2 | `Abo` aus löst alle Abos des Betrachters |
+| `letzte_eingabe_bleibt_nach_abo_aus` | R-L2 | nach `Abo` aus bleibt die letzte Eingabe des Betrachters in dieser Sitzung stehen |
+| `ablehnen_wie_erteilen` | R-L6 | `ablehnen` setzt die Anfrage auf `erteilt` |
+| `begruendung_verloren` | R-L6 | die Nachricht `Anfrage` und `an_stelle` tragen die Begründung nicht |
+| `begruendung_bei_erteilen` | R-L6 | eine Begründung bei `erteilen` wird angenommen |
+| `begruendung_ohne_grenze` | R-L6 | eine Begründung mit mehr als 500 Zeichen wird angenommen |
+| `abgelehnt_wieder_offen` | R-L6 | nach `ablehnen` ist die Anfrage wieder offen und lässt sich erteilen |
+| `anfragestand_ignoriert` | R-L6 | `AnfrageStand` ändert nichts |
+| `anfragestand_verbraucht_nachweis` | R-L6 | `AnfrageStand` verlangt einen Nachweis und wird ohne ihn mit `nachweis_fehlt` abgelehnt |

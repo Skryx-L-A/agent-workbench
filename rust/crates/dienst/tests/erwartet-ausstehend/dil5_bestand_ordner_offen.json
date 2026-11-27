@@ -1,0 +1,67 @@
+{
+ "ausgabe": {
+  "datensatz": "A",
+  "ende": {
+   "bestand": {
+    "fassung": 1,
+    "gestartet": 4,
+    "sitzungen": [
+     {
+      "abgestuerzt": false,
+      "code": 0,
+      "harness": "claude",
+      "id": "s-3",
+      "kunde": "k-beispiel",
+      "modell": "claude-sonnet-5-5",
+      "name": "Alt EINS",
+      "ordner": "/home/beispiel/pröjekt",
+      "projekt": "pröjekt",
+      "route": "cloud-beispiel",
+      "start": {
+       "arbeitsordner": "/home/beispiel/pröjekt",
+       "fassung": 1,
+       "harness": "claude",
+       "kunde": "k-beispiel",
+       "modell": "claude-sonnet-5-5",
+       "route": "cloud-beispiel"
+      },
+      "zustand": "beendet"
+     },
+     {
+      "harness": "claude",
+      "id": "s-4",
+      "kunde": "k-beispiel",
+      "modell": "claude-sonnet-5-5",
+      "name": "",
+      "ordner": "/home/beispiel/pröjekt",
+      "projekt": "pröjekt",
+      "route": "cloud-beispiel",
+      "start": {
+       "arbeitsordner": "/home/beispiel/pröjekt",
+       "fassung": 1,
+       "harness": "claude",
+       "kunde": "k-beispiel",
+       "modell": "claude-sonnet-5-5",
+       "route": "cloud-beispiel"
+      },
+      "zustand": "laeuft"
+     }
+    ]
+   },
+   "bestand_modus": "0600",
+   "bestand_rest": [],
+   "exitcode": 3,
+   "kind_beendet": null,
+   "socket_entfernt": true
+  },
+  "ergebnisse": [],
+  "start": {
+   "exitcode": 3,
+   "ok": false,
+   "socket_da": false,
+   "stderr_beginn": true,
+   "stderr_zeilen": 1
+  }
+ },
+ "exit": 0
+}
