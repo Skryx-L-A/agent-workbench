@@ -48,13 +48,35 @@ def liste(tisch, *eintraege):
     tisch.senden(6, json.dumps({"art": "Sitzungsliste", "sitzungen": list(eintraege)}).encode())
 
 
+HALT_S = 60.0  # nur gegen ein echtes Haengen; gewartet wird auf ein Ereignis des Lesefadens
+
+
+def gelesen(c, bedingung, halt=HALT_S):
+    """Wartet, bis der Lesefaden des Stroms `bedingung(st)` erfuellt. Ereignis ist die Bedingung `st.lock`, die der Faden nach jedem
+    gelesenen Rahmen und beim Ende weckt. Ein beendeter oder kaputter Strom endet sofort mit False; `halt` begrenzt nur ein Haengen."""
+    st = c._strom
+    ende = time.monotonic() + halt
+    with st.lock:
+        while not bedingung(st):
+            rest = ende - time.monotonic()
+            if st.fehler or st.zu or rest <= 0:
+                return False
+            st.lock.wait(rest)
+        return True
+
+
 # --- Laeufer ---------------------------------------------------------------------------------------------------------------
 class LaeuferNummern(unittest.TestCase):
     def client(self, auf_abo):
+        """Oeffnet den Strom und wartet, bis die Liste gelesen ist, die der Tisch beim Verbinden schickt (s-1, Nummer 1). Der Tisch reiht
+        sie in seinem Server-Faden erst nach den Koepfen ein; ohne dieses Warten kann die Liste eines Tests vor ihr ankommen und wird von
+        ihr ueberschrieben (gemessen 27.11.2026)."""
         tisch = Tisch(False, auf_abo)
         c = br.Bruecke({"url": "http://127.0.0.1:%d" % tisch.port, "token": TOKEN, "frist_s": 5, "abo": {"spalten": 20, "zeilen": 6}})
         self.addCleanup(tisch.zu)
         self.addCleanup(c.zumachen)
+        c._offen()
+        self.assertTrue(gelesen(c, lambda st: st.liste_da), "die Liste des Tischs beim Verbinden")
         return tisch, c
 
     def test_wiederverwendung_vergisst_bild_und_verlauf_der_alten_sitzung(self):
@@ -106,12 +128,21 @@ class LaeuferNummern(unittest.TestCase):
     def test_nr_null_raster_leer_ohne_abo(self):
         tisch, c = self.client(lambda t, e: None)
         c._offen()
-        liste(tisch, eintrag("s-1", "beendet", None, code=65, grund="lauf.ordner_fehlt"))
-        self.assertTrue(warte(lambda: c.sitzung("s-1").get("zustand") == "beendet"))
+        ohne = eintrag("s-1", "beendet", None, code=65, grund="lauf.ordner_fehlt")
+        liste(tisch, ohne)
+        self.assertTrue(gelesen(c, lambda st: st.sitzungen.get("s-1", {}).get("zustand") == "beendet"))
+        self.assertEqual(c.sitzung("s-1").get("zustand"), "beendet")
         self.assertEqual(c.raster("s-1"), {"rahmen": 0, "zeilen": []})
         self.assertEqual(c.verlauf("s-1"), (0, ""))
-        time.sleep(0.2)
-        self.assertEqual([p["koerper"]["art"] for p in tisch.posts], [], "kein Abo auf eine Sitzung ohne Nummer")
+        # Ereignis statt fester Zeit: eine weitere Liste und das Abo einer Sitzung mit Nummer. Die Bruecke liest Rahmen der Reihe nach und
+        # sendet ein Abo, bevor `raster` zurueckkehrt; der Tisch merkt jedes POST, bevor er antwortet. Ein Abo auf s-1 aus `raster`/`verlauf`
+        # steht danach sicher vor dem von s-2. Eines aus einem eigenen Faden, beim Lesen der Liste oder in `verlauf` gestartet, ist vorher
+        # angestossen und fiel in der Gegenprobe ebenfalls auf.
+        liste(tisch, ohne, eintrag("s-2", "laeuft", 2))
+        self.assertTrue(gelesen(c, lambda st: "s-2" in st.sitzungen))
+        c.raster("s-2")
+        self.assertEqual([(p["koerper"]["art"], p["koerper"].get("sitzung")) for p in tisch.posts], [("Abo", "s-2")],
+                         "kein Abo auf eine Sitzung ohne Nummer")
 
     def test_ohne_feld_nr_gilt_null(self):
         """Fehlt der Schluessel `nr` (Einzelbetrieb ohne `lauf`), gilt 0; `nr: null` und eine falsche Form ergeben keine Nummer."""
