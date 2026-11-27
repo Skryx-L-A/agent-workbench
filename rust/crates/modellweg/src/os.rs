@@ -21,8 +21,16 @@ pub(crate) fn eigene_uid() -> u32 {
     rustix::process::getuid().as_raw()
 }
 
+/// The umask belongs to the whole process. This lock makes the set, the work and the restore of [`mit_umask`] one step,
+/// so two threads never restore each other's mask in the middle of a bind (seen in the tests, which start side by side:
+/// a socket then had the mode of the old mask and the start ended with `mw.socket_belegt`).
+static UMASK_PLATZ: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 /// Runs `f` with the umask 0177, so a socket made in `f` never has wider rights than 0600, then restores the old mask.
 pub(crate) fn mit_umask<T>(f: impl FnOnce() -> T) -> T {
+    let _platz = UMASK_PLATZ
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let alt = rustix::process::umask(Mode::from_bits_truncate(0o177));
     let ergebnis = f();
     rustix::process::umask(alt);
@@ -307,5 +315,22 @@ mod tests {
                 "{f:?}"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod umask_tests {
+    use super::{UMASK_PLATZ, mit_umask};
+    use std::sync::TryLockError;
+
+    /// The set, the work and the restore of [`mit_umask`] are one step: while `f` runs, the lock is held, so a second
+    /// thread waits instead of restoring the mask in the middle of this step (a socket bound there would get the rights
+    /// of the old mask and the start would end with `mw.socket_belegt`). The test needs no waiting and changes the mask
+    /// only for the moment of the step, as every start in the tests does.
+    #[test]
+    fn the_lock_is_held_for_the_whole_step() {
+        let gehalten =
+            mit_umask(|| matches!(UMASK_PLATZ.try_lock(), Err(TryLockError::WouldBlock)));
+        assert!(gehalten, "the lock is not held while f runs");
     }
 }
