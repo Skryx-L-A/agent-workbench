@@ -12,6 +12,7 @@ use crate::json::{self, Wert, feld};
 use crate::netz;
 use crate::typen::{
     Einstellungen, Freigabe, Kunde, KundendatenAnCloud, McpServer, Route, Routenart, Werkzeug,
+    Zugriff,
 };
 
 /// The default of `frist_ms` of a server (contract 2, block `mcp`).
@@ -49,7 +50,15 @@ const HARNESS: [&str; 1] = ["copilot"];
 const HARNESS_COPILOT: [&str; 1] = ["werkzeuge_ohne_rueckfrage"];
 const FRIST_MAX: i128 = 86_400_000;
 const ROUTE: [&str; 3] = ["schluessel", "art", "klasse"];
-const ROUTE_2: [&str; 6] = ["schluessel", "art", "klasse", "ziel", "modell", "netzziele"];
+const ROUTE_2: [&str; 7] = [
+    "schluessel",
+    "art",
+    "klasse",
+    "ziel",
+    "modell",
+    "netzziele",
+    "eingeschraenktes_token",
+];
 const KUNDE: [&str; 3] = ["schluessel", "erlaubt", "verboten"];
 const KUNDENDATEN: [&str; 2] = ["vorgabe", "freigaben"];
 const FREIGABE: [&str; 2] = ["route", "kunde"];
@@ -370,6 +379,7 @@ fn route(felder: &[(String, Wert)], zwei: bool, befund: &mut Befund) -> Route {
         ziel: None,
         modell: None,
         netzziele: Vec::new(),
+        eingeschraenktes_token: false,
     };
     if zwei {
         ziel_und_netz(felder, &mut route, befund);
@@ -399,6 +409,26 @@ fn ziel_und_netz(felder: &[(String, Wert)], route: &mut Route, befund: &mut Befu
         }
     }
     netz::schluesselregeln(&route.netzziele, befund);
+    eingeschraenktes_token(felder, route, befund);
+}
+
+/// The admin switch `eingeschraenktes_token` of a route of version 2 (addendum Business): absent means off. A value that is
+/// no boolean is stage 6; `true` at a route without a target with `schluessel: true` is stage 37, because the switch would
+/// reach no target.
+fn eingeschraenktes_token(felder: &[(String, Wert)], route: &mut Route, befund: &mut Befund) {
+    match feld(felder, "eingeschraenktes_token") {
+        None => {}
+        Some(Wert::Bool(b)) => route.eingeschraenktes_token = *b,
+        Some(_) => befund.melde(Fehler::TypFalsch),
+    }
+    if route.eingeschraenktes_token
+        && !route
+            .netzziele
+            .iter()
+            .any(|z| z.zugriff() == Zugriff::KopfEinsetzen && z.schluessel())
+    {
+        befund.melde(Fehler::TokenOhneSchluessel);
+    }
 }
 
 fn art(felder: &[(String, Wert)], befund: &mut Befund) -> Option<Routenart> {

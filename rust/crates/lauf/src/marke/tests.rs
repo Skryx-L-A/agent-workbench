@@ -772,6 +772,24 @@ fn sperre_frei(o: &Ordner) -> bool {
     }
 }
 
+/// Whether the lock becomes free within 5 s, for a check that the lock was given back.
+///
+/// The lock file is opened with close-on-exec, but a child that another test of this process forks while the lock is
+/// held keeps a copy of the descriptor until its `exec`, and the lock with it. The product forks only while single
+/// threaded; the parallel tests of this binary do not. A lock that is never given back stays a fault.
+fn sperre_wird_frei(o: &Ordner) -> bool {
+    let ende = Instant::now() + Duration::from_secs(5);
+    loop {
+        if sperre_frei(o) {
+            return true;
+        }
+        if ende.saturating_duration_since(Instant::now()).is_zero() {
+            return false;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+}
+
 #[test]
 fn the_step_between_runs_after_the_new_file_and_before_the_rename_under_the_lock() {
     let o = Ordner::neu();
@@ -799,7 +817,7 @@ fn the_step_between_runs_after_the_new_file_and_before_the_rename_under_the_lock
     .expect("second");
     assert_eq!(gesehen, [alter_text.clone(), neuer_text.clone()]);
     assert_eq!(frei, Some(false), "the step between runs under the lock");
-    assert!(sperre_frei(&o), "the lock is given back");
+    assert!(sperre_wird_frei(&o), "the lock is given back");
     assert_eq!(
         std::fs::read_to_string(o.0.join(MARKEN_DATEI)).expect("now"),
         neuer_text
@@ -1008,7 +1026,7 @@ fn no_change_writes_nothing_and_runs_no_step_between() {
     assert_eq!(r, Ok(()));
     assert!(!schritt);
     assert!(!o.0.join(MARKEN_DATEI).exists());
-    assert!(sperre_frei(&o));
+    assert!(sperre_wird_frei(&o));
 }
 
 #[test]

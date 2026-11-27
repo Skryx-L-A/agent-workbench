@@ -192,14 +192,16 @@ fn pruefen_und_starten(
 
 /// Steps 1 to 5b with the configuration of this build.
 fn pruefen(args: &[OsString]) -> Result<Lage, Fehler> {
-    pruefen_mit(args, crate::konfig::pfad)
+    pruefen_mit(args, crate::konfig::pfad, crate::ziele::vorgabe::lesen)
 }
 
 /// Steps 1 to 5b. `konfig_pfad` names the configuration; it is asked for at step 3, after the start file was read. The
-/// unit tests pass a configuration of their own (the delivered build reads a fixed path below `/etc`).
+/// unit tests pass a configuration of their own (the delivered build reads a fixed path below `/etc`). `vorgabe` reads
+/// the default of the firm at step 4b, for every route; the unit tests pass a default of their own.
 fn pruefen_mit(
     args: &[OsString],
     konfig_pfad: impl FnOnce() -> Option<PathBuf>,
+    vorgabe: impl FnOnce() -> Result<Einstellungen, Fehler>,
 ) -> Result<Lage, Fehler> {
     // step 1
     let [pfad] = args else {
@@ -219,6 +221,8 @@ fn pruefen_mit(
     if art == Routenart::Lokal && route.ziel().zip(route.modell()).is_none() {
         return Err(Fehler::ZielFehlt);
     }
+    // step 4b: the route table only from the default of the firm; the user may strike, never add or change (A45)
+    crate::ziele::vorgabe::pruefen(&vorgabe()?, &einst)?;
     // step 5
     let arbeit = Path::new(start.arbeitsordner());
     if !arbeit.is_dir() {

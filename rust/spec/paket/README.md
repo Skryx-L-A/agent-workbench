@@ -398,14 +398,30 @@ Halter-Vertrag fest, sobald er ein Schema für `halter.json` hat“), geschriebe
   schreibt `postinst` keine Datei (Journalzeile `werkbank: halter.json nicht geschrieben`). Name des Ziels ist der `host`
   des Netzziels, wenn er die Kennungsform hat; sonst fällt das Netzziel weg, und eine Zeile geht ins Journal. Felder: `host` und
   `port` des Netzziels, `tls` `true`, `praefix` `""`, `kopf` `authorization`, `vorsatz` `"Bearer "`, `schluessel`
-  `anmeldung.<schluessel der Route>` (für die Route `copilot` also `anmeldung.copilot`), `pfade` je Pfad des Netzziels mit Methode
+  `anmeldung.<schluessel der Route>` (für die Route `copilot` also `anmeldung.copilot`, das Token der Geräte-Anmeldung; mit dem
+  Admin-Schalter `eingeschraenktes_token: true` der Route `anmeldung.<schluessel der Route>.eingeschraenkt`, das eingeschränkte Token,
+  Nachtrag Business), `pfade` je Pfad des Netzziels mit Methode
   `GET` oder `POST` die Regel `<METHODE> <pfad>` (andere Methoden fallen weg; ein Ziel ohne Regel fällt weg). Kopfname und Vorsatz
   sind hergeleitet, nicht gemessen (OPEN 31);
-- `erststart_antwortform` (Nachtrag Erststart): nur am Ziel `api.individual.githubcopilot.com`, die Regeln `GET /models` und
-  `POST /chat/completions` in dieser Reihenfolge, soweit `pfade` des Ziels sie genau enthält; enthält `pfade` keine, fehlt das Feld.
-  Der Schalter öffnet nie einen Pfad (Halter-Vertrag 2.3a). Aus dem gelieferten Profil entstehen am Modell-Host genau die zwei Pfade
-  und der Schalter für genau diese zwei; kein anderes Ziel trägt das Feld;
+- `erststart_antwortform` (Nachtrag Erststart): nur an den Modell-Hosts `api.individual.githubcopilot.com` und (Nachtrag Business)
+  `api.business.githubcopilot.com`, die Regeln `GET /models` und `POST /chat/completions` in dieser Reihenfolge, soweit `pfade` des Ziels
+  sie genau enthält; enthält `pfade` keine, fehlt das Feld. Der Schalter öffnet nie einen Pfad (Halter-Vertrag 2.3a). Aus dem
+  gelieferten Profil entstehen an jedem Modell-Host genau die zwei Pfade und der Schalter für genau diese zwei; kein anderes Ziel trägt
+  das Feld;
 - `server` `{}` (insbesondere kein lokaler Server mit Token, Halter-Vertrag 2.1) und `kids` `{}`.
+
+**Nachtrag Business (26.11.2026).** Aus dem gelieferten Profil entstehen vier Ziele: `api.github.com`, `api.githubcopilot.com` und die
+Modell-Hosts beider Pläne, `api.individual.githubcopilot.com` und `api.business.githubcopilot.com`. Telemetrie und `exp` beider Pläne
+tragen keinen Schlüssel und werden darum kein Ziel; eine Unterdomänen-Form hat keine Kennungsform und fällt mit einer Journalzeile weg.
+Der Admin-Schalter `eingeschraenktes_token` der Route (Vertrag 2) bestimmt nur den Namen des Geheimnisses. Ein Wert, der kein
+Wahrheitswert ist, lässt jedes Netzziel der Route weg (je eine Zählung in der Journalzeile): kein Ziel, kein Token, nie ein Rückfall auf
+das Token der Geräte-Anmeldung. Fehlt das eingeschränkte Token in der Ablage, endet der Start fail closed: `halter.kein_schluessel`,
+im Modellweg `mw.halter_kein_schluessel` (Exit 78). Fälle in `test_bau.py`, Klasse `HalterJson`:
+`test_both_plans_bind_the_device_token_without_the_switch`, `test_the_admin_switch_names_only_the_restricted_token`,
+`test_a_switch_that_is_no_boolean_never_falls_back_to_the_device_token`; `test_the_file_passes_the_contract_of_the_holder` prüft auch die
+Datei mit gesetztem Schalter gegen `$defs/konfig`. Gegenprobe gemessen (26.11.2026):
+Die Mutationen „Schalter ignoriert“, „Rückfall auf das Token der Geräte-Anmeldung“, „Schlüssel an Telemetrie“ und „ein Modell-Host fehlt“
+machen je einen dieser Fälle rot.
 
 Der Name des Ziels muss gleich `halter_ziel` der Zielliste des Modellwegs sein (Halter-Vertrag 13; Vertrag 8, Abschnitt 12). Das
 Beispiel in Vertrag 8 nennt andere Namen (`copilot-plan`); wer die Zielliste baut, nimmt dieselbe Regel (OPEN 31). Referenz:
@@ -420,6 +436,17 @@ Fehlt der Nutzer (kein `SUDO_USER`), schreibt `postinst` keine Datei und eine Ze
 (`pruef.dienst_fehlgeschlagen` für `wb-halter.service`). `remove` lässt die Datei liegen, `purge` löscht sie (und `/etc/werkbank`,
 wenn leer). Fälle: `entfernen-halter-json-bleibt`; der Inhalt ist über die Referenz und `test_bau.py` geprüft (Nachtrag Rolle aus der
 Gruppe; alt: „Fälle zum Inhalt folgen mit dem Schema (OPEN 28)“).
+
+### vorgabe.json (Nachtrag Vorgabe der Firma, 26.11.2026)
+
+`postinst` schreibt in Schritt 2d `/etc/werkbank/vorgabe.json`, die Vorgabe der Firma für die Routentabelle mit ihren Netzzielen (Vertrag 2,
+Abschnitt „Vorgabe der Firma für die Netzziele“; A45). Inhalt: eine Kopie des Erststart-Profils
+`/usr/share/werkbank/probelauf/erststart.json`, nie der Arbeitskopie der Person. Eigentümer `root:root`, Modus 0644, atomar (temporäre
+Datei im selben Ordner, `rename`), im Ordner `/etc/werkbank` (`root:root`, 0755). Die Datei ist kein `conffile`; ein Update schreibt sie
+neu. Grund für root: „Lauf starten“ nimmt nur eine root-eigene Vorgabe in einem sicheren Ordner an (Schritt 4b), sonst startet keine
+Sitzung, auch keine lokale (`lauf.vorgabe_fehlt`, `lauf.vorgabe_unsicher`). Fehlt das Profil, schreibt `postinst` keine Datei und die Journalzeile
+`werkbank: vorgabe.json nicht geschrieben`. `remove` lässt die Datei liegen, `purge` löscht sie (und `/etc/werkbank`, wenn leer). Fälle:
+`test_bau.py`, Klasse `VorgabeJson`.
 
 ### Rollengruppe und Rollenprogramm (Nachtrag Rolle aus der Gruppe)
 

@@ -580,10 +580,12 @@ fi
 # atomically, canonical JSON (RFC 8785) and LF, in the form $defs/konfig of rust/spec/halter: the uid of `id -u` with person null, the role
 # bruecke at the group wb-bruecke, one target per network target with "schluessel": true of a route of the kind cloud in the template (never the
 # working copy of the user): name and host are the host (a host that is no identifier is skipped, one journal line), port, tls true, praefix "",
-# kopf authorization, vorsatz "Bearer ", schluessel anmeldung.<route>, the rules "<METHOD> <path>" of the methods GET and POST as the template
-# has them; no server, no kid. The template is the first-start profile erststart.json (addendum first start), never the demo settings
-# einstellungen.json; at the model host api.individual.githubcopilot.com the target carries the switch erststart_antwortform with the rules
-# "GET /models" and "POST /chat/completions" that its pfade hold. Reference: rust/spec/paket/referenz.py `halter_konfig`.
+# kopf authorization, vorsatz "Bearer ", schluessel anmeldung.<route> (with the admin switch eingeschraenktes_token true of the route
+# anmeldung.<route>.eingeschraenkt, the restricted token; a switch that is no boolean drops the targets of the route, one count each,
+# never the device token in its place), the rules "<METHOD> <path>" of the methods GET and POST as the template has them; no server, no
+# kid. The template is the first-start profile erststart.json (addendum first start), never the demo settings einstellungen.json; at the
+# model hosts api.individual.githubcopilot.com and api.business.githubcopilot.com the target carries the switch erststart_antwortform
+# with the rules "GET /models" and "POST /chat/completions" that its pfade hold. Reference: rust/spec/paket/referenz.py `halter_konfig`.
 # --- halter.json begin
 HALTER_PY='import json, re, sys
 vorlage = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -597,12 +599,14 @@ for route in vorlage.get("routen", []):
             continue
         regeln = [r["methode"] + " " + r["pfad"] for r in nz.get("pfade", []) if r.get("methode") in ("GET", "POST")]
         host = nz.get("host", "")
-        if not kennung.match(host) or not regeln or host in ziele:
+        token = route.get("eingeschraenktes_token", False)
+        if not kennung.match(host) or not regeln or host in ziele or type(token) is not bool:
             weg += 1
             continue
         ziele[host] = {"host": host, "port": nz["port"], "tls": True, "praefix": "", "kopf": "authorization", "vorsatz": "Bearer ",
-                       "schluessel": "anmeldung." + route["schluessel"], "pfade": regeln}
-        schalter = [r for r in ("GET /models", "POST /chat/completions") if r in regeln] if host == "api.individual.githubcopilot.com" else []
+                       "schluessel": "anmeldung." + route["schluessel"] + (".eingeschraenkt" if token else ""), "pfade": regeln}
+        modell_hosts = ("api.individual.githubcopilot.com", "api.business.githubcopilot.com")
+        schalter = [r for r in ("GET /models", "POST /chat/completions") if r in regeln] if host in modell_hosts else []
         if schalter:
             ziele[host]["erststart_antwortform"] = schalter
 wert = {"fassung": 1, "konten": {sys.argv[2]: {"person": None}}, "rollen": {"bruecke": "wb-bruecke"}, "ziele": ziele, "server": {}, "kids": {}}
@@ -633,6 +637,24 @@ if [ -n "$nutzer" ]; then
 else
     log "werkbank: kein sudo-Nutzer, halter.json nicht geschrieben"
 fi
+
+# Step 2d (addendum "Vorgabe der Firma"): /etc/werkbank/vorgabe.json, the default of the firm for the network targets of the
+# cloud routes (A45), read by werkbank-lauf at step 4b. A copy of the first-start profile erststart.json (contract 2), root:root
+# 0644, atomically, in /etc/werkbank (root:root 0755); never from the working copy of the user. The settings of the user may then
+# only strike targets of it. Without the profile no file: werkbank-lauf ends every cloud start with lauf.vorgabe_fehlt (fail closed).
+# --- vorgabe.json begin
+vorgabe_json() {
+    [ -f "$VORLAGE/erststart.json" ] || return 1
+    install -d -m 0755 -o root -g root "$ETCW" || return 1
+    vj_tmp=$(mktemp "$ETCW/.vorgabe.json.XXXXXX") || return 1
+    if cat "$VORLAGE/erststart.json" >"$vj_tmp" && chmod 0644 "$vj_tmp" && chown root:root "$vj_tmp" && mv -f "$vj_tmp" "$ETCW/vorgabe.json"; then
+        return 0
+    fi
+    rm -f "$vj_tmp"
+    return 1
+}
+# --- vorgabe.json end
+vorgabe_json || log "werkbank: vorgabe.json nicht geschrieben"
 
 # Step 3: the AppArmor profile of the fixed starter and the trial run of the enclosure (decision V1: only the starter
 # `werkbank-einschluss` carries the profile; never a profile with the attachment /usr/bin/bwrap, never `unconfined`).

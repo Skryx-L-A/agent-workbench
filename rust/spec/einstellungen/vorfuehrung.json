@@ -100,6 +100,66 @@
        "pfad": "/api/v1/assignments"
       }
      ]
+    },
+    {
+     "host": "api.business.githubcopilot.com",
+     "port": 443,
+     "zugriff": "kopf-einsetzen",
+     "schluessel": true,
+     "pfade": [
+      {
+       "methode": "GET",
+       "pfad": "/models"
+      },
+      {
+       "methode": "GET",
+       "pfad": "/responses"
+      },
+      {
+       "methode": "POST",
+       "pfad": "/auto"
+      },
+      {
+       "methode": "POST",
+       "pfad": "/models/session"
+      },
+      {
+       "methode": "POST",
+       "pfad": "/models/session/intent"
+      },
+      {
+       "methode": "POST",
+       "pfad": "/chat/completions"
+      },
+      {
+       "methode": "POST",
+       "pfad": "/agents/sessions"
+      }
+     ]
+    },
+    {
+     "host": "telemetry.business.githubcopilot.com",
+     "port": 443,
+     "zugriff": "kopf-einsetzen",
+     "schluessel": false,
+     "pfade": [
+      {
+       "methode": "POST",
+       "pfad": "/telemetry"
+      }
+     ]
+    },
+    {
+     "host": "exp.business.githubcopilot.com",
+     "port": 443,
+     "zugriff": "kopf-einsetzen",
+     "schluessel": false,
+     "pfade": [
+      {
+       "methode": "POST",
+       "pfad": "/api/v1/assignments"
+      }
+     ]
     }
    ]
   },

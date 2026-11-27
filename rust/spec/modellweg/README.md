@@ -663,7 +663,7 @@ Nachmessung (Projektentscheid, 20.11.2026, Copilot CLI 1.0.88, Attrappe): Auch d
 - **Es gibt keinen Rückweg mit Token im Einschluss.** Kein Schalter, keine Option und kein Fehlerfall setzt das echte Token in die Umgebung, in eine Datei oder in einen Schlüsselbund des Einschlusses.
 - Im Probelauf meldet der Läufer E4 für die Cloud-Route dann als „offen“ mit dem Grund `mw.ca_nicht_zugelassen`, nie als grün.
 
-**Zielliste (V, Projektentscheid, 20.11.2026).** Eine **Sitzungsdatei**, die „Lauf starten“ aus `netzziele` der Route baut; die Pfade stehen in der Einstellungsdatei (Vertrag 2 Fassung 2: Zugriff `kopf-einsetzen` mit Schlüssel und Pfaden).
+**Zielliste (V, Projektentscheid, 20.11.2026).** Eine **Sitzungsdatei**, die „Lauf starten“ aus `netzziele` der Route baut; die Pfade stehen in der Einstellungsdatei (Vertrag 2 Fassung 2: Zugriff `kopf-einsetzen` mit Schlüssel und Pfaden). **Nachtrag 26.11.2026:** Die Routentabelle ist eine Teilmenge der root-eigenen Vorgabe der Firma (`/etc/werkbank/vorgabe.json`, Vertrag 2, Abschnitt „Vorgabe der Firma für die Netzziele“); ein Ziel, ein Pfad oder eine Methode außerhalb der Vorgabe beendet den Start vor der Zielliste mit `lauf.vorgabe_erweitert`, eine fremde oder abweichende Route mit `lauf.vorgabe_route_fremd` oder `lauf.vorgabe_route_abweichend`, ein abweichender Schalter `eingeschraenktes_token` mit `lauf.vorgabe_schalter`. Grund: A45; bisher konnte der Nutzer über seine Einstellungsdatei Ziele ohne Schlüssel ergänzen, und Zielliste und Namen der CA folgten ihnen.
 Sie liegt außerhalb des Einschlusses und kommt nie aus der Startdatei, der Startanfrage oder vom Agenten. Übergabe als `--zielliste <datei>`. JSON, UTF-8, höchstens 65536 Byte, geschlossene Form auf jeder Ebene.
 
 ```json

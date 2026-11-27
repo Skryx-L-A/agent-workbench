@@ -99,12 +99,10 @@ fn konfig_verderben(w: &Welt, art: &str) {
 /// Builds the world of one case and runs the program. Returns the world, the run and the PID-file folder.
 fn aufbauen_und_laufen(name: &str, lage: &Value) -> (Welt, gemeinsam::Lauf) {
     let w = Welt::neu();
-    // settings
-    datei(
-        &w.einstellungen,
-        text(&w, &lage["einstellungen"]).as_bytes(),
-        0o600,
-    );
+    // settings; the default of the firm carries the same targets, so the cases of contract 1 keep their codes
+    let einst = text(&w, &lage["einstellungen"]);
+    datei(&w.einstellungen, einst.as_bytes(), 0o600);
+    w.vorgabe_schreiben(&einst);
     // own configuration; a missing enclosure is a bwrap that does not exist
     let mut w = w;
     if lage["einschluss"] == Value::Bool(false) {

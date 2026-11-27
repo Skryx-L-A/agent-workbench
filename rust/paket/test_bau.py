@@ -1422,20 +1422,38 @@ class HalterJson(unittest.TestCase):
             cls.vorfuehrung = json.load(d)
 
     MODELL_HOST = "api.individual.githubcopilot.com"
+    # addendum Business: the model host of the plan Business carries the same paths and the same switch
+    BUSINESS_HOST = "api.business.githubcopilot.com"
+    MODELL_HOSTS = (MODELL_HOST, BUSINESS_HOST)
     ZWEI = ["GET /models", "POST /chat/completions"]
+    # the targets with a key from the profile: both plans, never telemetry, exp or a subdomain form
+    GEBUNDEN = ["api.business.githubcopilot.com", "api.github.com", "api.githubcopilot.com", "api.individual.githubcopilot.com"]
 
     def erststart_fehler(self, wert):
-        """The faults of a halter.json against the first start: at the model host exactly the two paths and the switch for exactly them,
+        """The faults of a halter.json against the first start: at each model host exactly the two paths and the switch for exactly them,
         no switch at any other target (empty: fine)."""
         fehler = []
-        z = wert["ziele"].get(self.MODELL_HOST)
-        if z is None:
-            return ["kein Ziel am Modell-Host"]
-        if z["pfade"] != self.ZWEI:
-            fehler.append("pfade am Modell-Host: %d" % len(z["pfade"]))
-        if z.get("erststart_antwortform") != self.ZWEI:
-            fehler.append("Schalter am Modell-Host")
-        fehler += ["Schalter an " + n for n, x in wert["ziele"].items() if n != self.MODELL_HOST and "erststart_antwortform" in x]
+        for host in self.MODELL_HOSTS:
+            z = wert["ziele"].get(host)
+            if z is None:
+                fehler.append("kein Ziel an " + host)
+                continue
+            if z["pfade"] != self.ZWEI:
+                fehler.append("pfade an %s: %d" % (host, len(z["pfade"])))
+            if z.get("erststart_antwortform") != self.ZWEI:
+                fehler.append("Schalter an " + host)
+        fehler += ["Schalter an " + n for n, x in wert["ziele"].items() if n not in self.MODELL_HOSTS and "erststart_antwortform" in x]
+        return fehler
+
+    def ziel_fehler(self, wert, geheimnis="anmeldung.copilot"):
+        """The faults of a halter.json against the target list of both plans (addendum Business): exactly the bound hosts, each with the one
+        secret `geheimnis`, never a target at telemetry or at a subdomain form (empty: fine)."""
+        fehler = []
+        if sorted(wert["ziele"]) != self.GEBUNDEN:
+            fehler.append("Ziele: " + ",".join(sorted(wert["ziele"])))
+        fehler += ["Unterdomaene " + n for n in wert["ziele"] if n.startswith("*.") or wert["ziele"][n]["host"].startswith("*.")]
+        fehler += ["Telemetrie " + n for n in wert["ziele"] if n.startswith("telemetry.")]
+        fehler += ["Geheimnis an %s: %s" % (n, z["schluessel"]) for n, z in wert["ziele"].items() if z["schluessel"] != geheimnis]
         return fehler
 
     def schreiben(self, vorlage, uid="1000", name="erststart.json"):
@@ -1471,13 +1489,13 @@ class HalterJson(unittest.TestCase):
         # Addendum first start: from the profile in the package, two paths at the model host and the switch for exactly these two
         wert = json.loads(self.schreiben(self.vorlage)[0])
         self.assertEqual(self.erststart_fehler(wert), [])
-        self.assertEqual(sorted(wert["ziele"]), ["api.github.com", "api.githubcopilot.com", self.MODELL_HOST])
-        # counter-check: the demo settings as template give the seven paths at the model host, so the case is red
+        self.assertEqual(sorted(wert["ziele"]), self.GEBUNDEN)
+        # counter-check: the demo settings as template give the seven paths at both model hosts, so the case is red
         roh, rc = self.schreiben(self.vorfuehrung)
         self.assertEqual(rc, 0)
         gegen = json.loads(roh)
         self.assertEqual(len(gegen["ziele"][self.MODELL_HOST]["pfade"]), 7)
-        self.assertEqual(self.erststart_fehler(gegen), ["pfade am Modell-Host: 7"])
+        self.assertEqual(self.erststart_fehler(gegen), ["pfade an %s: 7" % h for h in self.MODELL_HOSTS])
         self.assertEqual(gegen, self.ref.halter_konfig(self.vorfuehrung, 1000)[0])
 
     def test_step_2c_reads_only_the_first_start_profile(self):
@@ -1524,7 +1542,14 @@ class HalterJson(unittest.TestCase):
         sys.path.insert(0, os.path.join(RUST, "spec", "halter"))
         import importlib
         pruefen = importlib.import_module("pruefen")
-        roh, _ = self.schreiben(self.vorlage)
+        # addendum Business: also the file with the admin switch, whose targets name anmeldung.copilot.eingeschraenkt
+        mit_schalter = json.loads(json.dumps(self.vorlage))
+        mit_schalter["routen"][0]["eingeschraenktes_token"] = True
+        for vorlage in (self.vorlage, mit_schalter):
+            self.vertrag_des_halters(pruefen, vorlage)
+
+    def vertrag_des_halters(self, pruefen, vorlage):
+        roh, _ = self.schreiben(vorlage)
         group = "root:x:0:\nnutzer1:x:1000:\nwb-bruecke:x:991:\n"
         passwd = "root:x:0:0:root:/root:/bin/sh\nnutzer1:x:1000:1000::/srv/beispiel/heim/nutzer1:/bin/sh\n"
         fall = {"form": "konfig", "umgebung": {"uid": 1000, "group": group, "passwd": passwd}}
@@ -1557,9 +1582,113 @@ class HalterJson(unittest.TestCase):
         self.assertEqual(wert, self.ref.halter_konfig(v, 1000)[0])
         self.assertEqual(self.journal, ["werkbank: halter.json: Netzziele ausgelassen: 2"])
 
+    def test_both_plans_bind_the_device_token_without_the_switch(self):
+        # addendum Business: the targets of both plans; the key only at the exact hosts, never at telemetry or a subdomain form; without
+        # the admin switch every target names the device token, as before
+        wert = json.loads(self.schreiben(self.vorlage)[0])
+        self.assertEqual(self.ziel_fehler(wert), [])
+        self.assertEqual(wert["ziele"][self.BUSINESS_HOST]["pfade"], wert["ziele"][self.MODELL_HOST]["pfade"])
+        self.assertEqual(wert, self.ref.halter_konfig(self.vorlage, 1000)[0])
+        # counter-check of the case itself: a key at telemetry, at the subdomain form, a missing plan each give a fault
+        for aendern, erwartet in [
+            (lambda nz: nz.append({"host": "telemetry.business.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen",
+                                   "schluessel": True, "pfade": [{"methode": "POST", "pfad": "/telemetry"}]}), "Telemetrie"),
+            (lambda nz: nz.remove(next(x for x in nz if x["host"] == self.BUSINESS_HOST)), "Ziele"),
+            (lambda nz: nz.remove(next(x for x in nz if x["host"] == self.MODELL_HOST)), "Ziele"),
+        ]:
+            v = json.loads(json.dumps(self.vorlage))
+            aendern(v["routen"][0]["netzziele"])
+            fehler = self.ziel_fehler(json.loads(self.schreiben(v)[0]))
+            self.assertTrue(any(f.startswith(erwartet) for f in fehler), fehler)
+        # a subdomain form never becomes a target of the holder: it has no identifier form, so it is left out with a line
+        v = json.loads(json.dumps(self.vorlage))
+        v["routen"][0]["netzziele"].append({"host": "*.business.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen",
+                                            "schluessel": True, "pfade": [{"methode": "POST", "pfad": "/chat/completions"}]})
+        wert = json.loads(self.schreiben(v)[0])
+        self.assertEqual(self.ziel_fehler(wert), [])
+        self.assertEqual(self.journal, ["werkbank: halter.json: Netzziele ausgelassen: 1"])
+
+    def test_the_admin_switch_names_only_the_restricted_token(self):
+        # addendum Business: with eingeschraenktes_token true every target of the route names the restricted token, none the device token;
+        # whether the secret exists decides the holder (halter.kein_schluessel, fail closed), never this step
+        v = json.loads(json.dumps(self.vorlage))
+        v["routen"][0]["eingeschraenktes_token"] = True
+        wert = json.loads(self.schreiben(v)[0])
+        self.assertEqual(self.ziel_fehler(wert, "anmeldung.copilot.eingeschraenkt"), [])
+        self.assertEqual(self.erststart_fehler(wert), [])
+        self.assertEqual(wert, self.ref.halter_konfig(v, 1000)[0])
+        self.assertEqual(self.journal, [])
+        # false is the default: the same file as without the field
+        v["routen"][0]["eingeschraenktes_token"] = False
+        self.assertEqual(self.schreiben(v)[0], self.schreiben(self.vorlage)[0])
+        # counter-check: the switch ignored or a fallback to the device token each give a fault at every target
+        self.assertEqual(len(self.ziel_fehler(wert, "anmeldung.copilot")), len(self.GEBUNDEN))
+
+    def test_a_switch_that_is_no_boolean_never_falls_back_to_the_device_token(self):
+        # a value outside true and false (also 1 and "true") drops every target of the route with a line: no target, no token, fail closed
+        for wert in (1, 0, "true", None, [True]):
+            v = json.loads(json.dumps(self.vorlage))
+            v["routen"][0]["eingeschraenktes_token"] = wert
+            roh, rc = self.schreiben(v)
+            self.assertEqual(rc, 0, wert)
+            erg = json.loads(roh)
+            self.assertEqual(erg["ziele"], {}, wert)
+            self.assertEqual(erg, self.ref.halter_konfig(v, 1000)[0], wert)
+            self.assertEqual(self.journal, ["werkbank: halter.json: Netzziele ausgelassen: %d" % len(self.GEBUNDEN)], wert)
+
     def test_a_broken_template_or_uid_writes_no_file(self):
         self.assertEqual(self.schreiben({"routen": "kaputt"})[1], 1)
         self.assertEqual(self.schreiben(self.vorlage, uid="10a")[1], 1)
+
+
+class VorgabeJson(unittest.TestCase):
+    """Addendum "Vorgabe der Firma": step 2d of postinst writes /etc/werkbank/vorgabe.json as a copy of the first-start profile."""
+
+    @classmethod
+    def setUpClass(cls):
+        text = lesen(os.path.join(HIER, PLATTFORM, "postinst"))
+        cls.block = text[text.index("# --- vorgabe.json begin"):text.index("# --- vorgabe.json end")]
+        cls.profil = lesen(os.path.join(RUST, "spec", "einstellungen", "erststart.json"))
+
+    def schreiben(self, mit_profil=True):
+        with tempfile.TemporaryDirectory() as t0:
+            t = os.path.realpath(t0)
+            etc, vl, bin_ = os.path.join(t, "etc"), os.path.join(t, "vorlage"), os.path.join(t, "bin")
+            os.makedirs(vl)
+            os.makedirs(bin_)
+            if mit_profil:
+                with open(os.path.join(vl, "erststart.json"), "w", encoding="utf-8") as d:
+                    d.write(self.profil)
+            # stand-ins: `install` without -o/-g and `chown` (a test is no root)
+            with open(os.path.join(bin_, "install"), "w", encoding="utf-8") as d:
+                d.write('#!/bin/sh\nargs=""\nwhile [ $# -gt 0 ]; do case "$1" in -o|-g) shift 2;; *) args="$args $1"; shift;; esac; done\nexec /usr/bin/install $args\n')
+            os.chmod(os.path.join(bin_, "install"), 0o755)
+            with open(os.path.join(bin_, "chown"), "w", encoding="utf-8") as d:
+                d.write("#!/bin/sh\nexit 0\n")
+            os.chmod(os.path.join(bin_, "chown"), 0o755)
+            kopf = f"ETCW={shlex.quote(etc)}\nVORLAGE={shlex.quote(vl)}\n"
+            r = subprocess.run(["sh", "-c", kopf + self.block + "vorgabe_json"], capture_output=True, text=True, check=False,
+                               env={"PATH": bin_ + ":/usr/bin:/bin"})
+            pfad = os.path.join(etc, "vorgabe.json")
+            if not os.path.exists(pfad):
+                return r.returncode, None, None
+            self.assertEqual(sorted(os.listdir(etc)), ["vorgabe.json"], "no temporary file stays behind")
+            return r.returncode, lesen(pfad), os.stat(pfad).st_mode & 0o7777
+
+    def test_the_default_is_the_profile_with_mode_0644(self):
+        rc, inhalt, modus = self.schreiben()
+        self.assertEqual((rc, inhalt, modus), (0, self.profil, 0o644))
+        # the default carries the targets of both plans; the key never at telemetry
+        ziele = {z["host"]: z for z in json.loads(inhalt)["routen"][0]["netzziele"]}
+        self.assertTrue(ziele["api.business.githubcopilot.com"]["schluessel"])
+        self.assertFalse(ziele["telemetry.business.githubcopilot.com"]["schluessel"])
+
+    def test_without_the_profile_no_default_is_written(self):
+        self.assertEqual(self.schreiben(mit_profil=False), (1, None, None))
+        self.assertNotIn("einstellungen.json", self.block)
+
+    def test_purge_removes_the_default(self):
+        self.assertIn("/etc/werkbank/vorgabe.json", lesen(os.path.join(HIER, PLATTFORM, "postrm")))
 
 
 class Rollengruppe(unittest.TestCase):

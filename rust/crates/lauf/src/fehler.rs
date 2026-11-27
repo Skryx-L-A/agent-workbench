@@ -25,6 +25,21 @@ pub enum Fehler {
     Start(start::Fehler),
     /// Step 4a: a local route without `ziel` or `modell`.
     ZielFehlt,
+    /// Step 4b: the default of the firm for the route table does not exist (also a folder above it).
+    VorgabeFehlt,
+    /// Step 4b: the default of the firm is not owned by root, may be written by the group or others, is a link or not
+    /// regular, lies in an unsafe folder, is too large or cannot be read.
+    VorgabeUnsicher,
+    /// Step 4b: the default of the firm breaks contract 2.
+    VorgabeKaputt,
+    /// Step 4b: the settings of the user add or widen a network target of a route against the default.
+    VorgabeErweitert,
+    /// Step 4b: the settings of the user hold a route the default does not know.
+    VorgabeRouteFremd,
+    /// Step 4b: a route of the user differs from the default in kind, class, target or a model the default fixes.
+    VorgabeRouteAbweichend,
+    /// Step 4b: the switch `eingeschraenktes_token` of a route of the user differs from the default.
+    VorgabeSchalter,
     /// Step 5: the working folder is missing or no folder.
     OrdnerFehlt,
     /// Step 5a: the counting folder is missing, foreign, not 0700 or a link.
@@ -92,6 +107,13 @@ impl Fehler {
             Fehler::Einst(e) => e.code(),
             Fehler::Start(e) => e.code(),
             Fehler::ZielFehlt => "lauf.ziel_fehlt",
+            Fehler::VorgabeFehlt => "lauf.vorgabe_fehlt",
+            Fehler::VorgabeUnsicher => "lauf.vorgabe_unsicher",
+            Fehler::VorgabeKaputt => "lauf.vorgabe_kaputt",
+            Fehler::VorgabeErweitert => "lauf.vorgabe_erweitert",
+            Fehler::VorgabeRouteFremd => "lauf.vorgabe_route_fremd",
+            Fehler::VorgabeRouteAbweichend => "lauf.vorgabe_route_abweichend",
+            Fehler::VorgabeSchalter => "lauf.vorgabe_schalter",
             Fehler::OrdnerFehlt => "lauf.ordner_fehlt",
             Fehler::MarkerOrdner => "lauf.marker_ordner",
             Fehler::OrdnerMarkeKaputt => "lauf.ordner_marke_kaputt",
@@ -129,6 +151,17 @@ impl Fehler {
             Fehler::Einst(e) => e.grund(),
             Fehler::Start(e) => e.grund(),
             Fehler::ZielFehlt => "Route ohne Ziel",
+            Fehler::VorgabeFehlt => "Vorgabe der Firma fehlt",
+            Fehler::VorgabeUnsicher => {
+                "Vorgabe der Firma nicht root-eigen, beschreibbar oder ein Verweis"
+            }
+            Fehler::VorgabeKaputt => "Vorgabe der Firma ungueltig",
+            Fehler::VorgabeErweitert => "Netzziel nicht in der Vorgabe der Firma",
+            Fehler::VorgabeRouteFremd => "Route nicht in der Vorgabe der Firma",
+            Fehler::VorgabeRouteAbweichend => "Route weicht von der Vorgabe der Firma ab",
+            Fehler::VorgabeSchalter => {
+                "Schalter eingeschraenktes_token weicht von der Vorgabe der Firma ab"
+            }
             Fehler::OrdnerFehlt => "Arbeitsordner fehlt oder ist kein Ordner",
             Fehler::MarkerOrdner => "Zaehlordner fehlt, ist fremd, nicht 0700 oder ein Verweis",
             Fehler::OrdnerMarkeKaputt => "Ordnermarke unlesbar oder beschaedigt",
@@ -180,6 +213,13 @@ impl Fehler {
             | Fehler::EinstUnlesbar
             | Fehler::Einst(_)
             | Fehler::ZielFehlt
+            | Fehler::VorgabeFehlt
+            | Fehler::VorgabeUnsicher
+            | Fehler::VorgabeKaputt
+            | Fehler::VorgabeErweitert
+            | Fehler::VorgabeRouteFremd
+            | Fehler::VorgabeRouteAbweichend
+            | Fehler::VorgabeSchalter
             | Fehler::OrdnerMarkeKaputt
             | Fehler::OrdnerMarkeKennung
             | Fehler::PaketForm => 78,
@@ -309,6 +349,33 @@ mod tests {
         ];
         for (f, (exit, zeile)) in alle.iter().zip(soll) {
             assert_eq!((f.exitcode(), f.zeile().as_str()), (exit, zeile));
+            assert!(f.zeile().is_ascii() && f.zeile().len() <= 200);
+            assert_eq!(f.teil_zeile(), None);
+        }
+    }
+
+    #[test]
+    fn the_codes_of_the_default_of_the_firm_end_the_start_with_78() {
+        let alle = [
+            Fehler::VorgabeFehlt,
+            Fehler::VorgabeUnsicher,
+            Fehler::VorgabeKaputt,
+            Fehler::VorgabeErweitert,
+            Fehler::VorgabeRouteFremd,
+            Fehler::VorgabeRouteAbweichend,
+            Fehler::VorgabeSchalter,
+        ];
+        let soll: [&str; 7] = [
+            "lauf.vorgabe_fehlt: Vorgabe der Firma fehlt\n",
+            "lauf.vorgabe_unsicher: Vorgabe der Firma nicht root-eigen, beschreibbar oder ein Verweis\n",
+            "lauf.vorgabe_kaputt: Vorgabe der Firma ungueltig\n",
+            "lauf.vorgabe_erweitert: Netzziel nicht in der Vorgabe der Firma\n",
+            "lauf.vorgabe_route_fremd: Route nicht in der Vorgabe der Firma\n",
+            "lauf.vorgabe_route_abweichend: Route weicht von der Vorgabe der Firma ab\n",
+            "lauf.vorgabe_schalter: Schalter eingeschraenktes_token weicht von der Vorgabe der Firma ab\n",
+        ];
+        for (f, zeile) in alle.iter().zip(soll) {
+            assert_eq!((f.exitcode(), f.zeile().as_str()), (78, zeile));
             assert!(f.zeile().is_ascii() && f.zeile().len() <= 200);
             assert_eq!(f.teil_zeile(), None);
         }

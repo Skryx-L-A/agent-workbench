@@ -230,6 +230,28 @@ fn schreiben(p: &Path, text: &str, modus: u32) {
     std::fs::set_permissions(p, std::fs::Permissions::from_mode(modus)).expect("mode");
 }
 
+/// Writes a program that a test runs, through a helper process: this process never holds the file open for writing.
+///
+/// A child that another test of this process forks while the file is open for writing keeps that descriptor until its
+/// `exec`; an `exec` of the file then fails with `ETXTBSY`, and the start counts as missing. The helper is a process of
+/// its own, which no test forks.
+fn programm_schreiben(p: &Path, text: &str) {
+    let status = std::process::Command::new("/bin/sh")
+        .args([
+            "-c",
+            "printf '%s' \"$2\" > \"$1\" && chmod 755 \"$1\"",
+            "sh",
+        ])
+        .arg(p)
+        .arg(text)
+        .env_clear()
+        .env("PATH", "/usr/bin:/bin")
+        .stdin(std::process::Stdio::null())
+        .status()
+        .expect("helper");
+    assert!(status.success(), "write {}", p.display());
+}
+
 fn ordner_0700(p: &Path) {
     use std::os::unix::fs::PermissionsExt;
     std::fs::create_dir_all(p).expect("folder");
@@ -254,9 +276,9 @@ fn welt(w: &Path) -> PathBuf {
     }
     ordner_0700(&w.join("zustand"));
     ordner_0700(&w.join("zustand/sitzungen"));
-    schreiben(&w.join("bin/kind"), TRAMPOLIN, 0o755);
+    programm_schreiben(&w.join("bin/kind"), TRAMPOLIN);
     for p in ["rangkern", "modellweg", "pi", "copilot"] {
-        schreiben(&w.join("bin").join(p), KIND, 0o755);
+        programm_schreiben(&w.join("bin").join(p), KIND);
     }
     schreiben(&w.join("einst/e.json"), EINST, 0o600);
     schreiben(&w.join("k/lokal"), "schluessel\n", 0o600);
@@ -770,7 +792,7 @@ fn steps_1_to_5c_pass_a_valid_start_and_refuse_a_missing_folder() {
         let start = w.join("start/start.json");
         schreiben(&start, &start_text(w, harness, r, None), 0o600);
         let args = [start.clone().into_os_string()];
-        let l = pruefen_mit(&args, || Some(konfig.clone()))
+        let l = pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich()))
             .unwrap_or_else(|f| panic!("{harness}: {f:?}"));
         assert_eq!(l.ordner, w.join("arbeit"));
         assert_eq!(l.startordner, w.join("start"));
@@ -778,16 +800,104 @@ fn steps_1_to_5c_pass_a_valid_start_and_refuse_a_missing_folder() {
         // the folder is gone (the mark of the first check stays; a new folder of that name is not checked here)
         std::fs::remove_dir_all(w.join("arbeit")).expect("remove");
         assert_eq!(
-            pruefen_mit(&args, || Some(konfig.clone())).map(|_| ()),
+            pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich())).map(|_| ()),
             Err(Fehler::OrdnerFehlt),
             "{harness}"
         );
         // no configuration
         assert_eq!(
-            pruefen_mit(&args, || None).map(|_| ()),
+            pruefen_mit(&args, || None, || Ok(vorgabe_gleich())).map(|_| ()),
             Err(Fehler::KonfigFehlt)
         );
     }
+}
+
+/// The default of the firm equal to the settings of the world.
+fn vorgabe_gleich() -> Einstellungen {
+    einstellungen::lesen(EINST.as_bytes()).expect("settings")
+}
+
+#[test]
+fn step_4b_stops_a_cloud_route_without_a_safe_default_or_with_an_added_target() {
+    let o = crate::testhilfe::Ordner::neu("vorgabe");
+    let w = &o.0;
+    let konfig = welt(w);
+    let start = w.join("start/start.json");
+    schreiben(
+        &start,
+        &start_text(w, "copilot", "cloud-beispiel", None),
+        0o600,
+    );
+    let args = [start.clone().into_os_string()];
+    let lauf = |v: Result<Einstellungen, Fehler>| {
+        pruefen_mit(&args, || Some(konfig.clone()), || v).map(|_| ())
+    };
+    // a fault of the default stops the start with its own code: never the settings of the user in its place
+    for f in [
+        Fehler::VorgabeFehlt,
+        Fehler::VorgabeUnsicher,
+        Fehler::VorgabeKaputt,
+    ] {
+        assert_eq!(lauf(Err(f.clone())), Err(f));
+    }
+    // a default without the telemetry target: the user's file adds it
+    let ohne = EINST.replacen(
+        r#",{"host":"telemetry.cloud.example","port":443,"zugriff":"kopf-einsetzen","schluessel":false,"pfade":[{"methode":"POST","pfad":"/telemetry"}]}"#,
+        "",
+        1,
+    );
+    assert_ne!(ohne, EINST);
+    assert_eq!(
+        lauf(Ok(einstellungen::lesen(ohne.as_bytes()).expect("settings"))),
+        Err(Fehler::VorgabeErweitert)
+    );
+    // a default without the route of the user: refused, never "no default, everything goes"
+    let ohne_route = EINST.replacen(
+        r#""schluessel":"cloud-beispiel""#,
+        r#""schluessel":"cloud-anders""#,
+        1,
+    );
+    assert_eq!(
+        lauf(Ok(
+            einstellungen::lesen(ohne_route.as_bytes()).expect("settings")
+        )),
+        Err(Fehler::VorgabeRouteFremd)
+    );
+    assert_eq!(lauf(Ok(vorgabe_gleich())), Ok(()));
+}
+
+#[test]
+fn step_4b_checks_the_whole_route_table_also_for_a_local_start() {
+    let o = crate::testhilfe::Ordner::neu("vorgabe-lokal");
+    let w = &o.0;
+    let konfig = welt(w);
+    let start = w.join("start/start.json");
+    schreiben(&start, &start_text(w, "pi", "lokal-beispiel", None), 0o600);
+    let args = [start.clone().into_os_string()];
+    let lauf = |v: Result<Einstellungen, Fehler>| {
+        pruefen_mit(&args, || Some(konfig.clone()), || v).map(|_| ())
+    };
+    assert_eq!(lauf(Err(Fehler::VorgabeFehlt)), Err(Fehler::VorgabeFehlt));
+    // the default fixes another local target: the user's file must not move it
+    let anderes_ziel = EINST.replacen("http://127.0.0.1:11434/v1", "http://127.0.0.1:11435/v1", 1);
+    assert_ne!(anderes_ziel, EINST);
+    assert_eq!(
+        lauf(Ok(
+            einstellungen::lesen(anderes_ziel.as_bytes()).expect("settings")
+        )),
+        Err(Fehler::VorgabeRouteAbweichend)
+    );
+    // the cloud route of the table counts as well, though the start takes the local route
+    let ohne = EINST.replacen(
+        r#",{"host":"telemetry.cloud.example","port":443,"zugriff":"kopf-einsetzen","schluessel":false,"pfade":[{"methode":"POST","pfad":"/telemetry"}]}"#,
+        "",
+        1,
+    );
+    assert_eq!(
+        lauf(Ok(einstellungen::lesen(ohne.as_bytes()).expect("settings"))),
+        Err(Fehler::VorgabeErweitert)
+    );
+    assert_eq!(lauf(Ok(vorgabe_gleich())), Ok(()));
 }
 
 /// The helper process of the cases below (see `crate::testhilfe`): one thread, descriptor 3 free.

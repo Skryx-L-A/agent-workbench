@@ -64,6 +64,18 @@ VORFUEHRDATEI = {
             # gemessen im echten Lauf: Zuteilung von Experimenten, ohne Authorization.
             {"host": "exp.individual.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen",
              "schluessel": False, "pfade": [{"methode": "POST", "pfad": "/api/v1/assignments"}]},
+            # Plan Business (Nachtrag Business, 26.11.2026): Die GitHub-Doku "Copilot allowlist reference" nennt für den Plan nur
+            # die Unterdomänen-Form *.business.githubcopilot.com. Statt dieser Form stehen hier einzelne Hosts darunter, die
+            # engere Form; der Schlüssel geht nie an eine Unterdomänen-Form (Stufe 31). Der Modell-Host trägt dieselben
+            # genauen Pfade wie der Modell-Host des Plans individual (hergeleitet, mit Business nicht gemessen).
+            {"host": "api.business.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": True,
+             "pfade": "MODELL_PFADE"},
+            # Telemetrie des Plans Business (gemeldet aus dem Betrieb mit dem Plan, nicht selbst gemessen); ohne Schlüssel, nur POST /telemetry
+            {"host": "telemetry.business.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen",
+             "schluessel": False, "pfade": [{"methode": "POST", "pfad": "/telemetry"}]},
+            # Experimente des Plans Business: hergeleitet aus exp.individual.githubcopilot.com, ohne Schlüssel
+            {"host": "exp.business.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen",
+             "schluessel": False, "pfade": [{"methode": "POST", "pfad": "/api/v1/assignments"}]},
         ]},
         {"schluessel": "lokal", "art": "lokal", "klasse": "customer",
          "ziel": "http://127.0.0.1:11434/v1", "modell": "qwen3:8b", "netzziele": []},
@@ -74,6 +86,12 @@ VORFUEHRDATEI = {
     ],
     "kundendaten_an_cloud": {"vorgabe": "nie", "freigaben": []},
 }
+# Die Modell-Hosts der Pläne individual und Business: dieselben genauen Pfade, derselbe Schlüssel der Route.
+MODELL_HOSTS = ("api.individual.githubcopilot.com", "api.business.githubcopilot.com")
+_MODELL_PFADE = next(z["pfade"] for z in VORFUEHRDATEI["routen"][0]["netzziele"] if z["host"] == MODELL_HOSTS[0])
+for _z in VORFUEHRDATEI["routen"][0]["netzziele"]:
+    if _z["pfade"] == "MODELL_PFADE":
+        _z["pfade"] = copy.deepcopy(_MODELL_PFADE)
 
 # Die Vorführung setzt alle drei Werte (Entscheidung vom 20.11.2026). `vorfuehrung.json` trägt sie; der Fall
 # `gueltig-vorfuehrung` bleibt mit dem alten Stand (ohne harness) unverändert, der neue Fall steht daneben.
@@ -89,7 +107,7 @@ ERSTSTART_PFADE = [{"methode": "GET", "pfad": "/models"}, {"methode": "POST", "p
 ERSTSTARTDATEI = copy.deepcopy(VORFUEHRDATEI_MIT_WERKZEUGEN)
 ERSTSTARTDATEI["routen"][0]["modell"] = ERSTSTART_MODELL
 for _z in ERSTSTARTDATEI["routen"][0]["netzziele"]:
-    if _z["host"] == "api.individual.githubcopilot.com":
+    if _z["host"] in MODELL_HOSTS:
         _z["pfade"] = copy.deepcopy(ERSTSTART_PFADE)
 
 
@@ -647,6 +665,64 @@ fall("harness-wert-nach-mcp-doppelt", "mcp_doppelt (Stufe 33) geht vor dem Wert 
 fall("harness-doppelter-schluessel", "harness.copilot zweimal im Objekt harness (doppelter JSON-Schlüssel)",
      text(harness(cop([]))).replace(
          '"copilot": {', '"copilot": {"werkzeuge_ohne_rueckfrage": []},\n  "copilot": {', 1), "einst.json_ungueltig")
+
+
+# Plan Business (Nachtrag Business, 26.11.2026): der Schlüssel nie an der Unterdomänen-Form des Plans (Stufe 31); die
+# Unterdomänen-Form ohne Schlüssel bleibt der Form nach gültig.
+fall("schluessel-unterdomaene-business", "Schlüssel an *.business.githubcopilot.com gebunden (die Form der Doku)",
+     kopf([{"methode": "POST", "pfad": "/chat/completions"}], host="*.business.githubcopilot.com"), "einst.schluessel_unterdomaene")
+fall("schluessel-unterdomaene-business-neben-modell-host",
+     "Modell-Host mit Schlüssel und daneben *.business.githubcopilot.com mit Schlüssel",
+     kopf([{"methode": "POST", "pfad": "/chat/completions"}], host="api.business.githubcopilot.com",
+          dazu=[{"host": "*.business.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": True,
+                 "pfade": [{"methode": "POST", "pfad": "/telemetry"}]}]), "einst.schluessel_unterdomaene")
+
+
+# Admin-Schalter eingeschraenktes_token (Nachtrag Business, 26.11.2026): optional an einer Route der Fassung 2, Vorgabe aus.
+# true heißt: Der Halter setzt an den Zielen der Route mit Schlüssel das eingeschränkte Token der Admins ein, nicht das Token
+# der Geräte-Anmeldung. Gesetzt an einer Route ohne Ziel mit schluessel: true ist es Stufe 37 (der Schalter liefe ins Leere).
+def schalter(wert, route=0, aendern=lambda o: None):
+    def setzen(o):
+        o["routen"][route]["eingeschraenktes_token"] = wert
+        aendern(o)
+    return setzen
+
+
+_KOPF_ZIEL = {"host": "api.cloud.example", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": True,
+              "pfade": [{"methode": "POST", "pfad": "/chat/completions"}]}
+
+
+def mit_kopf(o):
+    o["routen"][0]["netzziele"] = [copy.deepcopy(_KOPF_ZIEL)]
+
+
+fall("gueltig-eingeschraenktes-token", "Schalter an einer Cloud-Route mit Ziel mit Schlüssel",
+     f2(schalter(True, aendern=mit_kopf)))
+fall("gueltig-eingeschraenktes-token-aus", "Schalter false (die Vorgabe) an einer Cloud-Route mit Ziel mit Schlüssel",
+     f2(schalter(False, aendern=mit_kopf)))
+fall("gueltig-eingeschraenktes-token-aus-lokal", "Schalter false an der lokalen Route: gültig, er wirkt nirgends",
+     f2(schalter(False, route=1)))
+_ERSTSTART_SCHALTER = copy.deepcopy(ERSTSTARTDATEI)
+_ERSTSTART_SCHALTER["routen"][0]["eingeschraenktes_token"] = True
+fall("gueltig-erststart-eingeschraenktes-token", "Erststart-Profil mit gesetztem Schalter an der Route copilot",
+     _ERSTSTART_SCHALTER)
+fall("eingeschraenktes-token-fassung-1", "Schalter in einer Datei der Fassung 1",
+     mit(lambda o: o["routen"][0].update(eingeschraenktes_token=True)), "einst.schluessel_unbekannt")
+fall("eingeschraenktes-token-text", "Schalter als Text", f2(schalter("ja", aendern=mit_kopf)), "einst.typ_falsch")
+fall("eingeschraenktes-token-null", "Schalter null", f2(schalter(None, aendern=mit_kopf)), "einst.typ_falsch")
+fall("eingeschraenktes-token-zahl", "Schalter als Zahl 1", f2(schalter(1, aendern=mit_kopf)), "einst.typ_falsch")
+fall("eingeschraenktes-token-lokal", "Schalter true an der lokalen Route (ohne Netzziel)",
+     f2(schalter(True, route=1)), "einst.token_ohne_schluessel")
+fall("eingeschraenktes-token-ohne-schluessel", "Schalter true an einer Cloud-Route, deren Ziele keinen Schlüssel tragen",
+     f2(schalter(True, aendern=lambda o: o["routen"][0].update(netzziele=[
+         {"host": "telemetry.business.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": False,
+          "pfade": [{"methode": "POST", "pfad": "/telemetry"}]}]))), "einst.token_ohne_schluessel")
+fall("eingeschraenktes-token-ohne-netzziele", "Schalter true an einer Cloud-Route ohne Netzziel",
+     f2(schalter(True, aendern=lambda o: o["routen"][0].update(netzziele=[]))), "einst.token_ohne_schluessel")
+fall("eingeschraenktes-token-wert-vor-schalter", "Werkzeugwert (Stufe 34) geht vor dem Schalter (Stufe 37)",
+     f2(schalter(True, route=1, aendern=lambda o: o.update(harness=cop(["yolo"])))), "einst.werkzeug_wert")
+fall("eingeschraenktes-token-typ-vor-schalter", "falscher Typ des Schalters an der lokalen Route ist Stufe 6, nicht 37",
+     f2(schalter("ja", route=1)), "einst.typ_falsch")
 
 
 # Block effort (Nachtrag 26.11.2026, Fassung 2): Grenzen der Admins je Harness, Klasse und Modell. Das Crate kennt den Block

@@ -20,7 +20,7 @@ SCHEMA_CODES = {
     "ziel_art", "ziel_schema", "ziel_form", "modell_form", "netzziel_lokal", "netzziel_form", "netzziel_port", "zugriff_unbekannt",
     "zugriff_felder", "pfad_form", "verbinden_mit_schluessel", "schluessel_unterdomaene",
     "schluessel_unbekannt", "route_ohne_klasse", "schluessel_fehlt", "typ_falsch", "fassung_unbekannt",
-    "anzahl", "kennung_form", "art_unbekannt", "vorgabe_wert", "frist_bereich", "werkzeug_wert",
+    "anzahl", "kennung_form", "art_unbekannt", "vorgabe_wert", "frist_bereich", "werkzeug_wert", "token_ohne_schluessel",
 }
 # Fälle, die das Schema nicht trennen kann: JSON Schema hält 1.0 und 1 für gleich; IPv4-Teile über 255 sehen aus wie Namen.
 SCHEMA_BLIND = {"typ-fassung-bruch.json", "ziel-form-ipv4-256.json"}
@@ -83,12 +83,36 @@ GEMESSEN_MODELL_HOST = [("GET", "/models"), ("GET", "/responses"), ("POST", "/au
                         ("POST", "/models/session/intent"), ("POST", "/chat/completions"), ("POST", "/agents/sessions")]
 # Pfade außerhalb der Liste (Gegenprobe zu N1 und F1): das abgeleitete Token an api.github.com, ein beliebiger Pfad und ein
 # Unterpfad am Modell-Host, eine falsche Methode.
-AUSSERHALB = [("api.github.com", "GET", "/copilot_internal/v2/token"),
-              ("api.individual.githubcopilot.com", "GET", "/copilot_internal/v2/token"),
-              ("api.individual.githubcopilot.com", "POST", "/v1/fremd"),
-              ("api.individual.githubcopilot.com", "GET", "/models/x"),
-              ("api.individual.githubcopilot.com", "POST", "/models"),
-              ("api.individual.githubcopilot.com", "GET", "/chat/completions")]
+# Die Modell-Hosts der Pläne individual und Business (Nachtrag Business, 26.11.2026): dieselben genauen Pfade, je mit Schlüssel.
+MODELL_HOSTS = ("api.individual.githubcopilot.com", "api.business.githubcopilot.com")
+AUSSERHALB = [("api.github.com", "GET", "/copilot_internal/v2/token")] + [
+    (h, m, q) for h in MODELL_HOSTS for m, q in [("GET", "/copilot_internal/v2/token"), ("POST", "/v1/fremd"), ("GET", "/models/x"),
+                                                 ("POST", "/models"), ("GET", "/chat/completions")]]
+# Ziele der Route copilot mit Schlüssel: genau diese Hosts. Jedes andere Ziel (Telemetrie, exp) trägt keinen Schlüssel.
+GEBUNDEN_ERWARTET = {"api.github.com", "api.githubcopilot.com", *MODELL_HOSTS}
+# Telemetrie beider Pläne: ohne Schlüssel, genau POST /telemetry (die Business-Telemetrie gemeldet aus dem Betrieb).
+TELEMETRIE = ("telemetry.individual.githubcopilot.com", "telemetry.business.githubcopilot.com")
+
+
+def plaene_pruefen(name, obj, fehler):
+    """Beide Pläne in der Route copilot (Nachtrag Business): Schlüssel genau an GEBUNDEN_ERWARTET, nie an einer Unterdomänen-Form,
+    beide Modell-Hosts mit denselben Pfaden, beide Telemetrie-Ziele ohne Schlüssel mit genau POST /telemetry."""
+    route = next(r for r in obj["routen"] if r["schluessel"] == "copilot")
+    ziele = {z["host"]: z for z in route["netzziele"]}
+    gebunden = {h for h, z in ziele.items() if z.get("schluessel") is True}
+    for h in sorted(gebunden - GEBUNDEN_ERWARTET):
+        fehler.append(f"{name}: Schlüssel an {h}, erwartet nur an {sorted(GEBUNDEN_ERWARTET)}")
+    for h in sorted(GEBUNDEN_ERWARTET - gebunden):
+        fehler.append(f"{name}: {h} fehlt oder trägt keinen Schlüssel")
+    for h in sorted(h for h in gebunden if h.startswith("*.")):
+        fehler.append(f"{name}: Schlüssel an der Unterdomänen-Form {h}")
+    pfade = [sorted((q["methode"], q["pfad"]) for q in ziele[h]["pfade"]) if h in ziele else None for h in MODELL_HOSTS]
+    if pfade[0] != pfade[1]:
+        fehler.append(f"{name}: Pfade an {MODELL_HOSTS[0]} und {MODELL_HOSTS[1]} ungleich")
+    for h in TELEMETRIE:
+        z = ziele.get(h)
+        if z is None or z.get("schluessel") is not False or [(q["methode"], q["pfad"]) for q in z["pfade"]] != [("POST", "/telemetry")]:
+            fehler.append(f"{name}: {h} fehlt oder nicht ohne Schlüssel mit genau POST /telemetry")
 
 
 def vorfuehrung_pruefen(pruefer, fehler):
@@ -113,15 +137,16 @@ def vorfuehrung_pruefen(pruefer, fehler):
         return any(q["methode"] == methode and pfad_trifft(q["pfad"], pfad)
                    for z in gebunden if z["host"] == host for q in z["pfade"])
 
-    modell = "api.individual.githubcopilot.com"
-    # Fall: die gemessenen Pfade gehen durch
-    for methode, pfad in GEMESSEN_MODELL_HOST:
-        if not zugelassen(modell, methode, pfad):
-            fehler.append(f"vorfuehrung.json: gemessener Pfad {methode} {pfad} an {modell} nicht zugelassen")
+    # Fall: die gemessenen Pfade gehen durch, an beiden Modell-Hosts (am Business-Host hergeleitet)
+    for modell in MODELL_HOSTS:
+        for methode, pfad in GEMESSEN_MODELL_HOST:
+            if not zugelassen(modell, methode, pfad):
+                fehler.append(f"vorfuehrung.json: gemessener Pfad {methode} {pfad} an {modell} nicht zugelassen")
     # Gegenprobe: ein Pfad außerhalb der Liste ist abgelehnt, auch ein Unterpfad eines genauen Pfads
     for host, methode, pfad in AUSSERHALB:
         if zugelassen(host, methode, pfad):
             fehler.append(f"vorfuehrung.json: {methode} {pfad} an {host} zugelassen, steht aber in keiner Regel")
+    plaene_pruefen("vorfuehrung.json", obj, fehler)
 
 
 # Erststart-Profil (Entscheid der Leitung, 25.11.2026): am Modell-Host genau diese zwei Pfade, die fünf übrigen gemessenen
@@ -139,22 +164,23 @@ def erststart_pruefen(pruefer, fehler):
     vor = json.loads((HIER / "vorfuehrung.json").read_text(encoding="utf-8"))
     if pruefer is not None and not pruefer.is_valid(obj):
         fehler.append(f"erststart.json: Schema lehnt ab: {next(pruefer.iter_errors(obj)).message}")
-    modell = "api.individual.githubcopilot.com"
     route = next(r for r in obj["routen"] if r["schluessel"] == "copilot")
-    ziele = [z for z in route["netzziele"] if z["host"] == modell]
-    paare = sorted((q["methode"], q["pfad"]) for z in ziele for q in z["pfade"])
-    if paare != sorted(ERSTSTART_FREI):
-        fehler.append(f"erststart.json: am Modell-Host {paare}, erwartet genau {sorted(ERSTSTART_FREI)}")
+    for modell in MODELL_HOSTS:
+        ziele = [z for z in route["netzziele"] if z["host"] == modell]
+        paare = sorted((q["methode"], q["pfad"]) for z in ziele for q in z["pfade"])
+        if paare != sorted(ERSTSTART_FREI):
+            fehler.append(f"erststart.json: an {modell} {paare}, erwartet genau {sorted(ERSTSTART_FREI)}")
 
-    def zugelassen(methode, pfad):
-        return any(q["methode"] == methode and pfad_trifft(q["pfad"], pfad) for z in ziele for q in z["pfade"])
+        def zugelassen(methode, pfad, ziele=ziele):
+            return any(q["methode"] == methode and pfad_trifft(q["pfad"], pfad) for z in ziele for q in z["pfade"])
 
-    for methode, pfad in ERSTSTART_GESPERRT:
-        if zugelassen(methode, pfad):
-            fehler.append(f"erststart.json: {methode} {pfad} am Modell-Host zugelassen, beim Erststart gesperrt")
-    for methode, pfad in ERSTSTART_FREI:
-        if not zugelassen(methode, pfad):
-            fehler.append(f"erststart.json: {methode} {pfad} am Modell-Host nicht zugelassen")
+        for methode, pfad in ERSTSTART_GESPERRT:
+            if zugelassen(methode, pfad):
+                fehler.append(f"erststart.json: {methode} {pfad} an {modell} zugelassen, beim Erststart gesperrt")
+        for methode, pfad in ERSTSTART_FREI:
+            if not zugelassen(methode, pfad):
+                fehler.append(f"erststart.json: {methode} {pfad} an {modell} nicht zugelassen")
+    plaene_pruefen("erststart.json", obj, fehler)
     m = route.get("modell")
     if not isinstance(m, str) or m == "auto":
         fehler.append(f"erststart.json: Route copilot ohne festes Modell ({m!r})")
@@ -163,9 +189,9 @@ def erststart_pruefen(pruefer, fehler):
     r = next(r for r in gleich["routen"] if r["schluessel"] == "copilot")
     del r["modell"]
     for z in r["netzziele"]:
-        if z["host"] == modell:
+        if z["host"] in MODELL_HOSTS:
             z["pfade"] = next(y for x in vor["routen"] if x["schluessel"] == "copilot"
-                              for y in [z2["pfade"] for z2 in x["netzziele"] if z2["host"] == modell])
+                              for y in [z2["pfade"] for z2 in x["netzziele"] if z2["host"] == z["host"]])
     if gleich != vor:
         fehler.append("erststart.json: weicht außer Modell und Pfaden am Modell-Host von vorfuehrung.json ab")
 

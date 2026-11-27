@@ -100,6 +100,12 @@ Notiz von `k-beispiel`, weil sie dort erlaubt ist.
    {"host": "telemetry.individual.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": false,
     "pfade": [{"methode": "POST", "pfad": "/telemetry"}]},
    {"host": "exp.individual.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": false,
+    "pfade": [{"methode": "POST", "pfad": "/api/v1/assignments"}]},
+   {"host": "api.business.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": true,
+    "pfade": ["... dieselben sieben Pfade wie an api.individual.githubcopilot.com ..."]},
+   {"host": "telemetry.business.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": false,
+    "pfade": [{"methode": "POST", "pfad": "/telemetry"}]},
+   {"host": "exp.business.githubcopilot.com", "port": 443, "zugriff": "kopf-einsetzen", "schluessel": false,
     "pfade": [{"methode": "POST", "pfad": "/api/v1/assignments"}]}]},
   {"schluessel": "lokal", "art": "lokal", "klasse": "customer",
    "ziel": "http://127.0.0.1:11434/v1", "modell": "qwen3:8b", "netzziele": []}
@@ -212,6 +218,36 @@ bis zum Bau des Gateway-Wegs auf ein kleines Modell über Ollama auf dem Vorfüh
 getauscht: die Basis-URL eines OpenAI-kompatiblen Modell-Gateways (`https`, im Firmennetz) und sein Modellname (Form
 `namensraum/modell:groesse`). Der Schlüssel des Gateways steht nie in dieser Datei (OPEN 8).
 
+### Plan Business (Nachtrag Business, 26.11.2026)
+
+**Die Route `copilot` trägt die Ziele der Pläne individual und Business nebeneinander.** Die Ziele des Plans individual bleiben
+unverändert (eigene Tests); die Ziele des Plans Business kommen hinzu, in `vorfuehrung.json` und in `erststart.json`, und damit in die
+Vorgabe der Firma (Abschnitt „Vorgabe der Firma für die Netzziele“).
+
+Quelle ist die GitHub-Doku „Copilot allowlist reference“
+(`https://docs.github.com/en/copilot/reference/copilot-allowlist-reference`, gelesen am 26.11.2026). Für den Plan Business nennt sie genau
+einen Eintrag, `https://*.business.githubcopilot.com` („Allows access to authorized users via a the test account plan“), und keinen
+einzelnen Host. Ebenso nennt sie für individual nur `https://*.individual.githubcopilot.com`.
+
+**Form: einzelne Hosts unter der Unterdomänen-Form, nicht die Form selbst.** Die Form der Doku träfe jeden Namen unter
+`business.githubcopilot.com`, auch einen, den erst der Agent wählt. Die einzelnen Hosts liegen alle unter ihr, also trägt die Doku sie;
+sie sind die engere Form. Der Schlüssel steht nie an einer Unterdomänen-Form (Stufe 31, Fälle `schluessel-unterdomaene-business*`).
+
+| Ziel | Schlüssel | Pfade | Herkunft |
+|---|---|---|---|
+| `api.business.githubcopilot.com` | ja | dieselben genauen Pfade wie am Modell-Host `api.individual.githubcopilot.com` (Vorführdatei: sieben, Erststart-Profil: zwei) | hergeleitet: der Wert von `endpoints.api` nach dem gemessenen Muster des Plans individual; mit Business nicht gemessen |
+| `telemetry.business.githubcopilot.com` | nein | `POST /telemetry` | aus dem Betrieb mit dem Plan Business gemeldet, nicht selbst gemessen; Pfad wie bei individual |
+| `exp.business.githubcopilot.com` | nein | `POST /api/v1/assignments` | hergeleitet aus `exp.individual.githubcopilot.com` (gemessen), mit Business nicht gemessen |
+
+`api.github.com` (zwei genaue Pfade) und `api.githubcopilot.com` (ein Pfad) gelten für beide Pläne und bleiben, wie sie sind. Ruft die
+CLI mit Business einen Host oder Pfad, der hier fehlt, scheitert der Aufruf sichtbar (Halter `halter.pfad_verboten` oder 403 des
+Modellwegs, fail closed); die Leitung entscheidet die Regel dann anhand der Kette.
+
+`pruefen.py` prüft an beiden Dateien (`plaene_pruefen`): Der Schlüssel steht genau an `api.github.com`, `api.githubcopilot.com` und den
+beiden Modell-Hosts, nie an einer Unterdomänen-Form. Beide Modell-Hosts tragen dieselben Pfade. Beide Telemetrie-Ziele stehen ohne
+Schlüssel mit genau `POST /telemetry`. Die gemessenen Pfade und die Pfade außerhalb der Liste prüft es an beiden Modell-Hosts; im
+Erststart-Profil gelten an beiden genau die zwei Pfade.
+
 ## Fassung 2: Ziel, Modell und Netzziele (Nachtrag 20.11.2026)
 
 **Entscheidung: neue Fassung statt Erweiterung der Fassung 1.** Fassung 1 bleibt unverändert gültig; eine Datei mit
@@ -233,6 +269,7 @@ Vertrag 1).
 | `ziel` | Text | nur bei `art: lokal`, dort Pflicht; bei `art: cloud` verboten | Basisadresse des Modells im OpenAI-Sinn, mit `/v1` am Ende; der Modellweg (Vertrag 1, `rust/spec/modellweg/`) ruft `<ziel>/chat/completions` auf. Siehe unten |
 | `modell` | Text | bei `art: lokal` Pflicht, bei `art: cloud` optional; 1 bis 128 Zeichen aus `[A-Za-z0-9._:/@+-]` wie `modell` in Vertrag 1 | lokal: das einzige Modell, das der Modellweg durchlässt. Cloud: fehlt das Feld, wählt der Harness das Modell (Copilot); steht es, legt die Route das Modell fest. In beiden Fällen muss `modell` im Start gleich sein (Vertrag 1, `start.modell_route`) |
 | `netzziele` | Liste von Netzzielen | Pflicht, 0 bis 64, ohne Doppel; bei `art: lokal` genau 0 | Ziele, die der Agent der Route außerhalb des Rechners erreichen darf |
+| `eingeschraenktes_token` | Wahrheitswert, optional, Vorgabe `false` | `true` nur an einer Route mit mindestens einem Ziel mit `schluessel: true` (Stufe 37) | Admin-Schalter (Nachtrag Business, Abschnitt „Admin-Schalter `eingeschraenktes_token`“) |
 
 **Netzziel:** `{"host": <Text>, "port": <Ganzzahl>, "zugriff": <Text>, "schluessel": <bool>, "pfade": [...]}`.
 `host`, `port` und `zugriff` sind Pflicht; `schluessel` und `pfade` stehen genau bei `zugriff: kopf-einsetzen` und sind
@@ -383,6 +420,30 @@ Erwartung eines bestehenden Falls ändert sich.
 - Die Vorführdatei (`vorfuehrung.json`) setzt alle drei Werte.
 - Fälle: `gueltig-harness*`, `gueltig-vorfuehrung-mit-werkzeugen`, `harness-*`.
 
+## Fassung 2: Admin-Schalter `eingeschraenktes_token` (Nachtrag Business, 26.11.2026)
+
+Das Feld ist **optional** und steht nur an einer Route der Fassung 2 (in Fassung 1 ist es ein unbekannter Schlüssel). Es bestimmt nur,
+welches Token der Halter an den Zielen der Route mit `schluessel: true` einsetzt. Sonst ändert es nichts: nicht die Ziele, nicht die Pfade,
+nicht den Start.
+
+- **Fehlt das Feld oder ist es `false` (Vorgabe aus), ändert sich nichts.** Der Halter setzt das Token der Geräte-Anmeldung ein, das
+  Geheimnis `anmeldung.<route>` (Halter-Vertrag, Abschnitt 1). Jede bisherige Datei der Fassung 2 bleibt gültig; keine Erwartung eines
+  bestehenden Falls ändert sich.
+- **`true`:** Der Halter setzt das eingeschränkte Token der Admins ein, ein fine-grained Token mit der Berechtigung „Copilot Requests“.
+  Es ist das Geheimnis `anmeldung.<route>.eingeschraenkt`. `postinst` schreibt diesen Namen in `halter.json` (Paketvertrag, Abschnitt
+  „halter.json“); kein Ziel nennt dann `anmeldung.<route>`.
+- **Gesetzt ohne vorhandenes Token: fail closed.** Fehlt das Geheimnis, meldet der Halter `halter.kein_schluessel`, und der Modellweg
+  startet nicht (`mw.halter_kein_schluessel`, Exit 78, Vertrag 8). Es gibt keinen Rückfall auf das Token der Geräte-Anmeldung, denn
+  `halter.json` nennt je Ziel genau ein Geheimnis.
+- Ein Wert, der kein Wahrheitswert ist, ist `einst.typ_falsch` (Stufe 6), auch `1`, `"ja"` und `null`. `true` an einer Route ohne Ziel mit
+  `schluessel: true` (auch an jeder lokalen Route) ist der neue Code `einst.token_ohne_schluessel` (Stufe 37, nach allen anderen): Der
+  Schalter liefe ins Leere.
+- Wie das eingeschränkte Token in die Ablage des Halters kommt, legt dieser Vertrag nicht fest (OPEN 14). Die Vorführdatei und das
+  Erststart-Profil setzen den Schalter nicht.
+- Typisierte Sicht: `Route::eingeschraenktes_token()` liefert `true` nur, wenn die Datei `true` sagt. Tests:
+  `crates/einstellungen/tests/token.rs`.
+- Fälle: `gueltig-eingeschraenktes-token*`, `gueltig-erststart-eingeschraenktes-token`, `eingeschraenktes-token-*`.
+
 ## Fassung 2: Block `effort` (Nachtrag 26.11.2026, Entscheid des Betreibers E2)
 
 Der Block trägt die **Grenzen des Efforts**, die die Admins setzen (E2, `rust/spec/seite/OBERFLAECHE.md` OF9 Punkt 4 und L10). Er ist
@@ -441,6 +502,57 @@ bisherige Start (ohne `effort`) ebenso.
 - Fälle: `faelle-ausstehend/` (`gueltig-effort*`, `gueltig-ohne-effort`, `effort-*`). Sie ziehen nach `faelle/` um, wenn das Crate den
   Block liest.
 
+
+## Vorgabe der Firma für die Netzziele (Nachtrag, 26.11.2026)
+
+**Die Routentabelle mit ihren Netzzielen kommt nur aus der Vorgabe der Firma; die Datei des Nutzers darf Routen, Ziele und Pfade
+nur streichen.** Grund: A45, die Routentabelle ist Vorgabe der Firma, und ein Nutzer ändert sie nicht. Die Einstellungsdatei, die
+„Lauf starten“ liest, gehört dem Nutzer (Arbeitskopie, 0600). Bisher folgten aus ihr die Zielliste des Modellwegs und die Namen der
+Wegwerf-CA; nur die Ziele mit Schlüssel waren über die root-eigene `halter.json` gebunden. Ein Nutzer konnte so ein Ziel ohne Schlüssel
+ergänzen, eine Route in eine höhere Klasse heben oder das Ziel einer lokalen Route ändern.
+
+- **Vorgabe:** eine Einstellungsdatei dieses Vertrags (Fassung 2) unter `/etc/werkbank/vorgabe.json`, Eigentümer root, Modus 0644, im
+  Ordner `/etc/werkbank` (root, 0755). Der Pfad steht an einer Stelle: `VORGABE_PFAD` in `rust/crates/lauf/src/ziele/vorgabe.rs`. Das
+  Paket legt sie als Kopie des Erststart-Profils an (Paketvertrag, Abschnitt „vorgabe.json“). Die Ziele beider Pläne, auch des Plans
+  Business, stehen damit in der Vorgabe.
+- **Schritt 4b von „Lauf starten“ (Vertrag 1), bei jedem Start, auch einem lokalen:** Jede Route in der Datei des Nutzers wird über
+  ihren `schluessel` in der Vorgabe gesucht.
+  - Fehlt sie dort, endet der Start mit `lauf.vorgabe_route_fremd` (`Route nicht in der Vorgabe der Firma`). Das gilt auch für
+    dieselbe Route unter einem neuen Schlüssel.
+  - `art`, `klasse`, die Stelle der Klasse in `klassen` und `ziel` müssen gleich der Vorgabe sein, auch bei einer lokalen Route. Sonst
+    endet der Start mit `lauf.vorgabe_route_abweichend` (`Route weicht von der Vorgabe der Firma ab`). Die Stelle zählt mit, weil ein
+    Umordnen von `klassen` eine Route sonst höher stellt, obwohl ihr Klassenname gleich bleibt. Streicht ein Nutzer eine ungenutzte
+    Klasse vor einer genutzten, ist das darum auch eine Ablehnung (fail closed).
+  - `modell`: Legt die Vorgabe ein Modell fest, muss die Route genau dieses tragen; ein anderes oder keines ist
+    `lauf.vorgabe_route_abweichend`. Legt die Vorgabe keines fest, wählt der Nutzer frei. Eine lokale Route hat nach Stufe 18 immer ein
+    Modell; dort ist es also immer fest.
+  - `eingeschraenktes_token` muss gleich der Vorgabe sein, in beiden Richtungen; ein fehlendes Feld gilt als `false`. Sonst endet der
+    Start mit `lauf.vorgabe_schalter` (`Schalter eingeschraenktes_token weicht von der Vorgabe der Firma ab`). Grund: Der Halter liest
+    den Schalter aus der root-eigenen `halter.json`, nie aus dieser Datei; ein abweichender Wert würde sonst still übergangen.
+  - Jedes Netzziel der Route steht in der Vorgabe mit gleichem `host` (auch gleicher Unterdomänen-Form) und `port`. Es hat dieselbe
+    Zugriffsart und `schluessel: true` nur, wo die Vorgabe den Schlüssel bindet. Jedes Paar aus Methode und Pfad steht wörtlich an
+    diesem Ziel der Vorgabe. Ein Teilbaum `/x/*` deckt dabei keinen Pfad, den die Vorgabe nicht wörtlich nennt. Sonst endet der Start
+    mit `lauf.vorgabe_erweitert` (`Netzziel nicht in der Vorgabe der Firma`).
+- **Streichen gilt:** eine Route, ein Ziel, einen Pfad oder die Schlüsselbindung weglassen. Zielliste und Namen der CA entstehen dann
+  ohne das Gestrichene, wie bisher aus der Route des Nutzers.
+- **Ergänzen oder Ändern ist eine Ablehnung, nie stilles Ignorieren.** Alle vier Codes enden mit Exit 78.
+- **Fail closed:** Fehlt die Vorgabe oder ein Ordner darüber, endet der Start mit `lauf.vorgabe_fehlt` (`Vorgabe der Firma fehlt`), auch
+  ein lokaler. Ist sie nicht root-eigen, für Gruppe oder andere schreibbar, ein Verweis oder keine reguläre Datei, liegt sie in einem
+  Ordner, der nicht root gehört oder für Gruppe oder andere schreibbar ist, ist sie größer als 65536 Byte oder nicht lesbar, endet er
+  mit `lauf.vorgabe_unsicher`. Verletzt sie diesen Vertrag, endet er mit `lauf.vorgabe_kaputt`. Alle Exit 78. Es gibt keinen Rückfall
+  auf die Datei des Nutzers.
+- **Prüfung über Deskriptoren:** Von `/` an öffnet „Lauf starten“ jeden Ordner mit `O_NOFOLLOW` und `O_DIRECTORY` relativ zum vorigen und
+  prüft ihn mit `fstat`. Die Datei öffnet es mit `O_NOFOLLOW` und prüft sie mit `fstat`, bevor es ein Byte liest. Ein Ordner über dem
+  letzten darf schreibbar sein, wenn er das Sticky-Bit trägt (wie `/tmp`); der Ordner der Datei nie.
+- **Nicht verglichen** werden heute `klassen` über die Stellen der Routen hinaus, `vorgabestufe`, `kunden`, `kundendaten_an_cloud`,
+  `harness`, `mcp` und der Block `effort`. Keines davon öffnet ein Netzziel oder ändert eine Route. Der Block `effort` trägt aber
+  Grenzen der Admins; liest das Crate ihn, muss er ebenfalls aus der Vorgabe kommen (OPEN 15).
+- Der Prüfbau (Feature `pruefbau`) liest `vorgabe.json` neben dem Programm und nimmt neben root auch den eigenen Nutzer als Eigentümer;
+  der ausgelieferte Bau nimmt nur root.
+- Tests: `crates/lauf/src/ziele/vorgabe/tests.rs` (Regeln, Lesen, Routentabelle, Schnittmenge), `crates/lauf/src/ablauf/tests.rs`
+  (Schritt 4b).
+
+
 ## Fehlercodes und Prüfreihenfolge
 
 Die Prüfung meldet genau einen Code: den der ersten verletzten Stufe in dieser Reihenfolge. Innerhalb einer Stufe ist
@@ -485,6 +597,7 @@ sie unverändert an die Ansicht durch.
 | 34 | `einst.werkzeug_wert` | Fassung 2: ein Wert in `harness.copilot.werkzeuge_ohne_rueckfrage` ist ein Text, aber nicht `shell`, `write` oder `such-mcp` | `Werkzeugwert nicht erlaubt` |
 | 35 | `einst.effort_harness` | Fassung 2 (Nachtrag 26.11.2026): `harness` einer Grenze in `effort.grenzen` steht nicht in der Harness-Tabelle von Vertrag 1 | `Harness der Effort-Grenze unbekannt` |
 | 36 | `einst.effort_wert` | Fassung 2 (Nachtrag 26.11.2026): ein Wert in `erlaubt` einer Grenze ist kein Effort-Wert dieses Harness | `Effort-Wert nicht erlaubt` |
+| 37 | `einst.token_ohne_schluessel` | Fassung 2: `eingeschraenktes_token: true` an einer Route ohne Ziel mit `schluessel: true` | `eingeschraenktes Token ohne Ziel mit Schluessel` |
 
 Dazu kommt ein Code, den nur das Programm „Lauf starten“ meldet, weil er den Dateizugriff betrifft:
 `lauf.einst_unlesbar` (Datei fehlt oder ist nicht lesbar). Siehe Vertrag 1, Abschnitt „Aufruf“.
@@ -494,7 +607,7 @@ Dazu kommt ein Code, den nur das Programm „Lauf starten“ meldet, weil er den
 Eine Bibliothek (künftig Crate `einstellungen` unter `rust/crates/einstellungen`) liest und prüft die Datei. Dieser
 Vertrag beschreibt nur die Schnittstelle; gebaut wird sie in einer späteren Fassung.
 
-- `lesen(bytes) -> Result<Einstellungen, Fehler>`: führt alle Stufen 1 bis 34 aus (mit dem Block `effort` 1 bis 36). Eine Leserin, die nur Fassung 1
+- `lesen(bytes) -> Result<Einstellungen, Fehler>`: führt die Stufen 1 bis 34 und 37 aus (mit dem Block `effort` 1 bis 37). Eine Leserin, die nur Fassung 1
   kennt, führt die Stufen 1 bis 17 aus und meldet für `fassung: 2` den Code `einst.fassung_unbekannt`.
 - `Fehler::code() -> &'static str` gibt den Code aus der Tabelle; `Fehler::grund() -> &'static str` den festen
   Grund aus der Tabelle (ASCII, ohne Pfad und ohne Inhalt der Datei).
@@ -517,7 +630,7 @@ Form kennt keinen tief verschachtelten Wert; Fälle an der Grenze stehen darum u
 
 `pruefen.py` prüft heute: Jede Datei in `faelle/` hat ein Gegenstück in `erwartet/`; Größe und JSON-Lesen (BOM,
 doppelter Schlüssel, UTF-8) stimmen mit dem erwarteten Code; das Schema nimmt jeden gültigen Fall an und lehnt jeden
-Fall der Stufen 3 bis 9, 11, 16, 18 bis 20 und 23 bis 32 ab. Erst mit dem Bau prüfbar sind: Stufe 33 (Querverweis zwischen `lesen` und `schreiben`) und das Doppel in `werkzeuge_ohne_rueckfrage` (Stufe 10, wie bei den Listen von `mcp`), Stufe 10 für Routen und Kunden (JSON Schema
+Fall der Stufen 3 bis 9, 11, 16, 18 bis 20, 23 bis 32, 34 und 37 ab. Erst mit dem Bau prüfbar sind: Stufe 33 (Querverweis zwischen `lesen` und `schreiben`) und das Doppel in `werkzeuge_ohne_rueckfrage` (Stufe 10, wie bei den Listen von `mcp`), Stufe 10 für Routen und Kunden (JSON Schema
 vergleicht dort ganze Objekte), Stufen 12 bis 15 und 17 (Querverweise), Stufen 21 und 22 (Portwert und Hostregel des
 Ziels), IPv4-Teile über 255 (Fall `ziel-form-ipv4-256`), die Reihenfolge der Stufen und `1.0` gegen `1` (JSON Schema
 hält beide für gleich).
@@ -582,6 +695,16 @@ python3 -I rust/spec/einstellungen/bau-faelle.py            # Fälle neu erzeuge
     `einst.kennung_doppelt` (10, dasselbe Paar aus `ebene` und `wer`) und `einst.klasse_unbekannt` (12, byte-genau). Neu wären ein
     Code für eine Ebene außer `nutzer` und `gruppe` und einer für ein `wer` ohne Pseudonymform. Fehlt das Feld, liest niemand
     (datentor P2). Fälle folgen mit der Fassung, wie beim Block `effort` in `faelle-ausstehend/`.
+14. **Plan Business und eingeschränktes Token (Nachtrag Business, 26.11.2026).** Offen: welche Hosts und Pfade die CLI mit dem Plan
+    Business wirklich ruft; die Ziele `api.business.githubcopilot.com` und `exp.business.githubcopilot.com` sind hergeleitet, nicht
+    gemessen. Offen auch: wie ein Admin das eingeschränkte Token `anmeldung.<route>.eingeschraenkt` in die Ablage des Halters bringt
+    (Anmelde- oder Halter-Vertrag) und wie ein Admin den Schalter im Betrieb setzt; heute liest `postinst` ihn aus dem Erststart-Profil
+    des Pakets, und das Profil setzt ihn nicht.
+15. **Felder der Admins außerhalb der Routentabelle (Nachtrag, 26.11.2026).** Schritt 4b vergleicht heute nur die Routentabelle mit
+    der Vorgabe der Firma (Abschnitt „Vorgabe der Firma für die Netzziele“). Der Block `effort` (OPEN 11) und das Feld `leseklassen`
+    (OPEN 13) sind Werte der Admins. Sie stehen in der Datei des Nutzers und werden nicht verglichen. Das Crate liest beide heute nicht.
+    Vorschlag: Sobald es sie liest, gilt für sie dieselbe Regel wie für die Routentabelle, also nur streichen oder verengen, nie
+    erweitern.
 
 <!-- vom Bauvorgang angefuegt -->
 > Hinweis: Dieser Text nennt Werkzeuge, die in diesem Klon nicht liegen: `pi`.

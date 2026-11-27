@@ -80,6 +80,46 @@
        "pfad": "/api/v1/assignments"
       }
      ]
+    },
+    {
+     "host": "api.business.githubcopilot.com",
+     "port": 443,
+     "zugriff": "kopf-einsetzen",
+     "schluessel": true,
+     "pfade": [
+      {
+       "methode": "GET",
+       "pfad": "/models"
+      },
+      {
+       "methode": "POST",
+       "pfad": "/chat/completions"
+      }
+     ]
+    },
+    {
+     "host": "telemetry.business.githubcopilot.com",
+     "port": 443,
+     "zugriff": "kopf-einsetzen",
+     "schluessel": false,
+     "pfade": [
+      {
+       "methode": "POST",
+       "pfad": "/telemetry"
+      }
+     ]
+    },
+    {
+     "host": "exp.business.githubcopilot.com",
+     "port": 443,
+     "zugriff": "kopf-einsetzen",
+     "schluessel": false,
+     "pfade": [
+      {
+       "methode": "POST",
+       "pfad": "/api/v1/assignments"
+      }
+     ]
     }
    ],
    "modell": "gpt-6-luna"

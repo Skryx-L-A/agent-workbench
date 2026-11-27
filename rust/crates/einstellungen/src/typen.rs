@@ -166,6 +166,7 @@ pub struct Route {
     pub(crate) ziel: Option<Ziel>,
     pub(crate) modell: Option<String>,
     pub(crate) netzziele: Vec<Netzziel>,
+    pub(crate) eingeschraenktes_token: bool,
 }
 
 impl Route {
@@ -209,6 +210,14 @@ impl Route {
     #[must_use]
     pub fn netzziele(&self) -> &[Netzziel] {
         &self.netzziele
+    }
+
+    /// The admin switch `eingeschraenktes_token` (addendum Business): `true` means the holder puts the restricted token of
+    /// the admins into the targets of this route with `schluessel: true`, never the token of the device login. `false` when
+    /// the field is absent and in version 1. A route with `true` has at least one such target (stage 37).
+    #[must_use]
+    pub fn eingeschraenktes_token(&self) -> bool {
+        self.eingeschraenktes_token
     }
 }
 

@@ -9,6 +9,8 @@
 use einstellungen::json::text_schreiben;
 use einstellungen::{Route, Zugriff};
 
+pub mod vorgabe;
+
 /// The most targets the model path takes in its list (contract 8, section 12: 1 to 16).
 pub const ZIELE_MAX: usize = 16;
 

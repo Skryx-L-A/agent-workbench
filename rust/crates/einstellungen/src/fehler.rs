@@ -73,6 +73,8 @@ pub enum Fehler {
     /// Stage 34: version 2, a value of `harness.copilot.werkzeuge_ohne_rueckfrage` is a text, but not
     /// `shell`, `write` or `such-mcp`.
     WerkzeugWert,
+    /// Stage 37: version 2, `eingeschraenktes_token: true` at a route without a target with `schluessel: true`.
+    TokenOhneSchluessel,
 }
 
 impl Fehler {
@@ -114,6 +116,7 @@ impl Fehler {
             Self::FristBereich => "einst.frist_bereich",
             Self::McpDoppelt => "einst.mcp_doppelt",
             Self::WerkzeugWert => "einst.werkzeug_wert",
+            Self::TokenOhneSchluessel => "einst.token_ohne_schluessel",
         }
     }
 
@@ -155,6 +158,7 @@ impl Fehler {
             Self::FristBereich => "Frist ausserhalb des Bereichs",
             Self::McpDoppelt => "Werkzeug in lesen und schreiben",
             Self::WerkzeugWert => "Werkzeugwert nicht erlaubt",
+            Self::TokenOhneSchluessel => "eingeschraenktes Token ohne Ziel mit Schluessel",
         }
     }
 
@@ -195,6 +199,7 @@ impl Fehler {
             Self::FristBereich => 32,
             Self::McpDoppelt => 33,
             Self::WerkzeugWert => 34,
+            Self::TokenOhneSchluessel => 37,
         }
     }
 }
@@ -408,6 +413,12 @@ mod tests {
                 34,
                 "einst.werkzeug_wert",
                 "Werkzeugwert nicht erlaubt",
+            ),
+            (
+                Fehler::TokenOhneSchluessel,
+                37,
+                "einst.token_ohne_schluessel",
+                "eingeschraenktes Token ohne Ziel mit Schluessel",
             ),
         ];
         for (fehler, stufe, code, grund) in tabelle {

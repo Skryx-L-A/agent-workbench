@@ -1243,17 +1243,31 @@ HALTER_ROLLEN = {"bruecke": "wb-bruecke"}
 HALTER_KENNUNG = KENNUNG
 # Nachtrag Erststart (Entscheid der Leitung, 25.11.2026): Vorlage von Schritt 2c ist das Erststart-Profil, nie die Vorführdatei.
 HALTER_VORLAGE = "/usr/share/werkbank/probelauf/erststart.json"
-# Der Schalter `erststart_antwortform` (Halter-Vertrag 2.3a und 4) am Modell-Host, genau diese Regeln, soweit `pfade` sie deckt.
-ANTWORTFORM_HOST = "api.individual.githubcopilot.com"
+# Der Schalter `erststart_antwortform` (Halter-Vertrag 2.3a und 4) an den Modell-Hosts der Pläne individual und Business (Nachtrag
+# Business), genau diese Regeln, soweit `pfade` sie deckt.
+ANTWORTFORM_HOSTS = ("api.individual.githubcopilot.com", "api.business.githubcopilot.com")
 ANTWORTFORM_REGELN = ("GET /models", "POST /chat/completions")
+# Admin-Schalter `eingeschraenktes_token` einer Route (Vertrag 2, Nachtrag Business): true nennt am Ziel das Geheimnis mit dieser Endung,
+# das eingeschränkte Token der Admins, statt `anmeldung.<route>`, des Tokens der Geräte-Anmeldung. Ein Wert, der kein Wahrheitswert ist,
+# lässt die Ziele der Route weg (je eine Zählung): nie ein Rückfall auf das Token der Geräte-Anmeldung.
+EINGESCHRAENKT_ENDUNG = ".eingeschraenkt"
+
+
+def halter_geheimnis(route):
+    """Der Name des Geheimnisses an den Zielen der Route, oder None, wenn der Schalter kein Wahrheitswert ist."""
+    schalter = route.get("eingeschraenktes_token", False)
+    if type(schalter) is not bool:
+        return None
+    return "anmeldung." + route["schluessel"] + (EINGESCHRAENKT_ENDUNG if schalter else "")
 
 
 def halter_konfig(vorlage, uid):
     """Der Inhalt von /etc/werkbank/halter.json, den `postinst` Schritt 2c für die uid schreibt (Abschnitt „halter.json“): ein Ziel je Netzziel
     mit `schluessel: true` einer Route der Art `cloud`, Name = Host (nur in Kennungsform), Regeln nur GET und POST. Die Vorlage ist das
-    Erststart-Profil (`HALTER_VORLAGE`); am Modell-Host `ANTWORTFORM_HOST` trägt das Ziel den Schalter `erststart_antwortform` mit den Regeln
-    aus `ANTWORTFORM_REGELN`, die `pfade` genau enthält (keine: kein Feld). Gibt (wert, weggelassen) zurück;
-    `weggelassen` zählt die Netzziele ohne Kennungsform oder ohne Regel (je eine Journalzeile)."""
+    Erststart-Profil (`HALTER_VORLAGE`); an jedem Modell-Host aus `ANTWORTFORM_HOSTS` trägt das Ziel den Schalter `erststart_antwortform` mit
+    den Regeln aus `ANTWORTFORM_REGELN`, die `pfade` genau enthält (keine: kein Feld). Das Geheimnis des Ziels nennt `halter_geheimnis`.
+    Gibt (wert, weggelassen) zurück; `weggelassen` zählt die Netzziele ohne Kennungsform, ohne Regel oder an einer Route mit einem
+    Schalter, der kein Wahrheitswert ist (je eine Journalzeile)."""
     ziele, weg = {}, 0
     for route in vorlage.get("routen", []):
         if route.get("art") != "cloud":
@@ -1263,12 +1277,13 @@ def halter_konfig(vorlage, uid):
                 continue
             regeln = [f"{r['methode']} {r['pfad']}" for r in nz.get("pfade", []) if r.get("methode") in ("GET", "POST")]
             host = nz.get("host", "")
-            if not HALTER_KENNUNG.match(host) or not regeln or host in ziele:
+            geheimnis = halter_geheimnis(route)
+            if not HALTER_KENNUNG.match(host) or not regeln or host in ziele or geheimnis is None:
                 weg += 1
                 continue
             ziele[host] = {"host": host, "port": nz["port"], "tls": True, "praefix": "", "kopf": "authorization", "vorsatz": "Bearer ",
-                           "schluessel": "anmeldung." + route["schluessel"], "pfade": regeln}
-            schalter = [r for r in ANTWORTFORM_REGELN if r in regeln] if host == ANTWORTFORM_HOST else []
+                           "schluessel": geheimnis, "pfade": regeln}
+            schalter = [r for r in ANTWORTFORM_REGELN if r in regeln] if host in ANTWORTFORM_HOSTS else []
             if schalter:
                 ziele[host]["erststart_antwortform"] = schalter
     wert = {"fassung": 1, "konten": {str(uid): {"person": None}}, "rollen": dict(HALTER_ROLLEN), "ziele": ziele, "server": {}, "kids": {}}

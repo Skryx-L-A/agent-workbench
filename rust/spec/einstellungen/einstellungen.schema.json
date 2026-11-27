@@ -294,6 +294,10 @@
      "description": "Modell, das der Weiterreicher allein durchlässt (wie modell in Vertrag 1).",
      "type": "string",
      "pattern": "^[A-Za-z0-9._:/@+-]{1,128}$"
+    },
+    "eingeschraenktes_token": {
+     "description": "Admin-Schalter, Vorgabe aus: true setzt an den Zielen der Route mit Schlüssel das eingeschränkte Token der Admins ein statt des Tokens der Geräte-Anmeldung (Nachtrag Business). Nur an einer Route mit mindestens einem Ziel mit schluessel: true (Stufe 37).",
+     "type": "boolean"
     }
    },
    "allOf": [
@@ -368,6 +372,37 @@
            "zugriff": {
             "const": "verbinden"
            }
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "required": [
+       "eingeschraenktes_token"
+      ],
+      "properties": {
+       "eingeschraenktes_token": {
+        "const": true
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "netzziele"
+      ],
+      "properties": {
+       "netzziele": {
+        "contains": {
+         "required": [
+          "schluessel"
+         ],
+         "properties": {
+          "schluessel": {
+           "const": true
           }
          }
         }

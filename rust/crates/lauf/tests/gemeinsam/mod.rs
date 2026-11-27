@@ -578,10 +578,16 @@ pub fn endet_binnen(pid: i32, ms: u64) -> bool {
 pub const EINST: &str = r#"{"fassung":2,"klassen":["oeffentlich","intern","kundendaten"],"vorgabestufe":"kundendaten","routen":[{"schluessel":"cloud-beispiel","art":"cloud","klasse":"intern","netzziele":[{"host":"api.cloud.example","port":443,"zugriff":"kopf-einsetzen","schluessel":true,"pfade":[{"methode":"GET","pfad":"/copilot_internal/*"}]},{"host":"telemetry.cloud.example","port":443,"zugriff":"kopf-einsetzen","schluessel":false,"pfade":[{"methode":"POST","pfad":"/telemetry"}]}]},{"schluessel":"lokal-beispiel","art":"lokal","klasse":"kundendaten","ziel":"http://127.0.0.1:11434/v1","modell":"qwen3:8b","netzziele":[]}],"kunden":[{"schluessel":"k-beispiel","erlaubt":["lokal-beispiel"],"verboten":[]}],"kundendaten_an_cloud":{"vorgabe":"nie","freigaben":[]}}"#;
 
 impl Welt {
+    /// The default of the firm next to the program (test build, `vorgabe.json` beside `lauf.json`), mode 0644.
+    pub fn vorgabe_schreiben(&self, text: &str) {
+        datei(&self.bin.join("vorgabe.json"), text.as_bytes(), 0o644);
+    }
+
     /// A valid start of `harness` on `route` in the working folder `projekt` below the example home of the world; returns the
     /// argument list of the program.
     pub fn gueltig(&self, harness: &str, route: &str, modell: &str) -> Vec<String> {
         datei(&self.einstellungen, EINST.as_bytes(), 0o600);
+        self.vorgabe_schreiben(EINST);
         self.konfig_schreiben("zugelassen");
         let arbeit = self.wurzel.join("home/beispiel/projekt");
         fs::create_dir_all(&arbeit).expect("folder");

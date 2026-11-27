@@ -1,7 +1,7 @@
 #!/bin/sh
 # postrm of the package werkbank (contract rust/spec/paket, part A, "Skripte des Pakets", "Entfernen").
 # remove: unload every profile of the product (`prerm` did it by file; here the rest by file or by label) and delete its compiled cache file under /var/cache/apparmor, switch the units off globally; /var/lib/werkbank stays (configuration).
-# purge: additionally delete the answer of the debconf question werkbank/ca_zulassung, the copy of bwrap (form B), /etc/werkbank/lauf.json, kern.json, bruecke.json and halter.json (and /etc/werkbank when empty), /var/lib/werkbank with the key file (overwrite, then remove) and, as the user, the store of the holder in the home; remove leaves the four files and the store.
+# purge: additionally delete the answer of the debconf question werkbank/ca_zulassung, the copy of bwrap (form B), /etc/werkbank/lauf.json, kern.json, bruecke.json, halter.json and vorgabe.json (and /etc/werkbank when empty), /var/lib/werkbank with the key file (overwrite, then remove) and, as the user, the store of the holder in the home; remove leaves the four files and the store.
 # Never stops the removal: no `set -e`; exit 0 for every action.
 
 # purge: the answer of the question of the package leaves debconf, so a new installation starts again with `offen`.
@@ -154,7 +154,7 @@ case "$1" in
             find /var/lib/werkbank -type f \( -name 'modellweg.schluessel' -o -name 'copilot.schluessel' \) -exec shred -u {} + 2>/dev/null
             rm -rf /var/lib/werkbank 2>/dev/null
         fi
-        rm -f /etc/werkbank/lauf.json /etc/werkbank/kern.json /etc/werkbank/bruecke.json /etc/werkbank/halter.json 2>/dev/null
+        rm -f /etc/werkbank/lauf.json /etc/werkbank/kern.json /etc/werkbank/bruecke.json /etc/werkbank/halter.json /etc/werkbank/vorgabe.json 2>/dev/null
         rmdir /etc/werkbank 2>/dev/null
         rmdir /usr/lib/werkbank /usr/share/werkbank 2>/dev/null
         ;;
