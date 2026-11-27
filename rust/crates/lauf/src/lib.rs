@@ -21,6 +21,7 @@ pub mod befehl;
 pub mod ca;
 pub mod dateien;
 pub mod fehler;
+pub mod gespraech;
 pub mod harness;
 pub mod kind;
 pub mod konfig;

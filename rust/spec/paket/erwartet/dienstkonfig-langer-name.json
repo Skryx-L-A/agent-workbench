@@ -26,7 +26,9 @@
     "marker_datei": "/run/user/1000/werkbank-probelauf/marker.json",
     "marker_ordner": "/var/lib/werkbank/z/1000",
     "ziellisten": "/var/lib/werkbank/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/sitzungen",
-    "laufzeit": "/var/lib/werkbank/l/1000"
+    "laufzeit": "/var/lib/werkbank/l/1000",
+    "bestand": "/var/lib/werkbank/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/dienst/bestand.json",
+    "gespraeche": "/var/lib/werkbank/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/gespraeche"
    },
    "anfang": {
     "personen": {

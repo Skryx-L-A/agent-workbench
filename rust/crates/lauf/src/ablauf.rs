@@ -12,7 +12,7 @@ use crate::kind::{Ausfall, BEREIT_FRIST, Kind};
 use crate::konfig::Konfig;
 use crate::meldung::Meldung;
 use crate::uebergabe::Platz;
-use crate::{dateien, harness, kind, marke, uebergabe};
+use crate::{dateien, gespraech, harness, kind, marke, uebergabe};
 
 /// The longest host path of a socket in bytes, without the closing zero byte (`sun_path`: 108 on Linux, 104 on macOS).
 pub const SOCKET_MAX: usize = if cfg!(target_os = "linux") { 107 } else { 103 };
@@ -52,6 +52,8 @@ struct Lage {
     startordner: PathBuf,
     /// `realpath(arbeitsordner)`.
     ordner: PathBuf,
+    /// Step 5d: the conversation of the predecessor, when the start continues one.
+    fortsetzung: Option<gespraech::Fortsetzung>,
 }
 
 impl Lage {
@@ -95,6 +97,9 @@ struct Kinder {
     sitzung: Option<PathBuf>,
     /// The PID of the watcher, once it runs.
     wache: Option<u32>,
+    /// The old key of a conversation this run renamed to the new session (step 8): a fault before the exec renames it
+    /// back.
+    umbenannt: Option<String>,
 }
 
 impl Kinder {
@@ -176,6 +181,10 @@ fn pruefen_und_starten(
     };
     let mut kinder = Kinder::default();
     let fehler = starten(&lage, umgebung, platz, meldung, &mut kinder);
+    if let Some(alt) = kinder.umbenannt.take() {
+        // first of all: the conversation goes back to its old session, best effort and never over another one
+        gespraech::zurueck(&lage.konfig.gespraeche, lage.start.sitzung(), &alt);
+    }
     kinder.beenden();
     // after the children, which may still read the files
     kinder.spuren.loeschen();
@@ -252,18 +261,17 @@ fn pruefen_mit(
     let startordner = startordner(pfad).ok_or(Fehler::Intern)?;
     // step 5c
     startordner_frei(&startordner)?;
-    // step 5d (Projektentscheid, 27.11.2026): until steps 5d and 8 of version 2 are built, a start that continues a
-    // conversation ends here, before the enclosure and before any child. It never becomes a new start without the old
-    // conversation.
-    if start.fortsetzung_von().is_some() {
-        return Err(Fehler::FortsetzungUnmoeglich);
-    }
+    // step 5d: before the enclosure and before any child; a fault never becomes a new start without the conversation
+    let fortsetzbar = harness::fortsetzen_optionen(start.harness(), "").is_some()
+        && !konfig.ohne_fortsetzen.iter().any(|h| h == start.harness());
+    let fortsetzung = gespraech::pruefen(&konfig.gespraeche, &start, fortsetzbar)?;
     Ok(Lage {
         start,
         einst,
         konfig,
         startordner,
         ordner,
+        fortsetzung,
     })
 }
 
@@ -384,7 +392,7 @@ fn starten(
         cloud.as_ref(),
         verteilung,
         paket,
-        &mut kinder.sitzung,
+        kinder,
     ) {
         Ok(b) => b,
         Err(f) => return f,
@@ -854,7 +862,8 @@ fn pids_schreiben(lage: &Lage, kinder: &mut Kinder) -> Result<(), Fehler> {
     Ok(())
 }
 
-/// The folders the enclosure must not meet: vault, log, the folder of the start file, state folder, run folder, the
+/// The folders the enclosure must not meet: vault, log, the folder of the start file, state folder, the folder of the
+/// conversations (the state folder of the harness may lie below it, never be it), run folder, the
 /// counting folder of a trial run and, whatever the installation does, the folder of every key file and the folder of
 /// the settings file. Each folder once; the root is never one of them.
 #[must_use]
@@ -868,6 +877,7 @@ pub fn geschuetzte_ordner(
         k.protokoll.clone(),
         startordner.to_path_buf(),
         k.zustand.clone(),
+        k.gespraeche.clone(),
         k.laufzeit.clone(),
     ];
     liste.extend(zaehlordner.map(Path::to_path_buf));
@@ -889,8 +899,8 @@ pub fn geschuetzte_ordner(
     liste
 }
 
-/// Step 8, second part: the session folders (state folder 0700, empty; folder of the configuration file 0700 with the
-/// file 0600) and the typed description of the enclosure.
+/// Step 8, second part: the session folders (folder of the configuration file 0700 with the file 0600), the
+/// conversation ([`gespraech_bereitstellen`]) and the typed description of the enclosure.
 fn beschreibung_bauen(
     lage: &Lage,
     umgebung: &Umgebung,
@@ -898,7 +908,7 @@ fn beschreibung_bauen(
     cloud: Option<&CloudTeile>,
     verteilung: Option<einschluss::Verteilung>,
     paket: Option<einschluss::Paket>,
-    angelegt: &mut Option<PathBuf>,
+    kinder: &mut Kinder,
 ) -> Result<einschluss::Beschreibung, Fehler> {
     let k = &lage.konfig;
     let harness_name = lage.start.harness();
@@ -907,7 +917,6 @@ fn beschreibung_bauen(
         return Err(Fehler::HarnessFehlt);
     }
     let sitzung = k.sitzungen.join(lage.start.sitzung());
-    let zustand = sitzung.join("zustand");
     let konfig_ordner = sitzung.join("konfig");
     let intern = |_| Fehler::Intern;
     // the folder of a session is made once: a session that ran before (or was refused after this step) has it already
@@ -916,8 +925,7 @@ fn beschreibung_bauen(
         _ => Fehler::Intern,
     })?;
     // recorded as soon as it exists, so a later fault removes it again (and a refused name never)
-    *angelegt = Some(sitzung.clone());
-    dateien::ordner_neu(&zustand).map_err(intern)?;
+    kinder.sitzung = Some(sitzung.clone());
     let mut dateien_liste = Vec::new();
     if let (Some(ziel), Some(inhalt)) = (
         harness::datei_ziel(harness_name),
@@ -954,6 +962,8 @@ fn beschreibung_bauen(
     );
     let system = einschluss::System::vom_host()
         .unwrap_or_else(|_| einschluss::System::usr_merge(rustix::process::geteuid().as_raw()));
+    // the last thing before the description: a conversation is never made for a start that fails before this point
+    let (zustand, sitzungsoption) = gespraech_bereitstellen(lage, &sitzung, &mut kinder.umbenannt)?;
     Ok(einschluss::Beschreibung {
         harness: harness_name.to_owned(),
         arbeitsordner: lage.ordner.clone(),
@@ -961,6 +971,7 @@ fn beschreibung_bauen(
         zustand: einschluss::Zustand {
             host: zustand,
             name: harness::zustand_name(harness_name).to_owned(),
+            fortsetzen: lage.fortsetzung.is_some(),
         },
         heim: k.heim.clone(),
         such_socket: sockel.join("such.sock"),
@@ -983,9 +994,58 @@ fn beschreibung_bauen(
             lage.start.modell(),
             &k.heim,
             lage.einst.copilot_ohne_rueckfrage(),
+            lage.start.effort(),
+            &sitzungsoption,
         ),
         system,
     })
+}
+
+/// Step 8, the conversation (contract 1, "Ablage des Gesprächs"). Returns the state folder of the harness and the
+/// session option of the start form.
+///
+/// - Continuing: renames `gespraeche/<fortsetzung_von>` to `gespraeche/<sitzung>` without replacing (and records the
+///   old key in `umbenannt`, so a later fault renames it back); the option to continue with the key of step 5d.
+/// - New start of version 2: makes `gespraeche/<sitzung>` exclusively with `gespraech.json` (a new UUID v4) and the
+///   empty state folder; `--session-id <uuid>`.
+/// - Start of version 1: makes `gespraeche/<sitzung>` with `gespraech.json` (`kennung` `null`) only; the state folder
+///   stays the empty `zustand` in the session folder, which the watcher removes at the end; no session option.
+fn gespraech_bereitstellen(
+    lage: &Lage,
+    sitzung_ordner: &Path,
+    umbenannt: &mut Option<String>,
+) -> Result<(PathBuf, Vec<String>), Fehler> {
+    let k = &lage.konfig;
+    let start = &lage.start;
+    let neu = |kennung: Option<String>| gespraech::Gespraech {
+        harness: start.harness().to_owned(),
+        arbeitsordner: start.arbeitsordner().to_owned(),
+        kennung,
+    };
+    if let Some(f) = &lage.fortsetzung {
+        let optionen =
+            harness::fortsetzen_optionen(start.harness(), &f.kennung).ok_or(Fehler::Intern)?;
+        let ordner = gespraech::uebernehmen(&k.gespraeche, &f.alt, start.sitzung())?;
+        *umbenannt = Some(f.alt.clone());
+        return Ok((ordner.join(gespraech::ZUSTAND), optionen));
+    }
+    if start.fassung() == 2 {
+        let kennung = gespraech::neue_kennung().ok_or(Fehler::Intern)?;
+        let ordner = gespraech::anlegen(
+            &k.gespraeche,
+            start.sitzung(),
+            &neu(Some(kennung.clone())),
+            true,
+        )?;
+        return Ok((
+            ordner.join(gespraech::ZUSTAND),
+            harness::neu_optionen(&kennung),
+        ));
+    }
+    gespraech::anlegen(&k.gespraeche, start.sitzung(), &neu(None), false)?;
+    let zustand = sitzung_ordner.join("zustand");
+    dateien::ordner_neu(&zustand).map_err(|_| Fehler::Intern)?;
+    Ok((zustand, Vec::new()))
 }
 
 #[cfg(test)]

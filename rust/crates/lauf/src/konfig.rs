@@ -10,6 +10,7 @@
 //!   "zustand": str,            the folder of ordnermarken.json (0700)
 //!   "laufzeit": str,           the folder of the socket folders, short (sun_path)
 //!   "sitzungen": str,          the folder of the state folders and configuration files of the sessions
+//!   "gespraeche": str,         the folder of the conversations of the sessions (`<gespraeche>/<sitzung>/`, 0700)
 //!   "heim": str,               the home of the user on the host (an empty tmpfs inside)
 //!   "path": str,               PATH of the harness
 //!   "programme": {"rangkern": str, "modellweg": str, "kind": str, "such_mcp": str, "weiter": str},
@@ -17,7 +18,8 @@
 //!   "programmordner": [str],   folders bound read-only (the programs of the harness)
 //!   "schluessel": {"<route>": str, ...},  key file of the route for the model path
 //!   "ca_zulassung": "zugelassen" | "offen" | "abgelehnt",
-//!   "bwrap": str }             only in the test build: the bwrap of the direct way
+//!   "bwrap": str,              only in the test build: the bwrap of the direct way
+//!   "ohne_fortsetzen": [str] } only in the test build: harnesses taken as without an option to continue
 //! ```
 
 use std::collections::BTreeMap;
@@ -63,6 +65,8 @@ pub struct Konfig {
     pub laufzeit: PathBuf,
     /// The folder of the session folders (state folder and configuration files of the harness).
     pub sitzungen: PathBuf,
+    /// The folder of the conversations (contract 1, "Ablage des Gesprächs").
+    pub gespraeche: PathBuf,
     /// The home of the user on the host.
     pub heim: PathBuf,
     /// `PATH` of the harness.
@@ -79,6 +83,8 @@ pub struct Konfig {
     pub ca_zulassung: String,
     /// Test build only: the bwrap of the direct way.
     pub bwrap: Option<PathBuf>,
+    /// Test build only: the harnesses taken as without an option to continue (column "Fortsetzen" with "keine").
+    pub ohne_fortsetzen: Vec<String>,
 }
 
 struct Felder(Vec<(String, Wert)>);
@@ -176,6 +182,21 @@ pub fn lesen_text(bytes: &[u8]) -> Option<Konfig> {
     } else {
         None
     };
+    let ohne_fortsetzen =
+        if cfg!(feature = "pruefbau") && f.0.iter().any(|(n, _)| n == "ohne_fortsetzen") {
+            match f.nehmen("ohne_fortsetzen")? {
+                Wert::Liste(l) => l
+                    .into_iter()
+                    .map(|w| match w {
+                        Wert::Text(t) => Some(t),
+                        _ => None,
+                    })
+                    .collect::<Option<Vec<_>>>()?,
+                _ => return None,
+            }
+        } else {
+            Vec::new()
+        };
     let k = Konfig {
         einstellungen: f.pfad("einstellungen")?,
         vault: f.pfad("vault")?,
@@ -183,6 +204,7 @@ pub fn lesen_text(bytes: &[u8]) -> Option<Konfig> {
         zustand: f.pfad("zustand")?,
         laufzeit: f.pfad("laufzeit")?,
         sitzungen: f.pfad("sitzungen")?,
+        gespraeche: f.pfad("gespraeche")?,
         heim: f.pfad("heim")?,
         path,
         programme,
@@ -191,6 +213,7 @@ pub fn lesen_text(bytes: &[u8]) -> Option<Konfig> {
         schluessel,
         ca_zulassung,
         bwrap,
+        ohne_fortsetzen,
     };
     f.fertig()?;
     Some(k)

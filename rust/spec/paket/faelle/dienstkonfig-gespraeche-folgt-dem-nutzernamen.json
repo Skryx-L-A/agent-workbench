@@ -1,0 +1,6 @@
+{
+ "beschreibung": "`lauf.gespraeche` ist der Ordner der Gespräche: der Zustandsordner des Nutzers (nach dem Namen, nicht nach der uid) plus /gespraeche, genau `gespraeche` von lauf.json; er liegt nicht in `lauf.sitzungen`, `lauf.ziellisten` oder `lauf.bestand`",
+ "form": "dienstkonfig",
+ "nutzer": "anna-b",
+ "uid": 77
+}

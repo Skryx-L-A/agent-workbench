@@ -55,9 +55,16 @@ pub enum Fehler {
     /// Step 5c: a file of an earlier session lies next to the start file (`suche.pid` or `modellweg.pid`, or a link of
     /// that name).
     StartordnerBelegt,
-    /// Step 5d: the start file of version 2 continues a conversation (`fortsetzung_von` not `null`). Until steps 5d
-    /// and 8 of version 2 are built, every such start ends here (Projektentscheid, 27.11.2026).
+    /// Step 5d: the conversation cannot be continued: the harness has no option to continue (5d.1), or the conversation
+    /// of the predecessor has no key, so it is one of a session of version 1 (5d.3a).
     FortsetzungUnmoeglich,
+    /// Step 5d.2: the conversation of the predecessor (`gespraeche/<fortsetzung_von>`) does not exist.
+    FortsetzungFehlt,
+    /// Step 5d.3: the conversation of the predecessor is no own folder 0700, or its `gespraech.json` is no own regular
+    /// file 0600 of the closed form.
+    FortsetzungKaputt,
+    /// Step 5d.4: the conversation belongs to another harness or another working folder.
+    FortsetzungFremd,
     /// Step 8: the session folder of the session name exists already (the session ran before).
     SitzungBelegt,
     /// Step 6 and 8: the enclosure is not available.
@@ -125,6 +132,9 @@ impl Fehler {
             Fehler::OrdnerHoeherMarkiert => "lauf.ordner_hoeher_markiert",
             Fehler::StartordnerBelegt => "lauf.startordner_belegt",
             Fehler::FortsetzungUnmoeglich => "lauf.fortsetzung_unmoeglich",
+            Fehler::FortsetzungFehlt => "lauf.fortsetzung_fehlt",
+            Fehler::FortsetzungKaputt => "lauf.fortsetzung_kaputt",
+            Fehler::FortsetzungFremd => "lauf.fortsetzung_fremd",
             Fehler::SitzungBelegt => "lauf.sitzung_belegt",
             Fehler::EinschlussFehlt => "lauf.einschluss_fehlt",
             Fehler::SucheFehlt => "lauf.suche_fehlt",
@@ -174,6 +184,9 @@ impl Fehler {
             Fehler::OrdnerHoeherMarkiert => "Ordner hoeher markiert als die Route",
             Fehler::StartordnerBelegt => "Startordner enthaelt Dateien einer fruehen Sitzung",
             Fehler::FortsetzungUnmoeglich => "Gespraech nicht fortsetzbar",
+            Fehler::FortsetzungFehlt => "Gespraech der Vorgaengersitzung fehlt",
+            Fehler::FortsetzungKaputt => "Gespraech der Vorgaengersitzung unbrauchbar",
+            Fehler::FortsetzungFremd => "Gespraech gehoert zu anderem Harness oder Ordner",
             Fehler::SitzungBelegt => "Sitzung wurde schon gestartet",
             Fehler::EinschlussFehlt => "Einschluss nicht verfuegbar",
             Fehler::SucheFehlt => "Suche nicht startbar",
@@ -195,8 +208,11 @@ impl Fehler {
     pub fn exitcode(&self) -> u8 {
         match self {
             Fehler::Aufruf => 64,
-            Fehler::Start(_) | Fehler::OrdnerFehlt => 65,
-            Fehler::DateiUnlesbar | Fehler::DateiModus => 66,
+            Fehler::Start(_)
+            | Fehler::OrdnerFehlt
+            | Fehler::FortsetzungKaputt
+            | Fehler::FortsetzungFremd => 65,
+            Fehler::DateiUnlesbar | Fehler::DateiModus | Fehler::FortsetzungFehlt => 66,
             Fehler::EinschlussFehlt
             | Fehler::SucheFehlt
             | Fehler::SucheNichtBereit
@@ -264,6 +280,7 @@ mod tests {
     use super::Fehler;
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn every_line_is_short_ascii_with_the_code_and_the_reason() {
         let alle = [
             Fehler::TlsUmgebung,
@@ -294,8 +311,11 @@ mod tests {
             Fehler::MeldungFehlt,
             Fehler::Intern,
             Fehler::FortsetzungUnmoeglich,
+            Fehler::FortsetzungFehlt,
+            Fehler::FortsetzungKaputt,
+            Fehler::FortsetzungFremd,
         ];
-        let soll: [(u8, &str); 28] = [
+        let soll: [(u8, &str); 31] = [
             (78, "lauf.tls_umgebung: TLS-Umgebung gesetzt\n"),
             (64, "lauf.aufruf: genau ein Pfad erwartet\n"),
             (66, "lauf.datei_unlesbar: Startdatei nicht lesbar\n"),
@@ -356,6 +376,18 @@ mod tests {
             (
                 69,
                 "lauf.fortsetzung_unmoeglich: Gespraech nicht fortsetzbar\n",
+            ),
+            (
+                66,
+                "lauf.fortsetzung_fehlt: Gespraech der Vorgaengersitzung fehlt\n",
+            ),
+            (
+                65,
+                "lauf.fortsetzung_kaputt: Gespraech der Vorgaengersitzung unbrauchbar\n",
+            ),
+            (
+                65,
+                "lauf.fortsetzung_fremd: Gespraech gehoert zu anderem Harness oder Ordner\n",
             ),
         ];
         for (f, (exit, zeile)) in alle.iter().zip(soll) {

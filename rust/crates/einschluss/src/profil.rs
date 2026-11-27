@@ -382,13 +382,19 @@ fn verbote_pruefen(b: &Beschreibung) -> Result<(), Fehler> {
         }
     }
     // folders: working folder, program folders, state folder. They must not meet a protected folder or each other
-    // on the host, and the state folder must not meet them inside.
+    // on the host, and the state folder must not meet them inside. The state folder may lie below a protected folder
+    // (the conversations lie in the state folder of the installation, contract 1, Fassung 2): only its own tree is
+    // mounted. It is never a protected folder and never holds one.
     let ordner: Vec<&Path> = std::iter::once(b.arbeitsordner.as_path())
         .chain(b.programmordner.iter().map(PathBuf::as_path))
         .chain(std::iter::once(b.zustand.host.as_path()))
         .collect();
     for schutz in &b.geschuetzt {
-        if ordner.iter().any(|o| ueberlappt(o, schutz)) {
+        if ordner[..ordner.len() - 1]
+            .iter()
+            .any(|o| ueberlappt(o, schutz))
+            || innerhalb(schutz, &b.zustand.host)
+        {
             return Err(Fehler::Ueberlappt("mount overlaps a protected folder"));
         }
     }

@@ -10,6 +10,7 @@ import re
 import struct
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -431,10 +432,22 @@ class LaufJson(unittest.TestCase):
     def test_the_form_of_the_lauf_crate(self):
         with tempfile.TemporaryDirectory() as t:
             o = self.lauf(t, {"nutzer": "n", "uid": 1, "heim": "/srv/h/n", "harness": {"pi": {"programm": "/opt/pi/pi", "node": None}}})
-        self.assertEqual(sorted(o), sorted(["fassung", "einstellungen", "vault", "protokoll", "zustand", "laufzeit", "sitzungen", "heim", "path",
+        self.assertEqual(sorted(o), sorted(["fassung", "einstellungen", "vault", "protokoll", "zustand", "laufzeit", "sitzungen", "gespraeche", "heim", "path",
                                             "programme", "harness", "programmordner", "schluessel", "ca_zulassung"]))
         self.assertEqual(sorted(o["programme"]), ["kind", "modellweg", "rangkern", "such_mcp", "weiter"])
         self.assertEqual(o["ca_zulassung"], "offen")
+
+    def test_the_folder_of_the_conversations_lies_in_the_state_folder_by_the_name_of_the_user(self):
+        """`gespraeche` of lauf.json is `<zustand>/gespraeche` (by the name like `einstellungen`, not by the uid; contract start, "Ablage des Gesprächs"), for every user."""
+        for nutzer, uid in (("n", 1000), ("anna-b", 1234), ("a" * 32, 4294967294), ("n", 0)):
+            with self.subTest(nutzer=nutzer, uid=uid), tempfile.TemporaryDirectory() as t:
+                o = self.lauf(t, {"nutzer": nutzer, "uid": uid, "heim": "/srv/h/" + nutzer})
+                self.assertEqual(o["gespraeche"], f"/var/lib/werkbank/{nutzer}/gespraeche")
+                self.assertEqual(o["gespraeche"], o["zustand"] + "/gespraeche")
+                self.assertEqual(os.path.dirname(o["gespraeche"]), os.path.dirname(o["einstellungen"]))
+                self.assertNotEqual(o["gespraeche"], o["sitzungen"])
+                self.assertNotIn(str(uid), o["gespraeche"].split("/")[3:], "not by the uid")
+                self.assertEqual(self.ref.laufkonfig({"nutzer": nutzer, "uid": uid, "heim": "/srv/h/" + nutzer})["gespraeche"], o["gespraeche"])
 
     def test_the_session_folder_lies_outside_every_folder_the_enclosure_must_not_meet(self):
         # the enclosure refuses a state folder inside a protected folder (measured in a fresh VM: exit 5 of the starter)
@@ -902,7 +915,35 @@ class DienstJson(unittest.TestCase):
                 self.assertEqual(kern["laufzeit"], gelesen["laufzeit"])
                 self.assertEqual(kern["laufzeit"], f"/var/lib/werkbank/l/{uid}")
                 self.assertNotEqual(kern["ziellisten"], kern["sitzungen"])
-                self.assertEqual(sorted(kern), ["einstellungen", "env", "groesse", "laufzeit", "marker_datei", "marker_ordner", "programm", "sitzungen", "ziellisten"])
+                self.assertEqual(sorted(kern), ["bestand", "einstellungen", "env", "gespraeche", "groesse", "laufzeit", "marker_datei", "marker_ordner", "programm", "sitzungen", "ziellisten"])
+
+    def test_kern_json_carries_the_file_of_the_session_list_by_the_name_of_the_user(self):
+        """`lauf.bestand` of kern.json is $DATEN/<nutzer>/dienst/bestand.json (by the name like `lauf.einstellungen`, not by the uid), for every user, also after an update of an old file."""
+        for nutzer, uid in (("nutzer1", 1000), ("anna-b", 1234), ("n", 4294967294), ("a" * 32, 1000), ("n", 0)):
+            with self.subTest(nutzer=nutzer, uid=uid):
+                kern = self.schreiben(nutzer, uid)["kern"]["lauf"]
+                self.assertEqual(kern["bestand"], f"/var/lib/werkbank/{nutzer}/dienst/bestand.json")
+                self.assertEqual(os.path.dirname(kern["bestand"]), kern["einstellungen"].rsplit("/", 1)[0] + "/dienst")
+                self.assertEqual(self.ref.dienstkonfig({"nutzer": nutzer, "uid": uid})["kern"]["lauf"]["bestand"], kern["bestand"])
+        kern = self.schreiben("n", 1000, '{"lauf":{"groesse":[200,50]}}')["kern"]["lauf"]
+        self.assertEqual(kern["bestand"], "/var/lib/werkbank/n/dienst/bestand.json", "an update replaces an old file that lacks the key")
+
+    def test_kern_json_and_lauf_json_carry_the_same_place_for_the_conversations(self):
+        """`lauf.gespraeche` of kern.json is exactly `gespraeche` of lauf.json (both written by the real blocks of postinst), by the name of the user, also after an update of an old file."""
+        LaufJson.setUpClass()
+        lauf = LaufJson("lauf")
+        for nutzer, uid in (("nutzer1", 1000), ("anna-b", 1234), ("n", 4294967294), ("a" * 32, 1000), ("n", 0)):
+            with self.subTest(nutzer=nutzer, uid=uid), tempfile.TemporaryDirectory() as t:
+                gelesen = lauf.lauf(t, {"nutzer": nutzer, "uid": uid, "heim": "/srv/beispiel/heim/" + nutzer})
+                kern = self.schreiben(nutzer, uid)["kern"]["lauf"]
+                self.assertIn("gespraeche", kern, "a missing field is an error of the package")
+                self.assertEqual(kern["gespraeche"], gelesen["gespraeche"])
+                self.assertEqual(kern["gespraeche"], f"/var/lib/werkbank/{nutzer}/gespraeche")
+                self.assertEqual(kern["gespraeche"], gelesen["zustand"] + "/gespraeche")
+                self.assertNotIn(kern["gespraeche"], (kern["sitzungen"], kern["ziellisten"], kern["laufzeit"], kern["bestand"]))
+                self.assertEqual(self.ref.dienstkonfig({"nutzer": nutzer, "uid": uid})["kern"]["lauf"]["gespraeche"], kern["gespraeche"])
+        kern = self.schreiben("n", 1000, '{"lauf":{"groesse":[200,50]}}')["kern"]["lauf"]
+        self.assertEqual(kern["gespraeche"], "/var/lib/werkbank/n/gespraeche", "an update replaces an old file that lacks the key")
 
     def test_the_units_and_the_list(self):
         kern = lesen(os.path.join(HIER, PLATTFORM, "werkbank-kern.service"))
@@ -1100,6 +1141,338 @@ class Sitzungsordner(unittest.TestCase):
             self.assertEqual(self.lauf(d)[0], 0)
             self.assertEqual(self.lauf(d, stat="1:1:755")[0], 17)
             self.assertEqual(self.lauf(d, stat="0:0:755")[0], 17, "root owns s but not s/<uid>: the user folder must belong to the user")
+
+class Dienstordner(unittest.TestCase):
+    """The block `dienstordner` of postinst (end of step 2): $DATEN/<nutzer>/dienst, the user, 0700, fail closed with the fixed code 29.
+    The user is the one who runs the test (`id` is stubbed with the real uid and gid, `so_stat` reads the real owner and mode), so the owner check is real and needs no root;
+    a foreign owner is a different uid in the stub. `install` ignores the owner (as in the class Sitzungsordner)."""
+
+    UID, GID = os.getuid(), os.getgid()
+
+    @classmethod
+    def setUpClass(cls):
+        text = open(os.path.join(HIER, PLATTFORM, "postinst"), encoding="utf-8").read()
+        cls.so = text[text.index("# --- sitzungsordner begin"):text.index("# --- sitzungsordner end")]
+        cls.block = text[text.index("# --- dienstordner begin"):text.index("# --- dienstordner end")]
+
+    def lauf(self, daten, uid=None, block=None, nutzer="anna", gid=None):
+        """Runs the block against `daten` (the user folder `daten/<nutzer>` exists, as after step 2). Returns (rc, stderr)."""
+        u = self.UID if uid is None else uid
+        g = self.GID if gid is None else gid
+        kopf = (
+            'fail() { echo "F $1" >&2; exit "$1"; }\n'
+            f"DATEN={shlex.quote(daten)}\nnutzer={nutzer}\n"
+            f"id() {{ case \"$1\" in -u) echo {u} ;; -g) echo {g} ;; esac; }}\n"
+        )
+        code = 'import os,sys;s=os.lstat(sys.argv[1]);print("%d:%d:%o"%(s.st_uid,s.st_gid,s.st_mode&0o7777))'
+        so = f"so_stat() {{ python3 -I -c '{code}' \"$1\"; }}\n"
+        stub = ('install() { while [ $# -gt 0 ]; do case "$1" in -d) ;; -m) m=$2; shift ;; -o|-g) shift ;; *) l=$1 ;; esac; shift; done; '
+                '[ -e "$l" ] || { mkdir "$l" && chmod "$m" "$l"; }; }\n')
+        r = subprocess.run(["sh", "-c", kopf + self.so + (block or self.block) + stub + so + "dienstordner"], capture_output=True, text=True, check=False)
+        return r.returncode, r.stderr
+
+    def frisch(self, t):
+        d = os.path.join(os.path.realpath(t), "werkbank")
+        os.makedirs(os.path.join(d, "anna"))
+        return d, os.path.join(d, "anna", "dienst")
+
+    def test_the_folder_is_made_with_the_mode_0700_and_the_user_as_owner_and_no_file_is_made(self):
+        with tempfile.TemporaryDirectory() as t:
+            d, dienst = self.frisch(t)
+            self.assertEqual(self.lauf(d), (0, ""))
+            s = os.lstat(dienst)
+            self.assertTrue(stat.S_ISDIR(s.st_mode))
+            self.assertEqual((s.st_uid, s.st_gid, s.st_mode & 0o7777), (self.UID, self.GID, 0o700))
+            self.assertEqual(os.listdir(dienst), [], "postinst never makes bestand.json")
+            self.assertEqual(sorted(os.listdir(os.path.join(d, "anna"))), ["dienst"], "no other folder: not by the uid, not for root")
+            self.assertEqual(self.lauf(d), (0, ""), "a second run changes nothing and passes")
+
+    def test_an_update_leaves_an_existing_bestand_json_byte_for_byte(self):
+        with tempfile.TemporaryDirectory() as t:
+            d, dienst = self.frisch(t)
+            os.mkdir(dienst)
+            os.chmod(dienst, 0o700)
+            inhalt = b'{"fassung":1,"gestartet":3,"sitzungen":[]}\n\xff\x00 not even valid'
+            datei = os.path.join(dienst, "bestand.json")
+            rest = os.path.join(dienst, "bestand.json.neu.4242")
+            for pfad, b in ((datei, inhalt), (rest, b"rest of a crashed run")):
+                with open(pfad, "wb") as f:
+                    f.write(b)
+                os.chmod(pfad, 0o600)
+            vorher = {n: (open(os.path.join(dienst, n), "rb").read(), os.lstat(os.path.join(dienst, n)).st_mtime_ns) for n in os.listdir(dienst)}
+            self.assertEqual(self.lauf(d), (0, ""))
+            self.assertEqual(self.lauf(d), (0, ""))
+            nachher = {n: (open(os.path.join(dienst, n), "rb").read(), os.lstat(os.path.join(dienst, n)).st_mtime_ns) for n in os.listdir(dienst)}
+            self.assertEqual(nachher, vorher, "content, name and time of every file stay")
+
+    def test_a_foreign_owner_stops_with_28(self):
+        with tempfile.TemporaryDirectory() as t:
+            d, dienst = self.frisch(t)
+            os.mkdir(dienst)
+            os.chmod(dienst, 0o700)
+            rc, fehler = self.lauf(d, uid=self.UID + 1)
+            self.assertEqual(rc, 29)
+            self.assertIn("F 29", fehler)
+            self.assertEqual(os.listdir(dienst), [], "nothing is changed")
+            self.assertEqual(self.lauf(d)[0], 0, "the same folder is fine for its owner")
+
+    def test_a_foreign_group_stops_with_28(self):
+        with tempfile.TemporaryDirectory() as t:
+            d, dienst = self.frisch(t)
+            os.mkdir(dienst)
+            os.chmod(dienst, 0o700)
+            self.assertEqual(self.lauf(d, gid=self.GID + 1)[0], 29, "the group comes from `id -g` of the user")
+            self.assertEqual(self.lauf(d)[0], 0)
+
+    def test_a_wrong_mode_stops_with_28_whatever_the_mode_is(self):
+        for modus in (0o750, 0o755, 0o770, 0o701, 0o500, 0o2700):
+            with self.subTest(modus=oct(modus)), tempfile.TemporaryDirectory() as t:
+                d, dienst = self.frisch(t)
+                os.mkdir(dienst)
+                os.chmod(dienst, modus)
+                self.assertEqual(self.lauf(d)[0], 29)
+                self.assertEqual(os.lstat(dienst).st_mode & 0o7777, modus, "the mode is not corrected: nothing is changed")
+
+    def test_a_symlink_stops_with_28_and_is_not_followed(self):
+        with tempfile.TemporaryDirectory() as t:
+            d, dienst = self.frisch(t)
+            ziel = os.path.join(os.path.realpath(t), "ziel")
+            os.mkdir(ziel)
+            os.chmod(ziel, 0o700)
+            os.symlink(ziel, dienst)
+            self.assertEqual(self.lauf(d)[0], 29)
+            self.assertEqual(os.listdir(ziel), [])
+            self.assertTrue(os.path.islink(dienst))
+        with tempfile.TemporaryDirectory() as t:
+            d, dienst = self.frisch(t)
+            os.symlink(os.path.join(os.path.realpath(t), "gibt-es-nicht"), dienst)
+            self.assertEqual(self.lauf(d)[0], 29, "a dangling symlink is no free place either")
+
+    def test_a_file_instead_of_a_folder_stops_with_28(self):
+        with tempfile.TemporaryDirectory() as t:
+            d, dienst = self.frisch(t)
+            with open(dienst, "w", encoding="utf-8") as f:
+                f.write("x")
+            os.chmod(dienst, 0o700)
+            self.assertEqual(self.lauf(d)[0], 29)
+            self.assertEqual(open(dienst, encoding="utf-8").read(), "x")
+
+    def test_a_missing_user_folder_stops_with_28(self):
+        with tempfile.TemporaryDirectory() as t:
+            d = os.path.join(os.path.realpath(t), "werkbank")
+            os.makedirs(d)
+            self.assertEqual(self.lauf(d)[0], 29, "the folder cannot be made: the installation does not go on without it")
+
+    def test_without_the_check_the_deviations_pass(self):
+        """Counter test: the same block with the call of `so_sicher` removed lets every deviation pass, so the tests above fail because of the check and nothing else."""
+        ohne = self.block.replace('so_sicher "$DATEN/$nutzer/dienst" "$do_uid" "$do_gid" 700 29', ":")
+        self.assertNotEqual(ohne, self.block)
+        with tempfile.TemporaryDirectory() as t:
+            d, dienst = self.frisch(t)
+            os.mkdir(dienst)
+            os.chmod(dienst, 0o750)
+            self.assertEqual(self.lauf(d, block=ohne)[0], 0)
+            self.assertEqual(self.lauf(d)[0], 29)
+        with tempfile.TemporaryDirectory() as t:
+            d, dienst = self.frisch(t)
+            os.mkdir(dienst)
+            os.chmod(dienst, 0o700)
+            self.assertEqual(self.lauf(d, block=ohne, uid=self.UID + 1)[0], 0)
+
+    def test_postinst_calls_the_block_after_the_user_folder_and_before_the_files_of_step_2a_and_2b(self):
+        text = lesen(os.path.join(HIER, PLATTFORM, "postinst"))
+        aufruf = text.index('if [ -n "$nutzer" ]; then\n    dienstordner\nfi\n')
+        self.assertLess(text.index('nutzerordner || log "werkbank: Nutzerordner konnte nicht angelegt werden"'), aufruf)
+        self.assertLess(aufruf, text.index("# Step 2a:"))
+        self.assertLess(aufruf, text.index("# --- dienst.json begin"))
+        self.assertEqual([z.strip() for z in text.split("\n")].count("dienstordner"), 1, "one call")
+        self.assertEqual(text.count("dienstordner() {"), 1)
+        # the file is never made by postinst: no command of postinst names bestand.json outside the comments and the text of kern.json
+        for zeile in text.split("\n"):
+            if "bestand.json" in zeile and not zeile.lstrip().startswith("#"):
+                self.assertIn('"bestand":"%s/%s/dienst/bestand.json"', zeile)
+                self.assertNotRegex(zeile, r"\b(touch|install|cp|mv|ln|tee)\b|>>?\s*\S*bestand")
+        postrm = lesen(os.path.join(HIER, PLATTFORM, "postrm"))
+        self.assertIn("rm -rf /var/lib/werkbank", postrm, "purge removes bestand.json with the state folder")
+
+
+class Gespraecheordner(unittest.TestCase):
+    """The block `gespraecheordner` of postinst (end of step 2): $DATEN/<nutzer>/gespraeche, the user, 0700, fail closed with the fixed code 30.
+    Same set-up as the class Dienstordner: `id` is stubbed with the real uid and gid, `so_stat` reads the real owner and mode, a foreign owner is a different uid in the stub,
+    `install` ignores the owner."""
+
+    UID, GID = os.getuid(), os.getgid()
+
+    @classmethod
+    def setUpClass(cls):
+        text = open(os.path.join(HIER, PLATTFORM, "postinst"), encoding="utf-8").read()
+        cls.so = text[text.index("# --- sitzungsordner begin"):text.index("# --- sitzungsordner end")]
+        cls.block = text[text.index("# --- gespraecheordner begin"):text.index("# --- gespraecheordner end")]
+
+    def lauf(self, daten, uid=None, block=None, nutzer="anna", gid=None):
+        """Runs the block against `daten` (the user folder `daten/<nutzer>` exists, as after step 2). Returns (rc, stderr)."""
+        u = self.UID if uid is None else uid
+        g = self.GID if gid is None else gid
+        kopf = (
+            'fail() { echo "F $1" >&2; exit "$1"; }\n'
+            f"DATEN={shlex.quote(daten)}\nnutzer={nutzer}\n"
+            f"id() {{ case \"$1\" in -u) echo {u} ;; -g) echo {g} ;; esac; }}\n"
+        )
+        code = 'import os,sys;s=os.lstat(sys.argv[1]);print("%d:%d:%o"%(s.st_uid,s.st_gid,s.st_mode&0o7777))'
+        so = f"so_stat() {{ python3 -I -c '{code}' \"$1\"; }}\n"
+        stub = ('install() { while [ $# -gt 0 ]; do case "$1" in -d) ;; -m) m=$2; shift ;; -o|-g) shift ;; *) l=$1 ;; esac; shift; done; '
+                '[ -e "$l" ] || { mkdir "$l" && chmod "$m" "$l"; }; }\n')
+        r = subprocess.run(["sh", "-c", kopf + self.so + (block or self.block) + stub + so + "gespraecheordner"], capture_output=True, text=True, check=False)
+        return r.returncode, r.stderr
+
+    def frisch(self, t):
+        d = os.path.join(os.path.realpath(t), "werkbank")
+        os.makedirs(os.path.join(d, "anna"))
+        return d, os.path.join(d, "anna", "gespraeche")
+
+    def test_the_folder_is_made_with_the_mode_0700_and_the_user_as_owner_and_nothing_is_put_into_it(self):
+        with tempfile.TemporaryDirectory() as t:
+            d, g = self.frisch(t)
+            self.assertEqual(self.lauf(d), (0, ""))
+            s = os.lstat(g)
+            self.assertTrue(stat.S_ISDIR(s.st_mode))
+            self.assertEqual((s.st_uid, s.st_gid, s.st_mode & 0o7777), (self.UID, self.GID, 0o700))
+            self.assertEqual(os.listdir(g), [], "postinst makes no conversation")
+            self.assertEqual(sorted(os.listdir(os.path.join(d, "anna"))), ["gespraeche"], "no other folder: not by the uid, not for root")
+            self.assertEqual(self.lauf(d), (0, ""), "a second run changes nothing and passes")
+
+    def test_an_update_leaves_the_conversations_byte_for_byte(self):
+        with tempfile.TemporaryDirectory() as t:
+            d, g = self.frisch(t)
+            os.mkdir(g)
+            os.chmod(g, 0o700)
+            s = os.path.join(g, "s-1")
+            os.mkdir(s)
+            os.chmod(s, 0o700)
+            datei = os.path.join(s, "gespraech.json")
+            with open(datei, "wb") as f:
+                f.write(b'{"fassung": 1}\n\xff\x00 not even valid')
+            os.chmod(datei, 0o600)
+
+            def stand():
+                return sorted((os.path.relpath(os.path.join(w, n), g), os.lstat(os.path.join(w, n)).st_mtime_ns,
+                               open(os.path.join(w, n), "rb").read() if os.path.isfile(os.path.join(w, n)) else None)
+                              for w, ds, fs in os.walk(g) for n in ds + fs)
+            vorher = stand()
+            self.assertEqual(self.lauf(d), (0, ""))
+            self.assertEqual(self.lauf(d), (0, ""))
+            self.assertEqual(stand(), vorher, "content, name and time of every entry stay")
+
+    def test_a_foreign_owner_stops_with_30(self):
+        with tempfile.TemporaryDirectory() as t:
+            d, g = self.frisch(t)
+            os.mkdir(g)
+            os.chmod(g, 0o700)
+            rc, fehler = self.lauf(d, uid=self.UID + 1)
+            self.assertEqual(rc, 30)
+            self.assertIn("F 30", fehler)
+            self.assertEqual(os.listdir(g), [], "nothing is changed")
+            self.assertEqual(self.lauf(d)[0], 0, "the same folder is fine for its owner")
+
+    def test_a_foreign_group_stops_with_30(self):
+        with tempfile.TemporaryDirectory() as t:
+            d, g = self.frisch(t)
+            os.mkdir(g)
+            os.chmod(g, 0o700)
+            self.assertEqual(self.lauf(d, gid=self.GID + 1)[0], 30, "the group comes from `id -g` of the user")
+            self.assertEqual(self.lauf(d)[0], 0)
+
+    def test_a_wrong_mode_stops_with_30_whatever_the_mode_is(self):
+        for modus in (0o750, 0o755, 0o770, 0o701, 0o500, 0o2700):
+            with self.subTest(modus=oct(modus)), tempfile.TemporaryDirectory() as t:
+                d, g = self.frisch(t)
+                os.mkdir(g)
+                os.chmod(g, modus)
+                self.assertEqual(self.lauf(d)[0], 30)
+                self.assertEqual(os.lstat(g).st_mode & 0o7777, modus, "the mode is not corrected: nothing is changed")
+
+    def test_a_symlink_stops_with_30_and_is_not_followed(self):
+        with tempfile.TemporaryDirectory() as t:
+            d, g = self.frisch(t)
+            ziel = os.path.join(os.path.realpath(t), "ziel")
+            os.mkdir(ziel)
+            os.chmod(ziel, 0o700)
+            os.symlink(ziel, g)
+            self.assertEqual(self.lauf(d)[0], 30)
+            self.assertEqual(os.listdir(ziel), [])
+            self.assertTrue(os.path.islink(g))
+        with tempfile.TemporaryDirectory() as t:
+            d, g = self.frisch(t)
+            os.symlink(os.path.join(os.path.realpath(t), "gibt-es-nicht"), g)
+            self.assertEqual(self.lauf(d)[0], 30, "a dangling symlink is no free place either")
+
+    def test_a_file_instead_of_a_folder_stops_with_30(self):
+        with tempfile.TemporaryDirectory() as t:
+            d, g = self.frisch(t)
+            with open(g, "w", encoding="utf-8") as f:
+                f.write("x")
+            os.chmod(g, 0o700)
+            self.assertEqual(self.lauf(d)[0], 30)
+            self.assertEqual(open(g, encoding="utf-8").read(), "x")
+
+    def test_a_missing_user_folder_stops_with_30(self):
+        with tempfile.TemporaryDirectory() as t:
+            d = os.path.join(os.path.realpath(t), "werkbank")
+            os.makedirs(d)
+            self.assertEqual(self.lauf(d)[0], 30, "the folder cannot be made: the installation does not go on without it")
+
+    def test_an_unreadable_uid_or_gid_stops_with_30(self):
+        for stub in ("id() { return 1; }", 'id() { case "$1" in -u) echo 1000 ;; -g) echo x ;; esac; }', 'id() { case "$1" in -u) echo "" ;; -g) echo 1000 ;; esac; }'):
+            with self.subTest(stub=stub), tempfile.TemporaryDirectory() as t:
+                d, g = self.frisch(t)
+                r = subprocess.run(["sh", "-c", 'fail() { echo "F $1" >&2; exit "$1"; }\nDATEN=' + shlex.quote(d) + "\nnutzer=anna\n" + self.so + self.block + stub + "\ngespraecheordner"],
+                                   capture_output=True, text=True, check=False)
+                self.assertEqual(r.returncode, 30, r.stderr)
+                self.assertFalse(os.path.exists(g), "nothing is made")
+
+    def test_without_the_check_the_deviations_pass(self):
+        """Counter test: the same block with the call of `so_sicher` removed lets every deviation pass, so the tests above fail because of the check and nothing else."""
+        ohne = self.block.replace('so_sicher "$DATEN/$nutzer/gespraeche" "$go_uid" "$go_gid" 700 30', ":")
+        self.assertNotEqual(ohne, self.block)
+        with tempfile.TemporaryDirectory() as t:
+            d, g = self.frisch(t)
+            os.mkdir(g)
+            os.chmod(g, 0o750)
+            self.assertEqual(self.lauf(d, block=ohne)[0], 0)
+            self.assertEqual(self.lauf(d)[0], 30)
+        with tempfile.TemporaryDirectory() as t:
+            d, g = self.frisch(t)
+            os.mkdir(g)
+            os.chmod(g, 0o700)
+            self.assertEqual(self.lauf(d, block=ohne, uid=self.UID + 1)[0], 0)
+
+    def test_postinst_calls_the_block_after_the_folder_dienst_and_before_the_files_of_step_2a_and_2b(self):
+        text = lesen(os.path.join(HIER, PLATTFORM, "postinst"))
+        aufruf = text.index('if [ -n "$nutzer" ]; then\n    gespraecheordner\nfi\n')
+        self.assertLess(text.index('nutzerordner || log "werkbank: Nutzerordner konnte nicht angelegt werden"'), aufruf)
+        self.assertLess(text.index('if [ -n "$nutzer" ]; then\n    dienstordner\nfi\n'), aufruf)
+        self.assertLess(aufruf, text.index("# Step 2a:"))
+        self.assertLess(aufruf, text.index("# --- dienst.json begin"))
+        self.assertEqual([z.strip() for z in text.split("\n")].count("gespraecheordner"), 1, "one call")
+        self.assertEqual(text.count("gespraecheordner() {"), 1)
+        postrm = lesen(os.path.join(HIER, PLATTFORM, "postrm"))
+        self.assertIn("rm -rf /var/lib/werkbank", postrm, "purge removes the conversations with the state folder")
+
+    def test_no_command_of_postinst_makes_or_reads_an_entry_of_the_folder(self):
+        text = lesen(os.path.join(HIER, PLATTFORM, "postinst"))
+        stellen = [z for z in text.split("\n") if "gespraeche" in z and not z.lstrip().startswith("#")]
+        erlaubt = ('so_sicher "$DATEN/$nutzer/gespraeche"', '"gespraeche":"%s/gespraeche"', '"gespraeche":"%s/%s/gespraeche"', "gespraecheordner")
+        for z in stellen:
+            self.assertTrue(any(e in z for e in erlaubt), z)
+            self.assertNotRegex(z, r"\b(touch|cp|mv|ln|tee|rm|find)\b")
+
+    def test_the_code_30_is_in_the_header_and_free_in_the_other_scripts(self):
+        text = lesen(os.path.join(HIER, PLATTFORM, "postinst"))
+        self.assertRegex(text.split("\n\n")[0], r"fixed code 29 or 30")
+        self.assertEqual(len(re.findall(r"\bfail 30\b", text)), 4, "the four checks of the block, nowhere else")
+        for name in ("postrm", "prerm"):
+            self.assertNotRegex(lesen(os.path.join(HIER, PLATTFORM, name)), r"\b(exit|fail) 30\b", name)
+
 
 class CaBefehl(unittest.TestCase):
     """The command `werkbank-ca-zulassung` (contract "Zulassung der CA"): run as a copy of the script in a fake tree. Two lines of the copy differ from

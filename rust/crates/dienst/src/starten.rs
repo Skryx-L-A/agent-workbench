@@ -340,12 +340,14 @@ pub(crate) fn ordner_anlegen(
     kennung: &str,
     start: &Startanfrage,
     marker: Option<&start::Marker>,
+    fortsetzung_von: Option<&str>,
 ) -> Result<(PathBuf, PathBuf), ()> {
-    // the file is what `start::schreiben` gives for the structure with the key set; `Lauf starten` reads it with `start::lesen_datei`
+    // the file is what `start::schreiben` gives for the structure with the key set (and, for `Fortsetzen` and `Wiederbeleben`, the old
+    // key); `Lauf starten` reads it with `start::lesen_datei`
     let inhalt = start::schreiben(
         &start
             .clone()
-            .mit_sitzung(kennung, marker.cloned())
+            .mit_fortsetzung(kennung, marker.cloned(), fortsetzung_von)
             .map_err(|_| ())?,
     );
     let sitzung = ordner.join(kennung);
@@ -728,6 +730,7 @@ mod tests {
             "s-3",
             &start,
             None,
+            None,
         )
         .expect("created");
         assert_eq!(dir, o.join("s-3"));
@@ -749,6 +752,7 @@ mod tests {
                 std::os::fd::AsFd::as_fd(&offen(&o)),
                 "s-3",
                 &start,
+                None,
                 None
             )
             .is_err()
@@ -771,12 +775,20 @@ mod tests {
             "s-1",
             &start,
             Some(&marker),
+            None,
         )
         .expect("created");
         let gelesen = start::lesen_datei(&std::fs::read(&mit).expect("read")).expect("start file");
         assert_eq!(gelesen.marker(), Some(&marker));
-        let (_, ohne) = ordner_anlegen(&o, std::os::fd::AsFd::as_fd(&wurzel), "s-2", &start, None)
-            .expect("created");
+        let (_, ohne) = ordner_anlegen(
+            &o,
+            std::os::fd::AsFd::as_fd(&wurzel),
+            "s-2",
+            &start,
+            None,
+            None,
+        )
+        .expect("created");
         let gelesen = start::lesen_datei(&std::fs::read(&ohne).expect("read")).expect("start file");
         assert_eq!(gelesen.marker(), None);
         let _ = std::fs::remove_dir_all(&o);
@@ -1044,6 +1056,7 @@ mod tests {
                 std::os::fd::AsFd::as_fd(&wurzel),
                 "s-1",
                 &start,
+                None,
                 None
             )
             .is_err()

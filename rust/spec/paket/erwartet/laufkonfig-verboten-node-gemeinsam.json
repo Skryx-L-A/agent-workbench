@@ -8,6 +8,7 @@
   "zustand": "/var/lib/werkbank/nutzer1",
   "laufzeit": "/var/lib/werkbank/l/1000",
   "sitzungen": "/var/lib/werkbank/s/1000",
+  "gespraeche": "/var/lib/werkbank/nutzer1/gespraeche",
   "heim": "/srv/beispiel/heim/nutzer1",
   "path": "/usr/local/bin:/usr/bin:/bin",
   "programme": {

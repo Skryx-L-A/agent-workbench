@@ -46,14 +46,17 @@ pub const DATEI_ZIELE: [(&str, &str); 2] = [
 pub const COPILOT_PLATZHALTER: &str =
     concat!("gho_", "000000000000", "000000000000", "000000000000");
 
-/// The empty state folder of the session. It is mounted below the home of the session; it is never the state of the
-/// operator.
+/// The state folder of the session: empty for a new start, the state of the conversation it continues otherwise. It is
+/// mounted below the home of the session; it is never the state of the operator.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Zustand {
-    /// The folder on the host: exists, is empty, belongs to the own user.
+    /// The folder on the host: exists, belongs to the own user, and is empty unless `fortsetzen` is set.
     pub host: PathBuf,
     /// Its name below the home inside the enclosure, one plain segment (for example `.claude`).
     pub name: String,
+    /// The session continues the conversation of an earlier one (contract 1, Fassung 2): the folder holds its state and
+    /// need not be empty.
+    pub fortsetzen: bool,
 }
 
 /// The environment of the harness. Nothing else reaches it: the profile clears the environment first.

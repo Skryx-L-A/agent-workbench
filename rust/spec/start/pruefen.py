@@ -93,6 +93,8 @@ def main():
         if fall["form"] == "aufruf":
             if "exit" not in erw and "exec" not in erw:
                 fehler.append(f"{name}: Aufruf ohne exit oder exec")
+            if name.startswith("aufruf-f2-") and "exit" in erw and not erw["stderr"].startswith("lauf."):
+                fehler.append(f"{name}: Code ohne Präfix lauf.")
             nur_bau.append(f"{name} (Aufruf)")
             continue
         roh = fall["text"].encode("utf-8") if "text" in fall else base64.b64decode(fall["b64"])
@@ -124,35 +126,11 @@ def main():
             fehler.append(f"{name}: Schema nimmt an, erwartet {erw['code']}")
         elif code is not None and (code not in SCHEMA_CODES or name in SCHEMA_BLIND):
             nur_bau.append(f"{name} ({erw['code']}, Schema {'nimmt an' if nimmt_an else 'lehnt ab'})")
-    # Ausstehende Fälle: seit dem 27.11.2026 nur die Aufruf-Fälle aufruf-f2-* zum Fortsetzen, die erst mit dem Bau der Schritte
-    # 5d und 8 von lauf prüfbar sind; die Fälle der Fassung 2 zu Anfrage und Datei stehen in faelle/. Paarung und Form.
-    aus_f = {p.name for p in (HIER / "faelle-ausstehend").glob("*.json")}
-    aus_e = {p.name for p in (HIER / "erwartet-ausstehend").glob("*.json")}
-    for name in sorted(aus_f ^ aus_e):
-        fehler.append(f"ausstehend {name}: ohne Gegenstück")
-    for name in sorted(aus_f & aus_e):
-        fall = json.loads((HIER / "faelle-ausstehend" / name).read_text(encoding="utf-8"))
-        erw = json.loads((HIER / "erwartet-ausstehend" / name).read_text(encoding="utf-8"))
-        if (HIER / "faelle" / name).exists():
-            fehler.append(f"ausstehend {name}: steht auch in faelle/")
-        if fall["form"] == "aufruf":
-            # Fortsetzen (Nachtrag 27.11.2026): Aufruf-Fälle der Fassung 2, erst mit dem Bau von lauf prüfbar.
-            if "exit" not in erw and "exec" not in erw:
-                fehler.append(f"ausstehend {name}: Aufruf ohne exit oder exec")
-            if "exit" in erw and not erw["stderr"].startswith("lauf."):
-                fehler.append(f"ausstehend {name}: Code ohne Präfix lauf.")
-            continue
-        fehler.append(f"ausstehend {name}: Form {fall['form']} gehört nach faelle/, das Crate liest Fassung 2")
-        roh = fall["text"].encode("utf-8")
-        if len(roh) > GRENZE:
-            fehler.append(f"ausstehend {name}: über {GRENZE} Byte")
-        try:
-            streng_lesen(roh)
-        except (ValueError, UnicodeDecodeError) as fehlerart:
-            fehler.append(f"ausstehend {name}: JSON ungültig ({fehlerart})")
-        if not erw["gueltig"] and not erw["code"].startswith(PRAEFIX + "."):
-            fehler.append(f"ausstehend {name}: Code ohne Präfix {PRAEFIX}.")
-    print(f"{len(aus_f & aus_e)} ausstehende Fälle (Aufruf-Fälle zum Fortsetzen, erst mit dem Bau von lauf prüfbar)")
+    # Ausstehende Fälle gibt es nicht mehr: Die letzten (aufruf-f2-*) stehen seit dem Bau der Schritte 5d und 8 von lauf
+    # (27.11.2026) in faelle/. Ein Rest der alten Ordner ist ein Fehler.
+    for teil in ("faelle-ausstehend", "erwartet-ausstehend"):
+        if (HIER / teil).exists():
+            fehler.append(f"{teil}/: entfernt seit dem Bau von lauf, steht aber noch da")
     print(f"{zahl} Fälle, {len(fehler)} Fehler, Schema {'geprüft' if pruefer else 'NICHT geprüft (--ohne-schema, jsonschema fehlt)'}")
     for zeile in nur_bau:
         print(f"  erst mit dem Bau prüfbar: {zeile}")

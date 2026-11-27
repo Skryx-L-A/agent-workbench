@@ -119,6 +119,9 @@ def main():
                     fehler.append(f"{name}: kern.json lauf.laufzeit fehlt oder ist nicht laufzeit von lauf.json")
                 if zl == lauf:
                     fehler.append(f"{name}: lauf.ziellisten darf nicht lauf.sitzungen sein")
+                gp = erw["dateien"]["kern"]["lauf"].get("gespraeche")
+                if gp is None or gp != referenz.laufkonfig({"nutzer": fall["nutzer"], "uid": fall["uid"], "heim": "/srv/beispiel/heim", "harness": {}})["gespraeche"]:
+                    fehler.append(f"{name}: kern.json lauf.gespraeche fehlt oder ist nicht gespraeche von lauf.json")
                 run = f"/run/user/{fall['uid']}"
                 kl = erw["dateien"]["kern"]["lauf"]
                 if kl.get("marker_datei") != f"{run}/werkbank-probelauf/marker.json" or not kl.get("marker_datei", "").startswith(run + "/"):

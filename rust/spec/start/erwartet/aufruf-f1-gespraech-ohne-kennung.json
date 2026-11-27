@@ -1,0 +1,20 @@
+{
+ "exec": "pi",
+ "harness_argv": [
+  "pi",
+  "--provider",
+  "wb-lokal",
+  "--model",
+  "qwen3:8b"
+ ],
+ "stderr": "",
+ "suche_gestartet": true,
+ "gespraeche_danach": {
+  "s-2": {
+   "fassung": 1,
+   "harness": "pi",
+   "arbeitsordner": "/heim/beispiel/projekt",
+   "kennung": null
+  }
+ }
+}

@@ -1086,7 +1086,10 @@ dahinter `Agenten`, wenn sich die Liste der Worker geändert hat (DI-L1 Punkt 4)
    (DI-L5). Ein Name muss nicht eindeutig sein.
 2. **`Fortsetzen`** `{"art": "Fortsetzen", "sitzung": "<id>"}`. Prüffolge: Form; unbekannt: `sitzung_unbekannt`; die Sitzung läuft:
    `sitzung_laeuft`; sie ist schon fortgesetzt (`fortgesetzt_als` steht): `schon_fortgesetzt`; der Dienst hat keine Start-Struktur für sie (die
-   Sitzung aus `kind`): `nicht_fortsetzbar`. Sonst gilt der Weg von `Starten` ab Punkt 3.1 mit der gespeicherten Start-Struktur und mit dem Orchestrator und der Rolle der
+   Sitzung aus `kind`): `nicht_fortsetzbar`. **Nachtrag 27.11.2026:** Ebenso `nicht_fortsetzbar` ist eine Sitzung, deren gespeicherte
+   Start-Struktur die Fassung 1 hat. Eine Sitzung der Fassung 1 hat kein Gespräch, das sich fortsetzen ließe (Vertrag `start`, Abschnitt „Fortsetzen in
+   „Lauf starten““, Absatz „Vorgänger der Fassung 1“, Entscheid des Betreibers vom 27.11.2026). Die Antwort kommt nach den Prüfungen davor und vor
+   jedem Ordner, ohne Startdatei und ohne Nummer; Fall `dil3_fortsetzen_fassung1`, Mutant `fortsetzen_fassung1_ok`. Sonst gilt der Weg von `Starten` ab Punkt 3.1 mit der gespeicherten Start-Struktur und mit dem Orchestrator und der Rolle der
    alten Sitzung: dieselben Prüfungen mit den Einstellungen von jetzt, dieselbe Zahl, eine neue Kennung `s-<n>`, ein neuer Ordner, ein neues Kind.
    In `start.json` stehen dazu `sitzung` (die neue Kennung) und **`fortsetzung_von`** (die alte Kennung). Den Harness auf das alte Gespräch zu
    setzen, ist Sache von „Lauf starten“ (Vertrag `start`). Die alte Sitzung bekommt `fortgesetzt_als`, die neue `fortsetzung_von` und den Namen der
@@ -1292,6 +1295,7 @@ Die Felder legen `rust/spec/regelebenen/README.md` Abschnitt 15 und `rust/spec/s
 | `fortsetzen_laufend` | DI-L3 | eine laufende Sitzung lässt sich fortsetzen |
 | `fortsetzen_ohne_verweis` | DI-L3 | `start.json` trägt kein `fortsetzung_von` |
 | `wiederbeleben_ohne_absturz` | DI-L3 | eine Sitzung mit Code 0 lässt sich wiederbeleben |
+| `fortsetzen_fassung1_ok` | DI-L3 | eine Sitzung der Fassung 1 lässt sich fortsetzen (Nachtrag 27.11.2026) |
 | `liste_ohne_ordner` | DI-L5 | die Liste trägt `ordner` und `projekt` nicht |
 | `projekt_ganzer_pfad` | DI-L5 | `projekt` ist der ganze Pfad statt seines letzten Bestandteils |
 | `bestand_vergessen` | DI-L5 | der Dienst schreibt den Bestand nicht |

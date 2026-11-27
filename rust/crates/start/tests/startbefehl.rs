@@ -49,6 +49,11 @@ fn the_argument_list_of_copilot_matches_every_program_case_that_states_it() {
             continue;
         }
         let lage = &fall["lage"];
+        // a start of version 2 adds the effort and the session option of "Lauf starten" to this list; the test of
+        // `lauf` (tests/faelle.rs) checks those cases with their whole argv
+        if lage["start"]["fassung"].as_u64() == Some(2) {
+            continue;
+        }
         let einst = lesen_einstellungen(
             serde_json::to_vec(&lage["einstellungen"])
                 .expect("serializes")

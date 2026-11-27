@@ -72,6 +72,7 @@ fn profil_in(o: &Ordner) -> Profil {
         zustand: Zustand {
             host: o.0.join("zustand"),
             name: ".zustand".to_owned(),
+            fortsetzen: false,
         },
         heim: heim.clone(),
         such_socket: o.0.join("such").join("such.sock"),
@@ -326,6 +327,7 @@ fn cloud_profil(
         zustand: Zustand {
             host: o.0.join("zustand"),
             name: ".zustand".to_owned(),
+            fortsetzen: false,
         },
         heim: heim.clone(),
         such_socket: o.0.join("such").join("such.sock"),
@@ -416,6 +418,7 @@ fn lokal_profil(
         zustand: Zustand {
             host: o.0.join("zustand"),
             name: ".pi".to_owned(),
+            fortsetzen: false,
         },
         heim: heim.clone(),
         such_socket: o.0.join("such").join("such.sock"),
@@ -498,4 +501,27 @@ fn the_forwarder_of_the_local_route_must_be_an_executable_file() {
     let o = Ordner::neu();
     let (profil, _l) = lokal_profil(&o, 0o111, 0o600, false);
     assert_eq!(profil.quellen_pruefen(), Ok(()));
+}
+
+#[test]
+fn the_state_folder_of_a_continued_conversation_need_not_be_empty() {
+    let leer = Err(Fehler::QuelleUnbrauchbar(
+        "state folder is not an empty own folder",
+    ));
+    let o = Ordner::neu();
+    let (mut profil, _l) = lokal_profil(&o, 0o755, 0o600, false);
+    fs::write(o.0.join("zustand").join("verlauf"), "x").expect("file");
+    assert_eq!(
+        profil.quellen_pruefen(),
+        leer,
+        "a new start needs an empty one"
+    );
+    profil.beschreibung.zustand.fortsetzen = true;
+    assert_eq!(profil.quellen_pruefen(), Ok(()));
+    // it is still an own real folder
+    fs::remove_file(o.0.join("zustand").join("verlauf")).expect("remove");
+    fs::remove_dir(o.0.join("zustand")).expect("remove");
+    fs::create_dir(o.0.join("echt")).expect("folder");
+    std::os::unix::fs::symlink(o.0.join("echt"), o.0.join("zustand")).expect("link");
+    assert!(profil.quellen_pruefen().is_err());
 }

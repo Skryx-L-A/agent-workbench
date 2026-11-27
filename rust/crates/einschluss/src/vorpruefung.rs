@@ -200,7 +200,7 @@ impl Profil {
     }
 
     /// The sources exist as real paths of the right kind: the working folder and the state folder belong to the own
-    /// user, the state folder is empty, the sockets are sockets.
+    /// user, the state folder is empty unless the session continues a conversation, the sockets are sockets.
     fn quellen_pruefen(&self) -> Result<(), Fehler> {
         let b = &self.beschreibung;
         let uid = b.system.uid;
@@ -212,7 +212,7 @@ impl Profil {
         }
         let leer = "state folder is not an empty own folder";
         eigener_ordner(&b.zustand.host, uid, leer)?;
-        if !ordner_leer(&b.zustand.host) {
+        if !b.zustand.fortsetzen && !ordner_leer(&b.zustand.host) {
             return Err(Fehler::QuelleUnbrauchbar(leer));
         }
         let relay = b.cloud.iter().map(|c| &c.weiterreicher);

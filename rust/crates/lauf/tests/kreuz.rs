@@ -386,6 +386,13 @@ mod kreuz {
         let vorher = ziellisten(&w);
         println!("target lists after the first run: {}", vorher.len());
         assert_eq!(vorher.len(), NUMMERN, "one list per session: {vorher:?}");
+        // every session left its conversation (contract 1, "Ablage des Gesprächs"). The service does not check
+        // `gespraeche/` when it hands out a number (contract 1, OPEN 35): after its restart `s-1` would meet the
+        // conversation of the first `s-1` and end with `lauf.sitzung_belegt`. Until the service skips such numbers, the
+        // test clears the conversations here, as the deletion of the sessions would.
+        let gespraeche = std::fs::read_dir(&w.gespraeche).map_or(0, Iterator::count);
+        assert_eq!(gespraeche, NUMMERN, "one conversation per session");
+        std::fs::remove_dir_all(&w.gespraeche).expect("clear the conversations");
         // the service starts again; the count of numbers begins at s-1
         let d = Dienst::starten_mit(&w, &programm, &extra);
         let mut b = Betrachter::neu(&d.socket);

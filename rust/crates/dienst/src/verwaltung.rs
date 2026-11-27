@@ -233,9 +233,27 @@ impl Dienst {
         } else {
             None
         };
-        // The start file of a continued session needs `fortsetzung_von`, which only the second version of the crate `start` writes. Until
-        // then every session is `nicht_fortsetzbar` after the checks above; no start file is written by hand (fail closed).
-        self.start_ablehnen(nr, &Abgelehnt::fest(grund.unwrap_or("nicht_fortsetzbar")));
+        if let Some(g) = grund {
+            return self.start_ablehnen(nr, &Abgelehnt::fest(g));
+        }
+        // DI-L3 point 2 (Nachtrag 27.11.2026): only a stored start structure of version 2 can be continued. The session from `kind` has
+        // none, and a session of version 1 has no conversation to continue (contract `start`, Vorgänger der Fassung 1); both are
+        // `nicht_fortsetzbar`, before any folder, file or number.
+        let Some(start) = s
+            .angaben
+            .start
+            .clone()
+            .filter(|st| st.get("fassung") != Some(&json!(1)))
+        else {
+            return self.start_ablehnen(nr, &Abgelehnt::fest("nicht_fortsetzbar"));
+        };
+        let worker = s
+            .angaben
+            .orchestrator
+            .clone()
+            .map(|o| (o, s.angaben.rolle.clone().unwrap_or_default()));
+        let alt = sid.to_owned();
+        self.starten_mit(nr, &start, Ok(worker), Some(&alt));
     }
 
     /// `Loeschen` (DI-L3 points 4 and 5): only an ended session of `Starten`, with its identifier as the confirmation, never one that

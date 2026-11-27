@@ -8,6 +8,7 @@
   "zustand": "/var/lib/werkbank/anna",
   "laufzeit": "/var/lib/werkbank/l/1234",
   "sitzungen": "/var/lib/werkbank/s/1234",
+  "gespraeche": "/var/lib/werkbank/anna/gespraeche",
   "heim": "/srv/beispiel/heim/anna",
   "path": "/usr/local/bin:/usr/bin:/bin",
   "programme": {

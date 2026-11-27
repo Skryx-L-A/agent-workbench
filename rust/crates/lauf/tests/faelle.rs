@@ -47,6 +47,10 @@ const AUSGELASSEN: [(&str, &str); 4] = [
     ),
 ];
 
+fn s_text(p: &Path) -> String {
+    p.to_string_lossy().into_owned()
+}
+
 fn lesen(p: &Path) -> Value {
     serde_json::from_slice(&fs::read(p).expect("read")).expect("json")
 }
@@ -96,6 +100,138 @@ fn konfig_verderben(w: &Welt, art: &str) {
     }
 }
 
+/// The conversations of the case: `gespraeche/<sitzung>/` (0700) with `gespraech.json` (0600) and the state folder of
+/// the harness with one file `verlauf`, so that a start can tell whether it got the state of the predecessor.
+fn gespraeche_legen(w: &Welt, lage: &Value) {
+    use std::os::unix::fs::PermissionsExt;
+    let Some(liste) = lage.get("gespraeche").and_then(Value::as_object) else {
+        return;
+    };
+    for (sitzung, inhalt) in liste {
+        let o = w.gespraeche.join(sitzung);
+        for d in [&w.gespraeche, &o, &o.join("zustand")] {
+            fs::create_dir_all(d).expect("folder");
+            fs::set_permissions(d, fs::Permissions::from_mode(0o700)).expect("mode");
+        }
+        datei(&o.join("gespraech.json"), text(w, inhalt).as_bytes(), 0o600);
+        datei(
+            &o.join("zustand").join("verlauf"),
+            format!("GESPRAECH {sitzung}\n").as_bytes(),
+            0o600,
+        );
+    }
+}
+
+/// The names in a folder, sorted; empty when it does not exist.
+fn namen(o: &Path) -> Vec<String> {
+    let mut n: Vec<String> = fs::read_dir(o)
+        .map(|l| {
+            l.filter_map(Result::ok)
+                .map(|e| e.file_name().to_string_lossy().into_owned())
+                .collect()
+        })
+        .unwrap_or_default();
+    n.sort();
+    n
+}
+
+/// Every path below `o` with its kind, mode and content, sorted (the tree of the conversations at a moment).
+fn baum(o: &Path) -> Vec<String> {
+    use std::os::unix::fs::MetadataExt;
+    let mut aus = Vec::new();
+    let mut offen = vec![o.to_path_buf()];
+    while let Some(p) = offen.pop() {
+        for n in namen(&p) {
+            let q = p.join(&n);
+            let m = fs::symlink_metadata(&q).expect("meta");
+            let rel = q.strip_prefix(o).unwrap_or(&q).display().to_string();
+            if m.is_dir() {
+                aus.push(format!("{rel}/ {:o}", m.mode() & 0o7777));
+                offen.push(q);
+            } else {
+                aus.push(format!(
+                    "{rel} {:o} {}",
+                    m.mode() & 0o7777,
+                    String::from_utf8_lossy(&fs::read(&q).unwrap_or_default())
+                ));
+            }
+        }
+    }
+    aus.sort();
+    aus
+}
+
+/// The conversations after the run (`gespraeche_danach`): exactly the sessions of the case, each a folder 0700 with
+/// `gespraech.json` 0600 of the expected content; `<harness-kennung>` is a key of the form, the one of the argv.
+/// Returns the key of the new start, if the case has one.
+fn gespraeche_pruefen(
+    w: &Welt,
+    soll: &Value,
+    gleich: &mut impl FnMut(&str, String, String),
+) -> Option<String> {
+    use std::os::unix::fs::PermissionsExt;
+    let liste = soll.get("gespraeche_danach")?.as_object()?;
+    gleich(
+        "gespraeche_danach: sitzungen",
+        format!("{:?}", namen(&w.gespraeche)),
+        format!("{:?}", liste.keys().collect::<Vec<_>>()),
+    );
+    let mut neu = None;
+    for (sitzung, inhalt) in liste {
+        let o = w.gespraeche.join(sitzung);
+        let modus = |p: &Path| {
+            fs::symlink_metadata(p).map_or(0, |m| {
+                if m.file_type().is_symlink() {
+                    0
+                } else {
+                    m.permissions().mode() & 0o7777
+                }
+            })
+        };
+        gleich(
+            "gespraech ordner 0700",
+            format!("{:o}", modus(&o)),
+            "700".to_owned(),
+        );
+        gleich(
+            "gespraech.json 0600",
+            format!("{:o}", modus(&o.join("gespraech.json"))),
+            "600".to_owned(),
+        );
+        let ist: Value =
+            serde_json::from_slice(&fs::read(o.join("gespraech.json")).unwrap_or_default())
+                .unwrap_or(Value::Null);
+        let mut soll_inhalt: Value = serde_json::from_str(&text(w, inhalt)).expect("json");
+        if soll_inhalt["kennung"] == "<harness-kennung>" {
+            let k = ist["kennung"].as_str().unwrap_or("").to_owned();
+            gleich(
+                "harness-kennung ist eine UUID v4",
+                lauf::gespraech::ist_kennung(&k).to_string(),
+                "true".to_owned(),
+            );
+            soll_inhalt["kennung"] = Value::String(k.clone());
+            neu = Some(k);
+        }
+        gleich(
+            &format!("gespraech {sitzung}"),
+            ist.to_string(),
+            soll_inhalt.to_string(),
+        );
+        // a conversation of version 1 has no state folder of the harness
+        let soll_namen: &[&str] = if soll_inhalt["kennung"].is_null() {
+            &["gespraech.json"]
+        } else {
+            &["gespraech.json", "zustand"]
+        };
+        gleich(
+            &format!("inhalt gespraech {sitzung}"),
+            format!("{:?}", namen(&o)),
+            format!("{soll_namen:?}"),
+        );
+    }
+    neu
+}
+
 /// Builds the world of one case and runs the program. Returns the world, the run and the PID-file folder.
 fn aufbauen_und_laufen(name: &str, lage: &Value) -> (Welt, gemeinsam::Lauf) {
     let w = Welt::neu();
@@ -108,7 +244,12 @@ fn aufbauen_und_laufen(name: &str, lage: &Value) -> (Welt, gemeinsam::Lauf) {
     if lage["einschluss"] == Value::Bool(false) {
         w.bwrap = Some(w.wurzel.join("bin").join("fehlt-bwrap"));
     }
+    // a harness without an option to continue (column "Fortsetzen" with "keine")
+    if lage.get("harness_fortsetzung").and_then(Value::as_str) == Some("keine") {
+        w.ohne_fortsetzen = vec![lage["start"]["harness"].as_str().unwrap_or("").to_owned()];
+    }
     w.konfig_schreiben("zugelassen");
+    gespraeche_legen(&w, lage);
     if let Some(art) = lage.get("konfig").and_then(Value::as_str) {
         konfig_verderben(&w, art);
     }
@@ -537,6 +678,68 @@ fn pruefen(name: &str, fall: &Value, soll: &Value) -> Result<(), String> {
             "true".to_owned(),
         );
     }
+    let kennung = gespraeche_pruefen(&w, soll, &mut gleich);
+    // fail closed: a start that ends with a code leaves the conversations of the case as they were
+    if soll.get("exit").is_some() && lage.get("gespraeche").is_some() {
+        gleich(
+            "gespraeche unveraendert",
+            format!("{:?}", namen(&w.gespraeche)),
+            format!(
+                "{:?}",
+                lage["gespraeche"]
+                    .as_object()
+                    .map(|o| o.keys().cloned().collect::<Vec<_>>())
+                    .unwrap_or_default()
+            ),
+        );
+    }
+    if let Some(z) = soll
+        .get("zustandsordner_beim_start")
+        .and_then(Value::as_str)
+    {
+        let sitzung = lage["start"]["sitzung"].as_str().unwrap_or("");
+        let kopie = w.wurzel.join(gemeinsam::GESPRAECHE_BEIM_START);
+        let ist = namen(&kopie.join(sitzung).join("zustand"));
+        let erwartet: Vec<String> = match z {
+            "leer" => Vec::new(),
+            _ => vec!["verlauf".to_owned()],
+        };
+        gleich(
+            "zustandsordner_beim_start",
+            format!("{ist:?}"),
+            format!("{erwartet:?}"),
+        );
+        if z != "leer" {
+            let alt = lage["start"]["fortsetzung_von"].as_str().unwrap_or("");
+            gleich(
+                "zustand der vorgaengersitzung",
+                fs::read_to_string(kopie.join(sitzung).join("zustand/verlauf")).unwrap_or_default(),
+                format!("GESPRAECH {alt}\n"),
+            );
+        }
+        // the state folder of the harness comes from the conversation, at its place below the home
+        let name = match lage["start"]["harness"].as_str() {
+            Some("pi") => ".pi",
+            Some("copilot") => ".copilot",
+            _ => ".claude",
+        };
+        let quelle = s_text(&w.gespraeche.join(sitzung).join("zustand"));
+        let ziel = s_text(&w.heim.join(name));
+        let a = w.bwrap_aufrufe().last().cloned().unwrap_or_default().1;
+        gleich(
+            "zustandsordner aus gespraeche gebunden",
+            a.windows(3)
+                .any(|f| f[0] == "--bind" && f[1] == quelle && f[2] == ziel)
+                .to_string(),
+            "true".to_owned(),
+        );
+        // no work after the start: the conversations are exactly as the starter found them
+        gleich(
+            "gespraeche nach dem start unveraendert",
+            format!("{:?}", baum(&w.gespraeche)),
+            format!("{:?}", baum(&kopie)),
+        );
+    }
     if let Some(h) = soll.get("exec").and_then(Value::as_str) {
         let aufrufe = w.bwrap_aufrufe();
         let letzter = aufrufe.last().cloned().unwrap_or_default();
@@ -649,6 +852,7 @@ fn pruefen(name: &str, fall: &Value, soll: &Value) -> Result<(), String> {
                     x.as_str()
                         .unwrap_or("")
                         .replace("<heim>", &w.heim.to_string_lossy())
+                        .replace("<harness-kennung>", kennung.as_deref().unwrap_or("<fehlt>"))
                 })
                 .collect();
             gleich(

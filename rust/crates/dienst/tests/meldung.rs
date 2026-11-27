@@ -108,8 +108,13 @@ fn anlegen(ort: &Wegwerf, n: &str) {
 
 /// Sends `Starten` and returns the identifier of `Gestartet`.
 fn starten(proz: &mut Probe) -> String {
+    gestartet(proz, &json!({"art": "Starten", "start": gut()}))
+}
+
+/// Sends `e` (`Starten` or `Fortsetzen`) and returns the identifier of `Gestartet`.
+fn gestartet(proz: &mut Probe, e: &Value) -> String {
     let n = proz.nachrichten.len();
-    proz.ereignis(&json!({"art": "Starten", "start": gut()}));
+    proz.ereignis(e);
     assert!(
         proz.warte(Duration::from_secs(10), |proz| proz.nachrichten[n..]
             .iter()
@@ -246,6 +251,40 @@ fn eine_zeile_gibt_den_code_und_den_grund_der_sitzung() {
     let res = warte_beendet(&mut ans, &id);
     assert_eq!(res["code"], json!(255), "{res}");
     assert_eq!(res["grund"], json!("z9_.".repeat(16)), "{res}");
+    beenden(proz);
+}
+
+/// Nachtrag 27.11.2026 (Fortsetzen, contract `start`, step 5d): the codes of `lauf` for a continued session that cannot go on come
+/// unchanged as the end of the new session, with code and reason; the old session names the new one.
+#[test]
+fn die_codes_des_fortsetzens_von_lauf_sind_das_ende_der_neuen_sitzung() {
+    let ort = Wegwerf::neu("meldung-fortsetzen");
+    let (proz, mut ans) = dienst(&ort);
+    let f2 = json!({"fassung": 2, "harness": "claude", "modell": "m", "route": "cloud-beispiel", "kunde": "k-beispiel",
+                    "arbeitsordner": "/tmp", "effort": null, "name": null});
+    for (code, grund) in [
+        (69, "lauf.fortsetzung_unmoeglich"),
+        (66, "lauf.fortsetzung_fehlt"),
+        (65, "lauf.fortsetzung_kaputt"),
+        (65, "lauf.fortsetzung_fremd"),
+        (73, "lauf.sitzung_belegt"),
+    ] {
+        spielen(&ort, "zeile", b"0 lauf.ende\n", 0);
+        let alt = gestartet(&mut ans, &json!({"art": "Starten", "start": f2}));
+        warte_beendet(&mut ans, &alt);
+        spielen(&ort, "zeile", format!("{code} {grund}\n").as_bytes(), 1);
+        let neu = gestartet(&mut ans, &json!({"art": "Fortsetzen", "sitzung": alt}));
+        let res = warte_beendet(&mut ans, &neu);
+        assert_eq!(
+            (&res["code"], &res["grund"], &res["fortsetzung_von"]),
+            (&json!(code), &json!(grund), &json!(alt)),
+            "{res}"
+        );
+        assert_eq!(
+            eintrag(&mut ans, &alt).map(|e| e["fortgesetzt_als"].clone()),
+            Some(json!(neu))
+        );
+    }
     beenden(proz);
 }
 

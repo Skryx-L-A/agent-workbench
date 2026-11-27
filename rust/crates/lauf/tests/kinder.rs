@@ -504,8 +504,29 @@ fn g1b_a_refusal_after_the_exec_leaves_no_child_and_no_folder() {
         ] {
             let _ = std::fs::remove_file(w.start.join(n));
         }
-        // a second start of the name now meets the starter again (the cloud route its target list first: contract 1,
-        // step 7a0, which stays after a session)
+        // the conversation of the session stays after its end (contract 1, "Ablage des Gesprächs"): a second start of
+        // the name ends at step 8 with `lauf.sitzung_belegt` and leaves the conversation as it was
+        let gespraech = w.gespraeche.join("s-1/gespraech.json");
+        let vorher = std::fs::read(&gespraech).expect("conversation of the first start");
+        let belegt = w.lauf(&args, &[]);
+        assert_eq!(belegt.exit(), Some(73), "{route}: {}", belegt.stderr());
+        assert_eq!(
+            std::fs::read(&gespraech).ok(),
+            Some(vorher),
+            "{route}: unchanged"
+        );
+        for n in [
+            "suche.pid",
+            "modellweg.pid",
+            "ca.key",
+            "ca.crt",
+            "ca-bundle.pem",
+        ] {
+            let _ = std::fs::remove_file(w.start.join(n));
+        }
+        // once the service has cleared it, a second start of the name meets the starter again (the cloud route its
+        // target list first: contract 1, step 7a0, which stays after a session)
+        std::fs::remove_dir_all(w.gespraeche.join("s-1")).expect("clear the conversation");
         let noch = w.lauf(&args, &[]);
         if route == "lokal" {
             assert_eq!(noch.exit(), Some(5), "second start: {}", noch.stderr());

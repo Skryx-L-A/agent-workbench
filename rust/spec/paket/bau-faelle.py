@@ -1535,6 +1535,10 @@ fall_dienst("marker-folgen-der-uid", "die Marker-Datei des Probelaufs liegt unte
 
 fall_dienst("ziellisten-folgen-dem-nutzernamen", "`lauf.ziellisten` ist der Ordner der Ziellisten, `<zustand>/sitzungen` von lauf.json: der Zustandsordner des Nutzers (nach dem Namen, nicht nach der uid) plus /sitzungen; er ist nicht `lauf.sitzungen` (/var/lib/werkbank/s/<uid>)", nutzer="anna-b", uid=77)
 
+fall_dienst("bestand-folgt-dem-nutzernamen", "`lauf.bestand` ist die Datei der Sitzungsliste des Kerns: der Zustandsordner des Nutzers (nach dem Namen, nicht nach der uid) plus /dienst/bestand.json; sie liegt nicht in `lauf.sitzungen`, `lauf.ziellisten` oder `lauf.laufzeit`", nutzer="anna-b", uid=77)
+
+fall_dienst("gespraeche-folgt-dem-nutzernamen", "`lauf.gespraeche` ist der Ordner der Gespräche: der Zustandsordner des Nutzers (nach dem Namen, nicht nach der uid) plus /gespraeche, genau `gespraeche` von lauf.json; er liegt nicht in `lauf.sitzungen`, `lauf.ziellisten` oder `lauf.bestand`", nutzer="anna-b", uid=77)
+
 # Admin fields (Nachtrag 21.11.): `lauf.groesse` of kern.json and `port` of bruecke.json survive an update, read as JSON text like `ca_zulassung`
 G_UNGUELTIG = "werkbank: kern.json: groesse ungueltig, die Vorgabe gilt"
 P_UNGUELTIG = "werkbank: bruecke.json: port ungueltig, die Vorgabe gilt"

@@ -13,6 +13,7 @@ fn muster(cloud: bool) -> Beschreibung {
         zustand: Zustand {
             host: PathBuf::from("/srv/beispiel/zustand"),
             name: ".claude".to_owned(),
+            fortsetzen: false,
         },
         heim: PathBuf::from("/srv/beispiel/heim"),
         such_socket: PathBuf::from("/srv/beispiel/s/such.sock"),
@@ -327,4 +328,30 @@ fn a_wrong_file_entry_is_refused() {
     }
     let liste = text.replacen("\"dateien\":[", "\"dateien\":{\"a\":", 1);
     assert_eq!(lesen_mit(&liste), None);
+}
+
+#[test]
+fn the_kind_of_the_state_folder_round_trips_and_has_two_words() {
+    let mut b = muster(false);
+    b.zustand.fortsetzen = true;
+    let text = beschreibung_schreiben(&b);
+    assert!(text.contains("\"art\":\"fortsetzen\""), "{text}");
+    assert_eq!(lesen_mit(&text), Some(b.clone()));
+    b.zustand.fortsetzen = false;
+    let text = beschreibung_schreiben(&b);
+    assert!(text.contains("\"art\":\"neu\""), "{text}");
+    assert_eq!(lesen_mit(&text), Some(b));
+    for falsch in [
+        "\"art\":\"Neu\"",
+        "\"art\":\"\"",
+        "\"art\":1",
+        "\"art\":null",
+    ] {
+        assert_eq!(
+            lesen_mit(&geaendert("\"art\":\"neu\"", falsch)),
+            None,
+            "{falsch}"
+        );
+    }
+    assert_eq!(lesen_mit(&geaendert(",\"art\":\"neu\"", "")), None);
 }

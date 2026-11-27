@@ -2,8 +2,9 @@
 # postinst of the package werkbank (contract rust/spec/paket, part A, "Skripte des Pakets").
 # Every step can be repeated and asks nothing. Steps 1, 2, 4 and 5 never stop the installation: no `set -e`, every step ends
 # with `|| true` or inside a function that returns 0, and a failed step writes one fixed line to the journal (no path, no
-# content). Two steps are the exception: step 1a (the session folders) ends with the fixed code 17 or 18 and step 3 (the enclosure) with the fixed
-# code 11 to 16, because a package without safe session folders or a carrying enclosure must not run. A program folder that the enclosure would
+# content). Three steps are the exception: step 1a (the session folders) ends with the fixed code 17 or 18, step 2 (the folders `dienst` and `gespraeche` of the user) with the
+# fixed code 29 or 30 and step 3 (the enclosure) with the fixed code 11 to 16, because a package without safe session folders, a safe folder for the list of the
+# sessions, a safe folder for the conversations or a carrying enclosure must not run. A program folder that the enclosure would
 # refuse (step 2a) is the code 19 as a journal line only: that harness is not entered and the installation goes on.
 # The exit code is 0 for every other case.
 
@@ -168,6 +169,43 @@ if [ -n "$nutzer" ]; then
     nutzerordner || log "werkbank: Nutzerordner konnte nicht angelegt werden"
 else
     log "werkbank: kein sudo-Nutzer, Nutzerordner nicht angelegt"
+fi
+
+# Step 2 (end): $DATEN/<user>/dienst (the user, 0700) holds the list of the sessions of the core service (`lauf.bestand` of kern.json is $DATEN/<user>/dienst/bestand.json;
+# contract dienst DI-L5). The same checks as the folders of step 1a, with the fixed code 29: a folder that exists with a foreign owner, a wrong mode or as a symlink, or that is no
+# folder, stops the installation (nothing is changed, no symlink is followed; else the core service would start with exit 3). A missing folder is created and checked again.
+# The file bestand.json is made only by the core service: postinst never creates, reads or changes it (an update leaves it byte for byte as it is); purge removes it with $DATEN.
+# --- dienstordner begin
+dienstordner() {
+    do_uid=$(id -u "$nutzer" 2>/dev/null) || fail 29 "die uid des Nutzers ist nicht lesbar"
+    case "$do_uid" in "" | *[!0-9]*) fail 29 "die uid des Nutzers ist nicht lesbar" ;; esac
+    do_gid=$(id -g "$nutzer" 2>/dev/null) || fail 29 "die gid des Nutzers ist nicht lesbar"
+    case "$do_gid" in "" | *[!0-9]*) fail 29 "die gid des Nutzers ist nicht lesbar" ;; esac
+    so_sicher "$DATEN/$nutzer/dienst" "$do_uid" "$do_gid" 700 29
+    return 0
+}
+# --- dienstordner end
+if [ -n "$nutzer" ]; then
+    dienstordner
+fi
+
+# Step 2 (end, second part): $DATEN/<user>/gespraeche (the user, 0700) holds the conversations of the sessions, one folder `<session>/` each (`gespraeche` of lauf.json and `lauf.gespraeche`
+# of kern.json have exactly this value; contract start, "Ablage des Gesprächs"). The same checks as the folders of step 1a, with the fixed code 30: a folder that exists with a foreign
+# owner, a wrong mode or as a symlink, or that is no folder, stops the installation (nothing is changed, no symlink is followed; else every start of a session ends in werkbank-lauf).
+# A missing folder is created and checked again. What lies in it is made only by werkbank-lauf: postinst never creates, reads or changes an entry (an update leaves it byte for byte
+# as it is); purge removes it with $DATEN.
+# --- gespraecheordner begin
+gespraecheordner() {
+    go_uid=$(id -u "$nutzer" 2>/dev/null) || fail 30 "die uid des Nutzers ist nicht lesbar"
+    case "$go_uid" in "" | *[!0-9]*) fail 30 "die uid des Nutzers ist nicht lesbar" ;; esac
+    go_gid=$(id -g "$nutzer" 2>/dev/null) || fail 30 "die gid des Nutzers ist nicht lesbar"
+    case "$go_gid" in "" | *[!0-9]*) fail 30 "die gid des Nutzers ist nicht lesbar" ;; esac
+    so_sicher "$DATEN/$nutzer/gespraeche" "$go_uid" "$go_gid" 700 30
+    return 0
+}
+# --- gespraecheordner end
+if [ -n "$nutzer" ]; then
+    gespraecheordner
 fi
 
 # Step 2a: /etc/werkbank/lauf.json, the own configuration of werkbank-lauf (contract rust/spec/paket, "lauf.json"; form in
@@ -428,7 +466,7 @@ lk_text() {
     [ -n "$LK_COPILOT" ] && harness="\"copilot\":\"$LK_COPILOT\""
     [ -n "$LK_PI" ] && harness="$harness${harness:+,}\"pi\":\"$LK_PI\""
     printf '{"fassung":1,"einstellungen":"%s/einstellungen.json","vault":"%s/vorfuehr-vault","protokoll":"%s/protokoll","zustand":"%s",' "$o" "$o" "$o" "$o"
-    printf '"laufzeit":"%s/l/%s","sitzungen":"%s/s/%s","heim":"%s","path":"%s",' "$DATEN" "$uid" "$DATEN" "$uid" "$heim" "$p"
+    printf '"laufzeit":"%s/l/%s","sitzungen":"%s/s/%s","gespraeche":"%s/gespraeche","heim":"%s","path":"%s",' "$DATEN" "$uid" "$DATEN" "$uid" "$o" "$heim" "$p"
     printf '"programme":{"rangkern":"/usr/lib/werkbank/rangkern","modellweg":"/usr/lib/werkbank/werkbank-modellweg","kind":"/usr/lib/werkbank/werkbank-lauf-kind","such_mcp":"/usr/lib/werkbank/such-mcp","weiter":"/usr/lib/werkbank/einschluss-weiter"},'
     printf '"harness":{%s},"programmordner":[%s],' "$harness" "$liste"
     printf '"schluessel":{"copilot":"%s/copilot.schluessel","lokal":"%s/modellweg.schluessel"},"ca_zulassung":"%s"}\n' "$o" "$o" "$ca"
@@ -484,6 +522,10 @@ fi
 # `lauf.ziellisten` is the folder in which werkbank-lauf writes the target list of a session (<zustand>/sitzungen, $DATEN/<user>/sitzungen): the core service also skips every
 # session number whose <ziellisten>/s-<n>.zielliste.json exists (only lstat). Reference: rust/spec/paket/referenz.py `dienstkonfig`.
 # `lauf.marker_datei` is /run/user/<uid>/werkbank-probelauf/marker.json (the file of the trial run; the runner creates it and removes it at the end), `lauf.marker_ordner` is $DATEN/z/<uid> (the count folder of step 1a), both for the same uid as `lauf.sitzungen`.
+# `lauf.bestand` is $DATEN/<user>/dienst/bestand.json (by the name like `lauf.einstellungen`, not by the uid): the file of the list of the sessions of the core service (contract dienst DI-L5);
+# its folder `dienst` is made and checked in step 2 (code 29), the file only by the core service.
+# `lauf.gespraeche` is $DATEN/<user>/gespraeche (by the name like `lauf.ziellisten`, not by the uid) and exactly the value of `gespraeche` of lauf.json: the core service counts
+# `<gespraeche>/s-<n>` as taken (contract dienst, DI12 point 15); the folder is made and checked in step 2 (code 30), what lies in it only by werkbank-lauf.
 # Admin fields (contract "Welche Felder der Admin setzt"): `lauf.groesse` of kern.json and `port` of bruecke.json keep the value that an administrator set,
 # like `ca_zulassung` of lauf.json: the old file is read as JSON text with POSIX tools (`tr`, `grep`, `sed`): any white space around ":" and inside the pair is fine; the key
 # must stand exactly once and the value must have the valid form, else the default and one fixed journal line (no path, no content). Every other field is made again.
@@ -544,7 +586,7 @@ dk_kern_text() {
     dk_groesse_lesen
     printf '{"socket":{"ordner":"%s/werkbank","name":"dienst.sock"},"betrachter":{"person":"%s","raum":"werkbank","ansicht":"browser"},"deflate":true,' "$run" "$nutzer"
     printf '"lauf":{"programm":"/usr/lib/werkbank/werkbank-lauf","env":{"TERM":"xterm-256color"},"groesse":[%s,%s],"einstellungen":"%s/%s/einstellungen.json","sitzungen":"%s/s/%s",' "$DK_SPALTEN" "$DK_ZEILEN" "$DATEN" "$nutzer" "$DATEN" "$uid"
-    printf '"marker_datei":"%s/werkbank-probelauf/marker.json","marker_ordner":"%s/z/%s","ziellisten":"%s/%s/sitzungen","laufzeit":"%s/l/%s"},' "$run" "$DATEN" "$uid" "$DATEN" "$nutzer" "$DATEN" "$uid"
+    printf '"marker_datei":"%s/werkbank-probelauf/marker.json","marker_ordner":"%s/z/%s","ziellisten":"%s/%s/sitzungen","laufzeit":"%s/l/%s","bestand":"%s/%s/dienst/bestand.json","gespraeche":"%s/%s/gespraeche"},' "$run" "$DATEN" "$uid" "$DATEN" "$nutzer" "$DATEN" "$uid" "$DATEN" "$nutzer" "$DATEN" "$nutzer"
     printf '"anfang":{"personen":{"%s":{"art":"mensch","rolle":"nutzer"}},"sitzungen":[]}}\n' "$nutzer"
 }
 

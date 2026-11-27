@@ -549,7 +549,7 @@ def laufkonfig(fall):
     if fall.get("antwort") in ("zugelassen", "offen", "abgelehnt"):
         ca = fall["antwort"]
     return {"fassung": 1, "einstellungen": f"{o}/einstellungen.json", "vault": f"{o}/vorfuehr-vault", "protokoll": f"{o}/protokoll", "zustand": o,
-            "laufzeit": f"{LAUF_DATEN}/l/{uid}", "sitzungen": f"{LAUF_DATEN}/s/{uid}", "heim": heim, "path": lauf_path(harness),
+            "laufzeit": f"{LAUF_DATEN}/l/{uid}", "sitzungen": f"{LAUF_DATEN}/s/{uid}", "gespraeche": f"{o}/gespraeche", "heim": heim, "path": lauf_path(harness),
             "programme": {"rangkern": "/usr/lib/werkbank/rangkern", "modellweg": "/usr/lib/werkbank/werkbank-modellweg", "kind": "/usr/lib/werkbank/werkbank-lauf-kind",
                           "such_mcp": "/usr/lib/werkbank/such-mcp", "weiter": "/usr/lib/werkbank/einschluss-weiter"},
             "harness": {n: harness[n]["programm"] for n in LAUF_HARNESS if n in harness},
@@ -597,7 +597,7 @@ def dienstkonfig(fall):
     or None when it writes no file (no user, no number). `<run>` is /run/user/<uid>. The environment of the sessions is exactly TERM (contract 1,
     "Aufruf Lauf starten"). `lauf.sitzungen` of kern.json is the same value as `sitzungen` of lauf.json (`laufkonfig`): the core service hands out no
     session id whose folder still exists there (a missing field is an error of the package). `lauf.marker_datei` is `<run>/werkbank-probelauf/marker.json` (the file of the
-    trial run, only for it) and `lauf.marker_ordner` is `/var/lib/werkbank/z/<uid>` (the count folder, created by postinst); both fields belong to the package. `lauf.ziellisten` is the folder of the target lists of the sessions, `<zustand>/sitzungen` of lauf.json (`/var/lib/werkbank/<nutzer>/sitzungen`): the core service skips every session number whose `<ziellisten>/s-<n>.zielliste.json` exists. `lauf.laufzeit` is `laufzeit` of lauf.json (`/var/lib/werkbank/l/<uid>`). Both files carry `deflate` true: the bridge sends the value of the service as X-Deflate (contract bruecke, BR1)."""
+    trial run, only for it) and `lauf.marker_ordner` is `/var/lib/werkbank/z/<uid>` (the count folder, created by postinst); both fields belong to the package. `lauf.ziellisten` is the folder of the target lists of the sessions, `<zustand>/sitzungen` of lauf.json (`/var/lib/werkbank/<nutzer>/sitzungen`): the core service skips every session number whose `<ziellisten>/s-<n>.zielliste.json` exists. `lauf.laufzeit` is `laufzeit` of lauf.json (`/var/lib/werkbank/l/<uid>`). `lauf.bestand` is `/var/lib/werkbank/<nutzer>/dienst/bestand.json` (by the name like `lauf.einstellungen`; the folder `dienst` is made by postinst, the file only by the core service). `lauf.gespraeche` is `/var/lib/werkbank/<nutzer>/gespraeche` (by the name like `lauf.ziellisten`) and exactly `gespraeche` of lauf.json (`laufkonfig`): the core service counts `<gespraeche>/s-<n>` as taken; the folder is made by postinst, what lies in it only by werkbank-lauf. Both files carry `deflate` true: the bridge sends the value of the service as X-Deflate (contract bruecke, BR1)."""
     nutzer, uid = fall.get("nutzer"), fall.get("uid")
     if not nutzer or not isinstance(uid, int) or uid < 0:
         return None
@@ -609,7 +609,8 @@ def dienstkonfig(fall):
                  "lauf": {"programm": "/usr/lib/werkbank/werkbank-lauf", "env": {"TERM": "xterm-256color"}, "groesse": groesse,
                           "einstellungen": f"{LAUF_DATEN}/{nutzer}/einstellungen.json", "sitzungen": f"{LAUF_DATEN}/s/{uid}",
                           "marker_datei": f"{run}/werkbank-probelauf/marker.json", "marker_ordner": f"{LAUF_DATEN}/z/{uid}",
-                          "ziellisten": f"{LAUF_DATEN}/{nutzer}/sitzungen", "laufzeit": f"{LAUF_DATEN}/l/{uid}"},
+                          "ziellisten": f"{LAUF_DATEN}/{nutzer}/sitzungen", "laufzeit": f"{LAUF_DATEN}/l/{uid}",
+                          "bestand": f"{LAUF_DATEN}/{nutzer}/dienst/bestand.json", "gespraeche": f"{LAUF_DATEN}/{nutzer}/gespraeche"},
                  "anfang": {"personen": {nutzer: {"art": "mensch", "rolle": "nutzer"}}, "sitzungen": []}},
         "bruecke": {"dienst": {"socket": f"{run}/werkbank/dienst.sock"}, "port": port, "token_datei": f"{run}/werkbank/bruecke.token",
                     "port_datei": f"{run}/werkbank/bruecke.port", "deflate": True},

@@ -18,10 +18,12 @@
     "art": "Starten",
     "start": {
      "arbeitsordner": "/home/beispiel/pröjekt",
-     "fassung": 1,
+     "effort": null,
+     "fassung": 2,
      "harness": "claude",
      "kunde": "k-beispiel",
      "modell": "claude-sonnet-5-5",
+     "name": null,
      "route": "cloud-beispiel"
     }
    }
@@ -57,10 +59,12 @@
     "art": "Starten",
     "start": {
      "arbeitsordner": "/home/beispiel/pröjekt",
-     "fassung": 1,
+     "effort": null,
+     "fassung": 2,
      "harness": "claude",
      "kunde": "k-beispiel",
      "modell": "claude-sonnet-5-5",
+     "name": null,
      "route": "cloud-beispiel"
     }
    }

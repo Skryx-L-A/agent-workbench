@@ -52,7 +52,7 @@ fn the_folder_of_a_bare_start_file_name_is_the_current_folder() {
 
 #[test]
 fn the_folders_of_the_key_files_and_of_the_settings_are_protected_once() {
-    let text = r#"{"fassung":1,"einstellungen":"/srv/beispiel/einst/e.json","vault":"/srv/beispiel/vault","protokoll":"/srv/beispiel/log","zustand":"/srv/beispiel/zustand","laufzeit":"/run/wb","sitzungen":"/srv/beispiel/s","heim":"/srv/beispiel/heim","path":"/usr/bin:/bin","programme":{"rangkern":"/usr/lib/werkbank/rangkern","modellweg":"/usr/lib/werkbank/werkbank-modellweg","kind":"/usr/lib/werkbank/werkbank-lauf-kind","such_mcp":"/usr/lib/werkbank/such-mcp","weiter":"/usr/lib/werkbank/einschluss-weiter"},"harness":{"pi":"/srv/beispiel/bin/pi"},"programmordner":["/srv/beispiel/bin"],"schluessel":{"lokal":"/srv/beispiel/k/lokal","cloud":"/srv/beispiel/k/cloud","im-zustand":"/srv/beispiel/zustand/x","an-der-wurzel":"/wurzel"},"ca_zulassung":"offen"}"#;
+    let text = r#"{"fassung":1,"einstellungen":"/srv/beispiel/einst/e.json","vault":"/srv/beispiel/vault","protokoll":"/srv/beispiel/log","zustand":"/srv/beispiel/zustand","laufzeit":"/run/wb","sitzungen":"/srv/beispiel/s","gespraeche":"/srv/beispiel/zustand/gespraeche","heim":"/srv/beispiel/heim","path":"/usr/bin:/bin","programme":{"rangkern":"/usr/lib/werkbank/rangkern","modellweg":"/usr/lib/werkbank/werkbank-modellweg","kind":"/usr/lib/werkbank/werkbank-lauf-kind","such_mcp":"/usr/lib/werkbank/such-mcp","weiter":"/usr/lib/werkbank/einschluss-weiter"},"harness":{"pi":"/srv/beispiel/bin/pi"},"programmordner":["/srv/beispiel/bin"],"schluessel":{"lokal":"/srv/beispiel/k/lokal","cloud":"/srv/beispiel/k/cloud","im-zustand":"/srv/beispiel/zustand/x","an-der-wurzel":"/wurzel"},"ca_zulassung":"offen"}"#;
     let k = crate::konfig::lesen_text(text.as_bytes()).expect("configuration");
     let p = |t: &str| PathBuf::from(t);
     let liste = geschuetzte_ordner(
@@ -67,6 +67,7 @@ fn the_folders_of_the_key_files_and_of_the_settings_are_protected_once() {
             p("/srv/beispiel/log"),
             p("/srv/beispiel/start"),
             p("/srv/beispiel/zustand"),
+            p("/srv/beispiel/zustand/gespraeche"),
             p("/run/wb"),
             p("/srv/beispiel/zaehl"),
             p("/srv/beispiel/einst"),
@@ -75,7 +76,7 @@ fn the_folders_of_the_key_files_and_of_the_settings_are_protected_once() {
         "the folder of the settings and of the keys, once each; neither the state folder again nor the root"
     );
     let ohne = geschuetzte_ordner(&k, Path::new("/srv/beispiel/start"), None);
-    assert_eq!(ohne.len(), 7);
+    assert_eq!(ohne.len(), 8);
 }
 
 // Linux only: the count of threads is read from `/proc/self/status` (kind.rs `faeden`); macOS has no `/proc`, so the
@@ -285,13 +286,14 @@ fn welt(w: &Path) -> PathBuf {
     schreiben(&w.join("k/cloud"), "schluessel\n", 0o600);
     let t = |p: &str| w.join(p).display().to_string();
     let konfig = format!(
-        r#"{{"fassung":1,"einstellungen":"{}","vault":"{}","protokoll":"{}","zustand":"{}","laufzeit":"{}","sitzungen":"{}","heim":"{}","path":"/usr/bin:/bin","programme":{{"rangkern":"{}","modellweg":"{}","kind":"{}","such_mcp":"/usr/lib/werkbank/such-mcp","weiter":"/usr/lib/werkbank/einschluss-weiter"}},"harness":{{"pi":"{}","copilot":"{}"}},"programmordner":["{}"],"schluessel":{{"lokal-beispiel":"{}","cloud-beispiel":"{}"}},"ca_zulassung":"offen"}}"#,
+        r#"{{"fassung":1,"einstellungen":"{}","vault":"{}","protokoll":"{}","zustand":"{}","laufzeit":"{}","sitzungen":"{}","gespraeche":"{}","heim":"{}","path":"/usr/bin:/bin","programme":{{"rangkern":"{}","modellweg":"{}","kind":"{}","such_mcp":"/usr/lib/werkbank/such-mcp","weiter":"/usr/lib/werkbank/einschluss-weiter"}},"harness":{{"pi":"{}","copilot":"{}"}},"programmordner":["{}"],"schluessel":{{"lokal-beispiel":"{}","cloud-beispiel":"{}"}},"ca_zulassung":"offen"}}"#,
         t("einst/e.json"),
         t("vault"),
         t("protokoll"),
         t("zustand"),
         t("laufzeit"),
         t("sitzungen"),
+        t("zustand/gespraeche"),
         t("heim"),
         t("bin/rangkern"),
         t("bin/modellweg"),
@@ -336,6 +338,7 @@ fn lage(w: &Path, harness: &str, route: &str, marker: Option<&Path>) -> Lage {
         konfig,
         startordner: w.join("start"),
         ordner: w.join("arbeit"),
+        fortsetzung: None,
     }
 }
 
@@ -701,11 +704,24 @@ fn the_description_names_the_harness_its_folders_and_the_exit() {
         term: Some("xterm".to_owned()),
         xdg_cache: None,
     };
-    let mut angelegt = None;
+    let mut angelegt = Kinder::default();
     let b = beschreibung_bauen(&l, &umgebung, &sockel, None, None, None, &mut angelegt)
         .expect("description");
-    assert_eq!(angelegt, Some(w.join("sitzungen/s-1")));
+    assert_eq!(angelegt.sitzung, Some(w.join("sitzungen/s-1")));
     assert!(w.join("sitzungen/s-1/zustand").is_dir());
+    // version 1: the conversation without a key and without a state folder of its own; no session option
+    assert_eq!(
+        std::fs::read_to_string(w.join("zustand/gespraeche/s-1/gespraech.json")).expect("file"),
+        format!(
+            "{{\"fassung\":1,\"harness\":\"pi\",\"arbeitsordner\":\"{}\",\"kennung\":null}}\n",
+            w.join("arbeit").display()
+        )
+    );
+    assert!(!w.join("zustand/gespraeche/s-1/zustand").exists());
+    assert_eq!(b.zustand.host, w.join("sitzungen/s-1/zustand"));
+    assert!(!b.zustand.fortsetzen);
+    assert!(!b.argv.iter().any(|a| a.starts_with("--session")));
+    assert_eq!(angelegt.umbenannt, None);
     assert_eq!(b.harness, "pi");
     assert_eq!(b.arbeitsordner, w.join("arbeit"));
     assert_eq!(b.such_socket, sockel.join("such.sock"));
@@ -718,19 +734,19 @@ fn the_description_names_the_harness_its_folders_and_the_exit() {
     assert_eq!(b.cloud, None);
     assert_eq!(b.umgebung.term, "xterm");
     // a session that ran before: its folder exists
-    let mut zweites = None;
+    let mut zweites = Kinder::default();
     assert_eq!(
         beschreibung_bauen(&l, &umgebung, &sockel, None, None, None, &mut zweites).map(|_| ()),
         Err(Fehler::SitzungBelegt)
     );
-    assert_eq!(zweites, None, "a refused name is never recorded");
+    assert_eq!(zweites.sitzung, None, "a refused name is never recorded");
     // the cloud route: no forwarder of the local route; with the bundle and the distribution the cloud exit
     let o2 = crate::testhilfe::Ordner::neu("beschreibung-cloud");
     let l = lage(&o2.0, "copilot", "cloud-beispiel", None);
     let teile = CloudTeile {
         bundle: o2.0.join("start/ca-bundle.pem"),
     };
-    let mut angelegt = None;
+    let mut angelegt = Kinder::default();
     let b = beschreibung_bauen(
         &l,
         &umgebung,
@@ -750,10 +766,14 @@ fn the_description_names_the_harness_its_folders_and_the_exit() {
     let o3 = crate::testhilfe::Ordner::neu("beschreibung-nein");
     let l = lage(&o3.0, "pi", "lokal-beispiel", None);
     schreiben(&o3.0.join("bin/pi"), "x", 0o644);
-    let mut angelegt = None;
+    let mut angelegt = Kinder::default();
     assert_eq!(
         beschreibung_bauen(&l, &umgebung, &sockel, None, None, None, &mut angelegt).map(|_| ()),
         Err(Fehler::HarnessFehlt)
+    );
+    assert!(
+        !o3.0.join("zustand/gespraeche/s-1").exists(),
+        "a start that fails before the conversation makes none"
     );
 }
 
@@ -820,8 +840,23 @@ fn start_text_f2(w: &Path, fortsetzung_von: &str) -> String {
     )
 }
 
+/// A conversation `gespraeche/<sitzung>` of the world `w` for `pi` in the working folder of the world.
+fn gespraech_legen(w: &Path, sitzung: &str, kennung: &str) {
+    ordner_0700(&w.join("zustand/gespraeche"));
+    let o = w.join("zustand/gespraeche").join(sitzung);
+    ordner_0700(&o);
+    schreiben(
+        &o.join("gespraech.json"),
+        &format!(
+            r#"{{"fassung":1,"harness":"pi","arbeitsordner":"{}","kennung":{kennung}}}"#,
+            w.join("arbeit").display()
+        ),
+        0o600,
+    );
+}
+
 #[test]
-fn step_5d_refuses_every_start_that_continues_a_conversation_with_69() {
+fn step_5d_ends_a_start_that_continues_without_a_conversation_with_66() {
     let o = crate::testhilfe::Ordner::neu("fortsetzung");
     let w = &o.0;
     let konfig = welt(w);
@@ -830,14 +865,54 @@ fn step_5d_refuses_every_start_that_continues_a_conversation_with_69() {
     let args = [start.into_os_string()];
     let fehler = pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich()))
         .map(|_| ())
-        .expect_err("a start that continues must end at step 5d");
-    assert_eq!(fehler, Fehler::FortsetzungUnmoeglich);
+        .expect_err("a start that continues nothing must end at step 5d");
+    assert_eq!(fehler, Fehler::FortsetzungFehlt);
     assert_eq!(
         (fehler.exitcode(), fehler.zeile().as_str()),
         (
-            69,
-            "lauf.fortsetzung_unmoeglich: Gespraech nicht fortsetzbar\n"
+            66,
+            "lauf.fortsetzung_fehlt: Gespraech der Vorgaengersitzung fehlt\n"
         )
+    );
+    // with the conversation of the predecessor the check passes and carries its key; nothing is renamed yet
+    let k = "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b";
+    gespraech_legen(w, "s-1", &format!("\"{k}\""));
+    let l = pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich()))
+        .unwrap_or_else(|f| panic!("{f:?}"));
+    assert_eq!(
+        l.fortsetzung,
+        Some(gespraech::Fortsetzung {
+            alt: "s-1".to_owned(),
+            kennung: k.to_owned()
+        })
+    );
+    assert!(w.join("zustand/gespraeche/s-1").is_dir());
+    assert!(!w.join("zustand/gespraeche/s-4").exists());
+}
+
+#[cfg(feature = "pruefbau")]
+#[test]
+fn step_5d_takes_a_harness_without_an_option_to_continue_as_69() {
+    let o = crate::testhilfe::Ordner::neu("ohne-fortsetzen");
+    let w = &o.0;
+    let konfig = welt(w);
+    let text = std::fs::read_to_string(&konfig).expect("configuration");
+    schreiben(
+        &konfig,
+        &text.replacen(
+            r#""ca_zulassung":"offen""#,
+            r#""ca_zulassung":"offen","ohne_fortsetzen":["pi"]"#,
+            1,
+        ),
+        0o600,
+    );
+    gespraech_legen(w, "s-1", r#""6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b""#);
+    let start = w.join("start/start.json");
+    schreiben(&start, &start_text_f2(w, r#""s-1""#), 0o600);
+    let args = [start.into_os_string()];
+    assert_eq!(
+        pruefen_mit(&args, || Some(konfig.clone()), || Ok(vorgabe_gleich())).map(|_| ()),
+        Err(Fehler::FortsetzungUnmoeglich)
     );
 }
 
@@ -853,6 +928,7 @@ fn step_5d_lets_a_new_start_of_version_2_pass() {
         .unwrap_or_else(|f| panic!("{f:?}"));
     assert_eq!(l.start.fortsetzung_von(), None);
     assert_eq!(l.start.sitzung(), "s-4");
+    assert_eq!(l.fortsetzung, None);
 }
 
 /// The default of the firm equal to the settings of the world.

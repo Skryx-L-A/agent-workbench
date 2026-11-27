@@ -2,7 +2,7 @@
 
 use super::*;
 
-const GUT: &str = r#"{"fassung":1,"einstellungen":"/srv/beispiel/e.json","vault":"/srv/beispiel/vault","protokoll":"/srv/beispiel/log","zustand":"/srv/beispiel/zustand","laufzeit":"/run/wb","sitzungen":"/srv/beispiel/s","heim":"/srv/beispiel/heim","path":"/usr/bin:/bin","programme":{"rangkern":"/usr/lib/werkbank/rangkern","modellweg":"/usr/lib/werkbank/werkbank-modellweg","kind":"/usr/lib/werkbank/werkbank-lauf-kind","such_mcp":"/usr/lib/werkbank/such-mcp","weiter":"/usr/lib/werkbank/einschluss-weiter"},"harness":{"pi":"/srv/beispiel/bin/pi","copilot":"/srv/beispiel/bin/copilot"},"programmordner":["/srv/beispiel/bin"],"schluessel":{"lokal":"/srv/beispiel/k/lokal"},"ca_zulassung":"offen"}"#;
+const GUT: &str = r#"{"fassung":1,"einstellungen":"/srv/beispiel/e.json","vault":"/srv/beispiel/vault","protokoll":"/srv/beispiel/log","zustand":"/srv/beispiel/zustand","laufzeit":"/run/wb","sitzungen":"/srv/beispiel/s","gespraeche":"/srv/beispiel/zustand/gespraeche","heim":"/srv/beispiel/heim","path":"/usr/bin:/bin","programme":{"rangkern":"/usr/lib/werkbank/rangkern","modellweg":"/usr/lib/werkbank/werkbank-modellweg","kind":"/usr/lib/werkbank/werkbank-lauf-kind","such_mcp":"/usr/lib/werkbank/such-mcp","weiter":"/usr/lib/werkbank/einschluss-weiter"},"harness":{"pi":"/srv/beispiel/bin/pi","copilot":"/srv/beispiel/bin/copilot"},"programmordner":["/srv/beispiel/bin"],"schluessel":{"lokal":"/srv/beispiel/k/lokal"},"ca_zulassung":"offen"}"#;
 
 #[test]
 fn a_valid_configuration_is_read_into_its_fields() {

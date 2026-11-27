@@ -1598,16 +1598,18 @@ impl Dienst {
         };
         // DI-L1 point 2: the form of `orchestrator` and `rolle` is checked after stages 1 to 13 (in `starten_mit`)
         let worker = worker_form(ereignis);
-        self.starten_mit(nr, &start, worker);
+        self.starten_mit(nr, &start, worker, None);
     }
 
-    /// The way of `Starten` from DI12 point 3.1 on. `worker` is the orchestrator and the role (DI-L1).
+    /// The way of `Starten` from DI12 point 3.1 on, for `Starten`, `Fortsetzen` and `Wiederbeleben` (DI-L3 points 2 and 3). `worker`
+    /// is the orchestrator and the role (DI-L1); `alt` is the session that `Fortsetzen` or `Wiederbeleben` continues.
     #[allow(clippy::too_many_lines)] // the checks of DI12 point 3 in the order of the contract
     pub(crate) fn starten_mit(
         &mut self,
         nr: u64,
         start: &Value,
         worker: Result<Option<(String, String)>, Abgelehnt>,
+        alt: Option<&str>,
     ) {
         let Some(lauf) = self.cfg.lauf.clone() else {
             return;
@@ -1665,13 +1667,31 @@ impl Dienst {
             return self.start_ablehnen(nr, &Abgelehnt::fest("nummern_erschoepft"));
         };
         let kennung = format!("s-{n}");
-        let Ok((ordner, datei)) = ordner_anlegen(
+        // DI-L3 point 2: the start file of a continued session names the old one (`fortsetzung_von`), written by the crate `start`
+        #[cfg(unix)]
+        let angelegt = ordner_anlegen(
             Path::new(&self.cfg.ordner),
             self.wurzel.as_fd(),
             &kennung,
             &anfrage,
             self.marker.as_ref(),
-        ) else {
+            alt,
+        );
+        // not under Unix there is no continuing yet: the start is refused before anything is made (fail closed)
+        #[cfg(not(unix))]
+        let angelegt = alt.map_or_else(
+            || {
+                ordner_anlegen(
+                    Path::new(&self.cfg.ordner),
+                    self.wurzel.as_fd(),
+                    &kennung,
+                    &anfrage,
+                    self.marker.as_ref(),
+                )
+            },
+            |_| Err(()),
+        );
+        let Ok((ordner, datei)) = angelegt else {
             return self.start_ablehnen(nr, &Abgelehnt::fest("start_ordner"));
         };
         let (kind, meldung) = match self.lauf_starten(&kennung, &ordner, &datei) {
@@ -1709,8 +1729,20 @@ impl Dienst {
         );
         sitzung.arbeitsordner = Some(PathBuf::from(arbeitsordner_von(&anfrage)));
         angaben_setzen(&mut sitzung, &anfrage, start, worker);
+        // DI-L3 point 2: the new session names the old one and takes its name; the old one names the new one once it is in the list
+        let vorher = alt.and_then(|a| self.finde(a));
+        if let (Some(a), Some(v)) = (alt, vorher) {
+            sitzung.angaben.fortsetzung_von = Some(a.to_owned());
+            sitzung
+                .angaben
+                .name
+                .clone_from(&self.sitzungen[v].angaben.name);
+        }
         if !self.gestartet_aufnehmen(sitzung, nr, n, nummer) {
             return;
+        }
+        if let Some(v) = vorher {
+            self.sitzungen[v].angaben.fortgesetzt_als = Some(kennung.clone());
         }
         let k = self.sitzungen.len() - 1;
         let t = self.jetzt();

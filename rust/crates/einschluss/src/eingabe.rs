@@ -7,7 +7,8 @@
 //! caller cannot bind a path of its own through it.
 //!
 //! ```text
-//! { "harness": str, "arbeitsordner": str, "programmordner": [str], "zustand": {"host": str, "name": str},
+//! { "harness": str, "arbeitsordner": str, "programmordner": [str],
+//!   "zustand": {"host": str, "name": str, "art": "neu"|"fortsetzen"},
 //!   "heim": str, "such_socket": str, "modell_socket": str|null, "lokal_weiter": str|null,
 //!   "cloud": null | {"weiterreicher": str, "weiter_programm": str, "bundle": str, "verteilung": "ubuntu"|"arch"},
 //!   "paket": null | {"quelle": str, "plattform": str, "fassung": str},
@@ -157,6 +158,11 @@ pub fn beschreibung_lesen(bytes: &[u8], system: System) -> Option<Beschreibung> 
     let zustand = Zustand {
         host: z.pfad("host")?,
         name: z.text("name")?,
+        fortsetzen: match z.text("art")?.as_str() {
+            "neu" => false,
+            "fortsetzen" => true,
+            _ => return None,
+        },
     };
     z.fertig()?;
     let heim = f.pfad("heim")?;
@@ -223,6 +229,11 @@ fn feld(aus: &mut String, name: &str, erstes: bool) {
     aus.push(':');
 }
 
+/// The word of the field `art` of the state folder: `fortsetzen` for a continued conversation, else `neu`.
+fn zustand_art(fortsetzen: bool) -> &'static str {
+    if fortsetzen { "fortsetzen" } else { "neu" }
+}
+
 /// The text form of a description (the field `system` is left out: the starter reads the host itself). The caller
 /// puts these bytes on the descriptor of the starter.
 #[must_use]
@@ -240,6 +251,8 @@ pub fn beschreibung_schreiben(b: &Beschreibung) -> String {
     pfad_text(&mut s, &b.zustand.host);
     feld(&mut s, "name", false);
     text_schreiben(&mut s, &b.zustand.name);
+    feld(&mut s, "art", false);
+    text_schreiben(&mut s, zustand_art(b.zustand.fortsetzen));
     s.push('}');
     feld(&mut s, "heim", false);
     pfad_text(&mut s, &b.heim);

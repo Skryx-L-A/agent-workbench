@@ -971,6 +971,7 @@ AUFRUFE_N2 += [
 AUFRUFE += AUFRUFE_N2
 
 
+
 # Start-Struktur Fassung 2 (Nachtrag 26.11.2026, L10): Felder effort und name. Das Crate start liest Fassung 2 (27.11.2026);
 # die Fälle stehen in faelle/ und erwartet/. Jede Erwartung rechnet die Referenz unten.
 EFFORTS = {  # Vertrag 2, Block effort (gemessen 26.11.2026 mit --help)
@@ -1052,7 +1053,6 @@ KENNUNG = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 OHNE = object()  # Marke für einen Schlüssel, der in der Datei fehlen soll
 COP2 = dict(COPILOT, fassung=2, effort="medium", name="Auswertung Q4")
 PI2 = dict(LOKAL, fassung=2, effort="low", name=None)
-AUSSTEHEND = []
 
 
 # Beispielordner der neuen Fälle (Projektentscheid, 27.11.2026): /heim/beispiel statt des Ordners unter home, damit die
@@ -1231,7 +1231,7 @@ LAGE_GRUND = {"argv": ["<programm>", "<start>"], "datei_modus": "0600", "datei_a
               "einschluss": True, "suche": "bereit", "harness_vorhanden": True}
 
 
-def ausstehend_aufruf(name, beschreibung, start, lage_mehr, soll_code=None, sitzung="s-4"):
+def aufruf_f2(name, beschreibung, start, lage_mehr, soll_code=None, sitzung="s-4"):
     start = heim(start)
     inhalt = {"fassung": 2, "sitzung": sitzung, **{k: v for k, v in start.items() if k != "fassung"}}
     lage = {**LAGE_GRUND, "einstellungen": EINST_EFFORT, "start": inhalt, **lage_mehr}
@@ -1239,7 +1239,8 @@ def ausstehend_aufruf(name, beschreibung, start, lage_mehr, soll_code=None, sitz
     ist_code = erwartet["stderr"].split(":")[0] if "exit" in erwartet else None
     if ist_code != soll_code:
         raise SystemExit(f"FEHLER {name}: Referenz {ist_code!r}, Tabelle {soll_code!r}")
-    AUSSTEHEND.append((name, {"beschreibung": beschreibung, "form": "aufruf", "lage": lage}, erwartet))
+    # seit dem Bau der Schritte 5d und 8 in lauf (27.11.2026) in faelle/; lauf/tests/faelle.rs liest sie
+    FAELLE.append((name, {"beschreibung": beschreibung, "form": "aufruf", "lage": lage}, erwartet))
 
 
 def gespraech(start, kennung=GESPRAECH_KENNUNG, **anders):
@@ -1247,30 +1248,40 @@ def gespraech(start, kennung=GESPRAECH_KENNUNG, **anders):
 
 
 CL2 = dict(CLOUD, fassung=2, effort=None, name=None)
-ausstehend_aufruf("aufruf-f2-neu-pi", "neuer Start der Fassung 2: der Harness bekommt eine neue Sitzungskennung",
+aufruf_f2("aufruf-f2-neu-pi", "neuer Start der Fassung 2: der Harness bekommt eine neue Sitzungskennung",
                   dict(PI2, fortsetzung_von=None), {}, sitzung="s-2")
 for _start in (CL2, COP2, PI2):
     _h = _start["harness"]
-    ausstehend_aufruf(f"aufruf-f2-fortsetzen-{_h}", f"{_h} setzt das Gespräch von s-1 fort",
+    aufruf_f2(f"aufruf-f2-fortsetzen-{_h}", f"{_h} setzt das Gespräch von s-1 fort",
                       dict(_start, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(_start)}})
-ausstehend_aufruf("aufruf-f2-fortsetzen-ohne-fortsetzung", "der Harness kennt keine Fortsetzung: Abbruch vor der Suche, kein Neustart",
+aufruf_f2("aufruf-f2-fortsetzen-ohne-fortsetzung", "der Harness kennt keine Fortsetzung: Abbruch vor der Suche, kein Neustart",
                   dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2)}, "harness_fortsetzung": "keine"},
                   "lauf.fortsetzung_unmoeglich")
-ausstehend_aufruf("aufruf-f2-fortsetzen-gespraech-fehlt", "zur Vorgängersitzung liegt kein Gespräch: kein stiller Neustart",
+aufruf_f2("aufruf-f2-fortsetzen-gespraech-fehlt", "zur Vorgängersitzung liegt kein Gespräch: kein stiller Neustart",
                   dict(COP2, fortsetzung_von="s-1"), {}, "lauf.fortsetzung_fehlt")
-ausstehend_aufruf("aufruf-f2-fortsetzen-vorgaenger-fassung-1",
+aufruf_f2("aufruf-f2-fortsetzen-vorgaenger-fassung-1",
                   "der Vorgänger ist eine Sitzung der Fassung 1 (Gespräch ohne Kennung): Abbruch vor der Suche, kein Neustart",
                   dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2, kennung=None)}},
                   "lauf.fortsetzung_unmoeglich")
-ausstehend_aufruf("aufruf-f2-fortsetzen-kennung-kaputt", "gespraech.json trägt keine UUID v4",
+aufruf_f2("aufruf-f2-fortsetzen-kennung-kaputt", "gespraech.json trägt keine UUID v4",
                   dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2, kennung="--yolo")}},
                   "lauf.fortsetzung_kaputt")
-ausstehend_aufruf("aufruf-f2-fortsetzen-fremder-harness", "das Gespräch gehört zu claude, der Start nennt copilot",
+aufruf_f2("aufruf-f2-fortsetzen-fremder-harness", "das Gespräch gehört zu claude, der Start nennt copilot",
                   dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(CL2)}}, "lauf.fortsetzung_fremd")
-ausstehend_aufruf("aufruf-f2-fortsetzen-neu-belegt", "zur neuen Sitzung liegt schon ein Gespräch",
+aufruf_f2("aufruf-f2-fortsetzen-neu-belegt", "zur neuen Sitzung liegt schon ein Gespräch",
                   dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2), "s-4": gespraech(COP2)}},
                   "lauf.sitzung_belegt")
 
+
+# Gespräch einer Sitzung der Fassung 1 (Absatz „Vorgänger der Fassung 1“, Entscheid des Betreibers, 27.11.2026): Schritt 8 legt
+# gespraeche/<sitzung>/ mit gespraech.json ("kennung": null) an, ohne Zustandsordner des Harness und ohne Sitzungsoption.
+AUFRUFE.append(("aufruf-f1-gespraech-ohne-kennung",
+                "Start der Fassung 1: das Gespräch trägt keine Kennung, der Harness bekommt keine Sitzungsoption",
+                {"start": datei(heim(LOKAL), "s-2"), "einstellungen": EINSTELLUNGEN_2},
+                {"exec": "pi", "harness_argv": ["pi", "--provider", "wb-lokal", "--model", "qwen3:8b"], "stderr": "",
+                 "suche_gestartet": True,
+                 "gespraeche_danach": {"s-2": {"fassung": 1, "harness": "pi", "arbeitsordner": heim(LOKAL)["arbeitsordner"],
+                                               "kennung": None}}}))
 
 def main():
     for teil in ("faelle", "erwartet"):
@@ -1288,15 +1299,14 @@ def main():
                             "suche": "bereit", "harness_vorhanden": True, **lage}}
         (HIER / "faelle" / f"{name}.json").write_text(text(eintrag), encoding="utf-8")
         (HIER / "erwartet" / f"{name}.json").write_text(text(erwartet), encoding="utf-8")
+    # faelle-ausstehend/ und erwartet-ausstehend/ gibt es seit dem Bau von lauf (27.11.2026) nicht mehr
     for teil in ("faelle-ausstehend", "erwartet-ausstehend"):
         ordner = HIER / teil
-        ordner.mkdir(exist_ok=True)
-        for alt in ordner.glob("*.json"):
-            alt.unlink()
-    for name, eintrag, erwartet in AUSSTEHEND:
-        (HIER / "faelle-ausstehend" / f"{name}.json").write_text(text(eintrag), encoding="utf-8")
-        (HIER / "erwartet-ausstehend" / f"{name}.json").write_text(text(erwartet), encoding="utf-8")
-    print(f"{len(FAELLE) + len(AUFRUFE)} Fälle und {len(AUSSTEHEND)} ausstehende Fälle geschrieben")
+        if ordner.is_dir():
+            for alt in ordner.glob("*.json"):
+                alt.unlink()
+            ordner.rmdir()
+    print(f"{len(FAELLE) + len(AUFRUFE)} Fälle geschrieben")
 
 
 if __name__ == "__main__":

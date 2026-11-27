@@ -26,7 +26,9 @@
     "marker_datei": "/run/user/4294967294/werkbank-probelauf/marker.json",
     "marker_ordner": "/var/lib/werkbank/z/4294967294",
     "ziellisten": "/var/lib/werkbank/n/sitzungen",
-    "laufzeit": "/var/lib/werkbank/l/4294967294"
+    "laufzeit": "/var/lib/werkbank/l/4294967294",
+    "bestand": "/var/lib/werkbank/n/dienst/bestand.json",
+    "gespraeche": "/var/lib/werkbank/n/gespraeche"
    },
    "anfang": {
     "personen": {

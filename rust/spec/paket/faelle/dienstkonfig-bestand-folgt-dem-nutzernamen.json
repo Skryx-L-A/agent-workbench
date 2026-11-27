@@ -1,0 +1,6 @@
+{
+ "beschreibung": "`lauf.bestand` ist die Datei der Sitzungsliste des Kerns: der Zustandsordner des Nutzers (nach dem Namen, nicht nach der uid) plus /dienst/bestand.json; sie liegt nicht in `lauf.sitzungen`, `lauf.ziellisten` oder `lauf.laufzeit`",
+ "form": "dienstkonfig",
+ "nutzer": "anna-b",
+ "uid": 77
+}

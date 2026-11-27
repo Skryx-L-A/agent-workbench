@@ -61,6 +61,12 @@ fn gut(ordner: &str) -> Value {
     json!({"fassung": 1, "harness": "claude", "modell": "m", "route": "cloud-beispiel", "kunde": "k-beispiel", "arbeitsordner": ordner})
 }
 
+/// The same start structure in version 2 (contract `start`, Nachtrag 26.11.2026): without effort and name.
+fn gut2(ordner: &str) -> Value {
+    json!({"fassung": 2, "harness": "claude", "modell": "m", "route": "cloud-beispiel", "kunde": "k-beispiel", "arbeitsordner": ordner,
+        "effort": null, "name": null})
+}
+
 /// Sends `e` and waits for `Gestartet` or a refusal; returns the identifier or the whole refusal.
 fn antwort(v: &mut Probe, e: &Value) -> Result<String, Value> {
     let (n, a) = (v.nachrichten.len(), v.ablehnungen_voll.len());
@@ -367,14 +373,16 @@ fn liste_umbenennen_und_absturz() {
     assert_eq!(p.warte_ende(Duration::from_secs(15)), Some(0));
 }
 
-/// DI-L3 points 2 and 3: the checks of `Fortsetzen` and `Wiederbeleben` answer like `Starten`. A session that passes them is
-/// `nicht_fortsetzbar` until the second version of the crate `start` writes `fortsetzung_von`; no session starts, nothing changes.
+/// DI-L3 points 2 and 3: `Fortsetzen` and `Wiederbeleben` start the stored structure of version 2 again with a new identifier,
+/// `fortsetzung_von` in `start.json` (written by the crate `start`), the name of the old session and the references in both entries;
+/// their checks answer like `Starten`. A session of version 1 is `nicht_fortsetzbar` (Nachtrag 27.11.2026).
 #[test]
+#[allow(clippy::too_many_lines)] // every reason of DI-L3 points 2 and 3 in the order of the contract, in one run of the service
 fn fortsetzen_und_wiederbeleben() {
     let w = Wegwerf::neu("fortsetzen");
     let mut p = Prozess::starten(&w, &lauf_start(&w, &json!({})));
     let mut v = Probe::neu(&w.socket(), false);
-    let s1 = starten(&mut v, &json!({"art": "Starten", "start": gut("/tmp")}));
+    let s1 = starten(&mut v, &json!({"art": "Starten", "start": gut2("/tmp")}));
     assert_eq!(
         grund(
             &mut v,
@@ -417,27 +425,74 @@ fn fortsetzen_und_wiederbeleben() {
         "nicht_abgestuerzt",
         "Sitzung ist nicht abgestürzt",
     );
-    let nicht = |v: &mut Probe, e: &Value| {
+    let s2 = starten(&mut v, &fort(&s1));
+    warte_datei(&w.0.join(format!("pid-{s2}")));
+    let datei: Value = serde_json::from_slice(
+        &std::fs::read(w.0.join(format!("start-{s2}.json")))
+            .expect("start.json of the new session"),
+    )
+    .expect("json");
+    assert_eq!(
+        (&datei["sitzung"], &datei["fortsetzung_von"]),
+        (&json!(s2), &json!(s1))
+    );
+    let erste: Value =
+        serde_json::from_slice(&std::fs::read(w.0.join(format!("start-{s1}.json"))).expect("read"))
+            .expect("json");
+    assert_eq!(
+        erste.get("fortsetzung_von"),
+        Some(&Value::Null),
+        "a plain start of version 2 has null: {erste}"
+    );
+    let alt = eintrag(&mut v, &s1).expect("old");
+    let neu = eintrag(&mut v, &s2).expect("new");
+    assert_eq!(alt["fortgesetzt_als"], json!(s2));
+    assert_eq!(
+        (&neu["fortsetzung_von"], &neu["name"]),
+        (&json!(s1), &json!("eins"))
+    );
+    start_abgelehnt(
+        &mut v,
+        &fort(&s1),
+        "schon_fortgesetzt",
+        "Sitzung ist schon fortgesetzt",
+    );
+    // a crashed session can be brought back; it continues the old one in the same way
+    ende(&w, &mut v, &s2, 7);
+    start_abgelehnt(
+        &mut v,
+        &fort(&s1),
+        "schon_fortgesetzt",
+        "Sitzung ist schon fortgesetzt",
+    );
+    let s3 = starten(&mut v, &wieder(&s2));
+    assert_eq!(
+        eintrag(&mut v, &s3).map(|s| s["fortsetzung_von"].clone()),
+        Some(json!(s2))
+    );
+    start_abgelehnt(
+        &mut v,
+        &wieder(&s2),
+        "schon_fortgesetzt",
+        "Sitzung ist schon fortgesetzt",
+    );
+    ende(&w, &mut v, &s3, 0);
+    // a session of version 1 passes every check and is not continued: no folder, no file, no number
+    let s4 = starten(&mut v, &json!({"art": "Starten", "start": gut("/tmp")}));
+    ende(&w, &mut v, &s4, 9);
+    let vorher = liste(&mut v).len();
+    for e in [fort(&s4), wieder(&s4)] {
         start_abgelehnt(
-            v,
-            e,
+            &mut v,
+            &e,
             "nicht_fortsetzbar",
             "Sitzung lässt sich nicht fortsetzen",
         );
-    };
-    nicht(&mut v, &fort(&s1));
-    // a crashed session passes the check of `Wiederbeleben` and is refused in the same way
-    let s2 = starten(&mut v, &json!({"art": "Starten", "start": gut("/tmp")}));
-    ende(&w, &mut v, &s2, 7);
-    nicht(&mut v, &wieder(&s2));
-    nicht(&mut v, &fort(&s2));
-    let ids: Vec<Value> = liste(&mut v).iter().map(|s| s["id"].clone()).collect();
-    assert_eq!(ids, vec![json!(s1), json!(s2)], "no session started");
-    assert!(
-        liste(&mut v)
-            .iter()
-            .all(|s| s.get("fortgesetzt_als").is_none() && s.get("fortsetzung_von").is_none())
-    );
+    }
+    assert_eq!(liste(&mut v).len(), vorher, "no session started");
+    let s5 = starten(&mut v, &json!({"art": "Starten", "start": gut2("/tmp")}));
+    assert_eq!(s5, "s-5", "no number was used");
+    ende(&w, &mut v, &s5, 0);
     p.signal("TERM");
     assert_eq!(p.warte_ende(Duration::from_secs(15)), Some(0));
 }

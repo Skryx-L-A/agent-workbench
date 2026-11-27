@@ -17,6 +17,7 @@ fn muster() -> Beschreibung {
         zustand: Zustand {
             host: PathBuf::from("/var/tmp/z/s-1"),
             name: ".claude".to_owned(),
+            fortsetzen: false,
         },
         heim: PathBuf::from("/home/u"),
         such_socket: PathBuf::from("/var/tmp/k/s-1/such.sock"),
@@ -372,10 +373,17 @@ fn a_mount_that_meets_a_protected_folder_is_refused() {
         abgelehnt(|b| b.programmordner.push("/var/lib/wb".into())),
         schutz
     );
+    // the state folder may lie below a protected folder (the conversations below the state folder of the
+    // installation), but it is never one and never holds one
+    let mut b = muster();
+    b.zustand.host = "/var/lib/wb/protokoll/z".into();
+    assert!(bauen(&b).is_ok());
     assert_eq!(
-        abgelehnt(|b| b.zustand.host = "/var/lib/wb/protokoll/z".into()),
+        abgelehnt(|b| b.zustand.host = "/var/lib/wb/protokoll".into()),
         schutz
     );
+    assert_eq!(abgelehnt(|b| b.zustand.host = "/var/lib/wb".into()), schutz);
+    assert_eq!(abgelehnt(|b| b.zustand.host = "/srv".into()), schutz);
     // a sibling that only shares a text prefix is no overlap
     let mut b = muster();
     b.arbeitsordner = "/srv/vault2/p".into();

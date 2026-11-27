@@ -43,6 +43,8 @@ pub struct Welt {
     pub zustand: PathBuf,
     pub laufzeit: PathBuf,
     pub sitzungen: PathBuf,
+    /// The folder of the conversations (below the state folder, as the package lays it out); made by the program.
+    pub gespraeche: PathBuf,
     pub heim: PathBuf,
     pub vault: PathBuf,
     pub protokoll: PathBuf,
@@ -50,6 +52,8 @@ pub struct Welt {
     pub einstellungen: PathBuf,
     /// The `bwrap` of the configuration; `None` leaves the key out (the test build then takes `/usr/bin/bwrap`).
     pub bwrap: Option<PathBuf>,
+    /// The harnesses the test build takes as without an option to continue (key `ohne_fortsetzen`).
+    pub ohne_fortsetzen: Vec<String>,
     /// Leaves the processes of the world alone at the end (only the counter probe of the clean-up sets it).
     pub ohne_aufraeumen: bool,
 }
@@ -119,6 +123,9 @@ fn s(p: &Path) -> String {
 /// The copy of the provider file of the session that the recording `bwrap` makes (in the root of the world).
 pub const ANBIETER_KOPIE: &str = "anbieter.json";
 
+/// The copy of the folder `gespraeche` that the recording `bwrap` makes when it starts (in the root of the world).
+pub const GESPRAECHE_BEIM_START: &str = "gespraeche-beim-start";
+
 impl Welt {
     pub fn neu() -> Welt {
         let n = ZAEHLER.fetch_add(1, Ordering::SeqCst);
@@ -136,6 +143,7 @@ impl Welt {
             zustand: wurzel.join("zustand"),
             laufzeit: wurzel.join("lz"),
             sitzungen: wurzel.join("sitzungen"),
+            gespraeche: wurzel.join("zustand").join("gespraeche"),
             heim: wurzel.join("heim"),
             vault: wurzel.join("vault"),
             protokoll: wurzel.join("protokoll"),
@@ -143,6 +151,7 @@ impl Welt {
             einstellungen: wurzel.join("einst").join("einst.json"),
             bwrap: Some(wurzel.join("bin").join("bwrap")),
             wurzel,
+            ohne_fortsetzen: Vec::new(),
             ohne_aufraeumen: false,
         };
         for (p, m) in [
@@ -176,12 +185,15 @@ impl Welt {
         // the bwrap in place of the real one: records the PID of its parent and its arguments, keeps a copy of the
         // provider file of the session (the watcher removes the session folder when this call has ended) and ends with 0
         let log = w.wurzel.join("bwrap.log");
+        // and, for the conversations, a copy of `gespraeche` as it is at the start ([`GESPRAECHE_BEIM_START`])
         let skript = format!(
-            "#!/bin/sh\nprintf 'eltern %s\\n' \"$PPID\" >> '{}'\nfor a in \"$@\"; do printf 'arg %s\\n' \"$a\" >> '{}'; case \"$a\" in */konfig/models.json) cp \"$a\" '{}';; esac; done\nprintf 'ende\\n' >> '{}'\nexit 0\n",
+            "#!/bin/sh\nprintf 'eltern %s\\n' \"$PPID\" >> '{}'\nrm -rf '{kopie}'; if [ -d '{g}' ]; then cp -a '{g}' '{kopie}'; fi\nfor a in \"$@\"; do printf 'arg %s\\n' \"$a\" >> '{}'; case \"$a\" in */konfig/models.json) cp \"$a\" '{}';; esac; done\nprintf 'ende\\n' >> '{}'\nexit 0\n",
             s(&log),
             s(&log),
             s(&w.wurzel.join(ANBIETER_KOPIE)),
-            s(&log)
+            s(&log),
+            g = s(&w.gespraeche),
+            kopie = s(&w.wurzel.join(GESPRAECHE_BEIM_START)),
         );
         datei(&w.bin.join("bwrap"), skript.as_bytes(), 0o755);
         datei(
@@ -269,6 +281,11 @@ impl Welt {
                 &format!("{}/srv/beispiel", s(&self.wurzel)),
             )
             .replace("/var/lib/werkbank/beispiel", &s(&self.zustand))
+            // the example folder of the cases of version 2 (Projektentscheid, 27.11.2026), outside the home of the session
+            .replace(
+                "/heim/beispiel",
+                &format!("{}/heim-beispiel", s(&self.wurzel)),
+            )
             .replace("<startordner>", &s(&self.start))
     }
 
@@ -285,14 +302,25 @@ impl Welt {
             .as_ref()
             .map(|b| format!(",\"bwrap\":\"{}\"", s(b)))
             .unwrap_or_default();
+        let ohne = if self.ohne_fortsetzen.is_empty() {
+            String::new()
+        } else {
+            let namen: Vec<String> = self
+                .ohne_fortsetzen
+                .iter()
+                .map(|h| format!("\"{h}\""))
+                .collect();
+            format!(",\"ohne_fortsetzen\":[{}]", namen.join(","))
+        };
         let text = format!(
-            "{{\"fassung\":1,\"einstellungen\":\"{}\",\"vault\":\"{}\",\"protokoll\":\"{}\",\"zustand\":\"{}\",\"laufzeit\":\"{}\",\"sitzungen\":\"{}\",\"heim\":\"{}\",\"path\":\"/usr/bin:/bin\",\"programme\":{{\"rangkern\":\"{}\",\"modellweg\":\"{}\",\"kind\":\"{}\",\"such_mcp\":\"{}\",\"weiter\":\"{}\"}},\"harness\":{{{harness}}},\"programmordner\":[\"{}\"],\"schluessel\":{{\"lokal-beispiel\":\"{}\",\"cloud-beispiel\":\"{}\"}},\"ca_zulassung\":\"{ca_zulassung}\"{bwrap}}}",
+            "{{\"fassung\":1,\"einstellungen\":\"{}\",\"vault\":\"{}\",\"protokoll\":\"{}\",\"zustand\":\"{}\",\"laufzeit\":\"{}\",\"sitzungen\":\"{}\",\"gespraeche\":\"{}\",\"heim\":\"{}\",\"path\":\"/usr/bin:/bin\",\"programme\":{{\"rangkern\":\"{}\",\"modellweg\":\"{}\",\"kind\":\"{}\",\"such_mcp\":\"{}\",\"weiter\":\"{}\"}},\"harness\":{{{harness}}},\"programmordner\":[\"{}\"],\"schluessel\":{{\"lokal-beispiel\":\"{}\",\"cloud-beispiel\":\"{}\"}},\"ca_zulassung\":\"{ca_zulassung}\"{bwrap}{ohne}}}",
             s(&self.einstellungen),
             s(&self.vault),
             s(&self.protokoll),
             s(&self.zustand),
             s(&self.laufzeit),
             s(&self.sitzungen),
+            s(&self.gespraeche),
             s(&self.heim),
             s(&self.bin.join("rangkern")),
             s(&self.bin.join("modellweg")),

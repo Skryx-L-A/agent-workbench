@@ -32,8 +32,8 @@ Die Mutanten-Fälle werden noch nicht ausgeführt: Der Läufer `rust/crates/lauf
 | `start.schema.json` | Form als JSON Schema 2020-12: `$defs/anfrage` und `$defs/datei` |
 | `faelle/<name>.json` | `beschreibung`, `form` (`anfrage`, `datei` oder `aufruf`); bei `anfrage` und `datei` der Start als `text` (UTF-8) oder `b64` (rohe Bytes) und die Einstellungsdatei als `einstellungen`; bei `aufruf` die Ausgangslage als `lage` |
 | `erwartet/<name>.json` | `{"gueltig": true, "route_art": "cloud"}` oder `{"gueltig": false, "code": "start.<code>"}`; bei `aufruf` Exitcode und stderr-Zeile oder `exec` |
-| `faelle-ausstehend/<name>.json`, `erwartet-ausstehend/<name>.json` | nur die Aufruf-Fälle `aufruf-f2-*` zum Fortsetzen (Nachtrag 27.11.2026); sie brauchen die Schritte 5d und 8 von „Lauf starten“, und kein Crate liest sie, bis diese gebaut sind. Die Fälle der Fassung 2 zu Anfrage und Datei (`anfrage-f2-*`, `datei-f2-*`, `anfrage-f1-mit-effort`, `datei-f1-mit-fortsetzung`) standen bis zum Bau des Crates `start` hier und stehen seit dem 27.11.2026 in `faelle/`. Der Beispielordner der Fälle der Fassung 2 ist `/heim/beispiel/…` (Projektentscheid, 27.11.2026); die älteren Fälle in `faelle/` behalten ihren Ordner |
-| `bau-faelle.py` | erzeugt `faelle/`, `erwartet/`, `faelle-ausstehend/` und `erwartet-ausstehend/`; die Erwartungen der Fassung 2 rechnet eine Referenz (`code_f2` für Anfrage und Datei, `lauf_f2` für die Aufruf-Fälle zum Fortsetzen) |
+| `faelle-ausstehend/`, `erwartet-ausstehend/` | entfernt (27.11.2026). Die Fälle der Fassung 2 zu Anfrage und Datei (`anfrage-f2-*`, `datei-f2-*`, `anfrage-f1-mit-effort`, `datei-f1-mit-fortsetzung`) standen bis zum Bau des Crates `start` dort, die Aufruf-Fälle `aufruf-f2-*` bis zum Bau der Schritte 5d und 8 von „Lauf starten“; alle stehen seit dem 27.11.2026 in `faelle/`, und `pruefen.py` meldet einen Rest der Ordner als Fehler. Der Beispielordner der Fälle der Fassung 2 ist `/heim/beispiel/…` (Projektentscheid, 27.11.2026); die älteren Fälle in `faelle/` behalten ihren Ordner |
+| `bau-faelle.py` | erzeugt `faelle/` und `erwartet/` und entfernt die alten Ordner `faelle-ausstehend/` und `erwartet-ausstehend/`; die Erwartungen der Fassung 2 rechnet eine Referenz (`code_f2` für Anfrage und Datei, `lauf_f2` für die Aufruf-Fälle zum Fortsetzen) |
 | `pruefen.py` | prüft Paarung, Größe, JSON-Lesen und Schema gegen die Fälle |
 
 Die eingebettete Einstellungsdatei ist die Basis der Fälle aus Vertrag 2 (`VORFUEHRUNG` in
@@ -269,7 +269,9 @@ nicht. In Fassung 1 sind `effort` und `name` unbekannte Schlüssel (`start.schlu
 - **Startform mit Effort.** Ist `effort` nicht `null`, hängt „Lauf starten“ genau ein Paar an den Startbefehl, direkt nach dem Modell:
   `claude --effort <wert>`, `copilot --reasoning-effort <wert>`, `pi --thinking <wert>`. `<wert>` ist ein eigenes argv-Element. Bei
   `null` kommt keine Option dazu. Das ist aus `--help` hergeleitet (Vertrag 2, Werte je Harness) und nicht mit einem echten Start
-  gemessen (OPEN 26). Fälle der Form `aufruf` dafür kommen mit dem Bau von `lauf`.
+  gemessen (OPEN 26). Gebaut am 27.11.2026 (`rust/crates/lauf/src/harness.rs`, `argv`); bei `copilot` mit `auto` steht das Paar vor
+  `--auto-tier`. Fälle: `aufruf-f2-neu-pi`, `aufruf-f2-fortsetzen-copilot`, `aufruf-f2-fortsetzen-pi` (mit Effort) und
+  `aufruf-f2-fortsetzen-claude` (ohne).
 
 ### Feld `name`
 
@@ -300,7 +302,7 @@ nicht. In Fassung 1 sind `effort` und `name` unbekannte Schlüssel (`start.schlu
   `mit_fortsetzung` lehnt eine alte Kennung außerhalb der Kennungsform mit `start.kennung_form` ab, eine alte Kennung gleich `sitzung`
   mit `start.fortsetzung_selbst` und eine alte Kennung an einer Anfrage der Fassung 1 mit `start.schluessel_unbekannt`.
 - **Fälle:** `faelle/` mit `erwartet/` (`anfrage-f2-*`, `datei-f2-*`, `anfrage-f1-mit-effort`). Die Einstellungen darin sind die Basis
-  der Fassung 2 mit einem Block `effort`. Bis zum Bau standen sie in `faelle-ausstehend/`.
+  der Fassung 2 mit einem Block `effort`. Bis zum Bau standen sie im heute entfernten Ordner `faelle-ausstehend/`.
 
 ### Nachricht `Startwahl` mit Efforts (Nachtrag 26.11.2026, L10)
 
@@ -390,7 +392,21 @@ und Fortsetzen ohne Konto gemessen am 27.11.2026, siehe „Messung von Start und
 
 **Ablage des Gesprächs.** Der Zustandsordner des Harness (`.claude`, `.copilot` oder `.pi` unter `<heim>`) liegt in Fassung 2 nicht mehr im
 Sitzungsordner `sitzungen/<sitzung>`, den der Wächter am Ende entfernt. Er liegt in `<zustandsordner>/gespraeche/<sitzung>/` im
-Zustandsordner der Installation (Ordner 0700, eigene Kennung). Darin stehen `gespraech.json` (0600) und der Zustandsordner des Harness.
+Zustandsordner der Installation (Ordner 0700, eigene Kennung). Darin stehen `gespraech.json` (0600) und der Zustandsordner des Harness
+als Ordner `zustand` (0700).
+
+- **Ort.** Den Ordner `gespraeche` nennt der Schlüssel `gespraeche` der eigenen Konfiguration (Abschnitt „Eigene Konfiguration“), nie
+  die Startdatei, die Umgebung oder der Agent. Das Paket setzt `/var/lib/werkbank/<nutzer>/gespraeche`, also `<zustandsordner>/gespraeche`
+  (Projektentscheid, 27.11.2026). Fehlt der Ordner beim Start, legt „Lauf starten“ ihn in Schritt 8 mit Modus 0700 an; sein
+  Elternordner muss bestehen. Ist er ein Verweis, kein Ordner, fremd oder nicht 0700, endet Schritt 8 mit 70, `lauf.intern`, und
+  Schritt 5d mit 65, `lauf.fortsetzung_kaputt`; fehlt er beim Fortsetzen, ist das 66, `lauf.fortsetzung_fehlt`.
+- **Einschluss.** Die Beschreibung des Einschlusses trägt am Zustandsordner das Feld `art`: `neu` (der Ordner ist leer, wie bisher
+  geprüft) oder `fortsetzen` (der Ordner trägt das Gespräch der Vorgängersitzung und darf Einträge haben). Der Zustandsordner darf
+  unter einem geschützten Ordner liegen, denn `gespraeche` liegt im Zustandsordner der Installation und eingebunden wird nur sein
+  eigener Baum. Er ist aber nie selbst ein geschützter Ordner und enthält keinen. `gespraeche` steht selbst in `geschuetzt`, so dass
+  kein Arbeitsordner und kein Programmordner das Gespräch einer anderen Sitzung einbindet (`rust/crates/einschluss/src/profil.rs`,
+  `verbote_pruefen`; Projektentscheid, 27.11.2026).
+
 `gespraech.json` ist geschlossen und hat genau diese Form:
 
 ```json
@@ -405,9 +421,14 @@ Zustandsordner der Installation (Ordner 0700, eigene Kennung). Darin stehen `ges
 - Der Einschluss bindet den Zustandsordner des Harness aus `gespraeche/<sitzung>/` an seinen Platz unter `<heim>`; `gespraech.json` selbst
   ist im Einschluss nicht sichtbar.
 - Der Dienst prüft `gespraeche/` beim Vergeben einer Kennung nicht (Vertrag `dienst`, DI12 Punkt 15). `gespraeche/<sitzung>` legt nur
-  „Lauf starten“ derselben Sitzung an. Besteht der Ordner schon, gab es einen früheren Start derselben Kennung, den der Dienst nie
-  wiederholt, oder einen Eingriff von außen. Dann ist 73, `lauf.sitzung_belegt`, der gewollte Abbruch ohne Überschreiben (Projektentscheid,
-  27.11.2026).
+  „Lauf starten“ derselben Sitzung an. Besteht der Ordner schon, gab es einen früheren Start derselben Kennung oder einen Eingriff von
+  außen. Dann ist 73, `lauf.sitzung_belegt`, der gewollte Abbruch ohne Überschreiben (Projektentscheid, 27.11.2026).
+- **Berichtigung (27.11.2026, gemessen):** Der Dienst vergibt eine Kennung nach seinem Neustart wieder; seine Zählung beginnt bei
+  `s-1`, und eine alte Zielliste räumt er nach DI12 Punkt 15a. Gemessen im Kreuztest `zweihundertsechsundfuenfzig_cloud_sitzungen_ohne_laeufer`
+  (`rust/crates/lauf/tests/kreuz.rs`): Start 256 nach dem Neustart bekam `s-1` und endete mit 73, `lauf.sitzung_belegt`, weil das
+  Gespräch des ersten `s-1` lag. Der Satz „den der Dienst nie wiederholt“ galt damit nicht. Bis der Dienst eine Nummer mit
+  `gespraeche/s-<n>` als belegt zählt, endet nach jedem Neustart des Dienstes der Start jeder schon einmal vergebenen Nummer mit 73
+  (OPEN 35).
 
 **Schritte.** In der Tabelle „Ablauf vor dem exec“ kommen Schritt 5d dazu und eine Erweiterung von Schritt 8:
 
@@ -427,9 +448,11 @@ Zustandsordner der Installation (Ordner 0700, eigene Kennung). Darin stehen `ges
   Scheitert danach etwas vor dem exec, benennt es den Ordner bestmöglich zurück. Das Umbenennen macht das Gespräch zu dem der neuen Sitzung;
   ein zweites Fortsetzen derselben alten Kennung endet mit `lauf.fortsetzung_fehlt`.
 
-**Bis Schritt 5d gebaut ist** (Projektentscheid, 27.11.2026), endet jeder Start mit `fortsetzung_von` ungleich `null` an der Stelle von
-Schritt 5d mit 69, `lauf.fortsetzung_unmoeglich`, vor dem Einschluss und vor jedem Kind. Ein Start mit `fortsetzung_von` gleich `null`
-läuft weiter wie bisher.
+**Gebaut** am 27.11.2026: `rust/crates/lauf/src/gespraech.rs` (Schritt 5d in `pruefen`, Schritt 8 in `anlegen`, `uebernehmen` und
+`zurueck`), Aufruf in `rust/crates/lauf/src/ablauf.rs` (`pruefen_mit`, `gespraech_bereitstellen`). Die UUID v4 kommt aus 16 Byte
+`/dev/urandom` mit gesetzten Bits für Fassung und Variante. In Schritt 8 legt das Programm das Gespräch als Letztes vor der
+Beschreibung an: Ein Start, der vorher scheitert (etwa mit `lauf.harness_fehlt` oder `lauf.sitzung_belegt` am Sitzungsordner), legt es
+nicht an. Das Zurückbenennen nach einem Fehler geschieht vor dem Ende der Kinder und vor dem Räumen; es ersetzt nie ein anderes Gespräch.
 
 **Fail closed, kein stiller Neustart.** Jeder Fehler in Schritt 5d beendet den Lauf vor der Suche, ohne Kind und ohne Harness. Das
 Programm startet dann nie einen neuen Harness ohne das alte Gespräch. Scheitert das Fortsetzen erst im Harness (etwa weil seine Ablage
@@ -456,11 +479,18 @@ Der Dienst lehnt das Fortsetzen einer Sitzung der Fassung 1 nach DI-L3 schon vor
 zweite Linie, falls eine solche Startdatei doch geschrieben wird.
 
 **Fälle:** `faelle/` mit `erwartet/`: `datei-f2-fortsetzung-*`, `anfrage-f2-fortsetzung-*`, `anfrage-f2-sitzung-vor-fortsetzung` und
-`datei-f1-mit-fortsetzung` (Referenz `code_f2`, seit dem Bau des Crates `start` am 27.11.2026). In `faelle-ausstehend/` mit
-`erwartet-ausstehend/` bleiben die Aufruf-Fälle `aufruf-f2-*` (Referenz `lauf_f2`), bis „Lauf starten“ die Schritte 5d und 8 baut. Neue
-`lage`-Schlüssel der Aufruf-Fälle: `gespraeche` (Sitzung zu Inhalt von `gespraech.json`) und `harness_fortsetzung` (`keine` stellt einen
-Harness ohne Option zum Fortsetzen nach). Neue Felder der Erwartung: `gespraeche_danach` und `zustandsordner_beim_start`.
-`<harness-kennung>` steht für die gewürfelte UUID. Den Vorgänger der Fassung 1 prüft `aufruf-f2-fortsetzen-vorgaenger-fassung-1`.
+`datei-f1-mit-fortsetzung` (Referenz `code_f2`, seit dem Bau des Crates `start` am 27.11.2026), die Aufruf-Fälle `aufruf-f2-*` (Referenz
+`lauf_f2`, seit dem Bau der Schritte 5d und 8 am 27.11.2026) und `aufruf-f1-gespraech-ohne-kennung`. Der Test
+`rust/crates/lauf/tests/faelle.rs` liest sie. Neue `lage`-Schlüssel der Aufruf-Fälle: `gespraeche` (Sitzung zu Inhalt von
+`gespraech.json`; der Läufer legt dazu den Zustandsordner `zustand` mit einer Datei `verlauf` an) und `harness_fortsetzung` (`keine`
+stellt einen Harness ohne Option zum Fortsetzen nach; im Prüfbau über den Schlüssel `ohne_fortsetzen` der eigenen Konfiguration, den
+der ausgelieferte Bau nicht kennt). Neue Felder der Erwartung: `gespraeche_danach` (genau diese Sitzungen in `gespraeche`, je Ordner 0700
+mit `gespraech.json` 0600 dieses Inhalts, ohne `zustand` bei `"kennung": null`) und `zustandsordner_beim_start` (`leer` oder `gespraech
+der vorgaengersitzung`, gelesen aus einer Kopie von `gespraeche`, die das aufzeichnende `bwrap` bei seinem Start zieht).
+`<harness-kennung>` steht für die gewürfelte UUID; sie ist dieselbe in `gespraech.json` und hinter `--session-id`. Den Vorgänger der
+Fassung 1 prüft `aufruf-f2-fortsetzen-vorgaenger-fassung-1`. Zu jedem Fall mit `zustandsordner_beim_start` prüft der Läufer
+zusätzlich: Der Einschluss bindet `gespraeche/<sitzung>/zustand` an `<heim>/<name>`, und `gespraeche` ist nach dem Ende des Harness
+genau so, wie das `bwrap` es beim Start fand (Zusage 4). Ein Fall mit `exit` und `gespraeche` lässt die Gespräche unverändert.
 
 ### Räumen von `gespraeche/` (Entscheid des Betreibers, 27.11.2026)
 
@@ -486,6 +516,10 @@ Harness ohne Option zum Fortsetzen nach). Neue Felder der Erwartung: `gespraeche
 4. **Keine Arbeit nach dem Start.** „Lauf starten“ schreibt `gespraeche/<sitzung>` nur in den Schritten 5d und 8, vor dem exec. Danach
    schreibt dort nur der Harness im Einschluss, solange die Sitzung läuft. Der Dienst löscht darum nur eine Sitzung, die nicht läuft und
    die kein Start gerade fortsetzt. Diese Prüfung gehört dem Dienst (DI-L3, hergeleitet).
+Belege der Zusagen 1 bis 4 in „Lauf starten“ (27.11.2026): `rust/crates/lauf/src/gespraech/tests.rs`
+(`a_new_start_makes_its_conversation_once_at_the_fixed_place`, `continuing_moves_the_conversation_to_the_new_session_and_back`,
+`step_5d_gives_each_code_of_the_contract`) und die Aufruf-Fälle `aufruf-f2-*` mit `gespraeche_danach` und `zustandsordner_beim_start`.
+
 5. **Fehlen ist kein Fehler.** Eine Sitzung ohne Gespräch (Start vor dem exec gescheitert, alte Kennung nach dem Fortsetzen, Sitzung aus
    einem Programm ohne diesen Nachtrag) hat keinen Ordner. Das Löschen endet dann ohne Fehler.
 
@@ -593,7 +627,7 @@ Entwurf E8 (Außentest, unten).
 | 7 | Socket-Ordner 0700 anlegen, Such-Prozess starten (siehe unten) und auf `{"bereit":true}` warten, Frist 10 s | 69, `lauf.suche_fehlt` (Start scheitert) oder `lauf.suche_nicht_bereit` (Frist verstrichen) |
 | 7a0 | nur Cloud-Route: Zielliste des Modellwegs schreiben (siehe „Zustandsordner der Installation“), vor dem Start des Modellwegs; hat die Route kein Netzziel, das die Liste tragen kann, oder mehr als 16 (Vertrag 8, Abschnitt 12: `ziele[]` hat 1 bis 16 Einträge), oder hat sie ein Netzziel mit `zugriff` gleich `kopf-einsetzen` in der Unterdomänen-Form `*.name` (die Liste kennt kein `*`), endet der Schritt mit demselben Fehler, bevor eine Zielliste oder eine Wegwerf-CA entsteht; das Programm startet nie still ohne ein solches Ziel | 73, `lauf.zielliste` |
 | 7a | Modellweg starten (siehe unten): bei lokaler Route Betriebsart `openai-lokal`, bei Cloud-Route `kopf-einsetzen` mit den Netzzielen; auf `{"bereit":true}` warten, Frist 10 s. Fehlt der Eintrag der Route in `schluessel` der eigenen Konfiguration (Schlüsseldatei), endet der Schritt bei einer lokalen Route immer, bei einer Cloud-Route nur mit gebundenem Ziel (`schluessel: true`) mit `lauf.modellweg_fehlt`, bei der Cloud-Route vor Schritt 7a0 (also ohne Zielliste und ohne CA); ohne gebundenes Ziel startet der Lauf mit leerem Schlüsselnamen (`ablauf.rs:670-675`, `:724-730`) | 69, `lauf.modellweg_fehlt` (Start scheitert) oder `lauf.modellweg_nicht_bereit` (Frist verstrichen) |
-| 8 | Einschluss bauen, Zustandsordner und bei `pi` die Anbieter-Definition schreiben, Umgebung des Harness setzen, danach den Wächter starten (siehe „Lebensdauer“), den Startbefehl (Starter, im Prüfbau `bwrap`) als Kind über das Trampolin starten (siehe „Elternprozess des Starters“) | 69, `lauf.harness_fehlt`, aus zwei Quellen: (1) `lauf` selbst, wenn das Programm des Harness in `lauf.json` fehlt oder nicht ausführbar ist (`beschreibung_bauen`, `ablauf.rs:873-876`; nach Such-Prozess, Modellweg und PID-Dateien, vor dem Trampolin; die Kinder werden beendet), (2) das exec des Trampolins in den Starter scheitert (die Zeile schreibt das Trampolin); 73, `lauf.sitzung_belegt` (der Sitzungsordner `sitzungen/<sitzung>` besteht schon: ein Sitzungsname gilt einmal; in Fassung 2 auch, wenn `gespraeche/<sitzung>` schon besteht). Fassung 2: `gespraeche/<sitzung>` anlegen oder beim Fortsetzen umbenennen und die Sitzungsoption anhängen (Abschnitt „Fassung 2: `fortsetzung_von` und Fortsetzen“) |
+| 8 | Einschluss bauen, Zustandsordner und bei `pi` die Anbieter-Definition schreiben, Umgebung des Harness setzen, danach den Wächter starten (siehe „Lebensdauer“), den Startbefehl (Starter, im Prüfbau `bwrap`) als Kind über das Trampolin starten (siehe „Elternprozess des Starters“) | 69, `lauf.harness_fehlt`, aus zwei Quellen: (1) `lauf` selbst, wenn das Programm des Harness in `lauf.json` fehlt oder nicht ausführbar ist (`beschreibung_bauen`, `ablauf.rs:873-876`; nach Such-Prozess, Modellweg und PID-Dateien, vor dem Trampolin; die Kinder werden beendet), (2) das exec des Trampolins in den Starter scheitert (die Zeile schreibt das Trampolin); 73, `lauf.sitzung_belegt` (der Sitzungsordner `sitzungen/<sitzung>` besteht schon: ein Sitzungsname gilt einmal; auch, wenn `gespraeche/<sitzung>` schon besteht). Fassung 2: `gespraeche/<sitzung>` anlegen oder beim Fortsetzen umbenennen und die Sitzungsoption anhängen; Fassung 1: `gespraeche/<sitzung>` nur mit `gespraech.json` ohne Kennung anlegen (Abschnitt „Fassung 2: `fortsetzung_von` und Fortsetzen“) |
 | jeder | unerwarteter Fehler im Programm | 70, `lauf.intern` |
 
 Scheitert ein Schritt nach Schritt 7, beendet das Programm den Such-Prozess (und ab Schritt 7a den Modellweg; eine schon
@@ -659,6 +693,13 @@ beide Exit 78:
 
 Beide Zeilen tragen weder Pfad noch Inhalt. Vorher endete jeder dieser Fälle als `lauf.intern` (70); `lauf.intern` bleibt für
 unerwartete Fehler. Ein Fehler beim Einrichten des Pakets zeigt sich damit im Probelauf als einer der beiden Gründe.
+
+**Schlüssel `gespraeche`** (Fassung 2, Projektentscheid, 27.11.2026): Pflicht, ein absoluter, normaler Pfad wie die übrigen Ordner
+(`ordner_form`), der Ordner der Gespräche (Abschnitt „Ablage des Gesprächs“). Wert im Paket: `/var/lib/werkbank/<nutzer>/gespraeche`.
+Eine `lauf.json` ohne den Schlüssel ist `lauf.konfig_kaputt`; das Paket muss ihn darum vor oder mit diesem Stand schreiben. Den
+gleichen Pfad braucht der Kern-Dienst für das Räumen (Vorschlag: `lauf.gespraeche` in `kern.json`). Nur im Prüfbau gibt es dazu den
+Schlüssel `ohne_fortsetzen` (Liste von Harness-Namen, die als Harness ohne Option zum Fortsetzen gelten); der ausgelieferte Bau lehnt ihn
+als unbekannten Schlüssel ab.
 
 ### Schritt 0: die eigene Umgebung (Nachtrag 20.11.2026)
 
@@ -1287,6 +1328,7 @@ Standardfehler, also das Journal der Einheit). Sie lesen nur: `/etc/werkbank/ker
 | `ca.key`, `ca.crt` | im Startordner, 0600 | Lauf, Schritt 7a, nur Cloud-Route, `O_EXCL` (`ablauf.rs:553-560`) | wie `suche.pid` | ok mit Kern; ohne Kern offen (Befund 6) |
 | `ca-bundle.pem` | im Startordner, 0600 | Lauf, Schritt 7a, nur Cloud-Route mit Harness `copilot` (`ablauf.rs:561-570`) | wie `suche.pid` | ok mit Kern; ohne Kern offen (Befund 6) |
 | `sitzungen/<sitzung>.zielliste.json` | `<zustand>/sitzungen/`, Datei 0600, Ordner 0700 (von `postinst`) | Lauf, Schritt 7a0, nur Cloud-Route, `O_EXCL`, vor dem Modellweg (`ablauf.rs:534-544`); sie bleibt mit Absicht (Kommentar `ablauf.rs:534`) | Läufer nach seiner Suche im echten Lauf (`--ziel echt`), direkt nach der Suche, über einen Deskriptor des Elternordners (`rust/spec/vorfuehrung/laeufer/drehbuchlib/messen.py`, `zielliste_entfernen`). Sonst entfernt sie der Kern beim Vergeben derselben Nummer nach einem Neustart, über den Deskriptor des Ordners `lauf.ziellisten`, nur als eigene reguläre Datei ohne anderen Eintrag der Nummer (Vertrag `dienst`, DI12 Punkt 15a; `dienst` `starten.rs`, `alte_zielliste_raeumen`). `purge` entfernt den Rest. Im Code von „Lauf starten“ entfernt sie niemand | ok mit Kern (Befund 1); ohne Kern offen |
+| Gespräch `gespraeche/<sitzung>/` mit `gespraech.json` und (Fassung 2) `zustand/` | `<zustand>/gespraeche/`, Ordner 0700, Datei 0600 (Nachtrag 27.11.2026) | Lauf, Schritt 8, exklusiv, als Letztes vor der Beschreibung; beim Fortsetzen durch Umbenennen ohne Ersetzen (`gespraech.rs`) | nie „Lauf starten“ und nie der Wächter; der Kern-Dienst beim Löschen der Sitzung (Abschnitt „Räumen von `gespraeche/`“), `purge` mit dem Zustandsordner | ok (Räumen: Dienst) |
 | Socket-Ordner `<sitzung>/` | `<laufzeit>/<sitzung>/`, 0700 | Lauf, Schritt 7 (`ablauf.rs:352-360`) | Wächter zuletzt (`kind.rs:379`); Lauf bei einem Fehler vor dem exec (`ablauf.rs:124-127`). Beide mit `remove_dir_all` über den Pfad. Niemand, wenn Wächter und Lauf beide ohne Aufräumen enden (SIGKILL) | offen (Befund 4, 5) |
 | Sitzungsordner (zur Vollständigkeit) | `<sitzungen>/<sitzung>/`, 0700, mit `zustand/` und `konfig/` | Lauf, Schritt 8 (`ablauf.rs:684-690`, `:696`) | Wächter am Ende (`kind.rs:378`); Lauf bei einem Fehler vor dem exec (`ablauf.rs:128-131`); beide über Deskriptoren (`dateien.rs:156-215`). Räumen toter Ordner beim Start des Kerns gehört dem Kern (Projektentscheid, 21.11.2026) | ok |
 
@@ -1542,7 +1584,7 @@ normal, also ohne `.`, `..`, doppelten Schrägstrich und Schrägstrich am Ende):
 
 ```json
 {"harness": "pi", "arbeitsordner": "/srv/beispiel/projekt", "programmordner": ["/usr/lib/werkbank"],
- "zustand": {"host": "/var/lib/werkbank/beispiel/sitzungen/s-1", "name": "zustand"},
+ "zustand": {"host": "/var/lib/werkbank/beispiel/sitzungen/s-1", "name": "zustand", "art": "neu"},
  "heim": "/srv/beispiel/heim", "such_socket": "/run/werkbank/beispiel/s-1/such.sock",
  "modell_socket": "/run/werkbank/beispiel/s-1/modell.sock", "lokal_weiter": "/usr/lib/werkbank/einschluss-weiter",
  "cloud": null, "paket": null,
@@ -1554,7 +1596,7 @@ normal, also ohne `.`, `..`, doppelten Schrägstrich und Schrägstrich am Ende):
 
 Die Felder: `harness` (Name aus Vertrag 2), `arbeitsordner`, `programmordner` (Liste), `zustand` (`host` und `name` des
 Zustandsordners der Sitzung), `heim`, `such_socket`, `modell_socket` (Text oder `null`), `lokal_weiter` (Text oder
-`null`), `cloud` (`null` oder ein Objekt mit `weiterreicher`, `weiter_programm`, `bundle`, `verteilung` = `ubuntu` oder
+`null`; `zustand` dazu `art`, Abschnitt „Ablage des Gesprächs“), `cloud` (`null` oder ein Objekt mit `weiterreicher`, `weiter_programm`, `bundle`, `verteilung` = `ubuntu` oder
 `arch`), `paket` (`null` oder ein Objekt mit `quelle`, `plattform`, `fassung`; nur Harness `copilot`), `umgebung` (`home`, `path`, `term`, `lang`, `tmpdir`), `geschuetzt` (Liste), `dateien` (Liste) und `argv`
 (`argv[0]` ist ein absoluter, normaler Pfad). Es gibt kein Feld `system`. Den Text erzeugt „Lauf starten“ mit der
 Funktion `beschreibung_schreiben` des Einschlusses; der Starter liest ihn nach denselben JSON-Regeln wie dieser Vertrag
@@ -1658,14 +1700,27 @@ python3 -I rust/spec/start/bau-faelle.py            # Fälle neu erzeugen
     Fortsetzen einer Sitzung mit mindestens einem Zug, auch nach dem Umbenennen von `gespraeche/<alt>`; bei allen drei ein echter
     Modellaufruf; der Start im Einschluss mit dem eingebundenen Zustandsordner; claude 2.1.332 im Pseudoterminal mit unbekannter Kennung
     (nach 20 s kein Bild, keine Datei). Empfehlung: Der Bau von `lauf` misst je Harness ein Fortsetzen im Einschluss mit Konto.
-32. **Gespräch ohne Kennung bei Fassung 1 ohne Fall.** Kein Fall prüft, dass ein Start der Fassung 1 `gespraeche/<sitzung>/gespraech.json`
-    mit `"kennung": null` schreibt. Die Aufruf-Fälle der Fassung 1 in `faelle/` bleiben byte-gleich und kennen `gespraeche_danach` nicht.
-    Den Fall bringt der Bau von `lauf` mit einer Referenz für Fassung 1.
+33. **Schlüssel `gespraeche` im Paket und im Kern-Dienst (27.11.2026).** `lauf.json` braucht den Pflichtschlüssel `gespraeche` mit dem
+    Wert `/var/lib/werkbank/<nutzer>/gespraeche` (Abschnitt „Eigene Konfiguration“). Ohne ihn endet jeder Start mit
+    `lauf.konfig_kaputt`. Das Paket schreibt ihn noch nicht (`rust/paket/`), und der Kern-Dienst kennt den Ort für das Räumen noch
+    nicht (Vorschlag `lauf.gespraeche` in `kern.json`). Beides gehört anderen Verträgen.
+35. **Dienst und `gespraeche/` (27.11.2026, vor dem Merge zu klären).** Der Dienst muss `gespraeche/s-<n>` in die Tabelle von DI12
+    Punkt 15 aufnehmen: Ein Eintrag dieses Namens belegt die Nummer (`lstat`, jeder Eintrag belegt, nur `NotFound` gibt frei), und er
+    entfernt dort nichts außer beim Löschen der Sitzung. Dafür braucht er den Ort (`lauf.gespraeche` in `kern.json`, OPEN 33). Ohne das
+    endet nach einem Neustart des Dienstes jeder Start einer früher vergebenen Nummer mit `lauf.sitzung_belegt` (Absatz „Ablage des
+    Gesprächs“, Berichtigung). Der Kreuztest räumt `gespraeche/` darum bis dahin zwischen den beiden Läufen des Dienstes.
+34. **Zustand eines fortgesetzten Gesprächs.** Beim Fortsetzen bindet der Einschluss den Zustandsordner wieder ein, den der Harness der
+    Vorgängersitzung beschrieben hat; darin kann auch stehen, was der Agent dort abgelegt hat (etwa eine Einstellungsdatei des Harness).
+    Das wirkt nur im Einschluss derselben Sitzung. Ob der Einschluss beim Fortsetzen Teile davon ausblenden soll, ist nicht entschieden.
 
 27. **Name in der Startdatei.** `lauf` braucht den Namen nicht. Er steht in der Datei, damit Dienst und Liste der Sitzungen (L5) eine
     Quelle haben. Empfehlung: so lassen; der Dienst führt den Namen beim Umbenennen (L3) selbst weiter.
 
 ### Erledigt
+
+32. **Gespräch ohne Kennung bei Fassung 1: geschlossen (27.11.2026).** Fall `aufruf-f1-gespraech-ohne-kennung` (Start der Fassung 1,
+    `gespraeche/s-2/gespraech.json` mit `"kennung": null`, kein Zustandsordner darin, keine Sitzungsoption) und der Unit-Test
+    `the_description_names_the_harness_its_folders_and_the_exit` in `rust/crates/lauf/src/ablauf/tests.rs`.
 
 28. **Fortsetzen im echten Start: geschlossen (27.11.2026).** Start und Fortsetzen je Harness sind ohne Konto in einer Wegwerf-VM gemessen
     (Abschnitt „Messung von Start und Fortsetzen“). Der Rest steht in OPEN 31.

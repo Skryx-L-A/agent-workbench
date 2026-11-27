@@ -26,7 +26,9 @@
     "marker_datei": "/run/user/1234/werkbank-probelauf/marker.json",
     "marker_ordner": "/var/lib/werkbank/z/1234",
     "ziellisten": "/var/lib/werkbank/anna-b/sitzungen",
-    "laufzeit": "/var/lib/werkbank/l/1234"
+    "laufzeit": "/var/lib/werkbank/l/1234",
+    "bestand": "/var/lib/werkbank/anna-b/dienst/bestand.json",
+    "gespraeche": "/var/lib/werkbank/anna-b/gespraeche"
    },
    "anfang": {
     "personen": {

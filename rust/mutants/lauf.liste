@@ -16,7 +16,11 @@ erster re crates/lauf/src/kind.rs:148:5: replace einthreadig -> bool with false
 
 # lauf, `lesen_text`: the delivered build reads no configuration from the test path (`cfg!(feature = "pruefbau")` comes
 # first in the condition). Caught in the run with the feature pruefbau and by `tests/naht.rs`.
-erster re crates/lauf/src/konfig.rs:174:76: replace == with != in lesen_text
+erster re crates/lauf/src/konfig.rs:180:76: replace == with != in lesen_text
+
+# lauf, `lesen_text`: the same for the key `ohne_fortsetzen` of the test build (a harness without an option to continue);
+# the delivered build never reads it. Caught in the run with the feature pruefbau.
+erster re crates/lauf/src/konfig.rs:186:68: replace == with != in lesen_text
 
 # lauf, `bwrap_halten`: it is reached only once a real enclosure profile is built and the real `bwrap` holds the start;
 # no test of the run without the feature can get there, and with the feature pruefbau the mutant does not build. The
