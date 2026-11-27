@@ -151,10 +151,6 @@
   },
   {
    "art": "Testid",
-   "testid": "name-eingabe"
-  },
-  {
-   "art": "Testid",
    "testid": "arbeitsordner-eingabe"
   },
   {
@@ -186,6 +182,16 @@
    "testid": "sitzungen-schliessen"
   },
   {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "name-eingabe"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "effort-wahl"
+  },
+  {
    "art": "Testid",
    "optionen_enthaelt": [
     "ohne Kunde"
@@ -210,11 +216,6 @@
    "anzahl": 0,
    "art": "Testid",
    "testid": "sitzungen-fenster"
-  },
-  {
-   "anzahl": 0,
-   "art": "Testid",
-   "testid": "name-eingabe"
   },
   {
    "anzahl": 0,

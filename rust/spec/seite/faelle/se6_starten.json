@@ -37,7 +37,7 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Name",
+    "name": "Arbeitsordner",
     "rolle": "textbox"
    }
   },
@@ -45,6 +45,11 @@
    "anzahl": 0,
    "art": "Testid",
    "testid": "effort-wahl"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "name-eingabe"
   },
   {
    "art": "Waehle",

@@ -1,0 +1,84 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "oeffentlich",
+    "meldung": "frei",
+    "leseklasse": "oeffentlich"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "intern",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "oeffentlich"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "leseklasse": "intern"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "intern"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "intern"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "intern"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "intern",
+    "meldung": "frei",
+    "leseklasse": "intern"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "intern",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "oeffentlich"
+   }
+  ]
+ }
+}

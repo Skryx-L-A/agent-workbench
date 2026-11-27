@@ -80,6 +80,19 @@ def pa(klasse, route_, kunde_=None, nutzer=FEHLT, gruppen=FEHLT, kontext=FEHLT):
     return a
 
 
+def pl(klasse, kunde_=FEHLT, nutzer=FEHLT, gruppen=FEHLT, kontext=FEHLT):
+    """One read of the person herself, without a route (P7, Nachtrag 27.11.2026)."""
+    a = pa(klasse, FEHLT, kunde_, nutzer, gruppen, kontext)
+    a["lesen"] = True
+    return a
+
+
+PS_A = "ps_" + "0123456789abcdef" * 2  # pseudonym form of regelebenen, a valid key
+PS_B = "ps_" + "fedcba9876543210" * 2
+P_PS = {"leseklassen": [lk("nutzer", PS_A, "intern"), lk("gruppe", "g-alle", "oeffentlich")]}
+P_VOLL = {"leseklassen": [lk("gruppe", f"g{i}", "intern") for i in range(4095)] + [lk("nutzer", "p-letzt", "kundendaten")]}
+
+
 # (name, rules, description, vorgabe, personen, [(request, (reason, effective class, read class))])
 FAELLE = [
     ("p3-a34-gegenprobe", ["P3", "A34", "A05"],
@@ -198,12 +211,64 @@ FAELLE = [
          (pa("oeffentlich", "r-oe", nutzer="p-oe"), ("person-ohne-leseklasse", "oeffentlich", None)),
          (pa("oeffentlich", "r-oe", nutzer="p-oe", gruppen=["g-oe"]), ("person-ohne-leseklasse", "oeffentlich", None)),
      ]),
+    ("pl-lesen", ["P7", "P3", "D5"],
+     "Lesen ohne Route (Ordner-Blatt): die Person liest Inhalt bis zu ihrer Leseklasse; Inhalt mit Kunde hat die höchste "
+     "Klasse, Inhalt ohne Klasse die Vorgabestufe.",
+     V, P, [
+         (pl("oeffentlich", nutzer="p-oe"), ("frei", "oeffentlich", "oeffentlich")),
+         (pl("intern", nutzer="p-oe"), ("klasse-ueber-person", "intern", "oeffentlich")),
+         (pl("intern", nutzer="p-in"), ("frei", "intern", "intern")),
+         (pl("kundendaten", nutzer="p-in"), ("klasse-ueber-person", "kundendaten", "intern")),
+         (pl("oeffentlich", "k-1", nutzer="p-in"), ("klasse-ueber-person", "kundendaten", "intern")),
+         (pl("oeffentlich", "k-x", nutzer="p-kd"), ("frei", "kundendaten", "kundendaten")),
+         (pl("kundendaten", nutzer="p-kd"), ("frei", "kundendaten", "kundendaten")),
+         (pl(FEHLT, nutzer="p-in"), ("klasse-ueber-person", "kundendaten", "intern")),
+         (pl(None, nutzer="p-kd"), ("frei", "kundendaten", "kundendaten")),
+         (pl("intern", nutzer="p-g", gruppen=["g-oe", "g-in"]), ("frei", "intern", "intern")),
+         (pl("intern", nutzer="p-tief", gruppen=["g-kd"]), ("klasse-ueber-person", "intern", "oeffentlich")),
+     ]),
+    ("pl-reihenfolge", ["P7", "P1", "P2", "D4", "P3"],
+     "Lesen ohne Route prüft P1, P2, D4, P3 in dieser Reihenfolge; Gründe der Route und der Kunden gibt es nicht.",
+     V, P, [
+         (pl("geheim", kontext=FEHLT_KONTEXT), ("person-fehlt", None, None)),
+         (pl("geheim", nutzer=""), ("person-fehlt", None, None)),
+         (pl("geheim", nutzer=None, gruppen=["g-kd"]), ("person-fehlt", None, None)),
+         (pl("geheim", nutzer="p-x"), ("person-ohne-leseklasse", None, None)),
+         (pl("geheim", nutzer="p-kd"), ("einheit-ohne-klasse", None, "kundendaten")),
+         (pl("Intern", nutzer="p-kd"), ("einheit-ohne-klasse", None, "kundendaten")),
+         (pl("kundendaten", nutzer="p-oe"), ("klasse-ueber-person", "kundendaten", "oeffentlich")),
+         (pl("kundendaten", None, nutzer="p-kd"), ("frei", "kundendaten", "kundendaten")),
+         (pl("intern", "", nutzer="p-kd"), ("frei", "kundendaten", "kundendaten")),
+     ]),
+    ("pl-vorgabestufe", ["P7", "D5", "A35"],
+     "Lesen ohne Route: Inhalt ohne Klasse bekommt die Vorgabestufe intern.",
+     V_STUFE, P, [
+         (pl(FEHLT, nutzer="p-oe"), ("klasse-ueber-person", "intern", "oeffentlich")),
+         (pl(FEHLT, nutzer="p-in"), ("frei", "intern", "intern")),
+     ]),
+    ("pl-pseudonym", ["P4", "P7", "D14"],
+     "Die Person steht als Pseudonym der Regelebenen (ps_ und 32 Hexziffern); ein anderes Pseudonym hat keinen Eintrag.",
+     V, P_PS, [
+         (pl("intern", nutzer=PS_A), ("frei", "intern", "intern")),
+         (pa("intern", "r-in", nutzer=PS_A), ("frei", "intern", "intern")),
+         (pl("intern", nutzer=PS_B), ("person-ohne-leseklasse", "intern", None)),
+         (pl("intern", nutzer=PS_B, gruppen=["g-alle"]), ("klasse-ueber-person", "intern", "oeffentlich")),
+         (pl("intern", nutzer=PS_A.upper()), ("person-ohne-leseklasse", "intern", None)),
+     ]),
+    ("p-4096-eintraege", ["P0", "P4"],
+     "Genau 4096 Einträge sind gültig; der letzte zählt wie jeder andere.",
+     V, P_VOLL, [
+         (pl("kundendaten", nutzer="p-letzt"), ("frei", "kundendaten", "kundendaten")),
+         (pl("kundendaten", nutzer="p-x", gruppen=["g4094"]), ("klasse-ueber-person", "kundendaten", "intern")),
+         (pa("kundendaten", "r-kd", nutzer="p-x"), ("person-ohne-leseklasse", "kundendaten", None)),
+     ]),
     ("p-tiefe-64", ["D13"], "Verschachtelung genau 64; das oberste Objekt ist Ebene 1.",
      V, P, [
          (pa("intern", "r-in", nutzer="p-oe"), ("klasse-ueber-person", "intern", "oeffentlich")),
      ]),
 ]
 TIEFE = {"p-tiefe-64": 64}
+KOMPAKT = {"p-4096-eintraege"}  # written without indent, so that the file stays small
 
 
 # ---------------------------------------------------------------- invalid cases (exit 2)
@@ -266,6 +331,15 @@ UNGUELTIG = [
     ungueltig("u-p-einheit-feld", "Die Einheit trägt ein unbekanntes Feld.", setze(A0 + ["einheit", "kunde"], "k-1")),
     ungueltig("u-p-route-zahl", "route ist weder Text noch null.", setze(A0 + ["route"], 1)),
     ungueltig("u-p-kunde-liste", "kunde ist weder Text noch null.", setze(A0 + ["kunde"], ["k-1"])),
+    ungueltig("u-p-lesen-mit-route", "Ein Lesen ohne Route nennt eine Route.", setze(A0 + ["lesen"], True)),
+    ungueltig("u-p-lesen-route-null", "Ein Lesen ohne Route nennt route, auch als null.",
+              lambda f: f["anfragen"].append(dict(pl("intern", nutzer="p-in"), route=None))),
+    ungueltig("u-p-lesen-falsch", "lesen hat nur den Wert true; false ist ungültig.",
+              lambda f: f["anfragen"].append(dict(pl("intern", nutzer="p-in"), lesen=False))),
+    ungueltig("u-p-lesen-text", "lesen ist ein Text.", lambda f: f["anfragen"].append(dict(pl("intern", nutzer="p-in"), lesen="ja"))),
+    ungueltig("u-p-lesen-null", "lesen ist null.", lambda f: f["anfragen"].append(dict(pl("intern", nutzer="p-in"), lesen=None))),
+    ungueltig("u-p-zu-viele", "4097 Einträge: mehr als die Grenze von 4096.",
+              setze(LR, P_VOLL["leseklassen"] + [lk("nutzer", "p-mehr", "intern")]), ("D13", "P0")),
     ungueltig("u-p-zu-tief", "Verschachtelung 65 im nicht ausgewerteten Feld beschreibung.", setze(["beschreibung"], DT3.tief(63))),
 ]
 UNGUELTIG[0] = ("u-p-kein-json", ["D13"], "Die Eingabe ist kein JSON.", b'{"personen": ')
@@ -290,6 +364,8 @@ def gueltig_personen(v, p):
     """True if personen is valid by person/VERTRAG.md, section 3 (the vorgabe is already valid)."""
     if not isinstance(p, dict) or set(p) != {"leseklassen"} or not isinstance(p["leseklassen"], list):
         return False
+    if len(p["leseklassen"]) > 4096:
+        return False
     gesehen = set()
     for e in p["leseklassen"]:
         if not isinstance(e, dict) or set(e) != {"ebene", "wer", "klasse"}:
@@ -305,7 +381,9 @@ def gueltig_personen(v, p):
 
 
 def gueltige_anfrage(a):
-    if not isinstance(a, dict) or not set(a) <= {"einheit", "route", "kunde", "kontext"} or "einheit" not in a:
+    if not isinstance(a, dict) or not set(a) <= {"einheit", "route", "kunde", "kontext", "lesen"} or "einheit" not in a:
+        return False
+    if "lesen" in a and (a["lesen"] is not True or "route" in a):
         return False
     e = a["einheit"]
     if not isinstance(e, dict) or not set(e) <= {"klasse"}:
@@ -340,8 +418,42 @@ def leseklasse(v, p, kx):
     return kl[max(aus_gruppen)] if aus_gruppen else None
 
 
+def wirksam_lesen(v, a):
+    """D5 for a read without a route: effective class or None for a class that is given but unknown."""
+    kl, e = v["klassen"], a["einheit"]
+    k = e.get("klasse")
+    if k is None:
+        eigene = v.get("vorgabestufe", kl[-1])
+    elif isinstance(k, str) and k in kl:
+        eigene = k
+    else:
+        return None
+    return kl[-1] if a.get("kunde") is not None else eigene
+
+
+def referenz_lesen(v, p, a, mit_person=True):
+    """(reason, effective class, read class) by P7 (Nachtrag 27.11.2026): P1, P2, D4, P3, D1. mit_person=False: D4 or D1."""
+    klasse = wirksam_lesen(v, a)
+    kx = a.get("kontext") or {}
+    lese = leseklasse(v, p, kx) if kx.get("nutzer") else None
+    if not mit_person:
+        return ("einheit-ohne-klasse" if klasse is None else "frei"), klasse, lese
+    kl = v["klassen"]
+    if not kx.get("nutzer"):
+        return "person-fehlt", klasse, lese
+    if lese is None:
+        return "person-ohne-leseklasse", klasse, lese
+    if klasse is None:
+        return "einheit-ohne-klasse", klasse, lese
+    if kl.index(klasse) > kl.index(lese):
+        return "klasse-ueber-person", klasse, lese
+    return "frei", klasse, lese
+
+
 def referenz(v, p, a, mit_person=True):
     """(reason, effective class, read class) by person/VERTRAG.md, section 4. mit_person=False: darf of contract 3."""
+    if a.get("lesen"):
+        return referenz_lesen(v, p, a, mit_person)
     grund, klasse = DT3.referenz(v, {"einheit": a["einheit"], "route": a.get("route"), "kunde": a.get("kunde")})
     kx = a.get("kontext") or {}
     lese = leseklasse(v, p, kx) if kx.get("nutzer") else None
@@ -412,7 +524,8 @@ def main():
         assert nur_mit_person, f"{name}: keine Anfrage haengt an der Personenregel"
         anfragen_n += len(paare)
         abweichend += nur_mit_person
-        dateien[name] = (json.dumps(fall, ensure_ascii=False, indent=1).encode() + b"\n",
+        einzug = None if name in KOMPAKT else 1
+        dateien[name] = (json.dumps(fall, ensure_ascii=False, indent=einzug).encode() + b"\n",
                          {"exit": 0, "ausgabe": {"antworten": antworten}})
     assert gueltiger_fall(json.loads(json.dumps(basis()))), "Basis der ungueltigen Faelle ungueltig"
     for name, regeln, beschreibung, fall in UNGUELTIG:

@@ -114,7 +114,8 @@ pub(crate) fn sitzungen(a: A) -> Element {
         div { class: "fenster sitzungen", id: "sitzungen-fenster", role: "dialog", "aria-modal": "true", "aria-label": "Sitzungen",
             "data-testid": "sitzungen-fenster", "data-bw": "B68",
             onkeydown: move |e: KeyboardEvent| falle("sitzungen-fenster", &e),
-            onmounted: move |_| fokus("wahl-name"),
+            // The focus starts in the first field of the form: `Name` with L10, before that `Arbeitsordner` (SE2 point 2).
+            onmounted: move |_| fokus(if mit_effort { "wahl-name" } else { "wahl-arbeitsordner" }),
             div { class: "fenster-kopf", h2 { "Sitzungen" } }
             div { class: "fenster-leib",
                 div { class: "fenster-spalte liste-spalte",
@@ -166,11 +167,14 @@ pub(crate) fn sitzungen(a: A) -> Element {
                     },
                     h3 { class: "gruppe-titel", "Ordner" }
                     div { class: "karte",
-                        div { class: "form-zeile",
-                            label { class: "form-name", r#for: "wahl-name", "Name" }
-                            input { class: "feld", id: "wahl-name", "data-testid": "name-eingabe", r#type: "text", value: "{f.name}",
-                                placeholder: "optional", autocomplete: "off", spellcheck: "false",
-                                oninput: move |e: FormEvent| { let mut k = a.kern; k.write().start.name = e.value(); } }
+                        // `Name` and `Effort` come with L10 only: before it the start structure has no field for them (OF8).
+                        if mit_effort {
+                            div { class: "form-zeile",
+                                label { class: "form-name", r#for: "wahl-name", "Name" }
+                                input { class: "feld", id: "wahl-name", "data-testid": "name-eingabe", r#type: "text", value: "{f.name}",
+                                    placeholder: "optional", autocomplete: "off", spellcheck: "false",
+                                    oninput: move |e: FormEvent| { let mut k = a.kern; k.write().start.name = e.value(); } }
+                            }
                         }
                         div { class: "form-zeile",
                             label { class: "form-name", r#for: "wahl-arbeitsordner", "Arbeitsordner" }

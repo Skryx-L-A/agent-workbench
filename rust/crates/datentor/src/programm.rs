@@ -45,7 +45,9 @@ fn ablauf<R: Read, W: Write>(
     stdout: &mut W,
 ) -> Result<(), (u8, String)> {
     let (befehl, rest) = match args {
-        [b, rest @ ..] if b == "klassen" || b == "zonen" => (Some(b.as_str()), rest),
+        [b, rest @ ..] if b == "klassen" || b == "zonen" || b == "person" => {
+            (Some(b.as_str()), rest)
+        }
         _ => (None, args),
     };
     match rest {
@@ -54,7 +56,7 @@ fn ablauf<R: Read, W: Write>(
         _ => {
             return Err((
                 2,
-                "call: datentor [klassen|zonen] [-] < case.json".to_owned(),
+                "call: datentor [klassen|zonen|person] [-] < case.json".to_owned(),
             ));
         }
     }
@@ -65,6 +67,7 @@ fn ablauf<R: Read, W: Write>(
         .map_err(|e| (2, format!("cannot read the input: {e}")))?;
     let antwort = match befehl {
         Some("zonen") => crate::programm_zonen::verarbeite(&eingabe),
+        Some("person") => crate::programm_person::verarbeite(&eingabe),
         Some(_) => crate::programm_klassen::verarbeite(&eingabe),
         None => verarbeite(&eingabe),
     }
@@ -499,7 +502,7 @@ mod tests {
             assert_eq!((code, aus.as_str()), (2, ""), "{args:?}");
             assert_eq!(
                 fehler,
-                "datentor: call: datentor [klassen|zonen] [-] < case.json\n"
+                "datentor: call: datentor [klassen|zonen|person] [-] < case.json\n"
             );
         }
     }

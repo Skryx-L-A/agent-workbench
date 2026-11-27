@@ -1,0 +1,8 @@
+{
+ "exit": 2,
+ "regeln": [
+  "D13",
+  "P0"
+ ],
+ "beschreibung": "4097 Einträge: mehr als die Grenze von 4096."
+}

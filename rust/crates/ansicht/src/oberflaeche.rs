@@ -637,7 +637,7 @@ fn titelleiste(a: A) -> Element {
     let blase = *a.ueber.read() == Ueber::Workerliste;
     rsx! {
         header { id: "titelleiste",
-            button { r#type: "button", id: "leiste-knopf", class: "knopf-symbol", "aria-label": "Leiste ein- und ausblenden",
+            button { r#type: "button", id: "leiste-knopf", class: "knopf-symbol", "data-bw": "B80", "aria-label": "Leiste ein- und ausblenden",
                 "aria-expanded": if au.leiste_offen { "true" } else { "false" }, title: "Leiste ein- und ausblenden",
                 onclick: move |_| { let mut s = a.aussehen; let mut x = s.write(); x.leiste_offen = !x.leiste_offen; x.merken(); },
                 {symbol_leiste()}

@@ -1,5 +1,5 @@
 {
- "beschreibung": "„+“ öffnet das Fenster „Sitzungen“ mit dem Fokus im Feld Name; der Fokus bleibt im Fenster; Tasten gehen nicht an das Terminal; Escape und „Schließen“ schließen es, der Fokus steht wieder auf „+“.",
+ "beschreibung": "„+“ öffnet das Fenster „Sitzungen“ mit dem Fokus im ersten Feld des Formulars (vor L10 Arbeitsordner, ohne Name und Effort); der Fokus bleibt im Fenster; Tasten gehen nicht an das Terminal; Escape und „Schließen“ schließen es, der Fokus steht wieder auf „+“.",
  "datensatz": "A",
  "name": "se2_sitzungen_fenster",
  "regeln": [
@@ -78,7 +78,7 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Name",
+    "name": "Arbeitsordner",
     "rolle": "textbox"
    }
   },
@@ -150,7 +150,7 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Name",
+    "name": "Arbeitsordner",
     "rolle": "textbox"
    }
   },
@@ -183,14 +183,24 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Name",
+    "name": "Arbeitsordner",
     "rolle": "textbox"
    }
   },
   {
    "art": "Testid",
-   "testid": "name-eingabe",
+   "testid": "arbeitsordner-eingabe",
    "wert": ""
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "name-eingabe"
+  },
+  {
+   "anzahl": 0,
+   "art": "Testid",
+   "testid": "effort-wahl"
   },
   {
    "art": "Klick",

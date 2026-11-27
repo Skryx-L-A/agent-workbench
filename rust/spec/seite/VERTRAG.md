@@ -359,6 +359,7 @@ Liste in `attrappe/seite.js` ist, dass die Attrappe beide Sätze grün besteht u
 | `fokusfalle_fehlt` | SE2 | Tab verlässt das offene Fenster „Sitzungen“ (Nachtrag 26.11.2026) |
 | `f6_ueberspringt_inspektor` | SE2.4 | F6 vom Terminal springt am offenen Inspektor vorbei (Nachtrag 26.11.2026) |
 | `platzhalter_sichtbar` | OF8 | ein Bedienweg mit Umfang N steht im Baum (Nachtrag 26.11.2026) |
+| `name_ohne_l10` | SE2.2 | das Feld `Name` steht vor L10 im Fenster „Sitzungen“, der Fokus darin (Nachtrag 27.11.2026) |
 
 `eingabezeile_sofort` ruht mit der Eingabezeile (Nachtrag 26.11.2026); `gegenprobe.sh` führt ihn in der Liste `RUHEND` und zählt ihn nicht als überlebt.
 

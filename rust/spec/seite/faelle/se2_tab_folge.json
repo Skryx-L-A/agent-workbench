@@ -257,20 +257,6 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Name",
-    "rolle": "textbox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": []
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
     "name": "Arbeitsordner",
     "rolle": "textbox"
    }
@@ -383,7 +369,7 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Name",
+    "name": "Arbeitsordner",
     "rolle": "textbox"
    }
   },
@@ -542,22 +528,6 @@
    "erwartet": {
     "im_terminal": false,
     "name": "Arbeitsordner",
-    "rolle": "textbox"
-   }
-  },
-  {
-   "art": "Taste",
-   "code": "Tab",
-   "key": "Tab",
-   "umschalter": [
-    "umschalt"
-   ]
-  },
-  {
-   "art": "Fokus",
-   "erwartet": {
-    "im_terminal": false,
-    "name": "Name",
     "rolle": "textbox"
    }
   },

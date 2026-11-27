@@ -1,0 +1,28 @@
+{
+ "exit": 0,
+ "ausgabe": {
+  "antworten": [
+   {
+    "darf": true,
+    "grund": "frei",
+    "klasse": "kundendaten",
+    "meldung": "frei",
+    "leseklasse": "kundendaten"
+   },
+   {
+    "darf": false,
+    "grund": "klasse-ueber-person",
+    "klasse": "kundendaten",
+    "meldung": "Klasse der Einheit liegt über der Leseklasse der Person",
+    "leseklasse": "intern"
+   },
+   {
+    "darf": false,
+    "grund": "person-ohne-leseklasse",
+    "klasse": "kundendaten",
+    "meldung": "Person ohne Leseklasse",
+    "leseklasse": null
+   }
+  ]
+ }
+}

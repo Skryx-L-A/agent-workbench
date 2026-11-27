@@ -171,6 +171,12 @@ fn jeder_sichtbare_fall_der_zonen_stimmt() {
 }
 
 #[test]
+fn jeder_sichtbare_fall_der_person_stimmt() {
+    satz_pruefen("person/sichtbar", &["person"], 63);
+    satz_pruefen("person/sichtbar", &["person", "-"], 63);
+}
+
+#[test]
 fn unterbefehl_falsch_aufgerufen_ist_exit_2() {
     let fall =
         fs::read(satz("zonen/sichtbar/faelle/u-ohne-modellzonen.json")).expect("case is readable");
@@ -180,6 +186,9 @@ fn unterbefehl_falsch_aufgerufen_ist_exit_2() {
         &["Zonen"],
         &["-", "zonen"],
         &["zonen", "klassen"],
+        &["person", "x"],
+        &["Person"],
+        &["person", "zonen"],
     ] {
         let lauf = starten(args, &fall);
         assert_eq!(lauf.code, Some(2), "args {args:?}");

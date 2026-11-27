@@ -4,6 +4,7 @@
 mod ohne_doppel;
 mod programm;
 mod programm_klassen;
+mod programm_person;
 mod programm_zonen;
 
 use std::process::ExitCode;

@@ -8,6 +8,7 @@
 //! for byte (D14). [`darf`] is a pure function and never panics (D15).
 
 pub mod klassen;
+pub mod person;
 pub mod zonen;
 
 /// The kind of a route: it decides only whether customer data need a release (rule D11).

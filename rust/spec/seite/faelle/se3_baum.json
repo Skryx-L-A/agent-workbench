@@ -1,5 +1,5 @@
 {
- "beschreibung": "Rollen und Namen: Liste Sitzungen mit Zustand, Knopf Neue Sitzung, Terminal mit Namen, keine Eingabezeile; das Fenster Sitzungen ist ein modaler Dialog mit der Liste der bekannten Sitzungen und dem Startformular mit beschrifteten Feldern; keine unbenannten Bedienelemente, Terminal außerhalb jeder Live-Region.",
+ "beschreibung": "Rollen und Namen: Liste Sitzungen mit Zustand, Knopf Neue Sitzung, Terminal mit Namen, keine Eingabezeile; das Fenster Sitzungen ist ein modaler Dialog mit der Liste der bekannten Sitzungen und dem Startformular mit beschrifteten Feldern (Name und Effort erst ab L10); keine unbenannten Bedienelemente, Terminal außerhalb jeder Live-Region.",
  "datensatz": "A",
  "name": "se3_baum",
  "regeln": [
@@ -136,7 +136,7 @@
    "art": "Fokus",
    "erwartet": {
     "im_terminal": false,
-    "name": "Name",
+    "name": "Arbeitsordner",
     "rolle": "textbox"
    }
   },
@@ -167,14 +167,18 @@
      [
       "button",
       "Senden"
+     ],
+     [
+      "textbox",
+      "Name"
+     ],
+     [
+      "combobox",
+      "Effort"
      ]
     ],
     "formular": {
      "felder": [
-      [
-       "Name",
-       "textbox"
-      ],
       [
        "Arbeitsordner",
        "textbox"

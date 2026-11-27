@@ -1,0 +1,216 @@
+{
+ "name": "pl-lesen",
+ "regeln": [
+  "P7",
+  "P3",
+  "D5"
+ ],
+ "beschreibung": "Lesen ohne Route (Ordner-Blatt): die Person liest Inhalt bis zu ihrer Leseklasse; Inhalt mit Kunde hat die höchste Klasse, Inhalt ohne Klasse die Vorgabestufe.",
+ "vorgabe": {
+  "klassen": [
+   "oeffentlich",
+   "intern",
+   "kundendaten"
+  ],
+  "routen": [
+   {
+    "schluessel": "r-oe",
+    "art": "lokal",
+    "klasse": "oeffentlich"
+   },
+   {
+    "schluessel": "r-in",
+    "art": "lokal",
+    "klasse": "intern"
+   },
+   {
+    "schluessel": "r-kd",
+    "art": "lokal",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "c-kd",
+    "art": "cloud",
+    "klasse": "kundendaten"
+   },
+   {
+    "schluessel": "r-ohne",
+    "art": "lokal"
+   }
+  ],
+  "kunden": [
+   {
+    "schluessel": "k-1",
+    "erlaubt": [
+     "r-kd",
+     "c-kd"
+    ]
+   },
+   {
+    "schluessel": "k-2",
+    "erlaubt": [
+     "r-kd"
+    ],
+    "verboten": [
+     "c-kd"
+    ]
+   }
+  ],
+  "kundendaten_an_cloud": {
+   "vorgabe": "nie",
+   "freigaben": [
+    {
+     "route": "c-kd",
+     "kunde": "k-1"
+    }
+   ]
+  }
+ },
+ "personen": {
+  "leseklassen": [
+   {
+    "ebene": "nutzer",
+    "wer": "p-oe",
+    "klasse": "oeffentlich"
+   },
+   {
+    "ebene": "nutzer",
+    "wer": "p-in",
+    "klasse": "intern"
+   },
+   {
+    "ebene": "nutzer",
+    "wer": "p-kd",
+    "klasse": "kundendaten"
+   },
+   {
+    "ebene": "gruppe",
+    "wer": "g-oe",
+    "klasse": "oeffentlich"
+   },
+   {
+    "ebene": "gruppe",
+    "wer": "g-in",
+    "klasse": "intern"
+   },
+   {
+    "ebene": "gruppe",
+    "wer": "g-kd",
+    "klasse": "kundendaten"
+   },
+   {
+    "ebene": "nutzer",
+    "wer": "p-tief",
+    "klasse": "oeffentlich"
+   }
+  ]
+ },
+ "anfragen": [
+  {
+   "einheit": {
+    "klasse": "oeffentlich"
+   },
+   "kontext": {
+    "nutzer": "p-oe"
+   },
+   "lesen": true
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "kontext": {
+    "nutzer": "p-oe"
+   },
+   "lesen": true
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "kontext": {
+    "nutzer": "p-in"
+   },
+   "lesen": true
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "kontext": {
+    "nutzer": "p-in"
+   },
+   "lesen": true
+  },
+  {
+   "einheit": {
+    "klasse": "oeffentlich"
+   },
+   "kunde": "k-1",
+   "kontext": {
+    "nutzer": "p-in"
+   },
+   "lesen": true
+  },
+  {
+   "einheit": {
+    "klasse": "oeffentlich"
+   },
+   "kunde": "k-x",
+   "kontext": {
+    "nutzer": "p-kd"
+   },
+   "lesen": true
+  },
+  {
+   "einheit": {
+    "klasse": "kundendaten"
+   },
+   "kontext": {
+    "nutzer": "p-kd"
+   },
+   "lesen": true
+  },
+  {
+   "einheit": {},
+   "kontext": {
+    "nutzer": "p-in"
+   },
+   "lesen": true
+  },
+  {
+   "einheit": {
+    "klasse": null
+   },
+   "kontext": {
+    "nutzer": "p-kd"
+   },
+   "lesen": true
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "kontext": {
+    "nutzer": "p-g",
+    "gruppen": [
+     "g-oe",
+     "g-in"
+    ]
+   },
+   "lesen": true
+  },
+  {
+   "einheit": {
+    "klasse": "intern"
+   },
+   "kontext": {
+    "nutzer": "p-tief",
+    "gruppen": [
+     "g-kd"
+    ]
+   },
+   "lesen": true
+  }
+ ]
+}
