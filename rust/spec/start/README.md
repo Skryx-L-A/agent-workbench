@@ -2,6 +2,8 @@
 
 Nachtrag 27.11.2026: Feld `fortsetzung_von` der Startdatei der Fassung 2 und Fortsetzen in „Lauf starten“ (Abschnitt
 „Fassung 2: `fortsetzung_von` und Fortsetzen“). Grundlage ist Vertrag `dienst`, DI-L3 Punkte 2 und 3 (Projektentscheid, 27.11.2026).
+Zweiter Nachtrag 27.11.2026 (Entscheide des Betreibers, 27.11.2026): Räumen von `gespraeche/` (OPEN 29), ein Vorgänger der Fassung 1
+(OPEN 30) und die Messung von Start und Fortsetzen je Harness ohne Konto (OPEN 28). Alle drei sind geschlossen.
 
 Nachtrag 26.11.2026: Fassung 2 der Start-Struktur mit `effort` und `name` und die Nachricht `Startwahl` mit Efforts (Abschnitt
 „Fassung 2: `effort` und `name`“). Grundlage sind die Entscheide des Betreibers vom 26.11.2026 (E2, F1; `rust/spec/seite/OBERFLAECHE.md` L10).
@@ -361,8 +363,8 @@ mit `--session-id <uuid>`. Dieselbe Kennung schreibt es in `gespraech.json` (unt
 `gespraech.json` der Vorgängersitzung und übergibt sie mit der Option zum Fortsetzen. Grund: Das Format, in dem ein Harness seine
 Sitzungen ablegt, gehört dem Harness und ändert sich mit seiner Fassung; die eigene Datei bleibt fest.
 
-**Optionen je Harness** (gelesen am 27.11.2026 aus `<harness> --help` der installierten Fassung auf dem Entwicklungsrechner; nicht mit
-einem echten Start gemessen, OPEN 28):
+**Optionen je Harness** (gelesen am 27.11.2026 aus `<harness> --help` der installierten Fassung auf dem Entwicklungsrechner; Start
+und Fortsetzen ohne Konto gemessen am 27.11.2026, siehe „Messung von Start und Fortsetzen“ unten):
 
 | harness | Fassung | neuer Start | Fortsetzen | Text aus `--help` |
 |---|---|---|---|---|
@@ -375,8 +377,9 @@ einem echten Start gemessen, OPEN 28):
   --additional-mcp-config @<heim>/.copilot/wb-mcp.json --resume=<uuid>`.
 - Beim Fortsetzen nimmt das Programm nie `--session-id`. Grund: Bei `copilot` und `pi` legt diese Option eine neue Sitzung an, wenn die
   Kennung fehlt; das wäre ein stiller Neustart. Ebenso nie `--continue` (die jüngste Sitzung) und nie `--fork-session` oder `--fork`.
-- Bei `copilot` steht `--resume=<uuid>` als ein argv-Element, weil der Wert der Option nach `--help` optional ist. Ein getrenntes Element
-  könnte die CLI als Auftrag statt als Wert lesen. Das ist aus `--help` hergeleitet, nicht gemessen.
+- Bei `copilot` steht `--resume=<uuid>` als ein argv-Element, weil der Wert der Option nach `--help` optional ist. Gemessen ist: copilot
+  1.0.116 liest mit `-p` und im Pseudoterminal auch das getrennte `--resume <uuid>` als Wert (gleiche Meldung, rc 1). Das Programm
+  bleibt bei einem Element; nur diese Form ist ohne Blick auf die übrigen Optionen eindeutig.
 - Die Harness-Tabelle bekommt damit eine Spalte „Fortsetzen“. Ein späterer Harness ohne Option zum Fortsetzen trägt dort „keine“.
 
 **Ablage des Gesprächs.** Der Zustandsordner des Harness (`.claude`, `.copilot` oder `.pi` unter `<heim>`) liegt in Fassung 2 nicht mehr im
@@ -388,11 +391,11 @@ Zustandsordner der Installation (Ordner 0700, eigene Kennung). Darin stehen `ges
 {"fassung": 1, "harness": "copilot", "arbeitsordner": "/heim/beispiel/projekt", "kennung": "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b"}
 ```
 
-- `kennung` passt auf `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`. So gelangt nie ein Text, der wie eine
-  Option aussieht, aus der Datei in den argv.
+- `kennung` passt auf `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$` oder ist `null`. `null` steht nur im
+  Gespräch einer Sitzung der Fassung 1 (Absatz „Vorgänger der Fassung 1“). So gelangt nie ein Text, der wie eine Option aussieht, aus
+  der Datei in den argv.
 - Der Wächter und das Programm entfernen `gespraeche/<sitzung>` nie, auch nicht nach einem Fehler; ein Lauf, der vor dem exec scheitert,
-  legt den Ordner gar nicht erst an. `Loeschen` im Dienst entfernt das Gespräch des Harness ebenfalls nicht (DI-L3 Punkt 5). Wer die
-  Ordner räumt, ist offen (OPEN 29).
+  legt den Ordner gar nicht erst an. Wer die Ordner räumt, regelt der Absatz „Räumen von `gespraeche/`“ unten.
 - Der Einschluss bindet den Zustandsordner des Harness aus `gespraeche/<sitzung>/` an seinen Platz unter `<heim>`; `gespraech.json` selbst
   ist im Einschluss nicht sichtbar.
 
@@ -404,6 +407,8 @@ Zustandsordner der Installation (Ordner 0700, eigene Kennung). Darin stehen `ges
   3. Der Ordner ist mit `O_NOFOLLOW | O_DIRECTORY` geöffnet, gehört der eigenen Kennung und hat Modus 0700; `gespraech.json` darin ist eine
      eigene reguläre Datei mit Modus 0600, kein Verweis, höchstens 4096 Byte, gültig nach den JSON-Regeln dieses Vertrags, in genau der
      Form oben: sonst 65, `lauf.fortsetzung_kaputt`.
+  3a. `kennung` ist nicht `null`: sonst 69, `lauf.fortsetzung_unmoeglich`. Der Vorgänger ist eine Sitzung der Fassung 1 und hat kein
+     Gespräch, das ein Harness fortsetzen kann.
   4. `harness` und `arbeitsordner` in `gespraech.json` sind genau gleich denen der Startdatei: sonst 65, `lauf.fortsetzung_fremd`.
   5. `gespraeche/<sitzung>` besteht noch nicht: sonst 73, `lauf.sitzung_belegt`.
 - **8** (Fassung 2): Bei einem neuen Start legt das Programm `gespraeche/<sitzung>` exklusiv an (besteht er, 73, `lauf.sitzung_belegt`),
@@ -415,18 +420,102 @@ Zustandsordner der Installation (Ordner 0700, eigene Kennung). Darin stehen `ges
 **Fail closed, kein stiller Neustart.** Jeder Fehler in Schritt 5d beendet den Lauf vor der Suche, ohne Kind und ohne Harness. Das
 Programm startet dann nie einen neuen Harness ohne das alte Gespräch. Scheitert das Fortsetzen erst im Harness (etwa weil seine Ablage
 beschädigt ist), endet der Harness mit seinem eigenen Code; nach dem Start des Starters gibt es keinen eigenen Exitcode mehr (Abschnitt
-„Ablauf vor dem exec“). Dass `claude --resume`, `copilot --resume=` und `pi --session` mit einer unbekannten Kennung abbrechen und keine neue
-Sitzung anlegen, ist aus `--help` hergeleitet und nicht gemessen (OPEN 28). Bis zur Messung gilt: Legt ein Harness dabei eine neue Sitzung an,
-bekommt er in der Spalte „Fortsetzen“ „keine“, und Schritt 5d.1 lehnt ab.
+„Ablauf vor dem exec“). Gemessen ist: `claude --resume`, `copilot --resume=` und `pi --session` enden mit einer unbekannten Kennung mit
+rc 1 und legen keine neue Sitzung an (Messung unten). Zeigt eine spätere Fassung eines Harness dabei eine neue Sitzung, bekommt er in der
+Spalte „Fortsetzen“ „keine“, und Schritt 5d.1 lehnt ab.
 
-**Startdateien der Fassung 1.** Sie tragen kein `fortsetzung_von` und kein Gespräch in `gespraeche/`. Fortsetzen setzt Fassung 2 voraus; ein
-Dienst, der eine gespeicherte Start-Struktur der Fassung 1 fortsetzen will, muss sie vorher als Fassung 2 schreiben (OPEN 30).
+**Vorgänger der Fassung 1 (Entscheid des Betreibers, 27.11.2026).** Eine Sitzung der Fassung 1 lässt sich nicht fortsetzen. Ihr Harness
+hält seinen Zustandsordner im Sitzungsordner, den der Wächter am Ende entfernt. Das Fortsetzen endet darum fail closed mit 69,
+`lauf.fortsetzung_unmoeglich`, ohne stillen Neustart. Auch eine Startdatei der Fassung 2, die der Dienst aus der gespeicherten
+Start-Struktur der Fassung 1 schreibt, ändert daran nichts. „Lauf starten“ erkennt den Vorgänger so:
+
+- Bei jedem Start der Fassung 1 legt das Programm in Schritt 8 `gespraeche/<sitzung>/` exklusiv an (Ordner 0700). Darin schreibt es nur
+  `gespraech.json` (0600, `O_EXCL`) mit `"kennung": null`, Harness und Arbeitsordner der Startdatei. Einen Zustandsordner des Harness legt
+  es dort nicht ab. Besteht der Ordner schon, endet der Start mit 73, `lauf.sitzung_belegt`. Das ist die einzige Änderung am Ablauf der
+  Fassung 1; die Start-Struktur der Fassung 1, ihre Form und ihre Codes bleiben gleich.
+- Beim Fortsetzen findet Schritt 5d.3a `"kennung": null` und endet mit `lauf.fortsetzung_unmoeglich`. Das Gespräch bleibt unverändert
+  liegen und wird nicht umbenannt.
+- Fehlt `gespraeche/<fortsetzung_von>` ganz, endet der Start mit 66, `lauf.fortsetzung_fehlt` (Schritt 5d.2). Das gilt auch für eine
+  Sitzung der Fassung 1, die ein Programm ohne diesen Nachtrag gestartet hat. Auch dann startet kein Harness.
+
+Der Dienst lehnt das Fortsetzen einer Sitzung der Fassung 1 nach DI-L3 schon vorher ab (`nicht_fortsetzbar`). Schritt 5d.3a ist die
+zweite Linie, falls eine solche Startdatei doch geschrieben wird.
 
 **Fälle:** `faelle-ausstehend/` mit `erwartet-ausstehend/`: `datei-f2-fortsetzung-*`, `anfrage-f2-fortsetzung-*`,
 `anfrage-f2-sitzung-vor-fortsetzung`, `datei-f1-mit-fortsetzung` (Referenz `code_f2`) und `aufruf-f2-*` (Referenz `lauf_f2`). Neue
 `lage`-Schlüssel der Aufruf-Fälle: `gespraeche` (Sitzung zu Inhalt von `gespraech.json`) und `harness_fortsetzung` (`keine` stellt einen
 Harness ohne Option zum Fortsetzen nach). Neue Felder der Erwartung: `gespraeche_danach` und `zustandsordner_beim_start`.
-`<harness-kennung>` steht für die gewürfelte UUID.
+`<harness-kennung>` steht für die gewürfelte UUID. Den Vorgänger der Fassung 1 prüft `aufruf-f2-fortsetzen-vorgaenger-fassung-1`.
+
+### Räumen von `gespraeche/` (Entscheid des Betreibers, 27.11.2026)
+
+- „Endgültig löschen“ in der Ansicht (B16), im Dienst das Ereignis `Loeschen` (DI-L3), entfernt das Gespräch `gespraeche/<sitzung>` der
+  gelöschten Sitzung mit. Das Löschen selbst gehört dem Dienst; seinen Ablauf legt der Vertrag `dienst` in DI-L3 fest.
+- Arbeitsordner, Protokollkette, Stelle und Halter entfernt das Löschen nie.
+- Sonst bleibt das Gespräch liegen, bis die Sitzung gelöscht wird. Ein automatisches Löschen nach N Tagen kommt nach dem Pilot als
+  Option der Admins; bis dahin gibt es keines.
+- `purge` entfernt wie bisher den Zustandsordner der Installation als Ganzes.
+
+„Lauf starten“ sagt dem Dienst dafür zu:
+
+1. **Fester Pfad.** Das Gespräch einer Sitzung liegt immer genau in `<zustandsordner>/gespraeche/<sitzung>/`. `<sitzung>` ist die Kennung
+   der Sitzung in der Kennungsform von `sitzung` (Stufe 9). Der Dienst bildet den Pfad aus der Kennung allein und braucht dafür keine
+   Datei zu lesen. „Lauf starten“ legt Gespräche nirgends sonst ab.
+2. **Kein Verweis.** `gespraeche/` und jeder Eintrag `gespraeche/<sitzung>` sind echte Ordner der eigenen Kennung mit Modus 0700, nie ein
+   Verweis. `gespraech.json` ist eine eigene reguläre Datei. Unter dem Zustandsordner des Harness schreibt der Harness selbst; dort
+   können Verweise liegen. Der Dienst entfernt darum wie beim Startordner ohne Verknüpfung zu folgen: einen Verweis als Verweis, nie
+   sein Ziel.
+3. **Ein Gespräch gehört genau einer Sitzung.** Nach dem Fortsetzen liegt das Gespräch unter der neuen Kennung; unter der alten liegt
+   nichts mehr. Wer die alte Sitzung löscht, findet kein Gespräch und entfernt nichts; das ist kein Fehler. Das fortgesetzte Gespräch
+   bleibt bei der neuen Sitzung.
+4. **Keine Arbeit nach dem Start.** „Lauf starten“ schreibt `gespraeche/<sitzung>` nur in den Schritten 5d und 8, vor dem exec. Danach
+   schreibt dort nur der Harness im Einschluss, solange die Sitzung läuft. Der Dienst löscht darum nur eine Sitzung, die nicht läuft und
+   die kein Start gerade fortsetzt. Diese Prüfung gehört dem Dienst (DI-L3, hergeleitet).
+5. **Fehlen ist kein Fehler.** Eine Sitzung ohne Gespräch (Start vor dem exec gescheitert, alte Kennung nach dem Fortsetzen, Sitzung aus
+   einem Programm ohne diesen Nachtrag) hat keinen Ordner. Das Löschen endet dann ohne Fehler.
+
+### Messung von Start und Fortsetzen (27.11.2026, ohne Konto)
+
+**Aufbau.** Eine Wegwerf-VM auf dem Linux-Baurechner (Ubuntu 26.04.1, Kern 7.0.0-43, frisches Cloud-Abbild, eigene Platte, kein
+Overlay, Drossel 20 Mbit/s). Die Harnesses kamen aus npm: `@anthropic-ai/claude-code@2.1.332`, `@github/copilot@1.0.116`,
+`@earendil-works/pi-coding-agent@1.6.1`, Node 22.22.1. Vor der Messung sperrte `nft` jeden neuen ausgehenden Verkehr außer Loopback
+(Gegenprobe: `curl` zu `api.anthropic.com` und zu `1.1.1.1` endet mit rc 28). Kein Konto, kein Login, kein Token. Je Harness gab es
+ein frisches `HOME` und den Arbeitsordner `<projekt>`. `<projekt>` und `<anders>` sind zwei Ordner unter dem Heimordner
+der VM; `<projekt-name>` ist `<projekt>` mit `-` statt `/`, so wie claude und pi den Ordner benennen. `U` ist eine neue Kennung, `X` eine nie benutzte.
+
+Es gab zwei Läufe. Lauf 1 lief ohne Modell. In Lauf 2 beantwortete eine Modell-Attrappe auf `127.0.0.1:18080` jede Anfrage mit „ok“. Für
+claude war das `ANTHROPIC_BASE_URL` mit einem Platzhaltertext als Schlüssel, für pi ein Anbieter in `models.json` mit dem Typ
+`openai-completions`. copilot meldet sich bei GitHub an; ohne Konto gibt es dafür keine Attrappe. Für copilot lief zusätzlich die Attrappe
+der Copilot CLI aus `rust/spec/vorfuehrung/laeufer/attrappen/copilot_attrappe.py`. Alle Aufrufe liefen mit `-p` und `< /dev/null`; das
+Fortsetzen mit `X` lief zusätzlich im Pseudoterminal (`script`, Frist 20 s).
+
+| Frage | `claude` 2.1.332 | `copilot` 1.0.116 | `pi` 1.6.1 |
+|---|---|---|---|
+| `--session-id U` legt die Sitzung unter `U` an | ja, auch ohne Login: `.claude/projects/<projekt-name>/U.jsonl`; ohne Login rc 1 „Not logged in · Please run /login“, mit Attrappe rc 0 | ja, auch ohne Login: `.copilot/session-state/U/` mit `workspace.yaml` (`id: U`, `cwd: <projekt>`); rc 1 „Error: No authentication information found.“ | nur mit Modell: Warnung „No project session found with id 'U'; creating a new session with that id.“, Datei `.pi/agent/sessions/-<projekt-name>-/<zeit>_U.jsonl`, rc 0; ohne Modell rc 1 und keine Datei |
+| zweites `--session-id U` | rc 1 „Error: Session ID U is already in use.“, Datei unverändert | rc 1 (Anmeldung fehlt), keine zweite Sitzung | rc 0, setzt die vorhandene Sitzung fort (dieselbe Datei wächst von 6 auf 8 Zeilen, keine Warnung) |
+| Fortsetzen findet `U` | ja: `--resume U` rc 0, dieselbe Datei wächst (22, 30, 37 Zeilen), keine neue Kennung | nicht messbar: `--resume=U` zur Sitzung ohne ersten Zug meldet rc 1 „No session, task, or name matched 'U'.“ | ja: `--session U` rc 0, dieselbe Datei wächst (8, 10 Zeilen); `--session 6f1c2e3a` (Anfang der Kennung) findet sie ebenfalls |
+| Fortsetzen mit unbekannter Kennung `X` | rc 1 „No conversation found with session ID: X“, keine neue Datei; im Pseudoterminal nach 20 s kein Bild und keine Datei (rc 124 durch die Frist) | rc 1 „No session, task, or name matched 'X'.“ für `--resume=X` und `--resume X`, mit `-p` und im Pseudoterminal; keine neue Sitzung | rc 1 „No session found matching 'X'“, mit `-p` und im Pseudoterminal; keine neue Datei |
+| `--session-id` mit unbekannter Kennung | legt die Datei der Kennung an (neue Sitzung, auch ohne Login gemessen mit `X`) | legt `session-state/<kennung>/` an (erster Aufruf mit `U` oben) | rc 0, neue Sitzung `<zeit>_X.jsonl` mit der Warnung oben |
+| anderer Arbeitsordner | `--resume U` aus `<anders>` findet die Sitzung und schreibt in ihre Datei unter `<projekt-name>` (rc 0) | nicht gemessen | `--session U` aus `<anders>` fragt „Session found in different project: <projekt> Fork this session into current directory? [y/N]“ und endet ohne Eingabe mit rc 0 ohne Modellaufruf |
+| ganzes `HOME` umbenannt, gleicher Arbeitsordner | `--resume U` findet die Sitzung (rc 0) | nicht messbar | `--session U` findet die Sitzung (rc 0) |
+
+Folgen für diesen Vertrag:
+- Die Optionen der Tabelle „Optionen je Harness“ gelten unverändert. Beim Fortsetzen bleibt `--session-id` verboten: Mit unbekannter
+  Kennung legen alle drei damit eine neue Sitzung an.
+- Das Fortsetzen mit unbekannter Kennung endet bei allen drei im Harness mit rc 1 und ohne neue Sitzung. Schritt 5d.1 lehnt keinen der
+  drei ab.
+- claude prüft beim Fortsetzen den Arbeitsordner nicht; pi fragt nach einem Fork. Der Vergleich in Schritt 5d.4
+  (`lauf.fortsetzung_fremd`) ist darum die einzige Grenze gegen ein Gespräch aus einem anderen Ordner.
+- Dass `claude --session-id` eine vorhandene Kennung ablehnt, deckt sich mit `lauf.sitzung_belegt`. pi setzt in diesem Fall fort; das
+  Programm verhindert den Fall, weil es jede neue Kennung würfelt und `gespraeche/<sitzung>` exklusiv anlegt.
+- Eine copilot-Sitzung ohne ersten Zug findet `--resume=` nicht. Gemessen ist das nur ohne Anmeldung. Setzt der Dienst eine solche
+  Sitzung fort, endet copilot mit rc 1 und startet nicht neu.
+- Die Attrappe der Copilot CLI kennt keine Sitzungen. Sie nimmt `--session-id U` und `--resume=X` an, schreibt beide unverändert in ihr
+  Protokoll und meldet ohne Token „Please use /login to sign in“ mit rc 1. Für das Fortsetzen belegt sie nur den argv.
+
+Ohne Konto nicht messbar oder nicht gemessen (OPEN 31): bei copilot das Fortsetzen einer Sitzung mit mindestens einem Zug, auch nach dem
+Umbenennen; ein echter Modellaufruf bei allen drei; der Start im Einschluss mit dem eingebundenen Zustandsordner aus
+`gespraeche/<sitzung>/`; claude im Pseudoterminal (nach 20 s kein Bild, Ursache nicht geklärt).
 
 ## Schnittstelle der Prüfstelle
 
@@ -519,7 +608,7 @@ verbietet den Start), 78 `EX_CONFIG` (auch die eigene Konfiguration fehlt oder i
 | `lauf.ordner_hoeher_markiert` | `Ordner hoeher markiert als die Route` |
 | `lauf.startordner_belegt` | `Startordner enthaelt Dateien einer fruehen Sitzung` |
 | `lauf.sitzung_belegt` | `Sitzung wurde schon gestartet` |
-| `lauf.fortsetzung_unmoeglich` | `Harness kann nicht fortsetzen` |
+| `lauf.fortsetzung_unmoeglich` | `Gespraech nicht fortsetzbar` |
 | `lauf.fortsetzung_fehlt` | `Gespraech der Vorgaengersitzung fehlt` |
 | `lauf.fortsetzung_kaputt` | `Gespraech der Vorgaengersitzung unbrauchbar` |
 | `lauf.fortsetzung_fremd` | `Gespraech gehoert zu anderem Harness oder Ordner` |
@@ -1546,23 +1635,25 @@ python3 -I rust/spec/start/bau-faelle.py            # Fälle neu erzeugen
 26. **Effort im echten Start (Nachtrag 26.11.2026).** Die Optionen `--effort`, `--reasoning-effort` und `--thinking` sind nur aus
     `--help` gelesen (claude 2.1.332, copilot 1.0.116, pi 1.6.1). Ein Start damit im Einschluss ist nicht gemessen; ebenso nicht, ob
     copilot einen Wert ablehnt, den das Modell nicht trägt. Empfehlung: Der Bau von `lauf` misst je Harness einen Start mit Effort.
-28. **Fortsetzen im echten Start (Nachtrag 27.11.2026).** Die Optionen `--session-id`, `--resume`, `--resume=` und `--session` sind nur aus
-    `--help` gelesen (claude 2.1.332, copilot 1.0.116, pi 1.6.1). Nicht gemessen ist: ob jeder Harness mit `--session-id` die Kennung
-    annimmt und unter ihr ablegt, ob er beim Fortsetzen mit einer unbekannten Kennung abbricht statt neu zu beginnen, ob er das Gespräch
-    nach dem Umbenennen des Ordners und unter einer neuen Sitzungskennung der Werkbank findet, und ob `pi --session` eine Teilkennung
-    anders auflöst. Empfehlung: Der Bau von `lauf` misst je Harness einen Start und ein Fortsetzen, beide mit gültiger und mit unbekannter
-    Kennung.
-29. **Räumen von `gespraeche/`.** Kein Teil räumt die Ordner bisher; `purge` entfernt den Zustandsordner der Installation als Ganzes.
-    Offen ist, ob `Loeschen` im Dienst oder ein eigener Befehl das Gespräch einer gelöschten Sitzung entfernen soll. DI-L3 Punkt 5 sagt
-    heute: Löschen entfernt das Gespräch nie.
-30. **Fortsetzen einer Start-Struktur der Fassung 1.** Sitzungen der Fassung 1 haben kein Gespräch in `gespraeche/`; ihr Fortsetzen endet
-    mit `lauf.fortsetzung_fehlt`, auch wenn der Dienst die Struktur als Fassung 2 schreibt. Ob der Dienst solche Sitzungen schon mit
-    `nicht_fortsetzbar` ablehnen soll, entscheidet der Vertrag `dienst`.
+31. **Fortsetzen mit Konto (Nachtrag 27.11.2026, Rest von OPEN 28).** Ohne Konto sind nicht gemessen: bei copilot 1.0.116 das
+    Fortsetzen einer Sitzung mit mindestens einem Zug, auch nach dem Umbenennen von `gespraeche/<alt>`; bei allen drei ein echter
+    Modellaufruf; der Start im Einschluss mit dem eingebundenen Zustandsordner; claude 2.1.332 im Pseudoterminal mit unbekannter Kennung
+    (nach 20 s kein Bild, keine Datei). Empfehlung: Der Bau von `lauf` misst je Harness ein Fortsetzen im Einschluss mit Konto.
+32. **Gespräch ohne Kennung bei Fassung 1 ohne Fall.** Kein Fall prüft, dass ein Start der Fassung 1 `gespraeche/<sitzung>/gespraech.json`
+    mit `"kennung": null` schreibt. Die Aufruf-Fälle der Fassung 1 in `faelle/` bleiben byte-gleich und kennen `gespraeche_danach` nicht.
+    Den Fall bringt der Bau von `lauf` mit einer Referenz für Fassung 1.
 
 27. **Name in der Startdatei.** `lauf` braucht den Namen nicht. Er steht in der Datei, damit Dienst und Liste der Sitzungen (L5) eine
     Quelle haben. Empfehlung: so lassen; der Dienst führt den Namen beim Umbenennen (L3) selbst weiter.
 
 ### Erledigt
+
+28. **Fortsetzen im echten Start: geschlossen (27.11.2026).** Start und Fortsetzen je Harness sind ohne Konto in einer Wegwerf-VM gemessen
+    (Abschnitt „Messung von Start und Fortsetzen“). Der Rest steht in OPEN 31.
+29. **Räumen von `gespraeche/`: geschlossen (Entscheid des Betreibers, 27.11.2026).** „Endgültig löschen“ (B16, `Loeschen`, DI-L3)
+    entfernt das Gespräch mit; die Zusagen von „Lauf starten“ stehen im Abschnitt „Räumen von `gespraeche/`“.
+30. **Vorgänger der Fassung 1: geschlossen (Entscheid des Betreibers, 27.11.2026).** Das Fortsetzen endet mit
+    `lauf.fortsetzung_unmoeglich` (Schritt 5d.3a, Gespräch mit `"kennung": null`); Fall `aufruf-f2-fortsetzen-vorgaenger-fassung-1`.
 
 1. **Name des lokalen Harness: entschieden.** `pi` (pi 1.5.2, eigener Anbieter über `--provider`/`--model`), abgestimmt
    am 20.11.2026.

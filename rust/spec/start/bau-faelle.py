@@ -1158,13 +1158,14 @@ ausstehend("datei-f1-mit-fortsetzung", D, "Fassung 1 kennt fortsetzung_von nicht
 
 
 # Fortsetzen in „Lauf starten“: Referenz der Schritte 5d und 8 (Fassung 2). Die Optionen stammen aus `--help` der Fassungen
-# claude 2.1.332, copilot 1.0.116 und pi 1.6.1 (gelesen 27.11.2026); ein Start damit ist nicht gemessen (OPEN 28).
+# claude 2.1.332, copilot 1.0.116 und pi 1.6.1 (gelesen 27.11.2026); Start und Fortsetzen ohne Konto gemessen am 27.11.2026 (README,
+# Abschnitt „Messung von Start und Fortsetzen“).
 HARNESS_KENNUNG = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 NEU_KENNUNG = "<harness-kennung>"  # UUID v4, die „Lauf starten“ beim neuen Start würfelt
 GESPRAECH_KENNUNG = "6f1c2e3a-4b5d-4e6f-8a7b-9c0d1e2f3a4b"
 EFFORT_OPTION = {"claude": "--effort", "copilot": "--reasoning-effort", "pi": "--thinking"}
 LAUF_GRUND = {
-    "lauf.fortsetzung_unmoeglich": (69, "Harness kann nicht fortsetzen"),
+    "lauf.fortsetzung_unmoeglich": (69, "Gespraech nicht fortsetzbar"),
     "lauf.fortsetzung_fehlt": (66, "Gespraech der Vorgaengersitzung fehlt"),
     "lauf.fortsetzung_kaputt": (65, "Gespraech der Vorgaengersitzung unbrauchbar"),
     "lauf.fortsetzung_fremd": (65, "Gespraech gehoert zu anderem Harness oder Ordner"),
@@ -1210,8 +1211,12 @@ def lauf_f2(start, lage):
     g = gespraeche.get(alt)
     if g is None:
         return abgewiesen("lauf.fortsetzung_fehlt")
-    if not isinstance(g, dict) or g.get("fassung") != 1 or not HARNESS_KENNUNG.match(str(g.get("kennung"))):
+    if not isinstance(g, dict) or g.get("fassung") != 1:
         return abgewiesen("lauf.fortsetzung_kaputt")
+    if g.get("kennung") is not None and not HARNESS_KENNUNG.match(str(g.get("kennung"))):
+        return abgewiesen("lauf.fortsetzung_kaputt")
+    if g.get("kennung") is None:  # Schritt 5d.3a: Gespräch einer Sitzung der Fassung 1 (Entscheid des Betreibers, 27.11.2026)
+        return abgewiesen("lauf.fortsetzung_unmoeglich")
     if g["harness"] != h or g["arbeitsordner"] != start["arbeitsordner"]:
         return abgewiesen("lauf.fortsetzung_fremd")
     if neu in gespraeche:
@@ -1252,6 +1257,10 @@ ausstehend_aufruf("aufruf-f2-fortsetzen-ohne-fortsetzung", "der Harness kennt ke
                   "lauf.fortsetzung_unmoeglich")
 ausstehend_aufruf("aufruf-f2-fortsetzen-gespraech-fehlt", "zur Vorgängersitzung liegt kein Gespräch: kein stiller Neustart",
                   dict(COP2, fortsetzung_von="s-1"), {}, "lauf.fortsetzung_fehlt")
+ausstehend_aufruf("aufruf-f2-fortsetzen-vorgaenger-fassung-1",
+                  "der Vorgänger ist eine Sitzung der Fassung 1 (Gespräch ohne Kennung): Abbruch vor der Suche, kein Neustart",
+                  dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2, kennung=None)}},
+                  "lauf.fortsetzung_unmoeglich")
 ausstehend_aufruf("aufruf-f2-fortsetzen-kennung-kaputt", "gespraech.json trägt keine UUID v4",
                   dict(COP2, fortsetzung_von="s-1"), {"gespraeche": {"s-1": gespraech(COP2, kennung="--yolo")}},
                   "lauf.fortsetzung_kaputt")

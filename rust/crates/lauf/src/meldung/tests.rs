@@ -204,8 +204,11 @@ fn a_connection_without_descriptor_4_cannot_be_laid_over_it() {
     let (_o, pfad, _hoerer) = dienst();
     let mut ohne = Meldung::verbinden(&pfad, None).expect("connect");
     assert_eq!(ohne.auf_vier_legen(), Err(Fehler::MeldungFehlt));
-    // a held descriptor that is not number 4 is no place either
-    let anderer: OwnedFd = std::fs::File::open("/dev/null").expect("null").into();
+    // a held descriptor that is not number 4 is no place either; its copy above 4 never gets number 4, whatever the
+    // other tests of the process close meanwhile (a plain open takes the lowest free number, which may be 4)
+    let null = std::fs::File::open("/dev/null").expect("null");
+    let anderer = rustix::io::fcntl_dupfd_cloexec(&null, MELDUNG_FD + 1).expect("copy above 4");
+    drop(null);
     let mut falsch = Meldung::verbinden(&pfad, Some(anderer)).expect("connect");
     assert_eq!(falsch.auf_vier_legen(), Err(Fehler::MeldungFehlt));
 }
